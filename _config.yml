@@ -1,10 +1,10 @@
 name: Your New Jekyll Site
-description: Blogging about stuffs
+description: A new GPU-based hydro code 
 meta_description: "Your New Jekyll Site, Blogging about stuffs"
 
 aboutPage: true
 
-markdown: kramdown
+markdown: redcarpet 
 highlighter: pygments
 
 paginate: 20
@@ -15,8 +15,8 @@ disqus: false
 disqus_shortname: 'your-disqus-shortname'
 
 # Details for the RSS feed generator
-url:            'http://your-blog-url.example.com'
-author:         'Evan Schneider'
+url:            'http://evaneschneider.github.io/cholla'
+author:         'Cholla'
 authorTwitter:  'YourTwitterUsername'
 
 permalink:       /:year/:title/
