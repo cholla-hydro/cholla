@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Pixyll</title>
-    <description>A simple, beautiful theme for Jekyll that emphasizes content rather than aesthetic fluff.</description>
-    <link>http://pixyll.com/</link>
-    <atom:link href="http://pixyll.com/feed.xml" rel="self" type="application/rss+xml" />
+    <title>cholla</title>
+    <description>A new GPU-based hydro code</description>
+    <link>http://evaneschneider.github.io//cholla/</link>
+    <atom:link href="http://evaneschneider.github.io//cholla/feed.xml" rel="self" type="application/rss+xml" />
     
       <item>
         <title>Welcome!</title>
@@ -13,8 +13,8 @@
 &lt;p&gt;This site will be regularly updated with information about the current status of Cholla.&lt;/p&gt;
 </description>
         <pubDate>Tue, 22 Sep 2015 00:00:00 -0700</pubDate>
-        <link>http://pixyll.com/2015/09/22/Welcome/</link>
-        <guid isPermaLink="true">http://pixyll.com/2015/09/22/Welcome/</guid>
+        <link>http://evaneschneider.github.io//cholla/2015/09/22/Welcome/</link>
+        <guid isPermaLink="true">http://evaneschneider.github.io//cholla/2015/09/22/Welcome/</guid>
       </item>
     
   </channel>
