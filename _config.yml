@@ -1,5 +1,5 @@
-name: Your New Jekyll Site
-description: Blogging about stuffs
+name: Welcome to Cholla 
+description: Cholla development blog 
 meta_description: "Your New Jekyll Site, Blogging about stuffs"
 
 aboutPage: true
@@ -8,16 +8,16 @@ markdown: redcarpet
 highlighter: pygments
 
 paginate: 20
-baseurl: /
-domain_name: 'http://yourblog-domain.com'
+baseurl: /cholla
+domain_name: 'http://evaneschneider.github.io'
 google_analytics: 'UA-XXXXXXXX-X'
 disqus: false
 disqus_shortname: 'your-disqus-shortname'
 
 # Details for the RSS feed generator
-url:            'http://your-blog-url.example.com'
-author:         'Your Name'
-authorTwitter:  'YourTwitterUsername'
+url:            'http://evaneschneider.github.io/cholla'
+author:         'Evan Schneider'
+authorTwitter:  'navelation'
 
 permalink:       /:year/:title/
 
