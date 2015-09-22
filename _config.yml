@@ -4,7 +4,7 @@ email:       evanelizabeth88@gmail.com
 author:      Evan Schneider 
 description: "A new GPU-based hydro code"
 baseurl:     "/cholla"
-url:         "http://evaneschneider.github.io/cholla"
+url:         "http://evaneschneider.github.io/"
 date_format: "%b %-d, %Y"
 
 # Google services
