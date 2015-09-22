@@ -1,19 +1,12 @@
 ---
 layout: page
-title: About Pixyll
+title: About Cholla 
 permalink: /about/
 ---
 
-This Jekyll theme was crafted with <3 by [John Otander](http://johnotander.com)
-([@4lpine](https://twitter.com/4lpine)).
+Cholla (Computational Hydrodynamics On paraLLel Architectures) is a new 3D hydro code designed to run natively on NVIDIA GPUs. Cholla was written by Evan Schneider at the University of Arizona, with additional contributions from Brant Robertson.
 
-Checkout the [Github repository](https://github.com/johnotander/pixyll) to download it,
-request a feature, report a bug, or contribute. It's free, and open source
+Checkout the [Github repository](https://github.com/evaneschneider/cholla) to download the code.
+It's free, and open source, distributed under the GNU public license
 ([MIT](http://opensource.org/licenses/MIT)).
 
-Thanks to the following:
-
-* [BASSCSS](http://basscss.com)
-* [Jekyll](http://jekyllrb.com)
-* [Refills](http://refills.bourbon.io/)
-* [Type Scale](http://type-scale.com/)
