@@ -6,6 +6,7 @@ aboutPage: true
 
 markdown: redcarpet
 highlighter: pygments
+github: [Repository metadata]
 
 paginate: 20
 baseurl: /cholla

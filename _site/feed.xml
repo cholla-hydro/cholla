@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
-    <title>Your New Jekyll Site</title>
-    <description>Blogging about stuffs</description>
-    <link>http://your-blog-url.example.com</link>
-    <atom:link href="http://your-blog-url.example.com/feed.xml" rel="self" type="application/rss+xml" />
+    <title>Welcome to Cholla</title>
+    <description>Cholla development blog</description>
+    <link>http://evaneschneider.github.io/cholla</link>
+    <atom:link href="http://evaneschneider.github.io/cholla/feed.xml" rel="self" type="application/rss+xml" />
     
       <item>
         <title>Welcome to Cholla!</title>
@@ -14,8 +14,8 @@
 </description>
         
         <pubDate>Tue, 22 Sep 2015 03:18:00 -0700</pubDate>
-        <link>http://your-blog-url.example.com/2015/welcome-to-cholla/</link>
-        <guid isPermaLink="true">http://your-blog-url.example.com/2015/welcome-to-cholla/</guid>
+        <link>http://evaneschneider.github.io/cholla/2015/welcome-to-cholla/</link>
+        <guid isPermaLink="true">http://evaneschneider.github.io/cholla/2015/welcome-to-cholla/</guid>
       </item>
     
       <item>
@@ -27,8 +27,8 @@ To add new posts, simply add a file in the &lt;code&gt;_posts&lt;/code&gt; direc
 </description>
         
         <pubDate>Sun, 10 Nov 2013 03:18:00 -0700</pubDate>
-        <link>http://your-blog-url.example.com/2013/welcome-to-jekyll/</link>
-        <guid isPermaLink="true">http://your-blog-url.example.com/2013/welcome-to-jekyll/</guid>
+        <link>http://evaneschneider.github.io/cholla/2013/welcome-to-jekyll/</link>
+        <guid isPermaLink="true">http://evaneschneider.github.io/cholla/2013/welcome-to-jekyll/</guid>
       </item>
     
   </channel>
