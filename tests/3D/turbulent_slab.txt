@@ -1,0 +1,41 @@
+#
+# Parameter File for the turbulent slab problem.
+#
+
+######################################
+# number of grid cells in the x dimension
+nx=128
+# number of grid cells in the y dimension
+ny=128
+# number of grid cells in the z dimension
+nz=512
+# final time
+tout=100.0
+# how often to output
+outstep=0.1
+# value of gamma
+gamma=1.666667
+# name of initial conditions
+init=Turbulent_Slab
+#init=Read_Grid
+# domain properties
+xmin=0.0
+ymin=0.0
+zmin=0.0
+xlen=5.0
+ylen=5.0
+zlen=20.0
+# type of boundary conditions
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=4
+zu_bcnd=3
+custom_bcnd=wind
+# path to output directory
+outdir=./low_res/cool/binaries/
+#outdir=./
+
+
+

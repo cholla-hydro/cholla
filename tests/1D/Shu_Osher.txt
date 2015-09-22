@@ -1,0 +1,34 @@
+#
+# Parameter File for the Shu-Osher shock tube test, originally from
+#     Shu & Osher, 1989. These parameters are from Stone et al., 2008, Section 8.1
+#
+
+######################################
+# number of grid cells in the x dimension
+nx=200
+# number of grid cells in the y dimension
+ny=1
+# number of grid cells in the z dimension
+nz=1
+# final output time
+tout=0.47
+# time interval for output
+outstep=0.47
+# value of gamma
+gamma=1.4
+# name of initial conditions
+init=Shu_Osher
+# domain properties
+xmin=0.0
+ymin=0.0
+zmin=0.0
+xlen=1.0
+ylen=1.0
+zlen=1.0
+# type of boundary conditions
+xl_bcnd=3
+xu_bcnd=3
+# path to output directory
+outdir=/data2/evan/grid_tests/Shu_Osher/
+
+

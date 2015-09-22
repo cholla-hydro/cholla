@@ -1,0 +1,75 @@
+EXEC   = cholla
+
+OPTIMIZE =  -O2  
+
+
+OBJS   = main.o global.o grid3D.o initial_conditions.o boundary_conditions.o CTU_1D.o CTU_2D.o CTU_3D.o plm.o plm_athena.o ppm_flash.o ppm_athena.o exact.o roe.o subgrid_routines_2D.o subgrid_routines_3D.o CTU_1D_cuda.o CTU_2D_cuda.o CTU_3D_cuda.o plm_p_cuda.o plm_athena_cuda.o ppm_flash_cuda.o ppm_athena_cuda.o exact_cuda.o roe_cuda.o h_correction_2D_cuda.o h_correction_3D_cuda.o mpi_routines.o mpi_boundaries.o MPI_Comm_node.o io_mpi.o io.o error_handling.o cuda_mpi_routines.o
+
+
+#To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
+#otherwise gcc/g++ will be used for serial compilation
+MPI_FLAGS =  -DMPI_CHOLLA
+
+ifdef MPI_FLAGS
+  CC	= mpicc
+  CXX   = mpic++
+
+  MPI_FLAGS += -DSLAB
+  FFT_LIBS  += -lfftw3_mpi
+else
+  CC	= gcc
+  CXX   = g++
+endif
+
+#define the NVIDIA CUDA compiler
+NVCC	= nvcc
+
+.SUFFIXES : .c .cpp .cu .o
+
+PRECISION = -DPRECISION=1
+#PRECISION = -DPRECISION=2
+
+#OUTPUT = -DWITH_GHOST
+OUTPUT = -DNO_GHOST
+
+#RECONSTRUCTION = -DPCM
+#RECONSTRUCTION = -DPLM
+#RECONSTRUCTION = -DPLM_ATHENA
+#RECONSTRUCTION = -DPPM_FLASH
+RECONSTRUCTION = -DPPM_ATHENA
+
+#SOLVER = -DEXACT
+SOLVER = -DROE
+
+INCL   = -I./ -I/usr/local/cuda/include
+NVLIBS = -L/usr/local/cuda/lib -lcuda -lcudart
+LIBS   = -lm 
+
+
+FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) -DH_CORRECTION -DCUDA -DCUDA_ERROR_CHECK
+CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) -m64 -g -O0
+CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) -m64 -g -O0
+NVCCFLAGS = $(FLAGS) -m64 -arch=compute_30 -code=sm_30 -fmad=false -ccbin /usr/bin/clang -Xcompiler -stdlib=libstdc++
+LDFLAGS	  = -m64 -F/Library/Frameworks -framework CUDA
+
+
+%.o:	%.c
+		$(CC) $(CFLAGS)  $(INCL)  -c $< -o $@ 
+
+%.o:	%.cpp
+		$(CXX) $(CXXFLAGS)  $(INCL)  -c $< -o $@ 
+
+%.o:	%.cu
+		$(NVCC) $(NVCCFLAGS)  $(INCL)  -c $< -o $@ 
+
+
+$(EXEC): $(OBJS) 
+	 	 $(CXX) $(LDFLAGS) $(OBJS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL)   
+
+#$(OBJS): $(INCL) 
+
+.PHONY : clean
+
+clean:
+	 rm -f $(OBJS) $(EXEC)
+
