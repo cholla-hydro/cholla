@@ -1,22 +1,20 @@
-<nav id="post-nav">
+<div class="pagination clearfix mb1 mt4">
+  <div class="left">
     {% if paginator.previous_page %}
-        <span class="prev">
-            {% if paginator.previous_page == 1 %}
-                <a href="{{ site.baseurl }}" title="Previous Page">
-                    <span class="arrow">←</span> Newer Posts
-                </a>
-            {% else %}
-                <a href="{{ site.baseurl }}page{{ paginator.previous_page }}/">
-                    <span class="arrow">←</span> Newer Posts
-                </a>
-            {% endif %}
-        </span>
+      {% if paginator.page == 2 %}
+        <a class="pagination-item" href="{{ site.baseurl }}/">Newer</a>
+      {% else %}
+        <a class="pagination-item" href="{{ site.baseurl }}/page{{paginator.previous_page}}/">Newer</a>
+      {% endif %}
+    {% else %}
+      <span class="pagination-item disabled">Newer</span>
     {% endif %}
+  </div>
+  <div class="right">
     {% if paginator.next_page %}
-        <span class="next">
-            <a href="{{ site.baseurl }}page{{ paginator.next_page }}/">
-                Older Posts <span class="arrow">→</span>
-            </a>
-        </span>
+      <a class="pagination-item" href="{{ site.baseurl }}/page{{paginator.next_page}}/">Older</a>
+    {% else %}
+      <span class="pagination-item disabled">Older</span>
     {% endif %}
-</nav>
+  </div>
+</div>

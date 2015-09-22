@@ -1,42 +1,59 @@
-name: Your New Jekyll Site
-description: A new GPU-based hydro code 
-meta_description: "Your New Jekyll Site, Blogging about stuffs"
+# Site settings
+title:       cholla 
+email:       evanelizabeth88@gmail.com 
+author:      Evan Schneider 
+description: "A simple, beautiful theme for Jekyll that emphasizes content rather than aesthetic fluff."
+baseurl:     "/cholla"
+url:         "http://evaneschneider.github.io"
+date_format: "%b %-d, %Y"
 
-aboutPage: true
+# Google services
+google_analytics:
+google_verification:
 
-markdown: redcarpet 
-highlighter: pygments
+# Optional features
+animated:             false
+show_related_posts:   false
+show_post_footers:    false
+show_social_icons:    false
+ajaxify_contact_form: false
 
-paginate: 20
-baseurl: "/cholla"
-domain_name: "http://evaneschneider.github.io"
-google_analytics: 'UA-XXXXXXXX-X'
-disqus: false
-disqus_shortname: 'your-disqus-shortname'
+# Disqus post comments
+# (leave blank to disable Disqus)
+disqus_shortname:
 
-# Details for the RSS feed generator
-url:            'http://evaneschneider.github.io/cholla'
-author:         'Cholla'
-authorTwitter:  'YourTwitterUsername'
+# Social icons
+github_username:
+bitbucket_username:
+stackoverflow_id:
+twitter_username:
+google_plus_id:
+linkedin_username:
+angellist_username:
+medium_id:
+bitcoin_url:
+paypal_url:
+flattr_button:
 
-permalink:       /:year/:title/
+# Post sharing icons
+show_sharing_icons: false
+share_text: 'Share this post!'
+# Change to 'true' to enable individual icons
+share_facebook: false
+share_twitter: false
+share_googleplus: false
+share_linkedin: false
+share_digg: false
+share_tumblr: false
+share_reddit: false
+share_stumbleupon: false
+share_hackernews: false
 
-defaults:
-    -
-        scope:
-            path: "" # empty string for all files
-            type: pages
-        values:
-            layout: default
-    -
-        scope:
-            path: "" # empty string for all files
-            type: posts
-        values:
-            layout: post
-    -
-        scope:
-            path: ""
-            type: drafts
-        values:
-            layout: post
+# Build settings
+markdown:     kramdown
+redcarpet:
+  extensions: ['smart', 'tables', 'with_toc_data']
+permalink:    pretty
+paginate:     4
+sass:
+  compressed: true
