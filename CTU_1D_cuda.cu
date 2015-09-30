@@ -361,18 +361,24 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     ge1 = dev_conserved[5*n_cells + id];
     // internal energy calculated from total energy
     ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
+    // if the ratio of conservatively calculated internal energy to total energy
+    // is greater than 1/1000, use the conservatively calculated internal energy
+    if (ge2/E > 0.001) {
+      dev_conserved[5*n_cells + id] = ge2;
+    }    
     // find the max nearby total energy 
     Emax = fmax(dev_conserved[4*n_cells + im1], E);
     Emax = fmax(dev_conserved[4*n_cells + ip1], Emax);
+    // if the ratio of conservatively calculated internal energy to max nearby total energy
+    // is greater than 1/10, continue to use the conservatively calculated internal energy 
     if (ge2/Emax > 0.1) {
       dev_conserved[5*n_cells + id] = ge2;
-      ge1 = ge2;
     }
-    else printf("%d Using ge1 %f %f %f %f\n", id, ge1, ge2, Emax, ge2/Emax);
+    // is less than 1/10, sync the total energy with the nonconservative internal energy 
+    else dev_conserved[4*n_cells + id] += ge1 - ge2;
     /*
     // if the conservatively calculated internal energy is greater than the estimate of the truncation error,
     // use the internal energy computed from the total energy to do the update
-    //printf("%3d vx %f %f %f\n", id, dev_conserved[1*n_cells + im1]/dev_conserved[im1], vx, dev_conserved[1*n_cells + ip1]/dev_conserved[ip1]);
     //find the max nearby velocity difference (estimate of truncation error) 
     vmax = fmax(fabs(vx-dev_conserved[1*n_cells + im1]/dev_conserved[im1]), fabs(dev_conserved[1*n_cells + ip1]/dev_conserved[ip1]-vx));
     //printf("%3d %f %f %f %f\n", id, ge1, ge2, vmax, 0.25*d*vmax*vmax);
@@ -383,14 +389,10 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     //else printf("%d Using ge1 %f %f %f %f\n", id, ge1, ge2, vmax, 0.25*d*vmax*vmax);
     */
     // update the total energy
-    dev_conserved[4*n_cells + id] += ge1 - ge2; 
-    if (ge2/E > 0.001) {
-      dev_conserved[5*n_cells + id] = ge2;
-      ge1 = ge2;
-    }
+     
     // recalculate the pressure 
-    P = ge1 * (gamma - 1.0);    
-    if (P < 0.0) printf("%d Negative pressure after final update. %f %f %f\n", id, ge1, ge2, d*ge1);    
+    P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
+    if (P < 0.0) printf("%d Negative pressure after final update. %f %f \n", id, ge1, ge2);    
   }
 
 }
