@@ -160,9 +160,6 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
               dev_conserved[o2*n_cells + id]*dev_conserved[o2*n_cells + id] +
               dev_conserved[o3*n_cells + id]*dev_conserved[o3*n_cells + id]) / dev_conserved[id]) * (gamma - 1.0);
     p_imth = fmax(p_imth, (Real) TINY_NUMBER);
-    #ifdef DE
-    p_imth  = dev_conserved[5*n_cells + id] * (gamma - 1.0);
-    #endif
     // cell i+3
     if (dir == 0) id = xid+3 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid+3)*nx + zid*nx*ny;
@@ -172,9 +169,6 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
               dev_conserved[o2*n_cells + id]*dev_conserved[o2*n_cells + id] +
               dev_conserved[o3*n_cells + id]*dev_conserved[o3*n_cells + id]) / dev_conserved[id]) * (gamma - 1.0);
     p_ipth = fmax(p_imth, (Real) TINY_NUMBER);  
-    #ifdef DE
-    p_ipth  = dev_conserved[5*n_cells + id] * (gamma - 1.0);
-    #endif
   
 
     //use ppm routines to set cell boundary values (see Fryxell Sec. 3.1.1)

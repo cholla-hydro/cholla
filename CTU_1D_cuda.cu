@@ -303,8 +303,10 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+    #ifdef DE
     vx_imo = dev_conserved[1*n_cells + id-1]/dev_conserved[id-1];
     vx_ipo = dev_conserved[1*n_cells + id+1]/dev_conserved[id+1];
+    #endif
   
     // update the conserved variable array
     dev_conserved[            id] += dtodx * (dev_F[            id-1] - dev_F[            id]);
@@ -337,7 +339,7 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
 {
   int id;
   Real d, d_inv, vx, vy, vz, P, E;
-  Real ge1, ge2, vmax, Emax;
+  Real ge1, ge2, Emax;
   int im1, ip1;
 
   // get a global thread ID
@@ -363,9 +365,11 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     // if the ratio of conservatively calculated internal energy to total energy
     // is greater than 1/1000, use the conservatively calculated internal energy
+    //if (ge2/E < 0.0001 && ge1+0.0000001 < ge2) printf("%3d Using ge1 %f %f\n", id, ge1, ge2);
     if (ge2/E > 0.001) {
       dev_conserved[5*n_cells + id] = ge2;
-    }    
+      ge1 = ge2;
+    }
     // find the max nearby total energy 
     Emax = fmax(dev_conserved[4*n_cells + im1], E);
     Emax = fmax(dev_conserved[4*n_cells + ip1], Emax);
@@ -373,9 +377,10 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     // is greater than 1/10, continue to use the conservatively calculated internal energy 
     if (ge2/Emax > 0.1) {
       dev_conserved[5*n_cells + id] = ge2;
+      ge1 = ge2;
     }
-    // is less than 1/10, sync the total energy with the nonconservative internal energy 
-    else dev_conserved[4*n_cells + id] += ge1 - ge2;
+    // sync the total energy with the internal energy 
+    dev_conserved[4*n_cells + id] += ge1 - ge2;
     /*
     // if the conservatively calculated internal energy is greater than the estimate of the truncation error,
     // use the internal energy computed from the total energy to do the update

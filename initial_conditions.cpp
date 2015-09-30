@@ -232,6 +232,72 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
 }
 
 
+void Grid3D::Square_Wave(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r)
+{
+  int i, j, k, id;
+  int istart, jstart, kstart, iend, jend, kend;
+  Real x_pos, y_pos, z_pos;
+  Real v, P, cs;
+
+  istart = H.n_ghost;
+  iend   = H.nx-H.n_ghost;
+  if (H.ny > 1) {
+    jstart = H.n_ghost;
+    jend   = H.ny-H.n_ghost;
+  }
+  else {
+    jstart = 0;
+    jend   = H.ny;
+  }
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz-H.n_ghost;
+  }
+  else {
+    kstart = 0;
+    kend   = H.nz;
+  }
+
+  // set initial values of conserved variables
+  for(k=kstart; k<kend; k++) {
+    for(j=jstart; j<jend; j++) {
+      for(i=istart; i<iend; i++) {
+
+        //get cell index
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        // get cell-centered position
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+
+        C.density[id]    = rho_l;
+        //C.momentum_x[id] = 0.0;
+        C.momentum_x[id] = rho_l * v_l;
+        C.momentum_y[id] = 0.0;
+        C.momentum_z[id] = 0.0;
+        //C.momentum_z[id] = rho_l * v_l;
+        C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
+        #ifdef DE
+        C.GasEnergy[id]  = P_l/(gama-1.0);
+        #endif
+        if (x_pos < 0.25*
+        {
+          C.density[id]    = rho_r;
+          //C.momentum_x[id] = 0.0;
+          C.momentum_x[id] = rho_r * v_r;
+          C.momentum_y[id] = 0.0;
+          C.momentum_z[id] = 0.0;
+          //C.momentum_z[id] = rho_r * v_r;
+          C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
+          #ifdef DE
+          C.GasEnergy[id]  = P_r/(gama-1.0);
+          #endif
+        }
+      }
+    }
+  }
+}
+
+
 /*! \fn void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph)
  *  \brief Initialize the grid with a Riemann problem. */
 void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph)
