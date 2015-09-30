@@ -163,7 +163,7 @@ class Grid3D
       
       #ifdef DE
       /*! \var GasEnergy
-       *  \brief Array containing the specific internal energy of each cell, only tracked separately when using
+       *  \brief Array containing the internal energy of each cell, only tracked separately when using
            the dual-energy formalism. */
       Real *GasEnergy;
       #endif

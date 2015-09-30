@@ -239,17 +239,7 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
   Real x_pos, y_pos, z_pos;
-  Real velocity_unit = LENGTH_UNIT / TIME_UNIT;  
-  Real pressure_unit = DENSITY_UNIT * LENGTH_UNIT * LENGTH_UNIT / (TIME_UNIT * TIME_UNIT);
   Real v, P, cs;
-  /*
-  v_l = v_l / velocity_unit;
-  v_r = v_r / velocity_unit;
-  P_l = P_l / pressure_unit;
-  P_r = P_r / pressure_unit;
-  cs = sqrt(gama*P_l/rho_l);
-  v_l =  50*cs;
-  */
 
   istart = H.n_ghost;
   iend   = H.nx-H.n_ghost;
@@ -291,7 +281,7 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
           //C.momentum_z[id] = rho_l * v_l;
           C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
           #ifdef DE
-          C.GasEnergy[id]  = P_l/(gama-1.0)/rho_l;
+          C.GasEnergy[id]  = P_l/(gama-1.0);
           #endif
         }
         else
@@ -304,7 +294,7 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
           //C.momentum_z[id] = rho_r * v_r;
           C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
           #ifdef DE
-          C.GasEnergy[id]  = P_r/(gama-1.0)/rho_r;
+          C.GasEnergy[id]  = P_r/(gama-1.0);
           #endif
         }
       }
@@ -1039,7 +1029,7 @@ void Grid3D::Cloud_3D() {
         C.Energy[id] = (P_cloud)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
         //C.Energy[id] = (P_cloud)/(gama-1.0);
         #ifdef DE
-        C.GasEnergy[id] = P_cloud / C.density[id] / (gama-1.0);
+        C.GasEnergy[id] = P_cloud / (gama-1.0);
         #endif
       }
     }

@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
   char *param_file;
   struct parameters P;
   int nfile = 0; // number of output files
-  double outtime = 0; // current output time
+  Real outtime = 0; // current output time
 
   // read in command line arguments
   if (argc != 2)

@@ -97,7 +97,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     p_i  = (dev_conserved[4*n_cells + id] - 0.5*d_i*(vx_i*vx_i + vy_i*vy_i + vz_i*vz_i)) * (gamma - 1.0);
     p_i  = fmax(p_i, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_i =  dev_conserved[5*n_cells + id];
+    ge_i =  dev_conserved[5*n_cells + id] / d_i;
     #endif
     // cell i-1
     if (dir == 0) id = xid-1 + yid*nx + zid*nx*ny;
@@ -110,7 +110,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
     p_imo  = fmax(p_imo, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_imo =  dev_conserved[5*n_cells + id];
+    ge_imo =  dev_conserved[5*n_cells + id] / d_imo;
     #endif
     // cell i+1
     if (dir == 0) id = xid+1 + yid*nx + zid*nx*ny;
@@ -123,7 +123,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     p_ipo  = (dev_conserved[4*n_cells + id] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma - 1.0);
     p_ipo  = fmax(p_ipo, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_ipo =  dev_conserved[5*n_cells + id];
+    ge_ipo =  dev_conserved[5*n_cells + id] / d_ipo;
     #endif
     // cell i-2
     if (dir == 0) id = xid-2 + yid*nx + zid*nx*ny;
@@ -136,7 +136,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     p_imt  = (dev_conserved[4*n_cells + id] - 0.5*d_imt*(vx_imt*vx_imt + vy_imt*vy_imt + vz_imt*vz_imt)) * (gamma - 1.0);
     p_imt  = fmax(p_imt, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_imt =  dev_conserved[5*n_cells + id];
+    ge_imt =  dev_conserved[5*n_cells + id] / d_imt;
     #endif
     // cell i+2
     if (dir == 0) id = xid+2 + yid*nx + zid*nx*ny;
@@ -149,7 +149,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     p_ipt  = (dev_conserved[4*n_cells + id] - 0.5*d_ipt*(vx_ipt*vx_ipt + vy_ipt*vy_ipt + vz_ipt*vz_ipt)) * (gamma - 1.0);
     p_ipt  = fmax(p_ipt, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_ipt =  dev_conserved[5*n_cells + id];
+    ge_ipt =  dev_conserved[5*n_cells + id] / d_ipt;
     #endif
     // cell i-3
     if (dir == 0) id = xid-3 + yid*nx + zid*nx*ny;
@@ -161,7 +161,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
               dev_conserved[o3*n_cells + id]*dev_conserved[o3*n_cells + id]) / dev_conserved[id]) * (gamma - 1.0);
     p_imth = fmax(p_imth, (Real) TINY_NUMBER);
     #ifdef DE
-    p_imth  = dev_conserved[6*n_cells + id];
+    p_imth  = dev_conserved[5*n_cells + id] * (gamma - 1.0);
     #endif
     // cell i+3
     if (dir == 0) id = xid+3 + yid*nx + zid*nx*ny;
@@ -173,7 +173,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
               dev_conserved[o3*n_cells + id]*dev_conserved[o3*n_cells + id]) / dev_conserved[id]) * (gamma - 1.0);
     p_ipth = fmax(p_imth, (Real) TINY_NUMBER);  
     #ifdef DE
-    p_ipth  = dev_conserved[6*n_cells + id];
+    p_ipth  = dev_conserved[5*n_cells + id] * (gamma - 1.0);
     #endif
   
 
@@ -435,7 +435,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     dev_bounds_R[o3*n_cells + id] = dl*vzl;
     dev_bounds_R[4*n_cells + id] = pl/(gamma-1.0) + 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl);    
     #ifdef DE
-    dev_bounds_R[5*n_cells + id] = gel;    
+    dev_bounds_R[5*n_cells + id] = dl*gel;    
     #endif
     // bounds_L refers to the left side of the i+1/2 interface
     id = xid + yid*nx + zid*nx*ny;
@@ -445,7 +445,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     dev_bounds_L[o3*n_cells + id] = dr*vzr;
     dev_bounds_L[4*n_cells + id] = pr/(gamma-1.0) + 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr);
     #ifdef DE
-    dev_bounds_L[5*n_cells + id] = ger;
+    dev_bounds_L[5*n_cells + id] = dl*ger;
     #endif
 
   }

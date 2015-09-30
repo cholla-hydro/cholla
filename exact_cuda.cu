@@ -56,7 +56,7 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
     pl  = (dev_bounds_L[4*n_cells + tid] - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     pl  = fmax(pl, (Real) TINY_NUMBER);
     #ifdef DE
-    gel = dev_bounds_L[5*n_cells + tid];
+    gel = dev_bounds_L[5*n_cells + tid]/dl;
     #endif
     dr  = dev_bounds_R[            tid];
     vxr = dev_bounds_R[o1*n_cells + tid]/dr;
@@ -65,7 +65,7 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
     pr  = (dev_bounds_R[4*n_cells + tid] - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);  
     pr  = fmax(pr, (Real) TINY_NUMBER);
     #ifdef DE
-    ger = dev_bounds_R[5*n_cells + tid];
+    ger = dev_bounds_R[5*n_cells + tid]/dr;
     #endif
 
     // compute sounds speeds in left and right regions
@@ -95,6 +95,7 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
       dev_flux[o3*n_cells + tid] = ds*vs*vzl;
       #ifdef DE
       dev_flux[5*n_cells + tid] = ds*vs*gel;
+      dev_flux[6*n_cells + tid] = vs;
       #endif
       Es = (ps/(gamma - 1.0)) + 0.5*ds*(vs*vs + vyl*vyl + vzl*vzl);
     }
@@ -104,6 +105,7 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
       dev_flux[o3*n_cells + tid] = ds*vs*vzr;
       #ifdef DE
       dev_flux[5*n_cells + tid] = ds*vs*ger;
+      dev_flux[6*n_cells + tid] = vs;
       #endif
       Es = (ps/(gamma - 1.0)) + 0.5*ds*(vs*vs + vyr*vyr + vzr*vzr);
     }

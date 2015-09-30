@@ -52,7 +52,7 @@ NVLIBS = -L/usr/local/cuda/lib -lcuda -lcudart
 LIBS   = -lm -lgsl
 
 
-FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) -DCUDA -DCUDA_ERROR_CHECK
+FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) -DDE -DCUDA -DCUDA_ERROR_CHECK
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) -m64
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) -m64
 NVCCFLAGS = $(FLAGS) -m64 -arch=compute_20 -code=sm_20 -fmad=false -ccbin /usr/bin/clang -Xcompiler -stdlib=libstdc++ 
