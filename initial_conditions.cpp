@@ -24,10 +24,12 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
   Set_Domain_Properties(P);
   Set_Gammas(P.gamma);
 
-  if (strcmp(P.init, "Sound_Wave")==0) {
-    Sound_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);
-  } else if (strcmp(P.init, "Constant")==0) {
+  if (strcmp(P.init, "Constant")==0) {
     Constant(P.rho, P.vx, P.vy, P.vz, P.P);    
+  } else if (strcmp(P.init, "Sound_Wave")==0) {
+    Sound_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);
+  } else if (strcmp(P.init, "Square_Wave")==0) {
+    Square_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);    
   } else if (strcmp(P.init, "Riemann")==0) {
     Riemann(P.rho_l, P.v_l, P.P_l, P.rho_r, P.v_r, P.P_r, P.diaph);
   } else if (strcmp(P.init, "Shu_Osher")==0) {
@@ -124,6 +126,58 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
 }
 
 
+
+/*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
+ *  \brief Constant gas properties. */
+void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
+{
+  int i, j, k, id;
+  int istart, jstart, kstart, iend, jend, kend;
+  Real x_pos, y_pos, z_pos;
+
+  istart = H.n_ghost;
+  iend   = H.nx-H.n_ghost;
+  if (H.ny > 1) {
+    jstart = H.n_ghost;
+    jend   = H.ny-H.n_ghost;
+  }
+  else {
+    jstart = 0;
+    jend   = H.ny;
+  }
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz-H.n_ghost;
+  }
+  else {
+    kstart = 0;
+    kend   = H.nz;
+  }
+
+  // set initial values of conserved variables
+  for(k=kstart; k<kend; k++) {
+    for(j=jstart; j<jend; j++) {
+      for(i=istart; i<iend; i++) {
+
+        //get cell index
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        // get cell-centered position
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        
+        // set constant initial states
+        C.density[id]    = rho;
+        C.momentum_x[id] = rho*vx;
+        C.momentum_y[id] = rho*vy;
+        C.momentum_z[id] = rho*vz;
+        C.Energy[id]     = P/(gama-1.0) + 0.5*rho*(vx*vx + vy*vy + vz*vz);
+      }
+    }
+  }
+
+}
+
+
 /*! \fn void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
  *  \brief Sine wave perturbation. */
 void Grid3D::Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
@@ -181,9 +235,9 @@ void Grid3D::Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
 }
 
 
-/*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
- *  \brief Constant gas properties. */
-void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
+/*! \fn void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
+ *  \brief Square wave density perturbation with amplitude A*rho in pressure equilibrium. */
+void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
@@ -218,78 +272,26 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
 
         // get cell-centered position
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
-        
-        // set constant initial states
+
         C.density[id]    = rho;
-        C.momentum_x[id] = rho*vx;
-        C.momentum_y[id] = rho*vy;
-        C.momentum_z[id] = rho*vz;
-        C.Energy[id]     = P/(gama-1.0) + 0.5*rho*(vx*vx + vy*vy + vz*vz);
-      }
-    }
-  }
-
-}
-
-
-void Grid3D::Square_Wave(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r)
-{
-  int i, j, k, id;
-  int istart, jstart, kstart, iend, jend, kend;
-  Real x_pos, y_pos, z_pos;
-  Real v, P, cs;
-
-  istart = H.n_ghost;
-  iend   = H.nx-H.n_ghost;
-  if (H.ny > 1) {
-    jstart = H.n_ghost;
-    jend   = H.ny-H.n_ghost;
-  }
-  else {
-    jstart = 0;
-    jend   = H.ny;
-  }
-  if (H.nz > 1) {
-    kstart = H.n_ghost;
-    kend   = H.nz-H.n_ghost;
-  }
-  else {
-    kstart = 0;
-    kend   = H.nz;
-  }
-
-  // set initial values of conserved variables
-  for(k=kstart; k<kend; k++) {
-    for(j=jstart; j<jend; j++) {
-      for(i=istart; i<iend; i++) {
-
-        //get cell index
-        id = i + j*H.nx + k*H.nx*H.ny;
-
-        // get cell-centered position
-        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
-
-        C.density[id]    = rho_l;
         //C.momentum_x[id] = 0.0;
-        C.momentum_x[id] = rho_l * v_l;
-        C.momentum_y[id] = 0.0;
-        C.momentum_z[id] = 0.0;
+        C.momentum_x[id] = rho * vx;
+        C.momentum_y[id] = rho * vy;
+        C.momentum_z[id] = rho * vz;
         //C.momentum_z[id] = rho_l * v_l;
-        C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
+        C.Energy[id]     = P/(gama-1.0) + 0.5*rho*(vx*vx + vy*vy + vz*vz);
         #ifdef DE
-        C.GasEnergy[id]  = P_l/(gama-1.0);
+        C.GasEnergy[id]  = P/(gama-1.0);
         #endif
-        if (x_pos < 0.25*
+        if (x_pos > 0.25*H.domlen_x && x_pos < 0.75*H.domlen_x)
         {
-          C.density[id]    = rho_r;
-          //C.momentum_x[id] = 0.0;
-          C.momentum_x[id] = rho_r * v_r;
-          C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = 0.0;
-          //C.momentum_z[id] = rho_r * v_r;
-          C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
+          C.density[id]    = rho*A;
+          C.momentum_x[id] = rho*A * vx;
+          C.momentum_y[id] = rho*A * vy;
+          C.momentum_z[id] = rho*A * vz;
+          C.Energy[id]     = P/(gama-1.0) + 0.5*rho*A*(vx*vx + vy*vy + vz*vz);        
           #ifdef DE
-          C.GasEnergy[id]  = P_r/(gama-1.0);
+          C.GasEnergy[id]  = P/(gama-1.0);
           #endif
         }
       }

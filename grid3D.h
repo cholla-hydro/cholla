@@ -223,13 +223,17 @@ class Grid3D
      *  \brief Free the memory for the density array. */
     void FreeMemory(void);
 
+    /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
+     *  \brief Constant gas properties. */
+    void Constant(Real rho, Real vx, Real vy, Real vz, Real P);
+
     /*! \fn void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
      *  \brief Sine wave perturbation. */
     void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
 
-    /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
-     *  \brief Constant gas properties. */
-    void Constant(Real rho, Real vx, Real vy, Real vz, Real P);
+    /*! \fn void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
+     *  \brief Square wave density perturbation with amplitude A*rho in pressure equilibrium. */
+    void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
 
     /*! \fn void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph)
      *  \brief Initialize the grid with a Riemann problem. */
