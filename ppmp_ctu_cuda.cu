@@ -179,7 +179,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     vzl = interface_value(vz_imt, vz_imo, vz_i, vz_ipo, dx);
     pl  = interface_value(p_imt,  p_imo,  p_i,  p_ipo,  dx);
     #ifdef DE
-    gel  = interface_value(ge_imt,  ge_imo,  ge_i,  ge_ipo,  dx);
+    gel = interface_value(ge_imt, ge_imo, ge_i, ge_ipo, dx);
     #endif
     // right
     dr  = interface_value(d_imo,  d_i,  d_ipo,  d_ipt,  dx);
@@ -439,7 +439,7 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     dev_bounds_L[o3*n_cells + id] = dr*vzr;
     dev_bounds_L[4*n_cells + id] = pr/(gamma-1.0) + 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr);
     #ifdef DE
-    dev_bounds_L[5*n_cells + id] = dl*ger;
+    dev_bounds_L[5*n_cells + id] = dr*ger;
     #endif
 
   }

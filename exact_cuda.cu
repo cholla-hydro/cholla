@@ -110,7 +110,8 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
       Es = (ps/(gamma - 1.0)) + 0.5*ds*(vs*vs + vyr*vyr + vzr*vzr);
     }
     dev_flux[4*n_cells + tid] = (Es+ps)*vs;
-
+    //dev_flux[5*n_cells + tid] = ps*vs/(gamma-1.0);
+    //printf("%3d %f %f %f %f\n", tid, dl, dr, gel, ger);
     //printf("%d %d %f %f %f %f %f %f %f %f\n", xid, yid, dl, dr, vxl, vxr, pl, pr, dev_flux[2*n_cells + tid], dev_flux[3*n_cells + tid]);
    /*
     if (tid > 1 && tid < 105) {

@@ -57,6 +57,13 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   Real qx;
   Real lamdiff;
   Real sum_0, sum_1, sum_2, sum_3, sum_4;  
+  #ifdef DE
+  Real ge_i, ge_imo, ge_ipo;
+  Real del_ge_L, del_ge_R, del_ge_C, del_ge_G;
+  Real del_ge_m_i;
+  Real ge_L_iph, ge_R_imh;
+  Real sum_5 = 0;
+  #endif
 
   // get a thread ID
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -79,6 +86,9 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     vz_i =  dev_conserved[o3*n_cells + id] / d_i;
     p_i  = (dev_conserved[4*n_cells + id] - 0.5*d_i*(vx_i*vx_i + vy_i*vy_i + vz_i*vz_i)) * (gamma - 1.0);
     p_i  = fmax(p_i, (Real) TINY_NUMBER);
+    #ifdef DE
+    ge_i =  dev_conserved[5*n_cells + id] / d_i;
+    #endif
     // cell i-1
     if (dir == 0) id = xid-1 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid-1)*nx + zid*nx*ny;
@@ -89,6 +99,9 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     vz_imo =  dev_conserved[o3*n_cells + id] / d_imo;
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
     p_imo  = fmax(p_imo, (Real) TINY_NUMBER);
+    #ifdef DE
+    ge_imo =  dev_conserved[5*n_cells + id] / d_imo;
+    #endif
     // cell i+1
     if (dir == 0) id = xid+1 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid+1)*nx + zid*nx*ny;
@@ -99,6 +112,9 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     vz_ipo =  dev_conserved[o3*n_cells + id] / d_ipo;
     p_ipo  = (dev_conserved[4*n_cells + id] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma - 1.0);
     p_ipo  = fmax(p_ipo, (Real) TINY_NUMBER);
+    #ifdef DE
+    ge_ipo =  dev_conserved[5*n_cells + id] / d_ipo;
+    #endif
 
 
     // calculate the adiabatic sound speed in cell i
@@ -150,6 +166,14 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     if (del_p_L*del_p_R > 0.0) { del_p_G = 2.0*del_p_L*del_p_R / (del_p_L+del_p_R); }
     else { del_p_G = 0.0; } 
 
+    #ifdef DE
+    del_ge_L = ge_i - ge_imo;
+    del_ge_R = ge_ipo - ge_i;
+    del_ge_C = 0.5*(ge_ipo - ge_imo);
+    if (del_ge_L*del_ge_R > 0.0) { del_ge_G = 2.0*del_ge_L*del_ge_R / (del_ge_L+del_ge_R); }
+    else { del_ge_G = 0.0; } 
+    #endif
+
 
     // Step 3 - Project the left, right, centered and van Leer differences onto the characteristic variables
     //          Stone Eqn 37 (del_a are differences in characteristic variables, see Stone for notation)
@@ -191,7 +215,6 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
       del_a_4_m = SIGN(del_a_4_C) * minof3(2*fabs(del_a_4_L), 2*fabs(del_a_4_R), fabs(del_a_4_C));
     */
 
-    /************ New from Athena code ******************/
     del_a_0_m = del_a_1_m = del_a_2_m = del_a_3_m = del_a_4_m = 0.0;
   
     if (del_a_0_L*del_a_0_R > 0.0) {
@@ -219,6 +242,14 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
       lim_slope_b = fmin(fabs(del_a_4_C), fabs(del_a_4_G));
       del_a_4_m = sgn(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b); 
     }
+    #ifdef DE
+    if (del_ge_L*del_ge_R > 0.0) {
+      lim_slope_a = fmin(fabs(del_ge_L), fabs(del_ge_R));
+      lim_slope_b = fmin(fabs(del_ge_C), fabs(del_ge_G));
+      del_ge_m_i = sgn(del_ge_C) * fmin(2.0*lim_slope_a, lim_slope_b); 
+    }
+    else del_ge_m_i = 0.0;
+    #endif
 
 
     // Step 5 - Project the monotonized difference in the characteristic variables back onto the 
@@ -250,7 +281,6 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     p_L_iph  = p_i  + (0.5 - fmax(lambda_p, 0) * 0.5*dtodx) * del_p_m_i;
     */
 
-    /************ New from Athena code ******************/
     // Step 7 Compute L/R values, ensure they lie between neighboring cell-centered values
     d_R_imh  = d_i  - 0.5*del_d_m_i; 
     vx_R_imh = vx_i - 0.5*del_vx_m_i;
@@ -263,6 +293,11 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     vy_L_iph = vy_i + 0.5*del_vy_m_i;
     vz_L_iph = vz_i + 0.5*del_vz_m_i;
     p_L_iph  = p_i  + 0.5*del_p_m_i; 
+
+    #ifdef DE
+    ge_R_imh = ge_i - 0.5*del_ge_m_i;
+    ge_L_iph = ge_i + 0.5*del_ge_m_i;
+    #endif
 
 
     C = d_R_imh + d_L_iph;
@@ -311,6 +346,17 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     del_vz_m_i = vz_L_iph - vz_R_imh;
     del_p_m_i  = p_L_iph  - p_R_imh;
 
+    #ifdef DE
+    C = ge_R_imh + ge_L_iph;
+    ge_R_imh = fmax( fmin(ge_i, ge_imo), ge_R_imh );
+    ge_R_imh = fmin( fmax(ge_i, ge_imo), ge_R_imh );
+    ge_L_iph = C - ge_R_imh; 
+    ge_L_iph = fmax( fmin(ge_i, ge_ipo), ge_L_iph );
+    ge_L_iph = fmin( fmax(ge_i, ge_ipo), ge_L_iph );
+    ge_R_imh = C - ge_L_iph;    
+    del_ge_m_i = ge_L_iph - ge_R_imh;
+    #endif
+
 
     // Step 8 - Integrate linear interpolation function over domain of dependence
     //          defined by max(min) eigenvalue
@@ -327,7 +373,11 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     vy_L_iph = vy_L_iph - qx * del_vy_m_i;
     vz_L_iph = vz_L_iph - qx * del_vz_m_i;
     p_L_iph  = p_L_iph  - qx * del_p_m_i;
-    //********************************
+
+    #ifdef DE
+    ge_R_imh = ge_R_imh + qx * del_ge_m_i;
+    ge_L_iph = ge_L_iph - qx * del_ge_m_i;
+    #endif
 
 
     // Step 7 - Perform the characteristic tracing
@@ -350,6 +400,9 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
       sum_0 += lamdiff * (del_d_m_i - del_p_m_i/(a_i*a_i));
       sum_2 += lamdiff * del_vy_m_i;
       sum_3 += lamdiff * del_vz_m_i;
+      #ifdef DE
+      sum_5 += lamdiff * del_ge_m_i;
+      #endif
     }
     if (lambda_p >= 0)
     {
@@ -366,6 +419,9 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     vy_L_iph += 0.5*dtodx*sum_2;
     vz_L_iph += 0.5*dtodx*sum_3;
     p_L_iph  += 0.5*dtodx*sum_4;
+    #ifdef DE
+    ge_L_iph += 0.5*dtodx*sum_5;
+    #endif
 
 
     // right-hand interface value, i-1/2
@@ -385,6 +441,9 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
       sum_0 += lamdiff * (del_d_m_i - del_p_m_i/(a_i*a_i));
       sum_2 += lamdiff * del_vy_m_i;
       sum_3 += lamdiff * del_vz_m_i;
+      #ifdef DE
+      sum_5 += lamdiff * del_ge_m_i;
+      #endif
     }
     if (lambda_p <= 0)
     {
@@ -401,6 +460,9 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     vy_R_imh += 0.5*dtodx*sum_2;
     vz_R_imh += 0.5*dtodx*sum_3;
     p_R_imh  += 0.5*dtodx*sum_4;
+    #ifdef DE
+    ge_R_imh += 0.5*dtodx*sum_5;
+    #endif
 
     // apply minimum constraints
     d_R_imh = fmax(d_R_imh, (Real) TINY_NUMBER);
@@ -419,6 +481,9 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     dev_bounds_R[o2*n_cells + id] = d_R_imh*vy_R_imh;
     dev_bounds_R[o3*n_cells + id] = d_R_imh*vz_R_imh;
     dev_bounds_R[4*n_cells + id] = (p_R_imh/(gamma-1.0)) + 0.5*d_R_imh*(vx_R_imh*vx_R_imh + vy_R_imh*vy_R_imh + vz_R_imh*vz_R_imh);    
+    #ifdef DE
+    dev_bounds_R[5*n_cells + id] = d_R_imh*ge_R_imh;
+    #endif
     // bounds_L refers to the left side of the i+1/2 interface
     id = xid + yid*nx + zid*nx*ny;
     dev_bounds_L[            id] = d_L_iph;
@@ -426,6 +491,9 @@ __global__ void PLMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     dev_bounds_L[o2*n_cells + id] = d_L_iph*vy_L_iph;
     dev_bounds_L[o3*n_cells + id] = d_L_iph*vz_L_iph;
     dev_bounds_L[4*n_cells + id] = (p_L_iph/(gamma-1.0)) + 0.5*d_L_iph*(vx_L_iph*vx_L_iph + vy_L_iph*vy_L_iph + vz_L_iph*vz_L_iph);
+    #ifdef DE
+    dev_bounds_L[5*n_cells + id] = d_L_iph*ge_L_iph;
+    #endif
 
   }
 }

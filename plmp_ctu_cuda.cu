@@ -47,8 +47,9 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // variables needed for dual energy
   #ifdef DE
   Real ge_i, ge_imo, ge_ipo;
-  Real gel, ger;
+  Real gel, ger, dgel, dger;
   Real del_ge_L, del_ge_R, ge_slope;
+  Real gefl, gefr;
   #endif
 
   // get a thread ID
@@ -74,7 +75,7 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     p_i  = fmax(p_i, (Real) TINY_NUMBER);
     // for dual energy pressure is a separately tracked quantity
     #ifdef DE
-    ge_i =  dev_conserved[5*n_cells + id];
+    ge_i =  dev_conserved[5*n_cells + id] / d_i;
     #endif
     // cell i-1
     if (dir == 0) id = xid-1 + yid*nx + zid*nx*ny;
@@ -87,7 +88,7 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
     p_imo  = fmax(p_imo, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_imo =  dev_conserved[5*n_cells + id];
+    ge_imo =  dev_conserved[5*n_cells + id] / d_imo;
     #endif
     // cell i+1
     if (dir == 0) id = xid+1 + yid*nx + zid*nx*ny;
@@ -100,7 +101,7 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     p_ipo  = (dev_conserved[4*n_cells + id] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma - 1.0);
     p_ipo  = fmax(p_ipo, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_ipo =  dev_conserved[5*n_cells + id];
+    ge_ipo =  dev_conserved[5*n_cells + id] / d_ipo;
     #endif
 
 
@@ -171,6 +172,10 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     mzr = dr*vzr;
     El = pl/(gamma-1.0) + 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl);
     Er = pr/(gamma-1.0) + 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr);
+    #ifdef DE
+    dgel = dl*gel;
+    dger = dr*ger;
+    #endif
 
 
     dfl = mxl;
@@ -184,8 +189,8 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     Efl = (El + pl) * vxl;
     Efr = (Er + pr) * vxr;
     #ifdef DE
-    gefl = gel*dl*vxl;
-    gefr = ger*dr*vxr;
+    gefl = dgel*vxl;
+    gefr = dger*vxr;
     #endif
 
     // Evolve the boundary extrapolated values half a timestep.
@@ -200,8 +205,8 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     El += 0.5 * (dtodx) * (Efl - Efr);
     Er += 0.5 * (dtodx) * (Efl - Efr);	
     #ifdef DE
-    gel += 0.5 * (dtodx) * (gefl - gefr);
-    ger += 0.5 * (dtodx) * (gefl - gefr);
+    dgel += 0.5 * (dtodx) * (gefl - gefr);
+    dger += 0.5 * (dtodx) * (gefl - gefr);
     #endif
 
     // apply minimum constraints
@@ -220,6 +225,9 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     dev_bounds_R[o2*n_cells + id] = myl;
     dev_bounds_R[o3*n_cells + id] = mzl;
     dev_bounds_R[4*n_cells + id] = El;    
+    #ifdef DE
+    dev_bounds_R[5*n_cells + id] = dgel;
+    #endif
     // bounds_L refers to the left side of the i+1/2 interface
     id = xid + yid*nx + zid*nx*ny;
     dev_bounds_L[            id] = dr;
@@ -227,6 +235,9 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     dev_bounds_L[2*n_cells + id] = myr;
     dev_bounds_L[3*n_cells + id] = mzr;
     dev_bounds_L[4*n_cells + id] = Er;
+    #ifdef DE
+    dev_bounds_L[5*n_cells + id] = dger;
+    #endif
 
   }
 }

@@ -284,9 +284,9 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
 {
   int id;
   Real d, d_inv, vx, vy, vz, P;  
-  #ifdef DE
-  Real vx_imo, vx_ipo;
-  #endif
+  //#ifdef DE
+  Real vx_imo, vx_ipo, e_old;
+  //#endif
 
   Real dtodx = dt/dx;
 
@@ -303,10 +303,11 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    #ifdef DE
+    //#ifdef DE
     vx_imo = dev_conserved[1*n_cells + id-1]/dev_conserved[id-1];
     vx_ipo = dev_conserved[1*n_cells + id+1]/dev_conserved[id+1];
-    #endif
+    //e_old = dev_conserved[5*n_cells + id];
+    //#endif
   
     // update the conserved variable array
     dev_conserved[            id] += dtodx * (dev_F[            id-1] - dev_F[            id]);
@@ -319,8 +320,12 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     //                              +  dtodx * P * (dev_F[6*n_cells + id-1] - dev_F[6*n_cells + id]);
                                   +  dtodx * P * 0.5 * (vx_imo - vx_ipo);
     #endif
-    if (dev_F[5*n_cells + id-1] != dev_F[5*ncells + id]) printf("%3d %f %f\n", id, dev_F[5*n_cells+id-1], dev_F[5*n_cells+id]);
-    if (vx_imo != vx_ipo) printf("%3d %f\n", id, vx_imo - vx_ipo);
+    //if (dev_F[id-1] != dev_F[id]) printf("%3d density flux: %f %f\n", id, dev_F[id-1], dev_F[id]);
+    //if (dev_F[4*n_cells + id-1] != dev_F[4*n_cells + id]) printf("%3d Energy flux: %f %f\n", id, dev_F[4*n_cells+id-1], dev_F[4*n_cells+id]);
+    //if (dev_F[5*n_cells + id-1] != dev_F[5*n_cells + id]) printf("%3d energy flux: %f %f\n", id, dev_F[5*n_cells+id-1], dev_F[5*n_cells+id]);
+    //if (dev_F[6*n_cells + id-1] != dev_F[6*n_cells + id]) printf("%3d velocities: %f %f\n", id, dev_F[6*n_cells+id-1], dev_F[6*n_cells+id]);
+    //if (vx_imo != vx_ipo) printf("%3d vx_imo %f vx_ipo %f\n", id, vx_imo, vx_ipo);
+    //if (e_old != dev_conserved[5*n_cells + id]) printf("%3d New e is different\n", id);
     if (dev_conserved[id] != dev_conserved[id]) printf("%3d Thread crashed in final update.\n", id);
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -347,7 +352,7 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
   // get a global thread ID
   id = threadIdx.x + blockIdx.x * blockDim.x;
   
-  im1 = max(id-1, n_ghost-1);
+  im1 = max(id-1, n_ghost);
   ip1 = min(id+1, n_cells-n_ghost-1);
 
   // threads corresponding to real cells do the calculation
@@ -367,11 +372,11 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     // if the ratio of conservatively calculated internal energy to total energy
     // is greater than 1/1000, use the conservatively calculated internal energy
-    //if (ge2/E < 0.0001 && ge1+0.0000001 < ge2) printf("%3d Using ge1 %f %f\n", id, ge1, ge2);
+    // to do the internal energy update
     if (ge2/E > 0.001) {
       dev_conserved[5*n_cells + id] = ge2;
       ge1 = ge2;
-    }
+    }     
     // find the max nearby total energy 
     Emax = fmax(dev_conserved[4*n_cells + im1], E);
     Emax = fmax(dev_conserved[4*n_cells + ip1], Emax);
@@ -379,10 +384,11 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     // is greater than 1/10, continue to use the conservatively calculated internal energy 
     if (ge2/Emax > 0.1) {
       dev_conserved[5*n_cells + id] = ge2;
-      ge1 = ge2;
     }
     // sync the total energy with the internal energy 
-    dev_conserved[4*n_cells + id] += ge1 - ge2;
+    else {
+      dev_conserved[4*n_cells + id] += ge1 - ge2;
+    }
     /*
     // if the conservatively calculated internal energy is greater than the estimate of the truncation error,
     // use the internal energy computed from the total energy to do the update

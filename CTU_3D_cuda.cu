@@ -39,6 +39,9 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 
 __global__ void calc_dt_cuda(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real *dti_array, Real gamma);
 
+__global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma);
+
+
 
 Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt)
 {
@@ -848,11 +851,10 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 {
   Real d, d_inv, vx, vy, vz, P;
   int id, xid, yid, zid, n_cells;
-  int imo, jmo, kmo;
 
   #ifdef DE
-  Real ge1, ge2, xvmax, yvmax, zvmax, vmax;
-  int ipo, jpo, kpo;
+  Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
+  int imo, jmo, kmo, ipo, jpo, kpo;
   #endif
 
   Real dtodx = dt/dx;
@@ -878,11 +880,22 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     //if (d < 0.0 || d != d) printf("Negative density before final update.\n");
     //if (P < 0.0) printf("%d Negative pressure before final update.\n", id);
+    imo = xid-1 + yid*nx + zid*nx*ny;
+    ipo = xid+1 + yid*nx + zid*nx*ny;
+    jmo = xid + (yid-1)*nx + zid*nx*ny;
+    jpo = xid + (yid+1)*nx + zid*nx*ny;
+    kmo = xid + yid*nx + (zid-1)*nx*ny;
+    kpo = xid + yid*nx + (zid+1)*nx*ny;
+    #ifdef DE
+    vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
+    vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
+    vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
+    vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
+    vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
+    vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
+    #endif
 
     // update the conserved variable array
-    imo = xid-1 + yid*nx + zid*nx*ny;
-    jmo = xid + (yid-1)*nx + zid*nx*ny;
-    kmo = xid + yid*nx + (zid-1)*nx*ny;
     dev_conserved[            id] += dtodx * (dev_F_x[            imo] - dev_F_x[            id])
                                   +  dtody * (dev_F_y[            jmo] - dev_F_y[            id])
                                   +  dtodz * (dev_F_z[            kmo] - dev_F_z[            id]);
@@ -899,10 +912,10 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   +  dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id])
                                   +  dtodz * (dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id]);
     #ifdef DE
-    dev_conserved[5*n_cells + id] += (dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
-                                  +   dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
-                                  +   dtodz * (dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id])
-                                  +   P * (dtodx*vx + dtody*vy + dtodz*vz)) / dev_conserved[id];
+    dev_conserved[5*n_cells + id] += dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
+                                  +  dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
+                                  +  dtodz * (dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id])
+                                  +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
       printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dev_F_y[jmo],dev_F_y[id], dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
@@ -917,35 +930,78 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     if (P < 0.0) {
       printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
     }
-    #ifdef DE
-    syncthreads();
-    // separately tracked specific internal energy 
+  }
+
+}
+
+
+__global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma)
+{
+  int id, xid, yid, zid, n_cells;
+  Real d, d_inv, vx, vy, vz, P;
+  Real ge1, ge2, Emax;
+  int imo, ipo, jmo, jpo, kmo, kpo;
+
+  // get a global thread ID
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx*ny);
+  yid = (id - zid*nx*ny) / nx;
+  xid = id - zid*nx*ny - yid*nx;
+
+  imo = max(xid-1, n_ghost);
+  imo = imo + yid*nx + zid*nx*ny;
+  ipo = min(xid+1, nx-n_ghost-1);
+  ipo = ipo + yid*nx + zid*nx*ny;
+  jmo = max(yid-1, n_ghost);
+  jmo = xid + jmo*nx + zid*nx*ny;
+  jpo = min(yid+1, ny-n_ghost-1);
+  jpo = xid + jpo*nx + zid*nx*ny;
+  kmo = max(zid-1, n_ghost);
+  kmo = xid + yid*nx + kmo*nx*ny;
+  kpo = min(zid+1, nz-n_ghost-1);
+  kpo = xid + yid*nx + kpo*nx*ny;
+
+  // threads corresponding to real cells do the calculation
+  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
+  {
+    // every thread collects the conserved variables it needs from global memory
+    d  =  dev_conserved[            id];
+    d_inv = 1.0 / d;
+    vx =  dev_conserved[1*n_cells + id] * d_inv;
+    vy =  dev_conserved[2*n_cells + id] * d_inv;
+    vz =  dev_conserved[3*n_cells + id] * d_inv;
+    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+    // separately tracked internal energy 
     ge1 =  dev_conserved[5*n_cells + id];
-    // specific internal energy calculated from total energy
-    ge2 = dev_conserved[4*n_cells + id] * d_inv - 0.5*(vx*vx + vy*vy + vz*vz);
+    // internal energy calculated from total energy
+    ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     if (ge1 < 0.0) printf("%d %d %d Negative internal energy after final update. %f %f %f\n", xid, yid, zid, dev_F_x[5*n_cells+imo] - dev_F_x[5*n_cells+id], dev_F_y[5*n_cells+jmo] - dev_F_y[5*n_cells+id], dev_F_z[5*n_cells+kmo] - dev_F_z[5*n_cells+id]); 
-    //find the max nearby velocity difference 
-    ipo = min(xid+1, nx-n_ghost-1);
-    ipo = ipo + yid*nx + zid*nx*ny;
-    jpo = min(yid+1, ny-n_ghost-1);
-    jpo = xid + jpo*nx + zid*nx*ny;
-    kpo = min(zid+1, nz-n_ghost-1);
-    kpo = xid + yid*nx + kpo*nx*ny;
-    xvmax = fmax(fabs(vx-dev_conserved[1*n_cells + imo]/dev_conserved[imo]), fabs(dev_conserved[1*n_cells + ipo]/dev_conserved[ipo] - vx));
-    yvmax = fmax(fabs(vy-dev_conserved[2*n_cells + jmo]/dev_conserved[jmo]), fabs(dev_conserved[2*n_cells + jpo]/dev_conserved[jpo] - vy));
-    zvmax = fmax(fabs(vz-dev_conserved[3*n_cells + kmo]/dev_conserved[kmo]), fabs(dev_conserved[3*n_cells + kpo]/dev_conserved[kpo] - vz));
-    vmax = fmax(xvmax, yvmax);
-    vmax = fmax(vmax, zvmax);
-    // if the conservatively calculated internal energy is greater than an the estimate of the truncation error 
-    // use the internal energy computed from the total energy to do the internal energy update
-    if (ge2 > 0.25*vmax*vmax) {
+    // if the ratio of conservatively calculated internal energy to total energy
+    // is greater than 1/1000, use the conservatively calculated internal energy
+    // to do the internal energy update
+    if (ge2/E > 0.001) {
       dev_conserved[5*n_cells + id] = ge2;
       ge1 = ge2;
+    }     
+    //find the max nearby total energy 
+    Emax = fmax(dev_conserved[4*n_cells + imo], E);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + ipo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + jmo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + jpo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + kmo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + kpo]);
+    // if the ratio of conservatively calculated internal energy to max nearby total energy
+    // is greater than 1/10, continue to use the conservatively calculated internal energy 
+    if (ge2/Emax > 0.1) {
+      dev_conserved[5*n_cells + id] = ge2;
     }
-    // update the total energy
-    dev_conserved[4*n_cells + id] += d*ge1 - d*ge2; 
-    #endif
-  }
+    // sync the total energy with the internal energy 
+    else {
+      dev_conserved[4*n_cells + id] += ge1 - ge2;
+    }
+    // recalculate the pressure 
+    P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
+    if (P < 0.0) printf("%d Negative pressure after final update. %f %f \n", id, ge1, ge2);    
 
 }
 
