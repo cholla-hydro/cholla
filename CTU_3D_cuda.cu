@@ -942,9 +942,10 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma)
 {
   int id, xid, yid, zid, n_cells;
-  Real d, d_inv, vx, vy, vz, P;
+  Real d, d_inv, vx, vy, vz, P, E;
   Real ge1, ge2, Emax;
   int imo, ipo, jmo, jpo, kmo, kpo;
+  n_cells = nx*ny*nz;
 
   // get a global thread ID
   id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -974,12 +975,12 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+    E  =  dev_conserved[4*n_cells + id];
+    P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     // separately tracked internal energy 
     ge1 =  dev_conserved[5*n_cells + id];
     // internal energy calculated from total energy
     ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (ge1 < 0.0) printf("%d %d %d Negative internal energy after final update. %f %f %f\n", xid, yid, zid, dev_F_x[5*n_cells+imo] - dev_F_x[5*n_cells+id], dev_F_y[5*n_cells+jmo] - dev_F_y[5*n_cells+id], dev_F_z[5*n_cells+kmo] - dev_F_z[5*n_cells+id]); 
     // if the ratio of conservatively calculated internal energy to total energy
     // is greater than 1/1000, use the conservatively calculated internal energy
     // to do the internal energy update
@@ -1006,7 +1007,7 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     // recalculate the pressure 
     P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
     if (P < 0.0) printf("%d Negative pressure after final update. %f %f \n", id, ge1, ge2);    
-
+  }
 }
 
 
