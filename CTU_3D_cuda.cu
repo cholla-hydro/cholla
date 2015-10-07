@@ -523,6 +523,10 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   cvu += elapsedTime;
   #endif //TIME     
 
+  #ifdef DE
+  Sync_Energies_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama);
+  #endif
+
   #ifdef COOLING
   cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
   #endif
