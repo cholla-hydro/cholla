@@ -49,7 +49,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     p  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     p  = fmax(p, (Real) TINY_NUMBER);
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id];
+    ge = dev_conserved[5*n_cells + id] / d;
     p  = d * ge * (gamma - 1.0);
     #endif
     
@@ -114,7 +114,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // and send back from kernel
     dev_conserved[4*n_cells + id] = E;
     #ifdef DE
-    dev_conserved[5*n_cells + id] = ge;
+    dev_conserved[5*n_cells + id] = d*ge;
     #endif
     }
 
