@@ -1582,6 +1582,9 @@ void Grid3D::Read_Grid(struct parameters P) {
     fread(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
     fread(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
     fread(&(C.Energy[id]),     sizeof(Real), H.nx_real, fp);
+    #ifdef DE
+    fread(&(C.GasEnergy[id]),  sizeof(Real), H.nx_real, fp);
+    #endif
   }
 
   // 2D case
@@ -1606,6 +1609,12 @@ void Grid3D::Read_Grid(struct parameters P) {
       id = H.n_ghost + (j+H.n_ghost)*H.nx;
       fread(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
     }     
+    #ifdef DE
+    for (j=0; j<H.ny_real; j++) {
+      id = H.n_ghost + (j+H.n_ghost)*H.nx;
+      fread(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
+    }     
+    #endif
   }
 
   // 3D case
@@ -1640,6 +1649,14 @@ void Grid3D::Read_Grid(struct parameters P) {
         fread(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
       }
     }  
+    #ifdef DE
+    for (k=0; k<H.nz_real; k++) {
+      for (j=0; j<H.ny_real; j++) {
+        id = H.n_ghost + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+        fread(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
+      }
+    }  
+    #endif
 
   }    
   #endif

@@ -310,7 +310,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   #endif //TIME 
   #endif //PPMC
 
-
+/*
   #ifdef COOLING
   cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Lx, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
   cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Ly, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
@@ -319,8 +319,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Ry, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
   cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Rz, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
   #endif
-
-
+*/
 
   // Step 2: Calculate the fluxes
   #ifdef EXACT
@@ -855,10 +854,10 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 {
   Real d, d_inv, vx, vy, vz, P;
   int id, xid, yid, zid, n_cells;
+  int imo, jmo, kmo, ipo, jpo, kpo;
 
   #ifdef DE
   Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
-  int imo, jmo, kmo, ipo, jpo, kpo;
   #endif
 
   Real dtodx = dt/dx;
@@ -922,7 +921,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
-      printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dev_F_y[jmo],dev_F_y[id], dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
+      printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dev_F_z[kmo], dev_F_z[id], dev_conserved[id]);
     }
     // every thread collects the conserved variables it needs from global memory
     d  =  dev_conserved[            id];
@@ -932,7 +931,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     if (P < 0.0) {
-      printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
+      //printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
     }
   }
 
@@ -1007,6 +1006,21 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     // recalculate the pressure 
     P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
     if (P < 0.0) printf("%d Negative pressure after internal energy sync. %f %f \n", id, ge1, ge2);    
+    if (xid == 130 && yid == 6 && zid == 81) {
+      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
+    }
+    if (xid == 130 && yid == 6 && zid == 80) {
+      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
+    }
+    if (xid == 130 && yid == 6 && zid == 82) {
+      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
+    }
+    if (xid == 129 && yid == 6 && zid == 81) {
+      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
+    }
+    if (xid == 131 && yid == 6 && zid == 81) {
+      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
+    }
   }
 }
 

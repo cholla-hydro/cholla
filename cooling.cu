@@ -63,6 +63,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T_init_ge = ge*(gamma-1.0)*SP_ENERGY_UNIT*MP/KB;
     T_init = T_init_ge;
     #endif
+    //if (xid == 130 && yid == 6 && zid ==81) printf("%f %f\n", T_init_p, T_init_ge);
 
     // only allow cooling above 10^4 K
     if (T_init > 1e4 && T_init < 1e9) {
