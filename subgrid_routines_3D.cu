@@ -15,7 +15,7 @@
 
 
 
-void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s, int *nz_s, int *block1_tot, int *block2_tot, int *block3_tot, int *remainder1, int *remainder2, int *remainder3) {
+void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s, int *nz_s, int *block1_tot, int *block2_tot, int *block3_tot, int *remainder1, int *remainder2, int *remainder3, int n_fields) {
 
   int sx = 2;
   int sy = 2;
@@ -23,10 +23,6 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
   size_t free;
   size_t total;
   int cell_mem, max_vol;
-  int n_fields = 5;
-  #ifdef DE
-  n_fields = 7;
-  #endif
 
   *nx_s = nx;
   *ny_s = ny;
@@ -164,13 +160,9 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
 
 
 // allocate memory for the CPU buffers
-void allocate_buffers_3D(int block1_tot, int block2_tot, int block3_tot, int BLOCK_VOL, Real **&buffer) {
+void allocate_buffers_3D(int block1_tot, int block2_tot, int block3_tot, int BLOCK_VOL, Real **&buffer, int n_fields) {
 
   int n;
-  int n_fields = 5;
-  #ifdef DE
-  n_fields = 7;
-  #endif
 
   // if we don't need any buffers, don't allocate any 
   if (block1_tot == 1 && block2_tot == 1 && block3_tot == 1) {
@@ -224,15 +216,11 @@ void allocate_buffers_3D(int block1_tot, int block2_tot, int block3_tot, int BLO
 
 
 // copy the first conserved variable block(s) into buffer(s)
-void host_copy_init_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int remainder1, int remainder2, int BLOCK_VOL, Real *host_conserved, Real **buffer, Real **tmp1, Real **tmp2) {
+void host_copy_init_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int remainder1, int remainder2, int BLOCK_VOL, Real *host_conserved, Real **buffer, Real **tmp1, Real **tmp2, int n_fields) {
 
   int n_cells = nx*ny*nz;
   int block1, block2;
   int x_offset, x_host, y_offset, y_host;  
-  int n_fields = 5;
-  #ifdef DE
-  n_fields = 7;
-  #endif
 
   // if no need for subgrid blocks, simply point tmp1
   // and tmp2 to the host array
@@ -400,17 +388,13 @@ void host_copy_init_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int
 
 
 // copy the next conserved variable blocks into the remaining buffers
-void host_copy_next_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int block3_tot, int remainder1, int remainder2, int remainder3, int BLOCK_VOL, Real *host_conserved, Real **buffer, Real **tmp1) {
+void host_copy_next_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int block3_tot, int remainder1, int remainder2, int remainder3, int BLOCK_VOL, Real *host_conserved, Real **buffer, Real **tmp1, int n_fields) {
   
   int n_cells = nx*ny*nz;
   int block1, block2, block3;
   int x_offset, y_offset, z_offset;
   int x_host, y_host, z_host;
   int buf_offset;
-  int n_fields = 5;
-  #ifdef DE
-  n_fields = 7;
-  #endif
 
   // if no subgrid blocks, do nothing
   if (nx_s == nx && ny_s == ny && nz_s == nz) return;
@@ -664,17 +648,13 @@ void host_copy_next_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int
 
 
 // return the values from buffer to the host_conserved array
-void host_return_values_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int block3_tot, int remainder1, int remainder2, int remainder3, int BLOCK_VOL, Real *host_conserved, Real **buffer) {
+void host_return_values_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int block3_tot, int remainder1, int remainder2, int remainder3, int BLOCK_VOL, Real *host_conserved, Real **buffer, int n_fields) {
 
   int n_cells = nx*ny*nz;
   int block1, block2, block3;
   int x_offset, y_offset, z_offset;
   int x_host, y_host, z_host, x_gpu, y_gpu, z_gpu, host_loc, gpu_loc;
   int length, hid, gid, n;
-  int n_fields = 5;
-  #ifdef DE
-  n_fields = 7;
-  #endif
 
   // if no subgrid blocks, do nothing
   if (nx_s == nx && ny_s == ny && nz_s == nz) return;
