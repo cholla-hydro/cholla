@@ -64,6 +64,10 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   ie = cvu = 0;
   #endif
 
+  int n_fields = 5;
+  #ifdef DE
+  n_fields++;
+  #endif
 
   // dimensions of subgrid blocks
   int nx_s; //number of cells in the subgrid block along x direction
@@ -83,7 +87,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   int block = 0;
 
   // calculate the dimensions for each subgrid block
-  sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3);
+  sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
   block_tot = block1_tot*block2_tot*block3_tot;
 
   // number of cells in one subgrid block
@@ -105,7 +109,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   cudaEventRecord(start, 0);
   #endif //TIME
   Real **buffer;
-  allocate_buffers_3D(block1_tot, block2_tot, block3_tot, BLOCK_VOL, buffer);
+  allocate_buffers_3D(block1_tot, block2_tot, block3_tot, BLOCK_VOL, buffer, n_fields);
   // and set up pointers for the location to copy from and to
   Real *tmp1;
   Real *tmp2;
@@ -135,22 +139,22 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   #ifdef TEST
   Real *test1;
   Real *test2;
-  test1 = (Real *) malloc(5*BLOCK_VOL*sizeof(Real));
-  test2 = (Real *) malloc(5*BLOCK_VOL*sizeof(Real));
+  test1 = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real));
+  test2 = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real));
   #endif
 
   // allocate memory on the GPU
-  CudaSafeCall( cudaMalloc((void**)&dev_conserved, 5*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&dev_conserved_half, 5*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Lx,  5*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Rx,  5*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Ly,  5*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Ry,  5*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Lz,  5*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Rz,  5*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F_x,   5*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F_y,   5*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F_z,   5*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&dev_conserved_half, n_fields*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Q_Lx,  n_fields*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Q_Rx,  n_fields*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Q_Ly,  n_fields*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Q_Ry,  n_fields*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Q_Lz,  n_fields*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Q_Rz,  n_fields*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&F_x,   n_fields*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&F_y,   n_fields*BLOCK_VOL*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&F_z,   n_fields*BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&eta_x,  BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&eta_y,  BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&eta_z,  BLOCK_VOL*sizeof(Real)) );
@@ -164,7 +168,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   #ifdef TIME
   cudaEventRecord(start, 0);
   #endif //TIME
-  host_copy_init_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, &tmp1, &tmp2);
+  host_copy_init_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, &tmp1, &tmp2, n_fields);
   #ifdef TIME
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
@@ -177,17 +181,17 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   while (block < block_tot) {
 
   // zero the GPU arrays
-  cudaMemset(dev_conserved, 0, 5*BLOCK_VOL*sizeof(Real));
-  cudaMemset(dev_conserved_half, 0, 5*BLOCK_VOL*sizeof(Real));
-  cudaMemset(Q_Lx,  0, 5*BLOCK_VOL*sizeof(Real));
-  cudaMemset(Q_Rx,  0, 5*BLOCK_VOL*sizeof(Real));
-  cudaMemset(Q_Ly,  0, 5*BLOCK_VOL*sizeof(Real));
-  cudaMemset(Q_Ry,  0, 5*BLOCK_VOL*sizeof(Real));
-  cudaMemset(Q_Lz,  0, 5*BLOCK_VOL*sizeof(Real));
-  cudaMemset(Q_Rz,  0, 5*BLOCK_VOL*sizeof(Real));
-  cudaMemset(F_x,   0, 5*BLOCK_VOL*sizeof(Real));
-  cudaMemset(F_y,   0, 5*BLOCK_VOL*sizeof(Real));
-  cudaMemset(F_z,   0, 5*BLOCK_VOL*sizeof(Real));
+  cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(dev_conserved_half, 0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Lx,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Rx,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Ly,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Ry,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Lz,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Rz,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(F_x,   0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(F_y,   0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(F_z,   0, n_fields*BLOCK_VOL*sizeof(Real));
   cudaMemset(eta_x,  0, BLOCK_VOL*sizeof(Real));
   cudaMemset(eta_y,  0, BLOCK_VOL*sizeof(Real));
   cudaMemset(eta_z,  0, BLOCK_VOL*sizeof(Real));
@@ -202,7 +206,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   #ifdef TIME
   cudaEventRecord(start, 0);
   #endif //TIME
-  CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, 5*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
+  CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
   #ifdef TIME
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
@@ -217,8 +221,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   CudaCheckError();
 
   #ifdef TEST
-  CudaSafeCall( cudaMemcpy(test1, Q_Lx, 5*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-  CudaSafeCall( cudaMemcpy(test2, Q_Rx, 5*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+  CudaSafeCall( cudaMemcpy(test1, Q_Lx, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+  CudaSafeCall( cudaMemcpy(test2, Q_Rx, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
   printf("After pcm\n");
   for (int i=0; i<nx; i++) {
     for (int j=0; j<ny; j++) {
@@ -538,7 +542,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   #ifdef TIME
   cudaEventRecord(start, 0);
   #endif //TIME    
-  CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, 5*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+  CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
   #ifdef TIME
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
@@ -552,10 +556,10 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   #ifdef TIME
   cudaEventRecord(start, 0);
   #endif //TIME 
-  host_copy_next_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer, &tmp1);
+  host_copy_next_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer, &tmp1, n_fields);
 
   // copy the updated conserved variable array back into the host_conserved array on the CPU
-  host_return_values_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer);
+  host_return_values_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer, n_fields);
   #ifdef TIME
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);

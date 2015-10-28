@@ -99,7 +99,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
 
    
   // calculate the dimensions for each subgrid block
-  sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3);
+  sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
   //printf("%d %d %d %d %d %d %d %d %d\n", nx_s, ny_s, nz_s, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3);
   block_tot = block1_tot*block2_tot*block3_tot;
 
@@ -122,7 +122,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   cudaEventRecord(start, 0);
   #endif //TIME
   Real **buffer;
-  allocate_buffers_3D(block1_tot, block2_tot, block3_tot, BLOCK_VOL, buffer);
+  allocate_buffers_3D(block1_tot, block2_tot, block3_tot, BLOCK_VOL, buffer, n_fields);
   // and set up pointers for the location to copy from and to
   Real *tmp1;
   Real *tmp2;
@@ -175,7 +175,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   #ifdef TIME
   cudaEventRecord(start, 0);
   #endif //TIME
-  host_copy_init_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, &tmp1, &tmp2);
+  host_copy_init_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, &tmp1, &tmp2, n_fields);
   #ifdef TIME
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
@@ -552,10 +552,10 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   #ifdef TIME
   cudaEventRecord(start, 0);
   #endif //TIME 
-  host_copy_next_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer, &tmp1);
+  host_copy_next_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer, &tmp1, n_fields);
 
   // copy the updated conserved variable array back into the host_conserved array on the CPU
-  host_return_values_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer);
+  host_return_values_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer, n_fields);
   #ifdef TIME
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
@@ -854,6 +854,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 {
   Real d, d_inv, vx, vy, vz, P;
   int id, xid, yid, zid, n_cells;
+  int imo, jmo, kmo;
   #ifdef DE
   Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
   int ipo, jpo, kpo;
