@@ -37,7 +37,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
 __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z,
                                               int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt, Real gamma);
 
-__global__ void calc_dt_cuda(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real *dti_array, Real gamma);
+__global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real *dti_array, Real gamma);
 
 __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma);
 
@@ -531,7 +531,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   #endif
 
   // Step 6: Calculate the next timestep
-  calc_dt_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama);
+  Calc_dt_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama);
   CudaCheckError();
 
   // copy the updated conserved variable array back to the CPU
@@ -854,10 +854,9 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 {
   Real d, d_inv, vx, vy, vz, P;
   int id, xid, yid, zid, n_cells;
-  int imo, jmo, kmo, ipo, jpo, kpo;
-
   #ifdef DE
   Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
+  int ipo, jpo, kpo;
   #endif
 
   Real dtodx = dt/dx;
@@ -884,12 +883,12 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     //if (d < 0.0 || d != d) printf("Negative density before final update.\n");
     //if (P < 0.0) printf("%d Negative pressure before final update.\n", id);
     imo = xid-1 + yid*nx + zid*nx*ny;
-    ipo = xid+1 + yid*nx + zid*nx*ny;
     jmo = xid + (yid-1)*nx + zid*nx*ny;
-    jpo = xid + (yid+1)*nx + zid*nx*ny;
     kmo = xid + yid*nx + (zid-1)*nx*ny;
-    kpo = xid + yid*nx + (zid+1)*nx*ny;
     #ifdef DE
+    ipo = xid+1 + yid*nx + zid*nx*ny;
+    jpo = xid + (yid+1)*nx + zid*nx*ny;
+    kpo = xid + yid*nx + (zid+1)*nx*ny;
     vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
     vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
     vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
@@ -1036,7 +1035,7 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
 }
 
 
-__global__ void calc_dt_cuda(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real *dti_array, Real gamma)
+__global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real *dti_array, Real gamma)
 {
   __shared__ Real max_dti[TPB];
 

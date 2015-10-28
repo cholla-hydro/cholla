@@ -28,7 +28,7 @@
 __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int n_ghost, 
                                               Real dx, Real dt, Real gamma);
 
-__global__ void Calculate_dt(Real *dev_conserved, int n_cells, int n_ghost, Real dx, Real *dti_array, Real gamma);
+__global__ void Calc_dt_1D(Real *dev_conserved, int n_cells, int n_ghost, Real dx, Real *dti_array, Real gamma);
 
 __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, Real gamma);
 
@@ -216,7 +216,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   #endif
 
   // Calculate the next timestep
-  Calculate_dt<<<dimGrid,dimBlock>>>(dev_conserved, n_cells, n_ghost, dx, dev_dti_array, gama);
+  Calc_dt_1D<<<dimGrid,dimBlock>>>(dev_conserved, n_cells, n_ghost, dx, dev_dti_array, gama);
   CudaCheckError();
 
 
@@ -411,7 +411,7 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
 }
 
 
-__global__ void Calculate_dt(Real *dev_conserved, int n_cells, int n_ghost, Real dx, Real *dti_array, Real gamma)
+__global__ void Calc_dt_1D(Real *dev_conserved, int n_cells, int n_ghost, Real dx, Real *dti_array, Real gamma)
 {
   __shared__ Real max_dti[TPB];
 
