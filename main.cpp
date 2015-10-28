@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
     {
       G.H.dt = outtime - G.H.t;
     }
-/*
+
     for (int i=G.H.n_ghost; i<G.H.nx-G.H.n_ghost; i++) {
       for (int j=G.H.n_ghost; j<G.H.ny-G.H.n_ghost; j++) {
         int id1 = i + G.H.nx*j;
@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
         if (G.C.momentum_x[id1] != G.C.momentum_y[id2]) printf("%3d %3d\n", i, j);
       }
     }    
-*/
+
     // Use either the CTU or VL integrator to advance the grid
     #ifdef CPU_TIME
     start_CTU = get_time();

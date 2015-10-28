@@ -601,6 +601,9 @@ void Grid3D::Implosion_2D()
         C.momentum_z[id] = 0.0;
         P = 0.14;
         C.Energy[id] = P/(gama-1.0);
+        #ifdef DE
+        C.GasEnergy[id] = P/(gama-1.0);
+        #endif
         //printf("%f %f %f\n", x_pos, y_pos, P);
       }
       // everywhere else
@@ -611,6 +614,9 @@ void Grid3D::Implosion_2D()
         C.momentum_z[id] = 0.0;
         P = 1.0;
         C.Energy[id] = P/(gama-1.0);
+        #ifdef DE
+        C.GasEnergy[id] = P/(gama-1.0);
+        #endif
         //printf("%f %f %f\n", x_pos, y_pos, P);
       }
     }
@@ -1230,6 +1236,9 @@ void Grid3D::Cloud_3D() {
             C.momentum_y[id] = 0.0;
             C.momentum_z[id] = 0.0;
             C.Energy[id] = (P_cloud)/(gama-1.0);
+            #ifdef DE
+            C.GasEnergy[id] = P_cloud/(gama-1.0);
+            #endif
           }
           if (r > R_c && r < R_max) {
             C.density[id] = d*exp(-1.0 *fabs(r - R_c)/4.0);
@@ -1237,6 +1246,9 @@ void Grid3D::Cloud_3D() {
             C.momentum_y[id] = 0.0;
             C.momentum_z[id] = 0.0;
             C.Energy[id] = P_cloud/(gama-1.0);
+            #ifdef DE
+            C.GasEnergy[id] = P_cloud/(gama-1.0);
+            #endif
           }
         #ifdef MPI_CHOLLA
         }
@@ -1269,6 +1281,9 @@ void Grid3D::Cloud_3D() {
           C.momentum_y[id] = 0.0;
           C.momentum_z[id] = 0.0;
           C.Energy[id] = P_cloud/(gama-1.0);
+          #ifdef DE
+          C.GasEnergy[id] = P_cloud/(gama-1.0);
+          #endif
         }
         if (r > R_c && r < R_max) {
           C.density[id] = d_cloud*exp(-1.0 *fabs(r - R_c)/4.0);
@@ -1276,6 +1291,9 @@ void Grid3D::Cloud_3D() {
           C.momentum_y[id] = 0.0;
           C.momentum_z[id] = 0.0;
           C.Energy[id] = P_cloud/(gama-1.0);
+          #ifdef DE
+          C.GasEnergy[id] = P_cloud/(gama-1.0);
+          #endif
         }
       }
     }

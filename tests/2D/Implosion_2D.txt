@@ -4,9 +4,9 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=1024
+nx=400
 # number of grid cells in the y dimension
-ny=1024
+ny=400
 # number of grid cells in the z dimension
 nz=1
 # output time

@@ -923,6 +923,8 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
       printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dev_F_z[kmo], dev_F_z[id], dev_conserved[id]);
     }
+    //if (dev_conserved[5*n_cells + id] < 0.0) printf("%3d %3d %3d Negative internal energy after update. %f %f %f %f\n", xid, yid, zid, dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id], dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id], dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id], 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo)));
+/*
     // every thread collects the conserved variables it needs from global memory
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -931,8 +933,9 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     if (P < 0.0) {
-      //printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
+      printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
     }
+*/
   }
 
 }
@@ -1005,7 +1008,8 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     }
     // recalculate the pressure 
     P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
-    if (P < 0.0) printf("%d Negative pressure after internal energy sync. %f %f \n", id, ge1, ge2);    
+    if (P < 0.0) printf("%3d %3d %3d Negative pressure after internal energy sync. %f %f %f\n", xid, yid, zid, P/(gamma-1.0), ge1, ge2);    
+/*
     if (xid == 130 && yid == 6 && zid == 81) {
       printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
     }
@@ -1021,6 +1025,13 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     if (xid == 131 && yid == 6 && zid == 81) {
       printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
     }
+    if (xid == 130 && yid == 5 && zid == 81) {
+      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
+    }
+    if (xid == 130 && yid == 7 && zid == 81) {
+      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
+    }
+*/
   }
 }
 

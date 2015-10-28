@@ -43,8 +43,7 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
   Real test0, test1, test2, test3, test4;
   int hlle_flag = 0;
   #ifdef DE
-  Real dgel, gel, dger, ger, ge, f_ge_l, f_ge_r;
-  Real del_dge;
+  Real dgel, gel, dger, ger, f_ge_l, f_ge_r;
   #endif
 
   int o1, o2, o3;
