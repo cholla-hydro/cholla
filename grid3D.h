@@ -5,6 +5,7 @@
 #define GRID3D_H
 
 #include<stdio.h>
+#include<hdf5.h>
 #include"global.h"
 
 #ifdef   MPI_CHOLLA
@@ -211,9 +212,21 @@ class Grid3D
      *  \brief Use the VL method to update the conserved quantities in each cell. */
     Real Update_Grid_VL(void);
 
-    /*! \fn void Write_Grid(FILE *fp)
-     *  \brief Write the density to a file, at the current simulation time. */
-    void Write_Grid(FILE *fp);
+    /*! \fn void Write_Header_Binary(FILE *fp)
+     *  \brief Write the relevant header info to a binary output file. */
+    void Write_Header_Binary(FILE *fp);
+
+    /*! \fn void Write_Grid_Binary(FILE *fp)
+     *  \brief Write the grid to a file, at the current simulation time. */
+    void Write_Grid_Binary(FILE *fp);
+
+    /*! \fn void Write_Header_HDF5(hid_t file_id)
+     *  \brief Write the relevant header info to the HDF5 file. */
+    void Write_Header_HDF5(hid_t file_id);
+
+    /*! \fn void Write_Grid_HDF5(hid_t file_id)
+     *  \brief Write the grid to a file, at the current simulation time. */
+    void Write_Grid_HDF5(hid_t file_id);
 
     /*! \fn void Reset(void)
      *  \brief Reset the Grid3D class. */
