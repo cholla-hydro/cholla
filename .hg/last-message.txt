@@ -1,2 +1,2 @@
-Fixed bug in 1D vl ppmp. Finished modifying reconstruction to non-directional basis.
+Added a million things. Including HDF5 output.
 

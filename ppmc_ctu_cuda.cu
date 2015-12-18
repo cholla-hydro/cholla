@@ -147,8 +147,6 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     ge_ipt =  dev_conserved[5*n_cells + id] / d_ipt;
     #endif
 
-
-
     // Steps 2 - 5 are repeated for cell i-1, i, and i+1
     // Step 2 - Compute the left, right, centered, and van Leer differences of the primative variables
     //          Note that here L and R refer to locations relative to the cell center

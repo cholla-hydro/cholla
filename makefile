@@ -20,8 +20,8 @@ ifdef MPI_FLAGS
   MPI_FLAGS += -DBLOCK
 
 else
-  CC	= gcc
-  CXX = g++
+  CC	= /usr/bin/gcc
+  CXX = /usr/bin/g++
 endif
 
 #define the NVIDIA CUDA compiler
@@ -32,30 +32,30 @@ NVCC	= nvcc
 #PRECISION = -DPRECISION=1
 PRECISION = -DPRECISION=2
 
-#OUTPUT = -DWITH_GHOST
-OUTPUT = -DNO_GHOST
+#OUTPUT = -DBINARY
+OUTPUT = -DHDF5
 
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
 #RECONSTRUCTION = -DPLMC
-#RECONSTRUCTION = -DPPMP
-RECONSTRUCTION = -DPPMC
+RECONSTRUCTION = -DPPMP
+#RECONSTRUCTION = -DPPMC
 
-SOLVER = -DEXACT
-#SOLVER = -DROE
+#SOLVER = -DEXACT
+SOLVER = -DROE
 
 INTEGRATOR = -DCTU 
 #INTEGRATOR = -DVL
 
 INCL   = -I./ -I/usr/local/cuda/include -I/usr/local/include
 NVLIBS = -L/usr/local/cuda/lib -lcuda -lcudart
-LIBS   = -lm -lgsl
+LIBS   = -L/usr/local/lib -lm -lgsl -lhdf5
 
 
-FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) -DDE -DCUDA -DCUDA_ERROR_CHECK
+FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) -DCUDA -DCUDA_ERROR_CHECK
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) -m64
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) -m64
-NVCCFLAGS = $(FLAGS) -m64 -arch=compute_20 -code=sm_20 -fmad=false -ccbin /usr/bin/clang -Xcompiler -stdlib=libstdc++ 
+NVCCFLAGS = $(FLAGS) -m64 -arch=sm_30 -fmad=false -ccbin clang++ -Xcompiler -arch -Xcompiler x86_64
 LDFLAGS	  = -m64 -F/Library/Frameworks -framework CUDA
 
 

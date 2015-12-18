@@ -320,6 +320,32 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Rz, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
   #endif
 */
+  #ifdef H_CORRECTION
+  // Step 3.5: Calculate eta values for H correction
+  #ifdef TIME
+  cudaEventRecord(start, 0);
+  #endif //TIME     
+  calc_eta_x_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, eta_x, nx_s, ny_s, nz_s, n_ghost, gama);
+  CudaCheckError();
+  calc_eta_y_3D<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, eta_y, nx_s, ny_s, nz_s, n_ghost, gama);
+  CudaCheckError();
+  calc_eta_z_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, eta_z, nx_s, ny_s, nz_s, n_ghost, gama);
+  CudaCheckError();
+  // and etah values for each interface
+  calc_etah_x_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_x, nx_s, ny_s, nz_s, n_ghost);
+  CudaCheckError();
+  calc_etah_y_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_y, nx_s, ny_s, nz_s, n_ghost);
+  CudaCheckError();
+  calc_etah_z_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_z, nx_s, ny_s, nz_s, n_ghost);
+  CudaCheckError();
+  #ifdef TIME
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&elapsedTime, start, stop);
+  //printf("H correction: %5.3f ms\n", elapsedTime);
+  #endif //TIME 
+  #endif //H_CORRECTION
+
 
   // Step 2: Calculate the fluxes
   #ifdef EXACT
@@ -408,33 +434,6 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   ie += elapsedTime;
   #endif //TIME    
    
-
-  #ifdef H_CORRECTION
-  // Step 3.5: Calculate eta values for H correction
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME     
-  calc_eta_x_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, eta_x, nx_s, ny_s, nz_s, n_ghost, gama);
-  CudaCheckError();
-  calc_eta_y_3D<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, eta_y, nx_s, ny_s, nz_s, n_ghost, gama);
-  CudaCheckError();
-  calc_eta_z_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, eta_z, nx_s, ny_s, nz_s, n_ghost, gama);
-  CudaCheckError();
-  // and etah values for each interface
-  calc_etah_x_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_x, nx_s, ny_s, nz_s, n_ghost);
-  CudaCheckError();
-  calc_etah_y_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_y, nx_s, ny_s, nz_s, n_ghost);
-  CudaCheckError();
-  calc_etah_z_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_z, nx_s, ny_s, nz_s, n_ghost);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("H correction: %5.3f ms\n", elapsedTime);
-  #endif //TIME 
-  #endif //H_CORRECTION
-
 
   // Step 4: Calculate the fluxes again
   #ifdef EXACT
@@ -705,7 +704,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
     vz = dev_Q_Lx[3*n_cells + id] * d_inv;
     P  = dev_Q_Lx[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     if (P < 0.0) {
-      printf("%3d %3d %3d Negative pressure in Q_Lx update. %f %f %f %f\n", xid, yid, zid, dev_Q_Lx[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+//      printf("%3d %3d %3d Negative pressure in Q_Lx update. %f %f %f %f\n", xid, yid, zid, dev_Q_Lx[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
     }
     if (dev_Q_Lx[id] < 0.0 || dev_Q_Lx[id] != dev_Q_Lx[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Lx update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Lx[id], dev_F_y[jmo], dev_F_y[id], dev_F_z[kmo], dev_F_z[id]);
@@ -728,7 +727,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
     vz = dev_Q_Rx[3*n_cells + id] * d_inv;
     P  = dev_Q_Rx[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     if (P < 0.0) {
-      printf("%3d %3d %3d Negative pressure in Q_Rx update. %f %f %f %f\n", xid, yid, zid, dev_Q_Rx[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+//      printf("%3d %3d %3d Negative pressure in Q_Rx update. %f %f %f %f\n", xid, yid, zid, dev_Q_Rx[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
     }
     if (dev_Q_Rx[id] < 0.0 || dev_Q_Rx[id] != dev_Q_Rx[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Rx update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Rx[id], dev_F_y[ipojmo], dev_F_y[ipo], dev_F_z[ipokmo], dev_F_z[ipo]);
@@ -760,7 +759,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
     vz = dev_Q_Ly[3*n_cells + id] * d_inv;
     P  = dev_Q_Ly[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     if (P < 0.0) {
-      printf("%3d %3d %3d Negative pressure in Q_Ly update. %f %f %f %f\n", xid, yid, zid, dev_Q_Ly[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+//      printf("%3d %3d %3d Negative pressure in Q_Ly update. %f %f %f %f\n", xid, yid, zid, dev_Q_Ly[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
     }
     if (dev_Q_Ly[id] < 0.0 || dev_Q_Ly[id] != dev_Q_Ly[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Ly update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Ly[id], dev_F_z[kmo], dev_F_z[id], dev_F_x[imo], dev_F_x[id]);
@@ -783,7 +782,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
     vz = dev_Q_Ry[3*n_cells + id] * d_inv;
     P  = dev_Q_Ry[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     if (P < 0.0) {
-      printf("%3d %3d %3d Negative pressure in Q_Ry update. %f %f %f %f\n", xid, yid, zid, dev_Q_Ry[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+//      printf("%3d %3d %3d Negative pressure in Q_Ry update. %f %f %f %f\n", xid, yid, zid, dev_Q_Ry[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
     }
     if (dev_Q_Ry[id] < 0.0 || dev_Q_Ry[id] != dev_Q_Ry[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Ry update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Ry[id], dev_F_z[jpokmo], dev_F_z[jpo], dev_F_x[jpoimo], dev_F_x[jpo]);
@@ -815,7 +814,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
     vz = dev_Q_Lz[3*n_cells + id] * d_inv;
     P  = dev_Q_Lz[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     if (P < 0.0) {
-      printf("%3d %3d %3d Negative pressure in Q_Lz update. %f %f %f %f\n", xid, yid, zid, dev_Q_Lz[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+      //printf("%3d %3d %3d Negative pressure in Q_Lz update. %f %f %f %f\n", xid, yid, zid, dev_Q_Lz[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
     }
     if (dev_Q_Lz[id] < 0.0 || dev_Q_Lz[id] != dev_Q_Lz[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Lz update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Lz[id], dev_F_x[imo], dev_F_x[id], dev_F_y[jmo], dev_F_y[id]);
@@ -838,7 +837,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
     vz = dev_Q_Rz[3*n_cells + id] * d_inv;
     P  = dev_Q_Rz[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     if (P < 0.0) {
-      printf("%3d %3d %3d Negative pressure in Q_Rz update. %f %f %f %f\n", xid, yid, zid, dev_Q_Rz[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+      //printf("%3d %3d %3d Negative pressure in Q_Rz update. %f %f %f %f\n", xid, yid, zid, dev_Q_Rz[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
     }
     if (dev_Q_Rz[id] < 0.0 || dev_Q_Rz[id] != dev_Q_Rz[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Rz update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Rz[id], dev_F_x[kpoimo], dev_F_x[kpo], dev_F_y[kpojmo], dev_F_y[kpo]);
@@ -921,7 +920,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
-      printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dev_F_z[kmo], dev_F_z[id], dev_conserved[id]);
+      printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
     }
     //if (dev_conserved[5*n_cells + id] < 0.0) printf("%3d %3d %3d Negative internal energy after update. %f %f %f %f\n", xid, yid, zid, dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id], dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id], dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id], 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo)));
 /*

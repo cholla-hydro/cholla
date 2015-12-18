@@ -6,15 +6,15 @@
 # number of grid cells in the x dimension
 nx=100
 # number of grid cells in the y dimension
-ny=100
+ny=10
 # number of grid cells in the z dimension
-nz=100
+nz=10
 # final output time
 tout=0.2
 # time interval for output
 outstep=0.2
 # name of initial conditions
-init=Riemann_3D
+init=Riemann
 #init=Read_Grid
 # domain properties
 xmin=0.0
@@ -31,7 +31,7 @@ yu_bcnd=3
 zl_bcnd=3
 zu_bcnd=3
 # path to output directory
-outdir=/data2/evan/grid_tests/Sod_3D/
+outdir=/Users/evan/Desktop/output/Sod_3D/
 #outdir=./binaries/
 
 #################################################

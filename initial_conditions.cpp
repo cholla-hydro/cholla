@@ -345,6 +345,7 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
           //C.momentum_x[id] = 0.0;
           C.momentum_x[id] = rho_l * v_l;
           C.momentum_y[id] = 0.0;
+          //C.momentum_y[id] = rho_l * v_l;
           C.momentum_z[id] = 0.0;
           //C.momentum_z[id] = rho_l * v_l;
           C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
@@ -358,6 +359,7 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
           //C.momentum_x[id] = 0.0;
           C.momentum_x[id] = rho_r * v_r;
           C.momentum_y[id] = 0.0;
+          //C.momentum_y[id] = rho_r * v_r;
           C.momentum_z[id] = 0.0;
           //C.momentum_z[id] = rho_r * v_r;
           C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
