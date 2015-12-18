@@ -1,2 +1,0 @@
-Added subcycling to cooling. Added new cooling model.
-
