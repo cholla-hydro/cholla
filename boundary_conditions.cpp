@@ -521,8 +521,6 @@ void Grid3D::Wind_Boundary()
 {
   int i, j, k, id;
   Real d_0, d_s, v_0, v_s, P_0, P_s, cs, M;
-  Real velocity_unit = LENGTH_UNIT / TIME_UNIT;
-  Real pressure_unit = DENSITY_UNIT * LENGTH_UNIT * LENGTH_UNIT / (TIME_UNIT * TIME_UNIT);
 
   // Mach 50 shock, matched to Cloud_3D IC's
   // post-shock density is 4x pre-shock density
@@ -530,13 +528,12 @@ void Grid3D::Wind_Boundary()
   // post-shock velocity is (3/4) v_shock ~440 km/s
   //v_0 = 4.40e7 / velocity_unit;
   // post-shock temperature is ~7.81e6 K 
-  //P_0 = 0.4*1.380658e-16*7.81e6 / pressure_unit;
-  //P_0 = 4.3145563e-10 / pressure_unit;
+  //P_0 = 0.4*KB*7.81e6 / pressure_unit;
 
-  // Mach 1.0 hot wind from Scannapieco 2015 M10v480
+  // Mach 4.6 hot wind from Cooper 2009 
   d_0 = 0.1;
-  v_0 = 1.2e8 / velocity_unit;
-  P_0 = 0.1*1.380658e-16*5e6 / pressure_unit;
+  v_0 = 1.2e8 / VELOCITY_UNIT;
+  P_0 = 0.1*KB*5e6 / PRESSURE_UNIT;
 
 /*
   // any Mach shock
@@ -573,21 +570,21 @@ void Grid3D::Wind_Boundary()
   // set inflow boundaries on the -z face
   if (H.nz > 1) {
 
-    for (k=0; k<H.n_ghost; k++) {
-    //for (k=0; k<H.nz; k++) {
+    //for (k=0; k<H.n_ghost; k++) {
+    for (k=0; k<H.nz; k++) {
       for (j=0; j<H.ny; j++) {
-        for (i=0; i<H.nx; i++) {
-        //for (i=0; i<H.n_ghost; i++) {
+        //for (i=0; i<H.nx; i++) {
+        for (i=0; i<H.n_ghost; i++) {
 
           id = i + j*H.nx + k*H.nx*H.ny;
 
           // set the conserved quantities
           C.density[id]    = d_0;
-          C.momentum_x[id] = 0.0;
-          //C.momentum_x[id] = C.density[id]*v_0;
+          //C.momentum_x[id] = 0.0;
+          C.momentum_x[id] = C.density[id]*v_0;
           C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = C.density[id]*v_0;
-          //C.momentum_z[id] = 0.0;
+          //C.momentum_z[id] = C.density[id]*v_0;
+          C.momentum_z[id] = 0.0;
           C.Energy[id] = (P_0)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
           #ifdef DE
           C.GasEnergy[id] = (P_0)/(gama-1.0)/d_0;

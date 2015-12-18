@@ -320,6 +320,32 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Rz, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
   #endif
 */
+  #ifdef H_CORRECTION
+  // Step 3.5: Calculate eta values for H correction
+  #ifdef TIME
+  cudaEventRecord(start, 0);
+  #endif //TIME     
+  calc_eta_x_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, eta_x, nx_s, ny_s, nz_s, n_ghost, gama);
+  CudaCheckError();
+  calc_eta_y_3D<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, eta_y, nx_s, ny_s, nz_s, n_ghost, gama);
+  CudaCheckError();
+  calc_eta_z_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, eta_z, nx_s, ny_s, nz_s, n_ghost, gama);
+  CudaCheckError();
+  // and etah values for each interface
+  calc_etah_x_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_x, nx_s, ny_s, nz_s, n_ghost);
+  CudaCheckError();
+  calc_etah_y_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_y, nx_s, ny_s, nz_s, n_ghost);
+  CudaCheckError();
+  calc_etah_z_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_z, nx_s, ny_s, nz_s, n_ghost);
+  CudaCheckError();
+  #ifdef TIME
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&elapsedTime, start, stop);
+  //printf("H correction: %5.3f ms\n", elapsedTime);
+  #endif //TIME 
+  #endif //H_CORRECTION
+
 
   // Step 2: Calculate the fluxes
   #ifdef EXACT
@@ -924,7 +950,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
       printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dev_F_z[kmo], dev_F_z[id], dev_conserved[id]);
     }
     //if (dev_conserved[5*n_cells + id] < 0.0) printf("%3d %3d %3d Negative internal energy after update. %f %f %f %f\n", xid, yid, zid, dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id], dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id], dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id], 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo)));
-/*
+
     // every thread collects the conserved variables it needs from global memory
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -933,9 +959,9 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     if (P < 0.0) {
-      printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
+      //printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
     }
-*/
+
   }
 
 }
