@@ -670,9 +670,16 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   // Create the data space for the attribute
   dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
 
+  #ifndef MPI_CHOLLA
+  int_data[0] = H.nx_real;
+  int_data[1] = H.ny_real;
+  int_data[2] = H.nz_real;
+  #endif
+  #ifdef MPI_CHOLLA
   int_data[0] = nx_global_real;
   int_data[1] = ny_global_real;
   int_data[2] = nz_global_real;
+  #endif
 
   attribute_id = H5Acreate(file_id, "dims", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
@@ -815,8 +822,9 @@ void Grid3D::Write_Grid_Binary(FILE *fp)
  *  \brief Write the grid to a file, at the current simulation time. */
 void Grid3D::Write_Grid_HDF5(hid_t file_id)
 {
-  int i, j, k, id;
+  int i, j, k, id, buf_id;
   hid_t     dataset_id, dataspace_id; 
+  Real      *dataset_buffer;
   herr_t    status;
   #ifdef MPI_CHOLLA
   hid_t     memspace_id;
@@ -844,7 +852,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     #endif
 
     hsize_t   dims[1];
-    Real      dataset_buffer[H.nx_real];
+    dataset_buffer = (Real *) malloc(H.nx_real*sizeof(Real));
 
     // Create the data space for the datasets
     dims[0] = nx_dset;
@@ -983,26 +991,29 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     int       ny_dset = ny_global_real;
     hsize_t   count[2];
     hsize_t   offset[2];
-    count[1]  = H.nx_real;  //x dimension for this process
-    count[0]  = H.ny_real;  //y dimension for this process
-    offset[1] = nx_local_start;
-    offset[0] = ny_local_start;
+    count[0]  = H.nx_real;  //x dimension for this process
+    count[1]  = H.ny_real;  //y dimension for this process
+    offset[0] = nx_local_start;
+    offset[1] = ny_local_start;
     // create the local process memory space (dimensions of the local grid)
     memspace_id = H5Screate_simple(2, count, NULL);    
     #endif
 
     hsize_t   dims[2];
-    Real      dataset_buffer[H.ny_real][H.nx_real];
+    dataset_buffer = (Real *) malloc(H.ny_real*H.nx_real*sizeof(Real));
 
     // Create the data space for the datasets
-    dims[0] = ny_dset;
-    dims[1] = nx_dset;
+    dims[0] = nx_dset;
+    dims[1] = ny_dset;
     dataspace_id = H5Screate_simple(2, dims, NULL);
 
     // Copy the density array to the memory buffer
     for (j=0; j<H.ny_real; j++) {
-      id = H.n_ghost + (j+H.n_ghost)*H.nx;
-      memcpy(&dataset_buffer[j][0], &(C.density[id]), H.nx_real*sizeof(Real));
+      for (i=0; i<H.nx_real; i++) {
+        id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx;
+        buf_id = j + i*H.ny_real;
+        dataset_buffer[buf_id] = C.density[id];
+      }
     }
 
     // Create a dataset id for density
@@ -1021,11 +1032,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dclose(dataset_id);
 
     // Copy the x momentum array to the memory buffer
-    for (j = 0; j< H.ny_real; j++) {
-      id = H.n_ghost + (j+H.n_ghost)*H.nx;
-      memcpy(&dataset_buffer[j][0], &(C.momentum_x[id]), H.nx_real*sizeof(Real));    
+    for (j=0; j<H.ny_real; j++) {
+      for (i=0; i<H.nx_real; i++) {
+        id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx;
+        buf_id = j + i*H.ny_real;
+        dataset_buffer[buf_id] = C.momentum_x[id];
+      }
     }
-
     // Create a dataset id for x momentum 
     dataset_id = H5Dcreate(file_id, "/momentum_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     #ifndef MPI_CHOLLA
@@ -1042,9 +1055,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dclose(dataset_id);
 
     // Copy the y momentum array to the memory buffer
-    for (j = 0; j< H.ny_real; j++) {
-      id = H.n_ghost + (j+H.n_ghost)*H.nx;
-      memcpy(&dataset_buffer[j][0], &(C.momentum_y[id]), H.nx_real*sizeof(Real));    
+    for (j=0; j<H.ny_real; j++) {
+      for (i=0; i<H.nx_real; i++) {
+        id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx;
+        buf_id = j + i*H.ny_real;
+        dataset_buffer[buf_id] = C.momentum_y[id];
+      }
     }
 
     // Create a dataset id for y momentum 
@@ -1063,9 +1079,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dclose(dataset_id);
 
     // Copy the z momentum array to the memory buffer
-    for (j = 0; j< H.ny_real; j++) {
-      id = H.n_ghost + (j+H.n_ghost)*H.nx;
-      memcpy(&dataset_buffer[j][0], &(C.momentum_z[id]), H.nx_real*sizeof(Real));    
+    for (j=0; j<H.ny_real; j++) {
+      for (i=0; i<H.nx_real; i++) {
+        id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx;
+        buf_id = j + i*H.ny_real;
+        dataset_buffer[buf_id] = C.momentum_z[id];
+      }
     }
 
     // Create a dataset id for z momentum 
@@ -1083,10 +1102,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     // Free the dataset id
     status = H5Dclose(dataset_id);
    
-    // Copy the energy array to the memory buffer
-    for (j = 0; j< H.ny_real; j++) {
-      id = H.n_ghost + (j+H.n_ghost)*H.nx;
-      memcpy(&dataset_buffer[j][0], &(C.Energy[id]), H.nx_real*sizeof(Real));    
+    // Copy the Energy array to the memory buffer
+    for (j=0; j<H.ny_real; j++) {
+      for (i=0; i<H.nx_real; i++) {
+        id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx;
+        buf_id = j + i*H.ny_real;
+        dataset_buffer[buf_id] = C.Energy[id];
+      }
     }
 
     // Create a dataset id for Energy 
@@ -1106,10 +1128,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     #ifdef DE
     // Copy the internal energy array to the memory buffer
-    for (j = 0; j< H.ny_real; j++) {
-      id = H.n_ghost + (j+H.n_ghost)*H.nx;
-      memcpy(&dataset_buffer[j][0], &(C.GasEnergy[id]), H.nx_real*sizeof(Real));    
-    }    
+    for (j=0; j<H.ny_real; j++) {
+      for (i=0; i<H.nx_real; i++) {
+        id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx;
+        buf_id = j + i*H.ny_real;
+        dataset_buffer[buf_id] = C.GasEnergy[id];
+      }
+    }
 
     // Create a dataset id for internal energy 
     dataset_id = H5Dcreate(file_id, "/GasEnergy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -1134,6 +1159,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   // 3D case
   if (H.nx>1 && H.ny>1 && H.nz>1) {
 
+
     #ifndef MPI_CHOLLA
     int       nx_dset = H.nx_real;
     int       ny_dset = H.ny_real;
@@ -1145,30 +1171,34 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     int       nz_dset = nz_global_real;
     hsize_t   count[3];
     hsize_t   offset[3];
-    count[2]  = H.nx_real;  //x dimension for this process
+    count[0]  = H.nx_real;  //x dimension for this process
     count[1]  = H.ny_real;  //y dimension for this process
-    count[0]  = H.nz_real;  //y dimension for this process
-    offset[2] = nx_local_start;
+    count[2]  = H.nz_real;  //y dimension for this process
+    offset[0] = nx_local_start;
     offset[1] = ny_local_start;
-    offset[0] = nz_local_start;
+    offset[2] = nz_local_start;
     // create the local process memory space (dimensions of the local grid)
     memspace_id = H5Screate_simple(3, count, NULL);    
     #endif
 
     hsize_t   dims[3];
-    Real      dataset_buffer[H.nz_real][H.ny_real][H.nx_real];
+    //Real      dataset_buffer[H.nz_real][H.ny_real][H.nx_real];
+    dataset_buffer = (Real *) malloc(H.nz_real*H.ny_real*H.nx_real*sizeof(Real));
 
     // Create the data space for the datasets
-    dims[0] = nz_dset;
+    dims[0] = nx_dset;
     dims[1] = ny_dset;
-    dims[2] = nx_dset;
+    dims[2] = nz_dset;
     dataspace_id = H5Screate_simple(3, dims, NULL);
 
     // Copy the density array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
-        id = H.n_ghost + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-        memcpy(&dataset_buffer[k][j][0], &(C.density[id]), H.nx_real*sizeof(Real));
+        for (i=0; i<H.nx_real; i++) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          dataset_buffer[buf_id] = C.density[id];
+        }
       }
     }
 
@@ -1190,8 +1220,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     // Copy the x momentum array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
-        id = H.n_ghost + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-        memcpy(&dataset_buffer[k][j][0], &(C.momentum_x[id]), H.nx_real*sizeof(Real));
+        for (i=0; i<H.nx_real; i++) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          dataset_buffer[buf_id] = C.momentum_x[id];
+        }
       }
     }
 
@@ -1213,8 +1246,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     // Copy the y momentum array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
-        id = H.n_ghost + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-        memcpy(&dataset_buffer[k][j][0], &(C.momentum_y[id]), H.nx_real*sizeof(Real));
+        for (i=0; i<H.nx_real; i++) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          dataset_buffer[buf_id] = C.momentum_y[id];
+        }
       }
     }
 
@@ -1236,8 +1272,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     // Copy the z momentum array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
-        id = H.n_ghost + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-        memcpy(&dataset_buffer[k][j][0], &(C.momentum_z[id]), H.nx_real*sizeof(Real));
+        for (i=0; i<H.nx_real; i++) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          dataset_buffer[buf_id] = C.momentum_z[id];
+        }
       }
     }
 
@@ -1259,8 +1298,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     // Copy the energy array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
-        id = H.n_ghost + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-        memcpy(&dataset_buffer[k][j][0], &(C.Energy[id]), H.nx_real*sizeof(Real));
+        for (i=0; i<H.nx_real; i++) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          dataset_buffer[buf_id] = C.Energy[id];
+        }
       }
     }
 
@@ -1283,10 +1325,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     // Copy the internal energy array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
-        id = H.n_ghost + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-        memcpy(&dataset_buffer[k][j][0], &(C.GasEnergy[id]), H.nx_real*sizeof(Real));
+        for (i=0; i<H.nx_real; i++) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          dataset_buffer[buf_id] = C.GasEnergy[id];
+        }
       }
-    }
+    }    
 
     // Create a dataset id for internal energy 
     dataset_id = H5Dcreate(file_id, "/GasEnergy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -1306,7 +1351,9 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Free the dataspace id
     status = H5Sclose(dataspace_id);
+
   }
+  free(dataset_buffer);
 
 }
 

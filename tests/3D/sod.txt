@@ -6,9 +6,9 @@
 # number of grid cells in the x dimension
 nx=100
 # number of grid cells in the y dimension
-ny=10
+ny=100
 # number of grid cells in the z dimension
-nz=10
+nz=100
 # final output time
 tout=0.2
 # time interval for output

@@ -4,13 +4,13 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=128
+nx=64
 # number of grid cells in the y dimension
-ny=128
+ny=64
 # number of grid cells in the z dimension
-nz=128
+nz=64
 # output time
-tout=0.01
+tout=2.0
 # how often to output
 outstep=2.0
 # value of gamma
@@ -37,6 +37,6 @@ custom_bcnd=noh
 #outdir=/gsfs1/rsgrps/brant/evan/data/noh_test_256/binaries/
 #outdir=/lustre/atlas/proj-shared/ast107/data/noh_test/binaries/
 #outdir=./
-outdir=/Users/evan/Desktop/binaries/
+outdir=/Users/evan/Desktop/output/Noh_3D/
 #outdir=outputs/
 
