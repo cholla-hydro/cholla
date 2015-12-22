@@ -17,8 +17,6 @@
 #include"exact_cuda.h"
 #include"roe_cuda.h"
 #include"cooling.h"
-#include"error_handling.h"
-#include"io.h"
 
 
 #define TEST

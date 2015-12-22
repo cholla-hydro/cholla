@@ -1,7 +1,6 @@
 /*! \file grid3D.cpp
  *  \brief Definitions of the Grid3D class */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -17,9 +16,14 @@
 #include "VL_1D_cuda.h"
 #include "VL_2D_cuda.h"
 #include "VL_3D_cuda.h"
-#include "mpi_routines.h"
 #include "io.h"
 #include "error_handling.h"
+#ifdef MPI_CHOLLA
+#include <mpi.h>
+#include <H5FDmpio.h>
+#include "mpi_routines.h"
+#endif
+#include <stdio.h>
 //#include "rng.h"
 
 

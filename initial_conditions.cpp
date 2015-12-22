@@ -4,7 +4,6 @@
            Functions are members of the Grid3D class. */
 
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -16,6 +15,7 @@
 #include "mpi_routines.h"
 #include "io.h"
 #include "error_handling.h"
+#include <stdio.h>
 
 /*! \fn void Set_Initial_Conditions(parameters P)
  *  \brief Set the initial conditions based on info in the parameters structure. */

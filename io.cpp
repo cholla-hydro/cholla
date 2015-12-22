@@ -1,10 +1,12 @@
+#ifdef MPI_CHOLLA
+#include"mpi_routines.h"
+#endif
 #include<stdio.h>
 #include<stdlib.h>
 #include<stdarg.h>
 #include<string.h>
 #include<hdf5.h>
 #include"io.h"
-#include"mpi_routines.h"
 
 /* Write the initial conditions */
 void WriteData(Grid3D G, struct parameters P, int nfile)

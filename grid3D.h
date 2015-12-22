@@ -4,13 +4,13 @@
 #ifndef GRID3D_H
 #define GRID3D_H
 
-#include<stdio.h>
-#include<hdf5.h>
-#include"global.h"
-
 #ifdef   MPI_CHOLLA
 #include"mpi_routines.h"
 #endif /*MPI_CHOLLA*/
+
+#include<stdio.h>
+#include<hdf5.h>
+#include"global.h"
 
 
 struct Header
