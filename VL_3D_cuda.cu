@@ -2,6 +2,7 @@
  *  \brief Definitions of the cuda 3D VL algorithm functions. */
 
 #ifdef CUDA
+#ifdef VL
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -17,7 +18,7 @@
 #include"exact_cuda.h"
 #include"roe_cuda.h"
 #include"h_correction_3D_cuda.h"
-#include"cooling.h"
+#include"cooling_cuda.h"
 #include"subgrid_routines_3D.h"
 
 
@@ -323,10 +324,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   #endif //TIME    
 
 
-  #ifdef COOLING
-  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-  #endif
-
   // Step 4: Construct left and right interface values using updated conserved variables
   #ifdef PCM
   PCM_Reconstruction_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama);
@@ -529,7 +526,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   #endif //TIME     
 
 
-  #ifdef COOLING
+  #ifdef COOLING_GPU
   cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
   #endif
 
@@ -850,4 +847,5 @@ __global__ void calc_dt_vl(Real *dev_conserved, int nx, int ny, int nz, int n_gh
 }
 
 
+#endif //VL
 #endif //CUDA

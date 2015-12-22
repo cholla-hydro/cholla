@@ -18,7 +18,7 @@
 #include"exact_cuda.h"
 #include"roe_cuda.h"
 #include"h_correction_3D_cuda.h"
-#include"cooling.h"
+#include"cooling_cuda.h"
 #include"subgrid_routines_3D.h"
 
 
@@ -310,17 +310,9 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   #endif //TIME 
   #endif //PPMC
 
-/*
-  #ifdef COOLING
-  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Lx, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Ly, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Lz, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Rx, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Ry, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(Q_Rz, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-  #endif
-*/
+
   #ifdef H_CORRECTION
+  #ifndef CTU
   // Step 3.5: Calculate eta values for H correction
   #ifdef TIME
   cudaEventRecord(start, 0);
@@ -344,6 +336,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   cudaEventElapsedTime(&elapsedTime, start, stop);
   //printf("H correction: %5.3f ms\n", elapsedTime);
   #endif //TIME 
+  #endif //CTU
   #endif //H_CORRECTION
 
 
@@ -419,7 +412,8 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   #endif //TIME    
   #endif //ROE
 
-/*
+
+#ifdef CTU
   // Step 3: Evolve the interface states
   #ifdef TIME
   cudaEventRecord(start, 0);
@@ -434,6 +428,33 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   ie += elapsedTime;
   #endif //TIME    
    
+
+  #ifdef H_CORRECTION
+  // Step 3.5: Calculate eta values for H correction
+  #ifdef TIME
+  cudaEventRecord(start, 0);
+  #endif //TIME     
+  calc_eta_x_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, eta_x, nx_s, ny_s, nz_s, n_ghost, gama);
+  CudaCheckError();
+  calc_eta_y_3D<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, eta_y, nx_s, ny_s, nz_s, n_ghost, gama);
+  CudaCheckError();
+  calc_eta_z_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, eta_z, nx_s, ny_s, nz_s, n_ghost, gama);
+  CudaCheckError();
+  // and etah values for each interface
+  calc_etah_x_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_x, nx_s, ny_s, nz_s, n_ghost);
+  CudaCheckError();
+  calc_etah_y_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_y, nx_s, ny_s, nz_s, n_ghost);
+  CudaCheckError();
+  calc_etah_z_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_z, nx_s, ny_s, nz_s, n_ghost);
+  CudaCheckError();
+  #ifdef TIME
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&elapsedTime, start, stop);
+  //printf("H correction: %5.3f ms\n", elapsedTime);
+  #endif //TIME 
+  #endif //H_CORRECTION
+
 
   // Step 4: Calculate the fluxes again
   #ifdef EXACT
@@ -505,7 +526,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   r2z += elapsedTime;
   #endif //TIME 
   #endif //ROE
-*/
+#endif //CTU
 
   // Step 5: Update the conserved variable array
   #ifdef TIME
@@ -525,7 +546,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   Sync_Energies_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama);
   #endif
 
-  #ifdef COOLING
+  #ifdef COOLING_GPU
   cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
   #endif
 

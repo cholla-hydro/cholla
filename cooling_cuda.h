@@ -1,8 +1,11 @@
-/*! \file cooling.h
+/*! \file cooling_cuda.h
  *  \brief Declarations of cooling functions. */
 
 #ifdef CUDA
 #ifdef COOLING
+
+#ifndef COOLING_CUDA_H
+#define COOLING_CUDA_H
 
 #include<cuda.h>
 #include<math.h>
@@ -37,6 +40,7 @@ __device__ Real KI_cool(Real n, Real T);
 __device__ Real Schure_cool(Real n, Real T);
 
 
+#endif //COOLING_CUDA_H
 
 #endif //COOLING
 #endif //CUDA

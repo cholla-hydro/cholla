@@ -153,6 +153,8 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
     kstart = 0;
     kend   = H.nz;
   }
+  Real T = 1e4;
+  P = rho*KB*T / PRESSURE_UNIT;
 
   // set initial values of conserved variables
   for(k=kstart; k<kend; k++) {

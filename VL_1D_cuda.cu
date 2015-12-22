@@ -2,6 +2,7 @@
  *  \brief Definitions of the cuda VL algorithm functions. */
 
 #ifdef CUDA
+#ifdef VL
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -16,7 +17,9 @@
 #include"ppmc_vl_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
-#include"cooling.h"
+#include"cooling_cuda.h"
+#include"error_handling.h"
+#include"io.h"
 
 
 #define TEST
@@ -172,11 +175,6 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   #endif     
 
 
-  #ifdef COOLING
-  cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved_half, nx, ny, nz, n_ghost, 0.5*dt, gama);
-  #endif
-
-
   // Step 4: Construct left and right interface values using updated conserved variables
   #ifdef PCM
   PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, n_ghost, gama);
@@ -203,7 +201,6 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   }
   #endif
  
-
 
   // Step 5: Calculate the fluxes again
   #ifdef TIME
@@ -240,7 +237,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   printf("conserved variable update: %5.3f ms\n", elapsedTime);
   #endif     
 
-  #ifdef COOLING
+  #ifdef COOLING_GPU
   cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
   #endif
 
@@ -477,4 +474,5 @@ __global__ void Update_Conserved_Variables_1D_wtime(Real *dev_conserved, Real *d
 
 }
 
+#endif //VL
 #endif //CUDA

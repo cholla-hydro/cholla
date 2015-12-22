@@ -17,7 +17,7 @@
 #include"exact_cuda.h"
 #include"roe_cuda.h"
 #include"h_correction_2D_cuda.h"
-#include"cooling.h"
+#include"cooling_cuda.h"
 #include"subgrid_routines_2D.h"
 
 //#define TIME
@@ -219,15 +219,18 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     CudaCheckError();
     #endif
 
-    
-    #ifdef COOLING
-    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(Q_Lx, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(Q_Ly, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(Q_Rx, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(Q_Ry, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
+    #ifdef H_CORRECTION
+    #ifndef CTU
+    // Step 3.5: Calculate eta values for H correction
+    calc_eta_x_2D<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, eta_x, nx_s, ny_s, n_ghost, gama);
+    calc_eta_y_2D<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, eta_y, nx_s, ny_s, n_ghost, gama);
+    CudaCheckError();
+    // and etah values for each interface
+    calc_etah_x_2D<<<dim2dGrid,dim1dBlock>>>(eta_x, eta_y, etah_x, nx_s, ny_s, n_ghost);
+    calc_etah_y_2D<<<dim2dGrid,dim1dBlock>>>(eta_x, eta_y, etah_y, nx_s, ny_s, n_ghost);
+    CudaCheckError();
+    #endif //CTU
     #endif
-
-
 
     // Step 2: Calculate the fluxes
     #ifdef EXACT
@@ -277,7 +280,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
 #endif
 
 
-
+#ifdef CTU
 
     // Step 3: Evolve the interface states
     #ifdef TIME
@@ -339,8 +342,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     CudaCheckError();
     #endif
 
-
-
+#endif //CTU
 
 
     // Step 5: Update the conserved variable array
@@ -362,7 +364,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     #endif
 
 
-    #ifdef COOLING
+    #ifdef COOLING_GPU
     cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
     #endif
 
