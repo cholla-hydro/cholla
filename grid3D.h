@@ -204,13 +204,17 @@ class Grid3D
      *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */ 
     Real calc_dti_CPU(Real C_cfl);
 
-    /*! \fn void Update_Grid_CTU(void)
-     *  \brief Use the CTU method to update the conserved quantities in each cell. */
-    Real Update_Grid_CTU(void);
+    /*! \fn void Update_Grid(void)
+     *  \brief Update the conserved quantities in each cell. */
+    Real Update_Grid(void);
 
-    /*! \fn void Update_Grid_VL(void)
-     *  \brief Use the VL method to update the conserved quantities in each cell. */
-    Real Update_Grid_VL(void);
+    /*! \fn void Cool_CPU(void)
+     *  \brief Use Cloudy cooling tables to apply cooling over the grid. */
+    void Cool_CPU(void);
+
+    /*! \fn void Load_Cooling_Tables(void)
+     *  \brief Load the Cloudy cooling tables into memory for fast lookup. */
+    void Load_Cooling_Tables(void);
 
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */

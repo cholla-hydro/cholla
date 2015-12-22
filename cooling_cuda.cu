@@ -1,14 +1,14 @@
-/*! \file cooling.cu
+/*! \file cooling_cuda.cu
  *  \brief Functions to calculate cooling rate for a given rho, P, dt. */
 
 #ifdef CUDA
-#ifdef COOLING
+#ifdef COOLING_GPU
 
 #include<cuda.h>
 #include<math.h>
 #include<io.h>
 #include"global.h"
-#include"cooling.h"
+#include"cooling_cuda.h"
 
 
 
@@ -302,5 +302,5 @@ __device__ Real Schure_cool(Real n, Real T)
 }
 
 
-#endif //COOLING
+#endif //COOLING_GPU
 #endif //CUDA

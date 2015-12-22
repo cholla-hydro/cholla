@@ -17,7 +17,7 @@
 #include"ppmc_ctu_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
-#include"cooling.h"
+#include"cooling_cuda.h"
 #include"error_handling.h"
 #include"io.h"
 
@@ -157,12 +157,6 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   #endif
 
   
-  #ifdef COOLING
-  //cooling_kernel<<<dimGrid,dimBlock>>>(Q_L, nx, ny, nz, n_ghost, 0.5*dt, gama);
-  //cooling_kernel<<<dimGrid,dimBlock>>>(Q_R, nx, ny, nz, n_ghost, 0.5*dt, gama);
-  #endif
-
-
   // Step 2: Calculate the fluxes
   #ifdef TIME
   cudaEventRecord(start, 0);
@@ -183,16 +177,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   #endif
 
 
-
-  // Step 3: Evolve the interface states
-  // not necessary for 1D
-
-
-  // Step 4: Calculate the fluxes again
-  // not necessary for 1D
-
-
-  // Step 5: Update the conserved variable array
+  // Step 3: Update the conserved variable array
   #ifdef TIME
   cudaEventRecord(start, 0);
   #endif      
@@ -211,8 +196,8 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   #endif
 
 
-  #ifdef COOLING
-  //cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
+  #ifdef COOLING_GPU
+  cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
   #endif
 
   // Calculate the next timestep

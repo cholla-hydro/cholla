@@ -40,6 +40,9 @@ extern Real gama; // Ratio of specific heats
 extern Real t_comm;
 extern Real t_other;
 
+extern Real L_arr[];
+extern Real T_arr[];
+
 /*! \fn void Set_Gammas(Real gamma_in)
  *  \brief Set gamma values for Riemann solver. */
 extern void Set_Gammas(Real gamma_in);

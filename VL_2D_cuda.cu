@@ -2,6 +2,7 @@
  *  \brief Definitions of the cuda 2D VL algorithm functions. */
 
 #ifdef CUDA
+#ifdef VL
 
 #include<stdio.h>
 #include<math.h>
@@ -219,9 +220,6 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     printf("conserved variable update: %5.3f ms\n", elapsedTime);
     #endif     
 
-    #ifdef COOLING
-    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved_half, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama);
-    #endif
 
     // Step 4: Construct left and right interface values using updated conserved variables
     #ifdef PLMP
@@ -337,9 +335,6 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     CudaCheckError();
     #endif
 
-    #ifdef COOLING
-    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
-    #endif
 
     // Step 5: Update the conserved variable array
     #ifdef TIME
@@ -355,6 +350,9 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     printf("conserved variable update: %5.3f ms\n", elapsedTime);
     #endif     
 
+    #ifdef COOLING_GPU
+    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
+    #endif
 
 
     // copy the conserved variable array back to the CPU
@@ -558,5 +556,6 @@ __global__ void Update_Conserved_Variables_2D_wtime(Real *dev_conserved, Real *d
   
 }
 
+#endif //VL
 #endif //CUDA
 

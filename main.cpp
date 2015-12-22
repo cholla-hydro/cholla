@@ -156,16 +156,11 @@ int main(int argc, char *argv[])
       }
     }    
 */
-    // Use either the CTU or VL integrator to advance the grid
+    // Advance the grid by one timestep
     #ifdef CPU_TIME
     start_CTU = get_time();
     #endif
-    #ifdef CTU
-    dti = G.Update_Grid_CTU();
-    #endif
-    #ifdef VL
-    dti = G.Update_Grid_VL();
-    #endif
+    dti = G.Update_Grid();
     #ifdef CPU_TIME
     stop_CTU = get_time();
     CTU_t = stop_CTU - start_CTU;
