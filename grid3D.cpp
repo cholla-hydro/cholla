@@ -140,11 +140,6 @@ void Grid3D::Initialize(struct parameters *P)
   // allocate memory
   AllocateMemory();
 
-  #ifdef COOLING_CPU
-  // Load cooling tables
-  Load_Cooling_Tables();
-  #endif
-
 }
 
 
@@ -178,6 +173,11 @@ void Grid3D::AllocateMemory(void)
   {
     C.density[i] = 0.0;
   }
+
+  #ifdef COOLING_CPU
+  // Load cooling tables
+  Load_Cooling_Tables();
+  #endif
 
 }
 
@@ -618,5 +618,9 @@ void Grid3D::FreeMemory(void)
 {
   // free the conserved variable array
   free(C.density);
+
+  #ifdef COOLING_CPU
+  Free_Cooling_Tables();
+  #endif
 
 }

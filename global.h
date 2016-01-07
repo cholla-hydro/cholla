@@ -5,6 +5,11 @@
 #ifndef GLOBAL_H 
 #define GLOBAL_H 
 
+#ifdef COOLING_CPU
+#include <gsl/gsl_spline.h>
+#include <gsl/gsl_spline2d.h>
+#endif
+
 #if PRECISION == 1
 #ifndef FLOAT_TYPEDEF_DEFINED
 typedef float Real;
@@ -40,8 +45,13 @@ extern Real gama; // Ratio of specific heats
 extern Real t_comm;
 extern Real t_other;
 
-extern Real L_arr[];
-extern Real T_arr[];
+#ifdef COOLING_CPU
+extern gsl_interp_accel *xacc;
+extern gsl_interp_accel *yacc;
+extern gsl_spline *highT_C_spline;
+extern gsl_spline2d *lowT_C_spline;
+extern gsl_spline2d *lowT_H_spline;
+#endif
 
 /*! \fn void Set_Gammas(Real gamma_in)
  *  \brief Set gamma values for Riemann solver. */

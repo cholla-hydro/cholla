@@ -10,9 +10,9 @@ ny=1
 # number of grid cells in the z dimension
 nz=1
 # final output time
-tout=10.0
+tout=100000.0
 # time interval for output
-outstep=1.0
+outstep=1000.0
 # name of initial conditions
 init=Constant
 # domain properties
@@ -35,7 +35,7 @@ outdir=/Users/evan/Desktop/output/cooling/
 
 #################################################
 # density
-rho=1.0
+rho=0.001
 # velocity
 vx=0
 vy=0

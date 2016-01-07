@@ -216,6 +216,10 @@ class Grid3D
      *  \brief Load the Cloudy cooling tables into memory for fast lookup. */
     void Load_Cooling_Tables(void);
 
+    /*! \fn void Free_Cooling_Tables(void)
+     *  \brief Free the memory associated with the cooling tables. */
+    void Free_Cooling_Tables(void);
+
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
     void Write_Header_Binary(FILE *fp);
