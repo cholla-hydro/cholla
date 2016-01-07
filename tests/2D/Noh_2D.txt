@@ -32,7 +32,7 @@ yu_bcnd=4
 custom_bcnd=noh
 # path to output directory
 #outdir=outputs/
-outdir=/data2/evan/grid_tests/Noh_2D/test/
+outdir=/gsfs1/rsgrps/brant/evan/data/noh_test_256/output/
 
 
 

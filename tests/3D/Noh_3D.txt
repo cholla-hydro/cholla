@@ -4,11 +4,11 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=256
+nx=200
 # number of grid cells in the y dimension
-ny=256
+ny=200
 # number of grid cells in the z dimension
-nz=256
+nz=200
 # output time
 tout=2.0
 # how often to output
@@ -36,11 +36,6 @@ custom_bcnd=noh
 #outdir=/data1/evan/data/Noh_3D/test/
 outdir=/gsfs1/rsgrps/brant/evan/data/noh_test_256/output/
 #outdir=/lustre/atlas/proj-shared/ast107/data/noh_test/binaries/
-#outdir=./
-<<<<<<< HEAD
 #outdir=/Users/evan/Desktop/binaries/
-=======
-outdir=/Users/evan/Desktop/output/Noh_3D/
->>>>>>> 7448d369275298503a15e427df7b62169313e2eb
 #outdir=outputs/
 
