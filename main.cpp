@@ -1,6 +1,10 @@
 /*! \file main.cpp
  *  \brief Program to run the grid code. */
 
+#ifdef MPI_CHOLLA
+#include <mpi.h>
+#include "mpi_routines.h"
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -9,10 +13,6 @@
 #include "grid3D.h"
 #include "io.h"
 #include "error_handling.h"
-#ifdef MPI_CHOLLA
-#include <mpi.h>
-#include "mpi_routines.h"
-#endif
 
 //#define CPU_TIME
 #define OUTPUT

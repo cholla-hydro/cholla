@@ -2,7 +2,6 @@
  *  \brief Definitions of the boundary conditions for various tests.
            Functions are members of the Grid3D class. */
 
-#include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
 #include<string.h>
@@ -10,6 +9,7 @@
 #include"io.h"
 #include"error_handling.h"
 #include"mpi_routines.h"
+#include<stdio.h>
 
 
 /*! \fn void Set_Boundary_Conditions(parameters P)

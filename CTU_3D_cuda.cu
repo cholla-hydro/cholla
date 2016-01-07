@@ -313,7 +313,6 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
 
   #ifdef H_CORRECTION
   #ifndef CTU
-  // Step 3.5: Calculate eta values for H correction
   #ifdef TIME
   cudaEventRecord(start, 0);
   #endif //TIME     
@@ -1089,9 +1088,9 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     cs = sqrt(d_inv * gamma * P);
-    //max_dti[tid] = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
-    //max_dti[tid] = fmax(max_dti[tid], (fabs(vz)+cs)/dz);
-    max_dti[tid] = (fabs(vx)+cs)/dx + (fabs(vy)+cs)/dy + (fabs(vz)+cs)/dz;
+    max_dti[tid] = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
+    max_dti[tid] = fmax(max_dti[tid], (fabs(vz)+cs)/dz);
+    //max_dti[tid] = (fabs(vx)+cs)/dx + (fabs(vy)+cs)/dy + (fabs(vz)+cs)/dz;
   }
   __syncthreads();
   

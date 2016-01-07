@@ -4,8 +4,10 @@
 #include<string.h>
 #include<hdf5.h>
 #include"io.h"
-#include"mpi_routines.h"
 #include"grid3D.h"
+#ifdef MPI_CHOLLA
+#include"mpi_routines.h"
+#endif
 
 /* Write the initial conditions */
 void WriteData(Grid3D G, struct parameters P, int nfile)
