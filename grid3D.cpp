@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#ifdef HDF5
 #include <hdf5.h>
+#endif
 #include "global.h"
 #include "grid3D.h"
 #include "CTU_1D.h"

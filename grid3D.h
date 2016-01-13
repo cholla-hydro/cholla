@@ -9,9 +9,11 @@
 #endif /*MPI_CHOLLA*/
 
 #include<stdio.h>
-#include<hdf5.h>
 #include"global.h"
 
+#ifdef HDF5
+#include<hdf5.h>
+#endif
 
 struct Header
 {
@@ -228,6 +230,7 @@ class Grid3D
      *  \brief Write the grid to a file, at the current simulation time. */
     void Write_Grid_Binary(FILE *fp);
 
+#ifdef HDF5
     /*! \fn void Write_Header_HDF5(hid_t file_id)
      *  \brief Write the relevant header info to the HDF5 file. */
     void Write_Header_HDF5(hid_t file_id);
@@ -235,6 +238,7 @@ class Grid3D
     /*! \fn void Write_Grid_HDF5(hid_t file_id)
      *  \brief Write the grid to a file, at the current simulation time. */
     void Write_Grid_HDF5(hid_t file_id);
+#endif
 
     /*! \fn void Reset(void)
      *  \brief Reset the Grid3D class. */

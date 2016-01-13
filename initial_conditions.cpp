@@ -1224,14 +1224,15 @@ void Grid3D::Cloud_3D() {
         if (jj+joff >= ny_local_start && jj+joff < ny_local_start+ny_local) {
         if (kk+koff >= nz_local_start && kk+koff < nz_local_start+nz_local) {
           id = ii+ioff+H.n_ghost-nx_local_start + (jj+joff+H.n_ghost-ny_local_start)*H.nx + (kk+koff+H.n_ghost-nz_local_start)*H.nx*H.ny;
+          // get cell-centered position
+          Get_Position(ii+ioff+H.n_ghost-nx_local_start, jj+joff+H.n_ghost-ny_local_start, kk+koff+H.n_ghost-nz_local_start, &x_pos, &y_pos, &z_pos);
         #endif
         #ifndef MPI_CHOLLA
           id = (ii+nx/2+H.n_ghost) + (jj+ny/2+H.n_ghost)*H.nx + (kk+nz/2+H.n_ghost)*H.nx*H.ny;
+          Get_Position(ii+ioff+H.n_ghost, jj+joff+H.n_ghost, kk+koff+H.n_ghost, &x_pos, &y_pos, &z_pos);
         #endif
 
-          // get cell-centered position
-          Get_Position(ii+ioff+H.n_ghost-nx_local_start, jj+joff+H.n_ghost-ny_local_start, kk+koff+H.n_ghost-nz_local_start, &x_pos, &y_pos, &z_pos);
-	  // radial position relative to cloud ceneter
+	        // radial position relative to cloud ceneter
           r = sqrt((x_pos-xcen)*(x_pos-xcen) + (y_pos-ycen)*(y_pos-ycen) + (z_pos-zcen)*(z_pos-zcen));
 
           //scale the cloud density such that the ambient density matches (20*0.005)

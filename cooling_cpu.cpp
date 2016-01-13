@@ -174,7 +174,7 @@ Real Cloudy_cool(const Real n, const Real T)
 
   // Use 2d interpolation to calculate the cooling & heating rates for
   // for low temperature gas
-  if (T > 1e1 && T < 1e5) {
+  if (T > 1e1 && T <= 1e5) {
     lambda = gsl_spline2d_eval(lowT_C_spline, log_n, log_T, xacc, yacc);
     cool = n*n*pow(10, lambda);
     H = gsl_spline2d_eval(lowT_H_spline, log_n, log_T, xacc, yacc);
@@ -182,7 +182,7 @@ Real Cloudy_cool(const Real n, const Real T)
     cool -= H;
   }
   // At high temps, 1D interpolation is fine
-  else if (T >= 1e5 && T < 1e9) {
+  else if (T > 1e5 && T < 1e9) {
     lambda = gsl_spline_eval(highT_C_spline, log_T, xacc);
     cool = n*n*pow(10, lambda);
   }
@@ -201,8 +201,8 @@ void Grid3D::Load_Cooling_Tables()
   Real *za; 
 
   int i, xi, yi;
-  int nx = 33;
-  int ny = 17;
+  int nx = 81;
+  int ny = 41;
   double x[nx], y[ny];
   za = (Real *) malloc(nx*ny*sizeof(Real));
 
@@ -211,14 +211,14 @@ void Grid3D::Load_Cooling_Tables()
   char * pch;
 
   // Allocate arrays for high temperature data
-  n_arr = (Real *) malloc(41*sizeof(Real));
-  T_arr = (Real *) malloc(41*sizeof(Real));
-  L_arr = (Real *) malloc(41*sizeof(Real));
-  H_arr = (Real *) malloc(41*sizeof(Real));
+  n_arr = (Real *) malloc(81*sizeof(Real));
+  T_arr = (Real *) malloc(81*sizeof(Real));
+  L_arr = (Real *) malloc(81*sizeof(Real));
+  H_arr = (Real *) malloc(81*sizeof(Real));
 
   // Read in high T cooling curve (single density)
   i=0;
-  infile = fopen("./cloudy_coolingcurve_highT.txt", "r");
+  infile = fopen("./cloudy_coolingcurve.txt", "r");
   if (infile == NULL) {
     printf("Unable to open Cloudy file.\n");
     chexit(1);
@@ -251,8 +251,8 @@ void Grid3D::Load_Cooling_Tables()
   xacc = gsl_interp_accel_alloc();
   yacc = gsl_interp_accel_alloc();
   // Initialize the spline for the high T cooling curve
-  highT_C_spline = gsl_spline_alloc(gsl_interp_cspline, 41);
-  gsl_spline_init(highT_C_spline, T_arr, L_arr, 41);
+  highT_C_spline = gsl_spline_alloc(gsl_interp_cspline, 81);
+  gsl_spline_init(highT_C_spline, T_arr, L_arr, 81);
 
   free(n_arr);
   free(T_arr);
@@ -303,10 +303,10 @@ void Grid3D::Load_Cooling_Tables()
 
   // Set x and y values
   for (xi=0; xi<nx; xi++) {
-    x[xi] = -4.0 + 0.25*xi;
+    x[xi] = -4.0 + 0.1*xi;
   }
   for (yi=0; yi<ny; yi++) {
-    y[yi] = 1.0 + 0.25*yi;
+    y[yi] = 1.0 + 0.1*yi;
   }
   
   // Set z grid values for cooling interpolation
