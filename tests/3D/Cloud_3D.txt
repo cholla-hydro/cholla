@@ -35,7 +35,7 @@ zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=wind
 # path to output directory
-outdir=./cloud_wind/cool/binaries/
+outdir=./cloud_wind/cool/hdf5/
 #outdir=/data2/evan/grid_tests/cloud_3D/sphere_shock/binaries/
 
 

@@ -6,11 +6,13 @@
 # number of grid cells in the x dimension
 #nx=128
 #nx=1920
-nx=3840
+#nx=3840
+nx=2016
 # number of grid cells in the y dimension
 #ny=128
 #ny=1080
-ny=2160
+#ny=2160
+ny=500
 # number of grid cells in the z dimension
 nz=1
 # final output time
@@ -27,7 +29,7 @@ ymin=0.0
 zmin=0.0
 xlen=1.0
 #ylen=1.0
-ylen=0.5625
+ylen=0.248
 zlen=1.0
 # type of boundary conditions
 xl_bcnd=1
@@ -39,5 +41,6 @@ zu_bcnd=0
 # path to output directory
 #outdir=/data2/evan/grid_tests/KH/PPM_athena/
 #outdir=./plm_athena/
-outdir=./binaries/
+#outdir=./binaries/
+outdir=/gsfs1/rsgrps/brant/evan/data/KH/output/
 
