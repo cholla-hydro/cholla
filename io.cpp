@@ -2,7 +2,9 @@
 #include<stdlib.h>
 #include<stdarg.h>
 #include<string.h>
+#ifdef HDF5
 #include<hdf5.h>
+#endif
 #include"io.h"
 #include"grid3D.h"
 #ifdef MPI_CHOLLA
@@ -109,7 +111,7 @@ void Grid3D::Write_Header_Binary(FILE *fp)
   
 }
 
-
+#ifdef HDF5
 /*! \fn void Write_Header_HDF5(hid_t file_id)
  *  \brief Write the relevant header info to the HDF5 file. */
 void Grid3D::Write_Header_HDF5(hid_t file_id)
@@ -190,7 +192,7 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   status = H5Sclose(dataspace_id);
 
 }
-
+#endif
 
 /*! \fn void Write_Grid_Binary(FILE *fp)
  *  \brief Write the conserved quantities to a binary output file. */
@@ -294,7 +296,7 @@ void Grid3D::Write_Grid_Binary(FILE *fp)
 
 
 
-
+#ifdef HDF5
 /*! \fn void Write_Grid_HDF5(hid_t file_id)
  *  \brief Write the grid to a file, at the current simulation time. */
 void Grid3D::Write_Grid_HDF5(hid_t file_id)
@@ -833,6 +835,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   free(dataset_buffer);
 
 }
+#endif
 
 
 /* MPI-safe printf routine */

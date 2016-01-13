@@ -58,7 +58,7 @@ LIBS   = -L/usr/local/lib -lm -lgsl -lhdf5
 FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DCUDA -DCUDA_ERROR_CHECK
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) -m64
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) -m64
-NVCCFLAGS = $(FLAGS) -m64 -arch=sm_30 -fmad=false -ccbin clang++ -Xcompiler -arch -Xcompiler x86_64
+NVCCFLAGS = $(FLAGS) -m64 -Xcompiler -arch -Xcompiler x86_64 -fmad=false -gencode arch=compute_20,code=sm_20 
 LDFLAGS	  = -m64 -F/Library/Frameworks -framework CUDA
 
 
