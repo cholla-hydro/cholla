@@ -1185,8 +1185,8 @@ void Grid3D::Cloud_3D() {
 
   // turbulent cloud
   FILE *fp;
-  //fp = fopen("/gsfs1/rsgrps/brant/evan/data/cloud_3D/cloud.64.dat", "r");
-  fp = fopen("/gsfs1/rsgrps/brant/evan/data/cloud_3D/cloud.128.dat", "r");
+  fp = fopen("/gsfs1/rsgrps/brant/evan/data/cloud_3D/cloud.64.dat", "r");
+  //fp = fopen("/gsfs1/rsgrps/brant/evan/data/cloud_3D/cloud.128.dat", "r");
 
   if (fp == NULL) {
     chprintf("Can't open input file.\n");
@@ -1232,7 +1232,7 @@ void Grid3D::Cloud_3D() {
           Get_Position(ii+ioff+H.n_ghost, jj+joff+H.n_ghost, kk+koff+H.n_ghost, &x_pos, &y_pos, &z_pos);
         #endif
 
-	        // radial position relative to cloud ceneter
+	  // radial position relative to cloud ceneter
           r = sqrt((x_pos-xcen)*(x_pos-xcen) + (y_pos-ycen)*(y_pos-ycen) + (z_pos-zcen)*(z_pos-zcen));
 
           //scale the cloud density such that the ambient density matches (20*0.005)

@@ -175,11 +175,27 @@ Real Cloudy_cool(const Real n, const Real T)
   // Use 2d interpolation to calculate the cooling & heating rates for
   // for low temperature gas
   if (T > 1e1 && T <= 1e5) {
-    lambda = gsl_spline2d_eval(lowT_C_spline, log_n, log_T, xacc, yacc);
-    cool = n*n*pow(10, lambda);
-    H = gsl_spline2d_eval(lowT_H_spline, log_n, log_T, xacc, yacc);
-    H = n*n*pow(10, H);
-    cool -= H;
+    if (log_n > -3.9 && log_n < 3.9) {
+      lambda = gsl_spline2d_eval(lowT_C_spline, log_n, log_T, xacc, yacc);
+      cool = n*n*pow(10, lambda);
+      H = gsl_spline2d_eval(lowT_H_spline, log_n, log_T, xacc, yacc);
+      H = n*n*pow(10, H);
+      cool -= H;
+    }
+    else if (log_n <= -3.9) {
+      lambda = gsl_spline2d_eval(lowT_C_spline, -3.9, log_T, xacc, yacc);
+      cool = n*n*pow(10, lambda);
+      H = gsl_spline2d_eval(lowT_H_spline, -3.9, log_T, xacc, yacc);
+      H = n*n*pow(10, H);
+      cool -= H;
+    }
+    else {
+      lambda = gsl_spline2d_eval(lowT_C_spline, 3.9, log_T, xacc, yacc);
+      cool = n*n*pow(10, lambda);
+      H = gsl_spline2d_eval(lowT_H_spline, 3.9, log_T, xacc, yacc);
+      H = n*n*pow(10, H);
+      cool -= H;
+    }
   }
   // At high temps, 1D interpolation is fine
   else if (T > 1e5 && T < 1e9) {
