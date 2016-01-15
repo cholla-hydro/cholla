@@ -81,7 +81,7 @@ void Grid3D::Cool_CPU(void)
         T_init_P = P*PRESSURE_UNIT/ (n*KB);
         T_init = T_init_P;
         #ifdef DE
-        T_init_ge = ge*(gamma-1.0)*SP_ENERGY_UNIT*MP/KB;
+        T_init_ge = ge*(gama-1.0)*SP_ENERGY_UNIT*MP/KB;
         T_init = T_init_ge;
         #endif
 
@@ -122,7 +122,7 @@ void Grid3D::Cool_CPU(void)
           E -= n*KB*del_T / ((gama-1.0)*ENERGY_UNIT);
           if (E < 0.0) printf("%3d %3d %3d Negative E after cooling. %f %f %f %f %f\n", i, j, k, del_T, T_init, E_old, n, E);
           #ifdef DE
-          ge -= KB*del_T / (MP*(gamma-1.0)*SP_ENERGY_UNIT);
+          ge -= KB*del_T / (MP*(gama-1.0)*SP_ENERGY_UNIT);
           #endif
 
           // update grid
@@ -175,11 +175,27 @@ Real Cloudy_cool(const Real n, const Real T)
   // Use 2d interpolation to calculate the cooling & heating rates for
   // for low temperature gas
   if (T > 1e1 && T <= 1e5) {
-    lambda = gsl_spline2d_eval(lowT_C_spline, log_n, log_T, xacc, yacc);
-    cool = n*n*pow(10, lambda);
-    H = gsl_spline2d_eval(lowT_H_spline, log_n, log_T, xacc, yacc);
-    H = n*n*pow(10, H);
-    cool -= H;
+    if (log_n > -3.9 && log_n < 3.9) {
+      lambda = gsl_spline2d_eval(lowT_C_spline, log_n, log_T, xacc, yacc);
+      cool = n*n*pow(10, lambda);
+      H = gsl_spline2d_eval(lowT_H_spline, log_n, log_T, xacc, yacc);
+      H = n*n*pow(10, H);
+      cool -= H;
+    }
+    else if (log_n <= -3.9) {
+      lambda = gsl_spline2d_eval(lowT_C_spline, -3.9, log_T, xacc, yacc);
+      cool = n*n*pow(10, lambda);
+      H = gsl_spline2d_eval(lowT_H_spline, -3.9, log_T, xacc, yacc);
+      H = n*n*pow(10, H);
+      cool -= H;
+    }
+    else {
+      lambda = gsl_spline2d_eval(lowT_C_spline, 3.9, log_T, xacc, yacc);
+      cool = n*n*pow(10, lambda);
+      H = gsl_spline2d_eval(lowT_H_spline, 3.9, log_T, xacc, yacc);
+      H = n*n*pow(10, H);
+      cool -= H;
+    }
   }
   // At high temps, 1D interpolation is fine
   else if (T > 1e5 && T < 1e9) {
@@ -218,7 +234,7 @@ void Grid3D::Load_Cooling_Tables()
 
   // Read in high T cooling curve (single density)
   i=0;
-  infile = fopen("cloudy_coolingcurve.txt", "r");
+  infile = fopen("./cloudy_coolingcurve.txt", "r");
   if (infile == NULL) {
     printf("Unable to open Cloudy file.\n");
     chexit(1);
@@ -267,7 +283,7 @@ void Grid3D::Load_Cooling_Tables()
 
   // Read in low T cooling curve (function of density and temperature)
   i=0;
-  infile = fopen("cloudy_coolingcurve_lowT.txt", "r");
+  infile = fopen("./cloudy_coolingcurve_lowT.txt", "r");
   if (infile == NULL) {
     printf("Unable to open Cloudy file.\n");
     chexit(1);
