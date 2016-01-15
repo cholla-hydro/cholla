@@ -175,24 +175,24 @@ Real Cloudy_cool(const Real n, const Real T)
   // Use 2d interpolation to calculate the cooling & heating rates for
   // for low temperature gas
   if (T > 1e1 && T <= 1e5) {
-    if (log_n > -3.9 && log_n < 3.9) {
+    if (log_n > -5.9 && log_n < 5.9) {
       lambda = gsl_spline2d_eval(lowT_C_spline, log_n, log_T, xacc, yacc);
       cool = n*n*pow(10, lambda);
       H = gsl_spline2d_eval(lowT_H_spline, log_n, log_T, xacc, yacc);
       H = n*n*pow(10, H);
       cool -= H;
     }
-    else if (log_n <= -3.9) {
-      lambda = gsl_spline2d_eval(lowT_C_spline, -3.9, log_T, xacc, yacc);
+    else if (log_n <= -5.9) {
+      lambda = gsl_spline2d_eval(lowT_C_spline, -5.9, log_T, xacc, yacc);
       cool = n*n*pow(10, lambda);
-      H = gsl_spline2d_eval(lowT_H_spline, -3.9, log_T, xacc, yacc);
+      H = gsl_spline2d_eval(lowT_H_spline, -5.9, log_T, xacc, yacc);
       H = n*n*pow(10, H);
       cool -= H;
     }
     else {
-      lambda = gsl_spline2d_eval(lowT_C_spline, 3.9, log_T, xacc, yacc);
+      lambda = gsl_spline2d_eval(lowT_C_spline, 5.9, log_T, xacc, yacc);
       cool = n*n*pow(10, lambda);
-      H = gsl_spline2d_eval(lowT_H_spline, 3.9, log_T, xacc, yacc);
+      H = gsl_spline2d_eval(lowT_H_spline, 5.9, log_T, xacc, yacc);
       H = n*n*pow(10, H);
       cool -= H;
     }
@@ -217,7 +217,7 @@ void Grid3D::Load_Cooling_Tables()
   Real *za; 
 
   int i, xi, yi;
-  int nx = 81;
+  int nx = 121;
   int ny = 41;
   double x[nx], y[ny];
   za = (Real *) malloc(nx*ny*sizeof(Real));
@@ -319,7 +319,7 @@ void Grid3D::Load_Cooling_Tables()
 
   // Set x and y values
   for (xi=0; xi<nx; xi++) {
-    x[xi] = -4.0 + 0.1*xi;
+    x[xi] = -6.0 + 0.1*xi;
   }
   for (yi=0; yi<ny; yi++) {
     y[yi] = 1.0 + 0.1*yi;
