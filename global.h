@@ -46,6 +46,7 @@ extern Real t_comm;
 extern Real t_other;
 
 #ifdef COOLING_CPU
+extern gsl_interp_accel *acc;
 extern gsl_interp_accel *xacc;
 extern gsl_interp_accel *yacc;
 extern gsl_spline *highT_C_spline;

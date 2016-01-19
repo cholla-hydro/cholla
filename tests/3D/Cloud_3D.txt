@@ -4,13 +4,13 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=512
+nx=320
 # number of grid cells in the y dimension
-ny=192
+ny=320
 # number of grid cells in the z dimension
-nz=192
+nz=320
 # final time
-tout=1000.0
+tout=200.0
 # how often to output
 outstep=2.0
 # value of gamma
@@ -23,9 +23,9 @@ init=Cloud_3D
 xmin=0.0
 ymin=0.0
 zmin=0.0
-xlen=80.0
-ylen=30.0
-zlen=30.0
+xlen=50.0
+ylen=50.0
+zlen=50.0
 # type of boundary conditions
 xl_bcnd=4
 xu_bcnd=3
@@ -35,8 +35,7 @@ zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=wind
 # path to output directory
-outdir=./cloud_wind/cool/hdf5/
-#outdir=/data2/evan/grid_tests/cloud_3D/sphere_shock/binaries/
+outdir=./cloud_wind/test/hdf5/
 
 
 

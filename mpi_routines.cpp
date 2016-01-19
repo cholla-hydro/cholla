@@ -1029,10 +1029,10 @@ int greatest_prime_factor(int n)
 /*tile MPI processes in a block arrangement*/
 void TileBlockDecomposition(void)
 {
-	int n_gpf;
+  int n_gpf;
 
-	//initialize np_x, np_y, np_z
-	int np_x = 1;
+  //initialize np_x, np_y, np_z
+  int np_x = 1;
 	int np_y = 1;
 	int np_z = 1;
 	//printf("nproc %d n_gpf %d\n",nproc,n_gpf);

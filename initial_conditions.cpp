@@ -1051,8 +1051,8 @@ void Grid3D::Turbulent_Slab() {
 void Grid3D::Cloud_3D() {
 
   int i, j, k, id;
-  Real x_pos, y_pos, z_pos, d_ism, d_cloud, chi;
-  Real P, P_shock, P_sedov, P_cloud;
+  Real x_pos, y_pos, z_pos, d_wind, v_wind, d_cloud;
+  Real P, P_shock, P_sedov, P_cloud, P_wind;
   Real xcen, ycen, zcen, r, R_c, R_max;
   Real weight, xpoint, ypoint, zpoint;
   int incount, iii;
@@ -1068,50 +1068,42 @@ void Grid3D::Cloud_3D() {
   // length:  3.0857e18 # 1 parsec in cm
   // time:    3.1557e10 # 1 kyr in seconds
 
-  // number density of cloud in code units (91 hydrogen atom/cc)
-  d_cloud = 40.0;
-  // density contrast with background 
-  //chi = 1000.0;
-  // number density of background in code units
-  //d_ism = d_cloud / chi;
-  d_ism = 0.1;
-
+  //d_wind = 0.1;
+  //v_wind = 1.20e8 / VELOCITY_UNIT;  // 1200km/s (from Cooper 2009)
+  //P_wind = d_ism*KB*5e6 / PRESSURE_UNIT;  // wind temp of 5e6 K (from Cooper 2009)
+  d_wind = 2.712148e-26 / DENSITY_UNIT;
+  v_wind = 6.473926e7 / VELOCITY_UNIT;
+  P_wind = 6.820245e-11 / PRESSURE_UNIT;
+  
+  // number density of cloud in code units (hydrogen atom/cc)
+  d_cloud = 10.0;
+  P_cloud = P_wind;  // cloud in pressure equilibrium with hot wind
   R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
   R_c = R_max/1.28; // radius at which cloud begins to taper
 
   // cloud center in code units
-  xcen = 10.0;
-  ycen = 15.0;
-  zcen = 15.0;
+  xcen = 25.0;
+  ycen = 25.0;
+  zcen = 25.0;
 
-  // ambient medium at rest 
+  // hot wind
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
       for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
 
-        id = i + j*H.nx + k*H.nx*H.ny;
-
         // get cell-centered position
+        id = i + j*H.nx + k*H.nx*H.ny;
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
-        // ambient medium is 0.1 hydrogen atom / cc
-        C.density[id] = d_ism;
-        // velocity of the hot wind is 480km/s (from Scannapieco 2015 model M1.0v480)
-        // velocity of the hot wind is 1200km/s (from Cooper 2009)
-        vx = 1.20e8/VELOCITY_UNIT;
-        //vx = 0.0;
+        C.density[id] = d_wind;
+        vx = v_wind;
         C.momentum_x[id] = C.density[id]*vx;
         C.momentum_y[id] = 0.0;
-        //vz = 1.20e8/VELOCITY_UNIT;
         vz = 0.0;
         C.momentum_z[id] = C.density[id]*vz;
-        // scale the pressure such that the ambient medium has
-        // a temperature of 5e6 Kelvin
-        P_cloud = d_ism*KB*5e6/PRESSURE_UNIT;
-        C.Energy[id] = (P_cloud)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
-        //C.Energy[id] = (P_cloud)/(gama-1.0);
+        C.Energy[id] = (P_wind)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
         #ifdef DE
-        C.GasEnergy[id] = P_cloud / (gama-1.0);
+        C.GasEnergy[id] = P_wind / (gama-1.0);
         #endif
       }
     }
@@ -1182,7 +1174,7 @@ void Grid3D::Cloud_3D() {
     }
   }
 */      
-
+/*
   // turbulent cloud
   FILE *fp;
   fp = fopen("/gsfs1/rsgrps/brant/evan/data/cloud_3D/cloud.64.dat", "r");
@@ -1217,9 +1209,9 @@ void Grid3D::Cloud_3D() {
         fread(&mz, 1, sizeof(float), fp);
         // only place in cells that are in your domain
         #ifdef MPI_CHOLLA
-        ioff = 1*nx_global/16;
-        joff = 1*ny_global/3;
-        koff = 1*nz_global/3;
+        ioff = 1*nx_global/8;
+        joff = 1*ny_global/4;
+        koff = 1*nz_global/4;
         if (ii+ioff >= nx_local_start && ii+ioff < nx_local_start+nx_local) {
         if (jj+joff >= ny_local_start && jj+joff < ny_local_start+ny_local) {
         if (kk+koff >= nz_local_start && kk+koff < nz_local_start+nz_local) {
@@ -1241,6 +1233,7 @@ void Grid3D::Cloud_3D() {
           //only place cells within the region defined by the cloud radius
           if (r < R_c) {
             C.density[id] = d;
+            if (C.density[id] < d_ism) C.density[id] = d_ism;
             C.momentum_x[id] = 0.0;
             C.momentum_y[id] = 0.0;
             C.momentum_z[id] = 0.0;
@@ -1269,8 +1262,8 @@ void Grid3D::Cloud_3D() {
     }
   }
   fclose(fp);
+*/
 
-/*
   // spherical cloud 
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -1308,7 +1301,7 @@ void Grid3D::Cloud_3D() {
       }
     }
   }
-*/
+
 /*
   // constant density cube 
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {

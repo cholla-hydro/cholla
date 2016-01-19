@@ -12,7 +12,9 @@
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_spline2d.h>
+#include <omp.h>
 
+gsl_interp_accel *acc;
 gsl_interp_accel *xacc;
 gsl_interp_accel *yacc;
 gsl_spline *highT_C_spline;
@@ -26,13 +28,8 @@ Real Cloudy_cool(const Real n, const Real T);
 
 void Grid3D::Cool_CPU(void)
 {
-  int i, j, k, id;
+  int i, j, k;
   int istart, jstart, kstart, iend, jend, kend;
-  Real d, vx, vy, vz, E, P, n;
-  Real T, T_init, T_init_P, del_T, dt_left, dt_sub, cool, E_old;
-  #ifdef DE
-  Real ge, T_init_ge;
-  #endif
 
   istart = H.n_ghost;
   iend   = H.nx-H.n_ghost;
@@ -54,12 +51,18 @@ void Grid3D::Cool_CPU(void)
   }
 
   // set initial values of conserved variables
+  #pragma omp parallel for private(i, j, k)
   for(k=kstart; k<kend; k++) {
     for(j=jstart; j<jend; j++) {
       for(i=istart; i<iend; i++) {
 
+  Real d, vx, vy, vz, E, P, n;
+  Real T, T_init, T_init_P, del_T, dt_left, dt_sub, cool, E_old;
+  #ifdef DE
+  Real ge, T_init_ge;
+  #endif
         //get cell index
-        id = i + j*H.nx + k*H.nx*H.ny;
+        int id = i + j*H.nx + k*H.nx*H.ny;
 
         // load values of density and pressure
         d  =  C.density[id];
@@ -87,50 +90,46 @@ void Grid3D::Cool_CPU(void)
 
         dt_left = H.dt;
 
-        // only allow cooling between 10^1 K and 10^9 K
-        //if (T_init > 1e1 && T_init < 1e9) {
+        // calculate cooling rate per volume
+        T = T_init;
+        cool = Cloudy_cool(n, T); 
 
-          // calculate cooling rate per volume
-          T = T_init;
-          cool = Cloudy_cool(n, T); 
+        // calculate change in temperature given dt
+        del_T = cool*dt_left*TIME_UNIT*(gama-1.0)/(n*KB);
 
-          // calculate change in temperature given dt
+        // limit change in temperature to 5%
+        while (del_T/T > 0.05) {
+
+          // what dt gives del_T = 0.1*T?
+          dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gama-1.0));
+          // apply that dt
+          T -= cool*dt_sub*TIME_UNIT*(gama-1.0)/(n*KB);
+          // how much time is left from the original timestep?
+          dt_left -= dt_sub;
+          // calculate cooling again
+          cool = Cloudy_cool(n, T);
+          // calculate new change in temperature
           del_T = cool*dt_left*TIME_UNIT*(gama-1.0)/(n*KB);
 
-          // limit change in temperature to 5%
-          while (del_T/T > 0.05) {
+        }
 
-            // what dt gives del_T = 0.1*T?
-            dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gama-1.0));
-            // apply that dt
-            T -= cool*dt_sub*TIME_UNIT*(gama-1.0)/(n*KB);
-            // how much time is left from the original timestep?
-            dt_left -= dt_sub;
-            // calculate cooling again
-            cool = Cloudy_cool(n, T);
-            // calculate new change in temperature
-            del_T = cool*dt_left*TIME_UNIT*(gama-1.0)/(n*KB);
+        // calculate final temperature
+        T -= del_T;
 
-          }
+        // adjust value of energy based on total change in temperature
+        del_T = T_init - T; // total change in T
+        E_old = E;
+        E -= n*KB*del_T / ((gama-1.0)*ENERGY_UNIT);
+        if (E < 0.0) printf("%3d %3d %3d Negative E after cooling. %f %f %f %f %f\n", i, j, k, del_T, T_init, E_old, n, E);
+        #ifdef DE
+        ge -= KB*del_T / (MP*(gama-1.0)*SP_ENERGY_UNIT);
+        #endif
 
-          // calculate final temperature
-          T -= del_T;
-
-          // adjust value of energy based on total change in temperature
-          del_T = T_init - T; // total change in T
-          E_old = E;
-          E -= n*KB*del_T / ((gama-1.0)*ENERGY_UNIT);
-          if (E < 0.0) printf("%3d %3d %3d Negative E after cooling. %f %f %f %f %f\n", i, j, k, del_T, T_init, E_old, n, E);
-          #ifdef DE
-          ge -= KB*del_T / (MP*(gama-1.0)*SP_ENERGY_UNIT);
-          #endif
-
-          // update grid
-          C.Energy[id] = E;
-          #ifdef DE
-          C.GasEnergy[id] = d*ge;
-          #endif
-        //}
+        // update grid
+        C.Energy[id] = E;
+        #ifdef DE
+        C.GasEnergy[id] = d*ge;
+        #endif
 
       }
     }
@@ -170,11 +169,12 @@ Real Cloudy_cool(const Real n, const Real T)
   Real log_n, log_T, lambda, H, cool;
   log_n = log10(n);
   log_T = log10(T);
-  cool = 0.0;
+  lambda = cool = H = 0.0;
+  if (log_T != log_T) printf("Temperature NAN\n");
 
   // Use 2d interpolation to calculate the cooling & heating rates for
   // for low temperature gas
-  if (T > 1e1 && T <= 1e5) {
+  if (log_T > 1.1 && log_T <= 5.0) {
     if (log_n > -5.9 && log_n < 5.9) {
       lambda = gsl_spline2d_eval(lowT_C_spline, log_n, log_T, xacc, yacc);
       cool = n*n*pow(10, lambda);
@@ -198,8 +198,12 @@ Real Cloudy_cool(const Real n, const Real T)
     }
   }
   // At high temps, 1D interpolation is fine
-  else if (T > 1e5 && T < 1e9) {
-    lambda = gsl_spline_eval(highT_C_spline, log_T, xacc);
+  else if (log_T > 5.0 && log_T < 9.0) {
+    lambda = gsl_spline_eval(highT_C_spline, log_T, acc);
+    cool = n*n*pow(10, lambda);
+  }
+  else if (log_T >= 9.0) {
+    lambda = gsl_spline_eval(highT_C_spline, 9.0, acc);
     cool = n*n*pow(10, lambda);
   }
 
@@ -227,14 +231,14 @@ void Grid3D::Load_Cooling_Tables()
   char * pch;
 
   // Allocate arrays for high temperature data
-  n_arr = (Real *) malloc(81*sizeof(Real));
-  T_arr = (Real *) malloc(81*sizeof(Real));
-  L_arr = (Real *) malloc(81*sizeof(Real));
-  H_arr = (Real *) malloc(81*sizeof(Real));
+  n_arr = (Real *) malloc(61*sizeof(Real));
+  T_arr = (Real *) malloc(61*sizeof(Real));
+  L_arr = (Real *) malloc(61*sizeof(Real));
+  H_arr = (Real *) malloc(61*sizeof(Real));
 
   // Read in high T cooling curve (single density)
   i=0;
-  infile = fopen("./cloudy_coolingcurve.txt", "r");
+  infile = fopen("./cloudy_coolingcurve_highT.txt", "r");
   if (infile == NULL) {
     printf("Unable to open Cloudy file.\n");
     chexit(1);
@@ -264,11 +268,12 @@ void Grid3D::Load_Cooling_Tables()
   }
   fclose(infile);
 
+  acc = gsl_interp_accel_alloc();
   xacc = gsl_interp_accel_alloc();
   yacc = gsl_interp_accel_alloc();
   // Initialize the spline for the high T cooling curve
-  highT_C_spline = gsl_spline_alloc(gsl_interp_cspline, 81);
-  gsl_spline_init(highT_C_spline, T_arr, L_arr, 81);
+  highT_C_spline = gsl_spline_alloc(gsl_interp_cspline, 61);
+  gsl_spline_init(highT_C_spline, T_arr, L_arr, 61);
 
   free(n_arr);
   free(T_arr);
@@ -357,6 +362,7 @@ void Grid3D::Load_Cooling_Tables()
 
 void Grid3D::Free_Cooling_Tables()
 {
+  gsl_interp_accel_free(acc);
   gsl_interp_accel_free(xacc);
   gsl_interp_accel_free(yacc);
   gsl_spline_free(highT_C_spline);

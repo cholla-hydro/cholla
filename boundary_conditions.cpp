@@ -531,9 +531,13 @@ void Grid3D::Wind_Boundary()
   //P_0 = 0.4*KB*7.81e6 / pressure_unit;
 
   // Mach 4.6 hot wind from Cooper 2009 
-  d_0 = 0.1;
-  v_0 = 1.2e8 / VELOCITY_UNIT;
-  P_0 = 0.1*KB*5e6 / PRESSURE_UNIT;
+  //d_0 = 0.1;
+  //v_0 = 1.2e8 / VELOCITY_UNIT;
+  //P_0 = 0.1*KB*5e6 / PRESSURE_UNIT;
+
+  d_0 = 2.712148e-26 / DENSITY_UNIT;
+  v_0 = 6.473926e7 / VELOCITY_UNIT;
+  P_0 = 6.820245e-11 / PRESSURE_UNIT;
 
 /*
   // any Mach shock
@@ -561,7 +565,7 @@ void Grid3D::Wind_Boundary()
       C.momentum_z[id] = 0.0;
       C.Energy[id] = (P_0)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
       #ifdef DE
-      C.GasEnergy[id] = (P_0)/(gama-1.0)/d_0;
+      C.GasEnergy[id] = (P_0)/(gama-1.0);
       #endif
 
     }
@@ -587,7 +591,7 @@ void Grid3D::Wind_Boundary()
           C.momentum_z[id] = 0.0;
           C.Energy[id] = (P_0)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
           #ifdef DE
-          C.GasEnergy[id] = (P_0)/(gama-1.0)/d_0;
+          C.GasEnergy[id] = (P_0)/(gama-1.0);
           #endif
 
         }

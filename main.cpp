@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
     #endif //MPI_CHOLLA
     #endif
 
-
+/*
     for (int i=G.H.n_ghost; i<G.H.nx-G.H.n_ghost; i++) {
       for (int j=G.H.n_ghost; j<G.H.ny-G.H.n_ghost; j++) {
         for (int k=G.H.n_ghost; k<G.H.nz-G.H.n_ghost; k++) {
@@ -186,6 +186,7 @@ int main(int argc, char *argv[])
         }
       }    
     }
+*/
   /*
   for (int j=0; j<G.H.ny; j++) {
     printf("%03d ", j);
