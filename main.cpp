@@ -16,7 +16,6 @@
 
 //#define CPU_TIME
 #define OUTPUT
-//#define TURBULENCE
 
 int main(int argc, char *argv[])
 {
@@ -30,10 +29,6 @@ int main(int argc, char *argv[])
   double start_bound, stop_bound, bound_min, bound_max, bound_avg;
   double init, calc_dt, bound, CTU_t, bound_total, CTU_total;
   init = calc_dt = bound = CTU_t = bound_total = CTU_total = 0;
-  #ifdef TURBULENCE
-  Real M = 2.0;
-  Real force = 0.1 / M;
-  #endif
 
   // start the total time
   start_total = get_time();
@@ -174,42 +169,11 @@ int main(int argc, char *argv[])
     #endif //MPI_CHOLLA
     #endif
 
-/*
-    for (int i=G.H.n_ghost; i<G.H.nx-G.H.n_ghost; i++) {
-      for (int j=G.H.n_ghost; j<G.H.ny-G.H.n_ghost; j++) {
-        for (int k=G.H.n_ghost; k<G.H.nz-G.H.n_ghost; k++) {
-        int id = i + G.H.nx*j + G.H.nx*G.H.ny*k;
-        if (G.C.density[id] != G.C.density[id]) {
-          printf("%d %3d %3d\n", i, j, k);
-          exit(0);
-        }
-        }
-      }    
-    }
-*/
-  /*
-  for (int j=0; j<G.H.ny; j++) {
-    printf("%03d ", j);
-    for (int i=0; i<G.H.nx; i++) {
-      printf("%f ", G.C.density[i + j*G.H.nx]);
-    }
-    printf("\n");
-  }
-  */
-
     // update the time
     G.H.t += G.H.dt;
 
     // add one to the timestep count
     G.H.n_step++;
-
-    // apply turbulent forcing
-    #ifdef TURBULENCE
-    if (G.H.t+0.000001 > force) {
-      G.Apply_Forcing();
-      force += 0.1 / M;
-    }
-    #endif
 
     // set boundary conditions for next time step 
     #ifdef CPU_TIME

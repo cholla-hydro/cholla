@@ -210,18 +210,6 @@ class Grid3D
      *  \brief Update the conserved quantities in each cell. */
     Real Update_Grid(void);
 
-    /*! \fn void Cool_CPU(void)
-     *  \brief Use Cloudy cooling tables to apply cooling over the grid. */
-    void Cool_CPU(void);
-
-    /*! \fn void Load_Cooling_Tables(void)
-     *  \brief Load the Cloudy cooling tables into memory for fast lookup. */
-    void Load_Cooling_Tables(void);
-
-    /*! \fn void Free_Cooling_Tables(void)
-     *  \brief Free the memory associated with the cooling tables. */
-    void Free_Cooling_Tables(void);
-
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
     void Write_Header_Binary(FILE *fp);
@@ -311,14 +299,6 @@ class Grid3D
     /*! \fn void Cloud_3D()
      *  \brief Turbulent cloud in a hot diffuse wind. */
     void Cloud_3D();
-
-    /*! \fn void Turbulence(Real rho, Real vx, Real vy, Real vz, Real P)
-     *  \brief Generate a 3D turbulent forcing field. */
-    void Turbulence(Real rho, Real vx, Real vy, Real vz, Real P);
-
-    /*! \fn Apply_Forcing(void)
-     *  \brief Apply a forcing field to continuously generate turbulence. */
-    void Apply_Forcing(void);    
 
     /*! \fn void Read_Grid()
      *  \brief Read in grid data from an output file. */
