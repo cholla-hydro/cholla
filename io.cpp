@@ -164,6 +164,24 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
   status = H5Aclose(attribute_id);
 
+  #ifdef MPI_CHOLLA
+  int_data[0] = H.nx_real;
+  int_data[1] = H.ny_real;
+  int_data[2] = H.nz_real;
+
+  attribute_id = H5Acreate(file_id, "dims_local", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
+  status = H5Aclose(attribute_id);
+
+  int_data[0] = nx_local_start;
+  int_data[1] = ny_local_start;
+  int_data[2] = nz_local_start;
+
+  attribute_id = H5Acreate(file_id, "offset", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
+  status = H5Aclose(attribute_id);
+  #endif
+
   Real_data[0] = H.xbound;
   Real_data[1] = H.ybound;
   Real_data[2] = H.zbound;
@@ -317,19 +335,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   // 1D case
   if (H.nx>1 && H.ny==1 && H.nz==1) {
 
-    #ifndef MPI_CHOLLA
     int       nx_dset = H.nx_real;
-    #endif
-    #ifdef MPI_CHOLLA
-    int       nx_dset = nx_global_real;
-    hsize_t   count[1];
-    hsize_t   offset[1];
-    count[0]  = H.nx_real;  //x dimension for this process
-    offset[0] = nx_local_start;
-    // create the local process memory space (dimensions of the local grid)
-    memspace_id = H5Screate_simple(1, count, NULL);    
-    #endif
-
     hsize_t   dims[1];
     dataset_buffer = (Real *) malloc(H.nx_real*sizeof(Real));
 
@@ -338,21 +344,14 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     dataspace_id = H5Screate_simple(1, dims, NULL);
 
     // Copy the density array to the memory buffer
+    // (Remapping to play nicely with python)
     id = H.n_ghost;
     memcpy(&dataset_buffer[0], &(C.density[id]), H.nx_real*sizeof(Real));    
 
     // Create a dataset id for density
     dataset_id = H5Dcreate(file_id, "/density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the density array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -362,16 +361,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for x momentum 
     dataset_id = H5Dcreate(file_id, "/momentum_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the x momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the x momentum array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -381,16 +372,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for y momentum 
     dataset_id = H5Dcreate(file_id, "/momentum_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the y momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the y momentum array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -400,16 +383,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for z momentum 
     dataset_id = H5Dcreate(file_id, "/momentum_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the z momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the z momentum array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif   
     // Free the dataset id
     status = H5Dclose(dataset_id);
    
@@ -419,16 +394,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for Energy 
     dataset_id = H5Dcreate(file_id, "/Energy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the Energy array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the Energy array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -439,16 +406,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for internal energy 
     dataset_id = H5Dcreate(file_id, "/GasEnergy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the internal energy array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the internal energy array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
     #endif
@@ -461,23 +420,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   // 2D case
   if (H.nx>1 && H.ny>1 && H.nz==1) {
 
-    #ifndef MPI_CHOLLA
     int       nx_dset = H.nx_real;
     int       ny_dset = H.ny_real;
-    #endif
-    #ifdef MPI_CHOLLA
-    int       nx_dset = nx_global_real;
-    int       ny_dset = ny_global_real;
-    hsize_t   count[2];
-    hsize_t   offset[2];
-    count[0]  = H.nx_real;  //x dimension for this process
-    count[1]  = H.ny_real;  //y dimension for this process
-    offset[0] = nx_local_start;
-    offset[1] = ny_local_start;
-    // create the local process memory space (dimensions of the local grid)
-    memspace_id = H5Screate_simple(2, count, NULL);    
-    #endif
-
     hsize_t   dims[2];
     dataset_buffer = (Real *) malloc(H.ny_real*H.nx_real*sizeof(Real));
 
@@ -497,16 +441,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for density
     dataset_id = H5Dcreate(file_id, "/density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the density array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -520,16 +456,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     }
     // Create a dataset id for x momentum 
     dataset_id = H5Dcreate(file_id, "/momentum_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the x momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the x momentum array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -544,16 +472,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for y momentum 
     dataset_id = H5Dcreate(file_id, "/momentum_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the y momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the y momentum array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif 
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -568,16 +488,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for z momentum 
     dataset_id = H5Dcreate(file_id, "/momentum_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the z momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the z momentum array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
    
@@ -592,16 +504,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for Energy 
     dataset_id = H5Dcreate(file_id, "/Energy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the Energy array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the Energy array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -617,16 +521,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for internal energy 
     dataset_id = H5Dcreate(file_id, "/GasEnergy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the internal energy array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the internal energy array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
     #endif
@@ -638,30 +534,10 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   // 3D case
   if (H.nx>1 && H.ny>1 && H.nz>1) {
 
-
-    #ifndef MPI_CHOLLA
     int       nx_dset = H.nx_real;
     int       ny_dset = H.ny_real;
     int       nz_dset = H.nz_real;
-    #endif
-    #ifdef MPI_CHOLLA
-    int       nx_dset = nx_global_real;
-    int       ny_dset = ny_global_real;
-    int       nz_dset = nz_global_real;
-    hsize_t   count[3];
-    hsize_t   offset[3];
-    count[0]  = H.nx_real;  //x dimension for this process
-    count[1]  = H.ny_real;  //y dimension for this process
-    count[2]  = H.nz_real;  //y dimension for this process
-    offset[0] = nx_local_start;
-    offset[1] = ny_local_start;
-    offset[2] = nz_local_start;
-    // create the local process memory space (dimensions of the local grid)
-    memspace_id = H5Screate_simple(3, count, NULL);    
-    #endif
-
     hsize_t   dims[3];
-    //Real      dataset_buffer[H.nz_real][H.ny_real][H.nx_real];
     dataset_buffer = (Real *) malloc(H.nz_real*H.ny_real*H.nx_real*sizeof(Real));
 
     // Create the data space for the datasets
@@ -683,16 +559,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for density
     dataset_id = H5Dcreate(file_id, "/density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the density array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -709,16 +577,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for x momentum 
     dataset_id = H5Dcreate(file_id, "/momentum_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the x momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the x momentum array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -735,16 +595,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for y momentum 
     dataset_id = H5Dcreate(file_id, "/momentum_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the y momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the y momentum array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -761,16 +613,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for z momentum 
     dataset_id = H5Dcreate(file_id, "/momentum_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the z momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the z momentum array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
    
@@ -787,16 +631,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for Energy 
     dataset_id = H5Dcreate(file_id, "/Energy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the Energy array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the Energy array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
@@ -814,16 +650,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Create a dataset id for internal energy 
     dataset_id = H5Dcreate(file_id, "/GasEnergy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    #ifndef MPI_CHOLLA
     // Write the internal energy array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    #endif
-    #ifdef MPI_CHOLLA
-    // Select hyperslab in dataset
-    H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset, NULL, count, NULL);
-    // Write the internal eneryg array to file
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id, plist_id, dataset_buffer);
-    #endif    
     // Free the dataset id
     status = H5Dclose(dataset_id);
     #endif

@@ -534,10 +534,15 @@ void Grid3D::Wind_Boundary()
   //d_0 = 0.1;
   //v_0 = 1.2e8 / VELOCITY_UNIT;
   //P_0 = 0.1*KB*5e6 / PRESSURE_UNIT;
+  // Mach 1 CC85
+  //d_0 = 2.712148e-26 / DENSITY_UNIT;
+  //v_0 = 6.473926e7 / VELOCITY_UNIT;
+  //P_0 = 6.820245e-11 / PRESSURE_UNIT;
+  // Mach 5.25 (R 1000 pc) CC85
+  d_0 = 1.285209e-27 / DENSITY_UNIT;
+  v_0 = 1.229560e8 / VELOCITY_UNIT;
+  P_0 = 4.232212e-13 / PRESSURE_UNIT;
 
-  d_0 = 2.712148e-26 / DENSITY_UNIT;
-  v_0 = 6.473926e7 / VELOCITY_UNIT;
-  P_0 = 6.820245e-11 / PRESSURE_UNIT;
 
 /*
   // any Mach shock

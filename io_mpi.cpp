@@ -25,6 +25,7 @@ void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
   // only one HDF5 file is created 
   #elif defined HDF5
   strcat(filename,".h5");
+  sprintf(filename,"%s.%d",filename,procID);
   #endif
 
   // open the files for binary writes
@@ -44,15 +45,10 @@ void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
 
   #elif defined HDF5
   hid_t   file_id;
-  hid_t   plist_id;
-  MPI_Info  info = MPI_INFO_NULL;
-
-  // Set up file access property list with paralle I/O access
-  plist_id = H5Pcreate(H5P_FILE_ACCESS);
-  H5Pset_fapl_mpio(plist_id, world, info);
+  herr_t  status;
 
   // Create a new file collectively
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write header (file attributes)
   G.Write_Header_HDF5(file_id);
@@ -60,11 +56,8 @@ void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
   // Write the conserved variables to the output file
   G.Write_Grid_HDF5(file_id);
 
-  // Realse property list identifier
-  H5Pclose(plist_id);
-
   // Close the file
-  H5Fclose(file_id);
+  status = H5Fclose(file_id);
   #endif
 }
 #endif /*MPI_CHOLLA*/

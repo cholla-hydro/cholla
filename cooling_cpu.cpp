@@ -56,23 +56,25 @@ void Grid3D::Cool_CPU(void)
     for(j=jstart; j<jend; j++) {
       for(i=istart; i<iend; i++) {
 
-  Real d, vx, vy, vz, E, P, n;
-  Real T, T_init, T_init_P, del_T, dt_left, dt_sub, cool, E_old;
-  #ifdef DE
-  Real ge, T_init_ge;
-  #endif
+        Real d, d_inv, vx, vy, vz, E, P, n;
+        Real T, T_init, T_init_P, del_T, dt_left, dt_sub, cool, E_old;
+        #ifdef DE
+        Real ge, T_init_ge;
+        #endif
+
         //get cell index
         int id = i + j*H.nx + k*H.nx*H.ny;
 
         // load values of density and pressure
         d  =  C.density[id];
-        vx =  C.momentum_x[id] / d;
-        vy =  C.momentum_y[id] / d;
-        vz =  C.momentum_z[id] / d;
+	d_inv = 1.0 / d;
+        vx =  C.momentum_x[id] * d_inv;
+        vy =  C.momentum_y[id] * d_inv;
+        vz =  C.momentum_z[id] * d_inv;
         E  =  C.Energy[id];
         P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gama - 1.0);
         #ifdef DE
-        ge = C.GasEnergy[id] / d;
+        ge = C.GasEnergy[id] * d_inv;
         P  = d * ge * (gama - 1.0);
         #endif
         P  = fmax(P, (Real) TINY_NUMBER);
