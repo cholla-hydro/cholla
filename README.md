@@ -21,6 +21,8 @@ A few options must be specified within on the 'FLAGS' line, namely the H_CORRECT
 CUDA, and CUDA_ERROR_CHECK options. It is strongly recommended that you include the dual energy
 flag when radiative cooling is turned on.
 
+Running Cholla
+--------------
 To run the code after it is compiled, you must supply an input file with parameters and a problem that matches a function
 in the initial_conditions file. E.g. to run a one-dimension Sod Shock Tube test, you would do:
 
