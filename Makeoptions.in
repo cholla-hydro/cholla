@@ -1,0 +1,61 @@
+#    @WARNING1@
+#    @WARNING2@
+#===============================================================================
+# FILE: Makeoptions.in
+#
+# PURPOSE: Template for src/Makeoptions.  When 'configure' is run, a new
+# Makeoptions will be created (overwriting the last) from this template.
+#
+# TO BY-PASS CONFIGURE: copy this file into Makeoptions, and edit by hand to
+#   set the appropriate object files, compiler options, and library paths.
+#
+#-------------------  macro definitions  ---------------------------------------
+
+MACHINE = default
+
+#-------------------  default definitions  -------------------------------------
+
+CC  = @CC@
+CXX  = @CXX@
+NVCC  = @NVCC@
+LDR = @CC@
+OPT = @COMPILER_OPTS@
+CUSTLIBS =
+MPIINC =
+MPILIB =
+CUSTLIBS = -lgsl -lm -lhdf5
+
+ifeq (@CUDA_MODE@,CUDA_ENABLED)
+  CUDALIB = -L/usr/local/cuda/lib -lcuda -lcudart
+  CUDAINC = -I/usr/local/cuda/include -I/usr/local/include
+endif
+
+ifeq (@MPI_MODE@,MPI_PARALLEL)
+  CC = mpicc 
+  CXX = mpicxx
+  MPI_FLAGS = BLOCK
+endif
+
+#-------------------  compiler/library definitions  ----------------------------
+# select using MACHINE=<name> in command line.  For example
+#    ophir> make all MACHINE=ophir
+# New machines can be added to ifeq blocks below.
+
+ifeq ($(MACHINE),macosx)
+  CC = /usr/bin/gcc
+  CXX = /usr/bin/g++
+  OPT = -O2 
+else
+  abort Unsupported MACHINE=$(MACHINE)
+endif
+
+ifeq (@MPI_MODE@,NO_MPI_PARALLEL)
+  MPIINC = 
+  MPILIB = 
+endif
+
+FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR)
+CFLAGS = $(FLAGS) $(OPT) $(MPIINC) $(MPI_FLAGS)
+CXXFLAGS = $(FLAGS) $(OPT) $(MPIINC) $(MPI_FLAGS)
+NVCCFLAGS = $(FLAGS) -m64 -Xcompiler -arch -Xcompiler x86_64 -fmad=false -gencode arch=compute_20,code=sm_20
+LIB = $(MPILIB) $(CUSTLIBS)
