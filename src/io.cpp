@@ -323,13 +323,6 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   hid_t     dataset_id, dataspace_id; 
   Real      *dataset_buffer;
   herr_t    status;
-  #ifdef MPI_CHOLLA
-  hid_t     memspace_id;
-  hid_t     plist_id; // property list identifier
-  // Create property list for collective dataset write
-  plist_id = H5Pcreate(H5P_DATASET_XFER);
-  H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
-  #endif
 
 
   // 1D case

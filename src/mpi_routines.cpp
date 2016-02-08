@@ -107,12 +107,12 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
   world = MPI_COMM_WORLD;
 
   /* set the precision of MPI floating point numbers */
-  #if PRECISION == 1
+  #if PRECISION == 1 
   MPI_CHREAL = MPI_FLOAT;
-  #endif /*PRECISION*/
+  #endif /*SINGLE_PRECISION*/
   #if PRECISION == 2
   MPI_CHREAL = MPI_DOUBLE;
-  #endif /*PRECISION*/
+  #endif /*DOUBLE_PRECISION*/
 
   /*create the MPI_Request arrays for non-blocking sends*/
   if(!(send_request = (MPI_Request *) malloc(2*sizeof(MPI_Request))))

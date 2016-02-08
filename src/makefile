@@ -18,6 +18,7 @@ ifdef MPI_FLAGS
   #FFT_LIBS  += -lfftw3_mpi
 
   MPI_FLAGS += -DBLOCK
+  MPI_FLAGS += -arch x86_64
 
 else
   CC	= /usr/bin/gcc
@@ -38,16 +39,16 @@ OUTPUT = -DHDF5
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
 #RECONSTRUCTION = -DPLMC
-#RECONSTRUCTION = -DPPMP
-RECONSTRUCTION = -DPPMC
+RECONSTRUCTION = -DPPMP
+#RECONSTRUCTION = -DPPMC
 
-#SOLVER = -DEXACT
-SOLVER = -DROE
+SOLVER = -DEXACT
+#SOLVER = -DROE
 
 #INTEGRATOR = -DCTU 
 #INTEGRATOR = -DVL
 
-COOLING = -DCOOLING_CPU
+#COOLING = -DCOOLING_CPU
 #COOLING = -DCOOLING_GPU
 
 INCL   = -I./ -I/usr/local/cuda/include -I/usr/local/include
@@ -56,10 +57,10 @@ LIBS   = -L/usr/local/lib -lm -lgsl -lhdf5
 
 
 FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DCUDA -DCUDA_ERROR_CHECK
-CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) -m64
-CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) -m64
-NVCCFLAGS = $(FLAGS) -m64 -Xcompiler -arch -Xcompiler x86_64 -fmad=false -gencode arch=compute_30,code=sm_30 
-LDFLAGS	  = -m64 -F/Library/Frameworks -framework CUDA
+CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) #-m64
+CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) #-m64
+NVCCFLAGS = $(FLAGS) -Xcompiler -arch -Xcompiler x86_64 -gencode arch=compute_30,code=sm_30 -fmad=false 
+LDFLAGS	  = -Xlinker -rpath -Xlinker /usr/local/cuda/lib #-m64 -F/Library/Frameworks -framework CUDA
 
 
 %.o:	%.c

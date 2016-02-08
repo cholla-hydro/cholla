@@ -1,6 +1,6 @@
 /*! /file global.h
  *  /brief Declarations of global variables and functions. */
-
+//#include "../build/config.h"
 
 #ifndef GLOBAL_H 
 #define GLOBAL_H 
@@ -10,16 +10,16 @@
 #include <gsl/gsl_spline2d.h>
 #endif
 
-#if PRECISION == 1
+#if PRECISION == 1 
 #ifndef FLOAT_TYPEDEF_DEFINED
 typedef float Real;
 #endif //FLOAT_TYPEDEF_DEFINED
-#endif //PRECISION == 1
+#endif //SINGLE_PRECISION
 #if PRECISION == 2
 #ifndef FLOAT_TYPEDEF_DEFINED
 typedef double Real;
 #endif //FLOAT_TYPEDEF_DEFINED
-#endif //PRECISION == 2
+#endif //DOUBLE_PRECISION
 
 #define MAXLEN 80
 #define TINY_NUMBER 1.0e-20
