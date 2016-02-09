@@ -1,6 +1,5 @@
 /*! /file global.h
  *  /brief Declarations of global variables and functions. */
-//#include "../build/config.h"
 
 #ifndef GLOBAL_H 
 #define GLOBAL_H 
