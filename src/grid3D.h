@@ -210,6 +210,7 @@ class Grid3D
      *  \brief Update the conserved quantities in each cell. */
     Real Update_Grid(void);
 
+#ifdef COOLING_CPU
     /*! \fn void Cool_CPU(void)
      *  \brief Use Cloudy cooling tables to apply cooling over the grid. */
     void Cool_CPU(void);
@@ -221,6 +222,7 @@ class Grid3D
     /*! \fn void Free_Cooling_Tables(void)
      *  \brief Free the memory associated with the cooling tables. */
     void Free_Cooling_Tables(void);
+#endif //COOLING_CPU
 
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */

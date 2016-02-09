@@ -12,7 +12,7 @@ option(WITH_HDF5 "Use HDF5" ON)
 option(ERROR_CHECK "Cuda error checking" OFF)
 if(ERROR_CHECK)
   add_definitions(-DCUDA_ERROR_CHECK)
-endif
+endif(ERROR_CHECK)
 
 # physics options set here
 #add_definitions(-DPRECISION=1)
