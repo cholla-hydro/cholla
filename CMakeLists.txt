@@ -4,13 +4,17 @@ project(cholla)
 
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin")
 
-# options set on the command line
+# computing options must be turned off on the command line
+# to modify default behavior
 option(WITH_CUDA "Use GPU" ON)
 option(WITH_MPI "Use MPI" ON)
 option(WITH_HDF5 "Use HDF5" ON)
+option(ERROR_CHECK "Cuda error checking" OFF)
+if(ERROR_CHECK)
+  add_definitions(-DCUDA_ERROR_CHECK)
+endif
 
-# options set here
-#add_definitions(-DCUDA_ERROR_CHECK)
+# physics options set here
 #add_definitions(-DPRECISION=1)
 add_definitions(-DPRECISION=2)
 #add_definitions(-DPCM)
@@ -20,6 +24,10 @@ add_definitions(-DPRECISION=2)
 add_definitions(-DPPMP)
 #add_definitions(-DEXACT)
 add_definitions(-DROE)
+#add_definitions(-DDE)
+#add_definitions(-DCOOLING_GPU)
+#add_definitions(-DCOOLING_CPU)
+#add_definitions(-DH_CORRECTION)
 
 file(GLOB_RECURSE SRC_FILES "src/*.c" "src/*.cpp")
 file(GLOB_RECURSE CUDA_SRC_FILES "src/*.cu")
