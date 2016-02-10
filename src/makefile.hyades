@@ -55,10 +55,10 @@ COOLING = -DCOOLING_CPU
 #COOLING = -DCOOLING_GPU
 
 
-INCL   = -I./ -I/home/evan/code/gsl-2.1/include/ -I/home/evan/code/hdf5-1.8.16/include/
+INCL   = -I./ -I/pfs/evan/code/gsl-2.1/include/ -I/pfs/evan/code/hdf5-1.8.16/include/
 NVINCL = $(INCL) -I/pfs/sw/cuda/6.5/include
 NVLIBS = -L/pfs/sw/cuda/6.5/lib64 -lcudart
-LIBS   = -lm -lgsl -lgslcblas -lhdf5 -L/home/evan/code/gsl-2.1/lib/ -L/home/evan/code/hdf5-1.8.16/lib/
+LIBS   = -lm -lgsl -lgslcblas -lhdf5 -L/pfs/evan/code/gsl-2.1/lib/ -L/pfs/evan/code/hdf5-1.8.16/lib/
 
 
 
