@@ -11,7 +11,7 @@
 #include "global.h"
 #include "grid3D.h"
 #include "ran.h"
-//#include "rng.h"
+#include "rng.h"
 #include "mpi_routines.h"
 #include "io.h"
 #include "error_handling.h"
@@ -153,7 +153,7 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
     kstart = 0;
     kend   = H.nz;
   }
-  Real T = 1e6;
+  Real T = 1e5;
   P = rho*KB*T / PRESSURE_UNIT;
 
   // set initial values of conserved variables
@@ -173,6 +173,9 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
         C.momentum_y[id] = rho*vy;
         C.momentum_z[id] = rho*vz;
         C.Energy[id]     = P/(gama-1.0) + 0.5*rho*(vx*vx + vy*vy + vz*vz);
+        #ifdef DE
+        C.GasEnergy[id] = P/(gama-1.0);
+        #endif
       }
     }
   }
@@ -330,6 +333,11 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
     kend   = H.nz;
   }
 
+  Real d_wind = 1.285209e-27 / DENSITY_UNIT;
+  Real v_wind = 1.229560e8 / VELOCITY_UNIT;
+  Real P_wind = 4.232212e-13 / PRESSURE_UNIT;
+  Real d_cloud = rho_r;
+
   // set initial values of conserved variables
   for(k=kstart; k<kend; k++) {
     for(j=jstart; j<jend; j++) {
@@ -343,30 +351,37 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
 
         if (x_pos < diaph)
         {
-          C.density[id]    = rho_l;
+          //C.density[id]    = rho_l;
+          C.density[id]    = d_wind;
           //C.momentum_x[id] = 0.0;
-          C.momentum_x[id] = rho_l * v_l;
+          //C.momentum_x[id] = rho_l * v_l;
+          C.momentum_x[id] = d_wind * v_wind;
           C.momentum_y[id] = 0.0;
           //C.momentum_y[id] = rho_l * v_l;
           C.momentum_z[id] = 0.0;
           //C.momentum_z[id] = rho_l * v_l;
-          C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
+          //C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
+          C.Energy[id]     = P_wind/(gama-1.0) + 0.5*d_wind*v_wind*v_wind;
           #ifdef DE
-          C.GasEnergy[id]  = P_l/(gama-1.0);
+          //C.GasEnergy[id]  = P_l/(gama-1.0);
+          C.GasEnergy[id]  = P_wind/(gama-1.0);
           #endif
         }
         else
         {
-          C.density[id]    = rho_r;
-          //C.momentum_x[id] = 0.0;
-          C.momentum_x[id] = rho_r * v_r;
+          //C.density[id]    = rho_r;
+          C.density[id]    = d_cloud;
+          C.momentum_x[id] = 0.0;
+          //C.momentum_x[id] = rho_r * v_r;
           C.momentum_y[id] = 0.0;
           //C.momentum_y[id] = rho_r * v_r;
           C.momentum_z[id] = 0.0;
           //C.momentum_z[id] = rho_r * v_r;
-          C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
+          //C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
+          C.Energy[id]     = P_wind/(gama-1.0);        
           #ifdef DE
-          C.GasEnergy[id]  = P_r/(gama-1.0);
+          //C.GasEnergy[id]  = P_r/(gama-1.0);
+          C.GasEnergy[id]  = P_wind/(gama-1.0);
           #endif
         }
       }
@@ -1083,15 +1098,15 @@ void Grid3D::Cloud_3D() {
   
   
   // number density of cloud in code units (hydrogen atom/cc)
-  d_cloud = 1.0;
+  d_cloud = 0.01;
   P_cloud = P_wind;  // cloud in pressure equilibrium with hot wind
   R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
   R_c = R_max/1.28; // radius at which cloud begins to taper
 
   // cloud center in code units
   xcen = 10.0;
-  ycen = 30.0;
-  zcen = 30.0;
+  ycen = 20.0;
+  zcen = 20.0;
 
   // hot wind
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
@@ -1181,7 +1196,7 @@ void Grid3D::Cloud_3D() {
     }
   }
 */      
-
+/*
   // turbulent cloud
   FILE *fp;
   //fp = fopen("/gsfs1/rsgrps/brant/evan/data/cloud_3D/cloud.64.dat", "r");
@@ -1269,8 +1284,8 @@ void Grid3D::Cloud_3D() {
     }
   }
   fclose(fp);
+*/
 
-/*
   // spherical cloud 
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -1309,7 +1324,7 @@ void Grid3D::Cloud_3D() {
       }
     }
   }
-*/
+
 
 }
 

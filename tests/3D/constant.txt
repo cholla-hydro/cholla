@@ -10,7 +10,7 @@ ny=100
 # number of grid cells in the z dimension
 nz=100
 # final output time
-tout=10.0
+tout=100.0
 # time interval for output
 outstep=1.0
 # name of initial conditions
@@ -19,9 +19,9 @@ init=Constant
 xmin=0.0
 ymin=0.0
 zmin=0.0
-xlen=1.0
-ylen=1.0
-zlen=1.0
+xlen=10.0
+ylen=10.0
+zlen=10.0
 # type of boundary conditions
 xl_bcnd=1
 xu_bcnd=1
@@ -35,7 +35,7 @@ outdir=/data2/evan/grid_tests/cooling/binaries/
 
 #################################################
 # density
-rho=10.0
+rho=1.0
 # velocity
 vx=0
 vy=0

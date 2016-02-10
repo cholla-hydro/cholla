@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "global.h"
 #include "grid3D.h"
 #include "error_handling.h"
