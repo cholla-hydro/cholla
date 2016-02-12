@@ -792,7 +792,6 @@ void Grid3D::Cloud_2D() {
       #endif
       }
     }
-  }
 
 
   // circular cloud 
