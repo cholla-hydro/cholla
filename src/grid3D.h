@@ -294,9 +294,9 @@ class Grid3D
      *  \brief Noh test described in Liska, 2003. */
     void Noh_2D();
 
-    /*! \fn void CloudShock_2D()
-     *  \brief Test described in various places... */
-    void CloudShock_2D();
+    /*! \fn void Cloud_2D()
+     *  \brief Circular cloud in a hot wind. */
+    void Cloud_2D();
 
     /*! \fn void Noh_3D()
      *  \brief Noh test described in Stone, 2008. */
