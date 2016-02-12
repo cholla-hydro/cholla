@@ -682,7 +682,7 @@ void Grid3D::Wind_Plus_Advection_Boundary()
           id  = i + j*H.nx + k*H.nx*H.ny;
 
           vxl    = C.momentum_x[id]/C.density[id];
-          lambda = vxl * C.dt/C.dx;
+          lambda = vxl * H.dt/H.dx;
 
           if(vxl>0)
           {
@@ -713,7 +713,7 @@ void Grid3D::Wind_Plus_Advection_Boundary()
           id  = i + j*H.nx + k*H.nx*H.ny;
 
           vxl    = C.momentum_x[id]/C.density[id];
-          lambda = vxl * C.dt/C.dx;
+          lambda = vxl * H.dt/H.dx;
 
           if(vxl>0)
           {
