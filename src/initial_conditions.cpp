@@ -46,8 +46,8 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
     Explosion_2D();
   } else if (strcmp(P.init, "Noh_2D")==0) {
     Noh_2D();
-  } else if (strcmp(P.init, "CloudShock_2D")==0) {
-    CloudShock_2D();
+  } else if (strcmp(P.init, "Cloud_2D")==0) {
+    Cloud_2D();
   } else if (strcmp(P.init, "Noh_3D")==0) {
     Noh_3D();    
   } else if (strcmp(P.init, "Sedov_Taylor")==0) {
@@ -749,47 +749,93 @@ void Grid3D::Noh_2D()
 
 }
 
+/*! \fn void Cloud_2D()
+ *  \brief Circular cloud in a hot diffuse wind. */
+void Grid3D::Cloud_2D() {
 
-/*! \fn void CloudShock_2D()
- *  \brief Test described in various places... */
-void Grid3D::CloudShock_2D()
-{
   int i, j, id;
-  Real x_pos, y_pos, z_pos;
-  Real cs, P;
+  Real x_pos, y_pos, z_pos, d_wind, v_wind, d_cloud;
+  Real P, P_cloud, P_wind;
+  Real xcen, ycen, r, R_c, R_max;
+  Real vx, vy;
 
-  P = 1.0;
+  d_wind = 1.285209e-27 / DENSITY_UNIT;
+  v_wind = 1.229560e8 / VELOCITY_UNIT;
+  P_wind = 4.232212e-13 / PRESSURE_UNIT;
+  
+  // number density of cloud in code units (hydrogen atom/cc)
+  d_cloud = 0.01;
+  P_cloud = P_wind;  // cloud in pressure equilibrium with hot wind
+  R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
+  R_c = R_max/1.28; // radius at which cloud begins to taper
 
+  // cloud center in code units
+  xcen = 10.0;
+  ycen = 20.0;
 
-  // set initial values of conserved variables
-  // ambient medium, traveling at Mach 2.7
+  // hot wind
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
     for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+
+      // get cell-centered position
       id = i + j*H.nx;
+      Get_Position(i, j, 0, &x_pos, &y_pos, &z_pos);
 
-      Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
-
-      C.density[id] = 0.1;
-      // velocity is 2.7 M
-      cs = sqrt(gama*P / C.density[id]);
-      C.momentum_x[id] = C.density[id] * 2.7*cs;
+      C.density[id] = d_wind;
+      vx = v_wind;
+      C.momentum_x[id] = C.density[id]*vx;
       C.momentum_y[id] = 0.0;
       C.momentum_z[id] = 0.0;
-      C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id])/C.density[id];
+      C.Energy[id] = (P_wind)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
+      #ifdef DE
+      C.GasEnergy[id] = P_wind / (gama-1.0);
+      #endif
+      }
+    }
+  }
 
-      // cloud, in pressure equilibrium with ambient medium
-      if ((x_pos-0.5)*(x_pos-0.5) + (y_pos-0.5)*(y_pos-0.5) <= 0.05) {
-        C.density[id] = 1.0;
+
+  // circular cloud 
+  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+
+      id = i + j*H.nx;
+
+      // get cell-centered position
+      Get_Position(i, j, 0, &x_pos, &y_pos, &z_pos);
+
+      // circular cloud with tapered edge
+      // radial position relative to cloud ceneter
+      r = sqrt((x_pos-xcen)*(x_pos-xcen) + (y_pos-ycen)*(y_pos-ycen));
+
+      if (r < R_c ) {
+        C.density[id] = d_cloud;
         C.momentum_x[id] = 0.0;
         C.momentum_y[id] = 0.0;
         C.momentum_z[id] = 0.0;
-        C.Energy[id] = P/(gama-1.0);
+        C.Energy[id] = P_cloud/(gama-1.0);
+        #ifdef DE
+        C.GasEnergy[id] = P_cloud/(gama-1.0);
+        #endif
+      }
+      if (r > R_c && r < R_max) {
+        C.density[id] = d_cloud*exp(-1.0 *fabs(r - R_c)/4.0);
+        if (C.density[id] < d_wind) C.density[id] = d_wind;
+        C.momentum_x[id] = 0.0;
+        C.momentum_y[id] = 0.0;
+        C.momentum_z[id] = 0.0;
+        C.Energy[id] = P_cloud/(gama-1.0);
+        #ifdef DE
+        C.GasEnergy[id] = P_cloud/(gama-1.0);
+        #endif
       }
     }
   }
 
 
 }
+
+
 
 
 /*! \fn void Noh_3D()
@@ -939,9 +985,6 @@ void Grid3D::Turbulent_Slab() {
   Real pressure_unit = DENSITY_UNIT * LENGTH_UNIT * LENGTH_UNIT / (TIME_UNIT * TIME_UNIT);
   Real vx, vz;
 
-  int di, dj, dk;
-  di = dj = dk = 0;
-
   // mean density of slab (2e-24/cc)
   d_0 = 2.0;
 
@@ -1074,9 +1117,6 @@ void Grid3D::Cloud_3D() {
   //Real velocity_unit = LENGTH_UNIT / TIME_UNIT;
   //Real pressure_unit = DENSITY_UNIT * LENGTH_UNIT * LENGTH_UNIT / (TIME_UNIT * TIME_UNIT);
   Real vx, vy, vz;
-
-  int di, dj, dk;
-  di = dj = dk = 0;
 
   // CODE UNITS:
   // density: 1.67e-24  # 1.0 hydrogen atom/cc (g/cc)

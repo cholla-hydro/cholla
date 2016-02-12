@@ -15,7 +15,7 @@
 #include "error_handling.h"
 
 //#define CPU_TIME
-//#define OUTPUT
+#define OUTPUT
 //#define TURBULENCE
 
 int main(int argc, char *argv[])

@@ -557,52 +557,24 @@ void Grid3D::Wind_Boundary()
 */
 
   // set inflow boundaries on the -x face
-  if (H.ny == 1 && H.nz == 1) {
+  for (k=0; k<H.nz; k++) {
+    for (j=0; j<H.ny; j++) {
+      for (i=0; i<H.n_ghost; i++) {
 
-    for (i=0; i<H.n_ghost; i++) {
+        id = i + j*H.nx + k*H.nx*H.ny;
 
-      id = i;
+        // set the conserved quantities
+        C.density[id]    = d_0;
+        C.momentum_x[id] = C.density[id]*v_0;
+        C.momentum_y[id] = 0.0;
+        C.momentum_z[id] = 0.0;
+        C.Energy[id] = (P_0)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
+        #ifdef DE
+        C.GasEnergy[id] = (P_0)/(gama-1.0);
+        #endif
 
-      // set the conserved quantities
-      C.density[id]    = d_0;
-      C.momentum_x[id] = d_0 * v_0;
-      C.momentum_y[id] = 0.0;
-      C.momentum_z[id] = 0.0;
-      C.Energy[id] = (P_0)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
-      #ifdef DE
-      C.GasEnergy[id] = (P_0)/(gama-1.0);
-      #endif
-
-    }
-
-  }
-  // set inflow boundaries on the -z face
-  if (H.nz > 1) {
-
-    //for (k=0; k<H.n_ghost; k++) {
-    for (k=0; k<H.nz; k++) {
-      for (j=0; j<H.ny; j++) {
-        //for (i=0; i<H.nx; i++) {
-        for (i=0; i<H.n_ghost; i++) {
-
-          id = i + j*H.nx + k*H.nx*H.ny;
-
-          // set the conserved quantities
-          C.density[id]    = d_0;
-          //C.momentum_x[id] = 0.0;
-          C.momentum_x[id] = C.density[id]*v_0;
-          C.momentum_y[id] = 0.0;
-          //C.momentum_z[id] = C.density[id]*v_0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id] = (P_0)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
-          #ifdef DE
-          C.GasEnergy[id] = (P_0)/(gama-1.0);
-          #endif
-
-        }
       }
     }
-
   }
 
 }
