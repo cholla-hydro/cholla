@@ -16,7 +16,7 @@ outstep=1.0
 # value of gamma
 gamma=1.666667
 # name of initial conditions
-init=Cloud_3D
+init=Cloud_2D
 #init=Read_Grid
 #nfile=3
 # domain properties
