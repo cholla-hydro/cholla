@@ -672,27 +672,66 @@ void Grid3D::Wind_Plus_Advection_Boundary()
         }
       }
     }
-
-    // set transmissive boundaries on the +y face
+    // set advective boundaries on the -y face
+    Real vxl;
+    Real lambda;
     for (k=0; k<H.nz; k++) {
-      for (j=H.ny-H.n_ghost; j<H.ny; j++) {
-        for (i=0; i<H.nx; i++) {
+      for (j=0; j<H.n_ghost; j++) {
+        for (i=1; i<H.nx-1; i++) { //don't change first or last cells
 
           id  = i + j*H.nx + k*H.nx*H.ny;
 
-          jdt = H.ny-H.n_ghost-1;  //last real cell
-          idt = i + jdt*H.nx + k*H.nx*H.ny;
+          vxl    = C.momentum_x[id]/C.density[id];
+          lambda = vxl * dt/dx;
 
+          if(vxl>0)
+          {
+            idt = i-1;
+          }else{
+            idt = i+1;
+          }
 
+          idt = idt + j*H.nx + k*H.nx*H.ny;
 
           // set the conserved quantities
-          C.density[id]    = C.density[idt];
-          C.momentum_x[id] = C.momentum_x[idt];
-          C.momentum_y[id] = C.momentum_y[idt];
-          C.momentum_z[id] = C.momentum_z[idt];
-          C.Energy[id]     = C.Energy[idt];
+          C.density[id]    += (C.density[idt]-C.density[id])*lambda;
+          C.momentum_x[id] += (C.momentum_x[idt]-C.momentum_x[id])*lambda;
+          C.momentum_y[id] += (C.momentum_y[idt]-C.momentum_y[id])*lambda;
+          C.momentum_z[id] += (C.momentum_z[idt]-C.momentum_z[id])*lambda;
+          C.Energy[id]     += (C.Energy[idt]-C.Energy[id])*lambda;
           #ifdef DE
-          C.GasEnergy[id]  = C.GasEnergy[idt];
+          C.GasEnergy[id]  += (C.GasEnergy[idt]-C.GasEnergy[id])*lambda;
+          #endif
+        }
+      }
+    }
+    // set advective boundaries on the +y face
+    for (k=0; k<H.nz; k++) {
+      for (j=H.ny-H.n_ghost; j<H.ny; j++) {
+        for (i=1; i<H.nx-1; i++) { //don't change the first or last cells
+
+          id  = i + j*H.nx + k*H.nx*H.ny;
+
+          vxl    = C.momentum_x[id]/C.density[id];
+          lambda = vxl * dt/dx;
+
+          if(vxl>0)
+          {
+            idt = i-1;
+          }else{
+            idt = i+1;
+          }
+
+          idt = idt + j*H.nx + k*H.nx*H.ny;
+
+          // set the conserved quantities
+          C.density[id]    += (C.density[idt]-C.density[id])*lambda;
+          C.momentum_x[id] += (C.momentum_x[idt]-C.momentum_x[id])*lambda;
+          C.momentum_y[id] += (C.momentum_y[idt]-C.momentum_y[id])*lambda;
+          C.momentum_z[id] += (C.momentum_z[idt]-C.momentum_z[id])*lambda;
+          C.Energy[id]     += (C.Energy[idt]-C.Energy[id])*lambda;
+          #ifdef DE
+          C.GasEnergy[id]  += (C.GasEnergy[idt]-C.GasEnergy[id])*lambda;
           #endif
         }
       }
