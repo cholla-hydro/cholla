@@ -586,7 +586,7 @@ void Grid3D::Wind_Boundary()
 
 /*! \fn void Wind_Boundary()
  *  \brief Supersonic inflow on -z boundary set to match Cloud_3D IC's. */
-void Grid3D::Wind_Boundary()
+void Grid3D::Wind_Plus_Advection_Boundary()
 {
   int i, j, k, id, idt, jdt, kdt;
   Real d_0, d_s, v_0, v_s, P_0, P_s, cs, M;
@@ -626,18 +626,18 @@ void Grid3D::Wind_Boundary()
     // set transmissive boundaries on the +x face
     for (k=0; k<H.nz; k++) {
       for (j=0; j<H.ny; j++) {
-        for (i=H.nx-H.nghost; i<H.nx; i++) {
+        for (i=H.nx-H.n_ghost; i<H.nx; i++) {
 
           id  = i + j*H.nx + k*H.nx*H.ny;
 
-          idt = H.nx - H.nghost - 1;  //last real cell
+          idt = H.nx - H.n_ghost - 1;  //last real cell
           idt = idt + j*H.nx + k*H.nx*H.ny;
 
 
 
           // set the conserved quantities
           C.density[id]    = C.density[idt];
-          C.momentum_x[id] = C.momentum_x[idt]
+          C.momentum_x[id] = C.momentum_x[idt];
           C.momentum_y[id] = C.momentum_y[idt];
           C.momentum_z[id] = C.momentum_z[idt];
           C.Energy[id]     = C.Energy[idt];
@@ -650,19 +650,19 @@ void Grid3D::Wind_Boundary()
 
     // set transmissive boundaries on the -y face
     for (k=0; k<H.nz; k++) {
-      for (j=0; j<H.nghost; j++) {
+      for (j=0; j<H.n_ghost; j++) {
         for (i=0; i<H.nx; i++) {
 
           id  = i + j*H.nx + k*H.nx*H.ny;
 
-          jdt = H.nghost;  //first real cell
+          jdt = H.n_ghost;  //first real cell
           idt = i + jdt*H.nx + k*H.nx*H.ny;
 
 
 
           // set the conserved quantities
           C.density[id]    = C.density[idt];
-          C.momentum_x[id] = C.momentum_x[idt]
+          C.momentum_x[id] = C.momentum_x[idt];
           C.momentum_y[id] = C.momentum_y[idt];
           C.momentum_z[id] = C.momentum_z[idt];
           C.Energy[id]     = C.Energy[idt];
@@ -675,19 +675,19 @@ void Grid3D::Wind_Boundary()
 
     // set transmissive boundaries on the +y face
     for (k=0; k<H.nz; k++) {
-      for (j=H.ny-H.nghost; j<H.ny; j++) {
+      for (j=H.ny-H.n_ghost; j<H.ny; j++) {
         for (i=0; i<H.nx; i++) {
 
           id  = i + j*H.nx + k*H.nx*H.ny;
 
-          jdt = H.ny-H.nghost-1;  //last real cell
+          jdt = H.ny-H.n_ghost-1;  //last real cell
           idt = i + jdt*H.nx + k*H.nx*H.ny;
 
 
 
           // set the conserved quantities
           C.density[id]    = C.density[idt];
-          C.momentum_x[id] = C.momentum_x[idt]
+          C.momentum_x[id] = C.momentum_x[idt];
           C.momentum_y[id] = C.momentum_y[idt];
           C.momentum_z[id] = C.momentum_z[idt];
           C.Energy[id]     = C.Energy[idt];
