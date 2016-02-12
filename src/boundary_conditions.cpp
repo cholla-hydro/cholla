@@ -411,7 +411,7 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
     Wind_Boundary();
   }
   else if (strcmp(bcnd, "wind_plus_advection")==0) {
-    Wind_Plus_Advection();
+    Wind_Plus_Advection_Boundary();
   }
   else {
     printf("ABORT: %s -> Unknown custom boundary condition.\n", bcnd);
