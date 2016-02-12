@@ -672,6 +672,32 @@ void Grid3D::Wind_Plus_Advection_Boundary()
         }
       }
     }
+
+    // set transmissive boundaries on the +y face
+    for (k=0; k<H.nz; k++) {
+      for (j=H.ny-H.n_ghost; j<H.ny; j++) {
+        for (i=0; i<H.nx; i++) {
+
+          id  = i + j*H.nx + k*H.nx*H.ny;
+
+          jdt = H.ny-H.n_ghost-1;  //last real cell
+          idt = i + jdt*H.nx + k*H.nx*H.ny;
+
+
+          // set the conserved quantities
+          C.density[id]    = C.density[idt];
+          C.momentum_x[id] = C.momentum_x[idt];
+          C.momentum_y[id] = C.momentum_y[idt];
+          C.momentum_z[id] = C.momentum_z[idt];
+          C.Energy[id]     = C.Energy[idt];
+          #ifdef DE
+          C.GasEnergy[id]  = C.GasEnergy[idt];
+          #endif
+        }
+      }
+    }  
+
+
     // set advective boundaries on the -y face
     Real vxl;
     Real lambda;
