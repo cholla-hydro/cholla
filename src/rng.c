@@ -1,5 +1,7 @@
 /*! \file rng.c
  *  \brief Function definitions for easy random number generation */
+//#ifdef GSL
+
 #include "rng.h"
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -430,3 +432,5 @@ double *rng_direction(int ndim)
 	}
 	return x;
 }
+
+//#endif //GSL

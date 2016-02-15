@@ -12,7 +12,7 @@ option(WITH_HDF5 "Use HDF5" ON)
 option(ERROR_CHECK "Cuda error checking" OFF)
 if(ERROR_CHECK)
   add_definitions(-DCUDA_ERROR_CHECK)
-endif
+endif(ERROR_CHECK)
 
 # physics options set here
 #add_definitions(-DPRECISION=1)
@@ -34,27 +34,25 @@ file(GLOB_RECURSE CUDA_SRC_FILES "src/*.cu")
 
 
 if(WITH_CUDA)
-  find_package(CUDA)
+  find_package(CUDA CONFIG REQUIRED)
   add_definitions(-DCUDA)
   set(LIBS ${LIBS} ${CUDA_LIBRARIES})
   set(CUDA_NVCC_FLAGS -fmad=false)
   cuda_add_library(cudawrap ${CUDA_SRC_FILES}) 
 endif(WITH_CUDA)
 if(WITH_MPI)
-  find_package(MPI)
+  find_package(MPI CONFIG REQUIRED)
   add_definitions(-DMPI_CHOLLA)
   set(INCLUDE_DIRS ${INCLUDE_DIRS} ${MPI_INCLUDE_DIRS})
   set(LIBS ${LIBS} ${MPI_LIBRARIES})
 endif(WITH_MPI)
 if(WITH_HDF5)
-  find_package(HDF5)
+  find_package(HDF5 CONFIG REQUIRED)
   add_definitions(-DHDF5)
   set(INCLUDE_DIRS ${INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS})
   set(LIBS ${LIBS} ${HDF5_LIBRARIES})
 endif(WITH_HDF5)
-find_package(GSL)
-
-
+find_package(GSL CONFIG REQUIRED)
 
 set(INCLUDE_DIRS ${INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}

@@ -6,13 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "global.h"
 #include "grid3D.h"
 #include "error_handling.h"
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_spline2d.h>
-#include <omp.h>
 
 gsl_interp_accel *acc;
 gsl_interp_accel *xacc;
@@ -51,7 +51,6 @@ void Grid3D::Cool_CPU(void)
   }
 
   // set initial values of conserved variables
-  #pragma omp parallel for private(i, j, k)
   for(k=kstart; k<kend; k++) {
     for(j=jstart; j<jend; j++) {
       for(i=istart; i<iend; i++) {

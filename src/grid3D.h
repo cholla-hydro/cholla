@@ -210,6 +210,7 @@ class Grid3D
      *  \brief Update the conserved quantities in each cell. */
     Real Update_Grid(void);
 
+#ifdef COOLING_CPU
     /*! \fn void Cool_CPU(void)
      *  \brief Use Cloudy cooling tables to apply cooling over the grid. */
     void Cool_CPU(void);
@@ -221,6 +222,7 @@ class Grid3D
     /*! \fn void Free_Cooling_Tables(void)
      *  \brief Free the memory associated with the cooling tables. */
     void Free_Cooling_Tables(void);
+#endif //COOLING_CPU
 
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
@@ -292,9 +294,9 @@ class Grid3D
      *  \brief Noh test described in Liska, 2003. */
     void Noh_2D();
 
-    /*! \fn void CloudShock_2D()
-     *  \brief Test described in various places... */
-    void CloudShock_2D();
+    /*! \fn void Cloud_2D()
+     *  \brief Circular cloud in a hot wind. */
+    void Cloud_2D();
 
     /*! \fn void Noh_3D()
      *  \brief Noh test described in Stone, 2008. */
@@ -362,6 +364,10 @@ class Grid3D
     /*! \fn void Wind_Boundary()
      *  \brief Supersonic inflow on -z boundary set to match Cloud_3D IC's. */
     void Wind_Boundary();
+
+    /*! \fn void Wind_Plus_Advection_Boundary()
+     *  \brief Supersonic inflow on -z boundary set to match Cloud_3D IC's, plus advection on the edges. */
+    void Wind_Plus_Advection_Boundary();    
     
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);
