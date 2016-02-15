@@ -56,8 +56,7 @@ find_package(GSL)
 
 
 
-
-set(INCLUDE_DIRS
+set(INCLUDE_DIRS ${INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}
     ${GSL_INCLUDE_DIRS}
 )
