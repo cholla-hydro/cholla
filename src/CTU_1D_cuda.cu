@@ -53,7 +53,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
 
   int n_fields = 5;
   #ifdef DE
-  n_fields = 7;
+  n_fields = 6;
   #endif
 
   // set the dimensions of the cuda grid
@@ -70,6 +70,44 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   Real *test1, *test2;
   test1 = (Real *) malloc(5*n_cells*sizeof(Real));
   test2 = (Real *) malloc(5*n_cells*sizeof(Real));
+  #endif
+
+  #ifdef COOLING_GPU
+  // allocate CUDA arrays for cooling/heating tables
+  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+  cudaArray* cuCoolArray;
+  cudaArray* cuHeatArray;
+  cudaMallocArray(&cuCoolArray, &channelDesc, nx, ny);
+  cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny);
+  // Copy to device memory the cooling and heating arrays
+  // in host memory
+  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
+
+  // Specify textures
+  struct cudaResourceDesc coolResDesc;
+  memset(&coolResDesc, 0, sizeof(coolResDesc));
+  coolResDesc.resType = cudaResourceTypeArray;
+  coolResDesc.res.array.array = cuCoolArray;
+  struct cudaResourceDesc heatResDesc;
+  memset(&heatResDesc, 0, sizeof(heatResDesc));
+  heatResDesc.resType = cudaResourceTypeArray;
+  heatResDesc.res.array.array = cuHeatArray;  
+
+  // Specify texture object parameters (same for both tables)
+  struct cudaTextureDesc texDesc;
+  memset(&texDesc, 0, sizeof(texDesc));
+  texDesc.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
+  texDesc.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
+  texDesc.filterMode = cudaFilterModeLinear;
+  texDesc.readMode = cudaReadModeElementType;
+  texDesc.normalizedCoords = 1;
+
+  // Create texture objects
+  cudaTextureObject_t coolTexObj = 0;
+  cudaCreateTextureObject(&coolTexObj, &coolResDesc, &texDesc, NULL);
+  cudaTextureObject_t heatTexObj = 0;
+  cudaCreateTextureObject(&heatTexObj, &heatResDesc, &texDesc, NULL);
   #endif
 
   // allocate GPU arrays
@@ -197,7 +235,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
 
 
   #ifdef COOLING_GPU
-  cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
+  cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama, coolTexObj, heatTexObj);
   #endif
 
   // Calculate the next timestep
@@ -251,6 +289,14 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   cudaFree(Q_R);
   cudaFree(F);
   cudaFree(etah);
+  #ifdef COOLING_GPU
+  // Destroy texture object
+  cudaDestroyTextureObject(coolTexObj);
+  cudaDestroyTextureObject(heatTexObj);
+  // Free device memory
+  cudaFreeArray(cuCoolArray);
+  cudaFreeArray(cuHeatArray);  
+  #endif  
 
   #ifdef TIME
   cudaEventDestroy(start);
@@ -269,9 +315,9 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
 {
   int id;
   Real d, d_inv, vx, vy, vz, P;  
-  //#ifdef DE
-  Real vx_imo, vx_ipo, e_old;
-  //#endif
+  #ifdef DE
+  Real vx_imo, vx_ipo;
+  #endif
 
   Real dtodx = dt/dx;
 
@@ -288,11 +334,10 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    //#ifdef DE
+    #ifdef DE
     vx_imo = dev_conserved[1*n_cells + id-1]/dev_conserved[id-1];
     vx_ipo = dev_conserved[1*n_cells + id+1]/dev_conserved[id+1];
-    //e_old = dev_conserved[5*n_cells + id];
-    //#endif
+    #endif
   
     // update the conserved variable array
     dev_conserved[            id] += dtodx * (dev_F[            id-1] - dev_F[            id]);
@@ -302,15 +347,8 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     dev_conserved[4*n_cells + id] += dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
     #ifdef DE
     dev_conserved[5*n_cells + id] += dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
-    //                              +  dtodx * P * (dev_F[6*n_cells + id-1] - dev_F[6*n_cells + id]);
                                   +  dtodx * P * 0.5 * (vx_imo - vx_ipo);
     #endif
-    //if (dev_F[id-1] != dev_F[id]) printf("%3d density flux: %f %f\n", id, dev_F[id-1], dev_F[id]);
-    //if (dev_F[4*n_cells + id-1] != dev_F[4*n_cells + id]) printf("%3d Energy flux: %f %f\n", id, dev_F[4*n_cells+id-1], dev_F[4*n_cells+id]);
-    //if (dev_F[5*n_cells + id-1] != dev_F[5*n_cells + id]) printf("%3d energy flux: %f %f\n", id, dev_F[5*n_cells+id-1], dev_F[5*n_cells+id]);
-    //if (dev_F[6*n_cells + id-1] != dev_F[6*n_cells + id]) printf("%3d velocities: %f %f\n", id, dev_F[6*n_cells+id-1], dev_F[6*n_cells+id]);
-    //if (vx_imo != vx_ipo) printf("%3d vx_imo %f vx_ipo %f\n", id, vx_imo, vx_ipo);
-    //if (e_old != dev_conserved[5*n_cells + id]) printf("%3d New e is different\n", id);
     if (dev_conserved[id] != dev_conserved[id]) printf("%3d Thread crashed in final update.\n", id);
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -319,7 +357,6 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     if (P < 0.0) printf("%d Negative pressure after final update.\n", id);
-    //printf("%3d %f %f %f\n", id, P/(gamma-1.0), dev_conserved[4*n_cells+id],  P/(gamma-1.0)/dev_conserved[4*n_cells+id]);
   }
 
 
@@ -390,7 +427,7 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
      
     // recalculate the pressure 
     P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
-    if (P < 0.0) printf("%d Negative pressure after final update. %f %f \n", id, ge1, ge2);    
+    if (P < 0.0) printf("%d Negative pressure after internal energy sync. %f %f \n", id, ge1, ge2);    
   }
 
 }

@@ -26,6 +26,9 @@
 #include "mpi_routines.h"
 #endif
 #include <stdio.h>
+#ifdef COOLING_GPU
+#include <cooling_wrapper.h>
+#endif
 //#include "rng.h"
 
 
@@ -183,6 +186,9 @@ void Grid3D::AllocateMemory(void)
   #ifdef COOLING_CPU
   // Load cooling tables
   Load_Cooling_Tables();
+  #endif
+  #ifdef COOLING_GPU
+  Load_Cuda_Textures();
   #endif
 
 }
@@ -627,6 +633,9 @@ void Grid3D::FreeMemory(void)
 
   #ifdef COOLING_CPU
   Free_Cooling_Tables();
+  #endif
+  #ifdef COOLING_GPU
+  Free_Cuda_Textures();
   #endif
 
 }

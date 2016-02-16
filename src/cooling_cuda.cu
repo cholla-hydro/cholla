@@ -15,16 +15,19 @@
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
 {
   int n_cells = nx*ny*nz;
   
-  Real d, vx, vy, vz, p, E, E_old;
-  Real n, T, T_init, T_init_p;
+  Real d, E, E_old;
+  Real n, T, T_init;
   Real del_T, dt_sub;
   Real cool; //cooling rate per volume, erg/s/cm^3
+  #ifndef DE
+  Real vx, vy, vz, p;
+  #endif
   #ifdef DE
-  Real ge, T_init_ge;
+  Real ge;
   #endif
 
   // get a thread ID
@@ -42,44 +45,37 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // load values of density and pressure
     id = xid + yid*nx + zid*nx*ny;
     d  =  dev_conserved[            id];
+    E  =  dev_conserved[4*n_cells + id];
+    #ifndef DE
     vx =  dev_conserved[1*n_cells + id] / d;
     vy =  dev_conserved[2*n_cells + id] / d;
     vz =  dev_conserved[3*n_cells + id] / d;
-    E  =  dev_conserved[4*n_cells + id];
     p  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     p  = fmax(p, (Real) TINY_NUMBER);
+    #endif
     #ifdef DE
     ge = dev_conserved[5*n_cells + id] / d;
-    p  = d * ge * (gamma - 1.0);
     #endif
     
     // calculate the number density of the gas (in cgs)
     n = d*DENSITY_UNIT / MP;
 
     // calculate the temperature of the gas
-    T_init_p = p*PRESSURE_UNIT/ (n*KB);
-    T_init = T_init_p;
-    #ifdef DE
-    T_init_ge = ge*(gamma-1.0)*SP_ENERGY_UNIT*MP/KB;
-    T_init = T_init_ge;
+    #ifndef DE
+    T_init = p*PRESSURE_UNIT/ (n*KB);
     #endif
-    //if (xid == 130 && yid == 6 && zid ==81) printf("%f %f\n", T_init_p, T_init_ge);
+    #ifdef DE
+    T_init = ge*(gamma-1.0)*SP_ENERGY_UNIT*MP/KB;
+    #endif
 
-    // only allow cooling above 10^4 K
-    if (T_init > 1e4 && T_init < 1e9) {
     // calculate cooling rate per volume
     T = T_init;
 
-    if (T > 1e4) {
-      cool = Schure_cool(n, T); 
-    } else {
-      cool = KI_cool(n, T); 
-    }
-    
+    //cool = Schure_cool(n, T); // pick function here
+    cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
 
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
-    //printf("%d %f %f %f\n", tid, cool, del_T, del_T/T);
 
     // limit change in temperature to 5%
     while (del_T/T > 0.05) {
@@ -90,11 +86,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       // how much time is left from the original timestep?
       dt -= dt_sub;
       // calculate cooling again
-      if (T > 1e4) {
-        cool = Schure_cool(n, T);
-      } else {
-        cool = KI_cool(n, T);
-      }
+      //cool = Schure_cool(n, T);
+      cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
       // calculate new change in temperature
       del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
     }
@@ -109,7 +102,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     if (E < 0.0) printf("%3d %3d %3d Negative E after cooling. %f %f %f %f %f\n", xid, yid, zid, del_T, T_init, E_old, n, E);
     #ifdef DE
     ge -= KB*del_T / (MP*(gamma-1.0)*SP_ENERGY_UNIT);
-    if (ge < 0.0) printf("%3d %3d %3d Negative ge after cooling. %f %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], d*dev_conserved[5*n_cells + id], n, T_init_p, T_init_ge, del_T);
+    if (ge < 0.0) printf("%3d %3d %3d Negative ge after cooling. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], d*dev_conserved[5*n_cells + id], n, del_T, T_init);
     #endif
 
     // and send back from kernel
@@ -117,7 +110,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #ifdef DE
     dev_conserved[5*n_cells + id] = d*ge;
     #endif
-    }
 
   }
 
@@ -300,6 +292,30 @@ __device__ Real Schure_cool(Real n, Real T)
   return cool;
 
 }
+
+
+/* \fn __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+ * \brief Uses texture mapping to interpolate Cloudy cooling/heating 
+          tables at z = 0 with solar metallicity and an HM05 UV background. */
+__device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+{
+  Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
+  Real H = 0.0; //heating rate, erg s^-1 cm^3
+  Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
+  float log_n, log_T;
+  log_n = log10(n);
+  log_T = log10(T);
+ 
+  lambda = tex2D<float>(coolTexObj, log_T, log_n);
+  H = tex2D<float>(heatTexObj, log_T, log_n);
+
+  // cooling rate per unit volume
+  cool = n*n*(pow(10, lambda) - pow(10, H));
+
+  return cool;
+}
+
+
 
 
 #endif //COOLING_GPU

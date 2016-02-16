@@ -52,6 +52,10 @@ extern gsl_spline *highT_C_spline;
 extern gsl_spline2d *lowT_C_spline;
 extern gsl_spline2d *lowT_H_spline;
 #endif
+#ifdef COOLING_GPU
+extern float *cooling_table;
+extern float *heating_table;
+#endif
 
 /*! \fn void Set_Gammas(Real gamma_in)
  *  \brief Set gamma values for Riemann solver. */

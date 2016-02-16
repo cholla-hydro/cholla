@@ -140,6 +140,45 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   //printf("ngrid: %d\n", ngrid);
   host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
 
+  #ifdef COOLING_GPU
+  // allocate CUDA arrays for cooling/heating tables
+  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+  cudaArray* cuCoolArray;
+  cudaArray* cuHeatArray;
+  cudaMallocArray(&cuCoolArray, &channelDesc, nx, ny);
+  cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny);
+  // Copy to device memory the cooling and heating arrays
+  // in host memory
+  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
+
+  // Specify textures
+  struct cudaResourceDesc coolResDesc;
+  memset(&coolResDesc, 0, sizeof(coolResDesc));
+  coolResDesc.resType = cudaResourceTypeArray;
+  coolResDesc.res.array.array = cuCoolArray;
+  struct cudaResourceDesc heatResDesc;
+  memset(&heatResDesc, 0, sizeof(heatResDesc));
+  heatResDesc.resType = cudaResourceTypeArray;
+  heatResDesc.res.array.array = cuHeatArray;  
+
+  // Specify texture object parameters (same for both tables)
+  struct cudaTextureDesc texDesc;
+  memset(&texDesc, 0, sizeof(texDesc));
+  texDesc.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
+  texDesc.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
+  texDesc.filterMode = cudaFilterModeLinear;
+  texDesc.readMode = cudaReadModeElementType;
+  texDesc.normalizedCoords = 1;
+
+  // Create texture objects
+  cudaTextureObject_t coolTexObj = 0;
+  cudaCreateTextureObject(&coolTexObj, &coolResDesc, &texDesc, NULL);
+  cudaTextureObject_t heatTexObj = 0;
+  cudaCreateTextureObject(&heatTexObj, &heatResDesc, &texDesc, NULL);
+  #endif
+  
+
   // allocate GPU arrays
   // conserved variables
   Real *dev_conserved;
@@ -546,7 +585,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   #endif
 
   #ifdef COOLING_GPU
-  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
+  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama, coolTexObj, heatTexObj);
   #endif
 
   // Step 6: Calculate the next timestep
@@ -631,6 +670,14 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   cudaFree(etah_y);
   cudaFree(etah_z);
   cudaFree(dev_dti_array);
+  #ifdef COOLING_GPU
+  // Destroy texture object
+  cudaDestroyTextureObject(coolTexObj);
+  cudaDestroyTextureObject(heatTexObj);
+  // Free device memory
+  cudaFreeArray(cuCoolArray);
+  cudaFreeArray(cuHeatArray);  
+  #endif
 
   #ifdef TIME
   //printf("cpto: %6.2f  cpfr: %6.2f\n", cpto, cpfr);
@@ -942,8 +989,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
       printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
     }
-    //if (dev_conserved[5*n_cells + id] < 0.0) printf("%3d %3d %3d Negative internal energy after update. %f %f %f %f\n", xid, yid, zid, dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id], dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id], dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id], 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo)));
-
     // every thread collects the conserved variables it needs from global memory
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -951,10 +996,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    if (P < 0.0) {
-      //printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
-    }
-
+    if (P < 0.0) printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
   }
 
 }
@@ -1028,29 +1070,6 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     // recalculate the pressure 
     P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
     if (P < 0.0) printf("%3d %3d %3d Negative pressure after internal energy sync. %f %f %f\n", xid, yid, zid, P/(gamma-1.0), ge1, ge2);    
-/*
-    if (xid == 130 && yid == 6 && zid == 81) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 130 && yid == 6 && zid == 80) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 130 && yid == 6 && zid == 82) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 129 && yid == 6 && zid == 81) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 131 && yid == 6 && zid == 81) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 130 && yid == 5 && zid == 81) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 130 && yid == 7 && zid == 81) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-*/
   }
 }
 
