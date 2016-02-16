@@ -14,12 +14,10 @@
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_spline2d.h>
 
-gsl_interp_accel *acc;
 gsl_interp_accel *xacc;
 gsl_interp_accel *yacc;
-gsl_spline *highT_C_spline;
-gsl_spline2d *lowT_C_spline;
-gsl_spline2d *lowT_H_spline;
+gsl_spline2d *C_spline;
+gsl_spline2d *H_spline;
 
 
 Real test_cool(const Real n, const Real T);
@@ -173,40 +171,20 @@ Real Cloudy_cool(const Real n, const Real T)
   lambda = cool = H = 0.0;
   if (log_T != log_T) printf("Temperature NAN\n");
 
-  // Use 2d interpolation to calculate the cooling & heating rates for
-  // for low temperature gas
-  if (log_T > 1.1 && log_T <= 5.0) {
-    if (log_n > -5.9 && log_n < 5.9) {
-      lambda = gsl_spline2d_eval(lowT_C_spline, log_n, log_T, xacc, yacc);
-      cool = n*n*pow(10, lambda);
-      H = gsl_spline2d_eval(lowT_H_spline, log_n, log_T, xacc, yacc);
-      H = n*n*pow(10, H);
-      cool -= H;
-    }
-    else if (log_n <= -5.9) {
-      lambda = gsl_spline2d_eval(lowT_C_spline, -5.9, log_T, xacc, yacc);
-      cool = n*n*pow(10, lambda);
-      H = gsl_spline2d_eval(lowT_H_spline, -5.9, log_T, xacc, yacc);
-      H = n*n*pow(10, H);
-      cool -= H;
-    }
-    else {
-      lambda = gsl_spline2d_eval(lowT_C_spline, 5.9, log_T, xacc, yacc);
-      cool = n*n*pow(10, lambda);
-      H = gsl_spline2d_eval(lowT_H_spline, 5.9, log_T, xacc, yacc);
-      H = n*n*pow(10, H);
-      cool -= H;
-    }
-  }
-  // At high temps, 1D interpolation is fine
-  else if (log_T > 5.0 && log_T < 9.0) {
-    lambda = gsl_spline_eval(highT_C_spline, log_T, acc);
-    cool = n*n*pow(10, lambda);
-  }
-  else if (log_T >= 9.0) {
-    lambda = gsl_spline_eval(highT_C_spline, 9.0, acc);
-    cool = n*n*pow(10, lambda);
-  }
+  // Don't allow cooling at super low temps
+  if (log_T < 1.0) return 0;
+  
+  // Don't go outside the bounds of the interpolation
+  log_n = fmax(log_n, -5.9);
+  log_n = fmin(log_n, 5.9);
+  log_T = fmin(log_T, 9.0);
+
+  // Use 2d interpolation to calculate the cooling & heating rates
+  lambda = gsl_spline2d_eval(C_spline, log_n, log_T, xacc, yacc);
+  cool = n*n*pow(10, lambda);
+  H = gsl_spline2d_eval(H_spline, log_n, log_T, xacc, yacc);
+  H = n*n*pow(10, H);
+  cool -= H;
 
   return cool;
 }
@@ -223,7 +201,7 @@ void Grid3D::Load_Cooling_Tables()
 
   int i, xi, yi;
   int nx = 121;
-  int ny = 41;
+  int ny = 81;
   double x[nx], y[ny];
   za = (Real *) malloc(nx*ny*sizeof(Real));
 
@@ -231,65 +209,18 @@ void Grid3D::Load_Cooling_Tables()
   char buffer[0x1000];
   char * pch;
 
-  // Allocate arrays for high temperature data
-  n_arr = (Real *) malloc(61*sizeof(Real));
-  T_arr = (Real *) malloc(61*sizeof(Real));
-  L_arr = (Real *) malloc(61*sizeof(Real));
-  H_arr = (Real *) malloc(61*sizeof(Real));
-
-  // Read in high T cooling curve (single density)
-  i=0;
-  infile = fopen("./cloudy_coolingcurve_highT.txt", "r");
-  if (infile == NULL) {
-    printf("Unable to open Cloudy file.\n");
-    chexit(1);
-  }
-  while (fgets(buffer, sizeof(buffer), infile) != NULL)
-  {
-    if (buffer[0] == '#') {
-      continue;
-    }
-    else {
-      pch = strtok(buffer, "\t");
-      n_arr[i] = atof(pch);
-      while (pch != NULL)
-      {
-        pch = strtok(NULL, "\t");
-        if (pch != NULL)
-          T_arr[i] = atof(pch);
-        pch = strtok(NULL, "\t");
-        if (pch != NULL)
-          L_arr[i] = atof(pch);
-        pch = strtok(NULL, "\t");
-        if (pch != NULL)
-          H_arr[i] = atof(pch);
-      }
-      i++;
-    }
-  }
-  fclose(infile);
-
-  acc = gsl_interp_accel_alloc();
   xacc = gsl_interp_accel_alloc();
   yacc = gsl_interp_accel_alloc();
-  // Initialize the spline for the high T cooling curve
-  highT_C_spline = gsl_spline_alloc(gsl_interp_cspline, 61);
-  gsl_spline_init(highT_C_spline, T_arr, L_arr, 61);
 
-  free(n_arr);
-  free(T_arr);
-  free(L_arr);
-  free(H_arr);
-
-  // Reallocate arrays for low temperature data
+  // Allocate arrays to read in cloudy tables data
   n_arr = (Real *) malloc(nx*ny*sizeof(Real));
   T_arr = (Real *) malloc(nx*ny*sizeof(Real));
   L_arr = (Real *) malloc(nx*ny*sizeof(Real));
   H_arr = (Real *) malloc(nx*ny*sizeof(Real));
 
-  // Read in low T cooling curve (function of density and temperature)
+  // Read in cooling/heating curves (function of density and temperature)
   i=0;
-  infile = fopen("./cloudy_coolingcurve_lowT.txt", "r");
+  infile = fopen("./cloudy_coolingcurve.txt", "r");
   if (infile == NULL) {
     printf("Unable to open Cloudy file.\n");
     chexit(1);
@@ -320,8 +251,8 @@ void Grid3D::Load_Cooling_Tables()
   fclose(infile);
 
   // Allocate memory for 2d interpolation 
-  lowT_C_spline = gsl_spline2d_alloc(gsl_interp2d_bilinear, nx, ny);
-  lowT_H_spline = gsl_spline2d_alloc(gsl_interp2d_bilinear, nx, ny);
+  C_spline = gsl_spline2d_alloc(gsl_interp2d_bilinear, nx, ny);
+  H_spline = gsl_spline2d_alloc(gsl_interp2d_bilinear, nx, ny);
 
   // Set x and y values
   for (xi=0; xi<nx; xi++) {
@@ -334,23 +265,23 @@ void Grid3D::Load_Cooling_Tables()
   // Set z grid values for cooling interpolation
   for (xi=0; xi<nx; xi++) {
     for (yi=0; yi<ny; yi++) {
-      gsl_spline2d_set(lowT_C_spline, za, xi, yi, L_arr[yi + ny*xi]);
+      gsl_spline2d_set(C_spline, za, xi, yi, L_arr[yi + ny*xi]);
     }
   }
   
-  // Initialize the interpolation for the low T cooling curve
-  gsl_spline2d_init(lowT_C_spline, x, y, za, nx, ny);
+  // Initialize the interpolation for the cooling curve
+  gsl_spline2d_init(C_spline, x, y, za, nx, ny);
 
 
   // Set z grid values for heating interpolation
   for (xi=0; xi<nx; xi++) {
     for (yi=0; yi<ny; yi++) {
-      gsl_spline2d_set(lowT_H_spline, za, xi, yi, H_arr[yi + ny*xi]);
+      gsl_spline2d_set(H_spline, za, xi, yi, H_arr[yi + ny*xi]);
     }
   }
   
-  // Initialize the interpolation for the low T heating curve
-  gsl_spline2d_init(lowT_H_spline, x, y, za, nx, ny);
+  // Initialize the interpolation for the heating curve
+  gsl_spline2d_init(H_spline, x, y, za, nx, ny);
 
   free(n_arr);
   free(T_arr);
@@ -363,12 +294,10 @@ void Grid3D::Load_Cooling_Tables()
 
 void Grid3D::Free_Cooling_Tables()
 {
-  gsl_interp_accel_free(acc);
   gsl_interp_accel_free(xacc);
   gsl_interp_accel_free(yacc);
-  gsl_spline_free(highT_C_spline);
-  gsl_spline2d_free(lowT_C_spline);
-  gsl_spline2d_free(lowT_H_spline);
+  gsl_spline2d_free(C_spline);
+  gsl_spline2d_free(H_spline);
 }
 
 #endif //COOLING_CPU

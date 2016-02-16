@@ -45,12 +45,10 @@ extern Real t_comm;
 extern Real t_other;
 
 #ifdef COOLING_CPU
-extern gsl_interp_accel *acc;
 extern gsl_interp_accel *xacc;
 extern gsl_interp_accel *yacc;
-extern gsl_spline *highT_C_spline;
-extern gsl_spline2d *lowT_C_spline;
-extern gsl_spline2d *lowT_H_spline;
+extern gsl_spline2d *C_spline;
+extern gsl_spline2d *H_spline;
 #endif
 #ifdef COOLING_GPU
 extern float *cooling_table;

@@ -8,7 +8,7 @@ OBJS   = main.o global.o grid3D.o initial_conditions.o boundary_conditions.o CTU
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-MPI_FLAGS =  -DMPI_CHOLLA
+#MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
@@ -49,7 +49,7 @@ SOLVER = -DROE
 #INTEGRATOR = -DVL
 
 #COOLING = -DCOOLING_CPU
-COOLING = -DCOOLING_GPU
+#COOLING = -DCOOLING_GPU
 
 INCL   = -I./ -I/usr/local/cuda/include -I/usr/local/include
 NVLIBS = -L/usr/local/cuda/lib -lcuda -lcudart

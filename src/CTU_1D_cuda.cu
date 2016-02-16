@@ -77,12 +77,12 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
   cudaArray* cuCoolArray;
   cudaArray* cuHeatArray;
-  cudaMallocArray(&cuCoolArray, &channelDesc, nx, ny);
-  cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny);
+  cudaMallocArray(&cuCoolArray, &channelDesc, 81, 121);
+  cudaMallocArray(&cuHeatArray, &channelDesc, 81, 121);
   // Copy to device memory the cooling and heating arrays
   // in host memory
-  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, 81*121*sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, 81*121*sizeof(float), cudaMemcpyHostToDevice);
 
   // Specify textures
   struct cudaResourceDesc coolResDesc;
@@ -236,6 +236,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
 
   #ifdef COOLING_GPU
   cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama, coolTexObj, heatTexObj);
+  cudaDeviceSynchronize();  
   #endif
 
   // Calculate the next timestep

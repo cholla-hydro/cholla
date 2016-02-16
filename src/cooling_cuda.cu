@@ -38,9 +38,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   int yid = (tid - zid*nx*ny) / nx;
   int xid = tid - zid*nx*ny - yid*nx;
 
-  // threads corresponding to real cells do the calculation
-  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost) {
-  //if (xid < nx && yid < ny && zid < nz) {
+  // all cells do the calculation
+  if (xid < nx && yid < ny && zid < nz) {
 
     // load values of density and pressure
     id = xid + yid*nx + zid*nx*ny;
@@ -305,9 +304,13 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   float log_n, log_T;
   log_n = log10(n);
   log_T = log10(T);
+  // remap coordinates for texture
+  log_T = (log_T - 1.0)/8.0;
+  log_n = (log_n + 6.0)/12.0; 
  
   lambda = tex2D<float>(coolTexObj, log_T, log_n);
   H = tex2D<float>(heatTexObj, log_T, log_n);
+  //printf("%f %f %f %f\n", log_n, log_T, lambda, H);
 
   // cooling rate per unit volume
   cool = n*n*(powf(10, lambda) - powf(10, H));
