@@ -310,7 +310,7 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   H = tex2D<float>(heatTexObj, log_T, log_n);
 
   // cooling rate per unit volume
-  cool = n*n*(pow(10, lambda) - pow(10, H));
+  cool = n*n*(powf(10, lambda) - powf(10, H));
 
   return cool;
 }

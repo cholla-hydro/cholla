@@ -4,7 +4,7 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=10000
+nx=100
 # number of grid cells in the y dimension
 ny=1
 # number of grid cells in the z dimension

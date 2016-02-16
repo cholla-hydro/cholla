@@ -32,6 +32,6 @@ yu_bcnd=2
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=/Users/evan/Desktop/output/Implosion_2D/
+#outdir=/Users/evan/Desktop/output/Implosion_2D/
 #outdir=/data2/evan/grid_tests/Implosion_2D/flash_1024/
-#outdir=./binaries/
+outdir=./hdf5/

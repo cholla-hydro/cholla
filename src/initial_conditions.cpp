@@ -764,14 +764,14 @@ void Grid3D::Cloud_2D() {
   P_wind = 4.232212e-13 / PRESSURE_UNIT;
   
   // number density of cloud in code units (hydrogen atom/cc)
-  d_cloud = 0.01;
+  d_cloud = 1.0;
   P_cloud = P_wind;  // cloud in pressure equilibrium with hot wind
   R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
   R_c = R_max/1.28; // radius at which cloud begins to taper
 
   // cloud center in code units
   xcen = 10.0;
-  ycen = 20.0;
+  ycen = 30.0;
 
   // hot wind
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
