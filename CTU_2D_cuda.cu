@@ -20,9 +20,6 @@
 #include"cooling_cuda.h"
 #include"subgrid_routines_2D.h"
 
-//#define TIME
-//#define TEST
-
 
 
 __global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real *dev_F1_x,
@@ -76,7 +73,6 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
 
   // calculate the dimensions for each subgrid block
   sub_dimensions_2D(nx, ny, n_ghost, &nx_s, &ny_s, &block1_tot, &block2_tot, &remainder1, &remainder2, n_fields);
-  //printf("%d %d %d %d %d %d\n", nx_s, ny_s, block1_tot, block2_tot, remainder1, remainder2);
   block_tot = block1_tot*block2_tot;
 
   // number of cells in one subgrid block
@@ -113,13 +109,6 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
   Real *eta_x, *eta_y, *etah_x, *etah_y;
   // array of inverse timesteps for dt calculation
   Real *dev_dti_array;
-
-
-#ifdef TEST
-  Real *test1, *test2;
-  test1 = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real));
-  test2 = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real));
-#endif
 
 
   // allocate memory on the GPU
@@ -159,65 +148,30 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     CudaCheckError();
 
     // copy the conserved variables onto the GPU
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("GPU copy: %5.3f ms\n", elapsedTime);
-    #endif
-
 
 
     // Step 1: Do the reconstruction
     #ifdef PCM
     PCM_Reconstruction_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx, ny, n_ghost, gama);
-    CudaCheckError();
     #endif
     #ifdef PLMP
     PLMP_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
     PLMP_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
-    CudaCheckError();  
     #endif
     #ifdef PLMC
     PLMC_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
     PLMC_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
-    CudaCheckError();  
     #endif
     #ifdef PPMP
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     PPMP_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("Time to do x reconstruction: %5.3f ms\n", elapsedTime);
-    #endif
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     PPMP_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("Time to do y reconstruction: %5.3f ms\n", elapsedTime);
-    #endif
-    CudaCheckError();
     #endif
     #ifdef PPMC
     PPMC_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
     PPMC_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
-    CudaCheckError();
     #endif
+    CudaCheckError();
 
     #ifdef H_CORRECTION
     #ifndef CTU
@@ -229,71 +183,24 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     calc_etah_x_2D<<<dim2dGrid,dim1dBlock>>>(eta_x, eta_y, etah_x, nx_s, ny_s, n_ghost);
     calc_etah_y_2D<<<dim2dGrid,dim1dBlock>>>(eta_x, eta_y, etah_y, nx_s, ny_s, n_ghost);
     CudaCheckError();
-    #endif //CTU
-    #endif
+    #endif // NO CTU
+    #endif // H_CORRECTION
 
     // Step 2: Calculate the fluxes
     #ifdef EXACT
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     Calculate_Exact_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    #ifdef TIME
-    // get stop time, and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("x fluxes:  %5.3f ms\n", elapsedTime);
-    #endif
-    CudaCheckError();  
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     Calculate_Exact_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    #ifdef TIME
-    // get stop time, and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("y fluxes:  %5.3f ms\n", elapsedTime);
-    #endif  
-    CudaCheckError();  
     #endif
     #ifdef ROE
     Calculate_Roe_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
-    CudaCheckError();
     Calculate_Roe_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-    CudaCheckError();
     #endif
-
-
-#ifdef TEST 
-    CudaSafeCall( cudaMemcpy(test1, F_x, 5*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-    CudaSafeCall( cudaMemcpy(test2, F_y, 5*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-    for (int i=0; i<nx; i++) {
-      for (int j=0; j<ny; j++) {
-        if (test1[i + j*nx + nx*ny] != test2[j + i*nx + 2*nx*ny]) {
-          printf("%3d %3d %f %f\n", i, j, test1[i + j*nx + 1*nx*ny], test2[j + i*nx + 2*nx*ny]);
-        }
-      }
-    }
-#endif
-
+    CudaCheckError();
 
 #ifdef CTU
 
     // Step 3: Evolve the interface states
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     Evolve_Interface_States_2D<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, Q_Ly, Q_Ry, F_y, nx_s, ny_s, n_ghost, dx, dy, dt);
-    #ifdef TIME
-    // get stop time, and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("evolve interfaces:  %5.3f ms\n", elapsedTime);
-    #endif  
     CudaCheckError();
 
 
@@ -309,63 +216,34 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     #endif
 
 
-
     // Step 4: Calculate the fluxes again
     #ifdef EXACT
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     Calculate_Exact_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    #ifdef TIME
-    // get stop time, and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("x fluxes:  %5.3f ms\n", elapsedTime);
-    #endif  
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     Calculate_Exact_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    #ifdef TIME
-    // get stop time, and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("y fluxes:  %5.3f ms\n", elapsedTime);
-    #endif    
-    CudaCheckError();
     #endif
     #ifdef ROE
     Calculate_Roe_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
     Calculate_Roe_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-    CudaCheckError();
     #endif
+    CudaCheckError();
 
 #endif //CTU
 
 
     // Step 5: Update the conserved variable array
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif    
     Update_Conserved_Variables_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, nx_s, ny_s, n_ghost, dx, dy, dt, gama);
     CudaCheckError();
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("conserved variable update: %5.3f ms\n", elapsedTime);
-    #endif     
 
+    // Synchronize the total and internal energy
     #ifdef DE
     Sync_Energies_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, n_ghost, gama);
+    CudaCheckError();    
     #endif
 
-
+    // Apply cooling
     #ifdef COOLING_GPU
     cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
+    CudaCheckError();    
     #endif
 
     // Step 6: Calculate the next timestep
@@ -374,53 +252,21 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
 
 
     // copy the conserved variable array back to the CPU
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("GPU return: %5.3f ms\n", elapsedTime);
-    #endif
-
 
     // copy the next conserved variable blocks into appropriate buffers
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif    
     host_copy_next_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, &tmp1, n_fields);
-
 
     // copy the updated conserved variable array back into the host_conserved array on the CPU
     host_return_values_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, n_fields);
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("CPU copying: %5.3f ms\n", elapsedTime);
-    #endif     
 
 
     // copy the dti array onto the CPU
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif      
     CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, 2*ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // iterate through to find the maximum inverse dt for this subgrid block
     for (int i=0; i<2*ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("dti copying & calc: %5.3f ms\n", elapsedTime);
-    #endif     
 
 
     // add one to the counter
@@ -447,16 +293,6 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
   cudaFree(etah_y);
   cudaFree(dev_dti_array);
 
-  #ifdef TIME
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
-  #endif
-
- 
-#ifdef TEST
-  free(test1);
-  free(test2);
-#endif
 
   // return the maximum inverse timestep
   return max_dti;
@@ -584,17 +420,7 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo));
     #endif
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
-      printf("%3d %3d Thread crashed in final update. %f %f %f %f %f\n", xid, yid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dev_F_y[jmo],dev_F_y[id], dev_conserved[id]);
-    }   
-    // every thread collects the conserved variables it needs from global memory
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    if (P < 0.0) {
-      printf("%3d %3d Negative pressure after final update. %f %f %f %f\n", xid, yid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, P);    
+      printf("%3d %3d Thread crashed in final update.\n", xid, yid);
     }
   }
 

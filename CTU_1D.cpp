@@ -133,7 +133,6 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
     // now L&R correspond to left and right of the interface, i.e. L | R
 
   }
-
   #endif //PLMP or PLMC
 
 
@@ -236,11 +235,6 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
     Q1.E_L[id]  = bounds[9];
 
   }
-
-  // get stop time
-  //stop_ppm = get_time();
-  //printf("ppm time = %9.3f ms\n", (stop_ppm-start_ppm)*1000);
-
   #endif //PPMP or PPMC
 
 
@@ -249,9 +243,6 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
   // Only do this for interfaces touching real cells (start at i = n_ghost-1 since
   // flux for the i+1/2 interface is stored by cell i)
 
-  // get start time
-  //double start_riemann1, stop_riemann1;
-  //start_riemann1 = get_time();
 
   // Create arrays to hold the input states for the Riemann solver and the returned fluxes
   Real cW[10];
@@ -292,34 +283,6 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
 
   }
 
-  
-
-
-  // Step 3: Apply the CT algorithm to calculate the CT electric fields at cell-corners
-  // (not applicable if not doing MHD)
-
-  // Step 4: Update the face-centered magnetic field by dt/2 using EMFs computed in step 3
-  // (not applicable if not doing MHD)
-
-  // Step 5: Evolve the left and right states at each interface by dt/2 using transverse flux gradients
-  // (not necessary for 1D; included for completeness)
-
-  // Step 6: Calculate a cell-centered electric field at t^n+1/2 
-  // (not applicable if not doing MHD)
-
-  // Step 7: Compute new fluxes at cell interfaces using the corrected left and right
-  // states from step 5, and the interface magnetic fields computed in step 4.
-  // (not necessary for 1D)
-
-  // Step 8: Apply the CT algorithm to calculate the CT electric fields
-  // Not applicable if not doing MHD
-
-
-  // Step 9: Update the solution from time level n to n+1
-
-  // get start time
-  //double start_update, stop_update;
-  //start_update = get_time();
 
   // Only update real cells
   istart = n_ghost; istop = nx-n_ghost;
@@ -332,10 +295,6 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
     Energy[i]     += dtodx * (F1.Eflux[i-1]  - F1.Eflux[i]);
   }
 
-  // get stop time
-  //stop_update = get_time();
-  //printf("update time = %9.3f ms\n", (stop_update-start_update)*1000);  
-   
 
   // free the interface states and flux structures
   free(Q1.d_L);

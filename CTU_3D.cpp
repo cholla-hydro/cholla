@@ -15,7 +15,6 @@
 #include"exact.h"
 #include"roe.h"
 
-//#define PPM_TIME
 
 
 /*! \fn CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt)
@@ -61,7 +60,6 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
   // sweep through cells and use cell averages to set input states
   // do the calculation for all interfaces 
   // the new left and right states for each i+1/2 interface are assigned to cell i
-
   istart = 0; istop = nx-1;
   jstart = 0; jstop = ny;
   kstart = 0; kstop = nz;
@@ -81,7 +79,6 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
       }
     }
   }
-
   istart = 0; istop = nx;
   jstart = 0; jstop = ny-1;
   kstart = 0; kstop = nz;
@@ -190,7 +187,6 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
       }  
     }
   }
-
   // y-direction
   jstart = n_ghost-2; jstop = ny-n_ghost+2;
   for (k=0; k<nz; k++) {
@@ -242,7 +238,6 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
       }
     }
   }
-
   // z-direction
   kstart = n_ghost-2; kstop = nz-n_ghost+2;
   for (k=kstart; k<kstop; k++) {
@@ -300,12 +295,6 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
 
   #if defined (PPMP) || defined (PPMC)
   // sweep through cells, use PPM to calculate reconstructed boundary values
-
-  #ifdef PPM_TIME
-  // get start time
-  double start_ppm, stop_ppm;
-  start_ppm = get_time();
-  #endif
 
   // create the stencil of conserved variables needed to calculate the boundary values 
   // on either side of the cell interface 
@@ -576,60 +565,14 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
       }
     }
   }
-
-  #ifdef PPM_TIME
-  // get stop time
-  stop_ppm = get_time();
-  printf("ppm time = %9.3f ms\n", (stop_ppm-start_ppm)*1000);
-  #endif
-
   #endif //PPMP or PPMC
 
-/*
-  for (i=n_ghost-1; i<nx-n_ghost; i++) {
-    for (j=0; j<ny; j++) {
-      for (k=0; k<nz; k++) {
-        id = i + j*nx + k*nx*ny;
-        if ((Q1.E_Lx[id] - 0.5*(Q1.mx_Lx[id]*Q1.mx_Lx[id] + Q1.my_Lx[id]*Q1.my_Lx[id] + Q1.mz_Lx[id]*Q1.mz_Lx[id])/Q1.d_Lx[id])*(gama-1.0) < 0.0)
-        printf("Q1_Lx %3d %3d %3d\n", i, j, k);
-        if ((Q1.E_Rx[id] - 0.5*(Q1.mx_Rx[id]*Q1.mx_Rx[id] + Q1.my_Rx[id]*Q1.my_Rx[id] + Q1.mz_Rx[id]*Q1.mz_Rx[id])/Q1.d_Rx[id])*(gama-1.0) < 0.0)
-        printf("Q1_Rx %3d %3d %3d\n", i, j, k);
-      }
-    }
-  }
-  for (i=0; i<nx; i++) {
-    for (j=n_ghost-1; j<ny-n_ghost; j++) {
-      for (k=0; k<nz; k++) {
-        id = i + j*nx + k*nx*ny;
-        if ((Q1.E_Ly[id] - 0.5*(Q1.mx_Ly[id]*Q1.mx_Ly[id] + Q1.my_Ly[id]*Q1.my_Ly[id] + Q1.mz_Ly[id]*Q1.mz_Ly[id])/Q1.d_Ly[id])*(gama-1.0) < 0.0)
-        printf("Q1_Ly %3d %3d %3d\n", i, j, k);
-        if ((Q1.E_Ry[id] - 0.5*(Q1.mx_Ry[id]*Q1.mx_Ry[id] + Q1.my_Ry[id]*Q1.my_Ry[id] + Q1.mz_Ry[id]*Q1.mz_Ry[id])/Q1.d_Ry[id])*(gama-1.0) < 0.0)
-        printf("Q1_Ry %3d %3d %3d\n", i, j, k);
-      }
-    }
-  }
-  for (i=0; i<nx; i++) {
-    for (j=0; j<ny; j++) {
-      for (k=n_ghost-1; k<nz-n_ghost; k++) {
-        id = i + j*nx + k*nx*ny;
-        if ((Q1.E_Lz[id] - 0.5*(Q1.mx_Lz[id]*Q1.mx_Lz[id] + Q1.my_Lz[id]*Q1.my_Lz[id] + Q1.mz_Lz[id]*Q1.mz_Lz[id])/Q1.d_Lz[id])*(gama-1.0) < 0.0)
-        printf("Q1_Lz %3d %3d %3d\n", i, j, k);
-        if ((Q1.E_Rz[id] - 0.5*(Q1.mx_Rz[id]*Q1.mx_Rz[id] + Q1.my_Rz[id]*Q1.my_Rz[id] + Q1.mz_Rz[id]*Q1.mz_Rz[id])/Q1.d_Rz[id])*(gama-1.0) < 0.0)
-        printf("Q1_Rz %3d %3d %3d\n", i, j, k);
-      }
-    }
-  }
-*/
 
   // Step 2: Using the input states, compute the 1D fluxes at each interface.
   // Only do this for interfaces touching real cells (start at i = n_ghost-1 since
   // flux for the i+1/2 interface is stored by cell i)
   // Unless using H correction
 
-  // get start time
-  //double start_riemann1, stop_riemann1;
-  //start_riemann1 = get_time();
-  //printf("Riemann 1\n");
 
   // Create arrays to hold the input states for the Riemann solver and the returned fluxes
   Real cW[10];
@@ -751,7 +694,6 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
 
         // call a Riemann solver to evaluate fluxes at the cell interface
         #ifdef EXACT
-        //printf("%3d %3d %3d  %f %f %f %f %f %f %f %f %f %f\n", i, j, k, cW[0], cW[1], cW[2], cW[3], cW[4], cW[5], cW[6], cW[7], cW[8], cW[9]);
         Calculate_Exact_Fluxes(cW, flux, gama);
         #endif
         #ifdef ROE
@@ -768,24 +710,10 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
     }
   }
 
-  // get stop time
-  //stop_riemann1 = get_time();
-  //printf("riemann 1 time = %9.3f ms\n", (stop_riemann1-start_riemann1)*1000);
 
-
-  // Step 3: Apply the CT algorithm to calculate the CT electric fields at cell-corners
-  // (not applicable if not doing MHD)
-
-  // Step 4: Update the face-centered magnetic field by dt/2 using EMFs computed in step 3
-  // (not applicable if not doing MHD)
-
-  // Step 5: Evolve the left and right states at each interface by dt/2 using transverse flux gradients
+  // Step 3: Evolve the left and right states at each interface by dt/2 using transverse flux gradients
   // Only do this for interfaces bordering real cells (start at i = n_ghost-1 since
   // flux for the i+1/2 interface is stored by cell i)
-
-  // get start time
-  //double start_evolution, stop_evolution;
-  //start_evolution = get_time();
 
   // Evolve the x-interface states
   // do the calculation for all the real interfaces in the x direction
@@ -845,7 +773,6 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
       }
     }
   }
-
   // Evolve the y-interface states
   // do the calculation for all the real interfaces in the y direction
   #ifdef H_CORRECTION
@@ -904,7 +831,6 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
       }
     }
   }
-
   // Evolve the z-interface states
   // do the calculation for all the real interfaces in the z direction
   #ifdef H_CORRECTION
@@ -963,49 +889,9 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
     }
   }
 
-  // get end time
-  //stop_evolution = get_time();
-  //printf("evolution time = %9.3f ms\n", (stop_evolution-start_evolution)*1000);  
-
-/*
-  for (i=n_ghost-1; i<nx-n_ghost; i++) {
-    for (j=n_ghost; j<ny-n_ghost; j++) {
-      for (k=n_ghost; k<nz-n_ghost; k++) {
-        id = i + j*nx + k*nx*ny;
-        if ((Q2.E_Lx[id] - 0.5*(Q2.mx_Lx[id]*Q2.mx_Lx[id] + Q2.my_Lx[id]*Q2.my_Lx[id] + Q2.mz_Lx[id]*Q2.mz_Lx[id])/Q2.d_Lx[id])*(gama-1.0) < 0.0)
-        printf("Q2_Lx %3d %3d %3d\n", i, j, k);
-        if ((Q2.E_Rx[id] - 0.5*(Q2.mx_Rx[id]*Q2.mx_Rx[id] + Q2.my_Rx[id]*Q2.my_Rx[id] + Q2.mz_Rx[id]*Q2.mz_Rx[id])/Q2.d_Rx[id])*(gama-1.0) < 0.0)
-        printf("Q2_Rx %3d %3d %3d\n", i, j, k);
-      }
-    }
-  }
-  for (i=n_ghost; i<nx-n_ghost; i++) {
-    for (j=n_ghost-1; j<ny-n_ghost; j++) {
-      for (k=n_ghost; k<nz-n_ghost; k++) {        
-        if ((Q2.E_Ly[id] - 0.5*(Q2.mx_Ly[id]*Q2.mx_Ly[id] + Q2.my_Ly[id]*Q2.my_Ly[id] + Q2.mz_Ly[id]*Q2.mz_Ly[id])/Q2.d_Ly[id])*(gama-1.0) < 0.0)
-        printf("Q2_Ly %3d %3d %3d\n", i, j, k);
-        if ((Q2.E_Ry[id] - 0.5*(Q2.mx_Ry[id]*Q2.mx_Ry[id] + Q2.my_Ry[id]*Q2.my_Ry[id] + Q2.mz_Ry[id]*Q2.mz_Ry[id])/Q2.d_Ry[id])*(gama-1.0) < 0.0)
-        printf("Q2_Ry %3d %3d %3d\n", i, j, k);
-      }
-    }
-  }
-  for (i=n_ghost; i<nx-n_ghost; i++) {
-    for (j=n_ghost; j<ny-n_ghost; j++) {
-      for (k=n_ghost-1; k<nz-n_ghost; k++) {
-        if ((Q2.E_Lz[id] - 0.5*(Q2.mx_Lz[id]*Q2.mx_Lz[id] + Q2.my_Lz[id]*Q2.my_Lz[id] + Q2.mz_Lz[id]*Q2.mz_Lz[id])/Q2.d_Lz[id])*(gama-1.0) < 0.0)
-        printf("Q2_Lz %3d %3d %3d\n", i, j, k);
-        if ((Q2.E_Rz[id] - 0.5*(Q2.mx_Rz[id]*Q2.mx_Rz[id] + Q2.my_Rz[id]*Q2.my_Rz[id] + Q2.mz_Rz[id]*Q2.mz_Rz[id])/Q2.d_Rz[id])*(gama-1.0) < 0.0)
-        printf("Q2_Rz %3d %3d %3d\n", i, j, k);
-      }
-    }
-  }
-*/
-
-  // Step 6: Calculate a cell-centered electric field at t^n+1/2 
-  // (not applicable if not doing MHD)
 
   #ifdef H_CORRECTION
-  // Step 6 1/2: Calculate the eta values for the H correction of Sanders et al., 1998
+  // Step 3 1/2: Calculate the eta values for the H correction of Sanders et al., 1998
   // do the calculation for all the real x interfaces plus one ghost interface 
   istart = n_ghost-2; istop = nx-n_ghost+1;
   jstart = n_ghost-1; jstop = ny-n_ghost+1;
@@ -1080,22 +966,13 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
       }
     }
   }
-
-
   #endif // H_CORRECTION
 
 
-
-  // Step 7: Compute new fluxes at cell interfaces using the corrected left and right
-  // states from step 5, and the interface magnetic fields computed in step 4.
+  // Step 4: Compute new fluxes at cell interfaces using the corrected left and right
+  // states from step 5.
   // Again, only do this for interfaces bordering real cells (start at i = n_ghost-1 since
   // flux for the i+1/2 interface is stored by cell i).
-
-  // get start time
-  //double start_riemann2, stop_riemann2;
-  //start_riemann2 = get_time();
-
-  //printf("Riemann 2\n");
 
   // Solve the Riemann problem at each x-interface
   // do the calculation for all the real x interfaces
@@ -1124,15 +1001,11 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         etah = fmax(eta_y[i + (j-1)*nx + k*nx*ny], eta_y[i+1 + (j-1)*nx + k*nx*ny]);
         etah = fmax(etah, eta_y[i + j*nx + k*nx*ny]);
         etah = fmax(etah, eta_y[i+1 + j*nx + k*nx*ny]);
-
         etah = fmax(etah, eta_z[i + j*nx + (k-1)*nx*ny]);
         etah = fmax(etah, eta_z[i+1 + j*nx + (k-1)*nx*ny]);
         etah = fmax(etah, eta_z[i + j*nx + k*nx*ny]);
         etah = fmax(etah, eta_z[i+1 + j*nx + k*nx*ny]);
-
         etah = fmax(etah, eta_x[i + j*nx + k*nx*ny]);
-
-        //printf("%3d %3d %3d  %20.16f\n", i, j, k, etah);
         #endif
 
         // call a Riemann solver to evaluate fluxes at the cell interface
@@ -1152,7 +1025,6 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
       }
     }
   }
-
   // Solve the Riemann problem at each y-interface
   // do the calculation for all the real y interfaces 
   istart = n_ghost; istop = nx-n_ghost;
@@ -1179,17 +1051,12 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         etah = fmax(eta_z[i + j*nx + (k-1)*nx*ny], eta_z[i + (j+1)*nx + (k-1)*nx*ny]);
         etah = fmax(etah, eta_z[i + j*nx + k*nx*ny]);
         etah = fmax(etah, eta_z[i + (j+1)*nx + k*nx*ny]);
-
         etah = fmax(etah, eta_x[(i-1) + j*nx + k*nx*ny]);
         etah = fmax(etah, eta_x[(i-1) + (j+1)*nx + k*nx*ny]);
         etah = fmax(etah, eta_x[i + j*nx + k*nx*ny]);
         etah = fmax(etah, eta_x[i + (j+1)*nx + k*nx*ny]);
-
         etah = fmax(etah, eta_y[i + j*nx + k*nx*ny]);
-
-        //printf("%3d %3d %3d  %20.16f\n", i, j, k, etah);
         #endif
-
 
         // call a Riemann solver to evaluate fluxes at the cell interface
         #ifdef EXACT
@@ -1209,7 +1076,6 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
       }
     } 
   }
-
   // Solve the Riemann problem at each z-interface
   // do the calculation for all the real z interfaces 
   istart = n_ghost; istop = nx-n_ghost;
@@ -1236,15 +1102,12 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         etah = fmax(eta_x[(i-1) + j*nx + k*nx*ny], eta_x[(i-1) + j*nx + (k+1)*nx*ny]);
         etah = fmax(etah, eta_x[i + j*nx + k*nx*ny]);
         etah = fmax(etah, eta_x[i + j*nx + (k+1)*nx*ny]);
-
         etah = fmax(etah, eta_y[i + (j-1)*nx + k*nx*ny]);
         etah = fmax(etah, eta_y[i + (j-1)*nx + (k+1)*nx*ny]);
         etah = fmax(etah, eta_y[i + j*nx + k*nx*ny]);
         etah = fmax(etah, eta_y[i + j*nx + (k+1)*nx*ny]);
-
         etah = fmax(etah, eta_z[i + j*nx + k*nx*ny]);
         #endif
-
 
         // call a Riemann solver to evaluate fluxes at the cell interface
         #ifdef EXACT
@@ -1264,20 +1127,8 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
     }
   }
 
-  // get stop time
-  //stop_riemann2 = get_time();
-  //printf("riemann 2 time = %9.3f ms\n", (stop_riemann2-start_riemann2)*1000);  
 
-
-  // Step 8: Apply the CT algorithm to calculate the CT electric fields
-  // Not applicable if not doing MHD
-
-
-  // Step 9: Update the solution from time level n to n+1
-
-  // get start time
-  //double start_update, stop_update;
-  //start_update = get_time();
+  // Step 5: Update the solution from time level n to n+1
 
   // Only update real cells
   istart = n_ghost; istop = nx-n_ghost;
@@ -1307,29 +1158,13 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
             dtodx * (F2.Eflux_x[(i-1) + j*nx + k*nx*ny] - F2.Eflux_x[i + j*nx + k*nx*ny])
           + dtody * (F2.Eflux_y[i + (j-1)*nx + k*nx*ny] - F2.Eflux_y[i + j*nx + k*nx*ny])
           + dtodz * (F2.Eflux_z[i + j*nx + (k-1)*nx*ny] - F2.Eflux_z[i + j*nx + k*nx*ny]); 
-        if (density[i + j*nx + k*nx*ny] < 0.0) {
+        if (density[i + j*nx + k*nx*ny] < 0.0 || density[i + j*nx + k*nx*ny] != density[i + j*nx + k*nx*ny]) {
           printf("%3d %3d %3d Code crashed in final update. %f\n", i, j, k, density[i + j*nx + k*nx*ny]); 
         }
       }
     }
   }
 
-  // get stop time
-  //stop_update = get_time();
-  //printf("update time = %9.3f ms\n", (stop_update-start_update)*1000);  
-
-  //printf("Final values\n");
-  for (i=n_ghost; i<nx-n_ghost; i++) {
-    for (j=n_ghost; j<ny-n_ghost; j++) {
-      for (k=n_ghost; k<nz-n_ghost; k++) {
-        id = i + j*nx + k*nx*ny;
-        if ( (Energy[id] - 0.5*(momentum_x[id]*momentum_x[id] + momentum_y[id]*momentum_y[id] + momentum_z[id]*momentum_z[id])/density[id]) * (gama-1.0) < 0.0)
-        {
-          printf("%3d %3d %3d Negative pressure after final update.\n", i, j, k);
-        }
-      }
-    }
-  }
 
   // free the interface states and flux structures
   free(Q1.d_Lx);

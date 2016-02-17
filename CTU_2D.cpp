@@ -223,10 +223,6 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
   #if defined (PPMP) || defined (PPMC)
   // sweep through cells, use PPM to calculate reconstructed boundary values
 
-  // get start time
-  //double start_ppm, stop_ppm;
-  //start_ppm = get_time();
-
   // create the stencil of conserved variables needed to calculate the boundary values 
   // on either side of the cell interface 
   #ifdef PPMP
@@ -397,21 +393,12 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
 
     }
   }
-
-  // get stop time
-  //stop_ppm = get_time();
-  //printf("ppm time = %9.3f ms\n", (stop_ppm-start_ppm)*1000);
-
   #endif //PPMP or PPMC
 
 
   // Step 2: Using the input states, compute the 1D fluxes at each interface.
   // Only do this for interfaces touching real cells (start at i = n_ghost-1 since
   // flux for the i+1/2 interface is stored by cell i)
-
-  // get start time
-  //double start_riemann1, stop_riemann1;
-  //start_riemann1 = get_time();
 
   // Create arrays to hold the input states for the Riemann solver and the returned fluxes
   Real cW[10];
@@ -496,24 +483,9 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
     }
   }
 
-  // get stop time
-  //stop_riemann1 = get_time();
-  //printf("riemann 1 time = %9.3f ms\n", (stop_riemann1-start_riemann1)*1000);
-
-
-  // Step 3: Apply the CT algorithm to calculate the CT electric fields at cell-corners
-  // (not applicable if not doing MHD)
-
-  // Step 4: Update the face-centered magnetic field by dt/2 using EMFs computed in step 3
-  // (not applicable if not doing MHD)
-
-  // Step 5: Evolve the left and right states at each interface by dt/2 using transverse flux gradients
+  // Step 3: Evolve the left and right states at each interface by dt/2 using transverse flux gradients
   // Only do this for interfaces bordering real cells (start at i = n_ghost-1 since
   // flux for the i+1/2 interface is stored by cell i)
-
-  // get start time
-  //double start_evolution, stop_evolution;
-  //start_evolution = get_time();
 
   // Evolve the x-interface states
   // do the calculation for all the real interfaces in the x direction
@@ -574,17 +546,9 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
 
     }
   }
-  // get end time
-  //stop_evolution = get_time();
-  //printf("evolution time = %9.3f ms\n", (stop_evolution-start_evolution)*1000);  
-
-
-  // Step 6: Calculate a cell-centered electric field at t^n+1/2 
-  // (not applicable if not doing MHD)
-
 
   #ifdef H_CORRECTION
-  // Step 6 1/2: Calculate the eta values for the H correction of Sanders et al., 1998
+  // Step 3 1/2: Calculate the eta values for the H correction of Sanders et al., 1998
   // do the calculation for all the real interfaces in the x direction
   istart = n_ghost-2; istop = nx-n_ghost+1;
   jstart = n_ghost-1; jstop = ny-n_ghost+1;
@@ -634,14 +598,10 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
   #endif // H_CORRECTION
 
 
-  // Step 7: Compute new fluxes at cell interfaces using the corrected left and right
-  // states from step 5, and the interface magnetic fields computed in step 4.
+  // Step 4: Compute new fluxes at cell interfaces using the corrected left and right
+  // states from step 3.
   // Again, only do this for interfaces bordering real cells (start at i = n_ghost-1 since
   // flux for the i+1/2 interface is stored by cell i).
-
-  // get start time
-  //double start_riemann2, stop_riemann2;
-  //start_riemann2 = get_time();
 
   // Solve the Riemann problem at each x-interface
   // do the calculation for all the real x interfaces
@@ -733,20 +693,8 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
     } 
   }
 
-  // get stop time
-  //stop_riemann2 = get_time();
-  //printf("riemann 2 time = %9.3f ms\n", (stop_riemann2-start_riemann2)*1000);  
 
-
-  // Step 8: Apply the CT algorithm to calculate the CT electric fields
-  // Not applicable if not doing MHD
-
-
-  // Step 9: Update the solution from time level n to n+1
-
-  // get start time
-  //double start_update, stop_update;
-  //start_update = get_time();
+  // Step 5: Update the solution from time level n to n+1
 
   // Only update real cells
   istart = n_ghost; istop = nx-n_ghost;
@@ -762,9 +710,6 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
     }
   }
 
-  // get stop time
-  //stop_update = get_time();
-  //printf("update time = %9.3f ms\n", (stop_update-start_update)*1000);  
 
   // free the interface states and flux structures
   free(Q1.d_Lx);

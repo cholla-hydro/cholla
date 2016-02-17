@@ -22,8 +22,6 @@
 #include"io.h"
 
 
-//#define TEST
-
 
 __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int n_ghost, 
                                               Real dx, Real dt, Real gamma);
@@ -102,24 +100,11 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
 
 
   // copy the conserved variable array onto the GPU
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif
   CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("GPU copy: %5.3f ms\n", elapsedTime);
-  #endif
   CudaCheckError();
 
 
   // Step 1: Do the reconstruction
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif
   #ifdef PCM
   PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, n_ghost, gama);
   CudaCheckError();
@@ -140,27 +125,9 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   PPMC_CTU<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0);
   CudaCheckError();
   #endif
-  #ifdef TEST
-  CudaSafeCall( cudaMemcpy(test1, Q_L, 5*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  
-  CudaSafeCall( cudaMemcpy(test2, Q_R, 5*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  
-  for (int i=0; i<nx; i++) {
-    printf("%d %f %f\n", i, test1[i], test2[i]);
-  }
-  #endif
-
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("Time to do reconstruction: %5.3f ms\n", elapsedTime);
-  #endif
 
   
   // Step 2: Calculate the fluxes
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif
   #ifdef EXACT
   Calculate_Exact_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
   #endif
@@ -168,34 +135,20 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   Calculate_Roe_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
   #endif
   CudaCheckError();
-  #ifdef TIME
-  // get stop time, and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("Time to do riemann problem:  %5.3f ms\n", elapsedTime);
-  #endif
 
 
   // Step 3: Update the conserved variable array
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif      
   Update_Conserved_Variables_1D<<<dimGrid,dimBlock>>>(dev_conserved, F, n_cells, n_ghost, dx, dt, gama);
   CudaCheckError();
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("conserved variable update: %5.3f ms\n", elapsedTime);
-  #endif    
+   
 
+  // Sychronize the total and internal energy, if using dual-energy formalism
   #ifdef DE
   Sync_Energies_1D<<<dimGrid,dimBlock>>>(dev_conserved, n_cells, n_ghost, gama);
   #endif
 
 
+  // Apply cooling
   #ifdef COOLING_GPU
   cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
   #endif
@@ -206,44 +159,18 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
 
 
   // copy the conserved variable array back to the CPU
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif
   CudaSafeCall( cudaMemcpy(host_conserved, dev_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("GPU return: %5.3f ms\n", elapsedTime);
-  #endif
 
-
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif      
   // copy the dti array onto the CPU
   CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
   // iterate through to find the maximum inverse dt for this subgrid block
   for (int i=0; i<ngrid; i++) {
     max_dti = fmax(max_dti, host_dti_array[i]);
   }
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("dti copying & calc: %5.3f ms\n", elapsedTime);
-  #endif     
 
 
   // free the CPU memory
   free(host_dti_array);
-
-  #ifdef TEST
-  free(test1);
-  free(test2);
-  #endif
 
   // free the GPU memory
   cudaFree(dev_conserved);
@@ -251,12 +178,6 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   cudaFree(Q_R);
   cudaFree(F);
   cudaFree(etah);
-
-  #ifdef TIME
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
-  #endif
-
 
   // return the maximum inverse timestep
   return max_dti;
@@ -269,15 +190,14 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
 {
   int id;
   Real d, d_inv, vx, vy, vz, P;  
-  //#ifdef DE
-  Real vx_imo, vx_ipo, e_old;
-  //#endif
+  #ifdef DE
+  Real vx_imo, vx_ipo;
+  #endif
 
   Real dtodx = dt/dx;
 
   // get a global thread ID
   id = threadIdx.x + blockIdx.x * blockDim.x;
-
 
   // threads corresponding to real cells do the calculation
   if (id > n_ghost - 1 && id < n_cells-n_ghost)
@@ -288,11 +208,10 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    //#ifdef DE
+    #ifdef DE
     vx_imo = dev_conserved[1*n_cells + id-1]/dev_conserved[id-1];
     vx_ipo = dev_conserved[1*n_cells + id+1]/dev_conserved[id+1];
-    //e_old = dev_conserved[5*n_cells + id];
-    //#endif
+    #endif
   
     // update the conserved variable array
     dev_conserved[            id] += dtodx * (dev_F[            id-1] - dev_F[            id]);
@@ -302,24 +221,9 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     dev_conserved[4*n_cells + id] += dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
     #ifdef DE
     dev_conserved[5*n_cells + id] += dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
-    //                              +  dtodx * P * (dev_F[6*n_cells + id-1] - dev_F[6*n_cells + id]);
                                   +  dtodx * P * 0.5 * (vx_imo - vx_ipo);
     #endif
-    //if (dev_F[id-1] != dev_F[id]) printf("%3d density flux: %f %f\n", id, dev_F[id-1], dev_F[id]);
-    //if (dev_F[4*n_cells + id-1] != dev_F[4*n_cells + id]) printf("%3d Energy flux: %f %f\n", id, dev_F[4*n_cells+id-1], dev_F[4*n_cells+id]);
-    //if (dev_F[5*n_cells + id-1] != dev_F[5*n_cells + id]) printf("%3d energy flux: %f %f\n", id, dev_F[5*n_cells+id-1], dev_F[5*n_cells+id]);
-    //if (dev_F[6*n_cells + id-1] != dev_F[6*n_cells + id]) printf("%3d velocities: %f %f\n", id, dev_F[6*n_cells+id-1], dev_F[6*n_cells+id]);
-    //if (vx_imo != vx_ipo) printf("%3d vx_imo %f vx_ipo %f\n", id, vx_imo, vx_ipo);
-    //if (e_old != dev_conserved[5*n_cells + id]) printf("%3d New e is different\n", id);
     if (dev_conserved[id] != dev_conserved[id]) printf("%3d Thread crashed in final update.\n", id);
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    if (P < 0.0) printf("%d Negative pressure after final update.\n", id);
-    //printf("%3d %f %f %f\n", id, P/(gamma-1.0), dev_conserved[4*n_cells+id],  P/(gamma-1.0)/dev_conserved[4*n_cells+id]);
   }
 
 
@@ -374,23 +278,10 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     else {
       dev_conserved[4*n_cells + id] += ge1 - ge2;
     }
-    /*
-    // if the conservatively calculated internal energy is greater than the estimate of the truncation error,
-    // use the internal energy computed from the total energy to do the update
-    //find the max nearby velocity difference (estimate of truncation error) 
-    vmax = fmax(fabs(vx-dev_conserved[1*n_cells + im1]/dev_conserved[im1]), fabs(dev_conserved[1*n_cells + ip1]/dev_conserved[ip1]-vx));
-    //printf("%3d %f %f %f %f\n", id, ge1, ge2, vmax, 0.25*d*vmax*vmax);
-    if (ge2 > 0.25*d*vmax*vmax) {
-      dev_conserved[5*n_cells + id] = ge2;
-      ge1 = ge2;
-    }
-    //else printf("%d Using ge1 %f %f %f %f\n", id, ge1, ge2, vmax, 0.25*d*vmax*vmax);
-    */
-    // update the total energy
      
     // recalculate the pressure 
     P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
-    if (P < 0.0) printf("%d Negative pressure after final update. %f %f \n", id, ge1, ge2);    
+    if (P < 0.0) printf("%d Negative pressure after internal energy sync. %f %f \n", id, ge1, ge2);    
   }
 
 }

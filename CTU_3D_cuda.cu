@@ -22,12 +22,6 @@
 #include"subgrid_routines_3D.h"
 
 
-//#define TIME 
-//#define TURBULENCE
-
-
-__global__ void test_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int block);
-
 
 __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, Real *dev_Q_Rx, Real *dev_F_x,
                                            Real *dev_Q_Ly, Real *dev_Q_Ry, Real *dev_F_y,
@@ -45,35 +39,9 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
 
 Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt)
 {
-  cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
-
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
   //concatenated into a 1-d array
-
-  #ifdef TIME
-  // capture the start time
-  cudaEvent_t start_CTU, stop_CTU;
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start_CTU);
-  cudaEventCreate(&stop_CTU);
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start_CTU, 0);
-  float elapsedTime;
-  Real cpto, cpfr;
-  Real buff, dti;
-  Real ppmx, ppmy, ppmz;
-  Real r1x, r1y, r1z;
-  Real r2x, r2y, r2z;
-  Real ie, cvu;
-  cpto = cpfr = 0;
-  buff = dti = 0;
-  ppmx = ppmy = ppmz = 0;
-  r1x = r1y = r1z = 0;
-  r2x = r2y = r2z = 0;
-  ie = cvu = 0;
-  #endif
 
   int n_fields = 5;
   #ifdef DE
@@ -100,14 +68,12 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
    
   // calculate the dimensions for each subgrid block
   sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
-  //printf("%d %d %d %d %d %d %d %d %d\n", nx_s, ny_s, nz_s, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3);
   block_tot = block1_tot*block2_tot*block3_tot;
 
   // number of cells in one subgrid block
   int BLOCK_VOL = nx_s*ny_s*nz_s;
 
   // define the dimensions for the 1D grid
-  //int  ngrid = (n_cells + TPB - 1) / TPB;
   int  ngrid = (BLOCK_VOL + TPB - 1) / TPB;
 
   //number of blocks per 1-d grid  
@@ -118,26 +84,15 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
 
 
   // allocate buffer arrays to copy conserved variable slices into
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME
   Real **buffer;
   allocate_buffers_3D(block1_tot, block2_tot, block3_tot, BLOCK_VOL, buffer, n_fields);
   // and set up pointers for the location to copy from and to
   Real *tmp1;
   Real *tmp2;
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  buff += elapsedTime;
-  #endif //TIME
-
 
   // allocate an array on the CPU to hold max_dti returned from each thread block
   Real max_dti = 0;
   Real *host_dti_array;
-  //printf("ngrid: %d\n", ngrid);
   host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
 
   // allocate GPU arrays
@@ -172,16 +127,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
 
 
   // transfer first conserved variable slice into the first buffer
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME
   host_copy_init_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, &tmp1, &tmp2, n_fields);
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  buff += elapsedTime;
-  #endif //TIME
 
 
   // START LOOP OVER SUBGRID BLOCKS HERE
@@ -209,344 +155,114 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
 
 
   // copy the conserved variables onto the GPU
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME
   CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("GPU copy: %5.3f ms\n", elapsedTime);
-  cpto += elapsedTime;
-  #endif //TIME
   
 
   // Step 1: Do the reconstruction
   #ifdef PCM
   PCM_Reconstruction_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama);
-  CudaCheckError();
   #endif //PCM
   #ifdef PLMP
   PLMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
   PLMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
   PLMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2);
-  CudaCheckError();
   #endif //PLMP 
   #ifdef PLMC
   PLMC_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
   PLMC_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
   PLMC_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2);
-  CudaCheckError();
   #endif //PLMC 
   #ifdef PPMP
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME
   PPMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("x ppm: %5.3f ms\n", elapsedTime);
-  ppmx += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME  
   PPMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
-  CudaCheckError();
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("y ppm: %5.3f ms\n", elapsedTime);
-  ppmy += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME
   PPMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("z ppm: %5.3f ms\n", elapsedTime);
-  ppmz += elapsedTime;
-  #endif //TIME 
   #endif //PPMP
   #ifdef PPMC
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME
   PPMC_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("x ppm: %5.3f ms\n", elapsedTime);
-  ppmx += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME
   PPMC_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
-  CudaCheckError();
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("y ppm: %5.3f ms\n", elapsedTime);
-  ppmy += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME
   PPMC_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("z ppm: %5.3f ms\n", elapsedTime);
-  ppmz += elapsedTime;
-  #endif //TIME 
   #endif //PPMC
+  CudaCheckError();
 
 
   #ifdef H_CORRECTION
   #ifndef CTU
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME     
   calc_eta_x_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, eta_x, nx_s, ny_s, nz_s, n_ghost, gama);
-  CudaCheckError();
   calc_eta_y_3D<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, eta_y, nx_s, ny_s, nz_s, n_ghost, gama);
-  CudaCheckError();
   calc_eta_z_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, eta_z, nx_s, ny_s, nz_s, n_ghost, gama);
   CudaCheckError();
   // and etah values for each interface
   calc_etah_x_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_x, nx_s, ny_s, nz_s, n_ghost);
-  CudaCheckError();
   calc_etah_y_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_y, nx_s, ny_s, nz_s, n_ghost);
-  CudaCheckError();
   calc_etah_z_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_z, nx_s, ny_s, nz_s, n_ghost);
   CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("H correction: %5.3f ms\n", elapsedTime);
-  #endif //TIME 
-  #endif //CTU
-  #endif //H_CORRECTION
+  #endif // NO CTU
+  #endif // H_CORRECTION
 
 
   // Step 2: Calculate the fluxes
   #ifdef EXACT
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("x fluxes: %5.3f ms\n", elapsedTime);
-  r1x += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("y fluxes: %5.3f ms\n", elapsedTime);
-  r1y += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("z fluxes: %5.3f ms\n", elapsedTime);
-  r1z += elapsedTime;
-  #endif //TIME
   #endif //EXACT
 
   #ifdef ROE
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("x fluxes: %5.3f ms\n", elapsedTime);
-  r1x += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("y fluxes: %5.3f ms\n", elapsedTime);
-  r1y += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("z fluxes: %5.3f ms\n", elapsedTime);
-  r1z += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME    
   #endif //ROE
+  CudaCheckError();
 
 
 #ifdef CTU
   // Step 3: Evolve the interface states
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME   
   Evolve_Interface_States_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, F_x, Q_Ly, Q_Ry, F_y, Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dt);
   CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("interface evolution: %5.3f ms\n", elapsedTime);
-  ie += elapsedTime;
-  #endif //TIME    
-   
 
   #ifdef H_CORRECTION
   // Step 3.5: Calculate eta values for H correction
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME     
   calc_eta_x_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, eta_x, nx_s, ny_s, nz_s, n_ghost, gama);
-  CudaCheckError();
   calc_eta_y_3D<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, eta_y, nx_s, ny_s, nz_s, n_ghost, gama);
-  CudaCheckError();
   calc_eta_z_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, eta_z, nx_s, ny_s, nz_s, n_ghost, gama);
   CudaCheckError();
   // and etah values for each interface
   calc_etah_x_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_x, nx_s, ny_s, nz_s, n_ghost);
-  CudaCheckError();
   calc_etah_y_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_y, nx_s, ny_s, nz_s, n_ghost);
-  CudaCheckError();
   calc_etah_z_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_z, nx_s, ny_s, nz_s, n_ghost);
   CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("H correction: %5.3f ms\n", elapsedTime);
-  #endif //TIME 
   #endif //H_CORRECTION
 
 
   // Step 4: Calculate the fluxes again
   #ifdef EXACT
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME
   Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("x fluxes: %5.3f ms\n", elapsedTime);
-  r2x += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME   
   Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("y fluxes: %5.3f ms\n", elapsedTime);
-  r2y += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME   
   Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("z fluxes: %5.3f ms\n", elapsedTime);
-  r2z += elapsedTime;
-  #endif //TIME
   #endif //EXACT
 
   #ifdef ROE
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("x fluxes: %5.3f ms\n", elapsedTime);
-  r2x += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("y fluxes: %5.3f ms\n", elapsedTime);
-  r2y += elapsedTime;
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2);
-  CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("z fluxes: %5.3f ms\n", elapsedTime);
-  r2z += elapsedTime;
-  #endif //TIME 
   #endif //ROE
+  CudaCheckError();
 #endif //CTU
 
   // Step 5: Update the conserved variable array
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME   
   Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, F_z, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dt, gama);
   CudaCheckError();
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("conserved variable update: %5.3f ms\n", elapsedTime);
-  cvu += elapsedTime;
-  #endif //TIME     
 
+  // Synchronize the total and internal energies
   #ifdef DE
   Sync_Energies_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama);
+  CudaCheckError();
   #endif
 
+  // Apply cooling
   #ifdef COOLING_GPU
   cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
+  CudaCheckError();
   #endif
 
   // Step 6: Calculate the next timestep
@@ -554,52 +270,20 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   CudaCheckError();
 
   // copy the updated conserved variable array back to the CPU
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME    
   CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("GPU return: %5.3f ms\n", elapsedTime);
-  cpfr += elapsedTime;
-  #endif //TIME    
-
 
   // copy the next conserved variable blocks into appropriate buffers
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   host_copy_next_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer, &tmp1, n_fields);
 
   // copy the updated conserved variable array back into the host_conserved array on the CPU
   host_return_values_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer, n_fields);
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("CPU copying: %5.3f ms\n", elapsedTime);
-  buff += elapsedTime;
-  #endif //TIME    
-
 
   // copy the dti array onto the CPU
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME 
   CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
   // iterate through to find the maximum inverse dt for this subgrid block
   for (int i=0; i<ngrid; i++) {
     max_dti = fmax(max_dti, host_dti_array[i]);
   }
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("dti copying & calc: %5.3f ms\n", elapsedTime);
-  dti += elapsedTime;
-  #endif //TIME     
 
 
   // add one to the counter
@@ -632,50 +316,9 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   cudaFree(etah_z);
   cudaFree(dev_dti_array);
 
-  #ifdef TIME
-  //printf("cpto: %6.2f  cpfr: %6.2f\n", cpto, cpfr);
-  //printf("ppmx: %6.2f  ppmy: %6.2f  ppmz: %6.2f\n", ppmx, ppmy, ppmz);
-  //printf("r1x:  %6.2f  r1y:  %6.2f  r1z:  %6.2f\n", r1x, r1y, r1z);
-  //printf("r2x:  %6.2f  r2y:  %6.2f  r2z:  %6.2f\n", r2x, r2y, r2z);
-  //printf("ie:   %6.2f  cvu:  %6.2f\n", ie, cvu);
-  //printf("buff: %6.2f  dti:  %6.2f\n", buff, dti);
-  #endif
-
-  #ifdef TIME
-  cudaEventRecord(stop_CTU, 0);
-  cudaEventSynchronize(stop_CTU);
-  cudaEventElapsedTime(&elapsedTime, start_CTU, stop_CTU);
-  //printf("Time for CTU step: %5.3f ms\n", elapsedTime);
-  #endif //TIME
-
-  #ifdef TIME
-  cudaEventDestroy(start_CTU);
-  cudaEventDestroy(stop_CTU);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
-  #endif
-
 
   // return the maximum inverse timestep
   return max_dti;
-
-}
-
-
-__global__ void test_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int block)
-{
-
-  // get a thread ID
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  int zid = tid / (nx*ny);
-  int yid = (tid - zid*nx*ny) / nx;
-  int xid = tid - zid*nx*ny - yid*nx;
-
-  // assign each real cell the block number 
-  if (xid >= n_ghost && xid < nx-n_ghost && yid >= n_ghost && yid < ny-n_ghost && zid >= n_ghost && zid < nz-n_ghost) {
-    dev_conserved[tid] = block;
-  }
-
 
 }
 
@@ -717,18 +360,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodz*(dev_F_z[3*n_cells + kmo] - dev_F_z[3*n_cells + id]);
     dev_Q_Lx[4*n_cells + id] += 0.5*dtody*(dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id])
                               + 0.5*dtodz*(dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id]);
-    d  =  dev_Q_Lx[            id];
-    d_inv = 1.0 / d;
-    vx = dev_Q_Lx[1*n_cells + id] * d_inv;
-    vy = dev_Q_Lx[2*n_cells + id] * d_inv;
-    vz = dev_Q_Lx[3*n_cells + id] * d_inv;
-    P  = dev_Q_Lx[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
-//      printf("%3d %3d %3d Negative pressure in Q_Lx update. %f %f %f %f\n", xid, yid, zid, dev_Q_Lx[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
-    }
-    if (dev_Q_Lx[id] < 0.0 || dev_Q_Lx[id] != dev_Q_Lx[id]) {
-      printf("%3d %3d %3d Thread crashed in Q_Lx update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Lx[id], dev_F_y[jmo], dev_F_y[id], dev_F_z[kmo], dev_F_z[id]);
-    }
+
     // right
     dev_Q_Rx[            id] += 0.5*dtody*(dev_F_y[            ipojmo] - dev_F_y[            ipo])
                               + 0.5*dtodz*(dev_F_z[            ipokmo] - dev_F_z[            ipo]); 
@@ -740,18 +372,6 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodz*(dev_F_z[3*n_cells + ipokmo] - dev_F_z[3*n_cells + ipo]);
     dev_Q_Rx[4*n_cells + id] += 0.5*dtody*(dev_F_y[4*n_cells + ipojmo] - dev_F_y[4*n_cells + ipo])
                               + 0.5*dtodz*(dev_F_z[4*n_cells + ipokmo] - dev_F_z[4*n_cells + ipo]);
-    d  =  dev_Q_Rx[            id];
-    d_inv = 1.0 / d;
-    vx = dev_Q_Rx[1*n_cells + id] * d_inv;
-    vy = dev_Q_Rx[2*n_cells + id] * d_inv;
-    vz = dev_Q_Rx[3*n_cells + id] * d_inv;
-    P  = dev_Q_Rx[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
-//      printf("%3d %3d %3d Negative pressure in Q_Rx update. %f %f %f %f\n", xid, yid, zid, dev_Q_Rx[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
-    }
-    if (dev_Q_Rx[id] < 0.0 || dev_Q_Rx[id] != dev_Q_Rx[id]) {
-      printf("%3d %3d %3d Thread crashed in Q_Rx update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Rx[id], dev_F_y[ipojmo], dev_F_y[ipo], dev_F_z[ipokmo], dev_F_z[ipo]);
-    }
   }
   if (yid > n_ghost-3 && yid < ny-n_ghost+1 && xid > n_ghost-2 && xid < nx-n_ghost+1 && zid > n_ghost-2 && zid < nz-n_ghost+1)
   {
@@ -772,18 +392,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodx*(dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id]);
     dev_Q_Ly[4*n_cells + id] += 0.5*dtodz*(dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id])
                               + 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id]);
-    d  =  dev_Q_Ly[            id];
-    d_inv = 1.0 / d;
-    vx = dev_Q_Ly[1*n_cells + id] * d_inv;
-    vy = dev_Q_Ly[2*n_cells + id] * d_inv;
-    vz = dev_Q_Ly[3*n_cells + id] * d_inv;
-    P  = dev_Q_Ly[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
-//      printf("%3d %3d %3d Negative pressure in Q_Ly update. %f %f %f %f\n", xid, yid, zid, dev_Q_Ly[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
-    }
-    if (dev_Q_Ly[id] < 0.0 || dev_Q_Ly[id] != dev_Q_Ly[id]) {
-      printf("%3d %3d %3d Thread crashed in Q_Ly update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Ly[id], dev_F_z[kmo], dev_F_z[id], dev_F_x[imo], dev_F_x[id]);
-    }
+
     // right
     dev_Q_Ry[            id] += 0.5*dtodz*(dev_F_z[            jpokmo] - dev_F_z[            jpo])
                               + 0.5*dtodx*(dev_F_x[            jpoimo] - dev_F_x[            jpo]); 
@@ -795,18 +404,6 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodx*(dev_F_x[3*n_cells + jpoimo] - dev_F_x[3*n_cells + jpo]);
     dev_Q_Ry[4*n_cells + id] += 0.5*dtodz*(dev_F_z[4*n_cells + jpokmo] - dev_F_z[4*n_cells + jpo])
                               + 0.5*dtodx*(dev_F_x[4*n_cells + jpoimo] - dev_F_x[4*n_cells + jpo]);    
-    d  =  dev_Q_Ry[            id];
-    d_inv = 1.0 / d;
-    vx = dev_Q_Ry[1*n_cells + id] * d_inv;
-    vy = dev_Q_Ry[2*n_cells + id] * d_inv;
-    vz = dev_Q_Ry[3*n_cells + id] * d_inv;
-    P  = dev_Q_Ry[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
-//      printf("%3d %3d %3d Negative pressure in Q_Ry update. %f %f %f %f\n", xid, yid, zid, dev_Q_Ry[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
-    }
-    if (dev_Q_Ry[id] < 0.0 || dev_Q_Ry[id] != dev_Q_Ry[id]) {
-      printf("%3d %3d %3d Thread crashed in Q_Ry update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Ry[id], dev_F_z[jpokmo], dev_F_z[jpo], dev_F_x[jpoimo], dev_F_x[jpo]);
-    }
   }
   if (zid > n_ghost-3 && zid < nz-n_ghost+1 && xid > n_ghost-2 && xid < nx-n_ghost+1 && yid > n_ghost-2 && yid < ny-n_ghost+1)
   {
@@ -827,18 +424,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtody*(dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
     dev_Q_Lz[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                               + 0.5*dtody*(dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
-    d  = dev_Q_Lz[            id];
-    d_inv = 1.0 / d;
-    vx = dev_Q_Lz[1*n_cells + id] * d_inv;
-    vy = dev_Q_Lz[2*n_cells + id] * d_inv;
-    vz = dev_Q_Lz[3*n_cells + id] * d_inv;
-    P  = dev_Q_Lz[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
-      //printf("%3d %3d %3d Negative pressure in Q_Lz update. %f %f %f %f\n", xid, yid, zid, dev_Q_Lz[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
-    }
-    if (dev_Q_Lz[id] < 0.0 || dev_Q_Lz[id] != dev_Q_Lz[id]) {
-      printf("%3d %3d %3d Thread crashed in Q_Lz update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Lz[id], dev_F_x[imo], dev_F_x[id], dev_F_y[jmo], dev_F_y[id]);
-    }
+
     // right
     dev_Q_Rz[            id] += 0.5*dtodx*(dev_F_x[            kpoimo] - dev_F_x[            kpo])
                               + 0.5*dtody*(dev_F_y[            kpojmo] - dev_F_y[            kpo]); 
@@ -850,18 +436,6 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtody*(dev_F_y[3*n_cells + kpojmo] - dev_F_y[3*n_cells + kpo]);
     dev_Q_Rz[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + kpoimo] - dev_F_x[4*n_cells + kpo])
                               + 0.5*dtody*(dev_F_y[4*n_cells + kpojmo] - dev_F_y[4*n_cells + kpo]);    
-    d  = dev_Q_Rz[            id];
-    d_inv = 1.0 / d;
-    vx = dev_Q_Rz[1*n_cells + id] * d_inv;
-    vy = dev_Q_Rz[2*n_cells + id] * d_inv;
-    vz = dev_Q_Rz[3*n_cells + id] * d_inv;
-    P  = dev_Q_Rz[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
-      //printf("%3d %3d %3d Negative pressure in Q_Rz update. %f %f %f %f\n", xid, yid, zid, dev_Q_Rz[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
-    }
-    if (dev_Q_Rz[id] < 0.0 || dev_Q_Rz[id] != dev_Q_Rz[id]) {
-      printf("%3d %3d %3d Thread crashed in Q_Rz update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Rz[id], dev_F_x[kpoimo], dev_F_x[kpo], dev_F_y[kpojmo], dev_F_y[kpo]);
-    }
   }
 
 }
@@ -942,18 +516,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
       printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
     }
-    //if (dev_conserved[5*n_cells + id] < 0.0) printf("%3d %3d %3d Negative internal energy after update. %f %f %f %f\n", xid, yid, zid, dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id], dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id], dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id], 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo)));
-
-    // every thread collects the conserved variables it needs from global memory
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    if (P < 0.0) {
-      //printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
-    }
 
   }
 
@@ -1028,29 +590,6 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     // recalculate the pressure 
     P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
     if (P < 0.0) printf("%3d %3d %3d Negative pressure after internal energy sync. %f %f %f\n", xid, yid, zid, P/(gamma-1.0), ge1, ge2);    
-/*
-    if (xid == 130 && yid == 6 && zid == 81) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 130 && yid == 6 && zid == 80) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 130 && yid == 6 && zid == 82) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 129 && yid == 6 && zid == 81) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 131 && yid == 6 && zid == 81) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 130 && yid == 5 && zid == 81) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-    if (xid == 130 && yid == 7 && zid == 81) {
-      printf("%3d %3d %3d %f %f %f %f %f %f\n", xid, yid, zid, d, vx, vy, vz, P/d/(gamma-1.0), dev_conserved[5*n_cells+id])/d;
-    }
-*/
   }
 }
 
