@@ -4,13 +4,13 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=100
+nx=500000
 # number of grid cells in the y dimension
 ny=1
 # number of grid cells in the z dimension
 nz=1
 # final output time
-tout=300.0
+tout=0.1
 # time interval for output
 outstep=10.0
 # name of initial conditions
