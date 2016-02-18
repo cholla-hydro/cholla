@@ -280,10 +280,6 @@ class Grid3D
      *  \brief Noh test described in Liska, 2003. */
     void Noh_2D();
 
-    /*! \fn void CloudShock_2D()
-     *  \brief Test described in various places... */
-    void CloudShock_2D();
-
     /*! \fn void Noh_3D()
      *  \brief Noh test described in Stone, 2008. */
     void Noh_3D();
@@ -291,14 +287,6 @@ class Grid3D
     /*! \fn void Sedov_Taylor(Real rho_l, Real P_l, Real rho_r, Real P_r)
      *  \brief Sedov Taylor blast wave test. */
     void Sedov_Taylor(Real rho_l, Real P_l, Real rho_r, Real P_r);
-
-    /*! \fn void Turbulent_Slab()
-     *  \brief Turbulent slab in a hot diffuse wind. */
-    void Turbulent_Slab();
-
-    /*! \fn void Cloud_3D()
-     *  \brief Turbulent cloud in a hot diffuse wind. */
-    void Cloud_3D();
 
     /*! \fn void Read_Grid()
      *  \brief Read in grid data from an output file. */
@@ -339,10 +327,6 @@ class Grid3D
         as per the Noh problem in Liska, 2003, or in Stone, 2008. */
     void Noh_Boundary();
 
-    /*! \fn void Wind_Boundary()
-     *  \brief Supersonic inflow on -z boundary set to match Cloud_3D IC's. */
-    void Wind_Boundary();
-    
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);
     void Set_Boundaries_MPI_SLAB(int *flags, struct parameters P);

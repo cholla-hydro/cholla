@@ -13,9 +13,6 @@
 
 /* Global variables */
 Real gama; // Ratio of specific heats
-Real t_comm;
-Real t_other;
-
 
 
 
@@ -39,22 +36,6 @@ double get_time(void)
 }
 
 #ifndef CUDA
-/*! \fn Real maxof3(Real a, Real b, Real c)
- *  \brief Returns the maximum of three floating point numbers. */
-Real maxof3(Real a, Real b, Real c)
-{
-    return fmax(a, fmax(b,c));
-}
-
-
-/*! \fn Real minof3(Real a, Real b, Real c)
- *  \brief Returns the minimum of three floating point numbers. */
-Real minof3(Real a, Real b, Real c)
-{
-    return fmin(a, fmin(b,c));
-}
-
-
 /*! \fn int sgn
  *  \brief Mathematical sign function. Returns sign of x. */
 int sgn(Real x)
@@ -80,8 +61,6 @@ Real calc_eta(Real cW[], Real gamma)
   return 0.5*fabs((cW[3]/cW[1] + ar) - (cW[2]/cW[0]-al));
 
 }
-
-
 #endif //NO CUDA
 
 

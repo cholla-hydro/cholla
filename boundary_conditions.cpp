@@ -3,13 +3,13 @@
            Functions are members of the Grid3D class. */
 
 #include<stdlib.h>
+#include<stdio.h>
 #include<math.h>
 #include<string.h>
 #include"grid3D.h"
 #include"io.h"
 #include"error_handling.h"
 #include"mpi_routines.h"
-#include<stdio.h>
 
 
 /*! \fn void Set_Boundary_Conditions(parameters P)
@@ -407,9 +407,6 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
   if (strcmp(bcnd, "noh")==0) {
     Noh_Boundary();
   }
-  else if (strcmp(bcnd, "wind")==0) {
-    Wind_Boundary();
-  }
   else {
     printf("ABORT: %s -> Unknown custom boundary condition.\n", bcnd);
     exit(0);
@@ -515,94 +512,3 @@ void Grid3D::Noh_Boundary()
 }
 
 
-/*! \fn void Wind_Boundary()
- *  \brief Supersonic inflow on -z boundary set to match Cloud_3D IC's. */
-void Grid3D::Wind_Boundary()
-{
-  int i, j, k, id;
-  Real d_0, d_s, v_0, v_s, P_0, P_s, cs, M;
-
-  // Mach 50 shock, matched to Cloud_3D IC's
-  // post-shock density is 4x pre-shock density
-  //d_0 = 0.4;
-  // post-shock velocity is (3/4) v_shock ~440 km/s
-  //v_0 = 4.40e7 / velocity_unit;
-  // post-shock temperature is ~7.81e6 K 
-  //P_0 = 0.4*KB*7.81e6 / pressure_unit;
-
-  // Mach 4.6 hot wind from Cooper 2009 
-  //d_0 = 0.1;
-  //v_0 = 1.2e8 / VELOCITY_UNIT;
-  //P_0 = 0.1*KB*5e6 / PRESSURE_UNIT;
-  // Mach 1 CC85
-  //d_0 = 2.712148e-26 / DENSITY_UNIT;
-  //v_0 = 6.473926e7 / VELOCITY_UNIT;
-  //P_0 = 6.820245e-11 / PRESSURE_UNIT;
-  // Mach 5.25 (R 1000 pc) CC85
-  d_0 = 1.285209e-27 / DENSITY_UNIT;
-  v_0 = 1.229560e8 / VELOCITY_UNIT;
-  P_0 = 4.232212e-13 / PRESSURE_UNIT;
-
-
-/*
-  // any Mach shock
-  M = 50.0;
-  d_0 = 1.0;
-  P_0 = 1.380658e-13 / pressure_unit;
-  cs = sqrt(gama * P_0 / d_0);
-  d_s = d_0 * (gama+1.0) * M * M / ((gama-1.0) * M * M + 2.0);
-  P_s = P_0 * (2.0*gama*M*M - (gama-1.0)) / (gama+1.0);
-  v_s = cs * M * (1.0 - d_0 / d_s);
-  v_0 = M*cs;
-*/
-
-  // set inflow boundaries on the -x face
-  if (H.ny == 1 && H.nz == 1) {
-
-    for (i=0; i<H.n_ghost; i++) {
-
-      id = i;
-
-      // set the conserved quantities
-      C.density[id]    = d_0;
-      C.momentum_x[id] = d_0 * v_0;
-      C.momentum_y[id] = 0.0;
-      C.momentum_z[id] = 0.0;
-      C.Energy[id] = (P_0)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
-      #ifdef DE
-      C.GasEnergy[id] = (P_0)/(gama-1.0);
-      #endif
-
-    }
-
-  }
-  // set inflow boundaries on the -z face
-  if (H.nz > 1) {
-
-    //for (k=0; k<H.n_ghost; k++) {
-    for (k=0; k<H.nz; k++) {
-      for (j=0; j<H.ny; j++) {
-        //for (i=0; i<H.nx; i++) {
-        for (i=0; i<H.n_ghost; i++) {
-
-          id = i + j*H.nx + k*H.nx*H.ny;
-
-          // set the conserved quantities
-          C.density[id]    = d_0;
-          //C.momentum_x[id] = 0.0;
-          C.momentum_x[id] = C.density[id]*v_0;
-          C.momentum_y[id] = 0.0;
-          //C.momentum_z[id] = C.density[id]*v_0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id] = (P_0)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
-          #ifdef DE
-          C.GasEnergy[id] = (P_0)/(gama-1.0);
-          #endif
-
-        }
-      }
-    }
-
-  }
-
-}

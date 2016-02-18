@@ -64,16 +64,16 @@ void plmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   
   // limit the slopes (B=1 is minmod)
   Real B = 1;
-  if (d_slope_right>=0) d_slope = maxof3(0, fmin(B*d_slope_left, d_slope_right), fmin(d_slope_left, B*d_slope_right));
-  if (d_slope_right<0)  d_slope = minof3(0, fmax(B*d_slope_left, d_slope_right), fmax(d_slope_left, B*d_slope_right));
-  if (vx_slope_right>=0) vx_slope = maxof3(0, fmin(B*vx_slope_left, vx_slope_right), fmin(vx_slope_left, B*vx_slope_right));
-  if (vx_slope_right<0)  vx_slope = minof3(0, fmax(B*vx_slope_left, vx_slope_right), fmax(vx_slope_left, B*vx_slope_right));
-  if (vy_slope_right>=0) vy_slope = maxof3(0, fmin(B*vy_slope_left, vy_slope_right), fmin(vy_slope_left, B*vy_slope_right));
-  if (vy_slope_right<0)  vy_slope = minof3(0, fmax(B*vy_slope_left, vy_slope_right), fmax(vy_slope_left, B*vy_slope_right));
-  if (vz_slope_right>=0) vz_slope = maxof3(0, fmin(B*vz_slope_left, vz_slope_right), fmin(vz_slope_left, B*vz_slope_right));
-  if (vz_slope_right<0)  vz_slope = minof3(0, fmax(B*vz_slope_left, vz_slope_right), fmax(vz_slope_left, B*vz_slope_right));
-  if (p_slope_right>=0) p_slope = maxof3(0, fmin(B*p_slope_left, p_slope_right), fmin(p_slope_left, B*p_slope_right));
-  if (p_slope_right<0)  p_slope = minof3(0, fmax(B*p_slope_left, p_slope_right), fmax(p_slope_left, B*p_slope_right));
+  if (d_slope_right>=0)  d_slope  = fmax(0, fmax(fmin(B*d_slope_left,  d_slope_right),  fmin(d_slope_left,  B*d_slope_right)));
+  if (d_slope_right<0)   d_slope  = fmin(0, fmin(fmax(B*d_slope_left,  d_slope_right),  fmax(d_slope_left,  B*d_slope_right)));
+  if (vx_slope_right>=0) vx_slope = fmax(0, fmax(fmin(B*vx_slope_left, vx_slope_right), fmin(vx_slope_left, B*vx_slope_right)));
+  if (vx_slope_right<0)  vx_slope = fmin(0, fmin(fmax(B*vx_slope_left, vx_slope_right), fmax(vx_slope_left, B*vx_slope_right)));
+  if (vy_slope_right>=0) vy_slope = fmax(0, fmax(fmin(B*vy_slope_left, vy_slope_right), fmin(vy_slope_left, B*vy_slope_right)));
+  if (vy_slope_right<0)  vy_slope = fmin(0, fmin(fmax(B*vy_slope_left, vy_slope_right), fmax(vy_slope_left, B*vy_slope_right)));
+  if (vz_slope_right>=0) vz_slope = fmax(0, fmax(fmin(B*vz_slope_left, vz_slope_right), fmin(vz_slope_left, B*vz_slope_right)));
+  if (vz_slope_right<0)  vz_slope = fmin(0, fmin(fmax(B*vz_slope_left, vz_slope_right), fmax(vz_slope_left, B*vz_slope_right)));
+  if (p_slope_right>=0)  p_slope  = fmax(0, fmax(fmin(B*p_slope_left,  p_slope_right),  fmin(p_slope_left,  B*p_slope_right)));
+  if (p_slope_right<0)   p_slope  = fmin(0, fmin(fmax(B*p_slope_left,  p_slope_right),  fmax(p_slope_left,  B*p_slope_right)));
   
   // set the boundary values for cell i
   dl = d_i - 0.5 * d_slope;

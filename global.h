@@ -63,14 +63,6 @@ extern void Set_Gammas(Real gamma_in);
 extern double get_time(void);
 
 #ifndef CUDA
-/*! \fn Real maxof3(Real a, Real b, Real c)
- *  \brief Returns the maximum of three floating point numbers. */
-extern Real maxof3(Real a, Real b, Real c);
-
-/*! \fn Real minof3(Real a, Real b, Real c)
- *  \brief Returns the minimum of three floating point numbers. */
-extern Real minof3(Real a, Real b, Real c);
-
 /*! \fn int sgn
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int sgn(Real x);
@@ -78,7 +70,6 @@ extern int sgn(Real x);
 /*! \fn Real calc_eta(Real cW[], Real gamma)
  *  \brief Calculate the eta value for the H correction. */
 extern Real calc_eta(Real cW[], Real gamma);
-
 #endif //NO CUDA
 
 
