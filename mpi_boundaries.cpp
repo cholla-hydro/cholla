@@ -28,46 +28,19 @@ void Grid3D::Set_Boundaries_MPI(struct parameters P)
 
 void Grid3D::Set_Boundaries_MPI_SLAB(int *flags, struct parameters P)
 {
-  Real tcomm_start, tcomm_end;
-  Real tother_start, tother_end;
-
-  t_comm = t_other = 0;
-
   //perform boundary conditions around
   //edges of communication region on x faces
 
-  tother_start = get_time();
   if(flags[0]==5)
     Set_Edge_Boundaries(0,flags);
   if(flags[1]==5)
     Set_Edge_Boundaries(1,flags);
-  tother_end = get_time();
-  t_other += tother_end - tother_start;
 
-  /*
-
-  550011111111112233 223344444444445500
-  5500          2233 2233    5500
-  5500          2233 2233    5500
-  5500          2233 2233    5500
-  5500          2233 2233    5500
-  550011111111112233 223344444444445500
-
-  */
-
-  //printf("proc %d about to load and send MPI buffers\n",procID);
-  //fflush(stdout);
-  tcomm_start = get_time();
   //1) load and post comm for buffers
   Load_and_Send_MPI_Comm_Buffers(0, flags);
-  tcomm_end = get_time();
-  t_comm = tcomm_end - tcomm_start;
 
-  //printf("proc %d about to perform other non-MPI boundary conditions\n",procID);
-
-  //3) perform any additional boundary conditions
+  //2) perform any additional boundary conditions
   //including whether the x face is non-MPI
-  tother_start = get_time();
   if(H.nx>1)
   {
     Set_Boundaries(0,flags);
@@ -83,55 +56,30 @@ void Grid3D::Set_Boundaries_MPI_SLAB(int *flags, struct parameters P)
     Set_Boundaries(4,flags);
     Set_Boundaries(5,flags);
   }
-  tother_end = get_time();
-  t_other += tother_end - tother_start;
-  //printf("proc %d other boundaries: %9.4f\n", procID, t_other);
-  //fflush(stdout);
 
-  tcomm_start = get_time();
-  //4) wait for sends and receives to finish
+  //3) wait for sends and receives to finish
   //   and then load ghost cells from comm buffers
   if(flags[0]==5 || flags[1]==5)
     Wait_and_Unload_MPI_Comm_Buffers_SLAB(flags);
-  tcomm_end = get_time();
-  t_comm += tcomm_end - tcomm_start;
-  //printf("proc %d communications: %9.4f\n", procID, t_comm);
-  //fflush(stdout);
-    //Set_Boundaries(2,flags);
-    //Set_Boundaries(3,flags);
 }
 
 
 void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 {
-  Real tcomm_start, tcomm_end;
-  Real tother_start, tother_end;
-
-  t_comm = t_other = 0;
-
   if (H.nx > 1) {
 
     /* Step 1 - Send MPI x-boundaries */
     if (flags[0]==5 || flags[1]==5) {
-      tcomm_start = get_time();
       Load_and_Send_MPI_Comm_Buffers(0, flags);
-      tcomm_end = get_time();
-      t_comm += tcomm_end - tcomm_start;
     }
 
     /* Step 2 - Set non-MPI x-boundaries */
-    tother_start = get_time();
     Set_Boundaries(0, flags);
     Set_Boundaries(1, flags);
-    tother_end = get_time();
-    t_other += tother_end - tother_start;
 
     /* Step 3 - Receive MPI x-boundaries */
     if (flags[0]==5 || flags[1]==5) {
-      tcomm_start = get_time();
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(0, flags);
-      tcomm_end = get_time();
-      t_comm += tcomm_end - tcomm_start;
     }
   }
   MPI_Barrier(world);
@@ -139,25 +87,16 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 
     /* Step 4 - Send MPI y-boundaries */
     if (flags[2]==5 || flags[3]==5) {
-      tcomm_start = get_time();
       Load_and_Send_MPI_Comm_Buffers(1, flags);
-      tcomm_end = get_time();
-      t_comm += tcomm_end - tcomm_start;
     }
 
     /* Step 5 - Set non-MPI y-boundaries */
-    tother_start = get_time();
     Set_Boundaries(2, flags);
     Set_Boundaries(3, flags);
-    tother_end = get_time();
-    t_other += tother_end - tother_start;
 
     /* Step 6 - Receive MPI y-boundaries */
     if (flags[2]==5 || flags[3]==5) {
-      tcomm_start = get_time();
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(1, flags);
-      tcomm_end = get_time();
-      t_comm += tcomm_end - tcomm_start;
     }
   }
   MPI_Barrier(world);
@@ -165,25 +104,16 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 
     /* Step 7 - Send MPI z-boundaries */
     if (flags[4]==5 || flags[5]==5) {
-      tcomm_start = get_time();
       Load_and_Send_MPI_Comm_Buffers(2, flags);
-      tcomm_end = get_time();
-      t_comm += tcomm_end - tcomm_start;
     }
 
     /* Step 8 - Set non-MPI z-boundaries */
-    tother_start = get_time();
     Set_Boundaries(4, flags);
     Set_Boundaries(5, flags);
-    tother_end = get_time();
-    t_other += tother_end - tother_start;
 
     /* Step 9 - Receive MPI z-boundaries */
     if (flags[4]==5 || flags[5]==5) {
-      tcomm_start = get_time();
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(2, flags);
-      tcomm_end = get_time();
-      t_comm += tcomm_end - tcomm_start;
     }
   }
 
@@ -250,12 +180,6 @@ void Grid3D::Set_Edge_Boundaries(int dir, int *flags)
       }
     }
 
-    //printf("proc %d dir %d iedge %d imin %d %d %d imax %d %d %d\n",procID,dir,iedge,imin[0],imin[1],imin[2],imax[0],imax[1],imax[2]);
-    //fflush(stdout);
-  }
-
-  //MPI_Finalize();
-  //exit(0);
 }
 
 
@@ -368,67 +292,67 @@ void Grid3D::Set_Edge_Boundary_Extents(int dir, int edge, int *imin, int *imax)
     {
       //lower left corner
       case 0:
-  *(imin+j) = 0;
-  *(imax+j) = H.n_ghost;
-  *(imin+k) = 0;
-  *(imax+k) = H.n_ghost;
-  break;
+        *(imin+j) = 0;
+        *(imax+j) = H.n_ghost;
+        *(imin+k) = 0;
+        *(imax+k) = H.n_ghost;
+        break;
 
       //left edge
       case 1:
-  *(imin+j) = H.n_ghost;
-  *(imax+j) = nj-H.n_ghost;
-  *(imin+k) = 0;
-  *(imax+k) = H.n_ghost;
-  break;
+        *(imin+j) = H.n_ghost;
+        *(imax+j) = nj-H.n_ghost;
+        *(imin+k) = 0;
+        *(imax+k) = H.n_ghost;
+        break;
 
       //upper left corner
       case 2:
-  *(imin+j) = nj-H.n_ghost;
-  *(imax+j) = nj;
-  *(imin+k) = 0;
-  *(imax+k) = H.n_ghost;
-  break;
+        *(imin+j) = nj-H.n_ghost;
+        *(imax+j) = nj;
+        *(imin+k) = 0;
+        *(imax+k) = H.n_ghost;
+        break;
 
       //upper edge
       case 3:
-  *(imin+j) = nj-H.n_ghost; 
-  *(imax+j) = nj;
-  *(imin+k) = H.n_ghost;
-  *(imax+k) = nk-H.n_ghost;
-  break;
+        *(imin+j) = nj-H.n_ghost; 
+        *(imax+j) = nj;
+        *(imin+k) = H.n_ghost;
+        *(imax+k) = nk-H.n_ghost;
+        break;
 
       //upper right corner
       case 4:
-  *(imin+j) = nj-H.n_ghost; 
-  *(imax+j) = nj;
-  *(imin+k) = nk-H.n_ghost;
-  *(imax+k) = nk;
-  break;
+        *(imin+j) = nj-H.n_ghost; 
+        *(imax+j) = nj;
+        *(imin+k) = nk-H.n_ghost;
+        *(imax+k) = nk;
+        break;
 
       //right edge
       case 5:
-  *(imin+j) = H.n_ghost;
-  *(imax+j) = nj-H.n_ghost;
-  *(imin+k) = nk-H.n_ghost;
-  *(imax+k) = nk;
-  break;
+        *(imin+j) = H.n_ghost;
+        *(imax+j) = nj-H.n_ghost;
+        *(imin+k) = nk-H.n_ghost;
+        *(imax+k) = nk;
+        break;
 
       //lower right corner
       case 6:
-  *(imin+j) = 0;
-  *(imax+j) = H.n_ghost;
-  *(imin+k) = nk-H.n_ghost;
-  *(imax+k) = nk;
-  break;
+        *(imin+j) = 0;
+        *(imax+j) = H.n_ghost;
+        *(imin+k) = nk-H.n_ghost;
+        *(imax+k) = nk;
+        break;
 
       //lower edge
       case 7:
-  *(imin+j) = 0;
-  *(imax+j) = H.n_ghost;
-  *(imin+k) = H.n_ghost;
-  *(imax+k) = nk-H.n_ghost;
-  break;
+        *(imin+j) = 0;
+        *(imax+j) = H.n_ghost;
+        *(imin+k) = H.n_ghost;
+        *(imax+k) = nk-H.n_ghost;
+        break;
     }
   }
 }

@@ -14,21 +14,12 @@
 #include "io.h"
 #include "error_handling.h"
 
-//#define CPU_TIME
 #define OUTPUT
 
 int main(int argc, char *argv[])
 {
   // timing variables
   double start_total, stop_total, start_step, stop_step;
-  double stop_init, init_min, init_max, init_avg;
-  double start_calct, stop_calct;
-  double start_CTU, stop_CTU, CTU_min, CTU_max, CTU_avg;
-  double comm_min, comm_max, comm_avg;
-  double other_min, other_max, other_avg;
-  double start_bound, stop_bound, bound_min, bound_max, bound_avg;
-  double init, calc_dt, bound, CTU_t, bound_total, CTU_total;
-  init = calc_dt = bound = CTU_t = bound_total = CTU_total = 0;
 
   // start the total time
   start_total = get_time();
@@ -38,7 +29,7 @@ int main(int argc, char *argv[])
   InitializeChollaMPI(&argc, &argv);
   #endif /*MPI_CHOLLA*/
 
-  // declare variables
+  // declare Cfl coefficient and initial inverse timestep
   Real C_cfl = 0.4; // CFL coefficient 0 < C_cfl < 0.5 
   Real dti = 0; // inverse time step, 1.0 / dt
 
@@ -84,7 +75,6 @@ int main(int argc, char *argv[])
     nfile = P.nfile;
     dti = 1.0 / G.H.dt;
   }
-  //chexit(0);
 
   // set boundary conditions (assign appropriate values to ghost cells)
   chprintf("Setting boundary conditions...\n");
@@ -102,22 +92,6 @@ int main(int argc, char *argv[])
   // increment the next output time
   outtime += P.outstep;
 
-  #ifdef CPU_TIME
-  stop_init = get_time();
-  init = stop_init - start_total;
-  #ifdef MPI_CHOLLA
-  init_min = ReduceRealMin(init);
-  init_max = ReduceRealMax(init);
-  init_avg = ReduceRealAvg(init);  
-  chprintf("Init   min: %9.4f  max: %9.4f  avg: %9.4f\n", init_min, init_max, init_avg);
-  #else
-  printf("Init %9.4f\n", init);
-  #endif //MPI_CHOLLA
-  #endif //CPU_TIME
-
-  
-
-  
 
 
   // Evolve the grid, one timestep at a time
@@ -129,45 +103,15 @@ int main(int argc, char *argv[])
     start_step = get_time();
 
     // calculate the timestep
-    #ifdef CPU_TIME
-    start_calct = get_time();
-    #endif 
     G.set_dt(C_cfl, dti);
-    #ifdef CPU_TIME
-    stop_calct = get_time();
-    calc_dt += stop_calct-start_calct;
-    #endif 
     
     if (G.H.t + G.H.dt > outtime) 
     {
       G.H.dt = outtime - G.H.t;
     }
-/*
-    for (int i=G.H.n_ghost; i<G.H.nx-G.H.n_ghost; i++) {
-      for (int j=G.H.n_ghost; j<G.H.ny-G.H.n_ghost; j++) {
-        int id1 = i + G.H.nx*j;
-        int id2 = j + G.H.nx*i;
-        if (G.C.momentum_x[id1] != G.C.momentum_y[id2]) printf("%3d %3d\n", i, j);
-      }
-    }    
-*/
+
     // Advance the grid by one timestep
-    #ifdef CPU_TIME
-    start_CTU = get_time();
-    #endif
     dti = G.Update_Grid();
-    #ifdef CPU_TIME
-    stop_CTU = get_time();
-    CTU_t = stop_CTU - start_CTU;
-    #ifdef MPI_CHOLLA
-    CTU_min = ReduceRealMin(CTU_t);
-    CTU_max = ReduceRealMax(CTU_t);
-    CTU_avg = ReduceRealAvg(CTU_t);  
-    if (G.H.n_step > 0) CTU_total += CTU_avg;
-    #else
-    if (G.H.n_step > 0) CTU_total += CTU_t;
-    #endif //MPI_CHOLLA
-    #endif
 
     // update the time
     G.H.t += G.H.dt;
@@ -176,41 +120,8 @@ int main(int argc, char *argv[])
     G.H.n_step++;
 
     // set boundary conditions for next time step 
-    #ifdef CPU_TIME
-    start_bound = get_time();
-    #endif
     G.Set_Boundary_Conditions(P);
-    #ifdef CPU_TIME
-    stop_bound = get_time();
-    bound = stop_bound - start_bound;
-    #ifdef MPI_CHOLLA
-    bound_min = ReduceRealMin(bound);
-    bound_max = ReduceRealMax(bound);
-    bound_avg = ReduceRealAvg(bound);
-    comm_min = ReduceRealMin(t_comm);
-    comm_max = ReduceRealMax(t_comm);
-    comm_avg = ReduceRealAvg(t_comm);
-    other_min = ReduceRealMin(t_other);
-    other_max = ReduceRealMax(t_other);
-    other_avg = ReduceRealAvg(t_other);
-    if (G.H.n_step > 1) bound_total += bound_avg;
-    #else
-    if (G.H.n_step > 1) bound_total += bound;
-    #endif //MPI_CHOLLA
-    #endif
 
-    #ifdef CPU_TIME
-    #ifdef MPI_CHOLLA
-    chprintf("CTU    min: %9.4f  max: %9.4f  avg: %9.4f\n", CTU_min, CTU_max, CTU_avg);
-    chprintf("bound  min: %9.4f  max: %9.4f  avg: %9.4f\n", bound_min, bound_max, bound_avg);
-    chprintf("comm   min: %9.4f  max: %9.4f  avg: %9.4f\n", comm_min, comm_max, comm_avg);
-    chprintf("other  min: %9.4f  max: %9.4f  avg: %9.4f\n", other_min, other_max, other_avg);
-    chprintf("bound total : %9.4f  CTU total : %9.4f\n", bound_total, CTU_total);
-    #else
-    printf("CTU    %9.4f\n", CTU_t);
-    printf("bound  %9.4f\n", bound);
-    #endif //MPI_CHOLLA
-    #endif
 
     // get the time to compute the total timestep
     stop_step = get_time();

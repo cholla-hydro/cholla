@@ -26,8 +26,6 @@
 #include "mpi_routines.h"
 #endif
 #include <stdio.h>
-//#include "rng.h"
-
 
 
 
@@ -75,8 +73,6 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real
   *y_pos = H.yblocal + H.dy*(j-H.n_ghost) + 0.5*H.dy;
   *z_pos = H.zblocal + H.dz*(k-H.n_ghost) + 0.5*H.dz;
   
-  //printf("i %d io %d xbl %e dx %e xp %e\n",i,i-H.n_ghost,H.xblocal,H.dx,*x_pos);
-  //fflush(stdout);
 
 #endif  /*MPI_CHOLLA*/
 
@@ -179,11 +175,6 @@ void Grid3D::AllocateMemory(void)
   {
     C.density[i] = 0.0;
   }
-
-  #ifdef COOLING_CPU
-  // Load cooling tables
-  Load_Cooling_Tables();
-  #endif
 
 }
 
@@ -403,9 +394,5 @@ void Grid3D::FreeMemory(void)
 {
   // free the conserved variable array
   free(C.density);
-
-  #ifdef COOLING_CPU
-  Free_Cooling_Tables();
-  #endif
 
 }
