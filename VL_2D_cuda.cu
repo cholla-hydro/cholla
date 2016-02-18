@@ -20,8 +20,6 @@
 #include"cooling.h"
 #include"subgrid_routines_2D.h"
 
-//#define TIME
-//#define TEST
 
 
 __global__ void Update_Conserved_Variables_2D_notime(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y, int nx, int ny,
@@ -46,9 +44,12 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
   float elapsedTime;
   #endif
 
-  int n_fields = 5;
   #ifdef DE
-  n_fields++;
+  printf("Dual energy not supported in Van Leer integrator. Use CTU, or neither.\n");
+  exit(0);
+  #endif
+  #ifndef DE
+  int n_fields = 5;
   #endif
 
   // dimensions of subgrid blocks
@@ -75,7 +76,6 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
   int BLOCK_VOL = nx_s*ny_s*nz_s;
 
   // define the dimensions for the 2D grid
-  //int  ngrid = (n_cells + TPB - 1) / TPB;
   int  ngrid = (BLOCK_VOL + 2*TPB - 1) / (2*TPB);
 
   //number of blocks per 2-d grid  
@@ -105,13 +105,6 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
   Real *eta_x, *eta_y, *etah_x, *etah_y;
   // array of inverse timesteps for dt calculation
   Real *dev_dti_array;
-
-
-#ifdef TEST
-  Real *test1, *test2;
-  test1 = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real));
-  test2 = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real));
-#endif
 
 
   // allocate memory on the GPU
@@ -153,17 +146,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     CudaCheckError();
 
     // copy the conserved variables onto the GPU
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("GPU copy: %5.3f ms\n", elapsedTime);
-    #endif
 
 
     // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
@@ -172,124 +155,39 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
 
     // Step 2: Calculate first-order upwind fluxes 
     #ifdef EXACT
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     Calculate_Exact_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    #ifdef TIME
-    // get stop time, and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("x fluxes:  %5.3f ms\n", elapsedTime);
-    #endif
-    CudaCheckError();  
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     Calculate_Exact_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    #ifdef TIME
-    // get stop time, and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("y fluxes:  %5.3f ms\n", elapsedTime);
-    #endif  
-    CudaCheckError();  
     #endif
     #ifdef ROE
     Calculate_Roe_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
-    CudaCheckError();
     Calculate_Roe_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-    CudaCheckError();
     #endif
-
+    CudaCheckError();
 
 
     // Step 3: Update the conserved variables half a timestep 
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif    
     Update_Conserved_Variables_2D_notime<<<dim2dGrid,dim1dBlock>>>(dev_conserved, dev_conserved_half, F_x, F_y, nx_s, ny_s, n_ghost, dx, dy, 0.5*dt, gama);
     CudaCheckError();
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("conserved variable update: %5.3f ms\n", elapsedTime);
-    #endif     
 
 
     // Step 4: Construct left and right interface values using updated conserved variables
     #ifdef PLMP
     PLMP_VL<<<dim2dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    CudaCheckError();
     PLMP_VL<<<dim2dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    CudaCheckError();
     #endif
     #ifdef PLMC
     printf("PLMC not supported for Van Leer integrator.\n");
     #endif
     #ifdef PPMP
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     PPMP_VL<<<dim2dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    CudaCheckError();
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("Time to do x reconstruction: %5.3f ms\n", elapsedTime);
-    cudaEventRecord(start, 0);
-    #endif
     PPMP_VL<<<dim2dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    CudaCheckError();
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("Time to do y reconstruction: %5.3f ms\n", elapsedTime);
-    #endif
     #endif //PPMP
     #ifdef PPMC
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     PPMC_VL<<<dim2dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    CudaCheckError();
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("Time to do x reconstruction: %5.3f ms\n", elapsedTime);
-    cudaEventRecord(start, 0);
-    #endif
     PPMC_VL<<<dim2dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    CudaCheckError();
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("Time to do y reconstruction: %5.3f ms\n", elapsedTime);
-    #endif
     #endif //PPMC
-#ifdef TEST 
-    CudaSafeCall( cudaMemcpy(test1, Q_Lx, 5*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-    CudaSafeCall( cudaMemcpy(test2, Q_Ly, 5*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-    for (int i=0; i<nx; i++) {
-      for (int j=0; j<ny; j++) {
-        if (test1[i + j*nx + 1*nx*ny] != test2[j + i*nx + 2*nx*ny]) {
-          printf("%3d %3d %f %f\n", i, j, test1[i + j*nx + 1*nx*ny], test2[j + i*nx + 2*nx*ny]);
-        }
-      }
-    }
-#endif
+    CudaCheckError();
+
 
     #ifdef H_CORRECTION
     // Step 4.5: Calculate eta values for H correction
@@ -305,104 +203,43 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
 
     // Step 5: Calculate the fluxes again
     #ifdef EXACT
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     Calculate_Exact_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    #ifdef TIME
-    // get stop time, and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("x fluxes:  %5.3f ms\n", elapsedTime);
-    #endif  
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     Calculate_Exact_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    #ifdef TIME
-    // get stop time, and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("y fluxes:  %5.3f ms\n", elapsedTime);
-    #endif    
-    CudaCheckError();
     #endif
     #ifdef ROE
     Calculate_Roe_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
     Calculate_Roe_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-    CudaCheckError();
     #endif
+    CudaCheckError();
 
 
     // Step 5: Update the conserved variable array
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif    
     Update_Conserved_Variables_2D_wtime<<<dim2dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, nx_s, ny_s, n_ghost, dx, dy, dt, dev_dti_array, gama);
     CudaCheckError();
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("conserved variable update: %5.3f ms\n", elapsedTime);
-    #endif     
 
+
+    // Apply cooling
     #ifdef COOLING_GPU
     cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
     #endif
 
 
     // copy the conserved variable array back to the CPU
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("GPU return: %5.3f ms\n", elapsedTime);
-    #endif
-
 
     // copy the next conserved variable blocks into appropriate buffers
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif    
     host_copy_next_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, &tmp1, n_fields);
-
 
     // copy the updated conserved variable array back into the host_conserved array on the CPU
     host_return_values_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, n_fields);
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("CPU copying: %5.3f ms\n", elapsedTime);
-    #endif     
 
 
     // copy the dti array onto the CPU
-    #ifdef TIME
-    cudaEventRecord(start, 0);
-    #endif      
     CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, 2*ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // iterate through to find the maximum inverse dt for this subgrid block
     for (int i=0; i<2*ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
-    #ifdef TIME
-    // get stop time and display the timing results
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("dti copying & calc: %5.3f ms\n", elapsedTime);
-    #endif     
 
 
     // add one to the counter
@@ -430,16 +267,6 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
   cudaFree(etah_y);
   cudaFree(dev_dti_array);
 
-  #ifdef TIME
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
-  #endif
-
- 
-#ifdef TEST
-  free(test1);
-  free(test2);
-#endif
 
   // return the maximum inverse timestep
   return max_dti;
@@ -470,16 +297,21 @@ __global__ void Update_Conserved_Variables_2D_notime(Real *dev_conserved, Real *
     // update the conserved variable array
     imo = xid-1 + yid*nx;
     jmo = xid + (yid-1)*nx;
-    dev_conserved_half[            id] = dev_conserved[            id] + dtodx * (dev_F_x[            imo] - dev_F_x[            id])
-                                                                       + dtody * (dev_F_y[            jmo] - dev_F_y[            id]);
-    dev_conserved_half[  n_cells + id] = dev_conserved[  n_cells + id] + dtodx * (dev_F_x[  n_cells + imo] - dev_F_x[  n_cells + id]) 
-                                                                       + dtody * (dev_F_y[  n_cells + jmo] - dev_F_y[  n_cells + id]);
-    dev_conserved_half[2*n_cells + id] = dev_conserved[2*n_cells + id] + dtodx * (dev_F_x[2*n_cells + imo] - dev_F_x[2*n_cells + id]) 
-                                                                       + dtody * (dev_F_y[2*n_cells + jmo] - dev_F_y[2*n_cells + id]); 
-    dev_conserved_half[3*n_cells + id] = dev_conserved[3*n_cells + id] + dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
-                                                                       + dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
-    dev_conserved_half[4*n_cells + id] = dev_conserved[4*n_cells + id] + dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
-                                                                       + dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
+    dev_conserved_half[            id] = dev_conserved[            id] 
+                                       + dtodx * (dev_F_x[            imo] - dev_F_x[            id])
+                                       + dtody * (dev_F_y[            jmo] - dev_F_y[            id]);
+    dev_conserved_half[  n_cells + id] = dev_conserved[  n_cells + id] 
+                                       + dtodx * (dev_F_x[  n_cells + imo] - dev_F_x[  n_cells + id]) 
+                                       + dtody * (dev_F_y[  n_cells + jmo] - dev_F_y[  n_cells + id]);
+    dev_conserved_half[2*n_cells + id] = dev_conserved[2*n_cells + id] 
+                                       + dtodx * (dev_F_x[2*n_cells + imo] - dev_F_x[2*n_cells + id]) 
+                                       + dtody * (dev_F_y[2*n_cells + jmo] - dev_F_y[2*n_cells + id]); 
+    dev_conserved_half[3*n_cells + id] = dev_conserved[3*n_cells + id] 
+                                       + dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
+                                       + dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
+    dev_conserved_half[4*n_cells + id] = dev_conserved[4*n_cells + id] 
+                                       + dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
+                                       + dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
   } 
 }
 

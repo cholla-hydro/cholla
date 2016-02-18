@@ -22,7 +22,6 @@
 #include"io.h"
 
 
-#define TEST
 
 __global__ void Update_Conserved_Variables_1D_notime(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, int n_cells, int n_ghost, 
                                                      Real dx, Real dt, Real gamma);
@@ -37,21 +36,14 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
 
-  // capture the start time
-  #ifdef TIME
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  float elapsedTime;
-  #endif
-
   int n_cells = nx;
   int ny = 1;
   int nz = 1;
   int n_fields;
 
   #ifdef DE
-  n_fields = 7;
+  printf("Dual energy not implemented in Van Leer integrator. Use CTU, or neither.\n");
+  exit(0);
   #endif
   #ifndef DE
   n_fields = 5;
@@ -67,11 +59,6 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   Real *host_dti_array;
   host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
 
-  #ifdef TEST
-  Real *test1, *test2;
-  test1 = (Real *) malloc(n_fields*n_cells*sizeof(Real));
-  test2 = (Real *) malloc(n_fields*n_cells*sizeof(Real));
-  #endif
 
   // allocate GPU arrays
   // conserved variables
@@ -105,38 +92,15 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
 
 
   // copy the conserved variable array onto the GPU
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif
+
   CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("GPU copy: %5.3f ms\n", elapsedTime);
-  #endif
-  CudaCheckError();
 
 
   // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif
   PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, n_ghost, gama);
   CudaCheckError();
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("Time to do reconstruction: %5.3f ms\n", elapsedTime);
-  #endif
 
   // Step 2: Calculate first-order upwind fluxes 
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif
   #ifdef EXACT
   Calculate_Exact_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
   #endif
@@ -144,68 +108,30 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   Calculate_Roe_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
   #endif
   CudaCheckError();
-  #ifdef TIME
-  // get stop time, and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("Time to do riemann problem:  %5.3f ms\n", elapsedTime);
-  #endif
 
-  #ifdef TEST
-  //printf("1st order fluxes:\n");
-  CudaSafeCall( cudaMemcpy(test1, F, n_fields*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-  for (int i=0; i<nx-1; i++) {
-    //printf("%d %f %f %f\n", i, host_conserved[i], host_conserved[i+1], test1[i]);
-  }
-  #endif
 
   // Step 3: Update the conserved variables half a timestep 
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif      
   Update_Conserved_Variables_1D_notime<<<dimGrid,dimBlock>>>(dev_conserved, dev_conserved_half, F, n_cells, n_ghost, dx, 0.5*dt, gama);
   CudaCheckError();
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("conserved variable update: %5.3f ms\n", elapsedTime);
-  #endif     
 
 
   // Step 4: Construct left and right interface values using updated conserved variables
   #ifdef PCM
   PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, n_ghost, gama);
-  CudaCheckError();
   #endif
   #ifdef PLMP
   PLMP_VL<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, gama, 0);
-  CudaCheckError();
   #endif
   #ifdef PPMP
   PPMP_VL<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, gama, 0);
-  CudaCheckError();
   #endif
   #ifdef PPMC
   PPMC_VL<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, gama, 0);
+  #endif
   CudaCheckError();
-  #endif
-  #ifdef TEST
-  CudaSafeCall( cudaMemcpy(test1, Q_L, 5*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  
-  CudaSafeCall( cudaMemcpy(test2, Q_R, 5*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  
-  //printf("Reconstructed interfaces:\n");
-  for (int i=0; i<nx; i++) {
-    //printf("%d %f %f\n", i, test1[i], test2[i]);
-  }
-  #endif
- 
+
 
   // Step 5: Calculate the fluxes again
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif
   #ifdef EXACT
   Calculate_Exact_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
   #endif
@@ -213,80 +139,33 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   Calculate_Roe_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
   #endif
   CudaCheckError();
-  #ifdef TIME
-  // get stop time, and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("Time to do riemann problem:  %5.3f ms\n", elapsedTime);
-  #endif
 
 
   // Step 6: Update the conserved variable array
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif      
-  //CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved, 5*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
   Update_Conserved_Variables_1D_wtime<<<dimGrid,dimBlock>>>(dev_conserved, F, n_cells, n_ghost, dx, dt, dev_dti_array, gama);
   CudaCheckError();
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("conserved variable update: %5.3f ms\n", elapsedTime);
-  #endif     
+   
 
+  // Apply cooling
   #ifdef COOLING_GPU
   cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
   #endif
 
 
   // copy the conserved variable array back to the CPU
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif
   CudaSafeCall( cudaMemcpy(host_conserved, dev_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("GPU return: %5.3f ms\n", elapsedTime);
-  #endif
 
-  #ifdef TEST
-  //printf("Final values:\n");
-  for (int i=0; i<nx; i++) {
-    //if (host_conserved[i] < host_conserved[i+1]) printf("%d %f %f\n", i, host_conserved[i], host_conserved[i+1]);
-  }
-  #endif
-
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif      
   // copy the dti array onto the CPU
   CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
   // iterate through to find the maximum inverse dt for this subgrid block
   for (int i=0; i<ngrid; i++) {
     max_dti = fmax(max_dti, host_dti_array[i]);
   }
-  #ifdef TIME
-  // get stop time and display the timing results
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  printf("dti copying & calc: %5.3f ms\n", elapsedTime);
-  #endif     
 
 
   // free the CPU memory
   free(host_dti_array);
 
-  #ifdef TEST
-  free(test1);
-  free(test2);
-  #endif
 
   // free the GPU memory
   cudaFree(dev_conserved);
@@ -295,11 +174,6 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   cudaFree(Q_R);
   cudaFree(F);
   cudaFree(etah);
-
-  #ifdef TIME
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
-  #endif
 
 
   // return the maximum inverse timestep
@@ -314,58 +188,18 @@ __global__ void Update_Conserved_Variables_1D_notime(Real *dev_conserved, Real *
   int id;
   Real dtodx = dt/dx;
 
-  #ifdef DE
-  Real d, d_inv, vx, vy, vz, P, ge, ge1, Emax;
-  int im1, ip1;
-  #endif
-
-
-
   // get a global thread ID
   id = threadIdx.x + blockIdx.x * blockDim.x;
 
   // threads corresponding all cells except outer ring of ghost cells do the calculation
   if (id > 0 && id < n_cells-1)
   {
-    #ifdef DE
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    ge =  dev_conserved[5*n_cells + id];
-    ge1 = dev_conserved[4*n_cells + id] * d_inv - 0.5*(vx*vx + vy*vy + vz*vz);
-    if (d*ge1 / dev_conserved[4*n_cells + id] < 0.001) P = d * ge * (gamma - 1.0); 
-    else P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    #endif
-
     // update the conserved variable array
     dev_conserved_half[            id] = dev_conserved[            id] + dtodx * (dev_F[            id-1] - dev_F[            id]);
     dev_conserved_half[  n_cells + id] = dev_conserved[  n_cells + id] + dtodx * (dev_F[  n_cells + id-1] - dev_F[  n_cells + id]);
     dev_conserved_half[2*n_cells + id] = dev_conserved[2*n_cells + id] + dtodx * (dev_F[2*n_cells + id-1] - dev_F[2*n_cells + id]);
     dev_conserved_half[3*n_cells + id] = dev_conserved[3*n_cells + id] + dtodx * (dev_F[3*n_cells + id-1] - dev_F[3*n_cells + id]);
     dev_conserved_half[4*n_cells + id] = dev_conserved[4*n_cells + id] + dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
-    #ifdef DE
-    dev_conserved_half[5*n_cells + id] = (d*dev_conserved[5*n_cells + id] + dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
-                                         - dtodx * P * (dev_F[6*n_cells + id-1] - dev_F[6*n_cells + id])) * d_inv;
-
-    //find the max nearby total energy
-    im1 = max(id-1, 0);
-    ip1 = min(id+1, n_cells-2);
-    Emax = fmax(fmax(dev_conserved_half[4*n_cells + id], dev_conserved_half[4*n_cells + im1]), dev_conserved_half[4*n_cells + ip1]);
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved_half[1*n_cells + id] * d_inv;
-    vy =  dev_conserved_half[2*n_cells + id] * d_inv;
-    vz =  dev_conserved_half[3*n_cells + id] * d_inv;
-    ge =  dev_conserved_half[5*n_cells + id];
-    ge1 = dev_conserved_half[4*n_cells + id] * d_inv - 0.5*(vx*vx + vy*vy + vz*vz);
-    // if the ratio of the internal energy to the total energy is greater than eta2
-    // use the internal energy computed from the total energy to do the update
-    if (d*ge1 / Emax > 0.1) dev_conserved_half[5*n_cells + id] = ge1;
-    // update the total energy
-    dev_conserved_half[4*n_cells + id] += dev_conserved_half[5*n_cells + id] - ge1; 
-    #endif
   }
 
 
@@ -378,11 +212,6 @@ __global__ void Update_Conserved_Variables_1D_wtime(Real *dev_conserved, Real *d
 
   Real d, d_inv, vx, vy, vz, P, cs;
   int id, tid;
-   
-  #ifdef DE
-  Real ge, ge1, Emax;
-  int im1, ip1;
-  #endif
 
   Real dtodx = dt/dx;
 
@@ -399,33 +228,14 @@ __global__ void Update_Conserved_Variables_1D_wtime(Real *dev_conserved, Real *d
   // threads corresponding to real cells do the calculation
   if (id > n_ghost - 1 && id < n_cells-n_ghost)
   {
-    #ifdef DE
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    ge =  dev_conserved[5*n_cells + id];
-    if (ge < 0.0) printf("%d Negative ie before final update.\n", id);
-    ge1 = dev_conserved[4*n_cells + id] * d_inv - 0.5*(vx*vx + vy*vy + vz*vz);
-    if (d*ge1 / dev_conserved[4*n_cells + id] < 0.001) P = d * ge * (gamma - 1.0); 
-    else P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    if (P < 0.0) printf("%d Negative pressure before final update.\n", id);
-    #endif
-
     // update the conserved variable array
     dev_conserved[            id] += dtodx * (dev_F[            id-1] - dev_F[            id]);
     dev_conserved[  n_cells + id] += dtodx * (dev_F[  n_cells + id-1] - dev_F[  n_cells + id]);
     dev_conserved[2*n_cells + id] += dtodx * (dev_F[2*n_cells + id-1] - dev_F[2*n_cells + id]);
     dev_conserved[3*n_cells + id] += dtodx * (dev_F[3*n_cells + id-1] - dev_F[3*n_cells + id]);
     dev_conserved[4*n_cells + id] += dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
-    #ifdef DE
-    dev_conserved[5*n_cells + id] += dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
-                                   - dtodx * P * (dev_F[6*n_cells + id-1] - dev_F[6*n_cells + id]); 
-    #endif    
 
-    if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) printf("%d Thread broke in final update. %f\n", id, dev_conserved[id]);
-    //printf("%d %f %f %f %f %f\n", id, dev_conserved[id], dev_conserved[n_cells+id], dev_conserved[2*n_cells+id], dev_conserved[3*n_cells+id], dev_conserved[4*n_cells+id]);
+    if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) printf("%d Thread creashed in final update. %f\n", id, dev_conserved[id]);
 
     // start timestep calculation here
     // every thread collects the conserved variables it needs from global memory
@@ -435,23 +245,6 @@ __global__ void Update_Conserved_Variables_1D_wtime(Real *dev_conserved, Real *d
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    #ifdef DE
-    ge =  dev_conserved[5*n_cells + id];
-    ge1 = dev_conserved[4*n_cells + id] * d_inv - 0.5*(vx*vx + vy*vy + vz*vz);
-    //find the max nearby total energy
-    im1 = max(id-1, 1);
-    ip1 = min(id+1, n_cells-n_ghost-1);
-    Emax = fmax(fmax(dev_conserved[4*n_cells + id], dev_conserved[4*n_cells + im1]), dev_conserved[4*n_cells + ip1]);
-    // if the ratio of the internal energy to the total energy is greater than eta2
-    // use the internal energy computed from the total energy to do the update
-    if (d*ge1 / Emax > 0.1) dev_conserved[5*n_cells + id] = ge1;
-    // update the total energy
-    dev_conserved[4*n_cells + id] += dev_conserved[5*n_cells + id] - ge1; 
-    // recalculate the pressure 
-    ge =  dev_conserved[5*n_cells + id];
-    if (d*ge1 / dev_conserved[4*n_cells + id] < 0.001) P = d * ge * (gamma - 1.0); 
-    else P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
-    #endif
     if (P < 0.0) printf("%d Negative pressure after final update.\n", id);
     P  = fmax(P, (Real) 1.0e-20);
     // find the max wavespeed in that cell, use it to calculate the inverse timestep
