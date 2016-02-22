@@ -495,21 +495,20 @@ void Grid3D::KH_discontinuous_2D()
       if (y_pos <= 1.0*H.ydglobal/3.0) 
       {
         C.density[id] = 1.0;
-        //C.momentum_x[id] = C.density[id]*0.5;
-        C.momentum_x[id] = C.density[id]*(0.5 + 0.01*sin(2*PI*x_pos));
-        //C.momentum_y[id] = 0.0;
-        C.momentum_y[id] = C.density[id]*(0.0 + 0.01*sin(2*PI*x_pos));
-        //C.momentum_y[id] = C.density[id]*(0.1*sin(4*PI*x_pos)*exp(-pow(y_pos-0.25,2)/(2*0.05*0.05) + pow(y_pos-0.75,2)/(2*0.05*0.05)));
+        C.momentum_x[id] = 0.5;
+        //C.momentum_x[id] = 0.5 + 0.01*sin(2*PI*x_pos);
+        C.momentum_y[id] = 0.0;
+        //C.momentum_y[id] = 0.01*sin(2*PI*x_pos);
         C.momentum_z[id] = 0.0;
         C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
       }
       else if (y_pos >= 2.0*H.ydglobal/3.0)
       {
         C.density[id] = 1.0;
-        C.momentum_x[id] = 0.5 + 0.01*sin(2*PI*x_pos);
-        //C.momentum_x[id] = 0.5;
-        C.momentum_y[id] = 0.0 + 0.01*sin(2*PI*x_pos);
-        //C.momentum_y[id] = 0.0;
+        C.momentum_x[id] = 0.5;
+        //C.momentum_x[id] = 0.5 + 0.01*sin(2*PI*x_pos);
+        C.momentum_y[id] = 0.0;
+        //C.momentum_y[id] = 0.0 + 0.01*sin(2*PI*x_pos);
         //C.momentum_y[id] = C.density[id]*(0.1*sin(4*PI*x_pos)*exp(-pow(y_pos-0.25,2)/(2*0.05*0.05) + pow(y_pos-0.75,2)/(2*0.05*0.05)));
         C.momentum_z[id] = 0.0;
         C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
@@ -518,8 +517,8 @@ void Grid3D::KH_discontinuous_2D()
       else
       {
         C.density[id] = 2.0;
-        C.momentum_x[id] = -1.0 + 0.02*sin(2*PI*x_pos);
-        //C.momentum_x[id] = -1.0;
+        //C.momentum_x[id] = -1.0 + 0.02*sin(2*PI*x_pos);
+        C.momentum_x[id] = -1.0;
         C.momentum_y[id] = 0.0  + 0.02*sin(2*PI*x_pos);
         //C.momentum_y[id] = 0.0;
         //C.momentum_y[id] = C.density[id]*(0.1*sin(4*PI*x_pos)*exp(-pow(y_pos-0.25,2)/(2*0.05*0.05) + pow(y_pos-0.75,2)/(2*0.05*0.05)));
@@ -764,14 +763,14 @@ void Grid3D::Cloud_2D() {
   P_wind = 4.232212e-13 / PRESSURE_UNIT;
   
   // number density of cloud in code units (hydrogen atom/cc)
-  d_cloud = 1.0;
+  d_cloud = 10.0;
   P_cloud = P_wind;  // cloud in pressure equilibrium with hot wind
   R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
   R_c = R_max/1.28; // radius at which cloud begins to taper
 
   // cloud center in code units
   xcen = 10.0;
-  ycen = 30.0;
+  ycen = 60.0;
 
   // hot wind
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -1137,7 +1136,7 @@ void Grid3D::Cloud_3D() {
   
   
   // number density of cloud in code units (hydrogen atom/cc)
-  d_cloud = 0.01;
+  d_cloud = 1.0;
   P_cloud = P_wind;  // cloud in pressure equilibrium with hot wind
   R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
   R_c = R_max/1.28; // radius at which cloud begins to taper

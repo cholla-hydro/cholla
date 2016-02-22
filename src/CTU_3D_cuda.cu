@@ -734,7 +734,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                                            Real *dev_Q_Lz, Real *dev_Q_Rz, Real *dev_F_z,
                                            int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt)
 {
-  Real d, d_inv, vx, vy, vz, P;
+  Real d, d_inv, vx, vy, vz, P, ge;
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
   Real dtodz = dt/dz;
@@ -766,15 +766,23 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodz*(dev_F_z[3*n_cells + kmo] - dev_F_z[3*n_cells + id]);
     dev_Q_Lx[4*n_cells + id] += 0.5*dtody*(dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id])
                               + 0.5*dtodz*(dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id]);
+    #ifdef DE
+    dev_Q_Lx[5*n_cells + id] += 0.5*dtody*(dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
+                              + 0.5*dtodz*(dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id]);
+    #endif
+    /*
     d  =  dev_Q_Lx[            id];
     d_inv = 1.0 / d;
     vx = dev_Q_Lx[1*n_cells + id] * d_inv;
     vy = dev_Q_Lx[2*n_cells + id] * d_inv;
     vz = dev_Q_Lx[3*n_cells + id] * d_inv;
     P  = dev_Q_Lx[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
-//      printf("%3d %3d %3d Negative pressure in Q_Lx update. %f %f %f %f\n", xid, yid, zid, dev_Q_Lx[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+    ge = dev_Q_Lx[5*n_cells + id];
+    if (ge < 0.0) {
+      //printf("%3d %3d %3d Negative pressure in Q_Lx update. %f %f %f %f\n", xid, yid, zid, dev_Q_Lx[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+      printf("%3d %3d %3d Negative internal energy in Q_Lx update.\n", xid, yid, zid);
     }
+    */
     if (dev_Q_Lx[id] < 0.0 || dev_Q_Lx[id] != dev_Q_Lx[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Lx update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Lx[id], dev_F_y[jmo], dev_F_y[id], dev_F_z[kmo], dev_F_z[id]);
     }
@@ -789,15 +797,23 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodz*(dev_F_z[3*n_cells + ipokmo] - dev_F_z[3*n_cells + ipo]);
     dev_Q_Rx[4*n_cells + id] += 0.5*dtody*(dev_F_y[4*n_cells + ipojmo] - dev_F_y[4*n_cells + ipo])
                               + 0.5*dtodz*(dev_F_z[4*n_cells + ipokmo] - dev_F_z[4*n_cells + ipo]);
+    #ifdef DE
+    dev_Q_Rx[5*n_cells + id] += 0.5*dtody*(dev_F_y[5*n_cells + ipojmo] - dev_F_y[5*n_cells + ipo])
+                              + 0.5*dtodz*(dev_F_z[5*n_cells + ipokmo] - dev_F_z[5*n_cells + ipo]);
+    #endif
+    /*
     d  =  dev_Q_Rx[            id];
     d_inv = 1.0 / d;
     vx = dev_Q_Rx[1*n_cells + id] * d_inv;
     vy = dev_Q_Rx[2*n_cells + id] * d_inv;
     vz = dev_Q_Rx[3*n_cells + id] * d_inv;
     P  = dev_Q_Rx[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
+    ge = dev_Q_Rx[5*n_cells + id];
+    if (ge < 0.0) {
 //      printf("%3d %3d %3d Negative pressure in Q_Rx update. %f %f %f %f\n", xid, yid, zid, dev_Q_Rx[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+      printf("%3d %3d %3d Negative internal energy in Q_Rx update.\n", xid, yid, zid);
     }
+    */
     if (dev_Q_Rx[id] < 0.0 || dev_Q_Rx[id] != dev_Q_Rx[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Rx update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Rx[id], dev_F_y[ipojmo], dev_F_y[ipo], dev_F_z[ipokmo], dev_F_z[ipo]);
     }
@@ -821,15 +837,23 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodx*(dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id]);
     dev_Q_Ly[4*n_cells + id] += 0.5*dtodz*(dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id])
                               + 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id]);
+    #ifdef DE
+    dev_Q_Ly[5*n_cells + id] += 0.5*dtodz*(dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id])
+                              + 0.5*dtodx*(dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id]);
+    #endif
+    /*
     d  =  dev_Q_Ly[            id];
     d_inv = 1.0 / d;
     vx = dev_Q_Ly[1*n_cells + id] * d_inv;
     vy = dev_Q_Ly[2*n_cells + id] * d_inv;
     vz = dev_Q_Ly[3*n_cells + id] * d_inv;
     P  = dev_Q_Ly[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
+    ge = dev_Q_Ly[5*n_cells + id];
+    if (ge < 0.0) {
 //      printf("%3d %3d %3d Negative pressure in Q_Ly update. %f %f %f %f\n", xid, yid, zid, dev_Q_Ly[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+      printf("%3d %3d %3d Negative internal energy in Q_Ly update.\n", xid, yid, zid);
     }
+    */
     if (dev_Q_Ly[id] < 0.0 || dev_Q_Ly[id] != dev_Q_Ly[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Ly update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Ly[id], dev_F_z[kmo], dev_F_z[id], dev_F_x[imo], dev_F_x[id]);
     }
@@ -844,15 +868,23 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodx*(dev_F_x[3*n_cells + jpoimo] - dev_F_x[3*n_cells + jpo]);
     dev_Q_Ry[4*n_cells + id] += 0.5*dtodz*(dev_F_z[4*n_cells + jpokmo] - dev_F_z[4*n_cells + jpo])
                               + 0.5*dtodx*(dev_F_x[4*n_cells + jpoimo] - dev_F_x[4*n_cells + jpo]);    
+    #ifdef DE
+    dev_Q_Ry[5*n_cells + id] += 0.5*dtodz*(dev_F_z[5*n_cells + jpokmo] - dev_F_z[5*n_cells + jpo])
+                              + 0.5*dtodx*(dev_F_x[5*n_cells + jpoimo] - dev_F_x[5*n_cells + jpo]);    
+    #endif
+    /*
     d  =  dev_Q_Ry[            id];
     d_inv = 1.0 / d;
     vx = dev_Q_Ry[1*n_cells + id] * d_inv;
     vy = dev_Q_Ry[2*n_cells + id] * d_inv;
     vz = dev_Q_Ry[3*n_cells + id] * d_inv;
     P  = dev_Q_Ry[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
+    ge = dev_Q_Ry[5*n_cells + id];
+    if (ge < 0.0) {
 //      printf("%3d %3d %3d Negative pressure in Q_Ry update. %f %f %f %f\n", xid, yid, zid, dev_Q_Ry[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+      printf("%3d %3d %3d Negative internal energy in Q_Ry update.\n", xid, yid, zid);
     }
+    */
     if (dev_Q_Ry[id] < 0.0 || dev_Q_Ry[id] != dev_Q_Ry[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Ry update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Ry[id], dev_F_z[jpokmo], dev_F_z[jpo], dev_F_x[jpoimo], dev_F_x[jpo]);
     }
@@ -876,15 +908,23 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtody*(dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
     dev_Q_Lz[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                               + 0.5*dtody*(dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
+    #ifdef DE
+    dev_Q_Lz[5*n_cells + id] += 0.5*dtodx*(dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
+                              + 0.5*dtody*(dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id]);
+    #endif
+    /*
     d  = dev_Q_Lz[            id];
     d_inv = 1.0 / d;
     vx = dev_Q_Lz[1*n_cells + id] * d_inv;
     vy = dev_Q_Lz[2*n_cells + id] * d_inv;
     vz = dev_Q_Lz[3*n_cells + id] * d_inv;
     P  = dev_Q_Lz[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
+    ge = dev_Q_Lz[5*n_cells + id];
+    if (ge < 0.0) {
       //printf("%3d %3d %3d Negative pressure in Q_Lz update. %f %f %f %f\n", xid, yid, zid, dev_Q_Lz[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+      printf("%3d %3d %3d Negative internal energy in Q_Lz update.\n", xid, yid, zid);
     }
+    */
     if (dev_Q_Lz[id] < 0.0 || dev_Q_Lz[id] != dev_Q_Lz[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Lz update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Lz[id], dev_F_x[imo], dev_F_x[id], dev_F_y[jmo], dev_F_y[id]);
     }
@@ -899,15 +939,23 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtody*(dev_F_y[3*n_cells + kpojmo] - dev_F_y[3*n_cells + kpo]);
     dev_Q_Rz[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + kpoimo] - dev_F_x[4*n_cells + kpo])
                               + 0.5*dtody*(dev_F_y[4*n_cells + kpojmo] - dev_F_y[4*n_cells + kpo]);    
+    #ifdef DE
+    dev_Q_Rz[5*n_cells + id] += 0.5*dtodx*(dev_F_x[5*n_cells + kpoimo] - dev_F_x[5*n_cells + kpo])
+                              + 0.5*dtody*(dev_F_y[5*n_cells + kpojmo] - dev_F_y[5*n_cells + kpo]);    
+    #endif
+    /*
     d  = dev_Q_Rz[            id];
     d_inv = 1.0 / d;
     vx = dev_Q_Rz[1*n_cells + id] * d_inv;
     vy = dev_Q_Rz[2*n_cells + id] * d_inv;
     vz = dev_Q_Rz[3*n_cells + id] * d_inv;
     P  = dev_Q_Rz[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    if (P < 0.0) {
+    ge = dev_Q_Rz[5*n_cells + id];
+    if (ge < 0.0) {
       //printf("%3d %3d %3d Negative pressure in Q_Rz update. %f %f %f %f\n", xid, yid, zid, dev_Q_Rz[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz);
+      printf("%3d %3d %3d Negative internal energy in Q_Rz update.\n", xid, yid, zid);
     }
+    */
     if (dev_Q_Rz[id] < 0.0 || dev_Q_Rz[id] != dev_Q_Rz[id]) {
       printf("%3d %3d %3d Thread crashed in Q_Rz update. %f %f %f %f %f\n", xid, yid, zid, dev_Q_Rz[id], dev_F_x[kpoimo], dev_F_x[kpo], dev_F_y[kpojmo], dev_F_y[kpo]);
     }
@@ -992,6 +1040,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
       printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
     }
     // every thread collects the conserved variables it needs from global memory
+    /*
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
@@ -999,6 +1048,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     if (P < 0.0) printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
+    */
   }
 
 }

@@ -10,7 +10,7 @@ ny=768
 # number of grid cells in the z dimension
 nz=1
 # final time
-tout=3000.0
+tout=10000.0
 # how often to output
 outstep=10.0
 # value of gamma
@@ -23,8 +23,8 @@ init=Cloud_2D
 xmin=0.0
 ymin=0.0
 zmin=0.0
-xlen=150.0
-ylen=60.0
+xlen=300.0
+ylen=120.0
 zlen=1.0
 # type of boundary conditions
 xl_bcnd=4
@@ -35,7 +35,7 @@ zl_bcnd=0
 zu_bcnd=0
 custom_bcnd=wind
 # path to output directory
-outdir=./adiabatic/hdf5/raw/
+outdir=./n10_big/hdf5/raw/
 
 
 

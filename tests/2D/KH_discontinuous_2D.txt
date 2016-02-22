@@ -4,21 +4,21 @@
 
 ######################################
 # number of grid cells in the x dimension
-#nx=128
+nx=512
 #nx=1920
 #nx=3840
-nx=2016
+#nx=2016
 # number of grid cells in the y dimension
-#ny=128
+ny=256
 #ny=1080
 #ny=2160
-ny=500
+#ny=500
 # number of grid cells in the z dimension
 nz=1
 # final output time
-tout=2.0
+tout=1.0
 # time interval for output
-outstep=0.001
+outstep=0.01
 # value of gamma
 gamma=1.4
 # name of initial conditions
@@ -28,8 +28,8 @@ xmin=0.0
 ymin=0.0
 zmin=0.0
 xlen=1.0
-#ylen=1.0
-ylen=0.248
+ylen=0.5
+#ylen=0.248
 zlen=1.0
 # type of boundary conditions
 xl_bcnd=1
@@ -42,5 +42,5 @@ zu_bcnd=0
 #outdir=/data2/evan/grid_tests/KH/PPM_athena/
 #outdir=./plm_athena/
 #outdir=./binaries/
-outdir=/gsfs1/rsgrps/brant/evan/data/KH/output/
+outdir=/gsfs1/rsgrps/brant/evan/data/KH/PPMP_CTU/hdf5/
 

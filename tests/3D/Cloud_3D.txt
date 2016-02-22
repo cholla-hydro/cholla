@@ -4,15 +4,15 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=960
+nx=1920
 # number of grid cells in the y dimension
 ny=256
 # number of grid cells in the z dimension
 nz=256
 # final time
-tout=300.0
+tout=10000.0
 # how often to output
-outstep=1.0
+outstep=10.0
 # value of gamma
 gamma=1.666667
 # name of initial conditions
@@ -23,7 +23,7 @@ init=Cloud_3D
 xmin=0.0
 ymin=0.0
 zmin=0.0
-xlen=150.0
+xlen=300.0
 ylen=40.0
 zlen=40.0
 # type of boundary conditions
@@ -35,7 +35,7 @@ zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=wind
 # path to output directory
-outdir=./sphere_wind/n001/hdf5/raw/
+outdir=./sphere_wind/CTU/hdf5/raw/
 
 
 

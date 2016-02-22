@@ -633,15 +633,16 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
       printf("%3d %3d Thread crashed in final update. %f %f %f %f %f\n", xid, yid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dev_F_y[jmo],dev_F_y[id], dev_conserved[id]);
     }   
     // every thread collects the conserved variables it needs from global memory
+    /*
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    if (P < 0.0) {
+    if (P < 0.0)
       printf("%3d %3d Negative pressure after final update. %f %f %f %f\n", xid, yid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, P);    
-    }
+    */
   }
 
 }

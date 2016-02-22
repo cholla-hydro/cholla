@@ -305,8 +305,8 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   log_n = log10(n);
   log_T = log10(T);
   // remap coordinates for texture
-  log_T = (log_T - 1.0)/8.0;
-  log_n = (log_n + 6.0)/12.0; 
+  log_T = (log_T - 1.0)/8.1;
+  log_n = (log_n + 6.0)/12.1; 
  
   lambda = tex2D<float>(coolTexObj, log_T, log_n);
   H = tex2D<float>(heatTexObj, log_T, log_n);

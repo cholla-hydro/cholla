@@ -875,7 +875,7 @@ void Allocate_MPI_Buffers_SLAB(struct Header *H)
   n_cons = 6;
   #endif
   int bsize  = n_cons*H->n_ghost*H->ny*H->nz;
-  printf("MPI buffer size: %d\n", bsize);
+  //printf("MPI buffer size: %d\n", bsize);
 
   send_buffer_length = bsize;
   recv_buffer_length = bsize;
