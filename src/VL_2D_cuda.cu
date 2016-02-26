@@ -9,6 +9,7 @@
 #include<cuda.h>
 #include"global.h"
 #include"global_cuda.h"
+#include"hydro_cuda.h"
 #include"VL_2D_cuda.h"
 #include"pcm_cuda.h"
 #include"plmp_vl_cuda.h"
@@ -17,18 +18,16 @@
 #include"exact_cuda.h"
 #include"roe_cuda.h"
 #include"h_correction_2D_cuda.h"
-#include"cooling.h"
+#include"cooling_cuda.h"
 #include"subgrid_routines_2D.h"
 
 //#define TIME
 //#define TEST
 
 
-__global__ void Update_Conserved_Variables_2D_notime(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y, int nx, int ny,
+__global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y, int nx, int ny,
                                               int n_ghost, Real dx, Real dy, Real dt, Real gamma);
 
-__global__ void Update_Conserved_Variables_2D_wtime(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y, int nx, int ny,
-                                              int n_ghost, Real dx, Real dy, Real dt, Real *dti_array, Real gamma);
 
 
 Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt)
@@ -48,8 +47,47 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
 
   int n_fields = 5;
   #ifdef DE
-  n_fields++;
+  n_fields = 6;
   #endif
+
+  #ifdef COOLING_GPU
+  // allocate CUDA arrays for cooling/heating tables
+  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+  cudaArray* cuCoolArray;
+  cudaArray* cuHeatArray;
+  cudaMallocArray(&cuCoolArray, &channelDesc, 81, 121);
+  cudaMallocArray(&cuHeatArray, &channelDesc, 81, 121);
+  // Copy to device memory the cooling and heating arrays
+  // in host memory
+  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, 81*121*sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, 81*121*sizeof(float), cudaMemcpyHostToDevice);
+
+  // Specify textures
+  struct cudaResourceDesc coolResDesc;
+  memset(&coolResDesc, 0, sizeof(coolResDesc));
+  coolResDesc.resType = cudaResourceTypeArray;
+  coolResDesc.res.array.array = cuCoolArray;
+  struct cudaResourceDesc heatResDesc;
+  memset(&heatResDesc, 0, sizeof(heatResDesc));
+  heatResDesc.resType = cudaResourceTypeArray;
+  heatResDesc.res.array.array = cuHeatArray;  
+
+  // Specify texture object parameters (same for both tables)
+  struct cudaTextureDesc texDesc;
+  memset(&texDesc, 0, sizeof(texDesc));
+  texDesc.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
+  texDesc.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
+  texDesc.filterMode = cudaFilterModeLinear;
+  texDesc.readMode = cudaReadModeElementType;
+  texDesc.normalizedCoords = 1;
+
+  // Create texture objects
+  cudaTextureObject_t coolTexObj = 0;
+  cudaCreateTextureObject(&coolTexObj, &coolResDesc, &texDesc, NULL);
+  cudaTextureObject_t heatTexObj = 0;
+  cudaCreateTextureObject(&heatTexObj, &heatResDesc, &texDesc, NULL);
+  #endif
+
 
   // dimensions of subgrid blocks
   int nx_s; //number of cells in the subgrid block along x direction
@@ -210,7 +248,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     #ifdef TIME
     cudaEventRecord(start, 0);
     #endif    
-    Update_Conserved_Variables_2D_notime<<<dim2dGrid,dim1dBlock>>>(dev_conserved, dev_conserved_half, F_x, F_y, nx_s, ny_s, n_ghost, dx, dy, 0.5*dt, gama);
+    Update_Conserved_Variables_2D_half<<<dim2dGrid,dim1dBlock>>>(dev_conserved, dev_conserved_half, F_x, F_y, nx_s, ny_s, n_ghost, dx, dy, 0.5*dt, gama);
     CudaCheckError();
     #ifdef TIME
     // get stop time and display the timing results
@@ -340,7 +378,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     #ifdef TIME
     cudaEventRecord(start, 0);
     #endif    
-    Update_Conserved_Variables_2D_wtime<<<dim2dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, nx_s, ny_s, n_ghost, dx, dy, dt, dev_dti_array, gama);
+    Update_Conserved_Variables_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, nx_s, ny_s, n_ghost, dx, dy, dt, gama);
     CudaCheckError();
     #ifdef TIME
     // get stop time and display the timing results
@@ -350,9 +388,18 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     printf("conserved variable update: %5.3f ms\n", elapsedTime);
     #endif     
 
+    #ifdef DE
+    Sync_Energies_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, n_ghost, gama);
+    #endif    
+
     #ifdef COOLING_GPU
-    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
+    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama, coolTexObj, heatTexObj);
     #endif
+    CudaCheckError();
+
+    // Step 6: Calculate the next timestep
+    Calc_dt_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, n_ghost, dx, dy, dev_dti_array, gama);
+    CudaCheckError();    
 
 
     // copy the conserved variable array back to the CPU
@@ -429,7 +476,15 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
   cudaFree(etah_x);
   cudaFree(etah_y);
   cudaFree(dev_dti_array);
-
+  #ifdef COOLING_GPU
+  // Destroy texture object
+  cudaDestroyTextureObject(coolTexObj);
+  cudaDestroyTextureObject(heatTexObj);
+  // Free device memory
+  cudaFreeArray(cuCoolArray);
+  cudaFreeArray(cuHeatArray);  
+  #endif    
+  
   #ifdef TIME
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
@@ -447,10 +502,16 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
 }
 
 
-__global__ void Update_Conserved_Variables_2D_notime(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt, Real gamma)
+__global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt, Real gamma)
 {
   int id, xid, yid, n_cells;
   int imo, jmo;
+
+  #ifdef DE
+  Real d, d_inv, vx, vy, vz, P;
+  Real vx_imo, vx_ipo, vy_jmo, vy_jpo;
+  int ipo, jpo;
+  #endif
 
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
@@ -462,14 +523,28 @@ __global__ void Update_Conserved_Variables_2D_notime(Real *dev_conserved, Real *
   id = threadIdx.x + blockId * blockDim.x;
   yid = id / nx;
   xid = id - yid*nx;
+  imo = xid-1 + yid*nx;
+  jmo = xid + (yid-1)*nx;
 
 
   // all threads but one outer ring of ghost cells 
   if (xid > 0 && xid < nx-1 && yid > 0 && yid < ny-1)
   {
     // update the conserved variable array
-    imo = xid-1 + yid*nx;
-    jmo = xid + (yid-1)*nx;
+    #ifdef DE
+    d  =  dev_conserved[            id];
+    d_inv = 1.0 / d;
+    vx =  dev_conserved[1*n_cells + id] * d_inv;
+    vy =  dev_conserved[2*n_cells + id] * d_inv;
+    vz =  dev_conserved[3*n_cells + id] * d_inv;
+    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+    ipo = xid+1 + yid*nx;
+    jpo = xid + (yid+1)*nx;
+    vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
+    vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
+    vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
+    vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
+    #endif    
     dev_conserved_half[            id] = dev_conserved[            id] + dtodx * (dev_F_x[            imo] - dev_F_x[            id])
                                                                        + dtody * (dev_F_y[            jmo] - dev_F_y[            id]);
     dev_conserved_half[  n_cells + id] = dev_conserved[  n_cells + id] + dtodx * (dev_F_x[  n_cells + imo] - dev_F_x[  n_cells + id]) 
@@ -480,81 +555,17 @@ __global__ void Update_Conserved_Variables_2D_notime(Real *dev_conserved, Real *
                                                                        + dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
     dev_conserved_half[4*n_cells + id] = dev_conserved[4*n_cells + id] + dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                                                                        + dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
+    #ifdef DE
+    dev_conserved_half[5*n_cells + id] = dev_conserved[5*n_cells + id] + dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
+                                                                       + dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
+                                                                       + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo));
+   
+    #endif
   } 
 }
 
 
 
-__global__ void Update_Conserved_Variables_2D_wtime(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt, Real *dti_array, Real gamma)
-{
-  __shared__ Real max_dti[TPB];
-
-  Real d, d_inv, vx, vy, vz, P, cs;
-  int id, tid, xid, yid, n_cells;
-  int imo, jmo;
-
-  Real dtodx = dt/dx;
-  Real dtody = dt/dy;
-
-  n_cells = nx*ny;
-
-  // get a global thread ID
-  int blockId = blockIdx.x + blockIdx.y*gridDim.x;
-  id = threadIdx.x + blockId * blockDim.x;
-  yid = id / nx;
-  xid = id - yid*nx;
-  // and a thread id within the block
-  tid = threadIdx.x;
-
-  // set shared memory to 0
-  max_dti[tid] = 0;
-  __syncthreads();
-
-  // threads corresponding to real cells do the calculation
-  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost)
-  {
-    // update the conserved variable array
-    imo = xid-1 + yid*nx;
-    jmo = xid + (yid-1)*nx;
-    dev_conserved[            id] += dtodx * (dev_F_x[            imo] - dev_F_x[            id])
-                                  +  dtody * (dev_F_y[            jmo] - dev_F_y[            id]);
-    dev_conserved[  n_cells + id] += dtodx * (dev_F_x[  n_cells + imo] - dev_F_x[  n_cells + id]) 
-                                  +  dtody * (dev_F_y[  n_cells + jmo] - dev_F_y[  n_cells + id]);
-    dev_conserved[2*n_cells + id] += dtodx * (dev_F_x[2*n_cells + imo] - dev_F_x[2*n_cells + id]) 
-                                  +  dtody * (dev_F_y[2*n_cells + jmo] - dev_F_y[2*n_cells + id]); 
-    dev_conserved[3*n_cells + id] += dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
-                                  +  dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
-    dev_conserved[4*n_cells + id] += dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
-                                  +  dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
-   
-
-    // start timestep calculation here
-    // every thread collects the conserved variables it needs from global memory
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    P  = fmax(P, (Real) 1.0e-20);
-    // find the max wavespeed in that cell, use it to calculate the inverse timestep
-    cs = sqrt(d_inv * gamma * P);
-    max_dti[tid] = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
-  }
-  __syncthreads();
-  
-  // do the reduction in shared memory (find the max inverse timestep in the block)
-  for (unsigned int s=1; s<blockDim.x; s*=2) {
-    if (tid % (2*s) == 0) {
-      max_dti[tid] = fmax(max_dti[tid], max_dti[tid + s]);
-    }
-    __syncthreads();
-  }
-
-  // write the result for this block to global memory
-  if (tid == 0) dti_array[blockId] = max_dti[0];
-  
-}
 
 #endif //VL
 #endif //CUDA
