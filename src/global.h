@@ -21,7 +21,7 @@ typedef double Real;
 #endif //DOUBLE_PRECISION
 
 #define MAXLEN 80
-#define TINY_NUMBER 1.0e-20
+#define TINY_NUMBER 1.0e-10
 #define PI 3.141592653589793
 #define MP 1.672622e-24 // mass of proton, grams
 #define KB 1.380658e-16 // boltzmann constant, cgs

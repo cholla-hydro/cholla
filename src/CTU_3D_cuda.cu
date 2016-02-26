@@ -734,7 +734,7 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                                            Real *dev_Q_Lz, Real *dev_Q_Rz, Real *dev_F_z,
                                            int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt)
 {
-  Real d, d_inv, vx, vy, vz, P, ge;
+  //Real d, d_inv, vx, vy, vz, P, ge;
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
   Real dtodz = dt/dz;

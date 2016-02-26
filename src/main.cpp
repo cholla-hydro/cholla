@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
   #endif /*MPI_CHOLLA*/
 
   // declare variables
-  Real C_cfl = 0.4; // CFL coefficient 0 < C_cfl < 0.5 
+  Real C_cfl = 0.25; // CFL coefficient 0 < C_cfl < 0.5 
   Real dti = 0; // inverse time step, 1.0 / dt
 
   // input parameter variables
@@ -174,19 +174,19 @@ int main(int argc, char *argv[])
     #endif //MPI_CHOLLA
     #endif
 
-/*
+
     for (int i=G.H.n_ghost; i<G.H.nx-G.H.n_ghost; i++) {
       for (int j=G.H.n_ghost; j<G.H.ny-G.H.n_ghost; j++) {
         for (int k=G.H.n_ghost; k<G.H.nz-G.H.n_ghost; k++) {
-        int id = i + G.H.nx*j + G.H.nx*G.H.ny*k;
-        if (G.C.density[id] != G.C.density[id]) {
-          printf("%d %3d %3d\n", i, j, k);
-          exit(0);
-        }
+          int id = i + G.H.nx*j + G.H.nx*G.H.ny*k;
+          if (G.C.density[id] != G.C.density[id]) {
+              printf("%d %3d %3d\n", i, j, k);
+              chexit(0);
+          }
         }
       }    
     }
-*/
+
   /*
   for (int j=0; j<G.H.ny; j++) {
     printf("%03d ", j);

@@ -545,6 +545,10 @@ void Grid3D::Wind_Boundary()
   d_0 = 1.285209e-27 / DENSITY_UNIT;
   v_0 = 1.229560e8 / VELOCITY_UNIT;
   P_0 = 4.232212e-13 / PRESSURE_UNIT;
+  // new wind boundaries - Mach 10 shock
+  //d_0 = 3.883495e-3;
+  //v_0 = 8.706499e7 / VELOCITY_UNIT;
+  //P_0 = 1.7223709e-11 / PRESSURE_UNIT;
 
 
 /*

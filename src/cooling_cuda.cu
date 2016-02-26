@@ -304,13 +304,22 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   float log_n, log_T;
   log_n = log10(n);
   log_T = log10(T);
+
+  // don't allow cooling at super low temps
+  if (log_T < 1.0) return cool;
+
+  // keep estimates within the bounds of the textures
+  // this is done automatically by setting cudaAddressModeClamp
+  //log_T = fmin(log_T, 9.0);
+  //log_n = fmax(log_n, -6.0);
+  //log_n = fmin(log_n, 6.0);
+
   // remap coordinates for texture
   log_T = (log_T - 1.0)/8.1;
   log_n = (log_n + 6.0)/12.1; 
  
   lambda = tex2D<float>(coolTexObj, log_T, log_n);
   H = tex2D<float>(heatTexObj, log_T, log_n);
-  //printf("%f %f %f %f\n", log_n, log_T, lambda, H);
 
   // cooling rate per unit volume
   cool = n*n*(powf(10, lambda) - powf(10, H));
