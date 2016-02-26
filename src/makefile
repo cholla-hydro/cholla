@@ -3,12 +3,12 @@ EXEC   = cholla
 OPTIMIZE =  -O2  
 
 
-OBJS   = main.o global.o grid3D.o initial_conditions.o boundary_conditions.o CTU_1D.o CTU_2D.o CTU_3D.o plmp.o plmc.o ppmp.o ppmc.o exact.o roe.o cooling_cpu.o subgrid_routines_2D.o subgrid_routines_3D.o  mpi_routines.o mpi_boundaries.o MPI_Comm_node.o io_mpi.o io.o error_handling.o rng.o global_cuda.o CTU_1D_cuda.o CTU_2D_cuda.o CTU_3D_cuda.o VL_1D_cuda.o VL_2D_cuda.o VL_3D_cuda.o pcm_cuda.o plmp_ctu_cuda.o plmc_ctu_cuda.o plmp_vl_cuda.o ppmp_ctu_cuda.o ppmc_ctu_cuda.o ppmp_vl_cuda.o ppmc_vl_cuda.o exact_cuda.o roe_cuda.o h_correction_2D_cuda.o h_correction_3D_cuda.o cooling_cuda.o cooling_wrapper.o cuda_mpi_routines.o
+OBJS   = main.o global.o grid3D.o initial_conditions.o boundary_conditions.o CTU_1D.o CTU_2D.o CTU_3D.o plmp.o plmc.o ppmp.o ppmc.o exact.o roe.o cooling_cpu.o subgrid_routines_2D.o subgrid_routines_3D.o  mpi_routines.o mpi_boundaries.o MPI_Comm_node.o io_mpi.o io.o error_handling.o rng.o global_cuda.o hydro_cuda.o CTU_1D_cuda.o CTU_2D_cuda.o CTU_3D_cuda.o VL_1D_cuda.o VL_2D_cuda.o VL_3D_cuda.o pcm_cuda.o plmp_ctu_cuda.o plmc_ctu_cuda.o plmp_vl_cuda.o ppmp_ctu_cuda.o ppmc_ctu_cuda.o ppmp_vl_cuda.o ppmc_vl_cuda.o exact_cuda.o roe_cuda.o h_correction_2D_cuda.o h_correction_3D_cuda.o cooling_cuda.o cooling_wrapper.o cuda_mpi_routines.o
 
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-#MPI_FLAGS =  -DMPI_CHOLLA
+MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
@@ -46,7 +46,7 @@ RECONSTRUCTION = -DPPMP
 SOLVER = -DROE
 
 #INTEGRATOR = -DCTU 
-#INTEGRATOR = -DVL
+INTEGRATOR = -DVL
 
 #COOLING = -DCOOLING_CPU
 #COOLING = -DCOOLING_GPU
@@ -59,7 +59,7 @@ LIBS   = -L/usr/local/lib -lm -lgsl -lhdf5
 FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DDE -DCUDA -DCUDA_ERROR_CHECK
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) #-m64
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) #-m64
-NVCCFLAGS = $(FLAGS) -Xcompiler -arch -Xcompiler x86_64 -gencode arch=compute_30,code=sm_30 -fmad=false 
+NVCCFLAGS = $(FLAGS) -Xcompiler -arch -Xcompiler x86_64 -gencode arch=compute_20,code=sm_20 -fmad=false 
 LDFLAGS	  = -Xlinker -rpath -Xlinker /usr/local/cuda/lib #-m64 -F/Library/Frameworks -framework CUDA
 
 
