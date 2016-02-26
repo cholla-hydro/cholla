@@ -9,6 +9,7 @@
 #include<cuda.h>
 #include"global.h"
 #include"global_cuda.h"
+#include"hydro_cuda.h"
 #include"CTU_1D_cuda.h"
 #include"pcm_cuda.h"
 #include"plmp_ctu_cuda.h"
@@ -23,16 +24,6 @@
 
 
 //#define TEST
-
-
-__global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int n_ghost, 
-                                              Real dx, Real dt, Real gamma);
-
-__global__ void Calc_dt_1D(Real *dev_conserved, int n_cells, int n_ghost, Real dx, Real *dti_array, Real gamma);
-
-__global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, Real gamma);
-
-
 
 Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Real dt)
 {
@@ -236,7 +227,6 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
 
   #ifdef COOLING_GPU
   cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama, coolTexObj, heatTexObj);
-  cudaDeviceSynchronize();  
   #endif
 
   // Calculate the next timestep
@@ -312,176 +302,11 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
 }
 
 
-__global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int n_ghost, Real dx, Real dt, Real gamma)
-{
-  int id;
-  Real d, d_inv, vx, vy, vz, P;  
-  #ifdef DE
-  Real vx_imo, vx_ipo;
-  #endif
-
-  Real dtodx = dt/dx;
-
-  // get a global thread ID
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-
-
-  // threads corresponding to real cells do the calculation
-  if (id > n_ghost - 1 && id < n_cells-n_ghost)
-  {
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    #ifdef DE
-    vx_imo = dev_conserved[1*n_cells + id-1]/dev_conserved[id-1];
-    vx_ipo = dev_conserved[1*n_cells + id+1]/dev_conserved[id+1];
-    #endif
-  
-    // update the conserved variable array
-    dev_conserved[            id] += dtodx * (dev_F[            id-1] - dev_F[            id]);
-    dev_conserved[  n_cells + id] += dtodx * (dev_F[  n_cells + id-1] - dev_F[  n_cells + id]);
-    dev_conserved[2*n_cells + id] += dtodx * (dev_F[2*n_cells + id-1] - dev_F[2*n_cells + id]);
-    dev_conserved[3*n_cells + id] += dtodx * (dev_F[3*n_cells + id-1] - dev_F[3*n_cells + id]);
-    dev_conserved[4*n_cells + id] += dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
-    #ifdef DE
-    dev_conserved[5*n_cells + id] += dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
-                                  +  dtodx * P * 0.5 * (vx_imo - vx_ipo);
-    #endif
-    if (dev_conserved[id] != dev_conserved[id]) printf("%3d Thread crashed in final update.\n", id);
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    if (P < 0.0) printf("%d Negative pressure after final update.\n", id);
-  }
-
-
-}
 
 
 
-__global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, Real gamma)
-{
-  int id;
-  Real d, d_inv, vx, vy, vz, P, E;
-  Real ge1, ge2, Emax;
-  int im1, ip1;
-
-  // get a global thread ID
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-  
-  im1 = max(id-1, n_ghost);
-  ip1 = min(id+1, n_cells-n_ghost-1);
-
-  // threads corresponding to real cells do the calculation
-  if (id > n_ghost - 1 && id < n_cells-n_ghost)
-  {
-    // every thread collects the conserved variables it needs from global memory
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    E  =  dev_conserved[4*n_cells + id];
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    // separately tracked internal energy 
-    ge1 = dev_conserved[5*n_cells + id];
-    // internal energy calculated from total energy
-    ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    // if the ratio of conservatively calculated internal energy to total energy
-    // is greater than 1/1000, use the conservatively calculated internal energy
-    // to do the internal energy update
-    if (ge2/E > 0.001) {
-      dev_conserved[5*n_cells + id] = ge2;
-      ge1 = ge2;
-    }     
-    // find the max nearby total energy 
-    Emax = fmax(dev_conserved[4*n_cells + im1], E);
-    Emax = fmax(dev_conserved[4*n_cells + ip1], Emax);
-    // if the ratio of conservatively calculated internal energy to max nearby total energy
-    // is greater than 1/10, continue to use the conservatively calculated internal energy 
-    if (ge2/Emax > 0.1) {
-      dev_conserved[5*n_cells + id] = ge2;
-    }
-    // sync the total energy with the internal energy 
-    else {
-      dev_conserved[4*n_cells + id] += ge1 - ge2;
-    }
-    /*
-    // if the conservatively calculated internal energy is greater than the estimate of the truncation error,
-    // use the internal energy computed from the total energy to do the update
-    //find the max nearby velocity difference (estimate of truncation error) 
-    vmax = fmax(fabs(vx-dev_conserved[1*n_cells + im1]/dev_conserved[im1]), fabs(dev_conserved[1*n_cells + ip1]/dev_conserved[ip1]-vx));
-    //printf("%3d %f %f %f %f\n", id, ge1, ge2, vmax, 0.25*d*vmax*vmax);
-    if (ge2 > 0.25*d*vmax*vmax) {
-      dev_conserved[5*n_cells + id] = ge2;
-      ge1 = ge2;
-    }
-    //else printf("%d Using ge1 %f %f %f %f\n", id, ge1, ge2, vmax, 0.25*d*vmax*vmax);
-    */
-    // update the total energy
-     
-    // recalculate the pressure 
-    P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
-    if (P < 0.0) printf("%d Negative pressure after internal energy sync. %f %f \n", id, ge1, ge2);    
-  }
-
-}
 
 
-__global__ void Calc_dt_1D(Real *dev_conserved, int n_cells, int n_ghost, Real dx, Real *dti_array, Real gamma)
-{
-  __shared__ Real max_dti[TPB];
-
-  Real d, d_inv, vx, vy, vz, P, cs;
-  int id, tid;
-
-  // get a global thread ID
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-  // and a thread id within the block
-  tid = threadIdx.x;
-
-  // set shared memory to 0
-  max_dti[tid] = 0;
-  __syncthreads();
-
-
-  // threads corresponding to real cells do the calculation
-  if (id > n_ghost - 1 && id < n_cells-n_ghost)
-  {
-    // start timestep calculation here
-    // every thread collects the conserved variables it needs from global memory
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    P  = fmax(P, (Real) TINY_NUMBER);
-    // find the max wavespeed in that cell, use it to calculate the inverse timestep
-    cs = sqrt(d_inv * gamma * P);
-    max_dti[tid] = (fabs(vx)+cs)/dx;
-  }
-  __syncthreads();
-  
-  // do the reduction in shared memory (find the max inverse timestep in the block)
-  for (unsigned int s=1; s<blockDim.x; s*=2) {
-    if (tid % (2*s) == 0) {
-      max_dti[tid] = fmax(max_dti[tid], max_dti[tid + s]);
-    }
-    __syncthreads();
-  }
-
-  // write the result for this block to global memory
-  if (tid == 0) dti_array[blockIdx.x] = max_dti[0];
-
-
-}
 
 
 
