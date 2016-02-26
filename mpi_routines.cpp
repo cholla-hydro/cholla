@@ -348,15 +348,7 @@ void DomainDecompositionSLAB(struct parameters *P, struct Header *H, int nx_gin,
     P->xu_bcnd = 5;
   }
 
-  /*
-  for(i=0;i<nproc;i++) {
-    if(i==procID)
-    {
-      printf("ProcessID: %d  xl_b: %d  xu_b: %d  yl_b: %d  yu_b: %d  zl_b: %d  zu_b: %d\n",procID,P->xl_bcnd,P->xu_bcnd,P->yl_bcnd,P->yu_bcnd,P->zl_bcnd,P->zu_bcnd);
-      fflush(stdout);
-    }
-  }
-  */
+
 
 }
 
@@ -373,7 +365,6 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   if(nproc%2)
   {
     chprintf("Block based decomposition must use an even number of MPI processes.\n");
-    //chexit(-10);
     chprintf("Switching to slab decomposition\n");
     flag_decomp = SLAB_DECOMP; /*set decomp flag to SLAB_DECOMP*/
     /*perform a SLAB decomposition*/
@@ -442,8 +433,6 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
         }
         n++;
       }
-  //chprintf("nproc_x %d nproc_y %d nproc_z %d\n",nproc_x,nproc_y,nproc_z);
-  //printf("id %d dest %d %d %d %d %d %d\n",procID,dest[0],dest[1],dest[2],dest[3],dest[4],dest[5]);
 
   /* set local x, y, z subdomain sizes */
   n = nx_global%nproc_x;
@@ -517,11 +506,6 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   source[5] = tiling[ix[procID]][iy[procID]][source[5]];
 
   chprintf("nproc_x %d nproc_y %d nproc_z %d\n",nproc_x,nproc_y,nproc_z);
-  //printf("id %d nx_local %d ny_local %d nz_local %d\n",procID,nx_local,ny_local,nz_local);
-  //printf("id %d dest %d %d %d %d %d %d\n",procID,dest[0],dest[1],dest[2],dest[3],dest[4],dest[5]);
-  //printf("id %d source %d %d %d %d %d %d\n",procID,source[0],source[1],source[2],source[3],source[4],source[5]);
-  //printf("id %d ix %d iy %d iz %d\n",procID,ix[procID],iy[procID],iz[procID]);
-  //printf("id %d nxs %d nys %d nzs %d\n",procID,nx_local_start,ny_local_start,nz_local_start);
 
   //free the tiling
   deallocate_three_dimensional_int_array(tiling,nproc_x,nproc_y,nproc_z);
@@ -612,21 +596,12 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
     }
   }
 
-  for(i=0;i<nproc;i++) {
-    if(i==procID)
-    {
-      //printf("ProcessID: %d  xl_b: %d  xu_b: %d  yl_b: %d  yu_b: %d  zl_b: %d  zu_b: %d\n",procID,P->xl_bcnd,P->xu_bcnd,P->yl_bcnd,P->yu_bcnd,P->zl_bcnd,P->zu_bcnd);
-      //fflush(stdout);
-    }
-  }
 
   //free indices
   free(ix);
   free(iy);
   free(iz);
 
-  //MPI_Finalize();
-  //exit(0);
 }
 
 
@@ -805,33 +780,6 @@ void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, R
     H->dy = H->domlen_y / (H->ny - 2*H->n_ghost);
     H->dz = H->domlen_z / (H->nz - 2*H->n_ghost);
   }
-  //printf("ProcessID: %d  nx_global: %ld  domlen_x: %f  xlen: %f  dx: %f\n", procID, nx_global, H->domlen_x, xlen, H->dx); 
-
-/*
-  //printf("procID %d nxg %ld nyg %ld nzg %ld\n",procID,nx_global,ny_global,nz_global);
-  printf("procID %d nxg %15.14e nyg %15.14e nzg %15.14e\n",procID,(Real) nx_global,(Real) ny_global,(Real) nz_global);
-  fflush(stdout);
-  MPI_Barrier(world);
-
-  printf("procID %d xlg %15.14e ylg %15.14e zlg %15.14e\n",procID,xlen_global,ylen_global,zlen_global);
-  fflush(stdout);
-  MPI_Barrier(world);
-
-  //printf("**** xlen %e ylen %e zlen %e\n",xlen,ylen,zlen);
-  printf("procID %d dx %15.14e dy %15.14e dz %15.14e\n",procID,H->dx,H->dy,H->dz);
-  fflush(stdout);
-  MPI_Barrier(world);
-
-  printf("procID %d xlen %15.14e ylen %15.14e zlen %15.14e\n",procID,xlen,ylen,zlen);
-  fflush(stdout);
-  MPI_Barrier(world);
-
-  printf("procID %d dxlen %15.14e dylen %15.14e dzlen %15.14e\n",procID,H->domlen_x,H->domlen_y,H->domlen_z);
-  fflush(stdout);
-  MPI_Barrier(world);
-*/
-  //MPI_Finalize();
-  //exit(0);
 
   /* make sure the domain is properly set for this decomposition*/
   if(pd_flag==0)

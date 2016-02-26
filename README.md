@@ -15,12 +15,15 @@ be able to configure it for your machine by modifying one of the makefiles appro
 
 Configuration Notes
 ------------
-Most of the options available in Cholla are selected within the makefile, e.g. single vs
-double precision, output format, the reconstruction method, Riemann solver, and integrator.
+Most of the configuration options available in Cholla are selected by commenting/uncommenting
+the appropriate line within the makefile, e.g. single vs
+double precision, output format, the reconstruction method, Riemann solver, integrator, 
+and cooling. The entire code must be recompiled any time you change the configuration.
 
-A few options must be specified within on the 'FLAGS' line, namely the H_CORRECTION, dual energy (DE),
+A few options must be specified on the 'FLAGS' line in the makefile, namely the H_CORRECTION, dual energy (DE),
 CUDA, and CUDA_ERROR_CHECK options. It is strongly recommended that you include the dual energy
-flag when radiative cooling is turned on.
+flag when cooling is turned on.
+
 
 Running Cholla
 --------------
