@@ -50,6 +50,7 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
   {
     // retrieve primative variables
     dl  = dev_bounds_L[            tid];
+    dl = fmax(dl, (Real) TINY_NUMBER);
     vxl = dev_bounds_L[o1*n_cells + tid]/dl;
     vyl = dev_bounds_L[o2*n_cells + tid]/dl;
     vzl = dev_bounds_L[o3*n_cells + tid]/dl;
@@ -59,6 +60,7 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
     gel = dev_bounds_L[5*n_cells + tid]/dl;
     #endif
     dr  = dev_bounds_R[            tid];
+    dr = fmax(dr, (Real) TINY_NUMBER);
     vxr = dev_bounds_R[o1*n_cells + tid]/dr;
     vyr = dev_bounds_R[o2*n_cells + tid]/dr;
     vzr = dev_bounds_R[o3*n_cells + tid]/dr;

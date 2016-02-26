@@ -62,7 +62,7 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
   if (xid < nx && yid < ny && zid < nz) 
   {
     // retrieve conserved variables
-    dl  = dev_bounds_L[            tid];
+    dl  = dev_bounds_L[             tid];
     mxl = dev_bounds_L[o1*n_cells + tid];
     myl = dev_bounds_L[o2*n_cells + tid];
     mzl = dev_bounds_L[o3*n_cells + tid];
@@ -118,7 +118,7 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
 
     // calculate the sound speed squared (Stone B2)
     vsq = (vx*vx + vy*vy + vz*vz);
-    asq = g1*fmax((H - 0.5*vsq), TINY_NUMBER);
+    asq = g1*fmax((H - 0.5*vsq), 1.0e-6);
     a = sqrt(asq);
 
     // calculate the averaged eigenvectors of the Roe matrix (Stone Eqn B2, Toro 11.107)
@@ -171,7 +171,7 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
     }
     // otherwise calculate the Roe fluxes
     else {
-    
+   
       // calculate the difference in conserved variables across the cell interface
       // Stone Eqn 68
       del_d  = dr  - dl;
@@ -231,7 +231,7 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
       test4 = El + a0*(H-vx*a);
 
       if(lambda_0 > lambda_m) {
-        if (test0 <= 0.0) { 
+        if (test0 <= 0.0 || test0 != test0) { 
           hlle_flag=1; 
         }
         if (test4 - 0.5*(test1*test1 + test2*test2 + test3*test3)/test0 < 0.0) {
@@ -246,7 +246,7 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
       test4 += a1*vy + a2*vz + a3*0.5*vsq;
 
       if(lambda_p > lambda_0) {
-        if (test0 <= 0.0) { 
+        if (test0 <= 0.0 || test0 != test0) { 
           hlle_flag=1; 
         }
         if (test4 - 0.5*(test1*test1 + test2*test2 + test3*test3)/test0 < 0.0) {
@@ -319,6 +319,7 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
           dev_flux[5*n_cells+tid] = dev_flux[tid] * ger;
         #endif
       }
+      
 
     }
 

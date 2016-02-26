@@ -763,7 +763,7 @@ void Grid3D::Cloud_2D() {
   P_wind = 4.232212e-13 / PRESSURE_UNIT;
   
   // number density of cloud in code units (hydrogen atom/cc)
-  d_cloud = 10.0;
+  d_cloud = 1.0;
   P_cloud = P_wind;  // cloud in pressure equilibrium with hot wind
   R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
   R_c = R_max/1.28; // radius at which cloud begins to taper
@@ -1129,11 +1129,14 @@ void Grid3D::Cloud_3D() {
   //d_wind = 2.712148e-26 / DENSITY_UNIT;
   //v_wind = 6.473926e7 / VELOCITY_UNIT;
   //P_wind = 6.820245e-11 / PRESSURE_UNIT;
-  // Mach 5.25 (R = 1000pc)
-  d_wind = 1.285209e-27 / DENSITY_UNIT;
-  v_wind = 1.229560e8 / VELOCITY_UNIT;
-  P_wind = 4.232212e-13 / PRESSURE_UNIT;
-  
+  // Mach 5.25 (R = 1000pc) (old parameters)
+  //d_wind = 1.285209e-27 / DENSITY_UNIT;
+  //v_wind = 1.229560e8 / VELOCITY_UNIT;
+  //P_wind = 4.232212e-13 / PRESSURE_UNIT;
+  // Mach 5.25 (R = 1000pc) (new parameters)
+  d_wind = 8.807181e-27 / DENSITY_UNIT;
+  v_wind = 1.196177e8 / VELOCITY_UNIT;
+  P_wind = 2.744870e-12 / PRESSURE_UNIT;
   
   // number density of cloud in code units (hydrogen atom/cc)
   d_cloud = 1.0;
@@ -1141,10 +1144,17 @@ void Grid3D::Cloud_3D() {
   R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
   R_c = R_max/1.28; // radius at which cloud begins to taper
 
+  // Set initial conditions to be pre-shock CGM
+  // in pressure equilibrium with cloud
+  d_wind = 1.0e-3;
+  v_wind = 0.0;
+  P_wind = d_cloud * KB * 1e3;
+  
+
   // cloud center in code units
   xcen = 10.0;
-  ycen = 20.0;
-  zcen = 20.0;
+  ycen = 30.0;
+  zcen = 30.0;
 
   // hot wind
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
@@ -1323,7 +1333,7 @@ void Grid3D::Cloud_3D() {
   }
   fclose(fp);
 */
-
+/*
   // spherical cloud 
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -1362,7 +1372,7 @@ void Grid3D::Cloud_3D() {
       }
     }
   }
-
+*/
 
 }
 

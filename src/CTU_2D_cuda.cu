@@ -371,6 +371,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     Calculate_Roe_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
     Calculate_Roe_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
     CudaCheckError();
+    cudaDeviceSynchronize();
     #endif
 
 #endif //CTU
@@ -392,16 +393,18 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
 
     #ifdef DE
     Sync_Energies_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, n_ghost, gama);
+    cudaDeviceSynchronize();
     #endif
 
     #ifdef COOLING_GPU
     cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama, coolTexObj, heatTexObj);
+    cudaDeviceSynchronize();
     #endif
+
 
     // Step 6: Calculate the next timestep
     Calc_dt_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, n_ghost, dx, dy, dev_dti_array, gama);
     CudaCheckError();    
-
 
     // copy the conserved variable array back to the CPU
     #ifdef TIME
@@ -533,12 +536,20 @@ __global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real 
     dev_Q_Lx[2*n_cells + id] += 0.5*dtody*(dev_F_y[2*n_cells + jmo] - dev_F_y[2*n_cells + id]);
     dev_Q_Lx[3*n_cells + id] += 0.5*dtody*(dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
     dev_Q_Lx[4*n_cells + id] += 0.5*dtody*(dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
+    #ifdef DE
+    dev_Q_Lx[5*n_cells + id] += 0.5*dtody*(dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id]);
+    #endif
+    if (dev_Q_Lx[id] != dev_Q_Lx[id]) printf("%3d %3d Thread crashed in Lx update. %f %f\n", xid, yid, dev_F_y[jmo], dev_F_y[id]);
     // right
     dev_Q_Rx[            id] += 0.5*dtody*(dev_F_y[            ipojmo] - dev_F_y[            ipo]);
     dev_Q_Rx[  n_cells + id] += 0.5*dtody*(dev_F_y[  n_cells + ipojmo] - dev_F_y[  n_cells + ipo]);
     dev_Q_Rx[2*n_cells + id] += 0.5*dtody*(dev_F_y[2*n_cells + ipojmo] - dev_F_y[2*n_cells + ipo]);
     dev_Q_Rx[3*n_cells + id] += 0.5*dtody*(dev_F_y[3*n_cells + ipojmo] - dev_F_y[3*n_cells + ipo]);
     dev_Q_Rx[4*n_cells + id] += 0.5*dtody*(dev_F_y[4*n_cells + ipojmo] - dev_F_y[4*n_cells + ipo]);
+    #ifdef DE
+    dev_Q_Rx[5*n_cells + id] += 0.5*dtody*(dev_F_y[5*n_cells + ipojmo] - dev_F_y[5*n_cells + ipo]);
+    #endif
+    if (dev_Q_Rx[id] != dev_Q_Rx[id]) printf("%3d %3d Thread crashed in Rx update. %f %f\n", xid, yid, dev_F_y[ipojmo], dev_F_y[ipo]);
   }
   // set the new y interface states
   if (yid > n_ghost-2 && yid < ny-n_ghost && xid > n_ghost-2 && xid < nx-n_ghost+1)
@@ -552,12 +563,20 @@ __global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real 
     dev_Q_Ly[2*n_cells + id] += 0.5*dtodx*(dev_F_x[2*n_cells + imo] - dev_F_x[2*n_cells + id]); 
     dev_Q_Ly[3*n_cells + id] += 0.5*dtodx*(dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id]); 
     dev_Q_Ly[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id]); 
+    #ifdef DE
+    dev_Q_Ly[5*n_cells + id] += 0.5*dtodx*(dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id]); 
+    #endif
+    if (dev_Q_Ly[id] != dev_Q_Ly[id]) printf("%3d %3d Thread crashed in Ly update. %f %f\n", xid, yid, dev_F_x[imo], dev_F_x[id]);
     // right
     dev_Q_Ry[            id] += 0.5*dtodx*(dev_F_x[            jpoimo] - dev_F_x[            jpo]); 
     dev_Q_Ry[  n_cells + id] += 0.5*dtodx*(dev_F_x[  n_cells + jpoimo] - dev_F_x[  n_cells + jpo]); 
     dev_Q_Ry[2*n_cells + id] += 0.5*dtodx*(dev_F_x[2*n_cells + jpoimo] - dev_F_x[2*n_cells + jpo]); 
     dev_Q_Ry[3*n_cells + id] += 0.5*dtodx*(dev_F_x[3*n_cells + jpoimo] - dev_F_x[3*n_cells + jpo]); 
     dev_Q_Ry[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + jpoimo] - dev_F_x[4*n_cells + jpo]); 
+    #ifdef DE
+    dev_Q_Ry[5*n_cells + id] += 0.5*dtodx*(dev_F_x[5*n_cells + jpoimo] - dev_F_x[5*n_cells + jpo]); 
+    #endif
+    if (dev_Q_Ry[id] != dev_Q_Ry[id]) printf("%3d %3d Thread crashed in Ry update. %f %f\n", xid, yid, dev_F_x[jpoimo], dev_F_x[jpo]);
   }
 
 }
