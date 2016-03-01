@@ -18,6 +18,7 @@
 #include"ppmc_vl_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
+#include"hllc_cuda.h"
 #include"cooling_cuda.h"
 #include"error_handling.h"
 #include"io.h"
