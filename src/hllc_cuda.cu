@@ -27,15 +27,15 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
   Real dl, vxl, mxl, vyl, myl, vzl, mzl, pl, El;
   Real dr, vxr, mxr, vyr, myr, vzr, mzr, pr, Er;
 
-  Real etah = 0.0;
   Real g1 = gamma - 1.0; 
   Real Hl, Hr;
   Real sqrtdl, sqrtdr, vx, vy, vz, H;
   Real vsq, asq, a;
-  Real lambda_m, lambda_0, lambda_p;
+  Real lambda_m, lambda_p;
   Real f_d_l, f_mx_l, f_my_l, f_mz_l, f_E_l;
   Real f_d_r, f_mx_r, f_my_r, f_mz_r, f_E_r;
-  Real tl, tr, bl, br, tmp, am, cp, sl, sr, sm, cfl, cfr;
+  Real f_d, f_mx, f_my, f_mz, f_E;
+  Real al, ar, bm, bp, tl, tr, bl, br, tmp, am, cp, sl, sr, sm, cfl, cfr;
   #ifdef DE
   Real gel, ger, f_ge;
   #endif
@@ -74,27 +74,17 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
     ger = dev_bounds_R[5*n_cells + tid] / dr;
     #endif
 
-
-    // retrieve etah value
-    etah = dev_etah[tid];
-
     // calculate primative variables
     vxl = mxl / dl;
     vyl = myl / dl;
     vzl = mzl / dl;
     pl  = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     pl  = fmax(pl, (Real) TINY_NUMBER);
-    #ifdef DE
-    gel = dgel / dl;
-    #endif
     vxr = mxr / dr;
     vyr = myr / dr;
     vzr = mzr / dr;
     pr  = (Er - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
     pr  = fmax(pr, (Real) TINY_NUMBER);    
-    #ifdef DE
-    ger = dger / dr;
-    #endif
 
     // calculate the enthalpy in each cell
     Hl = (El + pl) / dl;
@@ -109,7 +99,6 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
     vz = (sqrtdl*vzl + sqrtdr*vzr) / (sqrtdl + sqrtdr);
     H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr); 
 
-
     // calculate the sound speed squared (Stone B2)
     vsq = (vx*vx + vy*vy + vz*vz);
     asq = g1*(H - 0.5*vsq);
@@ -117,14 +106,13 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
 
     // calculate the averaged eigenvectors of the Roe matrix (Stone Eqn B2, Toro 11.107)
     lambda_m = vx - a; 
-    lambda_0 = vx;
     lambda_p = vx + a;
-  
 
     // compute max and min wave speeds
     cfl = sqrt(gamma*pl/dl);  // sound speed in left state
     cfr = sqrt(gamma*pr/dr);  // sound speed in right state
 
+    // for signal speeds,
     // take max/min of Roe eigenvalues and left and right sound speeds
     al = fmin(lambda_m, vxl - cfl);
     ar = fmax(lambda_p, vxr + cfr);
@@ -139,8 +127,8 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
     bl = mxl - dl*al;
     br = -(mxr - dr*ar);
     tmp = 1.0 / (bl + br);
-    am = (tl - tr)*tmp;
-    cp = (dl*tr + dr*tl)*tmp;
+    am = (tl - tr)*tmp; // contact wave speed
+    cp = (dl*tr + dr*tl)*tmp; // star region pressure
 
     // compute flux weights
     if (am >= 0.0) {
@@ -170,10 +158,10 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
 
     // compute the hllc flux
     f_d = sl*f_d_l + sr*f_d_r;
-    f_mx = sl*f_mx_l + sr*f_mx_r + sm*cp*am;
+    f_mx = sl*f_mx_l + sr*f_mx_r + sm*cp;
     f_my = sl*f_my_l + sr*f_my_r;
     f_mz = sl*f_mz_l + sr*f_mz_r;
-    f_E = sl*f_E_l + sr*f_E_r;
+    f_E = sl*f_E_l + sr*f_E_r + sm*cp*am;
 
     #ifdef DE
     if (f_d >= 0.0)

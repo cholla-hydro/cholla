@@ -258,6 +258,9 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     printf("conserved variable update: %5.3f ms\n", elapsedTime);
     #endif     
 
+    #ifdef COOLING_GPU
+    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved_half, nx_s, ny_s, nz_s, n_ghost, 0.5*dt, gama, coolTexObj, heatTexObj);
+    #endif
 
     // Step 4: Construct left and right interface values using updated conserved variables
     #ifdef PLMP
@@ -559,7 +562,7 @@ __global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *de
     dev_conserved_half[5*n_cells + id] = dev_conserved[5*n_cells + id] + dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
                                                                        + dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
                                                                        + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo));
-   
+    if (dev_conserved_half[5*n_cells + id] < 0.0) printf("%3d %3d Negative internal energy after half step update.\n", xid, yid);   
     #endif
   } 
 }

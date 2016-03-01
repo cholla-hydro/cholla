@@ -82,6 +82,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
   // declare conserved variables for each stencil
   // these will be placed into registers for each thread
   Real d, mx, my, mz, E;
+  #ifdef DE
+  Real ge;
+  #endif
   
   int n_cells = nx*ny;
 
@@ -103,6 +106,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef DE
+    ge = dev_conserved[5*n_cells + id];
+    #endif
 
     // send values back from the kernel
     dev_bounds_Lx[            id] = d;
@@ -110,6 +116,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     dev_bounds_Lx[2*n_cells + id] = my;
     dev_bounds_Lx[3*n_cells + id] = mz;
     dev_bounds_Lx[4*n_cells + id] = E; 
+    #ifdef DE
+    dev_bounds_Lx[5*n_cells + id] = ge; 
+    #endif
 
     // retrieve appropriate conserved variables
     id = xid+1 + yid*nx;
@@ -118,6 +127,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id];    
+    #ifdef DE
+    ge = dev_conserved[5*n_cells + id];    
+    #endif
 
     // send values back from the kernel
     id = xid + yid*nx;
@@ -126,6 +138,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     dev_bounds_Rx[2*n_cells + id] = my;
     dev_bounds_Rx[3*n_cells + id] = mz;
     dev_bounds_Rx[4*n_cells + id] = E;    
+    #ifdef DE
+    dev_bounds_Rx[5*n_cells + id] = ge;    
+    #endif
   }
   
   // y direction
@@ -138,6 +153,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef DE
+    ge = dev_conserved[5*n_cells + id]; 
+    #endif
 
     // send values back from the kernel
     dev_bounds_Ly[            id] = d;
@@ -145,6 +163,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     dev_bounds_Ly[2*n_cells + id] = my;
     dev_bounds_Ly[3*n_cells + id] = mz;
     dev_bounds_Ly[4*n_cells + id] = E; 
+    #ifdef DE
+    dev_bounds_Ly[5*n_cells + id] = ge; 
+    #endif
 
     // retrieve appropriate conserved variables
     id = xid + (yid+1)*nx;
@@ -153,6 +174,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id];
+    #ifdef DE
+    ge = dev_conserved[5*n_cells + id];
+    #endif
 
     // send values back from the kernel
     id = xid + yid*nx;
@@ -161,6 +185,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     dev_bounds_Ry[2*n_cells + id] = my;
     dev_bounds_Ry[3*n_cells + id] = mz;
     dev_bounds_Ry[4*n_cells + id] = E;    
+    #ifdef DE
+    dev_bounds_Ry[5*n_cells + id] = ge;    
+    #endif
   }
 
 }
@@ -176,6 +203,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
   // declare conserved variables for each stencil
   // these will be placed into registers for each thread
   Real d, mx, my, mz, E;
+  #ifdef DE
+  Real ge;
+  #endif
   
   int n_cells = nx*ny*nz;
 
@@ -196,6 +226,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef DE
+    ge = dev_conserved[5*n_cells + id]; 
+    #endif
 
     // send values back from the kernel
     dev_bounds_Lx[            id] = d;
@@ -203,6 +236,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Lx[2*n_cells + id] = my;
     dev_bounds_Lx[3*n_cells + id] = mz;
     dev_bounds_Lx[4*n_cells + id] = E; 
+    #ifdef DE
+    dev_bounds_Lx[5*n_cells + id] = ge; 
+    #endif
 
     // retrieve appropriate conserved variables
     id = xid+1 + yid*nx + zid*nx*ny;
@@ -211,6 +247,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id];    
+    #ifdef DE
+    ge = dev_conserved[5*n_cells + id];    
+    #endif
 
     // send values back from the kernel
     id = xid + yid*nx + zid*nx*ny;
@@ -219,6 +258,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Rx[2*n_cells + id] = my;
     dev_bounds_Rx[3*n_cells + id] = mz;
     dev_bounds_Rx[4*n_cells + id] = E;    
+    #ifdef DE
+    dev_bounds_Rx[5*n_cells + id] = ge;    
+    #endif
   }
   
   // y direction
@@ -231,6 +273,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef DE
+    ge = dev_conserved[5*n_cells + id]; 
+    #endif
 
     // send values back from the kernel
     dev_bounds_Ly[            id] = d;
@@ -238,6 +283,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Ly[2*n_cells + id] = my;
     dev_bounds_Ly[3*n_cells + id] = mz;
     dev_bounds_Ly[4*n_cells + id] = E; 
+    #ifdef DE
+    dev_bounds_Ly[5*n_cells + id] = ge; 
+    #endif
 
     // retrieve appropriate conserved variables
     id = xid + (yid+1)*nx + zid*nx*ny;
@@ -246,6 +294,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id];
+    #ifdef DE
+    ge = dev_conserved[5*n_cells + id];
+    #endif
 
     // send values back from the kernel
     id = xid + yid*nx + zid*nx*ny;
@@ -254,6 +305,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Ry[2*n_cells + id] = my;
     dev_bounds_Ry[3*n_cells + id] = mz;
     dev_bounds_Ry[4*n_cells + id] = E;    
+    #ifdef DE
+    dev_bounds_Ry[5*n_cells + id] = ge;    
+    #endif
   }
 
   // z direction
@@ -266,6 +320,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef DE
+    ge = dev_conserved[5*n_cells + id]; 
+    #endif
 
     // send values back from the kernel
     dev_bounds_Lz[            id] = d;
@@ -273,6 +330,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Lz[2*n_cells + id] = my;
     dev_bounds_Lz[3*n_cells + id] = mz;
     dev_bounds_Lz[4*n_cells + id] = E; 
+    #ifdef DE
+    dev_bounds_Lz[5*n_cells + id] = ge; 
+    #endif
     
     // retrieve appropriate conserved variables
     id = xid + yid*nx + (zid+1)*nx*ny;
@@ -281,6 +341,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id];
+    #ifdef DE
+    ge = dev_conserved[5*n_cells + id];
+    #endif
 
     // send values back from the kernel
     id = xid + yid*nx + zid*nx*ny;
@@ -289,6 +352,9 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Rz[2*n_cells + id] = my;
     dev_bounds_Rz[3*n_cells + id] = mz;
     dev_bounds_Rz[4*n_cells + id] = E;    
+    #ifdef DE
+    dev_bounds_Rz[5*n_cells + id] = ge;    
+    #endif
 
   }
 }

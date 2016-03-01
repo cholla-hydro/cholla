@@ -121,9 +121,10 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
     dev_conserved[5*n_cells + id] += dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
                                   +  dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo));
+    //if (dev_conserved[5*n_cells + id] < 0.0) printf("%3d %3d Negative internal energy after final update.\n", xid, yid);
     #endif
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
-      printf("%3d %3d Thread crashed in final update. %f %f %f %f %f\n", xid, yid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dev_F_y[jmo],dev_F_y[id], dev_conserved[id]);
+      printf("%3d %3d Thread crashed in final update. %f %f %f %f\n", xid, yid, dtodx*(dev_F_x[imo]-dev_F_x[id]), dev_F_y[jmo],dev_F_y[id], dev_conserved[id]);
     }   
     /*
     d  =  dev_conserved[            id];
@@ -213,7 +214,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
-      printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f %f\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
+      printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f\n", xid, yid, zid, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
     }
     // every thread collects the conserved variables it needs from global memory
     /*
