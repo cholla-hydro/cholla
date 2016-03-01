@@ -34,10 +34,11 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
   Real lambda_m, lambda_p;
   Real f_d_l, f_mx_l, f_my_l, f_mz_l, f_E_l;
   Real f_d_r, f_mx_r, f_my_r, f_mz_r, f_E_r;
+  Real dls, drs, mxls, mxrs, myls, myrs, mzls, mzrs, Els, Ers;
   Real f_d, f_mx, f_my, f_mz, f_E;
-  Real al, ar, bm, bp, tl, tr, bl, br, tmp, am, cp, sl, sr, sm, cfl, cfr;
+  Real Sl, Sr, Sm, cfl, cfr, ps;
   #ifdef DE
-  Real gel, ger, f_ge;
+  Real gel, ger, f_gel, f_ger, f_ge;
   #endif
 
   int o1, o2, o3;
@@ -112,75 +113,88 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
     cfl = sqrt(gamma*pl/dl);  // sound speed in left state
     cfr = sqrt(gamma*pr/dr);  // sound speed in right state
 
-    // for signal speeds,
-    // take max/min of Roe eigenvalues and left and right sound speeds
-    al = fmin(lambda_m, vxl - cfl);
-    ar = fmax(lambda_p, vxr + cfr);
-   
-    bm = fmin(al, (Real) 0.0);
-    bp = fmax(ar, (Real) 0.0);
+    // for signal speeds, take max/min of Roe eigenvalues and left and right sound speeds
+    // Batten eqn. 48
+    Sl = fmin(lambda_m, vxl - cfl);
+    Sr = fmax(lambda_p, vxr + cfr);
+ 
+    // left and right fluxes 
+    f_d_l  = mxl;
+    f_mx_l = mxl*vxl + pl;
+    f_my_l = myl*vxl;
+    f_mz_l = mzl*vxl;
+    f_E_l  = (El + pl)*vxl;
 
+    f_d_r  = mxr;
+    f_mx_r = mxr*vxr + pr;
+    f_my_r = myr*vxr;
+    f_mz_r = mzr*vxr;
+    f_E_r  = (Er + pr)*vxr;
 
-    // compute contact wave speed and pressure in star region (Toro eqn 10.37)
-    tl = pl + (vxl - al)*mxl;
-    tr = pr + (vxr - ar)*mxr;
-    bl = mxl - dl*al;
-    br = -(mxr - dr*ar);
-    tmp = 1.0 / (bl + br);
-    am = (tl - tr)*tmp; // contact wave speed
-    cp = (dl*tr + dr*tl)*tmp; // star region pressure
-
-    // compute flux weights
-    if (am >= 0.0) {
-      sl = am/(am - bm);
-      sr = 0.0;
-      sm = -bm/(am - bm);
+    // return upwind flux if flow is supersonic 
+    if (Sl > 0.0) {
+      dev_flux[           tid] = f_d_l;
+      dev_flux[o1*n_cells+tid] = f_mx_l;
+      dev_flux[o2*n_cells+tid] = f_my_l;
+      dev_flux[o3*n_cells+tid] = f_mz_l;
+      dev_flux[4*n_cells+tid]  = f_E_l;
+      #ifdef DE
+      dev_flux[5*n_cells+tid]  = f_ge_l;
+      #endif
+      return;
     }
-    else {
-      sl = 0.0;
-      sr = -am/(bp - am);
-      sm = bp/(bp - am);
+    else if (Sr < 0.0) {
+      dev_flux[           tid] = f_d_r;
+      dev_flux[o1*n_cells+tid] = f_mx_r;
+      dev_flux[o2*n_cells+tid] = f_my_r;
+      dev_flux[o3*n_cells+tid] = f_mz_r;
+      dev_flux[4*n_cells+tid]  = f_E_r;
+      #ifdef DE
+      dev_flux[5*n_cells+tid]  = f_ge_r;
+      #endif
+      return;
     }
+    // otherwise compute subsonic flux
+    else { 
 
-    // caclulate the left and right fluxes 
-    // along the bm/bp lines
-    f_d_l = mxl - bm*dl;
-    f_mx_l = mxl*(vxl - bm) + pl;
-    f_my_l = myl*(vxl - bm);
-    f_mz_l = mzl*(vxl - bm);
-    f_E_l = El*(vxl - bm) + pl*vxl;
+      // compute contact wave speed and pressure in star region (Batten eqns 34 & 36)
+      Sm = (dr*vxr*(Sr - vxr) - dl*vxl*(Sl - vxl) + pl - pr) / (dr*(Sr - vxr) - dl*(Sl - vxl));
+      ps = dl*(vxl - Sl)*(vxl - Sm) + pl;
 
-    f_d_r = mxr - bp*dr;
-    f_mx_r = mxr*(vxr - bp) + pr;
-    f_my_r = myr*(vxr - bp);
-    f_mz_r = mzr*(vxr - bp);
-    f_E_r = Er*(vxr - bp) + pr*vxr;
+      // conserved variables in the left star state (Batten eqns 35 - 40)
+      dls = dl * (Sl - vxl) / (Sl - Sm);
+      mxls = (mxl*(Sl - vxl) + ps - pl) / (Sl - Sm);
+      myls = myl*(Sl - vxl) / (Sl - Sm);
+      mzls = mzl*(Sl - vxl) / (Sl - Sm);
+      Els = (El*(Sl - vxl) - pl*vxl + ps*Sm) / (Sl - Sm);
 
-    // compute the hllc flux
-    f_d = sl*f_d_l + sr*f_d_r;
-    f_mx = sl*f_mx_l + sr*f_mx_r + sm*cp;
-    f_my = sl*f_my_l + sr*f_my_r;
-    f_mz = sl*f_mz_l + sr*f_mz_r;
-    f_E = sl*f_E_l + sr*f_E_r + sm*cp*am;
-
-    #ifdef DE
-    if (f_d >= 0.0)
-      f_ge = f_d * gel;
-    else
-      f_ge = f_d * ger;
-    #endif
-
-    // return the hllc fluxes
-    dev_flux[          tid] = f_d;
-    dev_flux[o1*n_cells+tid] = f_mx;
-    dev_flux[o2*n_cells+tid] = f_my;
-    dev_flux[o3*n_cells+tid] = f_mz ;
-    dev_flux[4*n_cells+tid] = f_E;
-    #ifdef DE
-    dev_flux[5*n_cells+tid] = f_ge;
-    #endif
+      // conserved variables in the right star state
+      drs = dr * (Sr - vxr) / (Sr - Sm);
+      mxrs = (mxr*(Sr - vxr) + ps - pr) / (Sr - Sm);
+      myrs = myr*(Sr - vxr) / (Sr - Sm);
+      mzrs = mzr*(Sr - vxr) / (Sr - Sm);
+      Ers = (Er*(Sr - vxr) - pr*vxr + ps*Sm) / (Sr - Sm);
 
 
+      // compute the hllc flux (Batten eqn 27)
+      f_d  = 0.5*(f_d_l  + f_d_r  + (Sr - fabs(Sm))*drs  + (Sl + fabs(Sm))*dls  - Sl*dl  - Sr*dr);
+      f_mx = 0.5*(f_mx_l + f_mx_r + (Sr - fabs(Sm))*mxrs + (Sl + fabs(Sm))*mxls - Sl*mxl - Sr*mxr);
+      f_my = 0.5*(f_my_l + f_my_r + (Sr - fabs(Sm))*myrs + (Sl + fabs(Sm))*myls - Sl*myl - Sr*myr);
+      f_mz = 0.5*(f_mz_l + f_mz_r + (Sr - fabs(Sm))*mzrs + (Sl + fabs(Sm))*mzls - Sl*mzl - Sr*mzr);
+      f_E  = 0.5*(f_E_l  + f_E_r  + (Sr - fabs(Sm))*Ers  + (Sl + fabs(Sm))*Els  - Sl*El  - Sr*Er);
+
+
+      // return the hllc fluxes
+      dev_flux[           tid] = f_d;
+      dev_flux[o1*n_cells+tid] = f_mx;
+      dev_flux[o2*n_cells+tid] = f_my;
+      dev_flux[o3*n_cells+tid] = f_mz;
+      dev_flux[4*n_cells+tid]  = f_E;
+      #ifdef DE
+      dev_flux[5*n_cells+tid]  = f_ge;
+      #endif
+
+    }
   }
 
 }
