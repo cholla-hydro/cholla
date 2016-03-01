@@ -351,37 +351,37 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
 
         if (x_pos < diaph)
         {
-          //C.density[id]    = rho_l;
-          C.density[id]    = d_wind;
+          C.density[id]    = rho_l;
+          //C.density[id]    = d_wind;
           //C.momentum_x[id] = 0.0;
-          //C.momentum_x[id] = rho_l * v_l;
-          C.momentum_x[id] = d_wind * v_wind;
+          C.momentum_x[id] = rho_l * v_l;
+          //C.momentum_x[id] = d_wind * v_wind;
           C.momentum_y[id] = 0.0;
           //C.momentum_y[id] = rho_l * v_l;
           C.momentum_z[id] = 0.0;
           //C.momentum_z[id] = rho_l * v_l;
-          //C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
-          C.Energy[id]     = P_wind/(gama-1.0) + 0.5*d_wind*v_wind*v_wind;
+          C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
+          //C.Energy[id]     = P_wind/(gama-1.0) + 0.5*d_wind*v_wind*v_wind;
           #ifdef DE
-          //C.GasEnergy[id]  = P_l/(gama-1.0);
-          C.GasEnergy[id]  = P_wind/(gama-1.0);
+          C.GasEnergy[id]  = P_l/(gama-1.0);
+          //C.GasEnergy[id]  = P_wind/(gama-1.0);
           #endif
         }
         else
         {
-          //C.density[id]    = rho_r;
-          C.density[id]    = d_cloud;
-          C.momentum_x[id] = 0.0;
-          //C.momentum_x[id] = rho_r * v_r;
+          C.density[id]    = rho_r;
+          //C.density[id]    = d_cloud;
+          //C.momentum_x[id] = 0.0;
+          C.momentum_x[id] = rho_r * v_r;
           C.momentum_y[id] = 0.0;
           //C.momentum_y[id] = rho_r * v_r;
           C.momentum_z[id] = 0.0;
           //C.momentum_z[id] = rho_r * v_r;
-          //C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
-          C.Energy[id]     = P_wind/(gama-1.0);        
+          C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
+          //C.Energy[id]     = P_wind/(gama-1.0);        
           #ifdef DE
-          //C.GasEnergy[id]  = P_r/(gama-1.0);
-          C.GasEnergy[id]  = P_wind/(gama-1.0);
+          C.GasEnergy[id]  = P_r/(gama-1.0);
+          //C.GasEnergy[id]  = P_wind/(gama-1.0);
           #endif
         }
       }

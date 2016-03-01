@@ -18,6 +18,7 @@
 #include"ppmc_vl_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
+#include"hllc_cuda.h"
 #include"cooling_cuda.h"
 #include"error_handling.h"
 #include"io.h"
@@ -179,6 +180,9 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   #ifdef ROE
   Calculate_Roe_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
   #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
+  #endif
   CudaCheckError();
   #ifdef TIME
   // get stop time, and display the timing results
@@ -247,6 +251,9 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   #endif
   #ifdef ROE
   Calculate_Roe_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
   #endif
   CudaCheckError();
   #ifdef TIME
@@ -371,7 +378,7 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
   #ifdef DE
   Real d, d_inv, vx, vy, vz, P;
   Real vx_imo, vx_ipo;
-  int ipo;
+  int imo, ipo;
   #endif
 
 
@@ -389,6 +396,7 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+    imo = id-1;
     ipo = id+1;
     vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo];
     vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo];
@@ -401,7 +409,7 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
     dev_conserved_half[3*n_cells + id] = dev_conserved[3*n_cells + id] + dtodx * (dev_F[3*n_cells + id-1] - dev_F[3*n_cells + id]);
     dev_conserved_half[4*n_cells + id] = dev_conserved[4*n_cells + id] + dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
     #ifdef DE
-    dev_conserved_half[5*n_cells + id] = (d*dev_conserved[5*n_cells + id] + dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
+    dev_conserved_half[5*n_cells + id] = dev_conserved[5*n_cells + id] + dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
                                          + 0.5*P*dtodx*(vx_imo - vx_ipo);
     #endif
   }
