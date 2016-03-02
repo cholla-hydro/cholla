@@ -8,7 +8,7 @@ OBJS   = main.o global.o grid3D.o initial_conditions.o boundary_conditions.o CTU
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-MPI_FLAGS =  -DMPI_CHOLLA
+#MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
@@ -39,12 +39,12 @@ OUTPUT = -DHDF5
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
 #RECONSTRUCTION = -DPLMC
-RECONSTRUCTION = -DPPMP
-#RECONSTRUCTION = -DPPMC
+#RECONSTRUCTION = -DPPMP
+RECONSTRUCTION = -DPPMC
 
 #SOLVER = -DEXACT
 #SOLVER = -DROE
-SOlVER = -DHLLC
+SOLVER = -DHLLC
 
 #INTEGRATOR = -DCTU 
 #INTEGRATOR = -DVL

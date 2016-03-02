@@ -7,7 +7,7 @@
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
-#include"roe_cuda.h"
+#include"hllc_cuda.h"
 
 
 
@@ -38,7 +38,7 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
   Real f_d, f_mx, f_my, f_mz, f_E;
   Real Sl, Sr, Sm, cfl, cfr, ps;
   #ifdef DE
-  Real gel, ger, f_gel, f_ger, f_ge;
+  Real gel, ger, gels, gers, f_gel, f_ger, f_ge;
   #endif
 
   int o1, o2, o3;
@@ -124,12 +124,18 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
     f_my_l = myl*vxl;
     f_mz_l = mzl*vxl;
     f_E_l  = (El + pl)*vxl;
+    #ifdef DE
+    f_ge_l = mxl*gel;
+    #endif
 
     f_d_r  = mxr;
     f_mx_r = mxr*vxr + pr;
     f_my_r = myr*vxr;
     f_mz_r = mzr*vxr;
     f_E_r  = (Er + pr)*vxr;
+    #ifdef DE
+    f_ge_r = mxr*ger;
+    #endif
 
     // return upwind flux if flow is supersonic 
     if (Sl > 0.0) {
@@ -167,6 +173,9 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
       myls = myl*(Sl - vxl) / (Sl - Sm);
       mzls = mzl*(Sl - vxl) / (Sl - Sm);
       Els = (El*(Sl - vxl) - pl*vxl + ps*Sm) / (Sl - Sm);
+      #ifdef DE
+      gels = dl*gel*(Sl - vxl) / (Sl - Sm);
+      #endif
 
       // conserved variables in the right star state
       drs = dr * (Sr - vxr) / (Sr - Sm);
@@ -174,6 +183,9 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
       myrs = myr*(Sr - vxr) / (Sr - Sm);
       mzrs = mzr*(Sr - vxr) / (Sr - Sm);
       Ers = (Er*(Sr - vxr) - pr*vxr + ps*Sm) / (Sr - Sm);
+      #ifdef DE
+      gers = dr*ger*(Sr - vxr) / (Sr - Sm);
+      #endif
 
 
       // compute the hllc flux (Batten eqn 27)
@@ -182,6 +194,9 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
       f_my = 0.5*(f_my_l + f_my_r + (Sr - fabs(Sm))*myrs + (Sl + fabs(Sm))*myls - Sl*myl - Sr*myr);
       f_mz = 0.5*(f_mz_l + f_mz_r + (Sr - fabs(Sm))*mzrs + (Sl + fabs(Sm))*mzls - Sl*mzl - Sr*mzr);
       f_E  = 0.5*(f_E_l  + f_E_r  + (Sr - fabs(Sm))*Ers  + (Sl + fabs(Sm))*Els  - Sl*El  - Sr*Er);
+      #ifdef DE
+      f_ge = 0.5*(f_ge_l + f_ge_r + (Sr - fabs(Sm))*gers + (Sl + fabs(Sm))*gels - Sl*gel - Sr*ger);
+      #endif
 
 
       // return the hllc fluxes

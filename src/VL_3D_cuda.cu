@@ -18,6 +18,7 @@
 #include"ppmc_vl_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
+#include"hllc_cuda.h"
 #include"h_correction_3D_cuda.h"
 #include"cooling_cuda.h"
 #include"subgrid_routines_3D.h"
@@ -343,6 +344,12 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   cudaEventRecord(start, 0);
   #endif //TIME    
   #endif //ROE
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
+  Calculate_HLLC_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
+  Calculate_HLLC_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2);
+  CudaCheckError();
+  #endif
 
 
   // Step 3: Update the conserved variables half a timestep 
@@ -545,6 +552,12 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
   r2z += elapsedTime;
   #endif //TIME 
   #endif //ROE
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
+  Calculate_HLLC_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
+  Calculate_HLLC_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2);
+  CudaCheckError();
+  #endif
 
 
   // Step 6: Update the conserved variable array
