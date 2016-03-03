@@ -198,7 +198,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, R
   Calculate_Roe_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
   #endif
   #ifdef HLLC
-  Calculate_HLLC_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
+  Calculate_HLLC_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
   #endif
   CudaCheckError();
   #ifdef TIME

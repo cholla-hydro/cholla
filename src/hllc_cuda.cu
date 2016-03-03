@@ -13,7 +13,7 @@
 
 /*! \fn Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
  *  \brief HLLC Riemann solver based on the version described in Toro (2006), Sec. 10.4. */
-__global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
+__global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -40,6 +40,9 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
   #ifdef DE
   Real gel, ger, gels, gers, f_gel, f_ger, f_ge;
   #endif
+  // Retrieve etah value
+  Real etah = dev_etah[tid];
+
 
   int o1, o2, o3;
   if (dir==0) {
@@ -109,6 +112,7 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
     lambda_m = vx - a; 
     lambda_p = vx + a;
 
+
     // compute max and min wave speeds
     cfl = sqrt(gamma*pl/dl);  // sound speed in left state
     cfr = sqrt(gamma*pr/dr);  // sound speed in right state
@@ -117,6 +121,11 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
     // Batten eqn. 48
     Sl = fmin(lambda_m, vxl - cfl);
     Sr = fmax(lambda_p, vxr + cfr);
+
+    // if the H-correction is turned on, add cross-flux dissipation
+    Sl = sgn(Sl)*fmax(fabs(Sl), etah);
+    Sr = sgn(Sr)*fmax(fabs(Sr), etah);
+
  
     // left and right fluxes 
     f_d_l  = mxl;
