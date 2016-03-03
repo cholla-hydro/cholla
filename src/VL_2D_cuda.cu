@@ -243,9 +243,9 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     CudaCheckError();
     #endif
     #ifdef HLLC 
-    Calculate_HLLC_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
+    Calculate_HLLC_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
     CudaCheckError();
-    Calculate_HLLC_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
+    Calculate_HLLC_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
     CudaCheckError();
     #endif
 
@@ -382,8 +382,8 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     CudaCheckError();
     #endif
     #ifdef HLLC 
-    Calculate_HLLC_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    Calculate_HLLC_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
+    Calculate_HLLC_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
+    Calculate_HLLC_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
     CudaCheckError();
     #endif    
 
