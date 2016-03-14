@@ -100,6 +100,9 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_glo
 /*tile MPI processes in a block decomposition*/
 void TileBlockDecomposition(void);
 
+/*tile MPI processes in a block decomposition, balancing cells per subvolume*/
+void NewTileBlockDecomposition(void);
+
 /* MPI reduction wrapper for max(Real)*/
 Real ReduceRealMax(Real x);
 
