@@ -396,7 +396,8 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   /*this sets nproc_x, nproc_y, nproc_z */
   //chprintf("About to enter tiling block decomp\n");
   MPI_Barrier(world);
-  TileBlockDecomposition();
+  //TileBlockDecomposition();
+  NewTileBlockDecomposition();
 
   //chprintf("Allocating tiling.\n");
   MPI_Barrier(world);
@@ -1119,6 +1120,120 @@ void TileBlockDecomposition(void)
   	n_tmp = np_y;
   	np_y  = np_z;
   	np_z  = n_tmp;
+  }
+
+  //save result
+  nproc_x = np_x;
+  nproc_y = np_y;
+  nproc_z = np_z;
+}
+
+/*tile MPI processes in a block arrangement, balancing cells per subvolume*/
+void NewTileBlockDecomposition(void)
+{
+  int n_gpf;
+
+  //initialize np_x, np_y, np_z
+  int np_x = 1;
+  int np_y = 1;
+  int np_z = 1;
+  //printf("nproc %d n_gpf %d\n",nproc,n_gpf);
+
+  /*find the greatest prime factor of the number of MPI processes*/
+  n_gpf = greatest_prime_factor(nproc);
+  //printf("nproc %d n_gpf %d\n",nproc,n_gpf);
+
+  /*base decomposition on whether n_gpf==2*/
+  if(n_gpf!=2)
+  {
+    /*if we are dealing with two dimensions, we can just assign domain*/
+    if(nz_global==1)
+    {
+      np_x = n_gpf;
+      np_y = nproc/np_x;
+      np_z = 1;
+
+    }else{
+      /*we are in 3-d, so split remainder evenly*/
+      np_x  = n_gpf;
+      n_gpf = greatest_prime_factor(nproc/n_gpf);
+      if(n_gpf!=2)
+      {
+        /*the next greatest prime is odd, so just split*/
+        np_y = n_gpf;
+        np_z = nproc/(np_x*np_y);
+      }else{
+        /*increase ny, nz round-robin*/
+        while(np_x*np_y*np_z < nproc)
+        {
+          np_y*=2;
+          if(np_x*np_y*np_z==nproc)
+            break;
+          np_z*=2;
+        }
+
+      }
+    }
+
+  }else{
+    /*nproc is a power of 2*/
+    /*if we are dealing with two dimensions, we can just assign domain*/
+    if(nz_global==1)
+    {
+      np_x = n_gpf;
+      np_y = nproc/np_x;
+      np_z = 1;
+
+    }else{
+      /*we are in 3-d, so split remainder evenly*/
+
+      /*increase nx, ny, nz round-robin*/
+      while(np_x*np_y*np_z < nproc)
+      {
+        //printf("np_x %4d np_y %4d np_z %4d nproc %4d nx_global %4d nx %4d, ny_global %4d ny %4d nz_global %4d nz %4d\n",np_x,np_y,np_z,nproc,nx_global,nx_global/np_x,ny_global,ny_global/np_y,nz_global,nz_global/np_z);
+
+        if( (nx_global/np_x >= ny_global/np_y)&&(nx_global/np_x >=nz_global/np_z) )
+        {
+          np_x*=2;
+          if(np_x*np_y*np_z==nproc)
+            break;
+        }else if ( (ny_global/np_y >= nx_global/np_x)&&(ny_global/np_y >=nz_global/np_z) )
+        {
+
+          np_y*=2;
+          if(np_x*np_y*np_z==nproc)
+            break;
+        }else{
+          np_z*=2;
+          if(np_x*np_y*np_z==nproc)
+            break;
+        }
+
+      }
+      //printf("np_x %4d np_y %4d np_z %4d nproc %4d nx_global %4d nx %4d, ny_global %4d ny %4d nz_global %4d nz %4d\n",np_x,np_y,np_z,nproc,nx_global,nx_global/np_x,ny_global,ny_global/np_y,nz_global,nz_global/np_z);
+    }
+  }
+
+  //reorder x, y, z
+
+  int n_tmp;
+  if(np_z>np_y)
+  {
+    n_tmp = np_y;
+    np_y  = np_z;
+    np_z  = n_tmp;
+  }
+  if(np_y>np_x)
+  {
+    n_tmp = np_x;
+    np_x  = np_y;
+    np_y  = n_tmp;
+  }
+  if(np_z>np_y)
+  {
+    n_tmp = np_y;
+    np_y  = np_z;
+    np_z  = n_tmp;
   }
 
   //save result
