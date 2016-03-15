@@ -770,7 +770,7 @@ void Grid3D::Cloud_2D() {
 
   // cloud center in code units
   xcen = 10.0;
-  ycen = 60.0;
+  ycen = 20.0;
 
   // hot wind
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -1110,9 +1110,6 @@ void Grid3D::Cloud_3D() {
   Real xcen, ycen, zcen, r, R_c, R_max;
   Real weight, xpoint, ypoint, zpoint;
   int incount, iii;
-  //Real velocity_unit = LENGTH_UNIT / TIME_UNIT;
-  //Real pressure_unit = DENSITY_UNIT * LENGTH_UNIT * LENGTH_UNIT / (TIME_UNIT * TIME_UNIT);
-  Real vx, vy, vz;
 
   // CODE UNITS:
   // density: 1.67e-24  # 1.0 hydrogen atom/cc (g/cc)
@@ -1131,7 +1128,7 @@ void Grid3D::Cloud_3D() {
   //d_wind = 1.285209e-27 / DENSITY_UNIT;
   //v_wind = 1.229560e8 / VELOCITY_UNIT;
   //P_wind = 4.232212e-13 / PRESSURE_UNIT;
-  // Mach 5.25 (R = 1000pc) (new parameters)
+  // Mach 5.25 (R = 1000pc) (new parameters, higher M* and E*)
   d_wind = 8.807181e-27 / DENSITY_UNIT;
   v_wind = 1.196177e8 / VELOCITY_UNIT;
   P_wind = 2.744870e-12 / PRESSURE_UNIT;
@@ -1142,17 +1139,10 @@ void Grid3D::Cloud_3D() {
   R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
   R_c = R_max/1.28; // radius at which cloud begins to taper
 
-  // Set initial conditions to be pre-shock CGM
-  // in pressure equilibrium with cloud
-  d_wind = 1.0e-3;
-  v_wind = 0.0;
-  P_wind = d_cloud * KB * 1e3;
-  
-
   // cloud center in code units
   xcen = 10.0;
-  ycen = 30.0;
-  zcen = 30.0;
+  ycen = 20.0;
+  zcen = 20.0;
 
   // hot wind
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
@@ -1164,11 +1154,9 @@ void Grid3D::Cloud_3D() {
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
         C.density[id] = d_wind;
-        vx = v_wind;
-        C.momentum_x[id] = C.density[id]*vx;
+        C.momentum_x[id] = C.density[id]*v_wind;
         C.momentum_y[id] = 0.0;
-        vz = 0.0;
-        C.momentum_z[id] = C.density[id]*vz;
+        C.momentum_z[id] = 0.0;
         C.Energy[id] = (P_wind)/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
         #ifdef DE
         C.GasEnergy[id] = P_wind / (gama-1.0);
@@ -1331,7 +1319,7 @@ void Grid3D::Cloud_3D() {
   }
   fclose(fp);
 */
-/*
+
   // spherical cloud 
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -1370,7 +1358,7 @@ void Grid3D::Cloud_3D() {
       }
     }
   }
-*/
+
 
 }
 

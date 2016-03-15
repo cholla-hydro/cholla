@@ -803,7 +803,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
                                        +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));                                       
     #endif
     if (dev_conserved_half[id] < 0.0 || dev_conserved_half[id] != dev_conserved_half[id]) {
-      printf("%3d %3d %3d Thread crashed in half step update. %f %f %f %f\n", xid, yid, zid, dev_conserved[id], dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]));
+      //printf("%3d %3d %3d Thread crashed in half step update. %f %f %f %f\n", xid, yid, zid, dev_conserved[id], dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]));
     } 
     /*
     d  =  dev_conserved_half[            id];

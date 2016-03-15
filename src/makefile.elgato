@@ -13,14 +13,14 @@ OBJS   = main.o global.o grid3D.o initial_conditions.o boundary_conditions.o CTU
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-#MPI_FLAGS =  -DMPI_CHOLLA
+MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
   CXX   = mpicxx
 
-  MPI_FLAGS += -DBLOCK
-  #MPI_FLAGS += -DSLAB
+  #MPI_FLAGS += -DBLOCK
+  MPI_FLAGS += -DSLAB
   #FFT_LIBS  += -lfftw3_mpi
 
 else
@@ -45,15 +45,15 @@ OUTPUT = -DHDF5
 RECONSTRUCTION = -DPPMP
 #RECONSTRUCTION = -DPPMC
 
-SOLVER = -DEXACT
+#SOLVER = -DEXACT
 #SOLVER = -DROE
-#SOLVER = -DHLLC
+SOLVER = -DHLLC
 
 #INTEGRATOR = -DCTU
 #INTEGRATOR = -DVL
 
 #COOLING = -DCOOLING_CPU
-#COOLING = -DCOOLING_GPU
+COOLING = -DCOOLING_GPU
 
 
 INCL   = -I./ -I/uaopt/gsl/2.1/include/ -I/home/u21/evan1226/code/hdf5-1.8.16/include/ -I/uaopt/hdf5/1.8.16/include/ #
@@ -63,7 +63,7 @@ LIBS   = -lm -lgsl -lgslcblas -lhdf5 -L/home/u21/evan1226/code/hdf5-1.8.16/lib/ 
 
 
 
-FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DCUDA 
+FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DDE -DCUDA 
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(FFT_FLAGS) -m64
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(FFT_FLAGS) -m64 
 NVCCFLAGS = $(FLAGS) -m64 -arch=compute_35 -fmad=false -ccbin=$(CC)

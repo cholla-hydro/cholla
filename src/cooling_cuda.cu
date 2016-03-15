@@ -19,7 +19,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 {
   int n_cells = nx*ny*nz;
   
-  Real d, E, E_old;
+  Real d, E;
   Real n, T, T_init;
   Real del_T, dt_sub;
   Real cool; //cooling rate per volume, erg/s/cm^3
@@ -54,6 +54,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #endif
     #ifdef DE
     ge = dev_conserved[5*n_cells + id] / d;
+    ge = fmax(ge, (Real) TINY_NUMBER);
     #endif
     
     // calculate the number density of the gas (in cgs)
@@ -96,12 +97,12 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
     // adjust value of energy based on total change in temperature
     del_T = T_init - T; // total change in T
-    E_old = E;
+    //E_old = E;
     E -= n*KB*del_T / ((gamma-1.0)*ENERGY_UNIT);
-    if (E < 0.0) printf("%3d %3d %3d Negative E after cooling. %f %f %f %f %f\n", xid, yid, zid, del_T, T_init, E_old, n, E);
+    //if (E < 0.0) printf("%3d %3d %3d Negative E after cooling. %f %f %f %f %f\n", xid, yid, zid, del_T, T_init, E_old, n, E);
     #ifdef DE
     ge -= KB*del_T / (MP*(gamma-1.0)*SP_ENERGY_UNIT);
-    if (ge < 0.0) printf("%3d %3d %3d Negative ge after cooling. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], d*dev_conserved[5*n_cells + id], n, del_T, T_init);
+    //if (ge < 0.0) printf("%3d %3d %3d Negative ge after cooling. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], d*dev_conserved[5*n_cells + id], n, del_T, T_init);
     #endif
 
     // and send back from kernel

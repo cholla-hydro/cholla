@@ -264,7 +264,7 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
         cfl = sqrt(gamma*pl/dl);  // sound speed in left state
         cfr = sqrt(gamma*pr/dr);  // sound speed in right state
 
-        // take max/fmin of Roe eigenvalues and left and right sound speeds
+        // take max/min of Roe eigenvalues and left and right sound speeds
         al = fmin(lambda_m, vxl - cfl);
         ar = fmax(lambda_p, vxr + cfr);
     
