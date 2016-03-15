@@ -26,7 +26,7 @@ zlen=1.0
 xl_bcnd=1
 xu_bcnd=1
 # path to output directory
-outdir=/lustre/atlas/proj-shared/ast107/data/scaling/
+outdir=/lustre/atlas/proj-shared/ast119/data/sound_wave/hdf5/
 #outdir=/data2/evan/grid_tests/sound_waves/x/
 
 #################################################

@@ -11,7 +11,7 @@
 #include "global.h"
 #include "grid3D.h"
 #include "ran.h"
-#include "rng.h"
+//#include "rng.h"
 #include "mpi_routines.h"
 #include "io.h"
 #include "error_handling.h"
@@ -981,7 +981,6 @@ void Grid3D::Turbulent_Slab() {
   int incount, iii;
   Real velocity_unit = LENGTH_UNIT / TIME_UNIT;
   Real pressure_unit = DENSITY_UNIT * LENGTH_UNIT * LENGTH_UNIT / (TIME_UNIT * TIME_UNIT);
-  Real vx, vz;
 
   // mean density of slab (2e-24/cc)
   d_0 = 2.0;
@@ -1002,7 +1001,6 @@ void Grid3D::Turbulent_Slab() {
         C.momentum_x[id] = 0.0;
         C.momentum_y[id] = 0.0;
         C.momentum_z[id] = 0.0;
-        C.momentum_z[id] = C.density[id]*vz;
         // scale the pressure such that the ambient medium has 
         // a temperature of 10000 Kelvin
         P_cloud = 0.1*KB*1e4 / pressure_unit;
