@@ -4,7 +4,7 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=1920
+nx=512
 # number of grid cells in the y dimension
 ny=256
 # number of grid cells in the z dimension
@@ -23,7 +23,7 @@ init=Cloud_3D
 xmin=0.0
 ymin=0.0
 zmin=0.0
-xlen=300.0
+xlen=80.0
 ylen=40.0
 zlen=40.0
 # type of boundary conditions
@@ -35,7 +35,7 @@ zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=wind
 # path to output directory
-outdir=./sphere_wind/CTU/hdf5/raw/
+outdir=./sphere_wind/n1/hdf5/raw/
 
 
 

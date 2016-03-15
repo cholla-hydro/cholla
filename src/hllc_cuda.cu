@@ -38,7 +38,7 @@ __global__ void Calculate_HLLC_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Re
   Real f_d, f_mx, f_my, f_mz, f_E;
   Real Sl, Sr, Sm, cfl, cfr, ps;
   #ifdef DE
-  Real gel, ger, gels, gers, f_gel, f_ger, f_ge;
+  Real gel, ger, gels, gers, f_ge_l, f_ge_r, f_ge;
   #endif
   // Retrieve etah value
   Real etah = dev_etah[tid];

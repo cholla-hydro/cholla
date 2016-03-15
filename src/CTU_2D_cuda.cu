@@ -264,6 +264,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     #endif //CTU
     #endif
 
+
     // Step 2: Calculate the fluxes
     #ifdef EXACT
     #ifdef TIME
@@ -408,7 +409,6 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
 
     #ifdef COOLING_GPU
     cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama, coolTexObj, heatTexObj);
-    cudaDeviceSynchronize();
     #endif
 
 
