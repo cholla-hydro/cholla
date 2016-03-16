@@ -10,9 +10,9 @@ ny=400
 # number of grid cells in the z dimension
 nz=1
 # output time
-tout=0.045
+tout=2.5
 # how often to output
-outstep=0.045
+outstep=0.005
 # value of gamma
 gamma=1.4
 # name of initial conditions
@@ -33,5 +33,5 @@ zl_bcnd=0
 zu_bcnd=0
 # path to output directory
 #outdir=/Users/evan/Desktop/output/Implosion_2D/
-#outdir=/data2/evan/grid_tests/Implosion_2D/flash_1024/
-outdir=./hdf5/
+outdir=/data1/evan/data/Implosion_2D/PPMP_hllc/
+#outdir=./hdf5/
