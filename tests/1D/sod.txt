@@ -32,7 +32,7 @@ zu_bcnd=0
 # path to output directory
 #outdir=/data1/evan/data/Sod_1D/
 #outdir=./hdf5/
-#outdir=/Users/evan/Desktop/output/Sod_1D/
+#outdir=/Users/evan/Desktop/sod_tests/hdf5/
 outdir=/lustre/atlas/proj-shared/ast119/data/hdf5/
 
 #################################################
