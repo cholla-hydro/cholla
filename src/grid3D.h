@@ -242,6 +242,20 @@ class Grid3D
     void Write_Grid_HDF5(hid_t file_id);
 #endif
 
+    /*! \fn void Read_Grid(struct parameters P)
+     *  \brief Read in grid data from an output file. */
+    void Read_Grid(struct parameters P);
+
+    /*! \fn Read_Grid_Binary(FILE *fp)
+     *  \brief Read in grid data from a binary file. */
+    void Read_Grid_Binary(FILE *fp);
+    
+#ifdef HDF5
+    /*! \fn void Read_Grid_HDF5(hid_t file_id)
+     *  \brief Read in grid data from an hdf5 file. */
+    void Read_Grid_HDF5(hid_t file_id);
+#endif
+
     /*! \fn void Reset(void)
      *  \brief Reset the Grid3D class. */
     void Reset(void);
@@ -321,10 +335,7 @@ class Grid3D
     /*! \fn Apply_Forcing(void)
      *  \brief Apply a forcing field to continuously generate turbulence. */
     void Apply_Forcing(void);    
-
-    /*! \fn void Read_Grid()
-     *  \brief Read in grid data from an output file. */
-    void Read_Grid(struct parameters P);    
+ 
 
     /*! \fn void Set_Boundary_Conditions(parameters P)
      *  \brief Set the boundary conditions based on info in the parameters structure. */
