@@ -1141,8 +1141,8 @@ void Grid3D::Cloud_3D() {
 
   // cloud center in code units
   xcen = 10.0;
-  ycen = 20.0;
-  zcen = 20.0;
+  ycen = 40.0;
+  zcen = 40.0;
 
   // hot wind
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
