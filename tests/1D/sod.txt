@@ -29,11 +29,11 @@ yl_bcnd=0
 yu_bcnd=0
 zl_bcnd=0
 zu_bcnd=0
-custom_bcnd=wind
 # path to output directory
 #outdir=/data1/evan/data/Sod_1D/
 #outdir=./hdf5/
-outdir=/Users/evan/Desktop/sod_tests/hdf5/
+#outdir=/Users/evan/Desktop/sod_tests/hdf5/
+outdir=/lustre/atlas/proj-shared/ast119/data/hdf5/
 
 #################################################
 # Parameters for 1D Riemann problems
@@ -52,5 +52,5 @@ P_r=0.1
 # location of initial discontinuity
 diaph=0.5
 # value of gamma
-gamma=1.666666667
+gamma=1.4
 

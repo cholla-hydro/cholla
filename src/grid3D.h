@@ -365,10 +365,6 @@ class Grid3D
      *  \brief Supersonic inflow on -z boundary set to match Cloud_3D IC's. */
     void Wind_Boundary();
 
-    /*! \fn void Wind_Plus_Advection_Boundary()
-     *  \brief Supersonic inflow on -z boundary set to match Cloud_3D IC's, plus advection on the edges. */
-    void Wind_Plus_Advection_Boundary();    
-    
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);
     void Set_Boundaries_MPI_SLAB(int *flags, struct parameters P);

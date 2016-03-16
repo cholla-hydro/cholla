@@ -4,9 +4,9 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=1920
+nx=1280
 # number of grid cells in the y dimension
-ny=768
+ny=256
 # number of grid cells in the z dimension
 nz=1
 # final time
@@ -23,8 +23,8 @@ init=Cloud_2D
 xmin=0.0
 ymin=0.0
 zmin=0.0
-xlen=300.0
-ylen=120.0
+xlen=200.0
+ylen=40.0
 zlen=1.0
 # type of boundary conditions
 xl_bcnd=4
@@ -35,7 +35,7 @@ zl_bcnd=0
 zu_bcnd=0
 custom_bcnd=wind
 # path to output directory
-outdir=./n10_big/hdf5/raw/
+outdir=./PPMC_diode/hdf5/
 
 
 
