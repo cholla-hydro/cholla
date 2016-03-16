@@ -690,6 +690,7 @@ void Grid3D::Read_Grid(struct parameters P) {
   fp = fopen(filename, "r");
   if (!fp) {
     printf("Unable to open input file.\n");
+    exit(0);
   }
 
   // read in grid data
@@ -706,6 +707,7 @@ void Grid3D::Read_Grid(struct parameters P) {
   file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) {
     printf("Unable to open input file.\n");
+    exit(0);
   }
 
   // read in grid data
@@ -869,11 +871,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id)
   Real      *dataset_buffer;
   herr_t    status;
 
-  // Read in header data
-  int       int_data[3];
-  Real      Real_data[3];
-
-  // Single attributes first
+  // Read in header values not set by grid initialization
   attribute_id = H5Aopen(file_id, "gamma", H5P_DEFAULT); 
   status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &gama);
   status = H5Aclose(attribute_id);
@@ -886,67 +884,6 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id)
   attribute_id = H5Aopen(file_id, "n_step", H5P_DEFAULT); 
   status = H5Aread(attribute_id, H5T_NATIVE_INT, &H.n_step);
   status = H5Aclose(attribute_id);
-
-  // Now 3D attributes
-  attribute_id = H5Aopen(file_id, "dims", H5P_DEFAULT); 
-  status = H5Aread(attribute_id, H5T_NATIVE_INT, int_data);
-  status = H5Aclose(attribute_id);
-  #ifndef MPI_CHOLLA
-  H.nx_real = int_data[0];
-  H.ny_real = int_data[1];
-  H.nz_real = int_data[2];
-  #endif
-  #ifdef MPI_CHOLLA
-  nx_global_real = int_data[0];
-  ny_global_real = int_data[1];
-  nz_global_real = int_data[2];
-  #endif
-
-
-  #ifdef MPI_CHOLLA
-  attribute_id = H5Aopen(file_id, "dims_local", H5P_DEFAULT); 
-  status = H5Aread(attribute_id, H5T_NATIVE_INT, int_data);
-  status = H5Aclose(attribute_id);
-
-  H.nx_real = int_data[0];
-  H.ny_real = int_data[1];
-  H.nz_real = int_data[2];
-
-  attribute_id = H5Aopen(file_id, "offset", H5P_DEFAULT); 
-  status = H5Aread(attribute_id, H5T_NATIVE_INT, int_data);
-  status = H5Aclose(attribute_id);
-
-  nx_local_start = int_data[0];
-  ny_local_start = int_data[1];
-  nz_local_start = int_data[2];
-  #endif
-
-
-  attribute_id = H5Aopen(file_id, "bounds", H5P_DEFAULT); 
-  status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
-  status = H5Aclose(attribute_id);
-
-  H.xbound = Real_data[0];
-  H.ybound = Real_data[1];
-  H.zbound = Real_data[2];
-
-
-  attribute_id = H5Aopen(file_id, "domain", H5P_DEFAULT); 
-  status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
-  status = H5Aclose(attribute_id);
-
-  H.xdglobal = Real_data[0];
-  H.ydglobal = Real_data[1];
-  H.zdglobal = Real_data[2];
-
-  attribute_id = H5Aopen(file_id, "dx", H5P_DEFAULT); 
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
-  status = H5Aclose(attribute_id);
-
-  H.dx = Real_data[0];
-  H.dy = Real_data[1];
-  H.dz = Real_data[2];
-
 
   // 1D case
   if (H.nx>1 && H.ny==1 && H.nz==1) {
