@@ -1137,12 +1137,13 @@ void Grid3D::Cloud_3D() {
   d_cloud = 1.0;
   P_cloud = P_wind;  // cloud in pressure equilibrium with hot wind
   R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
-  R_c = R_max/1.28; // radius at which cloud begins to taper
+  //R_c = R_max/1.28; // radius at which cloud begins to taper
+  R_c = 4.5;
 
   // cloud center in code units
   xcen = 10.0;
-  ycen = 40.0;
-  zcen = 40.0;
+  ycen = 10.0;
+  zcen = 10.0;
 
   // hot wind
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
@@ -1345,7 +1346,8 @@ void Grid3D::Cloud_3D() {
           #endif
         }
         if (r > R_c && r < R_max) {
-          C.density[id] = d_cloud*exp(-1.0 *fabs(r - R_c)/4.0);
+          //C.density[id] = d_cloud*exp(-1.0 *fabs(r - R_c)/4.0);
+          C.density[id] = d_cloud*exp((log(d_wind/d_cloud)/(R_max-R_c))*fabs(r - R_c));
           if (C.density[id] < d_wind) C.density[id] = d_wind;
           C.momentum_x[id] = 0.0;
           C.momentum_y[id] = 0.0;
