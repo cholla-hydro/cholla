@@ -45,10 +45,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   Real a_i   = sqrt(gamma*p_i/d_i);
 
 
-  // Step 1 - Compute the eigenvalues and eigenvectors of the linearized
+  // Step 1 - Compute the eigenvalues of the linearized
   //          equations in the primative variables using the cell-centered
   //          primative variables
-  //          (just compute eigenvalues; deal with eigenvectors later)
   Real lambda_m = vx_i-a_i;
   Real lambda_0 = vx_i;
   Real lambda_p = vx_i+a_i;
@@ -57,7 +56,6 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   // Step 2 - Compute the left, right, and centered differences of the primative variables
   //          Note that here L and R refer to locations relative to the cell center
   //          Stone Eqn 36
-
   Real del_d_L, del_vx_L, del_vy_L, del_vz_L, del_p_L;
   Real del_d_R, del_vx_R, del_vy_R, del_vz_R, del_p_R;
   Real del_d_C, del_vx_C, del_vy_C, del_vz_C, del_p_C;
@@ -134,15 +132,6 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   Real del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_a_4_m;
   Real lim_slope_a, lim_slope_b;
 
-/*
-  del_a_0_m = SIGN(del_a_0_C) * minof3(2*fabs(del_a_0_L), 2*fabs(del_a_0_R), fabs(del_a_0_C));
-  del_a_1_m = SIGN(del_a_1_C) * minof3(2*fabs(del_a_1_L), 2*fabs(del_a_1_R), fabs(del_a_1_C));
-  del_a_2_m = SIGN(del_a_2_C) * minof3(2*fabs(del_a_2_L), 2*fabs(del_a_2_R), fabs(del_a_2_C));
-  del_a_3_m = SIGN(del_a_3_C) * minof3(2*fabs(del_a_3_L), 2*fabs(del_a_3_R), fabs(del_a_3_C));
-  del_a_4_m = SIGN(del_a_4_C) * minof3(2*fabs(del_a_4_L), 2*fabs(del_a_4_R), fabs(del_a_4_C));
-*/
-
-/************ New from Athena code ******************/
   del_a_0_m = del_a_1_m = del_a_2_m = del_a_3_m = del_a_4_m = 0.0;
 
   if (del_a_0_L * del_a_0_R > 0.0) {
@@ -174,7 +163,6 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
     lim_slope_b = fmin(fabs(del_a_4_C), fabs(del_a_4_G));
     del_a_4_m = SIGN(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b);
   }
-//********************************
 
   // Step 5 - Project the monotonized difference in the characteristic variables back onto the 
   //          primative variables
@@ -193,21 +181,7 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   //          Stone Eqns 40 & 41
   Real d_L_iph, vx_L_iph, vy_L_iph, vz_L_iph, p_L_iph;
   Real d_R_imh, vx_R_imh, vy_R_imh, vz_R_imh, p_R_imh;
-/*
-  d_R_imh  = d_i  - (0.5 - fmin(lambda_m, 0) * 0.5*dtodx) * del_d_m_i;
-  vx_R_imh = vx_i - (0.5 - fmin(lambda_m, 0) * 0.5*dtodx) * del_vx_m_i;
-  vy_R_imh = vy_i - (0.5 - fmin(lambda_m, 0) * 0.5*dtodx) * del_vy_m_i;
-  vz_R_imh = vz_i - (0.5 - fmin(lambda_m, 0) * 0.5*dtodx) * del_vz_m_i;
-  p_R_imh  = p_i  - (0.5 - fmin(lambda_m, 0) * 0.5*dtodx) * del_p_m_i;
 
-  d_L_iph  = d_i  + (0.5 - fmax(lambda_p, 0) * 0.5*dtodx) * del_d_m_i;
-  vx_L_iph = vx_i + (0.5 - fmax(lambda_p, 0) * 0.5*dtodx) * del_vx_m_i;
-  vy_L_iph = vy_i + (0.5 - fmax(lambda_p, 0) * 0.5*dtodx) * del_vy_m_i;
-  vz_L_iph = vz_i + (0.5 - fmax(lambda_p, 0) * 0.5*dtodx) * del_vz_m_i;
-  p_L_iph  = p_i  + (0.5 - fmax(lambda_p, 0) * 0.5*dtodx) * del_p_m_i;
-*/
-
-/************ New from Athena code ******************/
   // Step 7 Compute L/R values, ensure they lie between neighboring cell-centered values
   d_R_imh  = d_i  - 0.5*del_d_m_i; 
   vx_R_imh = vx_i - 0.5*del_vx_m_i;
@@ -283,7 +257,6 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   vy_L_iph = vy_L_iph - qx * del_vy_m_i;
   vz_L_iph = vz_L_iph - qx * del_vz_m_i;
   p_L_iph  = p_L_iph  - qx * del_p_m_i;
-//********************************
 
 
   // Step 7 - Perform the characteristic tracing
