@@ -1,6 +1,6 @@
 /*! \file ppmc_vl_cuda.cu
  *  \brief Function definitions for the van leer integrator ppm kernels, using characteristic limiting. 
-           Written following Stone et al. 2008. */
+           Written following Stone et al. 2009. */
 #ifdef CUDA
 #ifdef PPMC
 
@@ -71,7 +71,6 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
   int yid = (tid - zid*nx*ny) / nx;
   int xid = tid - zid*nx*ny - yid*nx;
 
-  //if (xid > n_ghost-3 && xid < nx-n_ghost+2 && yid < ny && zid < nz)
   if (xid < nx && yid < ny && zid < nz)
   {
     // load the 5-cell stencil into registers
@@ -571,7 +570,6 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     if ( 6.0*(vz_R - vz_L)*(vz_i - 0.5*(vz_L + vz_R)) < -(vz_R - vz_L)*(vz_R - vz_L)) vz_R = 3.0*vz_i - 2.0*vz_L;
     if ( 6.0*(p_R  - p_L) *(p_i  - 0.5*(p_L  + p_R))  < -(p_R  - p_L) *(p_R  - p_L))  p_R  = 3.0*p_i  - 2.0*p_L;
 
-    //************** New From Athena Code ****************************
     d_L  = fmax( fmin(d_i,  d_imo), d_L );
     d_L  = fmin( fmax(d_i,  d_imo), d_L );
     d_R  = fmax( fmin(d_i,  d_ipo), d_R );
@@ -592,7 +590,6 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     p_L  = fmin( fmax(p_i,  p_imo), p_L );
     p_R  = fmax( fmin(p_i,  p_ipo), p_R );
     p_R  = fmin( fmax(p_i,  p_ipo), p_R );
-    //*****************************************************************
 
     #ifdef DE
     if ((ge_R  - ge_i) *(ge_i  - ge_L)  <= 0) ge_L  = ge_R  = ge_i;
@@ -634,8 +631,6 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     #ifdef DE
     dev_bounds_L[5*n_cells + id] = ge_R;
     #endif
-
-    //printf("%f %f %f %f %f\n", dev_bounds_R[id], dev_bounds_R[n_cells+id], dev_bounds_R[2*n_cells+id], dev_bounds_R[3*n_cells+id], dev_bounds_R[4*n_cells+id]);
 
   }
 }

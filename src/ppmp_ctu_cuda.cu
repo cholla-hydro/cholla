@@ -68,9 +68,6 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   #endif
 
 
-  // declare shared memory array to hold conserved variables
-  //__shared__ Real sh_conserved[5*(TPB+2*4)];
-
   // get a thread ID
   // global thread id in the gpu grid
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -80,11 +77,9 @@ __global__ void PPMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   int yid = (tid - zid*nx*ny) / nx;
   int xid = tid - zid*nx*ny - yid*nx;
   // id within the thread block
-  //int sid = threadIdx.x;
   int id;
 
 
-  //if (xid > n_ghost-2 && xid < nx-n_ghost+1 && yid < ny && zid < nz)
   if (xid < nx && yid < ny && zid < nz)
   {
     // load the 7-cell stencil into registers

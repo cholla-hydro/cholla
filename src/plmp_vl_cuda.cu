@@ -47,7 +47,6 @@ __global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
   int xid = tid - zid*nx*ny - yid*nx;
 
 
-  //if (xid > n_ghost-2 && xid < nx-n_ghost+1 && yid < ny && zid < nz)
   if (xid < nx && yid < ny && zid < nz)
   {
     // load the 3-cell stencil into registers
@@ -94,7 +93,7 @@ __global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     p_L = fmax(p_L, (Real) TINY_NUMBER);
     p_R = fmax(p_R, (Real) TINY_NUMBER);
 
-    // Step 8 - Convert the left and right states in the primitive to the conserved variables
+    // Convert the left and right states in the primitive to the conserved variables
     // send final values back from kernel
     // bounds_R refers to the right side of the i-1/2 interface
     if (dir == 0) id = xid-1 + yid*nx + zid*nx*ny;
@@ -143,7 +142,7 @@ __device__ void Interface_Values_PLM(Real q_imo, Real q_i, Real q_ipo, Real *q_L
   // Minmod limiter
   //del_q_m = sgn(del_q_C)*fmin(2.0*lim_slope_a, fabs(del_q_C));
 
-  // Van Leer limiter (?) from Athena
+  // Van Leer limiter 
   del_q_m = sgn(del_q_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
 
 

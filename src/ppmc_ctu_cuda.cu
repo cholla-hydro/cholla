@@ -79,7 +79,6 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   int yid = (tid - zid*nx*ny) / nx;
   int xid = tid - zid*nx*ny - yid*nx;
 
-  //if (xid > n_ghost-3 && xid < nx-n_ghost+2 && yid < ny && zid < nz)
   if (xid < nx && yid < ny && zid < nz)
   {
     // load the 5-cell stencil into registers
@@ -579,7 +578,6 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     if ( 6.0*(vz_R - vz_L)*(vz_i - 0.5*(vz_L + vz_R)) < -(vz_R - vz_L)*(vz_R - vz_L)) vz_R = 3.0*vz_i - 2.0*vz_L;
     if ( 6.0*(p_R  - p_L) *(p_i  - 0.5*(p_L  + p_R))  < -(p_R  - p_L) *(p_R  - p_L))  p_R  = 3.0*p_i  - 2.0*p_L;
 
-    //************** New From Athena Code ****************************
     d_L  = fmax( fmin(d_i,  d_imo), d_L );
     d_L  = fmin( fmax(d_i,  d_imo), d_L );
     d_R  = fmax( fmin(d_i,  d_ipo), d_R );
@@ -600,7 +598,6 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     p_L  = fmin( fmax(p_i,  p_imo), p_L );
     p_R  = fmax( fmin(p_i,  p_ipo), p_R );
     p_R  = fmin( fmax(p_i,  p_ipo), p_R );
-    //*****************************************************************
 
     #ifdef DE
     if ((ge_R  - ge_i) *(ge_i  - ge_L)  <= 0) ge_L  = ge_R  = ge_i;
@@ -645,7 +642,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
 
     // Step 9 - Compute the left and right interface values using monotonized parabolic interpolation
-    //          Stone Eqns 55 & 56  (step 18 in Athena code)
+    //          Stone Eqns 55 & 56
 
     // largest eigenvalue
     lambda_max = fmax(lambda_p, 0);

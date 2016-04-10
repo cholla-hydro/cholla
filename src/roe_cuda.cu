@@ -58,7 +58,6 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
   }
 
   // Each thread executes the solver independently
-  //if (xid > n_ghost-3 && xid < nx-n_ghost+1 && yid < ny && zid < nz) 
   if (xid < nx && yid < ny && zid < nz) 
   {
     // retrieve conserved variables

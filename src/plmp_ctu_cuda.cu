@@ -73,7 +73,7 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     vz_i =  dev_conserved[o3*n_cells + id] / d_i;
     p_i  = (dev_conserved[4*n_cells + id] - 0.5*d_i*(vx_i*vx_i + vy_i*vy_i + vz_i*vz_i)) * (gamma - 1.0);
     p_i  = fmax(p_i, (Real) TINY_NUMBER);
-    // for dual energy pressure is a separately tracked quantity
+    // for dual energy thermal energy is a separately tracked quantity
     #ifdef DE
     ge_i =  dev_conserved[5*n_cells + id] / d_i;
     #endif
@@ -162,6 +162,11 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     ger = ge_i + 0.5 * ge_slope;
     #endif
 
+    // apply minimum constraints
+    dl = fmax(dl, (Real) TINY_NUMBER);
+    dr = fmax(dr, (Real) TINY_NUMBER);
+    pl = fmax(pl, (Real) TINY_NUMBER);
+    pr = fmax(pr, (Real) TINY_NUMBER);
 
     // calculate the conserved variables and fluxes at each interface
     mxl = dl*vxl;
@@ -209,11 +214,6 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     dger += 0.5 * (dtodx) * (gefl - gefr);
     #endif
 
-    // apply minimum constraints
-    dl = fmax(dl, (Real) TINY_NUMBER);
-    dr = fmax(dr, (Real) TINY_NUMBER);
-    pl = fmax(pl, (Real) TINY_NUMBER);
-    pr = fmax(pr, (Real) TINY_NUMBER);
 
     // send final values back from kernel
     // bounds_R refers to the right side of the i-1/2 interface

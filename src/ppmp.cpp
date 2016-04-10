@@ -10,7 +10,7 @@
 #include"global.h"
 
 #define STEEPENING
-//#define FLATTENING
+#define FLATTENING
 
 
 /*! \fn void ppmp(Real stencil[], Real bounds[], Real dx, Real dt)
@@ -180,32 +180,6 @@ void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   if ( (vyr - vyl) * ((3*vy_i - 2*vyl) - vyr) < 0)  { vyr = 3*vy_i - 2*vyl; }
   if ( (vzr - vzl) * ((3*vz_i - 2*vzl) - vzr) < 0)  { vzr = 3*vz_i - 2*vzl; }
   if ( (pr  - pl)  * ((3*p_i  - 2*pl)  - pr)  < 0)  { pr  = 3*p_i  - 2*pl;  }
-
-
-  //************** New From Athena Code ****************************
-/*
-  dl = fmax( fmin(d_i, d_imo), dl );
-  dl = fmin( fmax(d_i, d_imo), dl );
-  dr = fmax( fmin(d_i, d_ipo), dr );
-  dr = fmin( fmax(d_i, d_ipo), dr );
-  vxl = fmax( fmin(vx_i, vx_imo), vxl );
-  vxl = fmin( fmax(vx_i, vx_imo), vxl );
-  vxr = fmax( fmin(vx_i, vx_ipo), vxr );
-  vxr = fmin( fmax(vx_i, vx_ipo), vxr );
-  vyl = fmax( fmin(vy_i, vy_imo), vyl );
-  vyl = fmin( fmax(vy_i, vy_imo), vyl );
-  vyr = fmax( fmin(vy_i, vy_ipo), vyr );
-  vyr = fmin( fmax(vy_i, vy_ipo), vyr );
-  vzl = fmax( fmin(vz_i, vz_imo), vzl );
-  vzl = fmin( fmax(vz_i, vz_imo), vzl );
-  vzr = fmax( fmin(vz_i, vz_ipo), vzr );
-  vzr = fmin( fmax(vz_i, vz_ipo), vzr );
-  pl = fmax( fmin(p_i, p_imo), pl );
-  pl = fmin( fmax(p_i, p_imo), pl );
-  pr = fmax( fmin(p_i, p_ipo), pr );
-  pr = fmin( fmax(p_i, p_ipo), pr ); 
-*/
-  //*****************************************************************
 
 
   // compute sound speed in cell i

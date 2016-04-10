@@ -1,7 +1,6 @@
 /*! \file ppmp_vl_cuda.cu
- *  \brief Definitions of the piecewise parabolic reconstruction functions for  
-           use with the Van Leer integrator, as decribed
-           in Stone et al., 2008, 2009. */
+ *  \brief Definitions of the piecewise parabolic reconstruction (Fryxell 200) functions for  
+           use with the Van Leer integrator, as decribed in Stone et al., 2009. */
 #ifdef CUDA
 #ifdef PPMP
 
@@ -208,7 +207,6 @@ __global__ void PPMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     d_R = fmax(d_R, (Real) TINY_NUMBER);
     p_L = fmax(p_L, (Real) TINY_NUMBER);
     p_R = fmax(p_R, (Real) TINY_NUMBER);
-    //if (ge_L < 0.0 || ge_R < 0.0) printf("Negative ge before RP.\n");
 
     // Convert the left and right states in the primitive to the conserved variables
     // send final values back from kernel
@@ -268,17 +266,8 @@ __device__ Real Calculate_Slope(Real q_imo, Real q_i, Real q_ipo)
   // Minmod limiter
   //del_q_m = sgn(del_q_C)*fmin(2.0*lim_slope_a, fabs(del_q_C));
 
-  // Van Leer limiter (?) from Athena
+  // Van Leer limiter
   del_q_m = sgn(del_q_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
-  
-  /*
-  del_q = 0.5*(q_ipo - q_imo);
-  if ( (q_ipo-q_i)*(q_i-q_imo) > 0)
-  {
-    del_q_m = minof3(fabs(del_q), 2*fabs(q_i-q_imo), 2*fabs(q_i - q_ipo)) * sgn(del_q);
-  }
-  else del_q_m = 0;  
-  */
 
   return del_q_m;
 
@@ -308,9 +297,6 @@ __device__ void Interface_Values_PPM(Real q_imo, Real q_i, Real q_ipo, Real del_
   *q_R  = fmax( fmin(q_i, q_ipo), *q_R );
   *q_R  = fmin( fmax(q_i, q_ipo), *q_R );
 
-  //*q_L = q_i;
-  //*q_R = q_i;
- 
 }
 
 #endif //PPMP

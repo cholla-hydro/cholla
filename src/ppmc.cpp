@@ -118,11 +118,11 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   del_p_R  = p_i  - p_imo;
 
   // centered
-  del_d_C  = (d_i - d_imt) / 2.0;
-  del_vx_C = (vx_i - vx_imt) / 2.0;
-  del_vy_C = (vy_i - vy_imt) / 2.0;
-  del_vz_C = (vz_i - vz_imt) / 2.0;
-  del_p_C  = (p_i - p_imt) / 2.0;
+  del_d_C  = 0.5*(d_i - d_imt);
+  del_vx_C = 0.5*(vx_i - vx_imt);
+  del_vy_C = 0.5*(vy_i - vy_imt);
+  del_vz_C = 0.5*(vz_i - vz_imt);
+  del_p_C  = 0.5*(p_i - p_imt);
 
   // Van Leer
   if (del_d_L*del_d_R > 0.0) { del_d_G = 2.0*del_d_L*del_d_R / (del_d_L+del_d_R); }
@@ -136,14 +136,6 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   if (del_p_L*del_p_R > 0.0) { del_p_G = 2.0*del_p_L*del_p_R / (del_p_L+del_p_R); }
   else { del_p_G = 0.0; } 
 
-/*
-printf("imo\n");
-printf("% f % f % f % f\n", del_d_C, del_d_L, del_d_R, del_d_G);
-printf("% f % f % f % f\n", del_vx_C, del_vx_L, del_vx_R, del_vx_G);
-printf("% f % f % f % f\n", del_vy_C, del_vy_L, del_vy_R, del_vy_G);
-printf("% f % f % f % f\n", del_vy_C, del_vz_L, del_vz_R, del_vz_G);
-printf("% f % f % f % f\n", del_p_C, del_p_L, del_p_R, del_p_G);
-*/
 
   // Step 3 - Project the left, right, centered and van Leer differences onto the characteristic variables
   //          Stone Eqn 37 (del_a are differences in characteristic variables, see Stone for notation)
@@ -173,14 +165,6 @@ printf("% f % f % f % f\n", del_p_C, del_p_L, del_p_R, del_p_G);
   del_a_3_G = del_vz_G;
   del_a_4_G = d_imo * del_vx_G / (2*a_imo) + del_p_G / (2*a_imo*a_imo); 
 
-/*
-printf("imo\n");
-printf("% f % f % f % f\n", del_a_0_C, del_a_0_L, del_a_0_R, del_a_0_G);
-printf("% f % f % f % f\n", del_a_1_C, del_a_1_L, del_a_1_R, del_a_1_G);
-printf("% f % f % f % f\n", del_a_2_C, del_a_2_L, del_a_2_R, del_a_2_G);
-printf("% f % f % f % f\n", del_a_3_C, del_a_3_L, del_a_3_R, del_a_3_G);
-printf("% f % f % f % f\n", del_a_4_C, del_a_4_L, del_a_4_R, del_a_4_G);
-*/
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
   //          Stone Eqn 38
@@ -213,10 +197,6 @@ printf("% f % f % f % f\n", del_a_4_C, del_a_4_L, del_a_4_R, del_a_4_G);
     del_a_4_m = sgn(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b); 
   }
 
-/*
-printf("imo\n");
-printf("% f % f % f % f % f\n", del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_a_4_m);
-*/
 
   // Step 5 - Project the monotonized difference in the characteristic variables back onto the 
   //          primative variables
@@ -248,11 +228,11 @@ printf("% f % f % f % f % f\n", del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_
   del_p_R  = p_ipo  - p_i;
 
   // centered
-  del_d_C  = (d_ipo - d_imo) / 2.0;
-  del_vx_C = (vx_ipo - vx_imo) / 2.0;
-  del_vy_C = (vy_ipo - vy_imo) / 2.0;
-  del_vz_C = (vz_ipo - vz_imo) / 2.0;
-  del_p_C  = (p_ipo - p_imo) / 2.0;
+  del_d_C  = 0.5*(d_ipo - d_imo);
+  del_vx_C = 0.5*(vx_ipo - vx_imo);
+  del_vy_C = 0.5*(vy_ipo - vy_imo);
+  del_vz_C = 0.5*(vz_ipo - vz_imo);
+  del_p_C  = 0.5*(p_ipo - p_imo);
 
   // van Leer
   if (del_d_L*del_d_R > 0.0) { del_d_G = 2.0*del_d_L*del_d_R / (del_d_L+del_d_R); }
@@ -266,14 +246,6 @@ printf("% f % f % f % f % f\n", del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_
   if (del_p_L*del_p_R > 0.0) { del_p_G = 2.0*del_p_L*del_p_R / (del_p_L+del_p_R); }
   else { del_p_G = 0.0; } 
 
-/*
-printf("i  \n");
-printf("% f % f % f % f\n", del_d_C, del_d_L, del_d_R, del_d_G);
-printf("% f % f % f % f\n", del_vx_C, del_vx_L, del_vx_R, del_vx_G);
-printf("% f % f % f % f\n", del_vy_C, del_vy_L, del_vy_R, del_vy_G);
-printf("% f % f % f % f\n", del_vy_C, del_vz_L, del_vz_R, del_vz_G);
-printf("% f % f % f % f\n", del_p_C, del_p_L, del_p_R, del_p_G);
-*/
 
   // Step 3 - Project the left, right, centered, and van Leer differences onto the characteristic variables
   //          Stone Eqn 37 (del_a are differences in characteristic variables, see Stone for notation)
@@ -302,16 +274,6 @@ printf("% f % f % f % f\n", del_p_C, del_p_L, del_p_R, del_p_G);
   del_a_2_G = del_vy_G;
   del_a_3_G = del_vz_G;
   del_a_4_G = d_i * del_vx_G / (2*a_i) + del_p_G / (2*a_i*a_i);
-
-/*
-printf("i  \n");
-printf("% f % f % f % f\n", del_a_0_C, del_a_0_L, del_a_0_R, del_a_0_G);
-printf("% f % f % f % f\n", del_a_1_C, del_a_1_L, del_a_1_R, del_a_1_G);
-printf("% f % f % f % f\n", del_a_2_C, del_a_2_L, del_a_2_R, del_a_2_G);
-printf("% f % f % f % f\n", del_a_3_C, del_a_3_L, del_a_3_R, del_a_3_G);
-printf("% f % f % f % f\n", del_a_4_C, del_a_4_L, del_a_4_R, del_a_4_G);
-*/
-
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
   //          Stone Eqn 38
@@ -344,10 +306,6 @@ printf("% f % f % f % f\n", del_a_4_C, del_a_4_L, del_a_4_R, del_a_4_G);
     del_a_4_m = sgn(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b); 
   }
 
-/*
-printf("i  \n");
-printf("% f % f % f % f % f\n", del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_a_4_m);
-*/
 
   // Step 5 - Project the monotonized difference in the characteristic variables back onto the 
   //          primative variables
@@ -379,11 +337,11 @@ printf("% f % f % f % f % f\n", del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_
   del_p_R  = p_ipt  - p_ipo;
 
   // centered
-  del_d_C  = (d_ipt - d_i) / 2.0;
-  del_vx_C = (vx_ipt- vx_i) / 2.0;
-  del_vy_C = (vy_ipt - vy_i) / 2.0;
-  del_vz_C = (vz_ipt - vz_i) / 2.0;
-  del_p_C  = (p_ipt - p_i) / 2.0;
+  del_d_C  = 0.5*(d_ipt - d_i);
+  del_vx_C = 0.5*(vx_ipt- vx_i);
+  del_vy_C = 0.5*(vy_ipt - vy_i);
+  del_vz_C = 0.5*(vz_ipt - vz_i);
+  del_p_C  = 0.5*(p_ipt - p_i);
 
   // van Leer
   if (del_d_L*del_d_R > 0.0) { del_d_G = 2.0*del_d_L*del_d_R / (del_d_L+del_d_R); }
@@ -397,14 +355,6 @@ printf("% f % f % f % f % f\n", del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_
   if (del_p_L*del_p_R > 0.0) { del_p_G = 2.0*del_p_L*del_p_R / (del_p_L+del_p_R); }
   else { del_p_G = 0.0; } 
 
-/*
-printf("ipo\n");
-printf("% f % f % f % f\n", del_d_C, del_d_L, del_d_R, del_d_G);
-printf("% f % f % f % f\n", del_vx_C, del_vx_L, del_vx_R, del_vx_G);
-printf("% f % f % f % f\n", del_vy_C, del_vy_L, del_vy_R, del_vy_G);
-printf("% f % f % f % f\n", del_vy_C, del_vz_L, del_vz_R, del_vz_G);
-printf("% f % f % f % f\n", del_p_C, del_p_L, del_p_R, del_p_G);
-*/
 
   // Step 3 - Project the left, right, centered, and van Leer differences onto the characteristic variables
   //          Stone Eqn 37 (del_a are differences in characteristic variables, see Stone for notation)
@@ -433,15 +383,6 @@ printf("% f % f % f % f\n", del_p_C, del_p_L, del_p_R, del_p_G);
   del_a_2_G = del_vy_G;
   del_a_3_G = del_vz_G;
   del_a_4_G = d_ipo * del_vx_G / (2*a_ipo) + del_p_G / (2*a_ipo*a_ipo); 
-
-/*
-printf("ipo\n");
-printf("% f % f % f % f\n", del_a_0_C, del_a_0_L, del_a_0_R, del_a_0_G);
-printf("% f % f % f % f\n", del_a_1_C, del_a_1_L, del_a_1_R, del_a_1_G);
-printf("% f % f % f % f\n", del_a_2_C, del_a_2_L, del_a_2_R, del_a_2_G);
-printf("% f % f % f % f\n", del_a_3_C, del_a_3_L, del_a_3_R, del_a_3_G);
-printf("% f % f % f % f\n", del_a_4_C, del_a_4_L, del_a_4_R, del_a_4_G);
-*/
 
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
@@ -475,11 +416,6 @@ printf("% f % f % f % f\n", del_a_4_C, del_a_4_L, del_a_4_R, del_a_4_G);
     del_a_4_m = sgn(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b); 
   }
 
-/*
-printf("ipo\n");
-printf("% f % f % f % f % f\n", del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_a_4_m);
-*/
-
 
   // Step 5 - Project the monotonized difference in the characteristic variables back onto the 
   //          primative variables
@@ -491,11 +427,6 @@ printf("% f % f % f % f % f\n", del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_
   del_vz_m_ipo = del_a_3_m;
   del_p_m_ipo  = a_ipo*a_ipo*del_a_0_m + a_ipo*a_ipo*del_a_4_m;  
 
-/*
-printf("imo % f % f % f % f % f\n", del_d_m_imo, del_vx_m_imo, del_vy_m_imo, del_vz_m_imo, del_p_m_imo);
-printf("i   % f % f % f % f % f\n", del_d_m_i, del_vx_m_i, del_vy_m_i, del_vz_m_i, del_p_m_i);
-printf("ipo % f % f % f % f % f\n", del_d_m_ipo, del_vx_m_ipo, del_vy_m_ipo, del_vz_m_ipo, del_p_m_ipo);
-*/
 
   // Step 6 - Use parabolic interpolation to compute values at the left and right of each cell center
   //          Here, the subscripts L and R refer to the left and right side of the ith cell center
@@ -513,13 +444,6 @@ printf("ipo % f % f % f % f % f\n", del_d_m_ipo, del_vx_m_ipo, del_vy_m_ipo, del
   vz_R = 0.5*(vz_ipo + vz_i) - (del_vz_m_ipo - del_vz_m_i) / 6.0;
   p_R  = 0.5*(p_ipo + p_i)   - (del_p_m_ipo  - del_p_m_i)  / 6.0;
 
-/*
-printf("% 10.8f % 10.8f\n", d_L, d_R);
-printf("% 10.8f % 10.8f\n", vx_L, vx_R);
-printf("% 10.8f % 10.8f\n", vy_L, vy_R);
-printf("% 10.8f % 10.8f\n", vz_L, vz_R);
-printf("% 10.8f % 10.8f\n", p_L, p_R);
-*/
 
   // Step 7 - Apply further monotonicity constraints to ensure the values on the left and right side
   //          of cell center lie between neighboring cell-centered values
@@ -543,7 +467,6 @@ printf("% 10.8f % 10.8f\n", p_L, p_R);
   if ( 6.0*(vz_R - vz_L)*(vz_i - 0.5*(vz_L + vz_R)) < -(vz_R - vz_L)*(vz_R - vz_L)) vz_R = 3.0*vz_i - 2.0*vz_L;
   if ( 6.0*(p_R  - p_L) *(p_i  - 0.5*(p_L  + p_R))  < -(p_R  - p_L) *(p_R  - p_L))  p_R  = 3.0*p_i  - 2.0*p_L;
 
-  //************** New From Athena Code ****************************
   d_L  = fmax( fmin(d_i,  d_imo), d_L );
   d_L  = fmin( fmax(d_i,  d_imo), d_L );
   d_R  = fmax( fmin(d_i,  d_ipo), d_R );
@@ -564,15 +487,6 @@ printf("% 10.8f % 10.8f\n", p_L, p_R);
   p_L  = fmin( fmax(p_i,  p_imo), p_L );
   p_R  = fmax( fmin(p_i,  p_ipo), p_R );
   p_R  = fmin( fmax(p_i,  p_ipo), p_R );
-  //*****************************************************************
-
-/*
-printf("% 10.8f % 10.8f\n", d_L, d_R);
-printf("% 10.8f % 10.8f\n", vx_L, vx_R);
-printf("% 10.8f % 10.8f\n", vy_L, vy_R);
-printf("% 10.8f % 10.8f\n", vz_L, vz_R);
-printf("% 10.8f % 10.8f\n", p_L, p_R);
-*/
 
 
   // Step 8 - Compute the coefficients for the monotonized parabolic interpolation function
@@ -590,17 +504,9 @@ printf("% 10.8f % 10.8f\n", p_L, p_R);
   vz_6 = 6.*(vz_i - 0.5*(vz_L + vz_R));
   p_6  = 6.*(p_i  - 0.5*(p_L  + p_R)); 
 
-/*
-printf("% 10.8f % 10.8f\n", del_d_m_i, d_6);
-printf("% 10.8f % 10.8f\n", del_vx_m_i, vx_6);
-printf("% 10.8f % 10.8f\n", del_vy_m_i, vy_6);
-printf("% 10.8f % 10.8f\n", del_vz_m_i, vz_6);
-printf("% 10.8f % 10.8f\n", del_p_m_i, p_6);
-*/
-
 
   // Step 9 - Compute the left and right interface values using monotonized parabolic interpolation
-  //          Stone Eqns 55 & 56  (step 18 in Athena code)
+  //          Stone Eqns 55 & 56 
 
   Real qx1, qx2;
 
@@ -617,36 +523,6 @@ printf("% 10.8f % 10.8f\n", del_p_m_i, p_6);
   vy_L = vy_L + qx2 * (del_vy_m_i + (1.0-(4.0/3.0)*qx2)*vy_6);
   vz_L = vz_L + qx2 * (del_vz_m_i + (1.0-(4.0/3.0)*qx2)*vz_6);
   p_L = p_L + qx2 * (del_p_m_i + (1.0-(4.0/3.0)*qx2)*p_6);
-
-//printf("% 10.8f % 10.8f % 12.10f % 12.10f % 10.8f % 10.8f\n", qx1, qx2, dt, dx, lambda_p, lambda_m);
-//printf("% 10.8f % 10.8f % 10.8f\n", dt, dx, qx2);
-/*
-  // largest eigenvalue
-  lambda_max = fmax(lambda_p, 0);
-  // smallest eigenvalue
-  lambda_min = fmin(lambda_m, 0);
-
-  // left interface value, i+1/2
-  d_R  = d_R  - lambda_max * (0.5*dtodx)*(del_d_m_i  - (1.0 - (2.0/3.0)*lambda_max*dtodx)*d_6);
-  vx_R = vx_R - lambda_max * (0.5*dtodx)*(del_vx_m_i - (1.0 - (2.0/3.0)*lambda_max*dtodx)*vx_6);
-  vy_R = vy_R - lambda_max * (0.5*dtodx)*(del_vy_m_i - (1.0 - (2.0/3.0)*lambda_max*dtodx)*vy_6);
-  vz_R = vz_R - lambda_max * (0.5*dtodx)*(del_vz_m_i - (1.0 - (2.0/3.0)*lambda_max*dtodx)*vz_6);
-  p_R  = p_R  - lambda_max * (0.5*dtodx)*(del_p_m_i  - (1.0 - (2.0/3.0)*lambda_max*dtodx)*p_6);
-  
-  // right interface value, i-1/2
-  d_L  = d_L  - lambda_min * (0.5*dtodx)*(del_d_m_i  + (1.0 + (2.0/3.0)*lambda_min*dtodx)*d_6);
-  vx_L = vx_L - lambda_min * (0.5*dtodx)*(del_vx_m_i + (1.0 + (2.0/3.0)*lambda_min*dtodx)*vx_6);
-  vy_L = vy_L - lambda_min * (0.5*dtodx)*(del_vy_m_i + (1.0 + (2.0/3.0)*lambda_min*dtodx)*vy_6);
-  vz_L = vz_L - lambda_min * (0.5*dtodx)*(del_vz_m_i + (1.0 + (2.0/3.0)*lambda_min*dtodx)*vz_6);
-  p_L  = p_L  - lambda_min * (0.5*dtodx)*(del_p_m_i  + (1.0 + (2.0/3.0)*lambda_min*dtodx)*p_6);
-*/
-/*
-printf("% 10.8f % 10.8f\n", d_L, d_R);
-printf("% 10.8f % 10.8f\n", vx_L, vx_R);
-printf("% 10.8f % 10.8f\n", vy_L, vy_R);
-printf("% 10.8f % 10.8f\n", vz_L, vz_R);
-printf("% 10.8f % 10.8f\n", p_L, p_R);
-*/
 
 
   // Step 10 - Perform the characteristic tracing
@@ -771,13 +647,7 @@ printf("% 10.8f % 10.8f\n", p_L, p_R);
   vz_L += sum_4;
   p_L += sum_5;
 
-/*
-printf("% f % f\n", d_L, d_R);
-printf("% f % f\n", vx_L, vx_R);
-printf("% f % f\n", vy_L, vy_R);
-printf("% f % f\n", vz_L, vz_R);
-printf("% f % f\n", p_L, p_R);
-*/
+
   // apply minimum constraints
   d_L = fmax(d_L, TINY_NUMBER);
   d_R = fmax(d_R, TINY_NUMBER);
@@ -785,7 +655,6 @@ printf("% f % f\n", p_L, p_R);
   p_R = fmax(p_R, TINY_NUMBER);
 
   // Step 11 - Convert the left and right states in the primitive to the conserved variables
-  
   bounds[0] = d_L;
   bounds[1] = d_L*vx_L;
   bounds[2] = d_L*vy_L;
