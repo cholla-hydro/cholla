@@ -35,7 +35,8 @@ zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=wind
 # path to output directory
-outdir=./sphere_wind/test/hdf5/
+#outdir=./sphere_wind/test/hdf5/
+outdir=/Users/evan/Desktop/sphere_wind/hdf5/
 
 
 
