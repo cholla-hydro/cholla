@@ -356,9 +356,14 @@ Real calc_delta_q(Real q_imo, Real q_i, Real q_ipo,
      to ensure monotonic interface values. */
 Real limit_delta_q(Real del_in, Real q_imo, Real q_i, Real q_ipo)
 {
+  Real dq;
 
     if ( (q_ipo-q_i)*(q_i-q_imo) > 0)
-      return minof3(fabs(del_in), 2*fabs(q_i-q_imo), 2*fabs(q_i - q_ipo)) * sgn(del_in);
+    {
+      dq = fmin(2.0*fabs(q_i-q_imo), 2.0*fabs(q_i - q_ipo));
+      dq = fmin(dq, fabs(del_in));
+      return sgn(del_in)*dq;
+    }
     else return 0;
 }
 

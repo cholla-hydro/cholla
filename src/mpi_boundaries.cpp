@@ -179,7 +179,7 @@ void Grid3D::Set_Edge_Boundaries(int dir, int *flags)
         }
       }
     }
-
+  }
 }
 
 

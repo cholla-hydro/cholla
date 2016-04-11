@@ -210,6 +210,20 @@ class Grid3D
      *  \brief Update the conserved quantities in each cell. */
     Real Update_Grid(void);
 
+#ifdef COOLING_CPU
+    /*! \fn void Cool_CPU(void)
+     *  \brief Use Cloudy cooling tables to apply cooling over the grid. */
+    void Cool_CPU(void);
+
+    /*! \fn void Load_Cooling_Tables(void)
+     *  \brief Load the Cloudy cooling tables into memory for fast lookup. */
+    void Load_Cooling_Tables(void);
+
+    /*! \fn void Free_Cooling_Tables(void)
+     *  \brief Free the memory associated with the cooling tables. */
+    void Free_Cooling_Tables(void);
+#endif //COOLING_CPU
+
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
     void Write_Header_Binary(FILE *fp);
@@ -226,6 +240,20 @@ class Grid3D
     /*! \fn void Write_Grid_HDF5(hid_t file_id)
      *  \brief Write the grid to a file, at the current simulation time. */
     void Write_Grid_HDF5(hid_t file_id);
+#endif
+
+    /*! \fn void Read_Grid(struct parameters P)
+     *  \brief Read in grid data from an output file. */
+    void Read_Grid(struct parameters P);
+
+    /*! \fn Read_Grid_Binary(FILE *fp)
+     *  \brief Read in grid data from a binary file. */
+    void Read_Grid_Binary(FILE *fp);
+    
+#ifdef HDF5
+    /*! \fn void Read_Grid_HDF5(hid_t file_id)
+     *  \brief Read in grid data from an hdf5 file. */
+    void Read_Grid_HDF5(hid_t file_id);
 #endif
 
     /*! \fn void Reset(void)
@@ -280,6 +308,10 @@ class Grid3D
      *  \brief Noh test described in Liska, 2003. */
     void Noh_2D();
 
+    /*! \fn void Cloud_2D()
+     *  \brief Circular cloud in a hot wind. */
+    void Cloud_2D();
+
     /*! \fn void Noh_3D()
      *  \brief Noh test described in Stone, 2008. */
     void Noh_3D();
@@ -288,9 +320,22 @@ class Grid3D
      *  \brief Sedov Taylor blast wave test. */
     void Sedov_Taylor(Real rho_l, Real P_l, Real rho_r, Real P_r);
 
-    /*! \fn void Read_Grid()
-     *  \brief Read in grid data from an output file. */
-    void Read_Grid(struct parameters P);    
+    /*! \fn void Turbulent_Slab()
+     *  \brief Turbulent slab in a hot diffuse wind. */
+    void Turbulent_Slab();
+
+    /*! \fn void Cloud_3D()
+     *  \brief Turbulent cloud in a hot diffuse wind. */
+    void Cloud_3D();
+
+    /*! \fn void Turbulence(Real rho, Real vx, Real vy, Real vz, Real P)
+     *  \brief Generate a 3D turbulent forcing field. */
+    void Turbulence(Real rho, Real vx, Real vy, Real vz, Real P);
+
+    /*! \fn Apply_Forcing(void)
+     *  \brief Apply a forcing field to continuously generate turbulence. */
+    void Apply_Forcing(void);    
+ 
 
     /*! \fn void Set_Boundary_Conditions(parameters P)
      *  \brief Set the boundary conditions based on info in the parameters structure. */
@@ -326,6 +371,10 @@ class Grid3D
      *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces, 
         as per the Noh problem in Liska, 2003, or in Stone, 2008. */
     void Noh_Boundary();
+
+    /*! \fn void Wind_Boundary()
+     *  \brief Supersonic inflow on -z boundary set to match Cloud_3D IC's. */
+    void Wind_Boundary();
 
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);

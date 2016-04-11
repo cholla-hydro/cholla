@@ -2,8 +2,13 @@ EXEC   = cholla
 
 OPTIMIZE =  -O2  
 
+DIR = ./src
+CFILES = $(wildcard $(DIR)/*.c)
+CPPFILES = $(wildcard $(DIR)/*.cpp)
+CUDAFILES = $(wildcard $(DIR)/*.cu)
 
-OBJS   = main.o global.o grid3D.o initial_conditions.o boundary_conditions.o CTU_1D.o CTU_2D.o CTU_3D.o plmp.o plmc.o ppmp.o ppmc.o exact.o roe.o subgrid_routines_2D.o subgrid_routines_3D.o CTU_1D_cuda.o CTU_2D_cuda.o CTU_3D_cuda.o VL_1D_cuda.o VL_2D_cuda.o VL_3D_cuda.o pcm_cuda.o plmp_ctu_cuda.o plmc_ctu_cuda.o ppmp_ctu_cuda.o ppmc_ctu_cuda.o plmp_vl_cuda.o ppmp_vl_cuda.o ppmc_vl_cuda.o exact_cuda.o roe_cuda.o h_correction_2D_cuda.o h_correction_3D_cuda.o mpi_routines.o mpi_boundaries.o MPI_Comm_node.o io_mpi.o io.o error_handling.o cuda_mpi_routines.o cooling_cuda.o 
+
+OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) 
 
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA

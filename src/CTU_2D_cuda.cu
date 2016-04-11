@@ -363,11 +363,11 @@ __global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real 
 
 __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt, Real gamma)
 {
-  Real d, d_inv, vx, vy, vz, P;
   int id, xid, yid, n_cells;
   int imo, jmo;
 
   #ifdef DE
+  Real d, d_inv, vx, vy, vz, P;
   Real vx_imo, vx_ipo, vy_jmo, vy_jpo;
   int ipo, jpo;
   #endif
@@ -386,17 +386,17 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost)
   {
+    imo = xid-1 + yid*nx;
+    jmo = xid + (yid-1)*nx;
+    #ifdef DE
+    ipo = xid+1 + yid*nx;
+    jpo = xid + (yid+1)*nx;
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    imo = xid-1 + yid*nx;
-    jmo = xid + (yid-1)*nx;
-    #ifdef DE
-    ipo = xid+1 + yid*nx;
-    jpo = xid + (yid+1)*nx;
     vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
     vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
     vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
