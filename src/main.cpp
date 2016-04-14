@@ -14,7 +14,7 @@
 #include "io.h"
 #include "error_handling.h"
 
-//#define OUTPUT
+#define OUTPUT
 
 int main(int argc, char *argv[])
 {
