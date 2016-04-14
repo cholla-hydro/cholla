@@ -1134,14 +1134,14 @@ void Grid3D::Cloud_3D() {
   P_wind = 2.744870e-12 / PRESSURE_UNIT;
   
   // number density of cloud in code units (hydrogen atom/cc)
-  d_cloud = 0.2;
+  d_cloud = 1.0;
   P_cloud = P_wind;  // cloud in pressure equilibrium with hot wind
   R_max = 5.0; // radius of the edge of the cloud in code units (5pc)
   //R_c = R_max/1.28; // radius at which cloud begins to taper
   R_c = 4.5;
 
   // cloud center in code units
-  xcen = 10.0;
+  xcen = 20.0;
   ycen = 20.0;
   zcen = 20.0;
 
@@ -1231,11 +1231,12 @@ void Grid3D::Cloud_3D() {
     }
   }
 */      
-/*
+
   // turbulent cloud
   FILE *fp;
   //fp = fopen("/gsfs1/rsgrps/brant/evan/data/cloud_3D/cloud.64.dat", "r");
-  fp = fopen("/gsfs1/rsgrps/brant/evan/data/cloud_3D/cloud.128.dat", "r");
+  //fp = fopen("/gsfs1/rsgrps/brant/evan/data/cloud_3D/cloud.128.dat", "r");
+  fp = fopen("/Users/evan/Desktop/cloud_ICs/cloud.128.dat", "r");
 
   if (fp == NULL) {
     chprintf("Can't open input file.\n");
@@ -1266,9 +1267,9 @@ void Grid3D::Cloud_3D() {
         fread(&mz, 1, sizeof(float), fp);
         // only place in cells that are in your domain
         #ifdef MPI_CHOLLA
-        ioff = 1*nx_global/32;
-        joff = 3*ny_global/8;
-        koff = 3*nz_global/8;
+        ioff = 1*nx_global/4;
+        joff = 1*ny_global/4;
+        koff = 1*nz_global/4;
         if (ii+ioff >= nx_local_start && ii+ioff < nx_local_start+nx_local) {
         if (jj+joff >= ny_local_start && jj+joff < ny_local_start+ny_local) {
         if (kk+koff >= nz_local_start && kk+koff < nz_local_start+nz_local) {
@@ -1277,7 +1278,10 @@ void Grid3D::Cloud_3D() {
           Get_Position(ii+ioff+H.n_ghost-nx_local_start, jj+joff+H.n_ghost-ny_local_start, kk+koff+H.n_ghost-nz_local_start, &x_pos, &y_pos, &z_pos);
         #endif
         #ifndef MPI_CHOLLA
-          id = (ii+nx/2+H.n_ghost) + (jj+ny/2+H.n_ghost)*H.nx + (kk+nz/2+H.n_ghost)*H.nx*H.ny;
+          ioff = 1*H.nx_real/4;
+          joff = 1*H.ny_real/4;
+          koff = 1*H.nz_real/4;
+          id = (ii+ioff+H.n_ghost) + (jj+joff+H.n_ghost)*H.nx + (kk+koff+H.n_ghost)*H.nx*H.ny;
           Get_Position(ii+ioff+H.n_ghost, jj+joff+H.n_ghost, kk+koff+H.n_ghost, &x_pos, &y_pos, &z_pos);
         #endif
 
@@ -1285,10 +1289,12 @@ void Grid3D::Cloud_3D() {
           r = sqrt((x_pos-xcen)*(x_pos-xcen) + (y_pos-ycen)*(y_pos-ycen) + (z_pos-zcen)*(z_pos-zcen));
 
           //scale the cloud density (to achieve desired mass, density, whatever)
-          d = 0.27*d_cloud*d;
+          //d = 0.27*d_cloud*d;
+          d = 0.25*d;
 
           //only place cells within the region defined by the cloud radius
-          if (r < R_c) {
+          //if (r < R_c) {
+          if (r < R_max) {
             C.density[id] = d;
             if (C.density[id] < d_wind) C.density[id] = d_wind;
             C.momentum_x[id] = 0.0;
@@ -1299,6 +1305,7 @@ void Grid3D::Cloud_3D() {
             C.GasEnergy[id] = P_cloud/(gama-1.0);
             #endif
           }
+          /*
           if (r > R_c && r < R_max) {
             //C.density[id] = d*exp(-5.0*fabs(r - R_c)/(R_max-R_c));
             C.density[id] = d*exp((log(d_wind/d_cloud)/(R_max-R_c))*fabs(r - R_c));
@@ -1311,6 +1318,7 @@ void Grid3D::Cloud_3D() {
             C.GasEnergy[id] = P_cloud/(gama-1.0);
             #endif
           }
+          */
         #ifdef MPI_CHOLLA
         }
         }
@@ -1320,8 +1328,8 @@ void Grid3D::Cloud_3D() {
     }
   }
   fclose(fp);
-*/
 
+/*
   // spherical cloud 
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -1361,7 +1369,7 @@ void Grid3D::Cloud_3D() {
       }
     }
   }
-
+*/
 
 }
 

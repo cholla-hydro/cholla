@@ -27,7 +27,7 @@
 #endif
 #include <stdio.h>
 #ifdef COOLING_GPU
-#include <cooling_wrapper.h>
+#include "cooling_wrapper.h"
 #endif
 //#include "rng.h"
 
