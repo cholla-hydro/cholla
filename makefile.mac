@@ -10,6 +10,10 @@ CUDAFILES = $(wildcard $(DIR)/*.cu)
 
 OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) 
 
+#To use GPUs, CUDA must be turned on here
+#Optional error checking can also be enabled
+CUDA = -DCUDA -DCUDA_ERROR_CHECK
+
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
@@ -53,7 +57,7 @@ NVLIBS = -L/usr/local/cuda/lib -lcuda -lcudart
 LIBS   = -L/usr/local/lib -lm -lgsl -lhdf5
 
 
-FLAGS = $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DCUDA -DCUDA_ERROR_CHECK
+FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) 
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 NVCCFLAGS = $(FLAGS) -fmad=false -gencode arch=compute_30,code=sm_30 
