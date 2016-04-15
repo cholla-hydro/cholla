@@ -20,8 +20,8 @@ the appropriate line within the makefile, e.g. single vs
 double precision, output format, the reconstruction method, Riemann solver, integrator, 
 and cooling. The entire code must be recompiled any time you change the configuration.
 
-A few options must be specified on the 'FLAGS' line in the makefile, namely the H_CORRECTION, dual energy (DE),
-CUDA, and CUDA_ERROR_CHECK options. It is strongly recommended that you include the dual energy
+A few options must be specified on the 'FLAGS' line in the makefile, namely the h correction (-DH_CORRECTION)
+and dual energy (-DDE). It is strongly recommended that you include the dual energy
 flag when cooling is turned on.
 
 
@@ -40,24 +40,23 @@ using:
 
 mpirun -np 4 ./cholla tests/1D/Sod.txt
 
-Each process will assign itself to a single GPU. Cholla cannot be run with more processes than available GPUs,
-so MPI mode is generally most useful on a cluster, or for testing with a single process.
+Each process will be assigned a GPU. Cholla cannot be run with more processes than available GPUs,
+so MPI mode is most useful on a cluster (or for testing parallel behavior with a single process).
 
 
-Other Things to Be Aware Of
+Other Notes
 --------------
 
 In addition to selecting the CTU or VL integrators, the user
 can also comment out both, in which case the integration scheme will revert to a simpler scheme in which 
 the interface states and fluxes are calculated for each direction only once, and there are no transverse flux
-corrections. In tests, this method often proves the most robust (and is also the fastest).
+corrections (e.g. the original PPM method). In tests, this method often proves the most robust (and is also the fastest).
 
-Cholla *can* be run without GPUs, but this configuration is not recommended. Because Cholla
-was designed with GPUs in mind, the CPU performance is, at best, lackluster. In addition, many 
-of the configuration options are not available in the non-CUDA mode (and I make no promises about whether 
-the user is warned of this).
+Cholla *can* be run without GPUs by commenting out CUDA in the makefile, but this configuration is not recommended. Because Cholla
+was designed with GPUs in mind, the CPU performance is, at best, lackluster. In addition, some 
+of the configuration options are not available in the non-CUDA mode (and warnings are not always included).
 
 When running tests in fewer than 3 dimensions, cholla assumes that the x-direction will be used first, then
 the y, then z. This is to say, in 1D nx must always be greater than 1, and in 2D nx and ny must be greater than 1.
 
-Currently, Cholla is not designed to be able to run very large (>1e5) 1 dimensional problems. It's on the list.
+Currently, Cholla is not designed to be able to run very large (>1e5) 1 dimensional problems. It's on the to-do list.
