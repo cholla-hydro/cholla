@@ -4,24 +4,24 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=256
+nx=322
 # number of grid cells in the y dimension
-ny=256
+ny=322
 # number of grid cells in the z dimension
-nz=256
+nz=322
 # final output time
 tout=0.05
 # time interval for output
-outstep=0.01
+outstep=0.05
 # name of initial conditions
 init=Sound_Wave
 # domain properties
 xmin=0.0
 ymin=0.0
 zmin=0.0
-xlen=2.0
-ylen=2.0
-zlen=2.0
+xlen=1.0
+ylen=1.0
+zlen=1.0
 # type of boundary conditions
 xl_bcnd=1
 xu_bcnd=1
@@ -30,9 +30,10 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=/lustre/atlas/proj-shared/ast119/data/sound_wave/hdf5_8/
+#outdir=/lustre/atlas/proj-shared/ast119/data/sound_wave/hdf5_8/
 #outdir=./
 #outdir=/data2/evan/grid_tests/sound_waves/z/
+outdir=/Users/evan/Desktop/output/sound_wave/
 
 #################################################
 # Parameters for linear wave problems
@@ -47,7 +48,7 @@ vz=0
 # initial pressure 
 P=0.6
 # amplitude of perturbing oscillations
-A=1e-4
+A=1e-6
 # value of gamma
 gamma=1.666666666666667
 

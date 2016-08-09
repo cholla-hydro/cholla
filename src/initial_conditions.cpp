@@ -1141,9 +1141,9 @@ void Grid3D::Cloud_3D() {
   R_c = 4.5;
 
   // cloud center in code units
-  xcen = 20.0;
-  ycen = 20.0;
-  zcen = 20.0;
+  xcen = 10.0;
+  ycen = 10.0;
+  zcen = 10.0;
 
   // hot wind
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
@@ -1289,8 +1289,7 @@ void Grid3D::Cloud_3D() {
           r = sqrt((x_pos-xcen)*(x_pos-xcen) + (y_pos-ycen)*(y_pos-ycen) + (z_pos-zcen)*(z_pos-zcen));
 
           //scale the cloud density (to achieve desired mass, density, whatever)
-          //d = 0.27*d_cloud*d;
-          d = 0.25*d;
+          d = 0.765*d; // n = 1
 
           //only place cells within the region defined by the cloud radius
           //if (r < R_c) {
@@ -1305,7 +1304,7 @@ void Grid3D::Cloud_3D() {
             C.GasEnergy[id] = P_cloud/(gama-1.0);
             #endif
           }
-          /*
+          /* 
           if (r > R_c && r < R_max) {
             //C.density[id] = d*exp(-5.0*fabs(r - R_c)/(R_max-R_c));
             C.density[id] = d*exp((log(d_wind/d_cloud)/(R_max-R_c))*fabs(r - R_c));
@@ -1319,6 +1318,7 @@ void Grid3D::Cloud_3D() {
             #endif
           }
           */
+          
         #ifdef MPI_CHOLLA
         }
         }
