@@ -12,7 +12,7 @@ nz=1
 # output time
 tout=2.0
 # how often to output
-outstep=2.0
+outstep=0.01
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
@@ -32,7 +32,8 @@ yu_bcnd=4
 custom_bcnd=noh
 # path to output directory
 #outdir=outputs/
-outdir=/gsfs1/rsgrps/brant/evan/data/noh_test_256/output/
+#outdir=/gsfs1/rsgrps/brant/evan/data/noh_test_256/output/
+outdir=/Users/evan/Desktop/output/Noh_2D/hcorrect/hdf5/
 
 
 
