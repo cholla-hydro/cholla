@@ -24,7 +24,7 @@
 #include"subgrid_routines_2D.h"
 
 //#define TIME
-//#define TEST
+#define TEST
 
 
 __global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y, int nx, int ny,
@@ -264,7 +264,17 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     cudaEventElapsedTime(&elapsedTime, start, stop);
     printf("conserved variable update: %5.3f ms\n", elapsedTime);
     #endif     
-
+    #ifdef TEST
+    CudaSafeCall( cudaMemcpy(test1, dev_conserved_half, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+    //CudaSafeCall( cudaMemcpy(test2, F_y, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+    for (int i=1; i<nx-1; i++) {
+      for (int j=1; j<ny-1; j++) {
+        int id1 = i + nx*j + 1*nx*ny;
+        int id2 = j + nx*i + 2*nx*ny;
+        if (test1[id1] != test1[id2]) printf("%3d %3d %f %f\n", i, j, test1[id1], test1[id2]);
+      }
+    }    
+    #endif
 
     // Step 4: Construct left and right interface values using updated conserved variables
     #ifdef PLMP
@@ -327,17 +337,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Rea
     printf("Time to do y reconstruction: %5.3f ms\n", elapsedTime);
     #endif
     #endif //PPMC
-#ifdef TEST 
-    CudaSafeCall( cudaMemcpy(test1, Q_Lx, 5*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-    CudaSafeCall( cudaMemcpy(test2, Q_Ly, 5*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-    for (int i=0; i<nx; i++) {
-      for (int j=0; j<ny; j++) {
-        if (test1[i + j*nx + 1*nx*ny] != test2[j + i*nx + 2*nx*ny]) {
-          printf("%3d %3d %f %f\n", i, j, test1[i + j*nx + 1*nx*ny], test2[j + i*nx + 2*nx*ny]);
-        }
-      }
-    }
-#endif
+
 
     #ifdef H_CORRECTION
     // Step 4.5: Calculate eta values for H correction

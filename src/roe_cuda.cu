@@ -80,9 +80,10 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
     dger = dev_bounds_R[5*n_cells + tid];
     #endif
 
-
+#ifdef H_CORRECTION
     // retrieve etah value
     etah = dev_etah[tid];
+#endif
 
     // calculate primative variables
     vxl = mxl / dl;
