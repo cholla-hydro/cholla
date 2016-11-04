@@ -34,6 +34,5 @@ yu_bcnd=0
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=/data2/evan/grid_tests/blast_1D/ppmc_exact/
-#outdir=outputs/
+outdir=./
 

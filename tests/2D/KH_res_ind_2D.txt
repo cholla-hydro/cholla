@@ -30,5 +30,4 @@ xu_bcnd=1
 yl_bcnd=1
 yu_bcnd=1
 # path to output directory
-#outdir=outputs/
-outdir=/data2/evan/grid_tests/KH/PLM_athena/
+outdir=./

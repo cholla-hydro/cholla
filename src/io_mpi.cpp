@@ -3,7 +3,9 @@
 #include<stdlib.h>
 #include<stdarg.h>
 #include<string.h>
+#ifdef HDF5
 #include<hdf5.h>
+#endif
 #include"io.h"
 #include"mpi_routines.h"
 

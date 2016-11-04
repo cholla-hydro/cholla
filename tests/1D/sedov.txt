@@ -30,8 +30,7 @@ yu_bcnd=3
 zl_bcnd=2
 zu_bcnd=3
 # path to output directory
-outdir=/data2/evan/grid_tests/Sedov_Taylor/
-#outdir=./
+outdir=./
 
 #################################################
 # density of left state

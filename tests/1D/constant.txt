@@ -31,7 +31,7 @@ zl_bcnd=3
 zu_bcnd=3
 #custom_bcnd=wind
 # path to output directory
-outdir=/Users/evan/Desktop/output/cooling/
+outdir=./
 
 #################################################
 # density

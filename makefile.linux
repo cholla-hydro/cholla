@@ -38,32 +38,32 @@ NVCC	= nvcc
 #PRECISION = -DPRECISION=1
 PRECISION = -DPRECISION=2
 
-#OUTPUT = -DBINARY
-OUTPUT = -DHDF5
+OUTPUT = -DBINARY
+#OUTPUT = -DHDF5
 
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
 #RECONSTRUCTION = -DPLMC
-RECONSTRUCTION = -DPPMP
-#RECONSTRUCTION = -DPPMC
+#RECONSTRUCTION = -DPPMP
+RECONSTRUCTION = -DPPMC
 
 SOLVER = -DEXACT
 #SOLVER = -DROE
 
-#INTEGRATOR = -DCTU
+INTEGRATOR = -DCTU
 #INTEGRATOR = -DVL
 
 #COOLING = -DCOOLING_GPU
 
 
 ifdef CUDA
-CUDA_INCLUDE = -I/uaopt/cuda/7.0.28/include/
-CUDA_LIBS = -lcudart -L/uaopt/cuda/7.0.28/lib64/
+CUDA_INCLUDE = -I/usr/local/cuda/include/
+CUDA_LIBS = -L/usr/local/cuda/lib64 -lcuda -lcudart
 endif
 
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCLUDE = -I/uaopt/hdf5/1.8.16/include/
-HDF5_LIBS = -lhdf5 -L/uaopt/hdf5/1.8.16/lib/
+HDF5_INCLUDE = -I/usr/local/hdf5/1.8.16/include/
+HDF5_LIBS = -lhdf5 -L/usr/local/hdf5/1.8.16/lib/
 endif
 
 INCL   = -I./ $(HDF5_INCLUDE)
@@ -76,7 +76,7 @@ LIBS   = -lm $(HDF5_LIBS)
 FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) 
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(FFT_FLAGS) -m64
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(FFT_FLAGS) -m64 
-NVCCFLAGS = $(FLAGS) -m64 -arch=compute_35 -fmad=false -ccbin=$(CC)
+NVCCFLAGS = $(FLAGS) -m64 -arch=compute_60 -fmad=false -ccbin=$(CC)
 LDFLAGS	  = -m64
 
 

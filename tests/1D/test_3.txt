@@ -27,7 +27,7 @@ zlen=1.0
 xl_bcnd=3
 xu_bcnd=3
 # path to output directory
-outdir=/data2/evan/grid_tests/test_3/
+outdir=./
 
 #################################################
 # Parameters for 1D Riemann problems

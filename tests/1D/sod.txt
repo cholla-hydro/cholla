@@ -26,9 +26,7 @@ zlen=1.0
 xl_bcnd=3
 xu_bcnd=3
 # path to output directory
-#outdir=/data1/evan/data/Sod_1D/
 outdir=./
-#outdir=/Users/evan/Desktop/output/Sod_1D/
 
 #################################################
 # Parameters for 1D Riemann problems

@@ -29,8 +29,7 @@ yl_bcnd=1
 yu_bcnd=1
 # path to output directory
 #outdir=outputs/
-outdir=/lustre/atlas/proj-shared/ast107/data/scaling/
-#outdir=./
+outdir=./
 
 #################################################
 # Parameters for linear wave problems

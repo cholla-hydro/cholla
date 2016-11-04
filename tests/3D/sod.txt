@@ -31,8 +31,7 @@ yu_bcnd=3
 zl_bcnd=3
 zu_bcnd=3
 # path to output directory
-outdir=/Users/evan/Desktop/output/Sod_3D/
-#outdir=./binaries/
+outdir=./
 
 #################################################
 # Parameters for 1D Riemann problems

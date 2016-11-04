@@ -30,8 +30,7 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=/data2/evan/grid_tests/cooling/binaries/
-#outdir=./binaries/
+outdir=./
 
 #################################################
 # density

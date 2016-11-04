@@ -22,7 +22,9 @@
 #include "error_handling.h"
 #ifdef MPI_CHOLLA
 #include <mpi.h>
+#ifdef HDF5
 #include <H5FDmpio.h>
+#endif
 #include "mpi_routines.h"
 #endif
 #include <stdio.h>

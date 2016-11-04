@@ -27,8 +27,7 @@ zlen=3.08567758e18
 xl_bcnd=3
 xu_bcnd=3
 # path to output directory
-outdir=/data2/evan/grid_tests/cooling/binaries/
-#outdir=./
+outdir=./
 
 #################################################
 # Parameters for 1D Riemann problems
