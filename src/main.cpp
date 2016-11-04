@@ -15,11 +15,19 @@
 #include "error_handling.h"
 
 #define OUTPUT
+//#define CPU_TIME
 
 int main(int argc, char *argv[])
 {
   // timing variables
   double start_total, stop_total, start_step, stop_step;
+  #ifdef CPU_TIME
+  double stop_init, init_min, init_max, init_avg;
+  double start_bound, stop_bound, bound_min, bound_max, bound_avg;
+  double start_hydro, stop_hydro, hydro_min, hydro_max, hydro_avg;
+  double init, bound, hydro;
+  init = bound = hydro = 0;
+  #endif //CPU_TIME
 
   // start the total time
   start_total = get_time();
@@ -92,6 +100,18 @@ int main(int argc, char *argv[])
   // increment the next output time
   outtime += P.outstep;
 
+  #ifdef CPU_TIME
+  stop_init = get_time();
+  init = stop_init - start_total;
+  #ifdef MPI_CHOLLA
+  init_min = ReduceRealMin(init);
+  init_max = ReduceRealMax(init);
+  init_avg = ReduceRealAvg(init);
+  chprintf("Init  min: %9.4f  max: %9.4f  avg: %9.4f\n", init_min, init_max, init_avg);
+  #else
+  printf("Init %9.4f\n", init);
+  #endif //MPI_CHOLLA
+  #endif //CPU_TIME
 
 
   // Evolve the grid, one timestep at a time
@@ -111,7 +131,19 @@ int main(int argc, char *argv[])
     }
 
     // Advance the grid by one timestep
+    #ifdef CPU_TIME
+    start_hydro = get_time();
+    #endif //CPU_TIME
     dti = G.Update_Grid();
+    #ifdef CPU_TIME
+    stop_hydro = get_time();
+    hydro = stop_hydro - start_hydro;
+    #ifdef MPI_CHOLLA
+    hydro_min = ReduceRealMin(hydro);
+    hydro_max = ReduceRealMax(hydro);
+    hydro_avg = ReduceRealAvg(hydro);
+    #endif //MPI_CHOLLA
+    #endif //CPU_TIME
 
     // update the time
     G.H.t += G.H.dt;
@@ -120,7 +152,26 @@ int main(int argc, char *argv[])
     G.H.n_step++;
 
     // set boundary conditions for next time step 
+    #ifdef CPU_TIME
+    start_bound = get_time();
+    #endif //CPU_TIME
     G.Set_Boundary_Conditions(P);
+    #ifdef CPU_TIME
+    stop_bound = get_time();
+    bound = stop_bound - start_bound;
+    #ifdef MPI_CHOLLA
+    bound_min = ReduceRealMin(bound);
+    bound_max = ReduceRealMax(bound);
+    bound_avg = ReduceRealAvg(bound);
+    #endif //MPI_CHOLLA
+    #endif //CPU_TIME
+
+    #ifdef CPU_TIME
+    #ifdef MPI_CHOLLA
+    chprintf("hydro min: %9.4f  max: %9.4f  avg: %9.4f\n", hydro_min, hydro_max, hydro_avg);
+    chprintf("bound min: %9.4f  max: %9.4f  avg: %9.4f\n", bound_min, bound_max, bound_avg);
+    #endif //MPI_CHOLLA
+    #endif //CPU_TIME
 
 
     // get the time to compute the total timestep
