@@ -12,7 +12,7 @@ nz=1
 # output time
 tout=2.0
 # how often to output
-outstep=2.0
+outstep=0.01
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
