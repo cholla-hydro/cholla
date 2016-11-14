@@ -10,9 +10,11 @@
 #include<cuda.h>
 #include"global.h"
 #include"global_cuda.h"
+#include"hydro_cuda.h"
 #include"VL_1D_cuda.h"
 #include"pcm_cuda.h"
 #include"plmp_vl_cuda.h"
+#include"plmc_vl_cuda.h"
 #include"ppmp_vl_cuda.h"
 #include"ppmc_vl_cuda.h"
 #include"exact_cuda.h"
@@ -23,12 +25,9 @@
 
 
 
-__global__ void Update_Conserved_Variables_1D_notime(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, int n_cells, int n_ghost, 
+__global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, int n_cells, int n_ghost, 
                                                      Real dx, Real dt, Real gamma);
 
-
-__global__ void Update_Conserved_Variables_1D_wtime(Real *dev_conserved, Real *dev_F, int n_cells, int n_ghost, 
-                                                    Real dx, Real dt, Real *dti_array, Real gamma);
 
 
 Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Real dt)
@@ -39,14 +38,10 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   int n_cells = nx;
   int ny = 1;
   int nz = 1;
-  int n_fields;
 
+  int n_fields = 5;
   #ifdef DE
-  printf("Dual energy not implemented in Van Leer integrator. Use CTU, or neither.\n");
-  exit(0);
-  #endif
-  #ifndef DE
-  n_fields = 5;
+  n_fields++;
   #endif
 
   // set the dimensions of the cuda grid
@@ -111,7 +106,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
 
 
   // Step 3: Update the conserved variables half a timestep 
-  Update_Conserved_Variables_1D_notime<<<dimGrid,dimBlock>>>(dev_conserved, dev_conserved_half, F, n_cells, n_ghost, dx, 0.5*dt, gama);
+  Update_Conserved_Variables_1D_half<<<dimGrid,dimBlock>>>(dev_conserved, dev_conserved_half, F, n_cells, n_ghost, dx, 0.5*dt, gama);
   CudaCheckError();
 
 
@@ -119,6 +114,9 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
   #ifdef PCM
   PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, n_ghost, gama);
   #endif
+  #ifdef PLMC
+  PLMC_VL<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, gama, 0);
+  #endif  
   #ifdef PLMP
   PLMP_VL<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, gama, 0);
   #endif
@@ -142,14 +140,25 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
 
 
   // Step 6: Update the conserved variable array
-  Update_Conserved_Variables_1D_wtime<<<dimGrid,dimBlock>>>(dev_conserved, F, n_cells, n_ghost, dx, dt, dev_dti_array, gama);
+  Update_Conserved_Variables_1D<<<dimGrid,dimBlock>>>(dev_conserved, F, n_cells, n_ghost, dx, dt, gama);
   CudaCheckError();
    
+
+  #ifdef DE
+  Sync_Energies_1D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, n_ghost, gama);
+  #endif    
+
 
   // Apply cooling
   #ifdef COOLING_GPU
   cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
   #endif
+
+
+  // Step 7: Calculate the next timestep
+  Calc_dt_1D<<<dimGrid,dimBlock>>>(dev_conserved, n_cells, n_ghost, dx, dev_dti_array, gama);
+  CudaCheckError();
+
 
 
   // copy the conserved variable array back to the CPU
@@ -183,7 +192,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Re
 }
 
 
-__global__ void Update_Conserved_Variables_1D_notime(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, int n_cells, int n_ghost, Real dx, Real dt, Real gamma)
+__global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, int n_cells, int n_ghost, Real dx, Real dt, Real gamma)
 {
   int id;
   Real dtodx = dt/dx;
@@ -206,66 +215,6 @@ __global__ void Update_Conserved_Variables_1D_notime(Real *dev_conserved, Real *
 }
 
 
-__global__ void Update_Conserved_Variables_1D_wtime(Real *dev_conserved, Real *dev_F, int n_cells, int n_ghost, Real dx, Real dt, Real *dti_array, Real gamma)
-{
-  __shared__ Real max_dti[TPB];
-
-  Real d, d_inv, vx, vy, vz, P, cs;
-  int id, tid;
-
-  Real dtodx = dt/dx;
-
-  // get a global thread ID
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-  // and a thread id within the block
-  tid = threadIdx.x;
-
-  // set shared memory to 0
-  max_dti[tid] = 0;
-  __syncthreads();
-
-
-  // threads corresponding to real cells do the calculation
-  if (id > n_ghost - 1 && id < n_cells-n_ghost)
-  {
-    // update the conserved variable array
-    dev_conserved[            id] += dtodx * (dev_F[            id-1] - dev_F[            id]);
-    dev_conserved[  n_cells + id] += dtodx * (dev_F[  n_cells + id-1] - dev_F[  n_cells + id]);
-    dev_conserved[2*n_cells + id] += dtodx * (dev_F[2*n_cells + id-1] - dev_F[2*n_cells + id]);
-    dev_conserved[3*n_cells + id] += dtodx * (dev_F[3*n_cells + id-1] - dev_F[3*n_cells + id]);
-    dev_conserved[4*n_cells + id] += dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
-
-    if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) printf("%d Thread creashed in final update. %f\n", id, dev_conserved[id]);
-
-    // start timestep calculation here
-    // every thread collects the conserved variables it needs from global memory
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    if (P < 0.0) printf("%d Negative pressure after final update.\n", id);
-    P  = fmax(P, (Real) 1.0e-20);
-    // find the max wavespeed in that cell, use it to calculate the inverse timestep
-    cs = sqrt(d_inv * gamma * P);
-    max_dti[tid] = (fabs(vx)+cs)/dx;
-  }
-  __syncthreads();
-  
-  // do the reduction in shared memory (find the max inverse timestep in the block)
-  for (unsigned int s=1; s<blockDim.x; s*=2) {
-    if (tid % (2*s) == 0) {
-      max_dti[tid] = fmax(max_dti[tid], max_dti[tid + s]);
-    }
-    __syncthreads();
-  }
-
-  // write the result for this block to global memory
-  if (tid == 0) dti_array[blockIdx.x] = max_dti[0];
-
-
-}
 
 #endif //VL
 #endif //CUDA

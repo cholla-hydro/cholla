@@ -40,7 +40,7 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
     KH_res_ind_2D();
   } else if (strcmp(P.init, "Implosion_2D")==0) {
     Implosion_2D();
-  } else if (strcmp(P.init, "Explosion_2D")==0) {
+  } else if (strcmp(P.init, "Noh_2D")==0) {
     Noh_2D();
   } else if (strcmp(P.init, "Noh_3D")==0) {
     Noh_3D();    
