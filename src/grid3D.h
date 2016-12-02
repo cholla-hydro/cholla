@@ -296,6 +296,10 @@ class Grid3D
      *  \brief Initialize the grid with a 2D Kelvin-Helmholtz instability whose modes are resolution independent. */
     void KH_res_ind_2D();
 
+    /*! \fn void Rayleigh_Taylor()
+    *  \brief Initialize the grid with a 2D Rayleigh-Taylor instability. */
+    void Rayleigh_Taylor();
+
     /*! \fn void Implosion_2D()
      *  \brief Implosion test described in Liska, 2003. */
     void Implosion_2D();

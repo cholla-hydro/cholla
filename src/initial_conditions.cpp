@@ -38,6 +38,8 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
     KH_discontinuous_2D();
   } else if (strcmp(P.init, "KH_res_ind_2D")==0) {
     KH_res_ind_2D();
+  } else if (strcmp(P.init, "Rayleigh_Taylor")==0) {
+    Rayleigh_Taylor();
   } else if (strcmp(P.init, "Implosion_2D")==0) {
     Implosion_2D();
   } else if (strcmp(P.init, "Noh_2D")==0) {
@@ -550,6 +552,58 @@ void Grid3D::KH_res_ind_2D()
 
 
 }
+
+
+/*! \fn void Rayleigh_Taylor()
+ *  \brief Initialize the grid with a 2D Rayleigh-Taylor instability. */
+void Grid3D::Rayleigh_Taylor()
+{
+  int i, j, id;
+  Real x_pos, y_pos, z_pos;
+  Real dl, du, vy, g, P, P_0;
+  dl = 1.0;
+  du = 2.0;
+  g = -0.1;
+  P_0 = 1.0/gama - dl*g*0.5;
+
+  // set the initial values of the conserved variables
+  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+      id = i + j*H.nx;
+      // get the centered x and y positions
+      Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
+
+      // set the y velocities (small perturbation tapering off from center)
+      vy = 0.01*sin(3*PI*x_pos)*exp(-(y_pos-0.5*H.ydglobal)*(y_pos-0.5*H.ydglobal)/0.1);
+      //if (y_pos == 0.5*H.ydglobal) vy = 0.01*sin(6*PI*x_pos);
+      //else vy = 0.0;
+      //vy = 0.0;
+
+      // lower half of slab
+      if (y_pos <= 0.5*H.ydglobal) 
+      {
+        P = P_0 + dl*g*y_pos;
+        C.density[id] = dl;
+        C.momentum_x[id] = 0.0;
+        C.momentum_y[id] = dl*vy;
+        C.momentum_z[id] = 0.0;
+        C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+      }
+      // upper half of slab
+      else
+      {
+        P = P_0 + du*g*y_pos;
+        C.density[id] = du;
+        C.momentum_x[id] = 0.0;
+        C.momentum_y[id] = du*vy;
+        C.momentum_z[id] = 0.0;
+        C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+      }
+    }
+  }
+
+}
+
 
 
 

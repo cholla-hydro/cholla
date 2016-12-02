@@ -69,10 +69,20 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
   int id, xid, yid, n_cells;
   int imo, jmo;
 
+  #if defined (DE) || defined(GRAVITY)
+  Real d, d_inv, vx, vy, vz;
+  #endif
   #ifdef DE
-  Real d, d_inv, vx, vy, vz, P;
-  Real vx_imo, vx_ipo, vy_jmo, vy_jpo;
+  Real vx_imo, vx_ipo, vy_jmo, vy_jpo, P;
   int ipo, jpo;
+  #endif
+
+  #ifdef GRAVITY
+  Real gx, gy, gz, g, V, d_n, d_inv_n, vx_n, vy_n, vz_n, V_n;
+  gx = 0.0;
+  gy = -0.1;
+  gz = 0.0;
+  g = sqrt(gx*gx + gy*gy + gz*gz);
   #endif
 
   Real dtodx = dt/dx;
@@ -91,12 +101,14 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost)
   {
-    #ifdef DE
+    #if defined (DE) || defined (GRAVITY)
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
+    #endif //GRAVITY
+    #ifdef DE
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     ipo = xid+1 + yid*nx;
     jpo = xid + (yid+1)*nx;
@@ -104,6 +116,9 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
     vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
     vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
     vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
+    #endif
+    #ifdef GRAVITY
+    V = sqrt(vx*vx + vy*vy + vz*vz);
     #endif
     
     // update the conserved variable array
@@ -115,8 +130,21 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
                                   +  dtody * (dev_F_y[2*n_cells + jmo] - dev_F_y[2*n_cells + id]); 
     dev_conserved[3*n_cells + id] += dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
                                   +  dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
+
     dev_conserved[4*n_cells + id] += dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                                   +  dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
+    #ifdef GRAVITY // add gravitational source terms, time averaged from n to n+1
+    d_n  =  dev_conserved[            id];
+    d_inv_n = 1.0 / d_n;
+    vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
+    vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
+    vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
+    V_n  =   sqrt(vx_n*vx_n + vy_n*vy_n + vz_n*vz_n);
+    dev_conserved[  n_cells + id] -= 0.5*dt*gx*(d + d_n);
+    dev_conserved[2*n_cells + id] -= 0.5*dt*gy*(d + d_n);
+    dev_conserved[3*n_cells + id] -= 0.5*dt*gz*(d + d_n);
+    dev_conserved[4*n_cells + id] -= 0.25*dt*g*(d + d_n)*(V + V_n);
+    #endif
     #ifdef DE
     dev_conserved[5*n_cells + id] += dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
                                   +  dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
