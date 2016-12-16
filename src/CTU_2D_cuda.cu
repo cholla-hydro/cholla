@@ -100,7 +100,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
   // input states and associated interface fluxes (Q* and F* from Stone, 2008)
   Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *F_x, *F_y;
   // arrays to hold the eta values for the H correction
-  Real *eta_x = NULL, *eta_y = NULL, *etah_x = NULL, *etah_y = NULL;
+  Real *eta_x, *eta_y, *etah_x, *etah_y;
   // array of inverse timesteps for dt calculation
   Real *dev_dti_array;
 
@@ -113,12 +113,10 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
   CudaSafeCall( cudaMalloc((void**)&Q_Ry, n_fields*BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&F_x,  n_fields*BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&F_y,  n_fields*BLOCK_VOL*sizeof(Real)) );
-  #ifdef H_CORRECTION
   CudaSafeCall( cudaMalloc((void**)&eta_x,   BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&eta_y,   BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah_x,  BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah_y,  BLOCK_VOL*sizeof(Real)) );
-  #endif
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, 2*ngrid*sizeof(Real)) );
 
 
@@ -136,12 +134,10 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     cudaMemset(Q_Ry,  0, n_fields*BLOCK_VOL*sizeof(Real));
     cudaMemset(F_x,   0, n_fields*BLOCK_VOL*sizeof(Real));
     cudaMemset(F_y,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    #ifdef H_CORRECTION
     cudaMemset(eta_x,  0,  BLOCK_VOL*sizeof(Real));
     cudaMemset(eta_y,  0,  BLOCK_VOL*sizeof(Real));
     cudaMemset(etah_x, 0,  BLOCK_VOL*sizeof(Real));
     cudaMemset(etah_y, 0,  BLOCK_VOL*sizeof(Real));
-    #endif
     cudaMemset(dev_dti_array, 0, 2*ngrid*sizeof(Real));
     CudaCheckError();
 
@@ -292,12 +288,10 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
   cudaFree(Q_Ry);
   cudaFree(F_x);
   cudaFree(F_y);
-  #ifdef H_CORRECTION
   cudaFree(eta_x);
   cudaFree(eta_y);
   cudaFree(etah_x);
   cudaFree(etah_y);
-  #endif
   cudaFree(dev_dti_array);
 
 
