@@ -68,6 +68,8 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
     ger = dev_bounds_R[5*n_cells + tid]/dr;
     #endif
 
+
+
     // compute sounds speeds in left and right regions
     cl = sqrt(gamma * pl / dl);
     cr = sqrt(gamma * pr / dr);

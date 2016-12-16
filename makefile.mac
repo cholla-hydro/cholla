@@ -32,7 +32,7 @@ else
 endif
 
 #define the NVIDIA CUDA compiler
-NVCC	= nvcc
+NVCC	= nvcc 
 
 .SUFFIXES : .c .cpp .cu .o
 
@@ -51,8 +51,8 @@ RECONSTRUCTION = -DPPMC
 SOLVER = -DEXACT
 #SOLVER = -DROE
 
-#INTEGRATOR = -DCTU 
-INTEGRATOR = -DVL
+INTEGRATOR = -DCTU 
+#INTEGRATOR = -DVL
 
 #COOLING = -DCOOLING_GPU
 
@@ -64,7 +64,8 @@ LIBS   = -L/usr/local/lib -lm -lgsl -lhdf5
 FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DGRAVITY #-DH_CORRECTION 
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -gencode arch=compute_20,code=sm_20 
+NVCCFLAGS = $(FLAGS) -fmad=false -m64  -Xcompiler -arch -Xcompiler x86_64 -gencode arch=compute_20,code=sm_20 -gencode arch=compute_30,code=sm_30 -Wno-deprecated-gpu-targets
+ALL_LDFLAGS += -Xlinker -F/Library/Frameworks -Xlinker -framework -Xlinker CUDA
 
 
 %.o:	%.c
@@ -77,7 +78,7 @@ NVCCFLAGS = $(FLAGS) -fmad=false -gencode arch=compute_20,code=sm_20
 		$(NVCC) $(NVCCFLAGS)  $(INCL)  -c $< -o $@ 
 
 $(EXEC): $(OBJS) 
-	 	 $(CXX) $(OBJS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL) 
+	 	 $(CXX) $(OBJS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL) $(ALL_LDFLAGS)
 
 #$(OBJS): $(INCL) 
 

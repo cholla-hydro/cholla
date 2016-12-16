@@ -564,7 +564,6 @@ void Grid3D::Rayleigh_Taylor()
   dl = 1.0;
   du = 2.0;
   g = -0.1;
-  P_0 = 1.0/gama - dl*g*0.5;
 
   // set the initial values of the conserved variables
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -574,14 +573,13 @@ void Grid3D::Rayleigh_Taylor()
       Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
 
       // set the y velocities (small perturbation tapering off from center)
-      vy = 0.01*sin(3*PI*x_pos)*exp(-(y_pos-0.5*H.ydglobal)*(y_pos-0.5*H.ydglobal)/0.1);
-      //if (y_pos == 0.5*H.ydglobal) vy = 0.01*sin(6*PI*x_pos);
-      //else vy = 0.0;
+      vy = 0.01*cos(6*PI*x_pos+PI)*exp(-(y_pos-0.5*H.ydglobal)*(y_pos-0.5*H.ydglobal)/0.1);
       //vy = 0.0;
 
       // lower half of slab
       if (y_pos <= 0.5*H.ydglobal) 
       {
+        P_0 = 1.0/gama - dl*g*0.5;
         P = P_0 + dl*g*y_pos;
         C.density[id] = dl;
         C.momentum_x[id] = 0.0;
@@ -592,6 +590,7 @@ void Grid3D::Rayleigh_Taylor()
       // upper half of slab
       else
       {
+        P_0 = 1.0/gama - du*g*0.5;
         P = P_0 + du*g*y_pos;
         C.density[id] = du;
         C.momentum_x[id] = 0.0;
@@ -604,6 +603,42 @@ void Grid3D::Rayleigh_Taylor()
 
 }
 
+
+/*! \fn void Gresho()
+ *  \brief Initialize the grid with the 2D Gresho problem described in LW03. */
+void Grid3D::Gresho()
+{
+  int i, j, id;
+  Real x_pos, y_pos, z_pos, r;
+  Real vx, vy, P;
+
+  // set the initial values of the conserved variables
+  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+      id = i + j*H.nx;
+      // get the centered x and y positions
+      Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
+
+      r = sqrt(x_pos*x_pos + y_pos*y_pos);
+
+      C.density[id] = 1.0;
+      C.momentum_z[id] = 0.0;
+      if (r < 0.2) {
+        P = 5.0 + 0.5*25.0*r*r;
+        C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+      }
+      else if (r >= 0.2 || r < 0.4) {
+        P = 9.0 - 4.0*log(0.2) + 0.5*25.0*r*r = 20.0*r + 4.0*log(r);
+        C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+      }
+      else {
+        P = 3.0 + 4.0*log(2); 
+        C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+      }
+    }
+  }
+
+}
 
 
 

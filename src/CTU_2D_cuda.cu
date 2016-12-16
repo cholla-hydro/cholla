@@ -19,6 +19,7 @@
 #include"roe_cuda.h"
 #include"h_correction_2D_cuda.h"
 #include"cooling_cuda.h"
+#include"gravity.h"
 #include"subgrid_routines_2D.h"
 
 
@@ -117,8 +118,8 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
   CudaSafeCall( cudaMalloc((void**)&eta_y,   BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah_x,  BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah_y,  BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&dev_dti_array, 2*ngrid*sizeof(Real)) );
   #endif
+  CudaSafeCall( cudaMalloc((void**)&dev_dti_array, 2*ngrid*sizeof(Real)) );
 
 
   // transfer first conserved variable slice into the first buffer
@@ -183,6 +184,10 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     #endif // NO CTU
     #endif // H_CORRECTION
 
+    #ifdef GRAVITY
+    //Correct_States_2D<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx_s, ny_s, dt);
+    #endif // GRAVITY
+
     // Step 2: Calculate the fluxes
     #ifdef EXACT
     Calculate_Exact_Fluxes<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
@@ -212,6 +217,9 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
     CudaCheckError();
     #endif
 
+    #ifdef GRAVITY
+    //Correct_States_2D<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx_s, ny_s, dt);
+    #endif // GRAVITY
 
     // Step 4: Calculate the fluxes again
     #ifdef EXACT

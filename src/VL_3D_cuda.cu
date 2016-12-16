@@ -24,11 +24,6 @@
 #include"subgrid_routines_3D.h"
 
 
-__global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z,
-                                              int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt, Real gamma);
-
-
-
 Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt)
 {
 
@@ -307,60 +302,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_gh
 
 
 
-__global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z,
-                                              int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt, Real gamma)
-{
-
-  int id, xid, yid, zid, n_cells;
-  int imo, jmo, kmo;
-
-  Real dtodx = dt/dx;
-  Real dtody = dt/dy;
-  Real dtodz = dt/dz;
-  n_cells = nx*ny*nz;
-
-  // get a global thread ID
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-  zid = id / (nx*ny);
-  yid = (id - zid*nx*ny) / nx;
-  xid = id - zid*nx*ny - yid*nx;
-
-
-  // threads corresponding to all cells except outer ring of ghost cells do the calculation
-  if (xid > 0 && xid < nx-1 && yid > 0 && yid < ny-1 && zid > 0 && zid < nz-1)
-  {
-    // update the conserved variable array
-    imo = xid-1 + yid*nx + zid*nx*ny;
-    jmo = xid + (yid-1)*nx + zid*nx*ny;
-    kmo = xid + yid*nx + (zid-1)*nx*ny;
-    dev_conserved_half[            id] = dev_conserved[            id]
-                                       + dtodx * (dev_F_x[            imo] - dev_F_x[            id])
-                                       + dtody * (dev_F_y[            jmo] - dev_F_y[            id])
-                                       + dtodz * (dev_F_z[            kmo] - dev_F_z[            id]);
-    dev_conserved_half[  n_cells + id] = dev_conserved[  n_cells + id] 
-                                       + dtodx * (dev_F_x[  n_cells + imo] - dev_F_x[  n_cells + id])
-                                       + dtody * (dev_F_y[  n_cells + jmo] - dev_F_y[  n_cells + id])
-                                       + dtodz * (dev_F_z[  n_cells + kmo] - dev_F_z[  n_cells + id]);
-    dev_conserved_half[2*n_cells + id] = dev_conserved[2*n_cells + id] 
-                                       + dtodx * (dev_F_x[2*n_cells + imo] - dev_F_x[2*n_cells + id])
-                                       + dtody * (dev_F_y[2*n_cells + jmo] - dev_F_y[2*n_cells + id])
-                                       + dtodz * (dev_F_z[2*n_cells + kmo] - dev_F_z[2*n_cells + id]);
-    dev_conserved_half[3*n_cells + id] = dev_conserved[3*n_cells + id] 
-                                       + dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
-                                       + dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id])
-                                       + dtodz * (dev_F_z[3*n_cells + kmo] - dev_F_z[3*n_cells + id]);
-    dev_conserved_half[4*n_cells + id] = dev_conserved[4*n_cells + id] 
-                                       + dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
-                                       + dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id])
-                                       + dtodz * (dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id]);
-    if (dev_conserved_half[id] < 0.0 || dev_conserved_half[id] != dev_conserved_half[id]) {
-      printf("%3d %3d %3d Thread crashed in half step update.\n", xid, yid, zid);
-    }    
-
-
-  }
-
-}
 
 
 #endif //VL
