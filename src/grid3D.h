@@ -300,6 +300,10 @@ class Grid3D
     *  \brief Initialize the grid with a 2D Rayleigh-Taylor instability. */
     void Rayleigh_Taylor();
 
+    /*! \fn void Gresho()
+     *  \brief Initialize the grid with the 2D Gresho problem described in LW03. */
+    void Gresho();    
+
     /*! \fn void Implosion_2D()
      *  \brief Implosion test described in Liska, 2003. */
     void Implosion_2D();

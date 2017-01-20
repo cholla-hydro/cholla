@@ -42,6 +42,8 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
     Rayleigh_Taylor();
   } else if (strcmp(P.init, "Implosion_2D")==0) {
     Implosion_2D();
+  } else if (strcmp(P.init, "Gresho")==0) {
+    Gresho();
   } else if (strcmp(P.init, "Noh_2D")==0) {
     Noh_2D();
   } else if (strcmp(P.init, "Noh_3D")==0) {
@@ -609,8 +611,20 @@ void Grid3D::Rayleigh_Taylor()
 void Grid3D::Gresho()
 {
   int i, j, id;
-  Real x_pos, y_pos, z_pos, r;
-  Real vx, vy, P;
+  Real x_pos, y_pos, z_pos, xc, yc, r, phi;
+  Real d, vx, vy, P, v_boost;
+  Real x, y, dx, dy;
+  int ran, N;
+  N = 100000;
+  d = 1.0;
+  v_boost = 0.0;
+
+  // center the vortex at (0.0,0.0)
+  xc = 0.0;
+  yc = 0.0;
+
+  // seed the random number generator
+  srand(0);
 
   // set the initial values of the conserved variables
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -619,24 +633,53 @@ void Grid3D::Gresho()
       // get the centered x and y positions
       Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
 
-      r = sqrt(x_pos*x_pos + y_pos*y_pos);
+      // set vx, vy, P to zero before integrating 
+      vx = 0.0;
+      vy = 0.0;
+      P = 0.0;
 
-      C.density[id] = 1.0;
+      // monte carlo sample to get an integrated value for vx, vy, P
+      for (int ii = 0; ii<N; ii++) {
+        // get a random dx and dy to sample within the cell
+        ran = rand() % 1000;
+        dx = H.dx*(ran/1000.0 - 0.5); 
+        ran = rand() % 1000;
+        dy = H.dy*(ran/1000.0 - 0.5); 
+        x = x_pos + dx;
+        y = y_pos + dy;
+        // calculate r and phi using the new x & y positions
+        r = sqrt((x-xc)*(x-xc) + (y-yc)*(y-yc));
+        phi = atan2((y-yc), (x-xc));
+        if (r < 0.2) {
+          vx += -sin(phi)*5.0*r + v_boost;
+          vy += cos(phi)*5.0*r;
+          P += 5.0 + 0.5*25.0*r*r;
+        }
+        else if (r >= 0.2 && r < 0.4) {
+          vx += -sin(phi)*(2.0-5.0*r) + v_boost;
+          vy += cos(phi)*(2.0-5.0*r);
+          P += 9.0 - 4.0*log(0.2) + 0.5*25.0*r*r - 20.0*r + 4.0*log(r);
+        }
+        else {
+          vx += 0.0;
+          vy += 0.0;
+          P += 3.0 + 4.0*log(2.0);
+        }
+      }
+      vx = vx/N;
+      vy = vy/N;
+      P = P/N;
+      // set values of conserved variables using cell-integrated quantities  
+      C.density[id] = d;
+      C.momentum_x[id] = d*vx;
+      C.momentum_y[id] = d*vy;
       C.momentum_z[id] = 0.0;
-      if (r < 0.2) {
-        P = 5.0 + 0.5*25.0*r*r;
-        C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
-      }
-      else if (r >= 0.2 || r < 0.4) {
-        P = 9.0 - 4.0*log(0.2) + 0.5*25.0*r*r = 20.0*r + 4.0*log(r);
-        C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
-      }
-      else {
-        P = 3.0 + 4.0*log(2); 
-        C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
-      }
+      C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+      r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
+      printf("%f %f %f %f %f\n", x_pos, y_pos, r, vx, vy);
     }
   }
+        
 
 }
 
