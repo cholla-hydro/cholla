@@ -292,9 +292,9 @@ class Grid3D
     *  \brief Initialize the grid with a 2D Kelvin-Helmholtz instability. */
     void KH_discontinuous_2D();
 
-    /*! \fn void KH_res_ind_2D()
-     *  \brief Initialize the grid with a 2D Kelvin-Helmholtz instability whose modes are resolution independent. */
-    void KH_res_ind_2D();
+    /*! \fn void KH_res_ind()
+     *  \brief Initialize the grid with a Kelvin-Helmholtz instability whose modes are resolution independent. */
+    void KH_res_ind();
 
     /*! \fn void Rayleigh_Taylor()
     *  \brief Initialize the grid with a 2D Rayleigh-Taylor instability. */

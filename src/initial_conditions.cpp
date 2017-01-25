@@ -36,8 +36,8 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
     Blast_1D();
   } else if (strcmp(P.init, "KH_discontinuous_2D")==0) {
     KH_discontinuous_2D();
-  } else if (strcmp(P.init, "KH_res_ind_2D")==0) {
-    KH_res_ind_2D();
+  } else if (strcmp(P.init, "KH_res_ind")==0) {
+    KH_res_ind();
   } else if (strcmp(P.init, "Rayleigh_Taylor")==0) {
     Rayleigh_Taylor();
   } else if (strcmp(P.init, "Implosion_2D")==0) {
@@ -449,43 +449,58 @@ void Grid3D::Blast_1D()
            Use KH_res_ind_2D for a version that is resolution independent. */
 void Grid3D::KH_discontinuous_2D()
 {
-  int i, j, id;
+  int i, j, k, id;
+  int istart, iend, jstart, jend, kstart, kend;
   Real x_pos, y_pos, z_pos;
   Real vx, vy, vz;
 
+  istart = H.n_ghost;
+  iend   = H.nx-H.n_ghost;
+  jstart = H.n_ghost;
+  jend   = H.ny-H.n_ghost;
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz-H.n_ghost;
+  }
+  else {
+    kstart = 0;
+    kend   = H.nz;
+  }
 
   // set the initial values of the conserved variables
-  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-      id = i + j*H.nx;
-      // get the centered x and y positions
-      Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
+  for (k=kstart; k<kend; k++) {
+    for (j=jstart; j<jend; j++) {
+      for (i=istart; i<iend; i++) {
+        id = i + j*H.nx + k*H.nx*H.ny;
+        // get the centered x and y positions
+        Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
 
-      // outer thirds of slab
-      if (y_pos <= 1.0*H.ydglobal/3.0) 
-      {
-        C.density[id] = 1.0;
-        C.momentum_x[id] = 0.5 + 0.01*sin(2*PI*x_pos);
-        C.momentum_y[id] = 0.0 + 0.01*sin(2*PI*x_pos);
-        C.momentum_z[id] = 0.0;
-        C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
-      }
-      else if (y_pos >= 2.0*H.ydglobal/3.0)
-      {
-        C.density[id] = 1.0;
-        C.momentum_x[id] = 0.5 + 0.01*sin(2*PI*x_pos);
-        C.momentum_y[id] = 0.0 + 0.01*sin(2*PI*x_pos);
-        C.momentum_z[id] = 0.0;
-        C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
-      }
-      // inner third of slab
-      else
-      {
-        C.density[id] = 2.0;
-        C.momentum_x[id] = -1.0 + 0.02*sin(2*PI*x_pos);
-        C.momentum_y[id] = 0.0  + 0.02*sin(2*PI*x_pos);
-        C.momentum_z[id] = 0.0;
-        C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+        // outer thirds of slab
+        if (y_pos <= 1.0*H.ydglobal/3.0) 
+        {
+          C.density[id] = 1.0;
+          C.momentum_x[id] = 0.5 + 0.01*sin(2*PI*x_pos);
+          C.momentum_y[id] = 0.0 + 0.01*sin(2*PI*x_pos);
+          C.momentum_z[id] = 0.0;
+          C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+        }
+        else if (y_pos >= 2.0*H.ydglobal/3.0)
+        {
+          C.density[id] = 1.0;
+          C.momentum_x[id] = 0.5 + 0.01*sin(2*PI*x_pos);
+          C.momentum_y[id] = 0.0 + 0.01*sin(2*PI*x_pos);
+          C.momentum_z[id] = 0.0;
+          C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+        }
+        // inner third of slab
+        else
+        {
+          C.density[id] = 2.0;
+          C.momentum_x[id] = -1.0 + 0.02*sin(2*PI*x_pos);
+          C.momentum_y[id] = 0.0  + 0.02*sin(2*PI*x_pos);
+          C.momentum_z[id] = 0.0;
+          C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+        }
       }
     }
   }
@@ -493,67 +508,125 @@ void Grid3D::KH_discontinuous_2D()
 }
 
 
-/*! \fn void KH_res_ind_2D()
- *  \brief Initialize the grid with a 2D Kelvin-Helmholtz instability whose modes are resolution independent. */
-void Grid3D::KH_res_ind_2D()
+/*! \fn void KH_res_ind()
+ *  \brief Initialize the grid with a Kelvin-Helmholtz instability whose modes are resolution independent. */
+void Grid3D::KH_res_ind()
 {
-  int i, j, id;
+  int i, j, k, id;
+  int istart, iend, jstart, jend, kstart, kend;
   Real x_pos, y_pos, z_pos;
   Real mx, my, mz;
+  Real r, yc, zc, phi;
+  Real d1, d2, v1, v2, P, dy;
 
+  istart = H.n_ghost;
+  iend   = H.nx-H.n_ghost;
+  jstart = H.n_ghost;
+  jend   = H.ny-H.n_ghost;
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz-H.n_ghost;
+  }
+  else {
+    kstart = 0;
+    kend   = H.nz;
+  }
+
+  // y, z center of cylinder (assuming x is long direction)
+  yc = 0.0;
+  zc = 0.0;
+
+  d1 = 2.0; // inner density
+  d2 = 1.0; // outer density
+  v1 = 0.5; // inner velocity
+  v2 = -0.5; // outer velocity
+  P = 2.5; // pressure
+  dy = 0.05; // width of ramp function (see Robertson 2009)
 
   // set the initial values of the conserved variables
-  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-      id = i + j*H.nx;
-      // get the centered x and y positions
-      Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
-      
-      // inner half of slab
-      if (fabs(y_pos-0.5) < 0.25)
-      {
-        if (y_pos > 0.5)
+  for (k=kstart; k<kend; k++) {
+    for (j=jstart; j<jend; j++) {
+      for (i=istart; i<iend; i++) {
+        id = i + j*H.nx + k*H.nx*H.ny;
+        // get the centered x and y positions
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+
+
+        // inner half of slab
+        if (fabs(y_pos-0.5) < 0.25)
         {
-          C.density[id] = 2.0 - exp( -0.5*pow(y_pos-0.75 - sqrt(-2.0*0.05*0.05*log(0.5)),2)/pow(0.05,2) );
-          C.momentum_x[id] = 0.5*C.density[id] - C.density[id] * exp( -0.5*pow(y_pos-0.75 - sqrt(-2.0*0.05*0.05*log(0.5)),2) / pow(0.05,2) );
+          if (y_pos > 0.5)
+          {
+            C.density[id] = d1 - (d1-d2)*exp( -0.5*pow(y_pos-0.75 - sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+            C.momentum_x[id] = v1*C.density[id] - C.density[id] * exp( -0.5*pow(y_pos-0.75 - sqrt(-2.0*dy*dy*log(0.5)),2) /(dy*dy) );
+            C.momentum_y[id] = C.density[id] * -0.1*sin(4*PI*x_pos) * exp( -0.5*pow(y_pos-0.75 - sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) ) ;
+          }
+          else
+          {
+            C.density[id] = d1 - (d1-d2)*exp( -0.5*pow(y_pos-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+            C.momentum_x[id] = v1*C.density[id] - C.density[id] * exp( -0.5*pow(y_pos-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2) /(dy*dy) );
+            C.momentum_y[id] = C.density[id] * 0.1*sin(4*PI*x_pos) * exp( -0.5*pow(y_pos-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) ); 
+          }
         }
+        // outer quarters of slab
         else
         {
-          C.density[id] = 2.0 - exp( -0.5*pow(y_pos-0.25 + sqrt(-2.0*0.05*0.05*log(0.5)),2)/pow(0.05,2) );
-          C.momentum_x[id] = 0.5*C.density[id] - C.density[id] * exp( -0.5*pow(y_pos-0.25 + sqrt(-2.0*0.05*0.05*log(0.5)),2) / pow(0.05,2) );
+          if (y_pos > 0.5)
+          {
+            C.density[id] = d2 + (d1-d2)*exp( -0.5*pow(y_pos-0.75 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+            C.momentum_x[id] = v2*C.density[id] + C.density[id] * exp( -0.5*pow(y_pos-0.75 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+            C.momentum_y[id] = C.density[id] * -0.1*sin(4*PI*x_pos) * (1.0 - exp( -0.5*pow(y_pos-0.75 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) ));
+          }
+          else
+          {
+            C.density[id] = d2 + (d1-d2)*exp( -0.5*pow(y_pos-0.25 - sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+            C.momentum_x[id] = v2*C.density[id] + C.density[id] * exp( -0.5*pow(y_pos-0.25 - sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+            C.momentum_y[id] = C.density[id] * 0.1*sin(4*PI*x_pos) * (1.0 - exp( -0.5*pow(y_pos-0.25 - sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) ));
+          }
+
         }
-        C.momentum_y[id] = 0.0 + C.density[id] * 0.1*sin(4*PI*x_pos);
+        //C.momentum_y[id] = C.density[id] * 0.1*sin(4*PI*x_pos);
         C.momentum_z[id] = 0.0;
         mx = C.momentum_x[id];
         my = C.momentum_y[id];
         mz = C.momentum_z[id];
-        C.Energy[id] = 2.5/(gama-1.0) + 0.5*(mx*my + my*my + mz*mz)/C.density[id];
-      }
-      // outer quarters of slab
-      else
-      {
-        if (y_pos > 0.5)
+        C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];        
+
+/*
+        // cylindrical version (3D only)
+        r = sqrt((z_pos-zc)*(z_pos-zc) + (y_pos-yc)*(y_pos-yc)); // center the cylinder at yc, zc
+        phi = atan2((z_pos-zc), (y_pos-yc));
+
+        if (r < 0.25) // inside the cylinder
         {
-          C.density[id] = 1.0 + exp( -0.5*pow(y_pos-0.75 + sqrt(-2.0*0.05*0.05*log(0.5)),2)/pow(0.05,2) );
-          C.momentum_x[id] = -0.5*C.density[id] + C.density[id] * exp( -0.5*pow(y_pos-0.75 + sqrt(-2.0*0.05*0.05*log(0.5)),2)/pow(0.05,2) );
+          C.density[id] = d1 - (d1-d2)*exp( -0.5*pow(r-0.25 - sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+          C.momentum_x[id] = v1*C.density[id] - C.density[id] * exp( -0.5*pow(r-0.25 - sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+          C.momentum_y[id] = cos(phi) * C.density[id] * 0.1*sin(4*PI*x_pos) * exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+          C.momentum_z[id] = sin(phi) * C.density[id] * 0.1*sin(4*PI*x_pos) * exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+          mx = C.momentum_x[id];
+          my = C.momentum_y[id];
+          mz = C.momentum_z[id];
+          C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];
         }
-        else
+        else // outside the cylinder
         {
-          C.density[id] = 1.0 + exp( -0.5*pow(y_pos-0.25 - sqrt(-2.0*0.05*0.05*log(0.5)),2)/pow(0.05,2) );
-          C.momentum_x[id] = -0.5*C.density[id] + C.density[id] * exp( -0.5*pow(y_pos-0.25 - sqrt(-2.0*0.05*0.05*log(0.5)),2)/pow(0.05,2) );
+          C.density[id] = d2 + (d1-d2)*exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+          C.momentum_x[id] = v2*C.density[id] + C.density[id] * exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
+          C.momentum_y[id] = cos(phi) * C.density[id] * 0.1*sin(4*PI*x_pos) * (1.0 - exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) ));
+          C.momentum_z[id] = sin(phi) * C.density[id] * 0.1*sin(4*PI*x_pos) * (1.0 - exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) ));
+          mx = C.momentum_x[id];
+          my = C.momentum_y[id];
+          mz = C.momentum_z[id];
+          C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];
         }
-        C.momentum_y[id] = 0.0 + C.density[id] * 0.1*sin(4*PI*x_pos);
-        C.momentum_z[id] = 0.0;
-        mx = C.momentum_x[id];
-        my = C.momentum_y[id];
-        mz = C.momentum_z[id];
-        C.Energy[id] = 2.5/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];
+*/      
       }
     }
   }
 
 
 }
+
 
 
 /*! \fn void Rayleigh_Taylor()
