@@ -160,7 +160,7 @@ void host_copy_init_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int bloc
     // copy the first block into a buffer
     for (int j=0; j<ny_s; j++) {
       for (int ii=0; ii<n_fields; ii++) {
-      memcpy(&buffer[0][ii*BLOCK_VOL + j*nx_s], &host_conserved[ii*n_cells + j*nx], nx_s*sizeof(Real)); 
+        memcpy(&buffer[0][ii*BLOCK_VOL + j*nx_s], &host_conserved[ii*n_cells + j*nx], nx_s*sizeof(Real)); 
       }
     }
 
@@ -177,8 +177,9 @@ void host_copy_init_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int bloc
   else if (nx_s == nx && ny_s < ny) {
     // copy the first block into a cpu buffer
     for (int ii=0; ii<n_fields; ii++) {
-      memcpy(&buffer[0][n_fields*BLOCK_VOL], &host_conserved[n_fields*n_cells], BLOCK_VOL*sizeof(Real)); // Energy
+      memcpy(&buffer[0][ii*BLOCK_VOL], &host_conserved[ii*n_cells], BLOCK_VOL*sizeof(Real));     
     }
+
 
     // point tmp1 to the buffer we will
     // copy from, and tmp2 to the buffer we will
@@ -209,7 +210,7 @@ void host_copy_init_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int bloc
 
       for (int j=0; j<ny_s; j++) {
         for (int ii=0; ii<n_fields; ii++) {
-          memcpy(&buffer[n][n_fields*BLOCK_VOL + j*nx_s], &host_conserved[x_host + n_fields*n_cells + j*nx], nx_s*sizeof(Real)); 
+          memcpy(&buffer[n][ii*BLOCK_VOL + j*nx_s], &host_conserved[x_host + ii*n_cells + j*nx], nx_s*sizeof(Real)); 
         }
       }
 
@@ -270,7 +271,7 @@ void host_copy_next_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int bloc
 
       for (int j=0; j<ny_s; j++) {
         for (int ii=0; ii<n_fields; ii++) {
-          memcpy(&buffer[0][n_fields*BLOCK_VOL + j*nx_s], &host_conserved[x_host + n_fields*n_cells + j*nx], nx_s*sizeof(Real)); // Energy
+          memcpy(&buffer[0][ii*BLOCK_VOL + j*nx_s], &host_conserved[x_host + ii*n_cells + j*nx], nx_s*sizeof(Real)); // Energy
         }
       }
 
@@ -302,7 +303,7 @@ void host_copy_next_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int bloc
       y_host = block2*nx*(ny_s-2*n_ghost) - nx*y_offset;
 
       for (int ii=0; ii<n_fields; ii++) {
-        memcpy(&buffer[0][n_fields*BLOCK_VOL], &host_conserved[y_host + ii*n_cells], BLOCK_VOL*sizeof(Real));
+        memcpy(&buffer[0][ii*BLOCK_VOL], &host_conserved[y_host + ii*n_cells], BLOCK_VOL*sizeof(Real));
       }
 
       // point to the next buffer
@@ -351,7 +352,7 @@ void host_copy_next_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int bloc
 
         for (int j=0; j<ny_s; j++) {
           for (int ii=0; ii<n_fields; ii++) {
-            memcpy(&buffer[n+buf_offset][n_fields*BLOCK_VOL + j*nx_s], &host_conserved[x_host + y_host + n_fields*n_cells + j*nx], nx_s*sizeof(Real)); 
+            memcpy(&buffer[n+buf_offset][ii*BLOCK_VOL + j*nx_s], &host_conserved[x_host + y_host + ii*n_cells + j*nx], nx_s*sizeof(Real)); 
           }
         }
       }
@@ -418,7 +419,7 @@ void host_return_values_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int 
     
     for (int j=0; j<ny_s-2*n_ghost; j++) {
       for (int ii=0; ii<n_fields; ii++) {
-        memcpy(&host_conserved[x_host + y_host + j*nx + n_fields*n_cells], &buffer[1][x_gpu + y_gpu + j*nx_s + n_fields*BLOCK_VOL], length*sizeof(Real));
+        memcpy(&host_conserved[x_host + y_host + j*nx + ii*n_cells], &buffer[1][x_gpu + y_gpu + j*nx_s + ii*BLOCK_VOL], length*sizeof(Real));
       }
     }
 
@@ -442,7 +443,7 @@ void host_return_values_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int 
     length = nx_s*(ny_s-2*n_ghost); // number of cells to copy back
 
     for (int ii=0; ii<n_fields; ii++) {
-      memcpy(&host_conserved[y_host + n_fields*n_cells], &buffer[1][y_gpu + n_fields*BLOCK_VOL], length*sizeof(Real));
+      memcpy(&host_conserved[y_host + ii*n_cells], &buffer[1][y_gpu + ii*BLOCK_VOL], length*sizeof(Real));
     }
 
     return;
@@ -478,7 +479,7 @@ void host_return_values_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int 
     
     for (int j=0; j<ny_s-2*n_ghost; j++) {
       for (int ii=0; ii<n_fields; ii++) {
-        memcpy(&host_conserved[x_host + y_host + j*nx + n_fields*n_cells], &buffer[n][x_gpu + y_gpu + j*nx_s + n_fields*BLOCK_VOL], length*sizeof(Real));
+        memcpy(&host_conserved[x_host + y_host + j*nx + ii*n_cells], &buffer[n][x_gpu + y_gpu + j*nx_s + ii*BLOCK_VOL], length*sizeof(Real));
       }
     }
 
