@@ -27,10 +27,11 @@
 __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, Real *dev_Q_Rx, Real *dev_F_x,
                                            Real *dev_Q_Ly, Real *dev_Q_Ry, Real *dev_F_y,
                                            Real *dev_Q_Lz, Real *dev_Q_Rz, Real *dev_F_z,
-                                           int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt);
+                                           int nx, int ny, int nz, int n_ghost, 
+                                           Real dx, Real dy, Real dz, Real dt);
 
 
-Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt)
+Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real dt)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
@@ -45,6 +46,9 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
   int nx_s; //number of cells in the subgrid block along x direction
   int ny_s; //number of cells in the subgrid block along y direction
   int nz_s; //number of cells in the subgrid block along z direction
+  int x_off_s; // x-offset for subgrid block
+  int y_off_s; // y-offset for subgrid block
+  int z_off_s; // z-offset for subgrid block
 
   // total number of blocks needed
   int block_tot;    //total number of subgrid blocks (unsplit == 1)
@@ -243,7 +247,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_g
 #endif //CTU
 
   // Step 5: Update the conserved variable array
-  Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, F_z, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dt, gama);
+  Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, F_z, nx_s, ny_s, nz_s, x_off_s, y_off_s, z_off_s, n_ghost, dx, dy, dz, dt, gama);
   CudaCheckError();
 
   // Synchronize the total and internal energies

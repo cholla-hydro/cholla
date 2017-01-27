@@ -10,13 +10,19 @@
 #include"hydro_cuda.h"
 
 
-__global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int n_ghost, Real dx, Real dt, Real gamma)
+__global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int x_off, int n_ghost, Real dx, Real dt, Real gamma)
 {
   int id;
   #ifdef DE
   Real d, d_inv, vx, vy, vz, P;  
   Real vx_imo, vx_ipo;
   #endif
+
+  #ifdef GRAVITY
+  Real gx, d_n, d_inv_n, vx_n;
+  gx = 0.0;
+  #endif
+  
 
   Real dtodx = dt/dx;
 
@@ -87,7 +93,7 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
 }
 
 
-__global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt, Real gamma)
+__global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real dt, Real gamma)
 {
   int id, xid, yid, n_cells;
   int imo, jmo;
@@ -103,7 +109,7 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
   #ifdef GRAVITY
   Real gx, gy, d_n, d_inv_n, vx_n, vy_n;
   gx = 0.0;
-  gy = -0.1;
+  gy = 0.0;
   #endif
 
   Real dtodx = dt/dx;
@@ -228,7 +234,7 @@ __global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *de
 
 
 __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z,
-                                              int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt,
+                                              int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real dt,
                                               Real gamma)
 {
   int id, xid, yid, zid, n_cells;

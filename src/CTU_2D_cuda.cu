@@ -29,7 +29,7 @@ __global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real 
                                            int nx, int ny, int n_ghost, Real dx, Real dy, Real dt);
 
 
-Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt)
+Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real dt)
 {
 
   //Here, *host_conserved contains the entire
@@ -54,13 +54,15 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
   int nx_s; //number of cells in the subgrid block along x direction
   int ny_s; //number of cells in the subgrid block along y direction
   int nz_s = 1; //number of cells in the subgrid block along z direction
+  int x_off_s; // x-offset for subgrid block
+  int y_off_s; // y-offset for subgrid block
 
   // total number of blocks needed
   int block_tot;    //total number of subgrid blocks (unsplit == 1)
   int block1_tot;   //total number of subgrid blocks in x direction
   int block2_tot;   //total number of subgrid blocks in y direction
   int remainder1;   //modulus of number of cells after block subdivision in x direction
-  int remainder2;   //modulus of number of cells after block subdivision in y direction 
+  int remainder2;   //modulus of number of cells after block subdivision in y direction
 
   // counter for which block we're on
   int block = 0;
@@ -68,6 +70,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
   // calculate the dimensions for each subgrid block
   sub_dimensions_2D(nx, ny, n_ghost, &nx_s, &ny_s, &block1_tot, &block2_tot, &remainder1, &remainder2, n_fields);
   block_tot = block1_tot*block2_tot;
+  printf("%d %d %d %d %d %d %d %d\n", nx, ny, nx_s, ny_s, block1_tot, block2_tot, remainder1, remainder2);
 
   // number of cells in one subgrid block
   int BLOCK_VOL = nx_s*ny_s*nz_s;
@@ -125,6 +128,13 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
   
 
   while (block < block_tot) {
+
+    //#ifdef GRAVITY
+    // calculate the global x and y offsets of this subgrid block
+    x_off_s = x_off + nx_s*(block%block1_tot);
+    y_off_s = y_off + ny_s*(block/block1_tot);
+    printf("%d %d\n", x_off_s, y_off_s);
+    //#endif
 
     // zero all the GPU arrays
     cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));
@@ -232,7 +242,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Re
 
 
     // Step 5: Update the conserved variable array
-    Update_Conserved_Variables_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, nx_s, ny_s, n_ghost, dx, dy, dt, gama);
+    Update_Conserved_Variables_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, nx_s, ny_s, x_off_s, y_off_s, n_ghost, dx, dy, dt, gama);
     CudaCheckError();
 
     // Synchronize the total and internal energy

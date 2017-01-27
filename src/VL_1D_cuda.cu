@@ -27,7 +27,7 @@
 
 
 
-Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int n_ghost, Real dx, Real dt)
+Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, Real dx, Real dt)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid

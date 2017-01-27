@@ -24,7 +24,7 @@
 #include"subgrid_routines_3D.h"
 
 
-Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt)
+Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real dt)
 {
 
   //Here, *host_conserved contains the entire

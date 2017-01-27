@@ -34,6 +34,8 @@ void sub_dimensions_2D(int nx, int ny, int n_ghost, int *nx_s, int *ny_s, int *b
   // plus a buffer for dti array
   max_vol = max_vol - 400;
 
+  max_vol = 1000;
+
 
   // split if necessary
   while ((*nx_s)*(*ny_s) > max_vol) {
@@ -256,7 +258,7 @@ void host_copy_next_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int bloc
     // don't copy if we are currently on the last block
     if (block1 < block1_tot) {
 
-      // if we are on the second-to-last block, make sure the last block doesn't go past 
+      // if we are on the second-to-last block, set the x-offset such that the last block doesn't go past 
       // the bounds of the host array
       x_offset = 0;
       if (block1 == block1_tot-1 && remainder1 != 0) {
@@ -289,7 +291,7 @@ void host_copy_next_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int bloc
     // don't copy if we are currently on the last block
     if (block2 < block2_tot) {
 
-      // if we are on the second-to-last block, make sure the last block doesn't go past 
+      // if we are on the second-to-last block, set the y-offset such that the last block doesn't go past 
       // the bounds of the host array
       y_offset = 0;
       if (block2 == block2_tot-1 && remainder2 != 0) {
@@ -317,7 +319,7 @@ void host_copy_next_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int bloc
     block2 = block / block1_tot; // yid of current block
     block1 = block - block2*block1_tot; // xid of current block
 
-    // if we are about to copy the last y block, make sure it doesn't go past 
+    // if we are about to copy the last y block, set the y-offset such that it doesn't go past 
     // the bounds of the host array
     y_offset = 0;
     if (block2 == block2_tot-2 && remainder2 != 0) {
@@ -336,7 +338,7 @@ void host_copy_next_2D(int nx, int ny, int nx_s, int ny_s, int n_ghost, int bloc
 
       for (int n=0; n<block1_tot; n++) {
 
-        // if we are about to copy the last x block, make sure it doesn't go past 
+        // if we are about to copy the last x block, set the x-offset such that it doesn't go past 
         // the bounds of the host array
         x_offset = 0;
         if (n == block1_tot-1 && remainder1 != 0) {

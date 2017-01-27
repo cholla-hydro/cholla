@@ -298,6 +298,16 @@ Real Grid3D::calc_dti_CPU(Real C_cfl)
 Real Grid3D::Update_Grid(void)
 {
   Real max_dti = 0;
+  int x_off, y_off, z_off;
+
+  // set x, y, & z offsets of local CPU volume to pass to GPU
+  // so global position on the grid is known
+  x_off = y_off = z_off = 0;
+  #ifdef MPI_CHOLLA
+  x_off = nx_local_start;
+  y_off = ny_local_start;
+  z_off = nz_local_start;
+  #endif
 
   // Pass the structure of conserved variables to the CTU update functions
   // The function returns the updated variables
@@ -315,10 +325,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_1D_CUDA(&(C.density[0]), H.nx, H.n_ghost, H.dx, H.dt);
+    max_dti = CTU_Algorithm_1D_CUDA(&(C.density[0]), H.nx, x_off, H.n_ghost, H.dx, H.dt);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_1D_CUDA(&(C.density[0]), H.nx, H.n_ghost, H.dx, H.dt);
+    max_dti = VL_Algorithm_1D_CUDA(&(C.density[0]), H.nx, x_off, H.n_ghost, H.dx, H.dt);
     #endif //VL
     #endif //CUDA
   }
@@ -336,10 +346,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_2D_CUDA(&(C.density[0]), H.nx, H.ny, H.n_ghost, H.dx, H.dy, H.dt);
+    max_dti = CTU_Algorithm_2D_CUDA(&(C.density[0]), H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.dt);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_2D_CUDA(&(C.density[0]), H.nx, H.ny, H.n_ghost, H.dx, H.dy, H.dt);
+    max_dti = VL_Algorithm_2D_CUDA(&(C.density[0]), H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.dt);
     #endif //VL
     #endif //CUDA
   }
@@ -357,10 +367,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_3D_CUDA(&(C.density[0]), H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, H.dt);
+    max_dti = CTU_Algorithm_3D_CUDA(&(C.density[0]), H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.dt);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(&(C.density[0]), H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, H.dt);
+    max_dti = VL_Algorithm_3D_CUDA(&(C.density[0]), H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.dt);
     #endif //VL
     #endif    
   }

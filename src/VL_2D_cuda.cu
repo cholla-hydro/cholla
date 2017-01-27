@@ -25,7 +25,7 @@
 
 
 
-Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt)
+Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real dt)
 {
 
   //Here, *host_conserved contains the entire
