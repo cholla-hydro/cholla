@@ -46,9 +46,8 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_o
   int nx_s; //number of cells in the subgrid block along x direction
   int ny_s; //number of cells in the subgrid block along y direction
   int nz_s; //number of cells in the subgrid block along z direction
-  int x_off_s; // x-offset for subgrid block
-  int y_off_s; // y-offset for subgrid block
-  int z_off_s; // z-offset for subgrid block
+  int x_off_s, y_off_s, z_off_s; // x, y, and z offsets for subgrid block
+  int block1, block2, block3; // x, y, and z ids of subgrid block
 
   // total number of blocks needed
   int block_tot;    //total number of subgrid blocks (unsplit == 1)
@@ -66,6 +65,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_o
   // calculate the dimensions for each subgrid block
   sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
   block_tot = block1_tot*block2_tot*block3_tot;
+  printf("%d %d %d %d %d %d %d %d %d %d %d %d\n", nx, ny, nz, nx_s, ny_s, nz_s, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3);  
 
   // number of cells in one subgrid block
   int BLOCK_VOL = nx_s*ny_s*nz_s;
@@ -129,6 +129,20 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_o
 
   // START LOOP OVER SUBGRID BLOCKS HERE
   while (block < block_tot) {
+
+    // calculate the global x, y, and z offsets of this subgrid block
+    // (only needed for gravitational potential)
+    block3 = block / (block2_tot*block1_tot); // zid of current block
+    block2 = (block - block3*block2_tot*block1_tot) / block1_tot; // yid of current block
+    block1 = block - block3*block2_tot*block1_tot - block2*block1_tot; // xid of current block
+    x_off_s = x_off + nx_s*block1;
+    y_off_s = y_off + ny_s*block2;
+    z_off_s = z_off + nz_s*block3;
+    if (block1 == block1_tot-1) x_off_s = x_off + nx_s*block1 - remainder1;
+    if (block2 == block2_tot-1) y_off_s = y_off + ny_s*block2 - remainder2;
+    if (block3 == block3_tot-1) z_off_s = z_off + nz_s*block3 - remainder3;
+    printf("%d %d %d\n", x_off_s, y_off_s, z_off_s);
+  
 
   // zero the GPU arrays
   cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));

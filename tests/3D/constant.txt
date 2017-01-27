@@ -4,13 +4,13 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=100
+nx=150
 # number of grid cells in the y dimension
-ny=100
+ny=150
 # number of grid cells in the z dimension
-nz=100
+nz=150
 # final output time
-tout=10.0
+tout=0.001
 # time interval for output
 outstep=1.0
 # name of initial conditions
@@ -34,13 +34,13 @@ outdir=./
 
 #################################################
 # density
-rho=10.0
+rho=1.0
 # velocity
 vx=0
 vy=0
 vz=0
 # pressure
-P=1.380658e-12
+P=2.5
 # value of gamma
 gamma=1.666666667
 

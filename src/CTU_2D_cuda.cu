@@ -54,8 +54,8 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
   int nx_s; //number of cells in the subgrid block along x direction
   int ny_s; //number of cells in the subgrid block along y direction
   int nz_s = 1; //number of cells in the subgrid block along z direction
-  int x_off_s; // x-offset for subgrid block
-  int y_off_s; // y-offset for subgrid block
+  int x_off_s, y_off_s; // x and y offsets for subgrid block
+  int block1, block2; // x and y ids of subgrid blocks
 
   // total number of blocks needed
   int block_tot;    //total number of subgrid blocks (unsplit == 1)
@@ -129,12 +129,15 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
 
   while (block < block_tot) {
 
-    //#ifdef GRAVITY
     // calculate the global x and y offsets of this subgrid block
-    x_off_s = x_off + nx_s*(block%block1_tot);
-    y_off_s = y_off + ny_s*(block/block1_tot);
+    // (only needed for gravitational potential)
+    block2 = block/block1_tot; // yid of current block
+    block1 = block - block2*block1_tot; // xid of current block
+    x_off_s = x_off + nx_s*block1;
+    y_off_s = y_off + ny_s*block2;
+    if (block1 == block1_tot-1) x_off_s = x_off + nx_s*block1 - remainder1;
+    if (block2 == block2_tot-1) y_off_s = y_off + ny_s*block2 - remainder2;
     printf("%d %d\n", x_off_s, y_off_s);
-    //#endif
 
     // zero all the GPU arrays
     cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));

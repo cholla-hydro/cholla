@@ -4,9 +4,9 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=1000
+nx=50
 # number of grid cells in the y dimension
-ny=1000
+ny=50
 # number of grid cells in the z dimension
 nz=1
 # final output time
@@ -29,7 +29,6 @@ yl_bcnd=3
 yu_bcnd=3
 zl_bcnd=3
 zu_bcnd=3
-#custom_bcnd=wind
 # path to output directory
 outdir=./
 
