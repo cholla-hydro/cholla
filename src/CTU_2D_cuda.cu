@@ -19,7 +19,6 @@
 #include"roe_cuda.h"
 #include"h_correction_2D_cuda.h"
 #include"cooling_cuda.h"
-#include"gravity.h"
 #include"subgrid_routines_2D.h"
 
 
@@ -70,7 +69,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
   // calculate the dimensions for each subgrid block
   sub_dimensions_2D(nx, ny, n_ghost, &nx_s, &ny_s, &block1_tot, &block2_tot, &remainder1, &remainder2, n_fields);
   block_tot = block1_tot*block2_tot;
-  printf("%d %d %d %d %d %d %d %d\n", nx, ny, nx_s, ny_s, block1_tot, block2_tot, remainder1, remainder2);
+  //printf("%d %d %d %d %d %d %d %d\n", nx, ny, nx_s, ny_s, block1_tot, block2_tot, remainder1, remainder2);
 
   // number of cells in one subgrid block
   int BLOCK_VOL = nx_s*ny_s*nz_s;
@@ -137,7 +136,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
     y_off_s = y_off + ny_s*block2;
     if (block1 == block1_tot-1) x_off_s = x_off + nx_s*block1 - remainder1;
     if (block2 == block2_tot-1) y_off_s = y_off + ny_s*block2 - remainder2;
-    printf("%d %d\n", x_off_s, y_off_s);
+    //printf("%d %d\n", x_off_s, y_off_s);
 
     // zero all the GPU arrays
     cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));

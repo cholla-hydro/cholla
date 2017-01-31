@@ -34,7 +34,7 @@ void sub_dimensions_2D(int nx, int ny, int n_ghost, int *nx_s, int *ny_s, int *b
   // plus a buffer for dti array
   max_vol = max_vol - 400;
 
-  max_vol = 1000;
+  //max_vol = 1000;
 
 
   // split if necessary

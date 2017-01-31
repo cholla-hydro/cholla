@@ -13,11 +13,12 @@
 __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int x_off, int n_ghost, Real dx, Real dt, Real gamma)
 {
   int id;
-  #ifdef DE
-  Real d, d_inv, vx, vy, vz, P;  
-  Real vx_imo, vx_ipo;
+  #if defined(DE) || defined(GRAVITY)
+  Real d, d_inv, vx;  
   #endif
-
+  #ifdef DE
+  Real vx_imo, vx_ipo, vy, vz, P;
+  #endif
   #ifdef GRAVITY
   Real gx, d_n, d_inv_n, vx_n;
   gx = 0.0;
@@ -33,10 +34,12 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
   // threads corresponding to real cells do the calculation
   if (id > n_ghost - 1 && id < n_cells-n_ghost)
   {
-    #ifdef DE
+    #if defined(DE) || defined(GRAVITY)
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
+    #endif
+    #ifdef DE
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
@@ -50,6 +53,13 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     dev_conserved[2*n_cells + id] += dtodx * (dev_F[2*n_cells + id-1] - dev_F[2*n_cells + id]);
     dev_conserved[3*n_cells + id] += dtodx * (dev_F[3*n_cells + id-1] - dev_F[3*n_cells + id]);
     dev_conserved[4*n_cells + id] += dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
+    #ifdef GRAVITY // add gravitational source terms, time averaged from n to n+1
+    d_n  =  dev_conserved[            id];
+    d_inv_n = 1.0 / d_n;
+    vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
+    dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
+    dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n);
+    #endif
     #ifdef DE
     dev_conserved[5*n_cells + id] += dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
                                   +  dtodx * P * 0.5 * (vx_imo - vx_ipo);
@@ -107,10 +117,11 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
   #endif
 
   #ifdef GRAVITY
-  Real gx, gy, d_n, d_inv_n, vx_n, vy_n;
-  gx = 0.0;
-  gy = 0.0;
+  Real gx, gy, d_n, d_inv_n, vx_n, vy_n, d_test;
+  //gx = 0.0;
+  //gy = 0.0;
   #endif
+  d_test = 1.0;
 
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
@@ -144,7 +155,6 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
     vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
     vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
     #endif
-    
     // update the conserved variable array
     dev_conserved[            id] += dtodx * (dev_F_x[            imo] - dev_F_x[            id])
                                   +  dtody * (dev_F_y[            jmo] - dev_F_y[            id]);
@@ -156,15 +166,21 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
                                   +  dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
     dev_conserved[4*n_cells + id] += dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                                   +  dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
-    #ifdef GRAVITY // add gravitational source terms, time averaged from n to n+1
+    // add gravitational source terms, time averaged from n to n+1                                 
+    #ifdef GRAVITY 
+    // calculate the gravitational acceleration as a function of x & y position
+    calc_g_2D(xid, yid, x_off, y_off, n_ghost, dx, dy, &gx, &gy, &d_test);
     d_n  =  dev_conserved[            id];
     d_inv_n = 1.0 / d_n;
     vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
     vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
     dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
     dev_conserved[2*n_cells + id] += 0.5*dt*gy*(d + d_n);
-    dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n)
-                                  +  0.25*dt*gy*(d + d_n)*(vy + vy_n);
+    //dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n)
+    //                              +  0.25*dt*gy*(d + d_n)*(vy + vy_n);
+    dev_conserved[4*n_cells + id] += 0.5*dt*gx*(d*vx + d_n*vx_n)
+                                  +  0.5*dt*gy*(d*vy + d_n*vy_n);
+    //dev_conserved[id] = d_test;
     #endif
     #ifdef DE
     dev_conserved[5*n_cells + id] += dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
@@ -745,6 +761,36 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
 }
 
 
+__device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real *gx, Real *gy, Real *d)
+{
+  Real x_pos, y_pos, r, phi;
+  x_pos = (x_off + xid - n_ghost + 0.5)*dx - 0.5;
+  y_pos = (y_off + yid - n_ghost + 0.5)*dy - 0.5;
+
+  // for Gresho, also need r & phi
+  r = sqrt(x_pos*x_pos + y_pos*y_pos);
+  phi = atan2(y_pos, x_pos);
+
+  // set acceleration to balance v_phi in Gresho problem
+  if (r < 0.2) {
+    *gx = -cos(phi)*25.0*r;
+    *gy = -sin(phi)*25.0*r;
+  }
+  else if (r >= 0.2 && r < 0.4) {
+    *gx = -cos(phi)*(4.0 - 20.0*r + 25.0*r*r)/r;
+    *gy = -sin(phi)*(4.0 - 20.0*r + 25.0*r*r)/r;
+  }
+  else {
+    *gx = 0.0;
+    *gy = 0.0;
+  }
+
+  *d = r;
+  //*gx = 0.0;
+  //*gy = 0.0;
+
+  return;
+}
 
 
 #endif //CUDA

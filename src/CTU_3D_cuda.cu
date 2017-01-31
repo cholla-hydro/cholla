@@ -65,7 +65,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_o
   // calculate the dimensions for each subgrid block
   sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
   block_tot = block1_tot*block2_tot*block3_tot;
-  printf("%d %d %d %d %d %d %d %d %d %d %d %d\n", nx, ny, nz, nx_s, ny_s, nz_s, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3);  
+  //printf("%d %d %d %d %d %d %d %d %d %d %d %d\n", nx, ny, nz, nx_s, ny_s, nz_s, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3);  
 
   // number of cells in one subgrid block
   int BLOCK_VOL = nx_s*ny_s*nz_s;
@@ -141,7 +141,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_o
     if (block1 == block1_tot-1) x_off_s = x_off + nx_s*block1 - remainder1;
     if (block2 == block2_tot-1) y_off_s = y_off + ny_s*block2 - remainder2;
     if (block3 == block3_tot-1) z_off_s = z_off + nz_s*block3 - remainder3;
-    printf("%d %d %d\n", x_off_s, y_off_s, z_off_s);
+    //printf("%d %d %d\n", x_off_s, y_off_s, z_off_s);
   
 
   // zero the GPU arrays

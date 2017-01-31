@@ -706,12 +706,17 @@ void Grid3D::Gresho()
       id = i + j*H.nx;
       // get the centered x and y positions
       Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
+      
+      // calculate centered radial position and phi
+      r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
+      phi = atan2((y_pos-yc), (x_pos-xc));
 
       // set vx, vy, P to zero before integrating 
       vx = 0.0;
       vy = 0.0;
       P = 0.0;
 
+/*
       // monte carlo sample to get an integrated value for vx, vy, P
       for (int ii = 0; ii<N; ii++) {
         // get a random dx and dy to sample within the cell
@@ -743,14 +748,33 @@ void Grid3D::Gresho()
       vx = vx/N;
       vy = vy/N;
       P = P/N;
-      // set values of conserved variables using cell-integrated quantities  
+*/
+      if (r < 0.2) {
+        vx = -sin(phi)*5.0*r + v_boost;
+        vy = cos(phi)*5.0*r;
+        P = 5.0 + 0.5*25.0*r*r;
+      }
+      else if (r >= 0.2 && r < 0.4) {
+        vx = -sin(phi)*(2.0-5.0*r) + v_boost;
+        vy = cos(phi)*(2.0-5.0*r);
+        P = 9.0 - 4.0*log(0.2) + 0.5*25.0*r*r - 20.0*r + 4.0*log(r);
+      }
+      else {
+        vx = 0.0;
+        vy = 0.0;
+        P = 3.0 + 4.0*log(2.0);
+      }
+      // set P constant for modified Gresho problem
+      P = 5.5;
+
+      // set values of conserved variables   
       C.density[id] = d;
       C.momentum_x[id] = d*vx;
       C.momentum_y[id] = d*vy;
       C.momentum_z[id] = 0.0;
       C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
-      r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
-      printf("%f %f %f %f %f\n", x_pos, y_pos, r, vx, vy);
+      //r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
+      //printf("%f %f %f %f %f\n", x_pos, y_pos, r, vx, vy);
     }
   }
         
