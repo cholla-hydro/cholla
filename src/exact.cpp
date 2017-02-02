@@ -23,11 +23,6 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
   Real ds, us, ps, Es; //sampled density, velocity, pressure, total energy
   Real um, pm; //velocity and pressure in the star region
 
-  #ifdef GRAVITY
-  Real g;
-  g = -0.1;
-  #endif
-
   // calculate primative variables from input array
   dl = cW[0];
   dr = cW[1];
@@ -41,10 +36,6 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
   pl = fmax(pl, TINY_NUMBER);
   pr = (cW[9] - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma-1.0);
   pr = fmax(pr, TINY_NUMBER);
-
-  #ifdef GRAVITY
-
-  #endif
 
 
   //compute sound speeds in left (cell i-1) and right (cell i) regions

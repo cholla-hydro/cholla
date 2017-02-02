@@ -192,9 +192,6 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
     #endif // NO CTU
     #endif // H_CORRECTION
 
-    #ifdef GRAVITY
-    //Correct_States_2D<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx_s, ny_s, dt);
-    #endif // GRAVITY
 
     // Step 2: Calculate the fluxes
     #ifdef EXACT
@@ -225,9 +222,6 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
     CudaCheckError();
     #endif
 
-    #ifdef GRAVITY
-    //Correct_States_2D<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx_s, ny_s, dt);
-    #endif // GRAVITY
 
     // Step 4: Calculate the fluxes again
     #ifdef EXACT

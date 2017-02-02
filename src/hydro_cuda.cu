@@ -13,13 +13,13 @@
 __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int x_off, int n_ghost, Real dx, Real dt, Real gamma)
 {
   int id;
-  #if defined(DE) || defined(GRAVITY)
+  #if defined(DE) || defined(STATIC_GRAV)
   Real d, d_inv, vx;  
   #endif
   #ifdef DE
   Real vx_imo, vx_ipo, vy, vz, P;
   #endif
-  #ifdef GRAVITY
+  #ifdef STATIC_GRAV
   Real gx, d_n, d_inv_n, vx_n;
   gx = 0.0;
   #endif
@@ -34,7 +34,7 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
   // threads corresponding to real cells do the calculation
   if (id > n_ghost - 1 && id < n_cells-n_ghost)
   {
-    #if defined(DE) || defined(GRAVITY)
+    #if defined(DE) || defined(STATIC_GRAV)
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
@@ -53,17 +53,17 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     dev_conserved[2*n_cells + id] += dtodx * (dev_F[2*n_cells + id-1] - dev_F[2*n_cells + id]);
     dev_conserved[3*n_cells + id] += dtodx * (dev_F[3*n_cells + id-1] - dev_F[3*n_cells + id]);
     dev_conserved[4*n_cells + id] += dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
-    #ifdef GRAVITY // add gravitational source terms, time averaged from n to n+1
+    #ifdef DE
+    dev_conserved[5*n_cells + id] += dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
+                                  +  dtodx * P * 0.5 * (vx_imo - vx_ipo);
+    #endif
+    #ifdef STATIC_GRAV // add gravitational source terms, time averaged from n to n+1
     d_n  =  dev_conserved[            id];
     d_inv_n = 1.0 / d_n;
     vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
     dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
     dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n);
-    #endif
-    #ifdef DE
-    dev_conserved[5*n_cells + id] += dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
-                                  +  dtodx * P * 0.5 * (vx_imo - vx_ipo);
-    #endif
+    #endif    
     if (dev_conserved[id] != dev_conserved[id]) printf("%3d Thread crashed in final update.\n", id);
     /*
     d  =  dev_conserved[            id];
@@ -108,7 +108,7 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
   int id, xid, yid, n_cells;
   int imo, jmo;
 
-  #if defined (DE) || defined(GRAVITY)
+  #if defined (DE) || defined(STATIC_GRAV)
   Real d, d_inv, vx, vy;
   #endif
   #ifdef DE
@@ -116,12 +116,11 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
   int ipo, jpo;
   #endif
 
-  #ifdef GRAVITY
-  Real gx, gy, d_n, d_inv_n, vx_n, vy_n, d_test;
+  #ifdef STATIC_GRAV
+  Real gx, gy, d_n, d_inv_n, vx_n, vy_n;
   //gx = 0.0;
   //gy = 0.0;
   #endif
-  d_test = 1.0;
 
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
@@ -139,12 +138,12 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost)
   {
-    #if defined (DE) || defined (GRAVITY)
+    #if defined (DE) || defined (STATIC_GRAV)
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
-    #endif //GRAVITY
+    #endif
     #ifdef DE
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
@@ -167,7 +166,13 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
     dev_conserved[4*n_cells + id] += dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                                   +  dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
     // add gravitational source terms, time averaged from n to n+1                                 
-    #ifdef GRAVITY 
+    #ifdef DE
+    dev_conserved[5*n_cells + id] += dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
+                                  +  dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
+                                  +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo));
+    //if (dev_conserved[5*n_cells + id] < 0.0) printf("%3d %3d Negative internal energy after final update.\n", xid, yid);
+    #endif
+    #ifdef STATIC_GRAV 
     // calculate the gravitational acceleration as a function of x & y position
     calc_g_2D(xid, yid, x_off, y_off, n_ghost, dx, dy, &gx, &gy, &d_test);
     d_n  =  dev_conserved[            id];
@@ -176,17 +181,10 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
     vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
     dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
     dev_conserved[2*n_cells + id] += 0.5*dt*gy*(d + d_n);
-    //dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n)
-    //                              +  0.25*dt*gy*(d + d_n)*(vy + vy_n);
-    dev_conserved[4*n_cells + id] += 0.5*dt*gx*(d*vx + d_n*vx_n)
-                                  +  0.5*dt*gy*(d*vy + d_n*vy_n);
-    //dev_conserved[id] = d_test;
-    #endif
-    #ifdef DE
-    dev_conserved[5*n_cells + id] += dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
-                                  +  dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
-                                  +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo));
-    //if (dev_conserved[5*n_cells + id] < 0.0) printf("%3d %3d Negative internal energy after final update.\n", xid, yid);
+    dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n)
+                                  +  0.25*dt*gy*(d + d_n)*(vy + vy_n);
+    //dev_conserved[4*n_cells + id] += 0.5*dt*gx*(d*vx + d_n*vx_n)
+    //                              +  0.5*dt*gy*(d*vy + d_n*vy_n);
     #endif
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
       printf("%3d %3d Thread crashed in final update. %f %f %f\n", xid, yid, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dev_conserved[id]);
@@ -255,10 +253,19 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 {
   int id, xid, yid, zid, n_cells;
   int imo, jmo, kmo;
+  #if defined (DE) || defined(STATIC_GRAV)
+  Real d, d_inv, vx, vy, vz;
+  #endif
   #ifdef DE
-  Real d, d_inv, vx, vy, vz, P;
-  Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
+  Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo, P;
   int ipo, jpo, kpo;
+  #endif
+
+  #ifdef STATIC_GRAV
+  Real gx, gy, gz, d_n, d_inv_n, vx_n, vy_n, vz_n;
+  gx = 0.0;
+  gy = 0.0;
+  gz = 0.0;
   #endif
 
   Real dtodx = dt/dx;
@@ -278,12 +285,14 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
   {
-    #ifdef DE
+    #if defined (DE) || defined(STATIC_GRAV)
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
+    #endif
+    #ifdef DE
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     //if (d < 0.0 || d != d) printf("Negative density before final update.\n");
     //if (P < 0.0) printf("%d Negative pressure before final update.\n", id);
@@ -320,10 +329,22 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   +  dtodz * (dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id])
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
+    #ifdef STATIC_GRAV 
+    d_n  =  dev_conserved[            id];
+    d_inv_n = 1.0 / d_n;
+    vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
+    vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
+    vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
+    dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
+    dev_conserved[2*n_cells + id] += 0.5*dt*gy*(d + d_n);
+    dev_conserved[3*n_cells + id] += 0.5*dt*gz*(d + d_n);
+    dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n)
+                                  +  0.25*dt*gy*(d + d_n)*(vy + vy_n)
+                                  +  0.25*dt*gz*(d + d_n)*(vz + vz_n);
+    #endif    
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
       printf("%3d %3d %3d Thread crashed in final update. %f %f %f %f\n", xid, yid, zid, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
     }
-    // every thread collects the conserved variables it needs from global memory
     /*
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -761,7 +782,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
 }
 
 
-__device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real *gx, Real *gy, Real *d)
+__device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real *gx, Real *gy)
 {
   Real x_pos, y_pos, r, phi;
   x_pos = (x_off + xid - n_ghost + 0.5)*dx - 0.5;
@@ -785,7 +806,6 @@ __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, R
     *gy = 0.0;
   }
 
-  *d = r;
   //*gx = 0.0;
   //*gy = 0.0;
 
