@@ -407,6 +407,9 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
   if (strcmp(bcnd, "noh")==0) {
     Noh_Boundary();
   }
+  else if (strcmp(bcnd, "disk")==0) {
+    Disk_Boundary();
+  }  
   else {
     printf("ABORT: %s -> Unknown custom boundary condition.\n", bcnd);
     exit(0);
@@ -511,4 +514,153 @@ void Grid3D::Noh_Boundary()
 
 }
 
+
+/*! \fn void Disk_Boundary()
+ *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces, 
+    as per the disk setup in the ICs. */
+void Grid3D::Disk_Boundary()
+{
+  int i, j, id;
+  Real x_pos, y_pos, z_pos, xc, yc, r, phi;
+  Real d, n, v, vx, vy, Sigma, Sigma_0, R_0, P, T, M;
+  Real x, y, dx, dy;
+
+  // center the vortex at (0.0,0.0)
+  xc = 0.0;
+  yc = 0.0;
+
+  M = Msun; // central mass, 1 Msun
+  T = 10; // disk temperature, 10K
+  R_0 = 2e15; // disk radius, cm
+  Sigma_0 = 0.1; // surface density at disk edge, g / cm^2
+  d = Sigma_0*H.dz; // mass density, g / cm^3
+  n = d / MP; // number density, n_h / cm^3
+  P = n*KB*T; // disk pressure, cgs (constant across disk)
+
+  // set exact boundaries on the -x face
+  for (j=0; j<H.ny; j++) {
+    for (i=0; i<H.n_ghost; i++) {
+
+      id = i + j*H.nx;
+      // get the centered x and y positions
+      Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
+      
+      // calculate centered radial position and phi
+      r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
+      phi = atan2((y_pos-yc), (x_pos-xc));
+
+      // Surface density profile
+      Sigma = Sigma_0*(R_0/r);
+      d = Sigma*H.dz;
+
+      // keplarian velocity (cgs)
+      v = sqrt(GN*M/r);
+      vx = -sin(phi)*v;
+      vy = cos(phi)*v;
+
+      // set values of conserved variables   
+      C.density[id] = d;
+      C.momentum_x[id] = d*vx;
+      C.momentum_y[id] = d*vy;
+      C.momentum_z[id] = 0.0;
+      C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+      
+    }
+  }
+
+  // set exact boundaries on the +x face
+  for (j=0; j<H.ny; j++) {
+    for (i=H.nx-H.n_ghost; i<H.nx; i++) {
+
+      id = i + j*H.nx;
+      // get the centered x and y positions
+      Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
+      
+      // calculate centered radial position and phi
+      r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
+      phi = atan2((y_pos-yc), (x_pos-xc));
+
+      // Surface density profile
+      Sigma = Sigma_0*(R_0/r);
+      d = Sigma*H.dz;
+
+      // keplarian velocity (cgs)
+      v = sqrt(GN*M/r);
+      vx = -sin(phi)*v;
+      vy = cos(phi)*v;
+
+      // set values of conserved variables   
+      C.density[id] = d;
+      C.momentum_x[id] = d*vx;
+      C.momentum_y[id] = d*vy;
+      C.momentum_z[id] = 0.0;
+      C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+      
+    }
+  }
+  
+  // set exact boundaries on the -y face
+  for (j=0; j<H.n_ghost; j++) {
+    for (i=0; i<H.nx; i++) {
+
+      id = i + j*H.nx;
+      // get the centered x and y positions
+      Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
+      
+      // calculate centered radial position and phi
+      r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
+      phi = atan2((y_pos-yc), (x_pos-xc));
+
+      // Surface density profile
+      Sigma = Sigma_0*(R_0/r);
+      d = Sigma*H.dz;
+
+      // keplarian velocity (cgs)
+      v = sqrt(GN*M/r);
+      vx = -sin(phi)*v;
+      vy = cos(phi)*v;
+
+      // set values of conserved variables   
+      C.density[id] = d;
+      C.momentum_x[id] = d*vx;
+      C.momentum_y[id] = d*vy;
+      C.momentum_z[id] = 0.0;
+      C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+      
+    }
+  }
+
+  // set exact boundaries on the +y face
+  for (j=H.ny-H.n_ghost; j<H.ny; j++) {
+    for (i=0; i<H.nx; i++) {
+
+      id = i + j*H.nx;
+      // get the centered x and y positions
+      Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
+      
+      // calculate centered radial position and phi
+      r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
+      phi = atan2((y_pos-yc), (x_pos-xc));
+
+      // Surface density profile
+      Sigma = Sigma_0*(R_0/r);
+      d = Sigma*H.dz;
+
+      // keplarian velocity (cgs)
+      v = sqrt(GN*M/r);
+      vx = -sin(phi)*v;
+      vy = cos(phi)*v;
+
+      // set values of conserved variables   
+      C.density[id] = d;
+      C.momentum_x[id] = d*vx;
+      C.momentum_y[id] = d*vy;
+      C.momentum_z[id] = 0.0;
+      C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+      
+    }
+  }
+  
+
+}
 

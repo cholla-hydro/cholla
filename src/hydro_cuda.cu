@@ -174,7 +174,7 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
     #endif
     #ifdef STATIC_GRAV 
     // calculate the gravitational acceleration as a function of x & y position
-    calc_g_2D(xid, yid, x_off, y_off, n_ghost, dx, dy, &gx, &gy, &d_test);
+    calc_g_2D(xid, yid, x_off, y_off, n_ghost, dx, dy, &gx, &gy);
     d_n  =  dev_conserved[            id];
     d_inv_n = 1.0 / d_n;
     vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
@@ -784,14 +784,18 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
 
 __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real *gx, Real *gy)
 {
-  Real x_pos, y_pos, r, phi;
-  x_pos = (x_off + xid - n_ghost + 0.5)*dx - 0.5;
-  y_pos = (y_off + yid - n_ghost + 0.5)*dy - 0.5;
+  Real x_pos, y_pos, r, phi, M;
+  // x_pos and y_pos use the subgrid offset to calculate absolute positions on the grid
+  // at present, the total position offset is set by hand to match the problem --
+  // THIS NEEDS TO BE FIXED
+  x_pos = (x_off + xid - n_ghost + 0.5)*dx - 2e15;
+  y_pos = (y_off + yid - n_ghost + 0.5)*dy - 2e15;
 
   // for Gresho, also need r & phi
   r = sqrt(x_pos*x_pos + y_pos*y_pos);
   phi = atan2(y_pos, x_pos);
 
+/*
   // set acceleration to balance v_phi in Gresho problem
   if (r < 0.2) {
     *gx = -cos(phi)*25.0*r;
@@ -805,9 +809,11 @@ __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, R
     *gx = 0.0;
     *gy = 0.0;
   }
-
-  //*gx = 0.0;
-  //*gy = 0.0;
+*/
+  // set gravitational acceleration for Keplarian potential
+  M = 1*Msun;
+  *gx = -cos(phi)*GN*M/(r*r);
+  *gy = -sin(phi)*GN*M/(r*r);
 
   return;
 }

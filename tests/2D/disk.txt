@@ -1,0 +1,37 @@
+#
+# Parameter File for a 2D disk in keplarian rotation.
+#
+
+######################################
+# number of grid cells in the x dimension
+nx=256
+# number of grid cells in the y dimension
+ny=256
+# number of grid cells in the z dimension
+nz=1
+# final output time
+tout=17249018602
+# time interval for output
+outstep=344980372
+# value of gamma
+gamma=1.00001
+# name of initial conditions
+init=Disk
+# domain properties
+xmin=-2e15
+ymin=-2e15
+zmin=0.0
+xlen=4e15
+ylen=4e15
+zlen=4e15
+# type of boundary conditions
+xl_bcnd=4
+xu_bcnd=4
+yl_bcnd=4
+yu_bcnd=4
+zl_bcnd=0
+zu_bcnd=0
+custom_bcnd=disk
+# path to output directory
+outdir=/data1/evan/data/Disk/hdf5/
+

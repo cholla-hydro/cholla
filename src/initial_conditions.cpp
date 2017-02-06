@@ -48,6 +48,8 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
     Noh_2D();
   } else if (strcmp(P.init, "Noh_3D")==0) {
     Noh_3D();    
+  } else if (strcmp(P.init, "Disk")==0) {
+    Disk();    
   } else if (strcmp(P.init, "Read_Grid")==0) {
     Read_Grid(P);    
   } else {
@@ -711,12 +713,12 @@ void Grid3D::Gresho()
       r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
       phi = atan2((y_pos-yc), (x_pos-xc));
 
+/*
       // set vx, vy, P to zero before integrating 
       vx = 0.0;
       vy = 0.0;
       P = 0.0;
 
-/*
       // monte carlo sample to get an integrated value for vx, vy, P
       for (int ii = 0; ii<N; ii++) {
         // get a random dx and dy to sample within the cell
@@ -765,7 +767,7 @@ void Grid3D::Gresho()
         P = 3.0 + 4.0*log(2.0);
       }
       // set P constant for modified Gresho problem
-      P = 5.5;
+      //P = 5.5;
 
       // set values of conserved variables   
       C.density[id] = d;
@@ -890,5 +892,62 @@ void Grid3D::Noh_3D()
 
 
 }
+
+
+
+/*! \fn void Disk()
+ *  \brief Initialize the grid with a 2D disk in Keplarian rotation. */
+void Grid3D::Disk()
+{
+  int i, j, id;
+  Real x_pos, y_pos, z_pos, xc, yc, r, phi;
+  Real d, n, v, vx, vy, Sigma, Sigma_0, R_0, P, T, M;
+  Real x, y, dx, dy;
+
+  // center the vortex at (0.0,0.0)
+  xc = 0.0;
+  yc = 0.0;
+
+  M = Msun; // central mass, 1 Msun
+  T = 10; // disk temperature, 10K
+  R_0 = 2e15; // disk radius, cm
+  Sigma_0 = 0.1; // surface density at disk edge, g / cm^2
+  d = Sigma_0*H.dz; // mass density, g / cm^3
+  n = d / MP; // number density, n_h / cm^3
+  P = n*KB*T; // disk pressure, cgs (constant across disk)
+
+  // set the initial values of the conserved variables
+  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+      id = i + j*H.nx;
+      // get the centered x and y positions
+      Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
+      
+      // calculate centered radial position and phi
+      r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
+      phi = atan2((y_pos-yc), (x_pos-xc));
+
+      // Surface density profile
+      Sigma = Sigma_0*(R_0/r);
+      d = Sigma*H.dz;
+
+      // keplarian velocity (cgs)
+      v = sqrt(GN*M/r);
+      vx = -sin(phi)*v;
+      vy = cos(phi)*v;
+
+      // set values of conserved variables   
+      C.density[id] = d;
+      C.momentum_x[id] = d*vx;
+      C.momentum_y[id] = d*vy;
+      C.momentum_z[id] = 0.0;
+      C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+      //printf("%e %e %e %f\n", x_pos, y_pos, r,Sigma);
+    }
+  }
+        
+
+}
+
 
 

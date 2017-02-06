@@ -26,9 +26,12 @@ typedef double Real;
 #define PI 3.141592653589793
 #define MP 1.672622e-24 // mass of proton, grams
 #define KB 1.380658e-16 // boltzmann constant, cgs
+#define GN 6.67259e-8 // gravitational constant, cgs
+#define Msun 1.98855e33 // solar mass, grams
 
 #define TIME_UNIT 3.15569e10
-#define LENGTH_UNIT 3.08567758e18
+//#define LENGTH_UNIT 3.08567758e18 // 1 parsec in cm
+#define LENGTH_UNIT 1.496e13 // 1 AU in cm
 #define DENSITY_UNIT 1.672622e-24
 #define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
 #define ENERGY_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
