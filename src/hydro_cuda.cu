@@ -784,12 +784,12 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
 
 __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real *gx, Real *gy)
 {
-  Real x_pos, y_pos, r, phi, M;
+  Real x_pos, y_pos, r, phi;
   // x_pos and y_pos use the subgrid offset to calculate absolute positions on the grid
   // at present, the total position offset is set by hand to match the problem --
   // THIS NEEDS TO BE FIXED
-  x_pos = (x_off + xid - n_ghost + 0.5)*dx - 2e15;
-  y_pos = (y_off + yid - n_ghost + 0.5)*dy - 2e15;
+  x_pos = (x_off + xid - n_ghost + 0.5)*dx - 20;
+  y_pos = (y_off + yid - n_ghost + 0.5)*dy - 20;
 
   // for Gresho, also need r & phi
   r = sqrt(x_pos*x_pos + y_pos*y_pos);
@@ -810,10 +810,31 @@ __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, R
     *gy = 0.0;
   }
 */
+/*
   // set gravitational acceleration for Keplarian potential
+  Real M;
   M = 1*Msun;
   *gx = -cos(phi)*GN*M/(r*r);
   *gy = -sin(phi)*GN*M/(r*r);
+*/
+  // set gravitational acceleration for Kuzmin disk + NFW halo
+  Real a_d, a_h, a, M_vir, M_d, R_vir, R_d, R_s, M_h, c_vir, x;
+  M_vir = 1.0e12; // viral mass of MW in M_sun
+  M_d = 6.5e10; // mass of disk in M_sun (assume all gas)
+  M_h = M_vir - M_d; // halo mass in M_sun
+  R_vir = 261; // viral radius in kpc
+  c_vir = 20; // halo concentration
+  R_s = R_vir / c_vir; // halo scale length in kpc
+  R_d = 3.5; // disk scale length in kpc
+  
+  // calculate acceleration
+  x = r / R_s;
+  a_d = GN * M_d * r * pow(r*r + R_d*R_d, -1.5);
+  a_h = GN * M_h * (log(1+x)- x / (1+x)) / ((log(1+c_vir) - c_vir / (1+c_vir)) * r*r);
+  a = a_d + a_h;
+
+  *gx = -cos(phi)*a;
+  *gy = -sin(phi)*a;
 
   return;
 }

@@ -896,25 +896,26 @@ void Grid3D::Noh_3D()
 
 
 /*! \fn void Disk()
- *  \brief Initialize the grid with a 2D disk in Keplarian rotation. */
+ *  \brief Initialize the grid with a 2D disk following a Kuzmin profile. */
 void Grid3D::Disk()
 {
   int i, j, id;
   Real x_pos, y_pos, z_pos, xc, yc, r, phi;
-  Real d, n, v, vx, vy, Sigma, Sigma_0, R_0, P, T, M;
-  Real x, y, dx, dy;
+  Real d, n, a, a_d, a_h, v, vx, vy, P, T_d, x;
+  Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, Sigma;
 
-  // center the vortex at (0.0,0.0)
+  M_vir = 1.0e12; // viral mass of MW in M_sun
+  M_d = 6.5e10; // mass of disk in M_sun (assume all gas)
+  M_h = M_vir - M_d; // halo mass in M_sun
+  R_vir = 261; // viral radius in kpc
+  c_vir = 20; // halo concentration
+  R_s = R_vir / c_vir; // halo scale length in kpc
+  R_d = 3.5; // disk scale length in kpc
+  T_d = 10000; // disk temperature, 10^4K
+
+  // center the disk at (0.0,0.0)
   xc = 0.0;
   yc = 0.0;
-
-  M = Msun; // central mass, 1 Msun
-  T = 10; // disk temperature, 10K
-  R_0 = 2e15; // disk radius, cm
-  Sigma_0 = 0.1; // surface density at disk edge, g / cm^2
-  d = Sigma_0*H.dz; // mass density, g / cm^3
-  n = d / MP; // number density, n_h / cm^3
-  P = n*KB*T; // disk pressure, cgs (constant across disk)
 
   // set the initial values of the conserved variables
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -927,12 +928,20 @@ void Grid3D::Disk()
       r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
       phi = atan2((y_pos-yc), (x_pos-xc));
 
-      // Surface density profile
-      Sigma = Sigma_0*(R_0/r);
-      d = Sigma*H.dz;
+      // Surface density [M_sun / kpc^2]
+      Sigma = R_d * M_d * pow(r*r + R_d*R_d, -1.5) / (2*PI);
+      d = Sigma/40; // mass density [M_sun / kpc^3]
+      n = d * DENSITY_UNIT / MP; // number density, cgs
+      P = n*KB*T_d / PRESSURE_UNIT; // disk pressure, code units
 
-      // keplarian velocity (cgs)
-      v = sqrt(GN*M/r);
+      // radial acceleration due to Kuzmin disk + NFW halo
+      x = r / R_s;
+      a_d = GN * M_d * r * pow(r*r + R_d*R_d, -1.5);
+      a_h = GN * M_h * (log(1+x)- x / (1+x)) / ((log(1+c_vir) - c_vir / (1+c_vir)) * r*r);
+      a = a_d + a_h;
+
+      // velocity 
+      v = sqrt(r*a);
       vx = -sin(phi)*v;
       vy = cos(phi)*v;
 
@@ -942,7 +951,7 @@ void Grid3D::Disk()
       C.momentum_y[id] = d*vy;
       C.momentum_z[id] = 0.0;
       C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
-      //printf("%e %e %f %f\n", x_pos, y_pos, vx, vy);
+      //printf("%e %e %f %f %f %f %f\n", x_pos, y_pos, d, Sigma, vx, vy, P);
     }
   }
         

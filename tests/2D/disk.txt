@@ -10,20 +10,20 @@ ny=256
 # number of grid cells in the z dimension
 nz=1
 # final output time
-tout=17249018602
+tout=1092950
 # time interval for output
-outstep=344980372
+outstep=2185.9
 # value of gamma
-gamma=1.00001
+gamma=1.001
 # name of initial conditions
 init=Disk
 # domain properties
-xmin=-2e15
-ymin=-2e15
+xmin=-20
+ymin=-20
 zmin=0.0
-xlen=4e15
-ylen=4e15
-zlen=4e15
+xlen=40
+ylen=40
+zlen=40
 # type of boundary conditions
 xl_bcnd=4
 xu_bcnd=4
@@ -33,5 +33,6 @@ zl_bcnd=0
 zu_bcnd=0
 custom_bcnd=disk
 # path to output directory
-outdir=/data1/evan/data/Disk/hdf5/
+#outdir=/data1/evan/data/Disk/hdf5/
+outdir=/Users/evan/Desktop/data/Disk/256/hdf5/
 
