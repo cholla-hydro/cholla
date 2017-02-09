@@ -942,7 +942,7 @@ void Grid3D::Disk()
       C.momentum_y[id] = d*vy;
       C.momentum_z[id] = 0.0;
       C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
-      //printf("%e %e %e %f\n", x_pos, y_pos, r,Sigma);
+      //printf("%e %e %f %f\n", x_pos, y_pos, vx, vy);
     }
   }
         

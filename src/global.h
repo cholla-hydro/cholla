@@ -29,10 +29,9 @@ typedef double Real;
 #define GN 6.67259e-8 // gravitational constant, cgs
 #define Msun 1.98855e33 // solar mass, grams
 
-#define TIME_UNIT 3.15569e10
-//#define LENGTH_UNIT 3.08567758e18 // 1 parsec in cm
-#define LENGTH_UNIT 1.496e13 // 1 AU in cm
-#define DENSITY_UNIT 1.672622e-24
+#define TIME_UNIT 3.15569e10 // 1 kyr in s
+#define LENGTH_UNIT 3.08567758e18 // 1 parsec in cm
+#define DENSITY_UNIT 1.672622e-24 // 1 m_h per cc
 #define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
 #define ENERGY_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
