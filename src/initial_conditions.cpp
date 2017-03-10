@@ -48,8 +48,10 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
     Noh_2D();
   } else if (strcmp(P.init, "Noh_3D")==0) {
     Noh_3D();    
-  } else if (strcmp(P.init, "Disk")==0) {
-    Disk();    
+  } else if (strcmp(P.init, "Disk_2D")==0) {
+    Disk_2D();    
+  } else if (strcmp(P.init, "Disk_3D")==0) {
+    Disk_3D();    
   } else if (strcmp(P.init, "Read_Grid")==0) {
     Read_Grid(P);    
   } else {
@@ -895,27 +897,24 @@ void Grid3D::Noh_3D()
 
 
 
-/*! \fn void Disk()
+/*! \fn void Disk_2D()
  *  \brief Initialize the grid with a 2D disk following a Kuzmin profile. */
-void Grid3D::Disk()
+void Grid3D::Disk_2D()
 {
   int i, j, id;
-  Real x_pos, y_pos, z_pos, xc, yc, r, phi;
+  Real x_pos, y_pos, z_pos, r, phi;
   Real d, n, a, a_d, a_h, v, vx, vy, P, T_d, x;
-  Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, Sigma;
+  Real M_vir, M_h, M_d, c_vir, R_vir, R_h, R_d, Sigma;
 
   M_vir = 1.0e12; // viral mass of MW in M_sun
-  M_d = 6.5e10; // mass of disk in M_sun (assume all gas)
+  M_d = 6.5e10; // mass of disk in M_sun
   M_h = M_vir - M_d; // halo mass in M_sun
   R_vir = 261; // viral radius in kpc
   c_vir = 20; // halo concentration
-  R_s = R_vir / c_vir; // halo scale length in kpc
+  R_h = R_vir / c_vir; // halo scale length in kpc
   R_d = 3.5; // disk scale length in kpc
   T_d = 10000; // disk temperature, 10^4K
 
-  // center the disk at (0.0,0.0)
-  xc = 0.0;
-  yc = 0.0;
 
   // set the initial values of the conserved variables
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -925,22 +924,24 @@ void Grid3D::Disk()
       Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
       
       // calculate centered radial position and phi
-      r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
-      phi = atan2((y_pos-yc), (x_pos-xc));
+      r = sqrt(x_pos*x_pos + y_pos*y_pos);
+      phi = atan2(y_pos, x_pos);
 
-      // Surface density [M_sun / kpc^2]
-      Sigma = R_d * M_d * pow(r*r + R_d*R_d, -1.5) / (2*PI);
-      d = Sigma/40; // mass density [M_sun / kpc^3]
+      // Disk surface density [M_sun / kpc^2]
+      // Assume gas surface density is exponential with scale length 2*R_d and
+      // mass 0.25*M_d
+      Sigma = 0.25*M_d * exp(-r/(2*R_d)) / (8*PI*R_d*R_d) ;
+      d = Sigma; // just use sigma for mass density since height is arbitrary
       n = d * DENSITY_UNIT / MP; // number density, cgs
       P = n*KB*T_d / PRESSURE_UNIT; // disk pressure, code units
 
       // radial acceleration due to Kuzmin disk + NFW halo
-      x = r / R_s;
+      x = r / R_h;
       a_d = GN * M_d * r * pow(r*r + R_d*R_d, -1.5);
       a_h = GN * M_h * (log(1+x)- x / (1+x)) / ((log(1+c_vir) - c_vir / (1+c_vir)) * r*r);
       a = a_d + a_h;
 
-      // velocity 
+      // circular velocity 
       v = sqrt(r*a);
       vx = -sin(phi)*v;
       vy = cos(phi)*v;
@@ -955,6 +956,79 @@ void Grid3D::Disk()
     }
   }
         
+
+}
+
+
+/*! \fn void Disk_3D()
+ *  \brief Initialize the grid with a 3D disk. */
+void Grid3D::Disk_3D()
+{
+  int i, j, k, id;
+  Real x_pos, y_pos, z_pos, r, phi;
+  Real d, n, a, a_d, a_h, v, vx, vy, vz, P, T_d, x;
+  Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d, Sigma;
+
+  M_vir = 1.0e12; // viral mass of MW in M_sun
+  M_d = 6.5e10; // mass of disk in M_sun (assume all gas)
+  M_h = M_vir - M_d; // halo mass in M_sun
+  R_vir = 261; // viral radius in kpc
+  c_vir = 20; // halo concentration
+  R_s = R_vir / c_vir; // halo scale length in kpc
+  R_d = 3.5; // disk scale length in kpc
+  z_d = 3.5/5.0; // disk scale height in kpc
+  T_d = 10000; // disk temperature, 10^4K
+
+  // uses cylindrical coordinates (r, phi, z)
+  // r, phi will be converted to x, y
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        // get the centered x, y, and z positions
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        
+        // calculate radial position and phi (assumes disk is centered at 0, 0)
+        r = sqrt(x_pos*x_pos + y_pos*y_pos);
+        phi = atan2(y_pos, x_pos); // azimuthal angle (in x-y plane)
+        //theta = atan2(r, z_pos); // polar angle (from z to x-y plane)
+        //rho = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos); // radius in spherical coordinates
+
+        // mass density [M_sun / kpc^3]
+        d = ((z_d*z_d*M_d)/(4*PI)) * (R_d*r*r + (R_d + 3*sqrt(z_pos*z_pos+z_d*z_d))*(R_d + sqrt(z_pos*z_pos+z_d*z_d))) / (pow(r*r + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d), 2),2.5) * pow(z_pos*z_pos + z_d*z_d, 1.5));
+        n = d * DENSITY_UNIT / MP; // number density, cgs
+        P = n*KB*T_d / PRESSURE_UNIT; // disk pressure, code units
+
+        // radial acceleration due to Kuzmin disk + NFW halo
+        x = r / R_s;
+        a_d = GN * M_d * r * pow(r*r + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
+        a_h = GN * M_h * (log(1+x)- x / (1+x)) / ((log(1+c_vir) - c_vir / (1+c_vir)) * r*r);
+        a = a_d + a_h;
+
+        // radial velocity 
+        v = sqrt(r*a);
+        vx = -sin(phi)*v;
+        vy = cos(phi)*v;
+
+        // vertical acceleration due to Kuzmin disk + NFW halo
+        //x = z_pos / R_s;
+        //a_d = GN * M_d * z_pos * (R_d + sqrt(z_pos*z_pos + z_d*z_d)) / ( pow(r*r + pow(R_d + sqrt(z*z + z_d*z_d), 2), 1.5) * sqrt(z_pos*z_pos + z_d*z_d) );
+        //a_h = GN * M_h * (log(1+x)- x / (1+x)) / ((log(1+c_vir) - c_vir / (1+c_vir)) * z_pos*z_pos);
+        vz =  0.0;
+
+        // set values of conserved variables   
+        C.density[id] = d;
+        C.momentum_x[id] = d*vx;
+        C.momentum_y[id] = d*vy;
+        C.momentum_z[id] = d*vz;
+        C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy + vz*vz);
+        //printf("%e %e %f %f %f %f %f\n", x_pos, y_pos, d, Sigma, vx, vy, P);
+      }
+    }
+  }
+
 
 }
 

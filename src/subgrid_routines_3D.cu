@@ -64,7 +64,6 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
 
   }
 
-
   // determine the number of blocks needed
   // not splitting
   if (*nx_s == nx && *ny_s == ny && *nz_s == nz) {
@@ -203,7 +202,7 @@ void allocate_buffers_3D(int block1_tot, int block2_tot, int block3_tot, int BLO
   for (int i=0; i<n; i++)
   {
     //printf("Buffer %d\n", i);
-    if ( NULL == ( buffer[i] = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {;
+    if ( NULL == ( buffer[i] = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {
       printf("Failed to allocate CPU buffers.\n");
     }
   }
@@ -273,7 +272,7 @@ void host_copy_init_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int
 
     // copy the first block into a cpu buffer
     for (int ii=0; ii<n_fields; ii++) {
-      memcpy(&buffer[0][ii*BLOCK_VOL], &host_conserved[ii*n_cells], BLOCK_VOL*sizeof(Real)); // y momentum
+      memcpy(&buffer[0][ii*BLOCK_VOL], &host_conserved[ii*n_cells], BLOCK_VOL*sizeof(Real)); 
     }
 
     // point tmp1 to the first buffer we will
@@ -480,11 +479,8 @@ void host_copy_next_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int
       z_host = block3*nx*ny*(nz_s-2*n_ghost) - nx*ny*(z_offset);
 
       for (int ii=0; ii<n_fields; ii++) {
-        memcpy(&buffer[0][ii*BLOCK_VOL], &host_conserved[z_host + ii*n_cells], BLOCK_VOL*sizeof(Real)); // y momentum
+        memcpy(&buffer[0][ii*BLOCK_VOL], &host_conserved[z_host + ii*n_cells], BLOCK_VOL*sizeof(Real));
       }
-
-      // point to the next buffer
-      //*tmp1 = buffer[0];
 
     }
 

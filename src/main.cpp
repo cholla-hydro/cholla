@@ -74,20 +74,20 @@ int main(int argc, char *argv[])
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P, C_cfl);
-  chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
-  chprintf("Ratio of specific heats gamma = %f\n",gama);
-  chprintf("Nstep = %d  Timestep = %f  Simulation time = %f\n", G.H.n_step, G.H.dt, G.H.t);
+  // set boundary conditions (assign appropriate values to ghost cells)
+  chprintf("Setting boundary conditions...\n");
+  G.Set_Boundary_Conditions(P);
+  chprintf("Boundary conditions set.\n");  
   // set main variables for Read_Grid inital conditions
   if (strcmp(P.init, "Read_Grid") == 0) {
     outtime += G.H.t;
     nfile = P.nfile;
-    dti = 1.0 / G.H.dt;
-  }
-
-  // set boundary conditions (assign appropriate values to ghost cells)
-  chprintf("Setting boundary conditions...\n");
-  G.Set_Boundary_Conditions(P);
-  chprintf("Boundary conditions set.\n");
+    dti = G.calc_dti_CPU(C_cfl);
+    G.H.dt = 1.0 / dti;
+  }  
+  chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
+  chprintf("Ratio of specific heats gamma = %f\n",gama);
+  chprintf("Nstep = %d  Timestep = %f  Simulation time = %f\n", G.H.n_step, G.H.dt, G.H.t);
 
 
   #ifdef OUTPUT
@@ -129,6 +129,16 @@ int main(int argc, char *argv[])
     {
       G.H.dt = outtime - G.H.t;
     }
+/*
+    for (int i=0; i<G.H.nx; i++) {
+    for (int j=0; j<G.H.ny; j++) {
+    for (int k=0; k<G.H.nz; k++) {
+      int id = i + j*G.H.nx + k*G.H.nx*G.H.ny;
+      printf("%d %d %d %e %e\n", i, j, k, G.C.density[id], G.C.Energy[id]);
+    }
+    }
+    }
+*/
 
     // Advance the grid by one timestep
     #ifdef CPU_TIME

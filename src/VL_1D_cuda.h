@@ -8,7 +8,7 @@
 
 #include"global.h"
 
-Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, Real dx, Real dt);
+Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt);
 
 
 #endif //VL_1D_CUDA_H

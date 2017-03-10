@@ -58,7 +58,7 @@ INTEGRATOR = -DCTU
 
 INCL   = -I./ -I/usr/local/cuda/include -I/usr/local/include
 NVLIBS = -L/usr/local/cuda/lib -lcuda -lcudart
-LIBS   = -L/usr/local/lib -lm -lgsl -lhdf5
+LIBS   = -L/usr/local/lib -lm -lhdf5
 
 
 FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DSTATIC_GRAV #-DH_CORRECTION 

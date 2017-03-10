@@ -28,7 +28,7 @@ __global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real 
                                            int nx, int ny, int n_ghost, Real dx, Real dy, Real dt);
 
 
-Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real dt)
+Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt)
 {
 
   //Here, *host_conserved contains the entire
@@ -132,10 +132,10 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
     // (only needed for gravitational potential)
     block2 = block/block1_tot; // yid of current block
     block1 = block - block2*block1_tot; // xid of current block
-    x_off_s = x_off + nx_s*block1;
-    y_off_s = y_off + ny_s*block2;
-    if (block1 == block1_tot-1) x_off_s = x_off + nx_s*block1 - remainder1;
-    if (block2 == block2_tot-1) y_off_s = y_off + ny_s*block2 - remainder2;
+    x_off_s = x_off + (nx_s-2*n_ghost)*block1;
+    y_off_s = y_off + (ny_s-2*n_ghost)*block2;
+    if (block1 == block1_tot-1) x_off_s = x_off + (nx_s-2*n_ghost)*block1 - remainder1;
+    if (block2 == block2_tot-1) y_off_s = y_off + (ny_s-2*n_ghost)*block2 - remainder2;
     //printf("%d %d\n", x_off_s, y_off_s);
 
     // zero all the GPU arrays
@@ -238,7 +238,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
 
 
     // Step 5: Update the conserved variable array
-    Update_Conserved_Variables_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, nx_s, ny_s, x_off_s, y_off_s, n_ghost, dx, dy, dt, gama);
+    Update_Conserved_Variables_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, nx_s, ny_s, x_off_s, y_off_s, n_ghost, dx, dy, xbound, ybound, dt, gama);
     CudaCheckError();
 
     // Synchronize the total and internal energy

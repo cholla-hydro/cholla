@@ -27,7 +27,7 @@
 
 
 
-Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, Real dx, Real dt)
+Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
@@ -137,7 +137,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, 
 
 
   // Step 6: Update the conserved variable array
-  Update_Conserved_Variables_1D<<<dimGrid,dimBlock>>>(dev_conserved, F, n_cells, n_ghost, dx, dt, gama);
+  Update_Conserved_Variables_1D<<<dimGrid,dimBlock>>>(dev_conserved, F, n_cells, n_ghost, dx, xbound, dt, gama);
   CudaCheckError();
    
 

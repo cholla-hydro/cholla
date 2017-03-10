@@ -324,9 +324,13 @@ class Grid3D
      *  \brief Noh test described in Stone, 2008. */
     void Noh_3D();
 
-    /*! \fn void Disk()
-     *  \brief Initialize the grid with a 2D disk in Keplarian rotation. */
-    void Disk();    
+    /*! \fn void Disk_2D()
+     *  \brief Initialize the grid with a 2D disk following a Kuzmin profile. */
+    void Disk_2D();    
+
+    /*! \fn void Disk_3D()
+     *  \brief Initialize the grid with a 3D disk following a Miyamoto-Nagai profile. */
+    void Disk_3D();    
 
     /*! \fn void Sedov_Taylor(Real rho_l, Real P_l, Real rho_r, Real P_r)
      *  \brief Sedov Taylor blast wave test. */
@@ -388,10 +392,16 @@ class Grid3D
      *  \brief Supersonic inflow on -z boundary set to match Cloud_3D IC's. */
     void Wind_Boundary();
 
-    /*! \fn void Disk_Boundary()
-     *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces, 
+    /*! \fn void Disk_Boundary_2D()
+     *  \brief Apply analytic boundary conditions to x and y faces, 
         as per the disk setup in the ICs. */
-    void Disk_Boundary();    
+    void Disk_Boundary_2D();    
+
+    /*! \fn void Disk_Boundary_3D()
+     *  \brief Apply analytic boundary conditions to x, y, and z faces, 
+        as per the disk setup in the ICs. */
+    void Disk_Boundary_3D();
+
 
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);
