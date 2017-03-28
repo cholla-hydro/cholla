@@ -922,6 +922,7 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
   a_disk_r = - GN * M_d * r_disk * pow(r_disk*r_disk+ pow(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
   a_disk_z = - GN * M_d * z_pos * (R_d + sqrt(z_pos*z_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d), 2), 1.5) * sqrt(z_pos*z_pos + z_d*z_d) );
+  //if (z_pos < 0.3125 && z_pos > 0) printf("%3f %3f %3f %e\n", x_pos, y_pos, z_pos, a_disk_z);
 
   // total acceleration is the sum of the halo + disk components
   //*gx = x_pos*a_halo/r_halo + x_pos*a_disk/r_disk;

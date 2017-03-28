@@ -36,6 +36,5 @@ zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=disk_3D
 # path to output directory
-#outdir=/data1/evan/data/disk_3D/128/hdf5/
-outdir=/Users/evan/Dropbox/Plotting/disk_3D/128/hdf5/
+outdir=/Volumes/data1/evan/data/disk_3D/128/hdf5/
 
