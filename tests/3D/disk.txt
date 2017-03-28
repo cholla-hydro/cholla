@@ -4,11 +4,11 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=256
+nx=128
 # number of grid cells in the y dimension
-ny=256
+ny=128
 # number of grid cells in the z dimension
-nz=128
+nz=64
 # final output time
 tout=1092950
 #tout=0
@@ -37,5 +37,5 @@ zu_bcnd=3
 custom_bcnd=disk_3D
 # path to output directory
 #outdir=/data1/evan/data/disk_3D/128/hdf5/
-outdir=/Users/evan/Dropbox/Plotting/disk_3D/256/hdf5/
+outdir=/Users/evan/Dropbox/Plotting/disk_3D/128/hdf5/
 

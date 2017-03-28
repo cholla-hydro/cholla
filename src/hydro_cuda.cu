@@ -275,7 +275,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
   gz = 0.0;
   #endif
 
-  Real fz, gcorr;
+  //Real fz, gcorr;
 
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
@@ -329,9 +329,9 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     dev_conserved[3*n_cells + id] += dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
                                   +  dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id])
                                   +  dtodz * (dev_F_z[3*n_cells + kmo] - dev_F_z[3*n_cells + id]);
-    fz = dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
-                                  +  dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id])
-                                  +  dtodz * (dev_F_z[3*n_cells + kmo] - dev_F_z[3*n_cells + id]);
+    //fz = dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
+    //                              +  dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id])
+    //                              +  dtodz * (dev_F_z[3*n_cells + kmo] - dev_F_z[3*n_cells + id]);
     dev_conserved[4*n_cells + id] += dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                                   +  dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id])
                                   +  dtodz * (dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id]);
@@ -351,7 +351,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
     dev_conserved[2*n_cells + id] += 0.5*dt*gy*(d + d_n);
     dev_conserved[3*n_cells + id] += 0.5*dt*gz*(d + d_n);
-    gcorr =  0.5*dt*gz*(d + d_n);
+    //gcorr =  0.5*dt*gz*(d + d_n);
     dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n)
                                   +  0.25*dt*gy*(d + d_n)*(vy + vy_n)
                                   +  0.25*dt*gz*(d + d_n)*(vz + vz_n);
@@ -928,12 +928,14 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   //*gy = y_pos*a_halo/r_halo + y_pos*a_disk/r_disk;
   *gx = (x_pos/r_disk)*a_disk_r;
   *gy = (y_pos/r_disk)*a_disk_r;
+  //*gx = -cos(phi)*a_disk_r;
+  //*gy = -sin(phi)*a_disk_r;
   //*gx = 0.0;
   //*gy = 0.0;
   //*gz = 0.0;
-  //*gz = a_disk_z;
+  *gz = a_disk_z;
   //*gz = (z_pos/r_halo)*a_halo;
-  *gz = (z_pos/r_halo)*a_halo + a_disk_z;
+  //*gz = (z_pos/r_halo)*a_halo + a_disk_z;
 
   return;
 }
