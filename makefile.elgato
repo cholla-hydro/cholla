@@ -12,12 +12,11 @@ OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
-CUDA = -DCUDA -DCUDA_ERROR_CHECK
-
+CUDA = -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-#MPI_FLAGS =  -DMPI_CHOLLA
+MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
@@ -27,12 +26,12 @@ ifdef MPI_FLAGS
   MPI_FLAGS += -DBLOCK
 
 else
-  CC	= cc
-  CXX   = c++
+  CC	= gcc
+  CXX   = g++
 endif
 
 #define the NVIDIA CUDA compiler
-NVCC	= nvcc 
+NVCC	= nvcc
 
 .SUFFIXES : .c .cpp .cu .o
 
@@ -51,21 +50,34 @@ RECONSTRUCTION = -DPPMC
 SOLVER = -DEXACT
 #SOLVER = -DROE
 
-#INTEGRATOR = -DCTU 
+INTEGRATOR = -DCTU
 #INTEGRATOR = -DVL
 
 #COOLING = -DCOOLING_GPU
 
-INCL   = -I./ -I/usr/local/cuda/include -I/usr/local/include
-NVLIBS = -L/usr/local/cuda/lib -lcuda -lcudart
-LIBS   = -L/usr/local/lib -lm -lhdf5
+
+ifdef CUDA
+CUDA_INCLUDE = -I/uaopt/cuda/include/
+CUDA_LIBS = -L/uaopt/cuda/lib64 -lcuda -lcudart
+endif
+
+ifeq ($(OUTPUT),-DHDF5)
+HDF5_INCLUDE = -I/uaopt/hdf5/1.8.16/include/
+HDF5_LIBS = -L/uaopt/hdf5/1.8.16/lib/ -lhdf5
+endif
+
+INCL   = -I./ $(HDF5_INCLUDE)
+NVINCL = $(INCL) $(CUDA_INCLUDE)
+NVLIBS = $(CUDA_LIBS)
+LIBS   = -lm $(HDF5_LIBS)
 
 
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DSTATIC_GRAV #-DH_CORRECTION 
-CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -m64  -Xcompiler -arch -Xcompiler x86_64 -gencode arch=compute_20,code=sm_20 -gencode arch=compute_30,code=sm_30 -Wno-deprecated-gpu-targets
-ALL_LDFLAGS += -Xlinker -F/Library/Frameworks -Xlinker -framework -Xlinker CUDA
+
+FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DSTATIC_GRAV 
+CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(FFT_FLAGS) -m64
+CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(FFT_FLAGS) -m64 
+NVCCFLAGS = $(FLAGS) -m64 -arch=compute_35 -fmad=false -ccbin=$(CC)
+LDFLAGS	  = -m64
 
 
 %.o:	%.c
@@ -77,8 +89,9 @@ ALL_LDFLAGS += -Xlinker -F/Library/Frameworks -Xlinker -framework -Xlinker CUDA
 %.o:	%.cu
 		$(NVCC) $(NVCCFLAGS)  $(INCL)  -c $< -o $@ 
 
+
 $(EXEC): $(OBJS) 
-	 	 $(CXX) $(OBJS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL) $(ALL_LDFLAGS)
+	 	 $(CXX) $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL)   
 
 #$(OBJS): $(INCL) 
 

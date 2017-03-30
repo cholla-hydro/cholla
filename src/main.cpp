@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
   #endif /*MPI_CHOLLA*/
 
   // declare Cfl coefficient and initial inverse timestep
-  Real C_cfl = 0.4; // CFL coefficient 0 < C_cfl < 0.5 
+  Real C_cfl = 0.1; // CFL coefficient 0 < C_cfl < 0.5 
   Real dti = 0; // inverse time step, 1.0 / dt
 
   // input parameter variables
