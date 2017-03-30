@@ -453,6 +453,14 @@ void Grid3D::KH_discontinuous_2D()
   int istart, iend, jstart, jend, kstart, kend;
   Real x_pos, y_pos, z_pos;
   Real vx, vy, vz;
+  Real d1, d2, v1, v2, P, A;
+  
+  d1 = 2.0;
+  d2 = 1.0;
+  v1 = 0.5;
+  v2 = -0.5;
+  P = 2.5;
+  A = 0.1;
 
   istart = H.n_ghost;
   iend   = H.nx-H.n_ghost;
@@ -475,31 +483,31 @@ void Grid3D::KH_discontinuous_2D()
         // get the centered x and y positions
         Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
 
-        // outer thirds of slab
-        if (y_pos <= 1.0*H.ydglobal/3.0) 
+        // outer quarters of slab
+        if (y_pos <= 1.0*H.ydglobal/4.0) 
         {
-          C.density[id] = 1.0;
-          C.momentum_x[id] = 0.5 + 0.01*sin(2*PI*x_pos);
-          C.momentum_y[id] = 0.0 + 0.01*sin(2*PI*x_pos);
+          C.density[id] = d2;
+          C.momentum_x[id] = v2*C.density[id];
+          C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
-          C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+          C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
         }
-        else if (y_pos >= 2.0*H.ydglobal/3.0)
+        else if (y_pos >= 3.0*H.ydglobal/4.0)
         {
-          C.density[id] = 1.0;
-          C.momentum_x[id] = 0.5 + 0.01*sin(2*PI*x_pos);
-          C.momentum_y[id] = 0.0 + 0.01*sin(2*PI*x_pos);
+          C.density[id] = d2;
+          C.momentum_x[id] = v2*C.density[id];
+          C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
-          C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+          C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
         }
         // inner third of slab
         else
         {
-          C.density[id] = 2.0;
-          C.momentum_x[id] = -1.0 + 0.02*sin(2*PI*x_pos);
-          C.momentum_y[id] = 0.0  + 0.02*sin(2*PI*x_pos);
+          C.density[id] = d1;
+          C.momentum_x[id] = v1*C.density[id];
+          C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
-          C.Energy[id] = 2.5/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+          C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
         }
       }
     }
@@ -538,8 +546,8 @@ void Grid3D::KH_res_ind()
 
   d1 = 2.0; // inner density
   d2 = 1.0; // outer density
-  v1 = 0.5; // inner velocity
-  v2 = -0.5; // outer velocity
+  v1 = 10.5; // inner velocity
+  v2 = 9.5; // outer velocity
   P = 2.5; // pressure
   dy = 0.05; // width of ramp function (see Robertson 2009)
 
@@ -585,7 +593,7 @@ void Grid3D::KH_res_ind()
           }
 
         }
-        //C.momentum_y[id] = C.density[id] * 0.1*sin(4*PI*x_pos);
+        C.momentum_y[id] = C.density[id] * 0.1*sin(4*PI*x_pos);
         C.momentum_z[id] = 0.0;
         mx = C.momentum_x[id];
         my = C.momentum_y[id];
