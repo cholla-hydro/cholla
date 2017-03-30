@@ -551,7 +551,7 @@ void Grid3D::KH_res_ind()
         // get the centered x and y positions
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
-
+/*
         // inner half of slab
         if (fabs(y_pos-0.5) < 0.25)
         {
@@ -591,8 +591,8 @@ void Grid3D::KH_res_ind()
         my = C.momentum_y[id];
         mz = C.momentum_z[id];
         C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];        
+*/
 
-/*
         // cylindrical version (3D only)
         r = sqrt((z_pos-zc)*(z_pos-zc) + (y_pos-yc)*(y_pos-yc)); // center the cylinder at yc, zc
         phi = atan2((z_pos-zc), (y_pos-yc));
@@ -619,7 +619,7 @@ void Grid3D::KH_res_ind()
           mz = C.momentum_z[id];
           C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];
         }
-*/      
+      
       }
     }
   }

@@ -4,9 +4,9 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=64
+nx=256
 # number of grid cells in the y dimension
-ny=64
+ny=256
 # number of grid cells in the z dimension
 nz=1
 # final output time
@@ -29,5 +29,7 @@ xl_bcnd=1
 xu_bcnd=1
 yl_bcnd=1
 yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
 # path to output directory
-outdir=/data1/evan/data/KH_res_ind/2D/64/hdf5/
+outdir=/gsfs1/rsgrps/brant/evan/data/KH_res_ind/2D/256/hdf5/raw/
