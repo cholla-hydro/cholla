@@ -925,15 +925,13 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   //if (z_pos < 0.3125 && z_pos > 0) printf("%3f %3f %3f %e\n", x_pos, y_pos, z_pos, a_disk_z);
 
   // total acceleration is the sum of the halo + disk components
-  //*gx = x_pos*a_halo/r_halo + x_pos*a_disk/r_disk;
-  //*gy = y_pos*a_halo/r_halo + y_pos*a_disk/r_disk;
-  *gx = (x_pos/r_disk)*a_disk_r;
-  *gy = (y_pos/r_disk)*a_disk_r;
-  //*gx = -cos(phi)*a_disk_r;
-  //*gy = -sin(phi)*a_disk_r;
   //*gx = 0.0;
   //*gy = 0.0;
   //*gz = 0.0;
+  *gx = (x_pos/r_disk)*a_disk_r;
+  *gy = (y_pos/r_disk)*a_disk_r;
+  //*gx = x_pos*a_halo/r_halo + x_pos*a_disk/r_disk;
+  //*gy = y_pos*a_halo/r_halo + y_pos*a_disk/r_disk;
   *gz = a_disk_z;
   //*gz = (z_pos/r_halo)*a_halo;
   //*gz = (z_pos/r_halo)*a_halo + a_disk_z;
