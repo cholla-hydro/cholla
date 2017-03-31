@@ -90,6 +90,22 @@ void sub_dimensions_2D(int nx, int ny, int n_ghost, int *nx_s, int *ny_s, int *b
 }
 
 
+void get_offsets_2D(int nx_s, int ny_s, int n_ghost, int x_off, int y_off, int block, int block1_tot, int block2_tot, int remainder1, int remainder2, int *x_off_s, int *y_off_s) {
+
+  int block1;
+  int block2;
+
+  // determine which row of subgrid blocks we're on for each dimension
+  block2 = block / block1_tot; // yid of current block
+  block1 = block - block2*block1_tot; // xid of current block
+  // calculate global offsets
+  *x_off_s = x_off + (nx_s-2*n_ghost)*block1;
+  *y_off_s = y_off + (ny_s-2*n_ghost)*block2;
+  // need to be careful on the last block due to remainder offsets
+  if (remainder1 != 0 && block1 == block1_tot-1) *x_off_s = x_off + (nx_s-2*n_ghost)*(block1-1) + remainder1;
+  if (remainder2 != 0 && block2 == block2_tot-1) *y_off_s = y_off + (ny_s-2*n_ghost)*(block2-1) + remainder2;
+  
+}
 
 
 // allocate memory for the CPU buffers

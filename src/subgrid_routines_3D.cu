@@ -154,6 +154,27 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
 }
 
 
+void get_offsets_3D(int nx_s, int ny_s, int nz_s, int n_ghost, int x_off, int y_off, int z_off, int block, int block1_tot, int block2_tot, int block3_tot, int remainder1, int remainder2, int remainder3, int *x_off_s, int *y_off_s, int *z_off_s) {
+
+  int block1;
+  int block2;
+  int block3;
+
+  // determine which row of subgrid blocks we're on for each dimension
+  block3 = block / (block2_tot*block1_tot); // zid of current block
+  block2 = (block - block3*block2_tot*block1_tot) / block1_tot; // yid of current block
+  block1 = block - block3*block2_tot*block1_tot - block2*block1_tot; // xid of current block
+  // calculate global offsets
+  *x_off_s = x_off + (nx_s-2*n_ghost)*block1;
+  *y_off_s = y_off + (ny_s-2*n_ghost)*block2;
+  *z_off_s = z_off + (nz_s-2*n_ghost)*block3;
+  // need to be careful on the last block due to remainder offsets
+  if (remainder1 != 0 && block1 == block1_tot-1) *x_off_s = x_off + (nx_s-2*n_ghost)*(block1-1) + remainder1;
+  if (remainder2 != 0 && block2 == block2_tot-1) *y_off_s = y_off + (ny_s-2*n_ghost)*(block2-1) + remainder2;
+  if (remainder3 != 0 && block3 == block3_tot-1) *z_off_s = z_off + (nz_s-2*n_ghost)*(block3-1) + remainder3;
+  
+}
+
 
 
 // allocate memory for the CPU buffers

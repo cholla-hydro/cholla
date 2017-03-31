@@ -41,7 +41,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_of
   int ny_s; //number of cells in the subgrid block along y direction
   int nz_s; //number of cells in the subgrid block along z direction
   int x_off_s, y_off_s, z_off_s; // x, y, and z offsets for subgrid block
-  int block1, block2, block3; // x, y, and z ids of subgrid block
   
 
   // total number of blocks needed
@@ -127,16 +126,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_of
 
     // calculate the global x, y, and z offsets of this subgrid block
     // (only needed for gravitational potential)
-    block3 = block / (block2_tot*block1_tot); // zid of current block
-    block2 = (block - block3*block2_tot*block1_tot) / block1_tot; // yid of current block
-    block1 = block - block3*block2_tot*block1_tot - block2*block1_tot; // xid of current block
-    x_off_s = x_off + (nx_s-2*n_ghost)*block1;
-    y_off_s = y_off + (ny_s-2*n_ghost)*block2;
-    z_off_s = z_off + (nz_s-2*n_ghost)*block3;
-    if (block1 == block1_tot-1) x_off_s = x_off + (nx_s-2*n_ghost)*block1 - remainder1;
-    if (block2 == block2_tot-1) y_off_s = y_off + (ny_s-2*n_ghost)*block2 - remainder2;
-    if (block3 == block3_tot-1) z_off_s = z_off + (nz_s-2*n_ghost)*block3 - remainder3;
-    //printf("%d %d %d\n", x_off_s, y_off_s, z_off_s);  
+    get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
+    
 
     // zero the GPU arrays
     cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));
