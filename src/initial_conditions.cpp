@@ -51,7 +51,7 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
   } else if (strcmp(P.init, "Disk_2D")==0) {
     Disk_2D();    
   } else if (strcmp(P.init, "Disk_3D")==0) {
-    Disk_3D();    
+    Disk_3D(P);    
   } else if (strcmp(P.init, "Read_Grid")==0) {
     Read_Grid(P);    
   } else {
@@ -960,14 +960,315 @@ void Grid3D::Disk_2D()
 }
 
 
-/*! \fn void Disk_3D()
+//functions for Disk_3d
+
+//disk radial surface density profile
+Real Sigma_disk_D3D(Real r, Real *hdp)
+{
+  //return the exponential surface density
+  Real Sigma_0 = hdp[9];
+  Real R_g     = hdp[10];
+  return Sigma_0 * exp(-r/R_g);
+}
+
+//vertical acceleration in miyamoto nagai
+Real gz_disk_D3D(Real R, Real z, Real *hdp)
+{
+  Real M_d = hdp[1]; //disk mass
+  Real R_d = hdp[6]; //MN disk length
+  Real Z_d = hdp[7]; //MN disk height
+  Real a = R_d;
+  Real b = Z_d;
+  Real A = sqrt(b*b + z*z);
+  Real B = a + A;
+  Real C = pow(B*B + R*R, 1.5);
+
+  //checked with wolfram alpha
+  return -GN*M_d*z*B/(A*C);
+}
+
+//radial acceleration in miyamoto nagai
+Real gr_disk_D3D(Real R, Real z, Real *hdp)
+{
+  Real M_d = hdp[1]; //disk mass 
+  Real R_d = hdp[6]; //MN disk length
+  Real Z_d = hdp[7]; //MN disk height
+  Real a = R_d;
+  Real b = Z_d;
+  Real A = sqrt(b*b + z*z);
+  Real B = a + A;
+  Real C = pow(B*B + R*R, 1.5);
+  Real M = M_d;
+
+  //checked with wolfram alpha
+  return -GN*M_d*R/(A*C);
+}
+
+//exponential integral
+Real edpi_D3D(Real z_min, Real z_max, Real *hdp)
+{
+  //int_a^b exp(-z/h) dz = h*(exp(-a/h) - exp(-b/h))
+  Real h = hdp[11]; //initial guess for scale height
+  return h*( exp(-1.*z_min/h) - exp(-1.*z_max/h) );
+}
+
+//equation of state
+Real P_eos_D3D(Real rho, Real *hdp)
+{
+  //return adiabatic pressure
+  Real K = hdp[12];
+  Real gamma = hdp[13];
+  return K*pow(rho,gamma);
+}
+
+//returns the cell-centered vertical
+//location of the cell with index k
+//k is indexed at 0 at the lowest ghost cell
+Real z_hc_D3D(int k, Real dz, int nz, int ng)
+{
+  //checked that this works, such that the
+  //if dz = L_z/nz for the real domain, then the z positions
+  //are set correctly for cell centers with nz spanning
+  //the real domain, and nz + 2*ng spanning the real + ghost domains
+  if(!(nz%2))
+  {
+    //even # of cells
+    return 0.5*dz + ((Real) (k-ng-nz/2))*dz;
+  }else{
+    //odd # of cells
+    return ((Real) (k-ng-(nz-1)/2))*dz;
+  }
+}
+
+//returns an array containing a 
+//column with the hydrostatic density profile
+//at locations (x,y,*)
+void hydrostatic_column_D3D(Real *rho, Real r, Real *hdp, Real dz, int nz, int ng)
+{
+  //x is cell center in x direction
+  //y is cell center in y direction
+  //dz is cell width in z direction
+  //nz is number of real cells
+  //ng is number of ghost cells
+  //total number of cells in column is nz * 2*ng
+  //hdp[0] = M_vir; 
+  //hdp[1] = M_d; 
+  //hdp[2] = M_h; 
+  //hdp[3] = R_vir; 
+  //hdp[4] = c_vir; 
+  //hdp[5] = R_s; 
+  //hdp[6] = R_d; 
+  //hdp[7] = z_d; 
+  //hdp[8] = T_d; 
+  //hdp[9] = Sigma_0; 
+  //hdp[10] = R_g;
+  //hdp[11] = H_g;
+  //hdp[12] = K_eos;
+  //hdp[13] = gamma;
+  //hdp[14] = rho_floor;
+
+  int k;        //index along z axis
+  //Real *rho;  //density array in column
+  Real *gz;   //vertical acceleration in column
+  Real drho;  //change to density
+
+  Real z;     //cell center in z direction
+  int nzt;      //total number of cells in z-direction
+  Real Sigma; //surface density in column
+  Real z_min; //bottom of the cell
+  Real z_max; //top of the cell
+  Real Sigma_r; //surface density expected at r
+  Real K = hdp[12]; //K coefficient in EOS; P = K \rho^gamma
+  Real gamma = hdp[13];
+  Real rho_floor = hdp[14]; //density floor
+
+  int iter = 0; //number if iterations
+  int ks; //start of integrals above disk plane
+  if(nz%2)
+  {
+    ks = ng+(nz-1)/2;
+  }else{
+    ks = ng + nz/2;
+  }
+
+  //printf("In hydrostatic_column.\n");
+
+  //get the disk surface density
+  Sigma_r = Sigma_disk_D3D(r, hdp);
+
+  //set the z-column size, including ghost cells
+  nzt = nz + 2*ng;
+
+  //allocate rho
+  /*if(!(rho=(Real *) calloc(nzt,sizeof(Real))))
+  {
+    printf("Error allocating rho array of size %d.\n",nzt);
+    printf("Aborting...\n");
+    fflush(stdout);
+    exit(-1);
+  }*/
+
+  //allocate vertical acceleration 
+  if(!(gz=(Real *) calloc(nzt,sizeof(Real))))
+  {
+    printf("Error allocating gz array of size %d.\n",nzt);
+    printf("Aborting...\n");
+    fflush(stdout);
+    exit(-1);
+  }
+
+  //compute vertical and radial
+  //gravitational accelerations
+  for(k=0;k<nzt;k++)
+  {
+    z     = z_hc_D3D(k,dz,nz,ng);
+    gz[k] = gz_disk_D3D(r,z,hdp);
+  }
+
+  //set initial guess for disk properties
+  //assume the disk is an exponential vertically to start
+  Sigma = 0;
+  for(k=0;k<nzt;k++)
+  {
+    z_min  = z_hc_D3D(k,dz,nz,ng) - 0.5*dz;
+    z_max  = z_hc_D3D(k,dz,nz,ng) + 0.5*dz;
+    if(z_max>0)
+    {
+      if(z_min<0)
+      {
+        //in disk plane centered at z=0
+        rho[k] = 2.*edpi_D3D(0, z_max, hdp);
+      }else{
+        //above disk plane
+        rho[k] = edpi_D3D(z_min, z_max, hdp);        
+      }
+    }else{
+
+      //below disk plane
+      rho[k] = edpi_D3D(fabs(z_max), fabs(z_min), hdp);
+    }
+    Sigma += rho[k];
+  }
+
+  //renormalize density to match surface density
+  for(k=0;k<nzt;k++)
+  {
+    rho[k] *= Sigma_r/(Sigma*dz);
+  }
+  //verified this works as intended until here
+
+  //OK, rho is set initially to an exponential
+  //let's adjust to make it hydrostatic
+
+  //begin iterative process to set the density
+  int flag = 1;
+  Real rho_new;
+  Real mass_loss;
+  while(flag)
+  {
+    z = z_hc_D3D(k,dz,nz,ng);
+
+    //adjust density (with zeros on first iteration)
+    Sigma = 0;
+    for(k=0;k<nzt;k++)
+    {
+      Sigma  += rho[k]*dz;
+    }
+
+    //check for mass conservation
+    mass_loss = 0;
+    for(k=ks;k<nzt-1;k++)
+    {
+      //z position
+      z     = z_hc_D3D(k,dz,nz,ng);
+
+      //change in density between vertically adjacent
+      //cells that would result in hydrostatic balance
+      drho = -1.*pow(rho[k],2-gamma)*(fabs(gz[k])*dz/(gamma*K));
+
+      //prevent driving the density to zero
+      if(drho<-0.95*rho[k])
+        drho = -0.95*rho[k];
+
+      //set the new density immediately above
+      //this cell
+      rho_new = rho[k]+drho;
+
+      //track any mass we might lose
+      mass_loss += (rho[k+1]-rho_new);
+
+      //set the revised density in the cell
+      //immediately above the current one
+      rho[k+1] = rho_new;
+      if(rho[k+1]<rho_floor)
+        rho[k+1] = rho_floor;
+    }
+
+    //set the upper most ghost cell
+    rho[nzt-1] = rho[nzt-2];
+    mass_loss -= rho[nzt-1];
+
+    //printf("mass_loss = %e\n",mass_loss*dz/Sigma);
+    int km;
+    for(k=ks;k<nzt;k++)
+    {
+      //spread the lost mass over all the cells
+      if(mass_loss<0)
+      {
+        rho[k] += mass_loss/((float) (nzt-1-ks+1));
+      }else{
+        rho[k] -= mass_loss/((float) (nzt-1-ks+1));
+      }
+      if(rho[k]<rho_floor)
+        rho[k] = rho_floor;
+
+      //mirror densities
+      //above and below disk plane
+      if(nz%2)
+      {
+        km = (ng+(nz-1)/2) - (k-ks);
+      }else{
+        km = ng + nz/2 - (k-ks) -1;
+      }
+      rho[km] = rho[k];
+    }
+
+    //printf("*****\n");
+    iter++;
+    //if(iter>50)
+
+    //stop once we've converged to 0.1% 
+    //of the expected surface density
+    //in this column
+    if(fabs(mass_loss*dz)/Sigma<1.0e-3)
+      flag=0;
+
+    if(iter>50)
+      printf("Error converging with iter = %d, mass_loss = %e\n",iter,mass_loss);
+  }
+  
+
+  //free ancillary arrays
+  //free(dPdz);
+  free(gz);
+  //free(gr);
+
+  //return the rho array
+  //return rho;
+}
+
+/*! \fn void Disk_3D(parameters P)
  *  \brief Initialize the grid with a 3D disk. */
-void Grid3D::Disk_3D()
+void Grid3D::Disk_3D(parameters p)
 {
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, phi;
   Real d, n, a, a_d, a_h, v, vx, vy, vz, P, T_d, x;
   Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d, Sigma;
+  Real K_eos, rho_eos, cs;
+  Real Sigma_0, R_g, H_g;
+  Real rho_floor;
+  Real t_s, l_s;
 
   M_vir = 1.0e12; // viral mass of MW in M_sun
   M_d = 6.5e10; // mass of disk in M_sun (assume all gas)
@@ -977,8 +1278,208 @@ void Grid3D::Disk_3D()
   R_s = R_vir / c_vir; // halo scale length in kpc
   R_d = 3.5; // disk scale length in kpc
   z_d = 3.5/5.0; // disk scale height in kpc
-  T_d = 10000; // disk temperature, 10^4K
+  T_d = 1.0e5; // disk temperature, at normalized density rho_eos
+  rho_eos = 1.0e7; //gas eos normalized at 1e7 Msun/kpc^3
+  R_g = 2.0*R_d;   //gas scale length in kpc
+  Sigma_0 = 0.25*M_d/(2*M_PI*R_g*R_g); //central surface density in Msun/kpc^2
+  H_g = z_d; //initial guess for gas scale height
+  rho_floor = 1.0e-2; //ICs minimum density in Msun/kpc^3
+  l_s = 3.086e21;                //length scale, centimeters in a kiloparsec
+  t_s = 3.154e10;                //time scale, seconds in a kyr
 
+
+  //EOS info
+  cs = sqrt(KB*T_d/(0.6*MP))*t_s/l_s; //sound speed in kpc/kyr
+  K_eos = cs*cs*pow(rho_eos,1.0-p.gamma)/p.gamma; //P = K\rho^gamma
+
+  int nhdp = 15;  //number of parameters to pass hydrostatic column
+  Real *hdp = (Real *) calloc(nhdp,sizeof(Real));  //parameters
+  
+  hdp[0] = M_vir; 
+  hdp[1] = M_d; 
+  hdp[2] = M_h; 
+  hdp[3] = R_vir; 
+  hdp[4] = c_vir; 
+  hdp[5] = R_s; 
+  hdp[6] = R_d; 
+  hdp[7] = z_d; 
+  hdp[8] = T_d; 
+  hdp[9] = Sigma_0; 
+  hdp[10] = R_g;
+  hdp[11] = H_g;
+  hdp[12] = K_eos;
+  hdp[13] = p.gamma;
+  hdp[14] = rho_floor;
+  //for(k=0;k<nhdp;k++)
+  //  printf("k %d hdp %e procID %d\n",k,hdp[k],procID);
+  //printf("cs %e procID %d\n",cs,procID);
+  //MPI_Finalize();
+  //exit(0);
+
+  //printf("proIC %d Parameter nz in Disk_3D = %d\n",procID,p.nz);
+
+  //printf("procID %d is in Disk_3D\n",procID);
+  //printf("procID %d nx %d ny %d nz %d n_ghost %d\n",procID,H.nx,H.ny,H.nz,H.n_ghost);
+  //printf("procID %d H.dz %e\n",procID, H.dz);
+  //printf("procID %d zmin_global %e zmax_global %e\n",procID, p.zmin,p.zlen);
+
+  //Now we can start the density calculation
+  //we will loop over each column and compute
+  //the density distribution
+  int nz  = p.nz;
+  int nzt = 2*H.n_ghost + nz;
+  Real dz = p.zlen / ((Real) nz);
+  Real *rho = (Real *) calloc(nzt,sizeof(Real));
+  Real dPdx, dPdy, dPdr;
+
+  //printf("procID %d nzlocalstart %d\n",procID,nz_local_start);
+  //MPI_Finalize();
+  //exit(0);
+
+  // uses cylindrical coordinates (r, phi, z)
+  // r, phi will be converted to x, y
+ 
+  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+      // get the centered x, y, and z positions
+      k = H.n_ghost + H.ny;
+      Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+
+      //cylindrical radius
+      r = sqrt(x_pos*x_pos + y_pos*y_pos);
+
+      //r=0;
+      hydrostatic_column_D3D(rho, r, hdp, dz, nz, H.n_ghost);
+      //FILE *fp;
+      //char fname[200];
+      //sprintf(fname,"hc.%d.txt",procID);
+      //fp = fopen(fname,"w");
+      //for(k=0;k<nzt;k++)
+      //  fprintf(fp,"%d\t%e\t%e\n",k,z_hc_D3D(k,dz,nz,H.n_ghost),rho[k]);
+      //fclose(fp);
+      //MPI_Finalize();
+      //exit(0);
+
+      //store densities
+      for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        //get density from hydrostatic column computation
+        d = rho[nz_local_start + (k-H.n_ghost)];
+        // set pressure adiabatically
+        P = K_eos*pow(d,p.gamma);
+
+	// store density in density
+        C.density[id]    = d;
+
+	// store pressure in Energy array
+        C.Energy[id] = P;
+      }
+    }
+  }
+  //free density profile
+  free(rho);
+  free(hdp);
+
+  printf("procID %d finished with hydrostatic column computation.\n",procID);
+
+  int idm, idp;
+  Real xpm, xpp;
+  Real ypm, ypp;
+  Real zpm, zpp;
+  Real Pm, Pp;
+  //compute pressure gradients, adjust circular velocities
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+	//get density
+	d = C.density[id];
+
+        // get the centered x, y, and z positions
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        
+        // calculate radial position and phi (assumes disk is centered at 0, 0)
+        r = sqrt(x_pos*x_pos + y_pos*y_pos);
+        phi = atan2(y_pos, x_pos); // azimuthal angle (in x-y plane)
+
+        // radial acceleartion from disk
+        a_d = GN * M_d * r * pow(r*r + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
+
+	//pressure gradient along x direction
+        idm  = (i-1) + j*H.nx + k*H.nx*H.ny; 
+        idp  = (i+1) + j*H.nx + k*H.nx*H.ny; 
+        Get_Position(i-1, j, k, &xpm, &ypm, &zpm);
+        Get_Position(i+1, j, k, &xpp, &ypp, &zpm);
+        Pm = C.Energy[idm]; //pressure stored in energy
+        Pp = C.Energy[idp]; //pressure stored in energy
+	dPdx =  (Pp-Pm)/(xpp-xpm);
+
+
+	//pressure gradient along y direction
+        idm  = i + (j-1)*H.nx + k*H.nx*H.ny; 
+        idp  = i + (j+1)*H.nx + k*H.nx*H.ny; 
+        Get_Position(i, j-1, k, &xpm, &ypm, &zpm);
+        Get_Position(i, j+1, k, &xpp, &ypp, &zpm);
+        Pm = C.Energy[idm]; //pressure stored in energy
+        Pp = C.Energy[idp]; //pressure stored in energy
+	dPdx =  (Pp-Pm)/(ypp-ypm);
+
+        //radial pressure gradient
+        dPdr = x_pos*dPdx/r + y_pos*dPdy/r;
+
+	//radial acceleration
+        a = a_d + dPdr/d;
+
+        // radial velocity 
+        v = sqrt(r*a);
+        vx = -sin(phi)*v;
+        vy = cos(phi)*v;
+        vz = 0;
+
+        // set the velocities
+        C.momentum_x[id] = vx;
+        C.momentum_y[id] = vy;
+        C.momentum_z[id] = vz;
+      }
+    }
+  }
+
+  //exchange velocities with momenta
+  //exchange pressure with energy
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+
+	//cell index
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+	//get density
+	d = C.density[id];
+
+	//get velocities
+        vx = C.momentum_x[id];
+        vy = C.momentum_y[id];
+        vz = C.momentum_z[id];
+
+        // set the momenta
+        C.momentum_x[id] = d*vx;
+        C.momentum_y[id] = d*vy;
+        C.momentum_z[id] = d*vz;
+
+	//get pressure stored in energy array
+	P = C.Energy[id];
+
+	//set energy
+        C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy + vz*vz);
+      }
+    }
+  }
+
+
+/*
   // uses cylindrical coordinates (r, phi, z)
   // r, phi will be converted to x, y
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
@@ -1028,7 +1529,7 @@ void Grid3D::Disk_3D()
       }
     }
   }
-
+*/
 
 }
 

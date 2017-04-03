@@ -328,9 +328,9 @@ class Grid3D
      *  \brief Initialize the grid with a 2D disk following a Kuzmin profile. */
     void Disk_2D();    
 
-    /*! \fn void Disk_3D()
+    /*! \fn void Disk_3D(parameters P)
      *  \brief Initialize the grid with a 3D disk following a Miyamoto-Nagai profile. */
-    void Disk_3D();    
+    void Disk_3D(parameters P);    
 
     /*! \fn void Sedov_Taylor(Real rho_l, Real P_l, Real rho_r, Real P_r)
      *  \brief Sedov Taylor blast wave test. */

@@ -70,10 +70,19 @@ int main(int argc, char *argv[])
   // initialize the grid
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
+  printf("procID %d Local number of grid cells: %d %d %d %d\n", procID, G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
+
+
 
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P, C_cfl);
+
+//#ifdef MPI_CHOLLA
+  //MPI_Finalize();
+  //exit(0);
+//#endif //MPI_CHOLLA
+
   // set boundary conditions (assign appropriate values to ghost cells)
   chprintf("Setting boundary conditions...\n");
   G.Set_Boundary_Conditions(P);
