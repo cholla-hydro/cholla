@@ -1425,7 +1425,7 @@ void Grid3D::Disk_3D(parameters p)
         Get_Position(i, j+1, k, &xpp, &ypp, &zpm);
         Pm = C.Energy[idm]; //pressure stored in energy
         Pp = C.Energy[idp]; //pressure stored in energy
-	dPdx =  (Pp-Pm)/(ypp-ypm);
+	dPdy =  (Pp-Pm)/(ypp-ypm);
 
         //radial pressure gradient
         dPdr = x_pos*dPdx/r + y_pos*dPdy/r;
