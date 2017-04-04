@@ -1283,7 +1283,7 @@ void Grid3D::Disk_3D(parameters p)
   R_g = 2.0*R_d;   //gas scale length in kpc
   Sigma_0 = 0.25*M_d/(2*M_PI*R_g*R_g); //central surface density in Msun/kpc^2
   H_g = z_d; //initial guess for gas scale height
-  rho_floor = 1.0e-2; //ICs minimum density in Msun/kpc^3
+  rho_floor = 1.0e1; //ICs minimum density in Msun/kpc^3
   l_s = 3.086e21;                //length scale, centimeters in a kiloparsec
   t_s = 3.154e10;                //time scale, seconds in a kyr
 
