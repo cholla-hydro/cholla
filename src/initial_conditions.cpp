@@ -14,6 +14,8 @@
 #include "io.h"
 #include "error_handling.h"
 #include <stdio.h>
+#include <cmath>
+
 
 /*! \fn void Set_Initial_Conditions(parameters P)
  *  \brief Set the initial conditions based on info in the parameters structure. */
@@ -1332,7 +1334,7 @@ void Grid3D::Disk_3D(parameters p)
   Real *rho = (Real *) calloc(nzt,sizeof(Real));
   Real dPdx, dPdy, dPdr;
 
-  //printf("procID %d nzlocalstart %d\n",procID,nz_local_start);
+  printf("procID %d nzlocalstart %ld\n",procID,nz_local_start);
   //MPI_Finalize();
   //exit(0);
 
@@ -1365,7 +1367,9 @@ void Grid3D::Disk_3D(parameters p)
         id = i + j*H.nx + k*H.nx*H.ny;
 
         //get density from hydrostatic column computation
-        d = rho[nz_local_start + (k-H.n_ghost)];
+        d = rho[nz_local_start + H.n_ghost + (k-H.n_ghost)];
+        //d = rho[nz_local_start + (k-H.n_ghost)];
+
         // set pressure adiabatically
         P = K_eos*pow(d,p.gamma);
 
@@ -1383,11 +1387,72 @@ void Grid3D::Disk_3D(parameters p)
 
   printf("procID %d finished with hydrostatic column computation.\n",procID);
 
+
   int idm, idp;
   Real xpm, xpp;
   Real ypm, ypp;
   Real zpm, zpp;
   Real Pm, Pp;
+
+  //need to update ghost cell densities and pressures for gradient calc
+  //just on skin of real cells
+  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+      k = H.n_ghost-1;
+      id  = i + j*H.nx + k*H.nx*H.ny;
+      idp = i + j*H.nx + (k+1)*H.nx*H.ny;
+      C.density[id] = C.density[idp];
+      C.Energy[id]  = C.Energy[idp];
+    }
+  }
+  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+      k = H.nz-H.n_ghost;
+      id  = i + j*H.nx + k*H.nx*H.ny;
+      idm = i + j*H.nx + (k-1)*H.nx*H.ny;
+      C.density[id] = C.density[idm];
+      C.Energy[id]  = C.Energy[idm];
+    }
+  }
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      i = H.n_ghost-1;
+      id  = i + j*H.nx + k*H.nx*H.ny;
+      idp = (i+1) + j*H.nx + k*H.nx*H.ny;
+      C.density[id] = C.density[idp];
+      C.Energy[id]  = C.Energy[idp];
+    }
+  }
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      i = H.nx-H.n_ghost;
+      id  = i + j*H.nx + k*H.nx*H.ny;
+      idm = (i-1) + j*H.nx + k*H.nx*H.ny;
+      C.density[id] = C.density[idm];
+      C.Energy[id]  = C.Energy[idm];
+    }
+  }
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+      j = H.n_ghost-1;
+      id  = i + j*H.nx + k*H.nx*H.ny;
+      idp = i + (j+1)*H.nx + k*H.nx*H.ny;
+      C.density[id] = C.density[idp];
+      C.Energy[id]  = C.Energy[idp];
+    }
+  }
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+      j = H.ny-H.n_ghost;
+      id  = i + j*H.nx + k*H.nx*H.ny;
+      idm = i + (j-1)*H.nx + k*H.nx*H.ny;
+      C.density[id] = C.density[idm];
+      C.Energy[id]  = C.Energy[idm];
+    }
+  }
+
+
+
   //compute pressure gradients, adjust circular velocities
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -1432,6 +1497,12 @@ void Grid3D::Disk_3D(parameters p)
 
 	//radial acceleration
         a = a_d + dPdr/d;
+        if(isnan(a)||(a!=a)||(r*a<0))
+        {
+	  printf("i %d j %d k %d a %e a_d %e dPdr %e d %e\n",i,j,k,a,a_d,dPdr,d);
+          printf("i %d j %d k %d x_pos %e y_pos %e z_pos %e dPdx %e dPdy %e\n",i,j,k,x_pos,y_pos,z_pos,dPdx,dPdy);
+          printf("i %d j %d k %d Pm %e Pp %e\n",i,j,k,Pm,Pp);
+        }
 
         // radial velocity 
         v = sqrt(r*a);
@@ -1472,12 +1543,20 @@ void Grid3D::Disk_3D(parameters p)
 	//get pressure stored in energy array
 	P = C.Energy[id];
 
+	//sheepishly check for NaN's!
+        if((d<0)||(P<0)||(isnan(d))||(isnan(P))||(d!=d)||(P!=P))
+          printf("d %e P %e i %d j %d k %d id %d\n",d,P,i,j,k,id);
+
+        if((isnan(vx))||(isnan(vy))||(isnan(vz))||(vx!=vx)||(vy!=vy)||(vz!=vz))
+          printf("vx %e vy %e vz %e i %d j %d k %d id %d\n",vx,vy,vz,i,j,k,id);
+
 	//set energy
         C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy + vz*vz);
       }
     }
   }
-
+  //MPI_Finalize();
+  //exit(0);
 
 /*
   // uses cylindrical coordinates (r, phi, z)
