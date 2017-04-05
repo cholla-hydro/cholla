@@ -989,22 +989,66 @@ Real gz_disk_D3D(Real R, Real z, Real *hdp)
   return -GN*M_d*z*B/(A*C);
 }
 
+
 //radial acceleration in miyamoto nagai
 Real gr_disk_D3D(Real R, Real z, Real *hdp)
 {
   Real M_d = hdp[1]; //disk mass 
   Real R_d = hdp[6]; //MN disk length
   Real Z_d = hdp[7]; //MN disk height
-  Real a = R_d;
-  Real b = Z_d;
-  Real A = sqrt(b*b + z*z);
-  Real B = a + A;
+  Real A = sqrt(Z_d*Z_d + z*z);
+  Real B = R_d + A;
   Real C = pow(B*B + R*R, 1.5);
-  Real M = M_d;
 
   //checked with wolfram alpha
-  return -GN*M_d*R/(A*C);
+  return -GN*M_d*R/C;
 }
+
+// function with logarithms used in NFW definitions
+Real log_func(Real y)
+{
+  return log(1+y) - y/(1+y);
+}
+
+//vertical acceleration in NFW halo
+Real gz_halo_D3D(Real R, Real z, Real *hdp)
+{
+  Real M_h = hdp[2]; //halo mass
+  Real R_h = hdp[5]; //halo scale length
+  Real c_vir = hdp[4]; //halo concentration parameter
+  Real r = sqrt(R*R + z*z); //spherical radius
+  Real x = r / R_h;
+  Real z_comp = z/r;
+
+  Real A = log_func(x);
+  Real B = 1.0 / (r*r);
+  Real C = GN*M_h/log_func(c_vir);
+
+  //checked with wolfram alpha
+  return -C*A*B*z_comp;
+}
+
+
+//radial acceleration in NFW halo
+Real gr_halo_D3D(Real R, Real z, Real *hdp)
+{
+  Real M_h = hdp[2]; //halo mass
+  Real R_h = hdp[5]; //halo scale length
+  Real c_vir = hdp[4]; //halo concentration parameter
+  Real r = sqrt(R*R + z*z); //spherical radius
+  Real x = r / R_h;
+  Real r_comp = R/r;
+
+  Real A = log_func(x);
+  Real B = 1.0 / (r*r);
+  Real C = GN*M_h/log_func(c_vir);
+
+  //checked with wolfram alpha
+  return -C*A*B*r_comp;
+}
+
+
+
 
 //exponential integral
 Real edpi_D3D(Real z_min, Real z_max, Real *hdp)
@@ -1124,7 +1168,7 @@ void hydrostatic_column_D3D(Real *rho, Real r, Real *hdp, Real dz, int nz, int n
   for(k=0;k<nzt;k++)
   {
     z     = z_hc_D3D(k,dz,nz,ng);
-    gz[k] = gz_disk_D3D(r,z,hdp);
+    gz[k] = gz_disk_D3D(r,z,hdp) + gz_halo_D3D(r,z,hdp);
   }
 
   //set initial guess for disk properties
@@ -1430,8 +1474,10 @@ void Grid3D::Disk_3D(parameters p)
         r = sqrt(x_pos*x_pos + y_pos*y_pos);
         phi = atan2(y_pos, x_pos); // azimuthal angle (in x-y plane)
 
-        // radial acceleartion from disk
-        a_d = GN * M_d * r * pow(r*r + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
+        // radial acceleration from disk
+        a_d = fabs(gr_disk_D3D(r, z_pos, hdp));
+        // radial acceleration from halo 
+        a_h = fabs(gr_halo_D3D(r, z_pos, hdp));
 
         //  pressure gradient along x direction
         // gradient calc is first order at boundaries
@@ -1460,9 +1506,9 @@ void Grid3D::Disk_3D(parameters p)
         dPdr = x_pos*dPdx/r + y_pos*dPdy/r;
 
         //radial acceleration
-        a = a_d + dPdr/d;
+        a = a_d + a_h + dPdr/d;
         if(a<0) //brant added
-	  a=0;
+          a=0;
         if(isnan(a)||(a!=a)||(r*a<0))
         {
           printf("i %d j %d k %d a %e a_d %e dPdr %e d %e\n",i,j,k,a,a_d,dPdr,d);

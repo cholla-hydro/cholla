@@ -1,5 +1,5 @@
 #
-# Parameter File for a 2D disk in keplarian rotation.
+# Parameter File for a 3D disk
 #
 
 ######################################
@@ -17,9 +17,9 @@ outstep=2185.9
 # value of gamma
 gamma=1.6666667
 # name of initial conditions
-#init=Disk_3D
-init=Read_Grid
-nfile=156
+init=Disk_3D
+#init=Read_Grid
+#nfile=156
 # domain properties
 xmin=-20
 ymin=-20
@@ -36,7 +36,7 @@ zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=disk_3D
 # path to output directory
-outdir=/Volumes/data1/evan/data/disk_3D/128/hdf5/
+#outdir=/Volumes/data1/evan/data/disk_3D/128/hdf5/
 #outdir=/gsfs1/rsgrps/brant/evan/data/disk_3D/128/hdf5/
-#outdir=/Users/evan/Desktop/data/disk_3D/128/hdf5/
+outdir=/Users/evan/Desktop/data/disk_3D/128/hdf5/
 
