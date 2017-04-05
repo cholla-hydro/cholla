@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
     chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n", 
       G.H.n_step, G.H.t, G.H.dt, (stop_step-start_step)*1000, G.H.t_wall);
 
-    //if (G.H.t == outtime)
+    if (G.H.t == outtime)
     {
       #ifdef OUTPUT
       /*output the grid data*/

@@ -1265,12 +1265,11 @@ void Grid3D::Disk_3D(parameters p)
 {
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, phi;
-  Real d, n, a, a_d, a_h, v, vx, vy, vz, P, T_d, x;
+  Real d, n, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, x;
   Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d, Sigma;
   Real K_eos, rho_eos, cs;
   Real Sigma_0, R_g, H_g;
   Real rho_floor;
-  Real t_s, l_s;
 
   M_vir = 1.0e12; // viral mass of MW in M_sun
   M_d = 6.5e10; // mass of disk in M_sun (assume all gas)
@@ -1281,17 +1280,16 @@ void Grid3D::Disk_3D(parameters p)
   R_d = 3.5; // disk scale length in kpc
   z_d = 3.5/5.0; // disk scale height in kpc
   T_d = 1.0e5; // disk temperature, at normalized density rho_eos
+  T_h = 1.0e6; // halo temperature, at density floor 
   rho_eos = 1.0e7; //gas eos normalized at 1e7 Msun/kpc^3
   R_g = 2.0*R_d;   //gas scale length in kpc
   Sigma_0 = 0.25*M_d/(2*M_PI*R_g*R_g); //central surface density in Msun/kpc^2
   H_g = z_d; //initial guess for gas scale height
-  rho_floor = 1.0e1; //ICs minimum density in Msun/kpc^3
-  l_s = 3.086e21;                //length scale, centimeters in a kiloparsec
-  t_s = 3.154e10;                //time scale, seconds in a kyr
+  rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
 
   //EOS info
-  cs = sqrt(KB*T_d/(0.6*MP))*t_s/l_s; //sound speed in kpc/kyr
+  cs = sqrt(KB*T_d/(0.6*MP))*TIME_UNIT/LENGTH_UNIT; //sound speed in kpc/kyr
   K_eos = cs*cs*pow(rho_eos,1.0-p.gamma)/p.gamma; //P = K\rho^gamma
 
   int nhdp = 15;  //number of parameters to pass hydrostatic column
@@ -1334,7 +1332,7 @@ void Grid3D::Disk_3D(parameters p)
   Real *rho = (Real *) calloc(nzt,sizeof(Real));
   Real dPdx, dPdy, dPdr;
 
-  printf("procID %d nzlocalstart %ld\n",procID,nz_local_start);
+  //printf("procID %d nzlocalstart %ld\n",procID,nz_local_start);
   //MPI_Finalize();
   //exit(0);
 
@@ -1373,11 +1371,11 @@ void Grid3D::Disk_3D(parameters p)
         // set pressure adiabatically
         P = K_eos*pow(d,p.gamma);
 
-	// store density in density
+        // store density in density
         C.density[id]    = d;
 
-	// store pressure in Energy array
-        C.Energy[id] = P;
+        // store internal energy in Energy array
+        C.Energy[id] = P/(gama-1.0);
       }
     }
   }
@@ -1385,72 +1383,28 @@ void Grid3D::Disk_3D(parameters p)
   free(rho);
   free(hdp);
 
-  printf("procID %d finished with hydrostatic column computation.\n",procID);
+//  printf("procID %d finished with hydrostatic column computation.\n",procID);
+  // add in hot halo
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+      
+        id = i + j*H.nx + k*H.nx*H.ny;
+        
+        // density has a floor of 1e3,
+        // so adjust the internal energy of 
+        // all the gas such that the halo will be hot
+        C.Energy[id] += rho_floor*KB*T_h / (0.6*MP*(gama-1.0)) * DENSITY_UNIT / ENERGY_UNIT; 
 
+      }
+    }
+  }  
 
   int idm, idp;
   Real xpm, xpp;
   Real ypm, ypp;
   Real zpm, zpp;
   Real Pm, Pp;
-
-  //need to update ghost cell densities and pressures for gradient calc
-  //just on skin of real cells
-  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-      k = H.n_ghost-1;
-      id  = i + j*H.nx + k*H.nx*H.ny;
-      idp = i + j*H.nx + (k+1)*H.nx*H.ny;
-      C.density[id] = C.density[idp];
-      C.Energy[id]  = C.Energy[idp];
-    }
-  }
-  for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-      k = H.nz-H.n_ghost;
-      id  = i + j*H.nx + k*H.nx*H.ny;
-      idm = i + j*H.nx + (k-1)*H.nx*H.ny;
-      C.density[id] = C.density[idm];
-      C.Energy[id]  = C.Energy[idm];
-    }
-  }
-  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
-    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-      i = H.n_ghost-1;
-      id  = i + j*H.nx + k*H.nx*H.ny;
-      idp = (i+1) + j*H.nx + k*H.nx*H.ny;
-      C.density[id] = C.density[idp];
-      C.Energy[id]  = C.Energy[idp];
-    }
-  }
-  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
-    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-      i = H.nx-H.n_ghost;
-      id  = i + j*H.nx + k*H.nx*H.ny;
-      idm = (i-1) + j*H.nx + k*H.nx*H.ny;
-      C.density[id] = C.density[idm];
-      C.Energy[id]  = C.Energy[idm];
-    }
-  }
-  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
-    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-      j = H.n_ghost-1;
-      id  = i + j*H.nx + k*H.nx*H.ny;
-      idp = i + (j+1)*H.nx + k*H.nx*H.ny;
-      C.density[id] = C.density[idp];
-      C.Energy[id]  = C.Energy[idp];
-    }
-  }
-  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
-    for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-      j = H.ny-H.n_ghost;
-      id  = i + j*H.nx + k*H.nx*H.ny;
-      idm = i + (j-1)*H.nx + k*H.nx*H.ny;
-      C.density[id] = C.density[idm];
-      C.Energy[id]  = C.Energy[idm];
-    }
-  }
-
 
 
   //compute pressure gradients, adjust circular velocities
@@ -1460,8 +1414,8 @@ void Grid3D::Disk_3D(parameters p)
 
         id = i + j*H.nx + k*H.nx*H.ny;
 
-	//get density
-	d = C.density[id];
+        //get density
+        d = C.density[id];
 
         // get the centered x, y, and z positions
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
@@ -1473,33 +1427,37 @@ void Grid3D::Disk_3D(parameters p)
         // radial acceleartion from disk
         a_d = GN * M_d * r * pow(r*r + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
 
-	//pressure gradient along x direction
-        idm  = (i-1) + j*H.nx + k*H.nx*H.ny; 
-        idp  = (i+1) + j*H.nx + k*H.nx*H.ny; 
+        //  pressure gradient along x direction
+        // gradient calc is first order at boundaries
+        if (i == H.n_ghost) idm = i + j*H.nx + k*H.nx*H.ny;
+        else idm  = (i-1) + j*H.nx + k*H.nx*H.ny; 
+        if (i == H.nx-H.n_ghost-1) idp  = i + j*H.nx + k*H.nx*H.ny;
+        else idp  = (i+1) + j*H.nx + k*H.nx*H.ny; 
         Get_Position(i-1, j, k, &xpm, &ypm, &zpm);
         Get_Position(i+1, j, k, &xpp, &ypp, &zpm);
-        Pm = C.Energy[idm]; //pressure stored in energy
-        Pp = C.Energy[idp]; //pressure stored in energy
-	dPdx =  (Pp-Pm)/(xpp-xpm);
+        Pm = C.Energy[idm]*(gama-1.0); // only internal energy stored in energy currently
+        Pp = C.Energy[idp]*(gama-1.0); // only internal energy stored in energy currently
+        dPdx =  (Pp-Pm)/(xpp-xpm);
 
-
-	//pressure gradient along y direction
-        idm  = i + (j-1)*H.nx + k*H.nx*H.ny; 
-        idp  = i + (j+1)*H.nx + k*H.nx*H.ny; 
+        //pressure gradient along y direction
+        if (j == H.n_ghost) idm = i + j*H.nx + k*H.nx*H.ny;
+        else idm  = i + (j-1)*H.nx + k*H.nx*H.ny; 
+        if (j == H.ny-H.n_ghost-1) idp  = i + j*H.nx + k*H.nx*H.ny; 
+        else idp  = i + (j+1)*H.nx + k*H.nx*H.ny; 
         Get_Position(i, j-1, k, &xpm, &ypm, &zpm);
         Get_Position(i, j+1, k, &xpp, &ypp, &zpm);
-        Pm = C.Energy[idm]; //pressure stored in energy
-        Pp = C.Energy[idp]; //pressure stored in energy
-	dPdy =  (Pp-Pm)/(ypp-ypm);
+        Pm = C.Energy[idm]*(gama-1.0); // only internal energy stored in energy currently
+        Pp = C.Energy[idp]*(gama-1.0); // only internal energy stored in energy currently
+        dPdy =  (Pp-Pm)/(ypp-ypm);
 
         //radial pressure gradient
         dPdr = x_pos*dPdx/r + y_pos*dPdy/r;
 
-	//radial acceleration
+        //radial acceleration
         a = a_d + dPdr/d;
         if(isnan(a)||(a!=a)||(r*a<0))
         {
-	  printf("i %d j %d k %d a %e a_d %e dPdr %e d %e\n",i,j,k,a,a_d,dPdr,d);
+          printf("i %d j %d k %d a %e a_d %e dPdr %e d %e\n",i,j,k,a,a_d,dPdr,d);
           printf("i %d j %d k %d x_pos %e y_pos %e z_pos %e dPdx %e dPdy %e\n",i,j,k,x_pos,y_pos,z_pos,dPdx,dPdy);
           printf("i %d j %d k %d Pm %e Pp %e\n",i,j,k,Pm,Pp);
         }
@@ -1510,50 +1468,33 @@ void Grid3D::Disk_3D(parameters p)
         vy = cos(phi)*v;
         vz = 0;
 
-        // set the velocities
-        C.momentum_x[id] = vx;
-        C.momentum_y[id] = vy;
-        C.momentum_z[id] = vz;
-      }
-    }
-  }
-
-  //exchange velocities with momenta
-  //exchange pressure with energy
-  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
-    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-
-	//cell index
-        id = i + j*H.nx + k*H.nx*H.ny;
-
-	//get density
-	d = C.density[id];
-
-	//get velocities
-        vx = C.momentum_x[id];
-        vy = C.momentum_y[id];
-        vz = C.momentum_z[id];
-
-        // set the momenta
+        // set the momenta 
         C.momentum_x[id] = d*vx;
         C.momentum_y[id] = d*vy;
         C.momentum_z[id] = d*vz;
 
-	//get pressure stored in energy array
-	P = C.Energy[id];
-
-	//sheepishly check for NaN's!
+        //sheepishly check for NaN's!
         if((d<0)||(P<0)||(isnan(d))||(isnan(P))||(d!=d)||(P!=P))
           printf("d %e P %e i %d j %d k %d id %d\n",d,P,i,j,k,id);
 
         if((isnan(vx))||(isnan(vy))||(isnan(vz))||(vx!=vx)||(vy!=vy)||(vz!=vz))
           printf("vx %e vy %e vz %e i %d j %d k %d id %d\n",vx,vy,vz,i,j,k,id);
-
-	//set energy
-        C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy + vz*vz);
+        
       }
     }
+  }
+
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+
+        id = i + j*H.nx + k*H.nx*H.ny;
+        
+        // add kinetic contribution to total energy
+        C.Energy[id] += 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
+
+      }
+    } 
   }
   //MPI_Finalize();
   //exit(0);

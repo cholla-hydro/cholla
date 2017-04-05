@@ -17,9 +17,9 @@ outstep=2185.9
 # value of gamma
 gamma=1.6666667
 # name of initial conditions
-init=Disk_3D
-#init=Read_Grid
-#nfile=0
+#init=Disk_3D
+init=Read_Grid
+nfile=156
 # domain properties
 xmin=-20
 ymin=-20
