@@ -1309,7 +1309,8 @@ void Grid3D::Disk_3D(parameters p)
   hdp[11] = H_g;
   hdp[12] = K_eos;
   hdp[13] = p.gamma;
-  hdp[14] = rho_floor;
+  hdp[14] = 0;//rho_floor;
+  //hdp[14] = 0.0;
   //for(k=0;k<nhdp;k++)
   //  printf("k %d hdp %e procID %d\n",k,hdp[k],procID);
   //printf("cs %e procID %d\n",cs,procID);
@@ -1367,6 +1368,8 @@ void Grid3D::Disk_3D(parameters p)
         //get density from hydrostatic column computation
         d = rho[nz_local_start + H.n_ghost + (k-H.n_ghost)];
         //d = rho[nz_local_start + (k-H.n_ghost)];
+        //if(d<rho_floor)
+        //  d = rho_floor;
 
         // set pressure adiabatically
         P = K_eos*pow(d,p.gamma);
@@ -1394,6 +1397,9 @@ void Grid3D::Disk_3D(parameters p)
         // density has a floor of 1e3,
         // so adjust the internal energy of 
         // all the gas such that the halo will be hot
+
+        // store density in density
+        C.density[id] += rho_floor; //brant added
         C.Energy[id] += rho_floor*KB*T_h / (0.6*MP*(gama-1.0)) * DENSITY_UNIT / ENERGY_UNIT; 
 
       }
@@ -1455,6 +1461,8 @@ void Grid3D::Disk_3D(parameters p)
 
         //radial acceleration
         a = a_d + dPdr/d;
+        if(a<0) //brant added
+	  a=0;
         if(isnan(a)||(a!=a)||(r*a<0))
         {
           printf("i %d j %d k %d a %e a_d %e dPdr %e d %e\n",i,j,k,a,a_d,dPdr,d);
