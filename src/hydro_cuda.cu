@@ -24,9 +24,6 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
   gx = 0.0;
   #endif
   
-  Real fz, gcorr;
-  
-
   Real dtodx = dt/dx;
 
   // get a global thread ID
@@ -52,7 +49,6 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     // update the conserved variable array
     dev_conserved[            id] += dtodx * (dev_F[            id-1] - dev_F[            id]);
     dev_conserved[  n_cells + id] += dtodx * (dev_F[  n_cells + id-1] - dev_F[  n_cells + id]);
-    fz = dtodx * (dev_F[  n_cells + id-1] - dev_F[  n_cells + id]);
     dev_conserved[2*n_cells + id] += dtodx * (dev_F[2*n_cells + id-1] - dev_F[2*n_cells + id]);
     dev_conserved[3*n_cells + id] += dtodx * (dev_F[3*n_cells + id-1] - dev_F[3*n_cells + id]);
     dev_conserved[4*n_cells + id] += dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
@@ -66,7 +62,6 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     d_inv_n = 1.0 / d_n;
     vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
     dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
-    gcorr = 0.5*dt*gx*(d + d_n);
     dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n);
     #endif    
     //printf("%3d %e %e %e\n", id-n_ghost, fz, gcorr, gx);
@@ -899,14 +894,14 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   y_pos = (y_off + yid - n_ghost + 0.5)*dy + ybound;
   z_pos = (z_off + zid - n_ghost + 0.5)*dz + zbound;
 
-  // for disk components, calculate polar r & phi
+  // for disk components, calculate polar r
   r_disk = sqrt(x_pos*x_pos + y_pos*y_pos);
-  //phi = atan2(y_pos, x_pos);  
   // for halo, calculate spherical r
   r_halo = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
 
   // set properties of halo and disk (these must match initial conditions)
-  Real a_disk_r, a_disk_z, a_halo, M_vir, M_d, R_vir, R_d, z_d, R_h, M_h, c_vir, phi_0_h, x;
+  Real a_disk_r, a_disk_z, a_halo, a_halo_r, a_halo_z;
+  Real M_vir, M_d, R_vir, R_d, z_d, R_h, M_h, c_vir, phi_0_h, x;
   M_vir = 1.0e12; // viral mass of MW in M_sun
   M_d = 6.5e10; // mass of disk in M_sun
   M_h = M_vir - M_d; // halo mass in M_sun
@@ -920,19 +915,20 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   
   // calculate acceleration due to NFW halo & Miyamoto-Nagai disk
   a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
+  a_halo_r = a_halo*(r_disk/r_halo);
+  a_halo_z = a_halo*(z_pos/r_halo);
   a_disk_r = - GN * M_d * r_disk * pow(r_disk*r_disk+ pow(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
   a_disk_z = - GN * M_d * z_pos * (R_d + sqrt(z_pos*z_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d), 2), 1.5) * sqrt(z_pos*z_pos + z_d*z_d) );
-  //if (z_pos < 0.3125 && z_pos > 0) printf("%3f %3f %3f %e\n", x_pos, y_pos, z_pos, a_disk_z);
 
   // total acceleration is the sum of the halo + disk components
   //*gx = 0.0;
   //*gy = 0.0;
   //*gz = 0.0;
-  *gx = (x_pos/r_disk)*a_disk_r;
-  *gy = (y_pos/r_disk)*a_disk_r;
+  *gx = (x_pos/r_disk)*(a_disk_r+a_halo_r);
+  *gy = (y_pos/r_disk)*(a_disk_r+a_halo_r);
   //*gx = x_pos*a_halo/r_halo + x_pos*a_disk/r_disk;
   //*gy = y_pos*a_halo/r_halo + y_pos*a_disk/r_disk;
-  *gz = a_disk_z;
+  *gz = a_disk_z+a_halo_z;
   //*gz = (z_pos/r_halo)*a_halo;
   //*gz = (z_pos/r_halo)*a_halo + a_disk_z;
 
