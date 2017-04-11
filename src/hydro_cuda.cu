@@ -270,8 +270,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
   gz = 0.0;
   #endif
 
-  //Real fz, gcorr;
-
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
   Real dtodz = dt/dz;
