@@ -138,16 +138,6 @@ int main(int argc, char *argv[])
     {
       G.H.dt = outtime - G.H.t;
     }
-/*
-    for (int i=0; i<G.H.nx; i++) {
-    for (int j=0; j<G.H.ny; j++) {
-    for (int k=0; k<G.H.nz; k++) {
-      int id = i + j*G.H.nx + k*G.H.nx*G.H.ny;
-      printf("%d %d %d %e %e\n", i, j, k, G.C.density[id], G.C.Energy[id]);
-    }
-    }
-    }
-*/
 
     // Advance the grid by one timestep
     #ifdef CPU_TIME
@@ -214,6 +204,21 @@ int main(int argc, char *argv[])
       // update to the next output time
       outtime += P.outstep;      
     }
+
+
+    for (int i=0; i<G.H.nx; i++) {
+      for (int j=0; j<G.H.ny; j++) {
+        for (int k=0; k<G.H.nz; k++) {
+          int id = i + j*G.H.nx + k*G.H.nx*G.H.ny;
+          if (G.C.density[id] < 0.0 || G.C.density[id] != G.C.density[id]) {
+            printf("Failure in cell %d %d %d. Density %e\n", i, j, k, G.C.density[id]);
+            exit(0);
+          }
+        }
+      }
+    }
+
+    
 
   } /*end loop over timesteps*/
 
