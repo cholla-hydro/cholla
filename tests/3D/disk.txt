@@ -8,7 +8,7 @@ nx=128
 # number of grid cells in the y dimension
 ny=128
 # number of grid cells in the z dimension
-nz=64
+nz=128
 # final output time
 #tout=690000
 tout=0
@@ -23,10 +23,10 @@ init=Disk_3D
 # domain properties
 xmin=-20
 ymin=-20
-zmin=-10
+zmin=-20
 xlen=40
 ylen=40
-zlen=20
+zlen=40
 # type of boundary conditions
 xl_bcnd=3
 xu_bcnd=3

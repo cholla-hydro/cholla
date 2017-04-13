@@ -1188,6 +1188,7 @@ void hydrostatic_column_D3D(Real *rho, Real r, Real *hdp, Real dz, int nz, int n
   {
     rho[k] *= Sigma_r/(Sigma*dz);
   }
+  //printf("%f %e\n", r, Sigma_r);
   //verified this works as intended until here
 
   //OK, rho is set initially to an exponential
@@ -1235,24 +1236,26 @@ void hydrostatic_column_D3D(Real *rho, Real r, Real *hdp, Real dz, int nz, int n
 
     //check for mass conservation
     Sigma = 0;
-    for(k=0;k<nzt;k++)
+    for(k=ks;k<nzt;k++)
     {
       Sigma  += rho[k]*dz;
     }
-    mass_loss = Sigma_r - Sigma;
+    mass_loss = Sigma_r/2.0 - Sigma;
 
     //printf("mass_loss = %e\n",mass_loss*dz/Sigma);
     int km;
     for(k=ks;k<nzt;k++)
     {
       //spread the lost mass over all the cells
-      if (r < 7.046858)
+      //if (r < 7.046858) {
       if(mass_loss<0)
       {
         rho[k] -= mass_loss/((float) (nzt-1-ks+1));
       }else{
         rho[k] += mass_loss/((float) (nzt-1-ks+1));
       }
+      //}      
+      /*
       else{
       if(mass_loss<0)
       {
@@ -1261,6 +1264,8 @@ void hydrostatic_column_D3D(Real *rho, Real r, Real *hdp, Real dz, int nz, int n
         rho[k] -= mass_loss/((float) (nzt-1-ks+1));
       }
       }
+      */
+      
       //if(rho[k]<rho_floor)
         //rho[k] = rho_floor;
 
@@ -1281,12 +1286,12 @@ void hydrostatic_column_D3D(Real *rho, Real r, Real *hdp, Real dz, int nz, int n
     //stop once we've converged to 0.1% 
     //of the expected surface density
     //in this column
-    if(fabs(mass_loss*dz)/Sigma_r<1.0e-3)
+    if(fabs(mass_loss*dz)/(Sigma_r/2.0)<1.0e-3)
       flag=0;
 
-    if(iter>10000)
+    //if(iter>10000)
     //if (r < 7.046858)
-      printf("Iter = %d, r = %f, mass_loss = %e, mass_loss*dz = %e, Sigma = %e, Sigma_r = %e\n", iter, r, mass_loss, fabs(mass_loss*dz), Sigma, Sigma_r);
+      //printf("Iter = %d, r = %f, mass_loss = %e, mass_loss*dz = %e, Sigma = %e, Sigma_r/2 = %e\n", iter, r, mass_loss, fabs(mass_loss*dz), Sigma, Sigma_r/2.0);
       //printf("Error converging with iter = %d, mass_loss = %e\n",iter,mass_loss);
   }
 
@@ -1315,7 +1320,7 @@ void Grid3D::Disk_3D(parameters p)
   R_s = R_vir / c_vir; // halo scale length in kpc
   R_d = 3.5; // disk scale length in kpc
   z_d = 3.5/5.0; // disk scale height in kpc
-  T_d = 1.0e5; // disk temperature, at normalized density rho_eos
+  T_d = 1.0e4; // disk temperature, at normalized density rho_eos
   T_h = 1.0e6; // halo temperature, at density floor 
   rho_eos = 1.0e7; //gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e4; //gas eos normalized at 3e4 Msun/kpc^3 (about n_h = 10^-2.5)
@@ -1423,8 +1428,8 @@ void Grid3D::Disk_3D(parameters p)
         // add density floor of 1e3,
         // adjust the internal energy of 
         // all the gas such that the halo will be hot
-        C.density[id] += rho_floor; //brant added
-        C.Energy[id] += rho_floor*KB*T_h / (0.6*MP*(gama-1.0)) * DENSITY_UNIT / ENERGY_UNIT; 
+        //C.density[id] += rho_floor; //brant added
+        //C.Energy[id] += rho_floor*KB*T_h / (0.6*MP*(gama-1.0)) * DENSITY_UNIT / ENERGY_UNIT; 
 
       }
     }
@@ -1489,14 +1494,14 @@ void Grid3D::Disk_3D(parameters p)
         a = a_d + a_h + dPdr/d;
         if(a<0) //brant added
           a=0;
-        /*
+        
         if(isnan(a)||(a!=a)||(r*a<0))
         {
           printf("i %d j %d k %d a %e a_d %e dPdr %e d %e\n",i,j,k,a,a_d,dPdr,d);
           printf("i %d j %d k %d x_pos %e y_pos %e z_pos %e dPdx %e dPdy %e\n",i,j,k,x_pos,y_pos,z_pos,dPdx,dPdy);
           printf("i %d j %d k %d Pm %e Pp %e\n",i,j,k,Pm,Pp);
         }
-        */
+        
         
 
         // radial velocity 
