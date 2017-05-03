@@ -10,8 +10,8 @@ ny=128
 # number of grid cells in the z dimension
 nz=128
 # final output time
-#tout=690000
-tout=0
+tout=690000
+#tout=0
 # time interval for output
 outstep=2300
 # value of gamma
