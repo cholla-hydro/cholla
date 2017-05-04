@@ -128,6 +128,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
 
         //find the corresponding real cell index and momenta signs
         idx  = Set_Boundary_Mapping(i,j,k,flags,&a[0]);
+
         
         //idx will be >= 0 if the boundary mapping function has
         //not set this ghost cell by hand, for instance for analytical 
@@ -146,6 +147,30 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
           #ifdef DE
           C.GasEnergy[gidx]  = C.GasEnergy[idx];
           #endif
+
+          //for outflow boundaries, set momentum to restrict inflow
+          if (flags[dir] == 3) {
+            if (dir == 0) {
+              C.momentum_x[gidx] = fmin(C.momentum_x[gidx], 0.0);
+            }
+            if (dir == 1) {
+              C.momentum_x[gidx] = fmax(C.momentum_x[gidx], 0.0);
+            }
+            if (dir == 2) {
+              C.momentum_y[gidx] = fmin(C.momentum_y[gidx], 0.0);
+            }
+            if (dir == 3) {
+              C.momentum_y[gidx] = fmax(C.momentum_y[gidx], 0.0);
+            }
+            if (dir == 4) {
+              C.momentum_z[gidx] = fmin(C.momentum_z[gidx], 0.0);
+            }
+            if (dir == 5) {
+              C.momentum_z[gidx] = fmax(C.momentum_z[gidx], 0.0);
+            }
+          }
+
+          
         }
       }
     }
