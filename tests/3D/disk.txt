@@ -8,16 +8,12 @@ nx=512
 # number of grid cells in the y dimension
 ny=512
 # number of grid cells in the z dimension
-<<<<<<< HEAD
 nz=512
-=======
-nz=128
 # final output time
->>>>>>> 5a56c4dad8a09005efdaaf9f32176d8f0fb41042
-tout=690000
+tout=100000
 #tout=0
 # time interval for output
-outstep=2300
+outstep=2000
 # value of gamma
 gamma=1.6666667
 # name of initial conditions
