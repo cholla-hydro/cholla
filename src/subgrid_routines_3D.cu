@@ -38,6 +38,7 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
   max_vol = free / cell_mem; 
   // plus a buffer for dti array
   max_vol = max_vol - 400;
+  //max_vol = 262144;
 
   // split if necessary - subgrid block volume cannot exceed MAX_VOL_3D
   // try to keep the ratio of the y & z dimensions close to 1
