@@ -10,7 +10,7 @@ ny=512
 # number of grid cells in the z dimension
 nz=512
 # final output time
-tout=100000
+tout=1000000
 #tout=0
 # time interval for output
 outstep=2000
