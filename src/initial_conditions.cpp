@@ -1246,13 +1246,14 @@ void hydrostatic_column_D3D(Real *rho, Real r, Real *hdp, Real dz, int nz, int n
     for(k=ks;k<nzt;k++)
     {
       //spread the lost mass over all the cells
-      if (r < 7.046858)
+      //if (r < 7.046858)
       if(mass_loss<0)
       {
         rho[k] -= mass_loss/((float) (nzt-1-ks+1));
       }else{
         rho[k] += mass_loss/((float) (nzt-1-ks+1));
       }
+      /*
       else{
       if(mass_loss<0)
       {
@@ -1261,6 +1262,7 @@ void hydrostatic_column_D3D(Real *rho, Real r, Real *hdp, Real dz, int nz, int n
         rho[k] -= mass_loss/((float) (nzt-1-ks+1));
       }
       }
+      */
       //if(rho[k]<rho_floor)
         //rho[k] = rho_floor;
 
@@ -1315,7 +1317,7 @@ void Grid3D::Disk_3D(parameters p)
   R_s = R_vir / c_vir; // halo scale length in kpc
   R_d = 3.5; // disk scale length in kpc
   z_d = 3.5/5.0; // disk scale height in kpc
-  T_d = 1.0e5; // disk temperature, at normalized density rho_eos
+  T_d = 1.0e4; // disk temperature, at normalized density rho_eos
   T_h = 1.0e6; // halo temperature, at density floor 
   rho_eos = 1.0e7; //gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e4; //gas eos normalized at 3e4 Msun/kpc^3 (about n_h = 10^-2.5)

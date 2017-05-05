@@ -4,11 +4,11 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=256
+nx=512
 # number of grid cells in the y dimension
-ny=256
+ny=512
 # number of grid cells in the z dimension
-nz=256
+nz=512
 tout=690000
 #tout=0
 # time interval for output
@@ -38,5 +38,5 @@ custom_bcnd=disk_3D
 #outdir=/Volumes/data1/evan/data/disk_3D/128/hdf5/
 #outdir=/gsfs1/rsgrps/brant/evan/data/disk_3D/128/hdf5/
 #outdir=/Users/evan/Desktop/data/disk_3D/128/hdf5/
-outdir=/lustre/atlas/proj-shared/ast125/data/disk_3D/1024/hdf5/raw/
+outdir=/lustre/atlas/proj-shared/ast125/data/disk_3D/512/hdf5/raw/
 
