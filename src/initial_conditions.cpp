@@ -1234,13 +1234,14 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
   //position in r_halo (based on r_hc_D3D)
   i = (int) ((r - 0.5*dr)/dr );
   if(i<0||i>=nr-1)
+  {
     if(i<0)
     {
       i = 0;
     }else{
       i = nr-2;
     }
-
+  }
   // return the interpolated density profile
   return (rho_halo[i+1] - rho_halo[i])*(r - r_halo[i])/(r_halo[i+1]-r_halo[i]) + rho_halo[i];
 }
@@ -1864,11 +1865,6 @@ void Grid3D::Disk_3D(parameters p)
   Real *r_halo = (Real *) calloc(nr,sizeof(Real));
   Real rho_check = 0;
 
-  //pressure gradients for changing
-  //the rotational velocity
-  Real dPdx, dPdy, dPdr;
-
-
 
   //////////////////////////////////////////////
   //////////////////////////////////////////////
@@ -1877,12 +1873,6 @@ void Grid3D::Disk_3D(parameters p)
   //////////////////////////////////////////////
   hydrostatic_ray_analytical_D3D(rho_halo, r_halo, hdp, dr, nr);
   chprintf("Hot halo lookup table generated...\n");
-
-
-
-
-  // uses cylindrical coordinates (r, phi, z)
-  // r, phi will be converted to x, y
 
 
   //////////////////////////////////////////////
@@ -1895,7 +1885,6 @@ void Grid3D::Disk_3D(parameters p)
   // hydrostatic column for the disk 
   // and add the disk density and thermal energy
   // to the density and energy arrays
-
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
     chprintf("j %d\n",j);
     for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
@@ -1912,7 +1901,6 @@ void Grid3D::Disk_3D(parameters p)
 
       //hydrostatic_column_D3D(rho, r, hdp, dz, nz, H.n_ghost);
       hydrostatic_column_analytical_D3D(rho, r, hdp, dz, nz, H.n_ghost);
-
 
       //store densities
       for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
@@ -1934,43 +1922,15 @@ void Grid3D::Disk_3D(parameters p)
   }
 
 
-
-
-
-  //////////////////////////////////////////////
-  //////////////////////////////////////////////
-  // Add a density floor
-  //////////////////////////////////////////////
-  //////////////////////////////////////////////
-
-  /*
-
-  // add in hot, constant density floor
-  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
-    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-      
-        id = i + j*H.nx + k*H.nx*H.ny;
-        
-        // add density floor
-        // adjust the internal energy of 
-        // all the gas such that the halo will be hot
-        C.density[id] += rho_floor;
-        C.Energy[id] += rho_floor*KB*T_h / (0.6*MP*(gama-1.0)) * DENSITY_UNIT / ENERGY_UNIT; 
-
-      }
-    }
-  }
-  */
-
-
-
   int idm, idp;
   Real xpm, xpp;
   Real ypm, ypp;
   Real zpm, zpp;
   Real Pm, Pp;
 
+  //pressure gradients for changing
+  //the rotational velocity
+  Real dPdx, dPdy, dPdr;
 
   //compute radial pressure gradients, adjust circular velocities
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
@@ -2052,18 +2012,18 @@ void Grid3D::Disk_3D(parameters p)
           if((d<0)||(P<0)||(isnan(d))||(isnan(P))||(d!=d)||(P!=P))
             printf("d %e P %e i %d j %d k %d id %d\n",d,P,i,j,k,id);
 
-          if((isnan(vx))||(isnan(vy))||(isnan(vz))||(vx!=vx)||(vy!=vy)||(vz!=vz))
+          if((isnan(vx))||(isnan(vy))||(isnan(vz))||(vx!=vx)||(vy!=vy)||(vz!=vz)) {
             printf("vx %e vy %e vz %e i %d j %d k %d id %d\n",vx,vy,vz,i,j,k,id);
-        }else{
-
+          }
+          else {
           //if the density is negative, there
           //is a bigger problem!
-          if(d<0)
-          {
-            printf("pid %d error negative density i %d j %d k %d d %e\n",-1,i,j,k,d);
+            if(d<0)
+            {
+              printf("pid %d error negative density i %d j %d k %d d %e\n",-1,i,j,k,d);
+            }
           }
-        }
-        
+        } 
       }
     }
   }
