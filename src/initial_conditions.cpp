@@ -1258,7 +1258,7 @@ void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real dr, int 
   Real cs      = hdp[19]; //sound speed at rho_eos
   Real r_cool  = hdp[20];
 
-  Real Phi_0; //potential at r=0
+  Real Phi_0; //potential at cooling radius
   Real rho_0; //density at galaxy center
 
   Real D_rho; //ratio of density at mid plane and rho_eos
@@ -1275,70 +1275,12 @@ void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real dr, int 
 
   Real gmo = gamma - 1.0; //gamma-1
 
-  int n_int = 1000;
-
-  //tolerance for secant method
-  Real tol = 1.0e-6;
-
-  //tolerance for surface density
-  //fractional
-  Real D_tol = 1.0e-5;
-
-  //compute the central plane potential
+  //compute the potential at the cooling radius
   Phi_0 = phi_hot_halo_D3D(r_cool,hdp);
 
   //We are normalizing to the central density
   //so D_rho == 1
   D_rho = 1.0;
-
-  //begin iterative determination of density field
-  int flag = 0;
-  int iter = 0; //number if iterations
-  int flag_phi; //flag for density extent
-  int iter_phi;
-
-
-  //first determine the range of r where
-  //the density above the galaxy center is
-  //non-zero
-
-  //get started, find the maximum extent of the halo
-  iter_phi = 0;
-  flag_phi = 0;
-  r_0 = 1.0e-3;
-  r_1 = 1.0e-2;
-  while(!flag_phi)
-  {
-    A_0 = D_rho - gmo*(phi_hot_halo_D3D(r_0,hdp)-Phi_0)/(cs*cs);
-    A_1 = D_rho - gmo*(phi_hot_halo_D3D(r_1,hdp)-Phi_0)/(cs*cs);
-    r_2 = r_1 - A_1*(r_1-r_0)/(A_1-A_0);
-    if( fabs(r_2-r_1)/fabs(r_1) > 10.)
-      r_2 = 10.*r_1;
-    //advance limit
-    r_0 = r_1;
-    r_1 = r_2;
-
-    if(fabs(r_1-r_0)<tol)
-    {
-      flag_phi = 1;
-      A_0 = D_rho - gmo*(phi_hot_halo_D3D(r_0,hdp)-Phi_0)/(cs*cs);
-      A_1 = D_rho - gmo*(phi_hot_halo_D3D(r_1,hdp)-Phi_0)/(cs*cs);
-      //make sure we haven't crossed 0
-      if(A_1<0)
-        r_1 = r_0;
-    }
-    iter_phi++;
-    if(iter_phi>1000)
-    {
-      printf("Something wrong in determining central density...\n");
-      printf("iter_phi = %d\n",iter_phi);
-      printf("r_0 %e r_1 %e r_2 %e A_0 %e A_1 %e phi_0 %e phi_1 %e\n",r_0,r_1,r_2,A_0,A_1,phi_total_D3D(0,r_0,hdp),phi_total_D3D(0,r_1,hdp));
-      MPI_Finalize();
-      exit(0);
-    }
-  }
-  A_1 = D_rho - gmo*(phi_hot_halo_D3D(r_1,hdp)-Phi_0)/(cs*cs);
-  r_max = r_1;
 
   //store densities
   for(i=0;i<nr;i++)
@@ -1784,6 +1726,7 @@ void Grid3D::Disk_3D(parameters p)
   Real Sigma_0, R_g, H_g;
   Real rho_floor;
   Real r_cool;
+  Real *hdp;
 
   M_vir = 1.0e12; // viral mass of MW in M_sun
   M_d = 6.5e10; // mass of disk in M_sun (assume all gas)
@@ -1812,8 +1755,8 @@ void Grid3D::Disk_3D(parameters p)
   cs_h = sqrt(KB*T_h/(0.6*MP))*TIME_UNIT/LENGTH_UNIT; //sound speed in kpc/kyr
 
   //set some initial parameters
-  int nhdp = 20;  //number of parameters to pass hydrostatic column
-  Real *hdp = (Real *) calloc(nhdp,sizeof(Real));  //parameters
+  int nhdp = 21;  //number of parameters to pass hydrostatic column
+  hdp = (Real *) malloc(nhdp*sizeof(Real));  //parameters
   hdp[0] = M_vir; 
   hdp[1] = M_d; 
   hdp[2] = M_h; 
@@ -1828,7 +1771,6 @@ void Grid3D::Disk_3D(parameters p)
   hdp[11] = H_g;
   hdp[13] = p.gamma;
 
-
   //determine rho_eos by setting central density of disk
   //based on central temperature
   rho_eos = determine_rho_eos_D3D(cs, Sigma_0, hdp);
@@ -1836,7 +1778,6 @@ void Grid3D::Disk_3D(parameters p)
   //set EOS parameters
   K_eos = cs*cs*pow(rho_eos,1.0-p.gamma)/p.gamma; //P = K\rho^gamma
   K_eos_h = cs_h*cs_h*pow(rho_eos_h,1.0-gama)/gama;
-
 
   //Store remaining parameters
   hdp[12] = K_eos;
@@ -1849,6 +1790,32 @@ void Grid3D::Disk_3D(parameters p)
   hdp[19] = cs_h;
   hdp[20] = r_cool;
 
+/*
+  // set initial values of conserved variables
+  for(k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for(j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for(i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+
+        //get cell index
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        // get cell-centered position
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        
+        // set constant initial states
+        C.density[id]    = 1.0;
+        C.momentum_x[id] = 0.0;
+        C.momentum_y[id] = 0.0;
+        C.momentum_z[id] = 0.0;
+	P = 2.5;
+        C.Energy[id]     = P/(gama-1.0);
+        #ifdef DE
+        C.GasEnergy[id]  = P/(gama-1.0);
+        #endif
+      }
+    }
+  }
+*/
 
   //Now we can start the density calculation
   //we will loop over each column and compute
@@ -1857,6 +1824,7 @@ void Grid3D::Disk_3D(parameters p)
   int nzt = 2*H.n_ghost + nz;
   Real dz = p.zlen / ((Real) nz);
   Real *rho = (Real *) calloc(nzt,sizeof(Real));
+
 
   // create a look up table for the halo gas profile
   int nr = 1000;
@@ -2029,7 +1997,6 @@ void Grid3D::Disk_3D(parameters p)
   }
 
 
-
   //////////////////////////////////////////////
   //////////////////////////////////////////////
   // Add a hot, hydrostatic halo
@@ -2092,6 +2059,7 @@ void Grid3D::Disk_3D(parameters p)
   //gas lookup table
   free(r_halo);
   free(rho_halo);
+
 }
 
 
