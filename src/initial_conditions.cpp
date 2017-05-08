@@ -1812,7 +1812,7 @@ void Grid3D::Disk_3D(parameters p)
   cs_h = sqrt(KB*T_h/(0.6*MP))*TIME_UNIT/LENGTH_UNIT; //sound speed in kpc/kyr
 
   //set some initial parameters
-  int nhdp = 20;  //number of parameters to pass hydrostatic column
+  int nhdp = 21;  //number of parameters to pass hydrostatic column
   Real *hdp = (Real *) calloc(nhdp,sizeof(Real));  //parameters
   hdp[0] = M_vir; 
   hdp[1] = M_d; 
