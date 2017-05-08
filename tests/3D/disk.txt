@@ -4,14 +4,14 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=128
+nx=1024
 # number of grid cells in the y dimension
-ny=128
+ny=1024
 # number of grid cells in the z dimension
-nz=128
+nz=1024
 # final output time
 tout=1000000
-#tout=0
+#tout=0.0
 # time interval for output
 outstep=2000
 # value of gamma
@@ -36,7 +36,8 @@ zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=disk_3D
 # path to output directory
-outdir=/Volumes/data1/evan/data/disk_3D/128/hdf5/
+#outdir=/Volumes/data1/evan/data/disk_3D/128/hdf5/
 #outdir=/gsfs1/rsgrps/brant/evan/data/disk_3D/128/hdf5/
 #outdir=/Users/evan/Desktop/data/disk_3D/128/hdf5/
+outdir=/lustre/atlas/proj-shared/ast125/data/disk_3D/1024/hdf5/raw/
 

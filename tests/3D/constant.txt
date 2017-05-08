@@ -10,7 +10,7 @@ ny=150
 # number of grid cells in the z dimension
 nz=150
 # final output time
-tout=0.001
+tout=1.0
 # time interval for output
 outstep=1.0
 # name of initial conditions

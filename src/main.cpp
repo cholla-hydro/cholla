@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
   // initialize the grid
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
-  printf("procID %d Local number of grid cells: %d %d %d %d\n", procID, G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
+  //printf("procID %d Local number of grid cells: %d %d %d %d\n", procID, G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
 
 
