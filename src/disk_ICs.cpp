@@ -590,7 +590,7 @@ void Grid3D::Disk_3D(parameters p)
   R_d = 3.5; // disk scale length in kpc
   z_d = 3.5/5.0; // disk scale height in kpc
   //T_d = 5.9406e5; // SET TO MATCH K_EOS SET BY HAND for K_eos   = 1.859984e-14 
-  T_d = 5.0e4;
+  T_d = 1.0e5;
   T_h = 1.0e6; // halo temperature, at density floor 
   rho_eos = 1.0e7; //gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e3; //gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
@@ -694,7 +694,7 @@ void Grid3D::Disk_3D(parameters p)
 
 
       // truncate the disk at the maximum radius
-      if (r < 0.45*p.xlen) {
+      if (r < 0.5*p.xlen) {
 
         //Compute the hydrostatic density profile in this z column
         //owing to the disk
