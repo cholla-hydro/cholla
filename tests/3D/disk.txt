@@ -10,8 +10,8 @@ ny=128
 # number of grid cells in the z dimension
 nz=128
 # final output time
-#tout=1000000
-tout=0
+tout=1000000
+#tout=0
 # time interval for output
 outstep=2000
 # value of gamma
@@ -19,7 +19,7 @@ gamma=1.6666667
 # name of initial conditions
 init=Disk_3D
 #init=Read_Grid
-#nfile=156
+#nfile=50
 # domain properties
 xmin=-20
 ymin=-20

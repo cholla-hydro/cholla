@@ -589,7 +589,8 @@ void Grid3D::Disk_3D(parameters p)
   R_s = R_vir / c_vir; // halo scale length in kpc
   R_d = 3.5; // disk scale length in kpc
   z_d = 3.5/5.0; // disk scale height in kpc
-  T_d = 5.9406e5; // SET TO MATCH K_EOS SET BY HAND for K_eos   = 1.859984e-14 
+  //T_d = 5.9406e5; // SET TO MATCH K_EOS SET BY HAND for K_eos   = 1.859984e-14 
+  T_d = 5.0e4;
   T_h = 1.0e6; // halo temperature, at density floor 
   rho_eos = 1.0e7; //gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e3; //gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
@@ -655,7 +656,7 @@ void Grid3D::Disk_3D(parameters p)
 
   // create a look up table for the halo gas profile
   int nr = 1000;
-  Real dr = sqrt(3)*0.5*p.xlen / ((Real) nr);
+  Real dr = sqrt(3)*0.5*fmax(p.xlen, p.zlen) / ((Real) nr);
   Real *rho_halo = (Real *) calloc(nr,sizeof(Real));
   Real *r_halo = (Real *) calloc(nr,sizeof(Real));
   Real rho_check = 0;
@@ -691,29 +692,53 @@ void Grid3D::Disk_3D(parameters p)
       //cylindrical radius
       r = sqrt(x_pos*x_pos + y_pos*y_pos);
 
-      //Compute the hydrostatic density profile in this z column
-      //owing to the disk
-      hydrostatic_column_analytical_D3D(rho, r, hdp, dz, nz, H.n_ghost);
 
-      //store densities
-      for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
-        id = i + j*H.nx + k*H.nx*H.ny;
+      // truncate the disk at the maximum radius
+      if (r < 0.45*p.xlen) {
 
-        //get density from hydrostatic column computation
-        d = rho[nz_local_start + H.n_ghost + (k-H.n_ghost)];
+        //Compute the hydrostatic density profile in this z column
+        //owing to the disk
+        hydrostatic_column_analytical_D3D(rho, r, hdp, dz, nz, H.n_ghost);
 
-        // set pressure adiabatically
-        P = K_eos*pow(d,p.gamma);
+        //store densities
+        for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+          id = i + j*H.nx + k*H.nx*H.ny;
 
-        // store density in density
-        C.density[id]    = d;
+          //get density from hydrostatic column computation
+          d = rho[nz_local_start + H.n_ghost + (k-H.n_ghost)];
 
-        // store internal energy in Energy array
-        C.Energy[id] = P/(gama-1.0);
+          // set pressure adiabatically
+          P = K_eos*pow(d,p.gamma);
+
+          // store density in density
+          C.density[id]    = d;
+
+          // store internal energy in Energy array
+          C.Energy[id] = P/(gama-1.0);
+        }
       }
+      /*
+      // Monte Carlo to determine weighting for points at the disk edge
+      int ran, xpoint, ypoint, weight;
+      srand(0);
+      if ((fabs(x_pos)-0.5*H.dx)*(fabs(x_pos)-0.5*H.dx) + (fabs(y_pos)-0.5*H.dy)*(fabs(y_pos)-0.5*H.dy) < 0.45*p.xlen && (fabs(x_pos)+0.5*H.dx)*(fabs(x_pos)+0.5*H.dx) + (fabs(y_pos)+0.5*H.dy)*(fabs(y_pos)+0.5*H.dy) > 0.45*p.xlen) {
+        int incount = 0;
+        for (int ii=0; ii<1000000; ii++) {
+          // generate a random number between x_pos and dx
+          ran = rand() % 1000;
+          xpoint = fabs(x_pos)-0.5*H.dx + H.dx*ran;
+          // generate a random number between y_pos and dy
+          ran = rand() % 1000;
+          ypoint = fabs(y_pos)-0.5*H.dy + H.dy*ran;
+          // check to see whether the point is within the circle
+          if (xpoint*xpoint + ypoint*ypoint < 0.45*p.xlen) incount++;
+        }
+        weight = incount / 1000000.0;
+        C.density[id] *= weight;     
+      }
+      */
     }
   }
-
 
   int idm, idp;
   Real xpm, xpp;

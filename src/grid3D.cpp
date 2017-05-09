@@ -386,6 +386,31 @@ Real Grid3D::Update_Grid(void)
 
 
 
+void Grid3D::Add_Supernovae(void)
+{
+  int i, j, k, id;
+  Real x_pos, y_pos, z_pos, r;
+
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        
+        // calculate cylindrical radius
+        r = sqrt(x_pos*x_pos + y_pos*y_pos);
+
+        // within 300 pc radius, inject energy and momentum
+        if (r < 0.3 && fabs(z_pos) < 0.3) {
+
+        }
+      }
+    }
+  }
+
+
+}
+
 
 /*! \fn void Reset(void)
  *  \brief Reset the Grid3D class. */
