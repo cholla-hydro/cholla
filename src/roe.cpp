@@ -82,7 +82,7 @@ void Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   lambda_p = vx + a;
   
 
-  // caclulate the fluxes for the left and right input states,
+  // calculate the fluxes for the left and right input states,
   // based on the average values in either cell
   f_d_l = mxl;
   f_mx_l = mxl*vxl + pl;
