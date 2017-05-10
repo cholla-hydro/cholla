@@ -125,7 +125,7 @@ __global__ void Calculate_Roe_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Rea
     lambda_0 = vx;
     lambda_p = vx + a;
   
-    // caclulate the fluxes for the left and right input states,
+    // calculate the fluxes for the left and right input states,
     // based on the average values in either cell
     f_d_l = mxl;
     f_mx_l = mxl*vxl + pl;

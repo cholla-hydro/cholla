@@ -63,21 +63,21 @@ void sub_dimensions_2D(int nx, int ny, int n_ghost, int *nx_s, int *ny_s, int *b
   else if (*nx_s < nx && *ny_s == ny) {
     *block1_tot = ceil(Real (nx-2*n_ghost) / Real (*nx_s-2*n_ghost) );
     *block2_tot = 1;
-    // caclulate the remainder
+    // calculate the remainder
     *remainder1 = (nx-2*n_ghost)%(*nx_s-2*n_ghost);
     *remainder2 = 0;
   }  
   else if (*nx_s == nx && *ny_s < ny) {
     *block1_tot = 1;
     *block2_tot = ceil(Real (ny-2*n_ghost) / Real (*ny_s-2*n_ghost) );
-    // caclulate the remainder
+    // calculate the remainder
     *remainder1 = 0;
     *remainder2 = (ny-2*n_ghost)%(*ny_s-2*n_ghost);
   }
   else if (*nx_s < nx && *ny_s < ny) {
     *block1_tot = ceil(Real (nx-2*n_ghost) / Real (*nx_s-2*n_ghost) );
     *block2_tot = ceil(Real (ny-2*n_ghost) / Real (*ny_s-2*n_ghost) );
-    // caclulate the remainder
+    // calculate the remainder
     *remainder1 = (nx-2*n_ghost)%(*nx_s-2*n_ghost);
     *remainder2 = (ny-2*n_ghost)%(*ny_s-2*n_ghost);
   }  
