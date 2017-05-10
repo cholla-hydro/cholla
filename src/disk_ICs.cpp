@@ -65,7 +65,15 @@ Real Sigma_disk_D3D(Real r, Real *hdp)
   //return the exponential surface density
   Real Sigma_0 = hdp[9];
   Real R_g     = hdp[10];
-  return Sigma_0 * exp(-r/R_g);
+  Real R_c = 19;
+  Real R_max = 20;
+  Real Sigma;
+  Sigma = Sigma_0 * exp(-r/R_g);
+  // taper the edge of the disk to 0
+  if (r > R_c) {
+    Sigma *= exp(-(r - R_c)/(R_max-R_c));
+  }
+  return Sigma;
 }
 
 //vertical acceleration in miyamoto nagai
@@ -693,50 +701,26 @@ void Grid3D::Disk_3D(parameters p)
       r = sqrt(x_pos*x_pos + y_pos*y_pos);
 
 
-      // truncate the disk at the maximum radius
-      if (r < 0.5*p.xlen) {
+      //Compute the hydrostatic density profile in this z column
+      //owing to the disk
+      hydrostatic_column_analytical_D3D(rho, r, hdp, dz, nz, H.n_ghost);
 
-        //Compute the hydrostatic density profile in this z column
-        //owing to the disk
-        hydrostatic_column_analytical_D3D(rho, r, hdp, dz, nz, H.n_ghost);
+      //store densities
+      for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+        id = i + j*H.nx + k*H.nx*H.ny;
 
-        //store densities
-        for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
-          id = i + j*H.nx + k*H.nx*H.ny;
+        //get density from hydrostatic column computation
+        d = rho[nz_local_start + H.n_ghost + (k-H.n_ghost)];
 
-          //get density from hydrostatic column computation
-          d = rho[nz_local_start + H.n_ghost + (k-H.n_ghost)];
+        // set pressure adiabatically
+        P = K_eos*pow(d,p.gamma);
 
-          // set pressure adiabatically
-          P = K_eos*pow(d,p.gamma);
+        // store density in density
+        C.density[id]    = d;
 
-          // store density in density
-          C.density[id]    = d;
-
-          // store internal energy in Energy array
-          C.Energy[id] = P/(gama-1.0);
-        }
+        // store internal energy in Energy array
+        C.Energy[id] = P/(gama-1.0);
       }
-      /*
-      // Monte Carlo to determine weighting for points at the disk edge
-      int ran, xpoint, ypoint, weight;
-      srand(0);
-      if ((fabs(x_pos)-0.5*H.dx)*(fabs(x_pos)-0.5*H.dx) + (fabs(y_pos)-0.5*H.dy)*(fabs(y_pos)-0.5*H.dy) < 0.45*p.xlen && (fabs(x_pos)+0.5*H.dx)*(fabs(x_pos)+0.5*H.dx) + (fabs(y_pos)+0.5*H.dy)*(fabs(y_pos)+0.5*H.dy) > 0.45*p.xlen) {
-        int incount = 0;
-        for (int ii=0; ii<1000000; ii++) {
-          // generate a random number between x_pos and dx
-          ran = rand() % 1000;
-          xpoint = fabs(x_pos)-0.5*H.dx + H.dx*ran;
-          // generate a random number between y_pos and dy
-          ran = rand() % 1000;
-          ypoint = fabs(y_pos)-0.5*H.dy + H.dy*ran;
-          // check to see whether the point is within the circle
-          if (xpoint*xpoint + ypoint*ypoint < 0.45*p.xlen) incount++;
-        }
-        weight = incount / 1000000.0;
-        C.density[id] *= weight;     
-      }
-      */
     }
   }
 
@@ -813,32 +797,34 @@ void Grid3D::Disk_3D(parameters p)
             printf("ypp %e ypm %e xpp %e zpm %e r %e\n",ypp,ypm, xpp, xpm ,r);
             printf("Energy pm %e pp %e density pm %e pp %e\n",C.Energy[idm],C.Energy[idp],C.density[idm],C.density[idp]);
           }
-      
-          // radial velocity 
-          v = sqrt(r*a);
-          vx = -sin(phi)*v;
-          vy = cos(phi)*v;
-          vz = 0;
-
-          // set the momenta 
-          C.momentum_x[id] = d*vx;
-          C.momentum_y[id] = d*vy;
-          C.momentum_z[id] = d*vz;
-
-          //sheepishly check for NaN's!
-
-          if((d<0)||(P<0)||(isnan(d))||(isnan(P))||(d!=d)||(P!=P))
-            printf("d %e P %e i %d j %d k %d id %d\n",d,P,i,j,k,id);
-
-          if((isnan(vx))||(isnan(vy))||(isnan(vz))||(vx!=vx)||(vy!=vy)||(vz!=vz)) {
-            printf("vx %e vy %e vz %e i %d j %d k %d id %d\n",vx,vy,vz,i,j,k,id);
-          }
           else {
-          //if the density is negative, there
-          //is a bigger problem!
-            if(d<0)
-            {
-              printf("pid %d error negative density i %d j %d k %d d %e\n",-1,i,j,k,d);
+      
+            // radial velocity 
+            v = sqrt(r*a);
+            vx = -sin(phi)*v;
+            vy = cos(phi)*v;
+            vz = 0;
+
+            // set the momenta 
+            C.momentum_x[id] = d*vx;
+            C.momentum_y[id] = d*vy;
+            C.momentum_z[id] = d*vz;
+
+            //sheepishly check for NaN's!
+
+            if((d<0)||(P<0)||(isnan(d))||(isnan(P))||(d!=d)||(P!=P))
+              printf("d %e P %e i %d j %d k %d id %d\n",d,P,i,j,k,id);
+
+            if((isnan(vx))||(isnan(vy))||(isnan(vz))||(vx!=vx)||(vy!=vy)||(vz!=vz)) {
+              printf("vx %e vy %e vz %e i %d j %d k %d id %d\n",vx,vy,vz,i,j,k,id);
+            }
+            else {
+            //if the density is negative, there
+            //is a bigger problem!
+              if(d<0)
+              {
+                printf("pid %d error negative density i %d j %d k %d d %e\n",-1,i,j,k,d);
+              }
             }
           }
         } 
