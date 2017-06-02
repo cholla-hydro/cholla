@@ -65,8 +65,8 @@ Real Sigma_disk_D3D(Real r, Real *hdp)
   //return the exponential surface density
   Real Sigma_0 = hdp[9];
   Real R_g     = hdp[10];
-  Real R_c = 19;
-  Real R_max = 20;
+  Real R_c = 4;
+  Real R_max = 5;
   Real Sigma;
   Sigma = Sigma_0 * exp(-r/R_g);
   // taper the edge of the disk to 0
@@ -589,28 +589,35 @@ void Grid3D::Disk_3D(parameters p)
   Real rho_floor;
   Real r_cool;
 
-  M_vir = 1.0e12; // viral mass of MW in M_sun
-  M_d = 6.5e10; // mass of disk in M_sun (assume all gas)
+  //M_vir = 1.0e12; // viral mass of MW in M_sun
+  M_vir = 5.0e10; // viral mass of M82 in M_sun (guess)
+  //M_d = 6.5e10; // mass of disk in M_sun (assume all stars)
+  M_d = 1.0e10; // mass of M82 disk in M_sun (Greco 2012)
   M_h = M_vir - M_d; // halo mass in M_sun
-  R_vir = 261; // viral radius in kpc
-  c_vir = 20; // halo concentration
+  //R_d = 3.5; // MW stellar disk scale length in kpc
+  R_d = 0.8; // M82 stellar disk scale length in kpc (Mayya 2009)
+  //z_d = 3.5/5.0; // MW stellar disk scale height in kpc
+  z_d = 0.15; // M82 stellar thin disk scale height in kpc (Lim 2013)
+  //R_vir = 261; // MW viral radius in kpc
+  R_vir = R_d/0.015; // M82 viral radius in kpc from R_(1/2) = 0.015 R_200 (Kravtsov 2013)
+  //c_vir = 20; // MW halo concentration (to account for adiabatic contraction)
+  c_vir = 10; // M82 halo concentration
   R_s = R_vir / c_vir; // halo scale length in kpc
-  R_d = 3.5; // disk scale length in kpc
-  z_d = 3.5/5.0; // disk scale height in kpc
   //T_d = 5.9406e5; // SET TO MATCH K_EOS SET BY HAND for K_eos   = 1.859984e-14 
-  T_d = 1.0e5;
+  T_d = 2.0e5;
   T_h = 1.0e6; // halo temperature, at density floor 
   rho_eos = 1.0e7; //gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e3; //gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
 
   R_g = 2.0*R_d;   //gas scale length in kpc
-  Sigma_0 = 0.25*M_d/(2*M_PI*R_g*R_g); //central surface density in Msun/kpc^2
+  //Sigma_0 = 0.25*M_d/(2*M_PI*R_g*R_g); //central surface density in Msun/kpc^2 (for MW)
+  Sigma_0 = 0.25*M_d/(2*M_PI*R_g*R_g); //central surface density in Msun/kpc^2 (for M82)
   H_g = z_d; //initial guess for gas scale height
   rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
-  //rho_floor = 0.0; //ICs minimum density in Msun/kpc^3
 
   //cooling radius
-  r_cool = 157.0; //in kpc
+  //r_cool = 157.0; //in kpc (MW)
+  r_cool = 100.0; //in kpc (M82, guess)
 
   //EOS info
   cs = sqrt(KB*T_d/(0.6*MP))*TIME_UNIT/LENGTH_UNIT; //sound speed in kpc/kyr
