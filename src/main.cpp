@@ -139,6 +139,9 @@ int main(int argc, char *argv[])
       G.H.dt = outtime - G.H.t;
     }
 
+    // Add supernovae
+    G.Add_Supernovae();
+
     // Advance the grid by one timestep
     #ifdef CPU_TIME
     start_hydro = get_time();
