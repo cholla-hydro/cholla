@@ -389,20 +389,33 @@ Real Grid3D::Update_Grid(void)
 void Grid3D::Add_Supernovae(void)
 {
   int i, j, k, id;
-  Real x_pos, y_pos, z_pos, r;
+  Real x_pos, y_pos, z_pos, r, R_s, f;
+  Real M_dot, E_dot, V, rho_dot, Ed_dot;
+  R_s = 0.3; // starburst radius, in kpc
+  M_dot = 2.0e3; // mass input rate, in M_sun / kyr
+  E_dot = 1.0e42; // energy input rate, in erg/s
+  E_dot = E_dot*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT); // convert to code units
+  V = (4.0/3.0)*PI*R_s*R_s*R_s;
+  f = H.dx*H.dy*H.dz / V;
+  rho_dot = f * M_dot / V;
+  Ed_dot = f * E_dot / V;
+  //printf("rho_dot: %f  Ed_dot: %f\n", rho_dot, Ed_dot);
 
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
       for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
 
+        id = i + j*H.nx + k*H.nx*H.ny;
+
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
         
-        // calculate cylindrical radius
-        r = sqrt(x_pos*x_pos + y_pos*y_pos);
+        // calculate spherical radius
+        r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
 
-        // within 300 pc radius, inject energy and momentum
-        if (r < 0.3 && fabs(z_pos) < 0.3) {
-
+        // within starburst radius, inject energy and momentum
+        if (r < R_s) {
+          C.density[id] += rho_dot * H.dt;
+          C.Energy[id] += Ed_dot * H.dt;
         }
       }
     }
