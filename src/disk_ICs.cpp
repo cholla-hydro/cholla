@@ -886,6 +886,11 @@ void Grid3D::Disk_3D(parameters p)
 
         id = i + j*H.nx + k*H.nx*H.ny;
         
+        // set internal energy
+        #ifdef DE
+        C.GasEnergy[id] = C.Energy[id];
+        #endif
+
         // add kinetic contribution to total energy
         C.Energy[id] += 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
 

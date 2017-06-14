@@ -444,10 +444,13 @@ void Grid3D::Add_Supernovae(void)
         // calculate spherical radius
         r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
 
-        // within starburst radius, inject energy and momentum
+        // within starburst radius, inject mass and thermal energy
         if (r < R_s) {
           C.density[id] += rho_dot * H.dt;
           C.Energy[id] += Ed_dot * H.dt;
+          #ifdef DE
+          C.GasEnergy[id] += Ed_dot * H.dt;
+          #endif
         }
       }
     }
