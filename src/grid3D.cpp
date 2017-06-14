@@ -389,11 +389,43 @@ Real Grid3D::Update_Grid(void)
 void Grid3D::Add_Supernovae(void)
 {
   int i, j, k, id;
-  Real x_pos, y_pos, z_pos, r, R_s, f;
-  Real M_dot, E_dot, V, rho_dot, Ed_dot;
+  Real x_pos, y_pos, z_pos, r, R_s, f, t, t1, t2, t3;
+  Real M1, M2, E1, E2, M_dot, E_dot, V, rho_dot, Ed_dot;
   R_s = 0.3; // starburst radius, in kpc
-  M_dot = 2.0e3; // mass input rate, in M_sun / kyr
-  E_dot = 1.0e42; // energy input rate, in erg/s
+  //M1 = 2.0e3; // mass input rate, in M_sun / kyr
+  //E1 = 1.0e42; // energy input rate, in erg/s
+  //M2 = 1.0e3; // mass input rate, in M_sun / kyr
+  //E2 = 1.0e43; // energy input rate, in erg/s
+  M1 = 2.0e3;
+  E1 = 2.6e42;
+  M2 = 1.0e3;
+  E2 = 1.0e43;
+  M_dot = 0.0;
+  E_dot = 0.0;
+
+  // start feedback after 10 Myr, ramp up for 10 Myr, high for 30 Myr, ramp down for 10 Myr
+  t = H.t/1000 - 10.0;
+  t1 = 10.0;
+  t2 = 40.0;
+  t3 = 50.0;
+
+  if (t >= 0 && t < t1) {
+    M_dot = M1 + 0.1*t*(M2-M1); 
+    E_dot = E1 + 0.1*t*(E2-E1);
+  }
+  if (t >= t1 && t < t2) {
+    M_dot = M2;
+    E_dot = E2;
+  } 
+  if (t >= t2 && t < t3) {
+    M_dot = M1 + 0.1*(t-t3)*(M1-M2);
+    E_dot = E1 + 0.1*(t-t3)*(E1-E2);
+  }
+  if (t >= t3) {
+    M_dot = M1;
+    E_dot = E1;
+  }
+
   E_dot = E_dot*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT); // convert to code units
   V = (4.0/3.0)*PI*R_s*R_s*R_s;
   f = H.dx*H.dy*H.dz / V;
