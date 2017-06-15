@@ -398,10 +398,10 @@ void Grid3D::Add_Supernovae(void)
   //E2 = 1.0e43; // energy input rate, in erg/s
   //M1 = 2.0e3;
   //E1 = 2.6e42;
-  M1 = 1.0e3;
-  E1 = 1.0e43;
-  M2 = 1.0e3;
-  E2 = 1.0e43;
+  M1 = 2.0e3;
+  E1 = 2.6e42;
+  M2 = 2.0e3;
+  E2 = 2.6e42;
   M_dot = 0.0;
   E_dot = 0.0;
 
@@ -434,11 +434,11 @@ void Grid3D::Add_Supernovae(void)
   E_dot = E_dot*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT); // convert to code units
   V = (4.0/3.0)*PI*R_s*R_s*R_s;
   f = H.dx*H.dy*H.dz / V;
-  rho_dot = f * M_dot / V;
-  Ed_dot = f * E_dot / V;
+  rho_dot = f * M_dot / (H.dx*H.dy*H.dz);
+  Ed_dot = f * E_dot / (H.dx*H.dy*H.dz);
   //printf("rho_dot: %f  Ed_dot: %f\n", rho_dot, Ed_dot);
 
-  Real rho_dot_tot, Ed_dot_tot;
+  Real M_dot_tot, E_dot_tot;
 
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -458,17 +458,17 @@ void Grid3D::Add_Supernovae(void)
           #ifdef DE
           C.GasEnergy[id] += Ed_dot * H.dt;
           #endif
-          rho_dot_tot += rho_dot;
-          Ed_dot_tot += Ed_dot;
+          M_dot_tot += rho_dot*H.dx*H.dy*H.dz;
+          E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
         }
       }
     }
   }
-  //printf("%d %e %e\n", procID, rho_dot_tot, Ed_dot_tot);
-  //Real global_rho, global_E;
-  //MPI_Reduce(&rho_dot_tot, &global_rho, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
-  //MPI_Reduce(&Ed_dot_tot, &global_E, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
-  //chprintf("%e %e %e %e\n", global_rho, global_E, global_rho*V, (global_E*V)*MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT/TIME_UNIT); 
+  //printf("%d %e %e\n", procID, M_dot_tot, E_dot_tot);
+  Real global_M_dot, global_E_dot;
+  MPI_Reduce(&M_dot_tot, &global_M_dot, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&E_dot_tot, &global_E_dot, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
+  chprintf("%e %e \n", global_M_dot, global_E_dot*MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT/TIME_UNIT); 
 
 
 }
