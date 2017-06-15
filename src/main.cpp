@@ -131,6 +131,10 @@ int main(int argc, char *argv[])
     // get the start time
     start_step = get_time();
 
+    // Add supernovae
+    G.Add_Supernovae();
+    dti = G.calc_dti_CPU(C_cfl);
+
     // calculate the timestep
     G.set_dt(C_cfl, dti);
     
@@ -139,8 +143,6 @@ int main(int argc, char *argv[])
       G.H.dt = outtime - G.H.t;
     }
 
-    // Add supernovae
-    G.Add_Supernovae();
 
     // Advance the grid by one timestep
     #ifdef CPU_TIME
