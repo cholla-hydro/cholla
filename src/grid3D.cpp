@@ -386,7 +386,7 @@ Real Grid3D::Update_Grid(void)
 
 
 
-void Grid3D::Add_Supernovae(void)
+Real Grid3D::Add_Supernovae(void)
 {
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, R_s, f, t, t1, t2, t3;
@@ -438,7 +438,9 @@ void Grid3D::Add_Supernovae(void)
   Ed_dot = f * E_dot / V;
   //printf("rho_dot: %f  Ed_dot: %f\n", rho_dot, Ed_dot);
 
-  Real rho_dot_tot, Ed_dot_tot;
+  //Real rho_dot_tot, Ed_dot_tot;
+  Real max_vx, max_vy, max_vz, max_dti;
+  max_vx = max_vy = max_vz = 0.0;
 
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -458,12 +460,32 @@ void Grid3D::Add_Supernovae(void)
           #ifdef DE
           C.GasEnergy[id] += Ed_dot * H.dt;
           #endif
-          rho_dot_tot += rho_dot;
-          Ed_dot_tot += Ed_dot;
+          //rho_dot_tot += rho_dot;
+          //Ed_dot_tot += Ed_dot;
+
+          // recalculate the timestep for these cells
+          d_inv = 1.0 / C.density[id];
+          vx = d_inv * C.momentum_x[id];
+          vy = d_inv * C.momentum_y[id];
+          vz = d_inv * C.momentum_z[id];
+          P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
+          cs = sqrt(d_inv * gama * P);
+          // compute maximum cfl velocity
+          max_vx = fmax(max_vx, fabs(vx) + cs);
+          max_vy = fmax(max_vy, fabs(vy) + cs);
+          max_vz = fmax(max_vz, fabs(vz) + cs);
+
         }
       }
     }
   }
+  // compute max inverse of dt
+  max_dti = max_vx / H.dx;
+  max_dti = fmax(max_dti, max_vy / H.dy);
+  max_dti = fmax(max_dti, max_vz / H.dy);
+
+  return max_dti;
+          
   //printf("%d %e %e\n", procID, rho_dot_tot, Ed_dot_tot);
   //Real global_rho, global_E;
   //MPI_Reduce(&rho_dot_tot, &global_rho, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
