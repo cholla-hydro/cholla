@@ -352,7 +352,7 @@ class Grid3D
      *  \brief Apply a forcing field to continuously generate turbulence. */
     void Apply_Forcing(void);    
 
-    void Add_Supernovae(void);    
+    Real Add_Supernovae(void);    
  
 
     /*! \fn void Set_Boundary_Conditions(parameters P)
