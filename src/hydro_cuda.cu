@@ -390,6 +390,9 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
   zid = id / (nx*ny);
   yid = (id - zid*nx*ny) / nx;
   xid = id - zid*nx*ny - yid*nx;
+  imo = xid-1 + yid*nx + zid*nx*ny;
+  jmo = xid + (yid-1)*nx + zid*nx*ny;
+  kmo = xid + yid*nx + (zid-1)*nx*ny;
 
 
   // threads corresponding to all cells except outer ring of ghost cells do the calculation
@@ -416,9 +419,6 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     #endif
   
     // update the conserved variable array
-    imo = xid-1 + yid*nx + zid*nx*ny;
-    jmo = xid + (yid-1)*nx + zid*nx*ny;
-    kmo = xid + yid*nx + (zid-1)*nx*ny;
     dev_conserved_half[            id] = dev_conserved[            id]
                                        + dtodx * (dev_F_x[            imo] - dev_F_x[            id])
                                        + dtody * (dev_F_y[            jmo] - dev_F_y[            id])

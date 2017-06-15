@@ -142,7 +142,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, 
    
 
   #ifdef DE
-  Sync_Energies_1D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, n_ghost, gama);
+  Sync_Energies_1D<<<dimGrid,dimBlock>>>(dev_conserved, nx, n_ghost, gama);
   #endif    
 
 

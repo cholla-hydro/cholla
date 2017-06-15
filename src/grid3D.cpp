@@ -396,30 +396,35 @@ void Grid3D::Add_Supernovae(void)
   //E1 = 1.0e42; // energy input rate, in erg/s
   //M2 = 1.0e3; // mass input rate, in M_sun / kyr
   //E2 = 1.0e43; // energy input rate, in erg/s
-  M1 = 2.0e3;
-  E1 = 2.6e42;
+  //M1 = 2.0e3;
+  //E1 = 2.6e42;
+  M1 = 1.0e3;
+  E1 = 1.0e43;
   M2 = 1.0e3;
   E2 = 1.0e43;
   M_dot = 0.0;
   E_dot = 0.0;
 
   // start feedback after 10 Myr, ramp up for 10 Myr, high for 30 Myr, ramp down for 10 Myr
-  t = H.t/1000 - 10.0;
-  t1 = 10.0;
-  t2 = 40.0;
-  t3 = 50.0;
+  Real tstart = 10.0;
+  Real tramp = 10.0;
+  Real thigh = 30.0;
+  t = H.t/1000 - tstart;
+  t1 = tramp;
+  t2 = tramp+thigh;
+  t3 = 2*tramp+thigh;
 
   if (t >= 0 && t < t1) {
-    M_dot = M1 + 0.1*t*(M2-M1); 
-    E_dot = E1 + 0.1*t*(E2-E1);
+    M_dot = M1 + (1.0/tramp)*t*(M2-M1); 
+    E_dot = E1 + (1.0/tramp)*t*(E2-E1);
   }
   if (t >= t1 && t < t2) {
     M_dot = M2;
     E_dot = E2;
   } 
   if (t >= t2 && t < t3) {
-    M_dot = M1 + 0.1*(t-t3)*(M1-M2);
-    E_dot = E1 + 0.1*(t-t3)*(E1-E2);
+    M_dot = M1 + (1.0/tramp)*(t-t3)*(M1-M2);
+    E_dot = E1 + (1.0/tramp)*(t-t3)*(E1-E2);
   }
   if (t >= t3) {
     M_dot = M1;
@@ -432,6 +437,8 @@ void Grid3D::Add_Supernovae(void)
   rho_dot = f * M_dot / V;
   Ed_dot = f * E_dot / V;
   //printf("rho_dot: %f  Ed_dot: %f\n", rho_dot, Ed_dot);
+
+  Real rho_dot_tot, Ed_dot_tot;
 
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
@@ -451,10 +458,17 @@ void Grid3D::Add_Supernovae(void)
           #ifdef DE
           C.GasEnergy[id] += Ed_dot * H.dt;
           #endif
+          rho_dot_tot += rho_dot;
+          Ed_dot_tot += Ed_dot;
         }
       }
     }
   }
+  //printf("%d %e %e\n", procID, rho_dot_tot, Ed_dot_tot);
+  //Real global_rho, global_E;
+  //MPI_Reduce(&rho_dot_tot, &global_rho, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
+  //MPI_Reduce(&Ed_dot_tot, &global_E, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
+  //chprintf("%e %e %e %e\n", global_rho, global_E, global_rho*V, (global_E*V)*MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT/TIME_UNIT); 
 
 
 }
