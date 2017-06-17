@@ -49,8 +49,8 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
         // if there is a problem, redo the update for that cell using first-order fluxes
         if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) {
           printf("Flux correction: (%d, %d %d) d: %e  p:%e\n", i, j, k, d_new, P_new);
-          printf("Previous timestep data: d: %e E: %e\n", C1[id], C1[4*n_cells+id]);
-          printf("Uncorrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
+          //printf("Previous timestep data: d: %e E: %e\n", C1[id], C1[4*n_cells+id]);
+          //printf("Uncorrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
           P_old = P_new;
 
           Real C_half[nfields];
@@ -81,7 +81,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           // Recalculate the fluxes, again using piecewise constant reconstruction
           // and update the conserved variables using the new first-order fluxes
           full_step_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells, C_half, C_half_imo, C_half_ipo, C_half_jmo, C_half_jpo, C_half_kmo, C_half_kpo);
-          printf("Flux corrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
+          //printf("Flux corrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
 
           // And apply gravity
           #ifdef STATIC_GRAV
@@ -122,7 +122,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
             ge1 = ge2;
           }     
           //find the max nearby total energy 
-          Emax = fmax(C2[4*n_cells + imo], E);
+          Emax = fmax(C2[4*n_cells + imo+j*nx+k*nx*ny], E);
           Emax = fmax(Emax, C2[4*n_cells + ipo]);
           Emax = fmax(Emax, C2[4*n_cells + jmo]);
           Emax = fmax(Emax, C2[4*n_cells + jpo]);
