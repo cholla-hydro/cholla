@@ -123,18 +123,18 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
             ge1 = ge2;
           }     
           //find the max nearby total energy 
-          imo = max(xid-1, n_ghost);
-          imo = imo + yid*nx + zid*nx*ny;
-          ipo = min(xid+1, nx-n_ghost-1);
-          ipo = ipo + yid*nx + zid*nx*ny;
-          jmo = max(yid-1, n_ghost);
-          jmo = xid + jmo*nx + zid*nx*ny;
-          jpo = min(yid+1, ny-n_ghost-1);
-          jpo = xid + jpo*nx + zid*nx*ny;
-          kmo = max(zid-1, n_ghost);
-          kmo = xid + yid*nx + kmo*nx*ny;
-          kpo = min(zid+1, nz-n_ghost-1);
-          kpo = xid + yid*nx + kpo*nx*ny;
+          imo = fmax(i-1, n_ghost);
+          imo = imo + j*nx + k*nx*ny;
+          ipo = fmin(i+1, nx-n_ghost-1);
+          ipo = ipo + j*nx + k*nx*ny;
+          jmo = fmax(j-1, n_ghost);
+          jmo = i + jmo*nx + k*nx*ny;
+          jpo = fmin(j+1, ny-n_ghost-1);
+          jpo = i + jpo*nx + k*nx*ny;
+          kmo = fmax(k-1, n_ghost);
+          kmo = i + j*nx + kmo*nx*ny;
+          kpo = fmin(k+1, nz-n_ghost-1);
+          kpo = i + j*nx + kpo*nx*ny;
           Emax = fmax(C2[4*n_cells + imo+j*nx+k*nx*ny], E);
           Emax = fmax(Emax, C2[4*n_cells + ipo]);
           Emax = fmax(Emax, C2[4*n_cells + jmo]);
