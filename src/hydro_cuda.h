@@ -58,7 +58,7 @@ __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound,
 
 __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real *gx, Real *gy);
 
-__device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz);
+__device__ void calc_g_3D_CUDA(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz);
 
 #endif //HYDRO_CUDA_H
 #endif //CUDA

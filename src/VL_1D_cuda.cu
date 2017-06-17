@@ -94,7 +94,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, 
 
   // Step 2: Calculate first-order upwind fluxes 
   #ifdef EXACT
-  Calculate_Exact_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
+  Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
   #endif
   #ifdef ROE
   Calculate_Roe_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
@@ -128,7 +128,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, 
 
   // Step 5: Calculate the fluxes again
   #ifdef EXACT
-  Calculate_Exact_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
+  Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
   #endif
   #ifdef ROE
   Calculate_Roe_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);

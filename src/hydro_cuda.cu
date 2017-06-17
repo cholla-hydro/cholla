@@ -335,7 +335,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
     #ifdef STATIC_GRAV 
-    calc_g_3D(xid, yid, zid, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
+    calc_g_3D_CUDA(xid, yid, zid, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
     d_n  =  dev_conserved[            id];
     d_inv_n = 1.0 / d_n;
     vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
@@ -350,8 +350,9 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   +  0.25*dt*gz*(d + d_n)*(vz + vz_n);
     #endif    
     //if (xid == 70 && yid == 70 && zid == 33) printf("%3d %3d %3d %e %e\n", xid, yid, zid, fz, gcorr);
-    if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
-      printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid+x_off-n_ghost, yid+y_off-n_ghost, zid+z_off-n_ghost, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
+    if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id] || dev_conserved[4*n_cells + id] < 0.0 || dev_conserved[4*n_cells+id] != dev_conserved[4*n_cells+id]) {
+      //printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e\n", xid+x_off-n_ghost, yid+y_off-n_ghost, zid+z_off-n_ghost, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
+      printf("%3d %3d %3d Thread crashed in final update. %e %e\n", xid+x_off, yid+y_off, zid+z_off, dev_conserved[id], dev_conserved[4*n_cells+id]);
     }
     /*
     d  =  dev_conserved[            id];
@@ -446,8 +447,8 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
                                        + dtodz * (dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id])
                                        + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
-    if (dev_conserved_half[id] < 0.0 || dev_conserved_half[id] != dev_conserved_half[id]) {
-      printf("%3d %3d %3d Thread crashed in half step update.\n", xid, yid, zid);
+    if (dev_conserved_half[id] < 0.0 || dev_conserved_half[id] != dev_conserved_half[id] || dev_conserved_half[4*n_cells+id] < 0.0 || dev_conserved_half[4*n_cells+id] != dev_conserved_half[4*n_cells+id]) {
+      printf("%3d %3d %3d Thread crashed in half step update. d: %e %e\n", xid, yid, zid, dev_conserved_half[id], dev_conserved_half[4*n_cells+id]);
     }    
 
 
@@ -916,7 +917,7 @@ __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, R
 }
 
 
-__device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz)
+__device__ void calc_g_3D_CUDA(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz)
 {
   Real x_pos, y_pos, z_pos, r_disk, r_halo;
   // use the subgrid offset and global boundaries to calculate absolute positions on the grid

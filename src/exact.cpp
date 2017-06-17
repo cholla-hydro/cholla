@@ -1,8 +1,6 @@
 /*! \file exact.cpp
  *  \brief Function definitions for Toro exact Riemann solver. */
 
-#ifndef CUDA
-
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
@@ -22,6 +20,9 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
   Real dr, vxr, vyr, vzr, pr, cr; //density, velocity, pressure, sound speed (right)
   Real ds, us, ps, Es; //sampled density, velocity, pressure, total energy
   Real um, pm; //velocity and pressure in the star region
+  #ifdef DE
+  Real gel, ger;
+  #endif
 
   // calculate primative variables from input array
   dl = cW[0];
@@ -36,6 +37,10 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
   pl = fmax(pl, TINY_NUMBER);
   pr = (cW[9] - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma-1.0);
   pr = fmax(pr, TINY_NUMBER);
+  #ifdef DE
+  gel = cW[10] / dl;
+  ger = cW[11] / dr;
+  #endif
 
 
   //compute sound speeds in left (cell i-1) and right (cell i) regions
@@ -65,12 +70,18 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
   {
     fluxes[2] = ds*us*vyl;
     fluxes[3] = ds*us*vzl;
+    #ifdef DE
+    fluxes[5] = ds*us*gel;
+    #endif
     Es = (ps/(gamma - 1.0)) + 0.5*ds*(us*us + vyl*vyl + vzl*vzl);
   }
   else
   {
     fluxes[2] = ds*us*vyr;
     fluxes[3] = ds*us*vzr;
+    #ifdef DE
+    fluxes[5] = ds*us*ger;
+    #endif
     Es = (ps/(gamma - 1.0)) + 0.5*ds*(us*us + vyr*vyr + vzr*vzr);
   }
   fluxes[4] = (Es+ps)*us;
@@ -278,4 +289,3 @@ void sample(const Real pm, const Real vm,
 }
 
 
-#endif // NO CUDA

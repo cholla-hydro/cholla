@@ -1,0 +1,474 @@
+/*! \file flux_correction.cpp
+ *  \brief First-order flux correction */
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<math.h>
+#include"global.h"
+#include"flux_correction.h"
+#include"exact.h"
+#include"roe.h"
+
+
+
+void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt)
+{
+
+  int n_cells = nx*ny*nz;
+  int id, imo, ipo, jmo, jpo, kmo, kpo;
+  int istart, istop, jstart, jstop, kstart, kstop;
+  int nfields = 5;
+  #ifdef DE
+  nfields++;
+  #endif
+
+  Real d_old, vx_old, vy_old, vz_old, P_old;
+  Real d_new, vx_new, vy_new, vz_new, P_new;
+  Real etah = 0.0;
+
+  Real dtodx = dt/dx;
+  Real dtody = dt/dy;
+  Real dtodz = dt/dz;
+  
+  // sweep through real cells and look for negative densities or pressures in new data
+  istart = n_ghost; istop = nx-n_ghost;
+  jstart = n_ghost; jstop = ny-n_ghost;
+  kstart = n_ghost; kstop = nz-n_ghost;
+  for (int k=kstart; k<kstop; k++) {
+    for (int j=jstart; j<jstop; j++) {
+      for (int i=istart; i<istop; i++) {
+
+        id = i + j*nx + k*nx*ny;
+        
+        d_new = C2[id];
+        vx_new = C2[n_cells+id]/d_new;
+        vy_new = C2[2*n_cells+id]/d_new;
+        vz_new = C2[3*n_cells+id]/d_new;
+        P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
+  
+        // if there is a problem, redo the update for that cell using first-order fluxes
+        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) {
+          printf("Flux correction: (%d, %d %d) d: %e  p:%e\n", i, j, k, d_new, P_new);
+          printf("Previous timestep data: d: %e E: %e\n", C1[id], C1[4*n_cells+id]);
+          printf("Uncorrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
+          P_old = P_new;
+
+          Real C_half[nfields];
+          Real C_half_imo[nfields];
+          Real C_half_ipo[nfields];
+          Real C_half_jmo[nfields];
+          Real C_half_jpo[nfields];
+          Real C_half_kmo[nfields];
+          Real C_half_kpo[nfields];
+
+          // calculate the first order half step update for the cell in question
+          half_step_update(C_half, C1, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
+          //printf("Half step data: d: %e E: %e\n", C_half[0], C_half[4]);
+          // need C_half for all the surrounding cells, as well
+          half_step_update(C_half_imo, C1, i-1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          //printf("Half step data: d: %e E: %e\n", C_half_imo[0], C_half_imo[4]);
+          half_step_update(C_half_ipo, C1, i+1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          //printf("Half step data: d: %e E: %e\n", C_half_ipo[0], C_half_ipo[4]);
+          half_step_update(C_half_jmo, C1, i, j-1, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          //printf("Half step data: d: %e E: %e\n", C_half_jmo[0], C_half_jmo[4]);
+          half_step_update(C_half_jpo, C1, i, j+1, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          //printf("Half step data: d: %e E: %e\n", C_half_jpo[0], C_half_jpo[4]);
+          half_step_update(C_half_kmo, C1, i, j, k-1, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          //printf("Half step data: d: %e E: %e\n", C_half_kmo[0], C_half_kmo[4]);
+          half_step_update(C_half_kpo, C1, i, j, k+1, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          //printf("Half step data: d: %e E: %e\n", C_half_kpo[0], C_half_kpo[4]);
+
+          // Recalculate the fluxes, again using piecewise constant reconstruction
+          // and update the conserved variables using the new first-order fluxes
+          full_step_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells, C_half, C_half_imo, C_half_ipo, C_half_jmo, C_half_jpo, C_half_kmo, C_half_kpo);
+          printf("Flux corrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
+
+          // And apply gravity
+          #ifdef STATIC_GRAV
+          Real gx, gy, gz;
+          gx = gy = gz = 0.0;
+          calc_g_3D(i, j, k, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
+          d_old = C1[id];
+          vx_old = C1[n_cells+id]/d_old;
+          vy_old = C1[2*n_cells+id]/d_old;
+          vz_old = C1[3*n_cells+id]/d_old;
+          C2[  n_cells + id] += 0.5*dt*gx*(d_old + d_new);
+          C2[2*n_cells + id] += 0.5*dt*gy*(d_old + d_new);
+          C2[3*n_cells + id] += 0.5*dt*gz*(d_old + d_new);
+          C2[4*n_cells + id] += 0.25*dt*gx*(d_old + d_new)*(vx_old + vx_new) 
+                              + 0.25*dt*gy*(d_old + d_new)*(vy_old + vy_new)
+                              + 0.25*dt*gz*(d_old + d_new)*(vz_old + vz_new);
+          #endif
+
+          d_new = C2[id];
+          vx_new = C2[n_cells+id]/d_new;
+          vy_new = C2[2*n_cells+id]/d_new;
+          vz_new = C2[3*n_cells+id]/d_new;
+          P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
+
+          // sync the interal and total energy
+          #ifdef DE
+          Real ge1, ge2, E, Emax;
+          E = C2[4*n_cells+id];
+          // separately tracked internal energy
+          ge1 = C2[5*n_cells+id];
+          // internal energy calculated from total energy
+          ge2 = P_new / (gama-1.0);
+          // if the ratio of conservatively calculated internal energy to total energy
+          // is greater than 1/1000, use the conservatively calculated internal energy
+          // to do the internal energy update
+          if (ge2/E > 0.001) {
+            C2[5*n_cells + id] = ge2;
+            ge1 = ge2;
+          }     
+          //find the max nearby total energy 
+          Emax = fmax(C2[4*n_cells + imo], E);
+          Emax = fmax(Emax, C2[4*n_cells + ipo]);
+          Emax = fmax(Emax, C2[4*n_cells + jmo]);
+          Emax = fmax(Emax, C2[4*n_cells + jpo]);
+          Emax = fmax(Emax, C2[4*n_cells + kmo]);
+          Emax = fmax(Emax, C2[4*n_cells + kpo]);
+          // if the ratio of conservatively calculated internal energy to max nearby total energy
+          // is greater than 1/10, continue to use the conservatively calculated internal energy 
+          if (ge2/Emax > 0.1) {
+            C2[5*n_cells + id] = ge2;
+          }
+          // sync the total energy with the internal energy 
+          else {
+            C2[4*n_cells + id] += ge1 - ge2;
+          }
+          // recalculate the pressure
+          P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
+          #endif          
+          printf("New density / pressure: d: %e p: %e\n", d_new, P_new);
+          if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED\n");
+
+        }
+
+      }
+    }
+  }
+
+
+
+}
+
+
+void fill_flux_array(Real *C1, int idl, int idr, Real cW[], int n_cells, int dir)
+{
+  int o1, o2, o3;
+  if (dir == 0) {
+    o1 = 1; o2 = 2; o3 = 3;
+  }
+  if (dir == 1) {
+    o1 = 2; o2 = 3; o3 = 1;
+  }
+  if (dir == 2) {
+    o1 = 3; o2 = 1; o3 = 2;
+  }
+
+  cW[0] = C1[idl];
+  cW[1] = C1[idr];
+  cW[2] = C1[o1*n_cells+idl];
+  cW[3] = C1[o1*n_cells+idr];
+  cW[4] = C1[o2*n_cells+idl];
+  cW[5] = C1[o2*n_cells+idr];
+  cW[6] = C1[o3*n_cells+idl];
+  cW[7] = C1[o3*n_cells+idr];
+  cW[8] = C1[4*n_cells+idl];
+  cW[9] = C1[4*n_cells+idr];
+  #ifdef DE
+  cW[10] = C1[5*n_cells+idl];
+  cW[11] = C1[5*n_cells+idr];
+  #endif
+
+}
+
+
+void fill_flux_array_2(Real C_half_l[], Real C_half_r[], Real cW[], int n_cells, int dir)
+{
+  int o1, o2, o3;
+  if (dir == 0) {
+    o1 = 1; o2 = 2; o3 = 3;
+  }
+  if (dir == 1) {
+    o1 = 2; o2 = 3; o3 = 1;
+  }
+  if (dir == 2) {
+    o1 = 3; o2 = 1; o3 = 2;
+  }
+
+  cW[0] = C_half_l[0];
+  cW[1] = C_half_r[0];
+  cW[2] = C_half_l[o1];
+  cW[3] = C_half_r[o1];
+  cW[4] = C_half_l[o2];
+  cW[5] = C_half_r[o2];
+  cW[6] = C_half_l[o3];
+  cW[7] = C_half_r[o3];
+  cW[8] = C_half_l[4];
+  cW[9] = C_half_r[4];
+  #ifdef DE
+  cW[10] = C_half_l[5];
+  cW[11] = C_half_r[5];
+  #endif
+}
+
+
+void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
+{
+  int id = i + j*nx + k*nx*ny;
+  int imo = i-1 + j*nx + k*nx*ny;
+  int ipo = i+1 + j*nx + k*nx*ny;
+  int jmo = i + (j-1)*nx + k*nx*ny;
+  int jpo = i + (j+1)*nx + k*nx*ny;
+  int kmo = i + j*nx + (k-1)*nx*ny;
+  int kpo = i + j*nx + (k+1)*nx*ny;
+
+  #ifdef DE
+  Real d, d_inv, vx, vy, vz, P, vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
+  d = C1[id];
+  d_inv = 1.0 / d;
+  vx = C1[1*n_cells+id]*d_inv;
+  vy = C1[2*n_cells+id]*d_inv;
+  vz = C1[3*n_cells+id]*d_inv;
+  P  = (C1[4*n_cells+id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gama - 1.0);
+  vx_imo = C1[1*n_cells + imo] / C1[imo]; 
+  vx_ipo = C1[1*n_cells + ipo] / C1[ipo]; 
+  vy_jmo = C1[2*n_cells + jmo] / C1[jmo]; 
+  vy_jpo = C1[2*n_cells + jpo] / C1[jpo]; 
+  vz_kmo = C1[3*n_cells + kmo] / C1[kmo]; 
+  vz_kpo = C1[3*n_cells + kpo] / C1[kpo]; 
+  #endif
+
+  Real cW[2*nfields];
+  Real F_Lx[nfields];
+  Real F_Rx[nfields];
+  Real F_Ly[nfields];
+  Real F_Ry[nfields];
+  Real F_Lz[nfields];
+  Real F_Rz[nfields];
+
+  // using piecewise constant reconstruction,
+  // calculate the first set of fluxes
+
+  // Lx
+  fill_flux_array(C1, imo, id, cW, n_cells, 0);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Lx, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Lx, gama, etah);
+  #endif
+  
+  // Rx
+  fill_flux_array(C1, id, ipo, cW, n_cells, 0);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Rx, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Rx, gama, etah);
+  #endif
+
+  // Ly
+  fill_flux_array(C1, jmo, id, cW, n_cells, 1);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Ly, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Ly, gama, etah);
+  #endif
+
+  // Ry
+  fill_flux_array(C1, id, jpo, cW, n_cells, 1);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Ry, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Ry, gama, etah);
+  #endif
+
+  // Lz
+  fill_flux_array(C1, kmo, id, cW, n_cells, 2);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Lz, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Lz, gama, etah);
+  #endif
+
+  // Rz
+  fill_flux_array(C1, id, kpo, cW, n_cells, 2);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Rz, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Rz, gama, etah);
+  #endif
+
+  // Update the conserved variables for the cell by a half step
+  C_half[0] = C1[id+0*n_cells] + 0.5*dtodx*(F_Lx[0] - F_Rx[0]) + 0.5*dtody*(F_Ly[0] - F_Ry[0]) + 0.5*dtodz*(F_Lz[0] - F_Rz[0]);
+  C_half[1] = C1[id+1*n_cells] + 0.5*dtodx*(F_Lx[1] - F_Rx[1]) + 0.5*dtody*(F_Ly[1] - F_Ry[1]) + 0.5*dtodz*(F_Lz[1] - F_Rz[1]);
+  C_half[2] = C1[id+2*n_cells] + 0.5*dtodx*(F_Lx[2] - F_Rx[2]) + 0.5*dtody*(F_Ly[2] - F_Ry[2]) + 0.5*dtodz*(F_Lz[2] - F_Rz[2]);
+  C_half[3] = C1[id+3*n_cells] + 0.5*dtodx*(F_Lx[3] - F_Rx[3]) + 0.5*dtody*(F_Ly[3] - F_Ry[3]) + 0.5*dtodz*(F_Lz[3] - F_Rz[3]);
+  C_half[4] = C1[id+4*n_cells] + 0.5*dtodx*(F_Lx[4] - F_Rx[4]) + 0.5*dtody*(F_Ly[4] - F_Ry[4]) + 0.5*dtodz*(F_Lz[4] - F_Rz[4]);
+  #ifdef DE
+  C_half[5] = C1[id+5*n_cells] + 0.5*dtodx*(F_Lx[5] - F_Rx[5]) + 0.5*dtody*(F_Ly[5] - F_Ry[5]) + 0.5*dtodz*(F_Lz[5] - F_Rz[5])
+            + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+  #endif
+
+
+}
+
+
+
+void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells, Real C_half[], Real C_half_imo[], Real C_half_ipo[], Real C_half_jmo[], Real C_half_jpo[], Real C_half_kmo[], Real C_half_kpo[])
+{
+  int id = i + j*nx + k*nx*ny;
+  int imo = i-1 + j*nx + k*nx*ny;
+  int ipo = i+1 + j*nx + k*nx*ny;
+  int jmo = i + (j-1)*nx + k*nx*ny;
+  int jpo = i + (j+1)*nx + k*nx*ny;
+  int kmo = i + j*nx + (k-1)*nx*ny;
+  int kpo = i + j*nx + (k+1)*nx*ny;
+
+  Real cW[2*nfields];
+  Real F_Lx[nfields];
+  Real F_Rx[nfields];
+  Real F_Ly[nfields];
+  Real F_Ry[nfields];
+  Real F_Lz[nfields];
+  Real F_Rz[nfields];
+
+  #ifdef DE
+  Real d, d_inv, vx, vy, vz, P, vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
+  d = C1[id];
+  d_inv = 1.0 / d;
+  vx = C1[1*n_cells+id]*d_inv;
+  vy = C1[2*n_cells+id]*d_inv;
+  vz = C1[3*n_cells+id]*d_inv;
+  P  = (C1[4*n_cells+id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gama - 1.0);
+  vx_imo = C1[1*n_cells + imo] / C1[imo]; 
+  vx_ipo = C1[1*n_cells + ipo] / C1[ipo]; 
+  vy_jmo = C1[2*n_cells + jmo] / C1[jmo]; 
+  vy_jpo = C1[2*n_cells + jpo] / C1[jpo]; 
+  vz_kmo = C1[3*n_cells + kmo] / C1[kmo]; 
+  vz_kpo = C1[3*n_cells + kpo] / C1[kpo]; 
+  #endif
+
+
+  // using piecewise constant reconstruction,
+  // calculate the second set of fluxes
+
+  // Lx
+  fill_flux_array_2(C_half_imo, C_half, cW, n_cells, 0);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Lx, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Lx, gama, etah);
+  #endif
+  
+  // Rx
+  fill_flux_array_2(C_half, C_half_ipo, cW, n_cells, 0);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Rx, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Rx, gama, etah);
+  #endif
+
+  // Ly
+  fill_flux_array_2(C_half_jmo, C_half, cW, n_cells, 1);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Ly, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Ly, gama, etah);
+  #endif
+
+  // Ry
+  fill_flux_array_2(C_half, C_half_jpo, cW, n_cells, 1);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Ry, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Ry, gama, etah);
+  #endif
+
+  // Lz
+  fill_flux_array_2(C_half_kmo, C_half, cW, n_cells, 2);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Lz, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Lz, gama, etah);
+  #endif
+
+  // Rz
+  fill_flux_array_2(C_half, C_half_kpo, cW, n_cells, 2);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Rz, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Rz, gama, etah);
+  #endif
+
+
+  // Update the conserved variables for the cell by a full step
+  C2[id+0*n_cells] = C1[id+0*n_cells] + dtodx*(F_Lx[0] - F_Rx[0]) + dtody*(F_Ly[0] - F_Ry[0]) + dtodz*(F_Lz[0] - F_Rz[0]);
+  C2[id+1*n_cells] = C1[id+1*n_cells] + dtodx*(F_Lx[1] - F_Rx[1]) + dtody*(F_Ly[1] - F_Ry[1]) + dtodz*(F_Lz[1] - F_Rz[1]);
+  C2[id+2*n_cells] = C1[id+2*n_cells] + dtodx*(F_Lx[2] - F_Rx[2]) + dtody*(F_Ly[2] - F_Ry[2]) + dtodz*(F_Lz[2] - F_Rz[2]);
+  C2[id+3*n_cells] = C1[id+3*n_cells] + dtodx*(F_Lx[3] - F_Rx[3]) + dtody*(F_Ly[3] - F_Ry[3]) + dtodz*(F_Lz[3] - F_Rz[3]);
+  C2[id+4*n_cells] = C1[id+4*n_cells] + dtodx*(F_Lx[4] - F_Rx[4]) + dtody*(F_Ly[4] - F_Ry[4]) + dtodz*(F_Lz[4] - F_Rz[4]);
+  #ifdef DE
+  C2[id+5*n_cells] = C1[id+4*n_cells] + dtodx*(F_Lx[5] - F_Rx[5]) + dtody*(F_Ly[5] - F_Ry[5]) + dtodz*(F_Lz[5] - F_Rz[5])
+                   + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+  #endif
+
+
+}
+
+
+
+void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz)
+{
+  Real x_pos, y_pos, z_pos, r_disk, r_halo;
+  // use the offsets and global boundaries to calculate absolute positions on the grid
+  x_pos = (x_off + xid - n_ghost + 0.5)*dx + xbound;
+  y_pos = (y_off + yid - n_ghost + 0.5)*dy + ybound;
+  z_pos = (z_off + zid - n_ghost + 0.5)*dz + zbound;
+
+  // for disk components, calculate polar r
+  r_disk = sqrt(x_pos*x_pos + y_pos*y_pos);
+  // for halo, calculate spherical r
+  r_halo = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
+
+  // set properties of halo and disk (these must match initial conditions)
+  Real a_disk_r, a_disk_z, a_halo, a_halo_r, a_halo_z;
+  Real M_vir, M_d, R_vir, R_d, z_d, R_h, M_h, c_vir, phi_0_h, x;
+  M_vir = 5.0e10; // viral mass of in M_sun
+  M_d = 1.0e10; // mass of disk in M_sun
+  M_h = M_vir - M_d; // halo mass in M_sun
+  R_d = 0.8; // disk scale length in kpc
+  z_d = 0.15; // disk scale height in kpc
+  R_vir = R_d/0.015; // viral radius in kpc
+  c_vir = 10.0; // halo concentration
+  R_h = R_vir / c_vir; // halo scale length in kpc
+  phi_0_h = GN * M_h / (log(1.0+c_vir) - c_vir / (1.0+c_vir));
+  x = r_halo / R_h;
+  
+  // calculate acceleration due to NFW halo & Miyamoto-Nagai disk
+  a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
+  a_halo_r = a_halo*(r_disk/r_halo);
+  a_halo_z = a_halo*(z_pos/r_halo);
+  a_disk_r = - GN * M_d * r_disk * pow(r_disk*r_disk+ pow(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
+  a_disk_z = - GN * M_d * z_pos * (R_d + sqrt(z_pos*z_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d), 2), 1.5) * sqrt(z_pos*z_pos + z_d*z_d) );
+
+  // total acceleration is the sum of the halo + disk components
+  *gx = (x_pos/r_disk)*(a_disk_r+a_halo_r);
+  *gy = (y_pos/r_disk)*(a_disk_r+a_halo_r);
+  *gz = a_disk_z+a_halo_z;
+
+}
+

@@ -28,6 +28,7 @@
 #include "mpi_routines.h"
 #endif
 #include <stdio.h>
+#include "flux_correction.h"
 
 
 
@@ -132,6 +133,9 @@ void Grid3D::Initialize(struct parameters *P)
     flag_init = 1;
   }
 
+  // Set the flag that tells Update_Grid which buffer to read from
+  gflag = 0;
+
   // Set header variables for time within the simulation
   H.t = 0.0;
   // and the number of timesteps taken
@@ -157,25 +161,29 @@ void Grid3D::AllocateMemory(void)
 
   // if using dual energy formalism must track internal energy
   #ifdef DE
-  fields = 6;
+  fields++;
   #endif
 
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
-  C.density  = (Real *) malloc(fields*H.n_cells*sizeof(Real));
-  // point momentum and Energy to the appropriate locations in density array
-  C.momentum_x = &(C.density[H.n_cells]);
-  C.momentum_y = &(C.density[2*H.n_cells]);
-  C.momentum_z = &(C.density[3*H.n_cells]);
-  C.Energy   = &(C.density[4*H.n_cells]);
+  buffer0 = (Real *) malloc(fields*H.n_cells*sizeof(Real));
+  buffer1 = (Real *) malloc(fields*H.n_cells*sizeof(Real));
+
+  // point conserved variables to the appropriate locations in buffer
+  C.density  = &(buffer0[0]);
+  C.momentum_x = &(buffer0[H.n_cells]);
+  C.momentum_y = &(buffer0[2*H.n_cells]);
+  C.momentum_z = &(buffer0[3*H.n_cells]);
+  C.Energy   = &(buffer0[4*H.n_cells]);
   #ifdef DE
-  C.GasEnergy = &(C.density[5*H.n_cells]);
+  C.GasEnergy = &(buffer0[5*H.n_cells]);
   #endif
 
   // initialize array
   for (int i=0; i<fields*H.n_cells; i++)
   {
-    C.density[i] = 0.0;
+    buffer0[i] = 0.0;
+    buffer1[i] = 0.0;
   }
 
 }
@@ -297,6 +305,17 @@ Real Grid3D::calc_dti_CPU(Real C_cfl)
  *  \brief Update the conserved quantities in each cell. */
 Real Grid3D::Update_Grid(void)
 {
+  Real *g0, *g1;
+  if (gflag == 0) {
+    g0 = &(buffer0[0]);
+    g1 = &(buffer1[0]);
+  }
+  else {
+    g0 = &(buffer1[0]);
+    g1 = &(buffer0[0]);
+  }
+
+
   Real max_dti = 0;
   int x_off, y_off, z_off;
 
@@ -370,7 +389,8 @@ Real Grid3D::Update_Grid(void)
     max_dti = CTU_Algorithm_3D_CUDA(&(C.density[0]), H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(&(C.density[0]), H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
     #endif //VL
     #endif    
   }
@@ -379,6 +399,20 @@ Real Grid3D::Update_Grid(void)
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(1);
   }
+
+  // at this point g0 has the old data, g1 has the new data
+  // point the grid variables at the new data
+  C.density  = &g1[0];
+  C.momentum_x = &g1[H.n_cells];
+  C.momentum_y = &g1[2*H.n_cells];
+  C.momentum_z = &g1[3*H.n_cells];
+  C.Energy   = &g1[4*H.n_cells];
+  #ifdef DE
+  C.GasEnergy = &g1[5*H.n_cells];
+  #endif
+
+  // reset the grid flag to swap buffers
+  gflag = (gflag+1)%2;
 
 
   return max_dti;
@@ -513,7 +547,8 @@ void Grid3D::Reset(void)
  *  \brief Free the memory allocated by the Grid3D class. */
 void Grid3D::FreeMemory(void)
 {
-  // free the conserved variable array
-  free(C.density);
+  // free the conserved variable arrays
+  free(buffer0);
+  free(buffer1);
 
 }

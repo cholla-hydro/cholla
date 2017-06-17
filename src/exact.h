@@ -1,8 +1,6 @@
 /*! \file exact.h
  *  \brief Header file for Toro exact Riemann solver. */
 
-#ifndef CUDA
- 
 #ifndef EXACT_H
 #define EXACT_H
  
@@ -43,5 +41,3 @@ void sample(const Real pm, const Real vm,
  
  
 #endif //EXACT_H
-
-#endif //CUDA

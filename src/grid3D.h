@@ -137,10 +137,21 @@ class Grid3D
      *  \brief Initialization flag */
     int flag_init;
 
+    /*! \var gflag
+     *  \brief Flag that determines which buffer contains updated conserved variables */
+    int gflag;
+
     /*! \var struct Header H
      *  \brief Header for the grid */
     struct Header H;
 
+    /*! \var buffer0
+     *  \brief Buffer to hold conserved variable arrays */
+    Real *buffer0;
+
+    /*! \var buffer1
+     *  \brief Buffer to hold conserved variable arrays */
+    Real *buffer1;
 
     struct Conserved
     {

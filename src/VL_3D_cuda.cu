@@ -24,7 +24,7 @@
 #include"subgrid_routines_3D.h"
 
 
-Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt)
+Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt)
 {
 
   //Here, *host_conserved contains the entire
@@ -36,32 +36,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_of
   n_fields++;
   #endif
 
-  // dimensions of subgrid blocks
-  int nx_s; //number of cells in the subgrid block along x direction
-  int ny_s; //number of cells in the subgrid block along y direction
-  int nz_s; //number of cells in the subgrid block along z direction
-  int x_off_s, y_off_s, z_off_s; // x, y, and z offsets for subgrid block
-  
-
-  // total number of blocks needed
-  int block_tot;    //total number of subgrid blocks (unsplit == 1)
-  int block1_tot;   //total number of subgrid blocks in x direction
-  int block2_tot;   //total number of subgrid blocks in y direction
-  int block3_tot;   //total number of subgrid blocks in z direction 
-  int remainder1;   //modulus of number of cells after block subdivision in x direction
-  int remainder2;   //modulus of number of cells after block subdivision in y direction 
-  int remainder3;   //modulus of number of cells after block subdivision in z direction
-
-  // counter for which block we're on
-  int block = 0;
-
-  // calculate the dimensions for each subgrid block
-  sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
-  block_tot = block1_tot*block2_tot*block3_tot;
-
-  // number of cells in one subgrid block
-  int BLOCK_VOL = nx_s*ny_s*nz_s;
-
+  // number of cells
+  int BLOCK_VOL = nx*ny*nz;
 
   // define the dimensions for the 1D grid
   int  ngrid = (BLOCK_VOL + TPB - 1) / TPB;
@@ -73,12 +49,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_of
   dim3 dim1dBlock(TPB, 1, 1);
 
 
-  // allocate buffer arrays to copy conserved variable slices into
-  Real **buffer;
-  allocate_buffers_3D(block1_tot, block2_tot, block3_tot, BLOCK_VOL, buffer, n_fields);
-  // and set up pointers for the location to copy from and to
-  Real *tmp1;
-  Real *tmp2;
+  // Set up pointers for the location to copy from and to
+  Real *tmp1 = host_conserved0;
+  Real *tmp2 = host_conserved1;
 
 
   // allocate an array on the CPU to hold max_dti returned from each thread block
@@ -116,168 +89,146 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved, int nx, int ny, int nz, int x_of
   CudaSafeCall( cudaMalloc((void**)&etah_z, BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
 
-  // transfer first conserved variable slice into the first buffer
-  host_copy_init_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, &tmp1, &tmp2, n_fields);
+  // zero the GPU arrays
+  cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(dev_conserved_half, 0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Lx,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Rx,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Ly,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Ry,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Lz,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(Q_Rz,  0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(F_x,   0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(F_y,   0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(F_z,   0, n_fields*BLOCK_VOL*sizeof(Real));
+  cudaMemset(eta_x,  0, BLOCK_VOL*sizeof(Real));
+  cudaMemset(eta_y,  0, BLOCK_VOL*sizeof(Real));
+  cudaMemset(eta_z,  0, BLOCK_VOL*sizeof(Real));
+  cudaMemset(etah_x, 0, BLOCK_VOL*sizeof(Real));
+  cudaMemset(etah_y, 0, BLOCK_VOL*sizeof(Real));
+  cudaMemset(etah_z, 0, BLOCK_VOL*sizeof(Real));
+  cudaMemset(dev_dti_array, 0, ngrid*sizeof(Real));  
+  CudaCheckError();
 
 
-  // START LOOP OVER SUBGRID BLOCKS HERE
-  while (block < block_tot) {
+  // copy the conserved variables onto the GPU
+  CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
+  
 
-    // calculate the global x, y, and z offsets of this subgrid block
-    // (only needed for gravitational potential)
-    get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
-    
-
-    // zero the GPU arrays
-    cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(dev_conserved_half, 0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Lx,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Rx,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Ly,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Ry,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Lz,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Rz,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_x,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_y,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_z,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_x,  0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_y,  0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_z,  0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_x, 0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_y, 0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_z, 0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(dev_dti_array, 0, ngrid*sizeof(Real));  
-    CudaCheckError();
+  // Step 1: Use PCM reconstruction to put primitive variables into interface arrays
+  PCM_Reconstruction_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama);
+  CudaCheckError();
 
 
-    // copy the conserved variables onto the GPU
-    CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-    
-
-    // Step 1: Use PCM reconstruction to put primitive variables into interface arrays
-    PCM_Reconstruction_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama);
-    CudaCheckError();
-
-
-    // Step 2: Calculate first-order upwind fluxes 
-    #ifdef EXACT
-    Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2);
-    #endif //EXACT
-    #ifdef ROE
-    Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
-    Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-    Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2);
-    #endif //ROE
-    CudaCheckError();
+  // Step 2: Calculate first-order upwind fluxes 
+  #ifdef EXACT
+  Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0);
+  Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1);
+  Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2);
+  #endif //EXACT
+  #ifdef ROE
+  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0);
+  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, etah_y, 1);
+  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, etah_z, 2);
+  #endif //ROE
+  CudaCheckError();
 
 
-    // Step 3: Update the conserved variables half a timestep 
-    Update_Conserved_Variables_3D_half<<<dim1dGrid,dim1dBlock>>>(dev_conserved, dev_conserved_half, F_x, F_y, F_z, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, 0.5*dt, gama);
-    CudaCheckError();
+  // Step 3: Update the conserved variables half a timestep 
+  Update_Conserved_Variables_3D_half<<<dim1dGrid,dim1dBlock>>>(dev_conserved, dev_conserved_half, F_x, F_y, F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5*dt, gama);
+  CudaCheckError();
 
 
-    // Step 4: Construct left and right interface values using updated conserved variables
-    #ifdef PCM
-    PCM_Reconstruction_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama);
-    #endif
-    #ifdef PLMP
-    PLMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    PLMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    PLMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, 2);
-    #endif //PLMP 
-    #ifdef PLMC
-    PLMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    PLMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    PLMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, 2);  
-    #endif
-    #ifdef PPMP
-    PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, 2);
-    #endif //PPMP
-    #ifdef PPMC
-    PPMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    PPMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    PPMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, 2);
-    #endif //PPMC
-    CudaCheckError();
-    
+  // Step 4: Construct left and right interface values using updated conserved variables
+  #ifdef PCM
+  PCM_Reconstruction_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama);
+  #endif
+  #ifdef PLMP
+  PLMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, gama, 0);
+  PLMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, gama, 1);
+  PLMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, 2);
+  #endif //PLMP 
+  #ifdef PLMC
+  PLMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, gama, 0);
+  PLMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, gama, 1);
+  PLMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, 2);  
+  #endif
+  #ifdef PPMP
+  PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, gama, 0);
+  PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, gama, 1);
+  PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, 2);
+  #endif //PPMP
+  #ifdef PPMC
+  PPMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, gama, 0);
+  PPMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, gama, 1);
+  PPMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, 2);
+  #endif //PPMC
+  CudaCheckError();
+  
 
-    #ifdef H_CORRECTION
-    // Step 4.5: Calculate eta values for H correction
-    calc_eta_x_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, eta_x, nx_s, ny_s, nz_s, n_ghost, gama);
-    calc_eta_y_3D<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, eta_y, nx_s, ny_s, nz_s, n_ghost, gama);
-    calc_eta_z_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, eta_z, nx_s, ny_s, nz_s, n_ghost, gama);
-    CudaCheckError();
-    // and etah values for each interface
-    calc_etah_x_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_x, nx_s, ny_s, nz_s, n_ghost);
-    calc_etah_y_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_y, nx_s, ny_s, nz_s, n_ghost);
-    calc_etah_z_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_z, nx_s, ny_s, nz_s, n_ghost);
-    CudaCheckError();
-    #endif //H_CORRECTION
-
-
-    // Step 5: Calculate the fluxes again
-    #ifdef EXACT
-    Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    Calculate_Exact_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2);
-    #endif //EXACT
-    #ifdef ROE
-    Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
-    Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-    Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2);
-    #endif //ROE
-    CudaCheckError();
+  #ifdef H_CORRECTION
+  // Step 4.5: Calculate eta values for H correction
+  calc_eta_x_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, eta_x, nx, ny, nz, n_ghost, gama);
+  calc_eta_y_3D<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, eta_y, nx, ny, nz, n_ghost, gama);
+  calc_eta_z_3D<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, eta_z, nx, ny, nz, n_ghost, gama);
+  CudaCheckError();
+  // and etah values for each interface
+  calc_etah_x_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_x, nx, ny, nz, n_ghost);
+  calc_etah_y_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_y, nx, ny, nz, n_ghost);
+  calc_etah_z_3D<<<dim1dGrid,dim1dBlock>>>(eta_x, eta_y, eta_z, etah_z, nx, ny, nz, n_ghost);
+  CudaCheckError();
+  #endif //H_CORRECTION
 
 
-    // Step 6: Update the conserved variable array
-    Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, F_z, nx_s, ny_s, nz_s, x_off_s, y_off_s, z_off_s, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama);
-    CudaCheckError();
-
-    #ifdef DE
-    Sync_Energies_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama);
-    #endif
-
-    // Apply cooling
-    #ifdef COOLING_GPU
-    cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
-    #endif
-
-    
-    // Step 7: Calculate the next time step
-    Calc_dt_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama);
-    CudaCheckError();
-
-    // copy the updated conserved variable array back to the CPU
-    CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-
-    // copy the next conserved variable blocks into appropriate buffers
-    host_copy_next_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer, &tmp1, n_fields);
-
-    // copy the updated conserved variable array back into the host_conserved array on the CPU
-    host_return_values_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved, buffer, n_fields);
+  // Step 5: Calculate the fluxes again
+  #ifdef EXACT
+  Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0);
+  Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1);
+  Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2);
+  #endif //EXACT
+  #ifdef ROE
+  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0);
+  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, etah_y, 1);
+  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, etah_z, 2);
+  #endif //ROE
+  CudaCheckError();
 
 
-    // copy the dti array onto the CPU
-    CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-    // iterate through to find the maximum inverse dt for this subgrid block
-    for (int i=0; i<ngrid; i++) {
-      max_dti = fmax(max_dti, host_dti_array[i]);
-    }
+  // Step 6: Update the conserved variable array
+  Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, F_z, nx, ny, nz, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama);
+  CudaCheckError();
+
+  #ifdef DE
+  Sync_Energies_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx, ny, nz, n_ghost, gama);
+  CudaCheckError();
+  #endif
+
+  // Apply cooling
+  #ifdef COOLING_GPU
+  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
+  CudaCheckError();
+  #endif
+
+  
+  // Step 7: Calculate the next time step
+  Calc_dt_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dx, dy, dz, dev_dti_array, gama);
+  CudaCheckError();
 
 
-    // add one to the counter
-    block++;
+  // copy the updated conserved variable array back to the CPU
+  CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
 
+
+  // copy the dti array onto the CPU
+  CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+  // iterate through to find the maximum inverse dt for this subgrid block
+  for (int i=0; i<ngrid; i++) {
+    max_dti = fmax(max_dti, host_dti_array[i]);
   }
+
 
   // free CPU memory
   free(host_dti_array);  
-  free_buffers_3D(nx, ny, nz, nx_s, ny_s, nz_s, block1_tot, block2_tot, block3_tot, buffer);
-
 
   // free the GPU memory
   cudaFree(dev_conserved);
