@@ -396,12 +396,11 @@ Real Grid3D::Add_Supernovae(void)
   //E1 = 1.0e42; // energy input rate, in erg/s
   //M2 = 1.0e3; // mass input rate, in M_sun / kyr
   //E2 = 1.0e43; // energy input rate, in erg/s
-  //M1 = 2.0e3;
-  //E1 = 2.6e42;
-  M1 = 2.0e3;
-  E1 = 2.6e42;
-  M2 = 2.0e3;
-  E2 = 2.6e42;
+  M1 = 2.7e3; // mass input rate, in M_sun / kyr
+  E1 = 2.75e42; // energy input rate, in erg/s
+  M2 = M1; // mass input rate, in M_sun / kyr
+  E2 = E1; // energy input rate, in erg/s
+  M_dot = 0.0;
   M_dot = 0.0;
   E_dot = 0.0;
 
