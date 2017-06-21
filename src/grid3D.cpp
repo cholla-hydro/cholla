@@ -292,7 +292,7 @@ Real Grid3D::calc_dti_CPU(Real C_cfl)
   } 
   else {
     chprintf("Invalid grid dimensions. Failed to compute dt.\n");
-    chexit(0);
+    chexit(-1);
   }
 
   return max_dti;
@@ -338,7 +338,7 @@ Real Grid3D::Update_Grid(void)
     #endif //not_VL
     #ifdef VL
     chprintf("VL algorithm not implemented in non-cuda version.");
-    chexit(1);
+    chexit(-1);
     #endif //VL
     #endif //not_CUDA
 
@@ -359,7 +359,7 @@ Real Grid3D::Update_Grid(void)
     #endif //not_VL
     #ifdef VL
     chprintf("VL algorithm not implemented in non-cuda version.");
-    chexit(1);    
+    chexit(-1);    
     #endif //VL
     #endif //not_CUDA
 
@@ -380,7 +380,7 @@ Real Grid3D::Update_Grid(void)
     #endif //not_VL
     #ifdef VL
     chprintf("VL algorithm not implemented in non-cuda version.");
-    chexit(1);    
+    chexit(-1);    
     #endif //VL
     #endif //not_CUDA
 
@@ -397,7 +397,7 @@ Real Grid3D::Update_Grid(void)
   else
   {
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
-    chexit(1);
+    chexit(-1);
   }
 
   // at this point g0 has the old data, g1 has the new data

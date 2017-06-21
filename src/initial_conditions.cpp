@@ -58,7 +58,7 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
     Read_Grid(P);    
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
-    chexit(0);
+    chexit(-1);
   }
 
 }

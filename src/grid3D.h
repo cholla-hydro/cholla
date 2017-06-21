@@ -251,6 +251,10 @@ class Grid3D
     /*! \fn void Write_Grid_HDF5(hid_t file_id)
      *  \brief Write the grid to a file, at the current simulation time. */
     void Write_Grid_HDF5(hid_t file_id);
+
+    /*! \fn void Write_Projection_HDF5(hid_t file_id)
+     *  \brief Write projected density and temperature data to a file. */
+    void Grid3D::Write_Projection_HDF5(hid_t file_id);    
 #endif
 
     /*! \fn void Read_Grid(struct parameters P)

@@ -43,7 +43,7 @@ void OutputData(Grid3D G, struct parameters P, int nfile)
   #if defined BINARY
   FILE *out;
   out = fopen(filename, "w");
-  if(out == NULL) {printf("Error opening output file.\n"); exit(0); }
+  if(out == NULL) {printf("Error opening output file.\n"); exit(-1); }
 
   // write the header to the output file
   G.Write_Header_Binary(out);
@@ -70,6 +70,8 @@ void OutputData(Grid3D G, struct parameters P, int nfile)
 
   // close the file
   status = H5Fclose(file_id);
+
+  if (status < 0) {printf("File write failed.\n"); exit(-1); }
   #endif
 }
 
@@ -532,7 +534,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     int       ny_dset = H.ny_real;
     int       nz_dset = H.nz_real;
     hsize_t   dims[3];
-    dataset_buffer = (Real *) malloc(H.nz_real*H.ny_real*H.nx_real*sizeof(Real));
+    dataset_buffer = (Real *) malloc(H.nx_real*H.ny_real*H.ny_real*sizeof(Real));
 
     // Create the data space for the datasets
     dims[0] = nx_dset;
@@ -657,8 +659,125 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   free(dataset_buffer);
 
 }
-#endif
 
+/*! \fn void Write_Projection_HDF5(hid_t file_id)
+ *  \brief Write projected density and temperature data to a file, at the current simulation time. */
+void Grid3D::Write_Projection_HDF5(hid_t file_id)
+{
+  int i, j, k, id, buf_id;
+  hid_t     dataset_id, dataspace_xy_id, dataspace_xz_id; 
+  Real      *dataset_buffer_dxy, *dataset_buffer_dxz;
+  Real      *dataset_buffer_Txy, *dataset_buffer_Txz;
+  herr_t    status;
+  Real dxy, dxz, Txy, Txz, n, T;
+  n = T = 0;
+
+  // 3D 
+  if (H.nx>1 && H.ny>1 && H.nz>1) {
+
+    int       nx_dset = H.nx_real;
+    int       ny_dset = H.ny_real;
+    int       nz_dset = H.nz_real;
+    hsize_t   dims[2];
+    dataset_buffer_dxy = (Real *) malloc(H.nx_real*H.ny_real*sizeof(Real));
+    dataset_buffer_dxz = (Real *) malloc(H.nx_real*H.nz_real*sizeof(Real));
+    dataset_buffer_Txy = (Real *) malloc(H.nx_real*H.ny_real*sizeof(Real));
+    dataset_buffer_Txz = (Real *) malloc(H.nx_real*H.nz_real*sizeof(Real));
+
+    // Create the data space for the datasets
+    dims[0] = nx_dset;
+    dims[1] = ny_dset;
+    dataspace_xy_id = H5Screate_simple(2, dims, NULL);
+    dims[1] = nz_dset;
+    dataspace_xz_id = H5Screate_simple(2, dims, NULL);
+
+    // Copy the xy density and temperature projections to the memory buffer
+    for (j=0; j<H.ny_real; j++) {
+      for (i=0; i<H.nx_real; i++) {
+        dxy = 0;
+        Txy = 0;
+        // for each xy element, sum over the z column
+        for (k=0; k<H.nz_real; k++) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          // sum density
+          dxy += C.density[id]*H.dz;
+          // calculate number density
+          n = C.density[id]*DENSITY_UNIT/MP;
+          // calculate temperature
+          #ifdef DE
+          T = C.GasEnergy[id]*PRESSURE_UNIT*(gamma-1.0) / (n*KB);
+          #endif
+          Txy += T*C.density[id]*H.dz;
+        }
+        buf_id = j + i*H.ny_real;
+        dataset_buffer_dxy[buf_id] = dxy;
+        dataset_buffer_Txy[buf_id] = Txy;
+      }
+    }
+
+    // Copy the xz density and temperature projections to the memory buffer
+    for (k=0; k<H.nz_real; k++) {
+      for (i=0; i<H.nx_real; i++) {
+        dxz = 0;
+        // for each xz element, sum over the y column
+        for (j=0; j<H.ny_real; j++) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          // sum density
+          dxz += C.density[id]*H.dy;
+          // calculate number density
+          n = C.density[id]*DENSITY_UNIT/MP;
+          // calculate temperature
+          #ifdef DE
+          T = C.GasEnergy[id]*PRESSURE_UNIT*(gamma-1.0) / (n*KB);
+          #endif
+          Txz += T*C.density[id]*H.dz;
+        }
+        buf_id = k + i*H.nz_real;
+        dataset_buffer_dxz[buf_id] = dxz;
+        dataset_buffer_Txz[buf_id] = Txz;
+      }
+    }
+    
+
+    // Create a dataset id for projected xy density
+    dataset_id = H5Dcreate(file_id, "/d_xy", H5T_IEEE_F64BE, dataspace_xy_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    // Write the projected density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_xy); 
+    // Free the dataset id
+    status = H5Dclose(dataset_id);
+
+    // Create a dataset id for projected xz density
+    dataset_id = H5Dcreate(file_id, "/d_xz", H5T_IEEE_F64BE, dataspace_xz_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    // Write the projected density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_xz); 
+    // Free the dataset id
+    status = H5Dclose(dataset_id);
+
+    // Create a dataset id for projected xy temperature 
+    dataset_id = H5Dcreate(file_id, "/T_xy", H5T_IEEE_F64BE, dataspace_xy_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    // Write the projected temperature array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_Txy); 
+    // Free the dataset id
+    status = H5Dclose(dataset_id);
+
+    // Create a dataset id for projected xz density
+    dataset_id = H5Dcreate(file_id, "/T_xz", H5T_IEEE_F64BE, dataspace_xz_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    // Write the projected temperature array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_Txz); 
+    // Free the dataset id
+    status = H5Dclose(dataset_id);    
+
+  }
+  else printf("Projection write only implemented for 3D data.\n");
+
+  free(dataset_buffer_dxy);
+  free(dataset_buffer_dxz);
+  free(dataset_buffer_Txy);
+  free(dataset_buffer_Txz);
+
+}
+
+#endif
 
 
 /*! \fn void Read_Grid(struct parameters P)

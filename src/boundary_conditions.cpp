@@ -80,7 +80,7 @@ int Grid3D::Check_Custom_Boundary(int *flags, struct parameters P)
     if (!( (flags[i]>=0)&&(flags[i]<=5) ) )
     {
       chprintf("Invalid boundary conditions. Must select between 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi).\n");
-      chexit(0);
+      chexit(-1);
     }
     if (flags[i] == 4) {
       /*custom boundaries*/

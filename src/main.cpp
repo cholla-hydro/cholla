@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
   if (argc != 2)
   {
     chprintf("usage: %s <parameter_file>\n", argv[0]);
-    chexit(0);
+    chexit(-1);
   } else {
     param_file = argv[1];
   }
@@ -218,8 +218,7 @@ int main(int argc, char *argv[])
           int id = i + j*G.H.nx + k*G.H.nx*G.H.ny;
           if (G.C.density[id] < 0.0 || G.C.density[id] != G.C.density[id]) {
             printf("Failure in cell %d %d %d. Density %e\n", i, j, k, G.C.density[id]);
-            MPI_Finalize();
-            chexit(0);
+            chexit(-1);
           }
         }
       }
