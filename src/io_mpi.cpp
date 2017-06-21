@@ -8,6 +8,7 @@
 #endif
 #include"io.h"
 #include"mpi_routines.h"
+#include"error_handling.h"
 #define PROJECTION
 
 /* Output the grid data to file. */
@@ -76,8 +77,8 @@ void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
 
   // create the filename
   strcpy(filename, P.outdir); 
-  sprintf(timestep, "%d", nfile);
-  strcat(filename,timestep,"_proj");   
+  sprintf(timestep, "%d_proj", nfile);
+  strcat(filename,timestep);   
   strcat(filename,".h5");
   sprintf(filename,"%s.%d",filename,procID);
 

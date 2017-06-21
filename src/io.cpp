@@ -705,7 +705,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           n = C.density[id]*DENSITY_UNIT/MP;
           // calculate temperature
           #ifdef DE
-          T = C.GasEnergy[id]*PRESSURE_UNIT*(gamma-1.0) / (n*KB);
+          T = C.GasEnergy[id]*PRESSURE_UNIT*(gama-1.0) / (n*KB);
           #endif
           Txy += T*C.density[id]*H.dz;
         }
@@ -719,6 +719,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     for (k=0; k<H.nz_real; k++) {
       for (i=0; i<H.nx_real; i++) {
         dxz = 0;
+        Txz = 0;
         // for each xz element, sum over the y column
         for (j=0; j<H.ny_real; j++) {
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
@@ -728,9 +729,9 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           n = C.density[id]*DENSITY_UNIT/MP;
           // calculate temperature
           #ifdef DE
-          T = C.GasEnergy[id]*PRESSURE_UNIT*(gamma-1.0) / (n*KB);
+          T = C.GasEnergy[id]*PRESSURE_UNIT*(gama-1.0) / (n*KB);
           #endif
-          Txz += T*C.density[id]*H.dz;
+          Txz += T*C.density[id]*H.dy;
         }
         buf_id = k + i*H.nz_real;
         dataset_buffer_dxz[buf_id] = dxz;
@@ -742,14 +743,14 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     // Create a dataset id for projected xy density
     dataset_id = H5Dcreate(file_id, "/d_xy", H5T_IEEE_F64BE, dataspace_xy_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     // Write the projected density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_xy); 
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_dxy); 
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
     // Create a dataset id for projected xz density
     dataset_id = H5Dcreate(file_id, "/d_xz", H5T_IEEE_F64BE, dataspace_xz_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     // Write the projected density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_xz); 
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_dxz); 
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
