@@ -4,22 +4,22 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=256
+nx=1024
 # number of grid cells in the y dimension
-ny=256
+ny=1024
 # number of grid cells in the z dimension
-nz=256
+nz=1024
 # final output time
-tout=20000
+tout=150000
 #tout=0
 # time interval for output
-outstep=1000
+outstep=250
 # value of gamma
 gamma=1.6666667
 # name of initial conditions
-init=Disk_3D
-#init=Read_Grid
-#nfile=303
+#init=Disk_3D
+init=Read_Grid
+nfile=439
 # domain properties
 xmin=-5
 ymin=-5
@@ -39,5 +39,5 @@ custom_bcnd=disk_3D
 #outdir=/Volumes/data1/evan/data/disk_3D/64/hdf5/
 #outdir=/gsfs1/rsgrps/brant/evan/data/disk_3D/128/hdf5/
 #outdir=/Users/evan/Desktop/data/disk_3D/m82/128/hdf5/
-outdir=/lustre/atlas/proj-shared/ast125/data/disk_3D/m82_outflow/256_ptest/hdf5/raw/
+outdir=/lustre/atlas/proj-shared/ast125/data/disk_3D/m82_outflow/1024/hdf5/raw/
 
