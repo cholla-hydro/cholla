@@ -56,17 +56,19 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           //printf("Uncorrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
           P_old = P_new;
 
-          Real C_half[nfields];
-          Real C_half_imo[nfields];
-          Real C_half_ipo[nfields];
-          Real C_half_jmo[nfields];
-          Real C_half_jpo[nfields];
-          Real C_half_kmo[nfields];
-          Real C_half_kpo[nfields];
+          //Real C_half[nfields];
+          //Real C_half_imo[nfields];
+          //Real C_half_ipo[nfields];
+          //Real C_half_jmo[nfields];
+          //Real C_half_jpo[nfields];
+          //Real C_half_kmo[nfields];
+          //Real C_half_kpo[nfields];
 
           // calculate the first order half step update for the cell in question
-          half_step_update(C_half, C1, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
+          //half_step_update(C_half, C1, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
+          half_step_update(C2, C1, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half[0], C_half[4]);
+          /*
           // need C_half for all the surrounding cells, as well
           half_step_update(C_half_imo, C1, i-1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half_imo[0], C_half_imo[4]);
@@ -85,6 +87,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           // and update the conserved variables using the new first-order fluxes
           full_step_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells, C_half, C_half_imo, C_half_ipo, C_half_jmo, C_half_jpo, C_half_kmo, C_half_kpo);
           //printf("Flux corrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
+          */
 
           // Reset with the new values of the conserved variables
           d_new = C2[id];
@@ -231,7 +234,8 @@ void fill_flux_array_2(Real C_half_l[], Real C_half_r[], Real cW[], int n_cells,
 }
 
 
-void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
+//void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
+void half_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
 {
   int id = i + j*nx + k*nx*ny;
   int imo = i-1 + j*nx + k*nx*ny;
@@ -323,14 +327,14 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #endif
 
   // Update the conserved variables for the cell by a half step
-  C_half[0] = C1[id+0*n_cells] + 0.5*dtodx*(F_Lx[0] - F_Rx[0]) + 0.5*dtody*(F_Ly[0] - F_Ry[0]) + 0.5*dtodz*(F_Lz[0] - F_Rz[0]);
-  C_half[1] = C1[id+1*n_cells] + 0.5*dtodx*(F_Lx[1] - F_Rx[1]) + 0.5*dtody*(F_Ly[1] - F_Ry[1]) + 0.5*dtodz*(F_Lz[1] - F_Rz[1]);
-  C_half[2] = C1[id+2*n_cells] + 0.5*dtodx*(F_Lx[2] - F_Rx[2]) + 0.5*dtody*(F_Ly[2] - F_Ry[2]) + 0.5*dtodz*(F_Lz[2] - F_Rz[2]);
-  C_half[3] = C1[id+3*n_cells] + 0.5*dtodx*(F_Lx[3] - F_Rx[3]) + 0.5*dtody*(F_Ly[3] - F_Ry[3]) + 0.5*dtodz*(F_Lz[3] - F_Rz[3]);
-  C_half[4] = C1[id+4*n_cells] + 0.5*dtodx*(F_Lx[4] - F_Rx[4]) + 0.5*dtody*(F_Ly[4] - F_Ry[4]) + 0.5*dtodz*(F_Lz[4] - F_Rz[4]);
+  C2[0] = C1[id+0*n_cells] + dtodx*(F_Lx[0] - F_Rx[0]) + dtody*(F_Ly[0] - F_Ry[0]) + dtodz*(F_Lz[0] - F_Rz[0]);
+  C2[1] = C1[id+1*n_cells] + dtodx*(F_Lx[1] - F_Rx[1]) + dtody*(F_Ly[1] - F_Ry[1]) + dtodz*(F_Lz[1] - F_Rz[1]);
+  C2[2] = C1[id+2*n_cells] + dtodx*(F_Lx[2] - F_Rx[2]) + dtody*(F_Ly[2] - F_Ry[2]) + dtodz*(F_Lz[2] - F_Rz[2]);
+  C2[3] = C1[id+3*n_cells] + dtodx*(F_Lx[3] - F_Rx[3]) + dtody*(F_Ly[3] - F_Ry[3]) + dtodz*(F_Lz[3] - F_Rz[3]);
+  C2[4] = C1[id+4*n_cells] + dtodx*(F_Lx[4] - F_Rx[4]) + dtody*(F_Ly[4] - F_Ry[4]) + dtodz*(F_Lz[4] - F_Rz[4]);
   #ifdef DE
-  C_half[5] = C1[id+5*n_cells] + 0.5*dtodx*(F_Lx[5] - F_Rx[5]) + 0.5*dtody*(F_Ly[5] - F_Ry[5]) + 0.5*dtodz*(F_Lz[5] - F_Rz[5])
-            + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+  C2[5] = C1[id+5*n_cells] + dtodx*(F_Lx[5] - F_Rx[5]) + dtody*(F_Ly[5] - F_Ry[5]) + dtodz*(F_Lz[5] - F_Rz[5])
+            + P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
   #endif
 
 
@@ -340,6 +344,7 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
 
 void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells, Real C_half[], Real C_half_imo[], Real C_half_ipo[], Real C_half_jmo[], Real C_half_jpo[], Real C_half_kmo[], Real C_half_kpo[])
 {
+
   int id = i + j*nx + k*nx*ny;
   int imo = i-1 + j*nx + k*nx*ny;
   int ipo = i+1 + j*nx + k*nx*ny;
