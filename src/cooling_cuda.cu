@@ -6,8 +6,8 @@
 
 #include<cuda.h>
 #include<math.h>
+#include<io.h>
 #include"global.h"
-#include"io.h"
 #include"cooling_cuda.h"
 
 
@@ -19,19 +19,16 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 {
   int n_cells = nx*ny*nz;
   
-  Real d, E;
+  Real d, p, E;
   Real n, T, T_init;
   Real del_T, dt_sub;
-  Real mu; // mean molecular weight
   Real cool; //cooling rate per volume, erg/s/cm^3
   #ifndef DE
-  Real vx, vy, vz, p;
+  Real  vx, vy, vz;
   #endif
   #ifdef DE
   Real ge;
   #endif
-
-  mu = 1.0;
 
   // get a thread ID
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -47,70 +44,69 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // load values of density and pressure
     id = xid + yid*nx + zid*nx*ny;
     d  =  dev_conserved[            id];
-    E  =  dev_conserved[4*n_cells + id];
     #ifndef DE
     vx =  dev_conserved[1*n_cells + id] / d;
     vy =  dev_conserved[2*n_cells + id] / d;
     vz =  dev_conserved[3*n_cells + id] / d;
+    E  =  dev_conserved[4*n_cells + id];
     p  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     p  = fmax(p, (Real) TINY_NUMBER);
     #endif
     #ifdef DE
     ge = dev_conserved[5*n_cells + id] / d;
-    ge = fmax(ge, (Real) TINY_NUMBER);
+    p  = d * ge * (gamma - 1.0);
     #endif
     
     // calculate the number density of the gas (in cgs)
-    n = d*DENSITY_UNIT / (mu * MP);
+    n = d*DENSITY_UNIT / MP;
 
     // calculate the temperature of the gas
-    #ifndef DE
     T_init = p*PRESSURE_UNIT/ (n*KB);
-    #endif
-    #ifdef DE
-    T_init = ge*(gamma-1.0)*SP_ENERGY_UNIT*mu*MP/KB;
-    #endif
 
     // calculate cooling rate per volume
-    T = T_init;
+    // only allow cooling above 10^4 K
+    if (T_init > 1e4 && T_init < 1e9) {
 
-    // call the cooling function (could choose primoridial cool)
-    cool = Schure_cool(n, T); 
-    // cool = primordial_cool(n, T);
-    
-    // calculate change in temperature given dt
-    del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
+      T = T_init;
 
-    // limit change in temperature to 5%
-    while (del_T/T > 0.05) {
-      // what dt gives del_T = 0.1*T?
-      dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
-      // apply that dt
-      T -= cool*dt_sub*TIME_UNIT*(gamma-1.0)/(n*KB);
-      // how much time is left from the original timestep?
-      dt -= dt_sub;
-      // calculate cooling again
-      cool = Schure_cool(n, T);
+      // call the cooling function (could choose primoridial cool)
+      cool = Schure_cool(n, T); 
       // cool = primordial_cool(n, T);
-      // calculate new change in temperature
+    
+      // calculate change in temperature given dt
       del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
+
+      // limit change in temperature to 5%
+      while (del_T/T > 0.05) {
+        // what dt gives del_T = 0.1*T?
+        dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+        // apply that dt
+        T -= cool*dt_sub*TIME_UNIT*(gamma-1.0)/(n*KB);
+        // how much time is left from the original timestep?
+        dt -= dt_sub;
+        // calculate cooling again
+        cool = Schure_cool(n, T);
+        // cool = primordial_cool(n, T);
+        // calculate new change in temperature
+        del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
+      }
+
+      // calculate final temperature
+      T -= del_T;
+
+      // adjust value of energy based on total change in temperature
+      del_T = T_init - T; // total change in T
+      E -= n*KB*del_T / ((gamma-1.0)*ENERGY_UNIT);
+      #ifdef DE
+      ge -= KB*del_T / (MP*(gamma-1.0)*SP_ENERGY_UNIT);
+      #endif
+
+      // and send back from kernel
+      dev_conserved[4*n_cells + id] = E;
+      #ifdef DE
+      dev_conserved[5*n_cells + id] = d*ge;
+      #endif
     }
-
-    // calculate final temperature
-    T -= del_T;
-
-    // adjust value of energy based on total change in temperature
-    del_T = T_init - T; // total change in T
-    E -= n*KB*del_T / ((gamma-1.0)*ENERGY_UNIT);
-    #ifdef DE
-    ge -= KB*del_T / (mu*MP*(gamma-1.0)*SP_ENERGY_UNIT);
-    #endif
-
-    // and send back from kernel
-    dev_conserved[4*n_cells + id] = E;
-    #ifdef DE
-    dev_conserved[5*n_cells + id] = d*ge;
-    #endif
 
   }
 

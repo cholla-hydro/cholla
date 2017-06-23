@@ -2,7 +2,7 @@
  *  \brief Declarations of cooling functions. */
 
 #ifdef CUDA
-#ifdef COOLING_GPU
+#ifdef COOLING
 
 #ifndef COOLING_CUDA_H
 #define COOLING_CUDA_H
@@ -37,5 +37,5 @@ __device__ Real Schure_cool(Real n, Real T);
 
 #endif //COOLING_CUDA_H
 
-#endif //COOLING_GPU
+#endif //COOLING
 #endif //CUDA
