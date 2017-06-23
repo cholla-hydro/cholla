@@ -132,9 +132,9 @@ int main(int argc, char *argv[])
     start_step = get_time();
 
     // Add supernovae
-    Real sn_dti;
-    sn_dti = G.Add_Supernovae();
-    dti = fmax(dti, sn_dti);
+    //Real sn_dti;
+    //sn_dti = G.Add_Supernovae();
+    //dti = fmax(dti, sn_dti);
 
     // calculate the timestep
     G.set_dt(C_cfl, dti);
