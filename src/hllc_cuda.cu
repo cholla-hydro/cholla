@@ -84,11 +84,17 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     vzl = mzl / dl;
     pl  = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     pl  = fmax(pl, (Real) TINY_NUMBER);
+    #ifdef DE
+    pl = gel*dl*(gamma - 1.0);
+    #endif
     vxr = mxr / dr;
     vyr = myr / dr;
     vzr = mzr / dr;
     pr  = (Er - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
     pr  = fmax(pr, (Real) TINY_NUMBER);    
+    #ifdef DE
+    pr = ger*dr*(gamma - 1.0);
+    #endif
 
     // calculate the enthalpy in each cell
     Hl = (El + pl) / dl;
