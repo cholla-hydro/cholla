@@ -264,10 +264,10 @@ __device__ Real Calculate_Slope(Real q_imo, Real q_i, Real q_ipo)
   lim_slope_b = fmin(fabs(del_q_C), fabs(del_q_G));
 
   // Minmod limiter
-  //del_q_m = sgn(del_q_C)*fmin(2.0*lim_slope_a, fabs(del_q_C));
+  //del_q_m = sgn_CUDA(del_q_C)*fmin(2.0*lim_slope_a, fabs(del_q_C));
 
   // Van Leer limiter
-  del_q_m = sgn(del_q_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+  del_q_m = sgn_CUDA(del_q_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
 
   return del_q_m;
 

@@ -18,6 +18,7 @@
 #include"ppmc_ctu_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
+#include"hllc_cuda.h"
 #include"cooling_cuda.h"
 #include"error_handling.h"
 #include"io.h"
@@ -124,7 +125,10 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost,
   Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
   #endif
   #ifdef ROE
-  Calculate_Roe_Fluxes<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
+  Calculate_Roe_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
+  #endif
+  #ifdef HLLC 
+  Calculate_HLLC_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
   #endif
   CudaCheckError();
 

@@ -65,15 +65,15 @@ extern void Set_Gammas(Real gamma_in);
  *  \brief Returns the current clock time. */ 
 extern double get_time(void);
 
-#ifndef CUDA
 /*! \fn int sgn
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int sgn(Real x);
 
+#ifndef CUDA
 /*! \fn Real calc_eta(Real cW[], Real gamma)
  *  \brief Calculate the eta value for the H correction. */
 extern Real calc_eta(Real cW[], Real gamma);
-#endif //NO CUDA
+#endif
 
 
 struct parameters

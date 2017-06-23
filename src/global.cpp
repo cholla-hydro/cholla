@@ -35,7 +35,6 @@ double get_time(void)
   return timer.tv_sec + 1.0e-6*timer.tv_usec;
 }
 
-#ifndef CUDA
 /*! \fn int sgn
  *  \brief Mathematical sign function. Returns sign of x. */
 int sgn(Real x)
@@ -44,6 +43,7 @@ int sgn(Real x)
     else return 1;
 }
 
+#ifndef CUDA
 /*! \fn Real calc_eta(Real cW[], Real gamma)
  *  \brief Calculate the eta value for the H correction. */
 Real calc_eta(Real cW[], Real gamma)

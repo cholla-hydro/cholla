@@ -226,33 +226,33 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     if (del_a_0_L*del_a_0_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_0_L), fabs(del_a_0_R));
       lim_slope_b = fmin(fabs(del_a_0_C), fabs(del_a_0_G));
-      del_a_0_m = sgn(del_a_0_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_0_m = sgn_CUDA(del_a_0_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_1_L*del_a_1_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_1_L), fabs(del_a_1_R));
       lim_slope_b = fmin(fabs(del_a_1_C), fabs(del_a_1_G));
-      del_a_1_m = sgn(del_a_1_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_1_m = sgn_CUDA(del_a_1_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_2_L*del_a_2_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_2_L), fabs(del_a_2_R));
       lim_slope_b = fmin(fabs(del_a_2_C), fabs(del_a_2_G));
-      del_a_2_m = sgn(del_a_2_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_2_m = sgn_CUDA(del_a_2_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_3_L*del_a_3_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_3_L), fabs(del_a_3_R));
       lim_slope_b = fmin(fabs(del_a_3_C), fabs(del_a_3_G));
-      del_a_3_m = sgn(del_a_3_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_3_m = sgn_CUDA(del_a_3_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_4_L*del_a_4_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_4_L), fabs(del_a_4_R));
       lim_slope_b = fmin(fabs(del_a_4_C), fabs(del_a_4_G));
-      del_a_4_m = sgn(del_a_4_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
+      del_a_4_m = sgn_CUDA(del_a_4_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
     }
     #ifdef DE
     if (del_ge_L*del_ge_R > 0.0) {
       lim_slope_a = fmin(fabs(del_ge_L), fabs(del_ge_R));
       lim_slope_b = fmin(fabs(del_ge_C), fabs(del_ge_G));
-      del_ge_m_imo = sgn(del_ge_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_ge_m_imo = sgn_CUDA(del_ge_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     else del_ge_m_imo = 0.0;
     #endif
@@ -355,33 +355,33 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     if (del_a_0_L*del_a_0_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_0_L), fabs(del_a_0_R));
       lim_slope_b = fmin(fabs(del_a_0_C), fabs(del_a_0_G));
-      del_a_0_m = sgn(del_a_0_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_0_m = sgn_CUDA(del_a_0_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_1_L*del_a_1_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_1_L), fabs(del_a_1_R));
       lim_slope_b = fmin(fabs(del_a_1_C), fabs(del_a_1_G));
-      del_a_1_m = sgn(del_a_1_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_1_m = sgn_CUDA(del_a_1_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_2_L*del_a_2_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_2_L), fabs(del_a_2_R));
       lim_slope_b = fmin(fabs(del_a_2_C), fabs(del_a_2_G));
-      del_a_2_m = sgn(del_a_2_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_2_m = sgn_CUDA(del_a_2_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_3_L*del_a_3_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_3_L), fabs(del_a_3_R));
       lim_slope_b = fmin(fabs(del_a_3_C), fabs(del_a_3_G));
-      del_a_3_m = sgn(del_a_3_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_3_m = sgn_CUDA(del_a_3_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_4_L*del_a_4_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_4_L), fabs(del_a_4_R));
       lim_slope_b = fmin(fabs(del_a_4_C), fabs(del_a_4_G));
-      del_a_4_m = sgn(del_a_4_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
+      del_a_4_m = sgn_CUDA(del_a_4_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
     }
     #ifdef DE
     if (del_ge_L*del_ge_R > 0.0) {
       lim_slope_a = fmin(fabs(del_ge_L), fabs(del_ge_R));
       lim_slope_b = fmin(fabs(del_ge_C), fabs(del_ge_G));
-      del_ge_m_i = sgn(del_ge_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
+      del_ge_m_i = sgn_CUDA(del_ge_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
     }
     else del_ge_m_i = 0.0;
     #endif
@@ -484,33 +484,33 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     if (del_a_0_L*del_a_0_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_0_L), fabs(del_a_0_R));
       lim_slope_b = fmin(fabs(del_a_0_C), fabs(del_a_0_G));
-      del_a_0_m = sgn(del_a_0_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_0_m = sgn_CUDA(del_a_0_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_1_L*del_a_1_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_1_L), fabs(del_a_1_R));
       lim_slope_b = fmin(fabs(del_a_1_C), fabs(del_a_1_G));
-      del_a_1_m = sgn(del_a_1_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_1_m = sgn_CUDA(del_a_1_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_2_L*del_a_2_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_2_L), fabs(del_a_2_R));
       lim_slope_b = fmin(fabs(del_a_2_C), fabs(del_a_2_G));
-      del_a_2_m = sgn(del_a_2_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_2_m = sgn_CUDA(del_a_2_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_3_L*del_a_3_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_3_L), fabs(del_a_3_R));
       lim_slope_b = fmin(fabs(del_a_3_C), fabs(del_a_3_G));
-      del_a_3_m = sgn(del_a_3_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
+      del_a_3_m = sgn_CUDA(del_a_3_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
     }
     if (del_a_4_L*del_a_4_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_4_L), fabs(del_a_4_R));
       lim_slope_b = fmin(fabs(del_a_4_C), fabs(del_a_4_G));
-      del_a_4_m = sgn(del_a_4_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
+      del_a_4_m = sgn_CUDA(del_a_4_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
     }
     #ifdef DE
     if (del_ge_L*del_ge_R > 0.0) {
       lim_slope_a = fmin(fabs(del_ge_L), fabs(del_ge_R));
       lim_slope_b = fmin(fabs(del_ge_C), fabs(del_ge_G));
-      del_ge_m_ipo = sgn(del_ge_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
+      del_ge_m_ipo = sgn_CUDA(del_ge_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
     }    
     #endif
 

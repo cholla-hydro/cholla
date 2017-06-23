@@ -19,6 +19,7 @@
 #include"ppmc_vl_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
+#include"hllc_cuda.h"
 #include"h_correction_3D_cuda.h"
 #include"cooling_cuda.h"
 #include"subgrid_routines_3D.h"
@@ -127,10 +128,15 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2);
   #endif //EXACT
   #ifdef ROE
-  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0);
-  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, etah_y, 1);
-  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, etah_z, 2);
+  Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0);
+  Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, etah_y, 1);
+  Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, etah_z, 2);
   #endif //ROE
+  #ifdef HLLC 
+  Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0);
+  Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, etah_y, 1);
+  Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, etah_z, 2);
+  #endif //HLLC
   CudaCheckError();
 
 
@@ -187,10 +193,15 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2);
   #endif //EXACT
   #ifdef ROE
-  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0);
-  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, etah_y, 1);
-  Calculate_Roe_Fluxes<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, etah_z, 2);
+  Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0);
+  Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, etah_y, 1);
+  Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, etah_z, 2);
   #endif //ROE
+  #ifdef HLLC 
+  Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0);
+  Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, etah_y, 1);
+  Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, etah_z, 2);
+  #endif //HLLC
   CudaCheckError();
 
 

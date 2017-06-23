@@ -1,8 +1,6 @@
 /*! \file roe.cpp
  *  \brief Function definitions for the Roe Riemann solver. */
 
-#ifndef CUDA
-
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
@@ -257,6 +255,3 @@ void Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
 
 }
 
-
-
-#endif // NO CUDA

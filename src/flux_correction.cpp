@@ -8,6 +8,7 @@
 #include"flux_correction.h"
 #include"exact.h"
 #include"roe.h"
+#include"hllc.h"
 #ifdef MPI_CHOLLA
 #include"mpi_routines.h"
 #endif
@@ -52,7 +53,8 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
         // if there is a problem, redo the update for that cell using first-order fluxes
         if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) {
           //printf("Flux correction: (%d, %d %d) d: %e  p:%e\n", i, j, k, d_new, P_new);
-          //printf("Previous timestep data: d: %e mx: %e my: %e mz: %e E: %e\n", C1[id], C1[n_cells+id], C1[2*n_cells+id], C1[3*n_cells+id], C1[4*n_cells+id]);
+          printf("%3d %3d %3d Old density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
+          printf("Previous timestep data: d: %e mx: %e my: %e mz: %e E: %e\n", C1[id], C1[n_cells+id], C1[2*n_cells+id], C1[3*n_cells+id], C1[4*n_cells+id]);
           //printf("Uncorrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
           P_old = P_new;
 
@@ -66,7 +68,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 
           // calculate the first order half step update for the cell in question
           half_step_update(C_half, C1, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          //printf("Half step data: d: %e E: %e\n", C_half[0], C_half[4]);
+          printf("Half step data: d: %e E: %e\n", C_half[0], C_half[4]);
           // need C_half for all the surrounding cells, as well
           half_step_update(C_half_imo, C1, i-1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half_imo[0], C_half_imo[4]);
@@ -84,7 +86,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           // Recalculate the fluxes, again using piecewise constant reconstruction
           // and update the conserved variables using the new first-order fluxes
           full_step_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells, C_half, C_half_imo, C_half_ipo, C_half_jmo, C_half_jpo, C_half_kmo, C_half_kpo);
-          //printf("Flux corrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
+          printf("Flux corrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
 
           // Reset with the new values of the conserved variables
           d_new = C2[id];
@@ -108,7 +110,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
                               + 0.25*dt*gy*(d_old + d_new)*(vy_old + vy_new)
                               + 0.25*dt*gz*(d_old + d_new)*(vz_old + vz_new);
           #endif
-          //printf("Before internal energy sync. d: %e vx: %e vy: %e vz: %e P: %e\n", d_new, vx_new, vy_new, vz_new, P_new);
+          printf("Before internal energy sync. d: %e vx: %e vy: %e vz: %e P: %e\n", d_new, vx_new, vy_new, vz_new, P_new);
           // sync the internal and total energy
           #ifdef DE
           Real ge1, ge2, E, Emax;
@@ -156,7 +158,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           // recalculate the pressure
           P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           #endif          
-          //printf("%3d %3d %3d New density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
+          printf("%3d %3d %3d New density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
           if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED\n");
 
         }
@@ -240,6 +242,7 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   int jpo = i + (j+1)*nx + k*nx*ny;
   int kmo = i + j*nx + (k-1)*nx*ny;
   int kpo = i + j*nx + (k+1)*nx*ny;
+  Real etah = 0.0;
 
   #ifdef DE
   Real d, d_inv, vx, vy, vz, P, vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
@@ -276,6 +279,9 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Lx, gama, etah);
   #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Lx, gama, etah);
+  #endif
   
   // Rx
   fill_flux_array(C1, id, ipo, cW, n_cells, 0);
@@ -284,6 +290,9 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #endif
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Rx, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Rx, gama, etah);
   #endif
 
   // Ly
@@ -294,6 +303,9 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Ly, gama, etah);
   #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Ly, gama, etah);
+  #endif
 
   // Ry
   fill_flux_array(C1, id, jpo, cW, n_cells, 1);
@@ -302,6 +314,9 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #endif
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Ry, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Ry, gama, etah);
   #endif
 
   // Lz
@@ -312,6 +327,9 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Lz, gama, etah);
   #endif
+  #ifdef HLLC 
+  Calculate_HLLC_Fluxes(cW, F_Lz, gama, etah);
+  #endif
 
   // Rz
   fill_flux_array(C1, id, kpo, cW, n_cells, 2);
@@ -321,6 +339,17 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Rz, gama, etah);
   #endif
+  #ifdef HLLC 
+  Calculate_HLLC_Fluxes(cW, F_Rz, gama, etah);
+  #endif
+  for (int ii=0; ii<nfields; ii++) {
+    if (F_Lx[ii] != F_Lx[ii]) printf("Failure in Riemann solve F_Lx[%d]\n", ii);
+    if (F_Rx[ii] != F_Rx[ii]) printf("Failure in Riemann solve F_Rx[%d]\n", ii);
+    if (F_Ly[ii] != F_Ly[ii]) printf("Failure in Riemann solve F_Ly[%d]\n", ii);
+    if (F_Ry[ii] != F_Ry[ii]) printf("Failure in Riemann solve F_Ry[%d]\n", ii);
+    if (F_Lz[ii] != F_Lz[ii]) printf("Failure in Riemann solve F_Lz[%d]\n", ii);
+    if (F_Rz[ii] != F_Rz[ii]) printf("Failure in Riemann solve F_Rz[%d]\n", ii);
+  }
 
   // Update the conserved variables for the cell by a half step
   C_half[0] = C1[id+0*n_cells] + 0.5*dtodx*(F_Lx[0] - F_Rx[0]) + 0.5*dtody*(F_Ly[0] - F_Ry[0]) + 0.5*dtodz*(F_Lz[0] - F_Rz[0]);
@@ -347,6 +376,7 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   int jpo = i + (j+1)*nx + k*nx*ny;
   int kmo = i + j*nx + (k-1)*nx*ny;
   int kpo = i + j*nx + (k+1)*nx*ny;
+  Real etah = 0.0;
 
   Real cW[2*nfields];
   Real F_Lx[nfields];
@@ -384,6 +414,9 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Lx, gama, etah);
   #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Lx, gama, etah);
+  #endif
   
   // Rx
   fill_flux_array_2(C_half, C_half_ipo, cW, n_cells, 0);
@@ -392,6 +425,9 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #endif
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Rx, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Rx, gama, etah);
   #endif
 
   // Ly
@@ -402,6 +438,9 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Ly, gama, etah);
   #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Ly, gama, etah);
+  #endif
 
   // Ry
   fill_flux_array_2(C_half, C_half_jpo, cW, n_cells, 1);
@@ -410,6 +449,9 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #endif
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Ry, gama, etah);
+  #endif
+  #ifdef HLLC 
+  Calculate_HLLC_Fluxes(cW, F_Ry, gama, etah);
   #endif
 
   // Lz
@@ -420,6 +462,9 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Lz, gama, etah);
   #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Lz, gama, etah);
+  #endif
 
   // Rz
   fill_flux_array_2(C_half, C_half_kpo, cW, n_cells, 2);
@@ -428,6 +473,9 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #endif
   #ifdef ROE
   Calculate_Roe_Fluxes(cW, F_Rz, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Rz, gama, etah);
   #endif
 
 
