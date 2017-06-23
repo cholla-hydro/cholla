@@ -9,7 +9,7 @@
 #include"io.h"
 #include"mpi_routines.h"
 #include"error_handling.h"
-#define PROJECTION
+//#define PROJECTION
 
 /* Output the grid data to file. */
 void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
@@ -18,7 +18,7 @@ void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
   char filename[80];
   char timestep[20];
   int flag;
-  int nfull = 10;
+  int nfull = 1;
   flag = 0;
 
   // status of flag determines whether to output full grid
