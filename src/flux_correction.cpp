@@ -161,6 +161,11 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           //printf("%3d %3d %3d New density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
           if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED\n");
 
+          // apply cooling
+          #ifdef COOLING_GPU
+          cooling_CPU(C2, id, n_cells);
+          #endif
+
         }
 
       }
@@ -536,3 +541,116 @@ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n
 
 }
 
+
+void cooling_CPU(Real *C2, int id, int n_cells) {
+
+  Real d, E;
+  Real n, T, T_init;
+  Real del_T, dt_sub;
+  Real mu; // mean molecular weight
+  Real cool; //cooling rate per volume, erg/s/cm^3
+  #ifndef DE
+  Real vx, vy, vz, p;
+  #endif
+  #ifdef DE
+  Real ge;
+  #endif
+
+  mu = 1.0;
+
+  // load values of density and pressure
+  d  =  C2[            id];
+  E  =  C2[4*n_cells + id];
+  #ifndef DE
+  vx =  C2[1*n_cells + id] / d;
+  vy =  C2[2*n_cells + id] / d;
+  vz =  C2[3*n_cells + id] / d;
+  p  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gama - 1.0);
+  p  = fmax(p, (Real) TINY_NUMBER);
+  #endif
+  #ifdef DE
+  ge = C2[5*n_cells + id] / d;
+  ge = fmax(ge, (Real) TINY_NUMBER);
+  #endif
+    
+  // calculate the number density of the gas (in cgs)
+  n = d*DENSITY_UNIT / (mu * MP);
+
+  // calculate the temperature of the gas
+  #ifndef DE
+  T_init = p*PRESSURE_UNIT/ (n*KB);
+  #endif
+  #ifdef DE
+  T_init = ge*(gama-1.0)*SP_ENERGY_UNIT*mu*MP/KB;
+  #endif
+
+  // calculate cooling rate per volume
+  T = T_init;
+
+  // call the cooling function (could choose primoridial cool)
+  cool = Schure_cool_CPU(n, T); 
+    
+  // calculate change in temperature given dt
+  del_T = cool*dt*TIME_UNIT*(gama-1.0)/(n*KB);
+
+  // limit change in temperature to 5%
+  while (del_T/T > 0.05) {
+    // what dt gives del_T = 0.1*T?
+    dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+    // apply that dt
+    T -= cool*dt_sub*TIME_UNIT*(gamma-1.0)/(n*KB);
+    // how much time is left from the original timestep?
+    dt -= dt_sub;
+    // calculate cooling again
+    cool = Schure_cool(n, T);
+    // cool = primordial_cool(n, T);
+    // calculate new change in temperature
+    del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
+  }
+
+  // calculate final temperature
+  T -= del_T;
+
+  if (T < 1.0e4) {
+    T = 1.0e4;
+  }
+
+  // adjust value of energy based on total change in temperature
+  del_T = T_init - T; // total change in T
+  E -= n*KB*del_T / ((gama-1.0)*ENERGY_UNIT);
+  #ifdef DE
+  ge -= KB*del_T / (mu*MP*(gama-1.0)*SP_ENERGY_UNIT);
+  #endif
+
+  // and update the energies 
+  C2[4*n_cells + id] = E;
+  #ifdef DE
+  C2[5*n_cells + id] = d*ge;
+  #endif
+
+
+}
+
+
+void Schure_cool_CPU(Real n, Real T) {
+
+  Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
+  Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
+  
+  // fit to Schure cooling function 
+  if (log10(T) > 5.36) {
+    lambda = pow(10.0, (0.38 * (log10(T) -7.5) * (log10(T) - 7.5) - 22.6));
+  }
+  else if (log10(T) < 4.0) {
+    lambda = 0.0;
+  }
+  else {
+    lambda = pow(10.0, (-2.5 * (log10(T) - 5.1) * (log10(T) - 5.1) - 20.7));
+  }
+
+  // cooling rate per unit volume
+  cool = n*n*lambda;
+
+  return cool;
+
+}
