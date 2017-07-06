@@ -54,8 +54,6 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   #ifdef DE
   gel = cW[10] / dl;
   ger = cW[11] / dr;
-  pl = gel*g1;
-  pr = ger*g1;
   #endif
 
   // calculate the enthalpy in each cell

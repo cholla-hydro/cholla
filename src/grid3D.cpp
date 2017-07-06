@@ -432,10 +432,10 @@ Real Grid3D::Add_Supernovae(void)
   //E2 = 1.0e43; // energy input rate, in erg/s
   //M1 = 2.0e3;
   //E1 = 2.6e42;
-  M1 = 2.0e3;
-  E1 = 2.6e42;
-  M2 = 2.0e3;
-  E2 = 2.6e42;
+  M2 = 12.0e3;
+  E2 = 5.4e42;
+  M1 = 1.5e3;
+  E1 = 1.5e42;
   M_dot = 0.0;
   E_dot = 0.0;
 
@@ -448,6 +448,19 @@ Real Grid3D::Add_Supernovae(void)
   t2 = tramp+thigh;
   t3 = 2*tramp+thigh;
 
+  if (t >= 0 && t < t2) {
+    M_dot = M2;
+    E_dot = E2;
+  }
+  if (t >= t2 && t < t3) {
+    M_dot = M1 + (1.0/tramp)*(t-t3)*(M1-M2);
+    E_dot = E1 + (1.0/tramp)*(t-t3)*(E1-E2);
+  }
+  if (t >= t3) {
+    M_dot = M1;
+    E_dot = E1;
+  }
+/*
   if (t >= 0 && t < t1) {
     M_dot = M1 + (1.0/tramp)*t*(M2-M1); 
     E_dot = E1 + (1.0/tramp)*t*(E2-E1);
@@ -464,6 +477,7 @@ Real Grid3D::Add_Supernovae(void)
     M_dot = M1;
     E_dot = E1;
   }
+*/
 
   E_dot = E_dot*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT); // convert to code units
   V = (4.0/3.0)*PI*R_s*R_s*R_s;

@@ -53,8 +53,8 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
         // if there is a problem, redo the update for that cell using first-order fluxes
         if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) {
           //printf("Flux correction: (%d, %d %d) d: %e  p:%e\n", i, j, k, d_new, P_new);
-          printf("%3d %3d %3d Old density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
-          printf("Previous timestep data: d: %e mx: %e my: %e mz: %e E: %e\n", C1[id], C1[n_cells+id], C1[2*n_cells+id], C1[3*n_cells+id], C1[4*n_cells+id]);
+          //printf("%3d %3d %3d Old density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
+          //printf("Previous timestep data: d: %e mx: %e my: %e mz: %e E: %e\n", C1[id], C1[n_cells+id], C1[2*n_cells+id], C1[3*n_cells+id], C1[4*n_cells+id]);
           //printf("Uncorrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
           P_old = P_new;
 
@@ -68,7 +68,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 
           // calculate the first order half step update for the cell in question
           half_step_update(C_half, C1, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          printf("Half step data: d: %e E: %e\n", C_half[0], C_half[4]);
+          //printf("Half step data: d: %e E: %e\n", C_half[0], C_half[4]);
           // need C_half for all the surrounding cells, as well
           half_step_update(C_half_imo, C1, i-1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half_imo[0], C_half_imo[4]);
@@ -86,7 +86,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           // Recalculate the fluxes, again using piecewise constant reconstruction
           // and update the conserved variables using the new first-order fluxes
           full_step_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells, C_half, C_half_imo, C_half_ipo, C_half_jmo, C_half_jpo, C_half_kmo, C_half_kpo);
-          printf("Flux corrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
+          //printf("Flux corrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
 
           // Reset with the new values of the conserved variables
           d_new = C2[id];
@@ -110,7 +110,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
                               + 0.25*dt*gy*(d_old + d_new)*(vy_old + vy_new)
                               + 0.25*dt*gz*(d_old + d_new)*(vz_old + vz_new);
           #endif
-          printf("Before internal energy sync. d: %e vx: %e vy: %e vz: %e P: %e\n", d_new, vx_new, vy_new, vz_new, P_new);
+          //printf("Before internal energy sync. d: %e vx: %e vy: %e vz: %e P: %e\n", d_new, vx_new, vy_new, vz_new, P_new);
           // sync the internal and total energy
           #ifdef DE
           Real ge1, ge2, E, Emax;
@@ -158,7 +158,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           // recalculate the pressure
           P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           #endif          
-          printf("%3d %3d %3d New density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
+          //printf("%3d %3d %3d New density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
           if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED\n");
 
         }

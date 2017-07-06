@@ -74,7 +74,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate cooling rate per volume
     T = T_init;
 
-    if (n < 1.0) {
+    if (n < 1.0 && T > 1e4) {
 
     // call the cooling function (could choose primoridial cool)
     cool = Schure_cool(n, T); 

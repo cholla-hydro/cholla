@@ -389,6 +389,13 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   MPI_Barrier(world);
   TileBlockDecomposition();
 
+  if (nz_global > nx_global) {
+    int tmp;
+    tmp = nproc_x;
+    nproc_x = nproc_z;
+    nproc_z = tmp;
+  }
+
   //chprintf("Allocating tiling.\n");
   MPI_Barrier(world);
   int ***tiling = three_dimensional_int_array(nproc_x,nproc_y,nproc_z);
