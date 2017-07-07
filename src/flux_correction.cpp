@@ -159,11 +159,11 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           #endif          
           //printf("%3d %3d %3d New density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
-          if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED\n");
+          if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
 
           // apply cooling
           #ifdef COOLING_GPU
-          cooling_CPU(C2, id, n_cells);
+          cooling_CPU(C2, id, n_cells, dt);
           #endif
 
         }
@@ -542,7 +542,7 @@ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n
 }
 
 
-void cooling_CPU(Real *C2, int id, int n_cells) {
+void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
 
   Real d, E;
   Real n, T, T_init;
@@ -596,16 +596,16 @@ void cooling_CPU(Real *C2, int id, int n_cells) {
   // limit change in temperature to 5%
   while (del_T/T > 0.05) {
     // what dt gives del_T = 0.1*T?
-    dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+    dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gama-1.0));
     // apply that dt
-    T -= cool*dt_sub*TIME_UNIT*(gamma-1.0)/(n*KB);
+    T -= cool*dt_sub*TIME_UNIT*(gama-1.0)/(n*KB);
     // how much time is left from the original timestep?
     dt -= dt_sub;
     // calculate cooling again
-    cool = Schure_cool(n, T);
+    cool = Schure_cool_CPU(n, T);
     // cool = primordial_cool(n, T);
     // calculate new change in temperature
-    del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
+    del_T = cool*dt*TIME_UNIT*(gama-1.0)/(n*KB);
   }
 
   // calculate final temperature
@@ -632,7 +632,7 @@ void cooling_CPU(Real *C2, int id, int n_cells) {
 }
 
 
-void Schure_cool_CPU(Real n, Real T) {
+Real Schure_cool_CPU(Real n, Real T) {
 
   Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
   Real cool = 0.0; //cooling per unit volume, erg /s / cm^3

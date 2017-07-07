@@ -74,8 +74,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate cooling rate per volume
     T = T_init;
 
-    if (n < 1.0 && T > 1e4) {
-
     // call the cooling function (could choose primoridial cool)
     cool = Schure_cool(n, T); 
     // cool = primordial_cool(n, T);
@@ -101,6 +99,11 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate final temperature
     T -= del_T;
 
+    // set a temperature floor of 10^4
+    if (T < 1.0e4) { 
+      T = 1.0e4;
+    }
+
     // adjust value of energy based on total change in temperature
     del_T = T_init - T; // total change in T
     E -= n*KB*del_T / ((gamma-1.0)*ENERGY_UNIT);
@@ -113,8 +116,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #ifdef DE
     dev_conserved[5*n_cells + id] = d*ge;
     #endif
-
-    }
 
   }
 

@@ -268,7 +268,8 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   Real Sigma_r; //surface density expected at r
   Real Sigma_0 = hdp[9]; //central surface density
   Real K = hdp[12]; //K coefficient in EOS; P = K \rho^gamma
-  Real gamma = hdp[13];
+  //Real gamma = hdp[13];
+  Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
   Real rho_floor = hdp[14]; //density floor
 
   Real rho_eos = hdp[15];
@@ -470,7 +471,8 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
   int k;
   Real z_pos, rho_eos;
   Real Phi_0 = phi_total_D3D(0,0,hdp);
-  Real gamma = hdp[13];
+  //Real gamma = hdp[13];
+  Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
   Real Delta_phi;
   Real A = 0.0;
 
@@ -608,7 +610,8 @@ void Grid3D::Disk_3D(parameters p)
   c_vir = 10; // M82 halo concentration
   R_s = R_vir / c_vir; // halo scale length in kpc
   //T_d = 5.9406e5; // SET TO MATCH K_EOS SET BY HAND for K_eos   = 1.859984e-14 
-  T_d = 2.0e5;
+  //T_d = 2.0e5;
+  T_d = 1.0e4; // CHANGED FOR ISOTHERMAL
   T_h = 1.0e6; // halo temperature, at density floor 
   rho_eos = 1.0e7; //gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e3; //gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
@@ -617,7 +620,7 @@ void Grid3D::Disk_3D(parameters p)
   //Sigma_0 = 0.25*M_d/(2*M_PI*R_g*R_g); //central surface density in Msun/kpc^2 (for MW)
   Sigma_0 = 0.25*M_d/(2*M_PI*R_g*R_g); //central surface density in Msun/kpc^2 (for M82)
   H_g = z_d; //initial guess for gas scale height
-  rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
+  //rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
   //cooling radius
   //r_cool = 157.0; //in kpc (MW)
@@ -649,8 +652,9 @@ void Grid3D::Disk_3D(parameters p)
   rho_eos = determine_rho_eos_D3D(cs, Sigma_0, hdp);
 
   //set EOS parameters
-  K_eos = cs*cs*pow(rho_eos,1.0-p.gamma)/p.gamma; //P = K\rho^gamma
-  K_eos_h = cs_h*cs_h*pow(rho_eos_h,1.0-gama)/gama;
+  //K_eos = cs*cs*pow(rho_eos,1.0-p.gamma)/p.gamma; //P = K\rho^gamma
+  K_eos = cs*cs*rho_eos; //P = K\rho^gamma CHANGED FOR ISOTHERMAL
+  K_eos_h = cs_h*cs_h*pow(rho_eos_h,1.0-p.gamma)/p.gamma;
 
   //Store remaining parameters
   hdp[12] = K_eos;
@@ -722,9 +726,12 @@ void Grid3D::Disk_3D(parameters p)
 
         //get density from hydrostatic column computation
         d = rho[nz_local_start + H.n_ghost + (k-H.n_ghost)];
+        if (d != d || d < 0) printf("Error calculating density. d: %e\n", d);
 
         // set pressure adiabatically
-        P = K_eos*pow(d,p.gamma);
+        //P = K_eos*pow(d,p.gamma);
+        // set pressure isothermally 
+        P = d*cs*cs; // CHANGED FOR ISOTHERMAL
 
         // store density in density
         C.density[id]    = d;

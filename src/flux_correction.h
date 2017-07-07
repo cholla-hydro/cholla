@@ -16,8 +16,8 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
 
 void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz);
 
-void cooling_CPU(Real *C2, int id, int n_cells);
+void cooling_CPU(Real *C2, int id, int n_cells, Real dt);
 
-void Schure_cool_CPU(Real n, Real T);
+Real Schure_cool_CPU(Real n, Real T);
 
 #endif //FLUX_CORRECTION_H
