@@ -225,7 +225,193 @@ void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real dr, int 
   }
 }
 
+/*! \fn void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, int nz, int ng)
+ *  \brief Calculate the 1D density distribution in a hydrostatic column, assuming an isothermal gas. 
+     Uses an iterative to scheme to determine the density at (R, z=0) relative to (R=0,z=0), 
+     then sets the densities according to an analytic expression. */
 
+void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, int nz, int ng)
+{
+  //x is cell center in x direction
+  //y is cell center in y direction
+  //dz is cell width in z direction
+  //nz is number of real cells
+  //ng is number of ghost cells
+  //total number of cells in column is nz * 2*ng
+  //hdp[0] = M_vir; 
+  //hdp[1] = M_d; 
+  //hdp[2] = M_h; 
+  //hdp[3] = R_vir; 
+  //hdp[4] = c_vir; 
+  //hdp[5] = R_s; 
+  //hdp[6] = R_d; 
+  //hdp[7] = z_d; 
+  //hdp[8] = T_d; 
+  //hdp[9] = Sigma_0; 
+  //hdp[10] = R_g;
+  //hdp[11] = H_g;
+  //hdp[12] = K_eos;
+  //hdp[13] = gamma;
+  //hdp[14] = rho_floor;
+  //hdp[15] = rho_eos;
+  //hdp[16] = cs;
+
+  int i,k;        //index along z axis
+  Real z;     //cell center in z direction
+  int nzt;      //total number of cells in z-direction
+  Real Sigma; //surface density in column
+  Real Sigma_n;
+  Real z_min; //bottom of the cell
+  Real z_max; //top of the cell
+  Real Sigma_r; //surface density expected at r
+  Real Sigma_0 = hdp[9]; //central surface density
+  Real K = hdp[12]; //K coefficient in EOS; P = K \rho^gamma
+  //Real gamma = hdp[13];
+  Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
+  Real rho_floor = hdp[14]; //density floor
+
+  Real rho_eos = hdp[15];
+  Real cs      = hdp[16];
+
+  Real Phi_0; //potential at z=0
+
+  Real rho_0; //density at mid plane
+  Real D_rho; //ratio of density at mid plane and rho_eos
+
+  Real z_0, z_1, z_2; // heights for iteration
+  Real z_disk_max;
+
+  //density integration
+  Real phi_int, A;
+  Real z_int_min, z_int_max, dz_int;
+  Real Delta_phi;
+  int n_int = 1000;
+  int flag; //flag for integration
+
+  int ks; //start of integrals above disk plane
+  int km; //mirror of k
+  if(nz%2)
+  {
+    ks = ng+(nz-1)/2;
+  }else{
+    ks = ng + nz/2;
+  }
+
+  // get the disk surface density
+  // have verified that at this point, Sigma_r is correct
+  Sigma_r = Sigma_disk_D3D(R, hdp);
+
+  //set the z-column size, including ghost cells
+  nzt = nz + 2*ng;
+
+  //compute the mid plane potential
+  Phi_0 = phi_total_D3D(R,0,hdp);
+
+  /* For an isothermal gas, we have
+
+    grad P = - g rho
+    cs^2 drho/dz = - g rho
+    drho/rho = -g / cs^2 * dz
+    ln rho - ln rho_0 = -cs^-2 \int g dz = -cs^-2 \Phi(z) + C
+    rho/rho_0 = exp[ -cs^-2 ( \Phi(z) + C)]
+    at z=0, rho = rho_0 exp[ - cs^-2 ( \Phi_0 +C) ] = rho_0
+    so, C = -\Phi_0.
+    We then have rho(z) = rho_0 exp[ - cs^-2 (\Phi(z) - \Phi_0)]
+
+  */
+
+  //perform a simple check about the fraction of density within
+  //a single cell
+  z_1   = z_hc_D3D(ks,dz,nz,ng) + 0.5*dz;//cell ceiling
+  D_rho = (phi_total_D3D(R,z_1,hdp)-Phi_0)/(cs*cs);
+  if(exp(-1*D_rho)<0.1)
+    printf("WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e Phi_0 %E cs %e\n",R,D_rho,z_1,phi_total_D3D(R,z_1,hdp),Phi_0,cs);
+
+
+  //let's find the cell above the disk where the
+  //density falls by exp(-7) < 1.0e-3.
+  for(k=ks;k<nzt;k++)
+  {
+    z_1   = z_hc_D3D(k,dz,nz,ng) + 0.5*dz;//cell ceiling
+    D_rho = (phi_total_D3D(R,z_1,hdp)-Phi_0)/(cs*cs);
+    if(D_rho>=7.0)
+      break;
+  }
+  //if(R<1.0)
+  //  printf("Cells above disk (k-ks) = %d, z_1 = %e, exp(-D) = %e, R = %e\n",k-ks,z_1,exp(-1*D_rho),R);
+
+  //now we can compute the unnormalized integral of the density
+  z_disk_max = z_1;
+
+  //Compute surface density
+  z_int_min = 0.0; //kpc
+  z_int_max = z_1; //kpc
+  dz_int = (z_int_max-z_int_min)/((Real) (n_int));
+  phi_int = 0.0;
+  for(k=0;k<n_int;k++)
+  {
+    z_0 = 0.5*dz_int + dz_int*((Real) k);
+    Delta_phi = (phi_total_D3D(R,z_0,hdp)-Phi_0)/(cs*cs);
+    phi_int  += exp(-1*Delta_phi)*dz_int;
+  }
+
+  //compute the central density
+  rho_0 = 0.5*Sigma_r/phi_int;
+
+  //OK, at this stage we know how to set the densities
+  //so let's take cell averages
+  flag  = 0;
+  n_int = 10; // integrate over a 1/10 cell
+  for(k=ks;k<nzt;k++)
+  {
+    //find cell center, bottom, and top
+    z_int_min  = z_hc_D3D(k,dz,nz,ng) - 0.5*dz;
+    z_int_max  = z_hc_D3D(k,dz,nz,ng) + 0.5*dz;
+    if(z_int_max>z_disk_max)
+      z_int_max = z_disk_max;
+    if(!flag)
+    { 
+      dz_int = (z_int_max-z_int_min)/((Real) (n_int));
+      phi_int = 0.0;
+      for(i=0;i<n_int;i++)
+      {
+        z_0 = 0.5*dz_int + dz_int*((Real) i) + z_int_min;
+        Delta_phi = (phi_total_D3D(R,z_0,hdp)-Phi_0)/(cs*cs);
+        phi_int += rho_0*exp(-1*Delta_phi)*dz_int;
+      }
+
+      //set density based on integral
+      //of density in this cell
+      rho[k] = phi_int/dz;
+
+      if(z_int_max==z_disk_max)
+      {
+        flag = 1;
+      }
+    }else{
+      //no mass up here!
+      rho[k] = 0;
+    }
+
+    //mirror densities
+    //above and below disk plane
+    if(nz%2)
+    {
+      km = (ng+(nz-1)/2) - (k-ks);
+    }else{
+      km = ng + nz/2 - (k-ks) -1;
+    }
+    rho[km] = rho[k]; 
+  }
+
+  //check the surface density
+  phi_int = 0.0;
+  for(k=0;k<nzt;k++)
+    phi_int += rho[k]*dz;
+
+  //printf("Surface density check R %e Sigma_r %e integral(rho*dz) %e\n",R,Sigma_r,phi_int);
+  //printf("Done with isothermal disk.\n");
+}
 
 /*! \fn void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, int nz, int ng)
  *  \brief Calculate the 1D density distribution in a hydrostatic column. 
@@ -718,7 +904,8 @@ void Grid3D::Disk_3D(parameters p)
 
       //Compute the hydrostatic density profile in this z column
       //owing to the disk
-      hydrostatic_column_analytical_D3D(rho, r, hdp, dz, nz, H.n_ghost);
+      //hydrostatic_column_analytical_D3D(rho, r, hdp, dz, nz, H.n_ghost);
+      hydrostatic_column_isothermal_D3D(rho, r, hdp, dz, nz, H.n_ghost); //CHANGED_FOR_ISOTHERMAL
 
       //store densities
       for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
