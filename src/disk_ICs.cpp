@@ -726,7 +726,7 @@ void Grid3D::Disk_3D(parameters p)
 
         //get density from hydrostatic column computation
         d = rho[nz_local_start + H.n_ghost + (k-H.n_ghost)];
-        if (d != d || d < 0) printf("Error calculating density. d: %e\n", d);
+        //if (d != d || d < 0) printf("Error calculating density. d: %e\n", d);
 
         // set pressure adiabatically
         //P = K_eos*pow(d,p.gamma);
