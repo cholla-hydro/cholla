@@ -454,8 +454,8 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   Real Sigma_r; //surface density expected at r
   Real Sigma_0 = hdp[9]; //central surface density
   Real K = hdp[12]; //K coefficient in EOS; P = K \rho^gamma
-  //Real gamma = hdp[13];
-  Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
+  Real gamma = hdp[13];
+  //Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
   Real rho_floor = hdp[14]; //density floor
 
   Real rho_eos = hdp[15];
@@ -657,8 +657,8 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
   int k;
   Real z_pos, rho_eos;
   Real Phi_0 = phi_total_D3D(0,0,hdp);
-  //Real gamma = hdp[13];
-  Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
+  Real gamma = hdp[13];
+  //Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
   Real Delta_phi;
   Real A = 0.0;
 

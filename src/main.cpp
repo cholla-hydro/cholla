@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
   // set main variables for Read_Grid inital conditions
   if (strcmp(P.init, "Read_Grid") == 0) {
     outtime += G.H.t;
-    nfile = P.nfile;
+    nfile = P.nfile*4;
     dti = G.calc_dti_CPU(C_cfl);
     G.H.dt = 1.0 / dti;
   }  

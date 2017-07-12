@@ -31,7 +31,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   Real ge;
   #endif
 
-  mu = 1.0;
+  mu = 0.6;
 
   // get a thread ID
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;

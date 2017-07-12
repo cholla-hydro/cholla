@@ -671,6 +671,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
   herr_t    status;
   Real dxy, dxz, Txy, Txz, n, T;
   n = T = 0;
+  Real mu = 0.6;
 
   // 3D 
   if (H.nx>1 && H.ny>1 && H.nz>1) {
@@ -702,7 +703,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           // sum density
           dxy += C.density[id]*H.dz;
           // calculate number density
-          n = C.density[id]*DENSITY_UNIT/MP;
+          n = C.density[id]*DENSITY_UNIT/(mu*MP);
           // calculate temperature
           #ifdef DE
           T = C.GasEnergy[id]*PRESSURE_UNIT*(gama-1.0) / (n*KB);
@@ -726,7 +727,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           // sum density
           dxz += C.density[id]*H.dy;
           // calculate number density
-          n = C.density[id]*DENSITY_UNIT/MP;
+          n = C.density[id]*DENSITY_UNIT/(mu*MP);
           // calculate temperature
           #ifdef DE
           T = C.GasEnergy[id]*PRESSURE_UNIT*(gama-1.0) / (n*KB);

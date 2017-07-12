@@ -439,15 +439,15 @@ Real Grid3D::Add_Supernovae(void)
   M_dot = 0.0;
   E_dot = 0.0;
 
-  // start feedback after 0 Myr, ramp up for 10 Myr, high for 30 Myr, ramp down for 10 Myr
-  Real tstart = 0.0;
-  Real tramp = 10.0;
+  // start feedback after 5 Myr, ramp up for 5 Myr, high for 30 Myr, ramp down for 5 Myr
+  Real tstart = 5.0;
+  Real tramp = 5.0;
   Real thigh = 30.0;
   t = H.t/1000 - tstart;
   t1 = tramp;
   t2 = tramp+thigh;
   t3 = 2*tramp+thigh;
-
+/*
   if (t >= 0 && t < t2) {
     M_dot = M2;
     E_dot = E2;
@@ -460,7 +460,8 @@ Real Grid3D::Add_Supernovae(void)
     M_dot = M1;
     E_dot = E1;
   }
-/*
+*/
+
   if (t >= 0 && t < t1) {
     M_dot = M1 + (1.0/tramp)*t*(M2-M1); 
     E_dot = E1 + (1.0/tramp)*t*(E2-E1);
@@ -477,7 +478,7 @@ Real Grid3D::Add_Supernovae(void)
     M_dot = M1;
     E_dot = E1;
   }
-*/
+
 
   E_dot = E_dot*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT); // convert to code units
   V = (4.0/3.0)*PI*R_s*R_s*R_s;
