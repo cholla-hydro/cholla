@@ -774,7 +774,7 @@ void Grid3D::Disk_3D(parameters p)
 {
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, phi;
-  Real d, n, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, x;
+  Real d, n, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, x, mu;
   Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d, Sigma;
   Real K_eos, rho_eos, cs, K_eos_h, rho_eos_h, cs_h;
   Real Sigma_0, R_g, H_g;
@@ -801,6 +801,7 @@ void Grid3D::Disk_3D(parameters p)
   T_h = 1.0e6; // halo temperature, at density floor 
   rho_eos = 1.0e7; //gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e3; //gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
+  mu = 0.6;
 
   R_g = 2.0*R_d;   //gas scale length in kpc
   //Sigma_0 = 0.25*M_d/(2*M_PI*R_g*R_g); //central surface density in Msun/kpc^2 (for MW)
@@ -813,8 +814,8 @@ void Grid3D::Disk_3D(parameters p)
   r_cool = 100.0; //in kpc (M82, guess)
 
   //EOS info
-  cs = sqrt(KB*T_d/(0.6*MP))*TIME_UNIT/LENGTH_UNIT; //sound speed in kpc/kyr
-  cs_h = sqrt(KB*T_h/(0.6*MP))*TIME_UNIT/LENGTH_UNIT; //sound speed in kpc/kyr
+  cs = sqrt(KB*T_d/(mu*MP))*TIME_UNIT/LENGTH_UNIT; //sound speed in kpc/kyr
+  cs_h = sqrt(KB*T_h/(mu*MP))*TIME_UNIT/LENGTH_UNIT; //sound speed in kpc/kyr
 
   //set some initial parameters
   int nhdp = 21;  //number of parameters to pass hydrostatic column
@@ -839,7 +840,7 @@ void Grid3D::Disk_3D(parameters p)
 
   //set EOS parameters
   //K_eos = cs*cs*pow(rho_eos,1.0-p.gamma)/p.gamma; //P = K\rho^gamma
-  K_eos = cs*cs*rho_eos; //P = K\rho^gamma CHANGED FOR ISOTHERMAL
+  K_eos = cs*cs*rho_eos; // CHANGED FOR ISOTHERMAL
   K_eos_h = cs_h*cs_h*pow(rho_eos_h,1.0-p.gamma)/p.gamma;
 
   //Store remaining parameters
@@ -891,7 +892,7 @@ void Grid3D::Disk_3D(parameters p)
   // and add the disk density and thermal energy
   // to the density and energy arrays
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-    chprintf("j %d\n",j);
+    //chprintf("j %d\n",j);
     for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
 
       // get the centered x, y, and z positions

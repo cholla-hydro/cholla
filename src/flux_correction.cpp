@@ -556,7 +556,9 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   Real ge;
   #endif
 
-  mu = 1.0;
+  //Real T_min = 1.0e4;
+  Real T_min = 0.0;
+  mu = 0.6;
 
   // load values of density and pressure
   d  =  C2[            id];
@@ -587,8 +589,9 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   // calculate cooling rate per volume
   T = T_init;
 
-  // call the cooling function (could choose primoridial cool)
-  cool = Schure_cool_CPU(n, T); 
+  // call the cooling function
+  //cool = Schure_cool_CPU(n, T); 
+  cool = Wiersma_cool_CPU(n, T); 
     
   // calculate change in temperature given dt
   del_T = cool*dt*TIME_UNIT*(gama-1.0)/(n*KB);
@@ -602,8 +605,8 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
     // how much time is left from the original timestep?
     dt -= dt_sub;
     // calculate cooling again
-    cool = Schure_cool_CPU(n, T);
-    // cool = primordial_cool(n, T);
+    //cool = Schure_cool_CPU(n, T);
+    cool = Wiersma_cool_CPU(n, T);
     // calculate new change in temperature
     del_T = cool*dt*TIME_UNIT*(gama-1.0)/(n*KB);
   }
@@ -611,8 +614,8 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   // calculate final temperature
   T -= del_T;
 
-  if (T < 1.0e4) {
-    T = 1.0e4;
+  if (T < T_min) {
+    T = T_min;
   }
 
   // adjust value of energy based on total change in temperature
@@ -646,6 +649,32 @@ Real Schure_cool_CPU(Real n, Real T) {
   }
   else {
     lambda = pow(10.0, (-2.5 * (log10(T) - 5.1) * (log10(T) - 5.1) - 20.7));
+  }
+
+  // cooling rate per unit volume
+  cool = n*n*lambda;
+
+  return cool;
+
+}
+
+Real Wiersma_cool_CPU(Real n, Real T) {
+
+  Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
+  Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
+  
+  // fit to Wiersma 2009 CIE cooling function 
+  if (log10(T) < 4.0) {
+    lambda = 0.0;
+  }
+  else if (log10(T) >= 4.0 && log10(T) < 5.9) {
+    lambda = pow(10.0, (-1.3 * (log10(T) - 5.25) * (log10(T) - 5.25) - 21.25));
+  }
+  else if (log10(T) >= 5.9 && log10(T) < 7.4) {
+    lambda = pow(10.0, (0.7 * (log10(T) - 7.1) * (log10(T) - 7.1) - 22.8));
+  }
+  else {
+    lambda = pow(10.0, (0.45*log10(T) - 26.065));
   }
 
   // cooling rate per unit volume

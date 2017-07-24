@@ -20,4 +20,6 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt);
 
 Real Schure_cool_CPU(Real n, Real T);
 
+Real Wiersma_cool_CPU(Real n, Real T);
+
 #endif //FLUX_CORRECTION_H

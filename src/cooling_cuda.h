@@ -35,6 +35,12 @@ __device__ Real primordial_cool(Real n, Real T);
 __device__ Real Schure_cool(Real n, Real T);
 
 
+/* \fn __device__ Real Wiersma_cool(Real n, Real T)
+ * \brief Analytic fit to the solar metallicity CIE cooling curve 
+          defined in Wiersma et al., 2009. */
+__device__ Real Wiersma_cool(Real n, Real T);
+
+
 #endif //COOLING_CUDA_H
 
 #endif //COOLING_GPU

@@ -143,6 +143,12 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // Step 3: Update the conserved variables half a timestep 
   Update_Conserved_Variables_3D_half<<<dim1dGrid,dim1dBlock>>>(dev_conserved, dev_conserved_half, F_x, F_y, F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5*dt, gama);
   CudaCheckError();
+  // Apply cooling
+  #ifdef COOLING_GPU
+  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, nx, ny, nz, n_ghost, 0.5*dt, gama);
+  CudaCheckError();
+  #endif
+
 
 
   // Step 4: Construct left and right interface values using updated conserved variables

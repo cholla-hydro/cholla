@@ -30,6 +30,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef DE
   Real ge;
   #endif
+  //Real T_min = 1.0e4; // minimum temperature allowed
+  Real T_min = 0.0; // minimum temperature allowed
 
   mu = 0.6;
 
@@ -75,7 +77,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T = T_init;
 
     // call the cooling function (could choose primoridial cool)
-    cool = Schure_cool(n, T); 
+    //cool = Schure_cool(n, T); 
+    cool = Wiersma_cool(n, T); 
     // cool = primordial_cool(n, T);
     
     // calculate change in temperature given dt
@@ -90,7 +93,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       // how much time is left from the original timestep?
       dt -= dt_sub;
       // calculate cooling again
-      cool = Schure_cool(n, T);
+      //cool = Schure_cool(n, T);
+      cool = Wiersma_cool(n, T);
       // cool = primordial_cool(n, T);
       // calculate new change in temperature
       del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
@@ -100,8 +104,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T -= del_T;
 
     // set a temperature floor of 10^4
-    if (T < 1.0e4) { 
-      T = 1.0e4;
+    if (T < T_min) { 
+      T = T_min;
     }
 
     // adjust value of energy based on total change in temperature
@@ -279,6 +283,34 @@ __device__ Real Schure_cool(Real n, Real T)
 
 }
 
+/* \fn __device__ Real Wiersma_cool(Real n, Real T)
+ * \brief Analytic fit to the solar metallicity CIE cooling curve 
+          defined in Wiersma et al., 2009. */
+__device__ Real Wiersma_cool(Real n, Real T)
+{
+  Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
+  Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
+  
+  // fit to Wiersma 2009 CIE cooling function 
+  if (log10(T) < 4.0) {
+    lambda = 0.0;
+  }
+  else if (log10(T) >= 4.0 && log10(T) < 5.9) {
+    lambda = pow(10.0, (-1.3 * (log10(T) - 5.25) * (log10(T) - 5.25) - 21.25));
+  }
+  else if (log10(T) >= 5.9 && log10(T) < 7.4) {
+    lambda = pow(10.0, (0.7 * (log10(T) - 7.1) * (log10(T) - 7.1) - 22.8));
+  }
+  else {
+    lambda = pow(10.0, (0.45*log10(T) - 26.065));
+  }
+
+  // cooling rate per unit volume
+  cool = n*n*lambda;
+
+  return cool;
+
+}
 
 #endif //COOLING_GPU
 #endif //CUDA
