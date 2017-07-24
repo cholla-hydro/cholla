@@ -167,7 +167,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 
           // apply cooling
           #ifdef COOLING_GPU
-          cooling_CPU(C2, id, n_cells, dt);
+          //cooling_CPU(C2, id, n_cells, dt);
           #endif
 
         }
