@@ -29,6 +29,9 @@
 #endif
 #include <stdio.h>
 #include "flux_correction.h"
+#ifdef COOLING_GPU
+#include "cooling_wrapper.h"
+#endif
 
 
 
@@ -185,6 +188,10 @@ void Grid3D::AllocateMemory(void)
     buffer0[i] = 0.0;
     buffer1[i] = 0.0;
   }
+
+  #ifdef COOLING_GPU
+  Load_Cuda_Textures();
+  #endif  
 
 }
 
