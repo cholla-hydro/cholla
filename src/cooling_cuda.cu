@@ -15,7 +15,7 @@
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
 {
   int n_cells = nx*ny*nz;
   
@@ -78,8 +78,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
     // call the cooling function (could choose primoridial cool)
     //cool = Schure_cool(n, T); 
-    cool = Wiersma_cool(n, T); 
-    // cool = primordial_cool(n, T);
+    //cool = Wiersma_cool(n, T); 
+    //cool = primordial_cool(n, T);
+    cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
     
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
@@ -94,8 +95,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       dt -= dt_sub;
       // calculate cooling again
       //cool = Schure_cool(n, T);
-      cool = Wiersma_cool(n, T);
-      // cool = primordial_cool(n, T);
+      //cool = Wiersma_cool(n, T);
+      //cool = primordial_cool(n, T);
+      cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
       // calculate new change in temperature
       del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
     }
@@ -310,6 +312,41 @@ __device__ Real Wiersma_cool(Real n, Real T)
 
   return cool;
 
+}
+
+
+/* \fn __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+ * \brief Uses texture mapping to interpolate Cloudy cooling/heating 
+          tables at z = 0 with solar metallicity and an HM05 UV background. */
+__device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+{
+  Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
+  Real H = 0.0; //heating rate, erg s^-1 cm^3
+  Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
+  float log_n, log_T;
+  log_n = log10(n);
+  log_T = log10(T);
+
+  // don't allow cooling at super low temps
+  if (log_T < 1.0) return cool;
+
+  // keep estimates within the bounds of the textures
+  // this is done automatically by setting cudaAddressModeClamp
+  //log_T = fmin(log_T, 9.0);
+  //log_n = fmax(log_n, -6.0);
+  //log_n = fmin(log_n, 6.0);
+
+  // remap coordinates for texture
+  log_T = (log_T - 1.0)/8.1;
+  log_n = (log_n + 6.0)/12.1; 
+ 
+  lambda = tex2D<float>(coolTexObj, log_T, log_n);
+  H = tex2D<float>(heatTexObj, log_T, log_n);
+
+  // cooling rate per unit volume
+  cool = n*n*(powf(10, lambda) - powf(10, H));
+
+  return cool;
 }
 
 #endif //COOLING_GPU
