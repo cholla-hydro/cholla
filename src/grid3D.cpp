@@ -29,6 +29,9 @@
 #endif
 #include <stdio.h>
 #include "flux_correction.h"
+#ifdef COOLING_GPU
+#include "cooling_wrapper.h"
+#endif
 
 
 
@@ -185,6 +188,10 @@ void Grid3D::AllocateMemory(void)
     buffer0[i] = 0.0;
     buffer1[i] = 0.0;
   }
+
+  #ifdef COOLING_GPU
+  Load_Cuda_Textures();
+  #endif  
 
 }
 
@@ -387,7 +394,8 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_3D_CUDA(&(C.density[0]), H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
     #endif //not_VL
     #ifdef VL
     max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
@@ -668,4 +676,7 @@ void Grid3D::FreeMemory(void)
   free(buffer0);
   free(buffer1);
 
+  #ifdef COOLING_GPU
+  Free_Cuda_Textures();
+  #endif
 }

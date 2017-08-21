@@ -146,7 +146,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost,
 
   // Apply cooling
   #ifdef COOLING_GPU
-  cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
+  //cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
   #endif
 
   // Calculate the next timestep
