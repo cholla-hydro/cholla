@@ -14,7 +14,7 @@
 #include "io.h"
 #include "error_handling.h"
 
-#define OUTPUT
+//#define OUTPUT
 //#define CPU_TIME
 
 int main(int argc, char *argv[])
@@ -132,20 +132,20 @@ int main(int argc, char *argv[])
     //chprintf("Before supernovae: %f %f\n", G.H.dt, dti);
 
     // set a maximum timestep of 1000 yr to better resolve SN
-    /*
+    
     if (G.H.dt > 1.0) {
       G.H.dt = 1.0;
-      dti = 1.0 / G.H.dt;
+      dti = C_cfl / G.H.dt;
       #ifdef MPI_CHOLLA
       ReduceRealMax(dti);
       #endif
     } 
-    */
+    
     //printf("%d After manual set: %f %f\n", procID, G.H.dt, dti);
 
     // Add supernovae
     Real sn_dti;
-    sn_dti = G.Add_Supernovae_CC85();
+    sn_dti = G.Add_Supernovae();
     dti = fmax(dti, sn_dti);
     #ifdef MPI_CHOLLA
     ReduceRealMax(dti);
