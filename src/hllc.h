@@ -7,8 +7,8 @@
 #include"global.h"
 
 
-/*! \fn Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
+/*! \fn Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah, int dir)
  *  \brief HLLC Riemann solver based on the version described in Toro (2006), Sec. 10.4. */
-void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah);
+void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah, int dir);
 
 #endif //HLLC_H

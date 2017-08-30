@@ -9,9 +9,9 @@
 
 
 
-/*! \fn Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
+/*! \fn Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah, int dir)
  *  \brief HLLC Riemann solver based on the version described in Toro (2006), Sec. 10.4. */
-void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
+void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah, int dir)
 {
   Real dl, vxl, mxl, vyl, myl, vzl, mzl, pl, El;
   Real dr, vxr, mxr, vyr, myr, vzr, mzr, pr, Er;
@@ -175,9 +175,21 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
 
     // return the hllc fluxes
     fluxes[0] = f_d;
-    fluxes[1] = f_mx;
-    fluxes[2] = f_my;
-    fluxes[3] = f_mz;
+    if (dir == 0 ) {
+      fluxes[1] = f_mx;
+      fluxes[2] = f_my;
+      fluxes[3] = f_mz;
+    }
+    if (dir == 1 ) {
+      fluxes[1] = f_my;
+      fluxes[2] = f_mz;
+      fluxes[3] = f_mx;
+    }
+    if (dir == 2 ) {
+      fluxes[1] = f_mz;
+      fluxes[2] = f_mx;
+      fluxes[3] = f_my;
+    }
     fluxes[4]  = f_E;
     #ifdef DE
     fluxes[5]  = f_ge;

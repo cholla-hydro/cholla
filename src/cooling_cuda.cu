@@ -15,7 +15,8 @@
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+//__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
 {
   int n_cells = nx*ny*nz;
   
@@ -78,9 +79,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
     // call the cooling function (could choose primoridial cool)
     //cool = Schure_cool(n, T); 
-    //cool = Wiersma_cool(n, T); 
+    cool = Wiersma_cool(n, T); 
     //cool = primordial_cool(n, T);
-    cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
+    //cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
     
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
@@ -95,9 +96,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       dt -= dt_sub;
       // calculate cooling again
       //cool = Schure_cool(n, T);
-      //cool = Wiersma_cool(n, T);
+      cool = Wiersma_cool(n, T);
       //cool = primordial_cool(n, T);
-      cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
+      //cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
       // calculate new change in temperature
       del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
     }
