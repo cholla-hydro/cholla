@@ -436,9 +436,9 @@ Real Grid3D::Add_Supernovae(void)
   Real r_sn, phi_sn, x_sn, y_sn, z_sn;
   Real SFR, E_sn;
   int N_sn, nx_sn, ny_sn, nz_sn;
-  SFR = 5.0; // star formation rate, in M_sun / yr
+  SFR = 20.0; // star formation rate, in M_sun / yr
   R_s = 0.3; // starburst radius, in kpc
-  z_s = 0.05; // starburst height, in kpc
+  z_s = 0.1; // starburst height, in kpc
   //M1 = 2.0e3; // mass input rate, in M_sun / kyr
   //E1 = 1.0e42; // energy input rate, in erg/s
   //M2 = 2.0e3;
@@ -452,12 +452,13 @@ Real Grid3D::Add_Supernovae(void)
   M_dot_tot = E_dot_tot = 0;
   Real d_inv, vx, vy, vz, P, cs;
   Real max_vx, max_vy, max_vz, max_dti;
-  max_vx = max_vy = max_vz = 0.0;
+  max_dti = max_vx = max_vy = max_vz = 0.0;
 
   if (H.n_step==0) srand (1); // initialize random seed
 
 
-  for (int ii=0; ii<N_sn; ii++) {
+//  for (int ii=0; ii<N_sn; ii++) {
+  for (int ii=0; ii<1; ii++) {
 
     r_sn = R_s*float(rand() % 10000)/10000.0; // pick a random radius within R_s
     phi_sn = 2*PI*float(rand() % 10000)/10000.0; // pick a random phi between 0 and 2pi
@@ -481,13 +482,17 @@ Real Grid3D::Add_Supernovae(void)
       #endif
       id = nx_sn + ny_sn*H.nx + nz_sn*H.nx*H.ny;
       // deposit 30 M_sun and 1e51 erg of mass and energy per SN
-      C.density[id] += 30 / (H.dx*H.dy*H.dz);
-      C.Energy[id] += 1.0e51/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT) / (H.dx*H.dy*H.dz);
+      //C.density[id] += 30 / (H.dx*H.dy*H.dz);
+      C.density[id] += N_sn*30 / (H.dx*H.dy*H.dz);
+      //C.Energy[id] += 1.0e51/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT) / (H.dx*H.dy*H.dz);
+      C.Energy[id] += N_sn*1.0e51/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT) / (H.dx*H.dy*H.dz);
       #ifdef DE
-      C.GasEnergy[id] += 1.0e51/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT) / (H.dx*H.dy*H.dz);
+      //C.GasEnergy[id] += 1.0e51/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT) / (H.dx*H.dy*H.dz);
+      C.GasEnergy[id] += N_sn*1.0e51/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT) / (H.dx*H.dy*H.dz);
       #endif
-      M_dot_tot += 30;
-      E_dot_tot += 1.0e51;
+      //M_dot_tot += 30;
+      //E_dot_tot += 1.0e51;
+      //printf("%d %d %d d: %e E: %e T: %e\n", nx_sn+nx_local_start, ny_sn+ny_local_start, nz_sn+nz_local_start, C.density[id]/DENSITY_UNIT, C.Energy[id]/ENERGY_UNIT, C.GasEnergy[id]*(gama-1.0)*SP_ENERGY_UNIT*0.6*MP/(KB*C.density[id]));
 
       // recalculate the timestep for these cells
       d_inv = 1.0 / C.density[id];
