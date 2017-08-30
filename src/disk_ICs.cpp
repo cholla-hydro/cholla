@@ -325,7 +325,7 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   z_1   = z_hc_D3D(ks,dz,nz,ng) + 0.5*dz;//cell ceiling
   D_rho = (phi_total_D3D(R,z_1,hdp)-Phi_0)/(cs*cs);
   if(exp(-1*D_rho)<0.1)
-    printf("WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e Phi_0 %E cs %e\n",R,D_rho,z_1,phi_total_D3D(R,z_1,hdp),Phi_0,cs);
+    //printf("WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e Phi_0 %E cs %e\n",R,D_rho,z_1,phi_total_D3D(R,z_1,hdp),Phi_0,cs);
 
 
   //let's find the cell above the disk where the
@@ -554,7 +554,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
         printf("Something wrong in determining central density...\n");
         printf("iter_phi = %d\n",iter_phi);
         printf("z_0 %e z_1 %e z_2 %e A_0 %e A_1 %e phi_0 %e phi_1 %e\n",z_0,z_1,z_2,A_0,A_1,phi_total_D3D(R,z_0,hdp),phi_total_D3D(R,z_1,hdp));
+        #ifdef MPI_CHOLLA
         MPI_Finalize();
+        #endif
         exit(0);
       }
     }
@@ -589,8 +591,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
     if(iter>100)
     {
       printf("About to exit...\n");
-
+      #ifdef MPI_CHOLLA
       MPI_Finalize();
+      #endif
       exit(0);
     }
   }
@@ -702,7 +705,9 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
       printf("Something wrong in determining central density...\n");
       printf("iter_phi = %d\n",iter_phi);
       printf("z_0 %e z_1 %e z_2 %e A_0 %e A_1 %e phi_0 %e phi_1 %e\n",z_0,z_1,z_2,A_0,A_1,phi_total_D3D(0,z_0,hdp),phi_total_D3D(0,z_1,hdp));
+      #ifdef MPI_CHOLLA
       MPI_Finalize();
+      #endif
       exit(0);
     }
   }
@@ -913,7 +918,11 @@ void Grid3D::Disk_3D(parameters p)
         id = i + j*H.nx + k*H.nx*H.ny;
 
         //get density from hydrostatic column computation
+        #ifdef MPI_CHOLLA
         d = rho[nz_local_start + H.n_ghost + (k-H.n_ghost)];
+        #else
+        d = rho[H.n_ghost + (k-H.n_ghost)];
+        #endif
         //if (d != d || d < 0) printf("Error calculating density. d: %e\n", d);
 
         // set pressure adiabatically

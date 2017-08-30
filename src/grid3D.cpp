@@ -467,13 +467,17 @@ Real Grid3D::Add_Supernovae(void)
 
     if (x_sn > H.xblocal && x_sn < H.xblocal+H.domlen_x && y_sn > H.yblocal && y_sn < H.yblocal+H.domlen_y && z_sn > H.zblocal && z_sn < H.zblocal+H.domlen_z) {
       // determine the id of the cell
+      #ifdef MPI_CHOLLA
       nx_sn = int(nx_global*2*R_s/H.xdglobal*x_sn + nx_global/2) + H.n_ghost;
       ny_sn = int(ny_global*2*R_s/H.ydglobal*y_sn + ny_global/2) + H.n_ghost;
       nz_sn = int(nz_global*2*z_s/H.zdglobal*z_sn + nz_global/2) + H.n_ghost;
-      #ifdef MPI_CHOLLA
       nx_sn = nx_sn - nx_local_start;
       ny_sn = ny_sn - ny_local_start;
       nz_sn = nz_sn - nz_local_start;
+      #else
+      nx_sn = int(H.nx*2*R_s/H.xdglobal*x_sn + H.nx/2) + H.n_ghost;
+      ny_sn = int(H.ny*2*R_s/H.ydglobal*y_sn + H.ny/2) + H.n_ghost;
+      nz_sn = int(H.nz*2*z_s/H.zdglobal*z_sn + H.nz/2) + H.n_ghost;
       #endif
       id = nx_sn + ny_sn*H.nx + nz_sn*H.nx*H.ny;
       // deposit 30 M_sun and 1e51 erg of mass and energy per SN
