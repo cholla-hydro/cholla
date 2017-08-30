@@ -146,6 +146,7 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah, int 
       fluxes[1] = f_mz_l;
       fluxes[2] = f_mx_l;
       fluxes[3] = f_my_l;
+    }
     fluxes[4] = f_E_l;
     #ifdef DE
     fluxes[5] = f_ge_l;

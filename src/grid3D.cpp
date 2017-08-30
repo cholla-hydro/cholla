@@ -31,6 +31,7 @@
 #include "flux_correction.h"
 #ifdef COOLING_GPU
 #include "cooling_wrapper.h"
+//#define CLOUDY
 #endif
 
 
@@ -190,7 +191,9 @@ void Grid3D::AllocateMemory(void)
   }
 
   #ifdef COOLING_GPU
+  #ifdef CLOUDY
   Load_Cuda_Textures();
+  #endif
   #endif  
 
 }
@@ -395,11 +398,10 @@ Real Grid3D::Update_Grid(void)
     #ifdef CUDA
     #ifndef VL
     max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
-    Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
     #endif //not_VL
     #ifdef VL
     max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
-    Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    //Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
     #endif //VL
     #endif    
   }
@@ -549,28 +551,18 @@ Real Grid3D::Add_Supernovae_CC85(void)
   E_dot = 0.0;
 
   // start feedback after 5 Myr, ramp up for 5 Myr, high for 30 Myr, ramp down for 5 Myr
-  Real tstart = 5.0;
+  //Real tstart = 5.0;
+  //Real tramp = 5.0;
+  //Real thigh = 30.0;
+  Real tstart = 0.0;
   Real tramp = 5.0;
   Real thigh = 30.0;
   t = H.t/1000 - tstart;
   t1 = tramp;
   t2 = tramp+thigh;
   t3 = 2*tramp+thigh;
-/*
-  if (t >= 0 && t < t2) {
-    M_dot = M2;
-    E_dot = E2;
-  }
-  if (t >= t2 && t < t3) {
-    M_dot = M1 + (1.0/tramp)*(t-t3)*(M1-M2);
-    E_dot = E1 + (1.0/tramp)*(t-t3)*(E1-E2);
-  }
-  if (t >= t3) {
-    M_dot = M1;
-    E_dot = E1;
-  }
-*/
   if (t >= 0) {
+/*
   if (t >= 0 && t < t1) {
     M_dot = M1 + (1.0/tramp)*t*(M2-M1); 
     E_dot = E1 + (1.0/tramp)*t*(E2-E1);
@@ -587,7 +579,9 @@ Real Grid3D::Add_Supernovae_CC85(void)
     M_dot = M1;
     E_dot = E1;
   }
-
+*/
+  M_dot = M2;
+  E_dot = E2;
 
   E_dot = E_dot*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT); // convert to code units
   V = (4.0/3.0)*PI*R_s*R_s*R_s;
@@ -677,6 +671,8 @@ void Grid3D::FreeMemory(void)
   free(buffer1);
 
   #ifdef COOLING_GPU
+  #ifdef CLOUDY
   Free_Cuda_Textures();
+  #endif
   #endif
 }

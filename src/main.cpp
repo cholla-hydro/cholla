@@ -14,7 +14,7 @@
 #include "io.h"
 #include "error_handling.h"
 
-//#define OUTPUT
+#define OUTPUT
 //#define CPU_TIME
 
 int main(int argc, char *argv[])
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
   #endif /*MPI_CHOLLA*/
 
   // declare Cfl coefficient and initial inverse timestep
-  Real C_cfl = 0.1; // CFL coefficient 0 < C_cfl < 0.5 
+  Real C_cfl = 0.4; // CFL coefficient 0 < C_cfl < 0.5 
   Real dti = 0; // inverse time step, 1.0 / dt
 
   // input parameter variables
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
     //chprintf("Before supernovae: %f %f\n", G.H.dt, dti);
 
     // set a maximum timestep of 1000 yr to better resolve SN
-    
+    /*
     if (G.H.dt > 1.0) {
       G.H.dt = 1.0;
       dti = C_cfl / G.H.dt;
@@ -140,12 +140,13 @@ int main(int argc, char *argv[])
       ReduceRealMax(dti);
       #endif
     } 
+    */
     
     //printf("%d After manual set: %f %f\n", procID, G.H.dt, dti);
 
     // Add supernovae
     Real sn_dti;
-    sn_dti = G.Add_Supernovae();
+    sn_dti = G.Add_Supernovae_CC85();
     dti = fmax(dti, sn_dti);
     #ifdef MPI_CHOLLA
     ReduceRealMax(dti);

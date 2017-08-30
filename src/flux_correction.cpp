@@ -58,9 +58,6 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           //printf("Uncorrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
           P_old = P_new;
 
-          // simple version
-          //CTU_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-
           Real C_half[nfields];
           Real C_half_imo[nfields];
           Real C_half_ipo[nfields];
@@ -166,7 +163,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 
           // apply cooling
           #ifdef COOLING_GPU
-          //cooling_CPU(C2, id, n_cells, dt);
+          cooling_CPU(C2, id, n_cells, dt);
           #endif
 
         }
@@ -339,14 +336,14 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   }
 
   // Update the conserved variables for the cell by a half step
-  C_half[0] = C1[id+0*n_cells] + 0.5*dtodx*(F_Lx[0] - F_Rx[0]) + 0.5*dtody*(F_Ly[0] - F_Ry[0]) + 0.5*dtodz*(F_Lz[0] - F_Rz[0]);
-  C_half[1] = C1[id+1*n_cells] + 0.5*dtodx*(F_Lx[1] - F_Rx[1]) + 0.5*dtody*(F_Ly[1] - F_Ry[1]) + 0.5*dtodz*(F_Lz[1] - F_Rz[1]);
-  C_half[2] = C1[id+2*n_cells] + 0.5*dtodx*(F_Lx[2] - F_Rx[2]) + 0.5*dtody*(F_Ly[2] - F_Ry[2]) + 0.5*dtodz*(F_Lz[2] - F_Rz[2]);
-  C_half[3] = C1[id+3*n_cells] + 0.5*dtodx*(F_Lx[3] - F_Rx[3]) + 0.5*dtody*(F_Ly[3] - F_Ry[3]) + 0.5*dtodz*(F_Lz[3] - F_Rz[3]);
-  C_half[4] = C1[id+4*n_cells] + 0.5*dtodx*(F_Lx[4] - F_Rx[4]) + 0.5*dtody*(F_Ly[4] - F_Ry[4]) + 0.5*dtodz*(F_Lz[4] - F_Rz[4]);
+  C_half[0] = C1[id+0*n_cells] + 0.5*(dtodx*(F_Lx[0] - F_Rx[0]) + dtody*(F_Ly[0] - F_Ry[0]) + dtodz*(F_Lz[0] - F_Rz[0]));
+  C_half[1] = C1[id+1*n_cells] + 0.5*(dtodx*(F_Lx[1] - F_Rx[1]) + dtody*(F_Ly[1] - F_Ry[1]) + dtodz*(F_Lz[1] - F_Rz[1]));
+  C_half[2] = C1[id+2*n_cells] + 0.5*(dtodx*(F_Lx[2] - F_Rx[2]) + dtody*(F_Ly[2] - F_Ry[2]) + dtodz*(F_Lz[2] - F_Rz[2]));
+  C_half[3] = C1[id+3*n_cells] + 0.5*(dtodx*(F_Lx[3] - F_Rx[3]) + dtody*(F_Ly[3] - F_Ry[3]) + dtodz*(F_Lz[3] - F_Rz[3]));
+  C_half[4] = C1[id+4*n_cells] + 0.5*(dtodx*(F_Lx[4] - F_Rx[4]) + dtody*(F_Ly[4] - F_Ry[4]) + dtodz*(F_Lz[4] - F_Rz[4]));
   #ifdef DE
-  C_half[5] = C1[id+5*n_cells] + 0.5*dtodx*(F_Lx[5] - F_Rx[5]) + 0.5*dtody*(F_Ly[5] - F_Ry[5]) + 0.5*dtodz*(F_Lz[5] - F_Rz[5])
-            + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+  C_half[5] = C1[id+5*n_cells] + 0.5*(dtodx*(F_Lx[5] - F_Rx[5]) + dtody*(F_Ly[5] - F_Ry[5]) + dtodz*(F_Lz[5] - F_Rz[5])
+            + P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo)));
   #endif
 
 
