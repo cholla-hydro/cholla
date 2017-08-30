@@ -177,27 +177,17 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 }
 
 
-void fill_flux_array(Real *C1, int idl, int idr, Real cW[], int n_cells, int dir)
+void fill_flux_array(Real *C1, int idl, int idr, Real cW[], int n_cells)
 {
-  int o1, o2, o3;
-  if (dir == 0) {
-    o1 = 1; o2 = 2; o3 = 3;
-  }
-  if (dir == 1) {
-    o1 = 2; o2 = 3; o3 = 1;
-  }
-  if (dir == 2) {
-    o1 = 3; o2 = 1; o3 = 2;
-  }
 
   cW[0] = C1[idl];
   cW[1] = C1[idr];
-  cW[2] = C1[o1*n_cells+idl];
-  cW[3] = C1[o1*n_cells+idr];
-  cW[4] = C1[o2*n_cells+idl];
-  cW[5] = C1[o2*n_cells+idr];
-  cW[6] = C1[o3*n_cells+idl];
-  cW[7] = C1[o3*n_cells+idr];
+  cW[2] = C1[n_cells+idl];
+  cW[3] = C1[n_cells+idr];
+  cW[4] = C1[2*n_cells+idl];
+  cW[5] = C1[2*n_cells+idr];
+  cW[6] = C1[3*n_cells+idl];
+  cW[7] = C1[3*n_cells+idr];
   cW[8] = C1[4*n_cells+idl];
   cW[9] = C1[4*n_cells+idr];
   #ifdef DE
@@ -208,27 +198,16 @@ void fill_flux_array(Real *C1, int idl, int idr, Real cW[], int n_cells, int dir
 }
 
 
-void fill_flux_array_2(Real C_half_l[], Real C_half_r[], Real cW[], int n_cells, int dir)
+void fill_flux_array_2(Real C_half_l[], Real C_half_r[], Real cW[], int n_cells)
 {
-  int o1, o2, o3;
-  if (dir == 0) {
-    o1 = 1; o2 = 2; o3 = 3;
-  }
-  if (dir == 1) {
-    o1 = 2; o2 = 3; o3 = 1;
-  }
-  if (dir == 2) {
-    o1 = 3; o2 = 1; o3 = 2;
-  }
-
   cW[0] = C_half_l[0];
   cW[1] = C_half_r[0];
-  cW[2] = C_half_l[o1];
-  cW[3] = C_half_r[o1];
-  cW[4] = C_half_l[o2];
-  cW[5] = C_half_r[o2];
-  cW[6] = C_half_l[o3];
-  cW[7] = C_half_r[o3];
+  cW[2] = C_half_l[1];
+  cW[3] = C_half_r[1];
+  cW[4] = C_half_l[2];
+  cW[5] = C_half_r[2];
+  cW[6] = C_half_l[3];
+  cW[7] = C_half_r[3];
   cW[8] = C_half_l[4];
   cW[9] = C_half_r[4];
   #ifdef DE
@@ -277,7 +256,7 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   // calculate the first set of fluxes
 
   // Lx
-  fill_flux_array(C1, imo, id, cW, n_cells, 0);
+  fill_flux_array(C1, imo, id, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Lx, gama);
   #endif
@@ -289,7 +268,7 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #endif
   
   // Rx
-  fill_flux_array(C1, id, ipo, cW, n_cells, 0);
+  fill_flux_array(C1, id, ipo, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Rx, gama);
   #endif
@@ -301,7 +280,7 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #endif
 
   // Ly
-  fill_flux_array(C1, jmo, id, cW, n_cells, 1);
+  fill_flux_array(C1, jmo, id, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Ly, gama);
   #endif
@@ -313,7 +292,7 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #endif
 
   // Ry
-  fill_flux_array(C1, id, jpo, cW, n_cells, 1);
+  fill_flux_array(C1, id, jpo, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Ry, gama);
   #endif
@@ -325,7 +304,7 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #endif
 
   // Lz
-  fill_flux_array(C1, kmo, id, cW, n_cells, 2);
+  fill_flux_array(C1, kmo, id, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Lz, gama);
   #endif
@@ -337,7 +316,7 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   #endif
 
   // Rz
-  fill_flux_array(C1, id, kpo, cW, n_cells, 2);
+  fill_flux_array(C1, id, kpo, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Rz, gama);
   #endif
@@ -412,7 +391,7 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   // calculate the second set of fluxes
 
   // Lx
-  fill_flux_array_2(C_half_imo, C_half, cW, n_cells, 0);
+  fill_flux_array_2(C_half_imo, C_half, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Lx, gama);
   #endif
@@ -424,7 +403,7 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #endif
   
   // Rx
-  fill_flux_array_2(C_half, C_half_ipo, cW, n_cells, 0);
+  fill_flux_array_2(C_half, C_half_ipo, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Rx, gama);
   #endif
@@ -436,7 +415,7 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #endif
 
   // Ly
-  fill_flux_array_2(C_half_jmo, C_half, cW, n_cells, 1);
+  fill_flux_array_2(C_half_jmo, C_half, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Ly, gama);
   #endif
@@ -448,7 +427,7 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #endif
 
   // Ry
-  fill_flux_array_2(C_half, C_half_jpo, cW, n_cells, 1);
+  fill_flux_array_2(C_half, C_half_jpo, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Ry, gama);
   #endif
@@ -460,7 +439,7 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #endif
 
   // Lz
-  fill_flux_array_2(C_half_kmo, C_half, cW, n_cells, 2);
+  fill_flux_array_2(C_half_kmo, C_half, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Lz, gama);
   #endif
@@ -472,7 +451,7 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   #endif
 
   // Rz
-  fill_flux_array_2(C_half, C_half_kpo, cW, n_cells, 2);
+  fill_flux_array_2(C_half, C_half_kpo, cW, n_cells);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Rz, gama);
   #endif
@@ -491,13 +470,12 @@ void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real 
   C2[id+3*n_cells] = C1[id+3*n_cells] + dtodx*(F_Lx[3] - F_Rx[3]) + dtody*(F_Ly[3] - F_Ry[3]) + dtodz*(F_Lz[3] - F_Rz[3]);
   C2[id+4*n_cells] = C1[id+4*n_cells] + dtodx*(F_Lx[4] - F_Rx[4]) + dtody*(F_Ly[4] - F_Ry[4]) + dtodz*(F_Lz[4] - F_Rz[4]);
   #ifdef DE
-  C2[id+5*n_cells] = C1[id+4*n_cells] + dtodx*(F_Lx[5] - F_Rx[5]) + dtody*(F_Ly[5] - F_Ry[5]) + dtodz*(F_Lz[5] - F_Rz[5])
+  C2[id+5*n_cells] = C1[id+5*n_cells] + dtodx*(F_Lx[5] - F_Rx[5]) + dtody*(F_Ly[5] - F_Ry[5]) + dtodz*(F_Lz[5] - F_Rz[5])
                    + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
   #endif
 
 
 }
-
 
 
 void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz)

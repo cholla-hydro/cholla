@@ -326,8 +326,7 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   D_rho = (phi_total_D3D(R,z_1,hdp)-Phi_0)/(cs*cs);
   /*
   if(exp(-1*D_rho)<0.1)
-    printf("WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e Phi_0 %E cs %e\n",R,D_rho,z_1,phi_total_D3D(R,z_1,hdp),Phi_0,cs);
-  */
+    //printf("WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e Phi_0 %E cs %e\n",R,D_rho,z_1,phi_total_D3D(R,z_1,hdp),Phi_0,cs);
 
 
   //let's find the cell above the disk where the
@@ -556,9 +555,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
         printf("Something wrong in determining central density...\n");
         printf("iter_phi = %d\n",iter_phi);
         printf("z_0 %e z_1 %e z_2 %e A_0 %e A_1 %e phi_0 %e phi_1 %e\n",z_0,z_1,z_2,A_0,A_1,phi_total_D3D(R,z_0,hdp),phi_total_D3D(R,z_1,hdp));
-	#ifdef MPI_CHOLLA
+        #ifdef MPI_CHOLLA
         MPI_Finalize();
-	#endif
+        #endif
         exit(0);
       }
     }

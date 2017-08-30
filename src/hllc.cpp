@@ -33,17 +33,35 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah, int 
   // calculate primative variables from input array
   dl = cW[0];
   dr = cW[1];
-  mxl = cW[2];
+  if (dir == 0) {
+    mxl = cW[2];
+    mxr = cW[3];
+    myl = cW[4];
+    myr = cW[5];
+    mzl = cW[6];
+    mzr = cW[7];
+  }
+  if (dir == 1) {
+    mxl = cW[4];
+    mxr = cW[5];
+    myl = cW[6];
+    myr = cW[7];
+    mzl = cW[2];
+    mzr = cW[3];
+  }
+  if (dir == 2) {
+    mxl = cW[6];
+    mxr = cW[7];
+    myl = cW[2];
+    myr = cW[3];
+    mzl = cW[4];
+    mzr = cW[5];
+  }
   vxl = mxl / dl;
-  mxr = cW[3];
   vxr = mxr / dr;
-  myl = cW[4];
   vyl = myl / dl;
-  myr = cW[5];
   vyr = myr / dr;
-  mzl = cW[6];
   vzl = mzl / dl;
-  mzr = cW[7];
   vzr = mzr / dr;
   El  = cW[8];
   pl = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * g1;
@@ -114,9 +132,20 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah, int 
   // return upwind flux if flow is supersonic 
   if (Sl > 0.0) {
     fluxes[0] = f_d_l;
-    fluxes[1] = f_mx_l;
-    fluxes[2] = f_my_l;
-    fluxes[3] = f_mz_l;
+    if (dir == 0 ) {
+      fluxes[1] = f_mx_l;
+      fluxes[2] = f_my_l;
+      fluxes[3] = f_mz_l;
+    }
+    if (dir == 1 ) {
+      fluxes[1] = f_my_l;
+      fluxes[2] = f_mz_l;
+      fluxes[3] = f_mx_l;
+    }
+    if (dir == 2 ) {
+      fluxes[1] = f_mz_l;
+      fluxes[2] = f_mx_l;
+      fluxes[3] = f_my_l;
     fluxes[4] = f_E_l;
     #ifdef DE
     fluxes[5] = f_ge_l;
@@ -125,9 +154,21 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah, int 
   }
   else if (Sr < 0.0) {
     fluxes[0] = f_d_r;
-    fluxes[1] = f_mx_r;
-    fluxes[2] = f_my_r;
-    fluxes[3] = f_mz_r;
+    if (dir == 0) {
+      fluxes[1] = f_mx_r;
+      fluxes[2] = f_my_r;
+      fluxes[3] = f_mz_r;
+    }
+    if (dir == 1) {
+      fluxes[1] = f_my_r;
+      fluxes[2] = f_mz_r;
+      fluxes[3] = f_mx_r;
+    }
+    if (dir == 2) {
+      fluxes[1] = f_mz_r;
+      fluxes[2] = f_mx_r;
+      fluxes[3] = f_my_r;
+    }
     fluxes[4] = f_E_r;
     #ifdef DE
     fluxes[5]  = f_ge_r;
@@ -175,17 +216,17 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah, int 
 
     // return the hllc fluxes
     fluxes[0] = f_d;
-    if (dir == 0 ) {
+    if (dir == 0) {
       fluxes[1] = f_mx;
       fluxes[2] = f_my;
       fluxes[3] = f_mz;
     }
-    if (dir == 1 ) {
+    if (dir == 1) {
       fluxes[1] = f_my;
       fluxes[2] = f_mz;
       fluxes[3] = f_mx;
     }
-    if (dir == 2 ) {
+    if (dir == 2) {
       fluxes[1] = f_mz;
       fluxes[2] = f_mx;
       fluxes[3] = f_my;
