@@ -324,9 +324,9 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   //a single cell
   z_1   = z_hc_D3D(ks,dz,nz,ng) + 0.5*dz;//cell ceiling
   D_rho = (phi_total_D3D(R,z_1,hdp)-Phi_0)/(cs*cs);
-  /*
+  
   if(exp(-1*D_rho)<0.1)
-    //printf("WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e Phi_0 %E cs %e\n",R,D_rho,z_1,phi_total_D3D(R,z_1,hdp),Phi_0,cs);
+    printf("WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e Phi_0 %E cs %e\n",R,D_rho,z_1,phi_total_D3D(R,z_1,hdp),Phi_0,cs);
 
 
   //let's find the cell above the disk where the

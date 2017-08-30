@@ -145,8 +145,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   CudaCheckError();
   // Apply cooling
   #ifdef COOLING_GPU
-  cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, nx, ny, nz, n_ghost, 0.5*dt, gama);
-  CudaCheckError();
+  //cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, nx, ny, nz, n_ghost, 0.5*dt, gama);
+  //CudaCheckError();
   #endif
 
 
