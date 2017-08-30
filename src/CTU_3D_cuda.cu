@@ -15,7 +15,7 @@
 #include"plmp_ctu_cuda.h"
 #include"plmc_ctu_cuda.h"
 #include"ppmp_ctu_cuda.h"
-#include"ppmc_ctu_cuda.h"
+#include"ppmc_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
 #include"hllc_cuda.h"
@@ -181,9 +181,9 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   PPMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt, gama, 2);
   #endif //PPMP
   #ifdef PPMC
-  PPMC_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0);
-  PPMC_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy, dt, gama, 1);
-  PPMC_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt, gama, 2);
+  PPMC<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0);
+  PPMC<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy, dt, gama, 1);
+  PPMC<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt, gama, 2);
   #endif //PPMC
   CudaCheckError();
 

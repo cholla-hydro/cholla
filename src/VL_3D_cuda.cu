@@ -16,7 +16,7 @@
 #include"plmp_vl_cuda.h"
 #include"plmc_vl_cuda.h"
 #include"ppmp_vl_cuda.h"
-#include"ppmc_vl_cuda.h"
+#include"ppmc_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
 #include"hllc_cuda.h"
@@ -171,9 +171,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, 2);
   #endif //PPMP
   #ifdef PPMC
-  PPMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, gama, 0);
-  PPMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, gama, 1);
-  PPMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, 2);
+  PPMC<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0);
+  PPMC<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy, dt, gama, 1);
+  PPMC<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt, gama, 2);
   #endif //PPMC
   CudaCheckError();
   

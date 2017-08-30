@@ -1,6 +1,6 @@
-/*! \file ppmc_vl_cuda.cu
- *  \brief Function definitions for the van leer integrator ppm kernels, using characteristic limiting. 
-           Written following Stone et al. 2009. */
+/*! \file ppmc_cuda.cu
+ *  \brief Functions definitions for the ppm kernels, using characteristic tracing. 
+           Written following Stone et al. 2008. */
 #ifdef CUDA
 #ifdef PPMC
 
@@ -8,14 +8,14 @@
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
-#include"ppmc_vl_cuda.h"
+#include"ppmc_ctu_cuda.h"
 
 
 
-/*! \fn void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
+/*! \fn void PPMC(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir)
  *  \brief When passed a stencil of conserved variables, returns the left and right 
            boundary values for the interface calculated using ppm. */
-__global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
+__global__ void PPMC(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir)
 {
   int n_cells = nx*ny*nz;
   int o1, o2, o3;
@@ -36,7 +36,7 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
   Real d_ipo, vx_ipo, vy_ipo, vz_ipo, p_ipo;
   Real d_imt, vx_imt, vy_imt, vz_imt, p_imt;
   Real d_ipt, vx_ipt, vy_ipt, vz_ipt, p_ipt;
-
+ 
   // declare other variables to be used
   Real a;
   Real del_d_L, del_vx_L, del_vy_L, del_vz_L, del_p_L;
@@ -55,11 +55,24 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
   Real d_L, vx_L, vy_L, vz_L, p_L;
   Real d_R, vx_R, vy_R, vz_R, p_R;
 
+  #ifdef CTU
+  Real dtodx = dt/dx;
+  Real d_6, vx_6, vy_6, vz_6, p_6;
+  Real lambda_m, lambda_0, lambda_p;
+  Real lambda_max, lambda_min;
+  Real A, B, C, D;
+  Real chi_1, chi_2, chi_3, chi_4, chi_5;
+  Real sum_1, sum_2, sum_3, sum_4, sum_5;
+  #endif //CTU
+
   #ifdef DE
   Real ge_i, ge_imo, ge_ipo, ge_imt, ge_ipt;
   Real del_ge_L, del_ge_R, del_ge_C, del_ge_G;
   Real del_ge_m_imo, del_ge_m_i, del_ge_m_ipo;
   Real ge_L, ge_R;
+  #ifdef CTU
+  Real chi_6, sum_6, ge_6;
+  #endif
   #endif
 
 
@@ -83,7 +96,7 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     p_i  = (dev_conserved[4*n_cells + id] - 0.5*d_i*(vx_i*vx_i + vy_i*vy_i + vz_i*vz_i)) * (gamma - 1.0);
     p_i  = fmax(p_i, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_i =  dev_conserved[5*n_cells + id];
+    ge_i =  dev_conserved[5*n_cells + id] / d_i;
     #endif
     // cell i-1
     if (dir == 0) id = xid-1 + yid*nx + zid*nx*ny;
@@ -96,7 +109,7 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
     p_imo  = fmax(p_imo, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_imo =  dev_conserved[5*n_cells + id];
+    ge_imo =  dev_conserved[5*n_cells + id] / d_imo;
     #endif
     // cell i+1
     if (dir == 0) id = xid+1 + yid*nx + zid*nx*ny;
@@ -109,7 +122,7 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     p_ipo  = (dev_conserved[4*n_cells + id] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma - 1.0);
     p_ipo  = fmax(p_ipo, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_ipo =  dev_conserved[5*n_cells + id];
+    ge_ipo =  dev_conserved[5*n_cells + id] / d_ipo;
     #endif
     // cell i-2
     if (dir == 0) id = xid-2 + yid*nx + zid*nx*ny;
@@ -122,7 +135,7 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     p_imt  = (dev_conserved[4*n_cells + id] - 0.5*d_imt*(vx_imt*vx_imt + vy_imt*vy_imt + vz_imt*vz_imt)) * (gamma - 1.0);
     p_imt  = fmax(p_imt, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_imt =  dev_conserved[5*n_cells + id];
+    ge_imt =  dev_conserved[5*n_cells + id] / d_imt;
     #endif
     // cell i+2
     if (dir == 0) id = xid+2 + yid*nx + zid*nx*ny;
@@ -135,9 +148,10 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     p_ipt  = (dev_conserved[4*n_cells + id] - 0.5*d_ipt*(vx_ipt*vx_ipt + vy_ipt*vy_ipt + vz_ipt*vz_ipt)) * (gamma - 1.0);
     p_ipt  = fmax(p_ipt, (Real) TINY_NUMBER);
     #ifdef DE
-    ge_ipt =  dev_conserved[5*n_cells + id];
+    ge_ipt =  dev_conserved[5*n_cells + id] / d_ipt;
     #endif
-
+    
+    //printf("%d %d %d %f %f %f %f %f\n", xid, yid, zid, d_i, vx_i, vy_i, vz_i, p_i);
 
     // Steps 2 - 5 are repeated for cell i-1, i, and i+1
     // Step 2 - Compute the left, right, centered, and van Leer differences of the primative variables
@@ -511,7 +525,8 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
       lim_slope_a = fmin(fabs(del_ge_L), fabs(del_ge_R));
       lim_slope_b = fmin(fabs(del_ge_C), fabs(del_ge_G));
       del_ge_m_ipo = sgn_CUDA(del_ge_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b); 
-    }    
+    }
+    else del_ge_m_ipo = 0.0;
     #endif
 
 
@@ -601,7 +616,217 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     ge_R  = fmin( fmax(ge_i,  ge_ipo), ge_R );
     #endif
 
-    // enfore minimum values
+    #ifdef CTU
+
+    // Step 8 - Compute the coefficients for the monotonized parabolic interpolation function
+    //          Stone Eqn 54
+
+    del_d_m_i  = d_R  - d_L;
+    del_vx_m_i = vx_R - vx_L;
+    del_vy_m_i = vy_R - vy_L;
+    del_vz_m_i = vz_R - vz_L;
+    del_p_m_i  = p_R  - p_L;
+
+    d_6  = 6.0*(d_i  - 0.5*(d_L  + d_R));
+    vx_6 = 6.0*(vx_i - 0.5*(vx_L + vx_R));
+    vy_6 = 6.0*(vy_i - 0.5*(vy_L + vy_R));
+    vz_6 = 6.0*(vz_i - 0.5*(vz_L + vz_R));
+    p_6  = 6.0*(p_i  - 0.5*(p_L  + p_R));
+
+    #ifdef DE
+    del_ge_m_i = ge_R - ge_L;
+    ge_6 = 6.0*(ge_i - 0.5*(ge_L + ge_R));
+    #endif
+
+
+    // Compute the eigenvalues of the linearized equations in the
+    // primative variables using the cell-centered primative variables
+
+    // recalculate the adiabatic sound speed in cell i
+    a = sqrt(gamma*p_i/d_i);
+
+    lambda_m = vx_i-a;
+    lambda_0 = vx_i;
+    lambda_p = vx_i+a; 
+
+
+    // Step 9 - Compute the left and right interface values using monotonized parabolic interpolation
+    //          Stone Eqns 55 & 56
+
+    // largest eigenvalue
+    lambda_max = fmax(lambda_p, 0);
+    // smallest eigenvalue
+    lambda_min = fmin(lambda_m, 0);
+
+
+    // left interface value, i+1/2
+    d_R  = d_R  - lambda_max * (0.5*dtodx)*(del_d_m_i  - (1.0 - (2.0/3.0)*lambda_max*dtodx)*d_6);
+    vx_R = vx_R - lambda_max * (0.5*dtodx)*(del_vx_m_i - (1.0 - (2.0/3.0)*lambda_max*dtodx)*vx_6);
+    vy_R = vy_R - lambda_max * (0.5*dtodx)*(del_vy_m_i - (1.0 - (2.0/3.0)*lambda_max*dtodx)*vy_6);
+    vz_R = vz_R - lambda_max * (0.5*dtodx)*(del_vz_m_i - (1.0 - (2.0/3.0)*lambda_max*dtodx)*vz_6);
+    p_R  = p_R  - lambda_max * (0.5*dtodx)*(del_p_m_i  - (1.0 - (2.0/3.0)*lambda_max*dtodx)*p_6);
+    
+    // right interface value, i-1/2
+    d_L  = d_L  - lambda_min * (0.5*dtodx)*(del_d_m_i  + (1.0 + (2.0/3.0)*lambda_min*dtodx)*d_6);
+    vx_L = vx_L - lambda_min * (0.5*dtodx)*(del_vx_m_i + (1.0 + (2.0/3.0)*lambda_min*dtodx)*vx_6);
+    vy_L = vy_L - lambda_min * (0.5*dtodx)*(del_vy_m_i + (1.0 + (2.0/3.0)*lambda_min*dtodx)*vy_6);
+    vz_L = vz_L - lambda_min * (0.5*dtodx)*(del_vz_m_i + (1.0 + (2.0/3.0)*lambda_min*dtodx)*vz_6);
+    p_L  = p_L  - lambda_min * (0.5*dtodx)*(del_p_m_i  + (1.0 + (2.0/3.0)*lambda_min*dtodx)*p_6);
+
+    #ifdef DE
+    ge_R = ge_R - lambda_max * (0.5*dtodx)*(del_ge_m_i - (1.0 - (2.0/3.0)*lambda_max*dtodx)*ge_6);
+    ge_L = ge_L - lambda_min * (0.5*dtodx)*(del_ge_m_i + (1.0 + (2.0/3.0)*lambda_min*dtodx)*ge_6);
+    #endif
+
+    // Step 10 - Perform the characteristic tracing
+    //           Stone Eqns 57 - 60 
+
+    // left-hand interface value, i+1/2
+    sum_1 = 0;
+    sum_2 = 0;
+    sum_3 = 0;
+    sum_4 = 0;
+    sum_5 = 0;
+    #ifdef DE
+    sum_6 = 0;
+    #endif
+    if (lambda_m >= 0)
+    {
+      A = (0.5*dtodx) * (lambda_p - lambda_m); 
+      B = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_p*lambda_p - lambda_m*lambda_m);
+
+      chi_1 = A*(del_d_m_i - d_6) + B*d_6; 
+      chi_2 = A*(del_vx_m_i - vx_6) + B*vx_6; 
+      chi_3 = A*(del_vy_m_i - vy_6) + B*vy_6; 
+      chi_4 = A*(del_vz_m_i - vz_6) + B*vz_6; 
+      chi_5 = A*(del_p_m_i - p_6) + B*p_6;
+
+      sum_1 += -0.5*(d_i*chi_2/a - chi_5/(a*a));
+      sum_2 += 0.5*(chi_2 - chi_5/(a*d_i));
+      sum_5 += -0.5*(d_i*chi_2*a - chi_5);
+    }
+    if (lambda_0 >= 0)
+    {
+      A = (0.5*dtodx) * (lambda_p - lambda_0); 
+      B = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_p*lambda_p - lambda_0*lambda_0);
+
+      chi_1 = A*(del_d_m_i - d_6) + B*d_6; 
+      chi_2 = A*(del_vx_m_i - vx_6) + B*vx_6; 
+      chi_3 = A*(del_vy_m_i - vy_6) + B*vy_6; 
+      chi_4 = A*(del_vz_m_i - vz_6) + B*vz_6; 
+      chi_5 = A*(del_p_m_i - p_6) + B*p_6;
+      #ifdef DE
+      chi_6 = A*(del_ge_m_i - ge_6) + B*ge_6;
+      #endif
+    
+      sum_1 += chi_1 - chi_5/(a*a);
+      sum_3 += chi_3;
+      sum_4 += chi_4;
+      #ifdef DE
+      sum_6 += chi_6;
+      #endif
+    }
+    if (lambda_p >= 0)
+    {
+      A = (0.5*dtodx) * (lambda_p - lambda_p); 
+      B = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_p*lambda_p - lambda_p*lambda_p);
+
+      chi_1 = A*(del_d_m_i - d_6) + B*d_6; 
+      chi_2 = A*(del_vx_m_i - vx_6) + B*vx_6; 
+      chi_3 = A*(del_vy_m_i - vy_6) + B*vy_6; 
+      chi_4 = A*(del_vz_m_i - vz_6) + B*vz_6; 
+      chi_5 = A*(del_p_m_i - p_6) + B*p_6;
+
+      sum_1 += 0.5*(d_i*chi_2/a + chi_5/(a*a));
+      sum_2 += 0.5*(chi_2 + chi_5/(a*d_i));
+      sum_5 += 0.5*(d_i*chi_2*a + chi_5);
+    }
+
+    // add the corrections to the initial guesses for the interface values
+    d_R += sum_1;
+    vx_R += sum_2;
+    vy_R += sum_3;
+    vz_R += sum_4;
+    p_R += sum_5;
+    #ifdef DE
+    ge_R += sum_6;
+    #endif
+
+
+    // right-hand interface value, i-1/2
+    sum_1 = 0;
+    sum_2 = 0;
+    sum_3 = 0;
+    sum_4 = 0;
+    sum_5 = 0;
+    #ifdef DE
+    sum_6 = 0;
+    #endif
+    if (lambda_m <= 0)
+    {
+      C = (0.5*dtodx) * (lambda_m - lambda_m);
+      D = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_m*lambda_m - lambda_m*lambda_m);
+   
+      chi_1 = C*(del_d_m_i + d_6) + D*d_6; 
+      chi_2 = C*(del_vx_m_i + vx_6) + D*vx_6; 
+      chi_3 = C*(del_vy_m_i + vy_6) + D*vy_6; 
+      chi_4 = C*(del_vz_m_i + vz_6) + D*vz_6; 
+      chi_5 = C*(del_p_m_i + p_6) + D*p_6;
+
+      sum_1 += -0.5*(d_i*chi_2/a - chi_5/(a*a));
+      sum_2 += 0.5*(chi_2 - chi_5/(a*d_i));
+      sum_5 += -0.5*(d_i*chi_2*a - chi_5);
+    }
+    if (lambda_0 <= 0)
+    {
+      C = (0.5*dtodx) * (lambda_m - lambda_0);
+      D = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_m*lambda_m - lambda_0*lambda_0);
+
+      chi_1 = C*(del_d_m_i + d_6) + D*d_6; 
+      chi_2 = C*(del_vx_m_i + vx_6) + D*vx_6; 
+      chi_3 = C*(del_vy_m_i + vy_6) + D*vy_6; 
+      chi_4 = C*(del_vz_m_i + vz_6) + D*vz_6; 
+      chi_5 = C*(del_p_m_i + p_6) + D*p_6;
+      #ifdef DE
+      chi_6 = C*(del_ge_m_i + ge_6) + D*ge_6; 
+      #endif
+    
+      sum_1 += chi_1 - chi_5/(a*a);
+      sum_3 += chi_3;
+      sum_4 += chi_4;
+      #ifdef DE
+      sum_6 += chi_6;
+      #endif
+    }
+    if (lambda_p <= 0)
+    {
+      C = (0.5*dtodx) * (lambda_m - lambda_p);
+      D = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_m*lambda_m - lambda_p*lambda_p);
+
+      chi_1 = C*(del_d_m_i + d_6) + D*d_6; 
+      chi_2 = C*(del_vx_m_i + vx_6) + D*vx_6; 
+      chi_3 = C*(del_vy_m_i + vy_6) + D*vy_6; 
+      chi_4 = C*(del_vz_m_i + vz_6) + D*vz_6; 
+      chi_5 = C*(del_p_m_i + p_6) + D*p_6;
+
+      sum_1 += 0.5*(d_i*chi_2/a + chi_5/(a*a));
+      sum_2 += 0.5*(chi_2 + chi_5/(a*d_i));
+      sum_5 += 0.5*(d_i*chi_2*a + chi_5);
+    }
+
+    // add the corrections
+    d_L += sum_1;
+    vx_L += sum_2;
+    vy_L += sum_3;
+    vz_L += sum_4;
+    p_L += sum_5;
+    #ifdef DE
+    ge_L += sum_6;
+    #endif
+
+    #endif //CTU
+
+    // enforce minimum values
     d_L = fmax(d_L, (Real) TINY_NUMBER);
     d_R = fmax(d_R, (Real) TINY_NUMBER);
     p_L = fmax(p_L, (Real) TINY_NUMBER);
@@ -619,7 +844,7 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     dev_bounds_R[o3*n_cells + id] = d_L*vz_L;
     dev_bounds_R[4*n_cells + id] = p_L/(gamma-1.0) + 0.5*d_L*(vx_L*vx_L + vy_L*vy_L + vz_L*vz_L);    
     #ifdef DE
-    dev_bounds_R[5*n_cells + id] = ge_L;
+    dev_bounds_R[5*n_cells + id] = d_L*ge_L;
     #endif
     // bounds_L refers to the left side of the i+1/2 interface
     id = xid + yid*nx + zid*nx*ny;
@@ -629,11 +854,12 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     dev_bounds_L[o3*n_cells + id] = d_R*vz_R;
     dev_bounds_L[4*n_cells + id] = p_R/(gamma-1.0) + 0.5*d_R*(vx_R*vx_R + vy_R*vy_R + vz_R*vz_R);
     #ifdef DE
-    dev_bounds_L[5*n_cells + id] = ge_R;
+    dev_bounds_L[5*n_cells + id] = d_R*ge_R;
     #endif
 
   }
 }
+
 
 #endif //PPMC
 #endif //CUDA
