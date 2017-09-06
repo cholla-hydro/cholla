@@ -8,7 +8,7 @@
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
-#include"ppmc_ctu_cuda.h"
+#include"ppmc_cuda.h"
 
 
 

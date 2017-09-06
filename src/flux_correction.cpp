@@ -45,14 +45,18 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
         id = i + j*nx + k*nx*ny;
         
         d_new = C2[id];
+        #if defined DE
+        P_new = C2[5*n_cells+id] * (gama-1.0);
+        #else
         vx_new = C2[n_cells+id]/d_new;
         vy_new = C2[2*n_cells+id]/d_new;
         vz_new = C2[3*n_cells+id]/d_new;
         P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
+        #endif
   
         // if there is a problem, redo the update for that cell using first-order fluxes
         if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) {
-          //printf("Flux correction: (%d, %d %d) d: %e  p:%e\n", i, j, k, d_new, P_new);
+          printf("Flux correction: (%d, %d %d) d: %e  p:%e\n", i, j, k, d_new, P_new);
           //printf("%3d %3d %3d Old density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
           //printf("Previous timestep data: d: %e mx: %e my: %e mz: %e E: %e\n", C1[id], C1[n_cells+id], C1[2*n_cells+id], C1[3*n_cells+id], C1[4*n_cells+id]);
           //printf("Uncorrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
@@ -158,7 +162,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           // recalculate the pressure
           P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           #endif          
-          //printf("%3d %3d %3d New density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
+          printf("%3d %3d %3d New density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
           //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
 
           // apply cooling
