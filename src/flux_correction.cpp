@@ -70,17 +70,17 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           half_step_update(C_half, C1, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half[0], C_half[4]);
           // need C_half for all the surrounding cells, as well
-          half_step_update(C_half_imo, C1, i-1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          half_step_update(C_half_imo, C1, i-1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half_imo[0], C_half_imo[4]);
-          half_step_update(C_half_ipo, C1, i+1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          half_step_update(C_half_ipo, C1, i+1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half_ipo[0], C_half_ipo[4]);
-          half_step_update(C_half_jmo, C1, i, j-1, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          half_step_update(C_half_jmo, C1, i, j-1, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half_jmo[0], C_half_jmo[4]);
-          half_step_update(C_half_jpo, C1, i, j+1, k, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          half_step_update(C_half_jpo, C1, i, j+1, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half_jpo[0], C_half_jpo[4]);
-          half_step_update(C_half_kmo, C1, i, j, k-1, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          half_step_update(C_half_kmo, C1, i, j, k-1, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half_kmo[0], C_half_kmo[4]);
-          half_step_update(C_half_kpo, C1, i, j, k+1, dtodx, dtody, dtodz, nfields, nx, ny, nx, n_cells);
+          half_step_update(C_half_kpo, C1, i, j, k+1, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
           //printf("Half step data: d: %e E: %e\n", C_half_kpo[0], C_half_kpo[4]);
 
           // Recalculate the fluxes, again using piecewise constant reconstruction
