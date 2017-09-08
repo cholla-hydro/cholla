@@ -20,6 +20,7 @@
 #include "VL_3D_cuda.h"
 #include "io.h"
 #include "error_handling.h"
+#include "ran.h"
 #ifdef MPI_CHOLLA
 #include <mpi.h>
 #ifdef HDF5
@@ -401,7 +402,7 @@ Real Grid3D::Update_Grid(void)
     #endif //not_VL
     #ifdef VL
     max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
-    Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    //Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
     #endif //VL
     #endif    
   }
@@ -530,10 +531,13 @@ Real Grid3D::Add_Supernovae(void)
 
 Real Grid3D::Add_Supernovae_CC85(void)
 {
-  int i, j, k, id;
+  int i, j, k, id, tstep_flag;
   Real x_pos, y_pos, z_pos, r, R_s, z_s, f, t, t1, t2, t3;
   Real M1, M2, M3, E1, E2, E3, M_dot, E_dot, V, rho_dot, Ed_dot;
   Real d_inv, vx, vy, vz, P, cs;
+  Real xl, yl, zl, xr, yr, zr, rl, rr;
+  int incount, ii;
+  Real weight, xpoint, ypoint, zpoint;
   Real max_vx, max_vy, max_vz, max_dti;
   max_dti = max_vx = max_vy = max_vz = 0.0;
   R_s = 0.3; // starburst radius, in kpc
@@ -597,17 +601,30 @@ Real Grid3D::Add_Supernovae_CC85(void)
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
       for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
 
+        tstep_flag = 0;
+
         id = i + j*H.nx + k*H.nx*H.ny;
 
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
         
         // calculate spherical radius
         r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
+        xl = fabs(x_pos)-0.5*H.dx;
+        yl = fabs(y_pos)-0.5*H.dy;
+        zl = fabs(z_pos)-0.5*H.dz;
+        xr = fabs(x_pos)+0.5*H.dx;
+        yr = fabs(y_pos)+0.5*H.dy;
+        zr = fabs(z_pos)+0.5*H.dz;
+        rl = sqrt(xl*xl + yl*yl + zl*zl);
+        rr = sqrt(xr*xr + yr*yr + zr*zr);
         //r = sqrt(x_pos*x_pos + y_pos*y_pos);
 
         // within starburst radius, inject mass and thermal energy
-        if (r < R_s) {
+        // entire cell is within sphere
+        //if (r < R_s) {
+        if (rl < R_s) {
         //if (r < R_s && fabs(z_pos) < z_s) {
+          tstep_flag = 1;
           C.density[id] += rho_dot * H.dt;
           C.Energy[id] += Ed_dot * H.dt;
           #ifdef DE
@@ -615,7 +632,33 @@ Real Grid3D::Add_Supernovae_CC85(void)
           #endif
           //M_dot_tot += rho_dot*H.dx*H.dy*H.dz;
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
-
+        }
+        // on the sphere
+        /*
+        if (rl < R_s && rr > R_s) {
+          tstep_flag = 1;
+          // quick Monte Carlo to determine weighting
+          Ran quickran(50);
+          incount = 0;
+          for (ii=0; ii<1000; ii++) {
+            // generate a random number between x_pos and dx
+            xpoint = xl + H.dx*quickran.doub();
+            // generate a random number between y_pos and dy
+            ypoint = yl + H.dy*quickran.doub();
+            // generate a random number between z_pos and dz
+            zpoint = zl + H.dz*quickran.doub();
+            // check to see whether the point is within the sphere 
+            if (xpoint*xpoint + ypoint*ypoint + zpoint*zpoint < R_s*R_s) incount++;
+          }
+          weight = incount / 1000.0;
+          C.density[id] += rho_dot * H.dt * weight;
+          C.Energy[id]  += Ed_dot * H.dt * weight;
+          #ifdef DE
+          C.GasEnergy[id] += Ed_dot * H.dt;
+          #endif
+        }
+        */
+        if (tstep_flag) {
           // recalculate the timestep for these cells
           d_inv = 1.0 / C.density[id];
           vx = d_inv * C.momentum_x[id];
@@ -627,7 +670,6 @@ Real Grid3D::Add_Supernovae_CC85(void)
           max_vx = fmax(max_vx, fabs(vx) + cs);
           max_vy = fmax(max_vy, fabs(vy) + cs);
           max_vz = fmax(max_vz, fabs(vz) + cs);
-
         }
       }
     }

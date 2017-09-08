@@ -24,7 +24,7 @@
 #include"subgrid_routines_3D.h"
 #include"io.h"
 
-#define TEST
+//#define TEST
 
 __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, Real *dev_Q_Rx, Real *dev_F_x,
                                            Real *dev_Q_Ly, Real *dev_Q_Ry, Real *dev_F_y,
@@ -226,6 +226,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   #endif //HLLC
   CudaCheckError();
 
+<<<<<<< HEAD
   #ifdef TEST 
   CudaSafeCall( cudaMemcpy(test1, F_x, 6*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
   CudaSafeCall( cudaMemcpy(test2, F_z, 6*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
@@ -242,6 +243,18 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   #endif 
 
 
+#ifdef TEST 
+    CudaSafeCall( cudaMemcpy(test1, F_x, 6*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+    CudaSafeCall( cudaMemcpy(test2, F_y, 6*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+    for (int i=0; i<nx; i++) {
+      for (int j=0; j<ny; j++) {
+        int z = n_ghost+8;
+        if (test1[i + j*nx + z*nx*ny] != test2[j + i*nx + z*nx*ny]) {
+          printf("%3d %3d %f %f\n", i, j, test1[i + j*nx + z*nx*ny], test2[j + i*nx + z*nx*ny]);
+        }
+      }
+    }
+#endif
 
   #ifdef CTU
   // Step 3: Evolve the interface states
@@ -404,6 +417,10 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodz*(dev_F_z[3*n_cells + kmo] - dev_F_z[3*n_cells + id]);
     dev_Q_Lx[4*n_cells + id] += 0.5*dtody*(dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id])
                               + 0.5*dtodz*(dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id]);
+    #ifdef DE
+    dev_Q_Lx[5*n_cells + id] += 0.5*dtody*(dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
+                              + 0.5*dtodz*(dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id]);
+    #endif
 
     // right
     dev_Q_Rx[            id] += 0.5*dtody*(dev_F_y[            ipojmo] - dev_F_y[            ipo])
@@ -416,6 +433,10 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodz*(dev_F_z[3*n_cells + ipokmo] - dev_F_z[3*n_cells + ipo]);
     dev_Q_Rx[4*n_cells + id] += 0.5*dtody*(dev_F_y[4*n_cells + ipojmo] - dev_F_y[4*n_cells + ipo])
                               + 0.5*dtodz*(dev_F_z[4*n_cells + ipokmo] - dev_F_z[4*n_cells + ipo]);
+    #ifdef DE
+    dev_Q_Rx[5*n_cells + id] += 0.5*dtody*(dev_F_y[5*n_cells + ipojmo] - dev_F_y[5*n_cells + ipo])
+                              + 0.5*dtodz*(dev_F_z[5*n_cells + ipokmo] - dev_F_z[5*n_cells + ipo]);
+    #endif
   }
   if (yid > n_ghost-3 && yid < ny-n_ghost+1 && xid > n_ghost-2 && xid < nx-n_ghost+1 && zid > n_ghost-2 && zid < nz-n_ghost+1)
   {
@@ -436,6 +457,10 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodx*(dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id]);
     dev_Q_Ly[4*n_cells + id] += 0.5*dtodz*(dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id])
                               + 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id]);
+    #ifdef DE
+    dev_Q_Ly[5*n_cells + id] += 0.5*dtodz*(dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id])
+                              + 0.5*dtodx*(dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id]);
+    #endif
 
     // right
     dev_Q_Ry[            id] += 0.5*dtodz*(dev_F_z[            jpokmo] - dev_F_z[            jpo])
@@ -448,6 +473,10 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodx*(dev_F_x[3*n_cells + jpoimo] - dev_F_x[3*n_cells + jpo]);
     dev_Q_Ry[4*n_cells + id] += 0.5*dtodz*(dev_F_z[4*n_cells + jpokmo] - dev_F_z[4*n_cells + jpo])
                               + 0.5*dtodx*(dev_F_x[4*n_cells + jpoimo] - dev_F_x[4*n_cells + jpo]);    
+    #ifdef DE
+    dev_Q_Ry[5*n_cells + id] += 0.5*dtodz*(dev_F_z[5*n_cells + jpokmo] - dev_F_z[5*n_cells + jpo])
+                              + 0.5*dtodx*(dev_F_x[5*n_cells + jpoimo] - dev_F_x[5*n_cells + jpo]);    
+    #endif
   }
   if (zid > n_ghost-3 && zid < nz-n_ghost+1 && xid > n_ghost-2 && xid < nx-n_ghost+1 && yid > n_ghost-2 && yid < ny-n_ghost+1)
   {
@@ -468,7 +497,10 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtody*(dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
     dev_Q_Lz[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                               + 0.5*dtody*(dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
-
+    #ifdef DE
+    dev_Q_Lz[5*n_cells + id] += 0.5*dtodx*(dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
+                              + 0.5*dtody*(dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id]);
+    #endif
     // right
     dev_Q_Rz[            id] += 0.5*dtodx*(dev_F_x[            kpoimo] - dev_F_x[            kpo])
                               + 0.5*dtody*(dev_F_y[            kpojmo] - dev_F_y[            kpo]); 
@@ -480,6 +512,10 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtody*(dev_F_y[3*n_cells + kpojmo] - dev_F_y[3*n_cells + kpo]);
     dev_Q_Rz[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + kpoimo] - dev_F_x[4*n_cells + kpo])
                               + 0.5*dtody*(dev_F_y[4*n_cells + kpojmo] - dev_F_y[4*n_cells + kpo]);    
+    #ifdef DE
+    dev_Q_Rz[5*n_cells + id] += 0.5*dtodx*(dev_F_x[5*n_cells + kpoimo] - dev_F_x[5*n_cells + kpo])
+                              + 0.5*dtody*(dev_F_y[5*n_cells + kpojmo] - dev_F_y[5*n_cells + kpo]);    
+    #endif
   }
 
 }

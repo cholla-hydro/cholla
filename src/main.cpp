@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
   // set main variables for Read_Grid inital conditions
   if (strcmp(P.init, "Read_Grid") == 0) {
     outtime += G.H.t;
-    nfile = P.nfile*4;
+    nfile = P.nfile*P.nfull;
     dti = G.calc_dti_CPU(C_cfl);
     G.H.dt = 1.0 / dti;
   }  
@@ -116,7 +116,6 @@ int main(int argc, char *argv[])
   printf("Init %9.4f\n", init);
   #endif //MPI_CHOLLA
   #endif //CPU_TIME
-
 
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
@@ -224,7 +223,7 @@ int main(int argc, char *argv[])
     chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n", 
       G.H.n_step, G.H.t, G.H.dt, (stop_step-start_step)*1000, G.H.t_wall);
 
-    if (G.H.t == outtime)
+    //if (G.H.t == outtime)
     {
       #ifdef OUTPUT
       /*output the grid data*/
