@@ -14,7 +14,7 @@
 #include "io.h"
 #include "error_handling.h"
 
-//#define OUTPUT
+#define OUTPUT
 //#define CPU_TIME
 
 int main(int argc, char *argv[])
@@ -86,8 +86,8 @@ int main(int argc, char *argv[])
   if (strcmp(P.init, "Read_Grid") == 0) {
     outtime += G.H.t;
     nfile = P.nfile*P.nfull;
-    dti = G.calc_dti_CPU(C_cfl);
-    G.H.dt = 1.0 / dti;
+    dti = G.calc_dti_CPU();
+    G.H.dt = C_cfl / dti;
   }  
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n",gama);
@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
     chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n", 
       G.H.n_step, G.H.t, G.H.dt, (stop_step-start_step)*1000, G.H.t_wall);
 
-    //if (G.H.t == outtime)
+    if (G.H.t == outtime)
     {
       #ifdef OUTPUT
       /*output the grid data*/

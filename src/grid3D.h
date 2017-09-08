@@ -213,9 +213,9 @@ class Grid3D
      *  \brief Calculate the timestep. */
     void set_dt(Real C_cfl, Real dti);
 
-    /*! \fn Real calc_dti_CPU(Real C_cfl)
+    /*! \fn Real calc_dti_CPU()
      *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */ 
-    Real calc_dti_CPU(Real C_cfl);
+    Real calc_dti_CPU();
 
     /*! \fn void Update_Grid(void)
      *  \brief Update the conserved quantities in each cell. */

@@ -207,11 +207,11 @@ void Grid3D::AllocateMemory(void)
   Real max_dti;
 
   if (H.n_step == 0) {
-    max_dti = calc_dti_CPU(C_cfl);
+    max_dti = calc_dti_CPU();
   }
   else {
     #ifndef CUDA
-    max_dti = calc_dti_CPU(C_cfl);
+    max_dti = calc_dti_CPU();
     #endif /*NO_CUDA*/
     #ifdef CUDA
     max_dti = dti;
@@ -222,16 +222,21 @@ void Grid3D::AllocateMemory(void)
   max_dti = ReduceRealMax(max_dti);
   #endif /*MPI_CHOLLA*/
   
-  // new timestep
-  H.dt = C_cfl / max_dti;
+  // new timestep can't be more than 10% larger than previous timestep
+  if (H.n_step == 0) {
+    H.dt = C_cfl / max_dti;
+  }
+  else {
+    H.dt = fmin(C_cfl / max_dti, 1.1*H.dt);
+  }
   //chprintf("Within set_dt: %f %f %f\n", C_cfl, H.dt, max_dti);
 
 }
 
 
-/*! \fn Real calc_dti_CPU(Real C_cfl)
+/*! \fn Real calc_dti_CPU()
  *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU(Real C_cfl)
+Real Grid3D::calc_dti_CPU()
 {
   int i, j, k, id;
   Real d_inv, vx, vy, vz, P, cs;

@@ -7,6 +7,7 @@
 #include<cuda.h>
 #include<math.h>
 #include"global.h"
+#include"global_cuda.h"
 #include"io.h"
 #include"cooling_cuda.h"
 
@@ -16,8 +17,10 @@
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
 //__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, Real *dt_array)
 {
+  __shared__ Real min_dt[TPB];
+
   int n_cells = nx*ny*nz;
   
   Real d, E;
@@ -36,19 +39,24 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
   mu = 0.6;
 
-  // get a thread ID
+  // get a global thread ID
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
-  int tid = threadIdx.x + blockId * blockDim.x;
-  int id;
-  int zid = tid / (nx*ny);
-  int yid = (tid - zid*nx*ny) / nx;
-  int xid = tid - zid*nx*ny - yid*nx;
+  int id = threadIdx.x + blockId * blockDim.x;
+  int zid = id / (nx*ny);
+  int yid = (id - zid*nx*ny) / nx;
+  int xid = id - zid*nx*ny - yid*nx;
+  // and a thread id withing hte block
+  int tid = threadIdx.x;
+
+  // set min dt to current hydro timestep
+  min_dt[tid] = dt;
+  __syncthreads();
+  
 
   // all threads do the calculation
   if (xid < nx && yid < ny && zid < nz) {
 
     // load values of density and pressure
-    id = xid + yid*nx + zid*nx*ny;
     d  =  dev_conserved[            id];
     E  =  dev_conserved[4*n_cells + id];
     #ifndef DE
@@ -86,10 +94,10 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
 
-    // limit change in temperature to 5%
-    while (del_T/T > 0.05) {
-      // what dt gives del_T = 0.1*T?
-      dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+    // limit change in temperature to 1%
+    while (del_T/T > 0.01) {
+      // what dt gives del_T = 0.01*T?
+      dt_sub = 0.01*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
       // apply that dt
       T -= cool*dt_sub*TIME_UNIT*(gamma-1.0)/(n*KB);
       // how much time is left from the original timestep?
@@ -105,7 +113,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
     // calculate final temperature
     T -= del_T;
-    if (T < 1e3) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
 
     // set a temperature floor
     if (T < T_min) { 
@@ -118,8 +125,12 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #ifdef DE
     ge -= KB*del_T / (mu*MP*(gamma-1.0)*SP_ENERGY_UNIT);
     #endif
-    //if (del_T/T_init > 0.3) printf("%3d %3d %3d Cooling over 30 percent in hydro dt. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
-    if (T < 1000) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
+    if (del_T/T_init > 0.05) {
+      //printf("%3d %3d %3d Cooling over 10 percent in hydro dt. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
+      // what dt gives del_T = 0.1*T?
+      min_dt[tid] = 0.05*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+    }
+    //if (T < 1000) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
 
     // and send back from kernel
     dev_conserved[4*n_cells + id] = E;
@@ -128,6 +139,19 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #endif
 
   }
+  __syncthreads();
+
+  // do the reduction in shared memory (find the min timestep in the block)
+  for (unsigned int s=1; s<blockDim.x; s*=2) {
+    if (tid % (2*s) == 0) {
+      min_dt[tid] = fmin(min_dt[tid], min_dt[tid + s]);
+    }
+    __syncthreads();
+  }
+
+  // write the result for this block to global memory
+  if (tid == 0) dt_array[blockIdx.x] = min_dt[0];
+  
 
 }
 

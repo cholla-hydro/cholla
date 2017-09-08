@@ -4,16 +4,16 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=16
+nx=64
 # number of grid cells in the y dimension
-ny=16
+ny=64
 # number of grid cells in the z dimension
-nz=16
+nz=64
 # final output time
 tout=10000
 #tout=0
 # time interval for output
-outstep=10000
+outstep=100
 # value of gamma
 gamma=1.6666667
 # name of initial conditions
@@ -36,9 +36,7 @@ zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=disk_3D
 # path to output directory
-outdir=/Volumes/data1/evan/data/disk_3D/64/hdf5/
-#outdir=/gsfs1/rsgrps/brant/evan/data/disk_3D/256_cool/hdf5/raw/
-#outdir=/Users/evan/Desktop/data/disk_3D/m82/128/hdf5/
+outdir=/Users/evan/Desktop/data/disk_3D/cooling_tests/64/hdf5/
 #outdir=/lustre/atlas/proj-shared/ast125/data/disk_3D/m82_eq/256/hdf5/raw/
 #outdir=/home/evan/data/disk_3D/256/hdf5/raw/
 
