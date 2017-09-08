@@ -81,29 +81,6 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
 }
 
 
-__global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, int n_cells, int n_ghost, Real dx, Real dt, Real gamma)
-{
-  int id;
-  Real dtodx = dt/dx;
-
-  // get a global thread ID
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-
-  // threads corresponding all cells except outer ring of ghost cells do the calculation
-  if (id > 0 && id < n_cells-1)
-  {
-    // update the conserved variable array
-    dev_conserved_half[            id] = dev_conserved[            id] + dtodx * (dev_F[            id-1] - dev_F[            id]);
-    dev_conserved_half[  n_cells + id] = dev_conserved[  n_cells + id] + dtodx * (dev_F[  n_cells + id-1] - dev_F[  n_cells + id]);
-    dev_conserved_half[2*n_cells + id] = dev_conserved[2*n_cells + id] + dtodx * (dev_F[2*n_cells + id-1] - dev_F[2*n_cells + id]);
-    dev_conserved_half[3*n_cells + id] = dev_conserved[3*n_cells + id] + dtodx * (dev_F[3*n_cells + id-1] - dev_F[3*n_cells + id]);
-    dev_conserved_half[4*n_cells + id] = dev_conserved[4*n_cells + id] + dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
-  }
-
-
-}
-
-
 __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, Real gamma)
 {
   int id, xid, yid, n_cells;
@@ -202,48 +179,6 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
     */
   }
 
-}
-
-
-__global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt, Real gamma)
-{
-  int id, xid, yid, n_cells;
-  int imo, jmo;
-
-  Real dtodx = dt/dx;
-  Real dtody = dt/dy;
-
-  n_cells = nx*ny;
-
-  // get a global thread ID
-  int blockId = blockIdx.x + blockIdx.y*gridDim.x;
-  id = threadIdx.x + blockId * blockDim.x;
-  yid = id / nx;
-  xid = id - yid*nx;
-
-
-  // all threads but one outer ring of ghost cells 
-  if (xid > 0 && xid < nx-1 && yid > 0 && yid < ny-1)
-  {
-    // update the conserved variable array
-    imo = xid-1 + yid*nx;
-    jmo = xid + (yid-1)*nx;
-    dev_conserved_half[            id] = dev_conserved[            id] 
-                                       + dtodx * (dev_F_x[            imo] - dev_F_x[            id])
-                                       + dtody * (dev_F_y[            jmo] - dev_F_y[            id]);
-    dev_conserved_half[  n_cells + id] = dev_conserved[  n_cells + id] 
-                                       + dtodx * (dev_F_x[  n_cells + imo] - dev_F_x[  n_cells + id]) 
-                                       + dtody * (dev_F_y[  n_cells + jmo] - dev_F_y[  n_cells + id]);
-    dev_conserved_half[2*n_cells + id] = dev_conserved[2*n_cells + id] 
-                                       + dtodx * (dev_F_x[2*n_cells + imo] - dev_F_x[2*n_cells + id]) 
-                                       + dtody * (dev_F_y[2*n_cells + jmo] - dev_F_y[2*n_cells + id]); 
-    dev_conserved_half[3*n_cells + id] = dev_conserved[3*n_cells + id] 
-                                       + dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
-                                       + dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
-    dev_conserved_half[4*n_cells + id] = dev_conserved[4*n_cells + id] 
-                                       + dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
-                                       + dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
-  } 
 }
 
 
@@ -363,94 +298,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     if (P < 0.0) printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
     */
-  }
-
-}
-
-
-
-__global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z,
-                                              int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt, Real gamma)
-{
-
-  int id, xid, yid, zid, n_cells;
-  int imo, jmo, kmo;
-  #ifdef DE
-  Real d, d_inv, vx, vy, vz;
-  Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo, P;
-  int ipo, jpo, kpo;
-  #endif
-
-  Real dtodx = dt/dx;
-  Real dtody = dt/dy;
-  Real dtodz = dt/dz;
-  n_cells = nx*ny*nz;
-
-  // get a global thread ID
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-  zid = id / (nx*ny);
-  yid = (id - zid*nx*ny) / nx;
-  xid = id - zid*nx*ny - yid*nx;
-  imo = xid-1 + yid*nx + zid*nx*ny;
-  jmo = xid + (yid-1)*nx + zid*nx*ny;
-  kmo = xid + yid*nx + (zid-1)*nx*ny;
-
-
-  // threads corresponding to all cells except outer ring of ghost cells do the calculation
-  if (xid > 0 && xid < nx-1 && yid > 0 && yid < ny-1 && zid > 0 && zid < nz-1)
-  {
-    #ifdef DE
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    //if (d < 0.0 || d != d) printf("Negative density before half step update.\n");
-    //if (P < 0.0) printf("%d Negative pressure before half step update.\n", id);
-    ipo = xid+1 + yid*nx + zid*nx*ny;
-    jpo = xid + (yid+1)*nx + zid*nx*ny;
-    kpo = xid + yid*nx + (zid+1)*nx*ny;
-    vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
-    vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
-    vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
-    vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
-    vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
-    vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
-    #endif
-  
-    // update the conserved variable array
-    dev_conserved_half[            id] = dev_conserved[            id]
-                                       + dtodx * (dev_F_x[            imo] - dev_F_x[            id])
-                                       + dtody * (dev_F_y[            jmo] - dev_F_y[            id])
-                                       + dtodz * (dev_F_z[            kmo] - dev_F_z[            id]);
-    dev_conserved_half[  n_cells + id] = dev_conserved[  n_cells + id] 
-                                       + dtodx * (dev_F_x[  n_cells + imo] - dev_F_x[  n_cells + id])
-                                       + dtody * (dev_F_y[  n_cells + jmo] - dev_F_y[  n_cells + id])
-                                       + dtodz * (dev_F_z[  n_cells + kmo] - dev_F_z[  n_cells + id]);
-    dev_conserved_half[2*n_cells + id] = dev_conserved[2*n_cells + id] 
-                                       + dtodx * (dev_F_x[2*n_cells + imo] - dev_F_x[2*n_cells + id])
-                                       + dtody * (dev_F_y[2*n_cells + jmo] - dev_F_y[2*n_cells + id])
-                                       + dtodz * (dev_F_z[2*n_cells + kmo] - dev_F_z[2*n_cells + id]);
-    dev_conserved_half[3*n_cells + id] = dev_conserved[3*n_cells + id] 
-                                       + dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
-                                       + dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id])
-                                       + dtodz * (dev_F_z[3*n_cells + kmo] - dev_F_z[3*n_cells + id]);
-    dev_conserved_half[4*n_cells + id] = dev_conserved[4*n_cells + id] 
-                                       + dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
-                                       + dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id])
-                                       + dtodz * (dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id]);
-    #ifdef DE
-    dev_conserved_half[5*n_cells + id] = dev_conserved[5*n_cells + id] 
-                                       + dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
-                                       + dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
-                                       + dtodz * (dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id])
-                                       + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
-    #endif
-    //if (dev_conserved_half[id] < 0.0 || dev_conserved_half[id] != dev_conserved_half[id] || dev_conserved_half[4*n_cells+id] < 0.0 || dev_conserved_half[4*n_cells+id] != dev_conserved_half[4*n_cells+id]) {
-      //printf("%3d %3d %3d Thread crashed in half step update. d: %e E: %e\n", xid, yid, zid, dev_conserved_half[id], dev_conserved_half[4*n_cells+id]);
-    //}    
-
   }
 
 }

@@ -24,6 +24,9 @@
 #include"subgrid_routines_2D.h"
 
 
+__global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *dev_conserved_half, 
+                                                   Real *dev_F_x, Real *dev_F_y, int nx, int ny,
+                                                   int n_ghost, Real dx, Real dy, Real dt, Real gamma);
 
 
 Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt)
@@ -292,6 +295,49 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int y
   return max_dti;
 
 }
+
+
+__global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt, Real gamma)
+{
+  int id, xid, yid, n_cells;
+  int imo, jmo;
+
+  Real dtodx = dt/dx;
+  Real dtody = dt/dy;
+
+  n_cells = nx*ny;
+
+  // get a global thread ID
+  int blockId = blockIdx.x + blockIdx.y*gridDim.x;
+  id = threadIdx.x + blockId * blockDim.x;
+  yid = id / nx;
+  xid = id - yid*nx;
+
+
+  // all threads but one outer ring of ghost cells 
+  if (xid > 0 && xid < nx-1 && yid > 0 && yid < ny-1)
+  {
+    // update the conserved variable array
+    imo = xid-1 + yid*nx;
+    jmo = xid + (yid-1)*nx;
+    dev_conserved_half[            id] = dev_conserved[            id] 
+                                       + dtodx * (dev_F_x[            imo] - dev_F_x[            id])
+                                       + dtody * (dev_F_y[            jmo] - dev_F_y[            id]);
+    dev_conserved_half[  n_cells + id] = dev_conserved[  n_cells + id] 
+                                       + dtodx * (dev_F_x[  n_cells + imo] - dev_F_x[  n_cells + id]) 
+                                       + dtody * (dev_F_y[  n_cells + jmo] - dev_F_y[  n_cells + id]);
+    dev_conserved_half[2*n_cells + id] = dev_conserved[2*n_cells + id] 
+                                       + dtodx * (dev_F_x[2*n_cells + imo] - dev_F_x[2*n_cells + id]) 
+                                       + dtody * (dev_F_y[2*n_cells + jmo] - dev_F_y[2*n_cells + id]); 
+    dev_conserved_half[3*n_cells + id] = dev_conserved[3*n_cells + id] 
+                                       + dtodx * (dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id])
+                                       + dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
+    dev_conserved_half[4*n_cells + id] = dev_conserved[4*n_cells + id] 
+                                       + dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
+                                       + dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
+  } 
+}
+
 
 
 

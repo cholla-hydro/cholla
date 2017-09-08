@@ -14,7 +14,7 @@
 #include "io.h"
 #include "error_handling.h"
 
-#define OUTPUT
+//#define OUTPUT
 //#define CPU_TIME
 
 int main(int argc, char *argv[])
@@ -123,6 +123,13 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
+    int xid = 4 + G.H.n_ghost;
+    int yid = 7 + G.H.n_ghost;
+    int zid = 8 + G.H.n_ghost;
+    int id1 = xid + yid*G.H.nx + zid*G.H.nx*G.H.ny;
+    int id2 = yid + xid*G.H.nx + zid*G.H.nx*G.H.ny;
+    //if (G.C.Energy[id1] != G.C.Energy[id2]) printf("%f %f\n", G.C.Energy[id1], G.C.Energy[id2]);
+
     // get the start time
     start_step = get_time();
     

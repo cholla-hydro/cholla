@@ -24,7 +24,7 @@
 #include"subgrid_routines_3D.h"
 #include"io.h"
 
-
+#define TEST
 
 __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, Real *dev_Q_Rx, Real *dev_F_x,
                                            Real *dev_Q_Ly, Real *dev_Q_Ry, Real *dev_F_y,
@@ -116,6 +116,11 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   // array of inverse timesteps for dt calculation
   Real *dev_dti_array;
 
+#ifdef TEST
+  Real *test1, *test2;
+  test1 = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real));
+  test2 = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real));
+#endif
 
   // allocate memory on the GPU
   CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -186,7 +191,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt, gama, 2);
   #endif //PPMC
   CudaCheckError();
-
+ 
 
   #ifdef H_CORRECTION
   #ifndef CTU
@@ -221,11 +226,29 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   #endif //HLLC
   CudaCheckError();
 
+  #ifdef TEST 
+  CudaSafeCall( cudaMemcpy(test1, F_x, 6*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+  CudaSafeCall( cudaMemcpy(test2, F_z, 6*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+  int var = 0*BLOCK_VOL;
+  for (int k=n_ghost; k<nz-n_ghost; k++) {
+    for (int j=n_ghost; j<ny-n_ghost; j++) {
+      for (int i=n_ghost; i<nx-n_ghost; i++) {
+        if (test1[i + j*nx + k*nx*ny + var] - test2[k + j*nx + i*nx*ny + var] > 1e-15) {
+          printf("%3d %3d %3d %e %e\n", i, j, k, test1[i + j*nx + k*nx*ny + var], test2[k + j*nx + i*nx*ny + var]);
+        }
+      }
+    }
+  }
+  #endif 
+
+
 
   #ifdef CTU
   // Step 3: Evolve the interface states
   Evolve_Interface_States_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, F_x, Q_Ly, Q_Ry, F_y, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, dx, dy, dz, dt);
   CudaCheckError();
+
+
 
   #ifdef H_CORRECTION
   // Step 3.5: Calculate eta values for H correction
@@ -260,15 +283,22 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   CudaCheckError();
   #endif //CTU
 
+
+
+  
   // Step 5: Update the conserved variable array
   Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, F_z, nx, ny, nz, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama);
   CudaCheckError();
+
+
 
   // Synchronize the total and internal energies
   #ifdef DE
   Sync_Energies_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx, ny, nz, n_ghost, gama);
   CudaCheckError();
   #endif
+
+
 
   // Apply cooling
   #ifdef COOLING_GPU
@@ -277,9 +307,13 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   CudaCheckError();
   #endif
 
+
+
   // Step 6: Calculate the next timestep
   Calc_dt_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dx, dy, dz, dev_dti_array, gama);
   CudaCheckError();
+
+  
 
   // copy the updated conserved variable array back to the CPU
   CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
@@ -322,6 +356,11 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   //cudaFreeArray(cuCoolArray);
   //cudaFreeArray(cuHeatArray);  
   #endif
+
+#ifdef TEST
+  free(test1);
+  free(test2);
+#endif
 
   // return the maximum inverse timestep
   return max_dti;

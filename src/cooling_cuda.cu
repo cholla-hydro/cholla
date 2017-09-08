@@ -105,6 +105,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
     // calculate final temperature
     T -= del_T;
+    if (T < 1e3) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
 
     // set a temperature floor of 10^4
     if (T < T_min) { 
