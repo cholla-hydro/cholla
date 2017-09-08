@@ -136,6 +136,8 @@ void parse_params (char *param_file, struct parameters * parms)
       strncpy (parms->init, value, MAXLEN);
     else if (strcmp(name, "nfile")==0)
       parms->nfile = atoi(value);
+    else if (strcmp(name, "nfull")==0)
+      parms->nfull = atoi(value);
     else if (strcmp(name, "xmin")==0)
       parms->xmin = atof(value);
     else if (strcmp(name, "ymin")==0)

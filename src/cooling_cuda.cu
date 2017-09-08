@@ -106,7 +106,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate final temperature
     T -= del_T;
 
-    // set a temperature floor of 10^4
+    // set a temperature floor
     if (T < T_min) { 
       T = T_min;
     }
@@ -117,6 +117,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #ifdef DE
     ge -= KB*del_T / (mu*MP*(gamma-1.0)*SP_ENERGY_UNIT);
     #endif
+    //if (del_T/T_init > 0.3) printf("%3d %3d %3d Cooling over 30 percent in hydro dt. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
+    if (T < 1000) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
 
     // and send back from kernel
     dev_conserved[4*n_cells + id] = E;

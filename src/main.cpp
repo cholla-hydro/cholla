@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
   // set main variables for Read_Grid inital conditions
   if (strcmp(P.init, "Read_Grid") == 0) {
     outtime += G.H.t;
-    nfile = P.nfile*4;
+    nfile = P.nfile*P.nfull;
     dti = G.calc_dti_CPU(C_cfl);
     G.H.dt = 1.0 / dti;
   }  
@@ -117,12 +117,18 @@ int main(int argc, char *argv[])
   #endif //MPI_CHOLLA
   #endif //CPU_TIME
 
-
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
+    int xid = G.H.n_ghost+4;
+    int yid = G.H.n_ghost+8;
+    int zid = G.H.n_ghost+7;
+    int id1 = xid + yid*G.H.nx + zid*G.H.nx*G.H.ny;
+    int id2 = zid + yid*G.H.nx + xid*G.H.nx*G.H.ny;
+    //if (G.C.Energy[id1] != G.C.Energy[id2]) printf("%e %e\n", G.C.Energy[id1], G.C.Energy[id2]);
+
     // get the start time
     start_step = get_time();
     
@@ -217,7 +223,7 @@ int main(int argc, char *argv[])
     chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n", 
       G.H.n_step, G.H.t, G.H.dt, (stop_step-start_step)*1000, G.H.t_wall);
 
-    if (G.H.t == outtime)
+    //if (G.H.t == outtime)
     {
       #ifdef OUTPUT
       /*output the grid data*/

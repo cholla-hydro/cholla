@@ -90,6 +90,7 @@ struct parameters
   Real gamma;
   char init[MAXLEN];
   int nfile;
+  int nfull;
   Real xmin;
   Real ymin;
   Real zmin;
