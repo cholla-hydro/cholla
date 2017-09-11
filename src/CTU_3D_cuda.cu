@@ -106,7 +106,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   Real *host_dti_array;
   host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
   #ifdef COOLING_GPU
-  Real min_dt = dt;
+  Real min_dt = 1e10;
   Real *host_dt_array;
   host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
   #endif
@@ -345,10 +345,10 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   for (int i=0; i<ngrid; i++) {
     min_dt = fmin(min_dt, host_dt_array[i]);
   }  
-  //printf("%f %f %f\n", min_dt, 1.0/max_dti, dt); 
+  printf("%f %f %f\n", min_dt, 1.0/max_dti, dt); 
   if (min_dt < 1.0/max_dti) {
     max_dti = fmax(max_dti, 1.0/min_dt);
-    printf("%f %f %f\n", min_dt, 1.0/max_dti, dt); 
+    //printf("%f %f %f\n", min_dt, 1.0/max_dti, dt); 
   }
   #endif
 

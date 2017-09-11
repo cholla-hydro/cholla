@@ -48,8 +48,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   // and a thread id withing hte block
   int tid = threadIdx.x;
 
-  // set min dt to current hydro timestep
-  min_dt[tid] = dt;
+  // set min dt to a high number
+  min_dt[tid] = 1e10;
   __syncthreads();
   
 
