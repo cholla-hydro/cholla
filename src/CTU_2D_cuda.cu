@@ -252,6 +252,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
 
     // Apply cooling
     #ifdef COOLING_GPU
+    printf("Need to fix cooling.\n");
     //cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama);
     //CudaCheckError();    
     #endif
