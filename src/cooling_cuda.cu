@@ -125,12 +125,14 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #ifdef DE
     ge -= KB*del_T / (mu*MP*(gamma-1.0)*SP_ENERGY_UNIT);
     #endif
-    if (del_T/T_init > 0.05) {
-      //printf("%3d %3d %3d Cooling over 10 percent in hydro dt. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
-      // what dt gives del_T = 0.1*T?
-      min_dt[tid] = 0.05*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+    if (del_T/T_init > 0.1) {
+      printf("%3d %3d %3d Cooling over 10 percent in hydro dt. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
     }
     if (T < 100) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
+    // calculate cooling rate for new T
+    cool = Wiersma_cool(n, T);
+    // limit the timestep such that delta_T is 10% 
+    min_dt[tid] = 0.1*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
 
     // and send back from kernel
     dev_conserved[4*n_cells + id] = E;
