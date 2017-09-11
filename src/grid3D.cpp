@@ -639,7 +639,6 @@ Real Grid3D::Add_Supernovae_CC85(void)
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
         }
         // on the sphere
-        /*
         if (rl < R_s && rr > R_s) {
           tstep_flag = 1;
           // quick Monte Carlo to determine weighting
@@ -662,7 +661,6 @@ Real Grid3D::Add_Supernovae_CC85(void)
           C.GasEnergy[id] += Ed_dot * H.dt;
           #endif
         }
-        */
         if (tstep_flag) {
           // recalculate the timestep for these cells
           d_inv = 1.0 / C.density[id];

@@ -130,7 +130,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       // what dt gives del_T = 0.1*T?
       min_dt[tid] = 0.05*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
     }
-    //if (T < 1000) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
+    if (T < 100) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
 
     // and send back from kernel
     dev_conserved[4*n_cells + id] = E;

@@ -4,13 +4,13 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=64
+nx=128
 # number of grid cells in the y dimension
-ny=64
+ny=128
 # number of grid cells in the z dimension
-nz=64
+nz=128
 # final output time
-tout=10000
+tout=20000
 #tout=0
 # time interval for output
 outstep=100
@@ -36,7 +36,7 @@ zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=disk_3D
 # path to output directory
-outdir=/Users/evan/Desktop/data/disk_3D/cooling_tests/64/hdf5/
+#outdir=/Users/evan/Desktop/data/disk_3D/cooling_tests/64/hdf5/
 #outdir=/lustre/atlas/proj-shared/ast125/data/disk_3D/m82_eq/256/hdf5/raw/
-#outdir=/home/evan/data/disk_3D/256/hdf5/raw/
+outdir=/home/evan/data/disk_3D/128/hdf5/
 
