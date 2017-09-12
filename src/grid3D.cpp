@@ -227,7 +227,7 @@ void Grid3D::AllocateMemory(void)
     H.dt = C_cfl / max_dti;
   }
   else {
-    H.dt = fmin(C_cfl / max_dti, 1.1*H.dt);
+    H.dt = fmin(C_cfl / max_dti, 2.0*H.dt);
   }
   //chprintf("Within set_dt: %f %f %f\n", C_cfl, H.dt, max_dti);
 
