@@ -222,12 +222,12 @@ void Grid3D::AllocateMemory(void)
   max_dti = ReduceRealMax(max_dti);
   #endif /*MPI_CHOLLA*/
   
-  // new timestep can't be more than 10% larger than previous timestep
+  // new timestep can't be more than double the previous timestep
   if (H.n_step == 0) {
     H.dt = C_cfl / max_dti;
   }
   else {
-    H.dt = fmin(C_cfl / max_dti, 1.1*H.dt);
+    H.dt = fmin(C_cfl / max_dti, 2*H.dt);
   }
   //chprintf("Within set_dt: %f %f %f\n", C_cfl, H.dt, max_dti);
 
@@ -625,10 +625,10 @@ Real Grid3D::Add_Supernovae_CC85(void)
         //r = sqrt(x_pos*x_pos + y_pos*y_pos);
 
         // within starburst radius, inject mass and thermal energy
-        // entire cell is within sphere
         //if (r < R_s) {
-        if (rl < R_s) {
         //if (r < R_s && fabs(z_pos) < z_s) {
+        // entire cell is within sphere
+        if (rr < R_s) {
           tstep_flag = 1;
           C.density[id] += rho_dot * H.dt;
           C.Energy[id] += Ed_dot * H.dt;
