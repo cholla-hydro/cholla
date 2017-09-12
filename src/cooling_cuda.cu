@@ -94,10 +94,10 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
 
-    // limit change in temperature to 1%
-    while (del_T/T > 0.01) {
-      // what dt gives del_T = 0.01*T?
-      dt_sub = 0.01*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+    // limit change in temperature to 5%
+    while (del_T/T > 0.05) {
+      // what dt gives del_T = 0.05*T?
+      dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
       // apply that dt
       T -= cool*dt_sub*TIME_UNIT*(gamma-1.0)/(n*KB);
       // how much time is left from the original timestep?
