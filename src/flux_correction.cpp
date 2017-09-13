@@ -62,34 +62,9 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           //printf("Uncorrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
           P_old = P_new;
 
-          Real C_half[nfields];
-          Real C_half_imo[nfields];
-          Real C_half_ipo[nfields];
-          Real C_half_jmo[nfields];
-          Real C_half_jpo[nfields];
-          Real C_half_kmo[nfields];
-          Real C_half_kpo[nfields];
-
-          // calculate the first order half step update for the cell in question
-          half_step_update(C_half, C1, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          //printf("Half step data: d: %e E: %e\n", C_half[0], C_half[4]);
-          // need C_half for all the surrounding cells, as well
-          half_step_update(C_half_imo, C1, i-1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          //printf("Half step data: d: %e E: %e\n", C_half_imo[0], C_half_imo[4]);
-          half_step_update(C_half_ipo, C1, i+1, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          //printf("Half step data: d: %e E: %e\n", C_half_ipo[0], C_half_ipo[4]);
-          half_step_update(C_half_jmo, C1, i, j-1, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          //printf("Half step data: d: %e E: %e\n", C_half_jmo[0], C_half_jmo[4]);
-          half_step_update(C_half_jpo, C1, i, j+1, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          //printf("Half step data: d: %e E: %e\n", C_half_jpo[0], C_half_jpo[4]);
-          half_step_update(C_half_kmo, C1, i, j, k-1, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          //printf("Half step data: d: %e E: %e\n", C_half_kmo[0], C_half_kmo[4]);
-          half_step_update(C_half_kpo, C1, i, j, k+1, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          //printf("Half step data: d: %e E: %e\n", C_half_kpo[0], C_half_kpo[4]);
-
-          // Recalculate the fluxes, again using piecewise constant reconstruction
+          // Calculate the fluxes for each interface using piecewise constant reconstruction
           // and update the conserved variables using the new first-order fluxes
-          full_step_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells, C_half, C_half_imo, C_half_ipo, C_half_jmo, C_half_jpo, C_half_kmo, C_half_kpo);
+          first_order_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
           //printf("Flux corrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
 
           // Reset with the new values of the conserved variables
@@ -202,26 +177,7 @@ void fill_flux_array(Real *C1, int idl, int idr, Real cW[], int n_cells)
 }
 
 
-void fill_flux_array_2(Real C_half_l[], Real C_half_r[], Real cW[], int n_cells)
-{
-  cW[0] = C_half_l[0];
-  cW[1] = C_half_r[0];
-  cW[2] = C_half_l[1];
-  cW[3] = C_half_r[1];
-  cW[4] = C_half_l[2];
-  cW[5] = C_half_r[2];
-  cW[6] = C_half_l[3];
-  cW[7] = C_half_r[3];
-  cW[8] = C_half_l[4];
-  cW[9] = C_half_r[4];
-  #ifdef DE
-  cW[10] = C_half_l[5];
-  cW[11] = C_half_r[5];
-  #endif
-}
-
-
-void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
+void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
 {
   int id = i + j*nx + k*nx*ny;
   int imo = i-1 + j*nx + k*nx*ny;
@@ -231,6 +187,14 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   int kmo = i + j*nx + (k-1)*nx*ny;
   int kpo = i + j*nx + (k+1)*nx*ny;
   Real etah = 0.0;
+
+  Real cW[2*nfields];
+  Real F_Lx[nfields];
+  Real F_Rx[nfields];
+  Real F_Ly[nfields];
+  Real F_Ry[nfields];
+  Real F_Lz[nfields];
+  Real F_Rz[nfields];
 
   #ifdef DE
   Real d, d_inv, vx, vy, vz, P, vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
@@ -248,17 +212,8 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   vz_kpo = C1[3*n_cells + kpo] / C1[kpo]; 
   #endif
 
-  Real cW[2*nfields];
-  Real F_Lx[nfields];
-  Real F_Rx[nfields];
-  Real F_Ly[nfields];
-  Real F_Ry[nfields];
-  Real F_Lz[nfields];
-  Real F_Rz[nfields];
-
   // using piecewise constant reconstruction,
-  // calculate the first set of fluxes
-
+  // calculate the fluxes
   // Lx
   fill_flux_array(C1, imo, id, cW, n_cells);
   #ifdef EXACT
@@ -328,141 +283,6 @@ void half_step_update(Real C_half[], Real *C1, int i, int j, int k, Real dtodx, 
   Calculate_Roe_Fluxes(cW, F_Rz, gama, etah);
   #endif
   #ifdef HLLC 
-  Calculate_HLLC_Fluxes(cW, F_Rz, gama, etah, 2);
-  #endif
-  for (int ii=0; ii<nfields; ii++) {
-    if (F_Lx[ii] != F_Lx[ii]) printf("Failure in Riemann solve F_Lx[%d]\n", ii);
-    if (F_Rx[ii] != F_Rx[ii]) printf("Failure in Riemann solve F_Rx[%d]\n", ii);
-    if (F_Ly[ii] != F_Ly[ii]) printf("Failure in Riemann solve F_Ly[%d]\n", ii);
-    if (F_Ry[ii] != F_Ry[ii]) printf("Failure in Riemann solve F_Ry[%d]\n", ii);
-    if (F_Lz[ii] != F_Lz[ii]) printf("Failure in Riemann solve F_Lz[%d]\n", ii);
-    if (F_Rz[ii] != F_Rz[ii]) printf("Failure in Riemann solve F_Rz[%d]\n", ii);
-  }
-
-  // Update the conserved variables for the cell by a half step
-  C_half[0] = C1[id+0*n_cells] + 0.5*(dtodx*(F_Lx[0] - F_Rx[0]) + dtody*(F_Ly[0] - F_Ry[0]) + dtodz*(F_Lz[0] - F_Rz[0]));
-  C_half[1] = C1[id+1*n_cells] + 0.5*(dtodx*(F_Lx[1] - F_Rx[1]) + dtody*(F_Ly[1] - F_Ry[1]) + dtodz*(F_Lz[1] - F_Rz[1]));
-  C_half[2] = C1[id+2*n_cells] + 0.5*(dtodx*(F_Lx[2] - F_Rx[2]) + dtody*(F_Ly[2] - F_Ry[2]) + dtodz*(F_Lz[2] - F_Rz[2]));
-  C_half[3] = C1[id+3*n_cells] + 0.5*(dtodx*(F_Lx[3] - F_Rx[3]) + dtody*(F_Ly[3] - F_Ry[3]) + dtodz*(F_Lz[3] - F_Rz[3]));
-  C_half[4] = C1[id+4*n_cells] + 0.5*(dtodx*(F_Lx[4] - F_Rx[4]) + dtody*(F_Ly[4] - F_Ry[4]) + dtodz*(F_Lz[4] - F_Rz[4]));
-  #ifdef DE
-  C_half[5] = C1[id+5*n_cells] + 0.5*(dtodx*(F_Lx[5] - F_Rx[5]) + dtody*(F_Ly[5] - F_Ry[5]) + dtodz*(F_Lz[5] - F_Rz[5])
-            + P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo)));
-  #endif
-
-
-}
-
-
-
-void full_step_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells, Real C_half[], Real C_half_imo[], Real C_half_ipo[], Real C_half_jmo[], Real C_half_jpo[], Real C_half_kmo[], Real C_half_kpo[])
-{
-  int id = i + j*nx + k*nx*ny;
-  int imo = i-1 + j*nx + k*nx*ny;
-  int ipo = i+1 + j*nx + k*nx*ny;
-  int jmo = i + (j-1)*nx + k*nx*ny;
-  int jpo = i + (j+1)*nx + k*nx*ny;
-  int kmo = i + j*nx + (k-1)*nx*ny;
-  int kpo = i + j*nx + (k+1)*nx*ny;
-  Real etah = 0.0;
-
-  Real cW[2*nfields];
-  Real F_Lx[nfields];
-  Real F_Rx[nfields];
-  Real F_Ly[nfields];
-  Real F_Ry[nfields];
-  Real F_Lz[nfields];
-  Real F_Rz[nfields];
-
-  #ifdef DE
-  Real d, d_inv, vx, vy, vz, P, vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
-  d = C1[id];
-  d_inv = 1.0 / d;
-  vx = C1[1*n_cells+id]*d_inv;
-  vy = C1[2*n_cells+id]*d_inv;
-  vz = C1[3*n_cells+id]*d_inv;
-  P  = (C1[4*n_cells+id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gama - 1.0);
-  vx_imo = C1[1*n_cells + imo] / C1[imo]; 
-  vx_ipo = C1[1*n_cells + ipo] / C1[ipo]; 
-  vy_jmo = C1[2*n_cells + jmo] / C1[jmo]; 
-  vy_jpo = C1[2*n_cells + jpo] / C1[jpo]; 
-  vz_kmo = C1[3*n_cells + kmo] / C1[kmo]; 
-  vz_kpo = C1[3*n_cells + kpo] / C1[kpo]; 
-  #endif
-
-
-  // using piecewise constant reconstruction,
-  // calculate the second set of fluxes
-
-  // Lx
-  fill_flux_array_2(C_half_imo, C_half, cW, n_cells);
-  #ifdef EXACT
-  Calculate_Exact_Fluxes(cW, F_Lx, gama);
-  #endif
-  #ifdef ROE
-  Calculate_Roe_Fluxes(cW, F_Lx, gama, etah);
-  #endif
-  #ifdef HLLC
-  Calculate_HLLC_Fluxes(cW, F_Lx, gama, etah, 0);
-  #endif
-  
-  // Rx
-  fill_flux_array_2(C_half, C_half_ipo, cW, n_cells);
-  #ifdef EXACT
-  Calculate_Exact_Fluxes(cW, F_Rx, gama);
-  #endif
-  #ifdef ROE
-  Calculate_Roe_Fluxes(cW, F_Rx, gama, etah);
-  #endif
-  #ifdef HLLC
-  Calculate_HLLC_Fluxes(cW, F_Rx, gama, etah, 0);
-  #endif
-
-  // Ly
-  fill_flux_array_2(C_half_jmo, C_half, cW, n_cells);
-  #ifdef EXACT
-  Calculate_Exact_Fluxes(cW, F_Ly, gama);
-  #endif
-  #ifdef ROE
-  Calculate_Roe_Fluxes(cW, F_Ly, gama, etah);
-  #endif
-  #ifdef HLLC
-  Calculate_HLLC_Fluxes(cW, F_Ly, gama, etah, 1);
-  #endif
-
-  // Ry
-  fill_flux_array_2(C_half, C_half_jpo, cW, n_cells);
-  #ifdef EXACT
-  Calculate_Exact_Fluxes(cW, F_Ry, gama);
-  #endif
-  #ifdef ROE
-  Calculate_Roe_Fluxes(cW, F_Ry, gama, etah);
-  #endif
-  #ifdef HLLC 
-  Calculate_HLLC_Fluxes(cW, F_Ry, gama, etah, 1);
-  #endif
-
-  // Lz
-  fill_flux_array_2(C_half_kmo, C_half, cW, n_cells);
-  #ifdef EXACT
-  Calculate_Exact_Fluxes(cW, F_Lz, gama);
-  #endif
-  #ifdef ROE
-  Calculate_Roe_Fluxes(cW, F_Lz, gama, etah);
-  #endif
-  #ifdef HLLC
-  Calculate_HLLC_Fluxes(cW, F_Lz, gama, etah, 2);
-  #endif
-
-  // Rz
-  fill_flux_array_2(C_half, C_half_kpo, cW, n_cells);
-  #ifdef EXACT
-  Calculate_Exact_Fluxes(cW, F_Rz, gama);
-  #endif
-  #ifdef ROE
-  Calculate_Roe_Fluxes(cW, F_Rz, gama, etah);
-  #endif
-  #ifdef HLLC
   Calculate_HLLC_Fluxes(cW, F_Rz, gama, etah, 2);
   #endif
 
@@ -538,8 +358,8 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   Real ge;
   #endif
 
-  //Real T_min = 1.0e4;
-  Real T_min = 0.0;
+  Real T_min = 1.0e4;
+  //Real T_min = 0.0;
   mu = 0.6;
 
   // load values of density and pressure
@@ -578,10 +398,10 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   // calculate change in temperature given dt
   del_T = cool*dt*TIME_UNIT*(gama-1.0)/(n*KB);
 
-  // limit change in temperature to 5%
-  while (del_T/T > 0.05) {
+  // limit change in temperature to 1%
+  while (del_T/T > 0.01) {
     // what dt gives del_T = 0.1*T?
-    dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gama-1.0));
+    dt_sub = 0.01*T*n*KB/(cool*TIME_UNIT*(gama-1.0));
     // apply that dt
     T -= cool*dt_sub*TIME_UNIT*(gama-1.0)/(n*KB);
     // how much time is left from the original timestep?
@@ -596,9 +416,7 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   // calculate final temperature
   T -= del_T;
 
-  if (T < T_min) {
-    T = T_min;
-  }
+  T = fmax(T, T_min);
 
   // adjust value of energy based on total change in temperature
   del_T = T_init - T; // total change in T
