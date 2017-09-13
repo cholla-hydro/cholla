@@ -156,17 +156,35 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 }
 
 
-void fill_flux_array(Real *C1, int idl, int idr, Real cW[], int n_cells)
+void fill_flux_array(Real *C1, int idl, int idr, Real cW[], int n_cells, int dir)
 {
 
   cW[0] = C1[idl];
   cW[1] = C1[idr];
-  cW[2] = C1[n_cells+idl];
-  cW[3] = C1[n_cells+idr];
-  cW[4] = C1[2*n_cells+idl];
-  cW[5] = C1[2*n_cells+idr];
-  cW[6] = C1[3*n_cells+idl];
-  cW[7] = C1[3*n_cells+idr];
+  if (dir == 0) {
+    cW[2] = C1[1*n_cells+idl];
+    cW[3] = C1[1*n_cells+idr];
+    cW[4] = C1[2*n_cells+idl];
+    cW[5] = C1[2*n_cells+idr];
+    cW[6] = C1[3*n_cells+idl];
+    cW[7] = C1[3*n_cells+idr];
+  }
+  if (dir == 1) {
+    cW[2] = C1[2*n_cells+idl];
+    cW[3] = C1[2*n_cells+idr];
+    cW[4] = C1[3*n_cells+idl];
+    cW[5] = C1[3*n_cells+idr];
+    cW[6] = C1[1*n_cells+idl];
+    cW[7] = C1[1*n_cells+idr];
+  }
+  if (dir == 2) {
+    cW[2] = C1[3*n_cells+idl];
+    cW[3] = C1[3*n_cells+idr];
+    cW[4] = C1[1*n_cells+idl];
+    cW[5] = C1[1*n_cells+idr];
+    cW[6] = C1[2*n_cells+idl];
+    cW[7] = C1[2*n_cells+idr];
+  }
   cW[8] = C1[4*n_cells+idl];
   cW[9] = C1[4*n_cells+idr];
   #ifdef DE
@@ -215,7 +233,7 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   // using piecewise constant reconstruction,
   // calculate the fluxes
   // Lx
-  fill_flux_array(C1, imo, id, cW, n_cells);
+  fill_flux_array(C1, imo, id, cW, n_cells, 0);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Lx, gama);
   #endif
@@ -223,11 +241,11 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   Calculate_Roe_Fluxes(cW, F_Lx, gama, etah);
   #endif
   #ifdef HLLC
-  Calculate_HLLC_Fluxes(cW, F_Lx, gama, etah, 0);
+  Calculate_HLLC_Fluxes(cW, F_Lx, gama, etah);
   #endif
   
   // Rx
-  fill_flux_array(C1, id, ipo, cW, n_cells);
+  fill_flux_array(C1, id, ipo, cW, n_cells, 0);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Rx, gama);
   #endif
@@ -235,11 +253,11 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   Calculate_Roe_Fluxes(cW, F_Rx, gama, etah);
   #endif
   #ifdef HLLC
-  Calculate_HLLC_Fluxes(cW, F_Rx, gama, etah, 0);
+  Calculate_HLLC_Fluxes(cW, F_Rx, gama, etah);
   #endif
 
   // Ly
-  fill_flux_array(C1, jmo, id, cW, n_cells);
+  fill_flux_array(C1, jmo, id, cW, n_cells, 1);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Ly, gama);
   #endif
@@ -247,11 +265,11 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   Calculate_Roe_Fluxes(cW, F_Ly, gama, etah);
   #endif
   #ifdef HLLC
-  Calculate_HLLC_Fluxes(cW, F_Ly, gama, etah, 1);
+  Calculate_HLLC_Fluxes(cW, F_Ly, gama, etah);
   #endif
 
   // Ry
-  fill_flux_array(C1, id, jpo, cW, n_cells);
+  fill_flux_array(C1, id, jpo, cW, n_cells, 1);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Ry, gama);
   #endif
@@ -259,11 +277,11 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   Calculate_Roe_Fluxes(cW, F_Ry, gama, etah);
   #endif
   #ifdef HLLC
-  Calculate_HLLC_Fluxes(cW, F_Ry, gama, etah, 1);
+  Calculate_HLLC_Fluxes(cW, F_Ry, gama, etah);
   #endif
 
   // Lz
-  fill_flux_array(C1, kmo, id, cW, n_cells);
+  fill_flux_array(C1, kmo, id, cW, n_cells, 2);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Lz, gama);
   #endif
@@ -271,11 +289,11 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   Calculate_Roe_Fluxes(cW, F_Lz, gama, etah);
   #endif
   #ifdef HLLC 
-  Calculate_HLLC_Fluxes(cW, F_Lz, gama, etah, 2);
+  Calculate_HLLC_Fluxes(cW, F_Lz, gama, etah);
   #endif
 
   // Rz
-  fill_flux_array(C1, id, kpo, cW, n_cells);
+  fill_flux_array(C1, id, kpo, cW, n_cells, 2);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Rz, gama);
   #endif
@@ -283,15 +301,15 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   Calculate_Roe_Fluxes(cW, F_Rz, gama, etah);
   #endif
   #ifdef HLLC 
-  Calculate_HLLC_Fluxes(cW, F_Rz, gama, etah, 2);
+  Calculate_HLLC_Fluxes(cW, F_Rz, gama, etah);
   #endif
 
 
   // Update the conserved variables for the cell by a full step
   C2[id+0*n_cells] = C1[id+0*n_cells] + dtodx*(F_Lx[0] - F_Rx[0]) + dtody*(F_Ly[0] - F_Ry[0]) + dtodz*(F_Lz[0] - F_Rz[0]);
-  C2[id+1*n_cells] = C1[id+1*n_cells] + dtodx*(F_Lx[1] - F_Rx[1]) + dtody*(F_Ly[1] - F_Ry[1]) + dtodz*(F_Lz[1] - F_Rz[1]);
-  C2[id+2*n_cells] = C1[id+2*n_cells] + dtodx*(F_Lx[2] - F_Rx[2]) + dtody*(F_Ly[2] - F_Ry[2]) + dtodz*(F_Lz[2] - F_Rz[2]);
-  C2[id+3*n_cells] = C1[id+3*n_cells] + dtodx*(F_Lx[3] - F_Rx[3]) + dtody*(F_Ly[3] - F_Ry[3]) + dtodz*(F_Lz[3] - F_Rz[3]);
+  C2[id+1*n_cells] = C1[id+1*n_cells] + dtodx*(F_Lx[1] - F_Rx[1]) + dtody*(F_Ly[3] - F_Ry[3]) + dtodz*(F_Lz[2] - F_Rz[2]);
+  C2[id+2*n_cells] = C1[id+2*n_cells] + dtodx*(F_Lx[2] - F_Rx[2]) + dtody*(F_Ly[1] - F_Ry[1]) + dtodz*(F_Lz[3] - F_Rz[3]);
+  C2[id+3*n_cells] = C1[id+3*n_cells] + dtodx*(F_Lx[3] - F_Rx[3]) + dtody*(F_Ly[2] - F_Ry[2]) + dtodz*(F_Lz[1] - F_Rz[1]);
   C2[id+4*n_cells] = C1[id+4*n_cells] + dtodx*(F_Lx[4] - F_Rx[4]) + dtody*(F_Ly[4] - F_Ry[4]) + dtodz*(F_Lz[4] - F_Rz[4]);
   #ifdef DE
   C2[id+5*n_cells] = C1[id+5*n_cells] + dtodx*(F_Lx[5] - F_Rx[5]) + dtody*(F_Ly[5] - F_Ry[5]) + dtodz*(F_Lz[5] - F_Rz[5])

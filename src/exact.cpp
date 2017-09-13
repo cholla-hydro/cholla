@@ -63,7 +63,7 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
   //sample the solution at the cell interface
   sample(pm, um, &ds, &us, &ps, dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
  
-  // calcvxlate the fluxes through the cell interface
+  // calculate the fluxes through the cell interface
   fluxes[0] = ds*us;
   fluxes[1] = ds*us*us+ps;
   if (us >= 0)
