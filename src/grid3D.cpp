@@ -407,9 +407,10 @@ Real Grid3D::Update_Grid(void)
     #endif //not_VL
     #ifdef VL
     max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
-    //Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
     #endif //VL
     #endif    
+
+    Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
   }
   else
   {
