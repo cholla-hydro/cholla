@@ -34,8 +34,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef DE
   Real ge;
   #endif
-  //Real T_min = 1.0e4; // minimum temperature allowed
-  Real T_min = 0.0; // minimum temperature allowed
+  Real T_min = 1.0e4; // minimum temperature allowed
+  //Real T_min = 0.0; // minimum temperature allowed
 
   mu = 0.6;
 
@@ -94,10 +94,10 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
 
-    // limit change in temperature to 5%
-    while (del_T/T > 0.05) {
-      // what dt gives del_T = 0.05*T?
-      dt_sub = 0.05*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+    // limit change in temperature to 1%
+    while (del_T/T > 0.01) {
+      // what dt gives del_T = 0.01*T?
+      dt_sub = 0.01*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
       // apply that dt
       T -= cool*dt_sub*TIME_UNIT*(gamma-1.0)/(n*KB);
       // how much time is left from the original timestep?
@@ -115,9 +115,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T -= del_T;
 
     // set a temperature floor
-    if (T < T_min) { 
-      T = T_min;
-    }
+    T = fmax(T, T_min);
 
     // adjust value of energy based on total change in temperature
     del_T = T_init - T; // total change in T
@@ -125,14 +123,18 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #ifdef DE
     ge -= KB*del_T / (mu*MP*(gamma-1.0)*SP_ENERGY_UNIT);
     #endif
-    if (del_T/T_init > 0.1) {
-      printf("%3d %3d %3d Cooling over 10 percent in hydro dt. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
-    }
+    //if (del_T/T_init > 0.1) {
+    //  printf("%3d %3d %3d Cooling over 10 percent in hydro dt. n: %e T_init: %e T: %e\n", xid, yid, zid, n, T_init, T);
+    //}
     if (T < 100) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
-    // calculate cooling rate for new T
-    cool = Wiersma_cool(n, T);
-    // limit the timestep such that delta_T is 10% 
-    min_dt[tid] = 0.1*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+    if (T > T_min) {
+      // calculate cooling rate for new T
+      cool = Wiersma_cool(n, T);
+      // limit the timestep such that delta_T is 10% 
+      min_dt[tid] = 0.1*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+      min_dt[tid] = fmax(min_dt[tid], 5.0);
+      //if (min_dt[tid] < 1.0) printf("%3d %3d %3d %e %e\n", xid, yid, zid, n, T);
+    }
 
     // and send back from kernel
     dev_conserved[4*n_cells + id] = E;

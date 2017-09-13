@@ -563,7 +563,7 @@ Real Grid3D::Add_Supernovae_CC85(void)
   //Real tstart = 5.0;
   //Real tramp = 5.0;
   //Real thigh = 30.0;
-  Real tstart = 0.0;
+  Real tstart = 1.0;
   Real tramp = 5.0;
   Real thigh = 30.0;
   t = H.t/1000 - tstart;
@@ -571,7 +571,7 @@ Real Grid3D::Add_Supernovae_CC85(void)
   t2 = tramp+thigh;
   t3 = 2*tramp+thigh;
   if (t >= 0) {
-/*
+
   if (t >= 0 && t < t1) {
     M_dot = M1 + (1.0/tramp)*t*(M2-M1); 
     E_dot = E1 + (1.0/tramp)*t*(E2-E1);
@@ -588,9 +588,9 @@ Real Grid3D::Add_Supernovae_CC85(void)
     M_dot = M1;
     E_dot = E1;
   }
-*/
-  M_dot = M2;
-  E_dot = E2;
+
+  //M_dot = M2;
+  //E_dot = E2;
 
   E_dot = E_dot*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT); // convert to code units
   V = (4.0/3.0)*PI*R_s*R_s*R_s;

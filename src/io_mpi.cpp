@@ -15,7 +15,7 @@
 void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
 {
   FILE *out;
-  char filename[80];
+  char filename[100];
   char timestep[20];
   int flag;
   int nfull = 1;

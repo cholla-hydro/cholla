@@ -26,7 +26,7 @@ void WriteData(Grid3D G, struct parameters P, int nfile)
 /* Output the grid data to file. */
 void OutputData(Grid3D G, struct parameters P, int nfile)
 {
-  char filename[80];
+  char filename[100];
   char timestep[20];
 
   // create the filename
