@@ -26,8 +26,8 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
   nfields = 6;
   #endif
 
-  Real d_old, vx_old, vy_old, vz_old, P_old;
-  Real d_new, vx_new, vy_new, vz_new, P_new;
+  Real d_old, vx_old, vy_old, vz_old, P_old, E_old;
+  Real d_new, vx_new, vy_new, vz_new, P_new, E_new;
   Real etah = 0.0;
 
   Real dtodx = dt/dx;
@@ -45,51 +45,61 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
         id = i + j*nx + k*nx*ny;
         
         d_new = C2[id];
-        #if defined DE
-        P_new = C2[5*n_cells+id] * (gama-1.0);
-        #else
-        vx_new = C2[n_cells+id]/d_new;
+        E_new = C2[4*n_cells+id];
+        vx_new = C2[1*n_cells+id]/d_new;
         vy_new = C2[2*n_cells+id]/d_new;
         vz_new = C2[3*n_cells+id]/d_new;
-        P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
-        #endif
+        P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
   
         // if there is a problem, redo the update for that cell using first-order fluxes
-        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) {
-          printf("Flux correction: (%d, %d %d) d: %e  p:%e\n", i, j, k, d_new, P_new);
-          //printf("%3d %3d %3d Old density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
-          //printf("Previous timestep data: d: %e mx: %e my: %e mz: %e E: %e\n", C1[id], C1[n_cells+id], C1[2*n_cells+id], C1[3*n_cells+id], C1[4*n_cells+id]);
-          //printf("Uncorrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
-          P_old = P_new;
+        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new) {
+          printf("%3d %3d %3d BC: d: %e  E:%e  P:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new);
 
           // Calculate the fluxes for each interface using piecewise constant reconstruction
           // and update the conserved variables using the new first-order fluxes
           first_order_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          //printf("Flux corrected data: d: %e E: %e\n", C2[id], C2[4*n_cells+id]);
+
+          // density floor of n = 1.0e-3
+          C2[id] = fmax(C2[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
 
           // Reset with the new values of the conserved variables
           d_new = C2[id];
-          vx_new = C2[n_cells+id]/d_new;
+          E_new = C2[4*n_cells+id];
+          vx_new = C2[1*n_cells+id]/d_new;
           vy_new = C2[2*n_cells+id]/d_new;
           vz_new = C2[3*n_cells+id]/d_new;
-          P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
-          // And apply gravity
+          P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
+
+          Real n = d_new*DENSITY_UNIT / (0.6 * MP);
+          Real T_c = P_new*PRESSURE_UNIT / (n*KB);
+          Real T_ie = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT / (n*KB);
+          printf("%3d %3d %3d AC: d: %e  E:%e  P:%e  T_cons: %e  T_ie: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c, T_ie);
+
+          // Apply gravity
           #ifdef STATIC_GRAV
           Real gx, gy, gz;
           gx = gy = gz = 0.0;
           calc_g_3D(i, j, k, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
           d_old = C1[id];
-          vx_old = C1[n_cells+id]/d_old;
+          vx_old = C1[1*n_cells+id]/d_old;
           vy_old = C1[2*n_cells+id]/d_old;
           vz_old = C1[3*n_cells+id]/d_old;
-          C2[  n_cells + id] += 0.5*dt*gx*(d_old + d_new);
+          C2[1*n_cells + id] += 0.5*dt*gx*(d_old + d_new);
           C2[2*n_cells + id] += 0.5*dt*gy*(d_old + d_new);
           C2[3*n_cells + id] += 0.5*dt*gz*(d_old + d_new);
           C2[4*n_cells + id] += 0.25*dt*gx*(d_old + d_new)*(vx_old + vx_new) 
                               + 0.25*dt*gy*(d_old + d_new)*(vy_old + vy_new)
                               + 0.25*dt*gz*(d_old + d_new)*(vz_old + vz_new);
+          // Reset with the new values of the conserved variables
+          vx_new = C2[1*n_cells+id]/d_new;
+          vy_new = C2[2*n_cells+id]/d_new;
+          vz_new = C2[3*n_cells+id]/d_new;
+          E_new  = C2[4*n_cells+id];
+          P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
+          //T_c = P_new*PRESSURE_UNIT / (n*KB);
+          //T_ie = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT / (n*KB);
+          //printf("%3d %3d %3d After gravity d: %e  P:%e  T_cons: %e  T_ie: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new, T_c, T_ie);
           #endif
-          //printf("Before internal energy sync. d: %e vx: %e vy: %e vz: %e P: %e\n", d_new, vx_new, vy_new, vz_new, P_new);
           // sync the internal and total energy
           #ifdef DE
           Real ge1, ge2, E, Emax;
@@ -100,8 +110,9 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           // internal energy calculated from total energy
           ge2 = P_new / (gama-1.0);
           // if the ratio of conservatively calculated internal energy to total energy
-          // is greater than 1/1000, use the conservatively calculated internal energy
-          // to do the internal energy update
+          // is greater than 1/1000,
+          // use the conservatively calculated internal energy to do the internal energy update
+
           if (ge2/E > 0.001) {
             C2[5*n_cells + id] = ge2;
             ge1 = ge2;
@@ -130,20 +141,24 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           if (ge2/Emax > 0.1) {
             C2[5*n_cells + id] = ge2;
           }
-          // sync the total energy with the internal energy 
           else {
+            // sync the total energy with the internal energy 
             C2[4*n_cells + id] += ge1 - ge2;
           }
-          // recalculate the pressure
-          P_new = (C2[4*n_cells+id] - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           #endif          
-          printf("%3d %3d %3d New density / pressure: d: %e p: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
-          //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
 
           // apply cooling
           #ifdef COOLING_GPU
           cooling_CPU(C2, id, n_cells, dt);
           #endif
+
+          // recalculate the pressure
+          E_new = C2[4*n_cells + id];
+          P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
+          // recalculate the temperature
+          T_c = P_new*PRESSURE_UNIT/(n*KB);
+          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c);
+          if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
 
         }
 
@@ -377,7 +392,6 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   #endif
 
   Real T_min = 1.0e4;
-  //Real T_min = 0.0;
   mu = 0.6;
 
   // load values of density and pressure
@@ -405,6 +419,7 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   #ifdef DE
   T_init = ge*(gama-1.0)*SP_ENERGY_UNIT*mu*MP/KB;
   #endif
+  //if (T_init > 1.0e8) printf("Bad cell: %e\n", T_init);
 
   // calculate cooling rate per volume
   T = T_init;

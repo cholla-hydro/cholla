@@ -17,17 +17,15 @@ void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
   FILE *out;
   char filename[100];
   char timestep[20];
-  int flag;
-  int nfull = 1;
-  flag = 0;
+  int flag = 0;;
 
   // status of flag determines whether to output full grid
-  if (nfile % nfull != 0) flag = 1;
+  if (nfile % P.nfull != 0) flag = 1;
 
   if (flag == 0) {
     // create the filename
     strcpy(filename, P.outdir); 
-    sprintf(timestep, "%d", nfile/nfull);
+    sprintf(timestep, "%d", nfile/P.nfull);
     strcat(filename,timestep);   
     #if defined BINARY
     strcat(filename,".bin");

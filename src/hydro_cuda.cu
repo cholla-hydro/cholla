@@ -269,13 +269,8 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   +  dtodz * (dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id])
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    //if (P < 0.0) printf("%3d %3d %3d Negative pressure after final update. %f %f %f %f %f\n", xid, yid, zid, dev_conserved[4*n_cells + id], 0.5*d*vx*vx, 0.5*d*vy*vy, 0.5*d*vz*vz, P);
+    // add a density floor of n = 1.0e-3
+    dev_conserved[id] = fmax(dev_conserved[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
     #ifdef STATIC_GRAV 
     calc_g_3D_CUDA(xid, yid, zid, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
     d_n  =  dev_conserved[            id];
@@ -286,16 +281,19 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
     dev_conserved[2*n_cells + id] += 0.5*dt*gy*(d + d_n);
     dev_conserved[3*n_cells + id] += 0.5*dt*gz*(d + d_n);
-    //gcorr =  0.5*dt*gz*(d + d_n);
     dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n)
                                   +  0.25*dt*gy*(d + d_n)*(vy + vy_n)
                                   +  0.25*dt*gz*(d + d_n)*(vz + vz_n);
     #endif    
-    //if (xid == 130 && yid == 130 && zid == 42) printf("%3d %3d %3d %e %e %e %e %e\n", xid, yid, zid, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
+    /*
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id] || dev_conserved[4*n_cells + id] < 0.0 || dev_conserved[4*n_cells+id] != dev_conserved[4*n_cells+id]) {
-      printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid+x_off, yid+y_off, zid+z_off, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
-      //printf("%3d %3d %3d Thread crashed in final update. %e %e\n", xid+x_off, yid+y_off, zid+z_off, dev_conserved[id], dev_conserved[4*n_cells+id]);
+      //printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid+x_off, yid+y_off, zid+z_off, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
+      printf("%3d %3d %3d Thread crashed in final update. %e %e\n", xid+x_off, yid+y_off, zid+z_off, dev_conserved[id], dev_conserved[4*n_cells+id]);
+      Real ge = dev_conserved[5*n_cells + id];
+      Real T = ge * (gamma-1.0)*SP_ENERGY_UNIT*0.6*MP/(d_n*KB);
+      printf("Internal energy: %e  Temperature: %e\n", ge, T);
     }
+    */
     /*
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -450,7 +448,7 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
 __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma)
 {
   int id, xid, yid, zid, n_cells;
-  Real d, d_inv, vx, vy, vz, P, E;
+  Real d, d_inv, vx, vy, vz, E;
   Real ge1, ge2, Emax;
   int imo, ipo, jmo, jpo, kmo, kpo;
   n_cells = nx*ny*nz;
@@ -484,11 +482,16 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     E  =  dev_conserved[4*n_cells + id];
-    P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     // separately tracked internal energy 
     ge1 =  dev_conserved[5*n_cells + id];
     // internal energy calculated from total energy
     ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
+    /*
+    if (ge2 < 0.0) {
+      Real T = (ge1/d) * (gamma-1.0)*SP_ENERGY_UNIT*0.6*MP/KB;
+      printf("%3d %3d %3d Temperature: %e\n", xid, yid, zid, T);
+    }
+    */
     // if the ratio of conservatively calculated internal energy to total energy
     // is greater than 1/1000, use the conservatively calculated internal energy
     // to do the internal energy update
@@ -513,7 +516,7 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
       dev_conserved[4*n_cells + id] += ge1 - ge2;
     }
     // recalculate the pressure 
-    P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
+    //P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     //if (P < 0.0) printf("%3d %3d %3d Negative pressure after internal energy sync. %f %f %f\n", xid, yid, zid, P/(gamma-1.0), ge1, ge2);    
   }
 }
@@ -626,7 +629,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
 {
   __shared__ Real max_dti[TPB];
 
-  Real d, d_inv, vx, vy, vz, P, cs;
+  Real d, d_inv, vx, vy, vz, E, P, cs;
   int id, xid, yid, zid, n_cells;
   int tid;
 
@@ -653,11 +656,21 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+    E  = dev_conserved[4*n_cells + id];
+    P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     cs = sqrt(d_inv * gamma * P);
     max_dti[tid] = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
     max_dti[tid] = fmax(max_dti[tid], (fabs(vz)+cs)/dz);
+    // if this thread has crashed, don't include it in the timestep calculation
+    if (d < 0 || d != d || P < 0 || P != P || E < 0 || E != E) max_dti[tid] = 0;
     //max_dti[tid] = (fabs(vx)+cs)/dx + (fabs(vy)+cs)/dy + (fabs(vz)+cs)/dz;
+    /*
+    if (0.3/max_dti[tid] < 1.0) {
+      Real n = d*DENSITY_UNIT/(0.6*MP);
+      Real T = P*PRESSURE_UNIT/(n*KB);
+      printf("%3d %3d %3d n: %e  T: %e\n", xid, yid, zid, n, T);
+    }
+    */
   }
   __syncthreads();
   

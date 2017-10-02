@@ -49,6 +49,7 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
 
 
   //test for the pressure positivity condition
+  /*
   if ((2.0 / (gamma - 1.0))*(cl+cr) <= (vxr-vxl))
   {
     //the initial data is such that vacuum is generated. Program stopped.
@@ -56,6 +57,7 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
     printf("%f %f %f %f %f %f\n", dl, vxl, pl, dr, vxr, pr);
     //exit(1);
   }
+  */
  
   //find exact solution for pressvxre and velocity in star region
   starpu(&pm, &um, dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
@@ -85,10 +87,6 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
     Es = (ps/(gamma - 1.0)) + 0.5*ds*(us*us + vyr*vyr + vzr*vzr);
   }
   fluxes[4] = (Es+ps)*us;
-  for (int jj=0; jj<12; jj++) {
-    if (fluxes[jj] != fluxes[jj]) printf("%e %e %e\n", ds, us, ps);
-  }
-  //printf("%f %f %f\n", ds, us, ps);
 
 }
 

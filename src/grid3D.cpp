@@ -222,13 +222,7 @@ void Grid3D::AllocateMemory(void)
   max_dti = ReduceRealMax(max_dti);
   #endif /*MPI_CHOLLA*/
   
-  // new timestep can't be more than double the previous timestep
-  if (H.n_step == 0) {
-    H.dt = C_cfl / max_dti;
-  }
-  else {
-    H.dt = fmin(C_cfl / max_dti, 2.0*H.dt);
-  }
+  H.dt = C_cfl / max_dti;
   //chprintf("Within set_dt: %f %f %f\n", C_cfl, H.dt, max_dti);
 
 }
@@ -564,7 +558,7 @@ Real Grid3D::Add_Supernovae_CC85(void)
   //Real tstart = 5.0;
   //Real tramp = 5.0;
   //Real thigh = 30.0;
-  Real tstart = 1.0;
+  Real tstart = 0.0;
   Real tramp = 5.0;
   Real thigh = 30.0;
   t = H.t/1000 - tstart;
@@ -635,6 +629,13 @@ Real Grid3D::Add_Supernovae_CC85(void)
           C.Energy[id] += Ed_dot * H.dt;
           #ifdef DE
           C.GasEnergy[id] += Ed_dot * H.dt;
+          Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
+          Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+          if (T > 1.0e8) {
+            printf("%3d %3d %3d Supernova overheating r: %e n: %e T: %e\n", i, j, k, r, n, T);
+            //C.Energy[id] -= Ed_dot * H.dt;
+            //C.GasEnergy[id] -= Ed_dot * H.dt;
+          }
           #endif
           //M_dot_tot += rho_dot*H.dx*H.dy*H.dz;
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
@@ -660,6 +661,13 @@ Real Grid3D::Add_Supernovae_CC85(void)
           C.Energy[id]  += Ed_dot * H.dt * weight;
           #ifdef DE
           C.GasEnergy[id] += Ed_dot * H.dt;
+          Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
+          Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+          if (T > 1.0e8) {
+            printf("%3d %3d %3d Supernova overheating r: %e n: %e T: %e\n", i, j, k, r, n, T);
+            //C.Energy[id] -= Ed_dot * H.dt;
+            //C.GasEnergy[id] -= Ed_dot * H.dt;
+          }
           #endif
         }
         if (tstep_flag) {

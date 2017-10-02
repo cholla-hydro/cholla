@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
   #endif /*MPI_CHOLLA*/
 
   // declare Cfl coefficient and initial inverse timestep
-  Real C_cfl = 0.4; // CFL coefficient 0 < C_cfl < 0.5 
+  Real C_cfl = 0.3; // CFL coefficient 0 < C_cfl < 0.5 
   Real dti = 0; // inverse time step, 1.0 / dt
 
   // input parameter variables
@@ -122,13 +122,6 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
-    int xid = 4 + G.H.n_ghost;
-    int yid = 7 + G.H.n_ghost;
-    int zid = 8 + G.H.n_ghost;
-    int id1 = xid + yid*G.H.nx + zid*G.H.nx*G.H.ny;
-    int id2 = yid + xid*G.H.nx + zid*G.H.nx*G.H.ny;
-    //if (G.C.Energy[id1] != G.C.Energy[id2]) printf("%f %f\n", G.C.Energy[id1], G.C.Energy[id2]);
-
     // get the start time
     start_step = get_time();
     
@@ -151,16 +144,15 @@ int main(int argc, char *argv[])
     //printf("%d After manual set: %f %f\n", procID, G.H.dt, dti);
 
     // Add supernovae
+    //chprintf("Before supernovae: %f\n", G.H.dt);
     Real sn_dti;
     sn_dti = G.Add_Supernovae_CC85();
     dti = fmax(dti, sn_dti);
     #ifdef MPI_CHOLLA
     ReduceRealMax(dti);
     #endif
-    if (dti > 0) {
-      G.H.dt = C_cfl/dti;
-    }
-    //chprintf("After supernovae: %f %f\n", G.H.dt, dti);
+    G.H.dt = C_cfl/dti;
+    //chprintf("After supernovae: %f\n", G.H.dt);
    
     if (G.H.t + G.H.dt > outtime) 
     {

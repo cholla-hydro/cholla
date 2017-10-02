@@ -169,7 +169,7 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
     f_mz = 0.5*(f_mz_l + f_mz_r + (Sr - fabs(Sm))*mzrs + (Sl + fabs(Sm))*mzls - Sl*mzl - Sr*mzr);
     f_E  = 0.5*(f_E_l  + f_E_r  + (Sr - fabs(Sm))*Ers  + (Sl + fabs(Sm))*Els  - Sl*El  - Sr*Er);
     #ifdef DE
-    f_ge = 0.5*(f_ge_l + f_ge_r + (Sr - fabs(Sm))*gers + (Sl + fabs(Sm))*gels - Sl*gel - Sr*ger);
+    f_ge = 0.5*(f_ge_l + f_ge_r + (Sr - fabs(Sm))*gers + (Sl + fabs(Sm))*gels - Sl*dl*gel - Sr*dr*ger);
     #endif
 
 

@@ -28,14 +28,14 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   Real del_T, dt_sub;
   Real mu; // mean molecular weight
   Real cool; //cooling rate per volume, erg/s/cm^3
-  #ifndef DE
+  //#ifndef DE
   Real vx, vy, vz, p;
-  #endif
+  //#endif
   #ifdef DE
   Real ge;
   #endif
   Real T_min = 1.0e4; // minimum temperature allowed
-  //Real T_min = 0.0; // minimum temperature allowed
+  Real T_max= 1.0e8; // minimum temperature allowed
 
   mu = 0.6;
 
@@ -59,13 +59,13 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // load values of density and pressure
     d  =  dev_conserved[            id];
     E  =  dev_conserved[4*n_cells + id];
-    #ifndef DE
+    //#ifndef DE
     vx =  dev_conserved[1*n_cells + id] / d;
     vy =  dev_conserved[2*n_cells + id] / d;
     vz =  dev_conserved[3*n_cells + id] / d;
     p  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     p  = fmax(p, (Real) TINY_NUMBER);
-    #endif
+    //#endif
     #ifdef DE
     ge = dev_conserved[5*n_cells + id] / d;
     ge = fmax(ge, (Real) TINY_NUMBER);
@@ -75,15 +75,16 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     n = d*DENSITY_UNIT / (mu * MP);
 
     // calculate the temperature of the gas
-    #ifndef DE
+    //#ifndef DE
     T_init = p*PRESSURE_UNIT/ (n*KB);
-    #endif
+    //#endif
     #ifdef DE
     T_init = ge*(gamma-1.0)*SP_ENERGY_UNIT*mu*MP/KB;
     #endif
 
     // calculate cooling rate per volume
     T = T_init;
+    if (T > T_max) printf("%3d %3d %3d High T cell. n: %e  T: %e\n", xid, yid, zid, n, T);
 
     // call the cooling function (could choose primoridial cool)
     //cool = Schure_cool(n, T); 
@@ -115,7 +116,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T -= del_T;
 
     // set a temperature floor
-    T = fmax(T, T_min);
+    if (T > 0.0) T = fmax(T, T_min);
+    // set a temperature ceiling 
+    T = fmin(T, T_max);
 
     // adjust value of energy based on total change in temperature
     del_T = T_init - T; // total change in T
@@ -126,14 +129,12 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     //if (del_T/T_init > 0.1) {
     //  printf("%3d %3d %3d Cooling over 10 percent in hydro dt. n: %e T_init: %e T: %e\n", xid, yid, zid, n, T_init, T);
     //}
-    if (T < 100) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
+    //if (T < 100) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
     if (T > T_min) {
       // calculate cooling rate for new T
       cool = Wiersma_cool(n, T);
       // limit the timestep such that delta_T is 10% 
       min_dt[tid] = 0.1*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
-      min_dt[tid] = fmax(min_dt[tid], 5.0);
-      //if (min_dt[tid] < 1.0) printf("%3d %3d %3d %e %e\n", xid, yid, zid, n, T);
     }
 
     // and send back from kernel

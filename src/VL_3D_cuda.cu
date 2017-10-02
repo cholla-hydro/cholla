@@ -266,12 +266,15 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   for (int i=0; i<ngrid; i++) {
     min_dt = fmin(min_dt, host_dt_array[i]);
   }  
-  printf("%f %f %f\n", min_dt, 0.4/max_dti, dt); 
-  if (min_dt < 0.4/max_dti) {
-    max_dti = 0.4/min_dt;
-    //printf("%f %f %f\n", min_dt, 1.0/max_dti, dt); 
+  //printf("%f %f\n", min_dt, 0.3/max_dti); 
+  /*
+  if (min_dt < 0.3/max_dti) {
+    max_dti = 0.3/min_dt;
+    //printf("%f %f\n", min_dt, 0.3/max_dti); 
   }
+  */
   #endif
+  //max_dti = fmin(max_dti, 0.3);
 
 
   // free CPU memory
