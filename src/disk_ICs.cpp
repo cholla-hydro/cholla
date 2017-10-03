@@ -363,7 +363,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
         printf("Something wrong in determining central density...\n");
         printf("iter_phi = %d\n",iter_phi);
         printf("z_0 %e z_1 %e z_2 %e A_0 %e A_1 %e phi_0 %e phi_1 %e\n",z_0,z_1,z_2,A_0,A_1,phi_total_D3D(R,z_0,hdp),phi_total_D3D(R,z_1,hdp));
+        #ifdef MPI_CHOLLA
         MPI_Finalize();
+        #endif
         exit(0);
       }
     }
@@ -398,8 +400,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
     if(iter>100)
     {
       printf("About to exit...\n");
-
+      #ifdef MPI_CHOLLA
       MPI_Finalize();
+      #endif
       exit(0);
     }
   }
@@ -510,7 +513,9 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
       printf("Something wrong in determining central density...\n");
       printf("iter_phi = %d\n",iter_phi);
       printf("z_0 %e z_1 %e z_2 %e A_0 %e A_1 %e phi_0 %e phi_1 %e\n",z_0,z_1,z_2,A_0,A_1,phi_total_D3D(0,z_0,hdp),phi_total_D3D(0,z_1,hdp));
+      #ifdef MPI_CHOLLA
       MPI_Finalize();
+      #endif
       exit(0);
     }
   }
@@ -717,7 +722,10 @@ void Grid3D::Disk_3D(parameters p)
         id = i + j*H.nx + k*H.nx*H.ny;
 
         //get density from hydrostatic column computation
+        d = rho[H.n_ghost + (k-H.n_ghost)];
+        #ifdef MPI_CHOLLA
         d = rho[nz_local_start + H.n_ghost + (k-H.n_ghost)];
+        #endif
 
         // set pressure adiabatically
         P = K_eos*pow(d,p.gamma);

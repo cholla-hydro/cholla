@@ -218,7 +218,9 @@ int main(int argc, char *argv[])
           int id = i + j*G.H.nx + k*G.H.nx*G.H.ny;
           if (G.C.density[id] < 0.0 || G.C.density[id] != G.C.density[id]) {
             printf("Failure in cell %d %d %d. Density %e\n", i, j, k, G.C.density[id]);
+            #ifdef MPI_CHOLLA
             MPI_Finalize();
+            #endif
             exit(0);
           }
         }

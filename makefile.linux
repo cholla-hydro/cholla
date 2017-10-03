@@ -12,11 +12,11 @@ OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
-CUDA = -DCUDA #-DCUDA_ERROR_CHECK
+CUDA = -DCUDA -DCUDA_ERROR_CHECK
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-#MPI_FLAGS =  -DMPI_CHOLLA
+MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
@@ -47,23 +47,23 @@ OUTPUT = -DHDF5
 #RECONSTRUCTION = -DPPMP
 RECONSTRUCTION = -DPPMC
 
-SOLVER = -DEXACT
-#SOLVER = -DROE
+#SOLVER = -DEXACT
+SOLVER = -DROE
 
-INTEGRATOR = -DCTU
-#INTEGRATOR = -DVL
+#INTEGRATOR = -DCTU
+INTEGRATOR = -DVL
 
 #COOLING = -DCOOLING_GPU
 
 
 ifdef CUDA
-CUDA_INCLUDE = -I/uaopt/cuda/7.5.18/include/
-CUDA_LIBS = -L/uaopt/cuda/7.4.18/lib64 -lcuda -lcudart
+CUDA_INCLUDE = -I/usr/local/cuda-8.0/include/
+CUDA_LIBS = -L/usr/local/cuda-8.0/lib64 -lcuda -lcudart
 endif
 
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCLUDE = -I/uaopt/hdf5/1.8.16/include/
-HDF5_LIBS = -lhdf5 -L/uaopt/hdf5/1.8.16/lib/
+HDF5_INCLUDE = -I/usr/local/hdf5/1.8.16/include/
+HDF5_LIBS = -L/usr/local/hdf5/gcc/1.8.8/lib64/ -lhdf5
 endif
 
 INCL   = -I./ $(HDF5_INCLUDE)
@@ -73,10 +73,10 @@ LIBS   = -lm $(HDF5_LIBS)
 
 
 
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DSTATIC_GRAV 
+FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) #-DSTATIC_GRAV 
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(FFT_FLAGS) -m64
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(FFT_FLAGS) -m64 
-NVCCFLAGS = $(FLAGS) -m64 -arch=compute_30 -fmad=false -ccbin=$(CC)
+NVCCFLAGS = $(FLAGS) -m64 -arch=compute_35 -fmad=false -ccbin=$(CC)
 LDFLAGS	  = -m64
 
 

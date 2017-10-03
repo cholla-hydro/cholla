@@ -351,7 +351,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     #endif    
     //if (xid == 70 && yid == 70 && zid == 33) printf("%3d %3d %3d %e %e\n", xid, yid, zid, fz, gcorr);
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id]) {
-      printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid+x_off-n_ghost, yid+y_off-n_ghost, zid+z_off-n_ghost, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
+      //printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid+x_off-n_ghost, yid+y_off-n_ghost, zid+z_off-n_ghost, d, dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[id]);
     }
     /*
     d  =  dev_conserved[            id];
