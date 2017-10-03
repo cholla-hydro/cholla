@@ -53,14 +53,15 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
   
         // if there is a problem, redo the update for that cell using first-order fluxes
         if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new) {
-          printf("%3d %3d %3d BC: d: %e  E:%e  P:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new);
+          //printf("%3d %3d %3d BC: d: %e  E:%e  P:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new);
+          printf("%3d %3d %3d BC: d: %e  E:%e  P:%e\n", i, j, k, d_new, E_new, P_new);
 
           // Calculate the fluxes for each interface using piecewise constant reconstruction
           // and update the conserved variables using the new first-order fluxes
           first_order_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
 
           // density floor of n = 1.0e-3
-          C2[id] = fmax(C2[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
+          //C2[id] = fmax(C2[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
 
           // Reset with the new values of the conserved variables
           d_new = C2[id];
@@ -73,7 +74,8 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           Real n = d_new*DENSITY_UNIT / (0.6 * MP);
           Real T_c = P_new*PRESSURE_UNIT / (n*KB);
           Real T_ie = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT / (n*KB);
-          printf("%3d %3d %3d AC: d: %e  E:%e  P:%e  T_cons: %e  T_ie: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c, T_ie);
+          //printf("%3d %3d %3d AC: d: %e  E:%e  P:%e  T_cons: %e  T_ie: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c, T_ie);
+          printf("%3d %3d %3d AC: d: %e  E:%e  P:%e  T_cons: %e  T_ie: %e\n", i, j, k, d_new, E_new, P_new, T_c, T_ie);
 
           // Apply gravity
           #ifdef STATIC_GRAV
@@ -157,8 +159,10 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           // recalculate the temperature
           T_c = P_new*PRESSURE_UNIT/(n*KB);
-          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c);
-          if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
+          //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c);
+          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T_c);
+          //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
+          if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i, j, k, d_new, P_new);
 
         }
 

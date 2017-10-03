@@ -270,7 +270,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
     // add a density floor of n = 1.0e-3
-    dev_conserved[id] = fmax(dev_conserved[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
+    //dev_conserved[id] = fmax(dev_conserved[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
     #ifdef STATIC_GRAV 
     calc_g_3D_CUDA(xid, yid, zid, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
     d_n  =  dev_conserved[            id];
