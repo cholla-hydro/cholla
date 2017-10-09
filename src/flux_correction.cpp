@@ -9,6 +9,7 @@
 #include"exact.h"
 #include"roe.h"
 #include"hllc.h"
+#include"plmc.h"
 #ifdef MPI_CHOLLA
 #include"mpi_routines.h"
 #endif
@@ -57,19 +58,19 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 
           // Do a half-step first order update for the affected cell and all surrounding cells
           // arrays to hold half-step conserved values
-          Real C_i[n_fields];
-          Real C_imo[n_fields];
-          Real C_imt[n_fields];
-          Real C_ipo[n_fields];
-          Real C_ipt[n_fields];
-          Real C_jmo[n_fields];
-          Real C_jmt[n_fields];
-          Real C_jpo[n_fields];
-          Real C_jpt[n_fields];
-          Real C_kmo[n_fields];
-          Real C_kmt[n_fields];
-          Real C_kpo[n_fields];
-          Real C_kpt[n_fields];
+          Real C_i[nfields];
+          Real C_imo[nfields];
+          Real C_imt[nfields];
+          Real C_ipo[nfields];
+          Real C_ipt[nfields];
+          Real C_jmo[nfields];
+          Real C_jmt[nfields];
+          Real C_jpo[nfields];
+          Real C_jpt[nfields];
+          Real C_kmo[nfields];
+          Real C_kmt[nfields];
+          Real C_kpo[nfields];
+          Real C_kpt[nfields];
 
           first_order_update(C1, C_i, i, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
           first_order_update(C1, C_imo, i-1, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
@@ -87,7 +88,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 
           // Use the half step values of the conserved variables to calculate the second-order fluxes
           // and subtract these from each neighbor cell
-          second_order_fluxes(C1, C2, C_i, C_imo, C_imt, C_ipo, C_ipt, C_jmo, C_jmt, C_jpo, C_jpt, C_kmo, C_kmt, C_kpo, C_kpt, i, j, k, dtodx, dtody, dtodz, nfields, n_cells);
+          second_order_fluxes(C1, C2, C_i, C_imo, C_imt, C_ipo, C_ipt, C_jmo, C_jmt, C_jpo, C_jpt, C_kmo, C_kmt, C_kpo, C_kpt, i, j, k, dx, dy, dz, dt, nfields, nx, ny, nz, n_cells);
 
           // Now update the conserved variables for the affected cell and neighbors 
           // using the first-order fluxes
@@ -251,7 +252,7 @@ void fill_flux_array_pcm(Real *C1, int idl, int idr, Real cW[], int n_cells, int
 
 
 
-void second_order_fluxes(Real *C1, Real *C2, Real C_i[], Real C_imo[], Real C_imt[], Real C_ipo[], Real C_ipt[], Real C_jmo[], Real C_jmt[], Real C_jpo[], Real C_jpt[], Real C_kmo[], Real C_kmt[], Real C_kpo[], Real C_kpt[], int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int n_fields, int n_cells)
+void second_order_fluxes(Real *C1, Real *C2, Real C_i[], Real C_imo[], Real C_imt[], Real C_ipo[], Real C_ipt[], Real C_jmo[], Real C_jmt[], Real C_jpo[], Real C_jpt[], Real C_kmo[], Real C_kmt[], Real C_kpo[], Real C_kpt[], int i, int j, int k, Real dx, Real dy, Real dz, Real dt, int n_fields, int nx, int ny, int nz, int n_cells)
 {
   int id = i + j*nx + k*nx*ny;
   int imo = i-1 + j*nx + k*nx*ny;
@@ -267,6 +268,9 @@ void second_order_fluxes(Real *C1, Real *C2, Real C_i[], Real C_imo[], Real C_im
   int kpo = i + j*nx + (k+1)*nx*ny;
   int kpt = i + j*nx + (k+2)*nx*ny;
   Real etah = 0.0;
+  Real dtodx = dt / dx;
+  Real dtody = dt / dy;
+  Real dtodz = dt / dz;
 
   // Arrays to hold second-order fluxes
   Real F_Lx[n_fields];
@@ -973,7 +977,7 @@ void first_order_fluxes(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
 
 
 
-void first_order_update(Real *C1, Real C_half[], int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
+void first_order_update(Real *C1, Real *C_half, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
 {
   int id = i + j*nx + k*nx*ny;
   int imo = i-1 + j*nx + k*nx*ny;

@@ -1,7 +1,6 @@
 /*! \file plmc.cpp
  *  \brief Definitions of the piecewise linear reconstruction functions, as decribed
            in Stone et al., 2008. */
-#ifndef CUDA
 #ifdef PLMC
 
 #include<stdlib.h>
@@ -457,4 +456,3 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
 }
 
 #endif //PLMC
-#endif //CUDA
