@@ -55,12 +55,43 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
         if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new) {
           printf("%3d %3d %3d BC: d: %e  E:%e  P:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new);
 
-          // Calculate the fluxes for each interface using piecewise constant reconstruction
-          // and update the conserved variables using the new first-order fluxes
-          first_order_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
+          // Do a half-step first order update for the affected cell and all surrounding cells
+          // arrays to hold half-step conserved values
+          Real C_i[n_fields];
+          Real C_imo[n_fields];
+          Real C_imt[n_fields];
+          Real C_ipo[n_fields];
+          Real C_ipt[n_fields];
+          Real C_jmo[n_fields];
+          Real C_jmt[n_fields];
+          Real C_jpo[n_fields];
+          Real C_jpt[n_fields];
+          Real C_kmo[n_fields];
+          Real C_kmt[n_fields];
+          Real C_kpo[n_fields];
+          Real C_kpt[n_fields];
 
-          // density floor of n = 1.0e-3
-          //C2[id] = fmax(C2[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
+          first_order_update(C1, C_i, i, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_imo, i-1, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_imt, i-2, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_ipo, i+1, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_ipt, i+2, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_jmo, i, j-1, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_jmt, i, j-2, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_jpo, i, j+1, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_jpt, i, j+2, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_kmo, i, j, k-1, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_kmt, i, j, k-2, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_kpo, i, j, k+1, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+          first_order_update(C1, C_kpt, i, j, k+2, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
+
+          // Use the half step values of the conserved variables to calculate the second-order fluxes
+          // and subtract these from each neighbor cell
+          second_order_fluxes(C1, C2, C_i, C_imo, C_imt, C_ipo, C_ipt, C_jmo, C_jmt, C_jpo, C_jpt, C_kmo, C_kmt, C_kpo, C_kpt, i, j, k, dtodx, dtody, dtodz, nfields, n_cells);
+
+          // Now update the conserved variables for the affected cell and neighbors 
+          // using the first-order fluxes
+          first_order_fluxes(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
 
           // Reset with the new values of the conserved variables
           d_new = C2[id];
@@ -180,7 +211,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 }
 
 
-void fill_flux_array(Real *C1, int idl, int idr, Real cW[], int n_cells, int dir)
+void fill_flux_array_pcm(Real *C1, int idl, int idr, Real cW[], int n_cells, int dir)
 {
 
   cW[0] = C1[idl];
@@ -219,7 +250,549 @@ void fill_flux_array(Real *C1, int idl, int idr, Real cW[], int n_cells, int dir
 }
 
 
-void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
+
+void second_order_fluxes(Real *C1, Real *C2, Real C_i[], Real C_imo[], Real C_imt[], Real C_ipo[], Real C_ipt[], Real C_jmo[], Real C_jmt[], Real C_jpo[], Real C_jpt[], Real C_kmo[], Real C_kmt[], Real C_kpo[], Real C_kpt[], int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int n_fields, int n_cells)
+{
+  int id = i + j*nx + k*nx*ny;
+  int imo = i-1 + j*nx + k*nx*ny;
+  int imt = i-2 + j*nx + k*nx*ny;
+  int ipo = i+1 + j*nx + k*nx*ny;
+  int ipt = i+2 + j*nx + k*nx*ny;
+  int jmo = i + (j-1)*nx + k*nx*ny;
+  int jmt = i + (j-2)*nx + k*nx*ny;
+  int jpo = i + (j+1)*nx + k*nx*ny;
+  int jpt = i + (j+2)*nx + k*nx*ny;
+  int kmo = i + j*nx + (k-1)*nx*ny;
+  int kmt = i + j*nx + (k-2)*nx*ny;
+  int kpo = i + j*nx + (k+1)*nx*ny;
+  int kpt = i + j*nx + (k+2)*nx*ny;
+  Real etah = 0.0;
+
+  // Arrays to hold second-order fluxes
+  Real F_Lx[n_fields];
+  Real F_Rx[n_fields];
+  Real F_Ly[n_fields];
+  Real F_Ry[n_fields];
+  Real F_Lz[n_fields];
+  Real F_Rz[n_fields];
+
+  // Array to hold stencil
+  Real stencil[3*n_fields];
+  // Array to hold temporary boundary values returned from reconstruction
+  Real bounds[2*n_fields];
+  // Array to hold temporary interface values
+  Real cW[2*n_fields];
+
+
+  /********** LX INTERFACE ***********/
+  // fill the stencil for the x-direction, cell i-1
+  stencil[0] = C_imo[0]; 
+  stencil[1] = C_imo[1];
+  stencil[2] = C_imo[2];
+  stencil[3] = C_imo[3];
+  stencil[4] = C_imo[4];
+  stencil[5] = C_imt[0];
+  stencil[6] = C_imt[1];
+  stencil[7] = C_imt[2];
+  stencil[8] = C_imt[3];
+  stencil[9] = C_imt[4];
+  stencil[10] = C_i[0];
+  stencil[11] = C_i[1];
+  stencil[12] = C_i[2];
+  stencil[13] = C_i[3];
+  stencil[14] = C_i[4];
+  #ifdef DE
+  stencil[15] = C_imo[5];
+  stencil[16] = C_imt[5];
+  stencil[17] = C_i[5];
+  #endif
+
+  // pass the stencil to the linear reconstruction function - returns the reconstructed left
+  // and right boundary values for the cell (conserved variables)
+  #ifdef PLMC
+  plmc(stencil, bounds, dx, dt, gama);
+  #endif
+
+  // put the boundary values in the temporary reconstruction array
+  cW[0] = bounds[5];
+  cW[2] = bounds[6];
+  cW[4] = bounds[7];
+  cW[6] = bounds[8];
+  cW[8] = bounds[9];
+  #ifdef DE
+  cW[10] = bounds[11];
+  #endif
+
+  // fill the stencil for the x-direction, cell i
+  stencil[0] = C_i[0]; 
+  stencil[1] = C_i[1];
+  stencil[2] = C_i[2];
+  stencil[3] = C_i[3];
+  stencil[4] = C_i[4];
+  stencil[5] = C_imo[0];
+  stencil[6] = C_imo[1];
+  stencil[7] = C_imo[2];
+  stencil[8] = C_imo[3];
+  stencil[9] = C_imo[4];
+  stencil[10] = C_ipo[0];
+  stencil[11] = C_ipo[1];
+  stencil[12] = C_ipo[2];
+  stencil[13] = C_ipo[3];
+  stencil[14] = C_ipo[4];
+  #ifdef DE
+  stencil[15] = C_i[5];
+  stencil[16] = C_imo[5];
+  stencil[17] = C_ipo[5];
+  #endif
+
+  // pass the stencil to the linear reconstruction function - returns the reconstructed left
+  // and right boundary values for the cell (conserved variables)
+  #ifdef PLMC
+  plmc(stencil, bounds, dx, dt, gama);
+  #endif
+
+  // put the boundary values in the temporary reconstruction array
+  cW[1] = bounds[0];
+  cW[3] = bounds[1];
+  cW[5] = bounds[2];
+  cW[7] = bounds[3];
+  cW[9] = bounds[4];
+  #ifdef DE
+  cW[11] = bounds[10];
+  #endif
+
+  // calculate the fluxes
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Lx, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Lx, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Lx, gama, etah);
+  #endif
+
+
+  /********** RX INTERFACE ***********/
+  // put the boundary values in the temporary reconstruction array
+  // (re-using values calculated for cell i here)
+  cW[0] = bounds[5];
+  cW[2] = bounds[6];
+  cW[4] = bounds[7];
+  cW[6] = bounds[8];
+  cW[8] = bounds[9];
+  #ifdef DE
+  cW[10] = bounds[11];
+  #endif
+
+  // fill the stencil for the x-direction, cell i+1
+  stencil[0] = C_ipo[0]; 
+  stencil[1] = C_ipo[1];
+  stencil[2] = C_ipo[2];
+  stencil[3] = C_ipo[3];
+  stencil[4] = C_ipo[4];
+  stencil[5] = C_i[0];
+  stencil[6] = C_i[1];
+  stencil[7] = C_i[2];
+  stencil[8] = C_i[3];
+  stencil[9] = C_i[4];
+  stencil[10] = C_ipt[0];
+  stencil[11] = C_ipt[1];
+  stencil[12] = C_ipt[2];
+  stencil[13] = C_ipt[3];
+  stencil[14] = C_ipt[4];
+  #ifdef DE
+  stencil[15] = C_ipo[5];
+  stencil[16] = C_i[5];
+  stencil[17] = C_ipt[5];
+  #endif
+
+  // pass the stencil to the linear reconstruction function - returns the reconstructed left
+  // and right boundary values for the cell (conserved variables)
+  #ifdef PLMC
+  plmc(stencil, bounds, dx, dt, gama);
+  #endif
+  
+  // put the boundary values in the temporary reconstruction array
+  cW[1] = bounds[0];
+  cW[3] = bounds[1];
+  cW[5] = bounds[2];
+  cW[7] = bounds[3];
+  cW[9] = bounds[4];
+  #ifdef DE
+  cW[11] = bounds[10];
+  #endif
+
+  // calculate the fluxes
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Rx, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Rx, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Rx, gama, etah);
+  #endif
+
+  /********** LY INTERFACE ***********/
+  // fill the stencil for the y-direction, cell j-1
+  stencil[0] = C_jmo[0]; 
+  stencil[1] = C_jmo[2];
+  stencil[2] = C_jmo[3];
+  stencil[3] = C_jmo[1];
+  stencil[4] = C_jmo[4];
+  stencil[5] = C_jmt[0];
+  stencil[6] = C_jmt[2];
+  stencil[7] = C_jmt[3];
+  stencil[8] = C_jmt[1];
+  stencil[9] = C_jmt[4];
+  stencil[10] = C_i[0];
+  stencil[11] = C_i[2];
+  stencil[12] = C_i[3];
+  stencil[13] = C_i[1];
+  stencil[14] = C_i[4];
+  #ifdef DE
+  stencil[15] = C_jmo[5];
+  stencil[16] = C_jmt[5];
+  stencil[17] = C_i[5];
+  #endif
+
+  // pass the stencil to the linear reconstruction function - returns the reconstructed left
+  // and right boundary values for the cell (conserved variables)
+  #ifdef PLMC
+  plmc(stencil, bounds, dy, dt, gama);
+  #endif
+  // put the boundary values in the temporary reconstruction array
+  cW[0] = bounds[5];
+  cW[2] = bounds[6];
+  cW[4] = bounds[7];
+  cW[6] = bounds[8];
+  cW[8] = bounds[9];
+  #ifdef DE
+  cW[10] = bounds[11];
+  #endif
+
+  // fill the stencil for the y-direction, cell i 
+  stencil[0] = C_i[0]; 
+  stencil[1] = C_i[2];
+  stencil[2] = C_i[3];
+  stencil[3] = C_i[1];
+  stencil[4] = C_i[4];
+  stencil[5] = C_jmo[0];
+  stencil[6] = C_jmo[2];
+  stencil[7] = C_jmo[3];
+  stencil[8] = C_jmo[1];
+  stencil[9] = C_jmo[4];
+  stencil[10] = C_jpo[0];
+  stencil[11] = C_jpo[2];
+  stencil[12] = C_jpo[3];
+  stencil[13] = C_jpo[1];
+  stencil[14] = C_jpo[4];
+  #ifdef DE
+  stencil[15] = C_i[5];
+  stencil[16] = C_jmo[5];
+  stencil[17] = C_jpo[5];
+  #endif
+
+  // pass the stencil to the linear reconstruction function - returns the reconstructed left
+  // and right boundary values for the cell (conserved variables)
+  #ifdef PLMC
+  plmc(stencil, bounds, dy, dt, gama);
+  #endif
+
+  // put the boundary values in the temporary reconstruction array
+  cW[1] = bounds[0];
+  cW[3] = bounds[1];
+  cW[5] = bounds[2];
+  cW[7] = bounds[3];
+  cW[9] = bounds[4];
+  #ifdef DE
+  cW[11] = bounds[10];
+  #endif
+  
+  // calculate the fluxes
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Ly, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Ly, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Ly, gama, etah);
+  #endif
+
+
+  /********** RY INTERFACE ***********/
+  // put the boundary values in the temporary reconstruction array
+  // (re-using values calculated for cell i here)
+  cW[0] = bounds[5];
+  cW[2] = bounds[6];
+  cW[4] = bounds[7];
+  cW[6] = bounds[8];
+  cW[8] = bounds[9];
+  #ifdef DE
+  cW[10] = bounds[11];
+  #endif
+
+  // fill the stencil for the y-direction, cell j+1
+  stencil[0] = C_jpo[0]; 
+  stencil[1] = C_jpo[2];
+  stencil[2] = C_jpo[3];
+  stencil[3] = C_jpo[1];
+  stencil[4] = C_jpo[4];
+  stencil[5] = C_i[0];
+  stencil[6] = C_i[2];
+  stencil[7] = C_i[3];
+  stencil[8] = C_i[1];
+  stencil[9] = C_i[4];
+  stencil[10] = C_jpt[0];
+  stencil[11] = C_jpt[2];
+  stencil[12] = C_jpt[3];
+  stencil[13] = C_jpt[1];
+  stencil[14] = C_jpt[4];
+  #ifdef DE
+  stencil[15] = C_jpo[5];
+  stencil[16] = C_i[5];
+  stencil[17] = C_jpt[5];
+  #endif
+
+  // pass the stencil to the linear reconstruction function - returns the reconstructed left
+  // and right boundary values for the cell (conserved variables)
+  #ifdef PLMC
+  plmc(stencil, bounds, dy, dt, gama);
+  #endif
+
+  // put the boundary values in the temporary reconstruction array
+  cW[1] = bounds[0];
+  cW[3] = bounds[1];
+  cW[5] = bounds[2];
+  cW[7] = bounds[3];
+  cW[9] = bounds[4];
+  #ifdef DE
+  cW[11] = bounds[10];
+  #endif
+
+  // calculate the fluxes
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Ry, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Ry, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Ry, gama, etah);
+  #endif
+  
+
+  /********** LZ INTERFACE ***********/
+  // fill the stencil for the z-direction, k-1
+  stencil[0] = C_kmo[0]; 
+  stencil[1] = C_kmo[3];
+  stencil[2] = C_kmo[1];
+  stencil[3] = C_kmo[2];
+  stencil[4] = C_kmo[4];
+  stencil[5] = C_kmt[0];
+  stencil[6] = C_kmt[3];
+  stencil[7] = C_kmt[1];
+  stencil[8] = C_kmt[2];
+  stencil[9] = C_kmt[4];
+  stencil[10] = C_i[0];
+  stencil[11] = C_i[3];
+  stencil[12] = C_i[1];
+  stencil[13] = C_i[2];
+  stencil[14] = C_i[4];
+  #ifdef DE
+  stencil[15] = C_kmo[5];
+  stencil[16] = C_kmt[5];
+  stencil[17] = C_i[5];
+  #endif
+
+  // pass the stencil to the linear reconstruction function - returns the reconstructed left
+  // and right boundary values for the cell (conserved variables)
+  #ifdef PLMC
+  plmc(stencil, bounds, dz, dt, gama);
+  #endif
+
+  // put the boundary values in the temporary reconstruction array
+  cW[0] = bounds[5];
+  cW[2] = bounds[6];
+  cW[4] = bounds[7];
+  cW[6] = bounds[8];
+  cW[8] = bounds[9];
+  #ifdef DE
+  cW[10] = bounds[11];
+  #endif
+
+  // fill the stencil for the z-direction, cell i 
+  stencil[0] = C_i[0]; 
+  stencil[1] = C_i[3];
+  stencil[2] = C_i[1];
+  stencil[3] = C_i[2];
+  stencil[4] = C_i[4];
+  stencil[5] = C_kmo[0];
+  stencil[6] = C_kmo[3];
+  stencil[7] = C_kmo[1];
+  stencil[8] = C_kmo[2];
+  stencil[9] = C_kmo[4];
+  stencil[10] = C_kpo[0];
+  stencil[11] = C_kpo[3];
+  stencil[12] = C_kpo[1];
+  stencil[13] = C_kpo[2];
+  stencil[14] = C_kpo[4];
+  #ifdef DE
+  stencil[15] = C_i[5];
+  stencil[16] = C_kmo[5];
+  stencil[17] = C_kpo[5];
+  #endif
+
+  // pass the stencil to the linear reconstruction function - returns the reconstructed left
+  // and right boundary values for the cell (conserved variables)
+  #ifdef PLMC
+  plmc(stencil, bounds, dz, dt, gama);
+  #endif
+
+  // put the boundary values in the temporary reconstruction array
+  cW[1] = bounds[0];
+  cW[3] = bounds[1];
+  cW[5] = bounds[2];
+  cW[7] = bounds[3];
+  cW[9] = bounds[4];
+  #ifdef DE
+  cW[11] = bounds[10];
+  #endif
+  
+  // calculate the fluxes
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Lz, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Lz, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Lz, gama, etah);
+  #endif
+
+
+  /********** RZ INTERFACE ***********/
+  // put the boundary values in the temporary reconstruction array
+  // (re-using values calculated for cell i here)
+  cW[0] = bounds[5];
+  cW[2] = bounds[6];
+  cW[4] = bounds[7];
+  cW[6] = bounds[8];
+  cW[8] = bounds[9];
+  #ifdef DE
+  cW[10] = bounds[11];
+  #endif
+
+  // fill the stencil for the z-direction, cell k+1
+  stencil[0] = C_kpo[0]; 
+  stencil[1] = C_kpo[3];
+  stencil[2] = C_kpo[1];
+  stencil[3] = C_kpo[2];
+  stencil[4] = C_kpo[4];
+  stencil[5] = C_i[0];
+  stencil[6] = C_i[3];
+  stencil[7] = C_i[1];
+  stencil[8] = C_i[2];
+  stencil[9] = C_i[4];
+  stencil[10] = C_kpt[0];
+  stencil[11] = C_kpt[3];
+  stencil[12] = C_kpt[1];
+  stencil[13] = C_kpt[2];
+  stencil[14] = C_kpt[4];
+  #ifdef DE
+  stencil[15] = C_kpo[5];
+  stencil[16] = C_i[5];
+  stencil[17] = C_kpt[5];
+  #endif
+
+  // pass the stencil to the linear reconstruction function - returns the reconstructed left
+  // and right boundary values for the cell (conserved variables)
+  #ifdef PLMC
+  plmc(stencil, bounds, dz, dt, gama);
+  #endif
+
+  // put the boundary values in the temporary reconstruction array
+  cW[1] = bounds[0];
+  cW[3] = bounds[1];
+  cW[5] = bounds[2];
+  cW[7] = bounds[3];
+  cW[9] = bounds[4];
+  #ifdef DE
+  cW[11] = bounds[10];
+  #endif
+
+  // calculate the fluxes
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Rz, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Rz, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Rz, gama, etah);
+  #endif
+  
+  // subtract the relevant second-order fluxes from each of the surrounding cells
+  // cell i-1
+  C2[imo+0*n_cells] -= dtodx*(-F_Rx[0]);
+  C2[imo+1*n_cells] -= dtodx*(-F_Rx[1]);
+  C2[imo+2*n_cells] -= dtodx*(-F_Rx[2]);
+  C2[imo+3*n_cells] -= dtodx*(-F_Rx[3]);
+  C2[imo+4*n_cells] -= dtodx*(-F_Rx[4]);
+  #ifdef DE
+  C2[id+5*n_cells] -= dtodx*(-F_Rx[5]);
+  #endif
+  // cell i+1
+  C2[ipo+0*n_cells] -= dtodx*(F_Lx[0]);
+  C2[ipo+1*n_cells] -= dtodx*(F_Lx[1]);
+  C2[ipo+2*n_cells] -= dtodx*(F_Lx[2]);
+  C2[ipo+3*n_cells] -= dtodx*(F_Lx[3]);
+  C2[ipo+4*n_cells] -= dtodx*(F_Lx[4]);
+  #ifdef DE
+  C2[ipo+5*n_cells] -= dtodx*(F_Lx[5]);
+  #endif
+  // cell j-1
+  C2[jmo+0*n_cells] -= dtody*(- F_Ry[0]);
+  C2[jmo+1*n_cells] -= dtody*(- F_Ry[3]);
+  C2[jmo+2*n_cells] -= dtody*(- F_Ry[1]);
+  C2[jmo+3*n_cells] -= dtody*(- F_Ry[2]);
+  C2[jmo+4*n_cells] -= dtody*(- F_Ry[4]);
+  #ifdef DE
+  C2[jmo+5*n_cells] -= dtody*(- F_Ry[5]);
+  #endif
+  // cell j+1
+  C2[jpo+0*n_cells] -= dtody*(F_Ly[0]);
+  C2[jpo+1*n_cells] -= dtody*(F_Ly[3]);
+  C2[jpo+2*n_cells] -= dtody*(F_Ly[1]);
+  C2[jpo+3*n_cells] -= dtody*(F_Ly[2]);
+  C2[jpo+4*n_cells] -= dtody*(F_Ly[4]);
+  #ifdef DE
+  C2[jpo+5*n_cells] -= dtody*(F_Ly[5]);
+  #endif
+  // cell k-1
+  C2[kmo+0*n_cells] -= dtodz*(- F_Rz[0]);
+  C2[kmo+1*n_cells] -= dtodz*(- F_Rz[2]);
+  C2[kmo+2*n_cells] -= dtodz*(- F_Rz[3]);
+  C2[kmo+3*n_cells] -= dtodz*(- F_Rz[1]);
+  C2[kmo+4*n_cells] -= dtodz*(- F_Rz[4]);
+  #ifdef DE
+  C2[kmo+5*n_cells] -= dtodz*(- F_Rz[5]);
+  #endif
+  // cell k+1
+  C2[kpo+0*n_cells] -= dtodz*(F_Lz[0]);
+  C2[kpo+1*n_cells] -= dtodz*(F_Lz[2]);
+  C2[kpo+2*n_cells] -= dtodz*(F_Lz[3]);
+  C2[kpo+3*n_cells] -= dtodz*(F_Lz[1]);
+  C2[kpo+4*n_cells] -= dtodz*(F_Lz[4]);
+  #ifdef DE
+  C2[kpo+5*n_cells] -= dtodz*(F_Lz[5]);
+  #endif  
+}
+
+
+void first_order_fluxes(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
 {
   int id = i + j*nx + k*nx*ny;
   int imo = i-1 + j*nx + k*nx*ny;
@@ -257,7 +830,7 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   // using piecewise constant reconstruction,
   // calculate the fluxes
   // Lx
-  fill_flux_array(C1, imo, id, cW, n_cells, 0);
+  fill_flux_array_pcm(C1, imo, id, cW, n_cells, 0);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Lx, gama);
   #endif
@@ -269,7 +842,7 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   #endif
   
   // Rx
-  fill_flux_array(C1, id, ipo, cW, n_cells, 0);
+  fill_flux_array_pcm(C1, id, ipo, cW, n_cells, 0);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Rx, gama);
   #endif
@@ -281,7 +854,7 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   #endif
 
   // Ly
-  fill_flux_array(C1, jmo, id, cW, n_cells, 1);
+  fill_flux_array_pcm(C1, jmo, id, cW, n_cells, 1);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Ly, gama);
   #endif
@@ -293,7 +866,7 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   #endif
 
   // Ry
-  fill_flux_array(C1, id, jpo, cW, n_cells, 1);
+  fill_flux_array_pcm(C1, id, jpo, cW, n_cells, 1);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Ry, gama);
   #endif
@@ -305,7 +878,7 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   #endif
 
   // Lz
-  fill_flux_array(C1, kmo, id, cW, n_cells, 2);
+  fill_flux_array_pcm(C1, kmo, id, cW, n_cells, 2);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Lz, gama);
   #endif
@@ -317,7 +890,7 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   #endif
 
   // Rz
-  fill_flux_array(C1, id, kpo, cW, n_cells, 2);
+  fill_flux_array_pcm(C1, id, kpo, cW, n_cells, 2);
   #ifdef EXACT
   Calculate_Exact_Fluxes(cW, F_Rz, gama);
   #endif
@@ -329,7 +902,7 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   #endif
 
 
-  // Update the conserved variables for the cell by a full step
+  // Update the conserved variables for the affected cell using the first-order fluxes 
   C2[id+0*n_cells] = C1[id+0*n_cells] + dtodx*(F_Lx[0] - F_Rx[0]) + dtody*(F_Ly[0] - F_Ry[0]) + dtodz*(F_Lz[0] - F_Rz[0]);
   C2[id+1*n_cells] = C1[id+1*n_cells] + dtodx*(F_Lx[1] - F_Rx[1]) + dtody*(F_Ly[3] - F_Ry[3]) + dtodz*(F_Lz[2] - F_Rz[2]);
   C2[id+2*n_cells] = C1[id+2*n_cells] + dtodx*(F_Lx[2] - F_Rx[2]) + dtody*(F_Ly[1] - F_Ry[1]) + dtodz*(F_Lz[3] - F_Rz[3]);
@@ -337,6 +910,187 @@ void first_order_update(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   C2[id+4*n_cells] = C1[id+4*n_cells] + dtodx*(F_Lx[4] - F_Rx[4]) + dtody*(F_Ly[4] - F_Ry[4]) + dtodz*(F_Lz[4] - F_Rz[4]);
   #ifdef DE
   C2[id+5*n_cells] = C1[id+5*n_cells] + dtodx*(F_Lx[5] - F_Rx[5]) + dtody*(F_Ly[5] - F_Ry[5]) + dtodz*(F_Lz[5] - F_Rz[5])
+                   + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+  #endif
+
+  // Correct the values of the conserved variables for the surrounding cells 
+  // using the relevant first-order fluxes
+  // Cell i-1
+  C2[imo+0*n_cells] += dtodx*(-F_Lx[0]);
+  C2[imo+1*n_cells] += dtodx*(-F_Lx[1]);
+  C2[imo+2*n_cells] += dtodx*(-F_Lx[2]);
+  C2[imo+3*n_cells] += dtodx*(-F_Lx[3]);
+  C2[imo+4*n_cells] += dtodx*(-F_Lx[4]);
+  #ifdef DE
+  C2[imo+5*n_cells] += dtodx*(-F_Lx[5]);
+  #endif
+  // Cell i+1
+  C2[ipo+0*n_cells] += dtodx*(F_Rx[0]);
+  C2[ipo+1*n_cells] += dtodx*(F_Rx[1]);
+  C2[ipo+2*n_cells] += dtodx*(F_Rx[2]);
+  C2[ipo+3*n_cells] += dtodx*(F_Rx[3]);
+  C2[ipo+4*n_cells] += dtodx*(F_Rx[4]);
+  #ifdef DE
+  C2[ipo+5*n_cells] += dtodx*(F_Rx[5]);
+  #endif
+  // Cell j-1
+  C2[jmo+0*n_cells] += dtody*(-F_Ly[0]);
+  C2[jmo+1*n_cells] += dtody*(-F_Ly[3]);
+  C2[jmo+2*n_cells] += dtody*(-F_Ly[1]);
+  C2[jmo+3*n_cells] += dtody*(-F_Ly[2]);
+  C2[jmo+4*n_cells] += dtody*(-F_Ly[4]);
+  #ifdef DE
+  C2[jmo+5*n_cells] += dtody*(-F_Ly[5]);
+  #endif
+  // Cell j+1
+  C2[jpo+0*n_cells] += dtody*(F_Ry[0]);
+  C2[jpo+1*n_cells] += dtody*(F_Ry[3]);
+  C2[jpo+2*n_cells] += dtody*(F_Ry[1]);
+  C2[jpo+3*n_cells] += dtody*(F_Ry[2]);
+  C2[jpo+4*n_cells] += dtody*(F_Ry[4]);
+  #ifdef DE
+  C2[jpo+5*n_cells] += dtody*(F_Ry[5]);
+  #endif
+  // Cell k-1
+  C2[kmo+0*n_cells] += dtodz*(-F_Lz[0]);
+  C2[kmo+1*n_cells] += dtodz*(-F_Lz[2]);
+  C2[kmo+2*n_cells] += dtodz*(-F_Lz[3]);
+  C2[kmo+3*n_cells] += dtodz*(-F_Lz[1]);
+  C2[kmo+4*n_cells] += dtodz*(-F_Lz[4]);
+  #ifdef DE
+  C2[kmo+5*n_cells] += dtodz*(-F_Ly[5]);
+  #endif
+  // Cell k+1
+  C2[kpo+0*n_cells] += dtodz*(F_Rz[0]);
+  C2[kpo+1*n_cells] += dtodz*(F_Rz[2]);
+  C2[kpo+2*n_cells] += dtodz*(F_Rz[3]);
+  C2[kpo+3*n_cells] += dtodz*(F_Rz[1]);
+  C2[kpo+4*n_cells] += dtodz*(F_Rz[4]);
+  #ifdef DE
+  C2[kpo+5*n_cells] += dtodz*(F_Ry[5]);
+  #endif  
+}
+
+
+
+void first_order_update(Real *C1, Real C_half[], int i, int j, int k, Real dtodx, Real dtody, Real dtodz, int nfields, int nx, int ny, int nz, int n_cells)
+{
+  int id = i + j*nx + k*nx*ny;
+  int imo = i-1 + j*nx + k*nx*ny;
+  int ipo = i+1 + j*nx + k*nx*ny;
+  int jmo = i + (j-1)*nx + k*nx*ny;
+  int jpo = i + (j+1)*nx + k*nx*ny;
+  int kmo = i + j*nx + (k-1)*nx*ny;
+  int kpo = i + j*nx + (k+1)*nx*ny;
+  Real etah = 0.0;
+
+  Real cW[2*nfields];
+  Real F_Lx[nfields];
+  Real F_Rx[nfields];
+  Real F_Ly[nfields];
+  Real F_Ry[nfields];
+  Real F_Lz[nfields];
+  Real F_Rz[nfields];
+
+  #ifdef DE
+  Real d, d_inv, vx, vy, vz, P, vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
+  d = C1[id];
+  d_inv = 1.0 / d;
+  vx = C1[1*n_cells+id]*d_inv;
+  vy = C1[2*n_cells+id]*d_inv;
+  vz = C1[3*n_cells+id]*d_inv;
+  P  = (C1[4*n_cells+id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gama - 1.0);
+  vx_imo = C1[1*n_cells + imo] / C1[imo]; 
+  vx_ipo = C1[1*n_cells + ipo] / C1[ipo]; 
+  vy_jmo = C1[2*n_cells + jmo] / C1[jmo]; 
+  vy_jpo = C1[2*n_cells + jpo] / C1[jpo]; 
+  vz_kmo = C1[3*n_cells + kmo] / C1[kmo]; 
+  vz_kpo = C1[3*n_cells + kpo] / C1[kpo]; 
+  #endif
+
+  // using piecewise constant reconstruction,
+  // calculate the fluxes
+  // Lx
+  fill_flux_array_pcm(C1, imo, id, cW, n_cells, 0);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Lx, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Lx, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Lx, gama, etah);
+  #endif
+  
+  // Rx
+  fill_flux_array_pcm(C1, id, ipo, cW, n_cells, 0);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Rx, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Rx, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Rx, gama, etah);
+  #endif
+
+  // Ly
+  fill_flux_array_pcm(C1, jmo, id, cW, n_cells, 1);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Ly, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Ly, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Ly, gama, etah);
+  #endif
+
+  // Ry
+  fill_flux_array_pcm(C1, id, jpo, cW, n_cells, 1);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Ry, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Ry, gama, etah);
+  #endif
+  #ifdef HLLC
+  Calculate_HLLC_Fluxes(cW, F_Ry, gama, etah);
+  #endif
+
+  // Lz
+  fill_flux_array_pcm(C1, kmo, id, cW, n_cells, 2);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Lz, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Lz, gama, etah);
+  #endif
+  #ifdef HLLC 
+  Calculate_HLLC_Fluxes(cW, F_Lz, gama, etah);
+  #endif
+
+  // Rz
+  fill_flux_array_pcm(C1, id, kpo, cW, n_cells, 2);
+  #ifdef EXACT
+  Calculate_Exact_Fluxes(cW, F_Rz, gama);
+  #endif
+  #ifdef ROE
+  Calculate_Roe_Fluxes(cW, F_Rz, gama, etah);
+  #endif
+  #ifdef HLLC 
+  Calculate_HLLC_Fluxes(cW, F_Rz, gama, etah);
+  #endif
+
+
+  // Update the conserved variables using the first order fluxes 
+  C_half[0] = C1[id+0*n_cells] + dtodx*(F_Lx[0] - F_Rx[0]) + dtody*(F_Ly[0] - F_Ry[0]) + dtodz*(F_Lz[0] - F_Rz[0]);
+  C_half[1] = C1[id+1*n_cells] + dtodx*(F_Lx[1] - F_Rx[1]) + dtody*(F_Ly[3] - F_Ry[3]) + dtodz*(F_Lz[2] - F_Rz[2]);
+  C_half[2] = C1[id+2*n_cells] + dtodx*(F_Lx[2] - F_Rx[2]) + dtody*(F_Ly[1] - F_Ry[1]) + dtodz*(F_Lz[3] - F_Rz[3]);
+  C_half[3] = C1[id+3*n_cells] + dtodx*(F_Lx[3] - F_Rx[3]) + dtody*(F_Ly[2] - F_Ry[2]) + dtodz*(F_Lz[1] - F_Rz[1]);
+  C_half[4] = C1[id+4*n_cells] + dtodx*(F_Lx[4] - F_Rx[4]) + dtody*(F_Ly[4] - F_Ry[4]) + dtodz*(F_Lz[4] - F_Rz[4]);
+  #ifdef DE
+  C_half[5] = C1[id+5*n_cells] + dtodx*(F_Lx[5] - F_Rx[5]) + dtody*(F_Ly[5] - F_Ry[5]) + dtodz*(F_Lz[5] - F_Rz[5])
                    + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
   #endif
 
