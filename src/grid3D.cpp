@@ -218,7 +218,7 @@ void Grid3D::AllocateMemory(void)
     #endif /*CUDA*/
   }
 
-  #ifdef   MPI_CHOLLA
+  #ifdef MPI_CHOLLA
   max_dti = ReduceRealMax(max_dti);
   #endif /*MPI_CHOLLA*/
   
@@ -529,9 +529,9 @@ Real Grid3D::Add_Supernovae(void)
 }
 
 
-Real Grid3D::Add_Supernovae_CC85(void)
+void Grid3D::Add_Supernovae_CC85(void)
 {
-  int i, j, k, id, tstep_flag;
+  int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, R_s, z_s, f, t, t1, t2, t3;
   Real M1, M2, M3, E1, E2, E3, M_dot, E_dot, V, rho_dot, Ed_dot;
   Real d_inv, vx, vy, vz, P, cs;
@@ -540,8 +540,8 @@ Real Grid3D::Add_Supernovae_CC85(void)
   Real weight, xpoint, ypoint, zpoint;
   Real max_vx, max_vy, max_vz, max_dti;
   max_dti = max_vx = max_vy = max_vz = 0.0;
-  R_s = 0.3; // starburst radius, in kpc
-  z_s = 0.05; // starburst height, in kpc
+  R_s = 0.1; // starburst radius, in kpc
+  z_s = H.dz; // starburst height, in kpc
   //M1 = 2.0e3; // mass input rate, in M_sun / kyr
   //E1 = 1.0e42; // energy input rate, in erg/s
   //M2 = 2.0e3;
@@ -588,8 +588,8 @@ Real Grid3D::Add_Supernovae_CC85(void)
   //E_dot = E2;
 
   E_dot = E_dot*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT); // convert to code units
-  V = (4.0/3.0)*PI*R_s*R_s*R_s;
-  //V = PI*R_s*R_s*z_s;
+  //V = (4.0/3.0)*PI*R_s*R_s*R_s;
+  V = PI*R_s*R_s*2*z_s;
   f = H.dx*H.dy*H.dz / V;
   rho_dot = f * M_dot / (H.dx*H.dy*H.dz);
   Ed_dot = f * E_dot / (H.dx*H.dy*H.dz);
@@ -601,48 +601,43 @@ Real Grid3D::Add_Supernovae_CC85(void)
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
       for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
 
-        tstep_flag = 0;
-
         id = i + j*H.nx + k*H.nx*H.ny;
 
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
         
         // calculate spherical radius
-        r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
+        //r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
         xl = fabs(x_pos)-0.5*H.dx;
         yl = fabs(y_pos)-0.5*H.dy;
         zl = fabs(z_pos)-0.5*H.dz;
         xr = fabs(x_pos)+0.5*H.dx;
         yr = fabs(y_pos)+0.5*H.dy;
         zr = fabs(z_pos)+0.5*H.dz;
-        rl = sqrt(xl*xl + yl*yl + zl*zl);
-        rr = sqrt(xr*xr + yr*yr + zr*zr);
-        //r = sqrt(x_pos*x_pos + y_pos*y_pos);
+        //rl = sqrt(xl*xl + yl*yl + zl*zl);
+        //rr = sqrt(xr*xr + yr*yr + zr*zr);
+        rl = sqrt(xl*xl + yl*yl);
+        rr = sqrt(xr*xr + yr*yr);
+        r = sqrt(x_pos*x_pos + y_pos*y_pos);
 
         // within starburst radius, inject mass and thermal energy
         //if (r < R_s) {
-        //if (r < R_s && fabs(z_pos) < z_s) {
         // entire cell is within sphere
-        if (rr < R_s) {
-          tstep_flag = 1;
+        if (rr < R_s && fabs(z_pos) < z_s) {
+        //if (rr < R_s) {
           C.density[id] += rho_dot * H.dt;
           C.Energy[id] += Ed_dot * H.dt;
           #ifdef DE
           C.GasEnergy[id] += Ed_dot * H.dt;
-          Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
-          Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
-          if (T > 1.0e8) {
-            printf("%3d %3d %3d Supernova overheating r: %e n: %e T: %e\n", i, j, k, r, n, T);
-            //C.Energy[id] -= Ed_dot * H.dt;
-            //C.GasEnergy[id] -= Ed_dot * H.dt;
-          }
+          //Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
+          //Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+          //printf("%3d %3d %3d Starburst zone n: %e T:%e.\n", i, j, k, n, T);
           #endif
           //M_dot_tot += rho_dot*H.dx*H.dy*H.dz;
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
         }
         // on the sphere
-        if (rl < R_s && rr > R_s) {
-          tstep_flag = 1;
+        if (rl < R_s && rr > R_s && fabs(z_pos) < z_s) {
+        //if (rl < R_s && rr > R_s) {
           // quick Monte Carlo to determine weighting
           Ran quickran(50);
           incount = 0;
@@ -654,51 +649,26 @@ Real Grid3D::Add_Supernovae_CC85(void)
             // generate a random number between z_pos and dz
             zpoint = zl + H.dz*quickran.doub();
             // check to see whether the point is within the sphere 
-            if (xpoint*xpoint + ypoint*ypoint + zpoint*zpoint < R_s*R_s) incount++;
+            //if (xpoint*xpoint + ypoint*ypoint + zpoint*zpoint < R_s*R_s) incount++;
+            if (xpoint*xpoint + ypoint*ypoint < R_s*R_s) incount++;
           }
           weight = incount / 1000.0;
           C.density[id] += rho_dot * H.dt * weight;
           C.Energy[id]  += Ed_dot * H.dt * weight;
           #ifdef DE
           C.GasEnergy[id] += Ed_dot * H.dt;
-          Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
-          Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
-          if (T > 1.0e8) {
-            printf("%3d %3d %3d Supernova overheating r: %e n: %e T: %e\n", i, j, k, r, n, T);
-            //C.Energy[id] -= Ed_dot * H.dt;
-            //C.GasEnergy[id] -= Ed_dot * H.dt;
-          }
           #endif
-        }
-        if (tstep_flag) {
-          // recalculate the timestep for these cells
-          d_inv = 1.0 / C.density[id];
-          vx = d_inv * C.momentum_x[id];
-          vy = d_inv * C.momentum_y[id];
-          vz = d_inv * C.momentum_z[id];
-          P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
-          cs = sqrt(d_inv * gama * P);
-          // compute maximum cfl velocity
-          max_vx = fmax(max_vx, fabs(vx) + cs);
-          max_vy = fmax(max_vy, fabs(vy) + cs);
-          max_vz = fmax(max_vz, fabs(vz) + cs);
         }
       }
     }
+  }
+
   }
   //printf("%d %e %e\n", procID, M_dot_tot, E_dot_tot);
   //Real global_M_dot, global_E_dot;
   //MPI_Reduce(&M_dot_tot, &global_M_dot, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
   //MPI_Reduce(&E_dot_tot, &global_E_dot, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
   //chprintf("%e %e \n", global_M_dot, global_E_dot*MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT/TIME_UNIT); 
-
-  // compute max inverse of dt
-  max_dti = max_vx / H.dx;
-  max_dti = fmax(max_dti, max_vy / H.dy);
-  max_dti = fmax(max_dti, max_vz / H.dy);
-  }
-
-  return max_dti;
 
 }
 

@@ -270,7 +270,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
     // add a density floor of n = 1.0e-3
-    dev_conserved[id] = fmax(dev_conserved[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
+    //dev_conserved[id] = fmax(dev_conserved[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
     #ifdef STATIC_GRAV 
     calc_g_3D_CUDA(xid, yid, zid, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
     d_n  =  dev_conserved[            id];
@@ -516,8 +516,8 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
       dev_conserved[4*n_cells + id] += ge1 - ge2;
     }
     // recalculate the pressure 
-    //P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    //if (P < 0.0) printf("%3d %3d %3d Negative pressure after internal energy sync. %f %f %f\n", xid, yid, zid, P/(gamma-1.0), ge1, ge2);    
+    Real P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+    if (P < 0.0) printf("%3d %3d %3d Negative pressure after internal energy sync. %f %f %f\n", xid, yid, zid, P/(gamma-1.0), ge1, ge2);    
   }
 }
 

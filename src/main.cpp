@@ -127,38 +127,17 @@ int main(int argc, char *argv[])
     
     // calculate the timestep
     G.set_dt(C_cfl, dti);
-    dti = C_cfl/G.H.dt;
-    //chprintf("Before supernovae: %f %f\n", G.H.dt, dti);
+    if (G.H.n_step < 10) {
+      G.H.dt = fmin(G.H.dt, 0.5);
+    }
 
-    // set a maximum timestep of 1000 yr to better resolve SN
-    /*
-    if (G.H.dt > 1.0) {
-      G.H.dt = 1.0;
-      dti = C_cfl / G.H.dt;
-      #ifdef MPI_CHOLLA
-      ReduceRealMax(dti);
-      #endif
-    } 
-    */
-    
-    //printf("%d After manual set: %f %f\n", procID, G.H.dt, dti);
-
-    // Add supernovae
-    //chprintf("Before supernovae: %f\n", G.H.dt);
-    Real sn_dti;
-    sn_dti = G.Add_Supernovae_CC85();
-    dti = fmax(dti, sn_dti);
-    #ifdef MPI_CHOLLA
-    ReduceRealMax(dti);
-    #endif
-    G.H.dt = C_cfl/dti;
-    //chprintf("After supernovae: %f\n", G.H.dt);
-   
     if (G.H.t + G.H.dt > outtime) 
     {
       G.H.dt = outtime - G.H.t;
     }
 
+    // Add supernovae
+    G.Add_Supernovae_CC85();
 
     // Advance the grid by one timestep
     #ifdef CPU_TIME

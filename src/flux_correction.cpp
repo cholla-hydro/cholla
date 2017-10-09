@@ -60,7 +60,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           first_order_update(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
 
           // density floor of n = 1.0e-3
-          C2[id] = fmax(C2[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
+          //C2[id] = fmax(C2[id], 0.6*MP*1.0e-3/DENSITY_UNIT);
 
           // Reset with the new values of the conserved variables
           d_new = C2[id];
@@ -159,7 +159,16 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           T_c = P_new*PRESSURE_UNIT/(n*KB);
           printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c);
           if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
-
+          // calculate the timestep
+          /*
+          Real cs, max_dti;
+          cs = max_dti = 0.0;
+          cs = sqrt(1.0/d_new*gama*P_new);
+          max_dti = (fabs(vx_new)+cs)/dx;
+          max_dti = fmax(max_dti, (fabs(vy_new)+cs)/dy);
+          max_dti = fmax(max_dti, (fabs(vz_new)+cs)/dz);
+          printf("FC dt: %e\n", 0.3/max_dti);
+          */
         }
 
       }
