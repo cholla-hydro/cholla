@@ -18,6 +18,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   Real d_i, vx_i, vy_i, vz_i, p_i;
   Real d_imo, vx_imo, vy_imo, vz_imo, p_imo;
   Real d_ipo, vx_ipo, vy_ipo, vz_ipo, p_ipo;
+  #ifdef DE
+  Real ge_i, ge_imo, ge_ipo;
+  #endif
 
   // retrieve the values from the stencil
   d_i = stencil[0];
@@ -38,6 +41,11 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   vz_ipo = stencil[13] / d_ipo;
   p_ipo = (stencil[14] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma-1.0);	
   p_ipo = fmax(p_ipo, TINY_NUMBER);
+  #ifdef DE
+  ge_i = stencil[15] / d_i;
+  ge_imo = stencil[16] / d_i;
+  ge_ipo = stencil[17] / d_i;
+  #endif
 
   Real dtodx = dt/dx;
 
@@ -48,9 +56,11 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   // Step 1 - Compute the eigenvalues of the linearized
   //          equations in the primative variables using the cell-centered
   //          primative variables
+  #ifdef CTU
   Real lambda_m = vx_i-a_i;
   Real lambda_0 = vx_i;
   Real lambda_p = vx_i+a_i;
+  #endif //CTU
 
 
   // Step 2 - Compute the left, right, and centered differences of the primative variables
@@ -60,6 +70,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   Real del_d_R, del_vx_R, del_vy_R, del_vz_R, del_p_R;
   Real del_d_C, del_vx_C, del_vy_C, del_vz_C, del_p_C;
   Real del_d_G, del_vx_G, del_vy_G, del_vz_G, del_p_G;
+  #ifdef DE
+  Real del_ge_L, del_ge_R, del_ge_C, del_ge_G;
+  #endif
 
   // Left
   del_d_L  = d_i  - d_imo;
@@ -94,6 +107,13 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   if (del_p_L*del_p_R > 0.0)   { del_p_G  = 2.0*del_p_L*del_p_R   / (del_p_L+del_p_R); }
   else { del_p_G = 0.0; } 
 
+  #ifdef DE
+  del_ge_L = ge_i - ge_imo;
+  del_ge_R = ge_ipo - ge_i;
+  del_ge_C = ge_ipo - ge_imo;
+  if (del_ge_L*del_ge_R > 0.0) { del_ge_G = 2.0*del_ge_L*del_ge_R / (del_ge_L+del_ge_R); }
+  else { del_ge_G = 0.0; } 
+  #endif
   
   // Step 3 - Project the left, right, and centered differences onto the characteristic variables
   //          Stone Eqn 37 (del_a are differences in characteristic variables, see Stone for notation)
@@ -164,6 +184,16 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
     del_a_4_m = SIGN(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b);
   }
 
+  #ifdef DE
+  Real del_ge_m_i = 0.0;
+  if (del_ge_L * del_ge_R > 0.0) {
+    lim_slope_a = fmin(fabs(del_ge_L), fabs(del_ge_R));
+    lim_slope_b = fmin(fabs(del_ge_C), fabs(del_ge_G));
+    del_ge_m_i = SIGN(del_ge_C) * fmin(2.0*lim_slope_a, lim_slope_b);
+  }
+
+  #endif
+
   // Step 5 - Project the monotonized difference in the characteristic variables back onto the 
   //          primative variables
   //          Stone Eqn 39
@@ -181,6 +211,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   //          Stone Eqns 40 & 41
   Real d_L_iph, vx_L_iph, vy_L_iph, vz_L_iph, p_L_iph;
   Real d_R_imh, vx_R_imh, vy_R_imh, vz_R_imh, p_R_imh;
+  #ifdef DE
+  Real ge_L_iph, ge_R_imh;
+  #endif
 
   // Step 7 Compute L/R values, ensure they lie between neighboring cell-centered values
   d_R_imh  = d_i  - 0.5*del_d_m_i; 
@@ -188,12 +221,18 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   vy_R_imh = vy_i - 0.5*del_vy_m_i;
   vz_R_imh = vz_i - 0.5*del_vz_m_i;
   p_R_imh  = p_i  - 0.5*del_p_m_i;
+  #ifdef DE
+  ge_R_imh  = ge_i  - 0.5*del_ge_m_i;
+  #endif
  
   d_L_iph  = d_i  + 0.5*del_d_m_i; 
   vx_L_iph = vx_i + 0.5*del_vx_m_i;
   vy_L_iph = vy_i + 0.5*del_vy_m_i;
   vz_L_iph = vz_i + 0.5*del_vz_m_i;
   p_L_iph  = p_i  + 0.5*del_p_m_i; 
+  #ifdef DE
+  ge_L_iph  = ge_i  + 0.5*del_ge_m_i; 
+  #endif
 
 
   Real C = d_R_imh + d_L_iph;
@@ -242,6 +281,18 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   del_vz_m_i = vz_L_iph - vz_R_imh;
   del_p_m_i  = p_L_iph  - p_R_imh;
 
+  #ifdef DE
+  C = ge_R_imh + ge_L_iph;
+  ge_R_imh = fmax( fmin(ge_i, ge_imo), ge_R_imh );
+  ge_R_imh = fmin( fmax(ge_i, ge_imo), ge_R_imh );
+  ge_L_iph = C - ge_R_imh; 
+  ge_L_iph = fmax( fmin(ge_i, ge_ipo), ge_L_iph );
+  ge_L_iph = fmin( fmax(ge_i, ge_ipo), ge_L_iph );
+  ge_R_imh = C - ge_L_iph;
+  del_ge_m_i  = ge_L_iph  - ge_R_imh;
+  #endif
+
+  #ifdef CTU
   // Step 8 - Integrate linear interpolation function over domain of dependence
   //          defined by max(min) eigenvalue
   Real qx = -0.5*fmin(lambda_m, 0)*dtodx;
@@ -250,6 +301,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   vy_R_imh = vy_R_imh + qx * del_vy_m_i;
   vz_R_imh = vz_R_imh + qx * del_vz_m_i;
   p_R_imh  = p_R_imh  + qx * del_p_m_i;
+  #ifdef DE
+  ge_R_imh = ge_R_imh + qx * del_ge_m_i;
+  #endif
 
   qx = 0.5*fmax(lambda_p, 0)*dtodx;
   d_L_iph  = d_L_iph  - qx * del_d_m_i;
@@ -257,6 +311,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   vy_L_iph = vy_L_iph - qx * del_vy_m_i;
   vz_L_iph = vz_L_iph - qx * del_vz_m_i;
   p_L_iph  = p_L_iph  - qx * del_p_m_i;
+  #ifdef DE
+  ge_L_iph = ge_L_iph - qx * del_ge_m_i;
+  #endif
 
 
   // Step 7 - Perform the characteristic tracing
@@ -269,6 +326,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   Real sum_2 = 0;
   Real sum_3 = 0;
   Real sum_4 = 0;
+  #ifdef DE
+  Real sum_5 = 0;
+  #endif
   if (lambda_m >= 0)
   {
     lamdiff = lambda_p - lambda_m;
@@ -288,6 +348,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
     sum_2 += lamdiff * del_vy_m_i;
     sum_3 += lamdiff * del_vz_m_i;
     //sum_4 += lamdiff * (a_i*del_d_m_i/d_i - del_p_m_i / (a_i*d_i));
+    #ifdef DE
+    sum_5 += lamdiff * del_ge_m_i;
+    #endif
   }
   if (lambda_p >= 0)
   {
@@ -305,6 +368,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   vy_L_iph += 0.5*dtodx*sum_2;
   vz_L_iph += 0.5*dtodx*sum_3;
   p_L_iph  += 0.5*dtodx*sum_4;
+  #ifdef DE
+  ge_L_iph += 0.5*dtodx*sum_5;
+  #endif
 
 
   // right-hand interface value, i-1/2
@@ -313,6 +379,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   sum_2 = 0;
   sum_3 = 0;
   sum_4 = 0;
+  #ifdef DE
+  sum_5 = 0;
+  #endif
   if (lambda_m <= 0)
   {
     lamdiff = lambda_m - lambda_m; 
@@ -332,6 +401,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
     sum_2 += lamdiff * del_vy_m_i;
     sum_3 += lamdiff * del_vz_m_i;
     //sum_4 += lamdiff * (a_i*del_d_m_i/d_i - del_p_m_i / (a_i*d_i));
+    #ifdef DE
+    sum_5 += lamdiff * del_ge_m_i;
+    #endif
   }
   if (lambda_p <= 0)
   {
@@ -349,12 +421,20 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   vy_R_imh += 0.5*dtodx*sum_2;
   vz_R_imh += 0.5*dtodx*sum_3;
   p_R_imh  += 0.5*dtodx*sum_4;
+  #ifdef DE
+  ge_R_imh += 0.5*dtodx*sum_5;
+  #endif
+  #endif //CTU
 
   // apply minimum constraints
   d_R_imh = fmax(d_R_imh, TINY_NUMBER);
   d_L_iph = fmax(d_L_iph, TINY_NUMBER);
   p_R_imh = fmax(p_R_imh, TINY_NUMBER);
   p_L_iph = fmax(p_L_iph, TINY_NUMBER);
+  #ifdef DE
+  ge_R_imh = fmax(ge_R_imh, TINY_NUMBER);
+  ge_L_iph = fmax(ge_L_iph, TINY_NUMBER);
+  #endif
 
   // Step 8 - Convert the left and right states in the primitive to the conserved variables
   bounds[0] = d_R_imh;
@@ -367,10 +447,14 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   bounds[7] = d_L_iph*vy_L_iph;
   bounds[8] = d_L_iph*vz_L_iph;
   bounds[9] = (p_L_iph/(gamma-1.0)) + 0.5*d_L_iph*(vx_L_iph*vx_L_iph + vy_L_iph*vy_L_iph + vz_L_iph*vz_L_iph);
+  #ifdef DE
+  bounds[10] = d_R_imh*ge_R_imh;
+  bounds[11] = d_L_iph*ge_L_iph;
+  #endif
 
 
 
 }
 
-#endif //PLMP
+#endif //PLMC
 #endif //CUDA
