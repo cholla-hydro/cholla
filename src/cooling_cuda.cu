@@ -35,7 +35,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   Real ge;
   #endif
   Real T_min = 1.0e4; // minimum temperature allowed
-  Real T_max= 1.0e8; // minimum temperature allowed
+  Real T_max= 1.0e8; // maximum temperature allowed
 
   mu = 0.6;
 
@@ -171,7 +171,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // set a temperature floor
     if (T > 0.0) T = fmax(T, T_min);
     // set a temperature ceiling 
-    T = fmin(T, T_max);
+    //T = fmin(T, T_max);
 
     // adjust value of energy based on total change in temperature
     del_T = T_init - T; // total change in T
