@@ -14,7 +14,7 @@
 #include"VL_1D_cuda.h"
 #include"pcm_cuda.h"
 #include"plmp_vl_cuda.h"
-#include"plmc_vl_cuda.h"
+#include"plmc_cuda.h"
 #include"ppmp_vl_cuda.h"
 #include"ppmc_cuda.h"
 #include"exact_cuda.h"
@@ -118,7 +118,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, 
   PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, n_ghost, gama);
   #endif
   #ifdef PLMC
-  PLMC_VL<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, gama, 0);
+  PLMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0);
   #endif  
   #ifdef PLMP
   PLMP_VL<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, gama, 0);

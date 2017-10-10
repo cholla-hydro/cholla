@@ -13,7 +13,7 @@
 #include"CTU_1D_cuda.h"
 #include"pcm_cuda.h"
 #include"plmp_ctu_cuda.h"
-#include"plmc_ctu_cuda.h"
+#include"plmc_cuda.h"
 #include"ppmp_ctu_cuda.h"
 #include"ppmc_cuda.h"
 #include"exact_cuda.h"
@@ -107,7 +107,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost,
   CudaCheckError();
   #endif
   #ifdef PLMC
-  PLMC_CTU<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0);
+  PLMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0);
   CudaCheckError();
   #endif
   #ifdef PPMP

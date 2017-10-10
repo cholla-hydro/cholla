@@ -14,7 +14,7 @@
 #include"VL_3D_cuda.h"
 #include"pcm_cuda.h"
 #include"plmp_vl_cuda.h"
-#include"plmc_vl_cuda.h"
+#include"plmc_cuda.h"
 #include"ppmp_vl_cuda.h"
 #include"ppmc_cuda.h"
 #include"exact_cuda.h"
@@ -177,9 +177,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   PLMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, 2);
   #endif //PLMP 
   #ifdef PLMC
-  PLMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, gama, 0);
-  PLMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, gama, 1);
-  PLMC_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, 2);  
+  PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0);
+  PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy, dt, gama, 1);
+  PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt, gama, 2);  
   #endif
   #ifdef PPMP
   PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, gama, 0);
@@ -269,6 +269,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   //printf("%f %f\n", min_dt, 0.3/max_dti); 
   if (min_dt < 0.3/max_dti) {
     printf("%f %f\n", min_dt, 0.3/max_dti); 
+    min_dt = fmax(min_dt, 1.0);
     max_dti = 0.3/min_dt;
   }
   #endif

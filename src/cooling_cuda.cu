@@ -45,8 +45,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   int zid = id / (nx*ny);
   int yid = (id - zid*nx*ny) / nx;
   int xid = id - zid*nx*ny - yid*nx;
-  // and a thread id withing hte block
+  // and a thread id within the block
   int tid = threadIdx.x;
+  int flag = 1;
 
   // set min dt to a high number
   min_dt[tid] = 1e10;
@@ -54,7 +55,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   
 
   // all threads do the calculation
-  if (xid < nx && yid < ny && zid < nz) {
+  //if (xid < nx && yid < ny && zid < nz) {
+  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost) {
 
     // load values of density and pressure
     d  =  dev_conserved[            id];
@@ -79,18 +81,69 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T_init = p*PRESSURE_UNIT/ (n*KB);
     //#endif
     #ifdef DE
-    T_init = ge*(gamma-1.0)*SP_ENERGY_UNIT*mu*MP/KB;
+    //T_init = ge*(gamma-1.0)*SP_ENERGY_UNIT*mu*MP/KB;
+    T_init = d*ge*(gamma-1.0)*PRESSURE_UNIT/(n*KB);
     #endif
 
     // calculate cooling rate per volume
     T = T_init;
     if (T > T_max) printf("%3d %3d %3d High T cell. n: %e  T: %e\n", xid, yid, zid, n, T);
-
     // call the cooling function (could choose primoridial cool)
     //cool = Schure_cool(n, T); 
     cool = Wiersma_cool(n, T); 
+    /*
+    int xpo, xmo, ypo, ymo, zpo, zmo;
+    Real ntemp, Ttemp, dttemp, cxmo, cxpo, cymo, cypo, czmo, czpo, ci;
+    xpo = min(xid+1, nx-n_ghost-1);
+    xpo = xpo + yid*nx + zid*nx*ny;
+    xmo = max(xid-1, n_ghost);
+    xmo = xmo + yid*nx + zid*nx*ny;
+    ypo = min(yid+1, ny-n_ghost-1);
+    ypo = xid + ypo*nx + zid*nx*ny;
+    ymo = max(yid-1, n_ghost);
+    ymo = xid + ymo*nx + zid*nx*ny;
+    zpo = min(zid+1, nz-n_ghost-1);
+    zpo = xid + yid*nx + zpo*nx*ny;
+    zmo = max(zid-1, n_ghost);
+    zmo = xid + yid*nx + zmo*nx*ny;
+    ntemp = dev_conserved[xmo]*DENSITY_UNIT/(mu*MP);
+    Ttemp = dev_conserved[5*n_cells+xmo]*(gamma-1.0)*PRESSURE_UNIT/(ntemp*KB);
+    cxmo = Wiersma_cool(ntemp, Ttemp);
+    ntemp = dev_conserved[xpo]*DENSITY_UNIT/(mu*MP);
+    Ttemp = dev_conserved[5*n_cells+xpo]*(gamma-1.0)*PRESSURE_UNIT/(ntemp*KB);
+    cxpo = Wiersma_cool(ntemp, Ttemp);
+    ntemp = dev_conserved[ymo]*DENSITY_UNIT/(mu*MP);
+    Ttemp = dev_conserved[5*n_cells+ymo]*(gamma-1.0)*PRESSURE_UNIT/(ntemp*KB);
+    cymo = Wiersma_cool(ntemp, Ttemp);
+    ntemp = dev_conserved[ypo]*DENSITY_UNIT/(mu*MP);
+    Ttemp = dev_conserved[5*n_cells+ypo]*(gamma-1.0)*PRESSURE_UNIT/(ntemp*KB);
+    cypo = Wiersma_cool(ntemp, Ttemp);
+    ntemp = dev_conserved[zmo]*DENSITY_UNIT/(mu*MP);
+    Ttemp = dev_conserved[5*n_cells+zmo]*(gamma-1.0)*PRESSURE_UNIT/(ntemp*KB);
+    czmo = Wiersma_cool(ntemp, Ttemp);
+    ntemp = dev_conserved[zpo]*DENSITY_UNIT/(mu*MP);
+    Ttemp = dev_conserved[5*n_cells+zpo]*(gamma-1.0)*PRESSURE_UNIT/(ntemp*KB);
+    czpo = Wiersma_cool(ntemp, Ttemp);
+
+    
+    ci = cool;
     //cool = primordial_cool(n, T);
     //cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
+    if ( (cxpo-ci)*(ci-cxmo) < 0.0) {
+      if ( (cypo-ci)*(ci-cymo) < 0.0) {
+        if ( (czpo-ci)*(ci-czmo) < 0.0) {
+          // we have a local max/min in the cooling function
+          if (ci/cxmo > 10.0 && ci/cxpo > 10.0 && ci/cymo > 10.0 && ci/cypo > 10.0 && ci/czmo > 10.0 && ci/czpo > 10.0) {
+            flag = 0;
+            printf("Local max %3d %3d %3d %e %e %e %e %e %e %e\n", xid, yid, zid, ci, cxmo, cxpo, cymo, cypo, czmo, czpo);
+          }
+        }
+      }
+    }
+    dttemp = 0.1*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
+    if (dttemp < 1.0) printf("%3d %3d %3d %e %e\n", xid, yid, zid, n, T);
+    if (flag) {
+    */ 
     
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
@@ -143,6 +196,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     dev_conserved[5*n_cells + id] = d*ge;
     #endif
 
+  //}
   }
   __syncthreads();
 

@@ -10,7 +10,7 @@ ny=128
 # number of grid cells in the z dimension
 nz=128
 # final output time
-tout=20000
+tout=50000
 #tout=0
 # time interval for output
 outstep=1000
@@ -19,7 +19,7 @@ gamma=1.6666667
 # name of initial conditions
 init=Disk_3D
 #init=Read_Grid
-#nfile=10
+#nfile=25
 # domain properties
 xmin=-5
 ymin=-5
@@ -38,4 +38,4 @@ custom_bcnd=disk_3D
 # path to output directory
 #outdir=/Users/evan/Desktop/data/disk_3D/cooling_tests/64/hdf5/
 #outdir=/lustre/atlas/proj-shared/ast125/data/disk_3D/m82_eq/256/hdf5/raw/
-outdir=/u/e26/data/disk_3D/128/
+outdir=/u/es26/data/disk_3D/128/
