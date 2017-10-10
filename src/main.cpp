@@ -84,10 +84,10 @@ int main(int argc, char *argv[])
   chprintf("Boundary conditions set.\n");  
   // set main variables for Read_Grid inital conditions
   if (strcmp(P.init, "Read_Grid") == 0) {
+    //G.H.dt = 0.5;
+    dti = C_cfl / G.H.dt;
     outtime += G.H.t;
     nfile = P.nfile*P.nfull;
-    dti = G.calc_dti_CPU();
-    G.H.dt = C_cfl / dti;
   }  
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n",gama);

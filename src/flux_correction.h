@@ -4,7 +4,7 @@
 #ifndef FLUX_CORRECTION_H
 #define FLUX_CORRECTION_H
 
-void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt);
+int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt);
 
 void fill_flux_array_pcm(Real *C1, int idl, int idr, Real cW[], int n_cells, int dir);
 

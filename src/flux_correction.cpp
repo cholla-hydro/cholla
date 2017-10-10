@@ -16,7 +16,7 @@
 
 
 
-void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt)
+int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt)
 {
 
   int n_cells = nx*ny*nz;
@@ -26,6 +26,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
   #ifdef DE
   nfields = 6;
   #endif
+  int flag = 0;
 
   Real d_old, vx_old, vy_old, vz_old, P_old, E_old;
   Real d_new, vx_new, vy_new, vz_new, P_new, E_new;
@@ -105,7 +106,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           Real n = d_new*DENSITY_UNIT / (0.6 * MP);
           Real T_c = P_new*PRESSURE_UNIT / (n*KB);
           Real T_ie = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT / (n*KB);
-          printf("%3d %3d %3d AC: d: %e  E:%e  P:%e  T_cons: %e  T_ie: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c, T_ie);
+          printf("%3d %3d %3d AC: n: %e  E:%e  P:%e  T_cons: %e  T_ie: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, n, E_new, P_new, T_c, T_ie);
 
           // Apply gravity
           #ifdef STATIC_GRAV
@@ -144,7 +145,6 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           // if the ratio of conservatively calculated internal energy to total energy
           // is greater than 1/1000,
           // use the conservatively calculated internal energy to do the internal energy update
-
           if (ge2/E > 0.001) {
             C2[5*n_cells + id] = ge2;
             ge1 = ge2;
@@ -177,6 +177,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
             // sync the total energy with the internal energy 
             C2[4*n_cells + id] += ge1 - ge2;
           }
+          //C2[4*n_cells + id] += ge1 - ge2;
           #endif          
 
           // apply cooling
@@ -201,13 +202,14 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           max_dti = fmax(max_dti, (fabs(vz_new)+cs)/dz);
           printf("FC dt: %e\n", 0.3/max_dti);
           */
+          flag = 1;
         }
 
       }
     }
   }
 
-
+  return flag;
 
 }
 
@@ -806,6 +808,10 @@ void first_order_fluxes(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   int kmo = i + j*nx + (k-1)*nx*ny;
   int kpo = i + j*nx + (k+1)*nx*ny;
   Real etah = 0.0;
+  printf("%3d %3d %3d  d_i: %e d_imo: %e d_ipo: %e d_jmo: %e d_jpo: %e d_kmo: %e d_kpo: %e\n", i, j, k, C1[id], C1[imo], C1[ipo], C1[jmo], C1[jpo], C1[kmo], C1[kpo]);
+  printf("%3d %3d %3d  vx_i: %e vx_imo: %e vx_ipo: %e\n", i, j, k, C1[id+n_cells]/C1[id], C1[imo+n_cells]/C1[imo], C1[ipo+n_cells]/C1[ipo]);
+  printf("%3d %3d %3d  vy_i: %e vy_jmo: %e vy_jpo: %e\n", i, j, k, C1[id+2*n_cells]/C1[id], C1[jmo+2*n_cells]/C1[jmo], C1[jpo+2*n_cells]/C1[jpo]);
+  printf("%3d %3d %3d  vz_i: %e vz_kmo: %e vz_kpo: %e\n", i, j, k, C1[id+3*n_cells]/C1[id], C1[kmo+3*n_cells]/C1[kmo], C1[kpo+3*n_cells]/C1[kpo]);
 
   Real cW[2*nfields];
   Real F_Lx[nfields];
@@ -973,6 +979,7 @@ void first_order_fluxes(Real *C1, Real *C2, int i, int j, int k, Real dtodx, Rea
   #ifdef DE
   C2[kpo+5*n_cells] += dtodz*(F_Ry[5]);
   #endif  
+  printf("%3d %3d %3d  d: %e d_imo: %e d_ipo: %e d_jmo: %e d_jpo: %e d_kmo: %e d_kpo: %e\n", i, j, k, C2[id], C2[imo], C2[ipo], C2[jmo], C2[jpo], C2[kmo], C2[kpo]);
 }
 
 

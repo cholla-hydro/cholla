@@ -222,7 +222,11 @@ void Grid3D::AllocateMemory(void)
   max_dti = ReduceRealMax(max_dti);
   #endif /*MPI_CHOLLA*/
   
-  H.dt = C_cfl / max_dti;
+  if (H.n_step > 1) {
+    H.dt = fmin(2*H.dt, C_cfl / max_dti);
+  }
+  else 
+    H.dt = C_cfl / max_dti;
   //chprintf("Within set_dt: %f %f %f\n", C_cfl, H.dt, max_dti);
 
 }
@@ -325,6 +329,7 @@ Real Grid3D::Update_Grid(void)
     g0 = &(buffer1[0]);
     g1 = &(buffer0[0]);
   }
+  int flux_flag;
 
 
   Real max_dti = 0;
@@ -404,7 +409,7 @@ Real Grid3D::Update_Grid(void)
     #endif //VL
     #endif    
 
-    Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    flux_flag = Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
   }
   else
   {
@@ -412,8 +417,14 @@ Real Grid3D::Update_Grid(void)
     chexit(-1);
   }
 
+  flux_flag = ReduceRealMax(flux_flag);
   // at this point g0 has the old data, g1 has the new data
   // point the grid variables at the new data
+  if (flux_flag) {
+    H.t -= H.dt;
+    return 10*max_dti;
+  }
+  else {
   C.density  = &g1[0];
   C.momentum_x = &g1[H.n_cells];
   C.momentum_y = &g1[2*H.n_cells];
@@ -426,8 +437,8 @@ Real Grid3D::Update_Grid(void)
   // reset the grid flag to swap buffers
   gflag = (gflag+1)%2;
 
-
   return max_dti;
+  }
 }
 
 
@@ -540,7 +551,7 @@ void Grid3D::Add_Supernovae_CC85(void)
   Real weight, xpoint, ypoint, zpoint;
   Real max_vx, max_vy, max_vz, max_dti;
   max_dti = max_vx = max_vy = max_vz = 0.0;
-  R_s = 0.1; // starburst radius, in kpc
+  R_s = 0.3; // starburst radius, in kpc
   z_s = H.dz; // starburst height, in kpc
   //M1 = 2.0e3; // mass input rate, in M_sun / kyr
   //E1 = 1.0e42; // energy input rate, in erg/s
@@ -588,8 +599,8 @@ void Grid3D::Add_Supernovae_CC85(void)
   //E_dot = E2;
 
   E_dot = E_dot*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT); // convert to code units
-  //V = (4.0/3.0)*PI*R_s*R_s*R_s;
-  V = PI*R_s*R_s*2*z_s;
+  V = (4.0/3.0)*PI*R_s*R_s*R_s;
+  //V = PI*R_s*R_s*2*z_s;
   f = H.dx*H.dy*H.dz / V;
   rho_dot = f * M_dot / (H.dx*H.dy*H.dz);
   Ed_dot = f * E_dot / (H.dx*H.dy*H.dz);
@@ -606,24 +617,23 @@ void Grid3D::Add_Supernovae_CC85(void)
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
         
         // calculate spherical radius
-        //r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
         xl = fabs(x_pos)-0.5*H.dx;
         yl = fabs(y_pos)-0.5*H.dy;
         zl = fabs(z_pos)-0.5*H.dz;
         xr = fabs(x_pos)+0.5*H.dx;
         yr = fabs(y_pos)+0.5*H.dy;
         zr = fabs(z_pos)+0.5*H.dz;
-        //rl = sqrt(xl*xl + yl*yl + zl*zl);
-        //rr = sqrt(xr*xr + yr*yr + zr*zr);
-        rl = sqrt(xl*xl + yl*yl);
-        rr = sqrt(xr*xr + yr*yr);
-        r = sqrt(x_pos*x_pos + y_pos*y_pos);
+        rl = sqrt(xl*xl + yl*yl + zl*zl);
+        rr = sqrt(xr*xr + yr*yr + zr*zr);
+        r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
+        //rl = sqrt(xl*xl + yl*yl);
+        //rr = sqrt(xr*xr + yr*yr);
+        //r = sqrt(x_pos*x_pos + y_pos*y_pos);
 
         // within starburst radius, inject mass and thermal energy
-        //if (r < R_s) {
         // entire cell is within sphere
-        if (rr < R_s && fabs(z_pos) < z_s) {
-        //if (rr < R_s) {
+        // if (rr < R_s && fabs(z_pos) < z_s) {
+        if (rr < R_s) {
           C.density[id] += rho_dot * H.dt;
           C.Energy[id] += Ed_dot * H.dt;
           #ifdef DE
@@ -636,8 +646,8 @@ void Grid3D::Add_Supernovae_CC85(void)
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
         }
         // on the sphere
-        if (rl < R_s && rr > R_s && fabs(z_pos) < z_s) {
-        //if (rl < R_s && rr > R_s) {
+        //if (rl < R_s && rr > R_s && fabs(z_pos) < z_s) {
+        if (rl < R_s && rr > R_s) {
           // quick Monte Carlo to determine weighting
           Ran quickran(50);
           incount = 0;
@@ -649,8 +659,8 @@ void Grid3D::Add_Supernovae_CC85(void)
             // generate a random number between z_pos and dz
             zpoint = zl + H.dz*quickran.doub();
             // check to see whether the point is within the sphere 
-            //if (xpoint*xpoint + ypoint*ypoint + zpoint*zpoint < R_s*R_s) incount++;
-            if (xpoint*xpoint + ypoint*ypoint < R_s*R_s) incount++;
+            if (xpoint*xpoint + ypoint*ypoint + zpoint*zpoint < R_s*R_s) incount++;
+            //if (xpoint*xpoint + ypoint*ypoint < R_s*R_s) incount++;
           }
           weight = incount / 1000.0;
           C.density[id] += rho_dot * H.dt * weight;

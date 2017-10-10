@@ -999,6 +999,9 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id)
   attribute_id = H5Aopen(file_id, "t", H5P_DEFAULT); 
   status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &H.t);
   status = H5Aclose(attribute_id);
+  attribute_id = H5Aopen(file_id, "dt", H5P_DEFAULT); 
+  status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &H.dt);
+  status = H5Aclose(attribute_id);
   attribute_id = H5Aopen(file_id, "n_step", H5P_DEFAULT); 
   status = H5Aread(attribute_id, H5T_NATIVE_INT, &H.n_step);
   status = H5Aclose(attribute_id);
