@@ -570,7 +570,7 @@ void Grid3D::Add_Supernovae_CC85(void)
   E_dot = 0.0;
 
   // start feedback after 5 Myr, ramp up for 5 Myr, high for 30 Myr, ramp down for 5 Myr
-  Real tstart = 5.0;
+  Real tstart = 0.0;
   Real tramp = 5.0;
   Real thigh = 30.0;
   t = H.t/1000 - tstart;

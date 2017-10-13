@@ -169,7 +169,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T -= del_T;
 
     // set a temperature floor
-    //if (T > 0.0) T = fmax(T, T_min);
+    if (T > 0.0) T = fmax(T, T_min);
     // set a temperature ceiling 
     //T = fmin(T, T_max);
 
