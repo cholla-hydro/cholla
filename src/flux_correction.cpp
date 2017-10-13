@@ -52,12 +52,16 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
         vy_new = C2[2*n_cells+id]/d_new;
         vz_new = C2[3*n_cells+id]/d_new;
         P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
+        Real n = d_new*DENSITY_UNIT/(0.6*MP);
+        Real T = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
   
         // if there is a problem, redo the update for that cell using first-order fluxes
-        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new) {
-          //printf("%3d %3d %3d BC: d: %e  E:%e  P:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new);
-          printf("%3d %3d %3d BC: d: %e  E:%e  P:%e\n", i, j, k, d_new, E_new, P_new);
+        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e8) {
+          printf("%3d %3d %3d BC: d: %e  E:%e  P:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new);
 
+          average_cell(C1, i, j, k, nx, ny, nz, n_cells);
+
+/*
           // Do a half-step first order update for the affected cell and all surrounding cells
           // arrays to hold half-step conserved values
           Real C_i[nfields];
@@ -74,16 +78,6 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           Real C_kpo[nfields];
           Real C_kpt[nfields];
 
-          first_order_update(C1, C_i, i, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
-          first_order_update(C1, C_imo, i-1, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
-          first_order_update(C1, C_imt, i-2, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
-          first_order_update(C1, C_ipo, i+1, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
-          first_order_update(C1, C_ipt, i+2, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
-          first_order_update(C1, C_jmo, i, j-1, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
-          first_order_update(C1, C_jmt, i, j-2, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
-          first_order_update(C1, C_jpo, i, j+1, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
-          first_order_update(C1, C_jpt, i, j+2, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
-          first_order_update(C1, C_kmo, i, j, k-1, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
           first_order_update(C1, C_i, i, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
           first_order_update(C1, C_imo, i-1, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
           first_order_update(C1, C_imt, i-2, j, k, 0.5*dtodx, 0.5*dtody, 0.5*dtodz, nfields, nx, ny, nz, n_cells);
@@ -117,8 +111,7 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           Real n = d_new*DENSITY_UNIT / (0.6 * MP);
           Real T_c = P_new*PRESSURE_UNIT / (n*KB);
           Real T_ie = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT / (n*KB);
-          //printf("%3d %3d %3d AC: d: %e  E:%e  P:%e  T_cons: %e  T_ie: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c, T_ie);
-          printf("%3d %3d %3d AC: d: %e  E:%e  P:%e  T_cons: %e  T_ie: %e\n", i, j, k, d_new, E_new, P_new, T_c, T_ie);
+          printf("%3d %3d %3d AC: n: %e  E:%e  P:%e  T_cons: %e  T_ie: %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, n, E_new, P_new, T_c, T_ie);
 
           // Apply gravity
           #ifdef STATIC_GRAV
@@ -202,11 +195,9 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           // recalculate the temperature
           T_c = P_new*PRESSURE_UNIT/(n*KB);
-          //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c);
-          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T_c);
-          //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
-          if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i, j, k, d_new, P_new);
-
+          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c);
+          if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
+          */
           flag = 1;
         }
 
@@ -1234,8 +1225,101 @@ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n
   *gz = a_disk_z+a_halo_z;
 
 }
-  Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
-  Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
+
+
+void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
+
+  Real d, E;
+  Real n, T, T_init;
+  Real del_T, dt_sub;
+  Real mu; // mean molecular weight
+  Real cool; //cooling rate per volume, erg/s/cm^3
+  #ifndef DE
+  Real vx, vy, vz, p;
+  #endif
+  #ifdef DE
+  Real ge;
+  #endif
+
+  Real T_min = 1.0e4;
+  mu = 0.6;
+
+  // load values of density and pressure
+  d  =  C2[            id];
+  E  =  C2[4*n_cells + id];
+  #ifndef DE
+  vx =  C2[1*n_cells + id] / d;
+  vy =  C2[2*n_cells + id] / d;
+  vz =  C2[3*n_cells + id] / d;
+  p  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gama - 1.0);
+  p  = fmax(p, (Real) TINY_NUMBER);
+  #endif
+  #ifdef DE
+  ge = C2[5*n_cells + id] / d;
+  ge = fmax(ge, (Real) TINY_NUMBER);
+  #endif
+    
+  // calculate the number density of the gas (in cgs)
+  n = d*DENSITY_UNIT / (mu * MP);
+
+  // calculate the temperature of the gas
+  #ifndef DE
+  T_init = p*PRESSURE_UNIT/ (n*KB);
+  #endif
+  #ifdef DE
+  T_init = ge*(gama-1.0)*SP_ENERGY_UNIT*mu*MP/KB;
+  #endif
+  //if (T_init > 1.0e8) printf("Bad cell: %e\n", T_init);
+
+  // calculate cooling rate per volume
+  T = T_init;
+
+  // call the cooling function
+  //cool = Schure_cool_CPU(n, T); 
+  cool = Wiersma_cool_CPU(n, T); 
+    
+  // calculate change in temperature given dt
+  del_T = cool*dt*TIME_UNIT*(gama-1.0)/(n*KB);
+
+  // limit change in temperature to 1%
+  while (del_T/T > 0.01) {
+    // what dt gives del_T = 0.1*T?
+    dt_sub = 0.01*T*n*KB/(cool*TIME_UNIT*(gama-1.0));
+    // apply that dt
+    T -= cool*dt_sub*TIME_UNIT*(gama-1.0)/(n*KB);
+    // how much time is left from the original timestep?
+    dt -= dt_sub;
+    // calculate cooling again
+    //cool = Schure_cool_CPU(n, T);
+    cool = Wiersma_cool_CPU(n, T);
+    // calculate new change in temperature
+    del_T = cool*dt*TIME_UNIT*(gama-1.0)/(n*KB);
+  }
+
+  // calculate final temperature
+  T -= del_T;
+
+  T = fmax(T, T_min);
+
+  // adjust value of energy based on total change in temperature
+  del_T = T_init - T; // total change in T
+  E -= n*KB*del_T / ((gama-1.0)*ENERGY_UNIT);
+  #ifdef DE
+  ge -= KB*del_T / (mu*MP*(gama-1.0)*SP_ENERGY_UNIT);
+  #endif
+
+  // and update the energies 
+  C2[4*n_cells + id] = E;
+  #ifdef DE
+  C2[5*n_cells + id] = d*ge;
+  #endif
+
+
+}
+
+
+Real Schure_cool_CPU(Real n, Real T) {
+
   Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
   Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
   
