@@ -416,8 +416,9 @@ Real Grid3D::Update_Grid(void)
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(-1);
   }
-
+  #ifdef MPI_CHOLLA
   flux_flag = ReduceRealMax(flux_flag);
+  #endif
   // at this point g0 has the old data, g1 has the new data
   // point the grid variables at the new data
   if (flux_flag) {

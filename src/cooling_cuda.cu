@@ -149,7 +149,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
 
     // limit change in temperature to 1%
-    while (del_T/T > 0.01) {
+    while (del_T/T > 0.01 && T>T_min) {
       // what dt gives del_T = 0.01*T?
       dt_sub = 0.01*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
       // apply that dt
@@ -169,7 +169,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T -= del_T;
 
     // set a temperature floor
-    if (T > 0.0) T = fmax(T, T_min);
+    //if (T > 0.0) T = fmax(T, T_min);
     // set a temperature ceiling 
     //T = fmin(T, T_max);
 
