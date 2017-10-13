@@ -52,11 +52,16 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
         vy_new = C2[2*n_cells+id]/d_new;
         vz_new = C2[3*n_cells+id]/d_new;
         P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
+        Real n = d_new*DENSITY_UNIT/(0.6*MP);
+        Real T = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
   
         // if there is a problem, redo the update for that cell using first-order fluxes
-        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new) {
+        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e8) {
           printf("%3d %3d %3d BC: d: %e  E:%e  P:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new);
 
+          average_cell(C1, i, j, k, nx, ny, nz, n_cells);
+
+/*
           // Do a half-step first order update for the affected cell and all surrounding cells
           // arrays to hold half-step conserved values
           Real C_i[nfields];
@@ -192,15 +197,6 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           T_c = P_new*PRESSURE_UNIT/(n*KB);
           printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c);
           if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
-          // calculate the timestep
-          /*
-          Real cs, max_dti;
-          cs = max_dti = 0.0;
-          cs = sqrt(1.0/d_new*gama*P_new);
-          max_dti = (fabs(vx_new)+cs)/dx;
-          max_dti = fmax(max_dti, (fabs(vy_new)+cs)/dy);
-          max_dti = fmax(max_dti, (fabs(vz_new)+cs)/dz);
-          printf("FC dt: %e\n", 0.3/max_dti);
           */
           flag = 1;
         }
@@ -795,6 +791,86 @@ void second_order_fluxes(Real *C1, Real *C2, Real C_i[], Real C_imo[], Real C_im
   #ifdef DE
   C2[kpo+5*n_cells] -= dtodz*(F_Lz[5]);
   #endif  
+}
+
+
+void average_cell(Real *C1, int i, int j, int k, int nx, int ny, int nz, int n_cells)
+{
+  int id = i + j*nx + k*nx*ny;
+  int imo = i-1 + j*nx + k*nx*ny;
+  int ipo = i+1 + j*nx + k*nx*ny;
+  int jmo = i + (j-1)*nx + k*nx*ny;
+  int jpo = i + (j+1)*nx + k*nx*ny;
+  int kmo = i + j*nx + (k-1)*nx*ny;
+  int kpo = i + j*nx + (k+1)*nx*ny;
+  printf("%3d %3d %3d  d_i: %e d_imo: %e d_ipo: %e d_jmo: %e d_jpo: %e d_kmo: %e d_kpo: %e\n", i, j, k, C1[id], C1[imo], C1[ipo], C1[jmo], C1[jpo], C1[kmo], C1[kpo]);
+  printf("%3d %3d %3d  vx_i: %e vx_imo: %e vx_ipo: %e\n", i, j, k, C1[id+n_cells]/C1[id], C1[imo+n_cells]/C1[imo], C1[ipo+n_cells]/C1[ipo]);
+  printf("%3d %3d %3d  vy_i: %e vy_jmo: %e vy_jpo: %e\n", i, j, k, C1[id+2*n_cells]/C1[id], C1[jmo+2*n_cells]/C1[jmo], C1[jpo+2*n_cells]/C1[jpo]);
+  printf("%3d %3d %3d  vz_i: %e vz_kmo: %e vz_kpo: %e\n", i, j, k, C1[id+3*n_cells]/C1[id], C1[kmo+3*n_cells]/C1[kmo], C1[kpo+3*n_cells]/C1[kpo]);
+
+  Real d_av, vx_av, vy_av, vz_av, P_av;
+  Real d_imo, vx_imo, vy_imo, vz_imo, P_imo;
+  Real d_ipo, vx_ipo, vy_ipo, vz_ipo, P_ipo;
+  Real d_jmo, vx_jmo, vy_jmo, vz_jmo, P_jmo;
+  Real d_jpo, vx_jpo, vy_jpo, vz_jpo, P_jpo;
+  Real d_kmo, vx_kmo, vy_kmo, vz_kmo, P_kmo;
+  Real d_kpo, vx_kpo, vy_kpo, vz_kpo, P_kpo;
+  d_av = (C1[imo]+C1[ipo]+C1[jmo]+C1[jpo]+C1[kmo]+C1[kpo])/6.0;
+  d_imo = C1[imo];
+  vx_imo = C1[imo+n_cells]/d_imo;
+  vy_imo = C1[imo+2*n_cells]/d_imo;
+  vz_imo = C1[imo+3*n_cells]/d_imo;
+  d_ipo = C1[ipo];
+  vx_ipo = C1[ipo+n_cells]/d_ipo;
+  vy_ipo = C1[ipo+2*n_cells]/d_ipo;
+  vz_ipo = C1[ipo+3*n_cells]/d_ipo;
+  d_jmo = C1[jmo];
+  vx_jmo = C1[jmo+n_cells]/d_jmo;
+  vy_jmo = C1[jmo+2*n_cells]/d_jmo;
+  vz_jmo = C1[jmo+3*n_cells]/d_jmo;
+  d_jpo = C1[jpo];
+  vx_jpo = C1[jpo+n_cells]/d_jpo;
+  vy_jpo = C1[jpo+2*n_cells]/d_jpo;
+  vz_jpo = C1[jpo+3*n_cells]/d_jpo;
+  d_kmo = C1[kmo];
+  vx_kmo = C1[kmo+n_cells]/d_kmo;
+  vy_kmo = C1[kmo+2*n_cells]/d_kmo;
+  vz_kmo = C1[kmo+3*n_cells]/d_kmo;
+  d_kpo = C1[kpo];
+  vx_kpo = C1[kpo+n_cells]/d_kpo;
+  vy_kpo = C1[kpo+2*n_cells]/d_kpo;
+  vz_kpo = C1[kpo+3*n_cells]/d_kpo;
+  P_imo = (C1[imo+4*n_cells] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo))*(gama-1.0);
+  if (P_imo < 0.0) printf("P_imo: %e\n", P_imo);
+  P_ipo = (C1[ipo+4*n_cells] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo))*(gama-1.0);
+  if (P_ipo < 0.0) printf("P_ipo: %e\n", P_ipo);
+  P_jmo = (C1[jmo+4*n_cells] - 0.5*d_jmo*(vx_jmo*vx_jmo + vy_jmo*vy_jmo + vz_jmo*vz_jmo))*(gama-1.0);
+  if (P_jmo < 0.0) printf("P_jmo: %e\n", P_jmo);
+  P_jpo = (C1[jpo+4*n_cells] - 0.5*d_jpo*(vx_jpo*vx_jpo + vy_jpo*vy_jpo + vz_jpo*vz_jpo))*(gama-1.0);
+  if (P_jpo < 0.0) printf("P_jpo: %e\n", P_jpo);
+  P_kmo = (C1[kmo+4*n_cells] - 0.5*d_kmo*(vx_kmo*vx_kmo + vy_kmo*vy_kmo + vz_kmo*vz_kmo))*(gama-1.0);
+  if (P_kmo < 0.0) printf("P_kmo: %e\n", P_kmo);
+  P_kpo = (C1[kpo+4*n_cells] - 0.5*d_kpo*(vx_kpo*vx_kpo + vy_kpo*vy_kpo + vz_kpo*vz_kpo))*(gama-1.0);
+  if (P_kpo < 0.0) printf("P_kpo: %e\n", P_kpo);
+  d_av = (d_imo+d_ipo+d_jmo+d_jpo+d_kmo+d_kpo)/6.0;
+  vx_av = (vx_imo+vx_ipo+vx_jmo+vx_jpo+vx_kmo+vx_kpo)/6.0;
+  vy_av = (vy_imo+vy_ipo+vy_jmo+vy_jpo+vy_kmo+vy_kpo)/6.0;
+  vz_av = (vz_imo+vz_ipo+vz_jmo+vz_jpo+vz_kmo+vz_kpo)/6.0;
+  P_av = (P_imo+P_ipo+P_jmo+P_jpo+P_kmo+P_kpo)/6.0;
+  d_av = fmin(fmin(fmin(fmin(fmin(d_imo, d_ipo), d_jmo), d_jpo), d_kmo), d_kpo);
+  P_av = fmin(fmin(fmin(fmin(fmin(P_imo, P_ipo), P_jmo), P_jpo), P_kmo), P_kpo);
+  C1[id] = d_av;
+  C1[id+n_cells] = d_av*vx_av;
+  C1[id+2*n_cells] = d_av*vy_av;
+  C1[id+3*n_cells] = d_av*vz_av;
+  C1[id+4*n_cells] = P_av/(gama-1.0) + 0.5*d_av*(vx_av*vx_av + vy_av*vy_av + vz_av*vz_av);
+  #ifdef DE
+  C1[id+5*n_cells] = P_av/(gama-1.0);
+  #endif
+  Real n = d_av*DENSITY_UNIT/(0.6*MP);
+  Real T = C1[id+5*n_cells]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+
+  printf("%3d %3d %3d  d_i: %e vx_i: %e vy_i: %e vz_i: %e P_i: %e n_i: %e T_i: %e\n", i, j, k, d_av, vx_av, vy_av, vz_av, P_av, n, T);
 }
 
 

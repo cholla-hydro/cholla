@@ -222,12 +222,15 @@ void Grid3D::AllocateMemory(void)
   max_dti = ReduceRealMax(max_dti);
   #endif /*MPI_CHOLLA*/
   
+  /*
   if (H.n_step > 1) {
     H.dt = fmin(2*H.dt, C_cfl / max_dti);
   }
   else 
     H.dt = C_cfl / max_dti;
+  */
   //chprintf("Within set_dt: %f %f %f\n", C_cfl, H.dt, max_dti);
+  H.dt = C_cfl / max_dti;
 
 }
 
@@ -422,7 +425,7 @@ Real Grid3D::Update_Grid(void)
   // point the grid variables at the new data
   if (flux_flag) {
     H.t -= H.dt;
-    return 10*max_dti;
+    return 2*max_dti;
   }
   else {
   C.density  = &g1[0];
@@ -566,10 +569,7 @@ void Grid3D::Add_Supernovae_CC85(void)
   E_dot = 0.0;
 
   // start feedback after 5 Myr, ramp up for 5 Myr, high for 30 Myr, ramp down for 5 Myr
-  //Real tstart = 5.0;
-  //Real tramp = 5.0;
-  //Real thigh = 30.0;
-  Real tstart = 0.0;
+  Real tstart = 5.0;
   Real tramp = 5.0;
   Real thigh = 30.0;
   t = H.t/1000 - tstart;
