@@ -664,7 +664,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
     Real n = d*DENSITY_UNIT / (0.6*MP);
     Real T = P*PRESSURE_UNIT/(n*KB);
     // if this thread has crashed or will be reset, don't include it in the timestep calculation
-    if (d < 0 || d != d || P < 0 || P != P || E < 0 || E != E || T > 1.0e8) max_dti[tid] = 0;
+    if (d < 0 || d != d || P < 0 || P != P || E < 0 || E != E || T > 1.0e9) max_dti[tid] = 0;
     //max_dti[tid] = (fabs(vx)+cs)/dx + (fabs(vy)+cs)/dy + (fabs(vz)+cs)/dz;
     /*
     if (0.3/max_dti[tid] < 1.0) {

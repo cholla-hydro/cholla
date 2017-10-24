@@ -56,9 +56,10 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
         Real T = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
   
         // if there is a problem, redo the update for that cell using first-order fluxes
-        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e8) {
-          //printf("%3d %3d %3d BC: d: %e  E:%e  P:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new);
-          printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
+        //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e8) {
+        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e9) {
+          printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
+          //printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
 
           average_cell(C2, i, j, k, nx, ny, nz, n_cells);
 
@@ -197,8 +198,8 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           // recalculate the temperature
           Real n = d_new*DENSITY_UNIT / (0.6 * MP);
           Real T = P_new*PRESSURE_UNIT/(n*KB);
-          //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T_c);
-          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
+          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
+          //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
           //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
           
           flag = 0;
@@ -1381,7 +1382,7 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   del_T = cool*dt*TIME_UNIT*(gama-1.0)/(n*KB);
 
   // limit change in temperature to 1%
-  while (del_T/T > 0.01) {
+  while (del_T/T > 0.01 && T > T_min) {
     // what dt gives del_T = 0.1*T?
     dt_sub = 0.01*T*n*KB/(cool*TIME_UNIT*(gama-1.0));
     // apply that dt
@@ -1398,7 +1399,7 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   // calculate final temperature
   T -= del_T;
 
-  T = fmax(T, T_min);
+  //T = fmax(T, T_min);
 
   // adjust value of energy based on total change in temperature
   del_T = T_init - T; // total change in T

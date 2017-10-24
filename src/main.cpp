@@ -138,6 +138,15 @@ int main(int argc, char *argv[])
 
     // Add supernovae
     G.Add_Supernovae_CC85();
+    /*
+    Real sn_dti = G.Add_Supernovae();
+    if (sn_dti > 0) {
+      G.H.dt = fmin(G.H.dt, C_cfl/sn_dti);
+    }
+    #ifdef MPI_CHOLLA
+    G.H.dt = ReduceRealMin(G.H.dt);
+    #endif
+    */
 
     // Advance the grid by one timestep
     #ifdef CPU_TIME
