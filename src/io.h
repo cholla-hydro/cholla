@@ -11,6 +11,12 @@ void WriteData(Grid3D G, struct parameters P, int nfile);
 /* Output the grid data to file. */
 void OutputData(Grid3D G, struct parameters P, int nfile);
 
+/* Output a projection of the grid data to file. */
+void OutputProjectedData(Grid3D G, struct parameters P, int nfile);
+
+/* Output a rotated projection of the grid data to file. */
+void OutputRotatedProjectedData(Grid3D G, struct parameters P, int nfile);
+
 #ifdef   MPI_CHOLLA
 /* Output the grid data to file. */
 void OutputDataMPI(Grid3D G, struct parameters P, int nfile);

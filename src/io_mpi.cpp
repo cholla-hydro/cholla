@@ -9,7 +9,6 @@
 #include"io.h"
 #include"mpi_routines.h"
 #include"error_handling.h"
-#define PROJECTION
 
 /* Output the grid data to file. */
 void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
@@ -70,34 +69,6 @@ void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
 
     #endif
   }
-
-  #ifdef PROJECTION
-
-  // create the filename
-  strcpy(filename, P.outdir); 
-  sprintf(timestep, "%d_proj", nfile);
-  strcat(filename,timestep);   
-  strcat(filename,".h5");
-  sprintf(filename,"%s.%d",filename,procID);
-
-  hid_t   file_id;
-  herr_t  status;
-
-  // Create a new file 
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  // Write header (file attributes)
-  G.Write_Header_HDF5(file_id);
-
-  // Write the density and temperature projections to the output file
-  G.Write_Projection_HDF5(file_id);
-
-  // Close the file
-  status = H5Fclose(file_id);
-
-  if (status < 0) {printf("File write failed. ProcID: %d\n", procID); chexit(-1); }
-
-  #endif //PROJECTION
 
 }
 #endif /*MPI_CHOLLA*/

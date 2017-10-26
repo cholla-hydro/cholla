@@ -98,6 +98,17 @@ void parse_params (char *param_file, struct parameters * parms)
     return;
   }
 
+#ifdef ROTATED_PROJECTION
+  //initialize rotation parameters to zero
+  parms->delta = 0;
+  parms->theta = 0;
+  parms->phi   = 0;
+  parms->n_delta = 0;
+  parms->ddelta_dt = 0;
+  parms->flag_delta = 0;
+#endif /*ROTATED_PROJECTION*/
+
+
   /* Read next line */
   while ((s = fgets (buff, sizeof buff, fp)) != NULL)
   {
@@ -192,6 +203,28 @@ void parse_params (char *param_file, struct parameters * parms)
       parms->P_r = atof(value);
     else if (strcmp(name, "diaph")==0)
       parms->diaph = atof(value);
+#ifdef ROTATED_PROJECTION
+    else if (strcmp(name, "nxr")==0)
+      parms->nxr = atoi(value);
+    else if (strcmp(name, "nzr")==0)
+      parms->nzr = atoi(value);
+    else if (strcmp(name, "delta")==0)
+      parms->delta = atof(value);
+    else if (strcmp(name, "theta")==0)
+      parms->theta = atof(value);
+    else if (strcmp(name, "phi")==0)
+      parms->phi = atof(value);
+    else if (strcmp(name, "Lx")==0)
+      parms->Lx  = atof(value);
+    else if (strcmp(name, "Lz")==0)
+      parms->Lz = atof(value);
+    else if (strcmp(name, "n_delta")==0)
+      parms->n_delta = atoi(value);
+    else if (strcmp(name, "ddelta_dt")==0)
+      parms->ddelta_dt = atof(value);
+    else if (strcmp(name, "flag_delta")==0)
+      parms->flag_delta  = atoi(value);
+#endif /*ROTATED_PROJECTION*/
     else
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
         name, value);

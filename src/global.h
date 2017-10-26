@@ -126,6 +126,18 @@ struct parameters
   Real v_r;
   Real P_r;
   Real diaph;
+#ifdef ROTATED_PROJECTION
+  int nxr;
+  int nzr;
+  Real delta;
+  Real theta;
+  Real phi;
+  Real Lx;
+  Real Lz;
+  int n_delta;
+  Real ddelta_dt;
+  int flag_delta;
+#endif /*ROTATED_PROJECTION*/
 };
 
 
