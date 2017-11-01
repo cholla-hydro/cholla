@@ -664,7 +664,6 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
   int block1, block2, block3;
   int x_offset, y_offset, z_offset;
   int x_host, y_host, z_host;
-  int buf_offset;
 
   // if no subgrid blocks, do nothing
   if (nx_s == nx && ny_s == ny && nz_s == nz) return;
@@ -1050,7 +1049,7 @@ void host_return_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, 
   int block1, block2, block3;
   int x_offset, y_offset, z_offset;
   int x_host, y_host, z_host, x_gpu, y_gpu, z_gpu, host_loc, gpu_loc;
-  int length, hid, gid, n;
+  int length, hid, gid;
 
   // if no subgrid blocks, do nothing
   if (nx_s == nx && ny_s == ny && nz_s == nz) return;
