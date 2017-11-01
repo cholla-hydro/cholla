@@ -113,7 +113,11 @@ void OutputProjectedData(Grid3D G, struct parameters P, int nfile)
   // Close the file
   status = H5Fclose(file_id);
 
+  #ifdef MPI_CHOLLA
   if (status < 0) {printf("OutputProjectedData: File write failed. ProcID: %d\n", procID); chexit(-1); }
+  #else
+  if (status < 0) {printf("OutputProjectedData: File write failed.\n"); exit(-1); }
+  #endif
 }
 
 /* Output a rotated projection of the grid data to file. */
@@ -161,7 +165,11 @@ void OutputRotatedProjectedData(Grid3D G, struct parameters P, int nfile)
 
       // Close the file
       status = H5Fclose(file_id);
+      #ifdef MPI_CHOLLA
       if (status < 0) {printf("OutputRotatedProjectedData: File write failed. ProcID: %d\n", procID); chexit(-1); }
+      #else
+      if (status < 0) {printf("OutputRotatedProjectedData: File write failed.\n"); exit(-1); }
+      #endif
 
       //iterate G.R.i_delta
       G.R.i_delta++;
@@ -203,7 +211,11 @@ void OutputRotatedProjectedData(Grid3D G, struct parameters P, int nfile)
     status = H5Fclose(file_id);
   }
 
+  #ifdef MPI_CHOLLA
   if (status < 0) {printf("OutputRotatedProjectedData: File write failed. ProcID: %d\n", procID); chexit(-1); }
+  #else
+  if (status < 0) {printf("OutputRotatedProjectedData: File write failed.\n"); exit(-1); }
+  #endif
 }
 
 /*! \fn void Write_Header_Binary(FILE *fp)

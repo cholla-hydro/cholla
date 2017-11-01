@@ -569,11 +569,18 @@ Real Grid3D::Add_Supernovae(void)
     for (int ii=xid_sn-nl_x; ii<=xid_sn+nl_x; ii++) {
 
       // is this cell in your domain?
+      #ifdef MPI_CHOLLA
       if (ii >= nx_local_start && ii < nx_local_start+nx_local && jj >= ny_local_start && jj < ny_local_start+ny_local && kk >= nz_local_start && kk < nz_local_start+nz_local) 
       {
-        i = ii - nx_local_start + H.n_ghost;
-        j = jj - ny_local_start + H.n_ghost;
-        k = kk - nz_local_start + H.n_ghost;
+      #endif
+        i = ii + H.n_ghost;
+        j = jj + H.n_ghost;
+        k = kk + H.n_ghost;
+        #ifdef MPI_CHOLLA
+        i -= nx_local_start;
+        j -= ny_local_start;
+        k -= nz_local_start;
+        #endif
 
         //printf("procID: %d  ig: %d  jg: %d  kg: %d  il: %d  jl: %d  kl: %d\n", procID, ii, jj, kk, i, j, k);
 
@@ -645,7 +652,9 @@ Real Grid3D::Add_Supernovae(void)
         max_vx = fmax(max_vx, fabs(vx) + cs);
         max_vy = fmax(max_vy, fabs(vy) + cs);
         max_vz = fmax(max_vz, fabs(vz) + cs);
+      #ifdef MPI_CHOLLA
       }
+      #endif
     }
     }
     }

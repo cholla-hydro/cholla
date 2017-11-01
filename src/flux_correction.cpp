@@ -59,11 +59,10 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
         // if there is a problem, redo the update for that cell using first-order fluxes
         //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e8) {
         if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e9) {
-          printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
-          //printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
+          //printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
+          printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
 
 
-/*
           // Do a half-step first order update for the affected cell and all surrounding cells
           // arrays to hold half-step conserved values
           Real C_i[nfields];
@@ -101,8 +100,6 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           // Now update the conserved variables for the affected cell and neighbors 
           // using the first-order fluxes
           first_order_fluxes(C1, C2, i, j, k, dtodx, dtody, dtodz, nfields, nx, ny, nz, n_cells);
-          */
-
 
           // Reset with the new values of the conserved variables
           d_new = C2[id];
@@ -116,6 +113,7 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
 
           // if there is STILL a problem, average over surrounding cells
           if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e9) {
+            printf("%3d %3d %3d Averaging: d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
             average_cell(C2, i, j, k, nx, ny, nz, n_cells);
             d_new = C2[id];
             E_new = C2[4*n_cells+id];
@@ -210,9 +208,10 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           // recalculate the temperature
           Real n = d_new*DENSITY_UNIT / (0.6 * MP);
           Real T = P_new*PRESSURE_UNIT/(n*KB);
-          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
-          //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
+          //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
+          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
           //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
+          if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i, j, k, d_new, P_new);
           
           flag = 0;
         }
