@@ -62,7 +62,6 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           //printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
           printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
 
-
           // Do a half-step first order update for the affected cell and all surrounding cells
           // arrays to hold half-step conserved values
           Real C_i[nfields];
@@ -113,6 +112,7 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
 
           // if there is STILL a problem, average over surrounding cells
           if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e9) {
+            //printf("%3d %3d %3d Averaging: d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
             printf("%3d %3d %3d Averaging: d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
             average_cell(C2, i, j, k, nx, ny, nz, n_cells);
             d_new = C2[id];
