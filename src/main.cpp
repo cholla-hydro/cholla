@@ -95,9 +95,11 @@ int main(int argc, char *argv[])
 
 
   #ifdef OUTPUT
+  if (strcmp(P.init, "Read_Grid") != 0) {
   // write the initial conditions to file
   chprintf("Writing initial conditions to file...\n");
   WriteData(G, P, nfile);
+  }
   // add one to the output file count
   nfile++;
   #endif //OUTPUT
@@ -137,8 +139,8 @@ int main(int argc, char *argv[])
     }
 
     // Add supernovae
-    G.Add_Supernovae_CC85();
-    /*
+    //G.Add_Supernovae_CC85();
+    
     Real sn_dti = G.Add_Supernovae();
     if (sn_dti > 0) {
       G.H.dt = fmin(G.H.dt, C_cfl/sn_dti);
@@ -146,7 +148,7 @@ int main(int argc, char *argv[])
     #ifdef MPI_CHOLLA
     G.H.dt = ReduceRealMin(G.H.dt);
     #endif
-    */
+    
 
     // Advance the grid by one timestep
     #ifdef CPU_TIME

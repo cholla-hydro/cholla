@@ -167,9 +167,27 @@ void OutputRotatedProjectedData(Grid3D G, struct parameters P, int nfile)
       G.R.i_delta++;
     }
 
-  }else{
+  }
+  else if (G.R.flag_delta == 2) {
 
-    //case 2 not yet implemented
+    // case 2 -- outputting at a rotating delta 
+    // rotation rate given in the parameter file
+    G.R.delta = fmod(nfile*G.R.ddelta_dt*2.0*PI , (2.0*PI));
+
+    // Create a new file 
+    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+    // Write header (file attributes)
+    G.Write_Header_Rotated_HDF5(file_id);
+
+    // Write the density and temperature projections to the output file
+    G.Write_Rotated_Projection_HDF5(file_id);
+
+    // Close the file
+    status = H5Fclose(file_id);
+  }
+  else {
+
     //case 0 -- just output at the delta given in the parameter file
 
     // Create a new file 
@@ -357,7 +375,7 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   status = H5Aclose(attribute_id);
 
   //Rotation data
-  chprintf("Outputing rotation data with delta = %e, theta = %e, phi = %e\n",R.delta,R.theta,R.phi);
+  chprintf("Outputing rotation data with delta = %e, theta = %e, phi = %e, Lx = %f, Lz = %f\n",R.delta,R.theta,R.phi,R.Lx,R.Lz);
   attribute_id = H5Acreate(file_id, "nxr", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nx);
   status = H5Aclose(attribute_id);
