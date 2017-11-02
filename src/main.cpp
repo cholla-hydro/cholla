@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
       outtime += P.outstep;      
     }
 
-
+/*
     for (int i=0; i<G.H.nx; i++) {
       for (int j=0; j<G.H.ny; j++) {
         for (int k=0; k<G.H.nz; k++) {
@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
         }
       }
     }
-
+*/
     
 
   } /*end loop over timesteps*/
