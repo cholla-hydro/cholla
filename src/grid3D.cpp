@@ -359,8 +359,6 @@ Real Grid3D::Update_Grid(void)
     g0 = &(buffer1[0]);
     g1 = &(buffer0[0]);
   }
-  int flux_flag;
-
 
   Real max_dti = 0;
   int x_off, y_off, z_off;
@@ -439,23 +437,15 @@ Real Grid3D::Update_Grid(void)
     #endif //VL
     #endif    
 
-    flux_flag = Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    Flux_Correction_3D(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
   }
   else
   {
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(-1);
   }
-  #ifdef MPI_CHOLLA
-  flux_flag = ReduceRealMax(flux_flag);
-  #endif
   // at this point g0 has the old data, g1 has the new data
   // point the grid variables at the new data
-  if (flux_flag) {
-    H.t -= H.dt;
-    return 2*max_dti;
-  }
-  else {
   C.density  = &g1[0];
   C.momentum_x = &g1[H.n_cells];
   C.momentum_y = &g1[2*H.n_cells];
@@ -468,9 +458,6 @@ Real Grid3D::Update_Grid(void)
   // reset the grid flag to swap buffers
   gflag = (gflag+1)%2;
 
-  return max_dti;
-  }
-  //need to return a value
   return max_dti;
 }
 

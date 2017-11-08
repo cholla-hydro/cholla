@@ -18,7 +18,7 @@
 
 
 
-int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt)
+void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt)
 {
 
   int n_cells = nx*ny*nz;
@@ -28,7 +28,6 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
   #ifdef DE
   nfields = 6;
   #endif
-  int flag = 0;
 
   Real d_old, vx_old, vy_old, vz_old, P_old, E_old;
   Real d_new, vx_new, vy_new, vz_new, P_new, E_new;
@@ -217,14 +216,12 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i, j, k, d_new, P_new);
           if (d_new < 0.0 || d_new != d_new || E_new < 0.0 || E_new != E_new) exit(-1);
           
-          flag = 0;
         }
 
       }
     }
   }
 
-  return flag;
 
 }
 
