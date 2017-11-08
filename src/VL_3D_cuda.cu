@@ -146,8 +146,10 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     // copy the conserved variable block to the buffer
     host_copy_block_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved0, buffer, n_fields);
 
+   // calculate the global x, y, and z offsets of this subgrid block
     get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
 
+/*
     // zero the GPU arrays
     cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));
     cudaMemset(dev_conserved_half, 0, n_fields*BLOCK_VOL*sizeof(Real));
@@ -168,7 +170,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     cudaMemset(etah_z, 0, BLOCK_VOL*sizeof(Real));
     cudaMemset(dev_dti_array, 0, ngrid*sizeof(Real));  
     CudaCheckError();
-
+*/
 
     // copy the conserved variables onto the GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );

@@ -29,12 +29,14 @@ __global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real 
                                            int nx, int ny, int n_ghost, Real dx, Real dy, Real dt);
 
 
-Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt)
+Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt)
 {
 
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
   //concatenated into a 1-d array
+  //host_conserved0 contains the values at time n,
+  //host_conserved1 will contain the values at time n+1
 
   #ifdef TIME
   // capture the start time
@@ -51,9 +53,8 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
 
 
   // dimensions of subgrid blocks
-  int nx_s; //number of cells in the subgrid block along x direction
-  int ny_s; //number of cells in the subgrid block along y direction
-  int nz_s = 1; //number of cells in the subgrid block along z direction
+  int nx_s, ny_s;
+  int nz_s = 1;
   int x_off_s, y_off_s; // x and y offsets for subgrid block
 
   // total number of blocks needed
@@ -84,18 +85,34 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
   //number of threads per 1-d block   
   dim3 dim1dBlock(TPB, 1, 1);
 
-  // allocate buffer arrays to copy conserved variable slices into
-  Real **buffer;
-  allocate_buffers_2D(block1_tot, block2_tot, BLOCK_VOL, buffer, n_fields);
-  // and set up pointers for the location to copy from and to
+  // Set up pointers for the location to copy from and to
   Real *tmp1;
   Real *tmp2;
+
+  // allocate buffer to copy conserved variable blocks from and to 
+  Real *buffer;
+  if (block_tot > 1) {
+    if ( NULL == ( buffer = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {
+      printf("Failed to allocate CPU buffer.\n");
+    }
+    tmp1 = buffer;
+    tmp2 = buffer;
+  }
+  else {
+    tmp1 = host_conserved0;
+    tmp2 = host_conserved1;
+  }  
 
   // allocate an array on the CPU to hold max_dti returned from each thread block
   Real max_dti = 0;
   Real *host_dti_array;
   host_dti_array = (Real *) malloc(2*ngrid*sizeof(Real));
-
+  #ifdef COOLING_GPU
+  Real min_dt = 1e10;
+  Real *host_dt_array;
+  host_dt_array = (Real *) malloc(2*ngrid*sizeof(Real));
+  #endif  
+  
   // allocate GPU arrays
   // conserved variables
   Real *dev_conserved;
@@ -105,7 +122,10 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
   Real *eta_x, *eta_y, *etah_x, *etah_y;
   // array of inverse timesteps for dt calculation
   Real *dev_dti_array;
-
+  #ifdef COOLING_GPU
+  // array of timesteps for dt calculation (cooling restriction)
+  Real *dev_dt_array;
+  #endif
 
   // allocate memory on the GPU
   CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -120,19 +140,22 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
   CudaSafeCall( cudaMalloc((void**)&etah_x,  BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah_y,  BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, 2*ngrid*sizeof(Real)) );
+  #ifdef COOLING_GPU
+  CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
+  #endif 
 
 
-  // transfer first conserved variable slice into the first buffer
-  host_copy_init_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, remainder1, BLOCK_VOL, host_conserved, buffer, &tmp1, &tmp2, n_fields);
-  
-
+  // START LOOP OVER SUBGRID BLOCKS HERE
   while (block < block_tot) {
+
+    // copy the conserved variable block to the buffer
+    host_copy_block_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved0, buffer, n_fields);
 
     // calculate the global x and y offsets of this subgrid block
     // (only needed for gravitational potential)
     get_offsets_2D(nx_s, ny_s, n_ghost, x_off, y_off, block, block1_tot, block2_tot, remainder1, remainder2, &x_off_s, &y_off_s);    
 
-
+/*
     // zero all the GPU arrays
     cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));
     cudaMemset(Q_Lx,  0, n_fields*BLOCK_VOL*sizeof(Real));
@@ -147,6 +170,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
     cudaMemset(etah_y, 0,  BLOCK_VOL*sizeof(Real));
     cudaMemset(dev_dti_array, 0, 2*ngrid*sizeof(Real));
     CudaCheckError();
+*/
 
     // copy the conserved variables onto the GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
@@ -154,7 +178,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
 
     // Step 1: Do the reconstruction
     #ifdef PCM
-    PCM_Reconstruction_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx, ny, n_ghost, gama);
+    PCM_Reconstruction_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx_s, ny_s, n_ghost, gama);
     #endif
     #ifdef PLMP
     PLMP_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
@@ -265,11 +289,8 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
     // copy the conserved variable array back to the CPU
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
 
-    // copy the next conserved variable blocks into appropriate buffers
-    host_copy_next_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, &tmp1, n_fields);
-
     // copy the updated conserved variable array back into the host_conserved array on the CPU
-    host_return_values_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved, buffer, n_fields);
+    host_return_block_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved1, buffer, n_fields);
 
 
     // copy the dti array onto the CPU
@@ -278,6 +299,20 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
     for (int i=0; i<2*ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
+    #ifdef COOLING_GPU
+    // copy the dt array from cooling onto the CPU
+    CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+    // iterate through to find the minimum dt for this subgrid block
+    for (int i=0; i<2*ngrid; i++) {
+      min_dt = fmin(min_dt, host_dt_array[i]);
+    }  
+    //printf("%f %f\n", min_dt, 0.3/max_dti); 
+    if (min_dt < 0.3/max_dti) {
+      //printf("%f %f\n", min_dt, 0.3/max_dti); 
+      min_dt = fmax(min_dt, 1.0);
+      max_dti = 0.3/min_dt;
+    }
+    #endif
 
 
     // add one to the counter
@@ -288,7 +323,10 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
 
   // free the CPU memory
   free(host_dti_array);
-  free_buffers_2D(nx, ny, nx_s, ny_s, block1_tot, block2_tot, buffer);
+  if (block_tot > 1) free(buffer);
+  #ifdef COOLING_GPU
+  free(host_dt_array);  
+  #endif    
 
   // free the GPU memory
   cudaFree(dev_conserved);
@@ -303,7 +341,9 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved, int nx, int ny, int x_off, int 
   cudaFree(etah_x);
   cudaFree(etah_y);
   cudaFree(dev_dti_array);
-
+  #ifdef COOLING_GPU
+  cudaFree(dev_dt_array);
+  #endif
 
   // return the maximum inverse timestep
   return max_dti;
