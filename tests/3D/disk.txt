@@ -4,22 +4,23 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=128
+nx=256
 # number of grid cells in the y dimension
-ny=128
+ny=256
 # number of grid cells in the z dimension
-nz=128
+nz=256
 # final output time
 tout=50000
 #tout=0
 # time interval for output
-outstep=1000
+outstep=100
 # value of gamma
 gamma=1.6666667
 # name of initial conditions
 init=Disk_3D
+nfull=10
 #init=Read_Grid
-#nfile=18
+#nfile=12
 # domain properties
 xmin=-5
 ymin=-5
@@ -35,7 +36,17 @@ yu_bcnd=3
 zl_bcnd=3
 zu_bcnd=3
 custom_bcnd=disk_3D
+# rotated projection properties
+nxr=384
+nzr=384
+delta=0.0
+theta=20.0
+phi=20.0
+Lx=15.0
+Lz=15.0
+flag_delta=2
+ddelta_dt=-0.001
 # path to output directory
 #outdir=/Users/evan/Desktop/data/disk_3D/cooling_tests/64/hdf5/
 #outdir=/lustre/atlas/proj-shared/ast125/data/disk_3D/m82_eq/256/hdf5/raw/
-outdir=/u/es26/data/disk_3D/128/
+outdir=/scr/depot0/es26/data/disk_3D/256/hdf5/

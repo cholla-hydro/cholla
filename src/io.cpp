@@ -36,51 +36,57 @@ void OutputData(Grid3D G, struct parameters P, int nfile)
 {
   char filename[100];
   char timestep[20];
+  int flag = 0;
 
-  // create the filename
-  strcpy(filename, P.outdir); 
-  sprintf(timestep, "%d", nfile);
-  strcat(filename,timestep);   
-  #if defined BINARY
-  strcat(filename,".bin");
-  #elif defined HDF5
-  strcat(filename,".h5");
-  #endif
+  // status of flag determines whether to output the full grid
+  if (nfile % P.nfull != 0) flag = 1;
 
-  // open the file for binary writes
-  #if defined BINARY
-  FILE *out;
-  out = fopen(filename, "w");
-  if(out == NULL) {printf("Error opening output file.\n"); exit(-1); }
+  if (flag == 0) {
+    // create the filename
+    strcpy(filename, P.outdir); 
+    sprintf(timestep, "%d", nfile/P.nfull);
+    strcat(filename,timestep);   
+    #if defined BINARY
+    strcat(filename,".bin");
+    #elif defined HDF5
+    strcat(filename,".h5");
+    #endif
 
-  // write the header to the output file
-  G.Write_Header_Binary(out);
+    // open the file for binary writes
+    #if defined BINARY
+    FILE *out;
+    out = fopen(filename, "w");
+    if(out == NULL) {printf("Error opening output file.\n"); exit(-1); }
 
-  // write the conserved variables to the output file
-  G.Write_Grid_Binary(out);
+    // write the header to the output file
+    G.Write_Header_Binary(out);
 
-  // close the output file
-  fclose(out);
+    // write the conserved variables to the output file
+    G.Write_Grid_Binary(out);
+
+    // close the output file
+    fclose(out);
   
-  // create the file for hdf5 writes
-  #elif defined HDF5
-  hid_t   file_id; /* file identifier */
-  herr_t  status;
+    // create the file for hdf5 writes
+    #elif defined HDF5
+    hid_t   file_id; /* file identifier */
+    herr_t  status;
 
-  // Create a new file using default properties.
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);  
+    // Create a new file using default properties.
+    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);  
 
-  // Write the header (file attributes)
-  G.Write_Header_HDF5(file_id);
+    // Write the header (file attributes)
+    G.Write_Header_HDF5(file_id);
 
-  // write the conserved variables to the output file
-  G.Write_Grid_HDF5(file_id);
+    // write the conserved variables to the output file
+    G.Write_Grid_HDF5(file_id);
 
-  // close the file
-  status = H5Fclose(file_id);
+    // close the file
+    status = H5Fclose(file_id);
 
-  if (status < 0) {printf("File write failed.\n"); exit(-1); }
-  #endif
+    if (status < 0) {printf("File write failed.\n"); exit(-1); }
+    #endif
+  }
 }
 
 /* Output a projection of the grid data to file. */

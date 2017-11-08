@@ -16,7 +16,7 @@ void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
   FILE *out;
   char filename[100];
   char timestep[20];
-  int flag = 0;;
+  int flag = 0;
 
   // status of flag determines whether to output full grid
   if (nfile % P.nfull != 0) flag = 1;
