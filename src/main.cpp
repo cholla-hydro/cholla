@@ -70,25 +70,23 @@ int main(int argc, char *argv[])
   // initialize the grid
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
-  //printf("procID %d Local number of grid cells: %d %d %d %d\n", procID, G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
-
 
 
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P, C_cfl);
+  // set main variables for Read_Grid inital conditions
+  if (strcmp(P.init, "Read_Grid") == 0) {
+    dti = C_cfl / G.H.dt;
+    outtime += G.H.t;
+    nfile = P.nfile*P.nfull;
+  }
 
   // set boundary conditions (assign appropriate values to ghost cells)
   chprintf("Setting boundary conditions...\n");
   G.Set_Boundary_Conditions(P);
   chprintf("Boundary conditions set.\n");  
-  // set main variables for Read_Grid inital conditions
-  if (strcmp(P.init, "Read_Grid") == 0) {
-    //G.H.dt = 0.5;
-    dti = C_cfl / G.H.dt;
-    outtime += G.H.t;
-    nfile = P.nfile*P.nfull;
-  }  
+
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n",gama);
   chprintf("Nstep = %d  Timestep = %f  Simulation time = %f\n", G.H.n_step, G.H.dt, G.H.t);
@@ -141,7 +139,6 @@ int main(int argc, char *argv[])
     // Add supernovae
     //G.Add_Supernovae_CC85();
     
-    /*
     Real sn_dti = G.Add_Supernovae();
     if (sn_dti > 0) {
       G.H.dt = fmin(G.H.dt, C_cfl/sn_dti);
@@ -149,7 +146,6 @@ int main(int argc, char *argv[])
     #ifdef MPI_CHOLLA
     G.H.dt = ReduceRealMin(G.H.dt);
     #endif
-    */
     
 
     // Advance the grid by one timestep

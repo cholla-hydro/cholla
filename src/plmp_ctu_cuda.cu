@@ -28,21 +28,20 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     o1 = 3; o2 = 1; o3 = 2;
   }
 
-  // declare primative variables for each stencil
-  // these will be placed into registers for each thread
+  // primative variables in the stencil
   Real d_i, vx_i, vy_i, vz_i, p_i;
   Real d_imo, vx_imo, vy_imo, vz_imo, p_imo; 
   Real d_ipo, vx_ipo, vy_ipo, vz_ipo, p_ipo;
-
-  Real dtodx = dt/dx;
-
-  // declare other variables to be used
+  // left and right interface values
 	Real dl, dr, vxl, vxr, vyl, vyr, vzl, vzr, pl, pr;  
+  // other variables
 	Real mxl, mxr, myl, myr, mzl, mzr, El, Er;
   Real dfl, dfr, mxfl, mxfr, myfl, myfr, mzfl, mzfr, Efl, Efr;
   Real del_d_L, del_vx_L, del_vy_L, del_vz_L, del_p_L;
   Real del_d_R, del_vx_R, del_vy_R, del_vz_R, del_p_R;
 	Real d_slope, vx_slope, vy_slope, vz_slope, p_slope;
+
+  Real dtodx = dt/dx;
 
   // variables needed for dual energy
   #ifdef DE

@@ -60,7 +60,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // calculate the dimensions for the subgrid blocks
   sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
   block_tot = block1_tot*block2_tot*block3_tot;
-  printf("%d %d %d\n", block1_tot, block2_tot, block3_tot);
 
   // number of cells in one subgrid block
   int BLOCK_VOL = nx_s*ny_s*nz_s;

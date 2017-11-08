@@ -591,41 +591,41 @@ Real Grid3D::Add_Supernovae(void)
         // within cluster radius, inject mass and thermal energy
         // entire cell is within sphere
         if (rr < R_c) {
-	  C.density[id] += rho_dot * H.dt;
-	  C.Energy[id] += Ed_dot * H.dt;
-	  #ifdef DE
-	  C.GasEnergy[id] += Ed_dot * H.dt;
-	  //Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
-	  //Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
-	  //printf("%f %f %f Starburst zone n: %e T:%e.\n", x_pos, y_pos, z_pos, n, T);
-	  #endif
+          C.density[id] += rho_dot * H.dt;
+          C.Energy[id] += Ed_dot * H.dt;
+          #ifdef DE
+          C.GasEnergy[id] += Ed_dot * H.dt;
+          //Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
+          //Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+          //printf("%f %f %f Starburst zone n: %e T:%e.\n", x_pos, y_pos, z_pos, n, T);
+          #endif
           //M_dot_tot += rho_dot*H.dx*H.dy*H.dz;
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
         }
         // on the sphere
         if (rl < R_c && rr > R_c) {
-	  // quick Monte Carlo to determine weighting
-	  Ran quickran(50);
-	  incount = 0;
-	  for (int mm=0; mm<1000; mm++) {
-	    // generate a random number between x_pos and dx
-	    xpoint = xl + H.dx*quickran.doub();
-	    // generate a random number between y_pos and dy
-	    ypoint = yl + H.dy*quickran.doub();
-	    // generate a random number between z_pos and dz
-	    zpoint = zl + H.dz*quickran.doub();
-	    // check to see whether the point is within the sphere 
-	    if (xpoint*xpoint + ypoint*ypoint + zpoint*zpoint < R_c*R_c) incount++;
-	  }
-	  weight = incount / 1000.0;
-	  C.density[id] += rho_dot * H.dt * weight;
-	  C.Energy[id]  += Ed_dot * H.dt * weight;
-	  #ifdef DE
-	  C.GasEnergy[id] += Ed_dot * H.dt * weight;
-          //Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
-	  //Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
-	  //printf("%f %f %f Starburst zone n: %e T:%e.\n", x_pos, y_pos, z_pos, n, T);
-	  #endif
+          // quick Monte Carlo to determine weighting
+          Ran quickran(50);
+          incount = 0;
+          for (int mm=0; mm<1000; mm++) {
+            // generate a random number between x_pos and dx
+            xpoint = xl + H.dx*quickran.doub();
+            // generate a random number between y_pos and dy
+            ypoint = yl + H.dy*quickran.doub();
+            // generate a random number between z_pos and dz
+            zpoint = zl + H.dz*quickran.doub();
+            // check to see whether the point is within the sphere 
+            if (xpoint*xpoint + ypoint*ypoint + zpoint*zpoint < R_c*R_c) incount++;
+          }
+          weight = incount / 1000.0;
+          C.density[id] += rho_dot * H.dt * weight;
+          C.Energy[id]  += Ed_dot * H.dt * weight;
+          #ifdef DE
+          C.GasEnergy[id] += Ed_dot * H.dt * weight;
+                  //Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
+          //Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+          //printf("%f %f %f Starburst zone n: %e T:%e.\n", x_pos, y_pos, z_pos, n, T);
+          #endif
           //M_dot_tot += rho_dot*weight*H.dx*H.dy*H.dz;
           //E_dot_tot += Ed_dot*weight*H.dx*H.dy*H.dz;
         }
