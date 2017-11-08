@@ -10,6 +10,8 @@
 #include"roe.h"
 #include"hllc.h"
 #include"plmc.h"
+#include"io.h"
+#include"error_handling.h"
 #ifdef MPI_CHOLLA
 #include"mpi_routines.h"
 #endif
@@ -112,6 +114,9 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           T = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
           */
 
+          // if there is STILL a problem, average over surrounding cells
+          //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e9) {
+          //  printf("%3d %3d %3d Averaging: d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
           average_cell(C2, i, j, k, nx, ny, nz, n_cells);
           d_new = C2[id];
           E_new = C2[4*n_cells+id];
@@ -121,6 +126,7 @@ int Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, in
           P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           n = d_new*DENSITY_UNIT/(0.6*MP);
           T = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+          //}
 
           // Apply gravity
           #ifdef STATIC_GRAV
