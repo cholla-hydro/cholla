@@ -427,7 +427,7 @@ class Grid3D
     void Apply_Forcing(void);    
 
     Real Add_Supernovae(void);    
-    void Add_Supernovae_CC85(void);    
+    Real Add_Supernovae_CC85(void);    
 
     /*! \fn void Set_Boundary_Conditions(parameters P)
      *  \brief Set the boundary conditions based on info in the parameters structure. */

@@ -586,11 +586,12 @@ Real Grid3D::Add_Supernovae(void)
         zr = fabs(z_pos-z_sn)+0.5*H.dz;
         rl = sqrt(xl*xl + yl*yl + zl*zl);
         rr = sqrt(xr*xr + yr*yr + zr*zr);
-        r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
+        r = sqrt((x_pos-x_sn)*(x_pos-x_sn) + (y_pos-y_sn)*(y_pos-y_sn) + (z_pos-z_sn)*(z_pos-z_sn));
 
         // within cluster radius, inject mass and thermal energy
         // entire cell is within sphere
-        if (rr < R_c) {
+        //if (rr < R_c) {
+        if (r < R_c) {
           C.density[id] += rho_dot * H.dt;
           C.Energy[id] += Ed_dot * H.dt;
           #ifdef DE
@@ -603,6 +604,7 @@ Real Grid3D::Add_Supernovae(void)
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
         }
         // on the sphere
+        /*
         if (rl < R_c && rr > R_c) {
           // quick Monte Carlo to determine weighting
           Ran quickran(50);
@@ -629,6 +631,7 @@ Real Grid3D::Add_Supernovae(void)
           //M_dot_tot += rho_dot*weight*H.dx*H.dy*H.dz;
           //E_dot_tot += Ed_dot*weight*H.dx*H.dy*H.dz;
         }
+        */
         // recalculate the timestep for these cells
         d_inv = 1.0 / C.density[id];
         vx = d_inv * C.momentum_x[id];
@@ -670,7 +673,7 @@ Real Grid3D::Add_Supernovae(void)
 }
 
 
-void Grid3D::Add_Supernovae_CC85(void)
+Real Grid3D::Add_Supernovae_CC85(void)
 {
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, R_s, z_s, f, t, t1, t2, t3;
@@ -759,8 +762,8 @@ void Grid3D::Add_Supernovae_CC85(void)
 
         // within starburst radius, inject mass and thermal energy
         // entire cell is within sphere
-        // if (rr < R_s && fabs(z_pos) < z_s) {
-        if (rr < R_s) {
+        //if (rr < R_s) {
+        if (r < R_s) {
           C.density[id] += rho_dot * H.dt;
           C.Energy[id] += Ed_dot * H.dt;
           #ifdef DE
@@ -771,9 +774,9 @@ void Grid3D::Add_Supernovae_CC85(void)
           #endif
           //M_dot_tot += rho_dot*H.dx*H.dy*H.dz;
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
-        }
+        //}
         // on the sphere
-        //if (rl < R_s && rr > R_s && fabs(z_pos) < z_s) {
+/*
         if (rl < R_s && rr > R_s) {
           // quick Monte Carlo to determine weighting
           Ran quickran(50);
@@ -796,16 +799,37 @@ void Grid3D::Add_Supernovae_CC85(void)
           C.GasEnergy[id] += Ed_dot * H.dt;
           #endif
         }
+*/
+          // recalculate the timestep for these cells
+          d_inv = 1.0 / C.density[id];
+          vx = d_inv * C.momentum_x[id];
+          vy = d_inv * C.momentum_y[id];
+          vz = d_inv * C.momentum_z[id];
+          P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
+          cs = sqrt(d_inv * gama * P);
+          // compute maximum cfl velocity
+          max_vx = fmax(max_vx, fabs(vx) + cs);
+          max_vy = fmax(max_vy, fabs(vy) + cs);
+          max_vz = fmax(max_vz, fabs(vz) + cs);
+        }
+
       }
     }
   }
 
-  }
   //printf("%d %e %e\n", procID, M_dot_tot, E_dot_tot);
   //Real global_M_dot, global_E_dot;
   //MPI_Reduce(&M_dot_tot, &global_M_dot, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
   //MPI_Reduce(&E_dot_tot, &global_E_dot, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
   //chprintf("%e %e \n", global_M_dot, global_E_dot*MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT/TIME_UNIT); 
+  // compute max inverse of dt
+  max_dti = max_vx / H.dx;
+  max_dti = fmax(max_dti, max_vy / H.dy);
+  max_dti = fmax(max_dti, max_vz / H.dy);
+
+  }
+
+  return max_dti;
 
 }
 

@@ -60,6 +60,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // load values of density and pressure
     d  =  dev_conserved[            id];
     E  =  dev_conserved[4*n_cells + id];
+    // don't apply cooling if this thread crashed
+    if (E < 0.0 || E != E) return;
     //#ifndef DE
     vx =  dev_conserved[1*n_cells + id] / d;
     vy =  dev_conserved[2*n_cells + id] / d;
@@ -115,7 +117,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T -= del_T;
 
     // set a temperature floor
-    //if (T > 0.0) T = fmax(T, T_min);
+    // (don't change this cell if the thread crashed)
+    if (T > 0.0 && E > 0.0) T = fmax(T, T_min);
     // set a temperature ceiling 
     //T = fmin(T, T_max);
 
