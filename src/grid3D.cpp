@@ -388,10 +388,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_1D_CUDA(&(C.density[0]), H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt);
+    max_dti = CTU_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_1D_CUDA(&(C.density[0]), H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt);
+    max_dti = VL_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt);
     #endif //VL
     #endif //CUDA
   }

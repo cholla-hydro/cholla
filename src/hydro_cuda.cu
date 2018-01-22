@@ -65,7 +65,7 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n);
     #endif    
     //printf("%3d %e %e %e\n", id-n_ghost, fz, gcorr, gx);
-    if (dev_conserved[id] != dev_conserved[id]) printf("%3d Thread crashed in final update.\n", id);
+    if (dev_conserved[id] != dev_conserved[id]) printf("%3d Thread crashed in final update. %f\n", id, dev_conserved[id]);
     /*
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;

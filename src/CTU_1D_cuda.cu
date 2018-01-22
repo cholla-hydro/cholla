@@ -25,10 +25,12 @@
 
 
 
-Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt)
+Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
+  //host_conserved0 contains the values at time n
+  //host_conserved1 will contain the values at time n+1
 
   // capture the start time
   #ifdef TIME
@@ -93,7 +95,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost,
 
 
   // copy the conserved variable array onto the GPU
-  CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
+  CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved0, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
   CudaCheckError();
 
 
@@ -156,7 +158,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost,
 
 
   // copy the conserved variable array back to the CPU
-  CudaSafeCall( cudaMemcpy(host_conserved, dev_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
+  CudaSafeCall( cudaMemcpy(host_conserved1, dev_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
 
   // copy the dti array onto the CPU
   CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
