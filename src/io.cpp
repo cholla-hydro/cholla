@@ -94,6 +94,7 @@ void OutputProjectedData(Grid3D G, struct parameters P, int nfile)
 {
   char filename[100];
   char timestep[20];
+  #ifdef HDF5
   hid_t   file_id;
   herr_t  status;
 
@@ -124,6 +125,9 @@ void OutputProjectedData(Grid3D G, struct parameters P, int nfile)
   #else
   if (status < 0) {printf("OutputProjectedData: File write failed.\n"); exit(-1); }
   #endif
+  #else
+  printf("OutputProjected Data only defined for hdf5 writes.\n");
+  #endif //HDF5
 }
 
 /* Output a rotated projection of the grid data to file. */
@@ -131,6 +135,7 @@ void OutputRotatedProjectedData(Grid3D G, struct parameters P, int nfile)
 {
   char filename[100];
   char timestep[20];
+  #ifdef HDF5
   hid_t   file_id;
   herr_t  status;
 
@@ -221,6 +226,10 @@ void OutputRotatedProjectedData(Grid3D G, struct parameters P, int nfile)
   if (status < 0) {printf("OutputRotatedProjectedData: File write failed. ProcID: %d\n", procID); chexit(-1); }
   #else
   if (status < 0) {printf("OutputRotatedProjectedData: File write failed.\n"); exit(-1); }
+  #endif
+
+  #else
+  printf("OutputRotatedProjectedData only defined for HDF5 writes.\n");
   #endif
 }
 

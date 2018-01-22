@@ -8,7 +8,6 @@
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
-#include"io.h"
 #include"cooling_cuda.h"
 
 
