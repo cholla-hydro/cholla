@@ -387,6 +387,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     }  
     //printf("%f %f %f\n", min_dt, 0.3/max_dti, dt); 
     if (min_dt < 0.3/max_dti) {
+      min_dt = fmax(min_dt, 1.0);
       max_dti = 0.3/min_dt;
       //printf("%f %f %f\n", min_dt, 1.0/max_dti, dt); 
     }
