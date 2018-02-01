@@ -819,7 +819,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     int       ny_dset = H.ny_real;
     int       nz_dset = H.nz_real;
     hsize_t   dims[3];
-    dataset_buffer = (Real *) malloc(H.nx_real*H.ny_real*H.ny_real*sizeof(Real));
+    dataset_buffer = (Real *) malloc(H.nx_real*H.ny_real*H.nz_real*sizeof(Real));
 
     // Create the data space for the datasets
     dims[0] = nx_dset;
