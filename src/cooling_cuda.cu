@@ -33,10 +33,10 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef DE
   Real ge;
   #endif
-  Real T_min = 1.0e4; // minimum temperature allowed
+  Real T_min = 1.0e1; // minimum temperature allowed
   Real T_max= 1.0e9; // maximum temperature allowed
 
-  mu = 0.6;
+  mu = 1.27;
 
   // get a global thread ID
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -87,8 +87,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T = T_init;
     if (T > T_max) printf("%3d %3d %3d High T cell. n: %e  T: %e\n", xid, yid, zid, n, T);
     // call the cooling function (could choose primoridial cool)
-    //cool = Schure_cool(n, T); 
-    cool = Wiersma_cool(n, T); 
+    cool = Schure_cool(n, T); 
+    //cool = Wiersma_cool(n, T); 
     
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
@@ -102,8 +102,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       // how much time is left from the original timestep?
       dt -= dt_sub;
       // calculate cooling again
-      //cool = Schure_cool(n, T);
-      cool = Wiersma_cool(n, T);
+      cool = Schure_cool(n, T);
+      //cool = Wiersma_cool(n, T);
       //cool = primordial_cool(n, T);
       //cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
       // calculate new change in temperature
@@ -125,12 +125,12 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     ge -= KB*del_T / (mu*MP*(gamma-1.0)*SP_ENERGY_UNIT);
     #endif
     //if (del_T/T_init > 0.1) {
-    //  printf("%3d %3d %3d Cooling over 10 percent in hydro dt. n: %e T_init: %e T: %e\n", xid, yid, zid, n, T_init, T);
+      //printf("%3d %3d %3d Cooling over 10 percent in hydro dt. n: %e T_init: %e T: %e\n", xid, yid, zid, n, T_init, T);
     //}
     //if (T < 100) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
-    if (T > T_min) {
-      // calculate cooling rate for new T
-      cool = Wiersma_cool(n, T);
+    // calculate cooling rate for new T
+    cool = Schure_cool(n, T);
+    if (cool > 0.0) {
       // limit the timestep such that delta_T is 10% 
       min_dt[tid] = 0.1*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
     }
@@ -297,21 +297,31 @@ __device__ Real primordial_cool(Real n, Real T)
 __device__ Real Schure_cool(Real n, Real T)
 {
   Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
+  Real  H = 0.0; //heating rate, erg s^-1
   Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
-  
-  // fit to Schure cooling function 
-  if (log10(T) > 5.36) {
-    lambda = pow(10.0, (0.38 * (log10(T) -7.5) * (log10(T) - 7.5) - 22.6));
-  }
-  else if (log10(T) < 4.0) {
-    lambda = 0.0;
-  }
-  else {
-    lambda = pow(10.0, (-2.5 * (log10(T) - 5.1) * (log10(T) - 5.1) - 20.7));
-  }
 
+  // Below 10K only include photoelectric heating
+  if (log10(T) < 1.0) {
+    H = 2.0e-26;
+  }
+  // Koyama & Inutsaka 2002 analytic fit
+  if (log10(T) >= 1.0 && log10(T) < 4.0) {
+    lambda = 2e-26 * (1e7 * exp(-1.148e5 / (T+1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0/T));
+    H = 2.0e-26;
+  }
+  // fit to cloudy CIE cooling function 
+  if (log10(T) >= 4.0 && log10(T) < 5.9) {
+    lambda = pow(10.0, (-1.3 * (log10(T) - 5.25) * (log10(T) - 5.25) - 21.25));
+  }
+  if (log10(T) >= 5.9 && log10(T) < 7.4) {
+    lambda = pow(10.0, (0.7 * (log10(T) - 7.1) * (log10(T) - 7.1) - 22.8));
+  }
+  if (log10(T) >= 7.4)  {
+    lambda = pow(10.0, (0.45*log10(T) - 26.065));
+  }
+ 
   // cooling rate per unit volume
-  cool = n*n*lambda;
+  cool = n*(n*lambda - H);
 
   return cool;
 
@@ -362,24 +372,8 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   // don't allow cooling at super low temps
   if (log_T < 1.0) return cool;
 
-/*
-  // use analytic curve for cooling 
-  if (log10(T) < 4.0) {
-    lambda = 0.0;
-  }
-  else if (log10(T) >= 4.0 && log10(T) < 5.9) {
-    lambda = pow(10.0, (-1.3 * (log10(T) - 5.25) * (log10(T) - 5.25) - 21.25));
-  }
-  else if (log10(T) >= 5.9 && log10(T) < 7.4) {
-    lambda = pow(10.0, (0.7 * (log10(T) - 7.1) * (log10(T) - 7.1) - 22.8));
-  }
-  else {
-    lambda = pow(10.0, (0.45*log10(T) - 26.065));
-  }
-*/
-
   // keep estimates within the bounds of the textures
-  // this is done automatically by setting cudaAddressModeClamp
+  // this is now done automatically by setting cudaAddressModeClamp
   //log_T = fmin(log_T, 9.0);
   //log_n = fmax(log_n, -6.0);
   //log_n = fmin(log_n, 6.0);
