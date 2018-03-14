@@ -30,10 +30,12 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
 
 
 
-Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt)
+Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
+  //host_conserved0 contains the values at time n
+  //host_conserved1 will contain the values at time n+1
 
   int n_cells = nx;
   int ny = 1;
@@ -88,7 +90,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, 
 
   // copy the conserved variable array onto the GPU
 
-  CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
+  CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved0, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
 
 
   // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
@@ -169,7 +171,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved, int nx, int x_off, int n_ghost, 
 
 
   // copy the conserved variable array back to the CPU
-  CudaSafeCall( cudaMemcpy(host_conserved, dev_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
+  CudaSafeCall( cudaMemcpy(host_conserved1, dev_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
 
   // copy the dti array onto the CPU
   CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );

@@ -13,6 +13,7 @@
 /* Output the grid data to file. */
 void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
 {
+
   FILE *out;
   char filename[100];
   char timestep[20];
@@ -58,7 +59,7 @@ void OutputDataMPI(Grid3D G, struct parameters P, int nfile)
 
     // Write header (file attributes)
     G.Write_Header_HDF5(file_id);
-
+ 
     // Write the conserved variables to the output file
     G.Write_Grid_HDF5(file_id);
 
