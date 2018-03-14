@@ -350,6 +350,10 @@ class Grid3D
      *  \brief Square wave density perturbation with amplitude A*rho in pressure equilibrium. */
     void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
 
+    /*! \fn void Superbubble(Real rho, Real P, Real A)
+     *  \brief Sets up a box with density perturbations. */
+    void Superbubble(Real rho, Real P, Real A);
+
     /*! \fn void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph)
      *  \brief Initialize the grid with a Riemann problem. */
     void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph);
@@ -426,6 +430,7 @@ class Grid3D
      *  \brief Apply a forcing field to continuously generate turbulence. */
     void Apply_Forcing(void);    
 
+    Real Add_Supernova(void);    
     Real Add_Supernovae(void);    
     void Add_Supernovae_CC85(void);    
 

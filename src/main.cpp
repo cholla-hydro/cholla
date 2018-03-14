@@ -47,6 +47,10 @@ int main(int argc, char *argv[])
   int nfile = 0; // number of output files
   Real outtime = 0; // current output time
 
+  // SN timing variables
+  Real dt_SN = 10.0; // time between SN (code units)
+  Real t_SN_next = dt_SN;
+
   // read in command line arguments
   if (argc != 2)
   {
@@ -135,15 +139,19 @@ int main(int argc, char *argv[])
 
     // Add supernovae
     //G.Add_Supernovae_CC85();
-    /* 
-    Real sn_dti = G.Add_Supernovae();
-    if (sn_dti > 0) {
-      G.H.dt = fmin(G.H.dt, C_cfl/sn_dti);
+
+    if (G.H.t > t_SN_next) {
+     
+      Real sn_dti = G.Add_Supernova();
+      if (sn_dti > 0) {
+        G.H.dt = fmin(G.H.dt, C_cfl/sn_dti);
+      }
+      #ifdef MPI_CHOLLA
+      G.H.dt = ReduceRealMin(G.H.dt);
+      #endif
+      t_SN_next += dt_SN;
     }
-    #ifdef MPI_CHOLLA
-    G.H.dt = ReduceRealMin(G.H.dt);
-    #endif
-    */
+    
     
 
     // Advance the grid by one timestep
