@@ -19,6 +19,8 @@
 __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, Real *dt_array);
 
 
+__global__ void cloudy_cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, Real *dt_array, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj);
+
 /* \fn __device__ Real test_cool(Real n, Real T)
  * \brief Cooling function from Creasey 2011. */
 __device__ Real test_cool(int tid, Real n, Real T);
