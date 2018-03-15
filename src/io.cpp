@@ -149,7 +149,6 @@ void OutputRotatedProjectedData(Grid3D G, struct parameters P, int nfile)
   sprintf(filename,"%s.%d",filename,procID);
 #endif /*MPI_CHOLLA*/
 
-  //Need to do something about delta index here
   if(G.R.flag_delta==1)
   {
     //if flag_delta==1, then we are just outputting a
@@ -299,6 +298,9 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   status = H5Aclose(attribute_id);
   attribute_id = H5Acreate(file_id, "n_step", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_step);
+  status = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "n_fields", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_fields);
   status = H5Aclose(attribute_id);
   // Close the dataspace
   status = H5Sclose(dataspace_id);
@@ -680,6 +682,27 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
+    #ifdef SCALAR
+    for (int s=0; s<NSCALARS; s++) {
+      // create the name of the dataset
+      char dataset[100]; 
+      char number[10];
+      strcpy(dataset, "/scalar"); 
+      sprintf(number, "%d", s);
+      strcat(dataset,number);        
+      // Copy the scalar array to the memory buffer
+      id = H.n_ghost;
+      memcpy(&dataset_buffer[0], &(C.scalar[id+s*H.n_cells]), H.nx_real*sizeof(Real));    
+
+      // Create a dataset id for the scalar
+      dataset_id = H5Dcreate(file_id, dataset, H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      // Write the scalar array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+    }
+    #endif
+
     #ifdef DE
     // Copy the internal energy array to the memory buffer
     id = H.n_ghost;
@@ -789,6 +812,33 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
     // Free the dataset id
     status = H5Dclose(dataset_id);
+
+
+    #ifdef SCALAR
+    for (int s=0; s<NSCALARS; s++) {
+      // create the name of the dataset
+      char dataset[100]; 
+      char number[10];
+      strcpy(dataset, "/scalar"); 
+      sprintf(number, "%d", s);
+      strcat(dataset,number);        
+      // Copy the scalar array to the memory buffer
+      for (j=0; j<H.ny_real; j++) {
+        for (i=0; i<H.nx_real; i++) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx;
+          buf_id = j + i*H.ny_real;
+          dataset_buffer[buf_id] = C.scalar[id+s*H.n_cells];
+        }
+      }
+      // Create a dataset id for the scalar
+      dataset_id = H5Dcreate(file_id, dataset, H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      // Write the scalar array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+    }
+    #endif
+
 
     #ifdef DE
     // Copy the internal energy array to the memory buffer
@@ -916,6 +966,33 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
     // Free the dataset id
     status = H5Dclose(dataset_id);
+
+    #ifdef SCALAR
+    for (int s=0; s<NSCALARS; s++) {
+      // create the name of the dataset
+      char dataset[100]; 
+      char number[10];
+      strcpy(dataset, "/scalar"); 
+      sprintf(number, "%d", s);
+      strcat(dataset,number);        
+      // Copy the scalar array to the memory buffer
+      for (k=0; k<H.nz_real; k++) {
+        for (j=0; j<H.ny_real; j++) {
+          for (i=0; i<H.nx_real; i++) {
+            id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+            buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+            dataset_buffer[buf_id] = C.scalar[id+s*H.n_cells];
+          }
+        }
+      }
+      // Create a dataset id for the scalar
+      dataset_id = H5Dcreate(file_id, dataset, H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      // Write the scalar array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+    }
+    #endif
 
     #ifdef DE
     // Copy the internal energy array to the memory buffer

@@ -9,9 +9,9 @@
 #include"global.h"
 
 
-/*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
+/*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
  *  \brief Exact Riemann solver based on the Fortran code given in Sec. 4.9 of Toro (1999). */
-__global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir);
+__global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields);
 
 __device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma);
 

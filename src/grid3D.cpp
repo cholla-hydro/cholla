@@ -150,6 +150,19 @@ void Grid3D::Initialize(struct parameters *P)
   // and inialize the timestep
   H.dt = 0.0;
 
+  // number of fields to track (default 5 is # of conserved variables)
+  H.n_fields = 5;
+
+  // if including passive scalars increase the number of fields
+  #ifdef SCALAR
+  H.n_fields += NSCALARS;
+  #endif
+
+  // if using dual energy formalism must track internal energy - always the last field!
+  #ifdef DE
+  H.n_fields++;
+  #endif  
+
   // allocate memory
   AllocateMemory();
 
@@ -187,19 +200,12 @@ void Grid3D::Initialize(struct parameters *P)
  *  \brief Allocate memory for the arrays. */
 void Grid3D::AllocateMemory(void)
 {
-  // number of fields to track (default 5 is # of conserved variables)
-  int fields;
-  fields = 5;
 
-  // if using dual energy formalism must track internal energy
-  #ifdef DE
-  fields++;
-  #endif
 
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
-  buffer0 = (Real *) malloc(fields*H.n_cells*sizeof(Real));
-  buffer1 = (Real *) malloc(fields*H.n_cells*sizeof(Real));
+  buffer0 = (Real *) malloc(H.n_fields*H.n_cells*sizeof(Real));
+  buffer1 = (Real *) malloc(H.n_fields*H.n_cells*sizeof(Real));
 
   // point conserved variables to the appropriate locations in buffer
   C.density  = &(buffer0[0]);
@@ -207,12 +213,15 @@ void Grid3D::AllocateMemory(void)
   C.momentum_y = &(buffer0[2*H.n_cells]);
   C.momentum_z = &(buffer0[3*H.n_cells]);
   C.Energy   = &(buffer0[4*H.n_cells]);
+  #ifdef SCALAR
+  C.scalar  = &(buffer0[5*H.n_cells]);
+  #endif
   #ifdef DE
-  C.GasEnergy = &(buffer0[5*H.n_cells]);
+  C.GasEnergy = &(buffer0[(H.n_fields-1)*H.n_cells]);
   #endif
 
   // initialize array
-  for (int i=0; i<fields*H.n_cells; i++)
+  for (int i=0; i<H.n_fields*H.n_cells; i++)
   {
     buffer0[i] = 0.0;
     buffer1[i] = 0.0;
@@ -388,10 +397,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt);
+    max_dti = CTU_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt);
+    max_dti = VL_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
     #endif //VL
     #endif //CUDA
   }
@@ -409,10 +418,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt);
+    max_dti = CTU_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt);
+    max_dti = VL_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //VL
     #endif //CUDA
   }
@@ -430,10 +439,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields);
     #endif //VL
     #endif    
 
@@ -451,8 +460,11 @@ Real Grid3D::Update_Grid(void)
   C.momentum_y = &g1[2*H.n_cells];
   C.momentum_z = &g1[3*H.n_cells];
   C.Energy   = &g1[4*H.n_cells];
+  #ifdef SCALAR
+  C.Energy   = &g1[5*H.n_cells];
+  #endif
   #ifdef DE
-  C.GasEnergy = &g1[5*H.n_cells];
+  C.GasEnergy = &g1[(H.n_fields-1)*H.n_cells];
   #endif
 
   // reset the grid flag to swap buffers

@@ -25,7 +25,7 @@
 
 
 
-Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt)
+Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt,int n_fields)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
@@ -43,11 +43,6 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   int n_cells = nx;
   int ny = 1;
   int nz = 1;
-
-  int n_fields = 5;
-  #ifdef DE
-  n_fields++;
-  #endif
 
   // set the dimensions of the cuda grid
   int  ngrid = (n_cells + TPB - 1) / TPB;
@@ -101,7 +96,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
   // Step 1: Do the reconstruction
   #ifdef PCM
-  PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, n_ghost, gama);
+  PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, n_ghost, gama, n_fields);
   CudaCheckError();
   #endif
   #ifdef PLMP
@@ -109,7 +104,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   CudaCheckError();
   #endif
   #ifdef PLMC
-  PLMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0);
+  PLMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   CudaCheckError();
   #endif
   #ifdef PPMP
@@ -117,39 +112,39 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   CudaCheckError();
   #endif
   #ifdef PPMC
-  PPMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0);
+  PPMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   CudaCheckError();
   #endif
 
   
   // Step 2: Calculate the fluxes
   #ifdef EXACT
-  Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0);
+  Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   #ifdef ROE
-  Calculate_Roe_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
+  Calculate_Roe_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0, n_fields);
   #endif
   #ifdef HLLC 
-  Calculate_HLLC_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0);
+  Calculate_HLLC_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0, n_fields);
   #endif
   CudaCheckError();
 
 
   // Step 3: Update the conserved variable array
-  Update_Conserved_Variables_1D<<<dimGrid,dimBlock>>>(dev_conserved, F, n_cells, x_off, n_ghost, dx, xbound, dt, gama);
+  Update_Conserved_Variables_1D<<<dimGrid,dimBlock>>>(dev_conserved, F, n_cells, x_off, n_ghost, dx, xbound, dt, gama, n_fields);
   CudaCheckError();
    
 
   // Sychronize the total and internal energy, if using dual-energy formalism
   #ifdef DE
-  Sync_Energies_1D<<<dimGrid,dimBlock>>>(dev_conserved, n_cells, n_ghost, gama);
+  Sync_Energies_1D<<<dimGrid,dimBlock>>>(dev_conserved, n_cells, n_ghost, gama, n_fields);
   #endif
 
 
   // Apply cooling
   #ifdef COOLING_GPU
   printf("Need to fix cooling.\n");
-  //cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama);
+  //cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama);
   #endif
 
   // Calculate the next timestep

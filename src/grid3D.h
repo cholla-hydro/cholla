@@ -172,6 +172,10 @@ struct Header
   *  \brief Number of timesteps taken */
   int n_step;
 
+  /*! \var n_fields
+  *  \brief Number of fields (conserved variables, scalars, etc.) */
+  int n_fields;
+
 };
 
 /*! \class Grid3D
@@ -231,6 +235,12 @@ class Grid3D
        *  \brief Array containing the internal energy of each cell, only tracked separately when using
            the dual-energy formalism. */
       Real *GasEnergy;
+      #endif
+
+      #ifdef SCALAR
+      /*! \var scalar
+       *  \brief Array containing the values of the passive scalar variable(s). */
+      Real *scalar;
       #endif
 
     } C;

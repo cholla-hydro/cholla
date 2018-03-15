@@ -12,11 +12,11 @@
 
 
 
-/*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
+/*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
 //__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, Real *dt_array)
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array)
 {
   __shared__ Real min_dt[TPB];
 
@@ -67,7 +67,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     p  = fmax(p, (Real) TINY_NUMBER);
     //#endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id] / d;
+    ge = dev_conserved[(n_fields-1)*n_cells + id] / d;
     ge = fmax(ge, (Real) TINY_NUMBER);
     #endif
     
@@ -138,7 +138,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // and send back from kernel
     dev_conserved[4*n_cells + id] = E;
     #ifdef DE
-    dev_conserved[5*n_cells + id] = d*ge;
+    dev_conserved[(n_fields-1)*n_cells + id] = d*ge;
     #endif
 
   //}
@@ -163,8 +163,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
-//__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
-__global__ void cloudy_cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma, Real *dt_array, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+//__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+__global__ void cloudy_cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
 {
   __shared__ Real min_dt[TPB];
 
@@ -215,7 +215,7 @@ __global__ void cloudy_cooling_kernel(Real *dev_conserved, int nx, int ny, int n
     p  = fmax(p, (Real) TINY_NUMBER);
     //#endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id] / d;
+    ge = dev_conserved[(n_fields-1)*n_cells + id] / d;
     ge = fmax(ge, (Real) TINY_NUMBER);
     #endif
     
@@ -281,7 +281,7 @@ __global__ void cloudy_cooling_kernel(Real *dev_conserved, int nx, int ny, int n
     // and send back from kernel
     dev_conserved[4*n_cells + id] = E;
     #ifdef DE
-    dev_conserved[5*n_cells + id] = d*ge;
+    dev_conserved[(n_fields-1)*n_cells + id] = d*ge;
     #endif
 
   //}

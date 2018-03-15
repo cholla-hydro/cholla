@@ -11,9 +11,9 @@
 #include"exact_cuda.h"
 
 
-/*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
+/*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
  *  \brief Exact Riemann solver based on the Fortran code given in Sec. 4.9 of Toro (1999). */
-__global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
+__global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -43,6 +43,10 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
   Real gel, ger;
   #endif
 
+  #ifdef SCALAR
+  Real scalarl[NSCALARS], scalarr[NSCALARS];
+  #endif
+
 
   // Each thread executes the solver independently
   //if (xid > n_ghost-3 && xid < nx-n_ghost+1 && yid < ny && zid < nz) 
@@ -55,8 +59,13 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     vzl = dev_bounds_L[o3*n_cells + tid]/dl;
     pl  = (dev_bounds_L[4*n_cells + tid] - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     pl  = fmax(pl, (Real) TINY_NUMBER);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalarl[i] = dev_bounds_L[(5+i)*n_cells + tid];
+    }
+    #endif
     #ifdef DE
-    gel = dev_bounds_L[5*n_cells + tid]/dl;
+    gel = dev_bounds_L[(n_fields-1)*n_cells + tid]/dl;
     #endif
     dr  = dev_bounds_R[            tid];
     vxr = dev_bounds_R[o1*n_cells + tid]/dr;
@@ -64,8 +73,13 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     vzr = dev_bounds_R[o3*n_cells + tid]/dr;
     pr  = (dev_bounds_R[4*n_cells + tid] - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);  
     pr  = fmax(pr, (Real) TINY_NUMBER);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalarr[i] = dev_bounds_R[(5+i)*n_cells + tid];
+    }
+    #endif
     #ifdef DE
-    ger = dev_bounds_R[5*n_cells + tid]/dr;
+    ger = dev_bounds_R[(n_fields-1)*n_cells + tid]/dr;
     #endif
 
 
@@ -95,8 +109,13 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     {
       dev_flux[o2*n_cells + tid] = ds*vs*vyl;
       dev_flux[o3*n_cells + tid] = ds*vs*vzl;
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        dev_flux[(5+i)*n_cells + tid] = vs*scalarl[i];
+      }
+      #endif
       #ifdef DE
-      dev_flux[5*n_cells + tid] = ds*vs*gel;
+      dev_flux[(n_fields-1)*n_cells + tid] = ds*vs*gel;
       #endif
       Es = (ps/(gamma - 1.0)) + 0.5*ds*(vs*vs + vyl*vyl + vzl*vzl);
     }
@@ -104,8 +123,13 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     {
       dev_flux[o2*n_cells + tid] = ds*vs*vyr;
       dev_flux[o3*n_cells + tid] = ds*vs*vzr;
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        dev_flux[(5+i)*n_cells + tid] = vs*scalarr[i];
+      }
+      #endif
       #ifdef DE
-      dev_flux[5*n_cells + tid] = ds*vs*ger;
+      dev_flux[(n_fields-1)*n_cells + tid] = ds*vs*ger;
       #endif
       Es = (ps/(gamma - 1.0)) + 0.5*ds*(vs*vs + vyr*vyr + vzr*vzr);
     }

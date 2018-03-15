@@ -30,21 +30,16 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                                            Real *dev_Q_Ly, Real *dev_Q_Ry, Real *dev_F_y,
                                            Real *dev_Q_Lz, Real *dev_Q_Rz, Real *dev_F_z,
                                            int nx, int ny, int nz, int n_ghost, 
-                                           Real dx, Real dy, Real dz, Real dt);
+                                           Real dx, Real dy, Real dz, Real dt, int n_fields);
 
 
-Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt)
+Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt, int n_fields)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
   //concatenated into a 1-d array
   //host_conserved0 contains the values at time n,
   //host_conserved1 contains the values at time n+1
-
-  int n_fields = 5;
-  #ifdef DE
-  n_fields++;
-  #endif
 
   // dimensions of subgrid blocks
   int nx_s, ny_s, nz_s; 
@@ -223,7 +218,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // Step 1: Do the reconstruction
     #ifdef PCM
-    PCM_Reconstruction_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama);
+    PCM_Reconstruction_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
     #endif //PCM
     #ifdef PLMP
     PLMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
@@ -231,9 +226,9 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     PLMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2);
     #endif //PLMP 
     #ifdef PLMC
-    PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
-    PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
-    PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2);
+    PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
+    PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
+    PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     #endif //PLMC 
     #ifdef PPMP
     PPMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
@@ -241,9 +236,9 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     PPMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2);
     #endif //PPMP
     #ifdef PPMC
-    PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
-    PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
-    PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2);
+    PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
+    PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
+    PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     #endif //PPMC
     CudaCheckError();
    
@@ -265,26 +260,26 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // Step 2: Calculate the fluxes
     #ifdef EXACT
-    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2);
+    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
     #endif //EXACT
     #ifdef ROE
-    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
-    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2);
+    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0, n_fields);
+    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
+    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2, n_fields);
     #endif //ROE
     #ifdef HLLC
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2, n_fields);
     #endif //HLLC
     CudaCheckError();
 
 
     #ifdef CTU
     // Step 3: Evolve the interface states
-    Evolve_Interface_States_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, F_x, Q_Ly, Q_Ry, F_y, Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dt);
+    Evolve_Interface_States_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, F_x, Q_Ly, Q_Ry, F_y, Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dt, n_fields);
     CudaCheckError();
 
 
@@ -305,26 +300,26 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // Step 4: Calculate the fluxes again
     #ifdef EXACT
-    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2);
+    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    Calculate_Exact_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
     #endif //EXACT
     #ifdef ROE
-    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
-    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2);
+    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0, n_fields);
+    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
+    Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2, n_fields);
     #endif //ROE
     #ifdef HLLC
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0);
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1);
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2, n_fields);
     #endif //HLLC
     CudaCheckError();
     #endif //CTU
 
   
     // Step 5: Update the conserved variable array
-    Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, F_z, nx_s, ny_s, nz_s, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama);
+    Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, F_z, nx_s, ny_s, nz_s, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama, n_fields);
     CudaCheckError();
 
 /*
@@ -346,7 +341,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // Synchronize the total and internal energies
     #ifdef DE
-    Sync_Energies_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama);
+    Sync_Energies_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
     CudaCheckError();
     #endif
 
@@ -354,7 +349,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     // Apply cooling
     #ifdef COOLING_GPU
     //cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama, coolTexObj, heatTexObj);
-    cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dt, gama, dev_dt_array);
+    cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
     CudaCheckError();
     #endif
 
@@ -447,7 +442,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, Real *dev_Q_Rx, Real *dev_F_x,
                                            Real *dev_Q_Ly, Real *dev_Q_Ry, Real *dev_F_y,
                                            Real *dev_Q_Lz, Real *dev_Q_Rz, Real *dev_F_z,
-                                           int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt)
+                                           int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt, int n_fields)
 {
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
@@ -480,9 +475,15 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodz*(dev_F_z[3*n_cells + kmo] - dev_F_z[3*n_cells + id]);
     dev_Q_Lx[4*n_cells + id] += 0.5*dtody*(dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id])
                               + 0.5*dtodz*(dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id]);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_Q_Lx[(5+i)*n_cells + id] += 0.5*dtody*(dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id])
+                                + 0.5*dtodz*(dev_F_z[(5+i)*n_cells + kmo] - dev_F_z[(5+i)*n_cells + id]);
+    }                          
+    #endif
     #ifdef DE
-    dev_Q_Lx[5*n_cells + id] += 0.5*dtody*(dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
-                              + 0.5*dtodz*(dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id]);
+    dev_Q_Lx[(n_fields-1)*n_cells + id] += 0.5*dtody*(dev_F_y[(n_fields-1)*n_cells + jmo] - dev_F_y[(n_fields-1)*n_cells + id])
+                              + 0.5*dtodz*(dev_F_z[(n_fields-1)*n_cells + kmo] - dev_F_z[(n_fields-1)*n_cells + id]);
     #endif
 
     // right
@@ -496,9 +497,15 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodz*(dev_F_z[3*n_cells + ipokmo] - dev_F_z[3*n_cells + ipo]);
     dev_Q_Rx[4*n_cells + id] += 0.5*dtody*(dev_F_y[4*n_cells + ipojmo] - dev_F_y[4*n_cells + ipo])
                               + 0.5*dtodz*(dev_F_z[4*n_cells + ipokmo] - dev_F_z[4*n_cells + ipo]);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_Q_Rx[(5+i)*n_cells + id] += 0.5*dtody*(dev_F_y[(5+i)*n_cells + ipojmo] - dev_F_y[(5+i)*n_cells + ipo])
+                                + 0.5*dtodz*(dev_F_z[(5+i)*n_cells + ipokmo] - dev_F_z[(5+i)*n_cells + ipo]);
+    }                          
+    #endif
     #ifdef DE
-    dev_Q_Rx[5*n_cells + id] += 0.5*dtody*(dev_F_y[5*n_cells + ipojmo] - dev_F_y[5*n_cells + ipo])
-                              + 0.5*dtodz*(dev_F_z[5*n_cells + ipokmo] - dev_F_z[5*n_cells + ipo]);
+    dev_Q_Rx[(n_fields-1)*n_cells + id] += 0.5*dtody*(dev_F_y[(n_fields-1)*n_cells + ipojmo] - dev_F_y[(n_fields-1)*n_cells + ipo])
+                              + 0.5*dtodz*(dev_F_z[(n_fields-1)*n_cells + ipokmo] - dev_F_z[(n_fields-1)*n_cells + ipo]);
     #endif
   }
   if (yid > n_ghost-3 && yid < ny-n_ghost+1 && xid > n_ghost-2 && xid < nx-n_ghost+1 && zid > n_ghost-2 && zid < nz-n_ghost+1)
@@ -520,9 +527,15 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodx*(dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id]);
     dev_Q_Ly[4*n_cells + id] += 0.5*dtodz*(dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id])
                               + 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id]);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_Q_Ly[(5+i)*n_cells + id] += 0.5*dtodz*(dev_F_z[(5+i)*n_cells + kmo] - dev_F_z[(5+i)*n_cells + id])
+                                + 0.5*dtodx*(dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id]);
+    }
+    #endif
     #ifdef DE
-    dev_Q_Ly[5*n_cells + id] += 0.5*dtodz*(dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id])
-                              + 0.5*dtodx*(dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id]);
+    dev_Q_Ly[(n_fields-1)*n_cells + id] += 0.5*dtodz*(dev_F_z[(n_fields-1)*n_cells + kmo] - dev_F_z[(n_fields-1)*n_cells + id])
+                              + 0.5*dtodx*(dev_F_x[(n_fields-1)*n_cells + imo] - dev_F_x[(n_fields-1)*n_cells + id]);
     #endif
 
     // right
@@ -536,9 +549,15 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtodx*(dev_F_x[3*n_cells + jpoimo] - dev_F_x[3*n_cells + jpo]);
     dev_Q_Ry[4*n_cells + id] += 0.5*dtodz*(dev_F_z[4*n_cells + jpokmo] - dev_F_z[4*n_cells + jpo])
                               + 0.5*dtodx*(dev_F_x[4*n_cells + jpoimo] - dev_F_x[4*n_cells + jpo]);    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_Q_Ry[(5+i)*n_cells + id] += 0.5*dtodz*(dev_F_z[(5+i)*n_cells + jpokmo] - dev_F_z[(5+i)*n_cells + jpo])
+                                + 0.5*dtodx*(dev_F_x[(5+i)*n_cells + jpoimo] - dev_F_x[(5+i)*n_cells + jpo]);    
+    }                            
+    #endif
     #ifdef DE
-    dev_Q_Ry[5*n_cells + id] += 0.5*dtodz*(dev_F_z[5*n_cells + jpokmo] - dev_F_z[5*n_cells + jpo])
-                              + 0.5*dtodx*(dev_F_x[5*n_cells + jpoimo] - dev_F_x[5*n_cells + jpo]);    
+    dev_Q_Ry[(n_fields-1)*n_cells + id] += 0.5*dtodz*(dev_F_z[(n_fields-1)*n_cells + jpokmo] - dev_F_z[(n_fields-1)*n_cells + jpo])
+                              + 0.5*dtodx*(dev_F_x[(n_fields-1)*n_cells + jpoimo] - dev_F_x[(n_fields-1)*n_cells + jpo]);    
     #endif
   }
   if (zid > n_ghost-3 && zid < nz-n_ghost+1 && xid > n_ghost-2 && xid < nx-n_ghost+1 && yid > n_ghost-2 && yid < ny-n_ghost+1)
@@ -560,9 +579,15 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtody*(dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
     dev_Q_Lz[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                               + 0.5*dtody*(dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_Q_Lz[(5+i)*n_cells + id] += 0.5*dtodx*(dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id])
+                                + 0.5*dtody*(dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id]);
+    }
+    #endif
     #ifdef DE
-    dev_Q_Lz[5*n_cells + id] += 0.5*dtodx*(dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
-                              + 0.5*dtody*(dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id]);
+    dev_Q_Lz[(n_fields-1)*n_cells + id] += 0.5*dtodx*(dev_F_x[(n_fields-1)*n_cells + imo] - dev_F_x[(n_fields-1)*n_cells + id])
+                              + 0.5*dtody*(dev_F_y[(n_fields-1)*n_cells + jmo] - dev_F_y[(n_fields-1)*n_cells + id]);
     #endif
     // right
     dev_Q_Rz[            id] += 0.5*dtodx*(dev_F_x[            kpoimo] - dev_F_x[            kpo])
@@ -575,9 +600,15 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                               + 0.5*dtody*(dev_F_y[3*n_cells + kpojmo] - dev_F_y[3*n_cells + kpo]);
     dev_Q_Rz[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + kpoimo] - dev_F_x[4*n_cells + kpo])
                               + 0.5*dtody*(dev_F_y[4*n_cells + kpojmo] - dev_F_y[4*n_cells + kpo]);    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_Q_Rz[(5+i)*n_cells + id] += 0.5*dtodx*(dev_F_x[(5+i)*n_cells + kpoimo] - dev_F_x[(5+i)*n_cells + kpo])
+                                + 0.5*dtody*(dev_F_y[(5+i)*n_cells + kpojmo] - dev_F_y[(5+i)*n_cells + kpo]);    
+    }                            
+    #endif
     #ifdef DE
-    dev_Q_Rz[5*n_cells + id] += 0.5*dtodx*(dev_F_x[5*n_cells + kpoimo] - dev_F_x[5*n_cells + kpo])
-                              + 0.5*dtody*(dev_F_y[5*n_cells + kpojmo] - dev_F_y[5*n_cells + kpo]);    
+    dev_Q_Rz[(n_fields-1)*n_cells + id] += 0.5*dtodx*(dev_F_x[(n_fields-1)*n_cells + kpoimo] - dev_F_x[(n_fields-1)*n_cells + kpo])
+                              + 0.5*dtody*(dev_F_y[(n_fields-1)*n_cells + kpojmo] - dev_F_y[(n_fields-1)*n_cells + kpo]);    
     #endif
   }
 
