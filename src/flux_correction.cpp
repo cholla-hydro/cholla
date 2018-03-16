@@ -54,7 +54,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
         vy_new = C2[2*n_cells+id]/d_new;
         vz_new = C2[3*n_cells+id]/d_new;
         P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
-        n = d_new*DENSITY_UNIT/(0.6*MP);
+        n = d_new*DENSITY_UNIT/(1.27*MP);
         T = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
   
         // if there is a problem, redo the update for that cell using first-order fluxes
@@ -122,7 +122,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           vy_new = C2[2*n_cells+id]/d_new;
           vz_new = C2[3*n_cells+id]/d_new;
           P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
-          n = d_new*DENSITY_UNIT/(0.6*MP);
+          n = d_new*DENSITY_UNIT/(1.27*MP);
           T = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
           //}
 
@@ -200,14 +200,14 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 
           // apply cooling
           #ifdef COOLING_GPU
-          cooling_CPU(C2, id, n_cells, dt);
+          //cooling_CPU(C2, id, n_cells, dt);
           #endif
 
           // recalculate the pressure
           E_new = C2[4*n_cells + id];
           P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           // recalculate the temperature
-          Real n = d_new*DENSITY_UNIT / (0.6 * MP);
+          Real n = d_new*DENSITY_UNIT / (1.27 * MP);
           Real T = P_new*PRESSURE_UNIT/(n*KB);
           printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
           //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
@@ -970,14 +970,14 @@ void average_cell(Real *C1, int i, int j, int k, int nx, int ny, int nz, int n_c
   */
   Real n = d_av*DENSITY_UNIT/(0.6*MP);
   Real T = P_av*PRESSURE_UNIT/(n*KB);
-  if (T < 1.0e4) {
-    P_av = n*KB*1.0e4/PRESSURE_UNIT;
+  if (T < 1.0e1) {
+    P_av = n*KB*1.0e1/PRESSURE_UNIT;
   }
   C1[id+4*n_cells] = P_av/(gama-1.0) + 0.5*d_av*(vx_av*vx_av+vy_av*vy_av+vz_av*vz_av);
   #ifdef DE
   C1[id+5*n_cells] = P_av/(gama-1.0);
-  #endif
   T = C1[id+5*n_cells]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+  #endif
 
   printf("%3d %3d %3d  d_i: %e vx_i: %e vy_i: %e vz_i: %e E: %e n_i: %e T_i: %e\n", i, j, k, d_av, vx_av, vy_av, vz_av, C1[id+4*n_cells], n, T);
   //printf("%3d %3d %3d  d_i: %e d_imo: %e d_ipo: %e d_jmo: %e d_jpo: %e d_kmo: %e d_kpo: %e\n", i, j, k, C1[id], C1[imo], C1[ipo], C1[jmo], C1[jpo], C1[kmo], C1[kpo]);
