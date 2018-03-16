@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
   // SN timing variables
   Real dt_SN = 10.0; // time between SN (code units)
-  Real t_SN_next = dt_SN;
+  Real t_SN_next = 0.0;
 
   // read in command line arguments
   if (argc != 2)
@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
     dti = C_cfl / G.H.dt;
     outtime += G.H.t;
     nfile = P.nfile*P.nfull;
+    t_SN_next += G.H.t;
   }
 
   // set boundary conditions (assign appropriate values to ghost cells)
@@ -126,6 +127,8 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
+    //for (int i=0; i<G.H.nx; i++) printf("%f\n", G.C.Energy[i]);
+
     // get the start time
     start_step = get_time();
     
@@ -140,7 +143,7 @@ int main(int argc, char *argv[])
     // Add supernovae
     //G.Add_Supernovae_CC85();
 
-    if (G.H.t > t_SN_next) {
+    if (G.H.t >= t_SN_next) {
      
       Real sn_dti = G.Add_Supernova();
       if (sn_dti > 0) {

@@ -461,7 +461,7 @@ Real Grid3D::Update_Grid(void)
   C.momentum_z = &g1[3*H.n_cells];
   C.Energy   = &g1[4*H.n_cells];
   #ifdef SCALAR
-  C.Energy   = &g1[5*H.n_cells];
+  C.scalar = &g1[5*H.n_cells];
   #endif
   #ifdef DE
   C.GasEnergy = &g1[(H.n_fields-1)*H.n_cells];

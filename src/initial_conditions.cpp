@@ -359,7 +359,9 @@ void Grid3D::Superbubble(Real rho, Real P, Real A)
         C.momentum_y[id] = 0.0;
         C.momentum_z[id] = 0.0;
         C.Energy[id]     = P/(gama-1.0);
+        #ifdef DE
         C.GasEnergy[id]  = P/(gama-1.0);
+        #endif
         // add density perturbations
         for (int ii=0; ii<5; ii++) {
           for (int jj=0; jj<5; jj++) {
@@ -428,6 +430,9 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
           C.momentum_y[id] = 0.0;
           C.momentum_z[id] = 0.0;
           C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
+          #ifdef SCALAR
+          C.scalar[id] = 1.0;
+          #endif
           #ifdef DE
           C.GasEnergy[id]  = P_l/(gama-1.0);
           #endif
@@ -439,6 +444,9 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
           C.momentum_y[id] = 0.0;
           C.momentum_z[id] = 0.0;
           C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
+          #ifdef SCALAR
+          C.scalar[id] = 0.0;
+          #endif
           #ifdef DE
           C.GasEnergy[id]  = P_r/(gama-1.0);
           #endif
@@ -580,6 +588,7 @@ void Grid3D::KH_discontinuous_2D()
           C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
           C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+          C.scalar[id] = 0.0;
         }
         else if (y_pos >= 3.0*H.ydglobal/4.0)
         {
@@ -588,8 +597,9 @@ void Grid3D::KH_discontinuous_2D()
           C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
           C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+          C.scalar[id] = 0.0;
         }
-        // inner third of slab
+        // inner half of slab
         else
         {
           C.density[id] = d1;
@@ -597,6 +607,7 @@ void Grid3D::KH_discontinuous_2D()
           C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
           C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+          C.scalar[id] = 1.0;
         }
       }
     }

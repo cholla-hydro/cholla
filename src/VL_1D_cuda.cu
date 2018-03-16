@@ -240,8 +240,8 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
     }
     #endif
     #ifdef DE
-    dev_conserved_half[(n_fields-1)*n_cells + id] = dev_conserved[5*n_cells + id] 
-                                       + dtodx * (dev_F[5*n_cells + imo] - dev_F[5*n_cells + id])
+    dev_conserved_half[(n_fields-1)*n_cells + id] = dev_conserved[(n_fields-1)*n_cells + id] 
+                                       + dtodx * (dev_F[(n_fields-1)*n_cells + imo] - dev_F[(n_fields-1)*n_cells + id])
                                        + 0.5*P*(dtodx*(vx_imo-vx_ipo));
     #endif    
   }

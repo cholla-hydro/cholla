@@ -204,7 +204,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       del_scalar_L[i] = scalar_i[i] - scalar_imo[i];
       del_scalar_R[i] = scalar_ipo[i] - scalar_i[i];
       del_scalar_C[i] = 0.5*(scalar_ipo[i] - scalar_imo[i]);
-      if (del_scalar[i]_L*del_scalar_R[i] > 0.0) { del_scalar_G[i] = 2.0*del_scalar_L[i]*del_scalar_R[i] / (del_scalar_L[i]+del_scalar_R[i]); }
+      if (del_scalar_L[i]*del_scalar_R[i] > 0.0) { del_scalar_G[i] = 2.0*del_scalar_L[i]*del_scalar_R[i] / (del_scalar_L[i]+del_scalar_R[i]); }
       else { del_scalar_G[i] = 0.0; } 
     }
     #endif
