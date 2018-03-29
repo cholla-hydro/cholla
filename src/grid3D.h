@@ -324,6 +324,11 @@ class Grid3D
     /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
      *  \brief Write rotated projected data to a file, at the current simulation time. */
     void Write_Rotated_Projection_HDF5(hid_t file_id);   
+
+    /*! \fn void Write_Slices_HDF5(hid_t file_id)
+     *  \brief Write xy, xz, and yz slices of all data to a file. */
+    void Write_Slices_HDF5(hid_t file_id);    
+
 #endif
 
     /*! \fn void Read_Grid(struct parameters P)

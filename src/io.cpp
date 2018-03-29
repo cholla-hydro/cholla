@@ -38,7 +38,7 @@ void OutputData(Grid3D G, struct parameters P, int nfile)
   int flag = 0;
 
   // status of flag determines whether to output the full grid
-  // (use nfull = 1 if not using projection or slice output routine)
+  // (use nfull = 1 if not using projection or slice output routines)
   if (nfile % P.nfull != 0) flag = 1;
 
   if (flag == 0) {
@@ -1433,10 +1433,6 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     dims[0] = nx_dset;
     dims[1] = ny_dset;
     dataspace_id = H5Screate_simple(2, dims, NULL);
-    dims[1] = nz_dset;
-    dataspace_xz_id = H5Screate_simple(2, dims, NULL);
-    dims[0] = ny_dset;
-    dataspace_yz_id = H5Screate_simple(2, dims, NULL);
 
     // Allocate memory for the xy slices
     dataset_buffer_d  = (Real *) malloc(H.nx_real*H.ny_real*sizeof(Real));
@@ -1466,7 +1462,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
         #endif
         #ifdef SCALAR
         for (int ii=0; ii<NSCALARS; ii++) {
-          dataset_buffer_scalar[buf_id+ii*H.nx*H.ny] = C.Scalar[id+ii*H.n_cells];
+          dataset_buffer_scalar[buf_id+ii*H.nx*H.ny] = C.scalar[id+ii*H.n_cells];
         }
         #endif
       }
@@ -1541,7 +1537,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
         #endif
         #ifdef SCALAR
         for (int ii=0; ii<NSCALARS; ii++) {
-          dataset_buffer_scalar[buf_id+ii*H.nx*H.nz] = C.Scalar[id+ii*H.n_cells];
+          dataset_buffer_scalar[buf_id+ii*H.nx*H.nz] = C.scalar[id+ii*H.n_cells];
         }
         #endif
       }
@@ -1552,28 +1548,28 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     dataspace_id = H5Screate_simple(2, dims, NULL);
 
     // Write out the xz datasets for each variable 
-    dataset_id = H5Dcreate(file_id, "/d_xz", H5T_IEEE_F64BE, dataspace_xz_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/d_xz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_d); 
     status = H5Dclose(dataset_id);
-    dataset_id = H5Dcreate(file_id, "/mx_xz", H5T_IEEE_F64BE, dataspace_xz_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/mx_xz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_mx); 
     status = H5Dclose(dataset_id);
-    dataset_id = H5Dcreate(file_id, "/my_xz", H5T_IEEE_F64BE, dataspace_xz_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/my_xz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_my); 
     status = H5Dclose(dataset_id);
-    dataset_id = H5Dcreate(file_id, "/mz_xz", H5T_IEEE_F64BE, dataspace_xz_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/mz_xz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_mz); 
     status = H5Dclose(dataset_id);
-    dataset_id = H5Dcreate(file_id, "/E_xz", H5T_IEEE_F64BE, dataspace_xz_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/E_xz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_E); 
     status = H5Dclose(dataset_id);
     #ifdef GE
-    dataset_id = H5Dcreate(file_id, "/GE_xz", H5T_IEEE_F64BE, dataspace_xz_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/GE_xz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_GE); 
     status = H5Dclose(dataset_id);
     #endif
     #ifdef SCALAR
-    dataset_id = H5Dcreate(file_id, "/scalar_xz", H5T_IEEE_F64BE, dataspace_xz_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/scalar_xz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_scalar); 
     status = H5Dclose(dataset_id);
     #endif
@@ -1620,7 +1616,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
         #endif
         #ifdef SCALAR
         for (int ii=0; ii<NSCALARS; ii++) {
-          dataset_buffer_scalar[buf_id+ii*H.ny*H.nz] = C.Scalar[id+ii*H.n_cells];
+          dataset_buffer_scalar[buf_id+ii*H.ny*H.nz] = C.scalar[id+ii*H.n_cells];
         }
         #endif
       }
