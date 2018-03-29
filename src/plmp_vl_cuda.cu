@@ -14,7 +14,7 @@
 /*! \fn __global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
  *  \brief When passed a stencil of conserved variables, returns the left and right 
            boundary values for the interface calculated using plm. */
-__global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
+__global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
 {
   int n_cells = nx*ny*nz;
   int o1, o2, o3;
@@ -37,6 +37,13 @@ __global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
   Real d_L, vx_L, vy_L, vz_L, p_L;
   Real d_R, vx_R, vy_R, vz_R, p_R;
 
+  #ifdef DE
+  Real ge_i, ge_imo, ge_ipo, ge_L, ge_R;
+  #endif
+  #ifdef SCALAR
+  Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS], scalar_L[NSCALARS], scalar_R[NSCALARS];
+  #endif
+
 
   // get a thread ID
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -58,6 +65,14 @@ __global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     vz_i =  dev_conserved[o3*n_cells + id] / d_i;
     p_i  = (dev_conserved[4*n_cells + id] - 0.5*d_i*(vx_i*vx_i + vy_i*vy_i + vz_i*vz_i)) * (gamma - 1.0);
     p_i  = fmax(p_i, (Real) TINY_NUMBER);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar_i[i] = dev_conserved[(5+i)*n_cells + id] / d_i;
+    }
+    #endif
+    #ifdef DE
+    ge_i = dev_conserved[(n_fields-1)*n_cells + id] / d_i;
+    #endif
     // cell i-1
     if (dir == 0) id = xid-1 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid-1)*nx + zid*nx*ny;
@@ -68,6 +83,14 @@ __global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     vz_imo =  dev_conserved[o3*n_cells + id] / d_imo;
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
     p_imo  = fmax(p_imo, (Real) TINY_NUMBER);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar_imo[i] = dev_conserved[(5+i)*n_cells + id] / d_imo;
+    }
+    #endif
+    #ifdef DE
+    ge_imo =  dev_conserved[(n_fields-1)*n_cells + id] / d_imo;
+    #endif    
     // cell i+1
     if (dir == 0) id = xid+1 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid+1)*nx + zid*nx*ny;
@@ -78,6 +101,14 @@ __global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     vz_ipo =  dev_conserved[o3*n_cells + id] / d_ipo;
     p_ipo  = (dev_conserved[4*n_cells + id] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma - 1.0);
     p_ipo  = fmax(p_ipo, (Real) TINY_NUMBER);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar_ipo[i] = dev_conserved[(5+i)*n_cells + id] / d_ipo;
+    }
+    #endif
+    #ifdef DE
+    ge_ipo =  dev_conserved[(n_fields-1)*n_cells + id] / d_ipo;
+    #endif
 
 
     // Calculate the interface values for each primitive variable
@@ -86,6 +117,14 @@ __global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     Interface_Values_PLM(vy_imo, vy_i, vy_ipo, &vy_L, &vy_R); 
     Interface_Values_PLM(vz_imo, vz_i, vz_ipo, &vz_L, &vz_R); 
     Interface_Values_PLM(p_imo,  p_i,  p_ipo,  &p_L,  &p_R); 
+    #ifdef DE
+    Interface_Values_PLM(ge_imo,  ge_i,  ge_ipo,  &ge_L,  &ge_R); 
+    #endif
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      Interface_Values_PLM(scalar_imo[i],  scalar_i[i],  scalar_ipo[i],  &scalar_L[i],  &scalar_R[i]); 
+    }
+    #endif
 
     // Apply mimimum constraints
     d_L = fmax(d_L, (Real) TINY_NUMBER);
@@ -104,6 +143,14 @@ __global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     dev_bounds_R[o2*n_cells + id] = d_L*vy_L;
     dev_bounds_R[o3*n_cells + id] = d_L*vz_L;
     dev_bounds_R[4*n_cells + id] = (p_L/(gamma-1.0)) + 0.5*d_L*(vx_L*vx_L + vy_L*vy_L + vz_L*vz_L);  
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_R[(5+i)*n_cells + id] = d_L*scalar_L[i];
+    }
+    #endif
+    #ifdef DE
+    dev_bounds_R[(n_fields-1)*n_cells + id] = d_L*ge_L;
+    #endif    
     // bounds_L refers to the left side of the i+1/2 interface
     id = xid + yid*nx + zid*nx*ny;
     dev_bounds_L[            id] = d_R;
@@ -111,6 +158,14 @@ __global__ void PLMP_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
     dev_bounds_L[o2*n_cells + id] = d_R*vy_R;
     dev_bounds_L[o3*n_cells + id] = d_R*vz_R;
     dev_bounds_L[4*n_cells + id] = (p_R/(gamma-1.0)) + 0.5*d_R*(vx_R*vx_R + vy_R*vy_R + vz_R*vz_R);      
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_L[(5+i)*n_cells + id] = d_R*scalar_R[i];
+    }
+    #endif
+    #ifdef DE
+    dev_bounds_L[(n_fields-1)*n_cells + id] = d_R*ge_R;
+    #endif    
 
   }
 }
@@ -122,7 +177,7 @@ __device__ void Interface_Values_PLM(Real q_imo, Real q_i, Real q_ipo, Real *q_L
   Real del_q_L, del_q_R, del_q_C, del_q_G; 
   Real lim_slope_a, lim_slope_b, del_q_m;  
 
-  // Compute the left, right, and centered differences of the primative variables
+  // Compute the left, right, centered, and Van Leer differences of the primative variables
   // Note that here L and R refer to locations relative to the cell center
 
   // left

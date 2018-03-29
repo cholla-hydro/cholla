@@ -109,7 +109,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalar_i[i] =  dev_conserved[(5+i)*n_cells + id];
+      scalar_i[i] =  dev_conserved[(5+i)*n_cells + id] / d_i;
     }
     #endif
     // cell i-1
@@ -128,7 +128,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalar_imo[i]  =  dev_conserved[(5+i)*n_cells + id];
+      scalar_imo[i]  =  dev_conserved[(5+i)*n_cells + id] / d_imo;
     }
     #endif
     // cell i+1
@@ -146,7 +146,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalar_ipo[i]  =  dev_conserved[(5+i)*n_cells + id];
+      scalar_ipo[i]  =  dev_conserved[(5+i)*n_cells + id] / d_ipo;
     }
     #endif
     // cell i-2
@@ -164,7 +164,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalar_imt[i]  =  dev_conserved[(5+i)*n_cells + id];
+      scalar_imt[i]  =  dev_conserved[(5+i)*n_cells + id] / d_imt;
     }
     #endif
     // cell i+2
@@ -182,7 +182,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalar_ipt[i]  =  dev_conserved[(5+i)*n_cells + id];
+      scalar_ipt[i]  =  dev_conserved[(5+i)*n_cells + id] / d_ipt;
     }
     #endif
     
@@ -1011,7 +1011,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_R[4*n_cells + id] = p_L/(gamma-1.0) + 0.5*d_L*(vx_L*vx_L + vy_L*vy_L + vz_L*vz_L);    
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      dev_bounds_R[(5+i)*n_cells + id] = scalar_L[i];
+      dev_bounds_R[(5+i)*n_cells + id] = d_L*scalar_L[i];
     }
     #endif
     #ifdef DE
@@ -1026,7 +1026,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_L[4*n_cells + id] = p_R/(gamma-1.0) + 0.5*d_R*(vx_R*vx_R + vy_R*vy_R + vz_R*vz_R);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      dev_bounds_L[(5+i)*n_cells + id] = scalar_R[i];
+      dev_bounds_L[(5+i)*n_cells + id] = d_R*scalar_R[i];
     }
     #endif
     #ifdef DE

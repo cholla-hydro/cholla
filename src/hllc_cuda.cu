@@ -70,7 +70,7 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     El  = dev_bounds_L[4*n_cells + tid];
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalarl[i] = dev_bounds_L[(5+i)*n_cells + tid];
+      scalarl[i] = dev_bounds_L[(5+i)*n_cells + tid] / dl;
     }
     #endif
     #ifdef DE
@@ -84,7 +84,7 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     Er  = dev_bounds_R[4*n_cells + tid]; 
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalarr[i] = dev_bounds_R[(5+i)*n_cells + tid];
+      scalarr[i] = dev_bounds_R[(5+i)*n_cells + tid] / dr;
     }
     #endif
     #ifdef DE
@@ -151,7 +151,7 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     #endif
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      f_scalar_l[i] = vxl*scalarl[i];
+      f_scalar_l[i] = mxl*scalarl[i];
     }
     #endif
 
@@ -165,7 +165,7 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     #endif
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      f_scalar_r[i] = vxr*scalarr[i];
+      f_scalar_r[i] = mxr*scalarr[i];
     }
     #endif
 
@@ -212,30 +212,30 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
       // conserved variables in the left star state (Batten eqns 35 - 40)
       dls = dl * (Sl - vxl) / (Sl - Sm);
       mxls = (mxl*(Sl - vxl) + ps - pl) / (Sl - Sm);
-      myls = myl*(Sl - vxl) / (Sl - Sm);
-      mzls = mzl*(Sl - vxl) / (Sl - Sm);
+      myls = dls*vyl;
+      mzls = dls*vzl;
       Els = (El*(Sl - vxl) - pl*vxl + ps*Sm) / (Sl - Sm);
       #ifdef DE
-      gels = dl*gel*(Sl - vxl) / (Sl - Sm);
+      gels = dls*gel;
       #endif
       #ifdef SCALAR
       for (int i=0; i<NSCALARS; i++) {
-        scalarls[i] = scalarl[i]*(Sl - vxl) / (Sl - Sm);
+        scalarls[i] = dls*scalarl[i];
       }
       #endif
 
       // conserved variables in the right star state
       drs = dr * (Sr - vxr) / (Sr - Sm);
       mxrs = (mxr*(Sr - vxr) + ps - pr) / (Sr - Sm);
-      myrs = myr*(Sr - vxr) / (Sr - Sm);
-      mzrs = mzr*(Sr - vxr) / (Sr - Sm);
+      myrs = drs*vyr;
+      mzrs = drs*vzr;
       Ers = (Er*(Sr - vxr) - pr*vxr + ps*Sm) / (Sr - Sm);
       #ifdef DE
-      gers = dr*ger*(Sr - vxr) / (Sr - Sm);
+      gers = drs*ger;
       #endif
       #ifdef SCALAR
       for (int i=0; i<NSCALARS; i++) {
-        scalarrs[i] = scalarr[i]*(Sr - vxr) / (Sr - Sm);
+        scalarrs[i] = drs*scalarr[i];
       }
       #endif
 

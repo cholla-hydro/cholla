@@ -129,19 +129,19 @@ __global__ void PLMP_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     
     // limit the slopes (B=1 is minmod, B=2 is superbee) (see Eqn 13.229 of Toro 2009)
     Real B = 1;
-    if (del_d_R >=0) d_slope  = fmax(0, fmax(fmin(B*del_d_L, del_d_R), fmin(del_d_L, B*del_d_R)));
-    if (del_d_R<0)   d_slope  = fmin(0, fmin(fmax(B*del_d_L, del_d_R), fmax(del_d_L, B*del_d_R)));
-    if (del_vx_R>=0) vx_slope = fmax(0, fmax(fmin(B*del_vx_L, del_vx_R), fmin(del_vx_L, B*del_vx_R)));
-    if (del_vx_R<0)  vx_slope = fmin(0, fmin(fmax(B*del_vx_L, del_vx_R), fmax(del_vx_L, B*del_vx_R)));
-    if (del_vy_R>=0) vy_slope = fmax(0, fmax(fmin(B*del_vy_L, del_vy_R), fmin(del_vy_L, B*del_vy_R)));
-    if (del_vy_R<0)  vy_slope = fmin(0, fmin(fmax(B*del_vy_L, del_vy_R), fmax(del_vy_L, B*del_vy_R)));
-    if (del_vz_R>=0) vz_slope = fmax(0, fmax(fmin(B*del_vz_L, del_vz_R), fmin(del_vz_L, B*del_vz_R)));
-    if (del_vz_R<0)  vz_slope = fmin(0, fmin(fmax(B*del_vz_L, del_vz_R), fmax(del_vz_L, B*del_vz_R)));
-    if (del_p_R>=0)  p_slope  = fmax(0, fmax(fmin(B*del_p_L, del_p_R), fmin(del_p_L, B*del_p_R)));
-    if (del_p_R<0)   p_slope  = fmin(0, fmin(fmax(B*del_p_L, del_p_R), fmax(del_p_L, B*del_p_R)));
+    if (del_d_R >=0) d_slope  = fmax(Real (0), fmax(fmin(B*del_d_L, del_d_R), fmin(del_d_L, B*del_d_R)));
+    if (del_d_R<0)   d_slope  = fmin(Real (0), fmin(fmax(B*del_d_L, del_d_R), fmax(del_d_L, B*del_d_R)));
+    if (del_vx_R>=0) vx_slope = fmax(Real (0), fmax(fmin(B*del_vx_L, del_vx_R), fmin(del_vx_L, B*del_vx_R)));
+    if (del_vx_R<0)  vx_slope = fmin(Real (0), fmin(fmax(B*del_vx_L, del_vx_R), fmax(del_vx_L, B*del_vx_R)));
+    if (del_vy_R>=0) vy_slope = fmax(Real (0), fmax(fmin(B*del_vy_L, del_vy_R), fmin(del_vy_L, B*del_vy_R)));
+    if (del_vy_R<0)  vy_slope = fmin(Real (0), fmin(fmax(B*del_vy_L, del_vy_R), fmax(del_vy_L, B*del_vy_R)));
+    if (del_vz_R>=0) vz_slope = fmax(Real (0), fmax(fmin(B*del_vz_L, del_vz_R), fmin(del_vz_L, B*del_vz_R)));
+    if (del_vz_R<0)  vz_slope = fmin(Real (0), fmin(fmax(B*del_vz_L, del_vz_R), fmax(del_vz_L, B*del_vz_R)));
+    if (del_p_R>=0)  p_slope  = fmax(Real (0), fmax(fmin(B*del_p_L, del_p_R), fmin(del_p_L, B*del_p_R)));
+    if (del_p_R<0)   p_slope  = fmin(Real (0), fmin(fmax(B*del_p_L, del_p_R), fmax(del_p_L, B*del_p_R)));
     #ifdef DE
-    if (del_ge_R>=0) ge_slope  = fmax(0, fmax(fmin(B*del_ge_L, del_ge_R), fmin(del_ge_L, B*del_ge_R)));
-    if (del_ge_R<0)  ge_slope  = fmin(0, fmin(fmax(B*del_ge_L, del_ge_R), fmax(del_ge_L, B*del_ge_R)));
+    if (del_ge_R>=0) ge_slope  = fmax(Real (0), fmax(fmin(B*del_ge_L, del_ge_R), fmin(del_ge_L, B*del_ge_R)));
+    if (del_ge_R<0)  ge_slope  = fmin(Real (0), fmin(fmax(B*del_ge_L, del_ge_R), fmax(del_ge_L, B*del_ge_R)));
     #endif
      
 

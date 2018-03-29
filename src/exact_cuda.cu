@@ -61,7 +61,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     pl  = fmax(pl, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalarl[i] = dev_bounds_L[(5+i)*n_cells + tid];
+      scalarl[i] = dev_bounds_L[(5+i)*n_cells + tid]/dl;
     }
     #endif
     #ifdef DE
@@ -75,7 +75,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     pr  = fmax(pr, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalarr[i] = dev_bounds_R[(5+i)*n_cells + tid];
+      scalarr[i] = dev_bounds_R[(5+i)*n_cells + tid]/dr;
     }
     #endif
     #ifdef DE
@@ -111,7 +111,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
       dev_flux[o3*n_cells + tid] = ds*vs*vzl;
       #ifdef SCALAR
       for (int i=0; i<NSCALARS; i++) {
-        dev_flux[(5+i)*n_cells + tid] = vs*scalarl[i];
+        dev_flux[(5+i)*n_cells + tid] = ds*vs*scalarl[i];
       }
       #endif
       #ifdef DE
@@ -125,7 +125,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
       dev_flux[o3*n_cells + tid] = ds*vs*vzr;
       #ifdef SCALAR
       for (int i=0; i<NSCALARS; i++) {
-        dev_flux[(5+i)*n_cells + tid] = vs*scalarr[i];
+        dev_flux[(5+i)*n_cells + tid] = ds*vs*scalarr[i];
       }
       #endif
       #ifdef DE

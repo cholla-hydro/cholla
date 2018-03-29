@@ -100,7 +100,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_i  = fmax(p_i, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalar_i[i] = dev_conserved[(5+i)*n_cells + id];
+      scalar_i[i] = dev_conserved[(5+i)*n_cells + id] / d_i;
     }
     #endif
     #ifdef DE
@@ -118,7 +118,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_imo  = fmax(p_imo, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalar_imo[i] = dev_conserved[(5+i)*n_cells + id];
+      scalar_imo[i] = dev_conserved[(5+i)*n_cells + id] / d_imo;
     }
     #endif
     #ifdef DE
@@ -136,7 +136,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_ipo  = fmax(p_ipo, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      scalar_ipo[i] = dev_conserved[(5+i)*n_cells + id];
+      scalar_ipo[i] = dev_conserved[(5+i)*n_cells + id] / d_ipo;
     }
     #endif
     #ifdef DE
@@ -563,10 +563,9 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_R[o1*n_cells + id] = d_R_imh*vx_R_imh;
     dev_bounds_R[o2*n_cells + id] = d_R_imh*vy_R_imh;
     dev_bounds_R[o3*n_cells + id] = d_R_imh*vz_R_imh;
-    dev_bounds_R[4*n_cells + id] = (p_R_imh/(gamma-1.0)) + 0.5*d_R_imh*(vx_R_imh*vx_R_imh + vy_R_imh*vy_R_imh + vz_R_imh*vz_R_imh);    
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      dev_bounds_R[(5+i)*n_cells + id] = scalar_R_imh[i];
+      dev_bounds_R[(5+i)*n_cells + id] = d_R_imh*scalar_R_imh[i];
     }
     #endif
     #ifdef DE
@@ -581,7 +580,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_L[4*n_cells + id] = (p_L_iph/(gamma-1.0)) + 0.5*d_L_iph*(vx_L_iph*vx_L_iph + vy_L_iph*vy_L_iph + vz_L_iph*vz_L_iph);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      dev_bounds_L[(5+i)*n_cells + id] = scalar_L_iph[i];
+      dev_bounds_L[(5+i)*n_cells + id] = d_L_iph*scalar_L_iph[i];
     }
     #endif
     #ifdef DE
