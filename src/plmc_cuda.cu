@@ -51,30 +51,30 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real d_L_iph, vx_L_iph, vy_L_iph, vz_L_iph, p_L_iph;
   Real d_R_imh, vx_R_imh, vy_R_imh, vz_R_imh, p_R_imh;
   Real C;
-  #ifdef CTU
+  #ifndef VL
   Real dtodx = dt/dx;
   Real lambda_m, lambda_0, lambda_p;
   Real qx;
   Real lamdiff;
   Real sum_0, sum_1, sum_2, sum_3, sum_4;  
-  #endif
+  #endif //CTU
   #ifdef DE
   Real ge_i, ge_imo, ge_ipo;
   Real del_ge_L, del_ge_R, del_ge_C, del_ge_G;
   Real del_ge_m_i;
   Real ge_L_iph, ge_R_imh;
-  #ifdef CTU
+  #ifndef VL
   Real sum_ge;
-  #endif  
+  #endif //CTU 
   #endif
   #ifdef SCALAR 
   Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS];
   Real del_scalar_L[NSCALARS], del_scalar_R[NSCALARS], del_scalar_C[NSCALARS], del_scalar_G[NSCALARS];
   Real del_scalar_m_i[NSCALARS];
   Real scalar_L_iph[NSCALARS], scalar_R_imh[NSCALARS];
-  #ifdef CTU
+  #ifndef VL
   Real sum_scalar[NSCALARS];
-  #endif
+  #endif //CTU
   #endif
 
   // get a thread ID

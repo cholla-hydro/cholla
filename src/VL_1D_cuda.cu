@@ -13,7 +13,7 @@
 #include"hydro_cuda.h"
 #include"VL_1D_cuda.h"
 #include"pcm_cuda.h"
-#include"plmp_vl_cuda.h"
+#include"plmp_cuda.h"
 #include"plmc_cuda.h"
 #include"ppmp_vl_cuda.h"
 #include"ppmc_cuda.h"
@@ -118,7 +118,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   PLMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif  
   #ifdef PLMP
-  PLMP_VL<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  PLMP_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif
   #ifdef PPMP
   PPMP_VL<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, gama, 0);
