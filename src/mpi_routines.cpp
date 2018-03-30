@@ -825,11 +825,7 @@ void Print_Domain_Properties(struct Header H)
 
 void Allocate_MPI_Buffers_SLAB(struct Header *H)
 {
-  int n_cons = 5;
-  #ifdef DE
-  n_cons = 6;
-  #endif
-  int bsize  = n_cons*H->n_ghost*H->ny*H->nz;
+  int bsize  = H->n_fields*H->n_ghost*H->ny*H->nz;
   printf("MPI buffer size: %d\n", bsize);
 
   send_buffer_length = bsize;
@@ -863,10 +859,6 @@ void Allocate_MPI_Buffers_SLAB(struct Header *H)
 
 void Allocate_MPI_Buffers_BLOCK(struct Header *H)
 {
-  int n_cons = 5;
-  #ifdef DE
-  n_cons = 6;
-  #endif
   int xbsize, ybsize, zbsize;
   if (H->ny==1 && H->nz==1) {
     chprintf("Use SLAB decomposition for 1D problems.\n");
@@ -874,15 +866,15 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   }
   // 2D
   if (H->ny>1 && H->nz==1) { 
-    xbsize = n_cons*H->n_ghost*(H->ny-2*H->n_ghost);
-    ybsize = n_cons*H->n_ghost*(H->nx);
+    xbsize = H->n_fields*H->n_ghost*(H->ny-2*H->n_ghost);
+    ybsize = H->n_fields*H->n_ghost*(H->nx);
     zbsize = 1;
   }
   // 3D
   if (H->ny>1 && H->nz>1) {
-    xbsize = n_cons*H->n_ghost*(H->ny-2*H->n_ghost)*(H->nz-2*H->n_ghost);
-    ybsize = n_cons*H->n_ghost*(H->nx)*(H->nz-2*H->n_ghost);
-    zbsize = n_cons*H->n_ghost*(H->nx)*(H->ny);
+    xbsize = H->n_fields*H->n_ghost*(H->ny-2*H->n_ghost)*(H->nz-2*H->n_ghost);
+    ybsize = H->n_fields*H->n_ghost*(H->nx)*(H->nz-2*H->n_ghost);
+    zbsize = H->n_fields*H->n_ghost*(H->nx)*(H->ny);
   }
 
   x_buffer_length = xbsize;

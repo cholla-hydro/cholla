@@ -175,6 +175,11 @@ void Grid3D::Set_Edge_Boundaries(int dir, int *flags)
             #ifdef DE
             C.GasEnergy[gidx]  = C.GasEnergy[idx];
             #endif
+            #ifdef SCALAR
+            for (int ii=0; ii<NSCALARS; ii++) {
+              C.scalar[gidx + ii*H.n_cells]  = C.scalar[idx+ii*H.n_cells];
+            }
+            #endif
           }
         }
       }
@@ -406,7 +411,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)
           *(send_buffer_0 + gidx + 3*offset) = C.momentum_z[idx];
           *(send_buffer_0 + gidx + 4*offset) = C.Energy[idx];
           #ifdef DE
-          *(send_buffer_0 + gidx + 5*offset) = C.GasEnergy[idx];
+          *(send_buffer_0 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            *(send_buffer_0 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+          }
           #endif
         }
       }
@@ -442,7 +452,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)
           *(send_buffer_1 + gidx + 3*offset) = C.momentum_z[idx];
           *(send_buffer_1 + gidx + 4*offset) = C.Energy[idx];
           #ifdef DE
-          *(send_buffer_1 + gidx + 5*offset) = C.GasEnergy[idx];
+          *(send_buffer_1 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            *(send_buffer_1 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+          }
           #endif
         }
       }
@@ -489,7 +504,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
           *(send_buffer_x0 + gidx + 3*offset) = C.momentum_z[idx];
           *(send_buffer_x0 + gidx + 4*offset) = C.Energy[idx];
           #ifdef DE
-          *(send_buffer_x0 + gidx + 5*offset) = C.GasEnergy[idx];
+          *(send_buffer_x0 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            *(send_buffer_x0 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+          }
           #endif
         }
       }
@@ -506,8 +526,14 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
             *(send_buffer_x0 + gidx + 3*offset) = C.momentum_z[idx];
             *(send_buffer_x0 + gidx + 4*offset) = C.Energy[idx];
             #ifdef DE
-            *(send_buffer_x0 + gidx + 5*offset) = C.GasEnergy[idx];
+            *(send_buffer_x0 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
             #endif
+            #ifdef SCALAR
+            for (int ii=0; ii<NSCALARS; ii++) {
+              *(send_buffer_x0 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+            }
+            #endif
+            
           }
         }
       }
@@ -528,8 +554,13 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
               *(send_buffer_x0 + gidx + 3*offset) = C.momentum_z[idx];
               *(send_buffer_x0 + gidx + 4*offset) = C.Energy[idx];
               #ifdef DE
-              *(send_buffer_x0 + gidx + 5*offset) = C.GasEnergy[idx];
+              *(send_buffer_x0 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
               #endif
+              #ifdef SCALAR
+              for (int ii=0; ii<NSCALARS; ii++) {
+                *(send_buffer_x0 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+              }
+              #endif              
             }
           }
         }
@@ -561,7 +592,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
           *(send_buffer_x1 + gidx + 3*offset) = C.momentum_z[idx];
           *(send_buffer_x1 + gidx + 4*offset) = C.Energy[idx];
           #ifdef DE
-          *(send_buffer_x1 + gidx + 5*offset) = C.GasEnergy[idx];
+          *(send_buffer_x1 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            *(send_buffer_x1 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+          }
           #endif
         }
       }
@@ -578,7 +614,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
             *(send_buffer_x1 + gidx + 3*offset) = C.momentum_z[idx];
             *(send_buffer_x1 + gidx + 4*offset) = C.Energy[idx];
             #ifdef DE
-            *(send_buffer_x1 + gidx + 5*offset) = C.GasEnergy[idx];
+            *(send_buffer_x1 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
+            #endif
+            #ifdef SCALAR
+            for (int ii=0; ii<NSCALARS; ii++) {
+              *(send_buffer_x1 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+            }
             #endif
           }
         }
@@ -600,8 +641,13 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
               *(send_buffer_x1 + gidx + 3*offset) = C.momentum_z[idx];
               *(send_buffer_x1 + gidx + 4*offset) = C.Energy[idx];
               #ifdef DE
-              *(send_buffer_x1 + gidx + 5*offset) = C.GasEnergy[idx];
+              *(send_buffer_x1 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
               #endif
+              #ifdef SCALAR
+              for (int ii=0; ii<NSCALARS; ii++) {
+                *(send_buffer_x1 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+              }
+              #endif              
             }
           }
         }
@@ -637,7 +683,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
             *(send_buffer_y0 + gidx + 3*offset) = C.momentum_z[idx];
             *(send_buffer_y0 + gidx + 4*offset) = C.Energy[idx];
             #ifdef DE
-            *(send_buffer_y0 + gidx + 5*offset) = C.GasEnergy[idx];
+            *(send_buffer_y0 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
+            #endif
+            #ifdef SCALAR
+            for (int ii=0; ii<NSCALARS; ii++) {
+              *(send_buffer_y0 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+            }
             #endif
           }
         }
@@ -659,8 +710,13 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
               *(send_buffer_y0 + gidx + 3*offset) = C.momentum_z[idx];
               *(send_buffer_y0 + gidx + 4*offset) = C.Energy[idx];
               #ifdef DE
-              *(send_buffer_y0 + gidx + 5*offset) = C.GasEnergy[idx];
+              *(send_buffer_y0 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
               #endif
+              #ifdef SCALAR
+              for (int ii=0; ii<NSCALARS; ii++) {
+                *(send_buffer_y0 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+              }
+              #endif              
             }
           }
         }
@@ -692,7 +748,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
             *(send_buffer_y1 + gidx + 3*offset) = C.momentum_z[idx];
             *(send_buffer_y1 + gidx + 4*offset) = C.Energy[idx];
             #ifdef DE
-            *(send_buffer_y1 + gidx + 5*offset) = C.GasEnergy[idx];
+            *(send_buffer_y1 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
+            #endif
+            #ifdef DE
+            for (int ii=0; ii<NSCALARS; ii++) {
+              *(send_buffer_y1 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+            }
             #endif
           }
         }
@@ -714,8 +775,13 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
               *(send_buffer_y1 + gidx + 3*offset) = C.momentum_z[idx];
               *(send_buffer_y1 + gidx + 4*offset) = C.Energy[idx];
               #ifdef DE
-              *(send_buffer_y1 + gidx + 5*offset) = C.GasEnergy[idx];
+              *(send_buffer_y1 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
               #endif
+              #ifdef DE
+              for (int ii=0; ii<NSCALARS; ii++) {
+                *(send_buffer_y1 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+              }
+              #endif              
             }
           }
         }
@@ -754,7 +820,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
             *(send_buffer_z0 + gidx + 3*offset) = C.momentum_z[idx];
             *(send_buffer_z0 + gidx + 4*offset) = C.Energy[idx];
             #ifdef DE
-            *(send_buffer_z0 + gidx + 5*offset) = C.GasEnergy[idx];
+            *(send_buffer_z0 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
+            #endif
+            #ifdef SCALAR
+            for (int ii=0; ii<NSCALARS; ii++) {
+              *(send_buffer_z0 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+            }
             #endif
           }
         }
@@ -788,7 +859,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
             *(send_buffer_z1 + gidx + 3*offset) = C.momentum_z[idx];
             *(send_buffer_z1 + gidx + 4*offset) = C.Energy[idx];
             #ifdef DE
-            *(send_buffer_z1 + gidx + 5*offset) = C.GasEnergy[idx];
+            *(send_buffer_z1 + gidx + (H.n_fields-1)*offset) = C.GasEnergy[idx];
+            #endif
+            #ifdef SCALAR
+            for (int ii=0; ii<NSCALARS; ii++) {
+              *(send_buffer_z1 + gidx + (5+ii)*offset) = C.scalar[idx + ii*H.n_cells];
+            }
             #endif
           }
         }
@@ -914,7 +990,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_SLAB(int index)
           C.momentum_z[idx] = *(recv_buffer_0 + gidx + 3*offset);
           C.Energy[idx]     = *(recv_buffer_0 + gidx + 4*offset);
           #ifdef DE
-          C.GasEnergy[idx]  = *(recv_buffer_0 + gidx + 5*offset);
+          C.GasEnergy[idx]  = *(recv_buffer_0 + gidx + (H.n_fields)*offset);
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_0 + gidx + (5+ii)*offset);
+          }
           #endif
         }
       }
@@ -938,7 +1019,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_SLAB(int index)
           C.momentum_z[idx] = *(recv_buffer_1 + gidx + 3*offset);
           C.Energy[idx]     = *(recv_buffer_1 + gidx + 4*offset);
           #ifdef DE
-          C.GasEnergy[idx]  = *(recv_buffer_1 + gidx + 5*offset);
+          C.GasEnergy[idx]  = *(recv_buffer_1 + gidx + (H.n_fields-1)*offset);
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_1 + gidx + (5+ii)*offset);
+          }
           #endif
         }
       }
@@ -972,7 +1058,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
         C.momentum_z[idx] = *(recv_buffer_x0 + gidx + 3*offset);
         C.Energy[idx]     = *(recv_buffer_x0 + gidx + 4*offset);
         #ifdef DE
-        C.GasEnergy[idx]  = *(recv_buffer_x0 + gidx + 5*offset);
+        C.GasEnergy[idx]  = *(recv_buffer_x0 + gidx + (H.n_fields-1)*offset);
+        #endif
+        #ifdef SCALAR
+        for (int ii=0; ii<NSCALARS; ii++) {
+          C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_x0 + gidx + (5+ii)*offset);
+        }
         #endif
       }
     }
@@ -990,7 +1081,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
           C.momentum_z[idx] = *(recv_buffer_x0 + gidx + 3*offset);
           C.Energy[idx]     = *(recv_buffer_x0 + gidx + 4*offset);
           #ifdef DE
-          C.GasEnergy[idx]  = *(recv_buffer_x0 + gidx + 5*offset);
+          C.GasEnergy[idx]  = *(recv_buffer_x0 + gidx + (H.n_fields-1)*offset);
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_x0 + gidx + (5+ii)*offset);
+          }
           #endif
         }
       }
@@ -1010,7 +1106,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
             C.momentum_z[idx] = *(recv_buffer_x0 + gidx + 3*offset);
             C.Energy[idx]     = *(recv_buffer_x0 + gidx + 4*offset);
             #ifdef DE
-            C.GasEnergy[idx]  = *(recv_buffer_x0 + gidx + 5*offset);
+            C.GasEnergy[idx]  = *(recv_buffer_x0 + gidx + (H.n_fields-1)*offset);
+            #endif
+            #ifdef SCALAR
+            for (int ii=0; ii<NSCALARS; ii++) {
+              C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_x0 + gidx + (5+ii)*offset);
+            }
             #endif
           }
         }
@@ -1034,7 +1135,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
         C.momentum_z[idx] = *(recv_buffer_x1 + gidx + 3*offset);
         C.Energy[idx]     = *(recv_buffer_x1 + gidx + 4*offset);
         #ifdef DE
-        C.GasEnergy[idx]  = *(recv_buffer_x1 + gidx + 5*offset);
+        C.GasEnergy[idx]  = *(recv_buffer_x1 + gidx + (H.n_fields-1)*offset);
+        #endif
+        #ifdef SCALAR
+        for (int ii=0; ii<NSCALARS; ii++) {
+          C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_x1 + gidx + (5+ii)*offset);
+        }
         #endif
       }
     }
@@ -1052,7 +1158,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
           C.momentum_z[idx] = *(recv_buffer_x1 + gidx + 3*offset);
           C.Energy[idx]     = *(recv_buffer_x1 + gidx + 4*offset);
           #ifdef DE
-          C.GasEnergy[idx]  = *(recv_buffer_x1 + gidx + 5*offset);
+          C.GasEnergy[idx]  = *(recv_buffer_x1 + gidx + (H.n_fields-1)*offset);
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_x1 + gidx + (5+ii)*offset);
+          }
           #endif
         }
       }
@@ -1072,7 +1183,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
             C.momentum_z[idx] = *(recv_buffer_x1 + gidx + 3*offset);
             C.Energy[idx]     = *(recv_buffer_x1 + gidx + 4*offset);
             #ifdef DE
-            C.GasEnergy[idx]  = *(recv_buffer_x1 + gidx + 5*offset);
+            C.GasEnergy[idx]  = *(recv_buffer_x1 + gidx + (H.n_fields-1)*offset);
+            #endif
+            #ifdef SCALAR
+            for (int ii=0; ii<NSCALARS; ii++) {
+              C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_x1 + gidx + (5+ii)*offset);
+            }
             #endif
           }
         }
@@ -1098,7 +1214,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
           C.momentum_z[idx] = *(recv_buffer_y0 + gidx + 3*offset);
           C.Energy[idx]     = *(recv_buffer_y0 + gidx + 4*offset);
           #ifdef DE
-          C.GasEnergy[idx]  = *(recv_buffer_y0 + gidx + 5*offset);
+          C.GasEnergy[idx]  = *(recv_buffer_y0 + gidx + (H.n_fields-1)*offset);
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_y0 + gidx + (5+ii)*offset);
+          }
           #endif
         }
       }
@@ -1118,7 +1239,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
             C.momentum_z[idx] = *(recv_buffer_y0 + gidx + 3*offset);
             C.Energy[idx]     = *(recv_buffer_y0 + gidx + 4*offset);
             #ifdef DE
-            C.GasEnergy[idx]  = *(recv_buffer_y0 + gidx + 5*offset);
+            C.GasEnergy[idx]  = *(recv_buffer_y0 + gidx + (H.n_fields-1)*offset);
+            #endif
+            #ifdef SCALAR
+            for (int ii=0; ii<NSCALARS; ii++) {
+              C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_y0 + gidx + (5+ii)*offset);
+            }
             #endif
           }
         }
@@ -1143,7 +1269,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
           C.momentum_z[idx] = *(recv_buffer_y1 + gidx + 3*offset);
           C.Energy[idx]     = *(recv_buffer_y1 + gidx + 4*offset);
           #ifdef DE
-          C.GasEnergy[idx]  = *(recv_buffer_y1 + gidx + 5*offset);
+          C.GasEnergy[idx]  = *(recv_buffer_y1 + gidx + (H.n_fields-1)*offset);
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_y1 + gidx + (5+ii)*offset);
+          }
           #endif
         }
       }
@@ -1163,7 +1294,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
             C.momentum_z[idx] = *(recv_buffer_y1 + gidx + 3*offset);
             C.Energy[idx]     = *(recv_buffer_y1 + gidx + 4*offset);
             #ifdef DE
-            C.GasEnergy[idx]  = *(recv_buffer_y1 + gidx + 5*offset);
+            C.GasEnergy[idx]  = *(recv_buffer_y1 + gidx + (H.n_fields-1)*offset);
+            #endif
+            #ifdef SCALAR
+            for (int ii=0; ii<NSCALARS; ii++) {
+              C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_y1 + gidx + (5+ii)*offset);
+            }
             #endif
           }
         }
@@ -1187,7 +1323,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
           C.momentum_z[idx] = *(recv_buffer_z0 + gidx + 3*offset);
           C.Energy[idx]     = *(recv_buffer_z0 + gidx + 4*offset);
           #ifdef DE
-          C.GasEnergy[idx]  = *(recv_buffer_z0 + gidx + 5*offset);
+          C.GasEnergy[idx]  = *(recv_buffer_z0 + gidx + (H.n_fields-1)*offset);
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_z0 + gidx + (5+ii)*offset);
+          }
           #endif
         }
       }
@@ -1210,7 +1351,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
           C.momentum_z[idx] = *(recv_buffer_z1 + gidx + 3*offset);
           C.Energy[idx]     = *(recv_buffer_z1 + gidx + 4*offset);
           #ifdef DE
-          C.GasEnergy[idx]  = *(recv_buffer_z1 + gidx + 5*offset);
+          C.GasEnergy[idx]  = *(recv_buffer_z1 + gidx + (H.n_fields-1)*offset);
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            C.scalar[idx + ii*H.n_cells]  = *(recv_buffer_z1 + gidx + (5+ii)*offset);
+          }
           #endif
         }
       }
