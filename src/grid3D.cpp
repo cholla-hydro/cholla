@@ -91,6 +91,19 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real
  *  \brief Initialize the grid. */
 void Grid3D::Initialize(struct parameters *P)
 {
+  // number of fields to track (default 5 is # of conserved variables)
+  H.n_fields = 5;
+
+  // if including passive scalars increase the number of fields
+  #ifdef SCALAR
+  H.n_fields += NSCALARS;
+  #endif
+
+  // if using dual energy formalism must track internal energy - always the last field!
+  #ifdef DE
+  H.n_fields++;
+  #endif  
+
   int nx_in = P->nx;
   int ny_in = P->ny;
   int nz_in = P->nz;
@@ -150,18 +163,6 @@ void Grid3D::Initialize(struct parameters *P)
   // and inialize the timestep
   H.dt = 0.0;
 
-  // number of fields to track (default 5 is # of conserved variables)
-  H.n_fields = 5;
-
-  // if including passive scalars increase the number of fields
-  #ifdef SCALAR
-  H.n_fields += NSCALARS;
-  #endif
-
-  // if using dual energy formalism must track internal energy - always the last field!
-  #ifdef DE
-  H.n_fields++;
-  #endif  
 
   // allocate memory
   AllocateMemory();

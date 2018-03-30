@@ -881,7 +881,7 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   y_buffer_length = ybsize;
   z_buffer_length = zbsize;
   
-  //chprintf("Allocating MPI communication buffers (nx = %ld, ny = %ld, nz = %ld).\n", xbsize, ybsize, zbsize);
+  chprintf("Allocating MPI communication buffers (nx = %ld, ny = %ld, nz = %ld).\n", xbsize, ybsize, zbsize);
 
   if(!(send_buffer_x0 = (Real *) malloc(xbsize*sizeof(Real))))
   {
