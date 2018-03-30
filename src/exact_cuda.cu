@@ -134,7 +134,6 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
       Es = (ps/(gamma - 1.0)) + 0.5*ds*(vs*vs + vyr*vyr + vzr*vzr);
     }
     dev_flux[4*n_cells + tid] = (Es+ps)*vs;
-    dev_flux[5*n_cells + tid] = ps*vs/(gamma-1.0);
   }
 
 }
