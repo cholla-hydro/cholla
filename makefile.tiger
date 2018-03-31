@@ -26,8 +26,8 @@ ifdef MPI_FLAGS
   MPI_FLAGS += -DBLOCK
 
 else
-  CC	= cc
-  CXX   = CC
+  CC	= gcc
+  CXX   = g++
 endif
 
 #define the NVIDIA CUDA compiler
@@ -51,10 +51,10 @@ RECONSTRUCTION = -DPLMC
 #SOLVER = -DROE
 SOLVER = -DHLLC
 
-#INTEGRATOR = -DCTU
-INTEGRATOR = -DVL
+INTEGRATOR = -DCTU
+#INTEGRATOR = -DVL
 
-COOLING = -DCOOLING_GPU
+#COOLING = -DCOOLING_GPU
 
 
 ifdef CUDA
@@ -63,6 +63,8 @@ endif
 ifeq ($(OUTPUT),-DHDF5)
 HDF5_INCL = -I/usr/local/hdf5/gcc/openmpi-1.10.2/1.10.0/include
 HDF5_LIBS = /usr/local/hdf5/gcc/openmpi-1.10.2/1.10.0/lib64/libhdf5.so
+#HDF5_INCL = -I/usr/local/hdf5/gcc/1.10.0/include
+#HDF5_LIBS = /usr/local/hdf5/gcc/1.10.0/lib64/libhdf5.so
 endif
 
 INCL   = -I./ $(HDF5_INCL)
@@ -72,7 +74,7 @@ LIBS   = -lm $(HDF5_LIBS)
 
 
 
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DDE -DPROJECTION #-DROTATED_PROJECTION
+FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DSCALAR -DSLICES #-DDE #-DPROJECTION #-DROTATED_PROJECTION
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=$(CC) -arch=compute_60

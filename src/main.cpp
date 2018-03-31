@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
     dti = C_cfl / G.H.dt;
     outtime += G.H.t;
     nfile = P.nfile*P.nfull;
-    t_SN_next = G.H.t;
+    t_SN_next += G.H.t;
   }
 
   // set boundary conditions (assign appropriate values to ghost cells)
@@ -127,6 +127,12 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
+/*
+    for (int j=0; j<G.H.ny; j++) {
+      int id = G.H.n_ghost + j*G.H.nx;// + G.H.n_ghost*G.H.nx*G.H.ny;
+      printf("%d %f %f %f\n", j, G.C.density[id], G.C.Energy[id], G.C.scalar[id]/G.C.density[id]);
+    }
+*/
     // get the start time
     start_step = get_time();
     
@@ -141,6 +147,7 @@ int main(int argc, char *argv[])
     // Add supernovae
     //G.Add_Supernovae_CC85();
 
+    /*
     if (G.H.t >= t_SN_next) {
      
       Real sn_dti = G.Add_Supernova();
@@ -152,7 +159,7 @@ int main(int argc, char *argv[])
       #endif
       t_SN_next += dt_SN;
     }
-    
+    */
     
 
     // Advance the grid by one timestep

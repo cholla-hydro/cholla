@@ -38,6 +38,10 @@ typedef double Real;
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
 
+#ifdef SCALAR
+#define NSCALARS 1
+#endif
+
 
 #define SIGN(a) ( ((a) < 0.) ? -1. : 1. )
 

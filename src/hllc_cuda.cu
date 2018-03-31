@@ -11,9 +11,9 @@
 
 
 
-/*! \fn Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
+/*! \fn Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
  *  \brief HLLC Riemann solver based on the version described in Toro (2006), Sec. 10.4. */
-__global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir)
+__global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir, int n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -38,7 +38,10 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
   Real f_d, f_mx, f_my, f_mz, f_E;
   Real Sl, Sr, Sm, cfl, cfr, ps;
   #ifdef DE
-  Real gel, ger, gels, gers, f_ge_l, f_ge_r, f_ge;
+  Real dgel, dger, gel, ger, gels, gers, f_ge_l, f_ge_r, f_ge;
+  #endif
+  #ifdef SCALAR
+  Real dscl[NSCALARS], dscr[NSCALARS], scl[NSCALARS], scr[NSCALARS], scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
   #endif
   // Retrieve etah value
   Real etah = dev_etah[tid];
@@ -65,8 +68,13 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     myl = dev_bounds_L[o2*n_cells + tid];
     mzl = dev_bounds_L[o3*n_cells + tid];
     El  = dev_bounds_L[4*n_cells + tid];
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dscl[i] = dev_bounds_L[(5+i)*n_cells + tid];
+    }
+    #endif
     #ifdef DE
-    gel = dev_bounds_L[5*n_cells + tid] / dl;
+    dgel = dev_bounds_L[(n_fields-1)*n_cells + tid];
     #endif
 
     dr  = dev_bounds_R[            tid];
@@ -74,8 +82,13 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     myr = dev_bounds_R[o2*n_cells + tid];
     mzr = dev_bounds_R[o3*n_cells + tid];
     Er  = dev_bounds_R[4*n_cells + tid]; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dscr[i] = dev_bounds_R[(5+i)*n_cells + tid];
+    }
+    #endif
     #ifdef DE
-    ger = dev_bounds_R[5*n_cells + tid] / dr;
+    dger = dev_bounds_R[(n_fields-1)*n_cells + tid];
     #endif
 
     // calculate primative variables
@@ -84,11 +97,27 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     vzl = mzl / dl;
     pl  = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     pl  = fmax(pl, (Real) TINY_NUMBER);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scl[i] = dscl[i] / dl;
+    }
+    #endif
+    #ifdef DE
+    gel = dgel / dl;
+    #endif
     vxr = mxr / dr;
     vyr = myr / dr;
     vzr = mzr / dr;
     pr  = (Er - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
     pr  = fmax(pr, (Real) TINY_NUMBER);    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scr[i] = dscr[i] / dr;
+    }
+    #endif
+    #ifdef DE
+    ger = dger / dr;
+    #endif
 
     // calculate the enthalpy in each cell
     Hl = (El + pl) / dl;
@@ -134,7 +163,12 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     f_mz_l = mzl*vxl;
     f_E_l  = (El + pl)*vxl;
     #ifdef DE
-    f_ge_l = mxl*gel;
+    f_ge_l = dgel*vxl;
+    #endif
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      f_sc_l[i] = dscl[i]*vxl;
+    }
     #endif
 
     f_d_r  = mxr;
@@ -143,7 +177,12 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     f_mz_r = mzr*vxr;
     f_E_r  = (Er + pr)*vxr;
     #ifdef DE
-    f_ge_r = mxr*ger;
+    f_ge_r = dger*vxr;
+    #endif
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      f_sc_r[i] = dscr[i]*vxr;
+    }
     #endif
 
     // return upwind flux if flow is supersonic 
@@ -153,8 +192,13 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
       dev_flux[o2*n_cells+tid] = f_my_l;
       dev_flux[o3*n_cells+tid] = f_mz_l;
       dev_flux[4*n_cells+tid]  = f_E_l;
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        dev_flux[(5+i)*n_cells+tid]  = f_sc_l[i];
+      }
+      #endif
       #ifdef DE
-      dev_flux[5*n_cells+tid]  = f_ge_l;
+      dev_flux[(n_fields-1)*n_cells+tid]  = f_ge_l;
       #endif
       return;
     }
@@ -164,8 +208,13 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
       dev_flux[o2*n_cells+tid] = f_my_r;
       dev_flux[o3*n_cells+tid] = f_mz_r;
       dev_flux[4*n_cells+tid]  = f_E_r;
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        dev_flux[(5+i)*n_cells+tid]  = f_sc_r[i];
+      }
+      #endif
       #ifdef DE
-      dev_flux[5*n_cells+tid]  = f_ge_r;
+      dev_flux[(n_fields-1)*n_cells+tid]  = f_ge_r;
       #endif
       return;
     }
@@ -179,21 +228,31 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
       // conserved variables in the left star state (Batten eqns 35 - 40)
       dls = dl * (Sl - vxl) / (Sl - Sm);
       mxls = (mxl*(Sl - vxl) + ps - pl) / (Sl - Sm);
-      myls = myl*(Sl - vxl) / (Sl - Sm);
-      mzls = mzl*(Sl - vxl) / (Sl - Sm);
+      myls = dls*vyl;
+      mzls = dls*vzl;
       Els = (El*(Sl - vxl) - pl*vxl + ps*Sm) / (Sl - Sm);
       #ifdef DE
-      gels = dl*gel*(Sl - vxl) / (Sl - Sm);
+      gels = dls*gel;
+      #endif
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        scls[i] = dls*scl[i];
+      }
       #endif
 
       // conserved variables in the right star state
       drs = dr * (Sr - vxr) / (Sr - Sm);
       mxrs = (mxr*(Sr - vxr) + ps - pr) / (Sr - Sm);
-      myrs = myr*(Sr - vxr) / (Sr - Sm);
-      mzrs = mzr*(Sr - vxr) / (Sr - Sm);
+      myrs = drs*vyr;
+      mzrs = drs*vzr;
       Ers = (Er*(Sr - vxr) - pr*vxr + ps*Sm) / (Sr - Sm);
       #ifdef DE
-      gers = dr*ger*(Sr - vxr) / (Sr - Sm);
+      gers = drs*ger;
+      #endif
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        scrs[i] = drs*scr[i];
+      }
       #endif
 
 
@@ -204,7 +263,12 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
       f_mz = 0.5*(f_mz_l + f_mz_r + (Sr - fabs(Sm))*mzrs + (Sl + fabs(Sm))*mzls - Sl*mzl - Sr*mzr);
       f_E  = 0.5*(f_E_l  + f_E_r  + (Sr - fabs(Sm))*Ers  + (Sl + fabs(Sm))*Els  - Sl*El  - Sr*Er);
       #ifdef DE
-      f_ge = 0.5*(f_ge_l + f_ge_r + (Sr - fabs(Sm))*gers + (Sl + fabs(Sm))*gels - Sl*dl*gel - Sr*dr*ger);
+      f_ge = 0.5*(f_ge_l + f_ge_r + (Sr - fabs(Sm))*gers + (Sl + fabs(Sm))*gels - Sl*dgel - Sr*dger);
+      #endif
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        f_sc[i] = 0.5*(f_sc_l[i] + f_sc_r[i] + (Sr - fabs(Sm))*scrs[i] + (Sl + fabs(Sm))*scls[i] - Sl*dscl[i] - Sr*dscr[i]);
+      }
       #endif
 
 
@@ -214,8 +278,13 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
       dev_flux[o2*n_cells+tid] = f_my;
       dev_flux[o3*n_cells+tid] = f_mz;
       dev_flux[4*n_cells+tid]  = f_E;
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        dev_flux[(5+i)*n_cells+tid]  = f_sc[i];
+      }
+      #endif
       #ifdef DE
-      dev_flux[5*n_cells+tid]  = f_ge;
+      dev_flux[(n_fields-1)*n_cells+tid]  = f_ge;
       #endif
 
     }
