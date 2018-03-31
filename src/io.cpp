@@ -451,7 +451,9 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   status = H5Aclose(attribute_id);
   attribute_id = H5Acreate(file_id, "n_step", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_step);
-  status = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "n_fields", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_fields);
+  status = H5Aclose(attribute_id);  
 
   //Rotation data
   chprintf("Outputing rotation data with delta = %e, theta = %e, phi = %e, Lx = %f, Lz = %f\n",R.delta,R.theta,R.phi,R.Lx,R.Lz);
@@ -1419,6 +1421,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
   xslice = H.nx/2;
   yslice = H.ny/2;
   zslice = H.nz/2;
+  #ifdef MPI_CHOLLA
+  xslice = nx_global/2;
+  yslice = ny_global/2;
+  zslice = nz_global/2;
+  #endif
 
 
   // 3D 
@@ -1428,6 +1435,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     int       ny_dset = H.ny_real;
     int       nz_dset = H.nz_real;
     hsize_t   dims[2];
+
 
     // Create the xy data space for the datasets
     dims[0] = nx_dset;
@@ -1452,19 +1460,43 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
       for (i=0; i<H.nx_real; i++) {
         id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + zslice*H.nx*H.ny;
         buf_id = j + i*H.ny_real;
-        dataset_buffer_d[buf_id]  = C.density[id];
-        dataset_buffer_mx[buf_id] = C.momentum_x[id];
-        dataset_buffer_my[buf_id] = C.momentum_y[id];
-        dataset_buffer_mz[buf_id] = C.momentum_z[id];
-        dataset_buffer_E[buf_id]  = C.Energy[id];
-        #ifdef DE
-        dataset_buffer_GE[buf_id] = C.GasEnergy[id];
-        #endif
-        #ifdef SCALAR
-        for (int ii=0; ii<NSCALARS; ii++) {
-          dataset_buffer_scalar[buf_id+ii*H.nx*H.ny] = C.scalar[id+ii*H.n_cells];
+        #ifdef MPI_CHOLLA
+        // When there are multiple processes, check whether this slice is in your domain
+        if (zslice >= H.n_ghost+nz_local_start && zslice < H.n_ghost+nz_local_start+nz_local) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (zslice-nz_local_start)*H.nx*H.ny
+        #endif //MPI_CHOLLA
+          dataset_buffer_d[buf_id]  = C.density[id];
+          dataset_buffer_mx[buf_id] = C.momentum_x[id];
+          dataset_buffer_my[buf_id] = C.momentum_y[id];
+          dataset_buffer_mz[buf_id] = C.momentum_z[id];
+          dataset_buffer_E[buf_id]  = C.Energy[id];
+          #ifdef DE
+          dataset_buffer_GE[buf_id] = C.GasEnergy[id];
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            dataset_buffer_scalar[buf_id+ii*H.nx*H.ny] = C.scalar[id+ii*H.n_cells];
+          }
+          #endif
+        #ifdef MPI_CHOLLA
         }
-        #endif
+        // if the slice isn't in your domain, just write out zeros
+        else {
+          dataset_buffer_d[buf_id]  = 0;
+          dataset_buffer_mx[buf_id] = 0;
+          dataset_buffer_my[buf_id] = 0;
+          dataset_buffer_mz[buf_id] = 0;
+          dataset_buffer_E[buf_id]  = 0;
+          #ifdef DE
+          dataset_buffer_GE[buf_id] = 0;
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            dataset_buffer_scalar[buf_id+ii*H.nx*H.ny] = 0;
+          }
+          #endif
+        } 
+        #endif // MPI_CHOLLA
       }
     }
 
@@ -1497,7 +1529,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     // Free the dataspace id
     status = H5Sclose(dataspace_id);
 
-    // free the dataset buffers, and allocate the memory for the xz slices
+    // free the dataset buffers
     free(dataset_buffer_d);
     free(dataset_buffer_mx);
     free(dataset_buffer_my);
@@ -1509,6 +1541,14 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     #ifdef SCALAR
     free(dataset_buffer_scalar);
     #endif
+    
+
+    // Create the xz data space for the datasets
+    dims[0] = nx_dset;
+    dims[1] = nz_dset;
+    dataspace_id = H5Screate_simple(2, dims, NULL);
+
+    // allocate the memory for the xz slices
     dataset_buffer_d  = (Real *) malloc(H.nx_real*H.nz_real*sizeof(Real));
     dataset_buffer_mx = (Real *) malloc(H.nx_real*H.nz_real*sizeof(Real));
     dataset_buffer_my = (Real *) malloc(H.nx_real*H.nz_real*sizeof(Real));
@@ -1527,6 +1567,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
       for (i=0; i<H.nx_real; i++) {
         id = (i+H.n_ghost) + yslice*H.nx + (k+H.n_ghost)*H.nx*H.ny;
         buf_id = k + i*H.nz_real;
+        #ifdef MPI_CHOLLA
+        // When there are multiple processes, check whether this slice is in your domain
+        if (yslice >= H.n_ghost+ny_local_start && yslice < H.n_ghost+ny_local_start+ny_local) {
+          id = (i+H.n_ghost) + (yslice-ny_local_start)*H.nx + (k+H.n_ghost)*H.nx*H.ny
+        #endif //MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
         dataset_buffer_my[buf_id] = C.momentum_y[id];
@@ -1540,12 +1585,27 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
           dataset_buffer_scalar[buf_id+ii*H.nx*H.nz] = C.scalar[id+ii*H.n_cells];
         }
         #endif
+        #ifdef MPI_CHOLLA
+        }
+        // if the slice isn't in your domain, just write out zeros
+        else {
+          dataset_buffer_d[buf_id]  = 0;
+          dataset_buffer_mx[buf_id] = 0;
+          dataset_buffer_my[buf_id] = 0;
+          dataset_buffer_mz[buf_id] = 0;
+          dataset_buffer_E[buf_id]  = 0;
+          #ifdef DE
+          dataset_buffer_GE[buf_id] = 0;
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            dataset_buffer_scalar[buf_id+ii*H.nx*H.nz] = 0;
+          }
+          #endif
+        } 
+        #endif // MPI_CHOLLA
       }
     }
-    // Create the xz data space for the datasets
-    dims[0] = nx_dset;
-    dims[1] = nz_dset;
-    dataspace_id = H5Screate_simple(2, dims, NULL);
 
     // Write out the xz datasets for each variable 
     dataset_id = H5Dcreate(file_id, "/d_xz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -1576,7 +1636,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     // Free the dataspace id
     status = H5Sclose(dataspace_id);
 
-    // free the dataset buffers, and allocate the memory for the yz slices
+    // free the dataset buffers 
     free(dataset_buffer_d);
     free(dataset_buffer_mx);
     free(dataset_buffer_my);
@@ -1588,6 +1648,14 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     #ifdef SCALAR
     free(dataset_buffer_scalar);
     #endif
+
+
+    // Create the yz data space for the datasets
+    dims[0] = ny_dset;
+    dims[1] = nz_dset;
+    dataspace_id = H5Screate_simple(2, dims, NULL);
+
+    // allocate the memory for the yz slices
     dataset_buffer_d  = (Real *) malloc(H.ny_real*H.nz_real*sizeof(Real));
     dataset_buffer_mx = (Real *) malloc(H.ny_real*H.nz_real*sizeof(Real));
     dataset_buffer_my = (Real *) malloc(H.ny_real*H.nz_real*sizeof(Real));
@@ -1606,6 +1674,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
       for (j=0; j<H.ny_real; j++) {
         id = xslice + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
         buf_id = k + j*H.nz_real;
+        #ifdef MPI_CHOLLA
+        // When there are multiple processes, check whether this slice is in your domain
+        if (xslice >= H.n_ghost+nx_local_start && xslice < H.n_ghost+nx_local_start+nx_local) {
+          id = (xslice-nx_local_start) + (y+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny
+        #endif //MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
         dataset_buffer_my[buf_id] = C.momentum_y[id];
@@ -1619,13 +1692,27 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
           dataset_buffer_scalar[buf_id+ii*H.ny*H.nz] = C.scalar[id+ii*H.n_cells];
         }
         #endif
+        #ifdef MPI_CHOLLA
+        }
+        // if the slice isn't in your domain, just write out zeros
+        else {
+          dataset_buffer_d[buf_id]  = 0;
+          dataset_buffer_mx[buf_id] = 0;
+          dataset_buffer_my[buf_id] = 0;
+          dataset_buffer_mz[buf_id] = 0;
+          dataset_buffer_E[buf_id]  = 0;
+          #ifdef DE
+          dataset_buffer_GE[buf_id] = 0;
+          #endif
+          #ifdef SCALAR
+          for (int ii=0; ii<NSCALARS; ii++) {
+            dataset_buffer_scalar[buf_id+ii*H.ny*H.nz] = 0;
+          }
+          #endif
+        } 
+        #endif // MPI_CHOLLA
       }
     }
-
-    // Create the yz data space for the datasets
-    dims[0] = ny_dset;
-    dims[1] = nz_dset;
-    dataspace_id = H5Screate_simple(2, dims, NULL);
 
     // Write out the yz datasets for each variable 
     dataset_id = H5Dcreate(file_id, "/d_yz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
