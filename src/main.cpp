@@ -127,8 +127,12 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
-    //for (int i=0; i<G.H.nx; i++) printf("%f\n", G.C.Energy[i]);
-
+/*
+    for (int j=0; j<G.H.ny; j++) {
+      int id = G.H.n_ghost + j*G.H.nx;// + G.H.n_ghost*G.H.nx*G.H.ny;
+      printf("%d %f %f %f\n", j, G.C.density[id], G.C.Energy[id], G.C.scalar[id]/G.C.density[id]);
+    }
+*/
     // get the start time
     start_step = get_time();
     

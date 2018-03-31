@@ -82,6 +82,8 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(0, flags);
     }
   }
+  printf("%d x boundaries set.\n", procID);
+  fflush(stdout);
   MPI_Barrier(world);
   if (H.ny > 1) {
 
@@ -99,6 +101,8 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(1, flags);
     }
   }
+  printf("%d y boundaries set.\n", procID);
+  fflush(stdout);
   MPI_Barrier(world);
   if (H.nz > 1) {
 
@@ -106,6 +110,10 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
     if (flags[4]==5 || flags[5]==5) {
       Load_and_Send_MPI_Comm_Buffers(2, flags);
     }
+
+    printf("%d z boundaries sent.\n", procID);
+    fflush(stdout);
+    MPI_Barrier(world);
 
     /* Step 8 - Set non-MPI z-boundaries */
     Set_Boundaries(4, flags);
@@ -115,7 +123,14 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
     if (flags[4]==5 || flags[5]==5) {
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(2, flags);
     }
+
+    printf("%d z boundaries received.\n", procID);
+    fflush(stdout);
+    MPI_Barrier(world);
   }
+  printf("%d z boundaries set.\n", procID);
+  fflush(stdout);
+  MPI_Barrier(world);
 
 }
 

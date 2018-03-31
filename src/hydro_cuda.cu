@@ -151,8 +151,11 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       dev_conserved[(5+i)*n_cells + id] += dtodx * (dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id])
-                                    +  dtody * (dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id]);
+                                        +  dtody * (dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id]);
     }
+//    if (xid == 4) {
+//      printf("%3d %f %f %f\n", yid, dev_conserved[5*n_cells + id]), dtodx*(dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id]), dtody * (dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id]);
+//    }
     #endif
     // add gravitational source terms, time averaged from n to n+1                                 
     #ifdef DE
