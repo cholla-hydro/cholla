@@ -381,9 +381,9 @@ class Grid3D
      *  \brief Initialize the grid with two interacting blast waves. See Stone 2008, Section 8.1.*/
     void Blast_1D();
 
-    /*! \fn void KH_discontinuous_2D()
-    *  \brief Initialize the grid with a 2D Kelvin-Helmholtz instability. */
-    void KH_discontinuous_2D();
+    /*! \fn void KH()
+    *  \brief Initialize the grid with a Kelvin-Helmholtz instability with a discontinuous interface. */
+    void KH();
 
     /*! \fn void KH_res_ind()
      *  \brief Initialize the grid with a Kelvin-Helmholtz instability whose modes are resolution independent. */

@@ -143,6 +143,7 @@ int main(int argc, char *argv[])
     // Add supernovae
     //G.Add_Supernovae_CC85();
 
+    /*
     if (G.H.t >= t_SN_next) {
      
       Real sn_dti = G.Add_Supernova();
@@ -154,7 +155,7 @@ int main(int argc, char *argv[])
       #endif
       t_SN_next += dt_SN;
     }
-    
+    */
     
 
     // Advance the grid by one timestep

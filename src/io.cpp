@@ -1463,7 +1463,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
         #ifdef MPI_CHOLLA
         // When there are multiple processes, check whether this slice is in your domain
         if (zslice >= H.n_ghost+nz_local_start && zslice < H.n_ghost+nz_local_start+nz_local) {
-          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (zslice-nz_local_start)*H.nx*H.ny
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (zslice-nz_local_start)*H.nx*H.ny;
         #endif //MPI_CHOLLA
           dataset_buffer_d[buf_id]  = C.density[id];
           dataset_buffer_mx[buf_id] = C.momentum_x[id];
@@ -1570,7 +1570,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
         #ifdef MPI_CHOLLA
         // When there are multiple processes, check whether this slice is in your domain
         if (yslice >= H.n_ghost+ny_local_start && yslice < H.n_ghost+ny_local_start+ny_local) {
-          id = (i+H.n_ghost) + (yslice-ny_local_start)*H.nx + (k+H.n_ghost)*H.nx*H.ny
+          id = (i+H.n_ghost) + (yslice-ny_local_start)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
         #endif //MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
@@ -1677,7 +1677,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
         #ifdef MPI_CHOLLA
         // When there are multiple processes, check whether this slice is in your domain
         if (xslice >= H.n_ghost+nx_local_start && xslice < H.n_ghost+nx_local_start+nx_local) {
-          id = (xslice-nx_local_start) + (y+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny
+          id = (xslice-nx_local_start) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
         #endif //MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
