@@ -1058,7 +1058,7 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
         for(k=0;k<H.n_ghost;k++) {
           idx  = i + j*H.nx + k*H.nx*H.ny;
           gidx = i + j*H.nx + k*H.nx*H.ny;
-          for (ii=0; ii<H.n_cells; ii++) {
+          for (ii=0; ii<H.n_fields; ii++) {
             C.density[idx + ii*H.n_cells] = *(recv_buffer_z0 + gidx + ii*offset);
           }
         }
