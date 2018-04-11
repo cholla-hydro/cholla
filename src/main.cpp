@@ -127,9 +127,6 @@ int main(int argc, char *argv[])
     
     // calculate the timestep
     G.set_dt(C_cfl, dti);
-    if (G.H.n_step < 10) {
-      G.H.dt = fmin(G.H.dt, 0.5);
-    }
 
     if (G.H.t + G.H.dt > outtime) 
     {

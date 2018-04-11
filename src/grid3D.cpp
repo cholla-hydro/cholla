@@ -762,8 +762,8 @@ Real Grid3D::Add_Supernovae_CC85(void)
 
         // within starburst radius, inject mass and thermal energy
         // entire cell is within sphere
-        //if (rr < R_s) {
-        if (r < R_s) {
+        if (rr < R_s) {
+        //if (r < R_s) {
           C.density[id] += rho_dot * H.dt;
           C.Energy[id] += Ed_dot * H.dt;
           #ifdef DE
@@ -774,9 +774,19 @@ Real Grid3D::Add_Supernovae_CC85(void)
           #endif
           //M_dot_tot += rho_dot*H.dx*H.dy*H.dz;
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
-        //}
+          // recalculate the timestep for these cells
+          d_inv = 1.0 / C.density[id];
+          vx = d_inv * C.momentum_x[id];
+          vy = d_inv * C.momentum_y[id];
+          vz = d_inv * C.momentum_z[id];
+          P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
+          cs = sqrt(d_inv * gama * P);
+          // compute maximum cfl velocity
+          max_vx = fmax(max_vx, fabs(vx) + cs);
+          max_vy = fmax(max_vy, fabs(vy) + cs);
+          max_vz = fmax(max_vz, fabs(vz) + cs);
+        }
         // on the sphere
-/*
         if (rl < R_s && rr > R_s) {
           // quick Monte Carlo to determine weighting
           Ran quickran(50);
@@ -798,8 +808,6 @@ Real Grid3D::Add_Supernovae_CC85(void)
           #ifdef DE
           C.GasEnergy[id] += Ed_dot * H.dt;
           #endif
-        }
-*/
           // recalculate the timestep for these cells
           d_inv = 1.0 / C.density[id];
           vx = d_inv * C.momentum_x[id];
@@ -827,7 +835,7 @@ Real Grid3D::Add_Supernovae_CC85(void)
   max_dti = fmax(max_dti, max_vy / H.dy);
   max_dti = fmax(max_dti, max_vz / H.dy);
 
-  }
+  } // t > 0
 
   return max_dti;
 
