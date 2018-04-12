@@ -196,7 +196,6 @@ void Grid3D::Set_Edge_Boundary_Extents(int dir, int edge, int *imin, int *imax)
 
   int i, j, k;
   int ni, nj, nk;
-  int nx, ny, nz;
 
 
   //two D case
@@ -772,10 +771,8 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 {
   int iwait;
   int index = 0;
-  int count = 0;
   int wait_max=0;
   MPI_Status status;
-  int error = 0;
 
   //find out how many recvs we need to wait for
   if (dir==0) {

@@ -22,7 +22,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 {
 
   int n_cells = nx*ny*nz;
-  int id, imo, ipo, jmo, jpo, kmo, kpo;
+  int id;
   int istart, istop, jstart, jstop, kstart, kstop;
   int nfields = 5;
   #ifdef DE
@@ -32,14 +32,14 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
   nfields += NSCALARS;
   #endif
 
-  Real d_old, vx_old, vy_old, vz_old, P_old, E_old;
+  Real d_old, vx_old, vy_old, vz_old;
   Real d_new, vx_new, vy_new, vz_new, P_new, E_new;
   Real n, T;
   Real etah = 0.0;
 
-  Real dtodx = dt/dx;
-  Real dtody = dt/dy;
-  Real dtodz = dt/dz;
+  //Real dtodx = dt/dx;
+  //Real dtody = dt/dy;
+  //Real dtodz = dt/dz;
   
   // sweep through real cells and look for negative densities or pressures in new data
   istart = n_ghost; istop = nx-n_ghost;
@@ -184,7 +184,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 
           // apply cooling
           #ifdef COOLING_GPU
-          //cooling_CPU(C2, id, n_cells, dt);
+          //cooling_CPU(C2, id, n_cells, dt, nfields);
           #endif
 
           // recalculate the pressure
@@ -256,17 +256,11 @@ void second_order_fluxes(Real *C1, Real *C2, Real C_i[], Real C_imo[], Real C_im
 {
   int id = i + j*nx + k*nx*ny;
   int imo = i-1 + j*nx + k*nx*ny;
-  int imt = i-2 + j*nx + k*nx*ny;
   int ipo = i+1 + j*nx + k*nx*ny;
-  int ipt = i+2 + j*nx + k*nx*ny;
   int jmo = i + (j-1)*nx + k*nx*ny;
-  int jmt = i + (j-2)*nx + k*nx*ny;
   int jpo = i + (j+1)*nx + k*nx*ny;
-  int jpt = i + (j+2)*nx + k*nx*ny;
   int kmo = i + j*nx + (k-1)*nx*ny;
-  int kmt = i + j*nx + (k-2)*nx*ny;
   int kpo = i + j*nx + (k+1)*nx*ny;
-  int kpt = i + j*nx + (k+2)*nx*ny;
   Real etah = 0.0;
   Real dtodx = dt / dx;
   Real dtody = dt / dy;
@@ -799,12 +793,12 @@ void second_order_fluxes(Real *C1, Real *C2, Real C_i[], Real C_imo[], Real C_im
 void average_cell(Real *C1, int i, int j, int k, int nx, int ny, int nz, int n_cells, int n_fields)
 {
   int id = i + j*nx + k*nx*ny;
-  int imo = i-1 + j*nx + k*nx*ny;
-  int ipo = i+1 + j*nx + k*nx*ny;
-  int jmo = i + (j-1)*nx + k*nx*ny;
-  int jpo = i + (j+1)*nx + k*nx*ny;
-  int kmo = i + j*nx + (k-1)*nx*ny;
-  int kpo = i + j*nx + (k+1)*nx*ny;
+  //int imo = i-1 + j*nx + k*nx*ny;
+  //int ipo = i+1 + j*nx + k*nx*ny;
+  //int jmo = i + (j-1)*nx + k*nx*ny;
+  //int jpo = i + (j+1)*nx + k*nx*ny;
+  //int kmo = i + j*nx + (k-1)*nx*ny;
+  //int kpo = i + j*nx + (k+1)*nx*ny;
   //printf("%3d %3d %3d  d_i: %e d_imo: %e d_ipo: %e d_jmo: %e d_jpo: %e d_kmo: %e d_kpo: %e\n", i, j, k, C1[id], C1[imo], C1[ipo], C1[jmo], C1[jpo], C1[kmo], C1[kpo]);
   //printf("%3d %3d %3d  vx_i: %e vx_imo: %e vx_ipo: %e\n", i, j, k, C1[id+n_cells]/C1[id], C1[imo+n_cells]/C1[imo], C1[ipo+n_cells]/C1[ipo]);
   //printf("%3d %3d %3d  vy_i: %e vy_jmo: %e vy_jpo: %e\n", i, j, k, C1[id+2*n_cells]/C1[id], C1[jmo+2*n_cells]/C1[jmo], C1[jpo+2*n_cells]/C1[jpo]);
@@ -1233,7 +1227,7 @@ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n
 }
 
 
-void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
+void cooling_CPU(Real *C2, int id, int n_cells, Real dt, int nfields) {
 
   Real d, E;
   Real n, T, T_init;
@@ -1261,7 +1255,7 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   p  = fmax(p, (Real) TINY_NUMBER);
   #endif
   #ifdef DE
-  ge = C2[5*n_cells + id] / d;
+  ge = C2[(nfields-1)*n_cells + id] / d;
   ge = fmax(ge, (Real) TINY_NUMBER);
   #endif
     
@@ -1318,7 +1312,7 @@ void cooling_CPU(Real *C2, int id, int n_cells, Real dt) {
   // and update the energies 
   C2[4*n_cells + id] = E;
   #ifdef DE
-  C2[5*n_cells + id] = d*ge;
+  C2[(nfields-1)*n_cells + id] = d*ge;
   #endif
 
 

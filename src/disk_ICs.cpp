@@ -257,20 +257,9 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   //hdp[16] = cs;
 
   int i,k;        //index along z axis
-  Real z;     //cell center in z direction
   int nzt;      //total number of cells in z-direction
-  Real Sigma; //surface density in column
-  Real Sigma_n;
-  Real z_min; //bottom of the cell
-  Real z_max; //top of the cell
   Real Sigma_r; //surface density expected at r
-  Real Sigma_0 = hdp[9]; //central surface density
-  Real K = hdp[12]; //K coefficient in EOS; P = K \rho^gamma
-  //Real gamma = hdp[13];
-  Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
-  Real rho_floor = hdp[14]; //density floor
 
-  Real rho_eos = hdp[15];
   Real cs      = hdp[16];
 
   Real Phi_0; //potential at z=0
@@ -278,11 +267,11 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   Real rho_0; //density at mid plane
   Real D_rho; //ratio of density at mid plane and rho_eos
 
-  Real z_0, z_1, z_2; // heights for iteration
+  Real z_0, z_1; // heights for iteration
   Real z_disk_max;
 
   //density integration
-  Real phi_int, A;
+  Real phi_int;
   Real z_int_min, z_int_max, dz_int;
   Real Delta_phi;
   int n_int = 1000;
@@ -446,25 +435,17 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   //hdp[16] = cs;
 
   int i,k;        //index along z axis
-  Real z;     //cell center in z direction
   int nzt;      //total number of cells in z-direction
-  Real Sigma; //surface density in column
-  Real Sigma_n;
-  Real z_min; //bottom of the cell
-  Real z_max; //top of the cell
   Real Sigma_r; //surface density expected at r
   Real Sigma_0 = hdp[9]; //central surface density
-  Real K = hdp[12]; //K coefficient in EOS; P = K \rho^gamma
   Real gamma = hdp[13];
   //Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
-  Real rho_floor = hdp[14]; //density floor
 
   Real rho_eos = hdp[15];
   Real cs      = hdp[16];
 
   Real Phi_0; //potential at z=0
 
-  Real rho_0; //density at mid plane
   Real D_rho; //ratio of density at mid plane and rho_eos
   Real D_new; //new ratio of density at mid plane and rho_eos
 
@@ -780,30 +761,30 @@ void Grid3D::Disk_3D(parameters p)
 {
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, phi;
-  Real d, n, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, x, mu;
-  Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d, Sigma;
+  Real d, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, mu;
+  Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d;
   Real K_eos, rho_eos, cs, K_eos_h, rho_eos_h, cs_h;
   Real Sigma_0, R_g, H_g;
   Real rho_floor;
   Real r_cool;
 
   // MW model
-  M_vir = 1.0e12; // viral mass of MW in M_sun
-  M_d = 6.5e10; // mass of disk in M_sun (assume all stars)
-  R_d = 3.5; // MW stellar disk scale length in kpc
-  z_d = 3.5/5.0; // MW stellar disk scale height in kpc
-  R_vir = 261; // MW viral radius in kpc
-  c_vir = 20; // MW halo concentration (to account for adiabatic contraction)
-  r_cool = 157.0; // cooling radius in kpc (MW)
+  //M_vir = 1.0e12; // viral mass of MW in M_sun
+  //M_d = 6.5e10; // mass of disk in M_sun (assume all stars)
+  //R_d = 3.5; // MW stellar disk scale length in kpc
+  //z_d = 3.5/5.0; // MW stellar disk scale height in kpc
+  //R_vir = 261; // MW viral radius in kpc
+  //c_vir = 20; // MW halo concentration (to account for adiabatic contraction)
+  //r_cool = 157.0; // cooling radius in kpc (MW)
 
   // M82 model
-  //M_vir = 5.0e10; // viral mass of M82 in M_sun (guess)
-  //M_d = 1.0e10; // mass of M82 disk in M_sun (Greco 2012)
-  //R_d = 0.8; // M82 stellar disk scale length in kpc (Mayya 2009)
-  //z_d = 0.15; // M82 stellar thin disk scale height in kpc (Lim 2013)
-  //R_vir = R_d/0.015; // M82 viral radius in kpc from R_(1/2) = 0.015 R_200 (Kravtsov 2013)
-  //c_vir = 10; // M82 halo concentration
-  //r_cool = 100.0; // cooling in kpc (M82, guess)
+  M_vir = 5.0e10; // viral mass of M82 in M_sun (guess)
+  M_d = 1.0e10; // mass of M82 disk in M_sun (Greco 2012)
+  R_d = 0.8; // M82 stellar disk scale length in kpc (Mayya 2009)
+  z_d = 0.15; // M82 stellar thin disk scale height in kpc (Lim 2013)
+  R_vir = R_d/0.015; // M82 viral radius in kpc from R_(1/2) = 0.015 R_200 (Kravtsov 2013)
+  c_vir = 10; // M82 halo concentration
+  r_cool = 100.0; // cooling in kpc (M82, guess)
 
   M_h = M_vir - M_d; // halo mass in M_sun
   R_s = R_vir / c_vir; // halo scale length in kpc
@@ -875,7 +856,6 @@ void Grid3D::Disk_3D(parameters p)
   Real dr = sqrt(3)*0.5*fmax(p.xlen, p.zlen) / ((Real) nr);
   Real *rho_halo = (Real *) calloc(nr,sizeof(Real));
   Real *r_halo = (Real *) calloc(nr,sizeof(Real));
-  Real rho_check = 0;
 
 
   //////////////////////////////////////////////
@@ -892,7 +872,6 @@ void Grid3D::Disk_3D(parameters p)
   // Add a disk component
   //////////////////////////////////////////////
   //////////////////////////////////////////////
-/*
   // compute a
   // hydrostatic column for the disk 
   // and add the disk density and thermal energy
@@ -983,7 +962,7 @@ void Grid3D::Disk_3D(parameters p)
           if (i == H.nx-H.n_ghost-1) idp  = i + j*H.nx + k*H.nx*H.ny;
           else idp  = (i+1) + j*H.nx + k*H.nx*H.ny; 
           Get_Position(i-1, j, k, &xpm, &ypm, &zpm);
-          Get_Position(i+1, j, k, &xpp, &ypp, &zpm);
+          Get_Position(i+1, j, k, &xpp, &ypp, &zpp);
           Pm = C.Energy[idm]*(gama-1.0); // only internal energy stored in energy currently
           Pp = C.Energy[idp]*(gama-1.0); // only internal energy stored in energy currently
           dPdx =  (Pp-Pm)/(xpp-xpm);
@@ -1047,7 +1026,6 @@ void Grid3D::Disk_3D(parameters p)
       }
     }
   }
-*/
 
   //////////////////////////////////////////////
   //////////////////////////////////////////////

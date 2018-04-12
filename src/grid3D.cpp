@@ -840,10 +840,10 @@ Real Grid3D::Add_Supernovae_CC85(void)
   max_dti = max_vx = max_vy = max_vz = 0.0;
   R_s = 0.3; // starburst radius, in kpc
   // High res adiabatic params
-  //M1 = 1.5e3; 
-  //E1 = 1.5e42;
-  //M2 = 12.0e3;
-  //E2 = 5.4e42;
+  M1 = 1.5e3; 
+  E1 = 1.5e42;
+  M2 = 12.0e3;
+  E2 = 5.4e42;
   M_dot = 0.0;
   E_dot = 0.0;
 

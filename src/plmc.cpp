@@ -46,7 +46,9 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   ge_ipo = stencil[17] / d_i;
   #endif
 
+  #ifndef VL 
   Real dtodx = dt/dx;
+  #endif
 
   // adiabatic sound speed in cell imo, i, ipo
   Real a_i   = sqrt(gamma*p_i/d_i);
