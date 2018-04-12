@@ -147,6 +147,11 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
           #ifdef DE
           C.GasEnergy[gidx]  = C.GasEnergy[idx];
           #endif
+          #ifdef SCALAR 
+          for (int ii=0; ii<NSCALARS; ii++) {
+            C.scalar[gidx + ii*H.n_cells]  = C.scalar[idx + ii*H.n_cells];
+          }
+          #endif
 
           //for outflow boundaries, set momentum to restrict inflow
           if (flags[dir] == 3) {

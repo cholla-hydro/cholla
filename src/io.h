@@ -17,10 +17,8 @@ void OutputProjectedData(Grid3D G, struct parameters P, int nfile);
 /* Output a rotated projection of the grid data to file. */
 void OutputRotatedProjectedData(Grid3D G, struct parameters P, int nfile);
 
-#ifdef   MPI_CHOLLA
-/* Output the grid data to file. */
-void OutputDataMPI(Grid3D G, struct parameters P, int nfile);
-#endif /*MPI_CHOLLA*/
+/* Output xy, xz, and yz slices of the grid data to file. */
+void OutputSlices(Grid3D G, struct parameters P, int nfile);
 
 /* MPI-safe printf routine */
 int chprintf(const char * __restrict sdata, ...);

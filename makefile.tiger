@@ -12,8 +12,7 @@ OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
-CUDA = -DCUDA -DCUDA_ERROR_CHECK
-
+CUDA = -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
@@ -27,12 +26,12 @@ ifdef MPI_FLAGS
   MPI_FLAGS += -DBLOCK
 
 else
-  CC	= cc
-  CXX   = c++
+  CC	= gcc
+  CXX   = g++
 endif
 
 #define the NVIDIA CUDA compiler
-NVCC	= nvcc 
+NVCC	= nvcc
 
 .SUFFIXES : .c .cpp .cu .o
 
@@ -40,33 +39,45 @@ NVCC	= nvcc
 PRECISION = -DPRECISION=2
 
 #OUTPUT = -DBINARY
-OUTPUT = -DHDF5 -DPROJECTION -DROTATED_PROJECTION -DSLICES
+OUTPUT = -DHDF5
 
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
-#RECONSTRUCTION = -DPLMC
+RECONSTRUCTION = -DPLMC
 #RECONSTRUCTION = -DPPMP
-RECONSTRUCTION = -DPPMC
+#RECONSTRUCTION = -DPPMC
 
 #SOLVER = -DEXACT
 #SOLVER = -DROE
 SOLVER = -DHLLC
 
-INTEGRATOR = -DCTU 
+INTEGRATOR = -DCTU
 #INTEGRATOR = -DVL
 
-COOLING = -DCOOLING_GPU
-
-INCL   = -I./ -I/usr/local/cuda/include -I/usr/local/include
-NVLIBS = -L/usr/local/cuda/lib -lcuda -lcudart
-LIBS   = -L/usr/local/lib -lm -lhdf5
+#COOLING = -DCOOLING_GPU
 
 
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DDE -DSCALAR #-DH_CORRECTION 
+ifdef CUDA
+CUDA_LIBS = -lcuda -lcudart
+endif
+ifeq ($(OUTPUT),-DHDF5)
+HDF5_INCL = -I/usr/local/hdf5/gcc/openmpi-1.10.2/1.10.0/include
+HDF5_LIBS = /usr/local/hdf5/gcc/openmpi-1.10.2/1.10.0/lib64/libhdf5.so
+#HDF5_INCL = -I/usr/local/hdf5/gcc/1.10.0/include
+#HDF5_LIBS = /usr/local/hdf5/gcc/1.10.0/lib64/libhdf5.so
+endif
+
+INCL   = -I./ $(HDF5_INCL)
+NVINCL = $(INCL) $(CUDA_INCL)
+NVLIBS = $(CUDA_LIBS)
+LIBS   = -lm $(HDF5_LIBS)
+
+
+
+FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DSCALAR -DSLICES #-DDE #-DPROJECTION #-DROTATED_PROJECTION
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -m64  -Xcompiler -arch -Xcompiler x86_64
-ALL_LDFLAGS += -Xlinker -F/Library/Frameworks -Xlinker -framework -Xlinker CUDA
+NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=$(CC) -arch=compute_60
 
 
 %.o:	%.c
@@ -76,10 +87,11 @@ ALL_LDFLAGS += -Xlinker -F/Library/Frameworks -Xlinker -framework -Xlinker CUDA
 		$(CXX) $(CXXFLAGS)  $(INCL)  -c $< -o $@ 
 
 %.o:	%.cu
-		$(NVCC) $(NVCCFLAGS)  $(INCL)  -c $< -o $@ 
+		$(NVCC) $(NVCCFLAGS)  $(NVINCL)  -c $< -o $@ 
+
 
 $(EXEC): $(OBJS) 
-	 	 $(CXX) $(OBJS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL) $(ALL_LDFLAGS)
+	 	 $(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL)   
 
 #$(OBJS): $(INCL) 
 

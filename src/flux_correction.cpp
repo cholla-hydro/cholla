@@ -56,7 +56,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
         P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
         n = d_new*DENSITY_UNIT/(0.6*MP);
         #ifdef DE
-        T = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+        T = C2[(nfields-1)*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
         #else
         T = P_new*PRESSURE_UNIT/(n*KB);
         #endif
@@ -99,7 +99,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           n = d_new*DENSITY_UNIT/(0.6*MP);
           #ifdef DE
-          T = C2[5*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+          T = C2[(nfields-1)*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
           #else
           T = P_new*PRESSURE_UNIT/(n*KB);
           #endif
@@ -179,18 +179,18 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
 
           // apply cooling
           #ifdef COOLING_GPU
-          cooling_CPU(C2, id, n_cells, dt);
+          //cooling_CPU(C2, id, n_cells, dt);
           #endif
 
           // recalculate the pressure
           E_new = C2[4*n_cells + id];
           P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           // recalculate the temperature
-          Real n = d_new*DENSITY_UNIT / (0.6 * MP);
+          Real n = d_new*DENSITY_UNIT / (1.27 * MP);
           Real T = P_new*PRESSURE_UNIT/(n*KB);
-          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
+          //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
           //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
-          if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
+          //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
           //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i, j, k, d_new, P_new);
           if (d_new < 0.0 || d_new != d_new || E_new < 0.0 || E_new != E_new) exit(-1);
           
@@ -842,8 +842,8 @@ void average_cell(Real *C1, int i, int j, int k, int nx, int ny, int nz, int n_c
 
   Real n = d_av*DENSITY_UNIT/(0.6*MP);
   Real T = P_av*PRESSURE_UNIT/(n*KB);
-  if (T < 1.0e4) {
-    P_av = n*KB*1.0e4/PRESSURE_UNIT;
+  if (T < 1.0e1) {
+    P_av = n*KB*1.0e1/PRESSURE_UNIT;
   }
   C1[id+4*n_cells] = P_av/(gama-1.0) + 0.5*d_av*(vx_av*vx_av+vy_av*vy_av+vz_av*vz_av);
   #ifdef DE

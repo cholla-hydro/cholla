@@ -11,9 +11,9 @@
 
 
 
-/*! \fn Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir)
+/*! \fn Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir, int n_fields)
  *  \brief Roe Riemann solver based on the version described in Stone et al, 2008. */
-__global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir)
+__global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir, int n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -45,6 +45,9 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   #ifdef DE
   Real dgel, gel, dger, ger, f_ge_l, f_ge_r;
   #endif
+  #ifdef SCALAR
+  Real dscalarl[NSCALARS], scalarl[NSCALARS], dscalarr[NSCALARS], scalarr[NSCALARS], f_scalar_l[NSCALARS], f_scalar_r[NSCALARS];
+  #endif
 
   int o1, o2, o3;
   if (dir==0) {
@@ -66,8 +69,13 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     myl = dev_bounds_L[o2*n_cells + tid];
     mzl = dev_bounds_L[o3*n_cells + tid];
     El  = dev_bounds_L[4*n_cells + tid];
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dscalarl[i] = dev_bounds_L[(5+i)*n_cells + tid];
+    }
+    #endif
     #ifdef DE
-    dgel = dev_bounds_L[5*n_cells + tid];
+    dgel = dev_bounds_L[(n_fields-1)*n_cells + tid];
     #endif
 
     dr  = dev_bounds_R[            tid];
@@ -75,8 +83,13 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     myr = dev_bounds_R[o2*n_cells + tid];
     mzr = dev_bounds_R[o3*n_cells + tid];
     Er  = dev_bounds_R[4*n_cells + tid]; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dscalarr[i] = dev_bounds_R[(5+i)*n_cells + tid];
+    }
+    #endif
     #ifdef DE
-    dger = dev_bounds_R[5*n_cells + tid];
+    dger = dev_bounds_R[(n_fields-1)*n_cells + tid];
     #endif
 
 
@@ -89,6 +102,11 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     vzl = mzl / dl;
     pl  = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     pl  = fmax(pl, (Real) TINY_NUMBER);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalarl[i] = dscalarl[i] / dl;
+    }
+    #endif
     #ifdef DE
     gel = dgel / dl;
     #endif
@@ -97,6 +115,11 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     vzr = mzr / dr;
     pr  = (Er - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
     pr  = fmax(pr, (Real) TINY_NUMBER);    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalarr[i] = dscalarr[i] / dr;
+    }
+    #endif
     #ifdef DE
     ger = dger / dr;
     #endif
@@ -135,6 +158,11 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     #ifdef DE
     f_ge_l = mxl*gel;
     #endif
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      f_scalar_l[i] = mxl*scalarl[i];
+    }
+    #endif
 
     f_d_r = mxr;
     f_mx_r = mxr*vxr + pr;
@@ -144,6 +172,11 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     #ifdef DE
     f_ge_r = mxr*ger;
     #endif
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      f_scalar_r[i] = mxr*scalarr[i];
+    }
+    #endif
 
     // return upwind flux if flow is supersonic
     if (lambda_m >= 0.0) {
@@ -152,8 +185,13 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       dev_flux[o2*n_cells+tid] = f_my_l;
       dev_flux[o3*n_cells+tid] = f_mz_l;
       dev_flux[4*n_cells+tid] = f_E_l;
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        dev_flux[(5+i)*n_cells+tid] = f_scalar_l[i];
+      }
+      #endif
       #ifdef DE
-      dev_flux[5*n_cells+tid] = f_ge_l;
+      dev_flux[(n_fields-1)*n_cells+tid] = f_ge_l;
       #endif
       return;
     }
@@ -163,8 +201,13 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       dev_flux[o2*n_cells+tid] = f_my_r;
       dev_flux[o3*n_cells+tid] = f_mz_r;
       dev_flux[4*n_cells+tid] = f_E_r;
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        dev_flux[(5+i)*n_cells+tid] = f_scalar_r[i];
+      }
+      #endif
       #ifdef DE
-      dev_flux[5*n_cells+tid] = f_ge_r;
+      dev_flux[(n_fields-1)*n_cells+tid] = f_ge_r;
       #endif
       return;
     }
@@ -291,6 +334,13 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
         f_ge_r = dger*(vxr - bp);
         #endif
 
+        #ifdef SCALAR
+        for (int i=0; i<NSCALARS; i++) {
+          f_scalar_l[i] = dscalarl[i]*(vxl - bm);
+          f_scalar_r[i] = dscalarr[i]*(vxr - bp);
+        }
+        #endif
+
         // compute the HLLE flux at the interface
         tmp = 0.5*(bp + bm)/(bp - bm);
 
@@ -299,8 +349,13 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
         dev_flux[o2*n_cells+tid] = 0.5*(f_my_l + f_my_r) + (f_my_l - f_my_r)*tmp; 
         dev_flux[o3*n_cells+tid] = 0.5*(f_mz_l + f_mz_r) + (f_mz_l - f_mz_r)*tmp; 
         dev_flux[4*n_cells+tid] = 0.5*(f_E_l  + f_E_r)  + (f_E_l  - f_E_r)*tmp;
+        #ifdef SCALAR
+        for (int i=0; i<NSCALARS; i++) {
+          dev_flux[(5+i)*n_cells+tid] = 0.5*(f_scalar_l[i] + f_scalar_r[i]) + (f_scalar_l[i] - f_scalar_r[i])*tmp;
+        }
+        #endif
         #ifdef DE
-        dev_flux[5*n_cells+tid] = 0.5*(f_ge_l + f_ge_r) + (f_ge_l - f_ge_r)*tmp;
+        dev_flux[(n_fields-1)*n_cells+tid] = 0.5*(f_ge_l + f_ge_r) + (f_ge_l - f_ge_r)*tmp;
         #endif
         return;
       }
@@ -311,11 +366,19 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
         dev_flux[o2*n_cells+tid] = 0.5*(f_my_l + f_my_r - sum_2);
         dev_flux[o3*n_cells+tid] = 0.5*(f_mz_l + f_mz_r - sum_3);
         dev_flux[4*n_cells+tid] = 0.5*(f_E_l  + f_E_r  - sum_4);
+        #ifdef SCALAR 
+        for (int i=0; i<NSCALARS; i++) {
+          if (dev_flux[tid] >= 0.0)
+            dev_flux[(5+i)*n_cells+tid] = dev_flux[tid] * scalarl[i];
+          else
+            dev_flux[(5+i)*n_cells+tid] = dev_flux[tid] * scalarr[i];
+        }
+        #endif
         #ifdef DE
         if (dev_flux[tid] >= 0.0)
-          dev_flux[5*n_cells+tid] = dev_flux[tid] * gel;
+          dev_flux[(n_fields-1)*n_cells+tid] = dev_flux[tid] * gel;
         else
-          dev_flux[5*n_cells+tid] = dev_flux[tid] * ger;
+          dev_flux[(n_fields-1)*n_cells+tid] = dev_flux[tid] * ger;
         #endif
       }
 

@@ -9,7 +9,7 @@
 #include"pcm_cuda.h"
 
 
-__global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int n_cells, int n_ghost, Real gamma)
+__global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int n_cells, int n_ghost, Real gamma, int n_fields)
 {
     
   // declare conserved variables for each stencil
@@ -18,6 +18,10 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
 
   #ifdef DE
   Real ge;
+  #endif
+
+  #ifdef SCALAR
+  Real scalar[NSCALARS];
   #endif
 
   // get a global thread ID
@@ -35,8 +39,13 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id]; 
+    ge = dev_conserved[(n_fields-1)*n_cells + id]; 
     #endif
 
     // send values back from the kernel
@@ -45,8 +54,13 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
     dev_bounds_L[2*n_cells + id] = my;
     dev_bounds_L[3*n_cells + id] = mz;
     dev_bounds_L[4*n_cells + id] = E;    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_L[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_L[5*n_cells + id] = ge;    
+    dev_bounds_L[(n_fields-1)*n_cells + id] = ge;    
     #endif
 
     // retrieve appropriate conserved variables
@@ -56,8 +70,13 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id]; 
+    ge = dev_conserved[(n_fields-1)*n_cells + id]; 
     #endif
 
     // send values back from the kernel
@@ -67,8 +86,13 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
     dev_bounds_R[2*n_cells + id] = my;
     dev_bounds_R[3*n_cells + id] = mz;
     dev_bounds_R[4*n_cells + id] = E;
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_R[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_R[5*n_cells + id] = ge;
+    dev_bounds_R[(n_fields-1)*n_cells + id] = ge;
     #endif
     
   }
@@ -76,7 +100,7 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
 }
 
 
-__global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, Real *dev_bounds_Rx, Real *dev_bounds_Ly, Real *dev_bounds_Ry, int nx, int ny, int n_ghost, Real gamma)
+__global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, Real *dev_bounds_Rx, Real *dev_bounds_Ly, Real *dev_bounds_Ry, int nx, int ny, int n_ghost, Real gamma, int n_fields)
 {
     
   // declare conserved variables for each stencil
@@ -84,6 +108,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
   Real d, mx, my, mz, E;
   #ifdef DE
   Real ge;
+  #endif
+  #ifdef SCALAR
+  Real scalar[NSCALARS];
   #endif
   
   int n_cells = nx*ny;
@@ -106,8 +133,13 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id];
+    ge = dev_conserved[(n_fields-1)*n_cells + id];
     #endif
 
     // send values back from the kernel
@@ -116,8 +148,13 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     dev_bounds_Lx[2*n_cells + id] = my;
     dev_bounds_Lx[3*n_cells + id] = mz;
     dev_bounds_Lx[4*n_cells + id] = E; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_Lx[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_Lx[5*n_cells + id] = ge; 
+    dev_bounds_Lx[(n_fields-1)*n_cells + id] = ge; 
     #endif
 
     // retrieve appropriate conserved variables
@@ -127,8 +164,13 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id];    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id];    
+    ge = dev_conserved[(n_fields-1)*n_cells + id];    
     #endif
 
     // send values back from the kernel
@@ -138,8 +180,13 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     dev_bounds_Rx[2*n_cells + id] = my;
     dev_bounds_Rx[3*n_cells + id] = mz;
     dev_bounds_Rx[4*n_cells + id] = E;    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_Rx[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_Rx[5*n_cells + id] = ge;    
+    dev_bounds_Rx[(n_fields-1)*n_cells + id] = ge;    
     #endif
   }
   
@@ -153,8 +200,13 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id]; 
+    ge = dev_conserved[(n_fields-1)*n_cells + id]; 
     #endif
 
     // send values back from the kernel
@@ -163,8 +215,13 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     dev_bounds_Ly[2*n_cells + id] = my;
     dev_bounds_Ly[3*n_cells + id] = mz;
     dev_bounds_Ly[4*n_cells + id] = E; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_Ly[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_Ly[5*n_cells + id] = ge; 
+    dev_bounds_Ly[(n_fields-1)*n_cells + id] = ge; 
     #endif
 
     // retrieve appropriate conserved variables
@@ -174,8 +231,13 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id];
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id];
+    ge = dev_conserved[(n_fields-1)*n_cells + id];
     #endif
 
     // send values back from the kernel
@@ -185,8 +247,13 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     dev_bounds_Ry[2*n_cells + id] = my;
     dev_bounds_Ry[3*n_cells + id] = mz;
     dev_bounds_Ry[4*n_cells + id] = E;    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_Ry[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_Ry[5*n_cells + id] = ge;    
+    dev_bounds_Ry[(n_fields-1)*n_cells + id] = ge;    
     #endif
   }
 
@@ -197,7 +264,7 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
                                       Real *dev_bounds_Lx, Real *dev_bounds_Rx,
                                       Real *dev_bounds_Ly, Real *dev_bounds_Ry,
                                       Real *dev_bounds_Lz, Real *dev_bounds_Rz,
-                                      int nx, int ny, int nz, int n_ghost, Real gamma)
+                                      int nx, int ny, int nz, int n_ghost, Real gamma, int n_fields)
 {
     
   // declare conserved variables for each stencil
@@ -206,6 +273,10 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
   #ifdef DE
   Real ge;
   #endif
+  #ifdef SCALAR
+  Real scalar[NSCALARS];
+  #endif
+  
   
   int n_cells = nx*ny*nz;
 
@@ -226,8 +297,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id]; 
+    ge = dev_conserved[(n_fields-1)*n_cells + id]; 
     #endif
 
     // send values back from the kernel
@@ -236,8 +312,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Lx[2*n_cells + id] = my;
     dev_bounds_Lx[3*n_cells + id] = mz;
     dev_bounds_Lx[4*n_cells + id] = E; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_Lx[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_Lx[5*n_cells + id] = ge; 
+    dev_bounds_Lx[(n_fields-1)*n_cells + id] = ge; 
     #endif
 
     // retrieve appropriate conserved variables
@@ -247,8 +328,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id];    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id];    
+    ge = dev_conserved[(n_fields-1)*n_cells + id];    
     #endif
 
     // send values back from the kernel
@@ -258,8 +344,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Rx[2*n_cells + id] = my;
     dev_bounds_Rx[3*n_cells + id] = mz;
     dev_bounds_Rx[4*n_cells + id] = E;    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_Rx[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_Rx[5*n_cells + id] = ge;    
+    dev_bounds_Rx[(n_fields-1)*n_cells + id] = ge;    
     #endif
   }
   
@@ -273,8 +364,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id]; 
+    ge = dev_conserved[(n_fields-1)*n_cells + id]; 
     #endif
 
     // send values back from the kernel
@@ -283,8 +379,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Ly[2*n_cells + id] = my;
     dev_bounds_Ly[3*n_cells + id] = mz;
     dev_bounds_Ly[4*n_cells + id] = E; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_Ly[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_Ly[5*n_cells + id] = ge; 
+    dev_bounds_Ly[(n_fields-1)*n_cells + id] = ge; 
     #endif
 
     // retrieve appropriate conserved variables
@@ -294,8 +395,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id];
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id];
+    ge = dev_conserved[(n_fields-1)*n_cells + id];
     #endif
 
     // send values back from the kernel
@@ -305,8 +411,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Ry[2*n_cells + id] = my;
     dev_bounds_Ry[3*n_cells + id] = mz;
     dev_bounds_Ry[4*n_cells + id] = E;    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_Ry[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_Ry[5*n_cells + id] = ge;    
+    dev_bounds_Ry[(n_fields-1)*n_cells + id] = ge;    
     #endif
   }
 
@@ -320,8 +431,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id]; 
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id]; 
+    ge = dev_conserved[(n_fields-1)*n_cells + id]; 
     #endif
 
     // send values back from the kernel
@@ -329,9 +445,14 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Lz[  n_cells + id] = mx;
     dev_bounds_Lz[2*n_cells + id] = my;
     dev_bounds_Lz[3*n_cells + id] = mz;
-    dev_bounds_Lz[4*n_cells + id] = E; 
+    dev_bounds_Lz[4*n_cells + id] = E;
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_Lz[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_Lz[5*n_cells + id] = ge; 
+    dev_bounds_Lz[(n_fields-1)*n_cells + id] = ge; 
     #endif
     
     // retrieve appropriate conserved variables
@@ -341,8 +462,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     my = dev_conserved[2*n_cells + id]; 
     mz = dev_conserved[3*n_cells + id]; 
     E  = dev_conserved[4*n_cells + id];
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    }
+    #endif
     #ifdef DE
-    ge = dev_conserved[5*n_cells + id];
+    ge = dev_conserved[(n_fields-1)*n_cells + id];
     #endif
 
     // send values back from the kernel
@@ -352,8 +478,13 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
     dev_bounds_Rz[2*n_cells + id] = my;
     dev_bounds_Rz[3*n_cells + id] = mz;
     dev_bounds_Rz[4*n_cells + id] = E;    
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_bounds_Rz[(5+i)*n_cells + id] = scalar[i];
+    }
+    #endif
     #ifdef DE
-    dev_bounds_Rz[5*n_cells + id] = ge;    
+    dev_bounds_Rz[(n_fields-1)*n_cells + id] = ge;    
     #endif
 
   }

@@ -47,6 +47,10 @@ int main(int argc, char *argv[])
   int nfile = 0; // number of output files
   Real outtime = 0; // current output time
 
+  // SN timing variables
+  Real dt_SN = 10.0; // time between SN (code units)
+  Real t_SN_next = 0.0;
+
   // read in command line arguments
   if (argc != 2)
   {
@@ -80,6 +84,7 @@ int main(int argc, char *argv[])
     dti = C_cfl / G.H.dt;
     outtime += G.H.t;
     nfile = P.nfile*P.nfull;
+    t_SN_next += G.H.t;
   }
 
   // set boundary conditions (assign appropriate values to ghost cells)
@@ -122,14 +127,17 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
+/*
+    for (int j=0; j<G.H.ny; j++) {
+      int id = G.H.n_ghost + j*G.H.nx;// + G.H.n_ghost*G.H.nx*G.H.ny;
+      printf("%d %f %f %f\n", j, G.C.density[id], G.C.Energy[id], G.C.scalar[id]/G.C.density[id]);
+    }
+*/
     // get the start time
     start_step = get_time();
     
     // calculate the timestep
     G.set_dt(C_cfl, dti);
-    if (G.H.n_step < 10) {
-      G.H.dt = fmin(G.H.dt, 0.5);
-    }
 
     if (G.H.t + G.H.dt > outtime) 
     {
@@ -137,16 +145,23 @@ int main(int argc, char *argv[])
     }
 
     // Add supernovae
-    Real sn_dti = G.Add_Supernovae_CC85();
+    //Real sn_dti = G.Add_Supernovae_CC85();
     //Real sn_dti = G.Add_Supernovae();
 
+    /*
+    if (G.H.t >= t_SN_next) {
+     
+      Real sn_dti = G.Add_Supernova();
+      t_SN_next += dt_SN;
+    }
+    */
     if (sn_dti > 0) {
       G.H.dt = fmin(G.H.dt, C_cfl/sn_dti);
     }
     #ifdef MPI_CHOLLA
     G.H.dt = ReduceRealMin(G.H.dt);
     #endif
-    
+   
 
     // Advance the grid by one timestep
     #ifdef CPU_TIME
