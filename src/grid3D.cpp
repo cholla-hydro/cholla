@@ -590,8 +590,8 @@ Real Grid3D::Add_Supernovae(void)
 
         // within cluster radius, inject mass and thermal energy
         // entire cell is within sphere
-        //if (rr < R_c) {
-        if (r < R_c) {
+        if (rr < R_c) {
+        //if (r < R_c) {
           C.density[id] += rho_dot * H.dt;
           C.Energy[id] += Ed_dot * H.dt;
           #ifdef DE
@@ -604,7 +604,6 @@ Real Grid3D::Add_Supernovae(void)
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
         }
         // on the sphere
-        /*
         if (rl < R_c && rr > R_c) {
           // quick Monte Carlo to determine weighting
           Ran quickran(50);
@@ -624,14 +623,13 @@ Real Grid3D::Add_Supernovae(void)
           C.Energy[id]  += Ed_dot * H.dt * weight;
           #ifdef DE
           C.GasEnergy[id] += Ed_dot * H.dt * weight;
-                  //Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
+          //Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
           //Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
           //printf("%f %f %f Starburst zone n: %e T:%e.\n", x_pos, y_pos, z_pos, n, T);
           #endif
           //M_dot_tot += rho_dot*weight*H.dx*H.dy*H.dz;
           //E_dot_tot += Ed_dot*weight*H.dx*H.dy*H.dz;
         }
-        */
         // recalculate the timestep for these cells
         d_inv = 1.0 / C.density[id];
         vx = d_inv * C.momentum_x[id];
