@@ -66,12 +66,10 @@ extern int y_buffer_length;
 extern int z_buffer_length;
 
 /*local domain sizes*/
+/*none of these include ghost cells!*/
 extern ptrdiff_t nx_global;
 extern ptrdiff_t ny_global;
 extern ptrdiff_t nz_global;
-extern ptrdiff_t nx_global_real;
-extern ptrdiff_t ny_global_real;
-extern ptrdiff_t nz_global_real;
 extern ptrdiff_t nx_local;
 extern ptrdiff_t ny_local;
 extern ptrdiff_t nz_local;

@@ -10,7 +10,7 @@
 #include"hydro_cuda.h"
 
 
-__global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int x_off, int n_ghost, Real dx, Real xbound, Real dt, Real gamma)
+__global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int x_off, int n_ghost, Real dx, Real xbound, Real dt, Real gamma, int n_fields)
 {
   int id;
   #if defined(DE) || defined(STATIC_GRAV)
@@ -52,8 +52,13 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     dev_conserved[2*n_cells + id] += dtodx * (dev_F[2*n_cells + id-1] - dev_F[2*n_cells + id]);
     dev_conserved[3*n_cells + id] += dtodx * (dev_F[3*n_cells + id-1] - dev_F[3*n_cells + id]);
     dev_conserved[4*n_cells + id] += dtodx * (dev_F[4*n_cells + id-1] - dev_F[4*n_cells + id]);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_conserved[(5+i)*n_cells + id] += dtodx * (dev_F[(5+i)*n_cells + id-1] - dev_F[(5+i)*n_cells + id]);
+    }
+    #endif
     #ifdef DE
-    dev_conserved[5*n_cells + id] += dtodx * (dev_F[5*n_cells + id-1] - dev_F[5*n_cells + id])
+    dev_conserved[(n_fields-1)*n_cells + id] += dtodx * (dev_F[(n_fields-1)*n_cells + id-1] - dev_F[(n_fields-1)*n_cells + id])
                                   +  dtodx * P * 0.5 * (vx_imo - vx_ipo);
     #endif
     #ifdef STATIC_GRAV // add gravitational source terms, time averaged from n to n+1
@@ -65,7 +70,7 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n);
     #endif    
     //printf("%3d %e %e %e\n", id-n_ghost, fz, gcorr, gx);
-    if (dev_conserved[id] != dev_conserved[id]) printf("%3d Thread crashed in final update.\n", id);
+    if (dev_conserved[id] != dev_conserved[id]) printf("%3d Thread crashed in final update. %f\n", id, dev_conserved[id]);
     /*
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -81,7 +86,7 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
 }
 
 
-__global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, Real gamma)
+__global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, Real gamma, int n_fields)
 {
   int id, xid, yid, n_cells;
   int imo, jmo;
@@ -143,10 +148,19 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
                                   +  dtody * (dev_F_y[3*n_cells + jmo] - dev_F_y[3*n_cells + id]);
     dev_conserved[4*n_cells + id] += dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                                   +  dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id]);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_conserved[(5+i)*n_cells + id] += dtodx * (dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id])
+                                        +  dtody * (dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id]);
+    }
+//    if (xid == 4) {
+//      printf("%3d %f %f %f\n", yid, dev_conserved[5*n_cells + id]), dtodx*(dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id]), dtody * (dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id]);
+//    }
+    #endif
     // add gravitational source terms, time averaged from n to n+1                                 
     #ifdef DE
-    dev_conserved[5*n_cells + id] += dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
-                                  +  dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
+    dev_conserved[(n_fields-1)*n_cells + id] += dtodx * (dev_F_x[(n_fields-1)*n_cells + imo] - dev_F_x[(n_fields-1)*n_cells + id])
+                                  +  dtody * (dev_F_y[(n_fields-1)*n_cells + jmo] - dev_F_y[(n_fields-1)*n_cells + id])
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo));
     //if (dev_conserved[5*n_cells + id] < 0.0) printf("%3d %3d Negative internal energy after final update.\n", xid, yid);
     #endif
@@ -186,7 +200,7 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
 __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z,
                                               int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, 
                                               Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt,
-                                              Real gamma)
+                                              Real gamma, int n_fields)
 {
   int id, xid, yid, zid, n_cells;
   int imo, jmo, kmo;
@@ -263,10 +277,17 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     dev_conserved[4*n_cells + id] += dtodx * (dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id])
                                   +  dtody * (dev_F_y[4*n_cells + jmo] - dev_F_y[4*n_cells + id])
                                   +  dtodz * (dev_F_z[4*n_cells + kmo] - dev_F_z[4*n_cells + id]);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      dev_conserved[(5+i)*n_cells + id] += dtodx * (dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id])
+                                    +  dtody * (dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id])
+                                    +  dtodz * (dev_F_z[(5+i)*n_cells + kmo] - dev_F_z[(5+i)*n_cells + id]);
+    }                              
+    #endif
     #ifdef DE
-    dev_conserved[5*n_cells + id] += dtodx * (dev_F_x[5*n_cells + imo] - dev_F_x[5*n_cells + id])
-                                  +  dtody * (dev_F_y[5*n_cells + jmo] - dev_F_y[5*n_cells + id])
-                                  +  dtodz * (dev_F_z[5*n_cells + kmo] - dev_F_z[5*n_cells + id])
+    dev_conserved[(n_fields-1)*n_cells + id] += dtodx * (dev_F_x[(n_fields-1)*n_cells + imo] - dev_F_x[(n_fields-1)*n_cells + id])
+                                  +  dtody * (dev_F_y[(n_fields-1)*n_cells + jmo] - dev_F_y[(n_fields-1)*n_cells + id])
+                                  +  dtodz * (dev_F_z[(n_fields-1)*n_cells + kmo] - dev_F_z[(n_fields-1)*n_cells + id])
                                   +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
     #endif
     // add a density floor of n = 1.0e-3
@@ -308,7 +329,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 }
 
 
-__global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, Real gamma)
+__global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, Real gamma, int n_fields)
 {
   int id;
   Real d, d_inv, vx, vy, vz, P, E;
@@ -333,14 +354,14 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     E  =  dev_conserved[4*n_cells + id];
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     // separately tracked internal energy 
-    ge1 = dev_conserved[5*n_cells + id];
+    ge1 = dev_conserved[(n_fields-1)*n_cells + id];
     // internal energy calculated from total energy
     ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     // if the ratio of conservatively calculated internal energy to total energy
     // is greater than 1/1000, use the conservatively calculated internal energy
     // to do the internal energy update
     if (ge2/E > 0.001) {
-      dev_conserved[5*n_cells + id] = ge2;
+      dev_conserved[(n_fields-1)*n_cells + id] = ge2;
       ge1 = ge2;
     }     
     // find the max nearby total energy 
@@ -349,7 +370,7 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     // if the ratio of conservatively calculated internal energy to max nearby total energy
     // is greater than 1/10, continue to use the conservatively calculated internal energy 
     if (ge2/Emax > 0.1) {
-      dev_conserved[5*n_cells + id] = ge2;
+      dev_conserved[(n_fields-1)*n_cells + id] = ge2;
     }
     // sync the total energy with the internal energy 
     else {
@@ -377,7 +398,7 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
 }
 
 
-__global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Real gamma)
+__global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Real gamma, int n_fields)
 {
   int id, xid, yid, n_cells;
   Real d, d_inv, vx, vy, vz, P, E;
@@ -412,14 +433,14 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
     E  =  dev_conserved[4*n_cells + id];
     P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     // separately tracked internal energy 
-    ge1 =  dev_conserved[5*n_cells + id];
+    ge1 =  dev_conserved[(n_fields-1)*n_cells + id];
     // internal energy calculated from total energy
     ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     // if the ratio of conservatively calculated internal energy to total energy
     // is greater than 1/1000, use the conservatively calculated internal energy
     // to do the internal energy update
     if (ge2/E > 0.001) {
-      dev_conserved[5*n_cells + id] = ge2;
+      dev_conserved[(n_fields-1)*n_cells + id] = ge2;
       ge1 = ge2;
     }     
     //find the max nearby total energy 
@@ -430,7 +451,7 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
     // if the ratio of conservatively calculated internal energy to max nearby total energy
     // is greater than 1/10, continue to use the conservatively calculated internal energy 
     if (ge2/Emax > 0.1) {
-      dev_conserved[5*n_cells + id] = ge2;
+      dev_conserved[(n_fields-1)*n_cells + id] = ge2;
     }
     // sync the total energy with the internal energy 
     else {
@@ -445,7 +466,7 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
 
 
 
-__global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma)
+__global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma, int n_fields)
 {
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E;
@@ -485,7 +506,7 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     // don't do the energy sync if this thread has crashed
     if (E < 0.0 || E != E) return;
     // separately tracked internal energy 
-    ge1 =  dev_conserved[5*n_cells + id];
+    ge1 =  dev_conserved[(n_fields-1)*n_cells + id];
     // internal energy calculated from total energy
     ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
     /*
@@ -498,7 +519,7 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     // is greater than 1/1000, use the conservatively calculated internal energy
     // to do the internal energy update
     if (ge2 > 0.0 && E > 0.0 && ge2/E > 0.001) {
-      dev_conserved[5*n_cells + id] = ge2;
+      dev_conserved[(n_fields-1)*n_cells + id] = ge2;
       ge1 = ge2;
     }
     //find the max nearby total energy 
@@ -511,12 +532,12 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     // if the ratio of conservatively calculated internal energy to max nearby total energy
     // is greater than 1/10, continue to use the conservatively calculated internal energy 
     if (ge2/Emax > 0.1 && ge2 > 0.0 && Emax > 0.0) {
-      dev_conserved[5*n_cells + id] = ge2;
+      dev_conserved[(n_fields-1)*n_cells + id] = ge2;
     }
     // sync the total energy with the internal energy 
     else {
       if (ge1 > 0.0) dev_conserved[4*n_cells + id] += ge1 - ge2;
-      else dev_conserved[5*n_cells+id] = ge2;
+      else dev_conserved[(n_fields-1)*n_cells+id] = ge2;
     }
     // recalculate the pressure 
     //Real P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
@@ -664,10 +685,11 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
     cs = sqrt(d_inv * gamma * P);
     max_dti[tid] = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
     max_dti[tid] = fmax(max_dti[tid], (fabs(vz)+cs)/dz);
-    Real n = d*DENSITY_UNIT / (0.6*MP);
+    max_dti[tid] = fmax(max_dti[tid], 0);
+    Real n = d*DENSITY_UNIT / (1.27*MP);
     Real T = P*PRESSURE_UNIT/(n*KB);
     // if this thread has crashed or will be reset, don't include it in the timestep calculation
-    if (d < 0 || d != d || P < 0 || P != P || E < 0 || E != E || T > 1.0e9) max_dti[tid] = 0;
+    if (d < 0 || d != d || P < 0 || P != P || E < 0 || E != E || T > 1e9) max_dti[tid] = 0;
     //max_dti[tid] = (fabs(vx)+cs)/dx + (fabs(vy)+cs)/dy + (fabs(vz)+cs)/dz;
     /*
     if (0.3/max_dti[tid] < 1.0) {
@@ -803,13 +825,22 @@ __device__ void calc_g_3D_CUDA(int xid, int yid, int zid, int x_off, int y_off, 
   // set properties of halo and disk (these must match initial conditions)
   Real a_disk_r, a_disk_z, a_halo, a_halo_r, a_halo_z;
   Real M_vir, M_d, R_vir, R_d, z_d, R_h, M_h, c_vir, phi_0_h, x;
-  M_vir = 5.0e10; // viral mass of in M_sun
-  M_d = 1.0e10; // mass of disk in M_sun
+  // MW model
+  M_vir = 1.0e12; // viral mass of in M_sun
+  M_d = 6.5e10; // viral mass of in M_sun
+  R_d = 3.5; // disk scale length in kpc
+  z_d = 3.5/5.0; // disk scale height in kpc
+  R_vir = 261.; // virial radius in kpc
+  c_vir = 20.0; // halo concentration
+  // M82 model
+  //M_vir = 5.0e10; // viral mass of in M_sun
+  //M_d = 1.0e10; // mass of disk in M_sun
+  //R_d = 0.8; // disk scale length in kpc
+  //z_d = 0.15; // disk scale height in kpc
+  //R_vir = R_d/0.015; // viral radius in kpc
+  //c_vir = 10.0; // halo concentration
+
   M_h = M_vir - M_d; // halo mass in M_sun
-  R_d = 0.8; // disk scale length in kpc
-  z_d = 0.15; // disk scale height in kpc
-  R_vir = R_d/0.015; // viral radius in kpc
-  c_vir = 10.0; // halo concentration
   R_h = R_vir / c_vir; // halo scale length in kpc
   phi_0_h = GN * M_h / (log(1.0+c_vir) - c_vir / (1.0+c_vir));
   x = r_halo / R_h;

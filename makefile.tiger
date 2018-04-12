@@ -19,15 +19,15 @@ CUDA = -DCUDA #-DCUDA_ERROR_CHECK
 MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
-  CC	= cc
-  CXX   = CC
+  CC	= mpicc
+  CXX   = mpicxx
 
   #MPI_FLAGS += -DSLAB
   MPI_FLAGS += -DBLOCK
 
 else
-  CC	= cc
-  CXX   = CC
+  CC	= gcc
+  CXX   = g++
 endif
 
 #define the NVIDIA CUDA compiler
@@ -43,9 +43,9 @@ OUTPUT = -DHDF5
 
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
-RECONSTRUCTION = -DPLMC
+#RECONSTRUCTION = -DPLMC
 #RECONSTRUCTION = -DPPMP
-#RECONSTRUCTION = -DPPMC
+RECONSTRUCTION = -DPPMC
 
 #SOLVER = -DEXACT
 #SOLVER = -DROE
@@ -58,21 +58,26 @@ COOLING = -DCOOLING_GPU
 
 
 ifdef CUDA
-CUDA_INCLUDE = -I$(HDF5_DIR)/include
 CUDA_LIBS = -lcuda -lcudart
 endif
+ifeq ($(OUTPUT),-DHDF5)
+HDF5_INCL = -I/usr/local/hdf5/gcc/openmpi-1.10.2/1.10.0/include
+HDF5_LIBS = /usr/local/hdf5/gcc/openmpi-1.10.2/1.10.0/lib64/libhdf5.so
+#HDF5_INCL = -I/usr/local/hdf5/gcc/1.10.0/include
+#HDF5_LIBS = /usr/local/hdf5/gcc/1.10.0/lib64/libhdf5.so
+endif
 
-INCL   = -I./ $(HDF5_INCLUDE)
-NVINCL = $(INCL) $(CUDA_INCLUDE)
+INCL   = -I./ $(HDF5_INCL)
+NVINCL = $(INCL) $(CUDA_INCL)
 NVLIBS = $(CUDA_LIBS)
-LIBS   = -lm
+LIBS   = -lm $(HDF5_LIBS)
 
 
 
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DSTATIC_GRAV -DDE -DPROJECTION #-DROTATED_PROJECTION
+FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DDE -DSCALAR -DSLICES -DPROJECTION #-DROTATED_PROJECTION
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false
+NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=$(CC) -arch=compute_60
 
 
 %.o:	%.c

@@ -172,6 +172,10 @@ struct Header
   *  \brief Number of timesteps taken */
   int n_step;
 
+  /*! \var n_fields
+  *  \brief Number of fields (conserved variables, scalars, etc.) */
+  int n_fields;
+
 };
 
 /*! \class Grid3D
@@ -231,6 +235,12 @@ class Grid3D
        *  \brief Array containing the internal energy of each cell, only tracked separately when using
            the dual-energy formalism. */
       Real *GasEnergy;
+      #endif
+
+      #ifdef SCALAR
+      /*! \var scalar
+       *  \brief Array containing the values of the passive scalar variable(s). */
+      Real *scalar;
       #endif
 
     } C;
@@ -314,6 +324,11 @@ class Grid3D
     /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
      *  \brief Write rotated projected data to a file, at the current simulation time. */
     void Write_Rotated_Projection_HDF5(hid_t file_id);   
+
+    /*! \fn void Write_Slices_HDF5(hid_t file_id)
+     *  \brief Write xy, xz, and yz slices of all data to a file. */
+    void Write_Slices_HDF5(hid_t file_id);    
+
 #endif
 
     /*! \fn void Read_Grid(struct parameters P)
@@ -350,6 +365,10 @@ class Grid3D
      *  \brief Square wave density perturbation with amplitude A*rho in pressure equilibrium. */
     void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
 
+    /*! \fn void Superbubble(Real rho, Real P, Real A)
+     *  \brief Sets up a box with density perturbations. */
+    void Superbubble(Real rho, Real P, Real A);
+
     /*! \fn void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph)
      *  \brief Initialize the grid with a Riemann problem. */
     void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph);
@@ -362,9 +381,9 @@ class Grid3D
      *  \brief Initialize the grid with two interacting blast waves. See Stone 2008, Section 8.1.*/
     void Blast_1D();
 
-    /*! \fn void KH_discontinuous_2D()
-    *  \brief Initialize the grid with a 2D Kelvin-Helmholtz instability. */
-    void KH_discontinuous_2D();
+    /*! \fn void KH()
+    *  \brief Initialize the grid with a Kelvin-Helmholtz instability with a discontinuous interface. */
+    void KH();
 
     /*! \fn void KH_res_ind()
      *  \brief Initialize the grid with a Kelvin-Helmholtz instability whose modes are resolution independent. */
@@ -426,6 +445,7 @@ class Grid3D
      *  \brief Apply a forcing field to continuously generate turbulence. */
     void Apply_Forcing(void);    
 
+    Real Add_Supernova(void);    
     Real Add_Supernovae(void);    
     Real Add_Supernovae_CC85(void);    
 

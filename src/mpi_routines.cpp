@@ -60,12 +60,10 @@ int y_buffer_length;
 int z_buffer_length;
 
 /*local domain sizes*/
+/*none of these include ghost cells!*/
 ptrdiff_t nx_global;
 ptrdiff_t ny_global;
 ptrdiff_t nz_global;
-ptrdiff_t nx_global_real;
-ptrdiff_t ny_global_real;
-ptrdiff_t nz_global_real;
 ptrdiff_t nx_local;
 ptrdiff_t ny_local;
 ptrdiff_t nz_local;
@@ -190,15 +188,12 @@ void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int
   // set grid dimensions
   H->nx = nx_local+2*H->n_ghost;
   H->nx_real = nx_local;
-  nx_global_real = nx_gin;
   if (ny_local == 1) H->ny = 1;
   else H->ny = ny_local+2*H->n_ghost;
   H->ny_real = ny_local;
-  ny_global_real = ny_gin;
   if (nz_local == 1) H->nz = 1;
   else H->nz = nz_local+2*H->n_ghost;
   H->nz_real = nz_local;
-  nz_global_real = nz_gin;
 
   // set total number of cells
   H->n_cells = H->nx * H->ny * H->nz;
@@ -825,11 +820,7 @@ void Print_Domain_Properties(struct Header H)
 
 void Allocate_MPI_Buffers_SLAB(struct Header *H)
 {
-  int n_cons = 5;
-  #ifdef DE
-  n_cons = 6;
-  #endif
-  int bsize  = n_cons*H->n_ghost*H->ny*H->nz;
+  int bsize  = H->n_fields*H->n_ghost*H->ny*H->nz;
   printf("MPI buffer size: %d\n", bsize);
 
   send_buffer_length = bsize;
@@ -863,10 +854,6 @@ void Allocate_MPI_Buffers_SLAB(struct Header *H)
 
 void Allocate_MPI_Buffers_BLOCK(struct Header *H)
 {
-  int n_cons = 5;
-  #ifdef DE
-  n_cons = 6;
-  #endif
   int xbsize, ybsize, zbsize;
   if (H->ny==1 && H->nz==1) {
     chprintf("Use SLAB decomposition for 1D problems.\n");
@@ -874,22 +861,22 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   }
   // 2D
   if (H->ny>1 && H->nz==1) { 
-    xbsize = n_cons*H->n_ghost*(H->ny-2*H->n_ghost);
-    ybsize = n_cons*H->n_ghost*(H->nx);
+    xbsize = H->n_fields*H->n_ghost*(H->ny-2*H->n_ghost);
+    ybsize = H->n_fields*H->n_ghost*(H->nx);
     zbsize = 1;
   }
   // 3D
   if (H->ny>1 && H->nz>1) {
-    xbsize = n_cons*H->n_ghost*(H->ny-2*H->n_ghost)*(H->nz-2*H->n_ghost);
-    ybsize = n_cons*H->n_ghost*(H->nx)*(H->nz-2*H->n_ghost);
-    zbsize = n_cons*H->n_ghost*(H->nx)*(H->ny);
+    xbsize = H->n_fields*H->n_ghost*(H->ny-2*H->n_ghost)*(H->nz-2*H->n_ghost);
+    ybsize = H->n_fields*H->n_ghost*(H->nx)*(H->nz-2*H->n_ghost);
+    zbsize = H->n_fields*H->n_ghost*(H->nx)*(H->ny);
   }
 
   x_buffer_length = xbsize;
   y_buffer_length = ybsize;
   z_buffer_length = zbsize;
   
-  //chprintf("Allocating MPI communication buffers (nx = %ld, ny = %ld, nz = %ld).\n", xbsize, ybsize, zbsize);
+  chprintf("Allocating MPI communication buffers (nx = %ld, ny = %ld, nz = %ld).\n", xbsize, ybsize, zbsize);
 
   if(!(send_buffer_x0 = (Real *) malloc(xbsize*sizeof(Real))))
   {

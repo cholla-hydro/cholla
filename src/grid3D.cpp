@@ -91,6 +91,19 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real
  *  \brief Initialize the grid. */
 void Grid3D::Initialize(struct parameters *P)
 {
+  // number of fields to track (default 5 is # of conserved variables)
+  H.n_fields = 5;
+
+  // if including passive scalars increase the number of fields
+  #ifdef SCALAR
+  H.n_fields += NSCALARS;
+  #endif
+
+  // if using dual energy formalism must track internal energy - always the last field!
+  #ifdef DE
+  H.n_fields++;
+  #endif  
+
   int nx_in = P->nx;
   int ny_in = P->ny;
   int nz_in = P->nz;
@@ -150,6 +163,7 @@ void Grid3D::Initialize(struct parameters *P)
   // and inialize the timestep
   H.dt = 0.0;
 
+
   // allocate memory
   AllocateMemory();
 
@@ -187,19 +201,12 @@ void Grid3D::Initialize(struct parameters *P)
  *  \brief Allocate memory for the arrays. */
 void Grid3D::AllocateMemory(void)
 {
-  // number of fields to track (default 5 is # of conserved variables)
-  int fields;
-  fields = 5;
 
-  // if using dual energy formalism must track internal energy
-  #ifdef DE
-  fields++;
-  #endif
 
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
-  buffer0 = (Real *) malloc(fields*H.n_cells*sizeof(Real));
-  buffer1 = (Real *) malloc(fields*H.n_cells*sizeof(Real));
+  buffer0 = (Real *) malloc(H.n_fields*H.n_cells*sizeof(Real));
+  buffer1 = (Real *) malloc(H.n_fields*H.n_cells*sizeof(Real));
 
   // point conserved variables to the appropriate locations in buffer
   C.density  = &(buffer0[0]);
@@ -207,12 +214,15 @@ void Grid3D::AllocateMemory(void)
   C.momentum_y = &(buffer0[2*H.n_cells]);
   C.momentum_z = &(buffer0[3*H.n_cells]);
   C.Energy   = &(buffer0[4*H.n_cells]);
+  #ifdef SCALAR
+  C.scalar  = &(buffer0[5*H.n_cells]);
+  #endif
   #ifdef DE
-  C.GasEnergy = &(buffer0[5*H.n_cells]);
+  C.GasEnergy = &(buffer0[(H.n_fields-1)*H.n_cells]);
   #endif
 
   // initialize array
-  for (int i=0; i<fields*H.n_cells; i++)
+  for (int i=0; i<H.n_fields*H.n_cells; i++)
   {
     buffer0[i] = 0.0;
     buffer1[i] = 0.0;
@@ -388,10 +398,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_1D_CUDA(&(C.density[0]), H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt);
+    max_dti = CTU_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_1D_CUDA(&(C.density[0]), H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt);
+    max_dti = VL_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
     #endif //VL
     #endif //CUDA
   }
@@ -409,10 +419,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt);
+    max_dti = CTU_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt);
+    max_dti = VL_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //VL
     #endif //CUDA
   }
@@ -430,10 +440,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt);
+    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields);
     #endif //VL
     #endif    
 
@@ -451,12 +461,158 @@ Real Grid3D::Update_Grid(void)
   C.momentum_y = &g1[2*H.n_cells];
   C.momentum_z = &g1[3*H.n_cells];
   C.Energy   = &g1[4*H.n_cells];
+  #ifdef SCALAR
+  C.scalar = &g1[5*H.n_cells];
+  #endif
   #ifdef DE
-  C.GasEnergy = &g1[5*H.n_cells];
+  C.GasEnergy = &g1[(H.n_fields-1)*H.n_cells];
   #endif
 
   // reset the grid flag to swap buffers
   gflag = (gflag+1)%2;
+
+  return max_dti;
+
+}
+
+
+//Add a single supernova with 10^51 ergs of thermal energy and 10 M_sun
+Real Grid3D::Add_Supernova(void)
+{
+  int i, j, k, id;
+  Real x_pos, y_pos, z_pos, r, R_s;
+  Real M, E, V, rho, Ed;
+  Real xl, xr, yl, yr, zl, zr, rl, rr;
+  int incount, ii;
+  Real weight, xpoint, ypoint, zpoint;
+  R_s = 2*H.dx; // supernova radius, pc
+  M = 15.0; // mass input, in M_sun
+  E = 1.0e51; // energy input, in erg
+  Real x_sn, y_sn, z_sn; // central location of SN
+  x_sn = y_sn = z_sn = 0;
+  Real R_cl = 2.0; // size of cluster, pc (for random distribution of SN)
+  srand (int(H.t)); // change location of SN
+  x_sn = 2*R_cl*float(rand() % 10000)/10000.0 - R_cl; // pick a random z between -R_cl and R_cl
+  y_sn = 2*R_cl*float(rand() % 10000)/10000.0 - R_cl; // pick a random z between -R_cl and R_cl
+  z_sn = 2*R_cl*float(rand() % 10000)/10000.0 - R_cl; // pick a random z between -R_cl and R_cl
+  printf("%f %f %f\n", x_sn, y_sn, z_sn);
+
+  Real max_dti = 0;
+
+  E = E/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT); // convert to code units
+  V = (4.0/3.0)*PI*R_s*R_s*R_s;
+  //chprintf("%f %f %f %f\n", V, (4.0/3.0)*PI*0.3*0.3*0.3, M_dot, E_dot);
+  rho = M / V;
+  Ed = E / V;
+
+  Real d_inv, vx, vy, vz, P, cs;
+  Real max_vx, max_vy, max_vz;
+  max_dti = max_vx = max_vy = max_vz = 0.0;
+  Real M_dot_tot, E_dot_tot;
+  M_dot_tot = E_dot_tot = 0.0;
+
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        
+        // calculate spherical radius
+        xl = fabs(x_pos-x_sn)-0.5*H.dx;
+        yl = fabs(y_pos-y_sn)-0.5*H.dy;
+        zl = fabs(z_pos-z_sn)-0.5*H.dz;
+        xr = fabs(x_pos-x_sn)+0.5*H.dx;
+        yr = fabs(y_pos-y_sn)+0.5*H.dy;
+        zr = fabs(z_pos-z_sn)+0.5*H.dz;
+        rl = sqrt(xl*xl + yl*yl + zl*zl);
+        rr = sqrt(xr*xr + yr*yr + zr*zr);
+        //r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
+
+        // within SN radius, inject mass and thermal energy
+        // entire cell is within sphere
+        if (rr < R_s) {
+          C.density[id] += rho;
+          C.Energy[id] += Ed;
+          #ifdef DE
+          C.GasEnergy[id] += Ed;
+          //Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
+          //Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+          //printf("%3d %3d %3d Starburst zone n: %e T:%e.\n", i, j, k, n, T);
+          #endif
+          #ifdef SCALAR
+          C.scalar[id] += 1.0*rho;
+          #endif
+          //M_dot_tot += rho_dot*H.dx*H.dy*H.dz;
+          //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
+          // recalculate the timestep for these cells
+          d_inv = 1.0 / C.density[id];
+          vx = d_inv * C.momentum_x[id];
+          vy = d_inv * C.momentum_y[id];
+          vz = d_inv * C.momentum_z[id];
+          P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
+          cs = sqrt(d_inv * gama * P);
+          // compute maximum cfl velocity
+          max_vx = fmax(max_vx, fabs(vx) + cs);
+          max_vy = fmax(max_vy, fabs(vy) + cs);
+          max_vz = fmax(max_vz, fabs(vz) + cs);
+        }
+        // on the sphere
+        //if (rl < R_s && rr > R_s && fabs(z_pos) < z_s) {
+        if (rl < R_s && rr > R_s) {
+          // quick Monte Carlo to determine weighting
+          Ran quickran(50);
+          incount = 0;
+          for (ii=0; ii<1000; ii++) {
+            // generate a random number between x_pos and dx
+            xpoint = xl + H.dx*quickran.doub();
+            // generate a random number between y_pos and dy
+            ypoint = yl + H.dy*quickran.doub();
+            // generate a random number between z_pos and dz
+            zpoint = zl + H.dz*quickran.doub();
+            // check to see whether the point is within the sphere 
+            if (xpoint*xpoint + ypoint*ypoint + zpoint*zpoint < R_s*R_s) incount++;
+            //if (xpoint*xpoint + ypoint*ypoint < R_s*R_s) incount++;
+          }
+          weight = incount / 1000.0;
+          C.density[id] += rho * weight;
+          C.Energy[id]  += Ed * weight;
+          #ifdef DE
+          C.GasEnergy[id] += Ed * weight;
+          #endif
+          #ifdef SCALAR
+          C.scalar[id] += 1.0*rho*weight;
+          #endif
+          // recalculate the timestep for these cells
+          d_inv = 1.0 / C.density[id];
+          vx = d_inv * C.momentum_x[id];
+          vy = d_inv * C.momentum_y[id];
+          vz = d_inv * C.momentum_z[id];
+          P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
+          cs = sqrt(d_inv * gama * P);
+          // compute maximum cfl velocity
+          max_vx = fmax(max_vx, fabs(vx) + cs);
+          max_vy = fmax(max_vy, fabs(vy) + cs);
+          max_vz = fmax(max_vz, fabs(vz) + cs);
+        }
+      }
+    }
+  }
+
+  /*
+  printf("procID: %d M_dot: %e E_dot: %e\n", procID, M_dot_tot, E_dot_tot);
+  MPI_Barrier(MPI_COMM_WORLD);
+  Real global_M_dot, global_E_dot;
+  MPI_Reduce(&M_dot_tot, &global_M_dot, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&E_dot_tot, &global_E_dot, 1, MPI_CHREAL, MPI_SUM, 0, MPI_COMM_WORLD);
+  chprintf("Total M_dot: %e E_dot: %e \n", global_M_dot, global_E_dot); 
+  */
+
+  // compute max inverse of dt
+  max_dti = max_vx / H.dx;
+  max_dti = fmax(max_dti, max_vy / H.dy);
+  max_dti = fmax(max_dti, max_vz / H.dy);
 
   return max_dti;
 
@@ -683,16 +839,11 @@ Real Grid3D::Add_Supernovae_CC85(void)
   Real max_vx, max_vy, max_vz, max_dti;
   max_dti = max_vx = max_vy = max_vz = 0.0;
   R_s = 0.3; // starburst radius, in kpc
-  z_s = H.dz; // starburst height, in kpc
-  //M1 = 2.0e3; // mass input rate, in M_sun / kyr
-  //E1 = 1.0e42; // energy input rate, in erg/s
-  //M2 = 2.0e3;
-  //E2 = 1.5e42;
   // High res adiabatic params
-  M1 = 1.5e3; 
-  E1 = 1.5e42;
-  M2 = 12.0e3;
-  E2 = 5.4e42;
+  //M1 = 1.5e3; 
+  //E1 = 1.5e42;
+  //M2 = 12.0e3;
+  //E2 = 5.4e42;
   M_dot = 0.0;
   E_dot = 0.0;
 
@@ -804,7 +955,7 @@ Real Grid3D::Add_Supernovae_CC85(void)
           C.density[id] += rho_dot * H.dt * weight;
           C.Energy[id]  += Ed_dot * H.dt * weight;
           #ifdef DE
-          C.GasEnergy[id] += Ed_dot * H.dt;
+          C.GasEnergy[id] += Ed_dot * H.dt * weight;
           #endif
           // recalculate the timestep for these cells
           d_inv = 1.0 / C.density[id];
