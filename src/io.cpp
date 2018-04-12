@@ -365,9 +365,9 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   int_data[2] = H.nz_real;
   #endif
   #ifdef MPI_CHOLLA
-  int_data[0] = nx_global_real;
-  int_data[1] = ny_global_real;
-  int_data[2] = nz_global_real;
+  int_data[0] = nx_global;
+  int_data[1] = ny_global;
+  int_data[2] = nz_global;
   #endif
 
   attribute_id = H5Acreate(file_id, "dims", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
@@ -496,9 +496,9 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   int_data[2] = H.nz_real;
   #endif
   #ifdef MPI_CHOLLA
-  int_data[0] = nx_global_real;
-  int_data[1] = ny_global_real;
-  int_data[2] = nz_global_real;
+  int_data[0] = nx_global;
+  int_data[1] = ny_global;
+  int_data[2] = nz_global;
   #endif
 
   attribute_id = H5Acreate(file_id, "dims", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
@@ -1462,8 +1462,8 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
         buf_id = j + i*H.ny_real;
         #ifdef MPI_CHOLLA
         // When there are multiple processes, check whether this slice is in your domain
-        if (zslice >= H.n_ghost+nz_local_start && zslice < H.n_ghost+nz_local_start+nz_local) {
-          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (zslice-nz_local_start)*H.nx*H.ny;
+        if (zslice >= nz_local_start && zslice < nz_local_start+nz_local) {
+          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (zslice-nz_local_start+H.n_ghost)*H.nx*H.ny;
         #endif //MPI_CHOLLA
           dataset_buffer_d[buf_id]  = C.density[id];
           dataset_buffer_mx[buf_id] = C.momentum_x[id];
@@ -1516,7 +1516,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     dataset_id = H5Dcreate(file_id, "/E_xy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_E); 
     status = H5Dclose(dataset_id);
-    #ifdef GE
+    #ifdef DE
     dataset_id = H5Dcreate(file_id, "/GE_xy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_GE); 
     status = H5Dclose(dataset_id);
@@ -1569,8 +1569,8 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
         buf_id = k + i*H.nz_real;
         #ifdef MPI_CHOLLA
         // When there are multiple processes, check whether this slice is in your domain
-        if (yslice >= H.n_ghost+ny_local_start && yslice < H.n_ghost+ny_local_start+ny_local) {
-          id = (i+H.n_ghost) + (yslice-ny_local_start)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+        if (yslice >= ny_local_start && yslice < ny_local_start+ny_local) {
+          id = (i+H.n_ghost) + (yslice-ny_local_start+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
         #endif //MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
@@ -1623,7 +1623,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     dataset_id = H5Dcreate(file_id, "/E_xz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_E); 
     status = H5Dclose(dataset_id);
-    #ifdef GE
+    #ifdef DE
     dataset_id = H5Dcreate(file_id, "/GE_xz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_GE); 
     status = H5Dclose(dataset_id);
@@ -1676,7 +1676,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
         buf_id = k + j*H.nz_real;
         #ifdef MPI_CHOLLA
         // When there are multiple processes, check whether this slice is in your domain
-        if (xslice >= H.n_ghost+nx_local_start && xslice < H.n_ghost+nx_local_start+nx_local) {
+        if (xslice >= nx_local_start && xslice < nx_local_start+nx_local) {
           id = (xslice-nx_local_start) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
         #endif //MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
@@ -1730,7 +1730,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     dataset_id = H5Dcreate(file_id, "/E_yz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_E); 
     status = H5Dclose(dataset_id);
-    #ifdef GE
+    #ifdef DE
     dataset_id = H5Dcreate(file_id, "/GE_yz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_GE); 
     status = H5Dclose(dataset_id);

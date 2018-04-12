@@ -369,17 +369,20 @@ void Grid3D::Superbubble(Real rho, Real P, Real A)
         C.GasEnergy[id]  = P/(gama-1.0);
         #endif
         // add density perturbations
-        for (int ii=0; ii<5; ii++) {
-          for (int jj=0; jj<5; jj++) {
-            for (int kk=0; kk<5; kk++) {
-              k_i = 2.0*PI*ii / 100.;
-              k_j = 2.0*PI*jj / 100.;
-              k_k = 2.0*PI*kk / 100.;
+        for (int ii=0; ii<6; ii++) {
+          for (int jj=0; jj<6; jj++) {
+            for (int kk=0; kk<6; kk++) {
+              k_i = 2.0*PI*ii / H.domlen_x;
+              k_j = 2.0*PI*jj / H.domlen_y;
+              k_k = 2.0*PI*kk / H.domlen_z;
               theta = (rand() % 1000) / 1000. * 2*PI;
-              C.density[id]    += (1.0/64.0) * rho * A * sin(k_i*x_pos + k_j*y_pos + k_k*z_pos + theta);
+              C.density[id]    += (1.0/125.0) * rho * A * sin(k_i*x_pos + k_j*y_pos + k_k*z_pos + theta);
             }
           }
         }
+        #ifdef SCALAR
+        C.scalar[id] = 0.0*C.density[id];
+        #endif
         rho_av += C.density[id]*DENSITY_UNIT / (mu*MP);
       }
     }

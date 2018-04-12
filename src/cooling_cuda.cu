@@ -34,7 +34,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   Real ge;
   #endif
   Real T_min = 1.0e1; // minimum temperature allowed
-  Real T_max= 1.0e9; // maximum temperature allowed
+  //Real T_max= 1.0e9; // maximum temperature allowed
 
   mu = 1.27;
 
@@ -130,7 +130,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     //if (T < 100) printf("%3d %3d %3d Low T cell. T_init: %e T: %e\n", xid, yid, zid, T_init, T);
     // calculate cooling rate for new T
     cool = Schure_cool(n, T);
-    if (cool > 0.0) {
+    // only use good cells in timestep calculation (some may have crashed)
+    if (n > 0 && T > 0 && cool > 0.0) {
       // limit the timestep such that delta_T is 10% 
       min_dt[tid] = 0.1*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
     }
@@ -182,7 +183,7 @@ __global__ void cloudy_cooling_kernel(Real *dev_conserved, int nx, int ny, int n
   Real ge;
   #endif
   Real T_min = 1.0e4; // minimum temperature allowed
-  Real T_max= 1.0e9; // maximum temperature allowed
+  //Real T_max= 1.0e9; // maximum temperature allowed
 
   mu = 0.6;
 
@@ -445,12 +446,12 @@ __device__ Real Schure_cool(Real n, Real T)
 
   // Below 10K only include photoelectric heating
   if (log10(T) < 1.0) {
-    H = 2.0e-26;
+    H = 14.0e-26;
   }
   // Koyama & Inutsaka 2002 analytic fit
   if (log10(T) >= 1.0 && log10(T) < 4.0) {
-    lambda = 2e-26 * (1e7 * exp(-1.148e5 / (T+1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0/T));
-    H = 2.0e-26;
+    lambda = 2.0e-26 * (1e7 * exp(-1.148e5 / (T+1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0/T));
+    H = 14.0e-26;
   }
   // fit to cloudy CIE cooling function 
   if (log10(T) >= 4.0 && log10(T) < 5.9) {

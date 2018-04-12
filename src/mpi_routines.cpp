@@ -60,12 +60,10 @@ int y_buffer_length;
 int z_buffer_length;
 
 /*local domain sizes*/
+/*none of these include ghost cells!*/
 ptrdiff_t nx_global;
 ptrdiff_t ny_global;
 ptrdiff_t nz_global;
-ptrdiff_t nx_global_real;
-ptrdiff_t ny_global_real;
-ptrdiff_t nz_global_real;
 ptrdiff_t nx_local;
 ptrdiff_t ny_local;
 ptrdiff_t nz_local;
@@ -190,15 +188,12 @@ void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int
   // set grid dimensions
   H->nx = nx_local+2*H->n_ghost;
   H->nx_real = nx_local;
-  nx_global_real = nx_gin;
   if (ny_local == 1) H->ny = 1;
   else H->ny = ny_local+2*H->n_ghost;
   H->ny_real = ny_local;
-  ny_global_real = ny_gin;
   if (nz_local == 1) H->nz = 1;
   else H->nz = nz_local+2*H->n_ghost;
   H->nz_real = nz_local;
-  nz_global_real = nz_gin;
 
   // set total number of cells
   H->n_cells = H->nx * H->ny * H->nz;

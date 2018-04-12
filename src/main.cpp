@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
   Real outtime = 0; // current output time
 
   // SN timing variables
-  Real dt_SN = 10.0; // time between SN (code units)
+  Real dt_SN = 100.0; // time between SN (code units)
   Real t_SN_next = 0.0;
 
   // read in command line arguments
@@ -127,12 +127,7 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
-/*
-    for (int j=0; j<G.H.ny; j++) {
-      int id = G.H.n_ghost + j*G.H.nx;// + G.H.n_ghost*G.H.nx*G.H.ny;
-      printf("%d %f %f %f\n", j, G.C.density[id], G.C.Energy[id], G.C.scalar[id]/G.C.density[id]);
-    }
-*/
+
     // get the start time
     start_step = get_time();
     
@@ -147,7 +142,6 @@ int main(int argc, char *argv[])
     // Add supernovae
     //G.Add_Supernovae_CC85();
 
-    /*
     if (G.H.t >= t_SN_next) {
      
       Real sn_dti = G.Add_Supernova();
@@ -159,8 +153,7 @@ int main(int argc, char *argv[])
       #endif
       t_SN_next += dt_SN;
     }
-    */
-    
+  
 
     // Advance the grid by one timestep
     #ifdef CPU_TIME
@@ -228,11 +221,10 @@ int main(int argc, char *argv[])
       // update to the next output time
       outtime += P.outstep;      
     }
-
 /*
-    for (int i=0; i<G.H.nx; i++) {
-      for (int j=0; j<G.H.ny; j++) {
-        for (int k=0; k<G.H.nz; k++) {
+    for (int i=G.H.n_ghost; i<G.H.nx-G.H.n_ghost; i++) {
+      for (int j=G.H.n_ghost; j<G.H.ny-G.H.n_ghost; j++) {
+        for (int k=G.H.n_ghost; k<G.H.nz-G.H.n_ghost; k++) {
           int id = i + j*G.H.nx + k*G.H.nx*G.H.ny;
           if (G.C.density[id] < 0.0 || G.C.density[id] != G.C.density[id]) {
             printf("Failure in cell %d %d %d. Density %e\n", i, j, k, G.C.density[id]);
@@ -241,8 +233,7 @@ int main(int argc, char *argv[])
         }
       }
     }
-*/
-    
+*/   
 
   } /*end loop over timesteps*/
 

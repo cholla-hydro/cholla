@@ -485,9 +485,17 @@ Real Grid3D::Add_Supernova(void)
   Real xl, xr, yl, yr, zl, zr, rl, rr;
   int incount, ii;
   Real weight, xpoint, ypoint, zpoint;
-  R_s = 3*H.dx; // supernova radius, pc
-  M = 25.0; // mass input, in M_sun
+  R_s = 2*H.dx; // supernova radius, pc
+  M = 15.0; // mass input, in M_sun
   E = 1.0e51; // energy input, in erg
+  Real x_sn, y_sn, z_sn; // central location of SN
+  x_sn = y_sn = z_sn = 0;
+  Real R_cl = 2.0; // size of cluster, pc (for random distribution of SN)
+  srand (int(H.t)); // change location of SN
+  x_sn = 2*R_cl*float(rand() % 10000)/10000.0 - R_cl; // pick a random z between -R_cl and R_cl
+  y_sn = 2*R_cl*float(rand() % 10000)/10000.0 - R_cl; // pick a random z between -R_cl and R_cl
+  z_sn = 2*R_cl*float(rand() % 10000)/10000.0 - R_cl; // pick a random z between -R_cl and R_cl
+  printf("%f %f %f\n", x_sn, y_sn, z_sn);
 
   Real max_dti = 0;
 
@@ -512,18 +520,15 @@ Real Grid3D::Add_Supernova(void)
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
         
         // calculate spherical radius
-        xl = fabs(x_pos)-0.5*H.dx;
-        yl = fabs(y_pos)-0.5*H.dy;
-        zl = fabs(z_pos)-0.5*H.dz;
-        xr = fabs(x_pos)+0.5*H.dx;
-        yr = fabs(y_pos)+0.5*H.dy;
-        zr = fabs(z_pos)+0.5*H.dz;
+        xl = fabs(x_pos-x_sn)-0.5*H.dx;
+        yl = fabs(y_pos-y_sn)-0.5*H.dy;
+        zl = fabs(z_pos-z_sn)-0.5*H.dz;
+        xr = fabs(x_pos-x_sn)+0.5*H.dx;
+        yr = fabs(y_pos-y_sn)+0.5*H.dy;
+        zr = fabs(z_pos-z_sn)+0.5*H.dz;
         rl = sqrt(xl*xl + yl*yl + zl*zl);
         rr = sqrt(xr*xr + yr*yr + zr*zr);
-        r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
-        //rl = sqrt(xl*xl + yl*yl);
-        //rr = sqrt(xr*xr + yr*yr);
-        //r = sqrt(x_pos*x_pos + y_pos*y_pos);
+        //r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
 
         // within SN radius, inject mass and thermal energy
         // entire cell is within sphere
@@ -535,6 +540,9 @@ Real Grid3D::Add_Supernova(void)
           //Real n = C.density[id]*DENSITY_UNIT/(0.6*MP);
           //Real T = C.GasEnergy[id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
           //printf("%3d %3d %3d Starburst zone n: %e T:%e.\n", i, j, k, n, T);
+          #endif
+          #ifdef SCALAR
+          C.scalar[id] += 1.0*rho;
           #endif
           //M_dot_tot += rho_dot*H.dx*H.dy*H.dz;
           //E_dot_tot += Ed_dot*H.dx*H.dy*H.dz;
@@ -572,6 +580,9 @@ Real Grid3D::Add_Supernova(void)
           C.Energy[id]  += Ed * weight;
           #ifdef DE
           C.GasEnergy[id] += Ed * weight;
+          #endif
+          #ifdef SCALAR
+          C.scalar[id] += 1.0*rho*weight;
           #endif
           // recalculate the timestep for these cells
           d_inv = 1.0 / C.density[id];
