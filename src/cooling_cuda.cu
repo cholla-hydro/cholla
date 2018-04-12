@@ -36,7 +36,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   Real T_min = 1.0e1; // minimum temperature allowed
   //Real T_max= 1.0e9; // maximum temperature allowed
 
-  mu = 1.27;
+  mu = 0.6;
+  //mu = 1.27;
 
   // get a global thread ID
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
