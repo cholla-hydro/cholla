@@ -28,6 +28,9 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
   #ifdef DE
   nfields++;
   #endif
+  #ifdef SCALAR
+  nfields += NSCALARS;
+  #endif
 
   Real d_old, vx_old, vy_old, vz_old, P_old, E_old;
   Real d_new, vx_new, vy_new, vz_new, P_new, E_new;
@@ -55,6 +58,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
         vz_new = C2[3*n_cells+id]/d_new;
         P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
         n = d_new*DENSITY_UNIT/(0.6*MP);
+        //n = d_new*DENSITY_UNIT/(1.27*MP);
         #ifdef DE
         T = C2[(nfields-1)*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
         #else
@@ -62,8 +66,8 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
         #endif
   
         // if there is a problem, redo the update for that cell using first-order fluxes
-        //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e9) {
-        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new) {
+        if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e9) {
+        //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new) {
           printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
           //printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
 
@@ -90,7 +94,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new || E_new < 0.0 || E_new != E_new || T > 1.0e9) {
             printf("%3d %3d %3d Averaging: d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
 */
-          average_cell(C2, i, j, k, nx, ny, nz, n_cells);
+          average_cell(C2, i, j, k, nx, ny, nz, n_cells, nfields);
           d_new = C2[id];
           E_new = C2[4*n_cells+id];
           vx_new = C2[1*n_cells+id]/d_new;
@@ -98,6 +102,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           vz_new = C2[3*n_cells+id]/d_new;
           P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           n = d_new*DENSITY_UNIT/(0.6*MP);
+          //n = d_new*DENSITY_UNIT/(1.27*MP);
           #ifdef DE
           T = C2[(nfields-1)*n_cells+id]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
           #else
@@ -136,14 +141,14 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           int ipo, imo, jpo, jmo, kpo, kmo;
           E = C2[4*n_cells+id];
           // separately tracked internal energy
-          ge1 = C2[5*n_cells+id];
+          ge1 = C2[(nfields-1)*n_cells+id];
           // internal energy calculated from total energy
           ge2 = P_new / (gama-1.0);
           // if the ratio of conservatively calculated internal energy to total energy
           // is greater than 1/1000,
           // use the conservatively calculated internal energy to do the internal energy update
           if (ge2/E > 0.001) {
-            C2[5*n_cells + id] = ge2;
+            C2[(nfields-1)*n_cells + id] = ge2;
             ge1 = ge2;
           }     
           //find the max nearby total energy 
@@ -168,7 +173,7 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           // if the ratio of conservatively calculated internal energy to max nearby total energy
           // is greater than 1/10, continue to use the conservatively calculated internal energy 
           if (ge2/Emax > 0.1) {
-            C2[5*n_cells + id] = ge2;
+            C2[(nfields-1)*n_cells + id] = ge2;
           }
           else {
             // sync the total energy with the internal energy 
@@ -187,8 +192,10 @@ void Flux_Correction_3D(Real *C1, Real *C2, int nx, int ny, int nz, int x_off, i
           P_new = (E_new - 0.5*d_new*(vx_new*vx_new + vy_new*vy_new + vz_new*vz_new))*(gama-1.0);
           // recalculate the temperature
           Real n = d_new*DENSITY_UNIT / (1.27 * MP);
+          #ifdef DE
           Real T = P_new*PRESSURE_UNIT/(n*KB);
-          //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
+          #endif
+          printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, E_new, P_new, T);
           //printf("%3d %3d %3d FC  d: %e  E:%e  P:%e  T:%e\n", i, j, k, d_new, E_new, P_new, T);
           //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i+nx_local_start, j+ny_local_start, k+nz_local_start, d_new, P_new);
           //if (d_new < 0.0 || d_new != d_new || P_new < 0.0 || P_new != P_new) printf("FLUX CORRECTION FAILED: %d %d %d %e %e\n", i, j, k, d_new, P_new);
@@ -788,7 +795,7 @@ void second_order_fluxes(Real *C1, Real *C2, Real C_i[], Real C_imo[], Real C_im
 }
 
 
-void average_cell(Real *C1, int i, int j, int k, int nx, int ny, int nz, int n_cells)
+void average_cell(Real *C1, int i, int j, int k, int nx, int ny, int nz, int n_cells, int n_fields)
 {
   int id = i + j*nx + k*nx*ny;
   int imo = i-1 + j*nx + k*nx*ny;
@@ -803,8 +810,8 @@ void average_cell(Real *C1, int i, int j, int k, int nx, int ny, int nz, int n_c
   //printf("%3d %3d %3d  vz_i: %e vz_kmo: %e vz_kpo: %e\n", i, j, k, C1[id+3*n_cells]/C1[id], C1[kmo+3*n_cells]/C1[kmo], C1[kpo+3*n_cells]/C1[kpo]);
 
   int N = 0;
-  Real d, d_av, mx, my, mz, vx_av, vy_av, vz_av, P, P_av;
-  d_av = vx_av = vy_av = vz_av = P_av = 0.0;
+  Real d, d_av, mx, my, mz, vx_av, vy_av, vz_av, P, P_av, C, C_av;
+  d_av = vx_av = vy_av = vz_av = P_av = C = C_av = 0.0;
   for (int kk=k-1;kk<=k+1;kk++) {
   for (int jj=j-1;jj<=j+1;jj++) {
   for (int ii=i-1;ii<=i+1;ii++) {
@@ -814,12 +821,18 @@ void average_cell(Real *C1, int i, int j, int k, int nx, int ny, int nz, int n_c
     my = C1[id+2*n_cells];
     mz = C1[id+3*n_cells];
     P = (C1[id+4*n_cells] - (0.5/d)*(mx*mx + my*my + mz*mz))*(gama-1.0);
+    #ifdef SCALAR
+    C = C1[id+5*n_cells] / d;
+    #endif
     if (d > 0.0 && P > 0.0) {
       d_av += d;
       vx_av += mx;
       vy_av += my;
       vz_av += mz;
       P_av += P/(gama-1.0);
+      #ifdef SCALAR
+      C_av += C;
+      #endif
       N++;
     }
   }
@@ -830,6 +843,9 @@ void average_cell(Real *C1, int i, int j, int k, int nx, int ny, int nz, int n_c
   vy_av = vy_av/d_av;
   vz_av = vz_av/d_av;
   d_av = d_av/N;
+  #ifdef SCALAR
+  C_av = C_av/N;
+  #endif
   id = i+j*nx+k*nx*ny;
   C1[id] = d_av;
   C1[id+1*n_cells] = d_av*vx_av;
@@ -837,18 +853,132 @@ void average_cell(Real *C1, int i, int j, int k, int nx, int ny, int nz, int n_c
   C1[id+3*n_cells] = d_av*vz_av;
   C1[id+4*n_cells] = P_av/(gama-1.0) + 0.5*d_av*(vx_av*vx_av+vy_av*vy_av+vz_av*vz_av);
   #ifdef DE
-  C1[id+5*n_cells] = P_av/(gama-1.0);
+  C1[id+(n_fields-1)*n_cells] = P_av/(gama-1.0);
+  #endif
+  #ifdef SCALAR
+  C1[id+5*n_cells] = d_av*C_av;
   #endif
 
+<<<<<<< HEAD
   Real n = d_av*DENSITY_UNIT/(0.6*MP);
+=======
+  
+  /*
+  Real d_diff = 1.0e6 - C1[id];
+  C1[id] = 1.0e6;
+  C1[imo] -= d_diff/6.0;
+  C1[ipo] -= d_diff/6.0;
+  C1[jmo] -= d_diff/6.0;
+  C1[jpo] -= d_diff/6.0;
+  C1[kmo] -= d_diff/6.0;
+  C1[kpo] -= d_diff/6.0;
+  */
+        
+  /*
+  Real d_av, vx_av, vy_av, vz_av, P_av;
+  Real d_ijk, vx_ijk, vy_ijk, vz_ijk, P_ijk;
+  Real d_imo, vx_imo, vy_imo, vz_imo, P_imo;
+  Real d_ipo, vx_ipo, vy_ipo, vz_ipo, P_ipo;
+  Real d_jmo, vx_jmo, vy_jmo, vz_jmo, P_jmo;
+  Real d_jpo, vx_jpo, vy_jpo, vz_jpo, P_jpo;
+  Real d_kmo, vx_kmo, vy_kmo, vz_kmo, P_kmo;
+  Real d_kpo, vx_kpo, vy_kpo, vz_kpo, P_kpo;
+  d_av = (C1[imo]+C1[ipo]+C1[jmo]+C1[jpo]+C1[kmo]+C1[kpo])/6.0;
+  d_ijk = C1[id];
+  vx_ijk = C1[id+n_cells]/d_ijk;
+  vy_ijk = C1[id+2*n_cells]/d_ijk;
+  vz_ijk = C1[id+3*n_cells]/d_ijk;
+  d_imo = C1[imo];
+  vx_imo = C1[imo+n_cells]/d_imo;
+  vy_imo = C1[imo+2*n_cells]/d_imo;
+  vz_imo = C1[imo+3*n_cells]/d_imo;
+  d_ipo = C1[ipo];
+  vx_ipo = C1[ipo+n_cells]/d_ipo;
+  vy_ipo = C1[ipo+2*n_cells]/d_ipo;
+  vz_ipo = C1[ipo+3*n_cells]/d_ipo;
+  d_jmo = C1[jmo];
+  vx_jmo = C1[jmo+n_cells]/d_jmo;
+  vy_jmo = C1[jmo+2*n_cells]/d_jmo;
+  vz_jmo = C1[jmo+3*n_cells]/d_jmo;
+  d_jpo = C1[jpo];
+  vx_jpo = C1[jpo+n_cells]/d_jpo;
+  vy_jpo = C1[jpo+2*n_cells]/d_jpo;
+  vz_jpo = C1[jpo+3*n_cells]/d_jpo;
+  d_kmo = C1[kmo];
+  vx_kmo = C1[kmo+n_cells]/d_kmo;
+  vy_kmo = C1[kmo+2*n_cells]/d_kmo;
+  vz_kmo = C1[kmo+3*n_cells]/d_kmo;
+  d_kpo = C1[kpo];
+  vx_kpo = C1[kpo+n_cells]/d_kpo;
+  vy_kpo = C1[kpo+2*n_cells]/d_kpo;
+  vz_kpo = C1[kpo+3*n_cells]/d_kpo;
+  P_imo = (C1[imo+4*n_cells] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo))*(gama-1.0);
+  if (P_imo < 0.0) printf("P_imo: %e\n", P_imo);
+  P_ipo = (C1[ipo+4*n_cells] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo))*(gama-1.0);
+  if (P_ipo < 0.0) printf("P_ipo: %e\n", P_ipo);
+  P_jmo = (C1[jmo+4*n_cells] - 0.5*d_jmo*(vx_jmo*vx_jmo + vy_jmo*vy_jmo + vz_jmo*vz_jmo))*(gama-1.0);
+  if (P_jmo < 0.0) printf("P_jmo: %e\n", P_jmo);
+  P_jpo = (C1[jpo+4*n_cells] - 0.5*d_jpo*(vx_jpo*vx_jpo + vy_jpo*vy_jpo + vz_jpo*vz_jpo))*(gama-1.0);
+  if (P_jpo < 0.0) printf("P_jpo: %e\n", P_jpo);
+  P_kmo = (C1[kmo+4*n_cells] - 0.5*d_kmo*(vx_kmo*vx_kmo + vy_kmo*vy_kmo + vz_kmo*vz_kmo))*(gama-1.0);
+  if (P_kmo < 0.0) printf("P_kmo: %e\n", P_kmo);
+  P_kpo = (C1[kpo+4*n_cells] - 0.5*d_kpo*(vx_kpo*vx_kpo + vy_kpo*vy_kpo + vz_kpo*vz_kpo))*(gama-1.0);
+  if (P_kpo < 0.0) printf("P_kpo: %e\n", P_kpo);
+  d_av = (d_imo+d_ipo+d_jmo+d_jpo+d_kmo+d_kpo)/6.0;
+  vx_av = (vx_imo+vx_ipo+vx_jmo+vx_jpo+vx_kmo+vx_kpo)/6.0;
+  vy_av = (vy_imo+vy_ipo+vy_jmo+vy_jpo+vy_kmo+vy_kpo)/6.0;
+  vz_av = (vz_imo+vz_ipo+vz_jmo+vz_jpo+vz_kmo+vz_kpo)/6.0;
+  P_av = (P_imo+P_ipo+P_jmo+P_jpo+P_kmo+P_kpo)/6.0;
+  //d_av = fmin(fmin(fmin(fmin(fmin(d_imo, d_ipo), d_jmo), d_jpo), d_kmo), d_kpo);
+  //P_av = fmin(fmin(fmin(fmin(fmin(P_imo, P_ipo), P_jmo), P_jpo), P_kmo), P_kpo);
+  C1[id] = d_av;
+  C1[id+1*n_cells] = d_av*vx_ijk;
+  C1[id+2*n_cells] = d_av*vy_ijk;
+  C1[id+3*n_cells] = d_av*vz_ijk;
+  C1[id+4*n_cells] = P_ijk/(gama-1.0) + 0.5*d_av*(vx_ijk*vx_ijk + vy_ijk*vy_ijk + vz_ijk*vz_ijk);
+  C1[id] = C1[imo] = C1[ipo] = C1[jmo] = C1[jpo] = C1[kmo]= C1[kpo] = d_av;
+  C1[id+1*n_cells] = d_av*vx_ijk;
+  C1[id+2*n_cells] = d_av*vy_ijk;
+  C1[id+3*n_cells] = d_av*vz_ijk;
+  C1[id+4*n_cells] = P_ijk/(gama-1.0) + 0.5*d_av*(vx_ijk*vx_ijk + vy_ijk*vy_ijk + vz_ijk*vz_ijk);
+  C1[imo+1*n_cells] = d_av*vx_imo;
+  C1[imo+2*n_cells] = d_av*vy_imo;
+  C1[imo+3*n_cells] = d_av*vz_imo;
+  C1[imo+4*n_cells] = P_imo/(gama-1.0) + 0.5*d_av*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo);
+  C1[ipo+1*n_cells] = d_av*vx_ipo;
+  C1[ipo+2*n_cells] = d_av*vy_ipo;
+  C1[ipo+3*n_cells] = d_av*vz_ipo;
+  C1[ipo+4*n_cells] = P_ipo/(gama-1.0) + 0.5*d_av*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo);
+  C1[jmo+1*n_cells] = d_av*vx_jmo;
+  C1[jmo+2*n_cells] = d_av*vy_jmo;
+  C1[jmo+3*n_cells] = d_av*vz_jmo;
+  C1[jmo+4*n_cells] = P_jmo/(gama-1.0) + 0.5*d_av*(vx_jmo*vx_jmo + vy_jmo*vy_jmo + vz_jmo*vz_jmo);
+  C1[jpo+1*n_cells] = d_av*vx_jpo;
+  C1[jpo+2*n_cells] = d_av*vy_jpo;
+  C1[jpo+3*n_cells] = d_av*vz_jpo;
+  C1[jpo+4*n_cells] = P_jpo/(gama-1.0) + 0.5*d_av*(vx_jpo*vx_jpo + vy_jpo*vy_jpo + vz_jpo*vz_jpo);
+  C1[kmo+1*n_cells] = d_av*vx_kmo;
+  C1[kmo+2*n_cells] = d_av*vy_kmo;
+  C1[kmo+3*n_cells] = d_av*vz_kmo;
+  C1[kmo+4*n_cells] = P_kmo/(gama-1.0) + 0.5*d_av*(vx_kmo*vx_kmo + vy_kmo*vy_kmo + vz_kmo*vz_kmo);
+  C1[kpo+1*n_cells] = d_av*vx_kpo;
+  C1[kpo+2*n_cells] = d_av*vy_kpo;
+  C1[kpo+3*n_cells] = d_av*vz_kpo;
+  C1[kpo+4*n_cells] = P_kpo/(gama-1.0) + 0.5*d_av*(vx_kpo*vx_kpo + vy_kpo*vy_kpo + vz_kpo*vz_kpo);
+  #ifdef DE
+  //C1[id+5*n_cells] = P_av/(gama-1.0);
+  #endif
+  */
+  Real n = d_av*DENSITY_UNIT/(0.6*MP);
+  //Real n = d_av*DENSITY_UNIT/(1.27*MP);
   Real T = P_av*PRESSURE_UNIT/(n*KB);
   if (T < 1.0e1) {
     P_av = n*KB*1.0e1/PRESSURE_UNIT;
   }
   C1[id+4*n_cells] = P_av/(gama-1.0) + 0.5*d_av*(vx_av*vx_av+vy_av*vy_av+vz_av*vz_av);
   #ifdef DE
-  C1[id+5*n_cells] = P_av/(gama-1.0);
-  T = C1[id+5*n_cells]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
+  C1[id+(n_fields-1)*n_cells] = P_av/(gama-1.0);
+  T = C1[id+(n_fields-1)*n_cells]*(gama-1.0)*PRESSURE_UNIT/(n*KB);
   #endif
 
   //printf("%3d %3d %3d  d_i: %e vx_i: %e vy_i: %e vz_i: %e E: %e n_i: %e T_i: %e\n", i, j, k, d_av, vx_av, vy_av, vz_av, C1[id+4*n_cells], n, T);
