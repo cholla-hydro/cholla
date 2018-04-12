@@ -537,7 +537,7 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     // sync the total energy with the internal energy 
     else {
       if (ge1 > 0.0) dev_conserved[4*n_cells + id] += ge1 - ge2;
-      else dev_conserved[5*n_cells+id] = ge2;
+      else dev_conserved[(n_fields-1)*n_cells+id] = ge2;
     }
     // recalculate the pressure 
     //Real P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
