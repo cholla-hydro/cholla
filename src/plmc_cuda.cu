@@ -563,6 +563,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_R[o1*n_cells + id] = d_R_imh*vx_R_imh;
     dev_bounds_R[o2*n_cells + id] = d_R_imh*vy_R_imh;
     dev_bounds_R[o3*n_cells + id] = d_R_imh*vz_R_imh;
+    dev_bounds_R[4*n_cells + id] = (p_R_imh/(gamma-1.0)) + 0.5*d_R_imh*(vx_R_imh*vx_R_imh + vy_R_imh*vy_R_imh + vz_R_imh*vz_R_imh);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_R[(5+i)*n_cells + id] = d_R_imh*scalar_R_imh[i];
