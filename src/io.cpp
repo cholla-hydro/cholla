@@ -1210,7 +1210,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
 void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
 {
   int i, j, k, id, buf_id;
-  hsize_t   attr_dims;
+  hsize_t   attr_dims = 1;
   hid_t     attribute_id, dataspace_id;
   hid_t     dataset_id, dataspace_xzr_id;
   Real      *dataset_buffer_dxzr;
@@ -1220,8 +1220,8 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
   Real      *dataset_buffer_vzxzr;
 
   herr_t    status;
-  Real d, dxy, dxz, Txy, Txz, n, T;
-  Real vx, vy, vz;
+  Real dxy, dxz, Txy, Txz;
+  Real d, n, T, vx, vy, vz;
 
   Real x, y, z;     //cell positions
   Real xp, yp, zp;  //rotated positions
@@ -1313,7 +1313,6 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     nz_max = (int) fmin(nz_max, R.nz);
 
     // add this info to the header
-    attr_dims = 1;
     dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
     attribute_id = H5Acreate(file_id, "nx_min", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
     status = H5Awrite(attribute_id, H5T_NATIVE_INT, &nx_min);
@@ -1383,11 +1382,11 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
           iz = iz - nz_min;
           #endif
 
-          //project density
           if((ix>=0)&&(ix<nx_dset)&&(iz>=0)&&(iz<nz_dset))
           {
             buf_id = iz + ix*nz_dset;
             d = C.density[id];
+            // project density
             dataset_buffer_dxzr[buf_id] += d*H.dy;
             // calculate number density
             n = d*DENSITY_UNIT/(mu*MP);
