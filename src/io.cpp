@@ -1210,8 +1210,6 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
 void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
 {
   int i, j, k, id, buf_id;
-  hsize_t   attr_dims = 1;
-  hid_t     attribute_id, dataspace_id;
   hid_t     dataset_id, dataspace_xzr_id;
   Real      *dataset_buffer_dxzr;
   Real      *dataset_buffer_Txzr;
@@ -1312,7 +1310,15 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     nz_min = (int) fmax(nz_min, 0);
     nz_max = (int) fmin(nz_max, R.nz);
 
+    // set the projected dataset size for this process to capture
+    // this piece of the simulation volume
+    nx_dset = nx_max-nx_min;
+    nz_dset = nz_max-nz_min;
+
     // add this info to the header
+    hsize_t attr_dims = 1;
+    hid_t     attribute_id, dataspace_id;
+
     dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
     attribute_id = H5Acreate(file_id, "nx_min", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
     status = H5Awrite(attribute_id, H5T_NATIVE_INT, &nx_min);
@@ -1328,10 +1334,6 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     status = H5Aclose(attribute_id);
     status = H5Sclose(dataspace_id);
 
-    // set the projected dataset size for this process to capture
-    // this piece of the simulation volume
-    nx_dset = nx_max-nx_min;
-    nz_dset = nz_max-nz_min;
     #endif //MPI_CHOLLA
 
     hsize_t   dims[2];
