@@ -3,6 +3,7 @@
 #include<stdarg.h>
 #include<string.h>
 #include<math.h>
+#include<algorithm>
 #ifdef HDF5
 #include<hdf5.h>
 #endif
@@ -13,7 +14,7 @@
 #endif
 #include"error_handling.h"
 
-
+/* function used to rotate points about an axis in 3D for the rotated projection output routine */
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
 
 /* Write the initial conditions */
@@ -459,19 +460,19 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
         beta  = (R.nz*(zp+0.5*R.Lz)/R.Lz);
         ix = (int) round(alpha);
         iz = (int) round(beta);
-        R.nx_min = (int) fmin(ix, R.nx_min);
-        R.nx_max = (int) fmax(ix, R.nx_max);
-        R.nz_min = (int) fmin(iz, R.nz_min);
-        R.nz_max = (int) fmax(iz, R.nz_max);
+        R.nx_min = std::min(ix, R.nx_min);
+        R.nx_max = std::max(ix, R.nx_max);
+        R.nz_min = std::min(iz, R.nz_min);
+        R.nz_max = std::max(iz, R.nz_max);
       }
     }
   }
   // if the corners aren't within the chosen projection area
   // take the input projection edge as the edge of this piece of the projection
-  R.nx_min = (int) fmax(R.nx_min, 0);
-  R.nx_max = (int) fmin(R.nx_max, R.nx);
-  R.nz_min = (int) fmax(R.nz_min, 0);
-  R.nz_max = (int) fmin(R.nz_max, R.nz);
+  R.nx_min = std::max(R.nx_min, 0);
+  R.nx_max = std::min(R.nx_max, R.nx);
+  R.nz_min = std::max(R.nz_min, 0);
+  R.nz_max = std::min(R.nz_max, R.nz);
   #endif
 
   // Single attributes first
@@ -1302,7 +1303,6 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     nz_max = R.nz_max;
     nx_dset = nx_max-nx_min;
     nz_dset = nz_max-nz_min;
-    printf("%d %d %d %d %d %d\n", nx_dset, nz_dset, nx_min, nx_max, nz_min, nz_max);
 
     hsize_t   dims[2];
 
