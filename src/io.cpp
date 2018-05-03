@@ -13,6 +13,9 @@
 #endif
 #include"error_handling.h"
 
+
+void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
+
 /* Write the initial conditions */
 void WriteData(Grid3D G, struct parameters P, int nfile)
 {
@@ -129,6 +132,7 @@ void OutputProjectedData(Grid3D G, struct parameters P, int nfile)
   #else
   if (status < 0) {printf("OutputProjectedData: File write failed.\n"); exit(-1); }
   #endif
+
   #else
   printf("OutputProjected Data only defined for hdf5 writes.\n");
   #endif //HDF5
@@ -433,6 +437,43 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   Real      Real_data[3];
   Real      delta, theta, phi;
 
+  #ifdef MPI_CHOLLA
+  // determine the size of the projection to output for this subvolume
+  Real x, y, z, xp, yp, zp;
+  Real alpha, beta;
+  int ix, iz;
+  R.nx_min = R.nx;
+  R.nx_max = 0;
+  R.nz_min = R.nz;
+  R.nz_max = 0;
+  for (int i=0; i<2; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+        // find the corners of this domain in the rotated position
+        Get_Position(H.n_ghost+i*(H.nx-2*H.n_ghost), H.n_ghost+j*(H.ny-2*H.n_ghost), H.n_ghost+k*(H.nz-2*H.n_ghost), &x, &y, &z);
+        // rotate cell position
+        rotate_point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
+        //find projected location
+        //assumes box centered at [0,0,0]
+        alpha = (R.nx*(xp+0.5*R.Lx)/R.Lx);
+        beta  = (R.nz*(zp+0.5*R.Lz)/R.Lz);
+        ix = (int) round(alpha);
+        iz = (int) round(beta);
+        R.nx_min = (int) fmin(ix, R.nx_min);
+        R.nx_max = (int) fmax(ix, R.nx_max);
+        R.nz_min = (int) fmin(iz, R.nz_min);
+        R.nz_max = (int) fmax(iz, R.nz_max);
+      }
+    }
+  }
+  // if the corners aren't within the chosen projection area
+  // take the input projection edge as the edge of this piece of the projection
+  R.nx_min = (int) fmax(R.nx_min, 0);
+  R.nx_max = (int) fmin(R.nx_max, R.nx);
+  R.nz_min = (int) fmax(R.nz_min, 0);
+  R.nz_max = (int) fmin(R.nz_max, R.nz);
+  #endif
+
   // Single attributes first
   attr_dims = 1;
   // Create the data space for the attribute
@@ -456,12 +497,23 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   status = H5Aclose(attribute_id);  
 
   //Rotation data
-  chprintf("Outputing rotation data with delta = %e, theta = %e, phi = %e, Lx = %f, Lz = %f\n",R.delta,R.theta,R.phi,R.Lx,R.Lz);
   attribute_id = H5Acreate(file_id, "nxr", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nx);
   status = H5Aclose(attribute_id);
   attribute_id = H5Acreate(file_id, "nzr", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nz);
+  status = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "nx_min", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nx_min);
+  status = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "nz_min", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nz_min);
+  status = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "nx_max", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nx_max);
+  status = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "nz_max", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nz_max);
   status = H5Aclose(attribute_id);
   delta = 180.*R.delta/M_PI;
   attribute_id = H5Acreate(file_id, "delta", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
@@ -481,7 +533,6 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   attribute_id = H5Acreate(file_id, "Lz", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &R.Lz);
   status = H5Aclose(attribute_id);
-
   // Close the dataspace
   status = H5Sclose(dataspace_id);
 
@@ -546,10 +597,11 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   attribute_id = H5Acreate(file_id, "dx", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
   status = H5Aclose(attribute_id);
-  
+
   // Close the dataspace
   status = H5Sclose(dataspace_id);
 
+  chprintf("Outputting rotation data with delta = %e, theta = %e, phi = %e, Lx = %f, Lz = %f\n",R.delta,R.theta,R.phi,R.Lx,R.Lz);
 
 }
 #endif
@@ -1225,43 +1277,9 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
   Real xp, yp, zp;  //rotated positions
   Real alpha, beta; //projected positions
   int  ix, iz;      //projected index positions
-  Real cd,sd,cp,sp,ct,st; //sines and cosines
-  Real a00, a01, a02;     //rotation matrix elements
-  Real a10, a11, a12;
-  Real a20, a21, a22;
 
   n = T = 0;
   Real mu = 0.6;
-
-  //compute trig functions of rotation angles
-  cd = cos(R.delta);
-  sd = sin(R.delta);
-  cp = cos(R.phi);
-  sp = sin(R.phi);
-  ct = cos(R.theta);
-  st = sin(R.theta);
-
-  //compute the rotation matrix elements
-  /*a00 =       cosp*cosd - sinp*cost*sind;
-  a01 = -1.0*(cosp*sind + sinp*cost*cosd);
-  a02 =       sinp*sint;
-  
-  a10 =       sinp*cosd + cosp*cost*sind;
-  a11 =      (cosp*cost*cosd - sint*sind);
-  a12 = -1.0* cosp*sint;
-
-  a20 =       sint*sind;
-  a21 =       sint*cosd;
-  a22 =       cost;*/
-  a00 = (cp*cd - sp*ct*sd);
-  a01 = -1.0*(cp*sd+sp*ct*cd);
-  a02 = sp*st;
-  a10 = (sp*cd + cp*ct*sd);
-  a11 = (cp*ct*cd -st*sd);
-  a12 = cp*st;
-  a20 = st*sd;
-  a21 = st*cd;
-  a22 = ct;
 
   srand(137);     //initialize a random number
   Real eps = 0.1; //randomize cell centers slightly to combat aliasing
@@ -1274,67 +1292,17 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     int nx_dset = R.nx;
     int nz_dset = R.nz;
 
-    // determine the size of the projection to output for this subvolume
-    #ifdef MPI_CHOLLA
-    int nx_min, nz_min, nx_max, nz_max;
-    nx_min = R.nx;
-    nx_max = 0;
-    nz_min = R.nz;
-    nz_max = 0;
-    for (i=0; i<2; i++) {
-      for (j=0; j<2; j++) {
-        for (k=0; k<2; k++) {
-          // find the corners of this domain in the rotated position
-          Get_Position(H.n_ghost+i*(H.nx-2*H.n_ghost), H.n_ghost+j*(H.ny-2*H.n_ghost), H.n_ghost+k*(H.nz-2*H.n_ghost), &x, &y, &z);
-          // rotate cell position
-          xp = a00*x + a01*y + a02*z;
-          yp = a10*x + a11*y + a12*z;
-          zp = a20*x + a21*y + a22*z;
-          //find projected location
-          //assumes box centered at [0,0,0]
-          alpha = (R.nx*(xp+0.5*R.Lx)/R.Lx);
-          beta  = (R.nz*(zp+0.5*R.Lz)/R.Lz);
-          ix = (int) round(alpha);
-          iz = (int) round(beta);
-          nx_min = (int) fmin(ix, nx_min);
-          nx_max = (int) fmax(ix, nx_max);
-          nz_min = (int) fmin(iz, nz_min);
-          nz_max = (int) fmax(iz, nz_max);
-        }
-      }
-    }
-    // if the corners aren't within the chosen projection area
-    // take the input projection edge as the edge of this piece of the projection
-    nx_min = (int) fmax(nx_min, 0);
-    nx_max = (int) fmin(nx_max, R.nx);
-    nz_min = (int) fmax(nz_min, 0);
-    nz_max = (int) fmin(nz_max, R.nz);
-
     // set the projected dataset size for this process to capture
     // this piece of the simulation volume
+    // min and max values were set in the header write
+    int nx_min, nx_max, nz_min, nz_max;
+    nx_min = R.nx_min;
+    nx_max = R.nx_max;
+    nz_min = R.nz_min;
+    nz_max = R.nz_max;
     nx_dset = nx_max-nx_min;
     nz_dset = nz_max-nz_min;
-
-    // add this info to the header
-    hsize_t attr_dims = 1;
-    hid_t     attribute_id, dataspace_id;
-
-    dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
-    attribute_id = H5Acreate(file_id, "nx_min", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
-    status = H5Awrite(attribute_id, H5T_NATIVE_INT, &nx_min);
-    status = H5Aclose(attribute_id);
-    attribute_id = H5Acreate(file_id, "nz_min", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
-    status = H5Awrite(attribute_id, H5T_NATIVE_INT, &nz_min);
-    status = H5Aclose(attribute_id);
-    attribute_id = H5Acreate(file_id, "nx_max", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
-    status = H5Awrite(attribute_id, H5T_NATIVE_INT, &nx_max);
-    status = H5Aclose(attribute_id);
-    attribute_id = H5Acreate(file_id, "nz_max", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
-    status = H5Awrite(attribute_id, H5T_NATIVE_INT, &nz_max);
-    status = H5Aclose(attribute_id);
-    status = H5Sclose(dataspace_id);
-
-    #endif //MPI_CHOLLA
+    printf("%d %d %d %d %d %d\n", nx_dset, nz_dset, nx_min, nx_max, nz_min, nz_max);
 
     hsize_t   dims[2];
 
@@ -1368,10 +1336,7 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
           z += eps*H.dz * (drand48() - 0.5);
 
           //rotate cell positions
-          xp = a00*x + a01*y + a02*z;
-          yp = a10*x + a11*y + a12*z;
-          zp = a20*x + a21*y + a22*z;
-
+          rotate_point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
 
           //find projected locations
           //assumes box centered at [0,0,0]
@@ -2481,3 +2446,47 @@ int chprintf(const char * __restrict sdata, ...)
 
   return code;
 }
+
+
+void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp) {
+
+  Real cd,sd,cp,sp,ct,st; //sines and cosines
+  Real a00, a01, a02;     //rotation matrix elements
+  Real a10, a11, a12;
+  Real a20, a21, a22;
+
+  //compute trig functions of rotation angles
+  cd = cos(delta);
+  sd = sin(delta);
+  cp = cos(phi);
+  sp = sin(phi);
+  ct = cos(theta);
+  st = sin(theta);
+
+  //compute the rotation matrix elements
+  /*a00 =       cosp*cosd - sinp*cost*sind;
+  a01 = -1.0*(cosp*sind + sinp*cost*cosd);
+  a02 =       sinp*sint;
+  
+  a10 =       sinp*cosd + cosp*cost*sind;
+  a11 =      (cosp*cost*cosd - sint*sind);
+  a12 = -1.0* cosp*sint;
+
+  a20 =       sint*sind;
+  a21 =       sint*cosd;
+  a22 =       cost;*/
+  a00 = (cp*cd - sp*ct*sd);
+  a01 = -1.0*(cp*sd+sp*ct*cd);
+  a02 = sp*st;
+  a10 = (sp*cd + cp*ct*sd);
+  a11 = (cp*ct*cd -st*sd);
+  a12 = cp*st;
+  a20 = st*sd;
+  a21 = st*cd;
+  a22 = ct;
+
+  *xp = a00*x + a01*y + a02*z;
+  *yp = a10*x + a11*y + a12*z;
+  *zp = a20*x + a21*y + a22*z;
+
+} 

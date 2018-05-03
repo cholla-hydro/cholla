@@ -25,6 +25,22 @@ struct Rotation
   *   \brief Number of pixels in z-dir of rotated, projected image*/
   int nz;
 
+  /*! \var nx_min
+  *   \brief Left most point in the projected image for this subvolume*/
+  int nx_min;
+
+  /*! \var nx_max
+  *   \brief Right most point in the projected image for this subvolume*/
+  int nx_max;
+
+  /*! \var nz_min
+  *   \brief Bottom most point in the projected image for this subvolume*/
+  int nz_min;
+
+  /*! \var nz_max
+  *   \brief Top most point in the projected image for this subvolume*/
+  int nz_max;
+
   /*! \var delta
   *   \brief Rotation angle about z axis in simulation frame*/
   Real delta;

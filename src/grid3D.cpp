@@ -173,6 +173,14 @@ void Grid3D::Initialize(struct parameters *P)
   R.nx = P->nxr;
   //z-dir pixels in projection
   R.nz = P->nzr;
+  //minimum x location to project
+  R.nx_min = 0;
+  //minimum z location to project
+  R.nz_min = 0;
+  //maximum x location to project
+  R.nx_max = R.nx;
+  //maximum z location to project
+  R.nz_max = R.nz;
   //rotation angle about z direction
   R.delta = M_PI*(P->delta/180.); //convert to radians
   //rotation angle about x direction
