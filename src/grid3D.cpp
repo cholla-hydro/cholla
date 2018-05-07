@@ -30,9 +30,8 @@
 #endif
 #include <stdio.h>
 #include "flux_correction.h"
-#ifdef COOLING_GPU
+#ifdef CLOUDY_COOL
 #include "cooling_wrapper.h"
-//#define CLOUDY
 #endif
 
 

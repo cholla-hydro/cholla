@@ -2,7 +2,7 @@
  *  \brief Wrapper file for to load CUDA cooling tables. */
 
 #ifdef CUDA
-#ifdef COOLING_GPU
+#ifdef CLOUDY_COOL
 
 #ifndef COOLING_WRAPPER_H
 #define COOLING_WRAPPER_H
