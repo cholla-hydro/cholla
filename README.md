@@ -1,6 +1,6 @@
 CHOLLA
 ============
-A 3D GPU-based hydrodynamics code
+A 3D GPU-based hydrodynamics code (Schneider & Robertson, ApJS, 2015)
 
 Getting started
 ----------------
@@ -20,8 +20,9 @@ the appropriate line within the makefile, e.g. single vs
 double precision, output format, the reconstruction method, Riemann solver, integrator, 
 and cooling. The entire code must be recompiled any time you change the configuration.
 
-A few options must be specified on the 'FLAGS' line in the makefile, namely the h correction (-DH_CORRECTION)
-and dual energy (-DDE). It is strongly recommended that you include the dual energy
+A few options must be specified on the 'FLAGS' line in the makefile. These include
+the h correction (-DH_CORRECTION), dual energy (-DDE), the static gravity module (-DSTATIC_GRAV), 
+and the passive scalar flag (-DSCALAR). It is strongly recommended that you include the dual energy
 flag when cooling is turned on.
 
 
@@ -47,14 +48,10 @@ so MPI mode is most useful on a cluster (or for testing parallel behavior with a
 Other Notes
 --------------
 
-In addition to selecting the CTU or VL integrators, the user
-can also comment out both, in which case the integration scheme will revert to a simple scheme in which 
-the interface states and fluxes are calculated for each direction only once, and there are no transverse flux
-corrections. In tests, this method often proves the most robust, though it requires a very low CFL number to be
-stable ($\leq 0.1$).
+In practice, we have found the Van Leer integrator to be the most stable. *Cholla* is set to run with a default CFL coefficient of 0.3, but this can be changed within the grid initialization function.
 
 *Cholla* can be run without GPUs by commenting out CUDA in the makefile, but this configuration is not recommended. Because *Cholla*
-was designed with GPUs in mind, the CPU performance is, at best, lackluster. In addition, some 
+was designed with GPUs in mind, the CPU performance is, lackluster at best. In addition, some 
 of the configuration options are not available in the non-CUDA mode (and warnings are not always included).
 
 When running tests in fewer than 3 dimensions, *Cholla* assumes that the x-direction will be used first, then
