@@ -49,6 +49,7 @@ typedef double Real;
 
 /* Global variables */
 extern Real gama; // Ratio of specific heats
+extern Real C_cfl; // CFL number (0 - 0.5)
 extern Real t_comm;
 extern Real t_other;
 

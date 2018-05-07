@@ -37,8 +37,6 @@ int main(int argc, char *argv[])
   InitializeChollaMPI(&argc, &argv);
   #endif /*MPI_CHOLLA*/
 
-  // declare Cfl coefficient and initial inverse timestep
-  Real C_cfl = 0.3; // CFL coefficient 0 < C_cfl < 0.5 
   Real dti = 0; // inverse time step, 1.0 / dt
 
   // input parameter variables
@@ -75,7 +73,7 @@ int main(int argc, char *argv[])
 
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
-  G.Set_Initial_Conditions(P, C_cfl);
+  G.Set_Initial_Conditions(P);
   // set main variables for Read_Grid inital conditions
   if (strcmp(P.init, "Read_Grid") == 0) {
     dti = C_cfl / G.H.dt;
@@ -128,7 +126,7 @@ int main(int argc, char *argv[])
     start_step = get_time();
     
     // calculate the timestep
-    G.set_dt(C_cfl, dti);
+    G.set_dt(dti);
 
     if (G.H.t + G.H.dt > outtime) 
     {

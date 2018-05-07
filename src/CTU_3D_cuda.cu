@@ -14,7 +14,7 @@
 #include"pcm_cuda.h"
 #include"plmp_cuda.h"
 #include"plmc_cuda.h"
-#include"ppmp_ctu_cuda.h"
+#include"ppmp_cuda.h"
 #include"ppmc_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
@@ -24,7 +24,6 @@
 #include"subgrid_routines_3D.h"
 #include"io.h"
 
-//#define TEST
 
 __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, Real *dev_Q_Rx, Real *dev_F_x,
                                            Real *dev_Q_Ly, Real *dev_Q_Ry, Real *dev_F_y,
@@ -89,8 +88,33 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     tmp2 = host_conserved1;
   }
 
-/*
-  #ifdef COOLING_GPU
+  // allocate an array on the CPU to hold max_dti returned from each thread block
+  Real max_dti = 0;
+  Real *host_dti_array;
+  host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
+  #if defined COOLING_GPU || defined CLOUDY_COOL
+  Real min_dt = 1e10;
+  Real *host_dt_array;
+  host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
+  #endif
+
+  // allocate GPU arrays
+  // conserved variables
+  Real *dev_conserved;
+  // input states and associated interface fluxes (Q* and F* from Stone, 2008)
+  Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
+  // arrays to hold the eta values for the H correction
+  Real *eta_x, *eta_y, *eta_z, *etah_x, *etah_y, *etah_z;
+  // array of inverse timesteps for dt calculation
+  Real *dev_dti_array;
+  #if defined COOLING_GPU || defined CLOUDY_COOL
+  // array of timesteps for dt calculation (cooling restriction)
+  Real *dev_dt_array;
+  #endif
+
+
+  #ifdef CLOUDY_COOL 
+  // some of this could maybe be moved to Load_Cuda_Textures() in the cooling wrapper
   // allocate CUDA arrays for cooling/heating tables
   cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
   cudaArray* cuCoolArray;
@@ -127,38 +151,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   cudaTextureObject_t heatTexObj = 0;
   cudaCreateTextureObject(&heatTexObj, &heatResDesc, &texDesc, NULL);
   #endif
-*/
-
-
-  // allocate an array on the CPU to hold max_dti returned from each thread block
-  Real max_dti = 0;
-  Real *host_dti_array;
-  host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
-  #ifdef COOLING_GPU
-  Real min_dt = 1e10;
-  Real *host_dt_array;
-  host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
-  #endif
-
-  // allocate GPU arrays
-  // conserved variables
-  Real *dev_conserved;
-  // input states and associated interface fluxes (Q* and F* from Stone, 2008)
-  Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
-  // arrays to hold the eta values for the H correction
-  Real *eta_x, *eta_y, *eta_z, *etah_x, *etah_y, *etah_z;
-  // array of inverse timesteps for dt calculation
-  Real *dev_dti_array;
-  #ifdef COOLING_GPU
-  // array of timesteps for dt calculation (cooling restriction)
-  Real *dev_dt_array;
-  #endif
-
-#ifdef TEST
-  Real *test1, *test2;
-  test1 = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real));
-  test2 = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real));
-#endif
+  
 
   // allocate memory on the GPU
   CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -178,7 +171,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   CudaSafeCall( cudaMalloc((void**)&etah_y, BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah_z, BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-  #ifdef COOLING_GPU
+  #if defined COOLING_GPU || defined CLOUDY_COOL
   CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
   #endif
 
@@ -189,28 +182,6 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     host_copy_block_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved0, buffer, n_fields);
 
     get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
-
-/*
-  // zero the GPU arrays
-  cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));
-  cudaMemset(Q_Lx,  0, n_fields*BLOCK_VOL*sizeof(Real));
-  cudaMemset(Q_Rx,  0, n_fields*BLOCK_VOL*sizeof(Real));
-  cudaMemset(Q_Ly,  0, n_fields*BLOCK_VOL*sizeof(Real));
-  cudaMemset(Q_Ry,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Lz,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Rz,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_x,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_y,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_z,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_x,  0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_y,  0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_z,  0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_x, 0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_y, 0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_z, 0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(dev_dti_array, 0, ngrid*sizeof(Real));  
-    CudaCheckError();
-  */
 
     // copy the conserved variables onto the GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
@@ -231,9 +202,9 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     #endif //PLMC 
     #ifdef PPMP
-    PPMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
-    PPMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
-    PPMP_CTU<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2);
+    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
+    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
+    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     #endif //PPMP
     #ifdef PPMC
     PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
@@ -322,22 +293,6 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, F_z, nx_s, ny_s, nz_s, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama, n_fields);
     CudaCheckError();
 
-/*
-  #ifdef TEST 
-  CudaSafeCall( cudaMemcpy(test1, F_x, 6*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-  CudaSafeCall( cudaMemcpy(test2, F_z, 6*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-  int var = 0*BLOCK_VOL;
-  for (int k=n_ghost; k<nz-n_ghost; k++) {
-    for (int j=n_ghost; j<ny-n_ghost; j++) {
-      for (int i=n_ghost; i<nx-n_ghost; i++) {
-        if (test1[i + j*nx + k*nx*ny + var] - test2[k + j*nx + i*nx*ny + var] > 1e-15) {
-          printf("%3d %3d %3d %e %e\n", i, j, k, test1[i + j*nx + k*nx*ny + var], test2[k + j*nx + i*nx*ny + var]);
-        }
-      }
-    }
-  }
-  #endif 
-*/
 
     // Synchronize the total and internal energies
     #ifdef DE
@@ -348,8 +303,11 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // Apply cooling
     #ifdef COOLING_GPU
-    //cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx, ny, nz, n_ghost, dt, gama, coolTexObj, heatTexObj);
     cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
+    CudaCheckError();
+    #endif
+    #ifdef CLOUDY_COOL
+    cloudy_cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array, coolTexObj, heatTexObj, dev_dt_array);
     CudaCheckError();
     #endif
 
@@ -373,18 +331,15 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     for (int i=0; i<ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
-    #ifdef COOLING_GPU
+    #if defined COOLING_GPU || defined CLOUDY_COOL
     // copy the dt array from cooling onto the CPU
     CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-    // iterate through to find the minimum dt for this subgrid block
+    // find maximum inverse timestep from cooling time
     for (int i=0; i<ngrid; i++) {
       min_dt = fmin(min_dt, host_dt_array[i]);
     }  
-    //printf("%f %f %f\n", min_dt, 0.3/max_dti, dt); 
-    if (min_dt < 0.3/max_dti) {
-      min_dt = fmax(min_dt, 1.0);
-      max_dti = 0.3/min_dt;
-      //printf("%f %f %f\n", min_dt, 1.0/max_dti, dt); 
+    if (min_dt < C_cfl/max_dti) {
+      max_dti = C_cfl/min_dt;
     }
     #endif
 
@@ -397,7 +352,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   // free CPU memory
   free(host_dti_array);
   if (block_tot > 1) free(buffer);
-  #ifdef COOLING_GPU
+  #if defined COOLING_GPU || defined CLOUDY_COOL
   free(host_dt_array);  
   #endif
 
@@ -419,20 +374,16 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   cudaFree(etah_y);
   cudaFree(etah_z);
   cudaFree(dev_dti_array);
-  #ifdef COOLING_GPU
+  #if defined COOLING_GPU || defined CLOUDY_COOL
   cudaFree(dev_dt_array);
+  #ifdef CLOUDY_COOL
   // Destroy texture object
-  //cudaDestroyTextureObject(coolTexObj);
-  //cudaDestroyTextureObject(heatTexObj);
+  cudaDestroyTextureObject(coolTexObj);
+  cudaDestroyTextureObject(heatTexObj);
   // Free device memory
-  //cudaFreeArray(cuCoolArray);
-  //cudaFreeArray(cuHeatArray);  
+  cudaFreeArray(cuCoolArray);
+  cudaFreeArray(cuHeatArray);  
   #endif
-
-#ifdef TEST
-  free(test1);
-  free(test2);
-#endif
 
   // return the maximum inverse timestep
   return max_dti;

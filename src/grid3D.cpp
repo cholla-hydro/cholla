@@ -108,6 +108,9 @@ void Grid3D::Initialize(struct parameters *P)
   int ny_in = P->ny;
   int nz_in = P->nz;
 
+  // Set the CFL coefficient (a global variable)
+  C_cfl = 0.3;
+
 #ifndef MPI_CHOLLA
 
   // set grid dimensions
@@ -245,9 +248,9 @@ void Grid3D::AllocateMemory(void)
 }
 
 
-/*! \fn void set_dt(Real C_cfl, Real dti)
+/*! \fn void set_dt(Real dti)
  *  \brief Set the timestep. */
- void Grid3D::set_dt(Real C_cfl, Real dti)
+ void Grid3D::set_dt(Real dti)
 {
   Real max_dti;
 

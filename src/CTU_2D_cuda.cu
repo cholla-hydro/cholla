@@ -13,7 +13,7 @@
 #include"pcm_cuda.h"
 #include"plmp_cuda.h"
 #include"plmc_cuda.h"
-#include"ppmp_ctu_cuda.h"
+#include"ppmp_cuda.h"
 #include"ppmc_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
@@ -149,23 +149,6 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     // (only needed for gravitational potential)
     get_offsets_2D(nx_s, ny_s, n_ghost, x_off, y_off, block, block1_tot, block2_tot, remainder1, remainder2, &x_off_s, &y_off_s);    
 
-/*
-    // zero all the GPU arrays
-    cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Lx,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Rx,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Ly,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Ry,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_x,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_y,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_x,  0,  BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_y,  0,  BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_x, 0,  BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_y, 0,  BLOCK_VOL*sizeof(Real));
-    cudaMemset(dev_dti_array, 0, 2*ngrid*sizeof(Real));
-    CudaCheckError();
-*/
-
     // copy the conserved variables onto the GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
 
@@ -183,8 +166,8 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     PLMC_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
     #endif
     #ifdef PPMP
-    PPMP_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0);
-    PPMP_CTU<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1);
+    PPMP_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
+    PPMP_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
     #endif
     #ifdef PPMC
     PPMC_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
@@ -270,9 +253,8 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // Apply cooling
     #ifdef COOLING_GPU
-    printf("Need to fix cooling.\n");
-    //cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama);
-    //CudaCheckError();    
+    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
+    CudaCheckError();    
     #endif
 
     // Step 6: Calculate the next timestep

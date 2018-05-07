@@ -13,7 +13,7 @@
 
 /* Global variables */
 Real gama; // Ratio of specific heats
-
+Real C_cfl; // CFL number
 
 
 /*! \fn void Set_Gammas(Real gamma_in)
