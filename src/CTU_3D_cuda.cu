@@ -376,6 +376,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   cudaFree(dev_dti_array);
   #if defined COOLING_GPU || defined CLOUDY_COOL
   cudaFree(dev_dt_array);
+  #endif
   #ifdef CLOUDY_COOL
   // Destroy texture object
   cudaDestroyTextureObject(coolTexObj);
