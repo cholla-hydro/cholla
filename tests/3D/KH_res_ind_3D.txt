@@ -1,5 +1,5 @@
 #
-# Parameter File for the 2D resolution independent Kelvin-Helmholtz test.
+# Parameter File for the 3D resolution independent Kelvin-Helmholtz test.
 #
 
 ######################################
@@ -32,4 +32,4 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=/gsfs1/rsgrps/brant/evan/data/KH_res_ind/cylinder/128/hdf5/raw/
+outdir=./
