@@ -33,7 +33,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   Real ge;
   #endif
   Real T_min = 1.0e4; // minimum temperature allowed
-  Real T_max= 1.0e9; // maximum temperature allowed
 
   mu = 0.6;
   //mu = 1.27;
@@ -174,6 +173,7 @@ __global__ void cloudy_cooling_kernel(Real *dev_conserved, int nx, int ny, int n
   #ifdef DE
   Real ge;
   #endif
+  Real T_min = 10;
 
   mu = 0.6;
 

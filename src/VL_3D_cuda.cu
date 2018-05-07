@@ -313,7 +313,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaCheckError();
     #endif
     #ifdef CLOUDY_COOL
-    cloudy_cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array, coolTexObj, heatTexObj, dev_dt_array);
+    cloudy_cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array, coolTexObj, heatTexObj);
     CudaCheckError();
     #endif
   

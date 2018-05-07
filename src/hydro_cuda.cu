@@ -314,7 +314,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, Real gamma, int n_fields)
 {
   int id;
-  Real d, d_inv, vx, vy, vz, P, E;
+  Real d, d_inv, vx, vy, vz, E;
   Real ge1, ge2, Emax;
   int im1, ip1;
 
@@ -334,7 +334,6 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     E  =  dev_conserved[4*n_cells + id];
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     // separately tracked internal energy 
     ge1 = dev_conserved[(n_fields-1)*n_cells + id];
     // internal energy calculated from total energy
@@ -370,7 +369,7 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
     }
     //else printf("%d Using ge1 %f %f %f %f\n", id, ge1, ge2, vmax, 0.25*d*vmax*vmax);
     */
-    // recalculate the pressure 
+    // calculate the pressure 
     //P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
     //if (P < 0.0) printf("%d Negative pressure after internal energy sync. %f %f \n", id, ge1, ge2);    
   }
@@ -381,7 +380,7 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, 
 __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Real gamma, int n_fields)
 {
   int id, xid, yid, n_cells;
-  Real d, d_inv, vx, vy, vz, P, E;
+  Real d, d_inv, vx, vy, vz, E;
   Real ge1, ge2, Emax;
   int imo, ipo, jmo, jpo;
   n_cells = nx*ny;
@@ -411,7 +410,6 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     E  =  dev_conserved[4*n_cells + id];
-    P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     // separately tracked internal energy 
     ge1 =  dev_conserved[(n_fields-1)*n_cells + id];
     // internal energy calculated from total energy
@@ -437,8 +435,8 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
     else {
       dev_conserved[4*n_cells + id] += ge1 - ge2;
     }
-    // recalculate the pressure 
-    //P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
+    // calculate the pressure 
+    //Real P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);    
     //if (P < 0.0) printf("%d Negative pressure after internal energy sync. %f %f \n", id, ge1, ge2);    
   }
 }
@@ -513,7 +511,7 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
       if (ge1 > 0.0) dev_conserved[4*n_cells + id] += ge1 - ge2;
       else dev_conserved[(n_fields-1)*n_cells+id] = ge2;
     }
-    // recalculate the pressure 
+    // calculate the pressure 
     //Real P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     //if (P < 0.0) printf("%3d %3d %3d Negative pressure after internal energy sync. %f %f %f\n", xid, yid, zid, P/(gamma-1.0), ge1, ge2);    
   }
