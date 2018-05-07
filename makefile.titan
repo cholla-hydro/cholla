@@ -12,23 +12,22 @@ OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
-CUDA = -DCUDA -DCUDA_ERROR_CHECK
-
+CUDA = -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-#MPI_FLAGS =  -DMPI_CHOLLA
+MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
-  CC	= mpicc
-  CXX   = mpicxx
+  CC	= cc
+  CXX   = CC
 
   #MPI_FLAGS += -DSLAB
   MPI_FLAGS += -DBLOCK
 
 else
   CC	= cc
-  CXX   = c++
+  CXX   = CC
 endif
 
 #define the NVIDIA CUDA compiler
@@ -44,27 +43,36 @@ OUTPUT = -DHDF5
 
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
-#RECONSTRUCTION = -DPLMC
+RECONSTRUCTION = -DPLMC
 #RECONSTRUCTION = -DPPMP
-RECONSTRUCTION = -DPPMC
+#RECONSTRUCTION = -DPPMC
 
-SOLVER = -DEXACT
+#SOLVER = -DEXACT
 #SOLVER = -DROE
+SOLVER = -DHLLC
 
-INTEGRATOR = -DCTU 
-#INTEGRATOR = -DVL
+#INTEGRATOR = -DCTU
+INTEGRATOR = -DVL
 
-#COOLING = -DCOOLING_GPU
-
-INCL   = -I./ -I/usr/local/cuda/include -I/usr/local/include
-NVLIBS = -L/usr/local/cuda/lib -lcuda -lcudart
-LIBS   = -L/usr/local/lib -lm -lgsl -lhdf5
+COOLING = -DCOOLING_GPU
 
 
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) #-DH_CORRECTION 
+ifdef CUDA
+CUDA_INCLUDE = -I$(HDF5_DIR)/include
+CUDA_LIBS = -lcuda -lcudart
+endif
+
+INCL   = -I./ $(HDF5_INCLUDE)
+NVINCL = $(INCL) $(CUDA_INCLUDE)
+NVLIBS = $(CUDA_LIBS)
+LIBS   = -lm
+
+
+
+FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DSTATIC_GRAV -DDE -DPROJECTION -DROTATED_PROJECTION
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -gencode arch=compute_20,code=sm_20 
+NVCCFLAGS = $(FLAGS) -fmad=false
 
 
 %.o:	%.c
@@ -74,10 +82,11 @@ NVCCFLAGS = $(FLAGS) -fmad=false -gencode arch=compute_20,code=sm_20
 		$(CXX) $(CXXFLAGS)  $(INCL)  -c $< -o $@ 
 
 %.o:	%.cu
-		$(NVCC) $(NVCCFLAGS)  $(INCL)  -c $< -o $@ 
+		$(NVCC) $(NVCCFLAGS)  $(NVINCL)  -c $< -o $@ 
+
 
 $(EXEC): $(OBJS) 
-	 	 $(CXX) $(OBJS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL) 
+	 	 $(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL)   
 
 #$(OBJS): $(INCL) 
 

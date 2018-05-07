@@ -80,7 +80,7 @@ int Grid3D::Check_Custom_Boundary(int *flags, struct parameters P)
     if (!( (flags[i]>=0)&&(flags[i]<=5) ) )
     {
       chprintf("Invalid boundary conditions. Must select between 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi).\n");
-      chexit(0);
+      chexit(-1);
     }
     if (flags[i] == 4) {
       /*custom boundaries*/
@@ -128,6 +128,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
 
         //find the corresponding real cell index and momenta signs
         idx  = Set_Boundary_Mapping(i,j,k,flags,&a[0]);
+
         
         //idx will be >= 0 if the boundary mapping function has
         //not set this ghost cell by hand, for instance for analytical 
@@ -146,6 +147,39 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
           #ifdef DE
           C.GasEnergy[gidx]  = C.GasEnergy[idx];
           #endif
+          #ifdef SCALAR 
+          for (int ii=0; ii<NSCALARS; ii++) {
+            C.scalar[gidx + ii*H.n_cells]  = C.scalar[idx + ii*H.n_cells];
+          }
+          #endif
+
+          //for outflow boundaries, set momentum to restrict inflow
+          if (flags[dir] == 3) {
+            // first subtract kinetic energy from total
+            C.Energy[gidx] -= 0.5*(C.momentum_x[gidx]*C.momentum_x[gidx] + C.momentum_y[gidx]*C.momentum_y[gidx] + C.momentum_z[gidx]*C.momentum_z[gidx])/C.density[gidx];
+            if (dir == 0) {
+              C.momentum_x[gidx] = fmin(C.momentum_x[gidx], 0.0);
+            }
+            if (dir == 1) {
+              C.momentum_x[gidx] = fmax(C.momentum_x[gidx], 0.0);
+            }
+            if (dir == 2) {
+              C.momentum_y[gidx] = fmin(C.momentum_y[gidx], 0.0);
+            }
+            if (dir == 3) {
+              C.momentum_y[gidx] = fmax(C.momentum_y[gidx], 0.0);
+            }
+            if (dir == 4) {
+              C.momentum_z[gidx] = fmin(C.momentum_z[gidx], 0.0);
+            }
+            if (dir == 5) {
+              C.momentum_z[gidx] = fmax(C.momentum_z[gidx], 0.0);
+            }
+            // now re-add the new kinetic energy
+            C.Energy[gidx] += 0.5*(C.momentum_x[gidx]*C.momentum_x[gidx] + C.momentum_y[gidx]*C.momentum_y[gidx] + C.momentum_z[gidx]*C.momentum_z[gidx])/C.density[gidx];
+          }
+
+          
         }
       }
     }

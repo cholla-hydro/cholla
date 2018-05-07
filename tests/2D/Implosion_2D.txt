@@ -13,11 +13,12 @@ nz=1
 tout=2.5
 # how often to output
 outstep=0.01
+nfull=1
 # value of gamma
 gamma=1.4
 # name of initial conditions
-#init=Implosion_2D
-init=Read_Grid
+init=Implosion_2D
+#init=Read_Grid
 nfile=200
 # domain properties
 xmin=0.0
@@ -34,4 +35,4 @@ yu_bcnd=2
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./
+outdir=/scr/depot0/es26/data/implosion_2D/400/hdf5/
