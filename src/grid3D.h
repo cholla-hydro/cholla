@@ -274,9 +274,9 @@ class Grid3D
      *  \brief Allocate memory for the d, m, E arrays. */
     void AllocateMemory(void);
 
-    /*! \fn void Set_Initial_Conditions(parameters P, Real C_cfl)
+    /*! \fn void Set_Initial_Conditions(parameters P)
      *  \brief Set the initial conditions based on info in the parameters structure. */
-    void Set_Initial_Conditions(parameters P, Real C_cfl);
+    void Set_Initial_Conditions(parameters P);
 
     /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real *zpos)
      *  \brief Get the cell-centered position based on cell index */ 
@@ -286,9 +286,9 @@ class Grid3D
      *  \brief Set local domain properties */
     void Set_Domain_Properties(struct parameters P);
 
-    /*! \fn void set_dt(Real C_cfl, Real dti)
+    /*! \fn void set_dt(Real dti)
      *  \brief Calculate the timestep. */
-    void set_dt(Real C_cfl, Real dti);
+    void set_dt(Real dti);
 
     /*! \fn Real calc_dti_CPU()
      *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */ 

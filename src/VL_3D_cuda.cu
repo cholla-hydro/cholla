@@ -15,7 +15,7 @@
 #include"pcm_cuda.h"
 #include"plmp_cuda.h"
 #include"plmc_cuda.h"
-#include"ppmp_vl_cuda.h"
+#include"ppmp_cuda.h"
 #include"ppmc_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
@@ -38,44 +38,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   //host_conserved0 contains the values at time n,
   //host_conserved1 will contain the values at time n+1
 
-  #ifdef CLOUDY_COOL
-  // some of this could maybe be moved to Load_Cuda_Textures() in the cooling wrapper
-  // allocate CUDA arrays for cooling/heating tables
-  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
-  cudaArray* cuCoolArray;
-  cudaArray* cuHeatArray;
-  cudaMallocArray(&cuCoolArray, &channelDesc, 81, 121);
-  cudaMallocArray(&cuHeatArray, &channelDesc, 81, 121);
-  // Copy to device memory the cooling and heating arrays
-  // in host memory
-  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, 81*121*sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, 81*121*sizeof(float), cudaMemcpyHostToDevice);
-
-  // Specify textures
-  struct cudaResourceDesc coolResDesc;
-  memset(&coolResDesc, 0, sizeof(coolResDesc));
-  coolResDesc.resType = cudaResourceTypeArray;
-  coolResDesc.res.array.array = cuCoolArray;
-  struct cudaResourceDesc heatResDesc;
-  memset(&heatResDesc, 0, sizeof(heatResDesc));
-  heatResDesc.resType = cudaResourceTypeArray;
-  heatResDesc.res.array.array = cuHeatArray;  
-
-  // Specify texture object parameters (same for both tables)
-  struct cudaTextureDesc texDesc;
-  memset(&texDesc, 0, sizeof(texDesc));
-  texDesc.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  texDesc.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  texDesc.filterMode = cudaFilterModeLinear;
-  texDesc.readMode = cudaReadModeElementType;
-  texDesc.normalizedCoords = 1;
-
-  // Create texture objects
-  cudaTextureObject_t coolTexObj = 0;
-  cudaCreateTextureObject(&coolTexObj, &coolResDesc, &texDesc, NULL);
-  cudaTextureObject_t heatTexObj = 0;
-  cudaCreateTextureObject(&heatTexObj, &heatResDesc, &texDesc, NULL);
-  #endif
 
   // dimensions of subgrid blocks
   int nx_s, ny_s, nz_s; 
@@ -150,6 +112,46 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Real *dev_dt_array;
   #endif  
 
+  #ifdef CLOUDY_COOL
+  // some of this could maybe be moved to Load_Cuda_Textures() in the cooling wrapper
+  // allocate CUDA arrays for cooling/heating tables
+  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+  cudaArray* cuCoolArray;
+  cudaArray* cuHeatArray;
+  cudaMallocArray(&cuCoolArray, &channelDesc, 81, 121);
+  cudaMallocArray(&cuHeatArray, &channelDesc, 81, 121);
+  // Copy to device memory the cooling and heating arrays
+  // in host memory
+  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, 81*121*sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, 81*121*sizeof(float), cudaMemcpyHostToDevice);
+
+  // Specify textures
+  struct cudaResourceDesc coolResDesc;
+  memset(&coolResDesc, 0, sizeof(coolResDesc));
+  coolResDesc.resType = cudaResourceTypeArray;
+  coolResDesc.res.array.array = cuCoolArray;
+  struct cudaResourceDesc heatResDesc;
+  memset(&heatResDesc, 0, sizeof(heatResDesc));
+  heatResDesc.resType = cudaResourceTypeArray;
+  heatResDesc.res.array.array = cuHeatArray;  
+
+  // Specify texture object parameters (same for both tables)
+  struct cudaTextureDesc texDesc;
+  memset(&texDesc, 0, sizeof(texDesc));
+  texDesc.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
+  texDesc.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
+  texDesc.filterMode = cudaFilterModeLinear;
+  texDesc.readode = cudaReadModeElementType;
+  texDesc.normalizedCoords = 1;
+
+  // Create texture objects
+  cudaTextureObject_t coolTexObj = 0;
+  cudaCreateTextureObject(&coolTexObj, &coolResDesc, &texDesc, NULL);
+  cudaTextureObject_t heatTexObj = 0;
+  cudaCreateTextureObject(&heatTexObj, &heatResDesc, &texDesc, NULL);
+  #endif
+
+
   // allocate memory on the GPU
   CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_conserved_half, n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -181,29 +183,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
    // calculate the global x, y, and z offsets of this subgrid block
     get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
-
-/*
-    // zero the GPU arrays
-    cudaMemset(dev_conserved, 0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(dev_conserved_half, 0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Lx,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Rx,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Ly,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Ry,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Lz,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(Q_Rz,  0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_x,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_y,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(F_z,   0, n_fields*BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_x,  0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_y,  0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(eta_z,  0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_x, 0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_y, 0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(etah_z, 0, BLOCK_VOL*sizeof(Real));
-    cudaMemset(dev_dti_array, 0, ngrid*sizeof(Real));  
-    CudaCheckError();
-*/
 
     // copy the conserved variables onto the GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
@@ -253,9 +232,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);  
     #endif
     #ifdef PPMP
-    PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, gama, 0);
-    PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, gama, 1);
-    PPMP_VL<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, 2);
+    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
     #endif //PPMP
     #ifdef PPMC
     PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
@@ -329,27 +308,21 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
     // copy the dti array onto the CPU
     CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-    // iterate through to find the maximum inverse dt for this subgrid block
+    // find maximum inverse timestep from CFL condition
     for (int i=0; i<ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
     #if defined COOLING_GPU || defined CLOUDY_COOL
     // copy the dt array from cooling onto the CPU
     CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-    // iterate through to find the minimum dt for this subgrid block
+    // find maximum inverse timestep from cooling time
     for (int i=0; i<ngrid; i++) {
       min_dt = fmin(min_dt, host_dt_array[i]);
     }  
-    //printf("%f %f\n", min_dt, 0.3/max_dti); 
-    if (min_dt < 0.3/max_dti) {
-      //printf("%f %f\n", min_dt, 0.3/max_dti); 
-      min_dt = fmax(min_dt, 1.0);
-      if (min_dt < 0.3/max_dti) {
-        max_dti = 0.3/min_dt;
-      }
+    if (min_dt < C_cfl/max_dti) {
+      max_dti = C_cfl/min_dt;
     }
     #endif
-    //max_dti = fmin(max_dti, 0.3);
 
     // add one to the counter
     block++;

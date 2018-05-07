@@ -15,7 +15,7 @@
 #include"pcm_cuda.h"
 #include"plmp_cuda.h"
 #include"plmc_cuda.h"
-#include"ppmp_vl_cuda.h"
+#include"ppmp_cuda.h"
 #include"ppmc_cuda.h"
 #include"exact_cuda.h"
 #include"roe_cuda.h"
@@ -50,7 +50,12 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Real max_dti = 0;
   Real *host_dti_array;
   host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
-
+  #ifdef COOLING_GPU
+  Real min_dt = 1e10;
+  Real *host_dt_array;
+  host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
+  #endif  
+  
 
   // allocate GPU arrays
   // conserved variables
@@ -61,6 +66,10 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Real *etah;
   // array of inverse timesteps for dt calculation
   Real *dev_dti_array;
+  #if defined COOLING_GPU
+  // array of timesteps for dt calculation (cooling restriction)
+  Real *dev_dt_array;
+  #endif  
 
 
   // allocate memory on the GPU
@@ -71,20 +80,12 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   CudaSafeCall( cudaMalloc((void**)&F,   n_fields*n_cells*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah, n_cells*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-
-  // zero all the GPU arrays
-  cudaMemset(dev_conserved, 0, n_fields*n_cells*sizeof(Real));
-  cudaMemset(dev_conserved_half, 0, n_fields*n_cells*sizeof(Real));
-  cudaMemset(Q_L, 0, n_fields*n_cells*sizeof(Real));
-  cudaMemset(Q_R, 0, n_fields*n_cells*sizeof(Real));
-  cudaMemset(F, 0, n_fields*n_cells*sizeof(Real));
-  cudaMemset(etah, 0, n_cells*sizeof(Real));
-  cudaMemset(dev_dti_array, 0, ngrid*sizeof(Real));
-  CudaCheckError();
+  #if defined COOLING_GPU
+  CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
+  #endif  
 
 
   // copy the conserved variable array onto the GPU
-
   CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved0, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
 
 
@@ -121,7 +122,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   PLMP_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif
   #ifdef PPMP
-  PPMP_VL<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, gama, 0);
+  PPMP_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif
   #ifdef PPMC
   PPMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
@@ -149,20 +150,20 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
   #ifdef DE
   Sync_Energies_1D<<<dimGrid,dimBlock>>>(dev_conserved, nx, n_ghost, gama, n_fields);
+  CudaCheckError();
   #endif    
 
 
   // Apply cooling
   #ifdef COOLING_GPU
-  printf("Need to fix cooling.\n");
-  //cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama);
+  cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dev_dt_array);
+  CudaCheckError();
   #endif
 
 
   // Step 7: Calculate the next timestep
   Calc_dt_1D<<<dimGrid,dimBlock>>>(dev_conserved, n_cells, n_ghost, dx, dev_dti_array, gama);
   CudaCheckError();
-
 
 
   // copy the conserved variable array back to the CPU
@@ -174,11 +175,24 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   for (int i=0; i<ngrid; i++) {
     max_dti = fmax(max_dti, host_dti_array[i]);
   }
+  #if defined COOLING_GPU
+  // copy the dt array from cooling onto the CPU
+  CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+  // find maximum inverse timestep from cooling time
+  for (int i=0; i<ngrid; i++) {
+    min_dt = fmin(min_dt, host_dt_array[i]);
+  }  
+  if (min_dt < C_cfl/max_dti) {
+    max_dti = C_cfl/min_dt;
+  }
+  #endif
 
 
   // free the CPU memory
   free(host_dti_array);
-
+  #if defined COOLING_GPU
+  free(host_dt_array);  
+  #endif  
 
   // free the GPU memory
   cudaFree(dev_conserved);
@@ -187,7 +201,10 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   cudaFree(Q_R);
   cudaFree(F);
   cudaFree(etah);
-
+  cudaFree(dev_dti_array);
+  #if defined COOLING_GPU
+  cudaFree(dev_dt_array);
+  #endif
 
   // return the maximum inverse timestep
   return max_dti;
