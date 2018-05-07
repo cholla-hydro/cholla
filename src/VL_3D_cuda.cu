@@ -92,7 +92,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Real max_dti = 0;
   Real *host_dti_array;
   host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
-  #if defined COOLING_GPU || defined CLOUDY_COOL
+  #ifdef COOLING_GPU
   Real min_dt = 1e10;
   Real *host_dt_array;
   host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
@@ -107,50 +107,10 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Real *eta_x, *eta_y, *eta_z, *etah_x, *etah_y, *etah_z;
   // array of inverse timesteps for dt calculation
   Real *dev_dti_array;
-  #if defined COOLING_GPU || defined CLOUDY_COOL
+  #ifdef COOLING_GPU
   // array of timesteps for dt calculation (cooling restriction)
   Real *dev_dt_array;
   #endif  
-
-  #ifdef CLOUDY_COOL
-  // some of this could maybe be moved to Load_Cuda_Textures() in the cooling wrapper
-  // allocate CUDA arrays for cooling/heating tables
-  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
-  cudaArray* cuCoolArray;
-  cudaArray* cuHeatArray;
-  cudaMallocArray(&cuCoolArray, &channelDesc, 81, 121);
-  cudaMallocArray(&cuHeatArray, &channelDesc, 81, 121);
-  // Copy to device memory the cooling and heating arrays
-  // in host memory
-  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, 81*121*sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, 81*121*sizeof(float), cudaMemcpyHostToDevice);
-
-  // Specify textures
-  struct cudaResourceDesc coolResDesc;
-  memset(&coolResDesc, 0, sizeof(coolResDesc));
-  coolResDesc.resType = cudaResourceTypeArray;
-  coolResDesc.res.array.array = cuCoolArray;
-  struct cudaResourceDesc heatResDesc;
-  memset(&heatResDesc, 0, sizeof(heatResDesc));
-  heatResDesc.resType = cudaResourceTypeArray;
-  heatResDesc.res.array.array = cuHeatArray;  
-
-  // Specify texture object parameters (same for both tables)
-  struct cudaTextureDesc texDesc;
-  memset(&texDesc, 0, sizeof(texDesc));
-  texDesc.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  texDesc.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  texDesc.filterMode = cudaFilterModeLinear;
-  texDesc.readode = cudaReadModeElementType;
-  texDesc.normalizedCoords = 1;
-
-  // Create texture objects
-  cudaTextureObject_t coolTexObj = 0;
-  cudaCreateTextureObject(&coolTexObj, &coolResDesc, &texDesc, NULL);
-  cudaTextureObject_t heatTexObj = 0;
-  cudaCreateTextureObject(&heatTexObj, &heatResDesc, &texDesc, NULL);
-  #endif
-
 
   // allocate memory on the GPU
   CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -171,7 +131,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   CudaSafeCall( cudaMalloc((void**)&etah_y, BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah_z, BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-  #if defined COOLING_GPU || defined CLOUDY_COOL
+  #ifdef COOLING_GPU
   CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
   #endif  
 
@@ -232,9 +192,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     PLMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);  
     #endif
     #ifdef PPMP
-    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
-    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
-    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
+    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
+    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
+    PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     #endif //PPMP
     #ifdef PPMC
     PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
@@ -291,10 +251,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);  
     CudaCheckError();
     #endif
-    #ifdef CLOUDY_COOL
-    cloudy_cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array, coolTexObj, heatTexObj);
-    CudaCheckError();
-    #endif
   
     // Step 7: Calculate the next time step
     Calc_dt_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama);
@@ -312,7 +268,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     for (int i=0; i<ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
-    #if defined COOLING_GPU || defined CLOUDY_COOL
+    #ifdef COOLING_GPU
     // copy the dt array from cooling onto the CPU
     CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // find maximum inverse timestep from cooling time
@@ -332,7 +288,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // free CPU memory
   free(host_dti_array);  
   if (block_tot > 1) free(buffer);
-  #if defined COOLING_GPU || defined CLOUDY_COOL
+  #ifdef COOLING_GPU
   free(host_dt_array);  
   #endif  
 
@@ -355,16 +311,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   cudaFree(etah_y);
   cudaFree(etah_z);
   cudaFree(dev_dti_array);
-  #if defined COOLING_GPU || defined CLOUDY_COOL
+  #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
-  #endif
-  #ifdef CLOUDY_COOL 
-  // Destroy texture object
-  cudaDestroyTextureObject(coolTexObj);
-  cudaDestroyTextureObject(heatTexObj);
-  // Free device memory
-  cudaFreeArray(cuCoolArray);
-  cudaFreeArray(cuHeatArray);  
   #endif
 
   // return the maximum inverse timestep
