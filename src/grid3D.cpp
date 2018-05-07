@@ -239,10 +239,9 @@ void Grid3D::AllocateMemory(void)
     buffer1[i] = 0.0;
   }
 
-  #ifdef COOLING_GPU
   #ifdef CLOUDY_COOL
+  printf("Warning: Cloudy cooling isn't currently working. No cooling will be applied.\n");
   Load_Cuda_Textures();
-  #endif
   #endif  
 
 }
