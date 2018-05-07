@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
   #endif /*MPI_CHOLLA*/
 
   // declare Cfl coefficient and initial inverse timestep
-  Real C_cfl = 0.4; // CFL coefficient 0 < C_cfl < 0.5 
+  Real C_cfl = 0.3; // CFL coefficient 0 < C_cfl < 0.5 
   Real dti = 0; // inverse time step, 1.0 / dt
 
   // input parameter variables
@@ -47,11 +47,12 @@ int main(int argc, char *argv[])
   int nfile = 0; // number of output files
   Real outtime = 0; // current output time
 
+
   // read in command line arguments
   if (argc != 2)
   {
     chprintf("usage: %s <parameter_file>\n", argv[0]);
-    chexit(0);
+    chexit(-1);
   } else {
     param_file = argv[1];
   }
@@ -70,39 +71,34 @@ int main(int argc, char *argv[])
   // initialize the grid
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
-  //printf("procID %d Local number of grid cells: %d %d %d %d\n", procID, G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
-
 
 
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P, C_cfl);
-
-//#ifdef MPI_CHOLLA
-  //MPI_Finalize();
-  //exit(0);
-//#endif //MPI_CHOLLA
+  // set main variables for Read_Grid inital conditions
+  if (strcmp(P.init, "Read_Grid") == 0) {
+    dti = C_cfl / G.H.dt;
+    outtime += G.H.t;
+    nfile = P.nfile*P.nfull;
+  }
 
   // set boundary conditions (assign appropriate values to ghost cells)
   chprintf("Setting boundary conditions...\n");
   G.Set_Boundary_Conditions(P);
   chprintf("Boundary conditions set.\n");  
-  // set main variables for Read_Grid inital conditions
-  if (strcmp(P.init, "Read_Grid") == 0) {
-    outtime += G.H.t;
-    nfile = P.nfile;
-    dti = G.calc_dti_CPU(C_cfl);
-    G.H.dt = 1.0 / dti;
-  }  
+
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n",gama);
   chprintf("Nstep = %d  Timestep = %f  Simulation time = %f\n", G.H.n_step, G.H.dt, G.H.t);
 
 
   #ifdef OUTPUT
+  if (strcmp(P.init, "Read_Grid") != 0) {
   // write the initial conditions to file
   chprintf("Writing initial conditions to file...\n");
   WriteData(G, P, nfile);
+  }
   // add one to the output file count
   nfile++;
   #endif //OUTPUT
@@ -122,28 +118,27 @@ int main(int argc, char *argv[])
   #endif //MPI_CHOLLA
   #endif //CPU_TIME
 
-
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
+
     // get the start time
     start_step = get_time();
-
-    // Add supernovae
-    Real sn_dti;
-    sn_dti = G.Add_Supernovae();
-    dti = fmax(dti, sn_dti);
-
+    
     // calculate the timestep
     G.set_dt(C_cfl, dti);
-    
+
     if (G.H.t + G.H.dt > outtime) 
     {
       G.H.dt = outtime - G.H.t;
     }
 
+    #ifdef MPI_CHOLLA
+    G.H.dt = ReduceRealMin(G.H.dt);
+    #endif
+   
 
     // Advance the grid by one timestep
     #ifdef CPU_TIME
@@ -159,6 +154,7 @@ int main(int argc, char *argv[])
     hydro_avg = ReduceRealAvg(hydro);
     #endif //MPI_CHOLLA
     #endif //CPU_TIME
+    //printf("%d After Grid Update: %f %f\n", procID, G.H.dt, dti);
 
     // update the time
     G.H.t += G.H.dt;
@@ -210,24 +206,24 @@ int main(int argc, char *argv[])
       // update to the next output time
       outtime += P.outstep;      
     }
-
-
-    for (int i=0; i<G.H.nx; i++) {
-      for (int j=0; j<G.H.ny; j++) {
-        for (int k=0; k<G.H.nz; k++) {
+/*
+    // check for failures
+    for (int i=G.H.n_ghost; i<G.H.nx-G.H.n_ghost; i++) {
+      for (int j=G.H.n_ghost; j<G.H.ny-G.H.n_ghost; j++) {
+        for (int k=G.H.n_ghost; k<G.H.nz-G.H.n_ghost; k++) {
           int id = i + j*G.H.nx + k*G.H.nx*G.H.ny;
           if (G.C.density[id] < 0.0 || G.C.density[id] != G.C.density[id]) {
             printf("Failure in cell %d %d %d. Density %e\n", i, j, k, G.C.density[id]);
             #ifdef MPI_CHOLLA
             MPI_Finalize();
+            chexit(-1);
             #endif
             exit(0);
           }
         }
       }
     }
-
-    
+*/   
 
   } /*end loop over timesteps*/
 

@@ -85,9 +85,9 @@ __device__ inline Real minof3(Real a, Real b, Real c)
 
 
 
-/*! \fn int sgn
+/*! \fn int sgn_CUDA
  *  \brief Mathematical sign function. Returns sign of x. */
-__device__ inline int sgn(Real x)
+__device__ inline int sgn_CUDA(Real x)
 {
   if (x < 0) return -1;
   else return 1;

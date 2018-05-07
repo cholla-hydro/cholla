@@ -12,7 +12,8 @@ nz=1
 # final output time
 tout=1.0
 # time interval for output
-outstep=1.0
+outstep=0.01
+nfull=1
 # name of initial conditions
 init=Square_Wave
 # size of domain
@@ -26,14 +27,14 @@ zlen=1.0
 xl_bcnd=1
 xu_bcnd=1
 # path to output directory
-outdir=./
+outdir=./hdf5/
 
 #################################################
 # Parameters for square wave 
 # initial density 
 rho=1.0
 # velocity in the x direction 
-vx=100.0
+vx=1.0
 # velocity in the y direction
 vy=0
 # velocity in the z direction

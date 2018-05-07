@@ -1,6 +1,5 @@
 /*! \file plmc.h
  *  \brief Declarations of the piecewise linear method, as described in Stone et al. 2008 */
-#ifndef CUDA
 #ifdef PLMC
 
 #ifndef PLMC_H 
@@ -16,4 +15,3 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma);
 
 #endif //PLMC_H
 #endif //PLMC
-#endif //CUDA

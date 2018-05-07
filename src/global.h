@@ -21,7 +21,7 @@ typedef double Real;
 #endif //FLOAT_TYPEDEF_DEFINED
 #endif //PRECISION == 2
 
-#define MAXLEN 80
+#define MAXLEN 100
 #define TINY_NUMBER 1.0e-20
 #define PI 3.141592653589793
 #define MP 1.672622e-24 // mass of proton, grams
@@ -30,13 +30,17 @@ typedef double Real;
 #define GN 4.49451e-18 // gravitational constant, kpc^3 / M_sun / kyr^2
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
-#define LENGTH_UNIT 3.08567758e21 // 1 kiloparsec in cm
+#define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
 #define MASS_UNIT 1.98855e33 // 1 solar mass in grams
 #define DENSITY_UNIT (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT)) 
 #define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
 #define ENERGY_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
+
+#ifdef SCALAR
+#define NSCALARS 1
+#endif
 
 
 #define SIGN(a) ( ((a) < 0.) ? -1. : 1. )
@@ -56,6 +60,10 @@ extern gsl_spline *highT_C_spline;
 extern gsl_spline2d *lowT_C_spline;
 extern gsl_spline2d *lowT_H_spline;
 #endif
+#ifdef COOLING_GPU
+extern float *cooling_table;
+extern float *heating_table;
+#endif
 
 /*! \fn void Set_Gammas(Real gamma_in)
  *  \brief Set gamma values for Riemann solver. */
@@ -65,15 +73,15 @@ extern void Set_Gammas(Real gamma_in);
  *  \brief Returns the current clock time. */ 
 extern double get_time(void);
 
-#ifndef CUDA
 /*! \fn int sgn
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int sgn(Real x);
 
+#ifndef CUDA
 /*! \fn Real calc_eta(Real cW[], Real gamma)
  *  \brief Calculate the eta value for the H correction. */
 extern Real calc_eta(Real cW[], Real gamma);
-#endif //NO CUDA
+#endif
 
 
 struct parameters
@@ -86,6 +94,7 @@ struct parameters
   Real gamma;
   char init[MAXLEN];
   int nfile;
+  int nfull;
   Real xmin;
   Real ymin;
   Real zmin;
@@ -121,6 +130,18 @@ struct parameters
   Real v_r;
   Real P_r;
   Real diaph;
+#ifdef ROTATED_PROJECTION
+  int nxr;
+  int nzr;
+  Real delta;
+  Real theta;
+  Real phi;
+  Real Lx;
+  Real Lz;
+  int n_delta;
+  Real ddelta_dt;
+  int flag_delta;
+#endif /*ROTATED_PROJECTION*/
 };
 
 

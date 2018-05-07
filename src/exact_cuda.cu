@@ -11,9 +11,9 @@
 #include"exact_cuda.h"
 
 
-/*! \fn Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
+/*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
  *  \brief Exact Riemann solver based on the Fortran code given in Sec. 4.9 of Toro (1999). */
-__global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir)
+__global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -36,11 +36,15 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
 
   Real dl, vxl, vyl, vzl, pl, cl; //density, velocity, pressure, sound speed (left)
   Real dr, vxr, vyr, vzr, pr, cr; //density, velocity, pressure, sound speed (right)
-  Real ds, vs, ps, Es; //sampled density, velocity, pressure, total energy
+  Real ds, vs, ps, Es; //sample_CUDAd density, velocity, pressure, total energy
   Real vm, pm; //velocity and pressure in the star region
 
   #ifdef DE
   Real gel, ger;
+  #endif
+
+  #ifdef SCALAR
+  Real scalarl[NSCALARS], scalarr[NSCALARS];
   #endif
 
 
@@ -55,8 +59,13 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
     vzl = dev_bounds_L[o3*n_cells + tid]/dl;
     pl  = (dev_bounds_L[4*n_cells + tid] - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     pl  = fmax(pl, (Real) TINY_NUMBER);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalarl[i] = dev_bounds_L[(5+i)*n_cells + tid]/dl;
+    }
+    #endif
     #ifdef DE
-    gel = dev_bounds_L[5*n_cells + tid]/dl;
+    gel = dev_bounds_L[(n_fields-1)*n_cells + tid]/dl;
     #endif
     dr  = dev_bounds_R[            tid];
     vxr = dev_bounds_R[o1*n_cells + tid]/dr;
@@ -64,8 +73,13 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
     vzr = dev_bounds_R[o3*n_cells + tid]/dr;
     pr  = (dev_bounds_R[4*n_cells + tid] - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);  
     pr  = fmax(pr, (Real) TINY_NUMBER);
+    #ifdef SCALAR
+    for (int i=0; i<NSCALARS; i++) {
+      scalarr[i] = dev_bounds_R[(5+i)*n_cells + tid]/dr;
+    }
+    #endif
     #ifdef DE
-    ger = dev_bounds_R[5*n_cells + tid]/dr;
+    ger = dev_bounds_R[(n_fields-1)*n_cells + tid]/dr;
     #endif
 
 
@@ -83,10 +97,10 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
     }
 
     // Find the exact solution for pressure and velocity in the star region
-    starpv(&pm, &vm, dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
+    starpv_CUDA(&pm, &vm, dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
  
-    //sample the solution at the cell interface
-    sample(pm, vm, &ds, &vs, &ps, dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
+    //sample_CUDA the solution at the cell interface
+    sample_CUDA(pm, vm, &ds, &vs, &ps, dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
  
     // calculate the fluxes through the cell interface
     dev_flux[tid] = ds*vs;
@@ -95,8 +109,13 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
     {
       dev_flux[o2*n_cells + tid] = ds*vs*vyl;
       dev_flux[o3*n_cells + tid] = ds*vs*vzl;
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        dev_flux[(5+i)*n_cells + tid] = ds*vs*scalarl[i];
+      }
+      #endif
       #ifdef DE
-      dev_flux[5*n_cells + tid] = ds*vs*gel;
+      dev_flux[(n_fields-1)*n_cells + tid] = ds*vs*gel;
       #endif
       Es = (ps/(gamma - 1.0)) + 0.5*ds*(vs*vs + vyl*vyl + vzl*vzl);
     }
@@ -104,19 +123,23 @@ __global__ void Calculate_Exact_Fluxes(Real *dev_bounds_L, Real *dev_bounds_R, R
     {
       dev_flux[o2*n_cells + tid] = ds*vs*vyr;
       dev_flux[o3*n_cells + tid] = ds*vs*vzr;
+      #ifdef SCALAR
+      for (int i=0; i<NSCALARS; i++) {
+        dev_flux[(5+i)*n_cells + tid] = ds*vs*scalarr[i];
+      }
+      #endif
       #ifdef DE
-      dev_flux[5*n_cells + tid] = ds*vs*ger;
+      dev_flux[(n_fields-1)*n_cells + tid] = ds*vs*ger;
       #endif
       Es = (ps/(gamma - 1.0)) + 0.5*ds*(vs*vs + vyr*vyr + vzr*vzr);
     }
     dev_flux[4*n_cells + tid] = (Es+ps)*vs;
-    dev_flux[5*n_cells + tid] = ps*vs/(gamma-1.0);
   }
 
 }
 
 
-__device__ Real guessp(Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma)
+__device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma)
 {
   // purpose:  to provide a guessed value for pressure
   //    pm in the Star Region. The choice is made
@@ -142,7 +165,7 @@ __device__ Real guessp(Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, R
 }
  
  
-__device__ void prefun(Real *f, Real *fd, Real p, Real dk, Real pk, Real ck, Real gamma)
+__device__ void prefun_CUDA(Real *f, Real *fd, Real p, Real dk, Real pk, Real ck, Real gamma)
 {
   // purpose:  to evaluate the pressure functions
   // fl and fr in the exact Riemann solver
@@ -165,7 +188,7 @@ __device__ void prefun(Real *f, Real *fd, Real p, Real dk, Real pk, Real ck, Rea
 }
  
  
-__device__ void starpv(Real *p, Real *v, Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma)
+__device__ void starpv_CUDA(Real *p, Real *v, Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma)
 {
   // purpose:  Uses Newton-Raphson iteration 
   // to compute the solution for pressure and
@@ -176,13 +199,13 @@ __device__ void starpv(Real *p, Real *v, Real dl, Real vxl, Real pl, Real cl, Re
   Real change, fl, fld, fr, frd, pold, pstart;
  
   //guessed value pstart is computed
-  pstart = guessp(dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
+  pstart = guessp_CUDA(dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
   pold = pstart;
  
   int i = 0;
   for (i=0 ; i <= nriter; i++) {
-    prefun(&fl, &fld, pold, dl, pl, cl, gamma);
-    prefun(&fr, &frd, pold, dr, pr, cr, gamma);
+    prefun_CUDA(&fl, &fld, pold, dl, pl, cl, gamma);
+    prefun_CUDA(&fr, &frd, pold, dr, pr, cr, gamma);
     *p = pold - (fl + fr + vxr - vxl)/(fld + frd);
     change = 2.0*fabs((*p - pold)/(*p + pold));
 
@@ -201,10 +224,10 @@ __device__ void starpv(Real *p, Real *v, Real dl, Real vxl, Real pl, Real cl, Re
 }
  
  
-__device__ void sample(const Real pm, const Real vm, Real *d, Real *v, Real *p,
+__device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real *p,
       Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma)
 {
-  // purpose:  to sample the solution throughout the wave
+  // purpose:  to sample_CUDA the solution throughout the wave
   //   pattern. Pressure pm and velocity vm in the
   //   star region are known. Sampled
   //   values are d, v, p.
@@ -215,7 +238,7 @@ __device__ void sample(const Real pm, const Real vm, Real *d, Real *v, Real *p,
   {
     if (pm <= pl) // left rarefaction
     {    
-      if (vxl - cl >= 0) // sampled point is in left data state
+      if (vxl - cl >= 0) // sample_CUDAd point is in left data state
       {   
         *d = dl;
         *v = vxl;
@@ -223,13 +246,13 @@ __device__ void sample(const Real pm, const Real vm, Real *d, Real *v, Real *p,
       }
       else 
       {
-        if (vm - cl*pow(pm/pl, Real ((gamma - 1.0)/(2.0 * gamma))) < 0) // sampled point is in star left state
+        if (vm - cl*pow(pm/pl, Real ((gamma - 1.0)/(2.0 * gamma))) < 0) // sample_CUDAd point is in star left state
         {
           *d = dl*pow(pm/pl, Real (1.0/gamma));
           *v = vm;
           *p = pm;
         } 
-        else // sampled point is inside left fan
+        else // sample_CUDAd point is inside left fan
         {
           c = (2.0 / (gamma + 1.0))*(cl + ((gamma - 1.0) / 2.0)*vxl);
           *v = c;
@@ -241,13 +264,13 @@ __device__ void sample(const Real pm, const Real vm, Real *d, Real *v, Real *p,
     else // left shock
     { 
       sl = vxl - cl*sqrt(((gamma + 1.0)/(2.0 * gamma))*(pm/pl) + ((gamma - 1.0)/(2.0 * gamma)));
-      if (sl >= 0) // sampled point is in left data state
+      if (sl >= 0) // sample_CUDAd point is in left data state
       {
         *d = dl;
         *v = vxl;
         *p = pl;
       } 
-      else // sampled point is in star left state
+      else // sample_CUDAd point is in star left state
       { 
         *d = dl*(pm/pl + ((gamma - 1.0) / (gamma + 1.0)))/((pm/pl)*((gamma - 1.0) / (gamma + 1.0)) + 1.0);
         *v = vm;
@@ -260,13 +283,13 @@ __device__ void sample(const Real pm, const Real vm, Real *d, Real *v, Real *p,
     if (pm > pr) // right shock
     {
       sr = vxr + cr*sqrt(((gamma + 1.0)/(2.0 * gamma))*(pm/pr) + ((gamma - 1.0)/(2.0 * gamma)));
-      if (sr <= 0) // sampled point is in right data state
+      if (sr <= 0) // sample_CUDAd point is in right data state
       {
         *d = dr;
         *v = vxr;
         *p = pr;
       } 
-      else // sampled point is in star right state
+      else // sample_CUDAd point is in star right state
       { 
         *d = dr*(pm/pr + ((gamma - 1.0) / (gamma + 1.0)))/((pm/pr)*((gamma - 1.0) / (gamma + 1.0)) + 1.0);
         *v = vm;
@@ -275,7 +298,7 @@ __device__ void sample(const Real pm, const Real vm, Real *d, Real *v, Real *p,
     } 
     else // right rarefaction
     { 
-      if (vxr + cr <= 0) // sampled point is in right data state
+      if (vxr + cr <= 0) // sample_CUDAd point is in right data state
       { 
         *d = dr;
         *v = vxr;
@@ -283,13 +306,13 @@ __device__ void sample(const Real pm, const Real vm, Real *d, Real *v, Real *p,
       } 
       else 
       {
-        if (vm + cr*pow(pm/pr, Real ((gamma - 1.0)/(2.0 * gamma))) >= 0) // sampled point is in star right state
+        if (vm + cr*pow(pm/pr, Real ((gamma - 1.0)/(2.0 * gamma))) >= 0) // sample_CUDAd point is in star right state
         {    
           *d = dr*pow(pm/pr, Real (1.0/gamma));
           *v = vm;
           *p = pm;
         } 
-        else // sampled point is inside right fan
+        else // sample_CUDAd point is inside right fan
         {    
           c = (2.0 / (gamma + 1.0))*(cr - ((gamma - 1.0) / 2.0)*vxr);
           *v = -c;

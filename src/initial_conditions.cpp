@@ -36,8 +36,8 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
     Shu_Osher();
   } else if (strcmp(P.init, "Blast_1D")==0) {
     Blast_1D();
-  } else if (strcmp(P.init, "KH_discontinuous_2D")==0) {
-    KH_discontinuous_2D();
+  } else if (strcmp(P.init, "KH")==0) {
+    KH();
   } else if (strcmp(P.init, "KH_res_ind")==0) {
     KH_res_ind();
   } else if (strcmp(P.init, "Rayleigh_Taylor")==0) {
@@ -58,7 +58,7 @@ void Grid3D::Set_Initial_Conditions(parameters P, Real C_cfl) {
     Read_Grid(P);    
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
-    chexit(0);
+    chexit(-1);
   }
 
 }
@@ -282,6 +282,9 @@ void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
         #ifdef DE
         C.GasEnergy[id]  = P/(gama-1.0);
         #endif
+        #ifdef SCALAR
+        C.scalar[id] = C.density[id]*0.0;
+        #endif
         if (x_pos > 0.25*H.domlen_x && x_pos < 0.75*H.domlen_x)
         {
           C.density[id]    = rho*A;
@@ -291,6 +294,9 @@ void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
           C.Energy[id]     = P/(gama-1.0) + 0.5*rho*A*(vx*vx + vy*vy + vz*vz);        
           #ifdef DE
           C.GasEnergy[id]  = P/(gama-1.0);
+          #endif
+          #ifdef SCALAR
+          C.scalar[id] = C.density[id]*1.0;
           #endif
         }
       }
@@ -345,6 +351,9 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
           C.momentum_y[id] = 0.0;
           C.momentum_z[id] = 0.0;
           C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
+          #ifdef SCALAR
+          C.scalar[id] = 1.0*rho_l;
+          #endif
           #ifdef DE
           C.GasEnergy[id]  = P_l/(gama-1.0);
           #endif
@@ -356,6 +365,9 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
           C.momentum_y[id] = 0.0;
           C.momentum_z[id] = 0.0;
           C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
+          #ifdef SCALAR
+          C.scalar[id] = 0.0*rho_r;
+          #endif
           #ifdef DE
           C.GasEnergy[id]  = P_r/(gama-1.0);
           #endif
@@ -449,11 +461,11 @@ void Grid3D::Blast_1D()
 }
 
 
-/*! \fn void KH_discontinuous_2D()
- *  \brief Initialize the grid with a 2D Kelvin-Helmholtz instability. 
+/*! \fn void KH()
+ *  \brief Initialize the grid with a Kelvin-Helmholtz instability. 
            This version of KH test has a discontinuous boundary.
-           Use KH_res_ind_2D for a version that is resolution independent. */
-void Grid3D::KH_discontinuous_2D()
+           Use KH_res_ind for a version that is resolution independent. */
+void Grid3D::KH()
 {
   int i, j, k, id;
   int istart, iend, jstart, jend, kstart, kend;
@@ -497,6 +509,9 @@ void Grid3D::KH_discontinuous_2D()
           C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
           C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+          #ifdef SCALAR
+          C.scalar[id] = 0.0;
+          #endif
         }
         else if (y_pos >= 3.0*H.ydglobal/4.0)
         {
@@ -505,8 +520,11 @@ void Grid3D::KH_discontinuous_2D()
           C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
           C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+          #ifdef SCALAR
+          C.scalar[id] = 0.0;
+          #endif
         }
-        // inner third of slab
+        // inner half of slab
         else
         {
           C.density[id] = d1;
@@ -514,6 +532,9 @@ void Grid3D::KH_discontinuous_2D()
           C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
           C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+          #ifdef SCALAR
+          C.scalar[id] = 1.0*d1;
+          #endif
         }
       }
     }

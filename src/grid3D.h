@@ -15,6 +15,69 @@
 #include<hdf5.h>
 #endif
 
+struct Rotation
+{
+  /*! \var nx
+  *   \brief Number of pixels in x-dir of rotated, projected image*/
+  int nx;
+
+  /*! \var nz
+  *   \brief Number of pixels in z-dir of rotated, projected image*/
+  int nz;
+
+  /*! \var nx_min
+  *   \brief Left most point in the projected image for this subvolume*/
+  int nx_min;
+
+  /*! \var nx_max
+  *   \brief Right most point in the projected image for this subvolume*/
+  int nx_max;
+
+  /*! \var nz_min
+  *   \brief Bottom most point in the projected image for this subvolume*/
+  int nz_min;
+
+  /*! \var nz_max
+  *   \brief Top most point in the projected image for this subvolume*/
+  int nz_max;
+
+  /*! \var delta
+  *   \brief Rotation angle about z axis in simulation frame*/
+  Real delta;
+
+  /*! \var theta
+  *   \brief Rotation angle about x axis in simulation frame*/
+  Real theta;
+
+  /*! \var phi
+  *   \brief Rotation angle about y axis in simulation frame*/
+  Real phi;
+
+  /*! \var Lx
+  *   \brief Physical x-dir size of projected image*/
+  Real Lx;
+
+  /*! \var Lz
+  *   \brief Physical z-dir size of projected image*/
+  Real Lz;
+
+  /*! \var i_delta
+  *   \brief number of output projection for delta rotation*/
+  int i_delta;
+
+  /*! \var n_delta
+  *   \brief total number of output projection for delta rotation*/
+  Real n_delta;
+
+  /*! \var ddelta_dt
+  *   \brief rate of delta rotation*/
+  Real ddelta_dt;
+
+  /*! \var flag_delta
+   *  \brief output mode for box rotation*/
+  int flag_delta;
+};
+
 struct Header
 {
   /*! \var n_cells 
@@ -125,6 +188,10 @@ struct Header
   *  \brief Number of timesteps taken */
   int n_step;
 
+  /*! \var n_fields
+  *  \brief Number of fields (conserved variables, scalars, etc.) */
+  int n_fields;
+
 };
 
 /*! \class Grid3D
@@ -137,10 +204,25 @@ class Grid3D
      *  \brief Initialization flag */
     int flag_init;
 
+    /*! \var gflag
+     *  \brief Flag that determines which buffer contains updated conserved variables */
+    int gflag;
+
     /*! \var struct Header H
      *  \brief Header for the grid */
     struct Header H;
 
+    /*! \var struct Rotation R
+     *  \brief Rotation struct for data projections */
+    struct Rotation R;
+
+    /*! \var buffer0
+     *  \brief Buffer to hold conserved variable arrays */
+    Real *buffer0;
+
+    /*! \var buffer1
+     *  \brief Buffer to hold conserved variable arrays */
+    Real *buffer1;
 
     struct Conserved
     {
@@ -169,6 +251,12 @@ class Grid3D
        *  \brief Array containing the internal energy of each cell, only tracked separately when using
            the dual-energy formalism. */
       Real *GasEnergy;
+      #endif
+
+      #ifdef SCALAR
+      /*! \var scalar
+       *  \brief Array containing the values of the passive scalar variable(s). */
+      Real *scalar;
       #endif
 
     } C;
@@ -202,27 +290,13 @@ class Grid3D
      *  \brief Calculate the timestep. */
     void set_dt(Real C_cfl, Real dti);
 
-    /*! \fn Real calc_dti_CPU(Real C_cfl)
+    /*! \fn Real calc_dti_CPU()
      *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */ 
-    Real calc_dti_CPU(Real C_cfl);
+    Real calc_dti_CPU();
 
     /*! \fn void Update_Grid(void)
      *  \brief Update the conserved quantities in each cell. */
     Real Update_Grid(void);
-
-#ifdef COOLING_CPU
-    /*! \fn void Cool_CPU(void)
-     *  \brief Use Cloudy cooling tables to apply cooling over the grid. */
-    void Cool_CPU(void);
-
-    /*! \fn void Load_Cooling_Tables(void)
-     *  \brief Load the Cloudy cooling tables into memory for fast lookup. */
-    void Load_Cooling_Tables(void);
-
-    /*! \fn void Free_Cooling_Tables(void)
-     *  \brief Free the memory associated with the cooling tables. */
-    void Free_Cooling_Tables(void);
-#endif //COOLING_CPU
 
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
@@ -240,6 +314,23 @@ class Grid3D
     /*! \fn void Write_Grid_HDF5(hid_t file_id)
      *  \brief Write the grid to a file, at the current simulation time. */
     void Write_Grid_HDF5(hid_t file_id);
+
+    /*! \fn void Write_Projection_HDF5(hid_t file_id)
+     *  \brief Write projected density and temperature data to a file. */
+    void Write_Projection_HDF5(hid_t file_id);    
+
+    /*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
+     *  \brief Write the relevant header info to the HDF5 file for rotated projection. */
+    void Write_Header_Rotated_HDF5(hid_t file_id);
+
+    /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
+     *  \brief Write rotated projected data to a file, at the current simulation time. */
+    void Write_Rotated_Projection_HDF5(hid_t file_id);   
+
+    /*! \fn void Write_Slices_HDF5(hid_t file_id)
+     *  \brief Write xy, xz, and yz slices of all data to a file. */
+    void Write_Slices_HDF5(hid_t file_id);    
+
 #endif
 
     /*! \fn void Read_Grid(struct parameters P)
@@ -288,9 +379,9 @@ class Grid3D
      *  \brief Initialize the grid with two interacting blast waves. See Stone 2008, Section 8.1.*/
     void Blast_1D();
 
-    /*! \fn void KH_discontinuous_2D()
-    *  \brief Initialize the grid with a 2D Kelvin-Helmholtz instability. */
-    void KH_discontinuous_2D();
+    /*! \fn void KH()
+    *  \brief Initialize the grid with a Kelvin-Helmholtz instability with a discontinuous interface. */
+    void KH();
 
     /*! \fn void KH_res_ind()
      *  \brief Initialize the grid with a Kelvin-Helmholtz instability whose modes are resolution independent. */
@@ -316,10 +407,6 @@ class Grid3D
      *  \brief Noh test described in Liska, 2003. */
     void Noh_2D();
 
-    /*! \fn void Cloud_2D()
-     *  \brief Circular cloud in a hot wind. */
-    void Cloud_2D();
-
     /*! \fn void Noh_3D()
      *  \brief Noh test described in Stone, 2008. */
     void Noh_3D();
@@ -331,29 +418,6 @@ class Grid3D
     /*! \fn void Disk_3D(parameters P)
      *  \brief Initialize the grid with a 3D disk following a Miyamoto-Nagai profile. */
     void Disk_3D(parameters P);    
-
-    /*! \fn void Sedov_Taylor(Real rho_l, Real P_l, Real rho_r, Real P_r)
-     *  \brief Sedov Taylor blast wave test. */
-    void Sedov_Taylor(Real rho_l, Real P_l, Real rho_r, Real P_r);
-
-    /*! \fn void Turbulent_Slab()
-     *  \brief Turbulent slab in a hot diffuse wind. */
-    void Turbulent_Slab();
-
-    /*! \fn void Cloud_3D()
-     *  \brief Turbulent cloud in a hot diffuse wind. */
-    void Cloud_3D();
-
-    /*! \fn void Turbulence(Real rho, Real vx, Real vy, Real vz, Real P)
-     *  \brief Generate a 3D turbulent forcing field. */
-    void Turbulence(Real rho, Real vx, Real vy, Real vz, Real P);
-
-    /*! \fn Apply_Forcing(void)
-     *  \brief Apply a forcing field to continuously generate turbulence. */
-    void Apply_Forcing(void);    
-
-    Real Add_Supernovae(void);    
- 
 
     /*! \fn void Set_Boundary_Conditions(parameters P)
      *  \brief Set the boundary conditions based on info in the parameters structure. */
@@ -390,20 +454,6 @@ class Grid3D
         as per the Noh problem in Liska, 2003, or in Stone, 2008. */
     void Noh_Boundary();
 
-    /*! \fn void Wind_Boundary()
-     *  \brief Supersonic inflow on -z boundary set to match Cloud_3D IC's. */
-    void Wind_Boundary();
-
-    /*! \fn void Disk_Boundary_2D()
-     *  \brief Apply analytic boundary conditions to x and y faces, 
-        as per the disk setup in the ICs. */
-    void Disk_Boundary_2D();    
-
-    /*! \fn void Disk_Boundary_3D()
-     *  \brief Apply analytic boundary conditions to x, y, and z faces, 
-        as per the disk setup in the ICs. */
-    void Disk_Boundary_3D();
-
 
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);
@@ -420,6 +470,8 @@ class Grid3D
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
 #endif /*MPI_CHOLLA*/
+
+
 
 };
 
