@@ -1,5 +1,5 @@
 /*! \file cooling_wrapper.h
- *  \brief Wrapper file for to load CUDA cooling tables. */
+ *  \brief Wrapper file to load CUDA cooling tables. */
 
 #ifdef CUDA
 #ifdef CLOUDY_COOL
@@ -9,14 +9,16 @@
 
 #include"global.h"
 
-
 /* \fn void Load_Cuda_Textures()
  * \brief Load the Cloudy cooling tables into texture memory on the GPU. */
 void Load_Cuda_Textures();
 
-/* \fn void Free_Cuda_Textures()
- * \brief Free the memory associated with the Cloudy cooling tables. */
+/* \fn void Load_Cooling_Tables(float* cooling_table, float* heating_table)
+ * \brief Load the Cloudy cooling tables into host (CPU) memory. */
+void Load_Cooling_Tables(float* cooling_table, float* heating_table);
+
 void Free_Cuda_Textures();
+
 
 #endif
 #endif
