@@ -25,14 +25,12 @@ xlen=40
 ylen=40
 zlen=40
 # type of boundary conditions
-xl_bcnd=4
-xu_bcnd=4
-yl_bcnd=4
-yu_bcnd=4
-zl_bcnd=0
-zu_bcnd=0
-custom_bcnd=disk_2D
+xl_bcnd=3
+xu_bcnd=3
+yl_bcnd=3
+yu_bcnd=3
+zl_bcnd=3
+zu_bcnd=3
 # path to output directory
-outdir=/data1/evan/data/disk_2D/512/hdf5/
-#outdir=/Users/evan/Desktop/data/Disk/256/hdf5/
+outdir=./
 

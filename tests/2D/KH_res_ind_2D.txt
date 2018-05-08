@@ -32,4 +32,4 @@ yu_bcnd=3
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=/data1/evan/data/KH_res_ind/2D/highd/128/hdf5/
+outdir=./
