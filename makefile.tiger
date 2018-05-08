@@ -9,6 +9,9 @@ CUDAFILES = $(wildcard $(DIR)/*.cu)
 
 
 OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) 
+COBJS   = $(subst .c,.o,$(CFILES)) 
+CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) 
+CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) 
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -44,8 +47,8 @@ OUTPUT = -DHDF5
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
 #RECONSTRUCTION = -DPLMC
-RECONSTRUCTION = -DPPMP
-#RECONSTRUCTION = -DPPMC
+#RECONSTRUCTION = -DPPMP
+RECONSTRUCTION = -DPPMC
 
 #SOLVER = -DEXACT
 #SOLVER = -DROE
@@ -54,12 +57,12 @@ SOLVER = -DHLLC
 #INTEGRATOR = -DCTU
 INTEGRATOR = -DVL
 
-#COOLING = -DCOOLING_GPU 
-COOLING = -DCLOUDY_COOL
+COOLING = -DCOOLING_GPU -DCLOUDY_COOL
 
 
 ifdef CUDA
 CUDA_LIBS = -lcuda -lcudart
+CUDA_INCL = -I/usr/local/cuda/include
 endif
 ifeq ($(OUTPUT),-DHDF5)
 HDF5_INCL = -I/usr/local/hdf5/gcc/openmpi-1.10.2/1.10.0/include
@@ -75,24 +78,31 @@ LIBS   = -lm $(HDF5_LIBS)
 
 
 
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) -DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
+FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=$(CC) -arch=compute_60
+NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=$(CC) -arch=sm_60
 
 
 %.o:	%.c
 		$(CC) $(CFLAGS)  $(INCL)  -c $< -o $@ 
 
 %.o:	%.cpp
-		$(CXX) $(CXXFLAGS)  $(INCL)  -c $< -o $@ 
+		$(CXX) $(CXXFLAGS)  $(INCL) -c $< -o $@ 
 
 %.o:	%.cu
-		$(NVCC) $(NVCCFLAGS)  $(NVINCL)  -c $< -o $@ 
+		$(NVCC) $(NVCCFLAGS) --device-c $(NVINCL)  -c $< -o $@ 
+
+$(EXEC): $(OBJS) src/gpuCode.o
+	 	 $(CXX) $(CXXFLAGS) $(OBJS) src/gpuCode.o $(LIBS) $(NVLIBS) -o $(EXEC)
+
+src/gpuCode.o:	$(CUOBJS) 
+		$(NVCC) -arch=sm_60 -dlink $(CUOBJS) -o src/gpuCode.o
+
+#$(EXEC): $(OBJS)
+#		$(NVCC) $(NVCCFLAGS) $(LIBS) $(NVLIBS) -o $(EXEC)
 
 
-$(EXEC): $(OBJS) 
-	 	 $(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL)   
 
 #$(OBJS): $(INCL) 
 

@@ -97,6 +97,8 @@ void parse_params (char *param_file, struct parameters * parms)
   {
     return;
   }
+  // set default file output parameter
+  parms->nfull=1;
 
 #ifdef ROTATED_PROJECTION
   //initialize rotation parameters to zero

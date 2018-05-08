@@ -66,7 +66,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Real *etah;
   // array of inverse timesteps for dt calculation
   Real *dev_dti_array;
-  #if defined COOLING_GPU
+  #ifdef COOLING_GPU
   // array of timesteps for dt calculation (cooling restriction)
   Real *dev_dt_array;
   #endif  
@@ -80,7 +80,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   CudaSafeCall( cudaMalloc((void**)&F,   n_fields*n_cells*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah, n_cells*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-  #if defined COOLING_GPU
+  #ifdef COOLING_GPU
   CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
   #endif  
 
@@ -175,7 +175,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   for (int i=0; i<ngrid; i++) {
     max_dti = fmax(max_dti, host_dti_array[i]);
   }
-  #if defined COOLING_GPU
+  #ifdef COOLING_GPU
   // copy the dt array from cooling onto the CPU
   CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
   // find maximum inverse timestep from cooling time
@@ -190,7 +190,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
   // free the CPU memory
   free(host_dti_array);
-  #if defined COOLING_GPU
+  #ifdef COOLING_GPU
   free(host_dt_array);  
   #endif  
 
@@ -202,7 +202,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   cudaFree(F);
   cudaFree(etah);
   cudaFree(dev_dti_array);
-  #if defined COOLING_GPU
+  #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
   #endif
 
