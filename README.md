@@ -1,6 +1,6 @@
 CHOLLA
 ============
-A 3D GPU-based hydrodynamics code (Schneider & Robertson, ApJS, 2015)
+A 3D GPU-based hydrodynamics code (Schneider & Robertson, ApJS, 2015).
 
 Getting started
 ----------------
@@ -48,14 +48,14 @@ so MPI mode is most useful on a cluster (or for testing parallel behavior with a
 Other Notes
 --------------
 
-In practice, we have found the Van Leer integrator to be the most stable. *Cholla* is set to run with a default CFL coefficient of 0.3, but this can be changed within the grid initialization function.
-
 *Cholla* can be run without GPUs by commenting out CUDA in the makefile, but this configuration is not recommended. Because *Cholla*
-was designed with GPUs in mind, the CPU performance is, lackluster at best. In addition, some 
+was designed with GPUs in mind, the CPU performance is lackluster at best. In addition, some 
 of the configuration options are not available in the non-CUDA mode (and warnings are not always included).
 
 When running tests in fewer than 3 dimensions, *Cholla* assumes that the x-direction will be used first, then
 the y, then z. This is to say, in 1D nx must always be greater than 1, and in 2D nx and ny must be greater than 1.
+
+In practice, we have found the Van Leer integrator to be the most stable. *Cholla* is set to run with a default CFL coefficient of 0.3, but this can be changed within the grid initialization function.
 
 Currently, *Cholla* is not designed to be able to run very large (>1e6) 1 dimensional problems. If this is a functionality you are
 interested in, please let us know.

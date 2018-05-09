@@ -23,13 +23,12 @@ xlen=1.0
 ylen=1.0
 zlen=1.0
 # type of boundary conditions
-xl_bcnd=3
-xu_bcnd=3
-yl_bcnd=3
-yu_bcnd=3
-zl_bcnd=3
-zu_bcnd=3
-#custom_bcnd=wind
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
 # path to output directory
 outdir=./
 
