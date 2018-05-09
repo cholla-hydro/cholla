@@ -385,7 +385,6 @@ __global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *de
                                        + dtody * (dev_F_y[(n_fields-1)*n_cells + jmo] - dev_F_y[(n_fields-1)*n_cells + id])
                                        + 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo));
     #endif
-                                       
   } 
 }
 
