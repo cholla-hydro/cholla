@@ -15,7 +15,6 @@ texture<float, 2, cudaReadModeElementType> heatTexObj;
 cudaArray* cuCoolArray;
 cudaArray* cuHeatArray;
 
-__global__ void texture_test_kernel();
 
 /* \fn void Load_Cuda_Textures()
  * \brief Load the Cloudy cooling tables into texture memory on the GPU. */
@@ -57,33 +56,6 @@ void Load_Cuda_Textures()
 
   cudaBindTextureToArray(coolTexObj, cuCoolArray);
   cudaBindTextureToArray(heatTexObj, cuHeatArray);
-/*
-  // Specify textures
-  struct cudaResourceDesc coolResDesc;
-  memset(&coolResDesc, 0, sizeof(coolResDesc));
-  coolResDesc.resType = cudaResourceTypeArray;
-  coolResDesc.res.array.array = cuCoolArray;
-  struct cudaResourceDesc heatResDesc;
-  memset(&heatResDesc, 0, sizeof(heatResDesc));
-  heatResDesc.resType = cudaResourceTypeArray;
-  heatResDesc.res.array.array = cuHeatArray;  
-
-  // Specify texture object parameters (same for both tables)
-  struct cudaTextureDesc texDesc;
-  memset(&texDesc, 0, sizeof(texDesc));
-  texDesc.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  texDesc.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  texDesc.filterMode = cudaFilterModeLinear; // bi-linear interpolation
-  texDesc.readMode = cudaReadModeElementType;
-  texDesc.normalizedCoords = 1;
-
-  // Create texture objects
-  //cudaTextureObject_t coolTexObj = 0;
-  //cudaCreateTextureObject(&coolTexObj, &coolResDesc, &texDesc, NULL);
-  //cudaTextureObject_t heatTexObj = 0;
-  //cudaCreateTextureObject(&heatTexObj, &heatResDesc, &texDesc, NULL);
-*/
-  //texture_test_kernel<<<1,1>>>(); 
 
   // Free the memory associated with the cooling tables on the host
   free(cooling_table);
@@ -91,58 +63,6 @@ void Load_Cuda_Textures()
 
 }
 
-
-
-__global__ void texture_test_kernel()
-{
-   // Calculate normalized texture coordinates
-  float log_n = 1.0;
-  float log_T = 6.0;
-  log_T = (log_T - 1.0)/8.1;
-  log_n = (log_n + 6.0)/12.1;
-  printf("n: %e T: %e Texture value = %e\n", log_n, log_T, tex2D<float>(coolTexObj, log_T, log_n));
-}
-
-void bind_texture(float* cudaArray) {
-
-}
-
-/* \fn __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
- * \brief Uses texture mapping to interpolate Cloudy cooling/heating 
-          tables at z = 0 with solar metallicity and an HM05 UV background. */
-/*
-__device__ Real Cloudy_cool(Real n, Real T)
-{
-  Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
-  Real H = 0.0; //heating rate, erg s^-1 cm^3
-  Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
-  float log_n, log_T;
-  log_n = log10(n);
-  log_T = log10(T);
-  log_n = 1.0;
-  log_T = 6.0;
-
-  // don't allow cooling at super low temps
-  if (log_T < 1.0) return cool;
-
-  // remap coordinates for texture
-  log_T = (log_T - 1.0)/8.1;
-  log_n = (log_n + 6.0)/12.1; 
-  printf("n: %f  T: %f  Texture Value: %e\n", log_n, log_T, tex2D<float>(coolTexObj, log_T, log_n));
- 
-  // don't cool below 10^4 K
-  if (log10(T) > 4.0) {
-  lambda = tex2D<float>(coolTexObj, log_T, log_n);
-  }
-  else lambda = 0.0;
-  H = tex2D<float>(heatTexObj, log_T, log_n);
-
-  // cooling rate per unit volume
-  cool = n*n*(powf(10, lambda) - powf(10, H));
-
-  return cool;
-}
-*/
 
 /* \fn void Load_Cooling_Tables(float* cooling_table, float* heating_table)
  * \brief Load the Cloudy cooling tables into host (CPU) memory. */

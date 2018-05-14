@@ -336,7 +336,7 @@ __device__ Real CIE_cool(Real n, Real T)
 }
 
 
-/* \fn __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+/* \fn __device__ Real Cloudy_cool(Real n, Real T)
  * \brief Uses texture mapping to interpolate Cloudy cooling/heating 
           tables at z = 0 with solar metallicity and an HM05 UV background. */
 __device__ Real Cloudy_cool(Real n, Real T)
