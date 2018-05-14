@@ -9,7 +9,7 @@ be run using NVIDIA GPUs, and can be run in serial mode using one GPU
 or with MPI.
 
 An example makefile is included in this directory. After downloading the code, you should
-be able to configure it for your machine by modifying one of the makefiles appropriately.
+be able to configure it for your machine by modifying the makefile appropriately.
 
 
 Configuration Notes
