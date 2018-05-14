@@ -8,8 +8,7 @@ This is the stable branch of the *Cholla* code. *Cholla* is designed to
 be run using NVIDIA GPUs, and can be run in serial mode using one GPU
 or with MPI.
 
-Two example makefiles are included in this directory, one designed for
-linux and one for mac. After downloading the code, you should
+An example makefile is included in this directory. After downloading the code, you should
 be able to configure it for your machine by modifying one of the makefiles appropriately.
 
 
@@ -29,21 +28,21 @@ flag when cooling is turned on.
 Running Cholla
 --------------
 To run the code after it is compiled, you must supply an input file with parameters and a problem that matches a function
-in the initial_conditions file. For example, to run a 1D Sod Shock Tube test, you would do:
+in the initial_conditions file. For example, to run a 1D Sod Shock Tube test, you would type
 
-./cholla tests/1D/Sod.txt
+```./cholla tests/1D/Sod.txt```
 
-Some output will be generated in the terminal, and output files will be written in the directory specified
-in the input parameter file.
+in the directory with the cholla binary. Some output will be generated in the terminal, and output files will be written in the directory specified in the input parameter file.
 
 To run *Cholla* in parallel mode, the CHOLLA_MPI flag in the makefile must be uncommented. Then you can run
-using:
+using
 
-mpirun -np 4 ./cholla tests/1D/Sod.txt
+```mpirun -np 4 ./cholla tests/1D/Sod.txt```
 
 Each process will be assigned a GPU. *Cholla* cannot be run with more processes than available GPUs,
 so MPI mode is most useful on a cluster (or for testing parallel behavior with a single process).
 
+More information about compiling and running *Cholla* can be found in the wiki associated with this repository.
 
 Other Notes
 --------------
