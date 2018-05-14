@@ -71,9 +71,7 @@ endif
 
 INCL   = -I./ $(HDF5_INCL)
 NVINCL = $(INCL) $(CUDA_INCL)
-NVLIBS = $(CUDA_LIBS)
-LIBS   = -lm $(HDF5_LIBS)
-
+LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
 
 FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) #-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
@@ -92,7 +90,7 @@ NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=$(CC) -arch=sm_60
 		$(NVCC) $(NVCCFLAGS) --device-c $(NVINCL)  -c $< -o $@ 
 
 $(EXEC): $(OBJS) src/gpuCode.o
-	 	 $(CXX) $(CXXFLAGS) $(OBJS) src/gpuCode.o $(LIBS) $(NVLIBS) -o $(EXEC)
+	 	 $(CXX) $(OBJS) src/gpuCode.o $(LIBS) -o $(EXEC)
 
 src/gpuCode.o:	$(CUOBJS) 
 		$(NVCC) -arch=sm_60 -dlink $(CUOBJS) -o src/gpuCode.o

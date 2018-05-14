@@ -9,6 +9,9 @@ CUDAFILES = $(wildcard $(DIR)/*.cu)
 
 
 OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) 
+COBJS   = $(subst .c,.o,$(CFILES)) 
+CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) 
+CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) 
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -17,7 +20,7 @@ CUDA = -DCUDA -DCUDA_ERROR_CHECK
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-MPI_FLAGS =  -DMPI_CHOLLA
+#MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
@@ -44,22 +47,31 @@ OUTPUT = -DHDF5 -DPROJECTION -DROTATED_PROJECTION -DSLICES
 
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
-#RECONSTRUCTION = -DPLMC
+RECONSTRUCTION = -DPLMC
 #RECONSTRUCTION = -DPPMP
-RECONSTRUCTION = -DPPMC
+#RECONSTRUCTION = -DPPMC
 
-#SOLVER = -DEXACT
+SOLVER = -DEXACT
 #SOLVER = -DROE
-SOLVER = -DHLLC
+#SOLVER = -DHLLC
 
 #INTEGRATOR = -DCTU 
 INTEGRATOR = -DVL
 
-#COOLING = -DCOOLING_GPU
+#COOLING = -DCOOLING_GPU -DCLOUDY_COOL
 
-INCL   = -I./ -I/usr/local/cuda/include -I/usr/local/include
-NVLIBS = -L/usr/local/cuda/lib -lcuda -lcudart
-LIBS   = -L/usr/local/lib -lm -lhdf5
+ifdef CUDA
+CUDA_INCL = -I/usr/local/cuda/include
+CUDA_LIBS = -L/usr/local/cuda/lib64 -lcuda -lcudart
+endif
+ifeq ($(OUTPUT),-DHDF5)
+HDF5_INCL = -I/usr/local/hdf5/include
+HDF5_LIBS = -lhdf5
+endif
+
+INCL   = -I./ -I/usr/local/include $(HDF5_INCL)
+NVINCL = $(INCL) $(CUDA_INCL)
+LIBS   = -L/usr/local/lib -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
 
 FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) 
@@ -76,12 +88,14 @@ ALL_LDFLAGS += -Xlinker -F/Library/Frameworks -Xlinker -framework -Xlinker CUDA
 		$(CXX) $(CXXFLAGS)  $(INCL)  -c $< -o $@ 
 
 %.o:	%.cu
-		$(NVCC) $(NVCCFLAGS)  $(INCL)  -c $< -o $@ 
+		$(NVCC) $(NVCCFLAGS) --device-c $(NVINCL)  -c $< -o $@ 
 
-$(EXEC): $(OBJS) 
-	 	 $(CXX) $(OBJS) $(LIBS) $(NVLIBS) -o $(EXEC) $(INCL) $(ALL_LDFLAGS)
+$(EXEC): $(OBJS)  src/gpuCode.o
+	 	 $(CXX) $(OBJS) src/gpuCode.o $(LIBS) -o $(EXEC) $(ALL_LDFLAGS)
 
-#$(OBJS): $(INCL) 
+src/gpuCode.o:	$(CUOBJS) 
+		$(NVCC) -arch=sm_60 -dlink $(CUOBJS) -o src/gpuCode.o
+
 
 .PHONY : clean
 
