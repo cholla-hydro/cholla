@@ -28,13 +28,13 @@ int initialize_cuda_mpi(int myid, int nprocs)
   }
 
   //set a cuda device for each process
-  cudaSetDevice(myid%n_device);
+  cudaSetDevice(myid%n_device+1);
 
   //double check
   cudaGetDevice(&i_device);
 
-  //printf("In initialize_cuda_mpi: myid = %d, i_device = %d, n_device = %d\n",myid,i_device,n_device);
-  //fflush(stdout);
+  printf("In initialize_cuda_mpi: myid = %d, i_device = %d, n_device = %d\n",myid,i_device,n_device);
+  fflush(stdout);
 
   return 0;
     

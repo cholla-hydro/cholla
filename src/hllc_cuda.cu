@@ -13,7 +13,7 @@
 
 /*! \fn Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
  *  \brief HLLC Riemann solver based on the version described in Toro (2006), Sec. 10.4. */
-__global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir, int n_fields)
+__global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -44,7 +44,8 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
   Real dscl[NSCALARS], dscr[NSCALARS], scl[NSCALARS], scr[NSCALARS], scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
   #endif
   // Retrieve etah value
-  Real etah = dev_etah[tid];
+  //Real etah = dev_etah[tid];
+  Real etah = 0;
 
 
   int o1, o2, o3;

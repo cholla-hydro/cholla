@@ -4,13 +4,13 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=400
+nx=4096
 # number of grid cells in the y dimension
-ny=400
+ny=4096
 # number of grid cells in the z dimension
 nz=1
 # output time
-tout=2.5
+tout=0.05
 # how often to output
 outstep=0.01
 nfull=1
