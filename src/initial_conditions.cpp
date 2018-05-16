@@ -130,6 +130,10 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
   Real x_pos, y_pos, z_pos;
+  Real n, T;
+  n = rho*DENSITY_UNIT / (0.6*MP);
+  T = P*PRESSURE_UNIT / (n*KB);
+  printf("n: %e  T: %e\n", n, T);
 
   istart = H.n_ghost;
   iend   = H.nx-H.n_ghost;

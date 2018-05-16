@@ -54,6 +54,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Real r1x, r1y, r1z;
   Real r2x, r2y, r2z;
   Real pcm, ie, cvu;
+  Real cool;
   Real arrays, other;
   cpto = cpfr = 0;
   buff = dti = 0;
@@ -61,6 +62,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   r1x = r1y = r1z = 0;
   r2x = r2y = r2z = 0;
   pcm = ie = cvu = 0;
+  cool = 0;
   arrays = other = 0;
 #endif
 
@@ -452,11 +454,21 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #endif
 
     // Apply cooling
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     #ifdef COOLING_GPU
     cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);  
     CudaCheckError();
     #endif
-  
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("conserved variable update: %5.3f ms\n", elapsedTime);
+    cool += elapsedTime;
+    #endif //TIME     
+ 
     // Step 7: Calculate the next time step
     #ifdef TIME
     cudaEventRecord(start, 0);
@@ -579,6 +591,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   printf("r2x:  %6.2f  r2y:  %6.2f  r2z:  %6.2f\n", r2x, r2y, r2z);
   printf("pcm:  %6.2f  ie:   %6.2f  cvu:  %6.2f\n", pcm, ie, cvu);
   printf("buff: %6.2f  dti:  %6.2f\n", buff, dti);
+  printf("cool: %6.2f\n", cool);
   printf("arrs: %6.2f  othr: %6.2f\n", arrays, other);
   #endif
   #ifdef TIME

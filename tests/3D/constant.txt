@@ -4,11 +4,11 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=150
+nx=256
 # number of grid cells in the y dimension
-ny=150
+ny=256
 # number of grid cells in the z dimension
-nz=150
+nz=256
 # final output time
 tout=1.0
 # time interval for output
@@ -34,7 +34,7 @@ outdir=./
 
 #################################################
 # density
-rho=1.0
+rho=10
 # velocity
 vx=0
 vy=0
