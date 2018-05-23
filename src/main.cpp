@@ -26,7 +26,9 @@ int main(int argc, char *argv[])
   double start_bound, stop_bound, bound_min, bound_max, bound_avg;
   double start_hydro, stop_hydro, hydro_min, hydro_max, hydro_avg;
   double init, bound, hydro;
+  double bound_total, hydro_total;
   init = bound = hydro = 0;
+  bound_total = hydro_total = 0;
   #endif //CPU_TIME
 
   // start the total time
@@ -35,6 +37,8 @@ int main(int argc, char *argv[])
   /* Initialize MPI communication */
   #ifdef MPI_CHOLLA
   InitializeChollaMPI(&argc, &argv);
+  //chprintf("Completed MPI Initialization.\n");
+  //fflush(stdout);
   #endif /*MPI_CHOLLA*/
 
   Real dti = 0; // inverse time step, 1.0 / dt
@@ -64,17 +68,20 @@ int main(int argc, char *argv[])
   chprintf ("Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, boundaries = %d %d %d %d %d %d\n", 
     P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
   chprintf ("Output directory:  %s\n", P.outdir);
+  fflush(stdout);
 
 
   // initialize the grid
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
+  fflush(stdout);
 
 
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P);
   chprintf("Initial conditions set.\n");
+  fflush(stdout);
   // set main variables for Read_Grid inital conditions
   if (strcmp(P.init, "Read_Grid") == 0) {
     dti = C_cfl / G.H.dt;
@@ -86,10 +93,12 @@ int main(int argc, char *argv[])
   chprintf("Setting boundary conditions...\n");
   G.Set_Boundary_Conditions(P);
   chprintf("Boundary conditions set.\n");  
+  fflush(stdout);
 
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n",gama);
   chprintf("Nstep = %d  Timestep = %f  Simulation time = %f\n", G.H.n_step, G.H.dt, G.H.t);
+  fflush(stdout);
 
 
   #ifdef OUTPUT
@@ -116,9 +125,11 @@ int main(int argc, char *argv[])
   printf("Init %9.4f\n", init);
   #endif //MPI_CHOLLA
   #endif //CPU_TIME
+  fflush(stdout);
 
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
+  fflush(stdout);
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
@@ -137,7 +148,6 @@ int main(int argc, char *argv[])
     #ifdef MPI_CHOLLA
     G.H.dt = ReduceRealMin(G.H.dt);
     #endif
-   
 
     // Advance the grid by one timestep
     #ifdef CPU_TIME
@@ -151,6 +161,7 @@ int main(int argc, char *argv[])
     hydro_min = ReduceRealMin(hydro);
     hydro_max = ReduceRealMax(hydro);
     hydro_avg = ReduceRealAvg(hydro);
+    hydro_total += hydro_max;
     #endif //MPI_CHOLLA
     #endif //CPU_TIME
     //printf("%d After Grid Update: %f %f\n", procID, G.H.dt, dti);
@@ -173,13 +184,14 @@ int main(int argc, char *argv[])
     bound_min = ReduceRealMin(bound);
     bound_max = ReduceRealMax(bound);
     bound_avg = ReduceRealAvg(bound);
+    bound_total += bound_max;
     #endif //MPI_CHOLLA
     #endif //CPU_TIME
 
     #ifdef CPU_TIME
     #ifdef MPI_CHOLLA
-    chprintf("hydro min: %9.4f  max: %9.4f  avg: %9.4f\n", hydro_min, hydro_max, hydro_avg);
-    chprintf("bound min: %9.4f  max: %9.4f  avg: %9.4f\n", bound_min, bound_max, bound_avg);
+    chprintf("hydro min: %9.4f  max: %9.4f  avg: %9.4f  total: %9.4f\n", hydro_min, hydro_max, hydro_avg, hydro_total);
+    chprintf("bound min: %9.4f  max: %9.4f  avg: %9.4f  total: %9.4f\n", bound_min, bound_max, bound_avg, bound_total);
     #endif //MPI_CHOLLA
     #endif //CPU_TIME
 
@@ -193,6 +205,7 @@ int main(int argc, char *argv[])
     #endif 
     chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n", 
       G.H.n_step, G.H.t, G.H.dt, (stop_step-start_step)*1000, G.H.t_wall);
+    fflush(stdout);
 
     if (G.H.t == outtime)
     {

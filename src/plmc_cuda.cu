@@ -85,9 +85,25 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   int yid = (tid - zid*nx*ny) / nx;
   int xid = tid - zid*nx*ny - yid*nx;
 
+  int xs, xe, ys, ye, zs, ze;
+  if (dir == 0) {
+    xs = 1; xe = nx-2;
+    ys = 0; ye = ny;
+    zs = 0; ze = nz;
+  }
+  if (dir == 1) {
+    xs = 0; xe = nx;
+    ys = 1; ye = ny-2;
+    zs = 0; ze = nz;
+  }
+  if (dir == 2) {
+    xs = 0; xe = nx;
+    ys = 0; ye = ny;
+    zs = 1; ze = nz-2;
+  }
 
-  //if (xid > n_ghost-3 && xid < nx-n_ghost+2 && yid < ny && zid < nz)
-  if (xid < nx && yid < ny && zid < nz)
+
+  if (xid >= xs && xid < xe && yid >= ys && yid < ye && zid >= zs && zid < ze)
   {
     // load the 3-cell stencil into registers
     // cell i
