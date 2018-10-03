@@ -3,12 +3,12 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>About Cholla &#8211; cholla</title>
+    <title>Version 1.0 &#8211; cholla</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="A new GPU-based hydro code">
+    <meta name="description" content="A brief description of features included in Cholla 1.0">
     <meta name="author" content="Evan Schneider">
-    
-    <link rel="canonical" href="http://localhost:4000/about/">
+    <meta name="keywords" content="">
+    <link rel="canonical" href="http://localhost:4000/2016/04/10/Version-1/">
     <link rel="alternate" type="application/rss+xml" title="RSS Feed for cholla" href="/feed.xml" />
 
     <!-- Custom CSS -->
@@ -26,17 +26,17 @@
     <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
     <meta property="og:locale" content="en_US">
     <meta property="og:type" content="article">
-    <meta property="og:title" content="About Cholla">
+    <meta property="og:title" content="Version 1.0">
     <meta property="og:description" content="A new GPU-based hydro code">
-    <meta property="og:url" content="http://localhost:4000/about/">
+    <meta property="og:url" content="http://localhost:4000/2016/04/10/Version-1/">
     <meta property="og:site_name" content="cholla">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary" />
     
-    <meta name="twitter:title" content="About Cholla" />
-    <meta name="twitter:description" content="A new GPU-based hydro code" />
-    <meta name="twitter:url" content="http://localhost:4000/about/" />
+    <meta name="twitter:title" content="Version 1.0" />
+    <meta name="twitter:description" content="A brief description of features included in Cholla 1.0" />
+    <meta name="twitter:url" content="http://localhost:4000/2016/04/10/Version-1/" />
 
     <!-- Icons -->
     <link rel="apple-touch-icon" sizes="57x57" href="/apple-touch-icon-57x57.png">
@@ -77,19 +77,47 @@
 
     <div class="post p2 p-responsive wrap" role="main">
       <div class="measure">
-        <div class="post">
-  <header class="post-header">
-    <h1 class="h2">About Cholla</h1>
-  </header>
-  <article class="post-content">
-  <p>Cholla (Computational Hydrodynamics On paraLLel Architectures) is a new 3D hydrodynamics code designed to run natively on NVIDIA GPUs. Cholla was written by Evan Schneider at the University of Arizona, with contributions from Brant Robertson.</p>
-
-<p>Checkout the <a href="https://github.com/cholla-hydro/cholla">Github repository</a> to download the code.
-It’s free and open source, distributed under the MIT license (<a href="(https://github.com/cholla-hydro/cholla/blob/master/LICENSE.txt)">MIT</a>.</p>
+        
 
 
-  </article>
+<div class="post-header mb2">
+  <h1>Version 1.0</h1>
+  <span class="post-meta">Apr 10, 2016</span><br>
+  
+  <span class="post-meta small">
+  
+    1 minute read
+  
+  </span>
 </div>
+
+<article class="post-content">
+  <p>Cholla is a 3D hydrodynamics code designed to quickly compute problems
+on very large grids. Features included in the public release of Cholla, version 1.0
+include:</p>
+
+<ul>
+  <li>1, 2, and 3D hydrodynamics</li>
+  <li>Exact and Roe Riemann solvers (with HLL fallback)</li>
+  <li>Piecewise constant, linear, and parabolic interface reconstruction</li>
+  <li>Traditional, CTU, and Van Leer (predictor-corrector) integrators</li>
+  <li>Dual energy formalism</li>
+  <li>H correction to fix carbuncle instabilities</li>
+  <li>Optically thin radiative cooling</li>
+</ul>
+
+<p>Cholla includes a variety of test problems used to confirm the performance
+and accuracy of the code.</p>
+
+</article>
+
+
+
+
+
+
+
+
 
       </div>
     </div>
