@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>cholla</title>
+    <description>A 3D GPU-based hydro code</description>
+    <link>http://localhost:4000/</link>
+    <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
+    
+      <item>
+        <title>Version 1.0</title>
+        <description>&lt;p&gt;Cholla is a 3D hydrodynamics code designed to quickly compute problems
+on very large grids. Features included in the public release of Cholla, version 1.0
+include:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;1, 2, and 3D hydrodynamics&lt;/li&gt;
+  &lt;li&gt;Exact and Roe Riemann solvers (with HLL fallback)&lt;/li&gt;
+  &lt;li&gt;Piecewise constant, linear, and parabolic interface reconstruction&lt;/li&gt;
+  &lt;li&gt;Traditional, CTU, and Van Leer (predictor-corrector) integrators&lt;/li&gt;
+  &lt;li&gt;Dual energy formalism&lt;/li&gt;
+  &lt;li&gt;H correction to fix carbuncle instabilities&lt;/li&gt;
+  &lt;li&gt;Optically thin radiative cooling&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Cholla includes a variety of test problems used to confirm the performance
+and accuracy of the code.&lt;/p&gt;
+</description>
+        <pubDate>Sun, 10 Apr 2016 00:00:00 -0400</pubDate>
+        <link>http://localhost:4000/2016/04/10/Version-1/</link>
+        <guid isPermaLink="true">http://localhost:4000/2016/04/10/Version-1/</guid>
+      </item>
+    
+      <item>
+        <title>Welcome!</title>
+        <description>&lt;p&gt;Welcome to the Cholla development blog!&lt;/p&gt;
+
+&lt;p&gt;Major changes to the stable version of the code will be described here.&lt;/p&gt;
+</description>
+        <pubDate>Tue, 22 Sep 2015 00:00:00 -0400</pubDate>
+        <link>http://localhost:4000/2015/09/22/Welcome/</link>
+        <guid isPermaLink="true">http://localhost:4000/2015/09/22/Welcome/</guid>
+      </item>
+    
+  </channel>
+</rss>
