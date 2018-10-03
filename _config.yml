@@ -1,10 +1,10 @@
 # Site settings
 title:       cholla 
-email:       evanelizabeth88@gmail.com 
+email:       eeschneider26@gmail.com 
 author:      Evan Schneider 
 description: "A new GPU-based hydro code"
-baseurl:     ""
-url:         "http://cholla-hydro.github.io/cholla/"
+baseurl:     "/cholla"
+url:         "http://cholla-hydro.github.io"
 date_format: "%b %-d, %Y"
 
 # Google services
