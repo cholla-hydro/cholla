@@ -1,7 +1,7 @@
 ---
 layout: page
 title: About Cholla 
-permalink: /about/
+permalink: /cholla/about/
 ---
 
 Cholla (Computational Hydrodynamics On paraLLel Architectures) is a new 3D hydrodynamics code designed to run natively on NVIDIA GPUs. Cholla was written by Evan Schneider at the University of Arizona, with contributions from Brant Robertson.
