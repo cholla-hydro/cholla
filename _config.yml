@@ -3,12 +3,12 @@ title:       cholla
 email:       eeschneider26@gmail.com 
 author:      Evan Schneider 
 description: "A 3D GPU-based hydro code"
-baseurl:     "/cholla"
-url:         "http://cholla-hydro.github.io"
+baseurl:     ""
+url:         "http://cholla-hydro.github.io/cholla"
 date_format: "%b %-d, %Y"
 header_pages:
-  - cholla/about
-  - cholla/contact
+  - about.md
+  - contact.html
 
 # Google services
 google_analytics:
