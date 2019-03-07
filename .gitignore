@@ -10,3 +10,7 @@ cholla
 
 ## dropbox file
 .DS_Store
+
+
+## remote_sync
+.remote-sync.json
