@@ -453,6 +453,9 @@ class Grid3D
      *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces, 
         as per the Noh problem in Liska, 2003, or in Stone, 2008. */
     void Noh_Boundary();
+    
+    
+    void Spherical_Overpressure_3D();
 
 
 #ifdef   MPI_CHOLLA
