@@ -308,6 +308,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // free CPU memory
   if (block_tot > 1) free(buffer);
   
+  // Free_Memory_VL_3D();
+  
   // return the maximum inverse timestep
   return max_dti;
 
