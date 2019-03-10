@@ -111,8 +111,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   dim3 dim1dBlock(TPB, 1, 1);
   
   if ( !memory_allocated ){
-    chprintf( " VL_3D: Allocating memory \n");
-    chprintf ( "  N memory blocks gpu: %d\n", block_tot );
 
     // allocate an array on the CPU to hold max_dti returned from each thread block
     host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
@@ -143,8 +141,14 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
     #endif 
     
+    #ifdef SINGLE_ALLOC_GPU
+    chprintf( " VL_3D: Allocating memory \n");
+    chprintf ( "  N memory blocks gpu: %d\n", block_tot );
+    // If memory is single allocated: memory_allocated becomesa true and succesive timesteps won't allocate memory.
+    // If the memory is single not allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    chprintf( " VL_3D: Memory successfully allocated \n"); 
+    chprintf( " VL_3D: Memory successfully allocated \n");
+    #endif 
   }  
 
   // Initialize dt values 
@@ -308,7 +312,10 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // free CPU memory
   if (block_tot > 1) free(buffer);
   
-  // Free_Memory_VL_3D();
+  #ifndef SINGLE_ALLOC_GPU
+  // If memory is not sigle allocated then free the memory evry timestep.
+  Free_Memory_VL_3D();
+  #endif
   
   // return the maximum inverse timestep
   return max_dti;
@@ -346,7 +353,10 @@ void Free_Memory_VL_3D(){
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
   #endif
+  
+  #ifdef SINGLE_ALLOC_GPU
   chprintf( " VL_3D: Memory freed successfully \n");
+  #endif
 }
 
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields)

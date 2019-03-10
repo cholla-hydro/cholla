@@ -504,9 +504,12 @@ void Grid3D::FreeMemory(void)
   free(buffer0);
   free(buffer1);
   
+  #ifdef SINGLE_ALLOC_GPU
+  // If memory is single allocated, free the moemory at the end of the simulation.
   #ifdef VL
   // 3D
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_VL_3D();
+  #endif
   #endif
 
   #ifdef COOLING_GPU
