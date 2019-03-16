@@ -7,11 +7,16 @@ CFILES = $(wildcard $(DIR)/*.c)
 CPPFILES = $(wildcard $(DIR)/*.cpp)
 CUDAFILES = $(wildcard $(DIR)/*.cu)
 
+DIR_GRAV = ./src/gravity
+CFILES_GRAV = $(wildcard $(DIR_GRAV)/*.c)
+CPPFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cpp)
+CUDAFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cu)
 
-OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES))
-COBJS   = $(subst .c,.o,$(CFILES))
-CPPOBJS   = $(subst .cpp,.o,$(CPPFILES))
-CUOBJS   = $(subst .cu,.o,$(CUDAFILES))
+
+OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV))
+COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV))
+CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV))
+CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV))
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -77,7 +82,10 @@ NVINCL = $(INCL) $(CUDA_INCL)
 LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
 
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) $(SINGLE_ALLOC_GPU)#-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
+FLAGS_HYDRO = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) $(SINGLE_ALLOC_GPU)#-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
+FLAGS_GRAVITY = $(GRAVITY)
+# FLAGS_OMP = 
+FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY)
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=$(CC)
