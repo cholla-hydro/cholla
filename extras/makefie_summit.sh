@@ -28,7 +28,7 @@ MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
-  CXX   = mpicxx
+  CXX   = mpiCC
 
   #MPI_FLAGS += -DSLAB
   MPI_FLAGS += -DBLOCK
@@ -51,9 +51,9 @@ OUTPUT = -DHDF5
 
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
-RECONSTRUCTION = -DPLMC
+# RECONSTRUCTION = -DPLMC
 #RECONSTRUCTION = -DPPMP
-#RECONSTRUCTION = -DPPMC
+RECONSTRUCTION = -DPPMC
 
 #SOLVER = -DEXACT
 #SOLVER = -DROE
@@ -77,12 +77,12 @@ N_OMP_THREADS = -DN_OMP_THREADS=10
 
 
 ifdef CUDA
-CUDA_INCL = -I/usr/local/cuda/include
-CUDA_LIBS = -L/usr/local/cuda/lib64 -lcuda -lcudart
+CUDA_INCL = -I$(OLCF_CUDA_ROOT)/include
+CUDA_LIBS = -L$(OLCF_CUDA_ROOT)/lib64 -lcuda -lcudart
 endif
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = -I/usr/include/hdf5/serial/
-HDF5_LIBS = -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -lhdf5
+HDF5_INCL = -I$(OLCF_HDF5_ROOT)/include
+HDF5_LIBS = -L$(OLCF_HDF5_ROOT)/lib -lhdf5
 endif
 
 INCL   = -I./ $(HDF5_INCL)
@@ -96,7 +96,7 @@ FLAGS_OMP = $(PARALLEL_OMP) $(N_OMP_THREADS)
 FLAGS = $(FLAGS_HYDRO) $(FLAGS_GRAVITY) $(FLAGS_OMP) 
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=$(CC)
+NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=gcc -arch=sm_70
 
 
 %.o:	%.c
