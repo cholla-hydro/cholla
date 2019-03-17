@@ -400,9 +400,16 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   //chprintf("Setting indices.\n");
   MPI_Barrier(world);
   n = 0;
-  for(i=0;i<nproc_x;i++)
+  //Gravity: Change the order of MPI processes asigment to match the assigment done by PFFT
+  //Original:
+  // for(i=0;i<nproc_x;i++)
+  //   for(j=0;j<nproc_y;j++)
+  //     for(k=0;k<nproc_z;k++)
+  //
+  
+  for(k=0;k<nproc_z;k++)
     for(j=0;j<nproc_y;j++)
-      for(k=0;k<nproc_z;k++)
+      for(i=0;i<nproc_x;i++)
       {
         ix[n] = i;
         iy[n] = j;
