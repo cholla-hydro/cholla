@@ -11,7 +11,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
   chprintf( "Gravity Successfully Initialized \n\n");
 }
 
-void Grid3D::Compute_Gravitational_Potential(){
+void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   
   Real Grav_Constant = 1;
   
@@ -20,8 +20,16 @@ void Grid3D::Compute_Gravitational_Potential(){
   dens_avrg = 0;
   current_a = 1;
   
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
+  
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
   
+  
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time( 3 );
+  #endif
   
 }
 
