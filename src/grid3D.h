@@ -329,6 +329,10 @@ class Grid3D
     /*! \fn void Update_Grid(void)
      *  \brief Update the conserved quantities in each cell. */
     Real Update_Grid(void);
+    
+    /*! \fn void Update_Hydro_Grid(void)
+     *  \brief Do all steps to update the hydro. */
+    Real Update_Hydro_Grid(void);
 
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
@@ -454,6 +458,10 @@ class Grid3D
     /*! \fn void Set_Boundary_Conditions(parameters P)
      *  \brief Set the boundary conditions based on info in the parameters structure. */
     void Set_Boundary_Conditions(parameters P);
+    
+    /*! \fn void Set_Boundary_Conditions_All(parameters P)
+     *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
+    void Set_Boundary_Conditions_All( parameters P);
 
     /*! \fn int Check_Custom_Boundary(int *flags, struct parameters P)
      *  \brief Check for custom boundary conditions */
@@ -510,7 +518,7 @@ class Grid3D
 
   #ifdef GRAVITY
   void Initialize_Gravity( struct parameters *P );
-  void Compute_Gravitational_Potential();
+  void Compute_Gravitational_Potential( struct parameters *P );
   #endif 
 
 

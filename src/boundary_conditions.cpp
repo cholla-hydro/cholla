@@ -11,6 +11,20 @@
 #include"error_handling.h"
 #include"mpi_routines.h"
 
+/*! \fn void Set_Boundary_Conditions_All(parameters P)
+ *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
+void Grid3D::Set_Boundary_Conditions_All( parameters P){
+  
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif //CPU_TIME
+  Set_Boundary_Conditions(P);
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time( 2 );
+  #endif //CPU_TIME
+  
+  
+}
 
 /*! \fn void Set_Boundary_Conditions(parameters P)
  *  \brief Set the boundary conditions based on info in the parameters structure. */
