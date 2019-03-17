@@ -70,6 +70,9 @@ int main(int argc, char *argv[])
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
+  #ifdef GRAVITY
+  G.Initialize_Gravity(&P);
+  #endif
 
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
