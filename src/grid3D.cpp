@@ -59,6 +59,10 @@ Grid3D::Grid3D(void)
   #ifdef PPMC
   H.n_ghost=4;
   #endif //PPMC
+  
+  #ifdef GRAVITY
+  H.n_ghost_potential_offset = H.n_ghost - N_GHOST_POTENTIAL;
+  #endif
 
 }
 
