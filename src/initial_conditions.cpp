@@ -1053,7 +1053,7 @@ void Grid3D::Spherical_Overdensity_3D()
  center_y = 0.5;
  center_z = 0.5;
  overDensity = 1;
- overPressure = 10;
+ overPressure = 0;
  vx = 0;
  vy = 0;
  vz = 0;
