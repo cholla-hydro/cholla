@@ -43,6 +43,10 @@ typedef double Real;
 #endif
 
 
+#ifdef GRAVITY
+#define N_GHOST_POTENTIAL 2
+#endif
+
 #define SIGN(a) ( ((a) < 0.) ? -1. : 1. )
 
 
