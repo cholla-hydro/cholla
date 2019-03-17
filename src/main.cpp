@@ -150,14 +150,18 @@ int main(int argc, char *argv[])
     #ifdef MPI_CHOLLA
     G.H.dt = ReduceRealMin(G.H.dt);
     #endif
-   
-
+    
+    #ifdef GRAVITY
+    G.set_dt_Gravity();
+    #endif
+    
     // Advance the grid by one timestep
     dti = G.Update_Hydro_Grid();
     
-    // update the time
-    G.H.t += G.H.dt;
+    // update the simulation time ( t += dt )
+    G.Update_Time();
     
+        
     #ifdef GRAVITY
     //Compute Gravitational potential for next step
     G.Compute_Gravitational_Potential( &P);

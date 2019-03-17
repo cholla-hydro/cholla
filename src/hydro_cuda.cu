@@ -198,7 +198,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 {
   int id, xid, yid, zid, n_cells;
   int imo, jmo, kmo;
-  #if defined (DE) || defined(STATIC_GRAV)
+  #if defined (DE) || defined(STATIC_GRAV) || ( defined(GRAVITY) && defined(GRAVITY_COUPLE_GPU) )
   Real d, d_inv, vx, vy, vz;
   #endif
   #ifdef DE
@@ -212,6 +212,22 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
   gy = 0.0;
   gz = 0.0;
   #endif
+  
+  #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_GPU) )
+  Real gx, gy, gz, d_n, d_inv_n, vx_n, vy_n, vz_n;
+  Real pot_l, pot_r;
+  int id_l, id_r;
+  gx = 0.0;
+  gy = 0.0;
+  gz = 0.0;
+  int field_pot;
+
+  #ifdef DE
+  field_pot = n_fields - 2;
+  #else
+  field_pot = n_fields - 1;
+  #endif //DE
+  #endif //GRAVTY
 
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
@@ -230,7 +246,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
   {
-    #if defined (DE) || defined(STATIC_GRAV)
+    #if defined (DE) || defined(STATIC_GRAV) || ( defined(GRAVITY) && defined(GRAVITY_COUPLE_GPU) )
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
@@ -294,7 +310,49 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n)
                                   +  0.25*dt*gy*(d + d_n)*(vy + vy_n)
                                   +  0.25*dt*gz*(d + d_n)*(vz + vz_n);
-    #endif    
+    #endif
+    
+    #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_GPU) )
+    d_n  =  dev_conserved[            id];
+    d_inv_n = 1.0 / d_n;
+    vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
+    vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
+    vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
+    
+    // Calculate the -gradient of potential
+    // Get X componet of gravity field
+    id_l = (xid-1) + (yid)*nx + (zid)*nx*ny;
+    id_r = (xid+1) + (yid)*nx + (zid)*nx*ny;
+    pot_l = dev_conserved[field_pot*n_cells + id_l];
+    pot_r = dev_conserved[field_pot*n_cells + id_r];
+    gx = -0.5*( pot_r - pot_l ) / dx;
+    
+    //Get Y componet of gravity field
+    id_l = (xid) + (yid-1)*nx + (zid)*nx*ny;
+    id_r = (xid) + (yid+1)*nx + (zid)*nx*ny;
+    pot_l = dev_conserved[field_pot*n_cells + id_l];
+    pot_r = dev_conserved[field_pot*n_cells + id_r];
+    gy = -0.5*( pot_r - pot_l ) / dy;
+    
+    //Get Z componet of gravity field
+    id_l = (xid) + (yid)*nx + (zid-1)*nx*ny;
+    id_r = (xid) + (yid)*nx + (zid+1)*nx*ny;
+    pot_l = dev_conserved[field_pot*n_cells + id_l];
+    pot_r = dev_conserved[field_pot*n_cells + id_r];
+    gz = -0.5*( pot_r - pot_l ) / dz;
+    // 
+    dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
+    dev_conserved[2*n_cells + id] += 0.5*dt*gy*(d + d_n);
+    dev_conserved[3*n_cells + id] += 0.5*dt*gz*(d + d_n);
+    
+    dev_conserved[4*n_cells + id] += 0.5* dt * ( gx*(d*vx + d_n*vx_n) +  gy*(d*vy + d_n*vy_n) +  gz*(d*vz + d_n*vz_n) );
+    
+    
+    
+    #endif
+    
+    
+        
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id] || dev_conserved[4*n_cells + id] < 0.0 || dev_conserved[4*n_cells+id] != dev_conserved[4*n_cells+id]) {
       printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid+x_off, yid+y_off, zid+z_off, dev_conserved[id], dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[4*n_cells+id]);
     }

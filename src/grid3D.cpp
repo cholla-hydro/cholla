@@ -523,6 +523,11 @@ Real Grid3D::Update_Hydro_Grid( ){
   Timer.Start_Timer();
   #endif //CPU_TIME
   
+  #ifdef GRAVITY
+  // Extrapolate gravitational potential for hydro step
+  Extrapolate_Grav_Potential();
+  #endif
+  
   dti = Update_Grid();
   
   #ifdef CPU_TIME
@@ -533,6 +538,11 @@ Real Grid3D::Update_Hydro_Grid( ){
   return dti;
 }
 
+void Grid3D::Update_Time(){
+  
+  // update the time
+  H.t += H.dt;
+}
 
 /*! \fn void Reset(void)
  *  \brief Reset the Grid3D class. */

@@ -321,6 +321,12 @@ class Grid3D
     /*! \fn void set_dt(Real dti)
      *  \brief Calculate the timestep. */
     void set_dt(Real dti);
+    
+    #ifdef GRAVITY
+    /*! \fn void set_dt(Real dti)
+     *  \brief Calculate the timestep for Gravity. */
+    void set_dt_Gravity();
+    #endif
 
     /*! \fn Real calc_dti_CPU()
      *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */ 
@@ -333,6 +339,8 @@ class Grid3D
     /*! \fn void Update_Hydro_Grid(void)
      *  \brief Do all steps to update the hydro. */
     Real Update_Hydro_Grid(void);
+    
+    void Update_Time();
 
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
@@ -519,6 +527,12 @@ class Grid3D
   #ifdef GRAVITY
   void Initialize_Gravity( struct parameters *P );
   void Compute_Gravitational_Potential( struct parameters *P );
+  void Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end);
+  void Copy_Hydro_Density_to_Gravity();
+  void Copy_Potential_to_Hydro_Grid_Function( int g_start, int g_end ); 
+  void Copy_Potential_to_Hydro_Grid();
+  void Extrapolate_Grav_Potential_Function( int g_start, int g_end );
+  void Extrapolate_Grav_Potential();
   #endif 
 
 
