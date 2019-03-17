@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   //while (G.H.n_step < 1)
   {
-
+    chprintf("n_step: %d \n", G.H.n_step + 1 );
     // get the start time
     start_step = get_time();
     
@@ -149,21 +149,8 @@ int main(int argc, char *argv[])
    
 
     // Advance the grid by one timestep
-    #ifdef CPU_TIME
-    start_hydro = get_time();
-    #endif //CPU_TIME
-    dti = G.Update_Grid();
-    #ifdef CPU_TIME
-    stop_hydro = get_time();
-    hydro = stop_hydro - start_hydro;
-    #ifdef MPI_CHOLLA
-    hydro_min = ReduceRealMin(hydro);
-    hydro_max = ReduceRealMax(hydro);
-    hydro_avg = ReduceRealAvg(hydro);
-    #endif //MPI_CHOLLA
-    #endif //CPU_TIME
-    //printf("%d After Grid Update: %f %f\n", procID, G.H.dt, dti);
-
+    dti = G.Update_Hydro_Grid();
+    
     // update the time
     G.H.t += G.H.dt;
 
@@ -171,26 +158,12 @@ int main(int argc, char *argv[])
     G.H.n_step++;
 
     // set boundary conditions for next time step 
-    #ifdef CPU_TIME
-    start_bound = get_time();
-    #endif //CPU_TIME
-    G.Set_Boundary_Conditions(P);
-    #ifdef CPU_TIME
-    stop_bound = get_time();
-    bound = stop_bound - start_bound;
-    #ifdef MPI_CHOLLA
-    bound_min = ReduceRealMin(bound);
-    bound_max = ReduceRealMax(bound);
-    bound_avg = ReduceRealAvg(bound);
-    #endif //MPI_CHOLLA
-    #endif //CPU_TIME
+    G.Set_Boundary_Conditions_All(P);
 
+    
     #ifdef CPU_TIME
-    #ifdef MPI_CHOLLA
-    chprintf("hydro min: %9.4f  max: %9.4f  avg: %9.4f\n", hydro_min, hydro_max, hydro_avg);
-    chprintf("bound min: %9.4f  max: %9.4f  avg: %9.4f\n", bound_min, bound_max, bound_avg);
-    #endif //MPI_CHOLLA
-    #endif //CPU_TIME
+    G.Timer.Print_Times();
+    #endif
 
 
     // get the time to compute the total timestep
@@ -200,7 +173,7 @@ int main(int argc, char *argv[])
     #ifdef MPI_CHOLLA
     G.H.t_wall = ReduceRealMax(G.H.t_wall);
     #endif 
-    chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n", 
+    chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n\n", 
       G.H.n_step, G.H.t, G.H.dt, (stop_step-start_step)*1000, G.H.t_wall);
 
     if (G.H.t == outtime)
