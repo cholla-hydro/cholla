@@ -88,8 +88,12 @@ int main(int argc, char *argv[])
   
   #ifdef GRAVITY
   G.Initialize_Gravity(&P);
-  G.Compute_Gravitational_Potential();
   #endif
+
+  #ifdef GRAVITY
+  G.Compute_Gravitational_Potential( &P);
+  #endif
+
 
   // set boundary conditions (assign appropriate values to ghost cells)
   chprintf("Setting boundary conditions...\n");
@@ -153,6 +157,11 @@ int main(int argc, char *argv[])
     
     // update the time
     G.H.t += G.H.dt;
+    
+    #ifdef GRAVITY
+    //Compute Gravitational potential for next step
+    G.Compute_Gravitational_Potential( &P);
+    #endif
 
     // add one to the timestep count
     G.H.n_step++;
