@@ -227,6 +227,10 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
   #else
   field_pot = n_fields - 1;
   #endif //DE
+  
+  #ifdef COUPLE_DELTA_E_KINETIC
+  Real Ekin_0, Ekin_1;
+  #endif//COUPLE_DELTA_E_KINETIC
   #endif //GRAVTY
 
   Real dtodx = dt/dx;
@@ -319,6 +323,10 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
     vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
     
+    #ifdef COUPLE_DELTA_E_KINETIC
+    Ekin_0 = 0.5 * d_n * ( vx_n*vx_n + vy_n*vy_n + vz_n*vz_n );
+    #endif
+    
     // Calculate the -gradient of potential
     // Get X componet of gravity field
     id_l = (xid-1) + (yid)*nx + (zid)*nx*ny;
@@ -340,13 +348,23 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     pot_l = dev_conserved[field_pot*n_cells + id_l];
     pot_r = dev_conserved[field_pot*n_cells + id_r];
     gz = -0.5*( pot_r - pot_l ) / dz;
-    // 
+    
+    
     dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
     dev_conserved[2*n_cells + id] += 0.5*dt*gy*(d + d_n);
     dev_conserved[3*n_cells + id] += 0.5*dt*gz*(d + d_n);
     
+    #ifdef COUPLE_GRAVITATIONAL_WORK
     dev_conserved[4*n_cells + id] += 0.5* dt * ( gx*(d*vx + d_n*vx_n) +  gy*(d*vy + d_n*vy_n) +  gz*(d*vz + d_n*vz_n) );
+    #endif
     
+    #ifdef COUPLE_DELTA_E_KINETIC
+    vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
+    vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
+    vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
+    Ekin_1 = 0.5 * d_n * ( vx_n*vx_n + vy_n*vy_n + vz_n*vz_n );
+    dev_conserved[4*n_cells + id] += Ekin_1 - Ekin_0;
+    #endif
     
     
     #endif
