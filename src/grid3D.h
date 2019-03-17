@@ -493,6 +493,7 @@ class Grid3D
 
   #ifdef GRAVITY
   void Initialize_Gravity( struct parameters *P );
+  void Compute_Gravitational_Potential();
   #endif 
 
 
