@@ -82,6 +82,10 @@ int main(int argc, char *argv[])
     nfile = P.nfile*P.nfull;
   }
   
+  #ifdef CPU_TIME
+  G.Timer.Initialize();
+  #endif
+  
   #ifdef GRAVITY
   G.Initialize_Gravity(&P);
   G.Compute_Gravitational_Potential();

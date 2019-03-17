@@ -19,6 +19,10 @@
 #include"gravity/grav3D.h"
 #endif
 
+#ifdef CPU_TIME
+#include "timing_functions.h"
+#endif
+
 struct Rotation
 {
   /*! \var nx
@@ -237,6 +241,10 @@ class Grid3D
     #ifdef GRAVITY
     // Object that contains data for gravity
     Grav3D Grav;
+    #endif
+    
+    #ifdef CPU_TIME
+    Time Timer;
     #endif
 
     struct Conserved
