@@ -4,6 +4,10 @@
 #include<stdio.h>
 #include"../global.h"
 
+#ifdef PFFT
+#include"potential_PFFT_3D.h"
+#endif
+
 
 #ifdef HDF5
 #include<hdf5.h>
@@ -72,6 +76,10 @@ class Grav3D
   Real Gconst;
 
   bool TRANSFER_POTENTIAL_BOUNDARIES;
+  
+  #ifdef PFFT
+  Potential_PFFT_3D Poisson_solver;
+  #endif
 
   struct Fields
   {
