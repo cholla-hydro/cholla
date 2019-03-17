@@ -513,6 +513,26 @@ Real Grid3D::Update_Grid(void)
 
 }
 
+/*! \fn void Update_Hydro_Grid(void)
+ *  \brief Do all steps to update the hydro. */
+Real Grid3D::Update_Hydro_Grid( ){
+  
+  Real dti;
+  
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif //CPU_TIME
+  
+  dti = Update_Grid();
+  
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time( 1 );
+  #endif //CPU_TIME
+  
+  
+  return dti;
+}
+
 
 /*! \fn void Reset(void)
  *  \brief Reset the Grid3D class. */
