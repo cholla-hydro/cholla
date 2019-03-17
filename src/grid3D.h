@@ -456,6 +456,8 @@ class Grid3D
     
     
     void Spherical_Overpressure_3D();
+    
+    void Spherical_Overdensity_3D();
 
 
 #ifdef   MPI_CHOLLA
