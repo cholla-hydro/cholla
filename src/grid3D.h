@@ -200,6 +200,9 @@ struct Header
   *  \brief Number of fields (conserved variables, scalars, etc.) */
   int n_fields;
   
+  //Flag to indicate when to transfer the Conserved boundaries
+  bool TRANSFER_HYDRO_BOUNDARIES;
+  
   #ifdef GRAVITY
   /*! \var n_ghost_potential_offset
   *  \brief Number of offset betewen hydro_ghost_cells and potential_ghost_cells */

@@ -15,10 +15,14 @@
  *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
 void Grid3D::Set_Boundary_Conditions_All( parameters P){
   
+  
+  // Transfer Hydro Conserved boundaries 
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif //CPU_TIME
+  H.TRANSFER_HYDRO_BOUNDARIES = true;
   Set_Boundary_Conditions(P);
+  H.TRANSFER_HYDRO_BOUNDARIES = false;
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 2 );
   #endif //CPU_TIME
