@@ -95,11 +95,11 @@ class Grav3D
      *  \brief Array containing the gravitational potential of each cell in the grid */
     Real *potential_1_h;
 
-    #ifdef GRAVITY_CPU
+    #ifdef GRAVITY_COUPLE_CPU
     Real *gravity_x_h;
     Real *gravity_y_h;
     Real *gravity_z_h;
-    #endif //GRAVITY_CPU
+    #endif //GRAVITY_COUPLE_CPU
 
   } F;
   

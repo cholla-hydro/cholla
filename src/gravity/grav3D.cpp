@@ -73,7 +73,7 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
   chprintf("  N OMP Threads per MPI process: %d\n", N_OMP_THREADS);
   #endif
   
-  #ifdef GRAVITY_CPU
+  #ifdef GRAVITY_COUPLE_CPU
   chprintf(" Gravity-Hydro coupling in CPU\n");
   #endif
   
@@ -89,11 +89,11 @@ void Grav3D::AllocateMemory_CPU(void)
   F.potential_h  = (Real *) malloc(n_cells_potential*sizeof(Real));
   F.potential_1_h  = (Real *) malloc(n_cells_potential*sizeof(Real));
 
-  #ifdef GRAVITY_CPU
+  #ifdef GRAVITY_COUPLE_CPU
   F.gravity_x_h  = (Real *) malloc(n_cells*sizeof(Real));
   F.gravity_y_h  = (Real *) malloc(n_cells*sizeof(Real));
   F.gravity_z_h  = (Real *) malloc(n_cells*sizeof(Real));
-  #endif //GRAVITY_CPU
+  #endif //GRAVITY_COUPLE_CPU
 }
 
 
@@ -101,11 +101,11 @@ void Grav3D::Initialize_values_CPU(void){
 
   for (int id=0; id<n_cells; id++){
     F.density_h[id] = 0;
-    #ifdef GRAVITY_CPU
+    #ifdef GRAVITY_COUPLE_CPU
     F.gravity_x_h[id] = 0;
     F.gravity_y_h[id] = 0;
     F.gravity_z_h[id] = 0;
-    #endif //GRAVITY_CPU
+    #endif //GRAVITY_COUPLE_CPU
   }
 
   for (int id_pot=0; id_pot<n_cells_potential; id_pot++){
@@ -120,11 +120,11 @@ void Grav3D::FreeMemory_CPU(void)
   free(F.potential_h);
   free(F.potential_1_h);
 
-  #ifdef GRAVITY_CPU
+  #ifdef GRAVITY_COUPLE_CPU
   free(F.gravity_x_h);
   free(F.gravity_y_h);
   free(F.gravity_z_h);
-  #endif //GRAVITY_CPU
+  #endif //GRAVITY_COUPLE_CPU
   
   #ifdef PFFT
   Poisson_solver.Reset();
