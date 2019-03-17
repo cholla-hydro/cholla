@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
   // set boundary conditions (assign appropriate values to ghost cells)
   chprintf("Setting boundary conditions...\n");
-  G.Set_Boundary_Conditions(P);
+  G.Set_Boundary_Conditions_All(P);
   chprintf("Boundary conditions set.\n");  
 
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
