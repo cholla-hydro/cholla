@@ -101,6 +101,13 @@ void Grid3D::Initialize(struct parameters *P)
   #ifdef SCALAR
   H.n_fields += NSCALARS;
   #endif
+  
+  // if using Gravity on the GPU we must track potential on the GPU
+  #ifdef GRAVITY
+  #ifdef GRAVITY_COUPLE_GPU
+  H.n_fields++;
+  #endif
+  #endif
 
   // if using dual energy formalism must track internal energy - always the last field!
   #ifdef DE
@@ -234,6 +241,16 @@ void Grid3D::AllocateMemory(void)
   #ifdef DE
   C.GasEnergy = &(buffer0[(H.n_fields-1)*H.n_cells]);
   #endif
+  
+  #ifdef GRAVITY
+  #ifdef GRAVITY_COUPLE_GPU
+  #ifdef DE
+  C.Grav_potential = &(buffer0[(H.n_fields-2)*H.n_cells]);
+  #else
+  C.Grav_potential = &(buffer0[(H.n_fields-1)*H.n_cells]);
+  #endif//DE
+  #endif//GRAVITY_COUPLE_GPU
+  #endif//GRAVITY
 
   // initialize array
   for (int i=0; i<H.n_fields*H.n_cells; i++)
@@ -477,6 +494,16 @@ Real Grid3D::Update_Grid(void)
   #endif
   #ifdef DE
   C.GasEnergy = &g1[(H.n_fields-1)*H.n_cells];
+  #endif
+  
+  #ifdef GRAVITY
+  #ifdef GRAVITY_COUPLE_GPU
+  #ifdef DE
+  C.Grav_potential = &g1[(H.n_fields-2)*H.n_cells];
+  #else
+  C.Grav_potential = &g1[(H.n_fields-1)*H.n_cells];
+  #endif
+  #endif
   #endif
 
   // reset the grid flag to swap buffers

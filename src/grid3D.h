@@ -273,6 +273,15 @@ class Grid3D
        *  \brief Array containing the values of the passive scalar variable(s). */
       Real *scalar;
       #endif
+      
+      #ifdef GRAVITY
+      #ifdef GRAVITY_COUPLE_GPU
+      /*! \var Grav_potential
+       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using
+            GRAVITY. */
+      Real *Grav_potential;
+      #endif
+      #endif
 
     } C;
 
