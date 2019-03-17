@@ -89,6 +89,15 @@ INCL   = -I./ $(HDF5_INCL)
 NVINCL = $(INCL) $(CUDA_INCL)
 LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
+ifeq ($(POISSON_SOLVER),-DPFFT)
+FFTW_INCL = -I/home/bruno/apps/fftw-3.3.5/include
+FFTW_LIBS = -L/home/bruno/apps/fftw-3.3.5/lib -lfftw3
+PFFT_INCL = -I/home/bruno/apps/pfft-1.0.8-alpha/include
+PFFT_LIBS = -L/home/bruno/apps/pfft-1.0.8-alpha/lib  -lpfft  -lfftw3_mpi -lfftw3
+INCL += $(FFTW_INCL) $(PFFT_INCL)
+LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
+endif
+
 
 FLAGS_HYDRO = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) $(SINGLE_ALLOC_GPU)#-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
 FLAGS_GRAVITY = $(GRAVITY) $(POISSON_SOLVER)
