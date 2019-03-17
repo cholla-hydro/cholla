@@ -515,6 +515,10 @@ void Grid3D::FreeMemory(void)
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_VL_3D();
   #endif
   #endif
+  
+  #ifdef GRAVITY
+  Grav.FreeMemory_CPU();
+  #endif
 
   #ifdef COOLING_GPU
   #ifdef CLOUDY_COOL
