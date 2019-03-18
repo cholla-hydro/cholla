@@ -601,6 +601,8 @@ class Grid3D
   void Write_Particles_Data_HDF5( hid_t file_id);
   void Load_Particles_Data_HDF5(hid_t file_id, int nfile);
   #endif//HDF5
+  void Get_Gravity_Field_Particles_function( int g_start, int g_end );
+  void Get_Gravity_Field_Particles();
   #endif//PARTICLES
   
 };
