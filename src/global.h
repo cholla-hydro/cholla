@@ -57,6 +57,12 @@ typedef int part_int_t
 #include <vector>
 typedef std::vector<Real> real_vector_t;
 typedef std::vector<part_int_t> int_vector_t;
+#ifdef MPI_CHOLLA
+// Constants for the inital size of the buffers for particles transfer
+// and the number of data transfered for each particle
+extern int N_PARTICLES_TRANSFER;
+extern int N_DATA_PER_PARTICLE_TRANSFER;
+#endif//MPI_CHOLLA
 #endif//PARTICLES
 
 #define SIGN(a) ( ((a) < 0.) ? -1. : 1. )

@@ -15,6 +15,15 @@
 Real gama; // Ratio of specific heats
 Real C_cfl; // CFL number
 
+#ifdef PARTICLES
+#ifdef MPI_CHOLLA
+// Constants for the inital size of the buffers for particles transfer
+// and the number of data transfered for each particle
+int N_PARTICLES_TRANSFER;
+int N_DATA_PER_PARTICLE_TRANSFER;
+#endif
+#endif
+
 
 /*! \fn void Set_Gammas(Real gamma_in)
  *  \brief Set gamma values for Riemann solver */
