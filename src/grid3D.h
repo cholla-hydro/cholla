@@ -337,6 +337,18 @@ class Grid3D
      *  \brief Calculate the timestep for Gravity. */
     void set_dt_Gravity();
     #endif
+    
+    /*! \fn Real calc_dti_CPU_1D()
+     *  \brief Calculate the maximum inverse timestep on 1D, according to the CFL condition (Toro 6.17). */
+    Real calc_dti_CPU_1D();
+    
+    /*! \fn Real calc_dti_CPU_2D()
+     *  \brief Calculate the maximum inverse timestep on 2D, according to the CFL condition (Toro 6.17). */
+    Real calc_dti_CPU_2D();
+    
+    /*! \fn Real calc_dti_CPU_3D()
+     *  \brief Calculate the maximum inverse timestep on 3D, according to the CFL condition (Toro 6.17). */
+    Real calc_dti_CPU_3D();
 
     /*! \fn Real calc_dti_CPU()
      *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */ 
