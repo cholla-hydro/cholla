@@ -275,6 +275,18 @@ void Grid3D::AllocateMemory(void)
  void Grid3D::set_dt(Real dti)
 {
   Real max_dti;
+  
+  #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
+  // When gravity is coupled to hydro on the cpu, dt must be computed on the cpu.
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
+  max_dti = calc_dti_CPU();
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time(0);
+  #endif
+  
+  #else //GRAVITY_COUPLE_CPU
 
   if (H.n_step == 0) {
     max_dti = calc_dti_CPU();
@@ -287,6 +299,8 @@ void Grid3D::AllocateMemory(void)
     max_dti = dti;
     #endif /*CUDA*/
   }
+  
+  #endif //GRAVITY_COUPLE_CPU
 
   #ifdef MPI_CHOLLA
   max_dti = ReduceRealMax(max_dti);
