@@ -34,7 +34,7 @@ void Time::Initialize(){
   #endif
   #endif
 
-  chprintf( "\nTiming Functions is ON \n\n");
+  chprintf( "\nTiming Functions is ON \n");
 }
 
 
