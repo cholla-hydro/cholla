@@ -25,7 +25,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   current_a = 1;
   
   #ifdef PARTICLES
-  Copy_Particles_Density_to_Gravity();
+  Copy_Particles_Density_to_Gravity( *P);
   #endif
   
   

@@ -12,31 +12,36 @@
 #include"../parallel_omp.h"
 #endif
 
-void Grid3D::Copy_Particles_Density_to_Gravity(){
+void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
   
   // Step 1: Get Partcles Density
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
-  
   Particles.Clear_Density();
-  
   #ifdef PARALLEL_OMP
   Particles.Get_Density_CIC_OMP();
   #else
   Particles.Get_Density_CIC_Serial();
   #endif
-  
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 4 );
   #endif
   
+  
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
   // Step 2: Transfer Particles CIC density Boundaries
+  Transfer_Particles_Density_Boundaries(P);
   
   
   
   //Step 3: Copy Particles density to Gravity array
   
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time( 5 );
+  #endif
   
   
 }
