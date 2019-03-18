@@ -593,6 +593,14 @@ class Grid3D
   void Transfer_Particles_Density_Boundaries_MPI( struct parameters P );
   #endif//MPI_CHOLLA
   void Transfer_Particles_Density_Boundaries( struct parameters P );
+  void WriteData_Particles(  struct parameters P, int nfile);
+  void OutputData_Particles(  struct parameters P, int nfile);
+  void Load_Particles_Data(  struct parameters P);
+  #ifdef HDF5
+  void Write_Particles_Header_HDF5( hid_t file_id);
+  void Write_Particles_Data_HDF5( hid_t file_id);
+  void Load_Particles_Data_HDF5(hid_t file_id, int nfile);
+  #endif//HDF5
   #endif//PARTICLES
   
 };

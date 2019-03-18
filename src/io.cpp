@@ -31,6 +31,10 @@ void WriteData(Grid3D G, struct parameters P, int nfile)
   #ifdef SLICES
   OutputSlices(G,P,nfile);
   #endif /*SLICES*/
+  
+  #ifdef PARTICLES
+  G.WriteData_Particles( P, nfile );
+  #endif
 }
 
 
