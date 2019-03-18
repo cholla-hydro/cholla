@@ -53,6 +53,10 @@ typedef long int part_int_t;
 #else
 typedef int part_int_t
 #endif//PARTICLES_LONG_INTS
+
+#include <vector>
+typedef std::vector<Real> real_vector_t;
+typedef std::vector<part_int_t> int_vector_t;
 #endif//PARTICLES
 
 #define SIGN(a) ( ((a) < 0.) ? -1. : 1. )
