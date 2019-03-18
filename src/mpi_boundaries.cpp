@@ -467,10 +467,10 @@ int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buf
 
   int i, j, k, indx, indx_buff, length;
   int nGHST, nx_g, ny_g, nz_g;
+  nGHST = N_GHOST_POTENTIAL;
   nx_g = Grav.nx_local + 2*nGHST;
   ny_g = Grav.ny_local + 2*nGHST;
   nz_g = Grav.nz_local + 2*nGHST;
-  nGHST = N_GHOST_POTENTIAL;
   
   //Load X boundaries
   if (direction == 0){
