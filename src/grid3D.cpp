@@ -34,6 +34,10 @@
 #include "cooling_wrapper.h"
 #endif
 
+#ifdef PARALLEL_OMP
+#include"parallel_omp.h"
+#endif
+
 
 
 /*! \fn Grid3D(void)
@@ -372,16 +376,16 @@ Real Grid3D::calc_dti_CPU_2D(){
   return max_dti;  
 }
 
-/*! \fn Real calc_dti_CPU_3D()
- *  \brief Calculate the maximum inverse timestep on 3D, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU_3D(){
+/*! \fn Real calc_dti_CPU_3D_function()
+ *  \brief Calculate the maximum inverse timestep on 3D using openMP, according to the CFL condition (Toro 6.17). */
+Real Grid3D::calc_dti_CPU_3D_function( int g_start, int g_end ){
   int i, j, k, id;
   Real d_inv, vx, vy, vz, P, cs;
   Real max_vx, max_vy, max_vz;
   Real max_dti = 0.0;
   max_vx = max_vy = max_vz = 0.0;
   // Find the maximum wave speed in the grid
-  for (k=0; k<H.nz_real; k++) {
+  for (k=g_start; k<g_end; k++) {
     for (j=0; j<H.ny_real; j++) {
       for (i=0; i<H.nx_real; i++) {
         id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
@@ -405,7 +409,40 @@ Real Grid3D::calc_dti_CPU_3D(){
   return max_dti;
 }
 
+/*! \fn Real calc_dti_CPU_3D()
+ *  \brief Calculate the maximum inverse timestep on 3D, according to the CFL condition (Toro 6.17). */
+Real Grid3D::calc_dti_CPU_3D(){
+  
+  Real max_dti;
+  
+  #ifndef PARALLEL_OMP
+  max_dti = calc_dti_CPU_3D_function( 0, H.nz_real );
+  #else
+  
+  max_dti = 0;
+  Real max_dti_all[N_OMP_THREADS];
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
 
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Grid_Indxs( H.nz_real, n_omp_procs, omp_id, &g_start, &g_end  );
+    max_dti_all[omp_id] = calc_dti_CPU_3D_function( g_start, g_end );
+
+  }
+  
+  for ( int i=0; i<N_OMP_THREADS; i++ ){
+    max_dti = fmax( max_dti, max_dti_all[i]);
+  }
+  
+  #endif //PARALLEL_OMP
+  
+  return max_dti;
+
+
+}
 
 /*! \fn Real calc_dti_CPU()
  *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */

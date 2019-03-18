@@ -345,7 +345,11 @@ class Grid3D
     /*! \fn Real calc_dti_CPU_2D()
      *  \brief Calculate the maximum inverse timestep on 2D, according to the CFL condition (Toro 6.17). */
     Real calc_dti_CPU_2D();
-    
+
+    /*! \fn Real calc_dti_CPU_3D_function()
+     *  \brief Calculate the maximum inverse timestep on 3D using openMP, according to the CFL condition (Toro 6.17). */
+    Real calc_dti_CPU_3D_function( int g_start, int g_end );
+        
     /*! \fn Real calc_dti_CPU_3D()
      *  \brief Calculate the maximum inverse timestep on 3D, according to the CFL condition (Toro 6.17). */
     Real calc_dti_CPU_3D();
