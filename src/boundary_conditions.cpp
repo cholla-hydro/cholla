@@ -26,6 +26,20 @@ void Grid3D::Set_Boundary_Conditions_All( parameters P){
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 2 );
   #endif //CPU_TIME
+
+  // If the potential cuople is on the CPU, the potential is not in the Conserved arrays,
+  // and its boundaries need to be transfered separately
+  #ifdef GRAVITY_COUPLE_CPU
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
+  Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
+  Set_Boundary_Conditions(P);
+  Grav.TRANSFER_POTENTIAL_BOUNDARIES = false;
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time( 9 );
+  #endif
+  #endif
   
   
 }
