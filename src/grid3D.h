@@ -603,6 +603,8 @@ class Grid3D
   #endif//HDF5
   void Get_Gravity_Field_Particles_function( int g_start, int g_end );
   void Get_Gravity_Field_Particles();
+  void Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end );
+  void Get_Gravity_CIC();
   #endif//PARTICLES
   
 };
