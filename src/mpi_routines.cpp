@@ -21,6 +21,10 @@ MPI_Comm node;  /*global communicator*/
 
 MPI_Datatype MPI_CHREAL; /*set equal to MPI_FLOAT or MPI_DOUBLE*/
 
+#ifdef PARTICLES
+MPI_Datatype MPI_PART_INT; /*set equal to MPI_INT or MPI_LONG*/
+#endif
+
 //MPI_Requests for nonblocking comm
 MPI_Request *send_request;
 MPI_Request *recv_request;
@@ -652,6 +656,23 @@ Real ReduceRealAvg(Real x)
   return y;
 }
 
+#ifdef PARTICLES
+/* MPI reduction wrapper for sum(part_int)*/
+Real ReducePartIntSum(part_int_t x)
+{
+  part_int_t in = x;
+  part_int_t out;
+  part_int_t y;
+
+  #ifdef LONG_INTS
+  MPI_Allreduce(&in, &out, 1, MPI_LONG, MPI_SUM, world);
+  #else
+  MPI_Allreduce(&in, &out, 1, MPI_INT, MPI_SUM, world);
+  #endif
+  y = (part_int_t) out ;
+  return y;
+}
+#endif
 
 
 /* Set the domain properties */

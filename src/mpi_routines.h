@@ -23,6 +23,10 @@ extern MPI_Comm node;	/*communicator for each node*/
 
 extern MPI_Datatype MPI_CHREAL; /*data type describing float precision*/
 
+#ifdef PARTICLES
+extern MPI_Datatype MPI_PART_INT; /*data type describing interger for particles precision*/
+#endif
+
 //extern MPI_Request send_request[6];
 //extern MPI_Request recv_request[6];
 extern MPI_Request *send_request;
@@ -106,6 +110,11 @@ Real ReduceRealMin(Real x);
 
 /* MPI reduction wrapper for avg(Real)*/
 Real ReduceRealAvg(Real x);
+
+#ifdef PARTICLES
+/* MPI reduction wrapper for sum(part_int)*/
+Real ReducePartIntSum(part_int_t x);
+#endif
 
 /* Set the domain properties */
 void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, Real xlen_global, Real ylen_global, Real zlen_global, struct Header *H);
