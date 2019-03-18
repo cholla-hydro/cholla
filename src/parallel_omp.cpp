@@ -23,6 +23,29 @@ void Get_OMP_Grid_Indxs(  int n_grid_cells, int n_omp_procs, int omp_proc_id, in
   
 }
 
+#ifdef PARTICLES
+void Get_OMP_Particles_Indxs( part_int_t n_parts_local, int n_omp_procs, int omp_proc_id, part_int_t *omp_pIndx_start, part_int_t *omp_pIndx_end ){
+  
+  part_int_t n_parts_omp, parts_reminder, p_start, p_end;
+
+  parts_reminder = n_parts_local % n_omp_procs;
+  n_parts_omp = n_parts_local / n_omp_procs;
+  
+  p_start = 0;
+  int counter = 0;
+  while ( counter < omp_proc_id ){
+    p_start += n_parts_omp;
+    if ( counter < parts_reminder ) p_start += 1;
+    counter += 1;
+  }
+  p_end = p_start + n_parts_omp;
+  if ( omp_proc_id < parts_reminder ) p_end += 1;
+  
+  *omp_pIndx_start = p_start;
+  *omp_pIndx_end = p_end;
+  
+}
+#endif
 
 
 
