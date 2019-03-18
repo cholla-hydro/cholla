@@ -533,6 +533,10 @@ Real Grid3D::Update_Hydro_Grid( ){
   
   dti = Update_Grid();
   
+  #if defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU)
+  Get_Gravitational_Field();
+  #endif
+  
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 1 );
   #endif //CPU_TIME

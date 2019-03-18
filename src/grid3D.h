@@ -544,7 +544,12 @@ class Grid3D
   void Extrapolate_Grav_Potential();
   int Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Unload_Gravity_Potential_from_Buffer( int direction, int side, Real *buffer, int buffer_start  );
-  #endif 
+  #ifdef GRAVITY_COUPLE_CPU
+  void Get_Gravitational_Field_Function( int g_start, int g_end );
+  void Get_Gravitational_Field();
+  
+  #endif//GRAVITY_COUPLE_CPU
+  #endif//GRAVITY 
 
 
 

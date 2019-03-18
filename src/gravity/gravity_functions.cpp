@@ -213,10 +213,89 @@ void Grid3D::set_dt_Gravity(){
     Grav.dt_prev = Grav.dt_now;
     Grav.dt_now = H.dt;
   }
-  
-  
-  
 }
 
+#ifdef GRAVITY_COUPLE_CPU
+void Grid3D::Get_Gravitational_Field_Function( int g_start, int g_end ){
+  
+  int nx_grav, ny_grav, nz_grav;
+  nx_grav = Grav.nx_local;
+  ny_grav = Grav.ny_local;
+  nz_grav = Grav.nz_local;
+  
+  Real *potential = Grav.F.potential_h;
+  int nGHST = N_GHOST_POTENTIAL;
+  int nx_pot = Grav.nx_local + 2*nGHST;
+  int ny_pot = Grav.ny_local + 2*nGHST;
+  int nz_pot = Grav.nz_local + 2*nGHST;
+  
+  Real dx, dy, dz;
+  dx = Grav.dx;
+  dy = Grav.dy;
+  dz = Grav.dz;
+  
+  Real phi_l, phi_r;
+  int k, j, i, id_l, id_r, id;
+  for ( k=g_start; k<g_end; k++ ){
+    for ( j=0; j<ny_grav; j++ ){
+      for ( i=0; i<nx_grav; i++ ){
+        id   = (i) + (j)*nx_grav + (k)*ny_grav*nx_grav;
+        id_l = (i-1 + nGHST) + (j + nGHST)*nx_pot + (k + nGHST)*ny_pot*nx_pot;
+        id_r = (i+1 + nGHST) + (j + nGHST)*nx_pot + (k + nGHST)*ny_pot*nx_pot;
+        phi_l = potential[id_l];
+        phi_r = potential[id_r];
+        Grav.F.gravity_x_h[id] = -0.5 * ( phi_r - phi_l ) / dx;
+      }
+    }
+  }
+  
+  for ( k=g_start; k<g_end; k++ ){
+    for ( j=0; j<ny_grav; j++ ){
+      for ( i=0; i<nx_grav; i++ ){
+        id   = (i) + (j)*nx_grav + (k)*ny_grav*nx_grav;
+        id_l = (i + nGHST) + (j-1 + nGHST)*nx_pot + (k + nGHST)*ny_pot*nx_pot;
+        id_r = (i + nGHST) + (j+1 + nGHST)*nx_pot + (k + nGHST)*ny_pot*nx_pot;
+        phi_l = potential[id_l];
+        phi_r = potential[id_r];
+        Grav.F.gravity_y_h[id] = -0.5 * ( phi_r - phi_l ) / dy;
+      }
+    }
+  }
+  
+  for ( k=g_start; k<g_end; k++ ){
+    for ( j=0; j<ny_grav; j++ ){
+      for ( i=0; i<nx_grav; i++ ){
+        id   = (i) + (j)*nx_grav + (k)*ny_grav*nx_grav;
+        id_l = (i + nGHST) + (j + nGHST)*nx_pot + (k-1 + nGHST)*ny_pot*nx_pot;
+        id_r = (i + nGHST) + (j + nGHST)*nx_pot + (k+1 + nGHST)*ny_pot*nx_pot;
+        phi_l = potential[id_l];
+        phi_r = potential[id_r];
+        Grav.F.gravity_z_h[id] = -0.5 * ( phi_r - phi_l ) / dz;
+      }
+    }
+  }
+}
+
+void Grid3D::Get_Gravitational_Field(){
+  
+  #ifndef PARALLEL_OMP
+  Get_Gravitational_Field_Function( 0, Grav.nz_local );
+  #else
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
+
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Grid_Indxs(  Grav.nz_local, n_omp_procs, omp_id, &g_start, &g_end  );
+
+    Get_Gravitational_Field_Function( g_start, g_end );
+  }
+  #endif
+  
+
+}
+#endif//GRAVITY_COUPLE_CPU
 
 #endif //GRAVITY
