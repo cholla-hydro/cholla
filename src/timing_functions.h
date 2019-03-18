@@ -51,6 +51,35 @@ public:
   #endif//GRAVITY_COUPLE_CPU
   
   #endif//GRAVITY
+  
+  #ifdef PARTICLES
+
+  Real time_part_dens_min;
+  Real time_part_dens_max;
+  Real time_part_dens_mean;
+  Real time_part_dens_all;
+
+  Real time_part_dens_transf_min;
+  Real time_part_dens_transf_max;
+  Real time_part_dens_transf_mean;
+  Real time_part_dens_transf_all;
+
+  Real time_part_tranf_min;
+  Real time_part_tranf_max;
+  Real time_part_tranf_mean;
+  Real time_part_tranf_all;
+
+
+  Real time_advance_particles_1_min;
+  Real time_advance_particles_1_max;
+  Real time_advance_particles_1_mean;
+  Real time_advance_particles_1_all;
+
+  Real time_advance_particles_2_min;
+  Real time_advance_particles_2_max;
+  Real time_advance_particles_2_mean;
+  Real time_advance_particles_2_all;
+  #endif
 
   Time();
   void Initialize();

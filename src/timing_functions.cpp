@@ -33,6 +33,14 @@ void Time::Initialize(){
   time_bound_pot_all = 0;
   #endif
   #endif
+  
+  #ifdef PARTICLES
+  time_part_dens_all = 0;
+  time_part_dens_transf_all = 0;
+  time_part_tranf_all = 0;
+  time_advance_particles_1_all = 0;
+  time_advance_particles_2_all = 0;
+  #endif
 
   chprintf( "\nTiming Functions is ON \n");
 }
@@ -92,6 +100,43 @@ void Time::End_and_Record_Time( int time_var ){
   }
   #endif
   #endif
+  
+  #ifdef PARTICLES
+  if( time_var == 4 ){
+    time_part_dens_min = t_min;
+    time_part_dens_max = t_max;
+    time_part_dens_mean = t_avg;
+    if (n_steps > 0) time_part_dens_all += t_max;
+  }
+
+  if( time_var == 5 ){
+    time_part_dens_transf_min = t_min;
+    time_part_dens_transf_max = t_max;
+    time_part_dens_transf_mean = t_avg;
+    if (n_steps > 0) time_part_dens_transf_all += t_max;
+  }
+
+  if( time_var == 6 ){
+    time_advance_particles_1_min = t_min;
+    time_advance_particles_1_max = t_max;
+    time_advance_particles_1_mean = t_avg;
+    if (n_steps > 0) time_advance_particles_1_all += t_max;
+  }
+
+  if( time_var == 7 ){
+    time_advance_particles_2_min = t_min;
+    time_advance_particles_2_max = t_max;
+    time_advance_particles_2_mean = t_avg;
+    if (n_steps > 0) time_advance_particles_2_all += t_max;
+  }
+
+  if( time_var == 8 ){
+    time_part_tranf_min = t_min;
+    time_part_tranf_max = t_max;
+    time_part_tranf_mean = t_avg;
+    if (n_steps > 0) time_part_tranf_all += t_max;
+  }
+  #endif
 
 }
 
@@ -107,6 +152,13 @@ void Time::Print_Times(){
   #ifdef GRAVITY_COUPLE_CPU
   chprintf(" Time Pot Boundaries    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_bound_pot_min, time_bound_pot_max, time_bound_pot_mean);
   #endif
+  #endif
+  #ifdef PARTICLES
+  chprintf(" Time Part Density      min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_part_dens_min, time_part_dens_max, time_part_dens_mean);
+  chprintf(" Time Part Boundaries   min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_part_tranf_min, time_part_tranf_max, time_part_tranf_mean);
+  chprintf(" Time Part Dens Transf  min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_part_dens_transf_min, time_part_dens_transf_max, time_part_dens_transf_mean);
+  chprintf(" Time Advance Part 1    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_advance_particles_1_min, time_advance_particles_1_max, time_advance_particles_1_mean);
+  chprintf(" Time Advance Part 2    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_advance_particles_2_min, time_advance_particles_2_max, time_advance_particles_2_mean);
   #endif
 
 
