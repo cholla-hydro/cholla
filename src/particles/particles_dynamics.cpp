@@ -14,7 +14,25 @@
 #endif
 
 
-
+void Grid3D::Advance_Particles( int N_KDK_step ){
+  
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
+  
+  if ( N_KDK_step == 1 ) Advance_Particles_KDK_Step1();
+  
+  if ( N_KDK_step == 2 ){
+    Get_Particles_Accelration();
+    Advance_Particles_KDK_Step2();
+  }
+  
+  #ifdef CPU_TIME
+  if ( N_KDK_step == 1) Timer.End_and_Record_Time(6);
+  if ( N_KDK_step == 2) Timer.End_and_Record_Time(7);
+  #endif
+    
+}
 
 void Grid3D::Get_Particles_Accelration(){
   // Get the accteleration for all the particles

@@ -162,6 +162,11 @@ int main(int argc, char *argv[])
     G.set_dt_Gravity();
     #endif
     
+    #ifdef PARTICLES
+    //Advance the particles KDK( first step )
+    G.Advance_Particles( 1 );
+    #endif
+    
     // Advance the grid by one timestep
     dti = G.Update_Hydro_Grid();
     
@@ -179,6 +184,11 @@ int main(int argc, char *argv[])
 
     // set boundary conditions for next time step 
     G.Set_Boundary_Conditions_All(P);
+    
+    #ifdef PARTICLES
+    //Advance the particles KDK( second step )
+    G.Advance_Particles( 2 );
+    #endif
 
     
     #ifdef CPU_TIME

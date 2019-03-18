@@ -25,7 +25,6 @@ class Particles_3D
   part_int_t n_total_initial;
 
   Real dt;
-  Real dt_max;
   Real t;
 
   Real C_cfl;
