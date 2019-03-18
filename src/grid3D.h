@@ -610,6 +610,7 @@ class Grid3D
   void Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_t p_end );
   void Advance_Particles_KDK_Step2( );
   void Get_Particles_Accelration();
+  void Advance_Particles( int N_KDK_step );
   #endif//PARTICLES
   
 };
