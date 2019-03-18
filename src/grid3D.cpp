@@ -507,7 +507,7 @@ Real Grid3D::Update_Grid(void)
   C.Grav_potential = &g1[(H.n_fields-1)*H.n_cells];
   #endif//DE
   #endif//GRAVITY_COUPLE_GPU
-  #ifdef GRAVITY_CPU
+  #ifdef GRAVITY_COUPLE_CPU
   C.density_0  = &g0[0];
   C.momentum_x_0 = &g0[H.n_cells];
   C.momentum_y_0 = &g0[2*H.n_cells];
@@ -541,6 +541,7 @@ Real Grid3D::Update_Hydro_Grid( ){
   
   #if defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU)
   Get_Gravitational_Field();
+  Add_Gavity_To_Hydro();
   #endif
   
   #ifdef CPU_TIME

@@ -293,9 +293,97 @@ void Grid3D::Get_Gravitational_Field(){
     Get_Gravitational_Field_Function( g_start, g_end );
   }
   #endif
+}
+
+
+void Grid3D::Add_Gavity_To_Hydro_Function( int g_start, int g_end ){
+ 
+  int nx_grav, ny_grav, nz_grav;
+  nx_grav = Grav.nx_local;
+  ny_grav = Grav.ny_local;
+  nz_grav = Grav.nz_local;
   
+  int nx_grid, ny_grid, nz_grid, nGHST;
+  nGHST = H.n_ghost;
+  nx_grid = Grav.nx_local + 2*nGHST;
+  ny_grid = Grav.ny_local + 2*nGHST;
+  nz_grid = Grav.nz_local + 2*nGHST;
+  
+  Real d, vx, vy, vz, gx, gy, gz;
+  Real d_0, vx_0, vy_0, vz_0;
+  
+  #ifdef COUPLE_DELTA_E_KINETIC
+  Real Ek_0, Ek_1;
+  #endif
+  
+  int k, j, i, id_grav, id_grid;
+  for ( k=g_start; k<g_end; k++ ){
+    for ( j=0; j<ny_grav; j++ ){
+      for ( i=0; i<nx_grav; i++ ){
+        id_grav = (i) + (j)*nx_grav + (k)*ny_grav*nx_grav;
+        id_grid = (i + nGHST) + (j + nGHST)*nx_grid + (k + nGHST)*ny_grid*nx_grid;
+  
+        d_0 = C.density_0[id_grid];
+        vx_0 = C.momentum_x_0[id_grid] / d_0;
+        vy_0 = C.momentum_y_0[id_grid] / d_0;
+        vz_0 = C.momentum_z_0[id_grid] / d_0;
+  
+        d = C.density[id_grid];
+        vx = C.momentum_x[id_grid] / d;
+        vy = C.momentum_y[id_grid] / d;
+        vz = C.momentum_z[id_grid] / d;
+  
+        gx = Grav.F.gravity_x_h[id_grav];
+        gy = Grav.F.gravity_y_h[id_grav];
+        gz = Grav.F.gravity_z_h[id_grav];
+  
+        #ifdef COUPLE_DELTA_E_KINETIC
+        Ek_0 = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
+        #endif
+  
+  
+        C.momentum_x[id_grid] += 0.5 *  H.dt * gx * ( d_0 + d );
+        C.momentum_y[id_grid] += 0.5 *  H.dt * gy * ( d_0 + d );
+        C.momentum_z[id_grid] += 0.5 *  H.dt * gz * ( d_0 + d );
+        
+        #ifdef COUPLE_GRAVITATIONAL_WORK
+        C.Energy[id_grid] += 0.5 * H.dt * ( gx*(d_0*vx_0 + d*vx) + gy*(d_0*vy_0 + d*vy) + gz*(d_0*vz_0 + d*vz)   );
+        #endif
+        
+        #ifdef COUPLE_DELTA_E_KINETIC
+        vx = C.momentum_x[id_grid] / d;
+        vy = C.momentum_y[id_grid] / d;
+        vz = C.momentum_z[id_grid] / d;
+        Ek_1 = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
+        C.Energy[id_grid] += Ek_1 - Ek_0;
+        #endif
+      }
+    }
+  }
 
 }
+
+void Grid3D::Add_Gavity_To_Hydro(){
+  
+  #ifndef PARALLEL_OMP
+  Add_Gavity_To_Hydro_Function( 0, Grav.nz_local );
+  #else
+  
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
+
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Grid_Indxs(  Grav.nz_local, n_omp_procs, omp_id, &g_start, &g_end  );
+    
+    Add_Gavity_To_Hydro_Function( g_start, g_end );
+  }
+  #endif  
+}
+
+
 #endif//GRAVITY_COUPLE_CPU
 
 #endif //GRAVITY
