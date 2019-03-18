@@ -460,6 +460,120 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)
   //done!
 }
 
+
+#ifdef GRAVITY
+int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  ){
+
+
+  int i, j, k, indx, indx_buff, length;
+  int nGHST, nx_g, ny_g, nz_g;
+  nx_g = Grav.nx_local + 2*nGHST;
+  ny_g = Grav.ny_local + 2*nGHST;
+  nz_g = Grav.nz_local + 2*nGHST;
+  nGHST = N_GHOST_POTENTIAL;
+  
+  //Load X boundaries
+  if (direction == 0){
+    for ( k=0; k<nz_g; k++ ){
+      for ( j=0; j<ny_g; j++ ){
+        for ( i=0; i<nGHST; i++ ){
+          if ( side == 0 ) indx = (i+nGHST) + (j)*nx_g + (k)*nx_g*ny_g;
+          if ( side == 1 ) indx = (nx_g - 2*nGHST + i) + (j)*nx_g + (k)*nx_g*ny_g;
+          indx_buff = (j) + (k)*ny_g + i*ny_g*nz_g ;
+          buffer[buffer_start+indx_buff] = Grav.F.potential_h[indx];
+          length = nGHST * nz_g * ny_g;
+        }
+      }
+    }
+  }
+
+  //Load Y boundaries
+  if (direction == 1){
+    for ( k=0; k<nz_g; k++ ){
+      for ( j=0; j<nGHST; j++ ){
+        for ( i=0; i<nx_g; i++ ){
+          if ( side == 0 ) indx = (i) + (j+nGHST)*nx_g + (k)*nx_g*ny_g;
+          if ( side == 1 ) indx = (i) + (ny_g - 2*nGHST + j)*nx_g + (k)*nx_g*ny_g;
+          indx_buff = (i) + (k)*nx_g + j*nx_g*nz_g ;
+          buffer[buffer_start+indx_buff] = Grav.F.potential_h[indx];
+          length = nGHST * nz_g * nx_g;
+        }
+      }
+    }
+  }
+
+  //Load Z boundaries
+  if (direction == 2){
+    for ( k=0; k<nGHST; k++ ){
+      for ( j=0; j<ny_g; j++ ){
+        for ( i=0; i<nx_g; i++ ){
+          if ( side == 0 ) indx = (i) + (j)*nx_g + (k+nGHST)*nx_g*ny_g;
+          if ( side == 1 ) indx = (i) + (j)*nx_g + (nz_g - 2*nGHST + k)*nx_g*ny_g;
+          indx_buff = (i) + (j)*nx_g + k*nx_g*ny_g ;
+          buffer[buffer_start+indx_buff] = Grav.F.potential_h[indx];
+          length = nGHST * nx_g * ny_g;
+        }
+      }
+    }
+  }
+  return length;
+}
+
+
+void Grid3D::Unload_Gravity_Potential_from_Buffer( int direction, int side, Real *buffer, int buffer_start  ){
+
+
+  int i, j, k, indx, indx_buff;
+  int nGHST, nx_g, ny_g, nz_g;
+  nGHST = N_GHOST_POTENTIAL;
+  nx_g = Grav.nx_local + 2*nGHST;
+  ny_g = Grav.ny_local + 2*nGHST;
+  nz_g = Grav.nz_local + 2*nGHST;
+
+  //Load X boundaries
+  if (direction == 0){
+    for ( k=0; k<nz_g; k++ ){
+      for ( j=0; j<ny_g; j++ ){
+        for ( i=0; i<nGHST; i++ ){
+          if ( side == 0 ) indx = (i) + (j)*nx_g + (k)*nx_g*ny_g;
+          if ( side == 1 ) indx = (nx_g - nGHST + i) + (j)*nx_g + (k)*nx_g*ny_g;
+          indx_buff = (j) + (k)*ny_g + i*ny_g*nz_g ;
+          Grav.F.potential_h[indx] = buffer[buffer_start+indx_buff];
+        }
+      }
+    }
+  }
+
+  //Load Y boundaries
+  if (direction == 1){
+    for ( k=0; k<nz_g; k++ ){
+      for ( j=0; j<nGHST; j++ ){
+        for ( i=0; i<nx_g; i++ ){
+          if ( side == 0 ) indx = (i) + (j)*nx_g + (k)*nx_g*ny_g;
+          if ( side == 1 ) indx = (i) + (ny_g - nGHST + j)*nx_g + (k)*nx_g*ny_g;
+          indx_buff = (i) + (k)*nx_g + j*nx_g*nz_g ;
+          Grav.F.potential_h[indx] = buffer[buffer_start+indx_buff];
+        }
+      }
+    }
+  }
+
+  //Load Z boundaries
+  if (direction == 2){
+    for ( k=0; k<nGHST; k++ ){
+      for ( j=0; j<ny_g; j++ ){
+        for ( i=0; i<nx_g; i++ ){
+          if ( side == 0 ) indx = (i) + (j)*nx_g + (k)*nx_g*ny_g;
+          if ( side == 1 ) indx = (i) + (j)*nx_g + (nz_g - nGHST + k)*nx_g*ny_g;
+          indx_buff = (i) + (j)*nx_g + k*nx_g*ny_g ;
+          Grav.F.potential_h[indx] = buffer[buffer_start+indx_buff];
+        }
+      }
+    }
+  }
+}
+#endif
+
 // load left x communication buffer
 int Grid3D::Load_Hydro_Buffer_X0(){
   int i, j, k, ii;
@@ -944,189 +1058,191 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
   int gidx;
   int offset;
 
-  //unload left x communication buffer
-  if(index==0)
-  {
-    // 1D
-    if (H.ny == 1 && H.nz == 1) {
-      offset = H.n_ghost;
-      for(i=0;i<H.n_ghost;i++) {
-        idx  = i;
-        gidx = i;
-        for (ii=0; ii<H.n_fields; ii++) { 
-          C.density[idx + H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
-        }
-      }
-    }
-    // 2D
-    if (H.ny > 1 && H.nz == 1) {
-      offset = H.n_ghost*(H.ny-2*H.n_ghost);
-      for(i=0;i<H.n_ghost;i++) {
-        for (j=0;j<H.ny-2*H.n_ghost;j++) {
-          idx  = i + (j+H.n_ghost)*H.nx;
-          gidx = i + j*H.n_ghost;
+  if ( H.TRANSFER_HYDRO_BOUNDARIES ){
+    //unload left x communication buffer
+    if(index==0)
+    {
+      // 1D
+      if (H.ny == 1 && H.nz == 1) {
+        offset = H.n_ghost;
+        for(i=0;i<H.n_ghost;i++) {
+          idx  = i;
+          gidx = i;
           for (ii=0; ii<H.n_fields; ii++) { 
-            C.density[idx + ii*H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
+            C.density[idx + H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
           }
         }
       }
-    }
-    // 3D
-    if (H.nz > 1) {
-      offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
-      for(i=0;i<H.n_ghost;i++) {
-        for(j=0;j<H.ny-2*H.n_ghost;j++) {
-          for(k=0;k<H.nz-2*H.n_ghost;k++) {
-            idx  = i + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-            gidx = i + j*H.n_ghost + k*H.n_ghost*(H.ny-2*H.n_ghost);
-            for (ii=0; ii<H.n_fields; ii++) {
+      // 2D
+      if (H.ny > 1 && H.nz == 1) {
+        offset = H.n_ghost*(H.ny-2*H.n_ghost);
+        for(i=0;i<H.n_ghost;i++) {
+          for (j=0;j<H.ny-2*H.n_ghost;j++) {
+            idx  = i + (j+H.n_ghost)*H.nx;
+            gidx = i + j*H.n_ghost;
+            for (ii=0; ii<H.n_fields; ii++) { 
               C.density[idx + ii*H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
             }
           }
         }
       }
-    }
-  }
-
-  //unload right x communication buffer
-  if(index==1)
-  {
-    // 1D
-    if (H.ny == 1 && H.nz == 1) {
-      offset = H.n_ghost;
-      for(i=0;i<H.n_ghost;i++) {
-        idx  = i+H.nx-H.n_ghost;
-        gidx = i;
-        for (ii=0; ii<H.n_fields; ii++) {
-          C.density[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
+      // 3D
+      if (H.nz > 1) {
+        offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
+        for(i=0;i<H.n_ghost;i++) {
+          for(j=0;j<H.ny-2*H.n_ghost;j++) {
+            for(k=0;k<H.nz-2*H.n_ghost;k++) {
+              idx  = i + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+              gidx = i + j*H.n_ghost + k*H.n_ghost*(H.ny-2*H.n_ghost);
+              for (ii=0; ii<H.n_fields; ii++) {
+                C.density[idx + ii*H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
+              }
+            }
+          }
         }
       }
     }
-    // 2D
-    if (H.ny > 1 && H.nz == 1) {
-      offset = H.n_ghost*(H.ny-2*H.n_ghost);
-      for(i=0;i<H.n_ghost;i++) {
-        for (j=0;j<H.ny-2*H.n_ghost;j++) {
-          idx  = i+H.nx-H.n_ghost + (j+H.n_ghost)*H.nx;
-          gidx = i + j*H.n_ghost;
+
+    //unload right x communication buffer
+    if(index==1)
+    {
+      // 1D
+      if (H.ny == 1 && H.nz == 1) {
+        offset = H.n_ghost;
+        for(i=0;i<H.n_ghost;i++) {
+          idx  = i+H.nx-H.n_ghost;
+          gidx = i;
           for (ii=0; ii<H.n_fields; ii++) {
             C.density[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
           }
         }
       }
-    }
-    // 3D
-    if (H.nz > 1) {
-      offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
-      for(i=0;i<H.n_ghost;i++) {
-        for(j=0;j<H.ny-2*H.n_ghost;j++) {
-          for(k=0;k<H.nz-2*H.n_ghost;k++) {
-            idx  = i+H.nx-H.n_ghost + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-            gidx = i + j*H.n_ghost + k*H.n_ghost*(H.ny-2*H.n_ghost);
+      // 2D
+      if (H.ny > 1 && H.nz == 1) {
+        offset = H.n_ghost*(H.ny-2*H.n_ghost);
+        for(i=0;i<H.n_ghost;i++) {
+          for (j=0;j<H.ny-2*H.n_ghost;j++) {
+            idx  = i+H.nx-H.n_ghost + (j+H.n_ghost)*H.nx;
+            gidx = i + j*H.n_ghost;
             for (ii=0; ii<H.n_fields; ii++) {
               C.density[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
             }
           }
         }
       }
-    }
-  }
-
-
-  //unload left y communication buffer
-  if(index==2)
-  {
-    // 2D
-    if (H.nz == 1) {
-      offset = H.n_ghost*H.nx;
-      for(i=0;i<H.nx;i++) {
-        for (j=0;j<H.n_ghost;j++) {
-          idx  = i + j*H.nx;
-          gidx = i + j*H.nx;
-          for (ii=0; ii<H.n_fields; ii++) {
-            C.density[idx + ii*H.n_cells] = *(recv_buffer_y0 + gidx + ii*offset);
+      // 3D
+      if (H.nz > 1) {
+        offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
+        for(i=0;i<H.n_ghost;i++) {
+          for(j=0;j<H.ny-2*H.n_ghost;j++) {
+            for(k=0;k<H.nz-2*H.n_ghost;k++) {
+              idx  = i+H.nx-H.n_ghost + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+              gidx = i + j*H.n_ghost + k*H.n_ghost*(H.ny-2*H.n_ghost);
+              for (ii=0; ii<H.n_fields; ii++) {
+                C.density[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
+              }
+            }
           }
         }
       }
     }
-    // 3D
-    if (H.nz > 1) {
-      offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
-      for(i=0;i<H.nx;i++) {
-        for(j=0;j<H.n_ghost;j++) {
-          for(k=0;k<H.nz-2*H.n_ghost;k++) {
-            idx  = i + j*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-            gidx = i + j*H.nx + k*H.nx*H.n_ghost;
+
+
+    //unload left y communication buffer
+    if(index==2)
+    {
+      // 2D
+      if (H.nz == 1) {
+        offset = H.n_ghost*H.nx;
+        for(i=0;i<H.nx;i++) {
+          for (j=0;j<H.n_ghost;j++) {
+            idx  = i + j*H.nx;
+            gidx = i + j*H.nx;
             for (ii=0; ii<H.n_fields; ii++) {
               C.density[idx + ii*H.n_cells] = *(recv_buffer_y0 + gidx + ii*offset);
             }
           }
         }
       }
-    }
-  }
-
-  //unload right y communication buffer
-  if(index==3)
-  {
-    // 2D
-    if (H.nz == 1) {
-      offset = H.n_ghost*H.nx;
-      for(i=0;i<H.nx;i++) {
-        for (j=0;j<H.n_ghost;j++) {
-          idx  = i + (j+H.ny-H.n_ghost)*H.nx;
-          gidx = i + j*H.nx;
-          for (ii=0; ii<H.n_fields; ii++) {
-            C.density[idx + ii*H.n_cells] = *(recv_buffer_y1 + gidx + ii*offset);
+      // 3D
+      if (H.nz > 1) {
+        offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
+        for(i=0;i<H.nx;i++) {
+          for(j=0;j<H.n_ghost;j++) {
+            for(k=0;k<H.nz-2*H.n_ghost;k++) {
+              idx  = i + j*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+              gidx = i + j*H.nx + k*H.nx*H.n_ghost;
+              for (ii=0; ii<H.n_fields; ii++) {
+                C.density[idx + ii*H.n_cells] = *(recv_buffer_y0 + gidx + ii*offset);
+              }
+            }
           }
         }
       }
     }
-    // 3D
-    if (H.nz > 1) {
-      offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
-      for(i=0;i<H.nx;i++) {
-        for(j=0;j<H.n_ghost;j++) {
-          for(k=0;k<H.nz-2*H.n_ghost;k++) {
-            idx  = i + (j+H.ny-H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-            gidx = i + j*H.nx + k*H.nx*H.n_ghost;
+
+    //unload right y communication buffer
+    if(index==3)
+    {
+      // 2D
+      if (H.nz == 1) {
+        offset = H.n_ghost*H.nx;
+        for(i=0;i<H.nx;i++) {
+          for (j=0;j<H.n_ghost;j++) {
+            idx  = i + (j+H.ny-H.n_ghost)*H.nx;
+            gidx = i + j*H.nx;
             for (ii=0; ii<H.n_fields; ii++) {
               C.density[idx + ii*H.n_cells] = *(recv_buffer_y1 + gidx + ii*offset);
             }
           }
         }
       }
-    }
-  }
-
-  //unload left z communication buffer
-  if(index==4)
-  {
-    offset = H.n_ghost*H.nx*H.ny;
-    for(i=0;i<H.nx;i++) {
-      for(j=0;j<H.ny;j++) {
-        for(k=0;k<H.n_ghost;k++) {
-          idx  = i + j*H.nx + k*H.nx*H.ny;
-          gidx = i + j*H.nx + k*H.nx*H.ny;
-          for (ii=0; ii<H.n_fields; ii++) {
-            C.density[idx + ii*H.n_cells] = *(recv_buffer_z0 + gidx + ii*offset);
+      // 3D
+      if (H.nz > 1) {
+        offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
+        for(i=0;i<H.nx;i++) {
+          for(j=0;j<H.n_ghost;j++) {
+            for(k=0;k<H.nz-2*H.n_ghost;k++) {
+              idx  = i + (j+H.ny-H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+              gidx = i + j*H.nx + k*H.nx*H.n_ghost;
+              for (ii=0; ii<H.n_fields; ii++) {
+                C.density[idx + ii*H.n_cells] = *(recv_buffer_y1 + gidx + ii*offset);
+              }
+            }
           }
         }
       }
     }
-  }
 
-  //unload right z communication buffer
-  if(index==5)
-  {
-    offset = H.n_ghost*H.nx*H.ny;
-    for(i=0;i<H.nx;i++) {
-      for(j=0;j<H.ny;j++) {
-        for(k=0;k<H.n_ghost;k++) {
-          idx  = i + j*H.nx + (k+H.nz-H.n_ghost)*H.nx*H.ny;
-          gidx = i + j*H.nx + k*H.nx*H.ny;
-          for (ii=0; ii<H.n_fields; ii++) {
-            C.density[idx + ii*H.n_cells] = *(recv_buffer_z1 + gidx + ii*offset);
+    //unload left z communication buffer
+    if(index==4)
+    {
+      offset = H.n_ghost*H.nx*H.ny;
+      for(i=0;i<H.nx;i++) {
+        for(j=0;j<H.ny;j++) {
+          for(k=0;k<H.n_ghost;k++) {
+            idx  = i + j*H.nx + k*H.nx*H.ny;
+            gidx = i + j*H.nx + k*H.nx*H.ny;
+            for (ii=0; ii<H.n_fields; ii++) {
+              C.density[idx + ii*H.n_cells] = *(recv_buffer_z0 + gidx + ii*offset);
+            }
+          }
+        }
+      }
+    }
+
+    //unload right z communication buffer
+    if(index==5)
+    {
+      offset = H.n_ghost*H.nx*H.ny;
+      for(i=0;i<H.nx;i++) {
+        for(j=0;j<H.ny;j++) {
+          for(k=0;k<H.n_ghost;k++) {
+            idx  = i + j*H.nx + (k+H.nz-H.n_ghost)*H.nx*H.ny;
+            gidx = i + j*H.nx + k*H.nx*H.ny;
+            for (ii=0; ii<H.n_fields; ii++) {
+              C.density[idx + ii*H.n_cells] = *(recv_buffer_z1 + gidx + ii*offset);
+            }
           }
         }
       }
