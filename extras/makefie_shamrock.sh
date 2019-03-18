@@ -12,11 +12,15 @@ CFILES_GRAV = $(wildcard $(DIR_GRAV)/*.c)
 CPPFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cpp)
 CUDAFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cu)
 
+DIR_PART = ./src/particles
+CFILES_PART = $(wildcard $(DIR_PART)/*.c)
+CPPFILES_PART = $(wildcard $(DIR_PART)/*.cpp)
+CUDAFILES_PART = $(wildcard $(DIR_PART)/*.cu)
 
-OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV))
-COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV))
-CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV))
-CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV))
+OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cu,.o,$(CUDAFILES_PART))
+COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .c,.o,$(CFILES_PART))
+CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_PART))
+CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_PART))
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -83,6 +87,7 @@ OUTPUT_POTENTIAL = -DOUTPUT_POTENTIAL
 
 #Include Gravity From Particles PM
 PARTICLES = -DPARTICLES
+PARTICLES_INT = -DPARTICLES_LONG_INTS
 
 #TURN OMP ON FOR CPU CALCULATIONS
 PARALLEL_OMP = -DPARALLEL_OMP
@@ -120,7 +125,7 @@ endif
 FLAGS_HYDRO = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(DUAL_ENERGY) $(COOLING) $(SINGLE_ALLOC_GPU) $(CPU_TIME)#-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
 FLAGS_OMP = $(PARALLEL_OMP) $(N_OMP_THREADS)
 FLAGS_GRAVITY = $(GRAVITY) $(POISSON_SOLVER) $(GRAVITY_COUPLE) $(GRAVITY_ENERGY_COUPLE) $(OUTPUT_POTENTIAL)
-FLAGS_PARTICLES = $(PARTICLES)
+FLAGS_PARTICLES = $(PARTICLES) $(PARTICLES_INT)
 FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) 
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
