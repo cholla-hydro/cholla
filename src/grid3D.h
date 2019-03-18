@@ -525,6 +525,12 @@ class Grid3D
     void Unload_MPI_Comm_Buffers(int index);
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
+    int Load_Hydro_Buffer_X0();
+    int Load_Hydro_Buffer_X1();
+    int Load_Hydro_Buffer_Y0();
+    int Load_Hydro_Buffer_Y1();
+    int Load_Hydro_Buffer_Z0();
+    int Load_Hydro_Buffer_Z1();
 #endif /*MPI_CHOLLA*/
 
   #ifdef GRAVITY
