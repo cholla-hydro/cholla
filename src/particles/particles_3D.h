@@ -138,6 +138,16 @@ class Particles_3D
   void Free_Memory();
   
   void Reset();
+  
+  void Clear_Density();
+  
+  void Get_Density_CIC_Serial( );
+  
+  #ifdef PARALLEL_OMP
+  void Get_Density_CIC_OMP( );
+  #endif
+  
+  void Get_Density_CIC();
 };
 
 

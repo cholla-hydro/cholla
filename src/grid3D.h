@@ -586,10 +586,9 @@ class Grid3D
   
   #ifdef PARTICLES
   void Initialize_Particles( struct parameters *P );
+  void Copy_Particles_Density_to_Gravity();
   #endif
-
-
-
+  
 };
 
 
