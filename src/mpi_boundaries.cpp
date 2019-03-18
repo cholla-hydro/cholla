@@ -826,6 +826,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       
       // load left x communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_X0();
+      
+      #if( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
+      if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
+        buffer_length = Load_Gravity_Potential_To_Buffer( 0, 0, send_buffer_x0, 0 );
+      }
+      #endif
    
       //post non-blocking receive left x communication buffer
       MPI_Irecv(recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, world, &recv_request[ireq]);
@@ -841,6 +847,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     {
       // load right x communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_X1();
+      
+      #if( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
+      if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
+        buffer_length = Load_Gravity_Potential_To_Buffer( 0, 1, send_buffer_x1, 0 );
+      }
+      #endif
       
       //post non-blocking receive right x communication buffer
       MPI_Irecv(recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
@@ -861,6 +873,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load left y communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Y0();
       
+      #if( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
+      if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
+        buffer_length = Load_Gravity_Potential_To_Buffer( 1, 0, send_buffer_y0, 0 );
+      }
+      #endif
+      
       //post non-blocking receive left y communication buffer
       MPI_Irecv(recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
 
@@ -875,6 +893,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     {
       // load right y communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Y1();
+      
+      #if( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
+      if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
+        buffer_length = Load_Gravity_Potential_To_Buffer( 1, 1, send_buffer_y1, 0 );
+      }
+      #endif
             
       //post non-blocking receive right y communication buffer
       MPI_Irecv(recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
@@ -894,6 +918,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     {
       // left z communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Z0();
+      
+      #if( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
+      if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
+        buffer_length = Load_Gravity_Potential_To_Buffer( 2, 0, send_buffer_z0, 0 );
+      }
+      #endif
             
       //post non-blocking receive left z communication buffer
       MPI_Irecv(recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
@@ -909,6 +939,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     {
       // load right z communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Z1();
+      
+      #if( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
+      if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
+        buffer_length = Load_Gravity_Potential_To_Buffer( 2, 1, send_buffer_z1, 0 );
+      }
+      #endif
       
       //post non-blocking receive right x communication buffer
       MPI_Irecv(recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
@@ -1248,6 +1284,17 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
       }
     }
   }
+  
+  #if( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
+  if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
+    if ( index == 0 ) Unload_Gravity_Potential_from_Buffer( 0, 0, recv_buffer_x0, 0  );
+    if ( index == 1 ) Unload_Gravity_Potential_from_Buffer( 0, 1, recv_buffer_x1, 0  );
+    if ( index == 2 ) Unload_Gravity_Potential_from_Buffer( 1, 0, recv_buffer_y0, 0  );
+    if ( index == 3 ) Unload_Gravity_Potential_from_Buffer( 1, 1, recv_buffer_y1, 0  );
+    if ( index == 4 ) Unload_Gravity_Potential_from_Buffer( 2, 0, recv_buffer_z0, 0  );
+    if ( index == 5 ) Unload_Gravity_Potential_from_Buffer( 2, 1, recv_buffer_z1, 0  );
+  }
+  #endif
 
 }
 
