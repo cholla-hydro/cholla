@@ -605,6 +605,11 @@ class Grid3D
   void Get_Gravity_Field_Particles();
   void Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end );
   void Get_Gravity_CIC();
+  void Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_t p_end );
+  void Advance_Particles_KDK_Step1( );
+  void Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_t p_end );
+  void Advance_Particles_KDK_Step2( );
+  void Get_Particles_Accelration();
   #endif//PARTICLES
   
 };
