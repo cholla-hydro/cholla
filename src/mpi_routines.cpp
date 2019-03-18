@@ -664,7 +664,7 @@ Real ReducePartIntSum(part_int_t x)
   part_int_t out;
   part_int_t y;
 
-  #ifdef LONG_INTS
+  #ifdef PARTICLES_LONG_INTS
   MPI_Allreduce(&in, &out, 1, MPI_LONG, MPI_SUM, world);
   #else
   MPI_Allreduce(&in, &out, 1, MPI_INT, MPI_SUM, world);
