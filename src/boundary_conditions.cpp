@@ -29,7 +29,7 @@ void Grid3D::Set_Boundary_Conditions_All( parameters P){
 
   // If the potential cuople is on the CPU, the potential is not in the Conserved arrays,
   // and its boundaries need to be transfered separately
-  #ifdef GRAVITY_COUPLE_CPU
+  #if defined(Gravity) &&  defined(GRAVITY_COUPLE_CPU)
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
