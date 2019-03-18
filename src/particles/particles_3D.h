@@ -22,7 +22,7 @@ class Particles_3D
   part_int_t n_local;
 
   part_int_t n_total;
-  part_int_t n_total_0;
+  part_int_t n_total_initial;
 
   Real dt;
   Real dt_max;
@@ -127,8 +127,17 @@ class Particles_3D
   
   Particles_3D(void);
 
-  void Initialize( struct parameters *P, Grav3D &Grav  );
+  void Initialize( struct parameters *P, Grav3D &Grav,  Real xbound, Real ybound, Real zbound, Real xdglobal, Real ydglobal, Real zdglobal  );
   
+  void Allocate_Memory();
+  
+  void Initialize_Grid_Values();
+  
+  void Initialize_Sphere();
+  
+  void Free_Memory();
+  
+  void Reset();
 };
 
 

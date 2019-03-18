@@ -677,6 +677,10 @@ void Grid3D::FreeMemory(void)
   #ifdef GRAVITY
   Grav.FreeMemory_CPU();
   #endif
+  
+  #ifdef PARTICLES
+  Particles.Reset();
+  #endif
 
   #ifdef COOLING_GPU
   #ifdef CLOUDY_COOL
