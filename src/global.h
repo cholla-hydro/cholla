@@ -47,6 +47,14 @@ typedef double Real;
 #define N_GHOST_POTENTIAL 2
 #endif
 
+#ifdef PARTICLES
+#ifdef PARTICLES_LONG_INTS
+typedef long int part_int_t;
+#else
+typedef int part_int_t
+#endif//PARTICLES_LONG_INTS
+#endif//PARTICLES
+
 #define SIGN(a) ( ((a) < 0.) ? -1. : 1. )
 
 
