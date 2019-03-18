@@ -292,7 +292,14 @@ class Grid3D
             GRAVITY. */
       Real *Grav_potential;
       #endif
+      #ifdef GRAVITY_COUPLE_CPU
+      //Arrays for conserved variables at the begining of the timesteps
+      Real *density_0;
+      Real *momentum_x_0;
+      Real *momentum_y_0;
+      Real *momentum_z_0;
       #endif
+      #endif//GRAVITY
 
     } C;
 
@@ -547,7 +554,8 @@ class Grid3D
   #ifdef GRAVITY_COUPLE_CPU
   void Get_Gravitational_Field_Function( int g_start, int g_end );
   void Get_Gravitational_Field();
-  
+  void Add_Gavity_To_Hydro_Function( int g_start, int g_end );
+  void Add_Gavity_To_Hydro();
   #endif//GRAVITY_COUPLE_CPU
   #endif//GRAVITY 
 
