@@ -19,6 +19,10 @@
 #include"gravity/grav3D.h"
 #endif
 
+#ifdef PARTICLES
+#include "particles/particles_3D.h"
+#endif
+
 #ifdef CPU_TIME
 #include "timing_functions.h"
 #endif
@@ -244,6 +248,11 @@ class Grid3D
     #ifdef GRAVITY
     // Object that contains data for gravity
     Grav3D Grav;
+    #endif
+    
+    #ifdef PARTICLES
+    // Object that contains data for particles
+    Particles_3D Particles;
     #endif
     
     #ifdef CPU_TIME
@@ -574,6 +583,10 @@ class Grid3D
   void Add_Gavity_To_Hydro();
   #endif//GRAVITY_COUPLE_CPU
   #endif//GRAVITY 
+  
+  #ifdef PARTICLES
+  void Initialize_Particles( struct parameters *P );
+  #endif
 
 
 

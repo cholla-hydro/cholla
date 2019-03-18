@@ -89,6 +89,10 @@ int main(int argc, char *argv[])
   #ifdef GRAVITY
   G.Initialize_Gravity(&P);
   #endif
+  
+  #ifdef PARTICLES
+  G.Initialize_Particles(&P);
+  #endif
 
   #ifdef GRAVITY
   G.Compute_Gravitational_Potential( &P);
