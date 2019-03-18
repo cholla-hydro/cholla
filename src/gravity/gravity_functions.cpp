@@ -24,19 +24,21 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   dens_avrg = 0;
   current_a = 1;
   
+  #ifdef PARTICLES
+  Copy_Particles_Density_to_Gravity();
+  #endif
+  
+  
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
-  
   Copy_Hydro_Density_to_Gravity();
-  
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
   
   #ifdef GRAVITY_COUPLE_GPU
   Copy_Potential_to_Hydro_Grid();
   #endif
-  
-  
+    
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 3 );
   #endif
@@ -46,6 +48,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
 void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
   
   // Copy the density array from hydro conserved to gravity density array
+  Real dens;
   int i, j, k, id, id_grav;
   for (k=g_start; k<g_end; k++) {
     for (j=0; j<Grav.ny_local; j++) {
@@ -53,12 +56,18 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
         id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
         id_grav = (i) + (j)*Grav.nx_local + (k)*Grav.nx_local*Grav.ny_local;
 
+        dens = C.density[id];
+        
         #ifdef COSMOLOGY
-        Grav.F.density_h[id_grav] = C.density[id]*Cosmo.rho_0_gas;
-        // Grav.F.density_h[id_grav] = C.density[id];
+        dens *= Cosmo.rho_0_gas;
+        #endif
+
+        #ifdef PARTICLES
+        Grav.F.density_h[id_grav] += dens; //Hydro density is added AFTER partices density
         #else
-        Grav.F.density_h[id_grav] = C.density[id] ;
-        #endif //COSMOLOGY
+        Grav.F.density_h[id_grav] = dens;
+        #endif
+        
       }
     }
   }
