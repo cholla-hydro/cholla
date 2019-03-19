@@ -86,6 +86,10 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
     /* Step 3 - Receive MPI x-boundaries */
     if (flags[0]==5 || flags[1]==5) {
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(0, flags);
+      #ifdef PARTICLES
+      // Unload Particles buffers when transfering Particles
+      if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(0, flags);
+      #endif
     }
   }
   MPI_Barrier(world);
@@ -103,6 +107,10 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
     /* Step 6 - Receive MPI y-boundaries */
     if (flags[2]==5 || flags[3]==5) {
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(1, flags);
+      #ifdef PARTICLES
+      // Unload Particles buffers when transfering Particles
+      if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(1, flags);
+      #endif
     }
   }
   MPI_Barrier(world);
@@ -120,6 +128,10 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
     /* Step 9 - Receive MPI z-boundaries */
     if (flags[4]==5 || flags[5]==5) {
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(2, flags);
+      #ifdef PARTICLES
+      // Unload Particles buffers when transfering Particles
+      if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(2, flags);
+      #endif
     }
   }
 
@@ -701,14 +713,23 @@ int Grid3D::Load_Hydro_Buffer_Z1(){
 
 void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 {
-  int i, j, k, ii;
-  int gidx;
-  int idx;
-  int offset;
+  
+  #ifdef PARTICLES
+  // Select wich particles need to be transfred for this direction
+  if ( Particles.TRANSFER_PARTICLES_BOUNDARIES) Particles.Select_Particles_to_Transfer( dir );
+  // Initialize MPI requests for particles transfers
+  int ireq_n_particles, ireq_particles_transfer;
+  ireq_n_particles = 0;
+  ireq_particles_transfer = 0;
+  #endif
+
   int ireq;
   ireq = 0;
 
   int buffer_length;
+  
+  // Flag to ommit the transfer of the main buffer when tharnsfering the particles buffer
+  bool transfer_main_buffer = true;
   
   /* x boundaries */
   if(dir == 0)
@@ -727,17 +748,25 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #ifdef PARTICLES
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
         buffer_length = Load_Particles_Density_Boundary_to_Buffer( 0, 0, send_buffer_x0  );
+      } 
+      else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
+        Load_and_Send_Particles_X0( ireq_n_particles, ireq_particles_transfer );
+        transfer_main_buffer = false;
+        ireq_n_particles ++;
+        ireq_particles_transfer ++;
       }
       #endif
    
-      //post non-blocking receive left x communication buffer
-      MPI_Irecv(recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, world, &recv_request[ireq]);
+      if ( transfer_main_buffer ){
+        //post non-blocking receive left x communication buffer
+        MPI_Irecv(recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, world, &recv_request[ireq]);
 
-      //non-blocking send left x communication buffer
-      MPI_Isend(send_buffer_x0, buffer_length, MPI_CHREAL, dest[0],   1, world, &send_request[0]);
+        //non-blocking send left x communication buffer
+        MPI_Isend(send_buffer_x0, buffer_length, MPI_CHREAL, dest[0],   1, world, &send_request[0]);
 
-      //keep track of how many sends and receives are expected
-      ireq++;
+        //keep track of how many sends and receives are expected
+        ireq++;
+      }
     }
 
     if(flags[1]==5)
@@ -755,17 +784,29 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
         buffer_length = Load_Particles_Density_Boundary_to_Buffer( 0, 1, send_buffer_x1  );
       }
+      else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
+        Load_and_Send_Particles_X1( ireq_n_particles, ireq_particles_transfer );
+        transfer_main_buffer = false;
+        ireq_n_particles ++;
+        ireq_particles_transfer ++;
+      }
       #endif
       
-      //post non-blocking receive right x communication buffer
-      MPI_Irecv(recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
+      if ( transfer_main_buffer ){
+        //post non-blocking receive right x communication buffer
+        MPI_Irecv(recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
 
-      //non-blocking send right x communication buffer
-      MPI_Isend(send_buffer_x1, buffer_length, MPI_CHREAL, dest[1],   0, world, &send_request[1]);
+        //non-blocking send right x communication buffer
+        MPI_Isend(send_buffer_x1, buffer_length, MPI_CHREAL, dest[1],   0, world, &send_request[1]);
 
-      //keep track of how many sends and receives are expected
-      ireq++;
+        //keep track of how many sends and receives are expected
+        ireq++;
+      }
     }
+    // Receive the number of particles transfer for X
+    #ifdef PARTICLES
+    if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) Wait_and_Recv_Particles_Transfer_BLOCK( dir, flags );
+    #endif
 
   }
 
@@ -786,16 +827,24 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
         buffer_length = Load_Particles_Density_Boundary_to_Buffer( 1, 0, send_buffer_y0  );
       }
+      else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
+        Load_and_Send_Particles_Y0( ireq_n_particles, ireq_particles_transfer );
+        transfer_main_buffer = false;
+        ireq_n_particles ++;
+        ireq_particles_transfer ++;
+      }
       #endif
       
-      //post non-blocking receive left y communication buffer
-      MPI_Irecv(recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
+      if ( transfer_main_buffer ){
+        //post non-blocking receive left y communication buffer
+        MPI_Irecv(recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
 
-      //non-blocking send left y communication buffer
-      MPI_Isend(send_buffer_y0, buffer_length, MPI_CHREAL, dest[2],   3, world, &send_request[0]);
+        //non-blocking send left y communication buffer
+        MPI_Isend(send_buffer_y0, buffer_length, MPI_CHREAL, dest[2],   3, world, &send_request[0]);
 
-      //keep track of how many sends and receives are expected
-      ireq++;
+        //keep track of how many sends and receives are expected
+        ireq++;
+      }
     }
 
     if(flags[3]==5)
@@ -813,17 +862,30 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
         buffer_length = Load_Particles_Density_Boundary_to_Buffer( 1, 1, send_buffer_y1  );
       }
+      else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
+        Load_and_Send_Particles_Y1( ireq_n_particles, ireq_particles_transfer );
+        transfer_main_buffer = false;
+        ireq_n_particles ++;
+        ireq_particles_transfer ++;
+      }
       #endif
-            
-      //post non-blocking receive right y communication buffer
-      MPI_Irecv(recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
+      
+      if ( transfer_main_buffer ){      
+        //post non-blocking receive right y communication buffer
+        MPI_Irecv(recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
 
-      //non-blocking send right y communication buffer
-      MPI_Isend(send_buffer_y1, buffer_length, MPI_CHREAL, dest[3],   2, world, &send_request[1]);
+        //non-blocking send right y communication buffer
+        MPI_Isend(send_buffer_y1, buffer_length, MPI_CHREAL, dest[3],   2, world, &send_request[1]);
 
-      //keep track of how many sends and receives are expected
-      ireq++;
+        //keep track of how many sends and receives are expected
+        ireq++;
+      }
     }
+    // Receive the number of particles transfer for Y
+    #ifdef PARTICLES
+    if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) Wait_and_Recv_Particles_Transfer_BLOCK( dir, flags );
+    #endif
+
   }
 
   /* z boundaries */
@@ -844,16 +906,24 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
         buffer_length = Load_Particles_Density_Boundary_to_Buffer( 2, 0, send_buffer_z0  );
       }
+      else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
+        Load_and_Send_Particles_Z0( ireq_n_particles, ireq_particles_transfer );
+        transfer_main_buffer = false;
+        ireq_n_particles ++;
+        ireq_particles_transfer ++;
+      }
       #endif
-            
-      //post non-blocking receive left z communication buffer
-      MPI_Irecv(recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
+      
+      if ( transfer_main_buffer ){      
+        //post non-blocking receive left z communication buffer
+        MPI_Irecv(recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
 
-      //non-blocking send left z communication buffer
-      MPI_Isend(send_buffer_z0, buffer_length, MPI_CHREAL, dest[4],   5, world, &send_request[0]);
+        //non-blocking send left z communication buffer
+        MPI_Isend(send_buffer_z0, buffer_length, MPI_CHREAL, dest[4],   5, world, &send_request[0]);
 
-      //keep track of how many sends and receives are expected
-      ireq++;
+        //keep track of how many sends and receives are expected
+        ireq++;
+      }
     }
 
     if(flags[5]==5)
@@ -871,17 +941,29 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
         buffer_length = Load_Particles_Density_Boundary_to_Buffer( 2, 1, send_buffer_z1  );
       }
+      else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
+        Load_and_Send_Particles_Z1( ireq_n_particles, ireq_particles_transfer );
+        transfer_main_buffer = false;
+        ireq_n_particles ++;
+        ireq_particles_transfer ++;
+      }
       #endif
       
-      //post non-blocking receive right x communication buffer
-      MPI_Irecv(recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
+      if ( transfer_main_buffer ){
+        //post non-blocking receive right x communication buffer
+        MPI_Irecv(recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
 
-      //non-blocking send right x communication buffer
-      MPI_Isend(send_buffer_z1, buffer_length, MPI_CHREAL, dest[5],   4, world, &send_request[1]);
+        //non-blocking send right x communication buffer
+        MPI_Isend(send_buffer_z1, buffer_length, MPI_CHREAL, dest[5],   4, world, &send_request[1]);
 
-      //keep track of how many sends and receives are expected
-      ireq++;
+        //keep track of how many sends and receives are expected
+        ireq++;
+      }
     }
+    // Receive the number of particles transfer for Z
+      #ifdef PARTICLES
+      if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) Wait_and_Recv_Particles_Transfer_BLOCK( dir, flags );
+      #endif
   }
 
 }
@@ -914,6 +996,12 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_SLAB(int *flags)
 
 void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 {
+  
+  #ifdef PARTICLES
+  // If we are transfering the particles buffers we dont need to unload the main buffers
+  if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) return;
+  #endif
+  
   int iwait;
   int index = 0;
   int wait_max=0;

@@ -594,6 +594,22 @@ class Grid3D
   void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
   void Transfer_Particles_Density_Boundaries_MPI( struct parameters P );
   void Transfer_Particles_Boundaries_MPI( struct parameters P );
+  void Load_and_Send_Particles_X0( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_X1( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Y0( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Y1( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Z0( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Z1( int ireq_n_particles, int ireq_particles_transfer );
+  void Unload_Particles_from_Buffer_X0();
+  void Unload_Particles_from_Buffer_X1();
+  void Unload_Particles_from_Buffer_Y0();
+  void Unload_Particles_from_Buffer_Y1();
+  void Unload_Particles_from_Buffer_Z0();
+  void Unload_Particles_from_Buffer_Z1();
+  void Wait_and_Recv_Particles_Transfer_BLOCK(int dir, int *flags);
+  void Load_N_Particles_Transfer(int index, int *ireq_particles_transfer);
+  void Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flags);
+  void Unload_Particles_From_Buffers_BLOCK(int index);
   #endif//MPI_CHOLLA
   void Transfer_Particles_Density_Boundaries( struct parameters P );
   void Transfer_Particles_Boundaries( struct parameters P );

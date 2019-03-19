@@ -41,6 +41,19 @@ void Grid3D::Set_Boundary_Conditions_All( parameters P){
   #endif
   #endif
   
+  //Transfer Particles Boundaries
+  #ifdef PARTICLES
+  Particles.TRANSFER_PARTICLES_BOUNDARIES = true;
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
+  Set_Boundary_Conditions(P);
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time( 8 );
+  #endif
+  Particles.TRANSFER_PARTICLES_BOUNDARIES = false;
+  #endif
+  
   
 }
 
