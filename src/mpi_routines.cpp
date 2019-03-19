@@ -202,6 +202,7 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
   node = MPI_Comm_node(&procID_node, &nproc_node);
 
   #ifndef GRAVITY
+  // Needed to initialize cuda after gravity in order to work on Summit
   //initialize cuda for use with mpi
   #ifdef CUDA
   if(initialize_cuda_mpi(procID_node,nproc_node))
