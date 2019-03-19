@@ -148,6 +148,10 @@ int main(int argc, char *argv[])
     
     // calculate the timestep
     G.set_dt(dti);
+    
+    #ifdef GRAVITY
+    G.set_dt_Gravity();
+    #endif
 
     if (G.H.t + G.H.dt > outtime) 
     {
@@ -158,9 +162,6 @@ int main(int argc, char *argv[])
     G.H.dt = ReduceRealMin(G.H.dt);
     #endif
     
-    #ifdef GRAVITY
-    G.set_dt_Gravity();
-    #endif
     
     #ifdef PARTICLES
     //Advance the particles KDK( first step )
