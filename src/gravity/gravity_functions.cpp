@@ -3,6 +3,11 @@
 #include"../grid3D.h"
 #include"../global.h"
 #include "../io.h"
+#include "../error_handling.h"
+
+#ifdef CUDA
+#include "../cuda_mpi_routines.h"
+#endif
 
 #ifdef PARALLEL_OMP
 #include"../parallel_omp.h"
@@ -45,6 +50,22 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
   chprintf( "\nInitializing Gravity... \n");
   Grav.Initialize( H.xblocal, H.yblocal, H.zblocal, H.xdglobal, H.ydglobal, H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost_potential_offset  );
   chprintf( "Gravity Successfully Initialized. \n\n");
+  
+  //initialize cuda for use with mpi
+  // Needed to initialize cuda after gravity in order to work on Summit
+  #ifdef CUDA
+  chprintf( "Initializing CUDA...\n");
+  if(initialize_cuda_mpi(procID_node,nproc_node))
+  {
+    chprintf("Error initializing cuda with mpi.\n");
+    chexit(-10);
+  }
+  chprintf( "CUDA Successfully Initialized.\n");
+  #endif /*CUDA*/
+  
+  #ifdef ONLY_PARTICLES
+  chprintf("ONLY_PARTICLES: Initializing without CUDA support.\n");
+  #endif
 }
 
 void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
