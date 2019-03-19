@@ -34,10 +34,9 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
   #endif
   // Step 2: Transfer Particles CIC density Boundaries
   Transfer_Particles_Density_Boundaries(P);
-  
-  
-  
+
   //Step 3: Copy Particles density to Gravity array
+  Copy_Particles_Density();
   
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 5 );
@@ -45,6 +44,52 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
   
   
 }
+
+void Grid3D::Copy_Particles_Density(){
+  
+  #ifndef PARALLEL_OMP
+  Copy_Particles_Densityfunction( 0, Grav.nz_local );
+  #else
+  
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
+
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+
+    Get_OMP_Grid_Indxs( Grav.nz_local, n_omp_procs, omp_id, &g_start, &g_end  );
+
+    Copy_Particles_Density_function( g_start, g_end  );
+  }
+  #endif  
+}
+
+void Grid3D::Copy_Particles_Density_function( int g_start, int g_end ){
+  int nx_part, ny_part, nz_part, nGHST;
+  nGHST = Particles.G.n_ghost_particles_grid;
+  nx_part = Particles.G.nx_local + 2*nGHST;
+  ny_part = Particles.G.ny_local + 2*nGHST;
+  nz_part = Particles.G.nz_local + 2*nGHST;
+  
+  int nx_dens, ny_dens, nz_dens;
+  nx_dens = Grav.nx_local;
+  ny_dens = Grav.ny_local;
+  nz_dens = Grav.nz_local;
+  
+  int i, j, k, id_CIC, id_grid;
+  for ( k=g_start; k<g_end; k++ ){
+    for ( j=0; j<ny_dens; j++ ){
+      for ( i=0; i<nx_dens; i++ ){
+        id_CIC = (i+nGHST) + (j+nGHST)*nx_part + (k+nGHST)*nx_part*ny_part;
+        id_grid = i + j*nx_dens + k*nx_dens*ny_dens;
+        Grav.F.density_h[id_grid] = Particles.G.density[id_CIC];
+      }
+    }
+  }
+}
+
 
 
 void::Particles_3D::Clear_Density(){
