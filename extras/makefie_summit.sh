@@ -112,6 +112,7 @@ LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
 ifeq ($(POISSON_SOLVER),-DPFFT)
 FFTW_INCL = -I/ccs/home/bvilasen/code/fftw/include
+FFTW_LIBS = -L/ccs/home/bvilasen/code/fftw/lib -lfftw3
 PFFT_INCL = -I/ccs/home/bvilasen/code/pfft/include
 PFFT_LIBS = -L/ccs/home/bvilasen/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
 INCL += $(FFTW_INCL) $(PFFT_INCL)
