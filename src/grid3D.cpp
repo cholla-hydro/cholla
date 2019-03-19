@@ -280,6 +280,13 @@ void Grid3D::AllocateMemory(void)
 {
   Real max_dti;
   
+  #ifdef ONLY_PARTICLES
+  // If only solving particles the time for hydro is large, 
+  // that way the minimum dt is the one corresponding to particles 
+  H.dt = 1e10;
+  return;
+  #endif
+  
   #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
   // When gravity is coupled to hydro on the cpu, dt must be computed on the cpu.
   #ifdef CPU_TIME
@@ -612,6 +619,11 @@ Real Grid3D::Update_Grid(void)
 /*! \fn void Update_Hydro_Grid(void)
  *  \brief Do all steps to update the hydro. */
 Real Grid3D::Update_Hydro_Grid( ){
+  
+  #ifdef ONLY_PARTICLES
+  // Dond integrate the Hydro when only solving for particles
+  return 1e-10;
+  #endif
   
   Real dti;
   

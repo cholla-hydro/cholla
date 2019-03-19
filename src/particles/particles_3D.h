@@ -26,6 +26,7 @@ class Particles_3D
 
   Real dt;
   Real t;
+  Real max_dt;
 
   Real C_cfl;
 

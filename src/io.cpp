@@ -20,8 +20,12 @@ void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real
 /* Write the initial conditions */
 void WriteData(Grid3D G, struct parameters P, int nfile)
 {
+  
+  #ifndef ONLY_PARTICLES
   /*call the data output routine*/
   OutputData(G,P,nfile);
+  #endif
+  
   #ifdef PROJECTION
   OutputProjectedData(G,P,nfile);
   #endif /*PROJECTION*/

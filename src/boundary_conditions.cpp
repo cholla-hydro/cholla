@@ -15,6 +15,8 @@
  *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
 void Grid3D::Set_Boundary_Conditions_All( parameters P){
   
+  #ifndef ONLY_PARTICLES
+  // Dont transfer Hydro boundaries when only doing particles
   
   // Transfer Hydro Conserved boundaries 
   #ifdef CPU_TIME
@@ -26,6 +28,7 @@ void Grid3D::Set_Boundary_Conditions_All( parameters P){
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 2 );
   #endif //CPU_TIME
+  #endif //ONLY_PARTICLES
 
   // If the Gravity cuopling is on the CPU, the potential is not in the Conserved arrays,
   // and its boundaries need to be transfered separately

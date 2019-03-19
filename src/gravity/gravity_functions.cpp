@@ -16,11 +16,19 @@ void Grid3D::set_dt_Gravity(){
   #ifdef PARTICLES
   Real dt_particles, dt_min;
   dt_particles = Calc_Particles_dt();
+  dt_particles = fmin( dt_particles, Particles.max_dt);
+  
+  #ifdef ONLY_PARTICLES
+  chprintf( " dt_particles: %f \n", dt_particles );
+  dt_min = dt_particles;
+  #else
   chprintf( " dt_hydro: %f   dt_particles: %f \n", dt_hydro, dt_particles );
   dt_min = fmin( dt_hydro, dt_particles );
+  #endif//ONLY_PARTICLES
+  
   H.dt = dt_min;
   Particles.dt = H.dt;
-  #endif
+  #endif//PARTICLES
   
   // Set times for potential extrapolation
   if ( Grav.INITIAL ){
@@ -56,7 +64,11 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
+  
+  #ifndef ONLY_PARTICLES
   Copy_Hydro_Density_to_Gravity();
+  #endif
+  
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
   
   #ifdef GRAVITY_COUPLE_GPU

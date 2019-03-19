@@ -91,7 +91,7 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flag
 
 void Grid3D::Unload_Particles_From_Buffers_BLOCK(int index){
 
-  // Make sure not to unload when not transferin particles
+  // Make sure not to unload when not transfering particles
   if ( Particles.TRANSFER_DENSITY_BOUNDARIES ) return;
   if ( H.TRANSFER_HYDRO_BOUNDARIES ) return;
   #ifdef GRAVITY
