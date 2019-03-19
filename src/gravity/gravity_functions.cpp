@@ -9,6 +9,30 @@
 #endif
 
 
+void Grid3D::set_dt_Gravity(){
+  
+  Real dt_hydro = H.dt;
+  
+  #ifdef PARTICLES
+  Real dt_particles, dt_min;
+  dt_particles = Calc_Particles_dt();
+  chprintf( " dt_hydro: %f   dt_particles: %f \n", dt_hydro, dt_particles );
+  dt_min = fmin( dt_hydro, dt_particles );
+  H.dt = dt_min;
+  Particles.dt = H.dt;
+  #endif
+  
+  // Set times for potential extrapolation
+  if ( Grav.INITIAL ){
+    Grav.dt_prev = H.dt;
+    Grav.dt_now = H.dt;
+  }else{
+    Grav.dt_prev = Grav.dt_now;
+    Grav.dt_now = H.dt;
+  }
+}
+
+
 void Grid3D::Initialize_Gravity( struct parameters *P ){
   chprintf( "\nInitializing Gravity... \n");
   Grav.Initialize( H.xblocal, H.yblocal, H.zblocal, H.xdglobal, H.ydglobal, H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost_potential_offset  );
@@ -212,17 +236,7 @@ void Grid3D::Extrapolate_Grav_Potential(){
 }
 
 
-void Grid3D::set_dt_Gravity(){
-  
-  // Set times for potential extrapolation
-  if ( Grav.INITIAL ){
-    Grav.dt_prev = H.dt;
-    Grav.dt_now = H.dt;
-  }else{
-    Grav.dt_prev = Grav.dt_now;
-    Grav.dt_now = H.dt;
-  }
-}
+
 
 #ifdef GRAVITY_COUPLE_CPU
 void Grid3D::Get_Gravitational_Field_Function( int g_start, int g_end ){
