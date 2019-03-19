@@ -148,7 +148,6 @@ int main(int argc, char *argv[])
     
     // calculate the timestep
     G.set_dt(dti);
-    
     #ifdef GRAVITY
     G.set_dt_Gravity();
     #endif
@@ -158,9 +157,10 @@ int main(int argc, char *argv[])
       G.H.dt = outtime - G.H.t;
     }
 
-    #ifdef MPI_CHOLLA
-    G.H.dt = ReduceRealMin(G.H.dt);
-    #endif
+    // This is not necessary, G.set_dt finds the global max_dti, dt is the same in all processes by now
+    // #ifdef MPI_CHOLLA
+    // G.H.dt = ReduceRealMin(G.H.dt);
+    // #endif
     
     
     #ifdef PARTICLES
