@@ -32,5 +32,5 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=/raid/bruno/data/cosmo_sims/cholla_pm/sphere_collapse/
-#outdir=/gpfs/alpine/scratch/bvilasen/ast149/sphere_collapse/
+outdir=/gpfs/alpine/scratch/bvilasen/ast149/sphere_collapse/
+#outdir=/raid/bruno/data/cosmo_sims/cholla_pm/sphere_collapse/
