@@ -1091,6 +1091,29 @@ void Grid3D::Spherical_Overdensity_3D()
 }
 
 
+void Grid3D::Uniform_Grid()
+{
+  chprintf( " Initializing Uniform Grid\n");
+  int i, j, k, id;
+  // set the initial values of the conserved variables
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        C.density[id] = 0;
+        C.momentum_x[id] = 0;
+        C.momentum_y[id] = 0;
+        C.momentum_z[id] = 0;
+        C.Energy[id] = 0;
+
+        #ifdef DE
+        C.GasEnergy[id] = 0;
+        #endif
+      }
+    }
+  }
+}
 
 
 
