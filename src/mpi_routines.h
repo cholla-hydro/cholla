@@ -62,6 +62,43 @@ extern Real *recv_buffer_y1;
 extern Real *recv_buffer_z0;
 extern Real *recv_buffer_z1;
 
+#ifdef PARTICLES
+//Buffers for particles transfers
+extern Real *send_buffer_x0_particles;
+extern Real *send_buffer_x1_particles;
+extern Real *send_buffer_y0_particles;
+extern Real *send_buffer_y1_particles;
+extern Real *send_buffer_z0_particles;
+extern Real *send_buffer_z1_particles;
+extern Real *recv_buffer_x0_particles;
+extern Real *recv_buffer_x1_particles;
+extern Real *recv_buffer_y0_particles;
+extern Real *recv_buffer_y1_particles;
+extern Real *recv_buffer_z0_particles;
+extern Real *recv_buffer_z1_particles;
+
+// Size of the buffers for particles transfers
+extern int buffer_length_particles_x0_send;
+extern int buffer_length_particles_x0_recv;
+extern int buffer_length_particles_x1_send;
+extern int buffer_length_particles_x1_recv;
+extern int buffer_length_particles_y0_send;
+extern int buffer_length_particles_y0_recv;
+extern int buffer_length_particles_y1_send;
+extern int buffer_length_particles_y1_recv;
+extern int buffer_length_particles_z0_send;
+extern int buffer_length_particles_z0_recv;
+extern int buffer_length_particles_z1_send;
+extern int buffer_length_particles_z1_recv;
+
+// Request for Number Of Partciles to be transferd
+extern MPI_Request *send_request_n_particles;
+extern MPI_Request *recv_request_n_particles;
+// Request for Partciles Transfer
+extern MPI_Request *send_request_particles_transfer;
+extern MPI_Request *recv_request_particles_transfer;
+#endif//PARTICLES
+
 
 extern int send_buffer_length;
 extern int recv_buffer_length;
@@ -114,6 +151,10 @@ Real ReduceRealAvg(Real x);
 #ifdef PARTICLES
 /* MPI reduction wrapper for sum(part_int)*/
 Real ReducePartIntSum(part_int_t x);
+
+// Funtion that checks if the buffer size For the particles transfer is large enough,
+// and grows the buffer if needed. 
+void Check_and_Grow_Particles_Buffer( Real **part_buffer, int *current_size_ptr, int new_size );
 #endif
 
 /* Set the domain properties */

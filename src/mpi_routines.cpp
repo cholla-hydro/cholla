@@ -7,6 +7,7 @@
 #include "io.h"
 #include "cuda_mpi_routines.h"
 #include "MPI_Comm_node.h"
+#include <iostream>
 
 /*Global MPI Variables*/
 int procID; /*process rank*/
@@ -63,6 +64,43 @@ int x_buffer_length;
 int y_buffer_length;
 int z_buffer_length;
 
+#ifdef PARTICLES
+//Buffers for particles transfers
+Real *send_buffer_x0_particles;
+Real *send_buffer_x1_particles;
+Real *send_buffer_y0_particles;
+Real *send_buffer_y1_particles;
+Real *send_buffer_z0_particles;
+Real *send_buffer_z1_particles;
+Real *recv_buffer_x0_particles;
+Real *recv_buffer_x1_particles;
+Real *recv_buffer_y0_particles;
+Real *recv_buffer_y1_particles;
+Real *recv_buffer_z0_particles;
+Real *recv_buffer_z1_particles;
+
+// Size of the buffers for particles transfers
+int buffer_length_particles_x0_send;
+int buffer_length_particles_x0_recv;
+int buffer_length_particles_x1_send;
+int buffer_length_particles_x1_recv;
+int buffer_length_particles_y0_send;
+int buffer_length_particles_y0_recv;
+int buffer_length_particles_y1_send;
+int buffer_length_particles_y1_recv;
+int buffer_length_particles_z0_send;
+int buffer_length_particles_z0_recv;
+int buffer_length_particles_z1_send;
+int buffer_length_particles_z1_recv;
+
+// Request for Number Of Partciles to be transferd
+MPI_Request *send_request_n_particles;
+MPI_Request *recv_request_n_particles;
+// Request for Partciles Transfer
+MPI_Request *send_request_particles_transfer;
+MPI_Request *recv_request_particles_transfer;
+#endif//PARTICLES
+
 /*local domain sizes*/
 /*none of these include ghost cells!*/
 ptrdiff_t nx_global;
@@ -115,6 +153,14 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
   #if PRECISION == 2
   MPI_CHREAL = MPI_DOUBLE;
   #endif /*PRECISION*/
+  
+  #ifdef PARTICLES
+  #ifdef PARTICLES_LONG_INTS
+  MPI_PART_INT = MPI_LONG;
+  #else
+  MPI_PART_INT = MPI_INT;
+  #endif
+  #endif
 
   /*create the MPI_Request arrays for non-blocking sends*/
   if(!(send_request = (MPI_Request *) malloc(2*sizeof(MPI_Request))))
@@ -127,6 +173,30 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
     chprintf("Error allocating recv_request.\n");
     chexit(-2);
   }  
+  
+  #ifdef PARTICLES
+  if(!(send_request_n_particles = (MPI_Request *) malloc(2*sizeof(MPI_Request))))
+  {
+    chprintf("Error allocating send_request for number of particles for transfer.\n");
+    chexit(-2);
+  }
+  if(!(recv_request_n_particles = (MPI_Request *) malloc(2*sizeof(MPI_Request))))
+  {
+    chprintf("Error allocating recv_request for number of particles for transfer.\n");
+    chexit(-2);
+  }
+
+  if(!(send_request_particles_transfer = (MPI_Request *) malloc(2*sizeof(MPI_Request))))
+  {
+    chprintf("Error allocating send_request for particles transfer.\n");
+    chexit(-2);
+  }
+  if(!(recv_request_particles_transfer = (MPI_Request *) malloc(2*sizeof(MPI_Request))))
+  {
+    chprintf("Error allocating recv_request for particles transfer.\n");
+    chexit(-2);
+  }
+  #endif
 
   /*set up node communicator*/
   node = MPI_Comm_node(&procID_node, &nproc_node);
@@ -904,6 +974,36 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   y_buffer_length = ybsize;
   z_buffer_length = zbsize;
   
+  #ifdef PARTICLES
+  // Set Initial sizes for particles buffers
+  int n_max = std::max( H->nx, H->ny );
+  n_max = std::max( H->nz, n_max );
+  int factor = 2;
+  N_PARTICLES_TRANSFER = n_max * n_max * factor ;
+  
+  // Set the number of values that will be transfered for each particle
+  N_DATA_PER_PARTICLE_TRANSFER = 6;
+  #ifndef SINGLE_PARTICLE_MASS
+  N_DATA_PER_PARTICLE_TRANSFER += 1;
+  #endif
+  #ifdef PARTICLE_IDS
+  N_DATA_PER_PARTICLE_TRANSFER += 1;
+  #endif
+  
+  buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_x0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_x1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_x1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  #endif //PARTICLES
+  
   chprintf("Allocating MPI communication buffers (nx = %ld, ny = %ld, nz = %ld).\n", xbsize, ybsize, zbsize);
 
   if(!(send_buffer_x0 = (Real *) malloc(xbsize*sizeof(Real))))
@@ -946,6 +1046,52 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
     chprintf("Error allocating recv_buffer_y1 in Allocate_MPI_Buffers_BLOCK (n = %ld, size = %ld).\n",ybsize,ybsize*sizeof(Real));
     chexit(-1);
   }
+  
+  #ifdef PARTICLES
+  //Allocate buffers for particles transfers
+  chprintf("Allocating MPI communication buffers for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
+  if(!( send_buffer_x0_particles = (Real *) malloc(buffer_length_particles_x0_send*sizeof(Real))))
+  {
+    chprintf("Error allocating send_buffer_x0_paricles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x0_send*sizeof(Real));
+    chexit(-1);
+  }
+  if(!( send_buffer_x1_particles = (Real *) malloc(buffer_length_particles_x1_send*sizeof(Real))))
+  {
+    chprintf("Error allocating send_buffer_x1_paricles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x1_send*sizeof(Real));
+    chexit(-1);
+  }
+  if(!(recv_buffer_x0_particles = (Real *) malloc(buffer_length_particles_x0_recv*sizeof(Real))))
+  {
+    chprintf("Error allocating recv_buffer_x0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x0_recv*sizeof(Real));
+    chexit(-1);
+  }
+  if(!(recv_buffer_x1_particles = (Real *) malloc(buffer_length_particles_x1_recv*sizeof(Real))))
+  {
+    chprintf("Error allocating recv_buffer_x1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x1_recv*sizeof(Real));
+    chexit(-1);
+  }
+  if(!(send_buffer_y0_particles = (Real *) malloc(buffer_length_particles_y0_send*sizeof(Real))))
+  {
+    chprintf("Error allocating send_buffer_y0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y0_send*sizeof(Real));
+    chexit(-1);
+  }
+  if(!(send_buffer_y1_particles = (Real *) malloc(buffer_length_particles_y1_send*sizeof(Real))))
+  {
+    chprintf("Error allocating send_buffer_y1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y1_send*sizeof(Real));
+    chexit(-1);
+  }
+  if(!(recv_buffer_y0_particles = (Real *) malloc(buffer_length_particles_y0_recv*sizeof(Real))))
+  {
+    chprintf("Error allocating recv_buffer_y0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y0_recv*sizeof(Real));
+    chexit(-1);
+  }
+  if(!(recv_buffer_y1_particles = (Real *) malloc(buffer_length_particles_y1_recv*sizeof(Real))))
+  {
+    chprintf("Error allocating recv_buffer_y1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y1_recv*sizeof(Real));
+    chexit(-1);
+  }
+  #endif//PARTICLES
+  
   // 3D
   if (H->nz > 1) {
     if(!(send_buffer_z0 = (Real *) malloc(zbsize*sizeof(Real))))
@@ -968,9 +1114,53 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
       chprintf("Error allocating recv_buffer_z1 in Allocate_MPI_Buffers_BLOCK (n = %ld, size = %ld).\n",zbsize,zbsize*sizeof(Real));
       chexit(-1);
     }
+    #ifdef PARTICLES
+    if(!(send_buffer_z0_particles = (Real *) malloc(buffer_length_particles_z0_send*sizeof(Real))))
+    {
+      chprintf("Error allocating send_buffer_z0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z0_send*sizeof(Real));
+      chexit(-1);
+    }
+    if(!(send_buffer_z1_particles = (Real *) malloc(buffer_length_particles_z1_send*sizeof(Real))))
+    {
+      chprintf("Error allocating send_buffer_z1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z1_send*sizeof(Real));
+      chexit(-1);
+    }
+    if(!(recv_buffer_z0_particles = (Real *) malloc(buffer_length_particles_z0_recv*sizeof(Real))))
+    {
+      chprintf("Error allocating recv_buffer_z0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z0_recv*sizeof(Real));
+      chexit(-1);
+    }
+    if(!(recv_buffer_z1_particles = (Real *) malloc(buffer_length_particles_z1_recv*sizeof(Real))))
+    {
+      chprintf("Error allocating recv_buffer_z1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z1_recv*sizeof(Real));
+      chexit(-1);
+    }
+    #endif
   }
   
 }
+
+#ifdef PARTICLES
+// Funtion that checks if the buffer size For the particles transfer is large enough,
+// and grows the buffer if needed.
+void Check_and_Grow_Particles_Buffer( Real **part_buffer, int *current_size_ptr, int new_size ){
+
+  int current_size = *current_size_ptr;
+  if ( new_size <= current_size ) return;
+
+  new_size = (int) 2 * new_size;
+  std::cout << " #######  Growing Particles Transfer Buffer, size: " << current_size << "  new_size: " << new_size << std::endl;
+
+  Real *new_buffer;
+  new_buffer = (Real *) realloc( *part_buffer, new_size*sizeof(Real) );
+  if ( new_buffer == NULL ){
+    std::cout << " Error When Allocating New Particles Transfer Buffer" << std::endl;
+    chexit(-1);
+  }
+  *part_buffer = new_buffer;
+  *current_size_ptr = new_size;
+}
+#endif //PARTICLES
 
 /* find the greatest prime factor of an integer */
 int greatest_prime_factor(int n)
