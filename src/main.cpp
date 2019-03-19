@@ -148,9 +148,6 @@ int main(int argc, char *argv[])
     
     // calculate the timestep
     G.set_dt(dti);
-    #ifdef GRAVITY
-    G.set_dt_Gravity();
-    #endif
 
     if (G.H.t + G.H.dt > outtime) 
     {

@@ -284,8 +284,7 @@ void Grid3D::AllocateMemory(void)
   // If only solving particles the time for hydro is large, 
   // that way the minimum dt is the one corresponding to particles 
   H.dt = 1e10;
-  return;
-  #endif
+  #else
   
   #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
   // When gravity is coupled to hydro on the cpu, dt must be computed on the cpu.
@@ -326,6 +325,13 @@ void Grid3D::AllocateMemory(void)
   */
   //chprintf("Within set_dt: %f %f %f\n", C_cfl, H.dt, max_dti);
   H.dt = C_cfl / max_dti;
+  
+  #endif //ONLY_PARTICLES
+  
+  #ifdef GRAVITY
+  set_dt_Gravity();
+  #endif
+
 
 }
 
