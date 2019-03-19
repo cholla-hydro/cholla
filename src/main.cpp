@@ -13,6 +13,7 @@
 #include "grid3D.h"
 #include "io.h"
 #include "error_handling.h"
+#include"cuda_mpi_routines.h"
 
 #define OUTPUT
 //#define CPU_TIME
@@ -88,6 +89,23 @@ int main(int argc, char *argv[])
   
   #ifdef GRAVITY
   G.Initialize_Gravity(&P);
+  #endif
+  
+  #ifdef GRAVITY
+  //initialize cuda for use with mpi
+  #ifdef CUDA
+  chprintf( "Initializing CUDA...\n");
+  if(initialize_cuda_mpi(procID_node,nproc_node))
+  {
+    chprintf("Error initializing cuda with mpi.\n");
+    chexit(-10);
+  }
+  chprintf( "CUDA Successfully Initialized.\n");
+  #endif /*CUDA*/
+  #endif//GRAVITY
+  
+  #ifdef ONLY_PARTICLES
+  chprintf("ONLY_PARTICLES: Initializing without CUDA support.\n");
   #endif
   
   #ifdef PARTICLES
