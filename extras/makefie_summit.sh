@@ -12,11 +12,15 @@ CFILES_GRAV = $(wildcard $(DIR_GRAV)/*.c)
 CPPFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cpp)
 CUDAFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cu)
 
+DIR_PART = ./src/particles
+CFILES_PART = $(wildcard $(DIR_PART)/*.c)
+CPPFILES_PART = $(wildcard $(DIR_PART)/*.cpp)
+CUDAFILES_PART = $(wildcard $(DIR_PART)/*.cu)
 
-OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV))
-COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV))
-CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV))
-CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV))
+OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cu,.o,$(CUDAFILES_PART))
+COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .c,.o,$(CFILES_PART))
+CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_PART))
+CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_PART))
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -28,7 +32,7 @@ MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
-  CXX   = mpiCC
+  CXX   = mpicxx
 
   #MPI_FLAGS += -DSLAB
   MPI_FLAGS += -DBLOCK
@@ -62,18 +66,35 @@ SOLVER = -DHLLC
 #INTEGRATOR = -DCTU
 INTEGRATOR = -DVL
 
+#Dual Energy Formalism
+DUAL_ENERGY = -DDE
+
 #Allocate GPU memory only once at the first timestep
 SINGLE_ALLOC_GPU = -DSINGLE_ALLOC_GPU
 
 COOLING = #-DCOOLING_GPU -DCLOUDY_COOL
 
+CPU_TIME = -DCPU_TIME
+
 #INCLUDE GRAVITY
 GRAVITY = -DGRAVITY
 POISSON_SOLVER = -DPFFT
+# GRAVITY_COUPLE = -DGRAVITY_COUPLE_GPU
+GRAVITY_COUPLE = -DGRAVITY_COUPLE_CPU
+# GRAVITY_ENERGY_COUPLE = -DCOUPLE_GRAVITATIONAL_WORK
+GRAVITY_ENERGY_COUPLE = -DCOUPLE_DELTA_E_KINETIC
+OUTPUT_POTENTIAL = -DOUTPUT_POTENTIAL
+
+#Include Gravity From Particles PM
+PARTICLES = -DPARTICLES
+PARTICLES_INT = -DPARTICLES_LONG_INTS
+PARTICLE_IDS = -DPARTICLE_IDS
+# ONLY_PARTICLES = -DONLY_PARTICLES
 
 #TURN OMP ON FOR CPU CALCULATIONS
 PARALLEL_OMP = -DPARALLEL_OMP
 N_OMP_THREADS = -DN_OMP_THREADS=10
+# PRINT_OMP_DOMAIN = -DPRINT_OMP_DOMAIN
 
 
 ifdef CUDA
@@ -89,13 +110,27 @@ INCL   = -I./ $(HDF5_INCL)
 NVINCL = $(INCL) $(CUDA_INCL)
 LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
+ifeq ($(POISSON_SOLVER),-DPFFT)
+FFTW_INCL = -I/ccs/home/bvilasen/code/fftw/include
+PFFT_INCL = -I/ccs/home/bvilasen/code/pfft/include
+PFFT_LIBS = -L/ccs/home/bvilasen/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
+INCL += $(FFTW_INCL) $(PFFT_INCL)
+LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
+endif
 
-FLAGS_HYDRO = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) $(SINGLE_ALLOC_GPU)#-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
-FLAGS_GRAVITY = $(GRAVITY) $(POISSON_SOLVER)
-FLAGS_OMP = $(PARALLEL_OMP) $(N_OMP_THREADS)
-FLAGS = $(FLAGS_HYDRO) $(FLAGS_GRAVITY) $(FLAGS_OMP) 
-CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
+ifdef PARALLEL_OMP
+OMP_FLAGS = -fopenmp
+LIBS += -fopenmp
+endif
+
+
+FLAGS_HYDRO = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(DUAL_ENERGY) $(COOLING) $(SINGLE_ALLOC_GPU) $(CPU_TIME)#-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
+FLAGS_OMP = $(PARALLEL_OMP) $(N_OMP_THREADS) $(PRINT_OMP_DOMAIN)
+FLAGS_GRAVITY = $(GRAVITY) $(POISSON_SOLVER) $(GRAVITY_COUPLE) $(GRAVITY_ENERGY_COUPLE) $(OUTPUT_POTENTIAL)
+FLAGS_PARTICLES = $(PARTICLES) $(PARTICLES_INT) $(PARTICLE_IDS) $(ONLY_PARTICLES)
+FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) 
+CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
+CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
 NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=gcc -arch=sm_70
 
 
