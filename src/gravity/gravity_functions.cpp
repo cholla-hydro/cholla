@@ -46,6 +46,68 @@ void Grid3D::set_dt_Gravity(){
 }
 
 
+Real Grav3D::Get_Average_Density(){
+  
+  Real dens_sum, dens_mean;
+
+  #ifndef PARALLEL_OMP
+  dens_sum = Get_Average_Density_function( 0, nz_local );
+  #else
+  dens_sum = 0;
+  Real dens_sum_all[N_OMP_THREADS];
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
+
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Grid_Indxs( nz_local, n_omp_procs, omp_id, &g_start, &g_end  );
+    dens_sum_all[omp_id] = Get_Average_Density_function(  g_start, g_end );
+
+  }
+  for ( int i=0; i<N_OMP_THREADS; i++ ){
+    dens_sum += dens_sum_all[i];
+  }
+  #endif
+
+  dens_mean = dens_sum /  ( nx_local * ny_local * nz_local);
+
+  Real dens_avrg_all;
+  #ifdef MPI_CHOLLA
+  dens_avrg_all = ReduceRealAvg( dens_mean );
+  #else
+  dens_avrg_all = dens_mean
+  #endif
+
+  dens_avrg = dens_avrg_all;
+  
+  return dens_avrg_all;
+
+}
+
+Real Grav3D::Get_Average_Density_function( int g_start, int g_end){
+  
+  int nx = nx_local;
+  int ny = ny_local;
+  int nz = nz_local;
+  int k, j, i, id;
+  Real dens_sum=0;
+  for( k=g_start; k<g_end; k++){
+    for( j=0; j<ny; j++){
+      for( i=0; i<nx; i++){
+        id = (i) + (j)*nx + (k)*nx*ny;
+        dens_sum += F.density_h[id];
+      }
+    }
+  }
+  return dens_sum;
+}
+  
+
+
+
+
 void Grid3D::Initialize_Gravity( struct parameters *P ){
   chprintf( "\nInitializing Gravity... \n");
   Grav.Initialize( H.xblocal, H.yblocal, H.zblocal, H.xdglobal, H.ydglobal, H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost_potential_offset  );
@@ -77,6 +139,15 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   
   dens_avrg = 0;
   current_a = 1;
+  
+  #ifdef COSMOLOGY
+  Grav_Constant = Cosmo.cosmo_G;
+  current_a = Cosmo.current_a;
+  dens_avrg = Grav.Get_Average_Density();
+  chprintf( " Density Average:  %f\n", dens_avrg);
+  
+  #endif
+  
   
   #ifdef PARTICLES
   Copy_Particles_Density_to_Gravity( *P);

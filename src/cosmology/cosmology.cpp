@@ -26,7 +26,7 @@ void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Pa
   Grav.current_a = current_a;
 
   // Gravitational Constant in Cosmological Units
-  cosmo_G = G_COSMO
+  cosmo_G = G_COSMO;
 
   // Set gravitational constant to use for potential calculation
   Grav.Gconst = cosmo_G;

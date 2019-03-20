@@ -114,6 +114,9 @@ class Grav3D
   void AllocateMemory_CPU(void);
   void Initialize_values_CPU();
   void FreeMemory_CPU(void);
+  
+  Real Get_Average_Density( );
+  Real Get_Average_Density_function( int g_start, int g_end );
 
 
 };
