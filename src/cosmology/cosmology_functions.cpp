@@ -9,7 +9,7 @@
 
 void Grid3D::Initialize_Cosmology( struct parameters *P ){
   
-  chprintf( "\nInitializing Cosmology... \n");
+  chprintf( "Initializing Cosmology... \n");
   Cosmo.Initialize( P, Grav, Particles );
   
   // Change to comoving Cosmological System
