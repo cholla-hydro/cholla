@@ -219,6 +219,17 @@ int main(int argc, char *argv[])
       // update to the next output time
       outtime += P.outstep;      
     }
+    
+    #ifdef CPU_TIME
+    G.Timer.n_steps += 1;
+    #endif
+
+    #ifdef COSMOLOGY
+    if ( G.Cosmo.current_a >= G.Cosmo.scale_outputs[G.Cosmo.n_outputs-1] ) {
+      chprintf( "\nReached Last Cosmological Output: Ending Simulation\n");
+      break;
+    }
+    #endif
 /*
     // check for failures
     for (int i=G.H.n_ghost; i<G.H.nx-G.H.n_ghost; i++) {
