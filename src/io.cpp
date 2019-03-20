@@ -22,7 +22,7 @@
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
 
 /* Write the initial conditions */
-void WriteData(Grid3D G, struct parameters P, int nfile)
+void WriteData(Grid3D &G, struct parameters P, int nfile)
 {
   
 
