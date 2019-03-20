@@ -23,6 +23,10 @@
 #include "particles/particles_3D.h"
 #endif
 
+#ifdef COSMOLOGY
+#include"cosmology/cosmology.h"
+#endif
+
 #ifdef CPU_TIME
 #include "timing_functions.h"
 #endif
@@ -253,6 +257,11 @@ class Grid3D
     #ifdef PARTICLES
     // Object that contains data for particles
     Particles_3D Particles;
+    #endif
+    
+    #ifdef COSMOLOGY
+    // Object that contains data for cosmology
+    Cosmology Cosmo;
     #endif
     
     #ifdef CPU_TIME
@@ -595,7 +604,7 @@ class Grid3D
   int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
   void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
   void Transfer_Particles_Density_Boundaries_MPI( struct parameters P );
-  void Transfer_Particles_Boundaries_MPI( struct parameters P );
+  // void Transfer_Particles_Boundaries_MPI( struct parameters P );
   void Load_and_Send_Particles_X0( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_X1( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_Y0( int ireq_n_particles, int ireq_particles_transfer );
@@ -612,9 +621,10 @@ class Grid3D
   void Load_N_Particles_Transfer(int index, int *ireq_particles_transfer);
   void Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flags);
   void Unload_Particles_From_Buffers_BLOCK(int index);
+  void Finish_Particles_Transfer();
   #endif//MPI_CHOLLA
   void Transfer_Particles_Density_Boundaries( struct parameters P );
-  void Transfer_Particles_Boundaries( struct parameters P );
+  // void Transfer_Particles_Boundaries( struct parameters P );
   void WriteData_Particles(  struct parameters P, int nfile);
   void OutputData_Particles(  struct parameters P, int nfile);
   void Load_Particles_Data(  struct parameters P);
@@ -636,6 +646,10 @@ class Grid3D
   Real Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt();
   #endif//PARTICLES
+  
+  #ifdef COSMOLOGY
+  void Initialize_Cosmology( struct parameters *P );
+  #endif
   
 };
 

@@ -134,6 +134,10 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
       #endif
     }
   }
+  
+  #ifdef PARTICLES
+  if ( Particles.TRANSFER_PARTICLES_BOUNDARIES)  Finish_Particles_Transfer();
+  #endif
 
 }
 

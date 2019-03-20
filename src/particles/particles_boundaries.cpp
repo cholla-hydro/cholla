@@ -10,16 +10,7 @@
 #include "../mpi_routines.h"
 #endif
 
-void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
-  
-  
-}
 
-
-void Grid3D::Transfer_Particles_Boundaries_MPI( struct parameters P ){
-  
-  
-}
 
 Real Get_and_Remove_Real( part_int_t indx, real_vector_t &vec ){
   Real value = vec[indx];
@@ -48,6 +39,66 @@ part_int_t Real_to_part_int( Real inVal ){
 }
 
 #ifdef MPI_CHOLLA
+
+void Grid3D::Finish_Particles_Transfer( void ){
+
+  Particles.Remove_Transfered_Particles();
+
+}
+
+
+void Particles_3D::Remove_Transfered_Particles( void ){
+  int n_in_out_vectors, n_in_vectors;
+
+  n_in_vectors =  pos_x.size() + pos_y.size() + pos_z.size() + vel_x.size() + vel_y.size() + vel_z.size() ;
+  #ifndef SINGLE_PARTICLE_MASS
+  n_in_vectors += mass.size();
+  #endif
+  #ifdef PARTICLE_IDS
+  n_in_vectors += partIDs.size();
+  #endif
+
+
+
+  if ( n_in_vectors != n_local * N_DATA_PER_PARTICLE_TRANSFER ){
+    std::cout << "ERROR PARTICLES TRANSFER: DATA IN VECTORS DIFFERENT FROM N_LOCAL###########" << std::endl;
+    exit(-1);
+  }
+
+  n_in_out_vectors = out_indxs_vec_x0.size() + out_indxs_vec_x1.size() + out_indxs_vec_y0.size() + out_indxs_vec_y1.size() + out_indxs_vec_z0.size() + out_indxs_vec_z1.size();
+  if ( n_in_out_vectors != 0 ){
+    std::cout << "#################ERROR PARTICLES TRANSFER: OUPTUT VECTORS NOT EMPTY, N_IN_VECTORS: " << n_in_out_vectors << std::endl;
+    part_int_t pId;
+    if ( out_indxs_vec_x0.size()>0){
+      std::cout << " In x0" << std::endl;
+      pId = out_indxs_vec_x0[0];
+    }
+    if ( out_indxs_vec_x1.size()>0){
+      std::cout << " In x1" << std::endl;
+      pId = out_indxs_vec_x1[0];
+    }
+    if ( out_indxs_vec_y0.size()>0){
+      std::cout << " In y0" << std::endl;
+      pId = out_indxs_vec_y0[0];
+    }
+    if ( out_indxs_vec_y1.size()>0){
+      std::cout << " In y1" << std::endl;
+      pId = out_indxs_vec_y1[0];
+    }
+    if ( out_indxs_vec_z0.size()>0){
+      std::cout << " In z0" << std::endl;
+      pId = out_indxs_vec_z0[0];
+    }
+    if ( out_indxs_vec_z1.size()>0){
+      std::cout << " In z1" << std::endl;
+      pId = out_indxs_vec_z1[0];
+    }
+    std::cout  << "pos_x: " << pos_x[pId] << " x: " << G.xMin << "  " << G.xMax << std::endl;
+    std::cout  << "pos_y: " << pos_y[pId] << " y: " << G.yMin << "  " << G.yMax << std::endl;
+    std::cout  << "pos_z: " << pos_z[pId] << " z: " << G.zMin << "  " << G.zMax << std::endl;
+    exit(-1);
+  }
+}
 
 
 void Grid3D::Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flags)
