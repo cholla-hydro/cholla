@@ -664,6 +664,21 @@ void Grid3D::Update_Time(){
   
   // update the time
   H.t += H.dt;
+  
+  #ifdef PARTICLES
+  Particles.t = H.t;
+  
+  #ifdef COSMOLOGY
+  Cosmo.current_a += Cosmo.delta_a;
+  Cosmo.current_z = 1./Cosmo.current_a - 1;
+  Particles.current_a = Cosmo.current_a;
+  Particles.current_z = Cosmo.current_z;
+  Grav.current_a = Cosmo.current_a;  
+  #endif //COSMOLOGY
+  #endif //PARTICLES
+  
+  
+  
 }
 
 /*! \fn void Reset(void)
