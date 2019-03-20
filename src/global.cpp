@@ -188,6 +188,8 @@ void parse_params (char *param_file, struct parameters * parms)
       strncpy (parms->custom_bcnd, value, MAXLEN);
     else if (strcmp(name, "outdir")==0)
       strncpy (parms->outdir, value, MAXLEN);
+    else if (strcmp(name, "indir")==0)
+      strncpy (parms->indir, value, MAXLEN);
     else if (strcmp(name, "rho")==0)
       parms->rho = atof(value);
     else if (strcmp(name, "vx")==0)

@@ -140,6 +140,7 @@ struct parameters
 #endif /*MPI_CHOLLA*/
   char custom_bcnd[MAXLEN];
   char outdir[MAXLEN];
+  char indir[MAXLEN]; //Folder to load Initial conditions from
   Real rho;
   Real vx;
   Real vy;
