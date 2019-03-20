@@ -216,6 +216,10 @@ struct Header
   *  \brief Number of offset betewen hydro_ghost_cells and potential_ghost_cells */
   int n_ghost_potential_offset;
   #endif
+  
+  /*! \var Output_Now
+  *  \brief Flag set to true when data has to be written to file */
+  bool Output_Now;
 
 };
 
@@ -654,6 +658,8 @@ class Grid3D
   void Change_Cosmological_Frame_Sytem( bool forward );
   void Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end );
   void Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end );
+  Real Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end );
+  Real Calc_Particles_dt_Cosmo();
   #endif
   
 };
