@@ -15,8 +15,22 @@ void Grid3D::Initialize_Cosmology( struct parameters *P ){
   // Change to comoving Cosmological System
   Change_Cosmological_Frame_Sytem( true );
   
+  if ( fabs( Cosmo.current_a - Cosmo.next_output ) < 1e-5 ) H.Output_Now = true; 
+  
   chprintf( "Cosmology Successfully Initialized. \n\n");
   
+}
+
+Real Cosmology::Get_dt_from_da( Real da ){
+  Real a2 = current_a * current_a;
+  Real a_dot = sqrt( Omega_M/current_a + a2*Omega_L + Omega_K ) * H0 ;
+  return da / a_dot;
+}
+
+Real Cosmology::Get_da_from_dt( Real dt ){
+  Real a2 = current_a * current_a;
+  Real a_dot = sqrt( Omega_M/current_a + a2*Omega_L + Omega_K ) * H0 ;
+  return a_dot * dt;
 }
 
 Real Cosmology::Scale_Function( Real a, Real Omega_M, Real Omega_L, Real Omega_K ){

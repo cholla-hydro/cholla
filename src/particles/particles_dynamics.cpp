@@ -184,6 +184,81 @@ void Grid3D::Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_
 }
 
 #ifdef COSMOLOGY
+
+Real Grid3D::Calc_Particles_dt_Cosmo(){
+  
+  Real dt_particles;
+  #ifndef PARALLEL_OMP
+  dt_particles = Calc_Particles_dt_Cosmo_function( 0, Particles.n_local );
+  #else 
+  dt_particles = 1e100;
+  Real dt_particles_all[N_OMP_THREADS];
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    part_int_t p_start, p_end;
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Particles_Indxs( Particles.n_local, N_OMP_THREADS, omp_id,  &p_start, &p_end );
+    dt_particles_all[omp_id] = Calc_Particles_dt_Cosmo_function( p_start, p_end );
+  }
+  
+  for ( int i=0; i<N_OMP_THREADS; i++ ){
+    dt_particles = fmin( dt_particles, dt_particles_all[i]);
+  }
+  #endif 
+  
+  Real dt_particles_global;
+  #ifdef MPI_CHOLLA
+  dt_particles_global = ReduceRealMin( dt_particles );
+  #else
+  dt_particles_global = dt_particles;
+  #endif
+  
+  return dt_particles_global;  
+  
+
+  
+  
+  
+}
+
+Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end ){
+  
+  part_int_t pID;
+  Real da, da_min, vel, dt_min;
+  da_min = 1e100;
+  Real scale_factor = Cosmo.Scale_Function( Cosmo.current_a , Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K  ) / Cosmo.H0 * Cosmo.cosmo_h;
+  Real a2 = ( Cosmo.current_a )*( Cosmo.current_a  );
+  Real vel_factor = a2 / scale_factor;
+
+
+  for ( pID=0; pID<Particles.n_local; pID++ ){
+    vel = fabs(Particles.vel_x[pID]);
+    if ( vel > 0){
+      da = Particles.G.dx * vel_factor / vel;
+      da_min = std::min( da_min, da);
+    }
+    vel = fabs(Particles.vel_y[pID]);
+    if ( vel > 0){
+      da = Particles.G.dy * vel_factor / vel;
+      da_min = std::min( da_min, da);
+    }
+    vel = fabs(Particles.vel_z[pID]);
+    if ( vel > 0){
+      da = Particles.G.dz * vel_factor / vel;
+      da_min = std::min( da_min, da);
+    }
+  } 
+  dt_min = Cosmo.Get_dt_from_da( da_min );
+  return Particles.C_cfl * dt_min;
+}
+  
+  
+
+
+
+
 void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end ){
   
   part_int_t pIndx;
@@ -245,6 +320,7 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, par
     Particles.vel_z[pIndx] += scale_factor * 0.5 * da * grav_z;
   }
 }
+
 
 
 

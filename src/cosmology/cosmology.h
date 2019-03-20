@@ -64,6 +64,9 @@ public:
   void Change_Cosmological_Frame_Sytem( bool forward );
   
   Real Scale_Function( Real a, Real Omega_M, Real Omega_L, Real Omega_K );
+  
+  Real Get_dt_from_da( Real da );
+  Real Get_da_from_dt( Real dt );
   // 
   // Real Get_da_from_dt( Real dt );
   // Real Get_dt_from_da( Real da );
