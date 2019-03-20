@@ -82,7 +82,6 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile  )
   herr_t    status;
 
   part_int_t n_to_load, pIndx;
-  // Real part_dt, part_t;
 
   attribute_id = H5Aopen(file_id, "n_particles_local", H5P_DEFAULT);
   status = H5Aread(attribute_id, H5T_NATIVE_LONG, &n_to_load);
