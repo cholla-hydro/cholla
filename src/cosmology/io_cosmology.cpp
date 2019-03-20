@@ -15,7 +15,6 @@ void Cosmology::Load_Scale_Outputs( struct parameters *P ) {
   strcpy(filename_1, P->scale_outputs_file);
   chprintf( " Loading Scale_Factor Outpus: %s\n", filename_1);
   
-  int n_outputs = 0;
   ifstream file_out ( filename_1 );
   string line;
   Real a_value;
