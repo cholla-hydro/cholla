@@ -103,7 +103,11 @@ void Grid3D::Get_Particles_Accelration(){
 void Grid3D::Advance_Particles_KDK_Step1( ){
   
   #ifndef PARALLEL_OMP
+  #ifdef COSMOLOGY
+  Advance_Particles_KDK_Cosmo_Step1_function( 0, Particles.n_local );  
+  #else
   Advance_Particles_KDK_Step1_function( 0, Particles.n_local );
+  #endif//COSMOLOGY
   #else
   #pragma omp parallel num_threads( N_OMP_THREADS )
   {
@@ -112,7 +116,11 @@ void Grid3D::Advance_Particles_KDK_Step1( ){
     omp_id = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
     Get_OMP_Particles_Indxs( Particles.n_local, N_OMP_THREADS, omp_id,  &p_start, &p_end );
+    #ifdef COSMOLOGY
+    Advance_Particles_KDK_Cosmo_Step1_function( p_start, p_end );
+    #else
     Advance_Particles_KDK_Step1_function( p_start, p_end );
+    #endif//COSMOLOGY
   }
   #endif  
 }
@@ -120,7 +128,11 @@ void Grid3D::Advance_Particles_KDK_Step1( ){
 void Grid3D::Advance_Particles_KDK_Step2( ){
   
   #ifndef PARALLEL_OMP
+  #ifdef COSMOLOGY
+  Advance_Particles_KDK_Cosmo_Step2_function( 0, Particles.n_local );  
+  #else
   Advance_Particles_KDK_Step2_function( 0, Particles.n_local );
+  #endif//COSMOLOGY
   #else
   #pragma omp parallel num_threads( N_OMP_THREADS )
   {
@@ -129,7 +141,11 @@ void Grid3D::Advance_Particles_KDK_Step2( ){
     omp_id = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
     Get_OMP_Particles_Indxs( Particles.n_local, N_OMP_THREADS, omp_id,  &p_start, &p_end );
+    #ifdef COSMOLOGY
+    Advance_Particles_KDK_Cosmo_Step2_function( p_start, p_end );
+    #else
     Advance_Particles_KDK_Step2_function( p_start, p_end );
+    #endif//COSMOLOGY
   }
   #endif  
 }
@@ -166,6 +182,75 @@ void Grid3D::Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_
     Particles.vel_z[pID] += 0.5 * dt * Particles.grav_z[pID];
   }
 }
+
+#ifdef COSMOLOGY
+void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end ){
+  
+  part_int_t pIndx;
+  Real da = Cosmo.delta_a;
+  Real current_a = Cosmo.current_a;
+
+  Real scale_factor = Cosmo.Scale_Function( current_a, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K ) / Cosmo.H0 * Cosmo.cosmo_h;
+  Real scale_factor_1 = Cosmo.Scale_Function( current_a + 0.5*da, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K  ) / Cosmo.H0 * Cosmo.cosmo_h;
+  Real a2_inv = 1./( ( current_a + 0.5*da )*( current_a + 0.5*da ));
+  // Advance velocities by half a step
+  Real pos_x, vel_x, grav_x;
+  Real pos_y, vel_y, grav_y;
+  Real pos_z, vel_z, grav_z;
+  for ( pIndx=p_start; pIndx<p_end; pIndx++ ){
+    pos_x = Particles.pos_x[pIndx];
+    pos_y = Particles.pos_y[pIndx];
+    pos_z = Particles.pos_z[pIndx];
+    vel_x = Particles.vel_x[pIndx];
+    vel_y = Particles.vel_y[pIndx];
+    vel_z = Particles.vel_z[pIndx];
+    grav_x = Particles.grav_x[pIndx];
+    grav_y = Particles.grav_y[pIndx];
+    grav_z = Particles.grav_z[pIndx];
+
+    vel_x += scale_factor * 0.5 * da * grav_x;
+    vel_y += scale_factor * 0.5 * da * grav_y;
+    vel_z += scale_factor * 0.5 * da * grav_z;
+
+    pos_x += a2_inv * scale_factor_1 * da * vel_x;
+    pos_y += a2_inv * scale_factor_1 * da * vel_y;
+    pos_z += a2_inv * scale_factor_1 * da * vel_z;
+
+    Particles.pos_x[pIndx] = pos_x;
+    Particles.pos_y[pIndx] = pos_y;
+    Particles.pos_z[pIndx] = pos_z;
+
+    Particles.vel_x[pIndx] = vel_x;
+    Particles.vel_y[pIndx] = vel_y;
+    Particles.vel_z[pIndx] = vel_z;
+  }
+}
+
+void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end ){
+  part_int_t pIndx;
+  Real da = Cosmo.delta_a;
+  Real current_a = Cosmo.current_a;
+
+  Real scale_factor = Cosmo.Scale_Function( current_a , Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K ) / Cosmo.H0 * Cosmo.cosmo_h;
+  // Advance velocities by half a step
+  Real grav_x;
+  Real grav_y;
+  Real grav_z;
+  for ( pIndx=p_start; pIndx<p_end; pIndx++ ){
+    grav_x = Particles.grav_x[pIndx];
+    grav_y = Particles.grav_y[pIndx];
+    grav_z = Particles.grav_z[pIndx];
+    Particles.vel_x[pIndx] += scale_factor * 0.5 * da * grav_x;
+    Particles.vel_y[pIndx] += scale_factor * 0.5 * da * grav_y;
+    Particles.vel_z[pIndx] += scale_factor * 0.5 * da * grav_z;
+  }
+}
+
+
+
+
+
+#endif
 
 
 

@@ -19,6 +19,11 @@ void Grid3D::Initialize_Cosmology( struct parameters *P ){
   
 }
 
+Real Cosmology::Scale_Function( Real a, Real Omega_M, Real Omega_L, Real Omega_K ){
+  Real a3 = a * a * a;
+  Real factor = ( Omega_M + a*Omega_K + a3*Omega_L ) / a;
+  return 1./sqrt(factor);
+}
 
 void Grid3D::Change_Cosmological_Frame_Sytem( bool forward ){
   
