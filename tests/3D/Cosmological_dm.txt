@@ -17,6 +17,7 @@ outstep=0.01
 gamma=1.66666667
 # name of initial conditions
 init=Read_Grid
+nfile=0
 scale_outputs_file=scale_output_files/outputs_dm.txt
 # domain properties
 xmin=0.0
