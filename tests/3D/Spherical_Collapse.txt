@@ -1,5 +1,5 @@
 #
-# Parameter File for the 3D Sphere explosion.
+# Parameter File for the 3D Sphere Collapse.
 #
 
 ######################################
