@@ -18,6 +18,47 @@
 #endif
 
 
+
+void Particles_3D::Load_Particles_Data( struct parameters *P){
+  char filename[100];
+  char timestep[20];
+  int nfile = P->nfile; //output step you want to read from
+  char filename_counter[100];
+  // create the filename to read from
+
+  strcpy(filename, P->indir);
+  sprintf(timestep, "%d_particles", nfile);
+  strcat(filename,timestep);
+
+  #if defined BINARY
+  chprintf("\nERROR: Particles only support HDF5 outputs\n")
+  #elif defined HDF5
+  strcat(filename,".h5");
+  #endif
+
+  #ifdef MPI_CHOLLA
+  sprintf(filename,"%s.%d",filename,procID);
+  #endif
+
+  chprintf(" Loading particles file: %s \n", filename );
+
+  #ifdef HDF5
+  hid_t  file_id;
+  herr_t  status;
+
+  // open the file
+  file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  if (file_id < 0) {
+    printf("Unable to open input file.\n");
+    exit(0);
+  }
+
+  Load_Particles_Data_HDF5(file_id, nfile );
+
+  #endif
+}
+
+
 void Grid3D::WriteData_Particles( struct parameters P, int nfile)
 {
   // Write the particles data to file
@@ -26,6 +67,256 @@ void Grid3D::WriteData_Particles( struct parameters P, int nfile)
 
 
 #ifdef HDF5
+
+void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile  )
+{
+  int i, j, k, id, buf_id;
+  hid_t     attribute_id, dataset_id;
+  Real      *dataset_buffer_px;
+  Real      *dataset_buffer_py;
+  Real      *dataset_buffer_pz;
+  Real      *dataset_buffer_vx;
+  Real      *dataset_buffer_vy;
+  Real      *dataset_buffer_vz;
+  Real      *dataset_buffer_m;
+  herr_t    status;
+
+  part_int_t n_to_load, pIndx;
+  // Real part_dt, part_t;
+
+  attribute_id = H5Aopen(file_id, "n_particles_local", H5P_DEFAULT);
+  status = H5Aread(attribute_id, H5T_NATIVE_LONG, &n_to_load);
+  status = H5Aclose(attribute_id);
+
+  #ifdef COSMOLOGY
+  attribute_id = H5Aopen(file_id, "current_z", H5P_DEFAULT);
+  status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &current_z);
+  status = H5Aclose(attribute_id);
+
+  attribute_id = H5Aopen(file_id, "current_a", H5P_DEFAULT);
+  status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &current_a);
+  status = H5Aclose(attribute_id);
+  #endif
+
+  #ifdef SINGLE_PARTICLE_MASS
+  attribute_id = H5Aopen(file_id, "particle_mass", H5P_DEFAULT);
+  status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &particle_mass);
+  status = H5Aclose(attribute_id);
+  chprintf( " Using Single mass for DM particles: %f  Msun/h\n", particle_mass);
+  #endif
+
+  #ifndef MPI_CHOLLA
+  // if ( n_total != G.Grav.nx_total * G.Grav.ny_total * G.Grav.nz_total) break;
+  chprintf(" Loading %ld particles\n", n_to_load);
+  // #endif
+  #else
+  part_int_t n_total_load;
+  n_total_load = ReducePartIntSum( n_to_load );
+  chprintf( " Total Particles To Load: %ld\n", n_total_load );
+  // for ( int i=0; i<nproc; i++ ){
+  //   if ( procID == i ) std::cout << "  [pId:"  << procID << "]  Loading Particles: " << n_local <<  std::endl;
+  //   MPI_Barrier(world);
+  // }
+  MPI_Barrier(world);
+  #endif
+
+  
+  dataset_buffer_px = (Real *) malloc(n_to_load*sizeof(Real));
+  dataset_id = H5Dopen(file_id, "/pos_x", H5P_DEFAULT);
+  status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_px);
+  status = H5Dclose(dataset_id);
+  
+  dataset_buffer_py = (Real *) malloc(n_to_load*sizeof(Real));
+  dataset_id = H5Dopen(file_id, "/pos_y", H5P_DEFAULT);
+  status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_py);
+  status = H5Dclose(dataset_id);
+  
+  dataset_buffer_pz = (Real *) malloc(n_to_load*sizeof(Real));
+  dataset_id = H5Dopen(file_id, "/pos_z", H5P_DEFAULT);
+  status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_pz);
+  status = H5Dclose(dataset_id);
+  
+  dataset_buffer_vx = (Real *) malloc(n_to_load*sizeof(Real));
+  dataset_id = H5Dopen(file_id, "/vel_x", H5P_DEFAULT);
+  status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_vx);
+  status = H5Dclose(dataset_id);
+  
+  dataset_buffer_vy = (Real *) malloc(n_to_load*sizeof(Real));
+  dataset_id = H5Dopen(file_id, "/vel_y", H5P_DEFAULT);
+  status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_vy);
+  status = H5Dclose(dataset_id);
+  
+  dataset_buffer_vz = (Real *) malloc(n_to_load*sizeof(Real));
+  dataset_id = H5Dopen(file_id, "/vel_z", H5P_DEFAULT);
+  status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_vz);
+  status = H5Dclose(dataset_id);
+  
+  #ifndef SINGLE_PARTICLE_MASS
+  dataset_buffer_m = (Real *) malloc(n_to_load*sizeof(Real));
+  dataset_id = H5Dopen(file_id, "/mass", H5P_DEFAULT);
+  status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_m);
+  status = H5Dclose(dataset_id);
+  #endif
+  
+  #ifdef PARTICLE_IDS
+  part_int_t *dataset_buffer_IDs;
+  dataset_buffer_IDs = (part_int_t *) malloc(n_to_load*sizeof(part_int_t));
+  dataset_id = H5Dopen(file_id, "/particle_IDs", H5P_DEFAULT);
+  status = H5Dread(dataset_id, H5T_NATIVE_LONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_IDs);
+  status = H5Dclose(dataset_id);
+  #endif
+  
+  Real px_min, px_max;
+  Real py_min, py_max;
+  Real pz_min, pz_max;
+  Real vx_min, vx_max;
+  Real vy_min, vy_max;
+  Real vz_min, vz_max;
+  px_min = 1e64;
+  py_min = 1e64;
+  pz_min = 1e64;
+  px_max = -1e64;
+  py_max = -1e64;
+  pz_max = -1e64;
+  
+  
+  
+  Real pPos_x, pPos_y, pPos_z;
+  Real pVel_x, pVel_y, pVel_z, pMass;
+  part_int_t pID;
+  bool in_local;
+  for( pIndx=0; pIndx<n_to_load; pIndx++ ){
+    pPos_x = dataset_buffer_px[pIndx];
+    pPos_y = dataset_buffer_py[pIndx];
+    pPos_z = dataset_buffer_pz[pIndx];
+    pVel_x = dataset_buffer_vx[pIndx];
+    pVel_y = dataset_buffer_vy[pIndx];
+    pVel_z = dataset_buffer_vz[pIndx];
+    #ifndef SINGLE_PARTICLE_MASS
+    pMass = dataset_buffer_m[pIndx];
+    #endif
+    #ifdef PARTICLE_IDS
+    pID = dataset_buffer_IDs[pIndx];
+    #endif
+    in_local = true;
+    if ( pPos_x < G.domainMin_x || pPos_x > G.domainMax_x ){
+      std::cout << " Particle outside global domain " << std::endl;
+    }
+    if ( pPos_y < G.domainMin_y || pPos_y > G.domainMax_y ){
+      std::cout << " Particle outside global domain " << std::endl;
+    }
+    if ( pPos_z < G.domainMin_z || pPos_z > G.domainMax_z ){
+      std::cout << " Particle outside global domain " << std::endl;
+    }
+    if ( pPos_x < G.xMin || pPos_x >= G.xMax ) in_local = false;
+    if ( pPos_y < G.yMin || pPos_y >= G.yMax ) in_local = false;
+    if ( pPos_z < G.zMin || pPos_z >= G.zMax ) in_local = false;
+    if ( ! in_local  ) {
+      #ifdef PARTICLE_IDS
+      std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
+      #else
+      std::cout << " Particle outside Loacal  domain " << std::endl;
+      #endif
+      std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
+      std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;
+      std::cout << "  Domain Z: " << G.zMin <<  "  " << G.zMax << std::endl;
+      std::cout << "  Particle X: " << pPos_x << std::endl;
+      std::cout << "  Particle Y: " << pPos_y << std::endl;
+      std::cout << "  Particle Z: " << pPos_z << std::endl;
+      continue;
+    }
+    
+    if  ( pPos_x > px_max ) px_max = pPos_x;
+    if  ( pPos_y > py_max ) py_max = pPos_y;
+    if  ( pPos_z > pz_max ) pz_max = pPos_z;
+  
+    if  ( pPos_x < px_min ) px_min = pPos_x;
+    if  ( pPos_y < py_min ) py_min = pPos_y;
+    if  ( pPos_z < pz_min ) pz_min = pPos_z;
+  
+    if  ( pVel_x > vx_max ) vx_max = pVel_x;
+    if  ( pVel_y > vy_max ) vy_max = pVel_y;
+    if  ( pVel_z > vz_max ) vz_max = pVel_z;
+  
+    if  ( pVel_x < vx_min ) vx_min = pVel_x;
+    if  ( pVel_y < vy_min ) vy_min = pVel_y;
+    if  ( pVel_z < vz_min ) vz_min = pVel_z;
+  
+    pos_x.push_back( pPos_x );
+    pos_y.push_back( pPos_y );
+    pos_z.push_back( pPos_z );
+    vel_x.push_back( pVel_x );
+    vel_y.push_back( pVel_y );
+    vel_z.push_back( pVel_z );
+    grav_x.push_back( 0.0 );
+    grav_y.push_back( 0.0 );
+    grav_z.push_back( 0.0 );
+    #ifndef SINGLE_PARTICLE_MASS
+    mass.push_back( pMass );
+    #endif
+    #ifdef PARTICLE_IDS
+    partIDs.push_back(pID);
+    #endif
+    n_local += 1;
+  }
+  #ifndef MPI_CHOLLA
+  chprintf( " Loaded  %ld  particles\n", n_local );
+  #else
+  // for ( int i=0; i<nproc; i++ ){
+  //   if ( procID == i ) std::cout << "  [pId:"  << procID << "]  N Particles Loaded: " << n_local <<  std::endl;
+  //   MPI_Barrier(world);
+  // }
+  MPI_Barrier(world);
+  part_int_t n_total_loaded;
+  n_total_loaded = ReducePartIntSum( n_local );
+  n_total_initial = n_total_loaded;
+  chprintf( " Total Particles Loaded: %ld\n", n_total_loaded );
+  #endif
+  
+  #ifdef MPI_CHOLLA
+  Real px_max_g = ReduceRealMax( px_max );
+  Real py_max_g = ReduceRealMax( py_max );
+  Real pz_max_g = ReduceRealMax( pz_max );
+  Real vx_max_g = ReduceRealMax( vx_max );
+  Real vy_max_g = ReduceRealMax( vy_max );
+  Real vz_max_g = ReduceRealMax( vz_max );
+  
+  Real px_min_g = ReduceRealMin( px_min );
+  Real py_min_g = ReduceRealMin( py_min );
+  Real pz_min_g = ReduceRealMin( pz_min );
+  Real vx_min_g = ReduceRealMin( vx_min );
+  Real vy_min_g = ReduceRealMin( vy_min );
+  Real vz_min_g = ReduceRealMin( vz_min );
+  
+  #ifdef COSMOLOGY
+  chprintf( "  Pos X   Min: %f   Max: %f   [ kpc/h ]\n", px_min_g, px_max_g);
+  chprintf( "  Pos Y   Min: %f   Max: %f   [ kpc/h ]\n", py_min_g, py_max_g);
+  chprintf( "  Pos Z   Min: %f   Max: %f   [ kpc/h ]\n", pz_min_g, pz_max_g);
+  chprintf( "  Vel X   Min: %f   Max: %f   [ km/s ]\n", vx_min_g, vx_max_g);
+  chprintf( "  Vel Y   Min: %f   Max: %f   [ km/s ]\n", vy_min_g, vy_max_g);
+  chprintf( "  Vel Z   Min: %f   Max: %f   [ km/s ]\n", vz_min_g, vz_max_g);
+  #endif//COSMOLGY
+  #endif//MPI_CHOLLA
+  // 
+  
+  free(dataset_buffer_px);
+  free(dataset_buffer_py);
+  free(dataset_buffer_pz);
+  free(dataset_buffer_vx);
+  free(dataset_buffer_vy);
+  free(dataset_buffer_vz);
+  // 
+  #ifndef SINGLE_PARTICLE_MASS
+  free(dataset_buffer_m);
+  #endif
+  #ifdef PARTICLE_IDS
+  free(dataset_buffer_IDs);
+  #endif
+} 
+
+
+
+
 /*! \fn void Write_Header_HDF5(hid_t file_id)
  *  \brief Write the relevant header info to the HDF5 file. */
 void Grid3D::Write_Particles_Header_HDF5( hid_t file_id){

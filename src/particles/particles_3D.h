@@ -135,6 +135,8 @@ class Particles_3D
   
   void Initialize_Sphere();
   
+  void Load_Particles_Data( struct parameters *P );
+  
   void Free_Memory();
   
   void Reset();
@@ -142,6 +144,10 @@ class Particles_3D
   void Clear_Density();
   
   void Get_Density_CIC_Serial( );
+  
+  #ifdef HDF5
+  void Load_Particles_Data_HDF5( hid_t file_id, int nfile );
+  #endif
   
   #ifdef PARALLEL_OMP
   void Get_Density_CIC_OMP( );

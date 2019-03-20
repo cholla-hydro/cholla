@@ -16,7 +16,7 @@ outstep=0.01
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
-init=Spherical_Overdensity_3D
+init=Read_Grid
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -32,5 +32,6 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
+indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm/ics/
 outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm/
-outdir=/gpfs/alpine/scratch/bvilasen/ast149/sphere_collapse/
+

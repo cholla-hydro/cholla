@@ -113,7 +113,10 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
 
   Initialize_Grid_Values();
   
+  // Initialize Particles
   if (strcmp(P->init, "Spherical_Overdensity_3D")==0) Initialize_Sphere();
+  
+  if (strcmp(P->init, "Read_Grid")==0)  Load_Particles_Data(  P );
   
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);
