@@ -94,9 +94,9 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
     if ( indx_x < -1 ) ignore = true;
     if ( indx_y < -1 ) ignore = true;
     if ( indx_z < -1 ) ignore = true;
-    if ( indx_x > nx_g-2  ) ignore = true;
-    if ( indx_y > ny_g-2  ) ignore = true;
-    if ( indx_y > nz_g-2  ) ignore = true;
+    if ( indx_x > nx_g-3  ) ignore = true;
+    if ( indx_y > ny_g-3  ) ignore = true;
+    if ( indx_y > nz_g-3  ) ignore = true;
     if ( ignore ){
       #ifdef PARTICLE_IDS
       std::cout << "ERROR GRAVITY_CIC Index    pID: " << Particles.partIDs[pIndx] << std::endl;
