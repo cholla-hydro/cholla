@@ -60,11 +60,12 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
     chprintf("Error initializing cuda with mpi.\n");
     chexit(-10);
   }
-  chprintf( "CUDA Successfully Initialized.\n");
   #endif /*CUDA*/
   
   #ifdef ONLY_PARTICLES
   chprintf("ONLY_PARTICLES: Initializing without CUDA support.\n");
+  #else
+  chprintf( "CUDA Successfully Initialized.\n");
   #endif
 }
 
