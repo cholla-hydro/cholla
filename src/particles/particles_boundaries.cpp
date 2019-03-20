@@ -145,34 +145,14 @@ void Grid3D::Unload_Particles_From_Buffers_BLOCK(int index){
   // Make sure not to unload when not transfering particles
   if ( Particles.TRANSFER_DENSITY_BOUNDARIES ) return;
   if ( H.TRANSFER_HYDRO_BOUNDARIES ) return;
-  #ifdef GRAVITY
   if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ) return;
-  #endif
 
-  if( index == 0) {
-    Unload_Particles_from_Buffer_X0(  );
-  }
-
-  if( index == 1){
-    Unload_Particles_from_Buffer_X1();
-  }
-
-  if( index == 2){
-    Unload_Particles_from_Buffer_Y0();
-  }
-
-  if( index == 3){
-    Unload_Particles_from_Buffer_Y1();
-  }
-
-  if( index == 4){
-    Unload_Particles_from_Buffer_Z0();
-  }
-
-  if( index == 5){
-    Unload_Particles_from_Buffer_Z1();
-  }
-
+  if( index == 0) Unload_Particles_from_Buffer_X0();
+  if( index == 1) Unload_Particles_from_Buffer_X1();
+  if( index == 2) Unload_Particles_from_Buffer_Y0();
+  if( index == 3) Unload_Particles_from_Buffer_Y1();
+  if( index == 4) Unload_Particles_from_Buffer_Z0();
+  if( index == 5) Unload_Particles_from_Buffer_Z1();
 }
 
 
