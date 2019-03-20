@@ -59,7 +59,12 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
   } else if (strcmp(P.init, "Spherical_Overdensity_3D")==0) {
     Spherical_Overdensity_3D();    
   } else if (strcmp(P.init, "Read_Grid")==0) {
+    #ifndef ONLY_PARTICLES
     Read_Grid(P);    
+    #else
+    // Initialize a uniforn hydro grid when only integrating particles
+    Uniform_Grid();
+    #endif
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
