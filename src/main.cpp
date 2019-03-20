@@ -93,6 +93,10 @@ int main(int argc, char *argv[])
   #ifdef PARTICLES
   G.Initialize_Particles(&P);
   #endif
+  
+  #ifdef COSMOLOGY
+  G.Initialize_Cosmology(&P);
+  #endif
 
   #ifdef GRAVITY
   G.Compute_Gravitational_Potential( &P);

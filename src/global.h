@@ -29,6 +29,10 @@ typedef double Real;
 //#define GN 6.67259e-8 // gravitational constant, cgs
 #define GN 4.49451e-18 // gravitational constant, kpc^3 / M_sun / kyr^2
 
+#define MYR 31.536e12 //Myears in secs
+#define KPC 3.086e16 // kpc in km
+#define G_COSMO 4.300927161e-06; // gravitational constant, kpc km^2 s^-2 Msun^-1
+
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
 #define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
 #define MASS_UNIT 1.98855e33 // 1 solar mass in grams
@@ -141,6 +145,7 @@ struct parameters
   char custom_bcnd[MAXLEN];
   char outdir[MAXLEN];
   char indir[MAXLEN]; //Folder to load Initial conditions from
+  char scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations 
   Real rho;
   Real vx;
   Real vy;

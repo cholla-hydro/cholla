@@ -295,7 +295,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile  )
   chprintf( "  Vel X   Min: %f   Max: %f   [ km/s ]\n", vx_min_g, vx_max_g);
   chprintf( "  Vel Y   Min: %f   Max: %f   [ km/s ]\n", vy_min_g, vy_max_g);
   chprintf( "  Vel Z   Min: %f   Max: %f   [ km/s ]\n", vz_min_g, vz_max_g);
-  #endif//COSMOLGY
+  #endif//COSMOLOGY
   #endif//MPI_CHOLLA
   // 
   

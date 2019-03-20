@@ -165,6 +165,7 @@ class Particles_3D
   void Load_Particles_to_Buffer( int direction, int side, Real *send_buffer, int buffer_length  );
   void Unload_Particles_from_Buffer( int direction, int side, Real *recv_buffer, part_int_t n_recv,
         Real *send_buffer_y0, Real *send_buffer_y1, Real *send_buffer_z0, Real *send_buffer_z1, int buffer_length_y0, int buffer_length_y1, int buffer_length_z0, int buffer_length_z1);
+  void Remove_Transfered_Particles();
   #endif
 };
 
