@@ -58,6 +58,10 @@ public:
   void Load_Scale_Outputs( struct parameters *P );
 
   void Set_Next_Scale_Output( );
+  
+  void Change_DM_Frame_System( bool forward );
+  void Change_GAS_Frame_System( bool forward );
+  void Change_Cosmological_Frame_Sytem( bool forward );
   // 
   // Real Get_da_from_dt( Real dt );
   // Real Get_dt_from_da( Real da );

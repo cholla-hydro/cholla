@@ -649,6 +649,9 @@ class Grid3D
   
   #ifdef COSMOLOGY
   void Initialize_Cosmology( struct parameters *P );
+  void Change_DM_Frame_System( bool forward );
+  void Change_GAS_Frame_System( bool forward );
+  void Change_Cosmological_Frame_Sytem( bool forward );
   #endif
   
 };
