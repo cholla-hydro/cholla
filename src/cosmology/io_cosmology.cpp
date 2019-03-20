@@ -46,13 +46,28 @@ void Cosmology::Load_Scale_Outputs( struct parameters *P ) {
     scale_indx += 1;
     a_value = scale_outputs[scale_indx];
   }
-  
   next_output_indx = scale_indx;
   next_output = a_value;
-  
   chprintf("  Next output scale index: %d  \n", next_output_indx );
   chprintf("  Next output scale value: %f  \n", next_output);
+}
 
+
+void Cosmology::Set_Next_Scale_Output( ){
+
+  int scale_indx = next_output_indx;
+  Real a_value = scale_outputs[scale_indx];
+  if  ( ( scale_indx == 0 ) && ( abs(a_value - current_a )<1e-5 ) )scale_indx = 1;
+  else scale_indx += 1;
+  a_value = scale_outputs[scale_indx];
+  // while ( (current_a - a_value) > 1e-2  ){
+  //   // chprintf( "%f   %f\n", a_value, current_a);
+  //   scale_indx += 1;
+  //   a_value = scale_outputs[scale_indx];
+  // }
+  next_output_indx = scale_indx;
+  next_output = a_value;
+  // chprintf( " Next output scale_factor: %f\n", next_output);
 }
 
 

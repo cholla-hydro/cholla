@@ -14,12 +14,22 @@
 #endif
 #include"error_handling.h"
 
+#ifdef COSMOLOGY
+#include "cosmology/cosmology.h"
+#endif
+
 /* function used to rotate points about an axis in 3D for the rotated projection output routine */
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
 
 /* Write the initial conditions */
 void WriteData(Grid3D G, struct parameters P, int nfile)
 {
+  
+
+  #ifdef COSMOLOGY
+  chprintf( "\nSaving Snapshot: %d \n", nfile );
+  G.Change_Cosmological_Frame_Sytem( false );
+  #endif
   
   #ifndef ONLY_PARTICLES
   /*call the data output routine*/
@@ -38,6 +48,14 @@ void WriteData(Grid3D G, struct parameters P, int nfile)
   
   #ifdef PARTICLES
   G.WriteData_Particles( P, nfile );
+  #endif
+  
+  #ifdef COSMOLOGY
+  G.Cosmo.Set_Next_Scale_Output();
+  chprintf( " Saved Snapshot: %d     a:%f   next_output: %f\n", nfile, G.Cosmo.current_a, G.Cosmo.next_output );
+  G.Change_Cosmological_Frame_Sytem( true );
+  chprintf( "\n" );
+  G.H.Output_Now = false;
   #endif
 }
 

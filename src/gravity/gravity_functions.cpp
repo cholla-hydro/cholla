@@ -20,19 +20,51 @@ void Grid3D::set_dt_Gravity(){
   
   #ifdef PARTICLES
   Real dt_particles, dt_min;
+  
+  #ifdef COSMOLOGY
+  Real da_particles, da_min;
+  dt_particles = Calc_Particles_dt_Cosmo();
+  da_particles = Cosmo.Get_da_from_dt( da_particles );
+  #ifdef ONLY_PARTICLES
+  da_min = da_particles;
+  chprintf( " Delta_a_particles: %f \n", da_particles );
+  #else
+  Real da_hydro;
+  #endif//ONLY_PARTICLES
+  
+  if ( (Cosmo.current_a + da_min) >  Cosmo.next_output ){
+    da_min = Cosmo.next_output - Cosmo.current_a;
+    H.Output_Now = true;
+  }
+  
+  Cosmo.max_delta_a = fmin( 0.015 * Cosmo.current_a, 0.001 );
+  if( da_min > Cosmo.max_delta_a){
+    da_min = Cosmo.max_delta_a;
+    chprintf( " Seting max delta_a: %f\n", da_min );
+  }
+  
+  Cosmo.delta_a = da_min;
+  dt_min = Cosmo.Get_dt_from_da( da_min );
+  H.dt = dt_min;
+  chprintf( " Current_a: %f    delta_a: %f     dt:  %f\n", Cosmo.current_a, Cosmo.delta_a, H.dt  );
+  // chprintf( " t_physical: %f Myr   dt_physical: %f Myr\n", G.Cosmo.t_secs/MYR, G.Cosmo.dt_secs/MYR );
+
+  
+  
+  
+  #else // Not Cosmology
   dt_particles = Calc_Particles_dt();
   dt_particles = fmin( dt_particles, Particles.max_dt);
-  
   #ifdef ONLY_PARTICLES
-  chprintf( " dt_particles: %f \n", dt_particles );
   dt_min = dt_particles;
+  chprintf( " dt_particles: %f \n", dt_particles );
   #else
   chprintf( " dt_hydro: %f   dt_particles: %f \n", dt_hydro, dt_particles );
   dt_min = fmin( dt_hydro, dt_particles );
   #endif//ONLY_PARTICLES
-  
   H.dt = dt_min;
   Particles.dt = H.dt;
+  #endif//COSMOLOGY
   #endif//PARTICLES
   
   // Set times for potential extrapolation
