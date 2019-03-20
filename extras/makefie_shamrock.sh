@@ -17,10 +17,15 @@ CFILES_PART = $(wildcard $(DIR_PART)/*.c)
 CPPFILES_PART = $(wildcard $(DIR_PART)/*.cpp)
 CUDAFILES_PART = $(wildcard $(DIR_PART)/*.cu)
 
-OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cu,.o,$(CUDAFILES_PART))
-COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .c,.o,$(CFILES_PART))
-CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_PART))
-CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_PART))
+DIR_COSMO = ./src/cosmology
+CFILES_COSMO = $(wildcard $(DIR_COSMO)/*.c)
+CPPFILES_COSMO = $(wildcard $(DIR_COSMO)/*.cpp)
+CUDAFILES_COSMO = $(wildcard $(DIR_COSMO)/*.cu)
+
+OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cu,.o,$(CUDAFILES_PART)) $(subst .c,.o,$(CFILES_COSMO)) $(subst .cpp,.o,$(CPPFILES_COSMO)) $(subst .cu,.o,$(CUDAFILES_COSMO))
+COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .c,.o,$(CFILES_COSMO))
+CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cpp,.o,$(CPPFILES_COSMO))
+CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_PART)) $(subst .cu,.o,$(CUDAFILES_COSMO))
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -96,6 +101,8 @@ PARALLEL_OMP = -DPARALLEL_OMP
 N_OMP_THREADS = -DN_OMP_THREADS=10
 # PRINT_OMP_DOMAIN = -DPRINT_OMP_DOMAIN
 
+#Cosmological simulation
+COSMOLGY = -DCOSMOLGY
 
 ifdef CUDA
 CUDA_INCL = -I/usr/local/cuda/include
@@ -129,7 +136,8 @@ FLAGS_HYDRO = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEG
 FLAGS_OMP = $(PARALLEL_OMP) $(N_OMP_THREADS) $(PRINT_OMP_DOMAIN)
 FLAGS_GRAVITY = $(GRAVITY) $(POISSON_SOLVER) $(GRAVITY_COUPLE) $(GRAVITY_ENERGY_COUPLE) $(OUTPUT_POTENTIAL)
 FLAGS_PARTICLES = $(PARTICLES) $(PARTICLES_INT) $(PARTICLE_IDS) $(ONLY_PARTICLES)
-FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) 
+FLAGS_COSMO = $(COSMOLGY)
+FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) $(FLAGS_COSMO) 
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
 NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=$(CC)
