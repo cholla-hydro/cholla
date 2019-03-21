@@ -42,9 +42,15 @@ typedef double Real;
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
 
+
+#ifdef COOLING_GRACKLE
+#define NSCALARS 7
+#else
 #ifdef SCALAR
+// Set Number of scalar fields when not using grackle
 #define NSCALARS 1
-#endif
+#endif//SCALAR
+#endif//COOLING_GRACKLE
 
 
 #ifdef GRAVITY
