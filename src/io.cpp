@@ -1859,7 +1859,9 @@ void Grid3D::Read_Grid(struct parameters P) {
 
   // create the filename to read from
   // assumes your data is in the outdir specified in the input file
-  strcpy(filename, P.outdir);
+  // strcpy(filename, P.outdir);
+  // Changed to read initial conditions from indir
+  strcpy(filename, P.indir);
   sprintf(timestep, "%d", nfile);
   strcat(filename,timestep);
   #if defined BINARY
