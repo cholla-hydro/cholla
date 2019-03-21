@@ -46,7 +46,7 @@ Real Cosmology::Get_dt_from_da_hydro( Real da ){
   a2 = current_a * current_a;
   a_dot = sqrt( Omega_M/current_a + a2*Omega_L + Omega_K );
   dt = da / a_dot / current_a / current_a;
-  return da;
+  return dt;
 }
 
 

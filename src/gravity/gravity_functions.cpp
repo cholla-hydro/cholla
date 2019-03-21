@@ -50,8 +50,8 @@ void Grid3D::set_dt_Gravity(){
   
   
   Cosmo.delta_a = da_min;
-  dt_min = Cosmo.Get_dt_from_da_hydro( da_min );
-  H.dt = dt_min;
+  dt_min = Cosmo.Get_dt_from_da_hydro( Cosmo.delta_a );
+  H.dt = dt_min; 
   chprintf( " Current_a: %f    delta_a: %f     dt:  %f\n", Cosmo.current_a, Cosmo.delta_a, H.dt  );
   // chprintf( " t_physical: %f Myr   dt_physical: %f Myr\n", G.Cosmo.t_secs/MYR, G.Cosmo.dt_secs/MYR );
 
