@@ -32,6 +32,9 @@ typedef double Real;
 #define MYR 31.536e12 //Myears in secs
 #define KPC 3.086e16 // kpc in km
 #define G_COSMO 4.300927161e-06; // gravitational constant, kpc km^2 s^-2 Msun^-1
+#define MSUN_CGS 1.98847e33; //Msun in gr
+#define KPC_CGS 3.086e21;  //kpc in cm
+#define KM_CGS 1e5; //km in cm
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
 #define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
