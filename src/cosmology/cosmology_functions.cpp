@@ -21,16 +21,24 @@ void Grid3D::Initialize_Cosmology( struct parameters *P ){
   
 }
 
+Real Cosmology::Get_da_from_dt( Real dt ){
+  Real a2 = current_a * current_a;
+  Real a_dot = sqrt( Omega_M/current_a + a2*Omega_L + Omega_K ) * H0 ;
+  return a_dot * dt;
+}
+
 Real Cosmology::Get_dt_from_da( Real da ){
   Real a2 = current_a * current_a;
   Real a_dot = sqrt( Omega_M/current_a + a2*Omega_L + Omega_K ) * H0 ;
   return da / a_dot;
 }
 
-Real Cosmology::Get_da_from_dt( Real dt ){
-  Real a2 = current_a * current_a;
-  Real a_dot = sqrt( Omega_M/current_a + a2*Omega_L + Omega_K ) * H0 ;
-  return a_dot * dt;
+Real Cosmology::Get_da_from_dt_hydro( Real dt ){
+  Real a2, a_dot, da;
+  a2 = current_a * current_a;
+  a_dot = sqrt( Omega_M/current_a + a2*Omega_L + Omega_K );
+  da = dt * a_dot * current_a * current_a;
+  return da;
 }
 
 Real Cosmology::Scale_Function( Real a, Real Omega_M, Real Omega_L, Real Omega_K ){
