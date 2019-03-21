@@ -225,6 +225,20 @@ void Grid3D::Initialize(struct parameters *P)
   R.flag_delta = P->flag_delta;
 #endif /*ROTATED_PROJECTION*/
 
+  // Values for lower limit for density and temperature
+  #ifdef DENSITY_FLOOR
+  H.density_floor = 1e-4;
+  #else
+  H.density_floor = 0.0;
+  #endif
+
+  #ifdef TEMPERATURE_FLOOR
+  H.temperature_floor = 1.0;
+  #else
+  H.temperature_floor = 0.0;
+  #endif
+
+
 }
 
 
@@ -517,6 +531,16 @@ Real Grid3D::Update_Grid(void)
   y_off = ny_local_start;
   z_off = nz_local_start;
   #endif
+  
+  // Set the lower limit for density and temperature (Internal Energy)
+  Real U_floor, density_floor;
+  density_floor = H.density_floor;
+  // Minimum of internal energy from minumum of temperature 
+  U_floor = H.temperature_floor / (gama - 1) / MP * KB * 1e-10;;
+  #ifdef COSMOLOGY
+  U_floor /=  Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
+  #endif
+
 
   // Pass the structure of conserved variables to the CTU update functions
   // The function returns the updated variables
@@ -576,10 +600,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifndef VL
-    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields);
+    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor );
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields);
+    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor );
     #endif //VL
     #endif    
   }

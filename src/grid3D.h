@@ -208,6 +208,10 @@ struct Header
   *  \brief Number of fields (conserved variables, scalars, etc.) */
   int n_fields;
   
+  // Values for lower limit for density and temperature
+  Real density_floor;
+  Real temperature_floor;
+  
   //Flag to indicate when to transfer the Conserved boundaries
   bool TRANSFER_HYDRO_BOUNDARIES;
   
