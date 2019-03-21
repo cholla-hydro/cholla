@@ -31,6 +31,9 @@ void Grid3D::set_dt_Gravity(){
   chprintf( " Delta_a_particles: %f \n", da_particles );
   #else
   Real da_hydro;
+  da_hydro = Cosmo.Get_da_from_dt( dt_hydro );
+  da_min = fmin( da_hydro, da_particles );
+  chprintf( " Delta_a_gas: %f    Delta_a_particles: %f \n", da_hydro, da_particles );
   #endif//ONLY_PARTICLES
   
   Cosmo.max_delta_a = fmin( 0.015 * Cosmo.current_a, 0.001 );
@@ -191,9 +194,9 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   #ifdef COSMOLOGY
   Grav_Constant = Cosmo.cosmo_G;
   current_a = Cosmo.current_a;
-  // dens_avrg = Grav.Get_Average_Density();
   dens_avrg = Cosmo.rho_0_gas;
-  chprintf( " Density Average:  %f\n", dens_avrg);
+  // dens_avrg = Grav.Get_Average_Density();
+  // chprintf( " Density Average:  %f\n", dens_avrg);
   #endif
   
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
