@@ -378,10 +378,11 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     #endif
     
     
-        
+    #if !( defined(DENSITY_FLOOR) && defined(TEMPERATURE_FLOOR) )   
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id] || dev_conserved[4*n_cells + id] < 0.0 || dev_conserved[4*n_cells+id] != dev_conserved[4*n_cells+id]) {
       printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid+x_off, yid+y_off, zid+z_off, dev_conserved[id], dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[4*n_cells+id]);
     }
+    #endif//DENSITY_FLOOR
     /*
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -763,7 +764,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
 __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,  Real U_floor )
 {
   int id, xid, yid, zid, n_cells;
-  Real d, d_inv, vx, vy, vz, E, Ekin, U, delta_U;
+  Real d, d_inv, vx, vy, vz, E, Ekin, U;
   n_cells = nx*ny*nz;
 
   // get a global thread ID
@@ -785,11 +786,8 @@ __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int
     Ekin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
     
     U = ( E - Ekin ) / d;
-    if ( U < U_floor ){
-      delta_U = U_floor - U;
-      dev_conserved[4*n_cells + id] += d*delta_U;
-    }
-    
+    if ( U < U_floor ) dev_conserved[4*n_cells + id] = Ekin + d*U_floor;
+      
     #ifdef DE
     U = dev_conserved[(n_fields-1)*n_cells + id] / d ;
     if ( U < U_floor ) dev_conserved[(n_fields-1)*n_cells + id] = d*U_floor ;
