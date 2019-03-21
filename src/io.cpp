@@ -1099,6 +1099,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
+    #ifndef COOLING_GRACKLE
+    // Dont write scalars when using grackle
     #ifdef SCALAR
     for (int s=0; s<NSCALARS; s++) {
       // create the name of the dataset
@@ -1124,7 +1126,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       // Free the dataset id
       status = H5Dclose(dataset_id);
     }
-    #endif
+    #endif //SCALAR
+    #endif //COOLING_GRACKLE
 
     #ifdef DE
     // Copy the internal energy array to the memory buffer
@@ -2586,6 +2589,8 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id)
     
     #endif//DE
 
+    #ifndef COOLING_GRACKLE
+    // Dont Load scalars when using grackle
     #ifdef SCALAR
     for (int s=0; s<NSCALARS; s++) {
       // create the name of the dataset
@@ -2613,7 +2618,8 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id)
         }
       }    
     }
-    #endif
+    #endif//SCALAR
+    #endif//COOLING_GRACKLE
   }
   free(dataset_buffer);
 
