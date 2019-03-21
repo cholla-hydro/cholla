@@ -97,6 +97,10 @@ int main(int argc, char *argv[])
   #ifdef COSMOLOGY
   G.Initialize_Cosmology(&P);
   #endif
+  
+  #ifdef COOLING_GRACKLE
+  G.Initialize_Grackle(&P);
+  #endif
 
   #ifdef GRAVITY
   G.Compute_Gravitational_Potential( &P);

@@ -27,6 +27,10 @@
 #include"cosmology/cosmology.h"
 #endif
 
+#ifdef COOLING_GRACKLE
+#include "cooling/cool_grackle.h"
+#endif
+
 #ifdef CPU_TIME
 #include "timing_functions.h"
 #endif
@@ -270,6 +274,11 @@ class Grid3D
     #ifdef COSMOLOGY
     // Object that contains data for cosmology
     Cosmology Cosmo;
+    #endif
+    
+    #ifdef COOLING_GRACKLE
+    // Object that contains data for Grackle cooling
+    Cool_GK Cool;
     #endif
     
     #ifdef CPU_TIME
@@ -664,6 +673,10 @@ class Grid3D
   void Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt_Cosmo();
+  #endif
+  
+  #ifdef COOLING_GRACKLE
+  void Initialize_Grackle( struct parameters *P );
   #endif
   
 };
