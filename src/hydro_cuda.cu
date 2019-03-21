@@ -759,5 +759,43 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
 
 }
 
+#ifdef TEMPERATURE_FLOOR
+__global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,  Real U_floor )
+{
+  int id, xid, yid, zid, n_cells;
+  Real d, d_inv, vx, vy, vz, E, Ekin, U, delta_U;
+  n_cells = nx*ny*nz;
+
+  // get a global thread ID
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx*ny);
+  yid = (id - zid*nx*ny) / nx;
+  xid = id - zid*nx*ny - yid*nx;
+
+
+  // threads corresponding to real cells do the calculation
+  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
+  {
+    d  =  dev_conserved[            id];
+    d_inv = 1.0 / d;
+    vx =  dev_conserved[1*n_cells + id] * d_inv;
+    vy =  dev_conserved[2*n_cells + id] * d_inv;
+    vz =  dev_conserved[3*n_cells + id] * d_inv;
+    E  =  dev_conserved[4*n_cells + id];    
+    Ekin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
+    
+    U = ( E - Ekin ) / d;
+    if ( U < U_floor ){
+      delta_U = U_floor - U;
+      dev_conserved[4*n_cells + id] += d*delta_U;
+    }
+    
+    #ifdef DE
+    U = dev_conserved[(n_fields-1)*n_cells + id] / d ;
+    if ( U < U_floor ) dev_conserved[(n_fields-1)*n_cells + id] = d*U_floor ;
+    #endif
+  }
+}
+#endif //TEMPERATURE_FLOOR
 
 #endif //CUDA
