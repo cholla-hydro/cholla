@@ -17,7 +17,6 @@ class Cool_GK
   chemistry_data *data;
 
   Real dens_conv;
-  Real momentum_conv;
   Real energy_conv;
 
   Real dens_to_CGS;
@@ -45,7 +44,7 @@ class Cool_GK
 
 Cool_GK( void );
 
-void Initialize( struct parameters *P );
+void Initialize( struct parameters *P, Cosmology &Cosmo );
 
 // void Do_Cooling_Step( Real dt );
 
