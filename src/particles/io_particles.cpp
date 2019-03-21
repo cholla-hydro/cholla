@@ -287,14 +287,14 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile  )
   Real vy_min_g = ReduceRealMin( vy_min );
   Real vz_min_g = ReduceRealMin( vz_min );
   
-  #ifdef COSMOLOGY
+  #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
   chprintf( "  Pos X   Min: %f   Max: %f   [ kpc/h ]\n", px_min_g, px_max_g);
   chprintf( "  Pos Y   Min: %f   Max: %f   [ kpc/h ]\n", py_min_g, py_max_g);
   chprintf( "  Pos Z   Min: %f   Max: %f   [ kpc/h ]\n", pz_min_g, pz_max_g);
   chprintf( "  Vel X   Min: %f   Max: %f   [ km/s ]\n", vx_min_g, vx_max_g);
   chprintf( "  Vel Y   Min: %f   Max: %f   [ km/s ]\n", vy_min_g, vy_max_g);
   chprintf( "  Vel Z   Min: %f   Max: %f   [ km/s ]\n", vz_min_g, vz_max_g);
-  #endif//COSMOLOGY
+  #endif//PRINT_INITIAL_STATS
   #endif//MPI_CHOLLA
   // 
   
