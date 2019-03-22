@@ -254,6 +254,12 @@ int main(int argc, char *argv[])
 */   
 
   } /*end loop over timesteps*/
+  
+  
+  #ifdef CPU_TIME
+  G.Timer.Get_Average_Times();
+  G.Timer.Print_Average_Times( P );
+  #endif
 
   // free the grid
   G.Reset();

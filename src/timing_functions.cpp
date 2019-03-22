@@ -181,6 +181,174 @@ void Time::Print_Times(){
 }
 
 
+void Time::Get_Average_Times(){
+
+  n_steps -= 1; //Ignore the first timestep
+
+  time_hydro_all /= n_steps;
+  time_bound_all /= n_steps;
+
+  #ifdef GRAVITY_CPU
+  time_dt_all /= n_steps;
+  time_bound_pot_all /= n_steps;
+  #endif
+
+  #ifdef GRAVITY
+  time_potential_all /= n_steps;
+  #ifdef PARTICLES
+  time_part_dens_all  /= n_steps;
+  time_part_tranf_all /= n_steps;
+  time_part_dens_transf_all /= n_steps;
+  time_advance_particles_1_all /= n_steps;
+  time_advance_particles_2_all /= n_steps;
+  #endif
+  #endif
+
+  #ifdef COOLING_GRACKLE
+  time_cooling_all /= n_steps;
+  #endif
+
+}
+
+void Time::Print_Average_Times( struct parameters P ){
+
+  Real time_total;
+  time_total = time_hydro_all + time_bound_all;
+
+  #ifdef GRAVITY_CPU
+  time_total += time_dt_all;
+  time_total += time_bound_pot_all;
+  #endif
+
+  #ifdef GRAVITY
+  time_total += time_potential_all;
+  #ifdef PARTICLES
+  time_total += time_part_dens_all;
+  time_total += time_part_tranf_all;
+  time_total += time_part_dens_transf_all;
+  time_total += time_advance_particles_1_all;
+  time_total += time_advance_particles_2_all;
+  #endif
+  #endif
+
+  #ifdef COOLING_GRACKLE
+  time_total += time_cooling_all;
+  #endif
+
+  chprintf("\nAverage Times      n_steps:%d\n", n_steps);
+  #ifdef GRAVITY_CPU
+  chprintf(" Time Calc dt           avg: %9.4f   ms\n", time_dt_all);
+  #endif
+  chprintf(" Time Hydro             avg: %9.4f   ms\n", time_hydro_all);
+  chprintf(" Time Boundaries        avg: %9.4f   ms\n", time_bound_all);
+  #ifdef GRAVITY
+  chprintf(" Time Grav Potential    avg: %9.4f   ms\n", time_potential_all);
+  #ifdef GRAVITY_CPU
+  chprintf(" Time Pot Boundaries    avg: %9.4f   ms\n", time_bound_pot_all);
+  #endif
+  #ifdef PARTICLES
+  chprintf(" Time Part Density      avg: %9.4f   ms\n", time_part_dens_all);
+  chprintf(" Time Part Boundaries   avg: %9.4f   ms\n", time_part_tranf_all);
+  chprintf(" Time Part Dens Transf  avg: %9.4f   ms\n", time_part_dens_transf_all);
+  chprintf(" Time Advance Part 1    avg: %9.4f   ms\n", time_advance_particles_1_all);
+  chprintf(" Time Advance Part 2    avg: %9.4f   ms\n", time_advance_particles_2_all);
+  #endif
+  #endif
+
+  #ifdef COOLING_GRACKLE
+  chprintf(" Time Cooling           avg: %9.4f   ms\n", time_cooling_all);
+  #endif
+
+  chprintf(" Time Total             avg: %9.4f   ms\n\n", time_total);
+
+  string file_name ( "run_timing.log" );
+  string header;
+
+
+  chprintf( "Writing timming values to file: %s  \n", file_name.c_str());
+
+  header = "# nz ny nx n_proc n_omp n_steps ";
+
+
+
+  #ifdef GRAVITY_CPU
+  header += "dt ";
+  #endif
+  header += "hydo ";
+  header += "bound ";
+  #ifdef GRAVITY
+  header += "grav_pot ";
+  #ifdef GRAVITY_CPU
+  header += "pot_bound ";
+  #endif
+  #endif
+  #ifdef PARTICLES
+  header += "part_dens ";
+  header += "part_bound ";
+  header += "part_dens_boud ";
+  header += "part_adv_1 ";
+  header += "part_adv_2 ";
+  #endif
+  #ifdef COOLING_GRACKLE
+  header += "cool ";
+  #endif
+  header += "total ";
+  header += " \n";
+
+
+
+  bool file_exists = false;
+  if (FILE *file = fopen(file_name.c_str(), "r")){
+    file_exists = true;
+    chprintf( " File exists, appending values: %s \n\n", file_name.c_str() );
+    fclose( file );
+  } else{
+    chprintf( " Creating File: %s \n\n", file_name.c_str() );
+  }
+
+
+
+  // Output timing values
+  ofstream out_file;
+  if ( procID == 0 ){
+    out_file.open(file_name.c_str(), ios::app);
+    if ( !file_exists ) out_file << header;
+    out_file << P.nz << " " << P.ny << " " << P.nx << " ";
+    out_file << nproc << " ";
+    #ifdef PARALLEL_OMP
+    out_file << N_OMP_THREADS << " ";
+    #else
+    out_file << 0 << " ";
+    #endif
+    out_file << n_steps << " ";
+    #ifdef GRAVITY_CPU
+    out_file << time_dt_all << " ";
+    #endif
+    out_file << time_hydro_all << " ";
+    out_file << time_bound_all << " ";
+    #ifdef GRAVITY
+    out_file << time_potential_all << " ";
+    #ifdef GRAVITY_CPU
+    out_file << time_bound_pot_all << " ";
+    #endif
+    #endif
+    #ifdef PARTICLES
+    out_file << time_part_dens_all << " ";
+    out_file << time_part_tranf_all << " ";
+    out_file << time_part_dens_transf_all << " ";
+    out_file << time_advance_particles_1_all << " ";
+    out_file << time_advance_particles_2_all << " ";
+    #endif
+    #ifdef COOLING_GRACKLE
+    out_file << time_cooling_all << " ";
+    #endif
+    out_file << time_total << " ";
+
+    out_file << "\n";
+    out_file.close();
+  }
+}
+
 
 
 
