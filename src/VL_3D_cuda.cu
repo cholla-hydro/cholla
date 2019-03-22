@@ -386,7 +386,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
 
   #ifdef DE
   Real d, d_inv, vx, vy, vz;
-  Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo, P;
+  Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo, P, E, E_kin, GE;
   int ipo, jpo, kpo;
   #endif
 
@@ -399,7 +399,11 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+    //PRESSURE_DE
+    E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
+    P = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );  
+    P  = fmax(P, (Real) TINY_NUMBER); 
+    // P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     //if (d < 0.0 || d != d) printf("Negative density before half step update.\n");
     //if (P < 0.0) printf("%d Negative pressure before half step update.\n", id);
     ipo = xid+1 + yid*nx + zid*nx*ny;
