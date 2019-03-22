@@ -2505,9 +2505,9 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id)
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
           C.momentum_x[id] = dataset_buffer[buf_id];
-          mean_l += abs(C.momentum_x[id]);
-          if ( abs(C.momentum_x[id]) > max_l ) max_l = abs(C.momentum_x[id]);
-          if ( abs(C.momentum_x[id]) < min_l ) min_l = abs(C.momentum_x[id]);
+          mean_l += fabs(C.momentum_x[id]);
+          if ( fabs(C.momentum_x[id]) > max_l ) max_l = fabs(C.momentum_x[id]);
+          if ( fabs(C.momentum_x[id]) < min_l ) min_l = fabs(C.momentum_x[id]);
         }
       }
     }
@@ -2543,9 +2543,9 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id)
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
           C.momentum_y[id] = dataset_buffer[buf_id];
-          mean_l += abs(C.momentum_y[id]);
-          if ( abs(C.momentum_y[id]) > max_l ) max_l = abs(C.momentum_y[id]);
-          if ( abs(C.momentum_y[id]) < min_l ) min_l = abs(C.momentum_y[id]);
+          mean_l += fabs(C.momentum_y[id]);
+          if ( fabs(C.momentum_y[id]) > max_l ) max_l = fabs(C.momentum_y[id]);
+          if ( fabs(C.momentum_y[id]) < min_l ) min_l = fabs(C.momentum_y[id]);
         }
       }
     }
@@ -2582,9 +2582,9 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id)
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
           C.momentum_z[id] = dataset_buffer[buf_id];
-          mean_l += abs(C.momentum_z[id]);
-          if ( abs(C.momentum_z[id]) > max_l ) max_l = abs(C.momentum_z[id]);
-          if ( abs(C.momentum_z[id]) < min_l ) min_l = abs(C.momentum_z[id]);
+          mean_l += fabs(C.momentum_z[id]);
+          if ( fabs(C.momentum_z[id]) > max_l ) max_l = fabs(C.momentum_z[id]);
+          if ( fabs(C.momentum_z[id]) < min_l ) min_l = fabs(C.momentum_z[id]);
         }
       }
     }
