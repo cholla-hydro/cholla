@@ -402,6 +402,10 @@ class Grid3D
     Real Update_Hydro_Grid(void);
     
     void Update_Time();
+    
+    void Sync_Energies_3D_CPU_function( int g_start, int g_end );
+    void Sync_Energies_3D_CPU();
+    void Apply_Temperature_Floor_CPU_function( int g_start, int g_end );
 
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */

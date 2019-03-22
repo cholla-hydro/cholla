@@ -674,7 +674,10 @@ Real Grid3D::Update_Hydro_Grid( ){
   #if defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU)
   Get_Gravitational_Field();
   Add_Gavity_To_Hydro();
-  #endif
+  #ifdef DE
+  Sync_Energies_3D_CPU();
+  #endif//DE
+  #endif//GRAVITY
   
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 1 );
