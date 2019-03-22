@@ -17,10 +17,21 @@ CFILES_PART = $(wildcard $(DIR_PART)/*.c)
 CPPFILES_PART = $(wildcard $(DIR_PART)/*.cpp)
 CUDAFILES_PART = $(wildcard $(DIR_PART)/*.cu)
 
-OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cu,.o,$(CUDAFILES_PART))
-COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .c,.o,$(CFILES_PART))
-CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_PART))
-CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_PART))
+DIR_COSMO = ./src/cosmology
+CFILES_COSMO = $(wildcard $(DIR_COSMO)/*.c)
+CPPFILES_COSMO = $(wildcard $(DIR_COSMO)/*.cpp)
+CUDAFILES_COSMO = $(wildcard $(DIR_COSMO)/*.cu)
+
+DIR_COOL = ./src/cooling
+CFILES_COOL = $(wildcard $(DIR_COOL)/*.c)
+CPPFILES_COOL = $(wildcard $(DIR_COOL)/*.cpp)
+CUDAFILES_COOL = $(wildcard $(DIR_COOL)/*.cu)
+
+
+OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cu,.o,$(CUDAFILES_PART)) $(subst .c,.o,$(CFILES_COSMO)) $(subst .cpp,.o,$(CPPFILES_COSMO)) $(subst .cu,.o,$(CUDAFILES_COSMO)) $(subst .c,.o,$(CFILES_COOL)) $(subst .cpp,.o,$(CPPFILES_COOL)) $(subst .cu,.o,$(CUDAFILES_COOL))
+COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .c,.o,$(CFILES_COSMO))  $(subst .c,.o,$(CFILES_COOL))
+CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cpp,.o,$(CPPFILES_COSMO)) $(subst .cpp,.o,$(CPPFILES_COOL))
+CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_PART)) $(subst .cu,.o,$(CUDAFILES_COSMO)) $(subst .cu,.o,$(CUDAFILES_COOL))
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -69,11 +80,19 @@ INTEGRATOR = -DVL
 #Dual Energy Formalism
 DUAL_ENERGY = -DDE
 
+#Apply a minimum value to Conserved values
+DENSITY_FLOOR = -DDENSITY_FLOOR
+TEMPERATURE_FLOOR = -DTEMPERATURE_FLOOR
+
 #Allocate GPU memory only once at the first timestep
 SINGLE_ALLOC_GPU = -DSINGLE_ALLOC_GPU
 
 COOLING = #-DCOOLING_GPU -DCLOUDY_COOL
 
+#Print Initial Statistics
+PRINT_INITIAL_STATS = -DPRINT_INITIAL_STATS
+
+#Meassure and print times for each component
 CPU_TIME = -DCPU_TIME
 
 #INCLUDE GRAVITY
@@ -81,29 +100,35 @@ GRAVITY = -DGRAVITY
 POISSON_SOLVER = -DPFFT
 # GRAVITY_COUPLE = -DGRAVITY_COUPLE_GPU
 GRAVITY_COUPLE = -DGRAVITY_COUPLE_CPU
-# GRAVITY_ENERGY_COUPLE = -DCOUPLE_GRAVITATIONAL_WORK
-GRAVITY_ENERGY_COUPLE = -DCOUPLE_DELTA_E_KINETIC
-OUTPUT_POTENTIAL = -DOUTPUT_POTENTIAL
+GRAVITY_ENERGY_COUPLE = -DCOUPLE_GRAVITATIONAL_WORK
+# GRAVITY_ENERGY_COUPLE = -DCOUPLE_DELTA_E_KINETIC
+# OUTPUT_POTENTIAL = -DOUTPUT_POTENTIAL
 
 #Include Gravity From Particles PM
 PARTICLES = -DPARTICLES
 PARTICLES_INT = -DPARTICLES_LONG_INTS
-PARTICLE_IDS = -DPARTICLE_IDS
 # ONLY_PARTICLES = -DONLY_PARTICLES
+# PARTICLE_IDS = -DPARTICLE_IDS
+SINGLE_PARTICLE_MASS = -DSINGLE_PARTICLE_MASS
 
 #TURN OMP ON FOR CPU CALCULATIONS
 PARALLEL_OMP = -DPARALLEL_OMP
 N_OMP_THREADS = -DN_OMP_THREADS=10
 # PRINT_OMP_DOMAIN = -DPRINT_OMP_DOMAIN
 
+#Cosmological simulation
+COSMOLOGY = -DCOSMOLOGY
+
+#Use Grackle for cooling in cosmological simulations
+COOLING = -DCOOLING_GRACKLE
 
 ifdef CUDA
-CUDA_INCL = -I$(OLCF_CUDA_ROOT)/include
-CUDA_LIBS = -L$(OLCF_CUDA_ROOT)/lib64 -lcuda -lcudart
+CUDA_INCL = -I/usr/local/cuda/include
+CUDA_LIBS = -L/usr/local/cuda/lib64 -lcuda -lcudart
 endif
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = -I$(OLCF_HDF5_ROOT)/include
-HDF5_LIBS = -L$(OLCF_HDF5_ROOT)/lib -lhdf5
+HDF5_INCL = -I/usr/include/hdf5/serial/
+HDF5_LIBS = -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -lhdf5
 endif
 
 INCL   = -I./ $(HDF5_INCL)
@@ -119,20 +144,33 @@ INCL += $(FFTW_INCL) $(PFFT_INCL)
 LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
 endif
 
+ifeq ($(COOLING),-DCOOLING_GRACKLE)
+GRACKLE_PRECISION = -DCONFIG_BFLOAT_8
+OUTPUT_TEMPERATURE = -DOUTPUT_TEMPERATURE
+OUTPUT_CHEMISTRY = -DOUTPUT_CHEMISTRY
+SCALAR = -DSCALAR
+N_OMP_THREADS_GRACKLE = -DN_OMP_THREADS_GRACKLE=10
+GRACKLE_INCL = -I/ccs/home/bvilasen/code/grackle/include
+GRACKLE_LIBS = -L/ccs/home/bvilasen/code/grackle/lib -lgrackle
+LIBS += $(GRACKLE_LIBS)
+endif
+
 ifdef PARALLEL_OMP
 OMP_FLAGS = -fopenmp
 LIBS += -fopenmp
 endif
 
 
-FLAGS_HYDRO = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(DUAL_ENERGY) $(COOLING) $(SINGLE_ALLOC_GPU) $(CPU_TIME)#-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
+FLAGS_HYDRO = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(DUAL_ENERGY) $(COOLING) $(SINGLE_ALLOC_GPU) $(CPU_TIME) $(PRINT_INITIAL_STATS) $(DENSITY_FLOOR) $(TEMPERATURE_FLOOR) $(SCALAR)#-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
 FLAGS_OMP = $(PARALLEL_OMP) $(N_OMP_THREADS) $(PRINT_OMP_DOMAIN)
 FLAGS_GRAVITY = $(GRAVITY) $(POISSON_SOLVER) $(GRAVITY_COUPLE) $(GRAVITY_ENERGY_COUPLE) $(OUTPUT_POTENTIAL)
-FLAGS_PARTICLES = $(PARTICLES) $(PARTICLES_INT) $(PARTICLE_IDS) $(ONLY_PARTICLES)
-FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) 
+FLAGS_PARTICLES = $(PARTICLES) $(PARTICLES_INT) $(PARTICLE_IDS) $(ONLY_PARTICLES) $(SINGLE_PARTICLE_MASS)
+FLAGS_COSMO = $(COSMOLOGY)
+FLAGS_COOLING = $(COOLING) $(GRACKLE_PRECISION) $(OUTPUT_TEMPERATURE) $(OUTPUT_CHEMISTRY) $(N_OMP_THREADS_GRACKLE)
+FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) $(FLAGS_COSMO) $(FLAGS_COOLING)
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
-NVCCFLAGS = $(FLAGS) -ccbin=gcc -arch=sm_70
+NVCCFLAGS = $(FLAGS) -fmad=false  -ccbin=gcc -arch=sm_70
 
 
 %.o:	%.c
