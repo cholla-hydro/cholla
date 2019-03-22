@@ -8,6 +8,14 @@
 #endif
 
 
+bool Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected ){
+
+  Real eta = 0.001;
+  
+  if( U_total / E > eta ) return 0;
+  else return 1;  
+}
+
 void Grid3D::Sync_Energies_3D_CPU(){
   #ifndef PARALLEL_OMP
   Sync_Energies_3D_CPU_function( 0, H.nz_real );

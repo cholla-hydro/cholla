@@ -403,8 +403,11 @@ class Grid3D
     
     void Update_Time();
     
+    #ifdef DE
     void Sync_Energies_3D_CPU_function( int g_start, int g_end );
     void Sync_Energies_3D_CPU();
+    bool Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected );
+    #endif
     void Apply_Temperature_Floor_CPU_function( int g_start, int g_end );
 
     /*! \fn void Write_Header_Binary(FILE *fp)
