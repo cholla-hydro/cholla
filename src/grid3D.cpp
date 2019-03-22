@@ -626,6 +626,17 @@ Real Grid3D::Update_Grid(void)
   C.GasEnergy = &g1[(H.n_fields-1)*H.n_cells];
   #endif
   
+  #ifdef COOLING_GRACKLE
+  Cool.fields.density = C.density;
+  Cool.fields.HI_density      = &C.scalar[ 0*H.n_cells ];
+  Cool.fields.HII_density     = &C.scalar[ 1*H.n_cells ];
+  Cool.fields.HeI_density     = &C.scalar[ 2*H.n_cells ];
+  Cool.fields.HeII_density    = &C.scalar[ 3*H.n_cells ];
+  Cool.fields.HeIII_density   = &C.scalar[ 4*H.n_cells ];
+  Cool.fields.e_density       = &C.scalar[ 5*H.n_cells ];
+  Cool.fields.metal_density   = &C.scalar[ 6*H.n_cells ];
+  #endif
+  
   #ifdef GRAVITY
   #ifdef GRAVITY_COUPLE_GPU
   #ifdef DE
