@@ -153,7 +153,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     GE = dev_conserved[(n_fields-1)*n_cells + id];
     E_kin = 0.5 * d_imo * ( vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo );
-    p_imo = Get_Pressure_Dual_Energy( E, E - E_kin, GE, gamma ); 
+    p_imo = Get_Pressure_From_DE( E, E - E_kin, GE, gamma ); 
     #else
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
     #endif//DE
@@ -203,7 +203,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     GE = dev_conserved[(n_fields-1)*n_cells + id];
     E_kin = 0.5 * d_imt * ( vx_imt*vx_imt + vy_imt*vy_imt + vz_imt*vz_imt );
-    p_imt = Get_Pressure_Dual_Energy( E, E - E_kin, GE, gamma );   
+    p_imt = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );   
     #else
     p_imt  = (dev_conserved[4*n_cells + id] - 0.5*d_imt*(vx_imt*vx_imt + vy_imt*vy_imt + vz_imt*vz_imt)) * (gamma - 1.0);
     #endif//DE

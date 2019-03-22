@@ -400,6 +400,8 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     //PRESSURE_DE
+    E = dev_conserved[4*n_cells + id];
+    GE = dev_conserved[(n_fields-1)*n_cells + id];
     E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
     P = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );  
     P  = fmax(P, (Real) TINY_NUMBER); 
