@@ -37,11 +37,19 @@ void Grid3D::set_dt_Gravity(){
   chprintf( " Delta_a_particles: %f      Delta_a_gas: %f   \n", da_particles, da_hydro );
   #endif//ONLY_PARTICLES
   
+  
   Cosmo.max_delta_a = fmin( 0.015 * Cosmo.current_a, 0.001 );
   if( da_min > Cosmo.max_delta_a){
     da_min = Cosmo.max_delta_a;
     chprintf( " Seting max delta_a: %f\n", da_min );
   }
+  
+  #ifdef COOLING_GRACKLE
+  if ( fabs(Cosmo.current_a + da_min - Cool.scale_factor_UVB_on) < 0.002 ){
+    da_min /= 5;
+    chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
+  }
+  #endif
   
   if ( (Cosmo.current_a + da_min) >  Cosmo.next_output ){
     da_min = Cosmo.next_output - Cosmo.current_a;
