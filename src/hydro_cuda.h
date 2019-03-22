@@ -38,6 +38,10 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
 __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,  Real U_floor );
 #endif
 
+#ifdef DE //PRESSURE_DE
+__host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_advected, Real gamma );
+#endif
+
 
 #endif //HYDRO_CUDA_H
 #endif //CUDA

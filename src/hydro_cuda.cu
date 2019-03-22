@@ -796,4 +796,18 @@ __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int
 }
 #endif //TEMPERATURE_FLOOR
 
+#ifdef DE //PRESSURE_DE
+__host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_advected, Real gamma ){
+  
+  Real U, P;
+  Real eta = 0.001;
+  
+  if( U_total / E > eta ) U = U_total;
+  else U = U_advected;
+
+  P = U * (gamma - 1.0);
+  return P;
+}
+#endif //DE
+
 #endif //CUDA
