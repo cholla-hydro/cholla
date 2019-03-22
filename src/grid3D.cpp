@@ -683,6 +683,17 @@ Real Grid3D::Update_Hydro_Grid( ){
   Timer.End_and_Record_Time( 1 );
   #endif //CPU_TIME
   
+  #ifdef COOLING_GRACKLE
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
+  Do_Cooling_Step_Grackle( );
+  Apply_Temperature_Floor_CPU_function(  0, Grav.nz_local );
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time(10);
+  #endif
+  #endif//COOLING_GRACKLE
+  
   
   return dti;
 }
