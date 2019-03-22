@@ -42,7 +42,7 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
   Real f_d, f_mx, f_my, f_mz, f_E;
   Real Sl, Sr, Sm, cfl, cfr, ps;
   #ifdef DE
-  Real dgel, dger, gel, ger, gels, gers, f_ge_l, f_ge_r, f_ge, E, E_kin;
+  Real dgel, dger, gel, ger, gels, gers, f_ge_l, f_ge_r, f_ge, E_kin;
   #endif
   #ifdef SCALAR
   Real dscl[NSCALARS], dscr[NSCALARS], scl[NSCALARS], scr[NSCALARS], scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
