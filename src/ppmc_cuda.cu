@@ -10,6 +10,10 @@
 #include"global_cuda.h"
 #include"ppmc_cuda.h"
 
+#ifdef DE //PRESSURE_DE
+#include"hydro_cuda.h"
+#endif
+
 
 
 /*! \fn void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields)
@@ -70,6 +74,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real del_ge_L, del_ge_R, del_ge_C, del_ge_G;
   Real del_ge_m_imo, del_ge_m_i, del_ge_m_ipo;
   Real ge_L, ge_R;
+  Real E, E_kin, GE;
   #ifdef CTU
   Real chi_ge, sum_ge, ge_6;
   #endif
@@ -119,7 +124,14 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_i =  dev_conserved[o1*n_cells + id] / d_i;
     vy_i =  dev_conserved[o2*n_cells + id] / d_i;
     vz_i =  dev_conserved[o3*n_cells + id] / d_i;
+    #ifdef DE //PRESSURE_DE
+    E = dev_conserved[4*n_cells + id];
+    GE = dev_conserved[(n_fields-1)*n_cells + id];
+    E_kin = 0.5 * d_i * ( vx_i*vx_i + vy_i*vy_i + vz_i*vz_i );
+    p_i = Get_Pressure_From_DE( E, E - E_kin, GE, gamma ); 
+    #else
     p_i  = (dev_conserved[4*n_cells + id] - 0.5*d_i*(vx_i*vx_i + vy_i*vy_i + vz_i*vz_i)) * (gamma - 1.0);
+    #endif//DE
     p_i  = fmax(p_i, (Real) TINY_NUMBER);
     #ifdef DE
     ge_i =  dev_conserved[(n_fields-1)*n_cells + id] / d_i;
@@ -137,7 +149,14 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_imo =  dev_conserved[o1*n_cells + id] / d_imo;
     vy_imo =  dev_conserved[o2*n_cells + id] / d_imo;
     vz_imo =  dev_conserved[o3*n_cells + id] / d_imo;
+    #ifdef DE //PRESSURE_DE
+    E = dev_conserved[4*n_cells + id];
+    GE = dev_conserved[(n_fields-1)*n_cells + id];
+    E_kin = 0.5 * d_imo * ( vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo );
+    p_imo = Get_Pressure_Dual_Energy( E, E - E_kin, GE, gamma ); 
+    #else
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
+    #endif//DE
     p_imo  = fmax(p_imo, (Real) TINY_NUMBER);
     #ifdef DE
     ge_imo =  dev_conserved[(n_fields-1)*n_cells + id] / d_imo;
@@ -155,7 +174,14 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_ipo =  dev_conserved[o1*n_cells + id] / d_ipo;
     vy_ipo =  dev_conserved[o2*n_cells + id] / d_ipo;
     vz_ipo =  dev_conserved[o3*n_cells + id] / d_ipo;
+    #ifdef DE //PRESSURE_DE
+    E = dev_conserved[4*n_cells + id];
+    GE = dev_conserved[(n_fields-1)*n_cells + id];
+    E_kin = 0.5 * d_ipo * ( vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo );
+    p_ipo = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );    
+    #else
     p_ipo  = (dev_conserved[4*n_cells + id] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma - 1.0);
+    #endif//DE
     p_ipo  = fmax(p_ipo, (Real) TINY_NUMBER);
     #ifdef DE
     ge_ipo =  dev_conserved[(n_fields-1)*n_cells + id] / d_ipo;
@@ -173,7 +199,14 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_imt =  dev_conserved[o1*n_cells + id] / d_imt;
     vy_imt =  dev_conserved[o2*n_cells + id] / d_imt;
     vz_imt =  dev_conserved[o3*n_cells + id] / d_imt;
+    #ifdef DE //PRESSURE_DE
+    E = dev_conserved[4*n_cells + id];
+    GE = dev_conserved[(n_fields-1)*n_cells + id];
+    E_kin = 0.5 * d_imt * ( vx_imt*vx_imt + vy_imt*vy_imt + vz_imt*vz_imt );
+    p_imt = Get_Pressure_Dual_Energy( E, E - E_kin, GE, gamma );   
+    #else
     p_imt  = (dev_conserved[4*n_cells + id] - 0.5*d_imt*(vx_imt*vx_imt + vy_imt*vy_imt + vz_imt*vz_imt)) * (gamma - 1.0);
+    #endif//DE
     p_imt  = fmax(p_imt, (Real) TINY_NUMBER);
     #ifdef DE
     ge_imt =  dev_conserved[(n_fields-1)*n_cells + id] / d_imt;
@@ -191,7 +224,14 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_ipt =  dev_conserved[o1*n_cells + id] / d_ipt;
     vy_ipt =  dev_conserved[o2*n_cells + id] / d_ipt;
     vz_ipt =  dev_conserved[o3*n_cells + id] / d_ipt;
+    #ifdef DE //PRESSURE_DE
+    E = dev_conserved[4*n_cells + id];
+    GE = dev_conserved[(n_fields-1)*n_cells + id];
+    E_kin = 0.5 * d_ipt * ( vx_ipt*vx_ipt + vy_ipt*vy_ipt + vz_ipt*vz_ipt );
+    p_ipt = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );  
+    #else
     p_ipt  = (dev_conserved[4*n_cells + id] - 0.5*d_ipt*(vx_ipt*vx_ipt + vy_ipt*vy_ipt + vz_ipt*vz_ipt)) * (gamma - 1.0);
+    #endif//DE
     p_ipt  = fmax(p_ipt, (Real) TINY_NUMBER);
     #ifdef DE
     ge_ipt =  dev_conserved[(n_fields-1)*n_cells + id] / d_ipt;
