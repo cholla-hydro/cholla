@@ -41,6 +41,10 @@ void Time::Initialize(){
   time_advance_particles_1_all = 0;
   time_advance_particles_2_all = 0;
   #endif
+  
+  #ifdef COOLING_GRACKLE
+  time_cooling_all = 0;
+  #endif
 
   chprintf( "\nTiming Functions is ON \n");
 }
@@ -138,6 +142,14 @@ void Time::End_and_Record_Time( int time_var ){
   }
   #endif
 
+  #ifdef COOLING_GRACKLE
+  if( time_var == 10 ){
+    time_cooling_min = t_min;
+    time_cooling_max = t_max;
+    time_cooling_mean = t_avg;
+    if (n_steps > 0) time_cooling_all += t_max;
+  }
+  #endif
 }
 
 
@@ -159,6 +171,10 @@ void Time::Print_Times(){
   chprintf(" Time Part Dens Transf  min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_part_dens_transf_min, time_part_dens_transf_max, time_part_dens_transf_mean);
   chprintf(" Time Advance Part 1    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_advance_particles_1_min, time_advance_particles_1_max, time_advance_particles_1_mean);
   chprintf(" Time Advance Part 2    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_advance_particles_2_min, time_advance_particles_2_max, time_advance_particles_2_mean);
+  #endif
+  
+  #ifdef COOLING_GRACKLE
+  chprintf(" Time Cooling           min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_cooling_min, time_cooling_max, time_cooling_mean);
   #endif
 
 

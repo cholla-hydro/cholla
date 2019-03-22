@@ -80,6 +80,13 @@ public:
   Real time_advance_particles_2_mean;
   Real time_advance_particles_2_all;
   #endif
+  
+  #ifdef COOLING_GRACKLE
+  Real time_cooling_min;
+  Real time_cooling_max;
+  Real time_cooling_mean;
+  Real time_cooling_all;
+  #endif
 
   Time();
   void Initialize();
@@ -88,6 +95,10 @@ public:
   void Print_Times();
   void Get_Average_Times();
   void Print_Average_Times( struct parameters P );
+  
+  #ifdef COOLING_GRACKLE
+  void Print_Cooling_Time();
+  #endif
 
 
 };
