@@ -89,10 +89,10 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         ge1 = C.GasEnergy[id];
         ge2 = E - Ek;
 
-        if (ge2 > 0.0 && E > 0.0 && ge2/E > 0.001 ) {        
-          C.GasEnergy[id] = ge2;
-          ge1 = ge2;
-        }
+        // if (ge2 > 0.0 && E > 0.0 && ge2/E > 0.001 ) {        
+        //   C.GasEnergy[id] = ge2;
+        //   ge1 = ge2;
+        // }
 
         //find the max nearby total energy
         Emax = E;
@@ -107,10 +107,10 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
           C.GasEnergy[id] = ge2;
         }
         // sync the total energy with the internal energy
-        else {
-          if (ge1 > 0.0) C.Energy[id] += ge1 - ge2;
-          else C.GasEnergy[id] = ge2;
-        }
+        // else {
+        //   if (ge1 > 0.0) C.Energy[id] += ge1 - ge2;
+        //   else C.GasEnergy[id] = ge2;
+        // }
       }
     }
   }
