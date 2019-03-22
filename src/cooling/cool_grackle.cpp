@@ -171,16 +171,5 @@ void Cool_GK::Free_Memory( ){
   free( flags_DE );
 }
 
-
-
-
-
-
-
-
-
-
-
-
 #endif
 

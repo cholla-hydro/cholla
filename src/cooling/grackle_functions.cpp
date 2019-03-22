@@ -59,12 +59,106 @@ void Grid3D::Initialize_Fields_Grackle(){
 
 void Grid3D::Copy_Fields_To_Grackle(){
   
+  // Real d, vx, vy, vz, E, Ekin, GE, U;
+  // bool flag_DE;
+  for (int id = 0;id < Cool.field_size;id++) {
+    Cool.fields.internal_energy[id] = C.GasEnergy[id]  / C.density[id] * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
+    
+    // d = C.density[id];
+    // vx = C.momentum_x[id] / d;
+    // vy = C.momentum_y[id] / d;
+    // vz = C.momentum_z[id] / d;
+    // E = C.Energy[id];
+    // GE = C.GasEnergy[id];
+    // Ekin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
+    // 
+    // flag_DE = Select_Internal_Energy( E, E - Ekin, GE, Cool.gamma );
+    // Cool.flags_DE[id] = flag_DE;
+    // 
+    // if ( flag_DE ) U = GE;  
+    // else U = E - Ekin;
+    // Cool.fields.internal_energy[id] = U / d * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
+  }
+}
+  
+void Grid3D::Update_Internal_Energy(){
   
   
+  int nx_g, ny_g, nz_g, nx, ny, nz, nGHST;
+  nx_g = H.nx;
+  ny_g = H.ny;
+  nz_g = H.nz;
+  nx = H.nx_real;
+  ny = H.ny_real;
+  nz = H.nz_real;
+  nGHST = H.n_ghost;
+  Real ge_0, ge_1, delta_ge;
+  Real dens;
+  // bool flag_DE;
+  // Real dens, U_0, U_1, delta_U, vx, vy, vz, E, Ekin, GE;
+  int k, j, i, id;
+  for (k=0; k<nz; k++) {
+    for (j=0; j<ny; j++) {
+      for (i=0; i<nx; i++) {
+        id = (i+nGHST) + (j+nGHST)*nx_g + (k+nGHST)*nx_g*ny_g;
+        dens = C.density[id];
+        // vx = C.momentum_x[id] / dens;
+        // vy = C.momentum_y[id] / dens;
+        // vz = C.momentum_z[id] / dens;
+        // E = C.Energy[id];
+        // GE = C.GasEnergy[id];
+        // Ekin = 0.5 * dens * ( vx*vx + vy*vy + vz*vz );
+        // 
+        // flag_DE = Cool.flags_DE[id];
+        
+        // if ( flag_DE ) U_0 = GE;
+        // else U_0 = E - Ekin;
+        // 
+        // U_1 = Cool.fields.internal_energy[id] * dens / Cool.energy_conv  * Cosmo.current_a * Cosmo.current_a;
+        // delta_U = U_1 - U_0;
+        // C.GasEnergy[id] += delta_U ;
+        // C.Energy[id] += delta_U ;
+        
+        
+
+        
+        ge_0 = C.GasEnergy[id];
+        ge_1 = Cool.fields.internal_energy[id] * dens / Cool.energy_conv  * Cosmo.current_a * Cosmo.current_a;
+        delta_ge = ge_1 - ge_0;
+        C.GasEnergy[id] += delta_ge ;
+        C.Energy[id] += delta_ge ;
+
+      }
+    }
+  }
 }
 
 void Grid3D::Do_Cooling_Step_Grackle(){
   
+  Real kpc_cgs = KPC_CGS;
+  // Upfate the units conversion
+  Cool.units.a_value = Cosmo.current_a / Cool.units.a_units;
+  Cool.units.density_units = Cool.dens_to_CGS  / Cosmo.current_a / Cosmo.current_a / Cosmo.current_a ;
+  Cool.units.length_units = kpc_cgs / Cosmo.cosmo_h * Cosmo.current_a;
+
+  
+  Copy_Fields_To_Grackle();
+  
+  Real dt_cool = Cosmo.dt_secs;
+  chprintf( " dt_cool: %e s\n", dt_cool );
+  if (solve_chemistry(&Cool.units, &Cool.fields, dt_cool / Cool.units.time_units ) == 0) {
+    chprintf( "GRACKLE: Error in solve_chemistry.\n");
+    return ;
+  }
+  
+  #ifdef OUTPUT_TEMPERATURE
+  if (calculate_temperature(&Cool.units, &Cool.fields,  Cool.temperature) == 0) {
+    chprintf( "GRACKLE: Error in calculate_temperature.\n");
+    return ;
+  }
+  #endif
+  
+  Update_Internal_Energy(); 
   
 }
 

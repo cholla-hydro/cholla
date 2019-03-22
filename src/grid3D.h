@@ -680,6 +680,7 @@ class Grid3D
   void Allocate_Memory_Grackle();
   void Initialize_Fields_Grackle();
   void Copy_Fields_To_Grackle();
+  void Update_Internal_Energy();
   void Do_Cooling_Step_Grackle();
   #endif
   
