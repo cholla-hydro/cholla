@@ -46,6 +46,7 @@ Cool_GK( void );
 
 void Initialize( struct parameters *P, Cosmology &Cosmo );
 
+void Free_Memory();
 // void Do_Cooling_Step( Real dt );
 
 };

@@ -17,6 +17,8 @@ void Grid3D::Initialize_Grackle( struct parameters *P ){
   
   Cool.Initialize( P, Cosmo );
   
+  Allocate_Memory_Grackle();
+  
   chprintf( "Grackle Initialized Successfully. \n\n");
   
   
@@ -70,7 +72,7 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   // Access the parameter storage with the struct you've created
   // or with the grackle_data pointer declared in grackle.h (see further below).
   data->use_grackle = 1;            // chemistry on
-  data->with_radiative_cooling = 1; // G.Cooling on
+  data->with_radiative_cooling = 1; // Cooling on
   data->primordial_chemistry = 1;   // molecular network with H, He
   data->metal_cooling = 1;          // metal cooling on
   data->UVbackground = 1;           // UV background on
@@ -93,8 +95,69 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
     scale_factor_UVB_on = 1 / (data->UVbackground_redshift_on + 1 );
     chprintf( "GRACKLE: UVB on: %f \n", scale_factor_UVB_on  );
   }
-
   
+}
+
+void Grid3D::Allocate_Memory_Grackle( ){
+  
+int n_cells = H.nx * H.ny * H.nz;
+int nx = Grav.nx_local;
+int ny = Grav.ny_local;
+int nz = Grav.nz_local;
+// Set grid dimension and size.
+Cool.field_size = n_cells;
+Cool.fields.grid_rank = 3;
+Cool.fields.grid_dimension = new int[3];
+Cool.fields.grid_start = new int[3];
+Cool.fields.grid_end = new int[3];
+Cool.fields.grid_dimension[0] = H.nx; // the active dimension 
+Cool.fields.grid_dimension[1] = H.ny; // the active dimension 
+Cool.fields.grid_dimension[2] = H.nz; // the active dimension 
+// grid_start and grid_end are used to ignore ghost zones.
+Cool.fields.grid_start[0] = H.n_ghost;
+Cool.fields.grid_start[1] = H.n_ghost;
+Cool.fields.grid_start[2] = H.n_ghost;
+Cool.fields.grid_end[0] =  H.nx - H.n_ghost - 1 ;
+Cool.fields.grid_end[1] =  H.ny - H.n_ghost - 1 ;
+Cool.fields.grid_end[2] =  H.nz - H.n_ghost - 1 ;
+
+Cool.fields.grid_dx = 0.0; // used only for H2 self-shielding approximation
+
+Cool.fields.density         = C.density;
+Cool.fields.x_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
+Cool.fields.y_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
+Cool.fields.z_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
+Cool.fields.internal_energy = (Real *) malloc(Cool.field_size * sizeof(Real));
+
+chprintf( " Allocating memory for: HI, HII, HeI, HeII, HeIII, e   densities\n");
+Cool.fields.HI_density      = &C.scalar[ 0*n_cells ];
+Cool.fields.HII_density     = &C.scalar[ 1*n_cells ];
+Cool.fields.HeI_density     = &C.scalar[ 2*n_cells ];
+Cool.fields.HeII_density    = &C.scalar[ 3*n_cells ];
+Cool.fields.HeIII_density   = &C.scalar[ 4*n_cells ];
+Cool.fields.e_density       = &C.scalar[ 5*n_cells ];
+
+chprintf( " Allocating memory for: metal density\n");
+Cool.fields.metal_density   = &C.scalar[ 6*n_cells ];
+
+chprintf( " Allocating memory for DE cell flag \n");
+Cool.flags_DE = (bool *) malloc( Cool.field_size * sizeof(bool) );
+
+#ifdef OUTPUT_TEMPERATURE
+Cool.temperature = (Real *) malloc(Cool.field_size * sizeof(Real));
+#endif
+}
+
+
+void Cool_GK::Free_Memory( ){
+  free( fields.x_velocity );
+  free( fields.y_velocity );
+  free( fields.z_velocity );
+  free( fields.internal_energy );
+  #ifdef OUTPUT_TEMPERATURE
+  free( temperature );
+  #endif
+  free( flags_DE );
 }
 
 

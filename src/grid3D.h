@@ -677,6 +677,7 @@ class Grid3D
   
   #ifdef COOLING_GRACKLE
   void Initialize_Grackle( struct parameters *P );
+  void Allocate_Memory_Grackle();
   #endif
   
 };

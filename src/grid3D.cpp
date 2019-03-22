@@ -741,6 +741,10 @@ void Grid3D::FreeMemory(void)
   #ifdef PARTICLES
   Particles.Reset();
   #endif
+  
+  #ifdef COOLING_GRACKLE
+  Cool.Free_Memory();
+  #endif
 
   #ifdef COOLING_GPU
   #ifdef CLOUDY_COOL
