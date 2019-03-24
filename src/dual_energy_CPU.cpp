@@ -10,7 +10,7 @@
 
 bool Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected ){
 
-  Real eta = 0.001;
+  Real eta = DE_LIMIT;
   
   if( U_total / E > eta ) return 0;
   else return 1;  
