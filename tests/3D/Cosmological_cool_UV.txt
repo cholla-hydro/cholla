@@ -34,8 +34,8 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-indir=/gpfs/alpine/scratch/bvilasen/ast149/cosmo_256/ics/
-outdir=/gpfs/alpine/scratch/bvilasen/ast149/cosmo_256/output_snapshots/
-#indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool/ics/
-#outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool/
+#indir=/gpfs/alpine/scratch/bvilasen/ast149/cosmo_256/ics/
+#outdir=/gpfs/alpine/scratch/bvilasen/ast149/cosmo_256/output_snapshots/
+indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool/ics/
+outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool/
 
