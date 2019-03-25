@@ -6,6 +6,11 @@
 #include "../io.h"
 #include"cool_grackle.h"
 
+#ifdef PARALLEL_OMP
+#include"../parallel_omp.h"
+#endif
+
+
 
 
 
@@ -57,31 +62,83 @@ void Grid3D::Initialize_Fields_Grackle(){
   
 }
 
+
 void Grid3D::Copy_Fields_To_Grackle(){
+  #ifndef PARALLEL_OMP
+  Copy_Fields_To_Grackle_function( 0, H.nz_real );
+  #else
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
+
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Grid_Indxs( H.nz_real, n_omp_procs, omp_id, &g_start, &g_end  );
+    
+    Copy_Fields_To_Grackle_function( g_start, g_end );
+    #endif
+  }
+}
+
+void Grid3D::Update_Internal_Energy(){
+  #ifndef PARALLEL_OMP
+  Update_Internal_Energy_function( 0, H.nz_real );
+  #else
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
+
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Grid_Indxs( H.nz_real, n_omp_procs, omp_id, &g_start, &g_end  );
+    
+    Update_Internal_Energy_function( g_start, g_end );
+    #endif
+  }
+  
+}
+
+void Grid3D::Copy_Fields_To_Grackle_function( int g_start, int g_end ){
+  
+  int nx_g, ny_g, nz_g, nx, ny, nz, nGHST;
+  nx_g = H.nx;
+  ny_g = H.ny;
+  nz_g = H.nz;
+  nx = H.nx_real;
+  ny = H.ny_real;
+  nz = H.nz_real;
+  nGHST = H.n_ghost;
   
   Real d, vx, vy, vz, E, Ekin, GE, U;
   bool flag_DE;
-  for (int id = 0;id < Cool.field_size;id++) {
-    
-    d = C.density[id];
-    vx = C.momentum_x[id] / d;
-    vy = C.momentum_y[id] / d;
-    vz = C.momentum_z[id] / d;
-    E = C.Energy[id];
-    GE = C.GasEnergy[id];
-    Ekin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
-    // PRESSURE_DE
-    flag_DE = Select_Internal_Energy_From_DE( E, E - Ekin, GE );
-    Cool.flags_DE[id] = flag_DE;
-    
-    if ( flag_DE ) U = GE;  
-    else U = E - Ekin;
-    Cool.fields.internal_energy[id] = U / d * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
-    // Cool.fields.internal_energy[id] = C.GasEnergy[id]  / C.density[id] * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
+  int k, j, i, id;
+  for (k=g_start; k<g_end; k++) {
+    for (j=0; j<ny; j++) {
+      for (i=0; i<nx; i++) {
+        id = (i+nGHST) + (j+nGHST)*nx_g + (k+nGHST)*nx_g*ny_g;    
+        d = C.density[id];
+        vx = C.momentum_x[id] / d;
+        vy = C.momentum_y[id] / d;
+        vz = C.momentum_z[id] / d;
+        E = C.Energy[id];
+        GE = C.GasEnergy[id];
+        Ekin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
+        // PRESSURE_DE
+        flag_DE = Select_Internal_Energy_From_DE( E, E - Ekin, GE );
+        Cool.flags_DE[id] = flag_DE;
+        
+        if ( flag_DE ) U = GE;  
+        else U = E - Ekin;
+        Cool.fields.internal_energy[id] = U / d * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
+        // Cool.fields.internal_energy[id] = C.GasEnergy[id]  / C.density[id] * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
+      }
+    }
   }
 }
   
-void Grid3D::Update_Internal_Energy(){
+void Grid3D::Update_Internal_Energy_function( int g_start, int g_end ){
   
   
   int nx_g, ny_g, nz_g, nx, ny, nz, nGHST;
@@ -97,7 +154,7 @@ void Grid3D::Update_Internal_Energy(){
   Real dens, vx, vy, vz, E, Ekin, GE, U_0, U_1, delta_U;
   bool flag_DE;
   int k, j, i, id;
-  for (k=0; k<nz; k++) {
+  for (k=g_start; k<g_end; k++) {
     for (j=0; j<ny; j++) {
       for (i=0; i<nx; i++) {
         id = (i+nGHST) + (j+nGHST)*nx_g + (k+nGHST)*nx_g*ny_g;
