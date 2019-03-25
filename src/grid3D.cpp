@@ -686,6 +686,9 @@ Real Grid3D::Update_Hydro_Grid( ){
   Get_Gravitational_Field();
   Add_Gavity_To_Hydro();
   #ifdef DE
+  #ifdef LIMIT_DE_EKINETIC
+  Get_Average_Kinetic_Energy();
+  #endif //LIMIT_DE_EKINETIC
   Sync_Energies_3D_CPU();
   #endif//DE
   #endif//GRAVITY

@@ -216,6 +216,8 @@ struct Header
   Real density_floor;
   Real temperature_floor;
   
+  Real Ekin_avrg;
+  
   //Flag to indicate when to transfer the Conserved boundaries
   bool TRANSFER_HYDRO_BOUNDARIES;
   
@@ -407,6 +409,8 @@ class Grid3D
     void Sync_Energies_3D_CPU_function( int g_start, int g_end );
     void Sync_Energies_3D_CPU();
     bool Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected );
+    Real Get_Average_Kinetic_Energy_function( int g_start, int g_end );
+    void Get_Average_Kinetic_Energy();
     #endif
     void Apply_Temperature_Floor_CPU_function( int g_start, int g_end );
 

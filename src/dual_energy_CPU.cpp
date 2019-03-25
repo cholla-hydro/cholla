@@ -7,6 +7,10 @@
 #include"parallel_omp.h"
 #endif
 
+#ifdef MPI_CHOLLA
+#include"mpi_routines.h"
+#endif
+
 
 bool Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected ){
 
@@ -91,7 +95,11 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         ge1 = C.GasEnergy[id];
         ge2 = E - Ek;
 
-        if (ge2 > 0.0 && E > 0.0 && ge2/E > eta ) {        
+        #ifdef LIMIT_DE_EKINETIC
+        if (ge2 > 0.0 && E > 0.0 && ge2/E > eta && Ek/H.Ekin_avrg > 0.4 ){
+        #else
+        if (ge2 > 0.0 && E > 0.0 && ge2/E > eta ) {
+        #endif          
           C.GasEnergy[id] = ge2;
           ge1 = ge2;
         }
@@ -166,6 +174,81 @@ void Grid3D::Apply_Temperature_Floor_CPU_function( int g_start, int g_end ){
   }
 }
 #endif //TEMPERATURE_FLOOR
+
+
+Real Grid3D::Get_Average_Kinetic_Energy_function( int g_start, int g_end ){
+
+  int nx_grid, ny_grid, nz_grid, nGHST;
+  nGHST = H.n_ghost;
+  nx_grid = H.nx;
+  ny_grid = H.ny;
+  nz_grid = H.nz;
+
+  int nx, ny, nz;
+  nx = H.nx_real;
+  ny = H.ny_real;
+  nz = H.nz_real;
+
+  Real Ek_sum = 0;
+  Real d, d_inv, vx, vy, vz, E, Ek;
+
+  int k, j, i, id;
+  for ( k=g_start; k<g_end; k++ ){
+    for ( j=0; j<ny; j++ ){
+      for ( i=0; i<nx; i++ ){
+
+        id  = (i+nGHST) + (j+nGHST)*nx_grid + (k+nGHST)*ny_grid*nx_grid;
+
+        d = C.density[id];
+        d_inv = 1/d;
+        vx = C.momentum_x[id] * d_inv;
+        vy = C.momentum_y[id] * d_inv;
+        vz = C.momentum_z[id] * d_inv;
+        E = C.Energy[id];
+        Ek = 0.5*d*(vx*vx + vy*vy + vz*vz);
+        Ek_sum += Ek;
+      }
+    }
+  }
+  return Ek_sum;
+}
+
+void Grid3D::Get_Average_Kinetic_Energy(){
+  Real Ek_sum;
+
+  #ifndef PARALLEL_OMP
+  Ek_sum = Get_Average_Kinetic_Energy_function(  0, H.nz_real );
+  #else
+  Ek_sum = 0;
+  Real Ek_sum_all[N_OMP_THREADS];
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
+
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Grid_Indxs( H.nz_real, n_omp_procs, omp_id,  &g_start, &g_end  );
+    Ek_sum_all[omp_id] = Get_Average_Kinetic_Energy_function(  g_start, g_end );
+
+  }
+  for ( int i=0; i<N_OMP_THREADS; i++ ){
+    Ek_sum += Ek_sum_all[i];
+  }
+  #endif
+  
+  #ifdef MPI_CHOLLA
+  Ek_sum /=  ( H.nx_real * H.ny_real * H.nz_real);
+  H.Ekin_avrg = ReduceRealAvg(Ek_sum);
+  #else
+  H.Ekin_avrg = Ek_sum / ( H.nx_real * H.ny_real * H.nz_real);
+  #endif
+  
+  
+  
+  
+}
+
 
 
 
