@@ -101,14 +101,16 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         ge1 = C.GasEnergy[id];
         ge2 = E - Ek;
 
-        #ifdef LIMIT_DE_EKINETIC
-        if (ge2 > 0.0 && E > 0.0 && ge2/E > eta && Ek/H.Ekin_avrg > 0.4 ){
-        #else
-        if (ge2 > 0.0 && E > 0.0 && ge2/E > eta ) {
-        #endif          
-          C.GasEnergy[id] = ge2;
-          ge1 = ge2;
-        }
+        //Dont Change Internal energies based on first condition, 
+        //This condition is used only to compute pressure and Intenal energy for cooling step
+        // #ifdef LIMIT_DE_EKINETIC
+        // if (ge2 > 0.0 && E > 0.0 && ge2/E > eta && Ek/H.Ekin_avrg > 0.4 ){
+        // #else
+        // if (ge2 > 0.0 && E > 0.0 && ge2/E > eta ) {
+        // #endif          
+        //   C.GasEnergy[id] = ge2;
+        //   ge1 = ge2;
+        // }
 
         //find the max nearby total energy
         Emax = E;
@@ -122,11 +124,12 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         if (ge2/Emax > 0.1 && ge2 > 0.0 && Emax > 0.0) {
           C.GasEnergy[id] = ge2;
         }
-        // sync the total energy with the internal energy
-        else {
-          if (ge1 > 0.0) C.Energy[id] += ge1 - ge2;
-          else C.GasEnergy[id] = ge2;
-        }
+        //Dont Change total energy  
+        // // sync the total energy with the internal energy
+        // else {
+        //   if (ge1 > 0.0) C.Energy[id] += ge1 - ge2;
+        //   else C.GasEnergy[id] = ge2;
+        // }
       }
     }
   }
