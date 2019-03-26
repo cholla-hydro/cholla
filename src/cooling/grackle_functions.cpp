@@ -199,32 +199,7 @@ void Grid3D::Do_Cooling_Step_Grackle(){
   
   Copy_Fields_To_Grackle();
   
-  int nx_g, ny_g, nz_g, nx, ny, nz, nGHST;
-  nx_g = H.nx;
-  ny_g = H.ny;
-  nz_g = H.nz;
-  nx = H.nx_real;
-  ny = H.ny_real;
-  nz = H.nz_real;
-  nGHST = H.n_ghost;
-  // Real ge_0, ge_1, delta_ge;
-  // Real dens;
-  Real flags_sum = 0;
-  bool flag_DE;
-  int k, j, i, id;
-  for (k=0; k<nz; k++) {
-    for (j=0; j<ny; j++) {
-      for (i=0; i<nx; i++) {
-        id = (i+nGHST) + (j+nGHST)*nx_g + (k+nGHST)*nx_g*ny_g;
-        flag_DE = Cool.flags_DE[id];
-        flags_sum += flag_DE;
-      }
-    }
-  }
-  
-  Real sum_all = ReduceRealAvg( flags_sum ) * 8;
-  chprintf( " N flags_DE: %f \n", sum_all );
-  
+    
   Real dt_cool = Cosmo.dt_secs;
   chprintf( " dt_cool: %e s\n", dt_cool );
   if (solve_chemistry(&Cool.units, &Cool.fields, dt_cool / Cool.units.time_units ) == 0) {
