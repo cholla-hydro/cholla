@@ -284,8 +284,10 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #endif
   
     // Step 7: Calculate the next time step
+    #ifndef GRAVITY_COUPLE_CPU //If gravity is coupled on the CPU, dt is computed on the CPU after hydro update
     Calc_dt_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama);
     CudaCheckError();
+    #endif
 
     // copy the updated conserved variable array back to the CPU
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
