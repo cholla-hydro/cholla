@@ -46,7 +46,7 @@ typedef double Real;
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
 
 #ifdef DE
-#define DE_LIMIT 0.02
+#define DE_LIMIT 0.001
 #endif
 
 #ifdef COOLING_GRACKLE

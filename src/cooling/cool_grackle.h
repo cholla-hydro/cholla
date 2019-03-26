@@ -31,7 +31,7 @@ class Cool_GK
   Real *temperature;
   #endif
 
-  bool *flags_DE;
+  int *flags_DE;
 
   Real tiny_number;
 

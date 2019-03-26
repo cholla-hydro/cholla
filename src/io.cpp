@@ -1244,14 +1244,14 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         for (i=0; i<H.nx_real; i++) {
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-          dataset_buffer[buf_id] = Cool.flags_DE[id];
+          dataset_buffer[buf_id] = (Real) Cool.flags_DE[id];
         }
       }
     }
     // Create a dataset id for density
-    dataset_id = H5Dcreate(file_id, "/flags_DE", H5T_NATIVE_HBOOL, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/flags_DE", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     // Write the density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
-    status = H5Dwrite(dataset_id, H5T_NATIVE_HBOOL, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
     #endif //OUTPUT_TEMPERATURE

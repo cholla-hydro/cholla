@@ -408,7 +408,7 @@ class Grid3D
     #ifdef DE
     void Sync_Energies_3D_CPU_function( int g_start, int g_end );
     void Sync_Energies_3D_CPU();
-    bool Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected );
+    int Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected );
     Real Get_Average_Kinetic_Energy_function( int g_start, int g_end );
     void Get_Average_Kinetic_Energy();
     #endif

@@ -16,7 +16,7 @@
 #endif
 
 
-bool Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected ){
+int Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected ){
 
   Real eta = DE_LIMIT;
   

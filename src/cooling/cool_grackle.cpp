@@ -152,7 +152,7 @@ chprintf( " Allocating memory for: metal density\n");
 Cool.fields.metal_density   = &C.scalar[ 6*n_cells ];
 
 chprintf( " Allocating memory for DE cell flag \n");
-Cool.flags_DE = (bool *) malloc( Cool.field_size * sizeof(bool) );
+Cool.flags_DE = (int *) malloc( Cool.field_size * sizeof(int) );
 
 #ifdef OUTPUT_TEMPERATURE
 Cool.temperature = (Real *) malloc(Cool.field_size * sizeof(Real));

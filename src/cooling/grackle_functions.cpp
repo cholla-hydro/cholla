@@ -37,6 +37,7 @@ void Grid3D::Initialize_Fields_Grackle(){
         Cool.fields.z_velocity[id] = 0.0;
 
         Cool.fields.internal_energy[id] = C.GasEnergy[id]  / C.density[id] * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
+        Cool.flags_DE[id] = 0;
       }
     }
   }
@@ -112,7 +113,7 @@ void Grid3D::Copy_Fields_To_Grackle_function( int g_start, int g_end ){
   nGHST = H.n_ghost;
   
   Real d, vx, vy, vz, E, Ekin, GE, U;
-  bool flag_DE;
+  int flag_DE;
   int k, j, i, id;
   for (k=g_start; k<g_end; k++) {
     for (j=0; j<ny; j++) {
@@ -152,7 +153,7 @@ void Grid3D::Update_Internal_Energy_function( int g_start, int g_end ){
   // Real ge_0, ge_1, delta_ge;
   // Real dens;
   Real dens, vx, vy, vz, E, Ekin, GE, U_0, U_1, delta_U;
-  bool flag_DE;
+  int flag_DE;
   int k, j, i, id;
   for (k=g_start; k<g_end; k++) {
     for (j=0; j<ny; j++) {
@@ -197,6 +198,32 @@ void Grid3D::Do_Cooling_Step_Grackle(){
 
   
   Copy_Fields_To_Grackle();
+  
+  int nx_g, ny_g, nz_g, nx, ny, nz, nGHST;
+  nx_g = H.nx;
+  ny_g = H.ny;
+  nz_g = H.nz;
+  nx = H.nx_real;
+  ny = H.ny_real;
+  nz = H.nz_real;
+  nGHST = H.n_ghost;
+  // Real ge_0, ge_1, delta_ge;
+  // Real dens;
+  Real flags_sum = 0;
+  bool flag_DE;
+  int k, j, i, id;
+  for (k=0; k<nz; k++) {
+    for (j=0; j<ny; j++) {
+      for (i=0; i<nx; i++) {
+        id = (i+nGHST) + (j+nGHST)*nx_g + (k+nGHST)*nx_g*ny_g;
+        flag_DE = Cool.flags_DE[id];
+        flags_sum += flag_DE;
+      }
+    }
+  }
+  
+  Real sum_all = ReduceRealAvg( flags_sum ) * 8;
+  chprintf( " N flags_DE: %f \n", sum_all );
   
   Real dt_cool = Cosmo.dt_secs;
   chprintf( " dt_cool: %e s\n", dt_cool );
