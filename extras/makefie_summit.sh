@@ -172,7 +172,7 @@ FLAGS_COOLING = $(COOLING) $(GRACKLE_PRECISION) $(OUTPUT_TEMPERATURE) $(OUTPUT_C
 FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) $(FLAGS_COSMO) $(FLAGS_COOLING)
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false  -ccbin=gcc -arch=sm_70
+NVCCFLAGS = $(FLAGS) -fmad=false  -arch=sm_70
 
 
 %.o:	%.c
@@ -188,7 +188,7 @@ $(EXEC): $(OBJS) src/gpuCode.o
 	 	 $(CXX) $(OBJS) src/gpuCode.o $(LIBS) -o $(EXEC)
 
 src/gpuCode.o:	$(CUOBJS)
-		$(NVCC) -dlink $(CUOBJS) -o src/gpuCode.o
+		$(NVCC) -dlink -arch=sm_70 $(CUOBJS) -o src/gpuCode.o
 
 
 
