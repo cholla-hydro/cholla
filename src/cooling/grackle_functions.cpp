@@ -169,8 +169,9 @@ void Grid3D::Update_Internal_Energy_function( int g_start, int g_end ){
         
         flag_DE = Cool.flags_DE[id];
         // PRESSURE_DE
-        if ( flag_DE ) U_0 = GE;
-        else U_0 = E - Ekin;
+        if ( flag_DE == 0 ) U_0 = E - Ekin;
+        else if ( flag_DE == 1 ) U_0 = GE;
+        else std::cout << " ### Frag_DE ERROR: Flag_DE: " << flag_DE << std::endl;
         
         U_1 = Cool.fields.internal_energy[id] * dens / Cool.energy_conv  * Cosmo.current_a * Cosmo.current_a;
         delta_U = U_1 - U_0;
