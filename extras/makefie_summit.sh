@@ -149,8 +149,8 @@ OUTPUT_TEMPERATURE = -DOUTPUT_TEMPERATURE
 OUTPUT_CHEMISTRY = -DOUTPUT_CHEMISTRY
 SCALAR = -DSCALAR
 N_OMP_THREADS_GRACKLE = -DN_OMP_THREADS_GRACKLE=12
-GRACKLE_INCL = -I/home/bruno/local/include
-GRACKLE_LIBS = -L/home/bruno/local/lib -lgrackle
+GRACKLE_INCL = -I/ccs/home/bvilasen/code/grackle/include
+GRACKLE_LIBS = -L/ccs/home/bvilasen/code/grackle/lib -lgrackle
 INCL += $(GRACKLE_INCL)
 LIBS += $(GRACKLE_LIBS)
 endif
