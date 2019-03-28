@@ -27,11 +27,12 @@ CFILES_COOL = $(wildcard $(DIR_COOL)/*.c)
 CPPFILES_COOL = $(wildcard $(DIR_COOL)/*.cpp)
 CUDAFILES_COOL = $(wildcard $(DIR_COOL)/*.cu)
 
-
 OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cu,.o,$(CUDAFILES_PART)) $(subst .c,.o,$(CFILES_COSMO)) $(subst .cpp,.o,$(CPPFILES_COSMO)) $(subst .cu,.o,$(CUDAFILES_COSMO)) $(subst .c,.o,$(CFILES_COOL)) $(subst .cpp,.o,$(CPPFILES_COOL)) $(subst .cu,.o,$(CUDAFILES_COOL))
 COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .c,.o,$(CFILES_COSMO))  $(subst .c,.o,$(CFILES_COOL))
 CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cpp,.o,$(CPPFILES_COSMO)) $(subst .cpp,.o,$(CPPFILES_COOL))
 CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_PART)) $(subst .cu,.o,$(CUDAFILES_COSMO)) $(subst .cu,.o,$(CUDAFILES_COOL))
+
+
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -84,51 +85,49 @@ DUAL_ENERGY = -DDE
 DENSITY_FLOOR = -DDENSITY_FLOOR
 TEMPERATURE_FLOOR = -DTEMPERATURE_FLOOR
 
+
 #Allocate GPU memory only once at the first timestep
 SINGLE_ALLOC_GPU = -DSINGLE_ALLOC_GPU
 
 COOLING = #-DCOOLING_GPU -DCLOUDY_COOL
 
-#Print Initial Statistics
-PRINT_INITIAL_STATS = -DPRINT_INITIAL_STATS
-
-#Meassure and print times for each component
 CPU_TIME = -DCPU_TIME
 
 #INCLUDE GRAVITY
 GRAVITY = -DGRAVITY
 POISSON_SOLVER = -DPFFT
-# GRAVITY_COUPLE = -DGRAVITY_COUPLE_GPU
-GRAVITY_COUPLE = -DGRAVITY_COUPLE_CPU
+GRAVITY_COUPLE = -DGRAVITY_COUPLE_GPU
+# # GRAVITY_COUPLE = -DGRAVITY_COUPLE_CPU
 GRAVITY_ENERGY_COUPLE = -DCOUPLE_GRAVITATIONAL_WORK
 # GRAVITY_ENERGY_COUPLE = -DCOUPLE_DELTA_E_KINETIC
-# OUTPUT_POTENTIAL = -DOUTPUT_POTENTIAL
+# #OUTPUT_POTENTIAL = -DOUTPUT_POTENTIAL
 
 #Include Gravity From Particles PM
-PARTICLES = -DPARTICLES
-PARTICLES_INT = -DPARTICLES_LONG_INTS
-# ONLY_PARTICLES = -DONLY_PARTICLES
+# PARTICLES = -DPARTICLES
+# # ONLY_PARTICLES = -DONLY_PARTICLES
 # PARTICLE_IDS = -DPARTICLE_IDS
-SINGLE_PARTICLE_MASS = -DSINGLE_PARTICLE_MASS
+# PARTICLES_INT = -DPARTICLES_LONG_INTS
+# SINGLE_PARTICLE_MASS = -DSINGLE_PARTICLE_MASS
 
 #TURN OMP ON FOR CPU CALCULATIONS
-PARALLEL_OMP = -DPARALLEL_OMP
-N_OMP_THREADS = -DN_OMP_THREADS=12
+#PARALLEL_OMP = -DPARALLEL_OMP
+#N_OMP_THREADS = -DN_OMP_THREADS=10
 # PRINT_OMP_DOMAIN = -DPRINT_OMP_DOMAIN
 
 #Cosmological simulation
-COSMOLOGY = -DCOSMOLOGY
+# COSMOLOGY = -DCOSMOLOGY
 
 #Use Grackle for cooling in cosmological simulations
-COOLING = -DCOOLING_GRACKLE
+# COOLING = -DCOOLING_GRACKLE
+
 
 ifdef CUDA
-CUDA_INCL = -I/usr/local/cuda/include
-CUDA_LIBS = -L/usr/local/cuda/lib64 -lcuda -lcudart
+CUDA_INCL = -I$(OLCF_CUDA_ROOT)/include
+CUDA_LIBS = -L$(OLCF_CUDA_ROOT)/lib64 -lcuda -lcudart
 endif
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = -I/usr/include/hdf5/serial/
-HDF5_LIBS = -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -lhdf5
+HDF5_INCL = -I$(OLCF_HDF5_ROOT)/include
+HDF5_LIBS = -L$(OLCF_HDF5_ROOT)/lib -lhdf5
 endif
 
 INCL   = -I./ $(HDF5_INCL)
@@ -148,11 +147,10 @@ ifeq ($(COOLING),-DCOOLING_GRACKLE)
 GRACKLE_PRECISION = -DCONFIG_BFLOAT_8
 OUTPUT_TEMPERATURE = -DOUTPUT_TEMPERATURE
 OUTPUT_CHEMISTRY = -DOUTPUT_CHEMISTRY
-GRACKLE_METAL_COOLING = -DGRACKLE_METAL_COOLING
 SCALAR = -DSCALAR
-N_OMP_THREADS_GRACKLE = -DN_OMP_THREADS_GRACKLE=12
-GRACKLE_INCL = -I/ccs/home/bvilasen/code/grackle/include
-GRACKLE_LIBS = -L/ccs/home/bvilasen/code/grackle/lib -lgrackle
+N_OMP_THREADS_GRACKLE = -DN_OMP_THREADS_GRACKLE=10
+GRACKLE_INCL = -I/home/bruno/local/include
+GRACKLE_LIBS = -L/home/bruno/local/lib -lgrackle
 INCL += $(GRACKLE_INCL)
 LIBS += $(GRACKLE_LIBS)
 endif
@@ -172,7 +170,7 @@ FLAGS_COOLING = $(COOLING) $(GRACKLE_PRECISION) $(OUTPUT_TEMPERATURE) $(OUTPUT_C
 FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) $(FLAGS_COSMO) $(FLAGS_COOLING)
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false  -arch=sm_70
+NVCCFLAGS = $(FLAGS) -fmad=false -arch=sm_70
 
 
 %.o:	%.c
