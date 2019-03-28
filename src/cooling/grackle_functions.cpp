@@ -47,7 +47,7 @@ void Grid3D::Initialize_Fields_Grackle(){
     chprintf( "GRACKLE: Error in calculate_temperature.\n");
     return ;
   }
-  Real temp_avrg;
+  Real temp_avrg = 0 ;
   for (k=0; k<nz; k++) {
     for (j=0; j<ny; j++) {
       for (i=0; i<nx; i++) {
