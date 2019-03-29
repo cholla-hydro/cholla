@@ -112,21 +112,21 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         //   ge1 = ge2;
         // }
         
-        //Syncronize advected internal energy with total internal energy when using total internal energy for dynamical purposes 
-        if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta ) C.GasEnergy[id] = ge_total;   
-
-        //Syncronize advected internal energy with total internal energy when using total internal energy based on local maxEnergy condition
-        //find the max nearby total energy
-        Emax = E;
-        Emax = std::max(C.Energy[imo], E);
-        Emax = std::max(Emax, C.Energy[ipo]);
-        Emax = std::max(Emax, C.Energy[jmo]);
-        Emax = std::max(Emax, C.Energy[jpo]);
-        Emax = std::max(Emax, C.Energy[kmo]);
-        Emax = std::max(Emax, C.Energy[kpo]);
-        if (ge_total/Emax > 0.1 && ge_total > 0.0 && Emax > 0.0) {
-          C.GasEnergy[id] = ge_total;
-        }
+        // //Syncronize advected internal energy with total internal energy when using total internal energy for dynamical purposes 
+        // if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta ) C.GasEnergy[id] = ge_total;   
+        // 
+        // //Syncronize advected internal energy with total internal energy when using total internal energy based on local maxEnergy condition
+        // //find the max nearby total energy
+        // Emax = E;
+        // Emax = std::max(C.Energy[imo], E);
+        // Emax = std::max(Emax, C.Energy[ipo]);
+        // Emax = std::max(Emax, C.Energy[jmo]);
+        // Emax = std::max(Emax, C.Energy[jpo]);
+        // Emax = std::max(Emax, C.Energy[kmo]);
+        // Emax = std::max(Emax, C.Energy[kpo]);
+        // if (ge_total/Emax > 0.1 && ge_total > 0.0 && Emax > 0.0) {
+        //   C.GasEnergy[id] = ge_total;
+        // }
         
         //Dont Change total energy  
         // // sync the total energy with the internal energy
