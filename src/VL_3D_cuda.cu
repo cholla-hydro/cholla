@@ -391,6 +391,10 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
   Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo, P, E, E_kin, GE;
   int ipo, jpo, kpo;
   #endif
+  
+  #ifdef DENSITY_FLOOR
+  Real dens_0;
+  #endif
 
   // threads corresponding to all cells except outer ring of ghost cells do the calculation
   if (xid > 0 && xid < nx-1 && yid > 0 && yid < ny-1 && zid > 0 && zid < nz-1)
@@ -459,9 +463,18 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     #endif
     
     #ifdef DENSITY_FLOOR
-    if ( dev_conserved[            id] < density_floor ){
-      printf("###Thread density change  %f -> %f \n", dev_conserved[            id], density_floor );
-      dev_conserved[            id] = density_floor;
+    if ( dev_conserved_half[            id] < density_floor ){
+      dens_0 = dev_conserved_half[            id];
+      printf("###Thread density change  %f -> %f \n", dens_0, density_floor );
+      dev_conserved_half[            id] = density_floor;
+      // Scale the conserved values to the new density
+      dev_conserved_half[1*n_cells + id] *= (density_floor / dens_0);
+      dev_conserved_half[2*n_cells + id] *= (density_floor / dens_0);
+      dev_conserved_half[3*n_cells + id] *= (density_floor / dens_0);
+      dev_conserved_half[4*n_cells + id] *= (density_floor / dens_0);
+      #ifdef DE
+      dev_conserved_half[(n_fields-1)*n_cells + id] *= (density_floor / dens_0);
+      #endif
     }
     #endif
     //if (dev_conserved_half[id] < 0.0 || dev_conserved_half[id] != dev_conserved_half[id] || dev_conserved_half[4*n_cells+id] < 0.0 || dev_conserved_half[4*n_cells+id] != dev_conserved_half[4*n_cells+id]) {

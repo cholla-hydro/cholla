@@ -213,6 +213,10 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
   gz = 0.0;
   #endif
   
+  #ifdef DENSITY_FLOOR
+  Real dens_0;
+  #endif
+  
   #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_GPU) )
   Real gx, gy, gz, d_n, d_inv_n, vx_n, vy_n, vz_n;
   Real pot_l, pot_r;
@@ -310,8 +314,17 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     
     #ifdef DENSITY_FLOOR
     if ( dev_conserved[            id] < density_floor ){
-      printf("###Thread density change  %f -> %f \n", dev_conserved[            id], density_floor );
+      dens_0 = dev_conserved[            id];
+      printf("###Thread density change  %f -> %f \n", dens_0, density_floor );
       dev_conserved[            id] = density_floor;
+      // Scale the conserved values to the new density
+      dev_conserved[1*n_cells + id] *= (density_floor / dens_0);
+      dev_conserved[2*n_cells + id] *= (density_floor / dens_0);
+      dev_conserved[3*n_cells + id] *= (density_floor / dens_0);
+      dev_conserved[4*n_cells + id] *= (density_floor / dens_0);
+      #ifdef DE
+      dev_conserved[(n_fields-1)*n_cells + id] *= (density_floor / dens_0);
+      #endif
     }
     #endif
 
