@@ -109,7 +109,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   
   //number of threads per 1D block   
   dim3 dim1dBlock(TPB, 1, 1);
-  
+
   if ( !memory_allocated ){
 
     // allocate an array on the CPU to hold max_dti returned from each thread block
@@ -144,8 +144,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #ifdef SINGLE_ALLOC_GPU
     chprintf( " VL_3D: Allocating memory \n");
     chprintf ( "  N memory blocks gpu: %d\n", block_tot );
-    // If memory is single allocated: memory_allocated becomesa true and succesive timesteps won't allocate memory.
-    // If the memory is single not allocated: memory_allocated remains Null and memory is allocated every timestep.
+    // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
+    // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
     chprintf( " VL_3D: Memory successfully allocated \n");
     #endif 
@@ -313,7 +313,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   if (block_tot > 1) free(buffer);
   
   #ifndef SINGLE_ALLOC_GPU
-  // If memory is not sigle allocated then free the memory evry timestep.
+  // If memory is not single allocated then free the memory every timestep.
   Free_Memory_VL_3D();
   #endif
   
