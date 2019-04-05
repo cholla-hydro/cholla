@@ -127,7 +127,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     BLOCK_VOL = nx_s*ny_s*nz_s;
     // dimensions for the 1D GPU grid
     ngrid = (BLOCK_VOL + TPB - 1) / TPB;
+    #ifndef DYNAMIC_GPU_ALLOC
     block_size = true;
+    #endif
   }
   // set values for GPU kernels
   // number of blocks per 1D grid  
@@ -206,7 +208,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
     #endif 
     
-    #ifdef SINGLE_ALLOC_GPU
+    #ifndef DYNAMIC_GPU_ALLOC 
     chprintf( " VL_3D: Allocating memory \n");
     chprintf ( "  N memory blocks gpu: %d\n", block_tot );
     // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
@@ -591,7 +593,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // free CPU memory
   if (block_tot > 1) free(buffer);
   
-  #ifndef SINGLE_ALLOC_GPU
+  #ifdef DYNAMIC_GPU_ALLOC
   // If memory is not single allocated then free the memory every timestep.
   Free_Memory_VL_3D();
   #endif
@@ -653,7 +655,7 @@ void Free_Memory_VL_3D(){
   #endif
 
 
-  #ifdef SINGLE_ALLOC_GPU
+  #ifndef DYNAMIC_GPU_ALLOC
   chprintf( " VL_3D: Memory freed successfully \n");
   #endif
 }
