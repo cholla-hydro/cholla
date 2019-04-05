@@ -31,6 +31,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
 
 
 bool memory_allocated; // Flag becomes true after allocating the memory on the first timestep
+bool block_size; // Flag becomes true after determining subgrid block size on the first timestep
 
 // Arrays are global so that they can be allocated only once.
 // GPU arrays
@@ -51,6 +52,24 @@ Real *host_dti_array;
 #ifdef COOLING_GPU
 Real *host_dt_array;
 #endif
+
+// Similarly, sizes of subgrid blocks and kernel dimensions are global variables
+// so subgrid splitting function is only called once
+// dimensions of subgrid blocks
+int nx_s, ny_s, nz_s; 
+// x, y, and z offsets for subgrid blocks
+int x_off_s, y_off_s, z_off_s;
+// total number of subgrid blocks needed
+int block_tot;
+// number of subgrid blocks needed in each direction
+int block1_tot, block2_tot, block3_tot;
+// modulus of number of cells after block subdivision in each direction
+int remainder1, remainder2, remainder3;
+// number of cells in one subgrid block
+int BLOCK_VOL;
+// dimensions for the 1D GPU grid
+int ngrid;
+
 
 
 Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt, int n_fields)
@@ -94,28 +113,27 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Real min_dt = 1e10;
   #endif  
 
-  // dimensions of subgrid blocks
-  int nx_s, ny_s, nz_s; 
-  // x, y, and z offsets for subgrid blocks
-  int x_off_s, y_off_s, z_off_s;
-  // total number of subgrid blocks needed
-  int block_tot;
-  // number of subgrid blocks needed in each direction
-  int block1_tot, block2_tot, block3_tot;
-  // modulus of number of cells after block subdivision in each direction
-  int remainder1, remainder2, remainder3;
 
   #ifdef TIME
   cudaEventRecord(start, 0);
   #endif //TIME
-  // calculate the dimensions for the subgrid blocks
-  //sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
-  nx_s = ny_s = nz_s = 264;
-  block1_tot = block2_tot = block3_tot = 1;
-  remainder1 = remainder2 = remainder3 = 0;
-  //printf("Subgrid dimensions set: %d %d %d %d %d %d %d %d %d\n", nx_s, ny_s, nz_s, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3);
-  fflush(stdout);
-  block_tot = block1_tot*block2_tot*block3_tot;
+  if ( !block_size ) {
+    // calculate the dimensions for the subgrid blocks
+    sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
+    //printf("Subgrid dimensions set: %d %d %d %d %d %d %d %d %d\n", nx_s, ny_s, nz_s, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3);
+    //fflush(stdout);
+    block_tot = block1_tot*block2_tot*block3_tot;
+    // number of cells in one subgrid block
+    BLOCK_VOL = nx_s*ny_s*nz_s;
+    // dimensions for the 1D GPU grid
+    ngrid = (BLOCK_VOL + TPB - 1) / TPB;
+    block_size = true;
+  }
+  // set values for GPU kernels
+  // number of blocks per 1D grid  
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block   
+  dim3 dim1dBlock(TPB, 1, 1);
   #ifdef TIME
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
@@ -123,19 +141,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   other += elapsedTime;
   #endif //TIME
 
-  // number of cells in one subgrid block
-  int BLOCK_VOL = nx_s*ny_s*nz_s;
-
-  // dimensions for the 1D GPU grid
-  int  ngrid = (BLOCK_VOL + TPB - 1) / TPB;
-  //printf("ngrid: %d\n", ngrid);
-  //fflush(stdout);
-
-  //number of blocks per 1D grid  
-  dim3 dim1dGrid(ngrid, 1, 1);
-
-  //number of threads per 1D block   
-  dim3 dim1dBlock(TPB, 1, 1);
 
   // Set up pointers for the location to copy from and to
   // allocate buffer to copy conserved variable blocks to/from
