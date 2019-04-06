@@ -40,17 +40,6 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   //host_conserved0 contains the values at time n,
   //host_conserved1 contains the values at time n+1
 
-  // dimensions of subgrid blocks
-  int nx_s, ny_s, nz_s; 
-  // x, y, and z offsets for subgrid blocks
-  int x_off_s, y_off_s, z_off_s;
-  // total number of subgrid blocks needed
-  int block_tot;
-  // number of subgrid blocks needed in each direction
-  int block1_tot, block2_tot, block3_tot;
-  // modulus of number of cells after block subdivision in each direction
-  int remainder1, remainder2, remainder3;
-
   // counter for which block we're on
   int block = 0;
 
@@ -59,10 +48,10 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   block_tot = block1_tot*block2_tot*block3_tot;
 
   // number of cells in one subgrid block
-  int BLOCK_VOL = nx_s*ny_s*nz_s;
+  BLOCK_VOL = nx_s*ny_s*nz_s;
 
   // dimensions for the 1D GPU grid
-  int  ngrid = (BLOCK_VOL + TPB - 1) / TPB;
+  ngrid = (BLOCK_VOL + TPB - 1) / TPB;
 
   //number of blocks per 1D grid  
   dim3 dim1dGrid(ngrid, 1, 1);
@@ -71,11 +60,8 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   dim3 dim1dBlock(TPB, 1, 1);
 
   // Set up pointers for the location to copy from and to
-  Real *tmp1;
-  Real *tmp2;
 
   // allocate buffer to copy conserved variable blocks to/from
-  Real *buffer;
   if (block_tot > 1) {
     if ( NULL == ( buffer = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {
       printf("Failed to allocate CPU buffer.\n");
@@ -90,26 +76,10 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
   // allocate an array on the CPU to hold max_dti returned from each thread block
   Real max_dti = 0;
-  Real *host_dti_array;
   host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
   #ifdef COOLING_GPU
   Real min_dt = 1e10;
-  Real *host_dt_array;
   host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
-  #endif
-
-  // allocate GPU arrays
-  // conserved variables
-  Real *dev_conserved;
-  // input states and associated interface fluxes (Q* and F* from Stone, 2008)
-  Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
-  // arrays to hold the eta values for the H correction
-  Real *eta_x, *eta_y, *eta_z, *etah_x, *etah_y, *etah_z;
-  // array of inverse timesteps for dt calculation
-  Real *dev_dti_array;
-  #ifdef COOLING_GPU
-  // array of timesteps for dt calculation (cooling restriction)
-  Real *dev_dt_array;
   #endif
 
   // allocate memory on the GPU

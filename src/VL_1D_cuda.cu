@@ -42,43 +42,25 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   int nz = 1;
 
   // set the dimensions of the cuda grid
-  int  ngrid = (n_cells + TPB - 1) / TPB;
+  ngrid = (n_cells + TPB - 1) / TPB;
   dim3 dimGrid(ngrid, 1, 1);
   dim3 dimBlock(TPB, 1, 1);
 
   // allocate an array on the CPU to hold max_dti returned from each thread block
   Real max_dti = 0;
-  Real *host_dti_array;
   host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
   #ifdef COOLING_GPU
   Real min_dt = 1e10;
-  Real *host_dt_array;
   host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
   #endif  
   
-
-  // allocate GPU arrays
-  // conserved variables
-  Real *dev_conserved, *dev_conserved_half;
-  // initial input states and associated interface fluxes (Q* and F* from Stone, 2008)
-  Real *Q_L, *Q_R, *F;
-  // array to hold zero values for H correction (necessary to pass to Roe solver)
-  Real *etah;
-  // array of inverse timesteps for dt calculation
-  Real *dev_dti_array;
-  #ifdef COOLING_GPU
-  // array of timesteps for dt calculation (cooling restriction)
-  Real *dev_dt_array;
-  #endif  
-
-
   // allocate memory on the GPU
   CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*n_cells*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_conserved_half, n_fields*n_cells*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_L, n_fields*n_cells*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_R, n_fields*n_cells*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F,   n_fields*n_cells*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&etah, n_cells*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Q_Lx, n_fields*n_cells*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Q_Rx, n_fields*n_cells*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&F_x,   n_fields*n_cells*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&etah_x, n_cells*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
   #ifdef COOLING_GPU
   CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
@@ -90,61 +72,61 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
 
   // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
-  PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved, Q_L, Q_R, nx, n_ghost, gama, n_fields);
+  PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, gama, n_fields);
   CudaCheckError();
 
   // Step 2: Calculate first-order upwind fluxes 
   #ifdef EXACT
-  Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_R, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   #ifdef ROE
-  Calculate_Roe_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0, n_fields);
+  Calculate_Roe_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0, n_fields);
   #endif
   #ifdef HLLC 
-  Calculate_HLLC_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0, n_fields);
+  Calculate_HLLC_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0, n_fields);
   #endif
   CudaCheckError();
 
 
   // Step 3: Update the conserved variables half a timestep 
-  Update_Conserved_Variables_1D_half<<<dimGrid,dimBlock>>>(dev_conserved, dev_conserved_half, F, n_cells, n_ghost, dx, 0.5*dt, gama, n_fields);
+  Update_Conserved_Variables_1D_half<<<dimGrid,dimBlock>>>(dev_conserved, dev_conserved_half, F_x, n_cells, n_ghost, dx, 0.5*dt, gama, n_fields);
   CudaCheckError();
 
 
   // Step 4: Construct left and right interface values using updated conserved variables
   #ifdef PCM
-  PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, n_ghost, gama, n_fields);
+  PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, n_ghost, gama, n_fields);
   #endif
   #ifdef PLMC
-  PLMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
+  PLMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif  
   #ifdef PLMP
-  PLMP_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
+  PLMP_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif
   #ifdef PPMP
-  PPMP_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
+  PPMP_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif
   #ifdef PPMC
-  PPMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_L, Q_R, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
+  PPMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif
   CudaCheckError();
 
 
   // Step 5: Calculate the fluxes again
   #ifdef EXACT
-  Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   #ifdef ROE
-  Calculate_Roe_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0, n_fields);
+  Calculate_Roe_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0, n_fields);
   #endif
   #ifdef HLLC 
-  Calculate_HLLC_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_L, Q_R, F, nx, ny, nz, n_ghost, gama, etah, 0, n_fields);
+  Calculate_HLLC_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, etah_x, 0, n_fields);
   #endif
   CudaCheckError();
 
 
   // Step 6: Update the conserved variable array
-  Update_Conserved_Variables_1D<<<dimGrid,dimBlock>>>(dev_conserved, F, n_cells, x_off, n_ghost, dx, xbound, dt, gama, n_fields);
+  Update_Conserved_Variables_1D<<<dimGrid,dimBlock>>>(dev_conserved, F_x, n_cells, x_off, n_ghost, dx, xbound, dt, gama, n_fields);
   CudaCheckError();
    
 
@@ -197,10 +179,10 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // free the GPU memory
   cudaFree(dev_conserved);
   cudaFree(dev_conserved_half);
-  cudaFree(Q_L);
-  cudaFree(Q_R);
-  cudaFree(F);
-  cudaFree(etah);
+  cudaFree(Q_Lx);
+  cudaFree(Q_Rx);
+  cudaFree(F_x);
+  cudaFree(etah_x);
   cudaFree(dev_dti_array);
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
@@ -212,7 +194,9 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
 }
 
+void Free_Memory_VL_1D() {
 
+}
 
 __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, int n_cells, int n_ghost, Real dx, Real dt, Real gamma, int n_fields)
 {
