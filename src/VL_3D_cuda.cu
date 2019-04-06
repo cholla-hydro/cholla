@@ -30,52 +30,6 @@
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields);
 
 
-bool memory_allocated; // Flag becomes true after allocating the memory on the first timestep
-bool block_size; // Flag becomes true after determining subgrid block size on the first timestep
-
-// Arrays are global so that they can be allocated only once.
-// GPU arrays
-// conserved variables
-Real *dev_conserved, *dev_conserved_half;
-// input states and associated interface fluxes (Q* and F* from Stone, 2008)
-Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
-// arrays to hold the eta values for the H correction
-Real *eta_x, *eta_y, *eta_z, *etah_x, *etah_y, *etah_z;
-// array of inverse timesteps for dt calculation
-Real *dev_dti_array;
-#ifdef COOLING_GPU
-// array of timesteps for dt calculation (cooling restriction)
-Real *dev_dt_array;
-#endif  
-// Array on the CPU to hold max_dti returned from each thread block
-Real *host_dti_array;
-#ifdef COOLING_GPU
-Real *host_dt_array;
-#endif
-// Buffer to copy conserved variable blocks to/from
-Real *buffer;
-// Pointers for the location to copy from and to
-Real *tmp1;
-Real *tmp2;
-
-// Similarly, sizes of subgrid blocks and kernel dimensions are global variables
-// so subgrid splitting function is only called once
-// dimensions of subgrid blocks
-int nx_s, ny_s, nz_s; 
-// x, y, and z offsets for subgrid blocks
-int x_off_s, y_off_s, z_off_s;
-// total number of subgrid blocks needed
-int block_tot;
-// number of subgrid blocks needed in each direction
-int block1_tot, block2_tot, block3_tot;
-// modulus of number of cells after block subdivision in each direction
-int remainder1, remainder2, remainder3;
-// number of cells in one subgrid block
-int BLOCK_VOL;
-// dimensions for the 1D GPU grid
-int ngrid;
-
-
 
 Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt, int n_fields)
 {
@@ -212,6 +166,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // counter for which block we're on
   int block = 0;
   
+
   // START LOOP OVER SUBGRID BLOCKS
   while (block < block_tot) {
 

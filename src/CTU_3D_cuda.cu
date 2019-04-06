@@ -39,100 +39,88 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   //concatenated into a 1-d array
   //host_conserved0 contains the values at time n,
   //host_conserved1 contains the values at time n+1
+  
+  // Initialize dt values 
+  Real max_dti = 0;
+  #ifdef COOLING_GPU
+  Real min_dt = 1e10;
+  #endif  
 
-  // dimensions of subgrid blocks
-  int nx_s, ny_s, nz_s; 
-  // x, y, and z offsets for subgrid blocks
-  int x_off_s, y_off_s, z_off_s;
-  // total number of subgrid blocks needed
-  int block_tot;
-  // number of subgrid blocks needed in each direction
-  int block1_tot, block2_tot, block3_tot;
-  // modulus of number of cells after block subdivision in each direction
-  int remainder1, remainder2, remainder3;
-
-  // counter for which block we're on
-  int block = 0;
-
-  // calculate the dimensions for the subgrid blocks
-  sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
-  block_tot = block1_tot*block2_tot*block3_tot;
-
-  // number of cells in one subgrid block
-  int BLOCK_VOL = nx_s*ny_s*nz_s;
-
-  // dimensions for the 1D GPU grid
-  int  ngrid = (BLOCK_VOL + TPB - 1) / TPB;
-
-  //number of blocks per 1D grid  
+  if ( !block_size ) {
+    // calculate the dimensions for the subgrid blocks
+    sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
+    //printf("Subgrid dimensions set: %d %d %d %d %d %d %d %d %d\n", nx_s, ny_s, nz_s, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3);
+    //fflush(stdout);
+    block_tot = block1_tot*block2_tot*block3_tot;
+    // number of cells in one subgrid block
+    BLOCK_VOL = nx_s*ny_s*nz_s;
+    // dimensions for the 1D GPU grid
+    ngrid = (BLOCK_VOL + TPB - 1) / TPB;
+    #ifndef DYNAMIC_GPU_ALLOC
+    block_size = true;
+    #endif
+  }
+  // set values for GPU kernels
+  // number of blocks per 1D grid  
   dim3 dim1dGrid(ngrid, 1, 1);
-
-  //number of threads per 1D block   
+  //  number of threads per 1D block   
   dim3 dim1dBlock(TPB, 1, 1);
 
   // Set up pointers for the location to copy from and to
-  Real *tmp1;
-  Real *tmp2;
-
-  // allocate buffer to copy conserved variable blocks to/from
-  Real *buffer;
-  if (block_tot > 1) {
-    if ( NULL == ( buffer = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {
-      printf("Failed to allocate CPU buffer.\n");
-    }
-    tmp1 = buffer;
-    tmp2 = buffer;
-  }
-  else {
+  if (block_tot == 1) {
     tmp1 = host_conserved0;
     tmp2 = host_conserved1;
   }
 
-  // allocate an array on the CPU to hold max_dti returned from each thread block
-  Real max_dti = 0;
-  Real *host_dti_array;
-  host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
-  #ifdef COOLING_GPU
-  Real min_dt = 1e10;
-  Real *host_dt_array;
-  host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
-  #endif
+  if ( !memory_allocated ) {
 
-  // allocate GPU arrays
-  // conserved variables
-  Real *dev_conserved;
-  // input states and associated interface fluxes (Q* and F* from Stone, 2008)
-  Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
-  // arrays to hold the eta values for the H correction
-  Real *eta_x, *eta_y, *eta_z, *etah_x, *etah_y, *etah_z;
-  // array of inverse timesteps for dt calculation
-  Real *dev_dti_array;
-  #ifdef COOLING_GPU
-  // array of timesteps for dt calculation (cooling restriction)
-  Real *dev_dt_array;
-  #endif
+    // allocate buffer to copy conserved variable blocks to/from
+    if (block_tot > 1) {
+      if ( NULL == ( buffer = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {
+        printf("Failed to allocate CPU buffer.\n");
+      }
+      tmp1 = buffer;
+      tmp2 = buffer;
+    }
 
-  // allocate memory on the GPU
-  CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Lx,  n_fields*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Rx,  n_fields*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Ly,  n_fields*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Ry,  n_fields*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Lz,  n_fields*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&Q_Rz,  n_fields*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F_x,   n_fields*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F_y,   n_fields*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F_z,   n_fields*BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&eta_x,  BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&eta_y,  BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&eta_z,  BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&etah_x, BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&etah_y, BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&etah_z, BLOCK_VOL*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-  #ifdef COOLING_GPU
-  CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
-  #endif
+    // allocate an array on the CPU to hold max_dti returned from each thread block
+    host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
+    #ifdef COOLING_GPU
+    host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
+    #endif
+
+    // allocate memory on the GPU
+    CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&Q_Lx,  n_fields*BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&Q_Rx,  n_fields*BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&Q_Ly,  n_fields*BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&Q_Ry,  n_fields*BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&Q_Lz,  n_fields*BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&Q_Rz,  n_fields*BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&F_x,   n_fields*BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&F_y,   n_fields*BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&F_z,   n_fields*BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&eta_x,  BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&eta_y,  BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&eta_z,  BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&etah_x, BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&etah_y, BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&etah_z, BLOCK_VOL*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
+    #ifdef COOLING_GPU
+    CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
+    #endif
+        
+    #ifndef DYNAMIC_GPU_ALLOC 
+    // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
+    // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
+    memory_allocated = true;
+    #endif 
+  }  
+
+  // counter for which block we're on
+  int block = 0;
+
 
   // START LOOP OVER SUBGRID BLOCKS
   while (block < block_tot) {
@@ -304,9 +292,23 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   }
 
 
+  #ifdef DYNAMIC_GPU_ALLOC
+  // If memory is not single allocated then free the memory every timestep.
+  Free_Memory_CTU_3D();
+  #endif
+
+
+  // return the maximum inverse timestep
+  return max_dti;
+
+}
+
+
+void Free_Memory_CTU_3D() {
+
   // free CPU memory
-  free(host_dti_array);
   if (block_tot > 1) free(buffer);
+  free(host_dti_array);
   #ifdef COOLING_GPU
   free(host_dt_array);  
   #endif
@@ -332,9 +334,6 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
   #endif
-
-  // return the maximum inverse timestep
-  return max_dti;
 
 }
 
