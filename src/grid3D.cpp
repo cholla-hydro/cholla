@@ -702,7 +702,7 @@ Real Grid3D::Update_Hydro_Grid( ){
   Timer.Start_Timer();
   #endif
   Do_Cooling_Step_Grackle( );
-  Apply_Temperature_Floor_CPU_function(  0, Grav.nz_local );
+  // Apply_Temperature_Floor_CPU_function(  0, Grav.nz_local );
   #ifdef CPU_TIME
   Timer.End_and_Record_Time(10);
   #endif
