@@ -292,7 +292,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #ifdef TIME
     cudaEventRecord(start, 0);
     #endif //TIME 
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0, n_fields);
     CudaCheckError();
     #ifdef TIME
     cudaEventRecord(stop, 0);
@@ -303,7 +303,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     r1x += elapsedTime;
     cudaEventRecord(start, 0);
     #endif //TIME 
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
     CudaCheckError();
     #ifdef TIME
     cudaEventRecord(stop, 0);
@@ -314,7 +314,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     r1y += elapsedTime;
     cudaEventRecord(start, 0);
     #endif //TIME 
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2, n_fields);
     CudaCheckError();
     #ifdef TIME
     cudaEventRecord(stop, 0);
@@ -432,7 +432,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #ifdef TIME
     cudaEventRecord(start, 0);
     #endif //TIME 
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0, n_fields);
     #ifdef TIME
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
@@ -442,7 +442,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     r2x += elapsedTime;
     cudaEventRecord(start, 0);
     #endif //TIME 
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
     #ifdef TIME
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
@@ -452,7 +452,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     r2y += elapsedTime;
     cudaEventRecord(start, 0);
     #endif //TIME 
-    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2, n_fields);
     #ifdef TIME
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
@@ -628,14 +628,12 @@ void Free_Memory_VL_3D(){
   cudaFree(F_x);
   cudaFree(F_y);
   cudaFree(F_z);
-  #ifdef H_CORRECTION
   cudaFree(eta_x);
   cudaFree(eta_y);
   cudaFree(eta_z);
   cudaFree(etah_x);
   cudaFree(etah_y);
   cudaFree(etah_z);
-  #endif //H_CORRECTION
   cudaFree(dev_dti_array);
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
