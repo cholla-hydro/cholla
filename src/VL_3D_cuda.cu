@@ -197,12 +197,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #endif 
     
     #ifndef DYNAMIC_GPU_ALLOC 
-    chprintf( " VL_3D: Allocating memory \n");
-    chprintf ( "  N memory blocks gpu: %d\n", block_tot );
     // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    chprintf( " VL_3D: Memory successfully allocated \n");
     #endif 
   }  
   #ifdef TIME
@@ -227,8 +224,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("CPU copying: %5.3f ms\n", elapsedTime);
-    fflush(stdout);
+    //printf("CPU copying: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
     buff += elapsedTime;
     #endif //TIME    
 
@@ -539,8 +536,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("CPU copying: %5.3f ms\n", elapsedTime);
-    fflush(stdout);
+    //printf("CPU copying: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
     buff += elapsedTime;
     #endif //TIME    
 
@@ -639,9 +636,6 @@ void Free_Memory_VL_3D(){
   cudaFree(dev_dt_array);
   #endif
 
-  #ifndef DYNAMIC_GPU_ALLOC
-  chprintf( " VL_3D: Memory freed successfully \n");
-  #endif
 }
 
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields)
