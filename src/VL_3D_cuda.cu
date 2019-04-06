@@ -227,8 +227,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("CPU copying: %5.3f ms\n", elapsedTime);
-    fflush(stdout);
+    //printf("CPU copying: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
     buff += elapsedTime;
     #endif //TIME    
 
@@ -539,8 +539,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("CPU copying: %5.3f ms\n", elapsedTime);
-    fflush(stdout);
+    //printf("CPU copying: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
     buff += elapsedTime;
     #endif //TIME    
 
