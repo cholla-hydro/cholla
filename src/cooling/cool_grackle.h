@@ -49,6 +49,8 @@ void Initialize( struct parameters *P, Cosmology &Cosmo );
 void Free_Memory();
 // void Do_Cooling_Step( Real dt );
 
+Real Get_Mean_Molecular_Weight( int cell_id );
+
 };
 
 #endif

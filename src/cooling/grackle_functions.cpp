@@ -219,7 +219,21 @@ void Grid3D::Do_Cooling_Step_Grackle(){
   
 }
 
-
+Real Cool_GK::Get_Mean_Molecular_Weight( int cell_id ){
+  
+  Real mu, dens, HI_dens, HII_dens, HeI_dens, HeII_dens, HeIII_dens;
+  
+  dens = fields.density[cell_id];
+  HI_dens = fields.HI_density[cell_id];
+  HII_dens = fields.HII_density[cell_id];
+  HeI_dens = fields.HeI_density[cell_id];
+  HeII_dens = fields.HeII_density[cell_id];
+  HeIII_dens = fields.HeIII_density[cell_id];
+  
+  mu = dens / ( HI_dens + 2*HII_dens + ( HeI_dens + 2*HeII_dens + 3*HeIII_dens) / 4 );
+  return mu;
+  
+}
 
 
 
