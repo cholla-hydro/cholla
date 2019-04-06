@@ -39,7 +39,7 @@ __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound,
   
   // calculate acceleration due to NFW halo & Miyamoto-Nagai disk
   a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
-  a_disk_z = - GN * M_d * x_pos * (R_d + sqrt(x_pos*x_pos + z_d*z_d)) / ( powf(r_disk*r_disk + powf(R_d + sqrt(x_pos*x_pos + z_d*z_d), 2), 1.5) * sqrt(x_pos*x_pos + z_d*z_d) );
+  a_disk_z = - GN * M_d * x_pos * (R_d + sqrt(x_pos*x_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow(R_d + sqrt(x_pos*x_pos + z_d*z_d), 2), 1.5) * sqrt(x_pos*x_pos + z_d*z_d) );
 
   // total acceleration is the sum of the halo + disk components
   *gx = (x_pos/r_halo)*a_halo + a_disk_z;
@@ -94,7 +94,7 @@ __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, R
   
   // calculate acceleration
   x = r / R_s;
-  a_d = GN * M_d * r * powf(r*r + R_d*R_d, -1.5);
+  a_d = GN * M_d * r * pow(r*r + R_d*R_d, -1.5);
   a_h = GN * M_h * (log(1+x)- x / (1+x)) / ((log(1+c_vir) - c_vir / (1+c_vir)) * r*r);
   a = a_d + a_h;
 
@@ -145,8 +145,8 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
   a_halo_r = a_halo*(r_disk/r_halo);
   a_halo_z = a_halo*(z_pos/r_halo);
-  a_disk_r = - GN * M_d * r_disk * powf(r_disk*r_disk+ powf(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
-  a_disk_z = - GN * M_d * z_pos * (R_d + sqrt(z_pos*z_pos + z_d*z_d)) / ( powf(r_disk*r_disk + powf(R_d + sqrt(z_pos*z_pos + z_d*z_d), 2), 1.5) * sqrt(z_pos*z_pos + z_d*z_d) );
+  a_disk_r = - GN * M_d * r_disk * pow(r_disk*r_disk+ pow(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
+  a_disk_z = - GN * M_d * z_pos * (R_d + sqrt(z_pos*z_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d), 2), 1.5) * sqrt(z_pos*z_pos + z_d*z_d) );
 
   // total acceleration is the sum of the halo + disk components
   *gx = (x_pos/r_disk)*(a_disk_r+a_halo_r);

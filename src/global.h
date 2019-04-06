@@ -30,7 +30,7 @@ typedef double Real;
 #define GN 4.49451e-18 // gravitational constant, kpc^3 / M_sun / kyr^2
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
-#define LENGTH_UNIT 3.08567758e18 // 1 pc in cm
+#define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
 #define MASS_UNIT 1.98855e33 // 1 solar mass in grams
 #define DENSITY_UNIT (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT)) 
 #define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
