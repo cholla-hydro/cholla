@@ -212,6 +212,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // counter for which block we're on
   int block = 0;
   
+
   // START LOOP OVER SUBGRID BLOCKS
   while (block < block_tot) {
 
