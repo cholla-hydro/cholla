@@ -112,9 +112,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // input states and associated interface fluxes (Q* and F* from Stone, 2008)
   Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *F_x, *F_y;
   // arrays to hold the eta values for the H correction
-  #ifdef H_CORRECTION
   Real *eta_x, *eta_y, *etah_x, *etah_y;
-  #endif //H_CORRECTION
   // array of inverse timesteps for dt calculation
   Real *dev_dti_array;
   #ifdef COOLING_GPU
@@ -131,12 +129,10 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   CudaSafeCall( cudaMalloc((void**)&Q_Ry, n_fields*BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&F_x,  n_fields*BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&F_y,  n_fields*BLOCK_VOL*sizeof(Real)) );
-  #ifdef H_CORRECTION
   CudaSafeCall( cudaMalloc((void**)&eta_x,   BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&eta_y,   BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah_x,  BLOCK_VOL*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&etah_y,  BLOCK_VOL*sizeof(Real)) );
-  #endif //H_CORRECTION
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, 2*ngrid*sizeof(Real)) );
   #ifdef COOLING_GPU
   CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
@@ -172,8 +168,8 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     Calculate_Roe_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
     #endif
     #ifdef HLLC 
-    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
-    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
     #endif
     CudaCheckError();
 
@@ -225,8 +221,8 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     Calculate_Roe_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
     #endif
     #ifdef HLLC 
-    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
-    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0, n_fields);
+    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
     #endif
     CudaCheckError();
 
@@ -301,12 +297,10 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   cudaFree(Q_Ry);
   cudaFree(F_x);
   cudaFree(F_y);
-  #ifdef H_CORRECTION
   cudaFree(eta_x);
   cudaFree(eta_y);
   cudaFree(etah_x);
   cudaFree(etah_y);
-  #endif
   cudaFree(dev_dti_array);
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
