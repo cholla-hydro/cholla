@@ -52,6 +52,11 @@ Real *host_dti_array;
 #ifdef COOLING_GPU
 Real *host_dt_array;
 #endif
+// Buffer to copy conserved variable blocks to/from
+Real *buffer;
+// Pointers for the location to copy from and to
+Real *tmp1;
+Real *tmp2;
 
 // Similarly, sizes of subgrid blocks and kernel dimensions are global variables
 // so subgrid splitting function is only called once
@@ -143,42 +148,25 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   other += elapsedTime;
   #endif //TIME
 
-
   // Set up pointers for the location to copy from and to
-  // allocate buffer to copy conserved variable blocks to/from
-  #ifdef TIME
-  cudaEventRecord(start, 0);
-  #endif //TIME
-  // Buffer to copy conserved variable blocks to/from
-  Real *buffer;
-
-  // Pointers for the location to copy from and to
-  Real *tmp1;
-  Real *tmp2;
-
-  if (block_tot > 1) {
-    if ( NULL == ( buffer = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {
-      printf("Failed to allocate CPU buffer.\n");
-    }
-    tmp1 = buffer;
-    tmp2 = buffer;
-  }
-  else {
+  if (block_tot == 1) {
     tmp1 = host_conserved0;
     tmp2 = host_conserved1;
   }
-  #ifdef TIME
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  buff += elapsedTime;
-  #endif //TIME
 
   #ifdef TIME
   cudaEventRecord(start, 0);
   #endif //TIME
   if ( !memory_allocated ){
 
+    // allocate buffer to copy conserved variable blocks to/from
+    if (block_tot > 1) {
+      if ( NULL == ( buffer = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {
+        printf("Failed to allocate CPU buffer.\n");
+      }
+      tmp1 = buffer;
+      tmp2 = buffer;
+    }
     // allocate an array on the CPU to hold max_dti returned from each thread block
     host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
     #ifdef COOLING_GPU
@@ -590,8 +578,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
   }
 
-  // free CPU memory
-  if (block_tot > 1) free(buffer);
   
   #ifdef DYNAMIC_GPU_ALLOC
   // If memory is not single allocated then free the memory every timestep.
@@ -623,7 +609,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
 void Free_Memory_VL_3D(){
   
-  
+  // free CPU memory
+  if (block_tot > 1) free(buffer);
   free(host_dti_array);  
   #ifdef COOLING_GPU
   free(host_dt_array);  
@@ -653,7 +640,6 @@ void Free_Memory_VL_3D(){
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
   #endif
-
 
   #ifndef DYNAMIC_GPU_ALLOC
   chprintf( " VL_3D: Memory freed successfully \n");
