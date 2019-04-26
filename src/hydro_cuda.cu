@@ -658,7 +658,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
     cs = sqrt(d_inv * gamma * P);
     max_dti[tid] = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
     max_dti[tid] = fmax(max_dti[tid], (fabs(vz)+cs)/dz);
-    max_dti[tid] = fmax(max_dti[tid], 0);
+    max_dti[tid] = fmax(max_dti[tid], 0.0);
   }
   __syncthreads();
   
