@@ -43,8 +43,13 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
   #ifdef SCALAR
   Real dscl[NSCALARS], dscr[NSCALARS], scl[NSCALARS], scr[NSCALARS], scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
   #endif
+  
+  #ifdef H_CORRECTION
   // Retrieve etah value
   Real etah = dev_etah[tid];
+  #else
+  Real etah = 0.0;
+  #endif
 
 
   int o1, o2, o3;
