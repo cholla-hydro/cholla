@@ -382,6 +382,25 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   attribute_id = H5Acreate(file_id, "n_fields", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_fields);
   status = H5Aclose(attribute_id);
+  
+  #ifdef COSMOLOGY
+  attribute_id = H5Acreate(file_id, "H0", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.H0);
+  status = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "Omega_M", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_M);
+  status = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "Omega_L", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_L);
+  status = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "Current_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.current_z);
+  status = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "Current_a", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.current_a);
+  status = H5Aclose(attribute_id);
+  #endif
+  
   // Close the dataspace
   status = H5Sclose(dataspace_id);
 
