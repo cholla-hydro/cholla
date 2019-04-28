@@ -18,6 +18,10 @@ gamma=1.66666667
 # name of initial conditions
 init=Read_Grid
 nfile=0
+#Cosmological Parameters 
+H0=67.74
+Omega_M=0.3089
+Omega_L=0.6911
 scale_outputs_file=scale_output_files/outputs_cool_UV.txt
 # domain properties
 xmin=0.0
