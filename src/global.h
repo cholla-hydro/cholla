@@ -183,6 +183,11 @@ struct parameters
   Real ddelta_dt;
   int flag_delta;
 #endif /*ROTATED_PROJECTION*/
+#ifdef COSMOLOGY
+  Real H0;
+  Real Omega_M;
+  Real Omega_L;
+#endif //COSMOLOGY
 };
 
 

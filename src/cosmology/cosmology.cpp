@@ -11,13 +11,13 @@ void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Pa
   
   chprintf( "Cosmological Simulation\n");
   
-  H0 = 67.74;                //[km/s / Mpc]
+  H0 = P-> H0;
   cosmo_h = H0/100;
   H0 /= 1000;               //[km/s / kpc]
-  Omega_M = 0.3089;
-  Omega_L = 0.6911;
-  Omega_K = 0.0;
-
+  Omega_M = P-> Omega_M;
+  Omega_L = P-> Omega_L;
+  Omega_K = 1 - ( Omega_M + Omega_L );
+  
   // Read scale factor vaue from Particles
   current_z = Particles.current_z;
   current_a = Particles.current_a;
