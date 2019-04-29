@@ -92,9 +92,10 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     dger = dev_bounds_R[(n_fields-1)*n_cells + tid];
     #endif
 
-
+    #ifdef H_CORRECTION
     // retrieve etah value
     etah = dev_etah[tid];
+    #endif // etah = 0 if not H_CORRECTION
 
     // calculate primative variables
     vxl = mxl / dl;
