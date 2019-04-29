@@ -25,6 +25,7 @@
 #include"subgrid_routines_3D.h"
 #include"io.h"
 
+#define TIME
 
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields);
 
@@ -38,12 +39,43 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   //host_conserved0 contains the values at time n,
   //host_conserved1 will contain the values at time n+1
 
+#ifdef TIME
+  cudaEvent_t start_VL, stop_VL;
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start_VL);
+  cudaEventCreate(&stop_VL);
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start_VL, 0);
+  float elapsedTime;
+  Real cpto, cpfr;
+  Real buff, dti;
+  Real ppmx, ppmy, ppmz;
+  Real r1x, r1y, r1z;
+  Real r2x, r2y, r2z;
+  Real pcm, ie, cvu;
+  Real cool;
+  Real arrays, other;
+  cpto = cpfr = 0;
+  buff = dti = 0;
+  ppmx = ppmy = ppmz = 0;
+  r1x = r1y = r1z = 0;
+  r2x = r2y = r2z = 0;
+  pcm = ie = cvu = 0;
+  cool = 0;
+  arrays = other = 0;
+#endif
+
   // Initialize dt values 
   Real max_dti = 0;
   #ifdef COOLING_GPU
   Real min_dt = 1e10;
   #endif  
 
+
+  #ifdef TIME
+  cudaEventRecord(start, 0);
+  #endif //TIME
   if ( !block_size ) {
     // calculate the dimensions for the subgrid blocks
     sub_dimensions_3D(nx, ny, nz, n_ghost, &nx_s, &ny_s, &nz_s, &block1_tot, &block2_tot, &block3_tot, &remainder1, &remainder2, &remainder3, n_fields);
@@ -63,6 +95,12 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB, 1, 1);
+  #ifdef TIME
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&elapsedTime, start, stop);
+  other += elapsedTime;
+  #endif //TIME
 
   // Set up pointers for the location to copy from and to
   if (block_tot == 1) {
@@ -70,6 +108,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     tmp2 = host_conserved1;
   }
 
+  #ifdef TIME
+  cudaEventRecord(start, 0);
+  #endif //TIME
   if ( !memory_allocated ){
 
     // allocate buffer to copy conserved variable blocks to/from
@@ -117,6 +158,12 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     memory_allocated = true;
     #endif 
   }  
+  #ifdef TIME
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&elapsedTime, start, stop);
+  arrays += elapsedTime;
+  #endif //TIME
 
   // counter for which block we're on
   int block = 0;
@@ -126,17 +173,63 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   while (block < block_tot) {
 
     // copy the conserved variable block to the buffer
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     host_copy_block_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved0, buffer, n_fields);
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("CPU copying: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    buff += elapsedTime;
+    #endif //TIME    
 
     // calculate the global x, y, and z offsets of this subgrid block
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME
     get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("Getting offsets: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    other += elapsedTime;
+    #endif //TIME
 
     // copy the conserved variables onto the GPU
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("Copy to GPU: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    cpto += elapsedTime;
+    #endif //TIME
+ 
 
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME
     // Step 1: Use PCM reconstruction to put primitive variables into interface arrays
     PCM_Reconstruction_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
     CudaCheckError();
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("PCM reconstruction: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    pcm += elapsedTime;
+    #endif //TIME
+
 
     // Step 2: Calculate first-order upwind fluxes 
     #ifdef EXACT
@@ -150,18 +243,60 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2, n_fields);
     #endif //ROE
     #ifdef HLLC 
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0, n_fields);
     CudaCheckError();
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("x1 fluxes: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    r1x += elapsedTime;
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
     CudaCheckError();
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("y1 fluxes: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    r1y += elapsedTime;
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2, n_fields);
     CudaCheckError();
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("z1 fluxes: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    r1z += elapsedTime;
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     #endif //HLLC
     CudaCheckError();
 
+
     // Step 3: Update the conserved variables half a timestep 
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME   
     Update_Conserved_Variables_3D_half<<<dim1dGrid,dim1dBlock>>>(dev_conserved, dev_conserved_half, F_x, F_y, F_z, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, 0.5*dt, gama, n_fields);
     CudaCheckError();
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("Half step update: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    ie += elapsedTime;
+    #endif //TIME 
 
     // Step 4: Construct left and right interface values using updated conserved variables
     #ifdef PCM
@@ -183,12 +318,41 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     #endif //PPMP
     #ifdef PPMC
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
     CudaCheckError();
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("x ppm: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    ppmx += elapsedTime;
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
     CudaCheckError();
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("y ppm: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    ppmy += elapsedTime;
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     CudaCheckError();
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("z ppm: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    ppmz += elapsedTime;
+    #endif //TIME    
     #endif //PPMC
     CudaCheckError();
     
@@ -219,15 +383,56 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     Calculate_Roe_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2, n_fields);
     #endif //ROE
     #ifdef HLLC 
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, etah_x, 0, n_fields);
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("x2 fluxes: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    r2x += elapsedTime;
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, etah_y, 1, n_fields);
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("y2 fluxes: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    r2y += elapsedTime;
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, etah_z, 2, n_fields);
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("z2 fluxes: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    r2z += elapsedTime;
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     #endif //HLLC
     CudaCheckError();
 
 
     // Step 6: Update the conserved variable array
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, F_z, nx_s, ny_s, nz_s, x_off_s, y_off_s, z_off_s, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama, n_fields);
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("conserved variable update: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    cvu += elapsedTime;
+    #endif //TIME     
     CudaCheckError();
 
     #ifdef DE
@@ -236,27 +441,80 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #endif
 
     // Apply cooling
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     #ifdef COOLING_GPU
     cooling_kernel<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);  
     CudaCheckError();
     #endif
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    cool += elapsedTime;
+    #endif //TIME     
  
     // Step 7: Calculate the next time step
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     Calc_dt_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama);
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("dti calc: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    dti += elapsedTime;
+    #endif //TIME  
     CudaCheckError();
 
     // copy the updated conserved variable array back to the CPU
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME    
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("Copy from GPU: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    cpfr += elapsedTime;
+    #endif //TIME    
 
     // copy the updated conserved variable array from the buffer into the host_conserved array on the CPU
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     host_return_block_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved1, buffer, n_fields);
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("CPU copying: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    buff += elapsedTime;
+    #endif //TIME    
 
     // copy the dti array onto the CPU
+    #ifdef TIME
+    cudaEventRecord(start, 0);
+    #endif //TIME 
     CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // find maximum inverse timestep from CFL condition
     for (int i=0; i<ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
+    #ifdef TIME
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    //printf("dti copying & calc: %5.3f ms\n", elapsedTime);
+    //fflush(stdout);
+    dti += elapsedTime;
+    #endif //TIME  
     #ifdef COOLING_GPU
     // copy the dt array from cooling onto the CPU
     CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
@@ -274,10 +532,28 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
   }
 
+  
   #ifdef DYNAMIC_GPU_ALLOC
   // If memory is not single allocated then free the memory every timestep.
   Free_Memory_VL_3D();
   #endif
+
+  #ifdef TIME
+  printf("cpto: %6.2f  cpfr: %6.2f\n", cpto, cpfr);
+  printf("ppmx: %6.2f  ppmy: %6.2f  ppmz: %6.2f\n", ppmx, ppmy, ppmz);
+  printf("r1x:  %6.2f  r1y:  %6.2f  r1z:  %6.2f\n", r1x, r1y, r1z);
+  printf("r2x:  %6.2f  r2y:  %6.2f  r2z:  %6.2f\n", r2x, r2y, r2z);
+  printf("pcm:  %6.2f  ie:   %6.2f  cvu:  %6.2f\n", pcm, ie, cvu);
+  printf("buff: %6.2f  dti:  %6.2f\n", buff, dti);
+  printf("cool: %6.2f\n", cool);
+  printf("arrs: %6.2f  othr: %6.2f\n", arrays, other);
+  #endif
+  #ifdef TIME
+  cudaEventRecord(stop_VL, 0);
+  cudaEventSynchronize(stop_VL);
+  cudaEventElapsedTime(&elapsedTime, start_VL, stop_VL);
+  printf("Total time for VL step: %5.3f ms\n", elapsedTime);
+  #endif //TIME
 
   // return the maximum inverse timestep
   return max_dti;
