@@ -34,7 +34,9 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
   // use that to determine the maximum subgrid block volume
   // memory used per cell (arrays allocated on GPU)
   cell_mem = 11*n_fields*sizeof(Real);
+  #ifdef H_CORRECTION
   cell_mem += 6*sizeof(Real);
+  #endif
   max_vol = free / cell_mem; 
   // plus a buffer for dti array
   max_vol = max_vol - 400;
