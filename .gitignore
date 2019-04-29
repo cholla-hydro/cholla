@@ -4,6 +4,9 @@
 ##executable
 cholla
 
+##makefile
+Makefile
+
 ## output files
 *.h5
 *.bin
