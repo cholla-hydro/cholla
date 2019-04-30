@@ -46,9 +46,9 @@ OUTPUT = -DHDF5
 
 #RECONSTRUCTION = -DPCM
 #RECONSTRUCTION = -DPLMP
-RECONSTRUCTION = -DPLMC
+#RECONSTRUCTION = -DPLMC
 #RECONSTRUCTION = -DPPMP
-#RECONSTRUCTION = -DPPMC
+RECONSTRUCTION = -DPPMC
 
 #SOLVER = -DEXACT
 #SOLVER = -DROE
@@ -61,12 +61,12 @@ COOLING = #-DCOOLING_GPU -DCLOUDY_COOL
 
 
 ifdef CUDA
-CUDA_INCL = -I/usr/local/cuda/include
-CUDA_LIBS = -L/usr/local/cuda/lib64 -lcuda -lcudart
+CUDA_INCL = #-I/usr/local/cuda/include
+CUDA_LIBS = -lcuda -lcudart #-L/usr/local/cuda/lib64
 endif
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = -I/usr/local/hdf5/gcc/1.10.0/include
-HDF5_LIBS = -L/usr/local/hdf5/gcc/1.10.0/lib64 -lhdf5
+HDF5_INCL = #-I/usr/local/hdf5/gcc/1.10.0/include
+HDF5_LIBS = -lhdf5 #-L/usr/local/hdf5/gcc/1.10.0/lib64
 endif
 
 INCL   = -I./ $(HDF5_INCL)
