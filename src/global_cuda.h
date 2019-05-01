@@ -13,7 +13,7 @@
 #ifndef GLOBAL_CUDA_H
 #define GLOBAL_CUDA_H
 
-#define TPB 1024 // threads per block
+#define TPB 256 // threads per block
 //#define TPB 64
 
 
