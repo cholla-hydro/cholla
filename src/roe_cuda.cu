@@ -13,7 +13,7 @@
 
 /*! \fn Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir, int n_fields)
  *  \brief Roe Riemann solver based on the version described in Stone et al, 2008. */
-__global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir, int n_fields)
+__global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -91,10 +91,6 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     #ifdef DE
     dger = dev_bounds_R[(n_fields-1)*n_cells + tid];
     #endif
-
-
-    // retrieve etah value
-    etah = dev_etah[tid];
 
     // calculate primative variables
     vxl = mxl / dl;

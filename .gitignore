@@ -4,13 +4,12 @@
 ##executable
 cholla
 
+##makefile
+Makefile
+
 ## output files
 *.h5
 *.bin
 
 ## dropbox file
 .DS_Store
-
-
-## remote_sync
-.remote-sync.json
