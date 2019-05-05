@@ -48,7 +48,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real scalar_L[NSCALARS], scalar_R[NSCALARS], dscalar_L[NSCALARS], dscalar_R[NSCALARS];
   #endif
 
-  #ifndef VL
+  #ifdef CTU
   Real dtodx = dt/dx;  
   Real dfl, dfr, mxfl, mxfr, myfl, myfr, mzfl, mzfr, Efl, Efr;
   #ifdef DE
@@ -184,7 +184,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
 
 
-    #ifndef VL 
+    #ifdef CTU 
     // calculate fluxes for each variable
     dfl = mx_L;
     dfr = mx_R;

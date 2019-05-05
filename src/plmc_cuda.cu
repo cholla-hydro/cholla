@@ -51,7 +51,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real d_L_iph, vx_L_iph, vy_L_iph, vz_L_iph, p_L_iph;
   Real d_R_imh, vx_R_imh, vy_R_imh, vz_R_imh, p_R_imh;
   Real C;
-  #ifndef VL
+  #ifdef CTU
   Real dtodx = dt/dx;
   Real lambda_m, lambda_0, lambda_p;
   Real qx;
@@ -63,7 +63,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real del_ge_L, del_ge_R, del_ge_C, del_ge_G;
   Real del_ge_m_i;
   Real ge_L_iph, ge_R_imh;
-  #ifndef VL
+  #ifdef CTU
   Real sum_ge;
   #endif //CTU 
   #endif
@@ -72,7 +72,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real del_scalar_L[NSCALARS], del_scalar_R[NSCALARS], del_scalar_C[NSCALARS], del_scalar_G[NSCALARS];
   Real del_scalar_m_i[NSCALARS];
   Real scalar_L_iph[NSCALARS], scalar_R_imh[NSCALARS];
-  #ifndef VL
+  #ifdef CTU
   Real sum_scalar[NSCALARS];
   #endif //CTU
   #endif
