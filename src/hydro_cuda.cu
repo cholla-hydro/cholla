@@ -314,19 +314,37 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     
     #ifdef DENSITY_FLOOR
     if ( dev_conserved[            id] < density_floor ){
-      dens_0 = dev_conserved[            id];
-      printf("###Thread density change  %f -> %f \n", dens_0, density_floor );
-      dev_conserved[            id] = density_floor;
-      // Scale the conserved values to the new density
-      dev_conserved[1*n_cells + id] *= (density_floor / dens_0);
-      dev_conserved[2*n_cells + id] *= (density_floor / dens_0);
-      dev_conserved[3*n_cells + id] *= (density_floor / dens_0);
-      dev_conserved[4*n_cells + id] *= (density_floor / dens_0);
-      #ifdef DE
-      dev_conserved[(n_fields-1)*n_cells + id] *= (density_floor / dens_0);
-      #endif
+      if (dev_conserved[            id] > 0){  
+        dens_0 = dev_conserved[            id];
+        printf("###Thread density change  %f -> %f \n", dens_0, density_floor );
+        dev_conserved[            id] = density_floor;
+        // Scale the conserved values to the new density
+        dev_conserved[1*n_cells + id] *= (density_floor / dens_0);
+        dev_conserved[2*n_cells + id] *= (density_floor / dens_0);
+        dev_conserved[3*n_cells + id] *= (density_floor / dens_0);
+        dev_conserved[4*n_cells + id] *= (density_floor / dens_0);
+        #ifdef DE
+        dev_conserved[(n_fields-1)*n_cells + id] *= (density_floor / dens_0);
+        #endif
+      }
+      else{
+        dens_0 = dev_conserved[            id];
+        printf("###Thread Negative density change  %f \n", dens_0);
+        dens_0 = Average_Cell_Single_Field( 0, xid, yid, zid, nx, ny, nz, n_cells, dev_conserved );    
+        printf("### New value:   %f \n", dens_0);
+      }
     }
-    #endif
+    // #ifdef COOLING_GRACKLE
+    // for (int i=0; i<NSCALARS; i++) {
+    //   dens_0 = dev_conserved[(5+i)*n_cells + id];
+    //   if ( dens_0 < 0 ){
+    //     printf("###Thread Negative Cooling density change field: %d   val: %f \n", 5+i, dens_0);
+    //     dens_0 = Average_Cell_Single_Field( 5+i, xid, yid, zid, nx, ny, nz, n_cells, dev_conserved );
+    //     printf("### New value:   %f \n", dens_0);
+    //   }
+    // }
+    // #endif//COOLING_GRACKLE
+    #endif//DENSITY_FLOOR
 
     #ifdef STATIC_GRAV 
     calc_g_3D(xid, yid, zid, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
@@ -829,5 +847,28 @@ __host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_adve
 }
 
 #endif //DE
+
+__device__ Real Average_Cell_Single_Field( int field_indx, int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved ){
+  Real v_l, v_r, v_d, v_u, v_b, v_t, v_avrg;
+  int id;
+
+  id = (i-1) + (j)*nx + (k)*nx*ny;
+  v_l = conserved[ field_indx*ncells + id ];
+  id = (i+1) + (j)*nx + (k)*nx*ny;
+  v_r = conserved[ field_indx*ncells + id ];
+  id = (i) + (j-1)*nx + (k)*nx*ny;
+  v_d = conserved[ field_indx*ncells + id ];
+  id = (i) + (j+1)*nx + (k)*nx*ny;
+  v_u = conserved[ field_indx*ncells + id ];
+  id = (i) + (j)*nx + (k-1)*nx*ny;
+  v_b = conserved[ field_indx*ncells + id ];
+  id = (i) + (j)*nx + (k+1)*nx*ny;
+  v_t = conserved[ field_indx*ncells + id ];
+  v_avrg = ( v_l + v_r + v_d + v_u + v_b + v_t ) / 6;
+  id = (i) + (j)*nx + (k)*nx*ny;
+  conserved[ field_indx*ncells + id ] = v_avrg;
+  return v_avrg;
+
+}
 
 #endif //CUDA

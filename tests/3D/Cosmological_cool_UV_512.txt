@@ -17,7 +17,7 @@ outstep=1000
 gamma=1.66666667
 # name of initial conditions
 init=Read_Grid
-nfile=0
+nfile=3
 #Cosmological Parameters 
 H0=67.74
 Omega_M=0.3089

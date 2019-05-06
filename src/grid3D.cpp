@@ -551,7 +551,7 @@ void Smooth_Cell_Single_Field( Real *field, int i, int j, int k, int nx, int ny,
   v_b = field[id];
   id = (i) + (j)*nx + (k+1)*nx*ny;
   v_t = field[id];
-  v_avrg = ( v_l + v_l + v_d + v_u + v_b + v_t ) / 6;
+  v_avrg = ( v_l + v_r + v_d + v_u + v_b + v_t ) / 6;
   id = (i) + (j)*nx + (k)*nx*ny;
   field[id] = v_avrg;
 }
@@ -575,7 +575,7 @@ Real Smooth_Cell_Density( Real *density, int i, int j, int k, int nx, int ny, in
   v_b = density[id];
   id = (i) + (j)*nx + (k+1)*nx*ny;
   v_t = density[id];
-  v_avrg = ( v_l + v_l + v_d + v_u + v_b + v_t ) / 6;
+  v_avrg = ( v_l + v_r + v_d + v_u + v_b + v_t ) / 6;
   // id = (i) + (j)*nx + (k)*nx*ny;
   // density[id] = v_avrg;
 

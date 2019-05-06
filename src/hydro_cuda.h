@@ -42,6 +42,8 @@ __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int
 __host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_advected, Real gamma );
 #endif
 
+__device__ Real Average_Cell_Single_Field( int field_indx, int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved );
+
 
 #endif //HYDRO_CUDA_H
 #endif //CUDA
