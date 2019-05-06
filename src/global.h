@@ -79,7 +79,13 @@ typedef std::vector<part_int_t> int_vector_t;
 extern int N_PARTICLES_TRANSFER;
 extern int N_DATA_PER_PARTICLE_TRANSFER;
 #endif//MPI_CHOLLA
+
+#ifdef AVERAGE_SLOW_CELLS
+#define SLOW_FACTOR 50
+#endif//AVERAGE_SLOW_CELLS
+
 #endif//PARTICLES
+
 
 #define SIGN(a) ( ((a) < 0.) ? -1. : 1. )
 

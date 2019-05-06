@@ -24,7 +24,10 @@ void Grid3D::set_dt_Gravity(){
   #ifdef COSMOLOGY
   chprintf( " Current_z: %f \n", Cosmo.current_z );
   Real da_particles, da_min, dt_physical;
-  dt_particles = Calc_Particles_dt_Cosmo();
+  #ifndef AVERAGE_SLOW_CELLS
+  Particles.dt = Calc_Particles_dt_Cosmo();
+  #endif
+  dt_particles = Particles.dt;
   da_particles = Cosmo.Get_da_from_dt( dt_particles );
   
   #ifdef ONLY_PARTICLES
