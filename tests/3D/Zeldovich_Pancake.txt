@@ -16,8 +16,12 @@ outstep=1000
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
-init=Read_Grid
-nfile=0
+init=Zeldovich_Pancake
+#Cosmological Parameters 
+Init_redshift=20.0
+H0=50.0
+Omega_M=1.0
+Omega_L=0.0
 scale_outputs_file=scale_output_files/outputs_zeldovich.txt
 # domain properties
 xmin=0.0

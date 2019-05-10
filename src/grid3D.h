@@ -580,6 +580,8 @@ class Grid3D
     void Spherical_Overdensity_3D();
     
     void Uniform_Grid();
+    
+    void Zeldovich_Pancake( struct parameters P );
 
 
 #ifdef   MPI_CHOLLA

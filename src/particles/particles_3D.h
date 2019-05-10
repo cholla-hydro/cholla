@@ -135,6 +135,8 @@ class Particles_3D
   
   void Initialize_Sphere();
   
+  void Initialize_Zeldovich_Pancake( struct parameters *P );
+  
   void Load_Particles_Data( struct parameters *P );
   
   void Free_Memory();

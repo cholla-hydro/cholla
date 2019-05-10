@@ -116,6 +116,8 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   // Initialize Particles
   if (strcmp(P->init, "Spherical_Overdensity_3D")==0) Initialize_Sphere();
   
+  if (strcmp(P->init, "Zeldovich_Pancake")==0) Initialize_Zeldovich_Pancake( P );
+  
   if (strcmp(P->init, "Read_Grid")==0)  Load_Particles_Data(  P );
   
   #ifdef MPI_CHOLLA
@@ -236,6 +238,17 @@ void Particles_3D::Initialize_Sphere( void ){
   n_local = pos_x.size();
 
   chprintf( " Particles Uniform Sphere Initialized, n_local: %lu\n", n_local);
+
+}
+
+
+void Particles_3D::Initialize_Zeldovich_Pancake( struct parameters *P ){
+  
+  chprintf("Setting Zeldovich Pancake initial conditions...\n");
+  
+  n_local = pos_x.size();
+
+  chprintf( " Particles Zeldovich Pancake Initialized, n_local: %lu\n", n_local);
 
 }
 
