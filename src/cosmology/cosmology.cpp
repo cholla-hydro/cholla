@@ -18,9 +18,16 @@ void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Pa
   Omega_L = P-> Omega_L;
   Omega_K = 1 - ( Omega_M + Omega_L );
   
-  // Read scale factor vaue from Particles
-  current_z = Particles.current_z;
-  current_a = Particles.current_a;
+  if(strcmp(P->init, "Read_Grid")==0){
+    // Read scale factor vaue from Particles
+    current_z = Particles.current_z;
+    current_a = Particles.current_a;
+  }
+  else{
+    current_z = P->Init_redshift;
+    current_a = 1. / ( current_z + 1 );
+  }  
+    
 
   // Set Scale factor in Gravity
   Grav.current_a = current_a;
