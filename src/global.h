@@ -193,6 +193,7 @@ struct parameters
   Real H0;
   Real Omega_M;
   Real Omega_L;
+  Real Init_redshift;
 #endif //COSMOLOGY
 };
 

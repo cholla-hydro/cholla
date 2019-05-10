@@ -241,13 +241,14 @@ void parse_params (char *param_file, struct parameters * parms)
       parms->flag_delta  = atoi(value);
 #endif /*ROTATED_PROJECTION*/
 #ifdef COSMOLOGY
+    else if (strcmp(name, "Init_redshift")==0)
+      parms->Init_redshift  = atof(value);
     else if (strcmp(name, "H0")==0)
       parms->H0  = atof(value);
     else if (strcmp(name, "Omega_M")==0)
       parms->Omega_M  = atof(value);
     else if (strcmp(name, "Omega_L")==0)
       parms->Omega_L  = atof(value);
-  
 #endif //COSMOLOGY
     else
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
