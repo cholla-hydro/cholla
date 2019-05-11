@@ -29,6 +29,7 @@ void Grid3D::set_dt_Gravity(){
   #endif
   dt_particles = Particles.dt;
   da_particles = Cosmo.Get_da_from_dt( dt_particles );
+  da_particles = fmin( da_particles, 1.0 ); 
   
   #ifdef ONLY_PARTICLES
   da_min = da_particles;

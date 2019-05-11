@@ -1154,7 +1154,7 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
   chprintf( " z_init = %f \n", z_init );
   chprintf( " z_zeldovich = %f \n", z_zeldovich );
   
-  x_center = H.xdglobal / 4 * 3;
+  x_center = H.xdglobal / 2;
   chprintf( " Peak Center = %f \n", x_center );
   
   T_init = 100;
@@ -1163,29 +1163,29 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
   k_x = 2 * M_PI /  H.xdglobal;
   
   
-  char filename[100];
-  // create the filename to read from
-  strcpy(filename, P.indir); 
-  strcat(filename, "ics_zeldovich.dat");  
-  chprintf( " Loading ICs File: %s\n", filename);
-  
-  real_vector_t ics_values;
-  
-  ifstream file_in( filename );
-  string line;
-  Real ic_val;
-  if (file_in.is_open()){
-    while ( getline (file_in, line) ){
-      ic_val = atof( line.c_str() );
-      ics_values.push_back( ic_val );
-      // chprintf("%f\n", ic_val);
-    }
-    file_in.close();
-  }
-  else{
-    chprintf("  Error: Unable to open ics zeldovich file\n");
-    exit(1);
-  }
+  // char filename[100];
+  // // create the filename to read from
+  // strcpy(filename, P.indir); 
+  // strcat(filename, "ics_zeldovich.dat");  
+  // chprintf( " Loading ICs File: %s\n", filename);
+  // 
+  // real_vector_t ics_values;
+  // 
+  // ifstream file_in( filename );
+  // string line;
+  // Real ic_val;
+  // if (file_in.is_open()){
+  //   while ( getline (file_in, line) ){
+  //     ic_val = atof( line.c_str() );
+  //     ics_values.push_back( ic_val );
+  //     // chprintf("%f\n", ic_val);
+  //   }
+  //   file_in.close();
+  // }
+  // else{
+  //   chprintf("  Error: Unable to open ics zeldovich file\n");
+  //   exit(1);
+  // }
   int nPoints = 256;
   
   
@@ -1207,10 +1207,12 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
         dens = rho_0 / ( 1 - ( 1 + z_zeldovich ) / ( 1 + z_init ) * cos( k_x*( x_pos - x_center )) );
         vel = - H0 * ( 1 + z_zeldovich ) / sqrt( 1 + z_init ) * sin( k_x*( x_pos - x_center )) / k_x;
         temp = T_init * pow( dens / rho_0, 2./3 );
-        // vel = 0;
-        // temp = T_init;
         U = temp / (gamma - 1) / MP * KB * 1e-10 * dens;
         E = 0.5 * dens * vel * vel + U;
+        // vel = 0;
+        // temp = T_init;
+        
+        vel += 50;
         
         
         // index = int( x_pos / H.dx );
@@ -1218,7 +1220,7 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
         // vel = ics_values[ 1*nPoints + index];
         // E = ics_values[ 2*nPoints + index];
         // U = ics_values[ 3*nPoints + index];
-        
+        // 
         
         // chprintf( "%f \n", vel );        
         C.density[id] = dens;

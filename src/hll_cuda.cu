@@ -161,8 +161,8 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
 
     // for signal speeds, take max/min of Roe eigenvalues and left and right sound speeds
     // Batten eqn. 48
-    Sl = fmin(lambda_m, vxl - cfl);
-    Sr = fmax(lambda_p, vxr + cfr);
+    // Sl = fmin(lambda_m, vxl - cfl);
+    // Sr = fmax(lambda_p, vxr + cfr);
 
     // if the H-correction is turned on, add cross-flux dissipation
     // Sl = sgn_CUDA(Sl)*fmax(fabs(Sl), etah);
