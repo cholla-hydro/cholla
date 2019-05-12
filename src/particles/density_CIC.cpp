@@ -48,7 +48,7 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
 void Grid3D::Copy_Particles_Density(){
   
   #ifndef PARALLEL_OMP
-  Copy_Particles_Densityfunction( 0, Grav.nz_local );
+  Copy_Particles_Density_function( 0, Grav.nz_local );
   #else
   
   #pragma omp parallel num_threads( N_OMP_THREADS )
