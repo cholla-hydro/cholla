@@ -615,6 +615,7 @@ class Grid3D
   void Copy_Potential_to_Hydro_Grid();
   void Extrapolate_Grav_Potential_Function( int g_start, int g_end );
   void Extrapolate_Grav_Potential();
+  void Copy_Potential_Boundaries( int direction, int side );
   int Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Unload_Gravity_Potential_from_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   #ifdef GRAVITY_COUPLE_CPU
