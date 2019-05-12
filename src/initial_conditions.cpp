@@ -1128,9 +1128,9 @@ void Grid3D::Uniform_Grid()
 void Grid3D::Zeldovich_Pancake( struct parameters P ){
   
   #ifndef COSMOLOGY
-  printchf( "To run a Zeldovich Pancake COSMOLOGY has to be turned ON \n" );
+  chprintf( "To run a Zeldovich Pancake COSMOLOGY has to be turned ON \n" );
   exit(-1);
-  #endif
+  #else
   
   
   int i, j, k, id;
@@ -1236,6 +1236,8 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
       }
     }
   }
+  
+  #endif //COSMOLOGY
   
 }
 
