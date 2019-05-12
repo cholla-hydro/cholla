@@ -68,6 +68,8 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     // Initialize a uniforn hydro grid when only integrating particles
     Uniform_Grid();
     #endif
+  } else if (strcmp(P.init, "Uniform")==0) {
+    Uniform_Grid();  
   } else if (strcmp(P.init, "Zeldovich_Pancake")==0) {
     Zeldovich_Pancake(P);    
   } else {

@@ -3,6 +3,7 @@
 #include "../io.h"
 #include "../grid3D.h"
 #include "particles_3D.h"
+#include <iostream>
 
 
 
@@ -22,11 +23,11 @@ void Grid3D::Copy_Particles_Density_Boundaries( int direction, int side ){
         for ( i=0; i<nGHST; i++ ){
           if ( side == 0 ){
             indx_src = (i) + (j)*nx_g + (k)*nx_g*ny_g;
-            indx_dst = (nx_g - nGHST + i) + (j)*nx_g + (k)*nx_g*ny_g;
+            indx_dst = (nx_g - 2*nGHST + i) + (j)*nx_g + (k)*nx_g*ny_g;
           }
           if ( side == 1 ){
             indx_src = (nx_g - nGHST + i) + (j)*nx_g + (k)*nx_g*ny_g;
-            indx_dst = (i) + (j)*nx_g + (k)*nx_g*ny_g;
+            indx_dst = (i+nGHST) + (j)*nx_g + (k)*nx_g*ny_g;
           }
           Particles.G.density[indx_dst] += Particles.G.density[indx_src] ;
         }
@@ -41,18 +42,18 @@ void Grid3D::Copy_Particles_Density_Boundaries( int direction, int side ){
         for ( i=0; i<nx_g; i++ ){
           if ( side == 0 ){
             indx_src = (i) + (j)*nx_g + (k)*nx_g*ny_g;
-            indx_dst = (i) + (ny_g - nGHST + j)*nx_g + (k)*nx_g*ny_g;
+            indx_dst = (i) + (ny_g - 2*nGHST + j)*nx_g + (k)*nx_g*ny_g;
           }
           if ( side == 1 ){
             indx_src = (i) + (ny_g - nGHST + j)*nx_g + (k)*nx_g*ny_g;
-            indx_dst = (i) + (j)*nx_g + (k)*nx_g*ny_g;
+            indx_dst = (i) + (j+nGHST)*nx_g + (k)*nx_g*ny_g;
           }
           Particles.G.density[indx_dst] += Particles.G.density[indx_src] ;
         }
       }
     }
   }
-  
+    
   //Copy Z boundaries
   if (direction == 2){
     for ( k=0; k<nGHST; k++ ){
@@ -60,11 +61,11 @@ void Grid3D::Copy_Particles_Density_Boundaries( int direction, int side ){
         for ( i=0; i<nx_g; i++ ){
           if ( side == 0 ){
             indx_src = (i) + (j)*nx_g + (k)*nx_g*ny_g;
-            indx_dst = (i) + (j)*nx_g + (nz_g - nGHST + k)*nx_g*ny_g;
+            indx_dst = (i) + (j)*nx_g + (nz_g - 2*nGHST + k)*nx_g*ny_g;
           }
           if ( side == 1 ){
             indx_src = (i) + (j)*nx_g + (nz_g - nGHST + k)*nx_g*ny_g;
-            indx_dst = (i) + (j)*nx_g + (k)*nx_g*ny_g;
+            indx_dst = (i) + (j)*nx_g + (k+nGHST)*nx_g*ny_g;
           }
           Particles.G.density[indx_dst] += Particles.G.density[indx_src] ;
         }

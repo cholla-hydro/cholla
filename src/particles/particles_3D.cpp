@@ -22,6 +22,7 @@ void Grid3D::Initialize_Particles( struct parameters *P ){
   
   Particles.Initialize( P, Grav, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal );
   
+  if (strcmp(P->init, "Uniform")==0)  Initialize_Uniform_Particles();  
   
   #ifdef MPI_CHOLLA
   MPI_Barrier( world );
@@ -250,6 +251,61 @@ void Particles_3D::Initialize_Zeldovich_Pancake( struct parameters *P ){
 
   chprintf( " Particles Zeldovich Pancake Initialized, n_local: %lu\n", n_local);
 
+}
+
+
+
+void Grid3D::Initialize_Uniform_Particles(){
+  
+  int i, j, k, id;
+  Real x_pos, y_pos, z_pos;
+  
+  Real dVol, Mparticle;
+  dVol = H.dx * H.dy * H.dz;
+  Mparticle = dVol;
+
+  #ifdef SINGLE_PARTICLE_MASS
+  Particles.particle_mass = Mparticle;
+  #endif
+  
+  part_int_t pID = 0;
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        // // get the centered cell positions at (i,j,k)
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        
+        Particles.pos_x.push_back( x_pos - 0.25*H.dx );
+        Particles.pos_y.push_back( y_pos - 0.25*H.dy );
+        Particles.pos_z.push_back( z_pos - 0.25*H.dz );
+        Particles.vel_x.push_back( 0.0 );
+        Particles.vel_y.push_back( 0.0 );
+        Particles.vel_z.push_back( 0.0 );
+        Particles.grav_x.push_back( 0.0 );
+        Particles.grav_y.push_back( 0.0 );
+        Particles.grav_z.push_back( 0.0 );
+        #ifdef PARTICLE_IDS
+        Particles.partIDs.push_back( pID );
+        #endif
+        #ifndef SINGLE_PARTICLE_MASS
+        Particles.mass.push_back( Mparticle );
+        #endif
+        pID += 1;        
+      }
+    }
+  }
+  
+  Particles.n_local = Particles.pos_x.size();
+  
+  #ifdef MPI_CHOLLA
+  Particles.n_total_initial = ReducePartIntSum(Particles.n_local);
+  #else
+  Particles.n_total_initial = Particles.n_local;
+  #endif
+
+  chprintf( " Particles Uniform Grid Initialized, n_local: %lu, n_total: %lu\n", Particles.n_local, Particles.n_total_initial );
 }
 
 
