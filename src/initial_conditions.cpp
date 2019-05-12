@@ -1207,13 +1207,13 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
         dens = rho_0 / ( 1 - ( 1 + z_zeldovich ) / ( 1 + z_init ) * cos( k_x*( x_pos - x_center )) );
         vel = - H0 * ( 1 + z_zeldovich ) / sqrt( 1 + z_init ) * sin( k_x*( x_pos - x_center )) / k_x;
         temp = T_init * pow( dens / rho_0, 2./3 );
-        U = temp / (gamma - 1) / MP * KB * 1e-10 * dens;
-        E = 0.5 * dens * vel * vel + U;
         // vel = 0;
         // temp = T_init;
         
-        vel += 50;
+        // vel += 50;
         
+        U = temp / (gamma - 1) / MP * KB * 1e-10 * dens;
+        E = 0.5 * dens * vel * vel + U;
         
         // index = int( x_pos / H.dx );
         // dens = ics_values[ 0*nPoints + index];
