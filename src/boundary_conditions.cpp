@@ -205,6 +205,10 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
             C.scalar[gidx + ii*H.n_cells]  = C.scalar[idx + ii*H.n_cells];
           }
           #endif
+          
+          #if defined(GRAVITY) &&  defined(GRAVITY_COUPLE_GPU)
+          C.Grav_potential[gidx]  = C.Grav_potential[idx];
+          #endif
 
           //for outflow boundaries, set momentum to restrict inflow
           if (flags[dir] == 3) {
