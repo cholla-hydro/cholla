@@ -45,9 +45,9 @@ typedef double Real;
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
 
-#ifdef DE
+//Ratio of U to E for wich Advected Inetrnal Energy is used
 #define DE_LIMIT 1.0
-#endif
+
 
 #ifdef COOLING_GRACKLE
 #define NSCALARS 7
