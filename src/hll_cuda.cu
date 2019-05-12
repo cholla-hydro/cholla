@@ -173,12 +173,12 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
  
     // left and right fluxes 
     f_d_l  = mxl;
-    // f_mx_l = mxl*vxl + pl;
-    f_mx_l = mxl*vxl;
+    f_mx_l = mxl*vxl + pl;
+    // f_mx_l = mxl*vxl;
     f_my_l = myl*vxl;
     f_mz_l = mzl*vxl;
-    // f_E_l  = (El + pl)*vxl;
-    f_E_l  = (El)*vxl;
+    f_E_l  = (El + pl)*vxl;
+    // f_E_l  = (El)*vxl;
     #ifdef DE
     f_ge_l = dgel*vxl;
     #endif
@@ -189,12 +189,12 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     #endif
 
     f_d_r  = mxr;
-    // f_mx_r = mxr*vxr + pr;
-    f_mx_r = mxr*vxr;
+    f_mx_r = mxr*vxr + pr;
+    // f_mx_r = mxr*vxr;
     f_my_r = myr*vxr;
     f_mz_r = mzr*vxr;
-    // f_E_r  = (Er + pr)*vxr;
-    f_E_r  = (Er)*vxr;
+    f_E_r  = (Er + pr)*vxr;
+    // f_E_r  = (Er)*vxr;
     #ifdef DE
     f_ge_r = dger*vxr;
     #endif
