@@ -613,7 +613,7 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     // if the ratio of conservatively calculated internal energy to total energy
     // is greater than 1/1000, use the conservatively calculated internal energy
     // to do the internal energy update
-    if (ge2 > 0.0 && E > 0.0 && ge2/E > 0.001) {
+    if (ge2 > 0.0 && E > 0.0 && ge2/E > DE_LIMIT) {
       dev_conserved[(n_fields-1)*n_cells + id] = ge2;
       ge1 = ge2;
     }
