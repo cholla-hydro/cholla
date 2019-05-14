@@ -48,6 +48,9 @@ typedef double Real;
 //Ratio of U to E for wich Advected Inetrnal Energy is used
 #define DE_LIMIT 0.0
 
+// Maximum time step for cosmological simulations
+#define MAX_DELTA_A 0.0001
+
 
 #ifdef COOLING_GRACKLE
 #define NSCALARS 7
