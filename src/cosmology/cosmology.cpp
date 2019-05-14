@@ -26,6 +26,8 @@ void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Pa
   else{
     current_z = P->Init_redshift;
     current_a = 1. / ( current_z + 1 );
+    Particles.current_z = current_z;
+    Particles.current_a = current_a;
   }  
     
 
