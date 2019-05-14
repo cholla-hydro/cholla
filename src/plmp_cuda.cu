@@ -48,7 +48,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real scalar_L[NSCALARS], scalar_R[NSCALARS], dscalar_L[NSCALARS], dscalar_R[NSCALARS];
   #endif
 
-  #ifdef CTU
+  #ifndef VL //Dont use velocities to reconstruct when using VL
   Real dtodx = dt/dx;  
   Real dfl, dfr, mxfl, mxfr, myfl, myfr, mzfl, mzfr, Efl, Efr;
   #ifdef DE
@@ -183,8 +183,8 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
     #endif
 
-
-    #ifdef CTU 
+    // #ifdef CTU
+    #ifndef VL //Dont use velocities to reconstruct when using VL
     // calculate fluxes for each variable
     dfl = mx_L;
     dfr = mx_R;
@@ -229,7 +229,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
     #endif
     
-    #endif //CTU
+    #endif //NO VL
 
     // Convert the left and right states in the primitive to the conserved variables
     // send final values back from kernel
