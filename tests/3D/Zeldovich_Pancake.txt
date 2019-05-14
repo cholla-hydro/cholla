@@ -22,7 +22,7 @@ Init_redshift=20.0
 H0=50.0
 Omega_M=1.0
 Omega_L=0.0
-scale_outputs_file=scale_output_files/outputs_zeldovich.txt
+scale_outputs_file=scale_output_files/outputs_zeldovich_100.txt
 # domain properties
 xmin=0.0
 ymin=0.0
