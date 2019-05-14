@@ -46,7 +46,7 @@ typedef double Real;
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
 
 //Ratio of U to E for wich Advected Inetrnal Energy is used
-#define DE_LIMIT 1.0
+#define DE_LIMIT 0.0
 
 
 #ifdef COOLING_GRACKLE
