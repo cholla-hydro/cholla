@@ -68,6 +68,7 @@ void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Pa
   chprintf( " Current_a: %f\n", current_a );
   chprintf( " Current_z: %f\n", current_z );
   chprintf( " rho_0: %f\n", rho_0_gas );
+  chprintf( " v_0: %f \n", v_0_gas );
 
   Load_Scale_Outputs( P );
   
