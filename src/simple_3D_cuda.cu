@@ -265,7 +265,7 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
   
   #ifdef DYNAMIC_GPU_ALLOC
   // If memory is not single allocated then free the memory every timestep.
-  Free_Memory_VL_3D();
+  Free_Memory_Simple_3D();
   #endif
 
 
