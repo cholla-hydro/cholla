@@ -1213,6 +1213,7 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
         // temp = T_init;
         
         // vel += 50;
+        vel *= 2;
         
         U = temp / (gamma - 1) / MP * KB * 1e-10 * dens;
         E = 0.5 * dens * vel * vel + U;
@@ -1222,7 +1223,7 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
         // vel = ics_values[ 1*nPoints + index];
         // E = ics_values[ 2*nPoints + index];
         // U = ics_values[ 3*nPoints + index];
-        // 
+        // // 
         
         // chprintf( "%f \n", vel );        
         C.density[id] = dens;
