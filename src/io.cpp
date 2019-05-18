@@ -1309,13 +1309,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           id = (i+N_GHOST_POTENTIAL) + (j+N_GHOST_POTENTIAL)*(Grav.nx_local+2*N_GHOST_POTENTIAL) + (k+N_GHOST_POTENTIAL)*(Grav.nx_local+2*N_GHOST_POTENTIAL)*(Grav.ny_local+2*N_GHOST_POTENTIAL);
           buf_id = k + j*Grav.nz_local + i*Grav.nz_local*Grav.ny_local;
           dataset_buffer[buf_id] = Grav.F.potential_h[id];
-          // dataset_buffer[buf_id] = pfft_potential[id][0];
-
         }
       }
     }
     // Create a dataset id for density
-    dataset_id = H5Dcreate(file_id, "/grav_potential", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/potential", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     // Write the density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
