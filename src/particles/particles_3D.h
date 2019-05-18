@@ -148,7 +148,7 @@ class Particles_3D
   void Get_Density_CIC_Serial( );
   
   #ifdef HDF5
-  void Load_Particles_Data_HDF5( hid_t file_id, int nfile );
+  void Load_Particles_Data_HDF5( hid_t file_id, int nfile, struct parameters *P );
   #endif
   
   #ifdef PARALLEL_OMP

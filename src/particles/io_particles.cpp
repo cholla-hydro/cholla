@@ -37,7 +37,11 @@ void Particles_3D::Load_Particles_Data( struct parameters *P){
   #endif
 
   #ifdef MPI_CHOLLA
+  #ifdef TILED_INITIAL_CONDITIONS
+  sprintf(filename,"%s",filename); //Everyone reads from the same file
+  #else
   sprintf(filename,"%s.%d",filename,procID);
+  #endif //TILED_INITIAL_CONDITIONS
   #endif
 
   chprintf(" Loading particles file: %s \n", filename );
@@ -53,7 +57,7 @@ void Particles_3D::Load_Particles_Data( struct parameters *P){
     exit(0);
   }
 
-  Load_Particles_Data_HDF5(file_id, nfile );
+  Load_Particles_Data_HDF5(file_id, nfile, P );
 
   #endif
 }
@@ -68,7 +72,7 @@ void Grid3D::WriteData_Particles( struct parameters P, int nfile)
 
 #ifdef HDF5
 
-void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile  )
+void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct parameters *P  )
 {
   int i, j, k, id, buf_id;
   hid_t     attribute_id, dataset_id;
@@ -177,6 +181,14 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile  )
   px_max = -1e64;
   py_max = -1e64;
   pz_max = -1e64;
+  vx_min = 1e64;
+  vy_min = 1e64;
+  vz_min = 1e64;
+  vx_max = -1e64;
+  vy_max = -1e64;
+  vz_max = -1e64;
+  
+  
   
   
   
@@ -184,6 +196,36 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile  )
   Real pVel_x, pVel_y, pVel_z, pMass;
   part_int_t pID;
   bool in_local;
+
+  #ifdef TILED_INITIAL_CONDITIONS
+  
+  Real Lx_local = G.xMax - G.xMin;
+  Real Ly_local = G.yMax - G.yMin;
+  Real Lz_local = G.zMax - G.zMin;
+  
+  Real tile_length = P->tile_length;
+  // Rescale the particles position to the global domain
+  chprintf(" Rescaling the Tiled Particles Positions... \n");
+  chprintf("  Tile length:  %f   kpc/h \n", tile_length );
+  chprintf("  N_Procs  Z: %d    Y: %d    X: %d  \n", nproc_z, nproc_y, nproc_x );
+  
+  bool tile_length_difference = false; 
+  if ( fabs( Lx_local - tile_length ) / Lx_local > 1e-2  ) tile_length_difference = true;
+  if ( fabs( Ly_local - tile_length ) / Ly_local > 1e-2  ) tile_length_difference = true;
+  if ( fabs( Lz_local - tile_length ) / Lz_local > 1e-2  ) tile_length_difference = true;
+  
+  if ( tile_length_difference ){
+    std::cout << "  WARNING: Local Domain Length Different to Tile Length " << std::endl;
+    printf("   Domain Length:  [ %f  %f  %f  ]\n", Lz_local, Ly_local, Lx_local );
+    printf("   Tile Length:  %f \n", tile_length );
+  }
+  
+  #endif
+  
+  
+  
+
+
   for( pIndx=0; pIndx<n_to_load; pIndx++ ){
     pPos_x = dataset_buffer_px[pIndx];
     pPos_y = dataset_buffer_py[pIndx];
@@ -197,6 +239,15 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile  )
     #ifdef PARTICLE_IDS
     pID = dataset_buffer_IDs[pIndx];
     #endif
+    
+    #ifdef TILED_INITIAL_CONDITIONS
+    // Rescale the particles position to the global domain
+    // Move the particles to their position in Local Domain
+    pPos_x += G.xMin;
+    pPos_y += G.yMin;
+    pPos_z += G.zMin;
+    #endif
+    
     in_local = true;
     if ( pPos_x < G.domainMin_x || pPos_x > G.domainMax_x ){
       std::cout << " Particle outside global domain " << std::endl;
