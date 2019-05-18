@@ -24,6 +24,8 @@
 #include"cooling_cuda.h"
 #include"subgrid_routines_3D.h"
 #include"io.h"
+#include"hll_cuda.h"
+
 
 
 Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt, int n_fields, Real density_floor, Real U_floor)
