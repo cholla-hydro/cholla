@@ -8,9 +8,9 @@ nx=256
 # number of grid cells in the y dimension
 ny=256
 # number of grid cells in the z dimension
-nz=0
+nz=256
 # output time
-tout=1000
+tout=0
 # how often to output
 outstep=1000
 # value of gamma
@@ -18,10 +18,11 @@ gamma=1.66666667
 # name of initial conditions
 init=Read_Grid
 nfile=0
-#Cosmological Parameters 
+#Cosmological Parameters
 H0=67.74
 Omega_M=0.3089
 Omega_L=0.6911
+tile_length=25000.0 
 scale_outputs_file=scale_output_files/outputs_cool_UV.txt
 # domain properties
 xmin=0.0
