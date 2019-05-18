@@ -198,6 +198,9 @@ struct parameters
   Real Omega_L;
   Real Init_redshift;
 #endif //COSMOLOGY
+#ifdef TILED_INITIAL_CONDITIONS
+  Real tile_length;
+#endif //TILED_INITIAL_CONDITIONS
 };
 
 

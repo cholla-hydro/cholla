@@ -250,6 +250,10 @@ void parse_params (char *param_file, struct parameters * parms)
     else if (strcmp(name, "Omega_L")==0)
       parms->Omega_L  = atof(value);
 #endif //COSMOLOGY
+#ifdef TILED_INITIAL_CONDITIONS
+    else if (strcmp(name, "tile_length")==0)
+      parms->tile_length  = atof(value);
+#endif //TILED_INITIAL_CONDITIONS
     else
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
         name, value);
