@@ -2023,7 +2023,11 @@ void Grid3D::Read_Grid(struct parameters P) {
   #endif
   // for now assumes you will run on the same number of processors
   #ifdef MPI_CHOLLA
+  #ifdef TILED_INITIAL_CONDITIONS
+  sprintf(filename,"%s",filename); //Everyone reads the same file
+  #else
   sprintf(filename,"%s.%d",filename,procID);
+  #endif //TILED_INITIAL_CONDITIONS
   #endif
 
   #if defined BINARY
