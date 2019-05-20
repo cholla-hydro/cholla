@@ -45,8 +45,11 @@ typedef double Real;
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
 
+//Conserved Floor Values
+#define TEMP_FLOOR 0.2
+#define DENS_FLOOR 1e-4
 //Ratio of U to E for wich Advected Inetrnal Energy is used
-#define DE_LIMIT 0.0
+#define DE_LIMIT 1.0
 
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.0001

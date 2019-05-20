@@ -228,13 +228,13 @@ void Grid3D::Initialize(struct parameters *P)
 
   // Values for lower limit for density and temperature
   #ifdef DENSITY_FLOOR
-  H.density_floor = 1e-5;
+  H.density_floor = DENS_FLOOR;
   #else
   H.density_floor = 0.0;
   #endif
 
   #ifdef TEMPERATURE_FLOOR
-  H.temperature_floor = 1.0;
+  H.temperature_floor = TEMP_FLOOR;
   #else
   H.temperature_floor = 0.0;
   #endif
