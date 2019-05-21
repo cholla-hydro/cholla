@@ -284,6 +284,8 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     // vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
     // vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
     // vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
+    
+    //Use the reconstructed Velocities instead of neighbor cells centered values 
     vx_R = Q_Lx[1*n_cells + id]  / Q_Lx[id]; 
     vx_L = Q_Rx[1*n_cells + imo] / Q_Rx[imo]; 
     vy_R = Q_Ly[2*n_cells + id]  / Q_Ly[id]; 
