@@ -1165,29 +1165,29 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
   k_x = 2 * M_PI /  H.xdglobal;
   
   
-  // char filename[100];
-  // // create the filename to read from
-  // strcpy(filename, P.indir); 
-  // strcat(filename, "ics_zeldovich.dat");  
-  // chprintf( " Loading ICs File: %s\n", filename);
-  // 
-  // real_vector_t ics_values;
-  // 
-  // ifstream file_in( filename );
-  // string line;
-  // Real ic_val;
-  // if (file_in.is_open()){
-  //   while ( getline (file_in, line) ){
-  //     ic_val = atof( line.c_str() );
-  //     ics_values.push_back( ic_val );
-  //     // chprintf("%f\n", ic_val);
-  //   }
-  //   file_in.close();
-  // }
-  // else{
-  //   chprintf("  Error: Unable to open ics zeldovich file\n");
-  //   exit(1);
-  // }
+  char filename[100];
+  // create the filename to read from
+  strcpy(filename, P.indir); 
+  strcat(filename, "ics_zeldovich.dat");  
+  chprintf( " Loading ICs File: %s\n", filename);
+  
+  real_vector_t ics_values;
+  
+  ifstream file_in( filename );
+  string line;
+  Real ic_val;
+  if (file_in.is_open()){
+    while ( getline (file_in, line) ){
+      ic_val = atof( line.c_str() );
+      ics_values.push_back( ic_val );
+      // chprintf("%f\n", ic_val);
+    }
+    file_in.close();
+  }
+  else{
+    chprintf("  Error: Unable to open ics zeldovich file\n");
+    exit(1);
+  }
   int nPoints = 256;
   
   
@@ -1213,16 +1213,16 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
         // temp = T_init;
         
         // vel += 50;
-        vel *= 2;
+        // vel *= 2;
         
         U = temp / (gamma - 1) / MP * KB * 1e-10 * dens;
         E = 0.5 * dens * vel * vel + U;
         
-        // index = int( x_pos / H.dx );
-        // dens = ics_values[ 0*nPoints + index];
-        // vel = ics_values[ 1*nPoints + index];
-        // E = ics_values[ 2*nPoints + index];
-        // U = ics_values[ 3*nPoints + index];
+        index = int( x_pos / H.dx );
+        dens = ics_values[ 0*nPoints + index];
+        vel = ics_values[ 1*nPoints + index];
+        E = ics_values[ 2*nPoints + index];
+        U = ics_values[ 3*nPoints + index];
         // // 
         
         // chprintf( "%f \n", vel );        
