@@ -46,7 +46,7 @@ typedef double Real;
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
 
 //Conserved Floor Values
-#define TEMP_FLOOR 0.1
+#define TEMP_FLOOR 1.0
 #define DENS_FLOOR 1e-4
 
 //Ratio of U to E for wich Advected Inetrnal Energy is used
