@@ -2055,7 +2055,7 @@ void Grid3D::Read_Grid(struct parameters P) {
   }
 
   // read in grid data
-  Read_Grid_HDF5(file_id);
+  Read_Grid_HDF5(file_id, P);
 
   // close the file
   status = H5Fclose(file_id);
@@ -2208,7 +2208,7 @@ void Grid3D::Read_Grid_Binary(FILE *fp)
 #ifdef HDF5
 /*! \fn void Read_Grid_HDF5(hid_t file_id)
  *  \brief Read in grid data from an hdf5 file. */
-void Grid3D::Read_Grid_HDF5(hid_t file_id)
+void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
 {
   int i, j, k, id, buf_id;
   hid_t     attribute_id, dataset_id; 
@@ -2769,87 +2769,122 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id)
       }    
     }
     #else //Load Chemistry when using GRACKLE
-    dataset_id = H5Dopen(file_id, "/HI_density", H5P_DEFAULT);
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    for (k=0; k<H.nz_real; k++) {
-      for (j=0; j<H.ny_real; j++) {
-        for (i=0; i<H.nx_real; i++) {
-          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-          C.scalar[0*H.n_cells + id] = dataset_buffer[buf_id];
+    if (P.nfile == 0){
+      Real dens;
+      Real HI_frac = INITIAL_FRACTION_HI;
+      Real HII_frac = INITIAL_FRACTION_HII;
+      Real HeI_frac = INITIAL_FRACTION_HEI;
+      Real HeII_frac = INITIAL_FRACTION_HEII;
+      Real HeIII_frac = INITIAL_FRACTION_HEIII;
+      Real e_frac = INITIAL_FRACTION_ELECTRON;
+      Real metal_frac = INITIAL_FRACTION_METAL;
+      chprintf( " Initial HI Fraction:    %e \n", HI_frac);
+      chprintf( " Initial HII Fraction:   %e \n", HII_frac);
+      chprintf( " Initial HeI Fraction:   %e \n", HeI_frac);
+      chprintf( " Initial HeII Fraction:  %e \n", HeII_frac);
+      chprintf( " Initial HeIII Fraction: %e \n", HeIII_frac);
+      chprintf( " Initial elect Fraction: %e \n", e_frac);
+      chprintf( " Initial metal Fraction: %e \n", metal_frac);
+      for (k=0; k<H.nz_real; k++) {
+        for (j=0; j<H.ny_real; j++) {
+          for (i=0; i<H.nx_real; i++) {
+            id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+            dens = C.density[id];
+            C.scalar[0*H.n_cells + id] = HI_frac * dens;
+            C.scalar[1*H.n_cells + id] = HII_frac * dens;
+            C.scalar[2*H.n_cells + id] = HeI_frac * dens;
+            C.scalar[3*H.n_cells + id] = HeII_frac * dens;
+            C.scalar[4*H.n_cells + id] = HeIII_frac * dens;
+            C.scalar[5*H.n_cells + id] = e_frac * dens;
+            C.scalar[6*H.n_cells + id] = metal_frac * dens;
+          }
         }
       }
     }
-    dataset_id = H5Dopen(file_id, "/HII_density", H5P_DEFAULT);
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    for (k=0; k<H.nz_real; k++) {
-      for (j=0; j<H.ny_real; j++) {
-        for (i=0; i<H.nx_real; i++) {
-          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-          C.scalar[1*H.n_cells + id] = dataset_buffer[buf_id];
+    else{
+      dataset_id = H5Dopen(file_id, "/HI_density", H5P_DEFAULT);
+      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+      for (k=0; k<H.nz_real; k++) {
+        for (j=0; j<H.ny_real; j++) {
+          for (i=0; i<H.nx_real; i++) {
+            id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+            buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+            C.scalar[0*H.n_cells + id] = dataset_buffer[buf_id];
+            // chprintf("%f \n",  C.scalar[0*H.n_cells + id] / C.density[id]);
+          }
         }
       }
-    }
-    dataset_id = H5Dopen(file_id, "/HeI_density", H5P_DEFAULT);
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    for (k=0; k<H.nz_real; k++) {
-      for (j=0; j<H.ny_real; j++) {
-        for (i=0; i<H.nx_real; i++) {
-          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-          C.scalar[2*H.n_cells + id] = dataset_buffer[buf_id];
+      dataset_id = H5Dopen(file_id, "/HII_density", H5P_DEFAULT);
+      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+      for (k=0; k<H.nz_real; k++) {
+        for (j=0; j<H.ny_real; j++) {
+          for (i=0; i<H.nx_real; i++) {
+            id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+            buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+            C.scalar[1*H.n_cells + id] = dataset_buffer[buf_id];
+          }
         }
       }
-    }
-    dataset_id = H5Dopen(file_id, "/HeII_density", H5P_DEFAULT);
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    for (k=0; k<H.nz_real; k++) {
-      for (j=0; j<H.ny_real; j++) {
-        for (i=0; i<H.nx_real; i++) {
-          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-          C.scalar[3*H.n_cells + id] = dataset_buffer[buf_id];
+      dataset_id = H5Dopen(file_id, "/HeI_density", H5P_DEFAULT);
+      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+      for (k=0; k<H.nz_real; k++) {
+        for (j=0; j<H.ny_real; j++) {
+          for (i=0; i<H.nx_real; i++) {
+            id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+            buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+            C.scalar[2*H.n_cells + id] = dataset_buffer[buf_id];
+          }
         }
       }
-    }
-    dataset_id = H5Dopen(file_id, "/HeIII_density", H5P_DEFAULT);
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    for (k=0; k<H.nz_real; k++) {
-      for (j=0; j<H.ny_real; j++) {
-        for (i=0; i<H.nx_real; i++) {
-          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-          C.scalar[4*H.n_cells + id] = dataset_buffer[buf_id];
+      dataset_id = H5Dopen(file_id, "/HeII_density", H5P_DEFAULT);
+      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+      for (k=0; k<H.nz_real; k++) {
+        for (j=0; j<H.ny_real; j++) {
+          for (i=0; i<H.nx_real; i++) {
+            id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+            buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+            C.scalar[3*H.n_cells + id] = dataset_buffer[buf_id];
+          }
         }
       }
-    }
-    dataset_id = H5Dopen(file_id, "/e_density", H5P_DEFAULT);
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    for (k=0; k<H.nz_real; k++) {
-      for (j=0; j<H.ny_real; j++) {
-        for (i=0; i<H.nx_real; i++) {
-          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-          C.scalar[5*H.n_cells + id] = dataset_buffer[buf_id];
+      dataset_id = H5Dopen(file_id, "/HeIII_density", H5P_DEFAULT);
+      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+      for (k=0; k<H.nz_real; k++) {
+        for (j=0; j<H.ny_real; j++) {
+          for (i=0; i<H.nx_real; i++) {
+            id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+            buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+            C.scalar[4*H.n_cells + id] = dataset_buffer[buf_id];
+          }
         }
       }
-    }
-    dataset_id = H5Dopen(file_id, "/metal_density", H5P_DEFAULT);
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    for (k=0; k<H.nz_real; k++) {
-      for (j=0; j<H.ny_real; j++) {
-        for (i=0; i<H.nx_real; i++) {
-          id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-          C.scalar[6*H.n_cells + id] = dataset_buffer[buf_id];
+      dataset_id = H5Dopen(file_id, "/e_density", H5P_DEFAULT);
+      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+      for (k=0; k<H.nz_real; k++) {
+        for (j=0; j<H.ny_real; j++) {
+          for (i=0; i<H.nx_real; i++) {
+            id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+            buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+            C.scalar[5*H.n_cells + id] = dataset_buffer[buf_id];
+          }
+        }
+      }
+      dataset_id = H5Dopen(file_id, "/metal_density", H5P_DEFAULT);
+      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+      for (k=0; k<H.nz_real; k++) {
+        for (j=0; j<H.ny_real; j++) {
+          for (i=0; i<H.nx_real; i++) {
+            id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+            buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+            C.scalar[6*H.n_cells + id] = dataset_buffer[buf_id];
+          }
         }
       }
     }

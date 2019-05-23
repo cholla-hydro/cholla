@@ -460,7 +460,7 @@ class Grid3D
 #ifdef HDF5
     /*! \fn void Read_Grid_HDF5(hid_t file_id)
      *  \brief Read in grid data from an hdf5 file. */
-    void Read_Grid_HDF5(hid_t file_id);
+    void Read_Grid_HDF5(hid_t file_id, struct parameters P);
 #endif
 
     /*! \fn void Reset(void)
