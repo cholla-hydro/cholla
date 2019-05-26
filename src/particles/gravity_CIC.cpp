@@ -83,9 +83,10 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
   Real g_y_bl, g_y_br, g_y_bu, g_y_bru, g_y_tl, g_y_tr, g_y_tu, g_y_tru;
   Real g_z_bl, g_z_br, g_z_bu, g_z_bru, g_z_tl, g_z_tr, g_z_tu, g_z_tru;
   Real g_x, g_y, g_z;
-  bool ignore;
+  bool ignore, in_local;
   for ( pIndx=p_start; pIndx < p_end; pIndx++ ){
     ignore = false;
+    in_local = true;
     // pMass = Particles.mass[pIndx] * dV_inv;
     x_pos = Particles.pos_x[pIndx];
     y_pos = Particles.pos_y[pIndx];
@@ -97,6 +98,24 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
     if ( indx_x > nx_g-3  ) ignore = true;
     if ( indx_y > ny_g-3  ) ignore = true;
     if ( indx_y > nz_g-3  ) ignore = true;
+    if ( x_pos < Particles.G.xMin || x_pos >= Particles.G.xMax ) in_local = false;
+    if ( y_pos < Particles.G.yMin || y_pos >= Particles.G.yMax ) in_local = false;
+    if ( z_pos < Particles.G.zMin || z_pos >= Particles.G.zMax ) in_local = false;
+    if ( ! in_local  ) {
+      std::cout << " Gravity CIC Error:" << std::endl;
+      #ifdef PARTICLE_IDS
+      std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
+      #else
+      std::cout << " Particle outside Loacal  domain " << std::endl;
+      #endif
+      std::cout << "  Domain X: " << Particles.G.xMin <<  "  " << Particles.G.xMax << std::endl;
+      std::cout << "  Domain Y: " << Particles.G.yMin <<  "  " << Particles.G.yMax << std::endl;
+      std::cout << "  Domain Z: " << Particles.G.zMin <<  "  " << Particles.G.zMax << std::endl;
+      std::cout << "  Particle X: " << x_pos << std::endl;
+      std::cout << "  Particle Y: " << y_pos << std::endl;
+      std::cout << "  Particle Z: " << z_pos << std::endl;
+      // continue;
+    }
     if ( ignore ){
       #ifdef PARTICLE_IDS
       std::cout << "ERROR GRAVITY_CIC Index    pID: " << Particles.partIDs[pIndx] << std::endl;
@@ -112,6 +131,7 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
       std::cout << std::endl;
       continue;
     }
+    
     cell_center_x = xMin + indx_x*dx + 0.5*dx;
     cell_center_y = yMin + indx_y*dy + 0.5*dy;
     cell_center_z = zMin + indx_z*dz + 0.5*dz;

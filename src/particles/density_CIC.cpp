@@ -129,10 +129,11 @@ void Particles_3D::Get_Density_CIC_Serial( ){
   Real cell_center_x, cell_center_y, cell_center_z;
   Real delta_x, delta_y, delta_z;
   Real dV_inv = 1./(G.dx*G.dy*G.dz);
-  bool ignore;
+  bool ignore, in_local;
 
   for ( pIndx=0; pIndx < n_local; pIndx++ ){
     ignore = false;
+    in_local = true;
 
     #ifdef SINGLE_PARTICLE_MASS
     pMass = particle_mass * dV_inv;
@@ -149,6 +150,24 @@ void Particles_3D::Get_Density_CIC_Serial( ){
     if ( indx_x > nx_g-3  ) ignore = true;
     if ( indx_y > ny_g-3  ) ignore = true;
     if ( indx_y > nz_g-3  ) ignore = true;
+    if ( x_pos < G.xMin || x_pos >= G.xMax ) in_local = false;
+    if ( y_pos < G.yMin || y_pos >= G.yMax ) in_local = false;
+    if ( z_pos < G.zMin || z_pos >= G.zMax ) in_local = false;
+    if ( ! in_local  ) {
+      std::cout << " Density CIC Error:" << std::endl;
+      #ifdef PARTICLE_IDS
+      std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
+      #else
+      std::cout << " Particle outside Loacal  domain " << std::endl;
+      #endif
+      std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
+      std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;
+      std::cout << "  Domain Z: " << G.zMin <<  "  " << G.zMax << std::endl;
+      std::cout << "  Particle X: " << x_pos << std::endl;
+      std::cout << "  Particle Y: " << y_pos << std::endl;
+      std::cout << "  Particle Z: " << z_pos << std::endl;
+      // continue;
+    }
     if ( ignore ){
       #ifdef PARTICLE_IDS
       std::cout << "ERROR Density CIC Index    pID: " << partIDs[pIndx] << std::endl;
