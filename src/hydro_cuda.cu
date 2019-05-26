@@ -204,8 +204,8 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
   Real d, d_inv, vx, vy, vz;
   #endif
   #ifdef DE
-  // Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
-  // int ipo, jpo, kpo;
+  Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
+  int ipo, jpo, kpo;
   Real  P, E, E_kin, GE;
   Real vx_L, vx_R, vy_L, vy_R, vz_L, vz_R;
   #endif
@@ -275,15 +275,15 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     // P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     //if (d < 0.0 || d != d) printf("Negative density before final update.\n");
     //if (P < 0.0) printf("%d Negative pressure before final update.\n", id);
-    // ipo = xid+1 + yid*nx + zid*nx*ny;
-    // jpo = xid + (yid+1)*nx + zid*nx*ny;
-    // kpo = xid + yid*nx + (zid+1)*nx*ny;
-    // vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
-    // vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
-    // vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
-    // vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
-    // vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
-    // vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
+    ipo = xid+1 + yid*nx + zid*nx*ny;
+    jpo = xid + (yid+1)*nx + zid*nx*ny;
+    kpo = xid + yid*nx + (zid+1)*nx*ny;
+    vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
+    vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
+    vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
+    vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
+    vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
+    vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
     
     //Use the reconstructed Velocities instead of neighbor cells centered values 
     vx_R = Q_Lx[1*n_cells + id]  / Q_Lx[id]; 
@@ -292,6 +292,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     vy_L = Q_Ry[2*n_cells + jmo] / Q_Ry[jmo];
     vz_R = Q_Lz[3*n_cells + id]  / Q_Lz[id]; 
     vz_L = Q_Rz[3*n_cells + kmo] / Q_Rz[kmo]; 
+    
     #endif
 
     // update the conserved variable array
@@ -321,8 +322,8 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     dev_conserved[(n_fields-1)*n_cells + id] += dtodx * (dev_F_x[(n_fields-1)*n_cells + imo] - dev_F_x[(n_fields-1)*n_cells + id])
                                   +  dtody * (dev_F_y[(n_fields-1)*n_cells + jmo] - dev_F_y[(n_fields-1)*n_cells + id])
                                   +  dtodz * (dev_F_z[(n_fields-1)*n_cells + kmo] - dev_F_z[(n_fields-1)*n_cells + id])
-                                  -  P * ( dtodx * ( vx_R - vx_L ) + dtody * ( vy_R - vy_L ) + dtodz * ( vz_R - vz_L ) );
-                                  // +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+                                  +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+                                  // -  P * ( dtodx * ( vx_R - vx_L ) + dtody * ( vy_R - vy_L ) + dtodz * ( vz_R - vz_L ) );
                                   
     #endif
     
