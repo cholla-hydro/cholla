@@ -47,10 +47,11 @@ typedef double Real;
 
 //Conserved Floor Values
 #define TEMP_FLOOR 1.0
-#define DENS_FLOOR 1e-4
+#define DENS_FLOOR 1e-5
 
 //Ratio of U to E for wich Advected Inetrnal Energy is used
-#define DE_LIMIT 0.02
+#define DE_LIMIT 0.02 //Always return Total Internal Energy
+#define BETA_DUAL_ENERGY 0.001 //Parameter for Teyssier 2015 Dual Energy Condition
 
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.001
