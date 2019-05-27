@@ -98,15 +98,6 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
     chprintf( "GRACKLE: UVB on: %f \n", scale_factor_UVB_on  );
   }
   
-  //Intitial fracctions from enzo simulation
-  // HI_fracc_0 = 0.759846034884;
-  // HII_fracc_0 = 0.00015396511;
-  // HeI_fracc_0 = 0.239999999;
-  // HeII_fracc_0 = 9.59999999999999e-15;
-  // HeIII_fracc_0 =  9.599999999999992e-18;
-  // e_fracc_0 = 8.379624017146845e-08;
-  // metal_fracc_0 = ;
-  
 }
 
 void Grid3D::Allocate_Memory_Grackle( ){

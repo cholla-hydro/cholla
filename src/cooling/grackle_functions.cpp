@@ -126,14 +126,14 @@ void Grid3D::Copy_Fields_To_Grackle_function( int g_start, int g_end ){
         E = C.Energy[id];
         GE = C.GasEnergy[id];
         Ekin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
-        // PRESSURE_DE
-        flag_DE = Select_Internal_Energy_From_DE( E, E - Ekin, GE );
-        Cool.flags_DE[id] = flag_DE;
+        
+        //The Flag for Dual Energy Is set on the Sync_Energies_3D step before cooling step
+        // flag_DE = Select_Internal_Energy_From_DE( E, E - Ekin, GE );
+        // Cool.flags_DE[id] = flag_DE;
         
         if ( flag_DE ) U = GE;  
         else U = E - Ekin;
         Cool.fields.internal_energy[id] = U / d * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
-        // Cool.fields.internal_energy[id] = C.GasEnergy[id]  / C.density[id] * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
       }
     }
   }
@@ -178,11 +178,6 @@ void Grid3D::Update_Internal_Energy_function( int g_start, int g_end ){
         C.GasEnergy[id] += delta_U ;
         C.Energy[id] += delta_U ;
         
-        // ge_0 = C.GasEnergy[id];
-        // ge_1 = Cool.fields.internal_energy[id] * dens / Cool.energy_conv  * Cosmo.current_a * Cosmo.current_a;
-        // delta_ge = ge_1 - ge_0;
-        // C.GasEnergy[id] += delta_ge ;
-        // C.Energy[id] += delta_ge ;
 
       }
     }
