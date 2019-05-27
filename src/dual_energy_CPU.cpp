@@ -100,7 +100,6 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         vz = C.momentum_z[id] * d_inv;
         E = C.Energy[id];
 
-        // if (E < 0.0 || E != E) continue; // BUG: This leads to negative Energy
         Ek = 0.5*d*(vx*vx + vy*vy + vz*vz);
         ge_total = E - Ek;
         ge_advected = C.GasEnergy[id];
@@ -126,13 +125,10 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         
         delta_v2 = delta_vx*delta_vx + delta_vy*delta_vy + delta_vz*delta_vz; 
         
-        //Get the truncation error
+        //Get the truncation error (Teyssier 2015)
         Real ge_trunc = 0.5 * d * delta_v2;
-        
-        // if ( ge_total > Beta_DE * ge_trunc ) U = ge_total;
-        // else U = ge_advected;
-        
-        if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta && ( ge_total > Beta_DE * ge_trunc ) ){
+                
+        if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta && ge_total > 0.5*ge_advected && ( ge_total > Beta_DE * ge_trunc ) ){
           U = ge_total;
           flag_DE = 0;
         }            
@@ -155,8 +151,6 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
           flag_DE = 0;
         }
         
-        // U = ge_total;
-        
         //Set the Internal Energy
         C.Energy[id] = Ek + U;
         C.GasEnergy[id] = U;
@@ -165,40 +159,6 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         #ifdef COOLING_GRACKLE
         Cool.flags_DE[id] = flag_DE;
         #endif
-        
-        // //Dont Change Internal energies based on first condition, 
-        // //This condition is used only to compute pressure and Intenal energy for cooling step
-        // #ifdef LIMIT_DE_EKINETIC
-        // if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta && Ek/H.Ekin_avrg > 0.4 ){
-        // #else
-        // if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta ) {
-        // #endif          
-        //   C.GasEnergy[id] = ge_total;
-        //   ge_advected = ge_total;
-        // }
-        // // 
-        // // //Syncronize advected internal energy with total internal energy when using total internal energy for dynamical purposes 
-        // // // if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta ) C.GasEnergy[id] = ge_total;   
-        // // 
-        // //Syncronize advected internal energy with total internal energy when using total internal energy based on local maxEnergy condition
-        // //find the max nearby total energy
-        // Emax = E;
-        // Emax = std::max(C.Energy[imo], E);
-        // Emax = std::max(Emax, C.Energy[ipo]);
-        // Emax = std::max(Emax, C.Energy[jmo]);
-        // Emax = std::max(Emax, C.Energy[jpo]);
-        // Emax = std::max(Emax, C.Energy[kmo]);
-        // Emax = std::max(Emax, C.Energy[kpo]);
-        // if (ge_total/Emax > 0.1 && ge_total > 0.0 && Emax > 0.0) {
-        //   C.GasEnergy[id] = ge_total;
-        // }
-        // 
-        // //Dont Change total energy  
-        // // sync the total energy with the internal energy
-        // else {
-        //   if (ge_advected > 0.0) C.Energy[id] += ge_advected - ge_total;
-        //   else C.GasEnergy[id] = ge_total;
-        // }
                  
       }
     }
