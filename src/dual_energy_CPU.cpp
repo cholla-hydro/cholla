@@ -74,6 +74,7 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
   Real eta = DE_LIMIT;
   Real Beta_DE = BETA_DUAL_ENERGY;
 
+  Real v_l, v_r, delta_vx, delta_vy, delta_vz, delta_v2, ge_trunc;
 
 
   int imo, ipo, jmo, jpo, kmo, kpo;
@@ -106,7 +107,6 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
 
         //New Dual Enegy Condition from Teyssier 2015
         //Get delta velocity
-        Real v_l, v_r, delta_vx, delta_vy, delta_vz, delta_v2;
         
         //X direcction
         v_l = C.momentum_x[imo] / C.density[imo];
@@ -126,7 +126,7 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         delta_v2 = delta_vx*delta_vx + delta_vy*delta_vy + delta_vz*delta_vz; 
         
         //Get the truncation error (Teyssier 2015)
-        Real ge_trunc = 0.5 * d * delta_v2;
+        ge_trunc = 0.5 * d * delta_v2;
                 
         if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta && ge_total > 0.5*ge_advected && ( ge_total > Beta_DE * ge_trunc ) ){
           U = ge_total;
