@@ -854,8 +854,10 @@ __host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_adve
   Real U, P;
   Real eta = DE_LIMIT;
   
-  if( U_total / E > eta ) U = U_total;
-  else U = U_advected;
+  // if( U_total / E > eta ) U = U_total;
+  // else U = U_advected;
+  
+  U = U_total; //always use the total internal energy
 
   P = U * (gamma - 1.0);
   return P;
