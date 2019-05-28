@@ -151,7 +151,7 @@ ifeq ($(POISSON_SOLVER),-DPFFT)
 # FFTW_LIBS = -L/ccs/home/bvilasen/code/fftw/lib -lfftw3
 # PFFT_INCL = -I/ccs/home/bvilasen/code/pfft/include
 # PFFT_LIBS = -L/ccs/home/bvilasen/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
-FFTW_INCL = -I/ccs/proj/ast149/bvilasen/code/fftw/include
+FFTW_INCL = -I/ccs/proj/ast149/code/fftw/include
 FFTW_LIBS = -L/ccs/proj/ast149/code/fftw/lib -lfftw3
 PFFT_INCL = -I/ccs/proj/ast149/code/pfft/include
 PFFT_LIBS = -L/ccs/proj/ast149/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
