@@ -152,9 +152,9 @@ ifeq ($(POISSON_SOLVER),-DPFFT)
 # PFFT_INCL = -I/ccs/home/bvilasen/code/pfft/include
 # PFFT_LIBS = -L/ccs/home/bvilasen/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
 FFTW_INCL = -I/ccs/proj/ast149/bvilasen/code/fftw/include
-FFTW_LIBS = -L/ccs/proj/ast_149/code/fftw/lib -lfftw3
-PFFT_INCL = -I/ccs/proj/ast_149/code/pfft/include
-PFFT_LIBS = -L/ccs/proj/ast_149/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
+FFTW_LIBS = -L/ccs/proj/ast149/code/fftw/lib -lfftw3
+PFFT_INCL = -I/ccs/proj/ast149/code/pfft/include
+PFFT_LIBS = -L/ccs/proj/ast149/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
 INCL += $(FFTW_INCL) $(PFFT_INCL)
 LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
 endif
@@ -167,8 +167,8 @@ SCALAR = -DSCALAR
 N_OMP_THREADS_GRACKLE = -DN_OMP_THREADS_GRACKLE=12
 # GRACKLE_INCL = -I/ccs/home/bvilasen/code/grackle/include
 # GRACKLE_LIBS = -L/ccs/home/bvilasen/code/grackle/lib -lgrackle
-GRACKLE_INCL = -I/ccs/proj/ast_149/code/grackle/include
-GRACKLE_LIBS = -L/ccs/proj/ast_149/code/grackle/lib -lgrackle
+GRACKLE_INCL = -I/ccs/proj/ast149/code/grackle/include
+GRACKLE_LIBS = -L/ccs/proj/ast149/code/grackle/lib -lgrackle
 INCL += $(GRACKLE_INCL)
 LIBS += $(GRACKLE_LIBS)
 endif
