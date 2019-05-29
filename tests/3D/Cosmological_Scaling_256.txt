@@ -23,7 +23,7 @@ H0=67.74
 Omega_M=0.3089
 Omega_L=0.6911
 tile_length=25000.0 
-scale_outputs_file=scale_output_files/outputs_cool_UV.txt
+scale_outputs_file=scale_output_files/outputs_single_output.txt
 # domain properties
 xmin=0.0
 ymin=0.0
