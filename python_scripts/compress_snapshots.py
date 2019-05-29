@@ -9,8 +9,8 @@ import numpy as np
 
 
 dataDir = '/gpfs/alpine/proj-shared/ast149/cosmo_tests/'
-inDir = dataDir + 'cosmo_256/output_snapshots/'
-outDir = dataDir + 'cosmo_256/snapshots/'
+inDir = dataDir + 'cosmo_1024/output_snapshots/'
+outDir = dataDir + 'cosmo_1024/snapshots/'
 
 hydro = True
 cosmo = True
@@ -45,7 +45,7 @@ print( "Number of files per snapshot: {0}".format(nBoxes) )
 
 #Set wich snapshots to compress
 # snapshots_to_compress = snapshots_all
-snapshots_to_compress = [30]
+snapshots_to_compress = [199]
 
 print( "\nNumber of snapshots to compres: {0}".format(len(snapshots_to_compress)) )
 
