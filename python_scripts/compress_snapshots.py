@@ -23,7 +23,7 @@ def split_name( file_name):
 
 print( 'Input Dir: ' + inDir )
 print( 'Output Dir: ' + outDir )
-create_directory( outDir )
+# create_directory( outDir )
 print("")
 
 name_base = 'h5'
