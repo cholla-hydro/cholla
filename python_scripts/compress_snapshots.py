@@ -10,7 +10,7 @@ import numpy as np
 
 dataDir = '/gpfs/alpine/proj-shared/ast149/cosmo_tests/'
 inDir = dataDir + 'cosmo_256/output_snapshots/'
-outDir = inDir + 'cosmo_256/snapshots/'
+outDir = dataDir + 'cosmo_256/snapshots/'
 
 hydro = True
 cosmo = True
