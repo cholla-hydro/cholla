@@ -267,18 +267,18 @@ void Time::Print_Average_Times( struct parameters P ){
 
   chprintf( "Writing timming values to file: %s  \n", file_name.c_str());
 
-  header = "# nz ny nx n_proc n_omp n_steps ";
+  header = "# nx ny nz n_proc n_omp n_steps ";
 
 
 
-  #ifdef GRAVITY_CPU
+  #ifdef GRAVITY_COUPLE_CPU
   header += "dt ";
   #endif
   header += "hydo ";
   header += "bound ";
   #ifdef GRAVITY
   header += "grav_pot ";
-  #ifdef GRAVITY_CPU
+  #ifdef GRAVITY_COUPLE_CPU
   header += "pot_bound ";
   #endif
   #endif
@@ -313,7 +313,7 @@ void Time::Print_Average_Times( struct parameters P ){
   if ( procID == 0 ){
     out_file.open(file_name.c_str(), ios::app);
     if ( !file_exists ) out_file << header;
-    out_file << P.nz << " " << P.ny << " " << P.nx << " ";
+    out_file << P.nx << " " << P.ny << " " << P.nz << " ";
     out_file << nproc << " ";
     #ifdef PARALLEL_OMP
     out_file << N_OMP_THREADS << " ";
