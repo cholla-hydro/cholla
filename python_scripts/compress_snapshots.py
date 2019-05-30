@@ -61,7 +61,7 @@ print( "\nHydro fields: {0}".format(hydro_fields))
 #[ density, pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, mass, particle_IDs ]
 particles_fields = 'all'
 particles_fields = ['density']
-print( "\nPartcles fields: {0}".format(particles_fields))
+print( "\nParticles fields: {0}".format(particles_fields))
 
 
 # precision = np.float64
