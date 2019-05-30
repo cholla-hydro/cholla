@@ -29,8 +29,8 @@ def compress_particles(  nSnap, nBoxes, name_base, out_base_name,inDir, outDir, 
   
   
   print('Particles:')
-  if inFile.attrs.get('current_z') is not None: print( ' snap: {0}   {1}  current_z: {2}'.format( nSnap, keys, inFile.attrs['current_z'][0] ) ) 
-  else: print( ' snap: {0}  {1}'.format( nSnap, keys ))
+  print( ' snap: {0}  {1}'.format( nSnap, keys ))
+  if inFile.attrs.get('current_z') is not None: print( ' current_z: {0}'.format( inFile.attrs.['current_z'] ))
   inFile.close()
   
   added_header = False
