@@ -29,7 +29,7 @@ def compress_particles(  nSnap, nBoxes, name_base, out_base_name,inDir, outDir, 
   
   
   print('Particles:')
-  if inFile.attrs.get('current_z'): print( ' snap: {0}   {1}  current_z: {2}'.format( nSnap, keys, inFile.attrs['current_z'][0] ) ) 
+  if inFile.attrs.get('current_z') is not None: print( ' snap: {0}   {1}  current_z: {2}'.format( nSnap, keys, inFile.attrs['current_z'][0] ) ) 
   else: print( ' snap: {0}  {1}'.format( nSnap, keys ))
   inFile.close()
   
