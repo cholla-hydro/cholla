@@ -24,7 +24,7 @@ def compress_grid( nSnap, nBoxes, name_base, out_base_name,inDir, outDir, fields
   
   print("\nHydro:")
   print( ' snap: {0}   {1}'.format( nSnap, keys ))
-  if inFile.attrs.get('Current_z') is not None: print( ' current_z: {0}'.format( inFile.attrs['Current_z'] ))
+  if inFile.attrs.get('Current_z') is not None: print( ' current_z: {0}'.format( inFile.attrs['Current_z'][0] ))
   
   for key in keys:
     if key not in keys_all:
