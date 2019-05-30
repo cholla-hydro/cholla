@@ -23,8 +23,9 @@ def compress_grid( nSnap, nBoxes, name_base, out_base_name,inDir, outDir, fields
   fileSnap = h5py.File( outDir + fileName, 'w' )
   
   print("\nHydro:")
+  print(inFile.attrs.keys())
   if inFile.attrs.get('Current_z'): print( ' snap: {0}   {1}  current_z: {2}'.format( nSnap, keys, inFile.attrs['Current_z'][0] ) )  
-  else: print( ' snap: {0}  '.format( nSnap ))
+  else: print( ' snap: {0}   {1}'.format( nSnap, keys ))
   
   for key in keys:
     if key not in keys_all:
