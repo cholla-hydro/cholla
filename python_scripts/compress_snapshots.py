@@ -50,14 +50,14 @@ snapshots_to_compress = [199]
 print( "\nNumber of snapshots to compres: {0}".format(len(snapshots_to_compress)) )
 
 
-#Availbale Hydro Fields:
+#available Hydro Fields:
 #[ density, momentum_x, momentum_y, momentum_z, Enegy, GasEnergy ]
 #[ HI_density, HI_density, HeI_density, HeII_density, HeIII_density, e_density, metal_density, temperature, potential ]
 hydro_fields = 'all'
 hydro_fields = ['density', 'GasEnergy']
 print( "\nHydro fields: {0}".format(hydro_fields))
 
-#Availbale Particles Fields:
+#available Particles Fields:
 #[ density, pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, mass, particle_IDs ]
 particles_fields = 'all'
 particles_fields = ['density']
