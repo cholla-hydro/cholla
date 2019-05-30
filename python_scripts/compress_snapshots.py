@@ -53,9 +53,9 @@ print( "\nNumber of snapshots to compres: {0}".format(len(snapshots_to_compress)
 #Availbale Hydro Fields:
 #[ density, momentum_x, momentum_y, momentum_z, Enegy, GasEnergy ]
 #[ HI_density, HI_density, HeI_density, HeII_density, HeIII_density, e_density, metal_density, temperature, potential ]
-hydro_fileds = 'all'
-hydro_fileds = ['density', 'GasEnergy']
-print( "\nHydro fields: {0}".format(hydro_fileds))
+hydro_fields = 'all'
+hydro_fields = ['density', 'GasEnergy']
+print( "\nHydro fields: {0}".format(hydro_fields))
 
 #Availbale Particles Fields:
 #[ density, pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, mass, particle_IDs ]
@@ -76,7 +76,7 @@ print( "\nCompressing Snapshots..." )
 for nSnap in snapshots_to_compress:
   if hydro:
     out_base_name = 'grid_' 
-    compress_grid( nSnap, nBoxes, name_base, out_base_name, inDir, outDir, hydro_fileds,  precision=precision )
+    compress_grid( nSnap, nBoxes, name_base, out_base_name, inDir, outDir, hydro_fields,  precision=precision )
   if cosmo or particles:
     out_base_name = 'particles_' 
     compress_particles( nSnap, nBoxes, name_base, out_base_name, inDir, outDir, particles_fields, precision=precision )
