@@ -76,6 +76,10 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
       PFFT_BACKWARD, PFFT_TRANSPOSED_IN | PFFT_MEASURE);
   chprintf( "  PFFT: Computing K for Gravity Green Funtion\n");
   Get_K_for_Green_function();
+  
+  #ifdef GRAVITY_LONG_INTS
+  chprintf( "  PFFT: Using Long ints for potential calculation.\n");
+  #endif
 
   MPI_Barrier( world );
   chprintf( " PFFT Initialized Successfully. \n");
@@ -130,8 +134,8 @@ void Potential_PFFT_3D::Copy_Output( Real *output_potential ){
 
 
 void Potential_PFFT_3D::Get_K_for_Green_function( void){
-  int m = 0;
-  int k_0, k_1, k_2;
+  grav_int_t m = 0;
+  grav_int_t k_0, k_1, k_2;
   Real k_x, k_y, k_z, G_x, G_y, G_z, G;
 
   double ksqrd;

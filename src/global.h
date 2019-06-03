@@ -54,8 +54,8 @@ typedef double Real;
 #define BETA_DUAL_ENERGY 0.5 //Parameter for Teyssier 2015 Dual Energy Condition
 
 // Maximum time step for cosmological simulations
-// #define MAX_DELTA_A 0.001
-#define MAX_DELTA_A 0.0
+#define MAX_DELTA_A 0.001
+// #define MAX_DELTA_A 0.0
 
 
 #ifdef COOLING_GRACKLE
@@ -79,6 +79,11 @@ typedef double Real;
 
 #ifdef GRAVITY
 #define N_GHOST_POTENTIAL 2
+#ifdef GRAVITY_LONG_INTS
+typedef long int grav_int_t;
+#else
+typedef int grav_int_t
+#endif//GRAVITY_LONG_INTS
 #endif
 
 #ifdef PARTICLES

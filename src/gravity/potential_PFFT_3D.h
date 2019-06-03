@@ -21,9 +21,9 @@ class Potential_PFFT_3D{
   Real Lbox_y;
   Real Lbox_z;
 
-  int nx_total;
-  int ny_total;
-  int nz_total;
+  grav_int_t nx_total;
+  grav_int_t ny_total;
+  grav_int_t nz_total;
 
   int nx_local;
   int ny_local;
@@ -32,8 +32,8 @@ class Potential_PFFT_3D{
   Real dx;
   Real dy;
   Real dz;
-  int n_cells_total;
-  int n_cells_local;
+  grav_int_t n_cells_total;
+  grav_int_t n_cells_local;
 
   int procID_pfft;
   int nproc_pfft;
