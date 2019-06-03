@@ -82,7 +82,7 @@ typedef double Real;
 #ifdef GRAVITY_LONG_INTS
 typedef long int grav_int_t;
 #else
-typedef int grav_int_t
+typedef int grav_int_t;
 #endif//GRAVITY_LONG_INTS
 #endif
 
