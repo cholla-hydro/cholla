@@ -291,27 +291,14 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
     pos_y += a2_inv * scale_factor_1 * da * vel_y;
     pos_z += a2_inv * scale_factor_1 * da * vel_z;
     
-    if ( pos_x < Particles.G.xMin || pos_x >= Particles.G.xMax ){
-      pos_x = Particles.pos_x[pIndx];
-      vel_x = Particles.vel_x[pIndx];
-    }
-    if ( pos_y < Particles.G.yMin || pos_y >= Particles.G.yMax ){
-      pos_y = Particles.pos_y[pIndx];
-      vel_y = Particles.vel_y[pIndx];
-    }
-    if ( pos_z < Particles.G.zMin || pos_z >= Particles.G.zMax ){
-      pos_z = Particles.pos_z[pIndx];
-      vel_z = Particles.vel_z[pIndx];
-    }
-      
-      
-    // Particles.pos_x[pIndx] = pos_x;
-    // Particles.pos_y[pIndx] = pos_y;
-    // Particles.pos_z[pIndx] = pos_z;
-    // 
-    // Particles.vel_x[pIndx] = vel_x;
-    // Particles.vel_y[pIndx] = vel_y;
-    // Particles.vel_z[pIndx] = vel_z;
+          
+    Particles.pos_x[pIndx] = pos_x;
+    Particles.pos_y[pIndx] = pos_y;
+    Particles.pos_z[pIndx] = pos_z;
+
+    Particles.vel_x[pIndx] = vel_x;
+    Particles.vel_y[pIndx] = vel_y;
+    Particles.vel_z[pIndx] = vel_z;
   }
 }
 
@@ -325,14 +312,14 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, par
   Real grav_x;
   Real grav_y;
   Real grav_z;
-  // for ( pIndx=p_start; pIndx<p_end; pIndx++ ){
-  //   grav_x = Particles.grav_x[pIndx];
-  //   grav_y = Particles.grav_y[pIndx];
-  //   grav_z = Particles.grav_z[pIndx];
-  //   Particles.vel_x[pIndx] += scale_factor * 0.5 * da * grav_x;
-  //   Particles.vel_y[pIndx] += scale_factor * 0.5 * da * grav_y;
-  //   Particles.vel_z[pIndx] += scale_factor * 0.5 * da * grav_z;
-  // }
+  for ( pIndx=p_start; pIndx<p_end; pIndx++ ){
+    grav_x = Particles.grav_x[pIndx];
+    grav_y = Particles.grav_y[pIndx];
+    grav_z = Particles.grav_z[pIndx];
+    Particles.vel_x[pIndx] += scale_factor * 0.5 * da * grav_x;
+    Particles.vel_y[pIndx] += scale_factor * 0.5 * da * grav_y;
+    Particles.vel_z[pIndx] += scale_factor * 0.5 * da * grav_z;
+  }
 }
 
 
