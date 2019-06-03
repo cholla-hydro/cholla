@@ -290,7 +290,21 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
     pos_x += a2_inv * scale_factor_1 * da * vel_x;
     pos_y += a2_inv * scale_factor_1 * da * vel_y;
     pos_z += a2_inv * scale_factor_1 * da * vel_z;
-
+    
+    if ( pos_x < G.xMin || pos_x >= G.xMax ){
+      pos_x = Particles.pos_x[pIndx];
+      vel_x = Particles.vel_x[pIndx];
+    }
+    if ( pos_y < G.yMin || pos_y >= G.yMax ){
+      pos_y = Particles.pos_y[pIndx];
+      vel_y = Particles.vel_y[pIndx];
+    }
+    if ( pos_z < G.zMin || pos_z >= G.zMax ){
+      pos_y = Particles.pos_y[pIndx];
+      vel_y = Particles.vel_y[pIndx];
+    }
+      
+      
     Particles.pos_x[pIndx] = pos_x;
     Particles.pos_y[pIndx] = pos_y;
     Particles.pos_z[pIndx] = pos_z;
