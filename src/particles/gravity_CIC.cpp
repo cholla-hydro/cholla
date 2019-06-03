@@ -98,10 +98,10 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
     if ( indx_x > nx_g-3  ) ignore = true;
     if ( indx_y > ny_g-3  ) ignore = true;
     if ( indx_y > nz_g-3  ) ignore = true;
-    // if ( x_pos < Particles.G.xMin || x_pos >= Particles.G.xMax ) in_local = false;
-    // if ( y_pos < Particles.G.yMin || y_pos >= Particles.G.yMax ) in_local = false;
-    // if ( z_pos < Particles.G.zMin || z_pos >= Particles.G.zMax ) in_local = false;
-    // if ( ! in_local  ) {
+    if ( x_pos < Particles.G.xMin || x_pos >= Particles.G.xMax ) in_local = false;
+    if ( y_pos < Particles.G.yMin || y_pos >= Particles.G.yMax ) in_local = false;
+    if ( z_pos < Particles.G.zMin || z_pos >= Particles.G.zMax ) in_local = false;
+    if ( ! in_local  ) {
     //   std::cout << " Gravity CIC Error:" << std::endl;
     //   #ifdef PARTICLE_IDS
     //   std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
@@ -114,8 +114,11 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
     //   std::cout << "  Particle X: " << x_pos << std::endl;
     //   std::cout << "  Particle Y: " << y_pos << std::endl;
     //   std::cout << "  Particle Z: " << z_pos << std::endl;
-    //   // continue;
-    // }
+      Particles.grav_x[pIndx] = 0;
+      Particles.grav_y[pIndx] = 0;
+      Particles.grav_z[pIndx] = 0;
+      continue;
+    }
     if ( ignore ){
       #ifdef PARTICLE_IDS
       std::cout << "ERROR GRAVITY_CIC Index    pID: " << Particles.partIDs[pIndx] << std::endl;

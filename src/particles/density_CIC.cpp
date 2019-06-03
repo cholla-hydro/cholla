@@ -153,7 +153,7 @@ void Particles_3D::Get_Density_CIC_Serial( ){
     if ( x_pos < G.xMin || x_pos >= G.xMax ) in_local = false;
     if ( y_pos < G.yMin || y_pos >= G.yMax ) in_local = false;
     if ( z_pos < G.zMin || z_pos >= G.zMax ) in_local = false;
-    // if ( ! in_local  ) {
+    if ( ! in_local  ) {
     //   std::cout << " Density CIC Error:" << std::endl;
     //   #ifdef PARTICLE_IDS
     //   std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
@@ -166,8 +166,8 @@ void Particles_3D::Get_Density_CIC_Serial( ){
     //   std::cout << "  Particle X: " << x_pos << std::endl;
     //   std::cout << "  Particle Y: " << y_pos << std::endl;
     //   std::cout << "  Particle Z: " << z_pos << std::endl;
-    //   // continue;
-    // }
+    continue;
+    }
     if ( ignore ){
       #ifdef PARTICLE_IDS
       std::cout << "ERROR Density CIC Index    pID: " << partIDs[pIndx] << std::endl;
