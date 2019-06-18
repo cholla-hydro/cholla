@@ -309,7 +309,7 @@ void Grid3D::AllocateMemory(void)
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
-  #if ( defined(COSMOLOGY) && defined(AVERAGE_SLOW_CELLS) )
+  #if ( defined(COSMOLOGY) && defined(AVERAGE_SLOW_CELLS) && defined(PARTICLES) )
   Particles.dt = Calc_Particles_dt_Cosmo();
   #endif
   max_dti = calc_dti_CPU();
@@ -420,7 +420,7 @@ Real Grid3D::calc_dti_CPU_3D_function( int g_start, int g_end ){
   Real max_dti = 0.0;
   max_vx = max_vy = max_vz = 0.0;
   
-  #ifdef AVERAGE_SLOW_CELLS
+  #if ( defined(AVERAGE_SLOW_CELLS) && defined(PARTICLES) )
   Real dt_cell;
   #endif
   // Find the maximum wave speed in the grid
@@ -435,7 +435,7 @@ Real Grid3D::calc_dti_CPU_3D_function( int g_start, int g_end ){
         P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
         cs = sqrt(d_inv * gama * P);
         
-        #ifdef AVERAGE_SLOW_CELLS
+        #if ( defined(AVERAGE_SLOW_CELLS) && defined(PARTICLES) )
         dt_cell = fmin( H.dx / (fabs(vx) + cs), H.dy / (fabs(vy) + cs) );
         dt_cell = fmin( H.dz / (fabs(vz) + cs), dt_cell );
         dt_cell = C_cfl * dt_cell;
