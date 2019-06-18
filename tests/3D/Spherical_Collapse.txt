@@ -10,9 +10,9 @@ ny=256
 # number of grid cells in the z dimension
 nz=256
 # output time
-tout=0.30
+tout=0.10
 # how often to output
-outstep=0.01
+outstep=0.05
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
@@ -32,5 +32,5 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=/gpfs/alpine/scratch/bvilasen/ast149/sphere_collapse/output_files/
-#outdir=/raid/bruno/data/cosmo_sims/cholla_pm/sphere_collapse/
+#outdir=/gpfs/alpine/scratch/bvilasen/ast149/sphere_collapse/output_files/
+outdir=/raid/bruno/data/cosmo_sims/cholla_pm/sphere_collapse/
