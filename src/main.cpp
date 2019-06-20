@@ -170,7 +170,9 @@ int main(int argc, char *argv[])
     
     #ifdef PARTICLES
     //Advance the particles KDK( first step )
-    G.Advance_Particles( 1 );
+    G.Advance_Particles( 1 );   
+    //Transfer the particles boundaries
+    G.Transfer_Particles_Boundaries(P); 
     #endif
     
     // Advance the grid by one timestep
