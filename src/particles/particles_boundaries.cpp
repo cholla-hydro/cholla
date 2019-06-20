@@ -84,7 +84,7 @@ void Particles_3D::Remove_Transfered_Particles( void ){
   n_delete += out_indxs_vec_z0.size();
   n_delete += out_indxs_vec_z1.size();
   
-  std::cout << "N to delete: " << n_delete << std::endl;
+  // std::cout << "N to delete: " << n_delete << std::endl;
   int_vector_t delete_indxs_vec;
   delete_indxs_vec.insert( delete_indxs_vec.end(), out_indxs_vec_x0.begin(), out_indxs_vec_x0.end() );
   delete_indxs_vec.insert( delete_indxs_vec.end(), out_indxs_vec_x1.begin(), out_indxs_vec_x1.end() );
