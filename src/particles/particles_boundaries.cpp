@@ -62,6 +62,8 @@ void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
   part_int_t N_paricles_total;
   N_paricles_total = ReducePartIntSum( Particles.n_local );
   chprintf( " Total Particles: %ld\n", N_paricles_total );
+  
+  if ( N_paricles_total != Particles.n_total_initial ) chprintf( " WARNING: Lost Particles: %d \n", Particles.n_total_initial - N_paricles_total );
 }
 
 #ifdef MPI_CHOLLA
