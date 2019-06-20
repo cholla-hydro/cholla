@@ -31,14 +31,14 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   Real dl, vxl, mxl, vyl, myl, vzl, mzl, pl, El;
   Real dr, vxr, mxr, vyr, myr, vzr, mzr, pr, Er;
 
-  Real g1 = gamma - 1.0; 
-  Real Hl, Hr;
-  Real sqrtdl, sqrtdr, vx, vy, vz, H;
-  Real vsq, asq, a;
-  Real lambda_m, lambda_p;
+  // Real g1 = gamma - 1.0; 
+  // Real Hl, Hr;
+  // Real sqrtdl, sqrtdr, vx, vy, vz, H;
+  // Real vsq, asq, a;
+  // Real lambda_m, lambda_p;
   Real f_d_l, f_mx_l, f_my_l, f_mz_l, f_E_l;
   Real f_d_r, f_mx_r, f_my_r, f_mz_r, f_E_r;
-  Real dls, drs, mxls, mxrs, myls, myrs, mzls, mzrs, Els, Ers;
+  // Real dls, drs, mxls, mxrs, myls, myrs, mzls, mzrs, Els, Ers;
   Real f_d, f_mx, f_my, f_mz, f_E;
   Real Sl, Sr, Sm, cfl, cfr, ps;
   #ifdef DE
@@ -48,7 +48,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   Real dscl[NSCALARS], dscr[NSCALARS], scl[NSCALARS], scr[NSCALARS], scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
   #endif
   
-  Real etah = 0;
+  // Real etah = 0;
 
   int o1, o2, o3;
   if (dir==0) {
@@ -133,26 +133,26 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     #endif
 
     // calculate the enthalpy in each cell
-    Hl = (El + pl) / dl;
-    Hr = (Er + pr) / dr;
+    // Hl = (El + pl) / dl;
+    // Hr = (Er + pr) / dr;
 
     // calculate averages of the variables needed for the Roe Jacobian 
     // (see Stone et al., 2008, Eqn 65, or Toro 2009, 11.118)
-    sqrtdl = sqrt(dl);
-    sqrtdr = sqrt(dr);
-    vx = (sqrtdl*vxl + sqrtdr*vxr) / (sqrtdl + sqrtdr);
-    vy = (sqrtdl*vyl + sqrtdr*vyr) / (sqrtdl + sqrtdr);
-    vz = (sqrtdl*vzl + sqrtdr*vzr) / (sqrtdl + sqrtdr);
-    H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr); 
+    // sqrtdl = sqrt(dl);
+    // sqrtdr = sqrt(dr);
+    // vx = (sqrtdl*vxl + sqrtdr*vxr) / (sqrtdl + sqrtdr);
+    // vy = (sqrtdl*vyl + sqrtdr*vyr) / (sqrtdl + sqrtdr);
+    // vz = (sqrtdl*vzl + sqrtdr*vzr) / (sqrtdl + sqrtdr);
+    // H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr); 
 
     // calculate the sound speed squared (Stone B2)
-    vsq = (vx*vx + vy*vy + vz*vz);
-    asq = g1*(H - 0.5*vsq);
-    a = sqrt(asq);
+    // vsq = (vx*vx + vy*vy + vz*vz);
+    // asq = g1*(H - 0.5*vsq);
+    // a = sqrt(asq);
 
     // calculate the averaged eigenvectors of the Roe matrix (Stone Eqn B2, Toro 11.107)
-    lambda_m = vx - a; 
-    lambda_p = vx + a;
+    // lambda_m = vx - a; 
+    // lambda_p = vx + a;
 
 
     // compute max and min wave speeds
