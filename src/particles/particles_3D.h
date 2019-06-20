@@ -161,6 +161,7 @@ class Particles_3D
   void Clear_Vectors_For_Transfers( void );
   void Clear_Particles_For_Transfer( void );
   void Select_Particles_to_Transfer( int dir );
+  void Select_Particles_to_Transfer_All( void );
   void Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass,
                               Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z);
   void Add_Particle_To_Vectors( Real pId, Real pMass, Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z );

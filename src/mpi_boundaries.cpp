@@ -69,7 +69,10 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 {
   #ifdef PARTICLES
   // Clear the vectors that contain the particles IDs to be transfred
-  if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) Particles.Clear_Particles_For_Transfer();  
+  if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
+    Particles.Clear_Particles_For_Transfer();
+    Particles.Select_Particles_to_Transfer_All();
+  }  
   #endif
   
   if (H.nx > 1) {
@@ -720,7 +723,8 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
   
   #ifdef PARTICLES
   // Select wich particles need to be transfred for this direction
-  if ( Particles.TRANSFER_PARTICLES_BOUNDARIES) Particles.Select_Particles_to_Transfer( dir );
+  // if ( Particles.TRANSFER_PARTICLES_BOUNDARIES) Particles.Select_Particles_to_Transfer( dir );
+  
   // Initialize MPI requests for particles transfers
   int ireq_n_particles, ireq_particles_transfer;
   ireq_n_particles = 0;
