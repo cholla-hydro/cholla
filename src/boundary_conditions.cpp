@@ -43,26 +43,6 @@ void Grid3D::Set_Boundary_Conditions_All( parameters P){
   Timer.End_and_Record_Time( 9 );
   #endif
   #endif
-  
-  //Transfer Particles Boundaries
-  #ifdef PARTICLES
-  Particles.TRANSFER_PARTICLES_BOUNDARIES = true;
-  #ifdef CPU_TIME
-  Timer.Start_Timer();
-  #endif
-  Set_Boundary_Conditions(P);
-  #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 8 );
-  #endif
-  Particles.TRANSFER_PARTICLES_BOUNDARIES = false;
-  // Coount Total Particles
-  part_int_t N_paricles_total;
-  N_paricles_total = ReducePartIntSum( Particles.n_local );
-  chprintf( " Total Particles: %ld\n", N_paricles_total );
-  
-  #endif
-  
-  
 }
 
 /*! \fn void Set_Boundary_Conditions(parameters P)
