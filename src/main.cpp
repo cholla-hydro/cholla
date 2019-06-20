@@ -64,7 +64,9 @@ int main(int argc, char *argv[])
   chprintf ("Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, boundaries = %d %d %d %d %d %d\n", 
     P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
   chprintf ("Output directory:  %s\n", P.outdir);
-
+  
+  //Create a Log file to output run-time messages
+  Create_Log_File(P);
 
   // initialize the grid
   G.Initialize(&P);
@@ -270,6 +272,8 @@ int main(int argc, char *argv[])
   G.Timer.Get_Average_Times();
   G.Timer.Print_Average_Times( P );
   #endif
+  
+  if (procID == 0) Write_Message_To_Log_File( "Run completed successfully!");
 
   // free the grid
   G.Reset();

@@ -2,8 +2,11 @@
 #include<stdlib.h>
 #include<stdarg.h>
 #include<string.h>
+#include <iostream>
+#include <fstream>
 #include<math.h>
 #include<algorithm>
+#include<ctime>
 #ifdef HDF5
 #include<hdf5.h>
 #endif
@@ -18,8 +21,45 @@
 #include "cosmology/cosmology.h"
 #endif
 
+using namespace std;
+
 /* function used to rotate points about an axis in 3D for the rotated projection output routine */
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
+
+void Create_Log_File( struct parameters P ){
+  
+  string file_name ( LOG_FILE_NAME );
+  chprintf( "\nCreating Log File: %s \n\n", file_name.c_str() );
+  
+  bool file_exists = false;
+  if (FILE *file = fopen(file_name.c_str(), "r")){
+    file_exists = true;
+    chprintf( "  File exists, appending values: %s \n\n", file_name.c_str() );
+    fclose( file );
+  } 
+  
+  // current date/time based on current system
+  time_t now = time(0);
+  // convert now to string form
+  char* dt = ctime(&now);
+  
+  ofstream out_file;
+  if ( procID == 0 ){
+    out_file.open(file_name.c_str(), ios::app);
+    out_file << "\n";
+    out_file << "Run date: " << dt;
+    out_file.close();
+  }
+}
+
+void Write_Message_To_Log_File( const char* message ){
+    
+    string file_name ( LOG_FILE_NAME );
+    ofstream out_file;
+    out_file.open(file_name.c_str(), ios::app);
+    out_file << message << endl;
+    out_file.close();
+}
 
 /* Write the initial conditions */
 void WriteData(Grid3D &G, struct parameters P, int nfile)

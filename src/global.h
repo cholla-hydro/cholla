@@ -45,6 +45,8 @@ typedef double Real;
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
 
+#define LOG_FILE_NAME "run_output.log"
+
 //Conserved Floor Values
 #define TEMP_FLOOR 1.0
 #define DENS_FLOOR 1e-5

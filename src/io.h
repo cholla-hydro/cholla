@@ -23,4 +23,8 @@ void OutputSlices(Grid3D &G, struct parameters P, int nfile);
 /* MPI-safe printf routine */
 int chprintf(const char * __restrict sdata, ...);
 
+void Create_Log_File( struct parameters P );
+
+void Write_Message_To_Log_File( const char* message );
+
 #endif /*IO_CHOLLA_H*/
