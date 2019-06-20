@@ -61,9 +61,18 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
       n_pfft, comm_pfft, PFFT_TRANSPOSED_OUT ,
       local_ni_pfft, local_i_start_pfft, local_ntrans_pfft, local_trans_start_pfft);
 
-  chprintf("  PFFT process: nz:%d ny:%d nx:%d \n", nprocs_grid_pfft[0], nprocs_grid_pfft[1], nprocs_grid_pfft[2]);
-  chprintf("  PFFT cells:   nz:%d ny:%d nx:%d \n", n_pfft[0], n_pfft[1], n_pfft[2]);
-  chprintf("  PFFT local:   nz:%d ny:%d nx:%d \n", local_ni_pfft[0], local_ni_pfft[1], local_ni_pfft[2] );
+  chprintf("  PFFT process: nx:%d ny:%d nz:%d \n", nprocs_grid_pfft[2], nprocs_grid_pfft[1], nprocs_grid_pfft[0]);
+  chprintf("  PFFT cells:   nx:%d ny:%d nz:%d \n", n_pfft[2], n_pfft[1], n_pfft[0]);
+  chprintf("  PFFT local:   nx:%d ny:%d nz:%d \n", local_ni_pfft[2], local_ni_pfft[1], local_ni_pfft[0] );
+  
+  if ( local_ni_pfft[2] != nx_local ||  local_ni_pfft[1] != ny_local ||  local_ni_pfft[0] != nz_local ){
+    std::cout << " ERROR: PFFT domain is not the same as Cholla domain\n" << std::endl;
+    std::cout << " PFFT   Domain: [ " << local_ni_pfft[2] << " , " << local_ni_pfft[1] << " , " << local_ni_pfft[0] << " ]" << std::endl;
+    std::cout << " Cholla Domain: [ " << nx_local << " , " << ny_local << " , " << nz_local << " ]" << std::endl;  
+    exit(-1);
+  }
+  
+  
   
   AllocateMemory_CPU();
   
