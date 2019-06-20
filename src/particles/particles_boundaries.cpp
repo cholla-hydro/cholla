@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include "../grid3D.h"
+#include "../io.h"
 #include "particles_3D.h"
 
 #ifdef MPI_CHOLLA
@@ -31,11 +32,36 @@ Real Get_and_Remove_partID( part_int_t indx, int_vector_t &vec ){
   return value;
 }
 
+void Remove_ID( part_int_t indx, int_vector_t &vec ){
+  vec[indx] = vec.back();
+  vec.pop_back();
+}
+
 part_int_t Real_to_part_int( Real inVal ){
   part_int_t outVal = (part_int_t) inVal;
   if ( (inVal - outVal) > 0.1 ) outVal += 1;
   if ( fabs(outVal - inVal) > 0.5 ) outVal -= 1;
   return outVal;
+}
+
+void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
+  
+  
+  //Transfer Particles Boundaries
+  Particles.TRANSFER_PARTICLES_BOUNDARIES = true;
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
+  Set_Boundary_Conditions(P);
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time( 8 );
+  #endif
+  Particles.TRANSFER_PARTICLES_BOUNDARIES = false;
+  
+  // Count Total Particles
+  part_int_t N_paricles_total;
+  N_paricles_total = ReducePartIntSum( Particles.n_local );
+  chprintf( " Total Particles: %ld\n", N_paricles_total );
 }
 
 #ifdef MPI_CHOLLA
@@ -48,8 +74,91 @@ void Grid3D::Finish_Particles_Transfer( void ){
 
 
 void Particles_3D::Remove_Transfered_Particles( void ){
-  int n_in_out_vectors, n_in_vectors;
+  
+  
+  part_int_t n_delete = 0;
+  n_delete += out_indxs_vec_x0.size();
+  n_delete += out_indxs_vec_x1.size();
+  n_delete += out_indxs_vec_y0.size();
+  n_delete += out_indxs_vec_y1.size();
+  n_delete += out_indxs_vec_z0.size();
+  n_delete += out_indxs_vec_z1.size();
+  
+  std::cout << "N to delete: " << n_delete << std::endl;
+  int_vector_t delete_indxs_vec;
+  delete_indxs_vec.insert( delete_indxs_vec.end(), out_indxs_vec_x0.begin(), out_indxs_vec_x0.end() );
+  delete_indxs_vec.insert( delete_indxs_vec.end(), out_indxs_vec_x1.begin(), out_indxs_vec_x1.end() );
+  delete_indxs_vec.insert( delete_indxs_vec.end(), out_indxs_vec_y0.begin(), out_indxs_vec_y0.end() );
+  delete_indxs_vec.insert( delete_indxs_vec.end(), out_indxs_vec_y1.begin(), out_indxs_vec_y1.end() );
+  delete_indxs_vec.insert( delete_indxs_vec.end(), out_indxs_vec_z0.begin(), out_indxs_vec_z0.end() );
+  delete_indxs_vec.insert( delete_indxs_vec.end(), out_indxs_vec_z1.begin(), out_indxs_vec_z1.end() );
+  
+  out_indxs_vec_x0.clear();
+  out_indxs_vec_x1.clear();
+  out_indxs_vec_y0.clear();
+  out_indxs_vec_y1.clear();
+  out_indxs_vec_z0.clear();
+  out_indxs_vec_z1.clear();
+  
+  
+  std::sort(delete_indxs_vec.begin(), delete_indxs_vec.end());
+  
+  part_int_t indx, pIndx;
+  for ( indx=0; indx<n_delete; indx++ ){
+    pIndx = delete_indxs_vec.back();
+    Remove_Real( pIndx, pos_x );
+    Remove_Real( pIndx, pos_y );
+    Remove_Real( pIndx, pos_z );
+    Remove_Real( pIndx, vel_x );
+    Remove_Real( pIndx, vel_y );
+    Remove_Real( pIndx, vel_z );
+    Remove_Real( pIndx, grav_x );
+    Remove_Real( pIndx, grav_y );
+    Remove_Real( pIndx, grav_z );
+    #ifdef PARTICLE_IDS
+    Remove_ID( pIndx, partIDs );
+    #endif
+    #ifndef SINGLE_PARTICLE_MASS
+    Remove_Real( pIndx, mass );
+    #endif
+    delete_indxs_vec.pop_back();
+    n_local -= 1;
+  }
+  if ( delete_indxs_vec.size() != 0 ) std::cout << "ERROR: Deleting Transfered Particles " << std::endl;
 
+  
+
+  //Check all particles are in local domain
+  // std::cout << " Finish particles transfer" << std::endl;
+  Real x_pos, y_pos, z_pos;
+  // part_int_t pIndx;
+  bool in_local;
+  for ( pIndx=0; pIndx < n_local; pIndx++ ){
+    in_local = true;
+    x_pos = pos_x[pIndx];
+    y_pos = pos_y[pIndx];
+    z_pos = pos_z[pIndx];
+    if ( x_pos < G.xMin || x_pos >= G.xMax ) in_local = false;
+    if ( y_pos < G.yMin || y_pos >= G.yMax ) in_local = false;
+    if ( z_pos < G.zMin || z_pos >= G.zMax ) in_local = false;
+    if ( ! in_local  ) {
+      std::cout << " Particle Transfer Error:  indx: " << pIndx  << "  procID: " << procID << std::endl;
+      #ifdef PARTICLE_IDS
+      std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
+      #else
+      std::cout << " Particle outside Loacal  domain " << std::endl;
+      #endif
+      std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
+      std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;
+      std::cout << "  Domain Z: " << G.zMin <<  "  " << G.zMax << std::endl;
+      std::cout << "  Particle X: " << x_pos << std::endl;
+      std::cout << "  Particle Y: " << y_pos << std::endl;
+      std::cout << "  Particle Z: " << z_pos << std::endl;
+    }
+  }
+  
+  
+  int n_in_out_vectors, n_in_vectors;
   n_in_vectors =  pos_x.size() + pos_y.size() + pos_z.size() + vel_x.size() + vel_y.size() + vel_z.size() ;
   #ifndef SINGLE_PARTICLE_MASS
   n_in_vectors += mass.size();
@@ -57,8 +166,6 @@ void Particles_3D::Remove_Transfered_Particles( void ){
   #ifdef PARTICLE_IDS
   n_in_vectors += partIDs.size();
   #endif
-
-
 
   if ( n_in_vectors != n_local * N_DATA_PER_PARTICLE_TRANSFER ){
     std::cout << "ERROR PARTICLES TRANSFER: DATA IN VECTORS DIFFERENT FROM N_LOCAL###########" << std::endl;
@@ -385,36 +492,45 @@ void Particles_3D::Load_Particles_to_Buffer( int direction, int side, Real *send
 
   part_int_t indx, pIndx;
   for ( indx=0; indx<n_out; indx++ ){
-    pIndx = out_indxs_vec->back();
-    send_buffer[ offset + 0 ] = Get_and_Remove_Real( pIndx, pos_x );
-    send_buffer[ offset + 1 ] = Get_and_Remove_Real( pIndx, pos_y );
-    send_buffer[ offset + 2 ] = Get_and_Remove_Real( pIndx, pos_z );
-    send_buffer[ offset + 3 ] = Get_and_Remove_Real( pIndx, vel_x );
-    send_buffer[ offset + 4 ] = Get_and_Remove_Real( pIndx, vel_y );
-    send_buffer[ offset + 5 ] = Get_and_Remove_Real( pIndx, vel_z );
+    // pIndx = out_indxs_vec->back();
+    pIndx = (*out_indxs_vec)[indx];
+    send_buffer[ offset + 0 ] = pos_x[pIndx];
+    send_buffer[ offset + 1 ] = pos_y[pIndx];
+    send_buffer[ offset + 2 ] = pos_z[pIndx];
+    send_buffer[ offset + 3 ] = vel_x[pIndx];
+    send_buffer[ offset + 4 ] = vel_y[pIndx];
+    send_buffer[ offset + 5 ] = vel_z[pIndx];
+    // send_buffer[ offset + 0 ] = Get_and_Remove_Real( pIndx, pos_x );
+    // send_buffer[ offset + 1 ] = Get_and_Remove_Real( pIndx, pos_y );
+    // send_buffer[ offset + 2 ] = Get_and_Remove_Real( pIndx, pos_z );
+    // send_buffer[ offset + 3 ] = Get_and_Remove_Real( pIndx, vel_x );
+    // send_buffer[ offset + 4 ] = Get_and_Remove_Real( pIndx, vel_y );
+    // send_buffer[ offset + 5 ] = Get_and_Remove_Real( pIndx, vel_z );
 
     offset_extra = offset + 5;
     #ifndef SINGLE_PARTICLE_MASS
     offset_extra += 1;
-    send_buffer[ offset_extra ] = Get_and_Remove_Real( pIndx, mass );
+    // send_buffer[ offset_extra ] = Get_and_Remove_Real( pIndx, mass );
+    send_buffer[ offset_extra ] = mass[pIndx];
     #endif
     #ifdef PARTICLE_IDS
     offset_extra += 1;
-    send_buffer[ offset_extra ] = (Real) Get_and_Remove_partID( pIndx, partIDs );
+    // send_buffer[ offset_extra ] = (Real) Get_and_Remove_partID( pIndx, partIDs );
+    send_buffer[ offset_extra ] = (Real) partIDs[pIndx];
     #endif
 
-    Remove_Real( pIndx, grav_x );
-    Remove_Real( pIndx, grav_y );
-    Remove_Real( pIndx, grav_z );
+    // Remove_Real( pIndx, grav_x );
+    // Remove_Real( pIndx, grav_y );
+    // Remove_Real( pIndx, grav_z );
     // *n_send += 1;
-    n_local -= 1;
+    // n_local -= 1;
     *n_in_buffer += 1;
-    out_indxs_vec->pop_back();
+    // out_indxs_vec->pop_back();
     offset += N_DATA_PER_PARTICLE_TRANSFER;
     if ( offset > buffer_length ) std::cout << "ERROR: Buffer length exceeded on particles transfer" << std::endl;
   }
 
-  if (out_indxs_vec->size() > 0 ) std::cout << "ERROR: Particle output vector not empty after transfer " << std::endl;
+  // if (out_indxs_vec->size() > 0 ) std::cout << "ERROR: Particle output vector not empty after transfer " << std::endl;
 }
 
 
@@ -449,6 +565,27 @@ void Particles_3D::Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer,
 void Particles_3D::Add_Particle_To_Vectors( Real pId, Real pMass,
                             Real pPos_x, Real pPos_y, Real pPos_z,
                             Real pVel_x, Real pVel_y, Real pVel_z ){
+  
+  bool in_local = true;                            
+  if ( pPos_x < G.xMin || pPos_x >= G.xMax ) in_local = false;
+  if ( pPos_y < G.yMin || pPos_y >= G.yMax ) in_local = false;
+  if ( pPos_z < G.zMin || pPos_z >= G.zMax ) in_local = false;
+  if ( ! in_local  ) {
+    std::cout << " Adding particle out of local domain to vectors Error:" << std::endl;
+    #ifdef PARTICLE_IDS
+    std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
+    #else
+    std::cout << " Particle outside Loacal  domain " << std::endl;
+    #endif
+    std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
+    std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;
+    std::cout << "  Domain Z: " << G.zMin <<  "  " << G.zMax << std::endl;
+    std::cout << "  Particle X: " << pPos_x << std::endl;
+    std::cout << "  Particle Y: " << pPos_y << std::endl;
+    std::cout << "  Particle Z: " << pPos_z << std::endl;
+  }
+                              
+                              
   pos_x.push_back( pPos_x );
   pos_y.push_back( pPos_y );
   pos_z.push_back( pPos_z );
@@ -593,6 +730,54 @@ void Particles_3D::Unload_Particles_from_Buffer( int direction, int side, Real *
 }
 
 
+void Particles_3D::Select_Particles_to_Transfer_All( void ){
+
+  Clear_Vectors_For_Transfers();
+
+  part_int_t pIndx;
+  for ( pIndx=0; pIndx<n_local; pIndx++ ){
+    // if (procID == 0) std::cout << pIndx << std::endl;
+    if ( pos_x[pIndx] < G.xMin ){
+      out_indxs_vec_x0.push_back( pIndx );
+      continue;
+    }
+    if ( pos_x[pIndx] >= G.xMax ){
+      out_indxs_vec_x1.push_back( pIndx );
+      continue;
+    }
+    if ( pos_y[pIndx] < G.yMin ){
+      out_indxs_vec_y0.push_back( pIndx );
+      continue;
+    }
+    if ( pos_y[pIndx] >= G.yMax ){
+      out_indxs_vec_y1.push_back( pIndx );
+      continue;
+    }
+    if ( pos_z[pIndx] < G.zMin ){
+        out_indxs_vec_z0.push_back( pIndx );
+      continue;
+    }
+    if ( pos_z[pIndx] >= G.zMax ){
+        out_indxs_vec_z1.push_back( pIndx );
+      continue;
+    }
+  }
+
+  std::sort(out_indxs_vec_x0.begin(), out_indxs_vec_x0.end());
+  std::sort(out_indxs_vec_x1.begin(), out_indxs_vec_x1.end());
+  std::sort(out_indxs_vec_y0.begin(), out_indxs_vec_y0.end());
+  std::sort(out_indxs_vec_y1.begin(), out_indxs_vec_y1.end());
+  std::sort(out_indxs_vec_z0.begin(), out_indxs_vec_z0.end());
+  std::sort(out_indxs_vec_z1.begin(), out_indxs_vec_z1.end());
+  
+  n_send_x0 += out_indxs_vec_x0.size();
+  n_send_x1 += out_indxs_vec_x1.size();
+  n_send_y0 += out_indxs_vec_y0.size();
+  n_send_y1 += out_indxs_vec_y1.size();
+  n_send_z0 += out_indxs_vec_z0.size();
+  n_send_z1 += out_indxs_vec_z1.size();
+
+}
 
 void Particles_3D::Select_Particles_to_Transfer( int dir ){
 
@@ -629,6 +814,7 @@ void Particles_3D::Select_Particles_to_Transfer( int dir ){
       if ( already_transfered ){
         continue;
       }
+      
       if ( pos_y[pIndx] < G.yMin ){
         out_indxs_vec_y0.push_back( pIndx );
         continue;
