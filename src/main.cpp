@@ -84,6 +84,11 @@ int main(int argc, char *argv[])
     nfile = P.nfile*P.nfull;
   }
   
+  #ifdef DE
+  chprintf("\nUsing Dual Energy Formalism:\n eta: %f   beta: %f\n", DE_LIMIT, BETA_DUAL_ENERGY);
+  #endif
+  
+  
   #ifdef CPU_TIME
   G.Timer.Initialize();
   #endif
