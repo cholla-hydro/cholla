@@ -316,6 +316,14 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
       dev_conserved[(5+i)*n_cells + id] += dtodx * (dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id])
                                     +  dtody * (dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id])
                                     +  dtodz * (dev_F_z[(5+i)*n_cells + kmo] - dev_F_z[(5+i)*n_cells + id]);
+      #ifdef COOLING_GRACKLE
+      // If the updated value is negative, then revert to the value before the update
+      if ( dev_conserved[(5+i)*n_cells + id] < 0 ){
+        dev_conserved[(5+i)*n_cells + id] -= dtodx * (dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id])
+                                      +  dtody * (dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id])
+                                      +  dtodz * (dev_F_z[(5+i)*n_cells + kmo] - dev_F_z[(5+i)*n_cells + id]);
+      } 
+      #endif
     }                              
     #endif
     #ifdef DE
