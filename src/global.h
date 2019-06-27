@@ -55,6 +55,12 @@ typedef double Real;
 #define DE_LIMIT 0.02 //Parameter for Enzo dual Energy Condition
 #define BETA_DUAL_ENERGY 0.06 //Parameter for Teyssier 2015 Dual Energy Condition
 
+#define DUAL_ENERGY_ETA_0 0.01
+#define DUAL_ENERGY_ETA_1 1.0
+
+#define DUAL_ENERGY_BETA_0 0.06
+#define DUAL_ENERGY_BETA_1 0.00
+
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.001
 // #define MAX_DELTA_A 0.0

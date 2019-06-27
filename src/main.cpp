@@ -85,7 +85,11 @@ int main(int argc, char *argv[])
   }
   
   #ifdef DE
-  chprintf("\nUsing Dual Energy Formalism:\n eta: %f   beta: %f\n", DE_LIMIT, BETA_DUAL_ENERGY);
+  chprintf("\nUsing Dual Energy Formalism:\n eta_0: %0.3f   beta_0: %0.3f    beta_1: %0.3f\n", DUAL_ENERGY_ETA_0, DUAL_ENERGY_BETA_0, DUAL_ENERGY_BETA_1);
+  char *message = (char*)malloc(50 * sizeof(char));
+  sprintf(message, " eta_0: %0.3f   beta_0: %0.3f   beta_1: %0.3f", DUAL_ENERGY_ETA_0, DUAL_ENERGY_BETA_0, DUAL_ENERGY_BETA_1 );
+  if ( procID == 0 ) Write_Message_To_Log_File( message );
+  G.Write_DE_Eta_Beta_File();
   #endif
   
   
@@ -155,7 +159,7 @@ int main(int argc, char *argv[])
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
   while (G.H.t < P.tout)
-  // while (G.H.n_step < 20)
+  // while (G.H.n_step < 0)
   {
     chprintf("n_step: %d \n", G.H.n_step + 1 );
     // get the start time

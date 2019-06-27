@@ -6,6 +6,14 @@
 #include<stdlib.h>
 #include"math.h"
 #include <iostream>
+#include"io.h"
+#include<stdarg.h>
+#include<string.h>
+#include <iostream>
+#include <fstream>
+#include<ctime>
+
+using namespace std;
 
 #ifdef PARALLEL_OMP
 #include"parallel_omp.h"
@@ -17,12 +25,69 @@
 
 
 
+void Grid3D::Write_DE_Eta_Beta_File( ){
+  
+  string file_name ( "dual_energy_eta_beta.dat" );
+  chprintf( "\nCreating Eta-Beta File: %s \n\n", file_name.c_str() );
+  
+  bool file_exists = false;
+  if (FILE *file = fopen(file_name.c_str(), "r")){
+    file_exists = true;
+    chprintf( "  File exists, appending values: %s \n\n", file_name.c_str() );
+    fclose( file );
+  } 
+  
+  // current date/time based on current system
+  time_t now = time(0);
+  // convert now to string form
+  char* dt = ctime(&now);
+  
+  int i, n_steps;
+  n_steps = 100;
+  
+  Real E, U, eta, beta, delta_U;
+  E = 1.0;
+  U = E * DUAL_ENERGY_ETA_0;
+  delta_U = ( E - U ) / ( n_steps - 1 );
+    
+  ofstream out_file;
+  if ( procID == 0 ){
+    out_file.open(file_name.c_str() );
+    out_file << "# eta beta" << endl;
+    for ( i=0; i<n_steps; i++ ){
+      eta = U / E;
+      beta = Get_Dual_Energy_Beta( E, U );      
+      out_file << eta << " " << beta << endl;
+      U += delta_U;
+    }
+    out_file.close();
+  }
+}
+
 int Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected ){
 
   Real eta = DE_LIMIT;
   
   if( U_total / E > eta ) return 0;
   else return 1;  
+}
+
+Real Grid3D::Get_Dual_Energy_Beta( Real E, Real U_total ){
+  
+  Real x_0, x_1;
+  Real eta_0, eta_1, beta_0, beta_1, eta, beta;
+  eta_0 = DUAL_ENERGY_ETA_0;
+  eta_1 = DUAL_ENERGY_ETA_1;
+  beta_0 = DUAL_ENERGY_BETA_0;
+  beta_1 = DUAL_ENERGY_BETA_1;
+  
+  eta = U_total / E;
+  
+  x_0 = log10( eta_0 );
+  x_1 = log10( eta_1 );
+  
+  beta = ( beta_1 - beta_0 ) / ( x_1 - x_0 ) * ( log10(eta) - x_0 )  + beta_0;
+  return beta;  
 }
 
 void Grid3D::Sync_Energies_3D_CPU(){
@@ -71,8 +136,11 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
   int k_g, j_g, i_g;
   int flag_DE;
   
-  Real eta = DE_LIMIT;
-  Real Beta_DE = BETA_DUAL_ENERGY;
+  // Real eta = DE_LIMIT;
+  // Real Beta_DE = BETA_DUAL_ENERGY;
+  
+  Real eta, Beta_DE;
+  eta = DUAL_ENERGY_ETA_0;
 
   Real v_l, v_r, delta_vx, delta_vy, delta_vz, delta_v2, ge_trunc;
 
@@ -127,6 +195,9 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         
         //Get the truncation error (Teyssier 2015)
         ge_trunc = 0.5 * d * delta_v2;
+        
+        //Get Beta as a function of the internal energy fraction
+        Beta_DE = Get_Dual_Energy_Beta( E, ge_total );
                 
         if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta && ge_total > 0.5*ge_advected && ( ge_total > Beta_DE * ge_trunc ) ){
           U = ge_total;
@@ -171,7 +242,7 @@ void Grid3D::Apply_Temperature_Floor_CPU_function( int g_start, int g_end ){
   Real temp_floor = H.temperature_floor;
   
   #ifdef COOLING_GRACKLE
-  if ( Cosmo.current_a > Cool.scale_factor_UVB_on ) temp_floor = 3e2;
+  if ( Cosmo.current_a > Cool.scale_factor_UVB_on ) temp_floor = 1;
   #endif 
   
   Real U_floor = temp_floor / (gama - 1) / MP * KB * 1e-10;
