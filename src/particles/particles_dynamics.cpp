@@ -231,26 +231,43 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_
   Real scale_factor = Cosmo.Scale_Function( Cosmo.current_a , Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K  ) / Cosmo.H0 * Cosmo.cosmo_h;
   Real a2 = ( Cosmo.current_a )*( Cosmo.current_a  );
   Real vel_factor = a2 / scale_factor;
+  Real vx_max, vy_max, vz_max;
+  vx_max = 0;
+  vy_max = 0;
+  vz_max = 0;
 
-
-  for ( pID=0; pID<Particles.n_local; pID++ ){
-    vel = fabs(Particles.vel_x[pID]);
-    if ( vel > 0){
-      da = Particles.G.dx * vel_factor / vel;
-      da_min = std::min( da_min, da);
-    }
-    vel = fabs(Particles.vel_y[pID]);
-    if ( vel > 0){
-      da = Particles.G.dy * vel_factor / vel;
-      da_min = std::min( da_min, da);
-    }
-    vel = fabs(Particles.vel_z[pID]);
-    if ( vel > 0){
-      da = Particles.G.dz * vel_factor / vel;
-      da_min = std::min( da_min, da);
-    }
+  for ( pID=p_start; pID<p_end; pID++ ){
+    vx_max = fmax( vx_max,  fabs(Particles.vel_x[pID]) );
+    vy_max = fmax( vy_max,  fabs(Particles.vel_y[pID]) );
+    vz_max = fmax( vz_max,  fabs(Particles.vel_z[pID]) );  
   } 
+  
+  da_min = fmin( Particles.G.dx / vx_max, Particles.G.dy / vy_max  );
+  da_min = fmin( Particles.G.dz / vz_max, da_min  );
+  
+  da_min *= vel_factor;
+  
   dt_min = Cosmo.Get_dt_from_da( da_min );
+
+
+  // for ( pID=0; pID<Particles.n_local; pID++ ){
+  //   vel = fabs(Particles.vel_x[pID]);
+  //   if ( vel > 0){
+  //     da = Particles.G.dx * vel_factor / vel;
+  //     da_min = std::min( da_min, da);
+  //   }
+  //   vel = fabs(Particles.vel_y[pID]);
+  //   if ( vel > 0){
+  //     da = Particles.G.dy * vel_factor / vel;
+  //     da_min = std::min( da_min, da);
+  //   }
+  //   vel = fabs(Particles.vel_z[pID]);
+  //   if ( vel > 0){
+  //     da = Particles.G.dz * vel_factor / vel;
+  //     da_min = std::min( da_min, da);
+  //   }
+  // } 
+  // dt_min = Cosmo.Get_dt_from_da( da_min );
   return Particles.C_cfl * dt_min;
 }
   
