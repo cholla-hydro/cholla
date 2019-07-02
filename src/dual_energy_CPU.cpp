@@ -339,7 +339,7 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         }
         
         //NOTE: If Density Curvature Same and Pressure Change Have to BOTH be satisfied for Shock detection, then they have to be
-        // evaluated for jointly for each direcction and AND condition satisfied.  
+        // evaluated jointly for each direcction and AND condition satisfied.  
         
         //Set the Internal Energy
         C.Energy[id] = Ek + U;
