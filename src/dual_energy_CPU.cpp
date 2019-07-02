@@ -316,6 +316,11 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
           pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );
         }
         
+        if ( pressure_jump ){
+          U = ge_total;
+          flag_DE = 0;
+        }
+        
         // The second derivative of the density profile has the same sign on adjacent cells
         density_curvature_same = true;
         
