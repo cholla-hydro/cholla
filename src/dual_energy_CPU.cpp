@@ -133,7 +133,8 @@ Real Grid3D::Get_Pressure_From_Energy( int indx ){
 
 bool Get_Pressure_Jump( Real gamma, Real rho_l, Real rho_r, Real p_l, Real p_r ){
   bool pressure_jump = false;
-  if ( ( fabs( p_r - p_l ) / fmin( p_r, p_l) ) > ( 0.1 * gamma *  fabs( rho_r - rho_l ) / fmin( rho_r, rho_l)  ) ) pressure_jump = true;
+  if ( ( fabs( p_r - p_l ) / fmin( p_r, p_l) ) > ( 10.0 * gamma *  fabs( rho_r - rho_l ) / fmin( rho_r, rho_l)  ) ) pressure_jump = true;
+  if ( ( fabs( rho_r - rho_l ) / fmin( rho_r, rho_l) ) < 0.01 ) pressure_jump = false; 
   return pressure_jump;
 }
 
@@ -298,13 +299,14 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         p_r = Get_Pressure_From_Energy( ipo );
         pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );
         
+        
         //Y direction
         if ( !pressure_jump ){
           rho_l = C.density[jmo]; 
           rho_r = C.density[jpo]; 
           p_l = Get_Pressure_From_Energy( jmo );
           p_r = Get_Pressure_From_Energy( jpo );
-          pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );
+          pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );    
         }
         
         //Z direction
@@ -317,33 +319,33 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         }
         
         //If the pressure Jump is large enough, use the Total Internal Energy
-        if ( pressure_jump ){
+        if ( pressure_jump  && ( ge_total > ge_advected ) ) {
           U = ge_total;
           flag_DE = 0;
         }
         
-        // The second derivative of the density profile has the same sign on adjacent cells
-        density_curvature_same = true;
-        
-        //X direcction
-        d2_rho_l = Get_Second_Derivative( i-1, j, k, 0, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-        d2_rho_r = Get_Second_Derivative( i+1, j, k, 0, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-        if ( d2_rho_l * d2_rho_r < 0 ) density_curvature_same = false;
-          
-        //Y direcction
-        if (!density_curvature_same){
-          d2_rho_l = Get_Second_Derivative( i, j-1, k, 1, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-          d2_rho_r = Get_Second_Derivative( i, j+1, k, 1, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-          if ( d2_rho_l * d2_rho_r < 0 ) density_curvature_same = false;
-        }
-        
-        //Z direcction
-        if (!density_curvature_same){
-          d2_rho_l = Get_Second_Derivative( i, j, k-1, 2, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-          d2_rho_r = Get_Second_Derivative( i, j, k+1, 2, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-          if ( d2_rho_l * d2_rho_r < 0 ) density_curvature_same = false;
-        }
-        
+        // // The second derivative of the density profile has the same sign on adjacent cells
+        // density_curvature_same = true;
+        // 
+        // //X direcction
+        // d2_rho_l = Get_Second_Derivative( i-1, j, k, 0, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
+        // d2_rho_r = Get_Second_Derivative( i+1, j, k, 0, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
+        // if ( d2_rho_l * d2_rho_r < 0 ) density_curvature_same = false;
+        // 
+        // //Y direcction
+        // if (!density_curvature_same){
+        //   d2_rho_l = Get_Second_Derivative( i, j-1, k, 1, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
+        //   d2_rho_r = Get_Second_Derivative( i, j+1, k, 1, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
+        //   if ( d2_rho_l * d2_rho_r < 0 ) density_curvature_same = false;
+        // }
+        // 
+        // //Z direcction
+        // if (!density_curvature_same){
+        //   d2_rho_l = Get_Second_Derivative( i, j, k-1, 2, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
+        //   d2_rho_r = Get_Second_Derivative( i, j, k+1, 2, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
+        //   if ( d2_rho_l * d2_rho_r < 0 ) density_curvature_same = false;
+        // }
+        // 
         //NOTE: If Density Curvature Same and Pressure Change Have to BOTH be satisfied for Shock detection, then they have to be
         // evaluated jointly for each direcction and AND condition satisfied.  
         
