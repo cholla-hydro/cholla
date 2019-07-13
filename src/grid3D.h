@@ -413,6 +413,9 @@ class Grid3D
     Real Get_Dual_Energy_Beta( Real E, Real U_total );
     Real Get_Average_Kinetic_Energy_function( int g_start, int g_end );
     void Get_Average_Kinetic_Energy();
+    Real Get_Pressure_From_Energy( int indx );
+    void Apply_Jeans_Length_Condition_function( int g_start, int g_end  );
+    void Apply_Jeans_Length_Condition( );
     #endif
     void Apply_Temperature_Floor_CPU_function( int g_start, int g_end );
 
