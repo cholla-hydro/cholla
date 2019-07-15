@@ -51,19 +51,19 @@ typedef double Real;
 #define TEMP_FLOOR 1.0
 #define DENS_FLOOR 1e-5
 
-//Ratio of U to E for wich Advected Inetrnal Energy is used
-#define DE_LIMIT 0.02 //Parameter for Enzo dual Energy Condition
-#define BETA_DUAL_ENERGY 0.06 //Parameter for Teyssier 2015 Dual Energy Condition
-
-#define DUAL_ENERGY_ETA_0 0.01
-#define DUAL_ENERGY_ETA_1 1.0
-
-#define DUAL_ENERGY_BETA_0 0.06
-#define DUAL_ENERGY_BETA_1 0.00
+//Parameter for Enzo dual Energy Condition
+#define DE_ETA_1 0.001 //Ratio of U to E for wich  Inetrnal Energy is used to compute the Pressure
+#define DE_ETA_2 0.030 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
+ 
+// #define DUAL_ENERGY_ETA_0 0.001
+// #define DUAL_ENERGY_ETA_1 1.0
+// 
+// #define DUAL_ENERGY_BETA_0 0.00
+// #define DUAL_ENERGY_BETA_1 0.00
 
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.001
-// #define MAX_DELTA_A 0.0
+
 
 
 #ifdef COOLING_GRACKLE

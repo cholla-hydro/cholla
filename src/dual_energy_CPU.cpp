@@ -127,36 +127,36 @@ void Grid3D::Write_DE_Eta_Beta_File( ){
     fclose( file );
   } 
   
-  // current date/time based on current system
-  time_t now = time(0);
-  // convert now to string form
-  char* dt = ctime(&now);
-  
-  int i, n_steps;
-  n_steps = 100;
-  
-  Real E, U, eta, beta, delta_U;
-  E = 1.0;
-  U = E * DUAL_ENERGY_ETA_0;
-  delta_U = ( E - U ) / ( n_steps - 1 );
-    
-  ofstream out_file;
-  if ( procID == 0 ){
-    out_file.open(file_name.c_str() );
-    out_file << "# eta beta" << endl;
-    for ( i=0; i<n_steps; i++ ){
-      eta = U / E;
-      beta = Get_Dual_Energy_Beta( E, U );      
-      out_file << eta << " " << beta << endl;
-      U += delta_U;
-    }
-    out_file.close();
-  }
+  // // current date/time based on current system
+  // time_t now = time(0);
+  // // convert now to string form
+  // char* dt = ctime(&now);
+  // 
+  // int i, n_steps;
+  // n_steps = 100;
+  // 
+  // Real E, U, eta, beta, delta_U;
+  // E = 1.0;
+  // U = E * DUAL_ENERGY_ETA_0;
+  // delta_U = ( E - U ) / ( n_steps - 1 );
+  // 
+  // ofstream out_file;
+  // if ( procID == 0 ){
+  //   out_file.open(file_name.c_str() );
+  //   out_file << "# eta beta" << endl;
+  //   for ( i=0; i<n_steps; i++ ){
+  //     eta = U / E;
+  //     beta = Get_Dual_Energy_Beta( E, U );      
+  //     out_file << eta << " " << beta << endl;
+  //     U += delta_U;
+  //   }
+  //   out_file.close();
+  // }
 }
 
 int Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected ){
 
-  Real eta = DE_LIMIT;
+  Real eta = DE_ETA_1;
   
   if( U_total / E > eta ) return 0;
   else return 1;  
@@ -164,20 +164,20 @@ int Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advecte
 
 Real Grid3D::Get_Dual_Energy_Beta( Real E, Real U_total ){
   
-  Real x_0, x_1;
-  Real eta_0, eta_1, beta_0, beta_1, eta, beta;
-  eta_0 = DUAL_ENERGY_ETA_0;
-  eta_1 = DUAL_ENERGY_ETA_1;
-  beta_0 = DUAL_ENERGY_BETA_0;
-  beta_1 = DUAL_ENERGY_BETA_1;
-  
-  eta = U_total / E;
-  
-  x_0 = log10( eta_0 );
-  x_1 = log10( eta_1 );
-  
-  beta = ( beta_1 - beta_0 ) / ( x_1 - x_0 ) * ( log10(eta) - x_0 )  + beta_0;
-  return beta;  
+  // Real x_0, x_1;
+  // Real eta_0, eta_1, beta_0, beta_1, eta, beta;
+  // eta_0 = DUAL_ENERGY_ETA_0;
+  // eta_1 = DUAL_ENERGY_ETA_1;
+  // beta_0 = DUAL_ENERGY_BETA_0;
+  // beta_1 = DUAL_ENERGY_BETA_1;
+  // 
+  // eta = U_total / E;
+  // 
+  // x_0 = log10( eta_0 );
+  // x_1 = log10( eta_1 );
+  // 
+  // beta = ( beta_1 - beta_0 ) / ( x_1 - x_0 ) * ( log10(eta) - x_0 )  + beta_0;
+  // return beta;  
 }
 
 void Grid3D::Sync_Energies_3D_CPU(){
@@ -281,11 +281,12 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
   // Real eta = DE_LIMIT;
   // Real Beta_DE = BETA_DUAL_ENERGY;
   
-  Real eta_1, eta_2, Beta_DE;
-  eta_1 = DE_LIMIT;
-  eta_2 = 0.040;
+  // Real eta_1, eta_2, Beta_DE;
+  // eta_1 = DE_ETA_1;
+  Real eta_2;
+  eta_2 = DE_ETA_2;
   
-  Real v_l, v_r, delta_vx, delta_vy, delta_vz, delta_v2, ge_trunc;
+  // Real v_l, v_r, delta_vx, delta_vy, delta_vz, delta_v2, ge_trunc;
 
   //Shock detection
   Real p_l, p_r, rho_l, rho_r;
@@ -320,44 +321,6 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         ge_total = E - Ek;
         ge_advected = C.GasEnergy[id];
 
-        //New Dual Enegy Condition from Teyssier 2015
-        //Get delta velocity
-        
-        //X direcction
-        v_l = C.momentum_x[imo] / C.density[imo];
-        v_r = C.momentum_x[ipo] / C.density[ipo];
-        delta_vx = v_r - v_l;
-        
-        //Y direcction
-        v_l = C.momentum_y[jmo] / C.density[jmo];
-        v_r = C.momentum_y[jpo] / C.density[jpo];
-        delta_vy = v_r - v_l;
-        
-        //Z direcction
-        v_l = C.momentum_z[kmo] / C.density[kmo];
-        v_r = C.momentum_z[kpo] / C.density[kpo];
-        delta_vz = v_r - v_l;
-        
-        delta_v2 = delta_vx*delta_vx + delta_vy*delta_vy + delta_vz*delta_vz; 
-        
-        //Get the truncation error (Teyssier 2015)
-        ge_trunc = 0.5 * d * delta_v2;
-        
-        //Get Beta as a function of the internal energy fraction
-        Beta_DE = Get_Dual_Energy_Beta( E, ge_total );
-        
-        // eta_val = ge_total / E;
-        // beta_val = ge_total / ge_trunc;
-                
-        // if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta_1 && ge_total > 0.5*ge_advected && ( ge_total > Beta_DE * ge_trunc ) ){
-        //   U = ge_total;
-        //   flag_DE = 0;
-        // }            
-        // else{
-        //   U = ge_advected;
-        //   flag_DE = 1;
-        // }
-        
         //Syncronize advected internal energy with total internal energy when using total internal energy based on local maxEnergy condition
         //find the max nearby total energy
         Emax = E;
@@ -375,6 +338,46 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
           U = ge_advected;
           flag_DE = 1;
         }
+        
+
+        //New Dual Enegy Condition from Teyssier 2015
+        //Get delta velocity
+        
+        // //X direcction
+        // v_l = C.momentum_x[imo] / C.density[imo];
+        // v_r = C.momentum_x[ipo] / C.density[ipo];
+        // delta_vx = v_r - v_l;
+        // 
+        // //Y direcction
+        // v_l = C.momentum_y[jmo] / C.density[jmo];
+        // v_r = C.momentum_y[jpo] / C.density[jpo];
+        // delta_vy = v_r - v_l;
+        // 
+        // //Z direcction
+        // v_l = C.momentum_z[kmo] / C.density[kmo];
+        // v_r = C.momentum_z[kpo] / C.density[kpo];
+        // delta_vz = v_r - v_l;
+        // 
+        // delta_v2 = delta_vx*delta_vx + delta_vy*delta_vy + delta_vz*delta_vz; 
+        // 
+        // //Get the truncation error (Teyssier 2015)
+        // ge_trunc = 0.5 * d * delta_v2;
+        // 
+        // //Get Beta as a function of the internal energy fraction
+        // Beta_DE = Get_Dual_Energy_Beta( E, ge_total );
+        
+        // eta_val = ge_total / E;
+        // beta_val = ge_total / ge_trunc;
+                
+        // if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta_1 && ge_total > 0.5*ge_advected && ( ge_total > Beta_DE * ge_trunc ) ){
+        //   U = ge_total;
+        //   flag_DE = 0;
+        // }            
+        // else{
+        //   U = ge_advected;
+        //   flag_DE = 1;
+        // }
+        
         
         
         // 
