@@ -24,6 +24,96 @@ using namespace std;
 #endif
 
 
+#ifdef JEANS_CONDITION
+void Grid3D::Apply_Jeans_Length_Condition( ){
+
+  #ifndef PARALLEL_OMP
+  Apply_Jeans_Length_Condition_function( 0, H.nz_real );
+  #else
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
+
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Grid_Indxs( H.nz_real, n_omp_procs, omp_id, &g_start, &g_end  );
+
+    Apply_Jeans_Length_Condition_function( g_start, g_end );
+    
+  }
+  #endif
+    
+}
+
+
+
+void Grid3D::Apply_Jeans_Length_Condition_function( int g_start, int g_end ){
+  
+  
+  int nx_grid, ny_grid, nz_grid, nGHST_grid;
+  nGHST_grid = H.n_ghost;
+  nx_grid = H.nx;
+  ny_grid = H.ny;
+  nz_grid = H.nz;
+
+  int nx, ny, nz;
+  nx = H.nx_real;
+  ny = H.ny_real;
+  nz = H.nz_real;
+
+  int nGHST = nGHST_grid ;
+  Real d, d_inv, vx, vy, vz, E, Ek, p;
+  int k, j, i, id;
+  int k_g, j_g, i_g;
+  
+  Real dens_conv, dx, G, pressure_conv, p_jeans, K, rho, mu;
+  // dens_conv = Cosmo.rho_0_gas / Cosmo.current_a / Cosmo.current_a / Cosmo.current_;
+  dens_conv = Cosmo.rho_0_gas;
+  G = G_COSMO;  //G_COSMO
+  dx = fmax( H.dx, H.dy );
+  dx = fmax( H.dz, dx );
+  // dx *= Cosmo.current_a;
+  
+  mu = 1.22;
+  K = 100;
+  
+  for ( k_g=g_start; k_g<g_end; k_g++ ){
+    for ( j_g=0; j_g<ny; j_g++ ){
+      for ( i_g=0; i_g<nx; i_g++ ){
+
+        i = i_g + nGHST;
+        j = j_g + nGHST;
+        k = k_g + nGHST;
+        id  = (i) + (j)*nx_grid + (k)*ny_grid*nx_grid;        
+        
+        d = C.density[id];
+        d_inv = 1/d;
+        vx = C.momentum_x[id] * d_inv;
+        vy = C.momentum_y[id] * d_inv;
+        vz = C.momentum_z[id] * d_inv;
+        E = C.Energy[id];
+        Ek = 0.5*d*(vx*vx + vy*vy + vz*vz);
+        // ge_advected = C.GasEnergy[id];
+        // ge_total = E - Ek;
+        p = (gama - 1) * ( E - Ek );
+        
+        //Convert to physical units
+        rho = d * Cosmo.rho_0_gas; 
+        p_jeans = K * G * rho * rho * dx * dx / mu;
+        p_jeans *= 1. / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas; //Convert to internal code units; 
+        p_jeans *= Cosmo.current_a * Cosmo.current_a; //Convert to comuving internal units
+        // chprintf( "%f \n",  p/p_jeans );
+        
+        // if ( p_jeans > p ) Cool.flags_DE[id] = 2; 
+        
+      }
+    }
+  }
+  
+}
+
+#endif
 
 void Grid3D::Write_DE_Eta_Beta_File( ){
   
@@ -191,11 +281,10 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
   // Real eta = DE_LIMIT;
   // Real Beta_DE = BETA_DUAL_ENERGY;
   
-  Real eta, Beta_DE;
-  eta = DUAL_ENERGY_ETA_0;
+  Real eta_1, eta_2, Beta_DE;
+  eta_1 = DE_LIMIT;
+  eta_2 = 0.040;
   
-  Real eta_val,  beta_val;
-
   Real v_l, v_r, delta_vx, delta_vy, delta_vz, delta_v2, ge_trunc;
 
   //Shock detection
@@ -257,72 +346,73 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         //Get Beta as a function of the internal energy fraction
         Beta_DE = Get_Dual_Energy_Beta( E, ge_total );
         
-        eta_val = ge_total / E;
-        beta_val = ge_total / ge_trunc;
-        #ifdef COOLING_GRACKLE
-        Cool.eta_value[id] = eta_val;
-        Cool.beta_value[id] = beta_val;
-        #endif
+        // eta_val = ge_total / E;
+        // beta_val = ge_total / ge_trunc;
                 
-        if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta && ge_total > 0.5*ge_advected && ( ge_total > Beta_DE * ge_trunc ) ){
+        // if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta_1 && ge_total > 0.5*ge_advected && ( ge_total > Beta_DE * ge_trunc ) ){
+        //   U = ge_total;
+        //   flag_DE = 0;
+        // }            
+        // else{
+        //   U = ge_advected;
+        //   flag_DE = 1;
+        // }
+        
+        //Syncronize advected internal energy with total internal energy when using total internal energy based on local maxEnergy condition
+        //find the max nearby total energy
+        Emax = E;
+        Emax = std::max(Emax, C.Energy[imo]);
+        Emax = std::max(Emax, C.Energy[ipo]);
+        Emax = std::max(Emax, C.Energy[jmo]);
+        Emax = std::max(Emax, C.Energy[jpo]);
+        Emax = std::max(Emax, C.Energy[kmo]);
+        Emax = std::max(Emax, C.Energy[kpo]);
+        if (ge_total/Emax > eta_2 ){
           U = ge_total;
           flag_DE = 0;
-        }            
+        }
         else{
           U = ge_advected;
           flag_DE = 1;
         }
         
-        // //Syncronize advected internal energy with total internal energy when using total internal energy based on local maxEnergy condition
-        // //find the max nearby total energy
-        // Emax = E;
-        // Emax = std::max(C.Energy[imo], E);
-        // Emax = std::max(Emax, C.Energy[ipo]);
-        // Emax = std::max(Emax, C.Energy[jmo]);
-        // Emax = std::max(Emax, C.Energy[jpo]);
-        // Emax = std::max(Emax, C.Energy[kmo]);
-        // Emax = std::max(Emax, C.Energy[kpo]);
-        // if (ge_total/Emax > 0.1 && ge_total > 0.0 && Emax > 0.0){
+        
+        // 
+        // //Shock detection: Fryxell, 2000
+        // //The pressure jump must be sufficiently large
+        // pressure_jump = false;
+        // 
+        // //X direction
+        // rho_l = C.density[imo]; 
+        // rho_r = C.density[ipo]; 
+        // p_l = Get_Pressure_From_Energy( imo );
+        // p_r = Get_Pressure_From_Energy( ipo );
+        // pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );
+        // 
+        // 
+        // //Y direction
+        // if ( !pressure_jump ){
+        //   rho_l = C.density[jmo]; 
+        //   rho_r = C.density[jpo]; 
+        //   p_l = Get_Pressure_From_Energy( jmo );
+        //   p_r = Get_Pressure_From_Energy( jpo );
+        //   pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );    
+        // }
+        // 
+        // //Z direction
+        // if ( !pressure_jump ){
+        //   rho_l = C.density[kmo]; 
+        //   rho_r = C.density[kpo]; 
+        //   p_l = Get_Pressure_From_Energy( kmo );
+        //   p_r = Get_Pressure_From_Energy( kpo );
+        //   pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );
+        // }
+        // 
+        // //If the pressure Jump is large enough, use the Total Internal Energy
+        // if ( pressure_jump  && ( ge_total > ge_advected ) ) {
         //   U = ge_total;
         //   flag_DE = 0;
         // }
-        
-        
-        //Shock detection: Fryxell, 2000
-        //The pressure jump must be sufficiently large
-        pressure_jump = false;
-        
-        //X direction
-        rho_l = C.density[imo]; 
-        rho_r = C.density[ipo]; 
-        p_l = Get_Pressure_From_Energy( imo );
-        p_r = Get_Pressure_From_Energy( ipo );
-        pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );
-        
-        
-        //Y direction
-        if ( !pressure_jump ){
-          rho_l = C.density[jmo]; 
-          rho_r = C.density[jpo]; 
-          p_l = Get_Pressure_From_Energy( jmo );
-          p_r = Get_Pressure_From_Energy( jpo );
-          pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );    
-        }
-        
-        //Z direction
-        if ( !pressure_jump ){
-          rho_l = C.density[kmo]; 
-          rho_r = C.density[kpo]; 
-          p_l = Get_Pressure_From_Energy( kmo );
-          p_r = Get_Pressure_From_Energy( kpo );
-          pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );
-        }
-        
-        //If the pressure Jump is large enough, use the Total Internal Energy
-        if ( pressure_jump  && ( ge_total > ge_advected ) ) {
-          U = ge_total;
-          flag_DE = 0;
-        }
         
         // // The second derivative of the density profile has the same sign on adjacent cells
         // density_curvature_same = true;
