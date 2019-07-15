@@ -55,15 +55,8 @@ typedef double Real;
 #define DE_ETA_1 0.001 //Ratio of U to E for wich  Inetrnal Energy is used to compute the Pressure
 #define DE_ETA_2 0.030 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
  
-// #define DUAL_ENERGY_ETA_0 0.001
-// #define DUAL_ENERGY_ETA_1 1.0
-// 
-// #define DUAL_ENERGY_BETA_0 0.00
-// #define DUAL_ENERGY_BETA_1 0.00
-
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.001
-
 
 
 #ifdef COOLING_GRACKLE

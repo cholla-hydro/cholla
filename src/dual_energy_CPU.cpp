@@ -112,47 +112,8 @@ void Grid3D::Apply_Jeans_Length_Condition_function( int g_start, int g_end ){
   }
   
 }
-
 #endif
 
-void Grid3D::Write_DE_Eta_Beta_File( ){
-  
-  string file_name ( "dual_energy_eta_beta.dat" );
-  chprintf( "\nCreating Eta-Beta File: %s \n\n", file_name.c_str() );
-  
-  bool file_exists = false;
-  if (FILE *file = fopen(file_name.c_str(), "r")){
-    file_exists = true;
-    chprintf( "  File exists, appending values: %s \n\n", file_name.c_str() );
-    fclose( file );
-  } 
-  
-  // // current date/time based on current system
-  // time_t now = time(0);
-  // // convert now to string form
-  // char* dt = ctime(&now);
-  // 
-  // int i, n_steps;
-  // n_steps = 100;
-  // 
-  // Real E, U, eta, beta, delta_U;
-  // E = 1.0;
-  // U = E * DUAL_ENERGY_ETA_0;
-  // delta_U = ( E - U ) / ( n_steps - 1 );
-  // 
-  // ofstream out_file;
-  // if ( procID == 0 ){
-  //   out_file.open(file_name.c_str() );
-  //   out_file << "# eta beta" << endl;
-  //   for ( i=0; i<n_steps; i++ ){
-  //     eta = U / E;
-  //     beta = Get_Dual_Energy_Beta( E, U );      
-  //     out_file << eta << " " << beta << endl;
-  //     U += delta_U;
-  //   }
-  //   out_file.close();
-  // }
-}
 
 int Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected ){
 
@@ -160,24 +121,6 @@ int Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advecte
   
   if( U_total / E > eta ) return 0;
   else return 1;  
-}
-
-Real Grid3D::Get_Dual_Energy_Beta( Real E, Real U_total ){
-  
-  // Real x_0, x_1;
-  // Real eta_0, eta_1, beta_0, beta_1, eta, beta;
-  // eta_0 = DUAL_ENERGY_ETA_0;
-  // eta_1 = DUAL_ENERGY_ETA_1;
-  // beta_0 = DUAL_ENERGY_BETA_0;
-  // beta_1 = DUAL_ENERGY_BETA_1;
-  // 
-  // eta = U_total / E;
-  // 
-  // x_0 = log10( eta_0 );
-  // x_1 = log10( eta_1 );
-  // 
-  // beta = ( beta_1 - beta_0 ) / ( x_1 - x_0 ) * ( log10(eta) - x_0 )  + beta_0;
-  // return beta;  
 }
 
 void Grid3D::Sync_Energies_3D_CPU(){
@@ -278,21 +221,8 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
   int k_g, j_g, i_g;
   int flag_DE;
   
-  // Real eta = DE_LIMIT;
-  // Real Beta_DE = BETA_DUAL_ENERGY;
+  Real eta_2 = DE_ETA_2;
   
-  // Real eta_1, eta_2, Beta_DE;
-  // eta_1 = DE_ETA_1;
-  Real eta_2;
-  eta_2 = DE_ETA_2;
-  
-  // Real v_l, v_r, delta_vx, delta_vy, delta_vz, delta_v2, ge_trunc;
-
-  //Shock detection
-  Real p_l, p_r, rho_l, rho_r;
-  Real d2_rho_l, d2_rho_r;
-  bool pressure_jump, density_curvature_same;
-
   int imo, ipo, jmo, jpo, kmo, kpo;
   for ( k_g=g_start; k_g<g_end; k_g++ ){
     for ( j_g=0; j_g<ny; j_g++ ){
@@ -338,110 +268,7 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
           U = ge_advected;
           flag_DE = 1;
         }
-        
-
-        //New Dual Enegy Condition from Teyssier 2015
-        //Get delta velocity
-        
-        // //X direcction
-        // v_l = C.momentum_x[imo] / C.density[imo];
-        // v_r = C.momentum_x[ipo] / C.density[ipo];
-        // delta_vx = v_r - v_l;
-        // 
-        // //Y direcction
-        // v_l = C.momentum_y[jmo] / C.density[jmo];
-        // v_r = C.momentum_y[jpo] / C.density[jpo];
-        // delta_vy = v_r - v_l;
-        // 
-        // //Z direcction
-        // v_l = C.momentum_z[kmo] / C.density[kmo];
-        // v_r = C.momentum_z[kpo] / C.density[kpo];
-        // delta_vz = v_r - v_l;
-        // 
-        // delta_v2 = delta_vx*delta_vx + delta_vy*delta_vy + delta_vz*delta_vz; 
-        // 
-        // //Get the truncation error (Teyssier 2015)
-        // ge_trunc = 0.5 * d * delta_v2;
-        // 
-        // //Get Beta as a function of the internal energy fraction
-        // Beta_DE = Get_Dual_Energy_Beta( E, ge_total );
-        
-        // eta_val = ge_total / E;
-        // beta_val = ge_total / ge_trunc;
                 
-        // if (ge_total > 0.0 && E > 0.0 && ge_total/E > eta_1 && ge_total > 0.5*ge_advected && ( ge_total > Beta_DE * ge_trunc ) ){
-        //   U = ge_total;
-        //   flag_DE = 0;
-        // }            
-        // else{
-        //   U = ge_advected;
-        //   flag_DE = 1;
-        // }
-        
-        
-        
-        // 
-        // //Shock detection: Fryxell, 2000
-        // //The pressure jump must be sufficiently large
-        // pressure_jump = false;
-        // 
-        // //X direction
-        // rho_l = C.density[imo]; 
-        // rho_r = C.density[ipo]; 
-        // p_l = Get_Pressure_From_Energy( imo );
-        // p_r = Get_Pressure_From_Energy( ipo );
-        // pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );
-        // 
-        // 
-        // //Y direction
-        // if ( !pressure_jump ){
-        //   rho_l = C.density[jmo]; 
-        //   rho_r = C.density[jpo]; 
-        //   p_l = Get_Pressure_From_Energy( jmo );
-        //   p_r = Get_Pressure_From_Energy( jpo );
-        //   pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );    
-        // }
-        // 
-        // //Z direction
-        // if ( !pressure_jump ){
-        //   rho_l = C.density[kmo]; 
-        //   rho_r = C.density[kpo]; 
-        //   p_l = Get_Pressure_From_Energy( kmo );
-        //   p_r = Get_Pressure_From_Energy( kpo );
-        //   pressure_jump = Get_Pressure_Jump( gama, rho_l, rho_r, p_l, p_r );
-        // }
-        // 
-        // //If the pressure Jump is large enough, use the Total Internal Energy
-        // if ( pressure_jump  && ( ge_total > ge_advected ) ) {
-        //   U = ge_total;
-        //   flag_DE = 0;
-        // }
-        
-        // // The second derivative of the density profile has the same sign on adjacent cells
-        // density_curvature_same = true;
-        // 
-        // //X direcction
-        // d2_rho_l = Get_Second_Derivative( i-1, j, k, 0, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-        // d2_rho_r = Get_Second_Derivative( i+1, j, k, 0, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-        // if ( d2_rho_l * d2_rho_r < 0 ) density_curvature_same = false;
-        // 
-        // //Y direcction
-        // if (!density_curvature_same){
-        //   d2_rho_l = Get_Second_Derivative( i, j-1, k, 1, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-        //   d2_rho_r = Get_Second_Derivative( i, j+1, k, 1, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-        //   if ( d2_rho_l * d2_rho_r < 0 ) density_curvature_same = false;
-        // }
-        // 
-        // //Z direcction
-        // if (!density_curvature_same){
-        //   d2_rho_l = Get_Second_Derivative( i, j, k-1, 2, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-        //   d2_rho_r = Get_Second_Derivative( i, j, k+1, 2, nx_grid, ny_grid, nz_grid, H.dx, H.dy, H.dz, C.density );
-        //   if ( d2_rho_l * d2_rho_r < 0 ) density_curvature_same = false;
-        // }
-        // 
-        //NOTE: If Density Curvature Same and Pressure Change Have to BOTH be satisfied for Shock detection, then they have to be
-        // evaluated jointly for each direcction and AND condition satisfied.  
-        
         //Set the Internal Energy
         C.Energy[id] = Ek + U;
         C.GasEnergy[id] = U;

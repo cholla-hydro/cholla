@@ -409,8 +409,6 @@ class Grid3D
     void Sync_Energies_3D_CPU_function( int g_start, int g_end );
     void Sync_Energies_3D_CPU();
     int Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected );
-    void Write_DE_Eta_Beta_File( );
-    Real Get_Dual_Energy_Beta( Real E, Real U_total );
     Real Get_Average_Kinetic_Energy_function( int g_start, int g_end );
     void Get_Average_Kinetic_Energy();
     Real Get_Pressure_From_Energy( int indx );
