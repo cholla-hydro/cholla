@@ -32,6 +32,14 @@ void Grid3D::set_dt_Gravity(){
   da_particles = fmin( da_particles, 1.0 ); 
   
   #ifdef ONLY_PARTICLES
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
+  Particles.dt = Calc_Particles_dt_Cosmo();
+  da_particles = Cosmo.Get_da_from_dt( dt_particles );
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time(0);
+  #endif
   da_min = da_particles;
   chprintf( " Delta_a_particles: %f \n", da_particles );
   #else
