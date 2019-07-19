@@ -3,6 +3,7 @@
 
 #include"global.h"
 #include"grid3D.h"
+#include <iostream>
 
 
 /* Write the data */
