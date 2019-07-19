@@ -40,6 +40,14 @@ __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int
 
 #ifdef DE //PRESSURE_DE
 __host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_advected, Real gamma );
+
+__global__ void Add_Pressure_Div_V_to_Advected_Internal_Energy( Real *dev_conserved,
+                                              Real *Q_Lx, Real *Q_Rx, Real *Q_Ly, Real *Q_Ry, Real *Q_Lz, Real *Q_Rz,                                              
+                                              Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z,
+                                              int nx, int ny, int nz,  int n_ghost, 
+                                              Real dx, Real dy, Real dz,  Real dt,
+                                              Real gamma, int n_fields );
+                                                
 #endif
 
 __device__ Real Average_Cell_Single_Field( int field_indx, int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved );
