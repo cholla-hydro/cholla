@@ -414,6 +414,7 @@ class Grid3D
     Real Get_Pressure_From_Energy( int indx );
     void Apply_Jeans_Length_Condition_function( int g_start, int g_end  );
     void Apply_Jeans_Length_Condition( );
+    void Update_Total_Energy_After_Dual_Energy_function( int g_start, int g_end );
     #endif
     void Apply_Temperature_Floor_CPU_function( int g_start, int g_end );
 

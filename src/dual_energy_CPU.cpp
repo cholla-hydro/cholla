@@ -126,6 +126,7 @@ int Grid3D::Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advecte
 void Grid3D::Sync_Energies_3D_CPU(){
   #ifndef PARALLEL_OMP
   Sync_Energies_3D_CPU_function( 0, H.nz_real );
+  Update_Total_Energy_After_Dual_Energy_function( 0, H.nz_real );
   #ifdef TEMPERATURE_FLOOR
   Apply_Temperature_Floor_CPU_function( 0, H.nz_real );
   #endif
@@ -140,6 +141,10 @@ void Grid3D::Sync_Energies_3D_CPU(){
     Get_OMP_Grid_Indxs( H.nz_real, n_omp_procs, omp_id, &g_start, &g_end  );
 
     Sync_Energies_3D_CPU_function( g_start, g_end );
+    
+    #pragma omp barrier
+    Update_Total_Energy_After_Dual_Energy_function( g_start, g_end );
+    
     #ifdef TEMPERATURE_FLOOR
     #pragma omp barrier
     Apply_Temperature_Floor_CPU_function( g_start, g_end );
@@ -270,7 +275,7 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         }
                 
         //Set the Internal Energy
-        C.Energy[id] = Ek + U;
+        // C.Energy[id] = Ek + U;
         C.GasEnergy[id] = U;
         
         //Set the flag for which internal energy was used
@@ -282,6 +287,54 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
     }
   }
 }
+
+void Grid3D::Update_Total_Energy_After_Dual_Energy_function( int g_start, int g_end ){
+  
+  int nx_grid, ny_grid, nz_grid, nGHST_grid;
+  nGHST_grid = H.n_ghost;
+  nx_grid = H.nx;
+  ny_grid = H.ny;
+  nz_grid = H.nz;
+
+  int nx, ny, nz;
+  nx = H.nx_real;
+  ny = H.ny_real;
+  nz = H.nz_real;
+
+  int nGHST = nGHST_grid ;
+  Real d, d_inv, vx, vy, vz, E, Ek, ge_total, ge_advected, Emax, U;
+  int k, j, i, id;
+  int k_g, j_g, i_g;
+  
+  for ( k_g=g_start; k_g<g_end; k_g++ ){
+    for ( j_g=0; j_g<ny; j_g++ ){
+      for ( i_g=0; i_g<nx; i_g++ ){
+
+        i = i_g + nGHST;
+        j = j_g + nGHST;
+        k = k_g + nGHST;
+
+        id  = (i) + (j)*nx_grid + (k)*ny_grid*nx_grid;
+
+        d = C.density[id];
+        d_inv = 1/d;
+        vx = C.momentum_x[id] * d_inv;
+        vy = C.momentum_y[id] * d_inv;
+        vz = C.momentum_z[id] * d_inv;
+        E = C.Energy[id];
+
+        Ek = 0.5*d*(vx*vx + vy*vy + vz*vz);
+        ge_advected = C.GasEnergy[id];
+
+                
+        //Set the Internal Energy in Total Energy
+        C.Energy[id] = Ek + ge_advected;
+        
+      }
+    }
+  }
+}
+
 
 #ifdef TEMPERATURE_FLOOR
 void Grid3D::Apply_Temperature_Floor_CPU_function( int g_start, int g_end ){
