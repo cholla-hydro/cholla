@@ -48,12 +48,12 @@ typedef double Real;
 #define LOG_FILE_NAME "run_output.log"
 
 //Conserved Floor Values
-#define TEMP_FLOOR 1.0
+#define TEMP_FLOOR 0.1
 #define DENS_FLOOR 1e-5
 
 //Parameter for Enzo dual Energy Condition
 #define DE_ETA_1 0.001 //Ratio of U to E for wich  Inetrnal Energy is used to compute the Pressure
-#define DE_ETA_2 0.030 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
+#define DE_ETA_2 0.010 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
  
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.001
