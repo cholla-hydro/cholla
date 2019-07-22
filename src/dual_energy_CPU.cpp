@@ -275,8 +275,9 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         }
                 
         //Set the Internal Energy
-        // C.Energy[id] = Ek + U;
         C.GasEnergy[id] = U;
+        //Update the total energy after the Dual Energy Condition finished
+        // C.Energy[id] = Ek + U;
         
         //Set the flag for which internal energy was used
         #ifdef COOLING_GRACKLE
