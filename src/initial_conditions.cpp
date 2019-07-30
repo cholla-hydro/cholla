@@ -177,8 +177,8 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
           n = rho*DENSITY_UNIT / (mu*MP);
           T = P*PRESSURE_UNIT / (n*KB);
           printf("Initial n = %e, T = %e\n", n, T);
-*/
         }
+*/
       }
     }
   }
