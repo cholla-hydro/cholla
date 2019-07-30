@@ -1,18 +1,18 @@
 #
-# Parameter File for box filled with gas 
+# Parameter File for 3D box filled with gas 
 #
 
 ################################################
 # number of grid cells in the x dimension
-nx=50
+nx=10
 # number of grid cells in the y dimension
-ny=50
+ny=10
 # number of grid cells in the z dimension
 nz=1
 # final output time
-tout=0.001
+tout=100000.0
 # time interval for output
-outstep=1.0
+outstep=100000.0
 # name of initial conditions
 init=Constant
 # domain properties
@@ -23,24 +23,24 @@ xlen=1.0
 ylen=1.0
 zlen=1.0
 # type of boundary conditions
-xl_bcnd=3
-xu_bcnd=3
-yl_bcnd=3
-yu_bcnd=3
-zl_bcnd=3
-zu_bcnd=3
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
 # path to output directory
 outdir=./
 
 #################################################
 # density
-rho=1.0
+rho=1e4
 # velocity
 vx=0
 vy=0
 vz=0
 # pressure
-P=2.5
+P=1.380658e-5
 # value of gamma
 gamma=1.666666667
 

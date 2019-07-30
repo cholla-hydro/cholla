@@ -1,5 +1,5 @@
 #
-# Parameter File for 3D box filled with gas 
+# Parameter File for box filled with gas 
 #
 
 ################################################
@@ -12,7 +12,7 @@ nz=1
 # final output time
 tout=100000.0
 # time interval for output
-outstep=1000.0
+outstep=100000.0
 # name of initial conditions
 init=Constant
 # domain properties
@@ -34,13 +34,13 @@ outdir=./
 
 #################################################
 # density
-rho=0.001
+rho=1e4
 # velocity
 vx=0
 vy=0
 vz=0
 # pressure
-P=1.380658e-13
+P=1.380658e-5
 # value of gamma
 gamma=1.666666667
 
