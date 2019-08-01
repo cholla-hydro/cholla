@@ -51,8 +51,27 @@ void Cosmology::Load_Scale_Outputs( struct parameters *P ) {
   chprintf("  Next output scale value: %f  \n", next_output);
 }
 
+void Cosmology::Set_Scale_Outputs( struct parameters *P ){
+  
+  if ( P->scale_outputs_file[0] == '\0' ){
+    chprintf( " Output every %d timesteps.\n", P->n_steps_output );
+    Real scale_end = 1 / ( P->End_redshift + 1);
+    scale_outputs.push_back( current_a );
+    scale_outputs.push_back( scale_end );  
+    n_outputs = scale_outputs.size();
+    next_output_indx = 0;
+    next_output = current_a;
+    chprintf("  Next output scale index: %d  \n", next_output_indx );
+    chprintf("  Next output scale value: %f  \n", next_output);
+  }
+  else  Load_Scale_Outputs( P );
+  
 
-void Cosmology::Set_Next_Scale_Output( ){
+  
+}
+
+
+void Cosmology::Set_Next_Scale_Output(  ){
 
   int scale_indx = next_output_indx;
   Real a_value = scale_outputs[scale_indx];

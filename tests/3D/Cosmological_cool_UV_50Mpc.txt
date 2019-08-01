@@ -13,6 +13,7 @@ nz=256
 tout=1000
 # how often to output
 outstep=1000
+n_steps_output=10
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
@@ -22,6 +23,7 @@ nfile=0
 H0=67.66
 Omega_M=0.3111
 Omega_L=0.6889
+End_redshift=0.0
 scale_outputs_file=scale_output_files/outputs_cool_uv_enzo_256_100Mpc.txt
 # domain properties
 xmin=0.0

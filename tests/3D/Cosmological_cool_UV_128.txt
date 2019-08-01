@@ -13,6 +13,7 @@ nz=128
 tout=1000
 # how often to output
 outstep=1000
+#n_steps_output=10
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
@@ -22,6 +23,7 @@ nfile=0
 H0=67.74
 Omega_M=0.3089
 Omega_L=0.6911
+End_redshift=0.0
 scale_outputs_file=scale_output_files/outputs_cool_UV_28.txt
 # domain properties
 xmin=0.0

@@ -119,6 +119,11 @@ void parse_params (char *param_file, struct parameters * parms)
   parms->flag_delta = 0;
 #endif /*ROTATED_PROJECTION*/
 
+#ifdef COSMOLOGY
+//Initialize file name as an empty string
+parms->scale_outputs_file[0] = '\0';
+#endif
+
 
   /* Read next line */
   while ((s = fgets (buff, sizeof buff, fp)) != NULL)
@@ -152,6 +157,8 @@ void parse_params (char *param_file, struct parameters * parms)
       parms->tout = atof(value);
     else if (strcmp(name, "outstep")==0)
       parms->outstep = atof(value);
+    else if (strcmp(name, "n_steps_output")==0)
+      parms->n_steps_output = atoi(value);
     else if (strcmp(name, "gamma")==0)
       parms->gamma = atof(value);
     else if (strcmp(name, "init")==0)
@@ -243,6 +250,8 @@ void parse_params (char *param_file, struct parameters * parms)
 #ifdef COSMOLOGY
     else if (strcmp(name, "Init_redshift")==0)
       parms->Init_redshift  = atof(value);
+    else if (strcmp(name, "End_redshift")==0)
+      parms->End_redshift  = atof(value);
     else if (strcmp(name, "H0")==0)
       parms->H0  = atof(value);
     else if (strcmp(name, "Omega_M")==0)

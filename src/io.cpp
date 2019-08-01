@@ -91,8 +91,12 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   #endif
   
   #ifdef COSMOLOGY
-  G.Cosmo.Set_Next_Scale_Output();
-  chprintf( " Saved Snapshot: %d     a:%f   next_output: %f\n", nfile, G.Cosmo.current_a, G.Cosmo.next_output );
+  if ( G.H.OUTPUT_SCALE_FACOR || G.H.Output_Initial){
+    G.Cosmo.Set_Next_Scale_Output();
+    chprintf( " Saved Snapshot: %d     a:%f   next_output: %f\n", nfile, G.Cosmo.current_a, G.Cosmo.next_output );
+    G.H.Output_Initial = false;
+  }
+  else chprintf( " Saved Snapshot: %d     a:%f     z:%f\n", nfile, G.Cosmo.current_a, G.Cosmo.current_z );
   G.Change_Cosmological_Frame_Sytem( true );
   chprintf( "\n" );
   G.H.Output_Now = false;

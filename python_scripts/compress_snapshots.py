@@ -15,7 +15,7 @@ import numpy as np
 
 dataDir = '/raid/bruno/data/'
 inDir = dataDir + 'cosmo_sims/cholla_pm/128_cool/'
-outDir = inDir + 'data_float16/'
+outDir = inDir + 'data_float32/'
 
 hydro = True
 cosmo = True

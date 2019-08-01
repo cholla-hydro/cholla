@@ -53,7 +53,7 @@ typedef double Real;
 
 //Parameter for Enzo dual Energy Condition
 #define DE_ETA_1 0.001 //Ratio of U to E for wich  Inetrnal Energy is used to compute the Pressure
-#define DE_ETA_2 0.0300 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
+#define DE_ETA_2 0.0360 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
 
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.001
@@ -160,6 +160,7 @@ struct parameters
   int nz;
   double tout;
   double outstep;
+  int n_steps_output;
   Real gamma;
   char init[MAXLEN];
   int nfile;
@@ -187,7 +188,6 @@ struct parameters
   char custom_bcnd[MAXLEN];
   char outdir[MAXLEN];
   char indir[MAXLEN]; //Folder to load Initial conditions from
-  char scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations 
   Real rho;
   Real vx;
   Real vy;
@@ -218,6 +218,8 @@ struct parameters
   Real Omega_M;
   Real Omega_L;
   Real Init_redshift;
+  Real End_redshift;
+  char scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations 
 #endif //COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   Real tile_length;

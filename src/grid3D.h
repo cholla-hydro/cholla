@@ -227,9 +227,14 @@ struct Header
   int n_ghost_potential_offset;
   #endif
   
+  #ifdef COSMOLOGY
+  bool OUTPUT_SCALE_FACOR;
+  #endif
+  
   /*! \var Output_Now
   *  \brief Flag set to true when data has to be written to file */
   bool Output_Now;
+  bool Output_Initial;
 
 };
 

@@ -238,6 +238,13 @@ void Grid3D::Initialize(struct parameters *P)
   #else
   H.temperature_floor = 0.0;
   #endif
+  
+  #ifdef COSMOLOGY
+  if ( P->scale_outputs_file[0] == '\0' ) H.OUTPUT_SCALE_FACOR = false;
+  else H.OUTPUT_SCALE_FACOR = true;
+  #endif
+  
+  H.Output_Initial = true;
 
 
 }
