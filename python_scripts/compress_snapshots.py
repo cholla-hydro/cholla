@@ -14,8 +14,8 @@ import numpy as np
 
 
 dataDir = '/raid/bruno/data/'
-inDir = dataDir + 'cosmo_sims/cholla_pm/256_cool_uv_100Mpc/'
-outDir = inDir + 'data_100/'
+inDir = dataDir + 'cosmo_sims/cholla_pm/128_cool/'
+outDir = inDir + 'data_float16/'
 
 hydro = True
 cosmo = True
@@ -28,7 +28,7 @@ def split_name( file_name):
 
 print( 'Input Dir: ' + inDir )
 print( 'Output Dir: ' + outDir )
-# create_directory( outDir )
+create_directory( outDir )
 print("")
 
 name_base = 'h5'
@@ -50,7 +50,7 @@ print( "Number of files per snapshot: {0}".format(nBoxes) )
 
 #Set wich snapshots to compress
 snapshots_to_compress = snapshots_all
-snapshots_to_compress = [0]
+# snapshots_to_compress = [0]
 
 
 print( "\nNumber of snapshots to compres: {0}".format(len(snapshots_to_compress)) )
@@ -70,8 +70,8 @@ particles_fields = ['density']
 print( "\nParticles fields: {0}".format(particles_fields))
 
 
-precision = np.float64
-# precision = np.float32
+# precision = np.float64
+precision = np.float32
 # precision = np.float16
 print( "\nPrecision: {0}".format( precision ))
 

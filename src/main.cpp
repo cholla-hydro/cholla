@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
   }
   
   #ifdef DE
-  chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.3f \n", DE_ETA_1, DE_ETA_2);
+  chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f \n", DE_ETA_1, DE_ETA_2);
   char *message = (char*)malloc(50 * sizeof(char));
   sprintf(message, " eta_1: %0.3f   eta_2: %0.3f   ", DE_ETA_1, DE_ETA_2 );
   if ( procID == 0 ) Write_Message_To_Log_File( message );

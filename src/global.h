@@ -53,7 +53,7 @@ typedef double Real;
 
 //Parameter for Enzo dual Energy Condition
 #define DE_ETA_1 0.001 //Ratio of U to E for wich  Inetrnal Energy is used to compute the Pressure
-#define DE_ETA_2 0.034 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
+#define DE_ETA_2 0.0300 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
 
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.001
