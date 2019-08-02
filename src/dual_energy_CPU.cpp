@@ -280,7 +280,7 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         // C.Energy[id] = Ek + U;
         
         //Set the flag for which internal energy was used
-        #ifdef COOLING_GRACKLE
+        #if defined(OUTPUT_DUAL_ENERGY_FLAGS) && defined(COOLING_GRACKLE) 
         Cool.flags_DE[id] = flag_DE;
         #endif
                  

@@ -37,7 +37,9 @@ void Grid3D::Initialize_Fields_Grackle(){
         Cool.fields.z_velocity[id] = 0.0;
 
         Cool.fields.internal_energy[id] = C.GasEnergy[id]  / C.density[id] * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
+        #ifdef OUTPUT_DUAL_ENERGY_FLAGS
         Cool.flags_DE[id] = 0;
+        #endif
       }
     }
   }
@@ -120,19 +122,20 @@ void Grid3D::Copy_Fields_To_Grackle_function( int g_start, int g_end ){
       for (i=0; i<nx; i++) {
         id = (i+nGHST) + (j+nGHST)*nx_g + (k+nGHST)*nx_g*ny_g;    
         d = C.density[id];
-        vx = C.momentum_x[id] / d;
-        vy = C.momentum_y[id] / d;
-        vz = C.momentum_z[id] / d;
-        E = C.Energy[id];
+        // vx = C.momentum_x[id] / d;
+        // vy = C.momentum_y[id] / d;
+        // vz = C.momentum_z[id] / d;
+        // E = C.Energy[id];
+        // Ekin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
         GE = C.GasEnergy[id];
-        Ekin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
         
         //The Flag for Dual Energy Is set on the Sync_Energies_3D step before cooling step
         // flag_DE = Select_Internal_Energy_From_DE( E, E - Ekin, GE );
         // Cool.flags_DE[id] = flag_DE;
         
-        if ( flag_DE ) U = GE;  
-        else U = E - Ekin;
+        // if ( flag_DE ) U = GE;  
+        // else U = E - Ekin;
+        U = GE;
         Cool.fields.internal_energy[id] = U / d * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
       }
     }
@@ -160,19 +163,19 @@ void Grid3D::Update_Internal_Energy_function( int g_start, int g_end ){
       for (i=0; i<nx; i++) {
         id = (i+nGHST) + (j+nGHST)*nx_g + (k+nGHST)*nx_g*ny_g;
         dens = C.density[id];
-        vx = C.momentum_x[id] / dens;
-        vy = C.momentum_y[id] / dens;
-        vz = C.momentum_z[id] / dens;
-        E = C.Energy[id];
+        // vx = C.momentum_x[id] / dens;
+        // vy = C.momentum_y[id] / dens;
+        // vz = C.momentum_z[id] / dens;
+        // E = C.Energy[id];
+        // Ekin = 0.5 * dens * ( vx*vx + vy*vy + vz*vz );
         GE = C.GasEnergy[id];
-        Ekin = 0.5 * dens * ( vx*vx + vy*vy + vz*vz );
         
-        flag_DE = Cool.flags_DE[id];
-        // PRESSURE_DE
-        if ( flag_DE == 0 ) U_0 = E - Ekin;
-        else if ( flag_DE == 1 ) U_0 = GE;
-        else std::cout << " ### Frag_DE ERROR: Flag_DE: " << flag_DE << std::endl;
-        
+        // flag_DE = Cool.flags_DE[id];
+        // // PRESSURE_DE
+        // if ( flag_DE == 0 ) U_0 = E - Ekin;
+        // else if ( flag_DE == 1 ) U_0 = GE;
+        // else std::cout << " ### Frag_DE ERROR: Flag_DE: " << flag_DE << std::endl;
+        U_0 = GE;
         U_1 = Cool.fields.internal_energy[id] * dens / Cool.energy_conv  * Cosmo.current_a * Cosmo.current_a;
         delta_U = U_1 - U_0;
         C.GasEnergy[id] += delta_U ;

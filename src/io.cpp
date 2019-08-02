@@ -1300,7 +1300,9 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
+    #endif //OUTPUT_TEMPERATURE
     
+    #ifdef OUTPUT_DUAL_ENERGY_FLAGS
     // Copy the internal energy array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
@@ -1317,7 +1319,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
-    #endif //OUTPUT_TEMPERATURE
+    #endif //OUTPUT_DUAL_ENERGY_FLAGS
 
     #endif //COOLING_GRACKLE
     #endif //SCALAR
