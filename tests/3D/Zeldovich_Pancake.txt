@@ -19,6 +19,7 @@ gamma=1.66666667
 init=Zeldovich_Pancake
 #Cosmological Parameters 
 Init_redshift=20.0
+#Init_redshift=0.998294693667
 H0=50.0
 Omega_M=1.0
 Omega_L=0.0

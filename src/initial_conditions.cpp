@@ -1205,20 +1205,16 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
         // // get the centered cell positions at (i,j,k)
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
         
+        //Analitical Initial Conditions
+        // dens = rho_0 / ( 1 - ( 1 + z_zeldovich ) / ( 1 + z_init ) * cos( k_x*( x_pos - x_center )) );
+        // vel = - H0 * ( 1 + z_zeldovich ) / sqrt( 1 + z_init ) * sin( k_x*( x_pos - x_center )) / k_x;
+        // temp = T_init * pow( dens / rho_0, 2./3 );
+        // U = temp / (gamma - 1) / MP * KB * 1e-10 * dens;
+        // E = 0.5 * dens * vel * vel + U;
         
-        dens = rho_0 / ( 1 - ( 1 + z_zeldovich ) / ( 1 + z_init ) * cos( k_x*( x_pos - x_center )) );
-        vel = - H0 * ( 1 + z_zeldovich ) / sqrt( 1 + z_init ) * sin( k_x*( x_pos - x_center )) / k_x;
-        temp = T_init * pow( dens / rho_0, 2./3 );
-        // vel = 0;
-        // temp = T_init;
         
-        // vel += 50;
-        // vel *= 2;
-        
-        U = temp / (gamma - 1) / MP * KB * 1e-10 * dens;
-        E = 0.5 * dens * vel * vel + U;
-        
-        index = int( x_pos / H.dx );
+        index = (int( x_pos / H.dx ) + 0 ) %256;
+        // index = ( index + 16 ) % 256;
         dens = ics_values[ 0*nPoints + index];
         vel = ics_values[ 1*nPoints + index];
         E = ics_values[ 2*nPoints + index];
