@@ -11,6 +11,10 @@
 #include"global_cuda.h"
 #include"plmc_cuda.h"
 
+#ifdef DE //PRESSURE_DE
+#include"hydro_cuda.h"
+#endif
+
 
 /*! \fn __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir)
  *  \brief When passed a stencil of conserved variables, returns the left and right 
@@ -64,6 +68,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real del_ge_L, del_ge_R, del_ge_C, del_ge_G;
   Real del_ge_m_i;
   Real ge_L_iph, ge_R_imh;
+  Real E, E_kin, GE;
   // #ifdef CTU
   #ifndef VL
   Real sum_ge;
@@ -115,7 +120,14 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_i =  dev_conserved[o1*n_cells + id] / d_i;
     vy_i =  dev_conserved[o2*n_cells + id] / d_i;
     vz_i =  dev_conserved[o3*n_cells + id] / d_i;
+    #ifdef DE //PRESSURE_DE
+    E = dev_conserved[4*n_cells + id];
+    GE = dev_conserved[(n_fields-1)*n_cells + id];
+    E_kin = 0.5 * d_i * ( vx_i*vx_i + vy_i*vy_i + vz_i*vz_i );
+    p_i = Get_Pressure_From_DE( E, E - E_kin, GE, gamma ); 
+    #else
     p_i  = (dev_conserved[4*n_cells + id] - 0.5*d_i*(vx_i*vx_i + vy_i*vy_i + vz_i*vz_i)) * (gamma - 1.0);
+    #endif
     p_i  = fmax(p_i, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
@@ -133,7 +145,14 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_imo =  dev_conserved[o1*n_cells + id] / d_imo;
     vy_imo =  dev_conserved[o2*n_cells + id] / d_imo;
     vz_imo =  dev_conserved[o3*n_cells + id] / d_imo;
+    #ifdef DE //PRESSURE_DE
+    E = dev_conserved[4*n_cells + id];
+    GE = dev_conserved[(n_fields-1)*n_cells + id];
+    E_kin = 0.5 * d_imo * ( vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo );
+    p_imo = Get_Pressure_From_DE( E, E - E_kin, GE, gamma ); 
+    #else
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
+    #endif
     p_imo  = fmax(p_imo, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
@@ -151,7 +170,14 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_ipo =  dev_conserved[o1*n_cells + id] / d_ipo;
     vy_ipo =  dev_conserved[o2*n_cells + id] / d_ipo;
     vz_ipo =  dev_conserved[o3*n_cells + id] / d_ipo;
+    #ifdef DE //PRESSURE_DE
+    E = dev_conserved[4*n_cells + id];
+    GE = dev_conserved[(n_fields-1)*n_cells + id];
+    E_kin = 0.5 * d_ipo * ( vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo );
+    p_ipo = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );    
+    #else
     p_ipo  = (dev_conserved[4*n_cells + id] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma - 1.0);
+    #endif
     p_ipo  = fmax(p_ipo, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
