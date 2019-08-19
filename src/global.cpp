@@ -197,8 +197,6 @@ parms->scale_outputs_file[0] = '\0';
       strncpy (parms->outdir, value, MAXLEN);
     else if (strcmp(name, "indir")==0)
       strncpy (parms->indir, value, MAXLEN);
-    else if (strcmp(name, "scale_outputs_file")==0)
-      strncpy (parms->scale_outputs_file, value, MAXLEN);
     else if (strcmp(name, "rho")==0)
       parms->rho = atof(value);
     else if (strcmp(name, "vx")==0)
@@ -248,6 +246,8 @@ parms->scale_outputs_file[0] = '\0';
       parms->flag_delta  = atoi(value);
 #endif /*ROTATED_PROJECTION*/
 #ifdef COSMOLOGY
+    else if (strcmp(name, "scale_outputs_file")==0)
+      strncpy (parms->scale_outputs_file, value, MAXLEN);
     else if (strcmp(name, "Init_redshift")==0)
       parms->Init_redshift  = atof(value);
     else if (strcmp(name, "End_redshift")==0)
