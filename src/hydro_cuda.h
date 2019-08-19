@@ -34,6 +34,7 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
 
 __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma, int n_fields);
 
+__host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_advected, Real gamma );
 
 #endif //HYDRO_CUDA_H
 #endif //CUDA
