@@ -450,9 +450,7 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
 __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma, int n_fields)
 {
   int id, xid, yid, zid, n_cells;
-  Real d, d_inv, vx, vy, vz, E;
-  Real ge1, ge2, Emax;
-  int imo, ipo, jmo, jpo, kmo, kpo;
+  Real d, d_inv, vx, vy, vz, U;
   n_cells = nx*ny*nz;
 
   // get a global thread ID
@@ -460,19 +458,6 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
   zid = id / (nx*ny);
   yid = (id - zid*nx*ny) / nx;
   xid = id - zid*nx*ny - yid*nx;
-
-  imo = max(xid-1, n_ghost);
-  imo = imo + yid*nx + zid*nx*ny;
-  ipo = min(xid+1, nx-n_ghost-1);
-  ipo = ipo + yid*nx + zid*nx*ny;
-  jmo = max(yid-1, n_ghost);
-  jmo = xid + jmo*nx + zid*nx*ny;
-  jpo = min(yid+1, ny-n_ghost-1);
-  jpo = xid + jpo*nx + zid*nx*ny;
-  kmo = max(zid-1, n_ghost);
-  kmo = xid + yid*nx + kmo*nx*ny;
-  kpo = min(zid+1, nz-n_ghost-1);
-  kpo = xid + yid*nx + kpo*nx*ny;
 
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
@@ -483,40 +468,10 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
-    E  =  dev_conserved[4*n_cells + id];
-    // don't do the energy sync if this thread has crashed
-    if (E < 0.0 || E != E) return;
-    // separately tracked internal energy 
-    ge1 =  dev_conserved[(n_fields-1)*n_cells + id];
-    // internal energy calculated from total energy
-    ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    // if the ratio of conservatively calculated internal energy to total energy
-    // is greater than 1/1000, use the conservatively calculated internal energy
-    // to do the internal energy update
-    if (ge2 > 0.0 && E > 0.0 && ge2/E > 0.001) {
-      dev_conserved[(n_fields-1)*n_cells + id] = ge2;
-      ge1 = ge2;
-    }
-    //find the max nearby total energy 
-    Emax = fmax(dev_conserved[4*n_cells + imo], E);
-    Emax = fmax(Emax, dev_conserved[4*n_cells + ipo]);
-    Emax = fmax(Emax, dev_conserved[4*n_cells + jmo]);
-    Emax = fmax(Emax, dev_conserved[4*n_cells + jpo]);
-    Emax = fmax(Emax, dev_conserved[4*n_cells + kmo]);
-    Emax = fmax(Emax, dev_conserved[4*n_cells + kpo]);
-    // if the ratio of conservatively calculated internal energy to max nearby total energy
-    // is greater than 1/10, continue to use the conservatively calculated internal energy 
-    if (ge2/Emax > 0.1 && ge2 > 0.0 && Emax > 0.0) {
-      dev_conserved[(n_fields-1)*n_cells + id] = ge2;
-    }
-    // sync the total energy with the internal energy 
-    else {
-      if (ge1 > 0.0) dev_conserved[4*n_cells + id] += ge1 - ge2;
-      else dev_conserved[(n_fields-1)*n_cells+id] = ge2;
-    }
-    // calculate the pressure 
-    //Real P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    //if (P < 0.0) printf("%3d %3d %3d Negative pressure after internal energy sync. %f %f %f\n", xid, yid, zid, P/(gamma-1.0), ge1, ge2);    
+    U = dev_conserved[(n_fields-1)*n_cells + id];
+
+    //Use the previusly selected Internal Energy to update the total energy
+    dev_conserved[4*n_cells + id] = 0.5*d*( vx*vx + vy*vy + vz*vz ) + U;
   }
 }
 
