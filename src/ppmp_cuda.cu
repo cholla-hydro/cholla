@@ -15,8 +15,8 @@
 #endif
 
 #define STEEPENING
-#define FLATTENING
-
+// #define FLATTENING
+//Note: FLATTENING needs 3 ghost cells, currently PPMP is initialized with only 2 ghost cells ( 2 on each side, 4 net ghost cells )
 
 /*! \fn __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
  *  \brief When passed a stencil of conserved variables, returns the left and right 
@@ -95,20 +95,39 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   int xid = tid - zid*nx*ny - yid*nx;
 
   int xs, xe, ys, ye, zs, ze;
+  
+  // 
+  // if (dir == 0) {
+  //   xs = 3; xe = nx-4;
+  //   ys = 0; ye = ny;
+  //   zs = 0; ze = nz;
+  // }
+  // if (dir == 1) {
+  //   xs = 0; xe = nx;
+  //   ys = 3; ye = ny-4;
+  //   zs = 0; ze = nz;
+  // }
+  // if (dir == 2) {
+  //   xs = 0; xe = nx;
+  //   ys = 0; ye = ny;
+  //   zs = 3; ze = nz-4;
+  // }
+  
+  //Ignore only the 2 ghost cells on each side ( intead of ignoring 3 ghost cells on each side )
   if (dir == 0) {
-    xs = 3; xe = nx-4;
+    xs = 2; xe = nx-3;
     ys = 0; ye = ny;
     zs = 0; ze = nz;
   }
   if (dir == 1) {
     xs = 0; xe = nx;
-    ys = 3; ye = ny-4;
+    ys = 2; ye = ny-3;
     zs = 0; ze = nz;
   }
   if (dir == 2) {
     xs = 0; xe = nx;
     ys = 0; ye = ny;
-    zs = 3; ze = nz-4;
+    zs = 2; ze = nz-3;
   }
 
   if (xid >= xs && xid < xe && yid >= ys && yid < ye && zid >= zs && zid < ze)
