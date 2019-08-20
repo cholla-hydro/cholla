@@ -771,6 +771,9 @@ __global__ void Select_Internal_Energy_3D( Real *dev_conserved, int nx, int ny, 
     if (U_total/Emax > eta_2 ) U = U_total;
     else U = U_advected;
     
+    //Optional: Avoid Negative Internal  Energies
+    U = fmax(U, (Real) TINY_NUMBER);
+    
     //Write Selected internal energy to the GasEnergy array ONLY 
     //to avoid mixing updated and non-updated values of E for the
     //since the Dual Energy condition depends on the neighbour cells
