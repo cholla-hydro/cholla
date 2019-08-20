@@ -692,7 +692,7 @@ __host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_adve
 }
 
 
-__global__ void Partial_Update_Advected_Internal_Energy( Real *dev_conserved, Real *Q_Lx, Real *Q_Rx, Real *Q_Ly, Real *Q_Ry, Real *Q_Lz, Real *Q_Rz, int nx, int ny, int nz,  int n_ghost, Real dx, Real dy, Real dz,  Real dt, Real gamma, int n_fields ){
+__global__ void Partial_Update_Advected_Internal_Energy_3D( Real *dev_conserved, Real *Q_Lx, Real *Q_Rx, Real *Q_Ly, Real *Q_Ry, Real *Q_Lz, Real *Q_Rz, int nx, int ny, int nz,  int n_ghost, Real dx, Real dy, Real dz,  Real dt, Real gamma, int n_fields ){
   
   int id, xid, yid, zid, n_cells;
   int imo, jmo, kmo;
@@ -760,8 +760,69 @@ __global__ void Partial_Update_Advected_Internal_Energy( Real *dev_conserved, Re
     // dev_conserved[(n_fields-1)*n_cells + id] +=  P * ( dtodx * ( vx_L - vx_R ) + dtody * ( vy_L - vy_R ) + dtodz * ( vz_L - vz_R ) );
 
     
-  }
+  }  
+}
+
+__global__ void Select_Internal_Energy_3D( Real *dev_conserved, int nx, int ny, int nz,  int n_ghost, int n_fields ){
   
+  int id, xid, yid, zid, n_cells;
+  Real d, d_inv, vx, vy, vz, E, U_total, U_advected, U, Emax;
+  int imo, ipo, jmo, jpo, kmo, kpo;
+  n_cells = nx*ny*nz;
+  
+  Real eta_2 = DE_ETA_2;
+
+  // get a global thread ID
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx*ny);
+  yid = (id - zid*nx*ny) / nx;
+  xid = id - zid*nx*ny - yid*nx;
+  
+  imo = max(xid-1, n_ghost);
+  imo = imo + yid*nx + zid*nx*ny;
+  ipo = min(xid+1, nx-n_ghost-1);
+  ipo = ipo + yid*nx + zid*nx*ny;
+  jmo = max(yid-1, n_ghost);
+  jmo = xid + jmo*nx + zid*nx*ny;
+  jpo = min(yid+1, ny-n_ghost-1);
+  jpo = xid + jpo*nx + zid*nx*ny;
+  kmo = max(zid-1, n_ghost);
+  kmo = xid + yid*nx + kmo*nx*ny;
+  kpo = min(zid+1, nz-n_ghost-1);
+  kpo = xid + yid*nx + kpo*nx*ny;
+
+
+  // threads corresponding to real cells do the calculation
+  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
+  {
+    // every thread collects the conserved variables it needs from global memory
+    d  =  dev_conserved[            id];
+    d_inv = 1.0 / d;
+    vx =  dev_conserved[1*n_cells + id] * d_inv;
+    vy =  dev_conserved[2*n_cells + id] * d_inv;
+    vz =  dev_conserved[3*n_cells + id] * d_inv;
+    E  =  dev_conserved[4*n_cells + id];
+    U_advected = dev_conserved[(n_fields-1)*n_cells + id];
+    U_total = E - 0.5*d*( vx*vx + vy*vy + vz*vz );
+    
+    //find the max nearby total energy 
+    Emax = fmax(dev_conserved[4*n_cells + imo], E);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + ipo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + jmo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + jpo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + kmo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + kpo]);
+  
+    if (U_total/Emax > eta_2 ) U = U_total;
+    else U = U_advected;
+    
+    //Write Selected internal energy to the GasEnergy array ONLY 
+    //to avoid mixing updated and non-updated values of E for the
+    //since the Dual Energy condition depends on the neighbour cells
+    //The total   ggbbhhhjjfg
+    dev_conserved[(n_fields-1)*n_cells + id] = U;
+  
+  }
 }
 #endif //DE
 
