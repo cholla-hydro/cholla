@@ -198,13 +198,14 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
 {
   int id, xid, yid, zid, n_cells;
   int imo, jmo, kmo;
-  #if defined (DE) || defined(STATIC_GRAV)
+  #if  defined(STATIC_GRAV)
   Real d, d_inv, vx, vy, vz;
   #endif
-  #ifdef DE
-  Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo, P;
-  int ipo, jpo, kpo;
-  #endif
+  // #ifdef DE
+  // Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo, P;
+  // int ipo, jpo, kpo;
+  // #endif
+  // NOTE: Not needed in this kernel, the Pressure term is added to the advected internal energy in a separate kernel
 
   #ifdef STATIC_GRAV
   Real gx, gy, gz, d_n, d_inv_n, vx_n, vy_n, vz_n;
@@ -230,27 +231,27 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
   {
-    #if defined (DE) || defined(STATIC_GRAV)
+    #if  defined(STATIC_GRAV) //Not needed for DE
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     #endif
-    #ifdef DE
-    P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    //if (d < 0.0 || d != d) printf("Negative density before final update.\n");
-    //if (P < 0.0) printf("%d Negative pressure before final update.\n", id);
-    ipo = xid+1 + yid*nx + zid*nx*ny;
-    jpo = xid + (yid+1)*nx + zid*nx*ny;
-    kpo = xid + yid*nx + (zid+1)*nx*ny;
-    vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
-    vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
-    vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
-    vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
-    vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
-    vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
-    #endif
+    // #ifdef DE
+    // P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+    // //if (d < 0.0 || d != d) printf("Negative density before final update.\n");
+    // //if (P < 0.0) printf("%d Negative pressure before final update.\n", id);
+    // ipo = xid+1 + yid*nx + zid*nx*ny;
+    // jpo = xid + (yid+1)*nx + zid*nx*ny;
+    // kpo = xid + yid*nx + (zid+1)*nx*ny;
+    // vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
+    // vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
+    // vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
+    // vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
+    // vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
+    // vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
+    // #endif
 
     // update the conserved variable array
     dev_conserved[            id] += dtodx * (dev_F_x[            imo] - dev_F_x[            id])
@@ -278,8 +279,9 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     #ifdef DE
     dev_conserved[(n_fields-1)*n_cells + id] += dtodx * (dev_F_x[(n_fields-1)*n_cells + imo] - dev_F_x[(n_fields-1)*n_cells + id])
                                   +  dtody * (dev_F_y[(n_fields-1)*n_cells + jmo] - dev_F_y[(n_fields-1)*n_cells + id])
-                                  +  dtodz * (dev_F_z[(n_fields-1)*n_cells + kmo] - dev_F_z[(n_fields-1)*n_cells + id])
-                                  +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+                                  +  dtodz * (dev_F_z[(n_fields-1)*n_cells + kmo] - dev_F_z[(n_fields-1)*n_cells + id]);
+                                  // +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+                                  //Note: this term is added in a separate kernel to avoid syncronization issues
     #endif
     #ifdef STATIC_GRAV 
     calc_g_3D(xid, yid, zid, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
@@ -687,6 +689,79 @@ __host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_adve
   
   P = U * (gamma - 1.0);
   return P;
+}
+
+
+__global__ void Partial_Update_Advected_Internal_Energy( Real *dev_conserved, Real *Q_Lx, Real *Q_Rx, Real *Q_Ly, Real *Q_Ry, Real *Q_Lz, Real *Q_Rz, int nx, int ny, int nz,  int n_ghost, Real dx, Real dy, Real dz,  Real dt, Real gamma, int n_fields ){
+  
+  int id, xid, yid, zid, n_cells;
+  int imo, jmo, kmo;
+  int ipo, jpo, kpo;
+  Real d, d_inv, vx, vy, vz;
+  Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
+  Real  P, E, E_kin, GE;
+  // Real vx_L, vx_R, vy_L, vy_R, vz_L, vz_R;
+  
+  
+  Real dtodx = dt/dx;
+  Real dtody = dt/dy;
+  Real dtodz = dt/dz;
+  n_cells = nx*ny*nz;
+
+  // get a global thread ID
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx*ny);
+  yid = (id - zid*nx*ny) / nx;
+  xid = id - zid*nx*ny - yid*nx;
+  
+  // threads corresponding to real cells do the calculation
+  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
+  {
+    d  =  dev_conserved[            id];
+    d_inv = 1.0 / d;
+    vx =  dev_conserved[1*n_cells + id] * d_inv;
+    vy =  dev_conserved[2*n_cells + id] * d_inv;
+    vz =  dev_conserved[3*n_cells + id] * d_inv;
+    //PRESSURE_DE
+    E = dev_conserved[4*n_cells + id];
+    GE = dev_conserved[(n_fields-1)*n_cells + id];
+    E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
+    P = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );  
+    P  = fmax(P, (Real) TINY_NUMBER); 
+
+    imo = xid-1 + yid*nx + zid*nx*ny;
+    jmo = xid + (yid-1)*nx + zid*nx*ny;
+    kmo = xid + yid*nx + (zid-1)*nx*ny;
+    
+    ipo = xid+1 + yid*nx + zid*nx*ny;
+    jpo = xid + (yid+1)*nx + zid*nx*ny;
+    kpo = xid + yid*nx + (zid+1)*nx*ny;
+    
+    vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
+    vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
+    vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
+    vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
+    vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
+    vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo];
+    
+    // Use center values of neighbor cells for the divergence of velocity
+    dev_conserved[(n_fields-1)*n_cells + id] += 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+ 
+    // OPTION 2: Use the reconstrcted velocities to compute the velocity gradient
+    //Use the reconstructed Velocities instead of neighbor cells centered values 
+    // vx_R = Q_Lx[1*n_cells + id]  / Q_Lx[id]; 
+    // vx_L = Q_Rx[1*n_cells + imo] / Q_Rx[imo]; 
+    // vy_R = Q_Ly[2*n_cells + id]  / Q_Ly[id]; 
+    // vy_L = Q_Ry[2*n_cells + jmo] / Q_Ry[jmo];
+    // vz_R = Q_Lz[3*n_cells + id]  / Q_Lz[id]; 
+    // vz_L = Q_Rz[3*n_cells + kmo] / Q_Rz[kmo]; 
+    
+    //Use the reconstructed Velocities instead of neighbor cells centered values
+    // dev_conserved[(n_fields-1)*n_cells + id] +=  P * ( dtodx * ( vx_L - vx_R ) + dtody * ( vy_L - vy_R ) + dtodz * ( vz_L - vz_R ) );
+
+    
+  }
+  
 }
 #endif //DE
 
