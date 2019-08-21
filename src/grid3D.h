@@ -418,6 +418,10 @@ class Grid3D
     /*! \fn void Disk_3D(parameters P)
      *  \brief Initialize the grid with a 3D disk following a Miyamoto-Nagai profile. */
     void Disk_3D(parameters P);    
+    
+    /*! \fn void Spherical_Overpressure_3D()
+     *  \brief Initialize the grid with a 3D spherical overdensity and overpressue. */
+    void Spherical_Overpressure_3D();
 
     /*! \fn void Set_Boundary_Conditions(parameters P)
      *  \brief Set the boundary conditions based on info in the parameters structure. */
