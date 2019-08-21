@@ -80,8 +80,8 @@ void Grid3D::Copy_Fields_To_Grackle(){
     Get_OMP_Grid_Indxs( H.nz_real, n_omp_procs, omp_id, &g_start, &g_end  );
     
     Copy_Fields_To_Grackle_function( g_start, g_end );
-    #endif
   }
+  #endif
 }
 
 void Grid3D::Update_Internal_Energy(){
@@ -98,9 +98,8 @@ void Grid3D::Update_Internal_Energy(){
     Get_OMP_Grid_Indxs( H.nz_real, n_omp_procs, omp_id, &g_start, &g_end  );
     
     Update_Internal_Energy_function( g_start, g_end );
-    #endif
   }
-  
+  #endif
 }
 
 void Grid3D::Copy_Fields_To_Grackle_function( int g_start, int g_end ){

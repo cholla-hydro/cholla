@@ -83,7 +83,10 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   data->use_specific_heating_rate = 0;
   data->use_volumetric_heating_rate = 0;
   data->cmb_temperature_floor = 1;
+  
+  #ifdef PARALLEL_OMP
   data->omp_nthreads = N_OMP_THREADS_GRACKLE;
+  #endif
   
   if ( data->UVbackground == 1) chprintf( "GRACKLE: Loading UV Background File: %s\n", data->grackle_data_file );
   
