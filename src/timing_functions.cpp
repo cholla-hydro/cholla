@@ -65,6 +65,10 @@ void Time::End_and_Record_Time( int time_var ){
   t_min = ReduceRealMin(time);
   t_max = ReduceRealMax(time);
   t_avg = ReduceRealAvg(time);
+  #else
+  t_min = time;
+  t_max = time;
+  t_avg = time;
   #endif
 
 
