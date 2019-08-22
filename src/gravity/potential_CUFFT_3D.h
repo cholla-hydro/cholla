@@ -1,13 +1,10 @@
 #ifdef GRAVITY
-#ifdef POTENTIAL_CUFFT
+#ifdef CUFFT
 
 #ifndef POTENTIAL_CUFFT_3D_H
 #define POTENTIAL_CUFFT_3D_H
 
 #include "../global.h"
-#include "../io.h"
-#include "grav3D.h"
-#include "poisson_solver_3D.h"
 #include <cufft.h>
 
 
@@ -22,9 +19,26 @@ typedef cufftDoubleComplex Complex_cufft;
 #endif
 
 
-class Potential_CUFFT_3D : public Poisson_Solver_3D
-{
+class Potential_CUFFT_3D{
   public:
+    
+  Real Lbox_x;
+  Real Lbox_y;
+  Real Lbox_z;
+
+  grav_int_t nx_total;
+  grav_int_t ny_total;
+  grav_int_t nz_total;
+
+  int nx_local;
+  int ny_local;
+  int nz_local;
+
+  Real dx;
+  Real dy;
+  Real dz;
+  grav_int_t n_cells_total;
+  grav_int_t n_cells_local;
 
   cufftHandle plan_cufft_fwd;
   cufftHandle plan_cufft_bwd;
@@ -55,26 +69,22 @@ class Potential_CUFFT_3D : public Poisson_Solver_3D
 
   Potential_CUFFT_3D( void );
 
-  virtual void Initialize( Grav3D Grav );
-
+  void Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx, Real dy, Real dz );
+  
   void AllocateMemory_CPU( void );
   void AllocateMemory_GPU( void );
-
   void FreeMemory_GPU( void );
   void Reset( void );
-
-  void Copy_Input( Grav3D &Grav );
-  void Copy_Output( Grav3D &Grav );
-
-  virtual void Get_K_for_Green_function( void );
-
-  virtual Real Get_Potential( Grav3D &Grav );
-
+  void Copy_Input( Real *input_density, Real Grav_Constant, Real dens_avrg, Real current_a );
+  void Copy_Output( Real *output_potential );
+  void Get_K_for_Green_function( void );
+  Real Get_Potential( Real *input_density,  Real *output_potential, Real Grav_Constant, Real dens_avrg, Real current_a );
+  
 };
 
 
 
 
 #endif //POTENTIAL_CUFFT_H
-#endif //POTENTIAL_CUFFT
+#endif //CUFFT
 #endif //GRAVITY

@@ -1,44 +1,49 @@
 #ifdef GRAVITY
-#ifdef POTENTIAL_CUFFT
+#ifdef CUFFT
 
 #include "potential_CUFFT_3D.h"
+#include"../global_cuda.h"
+#include "../io.h"
+#include<iostream>
 
 
 Potential_CUFFT_3D::Potential_CUFFT_3D( void ){}
 
-void Potential_CUFFT_3D::Initialize( Grav3D Grav){
-
-  Lbox_x = Grav.Lbox_x;
-  Lbox_y = Grav.Lbox_y;
-  Lbox_z = Grav.Lbox_z;
-
-  nx_total = Grav.nx_total;
-  ny_total = Grav.ny_total;
-  nz_total = Grav.nz_total;
-
-  nx_local = Grav.nx_local;
-  ny_local = Grav.ny_local;
-  nz_local = Grav.nz_local;
-
-  dx = Grav.dx;
-  dy = Grav.dy;
-  dz = Grav.dz;
-
+void Potential_CUFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real){
+  // 
+  Lbox_x = Lx;
+  Lbox_y = Ly;
+  Lbox_z = Lz;
+  
+  nx_total = nx;
+  ny_total = ny;
+  nz_total = nz;
+  
+  nx_local = nx_real;
+  ny_local = ny_real;
+  nz_local = nz_real;
+  
+  dx = dx_real;
+  dy = dy_real;
+  dz = dz_real;
+  
   n_cells_local = nx_local*ny_local*nz_local;
   n_cells_total = nx_total*ny_total*nz_total;
   chprintf( " Using Poisson Solver: CUFFT\n");
   chprintf( "  CUFFT: L[ %f %f %f ] N[ %d %d %d ] dx[ %f %f %f ]\n", Lbox_x, Lbox_y, Lbox_z, nx_local, ny_local, nz_local, dx, dy, dz );
-
+  
+  chprintf( "  CUFFT: Allocating memory...\n");
   AllocateMemory_CPU();
-
+  AllocateMemory_GPU();
+  
   chprintf( "  CUFFT: Creating FFT plan...\n");
   cufftPlan3d( &plan_cufft_fwd,  nz_local, ny_local,  nx_local, CUFFT_Z2Z);
   cufftPlan3d( &plan_cufft_bwd,  nz_local, ny_local,  nx_local, CUFFT_Z2Z);
-
+  
   chprintf( "  CUFFT: Computing K for Gravity Green Funtion\n");
   cudaMalloc( (void**)&F.G_d, n_cells_local*sizeof(Real));
   Get_K_for_Green_function();
-  threads_per_block = 1024;
+  threads_per_block = 512;
   blocks_per_grid = (( n_cells_local - 1 ) / threads_per_block) + 1;
   chprintf( "  CUFFT: Using %d threads and %d blocks for applying G funtion: %d \n", threads_per_block, blocks_per_grid, threads_per_block*blocks_per_grid);
 
@@ -46,7 +51,7 @@ void Potential_CUFFT_3D::Initialize( Grav3D Grav){
 
 void Potential_CUFFT_3D::AllocateMemory_CPU( void ){
   F.output_h = (Complex_cufft *) malloc(n_cells_local*sizeof(Complex_cufft));
-  F.G_h = (Real *) malloc(n_cells_local*sizeof(Real));
+  F.G_h = (Real *) malloc(n_cells_local*sizeof(Real_cufft));
 }
 
 void Potential_CUFFT_3D::AllocateMemory_GPU( void ){
@@ -54,6 +59,8 @@ void Potential_CUFFT_3D::AllocateMemory_GPU( void ){
   cudaMalloc( (void**)&F.input_d, n_cells_local*sizeof(Complex_cufft));
   cudaMalloc( (void**)&F.transform_d, n_cells_local*sizeof(Complex_cufft));
   cudaMalloc( (void**)&F.output_d, n_cells_local*sizeof(Complex_cufft));
+  cudaMalloc( (void**)&F.G_d, n_cells_local*sizeof(Real_cufft));
+  CudaCheckError();
 }
 
 void Potential_CUFFT_3D::FreeMemory_GPU( void ){
@@ -61,12 +68,15 @@ void Potential_CUFFT_3D::FreeMemory_GPU( void ){
   cudaFree( F.input_d );
   cudaFree( F.output_d );
   cudaFree( F.transform_d );
+  cudaFree( F.G_d );
+  CudaCheckError();
 }
 
 void Potential_CUFFT_3D::Reset( void ){
+  // chprintf("Reset CUFFT\n");
   free( F.output_h );
   free( F.G_h );
-  cudaFree( F.G_d );
+  FreeMemory_GPU();
 }
 
 
@@ -91,22 +101,32 @@ void Potential_CUFFT_3D::Get_K_for_Green_function( void){
     }
   }
   cudaMemcpy( F.G_d, F.G_h, n_cells_local*sizeof(Real), cudaMemcpyHostToDevice );
+  CudaCheckError();
 }
 
 __global__
-void Copy_Input_Kernel( int n_cells, Real *input_h, Complex_cufft *input_d ){
+void Copy_Input_Kernel( int n_cells, Real *input_h, Complex_cufft *input_d, Real Grav_Constant, Real dens_avrg, Real current_a ){
   int t_id = threadIdx.x + blockIdx.x*blockDim.x;
   if ( t_id < n_cells ){
-    input_d[t_id].x = input_h[t_id];
+    #ifdef COSMOLOGY
+    input_d[t_id].x = 4 * M_PI * Grav_Constant * ( input_h[t_id] - dens_avrg ) / current_a;
+    #else
+    input_d[t_id].x = 4 * M_PI * Grav_Constant * input_h[t_id];
+    #endif
     input_d[t_id].y = 0.0;
   }
 }
 
-void Potential_CUFFT_3D::Copy_Output( Grav3D &Grav ){
+void Potential_CUFFT_3D::Copy_Input( Real *input_density, Real Grav_Constant, Real dens_avrg, Real current_a ){
+  cudaMemcpy( F.input_real_d, input_density, n_cells_local*sizeof(Real_cufft), cudaMemcpyHostToDevice );
+  Copy_Input_Kernel<<<blocks_per_grid, threads_per_block>>>( n_cells_local, F.input_real_d, F.input_d, Grav_Constant, dens_avrg, current_a );
+  
+}
+
+void Potential_CUFFT_3D::Copy_Output( Real *output_potential ){
 
   cudaMemcpy( F.output_h, F.output_d, n_cells_local*sizeof(Complex_cufft), cudaMemcpyDeviceToHost );
-
-
+  
   int id, id_pot;
   int i, k, j;
   for (k=0; k<nz_local; k++) {
@@ -114,18 +134,12 @@ void Potential_CUFFT_3D::Copy_Output( Grav3D &Grav ){
       for (i=0; i<nx_local; i++) {
         id = i + j*nx_local + k*nx_local*ny_local;
         id_pot = (i+N_GHOST_POTENTIAL) + (j+N_GHOST_POTENTIAL)*(nx_local+2*N_GHOST_POTENTIAL) + (k+N_GHOST_POTENTIAL)*(nx_local+2*N_GHOST_POTENTIAL)*(ny_local+2*N_GHOST_POTENTIAL);
-        Grav.F.potential_h[id_pot] = F.output_h[id].x / n_cells_local;
-        // Grav.F.density_h[id] = F.G_h[id];
+        output_potential[id_pot] = F.output_h[id].x / n_cells_local;
       }
     }
   }
 }
 
-void Potential_CUFFT_3D::Copy_Input( Grav3D &Grav ){
-  cudaMemcpy( F.input_real_d, Grav.F.density_h, n_cells_local*sizeof(Real_cufft), cudaMemcpyHostToDevice );
-  Copy_Input_Kernel<<<blocks_per_grid, threads_per_block>>>( n_cells_local, F.input_real_d, F.input_d );
-
-}
 
 
 __global__
@@ -145,29 +159,32 @@ void Apply_G_Funtion( int n_cells, Complex_cufft *transform, Real *G ){
 }
 
 
-Real Potential_CUFFT_3D::Get_Potential( Grav3D &Grav ){
-
+Real Potential_CUFFT_3D::Get_Potential( Real *input_density,  Real *output_potential, Real Grav_Constant, Real dens_avrg, Real current_a ){
+  // 
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaEventRecord(start);
-
-  AllocateMemory_GPU();
-  Copy_Input( Grav );
+  // 
+  // AllocateMemory_GPU();
+  Copy_Input( input_density, Grav_Constant, dens_avrg, current_a );
 
   cufftExecZ2Z( plan_cufft_fwd, F.input_d, F.transform_d, CUFFT_FORWARD );
   Apply_G_Funtion<<<blocks_per_grid, threads_per_block>>>( n_cells_local, F.transform_d, F.G_d );
   cufftExecZ2Z( plan_cufft_bwd, F.transform_d, F.output_d, CUFFT_INVERSE );
-  Copy_Output( Grav );
 
-  FreeMemory_GPU();
-
+  Copy_Output( output_potential );
+  // 
+  // FreeMemory_GPU();
+  // 
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   float milliseconds = 0;
   cudaEventElapsedTime(&milliseconds, start, stop);
-  // chprintf( " CUFFT: Potential Time = %f   msecs\n", milliseconds);
-  return (Real) milliseconds;
+  chprintf( " CUFFT: Potential Time = %f   msecs\n", milliseconds);
+  // return (Real) milliseconds;
+
+  return 0;
 
 }
 
