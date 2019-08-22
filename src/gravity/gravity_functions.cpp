@@ -137,7 +137,7 @@ Real Grav3D::Get_Average_Density(){
   #ifdef MPI_CHOLLA
   dens_avrg_all = ReduceRealAvg( dens_mean );
   #else
-  dens_avrg_all = dens_mean
+  dens_avrg_all = dens_mean;
   #endif
 
   dens_avrg = dens_avrg_all;
