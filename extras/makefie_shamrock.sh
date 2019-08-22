@@ -165,6 +165,13 @@ INCL += $(FFTW_INCL) $(PFFT_INCL)
 LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
 endif
 
+ifeq ($(POISSON_SOLVER),-DCUFFT)
+CUFFT_INCL = -I/usr/local/cuda-9.0/targets/x86_64-linux/include
+CUFFT_LIBS = -L/usr/local/cuda-9.0/targets/x86_64-linux/lib -lcufft
+INCL += $(CUFFT_INCL) 
+LIBS += $(CUFFT_LIBS) 
+endif
+
 ifeq ($(COOLING),-DCOOLING_GRACKLE)
 GRACKLE_PRECISION = -DCONFIG_BFLOAT_8
 OUTPUT_TEMPERATURE = -DOUTPUT_TEMPERATURE
