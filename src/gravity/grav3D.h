@@ -8,6 +8,10 @@
 #include"potential_PFFT_3D.h"
 #endif
 
+#ifdef CUFFT
+#include"potential_CUFFT_3D.h"
+#endif
+
 
 #ifdef HDF5
 #include<hdf5.h>
@@ -79,6 +83,10 @@ class Grav3D
   
   #ifdef PFFT
   Potential_PFFT_3D Poisson_solver;
+  #endif
+  
+  #ifdef CUFFT
+  Potential_CUFFT_3D Poisson_solver;
   #endif
 
   struct Fields
