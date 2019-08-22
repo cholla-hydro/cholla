@@ -126,9 +126,7 @@ void Grav3D::FreeMemory_CPU(void)
   free(F.gravity_z_h);
   #endif //GRAVITY_COUPLE_CPU
   
-  #ifdef PFFT
   Poisson_solver.Reset();
-  #endif
 }
 
 #endif //GRAVITY
