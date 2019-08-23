@@ -555,9 +555,7 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
 __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma, int n_fields)
 {
   int id, xid, yid, zid, n_cells;
-  Real d, d_inv, vx, vy, vz, E;
-  Real ge1, ge2, Emax;
-  int imo, ipo, jmo, jpo, kmo, kpo;
+  Real d, d_inv, vx, vy, vz, U;
   n_cells = nx*ny*nz;
 
   // get a global thread ID
@@ -566,18 +564,6 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
   yid = (id - zid*nx*ny) / nx;
   xid = id - zid*nx*ny - yid*nx;
 
-  imo = max(xid-1, n_ghost);
-  imo = imo + yid*nx + zid*nx*ny;
-  ipo = min(xid+1, nx-n_ghost-1);
-  ipo = ipo + yid*nx + zid*nx*ny;
-  jmo = max(yid-1, n_ghost);
-  jmo = xid + jmo*nx + zid*nx*ny;
-  jpo = min(yid+1, ny-n_ghost-1);
-  jpo = xid + jpo*nx + zid*nx*ny;
-  kmo = max(zid-1, n_ghost);
-  kmo = xid + yid*nx + kmo*nx*ny;
-  kpo = min(zid+1, nz-n_ghost-1);
-  kpo = xid + yid*nx + kpo*nx*ny;
 
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
@@ -588,40 +574,10 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     vx =  dev_conserved[1*n_cells + id] * d_inv;
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
-    E  =  dev_conserved[4*n_cells + id];
-    // don't do the energy sync if this thread has crashed
-    if (E < 0.0 || E != E) return;
+    
     // separately tracked internal energy 
-    ge1 =  dev_conserved[(n_fields-1)*n_cells + id];
-    // internal energy calculated from total energy
-    ge2 = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
-    // if the ratio of conservatively calculated internal energy to total energy
-    // is greater than 1/1000, use the conservatively calculated internal energy
-    // to do the internal energy update
-    if (ge2 > 0.0 && E > 0.0 && ge2/E > DE_ETA_1) {
-      dev_conserved[(n_fields-1)*n_cells + id] = ge2;
-      ge1 = ge2;
-    }
-    //find the max nearby total energy 
-    Emax = fmax(dev_conserved[4*n_cells + imo], E);
-    Emax = fmax(Emax, dev_conserved[4*n_cells + ipo]);
-    Emax = fmax(Emax, dev_conserved[4*n_cells + jmo]);
-    Emax = fmax(Emax, dev_conserved[4*n_cells + jpo]);
-    Emax = fmax(Emax, dev_conserved[4*n_cells + kmo]);
-    Emax = fmax(Emax, dev_conserved[4*n_cells + kpo]);
-    // if the ratio of conservatively calculated internal energy to max nearby total energy
-    // is greater than 1/10, continue to use the conservatively calculated internal energy 
-    if (ge2/Emax > 0.1 && ge2 > 0.0 && Emax > 0.0) {
-      dev_conserved[(n_fields-1)*n_cells + id] = ge2;
-    }
-    // sync the total energy with the internal energy 
-    else {
-      if (ge1 > 0.0) dev_conserved[4*n_cells + id] += ge1 - ge2;
-      else dev_conserved[(n_fields-1)*n_cells+id] = ge2;
-    }
-    // calculate the pressure 
-    //Real P = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    //if (P < 0.0) printf("%3d %3d %3d Negative pressure after internal energy sync. %f %f %f\n", xid, yid, zid, P/(gamma-1.0), ge1, ge2);    
+    U = dev_conserved[(n_fields-1)*n_cells + id];
+    dev_conserved[4*n_cells + id] = 0.5*d*(vx*vx + vy*vy + vz*vz) + U;
   }
 }
 
@@ -880,17 +836,19 @@ if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost &
   // P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
   //if (d < 0.0 || d != d) printf("Negative density before final update.\n");
   //if (P < 0.0) printf("%d Negative pressure before final update.\n", id);
-  ipo = xid+1 + yid*nx + zid*nx*ny;
-  jpo = xid + (yid+1)*nx + zid*nx*ny;
-  kpo = xid + yid*nx + (zid+1)*nx*ny;
-  vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
-  vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
-  vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
-  vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
-  vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
-  vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
+  // ipo = xid+1 + yid*nx + zid*nx*ny;
+  // jpo = xid + (yid+1)*nx + zid*nx*ny;
+  // kpo = xid + yid*nx + (zid+1)*nx*ny;
+  // vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
+  // vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
+  // vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
+  // vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
+  // vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
+  // vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
 
-
+  // Use center values of neighbor cells for the divergence of velocity
+  // dev_conserved[(n_fields-1)*n_cells + id] += 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+  
   //Use the reconstructed Velocities instead of neighbor cells centered values 
   vx_R = Q_Lx[1*n_cells + id]  / Q_Lx[id]; 
   vx_L = Q_Rx[1*n_cells + imo] / Q_Rx[imo]; 
@@ -899,14 +857,70 @@ if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost &
   vz_R = Q_Lz[3*n_cells + id]  / Q_Lz[id]; 
   vz_L = Q_Rz[3*n_cells + kmo] / Q_Rz[kmo]; 
 
-
-  // Use center values of neighbor cells for the divergence of velocity
-  // dev_conserved[(n_fields-1)*n_cells + id] += 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
-  
   
   //Use the reconstructed Velocities instead of neighbor cells centered values
   dev_conserved[(n_fields-1)*n_cells + id] +=  P * ( dtodx * ( vx_L - vx_R ) + dtody * ( vy_L - vy_R ) + dtodz * ( vz_L - vz_R ) );
   }  
+}
+
+
+__global__ void Select_Internal_Energy_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma, int n_fields)
+{
+  int id, xid, yid, zid, n_cells;
+  Real d, d_inv, vx, vy, vz, E;
+  Real U_total, U_advected, U, Emax;
+  int imo, ipo, jmo, jpo, kmo, kpo;
+  n_cells = nx*ny*nz;
+
+  // get a global thread ID
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx*ny);
+  yid = (id - zid*nx*ny) / nx;
+  xid = id - zid*nx*ny - yid*nx;
+
+  imo = max(xid-1, n_ghost);
+  imo = imo + yid*nx + zid*nx*ny;
+  ipo = min(xid+1, nx-n_ghost-1);
+  ipo = ipo + yid*nx + zid*nx*ny;
+  jmo = max(yid-1, n_ghost);
+  jmo = xid + jmo*nx + zid*nx*ny;
+  jpo = min(yid+1, ny-n_ghost-1);
+  jpo = xid + jpo*nx + zid*nx*ny;
+  kmo = max(zid-1, n_ghost);
+  kmo = xid + yid*nx + kmo*nx*ny;
+  kpo = min(zid+1, nz-n_ghost-1);
+  kpo = xid + yid*nx + kpo*nx*ny;
+
+  // threads corresponding to real cells do the calculation
+  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
+  {
+    // every thread collects the conserved variables it needs from global memory
+    d  =  dev_conserved[            id];
+    d_inv = 1.0 / d;
+    vx =  dev_conserved[1*n_cells + id] * d_inv;
+    vy =  dev_conserved[2*n_cells + id] * d_inv;
+    vz =  dev_conserved[3*n_cells + id] * d_inv;
+    E  =  dev_conserved[4*n_cells + id];
+    
+    // separately tracked internal energy 
+    U_advected =  dev_conserved[(n_fields-1)*n_cells + id];
+    // internal energy calculated from total energy
+    U_total = dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz);
+    
+    //find the max nearby total energy 
+    Emax = fmax(dev_conserved[4*n_cells + imo], E);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + ipo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + jmo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + jpo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + kmo]);
+    Emax = fmax(Emax, dev_conserved[4*n_cells + kpo]);
+    // if the ratio of conservatively calculated internal energy to max nearby total energy
+    // is greater than 1/10, continue to use the conservatively calculated internal energy 
+    if (U_total/Emax > DE_ETA_2 ) U = U_total;
+    else U = U_advected; 
+
+    dev_conserved[(n_fields-1)*n_cells + id] = U;
+  }
 }
 
 #endif //DE
