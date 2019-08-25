@@ -44,7 +44,7 @@ void Grid3D::set_dt_Gravity(){
   chprintf( " Delta_a_particles: %f \n", da_particles );
   #else
   Real da_hydro;
-  da_hydro = Cosmo.Get_da_from_dt_hydro( dt_hydro );
+  da_hydro = Cosmo.Get_da_from_dt( dt_hydro ) * Cosmo.current_a * Cosmo.current_a / Cosmo.H0;
   da_min = fmin( da_hydro, da_particles );
   chprintf( " Delta_a_particles: %f      Delta_a_gas: %f   \n", da_particles, da_hydro );
   #endif//ONLY_PARTICLES
@@ -70,7 +70,7 @@ void Grid3D::set_dt_Gravity(){
   
   
   Cosmo.delta_a = da_min;
-  dt_min = Cosmo.Get_dt_from_da_hydro( Cosmo.delta_a );
+  dt_min = Cosmo.Get_dt_from_da( Cosmo.delta_a ) * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a );
   H.dt = dt_min; 
   chprintf( " Current_a: %f    delta_a: %f     dt:  %f\n", Cosmo.current_a, Cosmo.delta_a, H.dt  );
   
@@ -78,7 +78,7 @@ void Grid3D::set_dt_Gravity(){
   Cosmo.dt_secs = dt_physical * Cosmo.time_conversion;
   Cosmo.t_secs += Cosmo.dt_secs;
   chprintf( " t_physical: %f Myr   dt_physical: %f Myr\n", Cosmo.t_secs/MYR, Cosmo.dt_secs/MYR );  
-  
+  Particles.dt = dt_physical; 
   
   #else // Not Cosmology
   dt_particles = Calc_Particles_dt();

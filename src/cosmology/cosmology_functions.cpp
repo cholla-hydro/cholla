@@ -33,22 +33,6 @@ Real Cosmology::Get_dt_from_da( Real da ){
   return da / a_dot;
 }
 
-Real Cosmology::Get_da_from_dt_hydro( Real dt ){
-  Real a2, a_dot, da;
-  a2 = current_a * current_a;
-  a_dot = sqrt( Omega_M/current_a + a2*Omega_L + Omega_K );
-  da = dt * a_dot * current_a * current_a;
-  return da;
-}
-
-Real Cosmology::Get_dt_from_da_hydro( Real da ){
-  Real a2, a_dot, dt;
-  a2 = current_a * current_a;
-  a_dot = sqrt( Omega_M/current_a + a2*Omega_L + Omega_K );
-  dt = da / a_dot / current_a / current_a;
-  return dt;
-}
-
 
 Real Cosmology::Scale_Function( Real a, Real Omega_M, Real Omega_L, Real Omega_K ){
   Real a3 = a * a * a;

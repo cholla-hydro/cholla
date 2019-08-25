@@ -40,6 +40,6 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-indir=/raid/bruno/data/cosmo_sims/cholla_pm/128_cool/ics/
-outdir=/raid/bruno/data/cosmo_sims/cholla_pm/128_cool/
+indir=/raid/bruno/data/cosmo_sims/cholla_pm/128_cool_uv_50Mpc/ics/
+outdir=/raid/bruno/data/cosmo_sims/cholla_pm/128_cool_uv_50Mpc/
 
