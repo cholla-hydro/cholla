@@ -34,8 +34,9 @@ Real Cosmology::Get_dt_from_da( Real da ){
 }
 
 Real Cosmology::Get_Hubble_Parameter( Real a ){
-  Real a3 = a * a * a;
-  Real factor = ( Omega_M + a*Omega_K + a3*Omega_L ) / a;
+  Real a2 = a * a;
+  Real a3 = a2 * a;
+  Real factor = ( Omega_M/a3 + Omega_K/a2 + Omega_L );
   return H0 * sqrt(factor);
 }
 
@@ -53,9 +54,13 @@ void Grid3D::Change_DM_Frame_System( bool forward ){
   
   part_int_t pIndx;
   Real vel_factor;
+  #ifdef PARTICLES_PECULIAR_VELOCITIES
+  vel_factor = 1;
+  #else
   if (forward ) vel_factor = Cosmo.current_a ;
   else vel_factor =  1./Cosmo.current_a;
-  // vel_factor = 1;
+  #endif
+  
   for ( pIndx=0; pIndx<Particles.n_local; pIndx++ ){
     Particles.vel_x[pIndx] *= vel_factor;
     Particles.vel_y[pIndx] *= vel_factor;
