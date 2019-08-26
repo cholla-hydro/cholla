@@ -167,16 +167,7 @@ int main(int argc, char *argv[])
     // calculate the timestep
     G.set_dt(dti);
 
-    if (G.H.t + G.H.dt > outtime) 
-    {
-      G.H.dt = outtime - G.H.t;
-    }
-
-    // This is not necessary, G.set_dt finds the global max_dti, dt is the same in all processes by now
-    // #ifdef MPI_CHOLLA
-    // G.H.dt = ReduceRealMin(G.H.dt);
-    // #endif
-    
+    if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
     
     #ifdef PARTICLES
     //Advance the particles KDK( first step )
@@ -207,6 +198,12 @@ int main(int argc, char *argv[])
     //Advance the particles KDK( second step )
     G.Advance_Particles( 2 );
     #endif
+
+
+    // Optional:Timestep using DKD for particles
+    // #if defined( PARTICLES ) && defined( PARTICLES_DKD )
+    // dti = G.Update_Grid_and_Particles_DKD(P);
+    // #endif
 
     
     #ifdef CPU_TIME
