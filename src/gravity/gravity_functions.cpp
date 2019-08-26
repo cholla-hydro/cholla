@@ -36,7 +36,7 @@ void Grid3D::set_dt_Gravity(){
   Timer.Start_Timer();
   #endif
   Particles.dt = Calc_Particles_dt_Cosmo();
-  da_particles = Cosmo.Get_da_from_dt( dt_particles );
+  da_particles = Cosmo.Get_da_from_dt( Particles.dt );
   #ifdef CPU_TIME
   Timer.End_and_Record_Time(0);
   #endif

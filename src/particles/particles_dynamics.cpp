@@ -8,6 +8,7 @@
 #include"../global.h"
 #include"../grid3D.h"
 #include"particles_3D.h"
+#include"../io.h"
 
 #ifdef PARALLEL_OMP
 #include"../parallel_omp.h"
@@ -228,7 +229,7 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_
   part_int_t pID;
   Real da, da_min, vel, dt_min;
   da_min = 1e100;
-  Real scale_factor = Cosmo.Scale_Function( Cosmo.current_a , Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K  ) / Cosmo.H0 * Cosmo.cosmo_h;
+  Real scale_factor = 1 / Cosmo.Get_Hubble_Parameter( Cosmo.current_a) * Cosmo.cosmo_h;
   Real a2 = ( Cosmo.current_a )*( Cosmo.current_a  );
   Real vel_factor = a2 / scale_factor;
   Real vx_max, vy_max, vz_max;
@@ -246,28 +247,18 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_
   da_min = fmin( Particles.G.dz / vz_max, da_min  );
   
   da_min *= vel_factor;
-  
+
   dt_min = Cosmo.Get_dt_from_da( da_min );
-
-
-  // for ( pID=0; pID<Particles.n_local; pID++ ){
-  //   vel = fabs(Particles.vel_x[pID]);
-  //   if ( vel > 0){
-  //     da = Particles.G.dx * vel_factor / vel;
-  //     da_min = std::min( da_min, da);
-  //   }
-  //   vel = fabs(Particles.vel_y[pID]);
-  //   if ( vel > 0){
-  //     da = Particles.G.dy * vel_factor / vel;
-  //     da_min = std::min( da_min, da);
-  //   }
-  //   vel = fabs(Particles.vel_z[pID]);
-  //   if ( vel > 0){
-  //     da = Particles.G.dz * vel_factor / vel;
-  //     da_min = std::min( da_min, da);
-  //   }
-  // } 
-  // dt_min = Cosmo.Get_dt_from_da( da_min );
+  
+  // dt_min = fmin( Particles.G.dx / vx_max, Particles.G.dy / vy_max  );
+  // dt_min = fmin( Particles.G.dz / vz_max, dt_min  );
+  // 
+  // Real a = Cosmo.current_a;
+  // // Real da_half = Cosmo.Get_da_from_dt( dt/2 );
+  // // Real a_half = a + da_half;
+  // dt_min *= a / Cosmo.cosmo_h; 
+ 
+  
   return Particles.C_cfl * dt_min;
 }
   
@@ -279,12 +270,23 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_
 void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end ){
   
   part_int_t pIndx;
+  Real dt = Particles.dt;
+  Real a = Cosmo.current_a;
   Real da = Cosmo.delta_a;
-  Real current_a = Cosmo.current_a;
-
-  Real scale_factor = Cosmo.Scale_Function( current_a, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K ) / Cosmo.H0 * Cosmo.cosmo_h;
-  Real scale_factor_1 = Cosmo.Scale_Function( current_a + 0.5*da, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K  ) / Cosmo.H0 * Cosmo.cosmo_h;
-  Real a2_inv = 1./( ( current_a + 0.5*da )*( current_a + 0.5*da ));
+  Real da_half = da/2;
+  Real a_half = a + da_half;
+  // Real a2_inv = 1./ ( a_half * a_half );
+  // Real da_half = Cosmo.Get_da_from_dt( dt/2 );
+  
+  Real scale_factor, scale_factor_1;
+  scale_factor = 1 / Cosmo.Get_Hubble_Parameter( a ) * Cosmo.cosmo_h;
+  scale_factor_1 = 1 / Cosmo.Get_Hubble_Parameter( a_half ) * Cosmo.cosmo_h / ( a_half * a_half );
+  // scale_factor = Cosmo.cosmo_h;
+  // scale_factor_1 = Cosmo.cosmo_h /( a_half * a_half );
+  
+  
+  
+  
   // Advance velocities by half a step
   Real pos_x, vel_x, grav_x;
   Real pos_y, vel_y, grav_y;
@@ -300,13 +302,31 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
     grav_y = Particles.grav_y[pIndx];
     grav_z = Particles.grav_z[pIndx];
 
+    // 
+    // vel_x = ( a*vel_x + 0.5*dt*grav_x*Cosmo.cosmo_h ) / a_half;
+    // vel_y = ( a*vel_y + 0.5*dt*grav_y*Cosmo.cosmo_h ) / a_half;
+    // vel_z = ( a*vel_z + 0.5*dt*grav_z*Cosmo.cosmo_h ) / a_half;
+    // 
+    // pos_x += dt * vel_x / a_half * Cosmo.cosmo_h;
+    // pos_y += dt * vel_y / a_half * Cosmo.cosmo_h;
+    // pos_z += dt * vel_z / a_half * Cosmo.cosmo_h; 
+    
+    // vel_x += scale_factor * 0.5 * dt * grav_x;
+    // vel_y += scale_factor * 0.5 * dt * grav_y;
+    // vel_z += scale_factor * 0.5 * dt * grav_z;
+    // 
+    // pos_x += scale_factor_1 * dt * vel_x;
+    // pos_y += scale_factor_1 * dt * vel_y;
+    // pos_z += scale_factor_1 * dt * vel_z;
+    
+
     vel_x += scale_factor * 0.5 * da * grav_x;
     vel_y += scale_factor * 0.5 * da * grav_y;
     vel_z += scale_factor * 0.5 * da * grav_z;
-
-    pos_x += a2_inv * scale_factor_1 * da * vel_x;
-    pos_y += a2_inv * scale_factor_1 * da * vel_y;
-    pos_z += a2_inv * scale_factor_1 * da * vel_z;
+    
+    pos_x += scale_factor_1 * da * vel_x;
+    pos_y += scale_factor_1 * da * vel_y;
+    pos_z += scale_factor_1 * da * vel_z;
     
           
     Particles.pos_x[pIndx] = pos_x;
@@ -321,18 +341,36 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
 
 void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end ){
   part_int_t pIndx;
+  Real a = Cosmo.current_a;
   Real da = Cosmo.delta_a;
-  Real current_a = Cosmo.current_a;
+  Real dt = Particles.dt;
+  Real scale_factor = 1 / Cosmo.Get_Hubble_Parameter( a ) * Cosmo.cosmo_h;
+  
+  // Real scale_factor = Cosmo.cosmo_h;
+  
+  
+  // Real da_half = Cosmo.Get_da_from_dt( dt/2 );
+  // Real da_half = da/2;
+  // Real a_half = a - da + da_half;
+  
 
-  Real scale_factor = Cosmo.Scale_Function( current_a , Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K ) / Cosmo.H0 * Cosmo.cosmo_h;
   // Advance velocities by half a step
-  Real grav_x;
-  Real grav_y;
-  Real grav_z;
+  Real grav_x, grav_y, grav_z;
+  Real vel_x, vel_y, vel_z;
   for ( pIndx=p_start; pIndx<p_end; pIndx++ ){
     grav_x = Particles.grav_x[pIndx];
     grav_y = Particles.grav_y[pIndx];
     grav_z = Particles.grav_z[pIndx];
+    
+    vel_x = Particles.vel_x[pIndx];
+    vel_y = Particles.vel_y[pIndx];
+    vel_z = Particles.vel_z[pIndx];
+    
+    
+    // Particles.vel_x[pIndx] = ( a_half*vel_x + 0.5*dt*grav_x*Cosmo.cosmo_h ) / current_a;
+    // Particles.vel_y[pIndx] = ( a_half*vel_y + 0.5*dt*grav_y*Cosmo.cosmo_h ) / current_a;
+    // Particles.vel_z[pIndx] = ( a_half*vel_z + 0.5*dt*grav_z*Cosmo.cosmo_h ) / current_a;
+    
     Particles.vel_x[pIndx] += scale_factor * 0.5 * da * grav_x;
     Particles.vel_y[pIndx] += scale_factor * 0.5 * da * grav_y;
     Particles.vel_z[pIndx] += scale_factor * 0.5 * da * grav_z;

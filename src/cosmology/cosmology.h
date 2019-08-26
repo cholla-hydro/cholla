@@ -64,7 +64,7 @@ public:
   void Change_GAS_Frame_System( bool forward );
   void Change_Cosmological_Frame_Sytem( bool forward );
   
-  Real Scale_Function( Real a, Real Omega_M, Real Omega_L, Real Omega_K );
+  Real Get_Hubble_Parameter( Real a );
   
   Real Get_da_from_dt( Real dt );
   Real Get_dt_from_da( Real da );
