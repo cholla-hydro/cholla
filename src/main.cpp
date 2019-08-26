@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f \n", DE_ETA_1, DE_ETA_2);
   char *message = (char*)malloc(50 * sizeof(char));
   sprintf(message, " eta_1: %0.3f   eta_2: %0.3f   ", DE_ETA_1, DE_ETA_2 );
-  if ( procID == 0 ) Write_Message_To_Log_File( message );
+  Write_Message_To_Log_File( message );
   #endif
   
   
@@ -283,7 +283,7 @@ int main(int argc, char *argv[])
   G.Timer.Print_Average_Times( P );
   #endif
   
-  if (procID == 0) Write_Message_To_Log_File( "Run completed successfully!");
+  Write_Message_To_Log_File( "Run completed successfully!");
 
   // free the grid
   G.Reset();

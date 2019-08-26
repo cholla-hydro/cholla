@@ -79,8 +79,8 @@ SOLVER = -DHLLC
 # SOLVER = -DHLL
 
 # INTEGRATOR = -DCTU
-# INTEGRATOR = -DVL
-INTEGRATOR = -DSIMPLE
+INTEGRATOR = -DVL
+# INTEGRATOR = -DSIMPLE
 
 #Dual Energy Formalism
 DUAL_ENERGY = -DDE
@@ -97,7 +97,7 @@ TEMPERATURE_FLOOR = -DTEMPERATURE_FLOOR
 # OUTPUT_ALWAYS = -DOUTPUT_ALWAYS
 
 #Average Slow cells
-AVERAGE_SLOW_CELLS = -DAVERAGE_SLOW_CELLS
+# AVERAGE_SLOW_CELLS = -DAVERAGE_SLOW_CELLS
 
 #Allocate GPU memory only once at the first timestep
 # DYNAMIC_GPU_ALLOC = -DDYNAMIC_GPU_ALLOC
@@ -134,14 +134,14 @@ GRAVITY_ENERGY_COUPLE = -DCOUPLE_GRAVITATIONAL_WORK
 
 # TURN OMP ON FOR CPU CALCULATIONS
 PARALLEL_OMP = -DPARALLEL_OMP
-N_OMP_THREADS = -DN_OMP_THREADS=10
+N_OMP_THREADS = -DN_OMP_THREADS=8
 # # PRINT_OMP_DOMAIN = -DPRINT_OMP_DOMAIN
 
 #Cosmological simulation
 # COSMOLOGY = -DCOSMOLOGY
 
 #Use Grackle for cooling in cosmological simulations
-COOLING = -DCOOLING_GRACKLE
+# COOLING = -DCOOLING_GRACKLE
 
 ifdef CUDA
 CUDA_INCL = -I/usr/local/cuda/include
@@ -166,8 +166,8 @@ LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
 endif
 
 ifeq ($(POISSON_SOLVER),-DCUFFT)
-CUFFT_INCL = -I/usr/local/cuda-9.0/targets/x86_64-linux/include
-CUFFT_LIBS = -L/usr/local/cuda-9.0/targets/x86_64-linux/lib -lcufft
+CUFFT_INCL = -I/usr/local/cuda-10.0/targets/x86_64-linux/include
+CUFFT_LIBS = -L/usr/local/cuda-10.0/targets/x86_64-linux/lib -lcufft
 INCL += $(CUFFT_INCL) 
 LIBS += $(CUFFT_LIBS) 
 endif
@@ -179,7 +179,7 @@ OUTPUT_CHEMISTRY = -DOUTPUT_CHEMISTRY
 SCALAR = -DSCALAR
 N_OMP_THREADS_GRACKLE = -DN_OMP_THREADS_GRACKLE=10
 GRACKLE_INCL = -I/home/bruno/local/include
-GRACKLE_LIBS = -L/home/bruno/local/lib -lgrackle 
+GRACKLE_LIBS = -L/home/bruno/local/lib -lgrackle
 INCL += $(GRACKLE_INCL)
 LIBS += $(GRACKLE_LIBS)
 endif

@@ -1,5 +1,4 @@
 #ifdef GRAVITY
-#ifdef MPI_CHOLLA
 
 
 #include "../io.h"
@@ -75,6 +74,7 @@ void Grid3D::Copy_Potential_Boundaries( int direction, int side ){
   
 }
 
+#ifdef MPI_CHOLLA
 int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  ){
 
 

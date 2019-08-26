@@ -28,6 +28,10 @@ void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real
 
 void Create_Log_File( struct parameters P ){
   
+  #ifdef MPI_CHOLLA 
+  if ( procID != 0 ) return;
+  #endif
+    
   string file_name ( LOG_FILE_NAME );
   chprintf( "\nCreating Log File: %s \n\n", file_name.c_str() );
   
@@ -44,15 +48,19 @@ void Create_Log_File( struct parameters P ){
   char* dt = ctime(&now);
   
   ofstream out_file;
-  if ( procID == 0 ){
-    out_file.open(file_name.c_str(), ios::app);
-    out_file << "\n";
-    out_file << "Run date: " << dt;
-    out_file.close();
-  }
+  out_file.open(file_name.c_str(), ios::app);
+  out_file << "\n";
+  out_file << "Run date: " << dt;
+  out_file.close();
+  
 }
 
 void Write_Message_To_Log_File( const char* message ){
+  
+    #ifdef MPI_CHOLLA
+    if ( procID != 0 ) return;
+    #endif
+    
     
     string file_name ( LOG_FILE_NAME );
     ofstream out_file;

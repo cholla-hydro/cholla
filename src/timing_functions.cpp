@@ -65,6 +65,10 @@ void Time::End_and_Record_Time( int time_var ){
   t_min = ReduceRealMin(time);
   t_max = ReduceRealMax(time);
   t_avg = ReduceRealAvg(time);
+  #else
+  t_min = time;
+  t_max = time;
+  t_avg = time;
   #endif
 
 
@@ -307,46 +311,53 @@ void Time::Print_Average_Times( struct parameters P ){
   }
 
 
-
-  // Output timing values
+  #ifdef MPI_CHOLLA
+  if ( procID != 0 ) return;
+  #endif
+  
   ofstream out_file;
-  if ( procID == 0 ){
-    out_file.open(file_name.c_str(), ios::app);
-    if ( !file_exists ) out_file << header;
-    out_file << P.nx << " " << P.ny << " " << P.nz << " ";
-    out_file << nproc << " ";
-    #ifdef PARALLEL_OMP
-    out_file << N_OMP_THREADS << " ";
-    #else
-    out_file << 0 << " ";
-    #endif
-    out_file << n_steps << " ";
-    #ifdef GRAVITY_COUPLE_CPU
-    out_file << time_dt_all << " ";
-    #endif
-    out_file << time_hydro_all << " ";
-    out_file << time_bound_all << " ";
-    #ifdef GRAVITY
-    out_file << time_potential_all << " ";
-    #ifdef GRAVITY_COUPLE_CPU
-    out_file << time_bound_pot_all << " ";
-    #endif
-    #endif
-    #ifdef PARTICLES
-    out_file << time_part_dens_all << " ";
-    out_file << time_part_tranf_all << " ";
-    out_file << time_part_dens_transf_all << " ";
-    out_file << time_advance_particles_1_all << " ";
-    out_file << time_advance_particles_2_all << " ";
-    #endif
-    #ifdef COOLING_GRACKLE
-    out_file << time_cooling_all << " ";
-    #endif
-    out_file << time_total << " ";
 
-    out_file << "\n";
-    out_file.close();
-  }
+// Output timing values
+  out_file.open(file_name.c_str(), ios::app);
+  if ( !file_exists ) out_file << header;
+  out_file << P.nx << " " << P.ny << " " << P.nz << " ";
+  #ifdef MPI_CHOLLA
+  out_file << nproc << " ";
+  #else
+  out_file << 1 << " ";
+  #endif
+  #ifdef PARALLEL_OMP
+  out_file << N_OMP_THREADS << " ";
+  #else
+  out_file << 0 << " ";
+  #endif
+  out_file << n_steps << " ";
+  #ifdef GRAVITY_COUPLE_CPU
+  out_file << time_dt_all << " ";
+  #endif
+  out_file << time_hydro_all << " ";
+  out_file << time_bound_all << " ";
+  #ifdef GRAVITY
+  out_file << time_potential_all << " ";
+  #ifdef GRAVITY_COUPLE_CPU
+  out_file << time_bound_pot_all << " ";
+  #endif
+  #endif
+  #ifdef PARTICLES
+  out_file << time_part_dens_all << " ";
+  out_file << time_part_tranf_all << " ";
+  out_file << time_part_dens_transf_all << " ";
+  out_file << time_advance_particles_1_all << " ";
+  out_file << time_advance_particles_2_all << " ";
+  #endif
+  #ifdef COOLING_GRACKLE
+  out_file << time_cooling_all << " ";
+  #endif
+  out_file << time_total << " ";
+
+  out_file << "\n";
+  out_file.close();
+
 }
 
 

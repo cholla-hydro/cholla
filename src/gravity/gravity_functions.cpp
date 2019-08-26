@@ -137,7 +137,7 @@ Real Grav3D::Get_Average_Density(){
   #ifdef MPI_CHOLLA
   dens_avrg_all = ReduceRealAvg( dens_mean );
   #else
-  dens_avrg_all = dens_mean
+  dens_avrg_all = dens_mean;
   #endif
 
   dens_avrg = dens_avrg_all;
@@ -175,14 +175,17 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
   
   //initialize cuda for use with mpi
   // Needed to initialize cuda after gravity in order to work on Summit
+  #ifdef MPI_CHOLLA
   #ifdef CUDA
   chprintf( "Initializing CUDA...\n");
+  
   if(initialize_cuda_mpi(procID_node,nproc_node))
   {
     chprintf("Error initializing cuda with mpi.\n");
     chexit(-10);
-  }
+  }  
   #endif /*CUDA*/
+  #endif //MPI_CHOLLA
   
   #ifdef ONLY_PARTICLES
   chprintf("ONLY_PARTICLES: Initializing without CUDA support.\n");
