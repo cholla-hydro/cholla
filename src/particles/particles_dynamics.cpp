@@ -207,6 +207,7 @@ Real Grid3D::Calc_Particles_dt_Cosmo(){
   for ( int i=0; i<N_OMP_THREADS; i++ ){
     dt_particles = fmin( dt_particles, dt_particles_all[i]);
   }
+  // dt_particles = Calc_Particles_dt_Cosmo_function( 0, Particles.n_local );
   #endif 
   
   Real dt_particles_global;
@@ -216,16 +217,11 @@ Real Grid3D::Calc_Particles_dt_Cosmo(){
   dt_particles_global = dt_particles;
   #endif
   
-  return dt_particles_global;  
-  
-
-  
-  
-  
+  return dt_particles_global;   
 }
 
 Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end ){
-  
+
   part_int_t pID;
   Real da, da_min, vel, dt_min;
   da_min = 1e100;
@@ -242,14 +238,12 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_
     vy_max = fmax( vy_max,  fabs(Particles.vel_y[pID]) );
     vz_max = fmax( vz_max,  fabs(Particles.vel_z[pID]) );  
   } 
-  
+
   da_min = fmin( Particles.G.dx / vx_max, Particles.G.dy / vy_max  );
   da_min = fmin( Particles.G.dz / vz_max, da_min  );
-  
   da_min *= vel_factor;
-
   dt_min = Cosmo.Get_dt_from_da( da_min );
-  
+
   // dt_min = fmin( Particles.G.dx / vx_max, Particles.G.dy / vy_max  );
   // dt_min = fmin( Particles.G.dz / vz_max, dt_min  );
   // 
@@ -257,11 +251,39 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_
   // // Real da_half = Cosmo.Get_da_from_dt( dt/2 );
   // // Real a_half = a + da_half;
   // dt_min *= a / Cosmo.cosmo_h; 
- 
-  
   return Particles.C_cfl * dt_min;
 }
-  
+// 
+// 
+// Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end ){
+// 
+//   part_int_t pID, n_particles;
+//   n_particles = Particles.n_local;
+//   Real da, da_min, vel, dt_min;
+// 
+//   Real dx, dy, dz;
+//   dx = Particles.G.dx;
+//   dy = Particles.G.dy;
+//   dz = Particles.G.dz;
+// 
+//   da_min = 1e10;
+// 
+//   #pragma omp parallel for reduction(min:da_min) shared( n_particles,dx, dy, dz) num_threads(N_OMP_THREADS)
+//   for ( pID=0; pID<n_particles; pID++ ){
+//     da_min = fmin( da_min, dx / fabs(Particles.vel_x[pID]) );
+//     da_min = fmin( da_min, dy / fabs(Particles.vel_y[pID]) );
+//     da_min = fmin( da_min, dz / fabs(Particles.vel_z[pID]) );
+//   } 
+// 
+//   Real scale_factor = 1 / Cosmo.Get_Hubble_Parameter( Cosmo.current_a) * Cosmo.cosmo_h;
+//   Real a2 = ( Cosmo.current_a )*( Cosmo.current_a  );
+//   Real vel_factor = a2 / scale_factor;
+//   da_min *= vel_factor;
+// 
+//   dt_min = Cosmo.Get_dt_from_da( da_min );
+//   return Particles.C_cfl * dt_min;
+// }
+// 
   
 
 
