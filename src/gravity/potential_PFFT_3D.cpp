@@ -112,6 +112,10 @@ void Potential_PFFT_3D::Reset( void ){
 
 void Potential_PFFT_3D::Copy_Input( Real *input_density, Real Grav_Constant, Real dens_avrg, Real current_a ){
   int i, k, j, id;
+  
+  // #ifdef PARALLEL_OMP
+  // #pragma omp parallel for num_threads(N_OMP_THREADS)
+  // #endif
   for (k=0; k<nz_local; k++) {
     for (j=0; j<ny_local; j++) {
       for (i=0; i<nx_local; i++) {
@@ -130,6 +134,10 @@ void Potential_PFFT_3D::Copy_Input( Real *input_density, Real Grav_Constant, Rea
 void Potential_PFFT_3D::Copy_Output( Real *output_potential ){
   int id, id_pot;
   int i, k, j;
+  
+  // #ifdef PARALLEL_OMP
+  // #pragma omp parallel for num_threads(N_OMP_THREADS)
+  // #endif
   for (k=0; k<nz_local; k++) {
     for (j=0; j<ny_local; j++) {
       for (i=0; i<nx_local; i++) {
@@ -196,9 +204,14 @@ void Potential_PFFT_3D::Apply_K2_Funtion( void ){
   Real kx, ky, kz, k2;
   int i_g, j_g, k_g;
   int id;
-  for (int k=0; k<nz_local; k++){
-    for (int j=0; j<ny_local; j++){
-      for ( int i=0; i<nx_local; i++){
+  int k, j, i;
+  
+  // #ifdef PARALLEL_OMP
+  // #pragma omp parallel for num_threads(N_OMP_THREADS)
+  // #endif
+  for (k=0; k<nz_local; k++){
+    for (j=0; j<ny_local; j++){
+      for (i=0; i<nx_local; i++){
         id = i + j*nx_local + k*nx_local*ny_local;
         Get_Index_Global( i, j, k, &i_g, &j_g, &k_g );
         if ( i_g >= nx_total/2) i_g -= nz_total;
@@ -227,7 +240,12 @@ void Potential_PFFT_3D::Apply_K2_Funtion( void ){
 
 void Potential_PFFT_3D::Apply_G_Funtion( void ){
   Real G_val;
-  for ( int i=0; i<n_cells_local; i++ ){
+  int i;
+  
+  // #ifdef PARALLEL_OMP
+  // #pragma omp parallel for num_threads(N_OMP_THREADS)
+  // #endif
+  for ( i=0; i<n_cells_local; i++ ){
     G_val = F.G[i];
     F.transform[i][0] *= G_val;
     F.transform[i][1] *= G_val;
