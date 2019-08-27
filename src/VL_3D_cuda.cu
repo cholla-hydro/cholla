@@ -104,6 +104,12 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
     #endif 
     
+    #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+    CudaSafeCall( cudaMalloc((void**)&dev_grav_potential, BLOCK_VOL*sizeof(Real)) );
+    #else
+    dev_grav_potential = NULL;
+    #endif
+    
     #ifndef DYNAMIC_GPU_ALLOC 
     // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
@@ -318,6 +324,9 @@ void Free_Memory_VL_3D(){
   cudaFree(dev_dti_array);
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
+  #endif
+  #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+  cudaFree(dev_grav_potential);
   #endif
 
 }

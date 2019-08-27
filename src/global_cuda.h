@@ -44,6 +44,10 @@ extern Real *buffer;
 extern Real *tmp1;
 extern Real *tmp2;
 
+#if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+extern Real *dev_grav_potential;
+#endif
+
 // Similarly, sizes of subgrid blocks and kernel dimensions are global variables
 // so subgrid splitting function is only called once
 // dimensions of subgrid blocks

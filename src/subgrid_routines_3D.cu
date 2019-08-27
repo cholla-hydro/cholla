@@ -37,6 +37,9 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
   #ifdef H_CORRECTION
   cell_mem += 6*sizeof(Real);
   #endif
+  #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+  cell_mem += sizeof(Real);
+  #endif
   max_vol = free / cell_mem; 
   // plus a buffer for dti array
   max_vol = max_vol - 400;
