@@ -25,11 +25,11 @@ void Time::Initialize(){
 
   time_hydro_all = 0;
   time_bound_all = 0;
+  time_dt_all = 0;
 
   #ifdef GRAVITY
   time_potential_all = 0;
   #ifdef GRAVITY_COUPLE_CPU
-  time_dt_all = 0;
   time_bound_pot_all = 0;
   #endif
   #endif
@@ -71,6 +71,12 @@ void Time::End_and_Record_Time( int time_var ){
   t_avg = time;
   #endif
 
+  if( time_var == 0 ){
+    time_dt_min = t_min;
+    time_dt_max = t_max;
+    time_dt_mean = t_avg;
+    if (n_steps > 0) time_dt_all += t_max;
+  }
 
 
   if( time_var == 1 ){
@@ -94,12 +100,6 @@ void Time::End_and_Record_Time( int time_var ){
   }
 
   #ifdef GRAVITY_COUPLE_CPU
-  if( time_var == 0 ){
-    time_dt_min = t_min;
-    time_dt_max = t_max;
-    time_dt_mean = t_avg;
-    if (n_steps > 0) time_dt_all += t_max;
-  }
   if( time_var == 9 ){
     time_bound_pot_min = t_min;
     time_bound_pot_max = t_max;
@@ -158,7 +158,7 @@ void Time::End_and_Record_Time( int time_var ){
 
 
 void Time::Print_Times(){
-  #ifdef GRAVITY_COUPLE_CPU
+  #if defined(GRAVITY_COUPLE_CPU) || defined( PARTICLES )
   chprintf(" Time Calc dt           min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_dt_min, time_dt_max, time_dt_mean);
   #endif
   chprintf(" Time Hydro             min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_hydro_min, time_hydro_max, time_hydro_mean);
