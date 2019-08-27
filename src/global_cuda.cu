@@ -18,9 +18,6 @@ Real *host_dti_array;
 #ifdef COOLING_GPU
 Real *host_dt_array;
 #endif
-#if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
-Real *dev_grav_potential;
-#endif
 Real *buffer, *tmp1, *tmp2;
 int nx_s, ny_s, nz_s;
 int x_off_s, y_off_s, z_off_s;
@@ -29,5 +26,9 @@ int remainder1, remainder2, remainder3;
 int BLOCK_VOL;
 int ngrid;
 
+//Arrays for potential in GPU: Will be set to NULL if not using GRAVITY
+Real *dev_grav_potential;
+Real *temp_potential;
+Real *buffer_potential;
 
 #endif //CUDA

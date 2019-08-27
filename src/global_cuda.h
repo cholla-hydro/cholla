@@ -44,9 +44,10 @@ extern Real *buffer;
 extern Real *tmp1;
 extern Real *tmp2;
 
-#if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+//Arrays for potential in GPU: Will be set to NULL if not using GRAVITY
 extern Real *dev_grav_potential;
-#endif
+extern Real *temp_potential;
+extern Real *buffer_potential;
 
 // Similarly, sizes of subgrid blocks and kernel dimensions are global variables
 // so subgrid splitting function is only called once
