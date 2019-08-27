@@ -29,9 +29,7 @@ void Time::Initialize(){
 
   #ifdef GRAVITY
   time_potential_all = 0;
-  #ifdef GRAVITY_COUPLE_CPU
   time_bound_pot_all = 0;
-  #endif
   #endif
   
   #ifdef PARTICLES
@@ -99,14 +97,12 @@ void Time::End_and_Record_Time( int time_var ){
     if (n_steps > 0) time_potential_all += t_max;
   }
 
-  #ifdef GRAVITY_COUPLE_CPU
   if( time_var == 9 ){
     time_bound_pot_min = t_min;
     time_bound_pot_max = t_max;
     time_bound_pot_mean = t_avg;
     if (n_steps > 0) time_bound_pot_all += t_max;
   }
-  #endif
   #endif
   
   #ifdef PARTICLES
@@ -165,9 +161,7 @@ void Time::Print_Times(){
   chprintf(" Time Boundaries        min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_bound_min, time_bound_max, time_bound_mean);
   #ifdef GRAVITY
   chprintf(" Time Grav Potential    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_potential_min, time_potential_max, time_potential_mean);
-  #ifdef GRAVITY_COUPLE_CPU
   chprintf(" Time Pot Boundaries    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_bound_pot_min, time_bound_pot_max, time_bound_pot_mean);
-  #endif
   #endif
   #ifdef PARTICLES
   chprintf(" Time Part Density      min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_part_dens_min, time_part_dens_max, time_part_dens_mean);
@@ -240,16 +234,14 @@ void Time::Print_Average_Times( struct parameters P ){
   #endif
 
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
-  #ifdef GRAVITY_COUPLE_CPU
+  #ifdef GRAVITY_COUPLE_CPU 
   chprintf(" Time Calc dt           avg: %9.4f   ms\n", time_dt_all);
   #endif
   chprintf(" Time Hydro             avg: %9.4f   ms\n", time_hydro_all);
   chprintf(" Time Boundaries        avg: %9.4f   ms\n", time_bound_all);
   #ifdef GRAVITY
   chprintf(" Time Grav Potential    avg: %9.4f   ms\n", time_potential_all);
-  #ifdef GRAVITY_COUPLE_CPU
   chprintf(" Time Pot Boundaries    avg: %9.4f   ms\n", time_bound_pot_all);
-  #endif
   #ifdef PARTICLES
   chprintf(" Time Part Density      avg: %9.4f   ms\n", time_part_dens_all);
   chprintf(" Time Part Boundaries   avg: %9.4f   ms\n", time_part_tranf_all);
