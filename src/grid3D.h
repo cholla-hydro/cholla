@@ -327,12 +327,16 @@ class Grid3D
       Real *scalar;
       #endif
       
-      #ifdef GRAVITY
-      #ifdef GRAVITY_COUPLE_GPU
-      Real *Grav_potential;
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential_new;
+      
+      
+      #ifdef GRAVITY
+      #ifdef GRAVITY_COUPLE_GPU
+      /*! \var grav_potential
+      *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
+      Real *Grav_potential;
       #endif
       #ifdef GRAVITY_COUPLE_CPU
       //Arrays for conserved variables at the begining of the timesteps
