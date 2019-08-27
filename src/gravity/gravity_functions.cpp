@@ -374,6 +374,9 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
         pot_extrp *= Cosmo.current_a * Cosmo.current_a / Cosmo.phi_0_gas;
         #endif
         
+        #ifdef GRAVITY_COUPLE_GPU
+        C.Grav_potential_new[id_grid] = pot_extrp;
+        #endif
         potential[id_grid] = pot_extrp;
         Grav.F.potential_1_h[id_pot] = pot_now;
       }
