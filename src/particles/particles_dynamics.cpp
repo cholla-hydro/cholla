@@ -271,7 +271,6 @@ Real Grid3D::Calc_Particles_dt_Cosmo(){
   for ( int i=0; i<N_OMP_THREADS; i++ ){
     dt_particles = fmin( dt_particles, dt_particles_all[i]);
   }
-  // dt_particles = Calc_Particles_dt_Cosmo_function( 0, Particles.n_local );
   #endif 
   
   Real dt_particles_global;
