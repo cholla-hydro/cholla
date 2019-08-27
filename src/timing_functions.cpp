@@ -25,9 +25,9 @@ void Time::Initialize(){
 
   time_hydro_all = 0;
   time_bound_all = 0;
-  time_dt_all = 0;
 
   #ifdef GRAVITY
+  time_dt_all = 0;
   time_potential_all = 0;
   time_bound_pot_all = 0;
   #endif
@@ -69,12 +69,14 @@ void Time::End_and_Record_Time( int time_var ){
   t_avg = time;
   #endif
 
+  #ifdef GRAVITY
   if( time_var == 0 ){
     time_dt_min = t_min;
     time_dt_max = t_max;
     time_dt_mean = t_avg;
     if (n_steps > 0) time_dt_all += t_max;
   }
+  #endif
 
 
   if( time_var == 1 ){
