@@ -276,6 +276,7 @@ void Grid3D::AllocateMemory(void)
   
   #ifdef GRAVITY
   #ifdef GRAVITY_COUPLE_GPU
+  C.Grav_potential_new = (Real *) malloc(H.n_cells*sizeof(Real));
   #ifdef DE
   C.Grav_potential = &(buffer0[(H.n_fields-2)*H.n_cells]);
   #else
@@ -894,6 +895,10 @@ void Grid3D::FreeMemory(void)
   // free the conserved variable arrays
   free(buffer0);
   free(buffer1);
+  
+  #ifdef GRAVITY_COUPLE_GPU
+  free(C.Grav_potential_new);
+  #endif
   
   #ifndef DYNAMIC_GPU_ALLOC
   // If memory is single allocated, free the memory at the end of the simulation.
