@@ -222,13 +222,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
   gx = 0.0;
   gy = 0.0;
   gz = 0.0;
-  int field_pot;
-
-  #ifdef DE
-  field_pot = n_fields - 2;
-  #else
-  field_pot = n_fields - 1;
-  #endif //DE
   
   #ifdef COUPLE_DELTA_E_KINETIC
   Real Ekin_0, Ekin_1;
@@ -361,8 +354,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     // Get X componet of gravity field
     id_l = (xid-1) + (yid)*nx + (zid)*nx*ny;
     id_r = (xid+1) + (yid)*nx + (zid)*nx*ny;
-    // pot_l = dev_conserved[field_pot*n_cells + id_l];
-    // pot_r = dev_conserved[field_pot*n_cells + id_r];
     pot_l = dev_potential[id_l];
     pot_r = dev_potential[id_r];
     gx = -0.5*( pot_r - pot_l ) / dx;
@@ -370,8 +361,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     //Get Y componet of gravity field
     id_l = (xid) + (yid-1)*nx + (zid)*nx*ny;
     id_r = (xid) + (yid+1)*nx + (zid)*nx*ny;
-    // pot_l = dev_conserved[field_pot*n_cells + id_l];
-    // pot_r = dev_conserved[field_pot*n_cells + id_r];
     pot_l = dev_potential[id_l];
     pot_r = dev_potential[id_r];
     gy = -0.5*( pot_r - pot_l ) / dy;
@@ -379,8 +368,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     //Get Z componet of gravity field
     id_l = (xid) + (yid)*nx + (zid-1)*nx*ny;
     id_r = (xid) + (yid)*nx + (zid+1)*nx*ny;
-    // pot_l = dev_conserved[field_pot*n_cells + id_l];
-    // pot_r = dev_conserved[field_pot*n_cells + id_r];
     pot_l = dev_potential[id_l];
     pot_r = dev_potential[id_r];
     gz = -0.5*( pot_r - pot_l ) / dz;
