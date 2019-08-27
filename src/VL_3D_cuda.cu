@@ -69,6 +69,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   if (block_tot == 1) {
     tmp1 = host_conserved0;
     tmp2 = host_conserved1;
+    //host_grav_potential is NULL if not using GRAVITY
+    temp_potential = host_grav_potential;
   }
 
   if ( !memory_allocated ){
@@ -80,6 +82,15 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
       }
       tmp1 = buffer;
       tmp2 = buffer;
+      
+      #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+      if ( NULL == ( buffer_potential = (Real *) malloc(BLOCK_VOL*sizeof(Real)) ) ) {
+        printf("Failed to allocate CPU Grav_Potential buffer.\n");
+      }
+      #else
+      buffer_potential = NULL;
+      #endif
+      temp_potential = buffer_potential;
     }
     // allocate an array on the CPU to hold max_dti returned from each thread block
     host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
@@ -125,13 +136,16 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   while (block < block_tot) {
 
     // copy the conserved variable block to the buffer
-    host_copy_block_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved0, buffer, n_fields);
+    host_copy_block_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved0, buffer, n_fields, host_grav_potential, buffer_potential);
 
     // calculate the global x, y, and z offsets of this subgrid block
     get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
 
     // copy the conserved variables onto the GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
+    #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+    CudaSafeCall( cudaMemcpy(dev_grav_potential, temp_potential, BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
+    #endif
  
 
     // Step 1: Use PCM reconstruction to put primitive variables into interface arrays
@@ -230,7 +244,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #endif
 
     // Step 6: Update the conserved variable array
-    Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, F_x, F_y, F_z, nx_s, ny_s, nz_s, x_off_s, y_off_s, z_off_s, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama, n_fields, density_floor);
+    Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, F_x, F_y, F_z, nx_s, ny_s, nz_s, x_off_s, y_off_s, z_off_s, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama, n_fields, density_floor, dev_grav_potential);
     CudaCheckError();
 
     #ifndef GRAVITY_COUPLE_CPU //If gravity is added on the CPU, sync Eergies on the CPU after gravity has been added
@@ -327,6 +341,7 @@ void Free_Memory_VL_3D(){
   #endif
   #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
   cudaFree(dev_grav_potential);
+  if (block_tot > 1) free(buffer_potential);
   #endif
 
 }
