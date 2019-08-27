@@ -185,7 +185,7 @@ void get_offsets_3D(int nx_s, int ny_s, int nz_s, int n_ghost, int x_off, int y_
 
 
 // copy the conserved variable block into the buffer
-void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int block3_tot, int remainder1, int remainder2, int remainder3, int BLOCK_VOL, Real *host_conserved, Real *buffer, int n_fields) {
+void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int block3_tot, int remainder1, int remainder2, int remainder3, int BLOCK_VOL, Real *host_conserved, Real *buffer, int n_fields, Real *host_grav_potential, Real *buffer_potential ) {
   
   int n_cells = nx*ny*nz;
   int block1, block2, block3;
