@@ -311,18 +311,17 @@ void Grid3D::AllocateMemory(void)
   H.dt = 1e10;
   #else
   
-  #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
-  // When gravity is coupled to hydro on the cpu, dt must be computed on the cpu.
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
+  
   #if ( defined(COSMOLOGY) && defined(AVERAGE_SLOW_CELLS) && defined(PARTICLES) )
   Particles.dt = Calc_Particles_dt_Cosmo();
   #endif
+  
+  #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
+  // When gravity is coupled to hydro on the cpu, dt must be computed on the cpu.
   max_dti = calc_dti_CPU();
-  #ifdef CPU_TIME
-  Timer.End_and_Record_Time(0);
-  #endif
   
   #else //GRAVITY_COUPLE_CPU
 
@@ -344,14 +343,7 @@ void Grid3D::AllocateMemory(void)
   max_dti = ReduceRealMax(max_dti);
   #endif /*MPI_CHOLLA*/
   
-  /*
-  if (H.n_step > 1) {
-    H.dt = fmin(2*H.dt, C_cfl / max_dti);
-  }
-  else 
-    H.dt = C_cfl / max_dti;
-  */
-  //chprintf("Within set_dt: %f %f %f\n", C_cfl, H.dt, max_dti);
+  
   H.dt = C_cfl / max_dti;
   
   #endif //ONLY_PARTICLES
@@ -360,7 +352,11 @@ void Grid3D::AllocateMemory(void)
   //Set dt for hydro and particles
   set_dt_Gravity();
   #endif
-
+  
+  #ifdef CPU_TIME
+  Timer.End_and_Record_Time(0);
+  #endif
+  
 
 }
 

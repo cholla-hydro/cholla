@@ -38,12 +38,12 @@ public:
   Real time_potential_mean;
   Real time_potential_all;
 
-  #ifdef GRAVITY_COUPLE_CPU
   Real time_dt_min;
   Real time_dt_max;
   Real time_dt_mean;
   Real time_dt_all;
   
+  #ifdef GRAVITY_COUPLE_CPU
   Real time_bound_pot_min;
   Real time_bound_pot_max;
   Real time_bound_pot_mean;
