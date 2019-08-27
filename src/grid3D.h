@@ -332,21 +332,14 @@ class Grid3D
       Real *Grav_potential_new;
       
       
-      #ifdef GRAVITY
-      #ifdef GRAVITY_COUPLE_GPU
-      /*! \var grav_potential
-      *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
-      Real *Grav_potential;
-      #endif
-      #ifdef GRAVITY_COUPLE_CPU
       //Arrays for conserved variables at the begining of the timesteps
+      #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_CPU )
       Real *density_0;
       Real *momentum_x_0;
       Real *momentum_y_0;
       Real *momentum_z_0;
       #endif
-      #endif//GRAVITY
-
+      
     } C;
 
 
@@ -624,8 +617,6 @@ class Grid3D
   void Compute_Gravitational_Potential( struct parameters *P );
   void Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end);
   void Copy_Hydro_Density_to_Gravity();
-  void Copy_Potential_to_Hydro_Grid_Function( int g_start, int g_end ); 
-  void Copy_Potential_to_Hydro_Grid();
   void Extrapolate_Grav_Potential_Function( int g_start, int g_end );
   void Extrapolate_Grav_Potential();
   void Copy_Potential_Boundaries( int direction, int side );

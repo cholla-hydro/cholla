@@ -227,9 +227,6 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
   
-  #ifdef GRAVITY_COUPLE_GPU
-  Copy_Potential_to_Hydro_Grid();
-  #endif
     
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 3 );
@@ -288,65 +285,24 @@ void Grid3D::Copy_Hydro_Density_to_Gravity(){
 
 
 
-#ifdef GRAVITY_COUPLE_GPU
-void Grid3D::Copy_Potential_to_Hydro_Grid_Function( int g_start, int g_end ){ 
-  
-  int nx_pot = Grav.nx_local + 2*N_GHOST_POTENTIAL;
-  int ny_pot = Grav.ny_local + 2*N_GHOST_POTENTIAL;
-  int nz_pot = Grav.nz_local + 2*N_GHOST_POTENTIAL;
-  int n_ghost_grid = H.n_ghost;
-  int nx_grid = Grav.nx_local + 2*n_ghost_grid;
-  int ny_grid = Grav.ny_local + 2*n_ghost_grid;
-  int nz_grid = Grav.nz_local + 2*n_ghost_grid;
-  int k, j, i, id_pot, id_grid;
-  for ( k=g_start; k<g_end; k++ ){
-    for ( j=0; j<Grav.ny_local; j++ ){
-      for ( i=0; i<Grav.nx_local; i++ ){
-        id_pot  = (i+N_GHOST_POTENTIAL)  + (j+N_GHOST_POTENTIAL)*nx_pot   + (k+N_GHOST_POTENTIAL)*nx_pot*ny_pot;
-        id_grid = (i+n_ghost_grid) + (j+n_ghost_grid)*nx_grid + (k+n_ghost_grid)*nx_grid*ny_grid;
-        C.Grav_potential[id_grid] = Grav.F.potential_h[id_pot];
-      }
-    }
-  }
-}
-
-void Grid3D::Copy_Potential_to_Hydro_Grid(){
-  
-  #ifndef PARALLEL_OMP
-  Copy_Potential_to_Hydro_Grid_Function( 0, Grav.nz_local );
-  #else
-  
-  
-  #pragma omp parallel num_threads( N_OMP_THREADS )
-  {
-    int omp_id, n_omp_procs;
-    int g_start, g_end;
-
-    omp_id = omp_get_thread_num();
-    n_omp_procs = omp_get_num_threads();
-    Get_OMP_Grid_Indxs( Grav.nz_local, n_omp_procs, omp_id, &g_start, &g_end  );
-
-    Copy_Potential_to_Hydro_Grid_Function(g_start, g_end );
-  }
-  #endif
-}
-#endif//GRAVITY_COUPLE_GPU
-
 void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
   
   int nx_pot = Grav.nx_local + 2*N_GHOST_POTENTIAL;
   int ny_pot = Grav.ny_local + 2*N_GHOST_POTENTIAL;
   int nz_pot = Grav.nz_local + 2*N_GHOST_POTENTIAL;
   
-  Real *potential;
   int n_ghost_grid, nx_grid, ny_grid, nz_grid;
+  Real *potential_in, *potential_out;
+  
+  potential_in = Grav.F.potential_h; 
+  
   #ifdef GRAVITY_COUPLE_GPU
-  potential = C.Grav_potential;
+  potential_out = C.Grav_potential_new;
   n_ghost_grid = H.n_ghost;
   #endif
   
   #ifdef GRAVITY_COUPLE_CPU
-  potential = Grav.F.potential_h;
+  potential_out = Grav.F.potential_h;
   n_ghost_grid = N_GHOST_POTENTIAL;
   #endif
   
@@ -362,7 +318,7 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
       for ( i=0; i<nx_pot; i++ ){
         id_pot = i + j*nx_pot + k*nx_pot*ny_pot;
         id_grid = (i+nGHST) + (j+nGHST)*nx_grid + (k+nGHST)*nx_grid*ny_grid;
-        pot_now = potential[id_grid]  ;
+        pot_now = potential_in[id_pot]  ;
         if ( Grav.INITIAL ){
           pot_extrp = pot_now;
         } else {
@@ -374,10 +330,7 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
         pot_extrp *= Cosmo.current_a * Cosmo.current_a / Cosmo.phi_0_gas;
         #endif
         
-        #ifdef GRAVITY_COUPLE_GPU
-        C.Grav_potential_new[id_grid] = pot_extrp;
-        #endif
-        potential[id_grid] = pot_extrp;
+        potential_out[id_grid] = pot_extrp;
         Grav.F.potential_1_h[id_pot] = pot_now;
       }
     }
