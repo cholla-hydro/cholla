@@ -12,6 +12,8 @@
 #include "io.h"
 #include "error_handling.h"
 
+#ifdef PARTICLES
+
 Real Grid3D::Update_Grid_and_Particles_DKD(  struct parameters P ){
   
   Real dti;
@@ -96,3 +98,5 @@ Real Grid3D::Update_Grid_and_Particles_KDK(  struct parameters P ){
   
   return dti;
 }
+
+#endif
