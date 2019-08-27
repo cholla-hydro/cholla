@@ -253,24 +253,6 @@ int main(int argc, char *argv[])
       break;
     }
     #endif
-/*
-    // check for failures
-    for (int i=G.H.n_ghost; i<G.H.nx-G.H.n_ghost; i++) {
-      for (int j=G.H.n_ghost; j<G.H.ny-G.H.n_ghost; j++) {
-        for (int k=G.H.n_ghost; k<G.H.nz-G.H.n_ghost; k++) {
-          int id = i + j*G.H.nx + k*G.H.nx*G.H.ny;
-          if (G.C.density[id] < 0.0 || G.C.density[id] != G.C.density[id]) {
-            printf("Failure in cell %d %d %d. Density %e\n", i, j, k, G.C.density[id]);
-            #ifdef MPI_CHOLLA
-            MPI_Finalize();
-            chexit(-1);
-            #endif
-            exit(0);
-          }
-        }
-      }
-    }
-*/   
 
   } /*end loop over timesteps*/
   
