@@ -196,7 +196,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
                                               Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z,
                                               int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, 
                                               Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt,
-                                              Real gamma, int n_fields, Real density_floor )
+                                              Real gamma, int n_fields, Real density_floor, Real *dev_potential )
 {
   int id, xid, yid, zid, n_cells;
   int imo, jmo, kmo;
@@ -361,22 +361,28 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     // Get X componet of gravity field
     id_l = (xid-1) + (yid)*nx + (zid)*nx*ny;
     id_r = (xid+1) + (yid)*nx + (zid)*nx*ny;
-    pot_l = dev_conserved[field_pot*n_cells + id_l];
-    pot_r = dev_conserved[field_pot*n_cells + id_r];
+    // pot_l = dev_conserved[field_pot*n_cells + id_l];
+    // pot_r = dev_conserved[field_pot*n_cells + id_r];
+    pot_l = dev_potential[id_l];
+    pot_r = dev_potential[id_r];
     gx = -0.5*( pot_r - pot_l ) / dx;
     
     //Get Y componet of gravity field
     id_l = (xid) + (yid-1)*nx + (zid)*nx*ny;
     id_r = (xid) + (yid+1)*nx + (zid)*nx*ny;
-    pot_l = dev_conserved[field_pot*n_cells + id_l];
-    pot_r = dev_conserved[field_pot*n_cells + id_r];
+    // pot_l = dev_conserved[field_pot*n_cells + id_l];
+    // pot_r = dev_conserved[field_pot*n_cells + id_r];
+    pot_l = dev_potential[id_l];
+    pot_r = dev_potential[id_r];
     gy = -0.5*( pot_r - pot_l ) / dy;
     
     //Get Z componet of gravity field
     id_l = (xid) + (yid)*nx + (zid-1)*nx*ny;
     id_r = (xid) + (yid)*nx + (zid+1)*nx*ny;
-    pot_l = dev_conserved[field_pot*n_cells + id_l];
-    pot_r = dev_conserved[field_pot*n_cells + id_r];
+    // pot_l = dev_conserved[field_pot*n_cells + id_l];
+    // pot_r = dev_conserved[field_pot*n_cells + id_r];
+    pot_l = dev_potential[id_l];
+    pot_r = dev_potential[id_r];
     gz = -0.5*( pot_r - pot_l ) / dz;
     
     
