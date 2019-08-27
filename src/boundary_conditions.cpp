@@ -32,7 +32,7 @@ void Grid3D::Set_Boundary_Conditions_All( parameters P){
 
   // If the Gravity cuopling is on the CPU, the potential is not in the Conserved arrays,
   // and its boundaries need to be transfered separately
-  #if defined(GRAVITY) &&  defined(GRAVITY_COUPLE_CPU)
+  #ifdef GRAVITY
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
@@ -143,7 +143,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
     return;
 #endif /*MPI_CHOLLA*/
 
-  #if( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
+  #if( defined(GRAVITY) )
   if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
     if ( flags[dir] ==1 ){
       if ( dir == 0 ) Copy_Potential_Boundaries( 0, 0 );
