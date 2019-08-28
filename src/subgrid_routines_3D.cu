@@ -216,6 +216,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
         for (int ii=0; ii<n_fields; ii++) {
           memcpy(&buffer[ii*BLOCK_VOL + j*nx_s + k*nx_s*ny_s], &host_conserved[x_host + ii*n_cells + j*nx + k*nx*ny], nx_s*sizeof(Real)); 
         }
+        #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+        memcpy(&buffer_potential[j*nx_s + k*nx_s*ny_s], &host_grav_potential[x_host + j*nx + k*nx*ny], nx_s*sizeof(Real));
+        #endif
       }
     }
 
@@ -242,6 +245,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
       for (int ii=0; ii<n_fields; ii++) {
         memcpy(&buffer[ii*BLOCK_VOL + k*nx_s*ny_s], &host_conserved[y_host + ii*n_cells + k*nx*ny], nx_s*ny_s*sizeof(Real)); 
       }
+      #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+      memcpy(&buffer_potential[k*nx_s*ny_s], &host_grav_potential[y_host + k*nx*ny], nx_s*ny_s*sizeof(Real));
+      #endif
     }
 
     return;
@@ -267,6 +273,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     for (int ii=0; ii<n_fields; ii++) {
       memcpy(&buffer[ii*BLOCK_VOL], &host_conserved[z_host + ii*n_cells], BLOCK_VOL*sizeof(Real));
     }
+    #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+    memcpy(&buffer_potential[0], &host_grav_potential[z_host], BLOCK_VOL*sizeof(Real));
+    #endif
 
     return;
   }
@@ -302,6 +311,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
       for (int ii=0; ii<n_fields; ii++) {
         memcpy(&buffer[ii*BLOCK_VOL + k*nx_s*ny_s], &host_conserved[z_host + y_host + ii*n_cells + k*nx*ny], nx_s*ny_s*sizeof(Real)); 
       }
+      #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+      memcpy(&buffer_potential[k*nx_s*ny_s], &host_grav_potential[z_host + y_host + k*nx*ny], nx_s*ny_s*sizeof(Real)); 
+      #endif
     }
 
     return;
@@ -347,6 +359,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
         for (int ii=0; ii<n_fields; ii++) {
           memcpy(&buffer[ii*BLOCK_VOL + j*nx_s + k*nx_s*ny_s], &host_conserved[x_host + y_host + z_host + ii*n_cells + j*nx + k*nx*ny], nx_s*sizeof(Real)); 
         }
+        #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+        memcpy(&buffer_potential[j*nx_s + k*nx_s*ny_s], &host_grav_potential[x_host + y_host + z_host + j*nx + k*nx*ny], nx_s*sizeof(Real)); 
+        #endif
       }
     }
 
