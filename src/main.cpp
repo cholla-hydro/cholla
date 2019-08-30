@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
     G.H.Output_Now = true;
     #endif
     
-    if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0) G.H.Output_Now = true;
+    // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0) G.H.Output_Now = true;
     
     if (G.H.t == outtime || G.H.Output_Now )
     {
