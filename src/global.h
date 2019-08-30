@@ -57,6 +57,7 @@ typedef double Real;
 
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.001
+#define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
 
 #ifdef COOLING_GRACKLE

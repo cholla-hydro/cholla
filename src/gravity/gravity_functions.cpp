@@ -50,7 +50,7 @@ void Grid3D::set_dt_Gravity(){
   #endif//ONLY_PARTICLES
   
   
-  Cosmo.max_delta_a = fmin( 0.015 * Cosmo.current_a, MAX_DELTA_A );
+  Cosmo.max_delta_a = fmin( MAX_EXPANSION_RATE * Cosmo.current_a, MAX_DELTA_A );
   if( da_min > Cosmo.max_delta_a){
     da_min = Cosmo.max_delta_a;
     chprintf( " Seting max delta_a: %f\n", da_min );
