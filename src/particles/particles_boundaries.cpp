@@ -44,6 +44,56 @@ part_int_t Real_to_part_int( Real inVal ){
   return outVal;
 }
 
+
+void Grid3D::Set_Particles_Boundary( int dir, int side ){
+  
+  Real d_min, d_max, L;
+  
+  if ( dir == 0 ){
+    d_min = Particles.G.zMin;
+    d_max = Particles.G.zMax;
+  }
+  if ( dir == 1 ){
+    d_min = Particles.G.yMin;
+    d_max = Particles.G.yMax;
+  }
+  if ( dir == 2 ){
+    d_min = Particles.G.zMin;
+    d_max = Particles.G.zMax;
+  }
+  
+  L = d_max - d_min;
+  
+  bool changed_pos;
+  Real pos;
+  for( int i=0; i<Particles.n_local; i++){
+    
+    if ( dir == 0 ) pos = Particles.pos_x[i];
+    if ( dir == 1 ) pos = Particles.pos_y[i];
+    if ( dir == 2 ) pos = Particles.pos_z[i];
+    
+    changed_pos = false;
+    if ( side == 0 ){
+      if ( pos < d_min ) pos += L;
+      changed_pos = true;
+    }
+    if ( side == 1 ){
+      if ( pos >= d_max ) pos -= L;
+      changed_pos = true;
+    }
+    
+    if ( !changed_pos ) continue;
+    
+    if ( dir == 0 ) Particles.pos_x[i] = pos;
+    if ( dir == 1 ) Particles.pos_y[i] = pos;
+    if ( dir == 2 ) Particles.pos_z[i] = pos;
+    
+  }
+  
+  
+  
+}
+
 void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
   
   
@@ -60,7 +110,12 @@ void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
   
   // Count Total Particles
   part_int_t N_paricles_total;
+  #ifdef MPI_CHOLLA
   N_paricles_total = ReducePartIntSum( Particles.n_local );
+  #else
+  N_paricles_total = Particles.n_local;
+  #endif
+  
   chprintf( " Total Particles: %ld\n", N_paricles_total );
   
   if ( N_paricles_total != Particles.n_total_initial ) chprintf( " WARNING: Lost Particles: %d \n", Particles.n_total_initial - N_paricles_total );
