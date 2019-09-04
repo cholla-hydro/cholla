@@ -23,7 +23,7 @@ H0=67.66
 Omega_M=0.3111
 Omega_L=0.6889
 scale_outputs_file=scale_output_files/outputs_dm_enzo_256_50Mpc_expansion0.01.txt
-#scale_outputs_file=scale_output_files/outputs_dm_nyx_256_50Mpc.txt
+#scale_outputs_file=scale_output_files/outputs_dm_enzo_256_50Mpc.txt
 # domain properties
 xmin=0.0
 ymin=0.0

@@ -1,5 +1,5 @@
 #
-# Parameter File for the 3D Cosmological Dark Matter Only.
+# Parameter File for the 3D Sphere explosion.
 #
 
 ######################################
@@ -13,16 +13,18 @@ nz=128
 tout=1000
 # how often to output
 outstep=1000
+#n_steps_output=10
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
 init=Read_Grid
 nfile=0
 #Cosmological Parameters 
-H0=67.66
-Omega_M=0.3111
-Omega_L=0.6889
-scale_outputs_file=scale_output_files/outputs_dm_ramses_128_50Mpc.txt
+H0=67.74
+Omega_M=0.3089
+Omega_L=0.6911
+End_redshift=0.0
+scale_outputs_file=scale_output_files/outputs_cool_UV_28.txt
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -38,8 +40,8 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-indir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/128_dm_50Mpc/ics_ramses/
-outdir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/128_dm_50Mpc/
-#indir=/raid/bruno/data/cosmo_sims/cholla_pm/128_dm_50Mpc/ics_ramses/
-#outdir=/raid/bruno/data/cosmo_sims/cholla_pm/128_dm_50Mpc/
+indir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/128_hydro_50Mpc/ics_ramses/
+outdir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/128_hydro_50Mpc/
+#indir=/raid/bruno/data/cosmo_sims/cholla_pm/128_cool_uv_50Mpc/ics/
+#outdir=/raid/bruno/data/cosmo_sims/cholla_pm/128_cool_uv_50Mpc/
 
