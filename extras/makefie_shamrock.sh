@@ -160,10 +160,10 @@ NVINCL = $(INCL) $(CUDA_INCL)
 LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
 ifeq ($(POISSON_SOLVER),-DPFFT)
-FFTW_INCL = -I/home/bruno/apps/fftw-3.3.5/include
-FFTW_LIBS = -L/home/bruno/apps/fftw-3.3.5/lib -lfftw3
-PFFT_INCL = -I/home/bruno/apps/pfft-1.0.8-alpha/include
-PFFT_LIBS = -L/home/bruno/apps/pfft-1.0.8-alpha/lib  -lpfft  -lfftw3_mpi -lfftw3
+FFTW_INCL = -I/home/bruno/code/fftw-3.3.8/include
+FFTW_LIBS = -L/home/bruno/code/fftw-3.3.8/lib -lfftw3
+PFFT_INCL = -I/home/bruno/code/pfft/include
+PFFT_LIBS = -L/home/bruno/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
 INCL += $(FFTW_INCL) $(PFFT_INCL)
 LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
 endif
