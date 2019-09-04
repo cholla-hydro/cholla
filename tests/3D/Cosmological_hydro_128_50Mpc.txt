@@ -24,7 +24,7 @@ H0=67.74
 Omega_M=0.3089
 Omega_L=0.6911
 End_redshift=0.0
-scale_outputs_file=scale_output_files/outputs_cool_UV_28.txt
+scale_outputs_file=scale_output_files/outputs_hydro_ramses_128_50Mpc.txt
 # domain properties
 xmin=0.0
 ymin=0.0
