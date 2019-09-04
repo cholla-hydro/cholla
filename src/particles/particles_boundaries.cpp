@@ -66,6 +66,9 @@ void Grid3D::Set_Particles_Boundary( int dir, int side ){
   
   bool changed_pos;
   Real pos;
+  #ifdef PARALLEL_OMP
+  #pragma omp parallel for private( pos, changed_pos) num_threads( N_OMP_THREADS )
+  #endif
   for( int i=0; i<Particles.n_local; i++){
     
     if ( dir == 0 ) pos = Particles.pos_x[i];
