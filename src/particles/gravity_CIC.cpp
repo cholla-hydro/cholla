@@ -238,7 +238,7 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
   dy = Particles.G.dy;
   dz = Particles.G.dz;
   
-  #ifdef GRAVITY_5_POINTS
+  #ifdef GRAVITY_5_POINTS_GRADIENT
   Real phi_ll, phi_rr;
   int id_ll, id_rr;
   #endif  
@@ -253,7 +253,7 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
         id_r = (i+1 + nGHST) + (j + nGHST)*nx_grid + (k + nGHST)*ny_grid*nx_grid;
         phi_l = potential[id_l];
         phi_r = potential[id_r];
-        #ifdef GRAVITY_5_POINTS
+        #ifdef GRAVITY_5_POINTS_GRADIENT
         id_ll = (i-2 + nGHST) + (j + nGHST)*nx_grid + (k + nGHST)*ny_grid*nx_grid;
         id_rr = (i+2 + nGHST) + (j + nGHST)*nx_grid + (k + nGHST)*ny_grid*nx_grid;  
         phi_ll = potential[id_ll];
@@ -275,7 +275,7 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
         id_r = (i + nGHST) + (j+1 + nGHST)*nx_grid + (k + nGHST)*ny_grid*nx_grid;
         phi_l = potential[id_l];
         phi_r = potential[id_r];
-        #ifdef GRAVITY_5_POINTS
+        #ifdef GRAVITY_5_POINTS_GRADIENT
         id_ll = (i + nGHST) + (j-2 + nGHST)*nx_grid + (k + nGHST)*ny_grid*nx_grid;
         id_rr = (i + nGHST) + (j+2 + nGHST)*nx_grid + (k + nGHST)*ny_grid*nx_grid;
         phi_ll = potential[id_ll];
@@ -297,7 +297,7 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
         id_r = (i + nGHST) + (j + nGHST)*nx_grid + (k+1 + nGHST)*ny_grid*nx_grid;
         phi_l = potential[id_l];
         phi_r = potential[id_r];
-        #ifdef GRAVITY_5_POINTS
+        #ifdef GRAVITY_5_POINTS_GRADIENT
         id_ll = (i + nGHST) + (j + nGHST)*nx_grid + (k-2 + nGHST)*ny_grid*nx_grid;
         id_rr = (i + nGHST) + (j + nGHST)*nx_grid + (k+2 + nGHST)*ny_grid*nx_grid;
         phi_ll = potential[id_ll];

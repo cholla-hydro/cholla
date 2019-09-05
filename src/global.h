@@ -56,8 +56,8 @@ typedef double Real;
 #define DE_ETA_2 0.035 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
 
 // Maximum time step for cosmological simulations
-#define MAX_DELTA_A 0.001
-#define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
+#define MAX_DELTA_A 0.01
+#define MAX_EXPANSION_RATE 1.00  // Limit delta(a)/a
 
 
 #ifdef COOLING_GRACKLE
@@ -80,7 +80,11 @@ typedef double Real;
 
 
 #ifdef GRAVITY
+#ifdef GRAVITY_5_POINTS_GRADIENT
+#define N_GHOST_POTENTIAL 3
+#else
 #define N_GHOST_POTENTIAL 2
+#endif
 #ifdef GRAVITY_LONG_INTS
 typedef long int grav_int_t;
 #else

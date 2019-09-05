@@ -42,7 +42,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   t = 0.0;
   max_dt = 1e-3;
 
-  C_cfl = 0.3;
+  C_cfl = 0.2;
 
   real_vector_t pos_x;
   real_vector_t pos_y;
@@ -103,11 +103,8 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   G.domainMin_z = zbound;
   G.domainMax_z = zbound + zdglobal;
   
-  #ifdef GRAVITY_5_POINTS
-  G.n_ghost_particles_grid = 2;
-  #else
+
   G.n_ghost_particles_grid = 1;
-  #endif
   
   G.n_cells = (G.nx_local+2*G.n_ghost_particles_grid) * (G.ny_local+2*G.n_ghost_particles_grid) * (G.nz_local+2*G.n_ghost_particles_grid);
 
