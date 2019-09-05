@@ -42,7 +42,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   t = 0.0;
   max_dt = 1e-3;
 
-  C_cfl = 0.2;
+  C_cfl = 0.3;
 
   real_vector_t pos_x;
   real_vector_t pos_y;
