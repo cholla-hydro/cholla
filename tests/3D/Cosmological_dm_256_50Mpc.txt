@@ -22,8 +22,8 @@ nfile=0
 H0=67.66
 Omega_M=0.3111
 Omega_L=0.6889
-scale_outputs_file=scale_output_files/outputs_dm_enzo_256_50Mpc_expansion0.01.txt
-#scale_outputs_file=scale_output_files/outputs_dm_enzo_256_50Mpc.txt
+#scale_outputs_file=scale_output_files/outputs_dm_enzo_256_50Mpc_expansion0.01.txt
+scale_outputs_file=scale_output_files/outputs_dm_ramses_256_50Mpc.txt
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -39,6 +39,9 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_enzo/
-outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/
+
+indir=/home/bruno/Desktop//data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_ramses/
+outdir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/256_dm_50Mpc/
+#indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_enzo/
+#outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/
 
