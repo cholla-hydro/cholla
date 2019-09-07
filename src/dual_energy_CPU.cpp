@@ -221,12 +221,20 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
   nz = H.nz_real;
 
   int nGHST = nGHST_grid ;
-  Real d, d_inv, vx, vy, vz, E, Ek, ge_total, ge_advected, Emax, U;
+  Real d, d_inv, vx, vy, vz, E, Ek, ge_total, ge_advected, U;
   int k, j, i, id;
   int k_g, j_g, i_g;
   int flag_DE;
   
+  #ifdef DUAL_ENERGY_METHOD_1
   Real eta_2 = DE_ETA_2;
+  Real Emax;
+  #endif
+  
+  #ifdef DUAL_ENERGY_METHOD_2
+  Real Beta_DE = DE_BETA;
+  Real v_l, v_r, delta_vx, delta_vy, delta_vz, delta_v2, ge_trunc;
+  #endif
   
   int imo, ipo, jmo, jpo, kmo, kpo;
   for ( k_g=g_start; k_g<g_end; k_g++ ){
@@ -256,6 +264,7 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
         ge_total = E - Ek;
         ge_advected = C.GasEnergy[id];
 
+        #ifdef DUAL_ENERGY_METHOD_1
         //Syncronize advected internal energy with total internal energy when using total internal energy based on local maxEnergy condition
         //find the max nearby total energy
         Emax = E;
@@ -273,7 +282,43 @@ void Grid3D::Sync_Energies_3D_CPU_function( int g_start, int g_end ){
           U = ge_advected;
           flag_DE = 1;
         }
-                
+        #endif
+        
+        #ifdef DUAL_ENERGY_METHOD_2
+        //New Dual Enegy Condition from Teyssier 2015
+        //Get delta velocity
+
+        //X direcction
+        v_l = C.momentum_x[imo] / C.density[imo];
+        v_r = C.momentum_x[ipo] / C.density[ipo];
+        delta_vx = v_r - v_l;
+
+        //Y direcction
+        v_l = C.momentum_y[jmo] / C.density[jmo];
+        v_r = C.momentum_y[jpo] / C.density[jpo];
+        delta_vy = v_r - v_l;
+
+        //Z direcction
+        v_l = C.momentum_z[kmo] / C.density[kmo];
+        v_r = C.momentum_z[kpo] / C.density[kpo];
+        delta_vz = v_r - v_l;
+
+        delta_v2 = delta_vx*delta_vx + delta_vy*delta_vy + delta_vz*delta_vz; 
+
+        //Get the truncation error (Teyssier 2015)
+        ge_trunc = 0.5 * d * delta_v2;
+        
+        //Compare the internal energy to the truncation error.
+        if ( ge_total > Beta_DE * ge_trunc ){
+         U = ge_total;
+         flag_DE = 0;
+        }
+        else{
+         U = ge_advected;
+         flag_DE = 1;
+        }
+        #endif
+                  
         //Set the Internal Energy
         C.GasEnergy[id] = U;
         //Update the total energy after the Dual Energy Condition finished
