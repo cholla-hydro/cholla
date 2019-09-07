@@ -382,6 +382,11 @@ void Grid3D::Get_Gravitational_Field_Function( int g_start, int g_end ){
   dy = Grav.dy;
   dz = Grav.dz;
   
+  #ifdef GRAVITY_5_POINTS_GRADIENT
+  int id_ll, id_rr;
+  Real phi_ll, phi_rr;
+  #endif
+  
   Real phi_l, phi_r;
   int k, j, i, id_l, id_r, id;
   for ( k=g_start; k<g_end; k++ ){
@@ -392,7 +397,15 @@ void Grid3D::Get_Gravitational_Field_Function( int g_start, int g_end ){
         id_r = (i+1 + nGHST) + (j + nGHST)*nx_pot + (k + nGHST)*ny_pot*nx_pot;
         phi_l = potential[id_l];
         phi_r = potential[id_r];
+        #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll = (i-2 + nGHST) + (j + nGHST)*nx_pot + (k + nGHST)*ny_pot*nx_pot;
+        id_rr = (i+2 + nGHST) + (j + nGHST)*nx_pot + (k + nGHST)*ny_pot*nx_pot;
+        phi_ll = potential[id_ll];
+        phi_rr = potential[id_rr];
+        Grav.F.gravity_x_h[id] = -1 * ( -phi_rr + 8*phi_r - 8*phi_l + phi_ll) / (12*dx);
+        #else
         Grav.F.gravity_x_h[id] = -0.5 * ( phi_r - phi_l ) / dx;
+        #endif
       }
     }
   }
@@ -405,7 +418,15 @@ void Grid3D::Get_Gravitational_Field_Function( int g_start, int g_end ){
         id_r = (i + nGHST) + (j+1 + nGHST)*nx_pot + (k + nGHST)*ny_pot*nx_pot;
         phi_l = potential[id_l];
         phi_r = potential[id_r];
+        #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll = (i + nGHST) + (j-2 + nGHST)*nx_pot + (k + nGHST)*ny_pot*nx_pot;
+        id_rr = (i + nGHST) + (j+2 + nGHST)*nx_pot + (k + nGHST)*ny_pot*nx_pot;
+        phi_ll = potential[id_ll];
+        phi_rr = potential[id_rr];
+        Grav.F.gravity_y_h[id] = -1 * ( -phi_rr + 8*phi_r - 8*phi_l + phi_ll) / (12*dy);
+        #else
         Grav.F.gravity_y_h[id] = -0.5 * ( phi_r - phi_l ) / dy;
+        #endif
       }
     }
   }
@@ -418,7 +439,15 @@ void Grid3D::Get_Gravitational_Field_Function( int g_start, int g_end ){
         id_r = (i + nGHST) + (j + nGHST)*nx_pot + (k+1 + nGHST)*ny_pot*nx_pot;
         phi_l = potential[id_l];
         phi_r = potential[id_r];
+        #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll = (i + nGHST) + (j + nGHST)*nx_pot + (k-2 + nGHST)*ny_pot*nx_pot;
+        id_rr = (i + nGHST) + (j + nGHST)*nx_pot + (k+2 + nGHST)*ny_pot*nx_pot;
+        phi_ll = potential[id_ll];
+        phi_rr = potential[id_rr];
+        Grav.F.gravity_z_h[id] = -1 * ( -phi_rr + 8*phi_r - 8*phi_l + phi_ll) / (12*dz);
+        #else
         Grav.F.gravity_z_h[id] = -0.5 * ( phi_r - phi_l ) / dz;
+        #endif
       }
     }
   }
