@@ -265,32 +265,30 @@ void Time::Print_Average_Times( struct parameters P ){
 
   chprintf( "Writing timming values to file: %s  \n", file_name.c_str());
 
-  header = "# nx ny nz n_proc n_omp n_steps ";
+  header = "#n_proc  nx  ny  nz  n_omp  n_steps  ";
 
 
 
-  #ifdef GRAVITY_COUPLE_CPU
-  header += "dt ";
+  #if defined( GRAVITY_COUPLE_CPU ) || defined( PARTICLES) 
+  header += "dt  ";
   #endif
-  header += "hydo ";
-  header += "bound ";
+  header += "hydo  ";
+  header += "bound  ";
   #ifdef GRAVITY
-  header += "grav_pot ";
-  #ifdef GRAVITY_COUPLE_CPU
-  header += "pot_bound ";
-  #endif
+  header += "grav_pot  ";
+  header += "pot_bound  ";
   #endif
   #ifdef PARTICLES
-  header += "part_dens ";
-  header += "part_bound ";
-  header += "part_dens_boud ";
-  header += "part_adv_1 ";
-  header += "part_adv_2 ";
+  header += "part_dens  ";
+  header += "part_bound  ";
+  header += "part_dens_boud  ";
+  header += "part_adv_1  ";
+  header += "part_adv_2  ";
   #endif
   #ifdef COOLING_GRACKLE
-  header += "cool ";
+  header += "cool  ";
   #endif
-  header += "total ";
+  header += "total  ";
   header += " \n";
 
 
