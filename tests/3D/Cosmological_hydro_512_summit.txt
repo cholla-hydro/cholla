@@ -19,9 +19,9 @@ gamma=1.66666667
 init=Read_Grid
 nfile=0
 #Cosmological Parameters 
-H0=67.74
-Omega_M=0.3089
-Omega_L=0.6911
+H0=67.66
+Omega_M=0.3111
+Omega_L=0.6889
 scale_outputs_file=scale_output_files/outputs_aLin_200.txt
 # domain properties
 xmin=0.0
@@ -38,5 +38,5 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-indir=/gpfs/alpine/scratch/bvilasen/ast149/cosmo_512/ics_50Mpc/
-outdir=/gpfs/alpine/scratch/bvilasen/ast149/cosmo_512/output_snapshots/
+indir=/gpfs/alpine/proj-shared/ast149/cosmo_tests/cosmo_512/ics_64/
+outdir=/gpfs/alpine/proj-shared/ast149/cosmo_tests/cosmo_512/output_snapshots/
