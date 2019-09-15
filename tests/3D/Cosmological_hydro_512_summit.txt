@@ -39,4 +39,4 @@ zl_bcnd=1
 zu_bcnd=1
 # path to output directory
 indir=/gpfs/alpine/proj-shared/ast149/cosmo_tests/cosmo_512/ics_64/
-outdir=/gpfs/alpine/proj-shared/ast149/cosmo_tests/cosmo_512/output_snapshots/
+outdir=/gpfs/alpine/proj-shared/ast149/cosmo_tests/cosmo_512/output_files/
