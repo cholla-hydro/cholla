@@ -24,7 +24,7 @@ H0=67.66
 Omega_M=0.3111
 Omega_L=0.6889
 End_redshift=0.0
-scale_outputs_file=scale_output_files/outputs_cool_uv_enzo_256_50Mpc.txt
+scale_outputs_file=scale_output_files/outputs_cool_uv_enzo_256_50Mpc_HLLC_grav4.txt
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -42,6 +42,6 @@ zu_bcnd=1
 # path to output directory
 #indir=/gpfs/alpine/scratch/bvilasen/ast149/cosmo_256/ics/
 #outdir=/gpfs/alpine/scratch/bvilasen/ast149/cosmo_256/output_snapshots/
-indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool_uv_50Mpc/ics/
+indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool_uv_50Mpc/ics_enzo/
 outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool_uv_50Mpc/
 
