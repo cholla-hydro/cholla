@@ -188,13 +188,13 @@ void Time::Get_Average_Times(){
   time_hydro_all /= n_steps;
   time_bound_all /= n_steps;
 
-  #ifdef GRAVITY_COUPLE_CPU
+  #if defined( GRAVITY_COUPLE_CPU ) || defined( PARTICLES) 
   time_dt_all /= n_steps;
-  time_bound_pot_all /= n_steps;
   #endif
 
   #ifdef GRAVITY
   time_potential_all /= n_steps;
+  time_bound_pot_all /= n_steps;
   #ifdef PARTICLES
   time_part_dens_all  /= n_steps;
   time_part_tranf_all /= n_steps;
@@ -215,12 +215,12 @@ void Time::Print_Average_Times( struct parameters P ){
   Real time_total;
   time_total = time_hydro_all + time_bound_all;
 
-  #ifdef GRAVITY_COUPLE_CPU
+  #if defined( GRAVITY_COUPLE_CPU ) || defined( PARTICLES) 
   time_total += time_dt_all;
-  time_total += time_bound_pot_all;
   #endif
 
   #ifdef GRAVITY
+  time_total += time_bound_pot_all;
   time_total += time_potential_all;
   #ifdef PARTICLES
   time_total += time_part_dens_all;
@@ -236,7 +236,7 @@ void Time::Print_Average_Times( struct parameters P ){
   #endif
 
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
-  #ifdef GRAVITY_COUPLE_CPU 
+  #if defined( GRAVITY_COUPLE_CPU ) || defined( PARTICLES)  
   chprintf(" Time Calc dt           avg: %9.4f   ms\n", time_dt_all);
   #endif
   chprintf(" Time Hydro             avg: %9.4f   ms\n", time_hydro_all);
