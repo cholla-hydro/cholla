@@ -331,9 +331,7 @@ void Time::Print_Average_Times( struct parameters P ){
   out_file << time_bound_all << " ";
   #ifdef GRAVITY
   out_file << time_potential_all << " ";
-  #ifdef GRAVITY_COUPLE_CPU
   out_file << time_bound_pot_all << " ";
-  #endif
   #endif
   #ifdef PARTICLES
   out_file << time_part_dens_all << " ";
