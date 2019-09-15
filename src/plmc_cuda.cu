@@ -446,14 +446,14 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #ifndef VL
     // Integrate linear interpolation function over domain of dependence
     // defined by max(min) eigenvalue
-    qx = -0.5*fmin(lambda_m, 0)*dtodx;
+    qx = -0.5*fmin(lambda_m, 0.0)*dtodx;
     d_R_imh  = d_R_imh  + qx * del_d_m_i;
     vx_R_imh = vx_R_imh + qx * del_vx_m_i;
     vy_R_imh = vy_R_imh + qx * del_vy_m_i;
     vz_R_imh = vz_R_imh + qx * del_vz_m_i;
     p_R_imh  = p_R_imh  + qx * del_p_m_i;
 
-    qx = 0.5*fmax(lambda_p, 0)*dtodx;
+    qx = 0.5*fmax(lambda_p, 0.0)*dtodx;
     d_L_iph  = d_L_iph  - qx * del_d_m_i;
     vx_L_iph = vx_L_iph - qx * del_vx_m_i;
     vy_L_iph = vy_L_iph - qx * del_vy_m_i;
