@@ -312,19 +312,19 @@ void Time::Print_Average_Times( struct parameters P ){
 // Output timing values
   out_file.open(file_name.c_str(), ios::app);
   if ( !file_exists ) out_file << header;
-  out_file << P.nx << " " << P.ny << " " << P.nz << " ";
   #ifdef MPI_CHOLLA
   out_file << nproc << " ";
   #else
   out_file << 1 << " ";
   #endif
+  out_file << P.nx << " " << P.ny << " " << P.nz << " ";
   #ifdef PARALLEL_OMP
   out_file << N_OMP_THREADS << " ";
   #else
   out_file << 0 << " ";
   #endif
   out_file << n_steps << " ";
-  #ifdef GRAVITY_COUPLE_CPU
+  #if defined( GRAVITY_COUPLE_CPU ) || defined( PARTICLES) 
   out_file << time_dt_all << " ";
   #endif
   out_file << time_hydro_all << " ";
