@@ -135,7 +135,7 @@ N_OMP_THREADS = -DN_OMP_THREADS=12
 COSMOLOGY = -DCOSMOLOGY
 
 #Use Grackle for cooling in cosmological simulations
-# COOLING = -DCOOLING_GRACKLE
+COOLING = -DCOOLING_GRACKLE
 
 
 ifdef CUDA
