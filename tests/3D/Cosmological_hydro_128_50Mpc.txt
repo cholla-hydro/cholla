@@ -24,7 +24,7 @@ H0=67.66
 Omega_M=0.3111
 Omega_L=0.6889
 End_redshift=0.0
-scale_outputs_file=scale_output_files/outputs_hydro_enzo_128_50Mpc_grav4.txt
+scale_outputs_file=scale_output_files/outputs_hydro_ramses_128_50Mpc_slope1_cfl2.txt
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -40,7 +40,7 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-indir=/raid/bruno/data/cosmo_sims/cholla_pm/128_hydro_50Mpc/ics_enzo/
+indir=/raid/bruno/data/cosmo_sims/cholla_pm/128_hydro_50Mpc/ics_ramses/
 outdir=/raid/bruno/data/cosmo_sims/cholla_pm/128_hydro_50Mpc/
 #indir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/128_hydro_50Mpc/ics_ramses/
 #outdir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/128_hydro_50Mpc/
