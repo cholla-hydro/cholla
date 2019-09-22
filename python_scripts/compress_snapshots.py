@@ -6,6 +6,15 @@ from data_compress_particles import compress_particles
 from tools import create_directory
 import numpy as np
 
+n_arg = len(sys.argv)
+if n_arg > 1:
+  args = []
+  print "Using command arguments"
+  for i in range(1 , n_arg):
+    arg = sys.argv[i]
+    args.append( int( arg ))
+  print args
+  snap_start, snap_end = args
 
 dataDir = '/gpfs/alpine/proj-shared/ast149/cosmo_tests/cosmo_1024/'
 inDir = dataDir + 'output_files/'
@@ -47,7 +56,8 @@ print( "Number of files per snapshot: {0}".format(nBoxes) )
 
 #Set wich snapshots to compress
 # snapshots_to_compress = snapshots_all
-snapshots_to_compress = range( 1, 50)
+# snapshots_to_compress = range( 50, 100)
+snapshots_to_compress = range( snap_start, snap_end)
 
 
 print( "\nNumber of snapshots to compres: {0}".format(len(snapshots_to_compress)) )
