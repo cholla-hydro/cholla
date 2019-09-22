@@ -25,18 +25,21 @@ print( 'Output Dir: ' + outDir )
 create_directory( outDir )
 print("")
 
-name_base = 'h5'
-dataFiles = [f for f in listdir(inDir) if (isfile(join(inDir, f)) and (f.find('.h5.') > 0 ) and ( f.find('_particles') < 0) ) ]
-dataFiles = np.sort( dataFiles )
-nFiles = len( dataFiles )
+# name_base = 'h5'
+# dataFiles = [f for f in listdir(inDir) if (isfile(join(inDir, f)) and (f.find('.h5.') > 0 ) and ( f.find('_particles') < 0) ) ]
+# dataFiles = np.sort( dataFiles )
+# nFiles = len( dataFiles )
+# 
+# files_names = np.array([ split_name( file_name ) for file_name in dataFiles ])
+# snaps, boxes = files_names.T
+# snapshots_all = np.unique( snaps )
+# boxes = np.unique( boxes )
+# snapshots_all.sort()
+# nSnapshots = len( snapshots_all )
+# nBoxes = len( boxes )
 
-files_names = np.array([ split_name( file_name ) for file_name in dataFiles ])
-snaps, boxes = files_names.T
-snapshots_all = np.unique( snaps )
-boxes = np.unique( boxes )
-snapshots_all.sort()
-nSnapshots = len( snapshots_all )
-nBoxes = len( boxes )
+nSnapshots = 310
+nBoxes = 512
 
 print( "Number of snapshots: {0}".format(nSnapshots) )
 print( "Number of files per snapshot: {0}".format(nBoxes) )
