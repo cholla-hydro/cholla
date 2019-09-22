@@ -7,15 +7,9 @@ from tools import create_directory
 import numpy as np
 
 
-
-# dataDir = '/gpfs/alpine/proj-shared/ast149/cosmo_tests/'
-# inDir = dataDir + 'cosmo_1024/output_snapshots/'
-# outDir = dataDir + 'cosmo_1024/snapshots/'
-
-
-dataDir = '/raid/bruno/data/'
-inDir = dataDir + 'cosmo_sims/cholla_pm/128_cool/'
-outDir = inDir + 'data_float32/'
+dataDir = '/gpfs/alpine/proj-shared/ast149/cosmo_tests/cosmo_1024/'
+inDir = dataDir + 'output_files/'
+outDir = dataDir + 'output_snapshots/'
 
 hydro = True
 cosmo = True
@@ -49,8 +43,8 @@ print( "Number of files per snapshot: {0}".format(nBoxes) )
 
 
 #Set wich snapshots to compress
-snapshots_to_compress = snapshots_all
-# snapshots_to_compress = [0]
+# snapshots_to_compress = snapshots_all
+snapshots_to_compress = [0]
 
 
 print( "\nNumber of snapshots to compres: {0}".format(len(snapshots_to_compress)) )
@@ -59,14 +53,14 @@ print( "\nNumber of snapshots to compres: {0}".format(len(snapshots_to_compress)
 #available Hydro Fields:
 #[ density, momentum_x, momentum_y, momentum_z, Enegy, GasEnergy ]
 #[ HI_density, HI_density, HeI_density, HeII_density, HeIII_density, e_density, metal_density, temperature, potential ]
-hydro_fields = 'all'
-hydro_fields = ['density', 'temperature']
+# hydro_fields = 'all'
+hydro_fields = ['density', 'temperature', 'HI_density' ]
 print( "\nHydro fields: {0}".format(hydro_fields))
 
 #available Particles Fields:
 #[ density, pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, mass, particle_IDs ]
-particles_fields = 'all'
-particles_fields = ['density']
+# particles_fields = 'all'
+particles_fields = ['density', 'grav_potential']
 print( "\nParticles fields: {0}".format(particles_fields))
 
 
