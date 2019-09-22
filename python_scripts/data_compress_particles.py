@@ -40,7 +40,7 @@ def compress_particles(  nSnap, nBoxes, name_base, out_base_name,inDir, outDir, 
       print("ERROR key {0} not found".format(key) )
       print(" Availbale keys {0} ".format(keys_all) )
       continue
-    # print(key)
+    print( 'Loading: {0}').format( key )
     data_all = np.zeros( dims_all, dtype=precision )
     data_all_parts = []
     for nBox in range(nBoxes):
