@@ -25,7 +25,7 @@ size = comm.Get_size()
 rank = comm.Get_rank()
 
 dataDir = '/gpfs/alpine/proj-shared/ast149/cosmo_tests/cosmo_1024/'
-inDir = dataDir + 'output_files/'
+inDir = dataDir + 'output_files_1/'
 outDir = dataDir + 'output_snapshots/'
 
 hydro = True
