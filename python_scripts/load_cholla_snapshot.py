@@ -13,7 +13,7 @@ dm_density = particles_data['density'][...]
 potential = particles_data['grav_potential'][...]
 
 
-grid_file_name = 'particles_{0:03}.h5'.format( n_snapshot )
+grid_file_name = 'grid_{0:03}.h5'.format( n_snapshot )
 grid_data = h5.File( input_directory + grid_file_name, 'r')
 gas_density = grid_data['density'][...] 
 HI_density = grid_data['HI_density'][...] 
