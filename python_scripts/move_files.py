@@ -10,7 +10,7 @@ snapDir = dataDir + 'output_snapshots/'
 
 snaps_found = []
 snaps_missing = []
-for nSnap in range(100,  130 ):
+for nSnap in range(130,  150 ):
   file_name = 'grid_{0}.h5'.format( nSnap )
   try:
     file = h5.File( snapDir + file_name, 'r' )
