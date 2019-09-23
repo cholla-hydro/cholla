@@ -5,7 +5,7 @@ import h5py as h5
 dataDir = '/gpfs/alpine/proj-shared/ast149/cosmo_tests/cosmo_1024/'
 snapDir = dataDir + 'output_snapshots/'
 
-nSnap = 0
+nSnap = 1
 
 file_name = 'grid_{0}.h5'.format( nSnap )
 file = h5.File( snapDir + file_name, 'r' )
