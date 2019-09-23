@@ -5,11 +5,11 @@ import h5py as h5
 dataDir = '/gpfs/alpine/proj-shared/ast149/cosmo_tests/cosmo_1024/'
 snapDir = dataDir + 'output_snapshots/'
 
-nSnap = 150
+# nSnap = 1
+
 
 snaps_found = []
-snaps_missing = []
-
+snaps_missing = []g
 for nSnap in range(1,  100 ):
   file_name = 'grid_{0}.h5'.format( nSnap )
   try:
@@ -25,4 +25,12 @@ for nSnap in range(1,  100 ):
 
 print('Missing: ', snaps_missing)
 
+
+
+outDir = dataDir + 'snapshots/'
+
+for nSnap in range( 1, 30 ):
+  inFile = 'grid_{0}.h5'.format( nSnap )
+  outFile = 'grid_{0:03}.h5'.format( nSnap )
+  print( '{0}  ->  {1}'.format( inFile, outFile ))
 # os.rename('guru99.txt','career.guru99.txt') 
