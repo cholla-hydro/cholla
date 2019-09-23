@@ -26,16 +26,16 @@ for nSnap in range(100,  130 ):
 print('Missing: ', snaps_missing)
 
 
-# 
-# outDir = dataDir + 'snapshots/'
-# 
-# for nSnap in range( 1, 30 ):
-#   inFile = 'grid_{0}.h5'.format( nSnap )
-#   outFile = 'grid_{0:03}.h5'.format( nSnap )
-#   print( '{0}  ->  {1}'.format( inFile, outFile ))
-#   os.rename( snapDir + inFile, outDir + outFile)
-#   inFile = 'particles_{0}.h5'.format( nSnap )
-#   outFile = 'particles_{0:03}.h5'.format( nSnap )
-#   print( '{0}  ->  {1}'.format( inFile, outFile ))
-#   os.rename( snapDir + inFile, outDir + outFile)
+
+outDir = dataDir + 'snapshots/'
+
+for nSnap in range( 100, 130 ):
+  inFile = 'grid_{0}.h5'.format( nSnap )
+  outFile = 'grid_{0:03}.h5'.format( nSnap )
+  print( '{0}  ->  {1}'.format( inFile, outFile ))
+  os.rename( snapDir + inFile, outDir + outFile)
+  inFile = 'particles_{0}.h5'.format( nSnap )
+  outFile = 'particles_{0:03}.h5'.format( nSnap )
+  print( '{0}  ->  {1}'.format( inFile, outFile ))
+  os.rename( snapDir + inFile, outDir + outFile)
    
