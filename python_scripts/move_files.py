@@ -10,6 +10,7 @@ nSnap = 0
 file_name = 'grid_{0}.h5'.format( nSnap )
 file = h5.File( file_name, 'r' )
 current_z = file.attrs['current_z']
+file.close()
 
 print( ' Snap: {0}   current_z: {1:.4f}'.format( nSnap, current_z) ) 
 
