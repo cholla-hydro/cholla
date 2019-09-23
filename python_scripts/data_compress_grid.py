@@ -19,7 +19,7 @@ def compress_grid( nSnap, nBoxes, name_base, out_base_name,inDir, outDir, fields
   
   added_header = False
   
-  fileName = out_base_name + '{0}.h5'.format( nSnap )
+  fileName = out_base_name + '{0:03}.h5'.format( nSnap )
   fileSnap = h5py.File( outDir + fileName, 'w' )
   
   print("\nHydro:")
