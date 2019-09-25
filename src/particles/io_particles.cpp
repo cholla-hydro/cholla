@@ -435,6 +435,18 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   // int       nx_dset = H.nx_real;
   hsize_t   dims[1];
   dataset_buffer = (Real *) malloc(n_local*sizeof(Real));
+  
+  // Count Total Particles
+  part_int_t N_paricles_total;
+  #ifdef MPI_CHOLLA
+  N_paricles_total = ReducePartIntSum( Particles.n_local );
+  #else
+  N_paricles_total = Particles.n_local;
+  #endif
+  
+  chprintf( " Total Particles: %ld\n", N_paricles_total );
+  
+  if ( N_paricles_total != Particles.n_total_initial ) chprintf( " WARNING: Lost Particles: %d \n", Particles.n_total_initial - N_paricles_total );
 
 
   // Create the data space for the datasets
