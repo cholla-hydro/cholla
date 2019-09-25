@@ -200,10 +200,12 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
 
   /*set up node communicator*/
   node = MPI_Comm_node(&procID_node, &nproc_node);
-
-  #ifndef GRAVITY
-  // Needed to initialize cuda after gravity in order to work on Summit
-  //initialize cuda for use with mpi
+  // #ifdef ONLY_PARTICLES
+  // chprintf("ONLY_PARTICLES: Initializing without CUDA support.\n");
+  // #else
+  // #ifndef GRAVITY
+  // // Needed to initialize cuda after gravity in order to work on Summit
+  // //initialize cuda for use with mpi
   #ifdef CUDA
   if(initialize_cuda_mpi(procID_node,nproc_node))
   {
@@ -211,7 +213,7 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
     chexit(-10);
   }
   #endif /*CUDA*/
-  #endif//GRAVITY
+  // #endif//ONLY_PARTICLES
 
   //set decomposition flag
   #ifdef   SLAB
