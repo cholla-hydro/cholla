@@ -97,7 +97,7 @@ TEMPERATURE_FLOOR = -DTEMPERATURE_FLOOR
 # OUTPUT_ALWAYS = -DOUTPUT_ALWAYS
 
 #Average Slow cells
-AVERAGE_SLOW_CELLS = -DAVERAGE_SLOW_CELLS
+# AVERAGE_SLOW_CELLS = -DAVERAGE_SLOW_CELLS
 
 #Allocate GPU memory only once at the first timestep
 # DYNAMIC_GPU_ALLOC = -DDYNAMIC_GPU_ALLOC
@@ -119,8 +119,8 @@ GRAVITY = -DGRAVITY
 POISSON_SOLVER = -DPFFT
 # POISSON_SOLVER = -DCUFFT
 GRAVITY_INT = -DGRAVITY_LONG_INTS
-GRAVITY_COUPLE = -DGRAVITY_COUPLE_GPU
-# GRAVITY_COUPLE = -DGRAVITY_COUPLE_CPU
+# GRAVITY_COUPLE = -DGRAVITY_COUPLE_GPU
+GRAVITY_COUPLE = -DGRAVITY_COUPLE_CPU
 GRAVITY_ENERGY_COUPLE = -DCOUPLE_GRAVITATIONAL_WORK
 # GRAVITY_ENERGY_COUPLE = -DCOUPLE_DELTA_E_KINETIC
 # OUTPUT_POTENTIAL = -DOUTPUT_POTENTIAL
@@ -145,15 +145,15 @@ N_OMP_THREADS = -DN_OMP_THREADS=10
 COSMOLOGY = -DCOSMOLOGY
 
 #Use Grackle for cooling in cosmological simulations
-# COOLING = -DCOOLING_GRACKLE
+COOLING = -DCOOLING_GRACKLE
 
 ifdef CUDA
-CUDA_INCL = -I/usr/local/cuda/include
-CUDA_LIBS = -L/usr/local/cuda/lib64 -lcuda -lcudart
+CUDA_INCL = -I/cm/shared/apps/cuda10.1/toolkit/current/include
+CUDA_LIBS = -L/cm/shared/apps/cuda10.1/toolkit/current/targets/x86_64-linux/lib/stubs/ -lcuda -lcudart
 endif
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = -I/usr/include/hdf5/serial/
-HDF5_LIBS = -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -lhdf5
+HDF5_INCL = -I/cm/shared/apps/hdf5/1.10.1/include
+HDF5_LIBS = -L/cm/shared/apps/hdf5/1.10.1/lib -lhdf5
 endif
 
 INCL   = -I./ $(HDF5_INCL)
@@ -161,10 +161,10 @@ NVINCL = $(INCL) $(CUDA_INCL)
 LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
 ifeq ($(POISSON_SOLVER),-DPFFT)
-FFTW_INCL = -I/home/bruno/code/fftw-3.3.8/include
-FFTW_LIBS = -L/home/bruno/code/fftw-3.3.8/lib -lfftw3
-PFFT_INCL = -I/home/bruno/code/pfft/include
-PFFT_LIBS = -L/home/bruno/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
+FFTW_INCL = -I/cm/shared/apps/fftw/fftw-3.3.8/include
+FFTW_LIBS = -L/cm/shared/apps/fftw/fftw-3.3.8/lib -lfftw3
+PFFT_INCL = -I/home/brvillas/code/pfft/include
+PFFT_LIBS = -L/home/brvillas/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
 INCL += $(FFTW_INCL) $(PFFT_INCL)
 LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
 endif
@@ -182,8 +182,8 @@ OUTPUT_TEMPERATURE = -DOUTPUT_TEMPERATURE
 OUTPUT_CHEMISTRY = -DOUTPUT_CHEMISTRY
 SCALAR = -DSCALAR
 N_OMP_THREADS_GRACKLE = -DN_OMP_THREADS_GRACKLE=10
-GRACKLE_INCL = -I/home/bruno/local/include
-GRACKLE_LIBS = -L/home/bruno/local/lib -lgrackle 
+GRACKLE_INCL = -I/home/brvillas/code/grackle/include
+GRACKLE_LIBS = -L/home/brvillas/code/grackle/lib -lgrackle 
 INCL += $(GRACKLE_INCL)
 LIBS += $(GRACKLE_LIBS)
 endif
