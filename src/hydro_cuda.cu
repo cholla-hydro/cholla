@@ -223,6 +223,11 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
   gy = 0.0;
   gz = 0.0;
   
+  #ifdef GRAVITY_5_POINTS_GRADIENT
+  int id_ll, id_rr;
+  Real pot_ll, pot_rr;
+  #endif
+  
   #ifdef COUPLE_DELTA_E_KINETIC
   Real Ekin_0, Ekin_1;
   #endif//COUPLE_DELTA_E_KINETIC
@@ -294,7 +299,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     if ( dev_conserved[            id] < density_floor ){
       if (dev_conserved[            id] > 0){  
         dens_0 = dev_conserved[            id];
-        printf("###Thread density change  %f -> %f \n", dens_0, density_floor );
+        // printf("###Thread density change  %f -> %f \n", dens_0, density_floor );
         dev_conserved[            id] = density_floor;
         // Scale the conserved values to the new density
         dev_conserved[1*n_cells + id] *= (density_floor / dens_0);
@@ -307,9 +312,9 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
       }
       else{
         dens_0 = dev_conserved[            id];
-        printf("###Thread Negative density change  %f \n", dens_0);
+        // printf("###Thread Negative density change  %f \n", dens_0);
         dens_0 = Average_Cell_Single_Field( 0, xid, yid, zid, nx, ny, nz, n_cells, dev_conserved );    
-        printf("### New value:   %f \n", dens_0);
+        // printf("### New value:   %f \n", dens_0);
       }
     }
     // #ifdef COOLING_GRACKLE
@@ -356,21 +361,44 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     id_r = (xid+1) + (yid)*nx + (zid)*nx*ny;
     pot_l = dev_potential[id_l];
     pot_r = dev_potential[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+    id_ll = (xid-2) + (yid)*nx + (zid)*nx*ny;
+    id_rr = (xid+2) + (yid)*nx + (zid)*nx*ny;
+    pot_ll = dev_potential[id_ll];
+    pot_rr = dev_potential[id_rr];
+    gx = -1 * ( -pot_rr + 8*pot_r - 8*pot_l + pot_ll) / (12*dx);
+    #else
     gx = -0.5*( pot_r - pot_l ) / dx;
+    #endif
     
     //Get Y componet of gravity field
     id_l = (xid) + (yid-1)*nx + (zid)*nx*ny;
     id_r = (xid) + (yid+1)*nx + (zid)*nx*ny;
     pot_l = dev_potential[id_l];
     pot_r = dev_potential[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+    id_ll = (xid) + (yid-2)*nx + (zid)*nx*ny;
+    id_rr = (xid) + (yid+2)*nx + (zid)*nx*ny;
+    pot_ll = dev_potential[id_ll];
+    pot_rr = dev_potential[id_rr];
+    gy = -1 * ( -pot_rr + 8*pot_r - 8*pot_l + pot_ll) / (12*dx);
+    #else
     gy = -0.5*( pot_r - pot_l ) / dy;
-    
+    #endif
     //Get Z componet of gravity field
     id_l = (xid) + (yid)*nx + (zid-1)*nx*ny;
     id_r = (xid) + (yid)*nx + (zid+1)*nx*ny;
     pot_l = dev_potential[id_l];
     pot_r = dev_potential[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+    id_ll = (xid) + (yid)*nx + (zid-2)*nx*ny;
+    id_rr = (xid) + (yid)*nx + (zid+2)*nx*ny;
+    pot_ll = dev_potential[id_ll];
+    pot_rr = dev_potential[id_rr];
+    gz = -1 * ( -pot_rr + 8*pot_r - 8*pot_l + pot_ll) / (12*dx);
+    #else
     gz = -0.5*( pot_r - pot_l ) / dz;
+    #endif
     
     
     dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
