@@ -183,7 +183,7 @@ void Grid3D::Advance_Particles_DKD_Step1( ){
     #ifdef COSMOLOGY
     Advance_Particles_DKD_Cosmo_Step1_function( p_start, p_end );
     #else
-    Advance_Particles_DKD_Step1_function( p_start, p_end );
+    // Advance_Particles_DKD_Step1_function( p_start, p_end );
     #endif//COSMOLOGY
   }
   #endif  
@@ -208,7 +208,7 @@ void Grid3D::Advance_Particles_DKD_Step2( ){
     #ifdef COSMOLOGY
     Advance_Particles_DKD_Cosmo_Step2_function( p_start, p_end );
     #else
-    Advance_Particles_DKD_Step2_function( p_start, p_end );
+    // Advance_Particles_DKD_Step2_function( p_start, p_end );
     #endif//COSMOLOGY
   }
   #endif  
