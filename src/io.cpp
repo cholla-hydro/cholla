@@ -2104,7 +2104,7 @@ void Grid3D::Read_Grid(struct parameters P) {
   // open the file
   file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) {
-    printf("Unable to open input file.\n");
+    printf("Unable to open input file: %s\n", filename);
     exit(0);
   }
 
