@@ -40,10 +40,10 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-indir=/home/brvillas/simulations/256_cool_uv_50Mpc/ics_enzo/
-outdir=/home/brvillas/simulations/256_cool_uv_50Mpc/output_files/
-#indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool_uv_50Mpc/ics_enzo/
-#outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool_uv_50Mpc/
+#indir=/home/brvillas/simulations/256_cool_uv_50Mpc/ics_enzo/
+#outdir=/home/brvillas/simulations/256_cool_uv_50Mpc/output_files/
+indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool_uv_50Mpc/ics_enzo/
+outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_cool_uv_50Mpc/
 #indir=/gpfs/alpine/scratch/bvilasen/ast149/cosmo_256/ics/
 #outdir=/gpfs/alpine/scratch/bvilasen/ast149/cosmo_256/output_snapshots/
 

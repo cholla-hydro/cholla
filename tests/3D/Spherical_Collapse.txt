@@ -4,11 +4,11 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=128
+nx=512
 # number of grid cells in the y dimension
-ny=128
+ny=512
 # number of grid cells in the z dimension
-nz=128
+nz=512
 # output time
 tout=0.5
 # how often to output
@@ -32,7 +32,7 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=/home/brvillas/sphere_collapse/output_files/
-#outdir=/raid/bruno/data/cosmo_sims/cholla_pm/sphere_collapse/
+#outdir=/home/brvillas/sphere_collapse/output_files/
+outdir=/raid/bruno/data/cosmo_sims/cholla_pm/sphere_collapse/
 #outdir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/sphere_collapse/
 #outdir=/gpfs/alpine/scratch/bvilasen/ast149/sphere_collapse/output_files/
