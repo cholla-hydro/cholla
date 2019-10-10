@@ -11,9 +11,9 @@
 #include"error_handling.h"
 #include"mpi_routines.h"
 
-/*! \fn void Set_Boundary_Conditions_All(parameters P)
+/*! \fn void Set_Boundary_Conditions_Grid(parameters P)
  *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
-void Grid3D::Set_Boundary_Conditions_All( parameters P){
+void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
   
   #ifndef ONLY_PARTICLES
   // Dont transfer Hydro boundaries when only doing particles

@@ -48,7 +48,7 @@ Real Grid3D::Update_Grid_and_Particles_DKD(  struct parameters P ){
   Update_Time();
 
   // set boundary conditions for next time step 
-  Set_Boundary_Conditions_All(P);
+  Set_Boundary_Conditions_Grid(P);
   
   #ifdef PARTICLES
   //Advance the particles KDK( second step )
@@ -89,7 +89,7 @@ Real Grid3D::Update_Grid_and_Particles_KDK(  struct parameters P ){
   H.n_step++;
 
   // set boundary conditions for next time step 
-  Set_Boundary_Conditions_All(P);
+  Set_Boundary_Conditions_Grid(P);
   
   #ifdef PARTICLES
   //Advance the particles KDK( second step )

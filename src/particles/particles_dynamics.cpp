@@ -90,7 +90,7 @@ void Grid3D::Advance_Particles( int N_step ){
   #endif
   
   if ( N_step == 2 ){
-    Get_Particles_Accelration();
+    Get_Particles_Acceleration();
     
     #ifdef PARTICLES_KDK
     Advance_Particles_KDK_Step2();
@@ -108,7 +108,7 @@ void Grid3D::Advance_Particles( int N_step ){
     
 }
 
-void Grid3D::Get_Particles_Accelration(){
+void Grid3D::Get_Particles_Acceleration(){
   // Get the accteleration for all the particles
   Get_Gravity_Field_Particles();
   Get_Gravity_CIC();  

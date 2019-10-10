@@ -545,9 +545,9 @@ class Grid3D
      *  \brief Set the boundary conditions based on info in the parameters structure. */
     void Set_Boundary_Conditions(parameters P);
     
-    /*! \fn void Set_Boundary_Conditions_All(parameters P)
+    /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
      *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
-    void Set_Boundary_Conditions_All( parameters P);
+    void Set_Boundary_Conditions_Grid( parameters P);
 
     /*! \fn int Check_Custom_Boundary(int *flags, struct parameters P)
      *  \brief Check for custom boundary conditions */
@@ -684,7 +684,7 @@ class Grid3D
   void Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_t p_end );
   void Advance_Particles_DKD_Step1( );
   void Advance_Particles_DKD_Step2( );
-  void Get_Particles_Accelration();
+  void Get_Particles_Acceleration();
   void Advance_Particles( int N_KDK_step );
   Real Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt();

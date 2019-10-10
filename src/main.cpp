@@ -114,16 +114,18 @@ int main(int argc, char *argv[])
   #endif
 
   #ifdef GRAVITY
+  // Get the gravitaional potential for the first timestep
   G.Compute_Gravitational_Potential( &P);
   #endif
 
-  // set boundary conditions (assign appropriate values to ghost cells)
+  // Set boundary conditions (assign appropriate values to ghost cells) for hydro and potential
   chprintf("Setting boundary conditions...\n");
-  G.Set_Boundary_Conditions_All(P);
+  G.Set_Boundary_Conditions_Grid(P);
   chprintf("Boundary conditions set.\n");  
   
   #ifdef PARTICLES
-  G.Get_Particles_Accelration();
+  // Get the particles acceleration for the first timestep
+  G.Get_Particles_Acceleration();
   #endif
 
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
@@ -159,7 +161,6 @@ int main(int argc, char *argv[])
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
   while (G.H.t < P.tout)
-  // while (G.H.n_step < 0)
   {
     chprintf("n_step: %d \n", G.H.n_step + 1 );
     // get the start time
@@ -193,24 +194,16 @@ int main(int argc, char *argv[])
     G.H.n_step++;
 
     // set boundary conditions for next time step 
-    G.Set_Boundary_Conditions_All(P);
+    G.Set_Boundary_Conditions_Grid(P);
     
     #ifdef PARTICLES
     //Advance the particles KDK( second step )
     G.Advance_Particles( 2 );
     #endif
-
-
-    // Optional:Timestep using DKD for particles
-    // #if defined( PARTICLES ) && defined( PARTICLES_DKD )
-    // dti = G.Update_Grid_and_Particles_DKD(P);
-    // #endif
-
     
     #ifdef CPU_TIME
     G.Timer.Print_Times();
     #endif
-
 
     // get the time to compute the total timestep
     stop_step = get_time();
@@ -245,10 +238,12 @@ int main(int argc, char *argv[])
     #endif
     
     #ifdef N_STEPS_LIMIT
+    // Exit the loop when reached the limit number of steps (optional)
     if ( G.H.n_step == N_STEPS_LIMIT) break;
     #endif
 
     #ifdef COSMOLOGY
+    // Exit the loop when reached the last scale_factor output 
     if ( G.Cosmo.current_a >= G.Cosmo.scale_outputs[G.Cosmo.n_outputs-1] ) {
       chprintf( "\nReached Last Cosmological Output: Ending Simulation\n");
       break;
@@ -259,6 +254,7 @@ int main(int argc, char *argv[])
   
   
   #ifdef CPU_TIME
+  // Print timing statistics
   G.Timer.Get_Average_Times();
   G.Timer.Print_Average_Times( P );
   #endif
