@@ -85,20 +85,13 @@ void Grid3D::Advance_Particles( int N_step ){
   if ( N_step == 1 ) Advance_Particles_KDK_Step1();
   #endif
   
-  #ifdef PARTICLES_DKD
-  if ( N_step == 1 ) Advance_Particles_DKD_Step1();
-  #endif
-  
   if ( N_step == 2 ){
     Get_Particles_Acceleration();
     
     #ifdef PARTICLES_KDK
     Advance_Particles_KDK_Step2();
     #endif
-    
-    #ifdef PARTICLES_DKD
-    Advance_Particles_DKD_Step2();
-    #endif
+
   }
   
   #ifdef CPU_TIME
@@ -163,57 +156,6 @@ void Grid3D::Advance_Particles_KDK_Step2( ){
   }
   #endif  
 }
-
-void Grid3D::Advance_Particles_DKD_Step1( ){
-  
-  #ifndef PARALLEL_OMP
-  #ifdef COSMOLOGY
-  Advance_Particles_DKD_Cosmo_Step1_function( 0, Particles.n_local );  
-  #else
-  // Advance_Particles_DKD_Step1_function( 0, Particles.n_local );
-  #endif//COSMOLOGY
-  #else
-  #pragma omp parallel num_threads( N_OMP_THREADS )
-  {
-    int omp_id, n_omp_procs;
-    part_int_t p_start, p_end;
-    omp_id = omp_get_thread_num();
-    n_omp_procs = omp_get_num_threads();
-    Get_OMP_Particles_Indxs( Particles.n_local, N_OMP_THREADS, omp_id,  &p_start, &p_end );
-    #ifdef COSMOLOGY
-    Advance_Particles_DKD_Cosmo_Step1_function( p_start, p_end );
-    #else
-    // Advance_Particles_DKD_Step1_function( p_start, p_end );
-    #endif//COSMOLOGY
-  }
-  #endif  
-}
-
-void Grid3D::Advance_Particles_DKD_Step2( ){
-  
-  #ifndef PARALLEL_OMP
-  #ifdef COSMOLOGY
-  Advance_Particles_DKD_Cosmo_Step2_function( 0, Particles.n_local );  
-  #else
-  // Advance_Particles_DKD_Step2_function( 0, Particles.n_local );
-  #endif//COSMOLOGY
-  #else
-  #pragma omp parallel num_threads( N_OMP_THREADS )
-  {
-    int omp_id, n_omp_procs;
-    part_int_t p_start, p_end;
-    omp_id = omp_get_thread_num();
-    n_omp_procs = omp_get_num_threads();
-    Get_OMP_Particles_Indxs( Particles.n_local, N_OMP_THREADS, omp_id,  &p_start, &p_end );
-    #ifdef COSMOLOGY
-    Advance_Particles_DKD_Cosmo_Step2_function( p_start, p_end );
-    #else
-    // Advance_Particles_DKD_Step2_function( p_start, p_end );
-    #endif//COSMOLOGY
-  }
-  #endif  
-}
-
 
 
 void Grid3D::Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_t p_end ){
@@ -314,139 +256,6 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_
   da_min *= vel_factor;
   dt_min = Cosmo.Get_dt_from_da( da_min );
   return Particles.C_cfl * dt_min;
-}
-
-
-void Grid3D::Advance_Particles_DKD_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end ){
-  
-  Real dt;
-  part_int_t pIndx;
-  Real a = Cosmo.current_a;
-  Real da = Cosmo.delta_a;
-  Real da_half = da/2;
-  Real a_half = a + da_half;
-  
-  Real H;
-  H = Cosmo.Get_Hubble_Parameter( a );
-  
-  #ifdef PARTICLES_PECULIAR_VELOCITIES
-  dt = da / ( a * H ) * Cosmo.cosmo_h / a;
-  #else
-  dt = da / ( a * H ) * Cosmo.cosmo_h / ( a * a );
-  #endif 
-  
-  
-  // Advance velocities by half a step
-  Real pos_x, vel_x, grav_x;
-  Real pos_y, vel_y, grav_y;
-  Real pos_z, vel_z, grav_z;
-  for ( pIndx=p_start; pIndx<p_end; pIndx++ ){
-    pos_x = Particles.pos_x[pIndx];
-    pos_y = Particles.pos_y[pIndx];
-    pos_z = Particles.pos_z[pIndx];
-    vel_x = Particles.vel_x[pIndx];
-    vel_y = Particles.vel_y[pIndx];
-    vel_z = Particles.vel_z[pIndx];
-    
-    #ifdef PARTICLES_PECULIAR_VELOCITIES
-    
-    pos_x += 0.5 * dt * vel_x;
-    pos_y += 0.5 * dt * vel_y;
-    pos_z += 0.5 * dt * vel_z;    
-    
-    #else
-    
-    pos_x += 0.5 * dt * vel_x;
-    pos_y += 0.5 * dt * vel_y;
-    pos_z += 0.5 * dt * vel_z;
-    
-    #endif
-
-    Particles.pos_x[pIndx] = pos_x;
-    Particles.pos_y[pIndx] = pos_y;
-    Particles.pos_z[pIndx] = pos_z;
-
-  }
-}
-
-
-
-void Grid3D::Advance_Particles_DKD_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end ){
-  Real dt, dt_half;
-  part_int_t pIndx;
-  Real a = Cosmo.current_a;
-  Real da = Cosmo.delta_a;
-  Real da_half = da / 2;
-  Real a_half = a - da + da_half;
-  Real a_prev = a - da;
-  
-  
-  Real H, H_half;
-  H = Cosmo.Get_Hubble_Parameter( a );
-  H_half = Cosmo.Get_Hubble_Parameter( a_half ); 
-  
-  #ifdef PARTICLES_PECULIAR_VELOCITIES
-  dt = da / ( a * H ) * Cosmo.cosmo_h / a;
-  dt_half = da / ( a_half * H_half ) * Cosmo.cosmo_h;
-  #else
-  dt = da / ( a * H ) * Cosmo.cosmo_h / ( a * a ) ;
-  dt_half = da / ( a_half * H_half ) * Cosmo.cosmo_h;
-  #endif  
-
-  // Advance velocities by half a step
-  Real pos_x, pos_y, pos_z;
-  Real vel_x, vel_y, vel_z;
-  Real grav_x, grav_y, grav_z;
-  for ( pIndx=p_start; pIndx<p_end; pIndx++ ){
-    pos_x = Particles.pos_x[pIndx];
-    pos_y = Particles.pos_y[pIndx];
-    pos_z = Particles.pos_z[pIndx];
-    
-    vel_x = Particles.vel_x[pIndx];
-    vel_y = Particles.vel_y[pIndx];
-    vel_z = Particles.vel_z[pIndx];    
-    
-    grav_x = Particles.grav_x[pIndx];
-    grav_y = Particles.grav_y[pIndx];
-    grav_z = Particles.grav_z[pIndx];
-
-    
-    #ifdef PARTICLES_PECULIAR_VELOCITIES
-    
-    vel_x = ( a_prev*vel_x + dt_half*grav_x ) / a;
-    vel_y = ( a_prev*vel_y + dt_half*grav_y ) / a;
-    vel_z = ( a_prev*vel_z + dt_half*grav_z ) / a;
-    
-    // //Enzo Equation 62
-    // vel_x = ( 1 - H_half*dt_half )*vel_x + dt_half * grav_x / a_half;    
-    // vel_y = ( 1 - H_half*dt_half )*vel_y + dt_half * grav_y / a_half;    
-    // vel_z = ( 1 - H_half*dt_half )*vel_z + dt_half * grav_z / a_half;    
-    
-    pos_x += 0.5 * dt * vel_x;
-    pos_y += 0.5 * dt * vel_y;
-    pos_z += 0.5 * dt * vel_z;    
-    
-    #else
-        
-    vel_x += dt_half * grav_x;
-    vel_y += dt_half * grav_y;
-    vel_z += dt_half * grav_z;
-    
-    pos_x += 0.5 * dt * vel_x;
-    pos_y += 0.5 * dt * vel_y;
-    pos_z += 0.5 * dt * vel_z;    
-    
-    #endif
-    
-    
-    Particles.pos_x[pIndx] = pos_x;
-    Particles.pos_y[pIndx] = pos_y;
-    Particles.pos_z[pIndx] = pos_z;
-
-    Particles.vel_x[pIndx] = vel_x;
-    Particles.vel_y[pIndx] = vel_y;
-    Particles.vel_z[pIndx] = vel_z;
-  }
 }
 
 

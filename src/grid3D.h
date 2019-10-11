@@ -639,7 +639,6 @@ class Grid3D
   void Copy_Particles_Density_Boundaries( int direction, int side );
   void Transfer_Particles_Boundaries( struct parameters P );
   Real Update_Grid_and_Particles_KDK( struct parameters P );
-  Real Update_Grid_and_Particles_DKD( struct parameters P );
   void Set_Particles_Boundary( int dir, int side);
   #ifdef MPI_CHOLLA
   int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
@@ -682,8 +681,6 @@ class Grid3D
   void Advance_Particles_KDK_Step2( );
   void Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_t p_end );
   void Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_t p_end );
-  void Advance_Particles_DKD_Step1( );
-  void Advance_Particles_DKD_Step2( );
   void Get_Particles_Acceleration();
   void Advance_Particles( int N_KDK_step );
   Real Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end );
@@ -697,9 +694,6 @@ class Grid3D
   void Change_Cosmological_Frame_Sytem( bool forward );
   void Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end );
   void Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end );
-  void Advance_Particles_DKD_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end );
-  void Advance_Particles_DKD_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end );
-  
   Real Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt_Cosmo();
   #endif
