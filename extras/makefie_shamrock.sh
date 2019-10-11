@@ -139,7 +139,7 @@ N_OMP_THREADS = -DN_OMP_THREADS=10
 # # PRINT_OMP_DOMAIN = -DPRINT_OMP_DOMAIN
 
 #Cosmological simulation
-# COSMOLOGY = -DCOSMOLOGY
+COSMOLOGY = -DCOSMOLOGY
 
 #Use Grackle for cooling in cosmological simulations
 # COOLING = -DCOOLING_GRACKLE
