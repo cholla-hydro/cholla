@@ -200,7 +200,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
 {
   int id, xid, yid, zid, n_cells;
   int imo, jmo, kmo;
-  #if  defined(STATIC_GRAV) || ( defined(GRAVITY) && defined(GRAVITY_COUPLE_GPU) )
+  #if  defined(STATIC_GRAV) ||  defined(GRAVITY) 
   Real d, d_inv, vx, vy, vz;
   #endif
   
@@ -215,7 +215,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
   Real dens_0;
   #endif
   
-  #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_GPU) )
+  #if defined(GRAVITY)
   Real gx, gy, gz, d_n, d_inv_n, vx_n, vy_n, vz_n;
   Real pot_l, pot_r;
   int id_l, id_r;
@@ -250,7 +250,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
   {
-    #if defined(STATIC_GRAV) || ( defined(GRAVITY) && defined(GRAVITY_COUPLE_GPU) )
+    #if defined(STATIC_GRAV) ||  defined(GRAVITY) 
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
@@ -344,7 +344,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
                                   +  0.25*dt*gz*(d + d_n)*(vz + vz_n);
     #endif
     
-    #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_GPU) )
+    #if  defined(GRAVITY) 
     d_n  =  dev_conserved[            id];
     d_inv_n = 1.0 / d_n;
     vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;

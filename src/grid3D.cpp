@@ -267,7 +267,7 @@ void Grid3D::AllocateMemory(void)
   C.GasEnergy = &(buffer0[(H.n_fields-1)*H.n_cells]);
   #endif
   
-  #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+  #if defined( GRAVITY ) 
   C.Grav_potential_new = (Real *) malloc(H.n_cells*sizeof(Real));
   #else
   C.Grav_potential_new = NULL;
@@ -846,7 +846,7 @@ void Grid3D::FreeMemory(void)
   free(buffer0);
   free(buffer1);
   
-  #ifdef GRAVITY_COUPLE_GPU
+  #ifdef GRAVITY
   free(C.Grav_potential_new);
   #endif
   

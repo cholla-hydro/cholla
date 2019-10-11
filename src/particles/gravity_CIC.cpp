@@ -218,11 +218,8 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
   int nx_grid, ny_grid, nz_grid, nGHST_grid;
   Real *potential;
   
-
-  #ifdef GRAVITY_COUPLE_GPU
   potential = Grav.F.potential_h;
   nGHST_grid = N_GHOST_POTENTIAL;
-  #endif
   
   nx_grid = Grav.nx_local + 2*nGHST_grid;
   ny_grid = Grav.ny_local + 2*nGHST_grid;

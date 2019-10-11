@@ -297,10 +297,8 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
   
   potential_in = Grav.F.potential_h; 
   
-  #ifdef GRAVITY_COUPLE_GPU
   potential_out = C.Grav_potential_new;
   n_ghost_grid = H.n_ghost;
-  #endif
   
   nx_grid = Grav.nx_local + 2*n_ghost_grid;
   ny_grid = Grav.ny_local + 2*n_ghost_grid;

@@ -81,7 +81,7 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
       tmp1 = buffer;
       tmp2 = buffer;
       
-      #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+      #if defined( GRAVITY ) 
       if ( NULL == ( buffer_potential = (Real *) malloc(BLOCK_VOL*sizeof(Real)) ) ) {
         printf("Failed to allocate CPU Grav_Potential buffer.\n");
       }
@@ -113,7 +113,7 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
     #endif 
     
-    #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+    #if defined( GRAVITY ) 
     CudaSafeCall( cudaMalloc((void**)&dev_grav_potential, BLOCK_VOL*sizeof(Real)) );
     #else
     dev_grav_potential = NULL;
@@ -141,7 +141,7 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
 
     // copy the conserved variables onto the GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-    #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_GPU )
+    #if defined( GRAVITY ) 
     CudaSafeCall( cudaMemcpy(dev_grav_potential, temp_potential, BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
     #endif
  
