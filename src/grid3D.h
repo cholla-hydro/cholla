@@ -399,19 +399,6 @@ class Grid3D
     
     void Update_Time();
     
-    #ifdef DE
-    void Sync_Energies_3D_CPU_function( int g_start, int g_end );
-    void Sync_Energies_3D_CPU();
-    int Select_Internal_Energy_From_DE( Real E, Real U_total, Real U_advected );
-    Real Get_Average_Kinetic_Energy_function( int g_start, int g_end );
-    void Get_Average_Kinetic_Energy();
-    Real Get_Pressure_From_Energy( int indx );
-    void Apply_Jeans_Length_Condition_function( int g_start, int g_end  );
-    void Apply_Jeans_Length_Condition( );
-    void Update_Total_Energy_After_Dual_Energy_function( int g_start, int g_end );
-    #endif
-    void Apply_Temperature_Floor_CPU_function( int g_start, int g_end );
-
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
     void Write_Header_Binary(FILE *fp);
