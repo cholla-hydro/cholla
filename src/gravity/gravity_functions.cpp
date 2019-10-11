@@ -297,7 +297,7 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
   
   potential_in = Grav.F.potential_h; 
   
-  potential_out = C.Grav_potential_new;
+  potential_out = C.Grav_potential;
   n_ghost_grid = H.n_ghost;
   
   nx_grid = Grav.nx_local + 2*n_ghost_grid;

@@ -329,7 +329,7 @@ class Grid3D
       
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
-      Real *Grav_potential_new;
+      Real *Grav_potential;
 
       
     } C;

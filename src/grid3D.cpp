@@ -268,9 +268,9 @@ void Grid3D::AllocateMemory(void)
   #endif
   
   #if defined( GRAVITY ) 
-  C.Grav_potential_new = (Real *) malloc(H.n_cells*sizeof(Real));
+  C.Grav_potential = (Real *) malloc(H.n_cells*sizeof(Real));
   #else
-  C.Grav_potential_new = NULL;
+  C.Grav_potential = NULL;
   #endif
   
   // initialize array
@@ -716,13 +716,13 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifdef CTU
-    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential_new );
+    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential_new );
+    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
     #endif //VL
     #ifdef SIMPLE
-    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential_new );
+    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
     #endif//SIMPLE
     #endif    
   }
@@ -847,7 +847,7 @@ void Grid3D::FreeMemory(void)
   free(buffer1);
   
   #ifdef GRAVITY
-  free(C.Grav_potential_new);
+  free(C.Grav_potential );
   #endif
   
   #ifndef DYNAMIC_GPU_ALLOC
