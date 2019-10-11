@@ -40,9 +40,9 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   Real f_d_r, f_mx_r, f_my_r, f_mz_r, f_E_r;
   // Real dls, drs, mxls, mxrs, myls, myrs, mzls, mzrs, Els, Ers;
   Real f_d, f_mx, f_my, f_mz, f_E;
-  Real Sl, Sr, Sm, cfl, cfr, ps;
+  Real Sl, Sr, cfl, cfr;
   #ifdef DE
-  Real dgel, dger, gel, ger, gels, gers, f_ge_l, f_ge_r, f_ge, E_kin;
+  Real dgel, dger, f_ge_l, f_ge_r, f_ge, E_kin;
   #endif
   #ifdef SCALAR
   Real dscl[NSCALARS], dscr[NSCALARS], scl[NSCALARS], scr[NSCALARS], scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
@@ -110,9 +110,9 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       scl[i] = dscl[i] / dl;
     }
     #endif
-    #ifdef DE
-    gel = dgel / dl;
-    #endif
+    // #ifdef DE
+    // gel = dgel / dl;
+    // #endif
     vxr = mxr / dr;
     vyr = myr / dr;
     vzr = mzr / dr;
@@ -128,9 +128,9 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       scr[i] = dscr[i] / dr;
     }
     #endif
-    #ifdef DE
-    ger = dger / dr;
-    #endif
+    // #ifdef DE
+    // ger = dger / dr;
+    // #endif
 
     // calculate the enthalpy in each cell
     // Hl = (El + pl) / dl;
@@ -174,11 +174,9 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     // left and right fluxes 
     f_d_l  = mxl;
     f_mx_l = mxl*vxl + pl;
-    // f_mx_l = mxl*vxl;
     f_my_l = myl*vxl;
     f_mz_l = mzl*vxl;
     f_E_l  = (El + pl)*vxl;
-    // f_E_l  = (El)*vxl;
     #ifdef DE
     f_ge_l = dgel*vxl;
     #endif
@@ -190,11 +188,9 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
 
     f_d_r  = mxr;
     f_mx_r = mxr*vxr + pr;
-    // f_mx_r = mxr*vxr;
     f_my_r = myr*vxr;
     f_mz_r = mzr*vxr;
     f_E_r  = (Er + pr)*vxr;
-    // f_E_r  = (Er)*vxr;
     #ifdef DE
     f_ge_r = dger*vxr;
     #endif
