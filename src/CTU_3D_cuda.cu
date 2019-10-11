@@ -231,13 +231,11 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
 
     // Synchronize the total and internal energies
-    #ifndef GRAVITY_COUPLE_CPU //If gravity is added on the CPU, sync Eergies on the CPU after gravity has been added
     #ifdef DE
     Select_Internal_Energy_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
     Sync_Energies_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
     CudaCheckError();
     #endif //DE
-    #endif //GRAVITY_COUPLE_CPU
     
     #ifdef TEMPERATURE_FLOOR
     Apply_Temperature_Floor<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, U_floor );

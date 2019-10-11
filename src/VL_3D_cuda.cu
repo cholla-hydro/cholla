@@ -247,7 +247,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     Update_Conserved_Variables_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, F_x, F_y, F_z, nx_s, ny_s, nz_s, x_off_s, y_off_s, z_off_s, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama, n_fields, density_floor, dev_grav_potential);
     CudaCheckError();
 
-    #ifndef GRAVITY_COUPLE_CPU //If gravity is added on the CPU, sync Eergies on the CPU after gravity has been added
     #ifdef DE
     Select_Internal_Energy_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
     Sync_Energies_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
@@ -258,7 +257,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     Apply_Temperature_Floor<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, U_floor );
     CudaCheckError();
     #endif //TEMPERATURE_FLOOR
-    #endif//GRAVITY_COUPLE_CPU
 
     // Apply cooling
     #ifdef COOLING_GPU
@@ -267,10 +265,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #endif
  
     // Step 7: Calculate the next time step
-    #ifndef GRAVITY_COUPLE_CPU //If gravity is coupled on the CPU, dt is computed on the CPU after hydro update
     Calc_dt_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama);
     CudaCheckError();
-    #endif
 
     // copy the updated conserved variable array back to the CPU
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );

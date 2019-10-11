@@ -308,11 +308,7 @@ void Grid3D::AllocateMemory(void)
   Particles.dt = Calc_Particles_dt_Cosmo();
   #endif
   
-  #if ( defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU) )
-  // When gravity is coupled to hydro on the cpu, dt must be computed on the cpu.
-  max_dti = calc_dti_CPU();
-  
-  #else //GRAVITY_COUPLE_CPU
+
 
   if (H.n_step == 0) {
     max_dti = calc_dti_CPU();
@@ -326,8 +322,6 @@ void Grid3D::AllocateMemory(void)
     #endif /*CUDA*/
   }
   
-  #endif //GRAVITY_COUPLE_CPU
-
   #ifdef MPI_CHOLLA
   max_dti = ReduceRealMax(max_dti);
   #endif /*MPI_CHOLLA*/
@@ -762,14 +756,6 @@ Real Grid3D::Update_Grid(void)
   Cool.fields.metal_density   = &C.scalar[ 6*H.n_cells ];
   #endif
   
-  //Arrays for conserved variables at the begining of the timesteps
-  #if defined( GRAVITY ) && defined( GRAVITY_COUPLE_CPU )
-  C.density_0  = &g0[0];
-  C.momentum_x_0 = &g0[H.n_cells];
-  C.momentum_y_0 = &g0[2*H.n_cells];
-  C.momentum_z_0 = &g0[3*H.n_cells];
-  #endif//GRAVITY
-
   // reset the grid flag to swap buffers
   gflag = (gflag+1)%2;
 
@@ -798,18 +784,7 @@ Real Grid3D::Update_Hydro_Grid( ){
   #endif
   
   dti = Update_Grid();
-  
-  #if defined(GRAVITY) && defined(GRAVITY_COUPLE_CPU)
-  Get_Gravitational_Field();
-  Add_Gavity_To_Hydro();
-  #ifdef DE
-  #ifdef LIMIT_DE_EKINETIC
-  Get_Average_Kinetic_Energy();
-  #endif //LIMIT_DE_EKINETIC
-  Sync_Energies_3D_CPU();
-  #endif//DE
-  #endif//GRAVITY
-  
+    
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 1 );
   #endif //CPU_TIME
