@@ -234,11 +234,7 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_
   Real a2 = ( Cosmo.current_a )*( Cosmo.current_a  );
   
   Real vel_factor;  
-  #ifdef PARTICLES_PECULIAR_VELOCITIES
   vel_factor = Cosmo.current_a / scale_factor;
-  #else
-  vel_factor = a2 / scale_factor;
-  #endif
   
   Real vx_max, vy_max, vz_max;
   vx_max = 0;
@@ -274,15 +270,9 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
   H = Cosmo.Get_Hubble_Parameter( a );
   H_half = Cosmo.Get_Hubble_Parameter( a_half );
   
-  #ifdef PARTICLES_PECULIAR_VELOCITIES
   dt = da / ( a * H ) * Cosmo.cosmo_h;
   dt_half = da / ( a_half * H_half ) * Cosmo.cosmo_h / ( a_half );
-  #else
-  dt = da / ( a * H ) * Cosmo.cosmo_h;
-  dt_half = da / ( a_half * H_half ) * Cosmo.cosmo_h / ( a_half * a_half );
-  #endif 
-  
-  
+
   // Advance velocities by half a step
   Real pos_x, vel_x, grav_x;
   Real pos_y, vel_y, grav_y;
@@ -297,9 +287,6 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
     grav_x = Particles.grav_x[pIndx];
     grav_y = Particles.grav_y[pIndx];
     grav_z = Particles.grav_z[pIndx];
-
-    
-    #ifdef PARTICLES_PECULIAR_VELOCITIES
     
     vel_x = ( a*vel_x + 0.5*dt*grav_x ) / a_half;
     vel_y = ( a*vel_y + 0.5*dt*grav_y ) / a_half;
@@ -308,17 +295,6 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
     pos_y += dt_half * vel_y;
     pos_z += dt_half * vel_z;    
     
-    #else
-    
-    vel_x += 0.5 * dt * grav_x;
-    vel_y += 0.5 * dt * grav_y;
-    vel_z += 0.5 * dt * grav_z;
-    pos_x += dt_half * vel_x;
-    pos_y += dt_half * vel_y;
-    pos_z += dt_half * vel_z;
-    
-    #endif
-
     Particles.pos_x[pIndx] = pos_x;
     Particles.pos_y[pIndx] = pos_y;
     Particles.pos_z[pIndx] = pos_z;
@@ -337,11 +313,7 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, par
   Real da_half = da / 2;
   Real a_half = a - da + da_half;
   
-  #ifdef PARTICLES_PECULIAR_VELOCITIES
   dt = da / ( a * Cosmo.Get_Hubble_Parameter( a ) ) * Cosmo.cosmo_h;
-  #else
-  dt = da / ( a * Cosmo.Get_Hubble_Parameter( a ) ) * Cosmo.cosmo_h;
-  #endif  
 
   // Advance velocities by half a step
   Real grav_x, grav_y, grav_z;
@@ -351,19 +323,13 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, par
     grav_y = Particles.grav_y[pIndx];
     grav_z = Particles.grav_z[pIndx];
     
-    
-    #ifdef PARTICLES_PECULIAR_VELOCITIES
     vel_x = Particles.vel_x[pIndx];
     vel_y = Particles.vel_y[pIndx];
     vel_z = Particles.vel_z[pIndx];
     Particles.vel_x[pIndx] = ( a_half*vel_x + 0.5*dt*grav_x ) / a;
     Particles.vel_y[pIndx] = ( a_half*vel_y + 0.5*dt*grav_y ) / a;
     Particles.vel_z[pIndx] = ( a_half*vel_z + 0.5*dt*grav_z ) / a;
-    #else    
-    Particles.vel_x[pIndx] += 0.5 * dt * grav_x;
-    Particles.vel_y[pIndx] += 0.5 * dt * grav_y;
-    Particles.vel_z[pIndx] += 0.5 * dt * grav_z;
-    #endif
+  
   }
 }
 

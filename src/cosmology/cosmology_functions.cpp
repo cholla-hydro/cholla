@@ -54,12 +54,8 @@ void Grid3D::Change_DM_Frame_System( bool forward ){
   
   part_int_t pIndx;
   Real vel_factor;
-  #ifdef PARTICLES_PECULIAR_VELOCITIES
   vel_factor = 1;
-  #else
-  if (forward ) vel_factor = Cosmo.current_a ;
-  else vel_factor =  1./Cosmo.current_a;
-  #endif
+
   
   for ( pIndx=0; pIndx<Particles.n_local; pIndx++ ){
     Particles.vel_x[pIndx] *= vel_factor;
