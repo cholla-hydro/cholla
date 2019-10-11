@@ -809,10 +809,10 @@ __global__ void Add_Pressure_Div_V_to_Advected_Internal_Energy( Real *dev_conser
 int id, xid, yid, zid, n_cells;
 int imo, jmo, kmo;
 Real d, d_inv, vx, vy, vz;
-Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
-int ipo, jpo, kpo;
 Real  P, E, E_kin, GE;
-Real vx_L, vx_R, vy_L, vy_R, vz_L, vz_R;
+int ipo, jpo, kpo;
+Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo;
+// Real vx_L, vx_R, vy_L, vy_R, vz_L, vz_R;
 
 
 Real dtodx = dt/dx;
@@ -843,33 +843,32 @@ if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost &
   E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
   P = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );  
   P  = fmax(P, (Real) TINY_NUMBER); 
-  // P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-  //if (d < 0.0 || d != d) printf("Negative density before final update.\n");
-  //if (P < 0.0) printf("%d Negative pressure before final update.\n", id);
-  // ipo = xid+1 + yid*nx + zid*nx*ny;
-  // jpo = xid + (yid+1)*nx + zid*nx*ny;
-  // kpo = xid + yid*nx + (zid+1)*nx*ny;
-  // vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
-  // vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
-  // vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
-  // vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
-  // vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
-  // vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
+  P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+  // if (d < 0.0 || d != d) printf("Negative density before final update.\n");
+  // if (P < 0.0) printf("%d Negative pressure before final update.\n", id);
+  ipo = xid+1 + yid*nx + zid*nx*ny;
+  jpo = xid + (yid+1)*nx + zid*nx*ny;
+  kpo = xid + yid*nx + (zid+1)*nx*ny;
+  vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
+  vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
+  vy_jmo = dev_conserved[2*n_cells + jmo] / dev_conserved[jmo]; 
+  vy_jpo = dev_conserved[2*n_cells + jpo] / dev_conserved[jpo]; 
+  vz_kmo = dev_conserved[3*n_cells + kmo] / dev_conserved[kmo]; 
+  vz_kpo = dev_conserved[3*n_cells + kpo] / dev_conserved[kpo]; 
 
   // Use center values of neighbor cells for the divergence of velocity
-  // dev_conserved[(n_fields-1)*n_cells + id] += 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
+  dev_conserved[(n_fields-1)*n_cells + id] += 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
   
-  //Use the reconstructed Velocities instead of neighbor cells centered values 
-  vx_R = Q_Lx[1*n_cells + id]  / Q_Lx[id]; 
-  vx_L = Q_Rx[1*n_cells + imo] / Q_Rx[imo]; 
-  vy_R = Q_Ly[2*n_cells + id]  / Q_Ly[id]; 
-  vy_L = Q_Ry[2*n_cells + jmo] / Q_Ry[jmo];
-  vz_R = Q_Lz[3*n_cells + id]  / Q_Lz[id]; 
-  vz_L = Q_Rz[3*n_cells + kmo] / Q_Rz[kmo]; 
+  // Alternative: Use the reconstructed Velocities instead of neighbor cells centered values 
+  // vx_R = Q_Lx[1*n_cells + id]  / Q_Lx[id]; 
+  // vx_L = Q_Rx[1*n_cells + imo] / Q_Rx[imo]; 
+  // vy_R = Q_Ly[2*n_cells + id]  / Q_Ly[id]; 
+  // vy_L = Q_Ry[2*n_cells + jmo] / Q_Ry[jmo];
+  // vz_R = Q_Lz[3*n_cells + id]  / Q_Lz[id]; 
+  // vz_L = Q_Rz[3*n_cells + kmo] / Q_Rz[kmo]; 
 
-  
-  //Use the reconstructed Velocities instead of neighbor cells centered values
-  dev_conserved[(n_fields-1)*n_cells + id] +=  P * ( dtodx * ( vx_L - vx_R ) + dtody * ( vy_L - vy_R ) + dtodz * ( vz_L - vz_R ) );
+  // //Use the reconstructed Velocities instead of neighbor cells centered values
+  // dev_conserved[(n_fields-1)*n_cells + id] +=  P * ( dtodx * ( vx_L - vx_R ) + dtody * ( vy_L - vy_R ) + dtodz * ( vz_L - vz_R ) );
   }  
 }
 
