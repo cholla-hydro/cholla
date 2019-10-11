@@ -299,7 +299,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     if ( dev_conserved[            id] < density_floor ){
       if (dev_conserved[            id] > 0){  
         dens_0 = dev_conserved[            id];
-        // printf("###Thread density change  %f -> %f \n", dens_0, density_floor );
+        // Set the density to the density floor
         dev_conserved[            id] = density_floor;
         // Scale the conserved values to the new density
         dev_conserved[1*n_cells + id] *= (density_floor / dens_0);
@@ -311,22 +311,11 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
         #endif
       }
       else{
+        // If the density is negative: average the density on that cell
         dens_0 = dev_conserved[            id];
-        // printf("###Thread Negative density change  %f \n", dens_0);
-        dens_0 = Average_Cell_Single_Field( 0, xid, yid, zid, nx, ny, nz, n_cells, dev_conserved );    
-        // printf("### New value:   %f \n", dens_0);
+        Average_Cell_Single_Field( 0, xid, yid, zid, nx, ny, nz, n_cells, dev_conserved );    
       }
     }
-    // #ifdef COOLING_GRACKLE
-    // for (int i=0; i<NSCALARS; i++) {
-    //   dens_0 = dev_conserved[(5+i)*n_cells + id];
-    //   if ( dens_0 < 0 ){
-    //     printf("###Thread Negative Cooling density change field: %d   val: %f \n", 5+i, dens_0);
-    //     dens_0 = Average_Cell_Single_Field( 5+i, xid, yid, zid, nx, ny, nz, n_cells, dev_conserved );
-    //     printf("### New value:   %f \n", dens_0);
-    //   }
-    // }
-    // #endif//COOLING_GRACKLE
     #endif//DENSITY_FLOOR
 
     #ifdef STATIC_GRAV 
