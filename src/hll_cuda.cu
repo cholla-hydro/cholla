@@ -45,7 +45,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   Real dgel, dger, f_ge_l, f_ge_r, f_ge, E_kin;
   #endif
   #ifdef SCALAR
-  Real dscl[NSCALARS], dscr[NSCALARS], scl[NSCALARS], scr[NSCALARS], scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
+  Real dscl[NSCALARS], dscr[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
   #endif
   
   // Real etah = 0;
@@ -105,11 +105,11 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     pl  = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     #endif//DE
     pl  = fmax(pl, (Real) TINY_NUMBER);
-    #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      scl[i] = dscl[i] / dl;
-    }
-    #endif
+    // #ifdef SCALAR
+    // for (int i=0; i<NSCALARS; i++) {
+    //   scl[i] = dscl[i] / dl;
+    // }
+    // #endif
     // #ifdef DE
     // gel = dgel / dl;
     // #endif
@@ -123,11 +123,11 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     pr  = (Er - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
     #endif//DE
     pr  = fmax(pr, (Real) TINY_NUMBER);    
-    #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      scr[i] = dscr[i] / dr;
-    }
-    #endif
+    // #ifdef SCALAR
+    // for (int i=0; i<NSCALARS; i++) {
+    //   scr[i] = dscr[i] / dr;
+    // }
+    // #endif
     // #ifdef DE
     // ger = dger / dr;
     // #endif
