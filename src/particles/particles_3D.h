@@ -41,6 +41,8 @@ class Particles_3D
   Real current_a;
   #endif
 
+
+  #ifdef PARTICLES_CPU
   #ifdef PARTICLE_IDS
   int_vector_t partIDs;
   #endif
@@ -56,16 +58,28 @@ class Particles_3D
   real_vector_t grav_x;
   real_vector_t grav_y;
   real_vector_t grav_z;
-
+  #endif //PARTICLES_CPU
+  
+  #ifdef PARTICLES_GPU
+  #ifdef PARTICLE_IDS
+  part_int_t *partIDs_dev;
+  #endif
+  #ifndef SINGLE_PARTICLE_MASS
+  part_int_t *mass_dev;
+  #endif
+  Real *pos_x_dev;
+  Real *pos_y_dev;
+  Real *pos_z_dev;
+  Real *vel_x_dev;
+  Real *vel_y_dev;
+  Real *vel_z_dev;
+  Real *grav_x_dev;
+  Real *grav_y_dev;
+  Real *grav_z_dev;
+  #endif //PARTICLES_GPU
+  
 
   #ifdef MPI_CHOLLA
-  int_vector_t out_indxs_vec_x0;
-  int_vector_t out_indxs_vec_x1;
-  int_vector_t out_indxs_vec_y0;
-  int_vector_t out_indxs_vec_y1;
-  int_vector_t out_indxs_vec_z0;
-  int_vector_t out_indxs_vec_z1;
-
 
   part_int_t n_transfer_x0;
   part_int_t n_transfer_x1;
@@ -94,6 +108,18 @@ class Particles_3D
   part_int_t n_in_buffer_y1;
   part_int_t n_in_buffer_z0;
   part_int_t n_in_buffer_z1;
+  
+  
+  #ifdef PARTICLES_CPU
+  int_vector_t out_indxs_vec_x0;
+  int_vector_t out_indxs_vec_x1;
+  int_vector_t out_indxs_vec_y0;
+  int_vector_t out_indxs_vec_y1;
+  int_vector_t out_indxs_vec_z0;
+  int_vector_t out_indxs_vec_z1;
+  #endif //PARTICLES_CPU
+  
+  
   #endif //MPI_CHOLLA
 
   bool TRANSFER_DENSITY_BOUNDARIES;
@@ -118,9 +144,18 @@ class Particles_3D
     int n_cells;
 
     Real *density;
+    #ifdef PARTICLES_CPU
     Real *gravity_x;
     Real *gravity_y;
     Real *gravity_z;
+    #endif
+    
+    #ifdef PARTICLES_GPU
+    Real *density_dev;
+    Real *gravity_x_dev;
+    Real *gravity_y_dev;
+    Real *gravity_z_dev;
+    #endif
 
 
   } G;
@@ -129,7 +164,17 @@ class Particles_3D
 
   void Initialize( struct parameters *P, Grav3D &Grav,  Real xbound, Real ybound, Real zbound, Real xdglobal, Real ydglobal, Real zdglobal  );
   
+  #ifdef PARTICLES_GPU
+  void Allocate_Memory_GPU();
+  void Free_Memory_GPU();
+  void Initialize_Grid_Values_GPU();
+  void Get_Density_CIC_GPU();
+  #endif //PARTICLES_GPU
+  
+  
+  
   void Allocate_Memory();
+  
   
   void Initialize_Grid_Values();
   

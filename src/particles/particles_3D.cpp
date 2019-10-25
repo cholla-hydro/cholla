@@ -44,6 +44,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
 
   C_cfl = 0.3;
 
+  #ifdef PARTICLES_CPU
   real_vector_t pos_x;
   real_vector_t pos_y;
   real_vector_t pos_z;
@@ -68,13 +69,9 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   int_vector_t out_indxs_vec_y1;
   int_vector_t out_indxs_vec_z0;
   int_vector_t out_indxs_vec_z1;
-  int_vector_t transfered_x0;
-  int_vector_t transfered_x1;
-  int_vector_t transfered_y0;
-  int_vector_t transfered_y1;
-  int_vector_t transfered_z0;
-  int_vector_t transfered_z1;
   #endif
+  
+  #endif //PARTICLES_CPU
 
   //Initialize Grid Values
   G.nx_local = Grav.nx_local;
@@ -183,9 +180,11 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
 
 void Particles_3D::Allocate_Memory( void ){
   G.density   = (Real *) malloc(G.n_cells*sizeof(Real));
+  #ifdef PARTICLES_CPU
   G.gravity_x = (Real *) malloc(G.n_cells*sizeof(Real));
   G.gravity_y = (Real *) malloc(G.n_cells*sizeof(Real));
   G.gravity_z = (Real *) malloc(G.n_cells*sizeof(Real));
+  #endif
 }
 
 
@@ -194,9 +193,11 @@ void Particles_3D::Initialize_Grid_Values( void ){
   
   for( id=0; id<G.n_cells; id++ ){
     G.density[id] = 0;
+    #ifdef PARTICLES_CPU
     G.gravity_x[id] = 0;
     G.gravity_y[id] = 0;
     G.gravity_z[id] = 0;
+    #endif
   }
 }
 
@@ -229,6 +230,8 @@ void Particles_3D::Initialize_Sphere( void ){
 
     r = sqrt( (pPos_x-center_x)*(pPos_x-center_x) + (pPos_y-center_y)*(pPos_y-center_y) + (pPos_z-center_z)*(pPos_z-center_z) );
     if ( r > sphereR ) continue;
+    
+    #ifdef PARTICLES_CPU
     pos_x.push_back( pPos_x );
     pos_y.push_back( pPos_y );
     pos_z.push_back( pPos_z);
@@ -244,6 +247,8 @@ void Particles_3D::Initialize_Sphere( void ){
     #ifndef SINGLE_PARTICLE_MASS
     mass.push_back( Mparticle );
     #endif
+    #endif //PARTICLES_CPU
+    
     pID += 1;
   }
 
@@ -258,7 +263,8 @@ void Particles_3D::Initialize_Zeldovich_Pancake( struct parameters *P ){
   
   chprintf("Setting Zeldovich Pancake initial conditions...\n");
   
-  n_local = pos_x.size();
+  // n_local = pos_x.size();
+  n_local = 0;
 
   chprintf( " Particles Zeldovich Pancake Initialized, n_local: %lu\n", n_local);
 
@@ -288,6 +294,7 @@ void Grid3D::Initialize_Uniform_Particles(){
         // // get the centered cell positions at (i,j,k)
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
         
+        #ifdef PARTICLES_CPU
         Particles.pos_x.push_back( x_pos - 0.25*H.dx );
         Particles.pos_y.push_back( y_pos - 0.25*H.dy );
         Particles.pos_z.push_back( z_pos - 0.25*H.dz );
@@ -303,12 +310,17 @@ void Grid3D::Initialize_Uniform_Particles(){
         #ifndef SINGLE_PARTICLE_MASS
         Particles.mass.push_back( Mparticle );
         #endif
+        #endif //PARTICLES_CPU
+        
         pID += 1;        
       }
     }
   }
   
+  #ifdef PARTICLES_CPU
   Particles.n_local = Particles.pos_x.size();
+  #endif
+  
   
   #ifdef MPI_CHOLLA
   Particles.n_total_initial = ReducePartIntSum(Particles.n_local);
