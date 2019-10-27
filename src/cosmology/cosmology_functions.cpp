@@ -52,6 +52,8 @@ void Grid3D::Change_Cosmological_Frame_Sytem( bool forward ){
 }
 void Grid3D::Change_DM_Frame_System( bool forward ){
   
+  #ifdef PARTICLES_CPU
+  
   part_int_t pIndx;
   Real vel_factor;
   vel_factor = 1;
@@ -62,6 +64,8 @@ void Grid3D::Change_DM_Frame_System( bool forward ){
     Particles.vel_y[pIndx] *= vel_factor;
     Particles.vel_z[pIndx] *= vel_factor;
   }
+  
+  #endif //PARTICLES_CPU
 }
 
 void Grid3D::Change_GAS_Frame_System( bool forward ){
