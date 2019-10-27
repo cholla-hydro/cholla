@@ -658,6 +658,11 @@ class Grid3D
   void Advance_Particles( int N_KDK_step );
   Real Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt();
+  #ifdef PARTICLES_GPU
+  Real Calc_Particles_dt_GPU();
+  void Advance_Particles_KDK_Step1_GPU();
+  void Advance_Particles_KDK_Step2_GPU();
+  #endif//PARTICLES_GPU
   #endif//PARTICLES
   
   #ifdef COSMOLOGY
@@ -669,7 +674,12 @@ class Grid3D
   void Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt_Cosmo();
-  #endif
+  #ifdef PARTICLES_GPU
+  void Set_Particles_Boundary_GPU( int dir, int side);  
+  void Advance_Particles_KDK_Cosmo_Step1_GPU();
+  void Advance_Particles_KDK_Cosmo_Step2_GPU();
+  #endif//PARTICLES_GPU
+  #endif//COSMOLOGY
   
   #ifdef COOLING_GRACKLE
   void Initialize_Grackle( struct parameters *P );
