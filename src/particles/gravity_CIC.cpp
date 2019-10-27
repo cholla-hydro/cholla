@@ -6,6 +6,7 @@
 #include <iostream>
 #include"../global.h"
 #include"../grid3D.h"
+#include"../io.h"
 #include"particles_3D.h"
 #include"density_CIC.h"
 
@@ -15,6 +16,8 @@
 #endif
 
 void Grid3D::Get_Gravity_Field_Particles(){
+  
+  #ifdef PARTICLES_CPU
 
   #ifndef PARALLEL_OMP
   Get_Gravity_Field_Particles_function( 0, Particles.G.nz_local + 2*Particles.G.n_ghost_particles_grid);
@@ -32,11 +35,20 @@ void Grid3D::Get_Gravity_Field_Particles(){
 
     Get_Gravity_Field_Particles_function( g_start, g_end);  
   }
+  #endif//PARALLEL_OMP
+  #endif//PARTICLES_CPU
+  
+  
+  #ifdef PARTICLES_GPU
+  Particles.Get_Gravity_Field_Particles_GPU( Grav.F.potential_h );
   #endif
+  
 }
 
 
 void Grid3D::Get_Gravity_CIC(){
+  
+  #ifdef PARTICLES_CPU
   
   #ifndef PARALLEL_OMP
   Get_Gravity_CIC_function( 0, Particles.n_local );
@@ -53,10 +65,17 @@ void Grid3D::Get_Gravity_CIC(){
     Get_OMP_Particles_Indxs( Particles.n_local, N_OMP_THREADS, omp_id,  &p_start, &p_end );
     
     Get_Gravity_CIC_function( p_start, p_end );
-  }
+  }  
+  #endif//PARALLEL_OMP
+  #endif//PARTICLES_CPU
+  
+  #ifdef PARTICLES_GPU
+  Particles.Get_Gravity_CIC_GPU();
   #endif
 }
 
+
+#ifdef PARTICLES_CPU
 
 void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
   
@@ -73,7 +92,7 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
   dx = Particles.G.dx;
   dy = Particles.G.dy;
   dz = Particles.G.dz;
-
+  
   part_int_t pIndx;
   int indx_x, indx_y, indx_z, indx;
   Real x_pos, y_pos, z_pos;
@@ -220,7 +239,7 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
   
   potential = Grav.F.potential_h;
   nGHST_grid = N_GHOST_POTENTIAL;
-  
+    
   nx_grid = Grav.nx_local + 2*nGHST_grid;
   ny_grid = Grav.ny_local + 2*nGHST_grid;
   nz_grid = Grav.nz_local + 2*nGHST_grid;
@@ -308,35 +327,6 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#endif //PARTICLES_CPU
 
 #endif//PARTICLES
