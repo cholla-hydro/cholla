@@ -24,7 +24,7 @@ void Particles_3D::Get_Density_CIC(){
   #endif
   
   #ifdef PARTICLES_GPU
-  
+  Get_Density_CIC_GPU();
   #endif
   
 }
@@ -108,10 +108,18 @@ void Grid3D::Copy_Particles_Density_function( int g_start, int g_end ){
 
 
 void::Particles_3D::Clear_Density(){
-  for( int i=0; i<G.n_cells; i++ ) G.density[i] = 0;  
+   
+  #ifdef PARTICLES_CPU
+  for( int i=0; i<G.n_cells; i++ ) G.density[i] = 0;
+  #endif
+  
+  #ifdef PARTICLES_GPU
+  Clear_Density_GPU();
+  #endif  
 }
 
 
+#ifdef PARTICLES_CPU
 void Get_Indexes_CIC( Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, Real pos_x, Real pos_y, Real pos_z, int &indx_x, int &indx_y, int &indx_z ){
   indx_x = (int) floor( ( pos_x - xMin - 0.5*dx ) / dx );
   indx_y = (int) floor( ( pos_y - yMin - 0.5*dy ) / dy );
@@ -380,8 +388,9 @@ void Particles_3D::Get_Density_CIC_OMP( ){
     }
   }
 }
+#endif //PARALLEL_OMP
 
-#endif
+#endif //PARTICLES_CPU
 
 
 
