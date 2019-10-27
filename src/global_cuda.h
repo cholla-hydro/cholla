@@ -16,6 +16,10 @@
 #define TPB 256 // threads per block
 //#define TPB 64
 
+#ifdef PARTICLES_GPU
+#define TPB_PARTICLES 1024
+#endif
+
 
 extern bool memory_allocated; // Flag becomes true after allocating the memory on the first timestep
 extern bool block_size; // Flag becomes true after determining subgrid block size on the first timestep
