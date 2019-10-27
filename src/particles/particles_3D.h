@@ -142,6 +142,10 @@ class Particles_3D
 
     int n_ghost_particles_grid;
     int n_cells;
+    #ifdef PARTICLES_GPU
+    part_int_t size_dt_array;
+    int n_cells_potential;
+    #endif
 
     Real *density;
     #ifdef PARTICLES_CPU
@@ -152,9 +156,12 @@ class Particles_3D
     
     #ifdef PARTICLES_GPU
     Real *density_dev;
+    Real *potential_dev;
     Real *gravity_x_dev;
     Real *gravity_y_dev;
     Real *gravity_z_dev;
+    Real *dti_array_dev;
+    Real *dti_array_host;
     #endif
 
 
@@ -166,9 +173,17 @@ class Particles_3D
   
   #ifdef PARTICLES_GPU
   void Allocate_Memory_GPU();
+  void Allocate_Particles_Field_Real( Real **array_dev, part_int_t size );
+  void Copy_Particle_Field_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
+  void Copy_Particle_Field_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);
+  void Set_Particle_Field_Real( Real value, Real *array_dev, part_int_t size);
   void Free_Memory_GPU();
   void Initialize_Grid_Values_GPU();
   void Get_Density_CIC_GPU();
+  void Clear_Density_GPU();
+  void Copy_Potential_To_GPU( Real *potential_host, Real *potential_dev, int n_cells_potential );
+  void Get_Gravity_Field_Particles_GPU( Real *potential_host );
+  void Get_Gravity_CIC_GPU();
   #endif //PARTICLES_GPU
   
   
