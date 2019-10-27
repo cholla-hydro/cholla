@@ -174,12 +174,25 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   #ifdef PARTICLES
   if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
     if ( flags[dir] ==1 ){
+      #ifdef PARTICLES_CPU
       if ( dir == 0 ) Set_Particles_Boundary( 0, 0 );
       if ( dir == 1 ) Set_Particles_Boundary( 0, 1 );
       if ( dir == 2 ) Set_Particles_Boundary( 1, 0 );
       if ( dir == 3 ) Set_Particles_Boundary( 1, 1 );
       if ( dir == 4 ) Set_Particles_Boundary( 2, 0 );
       if ( dir == 5 ) Set_Particles_Boundary( 2, 1 );
+      #endif//PARTICLES_CPU
+      
+      #ifdef PARTICLES_GPU
+      if ( dir == 0 ) Set_Particles_Boundary_GPU( 0, 0 );
+      if ( dir == 1 ) Set_Particles_Boundary_GPU( 0, 1 );
+      if ( dir == 2 ) Set_Particles_Boundary_GPU( 1, 0 );
+      if ( dir == 3 ) Set_Particles_Boundary_GPU( 1, 1 );
+      if ( dir == 4 ) Set_Particles_Boundary_GPU( 2, 0 );
+      if ( dir == 5 ) Set_Particles_Boundary_GPU( 2, 1 );
+      #endif//PARTICLES_CPU
+      
+      
     }
     return; 
   }

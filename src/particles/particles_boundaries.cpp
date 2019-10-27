@@ -44,7 +44,7 @@ part_int_t Real_to_part_int( Real inVal ){
   return outVal;
 }
 
-
+#ifdef PARTICLES_CPU
 void Grid3D::Set_Particles_Boundary( int dir, int side ){
   
   Real d_min, d_max, L;
@@ -92,10 +92,8 @@ void Grid3D::Set_Particles_Boundary( int dir, int side ){
     if ( dir == 2 ) Particles.pos_z[i] = pos;
     
   }
-  
-  
-  
 }
+#endif //PARTICLES_CPU
 
 void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
   
