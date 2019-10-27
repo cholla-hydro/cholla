@@ -18,6 +18,9 @@
 Real Grid3D::Calc_Particles_dt( ){
   
   Real dt_particles;
+  
+  #ifdef PARTICLES_CPU
+  
   #ifndef PARALLEL_OMP
   dt_particles = Calc_Particles_dt_function( 0, Particles.n_local );
   #else 
@@ -36,7 +39,15 @@ Real Grid3D::Calc_Particles_dt( ){
   for ( int i=0; i<N_OMP_THREADS; i++ ){
     dt_particles = fmin( dt_particles, dt_particles_all[i]);
   }
-  #endif 
+  #endif //PARALLEL_OMP
+  #endif //PARTICLES_CPU 
+  
+  
+  #ifdef PARTICLES_GPU
+  dt_particles = Calc_Particles_dt_GPU();
+  #endif//PARTICLES_GPU
+  
+  
   
   Real dt_particles_global;
   #ifdef MPI_CHOLLA
@@ -49,6 +60,7 @@ Real Grid3D::Calc_Particles_dt( ){
 }
 
 
+#ifdef PARTICLES_CPU
 Real Grid3D::Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end ){
   part_int_t pID;
   Real dt, dt_min, vel;
@@ -73,7 +85,7 @@ Real Grid3D::Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end ){
   }
   return Particles.C_cfl * dt_min;  
 }
-
+#endif //PARTICLES_CPU
 
 void Grid3D::Advance_Particles( int N_step ){
   
@@ -109,6 +121,8 @@ void Grid3D::Get_Particles_Acceleration(){
 
 void Grid3D::Advance_Particles_KDK_Step1( ){
   
+  #ifdef PARTICLES_CPU
+  
   #ifndef PARALLEL_OMP
   #ifdef COSMOLOGY
   Advance_Particles_KDK_Cosmo_Step1_function( 0, Particles.n_local );  
@@ -129,10 +143,18 @@ void Grid3D::Advance_Particles_KDK_Step1( ){
     Advance_Particles_KDK_Step1_function( p_start, p_end );
     #endif//COSMOLOGY
   }
-  #endif  
+  #endif //PARALLEL_OMP
+  #endif //PARTICLES_CPU
+  
+  #ifdef PARTICLES_GPU
+  Advance_Particles_KDK_Step1_GPU();
+  #endif //PARTICLES_GPU
+  
 }
 
 void Grid3D::Advance_Particles_KDK_Step2( ){
+  
+  #ifdef PARTICLES_CPU
   
   #ifndef PARALLEL_OMP
   #ifdef COSMOLOGY
@@ -154,10 +176,16 @@ void Grid3D::Advance_Particles_KDK_Step2( ){
     Advance_Particles_KDK_Step2_function( p_start, p_end );
     #endif//COSMOLOGY
   }
-  #endif  
+  #endif //PARALLEL_OMP
+  #endif //PARTICLES_CPU  
+  
+  #ifdef PARTICLES_GPU
+  Advance_Particles_KDK_Step2_GPU();
+  #endif //PARTICLES_GPU
+  
 }
 
-
+#ifdef PARTICLES_CPU
 void Grid3D::Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_t p_end ){
   
   part_int_t pID;
@@ -189,12 +217,16 @@ void Grid3D::Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_
     Particles.vel_z[pID] += 0.5 * dt * Particles.grav_z[pID];
   }
 }
+#endif //PARTICLES_CPU
 
 #ifdef COSMOLOGY
 
 Real Grid3D::Calc_Particles_dt_Cosmo(){
   
   Real dt_particles;
+  
+  #ifdef PARTICLES_CPU
+  
   #ifndef PARALLEL_OMP
   dt_particles = Calc_Particles_dt_Cosmo_function( 0, Particles.n_local );
   #else 
@@ -213,7 +245,12 @@ Real Grid3D::Calc_Particles_dt_Cosmo(){
   for ( int i=0; i<N_OMP_THREADS; i++ ){
     dt_particles = fmin( dt_particles, dt_particles_all[i]);
   }
-  #endif 
+  #endif //PARALLEL_OMP
+  #endif //PARTICLES_CPU
+  
+  #ifdef PARTICLES_GPU
+  dt_particles = Calc_Particles_dt_GPU();
+  #endif//PARTICLES_GPU
   
   Real dt_particles_global;
   #ifdef MPI_CHOLLA
@@ -225,6 +262,8 @@ Real Grid3D::Calc_Particles_dt_Cosmo(){
   return dt_particles_global;   
 }
 
+
+#ifdef PARTICLES_CPU
 Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end ){
 
   part_int_t pID;
@@ -334,11 +373,11 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, par
 }
 
 
+#endif //PARTICLES_CPU
 
 
 
-
-#endif
+#endif //COSMOLOGY
 
 
 
