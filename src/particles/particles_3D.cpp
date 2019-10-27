@@ -105,6 +105,11 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   
   G.n_cells = (G.nx_local+2*G.n_ghost_particles_grid) * (G.ny_local+2*G.n_ghost_particles_grid) * (G.nz_local+2*G.n_ghost_particles_grid);
 
+  #ifdef PARTICLES_GPU
+  G.size_dt_array = 1024*128;
+  G.n_cells_potential = ( G.nx_local + 2*N_GHOST_POTENTIAL ) * ( G.ny_local + 2*N_GHOST_POTENTIAL ) * ( G.nz_local + 2*N_GHOST_POTENTIAL );
+  #endif
+
   INITIAL = true;
   TRANSFER_DENSITY_BOUNDARIES = false;
   TRANSFER_PARTICLES_BOUNDARIES = false;
@@ -145,7 +150,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   
   #endif
   
-  #ifdef PARALLEL_OMP
+  #if defined(PARALLEL_OMP) && defined(PARTICLES_CPU)
   chprintf(" Using OMP for particles calculations\n");
   int n_omp_max = omp_get_max_threads();
   chprintf("  MAX OMP Threads: %d\n", n_omp_max);
@@ -184,6 +189,11 @@ void Particles_3D::Allocate_Memory( void ){
   G.gravity_x = (Real *) malloc(G.n_cells*sizeof(Real));
   G.gravity_y = (Real *) malloc(G.n_cells*sizeof(Real));
   G.gravity_z = (Real *) malloc(G.n_cells*sizeof(Real));
+  #endif
+  
+  #ifdef PARTICLES_GPU
+  Allocate_Memory_GPU();
+  G.dti_array_host = (Real *) malloc(G.size_dt_array*sizeof(Real));
   #endif
 }
 
@@ -251,9 +261,11 @@ void Particles_3D::Initialize_Sphere( void ){
     
     pID += 1;
   }
-
+  
+  #ifdef PARTICLES_CPU
   n_local = pos_x.size();
-
+  #endif
+  
   chprintf( " Particles Uniform Sphere Initialized, n_local: %lu\n", n_local);
 
 }
@@ -334,6 +346,8 @@ void Grid3D::Initialize_Uniform_Particles(){
 
 void Particles_3D::Free_Memory(void){
  free(G.density);
+ 
+ #ifdef PARTICLES_CPU
  free(G.gravity_x);
  free(G.gravity_y);
  free(G.gravity_z);
@@ -355,6 +369,8 @@ void Particles_3D::Free_Memory(void){
  #ifndef SINGLE_PARTICLE_MASS
  mass.clear();
  #endif
+ 
+ #endif //PARTICLES_CPU
 
  #ifdef MPI_CHOLLA
  free(send_buffer_x0_particles);
@@ -374,6 +390,11 @@ void Particles_3D::Free_Memory(void){
 
 void Particles_3D::Reset( void ){
   Free_Memory();
+  
+  #ifdef PARTICLES_GPU
+  free(G.dti_array_host);
+  Free_Memory_GPU();
+  #endif
 }
 
 
