@@ -114,7 +114,7 @@ Real Potential_SOR_3D::Get_Potential( Real *input_density,  Real *output_potenti
   int ngrid_x_half = ( nx_local/2 + tpb_x - 1) / tpb_x;
   dim3 dim3dGrid_half(ngrid_x_half, ngrid_y, ngrid_z);
   
-  Real epsilon = 5e-6;
+  Real epsilon = 1e-6;
   bool converged_h = 0;
   int max_iter = 10000000;
   int n_iter = 0;

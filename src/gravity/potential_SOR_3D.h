@@ -64,6 +64,7 @@ class Potential_SOR_3D{
   void Copy_Output( Real *output_potential );
   Real Get_Potential( Real *input_density,  Real *output_potential, Real Grav_Constant, Real dens_avrg, Real current_a );
   void Set_Boundaries(  );
+  // void Copy_Potential_From_Host( Real *potential_host );
   
 };
 
