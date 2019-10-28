@@ -12,6 +12,10 @@
 #include"potential_CUFFT_3D.h"
 #endif
 
+#ifdef SOR
+#include"potential_SOR_3D.h"
+#endif
+
 
 #ifdef HDF5
 #include<hdf5.h>
@@ -88,6 +92,11 @@ class Grav3D
   #ifdef CUFFT
   Potential_CUFFT_3D Poisson_solver;
   #endif
+
+  #ifdef SOR
+  Potential_SOR_3D Poisson_solver;
+  #endif
+
 
   struct Fields
   {
