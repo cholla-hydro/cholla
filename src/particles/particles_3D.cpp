@@ -173,10 +173,15 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   #endif//PRINT_OMP_DOMAIN
   #endif//PARALLEL_OMP
   
+  
   #ifdef MPI_CHOLLA
   chprintf( " N_Particles Boundaries Buffer Size: %d\n", N_PARTICLES_TRANSFER);
   chprintf( " N_Data per Particle Transfer: %d\n", N_DATA_PER_PARTICLE_TRANSFER);
-  #endif
+  
+  #ifdef PARTICLES_GPU
+  Allocate_Memory_GPU_MPI();
+  #endif//PARTICLES_GPU
+  #endif//MPI_CHOLLA
   
 
 

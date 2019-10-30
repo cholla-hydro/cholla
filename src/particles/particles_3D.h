@@ -61,6 +61,7 @@ class Particles_3D
   #endif //PARTICLES_CPU
   
   #ifdef PARTICLES_GPU
+  part_int_t particles_buffer_size;
   #ifdef PARTICLE_IDS
   part_int_t *partIDs_dev;
   #endif
@@ -76,6 +77,8 @@ class Particles_3D
   Real *grav_x_dev;
   Real *grav_y_dev;
   Real *grav_z_dev;
+  
+  
   #endif //PARTICLES_GPU
   
 
@@ -119,6 +122,28 @@ class Particles_3D
   int_vector_t out_indxs_vec_z1;
   #endif //PARTICLES_CPU
   
+  #ifdef PARTICLES_GPU
+  bool *transfer_particles_flags_x0;
+  bool *transfer_particles_flags_x1;
+  bool *transfer_particles_flags_y0;
+  bool *transfer_particles_flags_y1;
+  bool *transfer_particles_flags_z0;
+  bool *transfer_particles_flags_z1;
+  
+  int *transfer_particles_indxs_x0;
+  int *transfer_particles_indxs_x1;
+  int *transfer_particles_indxs_y0;
+  int *transfer_particles_indxs_y1;
+  int *transfer_particles_indxs_z0;
+  int *transfer_particles_indxs_z1;
+  
+  int *transfer_particles_partial_sum_x0;
+  int *transfer_particles_partial_sum_x1;
+  int *transfer_particles_partial_sum_y0;
+  int *transfer_particles_partial_sum_y1;
+  int *transfer_particles_partial_sum_z0;
+  int *transfer_particles_partial_sum_z1;
+  #endif //PARTICLES_GPU
   
   #endif //MPI_CHOLLA
 
@@ -173,7 +198,10 @@ class Particles_3D
   
   #ifdef PARTICLES_GPU
   void Allocate_Memory_GPU();
+  void Allocate_Memory_GPU_MPI();
   void Allocate_Particles_Field_Real( Real **array_dev, part_int_t size );
+  void Allocate_Particles_Field_bool( bool **array_dev, part_int_t size );
+  void Allocate_Particles_Field_int( int **array_dev, part_int_t size );
   void Copy_Particle_Field_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
   void Copy_Particle_Field_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);
   void Set_Particle_Field_Real( Real value, Real *array_dev, part_int_t size);
