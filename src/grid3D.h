@@ -631,7 +631,7 @@ class Grid3D
   void Unload_Particles_from_Buffer_Z0();
   void Unload_Particles_from_Buffer_Z1();
   void Wait_and_Recv_Particles_Transfer_BLOCK(int dir, int *flags);
-  void Load_N_Particles_Transfer(int index, int *ireq_particles_transfer);
+  void Receive_Particles_Transfer(int index, int *ireq_particles_transfer);
   void Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flags);
   void Unload_Particles_From_Buffers_BLOCK(int index);
   void Finish_Particles_Transfer();

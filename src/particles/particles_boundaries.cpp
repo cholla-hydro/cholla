@@ -349,12 +349,12 @@ void Grid3D::Wait_and_Recv_Particles_Transfer_BLOCK(int dir, int *flags)
     //wait for recv completion
     MPI_Waitany(wait_max,recv_request_n_particles,&index,&status);
     //depending on which face arrived, load the buffer into the ghost grid
-    Load_N_Particles_Transfer(status.MPI_TAG, &ireq_particles_transfer);
+    Receive_Particles_Transfer(status.MPI_TAG, &ireq_particles_transfer);
   }
 }
 
 
-void Grid3D::Load_N_Particles_Transfer(int index, int *ireq_particles_transfer){
+void Grid3D::Receive_Particles_Transfer(int index, int *ireq_particles_transfer){
 
   int buffer_length;
   // std::cout << "ireq: " << *ireq_particles_transfer << std::endl;
