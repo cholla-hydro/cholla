@@ -198,7 +198,6 @@ class Particles_3D
   
   #ifdef PARTICLES_GPU
   void Allocate_Memory_GPU();
-  void Allocate_Memory_GPU_MPI();
   void Allocate_Particles_Field_Real( Real **array_dev, part_int_t size );
   void Allocate_Particles_Field_bool( bool **array_dev, part_int_t size );
   void Allocate_Particles_Field_int( int **array_dev, part_int_t size );
@@ -246,17 +245,24 @@ class Particles_3D
   void Get_Density_CIC();
   
   #ifdef MPI_CHOLLA
-  void Clear_Vectors_For_Transfers( void );
   void Clear_Particles_For_Transfer( void );
-  void Select_Particles_to_Transfer( int dir );
   void Select_Particles_to_Transfer_All( void );
   void Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass,
                               Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z);
-  void Add_Particle_To_Vectors( Real pId, Real pMass, Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z );
-  void Load_Particles_to_Buffer( int direction, int side, Real *send_buffer, int buffer_length  );
-  void Unload_Particles_from_Buffer( int direction, int side, Real *recv_buffer, part_int_t n_recv,
-        Real *send_buffer_y0, Real *send_buffer_y1, Real *send_buffer_z0, Real *send_buffer_z1, int buffer_length_y0, int buffer_length_y1, int buffer_length_z0, int buffer_length_z1);
   void Remove_Transfered_Particles();
+  
+  #ifdef PARTICLES_CPU
+  void Clear_Vectors_For_Transfers( void );
+  void Add_Particle_To_Vectors( Real pId, Real pMass, Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z );
+  void Select_Particles_to_Transfer_All_CPU( void );
+  void Load_Particles_to_Buffer_CPU( int direction, int side, Real *send_buffer, int buffer_length  );
+  void Unload_Particles_from_Buffer_CPU( int direction, int side, Real *recv_buffer, part_int_t n_recv,
+        Real *send_buffer_y0, Real *send_buffer_y1, Real *send_buffer_z0, Real *send_buffer_z1, int buffer_length_y0, int buffer_length_y1, int buffer_length_z0, int buffer_length_z1);
+  #endif//PARTICLES_CPU
+  
+  #ifdef PARTICLES_GPU
+  void Allocate_Memory_GPU_MPI();
+  #endif //PARTICLES_GPU
   #endif
 };
 
