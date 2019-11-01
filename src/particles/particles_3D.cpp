@@ -146,8 +146,6 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
     if (procID == n ) std::cout << procID << " x["<< G.xMin << "," << G.xMax << "] "  << " y["<< G.yMin << "," << G.yMax << "] "  << " z["<< G.zMin << "," << G.zMax << "] " << std::endl;
     usleep( 100 );
   }
-  
-  
   #endif
   
   #if defined(PARALLEL_OMP) && defined(PARTICLES_CPU)

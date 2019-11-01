@@ -72,29 +72,26 @@ void Particles_3D::Allocate_Memory_GPU(){
 
 #ifdef MPI_CHOLLA
 void Particles_3D::Allocate_Memory_GPU_MPI(){
-Allocate_Particles_Field_bool( &transfer_particles_flags_x0, particles_buffer_size );
-Allocate_Particles_Field_bool( &transfer_particles_flags_x1, particles_buffer_size );
-Allocate_Particles_Field_bool( &transfer_particles_flags_y0, particles_buffer_size );
-Allocate_Particles_Field_bool( &transfer_particles_flags_y1, particles_buffer_size );
-Allocate_Particles_Field_bool( &transfer_particles_flags_z0, particles_buffer_size );
-Allocate_Particles_Field_bool( &transfer_particles_flags_z1, particles_buffer_size );
+  Allocate_Particles_Field_bool( &transfer_particles_flags_x0, particles_buffer_size );
+  Allocate_Particles_Field_bool( &transfer_particles_flags_x1, particles_buffer_size );
+  Allocate_Particles_Field_bool( &transfer_particles_flags_y0, particles_buffer_size );
+  Allocate_Particles_Field_bool( &transfer_particles_flags_y1, particles_buffer_size );
+  Allocate_Particles_Field_bool( &transfer_particles_flags_z0, particles_buffer_size );
+  Allocate_Particles_Field_bool( &transfer_particles_flags_z1, particles_buffer_size );
 
-Allocate_Particles_Field_int( &transfer_particles_indxs_x0, particles_buffer_size);
-Allocate_Particles_Field_int( &transfer_particles_indxs_x1, particles_buffer_size);
-Allocate_Particles_Field_int( &transfer_particles_indxs_y0, particles_buffer_size);
-Allocate_Particles_Field_int( &transfer_particles_indxs_y1, particles_buffer_size);
-Allocate_Particles_Field_int( &transfer_particles_indxs_z0, particles_buffer_size);
-Allocate_Particles_Field_int( &transfer_particles_indxs_z1, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_indxs_x0, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_indxs_x1, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_indxs_y0, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_indxs_y1, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_indxs_z0, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_indxs_z1, particles_buffer_size);
 
-Allocate_Particles_Field_int( &transfer_particles_partial_sum_x0, particles_buffer_size);
-Allocate_Particles_Field_int( &transfer_particles_partial_sum_x1, particles_buffer_size);
-Allocate_Particles_Field_int( &transfer_particles_partial_sum_y0, particles_buffer_size);
-Allocate_Particles_Field_int( &transfer_particles_partial_sum_y1, particles_buffer_size);
-Allocate_Particles_Field_int( &transfer_particles_partial_sum_z0, particles_buffer_size);
-Allocate_Particles_Field_int( &transfer_particles_partial_sum_z1, particles_buffer_size);
-  
-  
-  
+  Allocate_Particles_Field_int( &transfer_particles_partial_sum_x0, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_partial_sum_x1, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_partial_sum_y0, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_partial_sum_y1, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_partial_sum_z0, particles_buffer_size);
+  Allocate_Particles_Field_int( &transfer_particles_partial_sum_z1, particles_buffer_size);
 }
 #endif //MPI_CHOLLA
 
