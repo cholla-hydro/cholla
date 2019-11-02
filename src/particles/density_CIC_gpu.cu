@@ -65,7 +65,7 @@ __global__ void Get_Density_CIC_Kernel( part_int_t n_local, Real particle_mass, 
   if ( pos_y < yMin || pos_y >= yMax ) in_local = false;
   if ( pos_z < zMin || pos_z >= zMax ) in_local = false;
   if ( ! in_local  ) {
-    printf(" Density CIC Error: Particle outside local domain");
+    printf(" Density CIC Error: Particle outside local domain [%f  %f  %f]  [%f %f] [%f %f] [%f %f]\n ", pos_x, pos_y, pos_z, xMin, xMax, yMin, yMax, zMin, zMax);
     return;
   }
   
@@ -123,6 +123,7 @@ void Particles_3D::Clear_Density_GPU(){
 
 void Particles_3D::Get_Density_CIC_GPU(){
   
+  printf( "1: [%f %f]  [%f %f]  [%f %f] \n", G.xMin,  G.xMax, G.zMin,  G.zMax, G.zMin,  G.zMax );
   
   // set values for GPU kernels
   int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -130,13 +131,15 @@ void Particles_3D::Get_Density_CIC_GPU(){
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
-  
-  Get_Density_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, particle_mass, G.density_dev, pos_x_dev, pos_y_dev, pos_z_dev, G.xMin, G.yMin, G.zMin, G.xMax, G.yMax, G.zMax, G.dx, G.dy, G.dz, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid );
-  CudaCheckError();
+  printf( "1: %ld \n", n_local );
   
   
-  //Copy the density from device to host
-  CudaSafeCall( cudaMemcpy(G.density, G.density_dev, G.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
+  // Get_Density_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, particle_mass, G.density_dev, pos_x_dev, pos_y_dev, pos_z_dev, G.xMin, G.yMin, G.zMin, G.xMax, G.yMax, G.zMax, G.dx, G.dy, G.dz, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid );
+  // CudaCheckError();
+  // 
+  // 
+  // //Copy the density from device to host
+  // CudaSafeCall( cudaMemcpy(G.density, G.density_dev, G.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
 
   
 

@@ -15,6 +15,8 @@
 
 void Particles_3D::Get_Density_CIC(){
   
+
+  
   #ifdef PARTICLES_CPU
   #ifdef PARALLEL_OMP
   Get_Density_CIC_OMP();
@@ -24,7 +26,10 @@ void Particles_3D::Get_Density_CIC(){
   #endif
   
   #ifdef PARTICLES_GPU
+  printf( "0: [%f %f]  [%f %f]  [%f %f] \n", G.xMin,  G.xMax, G.zMin,  G.zMax, G.zMin,  G.zMax );
   Get_Density_CIC_GPU();
+  printf( "2: [%f %f]  [%f %f]  [%f %f] \n", G.xMin,  G.xMax, G.zMin,  G.zMax, G.zMin,  G.zMax );
+  exit(-1);
   #endif
   
 }
