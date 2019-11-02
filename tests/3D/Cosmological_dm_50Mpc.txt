@@ -41,7 +41,7 @@ zu_bcnd=1
 # path to output directory
 #indir=/home/bruno/Desktop/hard_drive_1/data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_single/
 #outdir=/home/bruno/Desktop/hard_drive_1/data/cosmo_sims/cholla_pm/256_dm_50Mpc/data_gpu/
-indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_nyx/ics_single/
+indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_nyx/
 outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/data_sor/
 #indir=/home/bruno/Desktop//data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_enzo/
 #outdir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/256_dm_50Mpc/
