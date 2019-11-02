@@ -56,7 +56,7 @@ typedef double Real;
 #define DE_ETA_2 0.035 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
 
 // Maximum time step for cosmological simulations
-#define MAX_DELTA_A 0.001
+#define MAX_DELTA_A 0.0000000001
 #define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
 #ifdef COOLING_GRACKLE
