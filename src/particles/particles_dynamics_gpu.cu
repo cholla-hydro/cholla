@@ -74,7 +74,7 @@ Real Grid3D::Calc_Particles_dt_GPU(){
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  if ( ngrid > Particles.G.size_dt_array ) chprintf(" Error: particles dt_array too small\n");
+  if ( ngrid > Particles.G.size_blocks_array ) chprintf(" Error: particles dt_array too small\n");
 
   Calc_Particles_dti_Kernel<<<dim1dGrid,dim1dBlock>>>( Particles.n_local, Particles.G.dx, Particles.G.dy, Particles.G.dz, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.G.dti_array_dev );
   CudaCheckError();
