@@ -106,7 +106,13 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   G.n_cells = (G.nx_local+2*G.n_ghost_particles_grid) * (G.ny_local+2*G.n_ghost_particles_grid) * (G.nz_local+2*G.n_ghost_particles_grid);
 
   #ifdef PARTICLES_GPU
-  G.size_dt_array = 1024*128;
+  #ifdef MPI_CHOLLA
+  G.allocation_factor = 1.5;
+  #else
+  G.allocation_factor = 1.0;
+  #endif
+  
+  G.size_blocks_array = 1024*128;
   G.n_cells_potential = ( G.nx_local + 2*N_GHOST_POTENTIAL ) * ( G.ny_local + 2*N_GHOST_POTENTIAL ) * ( G.nz_local + 2*N_GHOST_POTENTIAL );
   #endif
 
@@ -177,7 +183,9 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   chprintf( " N_Data per Particle Transfer: %d\n", N_DATA_PER_PARTICLE_TRANSFER);
   
   #ifdef PARTICLES_GPU
-  Allocate_Memory_GPU_MPI();
+  // Allocate_Memory_GPU_MPI();
+  // printf( " [%f %f]  [%f %f]  [%f %f] \n", G.xMin,  G.xMax, G.zMin,  G.zMax, G.zMin,  G.zMax );
+
   #endif//PARTICLES_GPU
   #endif//MPI_CHOLLA
   
@@ -196,7 +204,7 @@ void Particles_3D::Allocate_Memory( void ){
   
   #ifdef PARTICLES_GPU
   Allocate_Memory_GPU();
-  G.dti_array_host = (Real *) malloc(G.size_dt_array*sizeof(Real));
+  G.dti_array_host = (Real *) malloc(G.size_blocks_array*sizeof(Real));
   #endif
 }
 

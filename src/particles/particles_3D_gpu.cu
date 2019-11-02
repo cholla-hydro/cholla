@@ -12,16 +12,25 @@
 
 
 void Particles_3D::Allocate_Particles_Field_Real( Real **array_dev, part_int_t size ){
+  size_t global_free, global_total;
+  CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
+  chprintf( "Alocating GPU Memory:  %d  MB free \n", global_free/1000000);
   CudaSafeCall( cudaMalloc((void**)array_dev,  size*sizeof(Real)) );
   cudaDeviceSynchronize();
 }
 
 void Particles_3D::Allocate_Particles_Field_int( int **array_dev, part_int_t size ){
+  size_t global_free, global_total;
+  CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
+  chprintf( "Alocating GPU Memory:  %d  MB free \n", global_free*1e-6/1000000);
   CudaSafeCall( cudaMalloc((void**)array_dev,  size*sizeof(int)) );
   cudaDeviceSynchronize();
 }
 
 void Particles_3D::Allocate_Particles_Field_bool( bool **array_dev, part_int_t size ){
+  size_t global_free, global_total;
+  CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
+  chprintf( "Alocating GPU Memory:  %d  MB free \n", global_free*1e-6/1000000);
   CudaSafeCall( cudaMalloc((void**)array_dev,  size*sizeof(bool)) );
   cudaDeviceSynchronize();
 }
@@ -65,7 +74,7 @@ void Particles_3D::Allocate_Memory_GPU(){
   CudaSafeCall( cudaMalloc((void**)&G.gravity_y_dev,  G.n_cells*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&G.gravity_z_dev,  G.n_cells*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&G.potential_dev,  G.n_cells_potential*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&G.dti_array_dev,  G.size_dt_array*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&G.dti_array_dev,  G.size_blocks_array*sizeof(Real)) );
     
   chprintf( " Allocated GPU memory.\n");  
 }
