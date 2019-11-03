@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
   printf("Init %9.4f\n", init);
   #endif //MPI_CHOLLA
   #endif //CPU_TIME
-  exit(-1);
+
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
   while (G.H.t < P.tout)
