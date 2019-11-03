@@ -207,8 +207,10 @@ class Particles_3D
   void Set_Particle_Field_Real( Real value, Real *array_dev, part_int_t size);
   void Free_Memory_GPU();
   void Initialize_Grid_Values_GPU();
-  void Get_Density_CIC_GPU( );
+  void Get_Density_CIC_GPU();
+  void Get_Density_CIC_GPU_function( part_int_t nlocal, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells, Real *density_h, Real *density_dev );
   void Clear_Density_GPU();
+  void Clear_Density_GPU_function( Real *density_dev, int n_cells);
   void Copy_Potential_To_GPU( Real *potential_host, Real *potential_dev, int n_cells_potential );
   void Get_Gravity_Field_Particles_GPU( Real *potential_host );
   void Get_Gravity_CIC_GPU();

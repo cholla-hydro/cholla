@@ -26,13 +26,12 @@ void Particles_3D::Get_Density_CIC(){
   #endif
   
   #ifdef PARTICLES_GPU
-  printf( "0: [%f %f]  [%f %f]  [%f %f] \n", G.xMin,  G.xMax, G.zMin,  G.zMax, G.zMin,  G.zMax );
   Get_Density_CIC_GPU();
-  printf( "2: [%f %f]  [%f %f]  [%f %f] \n", G.xMin,  G.xMax, G.zMin,  G.zMax, G.zMin,  G.zMax );
-  exit(-1);
   #endif
   
 }
+
+
 
 void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
   
@@ -122,6 +121,22 @@ void::Particles_3D::Clear_Density(){
   Clear_Density_GPU();
   #endif  
 }
+
+#ifdef PARTICLES_GPU
+
+void Particles_3D::Clear_Density_GPU(){
+  
+  Clear_Density_GPU_function( G.density_dev, G.n_cells);
+  
+}
+
+void Particles_3D::Get_Density_CIC_GPU(){
+  
+  Get_Density_CIC_GPU_function( n_local, G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax, G.dx, G.dy, G.dz, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.n_cells, G.density, G.density_dev );
+  
+}
+
+#endif //PARTICLES_GPU
 
 
 #ifdef PARTICLES_CPU

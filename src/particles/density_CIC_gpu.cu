@@ -117,13 +117,13 @@ __global__ void Get_Density_CIC_Kernel( part_int_t n_local, Real particle_mass, 
 
 
 
-void Particles_3D::Clear_Density_GPU(){
-  Set_Particle_Field_Real( 0.0, G.density_dev, G.n_cells);
+void Particles_3D::Clear_Density_GPU_function( Real *density_dev, int n_cells){
+  Set_Particle_Field_Real( 0.0, density_dev, n_cells);
 }
 
-void Particles_3D::Get_Density_CIC_GPU(){
+void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells, Real *density_h, Real *density_dev ){
   
-  printf( "1: [%f %f]  [%f %f]  [%f %f] \n", G.xMin,  G.xMax, G.zMin,  G.zMax, G.zMin,  G.zMax );
+  // printf( "1: [%f %f]  [%f %f]  [%f %f] \n", xMin, xMax, zMin,  zMax, zMin,  zMax );
   
   // set values for GPU kernels
   int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -131,21 +131,14 @@ void Particles_3D::Get_Density_CIC_GPU(){
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
-  printf( "1: %ld \n", n_local );
+  // printf( "1: %ld \n", n_local );
   
   
-  // Get_Density_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, particle_mass, G.density_dev, pos_x_dev, pos_y_dev, pos_z_dev, G.xMin, G.yMin, G.zMin, G.xMax, G.yMax, G.zMax, G.dx, G.dy, G.dz, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid );
-  // CudaCheckError();
-  // 
-  // 
-  // //Copy the density from device to host
-  // CudaSafeCall( cudaMemcpy(G.density, G.density_dev, G.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-
+  Get_Density_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, particle_mass, density_dev, pos_x_dev, pos_y_dev, pos_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
+  CudaCheckError();
   
-
-  
-  
-  
+  //Copy the density from device to host
+  CudaSafeCall( cudaMemcpy(density_h, density_dev, n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  
   
 }
 
