@@ -92,14 +92,14 @@ __global__ void Get_Gravity_Field_Particles_Kernel(  Real *potential_dev, Real *
 
 
 
-void Particles_3D::Get_Gravity_Field_Particles_GPU( Real *potential_host ){
+void Particles_3D::Get_Gravity_Field_Particles_GPU_function( int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells_potential, Real dx, Real dy, Real dz,  Real *potential_host, Real *potential_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev  ){
   
-  Copy_Potential_To_GPU( potential_host, G.potential_dev, G.n_cells_potential );
+  Copy_Potential_To_GPU( potential_host, potential_dev, n_cells_potential );
   
   int nx_g, ny_g, nz_g;
-  nx_g = G.nx_local + 2*N_GHOST_POTENTIAL;
-  ny_g = G.ny_local + 2*N_GHOST_POTENTIAL;
-  nz_g = G.nz_local + 2*N_GHOST_POTENTIAL;
+  nx_g = nx_local + 2*N_GHOST_POTENTIAL;
+  ny_g = ny_local + 2*N_GHOST_POTENTIAL;
+  nz_g = nz_local + 2*N_GHOST_POTENTIAL;
   
   // set values for GPU kernels
   int tpb_x = 8;
@@ -114,7 +114,7 @@ void Particles_3D::Get_Gravity_Field_Particles_GPU( Real *potential_host ){
   dim3 dim3dBlock(tpb_x, tpb_y, tpb_z);
   
   
-  Get_Gravity_Field_Particles_Kernel<<<dim3dGrid,dim3dBlock>>>( G.potential_dev, G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, N_GHOST_POTENTIAL, G.dx, G.dy, G.dz );
+  Get_Gravity_Field_Particles_Kernel<<<dim3dGrid,dim3dBlock>>>( potential_dev, gravity_x_dev, gravity_y_dev, gravity_z_dev, nx_local, ny_local, nz_local, n_ghost_particles_grid, N_GHOST_POTENTIAL, dx, dy, dz );
   CudaCheckError();
 }
 
@@ -237,7 +237,7 @@ __global__ void Get_Gravity_CIC_Kernel( part_int_t n_local, Real *gravity_x_dev,
 
 
 
-void Particles_3D::Get_Gravity_CIC_GPU(){
+void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin,  Real zMax, Real dx, Real dy, Real dz,   Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev,  Real *grav_y_dev,  Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev ){
   
   // set values for GPU kernels
   int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -246,7 +246,7 @@ void Particles_3D::Get_Gravity_CIC_GPU(){
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  Get_Gravity_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev, pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, G.xMin, G.yMin, G.zMin, G.xMax, G.yMax, G.zMax, G.dx, G.dy, G.dz, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid );
+  Get_Gravity_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, gravity_x_dev, gravity_y_dev, gravity_z_dev, pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
   CudaCheckError();
     
 }

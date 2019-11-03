@@ -19,6 +19,9 @@
 
 __global__ void Calc_Particles_dti_Kernel( part_int_t n_local, Real dx, Real dy, Real dz, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *dti_array )
 {
+  printf("%f %f %f \n", dx, dy, dz);
+
+  
   __shared__ Real max_dti[TPB_PARTICLES];
   
   part_int_t id;
@@ -34,6 +37,8 @@ __global__ void Calc_Particles_dti_Kernel( part_int_t n_local, Real dx, Real dy,
   __syncthreads();
   
   Real vx, vy, vz;
+  
+  // if( tid == 0 ) printf("%f  %f  %f \n", dx, dy, dz );
   
   // threads corresponding to real cells do the calculation
   if (id < n_local ){
@@ -64,45 +69,36 @@ __global__ void Calc_Particles_dti_Kernel( part_int_t n_local, Real dx, Real dy,
 
 
 
-Real Grid3D::Calc_Particles_dt_GPU(){
+Real Particles_3D::Calc_Particles_dt_GPU_function( int ngrid, part_int_t n_particles_local, Real dx, Real dy, Real dz, Real *vel_x, Real *vel_y, Real *vel_z, Real *dti_array_host, Real *dti_array_dev ){
   
   
-  // set values for GPU kernels
-  int ngrid =  (Particles.n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  // // set values for GPU kernels
+  // int ngrid =  (Particles.n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
   // number of blocks per 1D grid  
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  if ( ngrid > Particles.G.size_blocks_array ) chprintf(" Error: particles dt_array too small\n");
+  // printf("%f %f %f \n", dx, dy, dz);
 
-  Calc_Particles_dti_Kernel<<<dim1dGrid,dim1dBlock>>>( Particles.n_local, Particles.G.dx, Particles.G.dy, Particles.G.dz, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.G.dti_array_dev );
+  Calc_Particles_dti_Kernel<<<dim1dGrid,dim1dBlock>>>( n_particles_local, dx, dy, dz, vel_x, vel_y, vel_z, dti_array_dev );
   CudaCheckError();
   
   // Initialize dt values 
   Real max_dti = 0; 
   // copy the dti array onto the CPU
-  CudaSafeCall( cudaMemcpy(Particles.G.dti_array_host, Particles.G.dti_array_dev, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+  CudaSafeCall( cudaMemcpy(dti_array_host, dti_array_dev, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
   // find maximum inverse timestep from CFL condition
   for (int i=0; i<ngrid; i++) {
-    max_dti = fmax(max_dti, Particles.G.dti_array_host[i]);
+    max_dti = fmax(max_dti, dti_array_host[i]);
   }
   
-  Real dt_min;
+  return max_dti;
   
-  #ifdef COSMOLOGY
-  Real scale_factor, vel_factor, da_min;
-  scale_factor = 1 / ( Cosmo.current_a * Cosmo.Get_Hubble_Parameter( Cosmo.current_a) ) * Cosmo.cosmo_h;
-  vel_factor = Cosmo.current_a / scale_factor;
-  da_min = vel_factor / max_dti;
-  dt_min = Cosmo.Get_dt_from_da( da_min );
-  #else
-  dt_min = 1 / max_dti;
-  #endif
-  
-  return Particles.C_cfl*dt_min;
+
 
 }
+
 
 
 

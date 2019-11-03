@@ -75,6 +75,21 @@ void Grid3D::Get_Gravity_CIC(){
 }
 
 
+#ifdef PARTICLES_GPU
+void Particles_3D::Get_Gravity_Field_Particles_GPU( Real *potential_host ){
+
+  Get_Gravity_Field_Particles_GPU_function( G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.n_cells_potential, G.dx, G.dy, G.dz,  potential_host, G.potential_dev, G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev  );
+
+}
+
+void Particles_3D::Get_Gravity_CIC_GPU(){
+  
+  Get_Gravity_CIC_GPU_function( n_local, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax,  G.dx, G.dy, G.dz,  pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev,  grav_y_dev,  grav_z_dev, G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev );
+}
+
+#endif //PARTICLES_GPU
+
+
 #ifdef PARTICLES_CPU
 
 void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){

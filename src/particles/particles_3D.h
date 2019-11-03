@@ -11,6 +11,10 @@
 #include"../global.h"
 #include "../gravity/grav3D.h"
 
+#ifdef PARTICLES_GPU
+#define TPB_PARTICLES 1024
+#endif
+
 
 
 /*! \class Part3D
@@ -213,7 +217,10 @@ class Particles_3D
   void Clear_Density_GPU_function( Real *density_dev, int n_cells);
   void Copy_Potential_To_GPU( Real *potential_host, Real *potential_dev, int n_cells_potential );
   void Get_Gravity_Field_Particles_GPU( Real *potential_host );
+  void Get_Gravity_Field_Particles_GPU_function( int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells_potential, Real dx, Real dy, Real dz,  Real *potential_host, Real *potential_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev  );
   void Get_Gravity_CIC_GPU();
+  void Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin,  Real zMax, Real dx, Real dy, Real dz,   Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev,  Real *grav_y_dev,  Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev );
+  Real Calc_Particles_dt_GPU_function( int ngrid, part_int_t n_local, Real dx, Real dy, Real dz, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *dti_array_host, Real *dti_array_dev );
   #endif //PARTICLES_GPU
   
   

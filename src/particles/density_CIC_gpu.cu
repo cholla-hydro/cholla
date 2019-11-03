@@ -131,7 +131,7 @@ void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real xMin, R
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
-  // printf( "1: %ld \n", n_local );
+  printf( "1: %ld  %d   %d \n", n_local, ngrid, TPB_PARTICLES );
   
   
   Get_Density_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, particle_mass, density_dev, pos_x_dev, pos_y_dev, pos_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );

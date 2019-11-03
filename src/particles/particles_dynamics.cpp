@@ -15,6 +15,7 @@
 #endif
 
 
+
 Real Grid3D::Calc_Particles_dt( ){
   
   Real dt_particles;
@@ -58,6 +59,40 @@ Real Grid3D::Calc_Particles_dt( ){
   
   return dt_particles_global;  
 }
+
+
+#ifdef PARTICLES_GPU
+
+
+Real Grid3D::Calc_Particles_dt_GPU(){
+  
+  // set values for GPU kernels
+  int ngrid =  (Particles.n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  
+  
+  if ( ngrid > Particles.G.size_blocks_array ) chprintf(" Error: particles dt_array too small\n");
+  
+  
+  Real max_dti;
+  max_dti = Particles.Calc_Particles_dt_GPU_function( ngrid, Particles.n_local, Particles.G.dx, Particles.G.dy, Particles.G.dz, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.G.dti_array_host, Particles.G.dti_array_dev );
+  
+  Real dt_min;
+  
+  #ifdef COSMOLOGY
+  Real scale_factor, vel_factor, da_min;
+  scale_factor = 1 / ( Cosmo.current_a * Cosmo.Get_Hubble_Parameter( Cosmo.current_a) ) * Cosmo.cosmo_h;
+  vel_factor = Cosmo.current_a / scale_factor;
+  da_min = vel_factor / max_dti;
+  dt_min = Cosmo.Get_dt_from_da( da_min );
+  #else
+  dt_min = 1 / max_dti;
+  #endif
+  
+  return Particles.C_cfl*dt_min;
+  
+}
+
+#endif //PARTICLES_GPU
 
 
 #ifdef PARTICLES_CPU
