@@ -213,6 +213,7 @@ class Particles_3D
   void Free_Memory_GPU();
   void Initialize_Grid_Values_GPU();
   void Get_Density_CIC_GPU();
+  void Get_Density_CIC_GPU_function(part_int_t n_local, Real particle_mass,  Real xMin, Real xMax, Real yMin, Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells, Real *density_h, Real *density_dev, Real *pos_x_dev, Real *pos_y_dev , Real *pos_z_dev);
   void Clear_Density_GPU();
   void Clear_Density_GPU_function( Real *density_dev, int n_cells);
   void Copy_Potential_To_GPU( Real *potential_host, Real *potential_dev, int n_cells_potential );
@@ -221,6 +222,10 @@ class Particles_3D
   void Get_Gravity_CIC_GPU();
   void Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin,  Real zMax, Real dx, Real dy, Real dz,   Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev,  Real *grav_y_dev,  Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev );
   Real Calc_Particles_dt_GPU_function( int ngrid, part_int_t n_local, Real dx, Real dy, Real dz, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *dti_array_host, Real *dti_array_dev );
+  void Advance_Particles_KDK_Step1_GPU_function( part_int_t n_local, Real dt, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev  );
+  void Advance_Particles_KDK_Step1_Cosmo_GPU_function( part_int_t n_local, Real delta_a, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  );  
+  void Advance_Particles_KDK_Step2_GPU_function( part_int_t n_local, Real dt, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev  );
+  void Advance_Particles_KDK_Step2_Cosmo_GPU_function( part_int_t n_local, Real delta_a,  Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  );
   #endif //PARTICLES_GPU
   
   

@@ -19,6 +19,14 @@ void Particles_3D::Allocate_Particles_Field_Real( Real **array_dev, part_int_t s
   cudaDeviceSynchronize();
 }
 
+void Particles_3D::Allocate_Particles_Grid_Field_Real( Real **array_dev, int size ){
+  size_t global_free, global_total;
+  CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
+  chprintf( "Alocating GPU Memory:  %d  MB free \n", global_free/1000000);
+  CudaSafeCall( cudaMalloc((void**)array_dev,  size*sizeof(Real)) );
+  cudaDeviceSynchronize();
+}
+
 void Particles_3D::Allocate_Particles_Field_int( int **array_dev, part_int_t size ){
   size_t global_free, global_total;
   CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
@@ -48,7 +56,7 @@ void Particles_3D::Copy_Particle_Field_Real_Device_to_Host( Real *array_dev, Rea
 
 
 __global__ void Set_Particle_Field_Real_Kernel( Real value, Real *array_dev, part_int_t size ){
-  part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x ;
+  int tid = blockIdx.x * blockDim.x + threadIdx.x ;
   if ( tid < size ) array_dev[tid] = value;
 }
 
@@ -68,16 +76,6 @@ void Particles_3D::Set_Particle_Field_Real( Real value, Real *array_dev, part_in
 
 
 
-void Particles_3D::Allocate_Memory_GPU(){
-  CudaSafeCall( cudaMalloc((void**)&G.density_dev,  G.n_cells*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&G.gravity_x_dev,  G.n_cells*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&G.gravity_y_dev,  G.n_cells*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&G.gravity_z_dev,  G.n_cells*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&G.potential_dev,  G.n_cells_potential*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&G.dti_array_dev,  G.size_blocks_array*sizeof(Real)) );
-    
-  chprintf( " Allocated GPU memory.\n");  
-}
 
 #ifdef MPI_CHOLLA
 void Particles_3D::Allocate_Memory_GPU_MPI(){

@@ -216,7 +216,7 @@ void Particles_3D::Allocate_Memory_GPU(){
   Allocate_Particles_Grid_Field_Real( &G.gravity_x_dev, G.n_cells);
   Allocate_Particles_Grid_Field_Real( &G.gravity_y_dev, G.n_cells);
   Allocate_Particles_Grid_Field_Real( &G.gravity_z_dev, G.n_cells);
-  Allocate_Particles_Grid_Field_Real( &G.potential_dev, G.n_cells);
+  Allocate_Particles_Grid_Field_Real( &G.potential_dev, G.n_cells_potential);
   Allocate_Particles_Grid_Field_Real( &G.dti_array_dev, G.size_blocks_array);  
   chprintf( " Allocated GPU memory.\n");  
 }

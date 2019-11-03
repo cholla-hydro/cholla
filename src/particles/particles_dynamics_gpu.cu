@@ -18,10 +18,7 @@
 
 
 __global__ void Calc_Particles_dti_Kernel( part_int_t n_local, Real dx, Real dy, Real dz, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *dti_array )
-{
-  printf("%f %f %f \n", dx, dy, dz);
-
-  
+{  
   __shared__ Real max_dti[TPB_PARTICLES];
   
   part_int_t id;
@@ -195,44 +192,69 @@ __global__ void Advance_Particles_KDK_Step2_Cosmo_Kernel( part_int_t n_local, Re
   
 }
 
-void Grid3D::Advance_Particles_KDK_Step1_GPU(){
+
+void Particles_3D::Advance_Particles_KDK_Step1_GPU_function( part_int_t n_local, Real dt, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev  ){
   
   // set values for GPU kernels
-  int ngrid =  (Particles.n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
   // number of blocks per 1D grid  
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  #ifdef COSMOLOGY
-  Advance_Particles_KDK_Step1_Cosmo_Kernel<<<dim1dGrid,dim1dBlock>>>( Particles.n_local, Cosmo.delta_a, Particles.pos_x_dev, Particles.pos_y_dev, Particles.pos_z_dev, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev, Particles.grav_z_dev, Cosmo.current_a, Cosmo.H0, Cosmo.cosmo_h, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K );
+  Advance_Particles_KDK_Step1_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, dt, pos_x_dev, pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev );
   CudaCheckError();
-  #else
-  Advance_Particles_KDK_Step1_Kernel<<<dim1dGrid,dim1dBlock>>>( Particles.n_local, Particles.dt, Particles.pos_x_dev, Particles.pos_y_dev, Particles.pos_z_dev, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev, Particles.grav_z_dev );
-  CudaCheckError();
-  #endif//COSMOLOGY
+  
 }
 
-void Grid3D::Advance_Particles_KDK_Step2_GPU(){
+void Particles_3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function( part_int_t n_local, Real delta_a, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  ){
   
   // set values for GPU kernels
-  int ngrid =  (Particles.n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  // number of blocks per 1D grid  
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block   
+  dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
+  
+  Advance_Particles_KDK_Step1_Cosmo_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, delta_a, pos_x_dev, pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K );
+  CudaCheckError();
+
+}
+
+
+
+void Particles_3D::Advance_Particles_KDK_Step2_GPU_function( part_int_t n_local, Real dt,  Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev  ){
+    
+  // set values for GPU kernels
+  int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
   // number of blocks per 1D grid  
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
   
-  #ifdef COSMOLOGY
-  Advance_Particles_KDK_Step2_Cosmo_Kernel<<<dim1dGrid,dim1dBlock>>>( Particles.n_local, Cosmo.delta_a, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev, Particles.grav_z_dev, Cosmo.current_a, Cosmo.H0, Cosmo.cosmo_h, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K );
+  Advance_Particles_KDK_Step2_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, dt, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev );
   CudaCheckError();
-  #else
-  Advance_Particles_KDK_Step2_Kernel<<<dim1dGrid,dim1dBlock>>>( Particles.n_local, Particles.dt, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev, Particles.grav_z_dev );
-  CudaCheckError();
-  #endif//COSMOLOGY
-  
   
 }
+
+
+
+void Particles_3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function( part_int_t n_local, Real delta_a, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  ){
+  
+  // set values for GPU kernels
+  int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  // number of blocks per 1D grid  
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block   
+  dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
+  
+  Advance_Particles_KDK_Step2_Cosmo_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, delta_a, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K );
+  CudaCheckError();
+  
+}
+  
+
 
 
 #endif

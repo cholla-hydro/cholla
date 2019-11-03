@@ -92,6 +92,32 @@ Real Grid3D::Calc_Particles_dt_GPU(){
   
 }
 
+
+void Grid3D::Advance_Particles_KDK_Step1_GPU(){
+  
+  #ifdef COSMOLOGY
+  Particles.Advance_Particles_KDK_Step1_Cosmo_GPU_function( Particles.n_local, Cosmo.delta_a, Particles.pos_x_dev, Particles.pos_y_dev, Particles.pos_z_dev, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev, Particles.grav_z_dev, Cosmo.current_a, Cosmo.H0, Cosmo.cosmo_h, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K );
+  #else
+  Particles.Advance_Particles_KDK_Step1_GPU_function( Particles.n_local, Particles.dt, Particles.pos_x_dev, Particles.pos_y_dev, Particles.pos_z_dev, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev, Particles.grav_z_dev );
+  #endif
+  
+
+}
+
+void Grid3D::Advance_Particles_KDK_Step2_GPU(){
+  
+  #ifdef COSMOLOGY
+  Particles.Advance_Particles_KDK_Step2_Cosmo_GPU_function( Particles.n_local, Cosmo.delta_a, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev, Particles.grav_z_dev, Cosmo.current_a, Cosmo.H0, Cosmo.cosmo_h, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K );
+  #else
+  Particles.Advance_Particles_KDK_Step2_GPU_function( Particles.n_local, Particles.dt, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev, Particles.grav_z_dev );
+  #endif
+  
+
+}
+
+
+
+
 #endif //PARTICLES_GPU
 
 
