@@ -12,9 +12,7 @@
 #include"../parallel_omp.h"
 #endif
 
-#ifdef PARTICLES_GPU
-#include"particles_gpu_functions.h"
-#endif
+
 
 void Particles_3D::Get_Density_CIC(){
   
