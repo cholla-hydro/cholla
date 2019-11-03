@@ -107,7 +107,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
 
   #ifdef PARTICLES_GPU
   #ifdef MPI_CHOLLA
-  G.allocation_factor = 1.5;
+  G.allocation_factor = 1.0;
   #else
   G.allocation_factor = 1.0;
   #endif
@@ -207,6 +207,20 @@ void Particles_3D::Allocate_Memory( void ){
   G.dti_array_host = (Real *) malloc(G.size_blocks_array*sizeof(Real));
   #endif
 }
+
+
+#ifdef PARTICLES_GPU
+void Particles_3D::Allocate_Memory_GPU(){
+  
+  Allocate_Particles_Grid_Field_Real( &G.density_dev, G.n_cells);
+  Allocate_Particles_Grid_Field_Real( &G.gravity_x_dev, G.n_cells);
+  Allocate_Particles_Grid_Field_Real( &G.gravity_y_dev, G.n_cells);
+  Allocate_Particles_Grid_Field_Real( &G.gravity_z_dev, G.n_cells);
+  Allocate_Particles_Grid_Field_Real( &G.potential_dev, G.n_cells);
+  Allocate_Particles_Grid_Field_Real( &G.dti_array_dev, G.size_blocks_array);  
+  chprintf( " Allocated GPU memory.\n");  
+}
+#endif
 
 
 void Particles_3D::Initialize_Grid_Values( void ){

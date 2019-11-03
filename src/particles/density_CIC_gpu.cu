@@ -32,8 +32,7 @@ __device__ void Get_Indexes_CIC( Real xMin, Real yMin, Real zMin, Real dx, Real 
 
 __global__ void Get_Density_CIC_Kernel( part_int_t n_local, Real particle_mass,  Real *density_dev, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx, int ny, int nz, int n_ghost  ){
   
-  part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x ;
-  
+  int tid = blockIdx.x * blockDim.x + threadIdx.x ;
   if ( tid >= n_local) return;
   
   int nx_g, ny_g;
@@ -118,24 +117,21 @@ __global__ void Get_Density_CIC_Kernel( part_int_t n_local, Real particle_mass, 
 
 
 void Particles_3D::Clear_Density_GPU_function( Real *density_dev, int n_cells){
-  Set_Particle_Field_Real( 0.0, density_dev, n_cells);
+  Set_Particle_Field_Real( 0.0, density_dev, n_cells);  
 }
 
-void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells, Real *density_h, Real *density_dev ){
-  
-  // printf( "1: [%f %f]  [%f %f]  [%f %f] \n", xMin, xMax, zMin,  zMax, zMin,  zMax );
-  
+void Get_Density_CIC_GPU_function(part_int_t n_local, Real particle_mass,  Real xMin, Real xMax, Real yMin, Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells, Real *density_h, Real *density_dev, Real *pos_x_dev, Real *pos_y_dev , Real *pos_z_dev){
+    
   // set values for GPU kernels
   int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
   // number of blocks per 1D grid  
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
-  printf( "1: %ld  %d   %d \n", n_local, ngrid, TPB_PARTICLES );
-  
   
   Get_Density_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, particle_mass, density_dev, pos_x_dev, pos_y_dev, pos_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
   CudaCheckError();
+  cudaDeviceSynchronize();
   
   //Copy the density from device to host
   CudaSafeCall( cudaMemcpy(density_h, density_dev, n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  

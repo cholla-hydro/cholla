@@ -12,6 +12,9 @@
 #include"../parallel_omp.h"
 #endif
 
+#ifdef PARTICLES_GPU
+#include"particles_gpu_functions.h"
+#endif
 
 void Particles_3D::Get_Density_CIC(){
   
@@ -132,7 +135,7 @@ void Particles_3D::Clear_Density_GPU(){
 
 void Particles_3D::Get_Density_CIC_GPU(){
   
-  Get_Density_CIC_GPU_function( n_local, G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax, G.dx, G.dy, G.dz, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.n_cells, G.density, G.density_dev );
+  Get_Density_CIC_GPU_function( n_local, particle_mass, G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax, G.dx, G.dy, G.dz, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.n_cells, G.density, G.density_dev, pos_x_dev, pos_y_dev, pos_z_dev );
   
 }
 
