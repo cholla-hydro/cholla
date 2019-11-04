@@ -59,7 +59,7 @@ NVCC	= nvcc
 .SUFFIXES : .c .cpp .cu .o
 
 #Limit the number of steps
-# N_STEPS_LIMIT = -DN_STEPS_LIMIT=5
+N_STEPS_LIMIT = -DN_STEPS_LIMIT=5
 
 #PRECISION = -DPRECISION=1
 PRECISION = -DPRECISION=2
