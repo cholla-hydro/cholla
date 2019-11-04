@@ -125,29 +125,7 @@ class Particles_3D
   int_vector_t out_indxs_vec_z0;
   int_vector_t out_indxs_vec_z1;
   #endif //PARTICLES_CPU
-  
-  #ifdef PARTICLES_GPU
-  bool *transfer_particles_flags_x0;
-  bool *transfer_particles_flags_x1;
-  bool *transfer_particles_flags_y0;
-  bool *transfer_particles_flags_y1;
-  bool *transfer_particles_flags_z0;
-  bool *transfer_particles_flags_z1;
-  
-  int *transfer_particles_indxs_x0;
-  int *transfer_particles_indxs_x1;
-  int *transfer_particles_indxs_y0;
-  int *transfer_particles_indxs_y1;
-  int *transfer_particles_indxs_z0;
-  int *transfer_particles_indxs_z1;
-  
-  int *transfer_particles_partial_sum_x0;
-  int *transfer_particles_partial_sum_x1;
-  int *transfer_particles_partial_sum_y0;
-  int *transfer_particles_partial_sum_y1;
-  int *transfer_particles_partial_sum_z0;
-  int *transfer_particles_partial_sum_z1;
-  #endif //PARTICLES_GPU
+
   
   #endif //MPI_CHOLLA
 
@@ -192,7 +170,18 @@ class Particles_3D
     Real *gravity_z_dev;
     Real *dti_array_dev;
     Real *dti_array_host;
-    #endif
+    
+    #ifdef MPI_CHOLLA
+    bool *transfer_particles_flags_d;
+    int *transfer_particles_indxs_d;
+    int *transfer_particles_partial_sum_d;    
+    int *transfer_particles_sum_d;
+    int *n_transfer_d;
+    int *n_transfer_h;
+    Real *transfer_data_d;
+    #endif // MPI_CHOLLA
+    
+    #endif //PARTICLES_GPU
 
 
   } G;
@@ -202,6 +191,10 @@ class Particles_3D
   void Initialize( struct parameters *P, Grav3D &Grav,  Real xbound, Real ybound, Real zbound, Real xdglobal, Real ydglobal, Real zdglobal  );
   
   #ifdef PARTICLES_GPU
+  
+  void Free_GPU_Array_Real( Real *array );
+  void Free_GPU_Array_int( int *array );
+  void Free_GPU_Array_bool( bool *array );
   void Allocate_Memory_GPU();
   void Allocate_Particles_Field_Real( Real **array_dev, part_int_t size );
   void Allocate_Particles_Field_bool( bool **array_dev, part_int_t size );
@@ -275,8 +268,10 @@ class Particles_3D
         Real *send_buffer_y0, Real *send_buffer_y1, Real *send_buffer_z0, Real *send_buffer_z1, int buffer_length_y0, int buffer_length_y1, int buffer_length_z0, int buffer_length_z1);
   #endif//PARTICLES_CPU
   
+  
   #ifdef PARTICLES_GPU
   void Allocate_Memory_GPU_MPI();
+  void Load_Particles_to_Buffer_GPU( int direction, int side, Real *send_buffer, int buffer_length  );
   #endif //PARTICLES_GPU
   #endif
 };

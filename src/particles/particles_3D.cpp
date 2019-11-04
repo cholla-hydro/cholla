@@ -107,11 +107,11 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
 
   #ifdef PARTICLES_GPU
   #ifdef MPI_CHOLLA
-  G.allocation_factor = 1.0;
+  G.allocation_factor = 1.5;
   #else
   G.allocation_factor = 1.0;
   #endif
-  
+
   G.size_blocks_array = 1024*128;
   G.n_cells_potential = ( G.nx_local + 2*N_GHOST_POTENTIAL ) * ( G.ny_local + 2*N_GHOST_POTENTIAL ) * ( G.nz_local + 2*N_GHOST_POTENTIAL );
   #endif
@@ -183,9 +183,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   chprintf( " N_Data per Particle Transfer: %d\n", N_DATA_PER_PARTICLE_TRANSFER);
   
   #ifdef PARTICLES_GPU
-  // Allocate_Memory_GPU_MPI();
-  // printf( " [%f %f]  [%f %f]  [%f %f] \n", G.xMin,  G.xMax, G.zMin,  G.zMax, G.zMin,  G.zMax );
-
+  Allocate_Memory_GPU_MPI();
   #endif//PARTICLES_GPU
   #endif//MPI_CHOLLA
   
@@ -220,7 +218,58 @@ void Particles_3D::Allocate_Memory_GPU(){
   Allocate_Particles_Grid_Field_Real( &G.dti_array_dev, G.size_blocks_array);  
   chprintf( " Allocated GPU memory.\n");  
 }
-#endif
+
+
+
+#ifdef MPI_CHOLLA
+void Particles_3D::Allocate_Memory_GPU_MPI(){
+  part_int_t size, size_blocks;
+  
+  size = (part_int_t) n_local;
+  size_blocks = G.size_blocks_array;
+  
+  Allocate_Particles_Field_bool( &G.transfer_particles_flags_d, size );
+  Allocate_Particles_Field_int( &G.transfer_particles_indxs_d, size);
+  Allocate_Particles_Field_int( &G.transfer_particles_partial_sum_d, size);
+  Allocate_Particles_Field_int( &G.transfer_particles_sum_d, size_blocks);
+  Allocate_Particles_Field_int( &G.n_transfer_d, 1);
+  
+  G.n_transfer_h = (int *) malloc(sizeof(int));
+  chprintf( " Allocated GPU memory for MPI trandfers.\n"); 
+}
+#endif //MPI_CHOLLA
+
+void Particles_3D::Free_Memory_GPU(){
+  
+  Free_GPU_Array_Real(G.density_dev);
+  Free_GPU_Array_Real(G.potential_dev);
+  Free_GPU_Array_Real(G.gravity_x_dev);
+  Free_GPU_Array_Real(G.gravity_y_dev);
+  Free_GPU_Array_Real(G.gravity_z_dev);
+  Free_GPU_Array_Real(G.dti_array_dev);
+  
+  Free_GPU_Array_Real(pos_x_dev);
+  Free_GPU_Array_Real(pos_y_dev);
+  Free_GPU_Array_Real(pos_z_dev);
+  Free_GPU_Array_Real(vel_x_dev);
+  Free_GPU_Array_Real(vel_y_dev);
+  Free_GPU_Array_Real(vel_z_dev);
+  Free_GPU_Array_Real(grav_x_dev);
+  Free_GPU_Array_Real(grav_y_dev);
+  Free_GPU_Array_Real(grav_z_dev);
+  
+  #ifdef MPI_CHOLLA
+  Free_GPU_Array_bool(G.transfer_particles_flags_d);
+  Free_GPU_Array_int(G.transfer_particles_sum_d);
+  Free_GPU_Array_int(G.transfer_particles_partial_sum_d);
+  Free_GPU_Array_int(G.transfer_particles_indxs_d);
+  Free_GPU_Array_int(G.n_transfer_d);
+  free(G.n_transfer_h);
+  #endif
+}
+
+
+#endif //PARTICLES_GPU
 
 
 void Particles_3D::Initialize_Grid_Values( void ){
