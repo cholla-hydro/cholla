@@ -48,7 +48,42 @@ void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
 /*! \fn void Set_Boundary_Conditions(parameters P)
  *  \brief Set the boundary conditions based on info in the parameters structure. */
 void Grid3D::Set_Boundary_Conditions(parameters P) {
-
+  
+  //Check Only one boundary type id being transfered 
+  int n_bounds = 0;
+  n_bounds += (int) H.TRANSFER_HYDRO_BOUNDARIES;
+  #ifdef GRAVITY
+  n_bounds += (int) Grav.TRANSFER_POTENTIAL_BOUNDARIES;
+  #ifdef SOR
+  n_bounds += (int) Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES;
+  #endif //SOR
+  #endif //GRAVITY
+  #ifdef PARTICLES
+  n_bounds += (int) Particles.TRANSFER_PARTICLES_BOUNDARIES;
+  n_bounds += (int) Particles.TRANSFER_DENSITY_BOUNDARIES;
+  #endif
+  
+  if ( n_bounds > 1 ){
+    printf("ERROR: More than one boundary type for transfer. N boundary types: %d\n", n_bounds );
+    printf(" Boundary Hydro: %d\n", (int) H.TRANSFER_HYDRO_BOUNDARIES );
+    #ifdef GRAVITY
+    printf(" Boundary Potential: %d\n", (int) Grav.TRANSFER_POTENTIAL_BOUNDARIES );
+    #ifdef SOR
+    printf(" Boundary Poisson: %d\n", (int) Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES );
+    #endif //SOR
+    #endif //GRAVITY
+    #ifdef PARTICLES
+    printf(" Boundary Particles: %d\n", (int) Particles.TRANSFER_PARTICLES_BOUNDARIES );
+    printf(" Boundary Particles Density: %d\n", (int) Particles.TRANSFER_DENSITY_BOUNDARIES );
+    #endif //PARTICLES
+    exit(-1);
+  }
+  
+  // If no boundaries are set to be transeferd then exit;
+  if ( n_bounds == 0 ) return;
+    
+  
+  
 #ifndef MPI_CHOLLA
 
   int flags[6] = {0,0,0,0,0,0};
