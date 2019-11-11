@@ -107,49 +107,60 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
 
   Grav.Poisson_solver.F.converged_h[0] = 0;
 
-    // For Diriclet Boudaries
-    Real omega = 2. / ( 1 + M_PI / Grav.Poisson_solver.nx_total  );
+  // For Diriclet Boudaries
+  Real omega = 2. / ( 1 + M_PI / Grav.Poisson_solver.nx_total  );
+
+  // For Periodic Boudaries
+  // Real omega = 2. / ( 1 + 2*M_PI / nx_total  );
+  // chprintf("Omega: %f \n", omega);
   
-    // For Periodic Boudaries
-    // Real omega = 2. / ( 1 + 2*M_PI / nx_total  );
-    // chprintf("Omega: %f \n", omega);
+  bool set_boundaries;
+  int n_iter_per_boundaries_transfer = 10;
   
-    // Iterate to solve Poisson equation
-    while ( Grav.Poisson_solver.F.converged_h[0] == 0 ) {
   
-      // 
-      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
-      Set_Boundary_Conditions( *P );
-      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
-  
+  // Iterate to solve Poisson equation
+  while ( Grav.Poisson_solver.F.converged_h[0] == 0 ) {
+
+    set_boundaries = false;
+    
+    if ( n_iter % n_iter_per_boundaries_transfer == 0 ) set_boundaries = 1;
+     
+    if ( set_boundaries ){
       Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
       Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();   
       
-      Grav.Poisson_solver.Poisson_Partial_Iteration( 0, omega, epsilon ); 
-  
-      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
-      Set_Boundary_Conditions( *P );
-      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
-      
+      // Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
+      // Set_Boundary_Conditions( *P );
+      // Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
+    }
+    
+    Grav.Poisson_solver.Poisson_Partial_Iteration( 0, omega, epsilon ); 
+
+    if ( set_boundaries ){
       Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
       Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();    
       
-      Grav.Poisson_solver.Poisson_Partial_Iteration( 1, omega, epsilon );
-  
-      n_iter += 1;
-  
-      #ifdef MPI_CHOLLA
-      Grav.Poisson_solver.F.converged_h[0] = Grav.Poisson_solver.Get_Global_Converged( Grav.Poisson_solver.F.converged_h[0] );
-      #endif
-  
-      if ( n_iter == max_iter ) break;
+      // Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
+      // Set_Boundary_Conditions( *P );
+      // Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
     }
-  
-    if ( n_iter == max_iter ) chprintf(" SOR: No convergence in %d iterations \n", n_iter);
-    else printf(" SOR: Converged in %d iterations \n", n_iter);
-  
-    Grav.Poisson_solver.Copy_Output( Grav.F.potential_h );
-  
+    
+    Grav.Poisson_solver.Poisson_Partial_Iteration( 1, omega, epsilon );
+
+    n_iter += 1;
+
+    #ifdef MPI_CHOLLA
+    Grav.Poisson_solver.F.converged_h[0] = Grav.Poisson_solver.Get_Global_Converged( Grav.Poisson_solver.F.converged_h[0] );
+    #endif
+
+    if ( n_iter == max_iter ) break;
+  }
+
+  if ( n_iter == max_iter ) chprintf(" SOR: No convergence in %d iterations \n", n_iter);
+  else printf(" SOR: Converged in %d iterations \n", n_iter);
+
+  Grav.Poisson_solver.Copy_Output( Grav.F.potential_h );
+
     
 }
 

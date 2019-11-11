@@ -119,10 +119,10 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   
   if (tid_x >= nx || tid_y >= ny || tid_z >= nz ) return;  
   
-  int nx_pot, ny_pot;
+  int nx_pot, ny_pot, nz_pot;
   nx_pot = nx + 2*n_ghost;
   ny_pot = ny + 2*n_ghost;
-  // nz_pot = nz + 2*n_ghost;
+  nz_pot = nz + 2*n_ghost;
   
   tid = tid_x + tid_y*nx + tid_z*nx*ny;
   
@@ -133,13 +133,14 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   
   // //Set neighbors ids
   int indx_l, indx_r, indx_d, indx_u, indx_b, indx_t;
+  
   indx_l = tid_x-1;  //Left
   indx_r = tid_x+1;  //Right
   indx_d = tid_y-1;  //Down
   indx_u = tid_y+1;  //Up
   indx_b = tid_z-1;  //Bottom
   indx_t = tid_z+1;  //Top
-  // 
+  
   // indx_l = tid_x == n_ghost          ?    nx_pot-n_ghost-1 : tid_x-1;  //Left
   // indx_r = tid_x == nx_pot-n_ghost-1 ?             n_ghost : tid_x+1;  //Right
   // indx_d = tid_y == n_ghost          ?    ny_pot-n_ghost-1 : tid_y-1;  //Down
