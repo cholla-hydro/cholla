@@ -744,11 +744,14 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load left x communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_X0();
       
-      #if( defined(GRAVITY)  )
+      #ifdef GRAVITY 
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
         buffer_length = Load_Gravity_Potential_To_Buffer( 0, 0, send_buffer_x0, 0 );
       }
-      #endif
+      #ifdef SOR
+      if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES )  buffer_length = Load_Poisson_Boundary_To_Buffer( 0, 0, send_buffer_z0 );
+      #endif //SOR
+      #endif //GRAVITY
       
       #ifdef PARTICLES
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
@@ -779,11 +782,14 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load right x communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_X1();
       
-      #if( defined(GRAVITY)  )
+      #ifdef GRAVITY
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
         buffer_length = Load_Gravity_Potential_To_Buffer( 0, 1, send_buffer_x1, 0 );
       }
-      #endif
+      #ifdef SOR
+      if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES )  buffer_length = Load_Poisson_Boundary_To_Buffer( 0, 1, send_buffer_x1 );
+      #endif //SOR
+      #endif //GRAVITY
       
       #ifdef PARTICLES
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
@@ -822,11 +828,14 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load left y communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Y0();
       
-      #if( defined(GRAVITY)  )
+      #ifdef GRAVITY
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
         buffer_length = Load_Gravity_Potential_To_Buffer( 1, 0, send_buffer_y0, 0 );
       }
-      #endif
+      #ifdef SOR
+      if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES )  buffer_length = Load_Poisson_Boundary_To_Buffer( 1, 0, send_buffer_y0 );
+      #endif //SOR
+      #endif //GRAVITY
       
       #ifdef PARTICLES
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
@@ -857,11 +866,14 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load right y communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Y1();
       
-      #if( defined(GRAVITY)  )
+      #ifdef GRAVITY
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
         buffer_length = Load_Gravity_Potential_To_Buffer( 1, 1, send_buffer_y1, 0 );
       }
-      #endif
+      #ifdef SOR
+      if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES )  buffer_length = Load_Poisson_Boundary_To_Buffer( 1, 1, send_buffer_y1 );
+      #endif //SOR
+      #endif //GRAVITY
       
       #ifdef PARTICLES
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
@@ -901,11 +913,14 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // left z communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Z0();
       
-      #if( defined(GRAVITY)  )
+      #ifdef GRAVITY
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
         buffer_length = Load_Gravity_Potential_To_Buffer( 2, 0, send_buffer_z0, 0 );
       }
-      #endif
+      #ifdef SOR
+      if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES )  buffer_length = Load_Poisson_Boundary_To_Buffer( 2, 0, send_buffer_z0 );
+      #endif //SOR
+      #endif //GRAVITY
       
       #ifdef PARTICLES
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
@@ -936,11 +951,14 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load right z communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Z1();
       
-      #if( defined(GRAVITY)  )
+      #ifdef GRAVITY
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
         buffer_length = Load_Gravity_Potential_To_Buffer( 2, 1, send_buffer_z1, 0 );
       }
-      #endif
+      #ifdef SOR
+      if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES )  buffer_length = Load_Poisson_Boundary_To_Buffer( 2, 1, send_buffer_z1 );
+      #endif //SOR
+      #endif //GRAVITY
       
       #ifdef PARTICLES
       if ( Particles.TRANSFER_DENSITY_BOUNDARIES) {
@@ -1305,7 +1323,7 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
     }
   }
   
-  #if( defined(GRAVITY)  )
+  #ifdef GRAVITY
   if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
     if ( index == 0 ) Unload_Gravity_Potential_from_Buffer( 0, 0, recv_buffer_x0, 0  );
     if ( index == 1 ) Unload_Gravity_Potential_from_Buffer( 0, 1, recv_buffer_x1, 0  );
@@ -1314,7 +1332,17 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
     if ( index == 4 ) Unload_Gravity_Potential_from_Buffer( 2, 0, recv_buffer_z0, 0  );
     if ( index == 5 ) Unload_Gravity_Potential_from_Buffer( 2, 1, recv_buffer_z1, 0  );
   }
-  #endif
+  #ifdef SOR
+  if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES ){
+    if ( index == 0 ) Unload_Poisson_Boundary_From_Buffer( 0, 0, recv_buffer_x0 );
+    if ( index == 1 ) Unload_Poisson_Boundary_From_Buffer( 0, 1, recv_buffer_x1 );
+    if ( index == 2 ) Unload_Poisson_Boundary_From_Buffer( 1, 0, recv_buffer_y0 );
+    if ( index == 3 ) Unload_Poisson_Boundary_From_Buffer( 1, 1, recv_buffer_y1 );
+    if ( index == 4 ) Unload_Poisson_Boundary_From_Buffer( 2, 0, recv_buffer_z0 );
+    if ( index == 5 ) Unload_Poisson_Boundary_From_Buffer( 2, 1, recv_buffer_z1 );
+  }
+  #endif //SOR
+  #endif //GRAVITY
   
   #ifdef PARTICLES
   if (  Particles.TRANSFER_DENSITY_BOUNDARIES ){
