@@ -601,6 +601,13 @@ class Grid3D
   void Copy_Potential_Boundaries( int direction, int side );
   int Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Unload_Gravity_Potential_from_Buffer( int direction, int side, Real *buffer, int buffer_start  );
+  
+  #ifdef SOR
+  void Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current_a, struct parameters *P );
+  int Load_Poisson_Boundary_To_Buffer( int direction, int side, Real *buffer  );
+  void Unload_Poisson_Boundary_From_Buffer( int direction, int side, Real *buffer_host  );
+  #endif
+  
   #endif//GRAVITY 
   
   #ifdef PARTICLES
