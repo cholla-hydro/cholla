@@ -226,8 +226,12 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   // chprintf( " Density Average:  %f\n", dens_avrg);
   #endif
   
+  #ifdef SOR
+  // Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
+  Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
+  #else
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
-  
+  #endif
     
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 3 );
