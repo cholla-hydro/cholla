@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file plmc_cuda.cu
  *  \brief Definitions of the piecewise linear reconstruction functions with 
            limiting applied in the characteristic variables, as decribed
@@ -5,7 +6,7 @@
 #ifdef CUDA
 #ifdef PLMC
 
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"

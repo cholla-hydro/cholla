@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file hydro_cuda.h
  *  \brief Declarations of functions used in all cuda integration algorithms. */
 

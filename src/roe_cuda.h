@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file roe_cuda.h
  *  \brief Declarations of functions for the cuda roe riemann solver kernel. */
 

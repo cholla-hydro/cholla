@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file exact_cuda.h
  *  \brief Declarations of functions for the cuda exact riemann solver kernel. */
 

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! /file global_cuda.h
  *  /brief Declarations of global variables and functions for the cuda kernels. */
 
@@ -5,7 +6,7 @@
 
 #include<stdlib.h>
 #include<stdio.h>
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include<math.h>
 #include"global.h"
 
@@ -65,13 +66,13 @@ extern int ngrid;
 #define CudaSafeCall( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
 #define CudaCheckError()    __cudaCheckError( __FILE__, __LINE__ )
 
-inline void __cudaSafeCall( cudaError err, const char *file, const int line )
+inline void __cudaSafeCall( hipError_t err, const char *file, const int line )
 {
 #ifdef CUDA_ERROR_CHECK
-    if ( cudaSuccess != err )
+    if ( hipSuccess != err )
     {
         fprintf( stderr, "cudaSafeCall() failed at %s:%i : %s\n",
-                 file, line, cudaGetErrorString( err ) );
+                 file, line, hipGetErrorString( err ) );
         exit( -1 );
     }
 #endif
@@ -82,21 +83,21 @@ inline void __cudaSafeCall( cudaError err, const char *file, const int line )
 inline void __cudaCheckError( const char *file, const int line )
 {
 #ifdef CUDA_ERROR_CHECK
-    cudaError err = cudaGetLastError();
-    if ( cudaSuccess != err )
+    hipError_t err = hipGetLastError();
+    if ( hipSuccess != err )
     {
         fprintf( stderr, "cudaCheckError() failed at %s:%i : %s\n",
-                 file, line, cudaGetErrorString( err ) );
+                 file, line, hipGetErrorString( err ) );
         exit( -1 );
     }
 
     // More careful checking. However, this will affect performance.
     // Comment away if needed.
-    err = cudaDeviceSynchronize();
-    if( cudaSuccess != err )
+    err = hipDeviceSynchronize();
+    if( hipSuccess != err )
     {
         fprintf( stderr, "cudaCheckError() with sync failed at %s:%i : %s\n",
-                 file, line, cudaGetErrorString( err ) );
+                 file, line, hipGetErrorString( err ) );
         exit( -1 );
     }
 #endif
@@ -106,11 +107,11 @@ inline void __cudaCheckError( const char *file, const int line )
 
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
+inline void gpuAssert(hipError_t code, char *file, int line, bool abort=true)
 {
-   if (code != cudaSuccess) 
+   if (code != hipSuccess) 
    {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      fprintf(stderr,"GPUassert: %s %s %d\n", hipGetErrorString(code), file, line);
       if (abort) exit(code);
    }
 }

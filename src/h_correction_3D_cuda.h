@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file h_correction_3D_cuda.h
  *  \brief Functions declarations for the H correction kernels. 
            Written following Sanders et al. 1998. */
@@ -5,7 +6,7 @@
 #ifndef H_CORRECTION_3D_H
 #define H_CORRECTION_3D_H
 
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include"global.h"
 
 

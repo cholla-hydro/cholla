@@ -1,17 +1,18 @@
+#include "hip/hip_runtime.h"
 /*! \file cooling_cuda.cu
  *  \brief Functions to calculate cooling rate for a given rho, P, dt. */
 
 #ifdef CUDA
 #ifdef COOLING_GPU
 
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
 #include"cooling_cuda.h"
 
-extern texture<float, 2, cudaReadModeElementType> coolTexObj;
-extern texture<float, 2, cudaReadModeElementType> heatTexObj;
+extern texture<float, 2, hipReadModeElementType> coolTexObj;
+extern texture<float, 2, hipReadModeElementType> heatTexObj;
 
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value

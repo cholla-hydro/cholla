@@ -10,10 +10,10 @@
 #include"cooling_wrapper.h"
 #include"cooling_cuda.h"
 
-texture<float, 2, cudaReadModeElementType> coolTexObj;
-texture<float, 2, cudaReadModeElementType> heatTexObj;
-cudaArray* cuCoolArray;
-cudaArray* cuHeatArray;
+texture<float, 2, hipReadModeElementType> coolTexObj;
+texture<float, 2, hipReadModeElementType> heatTexObj;
+hipArray* cuCoolArray;
+hipArray* cuHeatArray;
 
 
 /* \fn void Load_Cuda_Textures()
@@ -35,27 +35,27 @@ void Load_Cuda_Textures()
   Load_Cooling_Tables(cooling_table, heating_table);
 
   // Allocate CUDA arrays in device memory
-  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
-  cudaMallocArray(&cuCoolArray, &channelDesc, nx, ny);
-  cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny);
+  hipChannelFormatDesc channelDesc = hipCreateChannelDesc(32, 0, 0, 0, hipChannelFormatKindFloat);
+  hipMallocArray(&cuCoolArray, &channelDesc, nx, ny);
+  hipMallocArray(&cuHeatArray, &channelDesc, nx, ny);
   // Copy to device memory the cooling and heating arrays
   // in host memory
-  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
+  hipMemcpyToArray(cuCoolArray, 0, 0, cooling_table, nx*ny*sizeof(float), hipMemcpyHostToDevice);
+  hipMemcpyToArray(cuHeatArray, 0, 0, heating_table, nx*ny*sizeof(float), hipMemcpyHostToDevice);
 
 
   // Specify texture reference parameters (same for both tables)
-  coolTexObj.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  coolTexObj.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  coolTexObj.filterMode = cudaFilterModeLinear; // bi-linear interpolation
+  coolTexObj.addressMode[0] = hipAddressModeClamp; // out-of-bounds fetches return border values
+  coolTexObj.addressMode[1] = hipAddressModeClamp; // out-of-bounds fetches return border values
+  coolTexObj.filterMode = hipFilterModeLinear; // bi-linear interpolation
   coolTexObj.normalized = true;
-  heatTexObj.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  heatTexObj.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  heatTexObj.filterMode = cudaFilterModeLinear; // bi-linear interpolation
+  heatTexObj.addressMode[0] = hipAddressModeClamp; // out-of-bounds fetches return border values
+  heatTexObj.addressMode[1] = hipAddressModeClamp; // out-of-bounds fetches return border values
+  heatTexObj.filterMode = hipFilterModeLinear; // bi-linear interpolation
   heatTexObj.normalized = true;
 
-  cudaBindTextureToArray(coolTexObj, cuCoolArray);
-  cudaBindTextureToArray(heatTexObj, cuHeatArray);
+  hipBindTextureToArray(coolTexObj, cuCoolArray);
+  hipBindTextureToArray(heatTexObj, cuHeatArray);
 
   // Free the memory associated with the cooling tables on the host
   free(cooling_table);
@@ -137,12 +137,12 @@ void Load_Cooling_Tables(float* cooling_table, float* heating_table)
 void Free_Cuda_Textures()
 {
   // unbind the cuda textures
-  cudaUnbindTexture(coolTexObj);
-  cudaUnbindTexture(heatTexObj);
+  hipUnbindTexture(coolTexObj);
+  hipUnbindTexture(heatTexObj);
 
   // Free the device memory associated with the cuda arrays
-  cudaFreeArray(cuCoolArray);
-  cudaFreeArray(cuHeatArray);
+  hipFreeArray(cuCoolArray);
+  hipFreeArray(cuHeatArray);
 
 }
 

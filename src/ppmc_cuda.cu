@@ -1,10 +1,11 @@
+#include "hip/hip_runtime.h"
 /*! \file ppmc_cuda.cu
  *  \brief Functions definitions for the ppm kernels, using characteristic tracing. 
            Written following Stone et al. 2008. */
 #ifdef CUDA
 #ifdef PPMC
 
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"

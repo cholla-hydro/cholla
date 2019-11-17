@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file cooling_cuda.h
  *  \brief Declarations of cooling functions. */
 
@@ -7,7 +8,7 @@
 #ifndef COOLING_CUDA_H
 #define COOLING_CUDA_H
 
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include<math.h>
 #include"global.h"
 

@@ -6,7 +6,7 @@
 
 #include<stdio.h>
 #include<math.h>
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include"global.h"
 #include"global_cuda.h"
 #include"gravity_cuda.h"

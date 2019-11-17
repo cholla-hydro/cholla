@@ -29,12 +29,13 @@ ifdef MPI_FLAGS
   MPI_FLAGS += -DBLOCK
 
 else
-  CC	= gcc
-  CXX   = g++
+  CC	= /opt/rocm/hcc/bin/clang
+  CXX   =  /opt/rocm/bin/hipcc
 endif
 
 #define the NVIDIA CUDA compiler
-NVCC	= nvcc
+NVCC	= /opt/rocm/bin/hipcc
+
 
 .SUFFIXES : .c .cpp .cu .o
 
@@ -62,22 +63,22 @@ COOLING = -DCOOLING_GPU #-DCLOUDY_COOL
 
 ifdef CUDA
 CUDA_INCL = #-I/usr/local/cuda/include
-CUDA_LIBS = -lcuda -lcudart #-L/usr/local/cuda/lib64
+CUDA_LIBS = #-lcuda -lcudart #-L/usr/local/cuda/lib64
 endif
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = #-I/usr/local/hdf5/gcc/1.10.0/include
-HDF5_LIBS = -lhdf5 #-L/usr/local/hdf5/gcc/1.10.0/lib64
+HDF5_INCL = -I $(HDF5INCLUDE) #-I/usr/local/hdf5/gcc/1.10.0/include
+HDF5_LIBS = -lhdf5 -L $(HDF5DIR) #-L/usr/local/hdf5/gcc/1.10.0/lib64
 endif
 
 INCL   = -I./ $(HDF5_INCL)
 NVINCL = $(INCL) $(CUDA_INCL)
-LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
+LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS) --amdgpu-target=gfx906
 
 
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) #-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
+FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) --amdgpu-target=gfx906 #-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -arch=sm_60
+NVCCFLAGS = $(FLAGS) #-fmad=false -arch=sm_60
 
 
 %.o:	%.c
@@ -87,18 +88,18 @@ NVCCFLAGS = $(FLAGS) -fmad=false -arch=sm_60
 		$(CXX) $(CXXFLAGS)  $(INCL) -c $< -o $@ 
 
 %.o:	%.cu
-		$(NVCC) $(NVCCFLAGS) --device-c $(NVINCL)  -c $< -o $@ 
+		$(NVCC) $(NVCCFLAGS) $(NVINCL)  -c $< -o $@  
 
-$(EXEC): $(OBJS) src/gpuCode.o
-	 	 $(CXX) $(OBJS) src/gpuCode.o $(LIBS) -o $(EXEC)
+$(EXEC): $(OBJS) 
+	 	 $(CXX) $(OBJS) $(LIBS) -o $(EXEC)
 
-src/gpuCode.o:	$(CUOBJS) 
-		$(NVCC) $(NVCCFLAGS) -dlink $(CUOBJS) -o src/gpuCode.o
+#src/gpuCode.o:	$(CUOBJS) 
+#	$(NVCC) $(NVCCFLAGS) -dlink $(CUOBJS) -o src/gpuCode.o
 
 
 
 .PHONY : clean
 
 clean:
-	 rm -f $(OBJS) src/gpuCode.o $(EXEC)
+	 rm -f $(OBJS) $(EXEC)
 

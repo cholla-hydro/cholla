@@ -1,10 +1,11 @@
+#include "hip/hip_runtime.h"
 /*! \file ppmp_cuda.cu
  *  \brief Definitions of the piecewise parabolic reconstruction (Fryxell 2000) functions 
            with limiting in the primative variables. */
 #ifdef CUDA
 #ifdef PPMP
 
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"

@@ -1,9 +1,10 @@
+#include "hip/hip_runtime.h"
 /*! \file hllc_cuda.cu
  *  \brief Function definitions for the cuda HLLC Riemann solver.*/
 
 #ifdef CUDA
 
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
