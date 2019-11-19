@@ -68,6 +68,15 @@ class Potential_SOR_3D{
   Real *boundaries_buffer_z0_d;
   Real *boundaries_buffer_z1_d;
   
+  #ifdef MPI_CHOLLA
+  Real *recv_boundaries_buffer_x0_d;
+  Real *recv_boundaries_buffer_x1_d;
+  Real *recv_boundaries_buffer_y0_d;
+  Real *recv_boundaries_buffer_y1_d;
+  Real *recv_boundaries_buffer_z0_d;
+  Real *recv_boundaries_buffer_z1_d;
+  #endif
+  
   } F;
 
   Potential_SOR_3D( void );
@@ -116,8 +125,10 @@ class Potential_SOR_3D{
   void Unload_Transfer_Buffer_GPU_z0();
   void Unload_Transfer_Buffer_GPU_z1();
   
-  void Load_Transfer_Buffer_GPU_All();
-  void Unload_Transfer_Buffer_GPU_All();
+  void Copy_Poisson_Boundary( int direction, int side );
+  
+  // void Load_Transfer_Buffer_GPU_All();
+  // void Unload_Transfer_Buffer_GPU_All();
   
   void Copy_Transfer_Buffer_To_Host( int size_buffer, Real *transfer_bufer_h, Real *transfer_buffer_d );
   void Copy_Transfer_Buffer_To_Device( int size_buffer, Real *transfer_bufer_h, Real *transfer_buffer_d );

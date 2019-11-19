@@ -80,7 +80,10 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
   }
   
   // If no boundaries are set to be transeferd then exit;
-  if ( n_bounds == 0 ) return;
+  if ( n_bounds == 0 ){
+     printf( " No boundary type for transfer \n");
+     return;
+  }
     
   
   
@@ -178,7 +181,9 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
     return;
 #endif /*MPI_CHOLLA*/
 
-  #if( defined(GRAVITY) )
+
+
+  #ifdef GRAVITY
   if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
     if ( flags[dir] ==1 ){
       if ( dir == 0 ) Copy_Potential_Boundaries( 0, 0 );
@@ -190,7 +195,20 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
     }
     return; 
   }
-  #endif
+  #ifdef SOR 
+  if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES ){
+    if ( flags[dir] ==1 ){
+      if ( dir == 0 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 0, 0 );
+      if ( dir == 1 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 0, 1 );
+      if ( dir == 2 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 1, 0 );
+      if ( dir == 3 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 1, 1 );
+      if ( dir == 4 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 2, 0 );
+      if ( dir == 5 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 2, 1 );
+    }
+    return; 
+  }
+  #endif //SOR
+  #endif //GRAVITY
   
   #ifdef PARTICLES
   if ( Particles.TRANSFER_DENSITY_BOUNDARIES ){
@@ -231,7 +249,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
     }
     return; 
   }
-  #endif
+  #endif//PARTICLES
 
   //get the extents of the ghost region we are initializing
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
