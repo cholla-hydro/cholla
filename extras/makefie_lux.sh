@@ -123,7 +123,7 @@ GRAVITY_GRADIENT = -DGRAVITY_5_POINTS_GRADIENT
 
 #Include Gravity From Particles PM
 PARTICLES = -DPARTICLES
-# ONLY_PARTICLES = -DONLY_PARTICLES
+ONLY_PARTICLES = -DONLY_PARTICLES
 SINGLE_PARTICLE_MASS = -DSINGLE_PARTICLE_MASS
 PARTICLES_INT = -DPARTICLES_LONG_INTS
 PARTICLES_INTEGRATOR = -DPARTICLES_KDK
@@ -139,7 +139,7 @@ N_OMP_THREADS = -DN_OMP_THREADS=10
 COSMOLOGY = -DCOSMOLOGY
 
 #Use Grackle for cooling in cosmological simulatls o  ions
-COOLING = -DCOOLING_GRACKLE
+# COOLING = -DCOOLING_GRACKLE
 
 ifdef CUDA
 CUDA_INCL = -I/cm/shared/apps/cuda10.1/toolkit/current/include
@@ -155,8 +155,10 @@ NVINCL = $(INCL) $(CUDA_INCL)
 LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
 ifeq ($(POISSON_SOLVER),-DPFFT)
-FFTW_INCL = -I/cm/shared/apps/fftw/fftw-3.3.8/include
-FFTW_LIBS = -L/cm/shared/apps/fftw/fftw-3.3.8/lib -lfftw3
+# FFTW_INCL = -I/cm/shared/apps/fftw/fftw-3.3.8/include
+# FFTW_LIBS = -L/cm/shared/apps/fftw/fftw-3.3.8/lib -lfftw3
+FFTW_INCL = -I/data/groups/comp-astro/bruno/code/fftw/include
+FFTW_LIBS = -L/data/groups/comp-astro/bruno/code/fftw/lib -lfftw3
 PFFT_INCL = -I/home/brvillas/code/pfft/include
 PFFT_LIBS = -L/home/brvillas/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
 INCL += $(FFTW_INCL) $(PFFT_INCL)
