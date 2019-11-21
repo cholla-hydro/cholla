@@ -131,7 +131,7 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
 
     set_boundaries = false;
     
-    if ( n_iter % n_iter_per_boundaries_transfer == 0 ) set_boundaries = 1;
+    if ( n_iter % n_iter_per_boundaries_transfer == 0 ) set_boundaries = true;
      
     if ( set_boundaries ){
       // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
