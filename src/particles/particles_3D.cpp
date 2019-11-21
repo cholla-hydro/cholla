@@ -141,7 +141,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   chprintf(" Tracking particle IDs\n");
   #endif
   
-  #ifdef PRINT_DOMAIN
+  #if defined(MPI_CHOLLA) && defined(PRINT_DOMAIN)
   for (int n=0; n<nproc; n++){
     if (procID == n ) std::cout << procID << " x["<< G.xMin << "," << G.xMax << "] "  << " y["<< G.yMin << "," << G.yMax << "] "  << " z["<< G.zMin << "," << G.zMax << "] " << std::endl;
     usleep( 100 );
