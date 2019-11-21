@@ -163,22 +163,23 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   phi_b = potential_d[ tid_x + tid_y*nx_pot + indx_b*nx_pot*ny_pot ];
   phi_t = potential_d[ tid_x + tid_y*nx_pot + indx_t*nx_pot*ny_pot ];
 
-  if ( phi_c != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_c, tid_x, tid_y, tid_z );
-  if ( phi_l != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_l, tid_x, tid_y, tid_z );
+  // if ( phi_c != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_c, tid_x, tid_y, tid_z );
+  // if ( phi_l != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_l, tid_x, tid_y, tid_z );
   // if ( phi_r != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_r, tid_x, tid_y, tid_z );
   // if ( phi_d != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_d, tid_x, tid_y, tid_z );
   // if ( phi_u != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_u, tid_x, tid_y, tid_z );
   // if ( phi_b != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_b, tid_x, tid_y, tid_z );
   // if ( phi_t != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_t, tid_x, tid_y, tid_z );
   
-  // phi_new = (1-omega)*phi_c + omega/6*( phi_l + phi_r + phi_d + phi_u + phi_b + phi_t - dx*dx*rho );
-  // potential_d[tid_pot] = phi_new;
-  // 
-  // if ( ( fabs( ( phi_new - phi_c ) / phi_c ) > epsilon ) ) converged_d[0] = 0;
-  // // if ( ( fabs( ( phi_new - phi_c ) ) > epsilon ) ) converged_d[0] = 0;
-  // 
-  // 
-  // potential_d[tid_pot] = phi_new;
+  phi_new = (1-omega)*phi_c + omega/6*( phi_l + phi_r + phi_d + phi_u + phi_b + phi_t - dx*dx*rho );
+  potential_d[tid_pot] = phi_new;
+  
+  //Check the residual for the convergence criteria
+  if ( ( fabs( ( phi_new - phi_c ) / phi_c ) > epsilon ) ) converged_d[0] = 0;
+  // if ( ( fabs( ( phi_new - phi_c ) ) > epsilon ) ) converged_d[0] = 0;
+  
+  
+  potential_d[tid_pot] = phi_new;
   
   
 }
