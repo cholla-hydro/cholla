@@ -776,7 +776,7 @@ __global__ void Select_Internal_Energy_3D( Real *dev_conserved, int nx, int ny, 
   }
 }
 
-__global__ void Sync_Energies_1D(Real *dev_conserved, int n_cells, int n_ghost, Real gamma, int n_fields)
+__global__ void Sync_Energies_1D(Real *dev_conserved, int nx, int n_ghost, Real gamma, int n_fields)
 {
   int id, xid, n_cells;
   Real d, d_inv, vx, vy, vz, U;
