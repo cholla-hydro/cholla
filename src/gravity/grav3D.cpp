@@ -51,7 +51,8 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
 
   dens_avrg = 0;
 
-  Gconst = GN;
+  // Gconst = GN;
+  Gconst = 1.0;
 
   TRANSFER_POTENTIAL_BOUNDARIES = false;
   
