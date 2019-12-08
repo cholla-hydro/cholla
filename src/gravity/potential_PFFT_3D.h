@@ -43,10 +43,12 @@ class Potential_PFFT_3D{
   int pcoords_pfft[3];
   int poffset_pfft[3];
   ptrdiff_t n_pfft[3];
-  ptrdiff_t alloc_local;
-  ptrdiff_t local_ni_pfft[3], local_i_start_pfft[3];
-  ptrdiff_t local_no_pfft[3], local_o_start_pfft[3];
-  ptrdiff_t local_ntrans_pfft[3], local_trans_start_pfft[3];
+  ptrdiff_t alloc_local_fwd, alloc_local_bwd;
+  ptrdiff_t local_n_in_pfft[3], local_in_start_pfft[3];
+  ptrdiff_t local_n_out_pfft[3], local_out_start_pfft[3];
+  ptrdiff_t local_n_transform_fwd_pfft[3], local_transform_fwd_start_pfft[3];
+  ptrdiff_t local_n_transform_bwd_pfft[3], local_transform_bwd_start_pfft[3];
+  
 
   pfft_plan plan_fwd;
   pfft_plan plan_bwd;
