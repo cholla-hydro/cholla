@@ -12,9 +12,10 @@
 #include"../parallel_omp.h"
 #endif
 
+//Compute the particles density and copy it to the array in Grav to compute the potential
 void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
   
-  // Step 1: Get Partcles Density
+  // Step 1: Get Partcles CIC Density
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
@@ -45,6 +46,7 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
   
 }
 
+//Copy the particles density to the array in Grav to compute the potential
 void Grid3D::Copy_Particles_Density(){
   
   #ifndef PARALLEL_OMP
@@ -91,23 +93,19 @@ void Grid3D::Copy_Particles_Density_function( int g_start, int g_end ){
 }
 
 
-
+//Clear the density array: density=0
 void::Particles_3D::Clear_Density(){
   for( int i=0; i<G.n_cells; i++ ) G.density[i] = 0;  
 }
 
-void Particles_3D::Get_Density_CIC(){
-  
-  
-}
-
+//Get the CIC index from the particle position
 void Get_Indexes_CIC( Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, Real pos_x, Real pos_y, Real pos_z, int &indx_x, int &indx_y, int &indx_z ){
   indx_x = (int) floor( ( pos_x - xMin - 0.5*dx ) / dx );
   indx_y = (int) floor( ( pos_y - yMin - 0.5*dy ) / dy );
   indx_z = (int) floor( ( pos_z - zMin - 0.5*dz ) / dz );
 }
 
-
+//Comute the CIC density (NO OMP)
 void Particles_3D::Get_Density_CIC_Serial( ){
   int nGHST = G.n_ghost_particles_grid;
   int nx_g = G.nx_local + 2*nGHST;
@@ -223,10 +221,11 @@ void Particles_3D::Get_Density_CIC_Serial( ){
 
 
 #ifdef PARALLEL_OMP
+//Compute the CIC density when PARALLEL_OMP
 void Particles_3D::Get_Density_CIC_OMP( ){
 
 
-
+  //Span OpenMP threads
   #pragma omp parallel num_threads( N_OMP_THREADS )
   {
     int omp_id;

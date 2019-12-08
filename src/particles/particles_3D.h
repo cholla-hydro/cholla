@@ -155,8 +155,6 @@ class Particles_3D
   void Get_Density_CIC_OMP( );
   #endif
   
-  void Get_Density_CIC();
-  
   #ifdef MPI_CHOLLA
   void Clear_Vectors_For_Transfers( void );
   void Clear_Particles_For_Transfer( void );
