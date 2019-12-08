@@ -6,6 +6,8 @@
 #include "grav3D.h"
 
 
+//Copy potential boundary conditions for non-MPI boundaries 
+//Here only PERIODIC Boundary conditions are implemented
 void Grid3D::Copy_Potential_Boundaries( int direction, int side ){
   
   int i, j, k, indx_src, indx_dst;
@@ -75,6 +77,7 @@ void Grid3D::Copy_Potential_Boundaries( int direction, int side ){
 }
 
 #ifdef MPI_CHOLLA
+//Load the potential boundaries to buffers for MPI transfers
 int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  ){
 
 
@@ -133,6 +136,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buf
 }
 
 
+//Unload the potential boundaries from buffers after MPI transfers
 void Grid3D::Unload_Gravity_Potential_from_Buffer( int direction, int side, Real *buffer, int buffer_start  ){
 
 
