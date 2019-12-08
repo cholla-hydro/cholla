@@ -779,34 +779,34 @@ void Particles_3D::Unload_Particles_from_Buffer( int direction, int side, Real *
 }
 
 
-void Particles_3D::Select_Particles_to_Transfer_All( void ){
+void Particles_3D::Select_Particles_to_Transfer_All( int *flags ){
 
   Clear_Vectors_For_Transfers();
 
   part_int_t pIndx;
   for ( pIndx=0; pIndx<n_local; pIndx++ ){
-    // if (procID == 0) std::cout << pIndx << std::endl;
-    if ( pos_x[pIndx] < G.xMin ){
+  
+    if ( pos_x[pIndx] < G.xMin && (flags[0]==5) ){
       out_indxs_vec_x0.push_back( pIndx );
       continue;
     }
-    if ( pos_x[pIndx] >= G.xMax ){
+    if ( pos_x[pIndx] >= G.xMax && (flags[1]==5) ){
       out_indxs_vec_x1.push_back( pIndx );
       continue;
     }
-    if ( pos_y[pIndx] < G.yMin ){
+    if ( pos_y[pIndx] < G.yMin && (flags[2]==5) ){
       out_indxs_vec_y0.push_back( pIndx );
       continue;
     }
-    if ( pos_y[pIndx] >= G.yMax ){
+    if ( pos_y[pIndx] >= G.yMax && (flags[3]==5) ){
       out_indxs_vec_y1.push_back( pIndx );
       continue;
     }
-    if ( pos_z[pIndx] < G.zMin ){
+    if ( pos_z[pIndx] < G.zMin && (flags[4]==5) ){
         out_indxs_vec_z0.push_back( pIndx );
       continue;
     }
-    if ( pos_z[pIndx] >= G.zMax ){
+    if ( pos_z[pIndx] >= G.zMax && (flags[5]==5) ){
         out_indxs_vec_z1.push_back( pIndx );
       continue;
     }

@@ -71,7 +71,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
   // Clear the vectors that contain the particles IDs to be transfred
   if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
     Particles.Clear_Particles_For_Transfer();
-    Particles.Select_Particles_to_Transfer_All();
+    Particles.Select_Particles_to_Transfer_All( flags );
   }  
   #endif
   
