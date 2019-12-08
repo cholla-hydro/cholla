@@ -13,11 +13,13 @@
 #include"../parallel_omp.h"
 #endif
 
-
+//Set delta_t when using gravity
 void Grid3D::set_dt_Gravity(){
   
+  //Delta_t for the hydro
   Real dt_hydro = H.dt;
   
+  //Compute delta_t for particles and choose min(dt_particles, dt_hydro)
   #ifdef PARTICLES
   Real dt_particles, dt_min;
   
@@ -95,7 +97,7 @@ void Grid3D::set_dt_Gravity(){
   #endif//COSMOLOGY
   #endif//PARTICLES
   
-  // Set times for potential extrapolation
+  // Set current and previous delta_t for the potential extrapolation
   if ( Grav.INITIAL ){
     Grav.dt_prev = H.dt;
     Grav.dt_now = H.dt;
@@ -184,7 +186,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   dens_avrg = 0;
   current_a = 1;
   
-  
+  //Copy the particles density to the density array to compute the potential
   #ifdef PARTICLES
   Copy_Particles_Density_to_Gravity( *P);
   #endif
@@ -194,16 +196,19 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   Timer.Start_Timer();
   #endif
   
+  //Copy the hydro density to the density array to compute the potential
   #ifndef ONLY_PARTICLES
   Copy_Hydro_Density_to_Gravity();
   #endif
 
+  //If using cosmology change to the appropriate Gravitational Constant, average_density and current scale factor
   #ifdef COSMOLOGY
   Grav_Constant = Cosmo.cosmo_G;
   current_a = Cosmo.current_a;
   dens_avrg = Cosmo.rho_0_gas;
   #endif
   
+  //Compute the gravitational potential
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
   
     
@@ -214,8 +219,8 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
 }
 
 void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
-  
   // Copy the density array from hydro conserved to gravity density array
+  
   Real dens;
   int i, j, k, id, id_grav;
   for (k=g_start; k<g_end; k++) {
@@ -226,6 +231,7 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
 
         dens = C.density[id];
         
+        //If using cosmology the density must be rescaled to the physical coordinates
         #ifdef COSMOLOGY
         dens *= Cosmo.rho_0_gas;
         #endif
@@ -265,6 +271,8 @@ void Grid3D::Copy_Hydro_Density_to_Gravity(){
 
 
 void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
+  //Use phi_n-1 and phi_n to extrapolate the potential and obtain phi_n+1/2
+  
   
   int nx_pot = Grav.nx_local + 2*N_GHOST_POTENTIAL;
   int ny_pot = Grav.ny_local + 2*N_GHOST_POTENTIAL;
@@ -290,19 +298,23 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
       for ( i=0; i<nx_pot; i++ ){
         id_pot = i + j*nx_pot + k*nx_pot*ny_pot;
         id_grid = (i+nGHST) + (j+nGHST)*nx_grid + (k+nGHST)*nx_grid*ny_grid;
-        pot_now = potential_in[id_pot]  ;
+        pot_now = potential_in[id_pot]  ; //Potential at the n-th timestep
         if ( Grav.INITIAL ){
-          pot_extrp = pot_now;
+          pot_extrp = pot_now; //The first timestep the extrapolated potential is phi_0
         } else {
-          pot_prev = Grav.F.potential_1_h[id_pot];
+          pot_prev = Grav.F.potential_1_h[id_pot];  //Potential at the (n-1)-th timestep
+          //Compute the extrapolated potential from phi_n-1 and phi_n
           pot_extrp = pot_now  + 0.5 * Grav.dt_now * ( pot_now - pot_prev  ) / Grav.dt_prev;
         }
         
         #ifdef COSMOLOGY
+        //For cosmological simulation the potential is transformrd to 'comuving coordinates' 
         pot_extrp *= Cosmo.current_a * Cosmo.current_a / Cosmo.phi_0_gas;
         #endif
         
+        //Save the extrapolated potential
         potential_out[id_grid] = pot_extrp;
+        //Set phi_n-1 = phi_n 
         Grav.F.potential_1_h[id_pot] = pot_now;
       }
     }
@@ -328,6 +340,7 @@ void Grid3D::Extrapolate_Grav_Potential(){
   }
   #endif
   
+  //After the first timestep the INITIAL flag is set to false, that way the potential is extrapolated afterwards 
   Grav.INITIAL = false;  
 }
 
