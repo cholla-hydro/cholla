@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
   // and output to screen
   chprintf ("Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, boundaries = %d %d %d %d %d %d\n", 
     P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
-  chprintf ("Input directory:  %s\n", P.indir);
+  if (strcmp(P.init, "Read_Grid") == 0 )chprintf ("Input directory:  %s\n", P.indir);
   chprintf ("Output directory:  %s\n", P.outdir);
   
   //Create a Log file to output run-time messages
