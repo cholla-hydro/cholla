@@ -177,7 +177,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 
 void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   
-  Real Grav_Constant = 1;
+  Real Grav_Constant = Grav.Gconst;
   
   Real dens_avrg, current_a;
   
@@ -202,8 +202,6 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   Grav_Constant = Cosmo.cosmo_G;
   current_a = Cosmo.current_a;
   dens_avrg = Cosmo.rho_0_gas;
-  // dens_avrg = Grav.Get_Average_Density();
-  // chprintf( " Density Average:  %f\n", dens_avrg);
   #endif
   
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
