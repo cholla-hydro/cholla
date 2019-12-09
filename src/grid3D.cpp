@@ -295,7 +295,7 @@ void Grid3D::AllocateMemory(void)
   Real max_dti;
   
   #ifdef ONLY_PARTICLES
-  // If only solving particles the time for hydro is large, 
+  // If only solving particles the time for hydro is set to a  large value, 
   // that way the minimum dt is the one corresponding to particles 
   H.dt = 1e10;
   #else
