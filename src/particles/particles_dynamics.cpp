@@ -15,6 +15,7 @@
 #endif
 
 
+//Compute the delta_t for the particles 
 Real Grid3D::Calc_Particles_dt( ){
   
   Real dt_particles;
@@ -49,6 +50,7 @@ Real Grid3D::Calc_Particles_dt( ){
 }
 
 
+//Loop over the particles anf compute dt_min
 Real Grid3D::Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end ){
   part_int_t pID;
   Real dt, dt_min, vel;
@@ -74,7 +76,7 @@ Real Grid3D::Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end ){
   return Particles.C_cfl * dt_min;  
 }
 
-
+//Updated the particles positions and velocities
 void Grid3D::Advance_Particles( int N_step ){
   
   #ifdef CPU_TIME
@@ -82,13 +84,16 @@ void Grid3D::Advance_Particles( int N_step ){
   #endif
   
   #ifdef PARTICLES_KDK
+  //Updated the velocities by 0.5*delta_t and update the positions by delta_t
   if ( N_step == 1 ) Advance_Particles_KDK_Step1();
   #endif
   
   if ( N_step == 2 ){
+    //Compute the particles accelerations at the new positions
     Get_Particles_Acceleration();
     
     #ifdef PARTICLES_KDK
+    //Advance the particles velocities by the remaining 0.5*delta_t
     Advance_Particles_KDK_Step2();
     #endif
 
@@ -103,10 +108,15 @@ void Grid3D::Advance_Particles( int N_step ){
 
 void Grid3D::Get_Particles_Acceleration(){
   // Get the accteleration for all the particles
+  
+  //First compute the gravitational field at the center of the grid cells
   Get_Gravity_Field_Particles();
+  
+  //Then Interpolate the gravitational field from the centers of the cells to the positions of the particles 
   Get_Gravity_CIC();  
 }
 
+//Update positions and velocities (step 1 of KDK scheme )
 void Grid3D::Advance_Particles_KDK_Step1( ){
   
   #ifndef PARALLEL_OMP
@@ -132,6 +142,8 @@ void Grid3D::Advance_Particles_KDK_Step1( ){
   #endif  
 }
 
+
+//Update velocities (step 2 of KDK scheme )
 void Grid3D::Advance_Particles_KDK_Step2( ){
   
   #ifndef PARALLEL_OMP
@@ -158,6 +170,7 @@ void Grid3D::Advance_Particles_KDK_Step2( ){
 }
 
 
+//Update positions and velocities (step 1 of KDK scheme )
 void Grid3D::Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_t p_end ){
   
   part_int_t pID;
@@ -178,6 +191,7 @@ void Grid3D::Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_
 }
 
 
+//Update  velocities (step 2 of KDK scheme )
 void Grid3D::Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_t p_end ){
   
   part_int_t pID;
@@ -191,7 +205,7 @@ void Grid3D::Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_
 }
 
 #ifdef COSMOLOGY
-
+//Compute the delta_t for the particles  COSMOLOGICAL SIMULATION
 Real Grid3D::Calc_Particles_dt_Cosmo(){
   
   Real dt_particles;
@@ -257,6 +271,7 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_
 
 
 
+//Update positions and velocities (step 1 of KDK scheme ) COSMOLOGICAL SIMULATION
 void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end ){
   
   Real dt, dt_half;
@@ -305,6 +320,8 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
   }
 }
 
+
+//Update velocities (step 2 of KDK scheme ) COSMOLOGICAL SIMULATION
 void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end ){
   Real dt;
   part_int_t pIndx;
