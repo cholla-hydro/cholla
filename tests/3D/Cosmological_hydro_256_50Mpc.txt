@@ -45,6 +45,6 @@ zu_bcnd=1
 # path to output directory
 #indir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/256_hydro_50Mpc/ics_enzo/
 #outdir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/256_hydro_50Mpc/
-indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_hydro_50Mpc/ics_enzo_4/
+indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_hydro_50Mpc/ics_enzo/
 outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_hydro_50Mpc/
 
