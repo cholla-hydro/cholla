@@ -172,9 +172,9 @@ int main(int argc, char *argv[])
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
     
     #ifdef PARTICLES
-    //Advance the particles KDK( first step )
+    //Advance the particles KDK( first step ): Velocities are updated by 0.5*dt and positions are updated by dt
     G.Advance_Particles( 1 );   
-    //Transfer the particles boundaries
+    //Transfer the particles that moved outside the local domain  
     G.Transfer_Particles_Boundaries(P); 
     #endif
     
@@ -193,11 +193,11 @@ int main(int argc, char *argv[])
     // add one to the timestep count
     G.H.n_step++;
 
-    // set boundary conditions for next time step 
+    //Set the Grid boundary conditions for next time step 
     G.Set_Boundary_Conditions_Grid(P);
     
     #ifdef PARTICLES
-    //Advance the particles KDK( second step )
+    ///Advance the particles KDK( second step ): Velocities are updated by 0.5*dt using the Accelerations at the new positions
     G.Advance_Particles( 2 );
     #endif
     
