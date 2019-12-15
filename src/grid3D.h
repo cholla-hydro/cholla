@@ -616,8 +616,6 @@ class Grid3D
   #ifdef MPI_CHOLLA
   int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
   void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
-  void Transfer_Particles_Density_Boundaries_MPI( struct parameters P );
-  // void Transfer_Particles_Boundaries_MPI( struct parameters P );
   void Load_and_Send_Particles_X0( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_X1( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_Y0( int ireq_n_particles, int ireq_particles_transfer );

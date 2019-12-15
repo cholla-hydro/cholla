@@ -5,7 +5,7 @@
 #include "particles_3D.h"
 #include <iostream>
 
-
+//Copy the particles density boundaries for non-MPI PERIODIC transfers
 void Grid3D::Copy_Particles_Density_Boundaries( int direction, int side ){
   
   int i, j, k, indx_src, indx_dst;
@@ -76,29 +76,18 @@ void Grid3D::Copy_Particles_Density_Boundaries( int direction, int side ){
 
 void Grid3D::Transfer_Particles_Density_Boundaries( struct parameters P ){
   
-  #ifdef MPI_CHOLLA
-  Transfer_Particles_Density_Boundaries_MPI(P);
-  #else
-  
+  //Transfer the Particles Density Boundares
+
   Particles.TRANSFER_DENSITY_BOUNDARIES = true;
   Set_Boundary_Conditions(P);
   Particles.TRANSFER_DENSITY_BOUNDARIES = false;
   
-  #endif  
 }
 
 
 #ifdef MPI_CHOLLA
-void Grid3D::Transfer_Particles_Density_Boundaries_MPI( struct parameters P ){
-  
-  Particles.TRANSFER_DENSITY_BOUNDARIES = true;
-  Set_Boundary_Conditions(P);
-  Particles.TRANSFER_DENSITY_BOUNDARIES = false;
-  
-}
 
-
-
+//Load the particles density boundaries to the MPI buffers for transfer, return the size of the transfer buffer
 int Grid3D::Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer  ){
 
   int i, j, k, indx, indx_buff, buffer_length;
@@ -157,6 +146,7 @@ int Grid3D::Load_Particles_Density_Boundary_to_Buffer( int direction, int side, 
   return buffer_length;
 }
 
+//Unload the particles density boundaries from the MPI buffers after transfer
 void Grid3D::Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer  ){
 
   int i, j, k, indx, indx_buff, buffer_length;
@@ -203,7 +193,6 @@ void Grid3D::Unload_Particles_Density_Boundary_From_Buffer( int direction, int s
           if ( side == 1 ) indx = (nx_g - 2*nGHST + i) + (j)*nx_g + (k)*nx_g*ny_g;
           indx_buff = j + k*ny_g + i*ny_g*nz_g ;
           Particles.G.density[indx] += buffer[indx_buff];
-          // Particles.G.density[indx] += 1;
         }
       }
     }
