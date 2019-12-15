@@ -9,6 +9,8 @@
 #include"../global_cuda.h"
 #include "particles_3D.h"
 
+
+//Define atomic_add if it's not supported
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
 __device__ double atomicAdd(double* address, double val)
@@ -24,12 +26,14 @@ __device__ double atomicAdd(double* address, double val)
 }
 #endif
 
+//Get the CIC index from the particle position ( device function )
 __device__ void Get_Indexes_CIC( Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, Real pos_x, Real pos_y, Real pos_z, int &indx_x, int &indx_y, int &indx_z ){
   indx_x = (int) floor( ( pos_x - xMin - 0.5*dx ) / dx );
   indx_y = (int) floor( ( pos_y - yMin - 0.5*dy ) / dy );
   indx_z = (int) floor( ( pos_z - zMin - 0.5*dz ) / dz );
 }
 
+//CUDA Kernel to compute the CIC density from the particles positions
 __global__ void Get_Density_CIC_Kernel( part_int_t n_local, Real particle_mass,  Real *density_dev, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx, int ny, int nz, int n_ghost  ){
   
   int tid = blockIdx.x * blockDim.x + threadIdx.x ;
@@ -115,11 +119,13 @@ __global__ void Get_Density_CIC_Kernel( part_int_t n_local, Real particle_mass, 
 
 
 
-
+//Clear the density array: density=0
 void Particles_3D::Clear_Density_GPU_function( Real *density_dev, int n_cells){
   Set_Particle_Field_Real( 0.0, density_dev, n_cells);  
 }
 
+
+//Call the CIC density kernel to get the particles density
 void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particle_mass,  Real xMin, Real xMax, Real yMin, Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells, Real *density_h, Real *density_dev, Real *pos_x_dev, Real *pos_y_dev , Real *pos_z_dev){
     
   // set values for GPU kernels
