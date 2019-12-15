@@ -34,17 +34,22 @@ void Grid3D::Initialize_Particles( struct parameters *P ){
 
 void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound, Real ybound, Real zbound, Real xdglobal, Real ydglobal, Real zdglobal){
 
+  //Initialize local and total number of particles to 0
   n_local = 0;
   n_total = 0;
   n_total_initial = 0;
   
+  //Initialize the simulation time and delta_t to 0
   dt = 0.0;
   t = 0.0;
-  max_dt = 1e-3;
+  //Set the maximum delta_t for particles, this can be changed depending on the problem.
+  max_dt = 10000; 
 
+  //Courant CFL condition factor for particles
   C_cfl = 0.3;
 
   #ifdef PARTICLES_CPU
+  //Vectors for positions, velocities and accelerations
   real_vector_t pos_x;
   real_vector_t pos_y;
   real_vector_t pos_z;
@@ -56,13 +61,16 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   real_vector_t grav_z;
 
   #ifndef SINGLE_PARTICLE_MASS
+  //Vector for masses
   real_vector_t mass;
   #endif
   #ifdef PARTICLE_IDS
+  //Vector for particle IDs
   int_vector_t partIDs;
   #endif
 
   #ifdef MPI_CHOLLA
+  //Vectors for the indices of the particles that need to be transfered via MPI
   int_vector_t out_indxs_vec_x0;
   int_vector_t out_indxs_vec_x1;
   int_vector_t out_indxs_vec_y0;
@@ -74,6 +82,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   #endif //PARTICLES_CPU
 
   //Initialize Grid Values
+  //Local and total number of cells
   G.nx_local = Grav.nx_local;
   G.ny_local = Grav.ny_local;
   G.nz_local = Grav.nz_local;
@@ -81,31 +90,40 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   G.ny_total = Grav.ny_total;
   G.nz_total = Grav.nz_total;
 
+  //Uniform (dx, dy, dz)
   G.dx = Grav.dx;
   G.dy = Grav.dy;
   G.dz = Grav.dz;
 
+  //Left boundaries of the local domain
   G.xMin = Grav.xMin;
   G.yMin = Grav.yMin;
   G.zMin = Grav.zMin;
 
+  //Right boundaries of the local domain
   G.xMax = G.xMin + G.nx_local*G.dx;
   G.yMax = G.yMin + G.ny_local*G.dy;
   G.zMax = G.zMin + G.nz_local*G.dz;
 
+  //Left boundaries of the global domain
   G.domainMin_x = xbound;
-  G.domainMax_x = xbound + xdglobal;
   G.domainMin_y = ybound;
-  G.domainMax_y = ybound + ydglobal;
   G.domainMin_z = zbound;
-  G.domainMax_z = zbound + zdglobal;
   
+  //Right boundaries of the global domain
+  G.domainMax_x = xbound + xdglobal;
+  G.domainMax_y = ybound + ydglobal;
+  G.domainMax_z = zbound + zdglobal;
 
+  //Number of ghost cells for the particles grid. For CIC one ghost cell is needed
   G.n_ghost_particles_grid = 1;
   
+  //Number of cells for the particles grid including ghost cells
   G.n_cells = (G.nx_local+2*G.n_ghost_particles_grid) * (G.ny_local+2*G.n_ghost_particles_grid) * (G.nz_local+2*G.n_ghost_particles_grid);
 
   #ifdef PARTICLES_GPU
+  //Factor to allocate the particles data arrays on the GPU.
+  //When using MPI particles will be transfered to other GPU, for that reason we need extra memory allocated
   #ifdef MPI_CHOLLA
   G.allocation_factor = 1.5;
   #else
@@ -116,12 +134,14 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   G.n_cells_potential = ( G.nx_local + 2*N_GHOST_POTENTIAL ) * ( G.ny_local + 2*N_GHOST_POTENTIAL ) * ( G.nz_local + 2*N_GHOST_POTENTIAL );
   #endif
 
+  // Flags for Initial and tranfer the particles and density
   INITIAL = true;
   TRANSFER_DENSITY_BOUNDARIES = false;
   TRANSFER_PARTICLES_BOUNDARIES = false;
   
   Allocate_Memory();
 
+  //Initialize the particles density and gravitational field to 0.
   Initialize_Grid_Values();
   
   // Initialize Particles
@@ -193,6 +213,9 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
 }
 
 void Particles_3D::Allocate_Memory( void ){
+  
+  //Allocate arrays for density and gravitational field
+  
   G.density   = (Real *) malloc(G.n_cells*sizeof(Real));
   #ifdef PARTICLES_CPU
   G.gravity_x = (Real *) malloc(G.n_cells*sizeof(Real));
@@ -210,6 +233,8 @@ void Particles_3D::Allocate_Memory( void ){
 #ifdef PARTICLES_GPU
 void Particles_3D::Allocate_Memory_GPU(){
   
+  //Allocate arrays for density and gravitational field on the GPU
+  
   Allocate_Particles_Grid_Field_Real( &G.density_dev, G.n_cells);
   Allocate_Particles_Grid_Field_Real( &G.gravity_x_dev, G.n_cells);
   Allocate_Particles_Grid_Field_Real( &G.gravity_y_dev, G.n_cells);
@@ -223,6 +248,9 @@ void Particles_3D::Allocate_Memory_GPU(){
 
 #ifdef MPI_CHOLLA
 void Particles_3D::Allocate_Memory_GPU_MPI(){
+  
+  //Allocate memory for the the particles MPI transfers
+  
   part_int_t size, size_blocks;
   
   size = (part_int_t) n_local;
@@ -273,8 +301,10 @@ void Particles_3D::Free_Memory_GPU(){
 
 
 void Particles_3D::Initialize_Grid_Values( void ){
-  int id;
   
+  //Initialize density and gravitaional field to 0.
+  
+  int id;
   for( id=0; id<G.n_cells; id++ ){
     G.density[id] = 0;
     #ifdef PARTICLES_CPU
@@ -286,6 +316,9 @@ void Particles_3D::Initialize_Grid_Values( void ){
 }
 
 void Particles_3D::Initialize_Sphere( void ){
+  
+  //Initialize Random positions for sphere of quasi-uniform density
+  
   int i, j, k, id;
   Real center_x, center_y, center_z, radius, sphereR;
   center_x = 0.5;
@@ -347,6 +380,8 @@ void Particles_3D::Initialize_Sphere( void ){
 
 void Particles_3D::Initialize_Zeldovich_Pancake( struct parameters *P ){
   
+  //No partidcles for the Zeldovich Pancake problem. n_local=0
+  
   chprintf("Setting Zeldovich Pancake initial conditions...\n");
   
   // n_local = pos_x.size();
@@ -359,6 +394,8 @@ void Particles_3D::Initialize_Zeldovich_Pancake( struct parameters *P ){
 
 
 void Grid3D::Initialize_Uniform_Particles(){
+  
+  //Initialize positions asigning one particle at each cell in a uniform grid
   
   int i, j, k, id;
   Real x_pos, y_pos, z_pos;
@@ -419,47 +456,51 @@ void Grid3D::Initialize_Uniform_Particles(){
 
 
 void Particles_3D::Free_Memory(void){
- free(G.density);
- 
- #ifdef PARTICLES_CPU
- free(G.gravity_x);
- free(G.gravity_y);
- free(G.gravity_z);
+  
+  //Free the particles arrays
+  free(G.density);
 
- pos_x.clear();
- pos_y.clear();
- pos_z.clear();
- vel_x.clear();
- vel_y.clear();
- vel_z.clear();
- grav_x.clear();
- grav_y.clear();
- grav_z.clear();
+  #ifdef PARTICLES_CPU
+  free(G.gravity_x);
+  free(G.gravity_y);
+  free(G.gravity_z);
 
- #ifdef PARTICLE_IDS
- partIDs.clear();
- #endif
+  //Free the particles vectors
+  pos_x.clear();
+  pos_y.clear();
+  pos_z.clear();
+  vel_x.clear();
+  vel_y.clear();
+  vel_z.clear();
+  grav_x.clear();
+  grav_y.clear();
+  grav_z.clear();
 
- #ifndef SINGLE_PARTICLE_MASS
- mass.clear();
- #endif
- 
- #endif //PARTICLES_CPU
+  #ifdef PARTICLE_IDS
+  partIDs.clear();
+  #endif
 
- #ifdef MPI_CHOLLA
- free(send_buffer_x0_particles);
- free(send_buffer_x1_particles);
- free(recv_buffer_x0_particles);
- free(recv_buffer_x1_particles);
- free(send_buffer_y0_particles);
- free(send_buffer_y1_particles);
- free(recv_buffer_y0_particles);
- free(recv_buffer_y1_particles);
- free(send_buffer_z0_particles);
- free(send_buffer_z1_particles);
- free(recv_buffer_z0_particles);
- free(recv_buffer_z1_particles);
- #endif
+  #ifndef SINGLE_PARTICLE_MASS
+  mass.clear();
+  #endif
+
+  #endif //PARTICLES_CPU
+
+  #ifdef MPI_CHOLLA
+  //Free the particles arrays for MPI transfers
+  free(send_buffer_x0_particles);
+  free(send_buffer_x1_particles);
+  free(recv_buffer_x0_particles);
+  free(recv_buffer_x1_particles);
+  free(send_buffer_y0_particles);
+  free(send_buffer_y1_particles);
+  free(recv_buffer_y0_particles);
+  free(recv_buffer_y1_particles);
+  free(send_buffer_z0_particles);
+  free(send_buffer_z1_particles);
+  free(recv_buffer_z0_particles);
+  free(recv_buffer_z1_particles);
+  #endif
 }
 
 void Particles_3D::Reset( void ){
