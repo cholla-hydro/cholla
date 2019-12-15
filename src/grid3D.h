@@ -631,7 +631,7 @@ class Grid3D
   void Unload_Particles_from_Buffer_Z0();
   void Unload_Particles_from_Buffer_Z1();
   void Wait_and_Recv_Particles_Transfer_BLOCK(int dir, int *flags);
-  void Load_N_Particles_Transfer(int index, int *ireq_particles_transfer);
+  void Receive_Particles_Transfer(int index, int *ireq_particles_transfer);
   void Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flags);
   void Unload_Particles_From_Buffers_BLOCK(int index);
   void Finish_Particles_Transfer();
@@ -658,6 +658,11 @@ class Grid3D
   void Advance_Particles( int N_KDK_step );
   Real Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt();
+  #ifdef PARTICLES_GPU
+  Real Calc_Particles_dt_GPU();
+  void Advance_Particles_KDK_Step1_GPU();
+  void Advance_Particles_KDK_Step2_GPU();
+  #endif//PARTICLES_GPU
   #endif//PARTICLES
   
   #ifdef COSMOLOGY
@@ -669,7 +674,12 @@ class Grid3D
   void Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt_Cosmo();
-  #endif
+  #ifdef PARTICLES_GPU
+  void Set_Particles_Boundary_GPU( int dir, int side);  
+  void Advance_Particles_KDK_Cosmo_Step1_GPU();
+  void Advance_Particles_KDK_Cosmo_Step2_GPU();
+  #endif//PARTICLES_GPU
+  #endif//COSMOLOGY
   
   #ifdef COOLING_GRACKLE
   void Initialize_Grackle( struct parameters *P );

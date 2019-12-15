@@ -11,6 +11,10 @@
 #include"../global.h"
 #include "../gravity/grav3D.h"
 
+#ifdef PARTICLES_GPU
+#define TPB_PARTICLES 1024
+#endif
+
 
 
 /*! \class Part3D
@@ -41,6 +45,8 @@ class Particles_3D
   Real current_a;
   #endif
 
+
+  #ifdef PARTICLES_CPU
   #ifdef PARTICLE_IDS
   int_vector_t partIDs;
   #endif
@@ -56,16 +62,31 @@ class Particles_3D
   real_vector_t grav_x;
   real_vector_t grav_y;
   real_vector_t grav_z;
-
+  #endif //PARTICLES_CPU
+  
+  #ifdef PARTICLES_GPU
+  part_int_t particles_buffer_size;
+  #ifdef PARTICLE_IDS
+  part_int_t *partIDs_dev;
+  #endif
+  #ifndef SINGLE_PARTICLE_MASS
+  part_int_t *mass_dev;
+  #endif
+  Real *pos_x_dev;
+  Real *pos_y_dev;
+  Real *pos_z_dev;
+  Real *vel_x_dev;
+  Real *vel_y_dev;
+  Real *vel_z_dev;
+  Real *grav_x_dev;
+  Real *grav_y_dev;
+  Real *grav_z_dev;
+  
+  
+  #endif //PARTICLES_GPU
+  
 
   #ifdef MPI_CHOLLA
-  int_vector_t out_indxs_vec_x0;
-  int_vector_t out_indxs_vec_x1;
-  int_vector_t out_indxs_vec_y0;
-  int_vector_t out_indxs_vec_y1;
-  int_vector_t out_indxs_vec_z0;
-  int_vector_t out_indxs_vec_z1;
-
 
   part_int_t n_transfer_x0;
   part_int_t n_transfer_x1;
@@ -94,6 +115,18 @@ class Particles_3D
   part_int_t n_in_buffer_y1;
   part_int_t n_in_buffer_z0;
   part_int_t n_in_buffer_z1;
+  
+  
+  #ifdef PARTICLES_CPU
+  int_vector_t out_indxs_vec_x0;
+  int_vector_t out_indxs_vec_x1;
+  int_vector_t out_indxs_vec_y0;
+  int_vector_t out_indxs_vec_y1;
+  int_vector_t out_indxs_vec_z0;
+  int_vector_t out_indxs_vec_z1;
+  #endif //PARTICLES_CPU
+
+  
   #endif //MPI_CHOLLA
 
   bool TRANSFER_DENSITY_BOUNDARIES;
@@ -116,11 +149,39 @@ class Particles_3D
 
     int n_ghost_particles_grid;
     int n_cells;
+    #ifdef PARTICLES_GPU
+    Real allocation_factor;
+    part_int_t size_blocks_array;
+    int n_cells_potential;
+    #endif
 
     Real *density;
+    #ifdef PARTICLES_CPU
     Real *gravity_x;
     Real *gravity_y;
     Real *gravity_z;
+    #endif
+    
+    #ifdef PARTICLES_GPU
+    Real *density_dev;
+    Real *potential_dev;
+    Real *gravity_x_dev;
+    Real *gravity_y_dev;
+    Real *gravity_z_dev;
+    Real *dti_array_dev;
+    Real *dti_array_host;
+    
+    #ifdef MPI_CHOLLA
+    bool *transfer_particles_flags_d;
+    int *transfer_particles_indxs_d;
+    int *transfer_particles_partial_sum_d;    
+    int *transfer_particles_sum_d;
+    int *n_transfer_d;
+    int *n_transfer_h;
+    Real *transfer_data_d;
+    #endif // MPI_CHOLLA
+    
+    #endif //PARTICLES_GPU
 
 
   } G;
@@ -129,7 +190,41 @@ class Particles_3D
 
   void Initialize( struct parameters *P, Grav3D &Grav,  Real xbound, Real ybound, Real zbound, Real xdglobal, Real ydglobal, Real zdglobal  );
   
+  #ifdef PARTICLES_GPU
+  
+  void Free_GPU_Array_Real( Real *array );
+  void Free_GPU_Array_int( int *array );
+  void Free_GPU_Array_bool( bool *array );
+  void Allocate_Memory_GPU();
+  void Allocate_Particles_Field_Real( Real **array_dev, part_int_t size );
+  void Allocate_Particles_Field_bool( bool **array_dev, part_int_t size );
+  void Allocate_Particles_Field_int( int **array_dev, part_int_t size );
+  void Allocate_Particles_Grid_Field_Real( Real **array_dev, int size );
+  void Copy_Particle_Field_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
+  void Copy_Particle_Field_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);
+  void Set_Particle_Field_Real( Real value, Real *array_dev, part_int_t size);
+  void Free_Memory_GPU();
+  void Initialize_Grid_Values_GPU();
+  void Get_Density_CIC_GPU();
+  void Get_Density_CIC_GPU_function(part_int_t n_local, Real particle_mass,  Real xMin, Real xMax, Real yMin, Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells, Real *density_h, Real *density_dev, Real *pos_x_dev, Real *pos_y_dev , Real *pos_z_dev);
+  void Clear_Density_GPU();
+  void Clear_Density_GPU_function( Real *density_dev, int n_cells);
+  void Copy_Potential_To_GPU( Real *potential_host, Real *potential_dev, int n_cells_potential );
+  void Get_Gravity_Field_Particles_GPU( Real *potential_host );
+  void Get_Gravity_Field_Particles_GPU_function( int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells_potential, Real dx, Real dy, Real dz,  Real *potential_host, Real *potential_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev  );
+  void Get_Gravity_CIC_GPU();
+  void Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin,  Real zMax, Real dx, Real dy, Real dz,   Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev,  Real *grav_y_dev,  Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev );
+  Real Calc_Particles_dt_GPU_function( int ngrid, part_int_t n_local, Real dx, Real dy, Real dz, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *dti_array_host, Real *dti_array_dev );
+  void Advance_Particles_KDK_Step1_GPU_function( part_int_t n_local, Real dt, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev  );
+  void Advance_Particles_KDK_Step1_Cosmo_GPU_function( part_int_t n_local, Real delta_a, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  );  
+  void Advance_Particles_KDK_Step2_GPU_function( part_int_t n_local, Real dt, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev  );
+  void Advance_Particles_KDK_Step2_Cosmo_GPU_function( part_int_t n_local, Real delta_a,  Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  );
+  #endif //PARTICLES_GPU
+  
+  
+  
   void Allocate_Memory();
+  
   
   void Initialize_Grid_Values();
   
@@ -158,17 +253,26 @@ class Particles_3D
   void Get_Density_CIC();
   
   #ifdef MPI_CHOLLA
-  void Clear_Vectors_For_Transfers( void );
   void Clear_Particles_For_Transfer( void );
-  void Select_Particles_to_Transfer( int dir );
   void Select_Particles_to_Transfer_All( void );
   void Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass,
                               Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z);
-  void Add_Particle_To_Vectors( Real pId, Real pMass, Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z );
-  void Load_Particles_to_Buffer( int direction, int side, Real *send_buffer, int buffer_length  );
-  void Unload_Particles_from_Buffer( int direction, int side, Real *recv_buffer, part_int_t n_recv,
-        Real *send_buffer_y0, Real *send_buffer_y1, Real *send_buffer_z0, Real *send_buffer_z1, int buffer_length_y0, int buffer_length_y1, int buffer_length_z0, int buffer_length_z1);
   void Remove_Transfered_Particles();
+  
+  #ifdef PARTICLES_CPU
+  void Clear_Vectors_For_Transfers( void );
+  void Add_Particle_To_Vectors( Real pId, Real pMass, Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z );
+  void Select_Particles_to_Transfer_All_CPU( void );
+  void Load_Particles_to_Buffer_CPU( int direction, int side, Real *send_buffer, int buffer_length  );
+  void Unload_Particles_from_Buffer_CPU( int direction, int side, Real *recv_buffer, part_int_t n_recv,
+        Real *send_buffer_y0, Real *send_buffer_y1, Real *send_buffer_z0, Real *send_buffer_z1, int buffer_length_y0, int buffer_length_y1, int buffer_length_z0, int buffer_length_z1);
+  #endif//PARTICLES_CPU
+  
+  
+  #ifdef PARTICLES_GPU
+  void Allocate_Memory_GPU_MPI();
+  void Load_Particles_to_Buffer_GPU( int direction, int side, Real *send_buffer, int buffer_length  );
+  #endif //PARTICLES_GPU
   #endif
 };
 
