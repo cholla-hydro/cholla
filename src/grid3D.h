@@ -690,9 +690,9 @@ class Grid3D
   void Do_Cooling_Step_Grackle();
   #endif
   
-  #ifdef AVERAGE_SLOW_CELLS
-  void Average_slow_cell( int i, int j, int k);
-  #endif
+  // #ifdef AVERAGE_SLOW_CELLS
+  // void Average_slow_cell( int i, int j, int k);
+  // #endif
   
 };
 
