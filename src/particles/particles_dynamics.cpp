@@ -15,7 +15,7 @@
 #endif
 
 
-
+//Compute the delta_t for the particles 
 Real Grid3D::Calc_Particles_dt( ){
   
   Real dt_particles;
@@ -63,7 +63,7 @@ Real Grid3D::Calc_Particles_dt( ){
 
 #ifdef PARTICLES_GPU
 
-
+//Go over all the particles and find dt_min in the GPU
 Real Grid3D::Calc_Particles_dt_GPU(){
   
   // set values for GPU kernels
@@ -92,7 +92,7 @@ Real Grid3D::Calc_Particles_dt_GPU(){
   
 }
 
-
+//Update positions and velocities (step 1 of KDK scheme ) in the GPU
 void Grid3D::Advance_Particles_KDK_Step1_GPU(){
   
   #ifdef COSMOLOGY
@@ -104,6 +104,7 @@ void Grid3D::Advance_Particles_KDK_Step1_GPU(){
 
 }
 
+//Update velocities (step 2 of KDK scheme ) in the GPU
 void Grid3D::Advance_Particles_KDK_Step2_GPU(){
   
   #ifdef COSMOLOGY
@@ -116,12 +117,14 @@ void Grid3D::Advance_Particles_KDK_Step2_GPU(){
 }
 
 
-
-
 #endif //PARTICLES_GPU
 
 
+
+
 #ifdef PARTICLES_CPU
+
+//Loop over the particles anf compute dt_min
 Real Grid3D::Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end ){
   part_int_t pID;
   Real dt, dt_min, vel;
@@ -148,6 +151,7 @@ Real Grid3D::Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end ){
 }
 #endif //PARTICLES_CPU
 
+//Update the particles positions and velocities
 void Grid3D::Advance_Particles( int N_step ){
   
   #ifdef CPU_TIME
@@ -155,13 +159,16 @@ void Grid3D::Advance_Particles( int N_step ){
   #endif
   
   #ifdef PARTICLES_KDK
+  //Update the velocities by 0.5*delta_t and update the positions by delta_t
   if ( N_step == 1 ) Advance_Particles_KDK_Step1();
   #endif
   
   if ( N_step == 2 ){
+    //Compute the particles accelerations at the new positions
     Get_Particles_Acceleration();
     
     #ifdef PARTICLES_KDK
+    //Advance the particles velocities by the remaining 0.5*delta_t
     Advance_Particles_KDK_Step2();
     #endif
 
@@ -174,12 +181,17 @@ void Grid3D::Advance_Particles( int N_step ){
     
 }
 
+// Get the accteleration for all the particles
 void Grid3D::Get_Particles_Acceleration(){
-  // Get the accteleration for all the particles
+  
+  //First compute the gravitational field at the center of the grid cells
   Get_Gravity_Field_Particles();
+  
+  //Then Interpolate the gravitational field from the centers of the cells to the positions of the particles 
   Get_Gravity_CIC();  
 }
 
+//Update positions and velocities (step 1 of KDK scheme )
 void Grid3D::Advance_Particles_KDK_Step1( ){
   
   #ifdef PARTICLES_CPU
@@ -213,6 +225,7 @@ void Grid3D::Advance_Particles_KDK_Step1( ){
   
 }
 
+//Update velocities (step 2 of KDK scheme )
 void Grid3D::Advance_Particles_KDK_Step2( ){
   
   #ifdef PARTICLES_CPU
@@ -247,6 +260,7 @@ void Grid3D::Advance_Particles_KDK_Step2( ){
 }
 
 #ifdef PARTICLES_CPU
+//Update positions and velocities (step 1 of KDK scheme )
 void Grid3D::Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_t p_end ){
   
   part_int_t pID;
@@ -258,7 +272,7 @@ void Grid3D::Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_
     Particles.vel_z[pID] += 0.5 * dt * Particles.grav_z[pID];
   }
 
-  //Advance Posiotions using advanced velocities
+  //Advance Posiotions by delta_t using the updated velocities
   for ( pID=p_start; pID<p_end; pID++ ){
     Particles.pos_x[pID] += dt * Particles.vel_x[pID];
     Particles.pos_y[pID] += dt * Particles.vel_y[pID];
@@ -266,7 +280,7 @@ void Grid3D::Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_
   }
 }
 
-
+//Update  velocities (step 2 of KDK scheme )
 void Grid3D::Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_t p_end ){
   
   part_int_t pID;
@@ -282,6 +296,7 @@ void Grid3D::Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_
 
 #ifdef COSMOLOGY
 
+//Compute the delta_t for the particles  COSMOLOGICAL SIMULATION
 Real Grid3D::Calc_Particles_dt_Cosmo(){
   
   Real dt_particles;
@@ -325,6 +340,7 @@ Real Grid3D::Calc_Particles_dt_Cosmo(){
 
 
 #ifdef PARTICLES_CPU
+//Loop over the particles anf compute dt_min for a cosmological simulation
 Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end ){
 
   part_int_t pID;
@@ -355,8 +371,7 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_
 }
 
 
-
-
+//Update positions and velocities (step 1 of KDK scheme ) COSMOLOGICAL SIMULATION
 void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end ){
   
   Real dt, dt_half;
@@ -373,7 +388,6 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
   dt = da / ( a * H ) * Cosmo.cosmo_h;
   dt_half = da / ( a_half * H_half ) * Cosmo.cosmo_h / ( a_half );
 
-  // Advance velocities by half a step
   Real pos_x, vel_x, grav_x;
   Real pos_y, vel_y, grav_y;
   Real pos_z, vel_z, grav_z;
@@ -388,13 +402,18 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
     grav_y = Particles.grav_y[pIndx];
     grav_z = Particles.grav_z[pIndx];
     
+    // Advance velocities by half a step
     vel_x = ( a*vel_x + 0.5*dt*grav_x ) / a_half;
     vel_y = ( a*vel_y + 0.5*dt*grav_y ) / a_half;
     vel_z = ( a*vel_z + 0.5*dt*grav_z ) / a_half;
+    
+    //Advance the positions by delta_t using the updated velocities
     pos_x += dt_half * vel_x;
     pos_y += dt_half * vel_y;
     pos_z += dt_half * vel_z;    
     
+    
+    //Save the updated positions and velocities
     Particles.pos_x[pIndx] = pos_x;
     Particles.pos_y[pIndx] = pos_y;
     Particles.pos_z[pIndx] = pos_z;
@@ -405,6 +424,7 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, par
   }
 }
 
+//Update velocities (step 2 of KDK scheme ) COSMOLOGICAL SIMULATION
 void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end ){
   Real dt;
   part_int_t pIndx;
@@ -415,7 +435,6 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, par
   
   dt = da / ( a * Cosmo.Get_Hubble_Parameter( a ) ) * Cosmo.cosmo_h;
 
-  // Advance velocities by half a step
   Real grav_x, grav_y, grav_z;
   Real vel_x, vel_y, vel_z;
   for ( pIndx=p_start; pIndx<p_end; pIndx++ ){
@@ -426,6 +445,8 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, par
     vel_x = Particles.vel_x[pIndx];
     vel_y = Particles.vel_y[pIndx];
     vel_z = Particles.vel_z[pIndx];
+    
+    // Advance velocities by half a step
     Particles.vel_x[pIndx] = ( a_half*vel_x + 0.5*dt*grav_x ) / a;
     Particles.vel_y[pIndx] = ( a_half*vel_y + 0.5*dt*grav_y ) / a;
     Particles.vel_z[pIndx] = ( a_half*vel_z + 0.5*dt*grav_z ) / a;
