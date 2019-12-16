@@ -80,9 +80,9 @@ typedef double Real;
 
 #ifdef GRAVITY
 #ifdef GRAVITY_5_POINTS_GRADIENT
-#define N_GHOST_POTENTIAL 3
+#define N_GHOST_POTENTIAL 3 // 3 ghost cells are needed for 5 point gradient, ( one is for the CIC interpolation of the potential )
 #else
-#define N_GHOST_POTENTIAL 2
+#define N_GHOST_POTENTIAL 2 // 2 ghost cells are needed for first order gradient, ( one is for the CIC interpolation of the potential )
 #endif
 #ifdef GRAVITY_LONG_INTS
 typedef long int grav_int_t;

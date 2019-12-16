@@ -987,12 +987,12 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   N_PARTICLES_TRANSFER = n_max * n_max * factor ;
   
   // Set the number of values that will be transfered for each particle
-  N_DATA_PER_PARTICLE_TRANSFER = 6;
+  N_DATA_PER_PARTICLE_TRANSFER = 6; // 3 positions and 3 velocities 
   #ifndef SINGLE_PARTICLE_MASS
-  N_DATA_PER_PARTICLE_TRANSFER += 1;
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle mass
   #endif
   #ifdef PARTICLE_IDS
-  N_DATA_PER_PARTICLE_TRANSFER += 1;
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle ID
   #endif
   
   buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
