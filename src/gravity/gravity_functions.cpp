@@ -287,7 +287,7 @@ void Grid3D::Copy_Hydro_Density_to_Gravity(){
 }
 
 
-
+//Extrapolate the potential to obtain phi_n+1/2
 void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
   //Use phi_n-1 and phi_n to extrapolate the potential and obtain phi_n+1/2
   
@@ -298,11 +298,15 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
   int n_ghost_grid, nx_grid, ny_grid, nz_grid;
   Real *potential_in, *potential_out;
   
+  //Input potential
   potential_in = Grav.F.potential_h; 
   
+  //Output potential
   potential_out = C.Grav_potential;
+  //n_ghost for the output potential
   n_ghost_grid = H.n_ghost;
   
+  //Grid size for the output potential
   nx_grid = Grav.nx_local + 2*n_ghost_grid;
   ny_grid = Grav.ny_local + 2*n_ghost_grid;
   nz_grid = Grav.nz_local + 2*n_ghost_grid;
