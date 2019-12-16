@@ -293,23 +293,19 @@ void Grid3D::AllocateMemory(void)
  void Grid3D::set_dt(Real dti)
 {
   Real max_dti;
+
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
   
   #ifdef ONLY_PARTICLES
   // If only solving particles the time for hydro is set to a  large value, 
   // that way the minimum dt is the one corresponding to particles 
   H.dt = 1e10;
-  #else
   
-  #ifdef CPU_TIME
-  Timer.Start_Timer();
-  #endif
-  
-  #if ( defined(COSMOLOGY) && defined(AVERAGE_SLOW_CELLS) && defined(PARTICLES) )
-  Particles.dt = Calc_Particles_dt_Cosmo();
-  #endif
-  
+  #else //NOT ONLY_PARTICLES
 
-
+  //Compute the hydro delta_t ( H.dt )  
   if (H.n_step == 0) {
     max_dti = calc_dti_CPU();
   }
@@ -332,7 +328,7 @@ void Grid3D::AllocateMemory(void)
   #endif //ONLY_PARTICLES
   
   #ifdef GRAVITY
-  //Set dt for hydro and particles
+  //Set dt for hydro and particles 
   set_dt_Gravity();
   #endif
   

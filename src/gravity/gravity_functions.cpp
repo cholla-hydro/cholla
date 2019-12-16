@@ -26,56 +26,58 @@ void Grid3D::set_dt_Gravity(){
   #ifdef COSMOLOGY
   chprintf( " Current_z: %f \n", Cosmo.current_z );
   Real da_particles, da_min, dt_physical;
-  #ifndef AVERAGE_SLOW_CELLS
+  
+  //Compute the particles delta_t
   Particles.dt = Calc_Particles_dt_Cosmo();
-  #endif
   dt_particles = Particles.dt;
+  //Convert delta_t to delta_a ( a = scale factor )
   da_particles = Cosmo.Get_da_from_dt( dt_particles );
-  da_particles = fmin( da_particles, 1.0 ); 
+  da_particles = fmin( da_particles, 1.0 ); //Limit delta_a
   
   #ifdef ONLY_PARTICLES
-  #ifdef CPU_TIME
-  Timer.Start_Timer();
-  #endif
-  Particles.dt = Calc_Particles_dt_Cosmo();
-  da_particles = Cosmo.Get_da_from_dt( Particles.dt );
-  #ifdef CPU_TIME
-  Timer.End_and_Record_Time(0);
-  #endif
+  //If only particles da_min is only da_particles
   da_min = da_particles;
   chprintf( " Delta_a_particles: %f \n", da_particles );
-  #else
+
+  #else //NOT ONLY_PARTICLES
+  //Here da_min is the minumum between da_particles and da_hydro
   Real da_hydro;
-  da_hydro = Cosmo.Get_da_from_dt( dt_hydro ) * Cosmo.current_a * Cosmo.current_a / Cosmo.H0;
-  da_min = fmin( da_hydro, da_particles );
+  da_hydro = Cosmo.Get_da_from_dt( dt_hydro ) * Cosmo.current_a * Cosmo.current_a / Cosmo.H0; //Convet delta_t to delta_a
+  da_min = fmin( da_hydro, da_particles ); //Find the minumum delta_a
   chprintf( " Delta_a_particles: %f      Delta_a_gas: %f   \n", da_particles, da_hydro );
+  
   #endif//ONLY_PARTICLES
   
-  
+  //Limit delta_a by the expansion rate
   Cosmo.max_delta_a = fmin( MAX_EXPANSION_RATE * Cosmo.current_a, MAX_DELTA_A );
   if( da_min > Cosmo.max_delta_a){
     da_min = Cosmo.max_delta_a;
     chprintf( " Seting max delta_a: %f\n", da_min );
   }
   
+  //Small delta_a when reionization starts
   #ifdef COOLING_GRACKLE
-  if ( fabs(Cosmo.current_a + da_min - Cool.scale_factor_UVB_on) < 0.002 ){
+  if ( fabs(Cosmo.current_a + da_min - Cool.scale_factor_UVB_on) < 0.005 ){
     da_min /= 5;
     chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
   }
   #endif
   
+  //Limit delta_a if it's time to output
   if ( (Cosmo.current_a + da_min) >  Cosmo.next_output ){
     da_min = Cosmo.next_output - Cosmo.current_a;
     H.Output_Now = true;
   }
   
-  
+  //Set delta_a after it has been computed
   Cosmo.delta_a = da_min;
+  //Convert delta_a back to delta_t
   dt_min = Cosmo.Get_dt_from_da( Cosmo.delta_a ) * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a );
+  //Set the new delta_t for the hydro step
   H.dt = dt_min; 
   chprintf( " Current_a: %f    delta_a: %f     dt:  %f\n", Cosmo.current_a, Cosmo.delta_a, H.dt  );
   
+  //Compute the physical time
   dt_physical = Cosmo.Get_dt_from_da( Cosmo.delta_a );
   Cosmo.dt_secs = dt_physical * Cosmo.time_conversion;
   Cosmo.t_secs += Cosmo.dt_secs;
@@ -83,6 +85,9 @@ void Grid3D::set_dt_Gravity(){
   Particles.dt = dt_physical; 
   
   #else // Not Cosmology
+  //If NOT using COSMOLOGY
+  
+  //Compute the particles delta_t
   dt_particles = Calc_Particles_dt();
   dt_particles = fmin( dt_particles, Particles.max_dt);
   #ifdef ONLY_PARTICLES
@@ -90,8 +95,11 @@ void Grid3D::set_dt_Gravity(){
   chprintf( " dt_particles: %f \n", dt_particles );
   #else
   chprintf( " dt_hydro: %f   dt_particles: %f \n", dt_hydro, dt_particles );
+  //Get the minimum delta_t between hydro and particles
   dt_min = fmin( dt_hydro, dt_particles );
   #endif//ONLY_PARTICLES
+  
+  //Set the new delta_t
   H.dt = dt_min;
   Particles.dt = H.dt;
   #endif//COSMOLOGY
