@@ -71,7 +71,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
   // Clear the vectors that contain the particles IDs to be transfred
   if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
     Particles.Clear_Particles_For_Transfer();
-    Particles.Select_Particles_to_Transfer_All();
+    Particles.Select_Particles_to_Transfer_All( flags );
   }  
   #endif
   
@@ -810,7 +810,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     }
     // Receive the number of particles transfer for X
     #ifdef PARTICLES
-    if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) Wait_and_Recv_Particles_Transfer_BLOCK( dir, flags );
+    if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK( dir, flags );
     #endif
 
   }
@@ -888,7 +888,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     }
     // Receive the number of particles transfer for Y
     #ifdef PARTICLES
-    if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) Wait_and_Recv_Particles_Transfer_BLOCK( dir, flags );
+    if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK( dir, flags );
     #endif
 
   }
@@ -967,7 +967,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     }
     // Receive the number of particles transfer for Z
       #ifdef PARTICLES
-      if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) Wait_and_Recv_Particles_Transfer_BLOCK( dir, flags );
+      if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK( dir, flags );
       #endif
   }
 
