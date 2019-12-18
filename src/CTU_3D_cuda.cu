@@ -191,6 +191,11 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     Calculate_HLLC_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
     #endif //HLLC
+    #ifdef HLL 
+    Calculate_HLL_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    Calculate_HLL_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    Calculate_HLL_Fluxes_CUDA<<<dim1dGrid,dim1dBlock>>>(Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
+    #endif //HLLC
     CudaCheckError();
 
 
@@ -227,6 +232,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     #ifdef DE
     // Compute the divergence of Vel before updating the conserved array, this solves sincronization issues when adding this term on Update_Conserved_Variables_3D
     Partial_Update_Advected_Internal_Energy_3D<<<dim1dGrid,dim1dBlock>>>( dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dt, gama, n_fields );
+    CudaCheckError();
     #endif
 
   

@@ -165,12 +165,9 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
     PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
     PPMP_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     #endif //PPMP
-    CudaCheckError();
     #ifdef PPMC
     PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
-    CudaCheckError();
     PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
-    CudaCheckError();
     PPMC_cuda<<<dim1dGrid,dim1dBlock>>>(dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     CudaCheckError();
     #endif //PPMC
@@ -202,6 +199,7 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
     #ifdef DE
     // Compute the divergence of Vel before updating the conserved array, this solves sincronization issues when adding this term on Update_Conserved_Variables_3D
     Partial_Update_Advected_Internal_Energy_3D<<<dim1dGrid,dim1dBlock>>>( dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz,  dt, gama, n_fields );
+    CudaCheckError();
     #endif
 
     // Step 3: Update the conserved variable array
