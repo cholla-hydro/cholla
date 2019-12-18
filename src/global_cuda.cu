@@ -26,5 +26,9 @@ int remainder1, remainder2, remainder3;
 int BLOCK_VOL;
 int ngrid;
 
+//Arrays for potential in GPU: Will be set to NULL if not using GRAVITY
+Real *dev_grav_potential;
+Real *temp_potential;
+Real *buffer_potential;
 
 #endif //CUDA

@@ -15,6 +15,15 @@
 Real gama; // Ratio of specific heats
 Real C_cfl; // CFL number
 
+#ifdef PARTICLES
+#ifdef MPI_CHOLLA
+// Constants for the inital size of the buffers for particles transfer
+// and the number of data transfered for each particle
+int N_PARTICLES_TRANSFER;
+int N_DATA_PER_PARTICLE_TRANSFER;
+#endif
+#endif
+
 
 /*! \fn void Set_Gammas(Real gamma_in)
  *  \brief Set gamma values for Riemann solver */
@@ -110,6 +119,11 @@ void parse_params (char *param_file, struct parameters * parms)
   parms->flag_delta = 0;
 #endif /*ROTATED_PROJECTION*/
 
+#ifdef COSMOLOGY
+//Initialize file name as an empty string
+parms->scale_outputs_file[0] = '\0';
+#endif
+
 
   /* Read next line */
   while ((s = fgets (buff, sizeof buff, fp)) != NULL)
@@ -143,6 +157,8 @@ void parse_params (char *param_file, struct parameters * parms)
       parms->tout = atof(value);
     else if (strcmp(name, "outstep")==0)
       parms->outstep = atof(value);
+    else if (strcmp(name, "n_steps_output")==0)
+      parms->n_steps_output = atoi(value);
     else if (strcmp(name, "gamma")==0)
       parms->gamma = atof(value);
     else if (strcmp(name, "init")==0)
@@ -179,6 +195,8 @@ void parse_params (char *param_file, struct parameters * parms)
       strncpy (parms->custom_bcnd, value, MAXLEN);
     else if (strcmp(name, "outdir")==0)
       strncpy (parms->outdir, value, MAXLEN);
+    else if (strcmp(name, "indir")==0)
+      strncpy (parms->indir, value, MAXLEN);
     else if (strcmp(name, "rho")==0)
       parms->rho = atof(value);
     else if (strcmp(name, "vx")==0)
@@ -227,6 +245,24 @@ void parse_params (char *param_file, struct parameters * parms)
     else if (strcmp(name, "flag_delta")==0)
       parms->flag_delta  = atoi(value);
 #endif /*ROTATED_PROJECTION*/
+#ifdef COSMOLOGY
+    else if (strcmp(name, "scale_outputs_file")==0)
+      strncpy (parms->scale_outputs_file, value, MAXLEN);
+    else if (strcmp(name, "Init_redshift")==0)
+      parms->Init_redshift  = atof(value);
+    else if (strcmp(name, "End_redshift")==0)
+      parms->End_redshift  = atof(value);
+    else if (strcmp(name, "H0")==0)
+      parms->H0  = atof(value);
+    else if (strcmp(name, "Omega_M")==0)
+      parms->Omega_M  = atof(value);
+    else if (strcmp(name, "Omega_L")==0)
+      parms->Omega_L  = atof(value);
+#endif //COSMOLOGY
+#ifdef TILED_INITIAL_CONDITIONS
+    else if (strcmp(name, "tile_length")==0)
+      parms->tile_length  = atof(value);
+#endif //TILED_INITIAL_CONDITIONS
     else
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
         name, value);

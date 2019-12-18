@@ -14,9 +14,9 @@
 #include"hydro_cuda.h"
 #endif
 
-#define STEEPENING
+// #define STEEPENING
 // #define FLATTENING
-//Note: FLATTENING needs 3 ghost cells, currently PPMP is initialized with only 2 ghost cells ( 2 on each side, 4 net ghost cells )
+//Note: Errors when using FLATTENING, need to check the ghost cells
 
 /*! \fn __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
  *  \brief When passed a stencil of conserved variables, returns the left and right 
@@ -464,14 +464,14 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     lambda_p = vx_i + cs;
 
     // calculate betas (for left state guesses)
-    beta_m = fmax( (lambda_m * dt / dx) , 0 ); // Fryxell Eqn 59
-    beta_0 = fmax( (lambda_0 * dt / dx) , 0 ); // Fryxell Eqn 59
-    beta_p = fmax( (lambda_p * dt / dx) , 0 ); // Fryxell Eqn 59
+    beta_m = fmax( (lambda_m * dt / dx) , 0.0 ); // Fryxell Eqn 59
+    beta_0 = fmax( (lambda_0 * dt / dx) , 0.0); // Fryxell Eqn 59
+    beta_p = fmax( (lambda_p * dt / dx) , 0.0 ); // Fryxell Eqn 59
  
     //calculate alphas (for right state guesses)
-    alpha_m = fmax( (-lambda_m * dt / dx), 0); // Fryxell Eqn 61
-    alpha_0 = fmax( (-lambda_0 * dt / dx), 0); // Fryxell Eqn 61
-    alpha_p = fmax( (-lambda_p * dt / dx), 0); // Fryxell Eqn 61
+    alpha_m = fmax( (-lambda_m * dt / dx), 0.0); // Fryxell Eqn 61
+    alpha_0 = fmax( (-lambda_0 * dt / dx), 0.0); // Fryxell Eqn 61
+    alpha_p = fmax( (-lambda_p * dt / dx), 0.0); // Fryxell Eqn 61
 
     // average values under characteristics for left interface (Fryxell Eqn 60)
     dL_m  = d_L  + 0.5 * alpha_m * (del_d  + d_6  * (1 - (2./3.) * alpha_m));
