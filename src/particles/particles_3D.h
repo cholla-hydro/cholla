@@ -197,8 +197,8 @@ class Particles_3D
   void Free_GPU_Array_bool( bool *array );
   void Allocate_Memory_GPU();
   void Allocate_Particles_GPU_Array_Real( Real **array_dev, part_int_t size );
-  void Allocate_Particles_Field_bool( bool **array_dev, part_int_t size );
-  void Allocate_Particles_Field_int( int **array_dev, part_int_t size );
+  void Allocate_Particles_GPU_Array_bool( bool **array_dev, part_int_t size );
+  void Allocate_Particles_GPU_Array_int( int **array_dev, part_int_t size );
   void Allocate_Particles_Grid_Field_Real( Real **array_dev, int size );
   void Copy_Particle_Field_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
   void Copy_Particle_Field_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);

@@ -256,11 +256,11 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   size = (part_int_t) n_local;
   size_blocks = G.size_blocks_array;
   
-  Allocate_Particles_Field_bool( &G.transfer_particles_flags_d, size );
-  Allocate_Particles_Field_int( &G.transfer_particles_indxs_d, size);
-  Allocate_Particles_Field_int( &G.transfer_particles_partial_sum_d, size);
-  Allocate_Particles_Field_int( &G.transfer_particles_sum_d, size_blocks);
-  Allocate_Particles_Field_int( &G.n_transfer_d, 1);
+  Allocate_Particles_GPU_Array_bool( &G.transfer_particles_flags_d, size );
+  Allocate_Particles_GPU_Array_int( &G.transfer_particles_indxs_d, size);
+  Allocate_Particles_GPU_Array_int( &G.transfer_particles_partial_sum_d, size);
+  Allocate_Particles_GPU_Array_int( &G.transfer_particles_sum_d, size_blocks);
+  Allocate_Particles_GPU_Array_int( &G.n_transfer_d, 1);
   
   G.n_transfer_h = (int *) malloc(sizeof(int));
   chprintf( " Allocated GPU memory for MPI trandfers.\n"); 
@@ -326,9 +326,11 @@ void Particles_3D::Initialize_Sphere( void ){
   center_z = 0.5;;
   sphereR = 0.2;
 
+  //Set the number of particles equal to the number of grid cells
   part_int_t n_particles_local = G.nx_local*G.ny_local*G.nz_local;
   part_int_t n_particles_total = G.nx_total*G.ny_total*G.nz_total;
 
+  //Set the initial density for the particles
   Real rho_start = 1;
   Real M_sphere = 4./3 * M_PI* rho_start * sphereR*sphereR*sphereR;
   Real Mparticle = M_sphere / n_particles_total;
@@ -336,6 +338,26 @@ void Particles_3D::Initialize_Sphere( void ){
   #ifdef SINGLE_PARTICLE_MASS
   particle_mass = Mparticle;
   #endif
+  
+  #ifdef PARTICLES_GPU
+  // Alocate memory in GPU for particle data
+  // particles_buffer_size = n_particles_local * allocation_factor;
+  particles_buffer_size = n_particles_local;
+  Allocate_Particles_GPU_Array_Real( &pos_x_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &pos_y_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &pos_z_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &vel_x_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &vel_y_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &vel_z_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_buffer_size);
+  n_local = n_particles_local;
+  
+  chprintf( " Allocated GPU memory for particle data\n");
+  // printf( " Loaded %ld  particles ", n_to_load);
+  
+  #endif //PARTICLES_GPU
 
 
   part_int_t pID = 0;
@@ -349,6 +371,7 @@ void Particles_3D::Initialize_Sphere( void ){
     if ( r > sphereR ) continue;
     
     #ifdef PARTICLES_CPU
+    //Copy the particle data to the particles vectors
     pos_x.push_back( pPos_x );
     pos_y.push_back( pPos_y );
     pos_z.push_back( pPos_z);
