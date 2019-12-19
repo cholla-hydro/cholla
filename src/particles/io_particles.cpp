@@ -324,15 +324,15 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   // Alocate memory in GPU for particle data
   // particles_buffer_size = (part_int_t) n_to_load * G.allocation_factor;
   particles_buffer_size = (part_int_t) n_to_load;
-  Allocate_Particles_Field_Real( &pos_x_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &pos_y_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &pos_z_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &vel_x_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &vel_y_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &vel_z_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &grav_x_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &grav_y_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &grav_z_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &pos_x_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &pos_y_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &pos_z_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &vel_x_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &vel_y_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &vel_z_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_buffer_size);
   n_local = n_to_load;
   
   chprintf( " Allocated GPU memory for particle data\n");

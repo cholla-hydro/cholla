@@ -16,7 +16,7 @@ void Particles_3D::Free_GPU_Array_Real( Real *array ){ cudaFree(array); }
 void Particles_3D::Free_GPU_Array_int( int *array )  { cudaFree(array); }
 void Particles_3D::Free_GPU_Array_bool( bool *array ){ cudaFree(array); }
 
-void Particles_3D::Allocate_Particles_Field_Real( Real **array_dev, part_int_t size ){
+void Particles_3D::Allocate_Particles_GPU_Array_Real( Real **array_dev, part_int_t size ){
   size_t global_free, global_total;
   CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
   chprintf( "Alocating GPU Memory:  %d  MB free \n", global_free/1000000);
