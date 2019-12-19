@@ -318,6 +318,7 @@ void Particles_3D::Initialize_Grid_Values( void ){
 void Particles_3D::Initialize_Sphere( void ){
   
   //Initialize Random positions for sphere of quasi-uniform density
+  chprintf( " Initializing Particles Uniform Sphere\n");
   
   int i, j, k, id;
   Real center_x, center_y, center_z, radius, sphereR;
@@ -349,16 +350,23 @@ void Particles_3D::Initialize_Sphere( void ){
   Allocate_Particles_GPU_Array_Real( &vel_x_dev, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &vel_y_dev, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &vel_z_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_buffer_size);
+  // #ifndef SINGLE_PARTICLE_MASS
+  
   n_local = n_particles_local;
   
-  chprintf( " Allocated GPU memory for particle data\n");
-  // printf( " Loaded %ld  particles ", n_to_load);
+  //Allocate temporal Host arrays for the particles data
+  Real *temp_pos_x  = (Real *) malloc(particles_buffer_size*sizeof(Real));
+  Real *temp_pos_y  = (Real *) malloc(particles_buffer_size*sizeof(Real));
+  Real *temp_pos_z  = (Real *) malloc(particles_buffer_size*sizeof(Real));
+  Real *temp_vel_x  = (Real *) malloc(particles_buffer_size*sizeof(Real));
+  Real *temp_vel_y  = (Real *) malloc(particles_buffer_size*sizeof(Real));
+  Real *temp_vel_z  = (Real *) malloc(particles_buffer_size*sizeof(Real));
   
+  chprintf( " Allocated GPU memory for particle data\n");
   #endif //PARTICLES_GPU
 
+
+  chprintf( " Initializing Random Positions\n");
 
   part_int_t pID = 0;
   Real pPos_x, pPos_y, pPos_z, r;
@@ -389,15 +397,43 @@ void Particles_3D::Initialize_Sphere( void ){
     #endif
     #endif //PARTICLES_CPU
     
+    #ifdef PARTICLES_GPU
+    // Copy the particle data to the temporal Host Buffers
+    temp_pos_x[pID]  = pPos_x;
+    temp_pos_y[pID]  = pPos_y;
+    temp_pos_z[pID]  = pPos_z;
+    temp_vel_x[pID]  = 0.0;
+    temp_vel_y[pID]  = 0.0;
+    temp_vel_z[pID]  = 0.0;
+    #endif //PARTICLES_GPU
+    
     pID += 1;
   }
   
   #ifdef PARTICLES_CPU
   n_local = pos_x.size();
-  #endif
+  #endif //PARTICLES_CPU
+  
+  #ifdef PARTICLES_GPU
+  //Copyt the particle data from tepmpotal Host buffer to GPU memory
+  Copy_Particles_Array_Real_Host_to_Device( temp_pos_x, pos_x_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( temp_pos_y, pos_y_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( temp_pos_z, pos_z_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( temp_vel_x, vel_x_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( temp_vel_y, vel_y_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( temp_vel_z, vel_z_dev, n_local);  
+  
+  //Free the temporal host buffers
+  free( temp_pos_x );
+  free( temp_pos_y );
+  free( temp_pos_z );
+  free( temp_vel_x );
+  free( temp_vel_y );
+  free( temp_vel_z );
+  #endif //PARTICLES_GPU
   
   chprintf( " Particles Uniform Sphere Initialized, n_local: %lu\n", n_local);
-
+  
 }
 
 

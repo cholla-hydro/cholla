@@ -121,7 +121,7 @@ __global__ void Get_Density_CIC_Kernel( part_int_t n_local, Real particle_mass, 
 
 //Clear the density array: density=0
 void Particles_3D::Clear_Density_GPU_function( Real *density_dev, int n_cells){
-  Set_Particle_Field_Real( 0.0, density_dev, n_cells);  
+  Set_Particles_Array_Real( 0.0, density_dev, n_cells);  
 }
 
 

@@ -339,12 +339,12 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   // printf( " Loaded %ld  particles ", n_to_load);
   
   //Copyt the particle data to GPU memory
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_px, pos_x_dev, n_local);
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_py, pos_y_dev, n_local);
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_pz, pos_z_dev, n_local);
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_vx, vel_x_dev, n_local);
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_vy, vel_y_dev, n_local);
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_vz, vel_z_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_px, pos_x_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_py, pos_y_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_pz, pos_z_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vx, vel_x_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vy, vel_y_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vz, vel_z_dev, n_local);
   #endif
   
   
@@ -509,7 +509,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.pos_x[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.pos_x_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.pos_x_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/pos_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
@@ -520,7 +520,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.pos_y[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.pos_y_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.pos_y_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/pos_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
@@ -531,7 +531,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.pos_z[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.pos_z_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.pos_z_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/pos_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
@@ -542,7 +542,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.vel_x[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.vel_x_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.vel_x_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/vel_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
@@ -553,7 +553,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.vel_y[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.vel_y_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.vel_y_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/vel_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
@@ -564,7 +564,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.vel_z[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.vel_z_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.vel_z_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/vel_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);

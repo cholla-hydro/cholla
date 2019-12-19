@@ -13,6 +13,7 @@
 
 #ifdef PARTICLES_GPU
 #define TPB_PARTICLES 1024
+// #define PRINT_GPU_MEsMORY;
 #endif
 
 
@@ -200,9 +201,9 @@ class Particles_3D
   void Allocate_Particles_GPU_Array_bool( bool **array_dev, part_int_t size );
   void Allocate_Particles_GPU_Array_int( int **array_dev, part_int_t size );
   void Allocate_Particles_Grid_Field_Real( Real **array_dev, int size );
-  void Copy_Particle_Field_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
-  void Copy_Particle_Field_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);
-  void Set_Particle_Field_Real( Real value, Real *array_dev, part_int_t size);
+  void Copy_Particles_Array_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
+  void Copy_Particles_Array_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);
+  void Set_Particles_Array_Real( Real value, Real *array_dev, part_int_t size);
   void Free_Memory_GPU();
   void Initialize_Grid_Values_GPU();
   void Get_Density_CIC_GPU();
