@@ -145,10 +145,6 @@ Cool.fields.e_density       = &C.scalar[ 5*n_cells ];
 chprintf( " Allocating memory for: metal density\n");
 Cool.fields.metal_density   = &C.scalar[ 6*n_cells ];
 
-#ifdef OUTPUT_DUAL_ENERGY_FLAGS
-chprintf( " Allocating memory for DE cell flag \n");
-Cool.flags_DE = (int *) malloc( Cool.field_size * sizeof(int) );
-#endif
 
 #ifdef OUTPUT_TEMPERATURE
 Cool.temperature = (Real *) malloc(Cool.field_size * sizeof(Real));
@@ -165,9 +161,6 @@ void Cool_GK::Free_Memory( ){
   free( temperature );
   #endif
   
-  #ifdef OUTPUT_DUAL_ENERGY_FLAGS
-  free( flags_DE );
-  #endif
 }
 
 #endif

@@ -37,9 +37,7 @@ void Grid3D::Initialize_Fields_Grackle(){
         Cool.fields.z_velocity[id] = 0.0;
 
         Cool.fields.internal_energy[id] = C.GasEnergy[id]  / C.density[id] * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
-        #ifdef OUTPUT_DUAL_ENERGY_FLAGS
-        Cool.flags_DE[id] = 0;
-        #endif
+
       }
     }
   }
