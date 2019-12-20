@@ -4,11 +4,11 @@
 
 ######################################
 # number of grid cells in the x dimension
-nx=256
+nx=128
 # number of grid cells in the y dimension
-ny=256
+ny=128
 # number of grid cells in the z dimension
-nz=256
+nz=128
 # output time
 tout=0.55
 # how often to output
