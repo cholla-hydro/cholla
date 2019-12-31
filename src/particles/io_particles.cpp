@@ -649,9 +649,9 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
 void Grid3D::OutputData_Particles( struct parameters P, int nfile)
 {
   FILE *out;
-  char filename[80];
+  char filename[100];
   char timestep[20];
-
+  
   // create the filename
   strcpy(filename, P.outdir);
   sprintf(timestep, "%d", nfile);
@@ -668,19 +668,19 @@ void Grid3D::OutputData_Particles( struct parameters P, int nfile)
   sprintf(filename,"%s.%d",filename,procID);
   #endif
   #endif
-
+  
   #if defined HDF5
   hid_t   file_id;
   herr_t  status;
-
+  
   // Create a new file collectively
   file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
+  
   // Write header (file attributes)
   Write_Header_HDF5(file_id);
   Write_Particles_Header_HDF5( file_id);
   Write_Particles_Data_HDF5( file_id);
-
+  
   // Close the file
   status = H5Fclose(file_id);
   #endif
