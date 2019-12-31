@@ -73,9 +73,9 @@ void Write_Message_To_Log_File( const char* message ){
 void WriteData(Grid3D &G, struct parameters P, int nfile)
 {
   
+  chprintf( "\nSaving Snapshot: %d \n", nfile );
 
   #ifdef COSMOLOGY
-  chprintf( "\nSaving Snapshot: %d \n", nfile );
   G.Change_Cosmological_Frame_Sytem( false );
   #endif
   
