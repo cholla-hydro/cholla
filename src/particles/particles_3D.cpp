@@ -350,6 +350,9 @@ void Particles_3D::Initialize_Sphere( void ){
   Allocate_Particles_GPU_Array_Real( &vel_x_dev, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &vel_y_dev, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &vel_z_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_buffer_size);
   // #ifndef SINGLE_PARTICLE_MASS
   
   n_local = n_particles_local;
