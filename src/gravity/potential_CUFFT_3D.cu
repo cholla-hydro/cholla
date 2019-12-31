@@ -181,7 +181,7 @@ Real Potential_CUFFT_3D::Get_Potential( Real *input_density,  Real *output_poten
   cudaEventSynchronize(stop);
   float milliseconds = 0;
   cudaEventElapsedTime(&milliseconds, start, stop);
-  chprintf( " CUFFT: Potential Time = %f   msecs\n", milliseconds);
+  // chprintf( " CUFFT: Potential Time = %f   msecs\n", milliseconds);
   // return (Real) milliseconds;
 
   return 0;
