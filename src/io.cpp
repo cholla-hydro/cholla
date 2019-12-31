@@ -80,7 +80,7 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   #endif
   
   #ifndef ONLY_PARTICLES
-  /*call the data output routine*/
+  /*call the data output routine for Hydro data*/
   OutputData(G,P,nfile);
   #endif
   
