@@ -39,10 +39,12 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
+indir=/data/groups/comp-astro/bruno/cosmo_sims/256_dm_50Mpc/ics/
+outdir=/data/groups/comp-astro/bruno/cosmo_sims/256_dm_50Mpc/output_files/
 #indir=/home/bruno/Desktop/hard_drive_1/data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_single/
 #outdir=/home/bruno/Desktop/hard_drive_1/data/cosmo_sims/cholla_pm/256_dm_50Mpc/
-indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_nyx/
-outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/
+#indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_nyx/
+#outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_dm_50Mpc/
 #indir=/home/bruno/Desktop//data/cosmo_sims/cholla_pm/256_dm_50Mpc/ics_enzo/
 #outdir=/home/bruno/Desktop/data/cosmo_sims/cholla_pm/256_dm_50Mpc/
 
