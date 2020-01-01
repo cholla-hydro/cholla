@@ -575,6 +575,9 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.mass[i];
   #endif //PARTICLES_CPU
+  #ifdef PARTICLES_GPU
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.mass_dev, dataset_buffer, Particles.n_local );
+  #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/mass", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
   status = H5Dclose(dataset_id);

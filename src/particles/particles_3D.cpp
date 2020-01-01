@@ -47,6 +47,10 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
 
   //Courant CFL condition factor for particles
   C_cfl = 0.3;
+  
+  #ifndef SINGLE_PARTICLE_MASS
+  particle_mass = 0; //The particle masses are stored in a separate array
+  #endif
 
   #ifdef PARTICLES_CPU
   //Vectors for positions, velocities and accelerations
@@ -132,7 +136,13 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
 
   G.size_blocks_array = 1024*128;
   G.n_cells_potential = ( G.nx_local + 2*N_GHOST_POTENTIAL ) * ( G.ny_local + 2*N_GHOST_POTENTIAL ) * ( G.nz_local + 2*N_GHOST_POTENTIAL );
+  
+  #ifdef SINGLE_PARTICLE_MASS
+  mass_dev = NULL; //This array won't be used
   #endif
+  
+  
+  #endif //PARTICLES_GPU
 
   // Flags for Initial and tranfer the particles and density
   INITIAL = true;
@@ -353,8 +363,9 @@ void Particles_3D::Initialize_Sphere( void ){
   Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_buffer_size);
-  // #ifndef SINGLE_PARTICLE_MASS
-  
+  #ifndef SINGLE_PARTICLE_MASS
+  Allocate_Particles_GPU_Array_Real( &mass_dev, particles_buffer_size);
+  #endif
   n_local = n_particles_local;
   
   //Allocate temporal Host arrays for the particles data
@@ -364,6 +375,9 @@ void Particles_3D::Initialize_Sphere( void ){
   Real *temp_vel_x  = (Real *) malloc(particles_buffer_size*sizeof(Real));
   Real *temp_vel_y  = (Real *) malloc(particles_buffer_size*sizeof(Real));
   Real *temp_vel_z  = (Real *) malloc(particles_buffer_size*sizeof(Real));
+  #ifndef SINGLE_PARTICLE_MASS
+  Real *temp_mass   = (Real *) malloc(particles_buffer_size*sizeof(Real));
+  #endif
   
   chprintf( " Allocated GPU memory for particle data\n");
   #endif //PARTICLES_GPU
@@ -408,6 +422,9 @@ void Particles_3D::Initialize_Sphere( void ){
     temp_vel_x[pID]  = 0.0;
     temp_vel_y[pID]  = 0.0;
     temp_vel_z[pID]  = 0.0;
+    #ifndef SINGLE_PARTICLE_MASS
+    temp_mass[pID]  = Mparticle;
+    #endif
     #endif //PARTICLES_GPU
     
     pID += 1;
@@ -425,6 +442,9 @@ void Particles_3D::Initialize_Sphere( void ){
   Copy_Particles_Array_Real_Host_to_Device( temp_vel_x, vel_x_dev, n_local);
   Copy_Particles_Array_Real_Host_to_Device( temp_vel_y, vel_y_dev, n_local);
   Copy_Particles_Array_Real_Host_to_Device( temp_vel_z, vel_z_dev, n_local);  
+  #ifndef SINGLE_PARTICLE_MASS
+  Copy_Particles_Array_Real_Host_to_Device( temp_mass, mass_dev, n_local);  
+  #endif
   
   //Free the temporal host buffers
   free( temp_pos_x );
@@ -433,6 +453,9 @@ void Particles_3D::Initialize_Sphere( void ){
   free( temp_vel_x );
   free( temp_vel_y );
   free( temp_vel_z );
+  #ifndef SINGLE_PARTICLE_MASS
+  free( temp_mass );
+  #endif
   #endif //PARTICLES_GPU
   
   chprintf( " Particles Uniform Sphere Initialized, n_local: %lu\n", n_local);

@@ -34,7 +34,7 @@ __device__ void Get_Indexes_CIC( Real xMin, Real yMin, Real zMin, Real dx, Real 
 }
 
 //CUDA Kernel to compute the CIC density from the particles positions
-__global__ void Get_Density_CIC_Kernel( part_int_t n_local, Real particle_mass,  Real *density_dev, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx, int ny, int nz, int n_ghost  ){
+__global__ void Get_Density_CIC_Kernel( part_int_t n_local, Real particle_mass,  Real *density_dev, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *mass_dev, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx, int ny, int nz, int n_ghost  ){
   
   int tid = blockIdx.x * blockDim.x + threadIdx.x ;
   if ( tid >= n_local) return;
@@ -51,12 +51,11 @@ __global__ void Get_Density_CIC_Kernel( part_int_t n_local, Real particle_mass, 
   pos_x = pos_x_dev[tid];
   pos_y = pos_y_dev[tid];
   pos_z = pos_z_dev[tid]; 
-  // 
-  
+    
   #ifdef SINGLE_PARTICLE_MASS
   pMass = particle_mass * dV_inv;
   #else
-  pMass = mass[pIndx] * dV_inv;
+  pMass = mass_dev[tid] * dV_inv;
   #endif
   
   int indx_x, indx_y, indx_z, indx;
@@ -126,7 +125,7 @@ void Particles_3D::Clear_Density_GPU_function( Real *density_dev, int n_cells){
 
 
 //Call the CIC density kernel to get the particles density
-void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particle_mass,  Real xMin, Real xMax, Real yMin, Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells, Real *density_h, Real *density_dev, Real *pos_x_dev, Real *pos_y_dev , Real *pos_z_dev){
+void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particle_mass,  Real xMin, Real xMax, Real yMin, Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells, Real *density_h, Real *density_dev, Real *pos_x_dev, Real *pos_y_dev , Real *pos_z_dev, Real *mass_dev){
     
   // set values for GPU kernels
   int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -135,7 +134,7 @@ void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particl
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  Get_Density_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, particle_mass, density_dev, pos_x_dev, pos_y_dev, pos_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
+  Get_Density_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, particle_mass, density_dev, pos_x_dev, pos_y_dev, pos_z_dev, mass_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
   CudaCheckError();
   cudaDeviceSynchronize();
   
