@@ -398,7 +398,7 @@ void Particles_3D::Clear_Particles_For_Transfer( void ){
 
 void Particles_3D::Load_Particles_to_Buffer_GPU( int direction, int side, Real *send_buffer, int buffer_length  ){
   
-  int n_transfer;
+  part_int_t *n_send;
   Real *pos;
   Real domainMin, domainMax;
   
@@ -406,23 +406,30 @@ void Particles_3D::Load_Particles_to_Buffer_GPU( int direction, int side, Real *
     pos = pos_x_dev;
     domainMax = G.xMax;
     domainMin = G.xMin;
+    if ( side == 0 ) n_send = &n_send_x0;
+    if ( side == 1 ) n_send = &n_send_x1;
   }  
   if ( direction == 1 ){
     pos = pos_y_dev;
     domainMax = G.yMax;
     domainMin = G.yMin;
+    if ( side == 0 ) n_send = &n_send_y0;
+    if ( side == 1 ) n_send = &n_send_y1;
   }  
   if ( direction == 2 ){
     pos = pos_z_dev;
     domainMax = G.zMax;
     domainMin = G.zMin;
+    if ( side == 0 ) n_send = &n_send_z0;
+    if ( side == 1 ) n_send = &n_send_z1;
   }
   
   // Check if size_block_array is large enough to fit the blocks
   
-  n_transfer = Select_Particles_to_Transfer_GPU_function(  n_local, side, domainMin, domainMax, pos, G.n_transfer_d, G.n_transfer_h, G.transfer_particles_flags_d, G.transfer_particles_indxs_d, G.transfer_particles_partial_sum_d, G.transfer_particles_sum_d  ); 
+  //Set the number of particles that will be sent
+  *n_send += Select_Particles_to_Transfer_GPU_function(  n_local, side, domainMin, domainMax, pos, G.n_transfer_d, G.n_transfer_h, G.transfer_particles_flags_d, G.transfer_particles_indxs_d, G.transfer_particles_partial_sum_d, G.transfer_particles_sum_d  ); 
   
-  if ( n_transfer > 0 ) printf( "###Transfered %d  particles\n", n_transfer);
+  if ( *n_send > 0 ) printf( "###Transfered %d  particles\n", *n_send);
   
 }
 
