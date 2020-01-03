@@ -1211,6 +1211,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     status = H5Dclose(dataset_id);
 
+    #ifndef OUTPUT_SINGLE_IONIZATION
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1223,6 +1224,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     dataset_id = H5Dcreate(file_id, "/HII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     status = H5Dclose(dataset_id);
+    #endif //OUTPUT_SINGLE_IONIZATION
 
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
@@ -1249,7 +1251,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     dataset_id = H5Dcreate(file_id, "/HeII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     status = H5Dclose(dataset_id);
-
+    
+    #ifndef OUTPUT_SINGLE_IONIZATION
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1262,7 +1265,9 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     dataset_id = H5Dcreate(file_id, "/HeIII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     status = H5Dclose(dataset_id);
-
+    #endif //OUTPUT_SINGLE_IONIZATION
+    
+    #ifdef OUTPUT_ELECTRONS
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1275,7 +1280,9 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     dataset_id = H5Dcreate(file_id, "/e_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     status = H5Dclose(dataset_id);
-
+    #endif //OUTPUT_ELECTRONS
+    
+    #ifdef OUTPUT_METALS
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1288,7 +1295,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     dataset_id = H5Dcreate(file_id, "/metal_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     status = H5Dclose(dataset_id);
-
+    #endif //OUTPUT_METALS
+    
     #endif //OUTPUT_CHEMISTRY
 
     #ifdef OUTPUT_TEMPERATURE
