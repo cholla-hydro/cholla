@@ -92,8 +92,8 @@ TEMPERATURE_FLOOR = -DTEMPERATURE_FLOOR
 #Output every time step
 # OUTPUT_ALWAYS = -DOUTPUT_ALWAYS
 
-#Average Slow cells
-# AVERAGE_SLOW_CELLS = -DAVERAGE_SLOW_CELLS
+#Average Slow cell when the cell delta_t is very small
+AVERAGE_SLOW_CELLS = -DAVERAGE_SLOW_CELLS
 
 #Allocate GPU memory only once at the first timestep
 # DYNAMIC_GPU_ALLOC = -DDYNAMIC_GPU_ALLOC
@@ -111,7 +111,7 @@ PRINT_INITIAL_STATS = -DPRINT_INITIAL_STATS
 CPU_TIME = -DCPU_TIME
 
 #Set the MPI Processes grid [nproc_x, nproc_y, nproc_z]
-SET_MPI_GRID = -DSET_MPI_GRID
+# SET_MPI_GRID = -DSET_MPI_GRID
 
 #INCLUDE GRAVITY
 GRAVITY = -DGRAVITY
