@@ -78,8 +78,8 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   data->primordial_chemistry = 1;   // molecular network with H, He
   data->metal_cooling = 1;          // metal cooling on
   data->UVbackground = 1;           // UV background on
-  data->grackle_data_file = "src/cooling/CloudyData_UVB=HM2012.h5"; // data file
-  // data->grackle_data_file = "src/cooling/CloudyData_UVB=HM2012_cloudy.h5"; // data file
+  // data->grackle_data_file = "src/cooling/CloudyData_UVB=HM2012.h5"; // data file
+  data->grackle_data_file = "src/cooling/CloudyData_UVB=HM2012_cloudy.h5"; // data file
   // data->grackle_data_file = "src/cooling/CloudyData_UVB=Puchwein2018_cloudy.h5"; // data file
   // data->grackle_data_file = "src/cooling/CloudyData_UVB=FG2011.h5"; // data file
   data->use_specific_heating_rate = 0;
