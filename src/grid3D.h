@@ -239,6 +239,11 @@ struct Header
   *  \brief Flag set to true when data has to be written to file */
   bool Output_Now;
   bool Output_Initial;
+  
+  /*! \var Output_Complete_Data
+  *  \brief Flag set to true when all the data will  be written to file (Restart File ) */
+  bool Output_Complete_Data;
+  
 
 };
 

@@ -23,6 +23,8 @@
 
 using namespace std;
 
+// #define OUTPUT_ENERGY
+
 /* function used to rotate points about an axis in 3D for the rotated projection output routine */
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
 
@@ -74,6 +76,21 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
 {
   
   chprintf( "\nSaving Snapshot: %d \n", nfile );
+  
+  #ifdef N_OUTPUT_COMPLETE
+  //If nfile is multiple of N_OUTPUT_COMPLETE then output all data
+  if ( nfile%N_OUTPUT_COMPLETE == 0 ){
+    G.H.Output_Complete_Data = true;
+    chprintf( " Writing all data ( Restart File ).\n");
+  } 
+  else{
+    G.H.Output_Complete_Data = false;
+  }
+  
+  #else
+  //If NOT N_OUTPUT_COMPLETE: always output complete data
+  G.H.Output_Complete_Data = true;
+  #endif
 
   #ifdef COSMOLOGY
   G.Change_Cosmological_Frame_Sytem( false );
@@ -816,6 +833,34 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   hid_t     dataset_id, dataspace_id; 
   Real      *dataset_buffer;
   herr_t    status;
+  
+  bool output_energy;
+  
+  #ifdef OUTPUT_ENERGY
+  output_energy = true;
+  #else
+  output_energy = false;
+  #endif
+  
+  #ifdef COOLING_GRACKLE
+  bool output_metals, output_electrons, output_full_ionization;
+  #ifdef OUTPUT_METALS
+  output_metals = true;
+  #else
+  output_metals = false;
+  #endif
+  #ifdef OUTPUT_ELECTRONS
+  output_electrons = true;
+  #else
+  output_electrons = false;
+  #endif
+  #ifdef OUTPUT_FULL_IONIZATION
+  output_full_ionization = true;
+  #else
+  output_full_ionization = false;
+  #endif
+  
+  #endif //COOLING_GRACKLE
 
 
   // 1D case
@@ -1162,13 +1207,14 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-
-    // Create a dataset id for Energy 
-    dataset_id = H5Dcreate(file_id, "/Energy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    // Write the Energy array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
+    if ( output_energy || H.Output_Complete_Data ){
+      // Create a dataset id for Energy 
+      dataset_id = H5Dcreate(file_id, "/Energy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      // Write the Energy array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+    }
 
     #ifdef SCALAR
     #ifndef COOLING_GRACKLE // Dont write scalars when using grackle
@@ -1211,7 +1257,6 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     status = H5Dclose(dataset_id);
 
-    #ifndef OUTPUT_SINGLE_IONIZATION
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1221,11 +1266,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    dataset_id = H5Dcreate(file_id, "/HII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    #endif //OUTPUT_SINGLE_IONIZATION
-
+    if ( output_full_ionization || H.Output_Complete_Data ){
+      dataset_id = H5Dcreate(file_id, "/HII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+    }
+    
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1252,7 +1298,6 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     status = H5Dclose(dataset_id);
     
-    #ifndef OUTPUT_SINGLE_IONIZATION
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1262,12 +1307,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    dataset_id = H5Dcreate(file_id, "/HeIII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    #endif //OUTPUT_SINGLE_IONIZATION
+    if ( output_full_ionization || H.Output_Complete_Data ){
+      dataset_id = H5Dcreate(file_id, "/HeIII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+    }
     
-    #ifdef OUTPUT_ELECTRONS
+    
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1277,12 +1323,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    dataset_id = H5Dcreate(file_id, "/e_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    #endif //OUTPUT_ELECTRONS
+    if ( output_electrons || H.Output_Complete_Data ){
+      dataset_id = H5Dcreate(file_id, "/e_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+    }
     
-    #ifdef OUTPUT_METALS
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1292,10 +1338,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    dataset_id = H5Dcreate(file_id, "/metal_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    #endif //OUTPUT_METALS
+    if ( output_metals || H.Output_Complete_Data ){
+      dataset_id = H5Dcreate(file_id, "/metal_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+    }
+    
     
     #endif //OUTPUT_CHEMISTRY
 
@@ -1332,13 +1380,14 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }    
-
-    // Create a dataset id for internal energy 
-    dataset_id = H5Dcreate(file_id, "/GasEnergy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    // Write the internal energy array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
+    if ( output_energy || H.Output_Complete_Data ){
+      // Create a dataset id for internal energy 
+      dataset_id = H5Dcreate(file_id, "/GasEnergy", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      // Write the internal energy array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+    }
     #endif
     
     #ifdef GRAVITY
