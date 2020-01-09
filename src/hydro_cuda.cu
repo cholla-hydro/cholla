@@ -508,7 +508,7 @@ __global__ void Calc_dt_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Rea
 }
 
 
-__global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real *dti_array, Real gamma)
+__global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real *dti_array, Real gamma, Real max_dti_slow)
 {
   __shared__ Real max_dti[TPB];
 
@@ -545,6 +545,29 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
     max_dti[tid] = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
     max_dti[tid] = fmax(max_dti[tid], (fabs(vz)+cs)/dz);
     max_dti[tid] = fmax(max_dti[tid], 0.0);
+    
+    #ifdef AVERAGE_SLOW_CELLS
+    // If the cell delta_t is smaller than the min_delta_t, then the cell is averaged over its neighbours
+    if (max_dti[tid] > max_dti_slow){
+      // Average this cell
+      printf(" Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f\n", xid, yid, zid, 1./max_dti[tid],  1./max_dti_slow );
+      Average_Cell_All_Fields( xid, yid, zid, nx, ny, nz, n_cells, dev_conserved );
+      
+      // Recompute max_dti for this cell
+      d  =  dev_conserved[            id];
+      d_inv = 1.0 / d;
+      vx =  dev_conserved[1*n_cells + id] * d_inv;
+      vy =  dev_conserved[2*n_cells + id] * d_inv;
+      vz =  dev_conserved[3*n_cells + id] * d_inv;
+      E  = dev_conserved[4*n_cells + id];
+      P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+      cs = sqrt(d_inv * gamma * P);
+      max_dti[tid] = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
+      max_dti[tid] = fmax(max_dti[tid], (fabs(vz)+cs)/dz);
+      max_dti[tid] = fmax(max_dti[tid], 0.0);
+    }
+    
+    #endif
   }
   __syncthreads();
   
@@ -1047,6 +1070,7 @@ __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int
 }
 #endif //TEMPERATURE_FLOOR
 
+#ifdef AVERAGE_SLOW_CELLS
 
 __device__ Real Average_Cell_Single_Field( int field_indx, int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved ){
   Real v_l, v_r, v_d, v_u, v_b, v_t, v_avrg;
@@ -1070,5 +1094,25 @@ __device__ Real Average_Cell_Single_Field( int field_indx, int i, int j, int k, 
   return v_avrg;
 
 }
+
+__device__ void Average_Cell_All_Fields( int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved ){
+  
+  // Average Density
+  Average_Cell_Single_Field( 0, i, j, k, nx, ny, nz, ncells, conserved );
+  // Average Momentum_x
+  Average_Cell_Single_Field( 1, i, j, k, nx, ny, nz, ncells, conserved );
+  // Average Momentum_y
+  Average_Cell_Single_Field( 2, i, j, k, nx, ny, nz, ncells, conserved );
+  // Average Momentum_z
+  Average_Cell_Single_Field( 3, i, j, k, nx, ny, nz, ncells, conserved );
+  // Average Energy
+  Average_Cell_Single_Field( 4, i, j, k, nx, ny, nz, ncells, conserved );
+  #ifdef DE
+  // Average GasEnergy
+  Average_Cell_Single_Field( 5, i, j, k, nx, ny, nz, ncells, conserved );
+  #endif
+}
+
+#endif //AVERAGE_SLOW_CELLS
 
 #endif //CUDA

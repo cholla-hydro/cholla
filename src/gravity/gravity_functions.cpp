@@ -77,6 +77,14 @@ void Grid3D::set_dt_Gravity(){
   H.dt = dt_min; 
   chprintf( " Current_a: %f    delta_a: %f     dt:  %f\n", Cosmo.current_a, Cosmo.delta_a, H.dt  );
   
+  #ifdef AVERAGE_SLOW_CELLS
+  //Set the min_delta_t for averaging a slow cell
+  Real min_dt_slow;
+  min_dt_slow = Particles.dt / Particles.C_cfl * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a ) * 0.99;
+  // chprintf(" Slow Cell dt:   gas:%f    min_dt:%f  \n", dt_hydro, min_dt_slow);
+  H.min_dt_slow = min_dt_slow;
+  #endif 
+  
   //Compute the physical time
   dt_physical = Cosmo.Get_dt_from_da( Cosmo.delta_a );
   Cosmo.dt_secs = dt_physical * Cosmo.time_conversion;

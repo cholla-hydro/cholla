@@ -199,6 +199,10 @@ struct Header
   /*! \var dt
   *  \brief Length of the current timestep */
   Real dt;
+  
+  #ifdef AVERAGE_SLOW_CELLS
+  Real min_dt_slow;
+  #endif 
 
   /*! \var t_wall
   *  \brief Wall time */
