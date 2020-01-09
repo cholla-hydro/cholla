@@ -1070,7 +1070,6 @@ __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int
 }
 #endif //TEMPERATURE_FLOOR
 
-#ifdef AVERAGE_SLOW_CELLS
 
 __device__ Real Average_Cell_Single_Field( int field_indx, int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved ){
   Real v_l, v_r, v_d, v_u, v_b, v_t, v_avrg;
@@ -1113,6 +1112,5 @@ __device__ void Average_Cell_All_Fields( int i, int j, int k, int nx, int ny, in
   #endif
 }
 
-#endif //AVERAGE_SLOW_CELLS
 
 #endif //CUDA

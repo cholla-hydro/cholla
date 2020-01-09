@@ -19,6 +19,10 @@ void Grid3D::set_dt_Gravity(){
   //Delta_t for the hydro
   Real dt_hydro = H.dt;
   
+  #ifdef AVERAGE_SLOW_CELLS
+  Real min_dt_slow;
+  #endif
+  
   #ifdef PARTICLES
   //Compute delta_t for particles and choose min(dt_particles, dt_hydro)
   Real dt_particles, dt_min;
@@ -79,9 +83,7 @@ void Grid3D::set_dt_Gravity(){
   
   #ifdef AVERAGE_SLOW_CELLS
   //Set the min_delta_t for averaging a slow cell
-  Real min_dt_slow;
-  min_dt_slow = Particles.dt / Particles.C_cfl * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a ) * 0.99;
-  // chprintf(" Slow Cell dt:   gas:%f    min_dt:%f  \n", dt_hydro, min_dt_slow);
+  min_dt_slow = Particles.dt / Particles.C_cfl * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a ) / SLOW_FACTOR;
   H.min_dt_slow = min_dt_slow;
   #endif 
   
@@ -107,11 +109,23 @@ void Grid3D::set_dt_Gravity(){
   dt_min = fmin( dt_hydro, dt_particles );
   #endif//ONLY_PARTICLES
   
+  #ifdef AVERAGE_SLOW_CELLS
+  //Set the min_delta_t for averaging a slow cell
+  min_dt_slow = dt_particles / Particles.C_cfl / SLOW_FACTOR;
+  H.min_dt_slow = min_dt_slow;
+  #endif 
+  
   //Set the new delta_t
   H.dt = dt_min;
   Particles.dt = H.dt;
   #endif//COSMOLOGY
   #endif//PARTICLES
+  
+  #if defined( AVERAGE_SLOW_CELLS) && !defined( PARTICLES )
+  //Set the min_delta_t for averaging a slow cell ( for now the min_dt_slow is set to a large value, change this with your condition )
+  min_dt_slow = H.dt / C_cfl * 100 ; 
+  H.min_dt_slow = min_dt_slow;
+  #endif
   
   // Set current and previous delta_t for the potential extrapolation
   if ( Grav.INITIAL ){

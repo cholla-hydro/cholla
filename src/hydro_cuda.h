@@ -57,11 +57,9 @@ __global__ void Select_Internal_Energy_2D( Real *dev_conserved, int nx, int ny, 
 
 __global__ void Select_Internal_Energy_3D( Real *dev_conserved, int nx, int ny, int nz,  int n_ghost, int n_fields );
 
-#ifdef AVERAGE_SLOW_CELLS
 __device__ void Average_Cell_All_Fields( int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved );
 
 __device__ Real Average_Cell_Single_Field( int field_indx, int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved );
-#endif //AVERAGE_SLOW_CELLS
 
 
 #endif //HYDRO_CUDA_H
