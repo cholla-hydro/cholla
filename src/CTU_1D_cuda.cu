@@ -51,9 +51,9 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   if ( !memory_allocated ) {
 
     // allocate an array on the CPU to hold max_dti returned from each thread block
-    host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
+    CudaSafeCall( hipHostMalloc(&host_dti_array, ngrid*sizeof(Real)));
     #ifdef COOLING_GPU
-    host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
+    CudaSafeCall( hipHostMalloc(&host_dt_array, ngrid*sizeof(Real)));
     #endif
 
     // allocate memory on the GPU
@@ -179,9 +179,9 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 void Free_Memory_CTU_1D() {
 
   // free the CPU memory
-  free(host_dti_array);
+  CudaSafeCall( hipHostFree(host_dti_array));
   #if defined COOLING_GPU
-  free(host_dt_array);  
+  CudaSafeCall( hipHostFree(host_dt_array));
   #endif
 
   // free the GPU memory

@@ -8,6 +8,7 @@
 #include <hdf5.h>
 #endif
 #include "global.h"
+#include "global_cuda.h"
 #include "grid3D.h"
 #include "CTU_1D.h"
 #include "CTU_2D.h"
@@ -21,6 +22,7 @@
 #include "io.h"
 #include "error_handling.h"
 #include "ran.h"
+#include <hip/hip_runtime.h>
 #ifdef MPI_CHOLLA
 #include <mpi.h>
 #ifdef HDF5
@@ -215,8 +217,8 @@ void Grid3D::AllocateMemory(void)
 
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
-  buffer0 = (Real *) malloc(H.n_fields*H.n_cells*sizeof(Real));
-  buffer1 = (Real *) malloc(H.n_fields*H.n_cells*sizeof(Real));
+  CudaSafeCall( hipHostMalloc(&buffer0, H.n_fields*H.n_cells*sizeof(Real)));
+  CudaSafeCall( hipHostMalloc(&buffer1, H.n_fields*H.n_cells*sizeof(Real)));
 
   // point conserved variables to the appropriate locations in buffer
   C.density  = &(buffer0[0]);
@@ -501,8 +503,8 @@ void Grid3D::Reset(void)
 void Grid3D::FreeMemory(void)
 {
   // free the conserved variable arrays
-  free(buffer0);
-  free(buffer1);
+  CudaSafeCall( hipHostFree(buffer0));
+  CudaSafeCall( hipHostFree(buffer1));
   
   #ifndef DYNAMIC_GPU_ALLOC
   // If memory is single allocated, free the memory at the end of the simulation.

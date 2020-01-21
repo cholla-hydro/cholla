@@ -28,8 +28,8 @@ void Load_Cuda_Textures()
 
   // allocate host arrays to be copied to textures
   // these arrays are declared as external pointers in global.h
-  cooling_table = (float *) malloc(nx*ny*sizeof(float));
-  heating_table = (float *) malloc(nx*ny*sizeof(float));
+  CudaSafeCall( hipHostMalloc(&cooling_table, nx*ny*sizeof(float)) );
+  CudaSafeCall( hipHostMalloc(&heating_table, nx*ny*sizeof(float)) );
 
   // Load cooling tables into the host arrays
   Load_Cooling_Tables(cooling_table, heating_table);
@@ -58,8 +58,8 @@ void Load_Cuda_Textures()
   hipBindTextureToArray(heatTexObj, cuHeatArray);
 
   // Free the memory associated with the cooling tables on the host
-  free(cooling_table);
-  free(heating_table);
+  CudaSafeCall( hipHostFree(cooling_table) );
+  CudaSafeCall( hipHostFree(heating_table) );
 
 }
 
