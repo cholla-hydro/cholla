@@ -63,8 +63,11 @@ int main(int argc, char *argv[])
   // and output to screen
   chprintf ("Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, boundaries = %d %d %d %d %d %d\n", 
     P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
+  if (strcmp(P.init, "Read_Grid") == 0  ) chprintf ("Input directory:  %s\n", P.indir);
   chprintf ("Output directory:  %s\n", P.outdir);
-
+  
+  //Create a Log file to output run-time messages
+  Create_Log_File(P);
 
   // initialize the grid
   G.Initialize(&P);
@@ -81,11 +84,49 @@ int main(int argc, char *argv[])
     outtime += G.H.t;
     nfile = P.nfile*P.nfull;
   }
+  
+  #ifdef DE
+  chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2 );
+  char *message = (char*)malloc(50 * sizeof(char));
+  sprintf(message, " eta_1: %0.3f   eta_2: %0.3f  ", DE_ETA_1, DE_ETA_2 );
+  Write_Message_To_Log_File( message );
+  #endif
+  
+  
+  #ifdef CPU_TIME
+  G.Timer.Initialize();
+  #endif
+  
+  #ifdef GRAVITY
+  G.Initialize_Gravity(&P);
+  #endif
+  
+  #ifdef PARTICLES
+  G.Initialize_Particles(&P);
+  #endif
+  
+  #ifdef COSMOLOGY
+  G.Initialize_Cosmology(&P);
+  #endif
+  
+  #ifdef COOLING_GRACKLE
+  G.Initialize_Grackle(&P);
+  #endif
 
-  // set boundary conditions (assign appropriate values to ghost cells)
+  #ifdef GRAVITY
+  // Get the gravitaional potential for the first timestep
+  G.Compute_Gravitational_Potential( &P);
+  #endif
+
+  // Set boundary conditions (assign appropriate values to ghost cells) for hydro and potential
   chprintf("Setting boundary conditions...\n");
-  G.Set_Boundary_Conditions(P);
+  G.Set_Boundary_Conditions_Grid(P);
   chprintf("Boundary conditions set.\n");  
+  
+  #ifdef PARTICLES
+  // Get the particles acceleration for the first timestep
+  G.Get_Particles_Acceleration();
+  #endif
 
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n",gama);
@@ -93,7 +134,7 @@ int main(int argc, char *argv[])
 
 
   #ifdef OUTPUT
-  if (strcmp(P.init, "Read_Grid") != 0) {
+  if (strcmp(P.init, "Read_Grid") != 0 || G.H.Output_Now ) {
   // write the initial conditions to file
   chprintf("Writing initial conditions to file...\n");
   WriteData(G, P, nfile);
@@ -116,73 +157,53 @@ int main(int argc, char *argv[])
   printf("Init %9.4f\n", init);
   #endif //MPI_CHOLLA
   #endif //CPU_TIME
-
+  
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
   while (G.H.t < P.tout)
-  //while (G.H.n_step < 1)
   {
-
+    chprintf("n_step: %d \n", G.H.n_step + 1 );
     // get the start time
     start_step = get_time();
     
     // calculate the timestep
     G.set_dt(dti);
 
-    if (G.H.t + G.H.dt > outtime) 
-    {
-      G.H.dt = outtime - G.H.t;
-    }
-
-    #ifdef MPI_CHOLLA
-    G.H.dt = ReduceRealMin(G.H.dt);
+    if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
+    
+    #ifdef PARTICLES
+    //Advance the particles KDK( first step ): Velocities are updated by 0.5*dt and positions are updated by dt
+    G.Advance_Particles( 1 );   
+    //Transfer the particles that moved outside the local domain  
+    G.Transfer_Particles_Boundaries(P); 
     #endif
-   
-
+    
     // Advance the grid by one timestep
-    #ifdef CPU_TIME
-    start_hydro = get_time();
-    #endif //CPU_TIME
-    dti = G.Update_Grid();
-    #ifdef CPU_TIME
-    stop_hydro = get_time();
-    hydro = stop_hydro - start_hydro;
-    #ifdef MPI_CHOLLA
-    hydro_min = ReduceRealMin(hydro);
-    hydro_max = ReduceRealMax(hydro);
-    hydro_avg = ReduceRealAvg(hydro);
-    #endif //MPI_CHOLLA
-    #endif //CPU_TIME
-    //printf("%d After Grid Update: %f %f\n", procID, G.H.dt, dti);
-
-    // update the time
-    G.H.t += G.H.dt;
+    dti = G.Update_Hydro_Grid();
+    
+    // update the simulation time ( t += dt )
+    G.Update_Time();
+    
+        
+    #ifdef GRAVITY
+    //Compute Gravitational potential for next step
+    G.Compute_Gravitational_Potential( &P);
+    #endif
 
     // add one to the timestep count
     G.H.n_step++;
 
-    // set boundary conditions for next time step 
+    //Set the Grid boundary conditions for next time step 
+    G.Set_Boundary_Conditions_Grid(P);
+    
+    #ifdef PARTICLES
+    ///Advance the particles KDK( second step ): Velocities are updated by 0.5*dt using the Accelerations at the new positions
+    G.Advance_Particles( 2 );
+    #endif
+    
     #ifdef CPU_TIME
-    start_bound = get_time();
-    #endif //CPU_TIME
-    G.Set_Boundary_Conditions(P);
-    #ifdef CPU_TIME
-    stop_bound = get_time();
-    bound = stop_bound - start_bound;
-    #ifdef MPI_CHOLLA
-    bound_min = ReduceRealMin(bound);
-    bound_max = ReduceRealMax(bound);
-    bound_avg = ReduceRealAvg(bound);
-    #endif //MPI_CHOLLA
-    #endif //CPU_TIME
-
-    #ifdef CPU_TIME
-    #ifdef MPI_CHOLLA
-    chprintf("hydro min: %9.4f  max: %9.4f  avg: %9.4f\n", hydro_min, hydro_max, hydro_avg);
-    chprintf("bound min: %9.4f  max: %9.4f  avg: %9.4f\n", bound_min, bound_max, bound_avg);
-    #endif //MPI_CHOLLA
-    #endif //CPU_TIME
-
+    G.Timer.Print_Times();
+    #endif
 
     // get the time to compute the total timestep
     stop_step = get_time();
@@ -191,10 +212,16 @@ int main(int argc, char *argv[])
     #ifdef MPI_CHOLLA
     G.H.t_wall = ReduceRealMax(G.H.t_wall);
     #endif 
-    chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n", 
+    chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n\n", 
       G.H.n_step, G.H.t, G.H.dt, (stop_step-start_step)*1000, G.H.t_wall);
-
-    if (G.H.t == outtime)
+    
+    #ifdef OUTPUT_ALWAYS
+    G.H.Output_Now = true;
+    #endif
+    
+    // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0) G.H.Output_Now = true;
+    
+    if (G.H.t == outtime || G.H.Output_Now )
     {
       #ifdef OUTPUT
       /*output the grid data*/
@@ -205,26 +232,34 @@ int main(int argc, char *argv[])
       // update to the next output time
       outtime += P.outstep;      
     }
-/*
-    // check for failures
-    for (int i=G.H.n_ghost; i<G.H.nx-G.H.n_ghost; i++) {
-      for (int j=G.H.n_ghost; j<G.H.ny-G.H.n_ghost; j++) {
-        for (int k=G.H.n_ghost; k<G.H.nz-G.H.n_ghost; k++) {
-          int id = i + j*G.H.nx + k*G.H.nx*G.H.ny;
-          if (G.C.density[id] < 0.0 || G.C.density[id] != G.C.density[id]) {
-            printf("Failure in cell %d %d %d. Density %e\n", i, j, k, G.C.density[id]);
-            #ifdef MPI_CHOLLA
-            MPI_Finalize();
-            chexit(-1);
-            #endif
-            exit(0);
-          }
-        }
-      }
+    
+    #ifdef CPU_TIME
+    G.Timer.n_steps += 1;
+    #endif
+    
+    #ifdef N_STEPS_LIMIT
+    // Exit the loop when reached the limit number of steps (optional)
+    if ( G.H.n_step == N_STEPS_LIMIT) break;
+    #endif
+
+    #ifdef COSMOLOGY
+    // Exit the loop when reached the last scale_factor output 
+    if ( G.Cosmo.current_a >= G.Cosmo.scale_outputs[G.Cosmo.n_outputs-1] ) {
+      chprintf( "\nReached Last Cosmological Output: Ending Simulation\n");
+      break;
     }
-*/   
+    #endif
 
   } /*end loop over timesteps*/
+  
+  
+  #ifdef CPU_TIME
+  // Print timing statistics
+  G.Timer.Get_Average_Times();
+  G.Timer.Print_Average_Times( P );
+  #endif
+  
+  Write_Message_To_Log_File( "Run completed successfully!");
 
   // free the grid
   G.Reset();

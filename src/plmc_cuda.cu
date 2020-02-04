@@ -55,6 +55,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real d_L_iph, vx_L_iph, vy_L_iph, vz_L_iph, p_L_iph;
   Real d_R_imh, vx_R_imh, vy_R_imh, vz_R_imh, p_R_imh;
   Real C;
+  // #ifdef CTU
   #ifndef VL
   Real dtodx = dt/dx;
   Real lambda_m, lambda_0, lambda_p;
@@ -77,6 +78,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real del_scalar_L[NSCALARS], del_scalar_R[NSCALARS], del_scalar_C[NSCALARS], del_scalar_G[NSCALARS];
   Real del_scalar_m_i[NSCALARS];
   Real scalar_L_iph[NSCALARS], scalar_R_imh[NSCALARS];
+  // #ifdef CTU
   #ifndef VL
   Real sum_scalar[NSCALARS];
   #endif //CTU
@@ -192,7 +194,8 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
     // Compute the eigenvalues of the linearized equations in the
     // primative variables using the cell-centered primative variables
-    #ifdef CTU
+    // #ifdef CTU
+    #ifndef VL
     lambda_m = vx_i-a_i;
     lambda_0 = vx_i;
     lambda_p = vx_i+a_i; 
@@ -438,17 +441,18 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
 
 
-    #ifdef CTU
+    // #ifdef CTU
+    #ifndef VL
     // Integrate linear interpolation function over domain of dependence
     // defined by max(min) eigenvalue
-    qx = -0.5*fmin(lambda_m, 0)*dtodx;
+    qx = -0.5*fmin(lambda_m, 0.0)*dtodx;
     d_R_imh  = d_R_imh  + qx * del_d_m_i;
     vx_R_imh = vx_R_imh + qx * del_vx_m_i;
     vy_R_imh = vy_R_imh + qx * del_vy_m_i;
     vz_R_imh = vz_R_imh + qx * del_vz_m_i;
     p_R_imh  = p_R_imh  + qx * del_p_m_i;
 
-    qx = 0.5*fmax(lambda_p, 0)*dtodx;
+    qx = 0.5*fmax(lambda_p, 0.0)*dtodx;
     d_L_iph  = d_L_iph  - qx * del_d_m_i;
     vx_L_iph = vx_L_iph - qx * del_vx_m_i;
     vy_L_iph = vy_L_iph - qx * del_vy_m_i;

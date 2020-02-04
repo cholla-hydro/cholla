@@ -14,3 +14,5 @@ makefile.summit
 
 ## dropbox file
 .DS_Store
+
+.remote-sync.json

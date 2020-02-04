@@ -37,6 +37,9 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
   #ifdef H_CORRECTION
   cell_mem += 6*sizeof(Real);
   #endif
+  #if defined( GRAVITY ) 
+  cell_mem += sizeof(Real);
+  #endif
   max_vol = free / cell_mem; 
   // plus a buffer for dti array
   max_vol = max_vol - 400;
@@ -182,7 +185,7 @@ void get_offsets_3D(int nx_s, int ny_s, int nz_s, int n_ghost, int x_off, int y_
 
 
 // copy the conserved variable block into the buffer
-void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int block3_tot, int remainder1, int remainder2, int remainder3, int BLOCK_VOL, Real *host_conserved, Real *buffer, int n_fields) {
+void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int block3_tot, int remainder1, int remainder2, int remainder3, int BLOCK_VOL, Real *host_conserved, Real *buffer, int n_fields, Real *host_grav_potential, Real *buffer_potential ) {
   
   int n_cells = nx*ny*nz;
   int block1, block2, block3;
@@ -213,6 +216,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
         for (int ii=0; ii<n_fields; ii++) {
           memcpy(&buffer[ii*BLOCK_VOL + j*nx_s + k*nx_s*ny_s], &host_conserved[x_host + ii*n_cells + j*nx + k*nx*ny], nx_s*sizeof(Real)); 
         }
+        #if defined( GRAVITY ) 
+        memcpy(&buffer_potential[j*nx_s + k*nx_s*ny_s], &host_grav_potential[x_host + j*nx + k*nx*ny], nx_s*sizeof(Real));
+        #endif
       }
     }
 
@@ -239,6 +245,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
       for (int ii=0; ii<n_fields; ii++) {
         memcpy(&buffer[ii*BLOCK_VOL + k*nx_s*ny_s], &host_conserved[y_host + ii*n_cells + k*nx*ny], nx_s*ny_s*sizeof(Real)); 
       }
+      #if defined( GRAVITY )
+      memcpy(&buffer_potential[k*nx_s*ny_s], &host_grav_potential[y_host + k*nx*ny], nx_s*ny_s*sizeof(Real));
+      #endif
     }
 
     return;
@@ -264,6 +273,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     for (int ii=0; ii<n_fields; ii++) {
       memcpy(&buffer[ii*BLOCK_VOL], &host_conserved[z_host + ii*n_cells], BLOCK_VOL*sizeof(Real));
     }
+    #if defined( GRAVITY ) 
+    memcpy(&buffer_potential[0], &host_grav_potential[z_host], BLOCK_VOL*sizeof(Real));
+    #endif
 
     return;
   }
@@ -299,6 +311,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
       for (int ii=0; ii<n_fields; ii++) {
         memcpy(&buffer[ii*BLOCK_VOL + k*nx_s*ny_s], &host_conserved[z_host + y_host + ii*n_cells + k*nx*ny], nx_s*ny_s*sizeof(Real)); 
       }
+      #if defined( GRAVITY )
+      memcpy(&buffer_potential[k*nx_s*ny_s], &host_grav_potential[z_host + y_host + k*nx*ny], nx_s*ny_s*sizeof(Real)); 
+      #endif
     }
 
     return;
@@ -344,6 +359,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
         for (int ii=0; ii<n_fields; ii++) {
           memcpy(&buffer[ii*BLOCK_VOL + j*nx_s + k*nx_s*ny_s], &host_conserved[x_host + y_host + z_host + ii*n_cells + j*nx + k*nx*ny], nx_s*sizeof(Real)); 
         }
+        #if defined( GRAVITY ) 
+        memcpy(&buffer_potential[j*nx_s + k*nx_s*ny_s], &host_grav_potential[x_host + y_host + z_host + j*nx + k*nx*ny], nx_s*sizeof(Real)); 
+        #endif
       }
     }
 

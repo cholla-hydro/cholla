@@ -58,7 +58,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real d_L, vx_L, vy_L, vz_L, p_L;
   Real d_R, vx_R, vy_R, vz_R, p_R;
 
-  #ifdef CTU
+  // #ifdef CTU
+  #ifndef VL
   Real dtodx = dt/dx;
   Real d_6, vx_6, vy_6, vz_6, p_6;
   Real lambda_m, lambda_0, lambda_p;
@@ -74,7 +75,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real del_ge_m_imo, del_ge_m_i, del_ge_m_ipo;
   Real ge_L, ge_R;
   Real  E_kin, E, dge;
-  #ifdef CTU
+  // #ifdef CTU
+  #ifndef VL
   Real chi_ge, sum_ge, ge_6;
   #endif
   #endif
@@ -83,7 +85,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real del_scalar_L[NSCALARS], del_scalar_R[NSCALARS], del_scalar_C[NSCALARS], del_scalar_G[NSCALARS];
   Real del_scalar_m_imo[NSCALARS], del_scalar_m_i[NSCALARS], del_scalar_m_ipo[NSCALARS];
   Real scalar_L[NSCALARS], scalar_R[NSCALARS];
-  #ifdef CTU
+  // #ifdef CTU
+  #ifndef VL
   Real chi_scalar[NSCALARS], sum_scalar[NSCALARS], scalar_6[NSCALARS];
   #endif
   #endif
@@ -783,7 +786,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
     #endif
 
-    #ifdef CTU
+    // #ifdef CTU
+    #ifndef VL
 
     // Step 8 - Compute the coefficients for the monotonized parabolic interpolation function
     //          Stone Eqn 54

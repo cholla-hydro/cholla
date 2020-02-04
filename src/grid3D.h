@@ -15,6 +15,26 @@
 #include<hdf5.h>
 #endif
 
+#ifdef GRAVITY
+#include"gravity/grav3D.h"
+#endif
+
+#ifdef PARTICLES
+#include "particles/particles_3D.h"
+#endif
+
+#ifdef COSMOLOGY
+#include"cosmology/cosmology.h"
+#endif
+
+#ifdef COOLING_GRACKLE
+#include "cooling/cool_grackle.h"
+#endif
+
+#ifdef CPU_TIME
+#include "timing_functions.h"
+#endif
+
 struct Rotation
 {
   /*! \var nx
@@ -179,6 +199,10 @@ struct Header
   /*! \var dt
   *  \brief Length of the current timestep */
   Real dt;
+  
+  #ifdef AVERAGE_SLOW_CELLS
+  Real min_dt_slow;
+  #endif 
 
   /*! \var t_wall
   *  \brief Wall time */
@@ -191,6 +215,35 @@ struct Header
   /*! \var n_fields
   *  \brief Number of fields (conserved variables, scalars, etc.) */
   int n_fields;
+  
+  // Values for lower limit for density and temperature
+  Real density_floor;
+  Real temperature_floor;
+  
+  Real Ekin_avrg;
+  
+  //Flag to indicate when to transfer the Conserved boundaries
+  bool TRANSFER_HYDRO_BOUNDARIES;
+  
+  #ifdef GRAVITY
+  /*! \var n_ghost_potential_offset
+  *  \brief Number of offset betewen hydro_ghost_cells and potential_ghost_cells */
+  int n_ghost_potential_offset;
+  #endif
+  
+  #ifdef COSMOLOGY
+  bool OUTPUT_SCALE_FACOR;
+  #endif
+  
+  /*! \var Output_Now
+  *  \brief Flag set to true when data has to be written to file */
+  bool Output_Now;
+  bool Output_Initial;
+  
+  /*! \var Output_Complete_Data
+  *  \brief Flag set to true when all the data will  be written to file (Restart File ) */
+  bool Output_Complete_Data;
+  
 
 };
 
@@ -223,6 +276,30 @@ class Grid3D
     /*! \var buffer1
      *  \brief Buffer to hold conserved variable arrays */
     Real *buffer1;
+    
+    #ifdef GRAVITY
+    // Object that contains data for gravity
+    Grav3D Grav;
+    #endif
+    
+    #ifdef PARTICLES
+    // Object that contains data for particles
+    Particles_3D Particles;
+    #endif
+    
+    #ifdef COSMOLOGY
+    // Object that contains data for cosmology
+    Cosmology Cosmo;
+    #endif
+    
+    #ifdef COOLING_GRACKLE
+    // Object that contains data for Grackle cooling
+    Cool_GK Cool;
+    #endif
+    
+    #ifdef CPU_TIME
+    Time Timer;
+    #endif
 
     struct Conserved
     {
@@ -258,7 +335,12 @@ class Grid3D
        *  \brief Array containing the values of the passive scalar variable(s). */
       Real *scalar;
       #endif
+      
+      /*! \var grav_potential
+      *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
+      Real *Grav_potential;
 
+      
     } C;
 
 
@@ -289,6 +371,28 @@ class Grid3D
     /*! \fn void set_dt(Real dti)
      *  \brief Calculate the timestep. */
     void set_dt(Real dti);
+    
+    #ifdef GRAVITY
+    /*! \fn void set_dt(Real dti)
+     *  \brief Calculate the timestep for Gravity. */
+    void set_dt_Gravity();
+    #endif
+    
+    /*! \fn Real calc_dti_CPU_1D()
+     *  \brief Calculate the maximum inverse timestep on 1D, according to the CFL condition (Toro 6.17). */
+    Real calc_dti_CPU_1D();
+    
+    /*! \fn Real calc_dti_CPU_2D()
+     *  \brief Calculate the maximum inverse timestep on 2D, according to the CFL condition (Toro 6.17). */
+    Real calc_dti_CPU_2D();
+
+    /*! \fn Real calc_dti_CPU_3D_function()
+     *  \brief Calculate the maximum inverse timestep on 3D using openMP, according to the CFL condition (Toro 6.17). */
+    Real calc_dti_CPU_3D_function( int g_start, int g_end );
+        
+    /*! \fn Real calc_dti_CPU_3D()
+     *  \brief Calculate the maximum inverse timestep on 3D, according to the CFL condition (Toro 6.17). */
+    Real calc_dti_CPU_3D();
 
     /*! \fn Real calc_dti_CPU()
      *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */ 
@@ -297,7 +401,13 @@ class Grid3D
     /*! \fn void Update_Grid(void)
      *  \brief Update the conserved quantities in each cell. */
     Real Update_Grid(void);
-
+    
+    /*! \fn void Update_Hydro_Grid(void)
+     *  \brief Do all steps to update the hydro. */
+    Real Update_Hydro_Grid(void);
+    
+    void Update_Time();
+    
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
     void Write_Header_Binary(FILE *fp);
@@ -344,7 +454,7 @@ class Grid3D
 #ifdef HDF5
     /*! \fn void Read_Grid_HDF5(hid_t file_id)
      *  \brief Read in grid data from an hdf5 file. */
-    void Read_Grid_HDF5(hid_t file_id);
+    void Read_Grid_HDF5(hid_t file_id, struct parameters P);
 #endif
 
     /*! \fn void Reset(void)
@@ -418,14 +528,14 @@ class Grid3D
     /*! \fn void Disk_3D(parameters P)
      *  \brief Initialize the grid with a 3D disk following a Miyamoto-Nagai profile. */
     void Disk_3D(parameters P);    
-    
-    /*! \fn void Spherical_Overpressure_3D()
-     *  \brief Initialize the grid with a 3D spherical overdensity and overpressue. */
-    void Spherical_Overpressure_3D();
 
     /*! \fn void Set_Boundary_Conditions(parameters P)
      *  \brief Set the boundary conditions based on info in the parameters structure. */
     void Set_Boundary_Conditions(parameters P);
+    
+    /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
+     *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
+    void Set_Boundary_Conditions_Grid( parameters P);
 
     /*! \fn int Check_Custom_Boundary(int *flags, struct parameters P)
      *  \brief Check for custom boundary conditions */
@@ -457,6 +567,18 @@ class Grid3D
      *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces, 
         as per the Noh problem in Liska, 2003, or in Stone, 2008. */
     void Noh_Boundary();
+    
+    /*! \fn void Spherical_Overpressure_3D()
+     *  \brief Initialize the grid with a 3D spherical overdensity and overpressue. */
+    void Spherical_Overpressure_3D();
+    
+    /*! \fn void Spherical_Overpressure_3D()
+     *  \brief Initialize the grid with a 3D spherical overdensity for gravitational collapse */
+    void Spherical_Overdensity_3D();
+    
+    void Uniform_Grid();
+    
+    void Zeldovich_Pancake( struct parameters P );
 
 
 #ifdef   MPI_CHOLLA
@@ -473,9 +595,113 @@ class Grid3D
     void Unload_MPI_Comm_Buffers(int index);
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
+    int Load_Hydro_Buffer_X0();
+    int Load_Hydro_Buffer_X1();
+    int Load_Hydro_Buffer_Y0();
+    int Load_Hydro_Buffer_Y1();
+    int Load_Hydro_Buffer_Z0();
+    int Load_Hydro_Buffer_Z1();
 #endif /*MPI_CHOLLA*/
 
-
+  #ifdef GRAVITY
+  void Initialize_Gravity( struct parameters *P );
+  void Compute_Gravitational_Potential( struct parameters *P );
+  void Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end);
+  void Copy_Hydro_Density_to_Gravity();
+  void Extrapolate_Grav_Potential_Function( int g_start, int g_end );
+  void Extrapolate_Grav_Potential();
+  void Copy_Potential_Boundaries( int direction, int side );
+  int Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  );
+  void Unload_Gravity_Potential_from_Buffer( int direction, int side, Real *buffer, int buffer_start  );
+  #endif//GRAVITY 
+  
+  #ifdef PARTICLES
+  void Initialize_Particles( struct parameters *P );
+  void Initialize_Uniform_Particles();
+  void Copy_Particles_Density_function( int g_start, int g_end );
+  void Copy_Particles_Density();
+  void Copy_Particles_Density_to_Gravity(struct parameters P);
+  void Copy_Particles_Density_Boundaries( int direction, int side );
+  void Transfer_Particles_Boundaries( struct parameters P );
+  Real Update_Grid_and_Particles_KDK( struct parameters P );
+  void Set_Particles_Boundary( int dir, int side);
+  #ifdef MPI_CHOLLA
+  int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
+  void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
+  void Load_and_Send_Particles_X0( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_X1( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Y0( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Y1( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Z0( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Z1( int ireq_n_particles, int ireq_particles_transfer );
+  void Unload_Particles_from_Buffer_X0( int *flags );
+  void Unload_Particles_from_Buffer_X1( int *flags );
+  void Unload_Particles_from_Buffer_Y0( int *flags );
+  void Unload_Particles_from_Buffer_Y1( int *flags );
+  void Unload_Particles_from_Buffer_Z0( int *flags );
+  void Unload_Particles_from_Buffer_Z1( int *flags );
+  void Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(int dir, int *flags);
+  void Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, int *ireq_particles_transfer);
+  void Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flags);
+  void Unload_Particles_From_Buffers_BLOCK(int index, int *flags );
+  void Finish_Particles_Transfer();
+  #endif//MPI_CHOLLA
+  void Transfer_Particles_Density_Boundaries( struct parameters P );
+  // void Transfer_Particles_Boundaries( struct parameters P );
+  void WriteData_Particles(  struct parameters P, int nfile);
+  void OutputData_Particles(  struct parameters P, int nfile);
+  void Load_Particles_Data(  struct parameters P);
+  #ifdef HDF5
+  void Write_Particles_Header_HDF5( hid_t file_id);
+  void Write_Particles_Data_HDF5( hid_t file_id);
+  void Load_Particles_Data_HDF5(hid_t file_id, int nfile);
+  #endif//HDF5
+  void Get_Gravity_Field_Particles_function( int g_start, int g_end );
+  void Get_Gravity_Field_Particles();
+  void Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end );
+  void Get_Gravity_CIC();
+  void Advance_Particles_KDK_Step1( );
+  void Advance_Particles_KDK_Step2( );
+  void Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_t p_end );
+  void Advance_Particles_KDK_Step2_function( part_int_t p_start, part_int_t p_end );
+  void Get_Particles_Acceleration();
+  void Advance_Particles( int N_KDK_step );
+  Real Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end );
+  Real Calc_Particles_dt();
+  #ifdef PARTICLES_GPU
+  Real Calc_Particles_dt_GPU();
+  void Advance_Particles_KDK_Step1_GPU();
+  void Advance_Particles_KDK_Step2_GPU();
+  void Set_Particles_Boundary_GPU( int dir, int side);  
+  #endif//PARTICLES_GPU
+  #endif//PARTICLES
+  
+  #ifdef COSMOLOGY
+  void Initialize_Cosmology( struct parameters *P );
+  void Change_DM_Frame_System( bool forward );
+  void Change_GAS_Frame_System( bool forward );
+  void Change_Cosmological_Frame_Sytem( bool forward );
+  void Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end );
+  void Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end );
+  Real Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end );
+  Real Calc_Particles_dt_Cosmo();
+  #ifdef PARTICLES_GPU
+  void Advance_Particles_KDK_Cosmo_Step1_GPU();
+  void Advance_Particles_KDK_Cosmo_Step2_GPU();
+  #endif//PARTICLES_GPU
+  #endif//COSMOLOGY
+  
+  #ifdef COOLING_GRACKLE
+  void Initialize_Grackle( struct parameters *P );
+  void Allocate_Memory_Grackle();
+  void Initialize_Fields_Grackle();
+  void Copy_Fields_To_Grackle_function( int g_start, int g_end );
+  void Copy_Fields_To_Grackle();
+  void Update_Internal_Energy_function( int g_start, int g_end );
+  void Update_Internal_Energy();
+  void Do_Cooling_Step_Grackle();
+  #endif
+  
 
 };
 
