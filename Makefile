@@ -17,26 +17,36 @@ CUOBJS   = $(subst .cu,.o,$(CUDAFILES))
 #Optional error checking can also be enabled
 CUDA = -DCUDA #-DCUDA_ERROR_CHECK
 
+# When building on the compute node, hipcc can
+# detect the GPU architecture.
+# If not building on the compute node, uncomment the 
+# relevant ARCH flag (for AMD or NVIDIA)
+#ARCH = --amdgpu-target=gfx906
+#ARCH = arch=compute_70,code=[compute_70,sm_70]
+
+
+
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
 #MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
-  CC	= mpicc
-  CXX   = mpicxx
+    CC	= mpicc
+    CXX   = mpicxx
 
-  #MPI_FLAGS += -DSLAB
-  MPI_FLAGS += -DBLOCK
+    #MPI_FLAGS += -DSLAB
+    MPI_FLAGS += -DBLOCK
 
 else
-  CC	= /opt/rocm/hcc/bin/clang
-  CXX   =  /opt/rocm/bin/hipcc
+    CC	= /opt/rocm/hcc/bin/clang
+    CXX   =  /opt/rocm/bin/hipcc
 endif
+
 
 #define the NVIDIA CUDA compiler
 NVCC	= /opt/rocm/bin/hipcc
 
-
+    
 .SUFFIXES : .c .cpp .cu .o
 
 #PRECISION = -DPRECISION=1
@@ -70,12 +80,12 @@ HDF5_INCL = -I $(HDF5INCLUDE) #-I/usr/local/hdf5/gcc/1.10.0/include
 HDF5_LIBS = -lhdf5 -L $(HDF5DIR) #-L/usr/local/hdf5/gcc/1.10.0/lib64
 endif
 
-INCL   = -I./ $(HDF5_INCL)
+INCL   = -I./ $(HDF5_INCL) 
 NVINCL = $(INCL) $(CUDA_INCL)
-LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS) --amdgpu-target=gfx906
+LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)  $(AMD_TARGET)  $(ARCH)
 
 
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) --amdgpu-target=gfx906 #-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
+FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) $(ARCH) #-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 NVCCFLAGS = $(FLAGS) #-fmad=false -arch=sm_60
