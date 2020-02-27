@@ -520,9 +520,11 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_GPU
   Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.pos_x_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/pos_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/pos_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   // Copy the pos_y vector to the memory buffer
   #ifdef PARTICLES_CPU
@@ -531,9 +533,11 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_GPU
   Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.pos_y_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/pos_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/pos_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   // Copy the pos_z vector to the memory buffer
   #ifdef PARTICLES_CPU
@@ -542,9 +546,11 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_GPU
   Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.pos_z_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/pos_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/pos_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   // Copy the vel_x vector to the memory buffer
   #ifdef PARTICLES_CPU
@@ -553,9 +559,11 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_GPU
   Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.vel_x_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/vel_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/vel_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   // Copy the vel_y vector to the memory buffer
   #ifdef PARTICLES_CPU
@@ -564,9 +572,11 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_GPU
   Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.vel_y_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/vel_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/vel_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   // Copy the vel_z vector to the memory buffer
   #ifdef PARTICLES_CPU
@@ -575,9 +585,11 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_GPU
   Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.vel_z_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/vel_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/vel_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   #ifndef SINGLE_PARTICLE_MASS
   // Copy the mass vector to the memory buffer
