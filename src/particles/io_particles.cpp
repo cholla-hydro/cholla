@@ -483,12 +483,12 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   hsize_t   dims[1];
   dataset_buffer = (Real *) malloc(n_local*sizeof(Real));
   
-  bool output_momentum;
+  bool output_particle_data;
   
-  #ifdef OUTPUT_ENERGY
-  output_energy = true;
+  #ifdef OUTPUT_PARTICLES_DATA
+  output_particle_data = true;
   #else
-  output_energy = false;
+  output_particle_data = false;
   #endif
   
   // Count Current Total Particles
