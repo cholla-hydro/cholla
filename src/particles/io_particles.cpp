@@ -17,6 +17,7 @@
 #include"../mpi_routines.h"
 #endif
 
+// #define OUTPUT_PARTICLES_DATA
 
 
 void Particles_3D::Load_Particles_Data( struct parameters *P){
@@ -481,6 +482,14 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   part_int_t n_local = Particles.n_local;
   hsize_t   dims[1];
   dataset_buffer = (Real *) malloc(n_local*sizeof(Real));
+  
+  bool output_momentum;
+  
+  #ifdef OUTPUT_ENERGY
+  output_energy = true;
+  #else
+  output_energy = false;
+  #endif
   
   // Count Current Total Particles
   part_int_t N_paricles_total;
