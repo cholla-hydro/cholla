@@ -148,12 +148,10 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaCheckError();
     #ifdef HLLC 
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
-    CudaCheckError();
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
-    CudaCheckError();
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
-    CudaCheckError();
     #endif //HLLC
+    CudaCheckError();
 
 
     // Step 3: Update the conserved variables half a timestep 
@@ -180,15 +178,12 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     hipLaunchKernelGGL(PPMP_cuda, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
     hipLaunchKernelGGL(PPMP_cuda, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     #endif //PPMP
-    CudaCheckError();
     #ifdef PPMC
     hipLaunchKernelGGL(PPMC_cuda, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
-    CudaCheckError();
     hipLaunchKernelGGL(PPMC_cuda, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
-    CudaCheckError();
     hipLaunchKernelGGL(PPMC_cuda, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
-    CudaCheckError();
     #endif //PPMC
+    CudaCheckError();
     
 
     // Step 5: Calculate the fluxes again
@@ -208,6 +203,11 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
     #endif //HLLC
     CudaCheckError();
+    
+    #ifdef DE
+    // Compute the divergence of Vel before updating the conserved array, this solves syncronization issues when adding this term on Update_Conserved_Variables_3D
+    Partial_Update_Advected_Internal_Energy_3D<<<dim1dGrid,dim1dBlock>>>( dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz,  dt, gama, n_fields );
+    #endif
 
 
     // Step 6: Update the conserved variable array
@@ -215,6 +215,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaCheckError();
 
     #ifdef DE
+    hipLaunchKernelGGL(Select_Internal_Energy_3D, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields);
     hipLaunchKernelGGL(Sync_Energies_3D, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
     CudaCheckError();
     #endif

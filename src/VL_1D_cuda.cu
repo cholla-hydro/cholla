@@ -136,6 +136,11 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   #endif
   CudaCheckError();
 
+  #ifdef DE
+  // Compute the divergence of velocity before updating the conserved array, this solves syncronization issues when adding this term on Update_Conserved_Variables
+  Partial_Update_Advected_Internal_Energy_1D<<<dimGrid,dimBlock>>>( dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, dx, dt, gama, n_fields );
+  #endif
+
 
   // Step 6: Update the conserved variable array
   hipLaunchKernelGGL(Update_Conserved_Variables_1D, dim3(dimGrid), dim3(dimBlock), 0, 0, dev_conserved, F_x, n_cells, x_off, n_ghost, dx, xbound, dt, gama, n_fields);
@@ -143,6 +148,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
    
 
   #ifdef DE
+  hipLaunchKernelGGL(Select_Internal_Energy_1D, dim3(dimGrid), dim3(dimBlock), 0, 0, dev_conserved, nx, n_ghost, n_fields);
   hipLaunchKernelGGL(Sync_Energies_1D, dim3(dimGrid), dim3(dimBlock), 0, 0, dev_conserved, nx, n_ghost, gama, n_fields);
   CudaCheckError();
   #endif    
