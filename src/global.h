@@ -42,6 +42,9 @@ typedef double Real;
 #define NSCALARS 1
 #endif
 
+// Parameters for Dual Energy Implementation
+#define DE_ETA_1 0.001
+#define DE_ETA_2 0.1
 
 #define SIGN(a) ( ((a) < 0.) ? -1. : 1. )
 

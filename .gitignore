@@ -4,8 +4,9 @@
 ##executable
 cholla
 
-##makefile
+##makefiles
 Makefile
+makefile.summit
 
 ## output files
 *.h5

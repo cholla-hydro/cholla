@@ -199,7 +199,11 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     #endif //HLLC
     CudaCheckError();
     #endif //CTU
-
+    
+    #ifdef DE
+    // Compute the divergence of Vel before updating the conserved array, this solves sincronization issues when adding this term on Update_Conserved_Variables_3D
+    Partial_Update_Advected_Internal_Energy_3D<<<dim1dGrid,dim1dBlock>>>( dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dt, gama, n_fields );
+    #endif
   
     // Step 5: Update the conserved variable array
     hipLaunchKernelGGL(Update_Conserved_Variables_3D, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, dev_conserved, F_x, F_y, F_z, nx_s, ny_s, nz_s, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama, n_fields);
@@ -208,6 +212,7 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // Synchronize the total and internal energies
     #ifdef DE
+    hipLaunchKernelGGL(Select_Internal_Energy_3D, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields);
     hipLaunchKernelGGL(Sync_Energies_3D, dim3(dim1dGrid), dim3(dim1dBlock), 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
     CudaCheckError();
     #endif

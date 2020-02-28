@@ -10,7 +10,9 @@
 #include"global_cuda.h"
 #include"roe_cuda.h"
 
-
+#ifdef DE //PRESSURE_DE
+#include"hydro_cuda.h"
+#endif
 
 /*! \fn Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir, int n_fields)
  *  \brief Roe Riemann solver based on the version described in Stone et al, 2008. */
@@ -44,7 +46,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   Real test0, test1, test2, test3, test4;
   int hlle_flag = 0;
   #ifdef DE
-  Real dgel, gel, dger, ger, f_ge_l, f_ge_r;
+  Real dgel, gel, dger, ger, f_ge_l, f_ge_r, E_kin;
   #endif
   #ifdef SCALAR
   Real dscalarl[NSCALARS], scalarl[NSCALARS], dscalarr[NSCALARS], scalarr[NSCALARS], f_scalar_l[NSCALARS], f_scalar_r[NSCALARS];
@@ -97,7 +99,12 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     vxl = mxl / dl;
     vyl = myl / dl;
     vzl = mzl / dl;
+    #ifdef DE //PRESSURE_DE
+    E_kin = 0.5 * dl * ( vxl*vxl + vyl*vyl + vzl*vzl );
+    pl = Get_Pressure_From_DE( El, El - E_kin, dgel, gamma ); 
+    #else
     pl  = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
+    #endif //PRESSURE_DE
     pl  = fmax(pl, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
@@ -110,7 +117,12 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     vxr = mxr / dr;
     vyr = myr / dr;
     vzr = mzr / dr;
+    #ifdef DE //PRESSURE_DE
+    E_kin = 0.5 * dr * ( vxr*vxr + vyr*vyr + vzr*vzr );
+    pr = Get_Pressure_From_DE( Er, Er - E_kin, dger, gamma );
+    #else
     pr  = (Er - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
+    #endif //PRESSURE_DE
     pr  = fmax(pr, (Real) TINY_NUMBER);    
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
