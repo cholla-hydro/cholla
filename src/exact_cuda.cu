@@ -1,9 +1,10 @@
+#include "hip/hip_runtime.h"
 /*! \file exact_cuda.cu
  *  \brief Function definitions for the cuda exact Riemann solver.*/
 
 #ifdef CUDA
 
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include<math.h>
 #include<stdio.h>
 #include"global.h"

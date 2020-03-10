@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file hllc_cuda.h
  *  \brief Declarations of functions for the cuda hllc riemann solver kernel. */
 

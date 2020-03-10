@@ -2,6 +2,7 @@
  *  \brief Declarations of the subgrid staging functions for 3D CTU. */
 
 #ifdef CUDA
+#include "hip/hip_runtime.h"
 #ifndef SUBGRID_ROUTINES_3D_H
 #define SUBGRID_ROUTINES_3D_H
 

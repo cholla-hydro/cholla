@@ -1,10 +1,11 @@
+#include "hip/hip_runtime.h"
 /*! \file hydro_cuda.cu
  *  \brief Definitions of functions used in all cuda integration algorithms. */
 #ifdef CUDA
 
 #include<stdio.h>
 #include<math.h>
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include"global.h"
 #include"global_cuda.h"
 #include"hydro_cuda.h"

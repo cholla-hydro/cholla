@@ -29,7 +29,7 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
   *nz_s = nz;
 
   // determine the amount of free memory available on the device
-  cudaMemGetInfo(&free, &total);
+  hipMemGetInfo(&free, &total);
 
   // use that to determine the maximum subgrid block volume
   // memory used per cell (arrays allocated on GPU)

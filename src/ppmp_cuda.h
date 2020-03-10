@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file ppmp_cuda.h
  *  \brief Declarations of the cuda ppmp kernels. */
 

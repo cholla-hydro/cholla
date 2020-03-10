@@ -1,8 +1,9 @@
+#include "hip/hip_runtime.h"
 /*! \file pcm_cuda.cu
  *  \brief Definitions of the piecewise constant reconstruction functions */
 #ifdef CUDA
 
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file plmc_cuda.h
  *  \brief Declarations of the cuda plm kernels, characteristic reconstruction version. */
 

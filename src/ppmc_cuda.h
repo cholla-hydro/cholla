@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file ppmc_cuda.h
  *  \brief Declarations of the cuda ppm kernels, characteristic reconstruction version. */
 #ifdef CUDA

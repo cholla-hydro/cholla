@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*! \file pcm_cuda.h
  *  \brief Declarations of the cuda pcm kernels */
 

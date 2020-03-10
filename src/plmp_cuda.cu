@@ -1,9 +1,10 @@
+#include "hip/hip_runtime.h"
 /*! \file plmp_cuda.cu
  *  \brief Definitions of the piecewise linear reconstruction functions for  
            with limiting in the primative variables. */
 #ifdef CUDA
 
-#include<cuda.h>
+#include<hip/hip_runtime.h>
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
