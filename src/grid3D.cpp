@@ -535,7 +535,7 @@ Real Grid3D::Update_Grid(void)
   #ifdef AVERAGE_SLOW_CELLS
   max_dti_slow = 1 / H.min_dt_slow;
   #else // NOT AVERAGE_SLOW_CELLS
-  max_dti_slow = NULL; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
+  max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
   #endif //max_dti_slow
   
   // Pass the structure of conserved variables to the CTU update functions
