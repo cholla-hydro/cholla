@@ -13,6 +13,10 @@
 #include"../parallel_omp.h"
 #endif
 
+#ifdef PARIS
+#include <vector>
+#endif
+
 //Set delta_t when using gravity
 void Grid3D::set_dt_Gravity(){
   
@@ -250,6 +254,92 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   //Solve Poisson Equation to compute the potential
   //Poisson Equation: laplacian( phi ) = 4 * pi * G / scale_factor * ( dens - dens_average )
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
+#ifdef PARIS
+  {
+    std::vector<Real> p(Grav.n_cells_potential);
+    Grav.Poisson_solverB.Get_Potential(Grav.F.density_h,p.data(),Grav_Constant,dens_avrg,current_a);
+    const Real divN = Real(1)/Real(Grav.n_cells);
+    Real *const q = Grav.F.potential_h;
+    const long ng = N_GHOST_POTENTIAL;
+    Real qSum = 0;
+    Real pSum = 0;
+    for (int k = 0; k < Grav.nz_local; k++) {
+      for (int j = 0; j < Grav.ny_local; j++) {
+        for (int i = 0; i < Grav.nx_local; i++) {
+          const long ijk = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
+          qSum += q[ijk];
+          pSum += p[ijk];
+        }
+      }
+    }
+    MPI_Allreduce(MPI_IN_PLACE,&qSum,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE,&pSum,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    const Real qAvg = divN*qSum;
+    const Real pAvg = divN*pSum;
+    chprintf("qAvg %g pAvg %g\n",qAvg,pAvg);
+    for (int k = 0; k < Grav.nz_local; k++) {
+      for (int j = 0; j < Grav.ny_local; j++) {
+        for (int i = 0; i < Grav.nx_local; i++) {
+          const long ijk = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
+          q[ijk] -= qAvg;
+          p[ijk] -= pAvg;
+        }
+      }
+    }
+    Real dSum = 0;
+    Real d2sum = 0;
+    Real dMax = 0;
+    Real qMax = -1e20;
+    Real qMin = 1e20;
+    for (int k = 0; k < Grav.nz_local; k++) {
+      for (int j = 0; j < Grav.ny_local; j++) {
+        for (int i = 0; i < Grav.nx_local; i++) {
+          const long ijk = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
+          qMax = (qMax < q[ijk]) ? q[ijk] : qMax;
+          qMin = (qMin > q[ijk]) ? q[ijk] : qMin;
+          const Real d = fabs(q[ijk]-p[ijk]);
+          dSum += d;
+          d2sum += d*d;
+          if (dMax < d) {
+            dMax = d;
+          }
+        }
+      }
+    }
+    MPI_Allreduce(MPI_IN_PLACE,&qMin,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE,&qMax,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE,&dMax,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE,&dSum,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE,&d2sum,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    const Real norm = Real(1)/(qMax-qMin);
+    chprintf("Potential range %g to %g\n",qMin,qMax);
+    chprintf("Comparison L1 %g L2 %g Linf %g\n",dSum*divN,sqrt(d2sum*divN),dMax);
+#if 0
+    for (int j = 1; j < Grav.ny_local-1; j++) {
+      for (int i = 1; i < Grav.nx_local-1; i++) {
+        const long ijk = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(kMax+ng));
+        const Real dqx = (q[ijk-di]+q[ijk+di]-2*q[ijk])/(H.dx*H.dx);
+        const Real dqy = (q[ijk-dj]+q[ijk+dj]-2*q[ijk])/(H.dy*H.dy);
+        const Real dqz = (q[ijk-dk]+q[ijk+dk]-2*q[ijk])/(H.dz*H.dz);
+        const Real dq = dqx+dqy+dqz;
+        const Real dpx = (p[ijk-di]+p[ijk+di]-2*p[ijk])/(H.dx*H.dx);
+        const Real dpy = (p[ijk-dj]+p[ijk+dj]-2*p[ijk])/(H.dy*H.dy);
+        const Real dpz = (p[ijk-dk]+p[ijk+dk]-2*p[ijk])/(H.dz*H.dz);
+        const Real dp = dpx+dpy+dpz;
+        const Real rho = 4*M_PI*Grav_Constant*Grav.F.density_h[i+Grav.nx_local*(j+Grav.ny_local*kMax)];
+        std::cerr<<j<<' '<<i<<' '<<q[ijk]<<' '<<p[ijk]<<' '<<p[ijk]-q[ijk]<<' '<<norm*(p[ijk]-q[ijk])<<'\n';
+        //std::cerr<<j<<' '<<i<<' '<<dq<<' '<<dp<<' '<<rho<<' '<<dq-rho<<' '<<dp-rho<<'\n';
+      }
+      std::cerr<<"\n\n";
+    }
+    std::cerr<<std::endl;
+#endif
+    exit(0);
+  }
+#endif
+
+  
+
   
     
   #ifdef CPU_TIME

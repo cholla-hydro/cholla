@@ -16,6 +16,9 @@
 #include"potential_SOR_3D.h"
 #endif
 
+#ifdef PARIS
+#include "potential_paris_3D.h"
+#endif
 
 #ifdef HDF5
 #include<hdf5.h>
@@ -95,6 +98,10 @@ class Grav3D
 
   #ifdef SOR
   Potential_SOR_3D Poisson_solver;
+  #endif
+
+  #ifdef PARIS
+  Potential_Paris_3D Poisson_solverB;
   #endif
 
 

@@ -10,7 +10,7 @@ CUDAFILES = $(wildcard $(DIR)/*.cu)
 DIR_GRAV = ./src/gravity
 CFILES_GRAV = $(wildcard $(DIR_GRAV)/*.c)
 CPPFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cpp)
-CUDAFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cu)
+CUDAFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cu) $(wildcard $(DIR_GRAV)/paris/*.cu)
 
 DIR_PART = ./src/particles
 CFILES_PART = $(wildcard $(DIR_PART)/*.c)
@@ -134,7 +134,7 @@ N_OMP_THREADS = -DN_OMP_THREADS=16
 ifdef CUDA
   OLCF_CUDA_ROOT ?= $(CUDA_ROOT)
   CUDA_INCL = -I$(OLCF_CUDA_ROOT)/include -I$(MPI_HOME)/include
-  CUDA_LIBS = -L$(OLCF_CUDA_ROOT)/lib64 -lcuda -lcudart
+  CUDA_LIBS = -L$(OLCF_CUDA_ROOT)/lib64 -rtlib=libgcc --unwindlib=libgcc -lcuda -lcudart
 endif
 ifeq ($(OUTPUT),-DHDF5)
   OLCF_HDF5_ROOT=$(HDF5DIR)/..
@@ -158,6 +158,7 @@ ifeq ($(POISSON_SOLVER),-DPFFT)
 endif
 
 ifeq ($(POISSON_SOLVER),-DCUFFT)
+  INCL += -DPARIS
   LIBS += -lcufft
 endif
 
@@ -188,7 +189,7 @@ FLAGS_COOLING = $(COOLING) $(GRACKLE_PRECISION) $(OUTPUT_TEMPERATURE) $(OUTPUT_C
 FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) $(FLAGS_COSMO) $(FLAGS_COOLING)
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -arch=sm_70
+NVCCFLAGS = $(FLAGS) $(MPI_FLAGS) -fmad=false -arch=sm_70 --expt-extended-lambda
 
 
 %.o:	%.c

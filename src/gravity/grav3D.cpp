@@ -92,8 +92,9 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
   #endif
     
   Poisson_solver.Initialize( Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz );
-  
-  
+#ifdef PARIS
+  Poisson_solverB.Initialize( Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz );
+#endif
 }
 
 void Grav3D::AllocateMemory_CPU(void)
@@ -125,6 +126,9 @@ void Grav3D::FreeMemory_CPU(void)
   free(F.potential_1_h);
 
   Poisson_solver.Reset();
+#ifdef PARIS
+  Poisson_solverB.Reset();
+#endif
 }
 
 #endif //GRAVITY

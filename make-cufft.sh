@@ -9,6 +9,6 @@ export MPI_HOME=$(echo "${PE_CRAY_FIXED_PKGCONFIG_PATH}" | sed 's,.*:\([^:]*\)mv
 export CC=cc
 export CXX=CC
 export POISSON_SOLVER=-DCUFFT
-make clean
+#make clean
 make -j
 mv cholla cholla.cufft
