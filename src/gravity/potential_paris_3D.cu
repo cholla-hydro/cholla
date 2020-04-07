@@ -7,10 +7,12 @@
 
 Potential_Paris_3D::Potential_Paris_3D():
   n_{0,0,0},
+  p_(nullptr),
+  minBytes_(0),
   densityBytes_(0),
   potentialBytes_(0),
   da_(nullptr),
-  p_(nullptr)
+  db_(nullptr)
 {}
 
 Potential_Paris_3D::~Potential_Paris_3D() { Reset(); }
@@ -84,9 +86,9 @@ void Potential_Paris_3D::Reset()
   if (da_) CHECK(cudaFree(da_));
   da_ = nullptr;
 
-  minBytes_ = 0;
   potentialBytes_ = 0;
   densityBytes_ = 0;
+  minBytes_ = 0;
 
   delete p_;
   p_ = nullptr;
