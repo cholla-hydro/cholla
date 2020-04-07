@@ -54,7 +54,7 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
 
   const int n[3] = {nz,ny,nx};
   const double lo[3] = {0,0,0};
-  const double hi[3] = {lz,ly,lx};
+  const double hi[3] = {lz-dz,ly-dy,lx-dx};
   const int m[3] = {n[0]/nzReal,n[1]/nyReal,n[2]/nxReal};
   const int id[3] = {int(round(zMin/dz)),int(round(yMin/dy)),int(round(xMin/dx))};
   chprintf("  Paris: L[ %g %g %g ] N_local[ %d %d %d ] Tasks[ %d %d %d ]\n",lx,ly,lz,n_[0],n_[1],n_[2],m[2],m[1],m[0]);

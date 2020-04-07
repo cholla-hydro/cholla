@@ -10,7 +10,11 @@ CUDAFILES = $(wildcard $(DIR)/*.cu)
 DIR_GRAV = ./src/gravity
 CFILES_GRAV = $(wildcard $(DIR_GRAV)/*.c)
 CPPFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cpp)
-CUDAFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cu) $(wildcard $(DIR_GRAV)/paris/*.cu)
+CUDAFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cu)
+
+ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
+  CUDAFILES_GRAV += $(wildcard $(DIR_GRAV)/paris/*.cu)
+endif
 
 DIR_PART = ./src/particles
 CFILES_PART = $(wildcard $(DIR_PART)/*.c)

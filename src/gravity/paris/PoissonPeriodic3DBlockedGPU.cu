@@ -110,6 +110,7 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   // Copy blocks to slabs
 
+  CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(da,nBlockSlab,MPI_DOUBLE,db,nBlockSlab,MPI_DOUBLE,commSlab_);
 
   gpuFor(

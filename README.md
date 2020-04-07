@@ -4,7 +4,24 @@ A 3D GPU-based hydrodynamics code (Schneider & Robertson, ApJS, 2015).
 
 Getting started
 ----------------
-This is the stable branch of the *Cholla* code. *Cholla* is designed to 
+This is a branch of the *Cholla* code with dynamic 3D gravity.
+It includes a variety of 3D Poisson solvers selected using the `POISSON_SOLVER` environment variable to define a compile-time macro.
+The following settings of `POISSON_SOLVER` are currently supported.
+- `-DPFFT` uses the *PFFT* library to compute 3D FFTs on host processors, distributed with MPI.
+This option requires at least two MPI tasks.
+- `-DCUFFT` uses the *CuFFT* library to compute 3D FFTs on a single GPU.
+This options can use only one MPI task.
+- `-DPARIS` uses the *Paris* Poisson solver, provided in the `src/gravity` directory.
+This solver performs FFTs on GPUs, distributed with MPI.
+It currently supports only certain numbers of MPI tasks, depending on the problem size.
+  - The number of elements in each dimension must be divisible by the number of MPI tasks in that dimension.
+  - The number of elements in an X-Y slab must be divisible by the total number of MPI tasks.
+  - The number of elements in the Z dimension must be divisible by the total number of MPI tasks.
+The intent is to extend and tune the Paris solver to run efficiently on exascale computers.
+- `-DPFFT -DPARIS` or `-DCUFFT -DPARIS` uses the *PFFT* or *CuFFT* solver, respectively, and compares the result of each Poisson solve against the result of the *Paris* solver.
+At the beginning of the run, it also compares each solver against an analytic solution. The comparisons are single-line printouts of the L1, L2, and L-infinity norms.
+
+*Cholla* is designed to 
 be run using NVIDIA GPUs, and can be run in serial mode using one GPU
 or with MPI.
 
@@ -19,22 +36,22 @@ the appropriate line within the makefile, e.g. single vs
 double precision, output format, the reconstruction method, Riemann solver, integrator, 
 and cooling. The entire code must be recompiled any time you change the configuration.
 
-A few options must be specified on the 'FLAGS' line in the makefile. These include
-the h correction (-DH_CORRECTION), dual energy (-DDE), the static gravity module (-DSTATIC_GRAV), 
-and the passive scalar flag (-DSCALAR). It is strongly recommended that you include the dual energy
+A few options must be specified on the `FLAGS` line in the makefile. These include
+the h correction (`-DH_CORRECTION`), dual energy (`-DDE`), the static gravity module (`-DSTATIC_GRAV`), 
+and the passive scalar flag (`-DSCALAR`). It is strongly recommended that you include the dual energy
 flag when cooling is turned on.
 
 
 Running Cholla
 --------------
 To run the code after it is compiled, you must supply an input file with parameters and a problem that matches a function
-in the initial_conditions file. For example, to run a 1D Sod Shock Tube test, you would type
+in the `initial_conditions` file. For example, to run a 1D Sod Shock Tube test, you would type
 
 ```./cholla tests/1D/Sod.txt```
 
-in the directory with the cholla binary. Some output will be generated in the terminal, and output files will be written in the directory specified in the input parameter file.
+in the directory with the `cholla` binary. Some output will be generated in the terminal, and output files will be written in the directory specified in the input parameter file.
 
-To run *Cholla* in parallel mode, the CHOLLA_MPI flag in the makefile must be uncommented. Then you can run
+To run *Cholla* in parallel mode, the `CHOLLA_MPI` flag in the makefile must be uncommented. Then you can run
 using
 
 ```mpirun -np 4 ./cholla tests/1D/Sod.txt```
@@ -47,7 +64,7 @@ More information about compiling and running *Cholla* can be found in the wiki a
 Other Notes
 --------------
 
-*Cholla* can be run without GPUs by commenting out CUDA in the makefile, but this configuration is not recommended. Because *Cholla*
+*Cholla* can be run without GPUs by commenting out `CUDA` in the makefile, but this configuration is not recommended. Because *Cholla*
 was designed with GPUs in mind, the CPU performance is lackluster at best. In addition, some 
 of the configuration options are not available in the non-CUDA mode (and warnings are not always included).
 

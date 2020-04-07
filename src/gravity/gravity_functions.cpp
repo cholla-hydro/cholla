@@ -200,7 +200,59 @@ Real Grav3D::Get_Average_Density_function( int g_start, int g_end){
   }
   return dens_sum;
 }
-  
+
+#ifdef PARIS_TEST
+
+static constexpr Real pi = 3.141592653589793238462643383279502884197169399375105820974;
+
+static inline Real sqr(const Real x) { return x*x; }
+
+static inline Real f1(const Real x)
+{
+  return exp(-10.0*sqr(2.0*x-1.0))*sin(8.0*pi*x);
+}
+
+static inline Real d1(const Real x)
+{
+  return 16.0*exp(-10.0*sqr(2.0*x-1.0))*((400.0*x*x-400.0*x-4.0*pi*pi+95.0)*sin(8.0*pi*x)+(40.0*pi-80.0*pi*x)*cos(8.0*pi*x));
+}
+
+static inline Real testF(const Real x, const Real y, const Real z)
+{
+  return f1(x)*f1(y)*f1(z);
+}
+
+static inline Real testD(const Real x, const Real y, const Real z)
+{
+  return d1(x)*f1(y)*f1(z)+f1(x)*d1(y)*f1(z)+f1(x)*f1(y)*d1(z);
+}
+
+static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz)
+{
+  const long ng = N_GHOST_POTENTIAL;
+  Real maxs[2] = {0,0};
+  Real sums[4] = {0,0,0,0};
+  for (int k = 0; k < nz; k++) {
+    for (int j = 0; j < ny; j++) {
+      for (int i = 0; i < nx; i++) {
+        const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
+        const Real qAbs = fabs(q[ijk]);
+        maxs[0] = std::max(maxs[0],qAbs);
+        sums[0] += qAbs;
+        sums[1] += qAbs*qAbs;
+        const Real d = fabs(q[ijk]-p[ijk]);
+        maxs[1] = std::max(maxs[1],d);
+        sums[2] += d;
+        sums[3] += d*d;
+      }
+    }
+  }
+  MPI_Allreduce(MPI_IN_PLACE,&maxs,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE,&sums,4,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+  chprintf(" Poisson-Solver Diff: L1 %g L2 %g Linf %g\n",sums[2]/sums[0],sqrt(sums[3]/sums[1]),maxs[1]/maxs[0]);
+  fflush(stdout);
+}
+#endif 
 
 
 
@@ -209,7 +261,47 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
   chprintf( "\nInitializing Gravity... \n");
   Grav.Initialize( H.xblocal, H.yblocal, H.zblocal, H.xdglobal, H.ydglobal, H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost_potential_offset, P  );
   chprintf( "Gravity Successfully Initialized. \n\n");
-  
+
+#ifdef PARIS_TEST
+
+  chprintf("Analytic Test of Poisson Solvers:\n");
+  const long ng = N_GHOST_POTENTIAL;
+  std::vector<Real> rho(Grav.n_cells);
+  std::vector<Real> exact(Grav.n_cells_potential);
+#pragma omp parallel for
+  for (int k = 0; k < Grav.nz_local; k++) {
+    const Real z = Grav.zMin+Real(k)*Grav.dz;
+    long ijk = long(k)*Grav.ny_local*Grav.nx_local;
+    for (int j = 0; j < Grav.ny_local; j++) {
+      const Real y = Grav.yMin+Real(j)*Grav.dy;
+      for (int i = 0; i < Grav.nx_local; i++, ijk++) {
+        const Real x = Grav.xMin+Real(i)*Grav.dx;
+        rho[ijk] = testD(x,y,z);
+        const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
+        exact[ijkg] = testF(x,y,z);
+      }
+    }
+  }
+  std::vector<Real> p(Grav.n_cells_potential,0);
+  Grav.Poisson_solver_test.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
+  chprintf("Paris");
+  printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+
+  for (Real &pijk : p) pijk = 0;
+
+  Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
+#ifdef CUFFT
+  chprintf("CUFFT");
+#endif
+#ifdef PFFT
+  chprintf("PFFT");
+#endif
+#ifdef SOR
+  chprintf("SOR");
+#endif
+  printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+
+#endif
 }
 
 
@@ -258,29 +350,16 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   {
     std::vector<Real> p(Grav.n_cells_potential);
     Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,p.data(),Grav_Constant,dens_avrg,current_a);
-    const Real divN = Real(1)/(Real(Grav.nx_total)*Real(Grav.ny_total)*Real(Grav.nz_total));
-    Real *const q = Grav.F.potential_h;
-    const long ng = N_GHOST_POTENTIAL;
-    Real maxs[2] = {0,0};
-    Real sums[4] = {0,0,0,0};
-    for (int k = 0; k < Grav.nz_local; k++) {
-      for (int j = 0; j < Grav.ny_local; j++) {
-        for (int i = 0; i < Grav.nx_local; i++) {
-          const long ijk = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
-          const Real qAbs = fabs(q[ijk]);
-          maxs[0] = std::max(maxs[0],qAbs);
-          sums[0] += qAbs;
-          sums[1] += qAbs*qAbs;
-          const Real d = fabs(q[ijk]-p[ijk]);
-          maxs[1] = std::max(maxs[1],d);
-          sums[2] += d;
-          sums[3] += d*d;
-        }
-      }
-    }
-    MPI_Allreduce(MPI_IN_PLACE,&maxs,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
-    MPI_Allreduce(MPI_IN_PLACE,&sums,4,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-    chprintf(" Poisson-Solver Diff: L1 %g L2 %g Linf %g\n",sums[2]/sums[0],sqrt(sums[3]/sums[1]),maxs[1]/maxs[0]);
+#ifdef CUFFT
+    chprintf("Paris vs CUFFT");
+#endif
+#ifdef PFFT
+    chprintf("Paris vs PFFT");
+#endif
+#ifdef SOR
+    chprintf("Paris vs SOR");
+#endif
+    printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local);
   }
   #else
   #endif
