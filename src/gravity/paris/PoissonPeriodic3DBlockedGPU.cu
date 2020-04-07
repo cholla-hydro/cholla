@@ -161,7 +161,7 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
       jkHi-jkLo,ni,
       GPU_LAMBDA(const long ijk, long jk, const long i) {
         if ((ijk == 0) && (jkLo == 0)) {
-          ca[0].x = ca[0].y = 0;
+          cb[0].x = cb[0].y = 0;
         } else {
           const double ii = sqr(double(min(i,ni-i))*di);
           jk += jkLo;

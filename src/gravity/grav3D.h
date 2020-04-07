@@ -101,7 +101,12 @@ class Grav3D
   #endif
 
   #ifdef PARIS
-  Potential_Paris_3D Poisson_solverB;
+  #if (defined(PFFT) || defined(CUFFT) || defined(SOR))
+  #define PARIS_TEST
+  Potential_Paris_3D Poisson_solver_test;
+  #else
+  Potential_Paris_3D Poisson_solver;
+  #endif
   #endif
 
 
@@ -138,22 +143,6 @@ class Grav3D
 
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #endif //GRAV3D_H

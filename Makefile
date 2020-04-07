@@ -146,7 +146,7 @@ INCL   = -I./ $(HDF5_INCL)
 NVINCL = $(INCL) $(CUDA_INCL)
 LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
-ifeq ($(POISSON_SOLVER),-DPFFT)
+ifeq ($(findstring -DPFFT,$(POISSON_SOLVER)),-DPFFT)
   FFTW_ROOT ?= /ccs/proj/ast149/code/fftw
   FFTW_INCL = -I$(FFTW_ROOT)/include
   FFTW_LIBS = -L$(FFTW_ROOT)/lib -lfftw3
@@ -157,9 +157,12 @@ ifeq ($(POISSON_SOLVER),-DPFFT)
   LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
 endif
 
-ifeq ($(POISSON_SOLVER),-DCUFFT)
-  INCL += -DPARIS
+ifeq ($(findstring -DCUFFT,$(POISSON_SOLVER)),-DCUFFT)
   LIBS += -lcufft
+endif
+
+ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
+  LIBS += -lcufft -lcudart
 endif
 
 ifeq ($(COOLING),-DCOOLING_GRACKLE)
