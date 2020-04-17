@@ -1,6 +1,6 @@
 /*! \file plmp_cuda.cu
  *  \brief Definitions of the piecewise linear reconstruction functions for  
-           with limiting in the primative variables. */
+           with limiting in the primitive variables. */
 #ifdef CUDA
 
 #include<cuda.h>

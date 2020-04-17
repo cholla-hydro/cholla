@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Example python plotting script for the 1D Sod Shock Tube test
 
 import h5py

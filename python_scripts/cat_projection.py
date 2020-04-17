@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Example file for concatenating on-axis projection data
 # created when the -DPROJECTION flag is turned on
 
@@ -57,7 +58,7 @@ for n in range(ns, ne+1):
 
     filein.close()
 
-  # wrte out the new datasets
+  # write out the new datasets
   fileout.create_dataset('d_xy', data=dxy)
   fileout.create_dataset('d_xz', data=dxz)
   fileout.create_dataset('T_xy', data=Txy)

@@ -1,6 +1,6 @@
 /*! \file ppmp_cuda.cu
  *  \brief Definitions of the piecewise parabolic reconstruction (Fryxell 2000) functions 
-           with limiting in the primative variables. */
+           with limiting in the primitive variables. */
 #ifdef CUDA
 #ifdef PPMP
 

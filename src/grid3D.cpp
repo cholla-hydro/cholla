@@ -141,7 +141,7 @@ void Grid3D::Initialize(struct parameters *P)
     chexit(-1);
   }
 
-  // check for initilization
+  // check for initialization
   if(flag_init)
   {
     chprintf("Already initialized. Please reset.\n");
@@ -162,7 +162,7 @@ void Grid3D::Initialize(struct parameters *P)
   H.n_step = 0;
   // and the wall time
   H.t_wall = 0.0;
-  // and inialize the timestep
+  // and initialize the timestep
   H.dt = 0.0;
 
 
