@@ -43,7 +43,7 @@ MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
-  CXX   = mpicxx
+  CXX   = mpic++
 
   #MPI_FLAGS += -DSLAB
   MPI_FLAGS += -DBLOCK
@@ -68,7 +68,7 @@ PRECISION = -DPRECISION=2
 OUTPUT = -DHDF5
 
 #Output all data every N_OUTPUT_COMPLETE snapshots ( This are Restart Files )
-N_OUTPUT_COMPLETE = -DN_OUTPUT_COMPLETE=10
+N_OUTPUT_COMPLETE = -DN_OUTPUT_COMPLETE=50
 
 # RECONSTRUCTION = -DPCM
 # RECONSTRUCTION = -DPLMP
@@ -153,8 +153,8 @@ CUDA_INCL = -I/cm/shared/apps/cuda10.1/toolkit/current/include
 CUDA_LIBS = -L/cm/shared/apps/cuda10.1/toolkit/current/targets/x86_64-linux/lib/stubs/ -lcuda -lcudart
 endif
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = -I/cm/shared/apps/hdf5_18/1.8.20/include
-HDF5_LIBS = -L/cm/shared/apps/hdf5_18/1.8.20/lib -lhdf5
+HDF5_INCL = -I/cm/shared/apps/hdf5/1.10.6/include
+HDF5_LIBS = -L/cm/shared/apps/hdf5/1.10.6/lib -lhdf5
 endif
 
 INCL   = -I./ $(HDF5_INCL)
@@ -162,17 +162,17 @@ NVINCL = $(INCL) $(CUDA_INCL)
 LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
 ifeq ($(POISSON_SOLVER),-DPFFT)
-FFTW_INCL = -I/home/brvillas/code/fftw-3.3.8/include
-FFTW_LIBS = -L/home/brvillas/code/fftw-3.3.8/lib -lfftw3
-PFFT_INCL = -I/home/brvillas/code/pfft/include
-PFFT_LIBS = -L/home/brvillas/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
+FFTW_INCL = -I/data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8/include
+FFTW_LIBS = -L/data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8/lib -lfftw3
+PFFT_INCL = -I/data/groups/comp-astro/bruno/code_mpi_local/pfft/include
+PFFT_LIBS = -L/data/groups/comp-astro/bruno/code_mpi_local/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
 INCL += $(FFTW_INCL) $(PFFT_INCL)
 LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
 endif
 
 ifeq ($(POISSON_SOLVER),-DCUFFT)
-CUFFT_INCL = -I/usr/local/cuda-9.0/targets/x86_64-linux/include
-CUFFT_LIBS = -L/usr/local/cuda-9.0/targets/x86_64-linux/lib -lcufft
+CUFFT_INCL = -I/cm/shared/apps/cuda10.1/toolkit/current/include
+CUFFT_LIBS = -L/cm/shared/apps/cuda10.1/toolkit/current/targets/x86_64-linux/lib/stubs/ -lcufft
 INCL += $(CUFFT_INCL) 
 LIBS += $(CUFFT_LIBS) 
 endif
@@ -207,7 +207,7 @@ FLAGS_COOLING = $(COOLING) $(GRACKLE_PRECISION) $(OUTPUT_TEMPERATURE) $(OUTPUT_C
 FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) $(FLAGS_COSMO) $(FLAGS_COOLING)
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
-NVCCFLAGS = $(FLAGS) --fmad=false -ccbin=$(CC)
+NVCCFLAGS = $(FLAGS) --fmad=false -ccbin=$(CXX)
 
 
 %.o:	%.c
