@@ -2,6 +2,62 @@
 
 #include <cstdio>
 
+#ifdef O_HIP
+
+#include <hip/hip_runtime.h>
+#include <hipfft.h>
+
+#define CUFFT_D2Z HIPFFT_D2Z
+#define CUFFT_FORWARD HIPFFT_FORWARD
+#define CUFFT_INVERSE HIPFFT_BACKWARD
+#define CUFFT_Z2D HIPFFT_Z2D
+#define CUFFT_Z2Z HIPFFT_Z2Z
+
+#define cufftDestroy hipfftDestroy
+#define cufftDoubleComplex hipfftDoubleComplex
+#define cufftExecD2Z hipfftExecD2Z
+#define cufftExecZ2D hipfftExecZ2D
+#define cufftExecZ2Z hipfftExecZ2Z
+#define cufftHandle hipfftHandle
+#define cufftPlanMany hipfftPlanMany
+
+#define cudaFree hipFree
+#define cudaFreeHost hipHostFree
+#define cudaGetDevice hipGetDevice
+#define cudaGetDeviceCount hipGetDeviceCount
+#define cudaGetLastError hipGetLastError
+#define cudaHostAlloc hipHostMalloc
+#define cudaHostAllocDefault hipHostMallocDefault
+#define cudaMalloc hipMalloc
+#define cudaMemcpy hipMemcpy
+#define cudaMemcpyAsync hipMemcpyAsync
+#define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
+#define cudaMemcpyHostToDevice hipMemcpyHostToDevice
+#define cudaSetDevice hipSetDevice
+
+static void check(const hipfftResult err, const char *const file, const int line)
+{
+  if (err == HIPFFT_SUCCESS) return;
+  fprintf(stderr,"HIPFFT ERROR AT LINE %d OF FILE '%s': %d\n",line,file,err);
+  fflush(stderr);
+  exit(err);
+}
+
+static void check(const hipError_t err, const char *const file, const int line)
+{
+  if (err == hipSuccess) return;
+  fprintf(stderr,"HIP ERROR AT LINE %d OF FILE '%s': %s %s\n",line,file,hipGetErrorName(err),hipGetErrorString(err));
+  fflush(stderr);
+  exit(err);
+}
+
+#else
+
+#include <cufft.h>
+#include <cuda_runtime.h>
+
+#define hipLaunchKernelGGL(F,G,B,M,S,...) F<<<G,B,M,S>>>(__VA_ARGS__)
+
 static void check(const cufftResult err, const char *const file, const int line)
 {
   if (err == CUFFT_SUCCESS) return;
@@ -18,9 +74,13 @@ static void check(const cudaError_t err, const char *const file, const int line)
   exit(err);
 }
 
+#endif
+
 #define CHECK(X) check(X,__FILE__,__LINE__)
 
 constexpr long GPU_THREADS = 256;
+
+#if defined(__CUDACC__) || defined(__HIPCC__)
 
 template <typename F>
 __global__ void gpuRun(F f, const long n0)
@@ -33,7 +93,7 @@ template <typename F>
 void gpuFor(const long n0, F f)
 {
   const long nb = (n0+GPU_THREADS-1)/GPU_THREADS;
-  gpuRun<<<dim3(nb),dim3(GPU_THREADS)>>>(f,n0);
+  hipLaunchKernelGGL(gpuRun,dim3(nb),dim3(GPU_THREADS),0,0,f,n0);
   CHECK(cudaGetLastError());
 }
 
@@ -53,7 +113,7 @@ void gpuFor(const long n0, const long n1, F f)
 {
   const long n01 = n0*n1;
   const long nb = (n01+GPU_THREADS-1)/GPU_THREADS;
-  gpuRun<<<dim3(nb),dim3(GPU_THREADS)>>>(f,n01,n1);
+  hipLaunchKernelGGL(gpuRun,dim3(nb),dim3(GPU_THREADS),0,0,f,n01,n1);
   CHECK(cudaGetLastError());
 }
 
@@ -77,7 +137,7 @@ void gpuFor(const int n0, const int n1, const int n2, F f)
   const long n12 = long(n1)*n2;
   const long n012 = n0*n12;
   const long nb = (n012+GPU_THREADS-1)/GPU_THREADS;
-  gpuRun<<<dim3(nb),dim3(GPU_THREADS)>>>(f,n012,n12,n2);
+  hipLaunchKernelGGL(gpuRun,dim3(nb),dim3(GPU_THREADS),0,0,f,n012,n12,n2);
   CHECK(cudaGetLastError());
 }
 
@@ -104,7 +164,7 @@ void gpuFor(const int n0, const int n1, const int n2, const int n3, F f)
   const long n123 = n1*n23;
   const long n0123 = n0*n123;
   const long nb = (n0123+GPU_THREADS-1)/GPU_THREADS;
-  gpuRun<<<dim3(nb),dim3(GPU_THREADS)>>>(f,n0123,n123,n23,n3);
+  hipLaunchKernelGGL(gpuRun,dim3(nb),dim3(GPU_THREADS),0,0,f,n0123,n123,n23,n3);
   CHECK(cudaGetLastError());
 }
 
@@ -134,8 +194,10 @@ void gpuFor(const int n0, const int n1, const int n2, const int n3, const int n4
   const long n1234 = n1*n234;
   const long n01234 = n0*n1234;
   const long nb = (n01234+GPU_THREADS-1)/GPU_THREADS;
-  gpuRun<<<dim3(nb),dim3(GPU_THREADS)>>>(f,n01234,n1234,n234,n34,n4);
+  hipLaunchKernelGGL(gpuRun,dim3(nb),dim3(GPU_THREADS),0,0,f,n01234,n1234,n234,n34,n4);
   CHECK(cudaGetLastError());
 }
 
 #define GPU_LAMBDA [=] __device__
+
+#endif

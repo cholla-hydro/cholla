@@ -5,9 +5,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cuda_runtime.h>
-
-#include "gpu.hpp"
 
 #define ERROR(X,...) if (X) { fprintf(stderr,"%s(%d): ",__FILE__,__LINE__); fprintf(stderr,__VA_ARGS__); fprintf(stderr,"\n"); MPI_Abort(MPI_COMM_WORLD,(X)); }
 
@@ -62,8 +59,9 @@ PoissonPeriodic3DBlockedGPU::PoissonPeriodic3DBlockedGPU(const int n[3], const d
   ERROR(njh%mijk,"%dx(%d/2+1)=%ld X pencils not divisible into %d tasks",nj_,nk_,njh,mijk);
   const int njhPencil = njh/mijk;
   const long nPencil = ni_*2*njhPencil;
+  const long nMax = std::max({nBlock,nSlab,nPencil});
 
-  bytes_ = sizeof(double)*std::max({nBlock,nSlab,nPencil});
+  bytes_ = sizeof(double)*nMax;
   {
     int njnk[2] = {nj_,nk_};
     int njnh[2] = {nj_,nh};
@@ -71,10 +69,19 @@ PoissonPeriodic3DBlockedGPU::PoissonPeriodic3DBlockedGPU(const int n[3], const d
     CHECK(cufftPlanMany(&zd2d_,2,njnk,njnh,1,njh,njnk,1,njk,CUFFT_Z2D,niSlab));
     CHECK(cufftPlanMany(&zz1d_,1,&ni_,&ni_,1,ni_,&ni_,1,ni_,CUFFT_Z2Z,njhPencil));
   }
+#ifdef PARIS_NO_GPU_MPI
+  CHECK(cudaHostAlloc(&ha_,bytes_+bytes_,cudaHostAllocDefault));
+  assert(ha_);
+  hb_ = ha_+nMax;
+#endif
 }
 
 PoissonPeriodic3DBlockedGPU::~PoissonPeriodic3DBlockedGPU()
 {
+#ifdef PARIS_NO_GPU_MPI
+  CHECK(cudaFreeHost(ha_));
+  ha_ = hb_ = nullptr;
+#endif
   CHECK(cufftDestroy(zz1d_));
   CHECK(cufftDestroy(zd2d_));
   CHECK(cufftDestroy(dz2d_));
@@ -110,8 +117,14 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   // Copy blocks to slabs
 
+#ifdef PARIS_NO_GPU_MPI
+  CHECK(cudaMemcpy(ha_,da,bytes_,cudaMemcpyDeviceToHost));
+  MPI_Alltoall(ha_,nBlockSlab,MPI_DOUBLE,hb_,nBlockSlab,MPI_DOUBLE,commSlab_);
+  CHECK(cudaMemcpyAsync(db,hb_,bytes_,cudaMemcpyHostToDevice,0));
+#else
   CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(da,nBlockSlab,MPI_DOUBLE,db,nBlockSlab,MPI_DOUBLE,commSlab_);
+#endif
 
   gpuFor(
     niSlab,mj,njBlock,mk,nkBlock,
@@ -137,8 +150,14 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
   const int njhPencil = (njh+m-1)/m;
   const int nSlabPencil = 2*njhPencil*niSlab;
 
+#ifdef PARIS_NO_GPU_MPI
+  CHECK(cudaMemcpy(ha_,da,bytes_,cudaMemcpyDeviceToHost));
+  MPI_Alltoall(ha_,nSlabPencil,MPI_DOUBLE,hb_,nSlabPencil,MPI_DOUBLE,MPI_COMM_WORLD);
+  CHECK(cudaMemcpyAsync(db,hb_,bytes_,cudaMemcpyHostToDevice,0));
+#else
   CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(da,nSlabPencil,MPI_DOUBLE,db,nSlabPencil,MPI_DOUBLE,MPI_COMM_WORLD);
+#endif
 
   gpuFor(
     njhPencil,m,niSlab,
@@ -190,8 +209,14 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
       cb[ib].y = ca[ia].y;
     });
 
+#ifdef PARIS_NO_GPU_MPI
+  CHECK(cudaMemcpy(hb_,db,bytes_,cudaMemcpyDeviceToHost));
+  MPI_Alltoall(hb_,nSlabPencil,MPI_DOUBLE,ha_,nSlabPencil,MPI_DOUBLE,commWorld_);
+  CHECK(cudaMemcpyAsync(da,ha_,bytes_,cudaMemcpyHostToDevice,0));
+#else
   CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(db,nSlabPencil,MPI_DOUBLE,da,nSlabPencil,MPI_DOUBLE,commWorld_);
+#endif
 
   gpuFor(
     niSlab,njh,
@@ -215,6 +240,12 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
       db[ib] = divN*da[ia];
     });
 
+#ifdef PARIS_NO_GPU_MPI
+  CHECK(cudaMemcpy(hb_,db,bytes_,cudaMemcpyDeviceToHost));
+  MPI_Alltoall(hb_,nBlockSlab,MPI_DOUBLE,ha_,nBlockSlab,MPI_DOUBLE,commSlab_);
+  CHECK(cudaMemcpyAsync(da,ha_,bytes_,cudaMemcpyHostToDevice,0));
+#else
   CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(db,nBlockSlab,MPI_DOUBLE,da,nBlockSlab,MPI_DOUBLE,commSlab_);
+#endif
 }
