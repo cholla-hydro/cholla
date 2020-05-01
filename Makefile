@@ -91,14 +91,8 @@ DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
   CXXFLAGS += -D__HIP_PLATFORM_HCC__
-endif
-
-ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
-  CXXFLAGS += -fopenmp
-  ifdef HIP_PLATFORM
-    LIBS += -L$(CRAYLIBS_X86_64) -L$(GCC_X86_64) -lcraymath -lcraymp
-  else
-    LDFLAGS += -fopenmp
+  ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
+    DFLAGS += -DPARIS_NO_GPU_MPI -I$(ROCM_PATH)/include
   endif
 endif
 
@@ -106,14 +100,14 @@ CC := cc
 CXX := CC
 CFLAGS += -g -Ofast
 CXXFLAGS += -g -Ofast -std=c++17 -ferror-limit=1
-CFLAGS += $(DFLAGS)
-CXXFLAGS += $(DFLAGS)
-GPUFLAGS += $(DFLAGS)
+CFLAGS += $(DFLAGS) -Isrc
+CXXFLAGS += $(DFLAGS) -Isrc
+GPUFLAGS += $(DFLAGS) -Isrc
 
 ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
   CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
   GPUFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
-  LIBS += -L$(PFFT_ROOT)/lib -lpfft -lfftw3_mpi -lfftw3
+  LIBS += -L$(FFTW_DIR) -L$(PFFT_ROOT)/lib -lpfft -lfftw3_mpi -lfftw3
 endif
 
 ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
@@ -123,7 +117,6 @@ endif
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifdef HIP_PLATFORM
     LIBS += -L$(ROCM_PATH)/lib -lrocfft
-    GPUFLAGS += -DPARIS_NO_GPU_MPI
   else
     LIBS += -lcufft -lcudart
   endif
@@ -137,11 +130,15 @@ endif
 
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
   GPUFLAGS += -I$(MPI_HOME)/include
+  ifdef HIP_PLATFORM
+    LIBS += -L$(MPI_HOME)/lib -lmpicxx -lmpi
+  endif
 endif
 
 ifdef HIP_PLATFORM
+  CXXFLAGS += -I$(ROCM_PATH)/include -Wno-unused-result
   GPUCXX := hipcc
-  GPUFLAGS += -g -Ofast -Wall -Werror --amdgpu-target=gfx906 -Wno-unused-command-line-argument -std=c++17
+  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-function -Wno-unused-result -Wno-unused-command-line-argument -std=c++17 -ferror-limit=1
   LD := $(GPUCXX)
   LDFLAGS += $(GPUFLAGS)
 else
@@ -149,6 +146,15 @@ else
   GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
+endif
+
+ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
+  CXXFLAGS += -fopenmp
+  ifdef HIP_PLATFORM
+    LIBS += -L$(CRAYLIBS_X86_64) -L$(GCC_X86_64)/lib64 -lcraymath -lcraymp -lu
+  else
+    LDFLAGS += -fopenmp
+  endif
 endif
 
 .SUFFIXES: .c .cpp .cu .o

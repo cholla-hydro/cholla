@@ -5,7 +5,7 @@
 
 #include<stdlib.h>
 #include<stdio.h>
-#include<cuda.h>
+#include"gpu.hpp"
 #include<math.h>
 #include"global.h"
 

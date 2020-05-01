@@ -5,7 +5,7 @@
 #define POTENTIAL_CUFFT_3D_H
 
 #include "../global.h"
-#include <cufft.h>
+#include "gpu.hpp"
 
 
 #if PRECISION == 1

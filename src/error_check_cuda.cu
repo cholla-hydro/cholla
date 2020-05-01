@@ -6,7 +6,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-#include<cuda.h>
+#include"gpu.hpp"
 #include"global.h"
 #include"global_cuda.h"
 #include"io.h"
@@ -61,7 +61,7 @@ int Check_Field_Along_Axis( Real *dev_array, int n_field, int nx, int ny, int nz
   
   int *error_value_dev;
   CudaSafeCall( cudaMalloc((void**)&error_value_dev,   sizeof(int)) );
-  Check_Value_Along_Axis<<<Grid_Error,Block_Error>>>( dev_conserved, 0, nx_s, ny_s, nz_s, n_ghost, error_value_dev );
+  hipLaunchKernelGGL(Check_Value_Along_Axis, Grid_Error, Block_Error, 0, 0,  dev_conserved, 0, nx_s, ny_s, nz_s, n_ghost, error_value_dev );
   
   int error_value_host;
   CudaSafeCall( cudaMemcpy( &error_value_host, error_value_dev, sizeof(int), cudaMemcpyDeviceToHost) );

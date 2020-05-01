@@ -4,7 +4,7 @@
 
 #include<stdio.h>
 #include<math.h>
-#include<cuda.h>
+#include"gpu.hpp"
 #include"global.h"
 #include"global_cuda.h"
 #include"hydro_cuda.h"

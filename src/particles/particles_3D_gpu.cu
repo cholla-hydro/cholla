@@ -4,7 +4,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-#include<cuda.h>
+#include"gpu.hpp"
 #include"../io.h"
 #include"../global.h"
 #include"../global_cuda.h"
@@ -83,7 +83,7 @@ void Particles_3D::Set_Particles_Array_Real( Real value, Real *array_dev, part_i
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
-  Set_Particles_Array_Real_Kernel<<<dim1dGrid,dim1dBlock>>>( value, array_dev, size);
+  hipLaunchKernelGGL(Set_Particles_Array_Real_Kernel, dim1dGrid, dim1dBlock, 0, 0,  value, array_dev, size);
   CudaCheckError();
 }
 

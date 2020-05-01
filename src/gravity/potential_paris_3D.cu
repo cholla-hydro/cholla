@@ -1,7 +1,7 @@
 #if defined(GRAVITY) && defined(PARIS)
 
 #include "potential_paris_3D.h"
-#include "paris/gpu.hpp"
+#include "gpu.hpp"
 #include "../io.h"
 #include <cassert>
 

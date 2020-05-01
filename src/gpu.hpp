@@ -15,16 +15,28 @@
 
 #define cufftDestroy hipfftDestroy
 #define cufftDoubleComplex hipfftDoubleComplex
+#define cufftDoubleReal hipfftDoubleReal
 #define cufftExecD2Z hipfftExecD2Z
 #define cufftExecZ2D hipfftExecZ2D
 #define cufftExecZ2Z hipfftExecZ2Z
 #define cufftHandle hipfftHandle
+#define cufftPlan3d hipfftPlan3d
 #define cufftPlanMany hipfftPlanMany
 
+#define cudaError hipError_t
+#define cudaError_t hipError_t
+#define cudaErrorInsufficientDriver hipErrorInsufficientDriver
+#define cudaErrorNoDevice hipErrorNoDevice
+#define cudaEvent_t hipEvent_t
+#define cudaEventCreate hipEventCreate
+#define cudaEventElapsedTime hipEventElapsedTime
+#define cudaEventRecord hipEventRecord
+#define cudaEventSynchronize hipEventSynchronize
 #define cudaFree hipFree
 #define cudaFreeHost hipHostFree
 #define cudaGetDevice hipGetDevice
 #define cudaGetDeviceCount hipGetDeviceCount
+#define cudaGetErrorString hipGetErrorString
 #define cudaGetLastError hipGetLastError
 #define cudaHostAlloc hipHostMalloc
 #define cudaHostAllocDefault hipHostMallocDefault
@@ -33,7 +45,9 @@
 #define cudaMemcpyAsync hipMemcpyAsync
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
 #define cudaMemcpyHostToDevice hipMemcpyHostToDevice
+#define cudaMemGetInfo hipMemGetInfo
 #define cudaSetDevice hipSetDevice
+#define cudaSuccess hipSuccess
 
 static void check(const hipfftResult err, const char *const file, const int line)
 {

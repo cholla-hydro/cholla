@@ -4,7 +4,7 @@
 #ifdef CUDA
 #ifdef H_CORRECTION 
 
-#include<cuda.h>
+#include"gpu.hpp"
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
