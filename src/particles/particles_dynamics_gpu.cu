@@ -4,7 +4,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-#include<cuda.h>
+#include"gpu.hpp"
 #include"../global.h"
 #include"../global_cuda.h"
 #include"../grid3D.h"
@@ -78,7 +78,7 @@ Real Particles_3D::Calc_Particles_dt_GPU_function( int ngrid, part_int_t n_parti
   
   // printf("%f %f %f \n", dx, dy, dz);
 
-  Calc_Particles_dti_Kernel<<<dim1dGrid,dim1dBlock>>>( n_particles_local, dx, dy, dz, vel_x, vel_y, vel_z, dti_array_dev );
+  hipLaunchKernelGGL(Calc_Particles_dti_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_particles_local, dx, dy, dz, vel_x, vel_y, vel_z, dti_array_dev );
   CudaCheckError();
   
   // Initialize dt values 
@@ -138,7 +138,7 @@ void Particles_3D::Advance_Particles_KDK_Step1_GPU_function( part_int_t n_local,
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  Advance_Particles_KDK_Step1_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, dt, pos_x_dev, pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev );
+  hipLaunchKernelGGL(Advance_Particles_KDK_Step1_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, dt, pos_x_dev, pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev );
   CudaCheckError();
   
 }
@@ -154,7 +154,7 @@ void Particles_3D::Advance_Particles_KDK_Step2_GPU_function( part_int_t n_local,
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
   
-  Advance_Particles_KDK_Step2_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, dt, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev );
+  hipLaunchKernelGGL(Advance_Particles_KDK_Step2_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, dt, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev );
   CudaCheckError();
   
 }
@@ -237,7 +237,7 @@ void Particles_3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function( part_int_t n_
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  Advance_Particles_KDK_Step1_Cosmo_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, delta_a, pos_x_dev, pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K );
+  hipLaunchKernelGGL(Advance_Particles_KDK_Step1_Cosmo_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, delta_a, pos_x_dev, pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K );
   CudaCheckError();
 
 }
@@ -253,7 +253,7 @@ void Particles_3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function( part_int_t n_
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  Advance_Particles_KDK_Step2_Cosmo_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, delta_a, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K );
+  hipLaunchKernelGGL(Advance_Particles_KDK_Step2_Cosmo_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, delta_a, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K );
   CudaCheckError();
   
 }

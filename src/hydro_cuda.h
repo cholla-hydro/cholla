@@ -38,12 +38,19 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
 __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,  Real U_floor );
 #endif
 
-#ifdef DE //PRESSURE_DE
-__host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_advected, Real gamma );
-                                
-#endif
+static inline __host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_advected, Real gamma ){
+  
+  Real U, P;
+  Real eta = DE_ETA_1;
+  
+  // Apply same condition as Byan+2013 to select the internal energy from which compute pressure.
+  if( U_total / E > eta ) U = U_total;
+  else U = U_advected;
+  
+  P = U * (gamma - 1.0);
+  return P;
+}
 
-__host__ __device__ Real Get_Pressure_From_DE( Real E, Real U_total, Real U_advected, Real gamma );
 
 __global__ void Partial_Update_Advected_Internal_Energy_1D( Real *dev_conserved, Real *Q_Lx, Real *Q_Rx, int nx, int n_ghost, Real dx, Real dt, Real gamma, int n_fields );
 

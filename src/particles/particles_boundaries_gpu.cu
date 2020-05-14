@@ -4,7 +4,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-#include<cuda.h>
+#include"gpu.hpp"
 #include <iostream>
 #include"../io.h"
 #include"../global.h"
@@ -66,7 +66,7 @@ void Grid3D::Set_Particles_Boundary_GPU( int dir, int side ){
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  Set_Particles_Boundary_Kernel<<<dim1dGrid,dim1dBlock>>>( side, Particles.n_local, pos_dev, d_min, d_max, L  );
+  hipLaunchKernelGGL(Set_Particles_Boundary_Kernel, dim1dGrid, dim1dBlock, 0, 0,  side, Particles.n_local, pos_dev, d_min, d_max, L  );
   CudaCheckError();
 
 }
@@ -314,29 +314,29 @@ int Select_Particles_to_Transfer_GPU_function( part_int_t n_local, int side, Rea
   
   
   // chprintf("Getting transfer flags \n");
-  Get_Transfer_Flags_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, side, domainMin, domainMax, pos_d, transfer_flags_d);
+  hipLaunchKernelGGL(Get_Transfer_Flags_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, side, domainMin, domainMax, pos_d, transfer_flags_d);
   CudaCheckError();
   
-  Scan_Kernel<<<dim1dGrid_half,dim1dBlock>>>( n_local, transfer_flags_d, transfer_sum_d, transfer_partial_sum_d );
+  hipLaunchKernelGGL(Scan_Kernel, dim1dGrid_half, dim1dBlock, 0, 0,  n_local, transfer_flags_d, transfer_sum_d, transfer_partial_sum_d );
   CudaCheckError();
   
-  Prefix_Sum_Blocks_Kernel<<<1,dim1dBlock >>>( ngrid_half, transfer_partial_sum_d );
+hipLaunchKernelGGL(  Prefix_Sum_Blocks_Kernel, 1, dim1dBlock , 0, 0,  ngrid_half, transfer_partial_sum_d );
   CudaCheckError();
   
-  Sum_Blocks_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, transfer_sum_d, transfer_partial_sum_d );
+  hipLaunchKernelGGL(Sum_Blocks_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, transfer_sum_d, transfer_partial_sum_d );
   CudaCheckError();
   
-  Get_N_Transfer_Particles_Kernel<<<1,1>>>( n_local,  n_transfer_d, transfer_flags_d, transfer_sum_d );
+  hipLaunchKernelGGL(Get_N_Transfer_Particles_Kernel, 1, 1, 0, 0,  n_local,  n_transfer_d, transfer_flags_d, transfer_sum_d );
   CudaCheckError();
   
   CudaSafeCall( cudaMemcpy(n_transfer_h, n_transfer_d, sizeof(int), cudaMemcpyDeviceToHost) );
   CudaCheckError();
   
-  Get_Transfer_Indexs_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local , transfer_flags_d, transfer_sum_d, transfer_indxs_d );
+  hipLaunchKernelGGL(Get_Transfer_Indexs_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local , transfer_flags_d, transfer_sum_d, transfer_indxs_d );
   CudaCheckError();
   
   
-  Remove_Transfred_Particles_Kernel<<<1,dim1dBlock >>>( n_local, n_transfer_d, transfer_flags_d, transfer_sum_d, transfer_indxs_d, pos_d );
+hipLaunchKernelGGL(  Remove_Transfred_Particles_Kernel, 1, dim1dBlock , 0, 0,  n_local, n_transfer_d, transfer_flags_d, transfer_sum_d, transfer_indxs_d, pos_d );
   CudaCheckError();
   
   // chprintf( "N transfer: %d\n", n_transfer_h[0]);

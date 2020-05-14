@@ -104,7 +104,7 @@ Real Potential_SOR_3D::Get_Potential( Real *input_density,  Real *output_potenti
   
   
   if ( !potential_initialized ){
-    Initialize_Potential_Kernel<<<dim3dGrid,dim3dBlock>>>( 0, F.potential_d, F.density_d, nx_local, ny_local, nz_local, n_ghost );
+    hipLaunchKernelGGL(Initialize_Potential_Kernel, dim3dGrid, dim3dBlock, 0, 0,  0, F.potential_d, F.density_d, nx_local, ny_local, nz_local, n_ghost );
     potential_initialized = true;
     chprintf( "SOR: Potential Initialized \n");
   }
@@ -130,9 +130,9 @@ Real Potential_SOR_3D::Get_Potential( Real *input_density,  Real *output_potenti
   while (converged_h == 0 ) {
     cudaMemset( F.converged_d, 1, sizeof(bool) );
     
-    Iteration_Step_SOR<<<dim3dGrid_half,dim3dBlock>>>( n_cells_local, F.density_d, F.potential_d, nx_local, ny_local, nz_local, n_ghost, dx, dy, dz, omega, 0, epsilon, F.converged_d );
+    hipLaunchKernelGGL(Iteration_Step_SOR, dim3dGrid_half, dim3dBlock, 0, 0,  n_cells_local, F.density_d, F.potential_d, nx_local, ny_local, nz_local, n_ghost, dx, dy, dz, omega, 0, epsilon, F.converged_d );
     
-    Iteration_Step_SOR<<<dim3dGrid_half,dim3dBlock>>>( n_cells_local, F.density_d, F.potential_d, nx_local, ny_local, nz_local, n_ghost, dx, dy, dz, omega, 1, epsilon, F.converged_d );
+    hipLaunchKernelGGL(Iteration_Step_SOR, dim3dGrid_half, dim3dBlock, 0, 0,  n_cells_local, F.density_d, F.potential_d, nx_local, ny_local, nz_local, n_ghost, dx, dy, dz, omega, 1, epsilon, F.converged_d );
     
     cudaMemcpy( &converged_h, F.converged_d, sizeof(bool), cudaMemcpyDeviceToHost );
     n_iter += 1;
@@ -267,7 +267,7 @@ void Potential_SOR_3D::Copy_Input( Real *input_density, Real Grav_Constant, Real
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  Copy_Input_Kernel<<<dim1dGrid,dim1dBlock>>>( n_cells_local, F.input_d, F.density_d,  Grav_Constant, dens_avrg, current_a  );
+  hipLaunchKernelGGL(Copy_Input_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_cells_local, F.input_d, F.density_d,  Grav_Constant, dens_avrg, current_a  );
 }
 
 
