@@ -39,7 +39,7 @@ CUDA = -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-MPI_FLAGS =  -DMPI_CHOLLA
+# MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
@@ -121,24 +121,25 @@ GRAVITY_ENERGY_COUPLE = -DCOUPLE_GRAVITATIONAL_WORK
 # GRAVITY_ENERGY_COUPLE = -DCOUPLE_DELTA_E_KINETIC
 # OUTPUT_POTENTIAL = -DOUTPUT_POTENTIAL
 GRAVITY_GRADIENT = -DGRAVITY_5_POINTS_GRADIENT
-
-#Include Gravity From Particles PM
-PARTICLES = -DPARTICLES
-PARTICLES_ARCH = -DPARTICLES_CPU
-ONLY_PARTICLES = -DONLY_PARTICLES
-SINGLE_PARTICLE_MASS = -DSINGLE_PARTICLE_MASS
-PARTICLES_INT = -DPARTICLES_LONG_INTS
-PARTICLES_INTEGRATOR = -DPARTICLES_KDK
-# PARTICLE_IDS = -DPARTICLE_IDS
-# PRINT_DOMAIN = -DPRINT_DOMAIN
+# 
+# #Include Gravity From Particles PM
+# PARTICLES = -DPARTICLES
+# PARTICLES_ARCH = -DPARTICLES_CPU
+# ONLY_PARTICLES = -DONLY_PARTICLES
+# SINGLE_PARTICLE_MASS = -DSINGLE_PARTICLE_MASS
+# PARTICLES_INT = -DPARTICLES_LONG_INTS
+# PARTICLES_INTEGRATOR = -DPARTICLES_KDK
+# # PARTICLE_IDS = -DPARTICLE_IDS
+# # PRINT_DOMAIN = -DPRINT_DOMAIN
 
 # TURN OMP ON FOR CPU CALCULATIONS
 PARALLEL_OMP = -DPARALLEL_OMP
-N_OMP_THREADS = -DN_OMP_THREADS=10
+N_OMP_THREADS = -DN_OMP_THREADS=20
 # # PRINT_OMP_DOMAIN = -DPRINT_OMP_DOMAIN
 
-#Cosmological simulation
-COSMOLOGY = -DCOSMOLOGY
+# 
+# #Cosmological simulation
+# COSMOLOGY = -DCOSMOLOGY
 
 #Use Grackle for cooling in cosmological simulatls o  ions
 # COOLING = -DCOOLING_GRACKLE
@@ -148,8 +149,8 @@ CUDA_INCL = -I/cm/shared/apps/cuda10.1/toolkit/current/include
 CUDA_LIBS = -L/cm/shared/apps/cuda10.1/toolkit/current/targets/x86_64-linux/lib/stubs/ -lcuda -lcudart
 endif
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = -I/cm/shared/apps/hdf5_18/1.8.20/include
-HDF5_LIBS = -L/cm/shared/apps/hdf5_18/1.8.20/lib -lhdf5
+HDF5_INCL = -I/cm/shared/apps/hdf5/1.10.6/include
+HDF5_LIBS = -L/cm/shared/apps/hdf5/1.10.6/lib -lhdf5
 endif
 
 INCL   = -I./ $(HDF5_INCL)
@@ -157,8 +158,6 @@ NVINCL = $(INCL) $(CUDA_INCL)
 LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
 ifeq ($(POISSON_SOLVER),-DPFFT)
-# FFTW_INCL = -I/cm/shared/apps/fftw/fftw-3.3.8/include
-# FFTW_LIBS = -L/cm/shared/apps/fftw/fftw-3.3.8/lib -lfftw3
 FFTW_INCL = -I/data/groups/comp-astro/bruno/code/fftw/include
 FFTW_LIBS = -L/data/groups/comp-astro/bruno/code/fftw/lib -lfftw3
 PFFT_INCL = -I/home/brvillas/code/pfft/include
@@ -179,7 +178,7 @@ GRACKLE_PRECISION = -DCONFIG_BFLOAT_8
 OUTPUT_TEMPERATURE = -DOUTPUT_TEMPERATURE
 OUTPUT_CHEMISTRY = -DOUTPUT_CHEMISTRY
 SCALAR = -DSCALAR
-N_OMP_THREADS_GRACKLE = -DN_OMP_THREADS_GRACKLE=10
+N_OMP_THREADS_GRACKLE = -DN_OMP_THREADS_GRACKLE=20
 GRACKLE_INCL = -I/home/brvillas/code/grackle/include
 GRACKLE_LIBS = -L/home/brvillas/code/grackle/lib -lgrackle 
 INCL += $(GRACKLE_INCL)
