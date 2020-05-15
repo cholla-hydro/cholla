@@ -4,6 +4,7 @@
 #define POTENTIAL_SOR_3D_H
 
 #include "../global.h"
+#include <stdlib.h>
 // #include "../grid3D.h"
 
 
