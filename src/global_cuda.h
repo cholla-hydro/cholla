@@ -44,6 +44,11 @@ extern Real *buffer;
 extern Real *tmp1;
 extern Real *tmp2;
 
+//Arrays for potential in GPU: Will be set to NULL if not using GRAVITY
+extern Real *dev_grav_potential;
+extern Real *temp_potential;
+extern Real *buffer_potential;
+
 // Similarly, sizes of subgrid blocks and kernel dimensions are global variables
 // so subgrid splitting function is only called once
 // dimensions of subgrid blocks

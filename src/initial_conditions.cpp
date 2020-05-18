@@ -15,7 +15,10 @@
 #include "error_handling.h"
 #include <stdio.h>
 #include <cmath>
+#include <iostream>
+#include <fstream>
 
+using namespace std;
 
 /*! \fn void Set_Initial_Conditions(parameters P)
  *  \brief Set the initial conditions based on info in the parameters structure. */
@@ -53,11 +56,22 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
   } else if (strcmp(P.init, "Disk_2D")==0) {
     Disk_2D();    
   } else if (strcmp(P.init, "Disk_3D")==0) {
-    Disk_3D(P);
+    Disk_3D(P); 
   } else if (strcmp(P.init, "Spherical_Overpressure_3D")==0) {
-    Spherical_Overpressure_3D();     
+    Spherical_Overpressure_3D();    
+  } else if (strcmp(P.init, "Spherical_Overdensity_3D")==0) {
+    Spherical_Overdensity_3D();    
   } else if (strcmp(P.init, "Read_Grid")==0) {
+    #ifndef ONLY_PARTICLES
     Read_Grid(P);    
+    #else
+    // Initialize a uniforn hydro grid when only integrating particles
+    Uniform_Grid();
+    #endif
+  } else if (strcmp(P.init, "Uniform")==0) {
+    Uniform_Grid();  
+  } else if (strcmp(P.init, "Zeldovich_Pancake")==0) {
+    Zeldovich_Pancake(P);    
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
@@ -1046,6 +1060,193 @@ void Grid3D::Spherical_Overpressure_3D()
       }
     }
   }
+}
+
+/*! \fn void Spherical_Overdensity_3D()
+ *  \brief Spherical overdensity for gravitational colapse */
+void Grid3D::Spherical_Overdensity_3D()
+{
+ int i, j, k, id;
+ Real x_pos, y_pos, z_pos, r, center_x, center_y, center_z;
+ Real density, pressure, overDensity, overPressure, energy;
+ Real vx, vy, vz, v2;
+ center_x = 0.5;
+ center_y = 0.5;
+ center_z = 0.5;
+ overDensity = 1;
+ overPressure = 0;
+ vx = 0;
+ vy = 0;
+ vz = 0;
+
+ // set the initial values of the conserved variables
+ for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+     for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+       id = i + j*H.nx + k*H.nx*H.ny;
+
+       // // get the centered cell positions at (i,j,k)
+       Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+       density = 0.0005;
+       pressure = 0.0005;
+
+       r = sqrt( (x_pos-center_x)*(x_pos-center_x) + (y_pos-center_y)*(y_pos-center_y) + (z_pos-center_z)*(z_pos-center_z) );
+       if ( r < 0.2 ){
+         density = overDensity;
+         pressure += overPressure;
+       }
+       v2 = vx*vx + vy*vy + vz*vz;
+       energy = pressure/(gama-1) + 0.5*density*v2;
+       C.density[id] = density;
+       C.momentum_x[id] = density*vx;
+       C.momentum_y[id] = density*vy;
+       C.momentum_z[id] = density*vz;
+       C.Energy[id] = energy;
+
+       #ifdef DE
+       C.GasEnergy[id] = pressure/(gama-1);
+       #endif
+     }
+   }
+ }
+}
+
+
+void Grid3D::Uniform_Grid()
+{
+  chprintf( " Initializing Uniform Grid\n");
+  int i, j, k, id;
+  // set the initial values of the conserved variables
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        C.density[id] = 0;
+        C.momentum_x[id] = 0;
+        C.momentum_y[id] = 0;
+        C.momentum_z[id] = 0;
+        C.Energy[id] = 0;
+
+        #ifdef DE
+        C.GasEnergy[id] = 0;
+        #endif
+      }
+    }
+  }
+}
+
+void Grid3D::Zeldovich_Pancake( struct parameters P ){
+  
+  #ifndef COSMOLOGY
+  chprintf( "To run a Zeldovich Pancake COSMOLOGY has to be turned ON \n" );
+  exit(-1);
+  #else
+  
+  
+  int i, j, k, id;
+  Real x_pos, y_pos, z_pos;
+  Real H0, h, Omega_M, rho_0, G, z_zeldovich, z_init, x_center, T_init, k_x;
+  
+  chprintf("Setting Zeldovich Pancake initial conditions...\n");
+  H0 = P.H0;
+  h = H0 / 100;
+  Omega_M = P.Omega_M;
+  
+  chprintf( " h = %f \n", h );
+  chprintf( " Omega_M = %f \n", Omega_M );
+  
+  H0 /= 1000;               //[km/s / kpc]
+  G = G_COSMO;
+  rho_0 = 3*H0*H0 / ( 8*M_PI*G ) * Omega_M /h / h;
+  z_zeldovich = 1;
+  z_init = P.Init_redshift;
+  chprintf( " rho_0 = %f \n", rho_0 );
+  chprintf( " z_init = %f \n", z_init );
+  chprintf( " z_zeldovich = %f \n", z_zeldovich );
+  
+  x_center = H.xdglobal / 2;
+  chprintf( " Peak Center = %f \n", x_center );
+  
+  T_init = 100;
+  chprintf( " T initial = %f \n", T_init );
+  
+  k_x = 2 * M_PI /  H.xdglobal;
+  
+  
+  char filename[100];
+  // create the filename to read from
+  strcpy(filename, P.indir); 
+  strcat(filename, "ics_zeldovich.dat");  
+  chprintf( " Loading ICs File: %s\n", filename);
+  
+  real_vector_t ics_values;
+  
+  ifstream file_in( filename );
+  string line;
+  Real ic_val;
+  if (file_in.is_open()){
+    while ( getline (file_in, line) ){
+      ic_val = atof( line.c_str() );
+      ics_values.push_back( ic_val );
+      // chprintf("%f\n", ic_val);
+    }
+    file_in.close();
+  }
+  else{
+    chprintf("  Error: Unable to open ics zeldovich file\n");
+    exit(1);
+  }
+  int nPoints = 256;
+  
+  
+  
+  Real dens, vel, temp, U, E, gamma;
+  gamma = P.gamma;
+
+  int index;
+  // set the initial values of the conserved variables
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        // // get the centered cell positions at (i,j,k)
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        
+        //Analitical Initial Conditions
+        // dens = rho_0 / ( 1 - ( 1 + z_zeldovich ) / ( 1 + z_init ) * cos( k_x*( x_pos - x_center )) );
+        // vel = - H0 * ( 1 + z_zeldovich ) / sqrt( 1 + z_init ) * sin( k_x*( x_pos - x_center )) / k_x;
+        // temp = T_init * pow( dens / rho_0, 2./3 );
+        // U = temp / (gamma - 1) / MP * KB * 1e-10 * dens;
+        // E = 0.5 * dens * vel * vel + U;
+        
+        
+        index = (int( x_pos / H.dx ) + 0 ) %256;
+        // index = ( index + 16 ) % 256;
+        dens = ics_values[ 0*nPoints + index];
+        vel = ics_values[ 1*nPoints + index];
+        E = ics_values[ 2*nPoints + index];
+        U = ics_values[ 3*nPoints + index];
+        // // 
+        
+        // chprintf( "%f \n", vel );        
+        C.density[id] = dens;
+        C.momentum_x[id] = dens * vel;
+        C.momentum_y[id] = 0;
+        C.momentum_z[id] = 0;
+        C.Energy[id] = E;
+
+        #ifdef DE
+        C.GasEnergy[id] = U ;
+        #endif
+        
+      }
+    }
+  }
+  
+  #endif //COSMOLOGY
+  
 }
 
 

@@ -160,13 +160,16 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
 
 
 
-__global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z,
+__global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
+                                              Real *Q_Lx, Real *Q_Rx, Real *Q_Ly, Real *Q_Ry, Real *Q_Lz, Real *Q_Rz,                                              
+                                              Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z,
                                               int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, 
                                               Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt,
-                                              Real gamma, int n_fields)
+                                              Real gamma, int n_fields, Real density_floor, Real *dev_potential )
 {
   int id, xid, yid, zid, n_cells;
   int imo, jmo, kmo;
+  
   #ifdef STATIC_GRAV
   Real d, d_inv, vx, vy, vz;
   Real gx, gy, gz, d_n, d_inv_n, vx_n, vy_n, vz_n;
@@ -174,6 +177,29 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
   gy = 0.0;
   gz = 0.0;
   #endif
+  
+  #ifdef DENSITY_FLOOR
+  Real dens_0;
+  #endif
+  
+  #ifdef GRAVITY
+  Real d, d_inv, vx, vy, vz;
+  Real gx, gy, gz, d_n, d_inv_n, vx_n, vy_n, vz_n;
+  Real pot_l, pot_r;
+  int id_l, id_r;
+  gx = 0.0;
+  gy = 0.0;
+  gz = 0.0;
+  
+  #ifdef GRAVITY_5_POINTS_GRADIENT
+  int id_ll, id_rr;
+  Real pot_ll, pot_rr;
+  #endif
+  
+  #ifdef COUPLE_DELTA_E_KINETIC
+  Real Ekin_0, Ekin_1;
+  #endif//COUPLE_DELTA_E_KINETIC
+  #endif //GRAVTY
 
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
@@ -188,11 +214,11 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
   imo = xid-1 + yid*nx + zid*nx*ny;
   jmo = xid + (yid-1)*nx + zid*nx*ny;
   kmo = xid + yid*nx + (zid-1)*nx*ny;
-
+  
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
   {
-    #ifdef STATIC_GRAV
+    #if defined(STATIC_GRAV) ||  defined(GRAVITY) 
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
     vx =  dev_conserved[1*n_cells + id] * d_inv;
@@ -221,6 +247,14 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
       dev_conserved[(5+i)*n_cells + id] += dtodx * (dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id])
                                     +  dtody * (dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id])
                                     +  dtodz * (dev_F_z[(5+i)*n_cells + kmo] - dev_F_z[(5+i)*n_cells + id]);
+      #ifdef COOLING_GRACKLE
+      // If the updated value is negative, then revert to the value before the update
+      if ( dev_conserved[(5+i)*n_cells + id] < 0 ){
+        dev_conserved[(5+i)*n_cells + id] -= dtodx * (dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id])
+                                      +  dtody * (dev_F_y[(5+i)*n_cells + jmo] - dev_F_y[(5+i)*n_cells + id])
+                                      +  dtodz * (dev_F_z[(5+i)*n_cells + kmo] - dev_F_z[(5+i)*n_cells + id]);
+      } 
+      #endif
     }                              
     #endif
     #ifdef DE
@@ -230,6 +264,30 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
                                   // +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
                                   //Note: this term is added in a separate kernel to avoid syncronization issues
     #endif
+    
+    #ifdef DENSITY_FLOOR
+    if ( dev_conserved[            id] < density_floor ){
+      if (dev_conserved[            id] > 0){  
+        dens_0 = dev_conserved[            id];
+        // Set the density to the density floor
+        dev_conserved[            id] = density_floor;
+        // Scale the conserved values to the new density
+        dev_conserved[1*n_cells + id] *= (density_floor / dens_0);
+        dev_conserved[2*n_cells + id] *= (density_floor / dens_0);
+        dev_conserved[3*n_cells + id] *= (density_floor / dens_0);
+        dev_conserved[4*n_cells + id] *= (density_floor / dens_0);
+        #ifdef DE
+        dev_conserved[(n_fields-1)*n_cells + id] *= (density_floor / dens_0);
+        #endif
+      }
+      else{
+        // If the density is negative: average the density on that cell
+        dens_0 = dev_conserved[            id];
+        Average_Cell_Single_Field( 0, xid, yid, zid, nx, ny, nz, n_cells, dev_conserved );    
+      }
+    }
+    #endif//DENSITY_FLOOR
+
     #ifdef STATIC_GRAV 
     calc_g_3D(xid, yid, zid, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
     d_n  =  dev_conserved[            id];
@@ -243,10 +301,94 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *dev_F_x
     dev_conserved[4*n_cells + id] += 0.25*dt*gx*(d + d_n)*(vx + vx_n)
                                   +  0.25*dt*gy*(d + d_n)*(vy + vy_n)
                                   +  0.25*dt*gz*(d + d_n)*(vz + vz_n);
-    #endif    
+    #endif
+    
+    #ifdef GRAVITY 
+    d_n  =  dev_conserved[            id];
+    d_inv_n = 1.0 / d_n;
+    vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
+    vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
+    vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
+    
+    #ifdef COUPLE_DELTA_E_KINETIC
+    //The Kinetic Energy before adding the gravity term to the Momentum
+    Ekin_0 = 0.5 * d_n * ( vx_n*vx_n + vy_n*vy_n + vz_n*vz_n );
+    #endif
+    
+    // Calculate the -gradient of potential
+    // Get X componet of gravity field
+    id_l = (xid-1) + (yid)*nx + (zid)*nx*ny;
+    id_r = (xid+1) + (yid)*nx + (zid)*nx*ny;
+    pot_l = dev_potential[id_l];
+    pot_r = dev_potential[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+    id_ll = (xid-2) + (yid)*nx + (zid)*nx*ny;
+    id_rr = (xid+2) + (yid)*nx + (zid)*nx*ny;
+    pot_ll = dev_potential[id_ll];
+    pot_rr = dev_potential[id_rr];
+    gx = -1 * ( -pot_rr + 8*pot_r - 8*pot_l + pot_ll) / (12*dx);
+    #else
+    gx = -0.5*( pot_r - pot_l ) / dx;
+    #endif
+    
+    //Get Y componet of gravity field
+    id_l = (xid) + (yid-1)*nx + (zid)*nx*ny;
+    id_r = (xid) + (yid+1)*nx + (zid)*nx*ny;
+    pot_l = dev_potential[id_l];
+    pot_r = dev_potential[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+    id_ll = (xid) + (yid-2)*nx + (zid)*nx*ny;
+    id_rr = (xid) + (yid+2)*nx + (zid)*nx*ny;
+    pot_ll = dev_potential[id_ll];
+    pot_rr = dev_potential[id_rr];
+    gy = -1 * ( -pot_rr + 8*pot_r - 8*pot_l + pot_ll) / (12*dx);
+    #else
+    gy = -0.5*( pot_r - pot_l ) / dy;
+    #endif
+    //Get Z componet of gravity field
+    id_l = (xid) + (yid)*nx + (zid-1)*nx*ny;
+    id_r = (xid) + (yid)*nx + (zid+1)*nx*ny;
+    pot_l = dev_potential[id_l];
+    pot_r = dev_potential[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+    id_ll = (xid) + (yid)*nx + (zid-2)*nx*ny;
+    id_rr = (xid) + (yid)*nx + (zid+2)*nx*ny;
+    pot_ll = dev_potential[id_ll];
+    pot_rr = dev_potential[id_rr];
+    gz = -1 * ( -pot_rr + 8*pot_r - 8*pot_l + pot_ll) / (12*dx);
+    #else
+    gz = -0.5*( pot_r - pot_l ) / dz;
+    #endif
+    
+    //Add gravity term to Momentum
+    dev_conserved[  n_cells + id] += 0.5*dt*gx*(d + d_n);
+    dev_conserved[2*n_cells + id] += 0.5*dt*gy*(d + d_n);
+    dev_conserved[3*n_cells + id] += 0.5*dt*gz*(d + d_n);
+    
+    //Add gravity term to Total Energy
+    #ifdef COUPLE_GRAVITATIONAL_WORK
+    //Add the work done by the gravitational force 
+    dev_conserved[4*n_cells + id] += 0.5* dt * ( gx*(d*vx + d_n*vx_n) +  gy*(d*vy + d_n*vy_n) +  gz*(d*vz + d_n*vz_n) );
+    #endif
+    
+    #ifdef COUPLE_DELTA_E_KINETIC
+    //Add the the exact change in kinetic energy due to the gravity term added to the Momentum
+    vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
+    vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
+    vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
+    Ekin_1 = 0.5 * d_n * ( vx_n*vx_n + vy_n*vy_n + vz_n*vz_n );
+    dev_conserved[4*n_cells + id] += Ekin_1 - Ekin_0;
+    #endif
+    
+    
+    #endif
+    
+    
+    #if !( defined(DENSITY_FLOOR) && defined(TEMPERATURE_FLOOR) )   
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id] || dev_conserved[4*n_cells + id] < 0.0 || dev_conserved[4*n_cells+id] != dev_conserved[4*n_cells+id]) {
       printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid+x_off, yid+y_off, zid+z_off, dev_conserved[id], dtodx*(dev_F_x[imo]-dev_F_x[id]), dtody*(dev_F_y[jmo]-dev_F_y[id]), dtodz*(dev_F_z[kmo]-dev_F_z[id]), dev_conserved[4*n_cells+id]);
     }
+    #endif//DENSITY_FLOOR
     /*
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -366,7 +508,7 @@ __global__ void Calc_dt_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Rea
 }
 
 
-__global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real *dti_array, Real gamma)
+__global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real *dti_array, Real gamma, Real max_dti_slow)
 {
   __shared__ Real max_dti[TPB];
 
@@ -403,6 +545,29 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
     max_dti[tid] = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
     max_dti[tid] = fmax(max_dti[tid], (fabs(vz)+cs)/dz);
     max_dti[tid] = fmax(max_dti[tid], 0.0);
+    
+    #ifdef AVERAGE_SLOW_CELLS
+    // If the cell delta_t is smaller than the min_delta_t, then the cell is averaged over its neighbours
+    if (max_dti[tid] > max_dti_slow){
+      // Average this cell
+      printf(" Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f\n", xid, yid, zid, 1./max_dti[tid],  1./max_dti_slow );
+      Average_Cell_All_Fields( xid, yid, zid, nx, ny, nz, n_cells, dev_conserved );
+      
+      // Recompute max_dti for this cell
+      d  =  dev_conserved[            id];
+      d_inv = 1.0 / d;
+      vx =  dev_conserved[1*n_cells + id] * d_inv;
+      vy =  dev_conserved[2*n_cells + id] * d_inv;
+      vz =  dev_conserved[3*n_cells + id] * d_inv;
+      E  = dev_conserved[4*n_cells + id];
+      P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+      cs = sqrt(d_inv * gamma * P);
+      max_dti[tid] = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
+      max_dti[tid] = fmax(max_dti[tid], (fabs(vz)+cs)/dz);
+      max_dti[tid] = fmax(max_dti[tid], 0.0);
+    }
+    
+    #endif
   }
   __syncthreads();
   
@@ -868,6 +1033,84 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
 
 
 #endif //DE
+
+#ifdef TEMPERATURE_FLOOR
+__global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,  Real U_floor )
+{
+  int id, xid, yid, zid, n_cells;
+  Real d, d_inv, vx, vy, vz, E, Ekin, U;
+  n_cells = nx*ny*nz;
+
+  // get a global thread ID
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx*ny);
+  yid = (id - zid*nx*ny) / nx;
+  xid = id - zid*nx*ny - yid*nx;
+
+
+  // threads corresponding to real cells do the calculation
+  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
+  {
+    d  =  dev_conserved[            id];
+    d_inv = 1.0 / d;
+    vx =  dev_conserved[1*n_cells + id] * d_inv;
+    vy =  dev_conserved[2*n_cells + id] * d_inv;
+    vz =  dev_conserved[3*n_cells + id] * d_inv;
+    E  =  dev_conserved[4*n_cells + id];    
+    Ekin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
+    
+    U = ( E - Ekin ) / d;
+    if ( U < U_floor ) dev_conserved[4*n_cells + id] = Ekin + d*U_floor;
+      
+    #ifdef DE
+    U = dev_conserved[(n_fields-1)*n_cells + id] / d ;
+    if ( U < U_floor ) dev_conserved[(n_fields-1)*n_cells + id] = d*U_floor ;
+    #endif
+  }
+}
+#endif //TEMPERATURE_FLOOR
+
+
+__device__ Real Average_Cell_Single_Field( int field_indx, int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved ){
+  Real v_l, v_r, v_d, v_u, v_b, v_t, v_avrg;
+  int id;
+
+  id = (i-1) + (j)*nx + (k)*nx*ny;
+  v_l = conserved[ field_indx*ncells + id ];
+  id = (i+1) + (j)*nx + (k)*nx*ny;
+  v_r = conserved[ field_indx*ncells + id ];
+  id = (i) + (j-1)*nx + (k)*nx*ny;
+  v_d = conserved[ field_indx*ncells + id ];
+  id = (i) + (j+1)*nx + (k)*nx*ny;
+  v_u = conserved[ field_indx*ncells + id ];
+  id = (i) + (j)*nx + (k-1)*nx*ny;
+  v_b = conserved[ field_indx*ncells + id ];
+  id = (i) + (j)*nx + (k+1)*nx*ny;
+  v_t = conserved[ field_indx*ncells + id ];
+  v_avrg = ( v_l + v_r + v_d + v_u + v_b + v_t ) / 6;
+  id = (i) + (j)*nx + (k)*nx*ny;
+  conserved[ field_indx*ncells + id ] = v_avrg;
+  return v_avrg;
+
+}
+
+__device__ void Average_Cell_All_Fields( int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved ){
+  
+  // Average Density
+  Average_Cell_Single_Field( 0, i, j, k, nx, ny, nz, ncells, conserved );
+  // Average Momentum_x
+  Average_Cell_Single_Field( 1, i, j, k, nx, ny, nz, ncells, conserved );
+  // Average Momentum_y
+  Average_Cell_Single_Field( 2, i, j, k, nx, ny, nz, ncells, conserved );
+  // Average Momentum_z
+  Average_Cell_Single_Field( 3, i, j, k, nx, ny, nz, ncells, conserved );
+  // Average Energy
+  Average_Cell_Single_Field( 4, i, j, k, nx, ny, nz, ncells, conserved );
+  #ifdef DE
+  // Average GasEnergy
+  Average_Cell_Single_Field( 5, i, j, k, nx, ny, nz, ncells, conserved );
+  #endif
+}
 
 
 #endif //CUDA
