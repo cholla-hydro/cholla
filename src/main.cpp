@@ -14,8 +14,6 @@
 #include "io.h"
 #include "error_handling.h"
 
-#define OUTPUT
-//#define CPU_TIME
 
 int main(int argc, char *argv[])
 {
@@ -162,7 +160,6 @@ int main(int argc, char *argv[])
   chprintf("Starting calculations.\n");
   while (G.H.t < P.tout)
   {
-    chprintf("n_step: %d \n", G.H.n_step + 1 );
     // get the start time
     start_step = get_time();
     
