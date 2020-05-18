@@ -1,5 +1,5 @@
 # Visualizing results
-Here are some example scripts to illustrate how to do basic visualiztion of Cholla output.
+Here are some example scripts to illustrate how to do basic visualization of Cholla output.
 
 You will likely develop more customized, robust, and flexible scripts for your own usage.
 These simple scripts here are intended to help you understand the basics of the generated data from Cholla.
@@ -13,6 +13,7 @@ To treat each timestep together we want to merge those per-processor HDF5 files.
 `cat_dset_3d.py`    | 3D HDF5 datasets
 `cat_projection.py` | The on-axis projection data created when the -DPROJECTION flag is turned on
 `cat_rotated_projection.py` | The rotated projection data created when the -DROTATED_PROJECTION flag is turned on
+`cat_slice.py` | The on-axis slice data created when the -DSLICES flag is turned on
 
 ## Plotting data
 We here present simple Python matplotlib-based scripts to plot density, velocity, energy, and pressure.

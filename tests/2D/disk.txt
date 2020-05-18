@@ -1,5 +1,5 @@
 #
-# Parameter File for a 2D disk in keplarian rotation.
+# Parameter File for a 2D disk in keplerian rotation.
 #
 
 ######################################

@@ -10,16 +10,10 @@
 #include <gsl/gsl_spline2d.h>
 #endif
 
-#if PRECISION == 1
-#ifndef FLOAT_TYPEDEF_DEFINED
-typedef float Real;
-#endif //FLOAT_TYPEDEF_DEFINED
-#endif //PRECISION == 1
-#if PRECISION == 2
-#ifndef FLOAT_TYPEDEF_DEFINED
-typedef double Real;
-#endif //FLOAT_TYPEDEF_DEFINED
-#endif //PRECISION == 2
+#ifndef FLOAT_TYPEDEF
+#error Float precision must be defined in the Makefile
+#endif
+typedef FLOAT_TYPEDEF Real;
 
 #define MAXLEN 100
 #define TINY_NUMBER 1.0e-20

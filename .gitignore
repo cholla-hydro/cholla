@@ -1,18 +1,61 @@
-## binaries
-*.o
-
-##executable
+# Files specific to this repo #
+##############################
 cholla
 
-##makefiles
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.mod
+*.a
+a.out
+*.dSYM
+
+# Makefiles #
+#############
 Makefile
 makefile.summit
 
-## output files
+# Output files #
+################
 *.h5
 *.bin
 
-## dropbox file
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# OS generated files #
+######################
 .DS_Store
 
 .remote-sync.json
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE/Editor Files #
+####################
+.idea
+.vscode
