@@ -1,5 +1,5 @@
 /*! \file plmc.cpp
- *  \brief Definitions of the piecewise linear reconstruction functions, as decribed
+ *  \brief Definitions of the piecewise linear reconstruction functions, as described
            in Stone et al., 2008. */
 #ifdef PLMC
 

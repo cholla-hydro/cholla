@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Example file for concatenating rotated projection data
 # created when the -DROTATED_PROJECTION flag is turned on
 

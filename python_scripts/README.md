@@ -1,5 +1,5 @@
 # Visualizing results
-Here are some example scripts to illustrate how to do basic visualiztion of Cholla output.
+Here are some example scripts to illustrate how to do basic visualization of Cholla output.
 
 You will likely develop more customized, robust, and flexible scripts for your own usage.
 These simple scripts here are intended to help you understand the basics of the generated data from Cholla.

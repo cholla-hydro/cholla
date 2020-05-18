@@ -1,6 +1,6 @@
 /*! \file plmc_cuda.cu
  *  \brief Definitions of the piecewise linear reconstruction functions with 
-           limiting applied in the characteristic variables, as decribed
+           limiting applied in the characteristic variables, as described
            in Stone et al., 2008. */
 #ifdef CUDA
 #ifdef PLMC

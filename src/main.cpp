@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P);
   chprintf("Initial conditions set.\n");
-  // set main variables for Read_Grid inital conditions
+  // set main variables for Read_Grid initial conditions
   if (strcmp(P.init, "Read_Grid") == 0) {
     dti = C_cfl / G.H.dt;
     outtime += G.H.t;
