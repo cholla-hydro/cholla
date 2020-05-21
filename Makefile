@@ -88,6 +88,10 @@ DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 # Use Grackle for cooling in cosmological simulations
 #DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=12
 
+
+SYSTEM = "Lux"
+
+
 ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
   CXXFLAGS += -D__HIP_PLATFORM_HCC__
@@ -96,10 +100,26 @@ ifdef HIP_PLATFORM
   endif
 endif
 
+
+
+ifeq ($(SYSTEM),"Poplar")
 CC := cc
 CXX := CC
+CXXFLAGS += -std=c++17 -ferror-limit=1
+endif
+
+
+ifeq ($(SYSTEM),"Lux")
+CC := mpicc
+CXX := mpic++
+CXXFLAGS += -std=c++11
+GPUFLAGS += -std=c++11
+DFLAGS += -DPARIS_NO_GPU_MPI
+OMP_NUM_THREADS = 20
+endif
+
 CFLAGS += -g -Ofast
-CXXFLAGS += -g -Ofast -std=c++17 -ferror-limit=1
+CXXFLAGS += -g -Ofast 
 CFLAGS += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc
@@ -130,6 +150,7 @@ endif
 
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
   GPUFLAGS += -I$(MPI_HOME)/include
+	CXXFLAGS += -I$(MPI_HOME)/include
   ifdef HIP_PLATFORM
     LIBS += -L$(MPI_HOME)/lib -lmpicxx -lmpi
   endif
