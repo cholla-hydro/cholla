@@ -27,6 +27,9 @@ DFLAGS += -DPRECISION=2
 #DFLAGS += -DBINARY
 DFLAGS += -DHDF5
 
+#Output all data every N_OUTPUT_COMPLETE snapshots ( This are Restart Files )
+DFLAGS += -DN_OUTPUT_COMPLETE=10
+
 # Reconstruction
 #DFLAGS += -DPCM
 #DFLAGS += -DPLMP
@@ -59,6 +62,9 @@ DFLAGS += -DTEMPERATURE_FLOOR
 
 # Use tiled initial conditions for scaling tests
 #DFLAGS += -DTILED_INITIAL_CONDITIONS
+
+#Average Slow cell when the cell delta_t is very small
+DFLAGS += -DAVERAGE_SLOW_CELLS
 
 #Print Initial Statistics
 DFLAGS += -DPRINT_INITIAL_STATS
