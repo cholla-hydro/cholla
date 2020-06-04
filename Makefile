@@ -131,7 +131,7 @@ endif
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
   GPUFLAGS += -I$(MPI_HOME)/include
   ifdef HIP_PLATFORM
-    LIBS += -L$(MPI_HOME)/lib -lmpicxx -lmpi
+    LIBS += -L$(MPI_HOME)/lib -lmpi
   endif
 endif
 
