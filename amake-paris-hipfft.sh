@@ -10,5 +10,6 @@ export MPI_HOME=$(echo "${PATH}" | sed 's,.*:\([^:]*\)mvapich\([^:]*\).*,\1mvapi
 export HIP_PLATFORM=hcc
 export POISSON_SOLVER='-DCUFFT -DPARIS'
 export SUFFIX='.paris.hipfft'
+export DFLAGS='-DPARIS_NO_GPU_MPI'
 make clean
 make

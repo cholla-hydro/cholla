@@ -92,12 +92,12 @@ ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
   CXXFLAGS += -D__HIP_PLATFORM_HCC__
   ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
-    DFLAGS += -DPARIS_NO_GPU_MPI -I$(ROCM_PATH)/include
+    DFLAGS += -I$(ROCM_PATH)/include
   endif
 endif
 
-CC := cc
-CXX := CC
+CC ?= cc
+CXX ?= CC
 CFLAGS += -g -Ofast
 CXXFLAGS += -g -Ofast -std=c++17 -ferror-limit=1
 CFLAGS += $(DFLAGS) -Isrc
@@ -107,11 +107,15 @@ GPUFLAGS += $(DFLAGS) -Isrc
 ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
   CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
   GPUFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
-  LIBS += -L$(FFTW_DIR) -L$(PFFT_ROOT)/lib -lpfft -lfftw3_mpi -lfftw3
+  LIBS += -L$(FFTW_ROOT)/lib -L$(PFFT_ROOT)/lib -lpfft -lfftw3_mpi -lfftw3
 endif
 
 ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
-  LIBS += -lcufft
+  ifdef HIP_PLATFORM
+    LIBS += -L$(ROCM_PATH)/lib -lrocfft
+  else
+    LIBS += -lcufft
+  endif
 endif
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
