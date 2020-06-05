@@ -99,7 +99,7 @@ endif
 CC ?= cc
 CXX ?= CC
 CFLAGS += -g -Ofast
-CXXFLAGS += -g -Ofast -std=c++17 -ferror-limit=1
+CXXFLAGS += -g -Ofast -std=c++17
 CFLAGS += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc

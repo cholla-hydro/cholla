@@ -5,12 +5,13 @@
 cholla*
 
 ## input files
-parameter_file.txt
+#parameter_file.txt
 
 ## output files
 *.h5
 *.bin
 out.*
+o.*
 
 ## dropbox file
 .DS_Store
