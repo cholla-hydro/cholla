@@ -23,8 +23,8 @@
 
 using namespace std;
 
-// #define OUTPUT_ENERGY
-// #define OUTPUT_MOMENTUM
+#define OUTPUT_ENERGY
+#define OUTPUT_MOMENTUM
 
 /* function used to rotate points about an axis in 3D for the rotated projection output routine */
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
