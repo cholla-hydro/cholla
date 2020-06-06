@@ -5,7 +5,7 @@
 
 #include<stdlib.h>
 #include<stdio.h>
-#include<cuda.h>
+#include"gpu.hpp"
 #include<math.h>
 #include"global.h"
 
@@ -15,10 +15,6 @@
 
 #define TPB 256 // threads per block
 //#define TPB 64
-
-#ifdef PARTICLES_GPU
-#define TPB_PARTICLES 1024
-#endif
 
 
 extern bool memory_allocated; // Flag becomes true after allocating the memory on the first timestep

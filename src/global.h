@@ -80,9 +80,9 @@ typedef double Real;
 
 #ifdef GRAVITY
 #ifdef GRAVITY_5_POINTS_GRADIENT
-#define N_GHOST_POTENTIAL 3
+#define N_GHOST_POTENTIAL 3 // 3 ghost cells are needed for 5 point gradient, ( one is for the CIC interpolation of the potential )
 #else
-#define N_GHOST_POTENTIAL 2
+#define N_GHOST_POTENTIAL 2 // 2 ghost cells are needed for first order gradient, ( one is for the CIC interpolation of the potential )
 #endif
 #ifdef GRAVITY_LONG_INTS
 typedef long int grav_int_t;
@@ -109,7 +109,7 @@ extern int N_DATA_PER_PARTICLE_TRANSFER;
 #endif//MPI_CHOLLA
 
 #ifdef AVERAGE_SLOW_CELLS
-#define SLOW_FACTOR 100
+#define SLOW_FACTOR 10
 #endif//AVERAGE_SLOW_CELLS
 
 #endif//PARTICLES
@@ -228,6 +228,13 @@ struct parameters
 #ifdef TILED_INITIAL_CONDITIONS
   Real tile_length;
 #endif //TILED_INITIAL_CONDITIONS
+
+#ifdef SET_MPI_GRID
+  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
+  int n_proc_x;
+  int n_proc_y;
+  int n_proc_z;
+#endif
 };
 
 

@@ -30,10 +30,6 @@ class Cool_GK
   #ifdef OUTPUT_TEMPERATURE
   Real *temperature;
   #endif
-
-  #ifdef OUTPUT_DUAL_ENERGY_FLAGS
-  int *flags_DE;
-  #endif
   
   Real tiny_number;
 

@@ -5,7 +5,7 @@
 
 #include<stdio.h>
 #include<math.h>
-#include<cuda.h>
+#include"gpu.hpp"
 #include"global.h"
 #include"global_cuda.h"
 #include"hydro_cuda.h"
@@ -52,15 +52,15 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     block_tot = block1_tot*block2_tot;
     // number of cells in one subgrid block
     BLOCK_VOL = nx_s*ny_s*nz_s;
-    // dimensions for the 2D GPU grid
-    ngrid = (BLOCK_VOL + 2*TPB - 1) / (2*TPB);
+    // dimensions for the 1D GPU grid
+    ngrid = (BLOCK_VOL + TPB - 1) / (TPB);
     #ifndef DYNAMIC_GPU_ALLOC
     block_size = true;
     #endif
   }
   // set values for GPU kernels
-  // number of blocks per 2D grid  
-  dim3 dim2dGrid(ngrid, 2, 1);
+  // number of blocks per 1D grid  
+  dim3 dim2dGrid(ngrid, 1, 1);
   //number of threads per 1D block   
   dim3 dim1dBlock(TPB, 1, 1);
 
@@ -81,9 +81,9 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
       tmp2 = buffer;
     }
     // allocate an array on the CPU to hold max_dti returned from each thread block
-    host_dti_array = (Real *) malloc(2*ngrid*sizeof(Real));
+    host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
     #ifdef COOLING_GPU
-    host_dt_array = (Real *) malloc(2*ngrid*sizeof(Real));
+    host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
     #endif  
   
     // allocate memory on the GPU
@@ -94,9 +94,9 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     CudaSafeCall( cudaMalloc((void**)&Q_Ry, n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_x,  n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_y,  n_fields*BLOCK_VOL*sizeof(Real)) );
-    CudaSafeCall( cudaMalloc((void**)&dev_dti_array, 2*ngrid*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
     #ifdef COOLING_GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_dt_array, 2*ngrid*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
     #endif 
 
     #ifndef DYNAMIC_GPU_ALLOC 
@@ -126,85 +126,91 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // Step 1: Do the reconstruction
     #ifdef PCM
-    PCM_Reconstruction_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx_s, ny_s, n_ghost, gama, n_fields);
+    hipLaunchKernelGGL(PCM_Reconstruction_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx_s, ny_s, n_ghost, gama, n_fields);
     #endif
     #ifdef PLMP
-    PLMP_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
-    PLMP_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
+    hipLaunchKernelGGL(PLMP_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
+    hipLaunchKernelGGL(PLMP_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
     #endif
     #ifdef PLMC
-    PLMC_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
-    PLMC_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
+    hipLaunchKernelGGL(PLMC_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
+    hipLaunchKernelGGL(PLMC_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
     #endif
     #ifdef PPMP
-    PPMP_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
-    PPMP_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
+    hipLaunchKernelGGL(PPMP_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
+    hipLaunchKernelGGL(PPMP_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
     #endif
     #ifdef PPMC
-    PPMC_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
-    PPMC_cuda<<<dim2dGrid,dim1dBlock>>>(dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
+    hipLaunchKernelGGL(PPMC_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
+    hipLaunchKernelGGL(PPMC_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
     #endif
     CudaCheckError();
 
 
     // Step 2: Calculate the fluxes
     #ifdef EXACT
-    Calculate_Exact_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
-    Calculate_Exact_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     #endif
     #ifdef ROE
-    Calculate_Roe_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
-    Calculate_Roe_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     #endif
     #ifdef HLLC 
-    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
-    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     #endif
     CudaCheckError();
 
 #ifdef CTU
 
     // Step 3: Evolve the interface states
-    Evolve_Interface_States_2D<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, Q_Ly, Q_Ry, F_y, nx_s, ny_s, n_ghost, dx, dy, dt, n_fields);
+    hipLaunchKernelGGL(Evolve_Interface_States_2D, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, Q_Ly, Q_Ry, F_y, nx_s, ny_s, n_ghost, dx, dy, dt, n_fields);
     CudaCheckError();
 
 
     // Step 4: Calculate the fluxes again
     #ifdef EXACT
-    Calculate_Exact_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
-    Calculate_Exact_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     #endif
     #ifdef ROE
-    Calculate_Roe_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
-    Calculate_Roe_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     #endif
     #ifdef HLLC
-    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
-    Calculate_HLLC_Fluxes_CUDA<<<dim2dGrid,dim1dBlock>>>(Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
+    hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
+    hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     #endif
     CudaCheckError();
 
 #endif //CTU
 
+    #ifdef DE
+    // Compute the divergence of Vel before updating the conserved array, this solves syncronization issues when adding this term on Update_Conserved_Variables
+    hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_2D, dim2dGrid, dim1dBlock, 0, 0,  dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx_s, ny_s, n_ghost, dx, dy, dt, gama, n_fields );
+    #endif
+
 
     // Step 5: Update the conserved variable array
-    Update_Conserved_Variables_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, F_x, F_y, nx_s, ny_s, x_off_s, y_off_s, n_ghost, dx, dy, xbound, ybound, dt, gama, n_fields);
+    hipLaunchKernelGGL(Update_Conserved_Variables_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, F_x, F_y, nx_s, ny_s, x_off_s, y_off_s, n_ghost, dx, dy, xbound, ybound, dt, gama, n_fields);
     CudaCheckError();
 
     // Synchronize the total and internal energy
     #ifdef DE
-    Sync_Energies_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, n_ghost, gama, n_fields);
+    hipLaunchKernelGGL(Select_Internal_Energy_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, n_ghost, n_fields);    
+    hipLaunchKernelGGL(Sync_Energies_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, n_ghost, gama, n_fields);
     CudaCheckError();    
     #endif
 
     // Apply cooling
     #ifdef COOLING_GPU
-    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
+    hipLaunchKernelGGL(cooling_kernel, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
     CudaCheckError();    
     #endif
 
     // Step 6: Calculate the next timestep
-    Calc_dt_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, n_ghost, dx, dy, dev_dti_array, gama);
+    hipLaunchKernelGGL(Calc_dt_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, n_ghost, dx, dy, dev_dti_array, gama);
     CudaCheckError();    
 
 
@@ -216,16 +222,16 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
 
     // copy the dti array onto the CPU
-    CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, 2*ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+    CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // iterate through to find the maximum inverse dt for this subgrid block
-    for (int i=0; i<2*ngrid; i++) {
+    for (int i=0; i<ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
     #ifdef COOLING_GPU
     // copy the dt array from cooling onto the CPU
-    CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, 2*ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+    CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // iterate through to find the minimum dt for this subgrid block
-    for (int i=0; i<2*ngrid; i++) {
+    for (int i=0; i<ngrid; i++) {
       min_dt = fmin(min_dt, host_dt_array[i]);
     }  
     //printf("%f %f\n", min_dt, 0.3/max_dti); 

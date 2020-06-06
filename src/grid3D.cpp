@@ -293,23 +293,19 @@ void Grid3D::AllocateMemory(void)
  void Grid3D::set_dt(Real dti)
 {
   Real max_dti;
-  
-  #ifdef ONLY_PARTICLES
-  // If only solving particles the time for hydro is large, 
-  // that way the minimum dt is the one corresponding to particles 
-  H.dt = 1e10;
-  #else
-  
+
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
   
-  #if ( defined(COSMOLOGY) && defined(AVERAGE_SLOW_CELLS) && defined(PARTICLES) )
-  Particles.dt = Calc_Particles_dt_Cosmo();
-  #endif
+  #ifdef ONLY_PARTICLES
+  // If only solving particles the time for hydro is set to a  large value, 
+  // that way the minimum dt is the one corresponding to particles 
+  H.dt = 1e10;
   
+  #else //NOT ONLY_PARTICLES
 
-
+  //Compute the hydro delta_t ( H.dt )  
   if (H.n_step == 0) {
     max_dti = calc_dti_CPU();
   }
@@ -332,7 +328,7 @@ void Grid3D::AllocateMemory(void)
   #endif //ONLY_PARTICLES
   
   #ifdef GRAVITY
-  //Set dt for hydro and particles
+  //Set dt for hydro and particles 
   set_dt_Gravity();
   #endif
   
@@ -406,10 +402,7 @@ Real Grid3D::calc_dti_CPU_3D_function( int g_start, int g_end ){
   Real max_dti = 0.0;
   max_vx = max_vy = max_vz = 0.0;
   
-  #if ( defined(AVERAGE_SLOW_CELLS) && defined(PARTICLES) )
-  Real dt_cell;
-  #endif
-  // Find the maximum wave speed in the grid
+
   for (k=g_start; k<g_end; k++) {
     for (j=0; j<H.ny_real; j++) {
       for (i=0; i<H.nx_real; i++) {
@@ -420,26 +413,7 @@ Real Grid3D::calc_dti_CPU_3D_function( int g_start, int g_end ){
         vz = d_inv * C.momentum_z[id];
         P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
         cs = sqrt(d_inv * gama * P);
-        
-        #if ( defined(AVERAGE_SLOW_CELLS) && defined(PARTICLES) )
-        dt_cell = fmin( H.dx / (fabs(vx) + cs), H.dy / (fabs(vy) + cs) );
-        dt_cell = fmin( H.dz / (fabs(vz) + cs), dt_cell );
-        dt_cell = C_cfl * dt_cell;
-        if ( dt_cell < Particles.dt / SLOW_FACTOR ){
-          // This is a slow cell, replace with the average its neighbours
-          std::cout << "[Slow Cell] ( " << i << " , " << j << " , " << k << " ) " << "dt_cell: " << dt_cell <<std::endl;
-          std::cout << " dens: " << C.density[id] << " vx: " <<  fabs(vx) << " vy: " <<  fabs(vy) << " vz: " <<  fabs(vz) <<  " cs: " << cs << std::endl;
-          Average_slow_cell( i, j, k);
-          d_inv = 1.0 / C.density[id];
-          vx = d_inv * C.momentum_x[id];
-          vy = d_inv * C.momentum_y[id];
-          vz = d_inv * C.momentum_z[id];
-          P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
-          cs = sqrt(d_inv * gama * P);
-          std::cout << " dens: " << C.density[id] << " vx: " <<  fabs(vx) << " vy: " <<  fabs(vy) << " vz: " <<  fabs(vz) <<  " cs: " << cs << std::endl;
-        }
-        #endif
-        
+                
         // compute maximum cfl velocity
         max_vx = fmax(max_vx, fabs(vx) + cs);
         max_vy = fmax(max_vy, fabs(vy) + cs);
@@ -520,107 +494,6 @@ Real Grid3D::calc_dti_CPU()
 
 }
 
-#ifdef AVERAGE_SLOW_CELLS
-void Smooth_Cell_Single_Field( Real *field, int i, int j, int k, int nx, int ny, int nz){
-  Real v_l, v_r, v_d, v_u, v_b, v_t, v_avrg;
-  int id;
-
-  id = (i-1) + (j)*nx + (k)*nx*ny;
-  v_l = field[id];
-  id = (i+1) + (j)*nx + (k)*nx*ny;
-  v_r = field[id];
-  id = (i) + (j-1)*nx + (k)*nx*ny;
-  v_d = field[id];
-  id = (i) + (j+1)*nx + (k)*nx*ny;
-  v_u = field[id];
-  id = (i) + (j)*nx + (k-1)*nx*ny;
-  v_b = field[id];
-  id = (i) + (j)*nx + (k+1)*nx*ny;
-  v_t = field[id];
-  v_avrg = ( v_l + v_r + v_d + v_u + v_b + v_t ) / 6;
-  id = (i) + (j)*nx + (k)*nx*ny;
-  field[id] = v_avrg;
-}
-
-Real Smooth_Cell_Density( Real *density, int i, int j, int k, int nx, int ny, int nz){
-  Real v_l, v_r, v_d, v_u, v_b, v_t, v_avrg;
-  int id;
-  Real dens_0;
-  id = (i) + (j)*nx + (k)*nx*ny;
-  dens_0 = density[id];
-
-  id = (i-1) + (j)*nx + (k)*nx*ny;
-  v_l = density[id];
-  id = (i+1) + (j)*nx + (k)*nx*ny;
-  v_r = density[id];
-  id = (i) + (j-1)*nx + (k)*nx*ny;
-  v_d = density[id];
-  id = (i) + (j+1)*nx + (k)*nx*ny;
-  v_u = density[id];
-  id = (i) + (j)*nx + (k-1)*nx*ny;
-  v_b = density[id];
-  id = (i) + (j)*nx + (k+1)*nx*ny;
-  v_t = density[id];
-  v_avrg = ( v_l + v_r + v_d + v_u + v_b + v_t ) / 6;
-  // id = (i) + (j)*nx + (k)*nx*ny;
-  // density[id] = v_avrg;
-
-  Real dens_factor = 1 * dens_0 / v_avrg;
-  // density[id] *= dens_factor;
-  return dens_factor;
-
-}
-
-void Scale_Field( Real *field, Real dens_factor, int i, int j, int k, int nx, int ny, int nz){
-  int id;
-  id = (i) + (j)*nx + (k)*nx*ny;
-  field[id] *= dens_factor;
-}
-
-void Grid3D::Average_slow_cell( int i, int j, int k){
-
-  i += H.n_ghost;
-  j += H.n_ghost;
-  k += H.n_ghost;
-
-  Smooth_Cell_Single_Field( C.density, i, j, k, H.nx, H.ny, H.nz);
-  Smooth_Cell_Single_Field( C.momentum_x, i, j, k, H.nx, H.ny, H.nz);
-  Smooth_Cell_Single_Field( C.momentum_y, i, j, k, H.nx, H.ny, H.nz);
-  Smooth_Cell_Single_Field( C.momentum_z, i, j, k, H.nx, H.ny, H.nz);
-  Smooth_Cell_Single_Field( C.Energy, i, j, k, H.nx, H.ny, H.nz);
-  #ifdef DE
-  Smooth_Cell_Single_Field( C.GasEnergy, i, j, k, H.nx, H.ny, H.nz);
-  #endif
-  #ifdef COOLING_GRACKLE
-  Smooth_Cell_Single_Field( Cool.fields.HI_density, i, j, k, H.nx, H.ny, H.nz);
-  Smooth_Cell_Single_Field( Cool.fields.HII_density, i, j, k, H.nx, H.ny, H.nz);
-  Smooth_Cell_Single_Field( Cool.fields.HeI_density, i, j, k, H.nx, H.ny, H.nz);
-  Smooth_Cell_Single_Field( Cool.fields.HeII_density, i, j, k, H.nx, H.ny, H.nz);
-  Smooth_Cell_Single_Field( Cool.fields.HeIII_density, i, j, k, H.nx, H.ny, H.nz);
-  Smooth_Cell_Single_Field( Cool.fields.e_density, i, j, k, H.nx, H.ny, H.nz);
-  Smooth_Cell_Single_Field( Cool.fields.metal_density, i, j, k, H.nx, H.ny, H.nz);
-  #endif
-
-  // Real dens_factor = Smooth_Cell_Density( C.density, i, j, k, H.nx, H.ny, H.nz);
-  // Scale_Field( C.momentum_x, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // Scale_Field( C.momentum_y, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // Scale_Field( C.momentum_z, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // Scale_Field( C.Energy, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // #ifdef DE
-  // Scale_Field( C.GasEnergy, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // #endif
-  // #ifdef COOLING_GRACKLE
-  // Scale_Field( Cool.fields.HI_density, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // Scale_Field( Cool.fields.HII_density, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // Scale_Field( Cool.fields.HeI_density, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // Scale_Field( Cool.fields.HeII_density, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // Scale_Field( Cool.fields.HeIII_density, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // Scale_Field( Cool.fields.e_density, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // Scale_Field( Cool.fields.metal_density, dens_factor, i, j, k, H.nx, H.ny, H.nz );
-  // #endif
-}
-#endif //AVERAGE_SLOW_CELLS
-
 
 /*! \fn void Update_Grid(void)
  *  \brief Update the conserved quantities in each cell. */
@@ -656,8 +529,15 @@ Real Grid3D::Update_Grid(void)
   #ifdef COSMOLOGY
   U_floor /=  Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
   #endif
-
-
+  
+  //Set the min_delta_t for averaging a slow cell
+  Real max_dti_slow;
+  #ifdef AVERAGE_SLOW_CELLS
+  max_dti_slow = 1 / H.min_dt_slow;
+  #else // NOT AVERAGE_SLOW_CELLS
+  max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
+  #endif //max_dti_slow
+  
   // Pass the structure of conserved variables to the CTU update functions
   // The function returns the updated variables
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) //1D
@@ -716,13 +596,13 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifdef CTU
-    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
+    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
+    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //VL
     #ifdef SIMPLE
-    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
+    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif//SIMPLE
     #endif    
   }

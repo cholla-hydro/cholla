@@ -17,6 +17,7 @@
 #include"../mpi_routines.h"
 #endif
 
+// #define OUTPUT_PARTICLES_DATA
 
 
 void Particles_3D::Load_Particles_Data( struct parameters *P){
@@ -110,13 +111,12 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   #endif
 
   #ifndef MPI_CHOLLA
-  // if ( n_total != G.Grav.nx_total * G.Grav.ny_total * G.Grav.nz_total) break;
   chprintf(" Loading %ld particles\n", n_to_load);
-  // #endif
   #else
   part_int_t n_total_load;
   n_total_load = ReducePartIntSum( n_to_load );
   chprintf( " Total Particles To Load: %ld\n", n_total_load );
+  // Print individual n_to_load
   // for ( int i=0; i<nproc; i++ ){
   //   if ( procID == i ) std::cout << "  [pId:"  << procID << "]  Loading Particles: " << n_local <<  std::endl;
   //   MPI_Barrier(world);
@@ -170,6 +170,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   status = H5Dclose(dataset_id);
   #endif
   
+  //Initializa min and max values for position and velocity to print initial Statistics
   Real px_min, px_max;
   Real py_min, py_max;
   Real pz_min, pz_max;
@@ -189,15 +190,13 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   vy_max = -1e64;
   vz_max = -1e64;
   
-  
-  
-  
-  
+  // Real values for loading each particle data
   Real pPos_x, pPos_y, pPos_z;
   Real pVel_x, pVel_y, pVel_z, pMass;
   part_int_t pID;
   bool in_local;
 
+  //When using Tiled Initial Conditions the Positions have to be reescaled to the global box
   #ifdef TILED_INITIAL_CONDITIONS
   
   Real Lx_local = G.xMax - G.xMin;
@@ -223,10 +222,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   
   #endif
   
-  
-  
-
-
+  //Loop over to input buffers and load each particle
   for( pIndx=0; pIndx<n_to_load; pIndx++ ){
     pPos_x = dataset_buffer_px[pIndx];
     pPos_y = dataset_buffer_py[pIndx];
@@ -243,18 +239,19 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
     
     #ifdef TILED_INITIAL_CONDITIONS
     // Rescale the particles position to the global domain
-    // Move the particles to their position in Local Domain
+    // Move the particles to their position in Global Domain
     pPos_x += G.xMin;
     pPos_y += G.yMin;
     pPos_z += G.zMin;
     #ifdef PARTICLES_GPU
+    //If PARTICLES_GPU: The positions are copied directly from the buffers so the positions are changed in the buffer
     dataset_buffer_px[pIndx] = pPos_x;
     dataset_buffer_py[pIndx] = pPos_y;
     dataset_buffer_pz[pIndx] = pPos_z;  
     #endif //PARTICLES_GPU
     #endif //TILED_INITIAL_CONDITIONS
     
-    
+    //Make sure the partilecles to load are in the local domain
     in_local = true;
     if ( pPos_x < G.domainMin_x || pPos_x > G.domainMax_x ){
       std::cout << " Particle outside global domain " << std::endl;
@@ -283,6 +280,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
       continue;
     }
     
+    //Keep track of the max and min position and velocity to print Initial Statistics
     if  ( pPos_x > px_max ) px_max = pPos_x;
     if  ( pPos_y > py_max ) py_max = pPos_y;
     if  ( pPos_z > pz_max ) pz_max = pPos_z;
@@ -300,6 +298,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
     if  ( pVel_z < vz_min ) vz_min = pVel_z;
     
     #ifdef PARTICLES_CPU
+    //Add the particle data to the particles vectors
     pos_x.push_back( pPos_x );
     pos_y.push_back( pPos_y );
     pos_z.push_back( pPos_z );
@@ -315,7 +314,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
     #ifdef PARTICLE_IDS
     partIDs.push_back(pID);
     #endif
-    n_local += 1;
+    n_local += 1; //Add 1 to the local number of particles
     #endif//PARTICLES_CPU
     
     
@@ -324,27 +323,29 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   
   #ifdef PARTICLES_GPU
   // Alocate memory in GPU for particle data
-  particles_buffer_size = n_to_load;
-  Allocate_Particles_Field_Real( &pos_x_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &pos_y_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &pos_z_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &vel_x_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &vel_y_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &vel_z_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &grav_x_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &grav_y_dev, particles_buffer_size);
-  Allocate_Particles_Field_Real( &grav_z_dev, particles_buffer_size);
+  // particles_buffer_size = (part_int_t) n_to_load * G.allocation_factor;
+  particles_buffer_size = (part_int_t) n_to_load;
+  Allocate_Particles_GPU_Array_Real( &pos_x_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &pos_y_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &pos_z_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &vel_x_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &vel_y_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &vel_z_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_buffer_size);
   n_local = n_to_load;
   
   chprintf( " Allocated GPU memory for particle data\n");
+  // printf( " Loaded %ld  particles ", n_to_load);
   
   //Copyt the particle data to GPU memory
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_px, pos_x_dev, n_local);
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_py, pos_y_dev, n_local);
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_pz, pos_z_dev, n_local);
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_vx, vel_x_dev, n_local);
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_vy, vel_y_dev, n_local);
-  Copy_Particle_Field_Real_Host_to_Device( dataset_buffer_vz, vel_z_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_px, pos_x_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_py, pos_y_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_pz, pos_z_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vx, vel_x_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vy, vel_y_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vz, vel_z_dev, n_local);
   #endif
   
   
@@ -354,10 +355,6 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   #ifndef MPI_CHOLLA
   chprintf( " Loaded  %ld  particles\n", n_local );
   #else
-  // for ( int i=0; i<nproc; i++ ){
-  //   if ( procID == i ) std::cout << "  [pId:"  << procID << "]  N Particles Loaded: " << n_local <<  std::endl;
-  //   MPI_Barrier(world);
-  // }
   MPI_Barrier(world);
   part_int_t n_total_loaded;
   n_total_loaded = ReducePartIntSum( n_local );
@@ -395,7 +392,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   Real vz_min_g = vz_min;
   #endif//MPI_CHOLLA
   
-  
+  //Print initial Statistics
   #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
   chprintf( "  Pos X   Min: %f   Max: %f   [ kpc/h ]\n", px_min_g, px_max_g);
   chprintf( "  Pos Y   Min: %f   Max: %f   [ kpc/h ]\n", py_min_g, py_max_g);
@@ -404,15 +401,14 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   chprintf( "  Vel Y   Min: %f   Max: %f   [ km/s ]\n", vy_min_g, vy_max_g);
   chprintf( "  Vel Z   Min: %f   Max: %f   [ km/s ]\n", vz_min_g, vz_max_g);
   #endif//PRINT_INITIAL_STATS
-  // 
   
+  //Free the buffers to used to load the hdf5 files
   free(dataset_buffer_px);
   free(dataset_buffer_py);
   free(dataset_buffer_pz);
   free(dataset_buffer_vx);
   free(dataset_buffer_vy);
   free(dataset_buffer_vz);
-  // 
   #ifndef SINGLE_PARTICLE_MASS
   free(dataset_buffer_m);
   #endif
@@ -449,9 +445,6 @@ void Grid3D::Write_Particles_Header_HDF5( hid_t file_id){
   attribute_id = H5Acreate(file_id, "n_particles_local", H5T_STD_I64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_ULONG, &Particles.n_local);
   status = H5Aclose(attribute_id);
-  // attribute_id = H5Acreate(file_id, "n_particles_total", H5T_STD_I64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  // status = H5Awrite(attribute_id, H5T_NATIVE_ULONG, &Particles.n_total);
-  // status = H5Aclose(attribute_id);
   #ifdef COSMOLOGY
   attribute_id = H5Acreate(file_id, "current_a", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Particles.current_a);
@@ -468,8 +461,6 @@ void Grid3D::Write_Particles_Header_HDF5( hid_t file_id){
   attribute_id = H5Acreate(file_id, "omega_l", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_L);
   status = H5Aclose(attribute_id);
-  
-  
   #endif
 
   #ifdef SINGLE_PARTICLE_MASS
@@ -489,11 +480,18 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   part_int_t  *dataset_buffer_IDs;
   herr_t    status;
   part_int_t n_local = Particles.n_local;
-  // int       nx_dset = H.nx_real;
   hsize_t   dims[1];
   dataset_buffer = (Real *) malloc(n_local*sizeof(Real));
   
-  // Count Total Particles
+  bool output_particle_data;
+  
+  #ifdef OUTPUT_PARTICLES_DATA
+  output_particle_data = true;
+  #else
+  output_particle_data = false;
+  #endif
+  
+  // Count Current Total Particles
   part_int_t N_paricles_total;
   #ifdef MPI_CHOLLA
   N_paricles_total = ReducePartIntSum( Particles.n_local );
@@ -501,86 +499,106 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   N_paricles_total = Particles.n_local;
   #endif
   
+  //Print the total particles when saving the particles data
   chprintf( " Total Particles: %ld\n", N_paricles_total );
   
+  //Print a warning if the number of particles has changed from the initial number of particles.
+  //This will indicate an error on the Particles transfers.
   if ( N_paricles_total != Particles.n_total_initial ) chprintf( " WARNING: Lost Particles: %d \n", Particles.n_total_initial - N_paricles_total );
 
 
   // Create the data space for the datasets
   dims[0] = n_local;
   dataspace_id = H5Screate_simple(1, dims, NULL);
+  
+  //Copy the particles data to the hdf5_buffers and create the data_sets
 
   // Copy the pos_x vector to the memory buffer
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.pos_x[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.pos_x_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.pos_x_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/pos_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/pos_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   // Copy the pos_y vector to the memory buffer
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.pos_y[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.pos_y_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.pos_y_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/pos_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/pos_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   // Copy the pos_z vector to the memory buffer
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.pos_z[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.pos_z_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.pos_z_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/pos_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/pos_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   // Copy the vel_x vector to the memory buffer
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.vel_x[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.vel_x_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.vel_x_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/vel_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/vel_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   // Copy the vel_y vector to the memory buffer
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.vel_y[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.vel_y_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.vel_y_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/vel_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/vel_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   // Copy the vel_z vector to the memory buffer
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.vel_z[i];
   #endif //PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  Particles.Copy_Particle_Field_Real_Device_to_Host( Particles.vel_z_dev, dataset_buffer, Particles.n_local );
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.vel_z_dev, dataset_buffer, Particles.n_local );
   #endif//PARTICLES_GPU
-  dataset_id = H5Dcreate(file_id, "/vel_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  if ( output_particle_data || H.Output_Complete_Data ){
+    dataset_id = H5Dcreate(file_id, "/vel_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  }
 
   #ifndef SINGLE_PARTICLE_MASS
   // Copy the mass vector to the memory buffer
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.mass[i];
   #endif //PARTICLES_CPU
+  #ifdef PARTICLES_GPU
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.mass_dev, dataset_buffer, Particles.n_local );
+  #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/mass", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
   status = H5Dclose(dataset_id);
@@ -596,6 +614,8 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   status = H5Dclose(dataset_id);
   free(dataset_buffer_IDs);
   #endif
+  
+  //Create a data set for the grid data ( density and potential )
 
   // 3D case
   int       nx_dset = Particles.G.nx_local;
@@ -653,9 +673,9 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
 void Grid3D::OutputData_Particles( struct parameters P, int nfile)
 {
   FILE *out;
-  char filename[80];
+  char filename[100];
   char timestep[20];
-
+  
   // create the filename
   strcpy(filename, P.outdir);
   sprintf(timestep, "%d", nfile);
@@ -672,19 +692,19 @@ void Grid3D::OutputData_Particles( struct parameters P, int nfile)
   sprintf(filename,"%s.%d",filename,procID);
   #endif
   #endif
-
+  
   #if defined HDF5
   hid_t   file_id;
   herr_t  status;
-
+  
   // Create a new file collectively
   file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
+  
   // Write header (file attributes)
   Write_Header_HDF5(file_id);
   Write_Particles_Header_HDF5( file_id);
   Write_Particles_Data_HDF5( file_id);
-
+  
   // Close the file
   status = H5Fclose(file_id);
   #endif

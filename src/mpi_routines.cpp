@@ -469,6 +469,15 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
     nproc_x = nproc_z;
     nproc_z = tmp;
   }
+  
+  #ifdef SET_MPI_GRID
+  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
+  nproc_x = P->n_proc_x;
+  nproc_y = P->n_proc_y;
+  nproc_z = P->n_proc_z;
+  chprintf("Setting MPI grid: nx=%d  ny=%d  nz=%d\n", nproc_x, nproc_y, nproc_z);
+  // chprintf("Setting MPI grid: nx=%d  ny=%d  nz=%d\n", P->n_proc_x, P->n_proc_y, P->n_proc_z);
+  #endif
 
   //chprintf("Allocating tiling.\n");
   MPI_Barrier(world);
@@ -987,12 +996,12 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   N_PARTICLES_TRANSFER = n_max * n_max * factor ;
   
   // Set the number of values that will be transfered for each particle
-  N_DATA_PER_PARTICLE_TRANSFER = 6;
+  N_DATA_PER_PARTICLE_TRANSFER = 6; // 3 positions and 3 velocities 
   #ifndef SINGLE_PARTICLE_MASS
-  N_DATA_PER_PARTICLE_TRANSFER += 1;
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle mass
   #endif
   #ifdef PARTICLE_IDS
-  N_DATA_PER_PARTICLE_TRANSFER += 1;
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle ID
   #endif
   
   buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;

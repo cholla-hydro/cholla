@@ -16,6 +16,9 @@
 #include"potential_SOR_3D.h"
 #endif
 
+#ifdef PARIS
+#include "potential_paris_3D.h"
+#endif
 
 #ifdef HDF5
 #include<hdf5.h>
@@ -97,6 +100,15 @@ class Grav3D
   Potential_SOR_3D Poisson_solver;
   #endif
 
+  #ifdef PARIS
+  #if (defined(PFFT) || defined(CUFFT) || defined(SOR))
+  #define PARIS_TEST
+  Potential_Paris_3D Poisson_solver_test;
+  #else
+  Potential_Paris_3D Poisson_solver;
+  #endif
+  #endif
+
 
   struct Fields
   {
@@ -120,7 +132,7 @@ class Grav3D
 
   /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
   *  \brief Initialize the grid. */
-  void Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, Real Lz, int nx_total, int ny_total, int nz_total, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_pot_offset);
+  void Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, Real Lz, int nx_total, int ny_total, int nz_total, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P);
 
   void AllocateMemory_CPU(void);
   void Initialize_values_CPU();
@@ -131,22 +143,6 @@ class Grav3D
 
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #endif //GRAV3D_H

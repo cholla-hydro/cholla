@@ -4,7 +4,7 @@
 #ifdef CUDA
 #ifdef COOLING_GPU
 
-#include<cuda.h>
+#include"gpu.hpp"
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
@@ -52,7 +52,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef DE
   Real ge;
   #endif
-  Real T_min = 1.0e4; // minimum temperature allowed
+  //Real T_min = 1.0e4; // minimum temperature allowed
 
   mu = 0.6;
   //mu = 1.27;
@@ -336,12 +336,12 @@ __device__ Real CIE_cool(Real n, Real T)
 }
 
 
+#ifdef CLOUDY_COOL
 /* \fn __device__ Real Cloudy_cool(Real n, Real T)
  * \brief Uses texture mapping to interpolate Cloudy cooling/heating 
           tables at z = 0 with solar metallicity and an HM05 UV background. */
 __device__ Real Cloudy_cool(Real n, Real T)
 {
-#ifdef CLOUDY_COOL
   Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
   Real H = 0.0; //heating rate, erg s^-1 cm^3
   Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
@@ -364,8 +364,8 @@ __device__ Real Cloudy_cool(Real n, Real T)
   cool = n*n*(powf(10, lambda) - powf(10, H));
 
   return cool;
-#endif
 }
+#endif
 
 
 #endif //COOLING_GPU

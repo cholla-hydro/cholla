@@ -199,6 +199,10 @@ struct Header
   /*! \var dt
   *  \brief Length of the current timestep */
   Real dt;
+  
+  #ifdef AVERAGE_SLOW_CELLS
+  Real min_dt_slow;
+  #endif 
 
   /*! \var t_wall
   *  \brief Wall time */
@@ -235,6 +239,11 @@ struct Header
   *  \brief Flag set to true when data has to be written to file */
   bool Output_Now;
   bool Output_Initial;
+  
+  /*! \var Output_Complete_Data
+  *  \brief Flag set to true when all the data will  be written to file (Restart File ) */
+  bool Output_Complete_Data;
+  
 
 };
 
@@ -559,9 +568,12 @@ class Grid3D
         as per the Noh problem in Liska, 2003, or in Stone, 2008. */
     void Noh_Boundary();
     
-    
+    /*! \fn void Spherical_Overpressure_3D()
+     *  \brief Initialize the grid with a 3D spherical overdensity and overpressue. */
     void Spherical_Overpressure_3D();
     
+    /*! \fn void Spherical_Overpressure_3D()
+     *  \brief Initialize the grid with a 3D spherical overdensity for gravitational collapse */
     void Spherical_Overdensity_3D();
     
     void Uniform_Grid();
@@ -623,24 +635,22 @@ class Grid3D
   #ifdef MPI_CHOLLA
   int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
   void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
-  void Transfer_Particles_Density_Boundaries_MPI( struct parameters P );
-  // void Transfer_Particles_Boundaries_MPI( struct parameters P );
   void Load_and_Send_Particles_X0( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_X1( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_Y0( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_Y1( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_Z0( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_Z1( int ireq_n_particles, int ireq_particles_transfer );
-  void Unload_Particles_from_Buffer_X0();
-  void Unload_Particles_from_Buffer_X1();
-  void Unload_Particles_from_Buffer_Y0();
-  void Unload_Particles_from_Buffer_Y1();
-  void Unload_Particles_from_Buffer_Z0();
-  void Unload_Particles_from_Buffer_Z1();
-  void Wait_and_Recv_Particles_Transfer_BLOCK(int dir, int *flags);
-  void Receive_Particles_Transfer(int index, int *ireq_particles_transfer);
+  void Unload_Particles_from_Buffer_X0( int *flags );
+  void Unload_Particles_from_Buffer_X1( int *flags );
+  void Unload_Particles_from_Buffer_Y0( int *flags );
+  void Unload_Particles_from_Buffer_Y1( int *flags );
+  void Unload_Particles_from_Buffer_Z0( int *flags );
+  void Unload_Particles_from_Buffer_Z1( int *flags );
+  void Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(int dir, int *flags);
+  void Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, int *ireq_particles_transfer);
   void Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flags);
-  void Unload_Particles_From_Buffers_BLOCK(int index);
+  void Unload_Particles_From_Buffers_BLOCK(int index, int *flags );
   void Finish_Particles_Transfer();
   #endif//MPI_CHOLLA
   void Transfer_Particles_Density_Boundaries( struct parameters P );
@@ -669,6 +679,7 @@ class Grid3D
   Real Calc_Particles_dt_GPU();
   void Advance_Particles_KDK_Step1_GPU();
   void Advance_Particles_KDK_Step2_GPU();
+  void Set_Particles_Boundary_GPU( int dir, int side);  
   #endif//PARTICLES_GPU
   #endif//PARTICLES
   
@@ -682,7 +693,6 @@ class Grid3D
   Real Calc_Particles_dt_Cosmo_function( part_int_t p_start, part_int_t p_end );
   Real Calc_Particles_dt_Cosmo();
   #ifdef PARTICLES_GPU
-  void Set_Particles_Boundary_GPU( int dir, int side);  
   void Advance_Particles_KDK_Cosmo_Step1_GPU();
   void Advance_Particles_KDK_Cosmo_Step2_GPU();
   #endif//PARTICLES_GPU
@@ -699,10 +709,7 @@ class Grid3D
   void Do_Cooling_Step_Grackle();
   #endif
   
-  #ifdef AVERAGE_SLOW_CELLS
-  void Average_slow_cell( int i, int j, int k);
-  #endif
-  
+
 };
 
 

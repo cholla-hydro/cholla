@@ -7,7 +7,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-#include<cuda.h>
+#include"gpu.hpp"
 #include"global.h"
 #include"global_cuda.h"
 #include"hydro_cuda.h"
@@ -83,79 +83,85 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   CudaCheckError();
 
   // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
-  PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, gama, n_fields);
+  hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, gama, n_fields);
   CudaCheckError();
 
   // Step 2: Calculate first-order upwind fluxes 
   #ifdef EXACT
-  Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   #ifdef ROE
-  Calculate_Roe_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   #ifdef HLLC 
-  Calculate_HLLC_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   CudaCheckError();
 
 
   // Step 3: Update the conserved variables half a timestep 
-  Update_Conserved_Variables_1D_half<<<dimGrid,dimBlock>>>(dev_conserved, dev_conserved_half, F_x, n_cells, n_ghost, dx, 0.5*dt, gama, n_fields);
+  hipLaunchKernelGGL(Update_Conserved_Variables_1D_half, dimGrid, dimBlock, 0, 0, dev_conserved, dev_conserved_half, F_x, n_cells, n_ghost, dx, 0.5*dt, gama, n_fields);
   CudaCheckError();
 
 
   // Step 4: Construct left and right interface values using updated conserved variables
   #ifdef PCM
-  PCM_Reconstruction_1D<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, n_ghost, gama, n_fields);
+  hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, n_ghost, gama, n_fields);
   #endif
   #ifdef PLMC
-  PLMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
+  hipLaunchKernelGGL(PLMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif  
   #ifdef PLMP
-  PLMP_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
+  hipLaunchKernelGGL(PLMP_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif
   #ifdef PPMP
-  PPMP_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
+  hipLaunchKernelGGL(PPMP_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif
   #ifdef PPMC
-  PPMC_cuda<<<dimGrid,dimBlock>>>(dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
+  hipLaunchKernelGGL(PPMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif
   CudaCheckError();
 
 
   // Step 5: Calculate the fluxes again
   #ifdef EXACT
-  Calculate_Exact_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   #ifdef ROE
-  Calculate_Roe_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   #ifdef HLLC 
-  Calculate_HLLC_Fluxes_CUDA<<<dimGrid,dimBlock>>>(Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   CudaCheckError();
 
+  #ifdef DE
+  // Compute the divergence of velocity before updating the conserved array, this solves syncronization issues when adding this term on Update_Conserved_Variables
+  hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_1D, dimGrid, dimBlock, 0, 0,  dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, dx, dt, gama, n_fields );
+  #endif
+
 
   // Step 6: Update the conserved variable array
-  Update_Conserved_Variables_1D<<<dimGrid,dimBlock>>>(dev_conserved, F_x, n_cells, x_off, n_ghost, dx, xbound, dt, gama, n_fields);
+  hipLaunchKernelGGL(Update_Conserved_Variables_1D, dimGrid, dimBlock, 0, 0, dev_conserved, F_x, n_cells, x_off, n_ghost, dx, xbound, dt, gama, n_fields);
   CudaCheckError();
    
 
   #ifdef DE
-  Sync_Energies_1D<<<dimGrid,dimBlock>>>(dev_conserved, nx, n_ghost, gama, n_fields);
+  hipLaunchKernelGGL(Select_Internal_Energy_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, n_fields);
+  hipLaunchKernelGGL(Sync_Energies_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, gama, n_fields);
   CudaCheckError();
   #endif    
 
 
   // Apply cooling
   #ifdef COOLING_GPU
-  cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dev_dt_array);
+  hipLaunchKernelGGL(cooling_kernel, dimGrid, dimBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dev_dt_array);
   CudaCheckError();
   #endif
 
 
   // Step 7: Calculate the next timestep
-  Calc_dt_1D<<<dimGrid,dimBlock>>>(dev_conserved, n_cells, n_ghost, dx, dev_dti_array, gama);
+  hipLaunchKernelGGL(Calc_dt_1D, dimGrid, dimBlock, 0, 0, dev_conserved, n_cells, n_ghost, dx, dev_dti_array, gama);
   CudaCheckError();
 
 

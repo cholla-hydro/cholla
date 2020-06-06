@@ -146,6 +146,8 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
   Real x_pos, y_pos, z_pos;
+  Real mu = 0.6;
+  Real n, T;
 
   istart = H.n_ghost;
   iend   = H.nx-H.n_ghost;
@@ -186,6 +188,13 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
         #ifdef DE
         C.GasEnergy[id]  = P/(gama-1.0);
         #endif
+/*
+        if (i==istart && j==jstart && k==kstart) {
+          n = rho*DENSITY_UNIT / (mu*MP);
+          T = P*PRESSURE_UNIT / (n*KB);
+          printf("Initial n = %e, T = %e\n", n, T);
+        }
+*/
       }
     }
   }

@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
   // and output to screen
   chprintf ("Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, boundaries = %d %d %d %d %d %d\n", 
     P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
-  chprintf ("Input directory:  %s\n", P.indir);
+  if (strcmp(P.init, "Read_Grid") == 0  ) chprintf ("Input directory:  %s\n", P.indir);
   chprintf ("Output directory:  %s\n", P.outdir);
   
   //Create a Log file to output run-time messages
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
   printf("Init %9.4f\n", init);
   #endif //MPI_CHOLLA
   #endif //CPU_TIME
-
+  
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
   while (G.H.t < P.tout)
@@ -172,9 +172,9 @@ int main(int argc, char *argv[])
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
     
     #ifdef PARTICLES
-    //Advance the particles KDK( first step )
+    //Advance the particles KDK( first step ): Velocities are updated by 0.5*dt and positions are updated by dt
     G.Advance_Particles( 1 );   
-    //Transfer the particles boundaries
+    //Transfer the particles that moved outside the local domain  
     G.Transfer_Particles_Boundaries(P); 
     #endif
     
@@ -193,11 +193,11 @@ int main(int argc, char *argv[])
     // add one to the timestep count
     G.H.n_step++;
 
-    // set boundary conditions for next time step 
+    //Set the Grid boundary conditions for next time step 
     G.Set_Boundary_Conditions_Grid(P);
     
     #ifdef PARTICLES
-    //Advance the particles KDK( second step )
+    ///Advance the particles KDK( second step ): Velocities are updated by 0.5*dt using the Accelerations at the new positions
     G.Advance_Particles( 2 );
     #endif
     

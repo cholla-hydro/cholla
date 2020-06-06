@@ -3,7 +3,7 @@
 
 #ifdef CUDA
 
-#include<cuda.h>
+#include"gpu.hpp"
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
@@ -12,7 +12,6 @@
 #ifdef DE //PRESSURE_DE
 #include"hydro_cuda.h"
 #endif
-
 
 
 /*! \fn Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
@@ -103,7 +102,7 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     pl = Get_Pressure_From_DE( El, El - E_kin, dgel, gamma ); 
     #else
     pl  = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
-    #endif//DE
+    #endif //PRESSURE_DE
     pl  = fmax(pl, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
@@ -118,10 +117,10 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_
     vzr = mzr / dr;
     #ifdef DE //PRESSURE_DE
     E_kin = 0.5 * dr * ( vxr*vxr + vyr*vyr + vzr*vzr );
-    pr = Get_Pressure_From_DE( Er, Er - E_kin, dger, gamma ); 
+    pr = Get_Pressure_From_DE( Er, Er - E_kin, dger, gamma );
     #else
     pr  = (Er - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
-    #endif//DE
+    #endif //PRESSURE_DE
     pr  = fmax(pr, (Real) TINY_NUMBER);    
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {

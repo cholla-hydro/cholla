@@ -1,6 +1,5 @@
 #include<stdio.h>
-#include<cuda.h>
-#include<cuda_runtime.h>
+#include"gpu.hpp"
 #include"io.h"
 #include"cuda_mpi_routines.h"
 

@@ -9,6 +9,7 @@
 #include<string.h>
 #include"global.h"
 #include"subgrid_routines_2D.h"
+#include"gpu.hpp"
 
 
 

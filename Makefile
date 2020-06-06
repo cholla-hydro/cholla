@@ -1,104 +1,219 @@
-EXEC   = cholla
 
-OPTIMIZE =  -O2  
+DIRS := src src/gravity src/particles src/cosmology src/cooling
+ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
+  DIRS += src/gravity/paris
+endif
 
-DIR = ./src
-CFILES = $(wildcard $(DIR)/*.c)
-CPPFILES = $(wildcard $(DIR)/*.cpp)
-CUDAFILES = $(wildcard $(DIR)/*.cu)
+CFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.c))
+CPPFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cpp))
+GPUFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cu))
 
+OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(GPUFILES))
 
-OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) 
-COBJS   = $(subst .c,.o,$(CFILES)) 
-CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) 
-CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) 
+POISSON_SOLVER ?= -DPFFT
+DFLAGS += $(POISSON_SOLVER)
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
-CUDA = -DCUDA #-DCUDA_ERROR_CHECK
+DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 
-#To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
-#otherwise gcc/g++ will be used for serial compilation
-#MPI_FLAGS =  -DMPI_CHOLLA
+#To use MPI, DFLAGS must include -DMPI_CHOLLA
+DFLAGS += -DMPI_CHOLLA -DBLOCK
 
-ifdef MPI_FLAGS
-  CC	= mpicc
-  CXX   = mpicxx
+#DFLAGS += -DPRECISION=1
+DFLAGS += -DPRECISION=2
 
-  #MPI_FLAGS += -DSLAB
-  MPI_FLAGS += -DBLOCK
+# Output
+#DFLAGS += -DBINARY
+DFLAGS += -DHDF5
 
+#Output all data every N_OUTPUT_COMPLETE snapshots ( This are Restart Files )
+DFLAGS += -DN_OUTPUT_COMPLETE=10
+
+# Reconstruction
+#DFLAGS += -DPCM
+#DFLAGS += -DPLMP
+#DFLAGS += -DPLMC
+DFLAGS += -DPPMP
+#DFLAGS += -DPPMC
+
+# Solver
+#DFLAGS += -DEXACT
+#DFLAGS += -DROE
+DFLAGS += -DHLLC
+
+# Integrator
+# DFLAGS += -DVL
+DFLAGS += -DSIMPLE
+
+# Dual-Energy Formalism
+DFLAGS += -DDE
+
+# Apply a minimum value to conserved values
+DFLAGS += -DDENSITY_FLOOR
+DFLAGS += -DTEMPERATURE_FLOOR
+
+# Allocate GPU memory only once at the first timestep
+#DFLAGS += -DDYNAMIC_GPU_ALLOC
+
+# Cooling
+#DFLAGS += -DCOOLING_GPU
+#DFLAGS += -DCLOUDY_COOL
+
+# Use tiled initial conditions for scaling tests
+#DFLAGS += -DTILED_INITIAL_CONDITIONS
+
+#Average Slow cell when the cell delta_t is very small
+DFLAGS += -DAVERAGE_SLOW_CELLS
+
+#Print Initial Statistics
+DFLAGS += -DPRINT_INITIAL_STATS
+
+DFLAGS += -DCPU_TIME
+DFLAGS += -DGRAVITY
+DFLAGS += -DGRAVITY_LONG_INTS
+DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
+#DFLAGS += -DCOUPLE_DELTA_E_KINETIC
+#DFLAGS += -DOUTPUT_POTENTIAL
+DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
+
+# Include gravity from particles PM
+DFLAGS += -DPARTICLES
+DFLAGS += -DPARTICLES_CPU
+# DFLAGS += -DONLY_PARTICLES
+DFLAGS += -DSINGLE_PARTICLE_MASS
+DFLAGS += -DPARTICLES_LONG_INTS
+DFLAGS += -DPARTICLES_KDK
+
+# Turn OpenMP on for CPU calculations
+DFLAGS += -DPARALLEL_OMP
+OMP_NUM_THREADS ?= 16
+DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
+#DFLAGS += -DPRINT_OMP_DOMAIN
+
+# Cosmology simulation
+DFLAGS += -DCOSMOLOGY
+
+# Use Grackle for cooling in cosmological simulations
+DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=20
+
+
+SYSTEM = "Lux"
+
+
+ifdef HIP_PLATFORM
+  DFLAGS += -DO_HIP
+  CXXFLAGS += -D__HIP_PLATFORM_HCC__
+  ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
+    DFLAGS += -DPARIS_NO_GPU_MPI -I$(ROCM_PATH)/include
+  endif
+endif
+
+
+
+ifeq ($(SYSTEM),"Poplar")
+CC := cc
+CXX := CC
+CXXFLAGS += -std=c++17 -ferror-limit=1
+endif
+
+
+ifeq ($(SYSTEM),"Lux")
+CC := mpicc
+CXX := mpic++
+CXXFLAGS += -std=c++11
+GPUFLAGS += -std=c++11
+DFLAGS += -DPARIS_NO_GPU_MPI
+OMP_NUM_THREADS = 20
+endif
+
+CFLAGS += -g -Ofast
+CXXFLAGS += -g -Ofast 
+CFLAGS += $(DFLAGS) -Isrc
+CXXFLAGS += $(DFLAGS) -Isrc
+GPUFLAGS += $(DFLAGS) -Isrc
+
+ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
+  CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
+  GPUFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
+  LIBS += -L$(FFTW_ROOT)/lib -L$(PFFT_ROOT)/lib -lpfft -lfftw3_mpi -lfftw3
+endif
+
+ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
+  LIBS += -lcufft
+endif
+
+ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
+  ifdef HIP_PLATFORM
+    LIBS += -L$(ROCM_PATH)/lib -lrocfft
+  else
+    LIBS += -lcufft -lcudart
+  endif
+endif
+
+ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
+  CXXFLAGS += -I$(HDF5INCLUDE)
+  GPUFLAGS += -I$(HDF5INCLUDE)
+  LIBS += -L$(HDF5DIR) -lhdf5
+endif
+
+ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
+  GPUFLAGS += -I$(MPI_HOME)/include
+	CXXFLAGS += -I$(MPI_HOME)/include
+  ifdef HIP_PLATFORM
+    LIBS += -L$(MPI_HOME)/lib -lmpicxx -lmpi
+  endif
+endif
+
+ifdef HIP_PLATFORM
+  CXXFLAGS += -I$(ROCM_PATH)/include -Wno-unused-result
+  GPUCXX := hipcc
+  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-function -Wno-unused-result -Wno-unused-command-line-argument -std=c++17 -ferror-limit=1
+  LD := $(GPUCXX)
+  LDFLAGS += $(GPUFLAGS)
 else
-  CC	= gcc
-  CXX   = g++
+  GPUCXX := nvcc
+  GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  LD := $(CXX)
+  LDFLAGS += $(CXXFLAGS)
 endif
 
-#define the NVIDIA CUDA compiler
-NVCC	= nvcc
-
-.SUFFIXES : .c .cpp .cu .o
-
-#PRECISION = -DPRECISION=1
-PRECISION = -DPRECISION=2
-
-#OUTPUT = -DBINARY
-OUTPUT = -DHDF5
-
-#RECONSTRUCTION = -DPCM
-#RECONSTRUCTION = -DPLMP
-#RECONSTRUCTION = -DPLMC
-#RECONSTRUCTION = -DPPMP
-RECONSTRUCTION = -DPPMC
-
-#SOLVER = -DEXACT
-#SOLVER = -DROE
-SOLVER = -DHLLC
-
-#INTEGRATOR = -DCTU
-INTEGRATOR = -DVL
-
-COOLING = #-DCOOLING_GPU -DCLOUDY_COOL
-
-
-ifdef CUDA
-CUDA_INCL = #-I/usr/local/cuda/include
-CUDA_LIBS = -lcuda -lcudart #-L/usr/local/cuda/lib64
-endif
-ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = #-I/usr/local/hdf5/gcc/1.10.0/include
-HDF5_LIBS = -lhdf5 #-L/usr/local/hdf5/gcc/1.10.0/lib64
+ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
+  CXXFLAGS += -fopenmp
+  ifdef HIP_PLATFORM
+    LIBS += -L$(CRAYLIBS_X86_64) -L$(GCC_X86_64)/lib64 -lcraymath -lcraymp -lu
+  else
+    LDFLAGS += -fopenmp
+  endif
 endif
 
-INCL   = -I./ $(HDF5_INCL)
-NVINCL = $(INCL) $(CUDA_INCL)
-LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
-
-FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) #-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
-CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -arch=sm_70
-
-
-%.o:	%.c
-		$(CC) $(CFLAGS)  $(INCL)  -c $< -o $@ 
-
-%.o:	%.cpp
-		$(CXX) $(CXXFLAGS)  $(INCL) -c $< -o $@ 
-
-%.o:	%.cu
-		$(NVCC) $(NVCCFLAGS) --device-c $(NVINCL)  -c $< -o $@ 
-
-$(EXEC): $(OBJS) src/gpuCode.o
-	 	 $(CXX) $(OBJS) src/gpuCode.o $(LIBS) -o $(EXEC)
-
-src/gpuCode.o:	$(CUOBJS) 
-		$(NVCC) $(NVCCFLAGS) -dlink $(CUOBJS) -o src/gpuCode.o
+ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
+  CXXFLAGS += -I$(GRAKLE_HOME)/include
+	CPUFLAGS += -I$(GRAKLE_HOME)/include
+	GPUFLAGS += -I$(GRAKLE_HOME)/include
+  LIBS += -L$(GRAKLE_HOME)/lib -lgrackle 
+endif
 
 
 
-.PHONY : clean
+.SUFFIXES: .c .cpp .cu .o
+
+EXEC := cholla$(SUFFIX)
+
+$(EXEC): $(OBJS)
+	$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.o: %.cu
+	$(GPUCXX) $(GPUFLAGS) -c $< -o $@
+
+.PHONY: clean
 
 clean:
-	 rm -f $(OBJS) src/gpuCode.o $(EXEC)
-
+	rm -f $(OBJS) $(EXEC)

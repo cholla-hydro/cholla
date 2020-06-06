@@ -3,12 +3,17 @@
 
 #ifdef CUDA
 
-#include<cuda.h>
+#include"gpu.hpp"
 #include<math.h>
 #include<stdio.h>
 #include"global.h"
 #include"global_cuda.h"
 #include"exact_cuda.h"
+
+#ifdef DE //PRESSURE_DE
+#include"hydro_cuda.h"
+#endif
+
 
 
 /*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
@@ -40,7 +45,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
   Real vm, pm; //velocity and pressure in the star region
 
   #ifdef DE
-  Real gel, ger;
+  Real gel, ger, E_kin, E, dge ;
   #endif
 
   #ifdef SCALAR
@@ -57,7 +62,14 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     vxl = dev_bounds_L[o1*n_cells + tid]/dl;
     vyl = dev_bounds_L[o2*n_cells + tid]/dl;
     vzl = dev_bounds_L[o3*n_cells + tid]/dl;
+    #ifdef DE //PRESSURE_DE
+    E = dev_bounds_L[4*n_cells + tid];
+    E_kin = 0.5 * dl * ( vxl*vxl + vyl*vyl + vzl*vzl );
+    dge = dev_bounds_L[(n_fields-1)*n_cells + tid];
+    pl = Get_Pressure_From_DE( E, E - E_kin, dge, gamma ); 
+    #else   
     pl  = (dev_bounds_L[4*n_cells + tid] - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
+    #endif //PRESSURE_DE
     pl  = fmax(pl, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
@@ -65,13 +77,20 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     }
     #endif
     #ifdef DE
-    gel = dev_bounds_L[(n_fields-1)*n_cells + tid]/dl;
+    gel = dge / dl;
     #endif
     dr  = dev_bounds_R[            tid];
     vxr = dev_bounds_R[o1*n_cells + tid]/dr;
     vyr = dev_bounds_R[o2*n_cells + tid]/dr;
     vzr = dev_bounds_R[o3*n_cells + tid]/dr;
+    #ifdef DE //PRESSURE_DE
+    E = dev_bounds_R[4*n_cells + tid];
+    E_kin = 0.5 * dr * ( vxr*vxr + vyr*vyr + vzr*vzr );
+    dge = dev_bounds_R[(n_fields-1)*n_cells + tid];
+    pr = Get_Pressure_From_DE( E, E - E_kin, dge, gamma ); 
+    #else   
     pr  = (dev_bounds_R[4*n_cells + tid] - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);  
+    #endif //PRESSURE_DE
     pr  = fmax(pr, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
@@ -79,7 +98,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     }
     #endif
     #ifdef DE
-    ger = dev_bounds_R[(n_fields-1)*n_cells + tid]/dr;
+    ger = dge / dr;
     #endif
 
 

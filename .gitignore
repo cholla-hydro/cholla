@@ -2,14 +2,15 @@
 *.o
 
 ##executable
-cholla
+cholla*
 
-##makefile
-Makefile
+## input files
+parameter_file.txt
 
 ## output files
 *.h5
 *.bin
+out.*
 
 ## dropbox file
 .DS_Store
