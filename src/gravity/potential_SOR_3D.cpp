@@ -134,25 +134,25 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
     
     if ( n_iter % n_iter_per_boundaries_transfer == 0 ) set_boundaries = true;
      
-    if ( set_boundaries ){
-      // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
-      // Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();   
-      // 
-      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
-      Set_Boundary_Conditions( *P );
-      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
-    }
+    // if ( set_boundaries ){
+    //   // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
+    //   // Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();   
+    //   // 
+    //   Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
+    //   Set_Boundary_Conditions( *P );
+    //   Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
+    // }
     
     Grav.Poisson_solver.Poisson_Partial_Iteration( 0, omega, epsilon ); 
 
-    if ( set_boundaries ){
-      // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
-      // Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();    
-      
-      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
-      Set_Boundary_Conditions( *P );
-      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
-    }
+    // if ( set_boundaries ){
+    //   // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
+    //   // Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();    
+    // 
+    //   Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
+    //   Set_Boundary_Conditions( *P );
+    //   Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
+    // }
     
     Grav.Poisson_solver.Poisson_Partial_Iteration( 1, omega, epsilon );
 
@@ -206,7 +206,7 @@ void Potential_SOR_3D::Reset( void ){
 }
 
 
-void Potential_SOR_3D::Copy_Poisson_Boundary( int direction, int side ){
+void Potential_SOR_3D::Copy_Poisson_Boundary_Periodic( int direction, int side ){
   
   Real *boundaries_buffer;
   
