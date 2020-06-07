@@ -198,12 +198,12 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   #ifdef SOR 
   if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES ){
     if ( flags[dir] ==1 ){
-      if ( dir == 0 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 0, 0 );
-      if ( dir == 1 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 0, 1 );
-      if ( dir == 2 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 1, 0 );
-      if ( dir == 3 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 1, 1 );
-      if ( dir == 4 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 2, 0 );
-      if ( dir == 5 ) Grav.Poisson_solver.Copy_Poisson_Boundary( 2, 1 );
+      if ( dir == 0 ) Grav.Poisson_solver.Copy_Poisson_Boundary_Periodic( 0, 0 );
+      if ( dir == 1 ) Grav.Poisson_solver.Copy_Poisson_Boundary_Periodic( 0, 1 );
+      if ( dir == 2 ) Grav.Poisson_solver.Copy_Poisson_Boundary_Periodic( 1, 0 );
+      if ( dir == 3 ) Grav.Poisson_solver.Copy_Poisson_Boundary_Periodic( 1, 1 );
+      if ( dir == 4 ) Grav.Poisson_solver.Copy_Poisson_Boundary_Periodic( 2, 0 );
+      if ( dir == 5 ) Grav.Poisson_solver.Copy_Poisson_Boundary_Periodic( 2, 1 );
     }
     return; 
   }

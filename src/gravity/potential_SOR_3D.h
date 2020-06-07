@@ -126,7 +126,9 @@ class Potential_SOR_3D{
   void Unload_Transfer_Buffer_GPU_z0();
   void Unload_Transfer_Buffer_GPU_z1();
   
-  void Copy_Poisson_Boundary( int direction, int side );
+  void Copy_Poisson_Boundary_Periodic( int direction, int side );
+  
+  void Copy_Poisson_Boundary_Open( int direction, int side );
   
   // void Load_Transfer_Buffer_GPU_All();
   // void Unload_Transfer_Buffer_GPU_All();
