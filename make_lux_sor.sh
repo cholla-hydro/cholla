@@ -7,9 +7,9 @@ module list
 
 export MPI_HOME='/cm/shared/apps/openmpi/openmpi-4.0.1.cuda/'
 export GRAKLE_HOME='/home/brvillas/code/grackle'
-CC	= gcc
-CXX   = g++
+export CC=gcc
+export CXX=g++
 export POISSON_SOLVER='-DSOR'
 export SUFFIX='.sor'
-make clean
+# make clean
 make
