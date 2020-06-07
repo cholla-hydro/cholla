@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdio>
+#include <stdlib.h>
+
 
 #ifdef O_HIP
 
