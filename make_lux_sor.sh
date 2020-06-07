@@ -11,5 +11,5 @@ export CC=gcc
 export CXX=g++
 export POISSON_SOLVER='-DSOR'
 export SUFFIX='.sor'
-# make clean
+make clean
 make
