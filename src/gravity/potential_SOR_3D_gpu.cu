@@ -145,15 +145,24 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   indx_b = tid_z-1;  //Bottom
   indx_t = tid_z+1;  //Top
   
-  // 
-  // //Periodic Boundary conditions
-  // indx_l = tid_x == n_ghost          ?    nx_pot-n_ghost-1 : tid_x-1;  //Left
-  // indx_r = tid_x == nx_pot-n_ghost-1 ?             n_ghost : tid_x+1;  //Right
-  // indx_d = tid_y == n_ghost          ?    ny_pot-n_ghost-1 : tid_y-1;  //Down
-  // indx_u = tid_y == ny_pot-n_ghost-1 ?             n_ghost : tid_y+1;  //Up
-  // indx_b = tid_z == n_ghost          ?    nz_pot-n_ghost-1 : tid_z-1;  //Bottom
-  // indx_t = tid_z == nz_pot-n_ghost-1 ?             n_ghost : tid_z+1;  //Top
-  // 
+  
+  //Periodic Boundary conditions
+  indx_l = tid_x == n_ghost          ?    nx_pot-n_ghost-1 : tid_x-1;  //Left
+  indx_r = tid_x == nx_pot-n_ghost-1 ?             n_ghost : tid_x+1;  //Right
+  indx_d = tid_y == n_ghost          ?    ny_pot-n_ghost-1 : tid_y-1;  //Down
+  indx_u = tid_y == ny_pot-n_ghost-1 ?             n_ghost : tid_y+1;  //Up
+  indx_b = tid_z == n_ghost          ?    nz_pot-n_ghost-1 : tid_z-1;  //Bottom
+  indx_t = tid_z == nz_pot-n_ghost-1 ?             n_ghost : tid_z+1;  //Top
+  
+  // //Zero Gradient Boundary conditions
+  // indx_l = tid_x == n_ghost          ?    tid_x+1 : tid_x-1;  //Left
+  // indx_r = tid_x == nx_pot-n_ghost-1 ?    tid_x-1 : tid_x+1;  //Right
+  // indx_d = tid_y == n_ghost          ?    tid_y+1 : tid_y-1;  //Down
+  // indx_u = tid_y == ny_pot-n_ghost-1 ?    tid_y-1 : tid_y+1;  //Up
+  // indx_b = tid_z == n_ghost          ?    tid_z+1 : tid_z-1;  //Bottom
+  // indx_t = tid_z == nz_pot-n_ghost-1 ?    tid_z-1 : tid_z+1;  //Top
+  
+  
   
   Real rho, phi_c, phi_l, phi_r, phi_d, phi_u, phi_b, phi_t, phi_new;
   rho = density_d[tid];
