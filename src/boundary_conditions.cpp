@@ -186,12 +186,12 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   #ifdef GRAVITY
   if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
     if ( flags[dir] ==1 ){
-      if ( dir == 0 ) Copy_Potential_Boundaries( 0, 0 );
-      if ( dir == 1 ) Copy_Potential_Boundaries( 0, 1 );
-      if ( dir == 2 ) Copy_Potential_Boundaries( 1, 0 );
-      if ( dir == 3 ) Copy_Potential_Boundaries( 1, 1 );
-      if ( dir == 4 ) Copy_Potential_Boundaries( 2, 0 );
-      if ( dir == 5 ) Copy_Potential_Boundaries( 2, 1 );
+      if ( dir == 0 ) Copy_Potential_Boundaries( 0, 0, flags );
+      if ( dir == 1 ) Copy_Potential_Boundaries( 0, 1, flags );
+      if ( dir == 2 ) Copy_Potential_Boundaries( 1, 0, flags );
+      if ( dir == 3 ) Copy_Potential_Boundaries( 1, 1, flags );
+      if ( dir == 4 ) Copy_Potential_Boundaries( 2, 0, flags );
+      if ( dir == 5 ) Copy_Potential_Boundaries( 2, 1, flags );
     }
     return; 
   }
