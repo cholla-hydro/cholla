@@ -11,4 +11,4 @@ export CC=mpicc
 export CXX=mpicxx
 
 make clean
-make
+make -j

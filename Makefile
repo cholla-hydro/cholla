@@ -122,7 +122,7 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifdef HIP_PLATFORM
     LIBS += -L$(ROCM_PATH)/lib -lrocfft
   else
-    LIBS += -lcufft -lcudart
+    LIBS += -lcufft
   endif
 endif
 
@@ -150,6 +150,7 @@ else
   GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
+  LIBS += -lcudart
 endif
 
 ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)

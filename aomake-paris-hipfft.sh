@@ -9,5 +9,5 @@ export SUFFIX='.paris.hipfft-ompi'
 export CC=mpicc
 export CXX=mpicxx
 
-#make clean
-make
+make clean
+make -j

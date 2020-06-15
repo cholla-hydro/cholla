@@ -12,4 +12,4 @@ export CC=mpicc
 export CXX=mpicxx
 export LIBS="-L${CUDA_DIR}/lib64"
 make clean
-make
+make -j
