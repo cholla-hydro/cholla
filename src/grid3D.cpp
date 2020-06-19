@@ -251,8 +251,8 @@ void Grid3D::AllocateMemory(void)
 
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
-  buffer0 = (Real *) malloc(H.n_fields*H.n_cells*sizeof(Real));
-  buffer1 = (Real *) malloc(H.n_fields*H.n_cells*sizeof(Real));
+  CudaSafeCall( cudaHostAlloc(&buffer0, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
+  CudaSafeCall( cudaHostAlloc(&buffer1, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
 
   // point conserved variables to the appropriate locations in buffer
   C.density  = &(buffer0[0]);
@@ -268,7 +268,7 @@ void Grid3D::AllocateMemory(void)
   #endif
   
   #if defined( GRAVITY ) 
-  C.Grav_potential = (Real *) malloc(H.n_cells*sizeof(Real));
+  CudaSafeCall( cudaHostAlloc(&C.Grav_potential, H.n_cells*sizeof(Real), cudaHostAllocDefault) );
   #else
   C.Grav_potential = NULL;
   #endif
@@ -723,11 +723,11 @@ void Grid3D::Reset(void)
 void Grid3D::FreeMemory(void)
 {
   // free the conserved variable arrays
-  free(buffer0);
-  free(buffer1);
+  CudaSafeCall( cudaFreeHost(buffer0) );
+  CudaSafeCall( cudaFreeHost(buffer1) );
   
   #ifdef GRAVITY
-  free(C.Grav_potential );
+  CudaSafeCall( cudaFreeHost(C.Grav_potential) );
   #endif
   
   #ifndef DYNAMIC_GPU_ALLOC
