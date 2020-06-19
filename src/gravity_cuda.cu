@@ -11,6 +11,9 @@
 #include"global_cuda.h"
 #include"gravity_cuda.h"
 
+// Work around lack of pow(Real,int) in Hip Clang for Rocm 3.5
+static inline __device__ Real pow2(const Real x) { return x*x; }
+
 __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound, Real *gx)
 {
   Real x_pos, r_disk, r_halo;
@@ -39,7 +42,7 @@ __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound,
   
   // calculate acceleration due to NFW halo & Miyamoto-Nagai disk
   a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
-  a_disk_z = - GN * M_d * x_pos * (R_d + sqrt(x_pos*x_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow(R_d + sqrt(x_pos*x_pos + z_d*z_d), 2), 1.5) * sqrt(x_pos*x_pos + z_d*z_d) );
+  a_disk_z = - GN * M_d * x_pos * (R_d + sqrt(x_pos*x_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow2(R_d + sqrt(x_pos*x_pos + z_d*z_d)), 1.5) * sqrt(x_pos*x_pos + z_d*z_d) );
 
   // total acceleration is the sum of the halo + disk components
   *gx = (x_pos/r_halo)*a_halo + a_disk_z;
@@ -145,8 +148,8 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
   a_halo_r = a_halo*(r_disk/r_halo);
   a_halo_z = a_halo*(z_pos/r_halo);
-  a_disk_r = - GN * M_d * r_disk * pow(r_disk*r_disk+ pow(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
-  a_disk_z = - GN * M_d * z_pos * (R_d + sqrt(z_pos*z_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d), 2), 1.5) * sqrt(z_pos*z_pos + z_d*z_d) );
+  a_disk_r = - GN * M_d * r_disk * pow(r_disk*r_disk+ pow2(R_d + sqrt(z_pos*z_pos + z_d*z_d)), -1.5);
+  a_disk_z = - GN * M_d * z_pos * (R_d + sqrt(z_pos*z_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow2(R_d + sqrt(z_pos*z_pos + z_d*z_d)), 1.5) * sqrt(z_pos*z_pos + z_d*z_d) );
 
   // total acceleration is the sum of the halo + disk components
   *gx = (x_pos/r_disk)*(a_disk_r+a_halo_r);
