@@ -343,6 +343,24 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   dens_avrg = Cosmo.rho_0_gas;
   #endif
   
+  
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+  if ( P->xl_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(0);
+  if ( P->xu_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(1);
+  // chprintf("Isolated X\n");
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
+  if ( P->yl_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(2);
+  if ( P->yu_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(3);
+  // chprintf("Isolated Y\n");
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  if ( P->zl_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(4);
+  if ( P->zu_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(5);
+  // chprintf("Isolated Z\n");
+  #endif
+  
+  
   //Solve Poisson Equation to compute the potential
   //Poisson Equation: laplacian( phi ) = 4 * pi * G / scale_factor * ( dens - dens_average )
   #ifdef SOR
