@@ -69,16 +69,16 @@ void Grid3D::Set_Potential_Boundaries_Isolated( int direction, int side, int *fl
         id_buffer = i + j*n_i + k*n_i+n_j; 
         
         if ( direction == 0 ){
-          if ( side == 0 ) id_grid = (k)          + (i+nGHST)*nx_g + (j+nGHST)*nx_g*ny_g;
-          if ( side == 1 ) id_grid = (k+nx_local) + (i+nGHST)*nx_g + (j+nGHST)*nx_g*ny_g; 
+          if ( side == 0 ) id_grid = (k)                + (i+nGHST)*nx_g + (j+nGHST)*nx_g*ny_g;
+          if ( side == 1 ) id_grid = (k+nx_local+nGHST) + (i+nGHST)*nx_g + (j+nGHST)*nx_g*ny_g; 
         }
         if ( direction == 1 ){
-          if ( side == 0 ) id_grid = (i+nGHST) + (k)*nx_g          + (j+nGHST)*nx_g*ny_g;
-          if ( side == 1 ) id_grid = (i+nGHST) + (k+ny_local)*nx_g + (j+nGHST)*nx_g*ny_g; 
+          if ( side == 0 ) id_grid = (i+nGHST) + (k)*nx_g                + (j+nGHST)*nx_g*ny_g;
+          if ( side == 1 ) id_grid = (i+nGHST) + (k+ny_local+nGHST)*nx_g + (j+nGHST)*nx_g*ny_g; 
         }
         if ( direction == 1 ){
           if ( side == 0 ) id_grid = (i+nGHST) + (j+nGHST)*nx_g + (k)*nx_g*ny_g;
-          if ( side == 1 ) id_grid = (i+nGHST) + (j+nGHST)*nx_g + (k+nz_local)*nx_g*ny_g; 
+          if ( side == 1 ) id_grid = (i+nGHST) + (j+nGHST)*nx_g + (k+nz_local+nGHST)*nx_g*ny_g; 
         }
         
         Grav.F.potential_h[id_grid] = pot_boundary[id_buffer];
@@ -129,7 +129,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
   #endif  
   
   Real M, cm_pos_x, cm_pos_y, cm_pos_z, pos_x, pos_y, pos_z, r, delta_x, delta_y, delta_z;
-  M = 10;
+  M = 0.1005;
   cm_pos_x = 0.5;
   cm_pos_y = 0.5;
   cm_pos_z = 0.5; 
