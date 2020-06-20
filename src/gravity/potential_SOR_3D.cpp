@@ -87,6 +87,20 @@ void Potential_SOR_3D::AllocateMemory_GPU( void ){
   Allocate_Array_GPU_Real( &F.recv_boundaries_buffer_z0_d, size_buffer_z);
   Allocate_Array_GPU_Real( &F.recv_boundaries_buffer_z1_d, size_buffer_z);
   #endif
+  
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+  Allocate_Array_GPU_Real( &F.boundary_isolated_x0_d, n_ghost*ny_total*nz_total );
+  Allocate_Array_GPU_Real( &F.boundary_isolated_x1_d, n_ghost*ny_total*nz_total );
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+  Allocate_Array_GPU_Real( &F.boundary_isolated_y0_d, n_ghost*nx_total*nz_total );
+  Allocate_Array_GPU_Real( &F.boundary_isolated_y1_d, n_ghost*nx_total*nz_total );
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  Allocate_Array_GPU_Real( &F.boundary_isolated_z0_d, n_ghost*nx_total*ny_total );
+  Allocate_Array_GPU_Real( &F.boundary_isolated_z1_d, n_ghost*nx_total*ny_total );
+  #endif
+  
 }
 
 void Potential_SOR_3D::Copy_Input_And_Initialize( Real *input_density, Real Grav_Constant, Real dens_avrg, Real current_a ){
@@ -108,12 +122,14 @@ void Potential_SOR_3D::Poisson_Partial_Iteration( int n_step, Real omega, Real e
 
 void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current_a, struct parameters *P ){
   
-  //Copy the entire potential array to have the isolated boundaty conditions on the GPU
-  //This is very ineficient and can be improved.
-  Grav.Poisson_solver.Copy_Potential_From_Host( Grav.F.potential_h ); 
   
   
   Grav.Poisson_solver.Copy_Input_And_Initialize( Grav.F.density_h, Grav_Constant, dens_avrg, current_a );
+
+  //Set Isolated Boundary Conditions
+  Grav.Copy_Isolated_Boundaries_To_GPU( P );
+  Grav.Poisson_solver.Set_Isolated_Boundary_Conditions( P );
+
 
   Real epsilon = 1e-4;
   int max_iter = 10000000;
@@ -178,7 +194,30 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
     
 }
 
+void Grav3D::Copy_Isolated_Boundaries_To_GPU( struct parameters *P ){
+  
+  chprintf( " Copying Isolated Boundaries \n");
+  if ( P->xl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x0, Poisson_solver.F.boundary_isolated_x0_d,  Poisson_solver.n_ghost*ny_total*nz_total );
+  if ( P->xu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x1, Poisson_solver.F.boundary_isolated_x1_d,  Poisson_solver.n_ghost*ny_total*nz_total ); 
+  if ( P->yl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_y0, Poisson_solver.F.boundary_isolated_y0_d,  Poisson_solver.n_ghost*nx_total*nz_total );
+  if ( P->yu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_y1, Poisson_solver.F.boundary_isolated_y1_d,  Poisson_solver.n_ghost*nx_total*nz_total );
+  if ( P->zl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_z0, Poisson_solver.F.boundary_isolated_z0_d,  Poisson_solver.n_ghost*nx_total*ny_total );
+  if ( P->zu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_z1, Poisson_solver.F.boundary_isolated_z1_d,  Poisson_solver.n_ghost*nx_total*ny_total ); 
+  
+  
+}
 
+void Potential_SOR_3D::Set_Isolated_Boundary_Conditions( struct parameters *P ){
+  
+  chprintf( " Setting Isolated Boundaries \n");
+  if ( P->xl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 0, 0,  F.boundaries_buffer_x0_d );
+  if ( P->xu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 0, 1,  F.boundaries_buffer_x1_d );
+  if ( P->yl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 1, 0,  F.boundaries_buffer_y0_d );
+  if ( P->yu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 1, 1,  F.boundaries_buffer_y1_d );
+  if ( P->zl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 2, 0,  F.boundaries_buffer_z0_d );
+  if ( P->zu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 2, 1,  F.boundaries_buffer_z1_d );
+  
+}
 
 
 void Potential_SOR_3D::FreeMemory_GPU( void ){
@@ -200,6 +239,19 @@ void Potential_SOR_3D::FreeMemory_GPU( void ){
   Free_Array_GPU_Real( F.recv_boundaries_buffer_y1_d );
   Free_Array_GPU_Real( F.recv_boundaries_buffer_z0_d );
   Free_Array_GPU_Real( F.recv_boundaries_buffer_z1_d );
+  #endif
+  
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  Free_Array_GPU_Real( F.boundary_isolated_x0_d );
+  Free_Array_GPU_Real( F.boundary_isolated_x1_d );
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
+  Free_Array_GPU_Real( F.boundary_isolated_y0_d );
+  Free_Array_GPU_Real( F.boundary_isolated_y1_d );
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  Free_Array_GPU_Real( F.boundary_isolated_z0_d );
+  Free_Array_GPU_Real( F.boundary_isolated_z1_d );
   #endif
 
 }

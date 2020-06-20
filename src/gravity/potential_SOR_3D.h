@@ -69,6 +69,14 @@ class Potential_SOR_3D{
   Real *boundaries_buffer_z0_d;
   Real *boundaries_buffer_z1_d;
   
+  
+  Real *boundary_isolated_x0_d;
+  Real *boundary_isolated_x1_d;
+  Real *boundary_isolated_y0_d;
+  Real *boundary_isolated_y1_d;
+  Real *boundary_isolated_z0_d;
+  Real *boundary_isolated_z1_d;
+  
   #ifdef MPI_CHOLLA
   Real *recv_boundaries_buffer_x0_d;
   Real *recv_boundaries_buffer_x1_d;
@@ -138,6 +146,9 @@ class Potential_SOR_3D{
   
   void Copy_Transfer_Buffer_To_Host( int size_buffer, Real *transfer_bufer_h, Real *transfer_buffer_d );
   void Copy_Transfer_Buffer_To_Device( int size_buffer, Real *transfer_bufer_h, Real *transfer_buffer_d );
+  
+  void Set_Isolated_Boundary_Conditions( struct parameters *P );
+  void Set_Isolated_Boundary_GPU( int direction, int side,   Real *boundary_d  );
 
   
   #ifdef MPI_CHOLLA

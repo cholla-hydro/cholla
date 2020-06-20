@@ -158,6 +158,10 @@ class Grav3D
   Real Get_Average_Density( );
   Real Get_Average_Density_function( int g_start, int g_end );
 
+  #ifdef SOR
+  void Copy_Isolated_Boundary_To_GPU_buffer( Real *isolated_boundary_h, Real *isolated_boundary_d, int boundary_size );
+  void Copy_Isolated_Boundaries_To_GPU( struct parameters *P );
+  #endif
 
 };
 
