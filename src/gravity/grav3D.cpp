@@ -13,6 +13,8 @@
 #include "../parallel_omp.h"
 #endif
 
+
+
 Grav3D::Grav3D( void ){}
 
 void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, Real Lz, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P )
@@ -70,7 +72,7 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
     chprintf(" WARNING: Using Gravitational Constant G=1.\n");
   }
   
-  //Flag too transfer the Potential boundaries
+  //Flag to transfer the Potential boundaries
   TRANSFER_POTENTIAL_BOUNDARIES = false;
   
   AllocateMemory_CPU();
@@ -103,6 +105,19 @@ void Grav3D::AllocateMemory_CPU(void)
   F.density_h    = (Real *) malloc(n_cells*sizeof(Real)); //array for the density
   F.potential_h  = (Real *) malloc(n_cells_potential*sizeof(Real));   //array for the potential at the n-th timestep
   F.potential_1_h  = (Real *) malloc(n_cells_potential*sizeof(Real)); //array for the potential at the (n-1)-th timestep
+  
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+  F.pot_boundary_x0  = (Real *) malloc(N_GHOST_POTENTIAL*ny_total*nz_total*sizeof(Real)); //array for the potential isolated boundary
+  F.pot_boundary_x1  = (Real *) malloc(N_GHOST_POTENTIAL*ny_total*nz_total*sizeof(Real));
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
+  F.pot_boundary_y0  = (Real *) malloc(N_GHOST_POTENTIAL*nx_total*nz_total*sizeof(Real)); //array for the potential isolated boundary
+  F.pot_boundary_y1  = (Real *) malloc(N_GHOST_POTENTIAL*nx_total*nz_total*sizeof(Real));
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  F.pot_boundary_z0  = (Real *) malloc(N_GHOST_POTENTIAL*nx_total*ny_total*sizeof(Real)); //array for the potential isolated boundary
+  F.pot_boundary_z1  = (Real *) malloc(N_GHOST_POTENTIAL*nx_total*ny_total*sizeof(Real));
+  #endif
 }
 
 
@@ -124,6 +139,19 @@ void Grav3D::FreeMemory_CPU(void)
   free(F.density_h);
   free(F.potential_h);
   free(F.potential_1_h);
+
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+  free(F.pot_boundary_x0);
+  free(F.pot_boundary_x1);
+  #endif  
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
+  free(F.pot_boundary_y0);
+  free(F.pot_boundary_y1);
+  #endif  
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  free(F.pot_boundary_z0);
+  free(F.pot_boundary_z1);
+  #endif
 
   Poisson_solver.Reset();
   #ifdef PARIS_TEST

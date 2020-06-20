@@ -24,6 +24,9 @@
 #include<hdf5.h>
 #endif
 
+#define GRAV_ISOLATED_BOUNDARY_X
+#define GRAV_ISOLATED_BOUNDARY_Y
+#define GRAV_ISOLATED_BOUNDARY_Z
 
 /*! \class Grid3D
  *  \brief Class to create a the gravity object. */
@@ -88,6 +91,7 @@ class Grav3D
 
   bool TRANSFER_POTENTIAL_BOUNDARIES;
   
+  
   #ifdef PFFT
   Potential_PFFT_3D Poisson_solver;
   #endif
@@ -123,7 +127,20 @@ class Grav3D
     /*! \var potential_h
      *  \brief Array containing the gravitational potential of each cell in the grid */
     Real *potential_1_h;
-
+    
+    // Arrays for computing the potential values in isolated boundaries
+    #ifdef GRAV_ISOLATED_BOUNDARY_X
+    Real *pot_boundary_x0;
+    Real *pot_boundary_x1;
+    #endif
+    #ifdef GRAV_ISOLATED_BOUNDARY_Y
+    Real *pot_boundary_y0;
+    Real *pot_boundary_y1;
+    #endif
+    #ifdef GRAV_ISOLATED_BOUNDARY_Z
+    Real *pot_boundary_z0;
+    Real *pot_boundary_z1;
+    #endif
   } F;
   
   /*! \fn Grav3D(void)
