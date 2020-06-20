@@ -89,8 +89,11 @@ class Potential_SOR_3D{
   void FreeMemory_GPU( void );
   void Reset( void );
   void Copy_Input( int n_cells, Real *input_d, Real *input_density_h, Real Grav_Constant, Real dens_avrg, Real current_a );
-
+  
   void Copy_Output( Real *output_potential );
+  void Copy_Potential_From_Host( Real *output_potential );
+  
+  
   void Set_Boundaries(  );
   // Real Get_Potential( Real *input_density,  Real *output_potential, Real Grav_Constant, Real dens_avrg, Real current_a );
   // void Copy_Potential_From_Host( Real *potential_host );

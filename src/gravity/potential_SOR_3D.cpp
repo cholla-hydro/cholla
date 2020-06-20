@@ -108,6 +108,11 @@ void Potential_SOR_3D::Poisson_Partial_Iteration( int n_step, Real omega, Real e
 
 void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current_a, struct parameters *P ){
   
+  //Copy the entire potential array to have the isolated boundaty conditions on the GPU
+  //This is very ineficient and can be improved.
+  Grav.Poisson_solver.Copy_Potential_From_Host( Grav.F.potential_h ); 
+  
+  
   Grav.Poisson_solver.Copy_Input_And_Initialize( Grav.F.density_h, Grav_Constant, dens_avrg, current_a );
 
   Real epsilon = 1e-4;
