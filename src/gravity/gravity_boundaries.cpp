@@ -142,25 +142,25 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
     for ( i=0; i<n_i; i++ ){
       for ( j=0; j<n_j; j++ ){
         
-        id = i + j*n_i + k*n_i+n_j; 
+        id = i + j*n_i + k*n_i*n_j; 
         
         if ( direction == 0 ){
           pos_x = Grav.xMin - ( nGHST + k + 0.5 ) * Grav.dx;
-          if ( side == 1 ) pos_x += Grav.Lbox_x;
+          if ( side == 1 ) pos_x += Grav.Lbox_x + nGHST*Grav.dx;
           pos_y = Grav.yMin + ( i + 0.5 )* Grav.dy;
           pos_z = Grav.zMin + ( j + 0.5 )* Grav.dz;
          }
         
          if ( direction == 1 ){
            pos_y = Grav.yMin - ( nGHST + k + 0.5 ) * Grav.dy;
-           if ( side == 1 ) pos_y += Grav.Lbox_y;
+           if ( side == 1 ) pos_y += Grav.Lbox_y + nGHST*Grav.dy;
            pos_x = Grav.xMin + ( i + 0.5 )* Grav.dx;
            pos_z = Grav.zMin + ( j + 0.5 )* Grav.dz;
           }
           
         if ( direction == 2 ){
           pos_z = Grav.zMin - ( nGHST + k + 0.5 ) * Grav.dz;
-          if ( side == 1 ) pos_z += Grav.Lbox_z;
+          if ( side == 1 ) pos_z += Grav.Lbox_z + nGHST*Grav.dz;
           pos_x = Grav.xMin + ( i + 0.5 )* Grav.dx;
           pos_y = Grav.yMin + ( j + 0.5 )* Grav.dy;
          }

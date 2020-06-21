@@ -210,12 +210,12 @@ void Grav3D::Copy_Isolated_Boundaries_To_GPU( struct parameters *P ){
 void Potential_SOR_3D::Set_Isolated_Boundary_Conditions( struct parameters *P ){
   
   chprintf( " Setting Isolated Boundaries \n");
-  if ( P->xl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 0, 0,  F.boundaries_buffer_x0_d );
-  if ( P->xu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 0, 1,  F.boundaries_buffer_x1_d );
-  if ( P->yl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 1, 0,  F.boundaries_buffer_y0_d );
-  if ( P->yu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 1, 1,  F.boundaries_buffer_y1_d );
-  if ( P->zl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 2, 0,  F.boundaries_buffer_z0_d );
-  if ( P->zu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 2, 1,  F.boundaries_buffer_z1_d );
+  if ( P->xl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 0, 0,  F.boundary_isolated_x0_d );
+  if ( P->xu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 0, 1,  F.boundary_isolated_x1_d );
+  if ( P->yl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 1, 0,  F.boundary_isolated_y0_d );
+  if ( P->yu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 1, 1,  F.boundary_isolated_y1_d );
+  if ( P->zl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 2, 0,  F.boundary_isolated_z0_d );
+  if ( P->zu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 2, 1,  F.boundary_isolated_z1_d );
   
 }
 
