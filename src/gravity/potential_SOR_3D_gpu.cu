@@ -125,10 +125,10 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   
   if (tid_x >= nx || tid_y >= ny || tid_z >= nz ) return;  
   
-  int nx_pot, ny_pot, nz_pot;
+  int nx_pot, ny_pot;
   nx_pot = nx + 2*n_ghost;
   ny_pot = ny + 2*n_ghost;
-  nz_pot = nz + 2*n_ghost;
+  // nz_pot = nz + 2*n_ghost;
   
   tid = tid_x + tid_y*nx + tid_z*nx*ny;
   
@@ -147,7 +147,7 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   indx_b = tid_z-1;  //Bottom
   indx_t = tid_z+1;  //Top
   
-  // 
+  
   // //Periodic Boundary conditions
   // indx_l = tid_x == n_ghost          ?    nx_pot-n_ghost-1 : tid_x-1;  //Left
   // indx_r = tid_x == nx_pot-n_ghost-1 ?             n_ghost : tid_x+1;  //Right
@@ -191,8 +191,6 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   if ( ( fabs( ( phi_new - phi_c ) / phi_c ) > epsilon ) ) converged_d[0] = 0;
   // if ( ( fabs( ( phi_new - phi_c ) ) > epsilon ) ) converged_d[0] = 0;
   
-  
-  potential_d[tid_pot] = phi_new;
   
   
 }
@@ -301,8 +299,8 @@ __global__ void Set_Isolated_Boundary_GPU_kernel( int direction, int side, int s
   
   potential_d[tid_pot] = boundary_d[tid_buffer];
   
-  
 }
+
 void Potential_SOR_3D::Set_Isolated_Boundary_GPU( int direction, int side,   Real *boundary_d  ){
   
   
@@ -348,7 +346,8 @@ void Potential_SOR_3D::Copy_Potential_From_Host( Real *output_potential ){
 }
 
 
-__global__ void Load_Transfer_Buffer_GPU_kernel( int direction, int side, int size_buffer, int n_i, int n_j, int n_k, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d   ){
+
+__global__ void Load_Transfer_Buffer_GPU_kernel( int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d   ){
   
   // get a global thread ID
   int tid, tid_i, tid_j, tid_k, tid_buffer, tid_pot;
@@ -357,73 +356,31 @@ __global__ void Load_Transfer_Buffer_GPU_kernel( int direction, int side, int si
   tid_j = (tid - tid_k*n_i*n_j) / n_i;
   tid_i = tid - tid_k*n_i*n_j - tid_j*n_i;
   
-  if ( tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_k ) return;
+  if ( tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost_transfer ) return;
   
   tid_buffer = tid_i + tid_j*n_i + tid_k*n_i*n_j;
   
   if ( direction == 0 ){
-    if ( side == 0 ) tid_pot = ( n_ghost_potential + tid_i  ) + ( tid_j  )*nx + ( tid_k  )*nx*ny;
-    if ( side == 1 ) tid_pot = ( nx - n_ghost_potential - n_ghost_transfer + tid_i ) + ( tid_j  )*nx + ( tid_k  )*nx*ny;
-  
+    if ( side == 0 ) tid_pot = ( n_ghost_potential + tid_k  )                        + (tid_i)*nx + (tid_j)*nx*ny;
+    if ( side == 1 ) tid_pot = ( nx - n_ghost_potential - n_ghost_transfer + tid_k ) + (tid_i)*nx + (tid_j)*nx*ny;
   }  
   if ( direction == 1 ){
-    if ( side == 0 ) tid_pot = ( tid_i ) + ( n_ghost_potential + tid_j  )*nx + ( tid_k  )*nx*ny;
-    if ( side == 1 ) tid_pot = ( tid_i ) + ( ny - n_ghost_potential - n_ghost_transfer + tid_j  )*nx + ( tid_k  )*nx*ny;
+    if ( side == 0 ) tid_pot = (tid_i) + ( n_ghost_potential + tid_k  )*nx                         + (tid_j)*nx*ny;
+    if ( side == 1 ) tid_pot = (tid_i) + ( ny - n_ghost_potential - n_ghost_transfer + tid_k  )*nx + (tid_j)*nx*ny;
   
   }
   if ( direction == 2 ){
-    if ( side == 0 ) tid_pot = ( tid_i ) + ( tid_j  )*nx + ( n_ghost_potential + tid_k  )*nx*ny;
-    if ( side == 1 ) tid_pot = ( tid_i ) + ( tid_j  )*nx + ( ny - n_ghost_potential - n_ghost_transfer + tid_k  )*nx*ny;
+    if ( side == 0 ) tid_pot = (tid_i) + (tid_j)*nx + ( n_ghost_potential + tid_k  )*nx*ny;
+    if ( side == 1 ) tid_pot = (tid_i) + (tid_j)*nx + ( nz - n_ghost_potential - n_ghost_transfer + tid_k  )*nx*ny;
   
   }
   transfer_buffer_d[tid_buffer] = potential_d[tid_pot];
-  
-  
-}
-
-
-void Potential_SOR_3D::Load_Transfer_Buffer_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  ){
-  
-  int nx_pot, ny_pot, nz_pot, size_buffer, n_i, n_j, n_k, ngrid;
-  nx_pot = nx + 2*n_ghost_potential;
-  ny_pot = ny + 2*n_ghost_potential;
-  nz_pot = nz + 2*n_ghost_potential;
-  
-  if ( direction == 0 ){
-    size_buffer = ny_pot * nz_pot * n_ghost_transfer;
-    n_i = n_ghost_transfer;
-    n_j = ny_pot;
-    n_k = nz_pot;
-  }
-  if ( direction == 1 ){
-    size_buffer = nx_pot * nz_pot * n_ghost_transfer;
-    n_i = nx_pot;
-    n_j = n_ghost_transfer;
-    n_k = nz_pot;
-  }
-  if ( direction == 2 ){
-    size_buffer = nx_pot * ny_pot * n_ghost_transfer;
-    n_i = nx_pot;
-    n_j = ny_pot;
-    n_k = n_ghost_transfer;
-  }
-  
     
-  // set values for GPU kernels
-  ngrid = ( size_buffer - 1 ) / TPB_SOR + 1;
-  // number of blocks per 1D grid  
-  dim3 dim1dGrid(ngrid, 1, 1);
-  //  number of threads per 1D block   
-  dim3 dim1dBlock(TPB_SOR, 1, 1);
-  
-  
-  Load_Transfer_Buffer_GPU_kernel<<<dim1dGrid,dim1dBlock>>>( direction, side, size_buffer, n_i, n_j, n_k, nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d  );
-
-  
 }
 
 
-__global__ void Unload_Transfer_Buffer_GPU_kernel( int direction, int side, int size_buffer, int n_i, int n_j, int n_k, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d   ){
+
+__global__ void Unload_Transfer_Buffer_GPU_kernel( int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d   ){
   
   // get a global thread ID
   int tid, tid_i, tid_j, tid_k, tid_buffer, tid_pot;
@@ -432,23 +389,21 @@ __global__ void Unload_Transfer_Buffer_GPU_kernel( int direction, int side, int 
   tid_j = (tid - tid_k*n_i*n_j) / n_i;
   tid_i = tid - tid_k*n_i*n_j - tid_j*n_i;
   
-  if ( tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_k ) return;
+  if ( tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost_transfer ) return;
   
   tid_buffer = tid_i + tid_j*n_i + tid_k*n_i*n_j;
   
   if ( direction == 0 ){
-    if ( side == 0 ) tid_pot = ( n_ghost_potential - n_ghost_transfer + tid_i  ) + ( tid_j  )*nx + ( tid_k  )*nx*ny;
-    if ( side == 1 ) tid_pot = ( nx - n_ghost_potential + tid_i ) + ( tid_j  )*nx + ( tid_k  )*nx*ny;
-    
+    if ( side == 0 ) tid_pot = ( n_ghost_potential - n_ghost_transfer + tid_k  ) + (tid_i)*nx + (tid_j)*nx*ny;
+    if ( side == 1 ) tid_pot = ( nx - n_ghost_potential + tid_k )                + (tid_i)*nx + (tid_j)*nx*ny;
   }  
   if ( direction == 1 ){
-    if ( side == 0 ) tid_pot = ( tid_i ) + ( n_ghost_potential - n_ghost_transfer + tid_j  )*nx + ( tid_k  )*nx*ny;
-    if ( side == 1 ) tid_pot = ( tid_i ) + ( ny - n_ghost_potential + tid_j  )*nx + ( tid_k  )*nx*ny;
-    
+    if ( side == 0 ) tid_pot = (tid_i) + ( n_ghost_potential - n_ghost_transfer + tid_k  )*nx + (tid_j)*nx*ny;
+    if ( side == 1 ) tid_pot = (tid_i) + ( ny - n_ghost_potential + tid_k  )*nx               + (tid_j)*nx*ny;
   }
   if ( direction == 2 ){
-    if ( side == 0 ) tid_pot = ( tid_i ) + ( tid_j  )*nx + ( n_ghost_potential - n_ghost_transfer + tid_k  )*nx*ny;
-    if ( side == 1 ) tid_pot = ( tid_i ) + ( tid_j  )*nx + ( nz - n_ghost_potential + tid_k  )*nx*ny;
+    if ( side == 0 ) tid_pot = (tid_i) + (tid_j)*nx + ( n_ghost_potential - n_ghost_transfer + tid_k  )*nx*ny;
+    if ( side == 1 ) tid_pot = (tid_i) + (tid_j)*nx + ( nz - n_ghost_potential + tid_k  )*nx*ny;
     
   }
   potential_d[tid_pot] = transfer_buffer_d[tid_buffer];
@@ -456,32 +411,28 @@ __global__ void Unload_Transfer_Buffer_GPU_kernel( int direction, int side, int 
 }
 
 
-void Potential_SOR_3D::Unload_Transfer_Buffer_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  ){
+
+void Potential_SOR_3D::Load_Transfer_Buffer_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  ){
   
-  int nx_pot, ny_pot, nz_pot, size_buffer, n_i, n_j, n_k, ngrid;
+  int nx_pot, ny_pot, nz_pot, size_buffer, n_i, n_j, ngrid;
   nx_pot = nx + 2*n_ghost_potential;
   ny_pot = ny + 2*n_ghost_potential;
   nz_pot = nz + 2*n_ghost_potential;
   
   if ( direction == 0 ){
-    size_buffer = ny_pot * nz_pot * n_ghost_transfer;
-    n_i = n_ghost_transfer;
-    n_j = ny_pot;
-    n_k = nz_pot;
+    n_i = ny_pot;
+    n_j = nz_pot;
   }
   if ( direction == 1 ){
-    size_buffer = nx_pot * nz_pot * n_ghost_transfer;
     n_i = nx_pot;
-    n_j = n_ghost_transfer;
-    n_k = nz_pot;
+    n_j = nz_pot;
   }
   if ( direction == 2 ){
-    size_buffer = nx_pot * ny_pot * n_ghost_transfer;
     n_i = nx_pot;
     n_j = ny_pot;
-    n_k = n_ghost_transfer;
   }
   
+  size_buffer = n_ghost_transfer * n_i * n_j;
     
   // set values for GPU kernels
   ngrid = ( size_buffer - 1 ) / TPB_SOR + 1;
@@ -491,7 +442,41 @@ void Potential_SOR_3D::Unload_Transfer_Buffer_GPU( int direction, int side, int 
   dim3 dim1dBlock(TPB_SOR, 1, 1);
   
   
-  Unload_Transfer_Buffer_GPU_kernel<<<dim1dGrid,dim1dBlock>>>( direction, side, size_buffer, n_i, n_j, n_k, nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d  );
+  Load_Transfer_Buffer_GPU_kernel<<<dim1dGrid,dim1dBlock>>>( direction, side, size_buffer, n_i, n_j,  nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d  );
+  
+}
+
+void Potential_SOR_3D::Unload_Transfer_Buffer_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  ){
+  
+  int nx_pot, ny_pot, nz_pot, size_buffer, n_i, n_j, ngrid;
+  nx_pot = nx + 2*n_ghost_potential;
+  ny_pot = ny + 2*n_ghost_potential;
+  nz_pot = nz + 2*n_ghost_potential;
+  
+  if ( direction == 0 ){
+    n_i = ny_pot;
+    n_j = nz_pot;
+  }
+  if ( direction == 1 ){
+    n_i = nx_pot;
+    n_j = nz_pot;
+  }
+  if ( direction == 2 ){
+    n_i = nx_pot;
+    n_j = ny_pot;
+  }
+  
+  size_buffer = n_ghost_transfer * n_i * n_j;
+      
+  // set values for GPU kernels
+  ngrid = ( size_buffer - 1 ) / TPB_SOR + 1;
+  // number of blocks per 1D grid  
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block   
+  dim3 dim1dBlock(TPB_SOR, 1, 1);
+  
+  
+  Unload_Transfer_Buffer_GPU_kernel<<<dim1dGrid,dim1dBlock>>>( direction, side, size_buffer, n_i, n_j, nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d  );
 
   
 }

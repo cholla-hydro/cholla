@@ -155,25 +155,25 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
     
     if ( n_iter % n_iter_per_boundaries_transfer == 0 ) set_boundaries = true;
      
-    // if ( set_boundaries ){
-    //   // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
-    //   // Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();   
-    //   // 
-    //   Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
-    //   Set_Boundary_Conditions( *P );
-    //   Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
-    // }
+    if ( set_boundaries ){
+      // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
+      // Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();   
+      // 
+      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
+      Set_Boundary_Conditions( *P );
+      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
+    }
     
     Grav.Poisson_solver.Poisson_Partial_Iteration( 0, omega, epsilon ); 
 
-    // if ( set_boundaries ){
-    //   // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
-    //   // Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();    
-    // 
-    //   Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
-    //   Set_Boundary_Conditions( *P );
-    //   Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
-    // }
+    if ( set_boundaries ){
+      // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
+      // Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();    
+    
+      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
+      Set_Boundary_Conditions( *P );
+      Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
+    }
     
     Grav.Poisson_solver.Poisson_Partial_Iteration( 1, omega, epsilon );
 
@@ -187,7 +187,7 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
   }
 
   if ( n_iter == max_iter ) chprintf(" SOR: No convergence in %d iterations \n", n_iter);
-  else printf(" SOR: Converged in %d iterations \n", n_iter);
+  else chprintf(" SOR: Converged in %d iterations \n", n_iter);
 
   Grav.Poisson_solver.Copy_Output( Grav.F.potential_h );
 
@@ -195,6 +195,8 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
 }
 
 void Grav3D::Copy_Isolated_Boundaries_To_GPU( struct parameters *P ){
+  
+  if ( P->xl_bcnd != 3 && P->xu_bcnd != 3 && P->yl_bcnd != 3 && P->yu_bcnd != 3 && P->zl_bcnd != 3 && P->zu_bcnd != 3 ) return;
   
   chprintf( " Copying Isolated Boundaries \n");
   if ( P->xl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x0, Poisson_solver.F.boundary_isolated_x0_d,  Poisson_solver.n_ghost*ny_total*nz_total );
@@ -209,6 +211,9 @@ void Grav3D::Copy_Isolated_Boundaries_To_GPU( struct parameters *P ){
 
 void Potential_SOR_3D::Set_Isolated_Boundary_Conditions( struct parameters *P ){
   
+  
+  if ( P->xl_bcnd != 3 && P->xu_bcnd != 3 && P->yl_bcnd != 3 && P->yu_bcnd != 3 && P->zl_bcnd != 3 && P->zu_bcnd != 3 ) return;
+  
   chprintf( " Setting Isolated Boundaries \n");
   if ( P->xl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 0, 0,  F.boundary_isolated_x0_d );
   if ( P->xu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 0, 1,  F.boundary_isolated_x1_d );
@@ -216,6 +221,35 @@ void Potential_SOR_3D::Set_Isolated_Boundary_Conditions( struct parameters *P ){
   if ( P->yu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 1, 1,  F.boundary_isolated_y1_d );
   if ( P->zl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 2, 0,  F.boundary_isolated_z0_d );
   if ( P->zu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 2, 1,  F.boundary_isolated_z1_d );
+  
+}
+
+
+
+
+void Potential_SOR_3D::Copy_Poisson_Boundary_Periodic( int direction, int side ){
+  
+  Real *boundaries_buffer;
+  
+  if( direction == 0 ){
+    if ( side == 0 ) boundaries_buffer = F.boundaries_buffer_x0_d;
+    if ( side == 1 ) boundaries_buffer = F.boundaries_buffer_x1_d;
+  }
+  if( direction == 1 ){
+    if ( side == 0 ) boundaries_buffer = F.boundaries_buffer_y0_d;
+    if ( side == 1 ) boundaries_buffer = F.boundaries_buffer_y1_d;
+  }
+  if( direction == 2 ){
+    if ( side == 0 ) boundaries_buffer = F.boundaries_buffer_z0_d;
+    if ( side == 1 ) boundaries_buffer = F.boundaries_buffer_z1_d;
+  }
+  
+  int side_load, side_unload;
+  side_load = side;
+  side_unload = ( side_load + 1 ) % 2;
+  
+  Load_Transfer_Buffer_GPU( direction, side_load, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, boundaries_buffer  );
+  Unload_Transfer_Buffer_GPU( direction, side_unload, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, boundaries_buffer  );
   
 }
 
@@ -260,33 +294,6 @@ void Potential_SOR_3D::FreeMemory_GPU( void ){
 void Potential_SOR_3D::Reset( void ){
   free( F.output_h );
   FreeMemory_GPU();
-}
-
-
-void Potential_SOR_3D::Copy_Poisson_Boundary_Periodic( int direction, int side ){
-  
-  Real *boundaries_buffer;
-  
-  if( direction == 0 ){
-    if ( side == 0 ) boundaries_buffer = F.boundaries_buffer_x0_d;
-    if ( side == 1 ) boundaries_buffer = F.boundaries_buffer_x1_d;
-  }
-  if( direction == 1 ){
-    if ( side == 0 ) boundaries_buffer = F.boundaries_buffer_y0_d;
-    if ( side == 1 ) boundaries_buffer = F.boundaries_buffer_y1_d;
-  }
-  if( direction == 2 ){
-    if ( side == 0 ) boundaries_buffer = F.boundaries_buffer_z0_d;
-    if ( side == 1 ) boundaries_buffer = F.boundaries_buffer_z1_d;
-  }
-  
-  int side_load, side_unload;
-  side_load = side;
-  side_unload = ( side_load + 1 ) % 2;
-  
-  Load_Transfer_Buffer_GPU( direction, side_load, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, boundaries_buffer  );
-  Unload_Transfer_Buffer_GPU( direction, side_unload, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, boundaries_buffer  );
-  
 }
 
 #ifdef MPI_CHOLLA
@@ -386,21 +393,21 @@ void Potential_SOR_3D::Load_Transfer_Buffer_GPU_x0(){
   Load_Transfer_Buffer_GPU( 0, 0, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_x0_d  );
 }
 void Potential_SOR_3D::Load_Transfer_Buffer_GPU_x1(){
-  // Load_Transfer_Buffer_GPU( 0, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_x1_d  );
+  Load_Transfer_Buffer_GPU( 0, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_x1_d  );
 }
 
 void Potential_SOR_3D::Load_Transfer_Buffer_GPU_y0(){
-  // Load_Transfer_Buffer_GPU( 1, 0, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_y0_d  );
+  Load_Transfer_Buffer_GPU( 1, 0, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_y0_d  );
 }
 void Potential_SOR_3D::Load_Transfer_Buffer_GPU_y1(){
-  // Load_Transfer_Buffer_GPU( 1, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_y1_d  );
+  Load_Transfer_Buffer_GPU( 1, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_y1_d  );
 }
 
 void Potential_SOR_3D::Load_Transfer_Buffer_GPU_z0(){
-  // Load_Transfer_Buffer_GPU( 2, 0, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_z0_d  );
+  Load_Transfer_Buffer_GPU( 2, 0, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_z0_d  );
 }
 void Potential_SOR_3D::Load_Transfer_Buffer_GPU_z1(){
-  // Load_Transfer_Buffer_GPU( 2, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_z1_d  );
+  Load_Transfer_Buffer_GPU( 2, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.boundaries_buffer_z1_d  );
 }
 
 
@@ -408,21 +415,21 @@ void Potential_SOR_3D::Unload_Transfer_Buffer_GPU_x0(){
   Unload_Transfer_Buffer_GPU( 0, 0, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_x0_d  );
 }
 void Potential_SOR_3D::Unload_Transfer_Buffer_GPU_x1(){
-  // Unload_Transfer_Buffer_GPU( 0, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_x1_d  );
+  Unload_Transfer_Buffer_GPU( 0, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_x1_d  );
 }
 
 void Potential_SOR_3D::Unload_Transfer_Buffer_GPU_y0(){
-  // Unload_Transfer_Buffer_GPU( 1, 0, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_y0_d  );
+  Unload_Transfer_Buffer_GPU( 1, 0, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_y0_d  );
 }
 void Potential_SOR_3D::Unload_Transfer_Buffer_GPU_y1(){
-  // Unload_Transfer_Buffer_GPU( 1, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_y1_d  );
+  Unload_Transfer_Buffer_GPU( 1, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_y1_d  );
 }
 
 void Potential_SOR_3D::Unload_Transfer_Buffer_GPU_z0(){
-  // Unload_Transfer_Buffer_GPU( 2, 0, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_z0_d  );
+  Unload_Transfer_Buffer_GPU( 2, 0, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_z0_d  );
 }
 void Potential_SOR_3D::Unload_Transfer_Buffer_GPU_z1(){
-  // Unload_Transfer_Buffer_GPU( 2, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_z1_d  );
+  Unload_Transfer_Buffer_GPU( 2, 1, nx_local, ny_local, nz_local, n_ghost_transfer, n_ghost, F.potential_d, F.recv_boundaries_buffer_z1_d  );
 }
 
 
