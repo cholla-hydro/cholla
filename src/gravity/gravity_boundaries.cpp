@@ -37,24 +37,24 @@ void Grid3D::Set_Potential_Boundaries_Isolated( int direction, int side, int *fl
   
   #ifdef GRAV_ISOLATED_BOUNDARY_X
   if ( direction == 0 ){
-    n_i = Grav.ny_total;
-    n_j = Grav.nz_total;
+    n_i = Grav.ny_local;
+    n_j = Grav.nz_local;
     if ( side == 0 ) pot_boundary = Grav.F.pot_boundary_x0;
     if ( side == 1 ) pot_boundary = Grav.F.pot_boundary_x1;
   }
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
   if ( direction == 1 ){
-    n_i = Grav.nx_total;
-    n_j = Grav.nz_total;
+    n_i = Grav.nx_local;
+    n_j = Grav.nz_local;
     if ( side == 0 ) pot_boundary = Grav.F.pot_boundary_y0;
     if ( side == 1 ) pot_boundary = Grav.F.pot_boundary_y1;
   }
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
   if ( direction == 2 ){
-    n_i = Grav.nx_total;
-    n_j = Grav.ny_total;
+    n_i = Grav.nx_local;
+    n_j = Grav.ny_local;
     if ( side == 0 ) pot_boundary = Grav.F.pot_boundary_z0;
     if ( side == 1 ) pot_boundary = Grav.F.pot_boundary_z1;
   }
@@ -103,8 +103,8 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
   #ifdef GRAV_ISOLATED_BOUNDARY_X
   if ( direction == 0 ){
     domain_l = Grav.xMin;
-    n_i = Grav.ny_total;
-    n_j = Grav.nz_total;
+    n_i = Grav.ny_local;
+    n_j = Grav.nz_local;
     if ( side == 0 ) pot_boundary = Grav.F.pot_boundary_x0;
     if ( side == 1 ) pot_boundary = Grav.F.pot_boundary_x1;
   }
@@ -112,8 +112,8 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
   if ( direction == 1 ){
     domain_l = Grav.yMin;
-    n_i = Grav.nx_total;
-    n_j = Grav.nz_total;
+    n_i = Grav.nx_local;
+    n_j = Grav.nz_local;
     if ( side == 0 ) pot_boundary = Grav.F.pot_boundary_y0;
     if ( side == 1 ) pot_boundary = Grav.F.pot_boundary_y1;
   }
@@ -121,8 +121,8 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
   if ( direction == 2 ){
     domain_l = Grav.zMin;
-    n_i = Grav.nx_total;
-    n_j = Grav.ny_total;
+    n_i = Grav.nx_local;
+    n_j = Grav.ny_local;
     if ( side == 0 ) pot_boundary = Grav.F.pot_boundary_z0;
     if ( side == 1 ) pot_boundary = Grav.F.pot_boundary_z1;
   }

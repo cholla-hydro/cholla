@@ -147,6 +147,7 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   indx_b = tid_z-1;  //Bottom
   indx_t = tid_z+1;  //Top
   
+  //Boundary Conditions are loaded to the potential array, the natural indices work!
   
   // //Periodic Boundary conditions
   // indx_l = tid_x == n_ghost          ?    nx_pot-n_ghost-1 : tid_x-1;  //Left
@@ -175,14 +176,6 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   phi_u = potential_d[ tid_x + indx_u*nx_pot + tid_z*nx_pot*ny_pot ];
   phi_b = potential_d[ tid_x + tid_y*nx_pot + indx_b*nx_pot*ny_pot ];
   phi_t = potential_d[ tid_x + tid_y*nx_pot + indx_t*nx_pot*ny_pot ];
-
-  // if ( phi_c != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_c, tid_x, tid_y, tid_z );
-  // if ( phi_l != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_l, tid_x, tid_y, tid_z );
-  // if ( phi_r != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_r, tid_x, tid_y, tid_z );
-  // if ( phi_d != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_d, tid_x, tid_y, tid_z );
-  // if ( phi_u != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_u, tid_x, tid_y, tid_z );
-  // if ( phi_b != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_b, tid_x, tid_y, tid_z );
-  // if ( phi_t != 1 ) printf("Error phi value: %f  %d  %d  %d \n", phi_t, tid_x, tid_y, tid_z );
   
   phi_new = (1-omega)*phi_c + omega/6*( phi_l + phi_r + phi_d + phi_u + phi_b + phi_t - dx*dx*rho );
   potential_d[tid_pot] = phi_new;

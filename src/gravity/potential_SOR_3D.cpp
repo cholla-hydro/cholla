@@ -89,16 +89,16 @@ void Potential_SOR_3D::AllocateMemory_GPU( void ){
   #endif
   
   #ifdef GRAV_ISOLATED_BOUNDARY_X
-  Allocate_Array_GPU_Real( &F.boundary_isolated_x0_d, n_ghost*ny_total*nz_total );
-  Allocate_Array_GPU_Real( &F.boundary_isolated_x1_d, n_ghost*ny_total*nz_total );
+  Allocate_Array_GPU_Real( &F.boundary_isolated_x0_d, n_ghost*ny_local*nz_local );
+  Allocate_Array_GPU_Real( &F.boundary_isolated_x1_d, n_ghost*ny_local*nz_local );
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_X
-  Allocate_Array_GPU_Real( &F.boundary_isolated_y0_d, n_ghost*nx_total*nz_total );
-  Allocate_Array_GPU_Real( &F.boundary_isolated_y1_d, n_ghost*nx_total*nz_total );
+  Allocate_Array_GPU_Real( &F.boundary_isolated_y0_d, n_ghost*nx_local*nz_local );
+  Allocate_Array_GPU_Real( &F.boundary_isolated_y1_d, n_ghost*nx_local*nz_local );
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  Allocate_Array_GPU_Real( &F.boundary_isolated_z0_d, n_ghost*nx_total*ny_total );
-  Allocate_Array_GPU_Real( &F.boundary_isolated_z1_d, n_ghost*nx_total*ny_total );
+  Allocate_Array_GPU_Real( &F.boundary_isolated_z0_d, n_ghost*nx_local*ny_local );
+  Allocate_Array_GPU_Real( &F.boundary_isolated_z1_d, n_ghost*nx_local*ny_local );
   #endif
   
 }
@@ -199,12 +199,12 @@ void Grav3D::Copy_Isolated_Boundaries_To_GPU( struct parameters *P ){
   if ( P->xl_bcnd != 3 && P->xu_bcnd != 3 && P->yl_bcnd != 3 && P->yu_bcnd != 3 && P->zl_bcnd != 3 && P->zu_bcnd != 3 ) return;
   
   chprintf( " Copying Isolated Boundaries \n");
-  if ( P->xl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x0, Poisson_solver.F.boundary_isolated_x0_d,  Poisson_solver.n_ghost*ny_total*nz_total );
-  if ( P->xu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x1, Poisson_solver.F.boundary_isolated_x1_d,  Poisson_solver.n_ghost*ny_total*nz_total ); 
-  if ( P->yl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_y0, Poisson_solver.F.boundary_isolated_y0_d,  Poisson_solver.n_ghost*nx_total*nz_total );
-  if ( P->yu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_y1, Poisson_solver.F.boundary_isolated_y1_d,  Poisson_solver.n_ghost*nx_total*nz_total );
-  if ( P->zl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_z0, Poisson_solver.F.boundary_isolated_z0_d,  Poisson_solver.n_ghost*nx_total*ny_total );
-  if ( P->zu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_z1, Poisson_solver.F.boundary_isolated_z1_d,  Poisson_solver.n_ghost*nx_total*ny_total ); 
+  if ( P->xl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x0, Poisson_solver.F.boundary_isolated_x0_d,  Poisson_solver.n_ghost*ny_local*nz_local );
+  if ( P->xu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x1, Poisson_solver.F.boundary_isolated_x1_d,  Poisson_solver.n_ghost*ny_local*nz_local ); 
+  if ( P->yl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_y0, Poisson_solver.F.boundary_isolated_y0_d,  Poisson_solver.n_ghost*nx_local*nz_local );
+  if ( P->yu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_y1, Poisson_solver.F.boundary_isolated_y1_d,  Poisson_solver.n_ghost*nx_local*nz_local );
+  if ( P->zl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_z0, Poisson_solver.F.boundary_isolated_z0_d,  Poisson_solver.n_ghost*nx_local*ny_local );
+  if ( P->zu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_z1, Poisson_solver.F.boundary_isolated_z1_d,  Poisson_solver.n_ghost*nx_local*ny_local ); 
   
   
 }

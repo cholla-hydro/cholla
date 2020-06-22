@@ -107,16 +107,16 @@ void Grav3D::AllocateMemory_CPU(void)
   F.potential_1_h  = (Real *) malloc(n_cells_potential*sizeof(Real)); //array for the potential at the (n-1)-th timestep
   
   #ifdef GRAV_ISOLATED_BOUNDARY_X
-  F.pot_boundary_x0  = (Real *) malloc(N_GHOST_POTENTIAL*ny_total*nz_total*sizeof(Real)); //array for the potential isolated boundary
-  F.pot_boundary_x1  = (Real *) malloc(N_GHOST_POTENTIAL*ny_total*nz_total*sizeof(Real));
+  F.pot_boundary_x0  = (Real *) malloc(N_GHOST_POTENTIAL*ny_local*nz_local*sizeof(Real)); //array for the potential isolated boundary
+  F.pot_boundary_x1  = (Real *) malloc(N_GHOST_POTENTIAL*ny_local*nz_local*sizeof(Real));
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Y
-  F.pot_boundary_y0  = (Real *) malloc(N_GHOST_POTENTIAL*nx_total*nz_total*sizeof(Real)); //array for the potential isolated boundary
-  F.pot_boundary_y1  = (Real *) malloc(N_GHOST_POTENTIAL*nx_total*nz_total*sizeof(Real));
+  F.pot_boundary_y0  = (Real *) malloc(N_GHOST_POTENTIAL*nx_local*nz_local*sizeof(Real)); //array for the potential isolated boundary
+  F.pot_boundary_y1  = (Real *) malloc(N_GHOST_POTENTIAL*nx_local*nz_local*sizeof(Real));
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  F.pot_boundary_z0  = (Real *) malloc(N_GHOST_POTENTIAL*nx_total*ny_total*sizeof(Real)); //array for the potential isolated boundary
-  F.pot_boundary_z1  = (Real *) malloc(N_GHOST_POTENTIAL*nx_total*ny_total*sizeof(Real));
+  F.pot_boundary_z0  = (Real *) malloc(N_GHOST_POTENTIAL*nx_local*ny_local*sizeof(Real)); //array for the potential isolated boundary
+  F.pot_boundary_z1  = (Real *) malloc(N_GHOST_POTENTIAL*nx_local*ny_local*sizeof(Real));
   #endif
 }
 
