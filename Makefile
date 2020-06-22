@@ -18,7 +18,7 @@ DFLAGS += $(POISSON_SOLVER)
 DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
-# DFLAGS += -DMPI_CHOLLA -DBLOCK
+DFLAGS += -DMPI_CHOLLA -DBLOCK
 
 #DFLAGS += -DPRECISION=1
 DFLAGS += -DPRECISION=2
@@ -119,8 +119,12 @@ endif
 
 
 ifeq ($(SYSTEM),"Lux")
-CC ?= mpicc
-CXX ?= mpic++
+CC = gcc
+CXX = g++
+ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
+CC = mpicc
+CXX = mpic++
+endif
 CXXFLAGS += -std=c++11
 GPUFLAGS += -std=c++11
 DFLAGS += -DPARIS_NO_GPU_MPI
