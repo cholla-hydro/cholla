@@ -47,6 +47,7 @@ void Potential_SOR_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y
   size_buffer_z = n_ghost_transfer * nx_pot * ny_pot;
   
   TRANSFER_POISSON_BOUNDARIES = false;
+
   
   chprintf( " Using Poisson Solver: SOR\n");
   chprintf( "  SOR: L[ %f %f %f ] N[ %d %d %d ] dx[ %f %f %f ]\n", Lbox_x, Lbox_y, Lbox_z, nx_local, ny_local, nz_local, dx, dy, dz );
@@ -63,6 +64,7 @@ void Potential_SOR_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y
 void Potential_SOR_3D::AllocateMemory_CPU( void ){
   F.output_h = (Real *) malloc(n_cells_local*sizeof(Real));
   F.converged_h = (bool *) malloc(sizeof(bool));
+  
 }
 
 
@@ -122,13 +124,11 @@ void Potential_SOR_3D::Poisson_Partial_Iteration( int n_step, Real omega, Real e
 
 void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current_a, struct parameters *P ){
   
-  
-  
   Grav.Poisson_solver.Copy_Input_And_Initialize( Grav.F.density_h, Grav_Constant, dens_avrg, current_a );
 
   //Set Isolated Boundary Conditions
   Grav.Copy_Isolated_Boundaries_To_GPU( P );
-  Grav.Poisson_solver.Set_Isolated_Boundary_Conditions( P );
+  Grav.Poisson_solver.Set_Isolated_Boundary_Conditions( Grav.boundary_flags, P );
 
 
   Real epsilon = 1e-4;
@@ -199,28 +199,28 @@ void Grav3D::Copy_Isolated_Boundaries_To_GPU( struct parameters *P ){
   if ( P->xl_bcnd != 3 && P->xu_bcnd != 3 && P->yl_bcnd != 3 && P->yu_bcnd != 3 && P->zl_bcnd != 3 && P->zu_bcnd != 3 ) return;
   
   chprintf( " Copying Isolated Boundaries \n");
-  if ( P->xl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x0, Poisson_solver.F.boundary_isolated_x0_d,  Poisson_solver.n_ghost*ny_local*nz_local );
-  if ( P->xu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x1, Poisson_solver.F.boundary_isolated_x1_d,  Poisson_solver.n_ghost*ny_local*nz_local ); 
-  if ( P->yl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_y0, Poisson_solver.F.boundary_isolated_y0_d,  Poisson_solver.n_ghost*nx_local*nz_local );
-  if ( P->yu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_y1, Poisson_solver.F.boundary_isolated_y1_d,  Poisson_solver.n_ghost*nx_local*nz_local );
-  if ( P->zl_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_z0, Poisson_solver.F.boundary_isolated_z0_d,  Poisson_solver.n_ghost*nx_local*ny_local );
-  if ( P->zu_bcnd == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_z1, Poisson_solver.F.boundary_isolated_z1_d,  Poisson_solver.n_ghost*nx_local*ny_local ); 
+  if ( boundary_flags[0] == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x0, Poisson_solver.F.boundary_isolated_x0_d,  Poisson_solver.n_ghost*ny_local*nz_local );
+  if ( boundary_flags[1] == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x1, Poisson_solver.F.boundary_isolated_x1_d,  Poisson_solver.n_ghost*ny_local*nz_local ); 
+  if ( boundary_flags[2] == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_y0, Poisson_solver.F.boundary_isolated_y0_d,  Poisson_solver.n_ghost*nx_local*nz_local );
+  if ( boundary_flags[3] == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_y1, Poisson_solver.F.boundary_isolated_y1_d,  Poisson_solver.n_ghost*nx_local*nz_local );
+  if ( boundary_flags[4] == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_z0, Poisson_solver.F.boundary_isolated_z0_d,  Poisson_solver.n_ghost*nx_local*ny_local );
+  if ( boundary_flags[5] == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_z1, Poisson_solver.F.boundary_isolated_z1_d,  Poisson_solver.n_ghost*nx_local*ny_local ); 
   
   
 }
 
-void Potential_SOR_3D::Set_Isolated_Boundary_Conditions( struct parameters *P ){
+void Potential_SOR_3D::Set_Isolated_Boundary_Conditions( int *boundary_flags, struct parameters *P ){
   
   
   if ( P->xl_bcnd != 3 && P->xu_bcnd != 3 && P->yl_bcnd != 3 && P->yu_bcnd != 3 && P->zl_bcnd != 3 && P->zu_bcnd != 3 ) return;
   
   chprintf( " Setting Isolated Boundaries \n");
-  if ( P->xl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 0, 0,  F.boundary_isolated_x0_d );
-  if ( P->xu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 0, 1,  F.boundary_isolated_x1_d );
-  if ( P->yl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 1, 0,  F.boundary_isolated_y0_d );
-  if ( P->yu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 1, 1,  F.boundary_isolated_y1_d );
-  if ( P->zl_bcnd == 3 ) Set_Isolated_Boundary_GPU( 2, 0,  F.boundary_isolated_z0_d );
-  if ( P->zu_bcnd == 3 ) Set_Isolated_Boundary_GPU( 2, 1,  F.boundary_isolated_z1_d );
+  if ( boundary_flags[0] == 3 ) Set_Isolated_Boundary_GPU( 0, 0,  F.boundary_isolated_x0_d );
+  if ( boundary_flags[1] == 3 ) Set_Isolated_Boundary_GPU( 0, 1,  F.boundary_isolated_x1_d );
+  if ( boundary_flags[2] == 3 ) Set_Isolated_Boundary_GPU( 1, 0,  F.boundary_isolated_y0_d );
+  if ( boundary_flags[3] == 3 ) Set_Isolated_Boundary_GPU( 1, 1,  F.boundary_isolated_y1_d );
+  if ( boundary_flags[4] == 3 ) Set_Isolated_Boundary_GPU( 2, 0,  F.boundary_isolated_z0_d );
+  if ( boundary_flags[5] == 3 ) Set_Isolated_Boundary_GPU( 2, 1,  F.boundary_isolated_z1_d );
   
 }
 
@@ -295,6 +295,8 @@ void Potential_SOR_3D::Reset( void ){
   free( F.output_h );
   FreeMemory_GPU();
 }
+
+
 
 #ifdef MPI_CHOLLA
 

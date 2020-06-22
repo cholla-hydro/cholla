@@ -24,6 +24,11 @@ void Grid3D::Set_Boundaries_MPI(struct parameters P)
       Set_Boundaries_MPI_BLOCK(flags,P);
       break;
   }
+  
+  #ifdef GRAVITY
+  Grav.Set_Boundary_Flags( flags );
+  #endif
+  
 }
 
 
