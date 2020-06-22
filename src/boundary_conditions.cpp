@@ -81,10 +81,9 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
   
   // If no boundaries are set to be transeferd then exit;
   if ( n_bounds == 0 ){
-     printf( " No boundary type for transfer \n");
+     printf( " Warning: No boundary type for transfer \n");
      return;
   }
-    
   
   
 #ifndef MPI_CHOLLA
@@ -110,6 +109,10 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
     Set_Boundaries(4, flags);
     Set_Boundaries(5, flags);
   }
+  
+  #ifdef GRAVITY
+  Grav.Set_Boundary_Flags( flags );
+  #endif
 
 #else  /*MPI_CHOLLA*/
 

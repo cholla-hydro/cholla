@@ -344,19 +344,27 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   #endif
   
   
+  if ( !Grav.BC_FLAGS_SET ){
+    Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
+    Set_Boundary_Conditions( *P );
+    Grav.TRANSFER_POTENTIAL_BOUNDARIES = false;
+    printf(" Gravity Boundary Flags: %d %d %d %d %d %d \n", Grav.boundary_flags[0], Grav.boundary_flags[1], Grav.boundary_flags[2], Grav.boundary_flags[3], Grav.boundary_flags[4], Grav.boundary_flags[5] );
+    Grav.BC_FLAGS_SET = true;
+  }
+  
   #ifdef GRAV_ISOLATED_BOUNDARY_X
-  if ( P->xl_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(0);
-  if ( P->xu_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(1);
+  if ( Grav.boundary_flags[0] == 3 ) Compute_Potential_Boundaries_Isolated(0);
+  if ( Grav.boundary_flags[1] == 3 ) Compute_Potential_Boundaries_Isolated(1);
   // chprintf("Isolated X\n");
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Y
-  if ( P->yl_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(2);
-  if ( P->yu_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(3);
+  if ( Grav.boundary_flags[2] == 3 ) Compute_Potential_Boundaries_Isolated(2);
+  if ( Grav.boundary_flags[3] == 3 ) Compute_Potential_Boundaries_Isolated(3);
   // chprintf("Isolated Y\n");
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  if ( P->zl_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(4);
-  if ( P->zu_bcnd == 3 ) Compute_Potential_Boundaries_Isolated(5);
+  if ( Grav.boundary_flags[4] == 3 ) Compute_Potential_Boundaries_Isolated(4);
+  if ( Grav.boundary_flags[5] == 3 ) Compute_Potential_Boundaries_Isolated(5);
   // chprintf("Isolated Z\n");
   #endif
   

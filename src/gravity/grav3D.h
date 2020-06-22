@@ -92,6 +92,11 @@ class Grav3D
   bool TRANSFER_POTENTIAL_BOUNDARIES;
   
   
+  bool BC_FLAGS_SET;
+  int *boundary_flags;
+  
+  
+  
   #ifdef PFFT
   Potential_PFFT_3D Poisson_solver;
   #endif
@@ -158,6 +163,8 @@ class Grav3D
   Real Get_Average_Density( );
   Real Get_Average_Density_function( int g_start, int g_end );
 
+  void Set_Boundary_Flags( int *flags );
+    
   #ifdef SOR
   void Copy_Isolated_Boundary_To_GPU_buffer( Real *isolated_boundary_h, Real *isolated_boundary_d, int boundary_size );
   void Copy_Isolated_Boundaries_To_GPU( struct parameters *P );
