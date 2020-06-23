@@ -158,9 +158,6 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
     if ( n_iter % n_iter_per_boundaries_transfer == 0 ) set_boundaries = true;
      
     if ( set_boundaries ){
-      // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
-      // Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();   
-      // 
       Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
       Set_Boundary_Conditions( *P );
       Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
@@ -169,9 +166,6 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
     Grav.Poisson_solver.Poisson_Partial_Iteration( 0, omega, epsilon ); 
 
     if ( set_boundaries ){
-      // Grav.Poisson_solver.Load_Transfer_Buffer_GPU_All();
-      // Grav.Poisson_solver.Unload_Transfer_Buffer_GPU_All();    
-    
       Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
       Set_Boundary_Conditions( *P );
       Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
@@ -455,72 +449,7 @@ bool Potential_SOR_3D::Get_Global_Converged( bool converged_local ){
 
 #endif
 
-// void Potential_SOR_3D::Load_Transfer_Buffer_GPU_All(){
-  //   Load_Transfer_Buffer_GPU_x0();
-  //   Load_Transfer_Buffer_GPU_x1();
-  //   Load_Transfer_Buffer_GPU_y0();
-  //   Load_Transfer_Buffer_GPU_y1();
-  //   Load_Transfer_Buffer_GPU_z0();
-  //   Load_Transfer_Buffer_GPU_z1();
-  // }
-  // 
-  // void Potential_SOR_3D::Unload_Transfer_Buffer_GPU_All(){
-    //   Unload_Transfer_Buffer_GPU_x0();
-    //   Unload_Transfer_Buffer_GPU_x1();
-    //   Unload_Transfer_Buffer_GPU_y0();
-    //   Unload_Transfer_Buffer_GPU_y1();
-    //   Unload_Transfer_Buffer_GPU_z0();
-    //   Unload_Transfer_Buffer_GPU_z1();
-    // }
 
-// Real Potential_SOR_3D::Get_Potential( Real *input_density,  Real *output_potential, Real Grav_Constant, Real dens_avrg, Real current_a ){
-// 
-//   Copy_Input_And_Initialize( input_density, Grav_Constant, dens_avrg, current_a );
-// 
-// 
-//   Real epsilon = 1e-3;
-//   int max_iter = 10000000;
-//   int n_iter = 0;
-// 
-//   F.converged_h[0] = 0;
-// 
-//   // For Diriclet Boudaries
-//   Real omega = 2. / ( 1 + M_PI / nx_total  );
-// 
-//   // For Periodic Boudaries
-//   // Real omega = 2. / ( 1 + 2*M_PI / nx_total  );
-//   // chprintf("Omega: %f \n", omega);
-// 
-//   // Iterate to solve Poisson equation
-//   while (F.converged_h[0] == 0 ) {
-// 
-//     Load_Transfer_Buffer_GPU_All();
-//     Unload_Transfer_Buffer_GPU_All();   
-// 
-//     Poisson_Partial_Iteration( 0, omega, epsilon ); 
-// 
-//     Load_Transfer_Buffer_GPU_All();
-//     Unload_Transfer_Buffer_GPU_All();    
-// 
-//     Poisson_Partial_Iteration( 1, omega, epsilon );
-// 
-//     n_iter += 1;
-// 
-//     // #ifdef MPI_CHOLLA
-//     // F.converged_h[0] = Get_Global_Converged( F.converged_h[0] );
-//     // #endif
-// 
-//     if ( n_iter == max_iter ) break;
-//   }
-// 
-//   if ( n_iter == max_iter ) chprintf(" SOR: No convergence in %d iterations \n", n_iter);
-//   else printf(" SOR: Converged in %d iterations \n", n_iter);
-// 
-//   Copy_Output( output_potential );
-// 
-//   return 0;
-// 
-// }
 
 
 
