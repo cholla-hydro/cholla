@@ -147,7 +147,7 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
   bool set_boundaries;
   
   //Number of iterations in between boundary transfers
-  int n_iter_per_boundaries_transfer = 5;
+  int n_iter_per_boundaries_transfer = 1;
   
   
   // Iterate to solve Poisson equation
