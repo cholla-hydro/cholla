@@ -145,7 +145,9 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
   // chprintf("Omega: %f \n", omega);
   
   bool set_boundaries;
-  int n_iter_per_boundaries_transfer = 1;
+  
+  //Number of iterations in between boundary transfers
+  int n_iter_per_boundaries_transfer = 5;
   
   
   // Iterate to solve Poisson equation
@@ -182,6 +184,9 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
     #ifdef MPI_CHOLLA
     Grav.Poisson_solver.F.converged_h[0] = Grav.Poisson_solver.Get_Global_Converged( Grav.Poisson_solver.F.converged_h[0] );
     #endif
+    
+    //Only aloow to connverge after the boundaties have been transfere to avoid false convergence in the boundaries. 
+    if ( set_boundaries == false ) Grav.Poisson_solver.F.converged_h[0] = 0;
 
     if ( n_iter == max_iter ) break;
   }
