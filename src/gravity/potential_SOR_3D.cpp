@@ -42,10 +42,21 @@ void Potential_SOR_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y
   n_cells_total = nx_total*ny_total*nz_total;
   
   n_ghost_transfer = 1;
+  
   size_buffer_x = n_ghost_transfer * ny_pot * nz_pot;
   size_buffer_y = n_ghost_transfer * nx_pot * nz_pot;
   size_buffer_z = n_ghost_transfer * nx_pot * ny_pot;
   
+  // #ifdef HALF_SIZE_BOUNDARIES
+  // if ( size_buffer_x%2 !=0 ) chprintf( " SOR Warning: Buffer X not divisible by 2, Disable HALF_SIZE_BOUNDARIES \n");
+  // else size_buffer_x /= 2;
+  // if ( size_buffer_y%2 !=0 ) chprintf( " SOR Warning: Buffer Y not divisible by 2, Disable HALF_SIZE_BOUNDARIES \n");
+  // else size_buffer_y /= 2;
+  // if ( size_buffer_z%2 !=0 ) chprintf( " SOR Warning: Buffer Y not divisible by 2, Disable HALF_SIZE_BOUNDARIES \n");
+  // else size_buffer_z /= 2;
+  // #endif
+  
+  //Flag to transfer Poisson Bopundaries when calling Set_Boundaries
   TRANSFER_POISSON_BOUNDARIES = false;
 
   
@@ -124,6 +135,11 @@ void Potential_SOR_3D::Poisson_Partial_Iteration( int n_step, Real omega, Real e
 
 void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current_a, struct parameters *P ){
   
+  #ifdef TIME_SOR
+  Real time_start, time_end, time;
+  time_start = get_time();
+  #endif
+  
   Grav.Poisson_solver.Copy_Input_And_Initialize( Grav.F.density_h, Grav_Constant, dens_avrg, current_a );
 
   //Set Isolated Boundary Conditions
@@ -181,7 +197,7 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
     
     //Only aloow to connverge after the boundaties have been transfere to avoid false convergence in the boundaries. 
     if ( set_boundaries == false ) Grav.Poisson_solver.F.converged_h[0] = 0;
-
+    
     if ( n_iter == max_iter ) break;
   }
 
@@ -189,6 +205,15 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
   else chprintf(" SOR: Converged in %d iterations \n", n_iter);
 
   Grav.Poisson_solver.Copy_Output( Grav.F.potential_h );
+  
+  #ifdef TIME_SOR
+  #ifdef MPI_CHOLLA
+  MPI_Barrier(world);
+  #endif
+  time_end = get_time();
+  time = (time_end - time_start);
+  chprintf( " SOR: Time = %f  seg\n", time );
+  #endif
 
     
 }
