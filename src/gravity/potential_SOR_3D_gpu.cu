@@ -184,6 +184,8 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   if ( ( fabs( ( phi_new - phi_c ) / phi_c ) > epsilon ) ) converged_d[0] = 0;
   // if ( ( fabs( ( phi_new - phi_c ) ) > epsilon ) ) converged_d[0] = 0;
   
+
+  
   
   
 }
@@ -289,14 +291,17 @@ __global__ void Set_Isolated_Boundary_GPU_kernel( int direction, int side, int s
     if ( side == 0 ) tid_pot = (tid_i+n_ghost) + (tid_j+n_ghost)*nx_pot + (tid_k)*nx_pot*ny_pot;
     if ( side == 1 ) tid_pot = (tid_i+n_ghost) + (tid_j+n_ghost)*nx_pot + (tid_k+nz_local+n_ghost)*nx_pot*ny_pot;
   }  
-  
+
   potential_d[tid_pot] = boundary_d[tid_buffer];
   
 }
 
 void Potential_SOR_3D::Set_Isolated_Boundary_GPU( int direction, int side,   Real *boundary_d  ){
   
-  
+  // #ifdef MPI_CHOLLA
+  // printf("Pid: %d Setting Isolated Boundary: %d %d \n",procID, direction, side );
+  // #endif
+  // 
   int nx_pot, ny_pot, nz_pot, size_buffer, n_i, n_j, ngrid;
   nx_pot = nx_local + 2*n_ghost;
   ny_pot = ny_local + 2*n_ghost;

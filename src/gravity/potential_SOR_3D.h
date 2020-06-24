@@ -5,8 +5,9 @@
 
 #include "../global.h"
 #include <stdlib.h>
-// #include "../grid3D.h"
 
+#define TIME_SOR
+// #define HALF_SIZE_BOUNDARIES
 
 class Potential_SOR_3D{
   public:

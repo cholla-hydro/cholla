@@ -66,7 +66,7 @@ void Grid3D::Set_Potential_Boundaries_Isolated( int direction, int side, int *fl
     for ( i=0; i<n_i; i++ ){
       for ( j=0; j<n_j; j++ ){
         
-        id_buffer = i + j*n_i + k*n_i+n_j; 
+        id_buffer = i + j*n_i + k*n_i*n_j; 
         
         if ( direction == 0 ){
           if ( side == 0 ) id_grid = (k)                + (i+nGHST)*nx_g + (j+nGHST)*nx_g*ny_g;
@@ -91,12 +91,14 @@ void Grid3D::Set_Potential_Boundaries_Isolated( int direction, int side, int *fl
 
 void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int bc_type ){
   
-  Real domain_l;
+  Real domain_l, Lx_local, Ly_local, Lz_local;
   Real *pot_boundary;
   int n_i, n_j, nGHST;
   nGHST = N_GHOST_POTENTIAL;
   
-  
+  Lx_local = Grav.nx_local * Grav.dx;
+  Ly_local = Grav.ny_local * Grav.dy;
+  Lz_local = Grav.nz_local * Grav.dz;
   
   
   
@@ -146,33 +148,32 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
         
         if ( direction == 0 ){
           pos_x = Grav.xMin - ( nGHST + k + 0.5 ) * Grav.dx;
-          if ( side == 1 ) pos_x += Grav.Lbox_x + nGHST*Grav.dx;
+          if ( side == 1 ) pos_x += Lx_local + nGHST*Grav.dx;
           pos_y = Grav.yMin + ( i + 0.5 )* Grav.dy;
           pos_z = Grav.zMin + ( j + 0.5 )* Grav.dz;
-         }
+        }
         
-         if ( direction == 1 ){
-           pos_y = Grav.yMin - ( nGHST + k + 0.5 ) * Grav.dy;
-           if ( side == 1 ) pos_y += Grav.Lbox_y + nGHST*Grav.dy;
-           pos_x = Grav.xMin + ( i + 0.5 )* Grav.dx;
-           pos_z = Grav.zMin + ( j + 0.5 )* Grav.dz;
-          }
+        if ( direction == 1 ){
+          pos_y = Grav.yMin - ( nGHST + k + 0.5 ) * Grav.dy;
+          if ( side == 1 ) pos_y += Ly_local + nGHST*Grav.dy;
+          pos_x = Grav.xMin + ( i + 0.5 )* Grav.dx;
+          pos_z = Grav.zMin + ( j + 0.5 )* Grav.dz;
+        } 
           
         if ( direction == 2 ){
           pos_z = Grav.zMin - ( nGHST + k + 0.5 ) * Grav.dz;
-          if ( side == 1 ) pos_z += Grav.Lbox_z + nGHST*Grav.dz;
+          if ( side == 1 ) pos_z += Lz_local + nGHST*Grav.dz;
           pos_x = Grav.xMin + ( i + 0.5 )* Grav.dx;
           pos_y = Grav.yMin + ( j + 0.5 )* Grav.dy;
-         }
+        }
          
-         delta_x = pos_x - cm_pos_x;
-         delta_y = pos_y - cm_pos_y;
-         delta_z = pos_z - cm_pos_z;
-         r = sqrt( ( delta_x * delta_x ) + ( delta_y * delta_y ) + ( delta_z * delta_z ) );
-         
-         pot_val = - Grav.Gconst * M / r;
-         
-         pot_boundary[id] = pot_val;
+        delta_x = pos_x - cm_pos_x;
+        delta_y = pos_y - cm_pos_y;
+        delta_z = pos_z - cm_pos_z;
+        r = sqrt( ( delta_x * delta_x ) + ( delta_y * delta_y ) + ( delta_z * delta_z ) );
+        
+        pot_val = - Grav.Gconst * M / r;
+        pot_boundary[id] = pot_val;
                         
       }
     }

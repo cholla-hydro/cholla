@@ -510,6 +510,14 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   attribute_id = H5Acreate(file_id, "offset", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
   status = H5Aclose(attribute_id);
+  
+  int_data[0] = nproc_x;
+  int_data[1] = nproc_y;
+  int_data[2] = nproc_z;
+  
+  attribute_id = H5Acreate(file_id, "nprocs", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
+  status = H5Aclose(attribute_id);
   #endif
 
   Real_data[0] = H.xbound;

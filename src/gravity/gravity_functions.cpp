@@ -348,7 +348,9 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
     Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
     Set_Boundary_Conditions( *P );
     Grav.TRANSFER_POTENTIAL_BOUNDARIES = false;
-    printf(" Gravity Boundary Flags: %d %d %d %d %d %d \n", Grav.boundary_flags[0], Grav.boundary_flags[1], Grav.boundary_flags[2], Grav.boundary_flags[3], Grav.boundary_flags[4], Grav.boundary_flags[5] );
+    // #ifdef MPI_CHOLLA
+    // printf(" Pid: %d Gravity Boundary Flags: %d %d %d %d %d %d \n", procID, Grav.boundary_flags[0], Grav.boundary_flags[1], Grav.boundary_flags[2], Grav.boundary_flags[3], Grav.boundary_flags[4], Grav.boundary_flags[5] );
+    // #endif
     Grav.BC_FLAGS_SET = true;
   }
   

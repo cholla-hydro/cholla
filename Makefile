@@ -10,8 +10,6 @@ GPUFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cu))
 
 OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(GPUFILES))
 
-POISSON_SOLVER ?= -DPFFT
-DFLAGS += $(POISSON_SOLVER)
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -69,13 +67,18 @@ DFLAGS += -DTEMPERATURE_FLOOR
 #Print Initial Statistics
 DFLAGS += -DPRINT_INITIAL_STATS
 
+#Measure Timing of different stages
 DFLAGS += -DCPU_TIME
+
+#Gravity Flags
 DFLAGS += -DGRAVITY
 DFLAGS += -DGRAVITY_LONG_INTS
 DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
 #DFLAGS += -DCOUPLE_DELTA_E_KINETIC
-#DFLAGS += -DOUTPUT_POTENTIAL
+DFLAGS += -DOUTPUT_POTENTIAL
 DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
+POISSON_SOLVER ?= -DPFFT
+DFLAGS += $(POISSON_SOLVER)
 
 # Include gravity from particles PM
 DFLAGS += -DPARTICLES
