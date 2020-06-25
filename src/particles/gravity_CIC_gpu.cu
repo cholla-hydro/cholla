@@ -4,7 +4,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-#include<cuda.h>
+#include"gpu.hpp"
 #include"../global.h"
 #include"../global_cuda.h"
 #include "particles_3D.h"
@@ -117,7 +117,7 @@ void Particles_3D::Get_Gravity_Field_Particles_GPU_function( int nx_local, int n
   dim3 dim3dBlock(tpb_x, tpb_y, tpb_z);
   
   
-  Get_Gravity_Field_Particles_Kernel<<<dim3dGrid,dim3dBlock>>>( potential_dev, gravity_x_dev, gravity_y_dev, gravity_z_dev, nx_local, ny_local, nz_local, n_ghost_particles_grid, N_GHOST_POTENTIAL, dx, dy, dz );
+  hipLaunchKernelGGL(Get_Gravity_Field_Particles_Kernel, dim3dGrid, dim3dBlock, 0, 0,  potential_dev, gravity_x_dev, gravity_y_dev, gravity_z_dev, nx_local, ny_local, nz_local, n_ghost_particles_grid, N_GHOST_POTENTIAL, dx, dy, dz );
   CudaCheckError();
 }
 
@@ -248,7 +248,7 @@ void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_loca
   //  number of threads per 1D block   
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   
-  Get_Gravity_CIC_Kernel<<<dim1dGrid,dim1dBlock>>>( n_local, gravity_x_dev, gravity_y_dev, gravity_z_dev, pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
+  hipLaunchKernelGGL(Get_Gravity_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, gravity_x_dev, gravity_y_dev, gravity_z_dev, pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
   CudaCheckError();
     
 }

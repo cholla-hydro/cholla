@@ -3005,6 +3005,7 @@ int chprintf(const char * __restrict sdata, ...)
   va_start(ap, sdata);
   code = vfprintf(stdout, sdata, ap);
   va_end(ap);
+  fflush(stdout);
 
 #ifdef MPI_CHOLLA
   }

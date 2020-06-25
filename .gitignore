@@ -20,10 +20,21 @@ a.out
 Makefile
 makefile.summit
 
+## binaries
+*.o
+
+##executable
+cholla*
+
+## input files
+#parameter_file.txt
+
 # Output files #
 ################
 *.h5
 *.bin
+out.*
+o.*
 
 # Logs and databases #
 ######################

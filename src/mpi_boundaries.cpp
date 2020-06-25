@@ -442,6 +442,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)
 
     //non-blocking send left x communication buffer
     MPI_Isend(send_buffer_0, send_buffer_length, MPI_CHREAL, dest[0],   1,    world, &send_request[0]);
+    MPI_Request_free(send_request);
 
     //remember how many recv's this proc expects
     ireq++;
@@ -473,6 +474,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)
 
     //non-blocking send right x communication buffer
     MPI_Isend(send_buffer_1, send_buffer_length, MPI_CHREAL, dest[1], 0, world, &send_request[1]);
+    MPI_Request_free(send_request+1);
 
     //remember how many recv's this proc expects
     ireq++;
@@ -768,6 +770,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
         //non-blocking send left x communication buffer
         MPI_Isend(send_buffer_x0, buffer_length, MPI_CHREAL, dest[0],   1, world, &send_request[0]);
+        MPI_Request_free(send_request);
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -803,6 +806,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
         //non-blocking send right x communication buffer
         MPI_Isend(send_buffer_x1, buffer_length, MPI_CHREAL, dest[1],   0, world, &send_request[1]);
+        MPI_Request_free(send_request+1);
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -846,6 +850,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
         //non-blocking send left y communication buffer
         MPI_Isend(send_buffer_y0, buffer_length, MPI_CHREAL, dest[2],   3, world, &send_request[0]);
+        MPI_Request_free(send_request);
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -881,6 +886,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
         //non-blocking send right y communication buffer
         MPI_Isend(send_buffer_y1, buffer_length, MPI_CHREAL, dest[3],   2, world, &send_request[1]);
+        MPI_Request_free(send_request+1);
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -925,6 +931,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
         //non-blocking send left z communication buffer
         MPI_Isend(send_buffer_z0, buffer_length, MPI_CHREAL, dest[4],   5, world, &send_request[0]);
+        MPI_Request_free(send_request);
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -960,6 +967,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
         //non-blocking send right x communication buffer
         MPI_Isend(send_buffer_z1, buffer_length, MPI_CHREAL, dest[5],   4, world, &send_request[1]);
+        MPI_Request_free(send_request+1);
 
         //keep track of how many sends and receives are expected
         ireq++;

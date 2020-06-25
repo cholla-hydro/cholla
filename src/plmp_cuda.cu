@@ -3,7 +3,7 @@
            with limiting in the primitive variables. */
 #ifdef CUDA
 
-#include<cuda.h>
+#include"gpu.hpp"
 #include<math.h>
 #include"global.h"
 #include"global_cuda.h"
