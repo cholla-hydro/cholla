@@ -28,6 +28,8 @@ or with MPI.
 A Makefile and sample build scripts are included in this directory. After downloading the code, you should
 be able to configure it for your machine by creating a build script based on one of the following examples.
 
+| Script | Description |
+| --- | --- |
 | `amake-*.sh` | Build for AMD GPUs using MPI with host-memory message buffers. |
 | `aomake-*.sh` | Build for AMD GPUs using MPI with GPU-memory message buffers. |
 | `nmake-*.sh` | Build for NVidia GPUs using MPI with GPU-memory message buffers. |
