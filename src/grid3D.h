@@ -10,6 +10,7 @@
 
 #include<stdio.h>
 #include"global.h"
+#include"global_cuda.h"
 
 #ifdef HDF5
 #include<hdf5.h>

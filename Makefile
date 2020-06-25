@@ -13,15 +13,17 @@ OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(G
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
-DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
+DFLAGS = -DCUDA #-DCUDA_ERROR_CHECK
 
-#To use MPI, DFLAGS must include -DMPI_CHOLLA
-DFLAGS += -DMPI_CHOLLA -DBLOCK
+#To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
+#otherwise gcc/g++ will be used for serial compilation
+DFLAGS =  -DMPI_CHOLLA -DBLOCK
 
-#DFLAGS += -DPRECISION=1
-DFLAGS += -DPRECISION=2
+# Single or double precision
+#PRECISION = -DPRECISION=1
+DFLAGS = -DPRECISION=2
 
-# Output
+# Output format
 #DFLAGS += -DBINARY
 DFLAGS += -DHDF5
 
@@ -35,7 +37,7 @@ DFLAGS += -DN_OUTPUT_COMPLETE=1
 DFLAGS += -DPPMP
 #DFLAGS += -DPPMC
 
-# Solver
+# Riemann Solver
 #DFLAGS += -DEXACT
 #DFLAGS += -DROE
 DFLAGS += -DHLLC
@@ -51,10 +53,13 @@ DFLAGS += -DDE
 DFLAGS += -DDENSITY_FLOOR
 DFLAGS += -DTEMPERATURE_FLOOR
 
-# Allocate GPU memory only once at the first timestep
+#Average Slow cell when the cell delta_t is very small
+#AVERAGE_SLOW_CELLS = -DAVERAGE_SLOW_CELLS
+
+# Allocate GPU memory every timestep
 #DFLAGS += -DDYNAMIC_GPU_ALLOC
 
-# Cooling
+# Set the cooling function
 #DFLAGS += -DCOOLING_GPU
 #DFLAGS += -DCLOUDY_COOL
 
@@ -65,7 +70,7 @@ DFLAGS += -DTEMPERATURE_FLOOR
 # DFLAGS += -DAVERAGE_SLOW_CELLS
 
 #Print Initial Statistics
-DFLAGS += -DPRINT_INITIAL_STATS
+# DFLAGS += -DPRINT_INITIAL_STATS
 
 #Measure Timing of different stages
 DFLAGS += -DCPU_TIME
@@ -108,7 +113,7 @@ ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
   CXXFLAGS += -D__HIP_PLATFORM_HCC__
   ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
-    DFLAGS += -DPARIS_NO_GPU_MPI -I$(ROCM_PATH)/include
+    DFLAGS += -I$(ROCM_PATH)/include
   endif
 endif
 
@@ -137,6 +142,8 @@ PFFT_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/pfft
 GRAKLE_HOME = /home/brvillas/code/grackle
 endif
 
+CC ?= cc
+CXX ?= CC
 CFLAGS += -g -Ofast
 CXXFLAGS += -g -Ofast 
 CFLAGS += $(DFLAGS) -Isrc
@@ -150,14 +157,18 @@ ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
 endif
 
 ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
-  LIBS += -lcufft
+  ifdef HIP_PLATFORM
+    LIBS += -L$(ROCM_PATH)/lib -lrocfft
+  else
+    LIBS += -lcufft
+  endif
 endif
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifdef HIP_PLATFORM
     LIBS += -L$(ROCM_PATH)/lib -lrocfft
   else
-    LIBS += -lcufft -lcudart
+    LIBS += -lcufft
   endif
 endif
 
@@ -171,14 +182,14 @@ ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
   GPUFLAGS += -I$(MPI_HOME)/include
 	CXXFLAGS += -I$(MPI_HOME)/include
   ifdef HIP_PLATFORM
-    LIBS += -L$(MPI_HOME)/lib -lmpicxx -lmpi
+    LIBS += -L$(MPI_HOME)/lib -lmpi
   endif
 endif
 
 ifdef HIP_PLATFORM
   CXXFLAGS += -I$(ROCM_PATH)/include -Wno-unused-result
   GPUCXX := hipcc
-  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-function -Wno-unused-result -Wno-unused-command-line-argument -std=c++17 -ferror-limit=1
+  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-unused-command-line-argument -Wno-duplicate-decl-specifier -std=c++14 -ferror-limit=1
   LD := $(GPUCXX)
   LDFLAGS += $(GPUFLAGS)
 else
@@ -186,6 +197,7 @@ else
   GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
+  LIBS += -lcudart
 endif
 
 ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
@@ -227,3 +239,5 @@ $(EXEC): $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(EXEC)
+
+

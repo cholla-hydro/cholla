@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Example file for concatenating 3D hdf5 datasets
 
 import h5py
@@ -45,7 +46,7 @@ for n in range(ns, ne+1):
       if (DE):
         GE = fileout.create_dataset("GasEnergy", (nx, ny, nz), chunks=True)
 
-    # write data from indivual processor file to
+    # write data from individual processor file to
     # correct location in concatenated file
     nxl = head['dims_local'][0]
     nyl = head['dims_local'][1]

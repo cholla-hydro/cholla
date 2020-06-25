@@ -74,16 +74,16 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
     // allocate buffer to copy conserved variable blocks from and to 
     if (block_tot > 1) {
-      if ( NULL == ( buffer = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {
+      if ( cudaSuccess != cudaHostAlloc(&buffer, n_fields*BLOCK_VOL*sizeof(Real), cudaHostAllocDefault) ) {
         printf("Failed to allocate CPU buffer.\n");
       }
       tmp1 = buffer;
       tmp2 = buffer;
     }
     // allocate an array on the CPU to hold max_dti returned from each thread block
-    host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
+    CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
     #ifdef COOLING_GPU
-    host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
+    CudaSafeCall( cudaHostAlloc(&host_dt_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
     #endif  
 
     // allocate GPU arrays
@@ -261,10 +261,10 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 void Free_Memory_VL_2D() {
 
   // free the CPU memory
-  if (block_tot > 1) free(buffer);
-  free(host_dti_array);
+  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
+  CudaSafeCall( cudaFreeHost(host_dti_array) );
   #ifdef COOLING_GPU
-  free(host_dt_array);  
+  CudaSafeCall( cudaFreeHost(host_dt_array) );  
   #endif  
 
   // free the GPU memory

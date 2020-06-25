@@ -13,7 +13,7 @@
 
 /* \fn Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
  * \brief Returns the density, momentum, and Energy fluxes at an interface.
-   Inputs are an array containg left and right density, momentum, and Energy. */
+   Inputs are an array containing left and right density, momentum, and Energy. */
 void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
 {
   Real dl, vxl, vyl, vzl, pl, cl; //density, velocity, pressure, sound speed (left)
@@ -24,7 +24,7 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
   Real gel, ger;
   #endif
 
-  // calculate primative variables from input array
+  // calculate primitive variables from input array
   dl = cW[0];
   dr = cW[1];
   vxl = cW[2] / dl;
@@ -59,7 +59,7 @@ void Calculate_Exact_Fluxes(Real cW[], Real fluxes[], Real gamma)
   }
   */
  
-  //find exact solution for pressvxre and velocity in star region
+  //find exact solution for pressure and velocity in star region
   starpu(&pm, &um, dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
  
   //sample the solution at the cell interface

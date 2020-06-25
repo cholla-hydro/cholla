@@ -10,7 +10,7 @@
 
 /* \fn Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
  * \brief Returns the density, momentum, and Energy fluxes at an interface.
-   Inputs are an array containg left and right density, momentum, and Energy. */
+   Inputs are an array containing left and right density, momentum, and Energy. */
 void Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
 {
   Real dl, vxl, mxl, vyl, myl, vzl, mzl, pl, El;
@@ -32,7 +32,7 @@ void Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   int hlle_flag = 0;
 
 
-  // calculate primative variables from input array
+  // calculate primitive variables from input array
   dl = cW[0];
   dr = cW[1];
   mxl = cW[2];
