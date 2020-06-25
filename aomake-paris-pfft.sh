@@ -1,5 +1,6 @@
 #!/bin/bash
 
+module use /home/users/twhite/share/modulefiles
 module load pfft-ompi
 module load hdf5
 module list

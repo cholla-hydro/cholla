@@ -1,6 +1,6 @@
 # Files specific to this repo #
 ##############################
-cholla
+cholla*
 
 # Compiled source #
 ###################
@@ -17,7 +17,6 @@ a.out
 
 # Makefiles #
 #############
-Makefile
 makefile.summit
 
 ## binaries
