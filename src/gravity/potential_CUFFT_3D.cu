@@ -119,7 +119,7 @@ void Copy_Input_Kernel( int n_cells, Real *input_h, Complex_cufft *input_d, Real
 
 void Potential_CUFFT_3D::Copy_Input( Real *input_density, Real Grav_Constant, Real dens_avrg, Real current_a ){
   cudaMemcpy( F.input_real_d, input_density, n_cells_local*sizeof(Real_cufft), cudaMemcpyHostToDevice );
-  Copy_Input_Kernel<<<blocks_per_grid, threads_per_block>>>( n_cells_local, F.input_real_d, F.input_d, Grav_Constant, dens_avrg, current_a );
+hipLaunchKernelGGL(  Copy_Input_Kernel, blocks_per_grid,  threads_per_block, 0, 0,  n_cells_local, F.input_real_d, F.input_d, Grav_Constant, dens_avrg, current_a );
   
 }
 
@@ -170,7 +170,7 @@ Real Potential_CUFFT_3D::Get_Potential( Real *input_density,  Real *output_poten
   Copy_Input( input_density, Grav_Constant, dens_avrg, current_a );
 
   cufftExecZ2Z( plan_cufft_fwd, F.input_d, F.transform_d, CUFFT_FORWARD );
-  Apply_G_Funtion<<<blocks_per_grid, threads_per_block>>>( n_cells_local, F.transform_d, F.G_d );
+hipLaunchKernelGGL(  Apply_G_Funtion, blocks_per_grid,  threads_per_block, 0, 0,  n_cells_local, F.transform_d, F.G_d );
   cufftExecZ2Z( plan_cufft_bwd, F.transform_d, F.output_d, CUFFT_INVERSE );
 
   Copy_Output( output_potential );

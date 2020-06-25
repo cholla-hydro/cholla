@@ -1,38 +1,17 @@
-EXEC   = cholla
 
-OPTIMIZE =  -O2
+DIRS := src src/gravity src/particles src/cosmology src/cooling
+ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
+  DIRS += src/gravity/paris
+endif
 
-DIR = ./src
-CFILES = $(wildcard $(DIR)/*.c)
-CPPFILES = $(wildcard $(DIR)/*.cpp)
-CUDAFILES = $(wildcard $(DIR)/*.cu)
+CFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.c))
+CPPFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cpp))
+GPUFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cu))
 
-DIR_GRAV = ./src/gravity
-CFILES_GRAV = $(wildcard $(DIR_GRAV)/*.c)
-CPPFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cpp)
-CUDAFILES_GRAV = $(wildcard $(DIR_GRAV)/*.cu)
+OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(GPUFILES))
 
-DIR_PART = ./src/particles
-CFILES_PART = $(wildcard $(DIR_PART)/*.c)
-CPPFILES_PART = $(wildcard $(DIR_PART)/*.cpp)
-CUDAFILES_PART = $(wildcard $(DIR_PART)/*.cu)
-
-DIR_COSMO = ./src/cosmology
-CFILES_COSMO = $(wildcard $(DIR_COSMO)/*.c)
-CPPFILES_COSMO = $(wildcard $(DIR_COSMO)/*.cpp)
-CUDAFILES_COSMO = $(wildcard $(DIR_COSMO)/*.cu)
-
-DIR_COOL = ./src/cooling
-CFILES_COOL = $(wildcard $(DIR_COOL)/*.c)
-CPPFILES_COOL = $(wildcard $(DIR_COOL)/*.cpp)
-CUDAFILES_COOL = $(wildcard $(DIR_COOL)/*.cu)
-
-OBJS   = $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(CUDAFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cu,.o,$(CUDAFILES_PART)) $(subst .c,.o,$(CFILES_COSMO)) $(subst .cpp,.o,$(CPPFILES_COSMO)) $(subst .cu,.o,$(CUDAFILES_COSMO)) $(subst .c,.o,$(CFILES_COOL)) $(subst .cpp,.o,$(CPPFILES_COOL)) $(subst .cu,.o,$(CUDAFILES_COOL))
-COBJS   = $(subst .c,.o,$(CFILES)) $(subst .c,.o,$(CFILES_GRAV)) $(subst .c,.o,$(CFILES_PART)) $(subst .c,.o,$(CFILES_COSMO))  $(subst .c,.o,$(CFILES_COOL))
-CPPOBJS   = $(subst .cpp,.o,$(CPPFILES)) $(subst .cpp,.o,$(CPPFILES_GRAV)) $(subst .cpp,.o,$(CPPFILES_PART)) $(subst .cpp,.o,$(CPPFILES_COSMO)) $(subst .cpp,.o,$(CPPFILES_COOL))
-CUOBJS   = $(subst .cu,.o,$(CUDAFILES)) $(subst .cu,.o,$(CUDAFILES_GRAV)) $(subst .cu,.o,$(CUDAFILES_PART)) $(subst .cu,.o,$(CUDAFILES_COSMO)) $(subst .cu,.o,$(CUDAFILES_COOL))
-
-
+POISSON_SOLVER ?= -DPFFT
+DFLAGS += $(POISSON_SOLVER)
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -40,186 +19,170 @@ CUDA = -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-MPI_FLAGS =  -DMPI_CHOLLA
+MPI_FLAGS =  -DMPI_CHOLLA -DBLOCK
 
-#Set the MPI Processes grid [nproc_x, nproc_y, nproc_z]
-#SET_MPI_GRID = -DSET_MPI_GRID
-
-ifdef MPI_FLAGS
-  CC	= mpicc
-  CXX   = mpicxx
-
-  #MPI_FLAGS += -DSLAB
-  MPI_FLAGS += -DBLOCK
-
-else
-  CC	= gcc
-  CXX   = g++
-endif
-
-#define the NVIDIA CUDA compiler
-NVCC	= nvcc
-
-.SUFFIXES : .c .cpp .cu .o
-
-#Limit the number of steps
-# N_STEPS_LIMIT = -DN_STEPS_LIMIT=26
-
+# Single or double precision
 #PRECISION = -DPRECISION=1
 PRECISION = -DPRECISION=2
 
-#Set output preferences
-OUTPUT = -DOUTPUT
-#OUTPUT_TYPE = -DBINARY
-OUTPUT_TYPE = -DHDF5
+# Output format
+#DFLAGS += -DBINARY
+DFLAGS += -DHDF5
 
-#Output all data every N_OUTPUT_COMPLETE snapshots ( These are Restart Files )
-#N_OUTPUT_COMPLETE = -DN_OUTPUT_COMPLETE=10
+# Reconstruction
+#DFLAGS += -DPCM
+#DFLAGS += -DPLMP
+#DFLAGS += -DPLMC
+DFLAGS += -DPPMP
+#DFLAGS += -DPPMC
 
-#RECONSTRUCTION = -DPCM
-#RECONSTRUCTION = -DPLMP
-#RECONSTRUCTION = -DPLMC
-#RECONSTRUCTION = -DPPMP
- RECONSTRUCTION = -DPPMC
+# Riemann Solver
+#DFLAGS += -DEXACT
+#DFLAGS += -DROE
+DFLAGS += -DHLLC
 
-#SOLVER = -DEXACT
-#SOLVER = -DROE
-SOLVER = -DHLLC
+# Integrator
+DFLAGS += -DVL
+#DFLAGS += -DSIMPLE
 
-#INTEGRATOR = -DCTU
- INTEGRATOR = -DVL
-#INTEGRATOR = -DSIMPLE
+# Dual-Energy Formalism
+DFLAGS += -DDE
 
-#Dual Energy Formalism
-#DUAL_ENERGY = -DDE
-
-#Apply a minimum value to Conserved values
-#DENSITY_FLOOR = -DDENSITY_FLOOR
-#TEMPERATURE_FLOOR = -DTEMPERATURE_FLOOR
+# Apply a minimum value to conserved values
+DFLAGS += -DDENSITY_FLOOR
+DFLAGS += -DTEMPERATURE_FLOOR
 
 #Average Slow cell when the cell delta_t is very small
 #AVERAGE_SLOW_CELLS = -DAVERAGE_SLOW_CELLS
 
+# Allocate GPU memory every timestep
+#DFLAGS += -DDYNAMIC_GPU_ALLOC
 
-#Allocate GPU memory only once at the first timestep
-# DYNAMIC_GPU_ALLOC = -DDYNAMIC_GPU_ALLOC
+# Set the cooling function
+#DFLAGS += -DCOOLING_GPU
+#DFLAGS += -DCLOUDY_COOL
 
-#COOLING = -DCOOLING_GPU -DCLOUDY_COOL
+# Use tiled initial conditions for scaling tests
+#DFLAGS += -DTILED_INITIAL_CONDITIONS
 
-#Use Tiled Iitial Conditions for Scaling Tets
-# TILED_INITIAL_CONDITIONS = -DTILED_INITIAL_CONDITIONS
+#DFLAGS += -DPRINT_INITIAL_STATS
 
-#Print Initial Statistics
-PRINT_INITIAL_STATS = -DPRINT_INITIAL_STATS
+# Print some timing stats
+DFLAGS += -DCPU_TIME
 
-#CPU_TIME = -DCPU_TIME
+# Include FFT gravity
+DFLAGS += -DGRAVITY
+DFLAGS += -DGRAVITY_LONG_INTS
+DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
+#DFLAGS += -DCOUPLE_DELTA_E_KINETIC
+#DFLAGS += -DOUTPUT_POTENTIAL
+DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 
-#INCLUDE GRAVITY
-#GRAVITY = -DGRAVITY
-#POISSON_SOLVER = -DPFFT
-# POISSON_SOLVER = -DCUFFT
-#GRAVITY_INT = -DGRAVITY_LONG_INTS
-#GRAVITY_ENERGY_COUPLE = -DCOUPLE_GRAVITATIONAL_WORK
-# GRAVITY_ENERGY_COUPLE = -DCOUPLE_DELTA_E_KINETIC
-# OUTPUT_POTENTIAL = -DOUTPUT_POTENTIAL
-#GRAVITY_GRADIENT = -DGRAVITY_5_POINTS_GRADIENT
+# Turn OpenMP on for CPU calculations
+DFLAGS += -DPARALLEL_OMP
+OMP_NUM_THREADS ?= 16
+DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
+#DFLAGS += -DPRINT_OMP_DOMAIN
 
-#Include Gravity From Particles PM
-#PARTICLES = -DPARTICLES
-#PARTICLES_ARCH = -DPARTICLES_CPU
-# PARTICLES_ARCH = -DPARTICLES_GPU
-#ONLY_PARTICLES = -DONLY_PARTICLES
-#SINGLE_PARTICLE_MASS = -DSINGLE_PARTICLE_MASS
-#PARTICLES_INT = -DPARTICLES_LONG_INTS
-#PARTICLES_INTEGRATOR = -DPARTICLES_KDK
-# PARTICLE_IDS = -DPARTICLE_IDS
+# Cosmology simulation
+#DFLAGS += -DCOSMOLOGY
 
-# TURN OMP ON FOR CPU CALCULATIONS
-#PARALLEL_OMP = -DPARALLEL_OMP
-#N_OMP_THREADS = -DN_OMP_THREADS=7
-# PRINT_OMP_DOMAIN = -DPRINT_OMP_DOMAIN
+# Use Grackle for cooling in cosmological simulations
+#DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=12
 
-# #Cosmological simulation
-#COSMOLOGY = -DCOSMOLOGY
-# 
-# #Use Grackle for cooling in cosmological simulations
-# COOLING = -DCOOLING_GRACKLE
-
-
-ifdef CUDA
-CUDA_INCL = -I/usr/local/cuda/include
-CUDA_LIBS = -lcuda -lcudart -L/usr/local/cuda/lib64
-endif
-ifeq ($(OUTPUT_TYPE),-DHDF5)
-HDF5_INCL = -I/usr/local/hdf5/gcc/1.10.0/include
-HDF5_LIBS = -lhdf5 -L/usr/local/hdf5/gcc/1.10.0/lib64
+ifdef HIP_PLATFORM
+  DFLAGS += -DO_HIP
+  CXXFLAGS += -D__HIP_PLATFORM_HCC__
+  ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
+    DFLAGS += -I$(ROCM_PATH)/include
+  endif
 endif
 
+CC ?= cc
+CXX ?= CC
+CFLAGS += -g -Ofast
+CXXFLAGS += -g -Ofast -std=c++14
+CFLAGS += $(DFLAGS) -Isrc
+CXXFLAGS += $(DFLAGS) -Isrc
+GPUFLAGS += $(DFLAGS) -Isrc
 
-INCL   = -I./ $(HDF5_INCL)
-NVINCL = $(INCL) $(CUDA_INCL)
-LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
-
-ifeq ($(POISSON_SOLVER),-DPFFT)
-FFTW_INCL = -I/ccs/proj/ast149/code/fftw/include
-FFTW_LIBS = -L/ccs/proj/ast149/code/fftw/lib -lfftw3
-PFFT_INCL = -I/ccs/proj/ast149/code/pfft/include
-PFFT_LIBS = -L/ccs/proj/ast149/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
-INCL += $(FFTW_INCL) $(PFFT_INCL)
-LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
+ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
+  CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
+  GPUFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
+  LIBS += -L$(FFTW_ROOT)/lib -L$(PFFT_ROOT)/lib -lpfft -lfftw3_mpi -lfftw3
 endif
 
-ifeq ($(COOLING),-DCOOLING_GRACKLE)
-GRACKLE_PRECISION = -DCONFIG_BFLOAT_8
-OUTPUT_TEMPERATURE = -DOUTPUT_TEMPERATURE
-OUTPUT_CHEMISTRY = -DOUTPUT_CHEMISTRY
-# OUTPUT_ELECTRONS = -DOUTPUT_ELECTRONS
-# OUTPUT_FULL_IONIZATION = -DOUTPUT_FULL_IONIZATION
-# OUTPUT_METALS = -DOUTPUT_METALS
-SCALAR = -DSCALAR
-N_OMP_THREADS_GRACKLE = -DN_OMP_THREADS_GRACKLE=12
-GRACKLE_INCL = -I/ccs/proj/ast149/code/grackle/include
-GRACKLE_LIBS = -L/ccs/proj/ast149/code/grackle/lib -lgrackle
-INCL += $(GRACKLE_INCL)
-LIBS += $(GRACKLE_LIBS)
+ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
+  ifdef HIP_PLATFORM
+    LIBS += -L$(ROCM_PATH)/lib -lrocfft
+  else
+    LIBS += -lcufft
+  endif
 endif
 
-ifdef PARALLEL_OMP
-OMP_FLAGS = -fopenmp
-LIBS += -fopenmp
+ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
+  ifdef HIP_PLATFORM
+    LIBS += -L$(ROCM_PATH)/lib -lrocfft
+  else
+    LIBS += -lcufft
+  endif
 endif
 
+ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
+  CXXFLAGS += -I$(HDF5INCLUDE)
+  GPUFLAGS += -I$(HDF5INCLUDE)
+  LIBS += -L$(HDF5DIR) -lhdf5
+endif
 
-FLAGS_HYDRO = $(CUDA) $(PRECISION) $(OUTPUT) $(OUTPUT_TYPE) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(DUAL_ENERGY) $(COOLING) $(DYNAMIC_GPU_ALLOC) $(CPU_TIME) $(PRINT_INITIAL_STATS) $(DENSITY_FLOOR) $(TEMPERATURE_FLOOR) $(SCALAR) $(AVERAGE_SLOW_CELLS) $(OUTPUT_ALWAYS) $(TILED_INITIAL_CONDITIONS) $(N_STEPS_LIMIT) $(SET_MPI_GRID) $(N_OUTPUT_COMPLETE)
-FLAGS_OMP = $(PARALLEL_OMP) $(N_OMP_THREADS) $(PRINT_OMP_DOMAIN)
-FLAGS_GRAVITY = $(GRAVITY) $(POISSON_SOLVER) $(GRAVITY_ENERGY_COUPLE) $(OUTPUT_POTENTIAL) $(GRAVITY_INT) $(GRAVITY_GRADIENT)
-FLAGS_PARTICLES = $(PARTICLES) $(PARTICLES_ARCH) $(PARTICLES_INTEGRATOR) $(PARTICLES_INT) $(PARTICLE_IDS) $(ONLY_PARTICLES) $(SINGLE_PARTICLE_MASS) $(PRINT_DOMAIN)
-FLAGS_COSMO = $(COSMOLOGY)
-FLAGS_COOLING = $(COOLING) $(GRACKLE_PRECISION) $(OUTPUT_TEMPERATURE) $(OUTPUT_CHEMISTRY) $(OUTPUT_ELECTRONS) $(OUTPUT_METALS) $(OUTPUT_FULL_IONIZATION) $(N_OMP_THREADS_GRACKLE)
-FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) $(FLAGS_COSMO) $(FLAGS_COOLING)
-CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
-CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -arch=sm_60
+ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
+  GPUFLAGS += -I$(MPI_HOME)/include
+  ifdef HIP_PLATFORM
+    LIBS += -L$(MPI_HOME)/lib -lmpi
+  endif
+endif
 
+ifdef HIP_PLATFORM
+  CXXFLAGS += -I$(ROCM_PATH)/include -Wno-unused-result
+  GPUCXX := hipcc
+  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-unused-command-line-argument -Wno-duplicate-decl-specifier -std=c++14 -ferror-limit=1
+  LD := $(GPUCXX)
+  LDFLAGS += $(GPUFLAGS)
+else
+  GPUCXX := nvcc
+  GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  LD := $(CXX)
+  LDFLAGS += $(CXXFLAGS)
+  LIBS += -lcudart
+endif
 
-%.o:	%.c
-		$(CC) $(CFLAGS)  $(INCL)  -c $< -o $@
+ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
+  CXXFLAGS += -fopenmp
+  ifdef HIP_PLATFORM
+    LIBS += -L$(CRAYLIBS_X86_64) -L$(GCC_X86_64)/lib64 -lcraymath -lcraymp -lu
+  else
+    LDFLAGS += -fopenmp
+  endif
+endif
 
-%.o:	%.cpp
-		$(CXX) $(CXXFLAGS)  $(INCL) -c $< -o $@
+.SUFFIXES: .c .cpp .cu .o
 
-%.o:	%.cu
-		$(NVCC) $(NVCCFLAGS) --device-c $(NVINCL)  -c $< -o $@
+EXEC := cholla$(SUFFIX)
 
-$(EXEC): $(OBJS) src/gpuCode.o
-	 	 $(CXX) $(OBJS) src/gpuCode.o $(LIBS) -o $(EXEC)
+$(EXEC): $(OBJS)
+	$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
 
-src/gpuCode.o:	$(CUOBJS)
-		$(NVCC) -dlink -arch=sm_60 $(CUOBJS) -o src/gpuCode.o
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+%.o: %.cu
+	$(GPUCXX) $(GPUFLAGS) -c $< -o $@
 
-.PHONY : clean
+.PHONY: clean
 
 clean:
-	 rm -f $(OBJS) src/gpuCode.o $(EXEC)
+	rm -f $(OBJS) $(EXEC)
+
+

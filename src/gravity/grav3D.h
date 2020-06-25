@@ -16,6 +16,9 @@
 #include"potential_SOR_3D.h"
 #endif
 
+#ifdef PARIS
+#include "potential_paris_3D.h"
+#endif
 
 #ifdef HDF5
 #include<hdf5.h>
@@ -97,6 +100,15 @@ class Grav3D
   Potential_SOR_3D Poisson_solver;
   #endif
 
+  #ifdef PARIS
+  #if (defined(PFFT) || defined(CUFFT) || defined(SOR))
+  #define PARIS_TEST
+  Potential_Paris_3D Poisson_solver_test;
+  #else
+  Potential_Paris_3D Poisson_solver;
+  #endif
+  #endif
+
 
   struct Fields
   {
@@ -131,22 +143,6 @@ class Grav3D
 
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #endif //GRAV3D_H

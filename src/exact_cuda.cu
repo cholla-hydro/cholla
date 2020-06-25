@@ -3,7 +3,7 @@
 
 #ifdef CUDA
 
-#include<cuda.h>
+#include"gpu.hpp"
 #include<math.h>
 #include<stdio.h>
 #include"global.h"
