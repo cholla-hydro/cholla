@@ -6,7 +6,7 @@
 #include "../global.h"
 #include <stdlib.h>
 
-#define TIME_SOR
+// #define TIME_SOR
 // #define HALF_SIZE_BOUNDARIES
 
 class Potential_SOR_3D{
@@ -46,6 +46,7 @@ class Potential_SOR_3D{
   
   bool TRANSFER_POISSON_BOUNDARIES;
   
+  int iteration_parity;
 
   bool potential_initialized;
   
@@ -124,6 +125,7 @@ class Potential_SOR_3D{
     
   
   void Load_Transfer_Buffer_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  );
+  void Load_Transfer_Buffer_Half_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  );
   void Load_Transfer_Buffer_GPU_x0();
   void Load_Transfer_Buffer_GPU_x1();
   void Load_Transfer_Buffer_GPU_y0();
@@ -131,6 +133,7 @@ class Potential_SOR_3D{
   void Load_Transfer_Buffer_GPU_z0();
   void Load_Transfer_Buffer_GPU_z1();
   void Unload_Transfer_Buffer_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  );
+  void Unload_Transfer_Buffer_Half_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  );
   void Unload_Transfer_Buffer_GPU_x0();
   void Unload_Transfer_Buffer_GPU_x1();
   void Unload_Transfer_Buffer_GPU_y0();
