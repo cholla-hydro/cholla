@@ -1,5 +1,6 @@
 #!/bin/bash
 
+module use /home/users/twhite/share/modulefiles
 module load ompi-cray hdf5
 
 OUTDIR="out.paris.hipfft-ompi.$(date +%m%d.%H%M%S)"

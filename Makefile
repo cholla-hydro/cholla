@@ -15,15 +15,14 @@ DFLAGS += $(POISSON_SOLVER)
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
-CUDA = -DCUDA #-DCUDA_ERROR_CHECK
+DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 
-#To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
-#otherwise gcc/g++ will be used for serial compilation
-MPI_FLAGS =  -DMPI_CHOLLA -DBLOCK
+#To use MPI, DFLAGS must include -DMPI_CHOLLA
+DFLAGS += -DMPI_CHOLLA -DBLOCK
 
 # Single or double precision
-#PRECISION = -DPRECISION=1
-PRECISION = -DPRECISION=2
+#DFLAGS += -DPRECISION=1
+DFLAGS += -DPRECISION=2
 
 # Output format
 #DFLAGS += -DBINARY
@@ -53,7 +52,7 @@ DFLAGS += -DDENSITY_FLOOR
 DFLAGS += -DTEMPERATURE_FLOOR
 
 #Average Slow cell when the cell delta_t is very small
-#AVERAGE_SLOW_CELLS = -DAVERAGE_SLOW_CELLS
+#DFLAGS += -DAVERAGE_SLOW_CELLS
 
 # Allocate GPU memory every timestep
 #DFLAGS += -DDYNAMIC_GPU_ALLOC
@@ -184,5 +183,3 @@ $(EXEC): $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(EXEC)
-
-
