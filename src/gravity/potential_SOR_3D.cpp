@@ -46,15 +46,18 @@ void Potential_SOR_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y
   size_buffer_x = n_ghost_transfer * ny_pot * nz_pot;
   size_buffer_y = n_ghost_transfer * nx_pot * nz_pot;
   size_buffer_z = n_ghost_transfer * nx_pot * ny_pot;
-  
-  // #ifdef HALF_SIZE_BOUNDARIES
-  // if ( size_buffer_x%2 !=0 ) chprintf( " SOR Warning: Buffer X not divisible by 2, Disable HALF_SIZE_BOUNDARIES \n");
-  // else size_buffer_x /= 2;
-  // if ( size_buffer_y%2 !=0 ) chprintf( " SOR Warning: Buffer Y not divisible by 2, Disable HALF_SIZE_BOUNDARIES \n");
-  // else size_buffer_y /= 2;
-  // if ( size_buffer_z%2 !=0 ) chprintf( " SOR Warning: Buffer Y not divisible by 2, Disable HALF_SIZE_BOUNDARIES \n");
-  // else size_buffer_z /= 2;
-  // #endif
+
+  #ifdef HALF_SIZE_BOUNDARIES
+  size_buffer_x = n_ghost_transfer * ny_local * nz_local;
+  size_buffer_y = n_ghost_transfer * nx_local * nz_local;
+  size_buffer_z = n_ghost_transfer * nx_local * ny_local;  
+  if ( size_buffer_x%2 !=0 ) chprintf( " SOR Warning: Buffer X not divisible by 2, Disable HALF_SIZE_BOUNDARIES \n");
+  else size_buffer_x /= 2;
+  if ( size_buffer_y%2 !=0 ) chprintf( " SOR Warning: Buffer Y not divisible by 2, Disable HALF_SIZE_BOUNDARIES \n");
+  else size_buffer_y /= 2;
+  if ( size_buffer_z%2 !=0 ) chprintf( " SOR Warning: Buffer Y not divisible by 2, Disable HALF_SIZE_BOUNDARIES \n");
+  else size_buffer_z /= 2;
+  #endif
   
   //Flag to transfer Poisson Bopundaries when calling Set_Boundaries
   TRANSFER_POISSON_BOUNDARIES = false;

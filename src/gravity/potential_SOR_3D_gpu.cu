@@ -386,28 +386,37 @@ __global__ void Load_Transfer_Buffer_GPU_Half_kernel( int direction, int side, i
   
   tid_buffer = tid_i + tid_j*n_i + tid_k*n_i*n_j;
   
-  // Make a checkboard 3D grid
-  tid_i = 2 * tid_i;
-  if ( tid_j%2 == 0 ){
-    if ( tid_k%2 == parity ) tid_i +=1;
-  }
-  else if ( (tid_k+1)%2 == parity ) tid_i +=1;
+  int nx_pot, ny_pot, nz_pot;
+  nx_pot = nx + 2*n_ghost_potential;
+  ny_pot = ny + 2*n_ghost_potential;
+  nz_pot = nz + 2*n_ghost_potential;
+  
+  
+  // // Make a checkboard 3D grid
+  // tid_i = 2 * tid_i;
+  // if ( tid_j%2 == 0 ){
+  //   if ( tid_k%2 == parity ) tid_i +=1;
+  // }
+  // else if ( (tid_k+1)%2 == parity ) tid_i +=1;
   
   
   if ( tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost_transfer ) return;
   
+  tid_i += n_ghost_potential;
+  tid_j += n_ghost_potential;
+  
   
   if ( direction == 0 ){
-    if ( side == 0 ) tid_pot = ( n_ghost_potential + tid_k  )                        + (tid_i)*nx + (tid_j)*nx*ny;
-    if ( side == 1 ) tid_pot = ( nx - n_ghost_potential - n_ghost_transfer + tid_k ) + (tid_i)*nx + (tid_j)*nx*ny;
+    if ( side == 0 ) tid_pot = ( n_ghost_potential + tid_k  )                            + (tid_i)*nx_pot + (tid_j)*nx_pot*ny_pot;
+    if ( side == 1 ) tid_pot = ( nx_pot - n_ghost_potential - n_ghost_transfer + tid_k ) + (tid_i)*nx_pot + (tid_j)*nx_pot*ny_pot;
   }  
   if ( direction == 1 ){
-    if ( side == 0 ) tid_pot = (tid_i) + ( n_ghost_potential + tid_k  )*nx                         + (tid_j)*nx*ny;
-    if ( side == 1 ) tid_pot = (tid_i) + ( ny - n_ghost_potential - n_ghost_transfer + tid_k  )*nx + (tid_j)*nx*ny;
+    if ( side == 0 ) tid_pot = (tid_i) + ( n_ghost_potential + tid_k  )*nx_pot                             + (tid_j)*nx_pot*ny_pot;
+    if ( side == 1 ) tid_pot = (tid_i) + ( ny_pot - n_ghost_potential - n_ghost_transfer + tid_k  )*nx_pot + (tid_j)*nx_pot*ny_pot;
   }
   if ( direction == 2 ){
-    if ( side == 0 ) tid_pot = (tid_i) + (tid_j)*nx + ( n_ghost_potential + tid_k  )*nx*ny;
-    if ( side == 1 ) tid_pot = (tid_i) + (tid_j)*nx + ( nz - n_ghost_potential - n_ghost_transfer + tid_k  )*nx*ny;
+    if ( side == 0 ) tid_pot = (tid_i) + (tid_j)*nx_pot + ( n_ghost_potential + tid_k  )*nx_pot*ny_pot;
+    if ( side == 1 ) tid_pot = (tid_i) + (tid_j)*nx_pot + ( nz_pot - n_ghost_potential - n_ghost_transfer + tid_k  )*nx_pot*ny_pot;
   }
   
   // printf( "Loading Buffer Half:   val= %d    pot= %f \n", parity+1, potential_d[tid_pot]  );
@@ -458,28 +467,36 @@ __global__ void Unload_Transfer_Buffer_GPU_Half_kernel( int direction, int side,
   
   tid_buffer = tid_i + tid_j*n_i + tid_k*n_i*n_j;
   
-  // Make a checkboard 3D grid
-  tid_i = 2 * tid_i;
-  if ( tid_j%2 == 0 ){
-    if ( tid_k%2 == parity ) tid_i +=1;
-  }
-  else if ( (tid_k+1)%2 == parity ) tid_i +=1;
+  int nx_pot, ny_pot, nz_pot;
+  nx_pot = nx + 2*n_ghost_potential;
+  ny_pot = ny + 2*n_ghost_potential;
+  nz_pot = nz + 2*n_ghost_potential;
+  
+  // // Make a checkboard 3D grid
+  // tid_i = 2 * tid_i;
+  // if ( tid_j%2 == 0 ){
+  //   if ( tid_k%2 == parity ) tid_i +=1;
+  // }
+  // else if ( (tid_k+1)%2 == parity ) tid_i +=1;
   
   
   if ( tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost_transfer ) return;
   
+  tid_i += n_ghost_potential;
+  tid_j += n_ghost_potential;
+  
   
   if ( direction == 0 ){
-    if ( side == 0 ) tid_pot = ( n_ghost_potential - n_ghost_transfer + tid_k  ) + (tid_i)*nx + (tid_j)*nx*ny;
-    if ( side == 1 ) tid_pot = ( nx - n_ghost_potential + tid_k )                + (tid_i)*nx + (tid_j)*nx*ny;
+    if ( side == 0 ) tid_pot = ( n_ghost_potential - n_ghost_transfer + tid_k  )     + (tid_i)*nx_pot + (tid_j)*nx_pot*ny_pot;
+    if ( side == 1 ) tid_pot = ( nx_pot - n_ghost_potential + tid_k )                + (tid_i)*nx_pot + (tid_j)*nx_pot*ny_pot;
   }  
   if ( direction == 1 ){
-    if ( side == 0 ) tid_pot = (tid_i) + ( n_ghost_potential - n_ghost_transfer + tid_k  )*nx + (tid_j)*nx*ny;
-    if ( side == 1 ) tid_pot = (tid_i) + ( ny - n_ghost_potential + tid_k  )*nx               + (tid_j)*nx*ny;
+    if ( side == 0 ) tid_pot = (tid_i) + ( n_ghost_potential - n_ghost_transfer + tid_k  )*nx_pot     + (tid_j)*nx_pot*ny_pot;
+    if ( side == 1 ) tid_pot = (tid_i) + ( ny_pot - n_ghost_potential + tid_k  )*nx_pot               + (tid_j)*nx_pot*ny_pot;
   }
   if ( direction == 2 ){
-    if ( side == 0 ) tid_pot = (tid_i) + (tid_j)*nx + ( n_ghost_potential - n_ghost_transfer + tid_k  )*nx*ny;
-    if ( side == 1 ) tid_pot = (tid_i) + (tid_j)*nx + ( nz - n_ghost_potential + tid_k  )*nx*ny;  
+    if ( side == 0 ) tid_pot = (tid_i) + (tid_j)*nx_pot + ( n_ghost_potential - n_ghost_transfer + tid_k  )*nx_pot*ny_pot;
+    if ( side == 1 ) tid_pot = (tid_i) + (tid_j)*nx_pot + ( nz_pot - n_ghost_potential + tid_k  )*nx_pot*ny_pot;  
   }
   potential_d[tid_pot] = transfer_buffer_d[tid_buffer];
   
@@ -530,19 +547,19 @@ void Potential_SOR_3D::Load_Transfer_Buffer_Half_GPU( int direction, int side, i
   nz_pot = nz + 2*n_ghost_potential;
   
   if ( direction == 0 ){
-    n_i = ny_pot;
-    n_j = nz_pot;
+    n_i = ny;
+    n_j = nz;
   }
   if ( direction == 1 ){
-    n_i = nx_pot;
-    n_j = nz_pot;
+    n_i = nx;
+    n_j = nz;
   }
   if ( direction == 2 ){
-    n_i = nx_pot;
-    n_j = ny_pot;
+    n_i = nx;
+    n_j = ny;
   }
   
-  n_i = n_i / 2;  //Divide the buffer by 2
+  // n_i = n_i / 2;  //Divide the buffer by 2
   size_buffer = n_ghost_transfer * n_i * n_j;
     
   // set values for GPU kernels
@@ -553,7 +570,7 @@ void Potential_SOR_3D::Load_Transfer_Buffer_Half_GPU( int direction, int side, i
   dim3 dim1dBlock(TPB_SOR, 1, 1);
   
   
-  Load_Transfer_Buffer_GPU_Half_kernel<<<dim1dGrid,dim1dBlock>>>( direction, side, size_buffer, n_i, n_j,  nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d, iteration_parity  );
+  Load_Transfer_Buffer_GPU_Half_kernel<<<dim1dGrid,dim1dBlock>>>( direction, side, size_buffer, n_i, n_j,  nx, ny, nz, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d, iteration_parity  );
   
 }
 
@@ -600,19 +617,19 @@ void Potential_SOR_3D::Unload_Transfer_Buffer_Half_GPU( int direction, int side,
   nz_pot = nz + 2*n_ghost_potential;
   
   if ( direction == 0 ){
-    n_i = ny_pot;
-    n_j = nz_pot;
+    n_i = ny;
+    n_j = nz;
   }
   if ( direction == 1 ){
-    n_i = nx_pot;
-    n_j = nz_pot;
+    n_i = nx;
+    n_j = nz;
   }
   if ( direction == 2 ){
-    n_i = nx_pot;
-    n_j = ny_pot;
+    n_i = nx;
+    n_j = ny;
   }
   
-  n_i = n_i / 2;  //Divide the buffer by 2
+  // n_i = n_i / 2;  //Divide the buffer by 2
   size_buffer = n_ghost_transfer * n_i * n_j;
       
   // set values for GPU kernels
@@ -623,7 +640,7 @@ void Potential_SOR_3D::Unload_Transfer_Buffer_Half_GPU( int direction, int side,
   dim3 dim1dBlock(TPB_SOR, 1, 1);
   
   
-  Unload_Transfer_Buffer_GPU_Half_kernel<<<dim1dGrid,dim1dBlock>>>( direction, side, size_buffer, n_i, n_j, nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d, iteration_parity  );
+  Unload_Transfer_Buffer_GPU_Half_kernel<<<dim1dGrid,dim1dBlock>>>( direction, side, size_buffer, n_i, n_j, nx, ny, nz, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d, iteration_parity  );
 
 }
 void Potential_SOR_3D::Copy_Transfer_Buffer_To_Host( int size_buffer, Real *transfer_buffer_h, Real *transfer_buffer_d ){
