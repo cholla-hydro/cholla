@@ -1472,6 +1472,13 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           // calculate number density
           n = C.density[id]*DENSITY_UNIT/(mu*MP);
           // calculate temperature
+          #ifndef DE
+          Real mx = C.momentum_x[id];
+          Real my = C.momentum_y[id];
+          Real mz = C.momentum_z[id];
+          Real E = C.Energy[id];
+          T = (E - 0.5*(mx*mx + my*my + mz*mz)/C.density[id])*(gama-1.0)*PRESSURE_UNIT / (n*KB);
+          #endif
           #ifdef DE
           T = C.GasEnergy[id]*PRESSURE_UNIT*(gama-1.0) / (n*KB);
           #endif
@@ -1496,6 +1503,13 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           // calculate number density
           n = C.density[id]*DENSITY_UNIT/(mu*MP);
           // calculate temperature
+          #ifndef DE
+          Real mx = C.momentum_x[id];
+          Real my = C.momentum_y[id];
+          Real mz = C.momentum_z[id];
+          Real E = C.Energy[id];
+          T = (E - 0.5*(mx*mx + my*my + mz*mz)/C.density[id])*(gama-1.0)*PRESSURE_UNIT / (n*KB);
+          #endif
           #ifdef DE
           T = C.GasEnergy[id]*PRESSURE_UNIT*(gama-1.0) / (n*KB);
           #endif
@@ -1652,6 +1666,13 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
             // calculate number density
             n = d*DENSITY_UNIT/(mu*MP);
             // calculate temperature
+            #ifndef DE
+            Real mx = C.momentum_x[id];
+            Real my = C.momentum_y[id];
+            Real mz = C.momentum_z[id];
+            Real E = C.Energy[id];
+            T = (E - 0.5*(mx*mx + my*my + mz*mz)/C.density[id])*(gama-1.0)*PRESSURE_UNIT / (n*KB);
+            #endif
             #ifdef DE
             T = C.GasEnergy[id]*PRESSURE_UNIT*(gama-1.0) / (n*KB);
             #endif
