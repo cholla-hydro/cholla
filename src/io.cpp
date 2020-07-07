@@ -451,6 +451,30 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   attribute_id = H5Acreate(file_id, "n_fields", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_fields);
   status = H5Aclose(attribute_id);
+  double time_unit = TIME_UNIT;
+  attribute_id = H5Acreate(file_id, "time_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &time_unit);
+  status = H5Aclose(attribute_id);
+  double length_unit = LENGTH_UNIT;
+  attribute_id = H5Acreate(file_id, "length_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &length_unit);
+  status = H5Aclose(attribute_id);
+  double mass_unit = MASS_UNIT;
+  attribute_id = H5Acreate(file_id, "mass_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &mass_unit);
+  status = H5Aclose(attribute_id);
+  double velocity_unit = VELOCITY_UNIT;
+  attribute_id = H5Acreate(file_id, "velocity_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &velocity_unit);
+  status = H5Aclose(attribute_id);
+  double density_unit = DENSITY_UNIT;
+  attribute_id = H5Acreate(file_id, "density_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &density_unit);
+  status = H5Aclose(attribute_id);
+  double energy_unit = ENERGY_UNIT;
+  attribute_id = H5Acreate(file_id, "energy_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &energy_unit);
+  status = H5Aclose(attribute_id);
   
   #ifdef COSMOLOGY
   attribute_id = H5Acreate(file_id, "H0", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
@@ -1472,6 +1496,13 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           // calculate number density
           n = C.density[id]*DENSITY_UNIT/(mu*MP);
           // calculate temperature
+          #ifndef DE
+          Real mx = C.momentum_x[id];
+          Real my = C.momentum_y[id];
+          Real mz = C.momentum_z[id];
+          Real E = C.Energy[id];
+          T = (E - 0.5*(mx*mx + my*my + mz*mz)/C.density[id])*(gama-1.0)*PRESSURE_UNIT / (n*KB);
+          #endif
           #ifdef DE
           T = C.GasEnergy[id]*PRESSURE_UNIT*(gama-1.0) / (n*KB);
           #endif
@@ -1496,6 +1527,13 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           // calculate number density
           n = C.density[id]*DENSITY_UNIT/(mu*MP);
           // calculate temperature
+          #ifndef DE
+          Real mx = C.momentum_x[id];
+          Real my = C.momentum_y[id];
+          Real mz = C.momentum_z[id];
+          Real E = C.Energy[id];
+          T = (E - 0.5*(mx*mx + my*my + mz*mz)/C.density[id])*(gama-1.0)*PRESSURE_UNIT / (n*KB);
+          #endif
           #ifdef DE
           T = C.GasEnergy[id]*PRESSURE_UNIT*(gama-1.0) / (n*KB);
           #endif
@@ -1652,6 +1690,13 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
             // calculate number density
             n = d*DENSITY_UNIT/(mu*MP);
             // calculate temperature
+            #ifndef DE
+            Real mx = C.momentum_x[id];
+            Real my = C.momentum_y[id];
+            Real mz = C.momentum_z[id];
+            Real E = C.Energy[id];
+            T = (E - 0.5*(mx*mx + my*my + mz*mz)/C.density[id])*(gama-1.0)*PRESSURE_UNIT / (n*KB);
+            #endif
             #ifdef DE
             T = C.GasEnergy[id]*PRESSURE_UNIT*(gama-1.0) / (n*KB);
             #endif

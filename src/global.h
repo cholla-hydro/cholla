@@ -242,5 +242,8 @@ struct parameters
  *  \brief Reads the parameters in the given file into a structure. */
 extern void parse_params (char *param_file, struct parameters * parms);
 
+/*! \fn int is_param_valid(char *name);
+ * \brief Verifies that a param is valid (even if not needed).  Avoids "warnings" in output. */
+extern int is_param_valid(const char *name);
 
 #endif //GLOBAL_H
