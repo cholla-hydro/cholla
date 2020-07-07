@@ -38,6 +38,10 @@ for n in range(ns, ne+1):
       fileout.attrs['dt'] = [head['dt'][0]]
       fileout.attrs['n_step'] = [head['n_step'][0]]
 
+      units = ['time_unit', 'mass_unit', 'length_unit', 'energy_unit', 'velocity_unit', 'density_unit']
+      for unit in units:
+        fileout.attrs[unit] = [head[unit][0]]
+
       d  = fileout.create_dataset("density", (nx, ny, nz), chunks=True)
       mx = fileout.create_dataset("momentum_x", (nx, ny, nz), chunks=True)
       my = fileout.create_dataset("momentum_y", (nx, ny, nz), chunks=True)

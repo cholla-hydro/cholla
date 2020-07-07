@@ -451,6 +451,30 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   attribute_id = H5Acreate(file_id, "n_fields", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_fields);
   status = H5Aclose(attribute_id);
+  double time_unit = TIME_UNIT;
+  attribute_id = H5Acreate(file_id, "time_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &time_unit);
+  status = H5Aclose(attribute_id);
+  double length_unit = LENGTH_UNIT;
+  attribute_id = H5Acreate(file_id, "length_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &length_unit);
+  status = H5Aclose(attribute_id);
+  double mass_unit = MASS_UNIT;
+  attribute_id = H5Acreate(file_id, "mass_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &mass_unit);
+  status = H5Aclose(attribute_id);
+  double velocity_unit = VELOCITY_UNIT;
+  attribute_id = H5Acreate(file_id, "velocity_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &velocity_unit);
+  status = H5Aclose(attribute_id);
+  double density_unit = DENSITY_UNIT;
+  attribute_id = H5Acreate(file_id, "density_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &density_unit);
+  status = H5Aclose(attribute_id);
+  double energy_unit = ENERGY_UNIT;
+  attribute_id = H5Acreate(file_id, "energy_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &energy_unit);
+  status = H5Aclose(attribute_id);
   
   #ifdef COSMOLOGY
   attribute_id = H5Acreate(file_id, "H0", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
