@@ -1,5 +1,5 @@
 #!/bin/bash
-#BSUB -P VEN114
+#BSUB -P CSC380
 #BSUB -W 0:05
 #BSUB -nnodes 1
 #BSUB -J cholla.paris

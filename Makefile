@@ -10,8 +10,8 @@ GPUFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cu))
 
 OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(GPUFILES))
 
-POISSON_SOLVER ?= -DPFFT
-DFLAGS += $(POISSON_SOLVER)
+#POISSON_SOLVER ?= -DPFFT
+#DFLAGS += $(POISSON_SOLVER)
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -29,12 +29,17 @@ DFLAGS += -DOUTPUT
 #DFLAGS += -DBINARY
 DFLAGS += -DHDF5
 
+# Add slices or projections to the full grid output
+DFLAGS += -DSLICES
+#DFLAGS += -DPROJECTION
+#DFLAGS += -DROTATED_PROJECTION
+
 # Reconstruction
 #DFLAGS += -DPCM
 #DFLAGS += -DPLMP
 #DFLAGS += -DPLMC
-DFLAGS += -DPPMP
-#DFLAGS += -DPPMC
+#DFLAGS += -DPPMP
+DFLAGS += -DPPMC
 
 # Riemann Solver
 #DFLAGS += -DEXACT
@@ -49,8 +54,8 @@ DFLAGS += -DVL
 DFLAGS += -DDE
 
 # Apply a minimum value to conserved values
-DFLAGS += -DDENSITY_FLOOR
-DFLAGS += -DTEMPERATURE_FLOOR
+#DFLAGS += -DDENSITY_FLOOR
+#DFLAGS += -DTEMPERATURE_FLOOR
 
 #Average Slow cell when the cell delta_t is very small
 #DFLAGS += -DAVERAGE_SLOW_CELLS
@@ -59,7 +64,7 @@ DFLAGS += -DTEMPERATURE_FLOOR
 #DFLAGS += -DDYNAMIC_GPU_ALLOC
 
 # Set the cooling function
-#DFLAGS += -DCOOLING_GPU
+DFLAGS += -DCOOLING_GPU
 #DFLAGS += -DCLOUDY_COOL
 
 # Use tiled initial conditions for scaling tests
@@ -70,13 +75,16 @@ DFLAGS += -DTEMPERATURE_FLOOR
 # Print some timing stats
 DFLAGS += -DCPU_TIME
 
+# Include Static Gravity
+DFLAGS += -DSTATIC_GRAV
+
 # Include FFT gravity
-DFLAGS += -DGRAVITY
-DFLAGS += -DGRAVITY_LONG_INTS
-DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
+#DFLAGS += -DGRAVITY
+#DFLAGS += -DGRAVITY_LONG_INTS
+#DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
 #DFLAGS += -DCOUPLE_DELTA_E_KINETIC
 #DFLAGS += -DOUTPUT_POTENTIAL
-DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
+#DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 
 # Include gravity from particles PM
 # DFLAGS += -DPARTICLES
@@ -87,9 +95,9 @@ DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 # DFLAGS += -DPARTICLES_KDK
 
 # Turn OpenMP on for CPU calculations
-DFLAGS += -DPARALLEL_OMP
-OMP_NUM_THREADS ?= 16
-DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
+#DFLAGS += -DPARALLEL_OMP
+#OMP_NUM_THREADS ?= 16
+#DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 #DFLAGS += -DPRINT_OMP_DOMAIN
 
 # Cosmology simulation
