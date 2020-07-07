@@ -32,6 +32,7 @@
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
 #define cudaMemcpyHostToDevice hipMemcpyHostToDevice
 #define cudaMemGetInfo hipMemGetInfo
+#define cudaReadModeElementType hipReadModeElementType
 #define cudaSetDevice hipSetDevice
 #define cudaSuccess hipSuccess
 

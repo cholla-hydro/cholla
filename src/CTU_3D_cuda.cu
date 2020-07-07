@@ -316,7 +316,7 @@ void Free_Memory_CTU_3D() {
   if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
   CudaSafeCall( cudaFreeHost(host_dti_array) );
   #ifdef COOLING_GPU
-  CudaSafeCall( cudaFeeHost(host_dt_array) );  
+  CudaSafeCall( cudaFreeHost(host_dt_array) );
   #endif
 
   // free the GPU memory
