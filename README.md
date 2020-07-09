@@ -17,12 +17,7 @@ Configuration Notes
 Most of the configuration options available in *Cholla* are selected by commenting/uncommenting
 the appropriate line within the makefile, e.g. single vs
 double precision, output format, the reconstruction method, Riemann solver, integrator, 
-and cooling. The entire code must be recompiled any time you change the configuration.
-
-A few options must be specified on the 'FLAGS' line in the makefile. These include
-the h correction (-DH_CORRECTION), dual energy (-DDE), the static gravity module (-DSTATIC_GRAV), 
-and the passive scalar flag (-DSCALAR). It is strongly recommended that you include the dual energy
-flag when cooling is turned on.
+and cooling. The entire code must be recompiled any time you change the configuration. For more information on the various options, see the "Makefile" page of the wiki.
 
 
 Running Cholla
