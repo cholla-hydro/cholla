@@ -10,14 +10,16 @@ ny=256
 # number of grid cells in the z dimension
 nz=256
 # final output time
-tout=50000
+tout=500000
 # time interval for output
 outstep=1000
 # value of gamma
 gamma=1.6666667
 # name of initial conditions
-init=Disk_3D
+init=disk_3D
 nfull=10
+#nfile=5
+#indir=../start_file/
 # domain properties
 xmin=-2
 ymin=-2
@@ -43,4 +45,4 @@ Lz=6.0
 flag_delta=2
 ddelta_dt=-0.001
 # path to output directory
-outdir=./
+outdir=./hdf5/raw/

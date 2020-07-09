@@ -54,11 +54,11 @@ DFLAGS += -DVL
 DFLAGS += -DDE
 
 # Apply a minimum value to conserved values
-#DFLAGS += -DDENSITY_FLOOR
+DFLAGS += -DDENSITY_FLOOR
 #DFLAGS += -DTEMPERATURE_FLOOR
 
 #Average Slow cell when the cell delta_t is very small
-#DFLAGS += -DAVERAGE_SLOW_CELLS
+DFLAGS += -DAVERAGE_SLOW_CELLS
 
 # Allocate GPU memory every timestep
 #DFLAGS += -DDYNAMIC_GPU_ALLOC
