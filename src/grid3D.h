@@ -408,7 +408,15 @@ class Grid3D
     Real Update_Hydro_Grid(void);
     
     void Update_Time();
-    
+
+     /*! \fn void Write_Header_Text(FILE *fp)
+     *  \brief Write the relevant header info to a text output file. */
+    void Write_Header_Text(FILE *fp);
+
+    /*! \fn void Write_Grid_Text(FILE *fp)
+     *  \brief Write the grid to a file, at the current simulation time. */
+    void Write_Grid_Text(FILE *fp);
+   
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
     void Write_Header_Binary(FILE *fp);
