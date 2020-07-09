@@ -17,7 +17,7 @@ Configuration Notes
 Most of the configuration options available in *Cholla* are selected by commenting/uncommenting
 the appropriate line within the makefile, e.g. single vs
 double precision, output format, the reconstruction method, Riemann solver, integrator, 
-and cooling. The entire code must be recompiled any time you change the configuration. For more information on the various options, see the "Makefile" page of the wiki.
+and cooling. The entire code must be recompiled any time you change the configuration. For more information on the various options, see the "[Makefile](https://github.com/cholla-hydro/cholla/wiki/Makefile)" page of the wiki.
 
 
 Running Cholla
