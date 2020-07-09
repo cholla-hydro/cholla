@@ -89,7 +89,7 @@ void Load_Cooling_Tables(float* cooling_table, float* heating_table)
 
   // Read in cloudy cooling/heating curve (function of density and temperature)
   i=0;
-  infile = fopen("./cooling/cloudy_coolingcurve.txt", "r");
+  infile = fopen("../cooling/cloudy_coolingcurve.txt", "r");
   if (infile == NULL) {
     printf("Unable to open Cloudy file.\n");
     exit(1);
