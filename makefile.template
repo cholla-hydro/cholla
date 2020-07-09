@@ -11,7 +11,7 @@ OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(G
 DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, DFLAGS must also include -DMPI_CHOLLA
-#DFLAGS += -DMPI_CHOLLA -DBLOCK
+DFLAGS += -DMPI_CHOLLA -DBLOCK
 
 #Set the MPI Processes grid [nproc_x, nproc_y, nproc_z]
 #DFLAGS += -DSET_MPI_GRID
@@ -24,7 +24,7 @@ DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 DFLAGS += -DPRECISION=2
 
 #Set output preferences
-#DFLAGS += -DOUTPUT
+DFLAGS += -DOUTPUT
 #DFLAGS += -DBINARY
 #DFLAGS += -DHDF5
 
