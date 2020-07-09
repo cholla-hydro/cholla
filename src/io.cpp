@@ -149,6 +149,9 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
     strcat(filename,".bin");
     #elif defined HDF5
     strcat(filename,".h5");
+    #else
+    strcat(filename,".txt");
+    if (G.H.nx*G.H.ny*G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
     #endif
     #ifdef MPI_CHOLLA
     sprintf(filename,"%s.%d",filename,procID);
@@ -187,6 +190,21 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
     status = H5Fclose(file_id);
 
     if (status < 0) {printf("File write failed.\n"); exit(-1); }
+
+    #else
+    // open the file for txt writes
+    FILE *out;
+    out = fopen(filename, "w");
+    if(out == NULL) {printf("Error opening output file.\n"); exit(-1); }
+
+    // write the header to the output file
+    G.Write_Header_Text(out);
+
+    // write the conserved variables to the output file
+    G.Write_Grid_Text(out);
+
+    // close the output file
+    fclose(out);
     #endif
   }
 }
@@ -377,6 +395,22 @@ void OutputSlices(Grid3D &G, struct parameters P, int nfile)
   #else
   printf("OutputSlices only defined for hdf5 writes.\n");
   #endif //HDF5
+}
+
+/*! \fn void Write_Header_Text(FILE *fp)
+ *  \brief Write some relevant header info to a text output file. */
+void Grid3D::Write_Header_Text(FILE *fp)
+{
+
+  // Write the header info to the output file
+  fprintf(fp, "Header Information\n");
+  fprintf(fp, "n_step: %d  sim t: %f  sim dt: %f\n", H.n_step, H.t, H.dt);
+  fprintf(fp, "mass unit: %e  length unit: %e  time unit: %e\n", MASS_UNIT, LENGTH_UNIT, TIME_UNIT);
+  fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz); 
+  fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound); 
+  fprintf(fp, "xlen: %f  ylen: %f  zlen: %f\n", H.domlen_x, H.domlen_y, H.domlen_z); 
+  fprintf(fp, "t: %f\n", H.t);
+  
 }
 
 
@@ -745,6 +779,76 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
 
 }
 #endif
+
+/*! \fn void Write_Grid_Text(FILE *fp)
+ *  \brief Write the conserved quantities to a text output file. */
+void Grid3D::Write_Grid_Text(FILE *fp)
+{
+  int id, i, j, k;
+
+  // Write the conserved quantities to the output file
+
+  // 1D case
+  if (H.nx>1 && H.ny==1 && H.nz==1) {
+    fprintf(fp, "id\trho\tmx\tmy\tmz\tE");
+    #ifdef DE
+    fprintf(fp, "\tge");
+    #endif
+    fprintf(fp, "\n");
+    for (i=H.n_ghost; i < H.nx-H.n_ghost; i++) {
+      id = i;
+      fprintf(fp, "%d\t%f\t%f\t%f\t%f\t%f", i-H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);  
+      #ifdef DE
+      fprintf(fp, "\t%f", C.GasEnergy[id]);  
+      #endif
+      fprintf(fp, "\n");
+    }
+  }
+
+  // 2D case
+  else if (H.nx>1 && H.ny>1 && H.nz==1) {
+
+    fprintf(fp, "idx\tidy\trho\tmx\tmy\tmz\tE");
+    #ifdef DE
+    fprintf(fp, "\tge");
+    #endif
+    fprintf(fp, "\n");
+    for (i=H.n_ghost; i < H.nx-H.n_ghost; i++) {
+      for (j=H.n_ghost; j < H.ny-H.n_ghost; j++) {
+        id = i + j*H.nx;
+        fprintf(fp, "%d\t%d\t%f\t%f\t%f\t%f\t%f", i-H.n_ghost, j-H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);  
+        #ifdef DE
+        fprintf(fp, "\t%f", C.GasEnergy[id]);  
+        #endif
+        fprintf(fp, "\n");
+      }
+    }
+  }
+
+  // 3D case
+  else {
+    fprintf(fp, "idx\tidy\tidz\trho\tmx\tmy\tmz\tE");
+    #ifdef DE
+    fprintf(fp, "\tge");
+    #endif
+    fprintf(fp, "\n");
+    for (i=H.n_ghost; i < H.nx-H.n_ghost; i++) {
+      for (j=H.n_ghost; j < H.ny-H.n_ghost; j++) {
+        for (k=H.n_ghost; k < H.nz-H.n_ghost; k++) {
+          id = i + j*H.nx + k*H.nx*H.ny;
+          fprintf(fp, "%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f", i-H.n_ghost, j-H.n_ghost, k-H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);  
+          #ifdef DE
+          fprintf(fp, "\t%f", C.GasEnergy[id]);  
+          #endif
+          fprintf(fp, "\n");
+        }
+      }
+    }
+  }
+
+}
+
+
 
 
 /*! \fn void Write_Grid_Binary(FILE *fp)
