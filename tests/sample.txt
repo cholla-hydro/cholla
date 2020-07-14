@@ -2,32 +2,6 @@
 # Sample Parameter File
 #
 
-# Valid initial conditions - CASE SENSITIVE -
-# must be written exactly as shown within quotations
-######### 1D Tests ############
-# "Riemann" - 1D Riemann problem on the domain 0 < x < 1
-#     In addition to the grid parameters, must specify the
-#     left and right states, location of initial discontinuity
-#     and value of gamma. See example below (Sod Shock tube)
-# "Shu_Osher" - Shu-Osher shock tube test, first described in 1989. We use the
-#     implementation given in Stone et al., 2008.
-# "Blast_1D" - Interacting blast wave test. Originally from Woodward & Collella, 1984.
-#     See also Stone et al., 2008, Section 8.1. Typical output time is 0.038.
-######### 2D Tests ############
-# "KH" - Kelvin-Helmholtz instability problem. Interfaces are discontinuous.
-# "KH_res_ind" - Kelvin-Helmholtz instability problem with continuous interfaces.
-#     Results are independent of resolution.
-# "Implosion_2D" - Implosion test from Liska & Wendroff, 2003. Essentially consists
-#     of a 2D Sod shock tube.
-
-
-# Valid boundary conditions - CASE SENSITIVE
-# "periodic" - periodic boundaries in 1, 2, or 3D
-# "reflective" - reflective boundaries in 1 or 2D
-# "transmissive" - transmissive boundaries in 1, 2, or 3D
-
-
-
 ################################################
 # Parameters required for all problems
 ################################################
@@ -37,6 +11,18 @@ nx=100
 ny=1
 # number of grid cells in the z dimension
 nz=1
+# x direction lower domain boundary
+xmin=-0.5
+# x direction domain length
+xlen=1.0
+# y direction lower domain boundary
+ymin=-0.5
+# y direction domain length
+ylen=1.0
+# z direction lower domain boundary
+zmin=-0.5
+# y direction domain length
+ylen=1.0
 # final output time
 tout=0.2
 # time interval for output
@@ -45,10 +31,15 @@ outstep=0.01
 gamma=1.4
 # name of initial conditions
 init=Riemann
-# type of boundary conditions
-bound=transmissive
+# type of boundary condition, options include 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom)
+xl_bcnd=3
+xu_bcnd=3
+yl_bcnd=3
+yu_bcnd=3
+zl_bcnd=3
+zu_bcnd=3
 # path to output directory
-outdir=/Users/evan/Desktop/test_results/test_1/
+outdir=./
 
 #################################################
 # Parameters required for Riemann problems
