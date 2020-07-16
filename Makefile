@@ -11,8 +11,8 @@ GPUFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cu))
 
 OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(GPUFILES))
 
-POISSON_SOLVER ?= -DPFFT
-DFLAGS += $(POISSON_SOLVER)
+#POISSON_SOLVER ?= -DPFFT
+#DFLAGS += $(POISSON_SOLVER)
 
 
 #To use GPUs, CUDA must be turned on here
@@ -40,6 +40,11 @@ DFLAGS += -DHDF5
 #DFLAGS += -DPROJECTION
 #DFLAGS += -DROTATED_PROJECTION
 
+# Add slices or projections to the full grid output
+DFLAGS += -DSLICES
+#DFLAGS += -DPROJECTION
+#DFLAGS += -DROTATED_PROJECTION
+
 # Output all data every N_OUTPUT_COMPLETE snapshots ( These are Restart Files )
 #DFLAGS += -DN_OUTPUT_COMPLETE=10
 
@@ -47,8 +52,8 @@ DFLAGS += -DHDF5
 #DFLAGS += -DPCM
 #DFLAGS += -DPLMP
 #DFLAGS += -DPLMC
-DFLAGS += -DPPMP
-#DFLAGS += -DPPMC
+#DFLAGS += -DPPMP
+DFLAGS += -DPPMC
 
 # Riemann Solver
 #DFLAGS += -DEXACT
@@ -61,7 +66,7 @@ DFLAGS += -DVL
 #DFLAGS += -DSIMPLE
 
 # Use Dual Energy Formalism
-#DFLAGS += -DDE
+DFLAGS += -DDE
 
 # Evolve additional scalars
 #DFLAGS += -DSCALAR
@@ -69,16 +74,16 @@ DFLAGS += -DVL
 
 # Apply a minimum value to Conserved values
 DFLAGS += -DDENSITY_FLOOR
-DFLAGS += -DTEMPERATURE_FLOOR
+#DFLAGS += -DTEMPERATURE_FLOOR
 
-# Average Slow cell when the cell delta_t is very small
-#DFLAGS += -DAVERAGE_SLOW_CELLS
+#Average Slow cell when the cell delta_t is very small
+DFLAGS += -DAVERAGE_SLOW_CELLS
 
 # Allocate GPU memory every timestep
 #DFLAGS += -DDYNAMIC_GPU_ALLOC
 
 # Set the cooling function
-#DFLAGS += -DCOOLING_GPU 
+DFLAGS += -DCOOLING_GPU
 #DFLAGS += -DCLOUDY_COOL
 
 # Use Tiled Iitial Conditions for Scaling Tets
@@ -90,14 +95,16 @@ DFLAGS += -DTEMPERATURE_FLOOR
 # Print some timing stats
 DFLAGS += -DCPU_TIME
 
+# Include Static Gravity
+DFLAGS += -DSTATIC_GRAV
 
 # Include FFT gravity
-DFLAGS += -DGRAVITY
-DFLAGS += -DGRAVITY_LONG_INTS
-DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
+#DFLAGS += -DGRAVITY
+#DFLAGS += -DGRAVITY_LONG_INTS
+#DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
 #DFLAGS += -DCOUPLE_DELTA_E_KINETIC
 #DFLAGS += -DOUTPUT_POTENTIAL
-DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
+#DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 
 
 # Include Gravity From Particles PM
@@ -112,9 +119,9 @@ DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 
 
 # Turn OpenMP on for CPU calculations
-DFLAGS += -DPARALLEL_OMP
-OMP_NUM_THREADS ?= 16
-DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
+#DFLAGS += -DPARALLEL_OMP
+#OMP_NUM_THREADS ?= 16
+#DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 #DFLAGS += -DPRINT_OMP_DOMAIN
 
 # Cosmological simulation
