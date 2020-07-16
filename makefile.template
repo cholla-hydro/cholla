@@ -183,3 +183,7 @@ $(EXEC): $(OBJS)
 
 clean:
 	 rm -f $(OBJS) $(EXEC)
+
+check-hydro: $(EXEC)
+	jsrun --smpiargs="-gpu" -n1 -a1 -c1 -g1 ./cholla tests/regression/hydro_input.txt
+	diff 1.txt.0 tests/regression/hydro_test.txt

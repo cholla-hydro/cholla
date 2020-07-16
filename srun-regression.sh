@@ -12,4 +12,4 @@ OUTDIR="out.regression.${LSB_JOBID}"
 set -x
 mkdir -p ${OUTDIR}
 cd ${OUTDIR}
-jsrun --smpiargs="-gpu" -n1 -a1 -c1 -g1 ../cholla ../regression.txt |& tee tee
+jsrun --smpiargs="-gpu" -n1 -a1 -c1 -g1 ../cholla ../tests/regression/hydro_input.txt |& tee tee
