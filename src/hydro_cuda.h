@@ -69,11 +69,5 @@ __device__ void Average_Cell_All_Fields( int i, int j, int k, int nx, int ny, in
 __device__ Real Average_Cell_Single_Field( int field_indx, int i, int j, int k, int nx, int ny, int nz, int ncells, Real *conserved );
 
 
-__device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound, Real *gx);
-
-__device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real *gx, Real *gy);
-
-__device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz);
-
 #endif //HYDRO_CUDA_H
 #endif //CUDA
