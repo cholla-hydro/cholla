@@ -41,13 +41,7 @@ Configuration Notes
 Most of the configuration options available in *Cholla* are selected by commenting/uncommenting
 the appropriate line in the Makefile or by setting environment variables in the build script.
 Examples of configurations that require edits to the Makefile include single vs
-double precision, output format, the reconstruction method, Riemann solver, integrator, 
-and cooling. The entire code must be recompiled any time you change the configuration.
-
-Other configuration options set in the Makefile include
-dual energy (`-DDE`) 
-and the passive scalar flag (`-DSCALAR`). It is strongly recommended that you include the dual energy
-flag when cooling is turned on.
+double precision, output format, the reconstruction method, Riemann solver, integrator, and cooling. The entire code must be recompiled any time you change the configuration. For more information on the various options, see the "[Makefile](https://github.com/cholla-hydro/cholla/wiki/Makefile)" page of the wiki.
 
 
 Running Cholla
