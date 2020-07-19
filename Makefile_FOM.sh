@@ -131,8 +131,8 @@ ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
 CC = mpicc
 CXX = mpic++
 endif
-CXXFLAGS += -std=c++14
-GPUFLAGS += -std=c++14
+CXXFLAGS += -std=c++11
+GPUFLAGS += -std=c++11
 DFLAGS += -DPARIS_NO_GPU_MPI
 OMP_NUM_THREADS = 7
 FFTW_ROOT = /ccs/proj/csc380/cholla/fom/code/fftw/
