@@ -129,7 +129,7 @@ CC = gcc
 CXX = g++
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
 CC = mpicc
-CXX = mpic++
+CXX = mpicxx
 endif
 CXXFLAGS += -std=c++11
 GPUFLAGS += -std=c++11
