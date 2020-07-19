@@ -141,6 +141,7 @@ HDF5_ROOT = $(OLCF_HDF5_ROOT)
 FFTW_ROOT = /ccs/proj/csc380/cholla/fom/code/fftw/
 PFFT_ROOT = /ccs/proj/csc380/cholla/fom/code/fftw/
 GRACKLE_HOME = /ccs/proj/ast149/code/grackle/lib 
+LIBS += -L$(CUDA_ROOT)/lib64
 endif
 
 
