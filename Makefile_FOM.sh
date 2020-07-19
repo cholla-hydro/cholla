@@ -136,10 +136,11 @@ GPUFLAGS += -std=c++11
 DFLAGS += -DPARIS_NO_GPU_MPI
 OMP_NUM_THREADS = 7
 MPI_HOME = $(MPI_ROOT)
+CUDA_ROOT = $(OLCF_CUDA_ROOT)
+HDF5_ROOT = $(OLCF_HDF5_ROOT)
 FFTW_ROOT = /ccs/proj/csc380/cholla/fom/code/fftw/
 PFFT_ROOT = /ccs/proj/csc380/cholla/fom/code/fftw/
 GRACKLE_HOME = /ccs/proj/ast149/code/grackle/lib 
-HDF5_ROOT = $(OLCF_HDF5_ROOT)
 endif
 
 
@@ -216,7 +217,7 @@ else
   GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
-  LIBS += -lcudart
+  LIBS += -L$(CUDA_ROOT)/lib -lcudart
 endif
 
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
