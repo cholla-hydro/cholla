@@ -135,9 +135,11 @@ CXXFLAGS += -std=c++11
 GPUFLAGS += -std=c++11
 DFLAGS += -DPARIS_NO_GPU_MPI
 OMP_NUM_THREADS = 7
+MPI_HOME = $(MPI_ROOT)
 FFTW_ROOT = /ccs/proj/csc380/cholla/fom/code/fftw/
 PFFT_ROOT = /ccs/proj/csc380/cholla/fom/code/fftw/
 GRACKLE_HOME = /ccs/proj/ast149/code/grackle/lib 
+HDF5_ROOT = $(OLCF_HDF5_ROOT)
 endif
 
 
@@ -191,9 +193,9 @@ endif
 
 
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
-  CXXFLAGS += -I$(HDF5INCLUDE)
-  GPUFLAGS += -I$(HDF5INCLUDE)
-  LIBS += -L$(HDF5DIR) -lhdf5
+  CXXFLAGS += -I$(HDF5_ROOT)/include
+  GPUFLAGS += -I$(HDF5_ROOT)/include
+  LIBS += -L$(HDF5_ROOT)/lib -lhdf5
 endif
 
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
