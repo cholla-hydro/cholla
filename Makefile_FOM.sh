@@ -81,7 +81,7 @@ DFLAGS += -DTEMPERATURE_FLOOR
 #DFLAGS += -DCOOLING_GPU 
 #DFLAGS += -DCLOUDY_COOL
 
-Use Tiled Iitial Conditions for Scaling Tets
+# Use Tiled Iitial Conditions for Scaling Tets
 DFLAGS += -DTILED_INITIAL_CONDITIONS
 
 # Print Initial Statistics
@@ -121,7 +121,7 @@ DFLAGS += -DCOSMOLOGY
 #DFLAGS += -DCOOLING_GRACKLE
 
 
-SYTEM = "Summit"
+SYSTEM = "Summit"
 
 
 ifeq ($(SYSTEM),"Summit")
