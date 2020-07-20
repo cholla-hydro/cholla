@@ -7,7 +7,9 @@ module list
 #Load ics for scaling test
 mkdir data
 cd data
-wget https://www.dropbox.com/s/ean9331oqacemlq/ics_25Mpc_128_particles.h5?dl=0
+wget https://www.dropbox.com/s/ean9331oqacemlq/ics_25Mpc_128.h5
+wget https://www.dropbox.com/s/ean9331oqacemlq/ics_25Mpc_128_particles.h5
+cd ..
 
 export POISSON_SOLVER='-DPARIS'
 export SUFFIX='.paris-cuda'
