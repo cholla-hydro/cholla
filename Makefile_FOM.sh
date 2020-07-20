@@ -61,7 +61,7 @@ DFLAGS += -DVL
 #DFLAGS += -DSIMPLE
 
 # Use Dual Energy Formalism
-#DFLAGS += -DDE
+DFLAGS += -DDE
 
 # Evolve additional scalars
 #DFLAGS += -DSCALAR
