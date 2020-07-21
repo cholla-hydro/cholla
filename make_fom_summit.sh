@@ -1,7 +1,6 @@
 #!/bin/bash
 
-module load hdf5
-module load cuda
+module load gcc hdf5 cuda
 module list
 
 #Load ics for scaling test
