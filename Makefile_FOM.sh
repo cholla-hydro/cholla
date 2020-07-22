@@ -122,7 +122,7 @@ DFLAGS += -DCOSMOLOGY
 
 
 
-ifeq ($(SYSTEM),"Summit")
+ifeq ($(SYSTEM_NAME),"Summit")
 CC = gcc
 CXX = g++
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
