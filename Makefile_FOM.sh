@@ -121,8 +121,6 @@ DFLAGS += -DCOSMOLOGY
 #DFLAGS += -DCOOLING_GRACKLE
 
 
-SYSTEM = "Summit"
-
 
 ifeq ($(SYSTEM),"Summit")
 CC = gcc
