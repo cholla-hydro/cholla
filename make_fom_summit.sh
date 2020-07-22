@@ -11,8 +11,8 @@ module list
 # wget https://www.dropbox.com/s/rbtoo3jx9a558ip/ics_25Mpc_256.h5
 # wget https://www.dropbox.com/s/7bq5an37uudtlz0/ics_25Mpc_256_particles.h5
 # cd ..
-export SYSTEM = "Summit"
-export POISSON_SOLVER = '-DPARIS'
-export SUFFIX = '.paris-cuda'
+export SYSTEM='Summit'
+export POISSON_SOLVER='-DPARIS'
+export SUFFIX='.paris-cuda'
 make clean
 make -f Makefile_FOM.sh
