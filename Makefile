@@ -1,128 +1,44 @@
 
-DIRS := src src/gravity src/particles src/cosmology src/cooling
+#-- Set default include makefile
+MACHINE ?= $(shell machines/machine.sh)
+
+include machines/make.inc.$(MACHINE)
+
+DIRS     := src src/gravity src/particles src/cosmology src/cooling
+
+SUFFIX = .hydro.$(MACHINE)
 
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
+  DFLAGS += -DPARIS
+  SUFFIX = .paris.$(MACHINE)
 endif
 
-CFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.c))
+CFILES   := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.c))
 CPPFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cpp))
 GPUFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cu))
 
-OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(GPUFILES))
+OBJS     := $(subst .c,.o,$(CFILES)) \
+            $(subst .cpp,.o,$(CPPFILES)) \
+            $(subst .cu,.o,$(GPUFILES))
 
-POISSON_SOLVER ?= -DPFFT
-DFLAGS += $(POISSON_SOLVER)
+#-- Set default compilers and flags
+CC       ?= cc
+CXX      ?= CC
 
+BUILD_OPTIMIZE = -O2
+BUILD    ?= OPTIMIZE
 
-#To use GPUs, CUDA must be turned on here
-#Optional error checking can also be enabled
-DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
+CFLAGS   = $(BUILD_$(BUILD))
+CXXFLAGS = $(BUILD_$(BUILD))
 
-#To use MPI, DFLAGS must include -DMPI_CHOLLA
-DFLAGS += -DMPI_CHOLLA -DBLOCK
+BUILD    ?= OPTIMIZE
 
-#Set the MPI Processes grid [nproc_x, nproc_y, nproc_z]
-#DFLAGS += -DSET_MPI_GRID
+#-- Add flags and libraries as needed
 
-#Limit the number of steps
-#DFLAGS += -DN_STEPS_LIMIT=26
-
-# Single or double precision
-#DFLAGS += -DPRECISION=1
-DFLAGS += -DPRECISION=2
-
-# Output preferences
-DFLAGS += -DOUTPUT
-#DFLAGS += -DBINARY
-DFLAGS += -DHDF5
-#DFLAGS += -DSLICES
-#DFLAGS += -DPROJECTION
-#DFLAGS += -DROTATED_PROJECTION
-
-# Output all data every N_OUTPUT_COMPLETE snapshots ( These are Restart Files )
-#DFLAGS += -DN_OUTPUT_COMPLETE=10
-
-# Reconstruction
-#DFLAGS += -DPCM
-#DFLAGS += -DPLMP
-#DFLAGS += -DPLMC
-DFLAGS += -DPPMP
-#DFLAGS += -DPPMC
-
-# Riemann Solver
-#DFLAGS += -DEXACT
-#DFLAGS += -DROE
-DFLAGS += -DHLLC
-
-# Integrator
-#DFLAGS += -DCTU
-DFLAGS += -DVL
-#DFLAGS += -DSIMPLE
-
-# Use Dual Energy Formalism
-#DFLAGS += -DDE
-
-# Evolve additional scalars
-#DFLAGS += -DSCALAR
-
-
-# Apply a minimum value to Conserved values
-DFLAGS += -DDENSITY_FLOOR
-DFLAGS += -DTEMPERATURE_FLOOR
-
-# Average Slow cell when the cell delta_t is very small
-#DFLAGS += -DAVERAGE_SLOW_CELLS
-
-# Allocate GPU memory every timestep
-#DFLAGS += -DDYNAMIC_GPU_ALLOC
-
-# Set the cooling function
-#DFLAGS += -DCOOLING_GPU 
-#DFLAGS += -DCLOUDY_COOL
-
-# Use Tiled Iitial Conditions for Scaling Tets
-#DFLAGS += -DTILED_INITIAL_CONDITIONS
-
-# Print Initial Statistics
-#DFLAGS += -DPRINT_INITIAL_STATS
-
-# Print some timing stats
-DFLAGS += -DCPU_TIME
-
-
-# Include FFT gravity
-DFLAGS += -DGRAVITY
-DFLAGS += -DGRAVITY_LONG_INTS
-DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
-#DFLAGS += -DCOUPLE_DELTA_E_KINETIC
-#DFLAGS += -DOUTPUT_POTENTIAL
-DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
-
-
-# Include Gravity From Particles PM
-#DFLAGS += -DPARTICLES
-#DFLAGS += -DPARTICLES_CPU
-#DFLAGS += -DPARTICLES_GPU
-#DFLAGS += -DONLY_PARTICLES
-#DFLAGS += -DSINGLE_PARTICLE_MASS
-#DFLAGS += -DPARTICLES_LONG_INTS
-#DFLAGS += -DPARTICLES_KDK
-#DFLAGS += -DPARTICLE_IDS
-
-
-# Turn OpenMP on for CPU calculations
-DFLAGS += -DPARALLEL_OMP
-OMP_NUM_THREADS ?= 16
-DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
-#DFLAGS += -DPRINT_OMP_DOMAIN
-
-# Cosmological simulation
-#DFLAGS += -DCOSMOLOGY
-
-# Use Grackle for cooling in cosmological simulations
-#DFLAGS += -DCOOLING_GRACKLE
-
+CFLAGS   += $(DFLAGS) -Isrc
+CXXFLAGS += $(DFLAGS) -Isrc
+GPUFLAGS += $(DFLAGS) -Isrc
 
 ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
@@ -131,14 +47,6 @@ ifdef HIP_PLATFORM
      DFLAGS += -I$(ROCM_PATH)/include
   endif
 endif
-
-CC ?= cc
-CXX ?= CC
-CFLAGS += -g -Ofast
-CXXFLAGS += -g -Ofast -std=c++14
-CFLAGS += $(DFLAGS) -Isrc
-CXXFLAGS += $(DFLAGS) -Isrc
-GPUFLAGS += $(DFLAGS) -Isrc
 
 ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
   CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
@@ -167,17 +75,16 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   endif
 endif
 
-
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
-  CXXFLAGS += -I$(HDF5INCLUDE)
-  GPUFLAGS += -I$(HDF5INCLUDE)
-  LIBS += -L$(HDF5DIR) -lhdf5
+  CXXFLAGS += -I$(HDF5_ROOT)/include
+  GPUFLAGS += -I$(HDF5_ROOT)/include
+  LIBS     += -L$(HDF5_ROOT)/lib -lhdf5
 endif
 
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
-  GPUFLAGS += -I$(MPI_HOME)/include
+  GPUFLAGS += -I$(MPI_ROOT)/include
   ifdef HIP_PLATFORM
-     LIBS += -L$(MPI_HOME)/lib -lmpi
+     LIBS += -L$(MPI_ROOT)/lib -lmpi
   endif
 endif
 
@@ -192,7 +99,7 @@ else
   GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
-  LIBS += -lcudart
+  LIBS += -L$(CUDA_ROOT)/lib64 -lcudart
 endif
 
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
@@ -200,12 +107,12 @@ ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   DFLAGS += -DOUTPUT_TEMPERATURE
   DFLAGS += -DOUTPUT_CHEMISTRY
   #DFLAGS += -DOUTPUT_ELECTRONS
-	#DFLAGS += -DOUTPUT_FULL_IONIZATION
-	#DFLAGS += -DOUTPUT_METALS
-	DFLAGS += -DSCALAR
-	DFLAGS += -DN_OMP_THREADS_GRACKLE=12
-	CXXFLAGS += -I/ccs/proj/ast149/code/grackle/include
-	LIBS += -L/ccs/proj/ast149/code/grackle/lib -lgrackle
+  #DFLAGS += -DOUTPUT_FULL_IONIZATION
+  #DFLAGS += -DOUTPUT_METALS
+  DFLAGS += -DSCALAR
+  DFLAGS += -DN_OMP_THREADS_GRACKLE=12
+  CXXFLAGS += -I$(GRACKLE_ROOT)/include
+  LIBS     += -L$(GRACKLE_ROOT)lib -lgrackle
 endif
 
 ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
@@ -214,7 +121,7 @@ ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
     LIBS += -L$(CRAYLIBS_X86_64) -L$(GCC_X86_64)/lib64 -lcraymath -lcraymp -lu
   else
     LDFLAGS += -fopenmp
-	endif
+  endif
 endif
 
 
@@ -222,20 +129,23 @@ endif
 
 EXEC := cholla$(SUFFIX)
 
-$(EXEC): $(OBJS)
-				$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
+$(EXEC): prereq $(OBJS)
+	$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
 
 %.o: %.c
-				$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.cpp
-				$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.o: %.cu
-				$(GPUCXX) $(GPUFLAGS) -c $< -o $@
+	$(GPUCXX) $(GPUFLAGS) -c $< -o $@
 
 .PHONY: clean
-
+	
 clean:
-			rm -f $(OBJS) $(EXEC)
+	rm -f $(OBJS) 
+	find . -type f -executable -name cholla.*.$(MACHINE) -exec rm -f '{}' \;
 
+prereq:
+	machines/prereq.sh $(MACHINE)

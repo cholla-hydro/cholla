@@ -1,0 +1,26 @@
+#-- make.inc for Summit at the OLCF 
+#   https://www.olcf.ornl.gov/summit/
+
+DFLAGS    += -DCUDA
+DFLAGS    += -DMPI_CHOLLA
+DFLAGS    += -DBLOCK
+DFLAGS    += -DPRECISION=2
+DFLAGS    += -DPPMC
+DFLAGS    += -DHLLC
+DFLAGS    += -DVL
+DFLAGS    += -DCOOLING_GPU #-DCLOUDY_COOL
+DFLAGS    += -DHDF5
+DFLAGS    += -DDENSITY_FLOOR
+DFLAGS    += -DTEMPERATURE_FLOOR
+
+CC        = mpicc
+CXX       = mpicxx
+
+#-- flags for different build
+BUILD_OPTIMIZE  = -O2
+BUILD_DEBUG     = -g
+
+#-- Library
+CUDA_ROOT    = ${OLCF_CUDA_ROOT}
+HDF5_ROOT    = ${OLCF_HDF5_ROOT}
+GRACKLE_ROOT = /ccs/proj/ast149/code/grackle
