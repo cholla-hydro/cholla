@@ -5,11 +5,11 @@ DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DBLOCK
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMC
+DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
 DFLAGS    += -DVL
-DFLAGS    += -DCOOLING_GPU #-DCLOUDY_COOL
-DFLAGS    += -DHDF5
+#DFLAGS    += -DCOOLING_GPU #-DCLOUDY_COOL
+DFLAGS    += -DOUTPUT # -DHDF5
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
 
@@ -17,7 +17,7 @@ CC        = mpicc
 CXX       = mpicxx
 
 #-- flags for different build
-BUILD_OPTIMIZE  = -O2
+BUILD_OPTIMIZE  = -Ofast
 BUILD_DEBUG     = -g
 
 #-- Library

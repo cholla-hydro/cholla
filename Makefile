@@ -4,10 +4,9 @@ MACHINE ?= $(shell machines/machine.sh)
 
 include machines/make.inc.$(MACHINE)
 
-DIRS     := src src/gravity src/particles src/cosmology src/cooling
-
 SUFFIX = .hydro.$(MACHINE)
 
+DIRS     := src src/gravity src/particles src/cosmology src/cooling
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
   DFLAGS += -DPARIS
@@ -26,11 +25,11 @@ OBJS     := $(subst .c,.o,$(CFILES)) \
 CC       ?= cc
 CXX      ?= CC
 
-BUILD_OPTIMIZE = -O2
+BUILD_OPTIMIZE ?= -O2
 BUILD    ?= OPTIMIZE
 
-CFLAGS   = $(BUILD_$(BUILD))
-CXXFLAGS = $(BUILD_$(BUILD))
+CFLAGS   = $(BUILD_$(BUILD)) 
+CXXFLAGS = $(BUILD_$(BUILD)) -std=c++14
 
 BUILD    ?= OPTIMIZE
 
@@ -145,7 +144,7 @@ $(EXEC): prereq $(OBJS)
 	
 clean:
 	rm -f $(OBJS) 
-	find . -type f -executable -name cholla.*.$(MACHINE) -exec rm -f '{}' \;
+	find . -type f -executable -name "cholla.*.$(MACHINE)" -exec rm -f '{}' \;
 
 prereq:
 	machines/prereq.sh $(MACHINE)
