@@ -1,10 +1,11 @@
-
 #-- Set default include makefile
 MACHINE ?= $(shell machines/machine.sh)
+TYPE    ?= hydro
 
-include machines/make.inc.$(MACHINE)
+include machines/make.host.$(MACHINE)
+include machines/make.type.$(TYPE)
 
-SUFFIX = .hydro.$(MACHINE)
+SUFFIX = .$(TYPE).$(MACHINE)
 
 DIRS     := src src/gravity src/particles src/cosmology src/cooling
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
@@ -22,16 +23,16 @@ OBJS     := $(subst .c,.o,$(CFILES)) \
             $(subst .cu,.o,$(GPUFILES))
 
 #-- Set default compilers and flags
-CC       ?= cc
-CXX      ?= CC
+CC                ?= cc
+CXX               ?= CC
 
-BUILD_OPTIMIZE ?= -O2
-BUILD    ?= OPTIMIZE
+CFLAGS_OPTIMIZE    = -Ofast
+CXXFLAGS_OPTIMIZE  = -Ofast -std=c++14
+BUILD             ?= OPTIMIZE
 
-CFLAGS   = $(BUILD_$(BUILD)) 
-CXXFLAGS = $(BUILD_$(BUILD)) -std=c++14
+CFLAGS             = $(CFLAGS_$(BUILD))
+CXXFLAGS           = $(CXXFLAGS_$(BUILD))
 
-BUILD    ?= OPTIMIZE
 
 #-- Add flags and libraries as needed
 
@@ -128,7 +129,7 @@ endif
 
 EXEC := cholla$(SUFFIX)
 
-$(EXEC): prereq $(OBJS)
+$(EXEC): prereq-build $(OBJS) 
 	$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
 
 %.o: %.c
@@ -146,5 +147,12 @@ clean:
 	rm -f $(OBJS) 
 	find . -type f -executable -name "cholla.*.$(MACHINE)" -exec rm -f '{}' \;
 
-prereq:
-	machines/prereq.sh $(MACHINE)
+prereq-build:
+	machines/prereq.sh build $(MACHINE)
+prereq-run:
+	machines/prereq.sh run $(MACHINE)
+
+check : OUTPUT=-DOUTPUT
+check : clean $(EXEC) prereq-run
+	$(JOB_LAUNCH) ./cholla.$(TYPE).$(MACHINE) tests/regression/${TYPE}_input.txt
+	machines/check.sh $(TYPE) tests/regression/${TYPE}_test.txt

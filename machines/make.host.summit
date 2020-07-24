@@ -1,0 +1,18 @@
+#-- make.inc for Summit at the OLCF 
+#   https://www.olcf.ornl.gov/summit/
+
+#-- Compiler and flags for different build type
+CC                = mpicc
+CXX               = mpicxx
+CFLAGS_DEBUG      = -g -O0
+CFLAGS_OPTIMIZE   = -Ofast
+CXXFLAGS_DEBUG    = -g -O0 -std=c++14
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++14
+
+#-- How to launch job
+JOB_LAUNCH        = jsrun -n 1 -g 1 -c 7 --bind packed:7 -a 1
+
+#-- Library
+CUDA_ROOT    = ${OLCF_CUDA_ROOT}
+HDF5_ROOT    = ${OLCF_HDF5_ROOT}
+GRACKLE_ROOT = /ccs/proj/ast149/code/grackle
