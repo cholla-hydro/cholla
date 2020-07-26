@@ -4,6 +4,7 @@
 #
 
 ######################################
+# Number of cells must be 256 per MPI task in each direction
 # number of grid cells in the x dimension
 nx=4096
 # number of grid cells in the y dimension
