@@ -1,4 +1,4 @@
-include machines/make.type.hydro
+include builds/make.type.hydro
 
 POISSON_SOLVER ?= -DPARIS
 

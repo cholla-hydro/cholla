@@ -40,13 +40,6 @@ CFLAGS   += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc
 
-ifdef HIP_PLATFORM
-  DFLAGS += -DO_HIP
-  CXXFLAGS += -D__HIP_PLATFORM_HCC__
-  ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
-     DFLAGS += -I$(ROCM_PATH)/include
-  endif
-endif
 
 ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
   CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
@@ -89,11 +82,18 @@ ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
 endif
 
 ifdef HIP_PLATFORM
+  DFLAGS += -DO_HIP
   CXXFLAGS += -I$(ROCM_PATH)/include -Wno-unused-result
+  CXXFLAGS += -D__HIP_PLATFORM_HCC__
   GPUCXX := hipcc
-  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-unused-command-line-argument -Wno-duplicate-decl-specifier -std=c++14 -ferror-limit=1
+  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-variable \
+              -Wno-unused-function -Wno-unused-result \
+              -Wno-unused-command-line-argument -Wno-duplicate-decl-specifier \
+              -std=c++14 -ferror-limit=1
+  GPUFLAGS += -I$(ROCM_PATH)/include
   LD := $(GPUCXX)
   LDFLAGS += $(GPUFLAGS)
+  LIBS += -L$(CRAYLIBS_X86_64) -L$(GCC_X86_64)/lib64 -lcraymath -lu
 else
   GPUCXX := nvcc
   GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
@@ -118,7 +118,7 @@ endif
 ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
   CXXFLAGS += -fopenmp
   ifdef HIP_PLATFORM
-    LIBS += -L$(CRAYLIBS_X86_64) -L$(GCC_X86_64)/lib64 -lcraymath -lcraymp -lu
+    LIBS += -lcraymp
   else
     LDFLAGS += -fopenmp
   endif
