@@ -1,9 +1,9 @@
 #-- Set default include makefile
-MACHINE ?= $(shell machines/machine.sh)
+MACHINE ?= $(shell builds/machine.sh)
 TYPE    ?= hydro
 
-include machines/make.host.$(MACHINE)
-include machines/make.type.$(TYPE)
+include builds/make.host.$(MACHINE)
+include builds/make.type.$(TYPE)
 
 SUFFIX = .$(TYPE).$(MACHINE)
 
@@ -148,11 +148,11 @@ clean:
 	find . -type f -executable -name "cholla.*.$(MACHINE)" -exec rm -f '{}' \;
 
 prereq-build:
-	machines/prereq.sh build $(MACHINE)
+	builds/prereq.sh build $(MACHINE)
 prereq-run:
-	machines/prereq.sh run $(MACHINE)
+	builds/prereq.sh run $(MACHINE)
 
 check : OUTPUT=-DOUTPUT
 check : clean $(EXEC) prereq-run
 	$(JOB_LAUNCH) ./cholla.$(TYPE).$(MACHINE) tests/regression/${TYPE}_input.txt
-	machines/check.sh $(TYPE) tests/regression/${TYPE}_test.txt
+	builds/check.sh $(TYPE) tests/regression/${TYPE}_test.txt
