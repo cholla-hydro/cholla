@@ -8,7 +8,8 @@ if [ "$1" == "build" ]; then
         echo "modulefile required: gcc, hdf5, and cuda"
         echo "do: 'module load gcc hdf5 cuda'"
         exit 1
-      fi;;
+      fi
+      ;;
     poplar)
         module list 2>&1 | grep -q ompi-cray \
           && module list 2>&1 | grep -q PrgEnv-cray \
@@ -34,6 +35,15 @@ if [ "$1" == "run" ]; then
         echo "  bsub -q debug -nnodes 1 -P <PROJ_ID> -W 1:00 -Is /bin/bash"
         exit 1
       fi
+      $0 build $2
+      ;;
+    poplar)
+      #-- Rely on `srun` to submit job immediately
+      #if [ -z $SLURM_JOBID ]; then
+      #  echo "Job not started. Start an interactive job with, e.g.:"
+      #  echo "  salloc --nodes=1 -p amdMI60 --time=02:00:00"
+      #  exit 1
+      #fi
       $0 build $2
   esac
   

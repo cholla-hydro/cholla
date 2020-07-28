@@ -12,7 +12,7 @@ CXXFLAGS_OPTIMIZE = -Ofast -std=c++14
 HIP_PLATFORM = hcc
 
 #-- How to launch job
-JOB_LAUNCH        = echo "not set"
+JOB_LAUNCH        = srun -n 1 -c 16 -N 1 --exclusive --unbuffered -p amdMI60
 
 #-- Library
 HDF5_ROOT    = $(shell dirname $(HDF5DIR))
