@@ -131,6 +131,7 @@ EXEC := cholla$(SUFFIX)
 
 $(EXEC): prereq-build $(OBJS) 
 	$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
+	eval $(EXTRA_COMMANDS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
