@@ -1,9 +1,10 @@
+#ifdef MPI_CHOLLA
 #include"grid3D.h"
 #include"mpi_routines.h"
 #include"io.h"
 #include"error_handling.h"
 #include <iostream>
-#ifdef MPI_CHOLLA
+
 
 void Grid3D::Set_Boundaries_MPI(struct parameters P)
 { 
