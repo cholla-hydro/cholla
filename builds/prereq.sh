@@ -4,9 +4,9 @@ if [ "$1" == "build" ]; then
   
   case $2 in
     summit)
-      if ! module is-loaded gcc hdf5 cuda; then
-        echo "modulefile required: gcc, hdf5, and cuda"
-        echo "do: 'module load gcc hdf5 cuda'"
+      if ! module is-loaded gcc hdf5 cuda fftw; then
+        echo "modulefile required: gcc, hdf5, fftw, and cuda"
+        echo "do: 'module load gcc hdf5 cuda fftw'"
         exit 1
       fi
       ;;
