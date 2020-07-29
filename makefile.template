@@ -27,6 +27,9 @@ DFLAGS += -DPRECISION=2
 #DFLAGS += -DOUTPUT
 #DFLAGS += -DBINARY
 #DFLAGS += -DHDF5
+#DFLAGS += -DSLICES
+#DFLAGS += -DPROJECTIONS
+#DFLAGS += -DROTATED_PROJECTIONS
 
 #Output all data every N_OUTPUT_COMPLETE snapshots ( These are Restart Files )
 #DFLAGS += -DN_OUTPUT_COMPLETE=10
@@ -128,12 +131,15 @@ ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
 endif
 
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
+	CFLAGS += -I$(HDF5INCLUDE)
 	CXXFLAGS += -I$(HDF5INCLUDE)
 	GPUFLAGS += -I$(HDF5INCLUDE)
 	LIBS += -L$(HDF5DIR) -lhdf5
 endif
 
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
+	CC = mpicc
+	CXX = mpicxx
 	GPUFLAGS += -I$(MPI_HOME)/include
 endif
 
