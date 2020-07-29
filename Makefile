@@ -132,12 +132,15 @@ ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
 endif
 
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
+	CFLAGS += -I$(HDF5INCLUDE)
 	CXXFLAGS += -I$(HDF5INCLUDE)
 	GPUFLAGS += -I$(HDF5INCLUDE)
 	LIBS += -L$(HDF5DIR) -lhdf5
 endif
 
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
+	CC = mpicc
+	CXX = mpicxx
 	GPUFLAGS += -I$(MPI_HOME)/include
 endif
 
