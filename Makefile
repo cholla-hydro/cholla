@@ -150,7 +150,7 @@ ifeq ($(findstring -DCUDA,$(DFLAGS)),-DCUDA)
 	GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
 	LD := $(CXX)
 	LDFLAGS := $(CXXFLAGS)
-	LIBS += -lcudart
+	LIBS += -L$(CUDA_DIR)/lib64 -lcudart
 endif
 
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
