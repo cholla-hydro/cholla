@@ -296,10 +296,10 @@ void Time::Print_Average_Times( struct parameters P ){
   bool file_exists = false;
   if (FILE *file = fopen(file_name.c_str(), "r")){
     file_exists = true;
-    chprintf( " File exists, appending values: %s \n\n", file_name.c_str() );
+    chprintf( " File exists, appending values: %s \n", file_name.c_str() );
     fclose( file );
   } else{
-    chprintf( " Creating File: %s \n\n", file_name.c_str() );
+    chprintf( " Creating File: %s \n", file_name.c_str() );
   }
 
 
@@ -347,6 +347,8 @@ void Time::Print_Average_Times( struct parameters P ){
 
   out_file << "\n";
   out_file.close();
+  
+  chprintf( "Saved Timing: %s \n\n", file_name.c_str() );
 
 }
 
