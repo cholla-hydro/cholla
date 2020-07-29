@@ -6,6 +6,7 @@ CPPFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cpp))
 GPUFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cu))
 
 OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(GPUFILES))
+CUOBJS := $(subst .cu,.o,$(GPUFILES))
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -174,19 +175,26 @@ endif
 
 EXEC := cholla$(SUFFIX)
 
-$(EXEC): $(OBJS)
-	$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
+$(EXEC): $(OBJS) src/gpuCode.o
+	$(LD) $(LDFLAGS) $(OBJS) src/gpuCode.o -o $(EXEC) $(LIBS)
 
-%.o: %.c
+%.o:	%.c
 		$(CC) $(CFLAGS) -c $< -o $@
 
-%.o: %.cpp
-			$(CXX) $(CXXFLAGS) -c $< -o $@
+%.o:	%.cpp
+		$(CXX) $(CXXFLAGS) -c $< -o $@
 
-%.o: %.cu
-				$(GPUCXX) $(GPUFLAGS) -c $< -o $@
+%.o:	%.cu
+		$(GPUCXX) $(GPUFLAGS) --device-c -c $< -o $@
+
+src/gpuCode.o:	$(CUOBJS)
+		$(GPUCXX) -dlink $(GPUFLAGS) $(CUOBJS) -o src/gpuCode.o
+
+
 
 .PHONY : clean
 
 clean:
-	 rm -f $(OBJS) $(EXEC)
+	 rm -f $(OBJS) src/gpuCode.o $(EXEC)
+
+
