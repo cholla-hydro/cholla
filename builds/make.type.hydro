@@ -1,0 +1,16 @@
+#-- Default hydro only build
+
+#-- separated output flag so that it can be overriden in target-specific 
+#   for make check
+OUTPUT    ?=  -DOUTPUT -DHDF5
+
+DFLAGS    += -DCUDA
+DFLAGS    += -DMPI_CHOLLA
+DFLAGS    += -DBLOCK
+DFLAGS    += -DPRECISION=2
+DFLAGS    += -DPPMP
+DFLAGS    += -DHLLC
+DFLAGS    += -DVL
+DFLAGS    += $(OUTPUT)
+DFLAGS    += -DDENSITY_FLOOR
+DFLAGS    += -DTEMPERATURE_FLOOR
