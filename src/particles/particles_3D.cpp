@@ -1,9 +1,12 @@
 #ifdef PARTICLES
 
 #include <unistd.h>
+#include <random>
+#include <cmath>
 #include "../io.h"
 #include "../grid3D.h"
 #include"../random_functions.h"
+#include "../model/disk_galaxy.h"
 #include "particles_3D.h"
 
 #ifdef MPI_CHOLLA
@@ -156,10 +159,9 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   
   // Initialize Particles
   if (strcmp(P->init, "Spherical_Overdensity_3D")==0) Initialize_Sphere();
-  
-  if (strcmp(P->init, "Zeldovich_Pancake")==0) Initialize_Zeldovich_Pancake( P );
-  
-  if (strcmp(P->init, "Read_Grid")==0)  Load_Particles_Data(  P );
+  else if (strcmp(P->init, "Zeldovich_Pancake")==0) Initialize_Zeldovich_Pancake( P );
+  else if (strcmp(P->init, "Read_Grid")==0)  Load_Particles_Data(  P );
+  else if (strcmp(P->init, "Disk_3D_Stellar_Clusters") == 0) Initialize_Disk_Stellar_Clusters(P);
   
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);
@@ -216,11 +218,8 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   Allocate_Memory_GPU_MPI();
   #endif//PARTICLES_GPU
   #endif//MPI_CHOLLA
-  
-
-
-  
 }
+
 
 void Particles_3D::Allocate_Memory( void ){
   
@@ -276,6 +275,7 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   chprintf( " Allocated GPU memory for MPI trandfers.\n"); 
 }
 #endif //MPI_CHOLLA
+
 
 void Particles_3D::Free_Memory_GPU(){
   
@@ -463,6 +463,72 @@ void Particles_3D::Initialize_Sphere( void ){
 }
 
 
+/**
+ *   Initializes a disk population of uniform mass (\f$(10^4 M_\odot)\f$) stellar clusters
+ */
+void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
+  #ifdef PARTICLES_GPU
+      chprintf( " Initialize_Disk_Stellar_Clusters: PARTICLES_GPU not currently supported\n");
+      chexit(-1);
+  #endif
+  #ifndef SINGLE_PARTICLE_MASS
+      chprintf( " Initialize_Disk_Stellar_Clusters: only SINGLE_PARTICLE_MASS currently supported\n");
+      chexit(-1);
+  #endif
+  chprintf( " Initializing Particles Stellar Disk\n");
+
+  std::random_device rd;
+  std::mt19937 generator(rd());
+  std::gamma_distribution<> radialDist(2,1);  //for generating cyclindrical radii
+  std::uniform_real_distribution<Real> phiDist(0, 2*M_PI); //for generating phi
+
+  particle_mass = 1e4; // 10^4 solar masses
+  Real M_d = Galaxies::MW.getM_d(); // MW disk mass in M_sun (assumed to be all in stars)
+  Real R_d = Galaxies::MW.getR_d(); // MW stellar disk scale length in kpc
+  Real r_max = sqrt(P->xlen*P->xlen + P->ylen*P->ylen)/2;
+  r_max = P->xlen / 2.0;  // TODO: OW: fix this.
+
+  Real pPos_x, pPos_y, pPos_z, r, phi;
+  Real pVel_x, pVel_y, vel, ac;
+  unsigned long int N = (unsigned long int) M_d/particle_mass;
+  for  ( unsigned long int i = 0; i < N; i++ ){
+      r = R_d*radialDist(generator);
+      if (r > r_max) continue;
+
+      phi = phiDist(generator);
+
+      pPos_x = r * cos(phi);
+      pPos_y = r * sin(phi);
+      pPos_z = 0.0;
+      if (pPos_x < G.xMin || pPos_x > G.xMax) continue;
+      if (pPos_y < G.yMin || pPos_y > G.yMax) continue;
+      if (pPos_z < G.zMin || pPos_z > G.zMax) continue;
+
+      ac  = fabs(Galaxies::MW.gr_disk_D3D(r, 0) + Galaxies::MW.gr_halo_D3D(r, 0));
+      vel = sqrt(r*ac);
+      pVel_x = -sin(phi)*vel;
+      pVel_y =  cos(phi)*vel;
+
+      //Copy the particle data to the particles vectors
+      pos_x.push_back(pPos_x);
+      pos_y.push_back(pPos_y);
+      pos_z.push_back(pPos_z);
+      vel_x.push_back(pVel_x);
+      vel_y.push_back(pVel_y);
+      vel_z.push_back(0.0);
+      grav_x.push_back(0.0);
+      grav_y.push_back(0.0);
+      grav_z.push_back(0.0);
+      #ifdef PARTICLE_IDS
+      partIDs.push_back(i);
+      #endif
+  }
+  n_local = pos_x.size();
+
+  chprintf( " Stellar Disk Particles Initialized, n_local: %lu\n", n_local);
+}
+
+
 void Particles_3D::Initialize_Zeldovich_Pancake( struct parameters *P ){
   
   //No partidcles for the Zeldovich Pancake problem. n_local=0
@@ -477,9 +543,7 @@ void Particles_3D::Initialize_Zeldovich_Pancake( struct parameters *P ){
 }
 
 
-
 void Grid3D::Initialize_Uniform_Particles(){
-  
   //Initialize positions asigning one particle at each cell in a uniform grid
   
   int i, j, k, id;
@@ -596,21 +660,6 @@ void Particles_3D::Reset( void ){
   Free_Memory_GPU();
   #endif
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #endif//PARTICLES

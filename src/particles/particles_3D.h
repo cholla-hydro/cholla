@@ -222,11 +222,12 @@ class Particles_3D
   
   void Allocate_Memory();
   
-  
   void Initialize_Grid_Values();
   
   void Initialize_Sphere();
   
+  void Initialize_Disk_Stellar_Clusters(struct parameters *P);
+
   void Initialize_Zeldovich_Pancake( struct parameters *P );
   
   void Load_Particles_Data( struct parameters *P );
@@ -272,15 +273,6 @@ class Particles_3D
   #endif //PARTICLES_GPU
   #endif
 };
-
-
-
-
-
-
-
-
-
 
 
 #endif //PARTICLES_H
