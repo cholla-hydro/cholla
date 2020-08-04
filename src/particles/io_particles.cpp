@@ -39,7 +39,7 @@ void Particles_3D::Load_Particles_Data( struct parameters *P){
 
   #ifdef MPI_CHOLLA
   #ifdef TILED_INITIAL_CONDITIONS
-  sprintf(filename,"%s",filename); //Everyone reads from the same file
+  sprintf(filename,"%sics_%dMpc_%d_particles.h5", P->indir, (int) P->tile_length/1000, G.nx_local); //Everyone reads the same file
   #else
   sprintf(filename,"%s.%d",filename,procID);
   #endif //TILED_INITIAL_CONDITIONS

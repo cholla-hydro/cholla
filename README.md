@@ -15,7 +15,7 @@ This options can use only one MPI task.
 This solver performs FFTs on GPUs, distributed with MPI.
 It currently supports only certain numbers of MPI tasks, depending on the problem size.
   - The number of elements in each dimension must be divisible by the number of MPI tasks in that dimension.
-  - The number of elements in an X-Y slab must be divisible by the total number of MPI tasks.
+  - The number of elements in an X-Y slab must be divisible by the total number of MPI tasks. Because of the real-to-complex transform, the number of elements in an X-Y slab is not NXxNY, but instead is (NX/2+1)xNY.
   - The number of elements in the Z dimension must be divisible by the total number of MPI tasks.
 The intent is to extend and tune the Paris solver to run efficiently on exascale computers.
 - `-DPFFT -DPARIS` or `-DCUFFT -DPARIS` uses the *PFFT* or *CuFFT* solver, respectively, and compares the result of each Poisson solve against the result of the *Paris* solver.
