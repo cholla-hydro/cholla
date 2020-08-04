@@ -3,6 +3,8 @@
 #ifndef PARTICLES_H
 #define PARTICLES_H
 
+#define PARTICLES_LONG_INTS
+
 #include<stdio.h>
 #include<stdlib.h>
 #include <math.h>

@@ -158,19 +158,15 @@ void Grid3D::Advance_Particles( int N_step ){
   Timer.Start_Timer();
   #endif
   
-  #ifdef PARTICLES_KDK
   //Update the velocities by 0.5*delta_t and update the positions by delta_t
   if ( N_step == 1 ) Advance_Particles_KDK_Step1();
-  #endif
   
   if ( N_step == 2 ){
     //Compute the particles accelerations at the new positions
     Get_Particles_Acceleration();
     
-    #ifdef PARTICLES_KDK
     //Advance the particles velocities by the remaining 0.5*delta_t
     Advance_Particles_KDK_Step2();
-    #endif
 
   }
   

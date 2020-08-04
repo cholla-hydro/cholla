@@ -95,7 +95,7 @@ typedef int grav_int_t;
 #ifdef PARTICLES_LONG_INTS
 typedef long int part_int_t;
 #else
-typedef int part_int_t
+typedef int part_int_t;
 #endif//PARTICLES_LONG_INTS
 
 #include <vector>

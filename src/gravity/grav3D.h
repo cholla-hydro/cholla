@@ -1,6 +1,8 @@
 #ifndef GRAV3D_H
 #define GRAV3D_H
 
+#define GRAVITY_LONG_INTS
+
 #include<stdio.h>
 #include"../global.h"
 
