@@ -623,8 +623,8 @@ class Grid3D
   int Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Unload_Gravity_Potential_from_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Set_Potential_Boundaries_Isolated( int direction, int side, int *flags );  
-  void Compute_Potential_Boundaries_Isolated( int dir );
-  void Compute_Potential_Isolated_Boundary( int direction, int side, int bc_potential_id );  
+  void Compute_Potential_Boundaries_Isolated( int dir, struct parameters *P );
+  void Compute_Potential_Isolated_Boundary( int direction, int side, int bc_potential_type );  
   #ifdef SOR
   void Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current_a, struct parameters *P );
   int Load_Poisson_Boundary_To_Buffer( int direction, int side, Real *buffer  );

@@ -246,6 +246,7 @@ struct parameters
   int n_proc_y;
   int n_proc_z;
 #endif
+  int bc_potential_type;
 };
 
 
