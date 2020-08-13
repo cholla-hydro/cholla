@@ -343,9 +343,42 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   dens_avrg = Cosmo.rho_0_gas;
   #endif
   
+  
+  if ( !Grav.BC_FLAGS_SET ){
+    Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
+    Set_Boundary_Conditions( *P );
+    Grav.TRANSFER_POTENTIAL_BOUNDARIES = false;
+    // #ifdef MPI_CHOLLA
+    // printf(" Pid: %d Gravity Boundary Flags: %d %d %d %d %d %d \n", procID, Grav.boundary_flags[0], Grav.boundary_flags[1], Grav.boundary_flags[2], Grav.boundary_flags[3], Grav.boundary_flags[4], Grav.boundary_flags[5] );
+    // #endif
+    Grav.BC_FLAGS_SET = true;
+  }
+  
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+  if ( Grav.boundary_flags[0] == 3 ) Compute_Potential_Boundaries_Isolated(0);
+  if ( Grav.boundary_flags[1] == 3 ) Compute_Potential_Boundaries_Isolated(1);
+  // chprintf("Isolated X\n");
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
+  if ( Grav.boundary_flags[2] == 3 ) Compute_Potential_Boundaries_Isolated(2);
+  if ( Grav.boundary_flags[3] == 3 ) Compute_Potential_Boundaries_Isolated(3);
+  // chprintf("Isolated Y\n");
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  if ( Grav.boundary_flags[4] == 3 ) Compute_Potential_Boundaries_Isolated(4);
+  if ( Grav.boundary_flags[5] == 3 ) Compute_Potential_Boundaries_Isolated(5);
+  // chprintf("Isolated Z\n");
+  #endif
+  
+  
   //Solve Poisson Equation to compute the potential
   //Poisson Equation: laplacian( phi ) = 4 * pi * G / scale_factor * ( dens - dens_average )
+  #ifdef SOR
+  Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
+  #else
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
+  #endif
+  
   #ifdef PARIS_TEST
   {
     std::vector<Real> p(Grav.n_cells_potential);
