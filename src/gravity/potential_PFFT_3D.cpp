@@ -280,7 +280,7 @@ void Potential_PFFT_3D::Apply_K2_Funtion( void ){
       for (i=0; i<nx_local; i++){
         id = i + j*nx_local + k*nx_local*ny_local;
         Get_Index_Global( i, j, k, &i_g, &j_g, &k_g );
-        if ( i_g >= nx_total/2) i_g -= nz_total;
+        if ( i_g >= nx_total/2) i_g -= nx_total;
         if ( j_g >= ny_total/2) j_g -= ny_total;
         if ( k_g >= nz_total/2) k_g -= nz_total;
         kx =  2 * M_PI * i_g / Lbox_x;
