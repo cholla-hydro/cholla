@@ -135,6 +135,26 @@ OMP_NUM_THREADS = 20
 FFTW_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8
 PFFT_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/pfft
 GRAKLE_HOME = /home/brvillas/code/grackle
+MPI_HOME = /cm/shared/apps/openmpi/openmpi-4.0.1.cuda
+endif
+
+ifeq ($(SYSTEM),"Shamrock")
+CC = gcc
+CXX = g++
+ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
+CC = mpicc
+CXX = mpic++
+endif
+CXXFLAGS += -std=c++11
+GPUFLAGS += -std=c++11
+DFLAGS += -DPARIS_NO_GPU_MPI
+OMP_NUM_THREADS = 20
+FFTW_ROOT = /home/bruno/code/fftw-3.3.8
+PFFT_ROOT = /home/bruno/code/pfft
+GRAKLE_HOME = /home/bruno/local
+HDF5INCLUDE = /usr/include/hdf5/serial
+HDF5DIR = /usr/lib/x86_64-linux-gnu/hdf5/serial
+CUDA_LIBS = /usr/local/cuda-10.1/targets/x86_64-linux/lib
 endif
 
 CFLAGS += -g -Ofast
@@ -150,14 +170,14 @@ ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
 endif
 
 ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
-  LIBS += -lcufft
+  LIBS += -L$(CUDA_LIBS) -lcufft
 endif
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifdef HIP_PLATFORM
     LIBS += -L$(ROCM_PATH)/lib -lrocfft
   else
-    LIBS += -lcufft -lcudart
+    LIBS += -L$(CUDA_LIBS) -lcufft -lcudart
   endif
 endif
 
