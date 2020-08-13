@@ -541,7 +541,7 @@ void Potential_SOR_3D::Load_Transfer_Buffer_GPU( int direction, int side, int nx
 
 void Potential_SOR_3D::Load_Transfer_Buffer_Half_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  ){
   
-  int nx_pot, ny_pot, nz_pot, size_buffer, n_i, n_j, ngrid;
+  int nx_pot, ny_pot, size_buffer, n_i, n_j, ngrid;
   nx_pot = nx + 2*n_ghost_potential;
   ny_pot = ny + 2*n_ghost_potential;
   nz_pot = nz + 2*n_ghost_potential;
