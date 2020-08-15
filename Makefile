@@ -1,5 +1,5 @@
 
-DIRS := src src/gravity src/particles src/cosmology src/cooling
+DIRS := src src/gravity src/particles src/cosmology src/cooling src/tides
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
 endif
@@ -21,6 +21,8 @@ DFLAGS += -DMPI_CHOLLA -DBLOCK
 #DFLAGS += -DPRECISION=1
 DFLAGS += -DPRECISION=2
 
+DFLAGS += -DH_CORRECTION
+
 # Output
 #DFLAGS += -DBINARY
 DFLAGS += -DHDF5
@@ -41,11 +43,12 @@ DFLAGS += -DPPMP
 DFLAGS += -DHLLC
 
 # Integrator
-# DFLAGS += -DVL
-DFLAGS += -DSIMPLE
+DFLAGS += -DVL
+#DFLAGS += -DCTU
+# DFLAGS += -DSIMPLE
 
 # Dual-Energy Formalism
-DFLAGS += -DDE
+#DFLAGS += -DDE
 
 # Apply a minimum value to conserved values
 DFLAGS += -DDENSITY_FLOOR
@@ -77,7 +80,7 @@ DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
 #DFLAGS += -DCOUPLE_DELTA_E_KINETIC
 DFLAGS += -DOUTPUT_POTENTIAL
 DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
-POISSON_SOLVER ?= -DPFFT
+#POISSON_SOLVER ?= -DPFFT
 DFLAGS += $(POISSON_SOLVER)
 
 # Include gravity from particles PM
@@ -94,15 +97,20 @@ OMP_NUM_THREADS ?= 16
 DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 #DFLAGS += -DPRINT_OMP_DOMAIN
 
+#Stellar simulation
+DFLAGS += -DTIDES
+
+# Test Poisson solver
+#DFLAGS += -DPOISSON_TEST
+
 # Cosmology simulation
 # DFLAGS += -DCOSMOLOGY
 
 # Use Grackle for cooling in cosmological simulations
 # DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=20
 
-
-SYSTEM = "Lux"
-
+# SYSTEM = "Lux"
+SYSTEM = "Shamrock"
 
 ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
@@ -129,7 +137,7 @@ CC = mpicc
 CXX = mpic++
 endif
 CXXFLAGS += -std=c++11
-GPUFLAGS += -std=c++11
+GPUFLAGS += -std=c++11 -arch sm_70
 DFLAGS += -DPARIS_NO_GPU_MPI
 OMP_NUM_THREADS = 20
 FFTW_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8
@@ -142,8 +150,8 @@ ifeq ($(SYSTEM),"Shamrock")
 CC = gcc
 CXX = g++
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
-CC = mpicc
-CXX = mpic++
+CC = $(MPI_HOME)/bin/mpicc
+CXX = $(MPI_HOME)/bin/mpicxx
 endif
 CXXFLAGS += -std=c++11
 GPUFLAGS += -std=c++11
@@ -217,6 +225,14 @@ ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
   endif
 endif
 
+ifeq ($(POISSON_SOLVER),-DPFFT)
+FFTW_INCL = -I/home/brvillas/code/fftw-3.3.8/include
+FFTW_LIBS = -L/home/brvillas/code/fftw-3.3.8/lib -lfftw3
+PFFT_INCL = -I/home/brvillas/code/pfft/include
+PFFT_LIBS = -L/home/brvillas/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
+INCL += $(FFTW_INCL) $(PFFT_INCL)
+LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
+endif
 
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   CXXFLAGS += -I$(GRAKLE_HOME)/include
@@ -225,7 +241,8 @@ ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   LIBS += -L$(GRAKLE_HOME)/lib -lgrackle 
 endif
 
-
+INCL += -I/cm/shared/apps/gsl/2.6/include/gsl
+LIBS += -L/cm/shared/apps/gsl/2.6/lib -lgsl -lgslcblas
 
 .SUFFIXES: .c .cpp .cu .o
 
