@@ -479,23 +479,33 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
 
   std::random_device rd;
   std::mt19937 generator(rd());
-  std::gamma_distribution<> radialDist(2,1);  //for generating cyclindrical radii
+  std::gamma_distribution<Real> radialDist(2,1);  //for generating cyclindrical radii
+  std::gamma_distribution<Real> zDist(1, 1);      //for generating height above/below the disk.
   std::uniform_real_distribution<Real> phiDist(0, 2*M_PI); //for generating phi
+  std::normal_distribution<Real> speedDist(0, 1); //for generating random speeds.
 
   particle_mass = 1e4; // 10^4 solar masses
   Real M_d = Galaxies::MW.getM_d(); // MW disk mass in M_sun (assumed to be all in stars)
   Real R_d = Galaxies::MW.getR_d(); // MW stellar disk scale length in kpc
+  //Real Z_d = Galaxies::MW.getZ_d(); // MW stellar height scale length in kpc
   Real r_max = sqrt(P->xlen*P->xlen + P->ylen*P->ylen)/2;
   r_max = P->xlen / 2.0;  // TODO: OW: fix this.
 
-  Real pPos_x, pPos_y, pPos_z, r, phi;
-  Real pVel_x, pVel_y, vel, ac;
+  Real pPos_x, pPos_y, pPos_z, r, phi, z;
+  Real pVel_x, pVel_y, pVel_z, vel, ac;
+  #ifdef PARTICLE_IDS
+  Real id;
+  #endif 
   unsigned long int N = (unsigned long int) M_d/particle_mass;
   for  ( unsigned long int i = 0; i < N; i++ ){
       r = R_d*radialDist(generator);
       if (r > r_max) continue;
 
       phi = phiDist(generator);
+      //z   = Z_d*zDist(generator);
+      // get another random phi value to decide whether
+      // the cluster is above or below the disk
+      //if (phiDist(generator) < M_PI) z = -z;
 
       pPos_x = r * cos(phi);
       pPos_y = r * sin(phi);
@@ -506,8 +516,9 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
 
       ac  = fabs(Galaxies::MW.gr_disk_D3D(r, 0) + Galaxies::MW.gr_halo_D3D(r, 0));
       vel = sqrt(r*ac);
-      pVel_x = -sin(phi)*vel;
-      pVel_y =  cos(phi)*vel;
+      pVel_x = -sin(phi)*vel + 0.1*vel/sqrt(3)*speedDist(generator);
+      pVel_y =  cos(phi)*vel + 0.1*vel/sqrt(3)*speedDist(generator);
+      pVel_z =  0.1*vel/sqrt(3)*speedDist(generator);
 
       //Copy the particle data to the particles vectors
       pos_x.push_back(pPos_x);
@@ -515,13 +526,21 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       pos_z.push_back(pPos_z);
       vel_x.push_back(pVel_x);
       vel_y.push_back(pVel_y);
-      vel_z.push_back(0.0);
+      vel_z.push_back(pVel_z);
       grav_x.push_back(0.0);
       grav_y.push_back(0.0);
       grav_z.push_back(0.0);
+
       #ifdef PARTICLE_IDS
-      partIDs.push_back(i);
-      #endif
+      id =  i; 
+      #ifdef PARALLEL_OMP
+        #pragma omp parallel num_threads( N_OMP_THREADS )
+        {
+          id += 1.0*omp_get_thread_num()/omp_get_num_threads();
+        }
+      #endif //PARALLEL_OMP
+      partIDs.push_back(id);
+      #endif //PARTICLE_IDS
   }
   n_local = pos_x.size();
 
