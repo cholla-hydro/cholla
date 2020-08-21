@@ -286,11 +286,12 @@ parms->scale_outputs_file[0] = '\0';
     else if (strcmp(name, "n_proc_z")==0)
       parms->n_proc_z  = atoi(value);
 #endif
+    else if (strcmp(name, "bc_potential_type")==0)
+    parms->bc_potential_type  = atoi(value);
     else if (!is_param_valid(name)) 
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
         name, value);
   }
-
   /* Close file */
   fclose (fp);
 }

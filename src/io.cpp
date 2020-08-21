@@ -23,7 +23,8 @@
 
 using namespace std;
 
-// #define OUTPUT_ENERGY
+#define OUTPUT_ENERGY
+#define OUTPUT_MOMENTUM
 
 /* function used to rotate points about an axis in 3D for the rotated projection output routine */
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
@@ -567,6 +568,14 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   attribute_id = H5Acreate(file_id, "offset", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
   status = H5Aclose(attribute_id);
+  
+  int_data[0] = nproc_x;
+  int_data[1] = nproc_y;
+  int_data[2] = nproc_z;
+  
+  attribute_id = H5Acreate(file_id, "nprocs", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
+  status = H5Aclose(attribute_id);
   #endif
 
   Real_data[0] = H.xbound;
@@ -964,11 +973,18 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   herr_t    status;
   
   bool output_energy;
+  bool output_momentum;
   
   #ifdef OUTPUT_ENERGY
   output_energy = true;
   #else
   output_energy = false;
+  #endif
+  
+  #ifdef OUTPUT_MOMENTUM
+  output_momentum = true;
+  #else
+  output_momentum = false;
   #endif
   
   #ifdef COOLING_GRACKLE
@@ -1282,14 +1298,14 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-
-    // Create a dataset id for x momentum 
-    dataset_id = H5Dcreate(file_id, "/momentum_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    // Write the x momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
+    if ( output_momentum || H.Output_Complete_Data ){
+      // Create a dataset id for x momentum 
+      dataset_id = H5Dcreate(file_id, "/momentum_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      // Write the x momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+    }
     // Copy the y momentum array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
@@ -1300,13 +1316,14 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-
-    // Create a dataset id for y momentum 
-    dataset_id = H5Dcreate(file_id, "/momentum_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    // Write the y momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
+    if ( output_momentum || H.Output_Complete_Data ){
+      // Create a dataset id for y momentum 
+      dataset_id = H5Dcreate(file_id, "/momentum_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      // Write the y momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+    }
 
     // Copy the z momentum array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
@@ -1318,13 +1335,15 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-
-    // Create a dataset id for z momentum 
-    dataset_id = H5Dcreate(file_id, "/momentum_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    // Write the z momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
+    if ( output_momentum || H.Output_Complete_Data ){
+      // Create a dataset id for z momentum 
+      dataset_id = H5Dcreate(file_id, "/momentum_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      // Write the z momentum array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+    }
+      
    
     // Copy the energy array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
@@ -1410,10 +1429,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    dataset_id = H5Dcreate(file_id, "/HeI_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-
+    if ( output_full_ionization || H.Output_Complete_Data ){
+      dataset_id = H5Dcreate(file_id, "/HeI_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+    }
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1423,10 +1443,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    dataset_id = H5Dcreate(file_id, "/HeII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    status = H5Dclose(dataset_id);
-    
+    if ( output_full_ionization || H.Output_Complete_Data ){
+      dataset_id = H5Dcreate(file_id, "/HeII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      status = H5Dclose(dataset_id);
+    }
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
