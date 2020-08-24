@@ -11,6 +11,7 @@
 
 #include <pfft.h>
 
+// #define ANALITIC_POISSON_SOLVER
 
 
 class Potential_PFFT_3D{

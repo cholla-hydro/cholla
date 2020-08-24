@@ -12,6 +12,7 @@ private:
         return log(1+y) - y/(1+y);
     };
 
+
 public:
     DiskGalaxy(Real md, Real rd, Real zd, Real mvir, Real rvir, Real cvir, Real rcool) {
         M_d = md;
@@ -25,6 +26,7 @@ public:
         R_h = R_vir / c_vir;
     };
 
+
     /**
      *     Radial acceleration in miyamoto nagai
      */          
@@ -34,6 +36,7 @@ public:
 
         return -GN*M_d*r/B;
     };
+
 
     /**
      *     Radial acceleration in NFW halo
@@ -50,6 +53,7 @@ public:
         return -C*A*B*r_comp;
     };
 
+
     /**
      * Convenience method that returns the combined radial acceleration
      * of a disk galaxy at a specified point.
@@ -61,8 +65,47 @@ public:
         return gr_disk_D3D(r, z) + gr_halo_D3D(r, z);
     };
 
+
+    /**
+     *    Potential of NFW halo
+     */
+    Real phi_halo_D3D(Real r, Real z) {
+        Real rs = sqrt(r * r + z * z); //spherical radius
+        Real x = rs / R_h;
+        Real C = GN * M_h / (R_h * log_func(c_vir));
+
+        //limit x to non-zero value
+        if (x < 1.0e-9) x = 1.0e-9;
+
+        return -C * log(1 + x) / x;
+    };
+
+
+    /**
+     *  Miyamoto-Nagai potential
+     */
+    Real phi_disk_D3D(Real r, Real z) {
+        Real A = sqrt(z*z + Z_d*Z_d);
+        Real B = R_d + A;
+        Real C = sqrt(r*r + B*B);
+
+        //patel et al. 2017, eqn 2
+        return -GN * M_d / C;
+    };
+
+
+    /**
+     *  Convenience method that returns the combined gravitational potential
+     *  of the disk and halo.
+     */    
+    Real phi_total_D3D(Real r, Real z) {
+      return phi_halo_D3D(r, z) + phi_disk_D3D(r, z);
+    };
+
+
     Real getM_d() { return M_d; };
     Real getR_d() { return R_d; };
+    Real getZ_d() { return Z_d; };
 };
 
 namespace Galaxies {

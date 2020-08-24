@@ -237,7 +237,7 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
     if ( ! in_local  ) {
       std::cout << " Gravity CIC Error:" << std::endl;
       #ifdef PARTICLE_IDS
-      std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
+      std::cout << " Particle outside Loacal  domain    pID: " << Particles.partIDs[pIndx] << std::endl;
       #else
       std::cout << " Particle outside Loacal  domain " << std::endl;
       #endif

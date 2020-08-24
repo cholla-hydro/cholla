@@ -5,6 +5,8 @@
 #include<iostream>
 #include "../io.h"
 
+
+
 Potential_PFFT_3D::Potential_PFFT_3D( void ){}
 
 void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real){
@@ -42,6 +44,10 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
   n_cells_total = nx_total*ny_total*nz_total;
   
   chprintf( " Using Poisson Solver: PFFT\n");
+  
+  #ifdef ANALITIC_POISSON_SOLVER
+  chprintf( " WARNING: Using Analitic Poisson Solver instead of Discretized.\n");
+  #endif
 
   //Set the number of MPI processes
   nproc_pfft = nproc;
@@ -224,7 +230,11 @@ void Potential_PFFT_3D::Get_K_for_Green_function( void){
           std::cout << "  K=0   index: " << index_0 << std::endl;
         }
         else{
+          #ifdef ANALITIC_POISSON_SOLVER
+          G = -1 / ( k_x*k_x + k_y*k_y + k_z*k_z );
+          #else
           G = -1 / ( G_x*G_x + G_y*G_y + G_z*G_z ) * dx * dx /4 ;
+          #endif
         }
         F.G[m] = G;
         m += 1;
@@ -280,7 +290,7 @@ void Potential_PFFT_3D::Apply_K2_Funtion( void ){
       for (i=0; i<nx_local; i++){
         id = i + j*nx_local + k*nx_local*ny_local;
         Get_Index_Global( i, j, k, &i_g, &j_g, &k_g );
-        if ( i_g >= nx_total/2) i_g -= nz_total;
+        if ( i_g >= nx_total/2) i_g -= nx_total;
         if ( j_g >= ny_total/2) j_g -= ny_total;
         if ( k_g >= nz_total/2) k_g -= nz_total;
         kx =  2 * M_PI * i_g / Lbox_x;
