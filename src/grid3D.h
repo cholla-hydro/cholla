@@ -28,7 +28,7 @@
 #endif
 
 #ifdef COOLING_GRACKLE
-#include "cooling/cool_grackle.h"
+#include "cooling_grackle/cool_grackle.h"
 #endif
 
 #ifdef CPU_TIME
