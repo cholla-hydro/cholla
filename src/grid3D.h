@@ -340,7 +340,9 @@ class Grid3D
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
-
+      
+      /*! pointer to conserved variable on device */
+      Real *device;
       
     } C;
 
@@ -610,6 +612,12 @@ class Grid3D
     int Load_Hydro_Buffer_Y1();
     int Load_Hydro_Buffer_Z0();
     int Load_Hydro_Buffer_Z1();
+    int Load_Hydro_DeviceBuffer_X0();
+    int Load_Hydro_DeviceBuffer_X1();
+    int Load_Hydro_DeviceBuffer_Y0();
+    int Load_Hydro_DeviceBuffer_Y1();
+    int Load_Hydro_DeviceBuffer_Z0();
+    int Load_Hydro_DeviceBuffer_Z1();
 #endif /*MPI_CHOLLA*/
 
   #ifdef GRAVITY

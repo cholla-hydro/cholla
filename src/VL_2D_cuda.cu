@@ -29,7 +29,9 @@ __global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *de
                                                    int n_ghost, Real dx, Real dy, Real dt, Real gamma, int n_fields);
 
 
-Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, int n_fields)
+Real VL_Algorithm_2D_CUDA ( Real *host_conserved0, Real *host_conserved1, 
+   Real *d_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, 
+   Real dx, Real dy, Real xbound, Real ybound, Real dt, int n_fields)
 {
 
   //Here, *host_conserved contains the entire
@@ -105,7 +107,9 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
     #endif 
+    d_conserved = dev_conserved;
   }
+  
 
   // counter for which block we're on
   int block = 0;
@@ -245,7 +249,6 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     block++;
 
   }
-
 
   #ifdef DYNAMIC_GPU_ALLOC
   // If memory is not single allocated then free the memory every timestep.

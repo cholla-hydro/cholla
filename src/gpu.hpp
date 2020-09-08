@@ -95,7 +95,8 @@ static void check(const cudaError_t err, const char *const file, const int line)
 
 #define CHECK(X) check(X,__FILE__,__LINE__)
 
-constexpr long GPU_THREADS = 256;
+//constexpr long GPU_THREADS = 256;
+const long GPU_THREADS = 256;
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
 

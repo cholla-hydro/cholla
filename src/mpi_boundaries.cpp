@@ -535,6 +535,72 @@ int Grid3D::Load_Hydro_Buffer_X0(){
   return x_buffer_length;  
 }
 
+
+int Grid3D::Load_Hydro_DeviceBuffer_X0(){
+  int i, j, k, ii;
+  int gidx;
+  int idx;
+  int offset;
+  
+  Real *c_head;
+  
+  c_head = C.device;
+  
+  // 1D
+  if (H.ny == 1 && H.nz == 1) {
+    offset = H.n_ghost;
+    #pragma omp target teams distribute parallel for \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_x0, c_head )
+    for (i=0;i<H.n_ghost;i++) {
+      idx = (i+H.n_ghost);
+      gidx = i;
+      for (ii=0; ii<H.n_fields; ii++) {
+        *(send_buffer_x0 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+      }
+    }
+  }
+  // 2D
+  if (H.ny > 1 && H.nz == 1) {
+    offset = H.n_ghost*(H.ny-2*H.n_ghost);
+    #pragma omp target teams distribute parallel for collapse ( 2 ) \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_x0, c_head )
+    for (i=0;i<H.n_ghost;i++) {
+      for (j=0;j<H.ny-2*H.n_ghost;j++) {
+        idx = (i+H.n_ghost) + (j+H.n_ghost)*H.nx;
+        gidx = i + j*H.n_ghost;
+        for (ii=0; ii<H.n_fields; ii++) {
+          *(send_buffer_x0 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+        } 
+      }
+    }
+  }
+  // 3D
+  if (H.ny > 1 && H.nz > 1) { 
+    offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
+    #pragma omp target teams distribute parallel for collapse ( 3 ) \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_x0, c_head )
+    for(i=0;i<H.n_ghost;i++)
+    {
+      for(j=0;j<H.ny-2*H.n_ghost;j++)
+      {
+        for(k=0;k<H.nz-2*H.n_ghost;k++)
+        {
+          idx  = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          gidx = i + j*H.n_ghost + k*H.n_ghost*(H.ny-2*H.n_ghost);
+          for (ii=0; ii<H.n_fields; ii++) {
+            *(send_buffer_x0 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+          }
+        }
+      }
+    }
+  }
+  return x_buffer_length;  
+}
+
+
 // load right x communication buffer
 int Grid3D::Load_Hydro_Buffer_X1(){
   int i, j, k, ii;
@@ -587,6 +653,71 @@ int Grid3D::Load_Hydro_Buffer_X1(){
   return x_buffer_length;
 }
 
+
+// load right x communication buffer
+int Grid3D::Load_Hydro_DeviceBuffer_X1(){
+  int i, j, k, ii;
+  int gidx;
+  int idx;
+  int offset;
+  Real *c_head;
+  
+  c_head = C.device;
+  
+  // 1D
+  if (H.ny == 1 && H.nz == 1) {
+    offset = H.n_ghost;
+    #pragma omp target teams distribute parallel for \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_x1, c_head )
+    for (i=0;i<H.n_ghost;i++) {
+      idx = (i+H.nx-2*H.n_ghost);
+      gidx = i;
+      for (ii=0; ii<H.n_fields; ii++) {
+        *(send_buffer_x1 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+      }
+    }
+  }
+  // 2D
+  if (H.ny > 1 && H.nz == 1) {
+    offset = H.n_ghost*(H.ny-2*H.n_ghost);
+    #pragma omp target teams distribute parallel for collapse ( 2 ) \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_x1, c_head )
+    for (i=0;i<H.n_ghost;i++) {
+      for (j=0;j<H.ny-2*H.n_ghost;j++) {
+        idx = (i+H.nx-2*H.n_ghost) + (j+H.n_ghost)*H.nx;
+        gidx = i + j*H.n_ghost;
+        for (ii=0; ii<H.n_fields; ii++) {
+          *(send_buffer_x1 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+        }
+      }
+    }
+  }
+  // 3D
+  if (H.ny > 1 && H.nz > 1) { 
+    offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
+    #pragma omp target teams distribute parallel for collapse ( 3 ) \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_x1, c_head )
+    for(i=0;i<H.n_ghost;i++)
+    {
+      for(j=0;j<H.ny-2*H.n_ghost;j++)
+      {
+        for(k=0;k<H.nz-2*H.n_ghost;k++)
+        {
+          idx  = (i+H.nx-2*H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          gidx = i + j*H.n_ghost + k*H.n_ghost*(H.ny-2*H.n_ghost);
+          for (ii=0; ii<H.n_fields; ii++) {
+            *(send_buffer_x1 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+          }
+        }
+      }
+    }
+  }
+  return x_buffer_length;
+}
+
 // load left y communication buffer
 int Grid3D::Load_Hydro_Buffer_Y0(){
   int i, j, k, ii;
@@ -626,6 +757,59 @@ int Grid3D::Load_Hydro_Buffer_Y0(){
   }  
   return y_buffer_length;
 }
+
+
+// load left y communication buffer
+int Grid3D::Load_Hydro_DeviceBuffer_Y0(){
+  int i, j, k, ii;
+  int gidx;
+  int idx;
+  int offset;
+  
+  Real *c_head;
+  
+  c_head = C.device;
+  
+  // 2D
+  if (H.nz == 1) {
+    offset = H.n_ghost*H.nx;
+    #pragma omp target teams distribute parallel for collapse ( 2 ) \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_y0, c_head )
+    for (i=0;i<H.nx;i++) {
+      for (j=0;j<H.n_ghost;j++) {
+        idx = i + (j+H.n_ghost)*H.nx;
+        gidx = i + j*H.nx;
+        for (ii=0; ii<H.n_fields; ii++) {
+          *(send_buffer_y0 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+        }
+      }
+    }
+  }
+  // 3D
+  if (H.nz > 1) { 
+    offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
+    #pragma omp target teams distribute parallel for collapse ( 3 ) \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_y0, c_head )
+    for(i=0;i<H.nx;i++)
+    {
+      for(j=0;j<H.n_ghost;j++)
+      {
+        for(k=0;k<H.nz-2*H.n_ghost;k++)
+        {
+          idx  = i + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          gidx = i + j*H.nx + k*H.nx*H.n_ghost;
+          for (ii=0; ii<H.n_fields; ii++) {
+            *(send_buffer_y0 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+          }
+        }
+      }
+    }
+  }  
+  return y_buffer_length;
+}
+
 
 // load right y communication buffer
 int Grid3D::Load_Hydro_Buffer_Y1(){
@@ -667,6 +851,57 @@ int Grid3D::Load_Hydro_Buffer_Y1(){
   return y_buffer_length;
 }
 
+
+int Grid3D::Load_Hydro_DeviceBuffer_Y1(){
+  int i, j, k, ii;
+  int gidx;
+  int idx;
+  int offset;
+  
+  Real *c_head;
+  
+  c_head = C.device;
+  
+  // 2D
+  if (H.nz == 1) {
+    offset = H.n_ghost*H.nx;
+    #pragma omp target teams distribute parallel for collapse ( 2 ) \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_y1, c_head )
+    for (i=0;i<H.nx;i++) {
+      for (j=0;j<H.n_ghost;j++) {
+        idx = i + (j+H.ny-2*H.n_ghost)*H.nx;
+        gidx = i + j*H.nx;
+        for (ii=0; ii<H.n_fields; ii++) {
+          *(send_buffer_y1 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+        }
+      }
+    }
+  }
+  // 3D
+  if (H.nz > 1) { 
+    offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
+    #pragma omp target teams distribute parallel for collapse ( 2 ) \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_y1, c_head )
+    for(i=0;i<H.nx;i++)
+    {
+      for(j=0;j<H.n_ghost;j++)
+      {
+        for(k=0;k<H.nz-2*H.n_ghost;k++)
+        {
+          idx  = i + (j+H.ny-2*H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+          gidx = i + j*H.nx + k*H.nx*H.n_ghost;
+          for (ii=0; ii<H.n_fields; ii++) {
+            *(send_buffer_y1 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+          }
+        }
+      }
+    }
+  }
+  return y_buffer_length;
+}
+
 // load left z communication buffer
 int Grid3D::Load_Hydro_Buffer_Z0(){
   int i, j, k, ii;
@@ -692,6 +927,38 @@ int Grid3D::Load_Hydro_Buffer_Z0(){
   return z_buffer_length;
 }
 
+// load left z communication buffer
+int Grid3D::Load_Hydro_DeviceBuffer_Z0(){
+  int i, j, k, ii;
+  int gidx;
+  int idx;
+  int offset;
+  Real *c_head;
+  
+  c_head = C.device;
+  
+  // 3D
+  offset = H.n_ghost*H.nx*H.ny;
+  #pragma omp target teams distribute parallel for collapse ( 3 ) \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_z0, c_head )
+  for(i=0;i<H.nx;i++)
+  {
+    for(j=0;j<H.ny;j++)
+    {
+      for(k=0;k<H.n_ghost;k++)
+      {
+        idx  = i + j*H.nx + (k+H.n_ghost)*H.nx*H.ny;
+        gidx = i + j*H.nx + k*H.nx*H.ny;
+        for (ii=0; ii<H.n_fields; ii++) {
+          *(send_buffer_z0 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
+        }
+      }
+    }
+  }
+  return z_buffer_length;
+}
+
 // load right z communication buffer
 int Grid3D::Load_Hydro_Buffer_Z1(){
   int i, j, k, ii;
@@ -709,6 +976,36 @@ int Grid3D::Load_Hydro_Buffer_Z1(){
         gidx = i + j*H.nx + k*H.nx*H.ny;
         for (ii=0; ii<H.n_fields; ii++) {
           *(send_buffer_z1 + gidx + ii*offset) = C.density[idx + ii*H.n_cells];
+        }
+      }
+    }
+  }
+  return z_buffer_length;
+}
+
+
+int Grid3D::Load_Hydro_DeviceBuffer_Z1(){
+  int i, j, k, ii;
+  int gidx;
+  int idx;
+  int offset;
+  Real *c_head;
+  
+  c_head = C.device;
+  offset = H.n_ghost*H.nx*H.ny;
+  #pragma omp target teams distribute parallel for collapse ( 3 ) \
+            private ( idx, gidx ) \
+            is_device_ptr ( send_buffer_z1, c_head )
+  for(i=0;i<H.nx;i++)
+  {
+    for(j=0;j<H.ny;j++)
+    {
+      for(k=0;k<H.n_ghost;k++)
+      {
+        idx  = i + j*H.nx + (k+H.nz-2*H.n_ghost)*H.nx*H.ny;
+        gidx = i + j*H.nx + k*H.nx*H.ny;
+        for (ii=0; ii<H.n_fields; ii++) {
+          *(send_buffer_z1 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
         }
       }
     }
