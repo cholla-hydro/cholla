@@ -5,9 +5,14 @@ module load hdf5
 module load gcc
 module list
 
+export LD_LIBRARY_PATH="$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH"
+
 export CXX=CC
-export MPI_HOME=$(echo "${PATH}" | sed 's,.*:\([^:]*\)mvapich\([^:]*\).*,\1mvapich\2,;s,/bin,,')
+export MPI_HOME=$(dirname $(dirname $(which mpicc)))
+export OMP_NUM_THREADS=16
 export POISSON_SOLVER='-DPARIS'
 export SUFFIX='.paris-cuda'
+export TYPE=gravity
+
 make clean
 make -j

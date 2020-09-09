@@ -8,7 +8,7 @@ if [[ $FQDN == *"summit."* ]]; then
   exit 0
 fi
 
-if [[ $FQDN == *"poplar."* ]]; then
+if [[ $FQDN == *"poplar."* ]] || [[ $FQDN == *"tulip."* ]] ; then
   echo "poplar"
   exit 0
 fi

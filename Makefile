@@ -5,14 +5,14 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
-SUFFIX = .$(TYPE).$(MACHINE)
-
 DIRS     := src src/gravity src/particles src/cosmology src/cooling
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
   DFLAGS += -DPARIS
-  SUFFIX = .paris.$(MACHINE)
+  SUFFIX ?= .paris.$(MACHINE)
 endif
+
+SUFFIX ?= .$(TYPE).$(MACHINE)
 
 CFILES   := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.c))
 CPPFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cpp))

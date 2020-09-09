@@ -11,10 +11,12 @@ if [ "$1" == "build" ]; then
       fi
       ;;
     poplar)
-        module list 2>&1 | grep -q ompi-cray \
+        ( module list 2>&1 | grep -q ompi-cray \
+          || module list 2>&1 | grep -q cray-mvapich2 ) \
           && module list 2>&1 | grep -q PrgEnv-cray \
           && module list 2>&1 | grep -q hdf5 \
-          && module list 2>&1 | grep -q rocm
+          && ( module list 2>&1 | grep -q rocm \
+          || module list 2>&1 | grep -q cuda )
     	if [ $? -ne 0 ]; then 
           echo "modulefile required: ompi-cray hdf5"
           echo "do: 'module use /home/users/twhite/share/modulefiles"
