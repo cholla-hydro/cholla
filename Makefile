@@ -1,5 +1,5 @@
 
-DIRS := src src/gravity src/particles src/cosmology src/cooling src/tides
+DIRS := src src/gravity src/particles src/cosmology src/cooling_grackle src/chemistry_gpu src/tides 
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
 endif
@@ -16,7 +16,7 @@ OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(G
 DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
-DFLAGS += -DMPI_CHOLLA -DBLOCK
+# DFLAGS += -DMPI_CHOLLA -DBLOCK
 
 #DFLAGS += -DPRECISION=1
 DFLAGS += -DPRECISION=2
@@ -43,12 +43,12 @@ DFLAGS += -DPPMP
 DFLAGS += -DHLLC
 
 # Integrator
-DFLAGS += -DVL
+# DFLAGS += -DVL
 #DFLAGS += -DCTU
-# DFLAGS += -DSIMPLE
+DFLAGS += -DSIMPLE
 
 # Dual-Energy Formalism
-#DFLAGS += -DDE
+DFLAGS += -DDE
 
 # Apply a minimum value to conserved values
 DFLAGS += -DDENSITY_FLOOR
@@ -71,7 +71,7 @@ DFLAGS += -DTEMPERATURE_FLOOR
 DFLAGS += -DPRINT_INITIAL_STATS
 
 #Measure Timing of different stages
-DFLAGS += -DCPU_TIME
+# DFLAGS += -DCPU_TIME
 
 #Gravity Flags
 DFLAGS += -DGRAVITY
@@ -84,12 +84,12 @@ DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 DFLAGS += $(POISSON_SOLVER)
 
 # Include gravity from particles PM
-# DFLAGS += -DPARTICLES
-# DFLAGS += -DPARTICLES_CPU
+DFLAGS += -DPARTICLES
+DFLAGS += -DPARTICLES_CPU
 # DFLAGS += -DONLY_PARTICLES
-# DFLAGS += -DSINGLE_PARTICLE_MASS
-# DFLAGS += -DPARTICLES_LONG_INTS
-# DFLAGS += -DPARTICLES_KDK
+DFLAGS += -DSINGLE_PARTICLE_MASS
+DFLAGS += -DPARTICLES_LONG_INTS
+DFLAGS += -DPARTICLES_KDK
 
 # Turn OpenMP on for CPU calculations
 DFLAGS += -DPARALLEL_OMP
@@ -97,17 +97,23 @@ OMP_NUM_THREADS ?= 16
 DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 #DFLAGS += -DPRINT_OMP_DOMAIN
 
-#Stellar simulation
-DFLAGS += -DTIDES
 
 # Test Poisson solver
 #DFLAGS += -DPOISSON_TEST
 
 # Cosmology simulation
-# DFLAGS += -DCOSMOLOGY
+DFLAGS += -DCOSMOLOGY
 
 # Use Grackle for cooling in cosmological simulations
-# DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=20
+# DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=10
+
+# Use the GPU Chemical Network + Cooling and Photoheating
+DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_CHEMISTRY -DSCALAR
+
+# Hardcoded limit of the number of timesteps to evolve the simulation
+# DFLAGS += -DN_STEPS_LIMIT=1
+
+
 
 # SYSTEM = "Lux"
 SYSTEM = "Shamrock"
@@ -211,7 +217,7 @@ ifdef HIP_PLATFORM
   LDFLAGS += $(GPUFLAGS)
 else
   GPUCXX := nvcc
-  GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  GPUFLAGS += --expt-extended-lambda -g -O3 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
 endif
