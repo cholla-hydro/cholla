@@ -26,10 +26,13 @@
 #include"io.h"
 #include"hll_cuda.h"
 
+#ifdef CHEMISTRY_GPU
+#include"chemistry_gpu/chemistry_functions_gpu.cuh"
+#endif
 
 
-Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt, int n_fields, Real density_floor, Real U_floor,  Real *host_grav_potential, Real max_dti_slow)
-{
+Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt, int n_fields, Real density_floor, Real U_floor,  Real *host_grav_potential, Real max_dti_slow,
+                              Real dens_conv_chem, Real energy_conv_chem, Real current_z,  float* cosmo_params, int n_uvb_rates_samples, float *rates_z ){
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
   //concatenated into a 1-d array
@@ -221,6 +224,10 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
     #ifdef COOLING_GPU
     hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);  
     CudaCheckError();
+    #endif
+    
+    #ifdef CHEMISTRY_GPU
+    hipLaunchKernelGGL(Update_Chemistry, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dens_conv_chem, energy_conv_chem, current_z, cosmo_params, n_uvb_rates_samples, rates_z );
     #endif
  
     // Step 4: Calculate the next time step

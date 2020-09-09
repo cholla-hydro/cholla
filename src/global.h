@@ -59,8 +59,10 @@ typedef double Real;
 #define MAX_DELTA_A 0.001
 #define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
-#ifdef COOLING_GRACKLE
+#ifdef COOLING_GRACKLE 
 #define NSCALARS 7
+#elif CHEMISTRY_GPU
+#define NSCALARS 6
 #else
 #ifdef SCALAR
 // Set Number of scalar fields when not using grackle
@@ -232,6 +234,7 @@ struct parameters
   Real H0;
   Real Omega_M;
   Real Omega_L;
+  Real Omega_b;
   Real Init_redshift;
   Real End_redshift;
   char scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations 
@@ -245,6 +248,10 @@ struct parameters
   int n_proc_x;
   int n_proc_y;
   int n_proc_z;
+#endif
+
+#ifdef CHEMISTRY_GPU
+  char uvb_rates_file[MAXLEN]; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII  
 #endif
   int bc_potential_type;
 };

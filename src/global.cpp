@@ -258,6 +258,8 @@ parms->scale_outputs_file[0] = '\0';
       parms->Omega_M  = atof(value);
     else if (strcmp(name, "Omega_L")==0)
       parms->Omega_L  = atof(value);
+    else if (strcmp(name, "Omega_b")==0)
+      parms->Omega_b  = atof(value);
 #endif //COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
     else if (strcmp(name, "tile_length")==0)
@@ -273,6 +275,11 @@ parms->scale_outputs_file[0] = '\0';
     else if (strcmp(name, "n_proc_z")==0)
   parms->n_proc_z  = atoi(value);
 #endif
+
+#ifdef CHEMISTRY_GPU
+    else if (strcmp(name, "uvb_rates_file")==0)
+      strncpy (parms->uvb_rates_file, value, MAXLEN);
+#endif    
     else if (strcmp(name, "bc_potential_type")==0)
       parms->bc_potential_type  = atoi(value);
     else

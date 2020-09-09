@@ -113,6 +113,10 @@ int main(int argc, char *argv[])
   G.Initialize_Grackle(&P);
   #endif
 
+  #ifdef CHEMISTRY_GPU
+  G.Initialize_Chemistry(&P);
+  #endif
+  
   #ifdef GRAVITY
   // Get the gravitaional potential for the first timestep
   G.Compute_Gravitational_Potential( &P);

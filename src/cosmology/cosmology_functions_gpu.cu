@@ -13,5 +13,13 @@ __device__ Real Get_Hubble_Parameter_dev( Real a, Real H0, Real Omega_M, Real Om
 }
 
 
+__device__ Real Get_Hubble_Parameter( Real a, Real H0, Real Omega_M, Real Omega_L ){
+  Real a3 = a2 * a;
+  Real factor = ( Omega_M/a3 + Omega_L );
+  return H0 * sqrt(factor);
+  
+}
+
+
 
 #endif //COSMOLOGY

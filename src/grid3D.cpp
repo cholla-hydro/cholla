@@ -273,6 +273,15 @@ void Grid3D::AllocateMemory(void)
   C.Grav_potential = NULL;
   #endif
   
+  #ifdef CHEMISTRY_GPU
+  C.HI_density    = &C.scalar[ 0*H.n_cells ];
+  C.HII_density   = &C.scalar[ 1*H.n_cells ];
+  C.HeI_density   = &C.scalar[ 2*H.n_cells ];
+  C.HeII_density  = &C.scalar[ 3*H.n_cells ];
+  C.HeIII_density = &C.scalar[ 4*H.n_cells ];
+  C.e_density     = &C.scalar[ 5*H.n_cells ];
+  #endif
+  
   // initialize array
   for (int i=0; i<H.n_fields*H.n_cells; i++)
   {
@@ -538,6 +547,34 @@ Real Grid3D::Update_Grid(void)
   max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
   #endif //max_dti_slow
   
+  int n_uvb_rates_samples;
+  float *rates_z_d, *cosmo_params;
+  Real dens_conv_chem, energy_conv_chem, current_z;
+  #ifdef CHEMISTRY_GPU
+  #ifdef COSMOLOGY
+  Real kpc_cgs = KPC_CGS;
+  dens_conv_chem = Cosmo.rho_0_gas * Cosmo.cosmo_h * Cosmo.cosmo_h / pow( kpc_cgs, 3) * MSUN_CGS ; 
+  energy_conv_chem =  Cosmo.v_0_gas * Cosmo.v_0_gas * 1e10;  //km^2 -> cm^2 ;
+  current_z = Cosmo.current_z;
+  cosmo_params = Chem.cosmo_params_d;
+  #else // Not COSMOLOGY
+  current_z = 0.0;
+  dens_conv_chem = 1.0;
+  energy_conv_chem = 1.0;
+  cosmo_params = NULL;
+  #endif
+  n_uvb_rates_samples = Chem.n_uvb_rates_samples;
+  rates_z_d = Chem.rates_z_d;
+  #else // Not CHEMISTRY_GPU
+  current_z = 0.0;
+  dens_conv_chem = 1.0;
+  energy_conv_chem = 1.0;
+  n_uvb_rates_samples = 0;
+  rates_z_d = NULL;
+  cosmo_params = NULL;
+  #endif
+  
+  
   // Pass the structure of conserved variables to the CTU update functions
   // The function returns the updated variables
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) //1D
@@ -602,7 +639,7 @@ Real Grid3D::Update_Grid(void)
     max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //VL
     #ifdef SIMPLE
-    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow, dens_conv_chem, energy_conv_chem, current_z, cosmo_params, n_uvb_rates_samples, rates_z_d );
     #endif//SIMPLE
     #endif    
   }
@@ -634,6 +671,15 @@ Real Grid3D::Update_Grid(void)
   Cool.fields.HeIII_density   = &C.scalar[ 4*H.n_cells ];
   Cool.fields.e_density       = &C.scalar[ 5*H.n_cells ];
   Cool.fields.metal_density   = &C.scalar[ 6*H.n_cells ];
+  #endif
+  
+  #ifdef CHEMISTRY_GPU
+  C.HI_density    = &C.scalar[ 0*H.n_cells ];
+  C.HII_density   = &C.scalar[ 1*H.n_cells ];
+  C.HeI_density   = &C.scalar[ 2*H.n_cells ];
+  C.HeII_density  = &C.scalar[ 3*H.n_cells ];
+  C.HeIII_density = &C.scalar[ 4*H.n_cells ];
+  C.e_density     = &C.scalar[ 5*H.n_cells ];
   #endif
   
   // reset the grid flag to swap buffers
@@ -763,5 +809,9 @@ void Grid3D::FreeMemory(void)
   #ifdef CLOUDY_COOL
   Free_Cuda_Textures();
   #endif
+  #endif
+  
+  #ifdef CHEMISTRY_GPU
+  Chem.Reset();
   #endif
 }

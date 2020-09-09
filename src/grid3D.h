@@ -35,6 +35,10 @@
 #include "timing_functions.h"
 #endif
 
+#ifdef CHEMISTRY_GPU
+#include "chemistry_gpu/chemistry_gpu.h"
+#endif 
+
 struct Rotation
 {
   /*! \var nx
@@ -300,6 +304,11 @@ class Grid3D
     #ifdef CPU_TIME
     Time Timer;
     #endif
+    
+    #ifdef CHEMISTRY_GPU
+    // Object that contains data for the GPU chemistry solver
+    Chem_GPU Chem;
+    #endif
 
     struct Conserved
     {
@@ -339,6 +348,15 @@ class Grid3D
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
+      
+      #ifdef CHEMISTRY_GPU
+      Real *HI_density;
+      Real *HII_density;
+      Real *HeI_density;
+      Real *HeII_density;
+      Real *HeIII_density;
+      Real *e_density;
+      #endif 
 
       
     } C;
@@ -579,6 +597,8 @@ class Grid3D
     void Uniform_Grid();
     
     void Zeldovich_Pancake( struct parameters P );
+    
+    void Chemistry_Test( struct parameters P );
 
 
 #ifdef   MPI_CHOLLA
@@ -709,6 +729,10 @@ class Grid3D
   void Update_Internal_Energy_function( int g_start, int g_end );
   void Update_Internal_Energy();
   void Do_Cooling_Step_Grackle();
+  #endif
+  
+  #ifdef CHEMISTRY_GPU
+  void Initialize_Chemistry( struct parameters *P );
   #endif
   
 
