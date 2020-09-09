@@ -858,7 +858,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   output_momentum = false;
   #endif
   
-  #ifdef COOLING_GRACKLE
+  #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
   bool output_metals, output_electrons, output_full_ionization;
   #ifdef OUTPUT_METALS
   output_metals = true;
@@ -1236,7 +1236,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     }
 
     #ifdef SCALAR
-    #ifndef COOLING_GRACKLE // Dont write scalars when using grackle
+    #if !defined(COOLING_GRACKLE) && !defined(CHEMISTRY_GPU) // Dont write scalars when using grackle
     for (int s=0; s<NSCALARS; s++) {
       // create the name of the dataset
       char dataset[100]; 
@@ -1268,7 +1268,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         for (i=0; i<H.nx_real; i++) {
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.HI_density[id];
+          #endif
+          #ifdef CHEMISTRY_GPU
+          dataset_buffer[buf_id] = C.HI_density[id];
+          #endif
         }
       }
     }
@@ -1281,7 +1286,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         for (i=0; i<H.nx_real; i++) {
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.HII_density[id];
+          #endif
+          #ifdef CHEMISTRY_GPU
+          dataset_buffer[buf_id] = C.HII_density[id];
+          #endif
+          
         }
       }
     }
@@ -1296,7 +1307,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         for (i=0; i<H.nx_real; i++) {
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.HeI_density[id];
+          #endif
+          #ifdef CHEMISTRY_GPU
+          dataset_buffer[buf_id] = C.HeI_density[id];
+          #endif
         }
       }
     }
@@ -1310,7 +1326,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         for (i=0; i<H.nx_real; i++) {
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.HeII_density[id];
+          #endif
+          #ifdef CHEMISTRY_GPU
+          dataset_buffer[buf_id] = C.HeII_density[id];
+          #endif
         }
       }
     }
@@ -1324,7 +1345,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         for (i=0; i<H.nx_real; i++) {
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.HeIII_density[id];
+          #endif
+          #ifdef CHEMISTRY_GPU
+          dataset_buffer[buf_id] = C.HeIII_density[id];
+          #endif
         }
       }
     }
@@ -1340,7 +1366,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         for (i=0; i<H.nx_real; i++) {
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.e_density[id];
+          #endif
+          #ifdef CHEMISTRY_GPU
+          dataset_buffer[buf_id] = C.e_density[id];
+          #endif
         }
       }
     }
@@ -1350,6 +1381,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       status = H5Dclose(dataset_id);
     }
     
+    #ifdef COOLING_GRACKLE
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1364,6 +1396,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
       status = H5Dclose(dataset_id);
     }
+    #endif
     
     
     #endif //OUTPUT_CHEMISTRY
@@ -1375,7 +1408,9 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         for (i=0; i<H.nx_real; i++) {
           id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
+          #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.temperature[id];
+          #endif
         }
       }
     }
