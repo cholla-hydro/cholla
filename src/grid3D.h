@@ -606,6 +606,7 @@ class Grid3D
     void Unload_MPI_Comm_Buffers(int index);
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
+    void Unload_MPI_Comm_DeviceBuffers_BLOCK(int index);
     int Load_Hydro_Buffer_X0();
     int Load_Hydro_Buffer_X1();
     int Load_Hydro_Buffer_Y0();
