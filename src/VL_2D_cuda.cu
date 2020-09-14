@@ -89,7 +89,8 @@ Real VL_Algorithm_2D_CUDA ( Real *host_conserved0, Real *host_conserved1,
     #endif  
 
     // allocate GPU arrays
-    CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
+    //CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
+    dev_conserved = d_conserved;
     CudaSafeCall( cudaMalloc((void**)&dev_conserved_half, n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Lx, n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Rx, n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -107,7 +108,7 @@ Real VL_Algorithm_2D_CUDA ( Real *host_conserved0, Real *host_conserved1,
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
     #endif 
-    d_conserved = dev_conserved;
+    //d_conserved = dev_conserved;
   }
   
 

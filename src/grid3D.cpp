@@ -273,7 +273,7 @@ void Grid3D::AllocateMemory(void)
   C.Grav_potential = NULL;
   #endif
   
-  C.device = NULL;
+  CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
   
   // initialize array
   for (int i=0; i<H.n_fields*H.n_cells; i++)
