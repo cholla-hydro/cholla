@@ -142,6 +142,7 @@ FFTW_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8
 PFFT_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/pfft
 GRAKLE_HOME = /home/brvillas/code/grackle
 MPI_HOME = /cm/shared/apps/openmpi/openmpi-4.0.1.cuda
+CUDA_LIBS = /cm/shared/apps/cuda10.1/toolkit/current/lib64
 endif
 
 ifeq ($(SYSTEM),"Shamrock")
