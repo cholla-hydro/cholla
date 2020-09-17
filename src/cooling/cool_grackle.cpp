@@ -76,7 +76,8 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   data->use_grackle = 1;            // chemistry on
   data->with_radiative_cooling = 1; // Cooling on
   data->primordial_chemistry = 1;   // molecular network with H, He
-  data->metal_cooling = 1;          // metal cooling on
+  // data->metal_cooling = 1;          // metal cooling on
+  data->metal_cooling = 0;          // metal cooling off
   data->UVbackground = 1;           // UV background on
   // data->grackle_data_file = "src/cooling/CloudyData_UVB=HM2012.h5"; // data file
   // data->grackle_data_file = "src/cooling/CloudyData_UVB=HM2012_cloudy.h5"; // data file
