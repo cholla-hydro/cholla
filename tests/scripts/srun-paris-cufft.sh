@@ -8,9 +8,9 @@
 
 module load gcc hdf5 cuda
 
-OUTDIR="out.paris.cufft.${LSB_JOBID}"
+OUTDIR="run/out.paris.cufft.${LSB_JOBID}"
 set -x
 mkdir -p ${OUTDIR}
 cd ${OUTDIR}
 export OMP_NUM_THREADS=16
-jsrun --smpiargs="-gpu" -n1 -a1 -c16 -g1 ../cholla.paris.cufft ../parameter_file.txt |& tee tee
+jsrun --smpiargs="-gpu" -n1 -a1 -c16 -g1 ../../bin/cholla.paris.cufft ../../tests/scripts/parameter_file.txt |& tee tee

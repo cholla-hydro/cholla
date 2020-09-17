@@ -8,8 +8,8 @@
 
 module load gcc hdf5 cuda
 
-OUTDIR="out.regression.${LSB_JOBID}"
+OUTDIR="run/out.regression.${LSB_JOBID}"
 set -x
 mkdir -p ${OUTDIR}
 cd ${OUTDIR}
-jsrun --smpiargs="-gpu" -n1 -a1 -c1 -g1 ../cholla ../tests/regression/hydro_input.txt |& tee tee
+jsrun --smpiargs="-gpu" -n1 -a1 -c1 -g1 ../../bin/cholla ../../tests/regression/hydro_input.txt |& tee tee

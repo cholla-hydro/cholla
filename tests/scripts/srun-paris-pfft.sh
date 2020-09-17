@@ -8,9 +8,9 @@
 
 module load gcc hdf5 cuda fftw
 
-OUTDIR="out.paris.pfft.${LSB_JOBID}"
+OUTDIR="run/out.paris.pfft.${LSB_JOBID}"
 set -x
 mkdir -p ${OUTDIR}
 cd ${OUTDIR}
 export OMP_NUM_THREADS=16
-jsrun --smpiargs="-gpu" -n4 -a1 -c4 -g1 ../cholla.paris.pfft ../parameter_file.txt |& tee tee
+jsrun --smpiargs="-gpu" -n4 -a1 -c4 -g1 ../../bin/cholla.paris.pfft ../../tests/scripts/parameter_file.txt |& tee tee
