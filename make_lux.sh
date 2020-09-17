@@ -6,7 +6,7 @@ module load cuda10.1/10.1
 module list
 
 export MPI_HOME='/cm/shared/apps/openmpi/openmpi-4.0.1.cuda/'
-export POISSON_SOLVER='-DSOR'
-export SUFFIX='.sor'
+export POISSON_SOLVER='-DPARIS'
+export SUFFIX='.paris'
 make clean
 make
