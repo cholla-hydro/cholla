@@ -209,7 +209,7 @@ ifdef HIP_PLATFORM
   LDFLAGS += $(GPUFLAGS)
 else
   GPUCXX := nvcc
-  GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  GPUFLAGS += --expt-extended-lambda -g -O3 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
 endif
