@@ -222,9 +222,9 @@ static inline Real testF(const Real x, const Real y, const Real z)
   return f1(x)*f1(y)*f1(z);
 }
 
-static inline Real testD(const Real x, const Real y, const Real z)
+static inline Real testD(const Real x, const Real y, const Real z, const Real ddlx, const Real ddly, const Real ddlz)
 {
-  return d1(x)*f1(y)*f1(z)+f1(x)*d1(y)*f1(z)+f1(x)*f1(y)*d1(z);
+  return ddlx*d1(x)*f1(y)*f1(z)+ddly*f1(x)*d1(y)*f1(z)+ddlz*f1(x)*f1(y)*d1(z);
 }
 
 static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz)
@@ -268,15 +268,23 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
   const long ng = N_GHOST_POTENTIAL;
   std::vector<Real> rho(Grav.n_cells);
   std::vector<Real> exact(Grav.n_cells_potential);
+
+  const Real dlx = 1.0/H.xdglobal;
+  const Real dly = 1.0/H.ydglobal;
+  const Real dlz = 1.0/H.zdglobal;
+  const Real ddlx = dlx*dlx;
+  const Real ddly = dly*dly;
+  const Real ddlz = dlz*dlz;
+
 #pragma omp parallel for
   for (int k = 0; k < Grav.nz_local; k++) {
-    const Real z = Grav.zMin+Real(k)*Grav.dz;
+    const Real z = (Grav.zMin-H.zbound+Real(k)*Grav.dz)*dlz;
     long ijk = long(k)*Grav.ny_local*Grav.nx_local;
     for (int j = 0; j < Grav.ny_local; j++) {
-      const Real y = Grav.yMin+Real(j)*Grav.dy;
+      const Real y = (Grav.yMin-H.ybound+Real(j)*Grav.dy)*dly;
       for (int i = 0; i < Grav.nx_local; i++, ijk++) {
-        const Real x = Grav.xMin+Real(i)*Grav.dx;
-        rho[ijk] = testD(x,y,z);
+        const Real x = (Grav.xMin-H.xbound+Real(i)*Grav.dx)*dlx;
+        rho[ijk] = testD(x,y,z,ddlx,ddly,ddlz);
         const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
         exact[ijkg] = testF(x,y,z);
       }

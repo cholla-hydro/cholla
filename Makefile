@@ -81,19 +81,23 @@ ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
   endif
 endif
 
+ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
+  CXXFLAGS += -fopenmp
+endif
+
 ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
   CXXFLAGS += -I$(ROCM_PATH)/include -Wno-unused-result
   CXXFLAGS += -D__HIP_PLATFORM_HCC__
   GPUCXX := hipcc
-  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-variable \
+  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906,gfx908 -Wno-unused-variable \
               -Wno-unused-function -Wno-unused-result \
               -Wno-unused-command-line-argument -Wno-duplicate-decl-specifier \
               -std=c++14 -ferror-limit=1
   GPUFLAGS += -I$(ROCM_PATH)/include
-  LD := $(GPUCXX)
-  LDFLAGS += $(GPUFLAGS)
-  LIBS += -L$(CRAYLIBS_X86_64) -L$(GCC_X86_64)/lib64 -lcraymath -lu
+  LD := $(CXX)
+  LDFLAGS := $(CXXFLAGS)
+  LIBS += -L$(ROCM_PATH)/lib -lamdhip64
 else
   GPUCXX := nvcc
   GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
@@ -115,19 +119,9 @@ ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   LIBS     += -L$(GRACKLE_ROOT)lib -lgrackle
 endif
 
-ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
-  CXXFLAGS += -fopenmp
-  ifdef HIP_PLATFORM
-    LIBS += -lcraymp
-  else
-    LDFLAGS += -fopenmp
-  endif
-endif
-
-
 .SUFFIXES: .c .cpp .cu .o
 
-EXEC := cholla$(SUFFIX)
+EXEC := bin/cholla$(SUFFIX)
 
 $(EXEC): prereq-build $(OBJS) 
 	$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
