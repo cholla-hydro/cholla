@@ -1258,7 +1258,7 @@ void Grid3D::Chemistry_Test( struct parameters P )
   chprintf( "Initializing Chemistry Test...\n");
   
   Real H0, Omega_M, Omega_L, Omega_b, current_z, rho_gas_mean,  kpc_cgs, G, z, h, mu, T0, U;
-  Real HI_frac, HII_frac, HeI_frac, HeII_frac, HeIII_frac, e_frac, frac_min;
+  Real HI_frac, HII_frac, HeI_frac, HeII_frac, HeIII_frac, e_frac, metal_frac,_min;
   
   H0 = P.H0;
   Omega_M = P.Omega_M;
@@ -1283,13 +1283,22 @@ void Grid3D::Chemistry_Test( struct parameters P )
   
   
   
-  frac_min = 1e-10;
+  // frac_min = 1e-10;
+  // HI_frac = INITIAL_FRACTION_HI;
+  // HII_frac = frac_min;
+  // HeI_frac = INITIAL_FRACTION_HEI;
+  // HeII_frac = frac_min;
+  // HeIII_frac = frac_min;
+  // e_frac = HII_frac + HeII_frac + 2*HeIII_frac;
+  // 
   HI_frac = INITIAL_FRACTION_HI;
-  HII_frac = frac_min;
+  HII_frac = INITIAL_FRACTION_HII;
   HeI_frac = INITIAL_FRACTION_HEI;
-  HeII_frac = frac_min;
-  HeIII_frac = frac_min;
-  e_frac = HII_frac + HeII_frac + 2*HeIII_frac;
+  HeII_frac = INITIAL_FRACTION_HEII;
+  HeIII_frac = INITIAL_FRACTION_HEIII;
+  e_frac = INITIAL_FRACTION_ELECTRON;
+  metal_frac = INITIAL_FRACTION_METAL;
+  
   
   mu = ( HI_frac + HII_frac + HeI_frac + HeII_frac + HeIII_frac ) / ( HI_frac + HII_frac + (HeI_frac + HeII_frac + HeIII_frac)/4 + e_frac );
   U = rho_gas_mean *  T0 / (gama - 1) / MP / mu * KB * 1e-10;
@@ -1316,12 +1325,26 @@ void Grid3D::Chemistry_Test( struct parameters P )
         C.GasEnergy[id] = U;
         #endif
         
+        #ifdef CHEMISTRY_GPU
         C.HI_density[id]    =  rho_gas_mean * HI_frac;
         C.HII_density[id]   =  rho_gas_mean * HII_frac;
         C.HeI_density[id]   =  rho_gas_mean * HeI_frac;
         C.HeII_density[id]  =  rho_gas_mean * HeII_frac;
         C.HeIII_density[id] =  rho_gas_mean * HeIII_frac;
         C.e_density[id]     =  rho_gas_mean * e_frac;
+        #endif
+        
+        
+        #ifdef COOLING_GRACKLE
+        C.scalar[0*H.n_cells + id] = rho_gas_mean * HI_frac;
+        C.scalar[1*H.n_cells + id] = rho_gas_mean * HII_frac;
+        C.scalar[2*H.n_cells + id] = rho_gas_mean * HeI_frac;
+        C.scalar[3*H.n_cells + id] = rho_gas_mean * HeII_frac;
+        C.scalar[4*H.n_cells + id] = rho_gas_mean * HeIII_frac;
+        C.scalar[5*H.n_cells + id] = rho_gas_mean * e_frac;
+        C.scalar[6*H.n_cells + id] = rho_gas_mean * metal_frac;
+        #endif
+        
         
       }
     }

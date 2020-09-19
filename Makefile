@@ -21,8 +21,6 @@ DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 #DFLAGS += -DPRECISION=1
 DFLAGS += -DPRECISION=2
 
-DFLAGS += -DH_CORRECTION
-
 # Output
 #DFLAGS += -DBINARY
 DFLAGS += -DHDF5
@@ -169,6 +167,7 @@ GRAKLE_HOME = /home/bruno/local
 HDF5INCLUDE = /usr/include/hdf5/serial
 HDF5DIR = /usr/lib/x86_64-linux-gnu/hdf5/serial
 CUDA_LIBS = /usr/local/cuda-10.1/targets/x86_64-linux/lib
+CUDA_INCLUDE = /usr/local/cuda-10.1/targets/x86_64-linux/include
 endif
 
 CFLAGS += -g -Ofast
@@ -185,6 +184,8 @@ endif
 
 ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
   LIBS += -L$(CUDA_LIBS) -lcufft
+	GPUFLAGS += -I$(CUDA_INCLUDE)
+	CXXFLAGS += -I$(CUDA_INCLUDE)
 endif
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
