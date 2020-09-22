@@ -5,6 +5,7 @@
 #include "../io.h"
 #include "../grid3D.h"
 #include "grav3D.h"
+#include "../model/disk_galaxy.h"
 
 #if defined (GRAV_ISOLATED_BOUNDARY_X) || defined (GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
 
@@ -140,7 +141,6 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
     cm_pos_z = 0.5; 
   }
   
-  
   Real pot_val;
   int i, j, k, id;
   for ( k=0; k<nGHST; k++ ){
@@ -180,6 +180,11 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
           delta_z = pos_z - cm_pos_z;
           r = sqrt( ( delta_x * delta_x ) + ( delta_y * delta_y ) + ( delta_z * delta_z ) );
           pot_val = - Grav.Gconst * M / r;
+        } 
+        else if (bc_potential_type == 1) { 
+          // M-W disk potential
+          r = sqrt(pos_x*pos_x + pos_y*pos_y);
+          pot_val = Galaxies::MW.phi_total_D3D(r, pos_z);
         }
         else{
           chprintf("ERROR: Boundaty Potential not set, need to set appropriate bc_potential_type \n"); 
