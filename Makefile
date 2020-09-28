@@ -1,5 +1,5 @@
 
-DIRS := src src/gravity src/particles src/cosmology src/cooling src/tides
+DIRS := src src/gravity src/particles src/cosmology src/cooling_grackle 
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
 endif
@@ -16,7 +16,7 @@ OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(G
 DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
-DFLAGS += -DMPI_CHOLLA -DBLOCK
+# DFLAGS += -DMPI_CHOLLA -DBLOCK
 
 #DFLAGS += -DPRECISION=1
 DFLAGS += -DPRECISION=2
@@ -159,6 +159,7 @@ GRAKLE_HOME = /home/bruno/local
 HDF5INCLUDE = /usr/include/hdf5/serial
 HDF5DIR = /usr/lib/x86_64-linux-gnu/hdf5/serial
 CUDA_LIBS = /usr/local/cuda-10.1/targets/x86_64-linux/lib
+CUDA_INCLUDE = /usr/local/cuda-10.1/targets/x86_64-linux/include
 endif
 
 CFLAGS += -g -Ofast
@@ -175,6 +176,8 @@ endif
 
 ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
   LIBS += -L$(CUDA_LIBS) -lcufft
+	GPUFLAGS += -I$(CUDA_INCLUDE)
+	CXXFLAGS += -I$(CUDA_INCLUDE)
 endif
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
@@ -182,6 +185,8 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
     LIBS += -L$(ROCM_PATH)/lib -lrocfft
   else
     LIBS += -L$(CUDA_LIBS) -lcufft -lcudart
+		GPUFLAGS += -I$(CUDA_INCLUDE)
+		CXXFLAGS += -I$(CUDA_INCLUDE)
   endif
 endif
 
