@@ -35,6 +35,11 @@
 #include "timing_functions.h"
 #endif
 
+#ifdef ANALYSIS
+#include "analysis/analysis.h"
+#endif
+
+
 struct Rotation
 {
   /*! \var nx
@@ -301,6 +306,10 @@ class Grid3D
     Time Timer;
     #endif
 
+    #ifdef ANALYSIS
+    Analysis_Module Analysis;
+    #endif
+    
     struct Conserved
     {
       /*! \var density

@@ -112,6 +112,10 @@ int main(int argc, char *argv[])
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
   #endif
+  
+  #ifdef ANALYSIS
+  G.Analysis.Initialize(&P);
+  #endif
 
   #ifdef GRAVITY
   // Get the gravitaional potential for the first timestep

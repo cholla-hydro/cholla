@@ -764,4 +764,8 @@ void Grid3D::FreeMemory(void)
   Free_Cuda_Textures();
   #endif
   #endif
+  
+  #ifdef ANALYSIS
+  Analysis.Reset();
+  #endif
 }

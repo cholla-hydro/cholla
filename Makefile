@@ -1,5 +1,5 @@
 
-DIRS := src src/gravity src/particles src/cosmology src/cooling_grackle 
+DIRS := src src/gravity src/particles src/cosmology src/cooling_grackle src/analysis
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
 endif
@@ -100,6 +100,9 @@ DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 
 # Cosmology simulation
 DFLAGS += -DCOSMOLOGY
+
+# Permorm In-The-Fly analisys of Cosmological Simulations
+DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS
 
 # Use Grackle for cooling in cosmological simulations
 DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=20
