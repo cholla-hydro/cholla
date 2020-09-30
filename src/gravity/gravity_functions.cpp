@@ -77,6 +77,15 @@ void Grid3D::set_dt_Gravity(){
     H.Output_Now = true;
   }
   
+  #ifdef ANALYSIS
+  //Limit delta_a if it's time to run analisys
+  if ( (Cosmo.current_a + da_min) >  Analysis.next_output ){
+    da_min = Analysis.next_output - Cosmo.current_a;
+    Analysis.output_now = true;
+  }
+  #endif
+  
+  
   //Set delta_a after it has been computed
   Cosmo.delta_a = da_min;
   //Convert delta_a back to delta_t

@@ -18,6 +18,7 @@ public:
   Real Omega_M;
   Real Omega_L;
   Real Omega_K;
+  Real Omega_b;
 
   Real cosmo_G;
   Real cosmo_h;
@@ -31,6 +32,7 @@ public:
   Real v_0_dm;
   Real rho_0_dm;
   Real phi_0_dm;
+  Real rho_mean_baryon;
 
   Real time_conversion;
   Real dt_secs;

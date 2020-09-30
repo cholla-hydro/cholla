@@ -232,6 +232,7 @@ struct parameters
   Real H0;
   Real Omega_M;
   Real Omega_L;
+  Real Omega_b;
   Real Init_redshift;
   Real End_redshift;
   char scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations 
@@ -247,6 +248,11 @@ struct parameters
   int n_proc_z;
 #endif
   int bc_potential_type;
+  
+#ifdef ANALYSIS
+  char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
+  char analysisdir[MAXLEN];
+#endif
 };
 
 

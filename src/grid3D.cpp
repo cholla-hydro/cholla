@@ -701,6 +701,11 @@ void Grid3D::Update_Time(){
   #endif //COSMOLOGY
   #endif //PARTICLES
   
+  #ifdef ANALYSIS
+  Analysis.current_z = Cosmo.current_z;
+  #endif
+  
+  
   
   
 }

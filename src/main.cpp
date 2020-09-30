@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
   #endif
   
   #ifdef ANALYSIS
-  G.Analysis.Initialize(&P);
+  G.Initialize_Analysis_Module(&P);
   #endif
 
   #ifdef GRAVITY
@@ -236,6 +236,10 @@ int main(int argc, char *argv[])
       // update to the next output time
       outtime += P.outstep;      
     }
+    
+    #ifdef ANALYSIS
+    if ( G.Analysis.output_now ) G.Compute_and_Output_Analysis(&P);
+    #endif
     
     #ifdef CPU_TIME
     G.Timer.n_steps += 1;
