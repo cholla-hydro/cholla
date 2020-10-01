@@ -150,7 +150,7 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
   Grav.Poisson_solver.Set_Isolated_Boundary_Conditions( Grav.boundary_flags, P );
 
 
-  Real epsilon = 1e-2;
+  Real epsilon = 1e-1;
   int max_iter = 10000000;
   int n_iter = 0;
 
