@@ -16,7 +16,7 @@ OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(G
 DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
-# DFLAGS += -DMPI_CHOLLA -DBLOCK
+DFLAGS += -DMPI_CHOLLA -DBLOCK
 
 #DFLAGS += -DPRECISION=1
 DFLAGS += -DPRECISION=2
@@ -133,7 +133,7 @@ CXX = mpic++
 endif
 CXXFLAGS += -std=c++11
 GPUFLAGS += -std=c++11 -arch sm_70
-DFLAGS += -DPARIS_NO_GPU_MPI
+# DFLAGS += -DPARIS_NO_GPU_MPI
 OMP_NUM_THREADS = 20
 FFTW_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8
 PFFT_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/pfft
