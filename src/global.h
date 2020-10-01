@@ -248,7 +248,9 @@ struct parameters
   int n_proc_z;
 #endif
   int bc_potential_type;
-  
+#ifdef COOLING_GRACKLE
+  char UVB_rates_file[MAXLEN];
+#endif  
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
   char analysisdir[MAXLEN];

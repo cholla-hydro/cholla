@@ -277,6 +277,11 @@ parms->scale_outputs_file[0] = '\0';
 #endif
     else if (strcmp(name, "bc_potential_type")==0)
       parms->bc_potential_type  = atoi(value);
+
+#ifdef COOLING_GRACKLE
+    else if (strcmp(name, "UVB_rates_file")==0)
+      strncpy (parms->UVB_rates_file, value, MAXLEN);
+#endif
 #ifdef ANALYSIS
     else if (strcmp(name, "analysis_scale_outputs_file")==0)
       strncpy (parms->analysis_scale_outputs_file, value, MAXLEN);
