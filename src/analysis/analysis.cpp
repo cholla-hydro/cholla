@@ -1,5 +1,6 @@
 #ifdef ANALYSIS
 
+#include<stdio.h>
 #include"analysis.h"
 #include"../io.h"
 
@@ -78,12 +79,15 @@ void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
   Compute_Phase_Diagram();
 
   
+  //Write to HDF5 file
   #ifdef MPI_CHOLLA
-  if ( procID != 0 ) return NULL;
+  if ( procID == 0 ) Output_Analysis(P);
+  #else
+  Output_Analysis(P);
   #endif
   
-  //Write to HDF5 file
-  Output_Analysis(P);
+  Analysis.Set_Next_Scale_Output();
+  Analysis.output_now = false;
   
 }
 

@@ -16,7 +16,7 @@ OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(G
 DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
-# DFLAGS += -DMPI_CHOLLA -DBLOCK
+DFLAGS += -DMPI_CHOLLA -DBLOCK
 
 #DFLAGS += -DPRECISION=1
 DFLAGS += -DPRECISION=2
@@ -149,8 +149,10 @@ ifeq ($(SYSTEM),"Shamrock")
 CC = gcc
 CXX = g++
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
-CC = $(MPI_HOME)/bin/mpicc
-CXX = $(MPI_HOME)/bin/mpicxx
+# CC = $(MPI_HOME)/bin/mpicc
+# CXX = $(MPI_HOME)/bin/mpicxx
+CC = mpicc
+CXX = mpicxx
 endif
 CXXFLAGS += -std=c++11
 GPUFLAGS += -std=c++11

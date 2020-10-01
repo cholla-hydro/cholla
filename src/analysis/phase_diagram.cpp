@@ -61,8 +61,10 @@ void Grid3D::Compute_Phase_Diagram(){
           #ifdef COOLING_GRACKLE
           temp = Cool.temperature[id_grid];
           #endif
-          if ( dens < dens_min || dens > dens_max ) continue;
-          if ( temp < temp_min || temp > temp_max ) continue;
+          if ( dens < dens_min || dens > dens_max || temp < temp_min || temp > temp_max ){
+            // printf("%f   %f\n", dens, temp );
+            continue;
+          }
           log_dens = log10(dens);
           log_temp = log10(temp);
           indx_dens = ( log_dens - log_dens_min ) / log_delta_dens;
@@ -75,6 +77,10 @@ void Grid3D::Compute_Phase_Diagram(){
     }
   }
   
+  // Real phase_sum_local = 0;
+  // for (indx_phase=0; indx_phase<n_temp*n_dens; indx_phase++) phase_sum_local += Analysis.phase_diagram[indx_phase];
+  // printf(" Phase Diagram Sum Local: %f\n", phase_sum_local );
+  
   #ifdef MPI_CHOLLA
   MPI_Reduce( Analysis.phase_diagram, Analysis.phase_diagram_global, n_temp*n_dens,  MPI_FLOAT,  MPI_SUM, 0,  world );
   if ( procID == 0) for (indx_phase=0; indx_phase<n_temp*n_dens; indx_phase++) Analysis.phase_diagram[indx_phase] = Analysis.phase_diagram_global[indx_phase];
@@ -83,9 +89,7 @@ void Grid3D::Compute_Phase_Diagram(){
   //Compute the sum for normalization
   Real phase_sum = 0;
   for (indx_phase=0; indx_phase<n_temp*n_dens; indx_phase++) phase_sum += Analysis.phase_diagram[indx_phase];
-  // chprintf(" Phase Diagram Sum: %f\n", phase_sum );
-
-  
+  chprintf(" Phase Diagram Sum Global: %f\n", phase_sum );
   
   //Normalize the Phase Diagram
   for (indx_phase=0; indx_phase<n_temp*n_dens; indx_phase++) Analysis.phase_diagram[indx_phase] /= phase_sum;

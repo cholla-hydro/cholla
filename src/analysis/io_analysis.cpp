@@ -39,11 +39,7 @@ void Grid3D::Output_Analysis( struct parameters *P ){
   // Close the file
   status = H5Fclose(file_id);
   
-  Analysis.Set_Next_Scale_Output();
-  Analysis.output_now = false;
-  
-  
-  chprintf("Saved Analysis File.\n\n");
+  chprintf("Saved Analysis File.\n\n");  
   
 }
 
