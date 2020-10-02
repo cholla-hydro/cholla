@@ -74,7 +74,7 @@ void Analysis_Module::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_
 
 void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
   
-  chprintf("\nComputing Analysis...\n");
+  chprintf("\nComputing Analysis  current_z: %f\n", Analysis.current_z );
   
   Compute_Phase_Diagram();
 
