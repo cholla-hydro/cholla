@@ -106,7 +106,7 @@ void Analysis_Module::Initialize_Phase_Diagram( struct parameters *P ){
   n_temp = 1000;
   dens_min = 1e-3;
   dens_max = 1e6;
-  temp_min = 1e2;
+  temp_min = 1e0;
   temp_max = 1e8;
   
   phase_diagram = (float *) malloc(n_dens*n_temp*sizeof(float));
