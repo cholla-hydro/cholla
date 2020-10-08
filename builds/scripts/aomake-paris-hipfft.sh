@@ -1,7 +1,7 @@
 #!/bin/bash
 
 module use /home/users/twhite/share/modulefiles
-module load pfft-ompi hdf5
+module load ompi-cray hdf5
 module list
 
 export LD_LIBRARY_PATH="$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH"

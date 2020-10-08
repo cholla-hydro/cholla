@@ -13,7 +13,6 @@ if [ "$1" == "build" ]; then
     poplar)
         ( module list 2>&1 | grep -q ompi-cray \
           || module list 2>&1 | grep -q cray-mvapich2 ) \
-          && module list 2>&1 | grep -q PrgEnv-cray \
           && module list 2>&1 | grep -q hdf5 \
           && ( module list 2>&1 | grep -q rocm \
           || module list 2>&1 | grep -q cuda )

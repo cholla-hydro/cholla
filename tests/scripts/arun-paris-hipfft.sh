@@ -1,9 +1,8 @@
 #!/bin/bash
-
-module load rocm
-module load PrgEnv-cray
+module restore PrgEnv-cray
 module load hdf5
 module load gcc/8.1.0
+module load rocm
 
 export LD_LIBRARY_PATH="$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH"
 OUTDIR="run/out.paris.hipfft.$(date +%m%d.%H%M%S)"
