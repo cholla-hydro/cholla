@@ -19,12 +19,12 @@ gamma=1.66666667
 # name of initial conditions
 init=Spherical_Overdensity_3D
 # domain properties
-xmin=0.0
-ymin=0.0
-zmin=0.0
-xlen=1.0
-ylen=1.0
-zlen=1.0
+xmin=-1.0
+ymin=-1.0
+zmin=-1.0
+xlen=2.0
+ylen=2.0
+zlen=2.0
 # type of boundary conditions
 xl_bcnd=1
 xu_bcnd=1

@@ -55,11 +55,13 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
   n_[2] = nzReal;
 
   const int n[3] = {nz,ny,nx};
-  const double lo[3] = {0,0,0};
-  const double hi[3] = {lz-dz,ly-dy,lx-dx};
+  const double myLo[3] = {zMin,yMin,xMin};
+  double lo[3];
+  MPI_Allreduce(myLo,lo,3,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+  const double hi[3] = {lo[0]+lz-dz,lo[1]+ly-dy,lo[2]+lx-dx};
   const int m[3] = {n[0]/nzReal,n[1]/nyReal,n[2]/nxReal};
-  const int id[3] = {int(round(zMin/dz)),int(round(yMin/dy)),int(round(xMin/dx))};
-  chprintf("  Paris: L[ %g %g %g ] N_local[ %d %d %d ] Tasks[ %d %d %d ]\n",lx,ly,lz,n_[0],n_[1],n_[2],m[2],m[1],m[0]);
+  const int id[3] = {int(round((zMin-lo[0])/dz)),int(round((yMin-lo[1])/dy)),int(round((xMin-lo[2])/dx))};
+  chprintf("  Paris: [ %g %g %g ]-[ %g %g %g ] N_local[ %d %d %d ] Tasks[ %d %d %d ]\n",lo[2],lo[1],lo[0],lo[2]+lx,lo[1]+ly,lo[0]+lz,n_[0],n_[1],n_[2],m[2],m[1],m[0]);
   assert(n_[0] == n[2]/m[2]);
   assert(n_[1] == n[1]/m[1]);
   assert(n_[2] == n[0]/m[0]);
