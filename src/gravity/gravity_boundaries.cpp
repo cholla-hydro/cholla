@@ -112,7 +112,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
     if ( side == 1 ) pot_boundary = Grav.F.pot_boundary_x1;
   }
   #endif
-  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
   if ( direction == 1 ){
     domain_l = Grav.yMin;
     n_i = Grav.nx_local;
