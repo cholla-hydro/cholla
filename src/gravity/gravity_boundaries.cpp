@@ -44,7 +44,7 @@ void Grid3D::Set_Potential_Boundaries_Isolated( int direction, int side, int *fl
     if ( side == 1 ) pot_boundary = Grav.F.pot_boundary_x1;
   }
   #endif
-  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
   if ( direction == 1 ){
     n_i = Grav.nx_local;
     n_j = Grav.nz_local;
