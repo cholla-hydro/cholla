@@ -19,6 +19,8 @@ void Grid3D::Initialize_Analysis_Module( struct parameters *P ){
   
   Analysis.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost, z_now, P );
   
+  exit(1);
+  
 }
 
 void Analysis_Module::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_hydro, Real z_now, struct parameters *P ){
@@ -32,7 +34,7 @@ void Analysis_Module::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_
   xMin = x_min;
   yMin = y_min;
   zMin = z_min;
-  
+    
   //Cell sizes
   dx = dx_real;
   dy = dy_real;
@@ -50,6 +52,11 @@ void Analysis_Module::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_
   
   //Number of ghost cells in the conserved arrays
   n_ghost = n_ghost_hydro;
+  
+  //Domain Global left Boundaty 
+  xMin_global = P->xmin;
+  yMin_global = P->ymin;
+  zMin_global = P->zmin;
   
   #ifdef COSMOLOGY
   current_z = z_now;
@@ -96,6 +103,30 @@ void Analysis_Module::Reset(){
   #ifdef PHASE_DIAGRAM
   free(phase_diagram);
   #endif
+  
+  #ifdef LYA_STATISTICS
+  free( skewers_HI_density_local_x );
+  free( skewers_HI_density_local_y );
+  free( skewers_HI_density_local_z );  
+  free( skewers_velocity_local_x );
+  free( skewers_velocity_local_y );
+  free( skewers_velocity_local_z );
+  free( skewers_temperature_local_x );
+  free( skewers_temperature_local_y );
+  free( skewers_temperature_local_z );
+  #ifdef MPI_CHOLLA
+  free( skewers_HI_density_root_x );
+  free( skewers_HI_density_root_y );
+  free( skewers_HI_density_root_z );  
+  free( skewers_velocity_root_x );
+  free( skewers_velocity_root_y );
+  free( skewers_velocity_root_z );
+  free( skewers_temperature_root_x );
+  free( skewers_temperature_root_y );
+  free( skewers_temperature_root_z );
+  #endif
+  #endif
+  
   
 }
 

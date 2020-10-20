@@ -4,6 +4,9 @@
 #define ANALYSIS_H
 
 #include"../global.h"
+#include <vector>
+
+using namespace std;
 
 class Analysis_Module{
 public:
@@ -19,6 +22,10 @@ public:
   Real dx;
   Real dy;
   Real dz;
+  
+  Real xMin_global;
+  Real yMin_global;
+  Real zMin_global;
   
   int nx_total;
   int ny_total;
@@ -57,6 +64,54 @@ public:
   
   
   #ifdef LYA_STATISTICS
+  int n_stride;
+  int n_skewers_local_x;
+  int n_skewers_local_y;
+  int n_skewers_local_z;
+  int n_skewers_total_x;
+  int n_skewers_total_y;
+  int n_skewers_total_z;
+  
+  int skewers_direction;
+  int root_id_x;
+  int root_id_y;
+  int root_id_z;
+  bool am_I_root_x;
+  bool am_I_root_y;
+  bool am_I_root_z;
+  Real *skewers_HI_density_local_x;
+  Real *skewers_HI_density_local_y;
+  Real *skewers_HI_density_local_z;
+  
+  Real *skewers_velocity_local_x;
+  Real *skewers_velocity_local_y;
+  Real *skewers_velocity_local_z;
+  
+  Real *skewers_temperature_local_x;
+  Real *skewers_temperature_local_y;
+  Real *skewers_temperature_local_z;
+  
+  Real *skewers_HI_density_root_x;
+  Real *skewers_HI_density_root_y;
+  Real *skewers_HI_density_root_z;
+  
+  Real *skewers_velocity_root_x;
+  Real *skewers_velocity_root_y;
+  Real *skewers_velocity_root_z;
+  
+  Real *skewers_temperature_root_x;
+  Real *skewers_temperature_root_y;
+  Real *skewers_temperature_root_z;
+  
+  
+  #ifdef MPI_CHOLLA
+  Real *mpi_domain_boundary_x;
+  Real *mpi_domain_boundary_y;
+  Real *mpi_domain_boundary_z;
+  vector<int> mpi_indices_x;
+  vector<int> mpi_indices_y;
+  vector<int> mpi_indices_z;  
+  #endif
   
   #endif
   

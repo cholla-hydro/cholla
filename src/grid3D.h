@@ -730,7 +730,12 @@ class Grid3D
   #ifdef PHASE_DIAGRAM
   void Compute_Phase_Diagram();
   #endif
+  
+  #ifdef LYA_STATISTICS
+  void Populate_Lya_Skewers_Local( int axis );
   #endif
+  
+  #endif//ANALYSIS
   
 
 };
