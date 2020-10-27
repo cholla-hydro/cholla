@@ -254,6 +254,7 @@ struct parameters
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
   char analysisdir[MAXLEN];
+  int lya_skewers_stride;
 #endif
 };
 

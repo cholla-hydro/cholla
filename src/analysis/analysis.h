@@ -72,6 +72,14 @@ public:
   int n_skewers_total_y;
   int n_skewers_total_z;
   
+  int n_skewers_processed_root_x;
+  int n_skewers_processed_root_y;
+  int n_skewers_processed_root_z;
+  
+  int n_skewers_processed_x;
+  int n_skewers_processed_y;
+  int n_skewers_processed_z;
+  
   int skewers_direction;
   int root_id_x;
   int root_id_y;
@@ -103,6 +111,46 @@ public:
   Real *skewers_temperature_root_y;
   Real *skewers_temperature_root_z;
   
+  Real *full_HI_density_x;
+  Real *full_HI_density_y;
+  Real *full_HI_density_z;
+  
+  Real *full_velocity_x;
+  Real *full_velocity_y;
+  Real *full_velocity_z;
+  
+  Real *full_temperature_x;
+  Real *full_temperature_y;
+  Real *full_temperature_z;
+  
+  Real *full_optical_depth_x;
+  Real *full_optical_depth_y;
+  Real *full_optical_depth_z;
+  
+  Real *full_vel_Hubble_x;
+  Real *full_vel_Hubble_y;
+  Real *full_vel_Hubble_z;
+  
+  Real *transmitted_flux_x;
+  Real *transmitted_flux_y;
+  Real *transmitted_flux_z;
+  
+  Real Flux_mean_root_x;
+  Real Flux_mean_root_y;
+  Real Flux_mean_root_z;
+  
+  Real Flux_mean_x;
+  Real Flux_mean_y;
+  Real Flux_mean_z;
+    
+  Real Flux_mean;
+  int n_skewers_processed;
+    
+  int n_ghost_skewer;
+  int n_los_full_x;
+  int n_los_full_y;
+  int n_los_full_z;
+  
   
   #ifdef MPI_CHOLLA
   Real *mpi_domain_boundary_x;
@@ -131,6 +179,11 @@ public:
   
   #ifdef LYA_STATISTICS
   void Initialize_Lya_Statistics( struct parameters *P );
+  void Initialize_Lya_Statistics_Measurements( int axis );
+  void Transfer_Skewers_Data( int axis );
+  void Compute_Lya_Statistics_Skewer( int skewer_id, int axis );
+  void Reduce_Lya_Statists_Axis( int axis );
+  void Reduce_Lya_Statists_Global( void );
   #endif
 };
 

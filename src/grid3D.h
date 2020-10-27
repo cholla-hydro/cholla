@@ -733,6 +733,8 @@ class Grid3D
   
   #ifdef LYA_STATISTICS
   void Populate_Lya_Skewers_Local( int axis );
+  void Compute_Transmitted_Flux_Skewer( int skewer_id, int axis );
+  void Compute_Lya_Statistics( );
   #endif
   
   #endif//ANALYSIS
