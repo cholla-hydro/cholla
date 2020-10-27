@@ -6,7 +6,7 @@
 #include "../io.h"
 #include "../grid3D.h"
 
-#define OUTPUT_SKEWER
+// #define OUTPUT_SKEWER
 
 using namespace std;
 
@@ -162,6 +162,17 @@ void Grid3D::Write_Analysis_Data_HDF5( hid_t file_id ){
   #ifdef LYA_STATISTICS
   
   group_id = H5Gcreate(file_id, "/lya_statistics", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  
+  
+  attribute_id = H5Acreate(group_id, "n_skewers", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, &Analysis.n_skewers_processed);
+  status = H5Aclose(attribute_id);
+  
+  
+  attribute_id = H5Acreate(group_id, "Flux_mean", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Analysis.Flux_mean);
+  status = H5Aclose(attribute_id);
+  
   
   
   #ifdef OUTPUT_SKEWER
