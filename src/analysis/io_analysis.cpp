@@ -6,7 +6,7 @@
 #include "../io.h"
 #include "../grid3D.h"
 
-// #define OUTPUT_SKEWER
+#define OUTPUT_SKEWER
 
 using namespace std;
 
@@ -193,7 +193,7 @@ void Grid3D::Write_Analysis_Data_HDF5( hid_t file_id ){
   Real *buffer_skewer = (Real *) malloc(nx*sizeof(Real));
   
   for ( int los_id=0; los_id<nx; los_id++ ){
-    buffer_skewer[los_id] = Analysis.skewers_HI_density_root_x[los_id];
+    buffer_skewer[los_id] = Analysis.full_HI_density_x[los_id+n_ghost ];
   }
   dataset_id = H5Dcreate(skewer_group, "HI_density", H5T_IEEE_F64BE, dataspace_id_skewer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer);
@@ -201,7 +201,7 @@ void Grid3D::Write_Analysis_Data_HDF5( hid_t file_id ){
   
   
   for ( int los_id=0; los_id<nx; los_id++ ){
-    buffer_skewer[los_id] = Analysis.skewers_velocity_root_x[los_id];
+    buffer_skewer[los_id] = Analysis.full_velocity_x[los_id+n_ghost];
   }
   dataset_id = H5Dcreate(skewer_group, "velocity", H5T_IEEE_F64BE, dataspace_id_skewer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer);
@@ -209,7 +209,7 @@ void Grid3D::Write_Analysis_Data_HDF5( hid_t file_id ){
   
   
   for ( int los_id=0; los_id<nx; los_id++ ){
-    buffer_skewer[los_id] = Analysis.skewers_temperature_root_x[los_id];
+    buffer_skewer[los_id] = Analysis.full_temperature_x[los_id+n_ghost];
   }
   dataset_id = H5Dcreate(skewer_group, "temperature", H5T_IEEE_F64BE, dataspace_id_skewer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer);

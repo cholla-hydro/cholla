@@ -107,8 +107,8 @@ DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS
 # Use Grackle for cooling in cosmological simulations
 DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=10
 
-SYSTEM = "Lux"
-# SYSTEM = "Shamrock"
+# SYSTEM = "Lux"
+SYSTEM = "Shamrock"
 
 ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
@@ -212,7 +212,7 @@ endif
 ifdef HIP_PLATFORM
   CXXFLAGS += -I$(ROCM_PATH)/include -Wno-unused-result
   GPUCXX := hipcc
-  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-function -Wno-unused-result -Wno-unused-command-line-argument -ferror-limit=1
+  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-function -Wno-unused-result -std=c++17 -Wno-unused-command-line-argument -ferror-limit=1
   LD := $(GPUCXX)
   LDFLAGS += $(GPUFLAGS)
 else

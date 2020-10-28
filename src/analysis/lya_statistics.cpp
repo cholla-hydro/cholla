@@ -225,19 +225,13 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
   kpc3 = kpc * kpc * kpc;
   e_charge =  4.8032e-10;  // cm^3/2 g^1/2 s^-1 
   
-  Real dens_factor, vel_factor;
 
-  dens_factor = 1. / ( Cosmo.current_a * Cosmo.current_a * Cosmo.current_a ) * Cosmo.cosmo_h * Cosmo.cosmo_h; 
-  dens_factor *= Msun / ( kpc3 ) / Mp;
-  vel_factor = 1e5; //cm/s
    
   // Fill the Real cells first
   for (int los_id=0; los_id<n_los_total; los_id++ ){
     HI_density  = skewers_HI_density_root [ skewer_id*n_los_total + los_id ];
     velocity    = skewers_velocity_root   [ skewer_id*n_los_total + los_id ];
     temperature = skewers_temperature_root[ skewer_id*n_los_total + los_id ];
-    HI_density *= dens_factor;
-    velocity   *= vel_factor;
     full_HI_density [los_id + n_ghost] = HI_density;
     full_velocity   [los_id + n_ghost] = velocity;
     full_temperature[los_id + n_ghost] = temperature;
@@ -264,6 +258,12 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
   // for (int los_id=0; los_id<n_los_full; los_id++ ){
   //   full_HI_density[ los_id ] = 10*dens_factor;
   // }
+
+
+  Real dens_factor, vel_factor;
+  dens_factor = 1. / ( Cosmo.current_a * Cosmo.current_a * Cosmo.current_a ) * Cosmo.cosmo_h * Cosmo.cosmo_h; 
+  dens_factor *= Msun / ( kpc3 ) / Mp;
+  vel_factor = 1e5; //cm/s
   
   // Get Cosmological variables
   Real H, current_a, L_proper, dx_proper, dv_Hubble; 
@@ -273,6 +273,7 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
   dx_proper = delta_x * current_a / Cosmo.cosmo_h;
   H = Cosmo.Get_Hubble_Parameter( current_a );
   dv_Hubble = H * dx_proper * vel_factor; // cm/s
+
   
   
   // Fill the Hubble velocity with ghost cells
@@ -297,9 +298,8 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
     vel_i = full_vel_Hubble[i];
     tau_i = 0;
     for ( int j=0; j<n_los_full; j++ ){
-      n_HI_j = full_HI_density[j];
-      // if ( i==0 ) printf( "%f \n", full_velocity[j] * 1e-5);
-      vel_j = full_vel_Hubble[j] + full_velocity[j];
+      n_HI_j = full_HI_density[j] * dens_factor;
+      vel_j =  full_vel_Hubble[j] + ( full_velocity[j] * vel_factor );
       b_j = sqrt( 2 * Kb / Mp * full_temperature[j] );
       y_l = ( vel_i - 0.5*dv_Hubble - vel_j ) / b_j;
       y_r = ( vel_i + 0.5*dv_Hubble - vel_j ) / b_j;
@@ -550,13 +550,9 @@ void Grid3D::Populate_Lya_Skewers_Local( int axis ){
         chprintf( "ERROR: Lya Statistics only supported for Grackle Cooling \n");
         exit(-1);
         #endif
-        // HI_density = 10;
-        // velocity /= 1000;
-        // temperature = 100 + id_los/2;
         HI_density_los[skewer_id*n_los + id_los] = HI_density;
         velocity_los[skewer_id*n_los + id_los] = velocity;
         temperature_los[skewer_id*n_los + id_los] = temperature;
-        // if ( skewer_id == 0 ) printf("Dens: %f   vel:%f   temp:%f \n", HI_density, velocity, temperature );      
       }
       skewer_id += 1;
     }
@@ -567,7 +563,6 @@ void Grid3D::Populate_Lya_Skewers_Local( int axis ){
     exit(-1);
   }
   
-  // printf( " Local Skewers Data Copied \n");
 
 }
 
