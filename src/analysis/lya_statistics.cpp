@@ -112,8 +112,8 @@ void Analysis_Module::Compute_Lya_Statistics_Skewer( int skewer_id, int axis ){
     F_mean += transmitted_flux[los_id] / n_los;
   }
   
-  *F_mean_root += 1;
-  // *F_mean_root += F_mean;
+  // *F_mean_root += 1;
+  *F_mean_root += F_mean;
   *n_skewers_processed_root += 1;
   
 }
