@@ -71,11 +71,11 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
   const long gg = N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
   potentialBytes_ = long(sizeof(Real))*(n_[0]+gg)*(n_[1]+gg)*(n_[2]+gg);
 
-  // CHECK(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,densityBytes_)));
-  // assert(da_);
-  // 
-  // CHECK(cudaMalloc(reinterpret_cast<void **>(&db_),std::max(minBytes_,potentialBytes_)));
-  // assert(db_);
+  CHECK(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,densityBytes_)));
+  assert(da_);
+  
+  CHECK(cudaMalloc(reinterpret_cast<void **>(&db_),std::max(minBytes_,potentialBytes_)));
+  assert(db_);
 }
 
 void Potential_Paris_3D::Reset()
