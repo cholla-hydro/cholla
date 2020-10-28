@@ -200,12 +200,7 @@ void Analysis_Module::Reset(){
     free( full_vel_Hubble_z );
   }
   
-  full_HI_density_z  = (Real *) malloc(n_los_full_z*sizeof(Real));
-  full_velocity_z    = (Real *) malloc(n_los_full_z*sizeof(Real));
-  full_temperature_z = (Real *) malloc(n_los_full_z*sizeof(Real));
-  full_optical_depth_z = (Real *) malloc(n_los_full_z*sizeof(Real));
-  full_vel_Hubble_z  = (Real *) malloc(n_los_full_z*sizeof(Real));
-  transmitted_flux_z
+
   #endif
   #endif
   
