@@ -165,15 +165,47 @@ void Analysis_Module::Reset(){
   free( skewers_temperature_local_y );
   free( skewers_temperature_local_z );
   #ifdef MPI_CHOLLA
-  free( skewers_HI_density_root_x );
-  free( skewers_HI_density_root_y );
-  free( skewers_HI_density_root_z );  
-  free( skewers_velocity_root_x );
-  free( skewers_velocity_root_y );
-  free( skewers_velocity_root_z );
-  free( skewers_temperature_root_x );
-  free( skewers_temperature_root_y );
-  free( skewers_temperature_root_z );
+  
+  if ( am_I_root_x ){
+    free( skewers_HI_density_root_x );
+    free( skewers_velocity_root_x );
+    free( skewers_temperature_root_x );
+    free( full_HI_density_x );
+    free( full_velocity_x );
+    free( full_temperature_x );
+    free( full_optical_depth_x );
+    free( full_vel_Hubble_x );
+    
+  }
+  
+  if ( am_I_root_y ){
+    free( skewers_HI_density_root_y );
+    free( skewers_velocity_root_y );
+    free( skewers_temperature_root_y );
+    free( full_HI_density_y );
+    free( full_velocity_y );
+    free( full_temperature_y );
+    free( full_optical_depth_y );
+    free( full_vel_Hubble_y );
+  }
+  
+  if ( am_I_root_z ){
+    free( skewers_HI_density_root_z );  
+    free( skewers_velocity_root_z );
+    free( skewers_temperature_root_z );
+    free( full_HI_density_z );
+    free( full_velocity_z );
+    free( full_temperature_z );
+    free( full_optical_depth_z );
+    free( full_vel_Hubble_z );
+  }
+  
+  full_HI_density_z  = (Real *) malloc(n_los_full_z*sizeof(Real));
+  full_velocity_z    = (Real *) malloc(n_los_full_z*sizeof(Real));
+  full_temperature_z = (Real *) malloc(n_los_full_z*sizeof(Real));
+  full_optical_depth_z = (Real *) malloc(n_los_full_z*sizeof(Real));
+  full_vel_Hubble_z  = (Real *) malloc(n_los_full_z*sizeof(Real));
+  transmitted_flux_z
   #endif
   #endif
   
