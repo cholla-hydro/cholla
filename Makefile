@@ -212,7 +212,7 @@ endif
 ifdef HIP_PLATFORM
   CXXFLAGS += -I$(ROCM_PATH)/include -Wno-unused-result
   GPUCXX := hipcc
-  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-function -Wno-unused-result -Wno-unused-command-line-argument -std=c++17 -ferror-limit=1
+  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-function -Wno-unused-result -Wno-unused-command-line-argument -ferror-limit=1
   LD := $(GPUCXX)
   LDFLAGS += $(GPUFLAGS)
 else
