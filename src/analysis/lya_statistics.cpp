@@ -15,7 +15,7 @@ void Analysis_Module::Reduce_Lya_Statists_Global( void ){
   n_skewers_processed = n_skewers_processed_x + n_skewers_processed_y + n_skewers_processed_z;
   Flux_mean = ( Flux_mean_x*n_skewers_processed_x + Flux_mean_y*n_skewers_processed_y + Flux_mean_z*n_skewers_processed_z  ) / n_skewers_processed;
   
-  chprintf( " Flux Mean Global: %f      N_Skewers_Processed: %d\n", Flux_mean, n_skewers_processed );
+  chprintf( " Flux Mean Global: %e      N_Skewers_Processed: %d\n", Flux_mean, n_skewers_processed );
 }
 
 void Analysis_Module::Reduce_Lya_Statists_Axis( int axis ){
@@ -51,7 +51,7 @@ void Analysis_Module::Reduce_Lya_Statists_Axis( int axis ){
   #ifdef MPI_CHOLLA
 
   for ( int i=0; i<nproc; i++ ){
-    if (procID == i) printf("   procID:%d   Flux Sum: %f     N_Skewers_Processed: %d \n", procID, (*Flux_mean_root), *n_skewers_processed_root );
+    if (procID == i) printf("   procID:%d   Flux Sum: %e     N_Skewers_Processed: %d \n", procID, (*Flux_mean_root), *n_skewers_processed_root );
     MPI_Barrier(world);
     sleep(1);
   }
@@ -67,7 +67,7 @@ void Analysis_Module::Reduce_Lya_Statists_Axis( int axis ){
   #endif
 
   *Flux_mean = *Flux_mean / *n_skewers_processed;
-  chprintf( "  Flux Mean: %f     N_Skewers_Processed: %d \n", *Flux_mean, *n_skewers_processed );
+  chprintf( "  Flux Mean: %e     N_Skewers_Processed: %d \n", *Flux_mean, *n_skewers_processed );
 
   
 }
