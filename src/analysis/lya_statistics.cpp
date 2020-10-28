@@ -8,6 +8,7 @@
 #include"../mpi_routines.h"
 #endif
 
+#define PRINT_ANALYSIS_LOG
 
 
 void Analysis_Module::Reduce_Lya_Statists_Global( void ){
@@ -49,12 +50,14 @@ void Analysis_Module::Reduce_Lya_Statists_Axis( int axis ){
 
   
   #ifdef MPI_CHOLLA
-
+  
+  #ifdef PRINT_ANALYSIS_LOG
   for ( int i=0; i<nproc; i++ ){
     if (procID == i) printf("   procID:%d   Flux Sum: %e     N_Skewers_Processed: %d \n", procID, (*Flux_mean_root), *n_skewers_processed_root );
     MPI_Barrier(world);
     sleep(1);
   }
+  #endif
   
   MPI_Allreduce( Flux_mean_root, Flux_mean, 1, MPI_CHREAL, MPI_SUM, world );
   MPI_Allreduce( n_skewers_processed_root, n_skewers_processed, 1, MPI_INT, MPI_SUM, world );
@@ -411,7 +414,12 @@ void Analysis_Module::Transfer_Skewers_Data( int axis ){
     }
   
     int n_indices = mpi_indices.size();
+    
+    
+    
+    #ifdef PRINT_ANALYSIS_LOG
     printf( "  N MPI indices: %d \n", n_indices ); 
+    #endif
     
     int mpi_id; 
     for ( int indx=0; indx<n_indices; indx++ ){
@@ -424,7 +432,11 @@ void Analysis_Module::Transfer_Skewers_Data( int axis ){
         continue; 
       } 
       
+      
+      #ifdef PRINT_ANALYSIS_LOG
       printf("  Recieving Skewers From pID: %d\n", mpi_id );
+      #endif
+      
       MPI_Recv( skewers_HI_density_local, n_skewers*n_los_local, MPI_CHREAL, mpi_id, 0, world, &mpi_status  );
       MPI_Recv( skewers_velocity_local, n_skewers*n_los_local, MPI_CHREAL, mpi_id, 1, world, &mpi_status  );
       MPI_Recv( skewers_temperature_local, n_skewers*n_los_local, MPI_CHREAL, mpi_id, 2, world, &mpi_status  );
