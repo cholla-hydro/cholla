@@ -754,7 +754,7 @@ void Analysis_Module::Initialize_Lya_Statistics( struct parameters *P ){
   if ( procID == root_id_z ) am_I_root_z = true;
   else am_I_root_z = false;
   
-  
+  #ifdef PRINT_ANALYSIS_LOG
   chprintf( " Root Ids X:  \n");
   MPI_Barrier(world);
   sleep(1);  
@@ -782,7 +782,7 @@ void Analysis_Module::Initialize_Lya_Statistics( struct parameters *P ){
   }
   MPI_Barrier(world);  
   sleep(1);
-  
+  #endif
   
   if ( am_I_root_x ){
     skewers_HI_density_root_x  = (Real *) malloc(n_skewers_local_x*nx_total*sizeof(Real));
