@@ -227,6 +227,10 @@ int main(int argc, char *argv[])
     G.H.Output_Now = true;
     #endif
     
+    #ifdef ANALYSIS
+    if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
+    #endif
+    
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0) G.H.Output_Now = true;
     
     if (G.H.t == outtime || G.H.Output_Now )
@@ -240,11 +244,7 @@ int main(int argc, char *argv[])
       // update to the next output time
       outtime += P.outstep;      
     }
-    
-    #ifdef ANALYSIS
-    if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
-    #endif
-    
+        
     #ifdef CPU_TIME
     G.Timer.n_steps += 1;
     #endif
