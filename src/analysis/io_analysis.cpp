@@ -289,7 +289,7 @@ void Analysis_Module::Load_Scale_Outputs( struct parameters *P ) {
   current_a = 1. / ( 1 + current_z );
   a_value = scale_outputs[scale_indx];
   
-  while ( (current_a - a_value) > 1e-3  ){
+  while ( (current_a - a_value) > 1e-4  ){
     // chprintf( "%f   %f\n", a_value, current_a);
     scale_indx += 1;
     a_value = scale_outputs[scale_indx];
