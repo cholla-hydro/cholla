@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
     }
     
     #ifdef ANALYSIS
-    if ( G.Analysis.output_now ) G.Compute_and_Output_Analysis(&P);
+    if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
     #endif
     
     #ifdef CPU_TIME

@@ -299,8 +299,8 @@ void Analysis_Module::Load_Scale_Outputs( struct parameters *P ) {
   chprintf("  Next output scale index: %d  \n", next_output_indx );
   chprintf("  Next output scale value: %f  \n", next_output);
   
-  if ( fabs(current_a - next_output) > 1e-4 ) output_now = false;
-  else output_now = true;
+  if ( fabs(current_a - next_output) > 1e-4 ) Output_Now = false;
+  else Output_Now = true;
   
   n_file = next_output_indx;
   

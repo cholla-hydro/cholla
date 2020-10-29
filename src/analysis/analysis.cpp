@@ -137,7 +137,7 @@ void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
   #endif
   
   Analysis.Set_Next_Scale_Output();
-  Analysis.output_now = false;
+  Analysis.Output_Now = false;
   
 }
 

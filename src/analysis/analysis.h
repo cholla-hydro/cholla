@@ -40,7 +40,7 @@ public:
   int next_output_indx;
   real_vector_t scale_outputs;
   Real next_output;
-  bool output_now;
+  bool Output_Now;
   int n_file;
   
   #ifdef COSMOLOGY
