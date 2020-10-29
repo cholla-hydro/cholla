@@ -8,5 +8,5 @@ module list
 export MPI_HOME='/cm/shared/apps/openmpi/openmpi-4.0.1.cuda/'
 export POISSON_SOLVER='-DPARIS'
 export SUFFIX=''
-make clean
+#make clean
 make
