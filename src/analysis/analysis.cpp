@@ -112,6 +112,7 @@ void Analysis_Module::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_
     
   chprintf( "Analysis Module Sucessfully Initialized.\n\n");
   
+  
 }
 
 

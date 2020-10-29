@@ -115,8 +115,10 @@ int main(int argc, char *argv[])
   
   #ifdef ANALYSIS
   G.Initialize_Analysis_Module(&P);
+  if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   // G.Compute_and_Output_Analysis(&P);
   // exit(-1);
+  
   #endif
 
   #ifdef GRAVITY
