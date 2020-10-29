@@ -8,7 +8,7 @@
 #include"../mpi_routines.h"
 #endif
 
-#define PRINT_ANALYSIS_LOG
+// #define PRINT_ANALYSIS_LOG
 
 
 void Analysis_Module::Reduce_Lya_Statists_Global( void ){
