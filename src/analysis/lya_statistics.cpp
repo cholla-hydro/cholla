@@ -466,8 +466,9 @@ void Analysis_Module::Transfer_Skewers_Data( int axis ){
   #endif
     
     
-
+  #ifdef PRINT_ANALYSIS_LOG
   chprintf("  Skewers Data Transfered\n" );
+  #endif
 }
 
 
