@@ -167,6 +167,8 @@ int main(int argc, char *argv[])
   
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
+  sprintf(message, "Starting calculations." );
+  Write_Message_To_Log_File( message );
   while (G.H.t < P.tout)
   {
     chprintf("n_step: %d \n", G.H.n_step + 1 );
