@@ -73,7 +73,10 @@ int main(int argc, char *argv[])
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
-
+  char *message = (char*)malloc(50 * sizeof(char));
+  sprintf(message, "Initializing Simulation" );
+  Write_Message_To_Log_File( message );
+  
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P);
@@ -87,7 +90,6 @@ int main(int argc, char *argv[])
   
   #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2 );
-  char *message = (char*)malloc(50 * sizeof(char));
   sprintf(message, " eta_1: %0.3f   eta_2: %0.3f  ", DE_ETA_1, DE_ETA_2 );
   Write_Message_To_Log_File( message );
   #endif
@@ -116,9 +118,6 @@ int main(int argc, char *argv[])
   #ifdef ANALYSIS
   G.Initialize_Analysis_Module(&P);
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
-  // G.Compute_and_Output_Analysis(&P);
-  // exit(-1);
-  
   #endif
 
   #ifdef GRAVITY
@@ -271,7 +270,8 @@ int main(int argc, char *argv[])
   G.Timer.Print_Average_Times( P );
   #endif
   
-  Write_Message_To_Log_File( "Run completed successfully!");
+  sprintf(message, "Simulation completed successfully." );
+  Write_Message_To_Log_File( message );
 
   // free the grid
   G.Reset();
