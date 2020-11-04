@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
 
     #ifdef COSMOLOGY
     // Exit the loop when reached the last scale_factor output 
-    if ( G.Cosmo.exit ) {
+    if ( G.Cosmo.exit_now ) {
       chprintf( "\nReached Last Cosmological Output: Ending Simulation\n");
       break;
     }
