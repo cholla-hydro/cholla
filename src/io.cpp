@@ -119,7 +119,7 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   #ifdef COSMOLOGY
   if ( G.H.OUTPUT_SCALE_FACOR || G.H.Output_Initial){
     G.Cosmo.Set_Next_Scale_Output();
-    if ( !G.Cosmo.exit ){
+    if ( !G.Cosmo.exit_now ){
       chprintf( " Saved Snapshot: %d     z:%f   next_output: %f\n", nfile, G.Cosmo.current_z, 1/G.Cosmo.next_output - 1 );
       G.H.Output_Initial = false;
     }
