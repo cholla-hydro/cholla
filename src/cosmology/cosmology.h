@@ -52,6 +52,7 @@ public:
   int next_output_indx;
   real_vector_t scale_outputs;
   Real next_output;
+  bool exit;
 
 
   Cosmology( void );
