@@ -96,7 +96,8 @@ ifdef HIP_PLATFORM
   LIBS += -L$(CRAYLIBS_X86_64) -L$(GCC_X86_64)/lib64 -lcraymath -lu
 else
   GPUCXX := nvcc
-  GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  #GPUFLAGS += #--expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  GPUFLAGS += -g -O3 -arch sm_70 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
   LIBS += -L$(CUDA_ROOT)/lib64 -lcudart
