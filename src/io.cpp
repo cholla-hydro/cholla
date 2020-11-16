@@ -960,7 +960,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 {
   int i, j, k, id, buf_id;
   hid_t     dataset_id, dataspace_id; 
-  Real      *dataset_buffer;
+  hid_t     dataset_id_full, dataspace_id_full; 
+  Real      *dataset_buffer, *dataset_buffer_full;
   herr_t    status;
   
   bool output_energy;
@@ -1246,7 +1247,10 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     int       ny_dset = H.ny_real;
     int       nz_dset = H.nz_real;
     hsize_t   dims[3];
+    hsize_t   dims_full[3];
+    
     dataset_buffer = (Real *) malloc(H.nx_real*H.ny_real*H.nz_real*sizeof(Real));
+    dataset_buffer_full = (Real *) malloc ( H.n_cells * sizeof(Real) );
 
     // Create the data space for the datasets
     dims[0] = nx_dset;
@@ -1271,6 +1275,26 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
     // Free the dataset id
     status = H5Dclose(dataset_id);
+    
+    
+    for(i=0; i<H.n_cells; i++)
+      dataset_buffer_full[i] = C.density[i];
+    
+    // Create the data space for the datasets
+    dims_full[0] = H.nx;
+    dims_full[1] = H.ny;
+    dims_full[2] = H.nz;
+    dataspace_id_full = H5Screate_simple(3, dims_full, NULL);
+
+    // Create a dataset id for density
+    dataset_id_full = H5Dcreate(file_id, "/density_full", H5T_IEEE_F64BE, dataspace_id_full, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    // Write the density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+    status = H5Dwrite(dataset_id_full, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_full); 
+    // Free the dataset id
+    status = H5Dclose(dataset_id_full);
+    
+    
+    
 
     // Copy the x momentum array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
@@ -3206,3 +3230,17 @@ void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real
   *zp = a20*x + a21*y + a22*z;
 
 } 
+
+void write_debug ( Real *Value, const char *fname, int nValues, int iProc )
+  {
+  char fn[1024];
+  int ret;
+  
+  sprintf(fn, "%s_%07d.txt", fname, iProc);
+  FILE *fp = fopen(fn, "w");
+  
+  for ( int iV = 0; iV < nValues; iV++ )
+    fprintf(fp, "%e\n", Value[iV]);
+  
+  fclose (fp);
+  }
