@@ -84,7 +84,7 @@ __global__ void Initialize_Potential_Kernel( Real init_val, Real *potential_d, R
   tid_pot = tid_x + tid_y*nx_pot + tid_z*nx_pot*ny_pot;
   potential_d[tid_pot] = init_val;
   
-  if ( potential_d[tid_pot] !=1 ) printf("Error phi value: %f\n", potential_d[tid_pot] );
+  //if ( potential_d[tid_pot] !=1 ) printf("Error phi value: %f\n", potential_d[tid_pot] );
   
 
   // Real dens = density_d[tid];
