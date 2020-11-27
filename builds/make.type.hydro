@@ -2,8 +2,7 @@
 
 #-- separated output flag so that it can be overriden in target-specific 
 #   for make check
-OUTPUT    ?=  -DOUTPUT -DHDF5
-
+OUTPUT    ?=  -DOUTPUT -DHDF5 #-DSLICES
 DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DBLOCK
@@ -11,6 +10,9 @@ DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
 DFLAGS    += -DVL
+DFLAGS    += -DDE
 DFLAGS    += $(OUTPUT)
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
+DFLAGS    += -DCOOLING_GPU
+#DFLAGS    += -DSTATIC_GRAV

@@ -4,10 +4,10 @@ import h5py
 import numpy as np
 
 ns = 0
-ne = 0
-n_procs = 16 # number of processors that did the cholla calculation
-dnamein = './hdf5/raw/'
-dnameout = './hdf5/'
+ne = 300
+n_procs = 4 # number of processors that did the cholla calculation
+dnamein = '/gpfs/alpine/proj-shared/csc380/orlandow/o_cholla/out.21Sep20-Mon-12.49-356588-SOR_ONLY_PARTICLES_DISK/raw/'
+dnameout = '/gpfs/alpine/proj-shared/csc380/orlandow/o_cholla/out.21Sep20-Mon-12.49-356588-SOR_ONLY_PARTICLES_DISK/particles_cat/'
 
 # loop over the output times
 for n in range(ns, ne+1):

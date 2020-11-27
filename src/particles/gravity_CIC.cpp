@@ -9,6 +9,7 @@
 #include"../io.h"
 #include"particles_3D.h"
 #include"density_CIC.h"
+#include "../model/disk_galaxy.h"
 
 
 #ifdef PARALLEL_OMP
@@ -161,6 +162,9 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
         phi_ll = potential[id_ll];
         phi_rr = potential[id_rr];
         Particles.G.gravity_y[id] = -1 * ( -phi_rr + 8*phi_r - 8*phi_l + phi_ll) / (12*dy);
+        //if (i == 0) {
+        //  std::cout << "phi_ll[" << id_ll << "] = " << phi_ll << std::endl;
+        //}
         #else
         Particles.G.gravity_y[id] = -0.5 * ( phi_r - phi_l ) / dy;
         #endif
@@ -336,6 +340,16 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
     Particles.grav_x[pIndx] = g_x;
     Particles.grav_y[pIndx] = g_y;
     Particles.grav_z[pIndx] = g_z;
+    Real g = sqrt(g_x*g_x + g_z*g_z + g_y*g_y);
+    Real R = sqrt(x_pos*x_pos + y_pos*y_pos);
+    Real gg =  fabs(Galaxies::MW.gr_total_D3D(R, z_pos));
+    Real off = fabs((g-gg)/gg)*100;
+    if ( off > 15000) {
+         std::cout << "                           g is " << g << " g_gal is " << gg << std::endl;
+         std::cout << "Particle[ " << pIndx << "] pos=( " << x_pos << ",  " << y_pos << ", " << z_pos << " )  g=( " << g_x << ",  " << g_y << ", " << g_z << " ) " << std::endl;
+         std::cout << "              " << off << ": **** more than 1 percent off\n";
+         std::cout << "                          [index_x , index_y, index_z] = [" << indx_x << ", " << indx_y << ", " << indx_z << "]\n";
+    }
   }
 }
 

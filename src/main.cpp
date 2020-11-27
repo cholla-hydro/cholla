@@ -120,6 +120,11 @@ int main(int argc, char *argv[])
   chprintf("Setting boundary conditions...\n");
   G.Set_Boundary_Conditions_Grid(P);
   chprintf("Boundary conditions set.\n");  
+
+  #ifdef GRAVITY_ANALYTIC_COMP
+  // add analytic component to gravity potential.
+  G.Add_Analytic_Potential(&P); 
+  #endif 
   
   #ifdef PARTICLES
   // Get the particles acceleration for the first timestep
@@ -133,9 +138,9 @@ int main(int argc, char *argv[])
 
   #ifdef OUTPUT
   if (strcmp(P.init, "Read_Grid") != 0 || G.H.Output_Now ) {
-  // write the initial conditions to file
-  chprintf("Writing initial conditions to file...\n");
-  WriteData(G, P, nfile);
+    // write the initial conditions to file
+    chprintf("Writing initial conditions to file...\n");
+    WriteData(G, P, nfile);
   }
   // add one to the output file count
   nfile++;
@@ -193,6 +198,11 @@ int main(int argc, char *argv[])
     //Set the Grid boundary conditions for next time step 
     G.Set_Boundary_Conditions_Grid(P);
     
+    #ifdef GRAVITY_ANALYTIC_COMP
+    // add analytic component to gravity potential.
+    G.Add_Analytic_Potential(&P); 
+    #endif 
+
     #ifdef PARTICLES
     ///Advance the particles KDK( second step ): Velocities are updated by 0.5*dt using the Accelerations at the new positions
     G.Advance_Particles( 2 );
