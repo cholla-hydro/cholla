@@ -1,5 +1,5 @@
 #-- Set default include makefile
-MACHINE ?= $(shell builds/machine.sh)
+MACHINE ?= $(CHOLLA_MACHINE)
 TYPE    ?= hydro
 
 include builds/make.host.$(MACHINE)
@@ -121,7 +121,7 @@ endif
 EXEC := bin/cholla$(SUFFIX)
 
 $(EXEC): prereq-build $(OBJS) 
-	$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
+	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
 	eval $(EXTRA_COMMANDS)
 
 %.o: %.c
@@ -137,7 +137,7 @@ $(EXEC): prereq-build $(OBJS)
 	
 clean:
 	rm -f $(OBJS) 
-	find . -type f -executable -name "cholla.*.$(MACHINE)" -exec rm -f '{}' \;
+	find bin/ -type f -executable -name "cholla.*.$(MACHINE)" -exec rm -f '{}' \;
 
 prereq-build:
 	builds/prereq.sh build $(MACHINE)
@@ -146,5 +146,5 @@ prereq-run:
 
 check : OUTPUT=-DOUTPUT
 check : clean $(EXEC) prereq-run
-	$(JOB_LAUNCH) ./cholla.$(TYPE).$(MACHINE) tests/regression/${TYPE}_input.txt
+	$(JOB_LAUNCH) bin/cholla.$(TYPE).$(MACHINE) tests/regression/${TYPE}_input.txt
 	builds/check.sh $(TYPE) tests/regression/${TYPE}_test.txt
