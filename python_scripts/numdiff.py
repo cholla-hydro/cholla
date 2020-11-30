@@ -44,8 +44,6 @@ try:
 
   DistanceSum = np.abs(End - Start).sum(axis = 0)
   OriginSum = np.abs(Start).sum(axis=0)
-  print("OriginSum:", OriginSum)
-  print("DistanceSum:", DistanceSum)
   L1_Error = np.where ( OriginSum > 0.0, DistanceSum / OriginSum, DistanceSum )
 
   if ( np.all ( L1_Error <= Tolerance ) ):
