@@ -32,9 +32,10 @@ int initialize_cuda_mpi(int myid, int nprocs)
   //double check
   cudaGetDevice(&i_device);
 
-  // printf("In initialize_cuda_mpi: myid = %d, i_device = %d, n_device = %d\n",myid,i_device,n_device);
-  // fflush(stdout);
-
+  printf("In initialize_cuda_mpi: myid = %d, i_device = %d, n_device = %d\n",myid,i_device,n_device);
+  fflush(stdout);
+  MPI_Barrier(world);
+  
   return 0;
     
 }
