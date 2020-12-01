@@ -1,5 +1,5 @@
 #-- Set default include makefile
-MACHINE ?= $(CHOLLA_MACHINE)
+MACHINE ?= $(shell builds/machine.sh)
 TYPE    ?= hydro
 
 include builds/make.host.$(MACHINE)
@@ -89,14 +89,14 @@ ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
   CXXFLAGS += -I$(ROCM_PATH)/include
   CXXFLAGS += -D__HIP_PLATFORM_HCC__
-  GPUCXX := ${HIP_PLATFORM}
+  GPUCXX ?= hipcc
   GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906,gfx908 -std=c++14 -ferror-limit=1
   GPUFLAGS += -I$(ROCM_PATH)/rocfft/include
   LD := $(CXX)
   LDFLAGS := $(CXXFLAGS)
   LIBS += -L$(ROCM_PATH)/lib -lamdhip64
 else
-  GPUCXX := nvcc
+  GPUCXX ?= nvcc
   GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)

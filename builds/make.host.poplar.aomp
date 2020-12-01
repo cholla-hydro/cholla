@@ -3,7 +3,7 @@
 #-- Compiler and flags for different build type
 CC                = mpicc
 CXX               = mpicxx
-HIP_PLATFORM      = hipcc
+HIP_PLATFORM      = hcc
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -Ofast
 CXXFLAGS_DEBUG    = -g -O0 -std=c++14
