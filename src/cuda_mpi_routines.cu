@@ -25,6 +25,11 @@ int initialize_cuda_mpi(int myid, int nprocs)
     fflush(stderr);
     return 1;
   }
+  
+  //get host name
+  char pname[MPI_MAX_PROCESSOR_NAME];     //node hostname
+  int  pname_length;          //length of node hostname
+  MPI_Get_processor_name(pname, &pname_length);
 
   //set a cuda device for each process
   cudaSetDevice(myid%n_device);
@@ -32,7 +37,7 @@ int initialize_cuda_mpi(int myid, int nprocs)
   //double check
   cudaGetDevice(&i_device);
 
-  printf("In initialize_cuda_mpi: myid = %d, i_device = %d, n_device = %d\n",myid,i_device,n_device);
+  printf("In initialize_cuda_mpi: name:%s myid = %d, i_device = %d, n_device = %d\n",pname, myid,i_device,n_device);
   fflush(stdout);
   MPI_Barrier(world);
   
