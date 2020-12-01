@@ -4,7 +4,7 @@ module use /home/users/twhite/share/modulefiles
 module load ompi-cray hdf5
 
 export LD_LIBRARY_PATH="$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH"
-SUFFIX='sor.ompi'
+SUFFIX='paris.sor.ompi'
 OUTDIR="run/out.$SUFFIX.$(date +%m%d.%H%M%S)"
 set -x
 mkdir -p ${OUTDIR}

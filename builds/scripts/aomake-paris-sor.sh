@@ -10,8 +10,8 @@ export CC=mpicc
 export CXX=mpicxx
 export HIP_PLATFORM=hcc
 export OMP_NUM_THREADS=16
-export POISSON_SOLVER="-DSOR"
-export SUFFIX='.sor.ompi'
+export POISSON_SOLVER='-DSOR -DPARIS'
+export SUFFIX='.paris.sor.ompi'
 export TYPE=gravity
 
 make clean

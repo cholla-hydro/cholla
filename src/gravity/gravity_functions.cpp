@@ -264,50 +264,54 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 
 #ifdef PARIS_TEST
 
-  chprintf("Analytic Test of Poisson Solvers:\n");
-  const long ng = N_GHOST_POTENTIAL;
-  std::vector<Real> rho(Grav.n_cells);
-  std::vector<Real> exact(Grav.n_cells_potential);
+  const bool periodic = (P->xlg_bcnd != 3);
+  if (periodic) {
+    chprintf("Analytic Test of Poisson Solvers:\n");
+    const long ng = N_GHOST_POTENTIAL;
+    std::vector<Real> rho(Grav.n_cells);
+    std::vector<Real> exact(Grav.n_cells_potential);
 
-  const Real dlx = 1.0/H.xdglobal;
-  const Real dly = 1.0/H.ydglobal;
-  const Real dlz = 1.0/H.zdglobal;
-  const Real ddlx = dlx*dlx;
-  const Real ddly = dly*dly;
-  const Real ddlz = dlz*dlz;
+    const Real dlx = 1.0/H.xdglobal;
+    const Real dly = 1.0/H.ydglobal;
+    const Real dlz = 1.0/H.zdglobal;
+    const Real ddlx = dlx*dlx;
+    const Real ddly = dly*dly;
+    const Real ddlz = dlz*dlz;
 
 #pragma omp parallel for
-  for (int k = 0; k < Grav.nz_local; k++) {
-    const Real z = (Grav.zMin-H.zbound+Real(k)*Grav.dz)*dlz;
-    long ijk = long(k)*Grav.ny_local*Grav.nx_local;
-    for (int j = 0; j < Grav.ny_local; j++) {
-      const Real y = (Grav.yMin-H.ybound+Real(j)*Grav.dy)*dly;
-      for (int i = 0; i < Grav.nx_local; i++, ijk++) {
-        const Real x = (Grav.xMin-H.xbound+Real(i)*Grav.dx)*dlx;
-        rho[ijk] = testD(x,y,z,ddlx,ddly,ddlz);
-        const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
-        exact[ijkg] = testF(x,y,z);
+    for (int k = 0; k < Grav.nz_local; k++) {
+      const Real z = (Grav.zMin-H.zbound+Real(k)*Grav.dz)*dlz;
+      long ijk = long(k)*Grav.ny_local*Grav.nx_local;
+      for (int j = 0; j < Grav.ny_local; j++) {
+        const Real y = (Grav.yMin-H.ybound+Real(j)*Grav.dy)*dly;
+        for (int i = 0; i < Grav.nx_local; i++, ijk++) {
+          const Real x = (Grav.xMin-H.xbound+Real(i)*Grav.dx)*dlx;
+          rho[ijk] = testD(x,y,z,ddlx,ddly,ddlz);
+          const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
+          exact[ijkg] = testF(x,y,z);
+        }
       }
     }
-  }
-  std::vector<Real> p(Grav.n_cells_potential,0);
-  Grav.Poisson_solver_test.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
-  chprintf("Paris");
-  printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+    std::vector<Real> p(Grav.n_cells_potential,0);
+    Grav.Poisson_solver_test.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
+    chprintf("Paris");
+    printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
 
-  for (Real &pijk : p) pijk = 0;
+    for (Real &pijk : p) pijk = 0;
 
-  Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
 #ifdef CUFFT
-  chprintf("CUFFT");
+    chprintf("CUFFT");
+    Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
 #endif
 #ifdef PFFT
-  chprintf("PFFT");
+    chprintf("PFFT");
+    Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
 #endif
 #ifdef SOR
-  chprintf("SOR");
+    chprintf("SOR");
 #endif
-  printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+    printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+  }
 
 #endif
 }

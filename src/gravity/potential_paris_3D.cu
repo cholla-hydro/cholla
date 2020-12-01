@@ -7,7 +7,8 @@
 
 Potential_Paris_3D::Potential_Paris_3D():
   n_{0,0,0},
-  p_(nullptr),
+  pp_(nullptr),
+  pz_(nullptr),
   minBytes_(0),
   densityBytes_(0),
   potentialBytes_(0),
@@ -19,6 +20,7 @@ Potential_Paris_3D::~Potential_Paris_3D() { Reset(); }
 
 void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const potential, const Real g, const Real avgDensity, const Real a)
 {
+  if (!pp_) return;
   constexpr Real pi = 3.141592653589793238462643383279502884197169399375105820974;
 #ifdef COSMOLOGY
   const Real scale = Real(4)*pi*g/a;
@@ -36,7 +38,7 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
   const long ngj = n_[1]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
   const long n = long(n_[0])*n_[1]*n_[2];
   gpuFor(n,GPU_LAMBDA(const long i) { da[i] = scale*(db[i]-offset); });
-  p_->solve(minBytes_,da,db);
+  pp_->solve(minBytes_,da,db);
   gpuFor(
     n_[2],n_[1],n_[0],
     GPU_LAMBDA(const long ia, const int k, const int j, const int i) {
@@ -47,9 +49,12 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
   CHECK(cudaMemcpy(potential,db,potentialBytes_,cudaMemcpyDeviceToHost));
 }
 
-void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin, const int nx, const int ny, const int nz, const int nxReal, const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
+void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin, const int nx, const int ny, const int nz, const int nxReal, const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz, const bool periodic)
 {
-  chprintf(" Using Poisson Solver: Paris\n");
+  chprintf(" Using Poisson Solver: Paris ");
+  if (periodic) chprintf("Periodic\n");
+  else chprintf("Antisymmetric\n");
+
   n_[0] = nxReal;
   n_[1] = nyReal;
   n_[2] = nzReal;
@@ -65,10 +70,17 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
   assert(n_[0] == n[2]/m[2]);
   assert(n_[1] == n[1]/m[1]);
   assert(n_[2] == n[0]/m[0]);
-  p_ = new PoissonPeriodic3DBlockedGPU(n,lo,hi,m,id);
-  assert(p_);
 
-  minBytes_ = p_->bytes();
+  if (periodic) {
+    pp_ = new PoissonPeriodic3DBlockedGPU(n,lo,hi,m,id);
+    assert(pp_);
+    minBytes_ = pp_->bytes();
+  } else {
+    pz_ = new PoissonZero3DBlockedGPU(n,lo,hi,m,id);
+    assert(pz_);
+    minBytes_ = pz_->bytes();
+  }
+
   densityBytes_ = long(sizeof(Real))*n_[0]*n_[1]*n_[2];
   const long gg = N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
   potentialBytes_ = long(sizeof(Real))*(n_[0]+gg)*(n_[1]+gg)*(n_[2]+gg);
@@ -92,8 +104,11 @@ void Potential_Paris_3D::Reset()
   densityBytes_ = 0;
   minBytes_ = 0;
 
-  delete p_;
-  p_ = nullptr;
+  if (pz_) delete pz_;
+  pz_ = nullptr;
+
+  if (pp_) delete pp_;
+  pp_ = nullptr;
 
   n_[0] = n_[1] = n_[2] = 0;
 }
