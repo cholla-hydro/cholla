@@ -137,7 +137,7 @@ $(EXEC): prereq-build $(OBJS)
 	
 clean:
 	rm -f $(OBJS) 
-	find bin/ -type f -executable -name "cholla.*.$(MACHINE)" -exec rm -f '{}' \;
+	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)" -exec rm -f '{}' \;
 
 clobber: clean
 	find . -type f -executable -name "cholla*" -exec rm -f '{}' \;
