@@ -89,7 +89,7 @@ ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
   CXXFLAGS += -I$(ROCM_PATH)/include
   CXXFLAGS += -D__HIP_PLATFORM_HCC__
-  GPUCXX := hipcc
+  GPUCXX := ${HIP_PLATFORM}
   GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906,gfx908 -std=c++14 -ferror-limit=1
   GPUFLAGS += -I$(ROCM_PATH)/rocfft/include
   LD := $(CXX)
