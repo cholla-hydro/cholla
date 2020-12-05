@@ -119,8 +119,12 @@ void parse_params (char *param_file, struct parameters * parms)
   {
     return;
   }
-  // set default file output parameter
-  parms->nfull=1;
+  // set default hydro file output parameter
+  parms->outstep_hydro=1;
+  parms->outstep_particle=1;
+  parms->outstep_slice=1;
+  parms->outstep_projection=1;
+  parms->outstep_rotated_projection=1;
 
 #ifdef ROTATED_PROJECTION
   //initialize rotation parameters to zero
@@ -178,8 +182,8 @@ parms->scale_outputs_file[0] = '\0';
       strncpy (parms->init, value, MAXLEN);
     else if (strcmp(name, "nfile")==0)
       parms->nfile = atoi(value);
-    else if (strcmp(name, "nfull")==0)
-      parms->nfull = atoi(value);
+    else if (strcmp(name, "outstep_hydro")==0)
+      parms->outstep_hydro = atoi(value);
     else if (strcmp(name, "xmin")==0)
       parms->xmin = atof(value);
     else if (strcmp(name, "ymin")==0)
