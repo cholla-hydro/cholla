@@ -25,7 +25,7 @@ At the beginning of the run, it also compares each solver against an analytic so
 be run using GPUs, and can be run in serial mode using one GPU
 or with MPI.
 
-A Makefile and sample build scripts are included in this directory. After downloading the code, you should
+A Makefile is included in this directory, and sample build scripts are in `builds/scripts`. After downloading the code, you should
 be able to configure it for your machine by creating a build script based on one of the following examples.
 
 | Script | Description |
@@ -34,6 +34,12 @@ be able to configure it for your machine by creating a build script based on one
 | `aomake-*.sh` | Build for AMD GPUs using MPI with GPU-memory message buffers. |
 | `nmake-*.sh` | Build for NVidia GPUs using MPI with GPU-memory message buffers. |
 | `smake-*.sh` | Build for NVidia GPUs on OLCF Summit using MPI with GPU-memory message buffers. |
+
+You can run the sample scripts directly from the root Cholla directory, and they will install a Cholla binary in the `bin` directory. For example,
+```
+builds/scripts/amake-hydro.sh
+```
+installs `bin/cholla.hydro-amd`.
 
 
 Configuration Notes
@@ -61,7 +67,11 @@ using a command like the following.
 Each process will be assigned a GPU. *Cholla* cannot be run with more processes than available GPUs,
 so MPI mode is most useful on a cluster (or for testing parallel behavior with a single process).
 
-This directory contains `*run-*.sh` examples for each of the `*make-*.sh` examples.
+The `tests/scripts` directory contains `*run-*.sh` examples for each of the `*make-*.sh` examples. They create output directories in the `run` directory. For example
+```
+test/scripts/arun-hydro.sh
+```
+runs and generates output in `run/out.hyrdo-amd.<date>.<process ID>`.
 
 More information about compiling and running *Cholla* can be found in the wiki associated with this repository.
 

@@ -480,53 +480,88 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   std::random_device rd;
   std::mt19937 generator(rd());
   std::gamma_distribution<Real> radialDist(2,1);  //for generating cyclindrical radii
-  std::gamma_distribution<Real> zDist(1, 1);      //for generating height above/below the disk.
+  //std::uniform_real_distribution<Real> radialDist(0, 2);  //for generating cyclindrical radii
+  std::uniform_real_distribution<Real> zDist(0, 1);      //for generating height above/below the disk.
   std::uniform_real_distribution<Real> phiDist(0, 2*M_PI); //for generating phi
   std::normal_distribution<Real> speedDist(0, 1); //for generating random speeds.
 
   particle_mass = 1e4; // 10^4 solar masses
   Real M_d = Galaxies::MW.getM_d(); // MW disk mass in M_sun (assumed to be all in stars)
   Real R_d = Galaxies::MW.getR_d(); // MW stellar disk scale length in kpc
-  //Real Z_d = Galaxies::MW.getZ_d(); // MW stellar height scale length in kpc
-  Real r_max = sqrt(P->xlen*P->xlen + P->ylen*P->ylen)/2;
-  r_max = P->xlen / 2.0;  // TODO: OW: fix this.
+  Real Z_d = Galaxies::MW.getZ_d(); // MW stellar height scale length in kpc
+  Real R_max = sqrt(P->xlen*P->xlen + P->ylen*P->ylen)/2;
+  R_max = P->xlen / 2.0;  
 
-  Real pPos_x, pPos_y, pPos_z, r, phi, z;
-  Real pVel_x, pVel_y, pVel_z, vel, ac;
+  Real sigma_crit = Galaxies::MW.sigma_crit(2.5*R_d);
+  Real Q = 1.5;
+  Real vz_disper_factor  = sqrt(Galaxies::MW.kappa2(2.5*R_d, 0.0))*Z_d*M_PI/(Q*3.36);
+
+  Real x, y, z, R, phi;
+  Real vx, vy, vz, vel, ac;
+  Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
   #ifdef PARTICLE_IDS
   Real id;
   #endif 
-  unsigned long int N = (unsigned long int) M_d/particle_mass;
+  //unsigned long int N = M_d/particle_mass;
+  //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116)*0.1;  //2kpc radius
+  unsigned long int N = (long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
+  long lost_particles = 0;
   for  ( unsigned long int i = 0; i < N; i++ ){
-      r = R_d*radialDist(generator);
-      if (r > r_max) continue;
+      do {
+          R = R_d*radialDist(generator);
+      } while (R > R_max);
 
       phi = phiDist(generator);
-      //z   = Z_d*zDist(generator);
-      // get another random phi value to decide whether
-      // the cluster is above or below the disk
-      //if (phiDist(generator) < M_PI) z = -z;
+      x = R * cos(phi);
+      y = R * sin(phi);
+      z   = zDist(generator); 
+      if (z < 0.5) {
+          z = Z_d * std::log(2*z);
+      } else {
+          z = -Z_d * std::log(2 - 2*z);
+      } 
 
-      pPos_x = r * cos(phi);
-      pPos_y = r * sin(phi);
-      pPos_z = 0.0;
-      if (pPos_x < G.xMin || pPos_x > G.xMax) continue;
-      if (pPos_y < G.yMin || pPos_y > G.yMax) continue;
-      if (pPos_z < G.zMin || pPos_z > G.zMax) continue;
+      if (x < G.xMin || x > G.xMax) continue;
+      if (y < G.yMin || y > G.yMax) continue;
+      if (z < G.zMin || z > G.zMax) continue;
 
-      ac  = fabs(Galaxies::MW.gr_disk_D3D(r, 0) + Galaxies::MW.gr_halo_D3D(r, 0));
-      vel = sqrt(r*ac);
-      pVel_x = -sin(phi)*vel + 0.1*vel/sqrt(3)*speedDist(generator);
-      pVel_y =  cos(phi)*vel + 0.1*vel/sqrt(3)*speedDist(generator);
-      pVel_z =  0.1*vel/sqrt(3)*speedDist(generator);
+      ac  = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
+      v_c2 = R*ac;
+
+      if (R < R_d/4) {
+         expFactor = exp(1.25 -sqrt(R*R + R_d*R_d/8)/(2*R_d));
+      } else {
+        expFactor = exp(1.25 - R/(2*R_d));
+      }
+      vR_rms = Q*sigma_crit*expFactor;
+      vR = vR_rms*speedDist(generator);
+      kappa2 = Galaxies::MW.kappa2(R, 0);
+      vPhi_str = v_c2 + vR_rms*vR_rms*(1 - kappa2*R/4/ac - 2*R/R_d);
+      if (vPhi_str < 0) {
+         chprintf(" err: streaming phi_vel ave squared: %s at rad %f\n", vPhi_str, R);
+         lost_particles++;
+         continue;
+      }
+      vPhi_str = sqrt(vPhi_str);
+      vPhi_rand_rms = vR_rms*vR_rms*kappa2*R/4/ac;
+      vPhi = vPhi_str + sqrt(vPhi_rand_rms)*speedDist(generator);
+
+      vx = vR*cos(phi) - vPhi*sin(phi);
+      vy = vR*sin(phi) + vPhi*cos(phi);
+
+      vz = sqrt(M_PI*GN*Galaxies::MW.surface_density(R));
+      if (R < R_d/4) {
+          vz = vz*exp(R/(2*R_d) - sqrt(R*R + R_d*R_d/8)/(2*R_d));
+      }
+      vz = vz*speedDist(generator);
 
       //Copy the particle data to the particles vectors
-      pos_x.push_back(pPos_x);
-      pos_y.push_back(pPos_y);
-      pos_z.push_back(pPos_z);
-      vel_x.push_back(pVel_x);
-      vel_y.push_back(pVel_y);
-      vel_z.push_back(pVel_z);
+      pos_x.push_back(x);
+      pos_y.push_back(y);
+      pos_z.push_back(z);
+      vel_x.push_back(vx);
+      vel_y.push_back(vy);
+      vel_z.push_back(vz);
       grav_x.push_back(0.0);
       grav_y.push_back(0.0);
       grav_z.push_back(0.0);
@@ -544,6 +579,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   }
   n_local = pos_x.size();
 
+  if (lost_particles > 0) chprintf("  lost %lu particles\n", lost_particles);
   chprintf( " Stellar Disk Particles Initialized, n_local: %lu\n", n_local);
 }
 

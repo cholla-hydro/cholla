@@ -3,13 +3,11 @@
 #-- Compiler and flags for different build type
 CC                = mpicc
 CXX               = mpicxx
-HIP_PLATFORM      = hcc
+#HIP_PLATFORM      = hcc
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -Ofast
 CXXFLAGS_DEBUG    = -g -O0 -std=c++14
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++14
-
-HIP_PLATFORM = hcc
 
 #-- How to launch job
 JOB_LAUNCH        = srun -n 1 -c 16 -N 1 --exclusive --unbuffered -p amdMI60

@@ -5,12 +5,12 @@ import h5py
 import numpy as np
 
 ns = 0
-ne = 0
-n_procs = 16 # number of processors that did the cholla calculation
-dnamein = './hdf5/raw/'
-dnameout = './hdf5/'
+ne = 2
+n_procs = 4 # number of processors that did the cholla calculation
+dnamein = '/gpfs/alpine/proj-shared/csc380/orlandow/o_cholla/out.21Sep20-Mon-14.17-357075-SOR_HYDRO_DISK/raw/'
+dnameout = '/gpfs/alpine/proj-shared/csc380/orlandow/o_cholla/out.21Sep20-Mon-14.17-357075-SOR_HYDRO_DISK/catted_files'
 
-DE = False # set to True if Dual Energy flag was used
+DE = True # set to True if Dual Energy flag was used
 SCALAR = False # set to True if Scalar was used
 
 # loop over the output times

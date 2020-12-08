@@ -30,24 +30,24 @@ public:
     /**
      *     Radial acceleration in miyamoto nagai
      */          
-    Real gr_disk_D3D(Real r, Real z) {
+    Real gr_disk_D3D(Real R, Real z) {
         Real A = R_d + sqrt(Z_d*Z_d + z*z);
-        Real B = pow(A*A + r*r, 1.5);
+        Real B = pow(A*A + R*R, 1.5);
 
-        return -GN*M_d*r/B;
+        return -GN*M_d*R/B;
     };
 
 
     /**
      *     Radial acceleration in NFW halo
      */
-    Real gr_halo_D3D(Real r, Real z){
-        Real rs = sqrt(r*r + z*z); //spherical radius
-        Real x = rs / R_h;
-        Real r_comp = r/rs;
+    Real gr_halo_D3D(Real R, Real z){
+        Real r = sqrt(R*R + z*z); //spherical radius
+        Real x = r / R_h;
+        Real r_comp = R/r;
 
         Real A = log_func(x);
-        Real B = 1.0 / (rs*rs);
+        Real B = 1.0 / (r*r);
         Real C = GN*M_h/log_func(c_vir);
 
         return -C*A*B*r_comp;
@@ -57,21 +57,21 @@ public:
     /**
      * Convenience method that returns the combined radial acceleration
      * of a disk galaxy at a specified point.
-     * @param r the cylindrical radius at the desired point
+     * @param R the cylindrical radius at the desired point
      * @param z the distance perpendicular to the plane of the disk of the desired point
      * @return
      */
-    Real gr_total_D3D(Real r, Real z) {
-        return gr_disk_D3D(r, z) + gr_halo_D3D(r, z);
+    Real gr_total_D3D(Real R, Real z) {
+        return gr_disk_D3D(R, z) + gr_halo_D3D(R, z);
     };
 
 
     /**
      *    Potential of NFW halo
      */
-    Real phi_halo_D3D(Real r, Real z) {
-        Real rs = sqrt(r * r + z * z); //spherical radius
-        Real x = rs / R_h;
+    Real phi_halo_D3D(Real R, Real z) {
+        Real r = sqrt(R * R + z * z); //spherical radius
+        Real x = r / R_h;
         Real C = GN * M_h / (R_h * log_func(c_vir));
 
         //limit x to non-zero value
@@ -84,10 +84,10 @@ public:
     /**
      *  Miyamoto-Nagai potential
      */
-    Real phi_disk_D3D(Real r, Real z) {
+    Real phi_disk_D3D(Real R, Real z) {
         Real A = sqrt(z*z + Z_d*Z_d);
         Real B = R_d + A;
-        Real C = sqrt(r*r + B*B);
+        Real C = sqrt(R*R + B*B);
 
         //patel et al. 2017, eqn 2
         return -GN * M_d / C;
@@ -98,14 +98,43 @@ public:
      *  Convenience method that returns the combined gravitational potential
      *  of the disk and halo.
      */    
-    Real phi_total_D3D(Real r, Real z) {
-      return phi_halo_D3D(r, z) + phi_disk_D3D(r, z);
+    Real phi_total_D3D(Real R, Real z) {
+      return phi_halo_D3D(R, z) + phi_disk_D3D(R, z);
     };
+
+
+    /**
+     * epicylic frequency
+     */
+    Real kappa2(Real R, Real z) {
+      Real r = sqrt(R*R + z*z);
+      Real x = r/R_h;
+      Real C = GN * M_h / (R_h * log_func(c_vir));
+      Real A = R_d + sqrt(z*z + Z_d*Z_d);
+      Real B = sqrt(R*R + A*A);
+        
+      Real phiH_prime = -C*R/(r*r)/(1 + x) + C*log(1+x)*R_h*R/(r*r*r) + GN*M_d*R/(B*B*B);
+      Real phiH_prime_prime = -C/(r*r)/(1+x) + 2*C*R*R/(r*r*r*r)/(1+x) + C/((1+x)*(1+x))*R*R/R_h/(r*r*r) +
+               C*R*R/(1+x)/(r*r*r*r) + C*log(1+x)*R_h/(r*r*r)*(1 - 3*R*R/(r*r)) +
+               GN*M_d/(B*B*B)*(1 - 3*R*R/(B*B));
+
+      return 3/R*phiH_prime + phiH_prime_prime;
+    };
+
+
+    Real surface_density(Real R) {
+        return M_d/(2*M_PI)/(R_d*R_d)*exp(-R/R_d);
+    };
+
+    Real sigma_crit(Real R) { 
+        return 3.36*GN*surface_density(R)/sqrt(kappa2(R,0.0));
+    };    
 
 
     Real getM_d() { return M_d; };
     Real getR_d() { return R_d; };
     Real getZ_d() { return Z_d; };
+
 };
 
 namespace Galaxies {

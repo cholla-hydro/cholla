@@ -78,7 +78,7 @@ void Grid3D::Set_Potential_Boundaries_Isolated( int direction, int side, int *fl
           if ( side == 0 ) id_grid = (i+nGHST) + (k)*nx_g                + (j+nGHST)*nx_g*ny_g;
           if ( side == 1 ) id_grid = (i+nGHST) + (k+ny_local+nGHST)*nx_g + (j+nGHST)*nx_g*ny_g; 
         }
-        if ( direction == 1 ){
+        if ( direction == 2 ){
           if ( side == 0 ) id_grid = (i+nGHST) + (j+nGHST)*nx_g + (k)*nx_g*ny_g;
           if ( side == 1 ) id_grid = (i+nGHST) + (j+nGHST)*nx_g + (k+nz_local+nGHST)*nx_g*ny_g; 
         }
@@ -113,7 +113,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
     if ( side == 1 ) pot_boundary = Grav.F.pot_boundary_x1;
   }
   #endif
-  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
   if ( direction == 1 ){
     domain_l = Grav.yMin;
     n_i = Grav.nx_local;
@@ -141,6 +141,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
     cm_pos_z = 0.5; 
   }
   
+  Real fraction = 1.0; //0.1; 
   Real pot_val;
   int i, j, k, id;
   for ( k=0; k<nGHST; k++ ){
@@ -184,10 +185,10 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
         else if (bc_potential_type == 1) { 
           // M-W disk potential
           r = sqrt(pos_x*pos_x + pos_y*pos_y);
-          pot_val = Galaxies::MW.phi_total_D3D(r, pos_z);
+          pot_val = fraction * Galaxies::MW.phi_disk_D3D(r, pos_z);
         }
         else{
-          chprintf("ERROR: Boundaty Potential not set, need to set appropriate bc_potential_type \n"); 
+          chprintf("ERROR: Boundary Potential not set, need to set appropriate bc_potential_type \n"); 
         }
         
         pot_boundary[id] = pot_val;
