@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
   if (strcmp(P.init, "Read_Grid") == 0) {
     dti = C_cfl / G.H.dt;
     outtime += G.H.t;
-    nfile = P.nfile*P.nfull;
+    nfile = P.nfile;
   }
   
   #ifdef DE
