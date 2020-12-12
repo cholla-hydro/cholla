@@ -6,7 +6,11 @@
 #include <cassert>
 
 Potential_Paris_3D::Potential_Paris_3D():
+  dn_{0,0,0},
   n_{0,0,0},
+  dr_{0,0,0},
+  hi_{0,0,0},
+  lo_{0,0,0},
   pp_(nullptr),
   pz_(nullptr),
   minBytes_(0),
@@ -34,13 +38,13 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
   double *const db = db_;
   assert(density);
   CHECK(cudaMemcpy(db,density,densityBytes_,cudaMemcpyHostToDevice));
-  const long ngi = n_[0]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
-  const long ngj = n_[1]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
-  const long n = long(n_[0])*n_[1]*n_[2];
+  const long ngi = dn_[2]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
+  const long ngj = dn_[1]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
+  const long n = long(dn_[2])*dn_[1]*dn_[0];
   gpuFor(n,GPU_LAMBDA(const long i) { da[i] = scale*(db[i]-offset); });
   pp_->solve(minBytes_,da,db);
   gpuFor(
-    n_[2],n_[1],n_[0],
+    dn_[0],dn_[1],dn_[2],
     GPU_LAMBDA(const long ia, const int k, const int j, const int i) {
       const long ib = i+N_GHOST_POTENTIAL+ngi*(j+N_GHOST_POTENTIAL+ngj*(k+N_GHOST_POTENTIAL));
       db[ib] = da[ia];
@@ -55,35 +59,43 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
   if (periodic) chprintf("Periodic\n");
   else chprintf("Antisymmetric\n");
 
-  n_[0] = nxReal;
-  n_[1] = nyReal;
-  n_[2] = nzReal;
+  dn_[0] = nzReal;
+  dn_[1] = nyReal;
+  dn_[2] = nxReal;
 
-  const int n[3] = {nz,ny,nx};
+  dr_[0] = dz;
+  dr_[1] = dy;
+  dr_[2] = dx;
+
+  n_[0] = nz;
+  n_[1] = ny;
+  n_[2] = nx;
+
   const double myLo[3] = {zMin,yMin,xMin};
-  double lo[3];
-  MPI_Allreduce(myLo,lo,3,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
-  const double hi[3] = {lo[0]+lz-dz,lo[1]+ly-dy,lo[2]+lx-dx};
-  const int m[3] = {n[0]/nzReal,n[1]/nyReal,n[2]/nxReal};
-  const int id[3] = {int(round((zMin-lo[0])/dz)),int(round((yMin-lo[1])/dy)),int(round((xMin-lo[2])/dx))};
-  chprintf("  Paris: [ %g %g %g ]-[ %g %g %g ] N_local[ %d %d %d ] Tasks[ %d %d %d ]\n",lo[2],lo[1],lo[0],lo[2]+lx,lo[1]+ly,lo[0]+lz,n_[0],n_[1],n_[2],m[2],m[1],m[0]);
-  assert(n_[0] == n[2]/m[2]);
-  assert(n_[1] == n[1]/m[1]);
-  assert(n_[2] == n[0]/m[0]);
+  MPI_Allreduce(myLo,lo_,3,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+  hi_[0] = lo_[0]+lz-dr_[0];
+  hi_[1] = lo_[1]+ly-dr_[1];
+  hi_[2] = lo_[2]+lx-dr_[2];
+  const int m[3] = {n_[0]/nzReal,n_[1]/nyReal,n_[2]/nxReal};
+  const int id[3] = {int(round((zMin-lo_[0])/dr_[0])),int(round((yMin-lo_[1])/dr_[1])),int(round((xMin-lo_[2])/dr_[2]))};
+  chprintf("  Paris: [ %g %g %g ]-[ %g %g %g ] N_local[ %d %d %d ] Tasks[ %d %d %d ]\n",lo_[2],lo_[1],lo_[0],lo_[2]+lx,lo_[1]+ly,lo_[0]+lz,dn_[2],dn_[1],dn_[0],m[2],m[1],m[0]);
+  assert(dn_[0] == n_[0]/m[0]);
+  assert(dn_[1] == n_[1]/m[1]);
+  assert(dn_[2] == n_[2]/m[2]);
 
   if (periodic) {
-    pp_ = new PoissonPeriodic3DBlockedGPU(n,lo,hi,m,id);
+    pp_ = new PoissonPeriodic3DBlockedGPU(n_,lo_,hi_,m,id);
     assert(pp_);
     minBytes_ = pp_->bytes();
   } else {
-    pz_ = new PoissonZero3DBlockedGPU(n,lo,hi,m,id);
+    pz_ = new PoissonZero3DBlockedGPU(n_,lo_,hi_,m,id);
     assert(pz_);
     minBytes_ = pz_->bytes();
   }
 
-  densityBytes_ = long(sizeof(Real))*n_[0]*n_[1]*n_[2];
+  densityBytes_ = long(sizeof(Real))*dn_[0]*dn_[1]*dn_[2];
   const long gg = N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
-  potentialBytes_ = long(sizeof(Real))*(n_[0]+gg)*(n_[1]+gg)*(n_[2]+gg);
+  potentialBytes_ = long(sizeof(Real))*(dn_[0]+gg)*(dn_[1]+gg)*(dn_[2]+gg);
 
   CHECK(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,densityBytes_)));
   assert(da_);
@@ -110,7 +122,7 @@ void Potential_Paris_3D::Reset()
   if (pp_) delete pp_;
   pp_ = nullptr;
 
-  n_[0] = n_[1] = n_[2] = 0;
+  dn_[2] = dn_[1] = dn_[0] = 0;
 }
 
 #endif

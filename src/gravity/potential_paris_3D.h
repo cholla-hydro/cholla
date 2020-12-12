@@ -14,7 +14,8 @@ class Potential_Paris_3D {
     void Initialize(Real lx, Real ly, Real lz, Real xMin, Real yMin, Real zMin, int nx, int ny, int nz, int nxReal, int nyReal, int nzReal, Real dx, Real dy, Real dz, bool periodic);
     void Reset();
   protected:
-    int n_[3];
+    int dn_[3],n_[3];
+    double hi_[3],lo_[3];
     PoissonPeriodic3DBlockedGPU *pp_;
     PoissonZero3DBlockedGPU *pz_;
     long minBytes_;
