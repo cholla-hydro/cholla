@@ -89,14 +89,14 @@ ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
   CXXFLAGS += -I$(ROCM_PATH)/include
   CXXFLAGS += -D__HIP_PLATFORM_HCC__
-  GPUCXX := hipcc
+  GPUCXX ?= hipcc
   GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906,gfx908 -std=c++14 -ferror-limit=1
   GPUFLAGS += -I$(ROCM_PATH)/rocfft/include
   LD := $(CXX)
   LDFLAGS := $(CXXFLAGS)
   LIBS += -L$(ROCM_PATH)/lib -lamdhip64
 else
-  GPUCXX := nvcc
+  GPUCXX ?= nvcc
   GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
@@ -121,7 +121,7 @@ endif
 EXEC := bin/cholla$(SUFFIX)
 
 $(EXEC): prereq-build $(OBJS) 
-	$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
+	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
 	eval $(EXTRA_COMMANDS)
 
 %.o: %.c
@@ -137,7 +137,10 @@ $(EXEC): prereq-build $(OBJS)
 	
 clean:
 	rm -f $(OBJS) 
-	find . -type f -executable -name "cholla.*.$(MACHINE)" -exec rm -f '{}' \;
+	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)" -exec rm -f '{}' \;
+
+clobber: clean
+	find . -type f -executable -name "cholla*" -exec rm -f '{}' \;
 
 prereq-build:
 	builds/prereq.sh build $(MACHINE)
@@ -146,5 +149,5 @@ prereq-run:
 
 check : OUTPUT=-DOUTPUT
 check : clean $(EXEC) prereq-run
-	$(JOB_LAUNCH) ./cholla.$(TYPE).$(MACHINE) tests/regression/${TYPE}_input.txt
+	$(JOB_LAUNCH) bin/cholla.$(TYPE).$(MACHINE) tests/regression/${TYPE}_input.txt
 	builds/check.sh $(TYPE) tests/regression/${TYPE}_test.txt

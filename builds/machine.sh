@@ -2,6 +2,11 @@
 
 FQDN=$(hostname --fqdn)
 
+if [ ${CHOLLA_MACHINE} ]; then
+  echo ${CHOLLA_MACHINE}
+  exit 0
+fi
+
 #-- Summit
 if [[ $FQDN == *"summit."* ]]; then
   echo "summit"
