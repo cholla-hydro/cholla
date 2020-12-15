@@ -217,36 +217,68 @@ static inline Real d1(const Real x)
   return 16.0*exp(-10.0*sqr(2.0*x-1.0))*((400.0*x*x-400.0*x-4.0*pi*pi+95.0)*sin(8.0*pi*x)+(40.0*pi-80.0*pi*x)*cos(8.0*pi*x));
 }
 
-static inline Real testF(const Real x, const Real y, const Real z)
+static inline Real periodicF(const Real x, const Real y, const Real z)
 {
   return f1(x)*f1(y)*f1(z);
 }
 
-static inline Real testD(const Real x, const Real y, const Real z, const Real ddlx, const Real ddly, const Real ddlz)
+static inline Real periodicD(const Real x, const Real y, const Real z, const Real ddlx, const Real ddly, const Real ddlz)
 {
   return ddlx*d1(x)*f1(y)*f1(z)+ddly*f1(x)*d1(y)*f1(z)+ddlz*f1(x)*f1(y)*d1(z);
 }
 
+static constexpr double twoPi = 2.0*pi;
+static constexpr double fourPi = 4.0*pi;
+static constexpr double sixPi2 = 6.0*pi*pi;
+
+static inline Real nonzeroF(const double x, const double y, const double z)
+{
+  const double sx = sin(twoPi*x);
+  const double sy = sin(twoPi*y);
+  const double sz = sin(twoPi*z);
+  const double f = exp(-x*x-y*y-z*z);
+  return sx*sx*sx*sy*sy*sy*sz*sz*sz+f;
+}
+
+static inline Real nonzeroD(const double x, const double y, const double z, const double ddlx, const double ddly, const double ddlz)
+{
+  const double sx = sin(twoPi*x);
+  const double sy = sin(twoPi*y);
+  const double sz = sin(twoPi*z);
+  const double sx3 = sx*sx*sx;
+  const double sy3 = sy*sy*sy;
+  const double sz3 = sz*sz*sz;
+  const double f = exp(-x*x-y*y-z*z);
+  const double df = ddlx*(4.0*x*x-2.0)+ddly*(4.0*y*y-2.0)+ddlz*(4.0*z*z-2.0);
+  return (ddlx*sx*(3.0*cos(fourPi*x)+1.0)*sy3*sz3
+          +ddly*sx3*sy*(3.0*cos(fourPi*y)+1.0)*sz3
+          +ddlz*sx3*sy3*sz*(3.0*cos(fourPi*z)+1.0))*sixPi2+f*df;
+}
+
+
 static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz)
 {
   const long ng = N_GHOST_POTENTIAL;
-  Real maxs[2] = {0,0};
-  Real sums[4] = {0,0,0,0};
+  Real dMax = 0, dSum = 0, dSum2 = 0;
+  Real qMax = 0, qSum = 0, qSum2 = 0;
+#pragma omp parallel for reduction(max:dMax,qMax) reduction(+:dSum,dSum2,qSum,qSum2)
   for (int k = 0; k < nz; k++) {
     for (int j = 0; j < ny; j++) {
       for (int i = 0; i < nx; i++) {
         const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
         const Real qAbs = fabs(q[ijk]);
-        maxs[0] = std::max(maxs[0],qAbs);
-        sums[0] += qAbs;
-        sums[1] += qAbs*qAbs;
+        qMax = std::max(qMax,qAbs);
+        qSum += qAbs;
+        qSum2 += qAbs*qAbs;
         const Real d = fabs(q[ijk]-p[ijk]);
-        maxs[1] = std::max(maxs[1],d);
-        sums[2] += d;
-        sums[3] += d*d;
+        dMax = std::max(dMax,d);
+        dSum += d;
+        dSum2 += d*d;
       }
     }
   }
+  Real maxs[2] = {qMax,dMax};
+  Real sums[4] = {qSum,qSum2,dSum,dSum2};
   MPI_Allreduce(MPI_IN_PLACE,&maxs,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE,&sums,4,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
   chprintf(" Poisson-Solver Diff: L1 %g L2 %g Linf %g\n",sums[2]/sums[0],sqrt(sums[3]/sums[1]),maxs[1]/maxs[0]);
@@ -287,9 +319,9 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
         const Real y = (Grav.yMin-H.ybound+Real(j)*Grav.dy)*dly;
         for (int i = 0; i < Grav.nx_local; i++, ijk++) {
           const Real x = (Grav.xMin-H.xbound+Real(i)*Grav.dx)*dlx;
-          rho[ijk] = testD(x,y,z,ddlx,ddly,ddlz);
+          rho[ijk] = periodicD(x,y,z,ddlx,ddly,ddlz);
           const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
-          exact[ijkg] = testF(x,y,z);
+          exact[ijkg] = periodicF(x,y,z);
         }
       }
     }
@@ -312,9 +344,9 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 
   } else {
 
-    const Real dlx = (2.0*H.nx_real-4.0)/(H.xdglobal*H.nx_real);
-    const Real dly = (2.0*H.ny_real-4.0)/(H.ydglobal*H.ny_real);
-    const Real dlz = (2.0*H.nz_real-4.0)/(H.zdglobal*H.nz_real);
+    const Real dlx = 2.0/H.xdglobal;
+    const Real dly = 2.0/H.ydglobal;
+    const Real dlz = 2.0/H.zdglobal;
     const Real bx = -dlx*(H.xbound+0.5*H.xdglobal);
     const Real by = -dly*(H.ybound+0.5*H.ydglobal);
     const Real bz = -dlz*(H.zbound+0.5*H.zdglobal);
@@ -322,25 +354,24 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
     const Real ddly = dly*dly;
     const Real ddlz = dlz*dlz;
 
-//#pragma omp parallel for
+#pragma omp parallel for
     for (int k = 0; k < Grav.nz_local; k++) {
       const Real z = dlz*(H.zblocal+H.dz*(Real(k)+0.5))+bz;
       long ijk = long(k)*Grav.ny_local*Grav.nx_local;
       for (int j = 0; j < Grav.ny_local; j++) {
         const Real y = dly*(H.yblocal+H.dy*(Real(j)+0.5))+by;
         for (int i = 0; i < Grav.nx_local; i++, ijk++) {
-          const Real x = dlx*(H.zblocal+H.dx*(Real(i)+0.5))+bx;
-          rho[ijk] = testD(x,y,z,ddlx,ddly,ddlz);
+          const Real x = dlx*(H.xblocal+H.dx*(Real(i)+0.5))+bx;
+          rho[ijk] = nonzeroD(x,y,z,ddlx,ddly,ddlz);
           const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
-          exact[ijkg] = testF(x,y,z);
+          exact[ijkg] = nonzeroF(x,y,z);
         }
       }
     }
     std::vector<Real> p(Grav.n_cells_potential,0);
-    Grav.Poisson_solver_test.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
+    Grav.Poisson_solver_test.Get_Analytic_Potential(rho.data(),p.data());
     chprintf("Paris");
     printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
-    exit(0);
   }
 
 #endif

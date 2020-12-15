@@ -62,7 +62,7 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
     LIBS += -lcufft
   endif
   ifeq ($(findstring -DGRAVITY_5_POINTS_GRADIENT,$(DFLAGS)),-DGRAVITY_5_POINTS_GRADIENT)
-    DFLAGS += -DPARIS_5PT
+    DFLAGS += #-DPARIS_5PT
   else
     DFLAGS += -DPARIS_3PT
   endif
@@ -90,7 +90,7 @@ ifdef HIP_PLATFORM
   CXXFLAGS += -I$(ROCM_PATH)/include
   CXXFLAGS += -D__HIP_PLATFORM_HCC__
   GPUCXX := hipcc
-  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906,gfx908 -std=c++14 -ferror-limit=1
+  GPUFLAGS += -g -O3 -Wall --amdgpu-target=gfx906,gfx908 -std=c++14 -ferror-limit=1
   GPUFLAGS += -I$(ROCM_PATH)/rocfft/include
   LD := $(CXX)
   LDFLAGS := $(CXXFLAGS)
