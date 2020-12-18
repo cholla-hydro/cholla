@@ -418,17 +418,4 @@ void Particles_3D::Get_Density_CIC_OMP( ){
 #endif //PARTICLES_CPU
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 #endif

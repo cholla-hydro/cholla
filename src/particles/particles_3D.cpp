@@ -75,6 +75,9 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   //Vector for particle IDs
   int_vector_t partIDs;
   #endif
+  #ifdef PARTICLE_AGE
+  real_vector_t age;
+  #endif
 
   #ifdef MPI_CHOLLA
   //Vectors for the indices of the particles that need to be transfered via MPI
@@ -503,8 +506,8 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Real id;
   #endif 
   //unsigned long int N = M_d/particle_mass;
-  //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116)*0.1;  //2kpc radius
-  unsigned long int N = (long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
+  unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
+  //unsigned long int N = (long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
   long lost_particles = 0;
   for  ( unsigned long int i = 0; i < N; i++ ){
       do {
@@ -576,6 +579,10 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       #endif //PARALLEL_OMP
       partIDs.push_back(id);
       #endif //PARTICLE_IDS
+
+      #ifdef PARTICLE_AGE
+      age.push_back(0.0);
+      #endif
   }
   n_local = pos_x.size();
 

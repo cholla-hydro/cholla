@@ -180,6 +180,10 @@ int main(int argc, char *argv[])
     G.Transfer_Particles_Boundaries(P); 
     #endif
     
+    #ifdef PARTICLE_AGE
+    G.Particles.Cluster_Feedback(G.C, G.H.t, G.H.dt)
+    #endif
+
     // Advance the grid by one timestep
     dti = G.Update_Hydro_Grid();
     
