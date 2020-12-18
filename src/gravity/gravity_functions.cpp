@@ -502,8 +502,6 @@ void Grid3D::Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& g
   int k, j, i, id;
   Real x_pos, y_pos, z_pos, R;
   for ( k=g_start; k<g_end; k++ ){
-    //for ( j=N_GHOST_POTENTIAL; j<ny-N_GHOST_POTENTIAL; j++ ){
-    //  for ( i=N_GHOST_POTENTIAL; i<nx-N_GHOST_POTENTIAL; i++ ){
     for ( j=0; j<ny; j++ ){
       for ( i=0; i<nx; i++ ){
         id = i + j*nx + k*nx*ny;
@@ -513,8 +511,8 @@ void Grid3D::Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& g
         z_pos = Grav.zMin + Grav.dz*(k-N_GHOST_POTENTIAL) + 0.5*Grav.dz;
         R = sqrt(x_pos*x_pos + y_pos*y_pos);
 
-//	Grav.F.potential_h[id] += fraction*gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos); 
-	Grav.F.potential_h[id] += gal.phi_halo_D3D(R, z_pos); 
+        //	Grav.F.potential_h[id] += fraction*gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos); 
+	      Grav.F.potential_h[id] += gal.phi_halo_D3D(R, z_pos); 
       }
     }
   }

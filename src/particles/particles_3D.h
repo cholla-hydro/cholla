@@ -52,6 +52,9 @@ class Particles_3D
   #ifndef SINGLE_PARTICLE_MASS
   real_vector_t mass;
   #endif
+  #ifdef PARTICLE_AGE
+  real_vector_t age;
+  #endif
   real_vector_t pos_x;
   real_vector_t pos_y;
   real_vector_t pos_z;
@@ -253,13 +256,13 @@ class Particles_3D
   #ifdef MPI_CHOLLA
   void Clear_Particles_For_Transfer( void );
   void Select_Particles_to_Transfer_All( int *flags );
-  void Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass,
+  void Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass, Real pAge,
                               Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z);
   void Remove_Transfered_Particles();
   
   #ifdef PARTICLES_CPU
   void Clear_Vectors_For_Transfers( void );
-  void Add_Particle_To_Vectors( Real pId, Real pMass, Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z, int *flags );
+  void Add_Particle_To_Vectors( Real pId, Real pMass, Real pAge, Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z, int *flags );
   void Select_Particles_to_Transfer_All_CPU( int *flags );
   void Load_Particles_to_Buffer_CPU( int direction, int side, Real *send_buffer, int buffer_length  );
   void Unload_Particles_from_Buffer_CPU( int direction, int side, Real *recv_buffer, part_int_t n_recv,
@@ -272,6 +275,7 @@ class Particles_3D
   void Load_Particles_to_Buffer_GPU( int direction, int side, Real *send_buffer, int buffer_length  );
   #endif //PARTICLES_GPU
   #endif
+
 };
 
 

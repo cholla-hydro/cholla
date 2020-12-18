@@ -1003,6 +1003,9 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   #ifdef PARTICLE_IDS
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle ID
   #endif
+  #ifdef PARTICLE_AGE
+  N_DATA_PER_PARTICLE_TRANSFER += 1;
+  #endif
   
   buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_x0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;

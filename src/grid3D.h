@@ -723,6 +723,14 @@ class Grid3D
   void Do_Cooling_Step_Grackle();
   #endif
   
+  #ifdef PARTICLES
+  #ifdef DE
+  #ifdef PARTICLE_AGE
+  void Cluster_Feedback();
+  void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end) ();
+  #endif 
+  #endif 
+  #endif 
 
 };
 
