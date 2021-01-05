@@ -1,14 +1,429 @@
 #ifdef ANALYSIS
+#ifdef LYA_STATISTICS
 
 #include"analysis.h"
 #include"../io.h"
 #include <unistd.h>
+#include <complex.h>
 
 #ifdef MPI_CHOLLA
 #include"../mpi_routines.h"
 #endif
 
 // #define PRINT_ANALYSIS_LOG
+
+int Locate_Index( Real val, Real *values, int N ){
+  // Find the index such that  values[index] < val < values[index+1]
+  // Values has to be sorted 
+  if ( val < values[0] )   return -2;
+  if ( val > values[N-1] ) return -1;
+  
+  int index = 0;
+  while ( index < N ){
+    if ( val < values[index] ) break;
+    index += 1;
+  }
+  
+  if ( val < values[index-1] ){
+    chprintf( "ERROR; Value less than left edge:  val=%f    left=%f \n", val, values[index-1] );
+    exit(-1);
+  }
+  if ( val > values[index] ){
+    chprintf( "ERROR; Value grater than right edge:  val=%f    right=%f \n", val, values[index] );
+    exit(-1);
+  }
+  
+  // chprintf( " %d:    %e   %e   %e \n ", index, values[index-1], val, values[index]);
+  return index-1;
+  
+}
+
+void Analysis_Module::Clear_Power_Spectrum_Measurements( void ){
+  
+  MPI_Barrier( world );
+  
+  // chprintf( "Cleared Power Spectrum cache \n ");
+  free( hist_k_edges_x );
+  free( hist_PS_x );
+  free( hist_n_x );  
+  free( ps_root_x ); 
+  free( ps_global_x );
+
+  free( hist_k_edges_y );
+  free( hist_PS_y );
+  free( hist_n_y );  
+  free( ps_root_y ); 
+  free( ps_global_y );  
+  
+  free( hist_k_edges_z );
+  free( hist_PS_z );
+  free( hist_n_z );    
+  free( ps_root_z ); 
+  free( ps_global_z );
+  
+  free( k_ceters );
+  free( ps_mean );
+  
+}
+
+void Grid3D::Initialize_Power_Spectrum_Measurements( int axis ){
+  
+  int n_los, n_fft; 
+  Real Lbox, delta_x;
+  Real *k_vals;
+  
+  if ( axis == 0 ){
+    Analysis.n_PS_processed_x = 0;
+    n_los               = Analysis.nx_total;
+    n_fft               = Analysis.n_fft_x;
+    Lbox                = Analysis.Lbox_x;
+    delta_x             = Analysis.dx;
+    k_vals              = Analysis.k_vals_x;
+  }
+  
+  if ( axis == 1 ){
+    Analysis.n_PS_processed_y = 0;
+    n_los               = Analysis.ny_total;
+    n_fft               = Analysis.n_fft_y;
+    Lbox                = Analysis.Lbox_y;
+    delta_x             = Analysis.dy;
+    k_vals              = Analysis.k_vals_y;
+  }
+  
+  if ( axis == 2 ){
+    Analysis.n_PS_processed_z = 0;
+    n_los               = Analysis.nz_total;
+    n_fft               = Analysis.n_fft_z;
+    Lbox                = Analysis.Lbox_z;
+    delta_x             = Analysis.dz;
+    k_vals              = Analysis.k_vals_z;
+  }
+  
+  
+  // Get Cosmological variables
+  Real H, current_a, L_proper, dx_proper, dv_Hubble; 
+  current_a = Cosmo.current_a;
+  L_proper = Lbox * current_a / Cosmo.cosmo_h;
+  dx_proper = delta_x * current_a / Cosmo.cosmo_h;
+  H = Cosmo.Get_Hubble_Parameter( current_a );
+  dv_Hubble = H * dx_proper; // km/s
+  
+  
+  // Compute the K values 
+  for ( int i=0; i<n_fft; i++ ){
+    k_vals[i] = 2 * M_PI * i / ( n_los * dv_Hubble );
+    // if ( axis == 0 ) chprintf( "k: %f \n", k_vals[i]  );
+  }
+  
+  Real k_val, k_min,  k_max, d_log_k;
+  d_log_k = Analysis.d_log_k;
+  k_min = log10( k_vals[1] );
+  k_max = log10( k_vals[n_fft-1] );
+  
+  
+  
+  // if ( axis == 0 ) chprintf( "dv_Hubble: %f \n", dv_Hubble  );
+  // if ( axis == 0 ) chprintf( "k min : %f \n", k_min  );
+  // if ( axis == 0 ) chprintf( "k max : %f \n", k_max  );
+  // 
+  k_val = k_min;
+  int n_hist_edges = 1;
+  while ( k_val < k_max ){
+    n_hist_edges += 1;
+    k_val += d_log_k ;
+  }
+  // chprintf( " n bins : %d \n", n_hist_edges  );
+  
+  
+  Real *hist_k_edges;
+  Real *hist_PS;
+  Real *hist_n;
+  Real *ps_root;
+  Real *ps_global;
+  
+  int n_bins = n_hist_edges - 1; 
+  hist_k_edges = (Real *) malloc(n_hist_edges*sizeof(Real));
+  hist_PS     = (Real *) malloc(n_bins*sizeof(Real));
+  hist_n      = (Real *) malloc(n_bins*sizeof(Real));
+  ps_root     = (Real *) malloc(n_bins*sizeof(Real));
+  ps_global   = (Real *) malloc(n_bins*sizeof(Real));
+  
+  k_val = k_min;
+  for ( int bin_id=0; bin_id<n_hist_edges; bin_id++ ){
+    hist_k_edges[bin_id] = pow( 10, k_val );
+    k_val += 0.1; 
+  }
+  
+  if ( axis == 0 ){
+    Analysis.n_hist_edges_x = n_hist_edges;
+    Analysis.hist_k_edges_x = hist_k_edges;
+    Analysis.hist_PS_x     = hist_PS;
+    Analysis.hist_n_x      = hist_n;
+    Analysis.ps_root_x     = ps_root;
+    Analysis.ps_global_x   = ps_global;    
+  } 
+  
+  if ( axis == 1 ){
+    Analysis.n_hist_edges_y = n_hist_edges;
+    Analysis.hist_k_edges_y = hist_k_edges;
+    Analysis.hist_PS_y     = hist_PS;
+    Analysis.hist_n_y      = hist_n;    
+    Analysis.ps_root_y     = ps_root;
+    Analysis.ps_global_y   = ps_global;    
+  } 
+  
+  if ( axis == 2 ){
+    Analysis.n_hist_edges_z = n_hist_edges;
+    Analysis.hist_k_edges_z = hist_k_edges;
+    Analysis.hist_PS_z     = hist_PS;
+    Analysis.hist_n_z      = hist_n;
+    Analysis.ps_root_z     = ps_root;
+    Analysis.ps_global_z   = ps_global;    
+  } 
+  
+  
+  // Create array  for global PS
+  if ( axis == 2 ){
+    if ( Analysis.n_hist_edges_x != Analysis.n_hist_edges_y || Analysis.n_hist_edges_x != Analysis.n_hist_edges_z ){
+      chprintf( "ERROR: PS Histogram sizes dont match \n");
+      exit(-1);
+    } 
+    else{
+      Analysis.ps_mean  = (Real *) malloc(n_bins*sizeof(Real));
+      Analysis.k_ceters = (Real *) malloc(n_bins*sizeof(Real));
+      
+      for (int bin_id=0; bin_id<n_bins; bin_id++ ){
+        Analysis.k_ceters[bin_id] = sqrt( Analysis.hist_k_edges_x[bin_id] * Analysis.hist_k_edges_x[bin_id+1]  );
+      }
+    }
+    
+  }
+  
+  
+  
+  // if ( axis == 0 ){
+  //   for ( int bin_id=0; bin_id<n_hist_edges; bin_id++ ){ 
+  //     chprintf( "%f \n", hist_k_edges[bin_id]);
+  //   }
+  // }
+
+  
+}
+
+
+
+void Grid3D::Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis ){
+  
+  bool am_I_root;
+  int n_los, n_fft, n_hist_edges;
+  Real Lbox, delta_x;
+  Real *transmitted_flux;
+  Real *delta_F;
+  fftw_complex *fft_delta_F; 
+  Real *fft2_delta_F;
+  fftw_plan fftw_plan;
+  Real *k_vals;
+  Real *hist_k_edges;
+  Real *hist_PS;
+  Real *hist_n;
+  Real *ps_root;
+  
+  if ( axis == 0 ){
+    am_I_root           = Analysis.am_I_root_x;
+    n_los               = Analysis.nx_total;
+    n_fft               = Analysis.n_fft_x;
+    n_hist_edges        = Analysis.n_hist_edges_x;
+    Lbox                = Analysis.Lbox_x;
+    delta_x             = Analysis.dx;
+    delta_F             = Analysis.delta_F_x;
+    transmitted_flux    = Analysis.transmitted_flux_x;
+    fft_delta_F         = Analysis.fft_delta_F_x;
+    fft2_delta_F        = Analysis.fft2_delta_F_x;
+    k_vals              = Analysis.k_vals_x;
+    fftw_plan           = Analysis.fftw_plan_x;
+    hist_k_edges        = Analysis.hist_k_edges_x;
+    hist_PS             = Analysis.hist_PS_x;
+    hist_n              = Analysis.hist_n_x;
+    ps_root             = Analysis.ps_root_x;
+  }
+  
+  if ( axis == 1 ){
+    am_I_root           = Analysis.am_I_root_y;
+    n_los               = Analysis.ny_total;
+    n_fft               = Analysis.n_fft_y;
+    n_hist_edges        = Analysis.n_hist_edges_y;
+    Lbox                = Analysis.Lbox_y;
+    delta_x             = Analysis.dy;
+    delta_F             = Analysis.delta_F_y;
+    transmitted_flux    = Analysis.transmitted_flux_y;
+    fft_delta_F         = Analysis.fft_delta_F_y;
+    fft2_delta_F        = Analysis.fft2_delta_F_y;
+    k_vals              = Analysis.k_vals_y;
+    fftw_plan           = Analysis.fftw_plan_y;
+    hist_k_edges        = Analysis.hist_k_edges_y;
+    hist_PS             = Analysis.hist_PS_y;
+    hist_n              = Analysis.hist_n_y;
+    ps_root             = Analysis.ps_root_y;
+  }
+  
+  if ( axis == 2 ){
+    am_I_root           = Analysis.am_I_root_z;
+    n_los               = Analysis.nz_total;
+    n_fft               = Analysis.n_fft_z;
+    n_hist_edges        = Analysis.n_hist_edges_z;
+    Lbox                = Analysis.Lbox_z;
+    delta_x             = Analysis.dz;
+    delta_F             = Analysis.delta_F_z;
+    transmitted_flux    = Analysis.transmitted_flux_z;
+    fft_delta_F         = Analysis.fft_delta_F_z;
+    fft2_delta_F        = Analysis.fft2_delta_F_z;
+    k_vals              = Analysis.k_vals_z;
+    fftw_plan           = Analysis.fftw_plan_z;
+    hist_k_edges        = Analysis.hist_k_edges_z;
+    hist_PS             = Analysis.hist_PS_z;
+    hist_n              = Analysis.hist_n_z;
+    ps_root             = Analysis.ps_root_z;
+  }
+  
+  int n_bins = n_hist_edges - 1;
+  
+  if ( !am_I_root ){
+    for ( int i=0; i<n_bins; i++ ){
+      ps_root[i] = 0;
+    }
+    return;
+  }  
+    
+
+  for ( int los_id=0; los_id<n_los; los_id++ ){
+    delta_F[los_id] = transmitted_flux[los_id] / Analysis.Flux_mean;
+  }
+  
+  // Compute the r2c FFT
+  fftw_execute( fftw_plan );
+    
+  // Get Cosmological variables
+  Real H, current_a, L_proper, dx_proper, dv_Hubble; 
+  current_a = Cosmo.current_a;
+  L_proper = Lbox * current_a / Cosmo.cosmo_h;
+  dx_proper = delta_x * current_a / Cosmo.cosmo_h;
+  H = Cosmo.Get_Hubble_Parameter( current_a );
+  dv_Hubble = H * dx_proper; // km/s
+  
+  // Compute the amplitude of the FFT
+  for ( int i=0; i<n_fft; i++ ){
+    fft2_delta_F[i] = (fft_delta_F[i][0]*fft_delta_F[i][0] + fft_delta_F[i][1]*fft_delta_F[i][1]) / n_los / n_los;
+  }
+  
+  // Arrange in k-bins
+  for ( int i=0; i<n_bins; i++ ){
+    hist_PS[i] = 0;
+    hist_n[i] = 0;
+  }
+  
+  
+  
+  int bin_id;
+  Real k_val;
+  for ( int i=0; i<n_fft; i++ ){
+    k_val = k_vals[i];
+    if ( k_val == 0 ) continue;
+    bin_id = Locate_Index( k_val, hist_k_edges, n_hist_edges );
+    // // chprintf( " %d:   %e    %e   %e \n", bin_id, k_vals[bin_id], k_val, k_vals[bin_id+1] );
+    if ( bin_id < 0 || bin_id >= n_bins ) continue;
+    hist_PS[bin_id] += fft2_delta_F[i]; 
+    hist_n[bin_id]  += 1;
+  }
+  
+  int hist_sum = 0;
+  for ( int i=0; i<n_bins; i++ ){
+    hist_sum += hist_n[i];
+  }
+  
+  // Add skewer PS to root PS
+  for ( int i=0; i<n_bins; i++ ){
+    ps_root[i] += hist_PS[i] / hist_n[i] * ( H*L_proper);
+  }
+  
+  if ( hist_sum != n_fft-1 ){
+    printf("ERROR: Histogram sum doesn't match n_pfft:  sum=%d    n_fft=%d \n", hist_sum, n_fft-1);
+    exit(-1);
+  }
+  
+  
+  if ( axis == 0 ) Analysis.n_PS_processed_x += 1;
+  if ( axis == 1 ) Analysis.n_PS_processed_y += 1;
+  if ( axis == 2 ) Analysis.n_PS_processed_z += 1;
+  
+  
+  
+  
+  
+}
+
+
+void Analysis_Module::Reduce_Power_Spectrum_Axis( int axis ){
+  
+  int n_root, n_bins;
+  Real *ps_root;
+  Real *ps_global;
+  int *n_axis;
+  
+  if ( axis == 0 ){
+    n_bins    = n_hist_edges_x - 1;
+    n_root    = n_PS_processed_x;
+    ps_root   = ps_root_x;
+    ps_global = ps_global_x;
+    n_axis    = &n_PS_axis_x;
+  }
+  
+  if ( axis == 1 ){
+    n_bins    = n_hist_edges_y - 1;
+    n_root    = n_PS_processed_y;
+    ps_root   = ps_root_y;
+    ps_global = ps_global_y;
+    n_axis    = &n_PS_axis_y;
+  }
+  
+  if ( axis == 2 ){
+    n_bins    = n_hist_edges_z - 1;
+    n_root    = n_PS_processed_z;
+    ps_root   = ps_root_z;
+    ps_global = ps_global_z;
+    n_axis    = &n_PS_axis_z;
+  }
+  
+  MPI_Allreduce( ps_root, ps_global, n_bins, MPI_CHREAL, MPI_SUM, world );
+  MPI_Allreduce( &n_root, n_axis, 1, MPI_INT, MPI_SUM, world );
+  
+  
+  chprintf( "  N_Skewers_Processed: %d \n", *n_axis );
+  
+}
+
+
+void Analysis_Module::Reduce_Power_Spectrum_Global( ){
+  
+  int n_PS_total = n_PS_axis_x + n_PS_axis_y + n_PS_axis_z;
+  if ( n_hist_edges_x != n_hist_edges_y || n_hist_edges_x != n_hist_edges_z ){
+    chprintf( "ERROR: PS Histogram sizes dont match \n");
+    exit(-1);
+  } 
+  
+  int n_bins = n_hist_edges_x - 1;
+   
+  for (int bin_id=0; bin_id<n_bins; bin_id++ ){
+    ps_mean[bin_id] = ( ps_global_x[bin_id] + ps_global_y[bin_id] + ps_global_z[bin_id] ) / n_PS_total;
+  }
+  
+  chprintf( " PS Bins: %d     N_Skewers_Processed: %d \n", n_bins, n_PS_total );
+  
+  for (int bin_id=0; bin_id<n_bins; bin_id++ ){
+    chprintf( " %e   %e  \n", k_ceters[bin_id], ps_mean[bin_id] *k_ceters[bin_id] / M_PI);
+    
+  }
+  
+}
 
 
 void Analysis_Module::Reduce_Lya_Statists_Global( void ){
@@ -115,11 +530,12 @@ void Analysis_Module::Compute_Lya_Statistics_Skewer( int skewer_id, int axis ){
     F_mean += transmitted_flux[los_id] / n_los;
   }
   
-  // *F_mean_root += 1;
   *F_mean_root += F_mean;
   *n_skewers_processed_root += 1;
   
 }
+
+
   
 void Analysis_Module::Initialize_Lya_Statistics_Measurements( int axis ){
   
@@ -580,11 +996,18 @@ void Analysis_Module::Initialize_Lya_Statistics( struct parameters *P ){
   n_los_full_x = nx_total + 2 * n_ghost_skewer;
   n_los_full_y = ny_total + 2 * n_ghost_skewer;
   n_los_full_z = nz_total + 2 * n_ghost_skewer;
+  
+  n_fft_x = nx_total/2 + 1;
+  n_fft_y = ny_total/2 + 1;
+  n_fft_z = nz_total/2 + 1;
    
   
   
   n_stride = P->lya_skewers_stride;
   chprintf("  Lya Skewers Stride: %d\n", n_stride );
+  
+  d_log_k = P->lya_Pk_d_log_k;
+  chprintf("  Power Spectrum d_log_k: %f\n", d_log_k );
   
   n_skewers_local_x = ( ny_local / n_stride ) * ( nz_local / n_stride );
   n_skewers_local_y = ( nx_local / n_stride ) * ( nz_local / n_stride );
@@ -788,37 +1211,61 @@ void Analysis_Module::Initialize_Lya_Statistics( struct parameters *P ){
     skewers_HI_density_root_x  = (Real *) malloc(n_skewers_local_x*nx_total*sizeof(Real));
     skewers_velocity_root_x    = (Real *) malloc(n_skewers_local_x*nx_total*sizeof(Real));
     skewers_temperature_root_x = (Real *) malloc(n_skewers_local_x*nx_total*sizeof(Real));
-    full_HI_density_x  = (Real *) malloc(n_los_full_x*sizeof(Real));
-    full_velocity_x    = (Real *) malloc(n_los_full_x*sizeof(Real));
-    full_temperature_x = (Real *) malloc(n_los_full_x*sizeof(Real));
-    full_optical_depth_x = (Real *) malloc(n_los_full_x*sizeof(Real));
-    full_vel_Hubble_x  = (Real *) malloc(n_los_full_x*sizeof(Real));
-    transmitted_flux_x = (Real *) malloc(nx_total*sizeof(Real));
+    full_HI_density_x          = (Real *) malloc(n_los_full_x*sizeof(Real));
+    full_velocity_x            = (Real *) malloc(n_los_full_x*sizeof(Real));
+    full_temperature_x         = (Real *) malloc(n_los_full_x*sizeof(Real));
+    full_optical_depth_x       = (Real *) malloc(n_los_full_x*sizeof(Real));
+    full_vel_Hubble_x          = (Real *) malloc(n_los_full_x*sizeof(Real));
+    transmitted_flux_x         = (Real *) malloc(nx_total*sizeof(Real));
+    
+    // Alocate Memory For Power Spectrum Calculation
+    delta_F_x             = (Real *) malloc(nx_total*sizeof(Real));
+    vel_Hubble_x          = (Real *) malloc(nx_total*sizeof(Real));
+    fft_delta_F_x         = (fftw_complex*) fftw_malloc(n_fft_x*sizeof(fftw_complex));
+    fft2_delta_F_x        = (Real *) malloc(n_fft_x*sizeof(Real));
+    fftw_plan_x           = fftw_plan_dft_r2c_1d( nx_total, delta_F_x, fft_delta_F_x, FFTW_ESTIMATE);
   }
+  k_vals_x              = (Real *) malloc(n_fft_x*sizeof(Real));
   
   if ( am_I_root_y ){
     skewers_HI_density_root_y  = (Real *) malloc(n_skewers_local_y*ny_total*sizeof(Real));
     skewers_velocity_root_y    = (Real *) malloc(n_skewers_local_y*ny_total*sizeof(Real));
     skewers_temperature_root_y = (Real *) malloc(n_skewers_local_y*ny_total*sizeof(Real));
-    full_HI_density_y  = (Real *) malloc(n_los_full_y*sizeof(Real));
-    full_velocity_y    = (Real *) malloc(n_los_full_y*sizeof(Real));
-    full_temperature_y = (Real *) malloc(n_los_full_y*sizeof(Real));
-    full_optical_depth_y = (Real *) malloc(n_los_full_y*sizeof(Real));
-    full_vel_Hubble_y  = (Real *) malloc(n_los_full_y*sizeof(Real));
-    transmitted_flux_y = (Real *) malloc(ny_total*sizeof(Real));
+    full_HI_density_y          = (Real *) malloc(n_los_full_y*sizeof(Real));
+    full_velocity_y            = (Real *) malloc(n_los_full_y*sizeof(Real));
+    full_temperature_y         = (Real *) malloc(n_los_full_y*sizeof(Real));
+    full_optical_depth_y       = (Real *) malloc(n_los_full_y*sizeof(Real));
+    full_vel_Hubble_y          = (Real *) malloc(n_los_full_y*sizeof(Real));
+    transmitted_flux_y         = (Real *) malloc(ny_total*sizeof(Real));
+    
+    // Alocate Memory For Power Spectrum Calculation
+    delta_F_y             = (Real *) malloc(ny_total*sizeof(Real));
+    vel_Hubble_y          = (Real *) malloc(ny_total*sizeof(Real));
+    fft_delta_F_y         = (fftw_complex*) fftw_malloc(n_fft_y*sizeof(fftw_complex));
+    fft2_delta_F_y        = (Real *) malloc(n_fft_y*sizeof(Real));
+    fftw_plan_y           = fftw_plan_dft_r2c_1d( ny_total, delta_F_y, fft_delta_F_y, FFTW_ESTIMATE);
   }
+  k_vals_y              = (Real *) malloc(n_fft_y*sizeof(Real));
   
   if ( am_I_root_z ){
     skewers_HI_density_root_z  = (Real *) malloc(n_skewers_local_z*nz_total*sizeof(Real));
     skewers_velocity_root_z    = (Real *) malloc(n_skewers_local_z*nz_total*sizeof(Real));
     skewers_temperature_root_z = (Real *) malloc(n_skewers_local_z*nz_total*sizeof(Real));
-    full_HI_density_z  = (Real *) malloc(n_los_full_z*sizeof(Real));
-    full_velocity_z    = (Real *) malloc(n_los_full_z*sizeof(Real));
-    full_temperature_z = (Real *) malloc(n_los_full_z*sizeof(Real));
-    full_optical_depth_z = (Real *) malloc(n_los_full_z*sizeof(Real));
-    full_vel_Hubble_z  = (Real *) malloc(n_los_full_z*sizeof(Real));
-    transmitted_flux_z = (Real *) malloc(nz_total*sizeof(Real));
+    full_HI_density_z          = (Real *) malloc(n_los_full_z*sizeof(Real));
+    full_velocity_z            = (Real *) malloc(n_los_full_z*sizeof(Real));
+    full_temperature_z         = (Real *) malloc(n_los_full_z*sizeof(Real));
+    full_optical_depth_z       = (Real *) malloc(n_los_full_z*sizeof(Real));
+    full_vel_Hubble_z          = (Real *) malloc(n_los_full_z*sizeof(Real));
+    transmitted_flux_z         = (Real *) malloc(nz_total*sizeof(Real));
+    
+    // Alocate Memory For Power Spectrum Calculation
+    delta_F_z             = (Real *) malloc(nz_total*sizeof(Real));
+    vel_Hubble_z          = (Real *) malloc(nz_total*sizeof(Real));
+    fft_delta_F_z         = (fftw_complex*) fftw_malloc(n_fft_z*sizeof(fftw_complex));
+    fft2_delta_F_z        = (Real *) malloc(n_fft_z*sizeof(Real));
+    fftw_plan_z           = fftw_plan_dft_r2c_1d( nz_total, delta_F_z, fft_delta_F_z, FFTW_ESTIMATE);
   }
+  k_vals_z              = (Real *) malloc(n_fft_z*sizeof(Real));
   
   #else 
   
@@ -869,16 +1316,5 @@ void Analysis_Module::Initialize_Lya_Statistics( struct parameters *P ){
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-#endif
+#endif //LYA_STATISTICS
+#endif //ANALYSIS

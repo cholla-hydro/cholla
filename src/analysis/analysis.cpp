@@ -7,6 +7,7 @@
 
 Analysis_Module::Analysis_Module( void ){}
 
+#ifdef LYA_STATISTICS
 void Grid3D::Compute_Lya_Statistics( ){
   
   // Copmpute Lya Statitics
@@ -40,10 +41,68 @@ void Grid3D::Compute_Lya_Statistics( ){
   
   Analysis.Reduce_Lya_Statists_Global();
   
+  // Compute the Flux Power Spectrum after computing the mean transmitted flux 
+  for ( axis=0; axis<3; axis++ ){
+    
+    if ( axis == 0 ) n_skewers = Analysis.n_skewers_local_x;
+    if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
+    if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
+    
+    if ( axis == 0 ) chprintf( " Computing P(k) Along X axis:\n");
+    if ( axis == 1 ) chprintf( " Computing P(k) Along Y axis:\n");
+    if ( axis == 2 ) chprintf( " Computing P(k) Along Z axis:\n");
+    
+    Initialize_Power_Spectrum_Measurements( axis );
+    
+    for ( int skewer_id=0; skewer_id< n_skewers; skewer_id++ ){
+      Compute_Transmitted_Flux_Skewer( skewer_id, axis );
+      Compute_Flux_Power_Spectrum_Skewer( skewer_id, axis );
+    }
+    
+    Analysis.Reduce_Power_Spectrum_Axis( axis );
+  }
   
+  Analysis.Reduce_Power_Spectrum_Global();
+    
   chprintf( "Completed Lya Statistics \n" );
+
   
 }
+#endif //LYA_STATISTICS
+
+
+void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
+  
+  chprintf("\nComputing Analysis  current_z: %f\n", Analysis.current_z );
+  
+  #ifdef PHASE_DIAGRAM
+  Compute_Phase_Diagram();
+  #endif
+  
+  #ifdef LYA_STATISTICS
+  Compute_Lya_Statistics();
+  #endif
+  
+  //Write to HDF5 file
+  #ifdef MPI_CHOLLA
+  if ( procID == 0 ) Output_Analysis(P);
+  #else
+  Output_Analysis(P);
+  #endif
+  
+  
+  #ifdef LYA_STATISTICS
+  Analysis.Clear_Power_Spectrum_Measurements();
+  #endif
+  
+  Analysis.Set_Next_Scale_Output();
+  Analysis.Output_Now = false;
+  
+  
+  exit(0);
+}
+
+
 
 void Grid3D::Initialize_Analysis_Module( struct parameters *P ){
   
@@ -117,29 +176,7 @@ void Analysis_Module::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_
 
 
 
-void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
-  
-  chprintf("\nComputing Analysis  current_z: %f\n", Analysis.current_z );
-  
-  #ifdef PHASE_DIAGRAM
-  Compute_Phase_Diagram();
-  #endif
-  
-  #ifdef LYA_STATISTICS
-  Compute_Lya_Statistics();
-  #endif
-  
-  //Write to HDF5 file
-  #ifdef MPI_CHOLLA
-  if ( procID == 0 ) Output_Analysis(P);
-  #else
-  Output_Analysis(P);
-  #endif
-  
-  Analysis.Set_Next_Scale_Output();
-  Analysis.Output_Now = false;
-  
-}
+
 
 void Analysis_Module::Reset(){
   

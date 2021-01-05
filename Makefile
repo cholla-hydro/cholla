@@ -173,6 +173,12 @@ CFLAGS += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc
 
+ifeq ($(findstring -DLYA_STATISTICS,$(DFLAGS)),-DLYA_STATISTICS)
+  CXXFLAGS += -I$(FFTW_ROOT)/include 
+  GPUFLAGS += -I$(FFTW_ROOT)/include 
+  LIBS += -L$(FFTW_ROOT)/lib -lfftw3_mpi -lfftw3
+endif
+
 ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
   CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
   GPUFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include

@@ -289,6 +289,9 @@ parms->scale_outputs_file[0] = '\0';
       strncpy (parms->analysisdir, value, MAXLEN);
     else if (strcmp(name, "lya_skewers_stride")==0)
       parms->lya_skewers_stride  = atoi(value);
+    else if (strcmp(name, "lya_Pk_d_log_k")==0)
+      parms->lya_Pk_d_log_k  = atof(value);
+    
 #endif    
     else
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",

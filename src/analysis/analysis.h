@@ -5,6 +5,7 @@
 
 #include"../global.h"
 #include <vector>
+#include <fftw3.h>
 
 using namespace std;
 
@@ -151,6 +152,55 @@ public:
   int n_los_full_y;
   int n_los_full_z;
   
+  Real *vel_Hubble_x;
+  Real *vel_Hubble_y;
+  Real *vel_Hubble_z;
+  Real *delta_F_x;
+  Real *delta_F_y;
+  Real *delta_F_z;
+  
+  Real d_log_k;
+  int n_PS_processed_x;
+  int n_PS_processed_y;
+  int n_PS_processed_z;
+  int n_PS_axis_x;
+  int n_PS_axis_y;
+  int n_PS_axis_z;
+  int n_hist_edges_x;
+  int n_hist_edges_y;
+  int n_hist_edges_z;
+  int n_fft_x;
+  int n_fft_y;
+  int n_fft_z;
+  fftw_complex *fft_delta_F_x;
+  fftw_complex *fft_delta_F_y;
+  fftw_complex *fft_delta_F_z;
+  Real *fft2_delta_F_x;
+  Real *fft2_delta_F_y;
+  Real *fft2_delta_F_z;
+  Real *k_vals_x;
+  Real *k_vals_y;
+  Real *k_vals_z;
+  fftw_plan fftw_plan_x;
+  fftw_plan fftw_plan_y;
+  fftw_plan fftw_plan_z;
+  Real *hist_k_edges_x;
+  Real *hist_k_edges_y;
+  Real *hist_k_edges_z;
+  Real *hist_PS_x;
+  Real *hist_PS_y;
+  Real *hist_PS_z;
+  Real *hist_n_x;
+  Real *hist_n_y;
+  Real *hist_n_z;
+  Real *ps_root_x;
+  Real *ps_root_y;
+  Real *ps_root_z;
+  Real *ps_global_x;
+  Real *ps_global_y;
+  Real *ps_global_z;
+  Real *ps_mean;
+  Real *k_ceters;
   
   #ifdef MPI_CHOLLA
   Real *mpi_domain_boundary_x;
@@ -184,6 +234,9 @@ public:
   void Compute_Lya_Statistics_Skewer( int skewer_id, int axis );
   void Reduce_Lya_Statists_Axis( int axis );
   void Reduce_Lya_Statists_Global( void );
+  void Clear_Power_Spectrum_Measurements( void );
+  void Reduce_Power_Spectrum_Axis( int axis );
+  void Reduce_Power_Spectrum_Global( );
   #endif
 };
 
