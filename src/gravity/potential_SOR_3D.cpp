@@ -226,6 +226,10 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
 void Grav3D::Copy_Isolated_Boundaries_To_GPU( struct parameters *P ){
   
   if ( P->xl_bcnd != 3 && P->xu_bcnd != 3 && P->yl_bcnd != 3 && P->yu_bcnd != 3 && P->zl_bcnd != 3 && P->zu_bcnd != 3 ) return;
+
+  printf("boundary_flags");
+  for (int i = 0; i < 6; i++) printf(" %d",boundary_flags[i]);
+  printf("\n"); fflush(stdout);
   
   // chprintf( " Copying Isolated Boundaries \n");
   if ( boundary_flags[0] == 3 ) Copy_Isolated_Boundary_To_GPU_buffer( F.pot_boundary_x0, Poisson_solver.F.boundary_isolated_x0_d,  Poisson_solver.n_ghost*ny_local*nz_local );

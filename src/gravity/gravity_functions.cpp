@@ -256,7 +256,7 @@ static inline Real nonzeroD(const double x, const double y, const double z, cons
 }
 
 
-static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz)
+static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz, const bool plot = false)
 {
   const long ng = N_GHOST_POTENTIAL;
   Real dMax = 0, dSum = 0, dSum2 = 0;
@@ -283,6 +283,31 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
   MPI_Allreduce(MPI_IN_PLACE,&sums,4,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
   chprintf(" Poisson-Solver Diff: L1 %g L2 %g Linf %g\n",sums[2]/sums[0],sqrt(sums[3]/sums[1]),maxs[1]/maxs[0]);
   fflush(stdout);
+  if (!plot) return;
+
+  printf("###\n");
+  int kMax = -1;
+  for (int k = 0; k < nz; k++) {
+    for (int j = 0; j < ny; j++) {
+      for (int i = 0; i < nx; i++) {
+        const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
+        const Real qAbs = fabs(q[ijk]);
+        if (qAbs == qMax) kMax = k;
+      }
+    }
+    if (kMax > -1) {
+      for (int j = 0; j < ny; j++) {
+        for (int i = 0; i < nx; i++) {
+          const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
+          printf("%d %d %g %g %g\n",j,i,q[ijk],p[ijk],q[ijk]-p[ijk]);
+        }
+        printf("\n");
+      }
+      break;
+    }
+  }
+  MPI_Finalize();
+  exit(0);
 }
 #endif 
 
@@ -344,6 +369,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 
   } else {
 
+#ifdef SOR
     const Real dlx = 2.0/H.xdglobal;
     const Real dly = 2.0/H.ydglobal;
     const Real dlz = 2.0/H.zdglobal;
@@ -362,16 +388,68 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
         const Real y = dly*(H.yblocal+H.dy*(Real(j)+0.5))+by;
         for (int i = 0; i < Grav.nx_local; i++, ijk++) {
           const Real x = dlx*(H.xblocal+H.dx*(Real(i)+0.5))+bx;
-          rho[ijk] = nonzeroD(x,y,z,ddlx,ddly,ddlz);
+          Grav.F.density_h[ijk] = nonzeroD(x,y,z,ddlx,ddly,ddlz);
           const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
           exact[ijkg] = nonzeroF(x,y,z);
         }
       }
     }
     std::vector<Real> p(Grav.n_cells_potential,0);
-    Grav.Poisson_solver_test.Get_Analytic_Potential(rho.data(),p.data());
+    Grav.Poisson_solver_test.Get_Analytic_Potential(Grav.F.density_h,p.data());
     chprintf("Paris");
     printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+
+#pragma omp parallel for collapse(3)
+    for (int k = 0; k < N_GHOST_POTENTIAL; k++) {
+      for (int j = 0; j < Grav.ny_local; j++) {
+        for (int i = 0; i < Grav.nx_local; i++) {
+          const Real zl = dlz*(H.zblocal+H.dz*(Real(k-N_GHOST_POTENTIAL)+0.5))+bz;
+          const Real zr = dlz*(H.zblocal+H.dz*(Real(k+Grav.nz_local)+0.5))+bz;
+          const Real y = dly*(H.yblocal+H.dy*(Real(j)+0.5))+by;
+          const Real x = dlx*(H.xblocal+H.dx*(Real(i)+0.5))+bx;
+          const int ijk = i+Grav.nx_local*(j+Grav.ny_local*k);
+          Grav.F.pot_boundary_z0[ijk] = nonzeroF(x,y,zl);
+          Grav.F.pot_boundary_z1[ijk] = nonzeroF(x,y,zr);
+        }
+      }
+    }
+
+#pragma omp parallel for collapse(3)
+    for (int j = 0; j < N_GHOST_POTENTIAL; j++) {
+      for (int k = 0; k < Grav.nz_local; k++) {
+        for (int i = 0; i < Grav.nx_local; i++) {
+          const Real z = dlz*(H.zblocal+H.dz*(Real(k)+0.5))+bz;
+          const Real yl = dly*(H.yblocal+H.dy*(Real(j-N_GHOST_POTENTIAL)+0.5))+by;
+          const Real yr = dly*(H.yblocal+H.dy*(Real(j+Grav.ny_local)+0.5))+by;
+          const Real x = dlx*(H.xblocal+H.dx*(Real(i)+0.5))+bx;
+          const int ikj = i+Grav.nx_local*(k+Grav.nz_local*j);
+          Grav.F.pot_boundary_y0[ikj] = nonzeroF(x,yl,z);
+          Grav.F.pot_boundary_y1[ikj] = nonzeroF(x,yr,z);
+        }
+      }
+    }
+
+#pragma omp parallel for collapse(3)
+    for (int i = 0; i < N_GHOST_POTENTIAL; i++) {
+      for (int k = 0; k < Grav.nz_local; k++) {
+        for (int j = 0; j < Grav.ny_local; j++) {
+          const Real z = dlz*(H.zblocal+H.dz*(Real(k)+0.5))+bz;
+          const Real y = dly*(H.yblocal+H.dy*(Real(j)+0.5))+by;
+          const Real xl = dlx*(H.xblocal+H.dx*(Real(i-N_GHOST_POTENTIAL)+0.5))+bx;
+          const Real xr = dlx*(H.xblocal+H.dx*(Real(i+Grav.nx_local)+0.5))+bx;
+          const int jki = j+Grav.ny_local*(k+Grav.nz_local*i);
+          Grav.F.pot_boundary_x0[jki] = nonzeroF(xl,y,z);
+          Grav.F.pot_boundary_x1[jki] = nonzeroF(xr,y,z);
+        }
+      }
+    }
+
+    Set_Boundary_Conditions_Grid(*P);
+    Get_Potential_SOR(Real(1)/(Real(4)*M_PI),0.0,1.0,P);
+    chprintf("SOR");
+    printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local,false);
+    memset(Grav.F.potential_h,0,Grav.n_cells_potential*sizeof(Real));
+#endif
   }
 
 #endif
@@ -451,9 +529,10 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   #else
   Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
   #endif
-  
-  #ifdef PARIS_TEST
-  {
+
+#ifdef PARIS_TEST
+  const bool periodic = (P->xlg_bcnd != 3);
+  if (periodic) {
     std::vector<Real> p(Grav.n_cells_potential);
     Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,p.data(),Grav_Constant,dens_avrg,current_a);
 #ifdef CUFFT
@@ -462,14 +541,10 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
 #ifdef PFFT
     chprintf("Paris vs PFFT");
 #endif
-#ifdef SOR
-    chprintf("Paris vs SOR");
-#endif
     printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local);
   }
-  #else
-  #endif
-    
+#endif
+
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 3 );
   #endif
