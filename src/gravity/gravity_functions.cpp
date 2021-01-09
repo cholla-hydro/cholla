@@ -227,29 +227,29 @@ static inline Real periodicD(const Real x, const Real y, const Real z, const Rea
   return ddlx*d1(x)*f1(y)*f1(z)+ddly*f1(x)*d1(y)*f1(z)+ddlz*f1(x)*f1(y)*d1(z);
 }
 
-static constexpr double twoPi = 2.0*pi;
-static constexpr double fourPi = 4.0*pi;
-static constexpr double sixPi2 = 6.0*pi*pi;
+static constexpr Real twoPi = 2.0*pi;
+static constexpr Real fourPi = 4.0*pi;
+static constexpr Real sixPi2 = 6.0*pi*pi;
 
-static inline Real nonzeroF(const double x, const double y, const double z)
+static inline Real nonzeroF(const Real x, const Real y, const Real z)
 {
-  const double sx = sin(twoPi*x);
-  const double sy = sin(twoPi*y);
-  const double sz = sin(twoPi*z);
-  const double f = exp(-x*x-y*y-z*z);
+  const Real sx = sin(twoPi*x);
+  const Real sy = sin(twoPi*y);
+  const Real sz = sin(twoPi*z);
+  const Real f = exp(-x*x-y*y-z*z);
   return sx*sx*sx*sy*sy*sy*sz*sz*sz+f;
 }
 
-static inline Real nonzeroD(const double x, const double y, const double z, const double ddlx, const double ddly, const double ddlz)
+static inline Real nonzeroD(const Real x, const Real y, const Real z, const Real ddlx, const Real ddly, const Real ddlz)
 {
-  const double sx = sin(twoPi*x);
-  const double sy = sin(twoPi*y);
-  const double sz = sin(twoPi*z);
-  const double sx3 = sx*sx*sx;
-  const double sy3 = sy*sy*sy;
-  const double sz3 = sz*sz*sz;
-  const double f = exp(-x*x-y*y-z*z);
-  const double df = ddlx*(4.0*x*x-2.0)+ddly*(4.0*y*y-2.0)+ddlz*(4.0*z*z-2.0);
+  const Real sx = sin(twoPi*x);
+  const Real sy = sin(twoPi*y);
+  const Real sz = sin(twoPi*z);
+  const Real sx3 = sx*sx*sx;
+  const Real sy3 = sy*sy*sy;
+  const Real sz3 = sz*sz*sz;
+  const Real f = exp(-x*x-y*y-z*z);
+  const Real df = ddlx*(4.0*x*x-2.0)+ddly*(4.0*y*y-2.0)+ddlz*(4.0*z*z-2.0);
   return (ddlx*sx*(3.0*cos(fourPi*x)+1.0)*sy3*sz3
           +ddly*sx3*sy*(3.0*cos(fourPi*y)+1.0)*sz3
           +ddlz*sx3*sy3*sz*(3.0*cos(fourPi*z)+1.0))*sixPi2+f*df;
@@ -464,9 +464,9 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   Real Grav_Constant = Grav.Gconst;
   
   
-  Real dens_avrg, current_a;
-  //If not using COSMOLOGY, the scale_factor is set to 1 and the average density is set to 0
-  dens_avrg = 0;
+  Real massInfo, current_a;
+  //If not using COSMOLOGY, the scale_factor is set to 1 and massInfo is the total mass of the domain
+  massInfo = 0.1005;
   current_a = 1;
 
   
@@ -490,8 +490,8 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   Grav_Constant = Cosmo.cosmo_G;
   //Set the scale factor
   current_a = Cosmo.current_a;
-  //Set the average density
-  dens_avrg = Cosmo.rho_0_gas;
+  //Set massInfo to the average density
+  massInfo = Cosmo.rho_0_gas;
   #endif
   
   
@@ -525,24 +525,24 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   //Solve Poisson Equation to compute the potential
   //Poisson Equation: laplacian( phi ) = 4 * pi * G / scale_factor * ( dens - dens_average )
   #ifdef SOR
-  Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
+  Get_Potential_SOR( Grav_Constant, massInfo, current_a, P );
   #else
-  Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
+  Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, massInfo, current_a);
   #endif
 
 #ifdef PARIS_TEST
-  const bool periodic = (P->xlg_bcnd != 3);
-  if (periodic) {
-    std::vector<Real> p(Grav.n_cells_potential);
-    Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,p.data(),Grav_Constant,dens_avrg,current_a);
+  std::vector<Real> p(Grav.n_cells_potential);
+  Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,p.data(),Grav_Constant,massInfo,current_a);
 #ifdef CUFFT
-    chprintf("Paris vs CUFFT");
+  chprintf("Paris vs CUFFT");
 #endif
 #ifdef PFFT
-    chprintf("Paris vs PFFT");
+  chprintf("Paris vs PFFT");
 #endif
-    printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local);
-  }
+#ifdef SOR
+  chprintf("Paris vs SOR");
+#endif
+  printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local,false);
 #endif
 
   #ifdef CPU_TIME

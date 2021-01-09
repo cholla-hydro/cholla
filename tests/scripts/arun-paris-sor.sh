@@ -13,4 +13,4 @@ export MV2_SUPPRESS_CUDA_USAGE_WARNING=1
 export MV2_ENABLE_AFFINITY=0
 export OMP_NUM_THREADS=16
 #srun -n1 -c$OMP_NUM_THREADS -N1 --exclusive -C MI60 ../../bin/cholla.$SUFFIX ../../tests/scripts/sphere.txt |& tee tee.mi60
-srun -n1 -c$OMP_NUM_THREADS -N1 --exclusive -p amdMI100 ../../bin/cholla.$SUFFIX ../../tests/scripts/sphere.txt |& tee tee.mi100
+srun -n4 -c$OMP_NUM_THREADS -N1 --exclusive -p amdMI100 ../../bin/cholla.$SUFFIX ../../tests/scripts/sphere.txt |& tee tee.mi100
