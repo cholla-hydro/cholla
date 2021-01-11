@@ -18,5 +18,10 @@ if [[ $FQDN == *"poplar."* ]] || [[ $FQDN == *"tulip."* ]] ; then
   exit 0
 fi
 
+if [[ $FQDN == *"crc."* ]] ; then
+  echo "crc"
+  exit 0
+fi
+
 echo "unknown"
 exit 1

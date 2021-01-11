@@ -22,6 +22,13 @@ if [ "$1" == "build" ]; then
           echo "    'module load ompi-cray hdf5'"
           exit 1
         fi 
+      ;;
+    crc)
+       if ! module is-loaded gcc hdf5 cuda openmpi ; then
+         echo "echo: requires loading modules: cuda, gcc, openmpi and hdf5"
+         exit 1
+       fi 
+     ;;
   esac
 
 fi
@@ -46,6 +53,10 @@ if [ "$1" == "run" ]; then
       #  exit 1
       #fi
       $0 build $2
+      ;;
+    crc)
+      echo "use slurm"
+      ;;
   esac
   
 fi
