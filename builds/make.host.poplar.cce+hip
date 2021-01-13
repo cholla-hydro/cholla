@@ -1,9 +1,9 @@
-#-- make.inc for Poplar, COE cluster at HPE
+#-- make.inc for Poplar, HPE COE cluster
 
 #-- Compiler and flags for different build type
-CC               ?= mpicc
-CXX              ?= mpicxx
-HIP_PLATFORM     ?= hcc
+CC                = cc
+CXX               = CC
+HIP_PLATFORM      = hcc
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -Ofast
 CXXFLAGS_DEBUG    = -g -O0 -std=c++14
@@ -14,4 +14,4 @@ JOB_LAUNCH        = srun -n 1 -c 16 -N 1 --exclusive --unbuffered -p amdMI60
 
 #-- Library
 HDF5_ROOT    = $(shell dirname $(HDF5DIR))
-MPI_ROOT     = ${MPI_HOME}
+MPI_ROOT     = $(shell dirname $(shell dirname $(shell which mpicc)))
