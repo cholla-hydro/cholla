@@ -4,6 +4,7 @@
 #include"../global.h"
 #include "../io.h"
 #include "../error_handling.h"
+#include <cstring>
 
 #ifdef CUDA
 #include "../cuda_mpi_routines.h"
@@ -203,18 +204,16 @@ Real Grav3D::Get_Average_Density_function( int g_start, int g_end){
 
 #ifdef PARIS_TEST
 
-static constexpr Real pi = 3.141592653589793238462643383279502884197169399375105820974;
-
 static inline Real sqr(const Real x) { return x*x; }
 
 static inline Real f1(const Real x)
 {
-  return exp(-10.0*sqr(2.0*x-1.0))*sin(8.0*pi*x);
+  return exp(-10.0*sqr(2.0*x-1.0))*sin(8.0*M_PI*x);
 }
 
 static inline Real d1(const Real x)
 {
-  return 16.0*exp(-10.0*sqr(2.0*x-1.0))*((400.0*x*x-400.0*x-4.0*pi*pi+95.0)*sin(8.0*pi*x)+(40.0*pi-80.0*pi*x)*cos(8.0*pi*x));
+  return 16.0*exp(-10.0*sqr(2.0*x-1.0))*((400.0*x*x-400.0*x-4.0*M_PI*M_PI+95.0)*sin(8.0*M_PI*x)+(40.0*M_PI-80.0*M_PI*x)*cos(8.0*M_PI*x));
 }
 
 static inline Real periodicF(const Real x, const Real y, const Real z)
@@ -227,9 +226,9 @@ static inline Real periodicD(const Real x, const Real y, const Real z, const Rea
   return ddlx*d1(x)*f1(y)*f1(z)+ddly*f1(x)*d1(y)*f1(z)+ddlz*f1(x)*f1(y)*d1(z);
 }
 
-static constexpr Real twoPi = 2.0*pi;
-static constexpr Real fourPi = 4.0*pi;
-static constexpr Real sixPi2 = 6.0*pi*pi;
+static constexpr Real twoPi = 2.0*M_PI;
+static constexpr Real fourPi = 4.0*M_PI;
+static constexpr Real sixPi2 = 6.0*M_PI*M_PI;
 
 static inline Real nonzeroF(const Real x, const Real y, const Real z)
 {
@@ -355,7 +354,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
       }
     }
     std::vector<Real> p(Grav.n_cells_potential,0);
-    Grav.Poisson_solver_test.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
+    Grav.Poisson_solver_test.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
     chprintf("Paris");
     printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
 
@@ -363,11 +362,11 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 
 #ifdef CUFFT
     chprintf("CUFFT");
-    Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
+    Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
 #endif
 #ifdef PFFT
     chprintf("PFFT");
-    Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
+    Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
 #endif
     printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
 
@@ -559,7 +558,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   chprintf("Paris vs SOR");
 #endif
 
-  printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local,ng,false);
+  printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local);
 #endif
 
   #ifdef CPU_TIME

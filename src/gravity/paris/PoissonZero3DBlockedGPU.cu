@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-static constexpr double pi = 3.141592653589793238462643383279502884197169399375105820974;
 static constexpr double sqrt2 = 0.4142135623730950488016887242096980785696718753769480731766797379;
 
 static inline __host__ __device__ double sqr(const double x) { return x*x; }
@@ -21,9 +20,9 @@ PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3], const double lo
   ddj_(sqr(double(n[1]-1)/(hi[1]-lo[1]))/6.0),
   ddk_(sqr(double(n[2]-1)/(hi[2]-lo[2]))/6.0),
 #else
-  ddi_{pi*double(n[0]-1)/(double(n[0])*(hi[0]-lo[0]))},
-  ddj_{pi*double(n[1]-1)/(double(n[1])*(hi[1]-lo[1]))},
-  ddk_{pi*double(n[2]-1)/(double(n[2])*(hi[2]-lo[2]))},
+  ddi_{M_PI*double(n[0]-1)/(double(n[0])*(hi[0]-lo[0]))},
+  ddj_{M_PI*double(n[1]-1)/(double(n[1])*(hi[1]-lo[1]))},
+  ddk_{M_PI*double(n[2]-1)/(double(n[2])*(hi[2]-lo[2]))},
 #endif
   idi_(id[0]),
   idj_(id[1]),
@@ -294,14 +293,14 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
   CHECK(cufftExecD2Z(d2zi_,ua,uc));
   {
 #ifdef PARIS_3PT
-    const double si = pi/double(ni+ni);
-    const double sj = pi/double(nj+nj);
-    const double sk = pi/double(nk+nk);
+    const double si = M_PI/double(ni+ni);
+    const double sj = M_PI/double(nj+nj);
+    const double sk = M_PI/double(nk+nk);
     const double iin = sqr(sin(double(ni)*si)*ddi);
 #elif defined PARIS_5PT
-    const double si = pi/double(ni);
-    const double sj = pi/double(nj);
-    const double sk = pi/double(nk);
+    const double si = M_PI/double(ni);
+    const double sj = M_PI/double(nj);
+    const double sk = M_PI/double(nk);
     const double cin = cos(double(ni)*si);
     const double iin = ddi*(2.0*cin*cin-16.0*cin+14.0);
 #else

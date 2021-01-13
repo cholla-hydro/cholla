@@ -8,8 +8,6 @@
 
 #define ERROR(X,...) if (X) { fprintf(stderr,"%s(%d): ",__FILE__,__LINE__); fprintf(stderr,__VA_ARGS__); fprintf(stderr,"\n"); MPI_Abort(MPI_COMM_WORLD,(X)); }
 
-static constexpr double pi = 3.141592653589793238462643383279502884197169399375105820974;
-
 static inline __host__ __device__ double sqr(const double x) { return x*x; }
 
 PoissonPeriodic3DBlockedGPU::PoissonPeriodic3DBlockedGPU(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3]):
@@ -22,9 +20,9 @@ PoissonPeriodic3DBlockedGPU::PoissonPeriodic3DBlockedGPU(const int n[3], const d
   dj_(sqr(double(n[1]-1)/(hi[1]-lo[1]))/6.0),
   dk_(sqr(double(n[2]-1)/(hi[2]-lo[2]))/6.0),
 #else
-  di_{2.0*pi*double(n[0]-1)/(double(n[0])*(hi[0]-lo[0]))},
-  dj_{2.0*pi*double(n[1]-1)/(double(n[1])*(hi[1]-lo[1]))},
-  dk_{2.0*pi*double(n[2]-1)/(double(n[2])*(hi[2]-lo[2]))},
+  di_{2.0*M_PI*double(n[0]-1)/(double(n[0])*(hi[0]-lo[0]))},
+  dj_{2.0*M_PI*double(n[1]-1)/(double(n[1])*(hi[1]-lo[1]))},
+  dk_{2.0*M_PI*double(n[2]-1)/(double(n[2])*(hi[2]-lo[2]))},
 #endif
   mi_(m[0]),
   mj_(m[1]),
@@ -184,13 +182,13 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   {
 #ifdef PARIS_3PT
-    const double si = pi/double(ni_);
-    const double sj = pi/double(nj_);
-    const double sk = pi/double(nk_);
+    const double si = M_PI/double(ni_);
+    const double sj = M_PI/double(nj_);
+    const double sk = M_PI/double(nk_);
 #elif defined PARIS_5PT
-    const double si = 2.0*pi/double(ni_);
-    const double sj = 2.0*pi/double(nj_);
-    const double sk = 2.0*pi/double(nk_);
+    const double si = 2.0*M_PI/double(ni_);
+    const double sj = 2.0*M_PI/double(nj_);
+    const double sk = 2.0*M_PI/double(nk_);
 #endif
 
     int rank = MPI_PROC_NULL;

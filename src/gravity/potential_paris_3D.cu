@@ -171,7 +171,7 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
 
     assert(pz_);
     constexpr Real fraction = 2*6;
-    const Real r0 = std::min({lr_[0],lr_[1],lr_[2]})/fraction;
+    const Real r0 = std::min(std::min(lr_[0],lr_[1]),lr_[2])/fraction;
     const Real spi = sqrt(M_PI);
     const Real denom = r0*spi;
     const Real rho0 = mass/(denom*denom*denom);
