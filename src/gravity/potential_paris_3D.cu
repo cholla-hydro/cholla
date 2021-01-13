@@ -6,8 +6,8 @@
 #include <cassert>
 #include <cfloat>
 
-#if 0
-static void printDiff(const Real *p, const Real *q, const int ng, const int nx, const int ny, const int nz, const bool plot = false)
+
+static void __attribute__((unused)) printDiff(const Real *p, const Real *q, const int ng, const int nx, const int ny, const int nz, const bool plot = false)
 {
   Real dMax = 0, dSum = 0, dSum2 = 0;
   Real qMax = 0, qSum = 0, qSum2 = 0;
@@ -37,20 +37,19 @@ static void printDiff(const Real *p, const Real *q, const int ng, const int nx, 
 
   printf("###\n");
   const int k = nz/2;
-  for (int j = 0; j < ny; j++) {
+  //for (int j = 0; j < ny; j++) {
+  const int j = ny/2;
     for (int i = 0; i < nx; i++) {
       const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
-      printf("%d %d %g %g %g\n",j,i,q[ijk],p[ijk],q[ijk]-p[ijk]);
+      //printf("%d %d %g %g %g\n",j,i,q[ijk],p[ijk],q[ijk]-p[ijk]);
+      printf("%d %g %g %g\n",i,q[ijk],p[ijk],q[ijk]-p[ijk]);
     }
     printf("\n");
-  }
+  //}
 
   MPI_Finalize();
   exit(0);
 }
-#endif
-
-static constexpr Real pi = 3.141592653589793238462643383279502884197169399375105820974;
 
 Potential_Paris_3D::Potential_Paris_3D():
   dn_{0,0,0},
@@ -140,24 +139,22 @@ void Potential_Paris_3D::Get_Analytic_Potential(const Real *const density, Real 
   CHECK(cudaMemcpy(potential,db,potentialBytes_,cudaMemcpyDeviceToHost));
 }
 
-void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const potential, const Real g, const Real massInfo, const Real a)
+void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const potential, const Real g, const Real offset, const Real a)
 {
 #ifdef COSMOLOGY
-  const Real scale = Real(4)*pi*g/a;
-  const Real offset = massInfo;
+  const Real scale = Real(4)*M_PI*g/a;
 #else
-  const Real scale = Real(4)*pi*g;
-  constexpr Real offset = Real(0);
-  const Real mass = massInfo;
+  const Real scale = Real(4)*M_PI*g;
+  const Real mass = a;
 #endif
   assert(da_);
   Real *const da = da_;
   Real *const db = db_;
   assert(density);
+  const long n = long(dn_[2])*dn_[1]*dn_[0];
   CHECK(cudaMemcpy(db,density,densityBytes_,cudaMemcpyHostToDevice));
   const long ngi = dn_[2]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
   const long ngj = dn_[1]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
-  const long n = long(dn_[2])*dn_[1]*dn_[0];
 
   if (pp_) {
 
@@ -175,7 +172,7 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
     assert(pz_);
     constexpr Real fraction = 2*6;
     const Real r0 = std::min({lr_[0],lr_[1],lr_[2]})/fraction;
-    const Real spi = sqrt(pi);
+    const Real spi = sqrt(M_PI);
     const Real denom = r0*spi;
     const Real rho0 = mass/(denom*denom*denom);
 
@@ -214,11 +211,10 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
         const Real y = yBegin+dy*(Real(j)+0.5);
         const Real z = zBegin+dz*(Real(k)+0.5);
         const Real r = sqrt(x*x+y*y+z*z);
-        const Real offset = (r < DBL_EPSILON) ? lim0+lim2*r*r : ngmdr0*erf(r)/r;
+        const Real v0 = (r < DBL_EPSILON) ? lim0+lim2*r*r : ngmdr0*erf(r)/r;
         const long ib = i+N_GHOST_POTENTIAL+ngi*(j+N_GHOST_POTENTIAL+ngj*(k+N_GHOST_POTENTIAL));
-        db[ib] = da[ia]+offset;
+        db[ib] = da[ia]+v0;
         });
-
   }
   assert(potential);
   CHECK(cudaMemcpy(potential,db,potentialBytes_,cudaMemcpyDeviceToHost));

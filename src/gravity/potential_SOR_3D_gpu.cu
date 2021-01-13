@@ -36,7 +36,7 @@ __global__ void Copy_Input_Kernel( int n_cells, Real *input_d, Real *density_d, 
   #ifdef COSMOLOGY
   density_d[tid] = 4 * M_PI * Grav_Constant * ( input_d[tid] - dens_avrg ) / current_a;
   #else
-  density_d[tid] = 4 * M_PI * Grav_Constant * input_d[tid];
+  density_d[tid] = 4 * M_PI * Grav_Constant * ( input_d[tid] - dens_avrg );
   #endif
   // if (tid == 0) printf("dens: %f\n", density_d[tid]);
 }
