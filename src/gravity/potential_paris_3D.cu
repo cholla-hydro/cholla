@@ -223,8 +223,15 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
 void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin, const int nx, const int ny, const int nz, const int nxReal, const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz, const bool periodic)
 {
   chprintf(" Using Poisson Solver: Paris ");
-  if (periodic) chprintf("Periodic\n");
-  else chprintf("Antisymmetric\n");
+  if (periodic) chprintf("Periodic");
+  else chprintf("Antisymmetric");
+#ifdef PARIS_5PT
+  chprintf(" 5-Point\n");
+#elif defined PARIS_3PT
+  chprintf(" 3-Point\n");
+#else
+  chprintf(" Spectral\n");
+#endif
 
   dn_[0] = nzReal;
   dn_[1] = nyReal;
