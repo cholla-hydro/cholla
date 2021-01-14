@@ -115,24 +115,29 @@ void Grid3D::Initialize_Power_Spectrum_Measurements( int axis ){
     // if ( axis == 0 ) chprintf( "k: %f \n", k_vals[i]  );
   }
   
-  Real k_val, k_min,  k_max, d_log_k;
+  Real k_val, k_min,  k_max, d_log_k, k_start;
   d_log_k = Analysis.d_log_k;
   k_min = log10( k_vals[1] );
   k_max = log10( k_vals[n_fft-1] );
+  k_start = log10( 0.99 * k_vals[1] );
   
   
+  if ( d_log_k == 0 ){
+    chprintf( "ERROR: d_log_k = 0    Set  lya_Pk_d_log_k in the parameter file \n"  );
+    exit(-1);
+  } 
   
   // if ( axis == 0 ) chprintf( "dv_Hubble: %f \n", dv_Hubble  );
   // if ( axis == 0 ) chprintf( "k min : %f \n", k_min  );
   // if ( axis == 0 ) chprintf( "k max : %f \n", k_max  );
+  
   // 
-  k_val = k_min;
+  k_val = k_start;
   int n_hist_edges = 1;
   while ( k_val < k_max ){
     n_hist_edges += 1;
     k_val += d_log_k ;
   }
-  // chprintf( " n bins : %d \n", n_hist_edges  );
   
   
   Real *hist_k_edges;
@@ -142,16 +147,22 @@ void Grid3D::Initialize_Power_Spectrum_Measurements( int axis ){
   Real *ps_global;
   
   int n_bins = n_hist_edges - 1; 
+  // chprintf( " n bins : %d \n", n_bins  );
   hist_k_edges = (Real *) malloc(n_hist_edges*sizeof(Real));
   hist_PS     = (Real *) malloc(n_bins*sizeof(Real));
   hist_n      = (Real *) malloc(n_bins*sizeof(Real));
   ps_root     = (Real *) malloc(n_bins*sizeof(Real));
   ps_global   = (Real *) malloc(n_bins*sizeof(Real));
   
-  k_val = k_min;
+  k_val = k_start;
   for ( int bin_id=0; bin_id<n_hist_edges; bin_id++ ){
     hist_k_edges[bin_id] = pow( 10, k_val );
     k_val += 0.1; 
+  }
+  
+  for ( int bin_id=0; bin_id<n_bins; bin_id++ ){
+    ps_root[bin_id] = 0;
+    ps_global[bin_id] = 0;
   }
   
   if ( axis == 0 ){
@@ -329,7 +340,7 @@ void Grid3D::Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis ){
     k_val = k_vals[i];
     if ( k_val == 0 ) continue;
     bin_id = Locate_Index( k_val, hist_k_edges, n_hist_edges );
-    // // chprintf( " %d:   %e    %e   %e \n", bin_id, k_vals[bin_id], k_val, k_vals[bin_id+1] );
+    if ( bin_id < 0 ) chprintf( " %d:   %e    %e   %e \n", bin_id, hist_k_edges[0], k_val, hist_k_edges[1] );
     if ( bin_id < 0 || bin_id >= n_bins ) continue;
     hist_PS[bin_id] += fft2_delta_F[i]; 
     hist_n[bin_id]  += 1;
@@ -341,8 +352,11 @@ void Grid3D::Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis ){
   }
   
   // Add skewer PS to root PS
+  Real PS_bin_val;
   for ( int i=0; i<n_bins; i++ ){
-    ps_root[i] += hist_PS[i] / hist_n[i] * ( H*L_proper);
+    if ( hist_n[i] == 0 ) PS_bin_val = 0;   
+    else PS_bin_val = hist_PS[i] / hist_n[i] * ( H*L_proper);
+    ps_root[i] += PS_bin_val;
   }
   
   if ( hist_sum != n_fft-1 ){
@@ -419,8 +433,7 @@ void Analysis_Module::Reduce_Power_Spectrum_Global( ){
   chprintf( " PS Bins: %d     N_Skewers_Processed: %d \n", n_bins, n_PS_total );
   
   for (int bin_id=0; bin_id<n_bins; bin_id++ ){
-    chprintf( " %e   %e  \n", k_ceters[bin_id], ps_mean[bin_id] *k_ceters[bin_id] / M_PI);
-    
+    chprintf( " %e   %e  \n", k_ceters[bin_id], ps_mean[bin_id] *k_ceters[bin_id] / M_PI);  
   }
   
 }

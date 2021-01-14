@@ -43,22 +43,22 @@ void Grid3D::Compute_Lya_Statistics( ){
   
   // Compute the Flux Power Spectrum after computing the mean transmitted flux 
   for ( axis=0; axis<3; axis++ ){
-    
+  
     if ( axis == 0 ) n_skewers = Analysis.n_skewers_local_x;
     if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
     if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
-    
+  
     if ( axis == 0 ) chprintf( " Computing P(k) Along X axis:\n");
     if ( axis == 1 ) chprintf( " Computing P(k) Along Y axis:\n");
     if ( axis == 2 ) chprintf( " Computing P(k) Along Z axis:\n");
-    
+  
     Initialize_Power_Spectrum_Measurements( axis );
-    
+  
     for ( int skewer_id=0; skewer_id< n_skewers; skewer_id++ ){
       Compute_Transmitted_Flux_Skewer( skewer_id, axis );
       Compute_Flux_Power_Spectrum_Skewer( skewer_id, axis );
     }
-    
+  
     Analysis.Reduce_Power_Spectrum_Axis( axis );
   }
   
@@ -99,7 +99,7 @@ void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
   Analysis.Output_Now = false;
   
   
-  exit(0);
+  // exit(0);
 }
 
 
