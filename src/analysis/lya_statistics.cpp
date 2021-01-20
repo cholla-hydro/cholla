@@ -157,7 +157,7 @@ void Grid3D::Initialize_Power_Spectrum_Measurements( int axis ){
   k_val = k_start;
   for ( int bin_id=0; bin_id<n_hist_edges; bin_id++ ){
     hist_k_edges[bin_id] = pow( 10, k_val );
-    k_val += 0.1; 
+    k_val += d_log_k; 
   }
   
   for ( int bin_id=0; bin_id<n_bins; bin_id++ ){
