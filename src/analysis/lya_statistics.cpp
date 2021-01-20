@@ -432,9 +432,9 @@ void Analysis_Module::Reduce_Power_Spectrum_Global( ){
   
   chprintf( " PS Bins: %d     N_Skewers_Processed: %d \n", n_bins, n_PS_total );
   
-  for (int bin_id=0; bin_id<n_bins; bin_id++ ){
-    chprintf( " %e   %e  \n", k_ceters[bin_id], ps_mean[bin_id] *k_ceters[bin_id] / M_PI);  
-  }
+  // for (int bin_id=0; bin_id<n_bins; bin_id++ ){
+  //   chprintf( " %e   %e  \n", k_ceters[bin_id], ps_mean[bin_id] *k_ceters[bin_id] / M_PI);  
+  // }
   
 }
 
