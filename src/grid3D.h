@@ -343,7 +343,8 @@ class Grid3D
       
       /*! pointer to conserved variable on device */
       Real *device;
-      
+      Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z, 
+           *d_Energy, *d_scalar, *d_GasEnergy;
     } C;
 
 
@@ -555,6 +556,13 @@ class Grid3D
     /*! \fn void Set_Boundaries(int dir, int flags[])
      *  \brief Apply boundary conditions to the grid. */
     void Set_Boundaries(int dir, int flags[]);
+    
+    void Set_Hydro_Boundaries_CPU 
+           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries, 
+             int dir, int *flags );
+    void Set_Hydro_Boundaries_GPU 
+           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries, 
+             int dir, int *flags );
 
     /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
      *  \brief Set the extents of the ghost region we are initializing. */

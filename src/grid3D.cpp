@@ -247,8 +247,6 @@ void Grid3D::Initialize(struct parameters *P)
  *  \brief Allocate memory for the arrays. */
 void Grid3D::AllocateMemory(void)
 {
-
-
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
   CudaSafeCall( cudaHostAlloc(&buffer0, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
@@ -274,6 +272,17 @@ void Grid3D::AllocateMemory(void)
   #endif
   
   CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
+  C.d_density     = C.device;
+  C.d_momentum_x  = &(C.device[H.n_cells]);
+  C.d_momentum_y  = &(C.device[2*H.n_cells]);
+  C.d_momentum_z  = &(C.device[3*H.n_cells]);
+  C.d_Energy      = &(C.device[4*H.n_cells]);
+  #ifdef SCALAR
+  C.d_scalar      = &(C.device[5*H.n_cells]);
+  #endif
+  #ifdef DE
+  C.d_GasEnergy   = &(C.device[(H.n_fields-1)*H.n_cells]);
+  #endif
   
   // initialize array
   for (int i=0; i<H.n_fields*H.n_cells; i++)
