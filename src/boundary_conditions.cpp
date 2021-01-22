@@ -138,9 +138,9 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   int idx;    //index of a real cell
   int gidx;   //index of a ghost cell
        
-  int nBoundaries;
-  int iaBoundary[1024], iaCell[1024]; // FIXME: Needs to be dynamically-sized
-
+  int nPB, nBoundaries;
+  int *iaBoundary, *iaCell; 
+  
 #ifdef   MPI_CHOLLA
   /*if the cell face is an mpi boundary, exit */
   if(flags[dir]==5)
@@ -205,8 +205,13 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   //get the extents of the ghost region we are initializing
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
   
+  nPB = (imax[0]-imin[0]) * (imax[1]-imin[1]) * (imax[2]-imin[2]);
+  iaBoundary = ( int * ) malloc ( sizeof ( int ) * nPB );
+  iaCell     = ( int * ) malloc ( sizeof ( int ) * nPB );
+  
   /*set ghost cells*/
   nBoundaries = 0;
+  
   for (k=imin[2]; k<imax[2]; k++) {
     for (j=imin[1]; j<imax[1]; j++) {
       for (i=imin[0]; i<imax[0]; i++) {
@@ -221,7 +226,6 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
 
         //find the corresponding real cell index and momenta signs
         idx  = Set_Boundary_Mapping(i,j,k,flags,&a[0]);
-
         
         //idx will be >= 0 if the boundary mapping function has
         //not set this ghost cell by hand, for instance for analytical 
@@ -244,6 +248,9 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   #else
   Set_Hydro_Boundaries_CPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
   #endif
+  
+  free ( iaBoundary );
+  free ( iaCell );
 }
 
 void Grid3D::Set_Hydro_Boundaries_CPU 
@@ -358,12 +365,10 @@ void Grid3D::Set_Hydro_Boundaries_GPU
   omp_target_associate_ptr 
     (c_scalar, C.d_scalar, H.n_cells*sizeof(Real), 0, 0);
 
-  /*
   #pragma omp target teams distribute parallel for \
               map ( to : iaBoundary[:nBoundaries], iaCell[:nBoundaries], \
                          a[:3], flags ) \
               firstprivate ( dir )
-  */
   for (int iB = 0; iB < nBoundaries; iB++ ) {
   
     //set the ghost cell value
@@ -422,6 +427,7 @@ void Grid3D::Set_Hydro_Boundaries_GPU
   }
   
   //printf("OpenMP Disassociate\n");
+
   omp_target_disassociate_ptr(c_density, 0);
   omp_target_disassociate_ptr(c_momentum_x, 0);
   omp_target_disassociate_ptr(c_momentum_y, 0);
