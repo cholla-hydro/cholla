@@ -470,6 +470,80 @@ void Grid3D::Write_Particles_Header_HDF5( hid_t file_id){
   #endif
 
   status = H5Sclose(dataspace_id);
+  
+  // Now 3D attributes
+  attr_dims = 3;
+  // Create the data space for the attribute
+  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
+
+  #ifndef MPI_CHOLLA
+  int_data[0] = H.nx_real;
+  int_data[1] = H.ny_real;
+  int_data[2] = H.nz_real;
+  #endif
+  #ifdef MPI_CHOLLA
+  int_data[0] = nx_global;
+  int_data[1] = ny_global;
+  int_data[2] = nz_global;
+  #endif
+
+  attribute_id = H5Acreate(file_id, "dims", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
+  status = H5Aclose(attribute_id);
+
+  #ifdef MPI_CHOLLA
+  int_data[0] = H.nx_real;
+  int_data[1] = H.ny_real;
+  int_data[2] = H.nz_real;
+
+  attribute_id = H5Acreate(file_id, "dims_local", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
+  status = H5Aclose(attribute_id);
+
+  int_data[0] = nx_local_start;
+  int_data[1] = ny_local_start;
+  int_data[2] = nz_local_start;
+
+  attribute_id = H5Acreate(file_id, "offset", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
+  status = H5Aclose(attribute_id);
+  
+  int_data[0] = nproc_x;
+  int_data[1] = nproc_y;
+  int_data[2] = nproc_z;
+  
+  attribute_id = H5Acreate(file_id, "nprocs", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
+  status = H5Aclose(attribute_id);
+  #endif
+
+  Real_data[0] = H.xbound;
+  Real_data[1] = H.ybound;
+  Real_data[2] = H.zbound;
+
+  attribute_id = H5Acreate(file_id, "bounds", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
+  status = H5Aclose(attribute_id);
+
+  Real_data[0] = H.xdglobal;
+  Real_data[1] = H.ydglobal;
+  Real_data[2] = H.zdglobal;
+
+  attribute_id = H5Acreate(file_id, "domain", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
+  status = H5Aclose(attribute_id);
+
+  Real_data[0] = H.dx;
+  Real_data[1] = H.dy;
+  Real_data[2] = H.dz;
+
+  attribute_id = H5Acreate(file_id, "dx", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
+  status = H5Aclose(attribute_id);
+  
+  // Close the dataspace
+  status = H5Sclose(dataspace_id);
+
 }
 
 
