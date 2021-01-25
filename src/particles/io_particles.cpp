@@ -470,6 +470,8 @@ void Grid3D::Write_Particles_Header_HDF5( hid_t file_id){
   #endif
 
   status = H5Sclose(dataspace_id);
+      
+  #ifdef ONLY_PARTICLES
   
   // Now 3D attributes
   attr_dims = 3;
@@ -544,6 +546,7 @@ void Grid3D::Write_Particles_Header_HDF5( hid_t file_id){
   // Close the dataspace
   status = H5Sclose(dataspace_id);
 
+  #endif
 }
 
 
