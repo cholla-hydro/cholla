@@ -129,10 +129,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
       
   }
   else chprintf( " Saved Snapshot: %d     z:%f\n", nfile, G.Cosmo.current_z );
-  G.Cosmo.exit_now  = true;
   G.Change_Cosmological_Frame_Sytem( true );
   chprintf( "\n" );
   G.H.Output_Now = false;
+  G.Cosmo.exit_now  = true;
+  chprintf( "Set EXIT_NOW = True \n");
   #endif
 }
 
