@@ -145,7 +145,6 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
   const Real scale = Real(4)*M_PI*g/a;
 #else
   const Real scale = Real(4)*M_PI*g;
-  const Real mass = a;
 #endif
   assert(da_);
   Real *const da = da_;
@@ -174,6 +173,7 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
     const Real r0 = std::min(std::min(lr_[0],lr_[1]),lr_[2])/fraction;
     const Real spi = sqrt(M_PI);
     const Real denom = r0*spi;
+    const Real mass = a;
     const Real rho0 = mass/(denom*denom*denom);
 
     const Real dlx = lr_[2]/r0;

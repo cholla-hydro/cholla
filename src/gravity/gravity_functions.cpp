@@ -480,7 +480,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   //If using cosmology, set the gravitational constant to the one in the correct units
   const Real Grav_Constant = Cosmo.cosmo_G;
   const Real current_a = Cosmo.current_a;
-  const Real offset = Cosmo.rho_0_gas;
+  const Real dens_avrg = Cosmo.rho_0_gas;
   #else
   const Real Grav_Constant = Grav.Gconst;
   const Real dens_avrg = (P->xlg_bcnd == 3) ? 0.0005 : 0;
