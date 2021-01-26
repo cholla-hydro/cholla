@@ -75,6 +75,8 @@ void Cosmology::Set_Scale_Outputs( struct parameters *P ){
 
 
 void Cosmology::Set_Next_Scale_Output(  ){
+  
+  chprintf("Setting next output index. Current index: %d    n_outputs: %d ", scale_indx, n_outputs);
 
   int scale_indx = next_output_indx;
   Real a_value = scale_outputs[scale_indx];
