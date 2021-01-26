@@ -66,7 +66,7 @@ void Grid3D::set_dt_Gravity(){
   //Small delta_a when reionization starts
   #ifdef COOLING_GRACKLE
   if ( fabs(Cosmo.current_a + da_min - Cool.scale_factor_UVB_on) < 0.005 ){
-    da_min /= 5;
+    da_min /= 2;
     chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
   }
   #endif
