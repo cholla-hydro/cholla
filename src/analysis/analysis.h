@@ -65,6 +65,7 @@ public:
   
   
   #ifdef LYA_STATISTICS
+  int Computed_Flux_Power_Spectrum;
   int n_stride;
   int n_skewers_local_x;
   int n_skewers_local_y;
@@ -92,6 +93,10 @@ public:
   Real *skewers_HI_density_local_y;
   Real *skewers_HI_density_local_z;
   
+  Real *skewers_HeII_density_local_x;
+  Real *skewers_HeII_density_local_y;
+  Real *skewers_HeII_density_local_z;
+  
   Real *skewers_velocity_local_x;
   Real *skewers_velocity_local_y;
   Real *skewers_velocity_local_z;
@@ -104,6 +109,10 @@ public:
   Real *skewers_HI_density_root_y;
   Real *skewers_HI_density_root_z;
   
+  Real *skewers_HeII_density_root_x;
+  Real *skewers_HeII_density_root_y;
+  Real *skewers_HeII_density_root_z;
+  
   Real *skewers_velocity_root_x;
   Real *skewers_velocity_root_y;
   Real *skewers_velocity_root_z;
@@ -115,6 +124,11 @@ public:
   Real *full_HI_density_x;
   Real *full_HI_density_y;
   Real *full_HI_density_z;
+  
+  
+  Real *full_HeII_density_x;
+  Real *full_HeII_density_y;
+  Real *full_HeII_density_z;
   
   Real *full_velocity_x;
   Real *full_velocity_y;
@@ -144,7 +158,10 @@ public:
   Real Flux_mean_y;
   Real Flux_mean_z;
     
-  Real Flux_mean;
+  Real Flux_mean_HI;
+  Real Flux_mean_HeII;
+  
+  
   int n_skewers_processed;
     
   int n_ghost_skewer;
@@ -231,9 +248,9 @@ public:
   void Initialize_Lya_Statistics( struct parameters *P );
   void Initialize_Lya_Statistics_Measurements( int axis );
   void Transfer_Skewers_Data( int axis );
-  void Compute_Lya_Statistics_Skewer( int skewer_id, int axis );
-  void Reduce_Lya_Statists_Axis( int axis );
-  void Reduce_Lya_Statists_Global( void );
+  void Compute_Lya_Mean_Flux_Skewer( int skewer_id, int axis );
+  void Reduce_Lya_Mean_Flux_Axis( int axis );
+  void Reduce_Lya_Mean_Flux_Global( int chemical_type );
   void Clear_Power_Spectrum_Measurements( void );
   void Reduce_Power_Spectrum_Axis( int axis );
   void Reduce_Power_Spectrum_Global( );

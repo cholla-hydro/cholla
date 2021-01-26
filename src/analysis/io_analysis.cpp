@@ -76,6 +76,14 @@ void Grid3D::Write_Analysis_Header_HDF5( hid_t file_id ){
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_L);
   status = H5Aclose(attribute_id);
   #endif
+  
+  #ifdef LYA_STATISTICS  
+  attribute_id = H5Acreate(file_id, "n_step", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT); 
+  status = H5Awrite(attribute_id, H5T_NATIVE_INT, &Analysis.Computed_Flux_Power_Spectrum);
+  status = H5Aclose(attribute_id);
+  
+  #endif
+   
   status = H5Sclose(dataspace_id);
   
   // 3D atributes now
@@ -169,37 +177,46 @@ void Grid3D::Write_Analysis_Data_HDF5( hid_t file_id ){
   status = H5Aclose(attribute_id);
   
   
-  attribute_id = H5Acreate(group_id, "Flux_mean", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Analysis.Flux_mean);
+  attribute_id = H5Acreate(group_id, "Flux_mean_HI", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Analysis.Flux_mean_HI);
   status = H5Aclose(attribute_id);
   
+  attribute_id = H5Acreate(group_id, "Flux_mean_HeII", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Analysis.Flux_mean_HeII);
+  status = H5Aclose(attribute_id);
   
-  hid_t ps_group, dataspace_id_ps;
-  hsize_t   dims1d_ps[1];
-  int n_bins = Analysis.n_hist_edges_x - 1;
-  dims1d_ps[0] = n_bins;
-  dataspace_id_ps = H5Screate_simple(1, dims1d_ps, NULL);
-  
-  ps_group = H5Gcreate(group_id, "power_spectrum", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  
-  Real *buffer_ps = (Real *) malloc(n_bins*sizeof(Real));
-  
-  for ( int bin_id=0; bin_id<n_bins; bin_id++ ){
-    buffer_ps[bin_id] = Analysis.k_ceters[bin_id];
+  if ( Analysis.Computed_Flux_Power_Spectrum == 1 ){
+
+    
+    hid_t ps_group, dataspace_id_ps;
+    hsize_t   dims1d_ps[1];
+    int n_bins = Analysis.n_hist_edges_x - 1;
+    dims1d_ps[0] = n_bins;
+    dataspace_id_ps = H5Screate_simple(1, dims1d_ps, NULL);
+    
+    ps_group = H5Gcreate(group_id, "power_spectrum", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    
+    Real *buffer_ps = (Real *) malloc(n_bins*sizeof(Real));
+    
+    for ( int bin_id=0; bin_id<n_bins; bin_id++ ){
+      buffer_ps[bin_id] = Analysis.k_ceters[bin_id];
+    }
+    dataset_id = H5Dcreate(ps_group, "k_vals", H5T_IEEE_F64BE, dataspace_id_ps, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_ps);
+    status = H5Dclose(dataset_id);
+    
+    for ( int bin_id=0; bin_id<n_bins; bin_id++ ){
+      buffer_ps[bin_id] = Analysis.ps_mean[bin_id];
+    }
+    dataset_id = H5Dcreate(ps_group, "p(k)", H5T_IEEE_F64BE, dataspace_id_ps, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_ps);
+    status = H5Dclose(dataset_id);
+    
+    free( buffer_ps );
+    status = H5Gclose(ps_group);
+    
+    
   }
-  dataset_id = H5Dcreate(ps_group, "k_vals", H5T_IEEE_F64BE, dataspace_id_ps, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_ps);
-  status = H5Dclose(dataset_id);
-  
-  for ( int bin_id=0; bin_id<n_bins; bin_id++ ){
-    buffer_ps[bin_id] = Analysis.ps_mean[bin_id];
-  }
-  dataset_id = H5Dcreate(ps_group, "p(k)", H5T_IEEE_F64BE, dataspace_id_ps, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_ps);
-  status = H5Dclose(dataset_id);
-  
-  free( buffer_ps );
-  status = H5Gclose(ps_group);
   
   #ifdef OUTPUT_SKEWER
   int nx, n_ghost;

@@ -209,9 +209,7 @@ void Grid3D::Initialize_Power_Spectrum_Measurements( int axis ){
     }
     
   }
-  
-  
-  
+    
   // if ( axis == 0 ){
   //   for ( int bin_id=0; bin_id<n_hist_edges; bin_id++ ){ 
   //     chprintf( "%f \n", hist_k_edges[bin_id]);
@@ -307,7 +305,7 @@ void Grid3D::Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis ){
     
 
   for ( int los_id=0; los_id<n_los; los_id++ ){
-    delta_F[los_id] = transmitted_flux[los_id] / Analysis.Flux_mean;
+    delta_F[los_id] = transmitted_flux[los_id] / Analysis.Flux_mean_HI;
   }
   
   // Compute the r2c FFT
@@ -368,9 +366,6 @@ void Grid3D::Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis ){
   if ( axis == 0 ) Analysis.n_PS_processed_x += 1;
   if ( axis == 1 ) Analysis.n_PS_processed_y += 1;
   if ( axis == 2 ) Analysis.n_PS_processed_z += 1;
-  
-  
-  
   
   
 }
@@ -439,15 +434,17 @@ void Analysis_Module::Reduce_Power_Spectrum_Global( ){
 }
 
 
-void Analysis_Module::Reduce_Lya_Statists_Global( void ){
-    
-  n_skewers_processed = n_skewers_processed_x + n_skewers_processed_y + n_skewers_processed_z;
-  Flux_mean = ( Flux_mean_x*n_skewers_processed_x + Flux_mean_y*n_skewers_processed_y + Flux_mean_z*n_skewers_processed_z  ) / n_skewers_processed;
+void Analysis_Module::Reduce_Lya_Mean_Flux_Global( int chemical_type ){
   
-  chprintf( " Flux Mean Global: %e      N_Skewers_Processed: %d\n", Flux_mean, n_skewers_processed );
+  Real F_mean =   
+  n_skewers_processed = n_skewers_processed_x + n_skewers_processed_y + n_skewers_processed_z;
+  F_mean = ( Flux_mean_x*n_skewers_processed_x + Flux_mean_y*n_skewers_processed_y + Flux_mean_z*n_skewers_processed_z  ) / n_skewers_processed;
+  if ( chemical_type == 0 )  Flux_mean_HI   = F_mean;
+  if ( chemical_type == 1 )  Flux_mean_HeII = F_mean;
+  chprintf( " Flux Mean Global: %e      N_Skewers_Processed: %d\n", F_mean, n_skewers_processed );
 }
 
-void Analysis_Module::Reduce_Lya_Statists_Axis( int axis ){
+void Analysis_Module::Reduce_Lya_Mean_Flux_Axis( int axis ){
   
   int  *n_skewers_processed;
   int  *n_skewers_processed_root;
@@ -504,7 +501,7 @@ void Analysis_Module::Reduce_Lya_Statists_Axis( int axis ){
 }
 
 
-void Analysis_Module::Compute_Lya_Statistics_Skewer( int skewer_id, int axis ){
+void Analysis_Module::Compute_Lya_Mean_Flux_Skewer( int skewer_id, int axis ){
   
   bool am_I_root;
   int  n_los;
@@ -569,17 +566,18 @@ void Analysis_Module::Initialize_Lya_Statistics_Measurements( int axis ){
   
 }
 
-void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
+void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis, int chemical_type ){
   
   int n_los_full, n_los_total, n_ghost;
   bool am_I_root;
-  Real *full_HI_density;
+  Real *full_density;
   Real *full_velocity;
   Real *full_temperature;
   Real *full_optical_depth;
   Real *full_vel_Hubble;
   Real *transmitted_flux;
   Real *skewers_HI_density_root;
+  Real *skewers_HeII_density_root;
   Real *skewers_velocity_root;
   Real *skewers_temperature_root;
   Real Lbox, delta_x;
@@ -593,15 +591,17 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
     am_I_root   = Analysis.am_I_root_x;
     n_los_full  = Analysis.n_los_full_x;
     n_los_total = Analysis.nx_total;
-    full_HI_density  = Analysis.full_HI_density_x;
-    full_velocity    = Analysis.full_velocity_x;
-    full_temperature = Analysis.full_temperature_x;
-    full_optical_depth = Analysis.full_optical_depth_x;
-    full_vel_Hubble = Analysis.full_vel_Hubble_x;
-    transmitted_flux = Analysis.transmitted_flux_x;
-    skewers_HI_density_root  = Analysis.skewers_HI_density_root_x;
-    skewers_velocity_root    = Analysis.skewers_velocity_root_x; 
-    skewers_temperature_root = Analysis.skewers_temperature_root_x; 
+    full_velocity             = Analysis.full_velocity_x;
+    full_temperature          = Analysis.full_temperature_x;
+    full_optical_depth        = Analysis.full_optical_depth_x;
+    full_vel_Hubble           = Analysis.full_vel_Hubble_x;
+    transmitted_flux          = Analysis.transmitted_flux_x;
+    skewers_HI_density_root   = Analysis.skewers_HI_density_root_x;
+    skewers_HeII_density_root = Analysis.skewers_HeII_density_root_x;
+    skewers_velocity_root     = Analysis.skewers_velocity_root_x; 
+    skewers_temperature_root  = Analysis.skewers_temperature_root_x; 
+    if (chemical_type == 0 ) full_density  = Analysis.full_HI_density_x;
+    if (chemical_type == 1 ) full_density  = Analysis.full_HeII_density_x;
   }
   
   if ( axis == 1 ){
@@ -610,15 +610,17 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
     am_I_root   = Analysis.am_I_root_y;
     n_los_full  = Analysis.n_los_full_y;
     n_los_total = Analysis.ny_total;
-    full_HI_density  = Analysis.full_HI_density_y;
-    full_velocity    = Analysis.full_velocity_y;
-    full_temperature = Analysis.full_temperature_y;
-    full_optical_depth = Analysis.full_optical_depth_y;
-    full_vel_Hubble = Analysis.full_vel_Hubble_y;
-    transmitted_flux = Analysis.transmitted_flux_y; 
-    skewers_HI_density_root  = Analysis.skewers_HI_density_root_y;
-    skewers_velocity_root    = Analysis.skewers_velocity_root_y; 
-    skewers_temperature_root = Analysis.skewers_temperature_root_y; 
+    full_velocity             = Analysis.full_velocity_y;
+    full_temperature          = Analysis.full_temperature_y;
+    full_optical_depth        = Analysis.full_optical_depth_y;
+    full_vel_Hubble           = Analysis.full_vel_Hubble_y;
+    transmitted_flux          = Analysis.transmitted_flux_y; 
+    skewers_HI_density_root   = Analysis.skewers_HI_density_root_y;
+    skewers_HeII_density_root = Analysis.skewers_HeII_density_root_y;
+    skewers_velocity_root     = Analysis.skewers_velocity_root_y; 
+    skewers_temperature_root  = Analysis.skewers_temperature_root_y;
+    if (chemical_type == 0 ) full_density  = Analysis.full_HI_density_y;
+    if (chemical_type == 1 ) full_density  = Analysis.full_HeII_density_y; 
   }
   
   if ( axis == 2 ){
@@ -627,22 +629,24 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
     am_I_root   = Analysis.am_I_root_z;
     n_los_full  = Analysis.n_los_full_z;
     n_los_total = Analysis.nz_total;
-    full_HI_density  = Analysis.full_HI_density_z;
-    full_velocity    = Analysis.full_velocity_z;
-    full_temperature = Analysis.full_temperature_z;
-    full_optical_depth = Analysis.full_optical_depth_z;
-    full_vel_Hubble = Analysis.full_vel_Hubble_z;
-    transmitted_flux = Analysis.transmitted_flux_z; 
-    skewers_HI_density_root  = Analysis.skewers_HI_density_root_z;
-    skewers_velocity_root    = Analysis.skewers_velocity_root_z; 
-    skewers_temperature_root = Analysis.skewers_temperature_root_z; 
+    full_velocity             = Analysis.full_velocity_z;
+    full_temperature          = Analysis.full_temperature_z;
+    full_optical_depth        = Analysis.full_optical_depth_z;
+    full_vel_Hubble           = Analysis.full_vel_Hubble_z;
+    transmitted_flux          = Analysis.transmitted_flux_z; 
+    skewers_HI_density_root   = Analysis.skewers_HI_density_root_z;
+    skewers_HeII_density_root = Analysis.skewers_HeII_density_root_z;
+    skewers_velocity_root     = Analysis.skewers_velocity_root_z; 
+    skewers_temperature_root  = Analysis.skewers_temperature_root_z;
+    if (chemical_type == 0 ) full_density  = Analysis.full_HI_density_z;
+    if (chemical_type == 1 ) full_density  = Analysis.full_HeII_density_z; 
   }
   
   if ( !am_I_root ) return;
   
   // printf( "  Computing Skewer ID: %d \n", skewer_id );
   
-  Real HI_density, velocity, temperature, Msun, kpc, Mp, kpc3, Me, e_charge, c, Kb;
+  Real density, velocity, temperature, Msun, kpc, Mp, kpc3, Me, e_charge, c, Kb;
   
   // Constants in CGS
   Kb   = 1.38064852e-16; //g (cm/s)^2 K-1
@@ -658,20 +662,21 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
    
   // Fill the Real cells first
   for (int los_id=0; los_id<n_los_total; los_id++ ){
-    HI_density  = skewers_HI_density_root [ skewer_id*n_los_total + los_id ];
+    if (chemical_type == 0 ) density  = skewers_HI_density_root   [ skewer_id*n_los_total + los_id ];
+    if (chemical_type == 1 ) density  = skewers_HeII_density_root [ skewer_id*n_los_total + los_id ];
     velocity    = skewers_velocity_root   [ skewer_id*n_los_total + los_id ];
     temperature = skewers_temperature_root[ skewer_id*n_los_total + los_id ];
-    full_HI_density [los_id + n_ghost] = HI_density;
+    full_density [los_id + n_ghost] = density;
     full_velocity   [los_id + n_ghost] = velocity;
     full_temperature[los_id + n_ghost] = temperature;
   }
   
   // Fill the ghost cells
   for ( int los_id=0; los_id<n_ghost; los_id++ ){
-    full_HI_density [los_id] = full_HI_density [n_los_total+los_id];
+    full_density    [los_id] = full_density    [n_los_total+los_id];
     full_velocity   [los_id] = full_velocity   [n_los_total+los_id];
     full_temperature[los_id] = full_temperature[n_los_total+los_id];
-    full_HI_density [n_los_total+n_ghost+los_id] = full_HI_density [n_ghost+los_id];
+    full_density    [n_los_total+n_ghost+los_id] = full_density    [n_ghost+los_id];
     full_velocity   [n_los_total+n_ghost+los_id] = full_velocity   [n_ghost+los_id];
     full_temperature[n_los_total+n_ghost+los_id] = full_temperature[n_ghost+los_id];
   } 
@@ -696,7 +701,8 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
   
   // Get Cosmological variables
   Real H, current_a, L_proper, dx_proper, dv_Hubble; 
-  Real H_cgs, Lya_lambda, f_12, Lya_sigma;
+  Real H_cgs, Lya_lambda_HI, f_H_12, Lya_sigma;
+  Real Lya_lambda_HeII, f_He_12;
   current_a = Cosmo.current_a;
   L_proper = Lbox * current_a / Cosmo.cosmo_h;
   dx_proper = delta_x * current_a / Cosmo.cosmo_h;
@@ -710,10 +716,17 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
     full_vel_Hubble[los_id] = ( los_id - n_ghost + 0.5 ) * dv_Hubble;
   }
   
+  
+  Lya_lambda_HI   = 1.21567e-5; // cm  Rest wave length of the Lyman Alpha Transition Hydrogen
+  f_H_12 =  0.416;            // Hydrogen Oscillator strength
   H_cgs = H * 1e5 / kpc;
-  Lya_lambda = 1.21567e-5; // cm  Rest wave length of the Lyman Alpha Transition
-  f_12 =  0.416;           // Oscillator strength
-  Lya_sigma = M_PI * e_charge * e_charge / Me / c * f_12;
+  
+  // Lya_lambda_HeII = 1.21567e-5; // cm  Rest wave length of the Lyman Alpha Transition Helium
+  // f_He_12 =  0.416;           // Helium Oscillator strength
+  
+  Lya_sigma = M_PI * e_charge * e_charge / Me / c;
+  if ( chemical_type == 0 ) Lya_sigma = M_PI * e_charge * e_charge / Me / c * Lya_lambda_HI * f_H_12 / H_cgs;
+  if ( chemical_type == 1 ) Lya_sigma = M_PI * e_charge * e_charge / Me / c * Lya_lambda_HI * f_H_12 / H_cgs / 4; // From https://arxiv.org/pdf/astro-ph/9812429.pdf
   
   
   // printf("H0: %f    H:%f\n", Cosmo.H0, H );
@@ -722,19 +735,20 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis ){
   // printf( "%f \n", Lya_sigma * Lya_lambda / H_cgs);
   
   //Compute the optical depth
-  Real vel_i, tau_i, vel_j, b_j, n_HI_j, y_l, y_r; 
+  Real vel_i, tau_i, vel_j, b_j, n_dens_j, y_l, y_r; 
   for ( int i=0; i<n_los_full; i++ ){
     vel_i = full_vel_Hubble[i];
     tau_i = 0;
     for ( int j=0; j<n_los_full; j++ ){
-      n_HI_j = full_HI_density[j] * dens_factor;
+      n_dens_j = full_density[j] * dens_factor;
       vel_j =  full_vel_Hubble[j] + ( full_velocity[j] * vel_factor );
-      b_j = sqrt( 2 * Kb / Mp * full_temperature[j] );
+      if (chemical_type == 0) b_j = sqrt( 2 * Kb / Mp * full_temperature[j] );
+      if (chemical_type == 1) b_j = sqrt(     Kb / Mp * full_temperature[j] );
       y_l = ( vel_i - 0.5*dv_Hubble - vel_j ) / b_j;
       y_r = ( vel_i + 0.5*dv_Hubble - vel_j ) / b_j;
-      tau_i += n_HI_j * ( erf(y_r) - erf(y_l) ) / 2;
+      tau_i += n_dens_j * ( erf(y_r) - erf(y_l) ) / 2;
     }
-    tau_i *= Lya_sigma * Lya_lambda / H_cgs;
+    tau_i *= Lya_sigma;
     full_optical_depth[i] = tau_i;    
   }
   
