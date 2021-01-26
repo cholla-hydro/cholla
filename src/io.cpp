@@ -93,14 +93,14 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   G.H.Output_Complete_Data = true;
   #endif
 
-  #ifdef COSMOLOGY
+  // #ifdef COSMOLOGY
   // G.Change_Cosmological_Frame_Sytem( false );
-  #endif
+  // #endif
   
-  #ifndef ONLY_PARTICLES
-  /*call the data output routine for Hydro data*/
-  OutputData(G,P,nfile);
-  #endif
+  // #ifndef ONLY_PARTICLES
+  // /*call the data output routine for Hydro data*/
+  // OutputData(G,P,nfile);
+  // #endif
   
   #ifdef PROJECTION
   OutputProjectedData(G,P,nfile);
@@ -112,11 +112,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   OutputSlices(G,P,nfile);
   #endif /*SLICES*/
   
-  #ifdef PARTICLES
-  G.WriteData_Particles( P, nfile );
-  #endif
+  // #ifdef PARTICLES
+  // G.WriteData_Particles( P, nfile );
+  // #endif
   
-  #ifdef COSMOLOGY
+  // #ifdef COSMOLOGY
   // if ( G.H.OUTPUT_SCALE_FACOR || G.H.Output_Initial){
   //   G.Cosmo.Set_Next_Scale_Output();
   //   if ( !G.Cosmo.exit_now ){
@@ -130,11 +130,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   // }
   // else chprintf( " Saved Snapshot: %d     z:%f\n", nfile, G.Cosmo.current_z );
   // G.Change_Cosmological_Frame_Sytem( true );
-  chprintf( "\n" );
-  G.H.Output_Now = false;
-  G.Cosmo.exit_now  = true;
-  chprintf( "Set EXIT_NOW = True \n");
-  #endif
+  // chprintf( "\n" );
+  // G.H.Output_Now = false;
+  // G.Cosmo.exit_now  = true;
+  // chprintf( "Set EXIT_NOW = True \n");
+  // #endif
 }
 
 
