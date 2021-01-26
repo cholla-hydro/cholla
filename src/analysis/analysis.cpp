@@ -131,7 +131,7 @@ void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
   
   
   #ifdef LYA_STATISTICS
-  Analysis.Clear_Power_Spectrum_Measurements();
+  if (Analysis.Computed_Flux_Power_Spectrum == 1) Analysis.Clear_Power_Spectrum_Measurements();
   #endif
   
   Analysis.Set_Next_Scale_Output();
