@@ -46,28 +46,28 @@ void Grid3D::Compute_Lya_Statistics( ){
   if( Analysis.Flux_mean_HI > 1e-10 ){
     // Compute the Flux Power Spectrum after computing the mean transmitted flux 
     for ( axis=0; axis<3; axis++ ){
-      
+  
       if ( axis == 0 ) n_skewers = Analysis.n_skewers_local_x;
       if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
       if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
-      
+  
       if ( axis == 0 ) chprintf( " Computing P(k) Along X axis:\n");
       if ( axis == 1 ) chprintf( " Computing P(k) Along Y axis:\n");
       if ( axis == 2 ) chprintf( " Computing P(k) Along Z axis:\n");
-      
+  
       Initialize_Power_Spectrum_Measurements( axis );
-      
+  
       for ( int skewer_id=0; skewer_id< n_skewers; skewer_id++ ){
         Compute_Transmitted_Flux_Skewer( skewer_id, axis, chemical_type );
         Compute_Flux_Power_Spectrum_Skewer( skewer_id, axis );
       }
-      
+  
       Analysis.Reduce_Power_Spectrum_Axis( axis );
     }
-    
+  
     Analysis.Reduce_Power_Spectrum_Global();
     Analysis.Computed_Flux_Power_Spectrum = 1;
-    
+  
   } else{
     Analysis.Computed_Flux_Power_Spectrum = 0;
   }
@@ -77,31 +77,29 @@ void Grid3D::Compute_Lya_Statistics( ){
   // Copmpute Lya Statitics
   chemical_type = 1;   // Statistics for Helium Lya
   chprintf( "Computing Helium Lya Statistics \n");
-  
-
-  
-  for ( axis=0; axis<3; axis++ ){
     
+  for ( axis=0; axis<3; axis++ ){
+  
     if ( axis == 0 ) n_skewers = Analysis.n_skewers_local_x;
     if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
     if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
-    
+  
     if ( axis == 0 ) chprintf( " Computing Along X axis:\n");
     if ( axis == 1 ) chprintf( " Computing Along Y axis:\n");
     if ( axis == 2 ) chprintf( " Computing Along Z axis:\n");
-    
-    
+  
+  
     Analysis.Initialize_Lya_Statistics_Measurements( axis );
-    
+  
     for ( int skewer_id=0; skewer_id< n_skewers; skewer_id++ ){
       Compute_Transmitted_Flux_Skewer( skewer_id, axis, chemical_type );
       Analysis.Compute_Lya_Mean_Flux_Skewer( skewer_id, axis );
     }
     
     Analysis.Reduce_Lya_Mean_Flux_Axis( axis );
-    
-  }  
   
+  } 
+   
   Analysis.Reduce_Lya_Mean_Flux_Global( chemical_type );
   
   chprintf( "Completed HeII Lya Statistics \n" );
@@ -240,10 +238,10 @@ void Analysis_Module::Reset(){
   
   if ( am_I_root_x ){
     free( skewers_HI_density_root_x );
+    free( skewers_HeII_density_root_x );
     free( skewers_velocity_root_x );
     free( skewers_temperature_root_x );
     free( full_HI_density_x );
-    free( skewers_HeII_density_root_x );
     free( full_HeII_density_x );
     free( full_velocity_x );
     free( full_temperature_x );
@@ -254,10 +252,10 @@ void Analysis_Module::Reset(){
   
   if ( am_I_root_y ){
     free( skewers_HI_density_root_y );
+    free( skewers_HeII_density_root_y );
     free( skewers_velocity_root_y );
     free( skewers_temperature_root_y );
     free( full_HI_density_y );
-    free( skewers_HeII_density_root_y );
     free( full_HeII_density_y );
     free( full_velocity_y );
     free( full_temperature_y );
@@ -267,10 +265,10 @@ void Analysis_Module::Reset(){
   
   if ( am_I_root_z ){
     free( skewers_HI_density_root_z );  
+    free( skewers_HeII_density_root_z );
     free( skewers_velocity_root_z );
     free( skewers_temperature_root_z );
     free( full_HI_density_z );
-    free( skewers_HeII_density_root_z );
     free( full_HeII_density_z );
     free( full_velocity_z );
     free( full_temperature_z );
