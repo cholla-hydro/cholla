@@ -77,12 +77,12 @@ void Cosmology::Set_Scale_Outputs( struct parameters *P ){
 void Cosmology::Set_Next_Scale_Output(  ){
   
 
-  int scale_indx = next_output_indx;
-  Real a_value = scale_outputs[scale_indx];
-  chprintf("Setting next output index. Current index: %d    n_outputs: %d ", scale_indx, n_outputs);
-  
+  // int scale_indx = next_output_indx;
+  // Real a_value = scale_outputs[scale_indx];
+  // chprintf("Setting next output index. Current index: %d    n_outputs: %d ", scale_indx, n_outputs);
+  // 
   // if  ( ( scale_indx == 0 ) && ( abs(a_value - current_a )<1e-5 ) )scale_indx = 1;
-  scale_indx += 1;
+  // scale_indx += 1;
   
   // if ( scale_indx < n_outputs ){
   //   a_value = scale_outputs[scale_indx];
@@ -94,7 +94,7 @@ void Cosmology::Set_Next_Scale_Output(  ){
   // }
   
   
-  exit_now = true;
+  // exit_now = true;
 }
 
 
