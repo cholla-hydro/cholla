@@ -138,12 +138,12 @@ Cool.fields.grid_dx = 0.0; // used only for H2 self-shielding approximation
 
 Cool.fields.density         = C.density;
 Cool.fields.internal_energy = (Real *) malloc(Cool.field_size * sizeof(Real));
-// Cool.fields.x_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
-// Cool.fields.y_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
-// Cool.fields.z_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
-Cool.fields.x_velocity      = NULL;
-Cool.fields.y_velocity      = NULL;
-Cool.fields.z_velocity      = NULL;
+Cool.fields.x_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
+Cool.fields.y_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
+Cool.fields.z_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
+// Cool.fields.x_velocity      = NULL;
+// Cool.fields.y_velocity      = NULL;
+// Cool.fields.z_velocity      = NULL;
 
 chprintf( " Allocating memory for: HI, HII, HeI, HeII, HeIII, e   densities\n");
 Cool.fields.HI_density      = &C.scalar[ 0*n_cells ];
@@ -167,9 +167,9 @@ Cool.temperature = (Real *) malloc(Cool.field_size * sizeof(Real));
 
 
 void Cool_GK::Free_Memory( ){
-  // free( fields.x_velocity );
-  // free( fields.y_velocity );
-  // free( fields.z_velocity );
+  free( fields.x_velocity );
+  free( fields.y_velocity );
+  free( fields.z_velocity );
   free( fields.internal_energy );
   #ifdef OUTPUT_TEMPERATURE
   free( temperature );
