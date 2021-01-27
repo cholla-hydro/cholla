@@ -139,7 +139,7 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
 /* Output the grid data to file. */
 void OutputData(Grid3D &G, struct parameters P, int nfile)
 {
-  char filename[100];
+  char filename[MAXLEN];
   char timestep[20];
   int flag = 0;
 

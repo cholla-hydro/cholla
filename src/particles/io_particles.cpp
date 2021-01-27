@@ -658,7 +658,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
 void Grid3D::OutputData_Particles( struct parameters P, int nfile)
 {
   FILE *out;
-  char filename[100];
+  char filename[MAXLEN];
   char timestep[20];
   
   // create the filename
