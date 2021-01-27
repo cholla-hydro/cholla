@@ -153,6 +153,9 @@ Cool.fields.e_density       = &C.scalar[ 5*n_cells ];
 #ifdef GRACKLE_METALS
 chprintf( " Allocating memory for: metal density\n");
 Cool.fields.metal_density   = &C.scalar[ 6*n_cells ];
+#else
+Cool.fields.metal_density   = NULL;
+
 #endif
 
 #ifdef OUTPUT_TEMPERATURE
