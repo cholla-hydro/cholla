@@ -1356,6 +1356,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       status = H5Dclose(dataset_id);
     }
     
+    
+    #ifdef GRACKLE_METALS
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1370,7 +1372,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
       status = H5Dclose(dataset_id);
     }
-    
+    #endif //GRACKLE_METALS
     
     #endif //OUTPUT_CHEMISTRY
 
@@ -2903,7 +2905,9 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
       chprintf( " Initial HeII Fraction:  %e \n", HeII_frac);
       chprintf( " Initial HeIII Fraction: %e \n", HeIII_frac);
       chprintf( " Initial elect Fraction: %e \n", e_frac);
+      #ifdef GRACKLE_METALS
       chprintf( " Initial metal Fraction: %e \n", metal_frac);
+      #endif
       for (k=0; k<H.nz_real; k++) {
         for (j=0; j<H.ny_real; j++) {
           for (i=0; i<H.nx_real; i++) {
@@ -2915,7 +2919,9 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
             C.scalar[3*H.n_cells + id] = HeII_frac * dens;
             C.scalar[4*H.n_cells + id] = HeIII_frac * dens;
             C.scalar[5*H.n_cells + id] = e_frac * dens;
+            #ifdef GRACKLE_METALS
             C.scalar[6*H.n_cells + id] = metal_frac * dens;
+            #endif
           }
         }
       }

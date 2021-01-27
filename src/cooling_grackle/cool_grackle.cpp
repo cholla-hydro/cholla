@@ -76,8 +76,6 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   data->use_grackle = 1;            // chemistry on
   data->with_radiative_cooling = 1; // Cooling on
   data->primordial_chemistry = 1;   // molecular network with H, He
-  // data->metal_cooling = 1;          // metal cooling on
-  data->metal_cooling = 0;          // metal cooling off
   data->UVbackground = 1;           // UV background on
   // data->grackle_data_file = "src/cooling/CloudyData_UVB=HM2012.h5"; // data file
   // data->grackle_data_file = "src/cooling/CloudyData_UVB=HM2012_cloudy.h5"; // data file
@@ -87,6 +85,12 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   data->use_specific_heating_rate = 0;
   data->use_volumetric_heating_rate = 0;
   data->cmb_temperature_floor = 1;
+  
+  #ifdef GRACKLE_METALS
+  data->metal_cooling = 1;          // metal cooling on
+  #else
+  data->metal_cooling = 0;          // metal cooling off
+  #endif
   
   #ifdef PARALLEL_OMP
   data->omp_nthreads = N_OMP_THREADS_GRACKLE;
@@ -146,9 +150,10 @@ Cool.fields.HeII_density    = &C.scalar[ 3*n_cells ];
 Cool.fields.HeIII_density   = &C.scalar[ 4*n_cells ];
 Cool.fields.e_density       = &C.scalar[ 5*n_cells ];
 
+#ifdef GRACKLE_METALS
 chprintf( " Allocating memory for: metal density\n");
 Cool.fields.metal_density   = &C.scalar[ 6*n_cells ];
-
+#endif
 
 #ifdef OUTPUT_TEMPERATURE
 Cool.temperature = (Real *) malloc(Cool.field_size * sizeof(Real));

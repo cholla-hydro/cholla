@@ -60,7 +60,11 @@ typedef double Real;
 #define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
 #ifdef COOLING_GRACKLE
-#define NSCALARS 7
+  #ifdef GRACKLE_METALS
+  #define NSCALARS 7
+  #else
+  #define NSCALARS 6
+  #endif // GRACKLE_METALS
 #else
 #ifdef SCALAR
 // Set Number of scalar fields when not using grackle
