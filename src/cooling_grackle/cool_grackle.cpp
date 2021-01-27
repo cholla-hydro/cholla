@@ -87,9 +87,9 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   data->cmb_temperature_floor = 1;
   
   #ifdef GRACKLE_METALS
-  chprintf( "WARNING: Metal Cooling is Off. \n" );
-  data->metal_cooling = 0;          // metal cooling off
+  data->metal_cooling = 1;          // metal cooling off
   #else
+  chprintf( "WARNING: Metal Cooling is Off. \n" );
   data->metal_cooling = 0;          // metal cooling off
   #endif
   

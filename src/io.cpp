@@ -3000,6 +3000,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           }
         }
       }
+      #ifdef GRACKLE_METALS
       dataset_id = H5Dopen(file_id, "/metal_density", H5P_DEFAULT);
       status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
       status = H5Dclose(dataset_id);
@@ -3012,6 +3013,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           }
         }
       }
+      #endif
     }
     #endif//COOLING_GRACKLE
     #endif//SCALAR
