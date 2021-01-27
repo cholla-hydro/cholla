@@ -1,7 +1,7 @@
 #!/bin/bash
 
 module use /home/users/twhite/share/modulefiles
-module load pfft-ompi hdf5
+module --no-pager load pfft-ompi hdf5
 
 export LD_LIBRARY_PATH="$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH"
 OUTDIR="run/out.paris.pfft-amd-ompi.$(date +%m%d.%H%M%S)"

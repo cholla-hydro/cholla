@@ -32,6 +32,7 @@
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
 #define cudaMemcpyHostToDevice hipMemcpyHostToDevice
 #define cudaMemGetInfo hipMemGetInfo
+#define cudaMemset hipMemset
 #define cudaReadModeElementType hipReadModeElementType
 #define cudaSetDevice hipSetDevice
 #define cudaSuccess hipSuccess
@@ -213,6 +214,145 @@ void gpuFor(const int n0, const int n1, const int n2, const int n3, const int n4
   const long nb = (n01234+GPU_THREADS-1)/GPU_THREADS;
   hipLaunchKernelGGL(gpuRun,dim3(nb),dim3(GPU_THREADS),0,0,f,n01234,n1234,n234,n34,n4);
   CHECK(cudaGetLastError());
+}
+
+static constexpr int GPU_MAX_THREADS = 1024;
+
+template <typename F>
+__global__ void gpuRun0x3(const F f)
+{
+  const int i0 = threadIdx.z;
+  const int i1 = threadIdx.y;
+  const int i2 = threadIdx.x;
+  f(i0,i1,i2);
+}
+
+template <typename F>
+__global__ void gpuRun1x2(const F f)
+{
+  const int i0 = blockIdx.x;
+  const int i1 = threadIdx.y;
+  const int i2 = threadIdx.x;
+  f(i0,i1,i2);
+}
+
+template <typename F>
+__global__ void gpuRun2x1(const F f)
+{
+  const int i0 = blockIdx.y;
+  const int i1 = blockIdx.x;
+  const int i2 = threadIdx.x;
+  f(i0,i1,i2);
+}
+
+template <typename F>
+__global__ void gpuRun3x0(const int n2, const F f)
+{
+  const int i0 = blockIdx.z;
+  const int i1 = blockIdx.y;
+  const int i2 = blockIdx.x*blockDim.x+threadIdx.x;
+  if (i2 < n2) f(i0,i1,i2);
+}
+
+template <typename F>
+void gpuLoop(const int n0, const int n1, const int n2, const F f)
+{
+  //printf("gpuLoop(%d,%d,%d)->",n0,n1,n2);
+  if (n2 > GPU_MAX_THREADS) {
+    const int b2 = (n2+GPU_MAX_THREADS-1)/GPU_MAX_THREADS;
+    //printf("3x0 (%d,%d,%d)x%d(%d)\n",b2,n1,n0,GPU_MAX_THREADS,n2);
+    gpuRun3x0<<<dim3(b2,n1,n0),GPU_MAX_THREADS>>>(n2,f);
+    CHECK(cudaGetLastError());
+  } else if (n1*n2 > GPU_MAX_THREADS) {
+    //printf("2x1 (%d,%d)x%d\n",n1,n0,n2);
+    gpuRun2x1<<<dim3(n1,n0),n2>>>(f);
+    CHECK(cudaGetLastError());
+  } else if (n0*n1*n2 > GPU_MAX_THREADS) {
+    //printf("1x2 %dx(%d,%d)\n",n0,n2,n1);
+    gpuRun1x2<<<n0,dim3(n2,n1)>>>(f);
+    CHECK(cudaGetLastError());
+  } else {
+    //printf("0x3 1x(%d,%d,%d)\n",n2,n1,n0);
+    gpuRun0x3<<<1,dim3(n2,n1,n0)>>>(f);
+    CHECK(cudaGetLastError());
+  }
+}
+
+template <typename F>
+__global__ void gpuRun2x3(const F f)
+{
+  const int i0 = blockIdx.y;
+  const int i1 = blockIdx.x;
+  const int i2 = threadIdx.z;
+  const int i3 = threadIdx.y;
+  const int i4 = threadIdx.x;
+  f(i0,i1,i2,i3,i4);
+}
+
+template <typename F>
+__global__ void gpuRun3x2(const F f)
+{
+  const int i0 = blockIdx.z;
+  const int i1 = blockIdx.y;
+  const int i2 = blockIdx.x;
+  const int i3 = threadIdx.y;
+  const int i4 = threadIdx.x;
+  f(i0,i1,i2,i3,i4);
+}
+
+template <typename F>
+__global__ void gpuRun4x1(const int n1, const F f)
+{
+  const int i01 = blockIdx.z;
+  const int i0 = i01/n1;
+  const int i1 = i01%n1;
+  const int i2 = blockIdx.y;
+  const int i3 = blockIdx.x;
+  const int i4 = threadIdx.x;
+  f(i0,i1,i2,i3,i4);
+}
+
+template <typename F>
+__global__ void gpuRun5x0(const int n1, const int n34, const int n4, const F f)
+{
+  const int i01 = blockIdx.z;
+  const int i0 = i01/n1;
+  const int i1 = i01%n1;
+  const int i2 = blockIdx.y;
+  const int nx = blockDim.x;
+  const int i34 = blockIdx.x*nx+threadIdx.x;
+  if (i34 < n34) {
+    const int i3 = i34/n4;
+    const int i4 = i34%n4;
+    f(i0,i1,i2,i3,i4);
+  }
+}
+
+template <typename F>
+void gpuLoop(const int n0, const int n1, const int n2, const int n3, const int n4, const F f)
+{
+  const int n34 = n3*n4;
+  //printf("gpuLoop(%d,%d,%d,%d,%d)->",n0,n1,n2,n3,n4);
+  if (n4 > GPU_MAX_THREADS) {
+    const int n01 = n0*n1;
+    const int b34 = (n34+GPU_MAX_THREADS-1)/GPU_MAX_THREADS;
+    //printf("5x0 (%d,%d,%d)x%d(%d,%d,%d)\n",b34,n2,n01,GPU_MAX_THREADS,n1,n34,n4);
+    gpuRun5x0<<<dim3(b34,n2,n01),GPU_MAX_THREADS>>>(n1,n34,n4,f);
+    CHECK(cudaGetLastError());
+  } else if (n34 > GPU_MAX_THREADS) {
+    const int n01 = n0*n1;
+    //printf("4x1 (%d,%d,%d)x%d(%d)\n",n3,n2,n01,n4,n1);
+    gpuRun4x1<<<dim3(n3,n2,n01),n4>>>(n1,f);
+    CHECK(cudaGetLastError());
+  } else if (n2*n34 > GPU_MAX_THREADS) {
+    //printf("3x2 (%d,%d,%d)x(%d,%d)\n",n2,n1,n0,n4,n3);
+    gpuRun3x2<<<dim3(n2,n1,n0),dim3(n4,n3)>>>(f);
+    CHECK(cudaGetLastError());
+  } else {
+    //printf("2x3 (%d,%d)x(%d,%d,%d)\n",n1,n0,n4,n3,n2);
+    gpuRun2x3<<<dim3(n1,n0),dim3(n4,n3,n2)>>>(f);
+    CHECK(cudaGetLastError());
+  }
 }
 
 #define GPU_LAMBDA [=] __device__
