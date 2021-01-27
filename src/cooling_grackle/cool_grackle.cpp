@@ -157,7 +157,7 @@ Cool.fields.e_density       = &C.scalar[ 5*n_cells ];
 chprintf( " Allocating memory for: metal density\n");
 Cool.fields.metal_density   = &C.scalar[ 6*n_cells ];
 #else
-Cool.fields.metal_density   = NULL;
+Cool.fields.metal_density   = (Real *) malloc(Cool.field_size * sizeof(Real));
 #endif
 
 #ifdef OUTPUT_TEMPERATURE
@@ -171,6 +171,12 @@ void Cool_GK::Free_Memory( ){
   free( fields.y_velocity );
   free( fields.z_velocity );
   free( fields.internal_energy );
+  
+  #ifndef GRACKLE_METALS
+  free( fields.metal_density );
+  #endif
+  
+  
   #ifdef OUTPUT_TEMPERATURE
   free( temperature );
   #endif

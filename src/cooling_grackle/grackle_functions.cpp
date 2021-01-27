@@ -35,7 +35,11 @@ void Grid3D::Initialize_Fields_Grackle(){
         Cool.fields.x_velocity[id] = 0.0;
         Cool.fields.y_velocity[id] = 0.0;
         Cool.fields.z_velocity[id] = 0.0;
-
+        
+        #ifndef GRACKLE_METALS
+        Cool.fields.metal_density[id] = 0.0;
+        #endif
+        
         Cool.fields.internal_energy[id] = C.GasEnergy[id]  / C.density[id] * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
 
       }
