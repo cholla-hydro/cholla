@@ -233,7 +233,7 @@ void Grid3D::Initialize(struct parameters *P)
   #endif
   
   #ifdef COSMOLOGY
-  if ( P->scale_outputs_file[0] == '#' ) H.OUTPUT_SCALE_FACOR = false;
+  if ( P->scale_outputs_file[0] == '\0' ) H.OUTPUT_SCALE_FACOR = false;
   else H.OUTPUT_SCALE_FACOR = true;
   #endif
   
@@ -673,7 +673,7 @@ Real Grid3D::Update_Hydro_Grid( ){
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
-  // Do_Cooling_Step_Grackle( );
+  Do_Cooling_Step_Grackle( );
   #ifdef CPU_TIME
   Timer.End_and_Record_Time(10);
   #endif
