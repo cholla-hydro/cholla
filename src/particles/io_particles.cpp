@@ -686,8 +686,8 @@ void Grid3D::OutputData_Particles( struct parameters P, int nfile)
   file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   
   // Write header (file attributes)
-  // Write_Header_HDF5(file_id);
-  Write_Particles_Header_HDF5( file_id);
+  Write_Header_HDF5(file_id);
+  // Write_Particles_Header_HDF5( file_id);
   // Write_Particles_Data_HDF5( file_id);
   
   // Close the file
