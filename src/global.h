@@ -21,7 +21,7 @@ typedef double Real;
 #endif //FLOAT_TYPEDEF_DEFINED
 #endif //PRECISION == 2
 
-#define MAXLEN 100
+#define MAXLEN 120
 #define TINY_NUMBER 1.0e-20
 #define PI 3.141592653589793
 #define MP 1.672622e-24 // mass of proton, grams
