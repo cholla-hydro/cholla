@@ -87,7 +87,8 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   data->cmb_temperature_floor = 1;
   
   #ifdef GRACKLE_METALS
-  data->metal_cooling = 1;          // metal cooling on
+  chprintf( "WARNING: Metal Cooling is Off. \n" );
+  data->metal_cooling = 0;          // metal cooling off
   #else
   data->metal_cooling = 0;          // metal cooling off
   #endif
@@ -141,9 +142,7 @@ Cool.fields.internal_energy = (Real *) malloc(Cool.field_size * sizeof(Real));
 Cool.fields.x_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
 Cool.fields.y_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
 Cool.fields.z_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
-// Cool.fields.x_velocity      = NULL;
-// Cool.fields.y_velocity      = NULL;
-// Cool.fields.z_velocity      = NULL;
+
 
 chprintf( " Allocating memory for: HI, HII, HeI, HeII, HeIII, e   densities\n");
 Cool.fields.HI_density      = &C.scalar[ 0*n_cells ];
@@ -155,7 +154,7 @@ Cool.fields.e_density       = &C.scalar[ 5*n_cells ];
 
 #ifdef GRACKLE_METALS
 chprintf( " Allocating memory for: metal density\n");
-Cool.fields.metal_density   = &C.scalar[ 6*n_cells ];
+Cool.fields.metal_density   = NULL;
 #else
 Cool.fields.metal_density   = (Real *) malloc(Cool.field_size * sizeof(Real));
 #endif
@@ -171,12 +170,7 @@ void Cool_GK::Free_Memory( ){
   free( fields.y_velocity );
   free( fields.z_velocity );
   free( fields.internal_energy );
-  
-  #ifndef GRACKLE_METALS
-  free( fields.metal_density );
-  #endif
-  
-  
+    
   #ifdef OUTPUT_TEMPERATURE
   free( temperature );
   #endif
