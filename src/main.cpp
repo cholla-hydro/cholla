@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
     if ( G.H.n_step == N_STEPS_LIMIT) break;
     #endif
     
-
+    
     #ifdef COSMOLOGY
     // Exit the loop when reached the last scale_factor output 
     if ( G.Cosmo.exit_now ) {
