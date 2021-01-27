@@ -124,7 +124,7 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
       G.H.Output_Initial = false;
     }
     else{
-      chprintf( " Saved Snapshot: %d     z:%f  \n", nfile, G.Cosmo.current_z );
+      chprintf( " Saved Snapshot: %d     z:%f    Exiting now\n", nfile, G.Cosmo.current_z );
     }
   
   }
