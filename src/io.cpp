@@ -93,9 +93,9 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   G.H.Output_Complete_Data = true;
   #endif
 
-  // #ifdef COSMOLOGY
-  // G.Change_Cosmological_Frame_Sytem( false );
-  // #endif
+  #ifdef COSMOLOGY
+  G.Change_Cosmological_Frame_Sytem( false );
+  #endif
   
   // #ifndef ONLY_PARTICLES
   // /*call the data output routine for Hydro data*/
