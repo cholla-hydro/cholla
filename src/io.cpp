@@ -97,10 +97,10 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   G.Change_Cosmological_Frame_Sytem( false );
   #endif
   
-  // #ifndef ONLY_PARTICLES
-  // /*call the data output routine for Hydro data*/
-  // OutputData(G,P,nfile);
-  // #endif
+  #ifndef ONLY_PARTICLES
+  /*call the data output routine for Hydro data*/
+  OutputData(G,P,nfile);
+  #endif
   
   #ifdef PROJECTION
   OutputProjectedData(G,P,nfile);
@@ -112,9 +112,9 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   OutputSlices(G,P,nfile);
   #endif /*SLICES*/
   
-  // #ifdef PARTICLES
-  // G.WriteData_Particles( P, nfile );
-  // #endif
+  #ifdef PARTICLES
+  G.WriteData_Particles( P, nfile );
+  #endif
   
   #ifdef COSMOLOGY
   if ( G.H.OUTPUT_SCALE_FACOR || G.H.Output_Initial){
