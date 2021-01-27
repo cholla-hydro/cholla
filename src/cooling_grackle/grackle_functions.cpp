@@ -32,9 +32,9 @@ void Grid3D::Initialize_Fields_Grackle(){
     for (j=0; j<ny_g; j++) {
       for (i=0; i<nx_g; i++) {
         id = i + j*nx_g + k*nx_g*ny_g;
-        Cool.fields.x_velocity[id] = 0.0;
-        Cool.fields.y_velocity[id] = 0.0;
-        Cool.fields.z_velocity[id] = 0.0;
+        // Cool.fields.x_velocity[id] = 0.0;
+        // Cool.fields.y_velocity[id] = 0.0;
+        // Cool.fields.z_velocity[id] = 0.0;
         
         Cool.fields.internal_energy[id] = C.GasEnergy[id]  / C.density[id] * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a ;
 
