@@ -1,5 +1,5 @@
 
-DIRS := src src/gravity src/particles src/cosmology src/cooling_grackle 
+DIRS := src src/gravity src/particles src/cosmology src/cooling_grackle src/analysis
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
 endif
@@ -69,7 +69,7 @@ DFLAGS += -DAVERAGE_SLOW_CELLS
 DFLAGS += -DPRINT_INITIAL_STATS
 
 #Measure Timing of different stages
-DFLAGS += -DCPU_TIME
+# DFLAGS += -DCPU_TIME
 
 #Gravity Flags
 DFLAGS += -DGRAVITY
@@ -85,6 +85,7 @@ DFLAGS += $(POISSON_SOLVER)
 DFLAGS += -DPARTICLES
 DFLAGS += -DPARTICLES_CPU
 # DFLAGS += -DONLY_PARTICLES
+DFLAGS += -DPARTICLE_IDS
 DFLAGS += -DSINGLE_PARTICLE_MASS
 DFLAGS += -DPARTICLES_LONG_INTS
 DFLAGS += -DPARTICLES_KDK
@@ -102,7 +103,11 @@ DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 DFLAGS += -DCOSMOLOGY
 
 # Use Grackle for cooling in cosmological simulations
-# DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=20
+DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=20
+# DFLAGS += -DGRACKLE_METALS
+
+# Permorm In-The-Fly analisys of Cosmological Simulations
+# DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS
 
 SYSTEM = "Lux"
 # SYSTEM = "Shamrock"
@@ -139,15 +144,17 @@ FFTW_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8
 PFFT_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/pfft
 GRAKLE_HOME = /home/brvillas/code/grackle
 MPI_HOME = /cm/shared/apps/openmpi/openmpi-4.0.1.cuda
-CUDA_LIBS = /cm/shared/apps/cuda10.1/toolkit/current/lib64
+CUDA_LIBS = /cm/shared/apps/cuda10.2/toolkit/current/lib64
 endif
 
 ifeq ($(SYSTEM),"Shamrock")
 CC = gcc
 CXX = g++
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
-CC = $(MPI_HOME)/bin/mpicc
-CXX = $(MPI_HOME)/bin/mpicxx
+# CC = $(MPI_HOME)/bin/mpicc
+# CXX = $(MPI_HOME)/bin/mpicxx
+CC = mpicc
+CXX = mpicxx
 endif
 CXXFLAGS += -std=c++11
 GPUFLAGS += -std=c++11
@@ -167,6 +174,12 @@ CXXFLAGS += -g -Ofast
 CFLAGS += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc
+
+ifeq ($(findstring -DLYA_STATISTICS,$(DFLAGS)),-DLYA_STATISTICS)
+  CXXFLAGS += -I$(FFTW_ROOT)/include 
+  GPUFLAGS += -I$(FFTW_ROOT)/include 
+  LIBS += -L$(FFTW_ROOT)/lib -lfftw3_mpi -lfftw3
+endif
 
 ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
   CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
@@ -207,7 +220,7 @@ endif
 ifdef HIP_PLATFORM
   CXXFLAGS += -I$(ROCM_PATH)/include -Wno-unused-result
   GPUCXX := hipcc
-  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-function -Wno-unused-result -Wno-unused-command-line-argument -std=c++17 -ferror-limit=1
+  GPUFLAGS += -g -Ofast -Wall --amdgpu-target=gfx906 -Wno-unused-function -Wno-unused-result -std=c++17 -Wno-unused-command-line-argument -ferror-limit=1
   LD := $(GPUCXX)
   LDFLAGS += $(GPUFLAGS)
 else

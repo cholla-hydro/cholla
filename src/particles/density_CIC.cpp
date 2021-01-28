@@ -198,9 +198,9 @@ void Particles_3D::Get_Density_CIC_Serial( ){
     if ( ! in_local  ) {
       std::cout << " Density CIC Error:" << std::endl;
       #ifdef PARTICLE_IDS
-      std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
+      std::cout << "ERROR CIC Index    pID: " << partIDs[pIndx] << std::endl;
       #else
-      std::cout << " Particle outside Loacal  domain " << std::endl;
+      std::cout << " Particle outside Local  domain " << std::endl;
       #endif
       std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
       std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;
@@ -353,9 +353,9 @@ void Particles_3D::Get_Density_CIC_OMP( ){
       if ( ! in_local  ) {
         std::cout << " Density CIC Error:" << std::endl;
         #ifdef PARTICLE_IDS
-        std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
+        std::cout << "ERROR CIC Index    pID: " << partIDs[pIndx] << std::endl;
         #else
-        std::cout << " Particle outside Loacal  domain " << std::endl;
+        std::cout << " Particle outside Local  domain " << std::endl;
         #endif
         std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
         std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;

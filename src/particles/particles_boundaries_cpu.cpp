@@ -273,9 +273,9 @@ void Particles_3D::Add_Particle_To_Vectors( Real pId, Real pMass,
   if ( ! in_local  ) {
     std::cout << " Adding particle out of local domain to vectors Error:" << std::endl;
     #ifdef PARTICLE_IDS
-    std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
+    std::cout << " Particle outside Local  domain    pID: " << pId << std::endl;
     #else
-    std::cout << " Particle outside Loacal  domain " << std::endl;
+    std::cout << " Particle outside Local  domain " << std::endl;
     #endif
     std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
     std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;

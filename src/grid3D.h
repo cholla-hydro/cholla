@@ -35,6 +35,11 @@
 #include "timing_functions.h"
 #endif
 
+#ifdef ANALYSIS
+#include "analysis/analysis.h"
+#endif
+
+
 struct Rotation
 {
   /*! \var nx
@@ -301,6 +306,10 @@ class Grid3D
     Time Timer;
     #endif
 
+    #ifdef ANALYSIS
+    Analysis_Module Analysis;
+    #endif
+    
     struct Conserved
     {
       /*! \var density
@@ -710,6 +719,27 @@ class Grid3D
   void Update_Internal_Energy();
   void Do_Cooling_Step_Grackle();
   #endif
+  
+  #ifdef ANALYSIS
+  void Initialize_Analysis_Module( struct parameters *P );
+  void Compute_and_Output_Analysis( struct parameters *P );
+  void Output_Analysis( struct parameters *P );
+  void Write_Analysis_Header_HDF5( hid_t file_id );
+  void Write_Analysis_Data_HDF5( hid_t file_id );
+  
+  #ifdef PHASE_DIAGRAM
+  void Compute_Phase_Diagram();
+  #endif
+  
+  #ifdef LYA_STATISTICS
+  void Populate_Lya_Skewers_Local( int axis );
+  void Compute_Transmitted_Flux_Skewer( int skewer_id, int axis, int chemical_type );
+  void Compute_Lya_Statistics( );
+  void Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis );
+  void Initialize_Power_Spectrum_Measurements( int axis );
+  #endif
+  
+  #endif//ANALYSIS
   
 
 };

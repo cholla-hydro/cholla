@@ -66,7 +66,7 @@ void Grid3D::set_dt_Gravity(){
   //Small delta_a when reionization starts
   #ifdef COOLING_GRACKLE
   if ( fabs(Cosmo.current_a + da_min - Cool.scale_factor_UVB_on) < 0.005 ){
-    da_min /= 5;
+    da_min /= 2;
     chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
   }
   #endif
@@ -76,6 +76,17 @@ void Grid3D::set_dt_Gravity(){
     da_min = Cosmo.next_output - Cosmo.current_a;
     H.Output_Now = true;
   }
+  
+  #ifdef ANALYSIS
+  //Limit delta_a if it's time to run analisys
+  if( Analysis.next_output_indx < Analysis.n_outputs ){
+    if ( (Cosmo.current_a + da_min) >  Analysis.next_output ){
+      da_min = Analysis.next_output - Cosmo.current_a;
+      Analysis.Output_Now = true;
+    }
+  }
+  #endif
+  
   
   //Set delta_a after it has been computed
   Cosmo.delta_a = da_min;

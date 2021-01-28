@@ -21,7 +21,7 @@ typedef double Real;
 #endif //FLOAT_TYPEDEF_DEFINED
 #endif //PRECISION == 2
 
-#define MAXLEN 100
+#define MAXLEN 140
 #define TINY_NUMBER 1.0e-20
 #define PI 3.141592653589793
 #define MP 1.672622e-24 // mass of proton, grams
@@ -60,7 +60,11 @@ typedef double Real;
 #define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
 #ifdef COOLING_GRACKLE
-#define NSCALARS 7
+  #ifdef GRACKLE_METALS
+  #define NSCALARS 7
+  #else
+  #define NSCALARS 6
+  #endif // GRACKLE_METALS
 #else
 #ifdef SCALAR
 // Set Number of scalar fields when not using grackle
@@ -232,6 +236,7 @@ struct parameters
   Real H0;
   Real Omega_M;
   Real Omega_L;
+  Real Omega_b;
   Real Init_redshift;
   Real End_redshift;
   char scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations 
@@ -247,6 +252,15 @@ struct parameters
   int n_proc_z;
 #endif
   int bc_potential_type;
+#ifdef COOLING_GRACKLE
+  char UVB_rates_file[MAXLEN];
+#endif  
+#ifdef ANALYSIS
+  char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
+  char analysisdir[MAXLEN];
+  int lya_skewers_stride;
+  Real lya_Pk_d_log_k;
+#endif
 };
 
 

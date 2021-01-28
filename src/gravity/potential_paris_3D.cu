@@ -73,7 +73,7 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
 
   CHECK(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,densityBytes_)));
   assert(da_);
-
+  
   CHECK(cudaMalloc(reinterpret_cast<void **>(&db_),std::max(minBytes_,potentialBytes_)));
   assert(db_);
 }
