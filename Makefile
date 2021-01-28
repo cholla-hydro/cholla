@@ -102,12 +102,12 @@ DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 # Cosmology simulation
 DFLAGS += -DCOSMOLOGY
 
-# Permorm In-The-Fly analisys of Cosmological Simulations
-DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS
-
 # Use Grackle for cooling in cosmological simulations
 DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=20
 # DFLAGS += -DGRACKLE_METALS
+
+# Permorm In-The-Fly analisys of Cosmological Simulations
+# DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS
 
 SYSTEM = "Lux"
 # SYSTEM = "Shamrock"
