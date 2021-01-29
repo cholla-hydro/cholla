@@ -244,7 +244,8 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   }
   
   #ifdef GPU_MPI
-  Set_Hydro_Boundaries_GPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
+  //Set_Hydro_Boundaries_GPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
+  Set_Hydro_Boundaries_CPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
   #else
   Set_Hydro_Boundaries_CPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
   #endif
@@ -367,7 +368,7 @@ void Grid3D::Set_Hydro_Boundaries_GPU
 
   #pragma omp target teams distribute parallel for \
               map ( to : iaBoundary[:nBoundaries], iaCell[:nBoundaries], \
-                         a[:3], flags ) \
+                         Sign[:3], flags ) \
               firstprivate ( dir )
   for (int iB = 0; iB < nBoundaries; iB++ ) {
   
