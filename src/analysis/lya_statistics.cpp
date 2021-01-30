@@ -742,8 +742,8 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis, int chemi
     for ( int j=0; j<n_los_full; j++ ){
       n_dens_j = full_density[j] * dens_factor;
       vel_j =  full_vel_Hubble[j] + ( full_velocity[j] * vel_factor );
-      if (chemical_type == 0) b_j = sqrt( 2 * Kb / Mp * full_temperature[j] );
-      if (chemical_type == 1) b_j = sqrt(     Kb / Mp * full_temperature[j] );
+      if (chemical_type == 0) b_j = sqrt( 2 * Kb / Mp     * full_temperature[j] );
+      if (chemical_type == 1) b_j = sqrt( 2 * Kb / (4*Mp) * full_temperature[j] );
       y_l = ( vel_i - 0.5*dv_Hubble - vel_j ) / b_j;
       y_r = ( vel_i + 0.5*dv_Hubble - vel_j ) / b_j;
       tau_i += n_dens_j * ( erf(y_r) - erf(y_l) ) / 2;
