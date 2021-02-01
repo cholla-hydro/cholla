@@ -584,6 +584,8 @@ class Grid3D
     /*! \fn void Spherical_Overpressure_3D()
      *  \brief Initialize the grid with a 3D spherical overdensity for gravitational collapse */
     void Spherical_Overdensity_3D();
+
+    void Clouds();
     
     void Uniform_Grid();
     

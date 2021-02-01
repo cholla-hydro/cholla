@@ -61,6 +61,8 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     Spherical_Overpressure_3D();    
   } else if (strcmp(P.init, "Spherical_Overdensity_3D")==0) {
     Spherical_Overdensity_3D();    
+  } else if (strcmp(P.init, "Clouds")==0) {
+    MS();    
   } else if (strcmp(P.init, "Read_Grid")==0) {
     #ifndef ONLY_PARTICLES
     Read_Grid(P);    
@@ -1111,6 +1113,97 @@ void Grid3D::Spherical_Overdensity_3D()
  }
 }
 
+
+/*! \fn void Clouds()
+ *  \brief Bunch of clouds. */
+void Grid3D::Clouds()
+{
+  int i, j, k, id;
+  int istart, jstart, kstart, iend, jend, kend;
+  Real x_pos, y_pos, z_pos;
+  Real n_bg, n_c;
+  Real rho_bg, rho_c;
+  Real vx_bg, vx_c;
+  Real vy_bg, vy_c;
+  Real vz_bg, vz_c;
+  Real T_bg, T_c;
+  Real p_bg, p_c;
+  Real mu = 0.6;
+  int n_cl = 1;
+  int R_cl = 3.5; // cloud radius in code units (kpc)
+  Real cl_pos[n_cl][3];
+  Real r;
+  for (int nn=0; nn=n_cl; nn++) {
+    cl_pos[nn][0] = nn*0.1*xdglobal;
+    cl_pos[nn][1] = 0.5*ydglobal;
+    cl_pos[nn][2] = 0.5*zdglobal;
+  }
+
+  n_bg = 1.68e-4;
+  n_c  = 5.4e-2;
+  rho_bg = n_bg*mu*MP/DENSITY_UNIT;
+  rho_c  = n_c*mu*MP/DENSITY_UNIT;
+  vx_bg = 0.0;
+  vx_c  = -200*TIME_UNIT/KPC; // convert from km/s to kpc/kyr
+  vy_bg = vy_c = 0.0;
+  vz_bg = vz_c = 0.0;
+  T_bg = 3e6;
+  T_c = 1e4;
+  p_bg = n_bg*KB*T_bg / PRESSURE_UNIT;
+  p_c = p_bg;
+
+  istart = H.n_ghost;
+  iend   = H.nx-H.n_ghost;
+  if (H.ny > 1) {
+    jstart = H.n_ghost;
+    jend   = H.ny-H.n_ghost;
+  }
+  else {
+    jstart = 0;
+    jend   = H.ny;
+  }
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz-H.n_ghost;
+  }
+  else {
+    kstart = 0;
+    kend   = H.nz;
+  }
+
+  // set initial values of conserved variables
+  for(k=kstart; k<kend; k++) {
+    for(j=jstart; j<jend; j++) {
+      for(i=istart; i<iend; i++) {
+
+        //get cell index
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        // get cell-centered position
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        
+        // set background state
+        C.density[id]    = rho_bg;
+        C.momentum_x[id] = rho_bg*vx_bg;
+        C.momentum_y[id] = rho_bg*vy_bg;
+        C.momentum_z[id] = rho_bg*vz_bg;
+        C.Energy[id]     = P_bg/(gama-1.0) + 0.5*rho_bg*(vx_bg*vx_bg + vy_bg*vy_bg + vz_bg*vz_bg);
+        // add clouds 
+        for (int nn = 0; nn=n_cl; nn++) {
+          r = sqrt((x_pos - cl_pos[nn][0])*(x_pos - cl_pos[nn][0]) + (y_pos - cl_pos[nn][1])*(y_pos - cl_pos[nn][1] + (z_pos - cl_pos[nn][2])*(z_pos - cl_pos[nn][2]))
+          if (r < R_cl) {
+            C.density[id]    = rho_c;
+            C.momentum_x[id] = rho_c*vx_c;
+            C.momentum_y[id] = rho_c*vy_c;
+            C.momentum_z[id] = rho_c*vz_c;
+            C.Energy[id]     = P_cl/(gama-1.0) + 0.5*rho_c*(vx_c*vx_c + vy_c*vy_c + vz_c*vz_c);
+          }
+        }
+      }
+    }
+  }
+
+}
 
 void Grid3D::Uniform_Grid()
 {
