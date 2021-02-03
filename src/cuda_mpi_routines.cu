@@ -3,6 +3,8 @@
 #include"io.h"
 #include"cuda_mpi_routines.h"
 
+// #define PRINT_DEVICE_IDS
+
 /*! \fn int initialize_cuda_mpi(int myid, int nprocs);
  *  \brief CUDA initialization within MPI. */
 int initialize_cuda_mpi(int myid, int nprocs)
@@ -37,9 +39,11 @@ int initialize_cuda_mpi(int myid, int nprocs)
   //double check
   cudaGetDevice(&i_device);
 
+  #ifdef PRINT_DEVICE_IDS
   printf("In initialize_cuda_mpi: name:%s myid = %d, i_device = %d, n_device = %d\n",pname, myid,i_device,n_device);
   fflush(stdout);
   MPI_Barrier(world);
+  #endif
   
   return 0;
     
