@@ -103,7 +103,7 @@ DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 DFLAGS += -DCOSMOLOGY
 
 # Use Grackle for cooling in cosmological simulations
-DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=20
+DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=10
 # DFLAGS += -DGRACKLE_METALS
 
 # Permorm In-The-Fly analisys of Cosmological Simulations
@@ -139,7 +139,7 @@ endif
 CXXFLAGS += -std=c++11
 GPUFLAGS += -std=c++11 -arch sm_70
 DFLAGS += -DPARIS_NO_GPU_MPI
-OMP_NUM_THREADS = 20
+OMP_NUM_THREADS = 10
 FFTW_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8
 PFFT_ROOT = /data/groups/comp-astro/bruno/code_mpi_local/pfft
 GRAKLE_HOME = /home/brvillas/code/grackle
