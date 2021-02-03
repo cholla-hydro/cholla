@@ -633,7 +633,9 @@ Real Grid3D::Update_Grid(void)
   Cool.fields.HeII_density    = &C.scalar[ 3*H.n_cells ];
   Cool.fields.HeIII_density   = &C.scalar[ 4*H.n_cells ];
   Cool.fields.e_density       = &C.scalar[ 5*H.n_cells ];
+  #ifdef GRACKLE_METALS
   Cool.fields.metal_density   = &C.scalar[ 6*H.n_cells ];
+  #endif
   #endif
   
   // reset the grid flag to swap buffers
@@ -674,7 +676,6 @@ Real Grid3D::Update_Hydro_Grid( ){
   Timer.Start_Timer();
   #endif
   Do_Cooling_Step_Grackle( );
-  // Apply_Temperature_Floor_CPU_function(  0, Grav.nz_local );
   #ifdef CPU_TIME
   Timer.End_and_Record_Time(10);
   #endif
@@ -700,6 +701,11 @@ void Grid3D::Update_Time(){
   Grav.current_a = Cosmo.current_a;  
   #endif //COSMOLOGY
   #endif //PARTICLES
+  
+  #ifdef ANALYSIS
+  Analysis.current_z = Cosmo.current_z;
+  #endif
+  
   
   
   
@@ -763,5 +769,9 @@ void Grid3D::FreeMemory(void)
   #ifdef CLOUDY_COOL
   Free_Cuda_Textures();
   #endif
+  #endif
+  
+  #ifdef ANALYSIS
+  Analysis.Reset();
   #endif
 }

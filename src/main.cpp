@@ -73,7 +73,10 @@ int main(int argc, char *argv[])
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
-
+  char *message = (char*)malloc(50 * sizeof(char));
+  sprintf(message, "Initializing Simulation" );
+  Write_Message_To_Log_File( message );
+  
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P);
@@ -87,7 +90,6 @@ int main(int argc, char *argv[])
   
   #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2 );
-  char *message = (char*)malloc(50 * sizeof(char));
   sprintf(message, " eta_1: %0.3f   eta_2: %0.3f  ", DE_ETA_1, DE_ETA_2 );
   Write_Message_To_Log_File( message );
   #endif
@@ -111,6 +113,11 @@ int main(int argc, char *argv[])
   
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
+  #endif
+  
+  #ifdef ANALYSIS
+  G.Initialize_Analysis_Module(&P);
+  if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   #endif
 
   #ifdef GRAVITY
@@ -160,6 +167,8 @@ int main(int argc, char *argv[])
   
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
+  sprintf(message, "Starting calculations." );
+  Write_Message_To_Log_File( message );
   while (G.H.t < P.tout)
   {
     chprintf("n_step: %d \n", G.H.n_step + 1 );
@@ -219,6 +228,10 @@ int main(int argc, char *argv[])
     G.H.Output_Now = true;
     #endif
     
+    #ifdef ANALYSIS
+    if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
+    #endif
+    
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0) G.H.Output_Now = true;
     
     if (G.H.t == outtime || G.H.Output_Now )
@@ -232,7 +245,7 @@ int main(int argc, char *argv[])
       // update to the next output time
       outtime += P.outstep;      
     }
-    
+        
     #ifdef CPU_TIME
     G.Timer.n_steps += 1;
     #endif
@@ -241,10 +254,11 @@ int main(int argc, char *argv[])
     // Exit the loop when reached the limit number of steps (optional)
     if ( G.H.n_step == N_STEPS_LIMIT) break;
     #endif
-
+    
+    
     #ifdef COSMOLOGY
     // Exit the loop when reached the last scale_factor output 
-    if ( G.Cosmo.current_a >= G.Cosmo.scale_outputs[G.Cosmo.n_outputs-1] ) {
+    if ( G.Cosmo.exit_now ) {
       chprintf( "\nReached Last Cosmological Output: Ending Simulation\n");
       break;
     }
@@ -259,7 +273,8 @@ int main(int argc, char *argv[])
   G.Timer.Print_Average_Times( P );
   #endif
   
-  Write_Message_To_Log_File( "Run completed successfully!");
+  sprintf(message, "Simulation completed successfully." );
+  Write_Message_To_Log_File( message );
 
   // free the grid
   G.Reset();

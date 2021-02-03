@@ -28,12 +28,17 @@
 #endif
 
 #ifdef COOLING_GRACKLE
-#include "cooling/cool_grackle.h"
+#include "cooling_grackle/cool_grackle.h"
 #endif
 
 #ifdef CPU_TIME
 #include "timing_functions.h"
 #endif
+
+#ifdef ANALYSIS
+#include "analysis/analysis.h"
+#endif
+
 
 struct Rotation
 {
@@ -301,6 +306,10 @@ class Grid3D
     Time Timer;
     #endif
 
+    #ifdef ANALYSIS
+    Analysis_Module Analysis;
+    #endif
+    
     struct Conserved
     {
       /*! \var density
@@ -614,8 +623,8 @@ class Grid3D
   int Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Unload_Gravity_Potential_from_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Set_Potential_Boundaries_Isolated( int direction, int side, int *flags );  
-  void Compute_Potential_Boundaries_Isolated( int dir );
-  void Compute_Potential_Isolated_Boundary( int direction, int side, int bc_type );  
+  void Compute_Potential_Boundaries_Isolated( int dir, struct parameters *P );
+  void Compute_Potential_Isolated_Boundary( int direction, int side, int bc_potential_type );  
   #ifdef SOR
   void Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current_a, struct parameters *P );
   int Load_Poisson_Boundary_To_Buffer( int direction, int side, Real *buffer  );
@@ -710,6 +719,27 @@ class Grid3D
   void Update_Internal_Energy();
   void Do_Cooling_Step_Grackle();
   #endif
+  
+  #ifdef ANALYSIS
+  void Initialize_Analysis_Module( struct parameters *P );
+  void Compute_and_Output_Analysis( struct parameters *P );
+  void Output_Analysis( struct parameters *P );
+  void Write_Analysis_Header_HDF5( hid_t file_id );
+  void Write_Analysis_Data_HDF5( hid_t file_id );
+  
+  #ifdef PHASE_DIAGRAM
+  void Compute_Phase_Diagram();
+  #endif
+  
+  #ifdef LYA_STATISTICS
+  void Populate_Lya_Skewers_Local( int axis );
+  void Compute_Transmitted_Flux_Skewer( int skewer_id, int axis, int chemical_type );
+  void Compute_Lya_Statistics( );
+  void Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis );
+  void Initialize_Power_Spectrum_Measurements( int axis );
+  #endif
+  
+  #endif//ANALYSIS
   
 
 };

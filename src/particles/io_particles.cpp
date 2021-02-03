@@ -445,23 +445,7 @@ void Grid3D::Write_Particles_Header_HDF5( hid_t file_id){
   attribute_id = H5Acreate(file_id, "n_particles_local", H5T_STD_I64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_ULONG, &Particles.n_local);
   status = H5Aclose(attribute_id);
-  #ifdef COSMOLOGY
-  attribute_id = H5Acreate(file_id, "current_a", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Particles.current_a);
-  status = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "current_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Particles.current_z);
-  status = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "h0", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.cosmo_h);
-  status = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "omega_m,", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_M);
-  status = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "omega_l", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_L);
-  status = H5Aclose(attribute_id);
-  #endif
+
 
   #ifdef SINGLE_PARTICLE_MASS
   attribute_id = H5Acreate(file_id, "particle_mass", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
@@ -470,6 +454,7 @@ void Grid3D::Write_Particles_Header_HDF5( hid_t file_id){
   #endif
 
   status = H5Sclose(dataspace_id);
+      
 }
 
 
@@ -609,7 +594,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer_IDs[i] = Particles.partIDs[i];
   #endif //PARTICLES_CPU
-  dataset_id = H5Dcreate(file_id, "/particle_IDs", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  dataset_id = H5Dcreate(file_id, "/particle_IDs", H5T_STD_I64LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_LONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_IDs);
   status = H5Dclose(dataset_id);
   free(dataset_buffer_IDs);
@@ -673,7 +658,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
 void Grid3D::OutputData_Particles( struct parameters P, int nfile)
 {
   FILE *out;
-  char filename[100];
+  char filename[MAXLEN];
   char timestep[20];
   
   // create the filename

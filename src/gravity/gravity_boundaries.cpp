@@ -8,16 +8,17 @@
 
 #if defined (GRAV_ISOLATED_BOUNDARY_X) || defined (GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
 
-void Grid3D::Compute_Potential_Boundaries_Isolated( int dir ){
+void Grid3D::Compute_Potential_Boundaries_Isolated( int dir, struct parameters *P ){
 
   // Set Isolated Boundaries for the ghost cells.
-  int bc_type = 0; //Point mass potential GM/r
-  if ( dir == 0 ) Compute_Potential_Isolated_Boundary( 0, 0, bc_type );
-  if ( dir == 1 ) Compute_Potential_Isolated_Boundary( 0, 1, bc_type );
-  if ( dir == 2 ) Compute_Potential_Isolated_Boundary( 1, 0, bc_type );
-  if ( dir == 3 ) Compute_Potential_Isolated_Boundary( 1, 1, bc_type );
-  if ( dir == 4 ) Compute_Potential_Isolated_Boundary( 2, 0, bc_type );
-  if ( dir == 5 ) Compute_Potential_Isolated_Boundary( 2, 1, bc_type );
+  int bc_potential_type = P->bc_potential_type; 
+  //bc_potential_type = 0 -> Point mass potential GM/r
+  if ( dir == 0 ) Compute_Potential_Isolated_Boundary( 0, 0, bc_potential_type );
+  if ( dir == 1 ) Compute_Potential_Isolated_Boundary( 0, 1, bc_potential_type );
+  if ( dir == 2 ) Compute_Potential_Isolated_Boundary( 1, 0, bc_potential_type );
+  if ( dir == 3 ) Compute_Potential_Isolated_Boundary( 1, 1, bc_potential_type );
+  if ( dir == 4 ) Compute_Potential_Isolated_Boundary( 2, 0, bc_potential_type );
+  if ( dir == 5 ) Compute_Potential_Isolated_Boundary( 2, 1, bc_potential_type );
 
 }
 
@@ -89,7 +90,7 @@ void Grid3D::Set_Potential_Boundaries_Isolated( int direction, int side, int *fl
 }
 
 
-void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int bc_type ){
+void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int bc_potential_type ){
   
   Real domain_l, Lx_local, Ly_local, Lz_local;
   Real *pot_boundary;
@@ -131,15 +132,17 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
   #endif  
   
   Real M, cm_pos_x, cm_pos_y, cm_pos_z, pos_x, pos_y, pos_z, r, delta_x, delta_y, delta_z;
-  M = 0.1005;
-  cm_pos_x = 0.5;
-  cm_pos_y = 0.5;
-  cm_pos_z = 0.5; 
-  int i, j, k, id;
+  
+  if ( bc_potential_type == 0 ){
+    M = 0.1005;
+    cm_pos_x = 0.5;
+    cm_pos_y = 0.5;
+    cm_pos_z = 0.5; 
+  }
   
   
   Real pot_val;
-  
+  int i, j, k, id;
   for ( k=0; k<nGHST; k++ ){
     for ( i=0; i<n_i; i++ ){
       for ( j=0; j<n_j; j++ ){
@@ -170,12 +173,18 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
           pos_y = Grav.yMin + ( j + 0.5 )* Grav.dy;
         }
          
-        delta_x = pos_x - cm_pos_x;
-        delta_y = pos_y - cm_pos_y;
-        delta_z = pos_z - cm_pos_z;
-        r = sqrt( ( delta_x * delta_x ) + ( delta_y * delta_y ) + ( delta_z * delta_z ) );
+        if ( bc_potential_type == 0){ 
+          //Point mass potential GM/r
+          delta_x = pos_x - cm_pos_x;
+          delta_y = pos_y - cm_pos_y;
+          delta_z = pos_z - cm_pos_z;
+          r = sqrt( ( delta_x * delta_x ) + ( delta_y * delta_y ) + ( delta_z * delta_z ) );
+          pot_val = - Grav.Gconst * M / r;
+        }
+        else{
+          chprintf("ERROR: Boundaty Potential not set, need to set appropriate bc_potential_type \n"); 
+        }
         
-        pot_val = - Grav.Gconst * M / r;
         pot_boundary[id] = pot_val;
                         
       }

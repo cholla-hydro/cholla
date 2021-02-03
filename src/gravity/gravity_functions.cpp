@@ -66,7 +66,7 @@ void Grid3D::set_dt_Gravity(){
   //Small delta_a when reionization starts
   #ifdef COOLING_GRACKLE
   if ( fabs(Cosmo.current_a + da_min - Cool.scale_factor_UVB_on) < 0.005 ){
-    da_min /= 5;
+    da_min /= 2;
     chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
   }
   #endif
@@ -76,6 +76,17 @@ void Grid3D::set_dt_Gravity(){
     da_min = Cosmo.next_output - Cosmo.current_a;
     H.Output_Now = true;
   }
+  
+  #ifdef ANALYSIS
+  //Limit delta_a if it's time to run analisys
+  if( Analysis.next_output_indx < Analysis.n_outputs ){
+    if ( (Cosmo.current_a + da_min) >  Analysis.next_output ){
+      da_min = Analysis.next_output - Cosmo.current_a;
+      Analysis.Output_Now = true;
+    }
+  }
+  #endif
+  
   
   //Set delta_a after it has been computed
   Cosmo.delta_a = da_min;
@@ -355,18 +366,18 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   }
   
   #ifdef GRAV_ISOLATED_BOUNDARY_X
-  if ( Grav.boundary_flags[0] == 3 ) Compute_Potential_Boundaries_Isolated(0);
-  if ( Grav.boundary_flags[1] == 3 ) Compute_Potential_Boundaries_Isolated(1);
+  if ( Grav.boundary_flags[0] == 3 ) Compute_Potential_Boundaries_Isolated(0, P);
+  if ( Grav.boundary_flags[1] == 3 ) Compute_Potential_Boundaries_Isolated(1, P);
   // chprintf("Isolated X\n");
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Y
-  if ( Grav.boundary_flags[2] == 3 ) Compute_Potential_Boundaries_Isolated(2);
-  if ( Grav.boundary_flags[3] == 3 ) Compute_Potential_Boundaries_Isolated(3);
+  if ( Grav.boundary_flags[2] == 3 ) Compute_Potential_Boundaries_Isolated(2, P);
+  if ( Grav.boundary_flags[3] == 3 ) Compute_Potential_Boundaries_Isolated(3, P);
   // chprintf("Isolated Y\n");
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  if ( Grav.boundary_flags[4] == 3 ) Compute_Potential_Boundaries_Isolated(4);
-  if ( Grav.boundary_flags[5] == 3 ) Compute_Potential_Boundaries_Isolated(5);
+  if ( Grav.boundary_flags[4] == 3 ) Compute_Potential_Boundaries_Isolated(4, P);
+  if ( Grav.boundary_flags[5] == 3 ) Compute_Potential_Boundaries_Isolated(5, P);
   // chprintf("Isolated Z\n");
   #endif
   

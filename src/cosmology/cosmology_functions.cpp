@@ -104,7 +104,9 @@ void Grid3D::Change_GAS_Frame_System( bool forward ){
         C.scalar[3*H.n_cells + id] *= dens_factor;
         C.scalar[4*H.n_cells + id] *= dens_factor;
         C.scalar[5*H.n_cells + id] *= dens_factor;
+        #ifdef GRACKLE_METALS
         C.scalar[6*H.n_cells + id] *= dens_factor;
+        #endif
         #endif
       }
     }
