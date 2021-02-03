@@ -413,10 +413,6 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
       break;
     case BLOCK_DECOMP:
       /*load communication buffers*/
-      /*
-      cudaMemcpy(C.device, C.density, H.n_fields*H.n_cells*sizeof(Real), 
-                 cudaMemcpyHostToDevice);
-      */
       Load_and_Send_MPI_Comm_Buffers_BLOCK(dir, flags);
       break;
   }
@@ -1794,12 +1790,12 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
   int offset;
   Real *c_head;
   
-  
+  /*
   Real *tmp_0, *tmp_1;
   
   tmp_0 = (Real *) malloc(sizeof(Real)*x_buffer_length);
   tmp_1 = (Real *) malloc(sizeof(Real)*x_buffer_length);
-  
+  */
   c_head = (Real *) C.device;
   //c_head = (Real *) C.density;
   
@@ -1812,11 +1808,12 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
           tmp[4], tmp[5]);
   */
   
+  /*
   cudaMemcpy(tmp_0, recv_buffer_x0, x_buffer_length*sizeof(Real), 
                cudaMemcpyDeviceToHost);
   cudaMemcpy(tmp_1, recv_buffer_x1, x_buffer_length*sizeof(Real), 
                cudaMemcpyDeviceToHost);
-
+  */
   /*
   write_debug(tmp_0, "recv_buffer_x0", x_buffer_length, procID);
   write_debug(tmp_1, "recv_buffer_x1", x_buffer_length, procID);
@@ -1839,8 +1836,8 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
           idx  = i;
           gidx = i;
           for (ii=0; ii<H.n_fields; ii++) { 
-            //c_head[idx + H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
-            c_head[idx + H.n_cells] = *(tmp_0 + gidx + ii*offset);
+            c_head[idx + H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
+            //c_head[idx + H.n_cells] = *(tmp_0 + gidx + ii*offset);
           }
         }
       }
@@ -1858,8 +1855,8 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
             idx  = i + (j+H.n_ghost)*H.nx;
             gidx = i + j*H.n_ghost;
             for (ii=0; ii<H.n_fields; ii++) { 
-              //c_head[idx + ii*H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
-              c_head[idx + ii*H.n_cells] = *(tmp_0 + gidx + ii*offset);
+              c_head[idx + ii*H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
+              //c_head[idx + ii*H.n_cells] = *(tmp_0 + gidx + ii*offset);
             }
           }
         }
@@ -1905,7 +1902,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
           gidx = i;
           for (ii=0; ii<H.n_fields; ii++) {
             //c_head[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
-            c_head[idx + ii*H.n_cells] = *(tmp_1 + gidx + ii*offset);
+            //c_head[idx + ii*H.n_cells] = *(tmp_1 + gidx + ii*offset);
           }
         }
       }
@@ -1925,7 +1922,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
             gidx = i + j*H.n_ghost;
             for (ii=0; ii<H.n_fields; ii++) {
               //c_head[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
-              c_head[idx + ii*H.n_cells] = *(tmp_1 + gidx + ii*offset);
+              //c_head[idx + ii*H.n_cells] = *(tmp_1 + gidx + ii*offset);
             }
           }
         }
@@ -2110,8 +2107,10 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
   }
   #endif
 
+  /*
   free (tmp_0);
   free (tmp_1);
+  */
 
 }
 
