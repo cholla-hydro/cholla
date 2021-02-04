@@ -148,7 +148,10 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
 
     // copy the conserved variables onto the GPU
+    #ifndef GPU_MPI
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
+    #endif
+    
     #if defined( GRAVITY )
     CudaSafeCall( cudaMemcpy(dev_grav_potential, temp_potential, BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
     #endif
@@ -271,7 +274,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     CudaCheckError();
 
     // copy the updated conserved variable array back to the CPU
+    #ifndef GPU_MPI
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+    #endif
 
     // copy the updated conserved variable array from the buffer into the host_conserved array on the CPU
     host_return_block_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved1, buffer, n_fields);

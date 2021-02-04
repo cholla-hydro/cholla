@@ -222,6 +222,10 @@ int main(int argc, char *argv[])
     {
       #ifdef OUTPUT
       /*output the grid data*/
+      #ifdef GPU_MPI
+      cudaMemcpy(G.C.density, G.C.device, 
+                 G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
+      #endif
       WriteData(G, P, nfile);
       // add one to the output file count
       nfile++;
