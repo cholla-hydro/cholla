@@ -1492,8 +1492,6 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
       //printf("calling Unload_MPI_Comm_Buffers_BLOCK\n");
       #ifdef GPU_MPI
       Unload_MPI_Comm_DeviceBuffers_BLOCK(index);
-      cudaMemcpy(C.density, C.device, H.n_fields*H.n_cells*sizeof(Real), 
-                 cudaMemcpyDeviceToHost);
       #else
       Unload_MPI_Comm_Buffers_BLOCK(index);
       #endif
