@@ -26,8 +26,8 @@ OBJS     := $(subst .c,.o,$(CFILES)) \
 CC                ?= cc
 CXX               ?= CC
 
-CFLAGS_OPTIMIZE    = -Ofast
-CXXFLAGS_OPTIMIZE  = -Ofast -std=c++14
+CFLAGS_OPTIMIZE   ?= -Ofast
+CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++14
 BUILD             ?= OPTIMIZE
 
 CFLAGS             = $(CFLAGS_$(BUILD))
