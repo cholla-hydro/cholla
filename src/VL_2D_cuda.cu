@@ -127,8 +127,9 @@ Real VL_Algorithm_2D_CUDA ( Real *host_conserved0, Real *host_conserved1,
     get_offsets_2D(nx_s, ny_s, n_ghost, x_off, y_off, block, block1_tot, block2_tot, remainder1, remainder2, &x_off_s, &y_off_s);    
 
     // copy the conserved variables onto the GPU
+    #ifndef GPU_MPI
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-
+    #endif
 
     // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
     hipLaunchKernelGGL(PCM_Reconstruction_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx_s, ny_s, n_ghost, gama, n_fields);
@@ -222,14 +223,16 @@ Real VL_Algorithm_2D_CUDA ( Real *host_conserved0, Real *host_conserved1,
 
 
     // copy the conserved variable array back to the CPU
+    #ifndef GPU_MPI
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+    #endif
 
     // copy the updated conserved variable array back into the host_conserved array on the CPU
     host_return_block_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved1, buffer, n_fields);
 
-
     // copy the dti array onto the CPU
     CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+    
     // iterate through to find the maximum inverse dt for this subgrid block
     for (int i=0; i<ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
