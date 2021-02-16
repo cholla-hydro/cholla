@@ -323,8 +323,9 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   
   #ifdef PARTICLES_GPU
   // Alocate memory in GPU for particle data
-  // particles_buffer_size = (part_int_t) n_to_load * G.allocation_factor;
-  particles_buffer_size = (part_int_t) n_to_load;
+  // particles_buffer_size = (part_int_t) n_to_load;
+  particles_buffer_size = Compute_Particles_GPU_Buffer_Size( n_to_load );
+  chprintf( " Allocating GPU buffer size: %ld * %f = %ld \n", n_to_load, G.gpu_allocation_factor, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &pos_x_dev, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &pos_y_dev, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &pos_z_dev, particles_buffer_size);

@@ -143,11 +143,15 @@ class Particles_3D
     Real domainMin_x, domainMax_x;
     Real domainMin_y, domainMax_y;
     Real domainMin_z, domainMax_z;
+    
+    int boundary_type_x0, boundary_type_x1;
+    int boundary_type_y0, boundary_type_y1;
+    int boundary_type_z0, boundary_type_z1;
 
     int n_ghost_particles_grid;
     int n_cells;
     #ifdef PARTICLES_GPU
-    Real allocation_factor;
+    Real gpu_allocation_factor;
     part_int_t size_blocks_array;
     int n_cells_potential;
     #endif
@@ -170,12 +174,39 @@ class Particles_3D
     
     #ifdef MPI_CHOLLA
     bool *transfer_particles_flags_d;
-    int *transfer_particles_indxs_d;
-    int *transfer_particles_partial_sum_d;    
-    int *transfer_particles_sum_d;
+    int *transfer_particles_indices_d;
+    int *replace_particles_indices_d;
+    int *transfer_particles_prefix_sum_d;    
+    int *transfer_particles_prefix_sum_blocks_d;
     int *n_transfer_d;
     int *n_transfer_h;
-    Real *transfer_data_d;
+    
+    int send_buffer_size_x0;
+    int send_buffer_size_x1;
+    int send_buffer_size_y0;
+    int send_buffer_size_y1;
+    int send_buffer_size_z0;
+    int send_buffer_size_z1;
+    Real *send_buffer_x0_d;
+    Real *send_buffer_x1_d;
+    Real *send_buffer_y0_d;
+    Real *send_buffer_y1_d;
+    Real *send_buffer_z0_d;
+    Real *send_buffer_z1_d;
+    
+    int recv_buffer_size_x0;
+    int recv_buffer_size_x1;
+    int recv_buffer_size_y0;
+    int recv_buffer_size_y1;
+    int recv_buffer_size_z0;
+    int recv_buffer_size_z1;
+    Real *recv_buffer_x0_d;
+    Real *recv_buffer_x1_d;
+    Real *recv_buffer_y0_d;
+    Real *recv_buffer_y1_d;
+    Real *recv_buffer_z0_d;
+    Real *recv_buffer_z1_d;
+    
     #endif // MPI_CHOLLA
     
     #endif //PARTICLES_GPU
@@ -216,6 +247,12 @@ class Particles_3D
   void Advance_Particles_KDK_Step1_Cosmo_GPU_function( part_int_t n_local, Real delta_a, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  );  
   void Advance_Particles_KDK_Step2_GPU_function( part_int_t n_local, Real dt, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev  );
   void Advance_Particles_KDK_Step2_Cosmo_GPU_function( part_int_t n_local, Real delta_a,  Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  );
+  part_int_t Compute_Particles_GPU_Buffer_Size( part_int_t n );
+  int Select_Particles_to_Transfer_GPU( int direction, int side );
+  void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer, int buffer_length );
+  void Replace_Tranfered_Particles_GPU( int n_transfer );
+  void Unload_Particles_from_Buffer_GPU( int direction, int side , Real *recv_buffer_h, int n_recv );
+  void Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d );
   #endif //PARTICLES_GPU
   
   

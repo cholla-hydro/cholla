@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
   #ifdef PARTICLES
   G.Initialize_Particles(&P);
   #endif
-  
+
   #ifdef COSMOLOGY
   G.Initialize_Cosmology(&P);
   #endif

@@ -10,13 +10,15 @@ GPUFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cu))
 
 OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(GPUFILES))
 
+#Limit the number of steps to eveolve
+# DFLAGS += -DN_STEPS_LIMIT=10
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
 DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
-# DFLAGS += -DMPI_CHOLLA -DBLOCK
+DFLAGS += -DMPI_CHOLLA -DBLOCK
 
 #DFLAGS += -DPRECISION=1
 DFLAGS += -DPRECISION=2
@@ -27,6 +29,9 @@ DFLAGS += -DHDF5
 
 #Output all data every N_OUTPUT_COMPLETE snapshots ( These are Restart Files )
 DFLAGS += -DN_OUTPUT_COMPLETE=1
+
+#Measure Timing of different stages
+DFLAGS += -DCPU_TIME
 
 # Reconstruction
 #DFLAGS += -DPCM
@@ -68,9 +73,6 @@ DFLAGS += -DAVERAGE_SLOW_CELLS
 #Print Initial Statistics
 DFLAGS += -DPRINT_INITIAL_STATS
 
-#Measure Timing of different stages
-# DFLAGS += -DCPU_TIME
-
 #Gravity Flags
 DFLAGS += -DGRAVITY
 DFLAGS += -DGRAVITY_LONG_INTS
@@ -83,7 +85,8 @@ DFLAGS += $(POISSON_SOLVER)
 
 # Include gravity from particles PM
 DFLAGS += -DPARTICLES
-DFLAGS += -DPARTICLES_CPU
+# DFLAGS += -DPARTICLES_CPU
+DFLAGS += -DPARTICLES_GPU
 DFLAGS += -DONLY_PARTICLES
 # DFLAGS += -DPARTICLE_IDS
 DFLAGS += -DSINGLE_PARTICLE_MASS
@@ -157,7 +160,7 @@ CC = mpicc
 CXX = mpicxx
 endif
 CXXFLAGS += -std=c++11
-GPUFLAGS += -std=c++11
+GPUFLAGS += -std=c++11 
 DFLAGS += -DPARIS_NO_GPU_MPI
 OMP_NUM_THREADS = 20
 FFTW_ROOT = /home/bruno/code/fftw-3.3.8

@@ -125,13 +125,21 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   //Number of cells for the particles grid including ghost cells
   G.n_cells = (G.nx_local+2*G.n_ghost_particles_grid) * (G.ny_local+2*G.n_ghost_particles_grid) * (G.nz_local+2*G.n_ghost_particles_grid);
 
+  //Set the boundary types
+  G.boundary_type_x0 = P->xlg_bcnd;
+  G.boundary_type_x1 = P->xug_bcnd;
+  G.boundary_type_y0 = P->ylg_bcnd;
+  G.boundary_type_y1 = P->yug_bcnd;
+  G.boundary_type_z0 = P->zlg_bcnd;
+  G.boundary_type_z1 = P->zug_bcnd;
+    
   #ifdef PARTICLES_GPU
   //Factor to allocate the particles data arrays on the GPU.
   //When using MPI particles will be transfered to other GPU, for that reason we need extra memory allocated
   #ifdef MPI_CHOLLA
-  G.allocation_factor = 1.5;
+  G.gpu_allocation_factor = 1.5;
   #else
-  G.allocation_factor = 1.0;
+  G.gpu_allocation_factor = 1.0;
   #endif
 
   G.size_blocks_array = 1024*128;
@@ -213,7 +221,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   chprintf( " N_Data per Particle Transfer: %d\n", N_DATA_PER_PARTICLE_TRANSFER);
   
   #ifdef PARTICLES_GPU
-  // Allocate_Memory_GPU_MPI();
+  Allocate_Memory_GPU_MPI();
   #endif//PARTICLES_GPU
   #endif//MPI_CHOLLA
   
@@ -254,6 +262,13 @@ void Particles_3D::Allocate_Memory_GPU(){
   chprintf( " Allocated GPU memory.\n");  
 }
 
+part_int_t Particles_3D::Compute_Particles_GPU_Buffer_Size( part_int_t n ){
+  
+  part_int_t buffer_size = n * G.gpu_allocation_factor;
+  return buffer_size;
+  
+  
+}
 
 
 #ifdef MPI_CHOLLA
@@ -261,19 +276,55 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   
   //Allocate memory for the the particles MPI transfers
   
-  part_int_t size, size_blocks;
+  part_int_t buffer_size, half_blocks_size;
   
-  size = (part_int_t) n_local;
-  size_blocks = G.size_blocks_array;
+  buffer_size = Compute_Particles_GPU_Buffer_Size( n_local );
+  half_blocks_size = ( (buffer_size-1)/2   ) / TPB_PARTICLES + 1;
   
-  Allocate_Particles_GPU_Array_bool( &G.transfer_particles_flags_d, size );
-  Allocate_Particles_GPU_Array_int( &G.transfer_particles_indxs_d, size);
-  Allocate_Particles_GPU_Array_int( &G.transfer_particles_partial_sum_d, size);
-  Allocate_Particles_GPU_Array_int( &G.transfer_particles_sum_d, size_blocks);
-  Allocate_Particles_GPU_Array_int( &G.n_transfer_d, 1);
+  Allocate_Particles_GPU_Array_bool( &G.transfer_particles_flags_d,      buffer_size );
+  Allocate_Particles_GPU_Array_int(  &G.transfer_particles_indices_d,    buffer_size );
+  Allocate_Particles_GPU_Array_int(  &G.replace_particles_indices_d,     buffer_size );
+  Allocate_Particles_GPU_Array_int(  &G.transfer_particles_prefix_sum_d, buffer_size );
+  Allocate_Particles_GPU_Array_int(  &G.transfer_particles_prefix_sum_blocks_d, half_blocks_size );
+  Allocate_Particles_GPU_Array_int(  &G.n_transfer_d, 1);
   
   G.n_transfer_h = (int *) malloc(sizeof(int));
-  chprintf( " Allocated GPU memory for MPI trandfers.\n"); 
+  
+  int n_max, transfer_buffer_size;
+  
+  n_max = std::max( std::max( nx_local, ny_local), nz_local );
+  transfer_buffer_size = Compute_Particles_GPU_Buffer_Size( n_max * n_max * N_DATA_PER_PARTICLE_TRANSFER );
+  
+  G.send_buffer_size_x0 = transfer_buffer_size;
+  G.send_buffer_size_x1 = transfer_buffer_size;
+  G.send_buffer_size_y0 = transfer_buffer_size;
+  G.send_buffer_size_y1 = transfer_buffer_size;
+  G.send_buffer_size_z0 = transfer_buffer_size;
+  G.send_buffer_size_z1 = transfer_buffer_size;
+  
+  Allocate_Particles_GPU_Array_Real( &G.send_buffer_x0_d, G.send_buffer_size_x0 );
+  Allocate_Particles_GPU_Array_Real( &G.send_buffer_x1_d, G.send_buffer_size_x1 );
+  Allocate_Particles_GPU_Array_Real( &G.send_buffer_y0_d, G.send_buffer_size_y0 );
+  Allocate_Particles_GPU_Array_Real( &G.send_buffer_y1_d, G.send_buffer_size_y1 );
+  Allocate_Particles_GPU_Array_Real( &G.send_buffer_z0_d, G.send_buffer_size_z0 );
+  Allocate_Particles_GPU_Array_Real( &G.send_buffer_z1_d, G.send_buffer_size_z1 );
+  
+  G.recv_buffer_size_x0 = transfer_buffer_size;
+  G.recv_buffer_size_x1 = transfer_buffer_size;
+  G.recv_buffer_size_y0 = transfer_buffer_size;
+  G.recv_buffer_size_y1 = transfer_buffer_size;
+  G.recv_buffer_size_z0 = transfer_buffer_size;
+  G.recv_buffer_size_z1 = transfer_buffer_size;
+  
+  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_x0_d, G.recv_buffer_size_x0 );
+  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_x1_d, G.recv_buffer_size_x1 );
+  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_y0_d, G.recv_buffer_size_y0 );
+  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_y1_d, G.recv_buffer_size_y1 );
+  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_z0_d, G.recv_buffer_size_z0 );
+  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_z1_d, G.recv_buffer_size_z1 );
+  
+  
+  chprintf( " Allocated GPU memory for MPI transfers.\n"); 
 }
 #endif //MPI_CHOLLA
 
@@ -297,12 +348,29 @@ void Particles_3D::Free_Memory_GPU(){
   Free_GPU_Array_Real(grav_z_dev);
   
   #ifdef MPI_CHOLLA
-  Free_GPU_Array_bool(G.transfer_particles_flags_d);
-  Free_GPU_Array_int(G.transfer_particles_sum_d);
-  Free_GPU_Array_int(G.transfer_particles_partial_sum_d);
-  Free_GPU_Array_int(G.transfer_particles_indxs_d);
-  Free_GPU_Array_int(G.n_transfer_d);
+  Free_GPU_Array_bool( G.transfer_particles_flags_d);
+  Free_GPU_Array_int( G.transfer_particles_prefix_sum_d);
+  Free_GPU_Array_int( G.transfer_particles_prefix_sum_blocks_d);
+  Free_GPU_Array_int( G.transfer_particles_indices_d);
+  Free_GPU_Array_int( G.replace_particles_indices_d);
+  Free_GPU_Array_int( G.n_transfer_d);
   free(G.n_transfer_h);
+  
+  Free_GPU_Array_Real( G.send_buffer_x0_d );
+  Free_GPU_Array_Real( G.send_buffer_x1_d );
+  Free_GPU_Array_Real( G.send_buffer_y0_d );
+  Free_GPU_Array_Real( G.send_buffer_y1_d );
+  Free_GPU_Array_Real( G.send_buffer_z0_d );
+  Free_GPU_Array_Real( G.send_buffer_z1_d );
+  
+  Free_GPU_Array_Real( G.recv_buffer_x0_d );
+  Free_GPU_Array_Real( G.recv_buffer_x1_d );
+  Free_GPU_Array_Real( G.recv_buffer_y0_d );
+  Free_GPU_Array_Real( G.recv_buffer_y1_d );
+  Free_GPU_Array_Real( G.recv_buffer_z0_d );
+  Free_GPU_Array_Real( G.recv_buffer_z1_d );
+  
+  
   #endif
 }
 
@@ -352,8 +420,7 @@ void Particles_3D::Initialize_Sphere( void ){
   
   #ifdef PARTICLES_GPU
   // Alocate memory in GPU for particle data
-  // particles_buffer_size = n_particles_local * allocation_factor;
-  particles_buffer_size = n_particles_local;
+  particles_buffer_size = Compute_Particles_GPU_Buffer_Size( n_particles_local );
   Allocate_Particles_GPU_Array_Real( &pos_x_dev, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &pos_y_dev, particles_buffer_size);
   Allocate_Particles_GPU_Array_Real( &pos_z_dev, particles_buffer_size);
