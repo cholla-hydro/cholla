@@ -112,8 +112,8 @@ DFLAGS += -DCOSMOLOGY
 # Permorm In-The-Fly analisys of Cosmological Simulations
 # DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS
 
-# SYSTEM = "Lux"
-SYSTEM = "Shamrock"
+SYSTEM = "Lux"
+# SYSTEM = "Shamrock"
 
 ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
