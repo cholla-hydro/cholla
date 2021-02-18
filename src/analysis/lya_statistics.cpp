@@ -436,7 +436,7 @@ void Analysis_Module::Reduce_Power_Spectrum_Global( ){
 
 void Analysis_Module::Reduce_Lya_Mean_Flux_Global( int chemical_type ){
   
-  Real F_mean =   
+  Real F_mean;   
   n_skewers_processed = n_skewers_processed_x + n_skewers_processed_y + n_skewers_processed_z;
   F_mean = ( Flux_mean_x*n_skewers_processed_x + Flux_mean_y*n_skewers_processed_y + Flux_mean_z*n_skewers_processed_z  ) / n_skewers_processed;
   if ( chemical_type == 0 )  Flux_mean_HI   = F_mean;
@@ -694,9 +694,11 @@ void Grid3D::Compute_Transmitted_Flux_Skewer( int skewer_id, int axis, int chemi
   // }
 
 
-  Real dens_factor, vel_factor;
+  Real dens_factor, vel_factor, M;
+  if ( chemical_type == 0 ) M = Mp;
+  if ( chemical_type == 1 ) M = 4*Mp;
   dens_factor = 1. / ( Cosmo.current_a * Cosmo.current_a * Cosmo.current_a ) * Cosmo.cosmo_h * Cosmo.cosmo_h; 
-  dens_factor *= Msun / ( kpc3 ) / Mp;
+  dens_factor *= Msun / ( kpc3 ) / M;
   vel_factor = 1e5; //cm/s
   
   // Get Cosmological variables
