@@ -244,8 +244,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   }
   
   #ifdef GPU_MPI
-  //Set_Hydro_Boundaries_GPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
-  Set_Hydro_Boundaries_CPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
+  Set_Hydro_Boundaries_GPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
   #else
   Set_Hydro_Boundaries_CPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
   #endif
