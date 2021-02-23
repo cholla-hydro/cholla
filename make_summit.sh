@@ -6,5 +6,5 @@ module load cuda/10.1.243
 export MPI_HOME=$(MPI_ROOT)
 export POISSON_SOLVER='-DPARIS'
 export SUFFIX=''
-make clean
-make
+make -f Makefile_cosmo.sh clean
+make -f Makefile_cosmo.sh 
