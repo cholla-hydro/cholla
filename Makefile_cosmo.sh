@@ -103,14 +103,16 @@ DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
 DFLAGS += -DCOSMOLOGY
 
 # Use Grackle for cooling in cosmological simulations
-DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=10
+DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR 
+DFLAGS += -DN_OMP_THREADS_GRACKLE=$(OMP_NUM_THREADS)
 # DFLAGS += -DGRACKLE_METALS
 
 # Permorm In-The-Fly analisys of Cosmological Simulations
 DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS
 
-SYSTEM = "Lux"
+# SYSTEM = "Lux"
 # SYSTEM = "Shamrock"
+SYSTEM = "Summit"
 
 ifdef HIP_PLATFORM
   DFLAGS += -DO_HIP
@@ -128,6 +130,21 @@ CXX := CC
 CXXFLAGS += -std=c++17 -ferror-limit=1
 endif
 
+ifeq ($(SYSTEM),"Summit")
+CC	= gcc
+CXX = g++
+ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
+CC  = mpicc
+CXX = mpicxx
+endif
+CXXFLAGS += -std=c++11
+GPUFLAGS += -std=c++11 
+OMP_NUM_THREADS = 7
+FFTW_ROOT = /ccs/home/bvilasen/code/fftw
+GRAKLE_HOME = /ccs/home/bvilasen/code/grackle
+HDF5INCLUDE = $(OLCF_HDF5_ROOT)/include
+HDF5DIR = $(OLCF_HDF5_ROOT)/lib
+endif
 
 ifeq ($(SYSTEM),"Lux")
 CC = gcc
