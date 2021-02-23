@@ -144,8 +144,8 @@ FFTW_ROOT = /ccs/home/bvilasen/code/fftw
 GRAKLE_HOME = /ccs/home/bvilasen/code/grackle
 HDF5INCLUDE = $(OLCF_HDF5_ROOT)/include
 HDF5DIR = $(OLCF_HDF5_ROOT)/lib
-CUDA_LIBS = -L$(OLCF_CUDA_ROOT)/lib64 
-CUDA_INCLUDE = -I$(OLCF_CUDA_ROOT)/includes
+CUDA_LIBS = $(OLCF_CUDA_ROOT)/lib64 
+CUDA_INCLUDE = $(OLCF_CUDA_ROOT)/includes
 endif
 
 ifeq ($(SYSTEM),"Lux")
