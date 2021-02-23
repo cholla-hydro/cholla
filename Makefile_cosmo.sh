@@ -69,7 +69,7 @@ DFLAGS += -DAVERAGE_SLOW_CELLS
 DFLAGS += -DPRINT_INITIAL_STATS
 
 #Measure Timing of different stages
-# DFLAGS += -DCPU_TIME
+DFLAGS += -DCPU_TIME
 
 #Gravity Flags
 DFLAGS += -DGRAVITY
