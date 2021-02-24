@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 
   // Set boundary conditions (assign appropriate values to ghost cells) for hydro and potential
   chprintf("Setting boundary conditions...\n");
-  G.Set_Boundary_Conditions_Grid(P);
+  // G.Set_Boundary_Conditions_Grid(P);
   chprintf("Boundary conditions set.\n");  
   
   #ifdef PARTICLES
