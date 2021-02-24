@@ -94,11 +94,11 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   status = H5Aclose(attribute_id);
 
   #ifdef COSMOLOGY
-  attribute_id = H5Aopen(file_id, "current_z", H5P_DEFAULT);
+  attribute_id = H5Aopen(file_id, "Current_z", H5P_DEFAULT);
   status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &current_z);
   status = H5Aclose(attribute_id);
 
-  attribute_id = H5Aopen(file_id, "current_a", H5P_DEFAULT);
+  attribute_id = H5Aopen(file_id, "Current_a", H5P_DEFAULT);
   status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &current_a);
   status = H5Aclose(attribute_id);
   #endif
