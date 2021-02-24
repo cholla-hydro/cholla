@@ -228,13 +228,13 @@ ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
   LIBS += -L$(HDF5DIR) -lhdf5
 endif
 
-ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
-  GPUFLAGS += -I$(MPI_HOME)/include
-	CXXFLAGS += -I$(MPI_HOME)/include
-  ifdef HIP_PLATFORM
-    LIBS += -L$(MPI_HOME)/lib -lmpicxx -lmpi
-  endif
-endif
+# ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
+#   GPUFLAGS += -I$(MPI_HOME)/include
+# 	CXXFLAGS += -I$(MPI_HOME)/include
+#   ifdef HIP_PLATFORM
+#     LIBS += -L$(MPI_HOME)/lib -lmpicxx -lmpi
+#   endif
+# endif
 
 ifdef HIP_PLATFORM
   CXXFLAGS += -I$(ROCM_PATH)/include -Wno-unused-result
