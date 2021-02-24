@@ -137,8 +137,7 @@ ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
 CC  = mpicc
 CXX = mpicxx
 endif
-CXXFLAGS += -std=c++11
-GPUFLAGS += -std=c++11
+CXXFLAGS += -std=c++14
 OMP_NUM_THREADS = 7
 FFTW_ROOT = /ccs/home/bvilasen/code/fftw
 GRAKLE_HOME = /ccs/home/bvilasen/code/grackle
@@ -274,8 +273,8 @@ ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   LIBS += -L$(GRAKLE_HOME)/lib -lgrackle 
 endif
 
-INCL += -I/cm/shared/apps/gsl/2.6/include/gsl
-LIBS += -L/cm/shared/apps/gsl/2.6/lib -lgsl -lgslcblas
+# INCL += -I/cm/shared/apps/gsl/2.6/include/gsl
+# LIBS += -L/cm/shared/apps/gsl/2.6/lib -lgsl -lgslcblas
 
 .SUFFIXES: .c .cpp .cu .o
 
