@@ -1,5 +1,6 @@
 #!/bin/bash
 
+module load gcc/10.2.0
 module load hdf5/1.10.4
 module load cuda/11.2.0
 
