@@ -138,6 +138,7 @@ CC  = mpicc
 CXX = mpicxx
 endif
 CXXFLAGS += -std=c++14
+GPUFLAGS += -std=c++14
 OMP_NUM_THREADS = 7
 FFTW_ROOT = /ccs/home/bvilasen/code/fftw
 GRAKLE_HOME = /ccs/home/bvilasen/code/grackle
