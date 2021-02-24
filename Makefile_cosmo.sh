@@ -138,7 +138,7 @@ CC  = mpicc
 CXX = mpicxx
 endif
 CXXFLAGS += -std=c++14
-GPUFLAGS += -std=c++14
+GPUFLAGS += -std=c++14 -arch=sm_70
 DFLAGS += -DPARIS_NO_GPU_MPI
 OMP_NUM_THREADS = 7
 FFTW_ROOT = /ccs/home/bvilasen/code/fftw
