@@ -207,7 +207,7 @@ ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
 endif
 
 ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
-  LIBS += -L$(CUDA_LIBS) -lcufft
+  LIBS += -L$(CUDA_LIBS) -lcufft -lcudart
 	GPUFLAGS += -I$(CUDA_INCLUDE)
 	CXXFLAGS += -I$(CUDA_INCLUDE)
 endif
