@@ -137,8 +137,8 @@ ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
 CC  = mpicc
 CXX = mpicxx
 endif
-CXXFLAGS += -std=c++11
-GPUFLAGS += -std=c++11 
+# CXXFLAGS += -std=c++11
+# GPUFLAGS += -std=c++11 
 OMP_NUM_THREADS = 7
 FFTW_ROOT = /ccs/home/bvilasen/code/fftw
 GRAKLE_HOME = /ccs/home/bvilasen/code/grackle
