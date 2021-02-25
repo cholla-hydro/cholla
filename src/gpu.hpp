@@ -6,7 +6,20 @@
 #ifdef O_HIP
 
 #include <hip/hip_runtime.h>
+
+#if defined(CUFFT) || defined(PARIS)
+
 #include <hipfft.h>
+
+static void __attribute__((unused)) check(const hipfftResult err, const char *const file, const int line)
+{
+  if (err == HIPFFT_SUCCESS) return;
+  fprintf(stderr,"HIPFFT ERROR AT LINE %d OF FILE '%s': %d\n",line,file,err);
+  fflush(stderr);
+  exit(err);
+}
+
+#endif
 
 #define cudaDeviceSynchronize hipDeviceSynchronize
 #define cudaError hipError_t
@@ -53,14 +66,6 @@
 #define cufftPlan3d hipfftPlan3d
 #define cufftPlanMany hipfftPlanMany
 
-static void __attribute__((unused)) check(const hipfftResult err, const char *const file, const int line)
-{
-  if (err == HIPFFT_SUCCESS) return;
-  fprintf(stderr,"HIPFFT ERROR AT LINE %d OF FILE '%s': %d\n",line,file,err);
-  fflush(stderr);
-  exit(err);
-}
-
 static void __attribute__((unused)) check(const hipError_t err, const char *const file, const int line)
 {
   if (err == hipSuccess) return;
@@ -71,10 +76,11 @@ static void __attribute__((unused)) check(const hipError_t err, const char *cons
 
 #else
 
-#include <cufft.h>
 #include <cuda_runtime.h>
 
-#define hipLaunchKernelGGL(F,G,B,M,S,...) F<<<G,B,M,S>>>(__VA_ARGS__)
+#if defined(CUFFT) || defined(PARIS)
+
+#include <cufft.h>
 
 static void check(const cufftResult err, const char *const file, const int line)
 {
@@ -84,6 +90,8 @@ static void check(const cufftResult err, const char *const file, const int line)
   exit(err);
 }
 
+#endif
+
 static void check(const cudaError_t err, const char *const file, const int line)
 {
   if (err == cudaSuccess) return;
@@ -92,11 +100,13 @@ static void check(const cudaError_t err, const char *const file, const int line)
   exit(err);
 }
 
+#define hipLaunchKernelGGL(F,G,B,M,S,...) F<<<G,B,M,S>>>(__VA_ARGS__)
+
 #endif
 
 #define CHECK(X) check(X,__FILE__,__LINE__)
 
-constexpr long GPU_THREADS = 256;
+const long GPU_THREADS = 256;
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
 

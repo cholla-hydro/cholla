@@ -1,3 +1,5 @@
+#ifdef PARIS
+
 #include "PoissonZero3DBlockedGPU.hpp"
 
 #include <algorithm>
@@ -518,3 +520,5 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
       if ((iLo+i < di) && (jLo+j < dj)) ua[((i+iLo)*dj+j+jLo)*dk+k] = ub[(((p*mq+q)*dip+i)*djq+j)*dk+k];
     });
 }
+
+#endif

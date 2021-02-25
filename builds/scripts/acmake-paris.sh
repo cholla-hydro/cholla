@@ -1,19 +1,21 @@
 #!/bin/bash
-module restore PrgEnv-cray
-module load hdf5
-module load gcc/8.1.0
-module load rocm
+
+module restore -s PrgEnv-cray
+module unload cray-mvapich2
+module use /home/groups/coegroup/sabbott/cray-mpi/modulefiles
+module load cray-mpich
+module load hdf5/1.10.1
 module list
 
 export LD_LIBRARY_PATH="$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH"
 
+export CC=cc
 export CXX=CC
-export DFLAGS='-DPARIS_NO_GPU_MPI'
 export HIPCONFIG=$(hipconfig -C)
-export MPI_HOME=$(dirname $(dirname $(which mpicc)))
 export OMP_NUM_THREADS=16
 export POISSON_SOLVER="-DPARIS"
-export SUFFIX='.paris-amd'
+export SUFFIX='.paris-amd-cray'
 export TYPE=gravity
+
 make clean
 make -j

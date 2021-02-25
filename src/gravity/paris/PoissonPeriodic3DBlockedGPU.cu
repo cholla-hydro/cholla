@@ -1,3 +1,5 @@
+#ifdef PARIS
+
 #include "PoissonPeriodic3DBlockedGPU.hpp"
 
 #include <algorithm>
@@ -288,3 +290,5 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
   MPI_Alltoall(db,nBlockSlab,MPI_DOUBLE,da,nBlockSlab,MPI_DOUBLE,commSlab_);
 #endif
 }
+
+#endif
