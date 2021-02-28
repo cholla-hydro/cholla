@@ -1174,7 +1174,7 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
   k_x = 2 * M_PI /  H.xdglobal;
   
   
-  char filename[100];
+  char filename[180];
   // create the filename to read from
   strcpy(filename, P.indir); 
   strcat(filename, "ics_zeldovich.dat");  

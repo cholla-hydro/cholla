@@ -15,7 +15,7 @@ using namespace std;
 void Grid3D::Output_Analysis( struct parameters *P ){
   
   FILE *out;
-  char filename[100];
+  char filename[180];
   char timestep[20];
 
   // create the filename

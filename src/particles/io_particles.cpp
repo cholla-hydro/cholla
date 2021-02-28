@@ -21,7 +21,7 @@
 
 
 void Particles_3D::Load_Particles_Data( struct parameters *P){
-  char filename[100];
+  char filename[180];
   char timestep[20];
   int nfile = P->nfile; //output step you want to read from
   char filename_counter[100];
@@ -668,7 +668,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
 void Grid3D::OutputData_Particles( struct parameters P, int nfile)
 {
   FILE *out;
-  char filename[MAXLEN];
+  char filename[180];
   char timestep[20];
   
   // create the filename
