@@ -62,7 +62,7 @@ void Grid3D::Compute_Phase_Diagram(){
           temp = Cool.temperature[id_grid];
           #endif
           if ( dens < dens_min || dens > dens_max || temp < temp_min || temp > temp_max ){
-            printf("%f   %f\n", dens, temp );
+            // printf("%f   %f\n", dens, temp );
             continue;
           }
           log_dens = log10(dens);
