@@ -110,8 +110,8 @@ DFLAGS += -DN_OMP_THREADS_GRACKLE=$(OMP_NUM_THREADS)
 # Permorm In-The-Fly analisys of Cosmological Simulations
 DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS
 
-# SYSTEM = "Lux"
-SYSTEM = "Shamrock"
+SYSTEM ?= "Lux"
+# SYSTEM = "Shamrock"
 # SYSTEM = "Summit"
 
 ifdef HIP_PLATFORM
