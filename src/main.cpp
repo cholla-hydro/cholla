@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
   G.Initialize_Analysis_Module(&P);
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   #endif
-  exit(-1);
+
   #ifdef GRAVITY
   // Get the gravitaional potential for the first timestep
   G.Compute_Gravitational_Potential( &P);
