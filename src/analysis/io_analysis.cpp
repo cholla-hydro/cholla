@@ -6,7 +6,7 @@
 #include "../io.h"
 #include "../grid3D.h"
 
-#define OUTPUT_SKEWER
+// #define OUTPUT_SKEWER
 
 using namespace std;
 

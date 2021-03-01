@@ -138,25 +138,41 @@ public:
   Real *full_temperature_y;
   Real *full_temperature_z;
   
-  Real *full_optical_depth_x;
-  Real *full_optical_depth_y;
-  Real *full_optical_depth_z;
+  Real *full_optical_depth_HI_x;
+  Real *full_optical_depth_HI_y;
+  Real *full_optical_depth_HI_z;
+  
+  Real *full_optical_depth_HeII_x;
+  Real *full_optical_depth_HeII_y;
+  Real *full_optical_depth_HeII_z;
   
   Real *full_vel_Hubble_x;
   Real *full_vel_Hubble_y;
   Real *full_vel_Hubble_z;
   
-  Real *transmitted_flux_x;
-  Real *transmitted_flux_y;
-  Real *transmitted_flux_z;
+  Real *skewers_transmitted_flux_HI_x;
+  Real *skewers_transmitted_flux_HI_y;
+  Real *skewers_transmitted_flux_HI_z;
   
-  Real Flux_mean_root_x;
-  Real Flux_mean_root_y;
-  Real Flux_mean_root_z;
+  Real *skewers_transmitted_flux_HeII_x;
+  Real *skewers_transmitted_flux_HeII_y;
+  Real *skewers_transmitted_flux_HeII_z;
+    
+  Real Flux_mean_root_HI_x;
+  Real Flux_mean_root_HI_y;
+  Real Flux_mean_root_HI_z;
   
-  Real Flux_mean_x;
-  Real Flux_mean_y;
-  Real Flux_mean_z;
+  Real Flux_mean_root_HeII_x;
+  Real Flux_mean_root_HeII_y;
+  Real Flux_mean_root_HeII_z;
+    
+  Real Flux_mean_HI_x;
+  Real Flux_mean_HI_y;
+  Real Flux_mean_HI_z;
+  
+  Real Flux_mean_HeII_x;
+  Real Flux_mean_HeII_y;
+  Real Flux_mean_HeII_z;
     
   Real Flux_mean_HI;
   Real Flux_mean_HeII;
@@ -250,7 +266,7 @@ public:
   void Transfer_Skewers_Data( int axis );
   void Compute_Lya_Mean_Flux_Skewer( int skewer_id, int axis );
   void Reduce_Lya_Mean_Flux_Axis( int axis );
-  void Reduce_Lya_Mean_Flux_Global( int chemical_type );
+  void Reduce_Lya_Mean_Flux_Global( );
   void Clear_Power_Spectrum_Measurements( void );
   void Reduce_Power_Spectrum_Axis( int axis );
   void Reduce_Power_Spectrum_Global( );
