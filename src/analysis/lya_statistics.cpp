@@ -71,7 +71,7 @@ void Analysis_Module::Transfer_Skewers_Global_Axis( int axis ){
     n_added = 1;
     for ( int p_id=1; p_id<nproc; p_id++ ){
       if ( !root_procs[p_id] ) continue;
-      printf("  Recieving Skewers From pID: %d\n", p_id );
+      // printf("  Recieving Skewers From pID: %d\n", p_id );
       MPI_Recv( transfer_buffer, n_skewers_root*n_los, MPI_CHREAL, p_id, 0, world, &mpi_status  );
       
       offset = n_added * n_skewers_root * n_los;
