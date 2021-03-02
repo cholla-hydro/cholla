@@ -9,6 +9,8 @@
 
 using namespace std;
 
+#define OUTPUT_SKEWERS
+
 class Analysis_Module{
 public:
   
@@ -157,6 +159,14 @@ public:
   Real *skewers_transmitted_flux_HeII_x;
   Real *skewers_transmitted_flux_HeII_y;
   Real *skewers_transmitted_flux_HeII_z;
+  
+  Real *skewers_transmitted_flux_HI_x_global;
+  Real *skewers_transmitted_flux_HI_y_global;
+  Real *skewers_transmitted_flux_HI_z_global;
+  
+  Real *transfer_buffer_root_x;
+  Real *transfer_buffer_root_y;
+  Real *transfer_buffer_root_z;
     
   Real Flux_mean_root_HI_x;
   Real Flux_mean_root_HI_y;
@@ -235,6 +245,10 @@ public:
   Real *ps_mean;
   Real *k_ceters;
   
+  bool *root_procs_x;
+  bool *root_procs_y;
+  bool *root_procs_z; 
+  
   #ifdef MPI_CHOLLA
   Real *mpi_domain_boundary_x;
   Real *mpi_domain_boundary_y;
@@ -270,6 +284,7 @@ public:
   void Clear_Power_Spectrum_Measurements( void );
   void Reduce_Power_Spectrum_Axis( int axis );
   void Reduce_Power_Spectrum_Global( );
+  void Transfer_Skewers_Global_Axis( int axis );
   #endif
 };
 

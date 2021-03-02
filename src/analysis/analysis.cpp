@@ -35,132 +35,44 @@ void Grid3D::Compute_Lya_Statistics( ){
       Compute_Transmitted_Flux_Skewer( skewer_id, axis );
       Analysis.Compute_Lya_Mean_Flux_Skewer( skewer_id, axis );
     }
-    
     Analysis.Reduce_Lya_Mean_Flux_Axis( axis );
+    
+    #ifdef OUTPUT_SKEWERS
+    Analysis.Transfer_Skewers_Global_Axis( axis );
+    #endif
   
   }  
   Analysis.Reduce_Lya_Mean_Flux_Global();
 
-  if( Analysis.Flux_mean_HI > 1e-10 ){
-    
-    // Compute the Flux Power Spectrum after computing the mean transmitted flux 
-    for ( axis=0; axis<3; axis++ ){
-  
-      if ( axis == 0 ) n_skewers = Analysis.n_skewers_local_x;
-      if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
-      if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
-  
-      if ( axis == 0 ) chprintf( " Computing P(k) Along X axis:\n");
-      if ( axis == 1 ) chprintf( " Computing P(k) Along Y axis:\n");
-      if ( axis == 2 ) chprintf( " Computing P(k) Along Z axis:\n");
-  
-      Initialize_Power_Spectrum_Measurements( axis );
-  
-      for ( int skewer_id=0; skewer_id< n_skewers; skewer_id++ ){
-        Compute_Flux_Power_Spectrum_Skewer( skewer_id, axis );
-      }
-    
-      Analysis.Reduce_Power_Spectrum_Axis( axis );
-    }
-    
-    Analysis.Reduce_Power_Spectrum_Global();
-    Analysis.Computed_Flux_Power_Spectrum = 1;
-  
-  } else{
-    Analysis.Computed_Flux_Power_Spectrum = 0;
-  }
-
-  
-  // // Copmpute Lya Statitics
-  // int chemical_type = 0;   // Statistics for Hydrogen Lya
-  // chprintf( "Computing Hydrogen Lya Statistics \n");
-  // 
-  // Real time_start, time_end, time_elapsed;
-  // time_start = get_time();
-  // 
-  // for ( axis=0; axis<3; axis++ ){
-  // 
-  //   if ( axis == 0 ) n_skewers = Analysis.n_skewers_local_x;
-  //   if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
-  //   if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
-  // 
-  //   if ( axis == 0 ) chprintf( " Computing Along X axis:\n");
-  //   if ( axis == 1 ) chprintf( " Computing Along Y axis:\n");
-  //   if ( axis == 2 ) chprintf( " Computing Along Z axis:\n");
-  // 
-  // 
-  //   Populate_Lya_Skewers_Local( axis );
-  //   Analysis.Initialize_Lya_Statistics_Measurements( axis );
-  //   Analysis.Transfer_Skewers_Data( axis );
-  // 
-  //   for ( int skewer_id=0; skewer_id< n_skewers; skewer_id++ ){
-  //     Compute_Transmitted_Flux_Skewer( skewer_id, axis, chemical_type );
-  //     Analysis.Compute_Lya_Mean_Flux_Skewer( skewer_id, axis );
-  //   }
-  // 
-  //   Analysis.Reduce_Lya_Mean_Flux_Axis( axis );
-  // 
-  // }  
-  // Analysis.Reduce_Lya_Mean_Flux_Global( chemical_type );
-  // 
-  // 
   // if( Analysis.Flux_mean_HI > 1e-10 ){
-  //   // Compute the Flux Power Spectrum after computing the mean transmitted flux 
-  //   for ( axis=0; axis<3; axis++ ){
-  // 
-  //     if ( axis == 0 ) n_skewers = Analysis.n_skewers_local_x;
-  //     if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
-  //     if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
-  // 
-  //     if ( axis == 0 ) chprintf( " Computing P(k) Along X axis:\n");
-  //     if ( axis == 1 ) chprintf( " Computing P(k) Along Y axis:\n");
-  //     if ( axis == 2 ) chprintf( " Computing P(k) Along Z axis:\n");
-  // 
-  //     Initialize_Power_Spectrum_Measurements( axis );
-  // 
-  //     for ( int skewer_id=0; skewer_id< n_skewers; skewer_id++ ){
-  //       Compute_Transmitted_Flux_Skewer( skewer_id, axis, chemical_type );
-  //       Compute_Flux_Power_Spectrum_Skewer( skewer_id, axis );
-  //     }
-  // 
-  //     Analysis.Reduce_Power_Spectrum_Axis( axis );
-  //   }
-  // 
-  //   Analysis.Reduce_Power_Spectrum_Global();
-  //   Analysis.Computed_Flux_Power_Spectrum = 1;
-  // 
+  
+  // Compute the Flux Power Spectrum after computing the mean transmitted flux 
+  for ( axis=0; axis<3; axis++ ){
+
+    if ( axis == 0 ) n_skewers = Analysis.n_skewers_local_x;
+    if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
+    if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
+
+    if ( axis == 0 ) chprintf( " Computing P(k) Along X axis:\n");
+    if ( axis == 1 ) chprintf( " Computing P(k) Along Y axis:\n");
+    if ( axis == 2 ) chprintf( " Computing P(k) Along Z axis:\n");
+
+    Initialize_Power_Spectrum_Measurements( axis );
+
+    for ( int skewer_id=0; skewer_id< n_skewers; skewer_id++ ){
+      Compute_Flux_Power_Spectrum_Skewer( skewer_id, axis );
+    }
+  
+    Analysis.Reduce_Power_Spectrum_Axis( axis );
+  }
+  
+  Analysis.Reduce_Power_Spectrum_Global();
+  Analysis.Computed_Flux_Power_Spectrum = 1;
+
   // } else{
   //   Analysis.Computed_Flux_Power_Spectrum = 0;
   // }
-  // chprintf( "Completed HI Lya Statistics \n" );
-  // 
-  // 
-  // // Copmpute Lya Statitics
-  // chemical_type = 1;   // Statistics for Helium Lya
-  // chprintf( "Computing Helium Lya Statistics \n");
-  // 
-  // for ( axis=0; axis<3; axis++ ){
-  // 
-  //   if ( axis == 0 ) n_skewers = Analysis.n_skewers_local_x;
-  //   if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
-  //   if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
-  // 
-  //   if ( axis == 0 ) chprintf( " Computing Along X axis:\n");
-  //   if ( axis == 1 ) chprintf( " Computing Along Y axis:\n");
-  //   if ( axis == 2 ) chprintf( " Computing Along Z axis:\n");
-  // 
-  //   Analysis.Initialize_Lya_Statistics_Measurements( axis );
-  // 
-  //   for ( int skewer_id=0; skewer_id< n_skewers; skewer_id++ ){
-  //     Compute_Transmitted_Flux_Skewer( skewer_id, axis, chemical_type );
-  //     Analysis.Compute_Lya_Mean_Flux_Skewer( skewer_id, axis );
-  //   }
-  //   Analysis.Reduce_Lya_Mean_Flux_Axis( axis );
-  // }  
-  // Analysis.Reduce_Lya_Mean_Flux_Global( chemical_type );
-  // chprintf( "Completed HeII Lya Statistics \n" );
-  // 
-  
+
   time_end = get_time();
   time_elapsed = (time_end - time_start)*1000;
   chprintf( "Analysis Time: %f9.1 ms \n", time_elapsed );
@@ -204,6 +116,12 @@ void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
 void Grid3D::Initialize_Analysis_Module( struct parameters *P ){
   
   chprintf( "\nInitializng Analysis Module...\n");
+  
+  #ifndef MPI_CHOLLA
+  chprintf( "The Analysys Module is implemented for the MPI version only... sorry!\n ");
+  exit(-1);
+  #endif
+  
   
   Real z_now;
   #ifdef COSMOLOGY
@@ -295,6 +213,20 @@ void Analysis_Module::Reset(){
   free( skewers_temperature_local_y );
   free( skewers_temperature_local_z );
   #ifdef MPI_CHOLLA
+  
+  if ( procID == 0 ){
+    free( root_procs_x );
+    free( root_procs_y );
+    free( root_procs_z );
+    #ifdef OUTPUT_SKEWERS
+    free( skewers_transmitted_flux_HI_x_global );
+    free( skewers_transmitted_flux_HI_y_global );
+    free( skewers_transmitted_flux_HI_z_global );
+    free( transfer_buffer_root_x );
+    free( transfer_buffer_root_y );
+    free( transfer_buffer_root_z );
+    #endif
+  }
   
   if ( am_I_root_x ){
     free( skewers_HI_density_root_x );

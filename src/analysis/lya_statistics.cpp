@@ -12,6 +12,89 @@
 
 // #define PRINT_ANALYSIS_LOG
 
+void Analysis_Module::Transfer_Skewers_Global_Axis( int axis ){
+  
+  bool am_I_root;
+  int n_skewers_root, n_los; 
+  bool *root_procs;
+  Real *skewers_F_HI_global;
+  Real *skewers_F_HI_root;
+  Real *transfer_buffer;
+  
+  // if ( axis > 0 ) return;
+  
+  chprintf( "  Transfering Skewers \n" );
+  
+  if ( axis == 0 ){
+    am_I_root = am_I_root_x;
+    n_los = nx_total;
+    root_procs = root_procs_x;
+    n_skewers_root  = n_skewers_local_x;
+    skewers_F_HI_global = skewers_transmitted_flux_HI_x_global;
+    skewers_F_HI_root   = skewers_transmitted_flux_HI_x;
+    transfer_buffer = transfer_buffer_root_x;
+  }
+  if ( axis == 1 ){
+    am_I_root = am_I_root_y;
+    n_los = ny_total;
+    root_procs = root_procs_y;
+    n_skewers_root  = n_skewers_local_y;
+    skewers_F_HI_global = skewers_transmitted_flux_HI_y_global;
+    skewers_F_HI_root   = skewers_transmitted_flux_HI_y;
+    transfer_buffer = transfer_buffer_root_y;
+  }
+  if ( axis == 2 ){
+    am_I_root = am_I_root_z;
+    n_los = nz_total;
+    root_procs = root_procs_z;
+    n_skewers_root  = n_skewers_local_z;
+    skewers_F_HI_global = skewers_transmitted_flux_HI_z_global;
+    skewers_F_HI_root   = skewers_transmitted_flux_HI_z;
+    transfer_buffer = transfer_buffer_root_z;
+  }
+  
+  if ( !am_I_root ) return;
+
+  MPI_Status mpi_status;
+
+  if ( procID == 0){
+    
+    // Write the local data into the global array
+    for ( int skewer_id=0; skewer_id<n_skewers_root; skewer_id++){
+      for ( int los_id=0; los_id<n_los; los_id++){
+        skewers_F_HI_global[skewer_id*n_los + los_id] = skewers_F_HI_root[skewer_id*n_los + los_id];
+      }
+    }
+    
+    // Write the remote data into the global array
+    int n_added, offset;
+    n_added = 1;
+    for ( int p_id=1; p_id<nproc; p_id++ ){
+      if ( !root_procs[p_id] ) continue;
+      printf("  Recieving Skewers From pID: %d\n", p_id );
+      MPI_Recv( transfer_buffer, n_skewers_root*n_los, MPI_CHREAL, p_id, 0, world, &mpi_status  );
+      
+      offset = n_added * n_skewers_root * n_los;
+      for ( int skewer_id=0; skewer_id<n_skewers_root; skewer_id++){
+        for ( int los_id=0; los_id<n_los; los_id++){
+          skewers_F_HI_global[offset + skewer_id*n_los + los_id] = transfer_buffer[skewer_id*n_los + los_id];
+        }
+      }
+      n_added += 1;
+    }  
+  }
+  else{
+    
+    MPI_Send( skewers_F_HI_root, n_skewers_root*n_los, MPI_CHREAL, 0, 0, world  );
+    
+  }
+  
+
+  
+  
+  
+}
+
 int Locate_Index( Real val, Real *values, int N ){
   // Find the index such that  values[index] < val < values[index+1]
   // Values has to be sorted 
@@ -1251,6 +1334,42 @@ void Analysis_Module::Initialize_Lya_Statistics( struct parameters *P ){
   if ( procID == root_id_z ) am_I_root_z = true;
   else am_I_root_z = false;
   
+  if ( procID == 0 ){
+    root_procs_x = (bool *) malloc(nproc*sizeof(bool));
+    root_procs_y = (bool *) malloc(nproc*sizeof(bool));
+    root_procs_z = (bool *) malloc(nproc*sizeof(bool));
+  }
+  
+  // Gather the root processes 
+  MPI_Gather( &am_I_root_x, 1, MPI_C_BOOL, root_procs_x, 1, MPI_C_BOOL, 0, world );
+  MPI_Gather( &am_I_root_y, 1, MPI_C_BOOL, root_procs_y, 1, MPI_C_BOOL, 0, world );
+  MPI_Gather( &am_I_root_z, 1, MPI_C_BOOL, root_procs_z, 1, MPI_C_BOOL, 0, world );
+  
+  int n_skewers_global_x, n_skewers_global_y, n_skewers_global_z;
+  if ( procID == 0 ){
+    n_skewers_global_x = 0;
+    n_skewers_global_y = 0;
+    n_skewers_global_z = 0;
+    for ( int p_id=0; p_id<nproc; p_id++ ){
+      n_skewers_global_x += n_skewers_local_x * root_procs_x[p_id];
+      n_skewers_global_y += n_skewers_local_y * root_procs_y[p_id];
+      n_skewers_global_z += n_skewers_local_z * root_procs_z[p_id]; 
+    }
+  }  
+  chprintf( "  N Skewers Global:  x:%d  y:%d  z:%d \n" , n_skewers_global_x,  n_skewers_global_y,  n_skewers_global_z );
+  
+  // Allocate Memory for Global Skewers Data
+  #ifdef OUTPUT_SKEWERS
+  if ( procID == 0 ){
+    skewers_transmitted_flux_HI_x_global = (Real *) malloc(n_skewers_global_x*nx_total*sizeof(Real));
+    skewers_transmitted_flux_HI_y_global = (Real *) malloc(n_skewers_global_y*ny_total*sizeof(Real));
+    skewers_transmitted_flux_HI_z_global = (Real *) malloc(n_skewers_global_z*nz_total*sizeof(Real));
+    transfer_buffer_root_x = (Real *) malloc(n_skewers_local_x*nx_total*sizeof(Real));
+    transfer_buffer_root_y = (Real *) malloc(n_skewers_local_y*ny_total*sizeof(Real));
+    transfer_buffer_root_z = (Real *) malloc(n_skewers_local_z*nz_total*sizeof(Real));
+  }
+  #endif
+  
   #ifdef PRINT_ANALYSIS_LOG
   chprintf( " Root Ids X:  \n");
   MPI_Barrier(world);
@@ -1279,7 +1398,29 @@ void Analysis_Module::Initialize_Lya_Statistics( struct parameters *P ){
   }
   MPI_Barrier(world);  
   sleep(1);
+  
+  
+  if ( procID == 0 ){
+    printf( "Root procs x: " );
+    for ( int p_id=0; p_id<nproc; p_id++ ){
+      printf( " %d ", root_procs_x[p_id] );
+    }
+    printf( "\n" );
+    
+    printf( "Root procs y: " );
+    for ( int p_id=0; p_id<nproc; p_id++ ){
+      printf( " %d ", root_procs_y[p_id] );
+    }
+    printf( "\n" );
+    
+    printf( "Root procs z: " );
+    for ( int p_id=0; p_id<nproc; p_id++ ){
+      printf( " %d ", root_procs_z[p_id] );
+    }
+    printf( "\n" );
+  }
   #endif
+  
   
   if ( am_I_root_x ){
     skewers_HI_density_root_x    = (Real *) malloc(n_skewers_local_x*nx_total*sizeof(Real));
