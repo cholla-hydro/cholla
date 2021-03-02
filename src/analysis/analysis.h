@@ -9,8 +9,6 @@
 
 using namespace std;
 
-#define OUTPUT_SKEWERS
-
 class Analysis_Module{
 public:
   
