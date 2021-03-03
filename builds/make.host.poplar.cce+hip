@@ -3,11 +3,11 @@
 #-- Compiler and flags for different build type
 CC                = cc
 CXX               = CC
-HIP_PLATFORM      = hcc
+HIPCONFIG         = $(shell hipconfig -C)
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -Ofast
-CXXFLAGS_DEBUG    = -g -O0 -std=c++14
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++14
+CXXFLAGS_DEBUG    = -g -O0 -std=c++11
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++11
 
 #-- How to launch job
 JOB_LAUNCH        = srun -n 1 -c 16 -N 1 --exclusive --unbuffered -p amdMI60

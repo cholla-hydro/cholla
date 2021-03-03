@@ -11,15 +11,12 @@ The following settings of `POISSON_SOLVER` are currently supported.
 This option requires at least two MPI tasks.
 - `-DCUFFT` uses the *CuFFT* library to compute 3D FFTs on a single GPU.
 This options can use only one MPI task.
-- `-DPARIS` uses the *Paris* Poisson solver, provided in the `src/gravity` directory.
-This solver performs FFTs on GPUs, distributed with MPI.
-It currently supports only certain numbers of MPI tasks, depending on the problem size.
-  - The number of elements in each dimension must be divisible by the number of MPI tasks in that dimension.
-  - The number of elements in an X-Y slab must be divisible by the total number of MPI tasks. Because of the real-to-complex transform, the number of elements in an X-Y slab is not NXxNY, but instead is (NX/2+1)xNY.
-  - The number of elements in the Z dimension must be divisible by the total number of MPI tasks.
-The intent is to extend and tune the Paris solver to run efficiently on exascale computers.
-- `-DPFFT -DPARIS` or `-DCUFFT -DPARIS` uses the *PFFT* or *CuFFT* solver, respectively, and compares the result of each Poisson solve against the result of the *Paris* solver.
+- `-DPARIS` uses the *Paris* Poisson solvers, provided in the `src/gravity` directory.
+This solvers perform FFTs on GPUs, distributed with MPI.
+The intent is to extend and tune the Paris solvers to run efficiently on exascale computers.
+- `-DPFFT -DPARIS` or `-DCUFFT -DPARIS` uses the *PFFT* or *CuFFT* solver, respectively, and compares the result of each Poisson solve against the result of the *Paris* periodic solver.
 At the beginning of the run, it also compares each solver against an analytic solution. The comparisons are single-line printouts of the L1, L2, and L-infinity norms.
+- `-DSOR -DPARIS` uses an iterative successive-over-relaxation solver with nonzero nonperiodic boundary conditions, and it compares the result of each Poisson solve against the result of the *Paris* zero-valued-boundary-condition solver. The Cholla solver that calls Paris in this case subtracts an analtyic density before calling Paris and adds an analytic potential afterward. These analytic fields match the nonzero boundary conditions of the problem. At the beginning of the run, Cholla compares the SOR solver and the Paris solver against an analytic solution. Again, the comparisons are single-line printouts of the L1, L2, and L-infinity norms.
 
 *Cholla* is designed to 
 be run using GPUs, and can be run in serial mode using one GPU

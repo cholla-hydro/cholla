@@ -1,3 +1,5 @@
+#ifdef PARIS
+
 #include "PoissonZero3DBlockedGPU.hpp"
 
 #include <algorithm>
@@ -148,7 +150,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
   const int nk = nk_;
   const int nk2 = nk2_;
 
-  gpuLoop(
+  gpuFor(
     mp,mq,dip,djq,dk,
     GPU_LAMBDA(const int p, const int q, const int i, const int j, const int k) {
       const int iLo = p*dip;
@@ -163,7 +165,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
   CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(ua,dip*djq*dk,MPI_DOUBLE,ub,dip*djq*dk,MPI_DOUBLE,commK_);
 #endif
-  gpuLoop(
+  gpuFor(
     dip,djq,nk/2+1,
     GPU_LAMBDA(const int i, const int j, const int k) {
       const int ij = (i*djq+j)*nk;
@@ -184,7 +186,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
       }
     });
   CHECK(cufftExecD2Z(d2zk_,ua,uc));
-  gpuLoop(
+  gpuFor(
     dip,nk/2+1,djq,
     GPU_LAMBDA(const int i, const int k, const int j) {
       if (k == 0) {
@@ -216,7 +218,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
   CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(ua,dip*dkq*djq,MPI_DOUBLE,ub,dip*dkq*djq,MPI_DOUBLE,commJ_);
 #endif
-  gpuLoop(
+  gpuFor(
     dip,dkq,nj/2+1,
     GPU_LAMBDA(const int i, const int k, const int j) {
       const int ik = (i*dkq+k)*nj;
@@ -236,7 +238,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
       }
     });
   CHECK(cufftExecD2Z(d2zj_,ua,uc));
-  gpuLoop(
+  gpuFor(
     dkq,nj/2+1,dip,
     GPU_LAMBDA(const int k, const int j, const int i) {
       if (j == 0) {
@@ -268,7 +270,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
   CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(ua,dkq*djp*dip,MPI_DOUBLE,ub,dkq*djp*dip,MPI_DOUBLE,commI_);
 #endif
-  gpuLoop(
+  gpuFor(
     dkq,djp,ni/2+1,
     GPU_LAMBDA(const int k, const int j, const int i) {
       const int kj = (k*djp+j)*ni;
@@ -308,7 +310,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
 #endif
     const int jLo = (idi*mp+idp)*djp;
     const int kLo = (idj*mq+idq)*dkq;
-    gpuLoop(
+    gpuFor(
       dkq,djp,ni/2+1,
       GPU_LAMBDA(const int k, const int j, const int i) {
         const int kj = (k*djp+j)*ni;
@@ -361,7 +363,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
       });
   }
   CHECK(cufftExecD2Z(d2zi_,ua,uc));
-  gpuLoop(
+  gpuFor(
     dkq,ni/2+1,djp,
     GPU_LAMBDA(const int k, const int i, const int j) {
       if (i == 0) {
@@ -392,7 +394,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
   CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(ua,dkq*djp*dip,MPI_DOUBLE,ub,dkq*djp*dip,MPI_DOUBLE,commI_);
 #endif
-  gpuLoop(
+  gpuFor(
     dkq,dip,nj/2+1,
     GPU_LAMBDA(const int k, const int i, const int j) {
       const long ki = (k*dip+i)*nj;
@@ -420,7 +422,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
       }
     });
   CHECK(cufftExecD2Z(d2zj_,ua,uc));
-  gpuLoop(
+  gpuFor(
     dip,nj/2+1,dkq,
     GPU_LAMBDA(const int i, const int j, const int k) {
       if (j == 0) {
@@ -452,7 +454,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
   CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(ua,dip*djq*dkq,MPI_DOUBLE,ub,dip*djq*dkq,MPI_DOUBLE,commJ_);
 #endif
-  gpuLoop(
+  gpuFor(
     dip,djq,nk/2+1,
     GPU_LAMBDA(const int i, const int j, const int k) {
       const long ij = (i*djq+j)*nk;
@@ -481,7 +483,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
     });
   CHECK(cufftExecD2Z(d2zk_,ua,uc));
   const double divN = 1.0/(8.0*double(ni)*double(nj)*double(nk));
-  gpuLoop(
+  gpuFor(
     dip,djq,nk/2+1,
     GPU_LAMBDA(const int i, const int j, const int k) {
       if (k == 0) {
@@ -510,7 +512,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
   CHECK(cudaDeviceSynchronize());
   MPI_Alltoall(ua,dip*djq*dk,MPI_DOUBLE,ub,dip*djq*dk,MPI_DOUBLE,commK_);
 #endif
-  gpuLoop(
+  gpuFor(
     mp,dip,mq,djq,dk,
     GPU_LAMBDA(const int p, const int i, const int q, const int j, const int k) {
       const int iLo = p*dip;
@@ -518,3 +520,5 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
       if ((iLo+i < di) && (jLo+j < dj)) ua[((i+iLo)*dj+j+jLo)*dk+k] = ub[(((p*mq+q)*dip+i)*djq+j)*dk+k];
     });
 }
+
+#endif
