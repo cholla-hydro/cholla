@@ -162,6 +162,10 @@ public:
   Real *skewers_transmitted_flux_HI_y_global;
   Real *skewers_transmitted_flux_HI_z_global;
   
+  Real *skewers_transmitted_flux_HeII_x_global;
+  Real *skewers_transmitted_flux_HeII_y_global;
+  Real *skewers_transmitted_flux_HeII_z_global;
+  
   Real *transfer_buffer_root_x;
   Real *transfer_buffer_root_y;
   Real *transfer_buffer_root_z;

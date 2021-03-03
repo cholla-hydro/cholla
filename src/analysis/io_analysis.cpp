@@ -245,18 +245,30 @@ void Grid3D::Write_Analysis_Data_HDF5( hid_t file_id ){
   dataspace_id_skewers_x = H5Screate_simple(2, dims_x, NULL);
   skewers_group_x        = H5Gcreate(group_id, "skewers_x", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   
+  
   for ( int skewer_id=0; skewer_id<n_global_x; skewer_id++ ){
     for ( int los_id=0; los_id<n_los_x; los_id ++ ){
-      data_id = skewer_id * n_los_x + los_id;
-      buffer_id = los_id * n_global_x + skewer_id; 
+      data_id   = skewer_id * n_los_x + los_id; 
+      buffer_id = skewer_id * n_los_x + los_id;
       dataset_buffer_x[buffer_id] = Analysis.skewers_transmitted_flux_HI_x_global[data_id];
     }
   }
-  dataset_id = H5Dcreate(skewers_group_x, "los_transmitted_flux", H5T_IEEE_F64BE, dataspace_id_skewers_x, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  dataset_id = H5Dcreate(skewers_group_x, "los_transmitted_flux_HI", H5T_IEEE_F64BE, dataspace_id_skewers_x, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_x );
+  status = H5Dclose(dataset_id);
+  
+  for ( int skewer_id=0; skewer_id<n_global_x; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_x; los_id ++ ){
+      data_id   = skewer_id * n_los_x + los_id;
+      buffer_id = skewer_id * n_los_x + los_id; 
+      dataset_buffer_x[buffer_id] = Analysis.skewers_transmitted_flux_HeII_x_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_x, "los_transmitted_flux_HeII", H5T_IEEE_F64BE, dataspace_id_skewers_x, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_x );
   status = H5Dclose(dataset_id);
   free( dataset_buffer_x );
-  status = H5Gclose(skewers_group_x);
+  
   
   //Write Skerwes Y 
   dataset_buffer_y = (Real *) malloc(n_global_y*n_los_y*sizeof(Real));
@@ -269,16 +281,26 @@ void Grid3D::Write_Analysis_Data_HDF5( hid_t file_id ){
   
   for ( int skewer_id=0; skewer_id<n_global_y; skewer_id++ ){
     for ( int los_id=0; los_id<n_los_y; los_id ++ ){
-      data_id = skewer_id * n_los_y + los_id;
-      buffer_id = los_id * n_global_y + skewer_id; 
+      data_id   = skewer_id * n_los_y + los_id;
+      buffer_id = skewer_id * n_los_y + los_id; 
       dataset_buffer_y[buffer_id] = Analysis.skewers_transmitted_flux_HI_y_global[data_id];
     }
   }
-  dataset_id = H5Dcreate(skewers_group_y, "los_transmitted_flux", H5T_IEEE_F64BE, dataspace_id_skewers_y, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  dataset_id = H5Dcreate(skewers_group_y, "los_transmitted_flux_HI", H5T_IEEE_F64BE, dataspace_id_skewers_y, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_y );
+  status = H5Dclose(dataset_id);
+  
+  for ( int skewer_id=0; skewer_id<n_global_y; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_y; los_id ++ ){
+      data_id   = skewer_id * n_los_y + los_id; 
+      buffer_id = skewer_id * n_los_y + los_id;
+      dataset_buffer_y[buffer_id] = Analysis.skewers_transmitted_flux_HeII_y_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_y, "los_transmitted_flux_HeII", H5T_IEEE_F64BE, dataspace_id_skewers_y, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_y );
   status = H5Dclose(dataset_id);
   free( dataset_buffer_y );
-  status = H5Gclose(skewers_group_y);
   
   //Write Skerwes Z 
   dataset_buffer_z = (Real *) malloc(n_global_z*n_los_z*sizeof(Real));
@@ -291,16 +313,74 @@ void Grid3D::Write_Analysis_Data_HDF5( hid_t file_id ){
   
   for ( int skewer_id=0; skewer_id<n_global_z; skewer_id++ ){
     for ( int los_id=0; los_id<n_los_z; los_id ++ ){
-      data_id = skewer_id * n_los_z + los_id;
-      buffer_id = los_id * n_global_z + skewer_id; 
+      data_id   = skewer_id * n_los_z + los_id; 
+      buffer_id = skewer_id * n_los_z + los_id;
       dataset_buffer_z[buffer_id] = Analysis.skewers_transmitted_flux_HI_z_global[data_id];
     }
   }
-  dataset_id = H5Dcreate(skewers_group_z, "los_transmitted_flux", H5T_IEEE_F64BE, dataspace_id_skewers_z, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  dataset_id = H5Dcreate(skewers_group_z, "los_transmitted_flux_HI", H5T_IEEE_F64BE, dataspace_id_skewers_z, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_z );
+  status = H5Dclose(dataset_id);
+  
+  for ( int skewer_id=0; skewer_id<n_global_z; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_z; los_id ++ ){
+      data_id   = skewer_id * n_los_z + los_id;
+      buffer_id = skewer_id * n_los_z + los_id; 
+      dataset_buffer_z[buffer_id] = Analysis.skewers_transmitted_flux_HeII_z_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_z, "los_transmitted_flux_HeII", H5T_IEEE_F64BE, dataspace_id_skewers_z, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_z );
   status = H5Dclose(dataset_id);
   free( dataset_buffer_z );
+
+  int n_ghost;
+  n_ghost = Analysis.n_ghost_skewer;
+  
+  hid_t dataspace_id_skewer_x;
+  hsize_t   dims1d_x[1];
+  dims1d_x[0] = n_los_x;
+  dataspace_id_skewer_x = H5Screate_simple(1, dims1d_x, NULL);
+  Real *buffer_skewer_x = (Real *) malloc(n_los_x*sizeof(Real));
+  for ( int los_id=0; los_id<n_los_x; los_id++ ){
+    buffer_skewer_x[los_id] = Analysis.full_vel_Hubble_x[los_id+n_ghost] / 1e5 ; //km/s
+  }
+  dataset_id = H5Dcreate(skewers_group_x, "vel_Hubble", H5T_IEEE_F64BE, dataspace_id_skewer_x, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer_x);
+  status = H5Dclose(dataset_id);
+    
+  hid_t dataspace_id_skewer_y;
+  hsize_t   dims1d_y[1];
+  dims1d_y[0] = n_los_y;
+  dataspace_id_skewer_y = H5Screate_simple(1, dims1d_y, NULL);
+  Real *buffer_skewer_y = (Real *) malloc(n_los_y*sizeof(Real));
+  for ( int los_id=0; los_id<n_los_y; los_id++ ){
+    buffer_skewer_y[los_id] = Analysis.full_vel_Hubble_y[los_id+n_ghost] / 1e5 ; //km/s
+  }
+  dataset_id = H5Dcreate(skewers_group_y, "vel_Hubble", H5T_IEEE_F64BE, dataspace_id_skewer_y, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer_y);
+  status = H5Dclose(dataset_id);
+
+  hid_t dataspace_id_skewer_z;
+  hsize_t   dims1d_z[1];
+  dims1d_z[0] = n_los_z;
+  dataspace_id_skewer_z = H5Screate_simple(1, dims1d_z, NULL);
+  Real *buffer_skewer_z = (Real *) malloc(n_los_z*sizeof(Real));
+  for ( int los_id=0; los_id<n_los_z; los_id++ ){
+    buffer_skewer_z[los_id] = Analysis.full_vel_Hubble_z[los_id+n_ghost] / 1e5 ; //km/s
+  }
+  dataset_id = H5Dcreate(skewers_group_z, "vel_Hubble", H5T_IEEE_F64BE, dataspace_id_skewer_z, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer_z);
+  status = H5Dclose(dataset_id);
+  
+  free( buffer_skewer_x );
+  free( buffer_skewer_y );
+  free( buffer_skewer_z );
+
+  status = H5Gclose(skewers_group_x);
+  status = H5Gclose(skewers_group_y);
   status = H5Gclose(skewers_group_z);  
+
   
   #endif
   

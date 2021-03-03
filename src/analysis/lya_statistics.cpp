@@ -18,20 +18,23 @@ void Analysis_Module::Transfer_Skewers_Global_Axis( int axis ){
   int n_skewers_root, n_los; 
   bool *root_procs;
   Real *skewers_F_HI_global;
+  Real *skewers_F_HeII_global;
   Real *skewers_F_HI_root;
+  Real *skewers_F_HeII_root;
   Real *transfer_buffer;
   
-  // if ( axis > 0 ) return;
   
-  chprintf( "  Transfering Skewers \n" );
+  // chprintf( "  Transfering Skewers \n" );
   
   if ( axis == 0 ){
     am_I_root = am_I_root_x;
     n_los = nx_total;
     root_procs = root_procs_x;
     n_skewers_root  = n_skewers_local_x;
-    skewers_F_HI_global = skewers_transmitted_flux_HI_x_global;
-    skewers_F_HI_root   = skewers_transmitted_flux_HI_x;
+    skewers_F_HI_global   = skewers_transmitted_flux_HI_x_global;
+    skewers_F_HeII_global = skewers_transmitted_flux_HeII_x_global;
+    skewers_F_HI_root     = skewers_transmitted_flux_HI_x;
+    skewers_F_HeII_root   = skewers_transmitted_flux_HeII_x;
     transfer_buffer = transfer_buffer_root_x;
   }
   if ( axis == 1 ){
@@ -39,8 +42,10 @@ void Analysis_Module::Transfer_Skewers_Global_Axis( int axis ){
     n_los = ny_total;
     root_procs = root_procs_y;
     n_skewers_root  = n_skewers_local_y;
-    skewers_F_HI_global = skewers_transmitted_flux_HI_y_global;
-    skewers_F_HI_root   = skewers_transmitted_flux_HI_y;
+    skewers_F_HI_global   = skewers_transmitted_flux_HI_y_global;
+    skewers_F_HeII_global = skewers_transmitted_flux_HeII_y_global;
+    skewers_F_HI_root     = skewers_transmitted_flux_HI_y;
+    skewers_F_HeII_root   = skewers_transmitted_flux_HeII_y;
     transfer_buffer = transfer_buffer_root_y;
   }
   if ( axis == 2 ){
@@ -48,32 +53,31 @@ void Analysis_Module::Transfer_Skewers_Global_Axis( int axis ){
     n_los = nz_total;
     root_procs = root_procs_z;
     n_skewers_root  = n_skewers_local_z;
-    skewers_F_HI_global = skewers_transmitted_flux_HI_z_global;
-    skewers_F_HI_root   = skewers_transmitted_flux_HI_z;
+    skewers_F_HI_global   = skewers_transmitted_flux_HI_z_global;
+    skewers_F_HeII_global = skewers_transmitted_flux_HeII_z_global;
+    skewers_F_HI_root     = skewers_transmitted_flux_HI_z;
+    skewers_F_HeII_root   = skewers_transmitted_flux_HeII_z;
     transfer_buffer = transfer_buffer_root_z;
   }
   
   if ( !am_I_root ) return;
 
   MPI_Status mpi_status;
+  int n_added, offset;
 
+  // Set the HI Flux array
   if ( procID == 0){
-    
     // Write the local data into the global array
     for ( int skewer_id=0; skewer_id<n_skewers_root; skewer_id++){
       for ( int los_id=0; los_id<n_los; los_id++){
         skewers_F_HI_global[skewer_id*n_los + los_id] = skewers_F_HI_root[skewer_id*n_los + los_id];
       }
     }
-    
     // Write the remote data into the global array
-    int n_added, offset;
     n_added = 1;
     for ( int p_id=1; p_id<nproc; p_id++ ){
       if ( !root_procs[p_id] ) continue;
-      // printf("  Recieving Skewers From pID: %d\n", p_id );
-      MPI_Recv( transfer_buffer, n_skewers_root*n_los, MPI_CHREAL, p_id, 0, world, &mpi_status  );
-      
+      MPI_Recv( transfer_buffer, n_skewers_root*n_los, MPI_CHREAL, p_id, 0, world, &mpi_status  );  
       offset = n_added * n_skewers_root * n_los;
       for ( int skewer_id=0; skewer_id<n_skewers_root; skewer_id++){
         for ( int los_id=0; los_id<n_los; los_id++){
@@ -84,12 +88,36 @@ void Analysis_Module::Transfer_Skewers_Global_Axis( int axis ){
     }  
   }
   else{
-    
     MPI_Send( skewers_F_HI_root, n_skewers_root*n_los, MPI_CHREAL, 0, 0, world  );
-    
   }
   
-
+  
+  // Set the HeII Flux array
+  if ( procID == 0){
+    // Write the local data into the global array
+    for ( int skewer_id=0; skewer_id<n_skewers_root; skewer_id++){
+      for ( int los_id=0; los_id<n_los; los_id++){
+        skewers_F_HeII_global[skewer_id*n_los + los_id] = skewers_F_HeII_root[skewer_id*n_los + los_id];
+      }
+    }
+    // Write the remote data into the global array
+    n_added = 1;
+    for ( int p_id=1; p_id<nproc; p_id++ ){
+      if ( !root_procs[p_id] ) continue;
+      MPI_Recv( transfer_buffer, n_skewers_root*n_los, MPI_CHREAL, p_id, 0, world, &mpi_status  );  
+      offset = n_added * n_skewers_root * n_los;
+      for ( int skewer_id=0; skewer_id<n_skewers_root; skewer_id++){
+        for ( int los_id=0; los_id<n_los; los_id++){
+          skewers_F_HeII_global[offset + skewer_id*n_los + los_id] = transfer_buffer[skewer_id*n_los + los_id];
+        }
+      }
+      n_added += 1;
+    }  
+  }
+  else{
+    MPI_Send( skewers_F_HeII_root, n_skewers_root*n_los, MPI_CHREAL, 0, 0, world  );
+  }
+  
   
   
   
@@ -485,10 +513,8 @@ void Analysis_Module::Reduce_Power_Spectrum_Axis( int axis ){
   
   MPI_Allreduce( ps_root, ps_global, n_bins, MPI_CHREAL, MPI_SUM, world );
   MPI_Allreduce( &n_root, n_axis, 1, MPI_INT, MPI_SUM, world );
-  
-  
-  chprintf( "  N_Skewers_Processed: %d \n", *n_axis );
-  
+
+  // chprintf( "  N_Skewers_Processed: %d \n", *n_axis );  
 }
 
 
@@ -1364,6 +1390,9 @@ void Analysis_Module::Initialize_Lya_Statistics( struct parameters *P ){
     skewers_transmitted_flux_HI_x_global = (Real *) malloc(n_skewers_global_x*nx_total*sizeof(Real));
     skewers_transmitted_flux_HI_y_global = (Real *) malloc(n_skewers_global_y*ny_total*sizeof(Real));
     skewers_transmitted_flux_HI_z_global = (Real *) malloc(n_skewers_global_z*nz_total*sizeof(Real));
+    skewers_transmitted_flux_HeII_x_global = (Real *) malloc(n_skewers_global_x*nx_total*sizeof(Real));
+    skewers_transmitted_flux_HeII_y_global = (Real *) malloc(n_skewers_global_y*ny_total*sizeof(Real));
+    skewers_transmitted_flux_HeII_z_global = (Real *) malloc(n_skewers_global_z*nz_total*sizeof(Real));
     transfer_buffer_root_x = (Real *) malloc(n_skewers_local_x*nx_total*sizeof(Real));
     transfer_buffer_root_y = (Real *) malloc(n_skewers_local_y*ny_total*sizeof(Real));
     transfer_buffer_root_z = (Real *) malloc(n_skewers_local_z*nz_total*sizeof(Real));

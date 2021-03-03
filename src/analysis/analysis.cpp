@@ -53,9 +53,9 @@ void Grid3D::Compute_Lya_Statistics( ){
     if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
     if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
 
-    if ( axis == 0 ) chprintf( " Computing P(k) Along X axis:\n");
-    if ( axis == 1 ) chprintf( " Computing P(k) Along Y axis:\n");
-    if ( axis == 2 ) chprintf( " Computing P(k) Along Z axis:\n");
+    if ( axis == 0 ) chprintf( " Computing P(k) Along X axis\n");
+    if ( axis == 1 ) chprintf( " Computing P(k) Along Y axis\n");
+    if ( axis == 2 ) chprintf( " Computing P(k) Along Z axis\n");
 
     Initialize_Power_Spectrum_Measurements( axis );
 
@@ -219,12 +219,15 @@ void Analysis_Module::Reset(){
     free( root_procs_y );
     free( root_procs_z );
     #ifdef OUTPUT_SKEWERS
-    free( skewers_transmitted_flux_HI_x_global );
-    free( skewers_transmitted_flux_HI_y_global );
-    free( skewers_transmitted_flux_HI_z_global );
     free( transfer_buffer_root_x );
     free( transfer_buffer_root_y );
     free( transfer_buffer_root_z );
+    free( skewers_transmitted_flux_HI_x_global );
+    free( skewers_transmitted_flux_HI_y_global );
+    free( skewers_transmitted_flux_HI_z_global );
+    free( skewers_transmitted_flux_HeII_x_global );
+    free( skewers_transmitted_flux_HeII_y_global );
+    free( skewers_transmitted_flux_HeII_z_global );
     #endif
   }
   
