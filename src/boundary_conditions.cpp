@@ -359,11 +359,15 @@ void Grid3D::Set_Hydro_Boundaries_GPU
     (c_momentum_z, C.d_momentum_z, H.n_cells*sizeof(Real), 0, 0);
   omp_target_associate_ptr 
     (c_energy, C.d_Energy, H.n_cells*sizeof(Real), 0, 0);
-
+  
+  #ifdef DE
   omp_target_associate_ptr 
     (c_gasEnergy, C.d_GasEnergy, H.n_cells*sizeof(Real), 0, 0);
+  #endif
+  #ifdef SCALAR  
   omp_target_associate_ptr 
     (c_scalar, C.d_scalar, H.n_cells*sizeof(Real), 0, 0);
+  #endif
 
   #pragma omp target teams distribute parallel for \
               map ( to : iaBoundary[:nBoundaries], iaCell[:nBoundaries], \
@@ -433,10 +437,12 @@ void Grid3D::Set_Hydro_Boundaries_GPU
   omp_target_disassociate_ptr(c_momentum_y, 0);
   omp_target_disassociate_ptr(c_momentum_z, 0);
   omp_target_disassociate_ptr(c_energy, 0);
-
+  #ifdef DE
   omp_target_disassociate_ptr(c_gasEnergy, 0);
+  #endif
+  #ifdef SCALAR
   omp_target_disassociate_ptr(c_scalar, 0);
-
+  #endif
 }
 
 
