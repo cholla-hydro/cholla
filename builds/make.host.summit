@@ -5,9 +5,9 @@
 CC                = mpicc
 CXX               = mpicxx
 CFLAGS_DEBUG      = -g -O0
-CFLAGS_OPTIMIZE   = -Ofast
-CXXFLAGS_DEBUG    = -g -O0 -std=c++11
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++11
+CFLAGS_OPTIMIZE   = -g -O2
+CXXFLAGS_DEBUG    = -g -O0 -std=c++11 -qoffload -qsmp=omp
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 -qoffload -qsmp=omp
 
 OMP_NUM_THREADS   = 16
 #-- How to launch job
