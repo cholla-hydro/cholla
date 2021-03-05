@@ -99,7 +99,7 @@ ifdef HIPCONFIG
   LIBS += -L$(ROCM_PATH)/lib -lamdhip64
 else
   GPUCXX ?= nvcc
-  GPUFLAGS += --extended-lambda -g -O3 -arch sm_70 -fmad=false
+  GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
   LIBS += -L$(CUDA_ROOT)/lib64 -lcudart

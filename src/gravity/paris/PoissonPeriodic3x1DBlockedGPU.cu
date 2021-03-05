@@ -306,7 +306,8 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
 #endif
         const double d = -1.0/(i2+j2+k2);
         const int iab = i+ni*(k0+dhq*j0);
-        ac[iab] = d*bc[iab];
+        ac[iab].x = d*bc[iab].x;
+        ac[iab].y = d*bc[iab].y;
       } else {
         ac[0].x = ac[0].y = 0;
       }
