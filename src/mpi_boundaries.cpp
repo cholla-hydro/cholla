@@ -1441,11 +1441,9 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
   switch(flag_decomp)
   {
     case SLAB_DECOMP:
-      //printf("calling Unload_MPI_Comm_Buffers_SLAB\n");
       Unload_MPI_Comm_Buffers_SLAB(index);
       break;
     case BLOCK_DECOMP:
-      //printf("calling Unload_MPI_Comm_Buffers_BLOCK\n");
       #ifdef GPU_MPI
       Unload_MPI_Comm_DeviceBuffers_BLOCK(index);
       #else
@@ -1510,16 +1508,6 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
   int gidx;
   int offset;
   
-  //Real *tmp;
-  //tmp = recv_buffer_x0;
-  /*
-  printf("MPIHost recv_buffer_x0: %f %f %f %f %f %f\n", 
-          tmp[0], tmp[1], 
-          tmp[2], tmp[3], 
-          tmp[4], tmp[5]); */
-  //write_debug(recv_buffer_x0, "recv_buffer_x0", x_buffer_length, procID);
-  //write_debug(recv_buffer_x1, "recv_buffer_x1", x_buffer_length, procID);
-
   if ( H.TRANSFER_HYDRO_BOUNDARIES ){
     //unload left x communication buffer
     if(index==0)
