@@ -10,7 +10,10 @@
 #include"io.h"
 #include"error_handling.h"
 #include"mpi_routines.h"
+
+#ifdef GPU_MPI
 #include "omp.h"
+#endif
 
 /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
  *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
@@ -415,6 +418,7 @@ void Grid3D::Set_Hydro_Boundaries_GPU
   c_gasEnergy  = C.d_GasEnergy;
   c_scalar     = C.d_scalar;
   
+  #ifdef GPU_MPI
   omp_target_associate_ptr 
     (c_density, C.d_density, H.n_cells*sizeof(Real), 0, 0);
   omp_target_associate_ptr 
@@ -434,6 +438,7 @@ void Grid3D::Set_Hydro_Boundaries_GPU
   omp_target_associate_ptr 
     (c_scalar, C.d_scalar, H.n_cells*sizeof(Real), 0, 0);
   #endif
+  #endif //GPU_MPI
 
   #pragma omp target teams distribute parallel for \
               map ( to : iaBoundary[:nBoundaries], iaCell[:nBoundaries], \
@@ -497,7 +502,8 @@ void Grid3D::Set_Hydro_Boundaries_GPU
   }
   
   //printf("OpenMP Disassociate\n");
-
+  
+  #ifdef GPU_MPI
   omp_target_disassociate_ptr(c_density, 0);
   omp_target_disassociate_ptr(c_momentum_x, 0);
   omp_target_disassociate_ptr(c_momentum_y, 0);
@@ -509,6 +515,7 @@ void Grid3D::Set_Hydro_Boundaries_GPU
   #ifdef SCALAR
   omp_target_disassociate_ptr(c_scalar, 0);
   #endif
+  #endif // GPU_MPI
 }
 
 
