@@ -76,7 +76,13 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
   }
-
+  
+  if ( C.device != NULL )
+    {
+    CudaSafeCall( 
+      cudaMemcpy(C.device, C.density, H.n_fields*H.n_cells*sizeof(Real),
+                 cudaMemcpyHostToDevice) );
+    }
 }
 
 /*! \fn void Set_Domain_Properties(struct parameters P)

@@ -969,7 +969,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 {
   int i, j, k, id, buf_id;
   hid_t     dataset_id, dataspace_id; 
-  Real      *dataset_buffer;
+  hid_t     dataset_id_full, dataspace_id_full; 
+  Real      *dataset_buffer, *dataset_buffer_full;
   herr_t    status;
   
   bool output_energy;
@@ -1262,7 +1263,10 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     int       ny_dset = H.ny_real;
     int       nz_dset = H.nz_real;
     hsize_t   dims[3];
+    hsize_t   dims_full[3];
+    
     dataset_buffer = (Real *) malloc(H.nx_real*H.ny_real*H.nz_real*sizeof(Real));
+    dataset_buffer_full = (Real *) malloc ( H.n_cells * sizeof(Real) );
 
     // Create the data space for the datasets
     dims[0] = nx_dset;
@@ -1287,7 +1291,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer); 
     // Free the dataset id
     status = H5Dclose(dataset_id);
-
+    
+    
     // Copy the x momentum array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
@@ -3227,3 +3232,17 @@ void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real
   *zp = a20*x + a21*y + a22*z;
 
 } 
+
+void write_debug ( Real *Value, const char *fname, int nValues, int iProc )
+  {
+  char fn[1024];
+  int ret;
+  
+  sprintf(fn, "%s_%07d.txt", fname, iProc);
+  FILE *fp = fopen(fn, "w");
+  
+  for ( int iV = 0; iV < nValues; iV++ )
+    fprintf(fp, "%e\n", Value[iV]);
+  
+  fclose (fp);
+  }

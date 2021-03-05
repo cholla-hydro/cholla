@@ -172,6 +172,9 @@ void Allocate_MPI_Buffers_SLAB(struct Header *H);
 /* Allocate MPI communication buffers for a BLOCK decomposition */
 void Allocate_MPI_Buffers_BLOCK(struct Header *H);
 
+/* Allocate MPI communication GPU buffers for a BLOCK decomposition */
+void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H);
+
 /* find the greatest prime factor of an integer */
 int greatest_prime_factor(int n);
 

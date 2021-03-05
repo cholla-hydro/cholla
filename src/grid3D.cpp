@@ -247,8 +247,6 @@ void Grid3D::Initialize(struct parameters *P)
  *  \brief Allocate memory for the arrays. */
 void Grid3D::AllocateMemory(void)
 {
-
-
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
   CudaSafeCall( cudaHostAlloc(&buffer0, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
@@ -271,6 +269,19 @@ void Grid3D::AllocateMemory(void)
   CudaSafeCall( cudaHostAlloc(&C.Grav_potential, H.n_cells*sizeof(Real), cudaHostAllocDefault) );
   #else
   C.Grav_potential = NULL;
+  #endif
+  
+  CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
+  C.d_density     = C.device;
+  C.d_momentum_x  = &(C.device[H.n_cells]);
+  C.d_momentum_y  = &(C.device[2*H.n_cells]);
+  C.d_momentum_z  = &(C.device[3*H.n_cells]);
+  C.d_Energy      = &(C.device[4*H.n_cells]);
+  #ifdef SCALAR
+  C.d_scalar      = &(C.device[5*H.n_cells]);
+  #endif
+  #ifdef DE
+  C.d_GasEnergy   = &(C.device[(H.n_fields-1)*H.n_cells]);
   #endif
   
   // initialize array
@@ -578,7 +589,7 @@ Real Grid3D::Update_Grid(void)
     max_dti = CTU_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
+    max_dti = VL_Algorithm_2D_CUDA(g0, g1, C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //VL
     #endif //CUDA
   }
@@ -599,7 +610,7 @@ Real Grid3D::Update_Grid(void)
     max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    max_dti = VL_Algorithm_3D_CUDA(g0, g1, C.device, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //VL
     #ifdef SIMPLE
     max_dti = Simple_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );

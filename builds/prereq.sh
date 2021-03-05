@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "$CHOLLA_ENVSET" == "1" ]; then
+  exit 0
+fi
+
 if [ "$1" == "build" ]; then
   
   case $2 in
