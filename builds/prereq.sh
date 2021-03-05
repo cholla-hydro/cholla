@@ -1,7 +1,6 @@
 #!/bin/bash
 
 if [ "$CHOLLA_ENVSET" == "1" ]; then
-  echo 'Hello World';
   exit 0
 fi
 
