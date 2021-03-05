@@ -90,11 +90,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
     /* Step 2 - Set non-MPI x-boundaries */
     Set_Boundaries(0, flags);
     Set_Boundaries(1, flags);
-    /* FIXME: Need to do Set_Boundaries() on the device */
-    /*
-    cudaMemcpy(C.device, C.density, H.n_fields*H.n_cells*sizeof(Real), 
-                 cudaMemcpyHostToDevice);
-    */
+    
     /* Step 3 - Receive MPI x-boundaries */
     if (flags[0]==5 || flags[1]==5) {
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(0, flags);
@@ -115,12 +111,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
     /* Step 5 - Set non-MPI y-boundaries */
     Set_Boundaries(2, flags);
     Set_Boundaries(3, flags);
-    /* FIXME: Need to do Set_Boundaries() on the device */
-    /*
-    cudaMemcpy(C.device, C.density, H.n_fields*H.n_cells*sizeof(Real), 
-                 cudaMemcpyHostToDevice);
-    */
-
+    
     /* Step 6 - Receive MPI y-boundaries */
     if (flags[2]==5 || flags[3]==5) {
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(1, flags);
@@ -141,11 +132,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
     /* Step 8 - Set non-MPI z-boundaries */
     Set_Boundaries(4, flags);
     Set_Boundaries(5, flags);
-    /* FIXME: Need to do Set_Boundaries() on the device */
-    /*
-    cudaMemcpy(C.device, C.density, H.n_fields*H.n_cells*sizeof(Real), 
-                 cudaMemcpyHostToDevice);
-    */
+    
     /* Step 9 - Receive MPI z-boundaries */
     if (flags[4]==5 || flags[5]==5) {
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(2, flags);
@@ -550,12 +537,7 @@ int Grid3D::Load_Hydro_Buffer_X0(){
       }
     }
   }
-  /*
-  printf("MPIHost send_buffer_x0: %f %f %f %f %f %f\n", 
-          send_buffer_x0[0], send_buffer_x0[1], 
-          send_buffer_x0[2], send_buffer_x0[3], 
-          send_buffer_x0[4], send_buffer_x0[5]); */
-  //write_debug(send_buffer_x0, "send_buffer_x0", x_buffer_length, procID);
+
   return x_buffer_length;  
 }
 
@@ -623,18 +605,7 @@ int Grid3D::Load_Hydro_DeviceBuffer_X0(){
       }
     }
   }
-  /*
-  Real *tmp = (Real *) malloc ( sizeof(Real) * x_buffer_length );
-  cudaMemcpy(tmp, send_buffer_x0, x_buffer_length*sizeof(Real), 
-             cudaMemcpyDeviceToHost);
-  */
-  /*
-  printf("MPIGPU send_buffer_x0: %f %f %f %f %f %f\n", 
-          tmp[0], tmp[1], 
-          tmp[2], tmp[3], 
-          tmp[4], tmp[5]); */
-  //write_debug(tmp, "send_buffer_x0", x_buffer_length, procID);
-  //free(tmp);
+
   return x_buffer_length;  
 }
 
@@ -688,7 +659,6 @@ int Grid3D::Load_Hydro_Buffer_X1(){
       }
     }
   }
-  //write_debug(send_buffer_x1, "send_buffer_x1", x_buffer_length, procID);
   return x_buffer_length;
 }
 
@@ -758,13 +728,6 @@ int Grid3D::Load_Hydro_DeviceBuffer_X1(){
     }
   }
   
-  /*
-  Real *tmp = (Real *) malloc ( sizeof ( Real ) * x_buffer_length );
-  cudaMemcpy(tmp, send_buffer_x1, x_buffer_length*sizeof(Real), 
-             cudaMemcpyDeviceToHost);
-  write_debug(tmp, "send_buffer_x1", x_buffer_length, procID);
-  free(tmp);
-  */
   return x_buffer_length;
 }
 
@@ -858,13 +821,6 @@ int Grid3D::Load_Hydro_DeviceBuffer_Y0(){
       }
     }
   }
-  /*
-  Real *tmp = (Real *) malloc ( sizeof ( Real ) * y_buffer_length );
-  cudaMemcpy(tmp, send_buffer_y0, y_buffer_length*sizeof(Real), 
-             cudaMemcpyDeviceToHost);
-  write_debug(tmp, "send_buffer_y0", y_buffer_length, procID);
-  free(tmp);
-  */ 
   return y_buffer_length;
 }
 
@@ -958,14 +914,6 @@ int Grid3D::Load_Hydro_DeviceBuffer_Y1(){
       }
     }
   }
-  
-  /*
-  Real *tmp = (Real *) malloc ( sizeof ( Real ) * y_buffer_length );
-  cudaMemcpy(tmp, send_buffer_y1, y_buffer_length*sizeof(Real), 
-             cudaMemcpyDeviceToHost);
-  write_debug(tmp, "send_buffer_y1", y_buffer_length, procID);
-  free(tmp);
-  */
   return y_buffer_length;
 }
 
@@ -1025,14 +973,7 @@ int Grid3D::Load_Hydro_DeviceBuffer_Z0(){
       }
     }
   }
-  
-  /*
-  Real *tmp = (Real *) malloc ( sizeof ( Real ) * z_buffer_length );
-  cudaMemcpy(tmp, send_buffer_z0, z_buffer_length*sizeof(Real), 
-             cudaMemcpyDeviceToHost);
-  write_debug(tmp, "send_buffer_z0", z_buffer_length, procID);
-  free(tmp);
-  */
+
   return z_buffer_length;
 }
 
@@ -1088,14 +1029,6 @@ int Grid3D::Load_Hydro_DeviceBuffer_Z1(){
       }
     }
   }
-  
-  /*
-  Real *tmp = (Real *) malloc ( sizeof ( Real ) * z_buffer_length );
-  cudaMemcpy(tmp, send_buffer_z1, z_buffer_length*sizeof(Real), 
-             cudaMemcpyDeviceToHost);
-  write_debug(tmp, "send_buffer_z1", z_buffer_length, procID);
-  free(tmp);
-  */
   return z_buffer_length;
 }
 
@@ -1821,34 +1754,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
   int offset;
   Real *c_head;
   
-  /*
-  Real *tmp_0, *tmp_1;
-  
-  tmp_0 = (Real *) malloc(sizeof(Real)*x_buffer_length);
-  tmp_1 = (Real *) malloc(sizeof(Real)*x_buffer_length);
-  */
   c_head = (Real *) C.device;
-  //c_head = (Real *) C.density;
-  
-  //cudaMemcpy(tmp, recv_buffer_x0, x_buffer_length*sizeof(Real), 
-  //           cudaMemcpyDeviceToHost);
-  /*
-  printf("MPIGPU recv_buffer_x0: %f %f %f %f %f %f\n", 
-          tmp[0], tmp[1], 
-          tmp[2], tmp[3], 
-          tmp[4], tmp[5]);
-  */
-  
-  /*
-  cudaMemcpy(tmp_0, recv_buffer_x0, x_buffer_length*sizeof(Real), 
-               cudaMemcpyDeviceToHost);
-  cudaMemcpy(tmp_1, recv_buffer_x1, x_buffer_length*sizeof(Real), 
-               cudaMemcpyDeviceToHost);
-  */
-  /*
-  write_debug(tmp_0, "recv_buffer_x0", x_buffer_length, procID);
-  write_debug(tmp_1, "recv_buffer_x1", x_buffer_length, procID);
-  */
   
   if ( H.TRANSFER_HYDRO_BOUNDARIES ){
     //unload left x communication buffer
@@ -1867,7 +1773,6 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
           gidx = i;
           for (ii=0; ii<H.n_fields; ii++) { 
             c_head[idx + H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
-            //c_head[idx + H.n_cells] = *(tmp_0 + gidx + ii*offset);
           }
         }
       }
@@ -1885,7 +1790,6 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
             gidx = i + j*H.n_ghost;
             for (ii=0; ii<H.n_fields; ii++) { 
               c_head[idx + ii*H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
-              //c_head[idx + ii*H.n_cells] = *(tmp_0 + gidx + ii*offset);
             }
           }
         }
@@ -1905,7 +1809,6 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
               gidx = i + j*H.n_ghost + k*H.n_ghost*(H.ny-2*H.n_ghost);
               for (ii=0; ii<H.n_fields; ii++) {
                 c_head[idx + ii*H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
-                //c_head[idx + ii*H.n_cells] = *(tmp_0 + gidx + ii*offset);
               }
             }
           }
@@ -1930,7 +1833,6 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
           gidx = i;
           for (ii=0; ii<H.n_fields; ii++) {
             c_head[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
-            //c_head[idx + ii*H.n_cells] = *(tmp_1 + gidx + ii*offset);
           }
         }
       }
@@ -1948,7 +1850,6 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
             gidx = i + j*H.n_ghost;
             for (ii=0; ii<H.n_fields; ii++) {
               c_head[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
-              //c_head[idx + ii*H.n_cells] = *(tmp_1 + gidx + ii*offset);
             }
           }
         }
@@ -1968,12 +1869,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
               gidx = i + j*H.n_ghost + k*H.n_ghost*(H.ny-2*H.n_ghost);
               for (ii=0; ii<H.n_fields; ii++) {
                 c_head[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
-                /*
-                printf("idx: %d, ii: %d, val: %f, new: %f\n", \
-                        idx, ii, c_head[idx + ii*H.n_cells], \
-                        *(tmp_1 + gidx + ii*offset));
-                c_head[idx + ii*H.n_cells] = *(tmp_1 + gidx + ii*offset);
-                */
+                
               }
             }
           }
@@ -2134,11 +2030,6 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
     if ( index == 5 ) Unload_Particles_Density_Boundary_From_Buffer( 2, 1, recv_buffer_z1 );
   }
   #endif
-
-  /*
-  free (tmp_0);
-  free (tmp_1);
-  */
 
 }
 
