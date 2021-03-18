@@ -140,6 +140,10 @@ int main(int argc, char *argv[])
   if (strcmp(P.init, "Read_Grid") != 0 || G.H.Output_Now ) {
     // write the initial conditions to file
     chprintf("Writing initial conditions to file...\n");
+    #ifdef GPU_MPI
+    cudaMemcpy(G.C.density, G.C.device, 
+             G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
+    #endif
     WriteData(G, P, nfile);
   }
   // add one to the output file count
@@ -236,6 +240,10 @@ int main(int argc, char *argv[])
     {
       #ifdef OUTPUT
       /*output the grid data*/
+      #ifdef GPU_MPI
+      cudaMemcpy(G.C.density, G.C.device, 
+                 G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
+      #endif
       WriteData(G, P, nfile);
       // add one to the output file count
       nfile++;
@@ -250,7 +258,14 @@ int main(int argc, char *argv[])
     
     #ifdef N_STEPS_LIMIT
     // Exit the loop when reached the limit number of steps (optional)
-    if ( G.H.n_step == N_STEPS_LIMIT) break;
+    if ( G.H.n_step == N_STEPS_LIMIT) {
+      #ifdef GPU_MPI
+      cudaMemcpy(G.C.density, G.C.device, 
+                 G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
+      #endif
+      WriteData(G, P, nfile);
+      break;
+    }
     #endif
 
     #ifdef COSMOLOGY

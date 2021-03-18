@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "$CHOLLA_ENVSET" == "1" ]; then
+  exit 0
+fi
+
 if [ "$1" == "build" ]; then
   
   case $2 in
@@ -11,9 +15,9 @@ if [ "$1" == "build" ]; then
       fi
       ;;
     poplar)
-        ( module list 2>&1 | grep -q ompi-cray \
+        ( module list 2>&1 | grep -q ompi \
+          || module list 2>&1 | grep -q cray-mpich \
           || module list 2>&1 | grep -q cray-mvapich2 ) \
-          && module list 2>&1 | grep -q PrgEnv-cray \
           && module list 2>&1 | grep -q hdf5 \
           && ( module list 2>&1 | grep -q rocm \
           || module list 2>&1 | grep -q cuda )
@@ -23,6 +27,13 @@ if [ "$1" == "build" ]; then
           echo "    'module load ompi-cray hdf5'"
           exit 1
         fi 
+      ;;
+    crc)
+       if ! module is-loaded gcc hdf5 cuda openmpi ; then
+         echo "echo: requires loading modules: cuda, gcc, openmpi and hdf5"
+         exit 1
+       fi 
+     ;;
   esac
 
 fi
@@ -47,6 +58,10 @@ if [ "$1" == "run" ]; then
       #  exit 1
       #fi
       $0 build $2
+      ;;
+    crc)
+      echo "use slurm"
+      ;;
   esac
   
 fi

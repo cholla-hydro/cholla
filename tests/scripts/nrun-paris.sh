@@ -1,6 +1,6 @@
 #!/bin/bash
 
-module load PrgEnv-cray
+module restore PrgEnv-cray
 module load hdf5
 module load gcc/8.1.0
 

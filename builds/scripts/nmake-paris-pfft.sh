@@ -1,5 +1,6 @@
 #!/bin/bash
-
+module restore -s PrgEnv-cray
+module use /home/users/twhite/share/modulefiles
 module load pfft
 module load hdf5
 module load gcc/8.1.0

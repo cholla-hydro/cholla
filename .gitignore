@@ -27,6 +27,7 @@ cholla*
 
 ## input files
 #parameter_file.txt
+data
 
 # Output files #
 ################
@@ -34,6 +35,7 @@ cholla*
 *.bin
 out.*
 o.*
+run
 
 # Logs and databases #
 ######################

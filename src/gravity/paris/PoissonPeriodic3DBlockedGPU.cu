@@ -1,14 +1,15 @@
+#ifdef PARIS
+
 #include "PoissonPeriodic3DBlockedGPU.hpp"
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
 #define ERROR(X,...) if (X) { fprintf(stderr,"%s(%d): ",__FILE__,__LINE__); fprintf(stderr,__VA_ARGS__); fprintf(stderr,"\n"); MPI_Abort(MPI_COMM_WORLD,(X)); }
-
-static constexpr double pi = 3.141592653589793238462643383279502884197169399375105820974;
 
 static inline __host__ __device__ double sqr(const double x) { return x*x; }
 
@@ -22,9 +23,9 @@ PoissonPeriodic3DBlockedGPU::PoissonPeriodic3DBlockedGPU(const int n[3], const d
   dj_(sqr(double(n[1]-1)/(hi[1]-lo[1]))/6.0),
   dk_(sqr(double(n[2]-1)/(hi[2]-lo[2]))/6.0),
 #else
-  di_{2.0*pi*double(n[0]-1)/(double(n[0])*(hi[0]-lo[0]))},
-  dj_{2.0*pi*double(n[1]-1)/(double(n[1])*(hi[1]-lo[1]))},
-  dk_{2.0*pi*double(n[2]-1)/(double(n[2])*(hi[2]-lo[2]))},
+  di_{2.0*M_PI*double(n[0]-1)/(double(n[0])*(hi[0]-lo[0]))},
+  dj_{2.0*M_PI*double(n[1]-1)/(double(n[1])*(hi[1]-lo[1]))},
+  dk_{2.0*M_PI*double(n[2]-1)/(double(n[2])*(hi[2]-lo[2]))},
 #endif
   mi_(m[0]),
   mj_(m[1]),
@@ -55,21 +56,21 @@ PoissonPeriodic3DBlockedGPU::PoissonPeriodic3DBlockedGPU(const int n[3], const d
   const int njBlock = nj_/mj_;
   ERROR(nk_%mk_,"%d Z elements are not divisible into %d Z tasks",nk_,mk_);
   const int nkBlock = nk_/mk_;
-  const long nBlock = long(niBlock)*long(njBlock)*long(nkBlock);
+  const int nBlock = niBlock*njBlock*nkBlock;
 
   const int nh = nk_/2+1;
   const int mjk = mj_*mk_;
   ERROR(niBlock%mjk,"%d X layers per XYZ block not divisible into %dx%d=%d YZ slabs",niBlock,mj_,mk_,mjk);
   const int niSlab = niBlock/mjk;
-  const long nSlab = long(niSlab)*(nj_)*2L*long(nh);
+  const int nSlab = niSlab*nj_*2*nh;
 
   const int mijk = mi_*mj_*mk_;
-  const long njk = nj_*nk_;
-  const long njh = nj_*nh;
-  ERROR(njh%mijk,"%dx(%d/2+1)=%ld X pencils not divisible into %d tasks",nj_,nk_,njh,mijk);
+  const int njk = nj_*nk_;
+  const int njh = nj_*nh;
+  ERROR(njh%mijk,"%dx(%d/2+1)=%d X pencils not divisible into %d tasks",nj_,nk_,njh,mijk);
   const int njhPencil = njh/mijk;
-  const long nPencil = ni_*2*njhPencil;
-  const long nMax = std::max({nBlock,nSlab,nPencil});
+  const int nPencil = ni_*2*njhPencil;
+  const int nMax = std::max({nBlock,nSlab,nPencil});
 
   bytes_ = sizeof(double)*nMax;
   {
@@ -114,7 +115,7 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
   cufftDoubleComplex *const cb = reinterpret_cast<cufftDoubleComplex *>(db);
 
   const int nh = nk_/2+1;
-  const long njh = nj*nh;
+  const int njh = nj*nh;
   const int niBlock = (ni+mi_-1)/mi_;
   const int njBlock = (nj+mj-1)/mj;
   const int nkBlock = (nk_+mk-1)/mk;
@@ -138,8 +139,9 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   gpuFor(
     niSlab,mj,njBlock,mk,nkBlock,
-    GPU_LAMBDA(const long ia, const long i, const int p, const int j, const int q, const int k) {
-      const long ib = k+nkBlock*(j+njBlock*(i+niSlab*(q+mk*p)));
+    GPU_LAMBDA(const int i, const int p, const int j, const int q, const int k) {
+      const int ia = k+nkBlock*(q+mk*(j+njBlock*(p+mj*i)));
+      const int ib = k+nkBlock*(j+njBlock*(i+niSlab*(q+mk*p)));
       da[ia] = db[ib];
     });
 
@@ -150,8 +152,9 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   gpuFor(
     njh,niSlab,
-    GPU_LAMBDA(const long ia, const long jk, const long i) {
-      const long ib = jk+njh*i;
+    GPU_LAMBDA(const int jk, const int i) {
+      const int ia = i+niSlab*jk;
+      const int ib = jk+njh*i;
       ca[ia].x = cb[ib].x;
       ca[ia].y = cb[ib].y;
     });
@@ -171,8 +174,9 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   gpuFor(
     njhPencil,m,niSlab,
-    GPU_LAMBDA(const long ia, const int jk, const int pq, const int i) {
-      const long ib = i+niSlab*(jk+njhPencil*pq);
+    GPU_LAMBDA(const int jk, const int pq, const int i) {
+      const int ia = i+niSlab*(pq+m*jk);
+      const int ib = i+niSlab*(jk+njhPencil*pq);
       ca[ia].x = cb[ib].x;
       ca[ia].y = cb[ib].y;
     });
@@ -184,22 +188,24 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   {
 #ifdef PARIS_3PT
-    const double si = pi/double(ni_);
-    const double sj = pi/double(nj_);
-    const double sk = pi/double(nk_);
+    const double si = M_PI/double(ni_);
+    const double sj = M_PI/double(nj_);
+    const double sk = M_PI/double(nk_);
 #elif defined PARIS_5PT
-    const double si = 2.0*pi/double(ni_);
-    const double sj = 2.0*pi/double(nj_);
-    const double sk = 2.0*pi/double(nk_);
+    const double si = 2.0*M_PI/double(ni_);
+    const double sj = 2.0*M_PI/double(nj_);
+    const double sk = 2.0*M_PI/double(nk_);
 #endif
 
     int rank = MPI_PROC_NULL;
     MPI_Comm_rank(commWorld_,&rank);
-    const long jkLo = rank*njhPencil;
-    const long jkHi = std::min(jkLo+njhPencil,njh);
+    const int jkLo = rank*njhPencil;
+    const int jkHi = std::min(jkLo+njhPencil,njh);
+    const int djk = jkHi-jkLo;
     gpuFor(
-      jkHi-jkLo,ni,
-      GPU_LAMBDA(const long ijk, long jk, const long i) {
+      djk,ni,
+      GPU_LAMBDA(int jk, const int i) {
+        const int ijk = i+ni*jk;
         if ((ijk == 0) && (jkLo == 0)) {
           cb[0].x = cb[0].y = 0;
         } else {
@@ -244,8 +250,9 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   gpuFor(
     m,njhPencil,niSlab,
-    GPU_LAMBDA(const long ib, const int pq, const int jk, const int i) {
-      const long ia = i+niSlab*(pq+m*jk);
+    GPU_LAMBDA(const int pq, const int jk, const int i) {
+      const int ia = i+niSlab*(pq+m*jk);
+      const int ib = i+niSlab*(jk+njhPencil*pq);
       cb[ib].x = ca[ia].x;
       cb[ib].y = ca[ia].y;
     });
@@ -261,8 +268,9 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   gpuFor(
     niSlab,njh,
-    GPU_LAMBDA(const long ib, const long i, const long jk) {
-      const long ia = i+jk*niSlab;
+    GPU_LAMBDA(const int i, const int jk) {
+      const int ia = i+jk*niSlab;
+      const int ib = jk+njh*i;
       cb[ib].x = ca[ia].x;
       cb[ib].y = ca[ia].y;
     });
@@ -276,8 +284,9 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   gpuFor(
     mj,mk,niSlab,njBlock,nkBlock,
-    GPU_LAMBDA(const long ib, const int p, const int q, const int i, const int j, const int k) {
-      const long ia = k+nkBlock*(q+mk*(j+njBlock*(p+mj*i)));
+    GPU_LAMBDA(const int p, const int q, const int i, const int j, const int k) {
+      const int ia = k+nkBlock*(q+mk*(j+njBlock*(p+mj*i)));
+      const int ib = k+nkBlock*(j+njBlock*(i+niSlab*(q+mk*p)));
       db[ib] = divN*da[ia];
     });
 
@@ -290,3 +299,5 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
   MPI_Alltoall(db,nBlockSlab,MPI_DOUBLE,da,nBlockSlab,MPI_DOUBLE,commSlab_);
 #endif
 }
+
+#endif

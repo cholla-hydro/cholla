@@ -45,7 +45,7 @@ void Grid3D::Set_Potential_Boundaries_Isolated( int direction, int side, int *fl
     if ( side == 1 ) pot_boundary = Grav.F.pot_boundary_x1;
   }
   #endif
-  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
   if ( direction == 1 ){
     n_i = Grav.nx_local;
     n_j = Grav.nz_local;
@@ -135,15 +135,16 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
   Real M, cm_pos_x, cm_pos_y, cm_pos_z, pos_x, pos_y, pos_z, r, delta_x, delta_y, delta_z;
   
   if ( bc_potential_type == 0 ){
-    M = 0.1005;
+    const Real r0 = 0.2;
+    M = (1.0-0.0005)*4.0*M_PI*r0*r0*r0/3.0;
     cm_pos_x = 0.5;
     cm_pos_y = 0.5;
     cm_pos_z = 0.5; 
   }
   
-  // for bc_pontential_type =1 the mod_frac is 
+  // for bc_pontential_type = 1 the mod_frac is 
   // the disk mass fraction being modelled.   
-  Real mod_frac = 1; //1e-4; //0.1; 
+  Real mod_frac = 1; 
   Real pot_val;
   int i, j, k, id;
   for ( k=0; k<nGHST; k++ ){
