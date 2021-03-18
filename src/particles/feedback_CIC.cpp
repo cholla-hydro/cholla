@@ -2,9 +2,10 @@
 #ifdef DE
 #ifdef PARTICLE_AGE
 
-#include "feeback_CIC.h"
+#include "feedback_CIC.h"
 #include "particles_3D.h"
 #include "../grid3D.h"
+#include "density_CIC.h"
 
 
 #ifdef PARALLEL_OMP
@@ -14,14 +15,16 @@
 
 // simple energy feedback prescription
 Real getClusterEnergyFeedback(Real t, Real dt, Real age) {
-    if (t - age <= 1.0e4) return ENERGY_FEEDBACK_RATE * dt;
+    if (t + age <= 1.0e4) return ENERGY_FEEDBACK_RATE * dt;
     else return 0;
 }
 
-// brain-dead mass feedback prescription
+// simple feedback prescription
 Real getClusterMassFeedback(Real t, Real dt, Real age) {
-    if (t - age <= 1.0e4) return 0.1 * dt; // 0.01 SN/ky/cluster * 10 solar mass ejected/SN
-    else return 0;
+    //if (t + age <= 1.0e4) return 0.1 * dt; // 0.01 SN/ky/cluster * 10 solar mass ejected/SN
+    //if (t + age <= 1.0e4) return 10 * dt; // 1 SN/ky/cluster * 10 solar mass ejected/SN
+    //else return 0;
+    return 0;
 }
 
 

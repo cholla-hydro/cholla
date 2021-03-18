@@ -42,7 +42,7 @@ void Particles_3D::Load_Particles_Data( struct parameters *P){
   #ifdef TILED_INITIAL_CONDITIONS
   sprintf(filename,"%sics_%dMpc_%d_particles.h5", P->indir, (int) P->tile_length/1000, G.nx_local); //Everyone reads the same file
   #else
-  sprintf(filename,"%s.%d",filename,procID);
+  if (strcmp(P->init, "Disk_3D_particles") != 0) sprintf(filename,"%s.%d",filename,procID);
   #endif //TILED_INITIAL_CONDITIONS
   #endif
 
@@ -116,9 +116,11 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   #ifndef MPI_CHOLLA
   chprintf(" Loading %ld particles\n", n_to_load);
   #else
-  part_int_t n_total_load;
-  n_total_load = ReducePartIntSum( n_to_load );
-  chprintf( " Total Particles To Load: %ld\n", n_total_load );
+  if (strcmp(P->init, "Disk_3D_particles") != 0) {
+    part_int_t n_total_load;
+    n_total_load = ReducePartIntSum( n_to_load );
+    chprintf( " Total Particles To Load: %ld\n", n_total_load );
+  }
   // Print individual n_to_load
   // for ( int i=0; i<nproc; i++ ){
   //   if ( procID == i ) std::cout << "  [pId:"  << procID << "]  Loading Particles: " << n_local <<  std::endl;
@@ -332,7 +334,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
     partIDs.push_back(pID);
     #endif
     #ifdef PARTICLE_AGE
-    age.push_back( pAge )
+    age.push_back( pAge );
     #endif
     n_local += 1; //Add 1 to the local number of particles
     #endif//PARTICLES_CPU
@@ -432,8 +434,6 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   free(dataset_buffer_age);
   #endif
 } 
-
-
 
 
 /*! \fn void Write_Header_HDF5(hid_t file_id)

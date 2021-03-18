@@ -497,7 +497,8 @@ void Grid3D::Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& g
   int ny = Grav.ny_local + 2*N_GHOST_POTENTIAL;
   int nz = Grav.nz_local + 2*N_GHOST_POTENTIAL;
 
-  Real fraction = 0; //0.9;
+  // the fraction of the disk that's not modelled (and so its analytic contribution must be added)
+  //Real non_mod_frac = 0.0;
 
   int k, j, i, id;
   Real x_pos, y_pos, z_pos, R;
@@ -510,9 +511,8 @@ void Grid3D::Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& g
         y_pos = Grav.yMin + Grav.dy*(j-N_GHOST_POTENTIAL) + 0.5*Grav.dy;
         z_pos = Grav.zMin + Grav.dz*(k-N_GHOST_POTENTIAL) + 0.5*Grav.dz;
         R = sqrt(x_pos*x_pos + y_pos*y_pos);
-
-        //	Grav.F.potential_h[id] += fraction*gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos); 
-	      Grav.F.potential_h[id] += gal.phi_halo_D3D(R, z_pos); 
+        //Grav.F.potential_h[id] += non_mod_frac*gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos); 
+        Grav.F.potential_h[id] += gal.phi_halo_D3D(R, z_pos); 
       }
     }
   }

@@ -727,7 +727,7 @@ class Grid3D
   #ifdef DE
   #ifdef PARTICLE_AGE
   void Cluster_Feedback();
-  void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end) ();
+  void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end);
   #endif 
   #endif 
   #endif 

@@ -8,6 +8,7 @@
 #include"../random_functions.h"
 #include "../model/disk_galaxy.h"
 #include "particles_3D.h"
+#include "error_handling.h"
 
 #ifdef MPI_CHOLLA
 #include"../mpi_routines.h"
@@ -163,8 +164,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   // Initialize Particles
   if (strcmp(P->init, "Spherical_Overdensity_3D")==0) Initialize_Sphere();
   else if (strcmp(P->init, "Zeldovich_Pancake")==0) Initialize_Zeldovich_Pancake( P );
-  else if (strcmp(P->init, "Read_Grid")==0)  Load_Particles_Data(  P );
-  else if (strcmp(P->init, "Disk_3D_Stellar_Clusters") == 0) Initialize_Disk_Stellar_Clusters(P);
+  else if (strcmp(P->init, "Read_Grid")==0 || strcmp(P->init, "Disk_3D_particles") == 0)  Load_Particles_Data(  P );
   
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);
@@ -483,12 +483,10 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   std::random_device rd;
   std::mt19937 generator(rd());
   std::gamma_distribution<Real> radialDist(2,1);  //for generating cyclindrical radii
-  //std::uniform_real_distribution<Real> radialDist(0, 2);  //for generating cyclindrical radii
   std::uniform_real_distribution<Real> zDist(0, 1);      //for generating height above/below the disk.
   std::uniform_real_distribution<Real> phiDist(0, 2*M_PI); //for generating phi
   std::normal_distribution<Real> speedDist(0, 1); //for generating random speeds.
 
-  particle_mass = 1e4; // 10^4 solar masses
   Real M_d = Galaxies::MW.getM_d(); // MW disk mass in M_sun (assumed to be all in stars)
   Real R_d = Galaxies::MW.getR_d(); // MW stellar disk scale length in kpc
   Real Z_d = Galaxies::MW.getZ_d(); // MW stellar height scale length in kpc
@@ -505,11 +503,11 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   #ifdef PARTICLE_IDS
   Real id;
   #endif 
-  //unsigned long int N = M_d/particle_mass;
+  particle_mass = 1e4;  //solar masses
   unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
   //unsigned long int N = (long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
   long lost_particles = 0;
-  for  ( unsigned long int i = 0; i < N; i++ ){
+  for ( unsigned long int i = 0; i < N; i++ ){
       do {
           R = R_d*radialDist(generator);
       } while (R > R_max);
@@ -581,6 +579,8 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       #endif //PARTICLE_IDS
 
       #ifdef PARTICLE_AGE
+      //if (fabs(z) >= Z_d) age.push_back(1.1e4);
+      //else age.push_back(0.0);
       age.push_back(0.0);
       #endif
   }

@@ -266,7 +266,7 @@ void Particles_3D::Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer,
   #endif
   #ifdef PARTICLE_AGE
   offset_extra += 1;
-  buffer[offset_extra] = age[pIndx];
+  buffer[offset_extra] = pAge;
   #endif
 }
 

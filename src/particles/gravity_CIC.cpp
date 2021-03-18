@@ -340,16 +340,6 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
     Particles.grav_x[pIndx] = g_x;
     Particles.grav_y[pIndx] = g_y;
     Particles.grav_z[pIndx] = g_z;
-    Real g = sqrt(g_x*g_x + g_z*g_z + g_y*g_y);
-    Real R = sqrt(x_pos*x_pos + y_pos*y_pos);
-    Real gg =  fabs(Galaxies::MW.gr_total_D3D(R, z_pos));
-    Real off = fabs((g-gg)/gg)*100;
-    if ( off > 15000) {
-         std::cout << "                           g is " << g << " g_gal is " << gg << std::endl;
-         std::cout << "Particle[ " << pIndx << "] pos=( " << x_pos << ",  " << y_pos << ", " << z_pos << " )  g=( " << g_x << ",  " << g_y << ", " << g_z << " ) " << std::endl;
-         std::cout << "              " << off << ": **** more than 1 percent off\n";
-         std::cout << "                          [index_x , index_y, index_z] = [" << indx_x << ", " << indx_y << ", " << indx_z << "]\n";
-    }
   }
 }
 
