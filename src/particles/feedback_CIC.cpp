@@ -2,6 +2,7 @@
 #ifdef DE
 #ifdef PARTICLE_AGE
 
+#include <iostream>
 #include "feedback_CIC.h"
 #include "particles_3D.h"
 #include "../grid3D.h"
