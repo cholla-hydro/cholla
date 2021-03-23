@@ -323,18 +323,18 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   
   #ifdef PARTICLES_GPU
   // Alocate memory in GPU for particle data
-  // particles_buffer_size = (part_int_t) n_to_load;
-  particles_buffer_size = Compute_Particles_GPU_Buffer_Size( n_to_load );
-  chprintf( " Allocating GPU buffer size: %ld * %f = %ld \n", n_to_load, G.gpu_allocation_factor, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &pos_x_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &pos_y_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &pos_z_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &vel_x_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &vel_y_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &vel_z_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_buffer_size);
+  // particles_array_size = (part_int_t) n_to_load;
+  particles_array_size = Compute_Particles_GPU_Array_Size( n_to_load );
+  chprintf( " Allocating GPU buffer size: %ld * %f = %ld \n", n_to_load, G.gpu_allocation_factor, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &pos_x_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &pos_y_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &pos_z_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &vel_x_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &vel_y_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &vel_z_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_array_size);
   n_local = n_to_load;
   
   chprintf( " Allocated GPU memory for particle data\n");

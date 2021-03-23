@@ -137,7 +137,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   //Factor to allocate the particles data arrays on the GPU.
   //When using MPI particles will be transfered to other GPU, for that reason we need extra memory allocated
   #ifdef MPI_CHOLLA
-  G.gpu_allocation_factor = 2.0;
+  G.gpu_allocation_factor = 1.5;
   #else
   G.gpu_allocation_factor = 1.0;
   #endif
@@ -262,7 +262,7 @@ void Particles_3D::Allocate_Memory_GPU(){
   chprintf( " Allocated GPU memory.\n");  
 }
 
-part_int_t Particles_3D::Compute_Particles_GPU_Buffer_Size( part_int_t n ){
+part_int_t Particles_3D::Compute_Particles_GPU_Array_Size( part_int_t n ){
   
   part_int_t buffer_size = n * G.gpu_allocation_factor;
   return buffer_size;
@@ -278,7 +278,7 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   
   part_int_t buffer_size, half_blocks_size;
   
-  buffer_size = Compute_Particles_GPU_Buffer_Size( n_local );
+  buffer_size = Compute_Particles_GPU_Array_Size( n_local );
   half_blocks_size = ( (buffer_size-1)/2   ) / TPB_PARTICLES + 1;
   
   Allocate_Particles_GPU_Array_bool( &G.transfer_particles_flags_d,      buffer_size );
@@ -293,7 +293,7 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   int n_max, transfer_buffer_size;
   
   n_max = std::max( std::max( nx_local, ny_local), nz_local );
-  transfer_buffer_size = Compute_Particles_GPU_Buffer_Size( n_max * n_max * N_DATA_PER_PARTICLE_TRANSFER );
+  transfer_buffer_size = Compute_Particles_GPU_Array_Size( n_max * n_max * N_DATA_PER_PARTICLE_TRANSFER );
   
   G.send_buffer_size_x0 = transfer_buffer_size;
   G.send_buffer_size_x1 = transfer_buffer_size;
@@ -420,30 +420,30 @@ void Particles_3D::Initialize_Sphere( void ){
   
   #ifdef PARTICLES_GPU
   // Alocate memory in GPU for particle data
-  particles_buffer_size = Compute_Particles_GPU_Buffer_Size( n_particles_local );
-  Allocate_Particles_GPU_Array_Real( &pos_x_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &pos_y_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &pos_z_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &vel_x_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &vel_y_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &vel_z_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_buffer_size);
-  Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_buffer_size);
+  particles_array_size = Compute_Particles_GPU_Array_Size( n_particles_local );
+  Allocate_Particles_GPU_Array_Real( &pos_x_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &pos_y_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &pos_z_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &vel_x_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &vel_y_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &vel_z_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_array_size);
   #ifndef SINGLE_PARTICLE_MASS
-  Allocate_Particles_GPU_Array_Real( &mass_dev, particles_buffer_size);
+  Allocate_Particles_GPU_Array_Real( &mass_dev, particles_array_size);
   #endif
   n_local = n_particles_local;
   
   //Allocate temporal Host arrays for the particles data
-  Real *temp_pos_x  = (Real *) malloc(particles_buffer_size*sizeof(Real));
-  Real *temp_pos_y  = (Real *) malloc(particles_buffer_size*sizeof(Real));
-  Real *temp_pos_z  = (Real *) malloc(particles_buffer_size*sizeof(Real));
-  Real *temp_vel_x  = (Real *) malloc(particles_buffer_size*sizeof(Real));
-  Real *temp_vel_y  = (Real *) malloc(particles_buffer_size*sizeof(Real));
-  Real *temp_vel_z  = (Real *) malloc(particles_buffer_size*sizeof(Real));
+  Real *temp_pos_x  = (Real *) malloc(particles_array_size*sizeof(Real));
+  Real *temp_pos_y  = (Real *) malloc(particles_array_size*sizeof(Real));
+  Real *temp_pos_z  = (Real *) malloc(particles_array_size*sizeof(Real));
+  Real *temp_vel_x  = (Real *) malloc(particles_array_size*sizeof(Real));
+  Real *temp_vel_y  = (Real *) malloc(particles_array_size*sizeof(Real));
+  Real *temp_vel_z  = (Real *) malloc(particles_array_size*sizeof(Real));
   #ifndef SINGLE_PARTICLE_MASS
-  Real *temp_mass   = (Real *) malloc(particles_buffer_size*sizeof(Real));
+  Real *temp_mass   = (Real *) malloc(particles_array_size*sizeof(Real));
   #endif
   
   chprintf( " Allocated GPU memory for particle data\n");

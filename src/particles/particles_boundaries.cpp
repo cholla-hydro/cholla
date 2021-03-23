@@ -507,6 +507,11 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
   
   
   
+  if ( (*n_send + n_transfer)*N_DATA_PER_PARTICLE_TRANSFER > buffer_size  ){
+      printf("ERROR:Transfer Buffer is not large enough\n" );
+      exit(-1);
+  } 
+  
   // Load the particles that will be transfered into the buffers
   n_fields_to_transfer = N_DATA_PER_PARTICLE_TRANSFER;
   Load_Particles_to_Transfer_GPU_function( n_transfer, 0, n_fields_to_transfer, pos_x_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_x ); 
@@ -557,6 +562,18 @@ void Particles_3D::Load_Particles_to_Buffer_GPU( int direction, int side, Real *
 void Particles_3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d ){
   
   int n_fields_to_transfer;
+  
+  part_int_t n_local_after = n_local + n_recv;
+  if ( n_local_after > particles_array_size ){
+    particles_array_size = Compute_Particles_GPU_Array_Size( n_local_after );
+    printf("Reallocating GPU particles arrays \n" );
+    Reallocate_and_Copy_Partciles_Array_Real( &pos_x_dev, n_local, particles_array_size  );
+    Reallocate_and_Copy_Partciles_Array_Real( &pos_y_dev, n_local, particles_array_size  );
+    Reallocate_and_Copy_Partciles_Array_Real( &pos_z_dev, n_local, particles_array_size  );
+    Reallocate_and_Copy_Partciles_Array_Real( &vel_x_dev, n_local, particles_array_size  );
+    Reallocate_and_Copy_Partciles_Array_Real( &vel_y_dev, n_local, particles_array_size  );
+    Reallocate_and_Copy_Partciles_Array_Real( &vel_z_dev, n_local, particles_array_size  );
+  }
   
   // Unload the particles that were transfered from the buffers
   n_fields_to_transfer = N_DATA_PER_PARTICLE_TRANSFER;

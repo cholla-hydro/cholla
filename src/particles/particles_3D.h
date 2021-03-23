@@ -13,7 +13,7 @@
 
 #ifdef PARTICLES_GPU
 #define TPB_PARTICLES 1024
-// #define PRINT_GPU_MEsMORY;
+#define PRINT_GPU_MEMORY
 #endif
 
 
@@ -64,7 +64,7 @@ class Particles_3D
   #endif //PARTICLES_CPU
   
   #ifdef PARTICLES_GPU
-  part_int_t particles_buffer_size;
+  part_int_t particles_array_size;
   #ifdef PARTICLE_IDS
   part_int_t *partIDs_dev;
   #endif
@@ -228,6 +228,7 @@ class Particles_3D
   void Allocate_Particles_GPU_Array_bool( bool **array_dev, part_int_t size );
   void Allocate_Particles_GPU_Array_int( int **array_dev, part_int_t size );
   void Allocate_Particles_Grid_Field_Real( Real **array_dev, int size );
+  void Reallocate_and_Copy_Partciles_Array_Real( Real **src_array_dev, part_int_t size_initial, part_int_t size_end );
   void Copy_Particles_Array_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
   void Copy_Particles_Array_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);
   void Set_Particles_Array_Real( Real value, Real *array_dev, part_int_t size);
@@ -247,7 +248,7 @@ class Particles_3D
   void Advance_Particles_KDK_Step1_Cosmo_GPU_function( part_int_t n_local, Real delta_a, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  );  
   void Advance_Particles_KDK_Step2_GPU_function( part_int_t n_local, Real dt, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev  );
   void Advance_Particles_KDK_Step2_Cosmo_GPU_function( part_int_t n_local, Real delta_a,  Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  );
-  part_int_t Compute_Particles_GPU_Buffer_Size( part_int_t n );
+  part_int_t Compute_Particles_GPU_Array_Size( part_int_t n );
   int Select_Particles_to_Transfer_GPU( int direction, int side );
   void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer, int buffer_length );
   void Replace_Tranfered_Particles_GPU( int n_transfer );
