@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "$CHOLLA_ENVSET" == "1" ]; then
+  exit 0
+fi
+
 if [ "$1" == "build" ]; then
   
   case $2 in
@@ -12,6 +16,7 @@ if [ "$1" == "build" ]; then
       ;;
     poplar)
         ( module list 2>&1 | grep -q ompi \
+          || module list 2>&1 | grep -q cray-mpich \
           || module list 2>&1 | grep -q cray-mvapich2 ) \
           && module list 2>&1 | grep -q hdf5 \
           && ( module list 2>&1 | grep -q rocm \

@@ -26,8 +26,8 @@ OBJS     := $(subst .c,.o,$(CFILES)) \
 CC                ?= cc
 CXX               ?= CC
 
-CFLAGS_OPTIMIZE    = -Ofast
-CXXFLAGS_OPTIMIZE  = -Ofast -std=c++14
+CFLAGS_OPTIMIZE   ?= -Ofast
+CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++11
 BUILD             ?= OPTIMIZE
 
 CFLAGS             = $(CFLAGS_$(BUILD))
@@ -48,16 +48,20 @@ ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
 endif
 
 ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
-  ifdef HIP_PLATFORM
-    LIBS += -L$(ROCM_PATH)/lib -lrocfft
+  ifdef HIPCONFIG
+    CXXFLAGS += -I$(ROCM_PATH)/hipfft/include
+    GPUFLAGS += -I$(ROCM_PATH)/hipfft/include
+    LIBS += -L$(ROCM_PATH)/hipfft/lib -lhipfft
   else
     LIBS += -lcufft
   endif
 endif
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
-  ifdef HIP_PLATFORM
-    LIBS += -L$(ROCM_PATH)/lib -lrocfft
+  ifdef HIPCONFIG
+    CXXFLAGS += -I$(ROCM_PATH)/hipfft/include
+    GPUFLAGS += -I$(ROCM_PATH)/hipfft/include
+    LIBS += -L$(ROCM_PATH)/hipfft/lib -lhipfft
   else
     LIBS += -lcufft
   endif
@@ -76,7 +80,7 @@ endif
 
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
   GPUFLAGS += -I$(MPI_ROOT)/include
-  ifdef HIP_PLATFORM
+  ifdef HIPCONFIG
      LIBS += -L$(MPI_ROOT)/lib -lmpi
   endif
 endif
@@ -85,13 +89,11 @@ ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
   CXXFLAGS += -fopenmp
 endif
 
-ifdef HIP_PLATFORM
+ifdef HIPCONFIG
   DFLAGS += -DO_HIP
-  CXXFLAGS += -I$(ROCM_PATH)/include
-  CXXFLAGS += -D__HIP_PLATFORM_HCC__
+  CXXFLAGS += $(HIPCONFIG)
   GPUCXX ?= hipcc
-  GPUFLAGS += -g -O3 -Wall --amdgpu-target=gfx906,gfx908 -std=c++14 -ferror-limit=1
-  GPUFLAGS += -I$(ROCM_PATH)/rocfft/include
+  GPUFLAGS += -g -O3 -Wall --amdgpu-target=gfx906,gfx908 -std=c++11 -ferror-limit=1
   LD := $(CXX)
   LDFLAGS := $(CXXFLAGS)
   LIBS += -L$(ROCM_PATH)/lib -lamdhip64

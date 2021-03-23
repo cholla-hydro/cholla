@@ -5,7 +5,7 @@
 #include "../io.h"
 #include <cassert>
 #include <cfloat>
-
+#include <climits>
 
 static void __attribute__((unused)) printDiff(const Real *p, const Real *q, const int ng, const int nx, const int ny, const int nz, const bool plot = false)
 {
@@ -15,7 +15,7 @@ static void __attribute__((unused)) printDiff(const Real *p, const Real *q, cons
   for (int k = 0; k < nz; k++) {
     for (int j = 0; j < ny; j++) {
       for (int i = 0; i < nx; i++) {
-        const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
+        const int ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
         const Real qAbs = fabs(q[ijk]);
         qMax = std::max(qMax,qAbs);
         qSum += qAbs;
@@ -40,7 +40,7 @@ static void __attribute__((unused)) printDiff(const Real *p, const Real *q, cons
   //for (int j = 0; j < ny; j++) {
   const int j = ny/2;
     for (int i = 0; i < nx; i++) {
-      const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
+      const int ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
       //printf("%d %d %g %g %g\n",j,i,q[ijk],p[ijk],q[ijk]-p[ijk]);
       printf("%d %g %g %g\n",i,q[ijk],p[ijk],q[ijk]-p[ijk]);
     }
@@ -80,7 +80,6 @@ __device__ static Real analyticF(const Real x, const Real y, const Real z)
 
 void Potential_Paris_3D::Get_Analytic_Potential(const Real *const density, Real *const potential)
 {
-
   const Real dx = dr_[2];
   const Real dy = dr_[1];
   const Real dz = dr_[0];
@@ -110,28 +109,34 @@ void Potential_Paris_3D::Get_Analytic_Potential(const Real *const density, Real 
   const Real ddly = dly*dly;
   const Real ddlz = dlz*dlz;
 
+  const int ni = dn_[2];
+  const int nj = dn_[1];
+  const int nk = dn_[0];
+
   gpuFor(
-    dn_[0],dn_[1],dn_[2],
-    GPU_LAMBDA(const long kji, const int k, const int j, const int i) {
+    nk,nj,ni,
+    GPU_LAMBDA(const int k, const int j, const int i) {
       const Real x = dlx*(xBegin+dx*(Real(i)+0.5))+bx;
       const Real y = dly*(yBegin+dy*(Real(j)+0.5))+by;
       const Real z = dlz*(zBegin+dz*(Real(k)+0.5))+bz;
-      da[kji] = db[kji]-analyticD(x,y,z,ddlx,ddly,ddlz);
-      });
-      
+      const int iab = i+ni*(j+nj*k);
+      da[iab] = db[iab]-analyticD(x,y,z,ddlx,ddly,ddlz);
+    });
+
   assert(pz_);
   pz_->solve(minBytes_,da,db);
 
-  const long ngi = dn_[2]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
-  const long ngj = dn_[1]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
+  const int ngi = ni+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
+  const int ngj = nj+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
 
   gpuFor(
-    dn_[0],dn_[1],dn_[2],
-    GPU_LAMBDA(const long ia, const int k, const int j, const int i) {
+    nk,nj,ni,
+    GPU_LAMBDA(const int k, const int j, const int i) {
       const Real x = dlx*(xBegin+dx*(Real(i)+0.5))+bx;
       const Real y = dly*(yBegin+dy*(Real(j)+0.5))+by;
       const Real z = dlz*(zBegin+dz*(Real(k)+0.5))+bz;
-      const long ib = i+N_GHOST_POTENTIAL+ngi*(j+N_GHOST_POTENTIAL+ngj*(k+N_GHOST_POTENTIAL));
+      const int ia = i+ni*(j+nj*k);
+      const int ib = i+N_GHOST_POTENTIAL+ngi*(j+N_GHOST_POTENTIAL+ngj*(k+N_GHOST_POTENTIAL));
       db[ib] = da[ia]+analyticF(x,y,z);
     });
 
@@ -150,21 +155,27 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
   Real *const da = da_;
   Real *const db = db_;
   assert(density);
-  const long n = long(dn_[2])*dn_[1]*dn_[0];
+
+  const int ni = dn_[2];
+  const int nj = dn_[1];
+  const int nk = dn_[0];
+
+  const int n = ni*nj*nk;
   CHECK(cudaMemcpy(db,density,densityBytes_,cudaMemcpyHostToDevice));
-  const long ngi = dn_[2]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
-  const long ngj = dn_[1]+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
+  const int ngi = ni+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
+  const int ngj = nj+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
 
   if (pp_) {
 
-    gpuFor(n,GPU_LAMBDA(const long i) { da[i] = scale*(db[i]-offset); });
-    pp_->solve(minBytes_,da,db);
+    gpuFor(n,GPU_LAMBDA(const int i) { db[i] = scale*(db[i]-offset); });
+    pp_->solve(minBytes_,db,da);
     gpuFor(
-        dn_[0],dn_[1],dn_[2],
-        GPU_LAMBDA(const long ia, const int k, const int j, const int i) {
-        const long ib = i+N_GHOST_POTENTIAL+ngi*(j+N_GHOST_POTENTIAL+ngj*(k+N_GHOST_POTENTIAL));
+      nk,nj,ni,
+      GPU_LAMBDA(const int k, const int j, const int i) {
+        const int ia = i+ni*(j+nj*k);
+        const int ib = i+N_GHOST_POTENTIAL+ngi*(j+N_GHOST_POTENTIAL+ngj*(k+N_GHOST_POTENTIAL));
         db[ib] = da[ia];
-        });
+      });
 
   } else {
 
@@ -190,13 +201,14 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
     const Real zBegin = (myLo_[0]-z0)*dlz;
 
     gpuFor(
-        dn_[0],dn_[1],dn_[2],
-        GPU_LAMBDA(const long kji, const int k, const int j, const int i) {
+      nk,nj,ni,
+      GPU_LAMBDA(const int k, const int j, const int i) {
         const Real x = xBegin+dx*(Real(i)+0.5);
         const Real y = yBegin+dy*(Real(j)+0.5);
         const Real z = zBegin+dz*(Real(k)+0.5);
-        da[kji] = scale*(db[kji]-offset-rho0*exp(-x*x-y*y-z*z));
-        });
+        const int iab = i+ni*(j+nj*k);
+        da[iab] = scale*(db[iab]-offset-rho0*exp(-x*x-y*y-z*z));
+      });
 
     pz_->solve(minBytes_,da,db);
 
@@ -205,16 +217,17 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
     const Real lim2 = -lim0/Real(3);
 
     gpuFor(
-        dn_[0],dn_[1],dn_[2],
-        GPU_LAMBDA(const long ia, const int k, const int j, const int i) {
+      nk,nj,ni,
+      GPU_LAMBDA(const int k, const int j, const int i) {
         const Real x = xBegin+dx*(Real(i)+0.5);
         const Real y = yBegin+dy*(Real(j)+0.5);
         const Real z = zBegin+dz*(Real(k)+0.5);
         const Real r = sqrt(x*x+y*y+z*z);
         const Real v0 = (r < DBL_EPSILON) ? lim0+lim2*r*r : ngmdr0*erf(r)/r;
-        const long ib = i+N_GHOST_POTENTIAL+ngi*(j+N_GHOST_POTENTIAL+ngj*(k+N_GHOST_POTENTIAL));
+        const int ia = i+ni*(j+nj*k);
+        const int ib = i+N_GHOST_POTENTIAL+ngi*(j+N_GHOST_POTENTIAL+ngj*(k+N_GHOST_POTENTIAL));
         db[ib] = da[ia]+v0;
-        });
+      });
   }
   assert(potential);
   CHECK(cudaMemcpy(potential,db,potentialBytes_,cudaMemcpyDeviceToHost));
@@ -232,6 +245,9 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
 #else
   chprintf(" Spectral\n");
 #endif
+
+  const long nl012 = long(nxReal)*long(nyReal)*long(nzReal);
+  assert(nl012 <= INT_MAX);
 
   dn_[0] = nzReal;
   dn_[1] = nyReal;
@@ -261,7 +277,7 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
   assert(dn_[2] == n[2]/m[2]);
 
   if (periodic) {
-    pp_ = new PoissonPeriodic3DBlockedGPU(n,lo_,hi,m,id);
+    pp_ = new PoissonPeriodic3x1DBlockedGPU(n,lo_,hi,m,id);
     assert(pp_);
     minBytes_ = pp_->bytes();
   } else {
