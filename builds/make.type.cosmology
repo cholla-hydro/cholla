@@ -1,0 +1,25 @@
+include builds/make.type.hydro
+include builds/make.type.gravity
+include builds/make.type.particles
+
+
+DFLAGS += -DCOSMOLOGY
+
+# Use Grackle for cooling in cosmological simulations
+# DFLAGS += -DCOOLING_GRACKLE -DCONFIG_BFLOAT_8 -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DSCALAR -DN_OMP_THREADS_GRACKLE=10
+# DFLAGS += -DGRACKLE_METALS
+
+# Permorm In-The-Fly analisys of Cosmological Simulations
+# DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS
+
+#Average Slow cell when the cell delta_t is very small
+DFLAGS += -DAVERAGE_SLOW_CELLS
+
+# Dual-Energy Formalism
+DFLAGS += -DDE
+
+#Output all data every N_OUTPUT_COMPLETE snapshots ( These are Restart Files )
+DFLAGS += -DN_OUTPUT_COMPLETE=1
+
+#Limit the number of steps to evolve
+DFLAGS += -DN_STEPS_LIMIT=2
