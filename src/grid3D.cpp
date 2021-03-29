@@ -117,7 +117,7 @@ void Grid3D::Initialize(struct parameters *P)
   int nz_in = P->nz;
 
   // Set the CFL coefficient (a global variable)
-  C_cfl = 0.3;
+  C_cfl = 0.4;
 
 #ifndef MPI_CHOLLA
 
@@ -150,7 +150,7 @@ void Grid3D::Initialize(struct parameters *P)
     chexit(-1);
   }
 
-  // check for initilization
+  // check for initialization
   if(flag_init)
   {
     chprintf("Already initialized. Please reset.\n");
@@ -171,7 +171,7 @@ void Grid3D::Initialize(struct parameters *P)
   H.n_step = 0;
   // and the wall time
   H.t_wall = 0.0;
-  // and inialize the timestep
+  // and initialize the timestep
   H.dt = 0.0;
   
   // Set Transfer flag to false, only set to true before Conserved boundaries are transfered
@@ -247,12 +247,10 @@ void Grid3D::Initialize(struct parameters *P)
  *  \brief Allocate memory for the arrays. */
 void Grid3D::AllocateMemory(void)
 {
-
-
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
-  buffer0 = (Real *) malloc(H.n_fields*H.n_cells*sizeof(Real));
-  buffer1 = (Real *) malloc(H.n_fields*H.n_cells*sizeof(Real));
+  CudaSafeCall( cudaHostAlloc(&buffer0, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
+  CudaSafeCall( cudaHostAlloc(&buffer1, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
 
   // point conserved variables to the appropriate locations in buffer
   C.density  = &(buffer0[0]);
@@ -268,9 +266,22 @@ void Grid3D::AllocateMemory(void)
   #endif
   
   #if defined( GRAVITY ) 
-  C.Grav_potential = (Real *) malloc(H.n_cells*sizeof(Real));
+  CudaSafeCall( cudaHostAlloc(&C.Grav_potential, H.n_cells*sizeof(Real), cudaHostAllocDefault) );
   #else
   C.Grav_potential = NULL;
+  #endif
+  
+  CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
+  C.d_density     = C.device;
+  C.d_momentum_x  = &(C.device[H.n_cells]);
+  C.d_momentum_y  = &(C.device[2*H.n_cells]);
+  C.d_momentum_z  = &(C.device[3*H.n_cells]);
+  C.d_Energy      = &(C.device[4*H.n_cells]);
+  #ifdef SCALAR
+  C.d_scalar      = &(C.device[5*H.n_cells]);
+  #endif
+  #ifdef DE
+  C.d_GasEnergy   = &(C.device[(H.n_fields-1)*H.n_cells]);
   #endif
   
   // initialize array
@@ -525,7 +536,7 @@ Real Grid3D::Update_Grid(void)
   Real U_floor, density_floor;
   density_floor = H.density_floor;
   // Minimum of internal energy from minumum of temperature 
-  U_floor = H.temperature_floor / (gama - 1) / MP * KB * 1e-10;;
+  U_floor = H.temperature_floor * KB / (gama - 1) / MP / SP_ENERGY_UNIT;
   #ifdef COSMOLOGY
   U_floor /=  Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
   #endif
@@ -578,7 +589,7 @@ Real Grid3D::Update_Grid(void)
     max_dti = CTU_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
+    max_dti = VL_Algorithm_2D_CUDA(g0, g1, C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //VL
     #endif //CUDA
   }
@@ -599,7 +610,7 @@ Real Grid3D::Update_Grid(void)
     max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    max_dti = VL_Algorithm_3D_CUDA(g0, g1, C.device, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //VL
     #ifdef SIMPLE
     max_dti = Simple_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
@@ -729,11 +740,11 @@ void Grid3D::Reset(void)
 void Grid3D::FreeMemory(void)
 {
   // free the conserved variable arrays
-  free(buffer0);
-  free(buffer1);
+  CudaSafeCall( cudaFreeHost(buffer0) );
+  CudaSafeCall( cudaFreeHost(buffer1) );
   
   #ifdef GRAVITY
-  free(C.Grav_potential );
+  CudaSafeCall( cudaFreeHost(C.Grav_potential) );
   #endif
   
   #ifndef DYNAMIC_GPU_ALLOC

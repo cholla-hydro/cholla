@@ -198,7 +198,7 @@ void Particles_3D::Get_Density_CIC_Serial( ){
     if ( ! in_local  ) {
       std::cout << " Density CIC Error:" << std::endl;
       #ifdef PARTICLE_IDS
-      std::cout << "ERROR CIC Index    pID: " << partIDs[pIndx] << std::endl;
+      std::cout << " Particle outside Local  domain    pID: " << partIDs[pIndx] << std::endl;
       #else
       std::cout << " Particle outside Local  domain " << std::endl;
       #endif
@@ -353,7 +353,7 @@ void Particles_3D::Get_Density_CIC_OMP( ){
       if ( ! in_local  ) {
         std::cout << " Density CIC Error:" << std::endl;
         #ifdef PARTICLE_IDS
-        std::cout << "ERROR CIC Index    pID: " << partIDs[pIndx] << std::endl;
+        std::cout << " Particle outside Local  domain    pID: " << partIDs[pIndx] << std::endl;
         #else
         std::cout << " Particle outside Local  domain " << std::endl;
         #endif

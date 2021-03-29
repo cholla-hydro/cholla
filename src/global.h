@@ -10,16 +10,16 @@
 #include <gsl/gsl_spline2d.h>
 #endif
 
-#if PRECISION == 1
-#ifndef FLOAT_TYPEDEF_DEFINED
+#if PRECISION==1
+#ifndef TYPEDEF_DEFINED_REAL
 typedef float Real;
-#endif //FLOAT_TYPEDEF_DEFINED
-#endif //PRECISION == 1
-#if PRECISION == 2
-#ifndef FLOAT_TYPEDEF_DEFINED
+#endif
+#endif
+#if PRECISION==2
+#ifndef TYPEDEF_DEFINED_REAL
 typedef double Real;
-#endif //FLOAT_TYPEDEF_DEFINED
-#endif //PRECISION == 2
+#endif
+#endif
 
 #define MAXLEN 140
 #define TINY_NUMBER 1.0e-20
@@ -110,7 +110,7 @@ typedef int grav_int_t;
 #ifdef PARTICLES_LONG_INTS
 typedef long int part_int_t;
 #else
-typedef int part_int_t
+typedef int part_int_t;
 #endif//PARTICLES_LONG_INTS
 
 #include <vector>
@@ -268,5 +268,8 @@ struct parameters
  *  \brief Reads the parameters in the given file into a structure. */
 extern void parse_params (char *param_file, struct parameters * parms);
 
+/*! \fn int is_param_valid(char *name);
+ * \brief Verifies that a param is valid (even if not needed).  Avoids "warnings" in output. */
+extern int is_param_valid(const char *name);
 
 #endif //GLOBAL_H

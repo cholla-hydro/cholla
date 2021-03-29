@@ -28,8 +28,8 @@ void Load_Cuda_Textures()
 
   // allocate host arrays to be copied to textures
   // these arrays are declared as external pointers in global.h
-  cooling_table = (float *) malloc(nx*ny*sizeof(float));
-  heating_table = (float *) malloc(nx*ny*sizeof(float));
+  CudaSafeCall( cudaHostAlloc(&cooling_table, nx*ny*sizeof(float), cudaHostAllocDefault) );
+  CudaSafeCall( cudaHostAlloc(&heating_table, nx*ny*sizeof(float), cudaHostAllocDefault) );
 
   // Load cooling tables into the host arrays
   Load_Cooling_Tables(cooling_table, heating_table);
@@ -58,8 +58,8 @@ void Load_Cuda_Textures()
   cudaBindTextureToArray(heatTexObj, cuHeatArray);
 
   // Free the memory associated with the cooling tables on the host
-  free(cooling_table);
-  free(heating_table);
+  CudaSafeCall( cudaFreeHost(cooling_table) );
+  CudaSafeCall( cudaFreeHost(heating_table) );
 
 }
 
@@ -89,7 +89,7 @@ void Load_Cooling_Tables(float* cooling_table, float* heating_table)
 
   // Read in cloudy cooling/heating curve (function of density and temperature)
   i=0;
-  infile = fopen("./cloudy_coolingcurve.txt", "r");
+  infile = fopen("../cooling/cloudy_coolingcurve.txt", "r");
   if (infile == NULL) {
     printf("Unable to open Cloudy file.\n");
     exit(1);

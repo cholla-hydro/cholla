@@ -10,6 +10,7 @@
 
 #include<stdio.h>
 #include"global.h"
+#include"global_cuda.h"
 
 #ifdef HDF5
 #include<hdf5.h>
@@ -348,8 +349,11 @@ class Grid3D
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
-
       
+      /*! pointer to conserved variable on device */
+      Real *device;
+      Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z, 
+           *d_Energy, *d_scalar, *d_GasEnergy;
     } C;
 
 
@@ -416,7 +420,15 @@ class Grid3D
     Real Update_Hydro_Grid(void);
     
     void Update_Time();
-    
+
+     /*! \fn void Write_Header_Text(FILE *fp)
+     *  \brief Write the relevant header info to a text output file. */
+    void Write_Header_Text(FILE *fp);
+
+    /*! \fn void Write_Grid_Text(FILE *fp)
+     *  \brief Write the grid to a file, at the current simulation time. */
+    void Write_Grid_Text(FILE *fp);
+   
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
     void Write_Header_Binary(FILE *fp);
@@ -553,6 +565,13 @@ class Grid3D
     /*! \fn void Set_Boundaries(int dir, int flags[])
      *  \brief Apply boundary conditions to the grid. */
     void Set_Boundaries(int dir, int flags[]);
+    
+    void Set_Hydro_Boundaries_CPU 
+           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries, 
+             int dir, int *flags );
+    void Set_Hydro_Boundaries_GPU 
+           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries, 
+             int dir, int *flags );
 
     /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
      *  \brief Set the extents of the ghost region we are initializing. */
@@ -604,12 +623,19 @@ class Grid3D
     void Unload_MPI_Comm_Buffers(int index);
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
+    void Unload_MPI_Comm_DeviceBuffers_BLOCK(int index);
     int Load_Hydro_Buffer_X0();
     int Load_Hydro_Buffer_X1();
     int Load_Hydro_Buffer_Y0();
     int Load_Hydro_Buffer_Y1();
     int Load_Hydro_Buffer_Z0();
     int Load_Hydro_Buffer_Z1();
+    int Load_Hydro_DeviceBuffer_X0();
+    int Load_Hydro_DeviceBuffer_X1();
+    int Load_Hydro_DeviceBuffer_Y0();
+    int Load_Hydro_DeviceBuffer_Y1();
+    int Load_Hydro_DeviceBuffer_Z0();
+    int Load_Hydro_DeviceBuffer_Z1();
 #endif /*MPI_CHOLLA*/
 
   #ifdef GRAVITY

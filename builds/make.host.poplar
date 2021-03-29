@@ -1,0 +1,16 @@
+#-- make.inc for Poplar, COE cluster at HPE
+
+#-- Compiler and flags for different build type
+CC               ?= mpicc
+CXX              ?= mpicxx
+CFLAGS_DEBUG      = -g -O0
+CFLAGS_OPTIMIZE   = -Ofast
+CXXFLAGS_DEBUG    = -g -O0 -std=c++11
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++11
+
+#-- How to launch job
+JOB_LAUNCH        = srun -n 1 -c 16 -N 1 --exclusive --unbuffered -p amdMI60
+
+#-- Library
+HDF5_ROOT    = $(shell dirname $(HDF5DIR))
+MPI_ROOT     = ${MPI_HOME}

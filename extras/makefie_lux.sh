@@ -39,11 +39,11 @@ CUDA = -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-# MPI_FLAGS =  -DMPI_CHOLLA
+MPI_FLAGS =  -DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
-  CXX   = mpic++
+  CXX   = mpicxx
 
   #MPI_FLAGS += -DSLAB
   MPI_FLAGS += -DBLOCK
@@ -68,7 +68,7 @@ PRECISION = -DPRECISION=2
 OUTPUT = -DHDF5
 
 #Output all data every N_OUTPUT_COMPLETE snapshots ( This are Restart Files )
-N_OUTPUT_COMPLETE = -DN_OUTPUT_COMPLETE=50
+N_OUTPUT_COMPLETE = -DN_OUTPUT_COMPLETE=10
 
 # RECONSTRUCTION = -DPCM
 # RECONSTRUCTION = -DPLMP
@@ -118,9 +118,8 @@ CPU_TIME = -DCPU_TIME
 
 #INCLUDE GRAVITY
 GRAVITY = -DGRAVITY
-# POISSON_SOLVER = -DPFFT
+POISSON_SOLVER = -DPFFT
 # POISSON_SOLVER = -DCUFFT
-POISSON_SOLVER = -DSOR
 GRAVITY_INT = -DGRAVITY_LONG_INTS
 GRAVITY_ENERGY_COUPLE = -DCOUPLE_GRAVITATIONAL_WORK
 # GRAVITY_ENERGY_COUPLE = -DCOUPLE_DELTA_E_KINETIC
@@ -143,20 +142,19 @@ PARALLEL_OMP = -DPARALLEL_OMP
 N_OMP_THREADS = -DN_OMP_THREADS=20
 # # PRINT_OMP_DOMAIN = -DPRINT_OMP_DOMAIN
 
-# 
-# #Cosmological simulation
-# COSMOLOGY = -DCOSMOLOGY
+#Cosmological simulation
+COSMOLOGY = -DCOSMOLOGY
 
 #Use Grackle for cooling in cosmological simulatls o  ions
-# COOLING = -DCOOLING_GRACKLE
+COOLING = -DCOOLING_GRACKLE
 
 ifdef CUDA
 CUDA_INCL = -I/cm/shared/apps/cuda10.1/toolkit/current/include
 CUDA_LIBS = -L/cm/shared/apps/cuda10.1/toolkit/current/targets/x86_64-linux/lib/stubs/ -lcuda -lcudart
 endif
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = -I/cm/shared/apps/hdf5/1.10.6/include
-HDF5_LIBS = -L/cm/shared/apps/hdf5/1.10.6/lib -lhdf5
+HDF5_INCL = -I/cm/shared/apps/hdf5_18/1.8.20/include
+HDF5_LIBS = -L/cm/shared/apps/hdf5_18/1.8.20/lib -lhdf5
 endif
 
 INCL   = -I./ $(HDF5_INCL)
@@ -164,24 +162,17 @@ NVINCL = $(INCL) $(CUDA_INCL)
 LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 
 ifeq ($(POISSON_SOLVER),-DPFFT)
-<<<<<<< HEAD
-FFTW_INCL = -I/data/groups/comp-astro/bruno/code/fftw/include
-FFTW_LIBS = -L/data/groups/comp-astro/bruno/code/fftw/lib -lfftw3
+FFTW_INCL = -I/home/brvillas/code/fftw-3.3.8/include
+FFTW_LIBS = -L/home/brvillas/code/fftw-3.3.8/lib -lfftw3
 PFFT_INCL = -I/home/brvillas/code/pfft/include
 PFFT_LIBS = -L/home/brvillas/code/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
-=======
-FFTW_INCL = -I/data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8/include
-FFTW_LIBS = -L/data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8/lib -lfftw3
-PFFT_INCL = -I/data/groups/comp-astro/bruno/code_mpi_local/pfft/include
-PFFT_LIBS = -L/data/groups/comp-astro/bruno/code_mpi_local/pfft/lib  -lpfft  -lfftw3_mpi -lfftw3
->>>>>>> cholla_pm_paris_cosmo
 INCL += $(FFTW_INCL) $(PFFT_INCL)
 LIBS += $(FFTW_LIBS) $(PFFT_LIBS)
 endif
 
 ifeq ($(POISSON_SOLVER),-DCUFFT)
-CUFFT_INCL = -I/cm/shared/apps/cuda10.1/toolkit/current/include
-CUFFT_LIBS = -L/cm/shared/apps/cuda10.1/toolkit/current/targets/x86_64-linux/lib/stubs/ -lcufft
+CUFFT_INCL = -I/usr/local/cuda-9.0/targets/x86_64-linux/include
+CUFFT_LIBS = -L/usr/local/cuda-9.0/targets/x86_64-linux/lib -lcufft
 INCL += $(CUFFT_INCL) 
 LIBS += $(CUFFT_LIBS) 
 endif
@@ -216,7 +207,7 @@ FLAGS_COOLING = $(COOLING) $(GRACKLE_PRECISION) $(OUTPUT_TEMPERATURE) $(OUTPUT_C
 FLAGS = $(FLAGS_HYDRO) $(FLAGS_OMP) $(FLAGS_GRAVITY) $(FLAGS_PARTICLES) $(FLAGS_COSMO) $(FLAGS_COOLING)
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS) $(OMP_FLAGS)
-NVCCFLAGS = $(FLAGS) --fmad=false -ccbin=$(CXX)
+NVCCFLAGS = $(FLAGS) --fmad=false -ccbin=$(CC)
 
 
 %.o:	%.c

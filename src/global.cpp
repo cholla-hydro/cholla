@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <set>
 #include <ctype.h>
 #include"global.h"
 
@@ -94,6 +95,18 @@ char *trim (char * s)
   return s;
 }
 
+const std::set<const char*> optionalParams = {"flag_delta", "ddelta_dt", "n_delta",
+       "Lz" , "Lx" , "phi" , "theta", "delta", "nzr", "nxr", "H0", "Omega_M", "Omega_L",
+       "Init_redshift", "End_redshift", "tile_length", "n_proc_x", "n_proc_y", "n_proc_z" };
+
+/*! \fn int is_param_valid(char *name);
+ * \brief Verifies that a param is valid (even if not needed).  Avoids "warnings" in output. */
+int is_param_valid(const char* param_name) {
+  for (auto it=optionalParams.begin(); it != optionalParams.end(); ++it) {
+      if (strcmp(param_name, *it) == 0) return 1;
+  }
+  return 0;
+}
 
 /*! \fn void parse_params(char *param_file, struct parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
@@ -291,13 +304,11 @@ parms->scale_outputs_file[0] = '\0';
       parms->lya_skewers_stride  = atoi(value);
     else if (strcmp(name, "lya_Pk_d_log_k")==0)
       parms->lya_Pk_d_log_k  = atof(value);
-    
 #endif    
-    else
+    else if (!is_param_valid(name))
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
         name, value);
   }
-
   /* Close file */
   fclose (fp);
 }

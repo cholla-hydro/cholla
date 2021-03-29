@@ -30,7 +30,7 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   Real gel, ger, gels, gers, f_ge_l, f_ge_r, f_ge;
   #endif
 
-  // calculate primative variables from input array
+  // calculate primitive variables from input array
   dl = cW[0];
   dr = cW[1];
   mxl = cW[2];
