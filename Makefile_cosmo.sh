@@ -11,7 +11,7 @@ GPUFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cu))
 OBJS := $(subst .c,.o,$(CFILES)) $(subst .cpp,.o,$(CPPFILES)) $(subst .cu,.o,$(GPUFILES))
 
 #Limit the number of steps to eveolve
-# DFLAGS += -DN_STEPS_LIMIT=10
+DFLAGS += -DN_STEPS_LIMIT=2
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
@@ -85,8 +85,8 @@ DFLAGS += $(POISSON_SOLVER)
 
 # Include gravity from particles PM
 DFLAGS += -DPARTICLES
-# DFLAGS += -DPARTICLES_CPU
-DFLAGS += -DPARTICLES_GPU
+DFLAGS += -DPARTICLES_CPU
+# DFLAGS += -DPARTICLES_GPU
 # DFLAGS += -DONLY_PARTICLES
 # DFLAGS += -DPARTICLE_IDS
 DFLAGS += -DSINGLE_PARTICLE_MASS
@@ -203,6 +203,11 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
     LIBS += -L$(CUDA_LIBS) -lcufft -lcudart
 		GPUFLAGS += -I$(CUDA_INCLUDE)
 		CXXFLAGS += -I$(CUDA_INCLUDE)
+  endif
+  ifeq ($(findstring -DGRAVITY_5_POINTS_GRADIENT,$(DFLAGS)),-DGRAVITY_5_POINTS_GRADIENT)
+    DFLAGS += -DPARIS_5PT
+  else
+    DFLAGS += -DPARIS_3PT
   endif
 endif
 

@@ -1742,6 +1742,15 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
   int offset;
   Real *c_head;
   
+  int n_ghost, nx, ny, nz, n_fields, n_cells;
+  n_ghost = H.n_ghost;
+  nx = H.nx;
+  ny = H.ny;
+  nz = H.nz;
+  n_fields = H.n_fields;
+  n_cells = H.n_cells;
+  
+  
   c_head = (Real *) C.device;
   
   if ( H.TRANSFER_HYDRO_BOUNDARIES ){
@@ -1755,12 +1764,13 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_x0, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
         for(i=0;i<H.n_ghost;i++) {
           idx  = i;
           gidx = i;
           for (ii=0; ii<H.n_fields; ii++) { 
             c_head[idx + H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
+            //-- FIXME: Shouldn't it be: c_head[idx + ii*H.n_cells] = ...
           }
         }
       }
@@ -1771,7 +1781,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_x0, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
         for(i=0;i<H.n_ghost;i++) {
           for (j=0;j<H.ny-2*H.n_ghost;j++) {
             idx  = i + (j+H.n_ghost)*H.nx;
@@ -1789,7 +1799,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_x0, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
         for(i=0;i<H.n_ghost;i++) {
           for(j=0;j<H.ny-2*H.n_ghost;j++) {
             for(k=0;k<H.nz-2*H.n_ghost;k++) {
@@ -1815,7 +1825,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_x1, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
         for(i=0;i<H.n_ghost;i++) {
           idx  = i+H.nx-H.n_ghost;
           gidx = i;
@@ -1831,7 +1841,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_x1, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
         for(i=0;i<H.n_ghost;i++) {
           for (j=0;j<H.ny-2*H.n_ghost;j++) {
             idx  = i+H.nx-H.n_ghost + (j+H.n_ghost)*H.nx;
@@ -1849,7 +1859,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_x1, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
         for(i=0;i<H.n_ghost;i++) {
           for(j=0;j<H.ny-2*H.n_ghost;j++) {
             for(k=0;k<H.nz-2*H.n_ghost;k++) {
@@ -1876,7 +1886,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_y0, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
         for(i=0;i<H.nx;i++) {
           for (j=0;j<H.n_ghost;j++) {
             idx  = i + j*H.nx;
@@ -1894,7 +1904,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_y0, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
         for(i=0;i<H.nx;i++) {
           for(j=0;j<H.n_ghost;j++) {
             for(k=0;k<H.nz-2*H.n_ghost;k++) {
@@ -1919,7 +1929,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_y1, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
         for(i=0;i<H.nx;i++) {
           for (j=0;j<H.n_ghost;j++) {
             idx  = i + (j+H.ny-H.n_ghost)*H.nx;
@@ -1937,7 +1947,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_y1, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
         for(i=0;i<H.nx;i++) {
           for(j=0;j<H.n_ghost;j++) {
             for(k=0;k<H.nz-2*H.n_ghost;k++) {
@@ -1960,7 +1970,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_z0, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells )
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
       for(i=0;i<H.nx;i++) {
         for(j=0;j<H.ny;j++) {
           for(k=0;k<H.n_ghost;k++) {
@@ -1982,7 +1992,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
                   private ( idx, gidx, ii ) \
                   firstprivate ( offset ) \
                   is_device_ptr ( recv_buffer_z1, c_head ) \
-                  map ( to: H.n_ghost, H.nx, H.ny, H.nz, H.n_fields, H.n_cells)
+                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells)
       for(i=0;i<H.nx;i++) {
         for(j=0;j<H.ny;j++) {
           for(k=0;k<H.n_ghost;k++) {
