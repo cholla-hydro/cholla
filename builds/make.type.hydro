@@ -11,7 +11,13 @@ DFLAGS    += -DBLOCK
 DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
+
+ifeq ($(findstring cosmology,$(TYPE)),cosmology)
+DFLAGS    += -DSIMPLE
+else
 DFLAGS    += -DVL
+endif
+
 DFLAGS    += $(OUTPUT)
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR

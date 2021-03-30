@@ -5,9 +5,9 @@
 CC                = mpicc
 CXX               = mpicxx
 CFLAGS_DEBUG      = -g -O0
-CFLAGS_OPTIMIZE   = -g -O2
+CFLAGS_OPTIMIZE   = -g -Ofast
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 
+CXXFLAGS_OPTIMIZE = -g -Ofast -std=c++11 
 
 
 OMP_NUM_THREADS   = 10

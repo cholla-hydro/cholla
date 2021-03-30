@@ -99,12 +99,18 @@ ifdef HIPCONFIG
   LIBS += -L$(ROCM_PATH)/lib -lamdhip64
 else
   GPUCXX ?= nvcc
-  GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
-	# GPUFLAGS += -I$(CUDA_ROOT)/include
-	# CXXFLAGS += -I$(CUDA_ROOT)/include
+  # GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  GPUFLAGS += --expt-extended-lambda -g -O3 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
-  LIBS += -L$(CUDA_ROOT)/lib64 -lcudart
+	ifeq ($(findstring shamrock,$(MACHINE)),shamrock)
+		GPUFLAGS += -I$(CUDA_ROOT)/include -std=c++11
+		CXXFLAGS += -I$(CUDA_ROOT)/include
+		LIBS += -L$(CUDA_ROOT)/lib -lcudart -lcufft
+	else
+	  LIBS += -L$(CUDA_ROOT)/lib64 -lcudart
+		GPUFLAGS += -arch sm_70
+	endif
 endif
 
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
