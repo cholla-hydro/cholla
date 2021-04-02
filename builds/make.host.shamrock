@@ -1,16 +1,15 @@
-#-- make.inc for Summit at the OLCF with XL compiler
-#   https://www.olcf.ornl.gov/summit/
+#-- make.inc for the Lux Cluster
 
 #-- Compiler and flags for different build type
 CC                = mpicc
 CXX               = mpicxx
 CFLAGS_DEBUG      = -g -O0
-CFLAGS_OPTIMIZE   = -g -Ofast
+CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 
-CXXFLAGS_OPTIMIZE = -g -Ofast -std=c++11 
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 
 
 
-OMP_NUM_THREADS   = 10
+OMP_NUM_THREADS = 10
 
 #-- Library
 CUDA_ROOT    = /usr/local/cuda-10.1/targets/x86_64-linux

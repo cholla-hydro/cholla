@@ -5,7 +5,7 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
-DIRS     := src src/gravity src/particles src/cosmology src/cooling
+DIRS     := src src/gravity src/particles src/cosmology src/cooling src/cooling_grackle
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
   DFLAGS += -DPARIS
@@ -115,15 +115,10 @@ endif
 
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   DFLAGS += -DCONFIG_BFLOAT_8
-  DFLAGS += -DOUTPUT_TEMPERATURE
-  DFLAGS += -DOUTPUT_CHEMISTRY
-  #DFLAGS += -DOUTPUT_ELECTRONS
-  #DFLAGS += -DOUTPUT_FULL_IONIZATION
-  #DFLAGS += -DOUTPUT_METALS
   DFLAGS += -DSCALAR
-  DFLAGS += -DN_OMP_THREADS_GRACKLE=12
   CXXFLAGS += -I$(GRACKLE_ROOT)/include
-  LIBS     += -L$(GRACKLE_ROOT)lib -lgrackle
+  GPUFLAGS += -I$(GRACKLE_ROOT)/include
+  LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle
 endif
 
 .SUFFIXES: .c .cpp .cu .o

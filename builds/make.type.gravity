@@ -22,7 +22,6 @@ DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 #Keep the Gravity arrays resident in the GPU for high efficiency 
 DFLAGS += -DGRAVITY_GPU
 
-
-ifeq ($(findstring shamrock,$(MACHINE)),shamrock)
-DFLAGS += -DPARIS_NO_GPU_MPI
-endif
+#Select if Paris will do GPU MPI transfers 
+#If not specified then by default Paris will do GPU MPI transfers
+DFLAGS += $(PARIS_MPI_GPU)
