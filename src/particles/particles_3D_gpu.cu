@@ -36,7 +36,7 @@ void Particles_3D::Reallocate_and_Copy_Partciles_Array_Real( Real **src_array_de
   CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
   cudaDeviceSynchronize();
   #ifdef PRINT_GPU_MEMORY
-  // printf( "ReAlocating GPU Memory:  %ld  MB free \n", global_free/1000000);
+  printf( "ReAlocating GPU Memory:  %ld  MB free \n", global_free/1000000);
   #endif
   if ( global_free < size_end*sizeof(Real) ){
     printf( "ERROR: Not enough global device memory \n" );
@@ -70,7 +70,7 @@ void Particles_3D::Allocate_Particles_GPU_Array_Real( Real **array_dev, part_int
   size_t global_free, global_total;
   CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
   #ifdef PRINT_GPU_MEMORY
-  chprintf( "Alocating GPU Memory:  %ld  MB free \n", global_free/1000000);
+  chprintf( "Allocating GPU Memory:  %ld  MB free \n", global_free/1000000);
   #endif
   if ( global_free < size*sizeof(Real) ){
     printf( "ERROR: Not enough global device memory \n" );
@@ -86,7 +86,7 @@ void Particles_3D::Allocate_Particles_Grid_Field_Real( Real **array_dev, int siz
   size_t global_free, global_total;
   CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
   #ifdef PRINT_GPU_MEMORY
-  chprintf( "ReAlocating GPU Memory:  %ld  MB free \n", global_free/1000000);
+  chprintf( "Allocating GPU Memory:  %ld  MB free \n", global_free/1000000);
   #endif
   if ( global_free < size*sizeof(Real) ){
     printf( "ERROR: Not enough global device memory \n" );
@@ -102,7 +102,7 @@ void Particles_3D::Allocate_Particles_GPU_Array_int( int **array_dev, part_int_t
   size_t global_free, global_total;
   CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
   #ifdef PRINT_GPU_MEMORY
-  chprintf( "ReAlocating GPU Memory:  %ld  MB free \n", global_free/1000000);
+  chprintf( "Allocating GPU Memory:  %ld  MB free \n", global_free/1000000);
   #endif
   if ( global_free < size*sizeof(int) ){
     printf( "ERROR: Not enough global device memory \n" );
@@ -118,7 +118,7 @@ void Particles_3D::Allocate_Particles_GPU_Array_bool( bool **array_dev, part_int
   size_t global_free, global_total;
   CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
   #ifdef PRINT_GPU_MEMORY
-  chprintf( "ReAlocating GPU Memory:  %ld  MB free \n", global_free/1000000);
+  chprintf( "Allocating GPU Memory:  %ld  MB free \n", global_free/1000000);
   #endif
   if ( global_free < size*sizeof(bool) ){
     printf( "ERROR: Not enough global device memory \n" );

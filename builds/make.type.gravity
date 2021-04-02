@@ -6,11 +6,20 @@ POISSON_SOLVER ?= -DPARIS
 #-- FIXME: Gravity build does not support GPU_MPI currently
 GPU_MPI =
 
-DFLAGS += $(POISSON_SOLVER)
+#Include Gravity 
 DFLAGS += -DGRAVITY
+DFLAGS += $(POISSON_SOLVER)
+
+
+#Solve the Gradient of the Potential using a fourth order scheme (5 points) 
 DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 
 
+#Write the Gravitational Potential to the output files
+#DFLAGS += -DOUTPUT_POTENTIAL
+
+
+#Keep the Gravity arrays resident in the GPU for high efficiency 
 DFLAGS += -DGRAVITY_GPU
 
 

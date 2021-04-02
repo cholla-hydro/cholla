@@ -28,7 +28,12 @@
 
 
 
-Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt, int n_fields, Real density_floor, Real U_floor,  Real *host_grav_potential, Real max_dti_slow)
+Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, 
+          Real *d_conserved,  Real *d_grav_potential, 
+          int nx, int ny, int nz, int x_off, int y_off, 
+          int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, 
+          Real ybound, Real zbound, Real dt, int n_fields, Real density_floor, 
+          Real U_floor,  Real *host_grav_potential, Real max_dti_slow)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
@@ -97,8 +102,8 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
     #endif  
 
     // allocate memory on the GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
-    // CudaSafeCall( cudaMalloc((void**)&dev_conserved_half, n_fields*BLOCK_VOL*sizeof(Real)) );
+    // CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
+    dev_conserved = d_conserved;
     CudaSafeCall( cudaMalloc((void**)&Q_Lx,  n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Rx,  n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Ly,  n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -114,7 +119,8 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
     #endif 
     
     #if defined( GRAVITY ) 
-    CudaSafeCall( cudaMalloc((void**)&dev_grav_potential, BLOCK_VOL*sizeof(Real)) );
+    // CudaSafeCall( cudaMalloc((void**)&dev_grav_potential, BLOCK_VOL*sizeof(Real)) );
+    dev_grav_potential = d_grav_potential;
     #else
     dev_grav_potential = NULL;
     #endif
@@ -140,12 +146,14 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
     get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
 
     // copy the conserved variables onto the GPU
+    #ifndef GPU_MPI
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-    #if defined( GRAVITY ) 
+    #endif
+    
+    #if defined( GRAVITY ) && !defined( GRAVITY_GPU )
     CudaSafeCall( cudaMemcpy(dev_grav_potential, temp_potential, BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
     #endif
  
-  
     // Step 1: Construct left and right interface values using updated conserved variables
     #ifdef PCM
     hipLaunchKernelGGL(PCM_Reconstruction_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
@@ -228,7 +236,9 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int 
     CudaCheckError();
 
     // copy the updated conserved variable array back to the CPU
+    #ifndef GPU_MPI
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+    #endif
 
     // copy the updated conserved variable array from the buffer into the host_conserved array on the CPU
     host_return_block_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved1, buffer, n_fields);
@@ -280,7 +290,6 @@ void Free_Memory_Simple_3D(){
   
   // free the GPU memory
   cudaFree(dev_conserved);
-  // cudaFree(dev_conserved_half);
   cudaFree(Q_Lx);
   cudaFree(Q_Rx);
   cudaFree(Q_Ly);

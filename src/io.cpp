@@ -133,6 +133,8 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   chprintf( "\n" );
   G.H.Output_Now = false;
   #endif
+  
+  MPI_Barrier(world);
 }
 
 

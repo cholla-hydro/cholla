@@ -354,6 +354,9 @@ class Grid3D
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z, 
            *d_Energy, *d_scalar, *d_GasEnergy;
+      
+       /*! pointer to gravitational potential on device */          
+      Real *d_Grav_potential;
     } C;
 
 
@@ -656,6 +659,12 @@ class Grid3D
   int Load_Poisson_Boundary_To_Buffer( int direction, int side, Real *buffer  );
   void Unload_Poisson_Boundary_From_Buffer( int direction, int side, Real *buffer_host  );
   #endif
+  #ifdef GRAVITY_GPU
+  void Copy_Hydro_Density_to_Gravity_GPU();
+  void Extrapolate_Grav_Potential_GPU();
+  int Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real *buffer, int buffer_start  );
+  void Unload_Gravity_Potential_from_Buffer_GPU( int direction, int side, Real *buffer, int buffer_start  );
+  #endif
   
   #endif//GRAVITY 
   
@@ -716,8 +725,13 @@ class Grid3D
   Real Calc_Particles_dt_GPU();
   void Advance_Particles_KDK_Step1_GPU();
   void Advance_Particles_KDK_Step2_GPU();
-  void Set_Particles_Boundary_GPU( int dir, int side);  
+  void Set_Particles_Boundary_GPU( int dir, int side); 
   #endif//PARTICLES_GPU
+  #ifdef GRAVITY_GPU
+  void Copy_Particles_Density_GPU();
+  int Load_Particles_Density_Boundary_to_Buffer_GPU( int direction, int side, Real *buffer  );
+  void Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, int side, Real *buffer  );
+  #endif//GRAVITY_GPU 
   #endif//PARTICLES
   
   #ifdef COSMOLOGY

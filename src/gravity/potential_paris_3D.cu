@@ -161,7 +161,11 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
   const int nk = dn_[0];
 
   const int n = ni*nj*nk;
+  #ifdef GRAVITY_GPU
+  CHECK(cudaMemcpy(db,density,densityBytes_,cudaMemcpyDeviceToDevice));
+  #else
   CHECK(cudaMemcpy(db,density,densityBytes_,cudaMemcpyHostToDevice));
+  #endif
   const int ngi = ni+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
   const int ngj = nj+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
 
@@ -230,7 +234,11 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
       });
   }
   assert(potential);
+  #ifdef GRAVITY_GPU
+  CHECK(cudaMemcpy(potential,db,potentialBytes_,cudaMemcpyDeviceToDevice));
+  #else
   CHECK(cudaMemcpy(potential,db,potentialBytes_,cudaMemcpyDeviceToHost));
+  #endif
 }
 
 void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin, const int nx, const int ny, const int nz, const int nxReal, const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz, const bool periodic)

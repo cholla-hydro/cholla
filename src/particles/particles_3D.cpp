@@ -22,6 +22,11 @@ void Grid3D::Initialize_Particles( struct parameters *P ){
   
   Particles.Initialize( P, Grav, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal );
   
+  #ifdef GRAVITY_GPU
+  // Set the GPU array for the particles potential equal to the Gravity GPU array for the potential
+  Particles.G.potential_dev = Grav.F.potential_d;
+  #endif
+  
   if (strcmp(P->init, "Uniform")==0)  Initialize_Uniform_Particles();  
   
   #ifdef MPI_CHOLLA
@@ -257,8 +262,10 @@ void Particles_3D::Allocate_Memory_GPU(){
   Allocate_Particles_Grid_Field_Real( &G.gravity_x_dev, G.n_cells);
   Allocate_Particles_Grid_Field_Real( &G.gravity_y_dev, G.n_cells);
   Allocate_Particles_Grid_Field_Real( &G.gravity_z_dev, G.n_cells);
-  Allocate_Particles_Grid_Field_Real( &G.potential_dev, G.n_cells_potential);
   Allocate_Particles_Grid_Field_Real( &G.dti_array_dev, G.size_blocks_array);  
+  #ifndef GRAVITY_GPU
+  Allocate_Particles_Grid_Field_Real( &G.potential_dev, G.n_cells_potential);
+  #endif
   chprintf( " Allocated GPU memory.\n");  
 }
 
@@ -331,11 +338,14 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
 void Particles_3D::Free_Memory_GPU(){
   
   Free_GPU_Array_Real(G.density_dev);
-  Free_GPU_Array_Real(G.potential_dev);
   Free_GPU_Array_Real(G.gravity_x_dev);
   Free_GPU_Array_Real(G.gravity_y_dev);
   Free_GPU_Array_Real(G.gravity_z_dev);
   Free_GPU_Array_Real(G.dti_array_dev);
+  
+  #ifndef GRAVITY_GPU
+  Free_GPU_Array_Real(G.potential_dev);
+  #endif
   
   Free_GPU_Array_Real(pos_x_dev);
   Free_GPU_Array_Real(pos_y_dev);

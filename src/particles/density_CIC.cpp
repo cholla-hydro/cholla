@@ -35,18 +35,17 @@ void Particles_3D::Get_Density_CIC(){
 //Compute the particles density and copy it to the array in Grav to compute the potential
 void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
   
-  // Step 1: Get Partcles CIC Density
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
-  Particles.Clear_Density();
   
+  // Step 1: Get Partcles CIC Density
+  Particles.Clear_Density();
   Particles.Get_Density_CIC();
   
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 4 );
   #endif
-  
   
   #ifdef CPU_TIME
   Timer.Start_Timer();
@@ -67,6 +66,10 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
 //Copy the particles density to the density array in Grav to compute the potential
 void Grid3D::Copy_Particles_Density(){
   
+  #ifdef GRAVITY_GPU
+  Copy_Particles_Density_GPU();
+  #else
+  
   #ifndef PARALLEL_OMP
   Copy_Particles_Density_function( 0, Grav.nz_local );
   #else
@@ -83,7 +86,9 @@ void Grid3D::Copy_Particles_Density(){
 
     Copy_Particles_Density_function( g_start, g_end  );
   }
-  #endif  
+  #endif//PARALLEL_OMP
+  
+  #endif//GRAVITY_GPU  
 }
 
 void Grid3D::Copy_Particles_Density_function( int g_start, int g_end ){

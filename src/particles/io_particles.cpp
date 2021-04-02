@@ -477,6 +477,16 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   output_particle_data = false;
   #endif
   
+  #ifdef GRAVITY_GPU
+  //Copy the device arrays from the device to the host
+  CudaSafeCall( cudaMemcpy(Particles.G.density, Particles.G.density_dev, Particles.G.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  
+  #ifdef OUTPUT_POTENTIAL
+  CudaSafeCall( cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential*sizeof(Real), cudaMemcpyDeviceToHost) );  
+  #endif//OUTPUT_POTENTIAL
+  #endif//GRAVITY_GPU
+  
+  
+  
   // Count Current Total Particles
   part_int_t N_paricles_total;
   #ifdef MPI_CHOLLA

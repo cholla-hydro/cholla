@@ -292,6 +292,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buf
   
   //Load X boundaries
   if (direction == 0){
+    length = nGHST * nz_g * ny_g;
     for ( k=0; k<nz_g; k++ ){
       for ( j=0; j<ny_g; j++ ){
         for ( i=0; i<nGHST; i++ ){
@@ -299,7 +300,6 @@ int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buf
           if ( side == 1 ) indx = (nx_g - 2*nGHST + i) + (j)*nx_g + (k)*nx_g*ny_g;
           indx_buff = (j) + (k)*ny_g + i*ny_g*nz_g ;
           buffer[buffer_start+indx_buff] = Grav.F.potential_h[indx];
-          length = nGHST * nz_g * ny_g;
         }
       }
     }
@@ -307,6 +307,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buf
 
   //Load Y boundaries
   if (direction == 1){
+    length = nGHST * nz_g * nx_g;
     for ( k=0; k<nz_g; k++ ){
       for ( j=0; j<nGHST; j++ ){
         for ( i=0; i<nx_g; i++ ){
@@ -314,7 +315,6 @@ int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buf
           if ( side == 1 ) indx = (i) + (ny_g - 2*nGHST + j)*nx_g + (k)*nx_g*ny_g;
           indx_buff = (i) + (k)*nx_g + j*nx_g*nz_g ;
           buffer[buffer_start+indx_buff] = Grav.F.potential_h[indx];
-          length = nGHST * nz_g * nx_g;
         }
       }
     }
@@ -322,6 +322,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buf
 
   //Load Z boundaries
   if (direction == 2){
+    length = nGHST * nx_g * ny_g;
     for ( k=0; k<nGHST; k++ ){
       for ( j=0; j<ny_g; j++ ){
         for ( i=0; i<nx_g; i++ ){
@@ -329,7 +330,6 @@ int Grid3D::Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buf
           if ( side == 1 ) indx = (i) + (j)*nx_g + (nz_g - 2*nGHST + k)*nx_g*ny_g;
           indx_buff = (i) + (j)*nx_g + k*nx_g*ny_g ;
           buffer[buffer_start+indx_buff] = Grav.F.potential_h[indx];
-          length = nGHST * nx_g * ny_g;
         }
       }
     }

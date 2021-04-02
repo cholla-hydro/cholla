@@ -79,6 +79,10 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
   BC_FLAGS_SET = false;
   
   AllocateMemory_CPU();
+  
+  #ifdef GRAVITY_GPU();
+  AllocateMemory_GPU();
+  #endif
 
   Initialize_values_CPU();
 

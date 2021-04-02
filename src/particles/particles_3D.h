@@ -13,7 +13,7 @@
 
 #ifdef PARTICLES_GPU
 #define TPB_PARTICLES 1024
-#define PRINT_GPU_MEMORY
+// #define PRINT_GPU_MEMORY
 #endif
 
 
