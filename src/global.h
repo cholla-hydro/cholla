@@ -81,6 +81,14 @@ typedef double Real;
 #define INITIAL_FRACTION_ELECTRON  1.53965115054e-4
 #define INITIAL_FRACTION_METAL     1.00000000000e-10
 
+//Default Gravity Compiler Flags
+#define GRAVITY_LONG_INTS
+#define COUPLE_GRAVITATIONAL_WORK
+
+//Default Particles Compiler Flags
+#define PARTICLES_LONG_INTS
+#define PARTICLES_KDK
+
 
 #ifdef GRAVITY
 #ifdef GRAVITY_5_POINTS_GRADIENT
