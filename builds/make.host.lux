@@ -7,6 +7,7 @@ CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 
+GPU_FLAGS         = -std=c++11 
 
 
 OMP_NUM_THREADS = 10
