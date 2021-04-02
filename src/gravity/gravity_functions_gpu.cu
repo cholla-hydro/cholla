@@ -113,6 +113,8 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_GPU(){
   nz_local = Grav.nz_local;
   n_ghost  = H.n_ghost;
   
+  
+  
   // set values for GPU kernels
   int tpb_x = TPBX_GRAV;
   int tpb_y = TPBY_GRAV;
@@ -133,6 +135,13 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_GPU(){
   cosmo_rho_0_gas = 1.0;
   #endif
   
+  #ifndef GPU_MPI
+  //Copy the hydro density from host to device
+  int n_cells_total = ( nx_local + 2*n_ghost ) * ( ny_local + 2*n_ghost ) * ( nz_local + 2*n_ghost );
+  CudaSafeCall( cudaMemcpy(C.d_density, C.density, n_cells_total*sizeof(Real), cudaMemcpyHostToDevice) ); 
+  #endif//GPU_MPI
+   
+  //Copy the density from the device array to the Poisson input density array
   hipLaunchKernelGGL(Copy_Hydro_Density_to_Gravity_Kernel, dim3dGrid, dim3dBlock, 0, 0,  C.d_density, Grav.F.density_d, nx_local, ny_local, nz_local, n_ghost, cosmo_rho_0_gas);
   
   
@@ -208,9 +217,9 @@ void Grid3D::Extrapolate_Grav_Potential_GPU(){
   int tpb_x = TPBX_GRAV;
   int tpb_y = TPBY_GRAV;
   int tpb_z = TPBZ_GRAV;
-  int ngrid_x = (nx_local - 1) / tpb_x + 1;
-  int ngrid_y = (ny_local - 1) / tpb_y + 1;
-  int ngrid_z = (nz_local - 1) / tpb_z + 1;
+  int ngrid_x = (nx_pot - 1) / tpb_x + 1;
+  int ngrid_y = (ny_pot - 1) / tpb_y + 1;
+  int ngrid_z = (nz_pot - 1) / tpb_z + 1;
   // number of blocks per 1D grid  
   dim3 dim3dGrid(ngrid_x, ngrid_y, ngrid_z);
   //  number of threads per 1D block   

@@ -480,7 +480,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef GRAVITY_GPU
   //Copy the device arrays from the device to the host
   CudaSafeCall( cudaMemcpy(Particles.G.density, Particles.G.density_dev, Particles.G.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  
-  #ifdef OUTPUT_POTENTIAL
+  #if defined(OUTPUT_POTENTIAL) && defined(ONLY_PARTICLES)
   CudaSafeCall( cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential*sizeof(Real), cudaMemcpyDeviceToHost) );  
   #endif//OUTPUT_POTENTIAL
   #endif//GRAVITY_GPU
@@ -642,7 +642,7 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
   status = H5Dclose(dataset_id);
 
-  #ifdef OUTPUT_POTENTIAL
+  #if defined(OUTPUT_POTENTIAL) && defined(ONLY_PARTICLES)
   // Copy the potential array to the memory buffer
   for (k=0; k<Grav.nz_local; k++) {
     for (j=0; j<Grav.ny_local; j++) {

@@ -1015,6 +1015,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #endif
   
   #endif //COOLING_GRACKLE
+  
+  #if defined(GRAVITY_GPU) && defined(OUTPUT_POTENTIAL)
+  CudaSafeCall( cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential*sizeof(Real), cudaMemcpyDeviceToHost) );  
+  #endif//GRAVITY_GPU
+  
 
 
   // 1D case
@@ -1555,8 +1560,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     }
     #endif
     
-    #ifdef GRAVITY
-    #ifdef OUTPUT_POTENTIAL
+    #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL) 
     // Copy the potential array to the memory buffer
     for (k=0; k<Grav.nz_local; k++) {
       for (j=0; j<Grav.ny_local; j++) {
@@ -1570,12 +1574,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       }
     }
     // Create a dataset id for density
-    dataset_id = H5Dcreate(file_id, "/potential", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/grav_potential", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     // Write the density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
-    #endif//OUTPUT_POTENTIAL
     #endif//GRAVITY
 
     // Free the dataspace id

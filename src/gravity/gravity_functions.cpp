@@ -33,7 +33,7 @@ void Grid3D::set_dt_Gravity(){
   Real dt_particles, dt_min;
   
   #ifdef COSMOLOGY
-  chprintf( " Current_z: %f \n", Cosmo.current_z );
+  chprintf( "Current_z: %f \n", Cosmo.current_z );
   Real da_particles, da_min, dt_physical;
   
   //Compute the particles delta_t
