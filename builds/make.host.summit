@@ -19,4 +19,4 @@ CUDA_ROOT    = ${OLCF_CUDA_ROOT}
 HDF5_ROOT    = ${OLCF_HDF5_ROOT}
 FFTW_ROOT    = ${OLCF_FFTW_ROOT}
 PFFT_ROOT    = /ccs/proj/csc380/cholla/fom/code/pfft
-GRACKLE_ROOT = /ccs/proj/ast149/code/grackle
+GRACKLE_ROOT = /ccs/home/bvilasen/code/grackle
