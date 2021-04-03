@@ -540,6 +540,7 @@ Real Grid3D::Update_Grid(void)
   // Minimum of internal energy from minumum of temperature 
   U_floor = H.temperature_floor * KB / (gama - 1) / MP / SP_ENERGY_UNIT;
   #ifdef COSMOLOGY
+  U_floor = H.temperature_floor / (gama - 1) / MP * KB * 1e-10; // ( km/s )^2
   U_floor /=  Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
   #endif
   
