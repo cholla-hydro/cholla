@@ -5,7 +5,7 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
-DIRS     := src src/gravity src/particles src/cosmology src/cooling src/cooling_grackle
+DIRS     := src src/gravity src/particles src/cosmology src/cooling src/cooling_grackle src/analysis
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
   DFLAGS += -DPARIS
@@ -88,6 +88,13 @@ endif
 ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
   CXXFLAGS += -fopenmp
 endif
+
+ifeq ($(findstring -DLYA_STATISTICS,$(DFLAGS)),-DLYA_STATISTICS)
+  CXXFLAGS += -I$(FFTW_ROOT)/include 
+  GPUFLAGS += -I$(FFTW_ROOT)/include 
+  LIBS += -L$(FFTW_ROOT)/lib -lfftw3_mpi -lfftw3
+endif
+
 
 ifdef HIPCONFIG
   DFLAGS += -DO_HIP
