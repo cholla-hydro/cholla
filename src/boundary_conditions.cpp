@@ -206,12 +206,22 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       if ( dir == 5 ) Copy_Potential_Boundaries( 2, 1, flags );
     }
     if ( flags[dir] == 3 ){
+      
+      #ifdef GRAVITY_GPU
+      if ( dir == 0 ) Set_Potential_Boundaries_Isolated_GPU( 0, 0, flags );
+      if ( dir == 1 ) Set_Potential_Boundaries_Isolated_GPU( 0, 1, flags );
+      if ( dir == 2 ) Set_Potential_Boundaries_Isolated_GPU( 1, 0, flags );
+      if ( dir == 3 ) Set_Potential_Boundaries_Isolated_GPU( 1, 1, flags );
+      if ( dir == 4 ) Set_Potential_Boundaries_Isolated_GPU( 2, 0, flags );
+      if ( dir == 5 ) Set_Potential_Boundaries_Isolated_GPU( 2, 1, flags );
+      #else
       if ( dir == 0 ) Set_Potential_Boundaries_Isolated( 0, 0, flags );
       if ( dir == 1 ) Set_Potential_Boundaries_Isolated( 0, 1, flags );
       if ( dir == 2 ) Set_Potential_Boundaries_Isolated( 1, 0, flags );
       if ( dir == 3 ) Set_Potential_Boundaries_Isolated( 1, 1, flags );
       if ( dir == 4 ) Set_Potential_Boundaries_Isolated( 2, 0, flags );
       if ( dir == 5 ) Set_Potential_Boundaries_Isolated( 2, 1, flags );
+      #endif//GRAVITY_GPU
     }
     return; 
   }

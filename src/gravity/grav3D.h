@@ -184,6 +184,22 @@ class Grav3D
     Real *pot_boundary_z0;
     Real *pot_boundary_z1;
     #endif
+    
+    #ifdef GRAVITY_GPU
+    #ifdef GRAV_ISOLATED_BOUNDARY_X
+    Real *pot_boundary_x0_d;
+    Real *pot_boundary_x1_d;
+    #endif
+    #ifdef GRAV_ISOLATED_BOUNDARY_Y
+    Real *pot_boundary_y0_d;
+    Real *pot_boundary_y1_d;
+    #endif
+    #ifdef GRAV_ISOLATED_BOUNDARY_Z
+    Real *pot_boundary_z0_d;
+    Real *pot_boundary_z1_d;
+    #endif
+    #endif//GRAVITY_GPU
+    
   } F;
   
   /*! \fn Grav3D(void)

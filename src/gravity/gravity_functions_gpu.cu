@@ -41,7 +41,24 @@ void Grav3D::AllocateMemory_GPU(){
   CudaSafeCall( cudaMalloc((void**)&F.recv_buffer_potential_z1_d, buffer_size_z*sizeof(Real)) );
   chprintf( "Allocated Gravity GPU MPI Buffers  \n" );
   #endif//MPI_CHOLLA-GPU_MPI    
+  
+  #ifdef GRAVITY_GPU
 
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+  CudaSafeCall( cudaMalloc((void**)&F.pot_boundary_x0_d, N_GHOST_POTENTIAL*ny_local*nz_local*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&F.pot_boundary_x1_d, N_GHOST_POTENTIAL*ny_local*nz_local*sizeof(Real)) );
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
+  CudaSafeCall( cudaMalloc((void**)&F.pot_boundary_y0_d, N_GHOST_POTENTIAL*nx_local*nz_local*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&F.pot_boundary_y1_d, N_GHOST_POTENTIAL*nx_local*nz_local*sizeof(Real)) );
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  CudaSafeCall( cudaMalloc((void**)&F.pot_boundary_z0_d, N_GHOST_POTENTIAL*nx_local*ny_local*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&F.pot_boundary_z1_d, N_GHOST_POTENTIAL*nx_local*ny_local*sizeof(Real)) );
+  #endif
+  
+  #endif//GRAVITY_GPU
+  
   chprintf( "Allocated Gravity GPU memory \n" );
 }
 
@@ -67,6 +84,23 @@ void Grav3D::FreeMemory_GPU(void){
   cudaFree( F.recv_buffer_potential_z0_d );
   cudaFree( F.recv_buffer_potential_z1_d );
   #endif//MPI_CHOLLA-GPU_MPI   
+  
+  #ifdef GRAVITY_GPU
+  
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+  cudaFree( F.pot_boundary_x0_d);
+  cudaFree( F.pot_boundary_x1_d);
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
+  cudaFree( F.pot_boundary_y0_d);
+  cudaFree( F.pot_boundary_y1_d);
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  cudaFree( F.pot_boundary_z0_d);
+  cudaFree( F.pot_boundary_z1_d);
+  #endif
+  
+  #endif //GRAVITY_GPU
   
 }
 

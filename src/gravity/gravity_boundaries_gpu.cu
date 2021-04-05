@@ -6,6 +6,103 @@
 #include "../grid3D.h"
 #include "grav3D.h"
 
+
+#if defined (GRAV_ISOLATED_BOUNDARY_X) || defined (GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
+
+void __global__ Set_Potential_Boundaries_Isolated_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny, int nz, int n_ghost, Real *potential_d, Real *pot_boundary_d   ){
+  
+  // get a global thread ID
+  int tid, tid_i, tid_j, tid_k, tid_buffer, tid_pot;
+  tid = threadIdx.x + blockIdx.x * blockDim.x;
+  tid_k = tid / (n_i*n_j);
+  tid_j = (tid - tid_k*n_i*n_j) / n_i;
+  tid_i = tid - tid_k*n_i*n_j - tid_j*n_i;
+  
+  if ( tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost ) return;
+  
+  tid_buffer = tid_i + tid_j*n_i + tid_k*n_i*n_j;
+  
+  if ( direction == 0 ){
+    if ( side == 0 ) tid_pot = ( tid_k )                + (tid_i+n_ghost)*nx + (tid_j+n_ghost)*nx*ny;
+    if ( side == 1 ) tid_pot = ( nx - n_ghost + tid_k ) + (tid_i+n_ghost)*nx + (tid_j+n_ghost)*nx*ny;
+  }  
+  if ( direction == 1 ){
+    if ( side == 0 ) tid_pot = (tid_i+n_ghost) + ( tid_k )*nx                 + (tid_j+n_ghost)*nx*ny;
+    if ( side == 1 ) tid_pot = (tid_i+n_ghost) + ( ny - n_ghost + tid_k  )*nx + (tid_j+n_ghost)*nx*ny;
+  }
+  if ( direction == 2 ){
+    if ( side == 0 ) tid_pot = (tid_i+n_ghost) + (tid_j+n_ghost)*nx + ( tid_k )*nx*ny;
+    if ( side == 1 ) tid_pot = (tid_i+n_ghost) + (tid_j+n_ghost)*nx + ( nz - n_ghost + tid_k  )*nx*ny;  
+  }
+  
+  potential_d[tid_pot] = pot_boundary_d[tid_buffer];
+}
+
+void Grid3D::Set_Potential_Boundaries_Isolated_GPU( int direction, int side, int *flags ){
+  
+  int n_i, n_j, n_ghost, size_buffer;
+  int nx_g, ny_g, nz_g;
+  n_ghost = N_GHOST_POTENTIAL;
+  nx_g = Grav.nx_local + 2*n_ghost;
+  ny_g = Grav.ny_local + 2*n_ghost;
+  nz_g = Grav.nz_local + 2*n_ghost;  
+  
+  
+  Real *pot_boundary_h, *pot_boundary_d;
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+  if ( direction == 0 ){
+    n_i = Grav.ny_local;
+    n_j = Grav.nz_local;
+    if ( side == 0 ) pot_boundary_h = Grav.F.pot_boundary_x0;
+    if ( side == 1 ) pot_boundary_h = Grav.F.pot_boundary_x1;
+    if ( side == 0 ) pot_boundary_d = Grav.F.pot_boundary_x0_d;
+    if ( side == 1 ) pot_boundary_d = Grav.F.pot_boundary_x1_d;
+  }
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
+  if ( direction == 1 ){
+    n_i = Grav.nx_local;
+    n_j = Grav.nz_local;
+    if ( side == 0 ) pot_boundary_h = Grav.F.pot_boundary_y0;
+    if ( side == 1 ) pot_boundary_h = Grav.F.pot_boundary_y1;
+    if ( side == 0 ) pot_boundary_d = Grav.F.pot_boundary_y0_d;
+    if ( side == 1 ) pot_boundary_d = Grav.F.pot_boundary_y1_d;
+  }
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  if ( direction == 2 ){
+    n_i = Grav.nx_local;
+    n_j = Grav.ny_local;
+    if ( side == 0 ) pot_boundary_h = Grav.F.pot_boundary_z0;
+    if ( side == 1 ) pot_boundary_h = Grav.F.pot_boundary_z1;
+    if ( side == 0 ) pot_boundary_d = Grav.F.pot_boundary_z0_d;
+    if ( side == 1 ) pot_boundary_d = Grav.F.pot_boundary_z1_d;
+  }
+  #endif  
+  
+  size_buffer = N_GHOST_POTENTIAL * n_i * n_j;
+  
+  // set values for GPU kernels
+  int ngrid = ( size_buffer - 1 ) / TPB_GRAV + 1;
+  // number of blocks per 1D grid  
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block   
+  dim3 dim1dBlock(TPB_GRAV, 1, 1);
+  
+  //Copy the boundary array from host to device
+  cudaMemcpy( pot_boundary_d, pot_boundary_h, size_buffer*sizeof(Real), cudaMemcpyHostToDevice );
+  cudaDeviceSynchronize();
+   
+  // Copy the potential boundary from buffer to potential array
+  hipLaunchKernelGGL( Set_Potential_Boundaries_Isolated_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j, nx_g, ny_g, nz_g, n_ghost, Grav.F.potential_d, pot_boundary_d );
+  
+}
+
+
+
+
+#endif //GRAV_ISOLATED_BOUNDARY
+
 __global__ void Load_Transfer_Buffer_GPU_kernel( int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d   ){
   
   // get a global thread ID
