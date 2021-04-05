@@ -11,6 +11,10 @@ DFLAGS += -DGRAVITY
 DFLAGS += $(POISSON_SOLVER)
 
 
+#Keep the Gravity arrays resident in the GPU for high efficiency 
+DFLAGS += -DGRAVITY_GPU
+
+
 #Solve the Gradient of the Potential using a fourth order scheme (5 points) 
 DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 
@@ -18,9 +22,6 @@ DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 #Write the Gravitational Potential to the output files
 #DFLAGS += -DOUTPUT_POTENTIAL
 
-
-#Keep the Gravity arrays resident in the GPU for high efficiency 
-DFLAGS += -DGRAVITY_GPU
 
 #Select if Paris will do GPU MPI transfers 
 #If not specified then by default Paris will do GPU MPI transfers

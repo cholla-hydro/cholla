@@ -144,6 +144,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real 
   #ifndef GPU_MPI
   //Copy the device buffer back to the host send buffer
   cudaMemcpy( buffer, send_buffer_d, size_buffer*sizeof(Real), cudaMemcpyDeviceToHost );
+  cudaDeviceSynchronize();
   #endif
   
   // printf( "Loaded Gravity Buffer \n" );
@@ -236,6 +237,7 @@ void Grid3D::Unload_Gravity_Potential_from_Buffer_GPU( int direction, int side, 
   #ifndef GPU_MPI
   //Copy the host recv buffer to the device recv buffer
   cudaMemcpy( recv_buffer_d, buffer, size_buffer*sizeof(Real), cudaMemcpyHostToDevice );
+  cudaDeviceSynchronize();
   #endif
 
   hipLaunchKernelGGL( Unload_Transfer_Buffer_GPU_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j,  nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, recv_buffer_d  );
