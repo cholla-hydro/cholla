@@ -494,10 +494,11 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   const Real dens_avrg = Cosmo.rho_0_gas;
   #else
   const Real Grav_Constant = Grav.Gconst;
-  const Real dens_avrg = (P->xlg_bcnd == 3) ? 0.0005 : 0;
-  const Real r0 = 0.2;
-  // Re-use current_a as total mass
-  const Real current_a = (1.0-dens_avrg)*4.0*M_PI*r0*r0*r0/3.0;
+  // If sloving the Sphere Collapse problem ( bc_potential_type=0 )
+  const Real dens_avrg = (P->bc_potential_type == 0) ? H.sphere_background_density : 0;
+  const Real r0 = H.sphere_radius;
+  // Re-use current_a as the total mass of the sphere
+  const Real current_a = (H.sphere_density-dens_avrg)*4.0*M_PI*r0*r0*r0/3.0;
   #endif
   
   if ( !Grav.BC_FLAGS_SET ){

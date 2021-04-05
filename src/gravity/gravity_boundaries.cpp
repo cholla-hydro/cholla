@@ -134,11 +134,11 @@ void Grid3D::Compute_Potential_Isolated_Boundary( int direction, int side,  int 
   Real M, cm_pos_x, cm_pos_y, cm_pos_z, pos_x, pos_y, pos_z, r, delta_x, delta_y, delta_z;
   
   if ( bc_potential_type == 0 ){
-    const Real r0 = 0.2;
-    M = (1.0-0.0005)*4.0*M_PI*r0*r0*r0/3.0;
-    cm_pos_x = 0.5;
-    cm_pos_y = 0.5;
-    cm_pos_z = 0.5; 
+    const Real r0 = H.sphere_radius;
+    M = (H.sphere_density-H.sphere_background_density)*4.0*M_PI*r0*r0*r0/3.0;
+    cm_pos_x = H.sphere_center_x;
+    cm_pos_y = H.sphere_center_y;
+    cm_pos_z = H.sphere_center_z; 
   }
   
  

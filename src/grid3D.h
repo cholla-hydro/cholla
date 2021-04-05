@@ -231,6 +231,15 @@ struct Header
   //Flag to indicate when to transfer the Conserved boundaries
   bool TRANSFER_HYDRO_BOUNDARIES;
   
+  //Parameters For Spherical Colapse Problem
+  Real sphere_density;
+  Real sphere_radius;
+  Real sphere_background_density;
+  Real sphere_center_x;
+  Real sphere_center_y;
+  Real sphere_center_z;
+  
+  
   #ifdef GRAVITY
   /*! \var n_ghost_potential_offset
   *  \brief Number of offset betewen hydro_ghost_cells and potential_ghost_cells */
