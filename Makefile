@@ -107,11 +107,11 @@ ifdef HIPCONFIG
 else
   GPUCXX ?= nvcc
   # GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
-  GPUFLAGS += --expt-extended-lambda -g -O3 -fmad=false
+  GPUFLAGS += -std=c++11 --expt-extended-lambda -g -O3 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
 	ifeq ($(findstring shamrock,$(MACHINE)),shamrock)
-		GPUFLAGS += -I$(CUDA_ROOT)/include -std=c++11
+		GPUFLAGS += -I$(CUDA_ROOT)/include 
 		CXXFLAGS += -I$(CUDA_ROOT)/include
 		LIBS += -L$(CUDA_ROOT)/lib -lcudart -lcufft
 	else

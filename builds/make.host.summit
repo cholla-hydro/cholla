@@ -8,7 +8,8 @@ CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 ${F_OFFLOAD}
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 ${F_OFFLOAD}
-GPUFLAGS          = -ccbin=/sw/summit/gcc/6.4.0/bin/gcc
+#GPUFLAGS          = -ccbin=/sw/summit/gcc/6.4.0/bin/gcc
+GPUFLAGS          = -ccbin=mpicxx
 
 OMP_NUM_THREADS   = 16
 #-- How to launch job
