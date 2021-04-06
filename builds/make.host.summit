@@ -10,7 +10,7 @@ CXXFLAGS_DEBUG    = -g -O0 -std=c++11 ${F_OFFLOAD}
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 ${F_OFFLOAD}
 GPUFLAGS          = -ccbin=mpicxx
 
-OMP_NUM_THREADS   = 16
+OMP_NUM_THREADS   = 7
 #-- How to launch job
 JOB_LAUNCH        = jsrun -n 1 -g 1 -c 7 --bind packed:7 -a 1
 
