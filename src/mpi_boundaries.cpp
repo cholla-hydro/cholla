@@ -2076,12 +2076,12 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
   
   #if( defined(GRAVITY)  )
   if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
-    if ( index == 0 ) Unload_Gravity_Potential_from_Buffer( 0, 0, recv_buffer_x0, 0  );
-    if ( index == 1 ) Unload_Gravity_Potential_from_Buffer( 0, 1, recv_buffer_x1, 0  );
-    if ( index == 2 ) Unload_Gravity_Potential_from_Buffer( 1, 0, recv_buffer_y0, 0  );
-    if ( index == 3 ) Unload_Gravity_Potential_from_Buffer( 1, 1, recv_buffer_y1, 0  );
-    if ( index == 4 ) Unload_Gravity_Potential_from_Buffer( 2, 0, recv_buffer_z0, 0  );
-    if ( index == 5 ) Unload_Gravity_Potential_from_Buffer( 2, 1, recv_buffer_z1, 0  );
+    if ( index == 0 ) Unload_Gravity_Potential_from_Buffer_GPU( 0, 0, recv_buffer_x0, 0  );
+    if ( index == 1 ) Unload_Gravity_Potential_from_Buffer_GPU( 0, 1, recv_buffer_x1, 0  );
+    if ( index == 2 ) Unload_Gravity_Potential_from_Buffer_GPU( 1, 0, recv_buffer_y0, 0  );
+    if ( index == 3 ) Unload_Gravity_Potential_from_Buffer_GPU( 1, 1, recv_buffer_y1, 0  );
+    if ( index == 4 ) Unload_Gravity_Potential_from_Buffer_GPU( 2, 0, recv_buffer_z0, 0  );
+    if ( index == 5 ) Unload_Gravity_Potential_from_Buffer_GPU( 2, 1, recv_buffer_z1, 0  );
   }
   #endif
   
