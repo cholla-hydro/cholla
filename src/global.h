@@ -179,7 +179,11 @@ struct parameters
   Real gamma;
   char init[MAXLEN];
   int nfile;
-  int nfull;
+  int outstep_hydro;
+  int outstep_particle;
+  int outstep_projection;
+  int outstep_rotated_projection;
+  int outstep_slice;
   Real xmin;
   Real ymin;
   Real zmin;
