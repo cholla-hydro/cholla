@@ -37,8 +37,13 @@ out.*
 o.*
 run
 
+
+disk.*
+
+
 # Logs and databases #
 ######################
+*.err
 *.log
 *.sql
 *.sqlite
@@ -72,5 +77,8 @@ Thumbs.db
 .idea
 .vscode
 
-disk.*
-*.err
+# Documentation build files #
+#############################
+docs/doxygen/build
+docs/sphinx/build
+
