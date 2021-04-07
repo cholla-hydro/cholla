@@ -71,3 +71,8 @@ Thumbs.db
 ####################
 .idea
 .vscode
+
+# Documentation build files #
+#############################
+docs/doxygen/build
+docs/sphinx/build
