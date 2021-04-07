@@ -1007,6 +1007,9 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   #ifdef PARTICLE_IDS
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle ID
   #endif
+  #ifdef PARTICLE_AGE
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle age
+  #endif
   
   buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_x0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
@@ -1198,6 +1201,9 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   #ifdef PARTICLE_IDS
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle ID
   #endif
+  #ifdef PARTICLE_AGE
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle age
+  #endif
   
   buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_x0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
@@ -1230,7 +1236,7 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   CudaSafeCall ( cudaMalloc (&recv_buffer_z1, zbsize*sizeof(Real)) );
   
   #ifdef PARTICLES
-  chprintf("GPU MPI for PARTICLES is not yet implemented. Aborting.\n")
+  chprintf("GPU MPI for PARTICLES is not yet implemented. Aborting.\n");
   chexit(-1);
   #endif//PARTICLES
   

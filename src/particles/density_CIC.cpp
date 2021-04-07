@@ -7,6 +7,7 @@
 #include"../global.h"
 #include"particles_3D.h"
 #include "../grid3D.h"
+#include "../io.h"
 
 #ifdef PARALLEL_OMP
 #include"../parallel_omp.h"
@@ -415,19 +416,6 @@ void Particles_3D::Get_Density_CIC_OMP( ){
 #endif //PARALLEL_OMP
 
 #endif //PARTICLES_CPU
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #endif

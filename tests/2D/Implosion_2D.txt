@@ -13,7 +13,7 @@ nz=1
 tout=2.5
 # how often to output
 outstep=0.01
-nfull=1
+outstep_hydro=1
 # value of gamma
 gamma=1.4
 # name of initial conditions
