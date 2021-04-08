@@ -2085,7 +2085,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
   }
   #endif//GRAVITY_GPU
   
-  #if defined(PARTICLES) && defined(PARTICLES_GPU)
+  #if defined(PARTICLES) && defined(GRAVITY_GPU)
   if (  Particles.TRANSFER_DENSITY_BOUNDARIES ){
     if ( index == 0 ) Unload_Particles_Density_Boundary_From_Buffer_GPU( 0, 0, recv_buffer_x0 );
     if ( index == 1 ) Unload_Particles_Density_Boundary_From_Buffer_GPU( 0, 1, recv_buffer_x1 );
