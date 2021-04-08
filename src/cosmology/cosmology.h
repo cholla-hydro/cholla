@@ -63,10 +63,6 @@ public:
 
   void Set_Next_Scale_Output( );
   
-  void Change_DM_Frame_System( bool forward );
-  void Change_GAS_Frame_System( bool forward );
-  void Change_Cosmological_Frame_Sytem( bool forward );
-  
   Real Get_Hubble_Parameter( Real a );
   
   Real Get_da_from_dt( Real dt );
