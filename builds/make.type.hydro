@@ -28,11 +28,16 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 DFLAGS    += -DDE
 
 
-# Apply the cooling in the GPU from precomtuded tables
-DFLAGS    += -DCOOLING_GPU
+# Apply the cooling in the GPU from precomputed tables
+# DFLAGS    += -DCOOLING_GPU
+
+
+#Measure the Timing of the different stages
+DFLAGS += -DCPU_TIME
 
 
 DFLAGS    += $(OUTPUT)
+
 
 #Select if the Hydro Conserved data will reside in the GPU
 #and the MPI transfers are done from the GPU

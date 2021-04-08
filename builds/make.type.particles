@@ -6,23 +6,27 @@ DFLAGS += -DPARTICLES
 
 #Solve the particles in the GPU or CPU
 #NOTE: If using PARTICLES and GPU_MPI is turned on, then PARTICLES_GPU has to be turned on 
-#DFLAGS += -DPARTICLES_CPU
+# DFLAGS += -DPARTICLES_CPU
 DFLAGS += -DPARTICLES_GPU
 
 
 #Solve only an N-Body Simulation (No Hydro, DM Only simulation)
-#DFLAGS += -DONLY_PARTICLES
+# DFLAGS += -DONLY_PARTICLES
 
 
 #Track Particles IDs and write them to the output files
 # DFLAGS += -DPARTICLE_IDS
 
 
-#All the particls have the same mass
+#Track Particles Ages ( Stellar Populations )
+# DFLAGS += -DPARTICLE_AGE
+
+
+#All the particles have the same mass, if turned off particles masses have to be speciffied
 DFLAGS += -DSINGLE_PARTICLE_MASS
 
 
-#If the particles are solved in the CPU, use OpenMP for better performance
+#If the particles are solved on the CPU, use OpenMP for better performance
 DFLAGS += -DPARALLEL_OMP
 #-- OMP_NUM_THREADS should be set in make.host.*
 DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)

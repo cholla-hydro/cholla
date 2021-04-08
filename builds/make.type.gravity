@@ -15,7 +15,7 @@ DFLAGS += -DGRAVITY_GPU
 
 
 #Include an analytical potential on top on the Poisson Potential
-DFLAGS += -DGRAVITY_ANALYTIC_COMP
+# DFLAGS += -DGRAVITY_ANALYTIC_COMP
 
 
 #Solve the Gradient of the Potential using a fourth order scheme (5 points) 

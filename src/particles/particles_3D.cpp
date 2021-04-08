@@ -666,6 +666,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       }
       vz = vz*speedDist(generator);
 
+      #ifdef PARTICLES_CPU
       //Copy the particle data to the particles vectors
       pos_x.push_back(x);
       pos_y.push_back(y);
@@ -693,8 +694,15 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       //else age.push_back(0.0);
       age.push_back(0.0);
       #endif
+      
+      #endif//PARTICLES_CPU
   }
+  
+  
+  
+  #ifdef PARTICLES_CPU
   n_local = pos_x.size();
+  #endif
 
   if (lost_particles > 0) chprintf("  lost %lu particles\n", lost_particles);
   chprintf( " Stellar Disk Particles Initialized, n_local: %lu\n", n_local);
