@@ -42,7 +42,7 @@ void Particles_3D::Load_Particles_Data( struct parameters *P){
   #ifdef TILED_INITIAL_CONDITIONS
   sprintf(filename,"%sics_%dMpc_%d_particles.h5", P->indir, (int) P->tile_length/1000, G.nx_local); //Everyone reads the same file
   #else
-  sprintf(filename,"%s.%d",filename,procID);
+  if (strcmp(P->init, "Disk_3D_particles") != 0) sprintf(filename,"%s.%d",filename,procID);
   #endif //TILED_INITIAL_CONDITIONS
   #endif
 
@@ -85,6 +85,9 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   Real      *dataset_buffer_vy;
   Real      *dataset_buffer_vz;
   Real      *dataset_buffer_m;
+  #ifdef PARTICLE_AGE
+  Real      *dataset_buffer_age;
+  #endif
   herr_t    status;
 
   part_int_t n_to_load, pIndx;
@@ -113,9 +116,11 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   #ifndef MPI_CHOLLA
   chprintf(" Loading %ld particles\n", n_to_load);
   #else
-  part_int_t n_total_load;
-  n_total_load = ReducePartIntSum( n_to_load );
-  chprintf( " Total Particles To Load: %ld\n", n_total_load );
+  if (strcmp(P->init, "Disk_3D_particles") != 0) {
+    part_int_t n_total_load;
+    n_total_load = ReducePartIntSum( n_to_load );
+    chprintf( " Total Particles To Load: %ld\n", n_total_load );
+  }
   // Print individual n_to_load
   // for ( int i=0; i<nproc; i++ ){
   //   if ( procID == i ) std::cout << "  [pId:"  << procID << "]  Loading Particles: " << n_local <<  std::endl;
@@ -169,6 +174,13 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   status = H5Dread(dataset_id, H5T_NATIVE_LONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_IDs);
   status = H5Dclose(dataset_id);
   #endif
+
+  #ifdef PARTICLE_AGE
+  dataset_buffer_age = (Real *) malloc(n_to_load*sizeof(Real));
+  dataset_id = H5Dopen(file_id, "/age", H5P_DEFAULT);
+  status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_age);
+  status = H5Dclose(dataset_id);
+  #endif 
   
   //Initializa min and max values for position and velocity to print initial Statistics
   Real px_min, px_max;
@@ -193,6 +205,10 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   // Real values for loading each particle data
   Real pPos_x, pPos_y, pPos_z;
   Real pVel_x, pVel_y, pVel_z, pMass;
+  #ifdef PARTICLE_AGE
+  Real pAge;
+  #endif
+
   part_int_t pID;
   bool in_local;
 
@@ -235,6 +251,9 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
     #endif
     #ifdef PARTICLE_IDS
     pID = dataset_buffer_IDs[pIndx];
+    #endif
+    #ifdef PARTICLE_AGE
+    pAge = dataset_buffer_IDs[pIndx];
     #endif
     
     #ifdef TILED_INITIAL_CONDITIONS
@@ -314,12 +333,12 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
     #ifdef PARTICLE_IDS
     partIDs.push_back(pID);
     #endif
+    #ifdef PARTICLE_AGE
+    age.push_back( pAge );
+    #endif
     n_local += 1; //Add 1 to the local number of particles
     #endif//PARTICLES_CPU
-    
-    
   }
-  
   
   #ifdef PARTICLES_GPU
   // Alocate memory in GPU for particle data
@@ -347,10 +366,6 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vy, vel_y_dev, n_local);
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vz, vel_z_dev, n_local);
   #endif
-  
-  
-  
-  
   
   #ifndef MPI_CHOLLA
   chprintf( " Loaded  %ld  particles\n", n_local );
@@ -415,9 +430,10 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   #ifdef PARTICLE_IDS
   free(dataset_buffer_IDs);
   #endif
+  #ifdef PARTICLE_AGE
+  free(dataset_buffer_age);
+  #endif
 } 
-
-
 
 
 /*! \fn void Write_Header_HDF5(hid_t file_id)
@@ -615,6 +631,15 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   free(dataset_buffer_IDs);
   #endif
   
+  #ifdef PARTICLE_AGE
+  #ifdef PARTICLES_CPU
+  for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.age[i];
+  #endif //PARTICLES_CPU
+  dataset_id = H5Dcreate(file_id, "/age", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+  status = H5Dclose(dataset_id);
+  #endif
+
   //Create a data set for the grid data ( density and potential )
 
   // 3D case

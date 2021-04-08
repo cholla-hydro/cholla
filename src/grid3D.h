@@ -22,6 +22,7 @@
 
 #ifdef PARTICLES
 #include "particles/particles_3D.h"
+#include "model/disk_galaxy.h"
 #endif
 
 #ifdef COSMOLOGY
@@ -660,6 +661,8 @@ class Grid3D
   void Transfer_Particles_Boundaries( struct parameters P );
   Real Update_Grid_and_Particles_KDK( struct parameters P );
   void Set_Particles_Boundary( int dir, int side);
+  void Add_Analytic_Potential(struct parameters *P);
+  void Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal);
   #ifdef MPI_CHOLLA
   int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
   void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
@@ -737,6 +740,14 @@ class Grid3D
   void Do_Cooling_Step_Grackle();
   #endif
   
+  #ifdef PARTICLES
+  #ifdef DE
+  #ifdef PARTICLE_AGE
+  void Cluster_Feedback();
+  void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end);
+  #endif 
+  #endif 
+  #endif 
 
 };
 
