@@ -1,5 +1,3 @@
-include builds/make.type.hydro
-include builds/make.type.gravity
 include builds/make.type.particles
 
 

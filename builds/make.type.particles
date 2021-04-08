@@ -1,4 +1,3 @@
-include builds/make.type.hydro
 include builds/make.type.gravity
 
 #Include Particles 
@@ -6,7 +5,8 @@ DFLAGS += -DPARTICLES
 
 
 #Solve the particles in the GPU or CPU
-# DFLAGS += -DPARTICLES_CPU
+#NOTE: If using PARTICLES and GPU_MPI is turned on, then PARTICLES_GPU has to be turned on 
+#DFLAGS += -DPARTICLES_CPU
 DFLAGS += -DPARTICLES_GPU
 
 
@@ -14,7 +14,7 @@ DFLAGS += -DPARTICLES_GPU
 #DFLAGS += -DONLY_PARTICLES
 
 
-#Track Paricles IDs and write them to the output files
+#Track Particles IDs and write them to the output files
 # DFLAGS += -DPARTICLE_IDS
 
 

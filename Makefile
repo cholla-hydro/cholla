@@ -8,7 +8,6 @@ include builds/make.type.$(TYPE)
 DIRS     := src src/gravity src/particles src/cosmology src/cooling src/cooling_grackle src/analysis
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
-  DFLAGS += -DPARIS
   SUFFIX ?= .paris.$(MACHINE)
 endif
 

@@ -9,7 +9,8 @@ DFLAGS += -DGRAVITY
 DFLAGS += $(POISSON_SOLVER)
 
 
-#Keep the Gravity arrays resident in the GPU for high efficiency 
+#Keep the Gravity arrays resident in the GPU for high efficiency
+#NOTE: If using GRAVITY and GPU_MPI is turned on, then GRAVITY_GPU has to be turned on 
 DFLAGS += -DGRAVITY_GPU
 
 
