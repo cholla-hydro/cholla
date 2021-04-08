@@ -260,7 +260,7 @@ __global__ void Replace_Transfered_Particles_Kernel( int n_transfer, Real *field
   src_id = replace_indices_d[tid];
   
   if ( dst_id < src_id ){ 
-    // if (print_replace) printf("Replacing: %f \n", field_d[dst_id] );
+    if (print_replace) printf("Replacing: %f \n", field_d[dst_id] );
     field_d[dst_id] = field_d[src_id];
   }
 

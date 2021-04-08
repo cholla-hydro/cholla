@@ -138,7 +138,7 @@ void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particl
   CudaCheckError();
   cudaDeviceSynchronize();
   
-  #ifndef GRAVITY_GPU
+  #if defined(GRAVITY_GPU) && !defined(GPU_MPI)
   //Copy the density from device to host
   CudaSafeCall( cudaMemcpy(density_h, density_dev, n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  
   #endif

@@ -748,6 +748,7 @@ class Grid3D
   void Initialize_Cosmology( struct parameters *P );
   void Change_DM_Frame_System( bool forward );
   void Change_GAS_Frame_System( bool forward );
+  void Change_GAS_Frame_System_GPU( bool forward );
   void Change_Cosmological_Frame_Sytem( bool forward );
   void Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end );
   void Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end );

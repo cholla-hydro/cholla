@@ -533,7 +533,13 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
   Load_Particles_to_Transfer_GPU_function( n_transfer, 4, n_fields_to_transfer, vel_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos ); 
   Load_Particles_to_Transfer_GPU_function( n_transfer, 5, n_fields_to_transfer, vel_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos ); 
   
+  #ifndef GPU_MPI
+  // Copy the particles transfer buffer to the host
+  int transfer_size;
+  transfer_size = n_transfer * N_DATA_PER_PARTICLE_TRANSFER;  
   Copy_Particles_GPU_Buffer_to_Host_Buffer( n_transfer, send_buffer_h, send_buffer_d );
+  #endif
+  CudaCheckError();
   
   *n_send += n_transfer;
   // if ( *n_send > 0 ) printf( "###Transfered %ld  particles\n", *n_send);
@@ -545,7 +551,7 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
 void Particles_3D::Replace_Tranfered_Particles_GPU( int n_transfer ){
     
   // Replace the particles that were transfered
-  Replace_Transfered_Particles_GPU_function( n_transfer, pos_x_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, true );
+  Replace_Transfered_Particles_GPU_function( n_transfer, pos_x_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, pos_y_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, pos_z_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, vel_x_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
@@ -646,8 +652,14 @@ void Particles_3D::Unload_Particles_from_Buffer_GPU( int direction, int side , R
       recv_buffer_d = G.recv_buffer_z1_d;
     }
   }
-    
+  
+  #ifndef GPU_MPI
+  // Copy the particles transfer buffer from the host
+  int transfer_size;
+  transfer_size = n_recv * N_DATA_PER_PARTICLE_TRANSFER;  
   Copy_Particles_Host_Buffer_to_GPU_Buffer( n_recv, recv_buffer_h, recv_buffer_d );
+  #endif
+  CudaCheckError();
   
   Copy_Transfer_Particles_from_Buffer_GPU( n_recv, recv_buffer_d );
   
