@@ -9,6 +9,7 @@
 #include"../io.h"
 #include"particles_3D.h"
 #include"density_CIC.h"
+#include "../model/disk_galaxy.h"
 
 
 #ifdef PARALLEL_OMP
@@ -161,6 +162,9 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
         phi_ll = potential[id_ll];
         phi_rr = potential[id_rr];
         Particles.G.gravity_y[id] = -1 * ( -phi_rr + 8*phi_r - 8*phi_l + phi_ll) / (12*dy);
+        //if (i == 0) {
+        //  std::cout << "phi_ll[" << id_ll << "] = " << phi_ll << std::endl;
+        //}
         #else
         Particles.G.gravity_y[id] = -0.5 * ( phi_r - phi_l ) / dy;
         #endif

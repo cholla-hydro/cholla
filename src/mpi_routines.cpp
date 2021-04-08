@@ -1007,6 +1007,9 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   #ifdef PARTICLE_IDS
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle ID
   #endif
+  #ifdef PARTICLE_AGE
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle age
+  #endif
   
   buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_x0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
@@ -1070,12 +1073,12 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   chprintf("Allocating MPI communication buffers for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
   if(!( send_buffer_x0_particles = (Real *) malloc(buffer_length_particles_x0_send*sizeof(Real))))
   {
-    chprintf("Error allocating send_buffer_x0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x0_send*sizeof(Real));
+    chprintf("Error allocating send_buffer_x0_paricles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x0_send*sizeof(Real));
     chexit(-1);
   }
   if(!( send_buffer_x1_particles = (Real *) malloc(buffer_length_particles_x1_send*sizeof(Real))))
   {
-    chprintf("Error allocating send_buffer_x1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x1_send*sizeof(Real));
+    chprintf("Error allocating send_buffer_x1_paricles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x1_send*sizeof(Real));
     chexit(-1);
   }
   if(!(recv_buffer_x0_particles = (Real *) malloc(buffer_length_particles_x0_recv*sizeof(Real))))
@@ -1197,6 +1200,9 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   #endif
   #ifdef PARTICLE_IDS
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle ID
+  #endif
+  #ifdef PARTICLE_AGE
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle age
   #endif
   
   buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;

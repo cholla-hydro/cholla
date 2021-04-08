@@ -18,9 +18,21 @@ else
 DFLAGS    += -DVL
 endif
 
-DFLAGS    += $(OUTPUT)
+
+# Apply a density and temperature floor
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
+
+
+# Solve the Gas Internal Energy usisng a Dual Energy Formalism
+DFLAGS    += -DDE
+
+
+# Apply the cooling in the GPU from precomtuded tables
+DFLAGS    += -DCOOLING_GPU
+
+
+DFLAGS    += $(OUTPUT)
 
 #Select if the Hydro Conserved data will reside in the GPU
 #and the MPI transfers are done from the GPU

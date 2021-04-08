@@ -99,21 +99,23 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   
   #ifndef ONLY_PARTICLES
   /*call the data output routine for Hydro data*/
-  OutputData(G,P,nfile);
+  if (nfile % P.outstep_hydro == 0) OutputData(G,P,nfile);
   #endif
   
   #ifdef PROJECTION
-  OutputProjectedData(G,P,nfile);
+  if (nfile % P.outstep_projection == 0) OutputProjectedData(G,P,nfile);
   #endif /*PROJECTION*/
+
   #ifdef ROTATED_PROJECTION
-  OutputRotatedProjectedData(G,P,nfile);
+  if (nfile % P.outstep_rotated_projection == 0) OutputRotatedProjectedData(G,P,nfile);
   #endif /*ROTATED_PROJECTION*/
+
   #ifdef SLICES
-  OutputSlices(G,P,nfile);
+  if (nfile % P.outstep_slice == 0) OutputSlices(G,P,nfile);
   #endif /*SLICES*/
   
   #ifdef PARTICLES
-  G.WriteData_Particles( P, nfile );
+  if (nfile % P.outstep_particle == 0) G.WriteData_Particles( P, nfile );
   #endif
   
   #ifdef COSMOLOGY
@@ -143,79 +145,72 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 {
   char filename[MAXLEN];
   char timestep[20];
-  int flag = 0;
 
-  // status of flag determines whether to output the full grid
-  // (use nfull = 1 if not using projection or slice output routines)
-  if (nfile % P.nfull != 0) flag = 1;
+  // create the filename
+  strcpy(filename, P.outdir); 
+  sprintf(timestep, "%d", nfile);
+  strcat(filename, timestep);   
+  #if defined BINARY
+  strcat(filename, ".bin");
+  #elif defined HDF5
+  strcat(filename, ".h5");
+  #else
+  strcat(filename, ".txt");
+  if (G.H.nx*G.H.ny*G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
+  #endif
+  #ifdef MPI_CHOLLA
+  sprintf(filename,"%s.%d",filename,procID);
+  #endif
 
-  if (flag == 0) {
-    // create the filename
-    strcpy(filename, P.outdir); 
-    sprintf(timestep, "%d", nfile/P.nfull);
-    strcat(filename,timestep);   
-    #if defined BINARY
-    strcat(filename,".bin");
-    #elif defined HDF5
-    strcat(filename,".h5");
-    #else
-    strcat(filename,".txt");
-    if (G.H.nx*G.H.ny*G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
-    #endif
-    #ifdef MPI_CHOLLA
-    sprintf(filename,"%s.%d",filename,procID);
-    #endif
+  // open the file for binary writes
+  #if defined BINARY
+  FILE *out;
+  out = fopen(filename, "w");
+  if(out == NULL) {printf("Error opening output file.\n"); exit(-1); }
 
-    // open the file for binary writes
-    #if defined BINARY
-    FILE *out;
-    out = fopen(filename, "w");
-    if(out == NULL) {printf("Error opening output file.\n"); exit(-1); }
+  // write the header to the output file
+  G.Write_Header_Binary(out);
 
-    // write the header to the output file
-    G.Write_Header_Binary(out);
+  // write the conserved variables to the output file
+  G.Write_Grid_Binary(out);
 
-    // write the conserved variables to the output file
-    G.Write_Grid_Binary(out);
-
-    // close the output file
-    fclose(out);
+  // close the output file
+  fclose(out);
   
-    // create the file for hdf5 writes
-    #elif defined HDF5
-    hid_t   file_id; /* file identifier */
-    herr_t  status;
+  // create the file for hdf5 writes
+  #elif defined HDF5
+  hid_t   file_id; /* file identifier */
+  herr_t  status;
 
-    // Create a new file using default properties.
-    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);  
+  // Create a new file using default properties.
+  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);  
 
-    // Write the header (file attributes)
-    G.Write_Header_HDF5(file_id);
+  // Write the header (file attributes)
+  G.Write_Header_HDF5(file_id);
 
-    // write the conserved variables to the output file
-    G.Write_Grid_HDF5(file_id);
+  // write the conserved variables to the output file
+  G.Write_Grid_HDF5(file_id);
 
-    // close the file
-    status = H5Fclose(file_id);
+  // close the file
+  status = H5Fclose(file_id);
 
-    if (status < 0) {printf("File write failed.\n"); exit(-1); }
+  if (status < 0) {printf("File write failed.\n"); exit(-1); }
 
-    #else
-    // open the file for txt writes
-    FILE *out;
-    out = fopen(filename, "w");
-    if(out == NULL) {printf("Error opening output file.\n"); exit(-1); }
+  #else
+  // open the file for txt writes
+  FILE *out;
+  out = fopen(filename, "w");
+  if(out == NULL) {printf("Error opening output file.\n"); exit(-1); }
 
-    // write the header to the output file
-    G.Write_Header_Text(out);
+  // write the header to the output file
+  G.Write_Header_Text(out);
 
-    // write the conserved variables to the output file
-    G.Write_Grid_Text(out);
+  // write the conserved variables to the output file
+  G.Write_Grid_Text(out);
 
-    // close the output file
-    fclose(out);
-    #endif
-  }
+  // close the output file
+  fclose(out);
+  #endif
 }
 
 

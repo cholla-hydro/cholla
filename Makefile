@@ -5,7 +5,7 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
-DIRS     := src src/gravity src/particles src/cosmology src/cooling src/cooling_grackle src/analysis
+DIRS     := src src/gravity src/particles src/cosmology src/cooling src/model src/cooling_grackle src/analysis
 ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
   DIRS += src/gravity/paris
   SUFFIX ?= .paris.$(MACHINE)
