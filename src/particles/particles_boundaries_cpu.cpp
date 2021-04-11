@@ -226,6 +226,11 @@ void Particles_3D::Load_Particles_to_Buffer_CPU( int direction, int side, Real *
     offset_extra += 1;
     send_buffer[ offset_extra ] = (Real) partIDs[pIndx];
     #endif
+    #ifdef PARTICLE_AGE
+    //Copy the particle age to the buffer array in the following order (position, velocity, mass, ID, age)
+    offset_extra += 1;
+    send_buffer[offset_extra] = age[pIndx];
+    #endif
 
     *n_in_buffer += 1; // add one to the number of particles in the transfer_buffer
     offset += N_DATA_PER_PARTICLE_TRANSFER;
@@ -234,14 +239,15 @@ void Particles_3D::Load_Particles_to_Buffer_CPU( int direction, int side, Real *
   }
 }
 
+
 //Add the data of a single particle to a transfer buffer
-void Particles_3D::Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass,
+void Particles_3D::Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass, Real pAge,
                             Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z){
 
   int offset, offset_extra;
   offset = n_in_buffer * N_DATA_PER_PARTICLE_TRANSFER;
 
-  if (offset > buffer_length ) if ( offset > buffer_length ) std::cout << "ERROR: Buffer length exceeded on particles transfer" << std::endl;
+  if (offset > buffer_length ) std::cout << "ERROR: Buffer length exceeded on particles transfer" << std::endl;
   buffer[offset + 0] = pPos_x;
   buffer[offset + 1] = pPos_y;
   buffer[offset + 2] = pPos_z;
@@ -258,10 +264,15 @@ void Particles_3D::Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer,
   offset_extra += 1;
   buffer[offset_extra] = pId;
   #endif
+  #ifdef PARTICLE_AGE
+  offset_extra += 1;
+  buffer[offset_extra] = pAge;
+  #endif
 }
 
+
 //After a particle was transfered, add the transfered particle data to the vectors that contain the data of the local particles
-void Particles_3D::Add_Particle_To_Vectors( Real pId, Real pMass,
+void Particles_3D::Add_Particle_To_Vectors( Real pId, Real pMass, Real pAge,
                             Real pPos_x, Real pPos_y, Real pPos_z,
                             Real pVel_x, Real pVel_y, Real pVel_z, int *flags ){
   
@@ -273,9 +284,9 @@ void Particles_3D::Add_Particle_To_Vectors( Real pId, Real pMass,
   if ( ! in_local  ) {
     std::cout << " Adding particle out of local domain to vectors Error:" << std::endl;
     #ifdef PARTICLE_IDS
-    std::cout << " Particle outside Loacal  domain    pID: " << pID << std::endl;
+    std::cout << " Particle outside Local  domain    pID: " << pId << std::endl;
     #else
-    std::cout << " Particle outside Loacal  domain " << std::endl;
+    std::cout << " Particle outside Local  domain " << std::endl;
     #endif
     std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
     std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;
@@ -284,6 +295,7 @@ void Particles_3D::Add_Particle_To_Vectors( Real pId, Real pMass,
     std::cout << "  Particle Y: " << pPos_y << std::endl;
     std::cout << "  Particle Z: " << pPos_z << std::endl;
   }
+  //TODO: is it good enough to log the error (but then go ahead and add it to the vector)?
                               
   //Append the particle data to the local data vectors                              
   pos_x.push_back( pPos_x );
@@ -297,6 +309,9 @@ void Particles_3D::Add_Particle_To_Vectors( Real pId, Real pMass,
   #endif
   #ifdef PARTICLE_IDS
   partIDs.push_back( Real_to_part_int(pId) );
+  #endif
+  #ifdef PARTICLE_AGE
+  age.push_back(pAge);
   #endif
   grav_x.push_back(0);
   grav_y.push_back(0);
@@ -316,7 +331,7 @@ void Particles_3D::Unload_Particles_from_Buffer_CPU( int direction, int side, Re
   
   int offset_buff, offset_extra;
   part_int_t pId;
-  Real pMass, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z;
+  Real pMass, pAge, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z;
 
   offset_buff = 0;
   part_int_t indx;
@@ -341,6 +356,12 @@ void Particles_3D::Unload_Particles_from_Buffer_CPU( int direction, int side, Re
     pId    = recv_buffer[ offset_extra ];
     #else
     pId = 0;
+    #endif
+    #ifdef PARTICLE_AGE
+    offset_extra += 1;
+    pAge = recv_buffer[offset_extra];
+    #else 
+    pAge = 0.0;
     #endif
 
     offset_buff += N_DATA_PER_PARTICLE_TRANSFER;
@@ -368,13 +389,13 @@ void Particles_3D::Unload_Particles_from_Buffer_CPU( int direction, int side, Re
     // If the y_position at the X_Tansfer (direction=0) is outside the local domain, then the particles is added to the buffer for the Y_Transfer 
     if (direction  == 0 ){
       if ( pPos_y < G.yMin  && flags[2]==5  ){
-        Add_Particle_To_Buffer( send_buffer_y0, n_in_buffer_y0, buffer_length_y0, pId, pMass, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z );
+        Add_Particle_To_Buffer( send_buffer_y0, n_in_buffer_y0, buffer_length_y0, pId, pMass, pAge, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z );
         n_send_y0 += 1;
         n_in_buffer_y0 += 1;
         continue;
       }
       if ( pPos_y >= G.yMax && flags[3]==5 ){
-        Add_Particle_To_Buffer( send_buffer_y1, n_in_buffer_y1, buffer_length_y1, pId, pMass, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z );
+        Add_Particle_To_Buffer( send_buffer_y1, n_in_buffer_y1, buffer_length_y1, pId, pMass, pAge, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z );
         n_send_y1 += 1;
         n_in_buffer_y1 += 1;
         continue;
@@ -406,13 +427,13 @@ void Particles_3D::Unload_Particles_from_Buffer_CPU( int direction, int side, Re
     // If the z_position at the X_Tansfer or Y_Transfer is outside the local domain, then the particles is added to the buffer for the Z_Transfer 
     if (direction  !=2 ){
       if ( pPos_z < G.zMin && flags[4]==5 ){
-        Add_Particle_To_Buffer( send_buffer_z0, n_in_buffer_z0, buffer_length_z0, pId, pMass, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z );
+        Add_Particle_To_Buffer( send_buffer_z0, n_in_buffer_z0, buffer_length_z0, pId, pMass, pAge, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z );
         n_send_z0 += 1;
         n_in_buffer_z0 += 1;
         continue;
       }
       if ( pPos_z >= G.zMax && flags[5]==5  ){
-        Add_Particle_To_Buffer( send_buffer_z1, n_in_buffer_z1, buffer_length_z1, pId, pMass, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z );
+        Add_Particle_To_Buffer( send_buffer_z1, n_in_buffer_z1, buffer_length_z1, pId, pMass, pAge, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z );
         n_send_z1 += 1;
         n_in_buffer_z1 += 1;
         continue;
@@ -442,7 +463,7 @@ void Particles_3D::Unload_Particles_from_Buffer_CPU( int direction, int side, Re
     }
     
     //If the particle doesnt have to be transfered to the y_directtion or z_direction, then add the particle date to the local vectors
-    Add_Particle_To_Vectors( pId, pMass, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z, flags );
+    Add_Particle_To_Vectors( pId, pMass, pAge, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z, flags );
   }
 }
 
@@ -500,6 +521,9 @@ void Particles_3D::Remove_Transfered_Particles( void ){
     #ifndef SINGLE_PARTICLE_MASS
     Remove_Real( pIndx, mass );
     #endif
+    #ifdef PARTICLE_AGE
+    Remove_Real(pIndx, age);
+    #endif
     
     delete_indxs_vec.pop_back(); //Discard the index of ther delted particle from the delete_indxs_vector
     n_local -= 1; //substract one to the local number of particles
@@ -517,6 +541,9 @@ void Particles_3D::Remove_Transfered_Particles( void ){
   #endif
   #ifdef PARTICLE_IDS
   n_in_vectors += partIDs.size();
+  #endif
+  #ifdef PARTICLE_AGE
+  n_in_vectors += age.size();
   #endif
 
   if ( n_in_vectors != n_local * N_DATA_PER_PARTICLE_TRANSFER ){

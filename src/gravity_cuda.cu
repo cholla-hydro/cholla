@@ -11,6 +11,9 @@
 #include"global_cuda.h"
 #include"gravity_cuda.h"
 
+// Work around lack of pow(Real,int) in Hip Clang for Rocm 3.5
+static inline __device__ Real pow2(const Real x) { return x*x; }
+
 __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound, Real *gx)
 {
   Real x_pos, r_disk, r_halo;
@@ -39,7 +42,7 @@ __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound,
   
   // calculate acceleration due to NFW halo & Miyamoto-Nagai disk
   a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
-  a_disk_z = - GN * M_d * x_pos * (R_d + sqrt(x_pos*x_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow(R_d + sqrt(x_pos*x_pos + z_d*z_d), 2), 1.5) * sqrt(x_pos*x_pos + z_d*z_d) );
+  a_disk_z = - GN * M_d * x_pos * (R_d + sqrt(x_pos*x_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow2(R_d + sqrt(x_pos*x_pos + z_d*z_d)), 1.5) * sqrt(x_pos*x_pos + z_d*z_d) );
 
   // total acceleration is the sum of the halo + disk components
   *gx = (x_pos/r_halo)*a_halo + a_disk_z;
@@ -122,19 +125,19 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   Real a_disk_r, a_disk_z, a_halo, a_halo_r, a_halo_z;
   Real M_vir, M_d, R_vir, R_d, z_d, R_h, M_h, c_vir, phi_0_h, x;
   // MW model
-  //M_vir = 1.0e12; // viral mass of in M_sun
-  //M_d = 6.5e10; // viral mass of in M_sun
-  //R_d = 3.5; // disk scale length in kpc
-  //z_d = 3.5/5.0; // disk scale height in kpc
-  //R_vir = 261.; // virial radius in kpc
-  //c_vir = 20.0; // halo concentration
+  M_vir = 1.0e12; // viral mass of in M_sun
+  M_d = 6.5e10; // viral mass of in M_sun
+  R_d = 3.5; // disk scale length in kpc
+  z_d = 3.5/5.0; // disk scale height in kpc
+  R_vir = 261.; // virial radius in kpc
+  c_vir = 20.0; // halo concentration
   // M82 model
-  M_vir = 5.0e10; // viral mass of in M_sun
-  M_d = 1.0e10; // mass of disk in M_sun
-  R_d = 0.8; // disk scale length in kpc
-  z_d = 0.15; // disk scale height in kpc
-  R_vir = R_d/0.015; // viral radius in kpc
-  c_vir = 10.0; // halo concentration
+  //M_vir = 5.0e10; // viral mass of in M_sun
+  //M_d = 1.0e10; // mass of disk in M_sun
+  //R_d = 0.8; // disk scale length in kpc
+  //z_d = 0.15; // disk scale height in kpc
+  //R_vir = R_d/0.015; // viral radius in kpc
+  //c_vir = 10.0; // halo concentration
 
   M_h = M_vir - M_d; // halo mass in M_sun
   R_h = R_vir / c_vir; // halo scale length in kpc
@@ -145,8 +148,8 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
   a_halo_r = a_halo*(r_disk/r_halo);
   a_halo_z = a_halo*(z_pos/r_halo);
-  a_disk_r = - GN * M_d * r_disk * pow(r_disk*r_disk+ pow(R_d + sqrt(z_pos*z_pos + z_d*z_d),2), -1.5);
-  a_disk_z = - GN * M_d * z_pos * (R_d + sqrt(z_pos*z_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow(R_d + sqrt(z_pos*z_pos + z_d*z_d), 2), 1.5) * sqrt(z_pos*z_pos + z_d*z_d) );
+  a_disk_r = - GN * M_d * r_disk * pow(r_disk*r_disk+ pow2(R_d + sqrt(z_pos*z_pos + z_d*z_d)), -1.5);
+  a_disk_z = - GN * M_d * z_pos * (R_d + sqrt(z_pos*z_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow2(R_d + sqrt(z_pos*z_pos + z_d*z_d)), 1.5) * sqrt(z_pos*z_pos + z_d*z_d) );
 
   // total acceleration is the sum of the halo + disk components
   *gx = (x_pos/r_disk)*(a_disk_r+a_halo_r);

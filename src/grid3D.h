@@ -10,6 +10,7 @@
 
 #include<stdio.h>
 #include"global.h"
+#include"global_cuda.h"
 
 #ifdef HDF5
 #include<hdf5.h>
@@ -21,6 +22,7 @@
 
 #ifdef PARTICLES
 #include "particles/particles_3D.h"
+#include "model/disk_galaxy.h"
 #endif
 
 #ifdef COSMOLOGY
@@ -38,6 +40,11 @@
 #ifdef CHEMISTRY_GPU
 #include "chemistry_gpu/chemistry_gpu.h"
 #endif 
+
+#ifdef ANALYSIS
+#include "analysis/analysis.h"
+#endif
+
 
 struct Rotation
 {
@@ -229,6 +236,15 @@ struct Header
   //Flag to indicate when to transfer the Conserved boundaries
   bool TRANSFER_HYDRO_BOUNDARIES;
   
+  //Parameters For Spherical Colapse Problem
+  Real sphere_density;
+  Real sphere_radius;
+  Real sphere_background_density;
+  Real sphere_center_x;
+  Real sphere_center_y;
+  Real sphere_center_z;
+  
+  
   #ifdef GRAVITY
   /*! \var n_ghost_potential_offset
   *  \brief Number of offset betewen hydro_ghost_cells and potential_ghost_cells */
@@ -310,6 +326,10 @@ class Grid3D
     Chem_GPU Chem;
     #endif
 
+    #ifdef ANALYSIS
+    Analysis_Module Analysis;
+    #endif
+    
     struct Conserved
     {
       /*! \var density
@@ -359,6 +379,13 @@ class Grid3D
       #endif 
 
       
+      /*! pointer to conserved variable on device */
+      Real *device;
+      Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z, 
+           *d_Energy, *d_scalar, *d_GasEnergy;
+      
+       /*! pointer to gravitational potential on device */          
+      Real *d_Grav_potential;
     } C;
 
 
@@ -425,7 +452,15 @@ class Grid3D
     Real Update_Hydro_Grid(void);
     
     void Update_Time();
-    
+
+     /*! \fn void Write_Header_Text(FILE *fp)
+     *  \brief Write the relevant header info to a text output file. */
+    void Write_Header_Text(FILE *fp);
+
+    /*! \fn void Write_Grid_Text(FILE *fp)
+     *  \brief Write the grid to a file, at the current simulation time. */
+    void Write_Grid_Text(FILE *fp);
+   
     /*! \fn void Write_Header_Binary(FILE *fp)
      *  \brief Write the relevant header info to a binary output file. */
     void Write_Header_Binary(FILE *fp);
@@ -562,6 +597,13 @@ class Grid3D
     /*! \fn void Set_Boundaries(int dir, int flags[])
      *  \brief Apply boundary conditions to the grid. */
     void Set_Boundaries(int dir, int flags[]);
+    
+    void Set_Hydro_Boundaries_CPU 
+           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries, 
+             int dir, int *flags );
+    void Set_Hydro_Boundaries_GPU 
+           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries, 
+             int dir, int *flags );
 
     /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
      *  \brief Set the extents of the ghost region we are initializing. */
@@ -615,12 +657,19 @@ class Grid3D
     void Unload_MPI_Comm_Buffers(int index);
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
+    void Unload_MPI_Comm_DeviceBuffers_BLOCK(int index);
     int Load_Hydro_Buffer_X0();
     int Load_Hydro_Buffer_X1();
     int Load_Hydro_Buffer_Y0();
     int Load_Hydro_Buffer_Y1();
     int Load_Hydro_Buffer_Z0();
     int Load_Hydro_Buffer_Z1();
+    int Load_Hydro_DeviceBuffer_X0();
+    int Load_Hydro_DeviceBuffer_X1();
+    int Load_Hydro_DeviceBuffer_Y0();
+    int Load_Hydro_DeviceBuffer_Y1();
+    int Load_Hydro_DeviceBuffer_Z0();
+    int Load_Hydro_DeviceBuffer_Z1();
 #endif /*MPI_CHOLLA*/
 
   #ifdef GRAVITY
@@ -641,6 +690,13 @@ class Grid3D
   int Load_Poisson_Boundary_To_Buffer( int direction, int side, Real *buffer  );
   void Unload_Poisson_Boundary_From_Buffer( int direction, int side, Real *buffer_host  );
   #endif
+  #ifdef GRAVITY_GPU
+  void Copy_Hydro_Density_to_Gravity_GPU();
+  void Extrapolate_Grav_Potential_GPU();
+  int Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real *buffer, int buffer_start  );
+  void Unload_Gravity_Potential_from_Buffer_GPU( int direction, int side, Real *buffer, int buffer_start  );
+  void Set_Potential_Boundaries_Isolated_GPU( int direction, int side, int *flags );  
+  #endif
   
   #endif//GRAVITY 
   
@@ -654,6 +710,8 @@ class Grid3D
   void Transfer_Particles_Boundaries( struct parameters P );
   Real Update_Grid_and_Particles_KDK( struct parameters P );
   void Set_Particles_Boundary( int dir, int side);
+  void Add_Analytic_Potential(struct parameters *P);
+  void Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal);
   #ifdef MPI_CHOLLA
   int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
   void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
@@ -701,14 +759,20 @@ class Grid3D
   Real Calc_Particles_dt_GPU();
   void Advance_Particles_KDK_Step1_GPU();
   void Advance_Particles_KDK_Step2_GPU();
-  void Set_Particles_Boundary_GPU( int dir, int side);  
+  void Set_Particles_Boundary_GPU( int dir, int side); 
   #endif//PARTICLES_GPU
+  #ifdef GRAVITY_GPU
+  void Copy_Particles_Density_GPU();
+  int Load_Particles_Density_Boundary_to_Buffer_GPU( int direction, int side, Real *buffer  );
+  void Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, int side, Real *buffer  );
+  #endif//GRAVITY_GPU 
   #endif//PARTICLES
   
   #ifdef COSMOLOGY
   void Initialize_Cosmology( struct parameters *P );
   void Change_DM_Frame_System( bool forward );
   void Change_GAS_Frame_System( bool forward );
+  void Change_GAS_Frame_System_GPU( bool forward );
   void Change_Cosmological_Frame_Sytem( bool forward );
   void Advance_Particles_KDK_Cosmo_Step1_function( part_int_t p_start, part_int_t p_end );
   void Advance_Particles_KDK_Cosmo_Step2_function( part_int_t p_start, part_int_t p_end );
@@ -735,6 +799,35 @@ class Grid3D
   void Initialize_Chemistry( struct parameters *P );
   #endif
   
+  #ifdef ANALYSIS
+  void Initialize_Analysis_Module( struct parameters *P );
+  void Compute_and_Output_Analysis( struct parameters *P );
+  void Output_Analysis( struct parameters *P );
+  void Write_Analysis_Header_HDF5( hid_t file_id );
+  void Write_Analysis_Data_HDF5( hid_t file_id );
+  
+  #ifdef PHASE_DIAGRAM
+  void Compute_Phase_Diagram();
+  #endif
+  
+  #ifdef LYA_STATISTICS
+  void Populate_Lya_Skewers_Local( int axis );
+  void Compute_Transmitted_Flux_Skewer( int skewer_id, int axis, int chemical_type );
+  void Compute_Lya_Statistics( );
+  void Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis );
+  void Initialize_Power_Spectrum_Measurements( int axis );
+  #endif
+  
+  #endif//ANALYSIS
+  
+  #ifdef PARTICLES
+  #ifdef DE
+  #ifdef PARTICLE_AGE
+  void Cluster_Feedback();
+  void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end);
+  #endif 
+  #endif 
+  #endif 
 
 };
 

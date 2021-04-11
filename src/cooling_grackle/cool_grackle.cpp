@@ -76,15 +76,22 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   data->use_grackle = 1;            // chemistry on
   data->with_radiative_cooling = 1; // Cooling on
   data->primordial_chemistry = 1;   // molecular network with H, He
-  data->metal_cooling = 1;          // metal cooling on
   data->UVbackground = 1;           // UV background on
   // data->grackle_data_file = "src/cooling/CloudyData_UVB=HM2012.h5"; // data file
   // data->grackle_data_file = "src/cooling/CloudyData_UVB=HM2012_cloudy.h5"; // data file
-  data->grackle_data_file = "src/cooling_grackle/CloudyData_UVB_Puchwein2019_cloudy.h5"; // data file
+  // data->grackle_data_file = "src/cooling_grackle/CloudyData_UVB=Puchwein2018_cloudy.h5"; // data file
+  data->grackle_data_file = P->UVB_rates_file; // data file
   // data->grackle_data_file = "src/cooling/CloudyData_UVB=FG2011.h5"; // data file
   data->use_specific_heating_rate = 0;
   data->use_volumetric_heating_rate = 0;
   data->cmb_temperature_floor = 1;
+  
+  #ifdef GRACKLE_METALS
+  data->metal_cooling = 1;          // metal cooling off
+  #else
+  chprintf( "WARNING: Metal Cooling is Off. \n" );
+  data->metal_cooling = 0;          // metal cooling off
+  #endif
   
   #ifdef PARALLEL_OMP
   data->omp_nthreads = N_OMP_THREADS_GRACKLE;
@@ -131,10 +138,14 @@ Cool.fields.grid_end[2] =  H.nz - H.n_ghost - 1 ;
 Cool.fields.grid_dx = 0.0; // used only for H2 self-shielding approximation
 
 Cool.fields.density         = C.density;
-Cool.fields.x_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
-Cool.fields.y_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
-Cool.fields.z_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
 Cool.fields.internal_energy = (Real *) malloc(Cool.field_size * sizeof(Real));
+// Cool.fields.x_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
+// Cool.fields.y_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
+// Cool.fields.z_velocity      = (Real *) malloc(Cool.field_size * sizeof(Real));
+Cool.fields.x_velocity      = NULL;
+Cool.fields.y_velocity      = NULL;
+Cool.fields.z_velocity      = NULL;
+
 
 chprintf( " Allocating memory for: HI, HII, HeI, HeII, HeIII, e   densities\n");
 Cool.fields.HI_density      = &C.scalar[ 0*n_cells ];
@@ -144,9 +155,12 @@ Cool.fields.HeII_density    = &C.scalar[ 3*n_cells ];
 Cool.fields.HeIII_density   = &C.scalar[ 4*n_cells ];
 Cool.fields.e_density       = &C.scalar[ 5*n_cells ];
 
+#ifdef GRACKLE_METALS
 chprintf( " Allocating memory for: metal density\n");
 Cool.fields.metal_density   = &C.scalar[ 6*n_cells ];
-
+#else
+Cool.fields.metal_density   = NULL;
+#endif
 
 #ifdef OUTPUT_TEMPERATURE
 Cool.temperature = (Real *) malloc(Cool.field_size * sizeof(Real));
@@ -155,10 +169,11 @@ Cool.temperature = (Real *) malloc(Cool.field_size * sizeof(Real));
 
 
 void Cool_GK::Free_Memory( ){
-  free( fields.x_velocity );
-  free( fields.y_velocity );
-  free( fields.z_velocity );
+  // free( fields.x_velocity );
+  // free( fields.y_velocity );
+  // free( fields.z_velocity );
   free( fields.internal_energy );
+    
   #ifdef OUTPUT_TEMPERATURE
   free( temperature );
   #endif

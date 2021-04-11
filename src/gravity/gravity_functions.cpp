@@ -4,6 +4,7 @@
 #include"../global.h"
 #include "../io.h"
 #include "../error_handling.h"
+#include <cstring>
 
 #ifdef CUDA
 #include "../cuda_mpi_routines.h"
@@ -15,6 +16,10 @@
 
 #ifdef PARIS
 #include <vector>
+#endif
+
+#ifdef PARTICLES
+#include "../model/disk_galaxy.h"
 #endif
 
 //Set delta_t when using gravity
@@ -32,7 +37,7 @@ void Grid3D::set_dt_Gravity(){
   Real dt_particles, dt_min;
   
   #ifdef COSMOLOGY
-  chprintf( " Current_z: %f \n", Cosmo.current_z );
+  chprintf( "Current_z: %f \n", Cosmo.current_z );
   Real da_particles, da_min, dt_physical;
   
   //Compute the particles delta_t
@@ -66,7 +71,7 @@ void Grid3D::set_dt_Gravity(){
   //Small delta_a when reionization starts
   #ifdef COOLING_GRACKLE
   if ( fabs(Cosmo.current_a + da_min - Cool.scale_factor_UVB_on) < 0.005 ){
-    da_min /= 5;
+    da_min /= 2;
     chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
   }
   #endif
@@ -76,6 +81,17 @@ void Grid3D::set_dt_Gravity(){
     da_min = Cosmo.next_output - Cosmo.current_a;
     H.Output_Now = true;
   }
+  
+  #ifdef ANALYSIS
+  //Limit delta_a if it's time to run analisys
+  if( Analysis.next_output_indx < Analysis.n_outputs ){
+    if ( (Cosmo.current_a + da_min) >  Analysis.next_output ){
+      da_min = Analysis.next_output - Cosmo.current_a;
+      Analysis.Output_Now = true;
+    }
+  }
+  #endif
+  
   
   //Set delta_a after it has been computed
   Cosmo.delta_a = da_min;
@@ -203,54 +219,113 @@ Real Grav3D::Get_Average_Density_function( int g_start, int g_end){
 
 #ifdef PARIS_TEST
 
-static constexpr Real pi = 3.141592653589793238462643383279502884197169399375105820974;
-
 static inline Real sqr(const Real x) { return x*x; }
 
 static inline Real f1(const Real x)
 {
-  return exp(-10.0*sqr(2.0*x-1.0))*sin(8.0*pi*x);
+  return exp(-10.0*sqr(2.0*x-1.0))*sin(8.0*M_PI*x);
 }
 
 static inline Real d1(const Real x)
 {
-  return 16.0*exp(-10.0*sqr(2.0*x-1.0))*((400.0*x*x-400.0*x-4.0*pi*pi+95.0)*sin(8.0*pi*x)+(40.0*pi-80.0*pi*x)*cos(8.0*pi*x));
+  return 16.0*exp(-10.0*sqr(2.0*x-1.0))*((400.0*x*x-400.0*x-4.0*M_PI*M_PI+95.0)*sin(8.0*M_PI*x)+(40.0*M_PI-80.0*M_PI*x)*cos(8.0*M_PI*x));
 }
 
-static inline Real testF(const Real x, const Real y, const Real z)
+static inline Real periodicF(const Real x, const Real y, const Real z)
 {
   return f1(x)*f1(y)*f1(z);
 }
 
-static inline Real testD(const Real x, const Real y, const Real z)
+static inline Real periodicD(const Real x, const Real y, const Real z, const Real ddlx, const Real ddly, const Real ddlz)
 {
-  return d1(x)*f1(y)*f1(z)+f1(x)*d1(y)*f1(z)+f1(x)*f1(y)*d1(z);
+  return ddlx*d1(x)*f1(y)*f1(z)+ddly*f1(x)*d1(y)*f1(z)+ddlz*f1(x)*f1(y)*d1(z);
 }
 
-static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz)
+static constexpr Real twoPi = 2.0*M_PI;
+static constexpr Real fourPi = 4.0*M_PI;
+static constexpr Real sixPi2 = 6.0*M_PI*M_PI;
+
+static inline Real nonzeroF(const Real x, const Real y, const Real z)
 {
-  const long ng = N_GHOST_POTENTIAL;
-  Real maxs[2] = {0,0};
-  Real sums[4] = {0,0,0,0};
+  const Real sx = sin(twoPi*x);
+  const Real sy = sin(twoPi*y);
+  const Real sz = sin(twoPi*z);
+  const Real f = exp(-x*x-y*y-z*z);
+  return sx*sx*sx*sy*sy*sy*sz*sz*sz+f;
+}
+
+static inline Real nonzeroD(const Real x, const Real y, const Real z, const Real ddlx, const Real ddly, const Real ddlz)
+{
+  const Real sx = sin(twoPi*x);
+  const Real sy = sin(twoPi*y);
+  const Real sz = sin(twoPi*z);
+  const Real sx3 = sx*sx*sx;
+  const Real sy3 = sy*sy*sy;
+  const Real sz3 = sz*sz*sz;
+  const Real f = exp(-x*x-y*y-z*z);
+  const Real df = ddlx*(4.0*x*x-2.0)+ddly*(4.0*y*y-2.0)+ddlz*(4.0*z*z-2.0);
+  return (ddlx*sx*(3.0*cos(fourPi*x)+1.0)*sy3*sz3
+          +ddly*sx3*sy*(3.0*cos(fourPi*y)+1.0)*sz3
+          +ddlz*sx3*sy3*sz*(3.0*cos(fourPi*z)+1.0))*sixPi2+f*df;
+}
+
+
+static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz, const int ng = N_GHOST_POTENTIAL, const bool plot = false)
+{
+  Real dMax = 0, dSum = 0, dSum2 = 0;
+  Real qMax = 0, qSum = 0, qSum2 = 0;
+#pragma omp parallel for reduction(max:dMax,qMax) reduction(+:dSum,dSum2,qSum,qSum2)
   for (int k = 0; k < nz; k++) {
     for (int j = 0; j < ny; j++) {
       for (int i = 0; i < nx; i++) {
         const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
         const Real qAbs = fabs(q[ijk]);
-        maxs[0] = std::max(maxs[0],qAbs);
-        sums[0] += qAbs;
-        sums[1] += qAbs*qAbs;
+        qMax = std::max(qMax,qAbs);
+        qSum += qAbs;
+        qSum2 += qAbs*qAbs;
         const Real d = fabs(q[ijk]-p[ijk]);
-        maxs[1] = std::max(maxs[1],d);
-        sums[2] += d;
-        sums[3] += d*d;
+        dMax = std::max(dMax,d);
+        dSum += d;
+        dSum2 += d*d;
       }
     }
   }
+  Real maxs[2] = {qMax,dMax};
+  Real sums[4] = {qSum,qSum2,dSum,dSum2};
   MPI_Allreduce(MPI_IN_PLACE,&maxs,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE,&sums,4,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
   chprintf(" Poisson-Solver Diff: L1 %g L2 %g Linf %g\n",sums[2]/sums[0],sqrt(sums[3]/sums[1]),maxs[1]/maxs[0]);
   fflush(stdout);
+  if (!plot) return;
+
+  printf("###\n");
+#if 0
+  int kMax = -1;
+  for (int k = 0; k < nz; k++) {
+    for (int j = 0; j < ny; j++) {
+      for (int i = 0; i < nx; i++) {
+        const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
+        const Real qAbs = fabs(q[ijk]);
+        if (qAbs == qMax) kMax = k;
+      }
+    }
+    if (kMax > -1) {
+#endif
+      const int k = nz/2;
+      for (int j = 0; j < ny; j++) {
+        for (int i = 0; i < nx; i++) {
+          const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
+          printf("%d %d %g %g %g\n",j,i,q[ijk],p[ijk],q[ijk]-p[ijk]);
+        }
+        printf("\n");
+      }
+#if 0
+      break;
+    }
+  }
+#endif
+  MPI_Finalize();
+  exit(0);
 }
 #endif 
 
@@ -264,42 +339,136 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 
 #ifdef PARIS_TEST
 
+  const bool periodic = (P->xlg_bcnd != 3);
   chprintf("Analytic Test of Poisson Solvers:\n");
   const long ng = N_GHOST_POTENTIAL;
   std::vector<Real> rho(Grav.n_cells);
   std::vector<Real> exact(Grav.n_cells_potential);
+
+  if (periodic) {
+
+    const Real dlx = 1.0/H.xdglobal;
+    const Real dly = 1.0/H.ydglobal;
+    const Real dlz = 1.0/H.zdglobal;
+    const Real ddlx = dlx*dlx;
+    const Real ddly = dly*dly;
+    const Real ddlz = dlz*dlz;
+
 #pragma omp parallel for
-  for (int k = 0; k < Grav.nz_local; k++) {
-    const Real z = Grav.zMin+Real(k)*Grav.dz;
-    long ijk = long(k)*Grav.ny_local*Grav.nx_local;
-    for (int j = 0; j < Grav.ny_local; j++) {
-      const Real y = Grav.yMin+Real(j)*Grav.dy;
-      for (int i = 0; i < Grav.nx_local; i++, ijk++) {
-        const Real x = Grav.xMin+Real(i)*Grav.dx;
-        rho[ijk] = testD(x,y,z);
-        const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
-        exact[ijkg] = testF(x,y,z);
+    for (int k = 0; k < Grav.nz_local; k++) {
+      const Real z = (Grav.zMin-H.zbound+Real(k)*Grav.dz)*dlz;
+      long ijk = long(k)*Grav.ny_local*Grav.nx_local;
+      for (int j = 0; j < Grav.ny_local; j++) {
+        const Real y = (Grav.yMin-H.ybound+Real(j)*Grav.dy)*dly;
+        for (int i = 0; i < Grav.nx_local; i++, ijk++) {
+          const Real x = (Grav.xMin-H.xbound+Real(i)*Grav.dx)*dlx;
+          rho[ijk] = periodicD(x,y,z,ddlx,ddly,ddlz);
+          const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
+          exact[ijkg] = periodicF(x,y,z);
+        }
       }
     }
-  }
-  std::vector<Real> p(Grav.n_cells_potential,0);
-  Grav.Poisson_solver_test.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
-  chprintf("Paris");
-  printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+    std::vector<Real> p(Grav.n_cells_potential,0);
+    Grav.Poisson_solver_test.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
+    chprintf("Paris");
+    printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
 
-  for (Real &pijk : p) pijk = 0;
+    for (Real &pijk : p) pijk = 0;
 
-  Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*pi),0,1);
 #ifdef CUFFT
-  chprintf("CUFFT");
+    chprintf("CUFFT");
+    Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
 #endif
 #ifdef PFFT
-  chprintf("PFFT");
+    chprintf("PFFT");
+    Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
 #endif
+    printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+
+  } else {
+
 #ifdef SOR
-  chprintf("SOR");
+    const Real dlx = 2.0/H.xdglobal;
+    const Real dly = 2.0/H.ydglobal;
+    const Real dlz = 2.0/H.zdglobal;
+    const Real bx = -dlx*(H.xbound+0.5*H.xdglobal);
+    const Real by = -dly*(H.ybound+0.5*H.ydglobal);
+    const Real bz = -dlz*(H.zbound+0.5*H.zdglobal);
+    const Real ddlx = dlx*dlx;
+    const Real ddly = dly*dly;
+    const Real ddlz = dlz*dlz;
+
+#pragma omp parallel for
+    for (int k = 0; k < Grav.nz_local; k++) {
+      const Real z = dlz*(H.zblocal+H.dz*(Real(k)+0.5))+bz;
+      long ijk = long(k)*Grav.ny_local*Grav.nx_local;
+      for (int j = 0; j < Grav.ny_local; j++) {
+        const Real y = dly*(H.yblocal+H.dy*(Real(j)+0.5))+by;
+        for (int i = 0; i < Grav.nx_local; i++, ijk++) {
+          const Real x = dlx*(H.xblocal+H.dx*(Real(i)+0.5))+bx;
+          Grav.F.density_h[ijk] = nonzeroD(x,y,z,ddlx,ddly,ddlz);
+          const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
+          exact[ijkg] = nonzeroF(x,y,z);
+        }
+      }
+    }
+    std::vector<Real> p(Grav.n_cells_potential,0);
+    Grav.Poisson_solver_test.Get_Analytic_Potential(Grav.F.density_h,p.data());
+    chprintf("Paris");
+    printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+
+#pragma omp parallel for collapse(3)
+    for (int k = 0; k < N_GHOST_POTENTIAL; k++) {
+      for (int j = 0; j < Grav.ny_local; j++) {
+        for (int i = 0; i < Grav.nx_local; i++) {
+          const Real zl = dlz*(H.zblocal+H.dz*(Real(k-N_GHOST_POTENTIAL)+0.5))+bz;
+          const Real zr = dlz*(H.zblocal+H.dz*(Real(k+Grav.nz_local)+0.5))+bz;
+          const Real y = dly*(H.yblocal+H.dy*(Real(j)+0.5))+by;
+          const Real x = dlx*(H.xblocal+H.dx*(Real(i)+0.5))+bx;
+          const int ijk = i+Grav.nx_local*(j+Grav.ny_local*k);
+          Grav.F.pot_boundary_z0[ijk] = nonzeroF(x,y,zl);
+          Grav.F.pot_boundary_z1[ijk] = nonzeroF(x,y,zr);
+        }
+      }
+    }
+
+#pragma omp parallel for collapse(3)
+    for (int j = 0; j < N_GHOST_POTENTIAL; j++) {
+      for (int k = 0; k < Grav.nz_local; k++) {
+        for (int i = 0; i < Grav.nx_local; i++) {
+          const Real z = dlz*(H.zblocal+H.dz*(Real(k)+0.5))+bz;
+          const Real yl = dly*(H.yblocal+H.dy*(Real(j-N_GHOST_POTENTIAL)+0.5))+by;
+          const Real yr = dly*(H.yblocal+H.dy*(Real(j+Grav.ny_local)+0.5))+by;
+          const Real x = dlx*(H.xblocal+H.dx*(Real(i)+0.5))+bx;
+          const int ikj = i+Grav.nx_local*(k+Grav.nz_local*j);
+          Grav.F.pot_boundary_y0[ikj] = nonzeroF(x,yl,z);
+          Grav.F.pot_boundary_y1[ikj] = nonzeroF(x,yr,z);
+        }
+      }
+    }
+
+#pragma omp parallel for collapse(3)
+    for (int i = 0; i < N_GHOST_POTENTIAL; i++) {
+      for (int k = 0; k < Grav.nz_local; k++) {
+        for (int j = 0; j < Grav.ny_local; j++) {
+          const Real z = dlz*(H.zblocal+H.dz*(Real(k)+0.5))+bz;
+          const Real y = dly*(H.yblocal+H.dy*(Real(j)+0.5))+by;
+          const Real xl = dlx*(H.xblocal+H.dx*(Real(i-N_GHOST_POTENTIAL)+0.5))+bx;
+          const Real xr = dlx*(H.xblocal+H.dx*(Real(i+Grav.nx_local)+0.5))+bx;
+          const int jki = j+Grav.ny_local*(k+Grav.nz_local*i);
+          Grav.F.pot_boundary_x0[jki] = nonzeroF(xl,y,z);
+          Grav.F.pot_boundary_x1[jki] = nonzeroF(xr,y,z);
+        }
+      }
+    }
+
+    Set_Boundary_Conditions_Grid(*P);
+    Get_Potential_SOR(Real(1)/(Real(4)*M_PI),0.0,1.0,P);
+    chprintf("SOR");
+    printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+    memset(Grav.F.potential_h,0,Grav.n_cells_potential*sizeof(Real));
 #endif
-  printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+  }
 
 #endif
 }
@@ -307,42 +476,34 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 
 //Compute the Gravitational Potential by solving Poisson Equation
 void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
-  
-  
-  //Set the value of the Gravitational Constant to the one initialized in Grav
-  Real Grav_Constant = Grav.Gconst;
-  
-  
-  Real dens_avrg, current_a;
-  //If not using COSMOLOGY, the scale_factor is set to 1 and the average density is set to 0
-  dens_avrg = 0;
-  current_a = 1;
-
+   
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
   
   #ifdef PARTICLES
   //Copy the particles density to the grav_density array
   Copy_Particles_Density_to_Gravity( *P );
   #endif
   
-  
-  #ifdef CPU_TIME
-  Timer.Start_Timer();
-  #endif
-  
   #ifndef ONLY_PARTICLES
-  //Copyt the hydro density to the grav_desnity array
+  //Copy the hydro density to the grav_density array
   Copy_Hydro_Density_to_Gravity();
   #endif
 
   #ifdef COSMOLOGY
   //If using cosmology, set the gravitational constant to the one in the correct units
-  Grav_Constant = Cosmo.cosmo_G;
-  //Set the scale factor
-  current_a = Cosmo.current_a;
-  //Set the average density
-  dens_avrg = Cosmo.rho_0_gas;
+  const Real Grav_Constant = Cosmo.cosmo_G;
+  const Real current_a = Cosmo.current_a;
+  const Real dens_avrg = Cosmo.rho_0_gas;
+  #else
+  const Real Grav_Constant = Grav.Gconst;
+  // If sloving the Sphere Collapse problem ( bc_potential_type=0 )
+  const Real dens_avrg = (P->bc_potential_type == 0) ? H.sphere_background_density : 0;
+  const Real r0 = H.sphere_radius;
+  // Re-use current_a as the total mass of the sphere
+  const Real current_a = (H.sphere_density-dens_avrg)*4.0*M_PI*r0*r0*r0/3.0;
   #endif
-  
   
   if ( !Grav.BC_FLAGS_SET ){
     Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
@@ -373,35 +534,84 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   
   //Solve Poisson Equation to compute the potential
   //Poisson Equation: laplacian( phi ) = 4 * pi * G / scale_factor * ( dens - dens_average )
+  Real *input_density, *output_potential;
+  #ifdef GRAVITY_GPU
+  input_density = Grav.F.density_d;
+  output_potential = Grav.F.potential_d;
+  #else
+  input_density = Grav.F.density_h;
+  output_potential = Grav.F.potential_h;
+  #endif
+
   #ifdef SOR
   Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
   #else
-  Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
-  #endif
-  
-  #ifdef PARIS_TEST
-  {
-    std::vector<Real> p(Grav.n_cells_potential);
-    Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,p.data(),Grav_Constant,dens_avrg,current_a);
+  Grav.Poisson_solver.Get_Potential( input_density, output_potential, Grav_Constant, dens_avrg, current_a);
+  #endif//SOR
+
+#ifdef PARIS_TEST
+  std::vector<Real> p(Grav.n_cells_potential);
+  Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,p.data(),Grav_Constant,dens_avrg,current_a);
 #ifdef CUFFT
-    chprintf("Paris vs CUFFT");
+  chprintf("Paris vs CUFFT");
 #endif
 #ifdef PFFT
-    chprintf("Paris vs PFFT");
+  chprintf("Paris vs PFFT");
 #endif
 #ifdef SOR
-    chprintf("Paris vs SOR");
-#endif
-    printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local);
+  const int ng = N_GHOST_POTENTIAL;
+  std::vector<Real> exact(Grav.n_cells_potential);
+#pragma omp parallel for
+  for (int k = 0; k < Grav.nz_local; k++) {
+    const Real z = H.zblocal+(k+0.5)*H.dz-0.5;
+    long ijk = long(k)*Grav.ny_local*Grav.nx_local;
+    for (int j = 0; j < Grav.ny_local; j++) {
+      const Real y = H.yblocal+(j+0.5)*H.dy-0.5;
+      for (int i = 0; i < Grav.nx_local; i++, ijk++) {
+        const Real x = H.xblocal+(i+0.5)*H.dx-0.5;
+        const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
+        const Real r = sqrt(x*x+y*y+z*z);
+        exact[ijkg] = (r < 0.2) ? Grav_Constant*current_a*(r*r-3.0*0.2*0.2)/(2.0*0.2*0.2*0.2) : -Grav_Constant*current_a/r;
+      }
+    }
   }
-  #else
-  #endif
-    
+  chprintf("Paris vs Exact");
+  printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local,ng,false);
+  chprintf("SOR vs Exact");
+  printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local,ng,false);
+
+  chprintf("Paris vs SOR");
+#endif
+
+  printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local);
+#endif
+
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 3 );
   #endif
   
 }
+
+#ifdef PARTICLES
+void Grid3D::Add_Analytic_Potential(struct parameters *P) {
+  #ifndef PARALLEL_OMP
+  Add_Analytic_Galaxy_Potential(0, Grav.nz_local, Galaxies::MW);
+  #else
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
+
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Grid_Indxs( Grav.nz_local, n_omp_procs, omp_id, &g_start, &g_end  );
+
+    Add_Analytic_Galaxy_Potential(g_start, g_end, Galaxies::MW);
+  }
+  #endif
+}
+#endif
+
 
 void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
   // Copy the density array from hydro conserved to gravity density array
@@ -434,6 +644,10 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
 
 void Grid3D::Copy_Hydro_Density_to_Gravity(){
   
+  #ifdef GRAVITY_GPU
+  Copy_Hydro_Density_to_Gravity_GPU();
+  #else
+  
   #ifndef PARALLEL_OMP
   Copy_Hydro_Density_to_Gravity_Function( 0, Grav.nz_local );
   #else
@@ -449,8 +663,41 @@ void Grid3D::Copy_Hydro_Density_to_Gravity(){
 
     Copy_Hydro_Density_to_Gravity_Function(g_start, g_end );
   }
-  #endif
+  #endif //PARALLEL_OMP
   
+  #endif //GRAVITY_GPU
+  
+}
+
+
+/**
+ * Adds a specified potential function to the potential calculated from solving the Poisson equation.
+ * The raison d'etre is to solve the evolution of a system where not all particles are simulated.
+ */
+void Grid3D::Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal) {
+  int nx = Grav.nx_local + 2*N_GHOST_POTENTIAL;
+  int ny = Grav.ny_local + 2*N_GHOST_POTENTIAL;
+  int nz = Grav.nz_local + 2*N_GHOST_POTENTIAL;
+
+  // the fraction of the disk that's not modelled (and so its analytic contribution must be added)
+  //Real non_mod_frac = 0.0;
+
+  int k, j, i, id;
+  Real x_pos, y_pos, z_pos, R;
+  for ( k=g_start; k<g_end; k++ ){
+    for ( j=0; j<ny; j++ ){
+      for ( i=0; i<nx; i++ ){
+        id = i + j*nx + k*nx*ny;
+        // does this also work with MPI?  is Grav.xMin equivalent to H.xblocal, for example.
+        x_pos = Grav.xMin + Grav.dx*(i-N_GHOST_POTENTIAL) + 0.5*Grav.dx;
+        y_pos = Grav.yMin + Grav.dy*(j-N_GHOST_POTENTIAL) + 0.5*Grav.dy;
+        z_pos = Grav.zMin + Grav.dz*(k-N_GHOST_POTENTIAL) + 0.5*Grav.dz;
+        R = sqrt(x_pos*x_pos + y_pos*y_pos);
+        //Grav.F.potential_h[id] += non_mod_frac*gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos); 
+        Grav.F.potential_h[id] += gal.phi_halo_D3D(R, z_pos); 
+      }
+    }
+  }
 }
 
 
@@ -512,6 +759,10 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
 //Call the funtion to extrapolate the potential
 void Grid3D::Extrapolate_Grav_Potential(){
   
+  #ifdef GRAVITY_GPU
+  Extrapolate_Grav_Potential_GPU();
+  #else 
+  
   #ifndef PARALLEL_OMP
   Extrapolate_Grav_Potential_Function( 0, Grav.nz_local + 2*N_GHOST_POTENTIAL );
   #else
@@ -527,7 +778,9 @@ void Grid3D::Extrapolate_Grav_Potential(){
     
     Extrapolate_Grav_Potential_Function( g_start, g_end );
   }
-  #endif
+  #endif // PARALLEL_OMP
+  
+  #endif //GRAVITY_GPU
   
   //After the first timestep the INITIAL flag is set to false, that way the potential is properly extrapolated afterwards 
   Grav.INITIAL = false;  

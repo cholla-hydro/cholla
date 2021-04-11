@@ -300,8 +300,12 @@ void Allocate_MPI_Buffers(struct Header *H)
     case SLAB_DECOMP:
       Allocate_MPI_Buffers_SLAB(H);
       break;
-    case BLOCK_DECOMP:  
+    case BLOCK_DECOMP:
+      #ifdef GPU_MPI
+      Allocate_MPI_DeviceBuffers_BLOCK(H);
+      #else
       Allocate_MPI_Buffers_BLOCK(H);
+      #endif
       break;
   }
 }
@@ -1003,6 +1007,9 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   #ifdef PARTICLE_IDS
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle ID
   #endif
+  #ifdef PARTICLE_AGE
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle age
+  #endif
   
   buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_x0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
@@ -1153,6 +1160,99 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   }
   
 }
+
+
+void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
+{
+  int xbsize, ybsize, zbsize;
+  if (H->ny==1 && H->nz==1) {
+    chprintf("Use SLAB decomposition for 1D problems.\n");
+    chexit(-1);
+  }
+  // 2D
+  if (H->ny>1 && H->nz==1) { 
+    xbsize = H->n_fields*H->n_ghost*(H->ny-2*H->n_ghost);
+    ybsize = H->n_fields*H->n_ghost*(H->nx);
+    zbsize = 1;
+  }
+  // 3D
+  if (H->ny>1 && H->nz>1) {
+    xbsize = H->n_fields*H->n_ghost*(H->ny-2*H->n_ghost)*(H->nz-2*H->n_ghost);
+    ybsize = H->n_fields*H->n_ghost*(H->nx)*(H->nz-2*H->n_ghost);
+    zbsize = H->n_fields*H->n_ghost*(H->nx)*(H->ny);
+  }
+
+  x_buffer_length = xbsize;
+  y_buffer_length = ybsize;
+  z_buffer_length = zbsize;
+  
+  #ifdef PARTICLES
+  // Set Initial sizes for particles buffers
+  int n_max = std::max( H->nx, H->ny );
+  n_max = std::max( H->nz, n_max );
+  int factor = 2;
+  N_PARTICLES_TRANSFER = n_max * n_max * factor ;
+  
+  // Set the number of values that will be transfered for each particle
+  N_DATA_PER_PARTICLE_TRANSFER = 6; // 3 positions and 3 velocities 
+  #ifndef SINGLE_PARTICLE_MASS
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle mass
+  #endif
+  #ifdef PARTICLE_IDS
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle ID
+  #endif
+  #ifdef PARTICLE_AGE
+  N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle age
+  #endif
+  
+  buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_x0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_x1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_x1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  #endif //PARTICLES
+  
+  chprintf("Allocating MPI communication buffers on GPU ");
+  chprintf("(nx = %ld, ny = %ld, nz = %ld).\n", xbsize, ybsize, zbsize);
+  
+  CudaSafeCall ( cudaMalloc (&send_buffer_x0, xbsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_x1, xbsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_x0, xbsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_x1, xbsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_y0, ybsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_y1, ybsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_y0, ybsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_y1, ybsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_z0, zbsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_z1, zbsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_z0, zbsize*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_z1, zbsize*sizeof(Real)) );
+  
+  #if defined(PARTICLES) && defined(PARTICLES_GPU) 
+  chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
+  CudaSafeCall ( cudaMalloc (&send_buffer_x0_particles, buffer_length_particles_x0_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_x1_particles, buffer_length_particles_x1_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_y0_particles, buffer_length_particles_y0_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_y1_particles, buffer_length_particles_y1_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_z0_particles, buffer_length_particles_z0_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_z1_particles, buffer_length_particles_z1_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_x0_particles, buffer_length_particles_x0_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_x1_particles, buffer_length_particles_x1_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_y0_particles, buffer_length_particles_y0_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_y1_particles, buffer_length_particles_y1_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_z0_particles, buffer_length_particles_z0_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_z1_particles, buffer_length_particles_z1_recv*sizeof(Real)) );
+  #endif//PARTICLES_GPU
+  
+}
+
 
 #ifdef PARTICLES
 // Funtion that checks if the buffer size For the particles transfer is large enough,

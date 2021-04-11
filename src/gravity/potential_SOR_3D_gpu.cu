@@ -36,7 +36,7 @@ __global__ void Copy_Input_Kernel( int n_cells, Real *input_d, Real *density_d, 
   #ifdef COSMOLOGY
   density_d[tid] = 4 * M_PI * Grav_Constant * ( input_d[tid] - dens_avrg ) / current_a;
   #else
-  density_d[tid] = 4 * M_PI * Grav_Constant * input_d[tid];
+  density_d[tid] = 4 * M_PI * Grav_Constant * ( input_d[tid] - dens_avrg );
   #endif
   // if (tid == 0) printf("dens: %f\n", density_d[tid]);
 }
@@ -84,7 +84,7 @@ __global__ void Initialize_Potential_Kernel( Real init_val, Real *potential_d, R
   tid_pot = tid_x + tid_y*nx_pot + tid_z*nx_pot*ny_pot;
   potential_d[tid_pot] = init_val;
   
-  if ( potential_d[tid_pot] !=1 ) printf("Error phi value: %f\n", potential_d[tid_pot] );
+  //if ( potential_d[tid_pot] !=1 ) printf("Error phi value: %f\n", potential_d[tid_pot] );
   
 
   // Real dens = density_d[tid];
@@ -186,8 +186,8 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   
   //Check the residual for the convergence criteria
   if ( ( fabs( ( phi_new - phi_c ) / phi_c ) > epsilon ) ) converged_d[0] = 0;
+  // if ( ( fabs( ( phi_new - phi_c ) / phi_c ) > epsilon ) ) printf("%f\n", fabs( ( phi_new - phi_c ) / phi_c)  );
   // if ( ( fabs( ( phi_new - phi_c ) ) > epsilon ) ) converged_d[0] = 0;
-  
 
   
   
@@ -551,9 +551,7 @@ void Potential_SOR_3D::Load_Transfer_Buffer_GPU( int direction, int side, int nx
 
 void Potential_SOR_3D::Load_Transfer_Buffer_Half_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  ){
   
-  int nx_pot, ny_pot, size_buffer, n_i, n_j, ngrid;
-  nx_pot = nx + 2*n_ghost_potential;
-  ny_pot = ny + 2*n_ghost_potential;
+  int size_buffer, n_i, n_j, ngrid;
   nz_pot = nz + 2*n_ghost_potential;
   
   if ( direction == 0 ){
@@ -623,10 +621,7 @@ void Potential_SOR_3D::Unload_Transfer_Buffer_GPU( int direction, int side, int 
 
 void Potential_SOR_3D::Unload_Transfer_Buffer_Half_GPU( int direction, int side, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d  ){
   
-  int nx_pot, ny_pot, nz_pot, size_buffer, n_i, n_j, ngrid;
-  nx_pot = nx + 2*n_ghost_potential;
-  ny_pot = ny + 2*n_ghost_potential;
-  nz_pot = nz + 2*n_ghost_potential;
+  int size_buffer, n_i, n_j, ngrid;
   
   if ( direction == 0 ){
     n_i = ny;

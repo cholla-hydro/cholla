@@ -28,4 +28,5 @@ void Create_Log_File( struct parameters P );
 
 void Write_Message_To_Log_File( const char* message );
 
+void write_debug ( Real *Value, const char *fname, int nValues, int iProc );
 #endif /*IO_CHOLLA_H*/

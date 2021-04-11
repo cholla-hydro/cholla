@@ -78,14 +78,14 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // allocate buffer to copy conserved variable blocks to/from
     if (block_tot > 1) {
-      if ( NULL == ( buffer = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {
+      if ( cudaSuccess != cudaHostAlloc(&buffer, n_fields*BLOCK_VOL*sizeof(Real), cudaHostAllocDefault) ) {
         printf("Failed to allocate CPU buffer.\n");
       }
       tmp1 = buffer;
       tmp2 = buffer;
       
       #if defined( GRAVITY ) 
-      if ( NULL == ( buffer_potential = (Real *) malloc(BLOCK_VOL*sizeof(Real)) ) ) {
+      if ( cudaSuccess != cudaHostAlloc(&buffer_potential, BLOCK_VOL*sizeof(Real), cudaHostAllocDefault) ) {
         printf("Failed to allocate CPU Grav_Potential buffer.\n");
       }
       #else
@@ -95,9 +95,9 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     }
 
     // allocate an array on the CPU to hold max_dti returned from each thread block
-    host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
+    CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
     #ifdef COOLING_GPU
-    host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
+    CudaSafeCall( cudaHostAlloc(&host_dt_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
     #endif
 
     // allocate memory on the GPU
@@ -313,10 +313,10 @@ Real CTU_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 void Free_Memory_CTU_3D() {
 
   // free CPU memory
-  if (block_tot > 1) free(buffer);
-  free(host_dti_array);
+  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
+  CudaSafeCall( cudaFreeHost(host_dti_array) );
   #ifdef COOLING_GPU
-  free(host_dt_array);  
+  CudaSafeCall( cudaFreeHost(host_dt_array) );
   #endif
 
   // free the GPU memory
@@ -336,7 +336,7 @@ void Free_Memory_CTU_3D() {
   #endif
   #if defined( GRAVITY ) 
   cudaFree(dev_grav_potential);
-  if (block_tot > 1) free(buffer_potential);
+  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer_potential) );
   #endif
 
 }

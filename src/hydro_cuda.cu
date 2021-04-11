@@ -768,9 +768,7 @@ __global__ void Select_Internal_Energy_1D( Real *dev_conserved, int nx, int n_gh
   xid = id;
   
   imo = max(xid-1, n_ghost);
-  imo = imo;
   ipo = min(xid+1, nx-n_ghost-1);
-  ipo = ipo;
 
 
   // threads corresponding to real cells do the calculation

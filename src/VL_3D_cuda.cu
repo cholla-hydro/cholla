@@ -30,7 +30,11 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
 
 
 
-Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt, int n_fields, Real density_floor, Real U_floor, Real *host_grav_potential, Real max_dti_slow)
+Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, 
+    Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off, 
+    int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, 
+    Real ybound, Real zbound, Real dt, int n_fields, Real density_floor, 
+    Real U_floor, Real *host_grav_potential, Real max_dti_slow)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
@@ -77,14 +81,14 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
     // allocate buffer to copy conserved variable blocks to/from
     if (block_tot > 1) {
-      if ( NULL == ( buffer = (Real *) malloc(n_fields*BLOCK_VOL*sizeof(Real)) ) ) {
+      if ( cudaSuccess != cudaHostAlloc(&buffer, n_fields*BLOCK_VOL*sizeof(Real), cudaHostAllocDefault) ) {
         printf("Failed to allocate CPU buffer.\n");
       }
       tmp1 = buffer;
       tmp2 = buffer;
       
       #if defined( GRAVITY )
-      if ( NULL == ( buffer_potential = (Real *) malloc(BLOCK_VOL*sizeof(Real)) ) ) {
+      if ( cudaSuccess != cudaHostAlloc(&buffer_potential, BLOCK_VOL*sizeof(Real), cudaHostAllocDefault) ) {
         printf("Failed to allocate CPU Grav_Potential buffer.\n");
       }
       #else
@@ -93,13 +97,14 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
       temp_potential = buffer_potential;
     }
     // allocate an array on the CPU to hold max_dti returned from each thread block
-    host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
+    CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
     #ifdef COOLING_GPU
-    host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
+    CudaSafeCall( cudaHostAlloc(&host_dt_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
     #endif  
 
     // allocate memory on the GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
+    //CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
+    dev_conserved = d_conserved;
     CudaSafeCall( cudaMalloc((void**)&dev_conserved_half, n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Lx,  n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Rx,  n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -116,7 +121,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #endif 
     
     #if defined( GRAVITY ) 
-    CudaSafeCall( cudaMalloc((void**)&dev_grav_potential, BLOCK_VOL*sizeof(Real)) );
+    // CudaSafeCall( cudaMalloc((void**)&dev_grav_potential, BLOCK_VOL*sizeof(Real)) );
+    dev_grav_potential = d_grav_potential;
     #else
     dev_grav_potential = NULL;
     #endif
@@ -125,7 +131,8 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    #endif 
+    #endif
+    //d_conserved = dev_conserved;
   }  
 
   // counter for which block we're on
@@ -142,8 +149,11 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
 
     // copy the conserved variables onto the GPU
+    #ifndef GPU_MPI
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-    #if defined( GRAVITY )
+    #endif
+    
+    #if defined( GRAVITY ) && !defined( GRAVITY_GPU )
     CudaSafeCall( cudaMemcpy(dev_grav_potential, temp_potential, BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
     #endif
  
@@ -265,7 +275,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaCheckError();
 
     // copy the updated conserved variable array back to the CPU
+    #ifndef GPU_MPI
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
+    #endif
 
     // copy the updated conserved variable array from the buffer into the host_conserved array on the CPU
     host_return_block_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved1, buffer, n_fields);
@@ -309,10 +321,10 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 void Free_Memory_VL_3D(){
   
   // free CPU memory
-  if (block_tot > 1) free(buffer);
-  free(host_dti_array);  
+  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
+  CudaSafeCall( cudaFreeHost(host_dti_array) );  
   #ifdef COOLING_GPU
-  free(host_dt_array);  
+  CudaSafeCall( cudaFreeHost(host_dt_array) );  
   #endif  
   
   // free the GPU memory
@@ -333,7 +345,7 @@ void Free_Memory_VL_3D(){
   #endif
   #if defined( GRAVITY ) 
   cudaFree(dev_grav_potential);
-  if (block_tot > 1) free(buffer_potential);
+  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer_potential) );
   #endif
 
 }

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <set>
 #include <ctype.h>
 #include"global.h"
 
@@ -94,6 +95,18 @@ char *trim (char * s)
   return s;
 }
 
+const std::set<const char*> optionalParams = {"flag_delta", "ddelta_dt", "n_delta",
+       "Lz" , "Lx" , "phi" , "theta", "delta", "nzr", "nxr", "H0", "Omega_M", "Omega_L",
+       "Init_redshift", "End_redshift", "tile_length", "n_proc_x", "n_proc_y", "n_proc_z" };
+
+/*! \fn int is_param_valid(char *name);
+ * \brief Verifies that a param is valid (even if not needed).  Avoids "warnings" in output. */
+int is_param_valid(const char* param_name) {
+  for (auto it=optionalParams.begin(); it != optionalParams.end(); ++it) {
+      if (strcmp(param_name, *it) == 0) return 1;
+  }
+  return 0;
+}
 
 /*! \fn void parse_params(char *param_file, struct parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
@@ -106,8 +119,12 @@ void parse_params (char *param_file, struct parameters * parms)
   {
     return;
   }
-  // set default file output parameter
-  parms->nfull=1;
+  // set default hydro file output parameter
+  parms->outstep_hydro=1;
+  parms->outstep_particle=1;
+  parms->outstep_slice=1;
+  parms->outstep_projection=1;
+  parms->outstep_rotated_projection=1;
 
 #ifdef ROTATED_PROJECTION
   //initialize rotation parameters to zero
@@ -165,8 +182,8 @@ parms->scale_outputs_file[0] = '\0';
       strncpy (parms->init, value, MAXLEN);
     else if (strcmp(name, "nfile")==0)
       parms->nfile = atoi(value);
-    else if (strcmp(name, "nfull")==0)
-      parms->nfull = atoi(value);
+    else if (strcmp(name, "outstep_hydro")==0)
+      parms->outstep_hydro = atoi(value);
     else if (strcmp(name, "xmin")==0)
       parms->xmin = atof(value);
     else if (strcmp(name, "ymin")==0)
@@ -273,7 +290,7 @@ parms->scale_outputs_file[0] = '\0';
     else if (strcmp(name, "n_proc_y")==0)
       parms->n_proc_y  = atoi(value);
     else if (strcmp(name, "n_proc_z")==0)
-  parms->n_proc_z  = atoi(value);
+      parms->n_proc_z  = atoi(value);
 #endif
 
 #ifdef CHEMISTRY_GPU
@@ -282,11 +299,25 @@ parms->scale_outputs_file[0] = '\0';
 #endif    
     else if (strcmp(name, "bc_potential_type")==0)
       parms->bc_potential_type  = atoi(value);
-    else
+
+#ifdef COOLING_GRACKLE
+    else if (strcmp(name, "UVB_rates_file")==0)
+      strncpy (parms->UVB_rates_file, value, MAXLEN);
+#endif
+#ifdef ANALYSIS
+    else if (strcmp(name, "analysis_scale_outputs_file")==0)
+      strncpy (parms->analysis_scale_outputs_file, value, MAXLEN);
+    else if (strcmp(name, "analysisdir")==0)
+      strncpy (parms->analysisdir, value, MAXLEN);
+    else if (strcmp(name, "lya_skewers_stride")==0)
+      parms->lya_skewers_stride  = atoi(value);
+    else if (strcmp(name, "lya_Pk_d_log_k")==0)
+      parms->lya_Pk_d_log_k  = atof(value);
+#endif    
+    else if (!is_param_valid(name))
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
         name, value);
   }
-
   /* Close file */
   fclose (fp);
 }
