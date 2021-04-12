@@ -9,6 +9,9 @@ DFLAGS += -DCOSMOLOGY
 #DFLAGS += -DGRACKLE_METALS
 
 
+# Solve the Primordial Chemical Network (H+He) on the GPU (Includes Photoheating and Photoionization)
+#DFLAGS += -DCHEMISTRY_GPU 
+
 # Permorm In-The-Fly analisys of Cosmological Simulations
 #DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS -DOUTPUT_SKEWERS
 
@@ -26,4 +29,4 @@ DFLAGS += -DN_OUTPUT_COMPLETE=1
 
 
 #Limit the number of steps to evolve
-#DFLAGS += -DN_STEPS_LIMIT=35
+DFLAGS += -DN_STEPS_LIMIT=1

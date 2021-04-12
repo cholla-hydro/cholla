@@ -127,6 +127,10 @@ ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle
 endif
 
+ifeq ($(findstring -DCHEMISTRY_GPU,$(DFLAGS)),-DCHEMISTRY_GPU)
+  DFLAGS += -DSCALAR
+endif
+
 .SUFFIXES: .c .cpp .cu .o
 
 EXEC := bin/cholla$(SUFFIX)
