@@ -1271,7 +1271,7 @@ void Grid3D::Chemistry_Test( struct parameters P )
 {
   chprintf( "Initializing Chemistry Test...\n");
   
-  Real H0, Omega_M, Omega_L, Omega_b, current_z, rho_gas_mean,  kpc_cgs, G, z, h, mu, T0, U;
+  Real H0, Omega_M, Omega_L, Omega_b, current_z, rho_gas_mean,  kpc_cgs, G, z, h, mu, T0, U,rho_gas;
   Real HI_frac, HII_frac, HeI_frac, HeII_frac, HeIII_frac, e_frac, metal_frac,_min;
   
   H0 = P.H0;
@@ -1282,7 +1282,8 @@ void Grid3D::Chemistry_Test( struct parameters P )
   kpc_cgs = KPC_CGS;
   G = G_COSMO;
   h = H0/100;
-  T0 = 230;
+  T0 = 230.0;
+  
   // M_sun = MSUN_CGS;
   rho_gas_mean = 3*pow(H0*1e-3, 2)/(8*M_PI*G) * Omega_b / pow(h, 2)  ;
   chprintf( " z = %f \n", z );
@@ -1292,6 +1293,8 @@ void Grid3D::Chemistry_Test( struct parameters P )
   chprintf( " Omega_b = %f \n", Omega_b );
   chprintf( " rho_gas_mean = %f h^2 Msun kpc^-3\n", rho_gas_mean );
   chprintf( " T0 = %f k\n", T0 );
+  rho_gas = rho_gas_mean * pow(h, 2) / pow( kpc_cgs, 3) * MSUN_CGS;
+  chprintf( " rho_gas = %e g/cm^3\n", rho_gas );
   
   
   
@@ -1356,7 +1359,9 @@ void Grid3D::Chemistry_Test( struct parameters P )
         C.scalar[3*H.n_cells + id] = rho_gas_mean * HeII_frac;
         C.scalar[4*H.n_cells + id] = rho_gas_mean * HeIII_frac;
         C.scalar[5*H.n_cells + id] = rho_gas_mean * e_frac;
+        #ifdef GRACKLE_METALS
         C.scalar[6*H.n_cells + id] = rho_gas_mean * metal_frac;
+        #endif
         #endif
         
         

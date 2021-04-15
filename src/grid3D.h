@@ -797,6 +797,8 @@ class Grid3D
   
   #ifdef CHEMISTRY_GPU
   void Initialize_Chemistry( struct parameters *P );
+  void Compute_Gas_Temperature(  Real *temperature  );
+  void Update_Chemistry_Header();
   #endif
   
   #ifdef ANALYSIS

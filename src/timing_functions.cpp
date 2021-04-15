@@ -52,11 +52,45 @@ void Time::Start_Timer(){
   time_start = get_time();
 }
 
+
+#ifdef CHEMISTRY_GPU
+
+
+void Time::Record_Time_Chemistry( Real time_chemistry ){
+    
+  // time_chemistry *= 1000;
+  
+  Real t_min, t_max, t_avg;
+
+  #ifdef MPI_CHOLLA
+  t_min = ReduceRealMin(time_chemistry);
+  t_max = ReduceRealMax(time_chemistry);
+  t_avg = ReduceRealAvg(time_chemistry);
+  #else
+  t_min = time_chemistry;
+  t_max = time_chemistry;
+  t_avg = time_chemistry;
+  #endif
+
+  time_chemistry_min = t_min;
+  time_chemistry_max = t_max;
+  time_chemistry_mean = t_avg;
+  if (n_steps > 0) time_chemistry_all += t_max;
+
+}
+
+#endif
+
+void Time::Substract_Time_From_Timer( Real time_to_substract ){
+  // Add the time_to_substract to the start time, that way the time_end - time_start is reduced by time_to_substract
+  time_start += time_to_substract;
+}
+
 void Time::End_and_Record_Time( int time_var ){
 
   time_end = get_time();
   time = (time_end - time_start)*1000;
-
+  
   Real t_min, t_max, t_avg;
 
   #ifdef MPI_CHOLLA
@@ -179,6 +213,9 @@ void Time::Print_Times(){
   chprintf(" Time Cooling           min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_cooling_min, time_cooling_max, time_cooling_mean);
   #endif
 
+  #ifdef CHEMISTRY_GPU
+  chprintf(" Time Cooling           min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_chemistry_min, time_chemistry_max, time_chemistry_mean);
+  #endif
 
 }
 
@@ -209,6 +246,10 @@ void Time::Get_Average_Times(){
   #ifdef COOLING_GRACKLE
   time_cooling_all /= n_steps;
   #endif
+  
+  #ifdef CHEMISTRY_GPU
+  time_chemistry_all /= n_steps;
+  #endif
 
 }
 
@@ -236,7 +277,11 @@ void Time::Print_Average_Times( struct parameters P ){
   #ifdef COOLING_GRACKLE
   time_total += time_cooling_all;
   #endif
-
+  
+  #ifdef CHEMISTRY_GPU
+  time_total += time_chemistry_all;
+  #endif
+  
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
   #if defined( PARTICLES)  
   chprintf(" Time Calc dt           avg: %9.4f   ms\n", time_dt_all);
@@ -261,6 +306,10 @@ void Time::Print_Average_Times( struct parameters P ){
   chprintf(" Time Cooling           avg: %9.4f   ms\n", time_cooling_all);
   #endif
 
+  #ifdef CHEMISTRY_GPU
+  chprintf(" Time Cooling           avg: %9.4f   ms\n", time_chemistry_all);
+  #endif
+  
   chprintf(" Time Total             avg: %9.4f   ms\n\n", time_total);
 
   string file_name ( "run_timing.log" );
@@ -292,6 +341,10 @@ void Time::Print_Average_Times( struct parameters P ){
   #ifdef COOLING_GRACKLE
   header += "cool  ";
   #endif
+  #ifdef CHEMISTRY_GPU
+  header += "cool  ";
+  #endif
+  
   header += "total  ";
   header += " \n";
 
@@ -346,6 +399,9 @@ void Time::Print_Average_Times( struct parameters P ){
   #endif
   #ifdef COOLING_GRACKLE
   out_file << time_cooling_all << " ";
+  #endif
+  #ifdef CHEMISTRY_GPU
+  out_file << time_chemistry_all << " ";
   #endif
   out_file << time_total << " ";
 

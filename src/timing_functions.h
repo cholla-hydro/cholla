@@ -85,6 +85,15 @@ public:
   Real time_cooling_mean;
   Real time_cooling_all;
   #endif
+  
+  #ifdef CHEMISTRY_GPU
+  Real time_start_chemistry;
+  Real time_end_chemistry;
+  Real time_chemistry_min;
+  Real time_chemistry_max;
+  Real time_chemistry_mean;
+  Real time_chemistry_all;
+  #endif
 
   Time();
   void Initialize();
@@ -93,12 +102,16 @@ public:
   void Print_Times();
   void Get_Average_Times();
   void Print_Average_Times( struct parameters P );
+  void Substract_Time_From_Timer( Real time_to_substract );
   
   #ifdef COOLING_GRACKLE
   void Print_Cooling_Time();
   #endif
 
-
+  #ifdef CHEMISTRY_GPU
+  void Record_Time_Chemistry( Real time_chemistry );
+  #endif
+  
 };
 
 

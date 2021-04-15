@@ -561,32 +561,14 @@ Real Grid3D::Update_Grid(void)
   max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
   #endif //max_dti_slow
   
-  int n_uvb_rates_samples;
-  float *rates_z_d, *cosmo_params;
-  Real dens_conv_chem, energy_conv_chem, current_z;
+    
+  struct Chemistry_Header *Chem_Header;
   #ifdef CHEMISTRY_GPU
-  #ifdef COSMOLOGY
-  Real kpc_cgs = KPC_CGS;
-  dens_conv_chem = Cosmo.rho_0_gas * Cosmo.cosmo_h * Cosmo.cosmo_h / pow( kpc_cgs, 3) * MSUN_CGS ; 
-  energy_conv_chem =  Cosmo.v_0_gas * Cosmo.v_0_gas * 1e10;  //km^2 -> cm^2 ;
-  current_z = Cosmo.current_z;
-  cosmo_params = Chem.cosmo_params_d;
-  #else // Not COSMOLOGY
-  current_z = 0.0;
-  dens_conv_chem = 1.0;
-  energy_conv_chem = 1.0;
-  cosmo_params = NULL;
-  #endif
-  n_uvb_rates_samples = Chem.n_uvb_rates_samples;
-  rates_z_d = Chem.rates_z_d;
-  #else // Not CHEMISTRY_GPU
-  current_z = 0.0;
-  dens_conv_chem = 1.0;
-  energy_conv_chem = 1.0;
-  n_uvb_rates_samples = 0;
-  rates_z_d = NULL;
-  cosmo_params = NULL;
-  #endif
+  Update_Chemistry_Header();
+  Chem_Header = &Chem.H;
+  #else
+  Chem_Header = NULL;
+  #endif 
   
   
   // Pass the structure of conserved variables to the CTU update functions
@@ -653,7 +635,7 @@ Real Grid3D::Update_Grid(void)
     max_dti = VL_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //VL
     #ifdef SIMPLE
-    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow, dens_conv_chem, energy_conv_chem, current_z, cosmo_params, n_uvb_rates_samples, rates_z_d );
+    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow, Chem_Header );
     #endif//SIMPLE
     #endif    
   }
@@ -710,7 +692,7 @@ Real Grid3D::Update_Grid(void)
 Real Grid3D::Update_Hydro_Grid( ){
   
   #ifdef ONLY_PARTICLES
-  // Dond integrate the Hydro when only solving for particles
+  // Don't integrate the Hydro when only solving for particles
   return 1e-10;
   #endif
   
@@ -728,7 +710,15 @@ Real Grid3D::Update_Hydro_Grid( ){
   dti = Update_Grid();
     
   #ifdef CPU_TIME
+  #ifdef CHEMISTRY_GPU
+  //Subtract the time spent on the Chemical Update (Chem runtime was measured in ms, while the timer is on secs )
+  Timer.Substract_Time_From_Timer( Chem.H.runtime_chemistry_step / 1000 );
+  #endif
   Timer.End_and_Record_Time( 1 );
+  #ifdef CHEMISTRY_GPU
+  //Subtract the time spent on the Chemical Update 
+  Timer.Record_Time_Chemistry( Chem.H.runtime_chemistry_step );
+  #endif
   #endif //CPU_TIME
   
   #ifdef COOLING_GRACKLE
