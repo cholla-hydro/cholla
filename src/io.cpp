@@ -136,7 +136,9 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   G.H.Output_Now = false;
   #endif
   
+  #ifdef MPI_CHOLLA
   MPI_Barrier(world);
+  #endif
 }
 
 
@@ -973,7 +975,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   int i, j, k, id, buf_id;
   hid_t     dataset_id, dataspace_id; 
   hid_t     dataset_id_full, dataspace_id_full; 
-  Real      *dataset_buffer, *dataset_buffer_full;
+  Real      *dataset_buffer;
   herr_t    status;
   
   bool output_energy;
@@ -1274,7 +1276,6 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     hsize_t   dims_full[3];
     
     dataset_buffer = (Real *) malloc(H.nx_real*H.ny_real*H.nz_real*sizeof(Real));
-    dataset_buffer_full = (Real *) malloc ( H.n_cells * sizeof(Real) );
 
     // Create the data space for the datasets
     dims[0] = nx_dset;
@@ -1544,6 +1545,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     #endif //OUTPUT_CHEMISTRY
 
     #ifdef OUTPUT_TEMPERATURE
+    
+    #ifdef CHEMISTRY_GPU
+    Real *temperature;
+    temperature = (Real *) malloc ( H.n_cells * sizeof(Real) ); 
+    Compute_Gas_Temperature( temperature ); 
+    #endif
+    
     // Copy the internal energy array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
@@ -1552,6 +1560,9 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
           #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.temperature[id];
+          #endif
+          #ifdef CHEMISTRY_GPU
+          dataset_buffer[buf_id] = temperature[id];
           #endif
         }
       }
@@ -1562,6 +1573,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
+    
+    #ifdef CHEMISTRY_GPU
+    free(temperature);
+    #endif
+    
     #endif //OUTPUT_TEMPERATURE
     
     #endif //COOLING_GRACKLE
