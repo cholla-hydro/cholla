@@ -15,6 +15,7 @@
 #include "error_handling.h"
 
 
+// #define DISK_ICS
 
 // function with logarithms used in NFW definitions
 Real log_func(Real y)
@@ -757,6 +758,9 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
  *  \brief Initialize the grid with a 3D disk. */
 void Grid3D::Disk_3D(parameters p)
 {
+  
+  #ifdef DISK_ICS
+   
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, phi;
   Real d, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, mu;
@@ -1092,6 +1096,8 @@ void Grid3D::Disk_3D(parameters p)
   //gas lookup table
   free(r_halo);
   free(rho_halo);
+  
+  #endif //DISK_ICS
 
 }
 

@@ -37,7 +37,7 @@ void Grid3D::set_dt_Gravity(){
   Real dt_particles, dt_min;
   
   #ifdef COSMOLOGY
-  chprintf( " Current_z: %f \n", Cosmo.current_z );
+  chprintf( "Current_z: %f \n", Cosmo.current_z );
   Real da_particles, da_min, dt_physical;
   
   //Compute the particles delta_t
@@ -71,7 +71,7 @@ void Grid3D::set_dt_Gravity(){
   //Small delta_a when reionization starts
   #ifdef COOLING_GRACKLE
   if ( fabs(Cosmo.current_a + da_min - Cool.scale_factor_UVB_on) < 0.005 ){
-    da_min /= 5;
+    da_min /= 2;
     chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
   }
   #endif
@@ -81,6 +81,17 @@ void Grid3D::set_dt_Gravity(){
     da_min = Cosmo.next_output - Cosmo.current_a;
     H.Output_Now = true;
   }
+  
+  #ifdef ANALYSIS
+  //Limit delta_a if it's time to run analisys
+  if( Analysis.next_output_indx < Analysis.n_outputs ){
+    if ( (Cosmo.current_a + da_min) >  Analysis.next_output ){
+      da_min = Analysis.next_output - Cosmo.current_a;
+      Analysis.Output_Now = true;
+    }
+  }
+  #endif
+  
   
   //Set delta_a after it has been computed
   Cosmo.delta_a = da_min;
@@ -466,13 +477,13 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 //Compute the Gravitational Potential by solving Poisson Equation
 void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
    
+  #ifdef CPU_TIME
+  Timer.Start_Timer();
+  #endif
+  
   #ifdef PARTICLES
   //Copy the particles density to the grav_density array
   Copy_Particles_Density_to_Gravity( *P );
-  #endif
-  
-  #ifdef CPU_TIME
-  Timer.Start_Timer();
   #endif
   
   #ifndef ONLY_PARTICLES
@@ -487,10 +498,11 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   const Real dens_avrg = Cosmo.rho_0_gas;
   #else
   const Real Grav_Constant = Grav.Gconst;
-  const Real dens_avrg = (P->xlg_bcnd == 3) ? 0.0005 : 0;
-  const Real r0 = 0.2;
-  // Re-use current_a as total mass
-  const Real current_a = (1.0-dens_avrg)*4.0*M_PI*r0*r0*r0/3.0;
+  // If sloving the Sphere Collapse problem ( bc_potential_type=0 )
+  const Real dens_avrg = (P->bc_potential_type == 0) ? H.sphere_background_density : 0;
+  const Real r0 = H.sphere_radius;
+  // Re-use current_a as the total mass of the sphere
+  const Real current_a = (H.sphere_density-dens_avrg)*4.0*M_PI*r0*r0*r0/3.0;
   #endif
   
   if ( !Grav.BC_FLAGS_SET ){
@@ -522,11 +534,20 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   
   //Solve Poisson Equation to compute the potential
   //Poisson Equation: laplacian( phi ) = 4 * pi * G / scale_factor * ( dens - dens_average )
+  Real *input_density, *output_potential;
+  #ifdef GRAVITY_GPU
+  input_density = Grav.F.density_d;
+  output_potential = Grav.F.potential_d;
+  #else
+  input_density = Grav.F.density_h;
+  output_potential = Grav.F.potential_h;
+  #endif
+
   #ifdef SOR
   Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
   #else
-  Grav.Poisson_solver.Get_Potential( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a);
-  #endif
+  Grav.Poisson_solver.Get_Potential( input_density, output_potential, Grav_Constant, dens_avrg, current_a);
+  #endif//SOR
 
 #ifdef PARIS_TEST
   std::vector<Real> p(Grav.n_cells_potential);
@@ -623,6 +644,10 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
 
 void Grid3D::Copy_Hydro_Density_to_Gravity(){
   
+  #ifdef GRAVITY_GPU
+  Copy_Hydro_Density_to_Gravity_GPU();
+  #else
+  
   #ifndef PARALLEL_OMP
   Copy_Hydro_Density_to_Gravity_Function( 0, Grav.nz_local );
   #else
@@ -638,7 +663,9 @@ void Grid3D::Copy_Hydro_Density_to_Gravity(){
 
     Copy_Hydro_Density_to_Gravity_Function(g_start, g_end );
   }
-  #endif
+  #endif //PARALLEL_OMP
+  
+  #endif //GRAVITY_GPU
   
 }
 
@@ -732,6 +759,10 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
 //Call the funtion to extrapolate the potential
 void Grid3D::Extrapolate_Grav_Potential(){
   
+  #ifdef GRAVITY_GPU
+  Extrapolate_Grav_Potential_GPU();
+  #else 
+  
   #ifndef PARALLEL_OMP
   Extrapolate_Grav_Potential_Function( 0, Grav.nz_local + 2*N_GHOST_POTENTIAL );
   #else
@@ -747,7 +778,9 @@ void Grid3D::Extrapolate_Grav_Potential(){
     
     Extrapolate_Grav_Potential_Function( g_start, g_end );
   }
-  #endif
+  #endif // PARALLEL_OMP
+  
+  #endif //GRAVITY_GPU
   
   //After the first timestep the INITIAL flag is set to false, that way the potential is properly extrapolated afterwards 
   Grav.INITIAL = false;  

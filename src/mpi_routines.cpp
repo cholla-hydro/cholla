@@ -1235,10 +1235,21 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   CudaSafeCall ( cudaMalloc (&recv_buffer_z0, zbsize*sizeof(Real)) );
   CudaSafeCall ( cudaMalloc (&recv_buffer_z1, zbsize*sizeof(Real)) );
   
-  #ifdef PARTICLES
-  chprintf("GPU MPI for PARTICLES is not yet implemented. Aborting.\n");
-  chexit(-1);
-  #endif//PARTICLES
+  #if defined(PARTICLES) && defined(PARTICLES_GPU) 
+  chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
+  CudaSafeCall ( cudaMalloc (&send_buffer_x0_particles, buffer_length_particles_x0_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_x1_particles, buffer_length_particles_x1_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_y0_particles, buffer_length_particles_y0_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_y1_particles, buffer_length_particles_y1_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_z0_particles, buffer_length_particles_z0_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&send_buffer_z1_particles, buffer_length_particles_z1_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_x0_particles, buffer_length_particles_x0_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_x1_particles, buffer_length_particles_x1_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_y0_particles, buffer_length_particles_y0_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_y1_particles, buffer_length_particles_y1_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_z0_particles, buffer_length_particles_z0_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&recv_buffer_z1_particles, buffer_length_particles_z1_recv*sizeof(Real)) );
+  #endif//PARTICLES_GPU
   
 }
 

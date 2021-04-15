@@ -275,6 +275,8 @@ parms->scale_outputs_file[0] = '\0';
       parms->Omega_M  = atof(value);
     else if (strcmp(name, "Omega_L")==0)
       parms->Omega_L  = atof(value);
+    else if (strcmp(name, "Omega_b")==0)
+      parms->Omega_b  = atof(value);
 #endif //COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
     else if (strcmp(name, "tile_length")==0)
@@ -291,8 +293,23 @@ parms->scale_outputs_file[0] = '\0';
       parms->n_proc_z  = atoi(value);
 #endif
     else if (strcmp(name, "bc_potential_type")==0)
-    parms->bc_potential_type  = atoi(value);
-    else if (!is_param_valid(name)) 
+      parms->bc_potential_type  = atoi(value);
+
+#ifdef COOLING_GRACKLE
+    else if (strcmp(name, "UVB_rates_file")==0)
+      strncpy (parms->UVB_rates_file, value, MAXLEN);
+#endif
+#ifdef ANALYSIS
+    else if (strcmp(name, "analysis_scale_outputs_file")==0)
+      strncpy (parms->analysis_scale_outputs_file, value, MAXLEN);
+    else if (strcmp(name, "analysisdir")==0)
+      strncpy (parms->analysisdir, value, MAXLEN);
+    else if (strcmp(name, "lya_skewers_stride")==0)
+      parms->lya_skewers_stride  = atoi(value);
+    else if (strcmp(name, "lya_Pk_d_log_k")==0)
+      parms->lya_Pk_d_log_k  = atof(value);
+#endif    
+    else if (!is_param_valid(name))
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
         name, value);
   }

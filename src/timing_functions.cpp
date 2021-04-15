@@ -159,8 +159,10 @@ void Time::Print_Times(){
   #if defined( PARTICLES )
   chprintf(" Time Calc dt           min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_dt_min, time_dt_max, time_dt_mean);
   #endif
+  #ifndef ONLY_PARTICLES
   chprintf(" Time Hydro             min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_hydro_min, time_hydro_max, time_hydro_mean);
   chprintf(" Time Boundaries        min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_bound_min, time_bound_max, time_bound_mean);
+  #endif
   #ifdef GRAVITY
   chprintf(" Time Grav Potential    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_potential_min, time_potential_max, time_potential_mean);
   chprintf(" Time Pot Boundaries    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_bound_pot_min, time_bound_pot_max, time_bound_pot_mean);
@@ -239,8 +241,10 @@ void Time::Print_Average_Times( struct parameters P ){
   #if defined( PARTICLES)  
   chprintf(" Time Calc dt           avg: %9.4f   ms\n", time_dt_all);
   #endif
+  #ifndef ONLY_PARTICLES
   chprintf(" Time Hydro             avg: %9.4f   ms\n", time_hydro_all);
   chprintf(" Time Boundaries        avg: %9.4f   ms\n", time_bound_all);
+  #endif
   #ifdef GRAVITY
   chprintf(" Time Grav Potential    avg: %9.4f   ms\n", time_potential_all);
   chprintf(" Time Pot Boundaries    avg: %9.4f   ms\n", time_bound_pot_all);

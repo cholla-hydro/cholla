@@ -121,21 +121,29 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   #ifdef COSMOLOGY
   if ( G.H.OUTPUT_SCALE_FACOR || G.H.Output_Initial){
     G.Cosmo.Set_Next_Scale_Output();
-    chprintf( " Saved Snapshot: %d     a:%f   next_output: %f\n", nfile, G.Cosmo.current_a, G.Cosmo.next_output );
-    G.H.Output_Initial = false;
+    if ( !G.Cosmo.exit_now ){
+      chprintf( " Saved Snapshot: %d     z:%f   next_output: %f\n", nfile, G.Cosmo.current_z, 1/G.Cosmo.next_output - 1 );
+      G.H.Output_Initial = false;
+    }
+    else{
+      chprintf( " Saved Snapshot: %d     z:%f   Exiting now\n", nfile, G.Cosmo.current_z );
+    }
+  
   }
-  else chprintf( " Saved Snapshot: %d     a:%f     z:%f\n", nfile, G.Cosmo.current_a, G.Cosmo.current_z );
+  else chprintf( " Saved Snapshot: %d     z:%f\n", nfile, G.Cosmo.current_z );
   G.Change_Cosmological_Frame_Sytem( true );
   chprintf( "\n" );
   G.H.Output_Now = false;
   #endif
+  
+  MPI_Barrier(world);
 }
 
 
 /* Output the grid data to file. */
 void OutputData(Grid3D &G, struct parameters P, int nfile)
 {
-  char filename[100];
+  char filename[MAXLEN];
   char timestep[20];
 
   // create the filename
@@ -1002,6 +1010,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #endif
   
   #endif //COOLING_GRACKLE
+  
+  #if defined(GRAVITY_GPU) && defined(OUTPUT_POTENTIAL)
+  CudaSafeCall( cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential*sizeof(Real), cudaMemcpyDeviceToHost) );  
+  #endif//GRAVITY_GPU
+  
 
 
   // 1D case
@@ -1479,6 +1492,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       status = H5Dclose(dataset_id);
     }
     
+    
+    #ifdef GRACKLE_METALS
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1493,7 +1508,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
       status = H5Dclose(dataset_id);
     }
-    
+    #endif //GRACKLE_METALS
     
     #endif //OUTPUT_CHEMISTRY
 
@@ -1540,8 +1555,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     }
     #endif
     
-    #ifdef GRAVITY
-    #ifdef OUTPUT_POTENTIAL
+    #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL) 
     // Copy the potential array to the memory buffer
     for (k=0; k<Grav.nz_local; k++) {
       for (j=0; j<Grav.ny_local; j++) {
@@ -1555,12 +1569,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       }
     }
     // Create a dataset id for density
-    dataset_id = H5Dcreate(file_id, "/potential", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate(file_id, "/grav_potential", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     // Write the density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
-    #endif//OUTPUT_POTENTIAL
     #endif//GRAVITY
 
     // Free the dataspace id
@@ -3047,7 +3060,9 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
       chprintf( " Initial HeII Fraction:  %e \n", HeII_frac);
       chprintf( " Initial HeIII Fraction: %e \n", HeIII_frac);
       chprintf( " Initial elect Fraction: %e \n", e_frac);
+      #ifdef GRACKLE_METALS
       chprintf( " Initial metal Fraction: %e \n", metal_frac);
+      #endif
       for (k=0; k<H.nz_real; k++) {
         for (j=0; j<H.ny_real; j++) {
           for (i=0; i<H.nx_real; i++) {
@@ -3059,7 +3074,9 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
             C.scalar[3*H.n_cells + id] = HeII_frac * dens;
             C.scalar[4*H.n_cells + id] = HeIII_frac * dens;
             C.scalar[5*H.n_cells + id] = e_frac * dens;
+            #ifdef GRACKLE_METALS
             C.scalar[6*H.n_cells + id] = metal_frac * dens;
+            #endif
           }
         }
       }
@@ -3138,6 +3155,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           }
         }
       }
+      #ifdef GRACKLE_METALS
       dataset_id = H5Dopen(file_id, "/metal_density", H5P_DEFAULT);
       status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
       status = H5Dclose(dataset_id);
@@ -3150,6 +3168,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           }
         }
       }
+      #endif
     }
     #endif//COOLING_GRACKLE
     #endif//SCALAR

@@ -1074,7 +1074,7 @@ void Grid3D::Spherical_Overdensity_3D()
 {
  int i, j, k, id;
  Real x_pos, y_pos, z_pos, r, center_x, center_y, center_z;
- Real density, pressure, overDensity, overPressure, energy;
+ Real density, pressure, overDensity, overPressure, energy, radius, background_density;
  Real vx, vy, vz, v2;
  center_x = 0.5;
  center_y = 0.5;
@@ -1084,6 +1084,14 @@ void Grid3D::Spherical_Overdensity_3D()
  vx = 0;
  vy = 0;
  vz = 0;
+ radius = 0.2;
+ background_density = 0.0005;
+ H.sphere_density = overDensity;
+ H.sphere_radius = radius;
+ H.sphere_background_density = background_density;
+ H.sphere_center_x = center_x;
+ H.sphere_center_y = center_y;
+ H.sphere_center_z = center_z;
 
  // set the initial values of the conserved variables
  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
@@ -1093,11 +1101,11 @@ void Grid3D::Spherical_Overdensity_3D()
 
        // // get the centered cell positions at (i,j,k)
        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
-       density = 0.0005;
+       density = background_density;
        pressure = 0.0005;
 
        r = sqrt( (x_pos-center_x)*(x_pos-center_x) + (y_pos-center_y)*(y_pos-center_y) + (z_pos-center_z)*(z_pos-center_z) );
-       if ( r < 0.2 ){
+       if ( r < radius ){
          density = overDensity;
          pressure += overPressure;
        }
