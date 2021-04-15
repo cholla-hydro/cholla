@@ -1,10 +1,23 @@
-#ifdef CHEMISTRY_GPU
-
 #ifndef CHEMISTRY_GPU_H
 #define CHEMISTRY_GPU_H
 
 #include"../global.h"
 
+struct Chemistry_Header
+{
+  Real density_conversion;
+  Real energy_conversion;
+  Real current_z;
+  float *cosmological_parameters_d;
+  int n_uvb_rates_samples;
+  float *uvb_rates_redshift_d;
+  Real runtime_chemistry_step;
+};
+
+
+
+
+#ifdef CHEMISTRY_GPU
 
 class Chem_GPU
 {
@@ -29,8 +42,8 @@ public:
   float *Ion_rates_HI_d;
   float *Ion_rates_HeI_d;
   float *Ion_rates_HeII_d;
-
   
+  struct Chemistry_Header H;
   
   void Allocate_Array_GPU_Real( Real **array_dev, int size );
   void Allocate_Array_GPU_float( float **array_dev, int size );
@@ -46,7 +59,6 @@ public:
   void Copy_UVB_Rates_to_GPU();
     
   void Bind_GPU_Textures( int size,  float *H_HI_h, float *H_HeI_h, float *H_HeII_h , float *I_HI_h, float *I_HeI_h, float *I_HeII_h );
-
   
   void Reset( );
 
