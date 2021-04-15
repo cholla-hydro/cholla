@@ -7,6 +7,7 @@
 #define SIMPLE_3D_CUDA_H
 
 #include"global.h"
+#include"chemistry_gpu/chemistry_gpu.h"
 
 Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
   Real *d_conserved,  Real *d_grav_potential, 
@@ -14,8 +15,8 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
   Real dx, Real dy, Real dz, Real xbound,
   Real ybound, Real zbound, Real dt, int n_fields, Real density_floor, 
   Real U_floor,  Real *host_grav_potential, Real max_dti_slow,
-  Real dens_conv_chem, Real energy_conv_chem, Real current_z,  float* cosmo_params, int n_uvb_rates_samples, float *rates_z );
-
+  struct Chemistry_Header *Chem_H );
+  
 void Free_Memory_Simple_3D();
 
 #endif //SIMPLE_3D_CUDA_H

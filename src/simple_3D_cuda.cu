@@ -37,7 +37,8 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
           int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, 
           Real ybound, Real zbound, Real dt, int n_fields, Real density_floor, 
           Real U_floor,  Real *host_grav_potential, Real max_dti_slow, 
-          Real dens_conv_chem, Real energy_conv_chem, Real current_z,  float* cosmo_params, int n_uvb_rates_samples, float *rates_z )
+          struct Chemistry_Header *Chem_H )
+        
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
@@ -235,8 +236,20 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     CudaCheckError();
     #endif
     
+    // Update the H+He chemical Network and include Cooling and Photoheating  
     #ifdef CHEMISTRY_GPU
-    hipLaunchKernelGGL(Update_Chemistry, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dens_conv_chem, energy_conv_chem, current_z, cosmo_params, n_uvb_rates_samples, rates_z );
+    float time;
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start, 0);
+    hipLaunchKernelGGL(Update_Chemistry, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, 
+      Chem_H->density_conversion, Chem_H->energy_conversion, Chem_H->current_z, Chem_H->cosmological_parameters_d, Chem_H->n_uvb_rates_samples, Chem_H->uvb_rates_redshift_d );
+    CudaCheckError();
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&time, start, stop);
+    Chem_H->runtime_chemistry_step = time;
     #endif
  
     // Step 4: Calculate the next time step
