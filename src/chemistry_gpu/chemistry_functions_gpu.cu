@@ -220,7 +220,7 @@ __device__ void Add_Expantion_Derivatives( Thermal_State &TS, Thermal_State &TS_
 
 
 
-__device__ void Get_Chemistry_Derivatives( Thermal_State &TS, Thermal_State &TS_derivs, Real current_a, Real H0, Real Omega_M, Real Omega_L, int n_uvb_rates_samples, float *rates_z, bool print ){
+__device__ void Get_Chemistry_Derivatives( Thermal_State &TS, Thermal_State &TS_derivs, Real dens_gas, Real current_a, Real H0, Real Omega_M, Real Omega_L, int n_uvb_rates_samples, float *rates_z, bool print ){
   
   float photo_h_HI, photo_h_HeI, photo_h_HeII; 
   float photo_i_HI, photo_i_HeI, photo_i_HeII;  
@@ -237,6 +237,7 @@ __device__ void Get_Chemistry_Derivatives( Thermal_State &TS, Thermal_State &TS_
   Real dn_dt_coll_HI, dn_dt_coll_HeI, dn_dt_coll_HeII,  dn_dt_coll_HI_HI, dn_dt_coll_HII_HI,  dn_dt_coll_HeI_HI;
   Real dn_dt_HI_p, dn_dt_HII_p, dn_dt_HeI_p, dn_dt_HeII_p, dn_dt_HeIII_p, dn_dt_e_p;
   Real dn_dt_HI_m, dn_dt_HII_m, dn_dt_HeI_m, dn_dt_HeII_m, dn_dt_HeIII_m, dn_dt_e_m;  
+  Real dx_dt, x_sum;
   
   current_z = 1/current_a - 1;
   // H = H0 * sqrt( Omega_M/pow(current_a,3) + Omega_L ) / ( 1000 * KPC );
@@ -294,7 +295,6 @@ __device__ void Get_Chemistry_Derivatives( Thermal_State &TS, Thermal_State &TS_
   dn_dt_coll_HeI_HI = Collisional_Ionization_Rate_HeI_HI_Lenzuni91( TS.T ) * TS.n_HeI  * TS.n_HI;
   
   
-  
   dn_dt_HI_p = dn_dt_recomb_HII;
   dn_dt_HI_m =  dn_dt_photo_HI + dn_dt_coll_HI + dn_dt_coll_HI_HI + dn_dt_coll_HII_HI + dn_dt_coll_HeI_HI;
   
@@ -314,7 +314,6 @@ __device__ void Get_Chemistry_Derivatives( Thermal_State &TS, Thermal_State &TS_
   dn_dt_e_m = dn_dt_recomb_HII + dn_dt_recomb_HeII + dn_dt_recomb_HeII_d + dn_dt_recomb_HeIII;
    
   
-  
   dn_dt_HI    = dn_dt_HI_p    - dn_dt_HI_m;
   dn_dt_HII   = dn_dt_HII_p   - dn_dt_HII_m;
   dn_dt_HeI   = dn_dt_HeI_p   - dn_dt_HeI_m;
@@ -323,6 +322,12 @@ __device__ void Get_Chemistry_Derivatives( Thermal_State &TS, Thermal_State &TS_
   dn_dt_e     = dn_dt_e_p     - dn_dt_e_m;
   
   n_tot = TS.n_HI + TS.n_HII + TS.n_HeI + TS.n_HeII + TS.n_HeIII + TS.n_e;  
+  
+  // Compute the change in number of particles 
+  dx_dt = ( dn_dt_HI + dn_dt_HII + dn_dt_HeI + dn_dt_HeII + dn_dt_HeIII + dn_dt_e  ) / dens_gas * MP;
+  
+  // The total number of particles:
+  x_sum =  n_tot / dens_gas * MP;
   
   if ( print ){
     printf( "Rates HI:    %e   %e \n",  photo_i_HI, photo_h_HI );
@@ -334,7 +339,7 @@ __device__ void Get_Chemistry_Derivatives( Thermal_State &TS, Thermal_State &TS_
     printf( "dT_dt:    %e  \n", 2/(3*KB*n_tot)*dQ_dt);      
   } 
   
-  TS_derivs.T       =  2/(3*KB*n_tot)*dQ_dt;
+  TS_derivs.T       =  2/(3*KB*n_tot)*dQ_dt -  TS.T/x_sum*dx_dt;
   TS_derivs.n_HI    =  dn_dt_HI;
   TS_derivs.n_HII   =  dn_dt_HII;
   TS_derivs.n_HeI   =  dn_dt_HeI;
@@ -443,7 +448,7 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
     int n_iter = 0;
     while ( t_chem < dt_hydro ){
     
-      Get_Chemistry_Derivatives( TS, TS_derivs, current_a, H0, Omega_M, Omega_L, n_uvb_rates_samples, rates_z, false );
+      Get_Chemistry_Derivatives( TS, TS_derivs, d, current_a, H0, Omega_M, Omega_L, n_uvb_rates_samples, rates_z, false );
       dt_chem = Get_Chemistry_dt( TS, TS_derivs );
       if ( t_chem + dt_chem > dt_hydro ) dt_chem = dt_hydro - t_chem;
       
