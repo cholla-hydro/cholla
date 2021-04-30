@@ -568,7 +568,7 @@ Real Grid3D::Update_Grid(void)
     max_dti = CTU_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    max_dti = VL_Algorithm_1D_CUDA(g0, g1, C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
     #endif //VL
     #endif //CUDA
   }
@@ -659,7 +659,7 @@ Real Grid3D::Update_Grid(void)
 Real Grid3D::Update_Hydro_Grid( ){
   
   #ifdef ONLY_PARTICLES
-  // Dond integrate the Hydro when only solving for particles
+  // Don't integrate the Hydro when only solving for particles
   return 1e-10;
   #endif
   

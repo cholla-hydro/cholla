@@ -328,7 +328,13 @@ void Grid3D::Set_Hydro_Boundaries_CPU
 
   Real *c_density, 
        *c_momentum_x, *c_momentum_y, *c_momentum_z, 
-       *c_energy, *c_scalar, *c_gasEnergy;
+       *c_energy;
+  #ifdef DE
+  Real *c_gasEnergy;
+  #endif
+  #ifdef SCALAR
+  Real *c_scalar;
+  #endif
 
   c_density    = C.density;
   c_momentum_x = C.momentum_x;
@@ -408,15 +414,25 @@ void Grid3D::Set_Hydro_Boundaries_GPU
 
   Real *c_density, 
        *c_momentum_x, *c_momentum_y, *c_momentum_z, 
-       *c_energy, *c_scalar, *c_gasEnergy;
+       *c_energy;
+  #ifdef DE
+  Real *c_gasEnergy;
+  #endif
+  #ifdef SCALAR
+  Real *c_scalar;
+  #endif
 
   c_density    = C.d_density;
   c_momentum_x = C.d_momentum_x;
   c_momentum_y = C.d_momentum_y;
   c_momentum_z = C.d_momentum_z;
   c_energy     = C.d_Energy;
+  #ifdef DE
   c_gasEnergy  = C.d_GasEnergy;
+  #endif
+  #ifdef SCALAR
   c_scalar     = C.d_scalar;
+  #endif
   
   #ifdef GPU_MPI
   omp_target_associate_ptr 
@@ -429,7 +445,6 @@ void Grid3D::Set_Hydro_Boundaries_GPU
     (c_momentum_z, C.d_momentum_z, H.n_cells*sizeof(Real), 0, 0);
   omp_target_associate_ptr 
     (c_energy, C.d_Energy, H.n_cells*sizeof(Real), 0, 0);
-  
   #ifdef DE
   omp_target_associate_ptr 
     (c_gasEnergy, C.d_GasEnergy, H.n_cells*sizeof(Real), 0, 0);
@@ -452,7 +467,6 @@ void Grid3D::Set_Hydro_Boundaries_GPU
     c_momentum_y[iaBoundary[iB]] = c_momentum_y[iaCell[iB]]*Sign[1];
     c_momentum_z[iaBoundary[iB]] = c_momentum_z[iaCell[iB]]*Sign[2];
     c_energy[iaBoundary[iB]]     = c_energy[iaCell[iB]];
-    
     #ifdef DE
     c_gasEnergy[iaBoundary[iB]]  = c_gasEnergy[iaCell[iB]];
     #endif
@@ -500,8 +514,6 @@ void Grid3D::Set_Hydro_Boundaries_GPU
     }
           
   }
-  
-  //printf("OpenMP Disassociate\n");
   
   #ifdef GPU_MPI
   omp_target_disassociate_ptr(c_density, 0);

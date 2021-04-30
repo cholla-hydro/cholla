@@ -1,0 +1,19 @@
+#-- Default hydro only build
+
+#-- separated output flag so that it can be overriden in target-specific 
+#   for make check
+OUTPUT    ?=  -DOUTPUT -DHDF5
+GPU_MPI   ?=
+
+DFLAGS    += -DCUDA
+DFLAGS    += -DMPI_CHOLLA $(GPU_MPI)
+DFLAGS    += -DBLOCK
+DFLAGS    += -DPRECISION=2
+DFLAGS    += -DPPMP
+DFLAGS    += -DHLLC
+DFLAGS    += -DVL
+DFLAGS    += $(OUTPUT)
+
+DFLAGS    += -DPARALLEL_OMP
+#-- OMP_NUM_THREADS should be set in make.host.*
+DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
