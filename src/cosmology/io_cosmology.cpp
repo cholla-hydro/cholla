@@ -47,8 +47,11 @@ void Cosmology::Load_Scale_Outputs( struct parameters *P ) {
   }
   next_output_indx = scale_indx;
   next_output = a_value;
-  chprintf("  Next output scale index: %d  \n", next_output_indx );
-  chprintf("  Next output scale value: %f  \n", next_output);
+  chprintf("  Next output index: %d  \n", next_output_indx );
+  chprintf("  Next output z value: %f  \n", 1./next_output - 1 );
+  
+  exit_now = false;
+  
 }
 
 void Cosmology::Set_Scale_Outputs( struct parameters *P ){
@@ -61,8 +64,8 @@ void Cosmology::Set_Scale_Outputs( struct parameters *P ){
     n_outputs = scale_outputs.size();
     next_output_indx = 0;
     next_output = current_a;
-    chprintf("  Next output scale index: %d  \n", next_output_indx );
-    chprintf("  Next output scale value: %f  \n", next_output);
+    chprintf("  Next output index: %d  \n", next_output_indx );
+    chprintf("  Next output z value: %f  \n", 1./next_output - 1 );
   }
   else  Load_Scale_Outputs( P );
   
@@ -72,15 +75,24 @@ void Cosmology::Set_Scale_Outputs( struct parameters *P ){
 
 
 void Cosmology::Set_Next_Scale_Output(  ){
+  
 
   int scale_indx = next_output_indx;
   Real a_value = scale_outputs[scale_indx];
-  if  ( ( scale_indx == 0 ) && ( abs(a_value - current_a )<1e-5 ) )scale_indx = 1;
-  else scale_indx += 1;
-  a_value = scale_outputs[scale_indx];
-
-  next_output_indx = scale_indx;
-  next_output = a_value;
+  // chprintf("Setting next output index. Current index: %d    n_outputs: %d ", scale_indx, n_outputs);
+  
+  // if  ( ( scale_indx == 0 ) && ( abs(a_value - current_a )<1e-5 ) )scale_indx = 1;
+  scale_indx += 1;
+  
+  if ( scale_indx < n_outputs ){
+    a_value = scale_outputs[scale_indx];
+    next_output_indx = scale_indx;
+    next_output = a_value;
+  }
+  else{
+    exit_now = true;
+  }
+  
 }
 
 

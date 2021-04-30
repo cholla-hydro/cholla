@@ -15,7 +15,7 @@ void Grid3D::Initialize_Cosmology( struct parameters *P ){
   // Change to comoving Cosmological System
   Change_Cosmological_Frame_Sytem( true );
   
-  if ( fabs( Cosmo.current_a - Cosmo.next_output ) < 1e-5 ) H.Output_Now = true; 
+  if ( fabs( Cosmo.current_a - Cosmo.next_output ) < 1e-5 ) H.Output_Now = true;
   
   chprintf( "Cosmology Successfully Initialized. \n\n");
   
@@ -47,8 +47,11 @@ void Grid3D::Change_Cosmological_Frame_Sytem( bool forward ){
   
   Change_DM_Frame_System( forward );
   #ifndef ONLY_PARTICLES
+  #ifdef GPU_MPI
+  Change_GAS_Frame_System_GPU( forward );
+  #endif //GPU_MPI
   Change_GAS_Frame_System( forward );
-  #endif
+  #endif//ONLY_PARTICLES
 }
 void Grid3D::Change_DM_Frame_System( bool forward ){
   
@@ -66,6 +69,8 @@ void Grid3D::Change_DM_Frame_System( bool forward ){
   }
   
   #endif //PARTICLES_CPU
+  
+  // NOTE:Not implemented for PARTICLES_GPU, doesn't matter as long as vel_factor=1
 }
 
 void Grid3D::Change_GAS_Frame_System( bool forward ){
@@ -104,7 +109,9 @@ void Grid3D::Change_GAS_Frame_System( bool forward ){
         C.scalar[3*H.n_cells + id] *= dens_factor;
         C.scalar[4*H.n_cells + id] *= dens_factor;
         C.scalar[5*H.n_cells + id] *= dens_factor;
+        #ifdef GRACKLE_METALS
         C.scalar[6*H.n_cells + id] *= dens_factor;
+        #endif
         #endif
       }
     }

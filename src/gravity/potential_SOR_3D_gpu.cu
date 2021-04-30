@@ -186,8 +186,8 @@ __global__ void Iteration_Step_SOR( int n_cells, Real *density_d, Real *potentia
   
   //Check the residual for the convergence criteria
   if ( ( fabs( ( phi_new - phi_c ) / phi_c ) > epsilon ) ) converged_d[0] = 0;
+  // if ( ( fabs( ( phi_new - phi_c ) / phi_c ) > epsilon ) ) printf("%f\n", fabs( ( phi_new - phi_c ) / phi_c)  );
   // if ( ( fabs( ( phi_new - phi_c ) ) > epsilon ) ) converged_d[0] = 0;
-  
 
   
   

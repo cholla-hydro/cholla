@@ -28,6 +28,11 @@
 #define GRAV_ISOLATED_BOUNDARY_Y
 #define GRAV_ISOLATED_BOUNDARY_Z
 
+#define TPB_GRAV 1024
+#define TPBX_GRAV 16
+#define TPBY_GRAV 8
+#define TPBZ_GRAV 8
+
 /*! \class Grid3D
  *  \brief Class to create a the gravity object. */
 class Grav3D
@@ -121,7 +126,7 @@ class Grav3D
 
   struct Fields
   {
-    /*! \var density
+    /*! \var density_h
      *  \brief Array containing the density of each cell in the grid */
     Real *density_h;
 
@@ -130,8 +135,41 @@ class Grav3D
     Real *potential_h;
 
     /*! \var potential_h
-     *  \brief Array containing the gravitational potential of each cell in the grid */
+     *  \brief Array containing the gravitational potential of each cell in the grid at the previous time step */
     Real *potential_1_h;
+    
+    #ifdef GRAVITY_GPU
+    
+    /*! \var density_d
+     *  \brief Device Array containing the density of each cell in the grid */
+    Real *density_d;
+    
+    /*! \var potential_d
+    *  \brief Device Array containing the gravitational potential of each cell in the grid */
+    Real *potential_d;
+    
+    /*! \var potential_d
+    *  \brief Device Array containing the gravitational potential of each cell in the grid at the previous time step */
+    Real *potential_1_d;
+    
+    #if defined(MPI_CHOLLA) && !defined(GPU_MPI)
+    //Device buffers for potential transfers when the GPU_MPI is disabled
+    Real *send_buffer_potential_x0_d;
+    Real *send_buffer_potential_x1_d;
+    Real *send_buffer_potential_y0_d;
+    Real *send_buffer_potential_y1_d;
+    Real *send_buffer_potential_z0_d;
+    Real *send_buffer_potential_z1_d;
+    
+    Real *recv_buffer_potential_x0_d;
+    Real *recv_buffer_potential_x1_d;
+    Real *recv_buffer_potential_y0_d;
+    Real *recv_buffer_potential_y1_d;
+    Real *recv_buffer_potential_z0_d;
+    Real *recv_buffer_potential_z1_d;     
+    #endif//MPI_CHOLLA-GPU_MPI    
+    
+    #endif //GRAVITY_GPU
     
     // Arrays for computing the potential values in isolated boundaries
     #ifdef GRAV_ISOLATED_BOUNDARY_X
@@ -146,6 +184,22 @@ class Grav3D
     Real *pot_boundary_z0;
     Real *pot_boundary_z1;
     #endif
+    
+    #ifdef GRAVITY_GPU
+    #ifdef GRAV_ISOLATED_BOUNDARY_X
+    Real *pot_boundary_x0_d;
+    Real *pot_boundary_x1_d;
+    #endif
+    #ifdef GRAV_ISOLATED_BOUNDARY_Y
+    Real *pot_boundary_y0_d;
+    Real *pot_boundary_y1_d;
+    #endif
+    #ifdef GRAV_ISOLATED_BOUNDARY_Z
+    Real *pot_boundary_z0_d;
+    Real *pot_boundary_z1_d;
+    #endif
+    #endif//GRAVITY_GPU
+    
   } F;
   
   /*! \fn Grav3D(void)
@@ -168,6 +222,11 @@ class Grav3D
   #ifdef SOR
   void Copy_Isolated_Boundary_To_GPU_buffer( Real *isolated_boundary_h, Real *isolated_boundary_d, int boundary_size );
   void Copy_Isolated_Boundaries_To_GPU( struct parameters *P );
+  #endif
+  
+  #ifdef GRAVITY_GPU
+  void AllocateMemory_GPU(void);  
+  void FreeMemory_GPU(void);
   #endif
 
 };

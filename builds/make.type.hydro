@@ -6,12 +6,41 @@ OUTPUT    ?=  -DOUTPUT -DHDF5
 GPU_MPI   ?=  
 
 DFLAGS    += -DCUDA
-DFLAGS    += -DMPI_CHOLLA $(GPU_MPI)
+DFLAGS    += -DMPI_CHOLLA 
 DFLAGS    += -DBLOCK
 DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
+
+ifeq ($(findstring cosmology,$(TYPE)),cosmology)
+DFLAGS    += -DSIMPLE
+else
 DFLAGS    += -DVL
-DFLAGS    += $(OUTPUT)
+endif
+
+
+# Apply a density and temperature floor
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
+
+
+# Solve the Gas Internal Energy usisng a Dual Energy Formalism
+DFLAGS    += -DDE
+
+
+# Apply the cooling in the GPU from precomputed tables
+# DFLAGS    += -DCOOLING_GPU
+
+
+#Measure the Timing of the different stages
+DFLAGS += -DCPU_TIME
+
+
+DFLAGS    += $(OUTPUT)
+
+
+#Select if the Hydro Conserved data will reside in the GPU
+#and the MPI transfers are done from the GPU
+#If not specified, GPU_MPI is off by default 
+#This is set in the system make.host file
+DFLAGS += $(GPU_MPI)  

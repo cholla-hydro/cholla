@@ -117,7 +117,7 @@ void Grid3D::Initialize(struct parameters *P)
   int nz_in = P->nz;
 
   // Set the CFL coefficient (a global variable)
-  C_cfl = 0.4;
+  C_cfl = 0.3;
 
 #ifndef MPI_CHOLLA
 
@@ -267,8 +267,10 @@ void Grid3D::AllocateMemory(void)
   
   #if defined( GRAVITY ) 
   CudaSafeCall( cudaHostAlloc(&C.Grav_potential, H.n_cells*sizeof(Real), cudaHostAllocDefault) );
+  CudaSafeCall( cudaMalloc((void**)&C.d_Grav_potential, H.n_cells*sizeof(Real)) );
   #else
-  C.Grav_potential = NULL;
+  C.Grav_potential   = NULL;
+  C.d_Grav_potential = NULL;
   #endif
   
   CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
@@ -538,6 +540,7 @@ Real Grid3D::Update_Grid(void)
   // Minimum of internal energy from minumum of temperature 
   U_floor = H.temperature_floor * KB / (gama - 1) / MP / SP_ENERGY_UNIT;
   #ifdef COSMOLOGY
+  U_floor = H.temperature_floor / (gama - 1) / MP * KB * 1e-10; // ( km/s )^2
   U_floor /=  Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
   #endif
   
@@ -610,10 +613,10 @@ Real Grid3D::Update_Grid(void)
     max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(g0, g1, C.device, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    max_dti = VL_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //VL
     #ifdef SIMPLE
-    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif//SIMPLE
     #endif    
   }
@@ -644,7 +647,9 @@ Real Grid3D::Update_Grid(void)
   Cool.fields.HeII_density    = &C.scalar[ 3*H.n_cells ];
   Cool.fields.HeIII_density   = &C.scalar[ 4*H.n_cells ];
   Cool.fields.e_density       = &C.scalar[ 5*H.n_cells ];
+  #ifdef GRACKLE_METALS
   Cool.fields.metal_density   = &C.scalar[ 6*H.n_cells ];
+  #endif
   #endif
   
   // reset the grid flag to swap buffers
@@ -685,7 +690,6 @@ Real Grid3D::Update_Hydro_Grid( ){
   Timer.Start_Timer();
   #endif
   Do_Cooling_Step_Grackle( );
-  // Apply_Temperature_Floor_CPU_function(  0, Grav.nz_local );
   #ifdef CPU_TIME
   Timer.End_and_Record_Time(10);
   #endif
@@ -711,6 +715,11 @@ void Grid3D::Update_Time(){
   Grav.current_a = Cosmo.current_a;  
   #endif //COSMOLOGY
   #endif //PARTICLES
+  
+  #ifdef ANALYSIS
+  Analysis.current_z = Cosmo.current_z;
+  #endif
+  
   
   
   
@@ -739,6 +748,7 @@ void Grid3D::FreeMemory(void)
   
   #ifdef GRAVITY
   CudaSafeCall( cudaFreeHost(C.Grav_potential) );
+  CudaSafeCall( cudaFree(C.d_Grav_potential) );
   #endif
   
   #ifndef DYNAMIC_GPU_ALLOC
@@ -760,6 +770,9 @@ void Grid3D::FreeMemory(void)
   
   #ifdef GRAVITY
   Grav.FreeMemory_CPU();
+  #ifdef GRAVITY_GPU
+  Grav.FreeMemory_GPU();
+  #endif
   #endif
   
   #ifdef PARTICLES
@@ -774,5 +787,9 @@ void Grid3D::FreeMemory(void)
   #ifdef CLOUDY_COOL
   Free_Cuda_Textures();
   #endif
+  #endif
+  
+  #ifdef ANALYSIS
+  Analysis.Reset();
   #endif
 }

@@ -2,7 +2,10 @@
 
 module load gcc hdf5 fftw cuda
 
-export PFFT_ROOT=$(readlink -f ../share/pfft*) 
+module list
+
+#export PFFT_ROOT=$(readlink -f ../share/pfft*) 
+export PFFT_ROOT='/ccs/proj/csc380/cholla/fom/code/pfft'
 export MPI_HOME=${MPI_ROOT}
 export HDF5INCLUDE=${OLCF_HDF5_ROOT}/include
 export HDF5DIR=${OLCF_HDF5_ROOT}/lib

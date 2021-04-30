@@ -71,7 +71,10 @@ int main(int argc, char *argv[])
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
-
+  char *message = (char*)malloc(50 * sizeof(char));
+  sprintf(message, "Initializing Simulation" );
+  Write_Message_To_Log_File( message );
+  
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P);
@@ -80,12 +83,11 @@ int main(int argc, char *argv[])
   if (strcmp(P.init, "Read_Grid") == 0) {
     dti = C_cfl / G.H.dt;
     outtime += G.H.t;
-    nfile = P.nfile*P.nfull;
+    nfile = P.nfile;
   }
   
   #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2 );
-  char *message = (char*)malloc(50 * sizeof(char));
   sprintf(message, " eta_1: %0.3f   eta_2: %0.3f  ", DE_ETA_1, DE_ETA_2 );
   Write_Message_To_Log_File( message );
   #endif
@@ -102,13 +104,18 @@ int main(int argc, char *argv[])
   #ifdef PARTICLES
   G.Initialize_Particles(&P);
   #endif
-  
+
   #ifdef COSMOLOGY
   G.Initialize_Cosmology(&P);
   #endif
   
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
+  #endif
+  
+  #ifdef ANALYSIS
+  G.Initialize_Analysis_Module(&P);
+  if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   #endif
 
   #ifdef GRAVITY
@@ -120,6 +127,11 @@ int main(int argc, char *argv[])
   chprintf("Setting boundary conditions...\n");
   G.Set_Boundary_Conditions_Grid(P);
   chprintf("Boundary conditions set.\n");  
+
+  #ifdef GRAVITY_ANALYTIC_COMP
+  // add analytic component to gravity potential.
+  G.Add_Analytic_Potential(&P); 
+  #endif 
   
   #ifdef PARTICLES
   // Get the particles acceleration for the first timestep
@@ -133,13 +145,13 @@ int main(int argc, char *argv[])
 
   #ifdef OUTPUT
   if (strcmp(P.init, "Read_Grid") != 0 || G.H.Output_Now ) {
-  // write the initial conditions to file
-  chprintf("Writing initial conditions to file...\n");
-  #ifdef GPU_MPI
-  cudaMemcpy(G.C.density, G.C.device, 
+    // write the initial conditions to file
+    chprintf("Writing initial conditions to file...\n");
+    #ifdef GPU_MPI
+    cudaMemcpy(G.C.density, G.C.device, 
              G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
-  #endif
-  WriteData(G, P, nfile);
+    #endif
+    WriteData(G, P, nfile);
   }
   // add one to the output file count
   nfile++;
@@ -162,6 +174,8 @@ int main(int argc, char *argv[])
   
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
+  sprintf(message, "Starting calculations." );
+  Write_Message_To_Log_File( message );
   while (G.H.t < P.tout)
   {
     // get the start time
@@ -197,11 +211,20 @@ int main(int argc, char *argv[])
     //Set the Grid boundary conditions for next time step 
     G.Set_Boundary_Conditions_Grid(P);
     
+    #ifdef GRAVITY_ANALYTIC_COMP
+    // add analytic component to gravity potential.
+    G.Add_Analytic_Potential(&P); 
+    #endif 
+
     #ifdef PARTICLES
     ///Advance the particles KDK( second step ): Velocities are updated by 0.5*dt using the Accelerations at the new positions
     G.Advance_Particles( 2 );
     #endif
     
+    #ifdef PARTICLE_AGE
+    //G.Cluster_Feedback();
+    #endif
+
     #ifdef CPU_TIME
     G.Timer.Print_Times();
     #endif
@@ -218,6 +241,10 @@ int main(int argc, char *argv[])
     
     #ifdef OUTPUT_ALWAYS
     G.H.Output_Now = true;
+    #endif
+    
+    #ifdef ANALYSIS
+    if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
     #endif
     
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0) G.H.Output_Now = true;
@@ -237,7 +264,7 @@ int main(int argc, char *argv[])
       // update to the next output time
       outtime += P.outstep;      
     }
-    
+        
     #ifdef CPU_TIME
     G.Timer.n_steps += 1;
     #endif
@@ -253,10 +280,11 @@ int main(int argc, char *argv[])
       break;
     }
     #endif
-
+    
+    
     #ifdef COSMOLOGY
     // Exit the loop when reached the last scale_factor output 
-    if ( G.Cosmo.current_a >= G.Cosmo.scale_outputs[G.Cosmo.n_outputs-1] ) {
+    if ( G.Cosmo.exit_now ) {
       chprintf( "\nReached Last Cosmological Output: Ending Simulation\n");
       break;
     }
@@ -271,7 +299,8 @@ int main(int argc, char *argv[])
   G.Timer.Print_Average_Times( P );
   #endif
   
-  Write_Message_To_Log_File( "Run completed successfully!");
+  sprintf(message, "Simulation completed successfully." );
+  Write_Message_To_Log_File( message );
 
   // free the grid
   G.Reset();
