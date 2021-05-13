@@ -102,8 +102,9 @@ ifdef HIPCONFIG
   GPUFLAGS += -g -O3 -Wall --amdgpu-target=gfx906,gfx908 -std=c++11 -ferror-limit=1
   LD := $(CXX)
   LDFLAGS := $(CXXFLAGS)
-  LIBS += -L$(ROCM_PATH)/lib -lamdhip64
+  LIBS += -L$(ROCM_PATH)/lib -lamdhip64 -lhsa-runtime64
 else
+  CXXFLAGS += $(CUDA_ROOT)/include
   GPUCXX ?= nvcc
   # GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
   GPUFLAGS += -std=c++11 --expt-extended-lambda -g -O3 -fmad=false
