@@ -1809,74 +1809,69 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
   int idx;
   int gidx;
   int offset;
+  int n_ghost, nx, ny, nz, n_fields, n_cells;
   Real *c_head;
   
-  int n_ghost, nx, ny, nz, n_fields, n_cells;
-  n_ghost = H.n_ghost;
-  nx = H.nx;
-  ny = H.ny;
-  nz = H.nz;
-  n_fields = H.n_fields;
-  n_cells = H.n_cells;
-  
+  n_ghost   = H.n_ghost;
+  nx        = H.nx;
+  ny        = H.ny;
+  nz        = H.nz;
+  n_fields  = H.n_fields;	
+  n_cells   = H.n_cells;
   
   c_head = (Real *) C.device;
   
-  #pragma omp target data map ( H )
   if ( H.TRANSFER_HYDRO_BOUNDARIES ){
     //unload left x communication buffer
     if(index==0)
     {
       // 1D
-      if (H.ny == 1 && H.nz == 1) {
-        offset = H.n_ghost;
+      if (ny == 1 && nz == 1) {
+        offset = n_ghost;
         #pragma omp target teams distribute parallel for \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_x0, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-        for(i=0;i<H.n_ghost;i++) {
+            private ( idx, gidx, ii ) \
+            firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+            is_device_ptr ( recv_buffer_x0, c_head )
+        for(i=0;i<n_ghost;i++) {
           idx  = i;
           gidx = i;
-          for (ii=0; ii<H.n_fields; ii++) { 
-            c_head[idx + H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
+          for (ii=0; ii<n_fields; ii++) { 
+            c_head[idx + n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
             //-- FIXME: Shouldn't it be: c_head[idx + ii*H.n_cells] = ...
           }
         }
       }
       // 2D
-      if (H.ny > 1 && H.nz == 1) {
-        offset = H.n_ghost*(H.ny-2*H.n_ghost);
+      if (ny > 1 && nz == 1) {
+        offset = n_ghost*(ny-2*n_ghost);
         #pragma omp target teams distribute parallel for collapse ( 2 ) \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_x0, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-        for(i=0;i<H.n_ghost;i++) {
-          for (j=0;j<H.ny-2*H.n_ghost;j++) {
-            idx  = i + (j+H.n_ghost)*H.nx;
-            gidx = i + j*H.n_ghost;
-            for (ii=0; ii<H.n_fields; ii++) { 
-              c_head[idx + ii*H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
+            private ( idx, gidx, ii ) \
+            firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+            is_device_ptr ( recv_buffer_x0, c_head )
+        for(i=0;i<n_ghost;i++) {
+          for (j=0;j<ny-2*n_ghost;j++) {
+            idx  = i + (j+n_ghost)*nx;
+            gidx = i + j*n_ghost;
+            for (ii=0; ii<n_fields; ii++) { 
+              c_head[idx + ii*n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
             }
           }
         }
       }
       // 3D
-      if (H.nz > 1) {
-        offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
+      if (nz > 1) {
+        offset = n_ghost*(ny-2*n_ghost)*(nz-2*n_ghost);
         #pragma omp target teams distribute parallel for collapse ( 3 ) \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_x0, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-        for(i=0;i<H.n_ghost;i++) {
-          for(j=0;j<H.ny-2*H.n_ghost;j++) {
-            for(k=0;k<H.nz-2*H.n_ghost;k++) {
-              idx  = i + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-              gidx = i + j*H.n_ghost + k*H.n_ghost*(H.ny-2*H.n_ghost);
-              for (ii=0; ii<H.n_fields; ii++) {
-                c_head[idx + ii*H.n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
+            private ( idx, gidx, ii ) \
+            firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+            is_device_ptr ( recv_buffer_x0, c_head )
+        for(i=0;i<n_ghost;i++) {
+          for(j=0;j<ny-2*n_ghost;j++) {
+            for(k=0;k<nz-2*n_ghost;k++) {
+              idx  = i + (j+n_ghost)*nx + (k+n_ghost)*nx*ny;
+              gidx = i + j*n_ghost + k*n_ghost*(ny-2*n_ghost);
+              for (ii=0; ii<n_fields; ii++) {
+                c_head[idx + ii*n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
               }
             }
           }
@@ -1889,54 +1884,51 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
     {
   
       // 1D
-      if (H.ny == 1 && H.nz == 1) {
-        offset = H.n_ghost;
+      if (ny == 1 && nz == 1) {
+        offset = n_ghost;
         #pragma omp target teams distribute parallel for \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_x1, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-        for(i=0;i<H.n_ghost;i++) {
-          idx  = i+H.nx-H.n_ghost;
+            private ( idx, gidx, ii ) \
+            firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+            is_device_ptr ( recv_buffer_x1, c_head )
+        for(i=0;i<n_ghost;i++) {
+          idx  = i+nx-n_ghost;
           gidx = i;
-          for (ii=0; ii<H.n_fields; ii++) {
-            c_head[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
+          for (ii=0; ii<n_fields; ii++) {
+            c_head[idx + ii*n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
           }
         }
       }
       // 2D
-      if (H.ny > 1 && H.nz == 1) {
-        offset = H.n_ghost*(H.ny-2*H.n_ghost);
+      if (ny > 1 && nz == 1) {
+        offset = n_ghost*(ny-2*n_ghost);
         #pragma omp target teams distribute parallel for collapse ( 2 ) \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_x1, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-        for(i=0;i<H.n_ghost;i++) {
-          for (j=0;j<H.ny-2*H.n_ghost;j++) {
-            idx  = i+H.nx-H.n_ghost + (j+H.n_ghost)*H.nx;
-            gidx = i + j*H.n_ghost;
-            for (ii=0; ii<H.n_fields; ii++) {
-              c_head[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
+            private ( idx, gidx, ii ) \
+            firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+            is_device_ptr ( recv_buffer_x1, c_head )
+        for(i=0;i<n_ghost;i++) {
+          for (j=0;j<ny-2*n_ghost;j++) {
+            idx  = i+nx-n_ghost + (j+n_ghost)*nx;
+            gidx = i + j*n_ghost;
+            for (ii=0; ii<n_fields; ii++) {
+              c_head[idx + ii*n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
             }
           }
         }
       }
       // 3D
-      if (H.nz > 1) {
-        offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
+      if (nz > 1) {
+        offset = n_ghost*(ny-2*n_ghost)*(nz-2*n_ghost);
         #pragma omp target teams distribute parallel for collapse ( 3 ) \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_x1, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-        for(i=0;i<H.n_ghost;i++) {
-          for(j=0;j<H.ny-2*H.n_ghost;j++) {
-            for(k=0;k<H.nz-2*H.n_ghost;k++) {
-              idx  = i+H.nx-H.n_ghost + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-              gidx = i + j*H.n_ghost + k*H.n_ghost*(H.ny-2*H.n_ghost);
-              for (ii=0; ii<H.n_fields; ii++) {
-                c_head[idx + ii*H.n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
+            private ( idx, gidx, ii ) \
+            firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+            is_device_ptr ( recv_buffer_x1, c_head )
+        for(i=0;i<n_ghost;i++) {
+          for(j=0;j<ny-2*n_ghost;j++) {
+            for(k=0;k<nz-2*n_ghost;k++) {
+              idx  = i+nx-n_ghost + (j+n_ghost)*nx + (k+n_ghost)*nx*ny;
+              gidx = i + j*n_ghost + k*n_ghost*(ny-2*n_ghost);
+              for (ii=0; ii<n_fields; ii++) {
+                c_head[idx + ii*n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
                 
               }
             }
@@ -1949,38 +1941,36 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
     if(index==2)
     {
       // 2D
-      if (H.nz == 1) {
-        offset = H.n_ghost*H.nx;
+      if (nz == 1) {
+        offset = n_ghost*nx;
         #pragma omp target teams distribute parallel for collapse ( 2 ) \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_y0, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-        for(i=0;i<H.nx;i++) {
-          for (j=0;j<H.n_ghost;j++) {
-            idx  = i + j*H.nx;
-            gidx = i + j*H.nx;
-            for (ii=0; ii<H.n_fields; ii++) {
-              c_head[idx + ii*H.n_cells] = *(recv_buffer_y0 + gidx + ii*offset);
+            private ( idx, gidx, ii ) \
+            firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+            is_device_ptr ( recv_buffer_y0, c_head )
+        for(i=0;i<nx;i++) {
+          for (j=0;j<n_ghost;j++) {
+            idx  = i + j*nx;
+            gidx = i + j*nx;
+            for (ii=0; ii<n_fields; ii++) {
+              c_head[idx + ii*n_cells] = *(recv_buffer_y0 + gidx + ii*offset);
             }
           }
         }
       }
       // 3D
-      if (H.nz > 1) {
-        offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
+      if (nz > 1) {
+        offset = n_ghost*nx*(nz-2*n_ghost);
         #pragma omp target teams distribute parallel for collapse ( 3 ) \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_y0, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-        for(i=0;i<H.nx;i++) {
-          for(j=0;j<H.n_ghost;j++) {
-            for(k=0;k<H.nz-2*H.n_ghost;k++) {
-              idx  = i + j*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-              gidx = i + j*H.nx + k*H.nx*H.n_ghost;
-              for (ii=0; ii<H.n_fields; ii++) {
-                c_head[idx + ii*H.n_cells] = *(recv_buffer_y0 + gidx + ii*offset);
+            private ( idx, gidx, ii ) \
+            firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+            is_device_ptr ( recv_buffer_y0, c_head )
+        for(i=0;i<nx;i++) {
+          for(j=0;j<n_ghost;j++) {
+            for(k=0;k<nz-2*n_ghost;k++) {
+              idx  = i + j*nx + (k+n_ghost)*nx*ny;
+              gidx = i + j*nx + k*nx*n_ghost;
+              for (ii=0; ii<n_fields; ii++) {
+                c_head[idx + ii*n_cells] = *(recv_buffer_y0 + gidx + ii*offset);
               }
             }
           }
@@ -1992,38 +1982,36 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
     if(index==3)
     {
       // 2D
-      if (H.nz == 1) {
-        offset = H.n_ghost*H.nx;
+      if (nz == 1) {
+        offset = n_ghost*nx;
         #pragma omp target teams distribute parallel for collapse ( 2 ) \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_y1, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-        for(i=0;i<H.nx;i++) {
-          for (j=0;j<H.n_ghost;j++) {
-            idx  = i + (j+H.ny-H.n_ghost)*H.nx;
-            gidx = i + j*H.nx;
-            for (ii=0; ii<H.n_fields; ii++) {
-              c_head[idx + ii*H.n_cells] = *(recv_buffer_y1 + gidx + ii*offset);
+            private ( idx, gidx, ii ) \
+            firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+            is_device_ptr ( recv_buffer_y1, c_head )
+        for(i=0;i<nx;i++) {
+          for (j=0;j<n_ghost;j++) {
+            idx  = i + (j+ny-n_ghost)*nx;
+            gidx = i + j*nx;
+            for (ii=0; ii<n_fields; ii++) {
+              c_head[idx + ii*n_cells] = *(recv_buffer_y1 + gidx + ii*offset);
             }
           }
         }
       }
       // 3D
-      if (H.nz > 1) {
-        offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
+      if (nz > 1) {
+        offset = n_ghost*nx*(nz-2*n_ghost);
         #pragma omp target teams distribute parallel for collapse ( 3 ) \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_y1, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-        for(i=0;i<H.nx;i++) {
-          for(j=0;j<H.n_ghost;j++) {
-            for(k=0;k<H.nz-2*H.n_ghost;k++) {
-              idx  = i + (j+H.ny-H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-              gidx = i + j*H.nx + k*H.nx*H.n_ghost;
-              for (ii=0; ii<H.n_fields; ii++) {
-                c_head[idx + ii*H.n_cells] = *(recv_buffer_y1 + gidx + ii*offset);
+            private ( idx, gidx, ii ) \
+            firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+            is_device_ptr ( recv_buffer_y1, c_head )
+        for(i=0;i<nx;i++) {
+          for(j=0;j<n_ghost;j++) {
+            for(k=0;k<nz-2*n_ghost;k++) {
+              idx  = i + (j+ny-n_ghost)*nx + (k+n_ghost)*nx*ny;
+              gidx = i + j*nx + k*nx*n_ghost;
+              for (ii=0; ii<n_fields; ii++) {
+                c_head[idx + ii*n_cells] = *(recv_buffer_y1 + gidx + ii*offset);
               }
             }
           }
@@ -2034,19 +2022,18 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
     //unload left z communication buffer
     if(index==4)
     {
-      offset = H.n_ghost*H.nx*H.ny;
+      offset = n_ghost*nx*ny;
       #pragma omp target teams distribute parallel for collapse ( 3 ) \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_z0, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells )
-      for(i=0;i<H.nx;i++) {
-        for(j=0;j<H.ny;j++) {
-          for(k=0;k<H.n_ghost;k++) {
-            idx  = i + j*H.nx + k*H.nx*H.ny;
-            gidx = i + j*H.nx + k*H.nx*H.ny;
-            for (ii=0; ii<H.n_fields; ii++) {
-              c_head[idx + ii*H.n_cells] = *(recv_buffer_z0 + gidx + ii*offset);
+          private ( idx, gidx, ii ) \
+          firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+          is_device_ptr ( recv_buffer_z0, c_head )
+      for(i=0;i<nx;i++) {
+        for(j=0;j<ny;j++) {
+          for(k=0;k<n_ghost;k++) {
+            idx  = i + j*nx + k*nx*ny;
+            gidx = i + j*nx + k*nx*ny;
+            for (ii=0; ii<n_fields; ii++) {
+              c_head[idx + ii*n_cells] = *(recv_buffer_z0 + gidx + ii*offset);
             }
           }
         }
@@ -2056,19 +2043,18 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
     //unload right z communication buffer
     if(index==5)
     {
-      offset = H.n_ghost*H.nx*H.ny;
+      offset = n_ghost*nx*ny;
       #pragma omp target teams distribute parallel for collapse ( 3 ) \
-                  private ( idx, gidx, ii ) \
-                  firstprivate ( offset ) \
-                  is_device_ptr ( recv_buffer_z1, c_head ) \
-                  map ( to: n_ghost, nx, ny, nz, n_fields, n_cells)
-      for(i=0;i<H.nx;i++) {
-        for(j=0;j<H.ny;j++) {
-          for(k=0;k<H.n_ghost;k++) {
-            idx  = i + j*H.nx + (k+H.nz-H.n_ghost)*H.nx*H.ny;
-            gidx = i + j*H.nx + k*H.nx*H.ny;
-            for (ii=0; ii<H.n_fields; ii++) {
-              c_head[idx + ii*H.n_cells] = *(recv_buffer_z1 + gidx + ii*offset);
+          private ( idx, gidx, ii ) \
+          firstprivate ( offset, n_ghost, nx, ny, nz, n_fields, n_cells ) \
+          is_device_ptr ( recv_buffer_z1, c_head )
+      for(i=0;i<nx;i++) {
+        for(j=0;j<ny;j++) {
+          for(k=0;k<n_ghost;k++) {
+            idx  = i + j*nx + (k+nz-n_ghost)*nx*ny;
+            gidx = i + j*nx + k*nx*ny;
+            for (ii=0; ii<n_fields; ii++) {
+              c_head[idx + ii*n_cells] = *(recv_buffer_z1 + gidx + ii*offset);
             }
           }
         }
