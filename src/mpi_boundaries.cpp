@@ -86,12 +86,13 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
     if (flags[0]==5 || flags[1]==5) {
       Load_and_Send_MPI_Comm_Buffers(0, flags);
     }
-
+    
     /* Step 2 - Set non-MPI x-boundaries */
     Set_Boundaries(0, flags);
     Set_Boundaries(1, flags);
     
     /* Step 3 - Receive MPI x-boundaries */
+    
     if (flags[0]==5 || flags[1]==5) {
       Wait_and_Unload_MPI_Comm_Buffers_BLOCK(0, flags);
       #ifdef PARTICLES
@@ -99,6 +100,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
       if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(0, flags);
       #endif
     }
+    
   }
   MPI_Barrier(world);
   if (H.ny > 1) {
@@ -1820,6 +1822,7 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
   
   c_head = (Real *) C.device;
   
+  #pragma omp target data map ( H )
   if ( H.TRANSFER_HYDRO_BOUNDARIES ){
     //unload left x communication buffer
     if(index==0)
@@ -1941,7 +1944,6 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
         }
       }
     }
-
 
     //unload left y communication buffer
     if(index==2)
