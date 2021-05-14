@@ -24,7 +24,7 @@ export LD_LIBRARY_PATH=${GCC_ROOT}/lib64:${LD_LIBRARY_PATH}
 echo "mpicxx --version is: "
 mpicxx --version
 
-export GPU_MPI="-DGPU_MPI"
+export MPI_GPU="-DMPI_GPU"
 export F_OFFLOAD="-fopenmp -foffload=nvptx-none='-lm -Ofast'"
 
 export CHOLLA_ENVSET=1

@@ -1064,7 +1064,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load left x communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) 
         {
-        #ifdef GPU_MPI
+        #ifdef MPI_GPU
         buffer_length = Load_Hydro_DeviceBuffer_X0();
         #else
         buffer_length = Load_Hydro_Buffer_X0();
@@ -1119,7 +1119,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load right x communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) 
         {
-        #ifdef GPU_MPI
+        #ifdef MPI_GPU
         buffer_length = Load_Hydro_DeviceBuffer_X1();
         #else
         buffer_length = Load_Hydro_Buffer_X1();
@@ -1182,7 +1182,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load left y communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) 
         {
-        #ifdef GPU_MPI
+        #ifdef MPI_GPU
         buffer_length = Load_Hydro_DeviceBuffer_Y0();
         #else
         buffer_length = Load_Hydro_Buffer_Y0();
@@ -1237,7 +1237,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load right y communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) 
         {
-        #ifdef GPU_MPI
+        #ifdef MPI_GPU
         buffer_length = Load_Hydro_DeviceBuffer_Y1();
         #else
         buffer_length = Load_Hydro_Buffer_Y1();
@@ -1302,7 +1302,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // left z communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) 
         {
-        #ifdef GPU_MPI
+        #ifdef MPI_GPU
         buffer_length = Load_Hydro_DeviceBuffer_Z0();
         #else
         buffer_length = Load_Hydro_Buffer_Z0();
@@ -1357,7 +1357,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load right z communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) 
         {
-        #ifdef GPU_MPI
+        #ifdef MPI_GPU
         buffer_length = Load_Hydro_DeviceBuffer_Z1();
         #else
         buffer_length = Load_Hydro_Buffer_Z1();
@@ -1495,7 +1495,7 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
       Unload_MPI_Comm_Buffers_SLAB(index);
       break;
     case BLOCK_DECOMP:
-      #ifdef GPU_MPI
+      #ifdef MPI_GPU
       Unload_MPI_Comm_DeviceBuffers_BLOCK(index);
       #else
       Unload_MPI_Comm_Buffers_BLOCK(index);

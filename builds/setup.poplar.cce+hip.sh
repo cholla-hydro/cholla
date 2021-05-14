@@ -16,7 +16,7 @@ module load hdf5/1.10.1
 export LD_LIBRARY_PATH=${CRAY_LD_LIBRARY_PATH}:${LD_LIBRARY_PATH}
 
 #-- Enable  GPU-MPI, requires OpenMP offload
-#export GPU_MPI="-DGPU_MPI"
+#export MPI_GPU="-DMPI_GPU"
 export F_OFFLOAD="-fopenmp"
 
 export PYTHON=${HOME}/.venv/bin/python
