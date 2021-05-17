@@ -127,7 +127,7 @@ Real VL_Algorithm_2D_CUDA ( Real *host_conserved0, Real *host_conserved1,
     get_offsets_2D(nx_s, ny_s, n_ghost, x_off, y_off, block, block1_tot, block2_tot, remainder1, remainder2, &x_off_s, &y_off_s);    
 
     // copy the conserved variables onto the GPU
-    #ifndef GPU_MPI
+    #ifndef MPI_GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
     #endif
 
@@ -223,7 +223,7 @@ Real VL_Algorithm_2D_CUDA ( Real *host_conserved0, Real *host_conserved1,
 
 
     // copy the conserved variable array back to the CPU
-    #ifndef GPU_MPI
+    #ifndef MPI_GPU
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
     #endif
 

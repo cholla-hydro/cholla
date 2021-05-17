@@ -47,9 +47,9 @@ void Grid3D::Change_Cosmological_Frame_Sytem( bool forward ){
   
   Change_DM_Frame_System( forward );
   #ifndef ONLY_PARTICLES
-  #ifdef GPU_MPI
+  #ifdef MPI_GPU
   Change_GAS_Frame_System_GPU( forward );
-  #endif //GPU_MPI
+  #endif //MPI_GPU
   Change_GAS_Frame_System( forward );
   #endif//ONLY_PARTICLES
 }

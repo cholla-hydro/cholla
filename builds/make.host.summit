@@ -8,7 +8,7 @@ CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 ${F_OFFLOAD}
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 ${F_OFFLOAD}
-GPUFLAGS          = -ccbin=mpicxx
+GPUFLAGS          = -std=c++11 -ccbin=mpicxx
 
 OMP_NUM_THREADS   = 7
 #-- How to launch job
@@ -23,4 +23,4 @@ GRACKLE_ROOT = /ccs/home/bvilasen/code/grackle
 
 #Set the Hydro Conserved arrays to reside in the GPU
 #and MPI transfers are done from the GPU 
-GPU_MPI = -DGPU_MPI
+MPI_GPU = -DMPI_GPU

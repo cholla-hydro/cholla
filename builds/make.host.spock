@@ -1,0 +1,25 @@
+#-- make.inc for Spock EAS at the OLCF with 
+
+#-- Compiler and flags for different build type
+CC                = cc
+CXX               = CC
+CFLAGS_DEBUG      = -g -O0
+CFLAGS_OPTIMIZE   = -g -O2
+CXXFLAGS_DEBUG    = -g -O0 -std=c++11 ${F_OFFLOAD}
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 ${F_OFFLOAD}
+GPUFLAGS          = -std=c++11
+HIPCONFIG	  = $(shell hipconfig -C)
+
+OMP_NUM_THREADS   = 8
+#-- How to launch job
+JOB_LAUNCH        = srun -u -A STF016 -n 1 -c 8 
+
+#-- Library
+#HDF5_ROOT    = ${HDF5_ROOT}
+MPI_ROOT     = ${CRAY_MPICH_DIR}
+FFTW_ROOT    = $(shell dirname $(FFTW_DIR))
+GRACKLE_ROOT = #/ccs/proj/ast149/code/grackle
+
+#Set the Hydro Conserved arrays to reside in the GPU
+#and MPI transfers are done from the GPU 
+MPI_GPU = -DMPI_GPU

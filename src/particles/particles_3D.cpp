@@ -300,7 +300,7 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   G.n_transfer_h = (int *) malloc(sizeof(int));
   
   
-  # ifdef GPU_MPI
+  # ifdef MPI_GPU
   // Used the global partivcles send/recv buffers that already have been alloctaed in Allocate_MPI_DeviceBuffers_BLOCK
   G.send_buffer_size_x0 = buffer_length_particles_x0_send;
   G.send_buffer_size_x1 = buffer_length_particles_x1_send;
@@ -365,7 +365,7 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   Allocate_Particles_GPU_Array_Real( &G.recv_buffer_z1_d, G.recv_buffer_size_z1 );
   chprintf( " Allocated GPU memory for MPI transfers.\n"); 
   
-  #endif//GPU_MPI
+  #endif//MPI_GPU
   
 }
 #endif //MPI_CHOLLA
@@ -817,7 +817,7 @@ void Particles_3D::Free_Memory(void){
 
   #ifdef MPI_CHOLLA
   //Free the particles arrays for MPI transfers
-  #ifndef GPU_MPI // If GPU_MPI the arrays are freed from the device
+  #ifndef MPI_GPU // If MPI_GPU the arrays are freed from the device
   free(send_buffer_x0_particles);
   free(send_buffer_x1_particles);
   free(recv_buffer_x0_particles);
@@ -830,7 +830,7 @@ void Particles_3D::Free_Memory(void){
   free(send_buffer_z1_particles);
   free(recv_buffer_z0_particles);
   free(recv_buffer_z1_particles);
-  #endif//GPU_MPI
+  #endif//MPI_GPU
   #endif//MPI_CHOLLA
 }
 

@@ -14,8 +14,13 @@ case $1 in
     $CMD
     if [ $? -eq 0 ]; then
       echo "$1: PASSED"
+      exit 0
     else 
       echo "$1: FAILED"
+      exit -1
     fi
-
+    ;;
+*)
+    echo "\"$1\" is not a valid problem type."
+    exit -1
 esac

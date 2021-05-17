@@ -19,5 +19,5 @@ FFTW_ROOT    = /data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8
 PFFT_ROOT    = /data/groups/comp-astro/bruno/code_mpi_local/pfft
 GRACKLE_ROOT = /home/brvillas/code/grackle
 
-#Paris does not do GPU_MPI transfers 
+#Paris does not do MPI_GPU transfers 
 PARIS_MPI_GPU = -DPARIS_NO_GPU_MPI

@@ -80,7 +80,7 @@ int Grid3D::Load_Particles_Density_Boundary_to_Buffer_GPU( int direction, int si
   density_d = (Real *)Particles.G.density_dev;
   
   Real *send_buffer_d;
-  #ifdef GPU_MPI
+  #ifdef MPI_GPU
   send_buffer_d = buffer;
   #else
   if ( direction == 0 ){
@@ -99,7 +99,7 @@ int Grid3D::Load_Particles_Density_Boundary_to_Buffer_GPU( int direction, int si
   
   hipLaunchKernelGGL( Load_Particles_Density_Boundary_to_Buffer_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, n_i, n_j, nx_g, ny_g, nz_g, n_ghost, density_d, send_buffer_d  );
   
-  #ifndef GPU_MPI
+  #ifndef MPI_GPU
   //Copy the device buffer back to the host send buffer
   cudaMemcpy( buffer, send_buffer_d, size_buffer*sizeof(Real), cudaMemcpyDeviceToHost );
   #endif
@@ -177,7 +177,7 @@ void Grid3D::Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, i
   density_d = (Real *)Particles.G.density_dev;
   
   Real *recv_buffer_d;
-  #ifdef GPU_MPI
+  #ifdef MPI_GPU
   recv_buffer_d = buffer;
   #else
   if ( direction == 0 ){
@@ -194,7 +194,7 @@ void Grid3D::Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, i
   }
   #endif
     
-  #ifndef GPU_MPI
+  #ifndef MPI_GPU
   //Copy the device buffer back to the host recv buffer
   cudaMemcpy( recv_buffer_d, buffer, size_buffer*sizeof(Real), cudaMemcpyHostToDevice );
   #endif
