@@ -636,19 +636,32 @@ class Grid3D
     void Unload_MPI_Comm_Buffers(int index);
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
-    void Unload_MPI_Comm_DeviceBuffers_BLOCK(int index);
-    int Load_Hydro_Buffer_X0();
-    int Load_Hydro_Buffer_X1();
-    int Load_Hydro_Buffer_Y0();
-    int Load_Hydro_Buffer_Y1();
-    int Load_Hydro_Buffer_Z0();
-    int Load_Hydro_Buffer_Z1();
-    int Load_Hydro_DeviceBuffer_X0();
-    int Load_Hydro_DeviceBuffer_X1();
-    int Load_Hydro_DeviceBuffer_Y0();
-    int Load_Hydro_DeviceBuffer_Y1();
-    int Load_Hydro_DeviceBuffer_Z0();
-    int Load_Hydro_DeviceBuffer_Z1();
+    
+    int Load_Hydro_Buffer_X0(Real *buffer);
+    int Load_Hydro_Buffer_X1(Real *buffer);
+    int Load_Hydro_Buffer_Y0(Real *buffer);
+    int Load_Hydro_Buffer_Y1(Real *buffer);
+    int Load_Hydro_Buffer_Z0(Real *buffer);
+    int Load_Hydro_Buffer_Z1(Real *buffer);
+    int Load_Hydro_DeviceBuffer_X0(Real *buffer);
+    int Load_Hydro_DeviceBuffer_X1(Real *buffer);
+    int Load_Hydro_DeviceBuffer_Y0(Real *buffer);
+    int Load_Hydro_DeviceBuffer_Y1(Real *buffer);
+    int Load_Hydro_DeviceBuffer_Z0(Real *buffer);
+    int Load_Hydro_DeviceBuffer_Z1(Real *buffer);
+    
+    void Unload_Hydro_Buffer_X0(Real *buffer);
+    void Unload_Hydro_Buffer_X1(Real *buffer);
+    void Unload_Hydro_Buffer_Y0(Real *buffer);
+    void Unload_Hydro_Buffer_Y1(Real *buffer);
+    void Unload_Hydro_Buffer_Z0(Real *buffer);
+    void Unload_Hydro_Buffer_Z1(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_X0(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_X1(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_Y0(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_Y1(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_Z0(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_Z1(Real *buffer);
 #endif /*MPI_CHOLLA*/
 
   #ifdef GRAVITY
@@ -806,6 +819,6 @@ class Grid3D
 
 };
 
-
+typedef void (Grid3D::*Grid3D_PMF_UnloadHydroBuffer)(Real *);
 
 #endif //GRID3D_H

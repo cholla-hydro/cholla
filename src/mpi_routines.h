@@ -48,19 +48,33 @@ extern Real *send_buffer_0;
 extern Real *send_buffer_1;
 extern Real *recv_buffer_0;
 extern Real *recv_buffer_1;
+
 // For BLOCK
-extern Real *send_buffer_x0;
-extern Real *send_buffer_x1;
-extern Real *send_buffer_y0;
-extern Real *send_buffer_y1;
-extern Real *send_buffer_z0;
-extern Real *send_buffer_z1;
-extern Real *recv_buffer_x0;
-extern Real *recv_buffer_x1;
-extern Real *recv_buffer_y0;
-extern Real *recv_buffer_y1;
-extern Real *recv_buffer_z0;
-extern Real *recv_buffer_z1;
+extern Real *d_send_buffer_x0;
+extern Real *d_send_buffer_x1;
+extern Real *d_send_buffer_y0;
+extern Real *d_send_buffer_y1;
+extern Real *d_send_buffer_z0;
+extern Real *d_send_buffer_z1;
+extern Real *d_recv_buffer_x0;
+extern Real *d_recv_buffer_x1;
+extern Real *d_recv_buffer_y0;
+extern Real *d_recv_buffer_y1;
+extern Real *d_recv_buffer_z0;
+extern Real *d_recv_buffer_z1;
+
+extern Real *h_send_buffer_x0;
+extern Real *h_send_buffer_x1;
+extern Real *h_send_buffer_y0;
+extern Real *h_send_buffer_y1;
+extern Real *h_send_buffer_z0;
+extern Real *h_send_buffer_z1;
+extern Real *h_recv_buffer_x0;
+extern Real *h_recv_buffer_x1;
+extern Real *h_recv_buffer_y0;
+extern Real *h_recv_buffer_y1;
+extern Real *h_recv_buffer_z0;
+extern Real *h_recv_buffer_z1;
 
 #ifdef PARTICLES
 //Buffers for particles transfers
@@ -189,6 +203,8 @@ int ***three_dimensional_int_array(int n, int l, int m);
  *   */
 void deallocate_three_dimensional_int_array(int ***x, int n, int l, int m);
 
+/* Copy MPI receive buffers on Host to their device locations */
+void copyHostToDeviceReceiveBuffer ( int direction );
 
 #endif /*MPI_ROUTINES_H*/
 #endif /*MPI_CHOLLA*/
