@@ -271,7 +271,9 @@ __device__ void Get_Chemistry_Derivatives( Thermal_State &TS, Thermal_State &TS_
   // # dQ_dt_CMB = Cooling_Rate_Compton_CMB_Katz95( n_e, temp, current_z ) 
   
   // Net Heating and Cooling Rates 
-  dQ_dt  = dQ_dt_phot - dQ_dt_cool_recomb - dQ_dt_cool_collisional - dQ_dt_brem - dQ_dt_CMB;
+  // dQ_dt  = dQ_dt_phot - dQ_dt_cool_recomb - dQ_dt_cool_collisional - dQ_dt_brem - dQ_dt_CMB;
+  // dQ_dt  = dQ_dt_phot;
+  dQ_dt  = 0;  
   
   
   // Photoionization Rates
@@ -339,7 +341,8 @@ __device__ void Get_Chemistry_Derivatives( Thermal_State &TS, Thermal_State &TS_
     printf( "dT_dt:    %e  \n", 2/(3*KB*n_tot)*dQ_dt);      
   } 
   
-  TS_derivs.T       =  2/(3*KB*n_tot)*dQ_dt -  TS.T/x_sum*dx_dt;
+  // TS_derivs.T       =  2/(3*KB*n_tot)*dQ_dt -  TS.T/x_sum*dx_dt;
+  TS_derivs.T       =  2/(3*KB*n_tot)*dQ_dt;
   TS_derivs.n_HI    =  dn_dt_HI;
   TS_derivs.n_HII   =  dn_dt_HII;
   TS_derivs.n_HeI   =  dn_dt_HeI;
@@ -374,6 +377,8 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
   xid = id - zid*nx*ny - yid*nx;
   bool print;
   
+  int MAX_ITER = 500;
+  
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
   {
@@ -387,11 +392,10 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
     E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
     #ifdef DE
     GE = dev_conserved[(n_fields-1)*n_cells + id];
-    P = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );  
+    P = GE * (gamma - 1.0);
     #else 
     P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     #endif
-    P  = fmax(P, (Real) TINY_NUMBER);  
   
     // Convert to cgs units
     current_a = 1 / ( current_z + 1);
@@ -450,6 +454,8 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
     
       Get_Chemistry_Derivatives( TS, TS_derivs, d, current_a, H0, Omega_M, Omega_L, n_uvb_rates_samples, rates_z, false );
       dt_chem = Get_Chemistry_dt( TS, TS_derivs );
+      
+      if ( dt_chem < dt_hydro/ MAX_ITER ) dt_chem = dt_hydro / MAX_ITER; 
       if ( t_chem + dt_chem > dt_hydro ) dt_chem = dt_hydro - t_chem;
       
       // Add_Expantion_Derivatives( TS, TS_delta_exp, dt_chem, current_a, H0, Omega_M, Omega_L );
@@ -468,7 +474,7 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
     // Compute the new mmw to compute the pressure
     mu = TS.get_MMW();
     
-    if ( print ) printf(" Chemistry: n_iter: %d     T: %.5e K    mu:  %.5e \n", n_iter,   TS.T,  mu);
+    // if ( print ) printf(" Chemistry: n_iter: %d     T: %.5e K    mu:  %.5e \n", n_iter,   TS.T,  mu);
     
     // Write the Updated Thermal State
     dev_conserved[ 5*n_cells + id] = TS.n_HI    / density_conv * a3 * MP; 
@@ -478,6 +484,7 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
     dev_conserved[ 9*n_cells + id] = TS.n_HeIII / density_conv * a3 * MP * 4; 
     dev_conserved[10*n_cells + id] = TS.n_e     / density_conv * a3 * MP; 
     P = TS.T / MP / mu / d_inv * KB / energy_conv * a2 ;
+    d = d / density_conv * a3;
     dev_conserved[4*n_cells + id]  = P/(gamma - 1.0) + 0.5*d*(vx*vx + vy*vy + vz*vz);  
     #ifdef DE
     dev_conserved[(n_fields-1)*n_cells + id] = P / ( gamma - 1);

@@ -3066,7 +3066,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     #endif//DE
 
     #ifdef SCALAR
-    #ifndef COOLING_GRACKLE  // Dont Load scalars when using grackle
+    #if !defined(COOLING_GRACKLE) && !defined(CHEMISTRY_GPU)  // Dont Load scalars when using grackle or CHEMISTRY_GPU
     for (int s=0; s<NSCALARS; s++) {
       // create the name of the dataset
       char dataset[100]; 
@@ -3093,7 +3093,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
         }
       }    
     }
-    #else //Load Chemistry when using GRACKLE
+    #else //Load Chemistry when using GRACKLE or CHEMISTRY_GPU
     if (P.nfile == 0){
       Real dens;
       Real HI_frac = INITIAL_FRACTION_HI;

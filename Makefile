@@ -109,6 +109,11 @@ else
   GPUFLAGS += -std=c++11 --expt-extended-lambda -g -O3 -fmad=false
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
+	ifeq ($(findstring tornado,$(MACHINE)),tornado)
+		GPUFLAGS += -I$(CUDA_ROOT)/include 
+		CXXFLAGS += -I$(CUDA_ROOT)/include
+		LIBS += -L$(CUDA_ROOT)/lib -lcudart -lcufft
+	endif
 	ifeq ($(findstring shamrock,$(MACHINE)),shamrock)
 		GPUFLAGS += -I$(CUDA_ROOT)/include 
 		CXXFLAGS += -I$(CUDA_ROOT)/include
