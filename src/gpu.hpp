@@ -50,6 +50,7 @@ static void __attribute__((unused)) check(const hipfftResult err, const char *co
 #define cudaMemcpy hipMemcpy
 #define cudaMemcpyAsync hipMemcpyAsync
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
+#define cudaMemcpyDeviceToDevice hipMemcpyDeviceToDevice
 #define cudaMemcpyHostToDevice hipMemcpyHostToDevice
 #define cudaMemGetInfo hipMemGetInfo
 #define cudaMemset hipMemset
