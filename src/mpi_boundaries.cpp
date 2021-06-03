@@ -1664,7 +1664,6 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Z1 ( Real *recv_buffer_z1 ) {
 
 }
 
-
 void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 {
   
@@ -2429,6 +2428,13 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
   
   #ifdef SOR
   if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES ){
+    l_recv_buffer_x0 = h_recv_buffer_x0;
+    l_recv_buffer_x1 = h_recv_buffer_x1;
+    l_recv_buffer_y0 = h_recv_buffer_y0;
+    l_recv_buffer_y1 = h_recv_buffer_y1;
+    l_recv_buffer_z0 = h_recv_buffer_z0;
+    l_recv_buffer_z1 = h_recv_buffer_z1;
+    
     if ( index == 0 ) Unload_Poisson_Boundary_From_Buffer( 0, 0, l_recv_buffer_x0 );
     if ( index == 1 ) Unload_Poisson_Boundary_From_Buffer( 0, 1, l_recv_buffer_x1 );
     if ( index == 2 ) Unload_Poisson_Boundary_From_Buffer( 1, 0, l_recv_buffer_y0 );
