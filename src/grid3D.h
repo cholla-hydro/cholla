@@ -819,6 +819,11 @@ class Grid3D
 
 };
 
+// typedef for Grid3D_PointerMemberFunction 
 typedef void (Grid3D::*Grid3D_PMF_UnloadHydroBuffer)(Real *);
+typedef void (Grid3D::*Grid3D_PMF_UnloadGravityPotential) 
+               (int, int, Real *, int);
+typedef void (Grid3D::*Grid3D_PMF_UnloadParticleDensity) 
+               (int, int, Real *);
 
 #endif //GRID3D_H

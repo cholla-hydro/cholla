@@ -2337,11 +2337,10 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
                                Fptr_Unload_Hydro_Buffer_Y1,
                                Fptr_Unload_Hydro_Buffer_Z0,
                                Fptr_Unload_Hydro_Buffer_Z1;
+  
+  Grid3D_PMF_UnloadGravityPotential Fptr_Unload_Gravity_Potential;
+  Grid3D_PMF_UnloadParticleDensity Fptr_Unload_Particle_Density;
        
-  void (*Fptr_Unload_Gravity_Potential)(int, int, Real *, int),
-       (*Fptr_Unload_Particle_Density)(int, int, Real *);
-  
-  
   if ( H.TRANSFER_HYDRO_BOUNDARIES ) {
     #ifdef HYDRO_GPU
       #ifndef MPI_GPU
@@ -2403,7 +2402,8 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
     l_recv_buffer_z0 = d_recv_buffer_z0;
     l_recv_buffer_z1 = d_recv_buffer_z1;
     
-    Fptr_Unload_Gravity_Potential = &Unload_Gravity_Potential_from_Buffer_GPU
+    Fptr_Unload_Gravity_Potential 
+      = &Grid3D::Unload_Gravity_Potential_from_Buffer_GPU;
     
     #else
 
@@ -2414,16 +2414,17 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
     l_recv_buffer_z0 = h_recv_buffer_z0;
     l_recv_buffer_z1 = h_recv_buffer_z1;
     
-    Fptr_Unload_Gravity_Potential = &Unload_Gravity_Potential_from_Buffer
+    Fptr_Unload_Gravity_Potential 
+      = &Grid3D::Unload_Gravity_Potential_from_Buffer;
     
     #endif // GRAVITY_GPU
     
-    if ( index == 0 ) Fptr_Unload_Gravity_Potential( 0, 0, l_recv_buffer_x0, 0  );
-    if ( index == 1 ) Fptr_Unload_Gravity_Potential( 0, 1, l_recv_buffer_x1, 0  );
-    if ( index == 2 ) Fptr_Unload_Gravity_Potential( 1, 0, l_recv_buffer_y0, 0  );
-    if ( index == 3 ) Fptr_Unload_Gravity_Potential( 1, 1, l_recv_buffer_y1, 0  );
-    if ( index == 4 ) Fptr_Unload_Gravity_Potential( 2, 0, l_recv_buffer_z0, 0  );
-    if ( index == 5 ) Fptr_Unload_Gravity_Potential( 2, 1, l_recv_buffer_z1, 0  );
+    if ( index == 0 ) (this->*Fptr_Unload_Gravity_Potential)( 0, 0, l_recv_buffer_x0, 0  );
+    if ( index == 1 ) (this->*Fptr_Unload_Gravity_Potential)( 0, 1, l_recv_buffer_x1, 0  );
+    if ( index == 2 ) (this->*Fptr_Unload_Gravity_Potential)( 1, 0, l_recv_buffer_y0, 0  );
+    if ( index == 3 ) (this->*Fptr_Unload_Gravity_Potential)( 1, 1, l_recv_buffer_y1, 0  );
+    if ( index == 4 ) (this->*Fptr_Unload_Gravity_Potential)( 2, 0, l_recv_buffer_z0, 0  );
+    if ( index == 5 ) (this->*Fptr_Unload_Gravity_Potential)( 2, 1, l_recv_buffer_z1, 0  );
   }
   
   #ifdef SOR
@@ -2462,7 +2463,7 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
     l_recv_buffer_z1 = d_recv_buffer_z1;
     
     Fptr_Unload_Particle_Density 
-      = &Unload_Particles_Density_Boundary_From_Buffer_GPU
+      = &Grid3D::Unload_Particles_Density_Boundary_From_Buffer_GPU;
     
     #else
     
@@ -2474,16 +2475,16 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
     l_recv_buffer_z1 = d_recv_buffer_z1;
     
     Fptr_Unload_Particle_Density 
-      = &Unload_Particles_Density_Boundary_From_Buffer
+      = &Grid3D::Unload_Particles_Density_Boundary_From_Buffer;
     
     #endif // PARTICLES_GPU
     
-    if ( index == 0 ) Fptr_Unload_Particle_Density( 0, 0, l_recv_buffer_x0 );
-    if ( index == 1 ) Fptr_Unload_Particle_Density( 0, 1, l_recv_buffer_x1 );
-    if ( index == 2 ) Fptr_Unload_Particle_Density( 1, 0, l_recv_buffer_y0 );
-    if ( index == 3 ) Fptr_Unload_Particle_Density( 1, 1, l_recv_buffer_y1 );
-    if ( index == 4 ) Fptr_Unload_Particle_Density( 2, 0, l_recv_buffer_z0 );
-    if ( index == 5 ) Fptr_Unload_Particle_Density( 2, 1, l_recv_buffer_z1 );
+    if ( index == 0 ) (this->*Fptr_Unload_Particle_Density)( 0, 0, l_recv_buffer_x0 );
+    if ( index == 1 ) (this->*Fptr_Unload_Particle_Density)( 0, 1, l_recv_buffer_x1 );
+    if ( index == 2 ) (this->*Fptr_Unload_Particle_Density)( 1, 0, l_recv_buffer_y0 );
+    if ( index == 3 ) (this->*Fptr_Unload_Particle_Density)( 1, 1, l_recv_buffer_y1 );
+    if ( index == 4 ) (this->*Fptr_Unload_Particle_Density)( 2, 0, l_recv_buffer_z0 );
+    if ( index == 5 ) (this->*Fptr_Unload_Particle_Density)( 2, 1, l_recv_buffer_z1 );
   }
   
   #endif  //PARTICLES
