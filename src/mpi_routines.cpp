@@ -301,7 +301,7 @@ void Allocate_MPI_Buffers(struct Header *H)
       Allocate_MPI_Buffers_SLAB(H);
       break;
     case BLOCK_DECOMP:
-      #ifdef GPU_MPI
+      #ifdef MPI_GPU
       Allocate_MPI_DeviceBuffers_BLOCK(H);
       #else
       Allocate_MPI_Buffers_BLOCK(H);

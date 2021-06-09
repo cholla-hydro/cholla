@@ -1,9 +1,8 @@
 #!/bin/bash
-#module load xl cuda fftw hdf5 python
-module load gcc/10.2.0 cuda hdf5
+#-- This script needs to be source-d in the terminal, e.g.
+#   source ./setup.summit.xl.sh 
 
-export GPU_MPI="-DGPU_MPI"
+module load xl cuda fftw hdf5 python
+
 export F_OFFLOAD="-qsmp=omp -qoffload"
-#export F_OFFLOAD='-foffload=nvptx-none="-lm -Ofast"'
-
 export CHOLLA_ENVSET=1

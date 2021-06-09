@@ -168,7 +168,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real 
   potential_d = (Real *)Grav.F.potential_d;
   
   Real *send_buffer_d;
-  #ifdef GPU_MPI
+  #ifdef MPI_GPU
   send_buffer_d = buffer;
   #else
   if ( direction == 0 ){
@@ -238,7 +238,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real 
   // }
   // 
    
-  #ifndef GPU_MPI
+  #ifndef MPI_GPU
   //Copy the device buffer back to the host send buffer
   cudaMemcpy( buffer, send_buffer_d, size_buffer*sizeof(Real), cudaMemcpyDeviceToHost );
   cudaDeviceSynchronize();
@@ -314,7 +314,7 @@ void Grid3D::Unload_Gravity_Potential_from_Buffer_GPU( int direction, int side, 
   potential_d = (Real *)Grav.F.potential_d;
   
   Real *recv_buffer_d;
-  #ifdef GPU_MPI
+  #ifdef MPI_GPU
   recv_buffer_d = buffer;
   #else
   if ( direction == 0 ){
@@ -331,7 +331,7 @@ void Grid3D::Unload_Gravity_Potential_from_Buffer_GPU( int direction, int side, 
   }
   #endif  
   
-  #ifndef GPU_MPI
+  #ifndef MPI_GPU
   //Copy the host recv buffer to the device recv buffer
   cudaMemcpy( recv_buffer_d, buffer, size_buffer*sizeof(Real), cudaMemcpyHostToDevice );
   cudaDeviceSynchronize();

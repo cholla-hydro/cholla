@@ -533,7 +533,7 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
   Load_Particles_to_Transfer_GPU_function( n_transfer, 4, n_fields_to_transfer, vel_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos ); 
   Load_Particles_to_Transfer_GPU_function( n_transfer, 5, n_fields_to_transfer, vel_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos ); 
   
-  #ifndef GPU_MPI
+  #ifndef MPI_GPU
   // Copy the particles transfer buffer to the host
   int transfer_size;
   transfer_size = n_transfer * N_DATA_PER_PARTICLE_TRANSFER;  
@@ -653,7 +653,7 @@ void Particles_3D::Unload_Particles_from_Buffer_GPU( int direction, int side , R
     }
   }
   
-  #ifndef GPU_MPI
+  #ifndef MPI_GPU
   // Copy the particles transfer buffer from the host
   int transfer_size;
   transfer_size = n_recv * N_DATA_PER_PARTICLE_TRANSFER;  

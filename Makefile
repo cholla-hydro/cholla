@@ -39,7 +39,6 @@ CFLAGS   += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc
 
-
 ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
   CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
   GPUFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
@@ -96,27 +95,23 @@ endif
 
 
 ifdef HIPCONFIG
-  DFLAGS += -DO_HIP
-  CXXFLAGS += $(HIPCONFIG)
-  GPUCXX ?= hipcc
-  GPUFLAGS += -g -O3 -Wall --amdgpu-target=gfx906,gfx908 -std=c++11 -ferror-limit=1
-  LD := $(CXX)
-  LDFLAGS := $(CXXFLAGS)
-  LIBS += -L$(ROCM_PATH)/lib -lamdhip64
+  DFLAGS    += -DO_HIP
+  CXXFLAGS  += $(HIPCONFIG)
+  GPUCXX    ?= hipcc
+  GPUFLAGS  += -g -O3 -Wall --amdgpu-target=gfx906,gfx908 -std=c++11 -ferror-limit=1
+  LD        := $(CXX)
+  LDFLAGS   := $(CXXFLAGS)
+  LIBS      += -L$(ROCM_PATH)/lib -lamdhip64 -lhsa-runtime64
 else
-  GPUCXX ?= nvcc
-  # GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
-  GPUFLAGS += -std=c++11 --expt-extended-lambda -g -O3 -fmad=false
-  LD := $(CXX)
-  LDFLAGS += $(CXXFLAGS)
-	ifeq ($(findstring shamrock,$(MACHINE)),shamrock)
-		GPUFLAGS += -I$(CUDA_ROOT)/include 
-		CXXFLAGS += -I$(CUDA_ROOT)/include
-		LIBS += -L$(CUDA_ROOT)/lib -lcudart -lcufft
-	else
-	  LIBS += -L$(CUDA_ROOT)/lib64 -lcudart
-		GPUFLAGS += -arch sm_70
-	endif
+  CUDA_INC  ?= -I$(CUDA_ROOT)/include
+  CUDA_LIB  ?= -L$(CUDA_ROOT)/lib64 -lcudart
+  CXXFLAGS  += $(CUDA_INC)
+  GPUCXX    ?= nvcc
+  GPUFLAGS  += -std=c++11 --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  GPUFLAGS  += $(CUDA_INC)
+  LD        := $(CXX)
+  LDFLAGS   += $(CXXFLAGS)
+  LIBS      += $(CUDA_LIB)
 endif
 
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
