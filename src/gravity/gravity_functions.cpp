@@ -592,7 +592,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   
 }
 
-#if defined(PARTICLES) && defined(GRAVITY_ANALYTIC_COMP)
+#ifdef GRAVITY_ANALYTIC_COMP
 void Grid3D::Add_Analytic_Potential(struct parameters *P) {
   #ifndef PARALLEL_OMP
   Add_Analytic_Galaxy_Potential(0, Grav.nz_local, Galaxies::MW);
@@ -670,7 +670,7 @@ void Grid3D::Copy_Hydro_Density_to_Gravity(){
 }
 
 
-#if defined(PARTICLES) && defined(GRAVITY_ANALYTIC_COMP)
+#ifdef GRAVITY_ANALYTIC_COMP
 /**
  * Adds a specified potential function to the potential calculated from solving the Poisson equation.
  * The raison d'etre is to solve the evolution of a system where not all particles are simulated.
