@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
   G.Set_Boundary_Conditions_Grid(P);
   chprintf("Boundary conditions set.\n");  
 
-  #ifdef GRAVITY_ANALYTIC_COMP
+  #if defined (PARTICLES) && defined(GRAVITY_ANALYTIC_COMP)
   // add analytic component to gravity potential.
   G.Add_Analytic_Potential(&P); 
   #endif 
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
     //Set the Grid boundary conditions for next time step 
     G.Set_Boundary_Conditions_Grid(P);
     
-    #ifdef GRAVITY_ANALYTIC_COMP
+    #if defined (PARTICLES) && defined(GRAVITY_ANALYTIC_COMP)
     // add analytic component to gravity potential.
     G.Add_Analytic_Potential(&P); 
     #endif 

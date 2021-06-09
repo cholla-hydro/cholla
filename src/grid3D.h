@@ -689,8 +689,10 @@ class Grid3D
   void Transfer_Particles_Boundaries( struct parameters P );
   Real Update_Grid_and_Particles_KDK( struct parameters P );
   void Set_Particles_Boundary( int dir, int side);
+  #ifdef GRAVITY_ANALYTIC_COMP
   void Add_Analytic_Potential(struct parameters *P);
   void Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal);
+  #endif //GRAVITY_ANALYTIC_COMP
   #ifdef MPI_CHOLLA
   int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
   void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
