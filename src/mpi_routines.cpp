@@ -315,7 +315,7 @@ void Allocate_MPI_Buffers(struct Header *H)
       break;
     case BLOCK_DECOMP:
       #if defined(HYDRO_GPU) || defined(GRAVITY_GPU) \
-          || defined(PARTICLES_GPU) || defined(MPI_GPU) 
+          || defined(PARTICLES_GPU)
       Allocate_MPI_DeviceBuffers_BLOCK(H);
       #else
       Allocate_MPI_Buffers_BLOCK(H);
