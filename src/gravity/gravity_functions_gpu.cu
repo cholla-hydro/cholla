@@ -13,35 +13,6 @@ void Grav3D::AllocateMemory_GPU(){
   CudaSafeCall( cudaMalloc((void**)&F.potential_d,   n_cells_potential*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&F.potential_1_d, n_cells_potential*sizeof(Real)) );
   
-  #if defined(MPI_CHOLLA) && !defined(MPI_GPU)
-  //Device buffers for potential transfers when the MPI_GPU is disabled
-  int nGHST, nx_g, ny_g, nz_g;
-  nGHST = N_GHOST_POTENTIAL;
-  nx_g = nx_local + 2*nGHST;
-  ny_g = ny_local + 2*nGHST;
-  nz_g = nz_local + 2*nGHST;
-  
-  int buffer_size_x, buffer_size_y, buffer_size_z;
-  buffer_size_x = nGHST * nz_g * ny_g;
-  buffer_size_y = nGHST * nz_g * nx_g;
-  buffer_size_z = nGHST * nx_g * ny_g; 
-  
-  CudaSafeCall( cudaMalloc((void**)&F.send_buffer_potential_x0_d, buffer_size_x*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F.send_buffer_potential_x1_d, buffer_size_x*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F.send_buffer_potential_y0_d, buffer_size_y*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F.send_buffer_potential_y1_d, buffer_size_y*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F.send_buffer_potential_z0_d, buffer_size_z*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F.send_buffer_potential_z1_d, buffer_size_z*sizeof(Real)) );
-
-  CudaSafeCall( cudaMalloc((void**)&F.recv_buffer_potential_x0_d, buffer_size_x*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F.recv_buffer_potential_x1_d, buffer_size_x*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F.recv_buffer_potential_y0_d, buffer_size_y*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F.recv_buffer_potential_y1_d, buffer_size_y*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F.recv_buffer_potential_z0_d, buffer_size_z*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&F.recv_buffer_potential_z1_d, buffer_size_z*sizeof(Real)) );
-  chprintf( "Allocated Gravity GPU MPI Buffers  \n" );
-  #endif//MPI_CHOLLA-MPI_GPU    
-  
   #ifdef GRAVITY_GPU
 
   #ifdef GRAV_ISOLATED_BOUNDARY_X
@@ -69,21 +40,6 @@ void Grav3D::FreeMemory_GPU(void){
   cudaFree( F.potential_d );
   cudaFree( F.potential_1_d );
   
-  #if defined(MPI_CHOLLA) && !defined(MPI_GPU)  
-  cudaFree( F.send_buffer_potential_x0_d );
-  cudaFree( F.send_buffer_potential_x1_d );
-  cudaFree( F.send_buffer_potential_y0_d );
-  cudaFree( F.send_buffer_potential_y1_d );
-  cudaFree( F.send_buffer_potential_z0_d );
-  cudaFree( F.send_buffer_potential_z1_d );
-  
-  cudaFree( F.recv_buffer_potential_x0_d );
-  cudaFree( F.recv_buffer_potential_x1_d );
-  cudaFree( F.recv_buffer_potential_y0_d );
-  cudaFree( F.recv_buffer_potential_y1_d );
-  cudaFree( F.recv_buffer_potential_z0_d );
-  cudaFree( F.recv_buffer_potential_z1_d );
-  #endif//MPI_CHOLLA-MPI_GPU   
   
   #ifdef GRAVITY_GPU
   
