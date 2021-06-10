@@ -16,7 +16,7 @@ class PoissonPeriodic3DBlockedGPU {
     int ni_,nj_,nk_;
     long bytes_;
     cufftHandle dz2d_,zd2d_,zz1d_;
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
     double *ha_, *hb_;
 #endif
 };
