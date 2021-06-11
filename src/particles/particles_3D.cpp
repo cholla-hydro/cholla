@@ -307,12 +307,12 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   G.send_buffer_size_z0 = buffer_length_particles_z0_send;
   G.send_buffer_size_z1 = buffer_length_particles_z1_send;
   
-  G.send_buffer_x0_d = send_buffer_x0_particles;
-  G.send_buffer_x1_d = send_buffer_x1_particles;
-  G.send_buffer_y0_d = send_buffer_y0_particles;
-  G.send_buffer_y1_d = send_buffer_y1_particles;
-  G.send_buffer_z0_d = send_buffer_z0_particles;
-  G.send_buffer_z1_d = send_buffer_z1_particles;
+  G.send_buffer_x0_d = d_send_buffer_x0_particles;
+  G.send_buffer_x1_d = d_send_buffer_x1_particles;
+  G.send_buffer_y0_d = d_send_buffer_y0_particles;
+  G.send_buffer_y1_d = d_send_buffer_y1_particles;
+  G.send_buffer_z0_d = d_send_buffer_z0_particles;
+  G.send_buffer_z1_d = d_send_buffer_z1_particles;
   
   G.recv_buffer_size_x0 = buffer_length_particles_x0_recv;
   G.recv_buffer_size_x1 = buffer_length_particles_x1_recv;
@@ -321,12 +321,12 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   G.recv_buffer_size_z0 = buffer_length_particles_z0_recv;
   G.recv_buffer_size_z1 = buffer_length_particles_z1_recv;
   
-  G.recv_buffer_x0_d = recv_buffer_x0_particles;
-  G.recv_buffer_x1_d = recv_buffer_x1_particles;
-  G.recv_buffer_y0_d = recv_buffer_y0_particles;
-  G.recv_buffer_y1_d = recv_buffer_y1_particles;
-  G.recv_buffer_z0_d = recv_buffer_z0_particles;
-  G.recv_buffer_z1_d = recv_buffer_z1_particles;
+  G.recv_buffer_x0_d = d_recv_buffer_x0_particles;
+  G.recv_buffer_x1_d = d_recv_buffer_x1_particles;
+  G.recv_buffer_y0_d = d_recv_buffer_y0_particles;
+  G.recv_buffer_y1_d = d_recv_buffer_y1_particles;
+  G.recv_buffer_z0_d = d_recv_buffer_z0_particles;
+  G.recv_buffer_z1_d = d_recv_buffer_z1_particles;
 
 }
 #endif //MPI_CHOLLA

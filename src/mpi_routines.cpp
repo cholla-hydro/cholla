@@ -79,18 +79,32 @@ int z_buffer_length;
 
 #ifdef PARTICLES
 //Buffers for particles transfers
-Real *send_buffer_x0_particles;
-Real *send_buffer_x1_particles;
-Real *send_buffer_y0_particles;
-Real *send_buffer_y1_particles;
-Real *send_buffer_z0_particles;
-Real *send_buffer_z1_particles;
-Real *recv_buffer_x0_particles;
-Real *recv_buffer_x1_particles;
-Real *recv_buffer_y0_particles;
-Real *recv_buffer_y1_particles;
-Real *recv_buffer_z0_particles;
-Real *recv_buffer_z1_particles;
+Real *d_send_buffer_x0_particles;
+Real *d_send_buffer_x1_particles;
+Real *d_send_buffer_y0_particles;
+Real *d_send_buffer_y1_particles;
+Real *d_send_buffer_z0_particles;
+Real *d_send_buffer_z1_particles;
+Real *d_recv_buffer_x0_particles;
+Real *d_recv_buffer_x1_particles;
+Real *d_recv_buffer_y0_particles;
+Real *d_recv_buffer_y1_particles;
+Real *d_recv_buffer_z0_particles;
+Real *d_recv_buffer_z1_particles;
+
+//Buffers for particles transfers
+Real *h_send_buffer_x0_particles;
+Real *h_send_buffer_x1_particles;
+Real *h_send_buffer_y0_particles;
+Real *h_send_buffer_y1_particles;
+Real *h_send_buffer_z0_particles;
+Real *h_send_buffer_z1_particles;
+Real *h_recv_buffer_x0_particles;
+Real *h_recv_buffer_x1_particles;
+Real *h_recv_buffer_y0_particles;
+Real *h_recv_buffer_y1_particles;
+Real *h_recv_buffer_z0_particles;
+Real *h_recv_buffer_z1_particles;
 
 // Size of the buffers for particles transfers
 int buffer_length_particles_x0_send;
@@ -1085,44 +1099,44 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   #ifdef PARTICLES
   //Allocate buffers for particles transfers
   chprintf("Allocating MPI communication buffers for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
-  if(!( send_buffer_x0_particles = (Real *) malloc(buffer_length_particles_x0_send*sizeof(Real))))
+  if(!(h_send_buffer_x0_particles = (Real *) malloc(buffer_length_particles_x0_send*sizeof(Real))))
   {
-    chprintf("Error allocating send_buffer_x0_paricles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x0_send*sizeof(Real));
+    chprintf("Error allocating h_send_buffer_x0_paricles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x0_send*sizeof(Real));
     chexit(-1);
   }
-  if(!( send_buffer_x1_particles = (Real *) malloc(buffer_length_particles_x1_send*sizeof(Real))))
+  if(!(h_send_buffer_x1_particles = (Real *) malloc(buffer_length_particles_x1_send*sizeof(Real))))
   {
-    chprintf("Error allocating send_buffer_x1_paricles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x1_send*sizeof(Real));
+    chprintf("Error allocating h_send_buffer_x1_paricles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x1_send*sizeof(Real));
     chexit(-1);
   }
-  if(!(recv_buffer_x0_particles = (Real *) malloc(buffer_length_particles_x0_recv*sizeof(Real))))
+  if(!(h_recv_buffer_x0_particles = (Real *) malloc(buffer_length_particles_x0_recv*sizeof(Real))))
   {
-    chprintf("Error allocating recv_buffer_x0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x0_recv*sizeof(Real));
+    chprintf("Error allocating h_recv_buffer_x0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x0_recv*sizeof(Real));
     chexit(-1);
   }
-  if(!(recv_buffer_x1_particles = (Real *) malloc(buffer_length_particles_x1_recv*sizeof(Real))))
+  if(!(h_recv_buffer_x1_particles = (Real *) malloc(buffer_length_particles_x1_recv*sizeof(Real))))
   {
-    chprintf("Error allocating recv_buffer_x1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x1_recv*sizeof(Real));
+    chprintf("Error allocating h_recv_buffer_x1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_x1_recv*sizeof(Real));
     chexit(-1);
   }
-  if(!(send_buffer_y0_particles = (Real *) malloc(buffer_length_particles_y0_send*sizeof(Real))))
+  if(!(h_send_buffer_y0_particles = (Real *) malloc(buffer_length_particles_y0_send*sizeof(Real))))
   {
-    chprintf("Error allocating send_buffer_y0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y0_send*sizeof(Real));
+    chprintf("Error allocating h_send_buffer_y0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y0_send*sizeof(Real));
     chexit(-1);
   }
-  if(!(send_buffer_y1_particles = (Real *) malloc(buffer_length_particles_y1_send*sizeof(Real))))
+  if(!(h_send_buffer_y1_particles = (Real *) malloc(buffer_length_particles_y1_send*sizeof(Real))))
   {
-    chprintf("Error allocating send_buffer_y1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y1_send*sizeof(Real));
+    chprintf("Error allocating h_send_buffer_y1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y1_send*sizeof(Real));
     chexit(-1);
   }
-  if(!(recv_buffer_y0_particles = (Real *) malloc(buffer_length_particles_y0_recv*sizeof(Real))))
+  if(!(h_recv_buffer_y0_particles = (Real *) malloc(buffer_length_particles_y0_recv*sizeof(Real))))
   {
-    chprintf("Error allocating recv_buffer_y0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y0_recv*sizeof(Real));
+    chprintf("Error allocating h_recv_buffer_y0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y0_recv*sizeof(Real));
     chexit(-1);
   }
-  if(!(recv_buffer_y1_particles = (Real *) malloc(buffer_length_particles_y1_recv*sizeof(Real))))
+  if(!(h_recv_buffer_y1_particles = (Real *) malloc(buffer_length_particles_y1_recv*sizeof(Real))))
   {
-    chprintf("Error allocating recv_buffer_y1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y1_recv*sizeof(Real));
+    chprintf("Error allocating h_recv_buffer_y1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_y1_recv*sizeof(Real));
     chexit(-1);
   }
   #endif//PARTICLES
@@ -1150,24 +1164,24 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
       chexit(-1);
     }
     #ifdef PARTICLES
-    if(!(send_buffer_z0_particles = (Real *) malloc(buffer_length_particles_z0_send*sizeof(Real))))
+    if(!(h_send_buffer_z0_particles = (Real *) malloc(buffer_length_particles_z0_send*sizeof(Real))))
     {
-      chprintf("Error allocating send_buffer_z0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z0_send*sizeof(Real));
+      chprintf("Error allocating h_send_buffer_z0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z0_send*sizeof(Real));
       chexit(-1);
     }
-    if(!(send_buffer_z1_particles = (Real *) malloc(buffer_length_particles_z1_send*sizeof(Real))))
+    if(!(h_send_buffer_z1_particles = (Real *) malloc(buffer_length_particles_z1_send*sizeof(Real))))
     {
-      chprintf("Error allocating send_buffer_z1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z1_send*sizeof(Real));
+      chprintf("Error allocating h_send_buffer_z1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z1_send*sizeof(Real));
       chexit(-1);
     }
-    if(!(recv_buffer_z0_particles = (Real *) malloc(buffer_length_particles_z0_recv*sizeof(Real))))
+    if(!(h_recv_buffer_z0_particles = (Real *) malloc(buffer_length_particles_z0_recv*sizeof(Real))))
     {
-      chprintf("Error allocating recv_buffer_z0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z0_recv*sizeof(Real));
+      chprintf("Error allocating h_recv_buffer_z0_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z0_recv*sizeof(Real));
       chexit(-1);
     }
-    if(!(recv_buffer_z1_particles = (Real *) malloc(buffer_length_particles_z1_recv*sizeof(Real))))
+    if(!(h_recv_buffer_z1_particles = (Real *) malloc(buffer_length_particles_z1_recv*sizeof(Real))))
     {
-      chprintf("Error allocating recv_buffer_z1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z1_recv*sizeof(Real));
+      chprintf("Error allocating h_recv_buffer_z1_particles in Allocate_MPI_Buffers_BLOCK (size = %ld).\n",buffer_length_particles_z1_recv*sizeof(Real));
       chexit(-1);
     }
     #endif
@@ -1266,18 +1280,35 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   
   #if defined(PARTICLES) && defined(PARTICLES_GPU)
   chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
-  CudaSafeCall ( cudaMalloc (&send_buffer_x0_particles, buffer_length_particles_x0_send*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&send_buffer_x1_particles, buffer_length_particles_x1_send*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&send_buffer_y0_particles, buffer_length_particles_y0_send*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&send_buffer_y1_particles, buffer_length_particles_y1_send*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&send_buffer_z0_particles, buffer_length_particles_z0_send*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&send_buffer_z1_particles, buffer_length_particles_z1_send*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&recv_buffer_x0_particles, buffer_length_particles_x0_recv*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&recv_buffer_x1_particles, buffer_length_particles_x1_recv*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&recv_buffer_y0_particles, buffer_length_particles_y0_recv*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&recv_buffer_y1_particles, buffer_length_particles_y1_recv*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&recv_buffer_z0_particles, buffer_length_particles_z0_recv*sizeof(Real)) );
-  CudaSafeCall ( cudaMalloc (&recv_buffer_z1_particles, buffer_length_particles_z1_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_send_buffer_x0_particles, buffer_length_particles_x0_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_send_buffer_x1_particles, buffer_length_particles_x1_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_send_buffer_y0_particles, buffer_length_particles_y0_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_send_buffer_y1_particles, buffer_length_particles_y1_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_send_buffer_z0_particles, buffer_length_particles_z0_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_send_buffer_z1_particles, buffer_length_particles_z1_send*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_recv_buffer_x0_particles, buffer_length_particles_x0_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_recv_buffer_x1_particles, buffer_length_particles_x1_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_recv_buffer_y0_particles, buffer_length_particles_y0_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_recv_buffer_y1_particles, buffer_length_particles_y1_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_recv_buffer_z0_particles, buffer_length_particles_z0_recv*sizeof(Real)) );
+  CudaSafeCall ( cudaMalloc (&d_recv_buffer_z1_particles, buffer_length_particles_z1_recv*sizeof(Real)) );
+  
+  #if !defined(MPI_GPU)
+  chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
+  h_send_buffer_x0_particles = (Real *) malloc ( buffer_length_particles_x0_send*sizeof(Real) );
+  h_send_buffer_x1_particles = (Real *) malloc ( buffer_length_particles_x1_send*sizeof(Real) );
+  h_send_buffer_y0_particles = (Real *) malloc ( buffer_length_particles_y0_send*sizeof(Real) );
+  h_send_buffer_y1_particles = (Real *) malloc ( buffer_length_particles_y1_send*sizeof(Real) );
+  h_send_buffer_z0_particles = (Real *) malloc ( buffer_length_particles_z0_send*sizeof(Real) );
+  h_send_buffer_z1_particles = (Real *) malloc ( buffer_length_particles_z1_send*sizeof(Real) );
+  h_recv_buffer_x0_particles = (Real *) malloc ( buffer_length_particles_x0_recv*sizeof(Real) );
+  h_recv_buffer_x1_particles = (Real *) malloc ( buffer_length_particles_x1_recv*sizeof(Real) );
+  h_recv_buffer_y0_particles = (Real *) malloc ( buffer_length_particles_y0_recv*sizeof(Real) );
+  h_recv_buffer_y1_particles = (Real *) malloc ( buffer_length_particles_y1_recv*sizeof(Real) );
+  h_recv_buffer_z0_particles = (Real *) malloc ( buffer_length_particles_z0_recv*sizeof(Real) );
+  h_recv_buffer_z1_particles = (Real *) malloc ( buffer_length_particles_z1_recv*sizeof(Real) );
+  #endif
+  
   #endif//PARTICLES_GPU
   
 }
