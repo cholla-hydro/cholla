@@ -55,7 +55,8 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   max_dt = 10000; 
 
   //Courant CFL condition factor for particles
-  C_cfl = 0.3;
+  // C_cfl = 0.3;
+  C_cfl = 3e-6;
   
   #ifndef SINGLE_PARTICLE_MASS
   particle_mass = 0; //The particle masses are stored in a separate array
