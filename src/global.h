@@ -141,7 +141,6 @@ extern int N_DATA_PER_PARTICLE_TRANSFER;
 #define SIGN(a) ( ((a) < 0.) ? -1. : 1. )
 
 
-
 /* Global variables */
 extern Real gama; // Ratio of specific heats
 extern Real C_cfl; // CFL number (0 - 0.5)

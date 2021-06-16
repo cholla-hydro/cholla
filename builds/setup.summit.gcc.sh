@@ -8,9 +8,11 @@
 #   on Summit
 module load gcc/10.2.0 cuda/11.2.0 fftw hdf5 python
 
-GCC_UMS_DIR=/sw/summit/ums/stf010/gcc
-latest=$(ls --color=never ${GCC_UMS_DIR} | tail -n1)
-export GCC_ROOT=$GCC_UMS_DIR/$latest
+GCC_UMS_DIR=/sw/summit/ums/stf010/gcc/10.2.1-20210504
+#latest=$(ls --color=never ${GCC_UMS_DIR} | tail -n1)
+#export GCC_ROOT=$GCC_UMS_DIR/$latest
+
+export GCC_ROOT=$GCC_UMS_DIR
 
 echo "Using GCC in $GCC_ROOT"
 

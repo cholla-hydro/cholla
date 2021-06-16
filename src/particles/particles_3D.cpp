@@ -299,8 +299,6 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   
   G.n_transfer_h = (int *) malloc(sizeof(int));
   
-  
-  # ifdef MPI_GPU
   // Used the global partivcles send/recv buffers that already have been alloctaed in Allocate_MPI_DeviceBuffers_BLOCK
   G.send_buffer_size_x0 = buffer_length_particles_x0_send;
   G.send_buffer_size_x1 = buffer_length_particles_x1_send;
@@ -309,12 +307,12 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   G.send_buffer_size_z0 = buffer_length_particles_z0_send;
   G.send_buffer_size_z1 = buffer_length_particles_z1_send;
   
-  G.send_buffer_x0_d = send_buffer_x0_particles;
-  G.send_buffer_x1_d = send_buffer_x1_particles;
-  G.send_buffer_y0_d = send_buffer_y0_particles;
-  G.send_buffer_y1_d = send_buffer_y1_particles;
-  G.send_buffer_z0_d = send_buffer_z0_particles;
-  G.send_buffer_z1_d = send_buffer_z1_particles;
+  G.send_buffer_x0_d = d_send_buffer_x0_particles;
+  G.send_buffer_x1_d = d_send_buffer_x1_particles;
+  G.send_buffer_y0_d = d_send_buffer_y0_particles;
+  G.send_buffer_y1_d = d_send_buffer_y1_particles;
+  G.send_buffer_z0_d = d_send_buffer_z0_particles;
+  G.send_buffer_z1_d = d_send_buffer_z1_particles;
   
   G.recv_buffer_size_x0 = buffer_length_particles_x0_recv;
   G.recv_buffer_size_x1 = buffer_length_particles_x1_recv;
@@ -323,50 +321,13 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
   G.recv_buffer_size_z0 = buffer_length_particles_z0_recv;
   G.recv_buffer_size_z1 = buffer_length_particles_z1_recv;
   
-  G.recv_buffer_x0_d = recv_buffer_x0_particles;
-  G.recv_buffer_x1_d = recv_buffer_x1_particles;
-  G.recv_buffer_y0_d = recv_buffer_y0_particles;
-  G.recv_buffer_y1_d = recv_buffer_y1_particles;
-  G.recv_buffer_z0_d = recv_buffer_z0_particles;
-  G.recv_buffer_z1_d = recv_buffer_z1_particles;
-  
-  #else
-  
-  int n_max, transfer_buffer_size;
-  n_max = std::max( std::max( nx_local, ny_local), nz_local );
-  transfer_buffer_size = Compute_Particles_GPU_Array_Size( n_max * n_max * N_DATA_PER_PARTICLE_TRANSFER );
-  
-  G.send_buffer_size_x0 = transfer_buffer_size;
-  G.send_buffer_size_x1 = transfer_buffer_size;
-  G.send_buffer_size_y0 = transfer_buffer_size;
-  G.send_buffer_size_y1 = transfer_buffer_size;
-  G.send_buffer_size_z0 = transfer_buffer_size;
-  G.send_buffer_size_z1 = transfer_buffer_size;
-  
-  Allocate_Particles_GPU_Array_Real( &G.send_buffer_x0_d, G.send_buffer_size_x0 );
-  Allocate_Particles_GPU_Array_Real( &G.send_buffer_x1_d, G.send_buffer_size_x1 );
-  Allocate_Particles_GPU_Array_Real( &G.send_buffer_y0_d, G.send_buffer_size_y0 );
-  Allocate_Particles_GPU_Array_Real( &G.send_buffer_y1_d, G.send_buffer_size_y1 );
-  Allocate_Particles_GPU_Array_Real( &G.send_buffer_z0_d, G.send_buffer_size_z0 );
-  Allocate_Particles_GPU_Array_Real( &G.send_buffer_z1_d, G.send_buffer_size_z1 );
-  
-  G.recv_buffer_size_x0 = transfer_buffer_size;
-  G.recv_buffer_size_x1 = transfer_buffer_size;
-  G.recv_buffer_size_y0 = transfer_buffer_size;
-  G.recv_buffer_size_y1 = transfer_buffer_size;
-  G.recv_buffer_size_z0 = transfer_buffer_size;
-  G.recv_buffer_size_z1 = transfer_buffer_size;
-  
-  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_x0_d, G.recv_buffer_size_x0 );
-  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_x1_d, G.recv_buffer_size_x1 );
-  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_y0_d, G.recv_buffer_size_y0 );
-  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_y1_d, G.recv_buffer_size_y1 );
-  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_z0_d, G.recv_buffer_size_z0 );
-  Allocate_Particles_GPU_Array_Real( &G.recv_buffer_z1_d, G.recv_buffer_size_z1 );
-  chprintf( " Allocated GPU memory for MPI transfers.\n"); 
-  
-  #endif//MPI_GPU
-  
+  G.recv_buffer_x0_d = d_recv_buffer_x0_particles;
+  G.recv_buffer_x1_d = d_recv_buffer_x1_particles;
+  G.recv_buffer_y0_d = d_recv_buffer_y0_particles;
+  G.recv_buffer_y1_d = d_recv_buffer_y1_particles;
+  G.recv_buffer_z0_d = d_recv_buffer_z0_particles;
+  G.recv_buffer_z1_d = d_recv_buffer_z1_particles;
+
 }
 #endif //MPI_CHOLLA
 
@@ -815,23 +776,6 @@ void Particles_3D::Free_Memory(void){
 
   #endif //PARTICLES_CPU
 
-  #ifdef MPI_CHOLLA
-  //Free the particles arrays for MPI transfers
-  #ifndef MPI_GPU // If MPI_GPU the arrays are freed from the device
-  free(send_buffer_x0_particles);
-  free(send_buffer_x1_particles);
-  free(recv_buffer_x0_particles);
-  free(recv_buffer_x1_particles);
-  free(send_buffer_y0_particles);
-  free(send_buffer_y1_particles);
-  free(recv_buffer_y0_particles);
-  free(recv_buffer_y1_particles);
-  free(send_buffer_z0_particles);
-  free(send_buffer_z1_particles);
-  free(recv_buffer_z0_particles);
-  free(recv_buffer_z1_particles);
-  #endif//MPI_GPU
-  #endif//MPI_CHOLLA
 }
 
 void Particles_3D::Reset( void ){
