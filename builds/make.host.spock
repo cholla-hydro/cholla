@@ -20,6 +20,5 @@ MPI_ROOT     = ${CRAY_MPICH_DIR}
 FFTW_ROOT    = $(shell dirname $(FFTW_DIR))
 GRACKLE_ROOT = #/ccs/proj/ast149/code/grackle
 
-#Set the Hydro Conserved arrays to reside in the GPU
-#and MPI transfers are done from the GPU 
+#-- MPI calls accept GPU buffers (requires GPU-aware MPI)
 MPI_GPU = -DMPI_GPU

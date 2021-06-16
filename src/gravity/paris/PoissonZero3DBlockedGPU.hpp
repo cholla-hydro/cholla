@@ -22,7 +22,7 @@ class PoissonZero3DBlockedGPU {
     int ni2_,nj2_,nk2_;
     long bytes_;
     cufftHandle d2zi_,d2zj_,d2zk_;
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
     double *ha_, *hb_;
 #endif
 };

@@ -168,22 +168,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real 
   potential_d = (Real *)Grav.F.potential_d;
   
   Real *send_buffer_d;
-  #ifdef MPI_GPU
   send_buffer_d = buffer;
-  #else
-  if ( direction == 0 ){
-    if ( side == 0 ) send_buffer_d = (Real *)Grav.F.send_buffer_potential_x0_d;
-    if ( side == 1 ) send_buffer_d = (Real *)Grav.F.send_buffer_potential_x1_d;
-  }
-  if ( direction == 1 ){
-    if ( side == 0 ) send_buffer_d = (Real *)Grav.F.send_buffer_potential_y0_d;
-    if ( side == 1 ) send_buffer_d = (Real *)Grav.F.send_buffer_potential_y1_d;
-  }
-  if ( direction == 2 ){
-    if ( side == 0 ) send_buffer_d = (Real *)Grav.F.send_buffer_potential_z0_d;
-    if ( side == 1 ) send_buffer_d = (Real *)Grav.F.send_buffer_potential_z1_d;
-  }
-  #endif  
   
   hipLaunchKernelGGL( Load_Transfer_Buffer_GPU_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j,  nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, send_buffer_d  );
     
@@ -238,12 +223,6 @@ int Grid3D::Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real 
   // }
   // 
    
-  #ifndef MPI_GPU
-  //Copy the device buffer back to the host send buffer
-  cudaMemcpy( buffer, send_buffer_d, size_buffer*sizeof(Real), cudaMemcpyDeviceToHost );
-  cudaDeviceSynchronize();
-  #endif
-  
   // printf( "Loaded Gravity Buffer \n" );
   return size_buffer;
 }
@@ -314,29 +293,8 @@ void Grid3D::Unload_Gravity_Potential_from_Buffer_GPU( int direction, int side, 
   potential_d = (Real *)Grav.F.potential_d;
   
   Real *recv_buffer_d;
-  #ifdef MPI_GPU
   recv_buffer_d = buffer;
-  #else
-  if ( direction == 0 ){
-    if ( side == 0 ) recv_buffer_d = (Real *)Grav.F.send_buffer_potential_x0_d;
-    if ( side == 1 ) recv_buffer_d = (Real *)Grav.F.send_buffer_potential_x1_d;
-  }
-  if ( direction == 1 ){
-    if ( side == 0 ) recv_buffer_d = (Real *)Grav.F.send_buffer_potential_y0_d;
-    if ( side == 1 ) recv_buffer_d = (Real *)Grav.F.send_buffer_potential_y1_d;
-  }
-  if ( direction == 2 ){
-    if ( side == 0 ) recv_buffer_d = (Real *)Grav.F.send_buffer_potential_z0_d;
-    if ( side == 1 ) recv_buffer_d = (Real *)Grav.F.send_buffer_potential_z1_d;
-  }
-  #endif  
   
-  #ifndef MPI_GPU
-  //Copy the host recv buffer to the device recv buffer
-  cudaMemcpy( recv_buffer_d, buffer, size_buffer*sizeof(Real), cudaMemcpyHostToDevice );
-  cudaDeviceSynchronize();
-  #endif
-
   hipLaunchKernelGGL( Unload_Transfer_Buffer_GPU_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j,  nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, recv_buffer_d  );
   
 }

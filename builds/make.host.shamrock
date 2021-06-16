@@ -19,6 +19,3 @@ FFTW_ROOT    = /home/bruno/code/fftw-3.3.8
 PFFT_ROOT    = /home/bruno/code/pfft
 GRACKLE_ROOT = /home/bruno/local
 
-#Paris does not do MPI_GPU transfers 
-PARIS_MPI_GPU = -DPARIS_NO_GPU_MPI
-
