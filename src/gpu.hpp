@@ -122,6 +122,7 @@ void gpuRun0(const int n0, const F f)
 template <typename F>
 void gpuFor(const int n0, const F f)
 {
+  if (n0 <= 0) return;
   const int b0 = (n0+GPU_MAX_THREADS-1)/GPU_MAX_THREADS;
   const int t0 = (n0+b0-1)/b0;
   gpuRun0<<<b0,t0>>>(n0,f);
@@ -158,6 +159,7 @@ void gpuRun2x0(const int n1, const F f)
 template <typename F>
 void gpuFor(const int n0, const int n1, const F f)
 {
+  if ((n0 <= 0) || (n1 <= 0)) return;
   const long nl01 = long(n0)*long(n1);
   assert(nl01 < long(INT_MAX));
 
@@ -218,6 +220,7 @@ void gpuRun3x0(const int n2, const F f)
 template <typename F>
 void gpuFor(const int n0, const int n1, const int n2, const F f)
 {
+  if ((n0 <= 0) || (n1 <= 0) || (n2 <= 0)) return;
   const long nl12 = long(n1)*long(n2);
   const long nl012 = long(n0)*nl12;
   assert(nl012 < long(INT_MAX));
@@ -289,6 +292,7 @@ void gpuRun4x0(const int n23, const int n3, const F f)
 template <typename F>
 void gpuFor(const int n0, const int n1, const int n2, const int n3, const F f)
 {
+  if ((n0 <= 0) || (n1 <= 0) || (n2 <= 0) || (n3 <= 0)) return;
   const long nl23 = long(n2)*long(n3);
   const long nl123 = long(n1)*nl23;
   assert(long(n0)*nl123 < long(INT_MAX));
@@ -368,6 +372,7 @@ void gpuRun5x0(const int n1, const int n34, const int n4, const F f)
 template <typename F>
 void gpuFor(const int n0, const int n1, const int n2, const int n3, const int n4, const F f)
 {
+  if ((n0 <= 0) || (n1 <= 0) || (n2 <= 0) || (n3 <= 0) || (n4 <= 0)) return;
   const long nl01 = long(n0)*long(n1);
   const long nl34 = long(n3)*long(n4);
   assert(nl01*long(n2)*nl34 < long(INT_MAX));
