@@ -277,7 +277,6 @@ int main(int argc, char *argv[])
                  G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
       #endif
       WriteData(G, P, nfile);
-      #endif //COSMOLOGY
       break;
     }
     #endif
