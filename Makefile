@@ -11,6 +11,7 @@ CUOBJS := $(subst .cu,.o,$(GPUFILES))
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
 DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
+# Architecture must be set correctly 
 CHOLLA_ARCH ?= sm_70
 
 #To use MPI, DFLAGS must also include -DMPI_CHOLLA
