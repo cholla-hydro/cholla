@@ -13,7 +13,7 @@ CUOBJS := $(subst .cu,.o,$(GPUFILES))
 DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, DFLAGS must also include -DMPI_CHOLLA
-#DFLAGS += -DMPI_CHOLLA -DBLOCK
+DFLAGS += -DMPI_CHOLLA -DBLOCK
 
 #Set the MPI Processes grid [nproc_x, nproc_y, nproc_z]
 #DFLAGS += -DSET_MPI_GRID
@@ -28,7 +28,7 @@ DFLAGS += -DPRECISION=2
 #Set output preferences
 DFLAGS += -DOUTPUT
 #DFLAGS += -DBINARY
-#DFLAGS += -DHDF5
+DFLAGS += -DHDF5
 #DFLAGS += -DSLICES
 #DFLAGS += -DPROJECTION
 #DFLAGS += -DROTATED_PROJECTION
@@ -129,24 +129,32 @@ ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
 endif
 
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
-	CFLAGS += -I$(HDF5INCLUDE)
-	CXXFLAGS += -I$(HDF5INCLUDE)
-	GPUFLAGS += -I$(HDF5INCLUDE)
-	LIBS += -L$(HDF5DIR) -lhdf5
+ifneq ($(HDF5_ROOT),)
+	CFLAGS += -I$(HDF5_ROOT)/include
+	CXXFLAGS += -I$(HDF5_ROOT)/include
+	GPUFLAGS += -I$(HDF5_ROOT)/include
+	LIBS += -L$(HDF5_ROOT)/lib
+endif
+	LIBS += -lhdf5
 endif
 
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
 	CC = mpicc
 	CXX = mpicxx
+ifneq ($(MPI_HOME),)
 	GPUFLAGS += -I$(MPI_HOME)/include
+endif
 endif
 
 ifeq ($(findstring -DCUDA,$(DFLAGS)),-DCUDA)
 	GPUCXX := nvcc
-	GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+	GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_61 -fmad=false
 	LD := $(CXX)
 	LDFLAGS := $(CXXFLAGS)
-	LIBS += -L$(CUDA_DIR)/lib64 -lcudart
+ifneq ($(CUDA_DIR),)
+	LIBS += -L$(CUDA_DIR)/lib64
+endif
+	LIBS += -lcudart
 endif
 
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
