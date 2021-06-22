@@ -11,9 +11,10 @@ CUOBJS := $(subst .cu,.o,$(GPUFILES))
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
 DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
+CHOLLA_ARCH ?= sm_70
 
 #To use MPI, DFLAGS must also include -DMPI_CHOLLA
-DFLAGS += -DMPI_CHOLLA -DBLOCK
+#DFLAGS += -DMPI_CHOLLA -DBLOCK
 
 #Set the MPI Processes grid [nproc_x, nproc_y, nproc_z]
 #DFLAGS += -DSET_MPI_GRID
@@ -28,7 +29,7 @@ DFLAGS += -DPRECISION=2
 #Set output preferences
 DFLAGS += -DOUTPUT
 #DFLAGS += -DBINARY
-DFLAGS += -DHDF5
+#DFLAGS += -DHDF5
 #DFLAGS += -DSLICES
 #DFLAGS += -DPROJECTION
 #DFLAGS += -DROTATED_PROJECTION
@@ -148,7 +149,7 @@ endif
 
 ifeq ($(findstring -DCUDA,$(DFLAGS)),-DCUDA)
 	GPUCXX := nvcc
-	GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_61 -fmad=false
+	GPUFLAGS += --expt-extended-lambda -g -O3 -arch $(CHOLLA_ARCH) -fmad=false
 	LD := $(CXX)
 	LDFLAGS := $(CXXFLAGS)
 ifneq ($(CUDA_DIR),)
