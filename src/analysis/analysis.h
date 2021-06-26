@@ -245,7 +245,7 @@ public:
   Real *ps_global_y;
   Real *ps_global_z;
   Real *ps_mean;
-  Real *k_ceters;
+  Real *k_centers;
   
   bool *root_procs_x;
   bool *root_procs_y;

@@ -172,7 +172,7 @@ void Analysis_Module::Clear_Power_Spectrum_Measurements( void ){
   free( ps_root_z ); 
   free( ps_global_z );
   
-  free( k_ceters );
+  free( k_centers );
   free( ps_mean );
   
 }
@@ -310,10 +310,10 @@ void Grid3D::Initialize_Power_Spectrum_Measurements( int axis ){
     } 
     else{
       Analysis.ps_mean  = (Real *) malloc(n_bins*sizeof(Real));
-      Analysis.k_ceters = (Real *) malloc(n_bins*sizeof(Real));
+      Analysis.k_centers = (Real *) malloc(n_bins*sizeof(Real));
       
       for (int bin_id=0; bin_id<n_bins; bin_id++ ){
-        Analysis.k_ceters[bin_id] = sqrt( Analysis.hist_k_edges_x[bin_id] * Analysis.hist_k_edges_x[bin_id+1]  );
+        Analysis.k_centers[bin_id] = sqrt( Analysis.hist_k_edges_x[bin_id] * Analysis.hist_k_edges_x[bin_id+1]  );
       }
     }
     
@@ -535,7 +535,7 @@ void Analysis_Module::Reduce_Power_Spectrum_Global( ){
   chprintf( " PS Bins: %d     N_Skewers_Processed: %d \n", n_bins, n_PS_total );
   
   // for (int bin_id=0; bin_id<n_bins; bin_id++ ){
-  //   chprintf( " %e   %e  \n", k_ceters[bin_id], ps_mean[bin_id] *k_ceters[bin_id] / M_PI);  
+  //   chprintf( " %e   %e  \n", k_centers[bin_id], ps_mean[bin_id] *k_centers[bin_id] / M_PI);  
   // }
   
 }
