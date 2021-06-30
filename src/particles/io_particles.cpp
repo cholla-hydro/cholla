@@ -17,7 +17,7 @@
 #include"../mpi_routines.h"
 #endif
 
-#define OUTPUT_PARTICLES_DATA
+// #define OUTPUT_PARTICLES_DATA
 
 
 void Particles_3D::Load_Particles_Data( struct parameters *P){

@@ -22,7 +22,7 @@ DFLAGS += -DPRINT_INITIAL_STATS
 
 
 #Output all data every N_OUTPUT_COMPLETE snapshots ( These are Restart Files )
-DFLAGS += -DN_OUTPUT_COMPLETE=1
+DFLAGS += -DN_OUTPUT_COMPLETE=10
 
 
 #Limit the number of steps to evolve
