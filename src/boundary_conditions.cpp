@@ -425,24 +425,16 @@ void Grid3D::Set_Hydro_Boundaries_GPU
   Real *c_density, 
        *c_momentum_x, *c_momentum_y, *c_momentum_z, 
        *c_energy;
-  #ifdef DE
   Real *c_gasEnergy;
-  #endif
-  #ifdef SCALAR
   Real *c_scalar;
-  #endif
 
   c_density    = C.d_density;
   c_momentum_x = C.d_momentum_x;
   c_momentum_y = C.d_momentum_y;
   c_momentum_z = C.d_momentum_z;
   c_energy     = C.d_Energy;
-  #ifdef DE
   c_gasEnergy  = C.d_GasEnergy;
-  #endif
-  #ifdef SCALAR
   c_scalar     = C.d_scalar;
-  #endif
   n_cells      = H.n_cells;
   
   #pragma omp target data map \
@@ -458,17 +450,18 @@ void Grid3D::Set_Hydro_Boundaries_GPU
     c_momentum_y[iaBoundary[iB]] = c_momentum_y[iaCell[iB]]*Sign[1];
     c_momentum_z[iaBoundary[iB]] = c_momentum_z[iaCell[iB]]*Sign[2];
     c_energy[iaBoundary[iB]]     = c_energy[iaCell[iB]];
+
     #ifdef DE
     c_gasEnergy[iaBoundary[iB]]  = c_gasEnergy[iaCell[iB]];
     #endif
-    #ifdef SCALAR 
+    #ifdef SCALAR
     for (int ii=0; ii<NSCALARS; ii++) {
       c_scalar[iaBoundary[iB] + ii*n_cells] 
         = c_scalar[iaCell[iB] + ii*n_cells];
       }
-    #endif
+    #endif 
     }
-  
+
   if ( flags[dir] == 3 ) {
     #pragma omp target teams distribute parallel for \
       is_device_ptr ( c_density, c_momentum_x, c_momentum_y, \

@@ -1802,7 +1802,7 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
 
 }
 
-#ifdef GPU_MPI
+
 void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
 {
   int i, j, k, ii;
@@ -2086,7 +2086,6 @@ void Grid3D::Unload_MPI_Comm_DeviceBuffers_BLOCK(int index)
   #endif//DPARTICLES_GPU
 
 }
-#endif //GPU_MPI
 
 
 #endif /*MPI_CHOLLA*/

@@ -3,10 +3,10 @@
 #-- separated output flag so that it can be overriden in target-specific 
 #   for make check
 OUTPUT    ?=  -DOUTPUT -DHDF5
-GPU_MPI   ?=
+MPI_GPU   ?=
 
 DFLAGS    += -DCUDA
-DFLAGS    += -DMPI_CHOLLA $(GPU_MPI)
+DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DBLOCK
 DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPPMP
@@ -14,6 +14,11 @@ DFLAGS    += -DHLLC
 DFLAGS    += -DVL
 DFLAGS    += $(OUTPUT)
 
+#Select if the Hydro Conserved data will reside in the GPU
+#and the MPI transfers are done from the GPU
+#If not specified, MPI_GPU is off by default 
+#This is set in the system make.host file
+DFLAGS    += $(MPI_GPU)  
+
 DFLAGS    += -DPARALLEL_OMP
-#-- OMP_NUM_THREADS should be set in make.host.*
-DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
+DFLAGS    += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
