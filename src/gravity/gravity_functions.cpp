@@ -93,7 +93,7 @@ void Grid3D::set_dt_Gravity(){
   #endif
   
   if ( da_min < 0 ){
-    chprintf( 'ERROR: Negative delta_a');
+    chprintf( "ERROR: Negative delta_a");
     exit(-1);
   } 
   
