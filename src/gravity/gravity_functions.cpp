@@ -85,8 +85,9 @@ void Grid3D::set_dt_Gravity(){
   #ifdef ANALYSIS
   //Limit delta_a if it's time to run analisys
   if( Analysis.next_output_indx < Analysis.n_outputs ){
-    if ( Cosmo.current_a + da_min  >  Analysis.next_output ){
-      if ( !H.Output_Now ) da_min = Analysis.next_output - Cosmo.current_a;
+    if ( H.Output_Now && fabs(Cosmo.current_a + da_min  - Analysis.next_output ) < 1e-6 )  Analysis.Output_Now = true;
+    else if ( Cosmo.current_a + da_min  >  Analysis.next_output ){
+      da_min = Analysis.next_output - Cosmo.current_a;
       Analysis.Output_Now = true;
     }
   }
