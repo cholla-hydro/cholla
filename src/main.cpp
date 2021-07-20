@@ -108,6 +108,10 @@ int main(int argc, char *argv[])
   #ifdef COSMOLOGY
   G.Initialize_Cosmology(&P);
   #endif
+
+  #ifdef RT
+  G.Initialize_RT(&P);
+  #endif
   
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);

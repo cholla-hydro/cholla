@@ -313,6 +313,11 @@ class Grid3D
     // Object that contains data for Grackle cooling
     Cool_GK Cool;
     #endif
+
+    #ifdef RT
+    // Object that contains data for radiative transfer
+    Rad3D RT;
+    #endif
     
     #ifdef CPU_TIME
     Time Timer;
@@ -779,6 +784,12 @@ class Grid3D
   void Advance_Particles_KDK_Cosmo_Step2_GPU();
   #endif//PARTICLES_GPU
   #endif//COSMOLOGY
+
+  #ifdef RT
+  void Initialize_RT();
+  void Allocate_Abundances();
+  #endif
+
   
   #ifdef COOLING_GRACKLE
   void Initialize_Grackle( struct parameters *P );

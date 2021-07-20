@@ -59,6 +59,11 @@ typedef double Real;
 #define MAX_DELTA_A 0.001
 #define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
+// Set the number of abundance fields for RT
+#ifdef RT
+  #define NSCALARS 5
+#endif
+
 #ifdef COOLING_GRACKLE
   #ifdef GRACKLE_METALS
   #define NSCALARS 7
@@ -71,6 +76,7 @@ typedef double Real;
 #define NSCALARS 1
 #endif//SCALAR
 #endif//COOLING_GRACKLE
+
 
 // Inital Chemistry fractions
 #define INITIAL_FRACTION_HI        0.75984603480
