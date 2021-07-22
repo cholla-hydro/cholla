@@ -1,0 +1,21 @@
+#-- make.inc for Frigg
+
+#-- Compiler and flags for different build type
+CC                = mpicc
+CXX               = mpicxx
+CFLAGS_DEBUG      = -g -O0
+CFLAGS_OPTIMIZE   = -g -O2
+CXXFLAGS_DEBUG    = -g -O0 -std=c++11 
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 
+GPUFLAGS         = -std=c++11 
+
+
+OMP_NUM_THREADS = 1
+
+#-- Library
+CUDA_ROOT    = /usr/local/cuda
+HDF5_ROOT    = /data/gnedin/soft/anaconda3
+FFTW_ROOT    = /data/gnedin/soft
+#PFFT_ROOT    = /data/groups/comp-astro/bruno/code_mpi_local/pfft
+#GRACKLE_ROOT = /home/brvillas/code/grackle
+
