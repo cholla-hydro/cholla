@@ -308,6 +308,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
           #endif
 
           //for outflow boundaries, set momentum to restrict inflow
+	  /*
           if (flags[dir] == 3) {
             // first subtract kinetic energy from total
             C.Energy[gidx] -= 0.5*(C.momentum_x[gidx]*C.momentum_x[gidx] + C.momentum_y[gidx]*C.momentum_y[gidx] + C.momentum_z[gidx]*C.momentum_z[gidx])/C.density[gidx];
@@ -332,7 +333,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
             // now re-add the new kinetic energy
             C.Energy[gidx] += 0.5*(C.momentum_x[gidx]*C.momentum_x[gidx] + C.momentum_y[gidx]*C.momentum_y[gidx] + C.momentum_z[gidx]*C.momentum_z[gidx])/C.density[gidx];
           }
-
+          */
           
         }
       }

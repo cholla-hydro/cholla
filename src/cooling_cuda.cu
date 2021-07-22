@@ -52,7 +52,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef DE
   Real ge;
   #endif
-  //Real T_min = 1.0e4; // minimum temperature allowed
+  Real T_min = 1.0e4; // minimum temperature allowed
 
   mu = 0.6;
   //mu = 1.27;
@@ -132,7 +132,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
     // set a temperature floor
     // (don't change this cell if the thread crashed)
-    //if (T > 0.0 && E > 0.0) T = fmax(T, T_min);
+    if (T > 0.0 && E > 0.0) T = fmax(T, T_min);
     // set a temperature ceiling 
     //T = fmin(T, T_max);
 

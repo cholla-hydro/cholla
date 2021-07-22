@@ -62,7 +62,7 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
   } else if (strcmp(P.init, "Spherical_Overdensity_3D")==0) {
     Spherical_Overdensity_3D();    
   } else if (strcmp(P.init, "Clouds")==0) {
-    MS();    
+    Clouds();    
   } else if (strcmp(P.init, "Read_Grid")==0) {
     #ifndef ONLY_PARTICLES
     Read_Grid(P);    
@@ -1129,14 +1129,19 @@ void Grid3D::Clouds()
   Real T_bg, T_c;
   Real p_bg, p_c;
   Real mu = 0.6;
-  int n_cl = 1;
-  int R_cl = 3.5; // cloud radius in code units (kpc)
+  int n_cl = 4;
+  int R_cl = 3.0; // cloud radius in code units (kpc)
+  Real xcl, ycl, zcl;
+  xcl = 0.1*H.xdglobal;
+  ycl = 0.5*H.ydglobal;
+  zcl = 0.5*H.zdglobal;
   Real cl_pos[n_cl][3];
   Real r;
-  for (int nn=0; nn=n_cl; nn++) {
-    cl_pos[nn][0] = nn*0.1*xdglobal;
-    cl_pos[nn][1] = 0.5*ydglobal;
-    cl_pos[nn][2] = 0.5*zdglobal;
+  for (int nn=0; nn<n_cl; nn++) {
+    cl_pos[nn][0] = (nn+1)*0.1*H.xdglobal+0.5*H.xdglobal;
+    cl_pos[nn][1] = (nn%2*0.1+0.45)*H.ydglobal;
+    cl_pos[nn][2] = 0.5*H.zdglobal;
+    printf("Cloud positions: %f %f %f\n", cl_pos[nn][0], cl_pos[nn][1], cl_pos[nn][2]);
   }
 
   n_bg = 1.68e-4;
@@ -1175,28 +1180,41 @@ void Grid3D::Clouds()
   for(k=kstart; k<kend; k++) {
     for(j=jstart; j<jend; j++) {
       for(i=istart; i<iend; i++) {
-
+	
         //get cell index
         id = i + j*H.nx + k*H.nx*H.ny;
 
         // get cell-centered position
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
-        
+
         // set background state
         C.density[id]    = rho_bg;
         C.momentum_x[id] = rho_bg*vx_bg;
         C.momentum_y[id] = rho_bg*vy_bg;
         C.momentum_z[id] = rho_bg*vz_bg;
-        C.Energy[id]     = P_bg/(gama-1.0) + 0.5*rho_bg*(vx_bg*vx_bg + vy_bg*vy_bg + vz_bg*vz_bg);
+        C.Energy[id]     = p_bg/(gama-1.0) + 0.5*rho_bg*(vx_bg*vx_bg + vy_bg*vy_bg + vz_bg*vz_bg);
+        #ifdef DE
+        C.GasEnergy[id]  = p_bg/(gama-1.0);
+        #endif
+        #ifdef SCALAR
+        C.scalar[id] = C.density[id]*0.0;
+        #endif
         // add clouds 
-        for (int nn = 0; nn=n_cl; nn++) {
-          r = sqrt((x_pos - cl_pos[nn][0])*(x_pos - cl_pos[nn][0]) + (y_pos - cl_pos[nn][1])*(y_pos - cl_pos[nn][1] + (z_pos - cl_pos[nn][2])*(z_pos - cl_pos[nn][2]))
+        for (int nn = 0; nn<n_cl; nn++) {
+          r = sqrt((x_pos - cl_pos[nn][0])*(x_pos - cl_pos[nn][0]) + (y_pos - cl_pos[nn][1])*(y_pos - cl_pos[nn][1]) + (z_pos - cl_pos[nn][2])*(z_pos - cl_pos[nn][2]));
+	  //r = sqrt((x_pos - nn*xcl)*(x_pos - nn*xcl) + (y_pos - ycl)*(y_pos - ycl) + (z_pos - zcl)*(z_pos - zcl));
           if (r < R_cl) {
             C.density[id]    = rho_c;
             C.momentum_x[id] = rho_c*vx_c;
             C.momentum_y[id] = rho_c*vy_c;
             C.momentum_z[id] = rho_c*vz_c;
-            C.Energy[id]     = P_cl/(gama-1.0) + 0.5*rho_c*(vx_c*vx_c + vy_c*vy_c + vz_c*vz_c);
+            C.Energy[id]     = p_c/(gama-1.0) + 0.5*rho_c*(vx_c*vx_c + vy_c*vy_c + vz_c*vz_c);
+            #ifdef DE
+            C.GasEnergy[id]  = p_c/(gama-1.0);
+            #endif
+            #ifdef SCALAR
+            C.scalar[id] = C.density[id]*1.0;
+            #endif
           }
         }
       }
