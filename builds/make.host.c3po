@@ -1,0 +1,23 @@
+#-- make.inc for Summit at the OLCF with XL compiler
+#   https://www.olcf.ornl.gov/summit/
+
+#-- Compiler and flags for different build type
+CC                = mpicc
+CXX               = mpicxx
+CFLAGS_DEBUG      = -g -O0
+CFLAGS_OPTIMIZE   = -g -O2
+CXXFLAGS_DEBUG    = -g -O0 -std=c++11 ${F_OFFLOAD}
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 ${F_OFFLOAD}
+GPUFLAGS          = -ccbin=/usr/bin/gcc
+
+OMP_NUM_THREADS   = 16
+#-- How to launch job
+JOB_LAUNCH        = jsrun -n 1 -g 1 -c 7 --bind packed:7 -a 1
+
+#-- Library
+CUDA_ROOT    = /usr/local/cuda-10.1
+HDF5_ROOT    = /usr/include/hdf5/serial
+MPI_ROOT     = /usr/lib/x86_64-linux-gnu/openmpi/include/
+FFTW_ROOT    = ${OLCF_FFTW_ROOT}
+PFFT_ROOT    = /ccs/proj/csc380/cholla/fom/code/pfft
+GRACKLE_ROOT = /ccs/proj/ast149/code/grackle

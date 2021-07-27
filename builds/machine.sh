@@ -23,5 +23,11 @@ if [[ $FQDN == *"crc."* ]] ; then
   exit 0
 fi
 
+if [[ $FQDN == *"c3po."* ]] ; then
+  echo "c3po"
+  exit 0
+fi
+
+
 echo "unknown"
 exit 1

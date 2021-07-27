@@ -73,13 +73,14 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
 endif
 
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
-  CXXFLAGS += -I$(HDF5_ROOT)/include
-  GPUFLAGS += -I$(HDF5_ROOT)/include
-  LIBS     += -L$(HDF5_ROOT)/lib -lhdf5
+  CFLAGS += -I$(HDF5_ROOT)/
+  CXXFLAGS += -I$(HDF5_ROOT)/
+  GPUFLAGS += -I$(HDF5_ROOT)/
+  LIBS     += -L/usr/lib/x86_64-linux-gnu/hdf5/serial/lib -lhdf5
 endif
 
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
-  GPUFLAGS += -I$(MPI_ROOT)/include
+  GPUFLAGS += -I$(MPI_ROOT)
   ifdef HIPCONFIG
      LIBS += -L$(MPI_ROOT)/lib -lmpi
   endif
@@ -100,6 +101,7 @@ ifdef HIPCONFIG
 else
   GPUCXX ?= nvcc
   GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  CXXFLAGS += -I${CUDA_ROOT}/include
   LD := $(CXX)
   LDFLAGS += $(CXXFLAGS)
   LIBS += -L$(CUDA_ROOT)/lib64 -lcudart
