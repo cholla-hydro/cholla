@@ -90,7 +90,7 @@ PoissonPeriodic3x1DBlockedGPU::PoissonPeriodic3x1DBlockedGPU(const int n[3], con
   CHECK(cufftPlanMany(&c2rk_,1,&nk_,&nh_,1,nh_,&nk_,1,nk_,CUFFT_Z2D,dip_*djq_));
   CHECK(cufftPlanMany(&r2ck_,1,&nk_,&nk_,1,nk_,&nh_,1,nh_,CUFFT_D2Z,dip_*djq_));
 
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaHostAlloc(&ha_,bytes_+bytes_,cudaHostAllocDefault));
   assert(ha_);
   hb_ = ha_+nMax;
@@ -99,7 +99,7 @@ PoissonPeriodic3x1DBlockedGPU::PoissonPeriodic3x1DBlockedGPU(const int n[3], con
 
 PoissonPeriodic3x1DBlockedGPU::~PoissonPeriodic3x1DBlockedGPU()
 {
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaFreeHost(ha_));
   ha_ = hb_ = nullptr;
 #endif
@@ -146,7 +146,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
     });
 
   const int countK = dip*djq*dk;
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,countK,MPI_DOUBLE,hb_,countK,MPI_DOUBLE,commK_);
   CHECK(cudaMemcpy(b,hb_,bytes,cudaMemcpyHostToDevice));
@@ -191,7 +191,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
   }
 
   const int countJ = 2*dip*djq*dhq;
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,countJ,MPI_DOUBLE,hb_,countJ,MPI_DOUBLE,commJ_);
   CHECK(cudaMemcpy(b,hb_,bytes,cudaMemcpyHostToDevice));
@@ -238,7 +238,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
   }
  
   const int countI = 2*dip*djp*dhq;
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,countI,MPI_DOUBLE,hb_,countI,MPI_DOUBLE,commI_);
   CHECK(cudaMemcpy(b,hb_,bytes,cudaMemcpyHostToDevice));
@@ -333,7 +333,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,countI,MPI_DOUBLE,hb_,countI,MPI_DOUBLE,commI_);
   CHECK(cudaMemcpy(b,hb_,bytes,cudaMemcpyHostToDevice));
@@ -379,7 +379,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,countJ,MPI_DOUBLE,hb_,countJ,MPI_DOUBLE,commJ_);
   CHECK(cudaMemcpy(b,hb_,bytes,cudaMemcpyHostToDevice));
@@ -424,7 +424,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,countK,MPI_DOUBLE,hb_,countK,MPI_DOUBLE,commK_);
   CHECK(cudaMemcpy(b,hb_,bytes,cudaMemcpyHostToDevice));

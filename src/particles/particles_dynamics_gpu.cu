@@ -13,8 +13,20 @@
 
 #ifdef COSMOLOGY
 #include"../cosmology/cosmology.h"
-#include"../cosmology/cosmology_functions_gpu.h"
+// #include"../cosmology/cosmology_functions_gpu.h"
+
+// FUTURE FIX: The Hubble function was defined here because I couldn't get it form onether file, tried -dc flag when compiling buu paris broke. 
+__device__ Real Get_Hubble_Parameter_dev( Real a, Real H0, Real Omega_M, Real Omega_L, Real Omega_K ){
+  Real a2 = a * a;
+  Real a3 = a2 * a;
+  Real factor = ( Omega_M/a3 + Omega_K/a2 + Omega_L );
+  return H0 * sqrt(factor);
+  
+}
 #endif
+
+
+
 
 
 __global__ void Calc_Particles_dti_Kernel( part_int_t n_local, Real dx, Real dy, Real dz, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *dti_array )

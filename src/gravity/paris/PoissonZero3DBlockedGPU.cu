@@ -83,7 +83,7 @@ PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3], const double lo
   CHECK(cufftPlanMany(&d2zj_,1,&nj_,&nj_,1,nj_,&njh,1,njh,CUFFT_D2Z,dip_*dkq_));
   int nih = ni_/2+1;
   CHECK(cufftPlanMany(&d2zi_,1,&ni_,&ni_,1,ni_,&nih,1,nih,CUFFT_D2Z,dkq_*djp_));
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaHostAlloc(&ha_,bytes_+bytes_,cudaHostAllocDefault));
   assert(ha_);
   hb_ = ha_+nMax;
@@ -92,7 +92,7 @@ PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3], const double lo
 
 PoissonZero3DBlockedGPU::~PoissonZero3DBlockedGPU()
 {
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaFreeHost(ha_));
   ha_ = hb_ = nullptr;
 #endif
@@ -157,7 +157,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
       const int jLo = q*djq;
       if ((i+iLo < di) && (j+jLo < dj)) ua[(((p*mq+q)*dip+i)*djq+j)*dk+k] = ub[((i+iLo)*dj+j+jLo)*dk+k];
     });
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,ua,bytes_,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,dip*djq*dk,MPI_DOUBLE,hb_,dip*djq*dk,MPI_DOUBLE,commK_);
   CHECK(cudaMemcpyAsync(ub,hb_,bytes_,cudaMemcpyHostToDevice,0));
@@ -210,7 +210,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
         ua[((qb*dip+i)*dkq+kb)*djq+j] = wb*ak-wa*bk;
       }
     });
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,ua,bytes_,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,dip*dkq*djq,MPI_DOUBLE,hb_,dip*dkq*djq,MPI_DOUBLE,commJ_);
   CHECK(cudaMemcpyAsync(ub,hb_,bytes_,cudaMemcpyHostToDevice,0));
@@ -262,7 +262,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
         ua[((pb*dkq+k)*djp+jb)*dip+i] = wb*aj-wa*bj;
       }
     });
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,ua,bytes_,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,dkq*djp*dip,MPI_DOUBLE,hb_,dkq*djp*dip,MPI_DOUBLE,commI_);
   CHECK(cudaMemcpyAsync(ub,hb_,bytes_,cudaMemcpyHostToDevice,0));
@@ -386,7 +386,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
         ua[(((idb*mp+pb)*dkq+k)*dip+ib)*djp+j] = ai+bi;
       }
     });
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,ua,bytes_,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,dkq*djp*dip,MPI_DOUBLE,hb_,dkq*djp*dip,MPI_DOUBLE,commI_);
   CHECK(cudaMemcpyAsync(ub,hb_,bytes_,cudaMemcpyHostToDevice,0));
@@ -446,7 +446,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
         ua[(((idb*mq+qb)*dip+i)*djq+jb)*dkq+k] = aj+bj;
       }
     });
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,ua,bytes_,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,dip*djq*dkq,MPI_DOUBLE,hb_,dip*djq*dkq,MPI_DOUBLE,commJ_);
   CHECK(cudaMemcpyAsync(ub,hb_,bytes_,cudaMemcpyHostToDevice,0));
@@ -504,7 +504,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
         ua[((pqb*dip+i)*djq+j)*dk+kb] = divN*(ak+bk);
       }
     });
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,ua,bytes_,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,dip*djq*dk,MPI_DOUBLE,hb_,dip*djq*dk,MPI_DOUBLE,commK_);
   CHECK(cudaMemcpyAsync(ub,hb_,bytes_,cudaMemcpyHostToDevice,0));

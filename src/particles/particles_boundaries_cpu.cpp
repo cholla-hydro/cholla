@@ -54,8 +54,8 @@ void Grid3D::Set_Particles_Boundary( int dir, int side ){
   Real d_min, d_max, L;
   
   if ( dir == 0 ){
-    d_min = Particles.G.zMin;
-    d_max = Particles.G.zMax;
+    d_min = Particles.G.xMin;
+    d_max = Particles.G.xMax;
   }
   if ( dir == 1 ){
     d_min = Particles.G.yMin;
@@ -284,9 +284,9 @@ void Particles_3D::Add_Particle_To_Vectors( Real pId, Real pMass, Real pAge,
   if ( ! in_local  ) {
     std::cout << " Adding particle out of local domain to vectors Error:" << std::endl;
     #ifdef PARTICLE_IDS
-    std::cout << " Particle outside Loacal  domain    pID: " << pId << std::endl;
+    std::cout << " Particle outside Local  domain    pID: " << pId << std::endl;
     #else
-    std::cout << " Particle outside Loacal  domain " << std::endl;
+    std::cout << " Particle outside Local  domain " << std::endl;
     #endif
     std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
     std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;

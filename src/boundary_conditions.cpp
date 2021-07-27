@@ -11,7 +11,7 @@
 #include"error_handling.h"
 #include"mpi_routines.h"
 
-#ifdef GPU_MPI
+#ifdef HYDRO_GPU
 #include "omp.h"
 #endif
 
@@ -121,6 +121,7 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
 #else  /*MPI_CHOLLA*/
 
   /*Set boundaries, including MPI exchanges*/
+  
   Set_Boundaries_MPI(P);
 
 #endif /*MPI_CHOLLA*/
@@ -206,12 +207,22 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       if ( dir == 5 ) Copy_Potential_Boundaries( 2, 1, flags );
     }
     if ( flags[dir] == 3 ){
+      
+      #ifdef GRAVITY_GPU
+      if ( dir == 0 ) Set_Potential_Boundaries_Isolated_GPU( 0, 0, flags );
+      if ( dir == 1 ) Set_Potential_Boundaries_Isolated_GPU( 0, 1, flags );
+      if ( dir == 2 ) Set_Potential_Boundaries_Isolated_GPU( 1, 0, flags );
+      if ( dir == 3 ) Set_Potential_Boundaries_Isolated_GPU( 1, 1, flags );
+      if ( dir == 4 ) Set_Potential_Boundaries_Isolated_GPU( 2, 0, flags );
+      if ( dir == 5 ) Set_Potential_Boundaries_Isolated_GPU( 2, 1, flags );
+      #else
       if ( dir == 0 ) Set_Potential_Boundaries_Isolated( 0, 0, flags );
       if ( dir == 1 ) Set_Potential_Boundaries_Isolated( 0, 1, flags );
       if ( dir == 2 ) Set_Potential_Boundaries_Isolated( 1, 0, flags );
       if ( dir == 3 ) Set_Potential_Boundaries_Isolated( 1, 1, flags );
       if ( dir == 4 ) Set_Potential_Boundaries_Isolated( 2, 0, flags );
       if ( dir == 5 ) Set_Potential_Boundaries_Isolated( 2, 1, flags );
+      #endif//GRAVITY_GPU
     }
     return; 
   }
@@ -312,7 +323,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
     }
   }
   
-  #ifdef GPU_MPI
+  #ifdef HYDRO_GPU
   Set_Hydro_Boundaries_GPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
   #else
   Set_Hydro_Boundaries_CPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
@@ -398,14 +409,13 @@ void Grid3D::Set_Hydro_Boundaries_CPU
     }
           
   }      
-
 }
 
-
-void Grid3D::Set_Hydro_Boundaries_GPU 
+void Grid3D::Set_Hydro_Boundaries_GPU
        ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries, 
          int dir, int *flags ) {
 
+  int n_cells;
   Real *c_density, 
        *c_momentum_x, *c_momentum_y, *c_momentum_z, 
        *c_energy, *c_scalar, *c_gasEnergy;
@@ -417,105 +427,71 @@ void Grid3D::Set_Hydro_Boundaries_GPU
   c_energy     = C.d_Energy;
   c_gasEnergy  = C.d_GasEnergy;
   c_scalar     = C.d_scalar;
+  n_cells      = H.n_cells;
   
-  #ifdef GPU_MPI
-  omp_target_associate_ptr 
-    (c_density, C.d_density, H.n_cells*sizeof(Real), 0, 0);
-  omp_target_associate_ptr 
-    (c_momentum_x, C.d_momentum_x, H.n_cells*sizeof(Real), 0, 0);
-  omp_target_associate_ptr 
-    (c_momentum_y, C.d_momentum_y, H.n_cells*sizeof(Real), 0, 0);
-  omp_target_associate_ptr 
-    (c_momentum_z, C.d_momentum_z, H.n_cells*sizeof(Real), 0, 0);
-  omp_target_associate_ptr 
-    (c_energy, C.d_Energy, H.n_cells*sizeof(Real), 0, 0);
-  
-  #ifdef DE
-  omp_target_associate_ptr 
-    (c_gasEnergy, C.d_GasEnergy, H.n_cells*sizeof(Real), 0, 0);
-  #endif
-  #ifdef SCALAR  
-  omp_target_associate_ptr 
-    (c_scalar, C.d_scalar, H.n_cells*sizeof(Real), 0, 0);
-  #endif
-  #endif //GPU_MPI
-
+  #pragma omp target data map \
+    ( to: iaCell[0:nBoundaries], iaBoundary[0:nBoundaries], Sign[0:3] )
+  {
   #pragma omp target teams distribute parallel for \
-              map ( to : iaBoundary[:nBoundaries], iaCell[:nBoundaries], \
-                         Sign[:3], flags ) \
-              firstprivate ( dir )
+    is_device_ptr ( c_density, c_momentum_x, c_momentum_y, \
+                    c_momentum_z, c_energy, c_gasEnergy, c_scalar ) 
   for (int iB = 0; iB < nBoundaries; iB++ ) {
-  
     //set the ghost cell value
     c_density[iaBoundary[iB]]    = c_density[iaCell[iB]];
     c_momentum_x[iaBoundary[iB]] = c_momentum_x[iaCell[iB]]*Sign[0];
     c_momentum_y[iaBoundary[iB]] = c_momentum_y[iaCell[iB]]*Sign[1];
     c_momentum_z[iaBoundary[iB]] = c_momentum_z[iaCell[iB]]*Sign[2];
     c_energy[iaBoundary[iB]]     = c_energy[iaCell[iB]];
-    
+
     #ifdef DE
     c_gasEnergy[iaBoundary[iB]]  = c_gasEnergy[iaCell[iB]];
     #endif
     #ifdef SCALAR 
     for (int ii=0; ii<NSCALARS; ii++) {
-      c_scalar[iaBoundary[iB] + ii*H.n_cells] 
-        = c_scalar[iaCell[iB] + ii*H.n_cells];
-    }
+      c_scalar[iaBoundary[iB] + ii*n_cells] 
+        = c_scalar[iaCell[iB] + ii*n_cells];
+      }
     #endif
-    
-    //for outflow boundaries, set momentum to restrict inflow
-    
-    if (flags[dir] == 3) {
-      // first subtract kinetic energy from total
+    }
+  
+  if ( flags[dir] == 3 ) {
+    #pragma omp target teams distribute parallel for \
+      is_device_ptr ( c_density, c_momentum_x, c_momentum_y, \
+                      c_momentum_z, c_energy, c_gasEnergy, c_scalar )
+    for (int iB = 0; iB < nBoundaries; iB++ ) {
       c_energy[iaBoundary[iB]] -= 
         0.5*(c_momentum_x[iaBoundary[iB]] * c_momentum_x[iaBoundary[iB]] 
              + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]] 
              + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
              /c_density[iaBoundary[iB]];
-    
+      
       if (dir == 0) {
         c_momentum_x[iaBoundary[iB]] = fmin(c_momentum_x[iaBoundary[iB]], 0.0);
-      }
+        }
       if (dir == 1) {
         c_momentum_x[iaBoundary[iB]] = fmax(c_momentum_x[iaBoundary[iB]], 0.0);
-      }
+        }
       if (dir == 2) {
         c_momentum_y[iaBoundary[iB]] = fmin(c_momentum_y[iaBoundary[iB]], 0.0);
-      }
+        }
       if (dir == 3) {
         c_momentum_y[iaBoundary[iB]] = fmax(c_momentum_y[iaBoundary[iB]], 0.0);
-      }
+        }
       if (dir == 4) {
         c_momentum_z[iaBoundary[iB]] = fmin(c_momentum_z[iaBoundary[iB]], 0.0);
-      }
+        }
       if (dir == 5) {
         c_momentum_z[iaBoundary[iB]] = fmax(c_momentum_z[iaBoundary[iB]], 0.0);
-      }
+        }
       // now re-add the new kinetic energy
       c_energy[iaBoundary[iB]] += 
         0.5*(c_momentum_x[iaBoundary[iB]]*c_momentum_x[iaBoundary[iB]] 
              + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]] 
              + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
-            /c_density[iaBoundary[iB]]; 
+            /c_density[iaBoundary[iB]];
+      }
     }
-          
   }
-  
-  //printf("OpenMP Disassociate\n");
-  
-  #ifdef GPU_MPI
-  omp_target_disassociate_ptr(c_density, 0);
-  omp_target_disassociate_ptr(c_momentum_x, 0);
-  omp_target_disassociate_ptr(c_momentum_y, 0);
-  omp_target_disassociate_ptr(c_momentum_z, 0);
-  omp_target_disassociate_ptr(c_energy, 0);
-  #ifdef DE
-  omp_target_disassociate_ptr(c_gasEnergy, 0);
-  #endif
-  #ifdef SCALAR
-  omp_target_disassociate_ptr(c_scalar, 0);
-  #endif
-  #endif // GPU_MPI
 }
 
 

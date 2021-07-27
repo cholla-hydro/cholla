@@ -9,6 +9,10 @@
 #include"../global_cuda.h"
 #include "particles_3D.h"
 
+#ifdef GRAVITY_GPU
+#include "../grid3D.h"
+#endif
+
 
 //Copy the potential from host to device
 void Particles_3D::Copy_Potential_To_GPU( Real *potential_host, Real *potential_dev, int n_cells_potential ){
@@ -97,7 +101,9 @@ __global__ void Get_Gravity_Field_Particles_Kernel(  Real *potential_dev, Real *
 //Call the kernel to compute the gradient of the potential
 void Particles_3D::Get_Gravity_Field_Particles_GPU_function( int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells_potential, Real dx, Real dy, Real dz,  Real *potential_host, Real *potential_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev  ){
   
+  #ifndef GRAVITY_GPU
   Copy_Potential_To_GPU( potential_host, potential_dev, n_cells_potential );
+  #endif
   
   int nx_g, ny_g, nz_g;
   nx_g = nx_local + 2*N_GHOST_POTENTIAL;
@@ -253,5 +259,59 @@ void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_loca
     
 }
 
+#ifdef GRAVITY_GPU
 
-#endif
+void __global__ Copy_Particles_Density_Kernel( Real *dst_density, Real *src_density, int nx_local, int ny_local, int nz_local, int n_ghost ){
+  
+  int tid_x, tid_y, tid_z, tid_CIC, tid_dens;
+  tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+  tid_y = blockIdx.y * blockDim.y + threadIdx.y;
+  tid_z = blockIdx.z * blockDim.z + threadIdx.z;
+  
+  if (tid_x >= nx_local || tid_y >= ny_local || tid_z >= nz_local ) return;  
+  
+  tid_dens = tid_x + tid_y*nx_local + tid_z*nx_local*ny_local;
+  
+  tid_x += n_ghost;
+  tid_y += n_ghost;
+  tid_z += n_ghost;
+
+  int nx_CIC, ny_CIC;
+  nx_CIC = nx_local + 2*n_ghost;
+  ny_CIC = ny_local + 2*n_ghost;
+  tid_CIC = tid_x + tid_y*nx_CIC + tid_z*nx_CIC*ny_CIC;
+  
+  dst_density[tid_dens] = src_density[tid_CIC];
+  
+}
+
+
+
+//Copy the particles density to the density array in Grav to compute the potential
+void Grid3D::Copy_Particles_Density_GPU( ){
+    
+  int nx_local, ny_local, nz_local, n_ghost;
+  n_ghost  = Particles.G.n_ghost_particles_grid;
+  nx_local = Grav.nx_local;
+  ny_local = Grav.ny_local;
+  nz_local = Grav.nz_local;
+  
+  // set values for GPU kernels
+  int tpb_x = 16;
+  int tpb_y = 8;
+  int tpb_z = 8;
+  int ngrid_x = (nx_local - 1) / tpb_x + 1;
+  int ngrid_y = (ny_local - 1) / tpb_y + 1;
+  int ngrid_z = (nz_local - 1) / tpb_z + 1;
+  // number of blocks per 1D grid  
+  dim3 dim3dGrid(ngrid_x, ngrid_y, ngrid_z);
+  //  number of threads per 1D block   
+  dim3 dim3dBlock(tpb_x, tpb_y, tpb_z);
+  
+  hipLaunchKernelGGL( Copy_Particles_Density_Kernel, dim3dGrid, dim3dBlock, 0, 0, Grav.F.density_d, Particles.G.density_dev, nx_local, ny_local, nz_local, n_ghost );
+}
+
+
+#endif//GRAVITY_GPU
+
+#endif//PARTICLES

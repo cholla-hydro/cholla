@@ -5,12 +5,9 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
-DIRS     := src src/gravity src/particles src/cosmology src/cooling src/model
-ifeq ($(findstring -DPARIS,$(POISSON_SOLVER)),-DPARIS)
-  DIRS += src/gravity/paris
-  DFLAGS += -DPARIS
-  SUFFIX ?= .paris.$(MACHINE)
-endif
+DIRS     := src src/gravity src/particles src/cosmology \
+            src/cooling src/model src/cooling_grackle src/analysis \
+            src/gravity/paris
 
 SUFFIX ?= .$(TYPE).$(MACHINE)
 
@@ -39,7 +36,6 @@ CXXFLAGS           = $(CXXFLAGS_$(BUILD))
 CFLAGS   += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc
-
 
 ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
   CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
@@ -90,34 +86,39 @@ ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
   CXXFLAGS += -fopenmp
 endif
 
+ifeq ($(findstring -DLYA_STATISTICS,$(DFLAGS)),-DLYA_STATISTICS)
+  CXXFLAGS += -I$(FFTW_ROOT)/include 
+  GPUFLAGS += -I$(FFTW_ROOT)/include 
+  LIBS += -L$(FFTW_ROOT)/lib -lfftw3_mpi -lfftw3
+endif
+
+
 ifdef HIPCONFIG
-  DFLAGS += -DO_HIP
-  CXXFLAGS += $(HIPCONFIG)
-  GPUCXX ?= hipcc
-  GPUFLAGS += -g -O3 -Wall --amdgpu-target=gfx906,gfx908 -std=c++11 -ferror-limit=1
-  LD := $(CXX)
-  LDFLAGS := $(CXXFLAGS)
-  LIBS += -L$(ROCM_PATH)/lib -lamdhip64
+  DFLAGS    += -DO_HIP
+  CXXFLAGS  += $(HIPCONFIG)
+  GPUCXX    ?= hipcc
+  GPUFLAGS  += -g -O3 -Wall --amdgpu-target=gfx906,gfx908 -std=c++11 -ferror-limit=1
+  LD        := $(CXX)
+  LDFLAGS   := $(CXXFLAGS)
+  LIBS      += -L$(ROCM_PATH)/lib -lamdhip64 -lhsa-runtime64
 else
-  GPUCXX ?= nvcc
-  GPUFLAGS += --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
-  CXXFLAGS += -I${CUDA_ROOT}/include
-  LD := $(CXX)
-  LDFLAGS += $(CXXFLAGS)
-  LIBS += -L$(CUDA_ROOT)/lib64 -lcudart
+  CUDA_INC  ?= -I$(CUDA_ROOT)/include
+  CUDA_LIB  ?= -L$(CUDA_ROOT)/lib64 -lcudart
+  CXXFLAGS  += $(CUDA_INC)
+  GPUCXX    ?= nvcc
+  GPUFLAGS  += -std=c++11 --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  GPUFLAGS  += $(CUDA_INC)
+  LD        := $(CXX)
+  LDFLAGS   += $(CXXFLAGS)
+  LIBS      += $(CUDA_LIB)
 endif
 
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   DFLAGS += -DCONFIG_BFLOAT_8
-  DFLAGS += -DOUTPUT_TEMPERATURE
-  DFLAGS += -DOUTPUT_CHEMISTRY
-  #DFLAGS += -DOUTPUT_ELECTRONS
-  #DFLAGS += -DOUTPUT_FULL_IONIZATION
-  #DFLAGS += -DOUTPUT_METALS
   DFLAGS += -DSCALAR
-  DFLAGS += -DN_OMP_THREADS_GRACKLE=12
   CXXFLAGS += -I$(GRACKLE_ROOT)/include
-  LIBS     += -L$(GRACKLE_ROOT)lib -lgrackle
+  GPUFLAGS += -I$(GRACKLE_ROOT)/include
+  LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle
 endif
 
 .SUFFIXES: .c .cpp .cu .o
