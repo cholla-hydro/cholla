@@ -3,6 +3,11 @@
 #include"io.h"
 #include"error_handling.h"
 #include <iostream>
+
+#include"gpu.hpp"
+#include"global_cuda.h"//provides TPB
+#include"cuda_pack_buffers.h"
+
 #ifdef MPI_CHOLLA
 
 void Grid3D::Set_Boundaries_MPI(struct parameters P)
@@ -502,6 +507,37 @@ void Grid3D::Load_Hydro_DeviceBuffer3D( Real * send_buffer_3d, int axis, int sid
   joffset = H.n_ghost;
   koffset = H.n_ghost;
   
+  switch (axis){
+      case 0:
+	isize = H.n_ghost;
+	jsize = H.ny-2*H.n_ghost;
+	ksize = H.nz-2*H.n_ghost;
+	if (side == 0){
+	  ioffset = H.n_ghost;
+	} else {
+	  ioffset = H.nx-2*H.n_ghost;
+	}
+	break;
+      case 1:
+	isize = H.nx;
+	jsize = H.n_ghost;
+	ksize = H.nz-2*H.n_ghost;
+	if (side == 1){
+	  joffset = H.ny-2*H.n_ghost;
+	}
+	break;
+      case 2:
+	isize = H.nx;
+	jsize = H.ny;
+	ksize = H.n_ghost;
+	joffset = 0;
+	if (side == 1){
+	  koffset = H.nz-2*H.n_ghost;
+	}
+	break;
+    
+  }
+  /*
   // X axis
   if (axis == 0){
     isize = H.n_ghost;
@@ -533,10 +569,16 @@ void Grid3D::Load_Hydro_DeviceBuffer3D( Real * send_buffer_3d, int axis, int sid
       koffset = H.nz-2*H.n_ghost;
     }
   }
+  */
 
   int offset = isize*jsize*ksize;
   int idxoffset = ioffset + joffset*H.nx + koffset*H.nx*H.ny;
+  dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB,1,1);
+  dim3 dim1dBlock(TPB, 1, 1);                                                                                              
   
+  hipLaunchKernelGGL(PackBuffers3D,dim1dGrid,dim1dBlock,0,0,send_buffer_3d,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells)
+
+    /*
     #pragma omp target teams distribute parallel for collapse ( 3 ) \
             private ( idx, gidx ) \
       firstprivate ( offset , idxoffset, isize, jsize, ksize)	\
@@ -556,6 +598,14 @@ void Grid3D::Load_Hydro_DeviceBuffer3D( Real * send_buffer_3d, int axis, int sid
         }
       }
     }
+    */
+
+    /*
+// need to figure out G and B 
+
+     */
+
+    
 }
 
 
