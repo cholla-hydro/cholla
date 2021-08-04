@@ -534,8 +534,8 @@ void Grid3D::Load_Hydro_DeviceBuffer3D( Real * send_buffer_3d, int axis, int sid
     }
   }
 
-  int ijsize = isize*jsize;
-  int offset = ksize*ijsize;
+  int offset = isize*jsize*ksize;
+  int idxoffset = ioffset + joffset*H.nx + koffset*H.nx*H.ny
   
     #pragma omp target teams distribute parallel for collapse ( 3 ) \
             private ( idx, gidx ) \
@@ -547,8 +547,9 @@ void Grid3D::Load_Hydro_DeviceBuffer3D( Real * send_buffer_3d, int axis, int sid
       {
         for(k=0;k<ksize;k++)
         {
-          idx  = (i+ioffset) + (j+joffset)*H.nx + (k+koffset)*H.nx*H.ny;
-          gidx = i + j*isize + k*ijsize;
+          idx  = i + (j+k*H.ny)*H.nx + idxoffset;//(i+ioffset) + (j+joffset)*H.nx + (k+koffset)*H.nx*H.ny;
+	  gidx = i+(j+k*jsize)*isize;
+          //gidx = i + j*isize + k*ijsize;//i+(j+k*jsize)*isize
           for (ii=0; ii<H.n_fields; ii++) {
             *(send_buffer_3d + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
           }
