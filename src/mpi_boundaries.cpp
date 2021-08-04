@@ -539,7 +539,7 @@ void Grid3D::Load_Hydro_DeviceBuffer3D( Real * send_buffer_3d, int axis, int sid
   
     #pragma omp target teams distribute parallel for collapse ( 3 ) \
             private ( idx, gidx ) \
-            firstprivate ( offset ) \
+      firstprivate ( offset , idxoffset, isize, jsize, ksize)	\
             is_device_ptr ( send_buffer_3d, c_head )
     for(i=0;i<isize;i++)
     {
