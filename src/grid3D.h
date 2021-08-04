@@ -644,7 +644,7 @@ class Grid3D
     int Load_Hydro_Buffer_Y1(Real *buffer);
     int Load_Hydro_Buffer_Z0(Real *buffer);
     int Load_Hydro_Buffer_Z1(Real *buffer);
-    int Load_Hydro_DeviceBuffer3D(Real *buffer, int axis, int side);
+    void Load_Hydro_DeviceBuffer3D(Real *buffer, int axis, int side);
     int Load_Hydro_DeviceBuffer_X0(Real *buffer);
     int Load_Hydro_DeviceBuffer_X1(Real *buffer);
     int Load_Hydro_DeviceBuffer_Y0(Real *buffer);
