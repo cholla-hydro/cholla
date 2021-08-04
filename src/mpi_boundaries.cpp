@@ -494,6 +494,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)
 int Grid3D::Load_Hydro_DeviceBuffer3D( Real * send_buffer_3d, int axis, int side){
   int i,j,k,ii;
   int isize,jsize,ksize,ioffset,joffset,koffset;
+  int gidx,idx;
   Real *c_head;
 
   c_head = (Real *)C.device;
