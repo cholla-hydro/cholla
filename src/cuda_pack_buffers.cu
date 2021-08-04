@@ -1,13 +1,7 @@
 #include"gpu.hpp"
 #include"global.h"
 #include"global_cuda.h"
-
-
-void PackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells){
-  dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
-  dim3 dim1dBlock(TPB, 1, 1); 
-  hipLaunchKernelGGL(PackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
-}
+#include"cuda_pack_buffers.h"
 
   
 __device__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells)
@@ -30,3 +24,11 @@ __device__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int
   }
   
 }
+
+
+void PackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells){
+  dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1); 
+  hipLaunchKernelGGL(PackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
+}
+
