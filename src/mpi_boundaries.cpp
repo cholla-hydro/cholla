@@ -573,10 +573,8 @@ void Grid3D::Load_Hydro_DeviceBuffer3D( Real * send_buffer_3d, int axis, int sid
 
   int offset = isize*jsize*ksize;
   int idxoffset = ioffset + joffset*H.nx + koffset*H.nx*H.ny;
-  dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB,1,1);
-  dim3 dim1dBlock(TPB, 1, 1);                                                                                              
   
-  hipLaunchKernelGGL(PackBuffers3D,dim1dGrid,dim1dBlock,0,0,send_buffer_3d,c_head,isize,jsize,ksize,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+  PackBuffers3D(send_buffer_3d,c_head,isize,jsize,ksize,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
 
     /*
     #pragma omp target teams distribute parallel for collapse ( 3 ) \
