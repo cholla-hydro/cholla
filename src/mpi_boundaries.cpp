@@ -686,6 +686,10 @@ int Grid3D::Load_Hydro_DeviceBuffer_X0 ( Real *send_buffer_x0 ){
       }
     }
   }
+  //int idxoffset = H.n_ghost;
+  //PackBuffers3D(send_buffer_x0,c_head,isize    ,jsize,ksize,H.nx,H.ny,idxoffset,offset   ,H.n_fields,H.n_cells);
+  //PackBuffers3D(send_buffer_x0,c_head,H.n_ghost,1    ,1    ,H.nx,H.ny,0        ,H.n_ghost,H.n_fields,H.n_cells);
+  
   // 2D
   if (H.ny > 1 && H.nz == 1) {
     offset = H.n_ghost*(H.ny-2*H.n_ghost);
@@ -703,6 +707,10 @@ int Grid3D::Load_Hydro_DeviceBuffer_X0 ( Real *send_buffer_x0 ){
       }
     }
   }
+  //int idxoffset = H.n_ghost + H.n_ghost*H.nx;
+  //PackBuffers3D(send_buffer_x0,c_head,H.n_ghost,H.ny-2*H.n_ghost,1    ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+
+  
   // 3D
   if (H.ny > 1 && H.nz > 1) {
     Load_Hydro_DeviceBuffer3D(send_buffer_x0,0,0);
@@ -789,6 +797,8 @@ int Grid3D::Load_Hydro_DeviceBuffer_X1 ( Real *send_buffer_x1 ){
         *(send_buffer_x1 + gidx + ii*offset) = c_head[idx + ii*H.n_cells];
       }
     }
+    //int idxoffset = H.nx-2*H.n_ghost;
+    //PackBuffers3D(send_buffer_x1,c_head,H.n_ghost,1,1,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
   // 2D
   if (H.ny > 1 && H.nz == 1) {
@@ -806,7 +816,11 @@ int Grid3D::Load_Hydro_DeviceBuffer_X1 ( Real *send_buffer_x1 ){
         }
       }
     }
+    //int idxoffset = H.nx-2*H.n_ghost + H.n_ghost*H.nx;
+    //PackBuffers3D(send_buffer_x1,c_head,H.n_ghost,H.ny-2*H.n_ghost,1    ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
+
+  
   // 3D
   if (H.ny > 1 && H.nz > 1) {
     Load_Hydro_DeviceBuffer3D(send_buffer_x1,0,1);
@@ -882,6 +896,8 @@ int Grid3D::Load_Hydro_DeviceBuffer_Y0 ( Real *send_buffer_y0 ){
         }
       }
     }
+    //int idxoffset = H.n_ghost*H.nx;
+    //PackBuffers3D(send_buffer_y0,c_head,H.nx,H.n_ghost,1    ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
   // 3D
   if (H.nz > 1) {
@@ -957,6 +973,9 @@ int Grid3D::Load_Hydro_DeviceBuffer_Y1 ( Real *send_buffer_y1 ){
         }
       }
     }
+    //int idxoffset = (H.ny-2*H.n_ghost)*H.nx;
+    //PackBuffers3D(send_buffer_y1,c_head,H.nx,H.n_ghost,1    ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    
   }
   // 3D
   if (H.nz > 1) {
@@ -1122,6 +1141,9 @@ void Grid3D::Unload_Hydro_DeviceBuffer_X0 ( Real *recv_buffer_x0 ) {
         c_head[idx + ii*n_cells] = *(recv_buffer_x0 + gidx + ii*offset);
       }
     }
+    //int idxoffset = 0;
+    //UnpackBuffers3D(recv_buffer_x0,c_head,H.n_ghost,1,1    ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    
   }
   // 2D
   if (ny > 1 && nz == 1) {
@@ -1139,6 +1161,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_X0 ( Real *recv_buffer_x0 ) {
         }
       }
     }
+    //int idxoffset = H.n_ghost*H.nx;
+    //UnpackBuffers3D(recv_buffer_x0,c_head,H.n_ghost,H.ny-2*H.n_ghost,1    ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
   // 3D
   if (nz > 1) {
@@ -1158,6 +1182,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_X0 ( Real *recv_buffer_x0 ) {
         }
       }
     }
+    //int idxoffset = H.n_ghost*(H.nx+H.nx*H.ny);
+    //UnpackBuffers3D(recv_buffer_x0,c_head,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
 
 }
@@ -1257,6 +1283,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_X1 ( Real *recv_buffer_x1 ) {
         c_head[idx + ii*n_cells] = *(recv_buffer_x1 + gidx + ii*offset);
       }
     }
+    //int idxoffset = H.nx - H.n_ghost;
+    //UnpackBuffers3D(recv_buffer_x1,c_head,H.n_ghost ,1 ,1 ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
   // 2D
   if (ny > 1 && nz == 1) {
@@ -1274,6 +1302,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_X1 ( Real *recv_buffer_x1 ) {
         }
       }
     }
+    //int idxoffset = H.nx - H.n_ghost + H.n_ghost*H.nx;
+    //UnpackBuffers3D(recv_buffer_x1,c_head,H.n_ghost ,H.ny-2*H.n_ghost ,1 ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
   // 3D
   if (nz > 1) {
@@ -1294,6 +1324,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_X1 ( Real *recv_buffer_x1 ) {
         }
       }
     }
+    //int idxoffset = H.nx - H.n_ghost + H.n_ghost*(H.nx+H.nx*H.ny);
+    //UnpackBuffers3D(recv_buffer_x1,c_head,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
 
 }
@@ -1383,6 +1415,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Y0 ( Real *recv_buffer_y0 ) {
         }
       }
     }
+    //int idxoffset = 0;
+    //UnpackBuffers3D(recv_buffer_y0,c_head,H.nx,H.n_ghost,1,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
   // 3D
   if (nz > 1) {
@@ -1402,6 +1436,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Y0 ( Real *recv_buffer_y0 ) {
         }
       }
     }
+    //int idxoffset = H.n_ghost*H.nx*H.ny;
+    //UnpackBuffers3D(recv_buffer_y0,c_head,H.nx,H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
 
 }
@@ -1491,6 +1527,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Y1 ( Real *recv_buffer_y1 ) {
         }
       }
     }
+    //int idxoffset = (H.ny-H.n_ghost)*H.nx;
+    //UnpackBuffers3D(recv_buffer_y1,c_head,H.nx,H.n_ghost,1,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
   // 3D
   if (nz > 1) {
@@ -1510,6 +1548,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Y1 ( Real *recv_buffer_y1 ) {
         }
       }
     }
+    //int idxoffset = (H.ny-H.n_ghost)*H.nx + H.n_ghost*H.nx*H.ny;
+    //UnpackBuffers3D(recv_buffer_y1,c_head,H.nx,H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
   
 }
@@ -1583,6 +1623,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Z0 ( Real *recv_buffer_z0 ) {
       }
     }
   }
+  //int idxoffset = 0;
+  //UnpackBuffers3D(recv_buffer_z0,c_head,H.nx,H.ny,H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
 
 }
 
@@ -1655,6 +1697,8 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Z1 ( Real *recv_buffer_z1 ) {
       }
     }
   }
+  //int idxoffset = (H.nz-H.n_ghost)*H.nx*H.ny;
+  //UnpackBuffers3D(recv_buffer_z1,c_head,H.nx,H.ny,H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
 
 }
 
