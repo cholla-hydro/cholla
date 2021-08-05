@@ -15,10 +15,8 @@ __global__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int
   j = (id - k*isize*jsize)/isize;
   i = id - k*isize*jsize - j*isize;
   idx  = i + (j+k*ny)*nx + idxoffset;
-  //(i+ioffset) + (j+joffset)*H.nx + (k+koffset)*H.nx*H.ny;
-  // gidx = id 
-  //gidx = i+(j+k*jsize)*isize; 
-  //gidx = i + j*isize + k*ijsize;//i+(j+k*jsize)*isize
+  // idxoffset contains offset terms from 
+  // idx = (i+ioffset) + (j+joffset)*H.nx + (k+koffset)*H.nx*H.ny;
   for (ii=0; ii<n_fields; ii++) {
     *(buffer + id + ii*offset) = c_head[idx + ii*n_cells]; 
   }
@@ -44,10 +42,6 @@ __global__ void UnpackBuffers3DKernel(Real * buffer, Real * c_head, int isize, i
   j = (id - k*isize*jsize)/isize;
   i = id - k*isize*jsize - j*isize;
   idx  = i + (j+k*ny)*nx + idxoffset;
-  //(i+ioffset) + (j+joffset)*H.nx + (k+koffset)*H.nx*H.ny;
-  // gidx = id 
-  //gidx = i+(j+k*jsize)*isize; 
-  //gidx = i + j*isize + k*ijsize;//i+(j+k*jsize)*isize
   for (ii=0; ii<n_fields; ii++) {
     c_head[idx + ii*n_cells] = *(buffer + id + ii*offset);
   }
