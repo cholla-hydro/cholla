@@ -714,6 +714,9 @@ int Grid3D::Load_Hydro_DeviceBuffer_X0 ( Real *send_buffer_x0 ){
   // 3D
   if (H.ny > 1 && H.nz > 1) {
     Load_Hydro_DeviceBuffer3D(send_buffer_x0,0,0);
+    //offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
+    //int idxoffset = H.n_ghost + H.n_ghost*H.nx + H.n_ghost*H.nx*H.ny;
+    //PackBuffers3D(send_buffer_x0,c_head,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
 
   return x_buffer_length;  
@@ -824,6 +827,9 @@ int Grid3D::Load_Hydro_DeviceBuffer_X1 ( Real *send_buffer_x1 ){
   // 3D
   if (H.ny > 1 && H.nz > 1) {
     Load_Hydro_DeviceBuffer3D(send_buffer_x1,0,1);
+    //offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
+    //int idxoffset = H.nx-2*H.n_ghost + H.n_ghost*H.nx + H.n_ghost*H.nx*H.ny;
+    //PackBuffers3D(send_buffer_x1,c_head,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
   
   return x_buffer_length;
@@ -902,6 +908,9 @@ int Grid3D::Load_Hydro_DeviceBuffer_Y0 ( Real *send_buffer_y0 ){
   // 3D
   if (H.nz > 1) {
     Load_Hydro_DeviceBuffer3D(send_buffer_y0,1,0);
+    //offset = H.nx*H.n_ghost*(H.nz-2*H.n_ghost);
+    //int idxoffset = H.n_ghost*H.nx + H.n_ghost*H.nx*H.ny;
+    //PackBuffers3D(send_buffer_y0,c_head,H.nx,H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   }
   return y_buffer_length;
 }
@@ -979,6 +988,9 @@ int Grid3D::Load_Hydro_DeviceBuffer_Y1 ( Real *send_buffer_y1 ){
   }
   // 3D
   if (H.nz > 1) {
+    //int idxoffset = (H.ny-2*H.n_ghost)*H.nx + H.n_ghost*H.nx*H.ny;
+    //offset = H.nx * H.n_ghost * (H.nz-2*H.n_ghost);
+    //PackBuffers3D(send_buffer_y1,c_head,H.nx,H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
     Load_Hydro_DeviceBuffer3D(send_buffer_y1,1,1);
   }
   return y_buffer_length;
@@ -1014,6 +1026,10 @@ int Grid3D::Load_Hydro_Buffer_Z0 ( Real *send_buffer_z0 ){
 int Grid3D::Load_Hydro_DeviceBuffer_Z0 ( Real *send_buffer_z0 ){
   // 3D
   Load_Hydro_DeviceBuffer3D(send_buffer_z0,2,0);
+  //int offset = H.n_ghost*H.nx*H.ny;
+  //int idxoffset = H.n_ghost*H.nx*H.ny;
+  //PackBuffers3D(send_buffer_z0,c_head,H.nx,H.ny,H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+
   return z_buffer_length;
 }
 
@@ -1043,6 +1059,9 @@ int Grid3D::Load_Hydro_Buffer_Z1 ( Real *send_buffer_z1 ){
 
 
 int Grid3D::Load_Hydro_DeviceBuffer_Z1 ( Real *send_buffer_z1 ){
+  //int offset = H.n_ghost*H.nx*H.ny;
+  //int idxoffset = (H.nz-2*H.n_ghost)*H.nx*H.ny;
+  //PackBuffers3D(send_buffer_z1,c_head,H.nx,H.ny,H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
   Load_Hydro_DeviceBuffer3D(send_buffer_z1,2,1);
   return z_buffer_length;
 }
