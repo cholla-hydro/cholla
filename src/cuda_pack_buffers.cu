@@ -63,7 +63,7 @@ void PackGhostCells(Real * c_head,
   dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(PackGhostCellsKernel,dim1dGrid,dim1dBlock,0,0,c_head,
-		     nx,ny,nz,n_fields,n_cells,
+		     nx,ny,nz,n_fields,n_cells,n_ghost,
 		     flags[0],flags[1],flags[2],flags[3],flags[4],flags[5],
 		     isize,jsize,ksize,imin,jmin,kmin,dir);
 }
