@@ -55,3 +55,226 @@ void UnpackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksi
   hipLaunchKernelGGL(UnpackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
 }
 
+void PackGhostCells(Real * c_head,
+		    int nx, int ny, int n_fields, int n_cells, int flags[],
+		    int isize, int jsize, int ksize,
+		    int imin, int jmin, int kmin)
+{
+  dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+  hipLaunchKernelGGL(PackGhostCellsKernel,dim1dGrid,dim1dBlock,0,0,c_head,
+		     nx,ny,n_fields,n_cells,
+		     flags[0],flags[1],flags[2],flags[3],flags[4],flags[5],
+		     isize,jsize,ksize,imin,jmin,kmin);
+}
+
+__global__ void PackGhostCellsKernel(Real * c_head,
+				     int nx, int ny, int n_fields, int n_cells,
+				     int f0, int f1, int f2, int f3, int f4, int f5,
+				     int isize, int jsize, int ksize,
+				     int imin, int jmin, int kmin){
+  int id,i,j,k,gidx,idx,ii;
+  Real a[3] = {1,1,1};
+  int flags[6] = {f0,f1,f2,f3,f4,f5};
+  
+  // using thread ID calculate which ghost cell this is
+  // calculate which real cell using Grid3D::Set_Boundary_Mapping
+  // and Grid3D::Find_Index
+  // set variables, flipping momentum sign when needed
+  // if flags[dir] == 3 correct the energy
+
+  // calculate ghost cell ID and i,j,k
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+  
+  // not true i,j,k but relative i,j,k
+  k = id/(isize*jsize);
+  j = (id - k*isize*jsize)/isize;
+  i = id - k*isize*jsize - j*isize;
+  // true i,j,k conversion
+  i += imin;
+  j += jmin;
+  k += kmin;
+  gidx = i + j*nx + k*nx*ny;
+
+  idx = SetBoundaryMapping(i,j,k,&a[0],flags);
+
+  if (idx>=0){
+    for (ii=0; ii<n_fields; ii++) {
+      c_head[gidx + ii*n_cells] = c_head[idx + ii*n_cells];
+    }
+    // momentum correction
+    c_head[gidx + n_cells] *= a[0];
+    c_head[gidx + 2*n_cells] *= a[1];
+    c_head[gidx + 3*n_cells] *= a[2];
+
+    // energy correction
+    if (flags[dir] == 3){
+      c_head[gidx + 4*n_cells] -= 0.5*( c_head[gidx+n_cells]*c_head[gidx+n_cells]
+					+ c_head[gidx+2*n_cells]*c_head[gidx+2*n_cells]
+					+ c_head[gidx+3*n_cells]*c_head[gidx+3*n_cells])/c_head[gidx];
+
+      if (dir == 0) {
+	c_head[gidx+n_cells] = fmin(c_head[gidx+n_cells],0.0);
+      }
+      if (dir == 1) {
+	c_head[gidx+n_cells] = fmax(c_head[gidx+n_cells],0.0);
+      }
+      if (dir == 2) {
+	c_head[gidx+2*n_cells] = fmin(c_head[gidx+2*n_cells],0.0);
+      }
+      if (dir == 3) {
+	c_head[gidx+2*n_cells] = fmax(c_head[gidx+2*n_cells],0.0);
+      }
+      if (dir == 4) {
+	c_head[gidx+3*n_cells] = fmin(c_head[gidx+3*n_cells],0.0);
+      }
+      if (dir == 5) {
+	c_head[gidx+3*n_cells] = fmax(c_head[gidx+3*n_cells],0.0);
+      }
+      
+      c_head[gidx + 4*n_cells] += 0.5*( c_head[gidx+n_cells]*c_head[gidx+n_cells]
+					+ c_head[gidx+2*n_cells]*c_head[gidx+2*n_cells]
+					+ c_head[gidx+3*n_cells]*c_head[gidx+3*n_cells])/c_head[gidx];   
+    }//end energy correction
+  }//end idx>=0
+}//end function
+
+__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[]){
+  // nx, ny, nz, n_ghost
+  /* 1D */
+  int ir, jr, kr, idx;
+  ir=jr=kr=idx=0;
+  if (nx>1) {
+
+    // set index on -x face
+    if (ig < n_ghost) {
+      ir = FindIndex(ig, nx, flags[0], 0, n_ghost, &a[0]);
+    }
+    // set index on +x face
+    else if (ig >= H.nx-H.n_ghost) {
+      ir = FindIndex(ig, nx, flags[1], 1, n_ghost, &a[0]);
+    }
+    // set i index for multi-D problems
+    else {
+      ir = ig;
+    }
+
+    // if custom x boundaries are needed, set index to -1 and return
+    if (ir < 0) {
+      return idx = -1;
+    }
+
+    // otherwise add i index to ghost cell mapping
+    idx += ir;
+
+  }
+
+  /* 2D */
+  if (ny > 1) {
+
+    // set index on -y face
+    if (jg < n_ghost) {
+      jr = Find_Index(jg, ny, flags[2], 0, n_ghost, &a[1]);
+    }
+    // set index on +y face
+    else if (jg >= ny-n_ghost) {
+      jr = Find_Index(jg, ny, flags[3], 1, n_ghost, &a[1]);
+    }
+    // set j index for multi-D problems
+    else {
+      jr = jg;
+    }
+
+    // if custom y boundaries are needed, set index to -1 and return
+    if (jr < 0) {
+      return idx = -1;
+    }
+
+    // otherwise add j index to ghost cell mapping
+    idx += nx*jr;
+
+  }
+
+  /* 3D */
+  if (nz > 1) {
+
+    // set index on -z face
+    if (kg < n_ghost) {
+      kr = Find_Index(kg, nz, flags[4], 0, n_ghost, &a[2]);
+    }
+    // set index on +z face
+    else if (kg >= nz-n_ghost) {
+      kr = Find_Index(kg, nz, flags[5], 1, n_ghost, &a[2]);
+    }
+    // set k index for multi-D problems
+    else {
+      kr = kg;
+    }
+
+    // if custom z boundaries are needed, set index to -1 and return
+    if (kr < 0) {
+      return idx = -1;
+    }
+
+    // otherwise add k index to ghost cell mapping
+    idx += nx*ny*kr;
+
+  }
+  return idx;
+}
+
+__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a){
+  int id;
+
+  // lower face
+  if (face==0) {
+    switch(flag)
+      {
+	// periodic
+      case 1: id = ig+nx-2*n_ghost;
+	break;
+	// reflective
+      case 2: id = 2*n_ghost-ig-1;
+	*(a) = -1.0;
+	break;
+	// transmissive
+      case 3: id = n_ghost;
+	break;
+	// custom
+      case 4: id = -1;
+	break;
+	// MPI
+      case 5: id = ig;
+	break;
+	// default is periodic
+      default: id = ig+nx-2*n_ghost;
+      }
+  }
+  // upper face
+  else {
+    switch(flag)
+      {
+	// periodic
+      case 1: id = ig-nx+2*n_ghost;
+	break;
+	// reflective
+      case 2: id = 2*(nx-n_ghost)-ig-1;
+	*(a) = -1.0;
+	break;
+	// transmissive
+      case 3: id = nx-n_ghost-1;
+	break;
+	// custom
+      case 4: id = -1;
+	break;
+	// MPI
+      case 5: id = ig;
+	break;
+	// default is periodic
+      default: id = ig-nx+2*n_ghost;
+      }
+  }
+  return id;
+}        
+
+  

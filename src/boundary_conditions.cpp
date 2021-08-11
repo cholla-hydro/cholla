@@ -13,6 +13,7 @@
 
 #ifdef HYDRO_GPU
 #include "omp.h"
+#include"cuda_pack_buffers.h"
 #endif
 
 /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
@@ -284,6 +285,14 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
 
   //get the extents of the ghost region we are initializing
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
+
+  #ifdef HYDRO_GPU
+  void PackGhostCells(Real * c_head,
+		      H.nx, H.ny, H.n_fields, H.n_cells, flags,
+		      imax[0]-imin[0], imax[1]-imin[1], imax[2]-imin[2],
+		      imin[0], imin[1], imin[2]);
+
+  #else
   
   nPB = (imax[0]-imin[0]) * (imax[1]-imin[1]) * (imax[2]-imin[2]);
   iaBoundary = ( int * ) malloc ( sizeof ( int ) * nPB );
@@ -323,14 +332,15 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
     }
   }
   
-  #ifdef HYDRO_GPU
-  Set_Hydro_Boundaries_GPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
-  #else
+
+  //Set_Hydro_Boundaries_GPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
+
   Set_Hydro_Boundaries_CPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
-  #endif
+
   
   free ( iaBoundary );
   free ( iaCell );
+  #endif
 }
 
 void Grid3D::Set_Hydro_Boundaries_CPU 
