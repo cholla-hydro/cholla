@@ -56,7 +56,7 @@ void UnpackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksi
 }
 
 void PackGhostCells(Real * c_head,
-		    int nx, int ny, int nz, int n_fields, int n_cells, int flags[],
+		    int nx, int ny, int nz, int n_fields, int n_cells, int n_ghost, int flags[],
 		    int isize, int jsize, int ksize,
 		    int imin, int jmin, int kmin, int dir)
 {
@@ -69,7 +69,7 @@ void PackGhostCells(Real * c_head,
 }
 
 __global__ void PackGhostCellsKernel(Real * c_head,
-				     int nx, int ny, int nz, int n_fields, int n_cells,
+				     int nx, int ny, int nz, int n_fields, int n_cells, int n_ghost,
 				     int f0, int f1, int f2, int f3, int f4, int f5,
 				     int isize, int jsize, int ksize,
 				     int imin, int jmin, int kmin, int dir){
