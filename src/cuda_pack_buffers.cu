@@ -56,23 +56,23 @@ void UnpackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksi
 }
 
 void PackGhostCells(Real * c_head,
-		    int nx, int ny, int n_fields, int n_cells, int flags[],
+		    int nx, int ny, int nz, int n_fields, int n_cells, int flags[],
 		    int isize, int jsize, int ksize,
-		    int imin, int jmin, int kmin)
+		    int imin, int jmin, int kmin, int dir)
 {
   dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(PackGhostCellsKernel,dim1dGrid,dim1dBlock,0,0,c_head,
-		     nx,ny,n_fields,n_cells,
+		     nx,ny,nz,n_fields,n_cells,
 		     flags[0],flags[1],flags[2],flags[3],flags[4],flags[5],
-		     isize,jsize,ksize,imin,jmin,kmin);
+		     isize,jsize,ksize,imin,jmin,kmin,dir);
 }
 
 __global__ void PackGhostCellsKernel(Real * c_head,
-				     int nx, int ny, int n_fields, int n_cells,
+				     int nx, int ny, int nz, int n_fields, int n_cells,
 				     int f0, int f1, int f2, int f3, int f4, int f5,
 				     int isize, int jsize, int ksize,
-				     int imin, int jmin, int kmin){
+				     int imin, int jmin, int kmin, int dir){
   int id,i,j,k,gidx,idx,ii;
   Real a[3] = {1,1,1};
   int flags[6] = {f0,f1,f2,f3,f4,f5};
@@ -96,7 +96,7 @@ __global__ void PackGhostCellsKernel(Real * c_head,
   k += kmin;
   gidx = i + j*nx + k*nx*ny;
 
-  idx = SetBoundaryMapping(i,j,k,&a[0],flags);
+  idx = SetBoundaryMapping(i,j,k,&a[0],flags,nx,ny,nz,n_ghost);
 
   if (idx>=0){
     for (ii=0; ii<n_fields; ii++) {
@@ -139,7 +139,7 @@ __global__ void PackGhostCellsKernel(Real * c_head,
   }//end idx>=0
 }//end function
 
-__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[]){
+__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], int nx, int ny, int nz, int n_ghost){
   // nx, ny, nz, n_ghost
   /* 1D */
   int ir, jr, kr, idx;
@@ -151,7 +151,7 @@ __device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[]){
       ir = FindIndex(ig, nx, flags[0], 0, n_ghost, &a[0]);
     }
     // set index on +x face
-    else if (ig >= H.nx-H.n_ghost) {
+    else if (ig >= nx-n_ghost) {
       ir = FindIndex(ig, nx, flags[1], 1, n_ghost, &a[0]);
     }
     // set i index for multi-D problems
@@ -174,11 +174,11 @@ __device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[]){
 
     // set index on -y face
     if (jg < n_ghost) {
-      jr = Find_Index(jg, ny, flags[2], 0, n_ghost, &a[1]);
+      jr = FindIndex(jg, ny, flags[2], 0, n_ghost, &a[1]);
     }
     // set index on +y face
     else if (jg >= ny-n_ghost) {
-      jr = Find_Index(jg, ny, flags[3], 1, n_ghost, &a[1]);
+      jr = FindIndex(jg, ny, flags[3], 1, n_ghost, &a[1]);
     }
     // set j index for multi-D problems
     else {
@@ -200,11 +200,11 @@ __device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[]){
 
     // set index on -z face
     if (kg < n_ghost) {
-      kr = Find_Index(kg, nz, flags[4], 0, n_ghost, &a[2]);
+      kr = FindIndex(kg, nz, flags[4], 0, n_ghost, &a[2]);
     }
     // set index on +z face
     else if (kg >= nz-n_ghost) {
-      kr = Find_Index(kg, nz, flags[5], 1, n_ghost, &a[2]);
+      kr = FindIndex(kg, nz, flags[5], 1, n_ghost, &a[2]);
     }
     // set k index for multi-D problems
     else {

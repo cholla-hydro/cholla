@@ -288,9 +288,9 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
 
   #ifdef HYDRO_GPU
   PackGhostCells(C.device,
-		 H.nx, H.ny, H.n_fields, H.n_cells, flags,
+		 H.nx, H.ny, H.nz, H.n_fields, H.n_cells, flags,
 		 imax[0]-imin[0], imax[1]-imin[1], imax[2]-imin[2],
-		 imin[0], imin[1], imin[2]);
+		 imin[0], imin[1], imin[2], dir);
   
   #else
   
