@@ -74,7 +74,7 @@ __global__ void PackGhostCellsKernel(Real * c_head,
 				     int isize, int jsize, int ksize,
 				     int imin, int jmin, int kmin, int dir){
   int id,i,j,k,gidx,idx,ii;
-  Real a[3] = {1,1,1};
+  Real a[3] = {1.,1.,1.};
   int flags[6] = {f0,f1,f2,f3,f4,f5};
   
   // using thread ID calculate which ghost cell this is
@@ -105,11 +105,27 @@ __global__ void PackGhostCellsKernel(Real * c_head,
     for (ii=0; ii<n_fields; ii++) {
       c_head[gidx + ii*n_cells] = c_head[idx + ii*n_cells];
     }
-    // momentum correction
-    c_head[gidx + n_cells] *= a[0];
-    c_head[gidx + 2*n_cells] *= a[1];
-    c_head[gidx + 3*n_cells] *= a[2];
-
+    // momentum correction for reflection
+    if (flags[dir] == 2) {
+      if (dir == 0) {
+	c_head[gidx + n_cells] *= -1.0;
+      }
+      if (dir == 1) {
+	c_head[gidx + n_cells] *= -1.0;
+      }
+      if (dir == 2) {
+	c_head[gidx + 2*n_cells] *= -1.0;
+      }
+      if (dir == 3) {
+	c_head[gidx + 2*n_cells] *= -1.0;
+      }
+      if (dir == 4) {
+	c_head[gidx + 3*n_cells] *= -1.0;
+      }
+      if (dir == 4) {
+	c_head[gidx + 3*n_cells] *= -1.0;
+      }
+    }
     // energy correction
     if (flags[dir] == 3){
       c_head[gidx + 4*n_cells] -= 0.5*( c_head[gidx+n_cells]*c_head[gidx+n_cells]
