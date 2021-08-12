@@ -107,26 +107,12 @@ __global__ void PackGhostCellsKernel(Real * c_head,
     }
     // momentum correction for reflection
     if (flags[dir] == 2) {
-      if (dir == 0) {
-	c_head[gidx + n_cells] *= -1.0;
-      }
-      if (dir == 1) {
-	c_head[gidx + n_cells] *= -1.0;
-      }
-      if (dir == 2) {
-	c_head[gidx + 2*n_cells] *= -1.0;
-      }
-      if (dir == 3) {
-	c_head[gidx + 2*n_cells] *= -1.0;
-      }
-      if (dir == 4) {
-	c_head[gidx + 3*n_cells] *= -1.0;
-      }
-      if (dir == 4) {
-	c_head[gidx + 3*n_cells] *= -1.0;
-      }
+      //dir 0,1 -> x momentum
+      //dir 2,3 -> y momentum
+      //dir 4,5 -> z momentum
+      c_head[gidx + (1+dir/2)*n_cells] *= -1;
     }
-    // energy correction
+    // energy and momentum correction for transmission
     if (flags[dir] == 3){
       c_head[gidx + 4*n_cells] -= 0.5*( c_head[gidx+n_cells]*c_head[gidx+n_cells]
 					+ c_head[gidx+2*n_cells]*c_head[gidx+2*n_cells]
