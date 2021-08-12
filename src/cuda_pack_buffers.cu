@@ -90,7 +90,7 @@ __global__ void PackGhostCellsKernel(Real * c_head,
   k = id/(isize*jsize);
   j = (id - k*isize*jsize)/isize;
   i = id - k*isize*jsize - j*isize;
-  if (k>=ksize){
+  if (id>=isize*jsize*ksize){
     return;
   }
   // true i,j,k conversion
