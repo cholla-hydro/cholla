@@ -2451,12 +2451,12 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
     
     #else
     
-    l_recv_buffer_x0 = d_recv_buffer_x0;
-    l_recv_buffer_x1 = d_recv_buffer_x1;
-    l_recv_buffer_y0 = d_recv_buffer_y0;
-    l_recv_buffer_y1 = d_recv_buffer_y1;
-    l_recv_buffer_z0 = d_recv_buffer_z0;
-    l_recv_buffer_z1 = d_recv_buffer_z1;
+    l_recv_buffer_x0 = h_recv_buffer_x0;
+    l_recv_buffer_x1 = h_recv_buffer_x1;
+    l_recv_buffer_y0 = h_recv_buffer_y0;
+    l_recv_buffer_y1 = h_recv_buffer_y1;
+    l_recv_buffer_z0 = h_recv_buffer_z0;
+    l_recv_buffer_z1 = h_recv_buffer_z1;
     
     Fptr_Unload_Particle_Density 
       = &Grid3D::Unload_Particles_Density_Boundary_From_Buffer;
