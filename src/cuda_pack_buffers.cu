@@ -108,13 +108,13 @@ __global__ void PackGhostCellsKernel(Real * c_head,
     }
     // momentum correction for reflection
     // these are set to -1 whenever ghost cells in a direction are in a reflective boundary condition
-    if (face[0]==2 || face[1]==2){
+    if (f0==2 || f1==2){
       c_head[gidx + n_cells] *= a[0];
     }
-    if (face[2]==2 || face[3]==2){    
+    if (f2==2 || f3==2){    
       c_head[gidx + 2*n_cells] *= a[1];
     }
-    if (face[4]==2 || face[5]==2){    
+    if (f4==2 || f5==2){    
       c_head[gidx + 3*n_cells] *= a[2];
     }
     // energy and momentum correction for transmission
