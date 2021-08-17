@@ -9,10 +9,10 @@ DFLAGS += $(POISSON_SOLVER)
 #Keep the Gravity arrays resident in the GPU for high efficiency
 #NOTE: If using PARTICLES and GRAVITY_GPU is turned on, then PARTICLES_GPU has to be turned on 
 #NOTE: If using GRAVITY and MPI_GPU is turned on, then GRAVITY_GPU has to be turned on 
-DFLAGS += -DGRAVITY_GPU
+#DFLAGS += -DGRAVITY_GPU
 
 #Include an analytical potential on top on the Poisson Potential
-# DFLAGS += -DGRAVITY_ANALYTIC_COMP
+DFLAGS += -DGRAVITY_ANALYTIC_COMP
 
 #Solve the Gradient of the Potential using a fourth order scheme (5 points) 
 DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
@@ -25,4 +25,4 @@ DFLAGS += -DPARALLEL_OMP
 #Select if Paris will do GPU MPI transfers 
 #If not specified, Paris will do GPU MPI transfers by default
 #This is set in the system make.host file
-DFLAGS += $(PARIS_MPI_GPU)
+#DFLAGS += $(PARIS_MPI_GPU)
