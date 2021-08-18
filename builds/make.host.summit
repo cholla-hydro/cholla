@@ -22,4 +22,4 @@ PFFT_ROOT    = /ccs/proj/csc380/cholla/fom/code/pfft
 GRACKLE_ROOT = /ccs/home/bvilasen/code/grackle
 
 #-- MPI calls accept GPU buffers (requires GPU-aware MPI)
-#MPI_GPU = -DMPI_GPU
+MPI_GPU = -DMPI_GPU

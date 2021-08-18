@@ -6,7 +6,7 @@ OUTPUT    ?=  -DOUTPUT -DHDF5
 
 MPI_GPU   ?=
 
-#DFLAGS	  += -DHYDRO_GPU
+DFLAGS	  += -DHYDRO_GPU
 DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA 
 DFLAGS    += -DBLOCK
@@ -20,7 +20,8 @@ else
 DFLAGS    += -DVL
 endif
 
-DFLAGS += -DDISK_ICS
+# need this if using Disk_3D
+# DFLAGS += -DDISK_ICS
 
 # Apply a density and temperature floor
 DFLAGS    += -DDENSITY_FLOOR
