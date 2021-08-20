@@ -28,6 +28,7 @@ void PackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksize
   dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1); 
   hipLaunchKernelGGL(PackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
+  hipDeviceSynchronize();
 }
 
 
@@ -108,13 +109,13 @@ __global__ void PackGhostCellsKernel(Real * c_head,
     }
     // momentum correction for reflection
     // these are set to -1 whenever ghost cells in a direction are in a reflective boundary condition
-    if (f0==2 || f1==2){
+    if (flags[0]==2 || flags[1]==2){
       c_head[gidx + n_cells] *= a[0];
     }
-    if (f2==2 || f3==2){    
+    if (flags[2]==2 || flags[3]==2){    
       c_head[gidx + 2*n_cells] *= a[1];
     }
-    if (f4==2 || f5==2){    
+    if (flags[4]==2 || flags[5]==2){    
       c_head[gidx + 3*n_cells] *= a[2];
     }
     // energy and momentum correction for transmission
