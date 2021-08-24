@@ -177,7 +177,8 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   // Initialize Particles
   if (strcmp(P->init, "Spherical_Overdensity_3D")==0) Initialize_Sphere();
   else if (strcmp(P->init, "Zeldovich_Pancake")==0) Initialize_Zeldovich_Pancake( P );
-  else if (strcmp(P->init, "Read_Grid")==0 || strcmp(P->init, "Disk_3D_particles") == 0)  Load_Particles_Data(  P );
+  else if (strcmp(P->init, "Read_Grid")==0)  Load_Particles_Data(  P );
+  else if (strcmp(P->init, "Disk_3D_particles") == 0)  Initialize_Disk_Stellar_Clusters(P);
   
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);
@@ -564,10 +565,6 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Real R_max = sqrt(P->xlen*P->xlen + P->ylen*P->ylen)/2;
   R_max = P->xlen / 2.0;  
 
-  Real sigma_crit = Galaxies::MW.sigma_crit(2.5*R_d);
-  Real Q = 1.5;
-  Real vz_disper_factor  = sqrt(Galaxies::MW.kappa2(2.5*R_d, 0.0))*Z_d*M_PI/(Q*3.36);
-
   Real x, y, z, R, phi;
   Real vx, vy, vz, vel, ac;
   Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
@@ -575,8 +572,8 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Real id;
   #endif 
   particle_mass = 1e4;  //solar masses
-  unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
-  //unsigned long int N = (long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
+  //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
+  unsigned long int N = (long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
   long lost_particles = 0;
   for ( unsigned long int i = 0; i < N; i++ ){
       do {
@@ -586,46 +583,18 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       phi = phiDist(generator);
       x = R * cos(phi);
       y = R * sin(phi);
-      z   = zDist(generator); 
-      if (z < 0.5) {
-          z = Z_d * std::log(2*z);
-      } else {
-          z = -Z_d * std::log(2 - 2*z);
-      } 
+      z = 0;
 
       if (x < G.xMin || x > G.xMax) continue;
       if (y < G.yMin || y > G.yMax) continue;
       if (z < G.zMin || z > G.zMax) continue;
 
       ac  = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
-      v_c2 = R*ac;
+      vPhi = sqrt(R*ac);
 
-      if (R < R_d/4) {
-         expFactor = exp(1.25 -sqrt(R*R + R_d*R_d/8)/(2*R_d));
-      } else {
-        expFactor = exp(1.25 - R/(2*R_d));
-      }
-      vR_rms = Q*sigma_crit*expFactor;
-      vR = vR_rms*speedDist(generator);
-      kappa2 = Galaxies::MW.kappa2(R, 0);
-      vPhi_str = v_c2 + vR_rms*vR_rms*(1 - kappa2*R/4/ac - 2*R/R_d);
-      if (vPhi_str < 0) {
-         chprintf(" err: streaming phi_vel ave squared: %s at rad %f\n", vPhi_str, R);
-         lost_particles++;
-         continue;
-      }
-      vPhi_str = sqrt(vPhi_str);
-      vPhi_rand_rms = vR_rms*vR_rms*kappa2*R/4/ac;
-      vPhi = vPhi_str + sqrt(vPhi_rand_rms)*speedDist(generator);
-
-      vx = vR*cos(phi) - vPhi*sin(phi);
-      vy = vR*sin(phi) + vPhi*cos(phi);
-
-      vz = sqrt(M_PI*GN*Galaxies::MW.surface_density(R));
-      if (R < R_d/4) {
-          vz = vz*exp(R/(2*R_d) - sqrt(R*R + R_d*R_d/8)/(2*R_d));
-      }
-      vz = vz*speedDist(generator);
+      vx =  -vPhi*sin(phi);
+      vy =  vPhi*cos(phi);
+      vz = 0;
 
       #ifdef PARTICLES_CPU
       //Copy the particle data to the particles vectors

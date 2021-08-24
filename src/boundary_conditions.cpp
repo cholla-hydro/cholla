@@ -274,9 +274,13 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       if ( dir == 3 ) Set_Particles_Boundary_GPU( 1, 1 );
       if ( dir == 4 ) Set_Particles_Boundary_GPU( 2, 0 );
       if ( dir == 5 ) Set_Particles_Boundary_GPU( 2, 1 );
-      #endif//PARTICLES_CPU
+      #endif//PARTICLES_GPU
       
       
+      } else if (flags[dir] == 3) {
+        #ifdef PARTICLES_CPU
+        Set_Particles_Open_Boundary(dir/2, dir%2);
+        #endif
     }
     return; 
   }

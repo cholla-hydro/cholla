@@ -20,6 +20,9 @@ else
 DFLAGS    += -DVL
 endif
 
+# need this if using Disk_3D
+# DFLAGS += -DDISK_ICS
+
 # Apply a density and temperature floor
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR

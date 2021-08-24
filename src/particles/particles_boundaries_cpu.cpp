@@ -54,8 +54,8 @@ void Grid3D::Set_Particles_Boundary( int dir, int side ){
   Real d_min, d_max, L;
   
   if ( dir == 0 ){
-    d_min = Particles.G.zMin;
-    d_max = Particles.G.zMax;
+    d_min = Particles.G.xMin;
+    d_max = Particles.G.xMax;
   }
   if ( dir == 1 ){
     d_min = Particles.G.yMin;
@@ -97,6 +97,73 @@ void Grid3D::Set_Particles_Boundary( int dir, int side ){
     
   }
 }
+
+
+//Set open boundaries for particles when not using MPI
+void Grid3D::Set_Particles_Open_Boundary( int dir, int side ){
+  Real d_min, d_max, L;
+
+  if ( dir == 0 ){
+    d_min = Particles.G.xMin;
+    d_max = Particles.G.xMax;
+  }
+  if ( dir == 1 ){
+    d_min = Particles.G.yMin;
+    d_max = Particles.G.yMax;
+  }
+  if ( dir == 2 ){
+    d_min = Particles.G.zMin;
+    d_max = Particles.G.zMax;
+  }
+
+  L = d_max - d_min;
+
+  Real pos;
+  int_vector_t removed_indices;
+
+  #ifdef PARALLEL_OMP
+  #pragma omp parallel for private(pos) num_threads( N_OMP_THREADS )
+  #endif
+  for( int i=0; i<Particles.n_local; i++){
+
+    if ( dir == 0 ) pos = Particles.pos_x[i];
+    if ( dir == 1 ) pos = Particles.pos_y[i];
+    if ( dir == 2 ) pos = Particles.pos_z[i];
+
+    //If the position is out of the region, remove.
+    if (( side == 0 && pos < d_min ) || ( side == 1 && pos > d_max)) removed_indices.push_back(i);
+  }
+  std::sort(removed_indices.begin(), removed_indices.end());
+
+  part_int_t indx, pIndx;
+  part_int_t n_delete = removed_indices.size();
+  for ( indx=0; indx<n_delete; indx++ ){
+    //From right to left get the index of the particle that will be deleted
+    pIndx = removed_indices.back();
+    //Remove the particle data at the selected index
+    Remove_Real( pIndx, Particles.pos_x );
+    Remove_Real( pIndx, Particles.pos_y );
+    Remove_Real( pIndx, Particles.pos_z );
+    Remove_Real( pIndx, Particles.vel_x );
+    Remove_Real( pIndx, Particles.vel_y );
+    Remove_Real( pIndx, Particles.vel_z );
+    Remove_Real( pIndx, Particles.grav_x );
+    Remove_Real( pIndx, Particles.grav_y );
+    Remove_Real( pIndx, Particles.grav_z );
+    #ifdef PARTICLE_IDS
+    Remove_ID( pIndx, Particles.partIDs );
+    #endif
+    #ifndef SINGLE_PARTICLE_MASS
+    Remove_Real( pIndx, Particles.mass );
+    #endif
+    #ifdef PARTICLE_AGE
+    Remove_Real(pIndx, Particles.age);
+    #endif
+    Particles.n_local -= 1;
+
+  }
+}
+
 
 #ifdef MPI_CHOLLA
 
