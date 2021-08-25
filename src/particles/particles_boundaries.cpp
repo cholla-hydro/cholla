@@ -582,6 +582,7 @@ int Particles_3D::Select_Particles_to_Transfer_GPU( int direction, int side ){
     
   //Set the number of particles that will be sent and load the particles data into the transfer buffers
   n_transfer = Select_Particles_to_Transfer_GPU_function(  n_local, side, domainMin, domainMax, pos, G.n_transfer_d, G.n_transfer_h, G.transfer_particles_flags_d, G.transfer_particles_indices_d, G.replace_particles_indices_d, G.transfer_particles_prefix_sum_d, G.transfer_particles_prefix_sum_blocks_d  ); 
+  cudaDeviceSynchronize();
   
   return n_transfer;
 }
@@ -669,6 +670,7 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
   Load_Particles_to_Transfer_GPU_function( n_transfer, 5, n_fields_to_transfer, vel_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos ); 
   
   CudaCheckError();
+  cudaDeviceSynchronize();
   
   *n_send += n_transfer;
   // if ( *n_send > 0 ) printf( "###Transfered %ld  particles\n", *n_send);
@@ -686,7 +688,8 @@ void Particles_3D::Replace_Tranfered_Particles_GPU( int n_transfer ){
   Replace_Transfered_Particles_GPU_function( n_transfer, vel_x_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, vel_y_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, vel_z_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
-
+  
+  cudaDeviceSynchronize();
   // Update the local number of particles
   n_local -= n_transfer;
 
