@@ -1,6 +1,3 @@
-#-- make.inc for Summit at the OLCF with XL compiler
-#   https://www.olcf.ornl.gov/summit/
-
 #-- Compiler and flags for different build type
 CC                = mpicc
 CXX               = mpicxx
@@ -12,16 +9,14 @@ GPUFLAGS_DEBUG    = -g -O0 -std=c++11 -ccbin=mpicxx
 GPUFLAGS_OPTIMIZE = -g -O3 -std=c++11 -ccbin=mpicxx
 
 OMP_NUM_THREADS   = 7
-#-- How to launch job
-JOB_LAUNCH        = jsrun -n 1 -g 1 -c 7 --bind packed:7 -a 1
 
 #-- Library
-CUDA_ROOT       = ${OLCF_CUDA_ROOT}
-HDF5_ROOT       = ${OLCF_HDF5_ROOT}
-FFTW_ROOT       = ${OLCF_FFTW_ROOT}
-PFFT_ROOT       = /ccs/proj/csc380/cholla/fom/code/pfft
-GRACKLE_ROOT    = /ccs/home/bvilasen/code/grackle
-GOOGLETEST_ROOT = ${OLCF_GOOGLETEST_ROOT}
+CUDA_ROOT       = /usr/local/cuda-11.4
+HDF5_ROOT       = /usr/lib/x86_64-linux-gnu/hdf5/serial
+# FFTW_ROOT       = ${OLCF_FFTW_ROOT}
+# PFFT_ROOT       = /ccs/proj/csc380/cholla/fom/code/pfft
+# GRACKLE_ROOT    = /ccs/home/bvilasen/code/grackle
+# GOOGLETEST_ROOT = ${OLCF_GOOGLETEST_ROOT}
 
 #-- MPI calls accept GPU buffers (requires GPU-aware MPI)
-MPI_GPU = -DMPI_GPU
+# MPI_GPU = -DMPI_GPU

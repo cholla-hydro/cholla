@@ -18,7 +18,7 @@ The intent is to extend and tune the Paris solvers to run efficiently on exascal
 At the beginning of the run, it also compares each solver against an analytic solution. The comparisons are single-line printouts of the L1, L2, and L-infinity norms.
 - `-DSOR -DPARIS` uses an iterative successive-over-relaxation solver with nonzero nonperiodic boundary conditions, and it compares the result of each Poisson solve against the result of the *Paris* zero-valued-boundary-condition solver. The Cholla solver that calls Paris in this case subtracts an analtyic density before calling Paris and adds an analytic potential afterward. These analytic fields match the nonzero boundary conditions of the problem. At the beginning of the run, Cholla compares the SOR solver and the Paris solver against an analytic solution. Again, the comparisons are single-line printouts of the L1, L2, and L-infinity norms.
 
-*Cholla* is designed to 
+*Cholla* is designed to
 be run using GPUs, and can be run in serial mode using one GPU
 or with MPI.
 
@@ -52,19 +52,19 @@ Running Cholla
 To run the code after it is compiled, you must supply an input file with parameters and a problem that matches a function
 in the `initial_conditions` file. For example, to run a 1D Sod Shock Tube test, you would type
 
-```./cholla tests/1D/Sod.txt```
+```./cholla examples/1D/Sod.txt```
 
 in the directory with the `cholla` binary. Some output will be generated in the terminal, and output files will be written in the directory specified in the input parameter file.
 
 To run *Cholla* in parallel mode, the `CHOLLA_MPI` macro must be defined at compile time, either in the Makefile or by the build script. Then you can run
 using a command like the following.
 
-```srun -n4 ./cholla tests/1D/Sod.txt```
+```srun -n4 ./cholla examples/1D/Sod.txt```
 
 Each process will be assigned a GPU. *Cholla* cannot be run with more processes than available GPUs,
 so MPI mode is most useful on a cluster (or for testing parallel behavior with a single process).
 
-The `tests/scripts` directory contains `*run-*.sh` examples for each of the `*make-*.sh` examples. They create output directories in the `run` directory. For example
+The `examples/scripts` directory contains `*run-*.sh` examples for each of the `*make-*.sh` examples. They create output directories in the `run` directory. For example
 ```
 test/scripts/arun-hydro.sh
 ```
@@ -76,10 +76,10 @@ Other Notes
 --------------
 
 *Cholla* can be run without GPUs by commenting out `-DCUDA` in the Makefile, but this configuration is not recommended. Because *Cholla*
-was designed with GPUs in mind, the CPU performance is lackluster at best. In addition, some 
+was designed with GPUs in mind, the CPU performance is lackluster at best. In addition, some
 of the configuration options are not available in the non-GPU mode (and warnings are not always included).
 
-When running tests in fewer than 3 dimensions, *Cholla* assumes that the X direction will be used first, then
+When running in fewer than 3 dimensions, *Cholla* assumes that the X direction will be used first, then
 the Y, then Z. This is to say, in 1D `nx` must always be greater than 1, and in 2D `nx` and `ny` must be greater than 1.
 
 In practice, we have found the Van Leer integrator to be the most stable. *Cholla* is set to run with a default CFL coefficient of 0.3, but this can be changed within the grid initialization function.

@@ -20,10 +20,13 @@ case $FQDN in
   *spock* | birch*)
     echo "spock"
     exit 0 ;;
+  *c3po* )
+    echo "c3po"
+    exit 0 ;;
   *)
     host=$(hostname)
     echo "Using default hostname, expecting make.host.$host" >&2
     sleep 1
-    echo `hostname` 
+    echo `hostname`
     exit 0
 esac
