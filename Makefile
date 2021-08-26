@@ -25,11 +25,12 @@ CXX               ?= CC
 
 CFLAGS_OPTIMIZE   ?= -Ofast
 CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++11
+GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++11
 BUILD             ?= OPTIMIZE
 
 CFLAGS             = $(CFLAGS_$(BUILD))
 CXXFLAGS           = $(CXXFLAGS_$(BUILD))
-
+GPUFLAGS	   = $(GPUFLAGS_$(BUILD))
 
 #-- Add flags and libraries as needed
 
@@ -96,7 +97,7 @@ ifdef HIPCONFIG
   DFLAGS    += -DO_HIP
   CXXFLAGS  += $(HIPCONFIG)
   GPUCXX    ?= hipcc
-  GPUFLAGS  += -g -O3 -Wall --amdgpu-target=gfx906,gfx908 -std=c++11 -ferror-limit=1
+  GPUFLAGS  += -Wall --amdgpu-target=gfx906,gfx908 -ferror-limit=1
   LD        := $(CXX)
   LDFLAGS   := $(CXXFLAGS)
   LIBS      += -L$(ROCM_PATH)/lib -lamdhip64 -lhsa-runtime64
@@ -105,7 +106,7 @@ else
   CUDA_LIB  ?= -L$(CUDA_ROOT)/lib64 -lcudart
   CXXFLAGS  += $(CUDA_INC)
   GPUCXX    ?= nvcc
-  GPUFLAGS  += -std=c++11 --expt-extended-lambda -g -O3 -arch sm_70 -fmad=false
+  GPUFLAGS  += --expt-extended-lambda -arch sm_70 -fmad=false
   GPUFLAGS  += $(CUDA_INC)
   LD        := $(CXX)
   LDFLAGS   += $(CXXFLAGS)
