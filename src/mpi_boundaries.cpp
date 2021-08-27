@@ -851,13 +851,11 @@ void Grid3D::Unload_Hydro_DeviceBuffer_X1 ( Real *recv_buffer_x1 ) {
 void Grid3D::Unload_Hydro_Buffer_Y0 ( Real *recv_buffer_y0 ) {
   // 2D
   if (nz == 1) {
-    offset = H.n_ghost*H.nx;
     int idxoffset = 0;
     Unload_Hydro_Buffer_CPU(recv_buffer_y0, idxoffset, H.nx, H.n_ghost, 1);
   }
   // 3D
   if (nz > 1) {
-    offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
     int idxoffset = H.n_ghost*H.nx*H.ny;
     Unload_Hydro_Buffer_CPU(recv_buffer_y0, idxoffset, H.nx, H.n_ghost, H.nz-2*H.n_ghost);
   }
