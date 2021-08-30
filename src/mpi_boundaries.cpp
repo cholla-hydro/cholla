@@ -943,7 +943,7 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Z0 ( Real *recv_buffer_z0 ) {
 
 void Grid3D::Unload_Hydro_Buffer_Z1 ( Real *recv_buffer_z1 ) {
   int idxoffset = (H.nz-H.n_ghost)*H.nx*H.ny;
-  Unload_Hydro_Buffer_CPU(recv_buffer_z0, idxoffset, H.nx, H.ny, H.n_ghost);
+  Unload_Hydro_Buffer_CPU(recv_buffer_z1, idxoffset, H.nx, H.ny, H.n_ghost);
 }
 
 void Grid3D::Unload_Hydro_DeviceBuffer_Z1 ( Real *recv_buffer_z1 ) {
