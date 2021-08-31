@@ -171,6 +171,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real 
   send_buffer_d = buffer;
   
   hipLaunchKernelGGL( Load_Transfer_Buffer_GPU_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j,  nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, send_buffer_d  );
+  CHECK(cudaDeviceSynchronize());
     
   // NOTE: I couldn't figure out how top do it using OpenMP
   // int i, j, k, indx, indx_buff;
