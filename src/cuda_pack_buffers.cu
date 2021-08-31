@@ -101,6 +101,7 @@ __global__ void PackGhostCellsKernel(Real * c_head,
   k += kmin;
   gidx = i + j*nx + k*nx*ny;
 
+  // calculate idx (index of real cell) and a[:] for reflection
   idx = SetBoundaryMapping(i,j,k,&a[0],flags,nx,ny,nz,n_ghost);
 
   if (idx>=0){
@@ -119,34 +120,28 @@ __global__ void PackGhostCellsKernel(Real * c_head,
       c_head[gidx + 3*n_cells] *= a[2];
     }
     // energy and momentum correction for transmission
+    // Diode: only allow outflow 
     if (flags[dir] == 3){
-      c_head[gidx + 4*n_cells] -= 0.5*( c_head[gidx+n_cells]*c_head[gidx+n_cells]
-					+ c_head[gidx+2*n_cells]*c_head[gidx+2*n_cells]
-					+ c_head[gidx+3*n_cells]*c_head[gidx+3*n_cells])/c_head[gidx];
-
-      if (dir == 0) {
-	c_head[gidx+n_cells] = fmin(c_head[gidx+n_cells],0.0);
+      // 
+      int momdex = gidx + (dir/2+1)*n_cells;
+      // (X) Dir 0,1 -> Mom 1 -> c_head[gidx+1*n_cells]
+      // (Y) Dir 2,3 -> Mom 2 -> c_head[gidx+2*n_cells]
+      // (Z) Dir 4,5 -> Mom 3 -> c_head[gidx+3*n_cells] 
+      // If a momentum is set to 0, subtract its kinetic energy [gidx+4*n_cells]
+      if (dir%2 == 0){
+	// Direction 0,2,4 are left-side, don't allow inflow with positive momentum	
+	if (c_head[momdex] > 0.0) {
+	  c_head[gidx+4*n_cells] -= 0.5*(c_head[momdex]*c_head[momdex])/c_head[gidx];
+	  c_head[momdex] = 0.0;
+	}
+      } else {
+	// Direction 1,3,5 are right-side, don't allow inflow with negative momentum	
+	if (c_head[momdex] < 0.0) {
+	  c_head[gidx+4*n_cells] -= 0.5*(c_head[momdex]*c_head[momdex])/c_head[gidx];
+	  c_head[momdex] = 0.0;
+	}
       }
-      if (dir == 1) {
-	c_head[gidx+n_cells] = fmax(c_head[gidx+n_cells],0.0);
-      }
-      if (dir == 2) {
-	c_head[gidx+2*n_cells] = fmin(c_head[gidx+2*n_cells],0.0);
-      }
-      if (dir == 3) {
-	c_head[gidx+2*n_cells] = fmax(c_head[gidx+2*n_cells],0.0);
-      }
-      if (dir == 4) {
-	c_head[gidx+3*n_cells] = fmin(c_head[gidx+3*n_cells],0.0);
-      }
-      if (dir == 5) {
-	c_head[gidx+3*n_cells] = fmax(c_head[gidx+3*n_cells],0.0);
-      }
-      
-      c_head[gidx + 4*n_cells] += 0.5*( c_head[gidx+n_cells]*c_head[gidx+n_cells]
-					+ c_head[gidx+2*n_cells]*c_head[gidx+2*n_cells]
-					+ c_head[gidx+3*n_cells]*c_head[gidx+3*n_cells])/c_head[gidx];   
-    }//end energy correction
+    }//end energy correction for transmissive boundaries
   }//end idx>=0
 }//end function
 
