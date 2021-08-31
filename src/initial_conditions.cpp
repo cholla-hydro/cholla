@@ -59,7 +59,7 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     Disk_3D(P); 
   } else if (strcmp(P.init, "Disk_3D_particles")==0) {
     #ifndef ONLY_PARTICLES
-    Disk_3D(P)
+    Disk_3D(P);
     #else 
     // Initialize a uniforn hydro grid when only integrating particles
     Uniform_Grid();
