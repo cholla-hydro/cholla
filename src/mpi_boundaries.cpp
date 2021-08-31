@@ -1042,7 +1042,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
    
       if ( transfer_main_buffer ){
-        #ifdef MPI_GPU
+        #if defined(MPI_GPU) && defined(HYDRO_GPU)
         //post non-blocking receive left x communication buffer
         MPI_Irecv(d_recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, 
                   world, &recv_request[ireq]);
@@ -1121,7 +1121,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
       
       if ( transfer_main_buffer ){
-        #ifdef MPI_GPU
+	#if defined(MPI_GPU) && defined(HYDRO_GPU)
         //post non-blocking receive right x communication buffer
         MPI_Irecv(d_recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
 
@@ -1205,7 +1205,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
       
       if ( transfer_main_buffer ){
-        #ifdef MPI_GPU
+	#if defined(MPI_GPU) && defined(HYDRO_GPU)
         //post non-blocking receive left y communication buffer
         MPI_Irecv(d_recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
 
@@ -1281,8 +1281,8 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       }
       #endif
       
-      if ( transfer_main_buffer ){      
-        #ifdef MPI_GPU
+      if ( transfer_main_buffer ){
+        #if defined(MPI_GPU) && defined(HYDRO_GPU)
         //post non-blocking receive right y communication buffer
         MPI_Irecv(d_recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
 
@@ -1366,8 +1366,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
       
       if ( transfer_main_buffer ){
-      
-        #ifdef MPI_GPU
+        #if defined(MPI_GPU) && defined(HYDRO_GPU)
         //post non-blocking receive left z communication buffer
         MPI_Irecv(d_recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
         //non-blocking send left z communication buffer
@@ -1442,7 +1441,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
       
       if ( transfer_main_buffer ){
-        #ifdef MPI_GPU
+        #if defined(MPI_GPU) && defined(HYDRO_GPU)
         //post non-blocking receive right x communication buffer
         MPI_Irecv(d_recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
 
