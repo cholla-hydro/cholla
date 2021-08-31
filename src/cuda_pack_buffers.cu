@@ -28,7 +28,9 @@ void PackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksize
   dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1); 
   hipLaunchKernelGGL(PackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
+  #ifdef O_HIP
   CHECK(cudaDeviceSynchronize());
+  #endif
 }
 
 
