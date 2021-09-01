@@ -389,6 +389,26 @@ void Grid3D::Set_Hydro_Boundaries_CPU
     //for outflow boundaries, set momentum to restrict inflow
     
     if (flags[dir] == 3) {
+      int momdex = iaBoundary[iB] + (dir/2+1)*H.n_cells;
+      // (X) Dir 0,1 -> Mom 1 -> c_density[gidx+1*n_cells]
+      // (Y) Dir 2,3 -> Mom 2 -> c_density[gidx+2*n_cells]
+      // (Z) Dir 4,5 -> Mom 3 -> c_density[gidx+3*n_cells]
+      // If a momentum is set to 0, subtract its kinetic energy [gidx+4*n_cells]
+      if (dir%2 == 0){
+	// Direction 0,2,4 are left-side, don't allow inflow with positive momentum
+	if (c_density[momdex] > 0.0) {
+	  c_energy[iaBoundary[iB]] -= 0.5*(c_density[momdex]*c_density[momdex])/c_density[iaBoundary[iB]];
+	  c_density[momdex] = 0.0;
+	}
+      } else {
+	// Direction 1,3,5 are right-side, don't allow inflow with negative momentum
+	if (c_density[momdex] < 0.0) {
+	  c_energy[iaBoundary[iB]] -= 0.5*(c_density[momdex]*c_density[momdex])/c_density[iaBoundary[iB]];
+	  c_density[momdex] = 0.0;
+	}
+      } 
+
+      /*
       // first subtract kinetic energy from total
       c_energy[iaBoundary[iB]] -= 
         0.5*(c_momentum_x[iaBoundary[iB]] * c_momentum_x[iaBoundary[iB]] 
@@ -420,7 +440,9 @@ void Grid3D::Set_Hydro_Boundaries_CPU
              + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]] 
              + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
             /c_density[iaBoundary[iB]]; 
-    }
+      */
+    }//end restrict outflow
+
           
   }      
 }

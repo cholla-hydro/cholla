@@ -638,19 +638,23 @@ class Grid3D
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
     
+    void Load_Hydro_Buffer_CPU(Real *buffer, int idxoffset, int isize, int jsize, int ksize);
+    
     int Load_Hydro_Buffer_X0(Real *buffer);
     int Load_Hydro_Buffer_X1(Real *buffer);
     int Load_Hydro_Buffer_Y0(Real *buffer);
     int Load_Hydro_Buffer_Y1(Real *buffer);
     int Load_Hydro_Buffer_Z0(Real *buffer);
     int Load_Hydro_Buffer_Z1(Real *buffer);
-    void Load_Hydro_DeviceBuffer3D(Real *buffer, int axis, int side);
+
     int Load_Hydro_DeviceBuffer_X0(Real *buffer);
     int Load_Hydro_DeviceBuffer_X1(Real *buffer);
     int Load_Hydro_DeviceBuffer_Y0(Real *buffer);
     int Load_Hydro_DeviceBuffer_Y1(Real *buffer);
     int Load_Hydro_DeviceBuffer_Z0(Real *buffer);
     int Load_Hydro_DeviceBuffer_Z1(Real *buffer);
+
+    void Unload_Hydro_Buffer_CPU(Real *buffer, int idxoffset, int isize, int jsize, int ksize);
     
     void Unload_Hydro_Buffer_X0(Real *buffer);
     void Unload_Hydro_Buffer_X1(Real *buffer);
