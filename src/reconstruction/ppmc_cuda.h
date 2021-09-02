@@ -6,7 +6,7 @@
 #ifndef PPMC_CUDA_H
 #define PPMC_CUDA_H
 
-#include"global.h"
+#include "../global/global.h"
 
 /*! \fn void PPMC(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir)
  *  \brief When passed a stencil of conserved variables, returns the left and right 

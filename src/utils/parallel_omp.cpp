@@ -1,6 +1,6 @@
 #ifdef PARALLEL_OMP
 
-#include "parallel_omp.h"
+#include "../utils/parallel_omp.h"
 
 void Get_OMP_Grid_Indxs(  int n_grid_cells, int n_omp_procs, int omp_proc_id, int *omp_gridIndx_start, int *omp_gridIndx_end  ){
   

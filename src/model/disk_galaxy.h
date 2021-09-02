@@ -2,7 +2,7 @@
 #define DISK_GALAXY
 
 #include <cmath>
-#include "../global.h"
+#include "../global/global.h"
 
 class DiskGalaxy {
 

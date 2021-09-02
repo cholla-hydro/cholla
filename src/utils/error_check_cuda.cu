@@ -3,14 +3,14 @@
 
 #ifdef CUDA
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include"gpu.hpp"
-#include"global.h"
-#include"global_cuda.h"
-#include"io.h"
-#include"error_check_cuda.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../io/io.h"
+#include "../utils/error_check_cuda.h"
 
 
 __global__ void Check_Value_Along_Axis( Real *dev_array, int n_field, int nx, int ny, int nz, int n_ghost, int *return_value){

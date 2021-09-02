@@ -1,7 +1,7 @@
 #if defined(COSMOLOGY) && defined(PARTICLES_GPU)
 
 
-#include "cosmology_functions_gpu.h"
+#include "../cosmology/cosmology_functions_gpu.h"
 
 
 // __device__ Real Get_Hubble_Parameter_dev( Real a, Real H0, Real Omega_M, Real Omega_L, Real Omega_K ){

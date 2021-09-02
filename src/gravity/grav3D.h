@@ -1,27 +1,27 @@
 #ifndef GRAV3D_H
 #define GRAV3D_H
 
-#include<stdio.h>
-#include"../global.h"
+#include <stdio.h>
+#include "../global/global.h"
 
 #ifdef PFFT
-#include"potential_PFFT_3D.h"
+#include "../gravity/potential_PFFT_3D.h"
 #endif
 
 #ifdef CUFFT
-#include"potential_CUFFT_3D.h"
+#include "../gravity/potential_CUFFT_3D.h"
 #endif
 
 #ifdef SOR
-#include"potential_SOR_3D.h"
+#include "../gravity/potential_SOR_3D.h"
 #endif
 
 #ifdef PARIS
-#include "potential_paris_3D.h"
+#include "../gravity/potential_paris_3D.h"
 #endif
 
 #ifdef HDF5
-#include<hdf5.h>
+#include <hdf5.h>
 #endif
 
 #define GRAV_ISOLATED_BOUNDARY_X

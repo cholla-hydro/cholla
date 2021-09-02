@@ -4,7 +4,7 @@
 #ifndef ROE_H
 #define ROE_H
 
-#include"global.h"
+#include "../global/global.h"
 
 
 /* \fn Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)

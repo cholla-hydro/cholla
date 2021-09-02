@@ -1,7 +1,7 @@
 #ifdef CUDA
-#include"gpu.hpp"
-#include"global.h"
-#include"global_cuda.h"
+#include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
 
 
 

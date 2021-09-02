@@ -1,11 +1,11 @@
 /*! \file exact.cpp
  *  \brief Function definitions for Toro exact Riemann solver. */
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include"global.h"
-#include"exact.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "../global/global.h"
+#include "../cpu/exact.h"
 
 
 //#define LOUD

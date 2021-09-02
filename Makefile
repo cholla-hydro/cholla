@@ -5,9 +5,11 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
-DIRS     := src src/gravity src/particles src/cosmology \
-            src/cooling src/model src/cooling_grackle src/analysis \
-            src/gravity/paris
+DIRS     := src src/analysis src/cooling src/cooling_grackle src/cosmology \
+            src/cpu src/global src/gravity src/gravity/paris src/grid src/hydro \
+            src/integrators src/io src/main.cpp src/main.o src/model src/mpi \
+            src/old_cholla src/particles src/reconstruction \
+            src/riemann_solvers src/utils
 
 SUFFIX ?= .$(TYPE).$(MACHINE)
 
@@ -87,8 +89,8 @@ ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
 endif
 
 ifeq ($(findstring -DLYA_STATISTICS,$(DFLAGS)),-DLYA_STATISTICS)
-  CXXFLAGS += -I$(FFTW_ROOT)/include 
-  GPUFLAGS += -I$(FFTW_ROOT)/include 
+  CXXFLAGS += -I$(FFTW_ROOT)/include
+  GPUFLAGS += -I$(FFTW_ROOT)/include
   LIBS += -L$(FFTW_ROOT)/lib -lfftw3_mpi -lfftw3
 endif
 
@@ -125,7 +127,7 @@ endif
 
 EXEC := bin/cholla$(SUFFIX)
 
-$(EXEC): prereq-build $(OBJS) 
+$(EXEC): prereq-build $(OBJS)
 	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
 	eval $(EXTRA_COMMANDS)
 
@@ -139,9 +141,9 @@ $(EXEC): prereq-build $(OBJS)
 	$(GPUCXX) $(GPUFLAGS) -c $< -o $@
 
 .PHONY: clean
-	
+
 clean:
-	rm -f $(OBJS) 
+	rm -f $(OBJS)
 	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)" -exec rm -f '{}' \;
 
 clobber: clean

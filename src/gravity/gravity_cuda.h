@@ -5,7 +5,7 @@
 #ifndef GRAVITY_CUDA_H
 #define GRAVITY_CUDA_H
 
-#include"global.h"
+#include "../global/global.h"
 
 
 __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound, Real *gx);

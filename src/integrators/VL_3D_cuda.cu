@@ -4,27 +4,27 @@
 #ifdef CUDA
 #ifdef VL
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include"gpu.hpp"
-#include"global.h"
-#include"global_cuda.h"
-#include"hydro_cuda.h"
-#include"VL_3D_cuda.h"
-#include"pcm_cuda.h"
-#include"plmp_cuda.h"
-#include"plmc_cuda.h"
-#include"ppmp_cuda.h"
-#include"ppmc_cuda.h"
-#include"exact_cuda.h"
-#include"roe_cuda.h"
-#include"hllc_cuda.h"
-#include"h_correction_3D_cuda.h"
-#include"cooling_cuda.h"
-#include"subgrid_routines_3D.h"
-#include"io.h"
-#include"hll_cuda.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../hydro/hydro_cuda.h"
+#include "../integrators/VL_3D_cuda.h"
+#include "../reconstruction/pcm_cuda.h"
+#include "../reconstruction/plmp_cuda.h"
+#include "../reconstruction/plmc_cuda.h"
+#include "../reconstruction/ppmp_cuda.h"
+#include "../reconstruction/ppmc_cuda.h"
+#include "../riemann_solvers/exact_cuda.h"
+#include "../riemann_solvers/roe_cuda.h"
+#include "../riemann_solvers/hllc_cuda.h"
+#include "../old_cholla/h_correction_3D_cuda.h"
+#include "../cooling/cooling_cuda.h"
+#include "../old_cholla/subgrid_routines_3D.h"
+#include "../io/io.h"
+#include "../riemann_solvers/hll_cuda.h"
 
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x, Real *dev_F_y,  Real *dev_F_z, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields, Real density_floor);
 

@@ -1,11 +1,11 @@
 /*! \file roe.cpp
  *  \brief Function definitions for the Roe Riemann solver. */
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include"global.h"
-#include"roe.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "../global/global.h"
+#include "../cpu/roe.h"
 
 
 /* \fn Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)

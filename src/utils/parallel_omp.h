@@ -3,10 +3,10 @@
 #ifndef PARALLEL_OMP_H
 #define PARALLEL_OMP_H
 
-#include<stdio.h>
-#include<stdlib.h>
-#include"math.h"
-#include"global.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "math.h"
+#include "../global/global.h"
 #include <iostream>
 #include <omp.h>
 

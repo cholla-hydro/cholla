@@ -1,19 +1,19 @@
 #if defined(PARTICLES) && defined(PARTICLES_GPU) 
 
 #include <unistd.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include"gpu.hpp"
-#include"../global.h"
-#include"../global_cuda.h"
-#include"../grid3D.h"
-#include"../io.h"
-#include "particles_3D.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "../particles/particles_3D.h"
 
 #ifdef COSMOLOGY
-#include"../cosmology/cosmology.h"
-// #include"../cosmology/cosmology_functions_gpu.h"
+#include "../cosmology/cosmology.h"
+// #include "../cosmology/cosmology_functions_gpu.h"
 
 // FUTURE FIX: The Hubble function was defined here because I couldn't get it form onether file, tried -dc flag when compiling buu paris broke. 
 __device__ Real Get_Hubble_Parameter_dev( Real a, Real H0, Real Omega_M, Real Omega_L, Real Omega_K ){

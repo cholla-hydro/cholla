@@ -6,7 +6,7 @@
 #ifndef EXACT_CUDA_H
 #define EXACT_CUDA_H
 
-#include"global.h"
+#include "../global/global.h"
 
 
 /*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)

@@ -2,17 +2,17 @@
  *  \brief Definitions of the CTU algorithm. See Sec. 4.2 of Gardiner & Stone, 2008. */
 #ifndef CUDA
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include"global.h"
-#include"CTU_1D.h"
-#include"plmp.h"
-#include"plmc.h"
-#include"ppmp.h"
-#include"ppmc.h"
-#include"exact.h"
-#include"roe.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "../global/global.h"
+#include "../cpu/CTU_1D.h"
+#include "../cpu/plmp.h"
+#include "../cpu/plmc.h"
+#include "../cpu/ppmp.h"
+#include "../cpu/ppmc.h"
+#include "../cpu/exact.h"
+#include "../cpu/roe.h"
 
 
 /*! \fn CTU_Algorithm_1D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real dt)

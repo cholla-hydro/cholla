@@ -2,14 +2,14 @@
  *  \brief Global function definitions.*/
 
 
-#include<math.h>
-#include<sys/time.h>
+#include <math.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <set>
 #include <ctype.h>
-#include"global.h"
+#include "../global/global.h"
 
 
 /* Global variables */

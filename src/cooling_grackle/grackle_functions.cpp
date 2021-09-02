@@ -1,13 +1,13 @@
 #ifdef COOLING_GRACKLE
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include "../io.h"
-#include"cool_grackle.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "../io/io.h"
+#include "../cooling_grackle/cool_grackle.h"
 
 #ifdef PARALLEL_OMP
-#include"../parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 

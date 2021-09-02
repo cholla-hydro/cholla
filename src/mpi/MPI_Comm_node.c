@@ -1,8 +1,8 @@
 #ifdef MPI_CHOLLA
-#include<mpi.h>
-#include<stdlib.h>
-#include<stdio.h>
-#include"MPI_Comm_node.h"
+#include <mpi.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "../mpi/MPI_Comm_node.h"
 
 
 /*! \fn int djb2_hash(char *str)

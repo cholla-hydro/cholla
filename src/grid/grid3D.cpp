@@ -7,36 +7,36 @@
 #ifdef HDF5
 #include <hdf5.h>
 #endif
-#include "global.h"
-#include "grid3D.h"
-#include "CTU_1D.h"
-#include "CTU_2D.h"
-#include "CTU_3D.h"
-#include "CTU_1D_cuda.h"
-#include "CTU_2D_cuda.h"
-#include "CTU_3D_cuda.h"
-#include "VL_1D_cuda.h"
-#include "VL_2D_cuda.h"
-#include "VL_3D_cuda.h"
-#include "io.h"
-#include "error_handling.h"
-#include "ran.h"
-#include "simple_3D_cuda.h"
+#include "../global/global.h"
+#include "../grid/grid3D.h"
+#include "../cpu/CTU_1D.h"
+#include "../cpu/CTU_2D.h"
+#include "../cpu/CTU_3D.h"
+#include "../integrators/CTU_1D_cuda.h"
+#include "../integrators/CTU_2D_cuda.h"
+#include "../integrators/CTU_3D_cuda.h"
+#include "../integrators/VL_1D_cuda.h"
+#include "../integrators/VL_2D_cuda.h"
+#include "../integrators/VL_3D_cuda.h"
+#include "../io/io.h"
+#include "../utils/error_handling.h"
+#include "../utils/ran.h"
+#include "../integrators/simple_3D_cuda.h"
 #ifdef MPI_CHOLLA
 #include <mpi.h>
 #ifdef HDF5
 #include <H5FDmpio.h>
 #endif
-#include "mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #endif
 #include <stdio.h>
-#include "flux_correction.h"
+#include "../old_cholla/flux_correction.h"
 #ifdef CLOUDY_COOL
-#include "cooling_wrapper.h"
+#include "../cooling/cooling_wrapper.h"
 #endif
 
 #ifdef PARALLEL_OMP
-#include"parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 

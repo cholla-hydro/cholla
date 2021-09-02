@@ -4,14 +4,14 @@
 #ifdef CUDA
 #ifdef PPMP
 
-#include"gpu.hpp"
-#include<math.h>
-#include"global.h"
-#include"global_cuda.h"
-#include"ppmp_cuda.h"
+#include "../utils/gpu.hpp"
+#include <math.h>
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../reconstruction/ppmp_cuda.h"
 
 #ifdef DE //PRESSURE_DE
-#include"hydro_cuda.h"
+#include "../hydro/hydro_cuda.h"
 #endif
 
 // #define STEEPENING

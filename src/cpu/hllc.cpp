@@ -1,11 +1,11 @@
 /*! \file hllc.cpp
  *  \brief Function definitions for the HLLC Riemann solver.*/
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include"global.h"
-#include"hllc.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "../global/global.h"
+#include "../cpu/hllc.h"
 
 
 

@@ -4,7 +4,7 @@
 #ifndef TIMING_FUNCTIONS_H
 #define TIMING_FUNCTIONS_H
 
-#include "global.h"
+#include "../global/global.h"
 
 
 class Time

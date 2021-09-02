@@ -6,7 +6,7 @@
 #ifndef PPMC_H
 #define PPMC_H
 
-#include"global.h"
+#include "../global/global.h"
 
 
 /*! \fn void ppmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)

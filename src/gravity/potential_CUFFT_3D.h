@@ -4,8 +4,8 @@
 #ifndef POTENTIAL_CUFFT_3D_H
 #define POTENTIAL_CUFFT_3D_H
 
-#include "../global.h"
-#include "gpu.hpp"
+#include "../global/global.h"
+#include "../utils/gpu.hpp"
 
 
 #if PRECISION == 1

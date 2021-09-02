@@ -1,5 +1,5 @@
-#include<stdlib.h>
-#include<math.h>
+#include <stdlib.h>
+#include <math.h>
 
 typedef unsigned long long int Ullong;
 typedef double Doub;

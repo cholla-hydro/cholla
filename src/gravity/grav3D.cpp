@@ -1,16 +1,16 @@
 #ifdef GRAVITY
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<math.h>
-#include"../global.h"
-#include "../io.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include "../global/global.h"
+#include "../io/io.h"
 
-#include"grav3D.h"
+#include "../gravity/grav3D.h"
 
 #ifdef PARALLEL_OMP
-#include "../parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 

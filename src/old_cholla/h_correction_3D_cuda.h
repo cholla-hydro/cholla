@@ -5,8 +5,8 @@
 #ifndef H_CORRECTION_3D_H
 #define H_CORRECTION_3D_H
 
-#include"gpu.hpp"
-#include"global.h"
+#include "../utils/gpu.hpp"
+#include "../global/global.h"
 
 
 

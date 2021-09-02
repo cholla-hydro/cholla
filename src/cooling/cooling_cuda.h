@@ -7,9 +7,9 @@
 #ifndef COOLING_CUDA_H
 #define COOLING_CUDA_H
 
-#include"gpu.hpp"
-#include<math.h>
-#include"global.h"
+#include "../utils/gpu.hpp"
+#include <math.h>
+#include "../global/global.h"
 
 
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)

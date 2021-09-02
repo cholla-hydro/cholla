@@ -1,16 +1,16 @@
 #if defined(PARTICLES) && defined(PARTICLES_GPU) 
 
 #include <unistd.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include"gpu.hpp"
-#include"../global.h"
-#include"../global_cuda.h"
-#include "particles_3D.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../particles/particles_3D.h"
 
 #ifdef GRAVITY_GPU
-#include "../grid3D.h"
+#include "../grid/grid3D.h"
 #endif
 
 

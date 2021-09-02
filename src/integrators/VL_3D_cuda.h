@@ -6,7 +6,7 @@
 #ifndef VL_3D_CUDA_H
 #define VL_3D_CUDA_H
 
-#include"global.h"
+#include "../global/global.h"
 
 Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, 
   Real *d_conserved,  Real *d_grav_potential,

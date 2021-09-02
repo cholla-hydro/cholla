@@ -3,11 +3,11 @@
 
 #ifdef CUDA
 
-#include<stdlib.h>
-#include<stdio.h>
-#include"gpu.hpp"
-#include<math.h>
-#include"global.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include "../utils/gpu.hpp"
+#include <math.h>
+#include "../global/global.h"
 
 
 #ifndef GLOBAL_CUDA_H

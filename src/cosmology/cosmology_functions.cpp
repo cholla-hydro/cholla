@@ -1,9 +1,9 @@
 #ifdef COSMOLOGY
 
 
-#include"../grid3D.h"
-#include"../global.h"
-#include "../io.h"
+#include "../grid/grid3D.h"
+#include "../global/global.h"
+#include "../io/io.h"
 
 
 

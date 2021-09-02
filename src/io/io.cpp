@@ -1,24 +1,24 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<stdarg.h>
-#include<string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
 #include <iostream>
 #include <fstream>
-#include<math.h>
-#include<algorithm>
-#include<ctime>
+#include <math.h>
+#include <algorithm>
+#include <ctime>
 #ifdef HDF5
-#include<hdf5.h>
+#include <hdf5.h>
 #endif
-#include"io.h"
-#include"grid3D.h"
+#include "../io/io.h"
+#include "../grid/grid3D.h"
 #ifdef MPI_CHOLLA
-#include"mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #endif
-#include"error_handling.h"
+#include "../utils/error_handling.h"
 
 #ifdef COSMOLOGY
-#include "cosmology/cosmology.h"
+#include "../cosmology/cosmology.h"
 #endif
 
 using namespace std;

@@ -2,13 +2,13 @@
  *  \brief Definitions of functions used in all cuda integration algorithms. */
 #ifdef CUDA
 
-#include<stdio.h>
-#include<math.h>
-#include"gpu.hpp"
-#include"global.h"
-#include"global_cuda.h"
-#include"hydro_cuda.h"
-#include"gravity_cuda.h"
+#include <stdio.h>
+#include <math.h>
+#include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../hydro/hydro_cuda.h"
+#include "../gravity/gravity_cuda.h"
 
 
 __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int x_off, int n_ghost, Real dx, Real xbound, Real dt, Real gamma, int n_fields)

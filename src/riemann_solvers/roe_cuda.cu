@@ -3,14 +3,14 @@
 
 #ifdef CUDA
 
-#include"gpu.hpp"
-#include<math.h>
-#include"global.h"
-#include"global_cuda.h"
-#include"roe_cuda.h"
+#include "../utils/gpu.hpp"
+#include <math.h>
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../riemann_solvers/roe_cuda.h"
 
 #ifdef DE //PRESSURE_DE
-#include"hydro_cuda.h"
+#include "../hydro/hydro_cuda.h"
 #endif
 
 /*! \fn Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir, int n_fields)

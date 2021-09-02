@@ -3,11 +3,11 @@
 #ifndef CUDA
 #ifdef PLMP
 
-#include<stdlib.h>
-#include<stdio.h>
-#include<math.h>
-#include"plmp.h"
-#include"global.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include "../cpu/plmp.h"
+#include "../global/global.h"
 
 
 /*! \fn plmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)

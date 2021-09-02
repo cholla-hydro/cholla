@@ -4,11 +4,11 @@
 #ifdef CUDA
 #ifdef COOLING_GPU
 
-#include"gpu.hpp"
-#include<math.h>
-#include"global.h"
-#include"global_cuda.h"
-#include"cooling_cuda.h"
+#include "../utils/gpu.hpp"
+#include <math.h>
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../cooling/cooling_cuda.h"
 
 extern texture<float, 2, cudaReadModeElementType> coolTexObj;
 extern texture<float, 2, cudaReadModeElementType> heatTexObj;

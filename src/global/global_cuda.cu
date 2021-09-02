@@ -3,7 +3,7 @@
 
 #ifdef CUDA
 
-#include"global.h"
+#include "../global/global.h"
 
 // Declare global variables
 bool memory_allocated, block_size;

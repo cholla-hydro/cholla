@@ -4,11 +4,11 @@
 #ifdef CUDA
 #ifdef CLOUDY_COOL
 
-#include<stdio.h>
-#include<stdlib.h>
-#include"global.h"
-#include"cooling_wrapper.h"
-#include"cooling_cuda.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "../global/global.h"
+#include "../cooling/cooling_wrapper.h"
+#include "../cooling/cooling_cuda.h"
 
 texture<float, 2, cudaReadModeElementType> coolTexObj;
 texture<float, 2, cudaReadModeElementType> heatTexObj;

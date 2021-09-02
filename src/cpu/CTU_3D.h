@@ -4,7 +4,7 @@
 #ifndef CTU_3D_H
 #define CTU_3D_H
 
-#include"global.h"
+#include "../global/global.h"
 
 struct States_3D
 {

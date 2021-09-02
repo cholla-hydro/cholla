@@ -2,18 +2,18 @@
  *  \brief Definitions of the boundary conditions for various tests.
            Functions are members of the Grid3D class. */
 
-#include<stdlib.h>
-#include<stdio.h>
-#include<math.h>
-#include<string.h>
-#include"grid3D.h"
-#include"io.h"
-#include"error_handling.h"
-#include"mpi_routines.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "../utils/error_handling.h"
+#include "../mpi/mpi_routines.h"
 
 #ifdef HYDRO_GPU
 #include "omp.h"
-#include"cuda_pack_buffers.h"
+#include "../mpi/cuda_pack_buffers.h"
 #endif
 
 /*! \fn void Set_Boundary_Conditions_Grid(parameters P)

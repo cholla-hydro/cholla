@@ -4,12 +4,12 @@
            functions in hydro_cuda.cu. */
 #ifdef CUDA
 
-#include<stdio.h>
-#include<math.h>
-#include"gpu.hpp"
-#include"global.h"
-#include"global_cuda.h"
-#include"gravity_cuda.h"
+#include <stdio.h>
+#include <math.h>
+#include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../gravity/gravity_cuda.h"
 
 // Work around lack of pow(Real,int) in Hip Clang for Rocm 3.5
 static inline __device__ Real pow2(const Real x) { return x*x; }

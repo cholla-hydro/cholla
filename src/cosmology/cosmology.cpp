@@ -1,7 +1,7 @@
 #ifdef COSMOLOGY
 
-#include"cosmology.h"
-#include "../io.h"
+#include "../cosmology/cosmology.h"
+#include "../io/io.h"
 
 
 

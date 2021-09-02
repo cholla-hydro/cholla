@@ -7,7 +7,7 @@
 #ifndef COOLING_WRAPPER_H
 #define COOLING_WRAPPER_H
 
-#include"global.h"
+#include "../global/global.h"
 
 /* \fn void Load_Cuda_Textures()
  * \brief Load the Cloudy cooling tables into texture memory on the GPU. */

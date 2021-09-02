@@ -1,8 +1,8 @@
 #ifdef ANALYSIS
 
-#include<stdio.h>
-#include"analysis.h"
-#include"../io.h"
+#include <stdio.h>
+#include "../analysis/analysis.h"
+#include "../io/io.h"
 
 
 Analysis_Module::Analysis_Module( void ){}

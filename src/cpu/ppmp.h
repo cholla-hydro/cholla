@@ -6,7 +6,7 @@
 #ifndef PPMP_H
 #define PPMP_H
 
-#include"global.h"
+#include "../global/global.h"
 
 /*! \fn void ppmp(Real stencil[], Real bounds[], Real dx, Real dt)
  *  \brief When passed a stencil of primative variables, returns the left and right 

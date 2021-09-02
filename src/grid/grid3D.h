@@ -5,41 +5,41 @@
 #define GRID3D_H
 
 #ifdef   MPI_CHOLLA
-#include"mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #endif /*MPI_CHOLLA*/
 
-#include<stdio.h>
-#include"global.h"
-#include"global_cuda.h"
+#include <stdio.h>
+#include "../global/global.h"
+#include "../global/global_cuda.h"
 
 #ifdef HDF5
-#include<hdf5.h>
+#include <hdf5.h>
 #endif
 
 #ifdef GRAVITY
-#include"gravity/grav3D.h"
+#include "../gravity/grav3D.h"
 #endif
 
 #ifdef PARTICLES
-#include "particles/particles_3D.h"
+#include "../particles/particles_3D.h"
 #endif
 
-#include "model/disk_galaxy.h"
+#include "../model/disk_galaxy.h"
 
 #ifdef COSMOLOGY
-#include"cosmology/cosmology.h"
+#include "../cosmology/cosmology.h"
 #endif
 
 #ifdef COOLING_GRACKLE
-#include "cooling_grackle/cool_grackle.h"
+#include "../cooling_grackle/cool_grackle.h"
 #endif
 
 #ifdef CPU_TIME
-#include "timing_functions.h"
+#include "../utils/timing_functions.h"
 #endif
 
 #ifdef ANALYSIS
-#include "analysis/analysis.h"
+#include "../analysis/analysis.h"
 #endif
 
 

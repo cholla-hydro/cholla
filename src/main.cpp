@@ -3,16 +3,16 @@
 
 #ifdef MPI_CHOLLA
 #include <mpi.h>
-#include "mpi_routines.h"
+#include "mpi/mpi_routines.h"
 #endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "global.h"
-#include "grid3D.h"
-#include "io.h"
-#include "error_handling.h"
+#include "global/global.h"
+#include "grid/grid3D.h"
+#include "io/io.h"
+#include "utils/error_handling.h"
 
 
 int main(int argc, char *argv[])

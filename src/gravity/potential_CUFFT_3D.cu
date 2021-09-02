@@ -1,10 +1,10 @@
 #ifdef GRAVITY
 #ifdef CUFFT
 
-#include "potential_CUFFT_3D.h"
-#include"../global_cuda.h"
-#include "../io.h"
-#include<iostream>
+#include "../gravity/potential_CUFFT_3D.h"
+#include "../global/global_cuda.h"
+#include "../io/io.h"
+#include <iostream>
 
 
 Potential_CUFFT_3D::Potential_CUFFT_3D( void ){}

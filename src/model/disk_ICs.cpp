@@ -8,11 +8,11 @@
 #include <cmath>
 #include <string.h>
 #include <time.h>
-#include "global.h"
-#include "grid3D.h"
-#include "mpi_routines.h"
-#include "io.h"
-#include "error_handling.h"
+#include "../global/global.h"
+#include "../grid/grid3D.h"
+#include "../mpi/mpi_routines.h"
+#include "../io/io.h"
+#include "../utils/error_handling.h"
 
 
 // #define DISK_ICS

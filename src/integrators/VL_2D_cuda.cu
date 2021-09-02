@@ -4,24 +4,24 @@
 #ifdef CUDA
 #ifdef VL
 
-#include<stdio.h>
-#include<math.h>
-#include"gpu.hpp"
-#include"global.h"
-#include"global_cuda.h"
-#include"hydro_cuda.h"
-#include"VL_2D_cuda.h"
-#include"pcm_cuda.h"
-#include"plmp_cuda.h"
-#include"plmc_cuda.h"
-#include"ppmp_cuda.h"
-#include"ppmc_cuda.h"
-#include"exact_cuda.h"
-#include"roe_cuda.h"
-#include"hllc_cuda.h"
-#include"h_correction_2D_cuda.h"
-#include"cooling_cuda.h"
-#include"subgrid_routines_2D.h"
+#include <stdio.h>
+#include <math.h>
+#include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../hydro/hydro_cuda.h"
+#include "../integrators/VL_2D_cuda.h"
+#include "../reconstruction/pcm_cuda.h"
+#include "../reconstruction/plmp_cuda.h"
+#include "../reconstruction/plmc_cuda.h"
+#include "../reconstruction/ppmp_cuda.h"
+#include "../reconstruction/ppmc_cuda.h"
+#include "../riemann_solvers/exact_cuda.h"
+#include "../riemann_solvers/roe_cuda.h"
+#include "../riemann_solvers/hllc_cuda.h"
+#include "../old_cholla/h_correction_2D_cuda.h"
+#include "../cooling/cooling_cuda.h"
+#include "../old_cholla/subgrid_routines_2D.h"
 
 
 __global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *dev_conserved_half, 

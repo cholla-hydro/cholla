@@ -1,7 +1,7 @@
 #ifndef MPI_COMM_NODE
 #define MPI_COMM_NODE
 
-#include<mpi.h>
+#include <mpi.h>
 
 #ifdef __cplusplus
 extern "C" {

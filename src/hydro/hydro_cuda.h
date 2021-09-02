@@ -5,7 +5,7 @@
 #ifndef HYDRO_CUDA_H
 #define HYDRO_CUDA_H
 
-#include"global.h"
+#include "../global/global.h"
 
 
 __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int x_off, int n_ghost, Real dx, Real xbound, Real dt, Real gamma, int n_fields);

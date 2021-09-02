@@ -3,17 +3,17 @@
 
 #ifndef CUDA
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include"global.h"
-#include"CTU_2D.h"
-#include"plmp.h"
-#include"plmc.h"
-#include"ppmp.h"
-#include"ppmc.h"
-#include"exact.h"
-#include"roe.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "../global/global.h"
+#include "../cpu/CTU_2D.h"
+#include "../cpu/plmp.h"
+#include "../cpu/plmc.h"
+#include "../cpu/ppmp.h"
+#include "../cpu/ppmc.h"
+#include "../cpu/exact.h"
+#include "../cpu/roe.h"
 
 
 /*! \fn CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Real dt)

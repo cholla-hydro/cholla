@@ -3,7 +3,7 @@
 #include <stdio.h>      /* printf, scanf, puts, NULL */
 #include <stdlib.h>
 #include <time.h>       /* time */
-#include "global.h"
+#include "../global/global.h"
 
 Real Rand_Real( Real min, Real max );
 

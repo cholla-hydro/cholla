@@ -6,7 +6,7 @@
 #ifndef ROE_CUDA_H
 #define Roe_CUDA_H
 
-#include"global.h"
+#include "../global/global.h"
 
 
 /*! \fn Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir, int n_fields)

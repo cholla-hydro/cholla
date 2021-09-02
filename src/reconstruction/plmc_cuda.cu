@@ -5,14 +5,14 @@
 #ifdef CUDA
 #ifdef PLMC
 
-#include"gpu.hpp"
-#include<math.h>
-#include"global.h"
-#include"global_cuda.h"
-#include"plmc_cuda.h"
+#include "../utils/gpu.hpp"
+#include <math.h>
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../reconstruction/plmc_cuda.h"
 
 #ifdef DE //PRESSURE_DE
-#include"hydro_cuda.h"
+#include "../hydro/hydro_cuda.h"
 #endif
 
 

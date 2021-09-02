@@ -1,13 +1,13 @@
 #if defined(GRAVITY) && defined(SOR)
 
-#include "potential_SOR_3D.h"
-#include "../io.h"
-#include<iostream>
+#include "../gravity/potential_SOR_3D.h"
+#include "../io/io.h"
+#include <iostream>
 #include <cmath>
-#include "../grid3D.h"
+#include "../grid/grid3D.h"
 
 #ifdef MPI_CHOLLA
-#include "../mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #endif
 
 

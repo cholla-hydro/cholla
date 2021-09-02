@@ -1,7 +1,7 @@
-#include<stdio.h>
-#include"gpu.hpp"
-#include"io.h"
-#include"cuda_mpi_routines.h"
+#include <stdio.h>
+#include "../utils/gpu.hpp"
+#include "../io/io.h"
+#include "../mpi/cuda_mpi_routines.h"
 
 // #define PRINT_DEVICE_IDS
 

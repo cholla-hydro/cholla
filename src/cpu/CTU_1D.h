@@ -4,7 +4,7 @@
 #ifndef CTU_1D_H
 #define CTU_1D_H
 
-#include"global.h"
+#include "../global/global.h"
 
 struct States_1D
 {

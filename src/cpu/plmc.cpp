@@ -3,11 +3,11 @@
            in Stone et al., 2008. */
 #ifdef PLMC
 
-#include<stdlib.h>
-#include<stdio.h>
-#include<math.h>
-#include"plmc.h"
-#include"global.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include "../cpu/plmc.h"
+#include "../global/global.h"
 
 
 /*! \fn plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)

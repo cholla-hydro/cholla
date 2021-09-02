@@ -3,13 +3,13 @@
 
 #ifdef CUDA
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-#include<string.h>
-#include"global.h"
-#include"mpi_routines.h"
-#include"subgrid_routines_3D.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include "../global/global.h"
+#include "../mpi/mpi_routines.h"
+#include "../old_cholla/subgrid_routines_3D.h"
 
 
 

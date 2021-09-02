@@ -6,7 +6,7 @@
 #ifndef ERROR_CHECK_CUDA_H
 #define ERROR_CHECK_CUDA_H
 
-#include"global.h"
+#include "../global/global.h"
 
 
 #define N_Z 24

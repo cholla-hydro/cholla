@@ -3,11 +3,11 @@
 #ifndef CUDA
 #ifdef PPMC
 
-#include<stdlib.h>
-#include<stdio.h>
-#include<math.h>
-#include"ppmc.h"
-#include"global.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include "../cpu/ppmc.h"
+#include "../global/global.h"
 
 
 

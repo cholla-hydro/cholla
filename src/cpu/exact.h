@@ -4,9 +4,9 @@
 #ifndef EXACT_H
 #define EXACT_H
  
-#include<stdio.h>
-#include<math.h>
-#include"global.h"
+#include <stdio.h>
+#include <math.h>
+#include "../global/global.h"
 
  
 /* Function declarations */

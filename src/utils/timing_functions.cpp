@@ -1,8 +1,8 @@
 
 #ifdef CPU_TIME
 
-#include "timing_functions.h"
-#include "io.h"
+#include "../utils/timing_functions.h"
+#include "../io/io.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -11,7 +11,7 @@
 using namespace std;
 
 #ifdef MPI_CHOLLA
-#include "mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #endif
 
 

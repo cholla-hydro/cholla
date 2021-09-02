@@ -4,7 +4,7 @@
 
 #include "paris/PoissonPeriodic3x1DBlockedGPU.hpp"
 #include "paris/PoissonZero3DBlockedGPU.hpp"
-#include "../global.h"
+#include "../global/global.h"
 
 class Potential_Paris_3D {
   public:

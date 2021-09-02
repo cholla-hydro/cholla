@@ -3,8 +3,8 @@
 #define  MPI_ROUTINES_H
 #include <mpi.h>
 #include <stddef.h>
-#include "grid3D.h"
-#include "global.h"
+#include "../grid/grid3D.h"
+#include "../global/global.h"
 
 #ifdef FFTW
 #include "fftw3.h"

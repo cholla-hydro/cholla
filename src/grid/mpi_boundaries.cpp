@@ -1,12 +1,12 @@
-#include"grid3D.h"
-#include"mpi_routines.h"
-#include"io.h"
-#include"error_handling.h"
+#include "../grid/grid3D.h"
+#include "../mpi/mpi_routines.h"
+#include "../io/io.h"
+#include "../utils/error_handling.h"
 #include <iostream>
 
-#include"gpu.hpp"
-#include"global_cuda.h"//provides TPB
-#include"cuda_pack_buffers.h"
+#include "../utils/gpu.hpp"
+#include "../global/global_cuda.h"//provides TPB
+#include "../mpi/cuda_pack_buffers.h"
 
 #ifdef MPI_CHOLLA
 

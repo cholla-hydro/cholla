@@ -1,12 +1,12 @@
 #ifdef MPI_CHOLLA
 #include <mpi.h>
 #include <math.h>
-#include "mpi_routines.h"
-#include "global.h"
-#include "error_handling.h"
-#include "io.h"
-#include "cuda_mpi_routines.h"
-#include "MPI_Comm_node.h"
+#include "../mpi/mpi_routines.h"
+#include "../global/global.h"
+#include "../utils/error_handling.h"
+#include "../io/io.h"
+#include "../mpi/cuda_mpi_routines.h"
+#include "../mpi/MPI_Comm_node.h"
 #include <iostream>
 
 /*Global MPI Variables*/

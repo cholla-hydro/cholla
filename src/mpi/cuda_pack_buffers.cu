@@ -1,7 +1,7 @@
-#include"gpu.hpp"
-#include"global.h"
-#include"global_cuda.h"
-#include"cuda_pack_buffers.h"
+#include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../mpi/cuda_pack_buffers.h"
 
   
 __global__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells)

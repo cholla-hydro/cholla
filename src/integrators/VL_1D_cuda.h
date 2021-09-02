@@ -6,7 +6,7 @@
 #ifndef VL_1D_CUDA_H
 #define VL_1D_CUDA_H
 
-#include"global.h"
+#include "../global/global.h"
 
 Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields);
 

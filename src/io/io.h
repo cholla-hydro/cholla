@@ -1,8 +1,8 @@
 #ifndef IO_CHOLLA_H
 #define IO_CHOLLA_H
 
-#include"global.h"
-#include"grid3D.h"
+#include "../global/global.h"
+#include "../grid/grid3D.h"
 #include <iostream>
 
 

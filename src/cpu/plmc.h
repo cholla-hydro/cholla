@@ -5,7 +5,7 @@
 #ifndef PLMC_H 
 #define PLMC_H 
 
-#include"global.h"
+#include "../global/global.h"
 
 /*! \fn plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
 *  \brief Use a piece-wise linear method to calculate boundary values for each cell. */

@@ -4,7 +4,7 @@
 #ifndef HLLC_H
 #define HLLC_H
 
-#include"global.h"
+#include "../global/global.h"
 
 
 /*! \fn Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)

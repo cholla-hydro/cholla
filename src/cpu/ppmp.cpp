@@ -3,11 +3,11 @@
 #ifndef CUDA
 #ifdef PPMP
 
-#include<stdlib.h>
-#include<stdio.h>
-#include<math.h>
-#include"ppmp.h"
-#include"global.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include "../cpu/ppmp.h"
+#include "../global/global.h"
 
 #define STEEPENING
 #define FLATTENING

@@ -6,7 +6,7 @@
 #ifndef CTU_2D_CUDA_H
 #define CTU_2D_CUDA_H
 
-#include"global.h"
+#include "../global/global.h"
 
 Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, int n_fields);
 
