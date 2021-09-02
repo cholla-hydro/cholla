@@ -31,7 +31,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   Real dl, vxl, mxl, vyl, myl, vzl, mzl, pl, El;
   Real dr, vxr, mxr, vyr, myr, vzr, mzr, pr, Er;
 
-  // Real g1 = gamma - 1.0; 
+  // Real g1 = gamma - 1.0;
   // Real Hl, Hr;
   // Real sqrtdl, sqrtdr, vx, vy, vz, H;
   // Real vsq, asq, a;
@@ -47,7 +47,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   #ifdef SCALAR
   Real dscl[NSCALARS], dscr[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
   #endif
-  
+
   // Real etah = 0;
 
   int o1, o2, o3;
@@ -62,8 +62,8 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   }
 
   // Each thread executes the solver independently
-  //if (xid > n_ghost-3 && xid < nx-n_ghost+1 && yid < ny && zid < nz) 
-  if (xid < nx && yid < ny && zid < nz) 
+  //if (xid > n_ghost-3 && xid < nx-n_ghost+1 && yid < ny && zid < nz)
+  if (xid < nx && yid < ny && zid < nz)
   {
     // retrieve conserved variables
     dl  = dev_bounds_L[             tid];
@@ -84,7 +84,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     mxr = dev_bounds_R[o1*n_cells + tid];
     myr = dev_bounds_R[o2*n_cells + tid];
     mzr = dev_bounds_R[o3*n_cells + tid];
-    Er  = dev_bounds_R[4*n_cells + tid]; 
+    Er  = dev_bounds_R[4*n_cells + tid];
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       dscr[i] = dev_bounds_R[(5+i)*n_cells + tid];
@@ -100,7 +100,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     vzl = mzl / dl;
     #ifdef DE //PRESSURE_DE
     E_kin = 0.5 * dl * ( vxl*vxl + vyl*vyl + vzl*vzl );
-    pl = Get_Pressure_From_DE( El, El - E_kin, dgel, gamma ); 
+    pl = Get_Pressure_From_DE( El, El - E_kin, dgel, gamma );
     #else
     pl  = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     #endif//DE
@@ -118,11 +118,11 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     vzr = mzr / dr;
     #ifdef DE //PRESSURE_DE
     E_kin = 0.5 * dr * ( vxr*vxr + vyr*vyr + vzr*vzr );
-    pr = Get_Pressure_From_DE( Er, Er - E_kin, dger, gamma ); 
+    pr = Get_Pressure_From_DE( Er, Er - E_kin, dger, gamma );
     #else
     pr  = (Er - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
     #endif//DE
-    pr  = fmax(pr, (Real) TINY_NUMBER);    
+    pr  = fmax(pr, (Real) TINY_NUMBER);
     // #ifdef SCALAR
     // for (int i=0; i<NSCALARS; i++) {
     //   scr[i] = dscr[i] / dr;
@@ -136,14 +136,14 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     // Hl = (El + pl) / dl;
     // Hr = (Er + pr) / dr;
 
-    // calculate averages of the variables needed for the Roe Jacobian 
+    // calculate averages of the variables needed for the Roe Jacobian
     // (see Stone et al., 2008, Eqn 65, or Toro 2009, 11.118)
     // sqrtdl = sqrt(dl);
     // sqrtdr = sqrt(dr);
     // vx = (sqrtdl*vxl + sqrtdr*vxr) / (sqrtdl + sqrtdr);
     // vy = (sqrtdl*vyl + sqrtdr*vyr) / (sqrtdl + sqrtdr);
     // vz = (sqrtdl*vzl + sqrtdr*vzr) / (sqrtdl + sqrtdr);
-    // H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr); 
+    // H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr);
 
     // calculate the sound speed squared (Stone B2)
     // vsq = (vx*vx + vy*vy + vz*vz);
@@ -151,7 +151,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     // a = sqrt(asq);
 
     // calculate the averaged eigenvectors of the Roe matrix (Stone Eqn B2, Toro 11.107)
-    // lambda_m = vx - a; 
+    // lambda_m = vx - a;
     // lambda_p = vx + a;
 
 
@@ -170,8 +170,8 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     Sl = fmin(vxr - cfr, vxl - cfl);
     Sr = fmax(vxl + cfl, vxr + cfr);
 
- 
-    // left and right fluxes 
+
+    // left and right fluxes
     f_d_l  = mxl;
     f_mx_l = mxl*vxl + pl;
     f_my_l = myl*vxl;
@@ -200,7 +200,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     }
     #endif
 
-    // return upwind flux if flow is supersonic 
+    // return upwind flux if flow is supersonic
     if (Sl > 0.0) {
       dev_flux[           tid] = f_d_l;
       dev_flux[o1*n_cells+tid] = f_mx_l;
@@ -234,15 +234,15 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       return;
     }
     // otherwise compute subsonic flux
-    else { 
-      
-      f_d = ( ( Sr * f_d_l ) - ( Sl * f_d_r ) + Sl*Sr*( dr - dl ) ) / ( Sr - Sl );  
-      f_mx = ( ( Sr * f_mx_l ) - ( Sl * f_mx_r ) + Sl*Sr*( mxr - mxl ) ) / ( Sr - Sl );  
-      f_my = ( ( Sr * f_my_l ) - ( Sl * f_my_r ) + Sl*Sr*( myr - myl ) ) / ( Sr - Sl );  
+    else {
+
+      f_d = ( ( Sr * f_d_l ) - ( Sl * f_d_r ) + Sl*Sr*( dr - dl ) ) / ( Sr - Sl );
+      f_mx = ( ( Sr * f_mx_l ) - ( Sl * f_mx_r ) + Sl*Sr*( mxr - mxl ) ) / ( Sr - Sl );
+      f_my = ( ( Sr * f_my_l ) - ( Sl * f_my_r ) + Sl*Sr*( myr - myl ) ) / ( Sr - Sl );
       f_mz = ( ( Sr * f_mz_l ) - ( Sl * f_mz_r ) + Sl*Sr*( mzr - mzl ) ) / ( Sr - Sl );
-      f_E = ( ( Sr * f_E_l ) - ( Sl * f_E_r ) + Sl*Sr*( Er - El ) ) / ( Sr - Sl );    
+      f_E = ( ( Sr * f_E_l ) - ( Sl * f_E_r ) + Sl*Sr*( Er - El ) ) / ( Sr - Sl );
       #ifdef DE
-      f_ge = ( ( Sr * f_ge_l ) - ( Sl * f_ge_r ) + Sl*Sr*( dger - dgel ) ) / ( Sr - Sl );  
+      f_ge = ( ( Sr * f_ge_l ) - ( Sl * f_ge_r ) + Sl*Sr*( dger - dgel ) ) / ( Sr - Sl );
       #endif
       #ifdef SCALAR
       for (int i=0; i<NSCALARS; i++) {

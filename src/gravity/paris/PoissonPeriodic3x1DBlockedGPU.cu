@@ -138,7 +138,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
   gpuFor(
     mp,mq,dip,djq,dk,
     GPU_LAMBDA(const int p, const int q, const int i, const int j, const int k) {
-      const int ii = p*dip+i; 
+      const int ii = p*dip+i;
       const int jj = q*djq+j;
       const int ia = k+dk*(j+djq*(i+dip*(q+mq*p)));
       const int ib = k+dk*(jj+dj*ii);
@@ -236,7 +236,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
           }
         });
   }
- 
+
   const int countI = 2*dip*djp*dhq;
 #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
@@ -314,7 +314,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
     });
 
   CHECK(cufftExecZ2Z(c2ci_,ac,bc,CUFFT_INVERSE));
- 
+
   {
     const int jLo = idip*djp;
     const int jHi = std::min(jLo+djp,nj);

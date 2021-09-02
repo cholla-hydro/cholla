@@ -31,7 +31,7 @@ void Time::Initialize(){
   time_potential_all = 0;
   time_bound_pot_all = 0;
   #endif
-  
+
   #ifdef PARTICLES
   time_part_dens_all = 0;
   time_part_dens_transf_all = 0;
@@ -39,7 +39,7 @@ void Time::Initialize(){
   time_advance_particles_1_all = 0;
   time_advance_particles_2_all = 0;
   #endif
-  
+
   #ifdef COOLING_GRACKLE
   time_cooling_all = 0;
   #endif
@@ -106,7 +106,7 @@ void Time::End_and_Record_Time( int time_var ){
     if (n_steps > 0) time_bound_pot_all += t_max;
   }
   #endif
-  
+
   #ifdef PARTICLES
   if( time_var == 4 ){
     time_part_dens_min = t_min;
@@ -174,7 +174,7 @@ void Time::Print_Times(){
   chprintf(" Time Advance Part 1    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_advance_particles_1_min, time_advance_particles_1_max, time_advance_particles_1_mean);
   chprintf(" Time Advance Part 2    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_advance_particles_2_min, time_advance_particles_2_max, time_advance_particles_2_mean);
   #endif
-  
+
   #ifdef COOLING_GRACKLE
   chprintf(" Time Cooling           min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_cooling_min, time_cooling_max, time_cooling_mean);
   #endif
@@ -190,7 +190,7 @@ void Time::Get_Average_Times(){
   time_hydro_all /= n_steps;
   time_bound_all /= n_steps;
 
-  #if defined( PARTICLES) 
+  #if defined( PARTICLES)
   time_dt_all /= n_steps;
   #endif
 
@@ -217,7 +217,7 @@ void Time::Print_Average_Times( struct parameters P ){
   Real time_total;
   time_total = time_hydro_all + time_bound_all;
 
-  #if defined( PARTICLES) 
+  #if defined( PARTICLES)
   time_total += time_dt_all;
   #endif
 
@@ -238,7 +238,7 @@ void Time::Print_Average_Times( struct parameters P ){
   #endif
 
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
-  #if defined( PARTICLES)  
+  #if defined( PARTICLES)
   chprintf(" Time Calc dt           avg: %9.4f   ms\n", time_dt_all);
   #endif
   #ifndef ONLY_PARTICLES
@@ -273,7 +273,7 @@ void Time::Print_Average_Times( struct parameters P ){
 
 
 
-  #if defined( PARTICLES) 
+  #if defined( PARTICLES)
   header += "dt  ";
   #endif
   header += "hydo  ";
@@ -310,7 +310,7 @@ void Time::Print_Average_Times( struct parameters P ){
   #ifdef MPI_CHOLLA
   if ( procID != 0 ) return;
   #endif
-  
+
   ofstream out_file;
 
 // Output timing values
@@ -328,7 +328,7 @@ void Time::Print_Average_Times( struct parameters P ){
   out_file << 0 << " ";
   #endif
   out_file << n_steps << " ";
-  #if defined( PARTICLES) 
+  #if defined( PARTICLES)
   out_file << time_dt_all << " ";
   #endif
   out_file << time_hydro_all << " ";
@@ -351,7 +351,7 @@ void Time::Print_Average_Times( struct parameters P ){
 
   out_file << "\n";
   out_file.close();
-  
+
   chprintf( "Saved Timing: %s \n\n", file_name.c_str() );
 
 }

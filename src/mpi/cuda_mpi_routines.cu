@@ -14,7 +14,7 @@ int initialize_cuda_mpi(int myid, int nprocs)
 
   cudaError_t flag_error;
 
-  //get the number of cuda devices    
+  //get the number of cuda devices
   flag_error = cudaGetDeviceCount(&n_device);
 
   //check for errors
@@ -27,7 +27,7 @@ int initialize_cuda_mpi(int myid, int nprocs)
     fflush(stderr);
     return 1;
   }
-  
+
   //get host name
   char pname[MPI_MAX_PROCESSOR_NAME];     //node hostname
   int  pname_length;          //length of node hostname
@@ -44,7 +44,7 @@ int initialize_cuda_mpi(int myid, int nprocs)
   fflush(stdout);
   MPI_Barrier(world);
   #endif
-  
+
   return 0;
-    
+
 }

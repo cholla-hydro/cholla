@@ -3,7 +3,7 @@
 #include <mpi.h>
 void chexit(int code)
 {
-  
+
   if(code==0)
   {
     /*exit normally*/

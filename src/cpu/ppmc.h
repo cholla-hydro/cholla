@@ -10,7 +10,7 @@
 
 
 /*! \fn void ppmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
- *  \brief When passed a stencil of conserved variables, returns right and left 
+ *  \brief When passed a stencil of conserved variables, returns right and left
            boundary values for the interfaces calculated using ppm. */
 void ppmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma);
 

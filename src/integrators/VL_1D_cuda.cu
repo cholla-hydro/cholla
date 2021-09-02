@@ -25,7 +25,7 @@
 #include "../io/io.h"
 
 
-__global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, 
+__global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F,
                                                    int n_cells, int n_ghost, Real dx, Real dt, Real gamma, int n_fields);
 
 
@@ -41,7 +41,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   Real max_dti = 0;
   #ifdef COOLING_GPU
   Real min_dt = 1e10;
-  #endif  
+  #endif
 
   int n_cells = nx;
   int ny = 1;
@@ -59,7 +59,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #ifdef COOLING_GPU
     CudaSafeCall( cudaHostAlloc(&host_dt_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
     #endif
-  
+
     // allocate memory on the GPU
     CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&dev_conserved_half, n_fields*n_cells*sizeof(Real)) );
@@ -69,13 +69,13 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
     #ifdef COOLING_GPU
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
-    #endif  
+    #endif
 
-    #ifndef DYNAMIC_GPU_ALLOC 
+    #ifndef DYNAMIC_GPU_ALLOC
     // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    #endif 
+    #endif
   }
 
   // copy the conserved variable array onto the GPU
@@ -86,20 +86,20 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, gama, n_fields);
   CudaCheckError();
 
-  // Step 2: Calculate first-order upwind fluxes 
+  // Step 2: Calculate first-order upwind fluxes
   #ifdef EXACT
   hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   #ifdef ROE
   hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
-  #ifdef HLLC 
+  #ifdef HLLC
   hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   CudaCheckError();
 
 
-  // Step 3: Update the conserved variables half a timestep 
+  // Step 3: Update the conserved variables half a timestep
   hipLaunchKernelGGL(Update_Conserved_Variables_1D_half, dimGrid, dimBlock, 0, 0, dev_conserved, dev_conserved_half, F_x, n_cells, n_ghost, dx, 0.5*dt, gama, n_fields);
   CudaCheckError();
 
@@ -110,7 +110,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   #endif
   #ifdef PLMC
   hipLaunchKernelGGL(PLMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
-  #endif  
+  #endif
   #ifdef PLMP
   hipLaunchKernelGGL(PLMP_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
   #endif
@@ -130,7 +130,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   #ifdef ROE
   hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
-  #ifdef HLLC 
+  #ifdef HLLC
   hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   CudaCheckError();
@@ -144,13 +144,13 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // Step 6: Update the conserved variable array
   hipLaunchKernelGGL(Update_Conserved_Variables_1D, dimGrid, dimBlock, 0, 0, dev_conserved, F_x, n_cells, x_off, n_ghost, dx, xbound, dt, gama, n_fields);
   CudaCheckError();
-   
+
 
   #ifdef DE
   hipLaunchKernelGGL(Select_Internal_Energy_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, n_fields);
   hipLaunchKernelGGL(Sync_Energies_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, gama, n_fields);
   CudaCheckError();
-  #endif    
+  #endif
 
 
   // Apply cooling
@@ -180,7 +180,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // find maximum inverse timestep from cooling time
   for (int i=0; i<ngrid; i++) {
     min_dt = fmin(min_dt, host_dt_array[i]);
-  }  
+  }
   if (min_dt < C_cfl/max_dti) {
     max_dti = C_cfl/min_dt;
   }
@@ -203,8 +203,8 @@ void Free_Memory_VL_1D() {
   // free the CPU memory
   CudaSafeCall( cudaFreeHost(host_dti_array) );
   #ifdef COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );  
-  #endif  
+  CudaSafeCall( cudaFreeHost(host_dt_array) );
+  #endif
 
   // free the GPU memory
   cudaFree(dev_conserved);
@@ -226,7 +226,7 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
 
   // get a global thread ID
   id = threadIdx.x + blockIdx.x * blockDim.x;
-  
+
   #ifdef DE
   Real d, d_inv, vx, vy, vz;
   Real vx_imo, vx_ipo, P;
@@ -247,8 +247,8 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
     //if (d < 0.0 || d != d) printf("Negative density before half step update.\n");
     //if (P < 0.0) printf("%d Negative pressure before half step update.\n", id);
     ipo = id+1;
-    vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo]; 
-    vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo]; 
+    vx_imo = dev_conserved[1*n_cells + imo] / dev_conserved[imo];
+    vx_ipo = dev_conserved[1*n_cells + ipo] / dev_conserved[ipo];
     #endif
     // update the conserved variable array
     dev_conserved_half[            id] = dev_conserved[            id] + dtodx * (dev_F[            imo] - dev_F[            id]);
@@ -262,10 +262,10 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
     }
     #endif
     #ifdef DE
-    dev_conserved_half[(n_fields-1)*n_cells + id] = dev_conserved[(n_fields-1)*n_cells + id] 
+    dev_conserved_half[(n_fields-1)*n_cells + id] = dev_conserved[(n_fields-1)*n_cells + id]
                                        + dtodx * (dev_F[(n_fields-1)*n_cells + imo] - dev_F[(n_fields-1)*n_cells + id])
                                        + 0.5*P*(dtodx*(vx_imo-vx_ipo));
-    #endif    
+    #endif
   }
 
 

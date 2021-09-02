@@ -1,5 +1,5 @@
 /*! \file plmp_cuda.cu
- *  \brief Definitions of the piecewise linear reconstruction functions for  
+ *  \brief Definitions of the piecewise linear reconstruction functions for
            with limiting in the primitive variables. */
 #ifdef CUDA
 
@@ -15,7 +15,7 @@
 
 
 /*! \fn __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields)
- *  \brief When passed a stencil of conserved variables, returns the left and right 
+ *  \brief When passed a stencil of conserved variables, returns the left and right
            boundary values for the interface calculated using plm. */
 __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields)
 {
@@ -33,7 +33,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   // declare primative variables in the stencil
   Real d_i, vx_i, vy_i, vz_i, p_i;
-  Real d_imo, vx_imo, vy_imo, vz_imo, p_imo; 
+  Real d_imo, vx_imo, vy_imo, vz_imo, p_imo;
   Real d_ipo, vx_ipo, vy_ipo, vz_ipo, p_ipo;
 
   // declare left and right interface values
@@ -53,7 +53,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   #endif
 
   #ifndef VL //Dont use velocities to reconstruct when using VL
-  Real dtodx = dt/dx;  
+  Real dtodx = dt/dx;
   Real dfl, dfr, mxfl, mxfr, myfl, myfr, mzfl, mzfr, Efl, Efr;
   #ifdef DE
   Real gefl, gefr;
@@ -102,7 +102,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_i * ( vx_i*vx_i + vy_i*vy_i + vz_i*vz_i );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_i = Get_Pressure_From_DE( E, E - E_kin, dge, gamma ); 
+    p_i = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_i  = (dev_conserved[4*n_cells + id] - 0.5*d_i*(vx_i*vx_i + vy_i*vy_i + vz_i*vz_i)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -127,7 +127,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_imo * ( vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_imo = Get_Pressure_From_DE( E, E - E_kin, dge, gamma ); 
+    p_imo = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -139,7 +139,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
     #ifdef DE
     ge_imo = dge / d_imo;
-    #endif    
+    #endif
     // cell i+1
     if (dir == 0) id = xid+1 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid+1)*nx + zid*nx*ny;
@@ -152,7 +152,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_ipo * ( vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_ipo = Get_Pressure_From_DE( E, E - E_kin, dge, gamma ); 
+    p_ipo = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_ipo  = (dev_conserved[4*n_cells + id] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -168,17 +168,17 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
 
     // Calculate the interface values for each primitive variable
-    Interface_Values_PLM(d_imo,  d_i,  d_ipo,  &d_L,  &d_R); 
-    Interface_Values_PLM(vx_imo, vx_i, vx_ipo, &vx_L, &vx_R); 
-    Interface_Values_PLM(vy_imo, vy_i, vy_ipo, &vy_L, &vy_R); 
-    Interface_Values_PLM(vz_imo, vz_i, vz_ipo, &vz_L, &vz_R); 
-    Interface_Values_PLM(p_imo,  p_i,  p_ipo,  &p_L,  &p_R); 
+    Interface_Values_PLM(d_imo,  d_i,  d_ipo,  &d_L,  &d_R);
+    Interface_Values_PLM(vx_imo, vx_i, vx_ipo, &vx_L, &vx_R);
+    Interface_Values_PLM(vy_imo, vy_i, vy_ipo, &vy_L, &vy_R);
+    Interface_Values_PLM(vz_imo, vz_i, vz_ipo, &vz_L, &vz_R);
+    Interface_Values_PLM(p_imo,  p_i,  p_ipo,  &p_L,  &p_R);
     #ifdef DE
-    Interface_Values_PLM(ge_imo,  ge_i,  ge_ipo,  &ge_L,  &ge_R); 
+    Interface_Values_PLM(ge_imo,  ge_i,  ge_ipo,  &ge_L,  &ge_R);
     #endif
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      Interface_Values_PLM(scalar_imo[i],  scalar_i[i],  scalar_ipo[i],  &scalar_L[i],  &scalar_R[i]); 
+      Interface_Values_PLM(scalar_imo[i],  scalar_i[i],  scalar_ipo[i],  &scalar_L[i],  &scalar_R[i]);
     }
     #endif
 
@@ -193,7 +193,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     mx_R = d_R*vx_R;
     my_L = d_L*vy_L;
     my_R = d_R*vy_R;
-    mz_L = d_L*vz_L; 
+    mz_L = d_L*vz_L;
     mz_R = d_R*vz_R;
     E_L = p_L/(gamma-1.0) + 0.5*d_L*(vx_L*vx_L + vy_L*vy_L + vz_L*vz_L);
     E_R = p_R/(gamma-1.0) + 0.5*d_R*(vx_R*vx_R + vy_R*vy_R + vz_R*vz_R);
@@ -253,7 +253,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       dscalar_R[i] += 0.5 * (dtodx) * (scalarfl[i] - scalarfr[i]);
     }
     #endif
-    
+
     #endif //NO VL
 
     // Convert the left and right states in the primitive to the conserved variables
@@ -266,7 +266,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_R[o1*n_cells + id] = mx_L;
     dev_bounds_R[o2*n_cells + id] = my_L;
     dev_bounds_R[o3*n_cells + id] = mz_L;
-    dev_bounds_R[4*n_cells + id] = E_L;  
+    dev_bounds_R[4*n_cells + id] = E_L;
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_R[(5+i)*n_cells + id] = dscalar_L[i];
@@ -274,14 +274,14 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
     #ifdef DE
     dev_bounds_R[(n_fields-1)*n_cells + id] = dge_L;
-    #endif    
+    #endif
     // bounds_L refers to the left side of the i+1/2 interface
     id = xid + yid*nx + zid*nx*ny;
     dev_bounds_L[            id] = d_R;
     dev_bounds_L[o1*n_cells + id] = mx_R;
     dev_bounds_L[o2*n_cells + id] = my_R;
     dev_bounds_L[o3*n_cells + id] = mz_R;
-    dev_bounds_L[4*n_cells + id] = E_R;      
+    dev_bounds_L[4*n_cells + id] = E_R;
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_L[(5+i)*n_cells + id] = dscalar_R[i];
@@ -289,17 +289,17 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
     #ifdef DE
     dev_bounds_L[(n_fields-1)*n_cells + id] = dge_R;
-    #endif    
+    #endif
 
   }
 }
-    
+
 
 
 __device__ void Interface_Values_PLM(Real q_imo, Real q_i, Real q_ipo, Real *q_L, Real *q_R)
 {
-  Real del_q_L, del_q_R, del_q_C, del_q_G; 
-  Real lim_slope_a, lim_slope_b, del_q_m;  
+  Real del_q_L, del_q_R, del_q_C, del_q_G;
+  Real lim_slope_a, lim_slope_b, del_q_m;
 
   // Compute the left, right, centered, and Van Leer differences of the primative variables
   // Note that here L and R refer to locations relative to the cell center
@@ -317,11 +317,11 @@ __device__ void Interface_Values_PLM(Real q_imo, Real q_i, Real q_ipo, Real *q_L
   // Monotonize the differences
   lim_slope_a = fmin(fabs(del_q_L), fabs(del_q_R));
   lim_slope_b = fmin(fabs(del_q_C), fabs(del_q_G));
-  
+
   // Minmod limiter
   //del_q_m = sgn_CUDA(del_q_C)*fmin(2.0*lim_slope_a, fabs(del_q_C));
 
-  // Van Leer limiter 
+  // Van Leer limiter
   del_q_m = sgn_CUDA(del_q_C) * fmin((Real) 2.0*lim_slope_a, lim_slope_b);
 
 

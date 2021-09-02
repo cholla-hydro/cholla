@@ -30,7 +30,7 @@ class Cool_GK
   #ifdef OUTPUT_TEMPERATURE
   Real *temperature;
   #endif
-  
+
   Real tiny_number;
 
   Real scale_factor_UVB_on;

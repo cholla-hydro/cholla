@@ -16,7 +16,7 @@ void Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   Real dl, vxl, mxl, vyl, myl, vzl, mzl, pl, El;
   Real dr, vxr, mxr, vyr, myr, vzr, mzr, pr, Er;
 
-  Real g1 = gamma - 1.0; 
+  Real g1 = gamma - 1.0;
   Real Hl, Hr;
   Real sqrtdl, sqrtdr, vx, vy, vz, H;
   Real vsq, asq, a;
@@ -59,14 +59,14 @@ void Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   Hl = (El + pl) / dl;
   Hr = (Er + pr) / dr;
 
-  // calculate averages of the variables needed for the Roe Jacobian 
+  // calculate averages of the variables needed for the Roe Jacobian
   // (see Stone et al., 2008, Eqn 65, or Toro 2009, 11.118)
   sqrtdl = sqrt(dl);
   sqrtdr = sqrt(dr);
   vx = (sqrtdl*vxl + sqrtdr*vxr) / (sqrtdl + sqrtdr);
   vy = (sqrtdl*vyl + sqrtdr*vyr) / (sqrtdl + sqrtdr);
   vz = (sqrtdl*vzl + sqrtdr*vzr) / (sqrtdl + sqrtdr);
-  H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr); 
+  H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr);
 
 
   // calculate the sound speed squared (Stone B2)
@@ -75,10 +75,10 @@ void Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   a = sqrt(asq);
 
   // calculate the averaged eigenvectors of the Roe matrix (Stone Eqn B2, Toro 11.107)
-  lambda_m = vx - a; 
+  lambda_m = vx - a;
   lambda_0 = vx;
   lambda_p = vx + a;
-  
+
 
   // calculate the fluxes for the left and right input states,
   // based on the average values in either cell
@@ -174,8 +174,8 @@ void Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
 
     // first characteristic
     if(lambda_0 > lambda_m) {
-      if (test0 <= 0.0) { 
-        hlle_flag=1; 
+      if (test0 <= 0.0) {
+        hlle_flag=1;
       }
       if (test4 - 0.5*(test1*test1 + test2*test2 + test3*test3)/test0 < 0.0) {
         hlle_flag=2;
@@ -190,8 +190,8 @@ void Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
 
     // second characteristic
     if(lambda_p > lambda_0) {
-      if (test0 <= 0.0) { 
-        hlle_flag=1; 
+      if (test0 <= 0.0) {
+        hlle_flag=1;
       }
       if (test4 - 0.5*(test1*test1 + test2*test2 + test3*test3)/test0 < 0.0) {
         hlle_flag=2;
@@ -234,20 +234,20 @@ void Calculate_Roe_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
       // compute the HLLE flux at the interface
       tmp = 0.5*(bp + bm)/(bp - bm);
 
-      fluxes[0] = 0.5*(f_d_l  + f_d_r)  + (f_d_l  - f_d_r)*tmp; 
-      fluxes[1] = 0.5*(f_mx_l + f_mx_r) + (f_mx_l - f_mx_r)*tmp; 
-      fluxes[2] = 0.5*(f_my_l + f_my_r) + (f_my_l - f_my_r)*tmp; 
-      fluxes[3] = 0.5*(f_mz_l + f_mz_r) + (f_mz_l - f_mz_r)*tmp; 
-      fluxes[4] = 0.5*(f_E_l  + f_E_r)  + (f_E_l  - f_E_r)*tmp; 
+      fluxes[0] = 0.5*(f_d_l  + f_d_r)  + (f_d_l  - f_d_r)*tmp;
+      fluxes[1] = 0.5*(f_mx_l + f_mx_r) + (f_mx_l - f_mx_r)*tmp;
+      fluxes[2] = 0.5*(f_my_l + f_my_r) + (f_my_l - f_my_r)*tmp;
+      fluxes[3] = 0.5*(f_mz_l + f_mz_r) + (f_mz_l - f_mz_r)*tmp;
+      fluxes[4] = 0.5*(f_E_l  + f_E_r)  + (f_E_l  - f_E_r)*tmp;
     }
     // otherwise return the Roe fluxes
-    else { 
+    else {
       fluxes[0] = 0.5*(f_d_l  + f_d_r  - sum_0);
       fluxes[1] = 0.5*(f_mx_l + f_mx_r - sum_1);
       fluxes[2] = 0.5*(f_my_l + f_my_r - sum_2);
       fluxes[3] = 0.5*(f_mz_l + f_mz_r - sum_3);
       fluxes[4] = 0.5*(f_E_l  + f_E_r  - sum_4);
-    }      
+    }
 
   }
 

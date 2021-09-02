@@ -16,7 +16,7 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   Real dl, vxl, mxl, vyl, myl, vzl, mzl, pl, El;
   Real dr, vxr, mxr, vyr, myr, vzr, mzr, pr, Er;
 
-  Real g1 = gamma - 1.0; 
+  Real g1 = gamma - 1.0;
   Real Hl, Hr;
   Real sqrtdl, sqrtdr, vx, vy, vz, H;
   Real vsq, asq, a;
@@ -60,14 +60,14 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   Hl = (El + pl) / dl;
   Hr = (Er + pr) / dr;
 
-  // calculate averages of the variables needed for the Roe Jacobian 
+  // calculate averages of the variables needed for the Roe Jacobian
   // (see Stone et al., 2008, Eqn 65, or Toro 2009, 11.118)
   sqrtdl = sqrt(dl);
   sqrtdr = sqrt(dr);
   vx = (sqrtdl*vxl + sqrtdr*vxr) / (sqrtdl + sqrtdr);
   vy = (sqrtdl*vyl + sqrtdr*vyr) / (sqrtdl + sqrtdr);
   vz = (sqrtdl*vzl + sqrtdr*vzr) / (sqrtdl + sqrtdr);
-  H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr); 
+  H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr);
 
   // calculate the sound speed squared (Stone B2)
   vsq = (vx*vx + vy*vy + vz*vz);
@@ -75,7 +75,7 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   a = sqrt(asq);
 
   // calculate the averaged eigenvectors of the Roe matrix (Stone Eqn B2, Toro 11.107)
-  lambda_m = vx - a; 
+  lambda_m = vx - a;
   lambda_p = vx + a;
 
   // compute max and min wave speeds
@@ -92,7 +92,7 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   Sr = sgn(Sr)*fmax(fabs(Sr), etah);
 
 
-  // left and right fluxes 
+  // left and right fluxes
   f_d_l  = mxl;
   f_mx_l = mxl*vxl + pl;
   f_my_l = myl*vxl;
@@ -111,7 +111,7 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
   f_ge_r = mxr*ger;
   #endif
 
-  // return upwind flux if flow is supersonic 
+  // return upwind flux if flow is supersonic
   if (Sl > 0.0) {
     fluxes[0] = f_d_l;
     fluxes[1] = f_mx_l;
@@ -135,7 +135,7 @@ void Calculate_HLLC_Fluxes(Real cW[], Real fluxes[], Real gamma, Real etah)
     return;
   }
   // otherwise compute subsonic flux
-  else { 
+  else {
 
     // compute contact wave speed and pressure in star region (Batten eqns 34 & 36)
     Sm = (dr*vxr*(Sr - vxr) - dl*vxl*(Sl - vxl) + pl - pr) / (dr*(Sr - vxr) - dl*(Sl - vxl));

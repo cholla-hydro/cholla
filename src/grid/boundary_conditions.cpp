@@ -19,11 +19,11 @@
 /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
  *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
 void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
-  
+
   #ifndef ONLY_PARTICLES
   // Dont transfer Hydro boundaries when only doing particles
-  
-  // Transfer Hydro Conserved boundaries 
+
+  // Transfer Hydro Conserved boundaries
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif //CPU_TIME
@@ -53,8 +53,8 @@ void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
 /*! \fn void Set_Boundary_Conditions(parameters P)
  *  \brief Set the boundary conditions based on info in the parameters structure. */
 void Grid3D::Set_Boundary_Conditions(parameters P) {
-  
-  //Check Only one boundary type id being transfered 
+
+  //Check Only one boundary type id being transfered
   int n_bounds = 0;
   n_bounds += (int) H.TRANSFER_HYDRO_BOUNDARIES;
   #ifdef GRAVITY
@@ -67,7 +67,7 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
   n_bounds += (int) Particles.TRANSFER_PARTICLES_BOUNDARIES;
   n_bounds += (int) Particles.TRANSFER_DENSITY_BOUNDARIES;
   #endif
-  
+
   if ( n_bounds > 1 ){
     printf("ERROR: More than one boundary type for transfer. N boundary types: %d\n", n_bounds );
     printf(" Boundary Hydro: %d\n", (int) H.TRANSFER_HYDRO_BOUNDARIES );
@@ -83,14 +83,14 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
     #endif //PARTICLES
     exit(-1);
   }
-  
+
   // If no boundaries are set to be transeferd then exit;
   if ( n_bounds == 0 ){
      printf( " Warning: No boundary type for transfer \n");
      return;
   }
-  
-  
+
+
 #ifndef MPI_CHOLLA
 
   int flags[6] = {0,0,0,0,0,0};
@@ -114,7 +114,7 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
     Set_Boundaries(4, flags);
     Set_Boundaries(5, flags);
   }
-  
+
   #ifdef GRAVITY
   Grav.Set_Boundary_Flags( flags );
   #endif
@@ -122,7 +122,7 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
 #else  /*MPI_CHOLLA*/
 
   /*Set boundaries, including MPI exchanges*/
-  
+
   Set_Boundaries_MPI(P);
 
 #endif /*MPI_CHOLLA*/
@@ -138,7 +138,7 @@ int Grid3D::Check_Custom_Boundary(int *flags, struct parameters P)
   /*if yes, then return 1*/
   /*if no, then return 0*/
   /*additionally, set a flag for each boundary*/
-  
+
   if(H.nx>1)
   {
     *(flags+0) = P.xl_bcnd;
@@ -152,7 +152,7 @@ int Grid3D::Check_Custom_Boundary(int *flags, struct parameters P)
   if(H.nz>1)
   {
     *(flags+4) = P.zl_bcnd;
-    *(flags+5) = P.zu_bcnd;  
+    *(flags+5) = P.zu_bcnd;
   }
 
   for (int i=0; i<6; i++)
@@ -166,7 +166,7 @@ int Grid3D::Check_Custom_Boundary(int *flags, struct parameters P)
       /*custom boundaries*/
       return 1;
     }
-  }  
+  }
   /*no custom boundaries*/
   return 0;
 }
@@ -183,10 +183,10 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   Real a[3]   = {1,1,1};  //sign of momenta
   int idx;    //index of a real cell
   int gidx;   //index of a ghost cell
-       
+
   int nPB, nBoundaries;
-  int *iaBoundary, *iaCell; 
-  
+  int *iaBoundary, *iaCell;
+
 #ifdef   MPI_CHOLLA
   /*if the cell face is an mpi boundary, exit */
   if(flags[dir]==5)
@@ -196,7 +196,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
 
 
   #ifdef GRAVITY
-    
+
   if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
     if ( flags[dir] == 1 ){
       // Set Periodic Boundaries for the ghost cells.
@@ -208,7 +208,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       if ( dir == 5 ) Copy_Potential_Boundaries( 2, 1, flags );
     }
     if ( flags[dir] == 3 ){
-      
+
       #ifdef GRAVITY_GPU
       if ( dir == 0 ) Set_Potential_Boundaries_Isolated_GPU( 0, 0, flags );
       if ( dir == 1 ) Set_Potential_Boundaries_Isolated_GPU( 0, 1, flags );
@@ -225,9 +225,9 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       if ( dir == 5 ) Set_Potential_Boundaries_Isolated( 2, 1, flags );
       #endif//GRAVITY_GPU
     }
-    return; 
+    return;
   }
-  #ifdef SOR 
+  #ifdef SOR
   if ( Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES ){
     if ( flags[dir] ==1 ){
       if ( dir == 0 ) Grav.Poisson_solver.Copy_Poisson_Boundary_Periodic( 0, 0 );
@@ -237,11 +237,11 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       if ( dir == 4 ) Grav.Poisson_solver.Copy_Poisson_Boundary_Periodic( 2, 0 );
       if ( dir == 5 ) Grav.Poisson_solver.Copy_Poisson_Boundary_Periodic( 2, 1 );
     }
-    return; 
+    return;
   }
   #endif //SOR
   #endif //GRAVITY
-  
+
   #ifdef PARTICLES
   if ( Particles.TRANSFER_DENSITY_BOUNDARIES ){
     if ( flags[dir] ==1 ){
@@ -252,10 +252,10 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       if ( dir == 4 ) Copy_Particles_Density_Boundaries( 2, 0 );
       if ( dir == 5 ) Copy_Particles_Density_Boundaries( 2, 1 );
     }
-    return; 
+    return;
   }
   #endif
-  
+
   #ifdef PARTICLES
   if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
     if ( flags[dir] ==1 ){
@@ -267,7 +267,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       if ( dir == 4 ) Set_Particles_Boundary( 2, 0 );
       if ( dir == 5 ) Set_Particles_Boundary( 2, 1 );
       #endif//PARTICLES_CPU
-      
+
       #ifdef PARTICLES_GPU
       if ( dir == 0 ) Set_Particles_Boundary_GPU( 0, 0 );
       if ( dir == 1 ) Set_Particles_Boundary_GPU( 0, 1 );
@@ -276,14 +276,14 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       if ( dir == 4 ) Set_Particles_Boundary_GPU( 2, 0 );
       if ( dir == 5 ) Set_Particles_Boundary_GPU( 2, 1 );
       #endif//PARTICLES_GPU
-      
-      
+
+
       } else if (flags[dir] == 3) {
         #ifdef PARTICLES_CPU
         Set_Particles_Open_Boundary(dir/2, dir%2);
         #endif
     }
-    return; 
+    return;
   }
   #endif//PARTICLES
 
@@ -295,16 +295,16 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
 		 H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags,
 		 imax[0]-imin[0], imax[1]-imin[1], imax[2]-imin[2],
 		 imin[0], imin[1], imin[2], dir);
-  
+
   #else
-  
+
   nPB = (imax[0]-imin[0]) * (imax[1]-imin[1]) * (imax[2]-imin[2]);
   iaBoundary = ( int * ) malloc ( sizeof ( int ) * nPB );
   iaCell     = ( int * ) malloc ( sizeof ( int ) * nPB );
-  
+
   /*set ghost cells*/
   nBoundaries = 0;
-  
+
   for (k=imin[2]; k<imax[2]; k++) {
     for (j=imin[1]; j<imax[1]; j++) {
       for (i=imin[0]; i<imax[0]; i++) {
@@ -315,13 +315,13 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
         a[2] = 1.;
 
         //find the ghost cell index
-        gidx = i + j*H.nx + k*H.nx*H.ny; 
+        gidx = i + j*H.nx + k*H.nx*H.ny;
 
         //find the corresponding real cell index and momenta signs
         idx  = Set_Boundary_Mapping(i,j,k,flags,&a[0]);
-        
+
         //idx will be >= 0 if the boundary mapping function has
-        //not set this ghost cell by hand, for instance for analytical 
+        //not set this ghost cell by hand, for instance for analytical
         //boundary conditions
         //
         //Otherwise, the boundary mapping function will set idx<0
@@ -335,24 +335,24 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       }
     }
   }
-  
+
 
   //Set_Hydro_Boundaries_GPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
 
   Set_Hydro_Boundaries_CPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
 
-  
+
   free ( iaBoundary );
   free ( iaCell );
   #endif
 }
 
-void Grid3D::Set_Hydro_Boundaries_CPU 
-       ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries, 
+void Grid3D::Set_Hydro_Boundaries_CPU
+       ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
          int dir, int *flags ) {
 
-  Real *c_density, 
-       *c_momentum_x, *c_momentum_y, *c_momentum_z, 
+  Real *c_density,
+       *c_momentum_x, *c_momentum_y, *c_momentum_z,
        *c_energy, *c_scalar, *c_gasEnergy;
 
   c_density    = C.density;
@@ -366,28 +366,28 @@ void Grid3D::Set_Hydro_Boundaries_CPU
   #ifdef SCALAR
   c_scalar     = C.scalar;
   #endif
-  
+
   for (int iB = 0; iB < nBoundaries; iB++ ) {
-  
+
     //set the ghost cell value
     c_density[iaBoundary[iB]]    = c_density[iaCell[iB]];
     c_momentum_x[iaBoundary[iB]] = c_momentum_x[iaCell[iB]]*Sign[0];
     c_momentum_y[iaBoundary[iB]] = c_momentum_y[iaCell[iB]]*Sign[1];
     c_momentum_z[iaBoundary[iB]] = c_momentum_z[iaCell[iB]]*Sign[2];
     c_energy[iaBoundary[iB]]     = c_energy[iaCell[iB]];
-    
+
     #ifdef DE
     c_gasEnergy[iaBoundary[iB]]  = c_gasEnergy[iaCell[iB]];
     #endif
-    #ifdef SCALAR 
+    #ifdef SCALAR
     for (int ii=0; ii<NSCALARS; ii++) {
-      c_scalar[iaBoundary[iB] + ii*H.n_cells] 
+      c_scalar[iaBoundary[iB] + ii*H.n_cells]
         = c_scalar[iaCell[iB] + ii*H.n_cells];
     }
     #endif
-    
+
     //for outflow boundaries, set momentum to restrict inflow
-    
+
     if (flags[dir] == 3) {
       int momdex = iaBoundary[iB] + (dir/2+1)*H.n_cells;
       // (X) Dir 0,1 -> Mom 1 -> c_density[gidx+1*n_cells]
@@ -406,16 +406,16 @@ void Grid3D::Set_Hydro_Boundaries_CPU
 	  c_energy[iaBoundary[iB]] -= 0.5*(c_density[momdex]*c_density[momdex])/c_density[iaBoundary[iB]];
 	  c_density[momdex] = 0.0;
 	}
-      } 
+      }
 
       /*
       // first subtract kinetic energy from total
-      c_energy[iaBoundary[iB]] -= 
-        0.5*(c_momentum_x[iaBoundary[iB]] * c_momentum_x[iaBoundary[iB]] 
-             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]] 
+      c_energy[iaBoundary[iB]] -=
+        0.5*(c_momentum_x[iaBoundary[iB]] * c_momentum_x[iaBoundary[iB]]
+             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]]
              + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
              /c_density[iaBoundary[iB]];
-    
+
       if (dir == 0) {
         c_momentum_x[iaBoundary[iB]] = fmin(c_momentum_x[iaBoundary[iB]], 0.0);
       }
@@ -435,25 +435,25 @@ void Grid3D::Set_Hydro_Boundaries_CPU
         c_momentum_z[iaBoundary[iB]] = fmax(c_momentum_z[iaBoundary[iB]], 0.0);
       }
       // now re-add the new kinetic energy
-      c_energy[iaBoundary[iB]] += 
-        0.5*(c_momentum_x[iaBoundary[iB]]*c_momentum_x[iaBoundary[iB]] 
-             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]] 
+      c_energy[iaBoundary[iB]] +=
+        0.5*(c_momentum_x[iaBoundary[iB]]*c_momentum_x[iaBoundary[iB]]
+             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]]
              + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
-            /c_density[iaBoundary[iB]]; 
+            /c_density[iaBoundary[iB]];
       */
     }//end restrict outflow
 
-          
-  }      
+
+  }
 }
 
 void Grid3D::Set_Hydro_Boundaries_GPU
-       ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries, 
+       ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
          int dir, int *flags ) {
 
   int n_cells;
-  Real *c_density, 
-       *c_momentum_x, *c_momentum_y, *c_momentum_z, 
+  Real *c_density,
+       *c_momentum_x, *c_momentum_y, *c_momentum_z,
        *c_energy, *c_scalar, *c_gasEnergy;
 
   c_density    = C.d_density;
@@ -464,13 +464,13 @@ void Grid3D::Set_Hydro_Boundaries_GPU
   c_gasEnergy  = C.d_GasEnergy;
   c_scalar     = C.d_scalar;
   n_cells      = H.n_cells;
-  
+
   #pragma omp target data map \
     ( to: iaCell[0:nBoundaries], iaBoundary[0:nBoundaries], Sign[0:3] )
   {
   #pragma omp target teams distribute parallel for \
     is_device_ptr ( c_density, c_momentum_x, c_momentum_y, \
-                    c_momentum_z, c_energy, c_gasEnergy, c_scalar ) 
+                    c_momentum_z, c_energy, c_gasEnergy, c_scalar )
   for (int iB = 0; iB < nBoundaries; iB++ ) {
     //set the ghost cell value
     c_density[iaBoundary[iB]]    = c_density[iaCell[iB]];
@@ -482,25 +482,25 @@ void Grid3D::Set_Hydro_Boundaries_GPU
     #ifdef DE
     c_gasEnergy[iaBoundary[iB]]  = c_gasEnergy[iaCell[iB]];
     #endif
-    #ifdef SCALAR 
+    #ifdef SCALAR
     for (int ii=0; ii<NSCALARS; ii++) {
-      c_scalar[iaBoundary[iB] + ii*n_cells] 
+      c_scalar[iaBoundary[iB] + ii*n_cells]
         = c_scalar[iaCell[iB] + ii*n_cells];
       }
     #endif
     }
-  
+
   if ( flags[dir] == 3 ) {
     #pragma omp target teams distribute parallel for \
       is_device_ptr ( c_density, c_momentum_x, c_momentum_y, \
                       c_momentum_z, c_energy, c_gasEnergy, c_scalar )
     for (int iB = 0; iB < nBoundaries; iB++ ) {
-      c_energy[iaBoundary[iB]] -= 
-        0.5*(c_momentum_x[iaBoundary[iB]] * c_momentum_x[iaBoundary[iB]] 
-             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]] 
+      c_energy[iaBoundary[iB]] -=
+        0.5*(c_momentum_x[iaBoundary[iB]] * c_momentum_x[iaBoundary[iB]]
+             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]]
              + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
              /c_density[iaBoundary[iB]];
-      
+
       if (dir == 0) {
         c_momentum_x[iaBoundary[iB]] = fmin(c_momentum_x[iaBoundary[iB]], 0.0);
         }
@@ -520,9 +520,9 @@ void Grid3D::Set_Hydro_Boundaries_GPU
         c_momentum_z[iaBoundary[iB]] = fmax(c_momentum_z[iaBoundary[iB]], 0.0);
         }
       // now re-add the new kinetic energy
-      c_energy[iaBoundary[iB]] += 
-        0.5*(c_momentum_x[iaBoundary[iB]]*c_momentum_x[iaBoundary[iB]] 
-             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]] 
+      c_energy[iaBoundary[iB]] +=
+        0.5*(c_momentum_x[iaBoundary[iB]]*c_momentum_x[iaBoundary[iB]]
+             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]]
              + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
             /c_density[iaBoundary[iB]];
       }
@@ -682,7 +682,7 @@ int Grid3D::Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a)
     if (jr < 0) {
       return idx = -1;
     }
-    
+
     // otherwise add j index to ghost cell mapping
     idx += H.nx*jr;
 
@@ -718,7 +718,7 @@ int Grid3D::Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a)
 }
 
 /*! \fn int Find_Index(int ig, int nx, int flag, int face, Real *a)
- *  \brief Given a ghost cell index and boundary flag, 
+ *  \brief Given a ghost cell index and boundary flag,
     return the index of the corresponding real cell. */
 int Grid3D::Find_Index(int ig, int nx, int flag, int face, Real *a)
 {
@@ -792,7 +792,7 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
 
 
 /*! \fn void Noh_Boundary()
- *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces, 
+ *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces,
     as per the Noh problem in Liska, 2003, or in Stone, 2008. */
 void Grid3D::Noh_Boundary()
 {
@@ -829,7 +829,7 @@ void Grid3D::Noh_Boundary()
       }
     }
   }
-  
+
   // set exact boundaries on the +y face
   for (k=0; k<H.nz; k++) {
     for (j=H.ny-H.n_ghost; j<H.ny; j++) {

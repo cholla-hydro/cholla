@@ -57,14 +57,14 @@ public:
 
   Cosmology( void );
   void Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Particles );
-  
+
   void Load_Scale_Outputs( struct parameters *P );
   void Set_Scale_Outputs( struct parameters *P );
 
   void Set_Next_Scale_Output( );
-  
+
   Real Get_Hubble_Parameter( Real a );
-  
+
   Real Get_da_from_dt( Real dt );
   Real Get_dt_from_da( Real da );
 

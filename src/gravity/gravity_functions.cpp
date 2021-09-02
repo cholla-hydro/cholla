@@ -24,29 +24,29 @@
 
 //Set delta_t when using gravity
 void Grid3D::set_dt_Gravity(){
-  
+
   //Delta_t for the hydro
   Real dt_hydro = H.dt;
-  
+
   #ifdef AVERAGE_SLOW_CELLS
   Real min_dt_slow;
   #endif
-  
+
   #ifdef PARTICLES
   //Compute delta_t for particles and choose min(dt_particles, dt_hydro)
   Real dt_particles, dt_min;
-  
+
   #ifdef COSMOLOGY
   chprintf( "Current_z: %f \n", Cosmo.current_z );
   Real da_particles, da_min, dt_physical;
-  
+
   //Compute the particles delta_t
   Particles.dt = Calc_Particles_dt_Cosmo();
   dt_particles = Particles.dt;
   //Convert delta_t to delta_a ( a = scale factor )
   da_particles = Cosmo.Get_da_from_dt( dt_particles );
   da_particles = fmin( da_particles, 1.0 ); //Limit delta_a
-  
+
   #ifdef ONLY_PARTICLES
   //If only particles da_min is only da_particles
   da_min = da_particles;
@@ -58,16 +58,16 @@ void Grid3D::set_dt_Gravity(){
   da_hydro = Cosmo.Get_da_from_dt( dt_hydro ) * Cosmo.current_a * Cosmo.current_a / Cosmo.H0; //Convet delta_t to delta_a
   da_min = fmin( da_hydro, da_particles ); //Find the minumum delta_a
   chprintf( " Delta_a_particles: %f      Delta_a_gas: %f   \n", da_particles, da_hydro );
-  
+
   #endif//ONLY_PARTICLES
-  
+
   //Limit delta_a by the expansion rate
   Cosmo.max_delta_a = fmin( MAX_EXPANSION_RATE * Cosmo.current_a, MAX_DELTA_A );
   if( da_min > Cosmo.max_delta_a){
     da_min = Cosmo.max_delta_a;
     chprintf( " Seting max delta_a: %f\n", da_min );
   }
-  
+
   //Small delta_a when reionization starts
   #ifdef COOLING_GRACKLE
   if ( fabs(Cosmo.current_a + da_min - Cool.scale_factor_UVB_on) < 0.005 ){
@@ -75,13 +75,13 @@ void Grid3D::set_dt_Gravity(){
     chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
   }
   #endif
-  
+
   //Limit delta_a if it's time to output
   if ( (Cosmo.current_a + da_min) >  Cosmo.next_output ){
     da_min = Cosmo.next_output - Cosmo.current_a;
     H.Output_Now = true;
   }
-  
+
   #ifdef ANALYSIS
   //Limit delta_a if it's time to run analisys
   if( Analysis.next_output_indx < Analysis.n_outputs ){
@@ -91,32 +91,32 @@ void Grid3D::set_dt_Gravity(){
     }
   }
   #endif
-  
-  
+
+
   //Set delta_a after it has been computed
   Cosmo.delta_a = da_min;
   //Convert delta_a back to delta_t
   dt_min = Cosmo.Get_dt_from_da( Cosmo.delta_a ) * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a );
   //Set the new delta_t for the hydro step
-  H.dt = dt_min; 
+  H.dt = dt_min;
   chprintf( " Current_a: %f    delta_a: %f     dt:  %f\n", Cosmo.current_a, Cosmo.delta_a, H.dt  );
-  
+
   #ifdef AVERAGE_SLOW_CELLS
   //Set the min_delta_t for averaging a slow cell
   min_dt_slow = Particles.dt / Particles.C_cfl * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a ) / SLOW_FACTOR;
   H.min_dt_slow = min_dt_slow;
-  #endif 
-  
+  #endif
+
   //Compute the physical time
   dt_physical = Cosmo.Get_dt_from_da( Cosmo.delta_a );
   Cosmo.dt_secs = dt_physical * Cosmo.time_conversion;
   Cosmo.t_secs += Cosmo.dt_secs;
-  chprintf( " t_physical: %f Myr   dt_physical: %f Myr\n", Cosmo.t_secs/MYR, Cosmo.dt_secs/MYR );  
-  Particles.dt = dt_physical; 
-  
+  chprintf( " t_physical: %f Myr   dt_physical: %f Myr\n", Cosmo.t_secs/MYR, Cosmo.dt_secs/MYR );
+  Particles.dt = dt_physical;
+
   #else // Not Cosmology
   //If NOT using COSMOLOGY
-  
+
   //Compute the particles delta_t
   dt_particles = Calc_Particles_dt();
   dt_particles = fmin( dt_particles, Particles.max_dt);
@@ -128,25 +128,25 @@ void Grid3D::set_dt_Gravity(){
   //Get the minimum delta_t between hydro and particles
   dt_min = fmin( dt_hydro, dt_particles );
   #endif//ONLY_PARTICLES
-  
+
   #ifdef AVERAGE_SLOW_CELLS
   //Set the min_delta_t for averaging a slow cell
   min_dt_slow = dt_particles / Particles.C_cfl / SLOW_FACTOR;
   H.min_dt_slow = min_dt_slow;
-  #endif 
-  
+  #endif
+
   //Set the new delta_t
   H.dt = dt_min;
   Particles.dt = H.dt;
   #endif//COSMOLOGY
   #endif//PARTICLES
-  
+
   #if defined( AVERAGE_SLOW_CELLS) && !defined( PARTICLES )
   //Set the min_delta_t for averaging a slow cell ( for now the min_dt_slow is set to a large value, change this with your condition )
-  min_dt_slow = H.dt / C_cfl * 100 ; 
+  min_dt_slow = H.dt / C_cfl * 100 ;
   H.min_dt_slow = min_dt_slow;
   #endif
-  
+
   // Set current and previous delta_t for the potential extrapolation
   if ( Grav.INITIAL ){
     Grav.dt_prev = H.dt;
@@ -159,7 +159,7 @@ void Grid3D::set_dt_Gravity(){
 
 //NOT USED: Get Average density on the Global dommain
 Real Grav3D::Get_Average_Density(){
-  
+
   Real dens_sum, dens_mean;
 
   #ifndef PARALLEL_OMP
@@ -193,14 +193,14 @@ Real Grav3D::Get_Average_Density(){
   #endif
 
   dens_avrg = dens_avrg_all;
-  
+
   return dens_avrg_all;
 
 }
 
 //NOT USED: Function to get Average density on the Global dommain
 Real Grav3D::Get_Average_Density_function( int g_start, int g_end){
-  
+
   int nx = nx_local;
   int ny = ny_local;
   int nz = nz_local;
@@ -327,7 +327,7 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
   MPI_Finalize();
   exit(0);
 }
-#endif 
+#endif
 
 
 
@@ -476,16 +476,16 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 
 //Compute the Gravitational Potential by solving Poisson Equation
 void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
-   
+
   #ifdef CPU_TIME
   Timer.Start_Timer();
   #endif
-  
+
   #ifdef PARTICLES
   //Copy the particles density to the grav_density array
   Copy_Particles_Density_to_Gravity( *P );
   #endif
-  
+
   #ifndef ONLY_PARTICLES
   //Copy the hydro density to the grav_density array
   Copy_Hydro_Density_to_Gravity();
@@ -504,7 +504,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   // Re-use current_a as the total mass of the sphere
   const Real current_a = (H.sphere_density-dens_avrg)*4.0*M_PI*r0*r0*r0/3.0;
   #endif
-  
+
   if ( !Grav.BC_FLAGS_SET ){
     Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
     Set_Boundary_Conditions( *P );
@@ -514,7 +514,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
     // #endif
     Grav.BC_FLAGS_SET = true;
   }
-  
+
   #ifdef GRAV_ISOLATED_BOUNDARY_X
   if ( Grav.boundary_flags[0] == 3 ) Compute_Potential_Boundaries_Isolated(0, P);
   if ( Grav.boundary_flags[1] == 3 ) Compute_Potential_Boundaries_Isolated(1, P);
@@ -530,8 +530,8 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   if ( Grav.boundary_flags[5] == 3 ) Compute_Potential_Boundaries_Isolated(5, P);
   // chprintf("Isolated Z\n");
   #endif
-  
-  
+
+
   //Solve Poisson Equation to compute the potential
   //Poisson Equation: laplacian( phi ) = 4 * pi * G / scale_factor * ( dens - dens_average )
   Real *input_density, *output_potential;
@@ -589,7 +589,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   #ifdef CPU_TIME
   Timer.End_and_Record_Time( 3 );
   #endif
-  
+
 }
 
 #ifdef GRAVITY_ANALYTIC_COMP
@@ -615,7 +615,7 @@ void Grid3D::Add_Analytic_Potential(struct parameters *P) {
 
 void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
   // Copy the density array from hydro conserved to gravity density array
-  
+
   Real dens;
   int i, j, k, id, id_grav;
   for (k=g_start; k<g_end; k++) {
@@ -625,7 +625,7 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
         id_grav = (i) + (j)*Grav.nx_local + (k)*Grav.nx_local*Grav.ny_local;
 
         dens = C.density[id];
-        
+
         //If using cosmology the density must be rescaled to the physical coordinates
         #ifdef COSMOLOGY
         dens *= Cosmo.rho_0_gas;
@@ -636,22 +636,22 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
         #else
         Grav.F.density_h[id_grav] = dens;
         #endif
-        
+
       }
     }
   }
 }
 
 void Grid3D::Copy_Hydro_Density_to_Gravity(){
-  
+
   #ifdef GRAVITY_GPU
   Copy_Hydro_Density_to_Gravity_GPU();
   #else
-  
+
   #ifndef PARALLEL_OMP
   Copy_Hydro_Density_to_Gravity_Function( 0, Grav.nz_local );
   #else
-  
+
   #pragma omp parallel num_threads( N_OMP_THREADS )
   {
     int omp_id, n_omp_procs;
@@ -664,9 +664,9 @@ void Grid3D::Copy_Hydro_Density_to_Gravity(){
     Copy_Hydro_Density_to_Gravity_Function(g_start, g_end );
   }
   #endif //PARALLEL_OMP
-  
+
   #endif //GRAVITY_GPU
-  
+
 }
 
 
@@ -694,8 +694,8 @@ void Grid3D::Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& g
         y_pos = Grav.yMin + Grav.dy*(j-N_GHOST_POTENTIAL) + 0.5*Grav.dy;
         z_pos = Grav.zMin + Grav.dz*(k-N_GHOST_POTENTIAL) + 0.5*Grav.dz;
         R = sqrt(x_pos*x_pos + y_pos*y_pos);
-        //Grav.F.potential_h[id] += non_mod_frac*gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos); 
-        Grav.F.potential_h[id] += gal.phi_halo_D3D(R, z_pos); 
+        //Grav.F.potential_h[id] += non_mod_frac*gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos);
+        Grav.F.potential_h[id] += gal.phi_halo_D3D(R, z_pos);
       }
     }
   }
@@ -706,27 +706,27 @@ void Grid3D::Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& g
 //Extrapolate the potential to obtain phi_n+1/2
 void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
   //Use phi_n-1 and phi_n to extrapolate the potential and obtain phi_n+1/2
-  
+
   int nx_pot = Grav.nx_local + 2*N_GHOST_POTENTIAL;
   int ny_pot = Grav.ny_local + 2*N_GHOST_POTENTIAL;
   int nz_pot = Grav.nz_local + 2*N_GHOST_POTENTIAL;
-  
+
   int n_ghost_grid, nx_grid, ny_grid, nz_grid;
   Real *potential_in, *potential_out;
-  
+
   //Input potential
-  potential_in = Grav.F.potential_h; 
-  
+  potential_in = Grav.F.potential_h;
+
   //Output potential
   potential_out = C.Grav_potential;
   //n_ghost for the output potential
   n_ghost_grid = H.n_ghost;
-  
+
   //Grid size for the output potential
   nx_grid = Grav.nx_local + 2*n_ghost_grid;
   ny_grid = Grav.ny_local + 2*n_ghost_grid;
   nz_grid = Grav.nz_local + 2*n_ghost_grid;
-  
+
   int nGHST = n_ghost_grid - N_GHOST_POTENTIAL;
   Real pot_now, pot_prev, pot_extrp;
   int k, j, i, id_pot, id_grid;
@@ -743,15 +743,15 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
           //Compute the extrapolated potential from phi_n-1 and phi_n
           pot_extrp = pot_now  + 0.5 * Grav.dt_now * ( pot_now - pot_prev  ) / Grav.dt_prev;
         }
-        
+
         #ifdef COSMOLOGY
-        //For cosmological simulation the potential is transformrd to 'comuving coordinates' 
+        //For cosmological simulation the potential is transformrd to 'comuving coordinates'
         pot_extrp *= Cosmo.current_a * Cosmo.current_a / Cosmo.phi_0_gas;
         #endif
-        
+
         //Save the extrapolated potential
         potential_out[id_grid] = pot_extrp;
-        //Set phi_n-1 = phi_n, to use it during the next step 
+        //Set phi_n-1 = phi_n, to use it during the next step
         Grav.F.potential_1_h[id_pot] = pot_now;
       }
     }
@@ -760,32 +760,32 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
 
 //Call the funtion to extrapolate the potential
 void Grid3D::Extrapolate_Grav_Potential(){
-  
+
   #ifdef GRAVITY_GPU
   Extrapolate_Grav_Potential_GPU();
-  #else 
-  
+  #else
+
   #ifndef PARALLEL_OMP
   Extrapolate_Grav_Potential_Function( 0, Grav.nz_local + 2*N_GHOST_POTENTIAL );
   #else
-  
+
   #pragma omp parallel num_threads( N_OMP_THREADS )
   {
     int omp_id, n_omp_procs;
     int g_start, g_end;
-    
+
     omp_id = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
     Get_OMP_Grid_Indxs( Grav.nz_local + 2*N_GHOST_POTENTIAL, n_omp_procs, omp_id,  &g_start, &g_end  );
-    
+
     Extrapolate_Grav_Potential_Function( g_start, g_end );
   }
   #endif // PARALLEL_OMP
-  
+
   #endif //GRAVITY_GPU
-  
-  //After the first timestep the INITIAL flag is set to false, that way the potential is properly extrapolated afterwards 
-  Grav.INITIAL = false;  
+
+  //After the first timestep the INITIAL flag is set to false, that way the potential is properly extrapolated afterwards
+  Grav.INITIAL = false;
 }
 
 

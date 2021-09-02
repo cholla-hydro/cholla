@@ -48,7 +48,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
   int istart, istop, jstart, jstop, kstart, kstop;
   // xyz index of each cell
   int id;
-  
+
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
   Real dtodz = dt/dz;
@@ -58,7 +58,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
 
   #ifdef PCM
   // sweep through cells and use cell averages to set input states
-  // do the calculation for all interfaces 
+  // do the calculation for all interfaces
   // the new left and right states for each i+1/2 interface are assigned to cell i
   istart = 0; istop = nx-1;
   jstart = 0; jstop = ny;
@@ -92,7 +92,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         Q1.my_Ly[i + j*nx + k*nx*ny] = momentum_y[i + j*nx + k*nx*ny];
         Q1.my_Ry[i + j*nx + k*nx*ny] = momentum_y[i + (j+1)*nx + k*nx*ny];
         Q1.mz_Ly[i + j*nx + k*nx*ny] = momentum_z[i + j*nx + k*nx*ny];
-        Q1.mz_Ry[i + j*nx + k*nx*ny] = momentum_z[i + (j+1)*nx + k*nx*ny];        
+        Q1.mz_Ry[i + j*nx + k*nx*ny] = momentum_z[i + (j+1)*nx + k*nx*ny];
         Q1.E_Ly[i + j*nx + k*nx*ny] = Energy[i + j*nx + k*nx*ny];
         Q1.E_Ry[i + j*nx + k*nx*ny] = Energy[i + (j+1)*nx + k*nx*ny];
       }
@@ -123,11 +123,11 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
   #if defined (PLMP) || defined (PLMC)
   // sweep through cells, use the piecewise linear method to calculate reconstructed boundary values
 
-  // create the stencil of conserved variables needed to calculate the boundary values 
-  // on either side of the cell interface 
+  // create the stencil of conserved variables needed to calculate the boundary values
+  // on either side of the cell interface
   Real stencil[15];
 
-  // create array to hold the boundary values 
+  // create array to hold the boundary values
   // returned from the linear reconstruction function (conserved variables)
   Real bounds[10];
 
@@ -139,7 +139,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
 
         // fill the stencil for the x-direction
         id = i + j*nx + k*nx*ny;
-        stencil[0] = density[id]; 
+        stencil[0] = density[id];
         stencil[1] = momentum_x[id];
         stencil[2] = momentum_y[id];
         stencil[3] = momentum_z[id];
@@ -184,7 +184,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         Q1.E_Lx[id]  = bounds[9];
         // now L&R correspond to left and right of the interface, i.e. L | R
 
-      }  
+      }
     }
   }
   // y-direction
@@ -195,7 +195,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
 
         // fill the stencil for the y direction
         id = i + j*nx + k*nx*ny;
-        stencil[0] = density[id]; 
+        stencil[0] = density[id];
         stencil[1] = momentum_y[id];
         stencil[2] = momentum_z[id];
         stencil[3] = momentum_x[id];
@@ -246,7 +246,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
 
         // fill the stencil for the z direction
         id = i + j*nx + k*nx*ny;
-        stencil[0] = density[id]; 
+        stencil[0] = density[id];
         stencil[1] = momentum_z[id];
         stencil[2] = momentum_x[id];
         stencil[3] = momentum_y[id];
@@ -262,14 +262,14 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         stencil[11] = momentum_z[id];
         stencil[12] = momentum_x[id];
         stencil[13] = momentum_y[id];
-        stencil[14] = Energy[id];       
+        stencil[14] = Energy[id];
 
         // pass the stencil to the linear reconstruction function - returns the reconstructed left
         // and right boundary values for the cell (conserved variables)
 
         #ifdef PLMP
         plmp(stencil, bounds, dz, dt, gama);
-        #endif 
+        #endif
         #ifdef PLMC
         plmc(stencil, bounds, dz, dt, gama);
         #endif
@@ -296,8 +296,8 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
   #if defined (PPMP) || defined (PPMC)
   // sweep through cells, use PPM to calculate reconstructed boundary values
 
-  // create the stencil of conserved variables needed to calculate the boundary values 
-  // on either side of the cell interface 
+  // create the stencil of conserved variables needed to calculate the boundary values
+  // on either side of the cell interface
   #ifdef PPMP
   Real stencil[35];
   #endif
@@ -305,7 +305,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
   Real stencil[25];
   #endif
 
-  // create an array to hold the intermediate boundary values 
+  // create an array to hold the intermediate boundary values
   // returned from the ppm function (left and right, for d, mx, my, mz, E)
   Real bounds[10];
 
@@ -453,7 +453,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         stencil[33] = momentum_x[id];
         stencil[34] = Energy[id];
         #endif
-        
+
         // pass the stencil to the ppm reconstruction function - returns the reconstructed left
         // and right boundary values (conserved variables)
         #ifdef PPMP
@@ -536,7 +536,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         stencil[31] = momentum_z[id];
         stencil[32] = momentum_x[id];
         stencil[33] = momentum_y[id];
-        stencil[34] = Energy[id];        
+        stencil[34] = Energy[id];
         #endif
 
         // pass the stencil to the ppm reconstruction function - returns the reconstructed left
@@ -587,7 +587,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
   istart = n_ghost-1; istop = nx-n_ghost;
   #endif
   jstart = n_ghost-2; jstop = ny-n_ghost+2;
-  kstart = n_ghost-2; kstop = nz-n_ghost+2;  
+  kstart = n_ghost-2; kstop = nz-n_ghost+2;
   for (k=kstart; k<kstop; k++) {
     for (j=jstart; j<jstop; j++) {
       for (i=istart; i<istop; i++) {
@@ -597,7 +597,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         id = i + j*nx + k*nx*ny;
         cW[0] = Q1.d_Lx[id];
         cW[1] = Q1.d_Rx[id];
-        cW[2] = Q1.mx_Lx[id]; 
+        cW[2] = Q1.mx_Lx[id];
         cW[3] = Q1.mx_Rx[id];
         cW[4] = Q1.my_Lx[id];
         cW[5] = Q1.my_Rx[id];
@@ -631,7 +631,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
   #else
   jstart = n_ghost-1; jstop = ny-n_ghost;
   #endif
-  kstart = n_ghost-2; kstop = nz-n_ghost+2;  
+  kstart = n_ghost-2; kstop = nz-n_ghost+2;
   for (k=kstart; k<kstop; k++) {
     for (j=jstart; j<jstop; j++) {
       for (i=istart; i<istop; i++) {
@@ -640,7 +640,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         id = i + j*nx + k*nx*ny;
         cW[0] = Q1.d_Ly[id];
         cW[1] = Q1.d_Ry[id];
-        cW[2] = Q1.my_Ly[id]; 
+        cW[2] = Q1.my_Ly[id];
         cW[3] = Q1.my_Ry[id];
         cW[4] = Q1.mz_Ly[id];
         cW[5] = Q1.mz_Ry[id];
@@ -683,7 +683,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         id = i + j*nx + k*nx*ny;
         cW[0] = Q1.d_Lz[id];
         cW[1] = Q1.d_Rz[id];
-        cW[2] = Q1.mz_Lz[id]; 
+        cW[2] = Q1.mz_Lz[id];
         cW[3] = Q1.mz_Rz[id];
         cW[4] = Q1.mx_Lz[id];
         cW[5] = Q1.mx_Rz[id];
@@ -699,7 +699,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         #ifdef ROE
         Calculate_Roe_Fluxes(cW, flux, gama, etah);
         #endif
-          
+
         // update the fluxes in the z-direction
         F1.dflux_z[id] = flux[0];
         F1.zmflux_z[id] = flux[1];
@@ -753,7 +753,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         Q2.my_Rx[i+j*nx+k*nx*ny] = Q1.my_Rx[i+j*nx+k*nx*ny]
           + 0.5*dtody*(F1.ymflux_y[(i+1)+(j-1)*nx+k*nx*ny]-F1.ymflux_y[(i+1)+j*nx+k*nx*ny])
           + 0.5*dtodz*(F1.ymflux_z[(i+1)+j*nx+(k-1)*nx*ny]-F1.ymflux_z[(i+1)+j*nx+k*nx*ny]);
-        
+
         // z-momentum
         Q2.mz_Lx[i+j*nx+k*nx*ny] = Q1.mz_Lx[i+j*nx+k*nx*ny]
           + 0.5*dtody*(F1.zmflux_y[i+(j-1)*nx+k*nx*ny] - F1.zmflux_y[i+j*nx+k*nx*ny])
@@ -892,7 +892,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
 
   #ifdef H_CORRECTION
   // Step 3 1/2: Calculate the eta values for the H correction of Sanders et al., 1998
-  // do the calculation for all the real x interfaces plus one ghost interface 
+  // do the calculation for all the real x interfaces plus one ghost interface
   istart = n_ghost-2; istop = nx-n_ghost+1;
   jstart = n_ghost-1; jstop = ny-n_ghost+1;
   kstart = n_ghost-1; kstop = nz-n_ghost+1;
@@ -904,7 +904,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         id = i + j*nx + k*nx*ny;
         cW[0] = Q2.d_Lx[id];
         cW[1] = Q2.d_Rx[id];
-        cW[2] = Q2.mx_Lx[id]; 
+        cW[2] = Q2.mx_Lx[id];
         cW[3] = Q2.mx_Rx[id];
         cW[4] = Q2.my_Lx[id];
         cW[5] = Q2.my_Rx[id];
@@ -912,7 +912,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         cW[7] = Q2.mz_Rx[id];
         cW[8] = Q2.E_Lx[id];
         cW[9] = Q2.E_Rx[id];
-     
+
         eta_x[id] = calc_eta(cW, gama);
       }
     }
@@ -929,7 +929,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         id = i + j*nx + k*nx*ny;
         cW[0] = Q2.d_Ly[id];
         cW[1] = Q2.d_Ry[id];
-        cW[2] = Q2.my_Ly[id]; 
+        cW[2] = Q2.my_Ly[id];
         cW[3] = Q2.my_Ry[id];
         cW[4] = Q2.mz_Ly[id];
         cW[5] = Q2.mz_Ry[id];
@@ -953,7 +953,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         id = i + j*nx + k*nx*ny;
         cW[0] = Q2.d_Lz[id];
         cW[1] = Q2.d_Rz[id];
-        cW[2] = Q2.mz_Lz[id]; 
+        cW[2] = Q2.mz_Lz[id];
         cW[3] = Q2.mz_Rz[id];
         cW[4] = Q2.mx_Lz[id];
         cW[5] = Q2.mx_Rz[id];
@@ -988,7 +988,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         id = i + j*nx + k*nx*ny;
         cW[0] = Q2.d_Lx[id];
         cW[1] = Q2.d_Rx[id];
-        cW[2] = Q2.mx_Lx[id]; 
+        cW[2] = Q2.mx_Lx[id];
         cW[3] = Q2.mx_Rx[id];
         cW[4] = Q2.my_Lx[id];
         cW[5] = Q2.my_Rx[id];
@@ -1015,7 +1015,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         #ifdef ROE
         Calculate_Roe_Fluxes(cW, flux, gama, etah);
         #endif
-          
+
         // update the fluxes in the x-direction
         F2.dflux_x[id] = flux[0];
         F2.xmflux_x[id] = flux[1];
@@ -1026,19 +1026,19 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
     }
   }
   // Solve the Riemann problem at each y-interface
-  // do the calculation for all the real y interfaces 
+  // do the calculation for all the real y interfaces
   istart = n_ghost; istop = nx-n_ghost;
   jstart = n_ghost-1; jstop = ny-n_ghost;
   kstart = n_ghost; kstop = nz-n_ghost;
   for (k=kstart; k<kstop; k++) {
     for (j=jstart; j<jstop; j++) {
       for (i=istart; i<istop; i++) {
-      
+
         // set input variables for the y interfaces
         id = i + j*nx + k*nx*ny;
         cW[0] = Q2.d_Ly[id];
         cW[1] = Q2.d_Ry[id];
-        cW[2] = Q2.my_Ly[id]; 
+        cW[2] = Q2.my_Ly[id];
         cW[3] = Q2.my_Ry[id];
         cW[4] = Q2.mz_Ly[id];
         cW[5] = Q2.mz_Ry[id];
@@ -1065,7 +1065,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         #ifdef ROE
         Calculate_Roe_Fluxes(cW, flux, gama, etah);
         #endif
-         
+
         // update the fluxes in the y-direction
         F2.dflux_y[id] = flux[0];
         F2.ymflux_y[id] = flux[1];
@@ -1074,10 +1074,10 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         F2.Eflux_y[id] = flux[4];
 
       }
-    } 
+    }
   }
   // Solve the Riemann problem at each z-interface
-  // do the calculation for all the real z interfaces 
+  // do the calculation for all the real z interfaces
   istart = n_ghost; istop = nx-n_ghost;
   jstart = n_ghost; jstop = ny-n_ghost;
   kstart = n_ghost-1; kstop = nz-n_ghost;
@@ -1089,7 +1089,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         id = i + j*nx + k*nx*ny;
         cW[0] = Q2.d_Lz[id];
         cW[1] = Q2.d_Rz[id];
-        cW[2] = Q2.mz_Lz[id]; 
+        cW[2] = Q2.mz_Lz[id];
         cW[3] = Q2.mz_Rz[id];
         cW[4] = Q2.mx_Lz[id];
         cW[5] = Q2.mx_Rz[id];
@@ -1116,7 +1116,7 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
         #ifdef ROE
         Calculate_Roe_Fluxes(cW, flux, gama, etah);
         #endif
-          
+
         // update the fluxes in the z-direction
         F2.dflux_z[id] = flux[0];
         F2.zmflux_z[id] = flux[1];
@@ -1138,28 +1138,28 @@ void CTU_Algorithm_3D(Real *C, int nx, int ny, int nz, int n_ghost, Real dx, Rea
     for (j=jstart; j<jstop; j++) {
       for (i=istart; i<istop; i++) {
 
-        density[i + j*nx + k*nx*ny] += 
-            dtodx * (F2.dflux_x[(i-1) + j*nx + k*nx*ny] - F2.dflux_x[i + j*nx + k*nx*ny]) 
-          + dtody * (F2.dflux_y[i + (j-1)*nx + k*nx*ny] - F2.dflux_y[i + j*nx + k*nx*ny]) 
+        density[i + j*nx + k*nx*ny] +=
+            dtodx * (F2.dflux_x[(i-1) + j*nx + k*nx*ny] - F2.dflux_x[i + j*nx + k*nx*ny])
+          + dtody * (F2.dflux_y[i + (j-1)*nx + k*nx*ny] - F2.dflux_y[i + j*nx + k*nx*ny])
           + dtodz * (F2.dflux_z[i + j*nx + (k-1)*nx*ny] - F2.dflux_z[i + j*nx + k*nx*ny]);
         momentum_x[i + j*nx + k*nx*ny] +=
-            dtodx * (F2.xmflux_x[(i-1) + j*nx + k*nx*ny] - F2.xmflux_x[i + j*nx + k*nx*ny]) 
-          + dtody * (F2.xmflux_y[i + (j-1)*nx + k*nx*ny] - F2.xmflux_y[i + j*nx + k*nx*ny]) 
+            dtodx * (F2.xmflux_x[(i-1) + j*nx + k*nx*ny] - F2.xmflux_x[i + j*nx + k*nx*ny])
+          + dtody * (F2.xmflux_y[i + (j-1)*nx + k*nx*ny] - F2.xmflux_y[i + j*nx + k*nx*ny])
           + dtodz * (F2.xmflux_z[i + j*nx + (k-1)*nx*ny] - F2.xmflux_z[i + j*nx + k*nx*ny]);
         momentum_y[i + j*nx + k*nx*ny] +=
-            dtodx * (F2.ymflux_x[(i-1) + j*nx + k*nx*ny] - F2.ymflux_x[i + j*nx + k*nx*ny]) 
+            dtodx * (F2.ymflux_x[(i-1) + j*nx + k*nx*ny] - F2.ymflux_x[i + j*nx + k*nx*ny])
           + dtody * (F2.ymflux_y[i + (j-1)*nx + k*nx*ny] - F2.ymflux_y[i + j*nx + k*nx*ny])
           + dtodz * (F2.ymflux_z[i + j*nx + (k-1)*nx*ny] - F2.ymflux_z[i + j*nx + k*nx*ny]);
         momentum_z[i + j*nx + k*nx*ny] +=
             dtodx * (F2.zmflux_x[(i-1) + j*nx + k*nx*ny] - F2.zmflux_x[i + j*nx + k*nx*ny])
-          + dtody * (F2.zmflux_y[i + (j-1)*nx + k*nx*ny] - F2.zmflux_y[i + j*nx + k*nx*ny]) 
+          + dtody * (F2.zmflux_y[i + (j-1)*nx + k*nx*ny] - F2.zmflux_y[i + j*nx + k*nx*ny])
           + dtodz * (F2.zmflux_z[i + j*nx + (k-1)*nx*ny] - F2.zmflux_z[i + j*nx + k*nx*ny]);
-        Energy[i + j*nx + k*nx*ny] += 
+        Energy[i + j*nx + k*nx*ny] +=
             dtodx * (F2.Eflux_x[(i-1) + j*nx + k*nx*ny] - F2.Eflux_x[i + j*nx + k*nx*ny])
           + dtody * (F2.Eflux_y[i + (j-1)*nx + k*nx*ny] - F2.Eflux_y[i + j*nx + k*nx*ny])
-          + dtodz * (F2.Eflux_z[i + j*nx + (k-1)*nx*ny] - F2.Eflux_z[i + j*nx + k*nx*ny]); 
+          + dtodz * (F2.Eflux_z[i + j*nx + (k-1)*nx*ny] - F2.Eflux_z[i + j*nx + k*nx*ny]);
         if (density[i + j*nx + k*nx*ny] < 0.0 || density[i + j*nx + k*nx*ny] != density[i + j*nx + k*nx*ny]) {
-          printf("%3d %3d %3d Code crashed in final update. %f\n", i, j, k, density[i + j*nx + k*nx*ny]); 
+          printf("%3d %3d %3d Code crashed in final update. %f\n", i, j, k, density[i + j*nx + k*nx*ny]);
         }
       }
     }

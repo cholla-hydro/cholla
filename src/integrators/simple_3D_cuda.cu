@@ -28,11 +28,11 @@
 
 
 
-Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, 
-          Real *d_conserved,  Real *d_grav_potential, 
-          int nx, int ny, int nz, int x_off, int y_off, 
-          int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, 
-          Real ybound, Real zbound, Real dt, int n_fields, Real density_floor, 
+Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
+          Real *d_conserved,  Real *d_grav_potential,
+          int nx, int ny, int nz, int x_off, int y_off,
+          int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound,
+          Real ybound, Real zbound, Real dt, int n_fields, Real density_floor,
           Real U_floor,  Real *host_grav_potential, Real max_dti_slow)
 {
   //Here, *host_conserved contains the entire
@@ -41,11 +41,11 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
   //host_conserved0 contains the values at time n,
   //host_conserved1 will contain the values at time n+1
 
-  // Initialize dt values 
+  // Initialize dt values
   Real max_dti = 0;
   #ifdef COOLING_GPU
   Real min_dt = 1e10;
-  #endif  
+  #endif
 
 
   if ( !block_size ) {
@@ -63,9 +63,9 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     #endif
   }
   // set values for GPU kernels
-  // number of blocks per 1D grid  
+  // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
-  //  number of threads per 1D block   
+  //  number of threads per 1D block
   dim3 dim1dBlock(TPB, 1, 1);
 
   // Set up pointers for the location to copy from and to
@@ -85,8 +85,8 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
       }
       tmp1 = buffer;
       tmp2 = buffer;
-      
-      #if defined( GRAVITY ) 
+
+      #if defined( GRAVITY )
       if ( NULL == ( buffer_potential = (Real *) malloc(BLOCK_VOL*sizeof(Real)) ) ) {
         printf("Failed to allocate CPU Grav_Potential buffer.\n");
       }
@@ -99,7 +99,7 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
     #ifdef COOLING_GPU
     CudaSafeCall( cudaHostAlloc(&host_dt_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
-    #endif  
+    #endif
 
     // allocate memory on the GPU
     // CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -116,26 +116,26 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
     #ifdef COOLING_GPU
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
-    #endif 
-    
-    #if defined( GRAVITY ) 
+    #endif
+
+    #if defined( GRAVITY )
     // CudaSafeCall( cudaMalloc((void**)&dev_grav_potential, BLOCK_VOL*sizeof(Real)) );
     dev_grav_potential = d_grav_potential;
     #else
     dev_grav_potential = NULL;
     #endif
-    
-    #ifndef DYNAMIC_GPU_ALLOC 
+
+    #ifndef DYNAMIC_GPU_ALLOC
     // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    #endif 
-  }  
+    #endif
+  }
 
   // counter for which block we're on
   int block = 0;
-  
-  
+
+
   // START LOOP OVER SUBGRID BLOCKS
   while (block < block_tot) {
 
@@ -149,11 +149,11 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     #ifndef HYDRO_GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
     #endif
-    
+
     #if defined( GRAVITY ) && !defined( GRAVITY_GPU )
     CudaSafeCall( cudaMemcpy(dev_grav_potential, temp_potential, BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
     #endif
- 
+
     // Step 1: Construct left and right interface values using updated conserved variables
     #ifdef PCM
     hipLaunchKernelGGL(PCM_Reconstruction_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
@@ -162,11 +162,11 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     hipLaunchKernelGGL(PLMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
     hipLaunchKernelGGL(PLMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
     hipLaunchKernelGGL(PLMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
-    #endif //PLMP 
+    #endif //PLMP
     #ifdef PLMC
     hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
     hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, nx_s, ny_s, nz_s, n_ghost, dy, dt, gama, 1, n_fields);
-    hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);  
+    hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     #endif
     #ifdef PPMP
     hipLaunchKernelGGL(PPMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx_s, ny_s, nz_s, n_ghost, dx, dt, gama, 0, n_fields);
@@ -179,7 +179,7 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     hipLaunchKernelGGL(PPMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dz, dt, gama, 2, n_fields);
     CudaCheckError();
     #endif //PPMC
-    
+
 
     // Step 2: Calculate the fluxes again
     #ifdef EXACT
@@ -192,18 +192,18 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
     #endif //ROE
-    #ifdef HLLC 
+    #ifdef HLLC
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
     #endif //HLLC
-    #ifdef HLL 
+    #ifdef HLL
     hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
     hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx_s, ny_s, nz_s, n_ghost, gama, 2, n_fields);
     #endif //HLL
     CudaCheckError();
-    
+
     #ifdef DE
     // Compute the divergence of Vel before updating the conserved array, this solves sincronization issues when adding this term on Update_Conserved_Variables_3D
     hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_3D, dim1dGrid, dim1dBlock, 0, 0,  dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz,  dt, gama, n_fields );
@@ -219,7 +219,7 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     hipLaunchKernelGGL(Sync_Energies_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, gama, n_fields);
     CudaCheckError();
     #endif
-    
+
     #ifdef TEMPERATURE_FLOOR
     hipLaunchKernelGGL(Apply_Temperature_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, U_floor );
     CudaCheckError();
@@ -227,10 +227,10 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
 
     // Apply cooling
     #ifdef COOLING_GPU
-    hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);  
+    hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
     CudaCheckError();
     #endif
- 
+
     // Step 4: Calculate the next time step
     hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama, max_dti_slow );
     CudaCheckError();
@@ -255,7 +255,7 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     // find maximum inverse timestep from cooling time
     for (int i=0; i<ngrid; i++) {
       min_dt = fmin(min_dt, host_dt_array[i]);
-    }  
+    }
     if (min_dt < C_cfl/max_dti) {
       max_dti = C_cfl/min_dt;
     }
@@ -266,7 +266,7 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
 
   }
 
-  
+
   #ifdef DYNAMIC_GPU_ALLOC
   // If memory is not single allocated then free the memory every timestep.
   Free_Memory_Simple_3D();
@@ -280,14 +280,14 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
 
 
 void Free_Memory_Simple_3D(){
-  
+
   // free CPU memory
   if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
-  CudaSafeCall( cudaFreeHost(host_dti_array) );  
+  CudaSafeCall( cudaFreeHost(host_dti_array) );
   #ifdef COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );  
-  #endif  
-  
+  CudaSafeCall( cudaFreeHost(host_dt_array) );
+  #endif
+
   // free the GPU memory
   cudaFree(dev_conserved);
   cudaFree(Q_Lx);

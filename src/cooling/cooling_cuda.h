@@ -24,19 +24,19 @@ __device__ Real test_cool(int tid, Real n, Real T);
 
 
 /* \fn __device__ Real primordial_cool(Real n, Real T)
- * \brief Primordial hydrogen/helium cooling curve 
+ * \brief Primordial hydrogen/helium cooling curve
           derived according to Katz et al. 1996. */
 __device__ Real primordial_cool(Real n, Real T);
 
 
 /* \fn __device__ Real CIE_cool(Real n, Real T)
- * \brief Analytic fit to a solar metallicity CIE cooling curve 
+ * \brief Analytic fit to a solar metallicity CIE cooling curve
           calculated using Cloudy. */
 __device__ Real CIE_cool(Real n, Real T);
 
 
 /* \fn __device__ Real Cloudy_cool(Real n, Real T)
- * \brief Uses texture mapping to interpolate Cloudy cooling/heating 
+ * \brief Uses texture mapping to interpolate Cloudy cooling/heating
           tables at z = 0 with solar metallicity and an HM05 UV background. */
 __device__ Real Cloudy_cool(Real n, Real T);
 

@@ -1,8 +1,8 @@
 /*! \file h_correction_2D_cuda.h
- *  \brief Functions declarations for the H correction kernels. 
+ *  \brief Functions declarations for the H correction kernels.
            Written following Sanders et al. 1998. */
 #ifdef CUDA
-#ifdef H_CORRECTION 
+#ifdef H_CORRECTION
 #ifndef H_CORRECTION_2D_H
 #define H_CORRECTION_2D_H
 

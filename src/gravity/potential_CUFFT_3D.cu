@@ -10,36 +10,36 @@
 Potential_CUFFT_3D::Potential_CUFFT_3D( void ){}
 
 void Potential_CUFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real){
-  // 
+  //
   Lbox_x = Lx;
   Lbox_y = Ly;
   Lbox_z = Lz;
-  
+
   nx_total = nx;
   ny_total = ny;
   nz_total = nz;
-  
+
   nx_local = nx_real;
   ny_local = ny_real;
   nz_local = nz_real;
-  
+
   dx = dx_real;
   dy = dy_real;
   dz = dz_real;
-  
+
   n_cells_local = nx_local*ny_local*nz_local;
   n_cells_total = nx_total*ny_total*nz_total;
   chprintf( " Using Poisson Solver: CUFFT\n");
   chprintf( "  CUFFT: L[ %f %f %f ] N[ %d %d %d ] dx[ %f %f %f ]\n", Lbox_x, Lbox_y, Lbox_z, nx_local, ny_local, nz_local, dx, dy, dz );
-  
+
   chprintf( "  CUFFT: Allocating memory...\n");
   AllocateMemory_CPU();
   AllocateMemory_GPU();
-  
+
   chprintf( "  CUFFT: Creating FFT plan...\n");
   cufftPlan3d( &plan_cufft_fwd,  nz_local, ny_local,  nx_local, CUFFT_Z2Z);
   cufftPlan3d( &plan_cufft_bwd,  nz_local, ny_local,  nx_local, CUFFT_Z2Z);
-  
+
   chprintf( "  CUFFT: Computing K for Gravity Green Funtion\n");
   cudaMalloc( (void**)&F.G_d, n_cells_local*sizeof(Real));
   Get_K_for_Green_function();
@@ -120,13 +120,13 @@ void Copy_Input_Kernel( int n_cells, Real *input_h, Complex_cufft *input_d, Real
 void Potential_CUFFT_3D::Copy_Input( Real *input_density, Real Grav_Constant, Real dens_avrg, Real current_a ){
   cudaMemcpy( F.input_real_d, input_density, n_cells_local*sizeof(Real_cufft), cudaMemcpyHostToDevice );
 hipLaunchKernelGGL(  Copy_Input_Kernel, blocks_per_grid,  threads_per_block, 0, 0,  n_cells_local, F.input_real_d, F.input_d, Grav_Constant, dens_avrg, current_a );
-  
+
 }
 
 void Potential_CUFFT_3D::Copy_Output( Real *output_potential ){
 
   cudaMemcpy( F.output_h, F.output_d, n_cells_local*sizeof(Complex_cufft), cudaMemcpyDeviceToHost );
-  
+
   int id, id_pot;
   int i, k, j;
   for (k=0; k<nz_local; k++) {
@@ -160,12 +160,12 @@ void Apply_G_Funtion( int n_cells, Complex_cufft *transform, Real *G ){
 
 
 Real Potential_CUFFT_3D::Get_Potential( Real *input_density,  Real *output_potential, Real Grav_Constant, Real dens_avrg, Real current_a ){
-  // 
+  //
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaEventRecord(start);
-  // 
+  //
   // AllocateMemory_GPU();
   Copy_Input( input_density, Grav_Constant, dens_avrg, current_a );
 
@@ -174,9 +174,9 @@ hipLaunchKernelGGL(  Apply_G_Funtion, blocks_per_grid,  threads_per_block, 0, 0,
   cufftExecZ2Z( plan_cufft_bwd, F.transform_d, F.output_d, CUFFT_INVERSE );
 
   Copy_Output( output_potential );
-  // 
+  //
   // FreeMemory_GPU();
-  // 
+  //
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   float milliseconds = 0;

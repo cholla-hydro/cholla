@@ -61,7 +61,7 @@ void plmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   del_vy_R = vy_ipo - vy_i;
   del_vz_R = vz_ipo - vz_i;
   del_p_R  = p_ipo  - p_i;
-  
+
   // limit the slopes (B=1 is minmod)
   Real B = 1;
   if (d_slope_right>=0)  d_slope  = fmax(0, fmax(fmin(B*d_slope_left,  d_slope_right),  fmin(d_slope_left,  B*d_slope_right)));
@@ -74,7 +74,7 @@ void plmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   if (vz_slope_right<0)  vz_slope = fmin(0, fmin(fmax(B*vz_slope_left, vz_slope_right), fmax(vz_slope_left, B*vz_slope_right)));
   if (p_slope_right>=0)  p_slope  = fmax(0, fmax(fmin(B*p_slope_left,  p_slope_right),  fmin(p_slope_left,  B*p_slope_right)));
   if (p_slope_right<0)   p_slope  = fmin(0, fmin(fmax(B*p_slope_left,  p_slope_right),  fmax(p_slope_left,  B*p_slope_right)));
-  
+
   // set the boundary values for cell i
   dl = d_i - 0.5 * d_slope;
   dr = d_i + 0.5 * d_slope;

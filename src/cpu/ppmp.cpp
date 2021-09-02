@@ -14,7 +14,7 @@
 
 
 /*! \fn void ppmp(Real stencil[], Real bounds[], Real dx, Real dt)
- *  \brief When passed a stencil of conserved variables, returns the left and right 
+ *  \brief When passed a stencil of conserved variables, returns the left and right
            boundary values for the interface calculated using ppm. */
 void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
 {
@@ -64,7 +64,7 @@ void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   Real d2_rho_imo, d2_rho_ipo; //second derivative of rho
   Real eta_i; //steepening coefficient derived from a dimensionless quantity relating
               //the first and third derivatives of  the density (Fryxell Eqns 36 & 40)
-  Real delta_m_imo, delta_m_ipo; //monotonized slopes (Fryxell Eqn 26) 
+  Real delta_m_imo, delta_m_ipo; //monotonized slopes (Fryxell Eqn 26)
   //define constants to use in shock flattening
   Real F_imo, F_i, F_ipo; //flattening coefficients (Fryxell Eqn 48)
   // define other constants
@@ -112,7 +112,7 @@ void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
       //calculate condition 5, pressure vs density jumps (Fryxell Eqn 39)
       //if c5 is true, set value of eta for discontinuity steepening
       if ((fabs(p_ipo - p_imo) / fmin(p_ipo, p_imo)) < 0.1 * gamma * (fabs(d_ipo - d_imo) / fmin(d_ipo, d_imo)))
-      { 
+      {
         //calculate first eta value (Fryxell Eqn 36)
         eta_i = calc_eta(d2_rho_imo, d2_rho_ipo, dx, dx, dx, d_imo, d_ipo);
         //calculate steepening coefficient (Fryxell Eqn 40)
@@ -210,7 +210,7 @@ void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   beta_m = fmax( (lambda_m * dt / dx_i) , 0 ); // Fryxell Eqn 59
   beta_0 = fmax( (lambda_0 * dt / dx_i) , 0 ); // Fryxell Eqn 59
   beta_p = fmax( (lambda_p * dt / dx_i) , 0 ); // Fryxell Eqn 59
- 
+
   // calculate alphas (for left interface guesses)
   alpha_m = fmax( (-lambda_m * dt / dx_i), 0); // Fryxell Eqn 61
   alpha_0 = fmax( (-lambda_0 * dt / dx_i), 0); // Fryxell Eqn 61
@@ -253,10 +253,10 @@ void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   vzr = vzR_0;
   pr  = pR_p;
 
-  // correct these initial guesses by taking into account the number of 
+  // correct these initial guesses by taking into account the number of
   // characteristics on each side of the interface
 
-  // calculate the 'guess' sound speeds 
+  // calculate the 'guess' sound speeds
   cl = sqrt(gamma * pl / dl);
   cr = sqrt(gamma * pr / dr);
 
@@ -299,7 +299,7 @@ void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
 }
 
 
-/*! \fn interface_value 
+/*! \fn interface_value
  *  \brief Returns the interpolated value at the right hand interface of cell i.*/
 Real interface_value(Real q_imo, Real q_i, Real q_ipo, Real q_ipt,
                  Real dx_imo, Real dx_i, Real dx_ipo, Real dx_ipt)
@@ -321,8 +321,8 @@ Real interface_value(Real q_imo, Real q_i, Real q_ipo, Real q_ipt,
     dq_i = limit_delta_q(dq_i, q_imo, q_i, q_ipo);
     dq_ipo = limit_delta_q(dq_ipo, q_i, q_ipo, q_ipt);
 
-    q_R = q_i + (dx_i / (dx_i + dx_ipo))*(q_ipo - q_i) + 
-    (1 / X)*( ((2*dx_ipo*dx_i)/(dx_ipo+dx_i)) * (Z_1 - Z_2) * (q_ipo - q_i) - 
+    q_R = q_i + (dx_i / (dx_i + dx_ipo))*(q_ipo - q_i) +
+    (1 / X)*( ((2*dx_ipo*dx_i)/(dx_ipo+dx_i)) * (Z_1 - Z_2) * (q_ipo - q_i) -
      dx_i*Z_1*dq_ipo + dx_ipo*Z_2*dq_i );
 
     return q_R;
@@ -331,7 +331,7 @@ Real interface_value(Real q_imo, Real q_i, Real q_ipo, Real q_ipt,
 /*! \fn calc_delta_q
  *  \brief Returns the average slope in zone i of the parabola with zone averages
      of imo, i, and ipo. See Fryxell Eqn 24. */
-Real calc_delta_q(Real q_imo, Real q_i, Real q_ipo, 
+Real calc_delta_q(Real q_imo, Real q_i, Real q_ipo,
                 Real dx_imo, Real dx_i, Real dx_ipo)
 {
 
@@ -368,7 +368,7 @@ Real limit_delta_q(Real del_in, Real q_imo, Real q_i, Real q_ipo)
 }
 
 
-/*! \fn test_interface_value 
+/*! \fn test_interface_value
  *  \brief Returns the right hand interpolated value at imo | i cell interface,
      assuming equal cell widths. */
 Real test_interface_value(Real q_imo, Real q_i, Real q_ipo, Real q_ipt)
@@ -391,7 +391,7 @@ Real calc_d2_rho(Real rho_imo, Real rho_i, Real rho_ipo,
     C = (rho_i - rho_imo) / (dx_i + dx_imo);
 
     return A*(B - C);
-} 
+}
 
 
 /*! \fn calc_eta

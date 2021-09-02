@@ -21,7 +21,7 @@ typedef cufftDoubleComplex Complex_cufft;
 
 class Potential_CUFFT_3D{
   public:
-    
+
   Real Lbox_x;
   Real Lbox_y;
   Real Lbox_z;
@@ -70,7 +70,7 @@ class Potential_CUFFT_3D{
   Potential_CUFFT_3D( void );
 
   void Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx, Real dy, Real dz );
-  
+
   void AllocateMemory_CPU( void );
   void AllocateMemory_GPU( void );
   void FreeMemory_GPU( void );
@@ -79,7 +79,7 @@ class Potential_CUFFT_3D{
   void Copy_Output( Real *output_potential );
   void Get_K_for_Green_function( void );
   Real Get_Potential( Real *input_density,  Real *output_potential, Real Grav_Constant, Real dens_avrg, Real current_a );
-  
+
 };
 
 

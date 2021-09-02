@@ -54,8 +54,8 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
 
 
   // Each thread executes the solver independently
-  //if (xid > n_ghost-3 && xid < nx-n_ghost+1 && yid < ny && zid < nz) 
-  if (xid < nx && yid < ny && zid < nz) 
+  //if (xid > n_ghost-3 && xid < nx-n_ghost+1 && yid < ny && zid < nz)
+  if (xid < nx && yid < ny && zid < nz)
   {
     // retrieve primative variables
     dl  = dev_bounds_L[            tid];
@@ -66,8 +66,8 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     E = dev_bounds_L[4*n_cells + tid];
     E_kin = 0.5 * dl * ( vxl*vxl + vyl*vyl + vzl*vzl );
     dge = dev_bounds_L[(n_fields-1)*n_cells + tid];
-    pl = Get_Pressure_From_DE( E, E - E_kin, dge, gamma ); 
-    #else   
+    pl = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    #else
     pl  = (dev_bounds_L[4*n_cells + tid] - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     #endif //PRESSURE_DE
     pl  = fmax(pl, (Real) TINY_NUMBER);
@@ -87,9 +87,9 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     E = dev_bounds_R[4*n_cells + tid];
     E_kin = 0.5 * dr * ( vxr*vxr + vyr*vyr + vzr*vzr );
     dge = dev_bounds_R[(n_fields-1)*n_cells + tid];
-    pr = Get_Pressure_From_DE( E, E - E_kin, dge, gamma ); 
-    #else   
-    pr  = (dev_bounds_R[4*n_cells + tid] - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);  
+    pr = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    #else
+    pr  = (dev_bounds_R[4*n_cells + tid] - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
     #endif //PRESSURE_DE
     pr  = fmax(pr, (Real) TINY_NUMBER);
     #ifdef SCALAR
@@ -105,7 +105,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     // compute sounds speeds in left and right regions
     cl = sqrt(gamma * pl / dl);
     cr = sqrt(gamma * pr / dr);
-    
+
     // test for the pressure positivity condition
     if ((2.0 / (gamma - 1.0)) * (cl+cr) <= (vxr-vxl))
     {
@@ -116,10 +116,10 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
 
     // Find the exact solution for pressure and velocity in the star region
     starpv_CUDA(&pm, &vm, dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
- 
+
     //sample_CUDA the solution at the cell interface
     sample_CUDA(pm, vm, &ds, &vs, &ps, dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
- 
+
     // calculate the fluxes through the cell interface
     dev_flux[tid] = ds*vs;
     dev_flux[o1*n_cells + tid] = ds*vs*vs+ps;
@@ -164,13 +164,13 @@ __device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr, Real v
   //    according to adaptive Riemann solver using
   //    the PVRS and TSRS approximate Riemann
   //    solvers. See Sect. 9.5 of Toro (1999)
- 
+
   Real gl, gr, ppv, pm;
   const Real TOL = 1.0e-6;
- 
+
   // compute guess pressure from PVRS Riemann solver
   ppv = 0.5*(pl + pr) + 0.125*(vxl - vxr)*(dl + dr)*(cl + cr);
- 
+
   if (ppv < 0.0) ppv = 0.0;
   // Two-Shock Riemann solver with PVRS as estimate
   gl = sqrt((2.0 / ((gamma + 1.0)*dl))/(((gamma - 1.0) / (gamma + 1.0))*pl + ppv));
@@ -181,22 +181,22 @@ __device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr, Real v
 
   return pm;
 }
- 
- 
+
+
 __device__ void prefun_CUDA(Real *f, Real *fd, Real p, Real dk, Real pk, Real ck, Real gamma)
 {
   // purpose:  to evaluate the pressure functions
   // fl and fr in the exact Riemann solver
   // and their first derivatives
- 
+
   Real qrt;
- 
+
   if (p <= pk) {
     // rarefaction wave
     *f = (2.0 / (gamma - 1.0))*ck*(powf(p/pk, (gamma - 1.0)/(2.0 * gamma)) - 1.0);
     *fd = (1.0/(dk*ck))*powf((p/pk), -((gamma + 1.0)/(2.0 * gamma)));
-  } 
-  else 
+  }
+  else
   {
     // shock wave
     qrt = sqrt(((2.0 / (gamma + 1.0)) / dk)/((((gamma - 1.0) / (gamma + 1.0)) * pk) + p));
@@ -204,22 +204,22 @@ __device__ void prefun_CUDA(Real *f, Real *fd, Real p, Real dk, Real pk, Real ck
     *fd = (1.0 - 0.5*(p - pk)/((((gamma - 1.0) / (gamma + 1.0)) * pk) + p))*qrt;
   }
 }
- 
- 
+
+
 __device__ void starpv_CUDA(Real *p, Real *v, Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma)
 {
-  // purpose:  Uses Newton-Raphson iteration 
+  // purpose:  Uses Newton-Raphson iteration
   // to compute the solution for pressure and
   // velocity in the Star Region
- 
+
   const int nriter = 20;
   const Real TOL = 1.0e-6;
   Real change, fl, fld, fr, frd, pold, pstart;
- 
+
   //guessed value pstart is computed
   pstart = guessp_CUDA(dl, vxl, pl, cl, dr, vxr, pr, cr, gamma);
   pold = pstart;
- 
+
   int i = 0;
   for (i=0 ; i <= nriter; i++) {
     prefun_CUDA(&fl, &fld, pold, dl, pl, cl, gamma);
@@ -239,8 +239,8 @@ __device__ void starpv_CUDA(Real *p, Real *v, Real dl, Real vxl, Real pl, Real c
   *v = 0.5*(vxl + vxr + fr - fl);
 
 }
- 
- 
+
+
 __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real *p,
       Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma)
 {
@@ -248,27 +248,27 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
   //   pattern. Pressure pm and velocity vm in the
   //   star region are known. Sampled
   //   values are d, v, p.
- 
+
   Real c, sl, sr;
- 
+
   if (vm >= 0) // sampling point lies to the left of the contact discontinuity
   {
     if (pm <= pl) // left rarefaction
-    {    
+    {
       if (vxl - cl >= 0) // sampled point is in left data state
-      {   
+      {
         *d = dl;
         *v = vxl;
         *p = pl;
       }
-      else 
+      else
       {
         if (vm - cl*powf(pm/pl, (gamma - 1.0)/(2.0 * gamma)) < 0) // sampled point is in star left state
         {
           *d = dl*powf(pm/pl, 1.0/gamma);
           *v = vm;
           *p = pm;
-        } 
+        }
         else // sampled point is inside left fan
         {
           c = (2.0 / (gamma + 1.0))*(cl + ((gamma - 1.0) / 2.0)*vxl);
@@ -277,26 +277,26 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
           *p = pl*powf(c/cl, 2.0 * gamma / (gamma - 1.0));
         }
       }
-    } 
+    }
     else // left shock
-    { 
+    {
       sl = vxl - cl*sqrt(((gamma + 1.0)/(2.0 * gamma))*(pm/pl) + ((gamma - 1.0)/(2.0 * gamma)));
       if (sl >= 0) // sampled point is in left data state
       {
         *d = dl;
         *v = vxl;
         *p = pl;
-      } 
+      }
       else // sampled point is in star left state
-      { 
+      {
         *d = dl*(pm/pl + ((gamma - 1.0) / (gamma + 1.0)))/((pm/pl)*((gamma - 1.0) / (gamma + 1.0)) + 1.0);
         *v = vm;
         *p = pm;
       }
-    } 
-  } 
+    }
+  }
   else // sampling point lies to the right of the contact discontinuity
-  { 
+  {
     if (pm > pr) // right shock
     {
       sr = vxr + cr*sqrt(((gamma + 1.0)/(2.0 * gamma))*(pm/pr) + ((gamma - 1.0)/(2.0 * gamma)));
@@ -305,39 +305,39 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
         *d = dr;
         *v = vxr;
         *p = pr;
-      } 
+      }
       else // sampled point is in star right state
-      { 
+      {
         *d = dr*(pm/pr + ((gamma - 1.0) / (gamma + 1.0)))/((pm/pr)*((gamma - 1.0) / (gamma + 1.0)) + 1.0);
         *v = vm;
         *p = pm;
       }
-    } 
+    }
     else // right rarefaction
-    { 
+    {
       if (vxr + cr <= 0) // sampled point is in right data state
-      { 
+      {
         *d = dr;
         *v = vxr;
         *p = pr;
-      } 
-      else 
+      }
+      else
       {
         if (vm + cr*powf(pm/pr, (gamma - 1.0)/(2.0 * gamma)) >= 0) // sampled point is in star right state
-        {    
+        {
           *d = dr*powf(pm/pr, (1.0/gamma));
           *v = vm;
           *p = pm;
-        } 
+        }
         else // sampled point is inside right fan
-        {    
+        {
           c = (2.0 / (gamma + 1.0))*(cr - ((gamma - 1.0) / 2.0)*vxr);
           *v = -c;
           *d = dr*powf(c/cr, 2.0 / (gamma - 1.0));
           *p = pr*powf(c/cr, 2.0 * gamma / (gamma - 1.0));
         }
       }
-    } 
+    }
   }
 }
 
