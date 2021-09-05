@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
     start_step = get_time();
 
     Supernova::Calc_Flags(G.H.t);
-    Supernova::Feedback(0.0,0.0,G.H.t,G.H.dt);
+    Supernova::Feedback(0.1,0.0,G.H.t,G.H.dt);
     
     // calculate the timestep
     G.set_dt(dti);

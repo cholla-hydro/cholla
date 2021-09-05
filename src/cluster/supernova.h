@@ -1,7 +1,7 @@
 #ifndef SUPERNOVA_H
 #define SUPERNOVA_H
 namespace Supernova {
-  extern int length;
+  extern int n_cluster;
 
   extern Real cluster_data[];
   

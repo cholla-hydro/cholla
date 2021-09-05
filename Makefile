@@ -7,7 +7,7 @@ include builds/make.type.$(TYPE)
 
 DIRS     := src src/gravity src/particles src/cosmology \
             src/cooling src/model src/cooling_grackle src/analysis \
-            src/gravity/paris
+            src/gravity/paris src/cluster
 
 SUFFIX ?= .$(TYPE).$(MACHINE)
 

@@ -1,11 +1,12 @@
 #include <stdio.h>
+#include "io.h"
 #include <iostream> //cout
 #include "../global.h" //defines Real
 #include "../global_cuda.h" //defines CudaSafeCall
 #include "../grid3D.h" // defines Header
-#include "cluster_list.h" //loads cluster list
+//#include "cluster_list.h" //loads cluster list
 #include "supernova.h" // defines interfaces
-#include "supernova_gpu.h"
+//#include "supernova_gpu.h"
 #include <math.h> // defines ceiol
 #ifdef CUDA
 #include "gpu.hpp"
@@ -19,8 +20,6 @@
 // Initialize by loading cluster_list.h and making cuda array
 // Define Cluster Rotate
 namespace Supernova {
-  int n_cluster;
-
   Real *d_cluster_array;
   Real *d_omega_array;
   bool *d_flags_array;
@@ -64,52 +63,8 @@ namespace Supernova {
 void Supernova::Test(Header H){
   printf("nx %d ny %d nz %d dx %f dy %f dz %f\n",nx,ny,nz,dx,dy,dz);
   printf("pnx %d pny %d pnz %d n_cell %d n_fields %d\n",pnx,pny,pnz,n_cells,n_fields);
-  printf("%f %f %f %f %f %f",xMin,yMin,zMin,xMax,yMax,zMax);
+  printf("Min %f %f %f Max %f %f %f",xMin,yMin,zMin,xMax,yMax,zMax);
 }
-
-int main(void){
-  Real *cluster_data = Supernova::cluster_data;
-  std::cout << cluster_data[0] << std::endl;
-  std::cout << cluster_data[1] << std::endl;
-  std::cout << cluster_data[2] << std::endl;
-  std::cout << cluster_data[3] << std::endl;
-  //  std::cout << &cluster_data[0] << std::endl;
-  std::cout << cluster_data+0 << std::endl;
-  std::cout << cluster_data+1 << std::endl;
-  std::cout << cluster_data+2 << std::endl;
-  // std::cout << cluster_num_particles << std::endl;
-  std::cout << cos(100000.0) << std::endl;
-  //Supernova::length = cluster_num_particles;
-  Grid3D G;
-  Header H = G.H;
-  H.nx = 1;
-  H.ny = 2;
-  H.nz = 3;
-  H.dx = 3.5;
-  H.dy = 2.5;
-  H.dz = 1.5;
-  H.n_ghost = 1;
-
-  std::cout << "H xyz: " << H.dx << H.dy << H.dz << std::endl;
-  std::cout << "H xyz: " << H.nx << H.ny << H.nz << std::endl;
-    
-  Supernova::Initialize(G);
-  Supernova::Test(H);
-    
-
-  //std::cout << Supernova::length << std::endl;
-  std::cout << Supernova::nx << std::endl;
-  std::cout << Supernova::ny << std::endl;
-  std::cout << Supernova::nz << std::endl;
-  std::cout << Supernova::dx << std::endl;
-  std::cout << Supernova::dy << std::endl;
-  std::cout << Supernova::dz << std::endl;
-  
-  return 0;
-}
-
-
-
 
 
 void Supernova::Initialize(Grid3D G){
@@ -159,7 +114,9 @@ void Supernova::Initialize(Grid3D G){
   n_fields = H.n_fields;
   
 #ifdef CUDA
+  chprintf("Initializing Supernova CUDA arrays\n");
   d_hydro_array = G.C.device;
+  CudaSafeCall( cudaMalloc (&d_cluster_array,5*n_cluster*sizeof(Real)));
   cudaMemcpy(d_cluster_array, cluster_data,
 	     5*n_cluster*sizeof(Real),
 	     cudaMemcpyHostToDevice);
@@ -167,6 +124,10 @@ void Supernova::Initialize(Grid3D G){
   CudaSafeCall( cudaMalloc (&d_flags_array, n_cluster*sizeof(bool)));
   Calc_Omega();
 #endif
+
+  printf("nx %d ny %d nz %d dx %f dy %f dz %f\n",nx,ny,nz,dx,dy,dz);
+  printf("pnx %d pny %d pnz %d n_cell %d n_fields %d\n",pnx,pny,pnz,n_cells,n_fields);
+  printf("Min %f %f %f Max %f %f %f\n",xMin,yMin,zMin,xMax,yMax,zMax);
 
 
 

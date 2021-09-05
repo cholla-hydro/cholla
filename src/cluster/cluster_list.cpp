@@ -18208,4 +18208,4 @@ Real Supernova::cluster_data[] = {
 1.00000e+04,5.99990e+08,3.32171e+00,1.79575e+00,3.69028e-03,
 1.00000e+04,6.00000e+08,5.82200e-01,3.12380e-01,2.15874e-03,
 };
-int Supernova::length = sizeof(cluster_data)/sizeof(cluster_data[0])/5;
+int Supernova::n_cluster = sizeof(cluster_data)/sizeof(cluster_data[0])/5;

@@ -1,7 +1,9 @@
 #include<math.h>
+#include"io.h"
 #include"gpu.hpp"
 #include"../global.h"
 #include"../global_cuda.h"
+#include"../grid3D.h"
 #include"supernova.h"
 __device__ Real distance(double x, double y, double z){
   return x*x + y*y + z*z;
@@ -116,7 +118,7 @@ __global__ void Calc_Omega_Kernel(Real *cluster_array, Real *omega_array, int n_
   // n_cluster is the total number
   Real r_pos;
   Real z_pos;
-  Real r_sph, a, v, phi;
+  Real r_sph, a, v;
   
   // properties of halo and disk
   Real a_disk_r, a_halo, a_halo_r;
@@ -148,10 +150,11 @@ __global__ void Calc_Omega_Kernel(Real *cluster_array, Real *omega_array, int n_
   */
   
   // M82 model
+  M_d = 1.0e10; // mass of disk in M_sun	
   M_vir = 5.0e10; // virial mass in M_sun
-  M_d = 1.0e10; // mass of disk in M_sun
-  R_vir = R_d/0.015; // virial radius in kpc
   R_d = 0.8; // disk scale length in kpc
+  R_vir = R_d/0.015; // virial radius in kpc
+
   z_d = 0.15; // disk scale height in kpc
 
   c_vir = 10.0; // halo concentration
@@ -174,13 +177,13 @@ __global__ void Calc_Omega_Kernel(Real *cluster_array, Real *omega_array, int n_
 }
 
 void Supernova::Calc_Omega(void){
-  dim3 dim1dGrid((Supernova::n_cluster+TPB-1)/TPB, 1, 1);
+  dim3 dim1dGrid((n_cluster+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(Calc_Omega_Kernel,dim1dGrid,dim1dBlock,0,0,Supernova::d_cluster_array,Supernova::d_omega_array,Supernova::n_cluster);
+  hipLaunchKernelGGL(Calc_Omega_Kernel,dim1dGrid,dim1dBlock,0,0,d_cluster_array,d_omega_array,n_cluster);
 }
 
 
-__global__ Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *flag_array, int n_cluster, Real time, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real R_cl, Real SFR){
+__global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *flag_array, int n_cluster, Real time, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real R_cl, Real SFR){
   int tid = blockIdx.x * blockDim.x + threadIdx.x ;
   if (tid >= n_cluster){
     return;
@@ -234,11 +237,15 @@ __global__ Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *flag_a
 
 
 void Supernova::Calc_Flags(Real time){
-  dim3 dim1dGrid((Supernova::n_cluster+TPB-1)/TPB, 1, 1);
+  double start_time = get_time(); 			    
+  dim3 dim1dGrid((n_cluster+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(Calc_Omega_Kernel,dim1dGrid,dim1dBlock,0,0,
-		     Supernova::d_cluster_array,Supernova::d_omega_array,Supernova::d_flags_array,Supernova::n_cluster,
-		     time, Supernova::xMin, Supernova::yMin, Supernova::zMin, Supernova::xMax, Supernova::yMax, Supernova::zMax, Supernova::R_cl, Supernova::SFR);
+  hipLaunchKernelGGL(Calc_Flag_Kernel,dim1dGrid,dim1dBlock,0,0,
+		     d_cluster_array,d_omega_array,d_flags_array,n_cluster,
+		     time, xMin, yMin, zMin, xMax, yMax, zMax, R_cl, SFR);
+  CHECK(cudaDeviceSynchronize());
+  double end_time = get_time();
+  chprintf("Supernova Calc Flags: %9.4f \n",1000*(end_time-start_time));
 
 }
 
@@ -246,7 +253,7 @@ void Supernova::Calc_Flags(Real time){
 
 // Lastly start doing some cuda timing tests on the flag + supernova step
 
-__global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, Real *omega_array, bool *flags_array, Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, int nx, int ny, int nz, int pnx, int pny, int pnz, int n_cells, int n_fields, Real R_cl, Real density, Real energy, Real time, Real dt){
+__global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, Real *omega_array, bool *flags_array, Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, int nx, int ny, int nz, int pnx, int pny, int pnz, int n_cells, int n_fields, Real R_cl, Real density, Real energy, Real time, Real dt, int max_pid){
   // Assume x,y,z Min and Max are edges of grid[i][j][k]
   // nx,ny,nz are grid sizes
   
@@ -266,6 +273,9 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
 
   // Determine Particle
   int pre_pid = tid/ijksize;
+  if (pre_pid >= max_pid){
+    return;
+  }
   // TODO: calculate which particle by looping through flags until tid/ncells is satisfied
   int pid = pre_pid;
   if (!flags_array[pid]){
@@ -275,7 +285,7 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
   Real pos_phi = cluster_array[5*pid+3] + omega_array[pid]*time;
   Real pos_x = pos_r * cos(pos_phi) - xMin;
   Real pos_y = pos_r * sin(pos_phi) - yMin;
-  Real pos_z = cluster_array[5*tid+4] - zMin;
+  Real pos_z = cluster_array[5*pid+4] - zMin;
 
   // i,j,k of the block
   int rel_k = (tid - pre_pid*ijksize)/ijsize;
@@ -302,13 +312,18 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
 }
 
 void Supernova::Feedback(Real density, Real energy, Real time, Real dt){
+  double start_time = get_time(); 			    
   int isize = 1+2*pnx;
   int jsize = 1+2*pny;
   int ksize = 1+2*pnz;
-  dim3 dim1dGrid((length*isize*jsize*ksize+TPB-1)/TPB, 1, 1);
+  dim3 dim1dGrid((n_cluster*isize*jsize*ksize+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(Supernova_Feedback_Kernel,dim1dGrid,dim1dBlock,0,0,
 		     d_hydro_array, d_cluster_array, d_omega_array, d_flags_array,
 		     xMin, yMin, zMin, dx, dy, dz, nx, ny, nz, pnx, pny, pnz,
-		     n_cells, n_fields, R_cl, density, energy, time, dt);
+		     n_cells, n_fields, R_cl, density, energy, time, dt, n_cluster);
+  CHECK(cudaDeviceSynchronize());
+  double end_time = get_time();
+  chprintf("Supernova Feedback Time: %9.4f \n",1000*(end_time-start_time));
+
 }
