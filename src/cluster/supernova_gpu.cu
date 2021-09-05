@@ -215,6 +215,7 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
   Real pos_r = cluster_array[5*tid+2];
   Real pos_y = pos_r * sin(pos_phi);
   Real pos_x = pos_r * cos(pos_phi);
+  
   if (pos_y > yMax + R_cl){
     flag_array[tid] = false;
     return;    
@@ -231,12 +232,20 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
     flag_array[tid] = false;
     return;    
   }
+  
+  /*
+  if (pos_y > yMax + R_cl || pos_y < yMin - R_cl || pos_x > xMax + R_cl || pos_x < xMin - R_cl){
+    flag_array[tid] = false;
+    return;
+  }
+  */
   flag_array[tid] = true;
   return;
 }
 
 
 void Supernova::Calc_Flags(Real time){
+  CHECK(cudaDeviceSynchronize());
   double start_time = get_time(); 			    
   dim3 dim1dGrid((n_cluster+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
@@ -312,6 +321,7 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
 }
 
 void Supernova::Feedback(Real density, Real energy, Real time, Real dt){
+  CHECK(cudaDeviceSynchronize());
   double start_time = get_time(); 			    
   int isize = 1+2*pnx;
   int jsize = 1+2*pny;
