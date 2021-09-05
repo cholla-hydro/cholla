@@ -22,9 +22,9 @@ void Grid3D::Compute_Lya_Statistics( ){
     if ( axis == 1 ) n_skewers = Analysis.n_skewers_local_y;
     if ( axis == 2 ) n_skewers = Analysis.n_skewers_local_z;
   
-    if ( axis == 0 ) chprintf( " Computing Along X axis:\n");
-    if ( axis == 1 ) chprintf( " Computing Along Y axis:\n");
-    if ( axis == 2 ) chprintf( " Computing Along Z axis:\n");
+    if ( axis == 0 ) chprintf( " Computing Along X axis: ");
+    if ( axis == 1 ) chprintf( " Computing Along Y axis: ");
+    if ( axis == 2 ) chprintf( " Computing Along Z axis: ");
   
   
     Populate_Lya_Skewers_Local( axis );
@@ -212,6 +212,12 @@ void Analysis_Module::Reset(){
   free( skewers_temperature_local_x );
   free( skewers_temperature_local_y );
   free( skewers_temperature_local_z );
+  #ifdef OUTPUT_SKEWERS
+  free( skewers_density_local_x );
+  free( skewers_density_local_y );
+  free( skewers_density_local_z ); 
+  #endif
+  
   #ifdef MPI_CHOLLA
   
   if ( procID == 0 ){
@@ -228,6 +234,22 @@ void Analysis_Module::Reset(){
     free( skewers_transmitted_flux_HeII_x_global );
     free( skewers_transmitted_flux_HeII_y_global );
     free( skewers_transmitted_flux_HeII_z_global );
+    free( skewers_density_x_global );
+    free( skewers_density_y_global );
+    free( skewers_density_z_global );
+    free( skewers_HI_density_x_global );
+    free( skewers_HI_density_y_global );
+    free( skewers_HI_density_z_global );
+    free( skewers_HeII_density_x_global );
+    free( skewers_HeII_density_y_global );
+    free( skewers_HeII_density_z_global );
+    free( skewers_temperature_x_global );
+    free( skewers_temperature_y_global );
+    free( skewers_temperature_z_global );
+    free( skewers_los_velocity_x_global );
+    free( skewers_los_velocity_y_global );
+    free( skewers_los_velocity_z_global );
+    
     #endif
   }
   
@@ -245,7 +267,9 @@ void Analysis_Module::Reset(){
     free( full_vel_Hubble_x );
     free( skewers_transmitted_flux_HI_x );
     free( skewers_transmitted_flux_HeII_x );
-    
+    #ifdef OUTPUT_SKEWERS
+    free( skewers_density_root_x );  
+    #endif
   }
   
   if ( am_I_root_y ){
@@ -262,6 +286,9 @@ void Analysis_Module::Reset(){
     free( full_vel_Hubble_y );
     free( skewers_transmitted_flux_HI_y );
     free( skewers_transmitted_flux_HeII_y );
+    #ifdef OUTPUT_SKEWERS
+    free( skewers_density_root_y );  
+    #endif
   }
   
   if ( am_I_root_z ){
@@ -278,6 +305,9 @@ void Analysis_Module::Reset(){
     free( full_vel_Hubble_z );
     free( skewers_transmitted_flux_HI_z );
     free( skewers_transmitted_flux_HeII_z );
+    #ifdef OUTPUT_SKEWERS
+    free( skewers_density_root_z );  
+    #endif
   }
   
 

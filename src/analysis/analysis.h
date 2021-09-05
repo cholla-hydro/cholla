@@ -158,6 +158,37 @@ public:
   Real *skewers_transmitted_flux_HeII_y;
   Real *skewers_transmitted_flux_HeII_z;
   
+  #ifdef OUTPUT_SKEWERS
+  
+  Real *skewers_density_local_x;
+  Real *skewers_density_local_y;
+  Real *skewers_density_local_z;
+  
+  Real *skewers_density_root_x;
+  Real *skewers_density_root_y;
+  Real *skewers_density_root_z;
+  
+  Real *skewers_density_x_global;
+  Real *skewers_density_y_global;
+  Real *skewers_density_z_global;
+  
+  
+  Real *skewers_HI_density_x_global;
+  Real *skewers_HI_density_y_global;
+  Real *skewers_HI_density_z_global;
+  
+  Real *skewers_HeII_density_x_global;
+  Real *skewers_HeII_density_y_global;
+  Real *skewers_HeII_density_z_global;
+  
+  Real *skewers_temperature_x_global;
+  Real *skewers_temperature_y_global;
+  Real *skewers_temperature_z_global;
+  
+  Real *skewers_los_velocity_x_global;
+  Real *skewers_los_velocity_y_global;
+  Real *skewers_los_velocity_z_global;
+  
   Real *skewers_transmitted_flux_HI_x_global;
   Real *skewers_transmitted_flux_HI_y_global;
   Real *skewers_transmitted_flux_HI_z_global;
@@ -169,6 +200,7 @@ public:
   Real *transfer_buffer_root_x;
   Real *transfer_buffer_root_y;
   Real *transfer_buffer_root_z;
+  #endif
     
   Real Flux_mean_root_HI_x;
   Real Flux_mean_root_HI_y;

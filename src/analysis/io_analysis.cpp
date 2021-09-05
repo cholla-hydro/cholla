@@ -6,10 +6,9 @@
 #include "../io.h"
 #include "../grid3D.h"
 
-// #define OUTPUT_SKEWER
-
 using namespace std;
 
+// #define OUTPUT_SKEWERS_TRANSMITTED_FLUX
 
 #ifdef OUTPUT_SKEWERS
 void Grid3D::Output_Skewers_File( struct parameters *P ){
@@ -28,7 +27,7 @@ void Grid3D::Output_Skewers_File( struct parameters *P ){
   strcat(filename,".h5");
   
   
-  chprintf("Writing Skewers File: %d\n", Analysis.n_file);
+  chprintf("Writing Skewers File:  %d   ", Analysis.n_file);
   
   hid_t   file_id;
   herr_t  status;
@@ -131,8 +130,64 @@ void Grid3D::Write_Skewers_Data_HDF5( hid_t file_id ){
   hid_t skewers_group_x, dataspace_id_skewers_x;
   dataspace_id_skewers_x = H5Screate_simple(2, dims_x, NULL);
   skewers_group_x        = H5Gcreate(file_id, "skewers_x", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  for ( int skewer_id=0; skewer_id<n_global_x; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_x; los_id ++ ){
+      data_id   = skewer_id * n_los_x + los_id; 
+      buffer_id = skewer_id * n_los_x + los_id;
+      dataset_buffer_x[buffer_id] = Analysis.skewers_density_x_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_x, "density", H5T_IEEE_F64BE, dataspace_id_skewers_x, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_x );
+  status = H5Dclose(dataset_id);
   
   
+  for ( int skewer_id=0; skewer_id<n_global_x; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_x; los_id ++ ){
+      data_id   = skewer_id * n_los_x + los_id; 
+      buffer_id = skewer_id * n_los_x + los_id;
+      dataset_buffer_x[buffer_id] = Analysis.skewers_HI_density_x_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_x, "HI_density", H5T_IEEE_F64BE, dataspace_id_skewers_x, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_x );
+  status = H5Dclose(dataset_id);
+  
+  for ( int skewer_id=0; skewer_id<n_global_x; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_x; los_id ++ ){
+      data_id   = skewer_id * n_los_x + los_id; 
+      buffer_id = skewer_id * n_los_x + los_id;
+      dataset_buffer_x[buffer_id] = Analysis.skewers_HeII_density_x_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_x, "HeII_density", H5T_IEEE_F64BE, dataspace_id_skewers_x, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_x );
+  status = H5Dclose(dataset_id);
+  
+  for ( int skewer_id=0; skewer_id<n_global_x; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_x; los_id ++ ){
+      data_id   = skewer_id * n_los_x + los_id; 
+      buffer_id = skewer_id * n_los_x + los_id;
+      dataset_buffer_x[buffer_id] = Analysis.skewers_temperature_x_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_x, "temperature", H5T_IEEE_F64BE, dataspace_id_skewers_x, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_x );
+  status = H5Dclose(dataset_id);
+  
+  for ( int skewer_id=0; skewer_id<n_global_x; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_x; los_id ++ ){
+      data_id   = skewer_id * n_los_x + los_id; 
+      buffer_id = skewer_id * n_los_x + los_id;
+      dataset_buffer_x[buffer_id] = Analysis.skewers_los_velocity_x_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_x, "los_velocity", H5T_IEEE_F64BE, dataspace_id_skewers_x, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_x );
+  status = H5Dclose(dataset_id);
+  
+  #ifdef OUTPUT_SKEWERS_TRANSMITTED_FLUX
   for ( int skewer_id=0; skewer_id<n_global_x; skewer_id++ ){
     for ( int los_id=0; los_id<n_los_x; los_id ++ ){
       data_id   = skewer_id * n_los_x + los_id; 
@@ -154,6 +209,8 @@ void Grid3D::Write_Skewers_Data_HDF5( hid_t file_id ){
   dataset_id = H5Dcreate(skewers_group_x, "los_transmitted_flux_HeII", H5T_IEEE_F64BE, dataspace_id_skewers_x, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_x );
   status = H5Dclose(dataset_id);
+  #endif 
+  
   free( dataset_buffer_x );
   
   
@@ -165,7 +222,63 @@ void Grid3D::Write_Skewers_Data_HDF5( hid_t file_id ){
   hid_t skewers_group_y, dataspace_id_skewers_y;
   dataspace_id_skewers_y = H5Screate_simple(2, dims_y, NULL);
   skewers_group_y        = H5Gcreate(file_id, "skewers_y", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  for ( int skewer_id=0; skewer_id<n_global_y; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_y; los_id ++ ){
+      data_id   = skewer_id * n_los_y + los_id;
+      buffer_id = skewer_id * n_los_y + los_id; 
+      dataset_buffer_y[buffer_id] = Analysis.skewers_density_y_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_y, "density", H5T_IEEE_F64BE, dataspace_id_skewers_y, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_y );
+  status = H5Dclose(dataset_id);
+    
+  for ( int skewer_id=0; skewer_id<n_global_y; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_y; los_id ++ ){
+      data_id   = skewer_id * n_los_y + los_id;
+      buffer_id = skewer_id * n_los_y + los_id; 
+      dataset_buffer_y[buffer_id] = Analysis.skewers_HI_density_y_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_y, "HI_density", H5T_IEEE_F64BE, dataspace_id_skewers_y, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_y );
+  status = H5Dclose(dataset_id);
+    
+  for ( int skewer_id=0; skewer_id<n_global_y; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_y; los_id ++ ){
+      data_id   = skewer_id * n_los_y + los_id;
+      buffer_id = skewer_id * n_los_y + los_id; 
+      dataset_buffer_y[buffer_id] = Analysis.skewers_HeII_density_y_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_y, "HeII_density", H5T_IEEE_F64BE, dataspace_id_skewers_y, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_y );
+  status = H5Dclose(dataset_id);
+    
+  for ( int skewer_id=0; skewer_id<n_global_y; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_y; los_id ++ ){
+      data_id   = skewer_id * n_los_y + los_id;
+      buffer_id = skewer_id * n_los_y + los_id; 
+      dataset_buffer_y[buffer_id] = Analysis.skewers_temperature_y_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_y, "temperature", H5T_IEEE_F64BE, dataspace_id_skewers_y, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_y );
+  status = H5Dclose(dataset_id);
+
+  for ( int skewer_id=0; skewer_id<n_global_y; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_y; los_id ++ ){
+      data_id   = skewer_id * n_los_y + los_id;
+      buffer_id = skewer_id * n_los_y + los_id; 
+      dataset_buffer_y[buffer_id] = Analysis.skewers_los_velocity_y_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_y, "los_velocity", H5T_IEEE_F64BE, dataspace_id_skewers_y, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_y );
+  status = H5Dclose(dataset_id);
   
+  #ifdef OUTPUT_SKEWERS_TRANSMITTED_FLUX
   for ( int skewer_id=0; skewer_id<n_global_y; skewer_id++ ){
     for ( int los_id=0; los_id<n_los_y; los_id ++ ){
       data_id   = skewer_id * n_los_y + los_id;
@@ -187,6 +300,8 @@ void Grid3D::Write_Skewers_Data_HDF5( hid_t file_id ){
   dataset_id = H5Dcreate(skewers_group_y, "los_transmitted_flux_HeII", H5T_IEEE_F64BE, dataspace_id_skewers_y, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_y );
   status = H5Dclose(dataset_id);
+  #endif
+  
   free( dataset_buffer_y );
   
   //Write Skerwes Z 
@@ -198,6 +313,62 @@ void Grid3D::Write_Skewers_Data_HDF5( hid_t file_id ){
   dataspace_id_skewers_z = H5Screate_simple(2, dims_z, NULL);
   skewers_group_z        = H5Gcreate(file_id, "skewers_z", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   
+  for ( int skewer_id=0; skewer_id<n_global_z; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_z; los_id ++ ){
+      data_id   = skewer_id * n_los_z + los_id; 
+      buffer_id = skewer_id * n_los_z + los_id;
+      dataset_buffer_z[buffer_id] = Analysis.skewers_density_z_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_z, "density", H5T_IEEE_F64BE, dataspace_id_skewers_z, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_z );
+  status = H5Dclose(dataset_id);
+
+  for ( int skewer_id=0; skewer_id<n_global_z; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_z; los_id ++ ){
+      data_id   = skewer_id * n_los_z + los_id; 
+      buffer_id = skewer_id * n_los_z + los_id;
+      dataset_buffer_z[buffer_id] = Analysis.skewers_HI_density_z_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_z, "HI_density", H5T_IEEE_F64BE, dataspace_id_skewers_z, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_z );
+  status = H5Dclose(dataset_id);
+  
+  for ( int skewer_id=0; skewer_id<n_global_z; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_z; los_id ++ ){
+      data_id   = skewer_id * n_los_z + los_id; 
+      buffer_id = skewer_id * n_los_z + los_id;
+      dataset_buffer_z[buffer_id] = Analysis.skewers_HeII_density_z_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_z, "HeII_density", H5T_IEEE_F64BE, dataspace_id_skewers_z, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_z );
+  status = H5Dclose(dataset_id);
+
+  for ( int skewer_id=0; skewer_id<n_global_z; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_z; los_id ++ ){
+      data_id   = skewer_id * n_los_z + los_id; 
+      buffer_id = skewer_id * n_los_z + los_id;
+      dataset_buffer_z[buffer_id] = Analysis.skewers_temperature_z_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_z, "temperature", H5T_IEEE_F64BE, dataspace_id_skewers_z, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_z );
+  status = H5Dclose(dataset_id);
+  
+  for ( int skewer_id=0; skewer_id<n_global_z; skewer_id++ ){
+    for ( int los_id=0; los_id<n_los_z; los_id ++ ){
+      data_id   = skewer_id * n_los_z + los_id; 
+      buffer_id = skewer_id * n_los_z + los_id;
+      dataset_buffer_z[buffer_id] = Analysis.skewers_los_velocity_z_global[data_id];
+    }
+  }
+  dataset_id = H5Dcreate(skewers_group_z, "los_velocity", H5T_IEEE_F64BE, dataspace_id_skewers_z, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_z );
+  status = H5Dclose(dataset_id);
+  
+  #ifdef OUTPUT_SKEWERS_TRANSMITTED_FLUX
   for ( int skewer_id=0; skewer_id<n_global_z; skewer_id++ ){
     for ( int los_id=0; los_id<n_los_z; los_id ++ ){
       data_id   = skewer_id * n_los_z + los_id; 
@@ -219,6 +390,8 @@ void Grid3D::Write_Skewers_Data_HDF5( hid_t file_id ){
   dataset_id = H5Dcreate(skewers_group_z, "los_transmitted_flux_HeII", H5T_IEEE_F64BE, dataspace_id_skewers_z, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_z );
   status = H5Dclose(dataset_id);
+  #endif
+  
   free( dataset_buffer_z );
 
   int n_ghost;
@@ -294,7 +467,7 @@ void Grid3D::Output_Analysis( struct parameters *P ){
   strcat(filename,".h5");
   
   
-  chprintf("Writing Analysis File: %d\n", Analysis.n_file);
+  chprintf("Writing Analysis File: %d   ", Analysis.n_file);
   
   hid_t   file_id;
   herr_t  status;
@@ -477,82 +650,6 @@ void Grid3D::Write_Analysis_Data_HDF5( hid_t file_id ){
     
     
   }
-  
-  
-
-  #ifdef OUTPUT_SKEWER
-  int nx, n_ghost;
-  nx = Analysis.nx_total;
-  n_ghost = Analysis.n_ghost_skewer;
-  // printf( "N Ghost: %d\n", n_ghost );
-  
-  
-  hid_t skewer_group, dataspace_id_skewer;
-  hsize_t   dims1d[1];
-  dims1d[0] = nx;
-  dataspace_id_skewer = H5Screate_simple(1, dims1d, NULL);
-  
-  skewer_group = H5Gcreate(group_id, "skewer", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  
-  
-  Real *buffer_skewer = (Real *) malloc(nx*sizeof(Real));
-  
-  for ( int los_id=0; los_id<nx; los_id++ ){
-    buffer_skewer[los_id] = Analysis.full_HI_density_x[los_id+n_ghost ];
-  }
-  dataset_id = H5Dcreate(skewer_group, "HI_density", H5T_IEEE_F64BE, dataspace_id_skewer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer);
-  status = H5Dclose(dataset_id);
-  
-  
-  for ( int los_id=0; los_id<nx; los_id++ ){
-    buffer_skewer[los_id] = Analysis.full_velocity_x[los_id+n_ghost];
-  }
-  dataset_id = H5Dcreate(skewer_group, "velocity", H5T_IEEE_F64BE, dataspace_id_skewer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer);
-  status = H5Dclose(dataset_id);
-  
-  
-  for ( int los_id=0; los_id<nx; los_id++ ){
-    buffer_skewer[los_id] = Analysis.full_temperature_x[los_id+n_ghost];
-  }
-  dataset_id = H5Dcreate(skewer_group, "temperature", H5T_IEEE_F64BE, dataspace_id_skewer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer);
-  status = H5Dclose(dataset_id);
-  
-  
-  for ( int los_id=0; los_id<nx; los_id++ ){
-    buffer_skewer[los_id] = Analysis.full_optical_depth_x[los_id+n_ghost];
-  }
-  dataset_id = H5Dcreate(skewer_group, "optical_depth", H5T_IEEE_F64BE, dataspace_id_skewer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer);
-  status = H5Dclose(dataset_id);
-  
-  for ( int los_id=0; los_id<nx; los_id++ ){
-    buffer_skewer[los_id] = Analysis.full_vel_Hubble_x[los_id+n_ghost];
-    // printf("%f\n", Analysis.full_vel_Hubble_x[los_id+n_ghost] );
-  }
-  dataset_id = H5Dcreate(skewer_group, "vel_Hubble", H5T_IEEE_F64BE, dataspace_id_skewer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer);
-  status = H5Dclose(dataset_id);
-  
-  
-  for ( int los_id=0; los_id<nx; los_id++ ){
-    buffer_skewer[los_id] = Analysis.transmitted_flux_x[los_id];
-    // printf("%f\n", Analysis.full_vel_Hubble_x[los_id+n_ghost] );
-  }
-  dataset_id = H5Dcreate(skewer_group, "transmitted_flux", H5T_IEEE_F64BE, dataspace_id_skewer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer_skewer);
-  status = H5Dclose(dataset_id);
-  
-  
-  
-  status = H5Gclose(skewer_group);
-  
-  
-  #endif
-  
-  
   
   status = H5Gclose(group_id);
   
