@@ -1,0 +1,44 @@
+#ifndef SUPERNOVA_H
+#define SUPERNOVA_H
+
+namespace Supernova {
+  extern int length;
+  
+  extern Real *d_cluster_array;
+  extern Real *d_omega_array;
+  extern bool *d_flags_array;
+  
+  extern Real xMin;
+  extern Real yMin;
+  extern Real zMin;
+  
+  extern Real xMax;
+  extern Real yMax;
+  extern Real zMax;
+
+  extern Real dx;
+  extern Real dy;
+  extern Real dz;
+ 
+  extern int nx;
+  extern int ny;
+  extern int nz;
+  
+  extern int pnx;
+  extern int pny;
+  extern int pnz;
+
+  extern int n_cells;
+  extern int n_fields;
+  
+  extern Real R_cl;
+  extern Real SFR;
+  void Initialize(Header H);
+  void Calc_Omega(void);//Real *cluster_array, Real *omega_array, int n_cluster);
+  void Calc_Flags(Real time);
+  void Feedback(Real *hydro_dev, Real density, Real energy, Real time, Real dt);
+
+  
+}
+#endif
+
