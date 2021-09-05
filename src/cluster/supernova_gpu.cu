@@ -174,9 +174,9 @@ __global__ void Calc_Omega_Kernel(Real *cluster_array, Real *omega_array, int n_
 }
 
 void Supernova::Calc_Omega(void){
-  dim3 dim1dGrid((Supernova::length+TPB-1)/TPB, 1, 1);
+  dim3 dim1dGrid((Supernova::n_cluster+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(Calc_Omega_Kernel,dim1dGrid,dim1dBlock,0,0,Supernova::d_cluster_array,Supernova::d_omega_array,Supernova::length);
+  hipLaunchKernelGGL(Calc_Omega_Kernel,dim1dGrid,dim1dBlock,0,0,Supernova::d_cluster_array,Supernova::d_omega_array,Supernova::n_cluster);
 }
 
 
@@ -234,10 +234,10 @@ __global__ Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *flag_a
 
 
 void Supernova::Calc_Flags(Real time){
-  dim3 dim1dGrid((Supernova::length+TPB-1)/TPB, 1, 1);
+  dim3 dim1dGrid((Supernova::n_cluster+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(Calc_Omega_Kernel,dim1dGrid,dim1dBlock,0,0,
-		     Supernova::d_cluster_array,Supernova::d_omega_array,Supernova::d_flags_array,Supernova::length,
+		     Supernova::d_cluster_array,Supernova::d_omega_array,Supernova::d_flags_array,Supernova::n_cluster,
 		     time, Supernova::xMin, Supernova::yMin, Supernova::zMin, Supernova::xMax, Supernova::yMax, Supernova::zMax, Supernova::R_cl, Supernova::SFR);
 
 }
@@ -301,14 +301,14 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
   Supernova_Helper(hydro_dev, pos_x, pos_y, pos_z, dx, dy, dz, local_i, local_j, local_k, n_cells, n_fields, R_cl, density, energy, gidx);
 }
 
-void Supernova::Feedback(Real *hydro_dev, Real density, Real energy, Real time, Real dt){
+void Supernova::Feedback(Real density, Real energy, Real time, Real dt){
   int isize = 1+2*pnx;
   int jsize = 1+2*pny;
   int ksize = 1+2*pnz;
   dim3 dim1dGrid((length*isize*jsize*ksize+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(Supernova_Feedback_Kernel,dim1dGrid,dim1dBlock,0,0,
-		     hydro_dev, d_cluster_array, d_omega_array, d_flags_array,
+		     d_hydro_array, d_cluster_array, d_omega_array, d_flags_array,
 		     xMin, yMin, zMin, dx, dy, dz, nx, ny, nz, pnx, pny, pnz,
 		     n_cells, n_fields, R_cl, density, energy, time, dt);
 }

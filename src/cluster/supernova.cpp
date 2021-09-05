@@ -19,11 +19,12 @@
 // Initialize by loading cluster_list.h and making cuda array
 // Define Cluster Rotate
 namespace Supernova {
-  int length;
+  int n_cluster;
 
   Real *d_cluster_array;
   Real *d_omega_array;
   bool *d_flags_array;
+  Real *d_hydro_array;
 
   Real R_cl;
   Real SFR;
@@ -51,7 +52,6 @@ namespace Supernova {
   int n_cells;
   int n_fields;
   void Test(Header H);
-
 }
 
 
@@ -68,6 +68,7 @@ void Supernova::Test(Header H){
 }
 
 int main(void){
+  Real *cluster_data = Supernova::cluster_data;
   std::cout << cluster_data[0] << std::endl;
   std::cout << cluster_data[1] << std::endl;
   std::cout << cluster_data[2] << std::endl;
@@ -76,10 +77,11 @@ int main(void){
   std::cout << cluster_data+0 << std::endl;
   std::cout << cluster_data+1 << std::endl;
   std::cout << cluster_data+2 << std::endl;
-  std::cout << cluster_num_particles << std::endl;
+  // std::cout << cluster_num_particles << std::endl;
   std::cout << cos(100000.0) << std::endl;
-  Supernova::length = cluster_num_particles;
-  struct Header H;
+  //Supernova::length = cluster_num_particles;
+  Grid3D G;
+  Header H = G.H;
   H.nx = 1;
   H.ny = 2;
   H.nz = 3;
@@ -91,11 +93,11 @@ int main(void){
   std::cout << "H xyz: " << H.dx << H.dy << H.dz << std::endl;
   std::cout << "H xyz: " << H.nx << H.ny << H.nz << std::endl;
     
-  Supernova::Initialize(H);
+  Supernova::Initialize(G);
   Supernova::Test(H);
     
 
-  std::cout << Supernova::length << std::endl;
+  //std::cout << Supernova::length << std::endl;
   std::cout << Supernova::nx << std::endl;
   std::cout << Supernova::ny << std::endl;
   std::cout << Supernova::nz << std::endl;
@@ -110,8 +112,9 @@ int main(void){
 
 
 
-void Supernova::Initialize(Header H){
-  length = cluster_num_particles;
+void Supernova::Initialize(Grid3D G){
+  Header H = G.H;
+  //length = cluster_num_particles;
   
   R_cl = 0.03;
   SFR = 20000.0;
@@ -156,11 +159,12 @@ void Supernova::Initialize(Header H){
   n_fields = H.n_fields;
   
 #ifdef CUDA
+  d_hydro_array = G.C.device;
   cudaMemcpy(d_cluster_array, cluster_data,
-	     5*cluster_num_particles*sizeof(Real),
+	     5*n_cluster*sizeof(Real),
 	     cudaMemcpyHostToDevice);
-  CudaSafeCall( cudaMalloc (&d_omega_array, cluster_num_particles*sizeof(Real)));
-  CudaSafeCall( cudaMalloc (&d_flags_array, cluster_num_particles*sizeof(bool)));
+  CudaSafeCall( cudaMalloc (&d_omega_array, n_cluster*sizeof(Real)));
+  CudaSafeCall( cudaMalloc (&d_flags_array, n_cluster*sizeof(bool)));
   Calc_Omega();
 #endif
 

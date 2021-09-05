@@ -1,6 +1,7 @@
 #include "../global.h"
-#include "cluster_list.h"
-Real cluster_data[] = {
+#include "../grid3D.h"
+#include "supernova.h"
+Real Supernova::cluster_data[] = {
 // mass [M_sun]  total_SF [M_sun]  r [kpc]  phi [rad]  z [kpc],
 1.00000e+04,1.00000e+04,6.41959e-01,3.11992e+00,9.59060e-05,
 1.00000e+04,2.00000e+04,2.15597e+00,4.28820e+00,4.35569e-03,
@@ -18207,4 +18208,4 @@ Real cluster_data[] = {
 1.00000e+04,5.99990e+08,3.32171e+00,1.79575e+00,3.69028e-03,
 1.00000e+04,6.00000e+08,5.82200e-01,3.12380e-01,2.15874e-03,
 };
-int cluster_num_particles = sizeof(cluster_data)/sizeof(cluster_data[0])/5;
+int Supernova::length = sizeof(cluster_data)/sizeof(cluster_data[0])/5;

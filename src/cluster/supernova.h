@@ -1,12 +1,14 @@
 #ifndef SUPERNOVA_H
 #define SUPERNOVA_H
-
 namespace Supernova {
   extern int length;
+
+  extern Real cluster_data[];
   
   extern Real *d_cluster_array;
   extern Real *d_omega_array;
   extern bool *d_flags_array;
+  extern Real *d_hydro_array;
   
   extern Real xMin;
   extern Real yMin;
@@ -33,10 +35,10 @@ namespace Supernova {
   
   extern Real R_cl;
   extern Real SFR;
-  void Initialize(Header H);
+  void Initialize(Grid3D G);
   void Calc_Omega(void);//Real *cluster_array, Real *omega_array, int n_cluster);
   void Calc_Flags(Real time);
-  void Feedback(Real *hydro_dev, Real density, Real energy, Real time, Real dt);
+  void Feedback(Real density, Real energy, Real time, Real dt);
 
   
 }

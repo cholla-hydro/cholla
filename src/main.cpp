@@ -11,6 +11,7 @@
 #include <string.h>
 #include "global.h"
 #include "grid3D.h"
+#include "cluster/supernova.h" // move this stuff into grid3D eventually
 #include "io.h"
 #include "error_handling.h"
 
@@ -138,6 +139,8 @@ int main(int argc, char *argv[])
   G.Get_Particles_Acceleration();
   #endif
 
+  Supernova::Initialize(G);
+
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n",gama);
   chprintf("Nstep = %d  Timestep = %f  Simulation time = %f\n", G.H.n_step, G.H.dt, G.H.t);
@@ -180,6 +183,9 @@ int main(int argc, char *argv[])
   {
     // get the start time
     start_step = get_time();
+
+    Supernova::Calc_Flags(G.H.t);
+    Supernova::Feedback(0.0,0.0,G.H.t,G.H.dt);
     
     // calculate the timestep
     G.set_dt(dti);
