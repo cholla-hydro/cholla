@@ -1,5 +1,7 @@
 #ifndef SUPERNOVA_H
 #define SUPERNOVA_H
+#include "../global.h" //defines Real
+#include "../grid3D.h" // defines Header
 namespace Supernova {
   extern int n_cluster;
 

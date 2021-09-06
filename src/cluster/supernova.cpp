@@ -1,16 +1,17 @@
+#ifdef SUPERNOVA
 #include <stdio.h>
-#include "io.h"
+#include "../io.h"
 #include <iostream> //cout
-#include "../global.h" //defines Real
-#include "../global_cuda.h" //defines CudaSafeCall
-#include "../grid3D.h" // defines Header
+//#include "../global.h" //defines Real
+//#include "../grid3D.h" // defines Header
 //#include "cluster_list.h" //loads cluster list
 #include "supernova.h" // defines interfaces
 //#include "supernova_gpu.h"
-#include <math.h> // defines ceiol
+#include <math.h> // defines ceil
 #ifdef CUDA
+#include "../global_cuda.h" //defines CudaSafeCall
 #include "gpu.hpp"
-#endif
+#endif //CUDA
 
 
 // defines kernel-callingfunctions in supernova_gpu.cu 
@@ -20,6 +21,8 @@
 // Initialize by loading cluster_list.h and making cuda array
 // Define Cluster Rotate
 namespace Supernova {
+  //Real cluster_data[];
+  
   Real *d_cluster_array;
   Real *d_omega_array;
   bool *d_flags_array;
@@ -40,6 +43,7 @@ namespace Supernova {
   Real dy;
   Real dz;
 
+
   int nx;
   int ny;
   int nz;
@@ -48,9 +52,11 @@ namespace Supernova {
   int pny;
   int pnz;
 
+  int n_cluster;
   int n_cells;
   int n_fields;
   void Test(Header H);
+  void LoadS99(void);
 }
 
 
@@ -68,6 +74,9 @@ void Supernova::Test(Header H){
 
 
 void Supernova::Initialize(Grid3D G){
+
+  #include "cluster_list.data"
+  // Defines cluster_data and length
   Header H = G.H;
   //length = cluster_num_particles;
   
@@ -123,7 +132,7 @@ void Supernova::Initialize(Grid3D G){
   CudaSafeCall( cudaMalloc (&d_omega_array, n_cluster*sizeof(Real)));
   CudaSafeCall( cudaMalloc (&d_flags_array, n_cluster*sizeof(bool)));
   Calc_Omega();
-#endif
+#endif //CUDA
 
   printf("nx %d ny %d nz %d dx %f dy %f dz %f\n",nx,ny,nz,dx,dy,dz);
   printf("pnx %d pny %d pnz %d n_cell %d n_fields %d\n",pnx,pny,pnz,n_cells,n_fields);
@@ -135,3 +144,24 @@ void Supernova::Initialize(Grid3D G){
 
 
 
+void Supernova::LoadS99(void){
+  #include "S99_table.data"
+  //defines Real s99_data;
+  int n_entries = sizeof(s99_data)/sizeof(s99_data[0])/3;
+  printf("n_entries: %d\n",n_entries);
+  for (int i=0;i<10;i++){
+    printf("s[%d]: %f\n",i,s99_data[i]); 
+  }
+  // M_dot is just what it is 
+  // Real M_dot = f*(S99_table[i][1] + (tf-i)*M_slope);
+  // But E_dot is logarithmic
+  // Real E_dot = f*pow(10, (S99_table[i][2] + (tf-i)*E_slope) )*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT);
+  Real M_dot[n_entries];
+  Real E_dot[n_entries];
+  for (int i=0;i<n_entries;i++){
+    M_dot[i] = s99_data[3*i+1];
+    E_dot[i] = s99_data[3*i+2];
+  }
+}
+
+#endif //SUPERNOVA

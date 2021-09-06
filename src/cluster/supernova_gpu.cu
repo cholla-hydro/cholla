@@ -1,3 +1,4 @@
+#ifdef SUPERNOVA
 #include<math.h>
 #include"io.h"
 #include"gpu.hpp"
@@ -337,3 +338,5 @@ void Supernova::Feedback(Real density, Real energy, Real time, Real dt){
   chprintf("Supernova Feedback Time: %9.4f \n",1000*(end_time-start_time));
 
 }
+
+#endif
