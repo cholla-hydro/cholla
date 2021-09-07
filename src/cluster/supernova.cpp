@@ -130,7 +130,7 @@ void Supernova::Initialize(Grid3D G){
 	     cudaMemcpyHostToDevice);
   CudaSafeCall( cudaMalloc (&d_omega_array, n_cluster*sizeof(Real)));
   CudaSafeCall( cudaMalloc (&d_flags_array, n_cluster*sizeof(bool)));
-  Calc_Omega();//not necessary
+  Calc_Omega();
   InitializeS99();
 #endif //CUDA
 

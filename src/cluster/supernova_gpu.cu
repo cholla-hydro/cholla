@@ -78,6 +78,7 @@ __device__ void Supernova_Helper(Real *hydro_dev,
   }
 
   if (rl < R_cl2) {
+    /*
     int count = 0;
     // Add energy fractional
     // TODO: implement weight
@@ -90,7 +91,10 @@ __device__ void Supernova_Helper(Real *hydro_dev,
 	}
       }
     }
+
     Real weight = count/1000.0;
+    */
+    Real weight = 0.5;
     atomicAdd(&hydro_dev[gidx],weight*density);
     atomicAdd(&hydro_dev[gidx+4*n_cells],weight*energy);
     #ifdef SCALAR
@@ -228,7 +232,9 @@ void Supernova::Calc_Omega(void){
 
 __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *flag_array,
 				 Real *d_mdot, Real *d_edot, Real *d_mdot_array, Real *d_edot_array,
-				 int n_cluster, Real time, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real R_cl, Real SFR){
+				 int n_cluster, 
+				 Real time, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, 
+				 Real R_cl, Real SFR){
   int tid = blockIdx.x * blockDim.x + threadIdx.x ;
   if (tid >= n_cluster){
     return;
@@ -239,7 +245,7 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
   Real convert_time = ((time - total_SF/SFR)*1e3-1e4)*1e-5;
   int table_index = (int)floor(convert_time);
 
-  if (table_index < 0){
+  if (time < total_SF/SFR) {
     flag_array[tid] = false;
     return;
   }
@@ -302,13 +308,14 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
 
   // If we got this far, then table_index will be a valid index for this array
 
+  if (table_index >= 0){
   int table_fraction = convert_time - table_index;
   Real f = cluster_array[5*tid]*1e-6;
   Real M_slope = d_mdot[table_index+1] - d_mdot[table_index];
   Real E_slope = d_edot[table_index+1] - d_edot[table_index];
   d_mdot_array[tid] = f*(d_mdot[table_index]+table_fraction*M_slope);
   d_edot_array[tid] = f*pow(10, (d_edot[table_index] + table_fraction*E_slope)) * TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT);
-
+  }
   return;
 }
 
@@ -409,4 +416,4 @@ void Supernova::Feedback(Real density, Real energy, Real time, Real dt){
 
 }
 
-#endif
+#endif //SUPERNOVA
