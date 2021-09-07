@@ -6,6 +6,36 @@
 #include"../global_cuda.h"
 #include"../grid3D.h"
 #include"supernova.h"
+
+
+//texture<float, 1, cudaReadModeElementType> mdotTexObj;
+//texture<float, 1, cudaReadModeElementType> edotTexObj;
+namespace Supernova {
+  Real* d_mdot;
+  Real* d_edot;
+}
+
+
+void Supernova::InitializeS99(Grid3D G){
+#include "S99_table.data"
+  int n_entries = sizeof(s99_data)/sizeof(s99_data[0])/3;
+  Real M_dot[n_entries];
+  Real E_dot[n_entries];
+  for (int i=0;i<n_entries;i++){
+    M_dot[i] = s99_data[3*i+1];
+    E_dot[i] = s99_data[3*i+2];
+  }
+  // Allocate M_dot and E_dot arrays on cuda
+  CudaSafeCall( cudaMalloc (&mdotCuArray,n_entries*sizeof(Real)));
+  CudaSafeCall( cudaMalloc (&edotCuArray,n_entries*sizeof(Real)));
+  cudaMemcpy(mdotCuArray, M_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
+  cudaMemcpy(edotCuArray, E_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
+  // Bind arrays to texture
+  
+}
+
+
+
 __device__ Real distance(double x, double y, double z){
   return x*x + y*y + z*z;
 }

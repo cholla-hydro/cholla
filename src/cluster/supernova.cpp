@@ -56,7 +56,6 @@ namespace Supernova {
   int n_cells;
   int n_fields;
   void Test(Header H);
-  void LoadS99(void);
 }
 
 
@@ -142,26 +141,5 @@ void Supernova::Initialize(Grid3D G){
 
 }
 
-
-
-void Supernova::LoadS99(void){
-  #include "S99_table.data"
-  //defines Real s99_data;
-  int n_entries = sizeof(s99_data)/sizeof(s99_data[0])/3;
-  printf("n_entries: %d\n",n_entries);
-  for (int i=0;i<10;i++){
-    printf("s[%d]: %f\n",i,s99_data[i]); 
-  }
-  // M_dot is just what it is 
-  // Real M_dot = f*(S99_table[i][1] + (tf-i)*M_slope);
-  // But E_dot is logarithmic
-  // Real E_dot = f*pow(10, (S99_table[i][2] + (tf-i)*E_slope) )*TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT);
-  Real M_dot[n_entries];
-  Real E_dot[n_entries];
-  for (int i=0;i<n_entries;i++){
-    M_dot[i] = s99_data[3*i+1];
-    E_dot[i] = s99_data[3*i+2];
-  }
-}
 
 #endif //SUPERNOVA
