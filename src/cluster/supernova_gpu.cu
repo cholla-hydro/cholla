@@ -11,12 +11,14 @@
 //texture<float, 1, cudaReadModeElementType> mdotTexObj;
 //texture<float, 1, cudaReadModeElementType> edotTexObj;
 namespace Supernova {
-  Real* d_mdot;
-  Real* d_edot;
+  Real* d_mdot;//table data
+  Real* d_edot;//table data
+  Real* d_mdot_array;//holds m_dot(cluster)[time]
+  Real* d_edot_array;//holds e_dot(cluster)[time]
 }
 
 
-void Supernova::InitializeS99(Grid3D G){
+void Supernova::InitializeS99(void){
 #include "S99_table.data"
   int n_entries = sizeof(s99_data)/sizeof(s99_data[0])/3;
   Real M_dot[n_entries];
@@ -26,12 +28,14 @@ void Supernova::InitializeS99(Grid3D G){
     E_dot[i] = s99_data[3*i+2];
   }
   // Allocate M_dot and E_dot arrays on cuda
-  CudaSafeCall( cudaMalloc (&mdotCuArray,n_entries*sizeof(Real)));
-  CudaSafeCall( cudaMalloc (&edotCuArray,n_entries*sizeof(Real)));
-  cudaMemcpy(mdotCuArray, M_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
-  cudaMemcpy(edotCuArray, E_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
-  // Bind arrays to texture
-  
+  CudaSafeCall( cudaMalloc (&d_mdot,n_entries*sizeof(Real)));
+  CudaSafeCall( cudaMalloc (&d_edot,n_entries*sizeof(Real)));
+  cudaMemcpy(d_mdot, M_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_edot, E_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
+
+  // 
+  CudaSafeCall( cudaMalloc (&d_mdot_array,n_cluster*sizeof(Real)));
+  CudaSafeCall( cudaMalloc (&d_edot_array,n_cluster*sizeof(Real)));
 }
 
 
@@ -214,7 +218,9 @@ void Supernova::Calc_Omega(void){
 }
 
 
-__global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *flag_array, int n_cluster, Real time, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real R_cl, Real SFR){
+__global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *flag_array,
+				 Real *d_mdot, Real *d_edot, Real *d_mdot_array, Real *d_edot_array,
+				 int n_cluster, Real time, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real R_cl, Real SFR){
   int tid = blockIdx.x * blockDim.x + threadIdx.x ;
   if (tid >= n_cluster){
     return;
@@ -281,7 +287,9 @@ void Supernova::Calc_Flags(Real time){
   dim3 dim1dGrid((n_cluster+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(Calc_Flag_Kernel,dim1dGrid,dim1dBlock,0,0,
-		     d_cluster_array,d_omega_array,d_flags_array,n_cluster,
+		     d_cluster_array,d_omega_array,d_flags_array,
+		     d_mdot, d_edot, d_mdot_array, d_edot_array,
+		     n_cluster,
 		     time, xMin, yMin, zMin, xMax, yMax, zMax, R_cl, SFR);
   CHECK(cudaDeviceSynchronize());
   double end_time = get_time();
