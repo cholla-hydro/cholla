@@ -26,10 +26,10 @@ void Supernova::InitializeS99(Grid3D G){
     E_dot[i] = s99_data[3*i+2];
   }
   // Allocate M_dot and E_dot arrays on cuda
-  CudaSafeCall( cudaMalloc (&mdotCuArray,n_entries*sizeof(Real)));
-  CudaSafeCall( cudaMalloc (&edotCuArray,n_entries*sizeof(Real)));
-  cudaMemcpy(mdotCuArray, M_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
-  cudaMemcpy(edotCuArray, E_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
+  CudaSafeCall( cudaMalloc (&d_mdot,n_entries*sizeof(Real)));
+  CudaSafeCall( cudaMalloc (&d_edot,n_entries*sizeof(Real)));
+  cudaMemcpy(d_mdot, M_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_edot, E_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
   // Bind arrays to texture
   
 }
@@ -60,9 +60,9 @@ __device__ void Supernova_Helper(Real *hydro_dev,
   // cell corner distances to supernova
   Real rl = distance(xc - 0.5*dx, yc - 0.5*dy, zc - 0.5*dz);
   Real rr = distance(xc + 0.5*dx, yc + 0.5*dy, zc + 0.5*dz);
-  
+  Real R_cl2 = R_cl*R_cl;
   // Check if local cell overlaps with R_cl radius
-  if (rr <= R_cl*R_cl) {
+  if (rr <= R_cl2) {
     // Add energy simple
     atomicAdd(&hydro_dev[gidx],density);
     atomicAdd(&hydro_dev[gidx+4*n_cells],energy);
@@ -75,10 +75,20 @@ __device__ void Supernova_Helper(Real *hydro_dev,
     return;
   }
 
-  if (rl < R_cl*R_cl) {
+  if (rl < R_cl2) {
+    int count = 0;
     // Add energy fractional
     // TODO: implement weight
-    Real weight = 0.5;
+    for (int i=0;i<10;i++){
+      for (int j=0;j<10;j++){
+	for (int k=0;k<100;k++){
+	  if (distance(xc + (0.1*i - 0.95)*dx, yc + (0.1*j - 0.95)*dy, zc + (0.1*k - 0.95)*dz) < R_cl2){
+	    count++;
+	  }
+	}
+      }
+    }
+    Real weight = count/1000.0;
     atomicAdd(&hydro_dev[gidx],weight*density);
     atomicAdd(&hydro_dev[gidx+4*n_cells],weight*energy);
     #ifdef SCALAR
@@ -316,7 +326,7 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
   if (pre_pid >= max_pid){
     return;
   }
-  // TODO: calculate which particle by looping through flags until tid/ncells is satisfied
+  // TODO?: calculate which particle by looping through flags until tid/ncells is satisfied Not necessary, since launching a kernel that gets to this point has almost no cost. 
   int pid = pre_pid;
   if (!flags_array[pid]){
     return;

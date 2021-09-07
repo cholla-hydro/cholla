@@ -1,6 +1,6 @@
 #-- Set default include makefile
 MACHINE ?= $(shell builds/machine.sh)
-TYPE    ?= hydro
+TYPE    ?= super
 
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)

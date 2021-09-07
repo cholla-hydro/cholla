@@ -139,7 +139,9 @@ int main(int argc, char *argv[])
   G.Get_Particles_Acceleration();
   #endif
 
+  #ifdef SUPERNOVA
   Supernova::Initialize(G);
+  #endif
 
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n",gama);
@@ -184,9 +186,11 @@ int main(int argc, char *argv[])
     // get the start time
     start_step = get_time();
 
+    #ifdef SUPERNOVA
     Supernova::Calc_Flags(G.H.t);
     Supernova::Feedback(0.1,0.0,G.H.t,G.H.dt);
-    
+    #endif
+
     // calculate the timestep
     G.set_dt(dti);
 
