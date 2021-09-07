@@ -11,12 +11,14 @@
 //texture<float, 1, cudaReadModeElementType> mdotTexObj;
 //texture<float, 1, cudaReadModeElementType> edotTexObj;
 namespace Supernova {
-  Real* d_mdot;
-  Real* d_edot;
+  Real* d_mdot;//table data
+  Real* d_edot;//table data
+  Real* d_mdot_array;//holds m_dot(cluster)[time]
+  Real* d_edot_array;//holds e_dot(cluster)[time]
 }
 
 
-void Supernova::InitializeS99(Grid3D G){
+void Supernova::InitializeS99(void){
 #include "S99_table.data"
   int n_entries = sizeof(s99_data)/sizeof(s99_data[0])/3;
   Real M_dot[n_entries];
@@ -30,8 +32,8 @@ void Supernova::InitializeS99(Grid3D G){
   CudaSafeCall( cudaMalloc (&d_edot,n_entries*sizeof(Real)));
   cudaMemcpy(d_mdot, M_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
   cudaMemcpy(d_edot, E_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
-  // Bind arrays to texture
-  
+  CudaSafeCall( cudaMalloc (&d_mdot_array,n_cluster*sizeof(Real)));
+  CudaSafeCall( cudaMalloc (&d_edot_array,n_cluster*sizeof(Real)));
 }
 
 
@@ -81,7 +83,7 @@ __device__ void Supernova_Helper(Real *hydro_dev,
     // TODO: implement weight
     for (int i=0;i<10;i++){
       for (int j=0;j<10;j++){
-	for (int k=0;k<100;k++){
+	for (int k=0;k<10;k++){
 	  if (distance(xc + (0.1*i - 0.95)*dx, yc + (0.1*j - 0.95)*dy, zc + (0.1*k - 0.95)*dz) < R_cl2){
 	    count++;
 	  }
@@ -224,7 +226,9 @@ void Supernova::Calc_Omega(void){
 }
 
 
-__global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *flag_array, int n_cluster, Real time, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real R_cl, Real SFR){
+__global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *flag_array,
+				 Real *d_mdot, Real *d_edot, Real *d_mdot_array, Real *d_edot_array,
+				 int n_cluster, Real time, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real R_cl, Real SFR){
   int tid = blockIdx.x * blockDim.x + threadIdx.x ;
   if (tid >= n_cluster){
     return;
@@ -232,11 +236,15 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
   // Check if it is time for this cluster to be active
   // SF_cl/20000 < t < SF_cl/20000 + 40000
   Real total_SF = cluster_array[5*tid+1];
-  if (time < total_SF/SFR){
+  Real convert_time = ((time - total_SF/SFR)*1e3-1e4)*1e-5;
+  int table_index = (int)floor(convert_time);
+
+  if (table_index < 0){
     flag_array[tid] = false;
     return;
   }
-  if (time > total_SF/SFR + 40000.0){
+  // SB99 table goes up to 9e7 yr = 9e4 kyr (code time)
+  if (time > total_SF/SFR + 4e4){
     flag_array[tid] = false;
     return;
   }
@@ -280,7 +288,27 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
     return;
   }
   */
+
+
+
   flag_array[tid] = true;
+
+  // Use table to set arrays 
+  // 1e3 is KYR conversion
+  // SB99 table starts at 1e4
+  // 1e5 is SB99 table spacing 
+  // Real convert_time = ((time - total_SF/SFR)*1e3-1e4)*1e-5;
+  // int table_index = (int)floor(convert_time);
+
+  // If we got this far, then table_index will be a valid index for this array
+
+  int table_fraction = convert_time - table_index;
+  Real f = cluster_array[5*tid]*1e-6;
+  Real M_slope = d_mdot[table_index+1] - d_mdot[table_index];
+  Real E_slope = d_edot[table_index+1] - d_edot[table_index];
+  d_mdot_array[tid] = f*(d_mdot[table_index]+table_fraction*M_slope);
+  d_edot_array[tid] = f*pow(10, (d_edot[table_index] + table_fraction*E_slope)) * TIME_UNIT/(MASS_UNIT*VELOCITY_UNIT*VELOCITY_UNIT);
+
   return;
 }
 
@@ -291,7 +319,9 @@ void Supernova::Calc_Flags(Real time){
   dim3 dim1dGrid((n_cluster+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(Calc_Flag_Kernel,dim1dGrid,dim1dBlock,0,0,
-		     d_cluster_array,d_omega_array,d_flags_array,n_cluster,
+		     d_cluster_array,d_omega_array,d_flags_array,
+		     d_mdot, d_edot, d_mdot_array, d_edot_array,
+		     n_cluster,
 		     time, xMin, yMin, zMin, xMax, yMax, zMax, R_cl, SFR);
   CHECK(cudaDeviceSynchronize());
   double end_time = get_time();

@@ -5,7 +5,7 @@
 namespace Supernova {
   extern int n_cluster;
 
-  extern Real cluster_data[];
+  //extern Real cluster_data[];
   
   extern Real *d_cluster_array;
   extern Real *d_omega_array;
@@ -38,7 +38,7 @@ namespace Supernova {
   extern Real R_cl;
   extern Real SFR;
   void Initialize(Grid3D G);
-  void InitializeS99(Grid3D G);
+  void InitializeS99(void);
   void Calc_Omega(void);//Real *cluster_array, Real *omega_array, int n_cluster);
   void Calc_Flags(Real time);
   void Feedback(Real density, Real energy, Real time, Real dt);
