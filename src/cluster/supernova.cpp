@@ -56,6 +56,8 @@ namespace Supernova {
   int n_cells;
   int n_fields;
   void Test(Header H);
+  void Initialize(Grid3D G);
+  Real Update_Grid(Grid3D G);
 }
 
 
@@ -75,9 +77,11 @@ void Supernova::Test(Header H){
 void Supernova::Initialize(Grid3D G){
 
   #include "cluster_list.data"
-  // Defines cluster_data and length
+  // Defines cluster_data in local scope so it is deleted
+  n_cluster = sizeof(cluster_data)/sizeof(cluster_data[0])/5;
+
   Header H = G.H;
-  //length = cluster_num_particles;
+
   
   R_cl = 0.03;
   SFR = 20000.0;
@@ -134,12 +138,33 @@ void Supernova::Initialize(Grid3D G){
   InitializeS99();
 #endif //CUDA
 
+  printf("\n n_cluster: %d\n",n_cluster);
   printf("nx %d ny %d nz %d dx %f dy %f dz %f\n",nx,ny,nz,dx,dy,dz);
   printf("pnx %d pny %d pnz %d n_cell %d n_fields %d\n",pnx,pny,pnz,n_cells,n_fields);
   printf("Min %f %f %f Max %f %f %f\n",xMin,yMin,zMin,xMax,yMax,zMax);
 
 
 
+}
+
+Real Supernova::Update_Grid(Grid3D G,Real old_dti){
+  // Return dti
+  Real old_dt = G.H.dt;
+
+  Calc_Flags(G.H.t);
+  Real new_dti = Feedback(0.1,0.0,G.H.t,old_dt);
+#ifdef MPI_CHOLLA                                                             
+  new_dti = ReduceRealMax(new_dti);                                             
+#endif /*MPI_CHOLLA*/                                                         
+                                                                                
+                                                                                
+  // sync newdti across GPUs 
+  if (old_dti < new_dti){
+    G.set_dt(new_dti);
+    Feedback(0.1,0.0,G.H.t,G.H.dt-old_dt);
+    return new_dti;
+  }
+  return old_dti;
 }
 
 

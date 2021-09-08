@@ -41,8 +41,8 @@ namespace Supernova {
   void InitializeS99(void);
   void Calc_Omega(void);//Real *cluster_array, Real *omega_array, int n_cluster);
   void Calc_Flags(Real time);
-  void Feedback(Real density, Real energy, Real time, Real dt);
-
+  Real Feedback(Real density, Real energy, Real time, Real dt);
+  Real Update_Grid(Grid3D G, Real old_dti);
   
 }
 #endif

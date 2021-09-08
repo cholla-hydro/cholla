@@ -187,8 +187,7 @@ int main(int argc, char *argv[])
     start_step = get_time();
 
     #ifdef SUPERNOVA
-    Supernova::Calc_Flags(G.H.t);
-    Supernova::Feedback(0.1,0.0,G.H.t,G.H.dt);
+    dti = Supernova::Update_Grid(G, dti);
     #endif
 
     // calculate the timestep
