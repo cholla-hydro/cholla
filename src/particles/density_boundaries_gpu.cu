@@ -1,8 +1,8 @@
 #if defined(PARTICLES_GPU) && defined(GRAVITY_GPU)
 
-#include "../io.h"
-#include "../grid3D.h"
-#include "particles_3D.h"
+#include "../io/io.h"
+#include "../grid/grid3D.h"
+#include "../particles/particles_3D.h"
 #include <iostream>
 
 

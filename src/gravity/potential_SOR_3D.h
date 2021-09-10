@@ -3,7 +3,7 @@
 #ifndef POTENTIAL_SOR_3D_H
 #define POTENTIAL_SOR_3D_H
 
-#include "../global.h"
+#include "../global/global.h"
 #include <stdlib.h>
 
 // #define TIME_SOR

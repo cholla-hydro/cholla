@@ -1,9 +1,9 @@
 #if defined(GRAVITY) && defined(GRAVITY_GPU)
 
-#include"../grid3D.h"
-#include"../global.h"
-#include "../io.h"
-#include "../error_handling.h"
+#include "../grid/grid3D.h"
+#include "../global/global.h"
+#include "../io/io.h"
+#include "../utils/error_handling.h"
 #include <cstring>
 
 

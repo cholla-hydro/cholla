@@ -3,12 +3,12 @@
 #ifndef PARTICLES_H
 #define PARTICLES_H
 
-#include<stdio.h>
-#include<stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <cstdlib>
 #include <string.h>
-#include"../global.h"
+#include "../global/global.h"
 #include "../gravity/grav3D.h"
 
 #ifdef PARTICLES_GPU

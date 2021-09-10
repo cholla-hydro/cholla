@@ -3,14 +3,14 @@
 #ifdef PARTICLE_AGE
 
 #include <iostream>
-#include "feedback_CIC.h"
-#include "particles_3D.h"
-#include "../grid3D.h"
-#include "density_CIC.h"
+#include "../particles/feedback_CIC.h"
+#include "../particles/particles_3D.h"
+#include "../grid/grid3D.h"
+#include "../particles/density_CIC.h"
 
 
 #ifdef PARALLEL_OMP
-#include"../parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 

@@ -1,8 +1,8 @@
 #if defined(GRAVITY) && defined(PARIS)
 
-#include "potential_paris_3D.h"
-#include "gpu.hpp"
-#include "../io.h"
+#include "../gravity/potential_paris_3D.h"
+#include "../utils/gpu.hpp"
+#include "../io/io.h"
 #include <cassert>
 #include <cfloat>
 #include <climits>

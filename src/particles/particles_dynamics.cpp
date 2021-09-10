@@ -1,17 +1,17 @@
 #ifdef PARTICLES
 
 
-#include<stdio.h>
-#include<stdlib.h>
-#include"math.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "math.h"
 #include <iostream>
-#include"../global.h"
-#include"../grid3D.h"
-#include"particles_3D.h"
-#include"../io.h"
+#include "../global/global.h"
+#include "../grid/grid3D.h"
+#include "../particles/particles_3D.h"
+#include "../io/io.h"
 
 #ifdef PARALLEL_OMP
-#include"../parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 

@@ -3,19 +3,19 @@
 #include <unistd.h>
 #include <random>
 #include <cmath>
-#include "../io.h"
-#include "../grid3D.h"
-#include"../random_functions.h"
+#include "../io/io.h"
+#include "../grid/grid3D.h"
+#include "../utils/random_functions.h"
 #include "../model/disk_galaxy.h"
-#include "particles_3D.h"
-#include "error_handling.h"
+#include "../particles/particles_3D.h"
+#include "../utils/error_handling.h"
 
 #ifdef MPI_CHOLLA
-#include"../mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #endif
 
 #ifdef PARALLEL_OMP
-#include "../parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 Particles_3D::Particles_3D( void ){}

@@ -2,11 +2,11 @@
 
 #include <stdio.h>      /* printf */
 #include <math.h> 
-#include "analysis.h"
-#include "../io.h"
+#include "../analysis/analysis.h"
+#include "../io/io.h"
 
 #ifdef MPI_CHOLLA
-#include "../mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #endif
 
 void Grid3D::Compute_Phase_Diagram(){

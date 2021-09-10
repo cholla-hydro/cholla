@@ -3,12 +3,12 @@
 #include <unistd.h>
 #include <algorithm>
 #include <iostream>
-#include "../grid3D.h"
-#include "../io.h"
-#include "particles_3D.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "../particles/particles_3D.h"
 
 #ifdef MPI_CHOLLA
-#include "../mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #endif
 
 

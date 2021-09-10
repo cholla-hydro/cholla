@@ -4,7 +4,7 @@
 #ifndef POTENTIAL_PFFT_3D_H
 #define POTENTIAL_PFFT_3D_H
 
-#include "../global.h"
+#include "../global/global.h"
 #include <stdlib.h>
 #include <cmath>
 #include <time.h>

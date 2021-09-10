@@ -1,13 +1,13 @@
 #ifdef ANALYSIS
 #ifdef LYA_STATISTICS
 
-#include"analysis.h"
-#include"../io.h"
+#include "../analysis/analysis.h"
+#include "../io/io.h"
 #include <unistd.h>
 #include <complex.h>
 
 #ifdef MPI_CHOLLA
-#include"../mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #endif
 
 // #define PRINT_ANALYSIS_LOG

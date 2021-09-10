@@ -3,9 +3,9 @@
 #ifndef COSMOLOGY_H
 #define COSMOLOGY_H
 
-#include<stdio.h>
+#include <stdio.h>
 #include <cmath>
-#include"../global.h"
+#include "../global/global.h"
 #include "../particles/particles_3D.h"
 #include "../gravity/grav3D.h"
 

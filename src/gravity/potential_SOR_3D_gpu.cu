@@ -1,8 +1,8 @@
 #if defined(CUDA) && defined(GRAVITY) && defined(SOR)
 
-#include "potential_SOR_3D.h"
-#include"../global_cuda.h"
-#include "../io.h"
+#include "../gravity/potential_SOR_3D.h"
+#include "../global/global_cuda.h"
+#include "../io/io.h"
 
 
 #define TPB_SOR 1024

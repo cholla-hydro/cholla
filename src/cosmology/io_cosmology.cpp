@@ -2,8 +2,8 @@
 
 #include <iostream>
 #include <fstream>
-#include "cosmology.h"
-#include "../io.h"
+#include "../cosmology/cosmology.h"
+#include "../io/io.h"
 
 using namespace std;
 

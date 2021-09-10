@@ -2,9 +2,9 @@
 
 
 #include <cmath>
-#include "../io.h"
-#include "../grid3D.h"
-#include "grav3D.h"
+#include "../io/io.h"
+#include "../grid/grid3D.h"
+#include "../gravity/grav3D.h"
 #include "../model/disk_galaxy.h"
 
 #if defined (GRAV_ISOLATED_BOUNDARY_X) || defined (GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)

@@ -3,7 +3,7 @@
 #ifndef INIT_GRACKLE_H
 #define INIT_GRACKLE_H
 
-#include"../global.h"
+#include "../global/global.h"
 
 extern "C" {
 #include <grackle.h>

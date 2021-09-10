@@ -1,17 +1,17 @@
 #ifdef GRAVITY
 
-#include"../grid3D.h"
-#include"../global.h"
-#include "../io.h"
-#include "../error_handling.h"
+#include "../grid/grid3D.h"
+#include "../global/global.h"
+#include "../io/io.h"
+#include "../utils/error_handling.h"
 #include <cstring>
 
 #ifdef CUDA
-#include "../cuda_mpi_routines.h"
+#include "../mpi/cuda_mpi_routines.h"
 #endif
 
 #ifdef PARALLEL_OMP
-#include"../parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 #ifdef PARIS

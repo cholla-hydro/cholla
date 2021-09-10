@@ -1,9 +1,9 @@
 #ifdef GRAVITY
 #ifdef PFFT
 
-#include "potential_PFFT_3D.h"
-#include<iostream>
-#include "../io.h"
+#include "../gravity/potential_PFFT_3D.h"
+#include <iostream>
+#include "../io/io.h"
 
 
 

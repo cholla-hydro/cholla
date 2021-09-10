@@ -3,7 +3,7 @@
 #ifndef ANALYSIS_H
 #define ANALYSIS_H
 
-#include"../global.h"
+#include "../global/global.h"
 #include <vector>
 #include <fftw3.h>
 

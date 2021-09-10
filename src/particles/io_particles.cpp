@@ -1,20 +1,20 @@
 #ifdef PARTICLES
 #include <unistd.h>
-#include<iostream>
-#include<stdio.h>
-#include<stdlib.h>
-#include<stdarg.h>
-#include<string.h>
-#include"../global.h"
-#include"../grid3D.h"
-#include"../io.h"
-#include"particles_3D.h"
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include "../global/global.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "../particles/particles_3D.h"
 
 #ifdef HDF5
-#include<hdf5.h>
+#include <hdf5.h>
 #endif
 #ifdef MPI_CHOLLA
-#include"../mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #endif
 
 #define OUTPUT_PARTICLES_DATA

@@ -2,9 +2,9 @@
 
 #include <iostream>
 #include <fstream>
-#include "analysis.h"
-#include "../io.h"
-#include "../grid3D.h"
+#include "../analysis/analysis.h"
+#include "../io/io.h"
+#include "../grid/grid3D.h"
 
 #define OUTPUT_SKEWER
 
