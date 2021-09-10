@@ -37,10 +37,10 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
   #ifdef H_CORRECTION
   cell_mem += 6*sizeof(Real);
   #endif
-  #if defined( GRAVITY ) 
+  #if defined( GRAVITY )
   cell_mem += sizeof(Real);
   #endif
-  max_vol = free / cell_mem; 
+  max_vol = free / cell_mem;
   // plus a buffer for dti array
   max_vol = max_vol - 400;
 
@@ -51,7 +51,7 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
   // REALLY NOT CUBES
   while ((*nx_s)*(*ny_s)*(*nz_s) > max_vol) {
 
-    // if the aspect ratio has gotten too large, split in x 
+    // if the aspect ratio has gotten too large, split in x
     if ((*nx_s) / sqrt((*ny_s)*(*nz_s)) > 5) {
         *nx_s = ceil(Real (nx-2*n_ghost) / Real (sx)) + 2*n_ghost;
         sx++;
@@ -89,7 +89,7 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
     *remainder1 = (nx-2*n_ghost)%(*nx_s-2*n_ghost);
     *remainder2 = 0;
     *remainder3 = 0;
-  }  
+  }
   // splitting in y
   else if (*nx_s == nx && *ny_s < ny && *nz_s == nz) {
     *block1_tot = 1;
@@ -99,7 +99,7 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
     *remainder1 = 0;
     *remainder2 = (ny-2*n_ghost)%(*ny_s-2*n_ghost);
     *remainder3 = 0;
-  }  
+  }
   // splitting in z
   else if (*nx_s == nx && *ny_s == ny && *nz_s < nz) {
     *block1_tot = 1;
@@ -119,7 +119,7 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
     *remainder1 = (nx-2*n_ghost)%(*nx_s-2*n_ghost);
     *remainder2 = (ny-2*n_ghost)%(*ny_s-2*n_ghost);
     *remainder3 = 0;
-  }  
+  }
   // splitting in y & z
   else if (*nx_s == nx && *ny_s < ny && *nz_s < nz) {
     *block1_tot = 1;
@@ -139,7 +139,7 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
     *remainder1 = (nx-2*n_ghost)%(*nx_s-2*n_ghost);
     *remainder2 = 0;
     *remainder3 = (nz-2*n_ghost)%(*nz_s-2*n_ghost);
-  }  
+  }
   // splitting in x, y & z
   else if (*nx_s < nx && *ny_s < ny && *nz_s < nz) {
     *block1_tot = ceil(Real (nx-2*n_ghost) / Real (*nx_s-2*n_ghost) );
@@ -149,7 +149,7 @@ void sub_dimensions_3D(int nx, int ny, int nz, int n_ghost, int *nx_s, int *ny_s
     *remainder1 = (nx-2*n_ghost)%(*nx_s-2*n_ghost);
     *remainder2 = (ny-2*n_ghost)%(*ny_s-2*n_ghost);
     *remainder3 = (nz-2*n_ghost)%(*nz_s-2*n_ghost);
-  }  
+  }
   else {
     printf("Error determining number and size of subgrid blocks.\n");
     exit(0);
@@ -177,7 +177,7 @@ void get_offsets_3D(int nx_s, int ny_s, int nz_s, int n_ghost, int x_off, int y_
   if (remainder1 != 0 && block1 == block1_tot-1) *x_off_s = x_off + (nx_s-2*n_ghost)*(block1-1) + remainder1;
   if (remainder2 != 0 && block2 == block2_tot-1) *y_off_s = y_off + (ny_s-2*n_ghost)*(block2-1) + remainder2;
   if (remainder3 != 0 && block3 == block3_tot-1) *z_off_s = z_off + (nz_s-2*n_ghost)*(block3-1) + remainder3;
-  
+
 }
 
 
@@ -186,7 +186,7 @@ void get_offsets_3D(int nx_s, int ny_s, int nz_s, int n_ghost, int x_off, int y_
 
 // copy the conserved variable block into the buffer
 void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, int n_ghost, int block, int block1_tot, int block2_tot, int block3_tot, int remainder1, int remainder2, int remainder3, int BLOCK_VOL, Real *host_conserved, Real *buffer, int n_fields, Real *host_grav_potential, Real *buffer_potential ) {
-  
+
   int n_cells = nx*ny*nz;
   int block1, block2, block3;
   int x_offset, y_offset, z_offset;
@@ -200,8 +200,8 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
   else if (nx_s < nx && ny_s == ny && nz_s == nz) {
 
     block1 = block; // xid of block
-  
-    // if we are on the last block, make sure it doesn't go past 
+
+    // if we are on the last block, make sure it doesn't go past
     // the bounds of the host array
     x_offset = 0;
     if (block1 == block1_tot-1 && remainder1 != 0) {
@@ -214,9 +214,9 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     for (int k=0; k<nz_s; k++) {
       for (int j=0; j<ny_s; j++) {
         for (int ii=0; ii<n_fields; ii++) {
-          memcpy(&buffer[ii*BLOCK_VOL + j*nx_s + k*nx_s*ny_s], &host_conserved[x_host + ii*n_cells + j*nx + k*nx*ny], nx_s*sizeof(Real)); 
+          memcpy(&buffer[ii*BLOCK_VOL + j*nx_s + k*nx_s*ny_s], &host_conserved[x_host + ii*n_cells + j*nx + k*nx*ny], nx_s*sizeof(Real));
         }
-        #if defined( GRAVITY ) 
+        #if defined( GRAVITY )
         memcpy(&buffer_potential[j*nx_s + k*nx_s*ny_s], &host_grav_potential[x_host + j*nx + k*nx*ny], nx_s*sizeof(Real));
         #endif
       }
@@ -230,8 +230,8 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
   else if (nx_s == nx && ny_s < ny && nz_s == nz) {
 
     block2 = block; // yid of block
-  
-    // if we are on the last block, make sure it doesn't go past 
+
+    // if we are on the last block, make sure it doesn't go past
     // the bounds of the host array
     y_offset = 0;
     if (block2 == block2_tot-1 && remainder2 != 0) {
@@ -243,7 +243,7 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     // copy data from host conserved array into buffer
     for (int k=0; k<nz_s; k++) {
       for (int ii=0; ii<n_fields; ii++) {
-        memcpy(&buffer[ii*BLOCK_VOL + k*nx_s*ny_s], &host_conserved[y_host + ii*n_cells + k*nx*ny], nx_s*ny_s*sizeof(Real)); 
+        memcpy(&buffer[ii*BLOCK_VOL + k*nx_s*ny_s], &host_conserved[y_host + ii*n_cells + k*nx*ny], nx_s*ny_s*sizeof(Real));
       }
       #if defined( GRAVITY )
       memcpy(&buffer_potential[k*nx_s*ny_s], &host_grav_potential[y_host + k*nx*ny], nx_s*ny_s*sizeof(Real));
@@ -259,8 +259,8 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
   else if (nx_s == nx && ny_s == ny && nz_s < nz) {
 
     block3 = block; // zid of block
-  
-    // if we are on the last block, make sure it doesn't go past 
+
+    // if we are on the last block, make sure it doesn't go past
     // the bounds of the host array
     z_offset = 0;
     if (block3 == block3_tot-1 && remainder3 != 0) {
@@ -273,7 +273,7 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     for (int ii=0; ii<n_fields; ii++) {
       memcpy(&buffer[ii*BLOCK_VOL], &host_conserved[z_host + ii*n_cells], BLOCK_VOL*sizeof(Real));
     }
-    #if defined( GRAVITY ) 
+    #if defined( GRAVITY )
     memcpy(&buffer_potential[0], &host_grav_potential[z_host], BLOCK_VOL*sizeof(Real));
     #endif
 
@@ -287,7 +287,7 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     block3 = block / block2_tot; // zid of current block
     block2 = block - block3*block2_tot; // yid of current block
 
-    // if we are on the last y block, make sure it doesn't go past 
+    // if we are on the last y block, make sure it doesn't go past
     // the bounds of the host array
     y_offset = 0;
     if (block2 == block2_tot-1 && remainder2 != 0) {
@@ -297,7 +297,7 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     y_host = block2*nx*(ny_s-2*n_ghost) - nx*y_offset;
 
 
-    // if we are on the last z block, make sure it doesn't go past 
+    // if we are on the last z block, make sure it doesn't go past
     // the bounds of the host array
     z_offset = 0;
     if (block3 == block3_tot-1 && remainder3 != 0) {
@@ -309,10 +309,10 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     // copy data from host conserved array into buffer
     for (int k=0; k<nz_s; k++) {
       for (int ii=0; ii<n_fields; ii++) {
-        memcpy(&buffer[ii*BLOCK_VOL + k*nx_s*ny_s], &host_conserved[z_host + y_host + ii*n_cells + k*nx*ny], nx_s*ny_s*sizeof(Real)); 
+        memcpy(&buffer[ii*BLOCK_VOL + k*nx_s*ny_s], &host_conserved[z_host + y_host + ii*n_cells + k*nx*ny], nx_s*ny_s*sizeof(Real));
       }
       #if defined( GRAVITY )
-      memcpy(&buffer_potential[k*nx_s*ny_s], &host_grav_potential[z_host + y_host + k*nx*ny], nx_s*ny_s*sizeof(Real)); 
+      memcpy(&buffer_potential[k*nx_s*ny_s], &host_grav_potential[z_host + y_host + k*nx*ny], nx_s*ny_s*sizeof(Real));
       #endif
     }
 
@@ -326,7 +326,7 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     block2 = (block - block3*block2_tot*block1_tot) / block1_tot; // yid of current block
     block1 = block - block3*block2_tot*block1_tot - block2*block1_tot; // xid of current block
 
-    // if we are on the last x block, make sure it doesn't go past 
+    // if we are on the last x block, make sure it doesn't go past
     // the bounds of the host array
     x_offset = 0;
     if (block1 == block1_tot-1 && remainder1 != 0) {
@@ -335,7 +335,7 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     // calculate the x location in the host array to copy from
     x_host = block1*(nx_s-2*n_ghost) - x_offset;
 
-    // if we are on the last y block, make sure it doesn't go past 
+    // if we are on the last y block, make sure it doesn't go past
     // the bounds of the host array
     y_offset = 0;
     if (block2 == block2_tot-1 && remainder2 != 0) {
@@ -344,7 +344,7 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     // calculate the y location in the host array to copy from
     y_host = block2*nx*(ny_s-2*n_ghost) - nx*y_offset;
 
-    // if we are on the last z block, make sure it doesn't go past 
+    // if we are on the last z block, make sure it doesn't go past
     // the bounds of the host array
     z_offset = 0;
     if (block3 == block3_tot-1 && remainder3 != 0) {
@@ -357,10 +357,10 @@ void host_copy_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, in
     for (int k=0; k<nz_s; k++) {
       for (int j=0; j<ny_s; j++) {
         for (int ii=0; ii<n_fields; ii++) {
-          memcpy(&buffer[ii*BLOCK_VOL + j*nx_s + k*nx_s*ny_s], &host_conserved[x_host + y_host + z_host + ii*n_cells + j*nx + k*nx*ny], nx_s*sizeof(Real)); 
+          memcpy(&buffer[ii*BLOCK_VOL + j*nx_s + k*nx_s*ny_s], &host_conserved[x_host + y_host + z_host + ii*n_cells + j*nx + k*nx*ny], nx_s*sizeof(Real));
         }
-        #if defined( GRAVITY ) 
-        memcpy(&buffer_potential[j*nx_s + k*nx_s*ny_s], &host_grav_potential[x_host + y_host + z_host + j*nx + k*nx*ny], nx_s*sizeof(Real)); 
+        #if defined( GRAVITY )
+        memcpy(&buffer_potential[j*nx_s + k*nx_s*ny_s], &host_grav_potential[x_host + y_host + z_host + j*nx + k*nx*ny], nx_s*sizeof(Real));
         #endif
       }
     }
@@ -508,7 +508,7 @@ void host_return_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, 
     y_gpu  = n_ghost*nx_s;
     gpu_loc = y_gpu + z_gpu;
     length = nx_s*(ny_s-2*n_ghost); // number of cells to copy back
-    
+
     for (int k=0; k<nz_s-2*n_ghost; k++) {
       hid = k*nx*ny;
       gid = k*nx_s*ny_s;
@@ -555,7 +555,7 @@ void host_return_block_3D(int nx, int ny, int nz, int nx_s, int ny_s, int nz_s, 
     x_gpu = n_ghost;
     gpu_loc = x_gpu + y_gpu + z_gpu;
     length = (nx_s-2*n_ghost); // number of cells to copy back
-    
+
     for (int k=0; k<nz_s-2*n_ghost; k++) {
       for (int j=0; j<ny_s-2*n_ghost; j++) {
         hid = j*nx + k*nx*ny;

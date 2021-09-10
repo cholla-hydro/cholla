@@ -12,26 +12,26 @@
 Cool_GK::Cool_GK( void ){}
 
 void Grid3D::Initialize_Grackle( struct parameters *P ){
-  
+
   chprintf( "Initializing Grackle... \n");
-  
+
   Cool.Initialize( P, Cosmo );
-  
+
   Allocate_Memory_Grackle();
-  
+
   Initialize_Fields_Grackle();
-  
+
   chprintf( "Grackle Initialized Successfully. \n\n");
-  
-  
+
+
 }
 
 
 void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
-  
+
   chprintf( " Using Grackle for chemistry and cooling \n" );
   chprintf( " N scalar fields: %d \n", NSCALARS );
-  
+
   grackle_verbose = 1;
   #ifdef MPI_CHOLLA
   // Enable output
@@ -53,7 +53,7 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   dens_to_CGS = dens_conv * Msun / kpc / kpc / kpc * Cosmo.cosmo_h * Cosmo.cosmo_h;
   vel_to_CGS = km;
   energy_to_CGS =  km * km;
-  
+
   // First, set up the units system.
   // These are conversions from code units to cgs.
   units.comoving_coordinates = 1; // 1 if cosmological sim, 0 if not
@@ -63,7 +63,7 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   units.length_units = kpc / Cosmo.cosmo_h * Cosmo.current_a;
   units.time_units = KPC / Cosmo.cosmo_h ;
   units.velocity_units = units.length_units / Cosmo.current_a / units.time_units; // since u = a * dx/dt
-  
+
   // Second, create a chemistry object for parameters.  This needs to be a pointer.
   data = new chemistry_data;
   if (set_default_chemistry_parameters(data) == 0) {
@@ -85,35 +85,35 @@ void Cool_GK::Initialize( struct parameters *P, Cosmology &Cosmo ){
   data->use_specific_heating_rate = 0;
   data->use_volumetric_heating_rate = 0;
   data->cmb_temperature_floor = 1;
-  
+
   #ifdef GRACKLE_METALS
   data->metal_cooling = 1;          // metal cooling off
   #else
   chprintf( "WARNING: Metal Cooling is Off. \n" );
   data->metal_cooling = 0;          // metal cooling off
   #endif
-  
+
   #ifdef PARALLEL_OMP
   data->omp_nthreads = N_OMP_THREADS_GRACKLE;
   #endif
-  
+
   if ( data->UVbackground == 1) chprintf( "GRACKLE: Loading UV Background File: %s\n", data->grackle_data_file );
-  
+
   // Finally, initialize the chemistry object.
   if (initialize_chemistry_data(&units) == 0) {
     chprintf( "GRACKLE: Error in initialize_chemistry_data.\n");
     exit(-1) ;
   }
-  
+
   if ( data->UVbackground == 1){
     scale_factor_UVB_on = 1 / (data->UVbackground_redshift_on + 1 );
     chprintf( "GRACKLE: UVB on: %f \n", scale_factor_UVB_on  );
   }
-  
+
 }
 
 void Grid3D::Allocate_Memory_Grackle( ){
-  
+
 int n_cells = H.nx * H.ny * H.nz;
 int nx = Grav.nx_local;
 int ny = Grav.ny_local;
@@ -124,9 +124,9 @@ Cool.fields.grid_rank = 3;
 Cool.fields.grid_dimension = new int[3];
 Cool.fields.grid_start = new int[3];
 Cool.fields.grid_end = new int[3];
-Cool.fields.grid_dimension[0] = H.nx; // the active dimension 
-Cool.fields.grid_dimension[1] = H.ny; // the active dimension 
-Cool.fields.grid_dimension[2] = H.nz; // the active dimension 
+Cool.fields.grid_dimension[0] = H.nx; // the active dimension
+Cool.fields.grid_dimension[1] = H.ny; // the active dimension
+Cool.fields.grid_dimension[2] = H.nz; // the active dimension
 // grid_start and grid_end are used to ignore ghost zones.
 Cool.fields.grid_start[0] = H.n_ghost;
 Cool.fields.grid_start[1] = H.n_ghost;
@@ -173,11 +173,11 @@ void Cool_GK::Free_Memory( ){
   // free( fields.y_velocity );
   // free( fields.z_velocity );
   free( fields.internal_energy );
-    
+
   #ifdef OUTPUT_TEMPERATURE
   free( temperature );
   #endif
-  
+
 }
 
 #endif

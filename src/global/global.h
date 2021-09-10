@@ -2,8 +2,8 @@
  *  /brief Declarations of global variables and functions. */
 
 
-#ifndef GLOBAL_H 
-#define GLOBAL_H 
+#ifndef GLOBAL_H
+#define GLOBAL_H
 
 #ifdef COOLING_CPU
 #include <gsl/gsl_spline.h>
@@ -39,7 +39,7 @@ typedef double Real;
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
 #define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
 #define MASS_UNIT 1.98855e33 // 1 solar mass in grams
-#define DENSITY_UNIT (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT)) 
+#define DENSITY_UNIT (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT))
 #define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
 #define ENERGY_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
@@ -53,7 +53,7 @@ typedef double Real;
 
 //Parameter for Enzo dual Energy Condition
 #define DE_ETA_1 0.001 //Ratio of U to E for wich  Inetrnal Energy is used to compute the Pressure
-#define DE_ETA_2 0.035 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update. 
+#define DE_ETA_2 0.035 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update.
 
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.001
@@ -165,7 +165,7 @@ extern float *heating_table;
 extern void Set_Gammas(Real gamma_in);
 
 /*! \fn double get_time(void)
- *  \brief Returns the current clock time. */ 
+ *  \brief Returns the current clock time. */
 extern double get_time(void);
 
 /*! \fn int sgn
@@ -250,7 +250,7 @@ struct parameters
   Real Omega_b;
   Real Init_redshift;
   Real End_redshift;
-  char scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations 
+  char scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations
 #endif //COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   Real tile_length;
@@ -265,7 +265,7 @@ struct parameters
   int bc_potential_type;
 #ifdef COOLING_GRACKLE
   char UVB_rates_file[MAXLEN];
-#endif  
+#endif
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
   char analysisdir[MAXLEN];

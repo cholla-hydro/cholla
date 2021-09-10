@@ -59,20 +59,20 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     #endif
   }
   // set values for GPU kernels
-  // number of blocks per 1D grid  
+  // number of blocks per 1D grid
   dim3 dim2dGrid(ngrid, 1, 1);
-  //number of threads per 1D block   
+  //number of threads per 1D block
   dim3 dim1dBlock(TPB, 1, 1);
 
   // Set up pointers for the location to copy from and to
   if (block_tot == 1) {
     tmp1 = host_conserved0;
     tmp2 = host_conserved1;
-  }  
+  }
 
   if ( !memory_allocated ) {
 
-    // allocate buffer to copy conserved variable blocks from and to 
+    // allocate buffer to copy conserved variable blocks from and to
     if (block_tot > 1) {
       if ( cudaSuccess != cudaHostAlloc(&buffer, n_fields*BLOCK_VOL*sizeof(Real), cudaHostAllocDefault) ) {
         printf("Failed to allocate CPU buffer.\n");
@@ -84,8 +84,8 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
     #ifdef COOLING_GPU
     CudaSafeCall( cudaHostAlloc(&host_dt_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
-    #endif  
-  
+    #endif
+
     // allocate memory on the GPU
     CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Lx, n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -97,13 +97,13 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
     #ifdef COOLING_GPU
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
-    #endif 
+    #endif
 
-    #ifndef DYNAMIC_GPU_ALLOC 
+    #ifndef DYNAMIC_GPU_ALLOC
     // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    #endif 
+    #endif
   }
 
   // counter for which block we're on
@@ -118,7 +118,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // calculate the global x and y offsets of this subgrid block
     // (only needed for gravitational potential)
-    get_offsets_2D(nx_s, ny_s, n_ghost, x_off, y_off, block, block1_tot, block2_tot, remainder1, remainder2, &x_off_s, &y_off_s);    
+    get_offsets_2D(nx_s, ny_s, n_ghost, x_off, y_off, block, block1_tot, block2_tot, remainder1, remainder2, &x_off_s, &y_off_s);
 
     // copy the conserved variables onto the GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
@@ -156,7 +156,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
     hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     #endif
-    #ifdef HLLC 
+    #ifdef HLLC
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx_s, ny_s, nz_s, n_ghost, gama, 0, n_fields);
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx_s, ny_s, nz_s, n_ghost, gama, 1, n_fields);
     #endif
@@ -198,20 +198,20 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
 
     // Synchronize the total and internal energy
     #ifdef DE
-    hipLaunchKernelGGL(Select_Internal_Energy_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, n_ghost, n_fields);    
+    hipLaunchKernelGGL(Select_Internal_Energy_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, n_ghost, n_fields);
     hipLaunchKernelGGL(Sync_Energies_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, n_ghost, gama, n_fields);
-    CudaCheckError();    
+    CudaCheckError();
     #endif
 
     // Apply cooling
     #ifdef COOLING_GPU
     hipLaunchKernelGGL(cooling_kernel, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
-    CudaCheckError();    
+    CudaCheckError();
     #endif
 
     // Step 6: Calculate the next timestep
     hipLaunchKernelGGL(Calc_dt_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, n_ghost, dx, dy, dev_dti_array, gama);
-    CudaCheckError();    
+    CudaCheckError();
 
 
     // copy the conserved variable array back to the CPU
@@ -233,10 +233,10 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     // iterate through to find the minimum dt for this subgrid block
     for (int i=0; i<ngrid; i++) {
       min_dt = fmin(min_dt, host_dt_array[i]);
-    }  
-    //printf("%f %f\n", min_dt, 0.3/max_dti); 
+    }
+    //printf("%f %f\n", min_dt, 0.3/max_dti);
     if (min_dt < 0.3/max_dti) {
-      //printf("%f %f\n", min_dt, 0.3/max_dti); 
+      //printf("%f %f\n", min_dt, 0.3/max_dti);
       min_dt = fmax(min_dt, 1.0);
       max_dti = 0.3/min_dt;
     }
@@ -265,8 +265,8 @@ void Free_Memory_CTU_2D() {
   if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
   CudaSafeCall( cudaFreeHost(host_dti_array) );
   #ifdef COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );  
-  #endif    
+  CudaSafeCall( cudaFreeHost(host_dt_array) );
+  #endif
 
   // free the GPU memory
   cudaFree(dev_conserved);
@@ -284,7 +284,7 @@ void Free_Memory_CTU_2D() {
 }
 
 
-__global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real *dev_F_x, 
+__global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real *dev_F_x,
                                            Real *dev_Q_Ly, Real *dev_Q_Ry, Real *dev_F_y,
                                            int nx, int ny, int n_ghost, Real dx, Real dy, Real dt, int n_fields)
 {
@@ -342,32 +342,32 @@ __global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real 
     int jpo = xid + (yid+1)*nx;
     int imo = xid-1 + yid*nx;
     int jpoimo = xid-1 + (yid+1)*nx;
-    dev_Q_Ly[            id] += 0.5*dtodx*(dev_F_x[            imo] - dev_F_x[            id]); 
-    dev_Q_Ly[  n_cells + id] += 0.5*dtodx*(dev_F_x[  n_cells + imo] - dev_F_x[  n_cells + id]); 
-    dev_Q_Ly[2*n_cells + id] += 0.5*dtodx*(dev_F_x[2*n_cells + imo] - dev_F_x[2*n_cells + id]); 
-    dev_Q_Ly[3*n_cells + id] += 0.5*dtodx*(dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id]); 
-    dev_Q_Ly[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id]); 
+    dev_Q_Ly[            id] += 0.5*dtodx*(dev_F_x[            imo] - dev_F_x[            id]);
+    dev_Q_Ly[  n_cells + id] += 0.5*dtodx*(dev_F_x[  n_cells + imo] - dev_F_x[  n_cells + id]);
+    dev_Q_Ly[2*n_cells + id] += 0.5*dtodx*(dev_F_x[2*n_cells + imo] - dev_F_x[2*n_cells + id]);
+    dev_Q_Ly[3*n_cells + id] += 0.5*dtodx*(dev_F_x[3*n_cells + imo] - dev_F_x[3*n_cells + id]);
+    dev_Q_Ly[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + imo] - dev_F_x[4*n_cells + id]);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      dev_Q_Ly[(5+i)*n_cells + id] += 0.5*dtodx*(dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id]); 
+      dev_Q_Ly[(5+i)*n_cells + id] += 0.5*dtodx*(dev_F_x[(5+i)*n_cells + imo] - dev_F_x[(5+i)*n_cells + id]);
     }
     #endif
     #ifdef DE
-    dev_Q_Ly[(n_fields-1)*n_cells + id] += 0.5*dtodx*(dev_F_x[(n_fields-1)*n_cells + imo] - dev_F_x[(n_fields-1)*n_cells + id]); 
+    dev_Q_Ly[(n_fields-1)*n_cells + id] += 0.5*dtodx*(dev_F_x[(n_fields-1)*n_cells + imo] - dev_F_x[(n_fields-1)*n_cells + id]);
     #endif
     // right
-    dev_Q_Ry[            id] += 0.5*dtodx*(dev_F_x[            jpoimo] - dev_F_x[            jpo]); 
-    dev_Q_Ry[  n_cells + id] += 0.5*dtodx*(dev_F_x[  n_cells + jpoimo] - dev_F_x[  n_cells + jpo]); 
-    dev_Q_Ry[2*n_cells + id] += 0.5*dtodx*(dev_F_x[2*n_cells + jpoimo] - dev_F_x[2*n_cells + jpo]); 
-    dev_Q_Ry[3*n_cells + id] += 0.5*dtodx*(dev_F_x[3*n_cells + jpoimo] - dev_F_x[3*n_cells + jpo]); 
-    dev_Q_Ry[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + jpoimo] - dev_F_x[4*n_cells + jpo]); 
+    dev_Q_Ry[            id] += 0.5*dtodx*(dev_F_x[            jpoimo] - dev_F_x[            jpo]);
+    dev_Q_Ry[  n_cells + id] += 0.5*dtodx*(dev_F_x[  n_cells + jpoimo] - dev_F_x[  n_cells + jpo]);
+    dev_Q_Ry[2*n_cells + id] += 0.5*dtodx*(dev_F_x[2*n_cells + jpoimo] - dev_F_x[2*n_cells + jpo]);
+    dev_Q_Ry[3*n_cells + id] += 0.5*dtodx*(dev_F_x[3*n_cells + jpoimo] - dev_F_x[3*n_cells + jpo]);
+    dev_Q_Ry[4*n_cells + id] += 0.5*dtodx*(dev_F_x[4*n_cells + jpoimo] - dev_F_x[4*n_cells + jpo]);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
-      dev_Q_Ry[(5+i)*n_cells + id] += 0.5*dtodx*(dev_F_x[(5+i)*n_cells + jpoimo] - dev_F_x[(5+i)*n_cells + jpo]); 
+      dev_Q_Ry[(5+i)*n_cells + id] += 0.5*dtodx*(dev_F_x[(5+i)*n_cells + jpoimo] - dev_F_x[(5+i)*n_cells + jpo]);
     }
     #endif
     #ifdef DE
-    dev_Q_Ry[(n_fields-1)*n_cells + id] += 0.5*dtodx*(dev_F_x[(n_fields-1)*n_cells + jpoimo] - dev_F_x[(n_fields-1)*n_cells + jpo]); 
+    dev_Q_Ry[(n_fields-1)*n_cells + id] += 0.5*dtodx*(dev_F_x[(n_fields-1)*n_cells + jpoimo] - dev_F_x[(n_fields-1)*n_cells + jpo]);
     #endif
   }
 

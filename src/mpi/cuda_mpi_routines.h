@@ -1,5 +1,5 @@
 #ifndef CUDA_MPI_ROUTINES
-#define CUDA_MPI_ROUTINES 
+#define CUDA_MPI_ROUTINES
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,4 +14,4 @@ int initialize_cuda_mpi(int myid, int nprocs);
 #endif //__cplusplus
 
 
-#endif //CUDA_MPI_ROUTINES 
+#endif //CUDA_MPI_ROUTINES

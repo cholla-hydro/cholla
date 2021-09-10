@@ -44,7 +44,7 @@ Real *send_buffer_0;
 Real *send_buffer_1;
 Real *recv_buffer_0;
 Real *recv_buffer_1;
-// For BLOCK 
+// For BLOCK
 Real *d_send_buffer_x0;
 Real *d_send_buffer_x1;
 Real *d_send_buffer_y0;
@@ -160,7 +160,7 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
 
   /*set process ids in comm world*/
   MPI_Comm_rank(MPI_COMM_WORLD, &procID);
-  
+
   /*find number of processes in comm world*/
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
@@ -180,7 +180,7 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
   #if PRECISION == 2
   MPI_CHREAL = MPI_DOUBLE;
   #endif /*PRECISION*/
-  
+
   #ifdef PARTICLES
   #ifdef PARTICLES_LONG_INTS
   MPI_PART_INT = MPI_LONG;
@@ -199,8 +199,8 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
   {
     chprintf("Error allocating recv_request.\n");
     chexit(-2);
-  }  
-  
+  }
+
   #ifdef PARTICLES
   if(!(send_request_n_particles = (MPI_Request *) malloc(2*sizeof(MPI_Request))))
   {
@@ -269,7 +269,7 @@ void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int
 
       break;
 
-    case BLOCK_DECOMP:    
+    case BLOCK_DECOMP:
       /*We use a block domain decomposition */
       domain_flag = 1;
 
@@ -306,17 +306,17 @@ void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int
 
   //printf("In DomainDecomposition: nx %d ny %d nz %d nc %d\n",H->nx,H->ny,H->nz,H->n_cells);
 
-  /* make sure the domain is specified in the makefile */ 
+  /* make sure the domain is specified in the makefile */
   if(domain_flag==0)
   {
     chprintf("Domain not specified in makefile. Aborting!\n");
     chexit(-1);
-  } 
+  }
 
 
   //Allocate communication buffers
   Allocate_MPI_Buffers(H);
-  
+
 }
 
 
@@ -370,7 +370,7 @@ void DomainDecompositionSLAB(struct parameters *P, struct Header *H, int nx_gin,
   /* find the local complex size, covering "real" (non-ghost) cells only */
 
 #ifdef   FFTW
-  n_local_complex = fftw_mpi_local_size_3d(nx_global, ny_global, nz_global, 
+  n_local_complex = fftw_mpi_local_size_3d(nx_global, ny_global, nz_global,
              world, &nx_local, &nx_local_start);
 #else   /*FFTW*/
 
@@ -386,7 +386,7 @@ void DomainDecompositionSLAB(struct parameters *P, struct Header *H, int nx_gin,
 
   for (i=0; i<nproc; i++)
   {
-    //split the x-cells close to equally 
+    //split the x-cells close to equally
     nx_local_proc[i] = nx_global / nproc;
   }
 
@@ -444,7 +444,7 @@ void DomainDecompositionSLAB(struct parameters *P, struct Header *H, int nx_gin,
     if(procID==nproc-1 && nproc!=1)
     {
       P->xl_bcnd = 5;
-    
+
       //if the global bcnd is periodic, use MPI bcnds at ends
       if(P->xu_bcnd==1) P->xu_bcnd = 5;
     }
@@ -501,7 +501,7 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
     nproc_x = nproc_z;
     nproc_z = tmp;
   }
-  
+
   #ifdef SET_MPI_GRID
   // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
   nproc_x = P->n_proc_x;
@@ -526,7 +526,7 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   //   for(j=0;j<nproc_y;j++)
   //     for(k=0;k<nproc_z;k++)
   //
-  
+
   for(k=0;k<nproc_z;k++)
     for(j=0;j<nproc_y;j++)
       for(i=0;i<nproc_x;i++)
@@ -615,7 +615,7 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   }
 
 
-  //find MPI sources 
+  //find MPI sources
   for(i=0;i<6;i++)
     source[i] = dest[i];
 
@@ -816,14 +816,14 @@ void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, R
     zmin_local = zmin_global;
 
     /*only the x-direction properties need specification*/
-  
+
 
     /*the local domain will be xlen_global * nx_local / nx_global */
     xlen = xlen_global * ((Real) nx_local)/((Real) nx_global);
 
     /*the local minimum bound will be xmin_global + xlen_global* nx_local_start / nx_global */
     //nx_local_start is indexed from start of real cells
-    xmin_local = xmin_global + xlen_global * ((Real) nx_local_start) / ((Real) nx_global ); 
+    xmin_local = xmin_global + xlen_global * ((Real) nx_local_start) / ((Real) nx_global );
 
     //printf("xmin_global %e xlen_global %e xmin_local %e xlen %e\n",xmin_global,xlen_global,xmin_local,xlen);
 
@@ -836,7 +836,7 @@ void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, R
   {
     /*For a block decomposition:                    */
     /*each direction's properties need specification*/
-  
+
     /*the local domain will be xlen_global * nx_local / nx_global */
     xlen = xlen_global * ((Real) nx_local)/((Real) nx_global);
 
@@ -848,15 +848,15 @@ void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, R
 
     /*the local minimum bound will be xmin_global + xlen_global* nx_local_start / nx_global */
     //nx_local_start is indexed from start of real cells
-    xmin_local = xmin_global + xlen_global * ((Real) nx_local_start) / ((Real) nx_global ); 
+    xmin_local = xmin_global + xlen_global * ((Real) nx_local_start) / ((Real) nx_global );
 
     /*the local minimum bound will be ymin_global + ylen_global* ny_local_start / ny_global */
     //ny_local_start is indexed from start of real cells
-    ymin_local = ymin_global + ylen_global * ((Real) ny_local_start) / ((Real) ny_global ); 
+    ymin_local = ymin_global + ylen_global * ((Real) ny_local_start) / ((Real) ny_global );
 
     /*the local minimum bound will be zmin_global + zlen_global* nz_local_start / nz_global */
     //nz_local_start is indexed from start of real cells
-    zmin_local = zmin_global + zlen_global * ((Real) nz_local_start) / ((Real) nz_global ); 
+    zmin_local = zmin_global + zlen_global * ((Real) nz_local_start) / ((Real) nz_global );
 
     //printf("xmin_global %e xlen_global %e xmin_local %e xlen %e\n",xmin_global,xlen_global,xmin_local,xlen);
     //printf("ymin_global %e ylen_global %e ymin_local %e ylen %e\n",ymin_global,ylen_global,ymin_local,ylen);
@@ -877,13 +877,13 @@ void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, R
   H->ydglobal = ylen_global;
   H->zdglobal = zlen_global;
 
-  //the local domains and cell sizes 
+  //the local domains and cell sizes
   //are always set this way
   H->xblocal = xmin_local;
   H->yblocal = ymin_local;
   H->zblocal = zmin_local;
 
-  //printf("ProcessID: %d xbound: %f  xdglobal: %f  xblocal: %f\n", procID, H->xbound, H->xdglobal, H->xblocal); 
+  //printf("ProcessID: %d xbound: %f  xdglobal: %f  xblocal: %f\n", procID, H->xbound, H->xdglobal, H->xblocal);
 
   /*perform 1-D first*/
   if(H->nx > 1 && H->ny==1 && H->nz==1)
@@ -932,7 +932,7 @@ void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, R
   {
     chprintf("Domain properties are not specified for this decomposition. Aborting!\n");
     chexit(-1);
-  } 
+  }
 }
 
 
@@ -954,7 +954,7 @@ void Print_Domain_Properties(struct Header H)
       printf("dy %e\n",H.dy);
       printf("dz %e\n",H.dz);
       printf("*********\n");
-    } 
+    }
     fflush(stdout);
     MPI_Barrier(world);
   }
@@ -969,7 +969,7 @@ void Allocate_MPI_Buffers_SLAB(struct Header *H)
 
   send_buffer_length = bsize;
   recv_buffer_length = bsize;
-  
+
   //chprintf("Allocating MPI communication buffers (n = %ld).\n",bsize);
 
   if(!(send_buffer_0 = (Real *) malloc(bsize*sizeof(Real))))
@@ -1004,7 +1004,7 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
     chexit(-1);
   }
   // 2D
-  if (H->ny>1 && H->nz==1) { 
+  if (H->ny>1 && H->nz==1) {
     xbsize = H->n_fields*H->n_ghost*(H->ny-2*H->n_ghost);
     ybsize = H->n_fields*H->n_ghost*(H->nx);
     zbsize = 1;
@@ -1019,16 +1019,16 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   x_buffer_length = xbsize;
   y_buffer_length = ybsize;
   z_buffer_length = zbsize;
-  
+
   #ifdef PARTICLES
   // Set Initial sizes for particles buffers
   int n_max = std::max( H->nx, H->ny );
   n_max = std::max( H->nz, n_max );
   int factor = 2;
   N_PARTICLES_TRANSFER = n_max * n_max * factor ;
-  
+
   // Set the number of values that will be transfered for each particle
-  N_DATA_PER_PARTICLE_TRANSFER = 6; // 3 positions and 3 velocities 
+  N_DATA_PER_PARTICLE_TRANSFER = 6; // 3 positions and 3 velocities
   #ifndef SINGLE_PARTICLE_MASS
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle mass
   #endif
@@ -1038,7 +1038,7 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   #ifdef PARTICLE_AGE
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle age
   #endif
-  
+
   buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_x0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_x1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
@@ -1052,7 +1052,7 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   buffer_length_particles_z1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_z1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   #endif //PARTICLES
-  
+
   chprintf("Allocating MPI communication buffers (nx = %ld, ny = %ld, nz = %ld).\n", xbsize, ybsize, zbsize);
 
   if(!(h_send_buffer_x0 = (Real *) malloc(xbsize*sizeof(Real))))
@@ -1095,7 +1095,7 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
     chprintf("Error allocating recv_buffer_y1 in Allocate_MPI_Buffers_BLOCK (n = %ld, size = %ld).\n",ybsize,ybsize*sizeof(Real));
     chexit(-1);
   }
-  
+
   #ifdef PARTICLES
   //Allocate buffers for particles transfers
   chprintf("Allocating MPI communication buffers for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
@@ -1140,7 +1140,7 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
     chexit(-1);
   }
   #endif//PARTICLES
-  
+
   // 3D
   if (H->nz > 1) {
     if(!(h_send_buffer_z0 = (Real *) malloc(zbsize*sizeof(Real))))
@@ -1186,7 +1186,7 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
     }
     #endif
   }
-  
+
 }
 
 
@@ -1198,7 +1198,7 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
     chexit(-1);
   }
   // 2D
-  if (H->ny>1 && H->nz==1) { 
+  if (H->ny>1 && H->nz==1) {
     xbsize = H->n_fields*H->n_ghost*(H->ny-2*H->n_ghost);
     ybsize = H->n_fields*H->n_ghost*(H->nx);
     zbsize = 1;
@@ -1213,16 +1213,16 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   x_buffer_length = xbsize;
   y_buffer_length = ybsize;
   z_buffer_length = zbsize;
-  
+
   #ifdef PARTICLES
   // Set Initial sizes for particles buffers
   int n_max = std::max( H->nx, H->ny );
   n_max = std::max( H->nz, n_max );
   int factor = 2;
   N_PARTICLES_TRANSFER = n_max * n_max * factor ;
-  
+
   // Set the number of values that will be transfered for each particle
-  N_DATA_PER_PARTICLE_TRANSFER = 6; // 3 positions and 3 velocities 
+  N_DATA_PER_PARTICLE_TRANSFER = 6; // 3 positions and 3 velocities
   #ifndef SINGLE_PARTICLE_MASS
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle mass
   #endif
@@ -1232,7 +1232,7 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   #ifdef PARTICLE_AGE
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle age
   #endif
-  
+
   buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_x0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_x1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
@@ -1246,10 +1246,10 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   buffer_length_particles_z1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   buffer_length_particles_z1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   #endif //PARTICLES
-  
+
   chprintf("Allocating MPI communication buffers on GPU ");
   chprintf("(nx = %ld, ny = %ld, nz = %ld).\n", xbsize, ybsize, zbsize);
-  
+
   CudaSafeCall ( cudaMalloc (&d_send_buffer_x0, xbsize*sizeof(Real)) );
   CudaSafeCall ( cudaMalloc (&d_send_buffer_x1, xbsize*sizeof(Real)) );
   CudaSafeCall ( cudaMalloc (&d_recv_buffer_x0, xbsize*sizeof(Real)) );
@@ -1262,7 +1262,7 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   CudaSafeCall ( cudaMalloc (&d_send_buffer_z1, zbsize*sizeof(Real)) );
   CudaSafeCall ( cudaMalloc (&d_recv_buffer_z0, zbsize*sizeof(Real)) );
   CudaSafeCall ( cudaMalloc (&d_recv_buffer_z1, zbsize*sizeof(Real)) );
-  
+
   #if !defined(MPI_GPU)
   h_send_buffer_x0 = (Real *) malloc ( xbsize*sizeof(Real) );
   h_send_buffer_x1 = (Real *) malloc ( xbsize*sizeof(Real) );
@@ -1277,7 +1277,7 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   h_recv_buffer_z0 = (Real *) malloc ( zbsize*sizeof(Real) );
   h_recv_buffer_z1 = (Real *) malloc ( zbsize*sizeof(Real) );
   #endif
-  
+
   #if defined(PARTICLES) && defined(PARTICLES_GPU)
   chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
   CudaSafeCall ( cudaMalloc (&d_send_buffer_x0_particles, buffer_length_particles_x0_send*sizeof(Real)) );
@@ -1292,7 +1292,7 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   CudaSafeCall ( cudaMalloc (&d_recv_buffer_y1_particles, buffer_length_particles_y1_recv*sizeof(Real)) );
   CudaSafeCall ( cudaMalloc (&d_recv_buffer_z0_particles, buffer_length_particles_z0_recv*sizeof(Real)) );
   CudaSafeCall ( cudaMalloc (&d_recv_buffer_z1_particles, buffer_length_particles_z1_recv*sizeof(Real)) );
-  
+
   #if !defined(MPI_GPU)
   chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
   h_send_buffer_x0_particles = (Real *) malloc ( buffer_length_particles_x0_send*sizeof(Real) );
@@ -1308,9 +1308,9 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   h_recv_buffer_z0_particles = (Real *) malloc ( buffer_length_particles_z0_recv*sizeof(Real) );
   h_recv_buffer_z1_particles = (Real *) malloc ( buffer_length_particles_z1_recv*sizeof(Real) );
   #endif
-  
+
   #endif//PARTICLES_GPU
-  
+
 }
 
 
@@ -1502,7 +1502,7 @@ void copyHostToDeviceReceiveBuffer ( int direction )
   int xbsize = x_buffer_length,
       ybsize = y_buffer_length,
       zbsize = z_buffer_length;
-  
+
   switch ( direction ) {
   case ( 0 ): cudaMemcpy(d_recv_buffer_x0, h_recv_buffer_x0,
                          xbsize*sizeof(Real), cudaMemcpyHostToDevice);

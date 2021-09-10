@@ -37,9 +37,9 @@ void Set_Gammas(Real gamma_in)
 
 
 /*! \fn double get_time(void)
- *  \brief Returns the current clock time. */ 
+ *  \brief Returns the current clock time. */
 double get_time(void)
-{ 
+{
   struct timeval timer;
   gettimeofday(&timer,NULL);
   return timer.tv_sec + 1.0e-6*timer.tv_usec;
@@ -165,7 +165,7 @@ parms->scale_outputs_file[0] = '\0';
 
     /* Copy into correct entry in parameters struct */
     if (strcmp(name, "nx")==0)
-      parms->nx = atoi(value); 
+      parms->nx = atoi(value);
     else if (strcmp(name, "ny")==0)
       parms->ny = atoi(value);
     else if (strcmp(name, "nz")==0)
@@ -308,7 +308,7 @@ parms->scale_outputs_file[0] = '\0';
       parms->lya_skewers_stride  = atoi(value);
     else if (strcmp(name, "lya_Pk_d_log_k")==0)
       parms->lya_Pk_d_log_k  = atof(value);
-#endif    
+#endif
     else if (!is_param_valid(name))
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
         name, value);

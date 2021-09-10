@@ -40,7 +40,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     ks = n_ghost;
     ke = nz-n_ghost;
   }
- 
+
   Real d, E;
   Real n, T, T_init;
   Real del_T, dt_sub;
@@ -69,7 +69,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   // set min dt to a high number
   min_dt[tid] = 1e10;
   __syncthreads();
-  
+
   // only threads corresponding to real cells do the calculation
   if (xid >= is && xid < ie && yid >= js && yid < je && zid >= ks && zid < ke) {
 
@@ -89,7 +89,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     ge = dev_conserved[(n_fields-1)*n_cells + id] / d;
     ge = fmax(ge, (Real) TINY_NUMBER);
     #endif
-    
+
     // calculate the number density of the gas (in cgs)
     n = d*DENSITY_UNIT / (mu * MP);
 
@@ -106,9 +106,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T = T_init;
     //if (T > T_max) printf("%3d %3d %3d High T cell. n: %e  T: %e\n", xid, yid, zid, n, T);
     // call the cooling function
-    cool = CIE_cool(n, T); 
-    //cool = Cloudy_cool(n, T); 
-    
+    cool = CIE_cool(n, T);
+    //cool = Cloudy_cool(n, T);
+
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
 
@@ -133,7 +133,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // set a temperature floor
     // (don't change this cell if the thread crashed)
     //if (T > 0.0 && E > 0.0) T = fmax(T, T_min);
-    // set a temperature ceiling 
+    // set a temperature ceiling
     //T = fmin(T, T_max);
 
     // adjust value of energy based on total change in temperature
@@ -148,7 +148,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     //printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
     // only use good cells in timestep calculation (in case some have crashed)
     if (n > 0 && T > 0 && cool > 0.0) {
-      // limit the timestep such that delta_T is 10% 
+      // limit the timestep such that delta_T is 10%
       min_dt[tid] = 0.1*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
     }
 
@@ -171,7 +171,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
   // write the result for this block to global memory
   if (tid == 0) dt_array[blockIdx.x] = min_dt[0];
-  
+
 
 }
 
@@ -187,7 +187,7 @@ __device__ Real test_cool(int tid, Real n, Real T)
   //lambda = 5.0e-24; //cooling coefficient, 5e-24 erg cm^3 s^-1
   lambda = 5.0e-20; //cooling coefficient, 5e-24 erg cm^3 s^-1
 
-  // constant cooling rate 
+  // constant cooling rate
   //cool = n*n*lambda;
 
   // Creasey cooling function
@@ -197,7 +197,7 @@ __device__ Real test_cool(int tid, Real n, Real T)
   if (T >= 0.5*(T1+T0) && T <= T1) {
     cool = n*n*lambda*(T1 - T) / T0;
   }
- 
+
 
   //printf("%d %f %f\n", tid, T, cool);
   return cool;
@@ -206,12 +206,12 @@ __device__ Real test_cool(int tid, Real n, Real T)
 
 
 /* \fn __device__ Real primordial_cool(Real n, Real T)
- * \brief Primordial hydrogen/helium cooling curve 
+ * \brief Primordial hydrogen/helium cooling curve
           derived according to Katz et al. 1996. */
 __device__ Real primordial_cool(Real n, Real T)
 {
   Real n_h, Y, y, g_ff, cool;
-  Real n_h0, n_hp, n_he0, n_hep, n_hepp, n_e, n_e_old; 
+  Real n_h0, n_hp, n_he0, n_hep, n_hepp, n_e, n_e_old;
   Real alpha_hp, alpha_hep, alpha_d, alpha_hepp, gamma_eh0, gamma_ehe0, gamma_ehep;
   Real le_h0, le_hep, li_h0, li_he0, li_hep, lr_hp, lr_hep, lr_hepp, ld_hep, l_ff;
   Real gamma_lh0, gamma_lhe0, gamma_lhep, e_h0, e_he0, e_hep, H;
@@ -223,10 +223,10 @@ __device__ Real primordial_cool(Real n, Real T)
 
   //Real X = 0.76; //hydrogen abundance by mass
   Y = 0.24; //helium abundance by mass
-  y = Y/(4 - 4*Y);  
+  y = Y/(4 - 4*Y);
 
-  // set the hydrogen number density 
-  n_h = n; 
+  // set the hydrogen number density
+  n_h = n;
 
   // calculate the recombination and collisional ionziation rates
   // (Table 2 from Katz 1996)
@@ -241,12 +241,12 @@ __device__ Real primordial_cool(Real n, Real T)
   // assumed J(nu) = 10^-22 (nu_L/nu)
   gamma_lh0 = 3.19851e-13;
   gamma_lhe0 = 3.13029e-13;
-  gamma_lhep = 2.00541e-14; 
+  gamma_lhep = 2.00541e-14;
   // externally evaluated integrals for heating rates
   e_h0 = 2.4796e-24;
   e_he0 = 6.86167e-24;
-  e_hep = 6.21868e-25; 
-  
+  e_hep = 6.21868e-25;
+
 
   // assuming no photoionization, solve equations for number density of
   // each species
@@ -254,7 +254,7 @@ __device__ Real primordial_cool(Real n, Real T)
   n_iter = 20;
   diff = 1.0;
   tol = 1.0e-6;
-  if (heat_flag) { 
+  if (heat_flag) {
     for (int i=0; i<n_iter; i++) {
       n_e_old = n_e;
       n_h0   = n_h*alpha_hp / (alpha_hp + gamma_eh0 + gamma_lh0/n_e);
@@ -266,7 +266,7 @@ __device__ Real primordial_cool(Real n, Real T)
       diff = fabs(n_e_old - n_e);
       if (diff < tol) break;
     }
-  }  
+  }
   else {
     n_h0   = n_h*alpha_hp / (alpha_hp + gamma_eh0);
     n_hp   = n_h - n_h0;
@@ -296,9 +296,9 @@ __device__ Real primordial_cool(Real n, Real T)
   // calculate total photoionization heating rate
   H = 0.0;
   if (heat_flag) {
-    H = n_h0*e_h0 + n_he0*e_he0 + n_hep*e_hep; 
+    H = n_h0*e_h0 + n_he0*e_he0 + n_hep*e_hep;
   }
-  
+
   cool -= H;
 
   return cool;
@@ -307,14 +307,14 @@ __device__ Real primordial_cool(Real n, Real T)
 
 
 /* \fn __device__ Real CIE_cool(Real n, Real T)
- * \brief Analytic fit to a solar metallicity CIE cooling curve 
+ * \brief Analytic fit to a solar metallicity CIE cooling curve
           calculated using Cloudy. */
 __device__ Real CIE_cool(Real n, Real T)
 {
   Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
   Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
-  
-  // fit to CIE cooling function 
+
+  // fit to CIE cooling function
   if (log10(T) < 4.0) {
     lambda = 0.0;
   }
@@ -338,7 +338,7 @@ __device__ Real CIE_cool(Real n, Real T)
 
 #ifdef CLOUDY_COOL
 /* \fn __device__ Real Cloudy_cool(Real n, Real T)
- * \brief Uses texture mapping to interpolate Cloudy cooling/heating 
+ * \brief Uses texture mapping to interpolate Cloudy cooling/heating
           tables at z = 0 with solar metallicity and an HM05 UV background. */
 __device__ Real Cloudy_cool(Real n, Real T)
 {
@@ -351,8 +351,8 @@ __device__ Real Cloudy_cool(Real n, Real T)
 
   // remap coordinates for texture
   log_T = (log_T - 1.0)/8.1;
-  log_n = (log_n + 6.0)/12.1; 
- 
+  log_n = (log_n + 6.0)/12.1;
+
   // don't cool below 10 K
   if (log10(T) > 1.0) {
   lambda = tex2D<float>(coolTexObj, log_T, log_n);

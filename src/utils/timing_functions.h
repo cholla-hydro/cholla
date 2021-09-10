@@ -31,7 +31,7 @@ public:
   Real time_bound_max;
   Real time_bound_mean;
   Real time_bound_all;
-  
+
   #ifdef GRAVITY
   Real time_potential_min;
   Real time_potential_max;
@@ -42,14 +42,14 @@ public:
   Real time_dt_max;
   Real time_dt_mean;
   Real time_dt_all;
-  
+
   Real time_bound_pot_min;
   Real time_bound_pot_max;
   Real time_bound_pot_mean;
   Real time_bound_pot_all;
-  
+
   #endif//GRAVITY
-  
+
   #ifdef PARTICLES
 
   Real time_part_dens_min;
@@ -78,7 +78,7 @@ public:
   Real time_advance_particles_2_mean;
   Real time_advance_particles_2_all;
   #endif
-  
+
   #ifdef COOLING_GRACKLE
   Real time_cooling_min;
   Real time_cooling_max;
@@ -93,7 +93,7 @@ public:
   void Print_Times();
   void Get_Average_Times();
   void Print_Average_Times( struct parameters P );
-  
+
   #ifdef COOLING_GRACKLE
   void Print_Cooling_Time();
   #endif

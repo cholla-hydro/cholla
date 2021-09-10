@@ -36,7 +36,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   Real max_dti = 0;
   #ifdef COOLING_GPU
   Real min_dt = 1e10;
-  #endif  
+  #endif
 
   int n_cells = nx;
   int ny = 1;
@@ -63,13 +63,13 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
     #if defined COOLING_GPU
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
-    #endif  
+    #endif
 
-    #ifndef DYNAMIC_GPU_ALLOC 
+    #ifndef DYNAMIC_GPU_ALLOC
     // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    #endif 
+    #endif
   }
 
   // copy the conserved variable array onto the GPU
@@ -99,7 +99,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   CudaCheckError();
   #endif
 
-  
+
   // Step 2: Calculate the fluxes
   #ifdef EXACT
   hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
@@ -107,7 +107,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   #ifdef ROE
   hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
-  #ifdef HLLC 
+  #ifdef HLLC
   hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   #endif
   CudaCheckError();
@@ -121,11 +121,11 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   // Step 3: Update the conserved variable array
   hipLaunchKernelGGL(Update_Conserved_Variables_1D, dimGrid, dimBlock, 0, 0, dev_conserved, F_x, n_cells, x_off, n_ghost, dx, xbound, dt, gama, n_fields);
   CudaCheckError();
-   
+
 
   // Sychronize the total and internal energy, if using dual-energy formalism
   #ifdef DE
-  hipLaunchKernelGGL(Select_Internal_Energy_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, n_fields);  
+  hipLaunchKernelGGL(Select_Internal_Energy_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, n_fields);
   hipLaunchKernelGGL(Sync_Energies_1D, dimGrid, dimBlock, 0, 0, dev_conserved, n_cells, n_ghost, gama, n_fields);
   CudaCheckError();
   #endif
@@ -157,7 +157,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   // find maximum inverse timestep from cooling time
   for (int i=0; i<ngrid; i++) {
     min_dt = fmin(min_dt, host_dt_array[i]);
-  }  
+  }
   if (min_dt < C_cfl/max_dti) {
     max_dti = C_cfl/min_dt;
   }
@@ -167,7 +167,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   // If memory is not single allocated then free the memory every timestep.
   Free_Memory_CTU_1D();
   #endif
-  
+
 
   // return the maximum inverse timestep
   return max_dti;
@@ -180,7 +180,7 @@ void Free_Memory_CTU_1D() {
   // free the CPU memory
   CudaSafeCall( cudaFreeHost(host_dti_array) );
   #if defined COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );  
+  CudaSafeCall( cudaFreeHost(host_dt_array) );
   #endif
 
   // free the GPU memory

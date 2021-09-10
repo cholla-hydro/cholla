@@ -30,7 +30,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   Real dr, vxr, mxr, vyr, myr, vzr, mzr, pr, Er;
 
   Real etah = 0.0;
-  Real g1 = gamma - 1.0; 
+  Real g1 = gamma - 1.0;
   Real Hl, Hr;
   Real sqrtdl, sqrtdr, vx, vy, vz, H;
   Real vsq, asq, a;
@@ -63,7 +63,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   }
 
   // Each thread executes the solver independently
-  if (xid < nx && yid < ny && zid < nz) 
+  if (xid < nx && yid < ny && zid < nz)
   {
     // retrieve conserved variables
     dl  = dev_bounds_L[            tid];
@@ -84,7 +84,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     mxr = dev_bounds_R[o1*n_cells + tid];
     myr = dev_bounds_R[o2*n_cells + tid];
     mzr = dev_bounds_R[o3*n_cells + tid];
-    Er  = dev_bounds_R[4*n_cells + tid]; 
+    Er  = dev_bounds_R[4*n_cells + tid];
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       dscalarr[i] = dev_bounds_R[(5+i)*n_cells + tid];
@@ -100,7 +100,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     vzl = mzl / dl;
     #ifdef DE //PRESSURE_DE
     E_kin = 0.5 * dl * ( vxl*vxl + vyl*vyl + vzl*vzl );
-    pl = Get_Pressure_From_DE( El, El - E_kin, dgel, gamma ); 
+    pl = Get_Pressure_From_DE( El, El - E_kin, dgel, gamma );
     #else
     pl  = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -122,7 +122,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     #else
     pr  = (Er - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
     #endif //PRESSURE_DE
-    pr  = fmax(pr, (Real) TINY_NUMBER);    
+    pr  = fmax(pr, (Real) TINY_NUMBER);
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalarr[i] = dscalarr[i] / dr;
@@ -136,14 +136,14 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     Hl = (El + pl) / dl;
     Hr = (Er + pr) / dr;
 
-    // calculate averages of the variables needed for the Roe Jacobian 
+    // calculate averages of the variables needed for the Roe Jacobian
     // (see Stone et al., 2008, Eqn 65, or Toro 2009, 11.118)
     sqrtdl = sqrt(dl);
     sqrtdr = sqrt(dr);
     vx = (sqrtdl*vxl + sqrtdr*vxr) / (sqrtdl + sqrtdr);
     vy = (sqrtdl*vyl + sqrtdr*vyr) / (sqrtdl + sqrtdr);
     vz = (sqrtdl*vzl + sqrtdr*vzr) / (sqrtdl + sqrtdr);
-    H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr); 
+    H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr);
 
 
     // calculate the sound speed squared (Stone B2)
@@ -152,10 +152,10 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     a = sqrt(asq);
 
     // calculate the averaged eigenvectors of the Roe matrix (Stone Eqn B2, Toro 11.107)
-    lambda_m = vx - a; 
+    lambda_m = vx - a;
     lambda_0 = vx;
     lambda_p = vx + a;
-  
+
     // calculate the fluxes for the left and right input states,
     // based on the average values in either cell
     f_d_l = mxl;
@@ -221,7 +221,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     }
     // otherwise calculate the Roe fluxes
     else {
-    
+
       // calculate the difference in conserved variables across the cell interface
       // Stone Eqn 68
       del_d  = dr  - dl;
@@ -281,8 +281,8 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       test4 = El + a0*(H-vx*a);
 
       if(lambda_0 > lambda_m) {
-        if (test0 <= 0.0) { 
-          hlle_flag=1; 
+        if (test0 <= 0.0) {
+          hlle_flag=1;
         }
         if (test4 - 0.5*(test1*test1 + test2*test2 + test3*test3)/test0 < 0.0) {
           hlle_flag=2;
@@ -296,8 +296,8 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       test4 += a1*vy + a2*vz + a3*0.5*vsq;
 
       if(lambda_p > lambda_0) {
-        if (test0 <= 0.0) { 
-          hlle_flag=1; 
+        if (test0 <= 0.0) {
+          hlle_flag=1;
         }
         if (test4 - 0.5*(test1*test1 + test2*test2 + test3*test3)/test0 < 0.0) {
           hlle_flag=2;
@@ -317,7 +317,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
         // take max/fmin of Roe eigenvalues and left and right sound speeds
         al = fmin(lambda_m, vxl - cfl);
         ar = fmax(lambda_p, vxr + cfr);
-    
+
         bm = fmin(al, (Real) 0.0);
         bp = fmax(ar, (Real) 0.0);
 
@@ -352,10 +352,10 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
         // compute the HLLE flux at the interface
         tmp = 0.5*(bp + bm)/(bp - bm);
 
-        dev_flux[          tid] = 0.5*(f_d_l  + f_d_r)  + (f_d_l  - f_d_r)*tmp; 
-        dev_flux[o1*n_cells+tid] = 0.5*(f_mx_l + f_mx_r) + (f_mx_l - f_mx_r)*tmp; 
-        dev_flux[o2*n_cells+tid] = 0.5*(f_my_l + f_my_r) + (f_my_l - f_my_r)*tmp; 
-        dev_flux[o3*n_cells+tid] = 0.5*(f_mz_l + f_mz_r) + (f_mz_l - f_mz_r)*tmp; 
+        dev_flux[          tid] = 0.5*(f_d_l  + f_d_r)  + (f_d_l  - f_d_r)*tmp;
+        dev_flux[o1*n_cells+tid] = 0.5*(f_mx_l + f_mx_r) + (f_mx_l - f_mx_r)*tmp;
+        dev_flux[o2*n_cells+tid] = 0.5*(f_my_l + f_my_r) + (f_my_l - f_my_r)*tmp;
+        dev_flux[o3*n_cells+tid] = 0.5*(f_mz_l + f_mz_r) + (f_mz_l - f_mz_r)*tmp;
         dev_flux[4*n_cells+tid] = 0.5*(f_E_l  + f_E_r)  + (f_E_l  - f_E_r)*tmp;
         #ifdef SCALAR
         for (int i=0; i<NSCALARS; i++) {
@@ -374,7 +374,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
         dev_flux[o2*n_cells+tid] = 0.5*(f_my_l + f_my_r - sum_2);
         dev_flux[o3*n_cells+tid] = 0.5*(f_mz_l + f_mz_r - sum_3);
         dev_flux[4*n_cells+tid] = 0.5*(f_E_l  + f_E_r  - sum_4);
-        #ifdef SCALAR 
+        #ifdef SCALAR
         for (int i=0; i<NSCALARS; i++) {
           if (dev_flux[tid] >= 0.0)
             dev_flux[(5+i)*n_cells+tid] = dev_flux[tid] * scalarl[i];

@@ -32,7 +32,7 @@ extern Real *dev_dti_array;
 #ifdef COOLING_GPU
 // array of timesteps for dt calculation (cooling restriction)
 extern Real *dev_dt_array;
-#endif  
+#endif
 // Array on the CPU to hold max_dti returned from each thread block
 extern Real *host_dti_array;
 #ifdef COOLING_GPU
@@ -52,7 +52,7 @@ extern Real *buffer_potential;
 // Similarly, sizes of subgrid blocks and kernel dimensions are global variables
 // so subgrid splitting function is only called once
 // dimensions of subgrid blocks
-extern int nx_s, ny_s, nz_s; 
+extern int nx_s, ny_s, nz_s;
 // x, y, and z offsets for subgrid blocks
 extern int x_off_s, y_off_s, z_off_s;
 // total number of subgrid blocks needed
@@ -113,7 +113,7 @@ inline void __cudaCheckError( const char *file, const int line )
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
 {
-   if (code != cudaSuccess) 
+   if (code != cudaSuccess)
    {
       fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
       if (abort) exit(code);

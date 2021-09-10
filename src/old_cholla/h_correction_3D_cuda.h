@@ -1,5 +1,5 @@
 /*! \file h_correction_3D_cuda.h
- *  \brief Functions declarations for the H correction kernels. 
+ *  \brief Functions declarations for the H correction kernels.
            Written following Sanders et al. 1998. */
 #ifdef CUDA
 #ifndef H_CORRECTION_3D_H

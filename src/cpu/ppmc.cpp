@@ -12,7 +12,7 @@
 
 
 /*! \fn void ppmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
- *  \brief When passed a stencil of conserved variables, returns the left and right 
+ *  \brief When passed a stencil of conserved variables, returns the left and right
            boundary values for the interface calculated using ppm. */
 void ppmc(Real stencil[], Real bounds[], const Real dx, const Real dt, Real gamma)
 {
@@ -58,7 +58,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
 
 
   const Real dtodx = dt/dx;
-  
+
   Real a_imo, a_i, a_ipo;
   Real lambda_m, lambda_0, lambda_p;
   Real del_d_L, del_vx_L, del_vy_L, del_vz_L, del_p_L;
@@ -94,7 +94,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
 
   lambda_m = vx_i-a_i;
   lambda_0 = vx_i;
-  lambda_p = vx_i+a_i; 
+  lambda_p = vx_i+a_i;
 
 
   // Steps 2 - 5 are repeated for cell i-1, i, and i+1
@@ -128,13 +128,13 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   if (del_d_L*del_d_R > 0.0) { del_d_G = 2.0*del_d_L*del_d_R / (del_d_L+del_d_R); }
   else { del_d_G = 0.0; }
   if (del_vx_L*del_vx_R > 0.0) { del_vx_G = 2.0*del_vx_L*del_vx_R / (del_vx_L+del_vx_R); }
-  else { del_vx_G = 0.0; } 
+  else { del_vx_G = 0.0; }
   if (del_vy_L*del_vy_R > 0.0) { del_vy_G = 2.0*del_vy_L*del_vy_R / (del_vy_L+del_vy_R); }
-  else { del_vy_G = 0.0; } 
+  else { del_vy_G = 0.0; }
   if (del_vz_L*del_vz_R > 0.0) { del_vz_G = 2.0*del_vz_L*del_vz_R / (del_vz_L+del_vz_R); }
-  else { del_vz_G = 0.0; } 
+  else { del_vz_G = 0.0; }
   if (del_p_L*del_p_R > 0.0) { del_p_G = 2.0*del_p_L*del_p_R / (del_p_L+del_p_R); }
-  else { del_p_G = 0.0; } 
+  else { del_p_G = 0.0; }
 
 
   // Step 3 - Project the left, right, centered and van Leer differences onto the characteristic variables
@@ -163,14 +163,14 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   del_a_1_G = del_d_G - del_p_G / (a_imo*a_imo);
   del_a_2_G = del_vy_G;
   del_a_3_G = del_vz_G;
-  del_a_4_G = d_imo * del_vx_G / (2*a_imo) + del_p_G / (2*a_imo*a_imo); 
+  del_a_4_G = d_imo * del_vx_G / (2*a_imo) + del_p_G / (2*a_imo*a_imo);
 
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
   //          Stone Eqn 38
 
   del_a_0_m = del_a_1_m = del_a_2_m = del_a_3_m = del_a_4_m = 0.0;
-  
+
   if (del_a_0_L*del_a_0_R > 0.0) {
     lim_slope_a = fmin(fabs(del_a_0_L), fabs(del_a_0_R));
     lim_slope_b = fmin(fabs(del_a_0_C), fabs(del_a_0_G));
@@ -194,11 +194,11 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   if (del_a_4_L*del_a_4_R > 0.0) {
     lim_slope_a = fmin(fabs(del_a_4_L), fabs(del_a_4_R));
     lim_slope_b = fmin(fabs(del_a_4_C), fabs(del_a_4_G));
-    del_a_4_m = sgn(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b); 
+    del_a_4_m = sgn(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b);
   }
 
 
-  // Step 5 - Project the monotonized difference in the characteristic variables back onto the 
+  // Step 5 - Project the monotonized difference in the characteristic variables back onto the
   //          primative variables
   //          Stone Eqn 39
 
@@ -206,13 +206,13 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   del_vx_m_imo = -a_imo*del_a_0_m / d_imo + a_imo* del_a_4_m / d_imo;
   del_vy_m_imo = del_a_2_m;
   del_vz_m_imo = del_a_3_m;
-  del_p_m_imo  = a_imo*a_imo*del_a_0_m + a_imo*a_imo*del_a_4_m;  
+  del_p_m_imo  = a_imo*a_imo*del_a_0_m + a_imo*a_imo*del_a_4_m;
 
 
   // Step 2 - Compute the left, right, centered, and van Leer differences of the primative variables
   //          Note that here L and R refer to locations relative to the cell center
   //          Stone Eqn 36
-  
+
   // left
   del_d_L  = d_i  - d_imo;
   del_vx_L = vx_i - vx_imo;
@@ -238,13 +238,13 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   if (del_d_L*del_d_R > 0.0) { del_d_G = 2.0*del_d_L*del_d_R / (del_d_L+del_d_R); }
   else { del_d_G = 0.0; }
   if (del_vx_L*del_vx_R > 0.0) { del_vx_G = 2.0*del_vx_L*del_vx_R / (del_vx_L+del_vx_R); }
-  else { del_vx_G = 0.0; } 
+  else { del_vx_G = 0.0; }
   if (del_vy_L*del_vy_R > 0.0) { del_vy_G = 2.0*del_vy_L*del_vy_R / (del_vy_L+del_vy_R); }
-  else { del_vy_G = 0.0; } 
+  else { del_vy_G = 0.0; }
   if (del_vz_L*del_vz_R > 0.0) { del_vz_G = 2.0*del_vz_L*del_vz_R / (del_vz_L+del_vz_R); }
-  else { del_vz_G = 0.0; } 
+  else { del_vz_G = 0.0; }
   if (del_p_L*del_p_R > 0.0) { del_p_G = 2.0*del_p_L*del_p_R / (del_p_L+del_p_R); }
-  else { del_p_G = 0.0; } 
+  else { del_p_G = 0.0; }
 
 
   // Step 3 - Project the left, right, centered, and van Leer differences onto the characteristic variables
@@ -279,7 +279,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   //          Stone Eqn 38
 
   del_a_0_m = del_a_1_m = del_a_2_m = del_a_3_m = del_a_4_m = 0.0;
-  
+
   if (del_a_0_L*del_a_0_R > 0.0) {
     lim_slope_a = fmin(fabs(del_a_0_L), fabs(del_a_0_R));
     lim_slope_b = fmin(fabs(del_a_0_C), fabs(del_a_0_G));
@@ -303,11 +303,11 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   if (del_a_4_L*del_a_4_R > 0.0) {
     lim_slope_a = fmin(fabs(del_a_4_L), fabs(del_a_4_R));
     lim_slope_b = fmin(fabs(del_a_4_C), fabs(del_a_4_G));
-    del_a_4_m = sgn(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b); 
+    del_a_4_m = sgn(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b);
   }
 
 
-  // Step 5 - Project the monotonized difference in the characteristic variables back onto the 
+  // Step 5 - Project the monotonized difference in the characteristic variables back onto the
   //          primative variables
   //          Stone Eqn 39
 
@@ -315,7 +315,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   del_vx_m_i = -a_i*del_a_0_m / d_i + a_i* del_a_4_m / d_i;
   del_vy_m_i = del_a_2_m;
   del_vz_m_i = del_a_3_m;
-  del_p_m_i  = a_i*a_i*del_a_0_m + a_i*a_i*del_a_4_m;  
+  del_p_m_i  = a_i*a_i*del_a_0_m + a_i*a_i*del_a_4_m;
 
 
   // Step 2 - Compute the left, right, centered, and van Leer differences of the primative variables
@@ -347,19 +347,19 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   if (del_d_L*del_d_R > 0.0) { del_d_G = 2.0*del_d_L*del_d_R / (del_d_L+del_d_R); }
   else { del_d_G = 0.0; }
   if (del_vx_L*del_vx_R > 0.0) { del_vx_G = 2.0*del_vx_L*del_vx_R / (del_vx_L+del_vx_R); }
-  else { del_vx_G = 0.0; } 
+  else { del_vx_G = 0.0; }
   if (del_vy_L*del_vy_R > 0.0) { del_vy_G = 2.0*del_vy_L*del_vy_R / (del_vy_L+del_vy_R); }
-  else { del_vy_G = 0.0; } 
+  else { del_vy_G = 0.0; }
   if (del_vz_L*del_vz_R > 0.0) { del_vz_G = 2.0*del_vz_L*del_vz_R / (del_vz_L+del_vz_R); }
-  else { del_vz_G = 0.0; } 
+  else { del_vz_G = 0.0; }
   if (del_p_L*del_p_R > 0.0) { del_p_G = 2.0*del_p_L*del_p_R / (del_p_L+del_p_R); }
-  else { del_p_G = 0.0; } 
+  else { del_p_G = 0.0; }
 
 
   // Step 3 - Project the left, right, centered, and van Leer differences onto the characteristic variables
   //          Stone Eqn 37 (del_a are differences in characteristic variables, see Stone for notation)
   //          Use the eigenvectors given in Stone 2008, Appendix A
-  
+
   del_a_0_L = -d_ipo * del_vx_L / (2*a_ipo) + del_p_L / (2*a_ipo*a_ipo);
   del_a_1_L = del_d_L - del_p_L / (a_ipo*a_ipo);
   del_a_2_L = del_vy_L;
@@ -382,14 +382,14 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   del_a_1_G = del_d_G - del_p_G / (a_ipo*a_ipo);
   del_a_2_G = del_vy_G;
   del_a_3_G = del_vz_G;
-  del_a_4_G = d_ipo * del_vx_G / (2*a_ipo) + del_p_G / (2*a_ipo*a_ipo); 
+  del_a_4_G = d_ipo * del_vx_G / (2*a_ipo) + del_p_G / (2*a_ipo*a_ipo);
 
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
   //          Stone Eqn 38
 
   del_a_0_m = del_a_1_m = del_a_2_m = del_a_3_m = del_a_4_m = 0.0;
-  
+
   if (del_a_0_L*del_a_0_R > 0.0) {
     lim_slope_a = fmin(fabs(del_a_0_L), fabs(del_a_0_R));
     lim_slope_b = fmin(fabs(del_a_0_C), fabs(del_a_0_G));
@@ -413,11 +413,11 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   if (del_a_4_L*del_a_4_R > 0.0) {
     lim_slope_a = fmin(fabs(del_a_4_L), fabs(del_a_4_R));
     lim_slope_b = fmin(fabs(del_a_4_C), fabs(del_a_4_G));
-    del_a_4_m = sgn(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b); 
+    del_a_4_m = sgn(del_a_4_C) * fmin(2.0*lim_slope_a, lim_slope_b);
   }
 
 
-  // Step 5 - Project the monotonized difference in the characteristic variables back onto the 
+  // Step 5 - Project the monotonized difference in the characteristic variables back onto the
   //          primative variables
   //          Stone Eqn 39
 
@@ -425,7 +425,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   del_vx_m_ipo = -a_ipo*del_a_0_m / d_ipo + a_ipo* del_a_4_m / d_ipo;
   del_vy_m_ipo = del_a_2_m;
   del_vz_m_ipo = del_a_3_m;
-  del_p_m_ipo  = a_ipo*a_ipo*del_a_0_m + a_ipo*a_ipo*del_a_4_m;  
+  del_p_m_ipo  = a_ipo*a_ipo*del_a_0_m + a_ipo*a_ipo*del_a_4_m;
 
 
   // Step 6 - Use parabolic interpolation to compute values at the left and right of each cell center
@@ -502,11 +502,11 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   vx_6 = 6.*(vx_i - 0.5*(vx_L + vx_R));
   vy_6 = 6.*(vy_i - 0.5*(vy_L + vy_R));
   vz_6 = 6.*(vz_i - 0.5*(vz_L + vz_R));
-  p_6  = 6.*(p_i  - 0.5*(p_L  + p_R)); 
+  p_6  = 6.*(p_i  - 0.5*(p_L  + p_R));
 
 
   // Step 9 - Compute the left and right interface values using monotonized parabolic interpolation
-  //          Stone Eqns 55 & 56 
+  //          Stone Eqns 55 & 56
 
   Real qx1, qx2;
 
@@ -526,7 +526,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
 
 
   // Step 10 - Perform the characteristic tracing
-  //           Stone Eqns 57 - 60 
+  //           Stone Eqns 57 - 60
 
   // left-hand interface value, i+1/2
   sum_1 = 0;
@@ -536,13 +536,13 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   sum_5 = 0;
   if (lambda_m >= 0)
   {
-    A = (0.5*dtodx) * (lambda_p - lambda_m); 
+    A = (0.5*dtodx) * (lambda_p - lambda_m);
     B = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_p*lambda_p - lambda_m*lambda_m);
 
-    chi_1 = A*(del_d_m_i - d_6) + B*d_6; 
-    chi_2 = A*(del_vx_m_i - vx_6) + B*vx_6; 
-    chi_3 = A*(del_vy_m_i - vy_6) + B*vy_6; 
-    chi_4 = A*(del_vz_m_i - vz_6) + B*vz_6; 
+    chi_1 = A*(del_d_m_i - d_6) + B*d_6;
+    chi_2 = A*(del_vx_m_i - vx_6) + B*vx_6;
+    chi_3 = A*(del_vy_m_i - vy_6) + B*vy_6;
+    chi_4 = A*(del_vz_m_i - vz_6) + B*vz_6;
     chi_5 = A*(del_p_m_i - p_6) + B*p_6;
 
     sum_1 += -d_i*chi_2/(2*a_i) + chi_5/(2*a_i*a_i);
@@ -551,28 +551,28 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   }
   if (lambda_0 >= 0)
   {
-    A = (0.5*dtodx) * (lambda_p - lambda_0); 
+    A = (0.5*dtodx) * (lambda_p - lambda_0);
     B = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_p*lambda_p - lambda_0*lambda_0);
 
-    chi_1 = A*(del_d_m_i - d_6) + B*d_6; 
-    chi_2 = A*(del_vx_m_i - vx_6) + B*vx_6; 
-    chi_3 = A*(del_vy_m_i - vy_6) + B*vy_6; 
-    chi_4 = A*(del_vz_m_i - vz_6) + B*vz_6; 
+    chi_1 = A*(del_d_m_i - d_6) + B*d_6;
+    chi_2 = A*(del_vx_m_i - vx_6) + B*vx_6;
+    chi_3 = A*(del_vy_m_i - vy_6) + B*vy_6;
+    chi_4 = A*(del_vz_m_i - vz_6) + B*vz_6;
     chi_5 = A*(del_p_m_i - p_6) + B*p_6;
-  
+
     sum_1 += chi_1 - chi_5/(a_i*a_i);
     sum_3 += chi_3;
     sum_4 += chi_4;
   }
   if (lambda_p >= 0)
   {
-    A = (0.5*dtodx) * (lambda_p - lambda_p); 
+    A = (0.5*dtodx) * (lambda_p - lambda_p);
     B = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_p*lambda_p - lambda_p*lambda_p);
 
-    chi_1 = A*(del_d_m_i - d_6) + B*d_6; 
-    chi_2 = A*(del_vx_m_i - vx_6) + B*vx_6; 
-    chi_3 = A*(del_vy_m_i - vy_6) + B*vy_6; 
-    chi_4 = A*(del_vz_m_i - vz_6) + B*vz_6; 
+    chi_1 = A*(del_d_m_i - d_6) + B*d_6;
+    chi_2 = A*(del_vx_m_i - vx_6) + B*vx_6;
+    chi_3 = A*(del_vy_m_i - vy_6) + B*vy_6;
+    chi_4 = A*(del_vz_m_i - vz_6) + B*vz_6;
     chi_5 = A*(del_p_m_i - p_6) + B*p_6;
 
     sum_1 += d_i*chi_2/(2*a_i) + chi_5/(2*a_i*a_i);
@@ -598,11 +598,11 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   {
     C = (0.5*dtodx) * (lambda_m - lambda_m);
     D = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_m*lambda_m - lambda_m*lambda_m);
- 
-    chi_1 = C*(del_d_m_i + d_6) + D*d_6; 
-    chi_2 = C*(del_vx_m_i + vx_6) + D*vx_6; 
-    chi_3 = C*(del_vy_m_i + vy_6) + D*vy_6; 
-    chi_4 = C*(del_vz_m_i + vz_6) + D*vz_6; 
+
+    chi_1 = C*(del_d_m_i + d_6) + D*d_6;
+    chi_2 = C*(del_vx_m_i + vx_6) + D*vx_6;
+    chi_3 = C*(del_vy_m_i + vy_6) + D*vy_6;
+    chi_4 = C*(del_vz_m_i + vz_6) + D*vz_6;
     chi_5 = C*(del_p_m_i + p_6) + D*p_6;
 
     sum_1 += -d_i*chi_2/(2*a_i) + chi_5/(2*a_i*a_i);
@@ -614,12 +614,12 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
     C = (0.5*dtodx) * (lambda_m - lambda_0);
     D = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_m*lambda_m - lambda_0*lambda_0);
 
-    chi_1 = C*(del_d_m_i + d_6) + D*d_6; 
-    chi_2 = C*(del_vx_m_i + vx_6) + D*vx_6; 
-    chi_3 = C*(del_vy_m_i + vy_6) + D*vy_6; 
-    chi_4 = C*(del_vz_m_i + vz_6) + D*vz_6; 
+    chi_1 = C*(del_d_m_i + d_6) + D*d_6;
+    chi_2 = C*(del_vx_m_i + vx_6) + D*vx_6;
+    chi_3 = C*(del_vy_m_i + vy_6) + D*vy_6;
+    chi_4 = C*(del_vz_m_i + vz_6) + D*vz_6;
     chi_5 = C*(del_p_m_i + p_6) + D*p_6;
-  
+
     sum_1 += chi_1 - chi_5/(a_i*a_i);
     sum_3 += chi_3;
     sum_4 += chi_4;
@@ -629,10 +629,10 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
     C = (0.5*dtodx) * (lambda_m - lambda_p);
     D = (1.0/3.0)*(dtodx)*(dtodx)*(lambda_m*lambda_m - lambda_p*lambda_p);
 
-    chi_1 = C*(del_d_m_i + d_6) + D*d_6; 
-    chi_2 = C*(del_vx_m_i + vx_6) + D*vx_6; 
-    chi_3 = C*(del_vy_m_i + vy_6) + D*vy_6; 
-    chi_4 = C*(del_vz_m_i + vz_6) + D*vz_6; 
+    chi_1 = C*(del_d_m_i + d_6) + D*d_6;
+    chi_2 = C*(del_vx_m_i + vx_6) + D*vx_6;
+    chi_3 = C*(del_vy_m_i + vy_6) + D*vy_6;
+    chi_4 = C*(del_vz_m_i + vz_6) + D*vz_6;
     chi_5 = C*(del_p_m_i + p_6) + D*p_6;
 
     sum_1 += d_i*chi_2/(2*a_i) + chi_5/(2*a_i*a_i);

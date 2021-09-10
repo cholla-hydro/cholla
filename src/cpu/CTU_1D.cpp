@@ -39,7 +39,7 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
   int istart, istop;
   // index of each cell
   int id;
-  
+
   Real dtodx = dt/dx;
 
 
@@ -51,9 +51,9 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
   // the new left and right states for each i+1/2 interface are assigned to cell i
 
   istart = 0; istop = nx-1;
-  for (i=istart; i<istop; i++) 
+  for (i=istart; i<istop; i++)
   {
-    // piecewise constant reconstruction 
+    // piecewise constant reconstruction
     Q1.d_L[i]  = density[i];
     Q1.mx_L[i] = momentum_x[i];
     Q1.my_L[i] = momentum_y[i];
@@ -71,11 +71,11 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
   #if defined (PLMP) || defined (PLMC)
   // sweep through cells, use the piecewise linear method to calculate reconstructed boundary values
 
-  // create the stencil of conserved variables needed to calculate the boundary values 
-  // on either sie of the cell interface 
+  // create the stencil of conserved variables needed to calculate the boundary values
+  // on either sie of the cell interface
   Real stencil[15];
 
-  // create array to hold the boundary values 
+  // create array to hold the boundary values
   // returned from the linear reconstruction function (conserved variables)
   Real bounds[10];
 
@@ -85,7 +85,7 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
   {
     // fill the stencil for the x-direction
     id = i;
-    stencil[0] = density[id]; 
+    stencil[0] = density[id];
     stencil[1] = momentum_x[id];
     stencil[2] = momentum_y[id];
     stencil[3] = momentum_z[id];
@@ -143,8 +143,8 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
   //double start_ppm, stop_ppm;
   //start_ppm = get_time();
 
-  // create the stencil of conserved variables needed to calculate the boundary values 
-  // on either side of the cell interface 
+  // create the stencil of conserved variables needed to calculate the boundary values
+  // on either side of the cell interface
   #ifdef PPMP
   Real stencil[35];
   #endif
@@ -152,7 +152,7 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
   Real stencil[25];
   #endif
 
-  // create an array to hold the intermediate boundary values 
+  // create an array to hold the intermediate boundary values
   // returned from the ppm function (left and right, for d, mx, my, mz, E)
   Real bounds[10];
 
@@ -257,7 +257,7 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
     // exact Riemann solver takes conserved variables
     cW[0] = Q1.d_L[i];
     cW[1] = Q1.d_R[i];
-    cW[2] = Q1.mx_L[i]; 
+    cW[2] = Q1.mx_L[i];
     cW[3] = Q1.mx_R[i];
     cW[4] = Q1.my_L[i];
     cW[5] = Q1.my_R[i];
@@ -286,11 +286,11 @@ void CTU_Algorithm_1D(Real *C, int nx, int n_ghost, Real dx, Real dt)
 
   // Only update real cells
   istart = n_ghost; istop = nx-n_ghost;
-  for (i=istart; i<istop; i++) 
-  { 
+  for (i=istart; i<istop; i++)
+  {
     density[i]    += dtodx * (F1.dflux[i-1]  - F1.dflux[i]);
-    momentum_x[i] += dtodx * (F1.xmflux[i-1] - F1.xmflux[i]); 
-    momentum_y[i] += dtodx * (F1.ymflux[i-1] - F1.ymflux[i]); 
+    momentum_x[i] += dtodx * (F1.xmflux[i-1] - F1.xmflux[i]);
+    momentum_y[i] += dtodx * (F1.ymflux[i-1] - F1.ymflux[i]);
     momentum_z[i] += dtodx * (F1.zmflux[i-1] - F1.zmflux[i]);
     Energy[i]     += dtodx * (F1.Eflux[i-1]  - F1.Eflux[i]);
   }

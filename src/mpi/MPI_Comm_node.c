@@ -24,10 +24,10 @@ MPI_Comm MPI_Comm_node(int *myid_node, int *nproc_node)
   //get the global process rank
   MPI_Comm_rank(MPI_COMM_WORLD,&myid);
   MPI_Comm_size(MPI_COMM_WORLD,&nproc);
- 
+
 
   //if we're the only process, then just return
-  //the global rank, size, and comm 
+  //the global rank, size, and comm
   if(nproc==1)
   {
     *myid_node  = myid;
@@ -44,13 +44,13 @@ MPI_Comm MPI_Comm_node(int *myid_node, int *nproc_node)
   //printf("hash %d\n",hash);
 
   //split the communicator
-  MPI_Comm_split(MPI_COMM_WORLD, hash, myid, &node_comm); 
+  MPI_Comm_split(MPI_COMM_WORLD, hash, myid, &node_comm);
 
   //get size and rank
   MPI_Comm_rank(node_comm,myid_node);
   MPI_Comm_size(node_comm,nproc_node);
 
-  //return the communicator for processors on the node 
+  //return the communicator for processors on the node
   return node_comm;
 }
 

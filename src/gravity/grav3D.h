@@ -95,17 +95,17 @@ class Grav3D
   Real Gconst;
 
   bool TRANSFER_POTENTIAL_BOUNDARIES;
-  
-  
+
+
   bool BC_FLAGS_SET;
   int *boundary_flags;
-  
-  
-  
+
+
+
   #ifdef PFFT
   Potential_PFFT_3D Poisson_solver;
   #endif
-  
+
   #ifdef CUFFT
   Potential_CUFFT_3D Poisson_solver;
   #endif
@@ -137,23 +137,23 @@ class Grav3D
     /*! \var potential_h
      *  \brief Array containing the gravitational potential of each cell in the grid at the previous time step */
     Real *potential_1_h;
-    
+
     #ifdef GRAVITY_GPU
-    
+
     /*! \var density_d
      *  \brief Device Array containing the density of each cell in the grid */
     Real *density_d;
-    
+
     /*! \var potential_d
     *  \brief Device Array containing the gravitational potential of each cell in the grid */
     Real *potential_d;
-    
+
     /*! \var potential_d
     *  \brief Device Array containing the gravitational potential of each cell in the grid at the previous time step */
     Real *potential_1_d;
-    
+
     #endif //GRAVITY_GPU
-    
+
     // Arrays for computing the potential values in isolated boundaries
     #ifdef GRAV_ISOLATED_BOUNDARY_X
     Real *pot_boundary_x0;
@@ -167,7 +167,7 @@ class Grav3D
     Real *pot_boundary_z0;
     Real *pot_boundary_z1;
     #endif
-    
+
     #ifdef GRAVITY_GPU
     #ifdef GRAV_ISOLATED_BOUNDARY_X
     Real *pot_boundary_x0_d;
@@ -182,9 +182,9 @@ class Grav3D
     Real *pot_boundary_z1_d;
     #endif
     #endif//GRAVITY_GPU
-    
+
   } F;
-  
+
   /*! \fn Grav3D(void)
   *  \brief Constructor for the gravity class */
   Grav3D(void);
@@ -196,19 +196,19 @@ class Grav3D
   void AllocateMemory_CPU(void);
   void Initialize_values_CPU();
   void FreeMemory_CPU(void);
-  
+
   Real Get_Average_Density( );
   Real Get_Average_Density_function( int g_start, int g_end );
 
   void Set_Boundary_Flags( int *flags );
-    
+
   #ifdef SOR
   void Copy_Isolated_Boundary_To_GPU_buffer( Real *isolated_boundary_h, Real *isolated_boundary_d, int boundary_size );
   void Copy_Isolated_Boundaries_To_GPU( struct parameters *P );
   #endif
-  
+
   #ifdef GRAVITY_GPU
-  void AllocateMemory_GPU(void);  
+  void AllocateMemory_GPU(void);
   void FreeMemory_GPU(void);
   #endif
 

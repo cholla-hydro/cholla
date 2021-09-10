@@ -19,42 +19,42 @@ struct States_1D
   Real *d_R;
 
   /*! \var mx_L
-   *  \brief Array containing the left input state for the x momentum 
+   *  \brief Array containing the left input state for the x momentum
              at the x+1/2 interface for each cell */
   Real *mx_L;
 
   /*! \var mx_R
-   *  \brief Array containing the right input state for the x momentum 
+   *  \brief Array containing the right input state for the x momentum
              at the x+1/2 interface for each cell */
   Real *mx_R;
 
   /*! \var my_L
-   *  \brief Array containing the left input state for the y momentum 
+   *  \brief Array containing the left input state for the y momentum
              at the x+1/2 interface for each cell */
   Real *my_L;
 
   /*! \var my_R
-   *  \brief Array containing the right input state for the y momentum 
+   *  \brief Array containing the right input state for the y momentum
              at the x+1/2 interface for each cell */
   Real *my_R;
 
   /*! \var mz_L
-   *  \brief Array containing the left input state for the z momentum 
+   *  \brief Array containing the left input state for the z momentum
              at the x+1/2 interface for each cell */
   Real *mz_L;
 
   /*! \var mz_R
-   *  \brief Array containing the right input state for the z momentum 
+   *  \brief Array containing the right input state for the z momentum
              at the x+1/2 interface for each cell */
   Real *mz_R;
 
   /*! \var E_L
-   *  \brief Array containing the left input state for the Energy 
+   *  \brief Array containing the left input state for the Energy
              at the x+1/2 interface for each cell */
   Real *E_L;
 
   /*! \var E_R
-   *  \brief Array containing the right input state for the Energy 
+   *  \brief Array containing the right input state for the Energy
              at the x+1/2 interface for each cell */
   Real *E_R;
 

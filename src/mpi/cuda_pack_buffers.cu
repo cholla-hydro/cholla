@@ -3,7 +3,7 @@
 #include "../global/global_cuda.h"
 #include "../mpi/cuda_pack_buffers.h"
 
-  
+
 __global__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells)
 {
   int id,i,j,k,idx,ii;
@@ -15,18 +15,18 @@ __global__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int
   j = (id - k*isize*jsize)/isize;
   i = id - k*isize*jsize - j*isize;
   idx  = i + (j+k*ny)*nx + idxoffset;
-  // idxoffset contains offset terms from 
+  // idxoffset contains offset terms from
   // idx = (i+ioffset) + (j+joffset)*H.nx + (k+koffset)*H.nx*H.ny;
   for (ii=0; ii<n_fields; ii++) {
-    *(buffer + id + ii*offset) = c_head[idx + ii*n_cells]; 
+    *(buffer + id + ii*offset) = c_head[idx + ii*n_cells];
   }
-  
+
 }
 
 
 void PackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells){
   dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
-  dim3 dim1dBlock(TPB, 1, 1); 
+  dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(PackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
   CHECK(cudaDeviceSynchronize());
 }
@@ -46,13 +46,13 @@ __global__ void UnpackBuffers3DKernel(Real * buffer, Real * c_head, int isize, i
   for (ii=0; ii<n_fields; ii++) {
     c_head[idx + ii*n_cells] = *(buffer + id + ii*offset);
   }
-  
+
 }
 
 
 void UnpackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells){
   dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
-  dim3 dim1dBlock(TPB, 1, 1); 
+  dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(UnpackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
 }
 
@@ -78,7 +78,7 @@ __global__ void PackGhostCellsKernel(Real * c_head,
   int id,i,j,k,gidx,idx,ii;
   Real a[3] = {1.,1.,1.};
   int flags[6] = {f0,f1,f2,f3,f4,f5};
-  
+
   // using thread ID calculate which ghost cell this is
   // calculate which real cell using Grid3D::Set_Boundary_Mapping
   // and Grid3D::Find_Index
@@ -87,7 +87,7 @@ __global__ void PackGhostCellsKernel(Real * c_head,
 
   // calculate ghost cell ID and i,j,k
   id = threadIdx.x + blockIdx.x * blockDim.x;
-  
+
   // not true i,j,k but relative i,j,k
   k = id/(isize*jsize);
   j = (id - k*isize*jsize)/isize;
@@ -113,20 +113,20 @@ __global__ void PackGhostCellsKernel(Real * c_head,
     if (flags[0]==2 || flags[1]==2){
       c_head[gidx + n_cells] *= a[0];
     }
-    if (flags[2]==2 || flags[3]==2){    
+    if (flags[2]==2 || flags[3]==2){
       c_head[gidx + 2*n_cells] *= a[1];
     }
-    if (flags[4]==2 || flags[5]==2){    
+    if (flags[4]==2 || flags[5]==2){
       c_head[gidx + 3*n_cells] *= a[2];
     }
     // energy and momentum correction for transmission
-    // Diode: only allow outflow 
+    // Diode: only allow outflow
     if (flags[dir] == 3){
-      // 
+      //
       int momdex = gidx + (dir/2+1)*n_cells;
       // (X) Dir 0,1 -> Mom 1 -> c_head[gidx+1*n_cells]
       // (Y) Dir 2,3 -> Mom 2 -> c_head[gidx+2*n_cells]
-      // (Z) Dir 4,5 -> Mom 3 -> c_head[gidx+3*n_cells] 
+      // (Z) Dir 4,5 -> Mom 3 -> c_head[gidx+3*n_cells]
       // If a momentum is set to 0, subtract its kinetic energy [gidx+4*n_cells]
       if (dir%2 == 0){
 	// Direction 0,2,4 are left-side, don't allow inflow with positive momentum	
@@ -281,6 +281,6 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *
       }
   }
   return id;
-}        
+}
 
-  
+

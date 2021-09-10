@@ -3,8 +3,8 @@
 #ifndef CUDA
 #ifdef PLMP
 
-#ifndef PLMP_H 
-#define PLMP_H 
+#ifndef PLMP_H
+#define PLMP_H
 
 #include "../global/global.h"
 

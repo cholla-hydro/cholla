@@ -2,8 +2,8 @@
  *  \brief Declarations of the piecewise linear method, as described in Stone et al. 2008 */
 #ifdef PLMC
 
-#ifndef PLMC_H 
-#define PLMC_H 
+#ifndef PLMC_H
+#define PLMC_H
 
 #include "../global/global.h"
 

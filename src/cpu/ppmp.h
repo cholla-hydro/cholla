@@ -9,13 +9,13 @@
 #include "../global/global.h"
 
 /*! \fn void ppmp(Real stencil[], Real bounds[], Real dx, Real dt)
- *  \brief When passed a stencil of primative variables, returns the left and right 
+ *  \brief When passed a stencil of primative variables, returns the left and right
            boundary values for the interface calculated using ppm. */
 void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma);
 
 
 
-/*! \fn interface_value 
+/*! \fn interface_value
  *  \brief Returns the right hand interpolated value at imo | i cell interface.*/
 Real interface_value(Real q_imo, Real q_i, Real q_ipo, Real q_ipt,
 	               Real dximo, Real dx_i, Real dx_ipo, Real dx_ipt);
@@ -23,7 +23,7 @@ Real interface_value(Real q_imo, Real q_i, Real q_ipo, Real q_ipt,
 /*! \fn calc_delta_q
  *  \brief Returns the average slope in zone i of the parabola with zone averages
 	   of imo, i, and ipo. See Fryxell Eqn 24. */
-Real calc_delta_q(Real q_imo, Real q_i, Real q_ipo, 
+Real calc_delta_q(Real q_imo, Real q_i, Real q_ipo,
 	              Real dx_imo, Real dx_i, Real dx_ipo);
 
 
@@ -33,7 +33,7 @@ Real calc_delta_q(Real q_imo, Real q_i, Real q_ipo,
 Real limit_delta_q(Real del_in, Real q_imo, Real q_i, Real q_ipo);
 
 
-/*! \fn test_interface_value 
+/*! \fn test_interface_value
  *  \brief Returns the right hand interpolated value at imo | i cell interface,
 	   assuming equal cell widths. */
 Real test_interface_value(Real q_imo, Real q_i, Real q_ipo, Real q_ipt);

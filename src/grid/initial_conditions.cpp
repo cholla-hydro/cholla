@@ -28,11 +28,11 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
   Set_Gammas(P.gamma);
 
   if (strcmp(P.init, "Constant")==0) {
-    Constant(P.rho, P.vx, P.vy, P.vz, P.P);    
+    Constant(P.rho, P.vx, P.vy, P.vz, P.P);
   } else if (strcmp(P.init, "Sound_Wave")==0) {
     Sound_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);
   } else if (strcmp(P.init, "Square_Wave")==0) {
-    Square_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);    
+    Square_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);
   } else if (strcmp(P.init, "Riemann")==0) {
     Riemann(P.rho_l, P.v_l, P.P_l, P.rho_r, P.v_r, P.P_r, P.diaph);
   } else if (strcmp(P.init, "Shu_Osher")==0) {
@@ -52,41 +52,41 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
   } else if (strcmp(P.init, "Noh_2D")==0) {
     Noh_2D();
   } else if (strcmp(P.init, "Noh_3D")==0) {
-    Noh_3D();    
+    Noh_3D();
   } else if (strcmp(P.init, "Disk_2D")==0) {
-    Disk_2D();    
-  } else if (strcmp(P.init, "Disk_3D")==0) { 
-    Disk_3D(P); 
+    Disk_2D();
+  } else if (strcmp(P.init, "Disk_3D")==0) {
+    Disk_3D(P);
   } else if (strcmp(P.init, "Disk_3D_particles")==0) {
     #ifndef ONLY_PARTICLES
     Disk_3D(P);
-    #else 
+    #else
     // Initialize a uniforn hydro grid when only integrating particles
     Uniform_Grid();
     #endif
   } else if (strcmp(P.init, "Spherical_Overpressure_3D")==0) {
-    Spherical_Overpressure_3D();    
+    Spherical_Overpressure_3D();
   } else if (strcmp(P.init, "Spherical_Overdensity_3D")==0) {
-    Spherical_Overdensity_3D();    
+    Spherical_Overdensity_3D();
   } else if (strcmp(P.init, "Read_Grid")==0) {
     #ifndef ONLY_PARTICLES
-    Read_Grid(P);    
+    Read_Grid(P);
     #else
     // Initialize a uniforn hydro grid when only integrating particles
     Uniform_Grid();
     #endif
   } else if (strcmp(P.init, "Uniform")==0) {
-    Uniform_Grid();  
+    Uniform_Grid();
   } else if (strcmp(P.init, "Zeldovich_Pancake")==0) {
-    Zeldovich_Pancake(P);    
+    Zeldovich_Pancake(P);
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
   }
-  
+
   if ( C.device != NULL )
     {
-    CudaSafeCall( 
+    CudaSafeCall(
       cudaMemcpy(C.device, C.density, H.n_fields*H.n_cells*sizeof(Real),
                  cudaMemcpyHostToDevice) );
     }
@@ -191,7 +191,7 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
 
         // get cell-centered position
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
-        
+
         // set constant initial states
         C.density[id]    = rho;
         C.momentum_x[id] = rho*vx;
@@ -252,7 +252,7 @@ void Grid3D::Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
 
         // get cell-centered position
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
-        
+
         // set constant initial states
         C.density[id]    = rho;
         C.momentum_x[id] = rho*vx;
@@ -329,7 +329,7 @@ void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
           C.momentum_x[id] = rho*A * vx;
           C.momentum_y[id] = rho*A * vy;
           C.momentum_z[id] = rho*A * vz;
-          C.Energy[id]     = P/(gama-1.0) + 0.5*rho*A*(vx*vx + vy*vy + vz*vz);        
+          C.Energy[id]     = P/(gama-1.0) + 0.5*rho*A*(vx*vx + vy*vy + vz*vz);
           #ifdef DE
           C.GasEnergy[id]  = P/(gama-1.0);
           #endif
@@ -402,7 +402,7 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
           C.momentum_x[id] = rho_r * v_r;
           C.momentum_y[id] = 0.0;
           C.momentum_z[id] = 0.0;
-          C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;        
+          C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;
           #ifdef SCALAR
           C.scalar[id] = 0.0*rho_r;
           #endif
@@ -485,7 +485,7 @@ void Grid3D::Blast_1D()
       C.momentum_z[id] = 0.0;
       P = 100;
       C.Energy[id] = P/(gama-1.0);
-    }        
+    }
     else
     {
       C.density[id] = 1.0;
@@ -500,7 +500,7 @@ void Grid3D::Blast_1D()
 
 
 /*! \fn void KH()
- *  \brief Initialize the grid with a Kelvin-Helmholtz instability. 
+ *  \brief Initialize the grid with a Kelvin-Helmholtz instability.
            This version of KH test has a discontinuous boundary.
            Use KH_res_ind for a version that is resolution independent. */
 void Grid3D::KH()
@@ -510,7 +510,7 @@ void Grid3D::KH()
   Real x_pos, y_pos, z_pos;
   Real vx, vy, vz;
   Real d1, d2, v1, v2, P, A;
-  
+
   d1 = 2.0;
   d2 = 1.0;
   v1 = 0.5;
@@ -540,7 +540,7 @@ void Grid3D::KH()
         Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
 
         // outer quarters of slab
-        if (y_pos <= 1.0*H.ydglobal/4.0) 
+        if (y_pos <= 1.0*H.ydglobal/4.0)
         {
           C.density[id] = d2;
           C.momentum_x[id] = v2*C.density[id];
@@ -638,7 +638,7 @@ void Grid3D::KH_res_ind()
           {
             C.density[id] = d1 - (d1-d2)*exp( -0.5*pow(y_pos-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
             C.momentum_x[id] = v1*C.density[id] - C.density[id] * (v1 - v2) * exp( -0.5*pow(y_pos-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2) /(dy*dy) );
-            C.momentum_y[id] = C.density[id] * A*sin(4*PI*x_pos) * exp( -0.5*pow(y_pos-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) ); 
+            C.momentum_y[id] = C.density[id] * A*sin(4*PI*x_pos) * exp( -0.5*pow(y_pos-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
           }
         }
         // outer fluid
@@ -663,7 +663,7 @@ void Grid3D::KH_res_ind()
         mx = C.momentum_x[id];
         my = C.momentum_y[id];
         mz = C.momentum_z[id];
-        C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];        
+        C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];
 
         // cylindrical version (3D only)
         r = sqrt((z_pos-zc)*(z_pos-zc) + (y_pos-yc)*(y_pos-yc)); // center the cylinder at yc, zc
@@ -691,7 +691,7 @@ void Grid3D::KH_res_ind()
           mz = C.momentum_z[id];
           C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];
         }
-      
+
       }
     }
   }
@@ -724,7 +724,7 @@ void Grid3D::Rayleigh_Taylor()
       //vy = 0.0;
 
       // lower half of slab
-      if (y_pos <= 0.5*H.ydglobal) 
+      if (y_pos <= 0.5*H.ydglobal)
       {
         P_0 = 1.0/gama - dl*g*0.5;
         P = P_0 + dl*g*y_pos;
@@ -777,13 +777,13 @@ void Grid3D::Gresho()
       id = i + j*H.nx;
       // get the centered x and y positions
       Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
-      
+
       // calculate centered radial position and phi
       r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
       phi = atan2((y_pos-yc), (x_pos-xc));
 
 /*
-      // set vx, vy, P to zero before integrating 
+      // set vx, vy, P to zero before integrating
       vx = 0.0;
       vy = 0.0;
       P = 0.0;
@@ -792,9 +792,9 @@ void Grid3D::Gresho()
       for (int ii = 0; ii<N; ii++) {
         // get a random dx and dy to sample within the cell
         ran = rand() % 1000;
-        dx = H.dx*(ran/1000.0 - 0.5); 
+        dx = H.dx*(ran/1000.0 - 0.5);
         ran = rand() % 1000;
-        dy = H.dy*(ran/1000.0 - 0.5); 
+        dy = H.dy*(ran/1000.0 - 0.5);
         x = x_pos + dx;
         y = y_pos + dy;
         // calculate r and phi using the new x & y positions
@@ -838,7 +838,7 @@ void Grid3D::Gresho()
       // set P constant for modified Gresho problem
       //P = 5.5;
 
-      // set values of conserved variables   
+      // set values of conserved variables
       C.density[id] = d;
       C.momentum_x[id] = d*vx;
       C.momentum_y[id] = d*vy;
@@ -848,7 +848,7 @@ void Grid3D::Gresho()
       //printf("%f %f %f %f %f\n", x_pos, y_pos, r, vx, vy);
     }
   }
-        
+
 
 }
 
@@ -989,7 +989,7 @@ void Grid3D::Disk_2D()
       id = i + j*H.nx;
       // get the centered x and y positions
       Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
-      
+
       // calculate centered radial position and phi
       r = sqrt(x_pos*x_pos + y_pos*y_pos);
       phi = atan2(y_pos, x_pos);
@@ -1008,12 +1008,12 @@ void Grid3D::Disk_2D()
       a_h = GN * M_h * (log(1+x)- x / (1+x)) / ((log(1+c_vir) - c_vir / (1+c_vir)) * r*r);
       a = a_d + a_h;
 
-      // circular velocity 
+      // circular velocity
       v = sqrt(r*a);
       vx = -sin(phi)*v;
       vy = cos(phi)*v;
 
-      // set values of conserved variables   
+      // set values of conserved variables
       C.density[id] = d;
       C.momentum_x[id] = d*vx;
       C.momentum_y[id] = d*vy;
@@ -1022,7 +1022,7 @@ void Grid3D::Disk_2D()
       //printf("%e %e %f %f %f %f %f\n", x_pos, y_pos, d, Sigma, vx, vy, P);
     }
   }
-        
+
 
 }
 
@@ -1158,25 +1158,25 @@ void Grid3D::Uniform_Grid()
 }
 
 void Grid3D::Zeldovich_Pancake( struct parameters P ){
-  
+
   #ifndef COSMOLOGY
   chprintf( "To run a Zeldovich Pancake COSMOLOGY has to be turned ON \n" );
   exit(-1);
   #else
-  
-  
+
+
   int i, j, k, id;
   Real x_pos, y_pos, z_pos;
   Real H0, h, Omega_M, rho_0, G, z_zeldovich, z_init, x_center, T_init, k_x;
-  
+
   chprintf("Setting Zeldovich Pancake initial conditions...\n");
   H0 = P.H0;
   h = H0 / 100;
   Omega_M = P.Omega_M;
-  
+
   chprintf( " h = %f \n", h );
   chprintf( " Omega_M = %f \n", Omega_M );
-  
+
   H0 /= 1000;               //[km/s / kpc]
   G = G_COSMO;
   rho_0 = 3*H0*H0 / ( 8*M_PI*G ) * Omega_M /h / h;
@@ -1185,24 +1185,24 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
   chprintf( " rho_0 = %f \n", rho_0 );
   chprintf( " z_init = %f \n", z_init );
   chprintf( " z_zeldovich = %f \n", z_zeldovich );
-  
+
   x_center = H.xdglobal / 2;
   chprintf( " Peak Center = %f \n", x_center );
-  
+
   T_init = 100;
   chprintf( " T initial = %f \n", T_init );
-  
+
   k_x = 2 * M_PI /  H.xdglobal;
-  
-  
+
+
   char filename[100];
   // create the filename to read from
-  strcpy(filename, P.indir); 
-  strcat(filename, "ics_zeldovich.dat");  
+  strcpy(filename, P.indir);
+  strcat(filename, "ics_zeldovich.dat");
   chprintf( " Loading ICs File: %s\n", filename);
-  
+
   real_vector_t ics_values;
-  
+
   ifstream file_in( filename );
   string line;
   Real ic_val;
@@ -1219,9 +1219,9 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
     exit(1);
   }
   int nPoints = 256;
-  
-  
-  
+
+
+
   Real dens, vel, temp, U, E, gamma;
   gamma = P.gamma;
 
@@ -1234,24 +1234,24 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
 
         // // get the centered cell positions at (i,j,k)
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
-        
+
         //Analitical Initial Conditions
         // dens = rho_0 / ( 1 - ( 1 + z_zeldovich ) / ( 1 + z_init ) * cos( k_x*( x_pos - x_center )) );
         // vel = - H0 * ( 1 + z_zeldovich ) / sqrt( 1 + z_init ) * sin( k_x*( x_pos - x_center )) / k_x;
         // temp = T_init * pow( dens / rho_0, 2./3 );
         // U = temp / (gamma - 1) / MP * KB * 1e-10 * dens;
         // E = 0.5 * dens * vel * vel + U;
-        
-        
+
+
         index = (int( x_pos / H.dx ) + 0 ) %256;
         // index = ( index + 16 ) % 256;
         dens = ics_values[ 0*nPoints + index];
         vel = ics_values[ 1*nPoints + index];
         E = ics_values[ 2*nPoints + index];
         U = ics_values[ 3*nPoints + index];
-        // // 
-        
-        // chprintf( "%f \n", vel );        
+        // //
+
+        // chprintf( "%f \n", vel );
         C.density[id] = dens;
         C.momentum_x[id] = dens * vel;
         C.momentum_y[id] = 0;
@@ -1261,13 +1261,13 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
         #ifdef DE
         C.GasEnergy[id] = U ;
         #endif
-        
+
       }
     }
   }
-  
+
   #endif //COSMOLOGY
-  
+
 }
 
 

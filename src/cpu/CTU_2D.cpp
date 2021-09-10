@@ -47,7 +47,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
   int istart, istop, jstart, jstop;
   // index of each cell
   int id;
-  
+
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
 
@@ -91,7 +91,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       Q1.d_Ry[i + j*nx]  = density[id];
       Q1.mx_Ry[i + j*nx] = momentum_x[id];
       Q1.my_Ry[i + j*nx] = momentum_y[id];
-      Q1.mz_Ry[i + j*nx] = momentum_z[id];        
+      Q1.mz_Ry[i + j*nx] = momentum_z[id];
       Q1.E_Ry[i + j*nx]  = Energy[id];
     }
   }
@@ -101,11 +101,11 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
   #if defined (PLMP) || defined (PLMC)
   // sweep through cells, use the piecewise linear method to calculate reconstructed boundary values
 
-  // create the stencil of conserved variables needed to calculate the boundary values 
-  // on either side of the cell interface 
+  // create the stencil of conserved variables needed to calculate the boundary values
+  // on either side of the cell interface
   Real stencil[15];
 
-  // create array to hold the boundary values 
+  // create array to hold the boundary values
   // returned from the linear reconstruction function (conserved variables)
   Real bounds[10];
 
@@ -116,7 +116,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
 
       // fill the stencil for the x-direction
       id = i + j*nx;
-      stencil[0] = density[id]; 
+      stencil[0] = density[id];
       stencil[1] = momentum_x[id];
       stencil[2] = momentum_y[id];
       stencil[3] = momentum_z[id];
@@ -174,7 +174,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
 
       // fill the stencil for the y direction
       id = i + j*nx;
-      stencil[0] = density[id]; 
+      stencil[0] = density[id];
       stencil[1] = momentum_y[id];
       stencil[2] = momentum_z[id];
       stencil[3] = momentum_x[id];
@@ -223,8 +223,8 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
   #if defined (PPMP) || defined (PPMC)
   // sweep through cells, use PPM to calculate reconstructed boundary values
 
-  // create the stencil of conserved variables needed to calculate the boundary values 
-  // on either side of the cell interface 
+  // create the stencil of conserved variables needed to calculate the boundary values
+  // on either side of the cell interface
   #ifdef PPMP
   Real stencil[35];
   #endif
@@ -232,7 +232,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
   Real stencil[25];
   #endif
 
-  // create an array to hold the intermediate boundary values 
+  // create an array to hold the intermediate boundary values
   // returned from the ppm function (left and right, for d, mx, my, mz, E)
   Real bounds[10];
 
@@ -367,7 +367,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       stencil[33] = momentum_x[id];
       stencil[34] = Energy[id];
       #endif
-        
+
       // pass the stencil to the ppm reconstruction function - returns the reconstructed left
       // and right boundary values (conserved variables)
       #ifdef PPMP
@@ -408,7 +408,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
   // do the calculation for all the real interfaces in the x direction
   // and one ghost cell on either side in the y direction
   istart = n_ghost-2; istop = nx-n_ghost+1;
-  jstart = n_ghost-2; jstop = ny-n_ghost+2; 
+  jstart = n_ghost-2; jstop = ny-n_ghost+2;
   for (j=jstart; j<jstop; j++) {
     for (i=istart; i<istop; i++) {
 
@@ -417,7 +417,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       id = i + j*nx;
       cW[0] = Q1.d_Lx[id];
       cW[1] = Q1.d_Rx[id];
-      cW[2] = Q1.mx_Lx[id]; 
+      cW[2] = Q1.mx_Lx[id];
       cW[3] = Q1.mx_Rx[id];
       cW[4] = Q1.my_Lx[id];
       cW[5] = Q1.my_Rx[id];
@@ -456,7 +456,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       id = i + j*nx;
       cW[0] = Q1.d_Ly[id];
       cW[1] = Q1.d_Ry[id];
-      cW[2] = Q1.my_Ly[id]; 
+      cW[2] = Q1.my_Ly[id];
       cW[3] = Q1.my_Ry[id];
       cW[4] = Q1.mz_Ly[id];
       cW[5] = Q1.mz_Ry[id];
@@ -505,7 +505,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       // y-momentum
       Q2.my_Lx[i+j*nx] = Q1.my_Lx[i+j*nx] + 0.5*dtody*(F1.ymflux_y[ i   +(j-1)*nx] - F1.ymflux_y[ i   +j*nx]);
       Q2.my_Rx[i+j*nx] = Q1.my_Rx[i+j*nx] + 0.5*dtody*(F1.ymflux_y[(i+1)+(j-1)*nx] - F1.ymflux_y[(i+1)+j*nx]);
-        
+
       // z-momentum
       Q2.mz_Lx[i+j*nx] = Q1.mz_Lx[i+j*nx] + 0.5*dtody*(F1.zmflux_y[ i   +(j-1)*nx] - F1.zmflux_y[ i   +j*nx]);
       Q2.mz_Rx[i+j*nx] = Q1.mz_Rx[i+j*nx] + 0.5*dtody*(F1.zmflux_y[(i+1)+(j-1)*nx] - F1.zmflux_y[(i+1)+j*nx]);
@@ -542,7 +542,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
 
       // Energy
       Q2.E_Ly[i+j*nx] = Q1.E_Ly[i+j*nx] + 0.5*dtodx*(F1.Eflux_x[(i-1)+ j   *nx] - F1.Eflux_x[i+ j   *nx]);
-      Q2.E_Ry[i+j*nx] = Q1.E_Ry[i+j*nx] + 0.5*dtodx*(F1.Eflux_x[(i-1)+(j+1)*nx] - F1.Eflux_x[i+(j+1)*nx]);  
+      Q2.E_Ry[i+j*nx] = Q1.E_Ry[i+j*nx] + 0.5*dtodx*(F1.Eflux_x[(i-1)+(j+1)*nx] - F1.Eflux_x[i+(j+1)*nx]);
 
     }
   }
@@ -559,7 +559,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       id = i + j*nx;
       cW[0] = Q2.d_Lx[id];
       cW[1] = Q2.d_Rx[id];
-      cW[2] = Q2.mx_Lx[id]; 
+      cW[2] = Q2.mx_Lx[id];
       cW[3] = Q2.mx_Rx[id];
       cW[4] = Q2.my_Lx[id];
       cW[5] = Q2.my_Rx[id];
@@ -567,12 +567,12 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       cW[7] = Q2.mz_Rx[id];
       cW[8] = Q2.E_Lx[id];
       cW[9] = Q2.E_Rx[id];
-     
+
       eta_x[id] = calc_eta(cW, gama);
 
     }
   }
-  // do the calculation for all the real y interfaces 
+  // do the calculation for all the real y interfaces
   istart = n_ghost-1; istop = nx-n_ghost+1;
   jstart = n_ghost-2; jstop = ny-n_ghost+1;
   for (i=istart; i<istop; i++) {
@@ -582,7 +582,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       id = i + j*nx;
       cW[0] = Q2.d_Ly[id];
       cW[1] = Q2.d_Ry[id];
-      cW[2] = Q2.my_Ly[id]; 
+      cW[2] = Q2.my_Ly[id];
       cW[3] = Q2.my_Ry[id];
       cW[4] = Q2.mz_Ly[id];
       cW[5] = Q2.mz_Ry[id];
@@ -615,7 +615,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       id = i + j*nx;
       cW[0] = Q2.d_Lx[id];
       cW[1] = Q2.d_Rx[id];
-      cW[2] = Q2.mx_Lx[id]; 
+      cW[2] = Q2.mx_Lx[id];
       cW[3] = Q2.mx_Rx[id];
       cW[4] = Q2.my_Lx[id];
       cW[5] = Q2.my_Rx[id];
@@ -649,7 +649,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
   }
 
   // Solve the Riemann problem at each y-interface
-  // do the calculation for all the real y interfaces 
+  // do the calculation for all the real y interfaces
   istart = n_ghost-1; istop = nx-n_ghost+1;
   jstart = n_ghost-1; jstop = ny-n_ghost;
   for (i=istart; i<istop; i++) {
@@ -659,7 +659,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       id = i + j*nx;
       cW[0] = Q2.d_Ly[id];
       cW[1] = Q2.d_Ry[id];
-      cW[2] = Q2.my_Ly[id]; 
+      cW[2] = Q2.my_Ly[id];
       cW[3] = Q2.my_Ry[id];
       cW[4] = Q2.mz_Ly[id];
       cW[5] = Q2.mz_Ry[id];
@@ -690,7 +690,7 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
       F2.xmflux_y[id] = flux[3];
       F2.Eflux_y[id] = flux[4];
 
-    } 
+    }
   }
 
 
@@ -702,10 +702,10 @@ void CTU_Algorithm_2D(Real *C, int nx, int ny, int n_ghost, Real dx, Real dy, Re
   for (j=jstart; j<jstop; j++) {
     for (i=istart; i<istop; i++) {
 
-      density[   i+j*nx] += dtodx*(F2.dflux_x[ (i-1)+j*nx] - F2.dflux_x[ i+j*nx]) + dtody*(F2.dflux_y[ i+(j-1)*nx] - F2.dflux_y[ i+j*nx]); 
+      density[   i+j*nx] += dtodx*(F2.dflux_x[ (i-1)+j*nx] - F2.dflux_x[ i+j*nx]) + dtody*(F2.dflux_y[ i+(j-1)*nx] - F2.dflux_y[ i+j*nx]);
       momentum_x[i+j*nx] += dtodx*(F2.xmflux_x[(i-1)+j*nx] - F2.xmflux_x[i+j*nx]) + dtody*(F2.xmflux_y[i+(j-1)*nx] - F2.xmflux_y[i+j*nx]);
       momentum_y[i+j*nx] += dtodx*(F2.ymflux_x[(i-1)+j*nx] - F2.ymflux_x[i+j*nx]) + dtody*(F2.ymflux_y[i+(j-1)*nx] - F2.ymflux_y[i+j*nx]);
-      momentum_z[i+j*nx] += dtodx*(F2.zmflux_x[(i-1)+j*nx] - F2.zmflux_x[i+j*nx]) + dtody*(F2.zmflux_y[i+(j-1)*nx] - F2.zmflux_y[i+j*nx]); 
+      momentum_z[i+j*nx] += dtodx*(F2.zmflux_x[(i-1)+j*nx] - F2.zmflux_x[i+j*nx]) + dtody*(F2.zmflux_y[i+(j-1)*nx] - F2.zmflux_y[i+j*nx]);
       Energy[    i+j*nx] += dtodx*(F2.Eflux_x[ (i-1)+j*nx] - F2.Eflux_x[ i+j*nx]) + dtody*(F2.Eflux_y[ i+(j-1)*nx] - F2.Eflux_y[ i+j*nx]);
     }
   }

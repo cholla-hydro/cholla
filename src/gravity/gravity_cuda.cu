@@ -39,7 +39,7 @@ __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound,
   z_d = 3.5/5.0; // disk scale height in kpc
   phi_0_h = GN * M_h / (log(1.0+c_vir) - c_vir / (1.0+c_vir));
   x = r_halo / R_h;
-  
+
   // calculate acceleration due to NFW halo & Miyamoto-Nagai disk
   a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
   a_disk_z = - GN * M_d * x_pos * (R_d + sqrt(x_pos*x_pos + z_d*z_d)) / ( pow(r_disk*r_disk + pow2(R_d + sqrt(x_pos*x_pos + z_d*z_d)), 1.5) * sqrt(x_pos*x_pos + z_d*z_d) );
@@ -94,7 +94,7 @@ __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, R
   c_vir = 20; // halo concentration
   R_s = R_vir / c_vir; // halo scale length in kpc
   R_d = 3.5; // disk scale length in kpc
-  
+
   // calculate acceleration
   x = r / R_s;
   a_d = GN * M_d * r * pow(r*r + R_d*R_d, -1.5);
@@ -143,7 +143,7 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   R_h = R_vir / c_vir; // halo scale length in kpc
   phi_0_h = GN * M_h / (log(1.0+c_vir) - c_vir / (1.0+c_vir));
   x = r_halo / R_h;
-  
+
   // calculate acceleration due to NFW halo & Miyamoto-Nagai disk
   a_halo = - phi_0_h * (log(1+x) - x/(1+x)) / (r_halo*r_halo);
   a_halo_r = a_halo*(r_disk/r_halo);
