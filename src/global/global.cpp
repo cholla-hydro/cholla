@@ -170,6 +170,7 @@ parms->scale_outputs_file[0] = '\0';
   /* Close file */
   fclose (fp);
 
+  // Parse overriding args from command line
   for (int i = 0; i < argc; ++i) {
     char name[MAXLEN], value[MAXLEN];
     s = strtok (argv[i], "=");
@@ -184,7 +185,7 @@ parms->scale_outputs_file[0] = '\0';
       strncpy (value, s, MAXLEN);
     parse_param(name,value,parms);
     printf("Override with %s=%s\n",name,value);
-  // TODO: parse args from command line
+
   }
 }
 
@@ -268,7 +269,6 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->P_r = atof(value);
   else if (strcmp(name, "diaph")==0)
     parms->diaph = atof(value);
->>>>>>> b3e002c... parse command line args:src/global.cpp
 #ifdef ROTATED_PROJECTION
   else if (strcmp(name, "nxr")==0)
     parms->nxr = atoi(value);
