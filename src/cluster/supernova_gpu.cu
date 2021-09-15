@@ -1,9 +1,8 @@
 #ifdef SUPERNOVA
 #include<math.h>
 #include"io.h"
-#include"gpu.hpp"
 #include"../global.h"
-#include"../global_cuda.h"
+#include"../global_cuda.h"//includes gpu.hpp
 #include"../grid3D.h"
 #include"supernova.h"
 
@@ -33,7 +32,7 @@ __device__ double atomicMax(double* address, double val)
 }
 
 __device__ Real Calc_Timestep(Real *hydro_dev, int gidx, int n_cells, Real gamma, Real dx, Real dy, Real dz){
-  Real density = hydro_dev[gidx];
+  Real density = fmax(hydro_dev[gidx],DENS_FLOOR);
   Real d_inv = 1.0 / density;
   Real vx = d_inv * hydro_dev[gidx + n_cells];
   Real vy = d_inv * hydro_dev[gidx + 2*n_cells];
@@ -438,9 +437,10 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
 
   Real h_dti = 0.0;
   Real* d_dti;
-  cudaMalloc(&d_dti, sizeof(Real));
-  cudaMemcpy(d_dti,&h_dti,sizeof(Real),cudaMemcpyHostToDevice);
-
+  if (dt > 0.0){
+    cudaMalloc(&d_dti, sizeof(Real));
+    cudaMemcpy(d_dti,&h_dti,sizeof(Real),cudaMemcpyHostToDevice);
+  }
 
 
   double start_time = get_time();
@@ -457,10 +457,11 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
 		     n_cells, n_fields, R_cl, density, gama, time, dt, n_cluster);
   CHECK(cudaDeviceSynchronize());
 
-
-  cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost); 
-  cudaFree(d_dti);
-  chprintf("h_dti: %9.4f \n",1./h_dti);
+  if (dt > 0.0){
+    cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost); 
+    cudaFree(d_dti);
+  }
+  //chprintf("h_dti: %9.4f \n",1./h_dti);
   double end_time = get_time();
   chprintf("Supernova Feedback Time: %9.4f \n",1000*(end_time-start_time));
   return h_dti;

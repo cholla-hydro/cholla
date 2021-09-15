@@ -186,7 +186,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
        
   int nPB, nBoundaries;
   int *iaBoundary, *iaCell; 
-  
+  double start_time = get_time();
 #ifdef   MPI_CHOLLA
   /*if the cell face is an mpi boundary, exit */
   if(flags[dir]==5)
@@ -291,11 +291,13 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
 
   #ifdef HYDRO_GPU
+  double half_time = get_time();
   PackGhostCells(C.device,
 		 H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags,
 		 imax[0]-imin[0], imax[1]-imin[1], imax[2]-imin[2],
 		 imin[0], imin[1], imin[2], dir);
-  
+  double end_time = get_time();
+  chprintf("Boundary Set Ghost Cells: %9.4f %9.4f\n",1000*(end_time-half_time),1000*(end_time-start_time));
   #else
   
   nPB = (imax[0]-imin[0]) * (imax[1]-imin[1]) * (imax[2]-imin[2]);

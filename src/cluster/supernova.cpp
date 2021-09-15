@@ -12,9 +12,10 @@
 #include "../global_cuda.h" //defines CudaSafeCall
 #include "gpu.hpp"
 #endif //CUDA
+#include <mpi.h>
+#include "mpi_routines.h"
 
-
-// defines kernel-callingfunctions in supernova_gpu.cu 
+// defines kernel-callingfunctions in supernova_gpu.cu
 
 
 // Define Cluster object
@@ -22,7 +23,7 @@
 // Define Cluster Rotate
 namespace Supernova {
   //Real cluster_data[];
-  
+
   Real *d_cluster_array;
   Real *d_omega_array;
   bool *d_flags_array;
@@ -57,7 +58,7 @@ namespace Supernova {
   int n_fields;
   void Test(Header H);
   void Initialize(Grid3D G);
-  Real Update_Grid(Grid3D G);
+  Real Update_Grid(Grid3D G, Real old_dti);
 }
 
 
@@ -82,14 +83,14 @@ void Supernova::Initialize(Grid3D G){
 
   Header H = G.H;
 
-  
+
   R_cl = 0.03;
   SFR = 20000.0;
-  
+
   dx = H.dx;
   dy = H.dy;
   dz = H.dz;
-  
+
   nx = H.nx;
   ny = H.ny;
   nz = H.nz;
@@ -103,7 +104,7 @@ void Supernova::Initialize(Grid3D G){
   yMax = H.ybound + H.dy*(ny-H.n_ghost);
 
   zMin = H.zbound - H.dz*(H.n_ghost);
-  zMax = H.zbound + H.dz*(nz-H.n_ghost);  
+  zMax = H.zbound + H.dz*(nz-H.n_ghost);
 
 #else   /*MPI_CHOLLA*/
 
@@ -114,17 +115,17 @@ void Supernova::Initialize(Grid3D G){
   yMax = H.yblocal + H.dy*(ny-H.n_ghost);
 
   zMin = H.zblocal - H.dz*(H.n_ghost);
-  zMax = H.zblocal + H.dz*(nz-H.n_ghost);  
+  zMax = H.zblocal + H.dz*(nz-H.n_ghost);
 
-#endif  /*MPI_CHOLLA*/ 
+#endif  /*MPI_CHOLLA*/
   pnx = (int)ceil(R_cl/dx);
   pny = (int)ceil(R_cl/dy);
-  pnz = (int)ceil(R_cl/dz); 
-  
+  pnz = (int)ceil(R_cl/dz);
+
   //pnx,pny,pnz
   n_cells = H.n_cells;
   n_fields = H.n_fields;
-  
+
 #ifdef CUDA
   chprintf("Initializing Supernova CUDA arrays\n");
   d_hydro_array = G.C.device;
@@ -147,23 +148,30 @@ void Supernova::Initialize(Grid3D G){
 
 }
 
-Real Supernova::Update_Grid(Grid3D G,Real old_dti){
+Real Supernova::Update_Grid(Grid3D G,Real old_dti_local){
+  double start_time = get_time();
+  // Synchronize old 1/dt
+  Real old_dti = old_dti_local;
+#ifdef MPI_CHOLLA
+  old_dti = ReduceRealMax(old_dti_local);
+#endif //MPI_CHOLLA
   // Return dti
-  Real old_dt = G.H.dt;
-
+  Real old_dt = C_cfl/old_dti;
   Calc_Flags(G.H.t);
   Real new_dti = Feedback(0.1,0.0,G.H.t,old_dt);
-#ifdef MPI_CHOLLA                                                             
-  new_dti = ReduceRealMax(new_dti);                                             
-#endif /*MPI_CHOLLA*/                                                         
-                                                                                
-                                                                                
-  // sync newdti across GPUs 
+
+  // Synchronize new 1/dt
+#ifdef MPI_CHOLLA
+  new_dti = ReduceRealMax(new_dti);
+#endif /*MPI_CHOLLA*/
   if (old_dti < new_dti){
-    G.set_dt(new_dti);
-    Feedback(0.1,0.0,G.H.t,G.H.dt-old_dt);
+    Feedback(0.1,0.0,G.H.t,C_cfl/new_dti-old_dt);
+    double end_time = get_time();
+    chprintf("Supernova Update: %9.4f \n",1000*(end_time-start_time));
     return new_dti;
   }
+  double end_time = get_time();
+  chprintf("Supernova Update: %9.4f \n",1000*(end_time-start_time));
   return old_dti;
 }
 

@@ -403,7 +403,7 @@ void Grid3D::Set_Edge_Boundary_Extents(int dir, int edge, int *imin, int *imax)
 
 void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
 {
-
+  double start_time = get_time();
   switch(flag_decomp)
   {
     case SLAB_DECOMP:
@@ -415,7 +415,8 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
       Load_and_Send_MPI_Comm_Buffers_BLOCK(dir, flags);
       break;
   }
-
+  double end_time = get_time();
+  chprintf("Load and Send: %9.4f \n",1000*(end_time-start_time));
 }
 
 void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)
@@ -1496,7 +1497,7 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_SLAB(int *flags)
 
 void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 {
-  
+  double start_time = get_time();
   #ifdef PARTICLES
   // If we are transfering the particles buffers we dont need to unload the main buffers
   if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ) return;
@@ -1537,6 +1538,8 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     //depending on which face arrived, load the buffer into the ghost grid
     Unload_MPI_Comm_Buffers(status.MPI_TAG);
   }
+  double end_time = get_time();
+  chprintf("Wait and Unload: %9.4f \n",1000*(end_time-start_time)); 
 }
 
 
