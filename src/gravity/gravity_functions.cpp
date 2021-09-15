@@ -471,6 +471,37 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
   }
 
 #endif
+
+  if (P->bc_potential_type == 1) {
+
+    chprintf("Initializing disk analytic potential\n");
+
+    const int ng = N_GHOST_POTENTIAL;
+    const int twoNG = ng+ng;
+    const int nk = Grav.nz_local+twoNG;
+    const int nj = Grav.ny_local+twoNG;
+    const int ni = Grav.nx_local+twoNG;
+    const Real dr = 0.5-ng;
+
+#pragma omp parallel for
+    for (int k = 0; k < nk; k++) {
+      const Real z = Grav.zMin+Grav.dz*(k+dr);
+      const int njk = nj*k;
+      for (int j = 0; j < nj; j++) {
+        const Real y = Grav.yMin+Grav.dy*(j+dr);
+        const Real yy = y*y;
+        const int nijk = ni*(j+njk);
+        for (int i = 0; i < ni; i++) {
+          const Real x = Grav.xMin+Grav.dx*(i+dr);
+          const Real r = sqrt(x*x+yy);
+          const int ijk = i+nijk;
+          Grav.F.potential_h[ijk] = Galaxies::MW.phi_disk_D3D(r,z);
+        }
+      }
+    }
+
+  }
+
 }
 
 

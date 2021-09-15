@@ -4,7 +4,7 @@
 #   source ./setup.summit.xl.sh 
 
 module load cray-python
-module load rocm/4.2.0
+module load rocm
 module load craype-accel-amd-gfx908
 module load cray-hdf5 cray-fftw
 

@@ -119,12 +119,13 @@ void Potential_SOR_3D::AllocateMemory_GPU( void ){
 
 }
 
-void Potential_SOR_3D::Copy_Input_And_Initialize( Real *input_density, Real Grav_Constant, Real dens_avrg, Real current_a ){
+void Potential_SOR_3D::Copy_Input_And_Initialize( Real *input_density, const Real *const input_potential, Real Grav_Constant, Real dens_avrg, Real current_a ){
   Copy_Input( n_cells_local, F.input_d, input_density, Grav_Constant, dens_avrg, current_a );
 
   if ( !potential_initialized ){
     chprintf( "SOR: Initializing  Potential \n");
-    Initialize_Potential( nx_local, ny_local, nz_local, n_ghost, F.potential_d, F.density_d );
+    CHECK( cudaMemcpy( F.potential_d, input_potential, n_cells_potential*sizeof(Real), cudaMemcpyHostToDevice ) );
+    //Initialize_Potential( nx_local, ny_local, nz_local, n_ghost, F.potential_d, F.density_d );
     potential_initialized = true;
   }
 }
@@ -143,7 +144,7 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
   time_start = get_time();
   #endif
 
-  Grav.Poisson_solver.Copy_Input_And_Initialize( Grav.F.density_h, Grav_Constant, dens_avrg, current_a );
+  Grav.Poisson_solver.Copy_Input_And_Initialize( Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg, current_a );
 
   //Set Isolated Boundary Conditions
   Grav.Copy_Isolated_Boundaries_To_GPU( P );
