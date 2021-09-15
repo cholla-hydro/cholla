@@ -115,7 +115,7 @@ class Grav3D
   #endif
 
   #ifdef PARIS
-  #if (defined(PFFT) || defined(CUFFT) || defined(SOR))
+  #if (defined(PFFT) || defined(CUFFT))
   #define PARIS_TEST
   Potential_Paris_3D Poisson_solver_test;
   #else
@@ -123,6 +123,14 @@ class Grav3D
   #endif
   #endif
 
+#ifdef PARIS_BC
+#ifdef SOR
+#define PARIS_BC_TEST
+  Potential_Paris_BC_3D Poisson_solver_test;
+#else
+  Potential_Paris_BC_3D Poisson_solver;
+#endif
+#endif
 
   struct Fields
   {
