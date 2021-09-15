@@ -37,9 +37,9 @@ void Set_Gammas(Real gamma_in)
 
 
 /*! \fn double get_time(void)
- *  \brief Returns the current clock time. */ 
+ *  \brief Returns the current clock time. */
 double get_time(void)
-{ 
+{
   struct timeval timer;
   gettimeofday(&timer,NULL);
   return timer.tv_sec + 1.0e-6*timer.tv_usec;
@@ -108,9 +108,12 @@ int is_param_valid(const char* param_name) {
   return 0;
 }
 
+void parse_param(char *name,char *value, struct parameters *parms);
+
+
 /*! \fn void parse_params(char *param_file, struct parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
-void parse_params (char *param_file, struct parameters * parms)
+void parse_params (char *param_file, struct parameters * parms, int argc, char** argv)
 {
   int buf;
   char *s, buff[256];
@@ -162,157 +165,179 @@ parms->scale_outputs_file[0] = '\0';
     else
       strncpy (value, s, MAXLEN);
     trim (value);
-
-    /* Copy into correct entry in parameters struct */
-    if (strcmp(name, "nx")==0)
-      parms->nx = atoi(value); 
-    else if (strcmp(name, "ny")==0)
-      parms->ny = atoi(value);
-    else if (strcmp(name, "nz")==0)
-      parms->nz = atoi(value);
-    else if (strcmp(name, "tout")==0)
-      parms->tout = atof(value);
-    else if (strcmp(name, "outstep")==0)
-      parms->outstep = atof(value);
-    else if (strcmp(name, "n_steps_output")==0)
-      parms->n_steps_output = atoi(value);
-    else if (strcmp(name, "gamma")==0)
-      parms->gamma = atof(value);
-    else if (strcmp(name, "init")==0)
-      strncpy (parms->init, value, MAXLEN);
-    else if (strcmp(name, "nfile")==0)
-      parms->nfile = atoi(value);
-    else if (strcmp(name, "outstep_hydro")==0)
-      parms->outstep_hydro = atoi(value);
-    else if (strcmp(name, "xmin")==0)
-      parms->xmin = atof(value);
-    else if (strcmp(name, "ymin")==0)
-      parms->ymin = atof(value);
-    else if (strcmp(name, "zmin")==0)
-      parms->zmin = atof(value);
-    else if (strcmp(name, "xlen")==0)
-      parms->xlen = atof(value);
-    else if (strcmp(name, "ylen")==0)
-      parms->ylen = atof(value);
-    else if (strcmp(name, "zlen")==0)
-      parms->zlen = atof(value);
-    else if (strcmp(name, "xl_bcnd")==0)
-      parms->xl_bcnd = atoi(value);
-    else if (strcmp(name, "xu_bcnd")==0)
-      parms->xu_bcnd = atoi(value);
-    else if (strcmp(name, "yl_bcnd")==0)
-      parms->yl_bcnd = atoi(value);
-    else if (strcmp(name, "yu_bcnd")==0)
-      parms->yu_bcnd = atoi(value);
-    else if (strcmp(name, "zl_bcnd")==0)
-      parms->zl_bcnd = atoi(value);
-    else if (strcmp(name, "zu_bcnd")==0)
-      parms->zu_bcnd = atoi(value);
-    else if (strcmp(name, "custom_bcnd")==0)
-      strncpy (parms->custom_bcnd, value, MAXLEN);
-    else if (strcmp(name, "outdir")==0)
-      strncpy (parms->outdir, value, MAXLEN);
-    else if (strcmp(name, "indir")==0)
-      strncpy (parms->indir, value, MAXLEN);
-    else if (strcmp(name, "rho")==0)
-      parms->rho = atof(value);
-    else if (strcmp(name, "vx")==0)
-      parms->vx = atof(value);
-    else if (strcmp(name, "vy")==0)
-      parms->vy = atof(value);
-    else if (strcmp(name, "vz")==0)
-      parms->vz = atof(value);
-    else if (strcmp(name, "P")==0)
-      parms->P = atof(value);
-    else if (strcmp(name, "A")==0)
-      parms->A = atof(value);
-    else if (strcmp(name, "rho_l")==0)
-      parms->rho_l = atof(value);
-    else if (strcmp(name, "v_l")==0)
-      parms->v_l = atof(value);
-    else if (strcmp(name, "P_l")==0)
-      parms->P_l = atof(value);
-    else if (strcmp(name, "rho_r")==0)
-      parms->rho_r = atof(value);
-    else if (strcmp(name, "v_r")==0)
-      parms->v_r = atof(value);
-    else if (strcmp(name, "P_r")==0)
-      parms->P_r = atof(value);
-    else if (strcmp(name, "diaph")==0)
-      parms->diaph = atof(value);
-#ifdef ROTATED_PROJECTION
-    else if (strcmp(name, "nxr")==0)
-      parms->nxr = atoi(value);
-    else if (strcmp(name, "nzr")==0)
-      parms->nzr = atoi(value);
-    else if (strcmp(name, "delta")==0)
-      parms->delta = atof(value);
-    else if (strcmp(name, "theta")==0)
-      parms->theta = atof(value);
-    else if (strcmp(name, "phi")==0)
-      parms->phi = atof(value);
-    else if (strcmp(name, "Lx")==0)
-      parms->Lx  = atof(value);
-    else if (strcmp(name, "Lz")==0)
-      parms->Lz = atof(value);
-    else if (strcmp(name, "n_delta")==0)
-      parms->n_delta = atoi(value);
-    else if (strcmp(name, "ddelta_dt")==0)
-      parms->ddelta_dt = atof(value);
-    else if (strcmp(name, "flag_delta")==0)
-      parms->flag_delta  = atoi(value);
-#endif /*ROTATED_PROJECTION*/
-#ifdef COSMOLOGY
-    else if (strcmp(name, "scale_outputs_file")==0)
-      strncpy (parms->scale_outputs_file, value, MAXLEN);
-    else if (strcmp(name, "Init_redshift")==0)
-      parms->Init_redshift  = atof(value);
-    else if (strcmp(name, "End_redshift")==0)
-      parms->End_redshift  = atof(value);
-    else if (strcmp(name, "H0")==0)
-      parms->H0  = atof(value);
-    else if (strcmp(name, "Omega_M")==0)
-      parms->Omega_M  = atof(value);
-    else if (strcmp(name, "Omega_L")==0)
-      parms->Omega_L  = atof(value);
-    else if (strcmp(name, "Omega_b")==0)
-      parms->Omega_b  = atof(value);
-#endif //COSMOLOGY
-#ifdef TILED_INITIAL_CONDITIONS
-    else if (strcmp(name, "tile_length")==0)
-      parms->tile_length  = atof(value);
-#endif //TILED_INITIAL_CONDITIONS
-
-#ifdef SET_MPI_GRID
-    // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
-    else if (strcmp(name, "n_proc_x")==0)
-      parms->n_proc_x  = atoi(value);
-    else if (strcmp(name, "n_proc_y")==0)
-      parms->n_proc_y  = atoi(value);
-    else if (strcmp(name, "n_proc_z")==0)
-      parms->n_proc_z  = atoi(value);
-#endif
-    else if (strcmp(name, "bc_potential_type")==0)
-      parms->bc_potential_type  = atoi(value);
-
-#ifdef COOLING_GRACKLE
-    else if (strcmp(name, "UVB_rates_file")==0)
-      strncpy (parms->UVB_rates_file, value, MAXLEN);
-#endif
-#ifdef ANALYSIS
-    else if (strcmp(name, "analysis_scale_outputs_file")==0)
-      strncpy (parms->analysis_scale_outputs_file, value, MAXLEN);
-    else if (strcmp(name, "analysisdir")==0)
-      strncpy (parms->analysisdir, value, MAXLEN);
-    else if (strcmp(name, "lya_skewers_stride")==0)
-      parms->lya_skewers_stride  = atoi(value);
-    else if (strcmp(name, "lya_Pk_d_log_k")==0)
-      parms->lya_Pk_d_log_k  = atof(value);
-#endif    
-    else if (!is_param_valid(name))
-      printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
-        name, value);
+    parse_param(name,value,parms);
   }
   /* Close file */
   fclose (fp);
+
+  for (int i = 0; i < argc; ++i) {
+    char name[MAXLEN], value[MAXLEN];
+    s = strtok (argv[i], "=");
+    if (s==NULL)
+      continue;
+    else
+      strncpy (name, s, MAXLEN);
+    s = strtok (NULL, "=");
+    if (s==NULL)
+      continue;
+    else
+      strncpy (value, s, MAXLEN);
+    parse_param(name,value,parms);
+    printf("Override with %s=%s\n",name,value);
+  // TODO: parse args from command line
+  }
+}
+
+/*! \fn void parse_param(char *name,char *value, struct parameters *parms);
+ *  \brief Parses and sets a single param based on name and value. */
+void parse_param(char *name,char *value, struct parameters *parms){
+  /* Copy into correct entry in parameters struct */
+  if (strcmp(name, "nx")==0)
+    parms->nx = atoi(value);
+  else if (strcmp(name, "ny")==0)
+    parms->ny = atoi(value);
+  else if (strcmp(name, "nz")==0)
+    parms->nz = atoi(value);
+  else if (strcmp(name, "tout")==0)
+    parms->tout = atof(value);
+  else if (strcmp(name, "outstep")==0)
+    parms->outstep = atof(value);
+  else if (strcmp(name, "n_steps_output")==0)
+    parms->n_steps_output = atoi(value);
+  else if (strcmp(name, "gamma")==0)
+    parms->gamma = atof(value);
+  else if (strcmp(name, "init")==0)
+    strncpy (parms->init, value, MAXLEN);
+  else if (strcmp(name, "nfile")==0)
+    parms->nfile = atoi(value);
+  else if (strcmp(name, "outstep_hydro")==0)
+    parms->outstep_hydro = atoi(value);
+  else if (strcmp(name, "xmin")==0)
+    parms->xmin = atof(value);
+  else if (strcmp(name, "ymin")==0)
+    parms->ymin = atof(value);
+  else if (strcmp(name, "zmin")==0)
+    parms->zmin = atof(value);
+  else if (strcmp(name, "xlen")==0)
+    parms->xlen = atof(value);
+  else if (strcmp(name, "ylen")==0)
+    parms->ylen = atof(value);
+  else if (strcmp(name, "zlen")==0)
+    parms->zlen = atof(value);
+  else if (strcmp(name, "xl_bcnd")==0)
+    parms->xl_bcnd = atoi(value);
+  else if (strcmp(name, "xu_bcnd")==0)
+    parms->xu_bcnd = atoi(value);
+  else if (strcmp(name, "yl_bcnd")==0)
+    parms->yl_bcnd = atoi(value);
+  else if (strcmp(name, "yu_bcnd")==0)
+    parms->yu_bcnd = atoi(value);
+  else if (strcmp(name, "zl_bcnd")==0)
+    parms->zl_bcnd = atoi(value);
+  else if (strcmp(name, "zu_bcnd")==0)
+    parms->zu_bcnd = atoi(value);
+  else if (strcmp(name, "custom_bcnd")==0)
+    strncpy (parms->custom_bcnd, value, MAXLEN);
+  else if (strcmp(name, "outdir")==0)
+    strncpy (parms->outdir, value, MAXLEN);
+  else if (strcmp(name, "indir")==0)
+    strncpy (parms->indir, value, MAXLEN);
+  else if (strcmp(name, "rho")==0)
+    parms->rho = atof(value);
+  else if (strcmp(name, "vx")==0)
+    parms->vx = atof(value);
+  else if (strcmp(name, "vy")==0)
+    parms->vy = atof(value);
+  else if (strcmp(name, "vz")==0)
+    parms->vz = atof(value);
+  else if (strcmp(name, "P")==0)
+    parms->P = atof(value);
+  else if (strcmp(name, "A")==0)
+    parms->A = atof(value);
+  else if (strcmp(name, "rho_l")==0)
+    parms->rho_l = atof(value);
+  else if (strcmp(name, "v_l")==0)
+    parms->v_l = atof(value);
+  else if (strcmp(name, "P_l")==0)
+    parms->P_l = atof(value);
+  else if (strcmp(name, "rho_r")==0)
+    parms->rho_r = atof(value);
+  else if (strcmp(name, "v_r")==0)
+    parms->v_r = atof(value);
+  else if (strcmp(name, "P_r")==0)
+    parms->P_r = atof(value);
+  else if (strcmp(name, "diaph")==0)
+    parms->diaph = atof(value);
+#ifdef ROTATED_PROJECTION
+  else if (strcmp(name, "nxr")==0)
+    parms->nxr = atoi(value);
+  else if (strcmp(name, "nzr")==0)
+    parms->nzr = atoi(value);
+  else if (strcmp(name, "delta")==0)
+    parms->delta = atof(value);
+  else if (strcmp(name, "theta")==0)
+    parms->theta = atof(value);
+  else if (strcmp(name, "phi")==0)
+    parms->phi = atof(value);
+  else if (strcmp(name, "Lx")==0)
+    parms->Lx  = atof(value);
+  else if (strcmp(name, "Lz")==0)
+    parms->Lz = atof(value);
+  else if (strcmp(name, "n_delta")==0)
+    parms->n_delta = atoi(value);
+  else if (strcmp(name, "ddelta_dt")==0)
+    parms->ddelta_dt = atof(value);
+  else if (strcmp(name, "flag_delta")==0)
+    parms->flag_delta  = atoi(value);
+#endif /*ROTATED_PROJECTION*/
+#ifdef COSMOLOGY
+  else if (strcmp(name, "scale_outputs_file")==0)
+    strncpy (parms->scale_outputs_file, value, MAXLEN);
+  else if (strcmp(name, "Init_redshift")==0)
+    parms->Init_redshift  = atof(value);
+  else if (strcmp(name, "End_redshift")==0)
+    parms->End_redshift  = atof(value);
+  else if (strcmp(name, "H0")==0)
+    parms->H0  = atof(value);
+  else if (strcmp(name, "Omega_M")==0)
+    parms->Omega_M  = atof(value);
+  else if (strcmp(name, "Omega_L")==0)
+    parms->Omega_L  = atof(value);
+  else if (strcmp(name, "Omega_b")==0)
+    parms->Omega_b  = atof(value);
+#endif //COSMOLOGY
+#ifdef TILED_INITIAL_CONDITIONS
+  else if (strcmp(name, "tile_length")==0)
+    parms->tile_length  = atof(value);
+#endif //TILED_INITIAL_CONDITIONS
+
+#ifdef SET_MPI_GRID
+  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
+  else if (strcmp(name, "n_proc_x")==0)
+    parms->n_proc_x  = atoi(value);
+  else if (strcmp(name, "n_proc_y")==0)
+    parms->n_proc_y  = atoi(value);
+  else if (strcmp(name, "n_proc_z")==0)
+    parms->n_proc_z  = atoi(value);
+#endif
+  else if (strcmp(name, "bc_potential_type")==0)
+    parms->bc_potential_type  = atoi(value);
+
+#ifdef COOLING_GRACKLE
+  else if (strcmp(name, "UVB_rates_file")==0)
+    strncpy (parms->UVB_rates_file, value, MAXLEN);
+#endif
+#ifdef ANALYSIS
+  else if (strcmp(name, "analysis_scale_outputs_file")==0)
+    strncpy (parms->analysis_scale_outputs_file, value, MAXLEN);
+  else if (strcmp(name, "analysisdir")==0)
+    strncpy (parms->analysisdir, value, MAXLEN);
+  else if (strcmp(name, "lya_skewers_stride")==0)
+    parms->lya_skewers_stride  = atoi(value);
+  else if (strcmp(name, "lya_Pk_d_log_k")==0)
+    parms->lya_Pk_d_log_k  = atof(value);
+#endif
+  else if (!is_param_valid(name))
+    printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
+	    name, value);
 }
