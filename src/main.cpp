@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 
 
   // read in command line arguments
-  if (argc != 2)
+  if (argc < 2)
   {
     chprintf("usage: %s <parameter_file>\n", argv[0]);
     chexit(-1);
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
   Grid3D G;
 
   // read in the parameters
-  parse_params (param_file, &P);
+  parse_params (param_file, &P, argc, argv);
   // and output to screen
   chprintf ("Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, boundaries = %d %d %d %d %d %d\n",
     P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
