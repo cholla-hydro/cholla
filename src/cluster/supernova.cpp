@@ -1,20 +1,21 @@
 #ifdef SUPERNOVA
 #include <stdio.h>
-#include "../io.h"
 #include <iostream> //cout
+#include <math.h> // defines ceil
+#include "../io/io.h" //defines chprintf
+
 //#include "../global.h" //defines Real
 //#include "../grid3D.h" // defines Header
-//#include "cluster_list.h" //loads cluster list
-#include "supernova.h" // defines interfaces
-//#include "supernova_gpu.h"
-#include <math.h> // defines ceil
-#ifdef CUDA
-#include "../global_cuda.h" //defines CudaSafeCall
-#include "gpu.hpp"
-#endif //CUDA
-#include <mpi.h>
-#include "mpi_routines.h"
+#include "supernova.h" // defines interfaces, includes global, grid3D
 
+#ifdef CUDA
+#include "../global/global_cuda.h" //defines CudaSafeCall, includes gpu.hpp
+//#include "../utils/gpu.hpp"
+#endif //CUDA
+#ifdef MPI_CHOLLA
+#include <mpi.h>
+#include "../mpi/mpi_routines.h"
+#endif
 // defines kernel-callingfunctions in supernova_gpu.cu
 
 

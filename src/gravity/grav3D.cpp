@@ -1,16 +1,16 @@
 #ifdef GRAVITY
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<math.h>
-#include"../global.h"
-#include "../io.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include "../global/global.h"
+#include "../io/io.h"
 
-#include"grav3D.h"
+#include "../gravity/grav3D.h"
 
 #ifdef PARALLEL_OMP
-#include "../parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 
@@ -19,7 +19,7 @@ Grav3D::Grav3D( void ){}
 
 void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, Real Lz, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P )
 {
-  
+
   //Set Box Size
   Lbox_x = Lx;
   Lbox_y = Ly;
@@ -29,12 +29,12 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
   xMin = x_min;
   yMin = y_min;
   zMin = z_min;
-  
+
   //Set uniform ( dx, dy, dz )
   dx = dx_real;
   dy = dy_real;
   dz = dz_real;
-  
+
   //Set Box Total number of cells
   nx_total = nx;
   ny_total = ny;
@@ -55,13 +55,13 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
   INITIAL = true;
   dt_prev = 0;
   dt_now = 0;
-  
+
   #ifdef COSMOLOGY
   //Set the scale factor for cosmological simulations to 1,
   //This will be changed to the proper value when cosmology is initialized
   current_a = 1;
   #endif
-  
+
   //Set the average density=0 ( Not Used )
   dens_avrg = 0;
 
@@ -71,15 +71,15 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
     Gconst = 1;
     chprintf(" WARNING: Using Gravitational Constant G=1.\n");
   }
-  
+
   //Flag to transfer the Potential boundaries
   TRANSFER_POTENTIAL_BOUNDARIES = false;
-  
+
   // Flag to set the gravity boundariy flags
   BC_FLAGS_SET = false;
-  
+
   AllocateMemory_CPU();
-  
+
   #ifdef GRAVITY_GPU
   AllocateMemory_GPU();
   #endif
@@ -92,7 +92,7 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
   chprintf( " dx:%f  dy:%f  dz:%f\n", dx, dy, dz );
   chprintf( " N ghost potential: %d\n", N_GHOST_POTENTIAL);
   chprintf( " N ghost offset: %d\n", n_ghost_pot_offset);
-  
+
   #ifdef PARALLEL_OMP
   chprintf(" Using OMP for gravity calculations\n");
   int n_omp_max = omp_get_max_threads();
@@ -120,7 +120,7 @@ void Grav3D::AllocateMemory_CPU(void)
   F.potential_h  = (Real *) malloc(n_cells_potential*sizeof(Real));   //array for the potential at the n-th timestep
   F.potential_1_h  = (Real *) malloc(n_cells_potential*sizeof(Real)); //array for the potential at the (n-1)-th timestep
   boundary_flags = (int *) malloc(6*sizeof(int)); // array for the gtravity boundary flags
-  
+
   #ifdef GRAV_ISOLATED_BOUNDARY_X
   F.pot_boundary_x0  = (Real *) malloc(N_GHOST_POTENTIAL*ny_local*nz_local*sizeof(Real)); //array for the potential isolated boundary
   F.pot_boundary_x1  = (Real *) malloc(N_GHOST_POTENTIAL*ny_local*nz_local*sizeof(Real));
@@ -157,16 +157,16 @@ void Grav3D::FreeMemory_CPU(void)
   free(F.density_h);
   free(F.potential_h);
   free(F.potential_1_h);
-  free( boundary_flags );  
+  free( boundary_flags );
 
   #ifdef GRAV_ISOLATED_BOUNDARY_X
   free(F.pot_boundary_x0);
   free(F.pot_boundary_x1);
-  #endif  
+  #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Y
   free(F.pot_boundary_y0);
   free(F.pot_boundary_y1);
-  #endif  
+  #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
   free(F.pot_boundary_z0);
   free(F.pot_boundary_z1);

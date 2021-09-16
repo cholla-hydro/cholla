@@ -1,8 +1,8 @@
 #if defined(GRAVITY) && defined(PARIS)
 
-#include "potential_paris_3D.h"
-#include "gpu.hpp"
-#include "../io.h"
+#include "../gravity/potential_paris_3D.h"
+#include "../utils/gpu.hpp"
+#include "../io/io.h"
 #include <cassert>
 #include <cfloat>
 #include <climits>
@@ -300,7 +300,7 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
 
   CHECK(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,densityBytes_)));
   assert(da_);
-  
+
   CHECK(cudaMalloc(reinterpret_cast<void **>(&db_),std::max(minBytes_,potentialBytes_)));
   assert(db_);
 }

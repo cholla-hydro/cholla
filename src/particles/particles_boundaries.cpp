@@ -3,22 +3,22 @@
 #include <unistd.h>
 #include <algorithm>
 #include <iostream>
-#include "../grid3D.h"
-#include "../io.h"
-#include "particles_3D.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "../particles/particles_3D.h"
 
 #ifdef MPI_CHOLLA
-#include "../mpi_routines.h"
+#include "../mpi/mpi_routines.h"
 #ifdef PARTICLES_GPU
-#include "particles_boundaries_gpu.h"
+#include "../particles/particles_boundaries_gpu.h"
 #endif//PARTICLES_GPU
 #endif//MPI_CHOLLA
 
 
 //Transfer the particles that moved outside the local domain
 void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
-  
-  
+
+
   //Transfer Particles Boundaries
   Particles.TRANSFER_PARTICLES_BOUNDARIES = true;
   #ifdef CPU_TIME
@@ -29,7 +29,7 @@ void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
   Timer.End_and_Record_Time( 8 );
   #endif
   Particles.TRANSFER_PARTICLES_BOUNDARIES = false;
-  
+
 }
 
 #ifdef MPI_CHOLLA
@@ -38,7 +38,7 @@ void Grid3D::Finish_Particles_Transfer( void ){
 
   #ifdef PARTICLES_CPU
   Particles.Remove_Transfered_Particles();
-  #endif 
+  #endif
 
 }
 
@@ -147,7 +147,7 @@ void Grid3D::Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(int dir, i
 void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, int *ireq_particles_transfer){
 
   int buffer_length;
-  
+
   #ifdef PARTICLES_GPU
     #ifdef MPI_GPU
     Real *recv_buffer_x0_particles = d_recv_buffer_x0_particles;
@@ -165,7 +165,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     Real *recv_buffer_z1_particles = h_recv_buffer_z1_particles;
     #endif
   #endif
-  
+
   #ifdef PARTICLES_CPU
   Real *recv_buffer_x0_particles = h_recv_buffer_x0_particles;
   Real *recv_buffer_x1_particles = h_recv_buffer_x1_particles;
@@ -174,7 +174,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
   Real *recv_buffer_z0_particles = h_recv_buffer_z0_particles;
   Real *recv_buffer_z1_particles = h_recv_buffer_z1_particles;
   #endif
-  
+
   if ( index == 0){
     buffer_length = Particles.n_recv_x0 * N_DATA_PER_PARTICLE_TRANSFER;
     Check_and_Grow_Particles_Buffer( &recv_buffer_x0_particles , &buffer_length_particles_x0_recv, buffer_length );
@@ -220,7 +220,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
 void Grid3D::Load_and_Send_Particles_X0( int ireq_n_particles, int ireq_particles_transfer ){
   int buffer_length;
   Real *send_buffer_x0_particles;
-  
+
   #ifdef PARTICLES_GPU
   send_buffer_x0_particles = d_send_buffer_x0_particles;
   Particles.Load_Particles_to_Buffer_GPU(0, 0, send_buffer_x0_particles,  buffer_length_particles_x0_send );
@@ -238,11 +238,11 @@ void Grid3D::Load_and_Send_Particles_X0( int ireq_n_particles, int ireq_particle
   #endif //PARTICLES_CPU
 
   #if defined(PARTICLES_GPU) && !defined(MPI_GPU)
-  cudaMemcpy(h_send_buffer_x0_particles, d_send_buffer_x0_particles, 
+  cudaMemcpy(h_send_buffer_x0_particles, d_send_buffer_x0_particles,
              buffer_length*sizeof(Real), cudaMemcpyDeviceToHost);
   send_buffer_x0_particles = h_send_buffer_x0_particles;
   #endif
-  
+
   MPI_Isend(send_buffer_x0_particles, buffer_length, MPI_CHREAL, dest[0],   1, world, &send_request_particles_transfer[ireq_particles_transfer]);
   MPI_Request_free(send_request_particles_transfer+ireq_particles_transfer);
 }
@@ -250,7 +250,7 @@ void Grid3D::Load_and_Send_Particles_X0( int ireq_n_particles, int ireq_particle
 void Grid3D::Load_and_Send_Particles_X1( int ireq_n_particles, int ireq_particles_transfer ){
   int buffer_length;
   Real *send_buffer_x1_particles;
-  
+
   #ifdef PARTICLES_GPU
   send_buffer_x1_particles = d_send_buffer_x1_particles;
   Particles.Load_Particles_to_Buffer_GPU(0, 1, send_buffer_x1_particles,  buffer_length_particles_x1_send );
@@ -266,13 +266,13 @@ void Grid3D::Load_and_Send_Particles_X1( int ireq_n_particles, int ireq_particle
   send_buffer_x1_particles = h_send_buffer_x1_particles;
   Particles.Load_Particles_to_Buffer_CPU( 0, 1, send_buffer_x1_particles,  buffer_length_particles_x1_send  );
   #endif //PARTICLES_CPU
-  
+
   #if defined(PARTICLES_GPU) && !defined(MPI_GPU)
-  cudaMemcpy(h_send_buffer_x1_particles, d_send_buffer_x1_particles, 
+  cudaMemcpy(h_send_buffer_x1_particles, d_send_buffer_x1_particles,
              buffer_length*sizeof(Real), cudaMemcpyDeviceToHost);
   send_buffer_x1_particles = h_send_buffer_x1_particles;
   #endif
-  
+
   MPI_Isend(send_buffer_x1_particles, buffer_length, MPI_CHREAL, dest[1],   0, world, &send_request_particles_transfer[ireq_particles_transfer]);\
   MPI_Request_free(send_request_particles_transfer+ireq_particles_transfer);
 }
@@ -280,7 +280,7 @@ void Grid3D::Load_and_Send_Particles_X1( int ireq_n_particles, int ireq_particle
 void Grid3D::Load_and_Send_Particles_Y0( int ireq_n_particles, int ireq_particles_transfer ){
   int buffer_length;
   Real *send_buffer_y0_particles;
-  
+
   #ifdef PARTICLES_GPU
   send_buffer_y0_particles = d_send_buffer_y0_particles;
   Particles.Load_Particles_to_Buffer_GPU(1, 0, send_buffer_y0_particles,  buffer_length_particles_y0_send );
@@ -296,13 +296,13 @@ void Grid3D::Load_and_Send_Particles_Y0( int ireq_n_particles, int ireq_particle
   send_buffer_y0_particles = h_send_buffer_y0_particles;
   Particles.Load_Particles_to_Buffer_CPU( 1, 0, send_buffer_y0_particles,  buffer_length_particles_y0_send  );
   #endif //PARTICLES_CPU
-  
+
   #if defined(PARTICLES_GPU) && !defined(MPI_GPU)
-  cudaMemcpy(h_send_buffer_y0_particles, d_send_buffer_y0_particles, 
+  cudaMemcpy(h_send_buffer_y0_particles, d_send_buffer_y0_particles,
              buffer_length*sizeof(Real), cudaMemcpyDeviceToHost);
   send_buffer_y0_particles = h_send_buffer_y0_particles;
   #endif
-  
+
   MPI_Isend(send_buffer_y0_particles, buffer_length, MPI_CHREAL, dest[2],   3, world, &send_request_particles_transfer[ireq_particles_transfer]);
   MPI_Request_free(send_request_particles_transfer+ireq_particles_transfer);
 }
@@ -310,7 +310,7 @@ void Grid3D::Load_and_Send_Particles_Y0( int ireq_n_particles, int ireq_particle
 void Grid3D::Load_and_Send_Particles_Y1( int ireq_n_particles, int ireq_particles_transfer ){
   int buffer_length;
   Real *send_buffer_y1_particles;
-  
+
   #ifdef PARTICLES_GPU
   send_buffer_y1_particles = d_send_buffer_y1_particles;
   Particles.Load_Particles_to_Buffer_GPU(1, 1, send_buffer_y1_particles,  buffer_length_particles_y1_send );
@@ -326,13 +326,13 @@ void Grid3D::Load_and_Send_Particles_Y1( int ireq_n_particles, int ireq_particle
   send_buffer_y1_particles = h_send_buffer_y1_particles;
   Particles.Load_Particles_to_Buffer_CPU( 1, 1, send_buffer_y1_particles,  buffer_length_particles_y1_send  );
   #endif //PARTICLES_CPU
-  
+
   #if defined(PARTICLES_GPU) && !defined(MPI_GPU)
-  cudaMemcpy(h_send_buffer_y1_particles, d_send_buffer_y1_particles, 
+  cudaMemcpy(h_send_buffer_y1_particles, d_send_buffer_y1_particles,
              buffer_length*sizeof(Real), cudaMemcpyDeviceToHost);
   send_buffer_y1_particles = h_send_buffer_y1_particles;
   #endif
-  
+
   MPI_Isend(send_buffer_y1_particles, buffer_length, MPI_CHREAL, dest[3],   2, world, &send_request_particles_transfer[ireq_particles_transfer]);
   MPI_Request_free(send_request_particles_transfer+ireq_particles_transfer);
 }
@@ -340,7 +340,7 @@ void Grid3D::Load_and_Send_Particles_Y1( int ireq_n_particles, int ireq_particle
 void Grid3D::Load_and_Send_Particles_Z0( int ireq_n_particles, int ireq_particles_transfer ){
   int buffer_length;
   Real *send_buffer_z0_particles;
-  
+
   #ifdef PARTICLES_GPU
   send_buffer_z0_particles = d_send_buffer_z0_particles;
   Particles.Load_Particles_to_Buffer_GPU(2, 0, send_buffer_z0_particles,  buffer_length_particles_z0_send );
@@ -356,13 +356,13 @@ void Grid3D::Load_and_Send_Particles_Z0( int ireq_n_particles, int ireq_particle
   send_buffer_z0_particles = h_send_buffer_z0_particles;
   Particles.Load_Particles_to_Buffer_CPU( 2, 0, send_buffer_z0_particles,  buffer_length_particles_z0_send  );
   #endif //PARTICLES_CPU
-  
+
   #if defined(PARTICLES_GPU) && !defined(MPI_GPU)
-  cudaMemcpy(h_send_buffer_z0_particles, d_send_buffer_z0_particles, 
+  cudaMemcpy(h_send_buffer_z0_particles, d_send_buffer_z0_particles,
              buffer_length*sizeof(Real), cudaMemcpyDeviceToHost);
   send_buffer_z0_particles = h_send_buffer_z0_particles;
   #endif
-  
+
   MPI_Isend(send_buffer_z0_particles, buffer_length, MPI_CHREAL, dest[4],   5, world, &send_request_particles_transfer[ireq_particles_transfer]);
   MPI_Request_free(send_request_particles_transfer+ireq_particles_transfer);
 }
@@ -370,7 +370,7 @@ void Grid3D::Load_and_Send_Particles_Z0( int ireq_n_particles, int ireq_particle
 void Grid3D::Load_and_Send_Particles_Z1( int ireq_n_particles, int ireq_particles_transfer ){
   int buffer_length;
   Real *send_buffer_z1_particles;
-  
+
   #ifdef PARTICLES_GPU
   send_buffer_z1_particles = d_send_buffer_z1_particles;
   Particles.Load_Particles_to_Buffer_GPU(2, 1, send_buffer_z1_particles,  buffer_length_particles_z1_send );
@@ -386,13 +386,13 @@ void Grid3D::Load_and_Send_Particles_Z1( int ireq_n_particles, int ireq_particle
   send_buffer_z1_particles = h_send_buffer_z1_particles;
   Particles.Load_Particles_to_Buffer_CPU( 2, 1, send_buffer_z1_particles,  buffer_length_particles_z1_send  );
   #endif //PARTICLES_CPU
-  
+
   #if defined(PARTICLES_GPU) && !defined(MPI_GPU)
-  cudaMemcpy(h_send_buffer_z1_particles, d_send_buffer_z1_particles, 
+  cudaMemcpy(h_send_buffer_z1_particles, d_send_buffer_z1_particles,
              buffer_length*sizeof(Real), cudaMemcpyDeviceToHost);
   send_buffer_z1_particles = h_send_buffer_z1_particles;
   #endif
-  
+
   MPI_Isend(send_buffer_z1_particles, buffer_length, MPI_CHREAL, dest[5],   4, world, &send_request_particles_transfer[ireq_particles_transfer]);
   MPI_Request_free(send_request_particles_transfer+ireq_particles_transfer);
 }
@@ -400,15 +400,15 @@ void Grid3D::Load_and_Send_Particles_Z1( int ireq_n_particles, int ireq_particle
 //Unload the Transfered particles from the MPI_buffer, after buffer was received
 void Grid3D::Unload_Particles_from_Buffer_X0( int *flags ){
   #ifdef PARTICLES_CPU
-  Particles.Unload_Particles_from_Buffer_CPU( 0, 0, h_recv_buffer_x0_particles, Particles.n_recv_x0, 
+  Particles.Unload_Particles_from_Buffer_CPU( 0, 0, h_recv_buffer_x0_particles, Particles.n_recv_x0,
       h_send_buffer_y0_particles, h_send_buffer_y1_particles, h_send_buffer_z0_particles,
-      h_send_buffer_z1_particles, buffer_length_particles_y0_send, buffer_length_particles_y1_send, 
+      h_send_buffer_z1_particles, buffer_length_particles_y0_send, buffer_length_particles_y1_send,
       buffer_length_particles_z0_send, buffer_length_particles_z1_send, flags);
   #endif//PARTICLES_CPU
   #ifdef PARTICLES_GPU
   #ifndef MPI_GPU
-  cudaMemcpy(d_recv_buffer_x0_particles, h_recv_buffer_x0_particles, 
-             buffer_length_particles_x0_recv*sizeof(Real), 
+  cudaMemcpy(d_recv_buffer_x0_particles, h_recv_buffer_x0_particles,
+             buffer_length_particles_x0_recv*sizeof(Real),
              cudaMemcpyHostToDevice);
   #endif
   Particles.Unload_Particles_from_Buffer_GPU( 0, 0, d_recv_buffer_x0_particles, Particles.n_recv_x0 );
@@ -418,14 +418,14 @@ void Grid3D::Unload_Particles_from_Buffer_X0( int *flags ){
 void Grid3D::Unload_Particles_from_Buffer_X1( int *flags  ){
   #ifdef PARTICLES_CPU
   Particles.Unload_Particles_from_Buffer_CPU( 0, 1, h_recv_buffer_x1_particles, Particles.n_recv_x1,
-      h_send_buffer_y0_particles, h_send_buffer_y1_particles, h_send_buffer_z0_particles, 
-      h_send_buffer_z1_particles, buffer_length_particles_y0_send, buffer_length_particles_y1_send, 
+      h_send_buffer_y0_particles, h_send_buffer_y1_particles, h_send_buffer_z0_particles,
+      h_send_buffer_z1_particles, buffer_length_particles_y0_send, buffer_length_particles_y1_send,
       buffer_length_particles_z0_send, buffer_length_particles_z1_send, flags);
   #endif//PARTICLES_CPU
   #ifdef PARTICLES_GPU
   #ifndef MPI_GPU
-  cudaMemcpy(d_recv_buffer_x1_particles, h_recv_buffer_x1_particles, 
-             buffer_length_particles_x1_recv*sizeof(Real), 
+  cudaMemcpy(d_recv_buffer_x1_particles, h_recv_buffer_x1_particles,
+             buffer_length_particles_x1_recv*sizeof(Real),
              cudaMemcpyHostToDevice);
   #endif
   Particles.Unload_Particles_from_Buffer_GPU( 0, 1, d_recv_buffer_x1_particles, Particles.n_recv_x1 );
@@ -434,15 +434,15 @@ void Grid3D::Unload_Particles_from_Buffer_X1( int *flags  ){
 
 void Grid3D::Unload_Particles_from_Buffer_Y0( int *flags ){
   #ifdef PARTICLES_CPU
-  Particles.Unload_Particles_from_Buffer_CPU( 1, 0, h_recv_buffer_y0_particles, Particles.n_recv_y0, 
-      h_send_buffer_y0_particles, h_send_buffer_y1_particles, h_send_buffer_z0_particles, 
-      h_send_buffer_z1_particles, buffer_length_particles_y0_send , buffer_length_particles_y1_send, 
+  Particles.Unload_Particles_from_Buffer_CPU( 1, 0, h_recv_buffer_y0_particles, Particles.n_recv_y0,
+      h_send_buffer_y0_particles, h_send_buffer_y1_particles, h_send_buffer_z0_particles,
+      h_send_buffer_z1_particles, buffer_length_particles_y0_send , buffer_length_particles_y1_send,
       buffer_length_particles_z0_send, buffer_length_particles_z1_send, flags);
   #endif//PARTICLES_CPU
   #ifdef PARTICLES_GPU
   #ifndef MPI_GPU
-  cudaMemcpy(d_recv_buffer_y0_particles, h_recv_buffer_y0_particles, 
-             buffer_length_particles_y0_recv*sizeof(Real), 
+  cudaMemcpy(d_recv_buffer_y0_particles, h_recv_buffer_y0_particles,
+             buffer_length_particles_y0_recv*sizeof(Real),
              cudaMemcpyHostToDevice);
   #endif
   Particles.Unload_Particles_from_Buffer_GPU( 1, 0, d_recv_buffer_y0_particles, Particles.n_recv_y0 );
@@ -451,32 +451,32 @@ void Grid3D::Unload_Particles_from_Buffer_Y0( int *flags ){
 
 void Grid3D::Unload_Particles_from_Buffer_Y1( int *flags  ){
   #ifdef PARTICLES_CPU
-  Particles.Unload_Particles_from_Buffer_CPU( 1, 1, h_recv_buffer_y1_particles, Particles.n_recv_y1, 
+  Particles.Unload_Particles_from_Buffer_CPU( 1, 1, h_recv_buffer_y1_particles, Particles.n_recv_y1,
       h_send_buffer_y0_particles, h_send_buffer_y1_particles, h_send_buffer_z0_particles,
-      h_send_buffer_z1_particles, buffer_length_particles_y0_send , buffer_length_particles_y1_send, 
+      h_send_buffer_z1_particles, buffer_length_particles_y0_send , buffer_length_particles_y1_send,
       buffer_length_particles_z0_send, buffer_length_particles_z1_send, flags);
   #endif//PARTICLES_CPU
   #ifdef PARTICLES_GPU
   #ifndef MPI_GPU
-  cudaMemcpy(d_recv_buffer_y1_particles, h_recv_buffer_y1_particles, 
-             buffer_length_particles_y1_recv*sizeof(Real), 
+  cudaMemcpy(d_recv_buffer_y1_particles, h_recv_buffer_y1_particles,
+             buffer_length_particles_y1_recv*sizeof(Real),
              cudaMemcpyHostToDevice);
   #endif
-  Particles.Unload_Particles_from_Buffer_GPU( 1, 1, d_recv_buffer_y1_particles, Particles.n_recv_y1 );  
+  Particles.Unload_Particles_from_Buffer_GPU( 1, 1, d_recv_buffer_y1_particles, Particles.n_recv_y1 );
   #endif//PARTICLES_GPU
 }
 
 void Grid3D::Unload_Particles_from_Buffer_Z0( int *flags ){
   #ifdef PARTICLES_CPU
-  Particles.Unload_Particles_from_Buffer_CPU( 2, 0, h_recv_buffer_z0_particles, Particles.n_recv_z0, 
-      h_send_buffer_y0_particles, h_send_buffer_y1_particles, h_send_buffer_z0_particles, 
-      h_send_buffer_z1_particles, buffer_length_particles_y0_send , buffer_length_particles_y1_send, 
+  Particles.Unload_Particles_from_Buffer_CPU( 2, 0, h_recv_buffer_z0_particles, Particles.n_recv_z0,
+      h_send_buffer_y0_particles, h_send_buffer_y1_particles, h_send_buffer_z0_particles,
+      h_send_buffer_z1_particles, buffer_length_particles_y0_send , buffer_length_particles_y1_send,
       buffer_length_particles_z0_send, buffer_length_particles_z1_send, flags);
   #endif//PARTICLES_CPU
   #ifdef PARTICLES_GPU
   #ifndef MPI_GPU
-  cudaMemcpy(d_recv_buffer_z0_particles, h_recv_buffer_z0_particles, 
-             buffer_length_particles_z0_recv*sizeof(Real), 
+  cudaMemcpy(d_recv_buffer_z0_particles, h_recv_buffer_z0_particles,
+             buffer_length_particles_z0_recv*sizeof(Real),
              cudaMemcpyHostToDevice);
   #endif
   Particles.Unload_Particles_from_Buffer_GPU( 2, 0, d_recv_buffer_z0_particles, Particles.n_recv_z0 );
@@ -485,15 +485,15 @@ void Grid3D::Unload_Particles_from_Buffer_Z0( int *flags ){
 
 void Grid3D::Unload_Particles_from_Buffer_Z1( int *flags ){
   #ifdef PARTICLES_CPU
-  Particles.Unload_Particles_from_Buffer_CPU( 2, 1, h_recv_buffer_z1_particles, Particles.n_recv_z1, 
+  Particles.Unload_Particles_from_Buffer_CPU( 2, 1, h_recv_buffer_z1_particles, Particles.n_recv_z1,
       h_send_buffer_y0_particles, h_send_buffer_y1_particles, h_send_buffer_z0_particles,
-      h_send_buffer_z1_particles, buffer_length_particles_y0_send , buffer_length_particles_y1_send, 
+      h_send_buffer_z1_particles, buffer_length_particles_y0_send , buffer_length_particles_y1_send,
       buffer_length_particles_z0_send, buffer_length_particles_z1_send, flags);
   #endif//PARTICLES_CPU
   #ifdef PARTICLES_GPU
   #ifndef MPI_GPU
-  cudaMemcpy(d_recv_buffer_z1_particles, h_recv_buffer_z1_particles, 
-             buffer_length_particles_z1_recv*sizeof(Real), 
+  cudaMemcpy(d_recv_buffer_z1_particles, h_recv_buffer_z1_particles,
+             buffer_length_particles_z1_recv*sizeof(Real),
              cudaMemcpyHostToDevice);
   #endif
   Particles.Unload_Particles_from_Buffer_GPU( 2, 1, d_recv_buffer_z1_particles, Particles.n_recv_z1 );
@@ -507,7 +507,7 @@ void Particles_3D::Select_Particles_to_Transfer_All( int *flags ){
   #ifdef PARTICLES_CPU
   Select_Particles_to_Transfer_All_CPU( flags );
   #endif//PARTICLES_CPU
-  
+
   // When using PARTICLES_GPU the particles that need to be Transfered
   // are seleted on the Load_Buffer_GPU functions
 
@@ -515,7 +515,7 @@ void Particles_3D::Select_Particles_to_Transfer_All( int *flags ){
 
 
 void Particles_3D::Clear_Particles_For_Transfer( void ){
-  
+
   //Set the number of transfered particles to 0.
   n_transfer_x0 = 0;
   n_transfer_x1 = 0;
@@ -532,7 +532,7 @@ void Particles_3D::Clear_Particles_For_Transfer( void ){
   n_send_z0 = 0;
   n_send_z1 = 0;
 
-  //Set the number of recieved particles to 0.  
+  //Set the number of recieved particles to 0.
   n_recv_x0 = 0;
   n_recv_x1 = 0;
   n_recv_y0 = 0;
@@ -540,50 +540,50 @@ void Particles_3D::Clear_Particles_For_Transfer( void ){
   n_recv_z0 = 0;
   n_recv_z1 = 0;
 
-  //Set the number of particles in transfer buffers to 0. 
+  //Set the number of particles in transfer buffers to 0.
   n_in_buffer_x0 = 0;
   n_in_buffer_x1 = 0;
   n_in_buffer_y0 = 0;
   n_in_buffer_y1 = 0;
   n_in_buffer_z0 = 0;
   n_in_buffer_z1 = 0;
-  
-  
+
+
   #ifdef PARTICLES_CPU
   //Clear the particles indices that were transfered during the previour timestep
   Clear_Vectors_For_Transfers();
   #endif //PARTICLES_CPU
-  
+
 }
 
 #ifdef PARTICLES_GPU
 
 int Particles_3D::Select_Particles_to_Transfer_GPU( int direction, int side ){
-  
-  int n_transfer; 
+
+  int n_transfer;
   Real *pos;
   Real domainMin, domainMax;
-  
+
   if ( direction == 0 ){
     pos = pos_x_dev;
     domainMax = G.xMax;
     domainMin = G.xMin;
-  }  
+  }
   if ( direction == 1 ){
     pos = pos_y_dev;
     domainMax = G.yMax;
     domainMin = G.yMin;
-  }  
+  }
   if ( direction == 2 ){
     pos = pos_z_dev;
     domainMax = G.zMax;
     domainMin = G.zMin;
   }
-    
+
   //Set the number of particles that will be sent and load the particles data into the transfer buffers
-  n_transfer = Select_Particles_to_Transfer_GPU_function(  n_local, side, domainMin, domainMax, pos, G.n_transfer_d, G.n_transfer_h, G.transfer_particles_flags_d, G.transfer_particles_indices_d, G.replace_particles_indices_d, G.transfer_particles_prefix_sum_d, G.transfer_particles_prefix_sum_blocks_d  ); 
+  n_transfer = Select_Particles_to_Transfer_GPU_function(  n_local, side, domainMin, domainMax, pos, G.n_transfer_d, G.n_transfer_h, G.transfer_particles_flags_d, G.transfer_particles_indices_d, G.replace_particles_indices_d, G.transfer_particles_prefix_sum_d, G.transfer_particles_prefix_sum_blocks_d  );
   CHECK(cudaDeviceSynchronize());
-  
+
   return n_transfer;
 }
 
@@ -594,12 +594,12 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
   Real *pos, *send_buffer_d;
   Real domainMin, domainMax;
   int bt_pos_x, bt_pos_y, bt_pos_z, bt_non_pos;
-  
+
   bt_pos_x = -1;
   bt_pos_y = -1;
   bt_pos_z = -1;
   bt_non_pos = -1;
-  
+
   if ( direction == 0 ){
     pos = pos_x_dev;
     domainMin = G.domainMin_x;
@@ -609,14 +609,14 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
       buffer_size = G.send_buffer_size_x0;
       send_buffer_d = G.send_buffer_x0_d;
       bt_pos_x = G.boundary_type_x0;
-    } 
+    }
     if ( side == 1 ){
       n_send = &n_send_x1;
       buffer_size = G.send_buffer_size_x1;
       send_buffer_d = G.send_buffer_x1_d;
       bt_pos_x = G.boundary_type_x1;
-    } 
-  }  
+    }
+  }
   if ( direction == 1 ){
     pos = pos_y_dev;
     domainMin = G.domainMin_y;
@@ -626,14 +626,14 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
       buffer_size = G.send_buffer_size_y0;
       send_buffer_d = G.send_buffer_y0_d;
       bt_pos_y = G.boundary_type_y0;
-    } 
+    }
     if ( side == 1 ){
       n_send = &n_send_y1;
       buffer_size = G.send_buffer_size_y1;
       send_buffer_d = G.send_buffer_y1_d;
       bt_pos_y = G.boundary_type_y1;
-    } 
-  }  
+    }
+  }
   if ( direction == 2 ){
     pos = pos_z_dev;
     domainMin = G.domainMin_z;
@@ -643,43 +643,43 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
       buffer_size = G.send_buffer_size_z0;
       send_buffer_d = G.send_buffer_z0_d;
       bt_pos_z = G.boundary_type_z0;
-    } 
+    }
     if ( side == 1 ){
       n_send = &n_send_z1;
       buffer_size = G.send_buffer_size_z1;
       send_buffer_d = G.send_buffer_z1_d;
       bt_pos_z = G.boundary_type_z1;
-    } 
+    }
   }
-  
-  
-  
-  
+
+
+
+
   if ( (*n_send + n_transfer)*N_DATA_PER_PARTICLE_TRANSFER > buffer_size  ){
       printf("ERROR:Transfer Buffer is not large enough\n" );
       exit(-1);
-  } 
-  
+  }
+
   // Load the particles that will be transfered into the buffers
   n_fields_to_transfer = N_DATA_PER_PARTICLE_TRANSFER;
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 0, n_fields_to_transfer, pos_x_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_x ); 
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 1, n_fields_to_transfer, pos_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_y ); 
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 2, n_fields_to_transfer, pos_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_z ); 
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 3, n_fields_to_transfer, vel_x_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos ); 
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 4, n_fields_to_transfer, vel_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos ); 
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 5, n_fields_to_transfer, vel_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos ); 
-  
+  Load_Particles_to_Transfer_GPU_function( n_transfer, 0, n_fields_to_transfer, pos_x_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_x );
+  Load_Particles_to_Transfer_GPU_function( n_transfer, 1, n_fields_to_transfer, pos_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_y );
+  Load_Particles_to_Transfer_GPU_function( n_transfer, 2, n_fields_to_transfer, pos_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_z );
+  Load_Particles_to_Transfer_GPU_function( n_transfer, 3, n_fields_to_transfer, vel_x_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
+  Load_Particles_to_Transfer_GPU_function( n_transfer, 4, n_fields_to_transfer, vel_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
+  Load_Particles_to_Transfer_GPU_function( n_transfer, 5, n_fields_to_transfer, vel_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
+
   CHECK(cudaDeviceSynchronize());
-  
+
   *n_send += n_transfer;
   // if ( *n_send > 0 ) printf( "###Transfered %ld  particles\n", *n_send);
-   
-  
+
+
 }
 
 
 void Particles_3D::Replace_Tranfered_Particles_GPU( int n_transfer ){
-    
+
   // Replace the particles that were transfered
   Replace_Transfered_Particles_GPU_function( n_transfer, pos_x_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, pos_y_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
@@ -687,7 +687,7 @@ void Particles_3D::Replace_Tranfered_Particles_GPU( int n_transfer ){
   Replace_Transfered_Particles_GPU_function( n_transfer, vel_x_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, vel_y_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, vel_z_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
-  
+
   CHECK(cudaDeviceSynchronize());
   // Update the local number of particles
   n_local -= n_transfer;
@@ -698,20 +698,20 @@ void Particles_3D::Replace_Tranfered_Particles_GPU( int n_transfer ){
 void Particles_3D::Load_Particles_to_Buffer_GPU( int direction, int side, Real *send_buffer_h, int buffer_length ){
 
   int n_transfer;
-  
+
   n_transfer = Select_Particles_to_Transfer_GPU( direction, side );
-  
+
   Copy_Transfer_Particles_to_Buffer_GPU( n_transfer, direction, side, send_buffer_h, buffer_length );
-  
+
   Replace_Tranfered_Particles_GPU( n_transfer );
 
 }
 
 
 void Particles_3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d ){
-  
+
   int n_fields_to_transfer;
-  
+
   part_int_t n_local_after = n_local + n_recv;
   if ( n_local_after > particles_array_size ){
     particles_array_size = Compute_Particles_GPU_Array_Size( n_local_after );
@@ -723,30 +723,30 @@ void Particles_3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *rec
     Reallocate_and_Copy_Partciles_Array_Real( &vel_y_dev, n_local, particles_array_size  );
     Reallocate_and_Copy_Partciles_Array_Real( &vel_z_dev, n_local, particles_array_size  );
   }
-  
+
   // Unload the particles that were transfered from the buffers
   n_fields_to_transfer = N_DATA_PER_PARTICLE_TRANSFER;
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 0, n_fields_to_transfer, pos_x_dev, recv_buffer_d  ); 
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 1, n_fields_to_transfer, pos_y_dev, recv_buffer_d  ); 
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 2, n_fields_to_transfer, pos_z_dev, recv_buffer_d  ); 
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 3, n_fields_to_transfer, vel_x_dev, recv_buffer_d  ); 
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 4, n_fields_to_transfer, vel_y_dev, recv_buffer_d  ); 
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 5, n_fields_to_transfer, vel_z_dev, recv_buffer_d  );  
-  // 
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 0, n_fields_to_transfer, pos_x_dev, recv_buffer_d  );
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 1, n_fields_to_transfer, pos_y_dev, recv_buffer_d  );
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 2, n_fields_to_transfer, pos_z_dev, recv_buffer_d  );
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 3, n_fields_to_transfer, vel_x_dev, recv_buffer_d  );
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 4, n_fields_to_transfer, vel_y_dev, recv_buffer_d  );
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 5, n_fields_to_transfer, vel_z_dev, recv_buffer_d  );
+  //
   n_local += n_recv;
   // if ( n_recv > 0 ) printf( "###Unloaded %d  particles\n", n_recv );
-   
-  
+
+
 }
 
 
 
 void Particles_3D::Unload_Particles_from_Buffer_GPU( int direction, int side , Real *recv_buffer_h, int n_recv ){
-  
+
   int buffer_size;
   Real domainMin, domainMax;
   Real *recv_buffer_d;
-  
+
   if ( direction == 0 ){
     domainMin = G.domainMin_x;
     domainMin = G.domainMax_x;
@@ -783,11 +783,11 @@ void Particles_3D::Unload_Particles_from_Buffer_GPU( int direction, int side , R
       recv_buffer_d = G.recv_buffer_z1_d;
     }
   }
-  
+
   CudaCheckError();
-  
+
   Copy_Transfer_Particles_from_Buffer_GPU( n_recv, recv_buffer_d );
-  
+
 }
 
 

@@ -3,14 +3,14 @@
 #ifdef PARTICLE_AGE
 
 #include <iostream>
-#include "feedback_CIC.h"
-#include "particles_3D.h"
-#include "../grid3D.h"
-#include "density_CIC.h"
+#include "../particles/feedback_CIC.h"
+#include "../particles/particles_3D.h"
+#include "../grid/grid3D.h"
+#include "../particles/density_CIC.h"
 
 
 #ifdef PARALLEL_OMP
-#include"../parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 
@@ -41,11 +41,11 @@ void Grid3D::Cluster_Feedback(){
 
     omp_id = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    
+
     Get_OMP_Particles_Indxs( Particles.n_local, N_OMP_THREADS, omp_id,  &p_start, &p_end );
-    
+
     Cluster_Feedback_Function( p_start, p_end );
-  }  
+  }
   #endif //PARALLEL_OMP
   #endif //PARTICLES_CPU
 }
@@ -62,8 +62,8 @@ void Grid3D::Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end) {
   xMin = H.xblocal;  //TODO: make sure this is correct (and not H.xbound) (local min vs. global min)
   yMin = H.yblocal;
   zMin = H.zblocal;
- 
-  
+
+
   part_int_t pIndx;
   int indx_x, indx_y, indx_z, indx;
   Real x_pos, y_pos, z_pos;
@@ -120,7 +120,7 @@ void Grid3D::Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end) {
       std::cout << std::endl;
       continue;
     }
-    
+
     cell_center_x = xMin + indx_x*H.dx + 0.5*H.dx;
     cell_center_y = yMin + indx_y*H.dy + 0.5*H.dy;
     cell_center_z = zMin + indx_z*H.dz + 0.5*H.dz;

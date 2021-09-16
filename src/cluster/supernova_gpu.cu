@@ -1,9 +1,7 @@
 #ifdef SUPERNOVA
 #include<math.h>
-#include"io.h"
-#include"../global.h"
-#include"../global_cuda.h"//includes gpu.hpp
-#include"../grid3D.h"
+#include"../io/io.h" //defines chprintf
+#include"../global/global_cuda.h"//includes gpu.hpp
 #include"supernova.h"
 
 
