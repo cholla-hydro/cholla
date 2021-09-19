@@ -403,7 +403,6 @@ void Grid3D::Set_Edge_Boundary_Extents(int dir, int edge, int *imin, int *imax)
 
 void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
 {
-  double start_time = get_time();
   switch(flag_decomp)
   {
     case SLAB_DECOMP:
@@ -415,8 +414,6 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
       Load_and_Send_MPI_Comm_Buffers_BLOCK(dir, flags);
       break;
   }
-  double end_time = get_time();
-  chprintf("Load and Send: %9.4f \n",1000*(end_time-start_time));
 }
 
 void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)

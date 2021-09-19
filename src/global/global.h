@@ -272,6 +272,10 @@ struct parameters
   int lya_skewers_stride;
   Real lya_Pk_d_log_k;
 #endif
+#ifdef SUPERNOVA
+  int supernova_e;
+  Real supernova_rcl;
+#endif
 };
 
 

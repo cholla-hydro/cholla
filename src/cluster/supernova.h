@@ -34,10 +34,11 @@ namespace Supernova {
 
   extern int n_cells;
   extern int n_fields;
-  
+  extern int supernova_e;
+
   extern Real R_cl;
   extern Real SFR;
-  void Initialize(Grid3D G);
+  void Initialize(Grid3D G, struct parameters *P);
   void InitializeS99(void);
   void Calc_Omega(void);//Real *cluster_array, Real *omega_array, int n_cluster);
   void Calc_Flags(Real time);

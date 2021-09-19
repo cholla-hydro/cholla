@@ -57,6 +57,8 @@ namespace Supernova {
   int n_cluster;
   int n_cells;
   int n_fields;
+  int supernova_e;
+
   void Test(Header H);
   void Initialize(Grid3D G);
   Real Update_Grid(Grid3D G, Real old_dti);
@@ -70,13 +72,13 @@ namespace Supernova {
 //H.dz = 1.0;
 
 void Supernova::Test(Header H){
-  printf("nx %d ny %d nz %d dx %f dy %f dz %f\n",nx,ny,nz,dx,dy,dz);
-  printf("pnx %d pny %d pnz %d n_cell %d n_fields %d\n",pnx,pny,pnz,n_cells,n_fields);
-  printf("Min %f %f %f Max %f %f %f",xMin,yMin,zMin,xMax,yMax,zMax);
+  chprintf("nx %d ny %d nz %d dx %f dy %f dz %f\n",nx,ny,nz,dx,dy,dz);
+  chprintf("pnx %d pny %d pnz %d n_cell %d n_fields %d\n",pnx,pny,pnz,n_cells,n_fields);
+  chprintf("Min %f %f %f Max %f %f %f",xMin,yMin,zMin,xMax,yMax,zMax);
 }
 
 
-void Supernova::Initialize(Grid3D G){
+void Supernova::Initialize(Grid3D G, struct parameters *P){
 
   #include "cluster_list.data"
   // Defines cluster_data in local scope so it is deleted
@@ -85,8 +87,9 @@ void Supernova::Initialize(Grid3D G){
   Header H = G.H;
 
 
-  R_cl = 0.03;
+  R_cl = P->supernova_rcl;
   SFR = 20000.0;
+  supernova_e = P->supernova_e;
 
   dx = H.dx;
   dy = H.dy;
@@ -140,40 +143,49 @@ void Supernova::Initialize(Grid3D G){
   InitializeS99();
 #endif //CUDA
 
-  printf("\n n_cluster: %d\n",n_cluster);
-  printf("nx %d ny %d nz %d dx %f dy %f dz %f\n",nx,ny,nz,dx,dy,dz);
-  printf("pnx %d pny %d pnz %d n_cell %d n_fields %d\n",pnx,pny,pnz,n_cells,n_fields);
-  printf("Min %f %f %f Max %f %f %f\n",xMin,yMin,zMin,xMax,yMax,zMax);
+  chprintf("\n n_cluster: %d\n",n_cluster);
+  chprintf("nx %d ny %d nz %d dx %f dy %f dz %f\n",nx,ny,nz,dx,dy,dz);
+  chprintf("pnx %d pny %d pnz %d n_cell %d n_fields %d\n",pnx,pny,pnz,n_cells,n_fields);
+  chprintf("Min %f %f %f Max %f %f %f\n",xMin,yMin,zMin,xMax,yMax,zMax);
 
 
 
 }
 
 Real Supernova::Update_Grid(Grid3D G,Real old_dti_local){
+
+  // Let G.set_dt synchronize before Update Grid
   double start_time = get_time();
+  /*
   // Synchronize old 1/dt
   Real old_dti = old_dti_local;
 #ifdef MPI_CHOLLA
   old_dti = ReduceRealMax(old_dti_local);
 #endif //MPI_CHOLLA
+
+C_cfl/old_dti;
+  */
   // Return dti
-  Real old_dt = C_cfl/old_dti;
+  Real old_dt = G.H.dt;
   Calc_Flags(G.H.t);
   Real new_dti = Feedback(0.1,0.0,G.H.t,old_dt);
 
   // Synchronize new 1/dt
 #ifdef MPI_CHOLLA
   new_dti = ReduceRealMax(new_dti);
+  MPI_Barrier(world);
 #endif /*MPI_CHOLLA*/
-  if (old_dti < new_dti){
-    Feedback(0.1,0.0,G.H.t,C_cfl/new_dti-old_dt);
-    double end_time = get_time();
-    chprintf("Supernova Update: %9.4f \n",1000*(end_time-start_time));
-    return new_dti;
+
+  Real new_dt = C_cfl/new_dti;
+
+  if (old_dt > new_dt){
+    G.H.dt = new_dt;
+    Feedback(0.1,0.0,G.H.t,new_dt-old_dt);
   }
+
   double end_time = get_time();
   chprintf("Supernova Update: %9.4f \n",1000*(end_time-start_time));
-  return old_dti;
+  return G.H.dt;
 }
 
 

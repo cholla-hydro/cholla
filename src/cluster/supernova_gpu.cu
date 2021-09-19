@@ -82,7 +82,8 @@ __device__ bool Supernova_Helper(Real *hydro_dev,
   Real yc = fabs((local_j+0.5)*dy - pos_y);
   Real zc = fabs((local_k+0.5)*dz - pos_z);
   // cell corner distances to supernova
-  Real rl = distance(xc - 0.5*dx, yc - 0.5*dy, zc - 0.5*dz);
+  Real rl = distance(fmax(xc - 0.5*dx,0.0), fmax(yc - 0.5*dy,0.0),fmax(zc - 0.5*dz,0.0));
+  // fmax because if the distance becomes negative we should still inject 
   Real rr = distance(xc + 0.5*dx, yc + 0.5*dy, zc + 0.5*dz);
   Real R_cl2 = R_cl*R_cl;
   // Check if local cell overlaps with R_cl radius
@@ -104,10 +105,11 @@ __device__ bool Supernova_Helper(Real *hydro_dev,
     int count = 0;
     // Add fractional
     // Minor impact on kernel runtime
+#ifdef SUPERD
     for (int i=0;i<10;i++){
       for (int j=0;j<10;j++){
 	for (int k=0;k<10;k++){
-	  if (distance(xc + (0.1*i - 0.95)*dx, yc + (0.1*j - 0.95)*dy, zc + (0.1*k - 0.95)*dz) < R_cl2){
+	  if (distance(xc + (0.1*i - 0.45)*dx, yc + (0.1*j - 0.45)*dy, zc + (0.1*k - 0.45)*dz) < R_cl2){
 	    count++;
 	  }
 	}
@@ -115,7 +117,20 @@ __device__ bool Supernova_Helper(Real *hydro_dev,
     }
 
     Real weight = count/1000.0;
+#else
+    for (int i=0;i<20;i++){
+      for (int j=0;j<20;j++){
+	for (int k=0;k<20;k++){
+	  if (distance(xc + (0.05*i - 0.5 + 0.025)*dx, yc + (0.05*j - 0.5 + 0.025)*dy, zc + (0.05*k - 0.5 + 0.025)*dz) < R_cl2){
+	    count++;
+	  }
+	}
+      }
+    }
 
+    Real weight = count/8000.0;
+
+#endif
     //Real weight = 0.5;
     atomicAdd(&hydro_dev[gidx],weight*density);
     atomicAdd(&hydro_dev[gidx+4*n_cells],weight*energy);
@@ -264,7 +279,7 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
   // Check if it is time for this cluster to be active
   // SF_cl/20000 < t < SF_cl/20000 + 40000
   Real total_SF = cluster_array[5*tid+1];
-  Real convert_time = ((time - total_SF/SFR)*1e3-1e4)*1e-5;
+  Real convert_time = (((time - total_SF/SFR)*1e3)-1e4)*1e-5;
   int table_index = (int)floor(convert_time);
 
   if (table_index < 0){
@@ -344,7 +359,7 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
 
 void Supernova::Calc_Flags(Real time){
   CHECK(cudaDeviceSynchronize());
-  double start_time = get_time();
+  // double start_time = get_time();
   dim3 dim1dGrid((n_cluster+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(Calc_Flag_Kernel,dim1dGrid,dim1dBlock,0,0,
@@ -353,8 +368,8 @@ void Supernova::Calc_Flags(Real time){
 		     n_cluster,
 		     time, xMin, yMin, zMin, xMax, yMax, zMax, R_cl, SFR);
   CHECK(cudaDeviceSynchronize());
-  double end_time = get_time();
-  chprintf("Supernova Calc Flags: %9.4f \n",1000*(end_time-start_time));
+  // double end_time = get_time();
+  //chprintf("Supernova Calc Flags: %9.4f \n",1000*(end_time-start_time));
 
 }
 
@@ -362,9 +377,12 @@ void Supernova::Calc_Flags(Real time){
 
 // Lastly start doing some cuda timing tests on the flag + supernova step
 
-__global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, Real *omega_array, bool *flags_array, Real *d_mdot_array, Real *d_edot_array, Real *d_dti,
-					  Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, int nx, int ny, int nz, int pnx, int pny, int pnz, 
-					  int n_cells, int n_fields, Real R_cl, Real density, Real gamma, Real time, Real dt, int max_pid){
+__global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, Real *omega_array, bool *flags_array, 
+					  Real *d_mdot_array, Real *d_edot_array, Real *d_dti,
+					  Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, 
+					  int nx, int ny, int nz, int pnx, int pny, int pnz, 
+					  int n_cells, int n_fields, 
+					  Real R_cl, Real density, Real gamma, Real time, Real dt, int max_pid, int supernova_e){
   // Assume x,y,z Min and Max are edges of grid[i][j][k]
   // nx,ny,nz are grid sizes
 
@@ -419,7 +437,7 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
   }
   int gidx = local_i + (local_j + local_k * ny) * nx;
   Real a_density = dt*d_mdot_array[pid];
-  Real a_energy = dt*d_edot_array[pid];
+  Real a_energy = supernova_e*dt*d_edot_array[pid];
 
   //Supernova_Helper(hydro_dev, pos_x, pos_y, pos_z, dx, dy, dz, local_i, local_j, local_k, n_cells, n_fields, R_cl, density, energy, gidx);
   bool flipped = Supernova_Helper(hydro_dev, pos_x, pos_y, pos_z, dx, dy, dz, local_i, local_j, local_k, n_cells, n_fields, R_cl, a_density, a_energy, gidx);
@@ -441,7 +459,7 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
   }
 
 
-  double start_time = get_time();
+  // double start_time = get_time();
   int isize = 1+2*pnx;
   int jsize = 1+2*pny;
   int ksize = 1+2*pnz;
@@ -452,7 +470,7 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
 		     d_hydro_array, d_cluster_array, d_omega_array, d_flags_array,
 		     d_mdot_array, d_edot_array,d_dti,
 		     xMin, yMin, zMin, dx, dy, dz, nx, ny, nz, pnx, pny, pnz,
-		     n_cells, n_fields, R_cl, density, gama, time, dt, n_cluster);
+		     n_cells, n_fields, R_cl, density, gama, time, dt, n_cluster, supernova_e);
   CHECK(cudaDeviceSynchronize());
 
   if (dt > 0.0){
@@ -460,8 +478,8 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
     cudaFree(d_dti);
   }
   //chprintf("h_dti: %9.4f \n",1./h_dti);
-  double end_time = get_time();
-  chprintf("Supernova Feedback Time: %9.4f \n",1000*(end_time-start_time));
+  // double end_time = get_time();
+  // chprintf("Supernova Feedback Time: %9.4f \n",1000*(end_time-start_time));
   return h_dti;
 }
 

@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
   #endif
 
   #ifdef SUPERNOVA
-  Supernova::Initialize(G);
+  Supernova::Initialize(G, &P);
   #endif
 
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
@@ -186,10 +186,6 @@ int main(int argc, char *argv[])
     // get the start time
     start_step = get_time();
 
-    #ifdef SUPERNOVA
-    dti = Supernova::Update_Grid(G, dti);
-    #endif
-    MPI_Barrier(world);
     /*
     printf("Supernova Update_Grid Finished\n");
     fflush(stdout);
@@ -203,6 +199,12 @@ int main(int argc, char *argv[])
     MPI_Barrier(world);
     */
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
+
+    #ifdef SUPERNOVA
+    Supernova::Update_Grid(G, dti);
+    #endif
+
+
 
     #ifdef PARTICLES
     //Advance the particles KDK( first step ): Velocities are updated by 0.5*dt and positions are updated by dt
