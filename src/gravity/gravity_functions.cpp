@@ -83,7 +83,7 @@ void Grid3D::set_dt_Gravity(){
   }
 
   #ifdef ANALYSIS
-  //Limit delta_a if it's time to run analisys
+  //Limit delta_a if it's time to run analysis
   if( Analysis.next_output_indx < Analysis.n_outputs ){
     if ( (Cosmo.current_a + da_min) >  Analysis.next_output ){
       da_min = Analysis.next_output - Cosmo.current_a;
@@ -498,7 +498,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   const Real dens_avrg = Cosmo.rho_0_gas;
   #else
   const Real Grav_Constant = Grav.Gconst;
-  // If sloving the Sphere Collapse problem ( bc_potential_type=0 )
+  // If slowing the Sphere Collapse problem ( bc_potential_type=0 )
   const Real dens_avrg = (P->bc_potential_type == 0) ? H.sphere_background_density : 0;
   const Real r0 = H.sphere_radius;
   // Re-use current_a as the total mass of the sphere
@@ -745,7 +745,7 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
         }
 
         #ifdef COSMOLOGY
-        //For cosmological simulation the potential is transformrd to 'comuving coordinates'
+        //For cosmological simulation the potential is tranformed to 'comoving coordinates'
         pot_extrp *= Cosmo.current_a * Cosmo.current_a / Cosmo.phi_0_gas;
         #endif
 
@@ -758,7 +758,7 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
   }
 }
 
-//Call the funtion to extrapolate the potential
+//Call the function to extrapolate the potential
 void Grid3D::Extrapolate_Grav_Potential(){
 
   #ifdef GRAVITY_GPU

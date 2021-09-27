@@ -963,7 +963,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 {
 
   #ifdef PARTICLES
-  // Select wich particles need to be transfred for this direction
+  // Select which particles need to be transfred for this direction
   // if ( Particles.TRANSFER_PARTICLES_BOUNDARIES) Particles.Select_Particles_to_Transfer( dir );
 
   // Initialize MPI requests for particles transfers
@@ -981,7 +981,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
   int buffer_length;
 
-  // Flag to ommit the transfer of the main buffer when tharnsfering the particles buffer
+  // Flag to omit the transfer of the main buffer when tranferring the particles buffer
   bool transfer_main_buffer = true;
 
   /* x boundaries */

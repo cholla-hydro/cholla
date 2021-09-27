@@ -11,7 +11,7 @@
 
 /*! \fn __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields)
  *  \brief When passed a stencil of conserved variables, returns the left and right
-           boundary values for the interface calculated using ppm with limiting in the primative variables. */
+           boundary values for the interface calculated using ppm with limiting in the primitive variables. */
 __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields);
 
 /*! \fn __device__ Real Calculate_Slope(Real q_imo, Real q_i, Real q_ipo)

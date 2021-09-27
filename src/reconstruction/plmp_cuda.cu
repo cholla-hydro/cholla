@@ -31,7 +31,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     o1 = 3; o2 = 1; o3 = 2;
   }
 
-  // declare primative variables in the stencil
+  // declare primitive variables in the stencil
   Real d_i, vx_i, vy_i, vz_i, p_i;
   Real d_imo, vx_imo, vy_imo, vz_imo, p_imo;
   Real d_ipo, vx_ipo, vy_ipo, vz_ipo, p_ipo;
@@ -52,7 +52,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real scalar_L[NSCALARS], scalar_R[NSCALARS], dscalar_L[NSCALARS], dscalar_R[NSCALARS];
   #endif
 
-  #ifndef VL //Dont use velocities to reconstruct when using VL
+  #ifndef VL //Don't use velocities to reconstruct when using VL
   Real dtodx = dt/dx;
   Real dfl, dfr, mxfl, mxfr, myfl, myfr, mzfl, mzfr, Efl, Efr;
   #ifdef DE
@@ -209,7 +209,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
 
     // #ifdef CTU
-    #ifndef VL //Dont use velocities to reconstruct when using VL
+    #ifndef VL //Don't use velocities to reconstruct when using VL
     // calculate fluxes for each variable
     dfl = mx_L;
     dfr = mx_R;
@@ -242,7 +242,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     mz_L += 0.5 * (dtodx) * (mzfl - mzfr);
     mz_R += 0.5 * (dtodx) * (mzfl - mzfr);
     E_L += 0.5 * (dtodx) * (Efl - Efr);
-    E_R += 0.5 * (dtodx) * (Efl - Efr);	
+    E_R += 0.5 * (dtodx) * (Efl - Efr);
     #ifdef DE
     dge_L += 0.5 * (dtodx) * (gefl - gefr);
     dge_R += 0.5 * (dtodx) * (gefl - gefr);
@@ -301,7 +301,7 @@ __device__ void Interface_Values_PLM(Real q_imo, Real q_i, Real q_ipo, Real *q_L
   Real del_q_L, del_q_R, del_q_C, del_q_G;
   Real lim_slope_a, lim_slope_b, del_q_m;
 
-  // Compute the left, right, centered, and Van Leer differences of the primative variables
+  // Compute the left, right, centered, and Van Leer differences of the primitive variables
   // Note that here L and R refer to locations relative to the cell center
 
   // left

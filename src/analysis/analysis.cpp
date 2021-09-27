@@ -12,7 +12,7 @@ void Grid3D::Compute_Lya_Statistics( ){
 
   int axis, n_skewers;
 
-  // Copmpute Lya Statitics
+  // Compute Lya Statistics
   int chemical_type = 0;   // Statistics for Hydrogen Lya
   chprintf( "Computing Hydrogen Lya Statistics \n");
 
@@ -74,7 +74,7 @@ void Grid3D::Compute_Lya_Statistics( ){
 
   chprintf( "Completed HI Lya Statistics \n" );
 
-  // Copmpute Lya Statitics
+  // Compute Lya Statistics
   chemical_type = 1;   // Statistics for Helium Lya
   chprintf( "Computing Helium Lya Statistics \n");
 
@@ -143,7 +143,7 @@ void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
 
 void Grid3D::Initialize_Analysis_Module( struct parameters *P ){
 
-  chprintf( "\nInitializng Analysis Module...\n");
+  chprintf( "\nInitialzing Analysis Module...\n");
 
   Real z_now;
   #ifdef COSMOLOGY
@@ -186,7 +186,7 @@ void Analysis_Module::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_
   //Number of ghost cells in the conserved arrays
   n_ghost = n_ghost_hydro;
 
-  //Domain Global left Boundaty
+  //Domain Global left Boundary
   xMin_global = P->xmin;
   yMin_global = P->ymin;
   zMin_global = P->zmin;
@@ -206,7 +206,7 @@ void Analysis_Module::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_
   Initialize_Lya_Statistics(P);
   #endif
 
-  chprintf( "Analysis Module Sucessfully Initialized.\n\n");
+  chprintf( "Analysis Module Successfully Initialized.\n\n");
 
 
 }

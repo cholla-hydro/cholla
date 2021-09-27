@@ -182,7 +182,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   status = H5Dclose(dataset_id);
   #endif
 
-  //Initializa min and max values for position and velocity to print initial Statistics
+  //Initialize min and max values for position and velocity to print initial Statistics
   Real px_min, px_max;
   Real py_min, py_max;
   Real pz_min, pz_max;

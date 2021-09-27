@@ -32,7 +32,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     o1 = 3; o2 = 1; o3 = 2;
   }
 
-  // declare primative variables for each stencil
+  // declare primitive variables for each stencil
   // these will be placed into registers for each thread
   Real d_i, vx_i, vy_i, vz_i, p_i;
   Real d_imo, vx_imo, vy_imo, vz_imo, p_imo;
@@ -247,7 +247,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     //printf("%d %d %d %f %f %f %f %f\n", xid, yid, zid, d_i, vx_i, vy_i, vz_i, p_i);
 
     // Steps 2 - 5 are repeated for cell i-1, i, and i+1
-    // Step 2 - Compute the left, right, centered, and van Leer differences of the primative variables
+    // Step 2 - Compute the left, right, centered, and van Leer differences of the primitive variables
     //          Note that here L and R refer to locations relative to the cell center
     //          Stone Eqn 36
 
@@ -385,7 +385,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
 
     // Step 5 - Project the monotonized difference in the characteristic variables back onto the
-    //          primative variables
+    //          primitive variables
     //          Stone Eqn 39
 
     del_d_m_imo  = del_a_0_m + del_a_1_m + del_a_4_m;
@@ -395,7 +395,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     del_p_m_imo  = a*a*del_a_0_m + a*a*del_a_4_m;
 
 
-    // Step 2 - Compute the left, right, centered, and van Leer differences of the primative variables
+    // Step 2 - Compute the left, right, centered, and van Leer differences of the primitive variables
     //          Note that here L and R refer to locations relative to the cell center
     //          Stone Eqn 36
 
@@ -533,7 +533,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
 
     // Step 5 - Project the monotonized difference in the characteristic variables back onto the
-    //          primative variables
+    //          primitive variables
     //          Stone Eqn 39
 
     del_d_m_i  = del_a_0_m + del_a_1_m + del_a_4_m;
@@ -543,7 +543,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     del_p_m_i  = a*a*del_a_0_m + a*a*del_a_4_m;
 
 
-    // Step 2 - Compute the left, right, centered, and van Leer differences of the primative variables
+    // Step 2 - Compute the left, right, centered, and van Leer differences of the primitive variables
     //          Note that here L and R refer to locations relative to the cell center
     //          Stone Eqn 36
 
@@ -683,7 +683,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
 
     // Step 5 - Project the monotonized difference in the characteristic variables back onto the
-    //          primative variables
+    //          primitive variables
     //          Stone Eqn 39
 
     del_d_m_ipo  = del_a_0_m + del_a_1_m + del_a_4_m;
@@ -818,7 +818,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
 
     // Compute the eigenvalues of the linearized equations in the
-    // primative variables using the cell-centered primative variables
+    // primitive variables using the cell-centered primitive variables
 
     // recalculate the adiabatic sound speed in cell i
     a = sqrt(gamma*p_i/d_i);

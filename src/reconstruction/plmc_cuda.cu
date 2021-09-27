@@ -33,7 +33,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     o1 = 3; o2 = 1; o3 = 2;
   }
 
-  // declare primative variables for each stencil
+  // declare primitive variables for each stencil
   // these will be placed into registers for each thread
   Real d_i, vx_i, vy_i, vz_i, p_i;
   Real d_imo, vx_imo, vy_imo, vz_imo, p_imo;
@@ -193,7 +193,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
 
     // Compute the eigenvalues of the linearized equations in the
-    // primative variables using the cell-centered primative variables
+    // primitive variables using the cell-centered primitive variables
     // #ifdef CTU
     #ifndef VL
     lambda_m = vx_i-a_i;
@@ -201,7 +201,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     lambda_p = vx_i+a_i;
     #endif
 
-    // Compute the left, right, centered, and van Leer differences of the primative variables
+    // Compute the left, right, centered, and van Leer differences of the primitive variables
     // Note that here L and R refer to locations relative to the cell center
 
     // left
@@ -334,7 +334,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
 
     // Project the monotonized difference in the characteristic variables back onto the
-    // primative variables
+    // primitive variables
     // Stone Eqn 39
     del_d_m_i  = del_a_0_m + del_a_1_m + del_a_4_m;
     del_vx_m_i = -a_i*del_a_0_m / d_i + a_i* del_a_4_m / d_i;
@@ -344,7 +344,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
 
     // Compute the left and right interface values using the monotonized difference in the
-    // primative variables
+    // primitive variables
 
     d_R_imh  = d_i  - 0.5*del_d_m_i;
     vx_R_imh = vx_i - 0.5*del_vx_m_i;

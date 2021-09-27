@@ -187,7 +187,7 @@ void Grid3D::Update_Internal_Energy_function( int g_start, int g_end ){
 void Grid3D::Do_Cooling_Step_Grackle(){
 
   Real kpc_cgs = KPC_CGS;
-  // Upfate the units conversion
+  // Update the units conversion
   Cool.units.a_value = Cosmo.current_a / Cool.units.a_units;
   Cool.units.density_units = Cool.dens_to_CGS  / Cosmo.current_a / Cosmo.current_a / Cosmo.current_a ;
   Cool.units.length_units = kpc_cgs / Cosmo.cosmo_h * Cosmo.current_a;

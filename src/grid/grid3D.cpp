@@ -174,7 +174,7 @@ void Grid3D::Initialize(struct parameters *P)
   // and initialize the timestep
   H.dt = 0.0;
 
-  // Set Transfer flag to false, only set to true before Conserved boundaries are transfered
+  // Set Transfer flag to false, only set to true before Conserved boundaries are transferred
   H.TRANSFER_HYDRO_BOUNDARIES = false;
 
   // Set output to true when data has to be written to file;

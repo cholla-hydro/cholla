@@ -46,7 +46,7 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
   chprintf( " Using Poisson Solver: PFFT\n");
 
   #ifdef ANALITIC_POISSON_SOLVER
-  chprintf( " WARNING: Using Analitic Poisson Solver instead of Discretized.\n");
+  chprintf( " WARNING: Using Analytic Poisson Solver instead of Discretized.\n");
   #endif
 
   //Set the number of MPI processes
