@@ -14,7 +14,7 @@
 #include "../utils/parallel_omp.h"
 #endif
 
-#ifdef PARIS
+#if defined(PARIS_TEST) || defined(PARIS_BC_TEST)
 #include <vector>
 #endif
 
@@ -268,8 +268,10 @@ static inline Real nonzeroD(const Real x, const Real y, const Real z, const Real
           +ddly*sx3*sy*(3.0*cos(fourPi*y)+1.0)*sz3
           +ddlz*sx3*sy3*sz*(3.0*cos(fourPi*z)+1.0))*sixPi2+f*df;
 }
+#endif
 
 
+#if defined(PARIS_TEST) || defined(PARIS_BC_TEST)
 static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz, const int ng = N_GHOST_POTENTIAL, const bool plot = false)
 {
   Real dMax = 0, dSum = 0, dSum2 = 0;
@@ -386,14 +388,14 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 
   if (P->bc_potential_type == 1) {
 
-    chprintf("Initializing disk analytic potential\n");
-
     const int ng = N_GHOST_POTENTIAL;
     const int twoNG = ng+ng;
     const int nk = Grav.nz_local+twoNG;
     const int nj = Grav.ny_local+twoNG;
     const int ni = Grav.nx_local+twoNG;
     const Real dr = 0.5-ng;
+
+    chprintf("Initializing disk analytic potential\n");
 
 #pragma omp parallel for
     for (int k = 0; k < nk; k++) {
@@ -412,6 +414,63 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
       }
     }
 
+#ifdef PARIS_BC_TEST
+    chprintf("Analytic Test of Poisson Solvers:\n");
+    std::vector<Real> exact(Grav.F.potential_h,Grav.F.potential_h+Grav.n_cells_potential);
+    std::vector<Real> dphi(Grav.n_cells);
+    const Real scale = 4.0*M_PI*Grav.Gconst;
+    const Real ddx = 1.0/(scale*Grav.dx*Grav.dx);
+    const Real ddy = 1.0/(scale*Grav.dy*Grav.dy);
+    const Real ddz = 1.0/(scale*Grav.dz*Grav.dz);
+    const Real *const phi = Grav.F.potential_h;
+    const int nij = ni*nj;
+    const Real a0 = Galaxies::MW.phi_disk_D3D(0,0);
+    const Real da0 = 2.0/(25.0*scale);
+#pragma omp parallel for
+    for (int k = 0; k < Grav.nz_local; k++) {
+      const Real z = Grav.zMin+Grav.dz*(k+0.5);
+      const Real zz = z*z;
+      const int njk = Grav.ny_local*k;
+      for (int j = 0; j < Grav.ny_local; j++) {
+        const Real y = Grav.yMin+Grav.dy*(j+0.5);
+        const Real yy = y*y;
+        const int nijk = Grav.nx_local*(j+njk);
+        for (int i = 0; i < Grav.nx_local; i++) {
+          const Real x = Grav.xMin+Grav.dx*(i+0.5);
+          const Real r = sqrt(x*x+yy);
+          const int ijk = i+nijk;
+          const Real rr = x*x+yy+zz;
+          const Real f = a0*exp(-0.2*rr);
+          const Real df = da0*(15.0-2.0*rr)*f;
+          Grav.F.density_h[ijk] = Galaxies::MW.rho_disk_D3D(r,z)+df;
+          const int ib = i+ng+ni*(j+ng+nj*(k+ng));
+          exact[ib] -= f;
+          dphi[ijk] = ddx*(phi[ib-1]+phi[ib+1]-2.0*phi[ib])+ddy*(phi[ib-ni]+phi[ib+ni]-2.0*phi[ib])+ddz*(phi[ib-nij]+phi[ib+nij]-2.0*phi[ib]);
+#if 0
+          if (k < ng) {
+            Grav.F.pot_boundary_z0[ijk] = Grav.F.potential_h[i+ng+ni*(j+ng+nj*k)];
+            Grav.F.pot_boundary_z1[ijk] = Grav.F.potential_h[i+ng+ni*(j+ng+nj*(k+nk-ng))];
+          }
+          if (j < ng) {
+            const int ikj = i+Grav.nx_local*(k+Grav.nz_local*j);
+            Grav.F.pot_boundary_y0[ikj] = Grav.F.potential_h[i+ng+ni*(j+nj*(k+ng))];
+            Grav.F.pot_boundary_y1[ikj] = Grav.F.potential_h[i+ng+ni*(j+nj-ng+nj*(k+ng))];
+          }
+          if (i < ng) {
+            const int jki = j+Grav.ny_local*(k+Grav.nz_local*i);
+            Grav.F.pot_boundary_x0[jki] = Grav.F.potential_h[i+ni*(j+ng+nj*(k+ng))];
+            Grav.F.pot_boundary_x1[jki] = Grav.F.potential_h[i+ni-ng+ni*(j+ng+nj*(k+ng))];
+          }
+#endif
+        }
+      }
+    }
+    //Set_Boundary_Conditions_Grid(*P);
+    Get_Potential_SOR(Grav.Gconst,0,0,P);
+    printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local,ng,true);
+    //printDiff(Grav.F.density_h,dphi.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local,0,true);
+    exit(0);
+#endif
   }
 
 }

@@ -20,6 +20,10 @@
 #include "../gravity/potential_paris_3D.h"
 #endif
 
+#ifdef PARIS_BC
+#include "../gravity/potential_paris_BC_3D.h"
+#endif
+
 #ifdef HDF5
 #include <hdf5.h>
 #endif

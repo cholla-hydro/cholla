@@ -8,7 +8,7 @@
 
 #include <hip/hip_runtime.h>
 
-#if defined(CUFFT) || defined(PARIS)
+#if defined(CUFFT) || defined(PARIS) || defined(PARIS_BC)
 
 #include <hipfft.h>
 

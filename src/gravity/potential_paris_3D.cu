@@ -175,9 +175,6 @@ void Potential_Paris_3D::Reset()
 
   potentialBytes_ = densityBytes_ = minBytes_ = 0;
 
-  if (pz_) delete pz_;
-  pz_ = nullptr;
-
   if (pp_) delete pp_;
   pp_ = nullptr;
 
