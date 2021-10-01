@@ -418,7 +418,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 #ifdef PARIS_BC_TEST
     chprintf("Analytic Test of Poisson Solvers:\n");
     std::vector<Real> exact(Grav.F.potential_h,Grav.F.potential_h+Grav.n_cells_potential);
-    std::vector<Real> dphi(Grav.n_cells);
+    std::vector<Real> potential(exact);
     const Real scale = 4.0*M_PI*Grav.Gconst;
     const Real ddx = 1.0/(scale*Grav.dx*Grav.dx);
     const Real ddy = 1.0/(scale*Grav.dy*Grav.dy);
@@ -446,31 +446,16 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
           Grav.F.density_h[ijk] = Galaxies::MW.rho_disk_D3D(r,z)+df;
           const int ib = i+ng+ni*(j+ng+nj*(k+ng));
           exact[ib] -= f;
-          dphi[ijk] = ddx*(phi[ib-1]+phi[ib+1]-2.0*phi[ib])+ddy*(phi[ib-ni]+phi[ib+ni]-2.0*phi[ib])+ddz*(phi[ib-nij]+phi[ib+nij]-2.0*phi[ib]);
-#if 0
-          if (k < ng) {
-            Grav.F.pot_boundary_z0[ijk] = Grav.F.potential_h[i+ng+ni*(j+ng+nj*k)];
-            Grav.F.pot_boundary_z1[ijk] = Grav.F.potential_h[i+ng+ni*(j+ng+nj*(k+nk-ng))];
-          }
-          if (j < ng) {
-            const int ikj = i+Grav.nx_local*(k+Grav.nz_local*j);
-            Grav.F.pot_boundary_y0[ikj] = Grav.F.potential_h[i+ng+ni*(j+nj*(k+ng))];
-            Grav.F.pot_boundary_y1[ikj] = Grav.F.potential_h[i+ng+ni*(j+nj-ng+nj*(k+ng))];
-          }
-          if (i < ng) {
-            const int jki = j+Grav.ny_local*(k+Grav.nz_local*i);
-            Grav.F.pot_boundary_x0[jki] = Grav.F.potential_h[i+ni*(j+ng+nj*(k+ng))];
-            Grav.F.pot_boundary_x1[jki] = Grav.F.potential_h[i+ni-ng+ni*(j+ng+nj*(k+ng))];
-          }
-#endif
         }
       }
     }
-    //Set_Boundary_Conditions_Grid(*P);
-    //Get_Potential_SOR(Grav.Gconst,0,0,P);
     Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,Grav.F.potential_h,Grav.Gconst,0,1);
-    printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local,ng,true);
-    //printDiff(Grav.F.potential_h,Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local,0,true);
+    chprintf("Paris BC");
+    printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+    Get_Potential_SOR(Grav.Gconst,0,0,P);
+    chprintf("SOR");
+    printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
+    MPI_Finalize();
     exit(0);
 #endif
   }
