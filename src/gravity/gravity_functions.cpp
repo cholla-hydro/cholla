@@ -326,6 +326,7 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
     }
   }
 #endif
+  fflush(stdout);
   MPI_Finalize();
   exit(0);
 }
@@ -466,9 +467,10 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
       }
     }
     //Set_Boundary_Conditions_Grid(*P);
-    Get_Potential_SOR(Grav.Gconst,0,0,P);
+    //Get_Potential_SOR(Grav.Gconst,0,0,P);
+    Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,Grav.F.potential_h,Grav.Gconst,0,1);
     printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local,ng,true);
-    //printDiff(Grav.F.density_h,dphi.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local,0,true);
+    //printDiff(Grav.F.potential_h,Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local,0,true);
     exit(0);
 #endif
   }

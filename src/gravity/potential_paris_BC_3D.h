@@ -18,9 +18,12 @@ class Potential_Paris_BC_3D {
     PoissonZero3DBlockedGPU *pp_;
     long minBytes_;
     long densityBytes_;
-    long potentialBytes_;
     Real *da_;
     Real *db_;
+#ifndef GRAVITY_GPU
+    long potentialBytes_;
+    Real *dc_;
+#endif
 };
 
 #endif
