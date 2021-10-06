@@ -1,36 +1,32 @@
-#if defined(GRAVITY) && defined(PARIS_BC)
+#ifdef PARIS_GALAXY
 
-#include "../gravity/potential_paris_BC_3D.h"
+#include "../gravity/potential_paris_galaxy.h"
 #include "../io/io.h"
 #include "../utils/gpu.hpp"
 #include <cassert>
 
-Potential_Paris_BC_3D::Potential_Paris_BC_3D():
+Potential_Paris_Galaxy::Potential_Paris_Galaxy():
   dn_{0,0,0},
   dr_{0,0,0},
   lo_{0,0,0},
   lr_{0,0,0},
   myLo_{0,0,0},
   pp_(nullptr),
-  minBytes_(0),
   densityBytes_(0),
+  minBytes_(0),
   da_(nullptr),
   db_(nullptr)
 #ifndef GRAVITY_GPU
-  ,potentialBytes_(0),
+  , potentialBytes_(0),
   dc_(nullptr)
 #endif
 {}
 
-Potential_Paris_BC_3D::~Potential_Paris_BC_3D() { Reset(); }
+Potential_Paris_Galaxy::~Potential_Paris_Galaxy() { Reset(); }
 
-void Potential_Paris_BC_3D::Get_Potential(const Real *const density, Real *const potential, const Real g, const Real offset, const Real a)
+void Potential_Paris_Galaxy::Get_Potential(const Real *const density, Real *const potential, const Real g, const DiskGalaxy &galaxy)
 {
-#ifdef COSMOLOGY
-  const Real scale = Real(4)*M_PI*g/a;
-#else
   const Real scale = Real(4)*M_PI*g;
-#endif
 
   assert(da_);
   Real *const da = da_;
@@ -44,49 +40,77 @@ void Potential_Paris_BC_3D::Get_Potential(const Real *const density, Real *const
   const int ngi = ni+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
   const int ngj = nj+N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
 
-  const Real ddx = 1.0/(scale*dr_[2]*dr_[2]);
-  const Real ddy = 1.0/(scale*dr_[1]*dr_[1]);
-  const Real ddz = 1.0/(scale*dr_[0]*dr_[0]);
-  const int ngij = ngi*ngj;
-
 #ifdef GRAVITY_GPU
-  Real *const phi = potential;
   const Real *const rho = density;
+  Real *const phi = potential;
 #else
-  CHECK(cudaMemcpyAsync(dc_,potential,potentialBytes_,cudaMemcpyHostToDevice,0));
-  Real *const phi = dc_;
   CHECK(cudaMemcpyAsync(da,density,densityBytes_,cudaMemcpyHostToDevice,0));
+  CHECK(cudaMemcpyAsync(dc_,potential,potentialBytes_,cudaMemcpyHostToDevice,0));
   const Real *const rho = da;
+  Real *const phi = dc_;
 #endif
 
+  const Real xMin = lo_[2];
+  const Real yMin = lo_[1];
+  const Real zMin = lo_[0];
+
+  const Real dx = dr_[2];
+  const Real dy = dr_[1];
+  const Real dz = dr_[0];
+
+  const Real md = galaxy.getM_d();
+  const Real rd = galaxy.getR_d();
+  const Real zd = galaxy.getZ_d();
+
+  const Real rho0 = md*zd*zd/(4.0*M_PI);
   gpuFor(
     nk,nj,ni,
     GPU_LAMBDA(const int k, const int j, const int i) {
       const int ia = i+ni*(j+nj*k);
-      const int ib = i+N_GHOST_POTENTIAL+ngi*(j+N_GHOST_POTENTIAL+ngj*(k+N_GHOST_POTENTIAL));
-      const Real div = ddx*(phi[ib-1]+phi[ib+1]-2.0*phi[ib])+ddy*(phi[ib-ngi]+phi[ib+ngi]-2.0*phi[ib])+ddz*(phi[ib-ngij]+phi[ib+ngij]-2.0*phi[ib]);
-      da[ia] = scale*(rho[ia]-offset-div);
+
+      const Real x = xMin+i*dx;
+      const Real y = yMin+j*dy;
+      const Real z = zMin+k*dz;
+
+      const Real r = sqrt(x*x+y*y);
+      const Real a = sqrt(z*z+zd*zd);
+      const Real b = rd+a;
+      const Real c = r*r+b*b;
+      const Real dRho = rho0*(rd*c+3.0*a*b*b)/(a*a*a*pow(c,2.5));
+
+      da[ia] = scale*(rho[ia]-dRho);
     });
 
   pp_->solve(minBytes_,da,db);
 
+  const Real phi0 = -g*md;
   gpuFor(
     nk,nj,ni,
     GPU_LAMBDA(const int k, const int j, const int i) {
       const int ia = i+ni*(j+nj*k);
       const int ib = i+N_GHOST_POTENTIAL+ngi*(j+N_GHOST_POTENTIAL+ngj*(k+N_GHOST_POTENTIAL));
-      phi[ib] += db[ia];
+
+      const Real x = xMin+i*dx;
+      const Real y = yMin+j*dy;
+      const Real z = zMin+k*dz;
+
+      const Real r = sqrt(x*x+y*y);
+      const Real a = sqrt(z*z+zd*zd);
+      const Real b = a+rd;
+      const Real c = sqrt(r*r+b*b);
+      const Real dPhi = phi0/c;
+
+      phi[ib] = db[ia]+dPhi;
     });
 
 #ifndef GRAVITY_GPU
-  CHECK(cudaMemcpy(potential,phi,potentialBytes_,cudaMemcpyDeviceToHost));
+  CHECK(cudaMemcpy(potential,dc_,potentialBytes_,cudaMemcpyDeviceToHost));
 #endif
 }
 
-void Potential_Paris_BC_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin, const int nx, const int ny, const int nz, const int nxReal, const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
+void Potential_Paris_Galaxy::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin, const int nx, const int ny, const int nz, const int nxReal, const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
 {
   chprintf(" using poisson solver: ");
-  chprintf("3-point");
   chprintf(" Paris with boundary conditions\n");
 
   const long nl012 = long(nxReal)*long(nyReal)*long(nzReal);
@@ -125,19 +149,16 @@ void Potential_Paris_BC_3D::Initialize(const Real lx, const Real ly, const Real 
   densityBytes_ = long(sizeof(Real))*dn_[0]*dn_[1]*dn_[2];
 
   CHECK(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,densityBytes_)));
-  assert(da_);
   CHECK(cudaMalloc(reinterpret_cast<void **>(&db_),std::max(minBytes_,densityBytes_)));
-  assert(db_);
 
 #ifndef GRAVITY_GPU
   const long gg = N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
   potentialBytes_ = long(sizeof(Real))*(dn_[0]+gg)*(dn_[1]+gg)*(dn_[2]+gg);
   CHECK(cudaMalloc(reinterpret_cast<void **>(&dc_),potentialBytes_));
-  assert(dc_);
 #endif
 }
 
-void Potential_Paris_BC_3D::Reset()
+void Potential_Paris_Galaxy::Reset()
 {
 #ifndef GRAVITY_GPU
   if (dc_) CHECK(cudaFree(dc_));

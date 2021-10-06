@@ -139,9 +139,9 @@ public:
     };
 
 
-    Real getM_d() { return M_d; };
-    Real getR_d() { return R_d; };
-    Real getZ_d() { return Z_d; };
+    Real getM_d() const { return M_d; };
+    Real getR_d() const { return R_d; };
+    Real getZ_d() const { return Z_d; };
 
 };
 

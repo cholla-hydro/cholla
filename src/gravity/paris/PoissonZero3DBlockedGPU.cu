@@ -1,4 +1,4 @@
-#ifdef PARIS_BC
+#ifdef PARIS_GALAXY
 
 #include "PoissonZero3DBlockedGPU.hpp"
 

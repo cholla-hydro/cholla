@@ -14,7 +14,7 @@
 #include "../utils/parallel_omp.h"
 #endif
 
-#if defined(PARIS_TEST) || defined(PARIS_BC_TEST)
+#if defined(PARIS_TEST) || defined(PARIS_GALAXY_TEST)
 #include <vector>
 #endif
 
@@ -271,7 +271,7 @@ static inline Real nonzeroD(const Real x, const Real y, const Real z, const Real
 #endif
 
 
-#if defined(PARIS_TEST) || defined(PARIS_BC_TEST)
+#if defined(PARIS_TEST) || defined(PARIS_GALAXY_TEST)
 static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz, const int ng = N_GHOST_POTENTIAL, const bool plot = false)
 {
   Real dMax = 0, dSum = 0, dSum2 = 0;
@@ -296,9 +296,10 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
   Real sums[4] = {qSum,qSum2,dSum,dSum2};
   MPI_Allreduce(MPI_IN_PLACE,&maxs,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE,&sums,4,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-  chprintf(" Poisson-Solver Diff: L1 %g L2 %g Linf %g\n",sums[2]/sums[0],sqrt(sums[3]/sums[1]),maxs[1]/maxs[0]);
+  const double l1 = sums[2]/sums[0];
+  chprintf(" Poisson-Solver Diff: L1 %g L2 %g Linf %g\n",l1,sqrt(sums[3]/sums[1]),maxs[1]/maxs[0]);
   fflush(stdout);
-  if (!plot) return;
+  if (!plot && (l1 < 1.0)) return;
 
   printf("###\n");
 #if 0
@@ -314,9 +315,9 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
     if (kMax > -1) {
 #endif
       const int k = nz/2;
-      for (int j = 0; j < ny; j++) {
-        for (int i = 0; i < nx; i++) {
-          const long ijk = i+ng+(nx+ng+ng)*(j+ng+(ny+ng+ng)*(k+ng));
+      for (int j = 0; j < ny+ng+ng; j++) {
+        for (int i = 0; i < nx+ng+ng; i++) {
+          const long ijk = i+(nx+ng+ng)*(j+(ny+ng+ng)*(k+ng));
           printf("%d %d %g %g %g\n",j,i,q[ijk],p[ijk],q[ijk]-p[ijk]);
         }
         printf("\n");
@@ -396,8 +397,18 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
     const int ni = Grav.nx_local+twoNG;
     const Real dr = 0.5-ng;
 
-    chprintf("Initializing disk analytic potential\n");
-
+#ifdef PARIS_GALAXY_TEST
+    chprintf("Analytic Test of Poisson Solvers:\n");
+    std::vector<Real> exact(Grav.n_cells_potential);
+    std::vector<Real> potential(Grav.n_cells_potential);
+    const Real scale = 4.0*M_PI*Grav.Gconst;
+    const Real ddx = 1.0/(scale*Grav.dx*Grav.dx);
+    const Real ddy = 1.0/(scale*Grav.dy*Grav.dy);
+    const Real ddz = 1.0/(scale*Grav.dz*Grav.dz);
+    const Real *const phi = Grav.F.potential_h;
+    const int nij = ni*nj;
+    const Real a0 = Galaxies::MW.phi_disk_D3D(0,0);
+    const Real da0 = 2.0/(25.0*scale);
 #pragma omp parallel for
     for (int k = 0; k < nk; k++) {
       const Real z = Grav.zMin+Grav.dz*(k+dr);
@@ -410,23 +421,10 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
           const Real x = Grav.xMin+Grav.dx*(i+dr);
           const Real r = sqrt(x*x+yy);
           const int ijk = i+nijk;
-          Grav.F.potential_h[ijk] = Galaxies::MW.phi_disk_D3D(r,z);
+          exact[ijk] = potential[ijk] = Grav.F.potential_h[ijk] = Galaxies::MW.phi_disk_D3D(r,z);
         }
       }
     }
-
-#ifdef PARIS_BC_TEST
-    chprintf("Analytic Test of Poisson Solvers:\n");
-    std::vector<Real> exact(Grav.F.potential_h,Grav.F.potential_h+Grav.n_cells_potential);
-    std::vector<Real> potential(exact);
-    const Real scale = 4.0*M_PI*Grav.Gconst;
-    const Real ddx = 1.0/(scale*Grav.dx*Grav.dx);
-    const Real ddy = 1.0/(scale*Grav.dy*Grav.dy);
-    const Real ddz = 1.0/(scale*Grav.dz*Grav.dz);
-    const Real *const phi = Grav.F.potential_h;
-    const int nij = ni*nj;
-    const Real a0 = Galaxies::MW.phi_disk_D3D(0,0);
-    const Real da0 = 2.0/(25.0*scale);
 #pragma omp parallel for
     for (int k = 0; k < Grav.nz_local; k++) {
       const Real z = Grav.zMin+Grav.dz*(k+0.5);
@@ -449,17 +447,32 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
         }
       }
     }
-    Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,Grav.F.potential_h,Grav.Gconst,0,1);
-    chprintf("Paris BC");
+    Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,Grav.F.potential_h,Grav.Gconst,Galaxies::MW);
+    chprintf("Paris Galaxy");
     printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
     Get_Potential_SOR(Grav.Gconst,0,0,P);
     chprintf("SOR");
     printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
-    MPI_Finalize();
-    exit(0);
 #endif
-  }
 
+    chprintf("Initializing disk analytic potential\n");
+#pragma omp parallel for
+    for (int k = 0; k < nk; k++) {
+      const Real z = Grav.zMin+Grav.dz*(k+dr);
+      const int njk = nj*k;
+      for (int j = 0; j < nj; j++) {
+        const Real y = Grav.yMin+Grav.dy*(j+dr);
+        const Real yy = y*y;
+        const int nijk = ni*(j+njk);
+        for (int i = 0; i < ni; i++) {
+          const Real x = Grav.xMin+Grav.dx*(i+dr);
+          const Real r = sqrt(x*x+yy);
+          const int ijk = i+nijk;
+          Grav.F.potential_h[ijk] = Galaxies::MW.phi_disk_D3D(r,z);
+        }
+      }
+    }
+  }
 }
 
 
@@ -520,7 +533,6 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   // chprintf("Isolated Z\n");
 #endif
 
-
   //Solve Poisson Equation to compute the potential
   //Poisson Equation: laplacian( phi ) = 4 * pi * G / scale_factor * ( dens - dens_average )
   Real *input_density, *output_potential;
@@ -533,7 +545,20 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
 #endif
 
 #ifdef SOR
+
+#ifdef PARIS_GALAXY_TEST
+#ifdef GRAVITY_GPU
+#error "GRAVITY_GPU not yet supported with PARIS_GALAXY_TEST"
+#endif
+  Grav.Poisson_solver_test.Get_Potential(input_density,output_potential,Grav_Constant,Galaxies::MW);
+  std::vector<Real> p(output_potential,output_potential+Grav.n_cells_potential);
   Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
+  chprintf("Paris vs SOR");
+  printDiff(p.data(),output_potential,Grav.nx_local,Grav.ny_local,Grav.nz_local,N_GHOST_POTENTIAL,true);
+#else
+  Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
+#endif
+
 #else
   Grav.Poisson_solver.Get_Potential( input_density, output_potential, Grav_Constant, dens_avrg, current_a);
 #endif//SOR
