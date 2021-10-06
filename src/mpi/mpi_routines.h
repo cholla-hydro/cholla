@@ -175,6 +175,8 @@ Real ReduceRealMin(Real x);
 /* MPI reduction wrapper for avg(Real)*/
 Real ReduceRealAvg(Real x);
 
+/* MPI reduction wrapper for sum(Real)*/
+Real ReduceRealSum(Real x);
 #ifdef PARTICLES
 /* MPI reduction wrapper for sum(part_int)*/
 Real ReducePartIntSum(part_int_t x);

@@ -772,6 +772,18 @@ Real ReduceRealAvg(Real x)
   return y;
 }
 
+/* MPI reduction wrapper for sum(Real)*/
+Real ReduceRealSum(Real x)
+{
+  Real in = x;
+  Real out;
+  Real y;
+
+  MPI_Allreduce(&in, &out, 1, MPI_CHREAL, MPI_SUM, world);
+  y = (Real) out;
+  return y;
+}
+
 #ifdef PARTICLES
 /* MPI reduction wrapper for sum(part_int)*/
 Real ReducePartIntSum(part_int_t x)

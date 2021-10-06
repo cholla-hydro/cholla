@@ -25,9 +25,9 @@
 namespace Supernova {
   //Real cluster_data[];
 
-  Real *d_cluster_array;
-  Real *d_omega_array;
-  bool *d_flags_array;
+  //Real *d_cluster_array;
+  //Real *d_omega_array;
+  //bool *d_flags_array;
   Real *d_hydro_array;
 
   Real R_cl;
@@ -54,9 +54,9 @@ namespace Supernova {
   int pny;
   int pnz;
 
-  int n_cluster;
   int n_cells;
   int n_fields;
+  int n_ghost;
   int supernova_e;
 
   void Test(Header H);
@@ -80,9 +80,9 @@ void Supernova::Test(Header H){
 
 void Supernova::Initialize(Grid3D G, struct parameters *P){
 
-  #include "cluster_list.data"
+  //#include "cluster_list.data"
   // Defines cluster_data in local scope so it is deleted
-  n_cluster = sizeof(cluster_data)/sizeof(cluster_data[0])/5;
+  //n_cluster = sizeof(cluster_data)/sizeof(cluster_data[0])/5;
 
   Header H = G.H;
 
@@ -129,18 +129,17 @@ void Supernova::Initialize(Grid3D G, struct parameters *P){
   //pnx,pny,pnz
   n_cells = H.n_cells;
   n_fields = H.n_fields;
+  n_ghost = H.n_ghost;
 
 #ifdef CUDA
   chprintf("Initializing Supernova CUDA arrays\n");
   d_hydro_array = G.C.device;
-  CudaSafeCall( cudaMalloc (&d_cluster_array,5*n_cluster*sizeof(Real)));
-  cudaMemcpy(d_cluster_array, cluster_data,
-	     5*n_cluster*sizeof(Real),
-	     cudaMemcpyHostToDevice);
-  CudaSafeCall( cudaMalloc (&d_omega_array, n_cluster*sizeof(Real)));
-  CudaSafeCall( cudaMalloc (&d_flags_array, n_cluster*sizeof(bool)));
-  Calc_Omega();
-  InitializeS99();
+
+  //CudaSafeCall( cudaMalloc (&d_cluster_array,5*n_cluster*sizeof(Real)));
+  //cudaMemcpy(d_cluster_array, cluster_data,
+  //	     5*n_cluster*sizeof(Real),
+  //	     cudaMemcpyHostToDevice);
+  Initialize_GPU();
 #endif //CUDA
 
   chprintf("\n n_cluster: %d\n",n_cluster);
@@ -156,6 +155,7 @@ Real Supernova::Update_Grid(Grid3D G,Real old_dti_local){
 
   // Let G.set_dt synchronize before Update Grid
   double start_time = get_time();
+
   /*
   // Synchronize old 1/dt
   Real old_dti = old_dti_local;
@@ -165,10 +165,11 @@ Real Supernova::Update_Grid(Grid3D G,Real old_dti_local){
 
 C_cfl/old_dti;
   */
+
   // Return dti
   Real old_dt = G.H.dt;
   Calc_Flags(G.H.t);
-  Real new_dti = Feedback(0.1,0.0,G.H.t,old_dt);
+  Real new_dti = Feedback(1.0,0.0,G.H.t,old_dt);
 
   // Synchronize new 1/dt
 #ifdef MPI_CHOLLA
@@ -180,13 +181,29 @@ C_cfl/old_dti;
 
   if (old_dt > new_dt){
     G.H.dt = new_dt;
-    Feedback(0.1,0.0,G.H.t,new_dt-old_dt);
+    Feedback(1.0,0.0,G.H.t,new_dt-old_dt);
   }
 
   double end_time = get_time();
   chprintf("Supernova Update: %9.4f \n",1000*(end_time-start_time));
+
+  //Copy_Tracker();
+  Print_Tracker(G);
+
   return G.H.dt;
 }
 
+void Supernova::Print_Tracker(Grid3D G){
+  //h_tracker
+  Copy_Tracker();
+  chprintf("Tracker:\t");
+  for (int i=0;i<n_tracker;i++){
+    Real out = ReduceRealSum(h_tracker[i]);
+    chprintf("%10.5f \t",out);
+  }
+  chprintf("%10.5f \t",G.H.t);
+  chprintf("%10.5f \t",G.H.dt);
+  chprintf("\n");
+}
 
 #endif //SUPERNOVA
