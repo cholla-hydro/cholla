@@ -21,13 +21,8 @@
 
 
 // =============================================================================
-#if defined(HYDRO_GPU) \
-    && defined(CUDA) \
-    && defined(MPI_CHOLLA) \
-    && defined(BLOCK) \
-    && PRECISION==2 \
-    && defined(PPMP) \
-    && defined(HLLC) \
+#if defined(CUDA) \
+    && defined(HLLC)
 // Testing Calculate_HLLC_Fluxes_CUDA
 TEST(tHYDROCalculateHLLCFluxesCUDA,  // Test suite name
      LeftSideExpectCorrectOutput)  // Test name
