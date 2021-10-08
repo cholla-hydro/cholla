@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     // TODO: meantime use the command line argument
     // TODO: --gtest_death_test_style=(fast|threadsafe)
     // GTEST_FLAG_SET(death_test_style, "threadsafe");
-
+    ::testing::GTEST_FLAG(death_test_style) = "threadsafe";
     // Initialize the global cholla root path variable from CLI arguments
     InputParser input(argc, argv);
     globalChollaRoot.initPath(input.getCmdOption("--cholla-root"));

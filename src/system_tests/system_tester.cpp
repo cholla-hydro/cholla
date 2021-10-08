@@ -138,7 +138,7 @@ namespace systemTest
             // TODO: C++17: When we update to C++17 or newer this section should
             // TODO: use std::filesystem to create the directory and check that
             // TODO: it exists
-            system(("mkdir " + outputDirectory).c_str());
+            system(("mkdir -p -v " + outputDirectory).c_str());
 
             // Check that the files exist
             checkFileExists(chollaPath);
