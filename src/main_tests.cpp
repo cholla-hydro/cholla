@@ -116,11 +116,8 @@ int main(int argc, char **argv)
     // using "fast" instead of "threadsafe" but it makes sure tests are threadsafe
     // in a multithreaded environment. If the performance becomes an issue we can
     // try "fast", it can also be set on a test by test basis
-    // TODO: Reenable this whenever I can get it to compile properly. In the
-    // TODO: meantime use the command line argument
-    // TODO: --gtest_death_test_style=(fast|threadsafe)
-    // GTEST_FLAG_SET(death_test_style, "threadsafe");
     ::testing::GTEST_FLAG(death_test_style) = "threadsafe";
+
     // Initialize the global cholla root path variable from CLI arguments
     InputParser input(argc, argv);
     globalChollaRoot.initPath(input.getCmdOption("--cholla-root"));

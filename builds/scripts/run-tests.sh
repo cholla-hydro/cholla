@@ -15,22 +15,25 @@ make_type='hydro'
 cholla_path=$(git rev-parse --show-toplevel)
 
 # Summit Settings
-machine='summit'
-launch_command=(jsrun
-                --smpiargs="-gpu"
-                --nrs 1
-                --cpu_per_rs 1
-                --tasks_per_rs 1
-                --gpu_per_rs 1)
+#machine='summit'
+#launch_command=(jsrun
+#                --smpiargs="-gpu"
+#                --nrs 1
+#                --cpu_per_rs 1
+#                --tasks_per_rs 1
+#                --gpu_per_rs 1)
 
 # Spock Settings
 # machine='spock'
 # launch_command=''
 
+# CRC settings
+machine='crc'
+launch_command=''
+
 options=("--cholla-root ${cholla_path}"
          "--build-type ${make_type}"
          "--machine ${machine}")
-         "--gtest_death_test_style=threadsafe")
 
 cd ${cholla_path}
 
