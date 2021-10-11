@@ -554,11 +554,13 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   std::vector<Real> p(output_potential,output_potential+Grav.n_cells_potential);
   Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
   chprintf("Paris vs SOR");
-  printDiff(p.data(),output_potential,Grav.nx_local,Grav.ny_local,Grav.nz_local,N_GHOST_POTENTIAL,true);
+  printDiff(p.data(),output_potential,Grav.nx_local,Grav.ny_local,Grav.nz_local,N_GHOST_POTENTIAL,false);
 #else
   Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
 #endif
 
+#elif defined PARIS_GALAXY
+  Grav.Poisson_solver.Get_Potential(input_density,output_potential,Grav_Constant,Galaxies::MW);
 #else
   Grav.Poisson_solver.Get_Potential( input_density, output_potential, Grav_Constant, dens_avrg, current_a);
 #endif//SOR

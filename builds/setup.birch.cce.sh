@@ -3,7 +3,6 @@
 #-- This script needs to be source-d in the terminal, e.g.
 #   source ./setup.summit.xl.sh 
 
-module swap cce/13.0.0.3
 module load cray-python
 module load rocm
 module load craype-accel-amd-gfx908
