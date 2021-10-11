@@ -8,7 +8,7 @@
 
 #include <hip/hip_runtime.h>
 
-#if defined(CUFFT) || defined(PARIS) || defined(PARIS_GALAXY)
+#if defined(CUFFT) || defined(PARIS) || defined(PARIS_GALACTIC)
 
 #include <hipfft.h>
 

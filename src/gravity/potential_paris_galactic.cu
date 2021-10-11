@@ -1,11 +1,11 @@
-#ifdef PARIS_GALAXY
+#ifdef PARIS_GALACTIC
 
-#include "../gravity/potential_paris_galaxy.h"
+#include "../gravity/potential_paris_galactic.h"
 #include "../io/io.h"
 #include "../utils/gpu.hpp"
 #include <cassert>
 
-Potential_Paris_Galaxy::Potential_Paris_Galaxy():
+Potential_Paris_Galactic::Potential_Paris_Galactic():
   dn_{0,0,0},
   dr_{0,0,0},
   lo_{0,0,0},
@@ -22,9 +22,9 @@ Potential_Paris_Galaxy::Potential_Paris_Galaxy():
 #endif
 {}
 
-Potential_Paris_Galaxy::~Potential_Paris_Galaxy() { Reset(); }
+Potential_Paris_Galactic::~Potential_Paris_Galactic() { Reset(); }
 
-void Potential_Paris_Galaxy::Get_Potential(const Real *const density, Real *const potential, const Real g, const DiskGalaxy &galaxy)
+void Potential_Paris_Galactic::Get_Potential(const Real *const density, Real *const potential, const Real g, const DiskGalaxy &galaxy)
 {
   const Real scale = Real(4)*M_PI*g;
 
@@ -50,9 +50,9 @@ void Potential_Paris_Galaxy::Get_Potential(const Real *const density, Real *cons
   Real *const phi = dc_;
 #endif
 
-  const Real xMin = lo_[2];
-  const Real yMin = lo_[1];
-  const Real zMin = lo_[0];
+  const Real xMin = myLo_[2];
+  const Real yMin = myLo_[1];
+  const Real zMin = myLo_[0];
 
   const Real dx = dr_[2];
   const Real dy = dr_[1];
@@ -108,11 +108,8 @@ void Potential_Paris_Galaxy::Get_Potential(const Real *const density, Real *cons
 #endif
 }
 
-void Potential_Paris_Galaxy::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin, const int nx, const int ny, const int nz, const int nxReal, const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
+void Potential_Paris_Galactic::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin, const int nx, const int ny, const int nz, const int nxReal, const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
 {
-  chprintf(" using poisson solver: ");
-  chprintf(" Paris with boundary conditions\n");
-
   const long nl012 = long(nxReal)*long(nyReal)*long(nzReal);
   assert(nl012 <= INT_MAX);
 
@@ -137,7 +134,7 @@ void Potential_Paris_Galaxy::Initialize(const Real lx, const Real ly, const Real
   const int n[3] = {nz,ny,nx};
   const int m[3] = {n[0]/nzReal,n[1]/nyReal,n[2]/nxReal};
   const int id[3] = {int(round((myLo_[0]-lo_[0])/(dn_[0]*dr_[0]))),int(round((myLo_[1]-lo_[1])/(dn_[1]*dr_[1]))),int(round((myLo_[2]-lo_[2])/(dn_[2]*dr_[2])))};
-  chprintf("  Paris BC: [ %g %g %g ]-[ %g %g %g ] n_local[ %d %d %d ] tasks[ %d %d %d ]\n",lo_[2],lo_[1],lo_[0],hi[2],hi[1],hi[0],dn_[2],dn_[1],dn_[0],m[2],m[1],m[0]);
+  chprintf("  Paris Galactic: [ %g %g %g ]-[ %g %g %g ] n_local[ %d %d %d ] tasks[ %d %d %d ]\n",lo_[2],lo_[1],lo_[0],hi[2],hi[1],hi[0],dn_[2],dn_[1],dn_[0],m[2],m[1],m[0]);
 
   assert(dn_[0] == n[0]/m[0]);
   assert(dn_[1] == n[1]/m[1]);
@@ -158,7 +155,7 @@ void Potential_Paris_Galaxy::Initialize(const Real lx, const Real ly, const Real
 #endif
 }
 
-void Potential_Paris_Galaxy::Reset()
+void Potential_Paris_Galactic::Reset()
 {
 #ifndef GRAVITY_GPU
   if (dc_) CHECK(cudaFree(dc_));

@@ -1,15 +1,15 @@
 #pragma once
 
-#ifdef PARIS_GALAXY
+#ifdef PARIS_GALACTIC
 
 #include "paris/PoissonZero3DBlockedGPU.hpp"
 #include "../global/global.h"
 #include "../model/disk_galaxy.h"
 
-class Potential_Paris_Galaxy {
+class Potential_Paris_Galactic {
   public:
-    Potential_Paris_Galaxy();
-    ~Potential_Paris_Galaxy();
+    Potential_Paris_Galactic();
+    ~Potential_Paris_Galactic();
     void Get_Potential(const Real *density, Real *potential, Real g, const DiskGalaxy &galaxy);
     void Initialize(Real lx, Real ly, Real lz, Real xMin, Real yMin, Real zMin, int nx, int ny, int nz, int nxReal, int nyReal, int nzReal, Real dx, Real dy, Real dz);
     void Reset();

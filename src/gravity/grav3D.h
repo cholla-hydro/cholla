@@ -20,8 +20,8 @@
 #include "../gravity/potential_paris_3D.h"
 #endif
 
-#ifdef PARIS_GALAXY
-#include "../gravity/potential_paris_galaxy.h"
+#ifdef PARIS_GALACTIC
+#include "../gravity/potential_paris_galactic.h"
 #endif
 
 #ifdef HDF5
@@ -127,12 +127,12 @@ class Grav3D
   #endif
   #endif
 
-#ifdef PARIS_GALAXY
+#ifdef PARIS_GALACTIC
 #ifdef SOR
-#define PARIS_GALAXY_TEST
-  Potential_Paris_Galaxy Poisson_solver_test;
+#define PARIS_GALACTIC_TEST
+  Potential_Paris_Galactic Poisson_solver_test;
 #else
-  Potential_Paris_Galaxy Poisson_solver;
+  Potential_Paris_Galactic Poisson_solver;
 #endif
 #endif
 

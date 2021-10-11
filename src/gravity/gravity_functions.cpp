@@ -14,7 +14,7 @@
 #include "../utils/parallel_omp.h"
 #endif
 
-#if defined(PARIS_TEST) || defined(PARIS_GALAXY_TEST)
+#if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
 #include <vector>
 #endif
 
@@ -271,7 +271,7 @@ static inline Real nonzeroD(const Real x, const Real y, const Real z, const Real
 #endif
 
 
-#if defined(PARIS_TEST) || defined(PARIS_GALAXY_TEST)
+#if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
 static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz, const int ng = N_GHOST_POTENTIAL, const bool plot = false)
 {
   Real dMax = 0, dSum = 0, dSum2 = 0;
@@ -397,7 +397,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
     const int ni = Grav.nx_local+twoNG;
     const Real dr = 0.5-ng;
 
-#ifdef PARIS_GALAXY_TEST
+#ifdef PARIS_GALACTIC_TEST
     chprintf("Analytic Test of Poisson Solvers:\n");
     std::vector<Real> exact(Grav.n_cells_potential);
     std::vector<Real> potential(Grav.n_cells_potential);
@@ -546,9 +546,9 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
 
 #ifdef SOR
 
-#ifdef PARIS_GALAXY_TEST
+#ifdef PARIS_GALACTIC_TEST
 #ifdef GRAVITY_GPU
-#error "GRAVITY_GPU not yet supported with PARIS_GALAXY_TEST"
+#error "GRAVITY_GPU not yet supported with PARIS_GALACTIC_TEST"
 #endif
   Grav.Poisson_solver_test.Get_Potential(input_density,output_potential,Grav_Constant,Galaxies::MW);
   std::vector<Real> p(output_potential,output_potential+Grav.n_cells_potential);
@@ -559,7 +559,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
 #endif
 
-#elif defined PARIS_GALAXY
+#elif defined PARIS_GALACTIC
   Grav.Poisson_solver.Get_Potential(input_density,output_potential,Grav_Constant,Galaxies::MW);
 #else
   Grav.Poisson_solver.Get_Potential( input_density, output_potential, Grav_Constant, dens_avrg, current_a);

@@ -7,9 +7,9 @@ DFLAGS += -DSINGLE_PARTICLE_MASS
 
 
 DFLAGS += -DGRAVITY
-# Use both -DSOR and -DPARIS_GALAXY to run analytic test and compare solutions
-#DFLAGS += -DSOR
-DFLAGS += -DPARIS_GALAXY
+# Use both -DSOR and -DPARIS_GALACTIC to run analytic test and compare solutions
+DFLAGS += -DSOR
+DFLAGS += -DPARIS_GALACTIC
 DFLAGS += -DGRAVITY_ANALYTIC_COMP
 #DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 
