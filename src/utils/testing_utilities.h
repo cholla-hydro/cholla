@@ -75,17 +75,17 @@ namespace testingUtilities
      * \param[out] ulpsDiff The ULP difference between the numbers.
      * Only returned if the numbers are not equal. If the numbers are equal then
      * behaviour is undefined
-     * \param[in] ulpsEpsilon The allowed difference of ULPs. Defaults to 4
      * \param[in] fixedEpsilon The allowed difference in real numbers. Defaults
      * to 1E-14
+     * \param[in] ulpsEpsilon The allowed difference of ULPs. Defaults to 4
      * \return bool Whether or not the numbers are equal
      */
     bool nearlyEqualDbl(double  const &a,
                         double  const &b,
                         double  &absoluteDiff,
                         int64_t &ulpsDiff,
-                        int     const &ulpsEpsilon  = 4,
-                        double  const &fixedEpsilon = 1E-14);
+                        double  const &fixedEpsilon = 1E-14,
+                        int     const &ulpsEpsilon  = 4);
     // =========================================================================
 
     // =========================================================================

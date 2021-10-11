@@ -7,274 +7,367 @@
 
 // STL includes
 #include <stdlib.h>
-#include <future>
 #include <fstream>
 #include <stdexcept>
-#include <string>
 #include <sstream>
 #include <cstdio>
+#include <algorithm>
+#include <cmath>
 
 // External Libraries and Headers
 #include <gtest/gtest.h>
-#include <H5Cpp.h>
 
 // Local includes
 #include "../system_tests/system_tester.h" // Include the header file
 #include "../utils/testing_utilities.h"
 
-namespace systemTest
+// =============================================================================
+// Public Members
+// =============================================================================
+
+// =============================================================================
+void systemTest::SystemTestRunner::runTest()
 {
-    namespace // Anonymous namespace with helper functions
+    // Launch Cholla. Note that this dumps all console output to the console log
+    // file as requested by the user. The parallel launch might not actually
+    // speed things up at all. This is the first place to look for performance
+    // improvements
+    std::string const chollaRunCommand = _chollaPath + " "
+                                         + _chollaSettingsPath + " "
+                                         + _chollaLaunchParams + " "
+                                         + "outdir=" + _outputDirectory + "/"
+                                         + " >> " + _consoleOutputPath + " 2>&1 ";
+    system((chollaRunCommand).c_str()); // Args to send to "system" call
+    _safeMove("run_output.log", _outputDirectory);
+    _safeMove("run_timing.log", _outputDirectory);
+
+    // Make sure we have all the required data files and open the test data file
+    _checkFileExists(_testFilePath);
+    _testFile.openFile(_testFilePath, H5F_ACC_RDONLY);
+    _testDataSetNames = _findDataSetNames(_testFile);
+
+    // Start Performing Checks
+    // =======================
+    // Check the number of time steps
+    if (_compareNumTimeSteps) _checkNumTimeSteps();
+
+    // Check that the test file has as many, or more, datasets than the fiducial
+    // file. Provide a warning if the datasets are not the same size
+    EXPECT_GE(_testDataSetNames.size(), _fiducialDataSetNames.size());
+    if (_testDataSetNames.size() != _fiducialDataSetNames.size())
     {
-        // =====================================================================
-        /*!
-         * \brief Checks if the given file exists. Throws an exception if the
-         * file does not exist.
-         *
-         * \param filePath The path to the file to check for
-         */
-        void checkFileExists(std::string const &filePath)
-        {
-            // TODO C++17 std::filesystem does this better
-            std::fstream file;
-            file.open(filePath);
-            if (not file)
-            {
-                std::string errMessage = "Error: File '" + filePath + "' not found.";
-                throw std::invalid_argument(errMessage);
-            }
-        }
-        // =====================================================================
+        std::cout << std::endl << "Warning: The test data has "
+        << _testDataSetNames.size() <<  " datasets and the fiducial data has "
+        << _fiducialDataSetNames.size() << " datasets" << std::endl << std::endl;
+    }
 
-        // =====================================================================
-        /*!
-         * \brief Move a file. Throws an exception if the file does not exist.
-         * or if the move was unsuccessful
-         *
-         * \param sourcePath The path the the file to be moved
-         * \param destinationDirectory The path to the director the file should
-         * be moved to
-         */
-        void safeMove(std::string const &sourcePath,
-                      std::string const &destinationDirectory)
-        {
-            // TODO C++17 std::filesystem does this better
-            checkFileExists(sourcePath);
-            if(std::rename(sourcePath.c_str(), (destinationDirectory + "/" + sourcePath).c_str()) < 0)
-            {
-                std::string errMessage = "Error: File '"
-                                         + sourcePath
-                                         + "' could not be moved to '"
-                                         + destinationDirectory
-                                         + "`";
-                throw std::invalid_argument(errMessage);
-            }
-        }
-        // =====================================================================
-
-        // =====================================================================
-        /*!
-         * \brief Load and HDF5 file, determine the number of time steps, and
-         *        return the data sets
-         *
-         * \param[in]  filePath The path to the HDF5 file
-         * \param[out] nSteps   The number of time steps in the simulation that
-         *                      generated the data file
-         * \param[out] h5Output The data from the HDF5 file
-         */
-        void loadHDF5(std::string const &filePath,
-                      int &nSteps,
-                      H5::H5File &h5Output)
-        {
-            // Open the file
-            h5Output.openFile(filePath, H5F_ACC_RDONLY);
-
-            // Get the time step attribute
-            H5::Attribute tStepAttr = h5Output.openAttribute("n_step");
-            tStepAttr.read(H5::PredType::NATIVE_INT, &nSteps);
-        }
-        // =====================================================================
-
-        // =====================================================================
-        /*!
-         * \brief Generate all the paths that the system test needs and create
-         * the output directory. All parameters are outputs
-         *
-         * \param[out] chollaPath The path to the Cholla executable
-         * \param[out] chollaSettingsPath The path to the Cholla settings file
-         * \param[out] fiducialDataFilePath The path to the fiducial data file
-         * \param[out] outputDirectory The directory that will hold all the
-         * result files. This function also creates this directory
-         * \param[out] consoleOutputPath The path for where to put Cholla's
-         * console output
-         * \param[out] testDataFilePath The path to the test data the Cholla
-         * will generate
-         */
-        void generatePathsAndCheckFiles(std::string &chollaPath,
-                                        std::string &chollaSettingsPath,
-                                        std::string &fiducialDataFilePath,
-                                        std::string &outputDirectory,
-                                        std::string &consoleOutputPath,
-                                        std::string &testDataFilePath)
-        {
-            // Get the test name, with and underscore instead of a "." since
-            // we're actually generating file names
-            const testing::TestInfo* const test_info = testing::UnitTest::GetInstance()->current_test_info();
-            std::stringstream nameStream;
-            nameStream << test_info->test_suite_name() << "_" << test_info->name();
-            std::string const fullTestName = nameStream.str();
-
-            // Generate the input paths
-            chollaPath           = globalChollaRoot.getString() + "/bin/cholla." + globalChollaBuild.getString() + "." + globalChollaMachine.getString();
-            chollaSettingsPath   = globalChollaRoot.getString() + "/src/system_tests/input_files/" + fullTestName +".txt";
-            fiducialDataFilePath = globalChollaRoot.getString() + "/src/system_tests/fiducial_data/" + fullTestName + ".h5";
-
-            // Generate output paths, these files don't exist yet
-            outputDirectory      = globalChollaRoot.getString() + "/bin/" + fullTestName;
-            consoleOutputPath    = outputDirectory + "/" + fullTestName + "_console.log";
-            testDataFilePath     = outputDirectory + "/1.h5.0";
-
-            // Create the new directory and check that it exists
-            // TODO: C++17: When we update to C++17 or newer this section should
-            // TODO: use std::filesystem to create the directory and check that
-            // TODO: it exists
-            system(("mkdir -p -v " + outputDirectory).c_str());
-
-            // Check that the files exist
-            checkFileExists(chollaPath);
-            checkFileExists(chollaSettingsPath);
-            checkFileExists(fiducialDataFilePath);
-        }
-        // =====================================================================
-    } // End Anonymous namespace
-
-    // =========================================================================
-    void systemTestRunner()
+    // Loop over the datasets to be tested
+    for (auto dataSetName: _fiducialDataSetNames)
     {
-        // Determine paths for everything and check that files exist
-        std::string chollaPath,
-                    chollaSettingsPath,
-                    fiducialDataFilePath,
-                    outputDirectory,
-                    consoleOutputPath,
-                    testDataFilePath;
-        generatePathsAndCheckFiles(chollaPath,
-                                   chollaSettingsPath,
-                                   fiducialDataFilePath,
-                                   outputDirectory,
-                                   consoleOutputPath,
-                                   testDataFilePath);
+        // check that the test data has the dataset in it
+        ASSERT_EQ(std::count(_testDataSetNames.begin(), _testDataSetNames.end(), dataSetName), 1)
+            << "The test data does not contain the dataset '" + dataSetName
+            + "' or contains it more than once.";
 
-        // Launch Cholla asynchronously. Note that this dumps all console output
-        // to the console log file as requested by the user. The parallel launch
-        // might not actually speed things up at all. This is the first place to
-        // look for performance improvements
-        std::string const chollaRunCommand = chollaPath + " "
-                                             + chollaSettingsPath + " "
-                                             + "outdir=" + outputDirectory + "/"
-                                             + " >> " + consoleOutputPath + " 2>&1 ";
-        auto chollaProcess = std::async(std::launch::async, // Launch operation asynchronously rather than with lazy execution
-                                        system,             // Choose the function to launch
-                                        (chollaRunCommand).c_str()); // Args to send to "system" call
+        // Get test data array
+        H5::DataSet const testDataSet = _testFile.openDataSet(dataSetName);
+        H5::DataSpace testDataSpace   = testDataSet.getSpace();
 
-        // Load fiducial Data
-        int fiducialNSteps;
-        H5::H5File fiducialDataFile;
-        loadHDF5(fiducialDataFilePath, fiducialNSteps, fiducialDataFile);
+        hsize_t testDims[3] = {1,1,1};
+        ASSERT_LE(testDataSpace.getSimpleExtentDims(testDims), 3)
+                << "Expected 3 or fewer dimensions in dataset";
 
-        // Wait for Cholla to Complete and copy output files to the test
-        // directory
-        chollaProcess.get();
-        safeMove("run_output.log", outputDirectory);
-        safeMove("run_timing.log", outputDirectory);
+        // Allocate arrays, Note that I'm casting everything to double. Some
+        // of the arrays are ints in the HDF5 file and if the casting
+        // becomes an issue we can fix it later
+        size_t const testSize = testDims[0] * testDims[1] * testDims[2];
+        auto testData = std::shared_ptr<double[]>{ new double[testSize] };
+        testDataSet.read(testData.get(), H5::PredType::NATIVE_DOUBLE);
 
-        // Load test data
-        checkFileExists(testDataFilePath);
-        int testNSteps;
-        H5::H5File testDataFile;
-        loadHDF5(testDataFilePath, testNSteps, testDataFile);
+        // Get fiducial data array
+        size_t fiducialSize;
+        std::shared_ptr<double[]> fiducialData = _getFiducialArray(dataSetName,
+                                                                   fiducialSize);
 
-        // Perform Checks
-        // ==============
-        // Check that both files have the same number of data sets
-        ASSERT_EQ(fiducialDataFile.getNumObjs(),
-                  testDataFile.getNumObjs())
-                  << "The two HDF5 files do not have the same number of datasets";
+        // Check that they're the same length
+        ASSERT_EQ(fiducialSize, testSize) << "The fiducial and test '"
+                                          << dataSetName
+                                          << "' datasets are not the same length";
 
-        // Check the number of time steps
-        ASSERT_EQ(fiducialNSteps, testNSteps)
-                  << "The number of time steps is not equal";
-
-        // Loop through datasets and check each value
-        for (size_t dataSetID = 0; dataSetID < fiducialDataFile.getNumObjs(); dataSetID++)
+        // Compare values
+        for (size_t i = 0; i < testDims[0]; i++)
         {
-            // Check that the dataset names are the same
-            ASSERT_EQ(fiducialDataFile.getObjnameByIdx(dataSetID), testDataFile.getObjnameByIdx(dataSetID))
-                      << "The data sets do not have the same name";
-
-            // Assign DataSet objects
-            H5::DataSet const fiducialDataSet = fiducialDataFile.openDataSet(fiducialDataFile.getObjnameByIdx(dataSetID));
-            H5::DataSet const testDataSet     = testDataFile.openDataSet(testDataFile.getObjnameByIdx(dataSetID));
-
-            // Determine dataset size/shape and check that it's correct
-            H5::DataSpace fiducialDataSpace = fiducialDataSet.getSpace();
-            H5::DataSpace testDataSpace     = testDataSet.getSpace();
-
-            hsize_t fidDims[3] = {1,1,1}, testDims[3] = {1,1,1};
-            ASSERT_TRUE(fiducialDataSpace.getSimpleExtentDims(fidDims) <= 3)
-                        << "Expected 3 or fewer dimensions in dataset";
-            ASSERT_TRUE(testDataSpace.getSimpleExtentDims(testDims) <= 3)
-                        << "Expected 3 or fewer dimensions in dataset";
-            ASSERT_EQ(fidDims[0], testDims[0])
-                        << "Data sets are not the same length in the x-direction";
-            ASSERT_EQ(fidDims[1], testDims[1])
-                        << "Data sets are not the same length in the y-direction";
-            ASSERT_EQ(fidDims[2], testDims[2])
-                        << "Data sets are not the same length in the z-direction";
-
-            // Allocate arrays, Note that I'm casting everything to double. Some
-            // of the arrays are ints in the HDF5 file and if the casting
-            // becomes an issue we can fix it later
-            double *fiducialData = new double[fidDims[0] * fidDims[1] * fidDims[2]]();
-            double *testData = new double[testDims[0] * testDims[1] * testDims[2]]();
-
-            // Read in data
-            fiducialDataSet.read(fiducialData, H5::PredType::NATIVE_DOUBLE);
-            testDataSet.read(testData, H5::PredType::NATIVE_DOUBLE);
-
-            // Compare values
-            for (size_t i = 0; i < fidDims[0]; i++)
+            for (size_t j = 0; j < testDims[1]; j++)
             {
-                for (size_t j = 0; j < fidDims[1]; j++)
+                for (size_t k = 0; k < testDims[2]; k++)
                 {
-                    for (size_t k = 0; k < fidDims[2]; k++)
-                    {
-                        size_t index = (i * fidDims[1] + j) * fidDims[2] + k;
+                    size_t index = (i * testDims[1] + j) * testDims[2] + k;
 
-                        // Check for equality and iff not equal return difference
-                        double absoluteDiff;
-                        int64_t ulpsDiff;
-                        bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData[index],
-                                                                         testData[index],
-                                                                         absoluteDiff,
-                                                                         ulpsDiff);
-                        ASSERT_TRUE(areEqual)
-                            << std::endl
-                            << "Difference in "
-                            << fiducialDataFile.getObjnameByIdx(dataSetID)
-                            << " dataset at ["
-                            << i << "," << j << "," << k <<"]" << std::endl
-                            << "The fiducial value is:       " << fiducialData[index] << std::endl
-                            << "The test value is:           " << testData[index]     << std::endl
-                            << "The absolute difference is:  " << absoluteDiff        << std::endl
-                            << "The ULP difference is:       " << ulpsDiff            << std::endl;
-                    }
-
+                    // Check for equality and iff not equal return difference
+                    double absoluteDiff;
+                    int64_t ulpsDiff;
+                    bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData[index],
+                                                                     testData[index],
+                                                                     absoluteDiff,
+                                                                     ulpsDiff);
+                    ASSERT_TRUE(areEqual)
+                        << std::endl
+                        << "Difference in "
+                        << dataSetName
+                        << " dataset at ["
+                        << i << "," << j << "," << k <<"]" << std::endl
+                        << "The fiducial value is:       " << fiducialData[index] << std::endl
+                        << "The test value is:           " << testData[index]     << std::endl
+                        << "The absolute difference is:  " << absoluteDiff        << std::endl
+                        << "The ULP difference is:       " << ulpsDiff            << std::endl;
                 }
             }
-            delete[] fiducialData;
-            delete[] testData;
-        } // End Dataset loop
+        }
     }
-    // =========================================================================
-} // namespace systemTest
+}
+// =============================================================================
+
+// =============================================================================
+void systemTest::SystemTestRunner::setFiducialData(std::string const &fieldName,
+                                                   std::shared_ptr<double[]> const &dataArr,
+                                                   size_t const &sizeOfArr,
+                                                   int const &numTimeSteps)
+{
+    // First check if there's a fiducial data file
+    if (_fiducialFileExists)
+    {
+        std::string errMessage = "Error: Fiducial data file already exists for test '"
+                                 + _fullTestFileName
+                                 + "' and cannot be overwritten.";
+        throw std::runtime_error(errMessage);
+    }
+
+    // Check if we need to set the number of time steps
+    if (numTimeSteps >= 0) _numFiducialTimeSteps = numTimeSteps;
+
+    // Put new array into map and its size
+    _fiducialDataSets[fieldName] = dataArr;
+    _fiducialArrSize[fieldName] = sizeOfArr;
+}
+// =============================================================================
+
+// =============================================================================
+std::shared_ptr<double[]> systemTest::SystemTestRunner::generateConstantArray(
+                                                        double const &value,
+                                                        size_t const &nx,
+                                                        size_t const &ny,
+                                                        size_t const &nz)
+{
+    size_t const arrSize = nx*ny*nz;
+    auto outArray = std::shared_ptr<double[]>{ new double[arrSize] };
+    for (size_t i = 0; i < arrSize; i++)
+    {
+        outArray[i] = value;
+    }
+    return outArray;
+}
+// =============================================================================
+
+// =============================================================================
+std::shared_ptr<double[]> systemTest::SystemTestRunner::generateSineArray(
+                                                        double const &offset,
+                                                        double const &amplitude,
+                                                        double const &kx,
+                                                        double const &ky,
+                                                        double const &kz,
+                                                        double const &phase,
+                                                        size_t const &nx,
+                                                        size_t const &ny,
+                                                        size_t const &nz)
+{
+    size_t const arrSize = nx*ny*nz;
+    auto outArray = std::shared_ptr<double[]>{ new double[arrSize] };
+    for (size_t i = 0; i < nx; i++)
+    {
+        for (size_t j = 0; j < ny; j++)
+        {
+            for (size_t k = 0; k < nz; k++)
+            {
+                double value    = offset + amplitude
+                                  * std::sin(kx*i + ky*j + kz*k + phase);
+
+                size_t index    = (i * ny + j) * nz + k;
+                outArray[index] = value;
+            }
+        }
+    }
+    return outArray;
+}
+// =============================================================================
+
+// =============================================================================
+// Constructor
+systemTest::SystemTestRunner::SystemTestRunner(bool const &useFiducialFile,
+                                               bool const &useSettingsFile)
+{
+    // Get the test name, with and underscore instead of a "." since
+    // we're actually generating file names
+    const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+    std::stringstream nameStream;
+    nameStream << test_info->test_suite_name() << "_" << test_info->name();
+    _fullTestFileName = nameStream.str();
+
+    // Generate the input paths
+    _chollaPath         = ::globalChollaRoot.getString()
+                          + "/bin/cholla."
+                          + ::globalChollaBuild.getString()
+                          + "." + ::globalChollaMachine.getString();
+    _chollaSettingsPath = ::globalChollaRoot.getString()
+                          + "/src/system_tests/input_files/"
+                          + _fullTestFileName +".txt";
+    _fiducialFilePath   = ::globalChollaRoot.getString()
+                          + "/src/system_tests/fiducial_data/"
+                          + _fullTestFileName + ".h5";
+
+    // Generate output paths, these files don't exist yet
+    _outputDirectory    = ::globalChollaRoot.getString() + "/bin/" + _fullTestFileName;
+    _consoleOutputPath  = _outputDirectory + "/" + _fullTestFileName + "_console.log";
+    _testFilePath       = _outputDirectory + "/1.h5.0";
+
+    // Create the new directory and check that it exists
+    // TODO: C++17: When we update to C++17 or newer this section should
+    // TODO: use std::filesystem to create the directory and check that
+    // TODO: it exists
+    if (mkdir(_outputDirectory.c_str(), 0777) == -1)
+    {
+        std::string errMessage = "Error: Directory '"
+                                 + _outputDirectory
+                                 + "' could not be created.";
+        throw std::runtime_error(errMessage);
+    }
+
+    // Check that the files exist and load fiducial HDF5 file if required
+    _checkFileExists(_chollaPath);
+    if (useSettingsFile) _checkFileExists(_chollaSettingsPath);
+    if (useFiducialFile)
+    {
+        _checkFileExists(_fiducialFilePath);
+        _fiducialFile.openFile(_fiducialFilePath, H5F_ACC_RDONLY);
+        _fiducialDataSetNames = _findDataSetNames(_fiducialFile);
+        _fiducialFileExists   = true;
+    };
+}
+// =============================================================================
+
+// =============================================================================
+// Destructor
+systemTest::SystemTestRunner::~SystemTestRunner()
+{
+    _fiducialFile.close();
+    _testFile.close();
+}
+// =============================================================================
+
+// =============================================================================
+// Private Members
+// =============================================================================
+
+// =============================================================================
+void systemTest::SystemTestRunner::_checkFileExists(std::string const &filePath)
+{
+    // TODO C++17 std::filesystem does this better
+    std::fstream file;
+    file.open(filePath);
+    if (not file)
+    {
+        std::string errMessage = "Error: File '" + filePath + "' not found.";
+        throw std::invalid_argument(errMessage);
+    }
+}
+// =============================================================================
+
+// =============================================================================
+void systemTest::SystemTestRunner::_safeMove(std::string const &sourcePath,
+                                             std::string const &destinationDirectory)
+{
+    // TODO C++17 std::filesystem does this better
+    _checkFileExists(sourcePath);
+    if(std::rename(sourcePath.c_str(), (destinationDirectory + "/" + sourcePath).c_str()) < 0)
+    {
+        std::string errMessage = "Error: File '"
+                                    + sourcePath
+                                    + "' could not be moved to '"
+                                    + destinationDirectory
+                                    + "`";
+        throw std::invalid_argument(errMessage);
+    }
+}
+// =============================================================================
+
+// =============================================================================
+void systemTest::SystemTestRunner::_checkNumTimeSteps()
+{
+    int fiducialNSteps, testNSteps;
+
+    H5::Attribute tStepAttr = _testFile.openAttribute("n_step");
+    tStepAttr.read(H5::PredType::NATIVE_INT, &testNSteps);
+
+    if (_fiducialFileExists)
+    {
+        tStepAttr = _fiducialFile.openAttribute("n_step");
+        tStepAttr.read(H5::PredType::NATIVE_INT, &fiducialNSteps);
+    }
+    else
+    {
+        fiducialNSteps = _numFiducialTimeSteps;
+    }
+
+    EXPECT_EQ(fiducialNSteps, testNSteps)
+              << "The number of time steps is not equal";
+};
+// =============================================================================
+
+// =============================================================================
+std::shared_ptr<double[]> systemTest::SystemTestRunner::_getFiducialArray(
+        std::string const &dataSetName,
+        size_t &length)
+{
+    if (_fiducialFileExists)
+    {
+        // Read in fiducial Data
+        H5::DataSet const fiducialDataSet = _fiducialFile.openDataSet(dataSetName);
+
+        // Determine dataset size/shape and check that it's correct
+        H5::DataSpace fiducialDataSpace = fiducialDataSet.getSpace();
+
+        hsize_t fidDims[3] = {1,1,1};
+        fiducialDataSpace.getSimpleExtentDims(fidDims);
+
+        // Allocate arrays, Note that I'm casting everything to double. Some
+        // of the arrays are ints in the HDF5 file and if the casting
+        // becomes an issue we can fix it later
+        length = fidDims[0] * fidDims[1] * fidDims[2];
+        auto fiducialData = std::shared_ptr<double[]>{ new double[length] };
+
+        // Read in data
+        fiducialDataSet.read(fiducialData.get(), H5::PredType::NATIVE_DOUBLE);
+        return fiducialData;
+    }
+    else
+    {
+        length = _fiducialArrSize[dataSetName];
+        return _fiducialDataSets[dataSetName];
+    }
+}
+// =============================================================================
+
+// =============================================================================
+std::vector<std::string> systemTest::SystemTestRunner::_findDataSetNames(
+                                                    H5::H5File const &inputFile)
+{
+    std::vector<std::string> outputVector;
+
+    for (size_t dataSetID = 0;
+         dataSetID < inputFile.getNumObjs();
+         dataSetID++)
+    {
+        outputVector.push_back(inputFile.getObjnameByIdx(dataSetID));
+    }
+    return outputVector;
+};
+// =============================================================================

@@ -51,8 +51,8 @@ namespace testingUtilities
                         double  const &b,
                         double  &absoluteDiff,
                         int64_t &ulpsDiff,
-                        int     const &ulpsEpsilon,  // = 4 by default
-                        double  const &fixedEpsilon) // = 1E-14 by default
+                        double  const &fixedEpsilon, // = 1E-14 by default
+                        int     const &ulpsEpsilon)  // = 4 by default
     {
         // Handle the near-zero case and pass back the absolute difference
         absoluteDiff = std::abs(a - b);

@@ -15,5 +15,6 @@
 TEST(tHYDROSYSTEMSodShockTube,
      CorrectInputExpectCorrectOutput)
 {
-    systemTest::systemTestRunner();
+    systemTest::SystemTestRunner sodTest;
+    sodTest.runTest();
 }
