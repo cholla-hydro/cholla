@@ -6,7 +6,7 @@
 #include "../global/global.h"
 #include <vector>
 
-#ifndef SOR
+#ifdef COSMOLOGY
 #include <fftw3.h>
 #endif
 
