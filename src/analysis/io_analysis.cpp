@@ -53,13 +53,13 @@ void Grid3D::Write_Analysis_Header_HDF5( hid_t file_id ){
   int       int_data[3];
   Real      Real_data[3];
 
-  Real H0 = Cosmo.cosmo_h*100;
 
   // Single attributes first
   attr_dims = 1;
   // Create the data space for the attribute
   dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
   #ifdef COSMOLOGY
+  Real H0 = Cosmo.cosmo_h*100;
   attribute_id = H5Acreate(file_id, "current_a", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Particles.current_a);
   status = H5Aclose(attribute_id);
@@ -300,6 +300,7 @@ void Grid3D::Write_Analysis_Data_HDF5( hid_t file_id ){
 
 }
 
+#ifdef COSMOLOGY
 void Analysis_Module::Load_Scale_Outputs( struct parameters *P ) {
 
   char filename_1[100];
@@ -365,5 +366,6 @@ void Analysis_Module::Set_Next_Scale_Output(  ){
 
   // chprintf("Next Analysis Output: z=%f \n", 1./next_output - 1);
 }
+#endif //COSMOLOGY
 
 #endif

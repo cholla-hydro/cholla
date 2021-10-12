@@ -5,7 +5,10 @@
 
 #include "../global/global.h"
 #include <vector>
+
+#ifndef SOR
 #include <fftw3.h>
+#endif
 
 using namespace std;
 
