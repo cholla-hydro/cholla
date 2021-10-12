@@ -553,7 +553,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   chprintf( " Initializing Particles Stellar Disk\n");
 
   std::random_device rd;
-  std::mt19937 generator(3); //rd());
+  std::mt19937 generator(rd());
   std::gamma_distribution<Real> radialDist(2,1);  //for generating cyclindrical radii
   std::uniform_real_distribution<Real> zDist(0, 1);      //for generating height above/below the disk.
   std::uniform_real_distribution<Real> phiDist(0, 2*M_PI); //for generating phi

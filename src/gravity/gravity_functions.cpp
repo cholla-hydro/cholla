@@ -276,7 +276,7 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
 {
   Real dMax = 0, dSum = 0, dSum2 = 0;
   Real qMax = 0, qSum = 0, qSum2 = 0;
-#pragma omp parallel for reduction(max:dMax,qMax) reduction(+:dSum,dSum2,qSum,qSum2)
+  #pragma omp parallel for reduction(max:dMax,qMax) reduction(+:dSum,dSum2,qSum,qSum2)
   for (int k = 0; k < nz; k++) {
     for (int j = 0; j < ny; j++) {
       for (int i = 0; i < nx; i++) {
@@ -296,13 +296,12 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
   Real sums[4] = {qSum,qSum2,dSum,dSum2};
   MPI_Allreduce(MPI_IN_PLACE,&maxs,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE,&sums,4,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-  const double l1 = sums[2]/sums[0];
-  chprintf(" Poisson-Solver Diff: L1 %g L2 %g Linf %g\n",l1,sqrt(sums[3]/sums[1]),maxs[1]/maxs[0]);
+  chprintf(" Poisson-Solver Diff: L1 %g L2 %g Linf %g\n",sums[2]/sums[0],sqrt(sums[3]/sums[1]),maxs[1]/maxs[0]);
   fflush(stdout);
-  if (!plot && (l1 < 1.0)) return;
+  if (!plot) return;
 
   printf("###\n");
-#if 0
+  #if 0
   int kMax = -1;
   for (int k = 0; k < nz; k++) {
     for (int j = 0; j < ny; j++) {
@@ -313,7 +312,7 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
       }
     }
     if (kMax > -1) {
-#endif
+  #endif
       const int k = nz/2;
       for (int j = 0; j < ny+ng+ng; j++) {
         for (int i = 0; i < nx+ng+ng; i++) {
@@ -322,11 +321,11 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
         }
         printf("\n");
       }
-#if 0
+  #if 0
       break;
     }
   }
-#endif
+  #endif
   fflush(stdout);
   MPI_Finalize();
   exit(0);
@@ -341,7 +340,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
   Grav.Initialize( H.xblocal, H.yblocal, H.zblocal, H.xdglobal, H.ydglobal, H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost_potential_offset, P  );
   chprintf( "Gravity Successfully Initialized. \n\n");
 
-#ifdef PARIS_TEST
+  #ifdef PARIS_TEST
 
   chprintf("Analytic Test of Poisson Solvers:\n");
   const long ng = N_GHOST_POTENTIAL;
@@ -355,7 +354,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
   const Real ddly = dly*dly;
   const Real ddlz = dlz*dlz;
 
-#pragma omp parallel for
+  #pragma omp parallel for
   for (int k = 0; k < Grav.nz_local; k++) {
     const Real z = (Grav.zMin-H.zbound+Real(k)*Grav.dz)*dlz;
     long ijk = long(k)*Grav.ny_local*Grav.nx_local;
@@ -376,17 +375,17 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 
   for (Real &pijk : p) pijk = 0;
 
-#ifdef CUFFT
+  #ifdef CUFFT
   chprintf("CUFFT");
   Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
-#endif
-#ifdef PFFT
+  #endif
+  #ifdef PFFT
   chprintf("PFFT");
   Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
-#endif
+  #endif
   printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
 
-#endif
+  #endif
 
   if (P->bc_potential_type == 1) {
 
@@ -397,7 +396,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
     const int ni = Grav.nx_local+twoNG;
     const Real dr = 0.5-ng;
 
-#ifdef PARIS_GALACTIC_TEST
+    #ifdef PARIS_GALACTIC_TEST
     chprintf("Analytic Test of Poisson Solvers:\n");
     std::vector<Real> exact(Grav.n_cells_potential);
     std::vector<Real> potential(Grav.n_cells_potential);
@@ -409,7 +408,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
     const int nij = ni*nj;
     const Real a0 = Galaxies::MW.phi_disk_D3D(0,0);
     const Real da0 = 2.0/(25.0*scale);
-#pragma omp parallel for
+    #pragma omp parallel for
     for (int k = 0; k < nk; k++) {
       const Real z = Grav.zMin+Grav.dz*(k+dr);
       const int njk = nj*k;
@@ -425,7 +424,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
         }
       }
     }
-#pragma omp parallel for
+    #pragma omp parallel for
     for (int k = 0; k < Grav.nz_local; k++) {
       const Real z = Grav.zMin+Grav.dz*(k+0.5);
       const Real zz = z*z;
@@ -448,15 +447,16 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
       }
     }
     Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,Grav.F.potential_h,Grav.Gconst,Galaxies::MW);
-    chprintf("Paris Galaxy");
+    chprintf(" Paris Galactic");
     printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
     Get_Potential_SOR(Grav.Gconst,0,0,P);
-    chprintf("SOR");
+    chprintf(" SOR");
     printDiff(Grav.F.potential_h,exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
-#endif
+    #endif
 
-    chprintf("Initializing disk analytic potential\n");
-#pragma omp parallel for
+    #ifdef SOR
+    chprintf(" Initializing disk analytic potential\n");
+    #pragma omp parallel for
     for (int k = 0; k < nk; k++) {
       const Real z = Grav.zMin+Grav.dz*(k+dr);
       const int njk = nj*k;
@@ -472,6 +472,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
         }
       }
     }
+    #endif
   }
 }
 
@@ -479,33 +480,33 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 //Compute the Gravitational Potential by solving Poisson Equation
 void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
 
-#ifdef CPU_TIME
+  #ifdef CPU_TIME
   Timer.Start_Timer();
-#endif
+  #endif
 
-#ifdef PARTICLES
+  #ifdef PARTICLES
   //Copy the particles density to the grav_density array
   Copy_Particles_Density_to_Gravity( *P );
-#endif
+  #endif
 
-#ifndef ONLY_PARTICLES
+  #ifndef ONLY_PARTICLES
   //Copy the hydro density to the grav_density array
   Copy_Hydro_Density_to_Gravity();
-#endif
+  #endif
 
-#ifdef COSMOLOGY
+  #ifdef COSMOLOGY
   //If using cosmology, set the gravitational constant to the one in the correct units
   const Real Grav_Constant = Cosmo.cosmo_G;
   const Real current_a = Cosmo.current_a;
   const Real dens_avrg = Cosmo.rho_0_gas;
-#else
+  #else
   const Real Grav_Constant = Grav.Gconst;
   // If sloving the Sphere Collapse problem ( bc_potential_type=0 )
   const Real dens_avrg = (P->bc_potential_type == 0) ? H.sphere_background_density : 0;
   const Real r0 = H.sphere_radius;
   // Re-use current_a as the total mass of the sphere
   const Real current_a = (H.sphere_density-dens_avrg)*4.0*M_PI*r0*r0*r0/3.0;
-#endif
+  #endif
 
   if ( !Grav.BC_FLAGS_SET ){
     Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
@@ -517,78 +518,78 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
     Grav.BC_FLAGS_SET = true;
   }
 
-#ifdef GRAV_ISOLATED_BOUNDARY_X
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
   if ( Grav.boundary_flags[0] == 3 ) Compute_Potential_Boundaries_Isolated(0, P);
   if ( Grav.boundary_flags[1] == 3 ) Compute_Potential_Boundaries_Isolated(1, P);
   // chprintf("Isolated X\n");
-#endif
-#ifdef GRAV_ISOLATED_BOUNDARY_Y
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
   if ( Grav.boundary_flags[2] == 3 ) Compute_Potential_Boundaries_Isolated(2, P);
   if ( Grav.boundary_flags[3] == 3 ) Compute_Potential_Boundaries_Isolated(3, P);
   // chprintf("Isolated Y\n");
-#endif
-#ifdef GRAV_ISOLATED_BOUNDARY_Z
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
   if ( Grav.boundary_flags[4] == 3 ) Compute_Potential_Boundaries_Isolated(4, P);
   if ( Grav.boundary_flags[5] == 3 ) Compute_Potential_Boundaries_Isolated(5, P);
   // chprintf("Isolated Z\n");
-#endif
+  #endif
 
   //Solve Poisson Equation to compute the potential
   //Poisson Equation: laplacian( phi ) = 4 * pi * G / scale_factor * ( dens - dens_average )
   Real *input_density, *output_potential;
-#ifdef GRAVITY_GPU
+  #ifdef GRAVITY_GPU
   input_density = Grav.F.density_d;
   output_potential = Grav.F.potential_d;
-#else
+  #else
   input_density = Grav.F.density_h;
   output_potential = Grav.F.potential_h;
-#endif
+  #endif
 
-#ifdef SOR
+  #ifdef SOR
 
-#ifdef PARIS_GALACTIC_TEST
-#ifdef GRAVITY_GPU
-#error "GRAVITY_GPU not yet supported with PARIS_GALACTIC_TEST"
-#endif
+  #ifdef PARIS_GALACTIC_TEST
+  #ifdef GRAVITY_GPU
+  #error "GRAVITY_GPU not yet supported with PARIS_GALACTIC_TEST"
+  #endif
   Grav.Poisson_solver_test.Get_Potential(input_density,output_potential,Grav_Constant,Galaxies::MW);
   std::vector<Real> p(output_potential,output_potential+Grav.n_cells_potential);
   Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
-  chprintf("Paris vs SOR");
+  chprintf(" Paris vs SOR");
   printDiff(p.data(),output_potential,Grav.nx_local,Grav.ny_local,Grav.nz_local,N_GHOST_POTENTIAL,false);
-#else
+  #else
   Get_Potential_SOR( Grav_Constant, dens_avrg, current_a, P );
-#endif
+  #endif
 
-#elif defined PARIS_GALACTIC
+  #elif defined PARIS_GALACTIC
   Grav.Poisson_solver.Get_Potential(input_density,output_potential,Grav_Constant,Galaxies::MW);
-#else
+  #else
   Grav.Poisson_solver.Get_Potential( input_density, output_potential, Grav_Constant, dens_avrg, current_a);
-#endif//SOR
+  #endif//SOR
 
-#ifdef PARIS_TEST
+  #ifdef PARIS_TEST
   std::vector<Real> p(Grav.n_cells_potential);
   Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,p.data(),Grav_Constant,dens_avrg,current_a);
-#ifdef CUFFT
+  #ifdef CUFFT
   chprintf("Paris vs CUFFT");
-#endif
-#ifdef PFFT
+  #endif
+  #ifdef PFFT
   chprintf("Paris vs PFFT");
-#endif
+  #endif
   printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local);
-#endif
+  #endif
 
-#ifdef CPU_TIME
+  #ifdef CPU_TIME
   Timer.End_and_Record_Time( 3 );
-#endif
+  #endif
 
 }
 
 #ifdef GRAVITY_ANALYTIC_COMP
 void Grid3D::Add_Analytic_Potential(struct parameters *P) {
-#ifndef PARALLEL_OMP
+  #ifndef PARALLEL_OMP
   Add_Analytic_Galaxy_Potential(0, Grav.nz_local, Galaxies::MW);
-#else
-#pragma omp parallel num_threads( N_OMP_THREADS )
+  #else
+  #pragma omp parallel num_threads( N_OMP_THREADS )
   {
     int omp_id, n_omp_procs;
     int g_start, g_end;
@@ -599,7 +600,7 @@ void Grid3D::Add_Analytic_Potential(struct parameters *P) {
 
     Add_Analytic_Galaxy_Potential(g_start, g_end, Galaxies::MW);
   }
-#endif
+  #endif
 }
 #endif
 
@@ -618,15 +619,15 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
         dens = C.density[id];
 
         //If using cosmology the density must be rescaled to the physical coordinates
-#ifdef COSMOLOGY
+        #ifdef COSMOLOGY
         dens *= Cosmo.rho_0_gas;
-#endif
+        #endif
 
-#ifdef PARTICLES
+        #ifdef PARTICLES
         Grav.F.density_h[id_grav] += dens; //Hydro density is added AFTER partices density
-#else
+        #else
         Grav.F.density_h[id_grav] = dens;
-#endif
+        #endif
 
       }
     }
@@ -635,15 +636,15 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
 
 void Grid3D::Copy_Hydro_Density_to_Gravity(){
 
-#ifdef GRAVITY_GPU
+  #ifdef GRAVITY_GPU
   Copy_Hydro_Density_to_Gravity_GPU();
-#else
+  #else
 
-#ifndef PARALLEL_OMP
+  #ifndef PARALLEL_OMP
   Copy_Hydro_Density_to_Gravity_Function( 0, Grav.nz_local );
-#else
+  #else
 
-#pragma omp parallel num_threads( N_OMP_THREADS )
+  #pragma omp parallel num_threads( N_OMP_THREADS )
   {
     int omp_id, n_omp_procs;
     int g_start, g_end;
@@ -654,9 +655,9 @@ void Grid3D::Copy_Hydro_Density_to_Gravity(){
 
     Copy_Hydro_Density_to_Gravity_Function(g_start, g_end );
   }
-#endif //PARALLEL_OMP
+  #endif //PARALLEL_OMP
 
-#endif //GRAVITY_GPU
+  #endif //GRAVITY_GPU
 
 }
 
@@ -735,10 +736,10 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
           pot_extrp = pot_now  + 0.5 * Grav.dt_now * ( pot_now - pot_prev  ) / Grav.dt_prev;
         }
 
-#ifdef COSMOLOGY
+        #ifdef COSMOLOGY
         //For cosmological simulation the potential is transformrd to 'comuving coordinates'
         pot_extrp *= Cosmo.current_a * Cosmo.current_a / Cosmo.phi_0_gas;
-#endif
+        #endif
 
         //Save the extrapolated potential
         potential_out[id_grid] = pot_extrp;
@@ -752,15 +753,15 @@ void Grid3D::Extrapolate_Grav_Potential_Function( int g_start, int g_end ){
 //Call the funtion to extrapolate the potential
 void Grid3D::Extrapolate_Grav_Potential(){
 
-#ifdef GRAVITY_GPU
+  #ifdef GRAVITY_GPU
   Extrapolate_Grav_Potential_GPU();
-#else
+  #else
 
-#ifndef PARALLEL_OMP
+  #ifndef PARALLEL_OMP
   Extrapolate_Grav_Potential_Function( 0, Grav.nz_local + 2*N_GHOST_POTENTIAL );
-#else
+  #else
 
-#pragma omp parallel num_threads( N_OMP_THREADS )
+  #pragma omp parallel num_threads( N_OMP_THREADS )
   {
     int omp_id, n_omp_procs;
     int g_start, g_end;
@@ -771,9 +772,9 @@ void Grid3D::Extrapolate_Grav_Potential(){
 
     Extrapolate_Grav_Potential_Function( g_start, g_end );
   }
-#endif // PARALLEL_OMP
+  #endif // PARALLEL_OMP
 
-#endif //GRAVITY_GPU
+  #endif //GRAVITY_GPU
 
   //After the first timestep the INITIAL flag is set to false, that way the potential is properly extrapolated afterwards
   Grav.INITIAL = false;

@@ -67,7 +67,7 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifeq ($(findstring -DGRAVITY_5_POINTS_GRADIENT,$(DFLAGS)),-DGRAVITY_5_POINTS_GRADIENT)
     DFLAGS += -DPARIS_5PT
   else
-    #DFLAGS += -DPARIS_3PT
+    DFLAGS += -DPARIS_3PT
   endif
 endif
 

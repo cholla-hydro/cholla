@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #-- This script needs to be source-d in the terminal, e.g.
-#   source ./setup.summit.xl.sh 
+#   source ./setup.birch.cce.sh 
 
 module load cray-python
 module load rocm

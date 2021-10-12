@@ -134,7 +134,7 @@ void Potential_Paris_Galactic::Initialize(const Real lx, const Real ly, const Re
   const int n[3] = {nz,ny,nx};
   const int m[3] = {n[0]/nzReal,n[1]/nyReal,n[2]/nxReal};
   const int id[3] = {int(round((myLo_[0]-lo_[0])/(dn_[0]*dr_[0]))),int(round((myLo_[1]-lo_[1])/(dn_[1]*dr_[1]))),int(round((myLo_[2]-lo_[2])/(dn_[2]*dr_[2])))};
-  chprintf("  Paris Galactic: [ %g %g %g ]-[ %g %g %g ] n_local[ %d %d %d ] tasks[ %d %d %d ]\n",lo_[2],lo_[1],lo_[0],hi[2],hi[1],hi[0],dn_[2],dn_[1],dn_[0],m[2],m[1],m[0]);
+  chprintf(" Paris Galactic: [ %g %g %g ]-[ %g %g %g ] n_local[ %d %d %d ] tasks[ %d %d %d ]\n",lo_[2],lo_[1],lo_[0],hi[2],hi[1],hi[0],dn_[2],dn_[1],dn_[0],m[2],m[1],m[0]);
 
   assert(dn_[0] == n[0]/m[0]);
   assert(dn_[1] == n[1]/m[1]);

@@ -127,14 +127,14 @@ class Grav3D
   #endif
   #endif
 
-#ifdef PARIS_GALACTIC
-#ifdef SOR
-#define PARIS_GALACTIC_TEST
+  #ifdef PARIS_GALACTIC
+  #ifdef SOR
+  #define PARIS_GALACTIC_TEST
   Potential_Paris_Galactic Poisson_solver_test;
-#else
+  #else
   Potential_Paris_Galactic Poisson_solver;
-#endif
-#endif
+  #endif
+  #endif
 
   struct Fields
   {
