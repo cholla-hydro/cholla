@@ -277,7 +277,7 @@ struct parameters
 
 /*! \fn void parse_params(char *param_file, struct parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
-extern void parse_params (char *param_file, struct parameters * parms);
+extern void parse_params (char *param_file, struct parameters * parms, int argc, char** argv);
 
 /*! \fn int is_param_valid(char *name);
  * \brief Verifies that a param is valid (even if not needed).  Avoids "warnings" in output. */
