@@ -1,0 +1,58 @@
+#-- M82 supernova-driven galactic outflow build
+
+#-- separated output flag so that it can be overriden in target-specific 
+#   for make check
+OUTPUT    ?=  -DOUTPUT -DHDF5
+
+MPI_GPU   ?=
+
+DFLAGS	  += -DHYDRO_GPU
+DFLAGS    += -DCUDA
+DFLAGS    += -DMPI_CHOLLA 
+DFLAGS    += -DBLOCK
+DFLAGS    += -DPRECISION=2
+DFLAGS    += -DPPMP
+DFLAGS    += -DHLLC
+
+# FOR NOW SET COOLING AND SUPERNOVA OFF TO TEST HYDROSTATIC EQUILIBRIUM
+
+# SUPERNOVA INJECTIONS
+DFLAGS	  += -DSUPERNOVA
+DFLAGS    += -DAVERAGE_SLOW_CELLS
+DFLAGS    += -DSTATIC_GRAVITY
+
+# MW_MODEL vs m82 (default)
+# DFLAGS += MW_MODEL
+
+ifeq ($(findstring cosmology,$(TYPE)),cosmology)
+DFLAGS    += -DSIMPLE
+else
+DFLAGS    += -DVL
+endif
+
+# need this if using Disk_3D
+DFLAGS += -DDISK_ICS
+
+# Apply a density and temperature floor
+DFLAGS    += -DDENSITY_FLOOR
+DFLAGS    += -DTEMPERATURE_FLOOR
+
+# Solve the Gas Internal Energy usisng a Dual Energy Formalism
+DFLAGS    += -DDE
+
+# Apply the cooling in the GPU from precomputed tables
+DFLAGS    += -DCOOLING_GPU
+
+#Measure the Timing of the different stages
+DFLAGS += -DCPU_TIME
+
+DFLAGS    += $(OUTPUT)
+
+#Select if the Hydro Conserved data will reside in the GPU
+#and the MPI transfers are done from the GPU
+#If not specified, MPI_GPU is off by default 
+#This is set in the system make.host file
+DFLAGS    += $(MPI_GPU)  
+
+DFLAGS    += -DPARALLEL_OMP
+DFLAGS    += -DN_OMP_THREADS=$(OMP_NUM_THREADS)

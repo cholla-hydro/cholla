@@ -89,11 +89,13 @@ __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, R
   Real a_d, a_h, a, M_vir, M_d, R_vir, R_d, R_s, M_h, c_vir, x;
   M_vir = 1.0e12; // viral mass of MW in M_sun
   M_d = 6.5e10; // mass of disk in M_sun (assume all gas)
-  M_h = M_vir - M_d; // halo mass in M_sun
+
   R_vir = 261; // viral radius in kpc
   c_vir = 20; // halo concentration
   R_s = R_vir / c_vir; // halo scale length in kpc
   R_d = 3.5; // disk scale length in kpc
+
+  M_h = M_vir - M_d; // halo mass in M_sun
 
   // calculate acceleration
   x = r / R_s;
@@ -124,21 +126,24 @@ __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z
   // set properties of halo and disk (these must match initial conditions)
   Real a_disk_r, a_disk_z, a_halo, a_halo_r, a_halo_z;
   Real M_vir, M_d, R_vir, R_d, z_d, R_h, M_h, c_vir, phi_0_h, x;
+
+  #ifdef MW_MODEL
   // MW model
-  M_vir = 1.0e12; // viral mass of in M_sun
   M_d = 6.5e10; // viral mass of in M_sun
+  M_vir = 1.0e12; // viral mass of in M_sun
   R_d = 3.5; // disk scale length in kpc
-  z_d = 3.5/5.0; // disk scale height in kpc
   R_vir = 261.; // virial radius in kpc
+  z_d = 3.5/5.0; // disk scale height in kpc
   c_vir = 20.0; // halo concentration
   // M82 model
-  //M_vir = 5.0e10; // viral mass of in M_sun
-  //M_d = 1.0e10; // mass of disk in M_sun
-  //R_d = 0.8; // disk scale length in kpc
-  //z_d = 0.15; // disk scale height in kpc
-  //R_vir = R_d/0.015; // viral radius in kpc
-  //c_vir = 10.0; // halo concentration
-
+  #else
+  M_d = 1.0e10; // mass of disk in M_sun
+  M_vir = 5.0e10; // viral mass of in M_sun
+  R_d = 0.8; // disk scale length in kpc
+  R_vir = R_d/0.015; // viral radius in kpc
+  z_d = 0.15; // disk scale height in kpc
+  c_vir = 10.0; // halo concentration
+  #endif //MW_MODEL
   M_h = M_vir - M_d; // halo mass in M_sun
   R_h = R_vir / c_vir; // halo scale length in kpc
   phi_0_h = GN * M_h / (log(1.0+c_vir) - c_vir / (1.0+c_vir));

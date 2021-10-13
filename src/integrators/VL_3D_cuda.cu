@@ -45,7 +45,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
   // Initialize dt values
   Real max_dti = 0;
   #ifdef COOLING_GPU
+  #ifdef COOLING_DT
   Real min_dt = 1e10;
+  #endif
   #endif
 
 
@@ -292,13 +294,15 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     // copy the dt array from cooling onto the CPU
     CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // find maximum inverse timestep from cooling time
+    #ifdef COOLING_DT
     for (int i=0; i<ngrid; i++) {
       min_dt = fmin(min_dt, host_dt_array[i]);
     }
     if (min_dt < C_cfl/max_dti) {
       max_dti = C_cfl/min_dt;
     }
-    #endif
+    #endif // COOLING_DT
+    #endif // COOLING_GPU
 
     // add one to the counter
     block++;

@@ -246,26 +246,26 @@ __global__ void Calc_Omega_Kernel(Real *cluster_array, Real *omega_array, int n_
 
   // for halo component, calculate spherical r
   r_sph = sqrt(r_pos * r_pos + z_pos*z_pos);
-
+  
+  #ifdef MW_MODEL
   // MW model
-  /*
-  M_vir = 1.0e12; // virial mass in M_sun
   M_d = 6.5e10; // virial mass in M_sun
-  R_vir = 261.; // virial radius in kpc
+  M_vir = 1.0e12; // virial mass in M_sun
   R_d = 3.5; // disk scale length in kpc
+  R_vir = 261.; // virial radius in kpc
   z_d = 3.5/5.0; // disk scale height in kpc
   c_vir = 20.0; // halo concentration
-  */
 
+  #else
   // M82 model
   M_d = 1.0e10; // mass of disk in M_sun
   M_vir = 5.0e10; // virial mass in M_sun
   R_d = 0.8; // disk scale length in kpc
   R_vir = R_d/0.015; // virial radius in kpc
-
   z_d = 0.15; // disk scale height in kpc
-
   c_vir = 10.0; // halo concentration
+  #endif // MW_MODEL
+
   M_h = M_vir - M_d; // halo mass in M_sun
   R_h = R_vir / c_vir; // halo scale length in kpc
   phi_0_h = GN * M_h / (log(1.0+c_vir) - c_vir / (1.0+c_vir));
