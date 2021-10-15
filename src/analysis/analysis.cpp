@@ -110,7 +110,11 @@ void Grid3D::Compute_Lya_Statistics( ){
 
 void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
 
+  #ifdef COSMOLOGY
   chprintf("\nComputing Analysis  current_z: %f\n", Analysis.current_z );
+  #else 
+  chprintf("\nComputing Analysis \n");
+  #endif
 
   #ifdef PHASE_DIAGRAM
   Compute_Phase_Diagram();
@@ -132,7 +136,10 @@ void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
   if (Analysis.Computed_Flux_Power_Spectrum == 1) Analysis.Clear_Power_Spectrum_Measurements();
   #endif
 
+  #ifdef COSMOLOGY
   Analysis.Set_Next_Scale_Output();
+  #endif 
+
   Analysis.Output_Now = false;
 
 
@@ -149,7 +156,7 @@ void Grid3D::Initialize_Analysis_Module( struct parameters *P ){
   #ifdef COSMOLOGY
   z_now = Cosmo.current_z;
   #else
-  z_now = NULL;
+  z_now = 0;
   #endif
 
   Analysis.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost, z_now, P );
@@ -193,10 +200,10 @@ void Analysis_Module::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_
 
   #ifdef COSMOLOGY
   current_z = z_now;
-  #endif
 
   //Load values of scale factor for analysis outputs
   Load_Scale_Outputs(P);
+  #endif
 
   #ifdef PHASE_DIAGRAM
   Initialize_Phase_Diagram(P);

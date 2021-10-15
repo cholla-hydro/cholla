@@ -1,4 +1,4 @@
-#ifdef ANALYSIS
+#if defined(ANALYSIS) && defined(PHASE_DIAGRAM)
 
 #include <stdio.h>      /* printf */
 #include <math.h>
@@ -117,17 +117,5 @@ void Analysis_Module::Initialize_Phase_Diagram( struct parameters *P ){
   chprintf(" Phase Diagram Initialized.\n");
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif

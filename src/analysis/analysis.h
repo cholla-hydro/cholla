@@ -5,7 +5,10 @@
 
 #include "../global/global.h"
 #include <vector>
+
+#ifdef LYA_STATISTICS
 #include <fftw3.h>
+#endif
 
 using namespace std;
 
