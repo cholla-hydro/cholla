@@ -25,6 +25,7 @@ __global__ void Calc_dt_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Rea
 
 __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real *dti_array, Real gamma,  Real max_dti_slow);
 
+Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow);
 
 __global__ void Sync_Energies_1D(Real *dev_conserved, int nx, int n_ghost, Real gamma, int n_fields);
 

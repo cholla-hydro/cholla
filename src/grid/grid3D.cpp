@@ -9,6 +9,7 @@
 #endif
 #include "../global/global.h"
 #include "../grid/grid3D.h"
+#include "../hydro/hydro_cuda.h" // provides Calc_dt_GPU
 #include "../cpu/CTU_1D.h"
 #include "../cpu/CTU_2D.h"
 #include "../cpu/CTU_3D.h"
@@ -625,6 +626,13 @@ Real Grid3D::Update_Grid(void)
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(-1);
   }
+
+  // from hydro/hydro_cuda.h
+  Real new_max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
+  if (new_max_dti != max_dti){
+    printf("Different dti problem: %9.4f %9.4f",new_max_dti,max_dti);
+  }
+  
   // at this point g0 has the old data, g1 has the new data
   // point the grid variables at the new data
   C.density  = &g1[0];
