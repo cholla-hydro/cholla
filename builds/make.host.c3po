@@ -16,7 +16,7 @@ HDF5_ROOT       = /usr/lib/x86_64-linux-gnu/hdf5/serial
 # FFTW_ROOT       = ${OLCF_FFTW_ROOT}
 # PFFT_ROOT       = /ccs/proj/csc380/cholla/fom/code/pfft
 # GRACKLE_ROOT    = /ccs/home/bvilasen/code/grackle
-# GOOGLETEST_ROOT = ${OLCF_GOOGLETEST_ROOT}
+GOOGLETEST_ROOT := ${GOOGLETEST_ROOT}
 
 #-- MPI calls accept GPU buffers (requires GPU-aware MPI)
 # MPI_GPU = -DMPI_GPU

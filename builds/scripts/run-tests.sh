@@ -11,76 +11,217 @@
 
 #set -x #echo all commands
 
-# Check the build type
-make_type='hydro'
-while getopts ":t:" opt; do
+# ==============================================================================
+# Perform all the setup required for testing with Cholla.
+#
+# \param[in] -t (optional) The make type, defaults to hydro
+# \param[in] -c (optional) The compiler to use/setup file partial name. The
+# setup scripts are all named like setup.MACHINE_NAME.COMPILER.sh and this
+# argument is the value of COMPILER which does not occur for all setup scripts
+setupTests ()
+{
+  echo -e "\nRunning Setup..."
+  # Check arguments & default CHOLLA_MAKE_TYPE
+  export CHOLLA_MAKE_TYPE='hydro'
+
+  local OPTIND
+  while getopts "t:c:" opt; do
     case $opt in
         t)  # Set the make type
-            make_type="${OPTARG}"
+            export CHOLLA_MAKE_TYPE="${OPTARG}"
+            ;;
+        c)  # Choose the compiler
+            CHOLLA_COMPILER=".${OPTARG}"
             ;;
         \?)
             echo "Invalid option: -${OPTARG}" >&2
-            exit 1
+            return 1
             ;;
         :)
             echo "Option -${OPTARG} requires an argument." >&2
-            exit 1
+            return 1
             ;;
     esac
-done
-echo "Make Type: ${make_type}"
+  done
 
-# Determine the hostname then use that to pick the right machine name and launch
-# command
-FQDN=$(hostname --fqdn)
+  # Get the full path to Cholla
+  export CHOLLA_ROOT="$(git rev-parse --show-toplevel)"
+  if [[ CHOLLA_ROOT == *cholla ]]; then
+    echo "Please call this function from within the Cholla repo"
+    return 1
+  fi
 
-case $FQDN in
-  *summit* | *peak*)
-    echo "summit"
-    machine='summit'
-    launch_command=(jsrun
-                    --smpiargs="-gpu"
-                    --nrs 1
-                    --cpu_per_rs 1
-                    --tasks_per_rs 1
-                    --gpu_per_rs 1)
-    ;;
-  *crc.*)
-    machine='crc'
-    launch_command=''
-    ;;
-  *spock*)
-    machine='spock'
-    launch_command=''
-    ;;
-  *c3po*)
-    machine='c3po'
-    launch_command=''
-    ;;
-  *)
-    echo "No settings were found for this host. Current host: ${FQDN}" >&2
-    exit 1
-    ;;
-esac
+  # Determine the hostname then use that to pick the right machine name and launch
+  # command
+  FQDN=$(hostname --fqdn)
 
-# Determine paths and set launch flags
-cholla_path=$(git rev-parse --show-toplevel)
-options=("--cholla-root ${cholla_path}"
-         "--build-type ${make_type}"
-         "--machine ${machine}"
-         "--gtest_filter=*tALL*:*t${make_type^^}*")
+  case $FQDN in
+    *summit* | *peak*)
+      echo "summit"
+      export CHOLLA_MACHINE='summit'
+      export CHOLLA_LAUNCH_COMMAND=(jsrun
+                                    --smpiargs="-gpu"
+                                    --nrs 1
+                                    --cpu_per_rs 1
+                                    --tasks_per_rs 1
+                                    --gpu_per_rs 1)
+      ;;
+    *crc.*)
+      export CHOLLA_MACHINE='crc'
+      export CHOLLA_LAUNCH_COMMAND=''
+      ;;
+    *spock*)
+      export CHOLLA_MACHINE='spock'
+      export CHOLLA_LAUNCH_COMMAND=''
+      ;;
+    *c3po*)
+      export CHOLLA_MACHINE='c3po'
+      export CHOLLA_LAUNCH_COMMAND=''
+      ;;
+    *)
+      echo "No settings were found for this host. Current host: ${FQDN}" >&2
+      return 1
+      ;;
+  esac
 
-cd ${cholla_path}
+  # Clean the cholla directory
+  builtin cd $CHOLLA_ROOT
+  make clobber
 
-echo -e "\nCleaning...\n" && \
-make clobber > compile.log && \
-rm -rf ${cholla_path}/bin/* >> compile.log && \
+  # Source the setup file
+  source "${CHOLLA_ROOT}/builds/setup.${CHOLLA_MACHINE}${CHOLLA_COMPILER}.sh"
+}
+# ==============================================================================
 
-echo -e "\nBuilding Cholla...\n" && \
-make -j TYPE=${make_type}  >> compile.log && \
+# ==============================================================================
+# Build Cholla itself. Requires that the setupTests function has already been
+# called
+buildCholla ()
+{
+  echo -e "\nBuilding Cholla...\n"
+  builtin cd $CHOLLA_ROOT
+  make -j TYPE=${CHOLLA_MAKE_TYPE}
+}
+# ==============================================================================
 
-echo -e "\nBuilding Tests...\n" && \
-make -j TYPE=${make_type} TEST=true  >> compile.log && \
+# ==============================================================================
+# Build the Cholla tests. Requires that the setupTests function has already been
+# called
+buildChollaTests ()
+{
+  echo -e "\nBuilding Tests...\n"
+  builtin cd $CHOLLA_ROOT
+  make -j TYPE=${CHOLLA_MAKE_TYPE} TEST=true
+}
+# ==============================================================================
 
-echo -e "\nRunning Tests...\n" && \
-${launch_command[@]}  ./bin/cholla.${make_type}.${machine}.tests ${options[@]}
+# ==============================================================================
+# Build GoogleTest, create "install" directory that mimics a system install
+# directory, export GOOGLETEST_ROOT as the path to the install directory
+buildGoogleTest ()
+{
+  echo -e "\nBuilding GoogleTest..."
+
+  builtin cd $CHOLLA_ROOT
+
+  # All the flags to pass to GoogleTest when building and GTEST URL
+  GOOGLETEST_URL="https://github.com/google/googletest.git"
+  CMAKE_FLAGS=(-DGTEST_HAS_PTHREAD=1
+              -DCMAKE_C_COMPILER=gcc
+              -DCMAKE_CXX_COMPILER=g++)
+
+  # Download and build
+  git clone $GOOGLETEST_URL  && \
+  builtin cd googletest      && \
+  mkdir build                && \
+  builtin cd build           && \
+  cmake .. ${CMAKE_FLAGS[@]} && \
+  make -j                    && \
+
+  # Now we "install" it in the googletest/build/install_root directory
+  echo -e "\nSetting up install directory for GoogleTest..."
+
+  # Destination directory, full path required
+  DEST_DIR="${CHOLLA_ROOT}/googletest/build/install_root" && \
+
+  # Make the required directories
+  mkdir "${DEST_DIR}" && \
+  mkdir "${DEST_DIR}/include" && \
+  mkdir "${DEST_DIR}/lib64" && \
+
+  # Copy include directories
+  cp -r "../googletest/include/gtest" "${DEST_DIR}/include/" && \
+  cp -r "../googlemock/include/gmock" "${DEST_DIR}/include/" && \
+
+  # Copy lib directory contents
+  cp -r lib/* "${DEST_DIR}/lib64/" && \
+
+  export GOOGLETEST_ROOT="${DEST_DIR}"
+
+  builtin cd $CHOLLA_ROOT
+}
+# ==============================================================================
+
+# ==============================================================================
+runTests ()
+{
+  echo -e "\nRunning Tests...\n"
+
+  # Determine paths and set launch flags
+  CHOLLA_OPTIONS=("--cholla-root ${CHOLLA_ROOT}"
+                  "--build-type ${CHOLLA_MAKE_TYPE}"
+                  "--machine ${CHOLLA_MACHINE}"
+                  "--gtest_filter=*tALL*:*t${CHOLLA_MAKE_TYPE^^}*")
+
+  builtin cd $CHOLLA_ROOT
+  ${launch_command[@]} \
+    ${CHOLLA_ROOT}/bin/cholla.${CHOLLA_MAKE_TYPE}.${CHOLLA_MACHINE}.tests \
+    ${CHOLLA_OPTIONS[@]}
+}
+# ==============================================================================
+
+# ==============================================================================
+# Call all the functions required for setting up, building, and running tests
+#
+# \param[in] -t (optional) The make type, defaults to hydro
+# \param[in] -c (optional) The compiler to use/setup file partial name. The
+# setup scripts are all named like setup.MACHINE_NAME.COMPILER.sh and this
+# argument is the value of COMPILER which does not occur for all setup scripts
+# \param[in] -g (optional) If set then download and build a local version of
+# GoogleTest to use instead of the machine default
+buildAndRunTests ()
+{
+  # Check arguments
+  local OPTIND
+  while getopts "t:c:g" opt; do
+    case $opt in
+        t)  # Set the make type
+            MAKE_TYPE_ARG="-t ${OPTARG}"
+            ;;
+        c)  # Choose the compiler
+            COMPILER_ARG="-c ${OPTARG}"
+            ;;
+        g)  # Build GoogleTest locally?
+            BUILD_GTEST=true
+            ;;
+        \?)
+            echo "Invalid option: -${OPTARG}" >&2
+            return 1
+            ;;
+        :)
+            echo "Option -${OPTARG} requires an argument." >&2
+            return 1
+            ;;
+    esac
+  done
+
+  # Now we get to setting up and building
+  setupTests $MAKE_TYPE_ARG $COMPILER_ARG && \
+  if [[ BUILD_GTEST ]]; then
+    buildGoogleTest
+  fi
+  buildCholla  && \
+  buildChollaTests  && \
+  runTests
+}
+# ==============================================================================

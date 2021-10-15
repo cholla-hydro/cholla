@@ -169,10 +169,12 @@ $(EXEC): prereq-build $(OBJS)
 
 clean:
 	rm -f $(CLEAN_OBJS)
+	rm -rf googletest
 	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)*" -exec rm -f '{}' \;
 
 clobber: clean
 	find . -type f -executable -name "cholla*" -exec rm -f '{}' \;
+	-find bin/ -type d -name "t*" -prune -exec rm -rf '{}' \;
 
 prereq-build:
 	builds/prereq.sh build $(MACHINE)
