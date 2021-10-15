@@ -31,7 +31,7 @@ ifeq ($(TEST), true)
   SUFFIX    := $(strip $(SUFFIX)).tests
   CPPFILES  := $(filter-out src/main.cpp,$(CPPFILES))
   LIBS      += -L$(GOOGLETEST_ROOT)/lib64 -lpthread -lgtest -lhdf5_cpp
-  TEST_FLAGS = -I$(GOOGLETEST_ROOT)/include	
+  TEST_FLAGS = -I$(GOOGLETEST_ROOT)/include
   CFLAGS   = $(TEST_FLAGS)
   CXXFLAGS = $(TEST_FLAGS)
   GPUFLAGS = $(TEST_FLAGS)

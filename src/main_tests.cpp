@@ -124,14 +124,6 @@ int main(int argc, char **argv)
     globalChollaBuild.initPath(input.getCmdOption("--build-type"));
     globalChollaMachine.initPath(input.getCmdOption("--machine"));
 
-    // Only run those tests that correspond to the current make type
-    std::string upperBuildType = globalChollaBuild.getString();
-    std::transform(upperBuildType.begin(),
-                   upperBuildType.end(),
-                   upperBuildType.begin(),
-                   ::toupper);
-    ::testing::GTEST_FLAG(filter) = "*t"+ upperBuildType + "*:*tALL*";
-
     // Run test and return result
     return RUN_ALL_TESTS();
 }

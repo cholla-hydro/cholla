@@ -28,6 +28,7 @@ while getopts ":t:" opt; do
             ;;
     esac
 done
+echo "Make Type: ${make_type}"
 
 # Determine the hostname then use that to pick the right machine name and launch
 # command
@@ -66,7 +67,8 @@ esac
 cholla_path=$(git rev-parse --show-toplevel)
 options=("--cholla-root ${cholla_path}"
          "--build-type ${make_type}"
-         "--machine ${machine}")
+         "--machine ${machine}"
+         "--gtest_filter=*tALL*:*t${make_type^^}*")
 
 cd ${cholla_path}
 
