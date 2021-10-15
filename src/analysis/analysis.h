@@ -6,7 +6,7 @@
 #include "../global/global.h"
 #include <vector>
 
-#ifdef COSMOLOGY
+#ifdef LYA_STATISTICS
 #include <fftw3.h>
 #endif
 
