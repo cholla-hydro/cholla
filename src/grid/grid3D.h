@@ -338,7 +338,7 @@ class Grid3D
 
       /*! \var momentum_z
        *  \brief Array containing the momentum in the z direction of each cell in the grid */
-      Real *momentum_z;			
+      Real *momentum_z;
 
       /*! \var Energy
        *  \brief Array containing the total Energy of each cell in the grid */
@@ -569,7 +569,7 @@ class Grid3D
     void Set_Boundary_Conditions(parameters P);
 
     /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
-     *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
+     *  \brief Set the boundary conditions for all components based on info in the parameters structure. */
     void Set_Boundary_Conditions_Grid( parameters P);
 
     /*! \fn int Check_Custom_Boundary(int *flags, struct parameters P)

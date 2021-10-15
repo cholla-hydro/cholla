@@ -93,9 +93,9 @@ void Grid3D::Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end) {
     if ( ! in_local  ) {
       std::cout << " Cluster_FeedbackError:" << std::endl;
       #ifdef PARTICLE_IDS
-      std::cout << " Particle outside Loacal  domain    pID: " << Particles.partIDs[pIndx] << std::endl;
+      std::cout << " Particle outside Local  domain    pID: " << Particles.partIDs[pIndx] << std::endl;
       #else
-      std::cout << " Particle outside Loacal  domain " << std::endl;
+      std::cout << " Particle outside Local  domain " << std::endl;
       #endif
       std::cout << "  Domain X: " << xMin <<  "  " << H.xblocal + H.domlen_x << std::endl;
       std::cout << "  Domain Y: " << yMin <<  "  " << H.yblocal + H.domlen_y << std::endl;

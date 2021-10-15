@@ -59,7 +59,7 @@ void Potential_SOR_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y
   else size_buffer_z /= 2;
   #endif
 
-  //Flag to transfer Poisson Bopundaries when calling Set_Boundaries
+  //Flag to transfer Poisson Boundaries when calling Set_Boundaries
   TRANSFER_POISSON_BOUNDARIES = false;
 
 
@@ -156,10 +156,10 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
 
   Grav.Poisson_solver.F.converged_h[0] = 0;
 
-  // For Diriclet Boudaries
+  // For Diriclet Boundaries
   Real omega = 2. / ( 1 + M_PI / Grav.Poisson_solver.nx_total  );
 
-  // For Periodic Boudaries
+  // For Periodic Boundaries
   // Real omega = 2. / ( 1 + 2*M_PI / nx_total  );
   // chprintf("Omega: %f \n", omega);
 
@@ -199,7 +199,7 @@ void Grid3D::Get_Potential_SOR( Real Grav_Constant, Real dens_avrg, Real current
     Grav.Poisson_solver.F.converged_h[0] = Grav.Poisson_solver.Get_Global_Converged( Grav.Poisson_solver.F.converged_h[0] );
     #endif
 
-    //Only aloow to connverge after the boundaties have been transfere to avoid false convergence in the boundaries.
+    //Only aloow to connverge after the boundaries have been transfere to avoid false convergence in the boundaries.
     if ( set_boundaries == false ) Grav.Poisson_solver.F.converged_h[0] = 0;
 
     n_iter += 1;

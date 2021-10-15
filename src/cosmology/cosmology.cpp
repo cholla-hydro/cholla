@@ -20,7 +20,7 @@ void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Pa
   Omega_b = P-> Omega_b;
 
   if(strcmp(P->init, "Read_Grid")==0){
-    // Read scale factor vaue from Particles
+    // Read scale factor value from Particles
     current_z = Particles.current_z;
     current_a = Particles.current_a;
   }

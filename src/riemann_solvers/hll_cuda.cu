@@ -94,7 +94,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     dger = dev_bounds_R[(n_fields-1)*n_cells + tid];
     #endif
 
-    // calculate primative variables
+    // calculate primitive variables
     vxl = mxl / dl;
     vyl = myl / dl;
     vzl = mzl / dl;

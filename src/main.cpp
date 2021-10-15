@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
   #endif
 
   #ifdef GRAVITY
-  // Get the gravitaional potential for the first timestep
+  // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential( &P);
   #endif
 

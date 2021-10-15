@@ -9,7 +9,7 @@
 #include "../global/global.h"
 
 /*! \fn void ppmp(Real stencil[], Real bounds[], Real dx, Real dt)
- *  \brief When passed a stencil of primative variables, returns the left and right
+ *  \brief When passed a stencil of primitive variables, returns the left and right
            boundary values for the interface calculated using ppm. */
 void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma);
 
