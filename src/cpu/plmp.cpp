@@ -14,7 +14,7 @@
 *  \brief Use a piece-wise linear method to calculate boundary values for each cell. */
 void plmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
 {
-  // declare the primative and conserved variables we are calculating
+  // declare the primitive and conserved variables we are calculating
   Real dl, dr, vxl, vxr, vyl, vyr, vzl, vzr, pl, pr;
   Real mxl, mxr, myl, myr, mzl, mzr, El, Er;
   Real d_i, vx_i, vy_i, vz_i, p_i;
@@ -43,7 +43,7 @@ void plmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
 
   Real dtodx = dt/dx;
 
-  // calculate the slope (in each primative variable) across cell i
+  // calculate the slope (in each primitive variable) across cell i
   Real del_d_L, del_vx_L, del_vy_L, del_vz_L, del_p_L;
   Real del_d_R, del_vx_R, del_vy_R, del_vz_R, del_p_R;
   Real d_slope, vx_slope, vy_slope, vz_slope, p_slope;

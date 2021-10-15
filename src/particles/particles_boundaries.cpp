@@ -33,7 +33,7 @@ void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
 }
 
 #ifdef MPI_CHOLLA
-//Remove the particles that were transfered outside the local domain
+//Remove the particles that were transferred outside the local domain
 void Grid3D::Finish_Particles_Transfer( void ){
 
   #ifdef PARTICLES_CPU
@@ -43,7 +43,7 @@ void Grid3D::Finish_Particles_Transfer( void ){
 }
 
 
-//Wait for the MPI request and unload the transfered particles
+//Wait for the MPI request and unload the transferred particles
 void Grid3D::Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flags)
 {
 
@@ -100,7 +100,7 @@ void Grid3D::Unload_Particles_From_Buffers_BLOCK(int index, int *flags ){
 }
 
 
-//Wait for the Number of particles that will be transferd, and request the MPI_Recv to receive the MPI buffer
+//Wait for the Number of particles that will be transferred, and request the MPI_Recv to receive the MPI buffer
 void Grid3D::Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(int dir, int *flags)
 {
   #ifdef PARTICLES
@@ -143,7 +143,7 @@ void Grid3D::Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(int dir, i
   }
 }
 
-//Load the Number of particles that will be recieved (Particles.n_recv) and make the MPI_Irecv request for that buffer size
+//Load the Number of particles that will be received (Particles.n_recv) and make the MPI_Irecv request for that buffer size
 void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, int *ireq_particles_transfer){
 
   int buffer_length;
@@ -216,7 +216,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
 }
 
 
-//Make Send and Recieve request for the number of particles that will be transfered, and then load and send the transfer particles
+//Make Send and Receive request for the number of particles that will be transferred, and then load and send the transfer particles
 void Grid3D::Load_and_Send_Particles_X0( int ireq_n_particles, int ireq_particles_transfer ){
   int buffer_length;
   Real *send_buffer_x0_particles;
@@ -397,7 +397,7 @@ void Grid3D::Load_and_Send_Particles_Z1( int ireq_n_particles, int ireq_particle
   MPI_Request_free(send_request_particles_transfer+ireq_particles_transfer);
 }
 
-//Unload the Transfered particles from the MPI_buffer, after buffer was received
+//Unload the Transferred particles from the MPI_buffer, after buffer was received
 void Grid3D::Unload_Particles_from_Buffer_X0( int *flags ){
   #ifdef PARTICLES_CPU
   Particles.Unload_Particles_from_Buffer_CPU( 0, 0, h_recv_buffer_x0_particles, Particles.n_recv_x0,
@@ -508,15 +508,15 @@ void Particles_3D::Select_Particles_to_Transfer_All( int *flags ){
   Select_Particles_to_Transfer_All_CPU( flags );
   #endif//PARTICLES_CPU
 
-  // When using PARTICLES_GPU the particles that need to be Transfered
-  // are seleted on the Load_Buffer_GPU functions
+  // When using PARTICLES_GPU the particles that need to be Transferred
+  // are selected on the Load_Buffer_GPU functions
 
 }
 
 
 void Particles_3D::Clear_Particles_For_Transfer( void ){
 
-  //Set the number of transfered particles to 0.
+  //Set the number of transferred particles to 0.
   n_transfer_x0 = 0;
   n_transfer_x1 = 0;
   n_transfer_y0 = 0;
@@ -532,7 +532,7 @@ void Particles_3D::Clear_Particles_For_Transfer( void ){
   n_send_z0 = 0;
   n_send_z1 = 0;
 
-  //Set the number of recieved particles to 0.
+  //Set the number of received particles to 0.
   n_recv_x0 = 0;
   n_recv_x1 = 0;
   n_recv_y0 = 0;
@@ -550,7 +550,7 @@ void Particles_3D::Clear_Particles_For_Transfer( void ){
 
 
   #ifdef PARTICLES_CPU
-  //Clear the particles indices that were transfered during the previour timestep
+  //Clear the particles indices that were transferred during the previous timestep
   Clear_Vectors_For_Transfers();
   #endif //PARTICLES_CPU
 
@@ -660,7 +660,7 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
       exit(-1);
   }
 
-  // Load the particles that will be transfered into the buffers
+  // Load the particles that will be transferred into the buffers
   n_fields_to_transfer = N_DATA_PER_PARTICLE_TRANSFER;
   Load_Particles_to_Transfer_GPU_function( n_transfer, 0, n_fields_to_transfer, pos_x_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_x );
   Load_Particles_to_Transfer_GPU_function( n_transfer, 1, n_fields_to_transfer, pos_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_y );
@@ -680,7 +680,7 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
 
 void Particles_3D::Replace_Tranfered_Particles_GPU( int n_transfer ){
 
-  // Replace the particles that were transfered
+  // Replace the particles that were transferred
   Replace_Transfered_Particles_GPU_function( n_transfer, pos_x_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, pos_y_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, pos_z_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
@@ -724,7 +724,7 @@ void Particles_3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *rec
     Reallocate_and_Copy_Partciles_Array_Real( &vel_z_dev, n_local, particles_array_size  );
   }
 
-  // Unload the particles that were transfered from the buffers
+  // Unload the particles that were transferred from the buffers
   n_fields_to_transfer = N_DATA_PER_PARTICLE_TRANSFER;
   Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 0, n_fields_to_transfer, pos_x_dev, recv_buffer_d  );
   Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 1, n_fields_to_transfer, pos_y_dev, recv_buffer_d  );

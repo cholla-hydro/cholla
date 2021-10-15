@@ -51,7 +51,7 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
   n_cells_potential = ( nx_local + 2*N_GHOST_POTENTIAL ) * ( ny_local + 2*N_GHOST_POTENTIAL ) * ( nz_local + 2*N_GHOST_POTENTIAL );
 
   //Set Initial and dt used for the extrapolation of the potential;
-  //The first timestep the potetential in not extrapolated ( INITIAL = TRUE )
+  //The first timestep the potential in not extrapolated ( INITIAL = TRUE )
   INITIAL = true;
   dt_prev = 0;
   dt_now = 0;
@@ -75,7 +75,7 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
   //Flag to transfer the Potential boundaries
   TRANSFER_POTENTIAL_BOUNDARIES = false;
 
-  // Flag to set the gravity boundariy flags
+  // Flag to set the gravity boundary flags
   BC_FLAGS_SET = false;
 
   AllocateMemory_CPU();
@@ -112,7 +112,7 @@ void Grav3D::AllocateMemory_CPU(void)
   F.density_h    = (Real *) malloc(n_cells*sizeof(Real)); //array for the density
   F.potential_h  = (Real *) malloc(n_cells_potential*sizeof(Real));   //array for the potential at the n-th timestep
   F.potential_1_h  = (Real *) malloc(n_cells_potential*sizeof(Real)); //array for the potential at the (n-1)-th timestep
-  boundary_flags = (int *) malloc(6*sizeof(int)); // array for the gtravity boundary flags
+  boundary_flags = (int *) malloc(6*sizeof(int)); // array for the gravity boundary flags
 
   #ifdef GRAV_ISOLATED_BOUNDARY_X
   F.pot_boundary_x0  = (Real *) malloc(N_GHOST_POTENTIAL*ny_local*nz_local*sizeof(Real)); //array for the potential isolated boundary

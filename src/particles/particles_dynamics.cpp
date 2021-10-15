@@ -272,7 +272,7 @@ void Grid3D::Advance_Particles_KDK_Step1_function( part_int_t p_start, part_int_
     Particles.vel_z[pID] += 0.5 * dt * Particles.grav_z[pID];
   }
 
-  //Advance Posiotions by delta_t using the updated velocities
+  //Advance Positions by delta_t using the updated velocities
   for ( pID=p_start; pID<p_end; pID++ ){
     Particles.pos_x[pID] += dt * Particles.vel_x[pID];
     Particles.pos_y[pID] += dt * Particles.vel_y[pID];

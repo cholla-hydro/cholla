@@ -66,7 +66,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     #endif
 
     #ifndef DYNAMIC_GPU_ALLOC
-    // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
+    // If memory is single allocated: memory_allocated becomes true and successive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
     #endif
@@ -113,7 +113,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   CudaCheckError();
 
   #ifdef DE
-  // Compute the divergence of Vel before updating the conserved array, this solves syncronization issues when adding this term on Update_Conserved_Variables
+  // Compute the divergence of Vel before updating the conserved array, this solves synchronization issues when adding this term on Update_Conserved_Variables
   hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_1D, dimGrid, dimBlock, 0, 0,  dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, dx, dt, gama, n_fields );
   #endif
 
@@ -123,7 +123,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
   CudaCheckError();
 
 
-  // Sychronize the total and internal energy, if using dual-energy formalism
+  // Synchronize the total and internal energy, if using dual-energy formalism
   #ifdef DE
   hipLaunchKernelGGL(Select_Internal_Energy_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, n_fields);
   hipLaunchKernelGGL(Sync_Energies_1D, dimGrid, dimBlock, 0, 0, dev_conserved, n_cells, n_ghost, gama, n_fields);

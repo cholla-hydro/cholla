@@ -118,10 +118,10 @@ extern int buffer_length_particles_z0_recv;
 extern int buffer_length_particles_z1_send;
 extern int buffer_length_particles_z1_recv;
 
-// Request for Number Of Partciles to be transferd
+// Request for Number Of Particles to be transferred
 extern MPI_Request *send_request_n_particles;
 extern MPI_Request *recv_request_n_particles;
-// Request for Partciles Transfer
+// Request for Particles Transfer
 extern MPI_Request *send_request_particles_transfer;
 extern MPI_Request *recv_request_particles_transfer;
 #endif//PARTICLES
@@ -179,8 +179,8 @@ Real ReduceRealAvg(Real x);
 /* MPI reduction wrapper for sum(part_int)*/
 Real ReducePartIntSum(part_int_t x);
 
-// Funtion that checks if the buffer size For the particles transfer is large enough,
-// and grows the buffer if needed. 
+// Function that checks if the buffer size For the particles transfer is large enough,
+// and grows the buffer if needed.
 void Check_and_Grow_Particles_Buffer( Real **part_buffer, int *current_size_ptr, int new_size );
 #endif
 
