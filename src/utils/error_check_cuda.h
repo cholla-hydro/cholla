@@ -1,5 +1,5 @@
-/*! \file CTU_3D_cuda.h
- *  \brief Declarations for the cuda version of the 3D CTU algorithm. */
+/*! \file error_check_cuda.h
+ *  \brief error_check_cuda.h */
 
 #ifdef CUDA
 

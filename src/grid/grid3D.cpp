@@ -590,7 +590,7 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifdef CTU
-    max_dti = CTU_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
+    max_dti = CTU_Algorithm_2D_CUDA(g0, g1, C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
     max_dti = VL_Algorithm_2D_CUDA(g0, g1, C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
@@ -611,7 +611,7 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifdef CTU
-    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, C.device, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //not_VL
     #ifdef VL
     max_dti = VL_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
@@ -630,7 +630,7 @@ Real Grid3D::Update_Grid(void)
   // from hydro/hydro_cuda.h
   Real new_max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
   if (new_max_dti != max_dti){
-    printf("Different dti problem: %9.4f %9.4f",new_max_dti,max_dti);
+    printf("Different dti problem: %9.4f %9.4f\n",new_max_dti,max_dti);
   }
   
   // at this point g0 has the old data, g1 has the new data

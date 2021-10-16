@@ -29,7 +29,7 @@ __global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real 
                                            int nx, int ny, int n_ghost, Real dx, Real dy, Real dt, int n_fields);
 
 
-Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, int n_fields)
+Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, int n_fields)
 {
 
   //Here, *host_conserved contains the entire
@@ -87,7 +87,8 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     #endif
 
     // allocate memory on the GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
+    dev_conserved = d_conserved;
+    //CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Lx, n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Rx, n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Ly, n_fields*BLOCK_VOL*sizeof(Real)) );
@@ -120,9 +121,10 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     // (only needed for gravitational potential)
     get_offsets_2D(nx_s, ny_s, n_ghost, x_off, y_off, block, block1_tot, block2_tot, remainder1, remainder2, &x_off_s, &y_off_s);
 
+    #ifndef HYDRO_GPU
     // copy the conserved variables onto the GPU
     CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-
+    #endif
 
     // Step 1: Do the reconstruction
     #ifdef PCM
@@ -213,10 +215,11 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx,
     hipLaunchKernelGGL(Calc_dt_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, n_ghost, dx, dy, dev_dti_array, gama);
     CudaCheckError();
 
-
+    #ifndef HYDRO_GPU
     // copy the conserved variable array back to the CPU
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-
+    #endif
+    
     // copy the updated conserved variable array back into the host_conserved array on the CPU
     host_return_block_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved1, buffer, n_fields);
 
