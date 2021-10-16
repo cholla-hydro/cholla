@@ -30,7 +30,7 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
 
 
 
-Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
+Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
@@ -61,7 +61,8 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #endif
 
     // allocate memory on the GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*n_cells*sizeof(Real)) );
+    dev_conserved = d_conserved;
+    //CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&dev_conserved_half, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Lx, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Rx, n_fields*n_cells*sizeof(Real)) );
@@ -79,8 +80,10 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   }
 
   // copy the conserved variable array onto the GPU
+  #ifndef HYDRO_GPU
   CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved0, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
   CudaCheckError();
+  #endif //HYDRO_GPU
 
   // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
   hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, gama, n_fields);
@@ -159,21 +162,11 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   CudaCheckError();
   #endif
 
-
-  // Step 7: Calculate the next timestep
-  hipLaunchKernelGGL(Calc_dt_1D, dimGrid, dimBlock, 0, 0, dev_conserved, n_cells, n_ghost, dx, dev_dti_array, gama);
-  CudaCheckError();
-
-
   // copy the conserved variable array back to the CPU
+  #ifndef HYDRO_GPU
   CudaSafeCall( cudaMemcpy(host_conserved1, dev_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
+  #endif //HYDRO_GPU
 
-  // copy the dti array onto the CPU
-  CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-  // iterate through to find the maximum inverse dt for this subgrid block
-  for (int i=0; i<ngrid; i++) {
-    max_dti = fmax(max_dti, host_dti_array[i]);
-  }
   #ifdef COOLING_GPU
   // copy the dt array from cooling onto the CPU
   CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
