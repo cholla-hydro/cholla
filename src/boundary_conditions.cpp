@@ -11,6 +11,8 @@
 #include"error_handling.h"
 #include"mpi_routines.h"
 
+#include "nvtx.h"
+
 /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
  *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
 void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
@@ -130,6 +132,7 @@ int Grid3D::Check_Custom_Boundary(int *flags, struct parameters P)
  *  \brief Apply boundary conditions to the grid. */
 void Grid3D::Set_Boundaries(int dir, int flags[])
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   int i, j, k;
   int imin[3] = {0,0,0};
   int imax[3] = {H.nx,H.ny,H.nz};
@@ -201,10 +204,20 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   //get the extents of the ghost region we are initializing
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
 
+  nvtx_raii _set_ghost_cells("set_ghost_cells", __LINE__);
   /*set ghost cells*/
-  for (k=imin[2]; k<imax[2]; k++) {
-    for (j=imin[1]; j<imax[1]; j++) {
-      for (i=imin[0]; i<imax[0]; i++) {
+  #ifdef DEVICE_COMM
+  Set_Ghost_Cells_Cuda(&imin[0], &imax[0], &a[0], &flags[0], dir);
+  #else
+  Set_Ghost_Cells(&imin[0], &imax[0], &a[0], &flags[0], dir);
+  #endif
+}
+
+void Grid3D::Set_Ghost_Cells(int imin[3], int imax[3], Real a[3], int flags[6], int dir) {
+
+  for (int k=imin[2]; k<imax[2]; k++) {
+    for (int j=imin[1]; j<imax[1]; j++) {
+      for (int i=imin[0]; i<imax[0]; i++) {
 
         //reset sign of momenta
         a[0] = 1.;
@@ -212,10 +225,10 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
         a[2] = 1.;
 
         //find the ghost cell index
-        gidx = i + j*H.nx + k*H.nx*H.ny; 
+        int gidx = i + j*H.nx + k*H.nx*H.ny;
 
         //find the corresponding real cell index and momenta signs
-        idx  = Set_Boundary_Mapping(i,j,k,flags,&a[0]);
+        int idx  = Set_Boundary_Mapping(i,j,k,flags,&a[0]);
 
         
         //idx will be >= 0 if the boundary mapping function has

@@ -62,6 +62,21 @@ extern Real *recv_buffer_y1;
 extern Real *recv_buffer_z0;
 extern Real *recv_buffer_z1;
 
+#ifdef DEVICE_COMM
+extern Real *dev_send_buffer_x0;
+extern Real *dev_send_buffer_x1;
+extern Real *dev_send_buffer_y0;
+extern Real *dev_send_buffer_y1;
+extern Real *dev_send_buffer_z0;
+extern Real *dev_send_buffer_z1;
+extern Real *dev_recv_buffer_x0;
+extern Real *dev_recv_buffer_x1;
+extern Real *dev_recv_buffer_y0;
+extern Real *dev_recv_buffer_y1;
+extern Real *dev_recv_buffer_z0;
+extern Real *dev_recv_buffer_z1;
+#endif
+
 #ifdef PARTICLES
 //Buffers for particles transfers
 extern Real *send_buffer_x0_particles;
@@ -130,6 +145,8 @@ extern int nproc_z;
 /*\fn void InitializeChollaMPI(void) */
 /* Routine to initialize MPI */
 void InitializeChollaMPI(int *pargc, char **pargv[]);
+
+void FinalizeChollaMPI();
 
 /* Perform domain decomposition */
 void DomainDecomposition(struct parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);

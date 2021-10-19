@@ -71,6 +71,16 @@ int main(int argc, char *argv[])
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
+  #if defined(DEVICE_COMM)
+  #if defined(GRAVITY) || defined(PARTICLES) || defined(CTU)
+    printf("Device communicaiton does not support GRAVITY, PARTICLES, or CTU\n");
+    exit(90);
+  #endif
+  if (G.H.nx == 1 || G.H.ny == 1 || G.H.nz == 1) {
+    printf("Device communicaiton only support 3D\n");
+    exit(91);
+  }
+  #endif
 
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
@@ -174,7 +184,7 @@ int main(int argc, char *argv[])
     //Transfer the particles that moved outside the local domain  
     G.Transfer_Particles_Boundaries(P); 
     #endif
-    
+
     // Advance the grid by one timestep
     dti = G.Update_Hydro_Grid();
     
@@ -262,7 +272,7 @@ int main(int argc, char *argv[])
   G.Reset();
 
   #ifdef MPI_CHOLLA
-  MPI_Finalize();
+  FinalizeChollaMPI();
   #endif /*MPI_CHOLLA*/
 
   return 0;

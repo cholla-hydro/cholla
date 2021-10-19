@@ -6,6 +6,7 @@
 #include<stdlib.h>
 #include<stdio.h>
 #include<cuda.h>
+#include<cuda_runtime.h>
 #include<math.h>
 #include"global.h"
 

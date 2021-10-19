@@ -112,6 +112,12 @@ DFLAGS += -DVL
 # Use Grackle for cooling in cosmological simulations
 #DFLAGS += -DCOOLING_GRACKLE
 
+# Use NVTX
+#DFLAGS += -DUSE_NVTX
+
+# Use device comm
+#DFLAGS += -DDEVICE_COMM
+
 CC ?= cc
 CXX ?= CC
 CFLAGS += -g -Ofast
@@ -119,6 +125,16 @@ CXXFLAGS += -g -Ofast -std=c++14
 CFLAGS += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc
+
+ifeq ($(findstring -DUSE_NVTX,$(DFLAGS)),-DUSE_NVTX)
+ifneq ($(CUDA_DIR),)
+	CFLAGS += -I$(CUDA_DIR)/include
+	CXXFLAGS += -I$(CUDA_DIR)/include
+	GPUFLAGS += -I$(CUDA_DIR)/include
+	LIBS += -L$(CUDA_DIR)/lib64
+endif
+	LIBS += -lnvToolsExt
+endif
 
 ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
 	CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include

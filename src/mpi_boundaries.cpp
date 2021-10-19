@@ -5,6 +5,8 @@
 #include"error_handling.h"
 #include <iostream>
 
+#include "nvtx.h"
+#include "global_cuda.h"
 
 void Grid3D::Set_Boundaries_MPI(struct parameters P)
 { 
@@ -30,6 +32,7 @@ void Grid3D::Set_Boundaries_MPI(struct parameters P)
 
 void Grid3D::Set_Boundaries_MPI_SLAB(int *flags, struct parameters P)
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   //perform boundary conditions around
   //edges of communication region on x faces
 
@@ -68,6 +71,7 @@ void Grid3D::Set_Boundaries_MPI_SLAB(int *flags, struct parameters P)
 
 void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   #ifdef PARTICLES
   // Clear the vectors that contain the particles IDs to be transfred
   if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
@@ -409,6 +413,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
 
 void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
 
   int i, j, k, ii;
   int gidx;
@@ -484,6 +489,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)
 
 // load left x communication buffer
 int Grid3D::Load_Hydro_Buffer_X0(){
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   int i, j, k, ii;
   int gidx;
   int idx;
@@ -536,6 +542,7 @@ int Grid3D::Load_Hydro_Buffer_X0(){
 
 // load right x communication buffer
 int Grid3D::Load_Hydro_Buffer_X1(){
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   int i, j, k, ii;
   int gidx;
   int idx;
@@ -588,6 +595,7 @@ int Grid3D::Load_Hydro_Buffer_X1(){
 
 // load left y communication buffer
 int Grid3D::Load_Hydro_Buffer_Y0(){
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   int i, j, k, ii;
   int gidx;
   int idx;
@@ -628,6 +636,7 @@ int Grid3D::Load_Hydro_Buffer_Y0(){
 
 // load right y communication buffer
 int Grid3D::Load_Hydro_Buffer_Y1(){
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   int i, j, k, ii;
   int gidx;
   int idx;
@@ -668,6 +677,7 @@ int Grid3D::Load_Hydro_Buffer_Y1(){
 
 // load left z communication buffer
 int Grid3D::Load_Hydro_Buffer_Z0(){
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   int i, j, k, ii;
   int gidx;
   int idx;
@@ -693,6 +703,7 @@ int Grid3D::Load_Hydro_Buffer_Z0(){
 
 // load right z communication buffer
 int Grid3D::Load_Hydro_Buffer_Z1(){
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   int i, j, k, ii;
   int gidx;
   int idx;
@@ -718,6 +729,7 @@ int Grid3D::Load_Hydro_Buffer_Z1(){
 
 void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   
   #ifdef PARTICLES
   // Select wich particles need to be transfred for this direction
@@ -743,7 +755,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     if (flags[0]==5) { 
       
       // load left x communication buffer
+      #ifdef DEVICE_COMM
+      if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_X0_Cuda();
+      #else
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_X0();
+      #endif
       
       #if( defined(GRAVITY)  )
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
@@ -765,10 +781,18 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
    
       if ( transfer_main_buffer ){
         //post non-blocking receive left x communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Irecv(dev_recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, world, &recv_request[ireq]);
+        #else
         MPI_Irecv(recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, world, &recv_request[ireq]);
+        #endif
 
         //non-blocking send left x communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Isend(dev_send_buffer_x0, buffer_length, MPI_CHREAL, dest[0],   1, world, &send_request[0]);
+        #else
         MPI_Isend(send_buffer_x0, buffer_length, MPI_CHREAL, dest[0],   1, world, &send_request[0]);
+        #endif
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -778,7 +802,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     if(flags[1]==5)
     {
       // load right x communication buffer
+      #ifdef DEVICE_COMM
+      if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_X1_Cuda();
+      #else
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_X1();
+      #endif
       
       #if( defined(GRAVITY)  )
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
@@ -800,10 +828,18 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       
       if ( transfer_main_buffer ){
         //post non-blocking receive right x communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Irecv(dev_recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
+        #else
         MPI_Irecv(recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
+        #endif
 
         //non-blocking send right x communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Isend(dev_send_buffer_x1, buffer_length, MPI_CHREAL, dest[1],   0, world, &send_request[1]);
+        #else
         MPI_Isend(send_buffer_x1, buffer_length, MPI_CHREAL, dest[1],   0, world, &send_request[1]);
+        #endif
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -821,7 +857,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     if(flags[2] == 5)
     {
       // load left y communication buffer
+      #ifdef DEVICE_COMM
+      if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Y0_Cuda();
+      #else
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Y0();
+      #endif
       
       #if( defined(GRAVITY)  )
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
@@ -843,10 +883,18 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       
       if ( transfer_main_buffer ){
         //post non-blocking receive left y communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Irecv(dev_recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
+        #else
         MPI_Irecv(recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
+        #endif
 
         //non-blocking send left y communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Isend(dev_send_buffer_y0, buffer_length, MPI_CHREAL, dest[2],   3, world, &send_request[0]);
+        #else
         MPI_Isend(send_buffer_y0, buffer_length, MPI_CHREAL, dest[2],   3, world, &send_request[0]);
+        #endif
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -856,7 +904,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     if(flags[3]==5)
     {
       // load right y communication buffer
+      #ifdef DEVICE_COMM
+      if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Y1_Cuda();
+      #else
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Y1();
+      #endif
       
       #if( defined(GRAVITY)  )
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
@@ -878,10 +930,18 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       
       if ( transfer_main_buffer ){      
         //post non-blocking receive right y communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Irecv(dev_recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
+        #else
         MPI_Irecv(recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
+        #endif
 
         //non-blocking send right y communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Isend(dev_send_buffer_y1, buffer_length, MPI_CHREAL, dest[3],   2, world, &send_request[1]);
+        #else
         MPI_Isend(send_buffer_y1, buffer_length, MPI_CHREAL, dest[3],   2, world, &send_request[1]);
+        #endif
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -900,7 +960,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     if(flags[4]==5)
     {
       // left z communication buffer
+      #ifdef DEVICE_COMM
+      if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Z0_Cuda();
+      #else
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Z0();
+      #endif
       
       #if( defined(GRAVITY)  )
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
@@ -922,10 +986,18 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       
       if ( transfer_main_buffer ){      
         //post non-blocking receive left z communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Irecv(dev_recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
+        #else
         MPI_Irecv(recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
+        #endif
 
         //non-blocking send left z communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Isend(dev_send_buffer_z0, buffer_length, MPI_CHREAL, dest[4],   5, world, &send_request[0]);
+        #else
         MPI_Isend(send_buffer_z0, buffer_length, MPI_CHREAL, dest[4],   5, world, &send_request[0]);
+        #endif
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -935,7 +1007,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     if(flags[5]==5)
     {
       // load right z communication buffer
+      #ifdef DEVICE_COMM
+      if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Z1_Cuda();
+      #else
       if ( H.TRANSFER_HYDRO_BOUNDARIES ) buffer_length = Load_Hydro_Buffer_Z1();
+      #endif
       
       #if( defined(GRAVITY)  )
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
@@ -957,10 +1033,18 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       
       if ( transfer_main_buffer ){
         //post non-blocking receive right x communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Irecv(dev_recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
+        #else
         MPI_Irecv(recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
+        #endif
 
         //non-blocking send right x communication buffer
+        #ifdef DEVICE_COMM
+        MPI_Isend(dev_send_buffer_z1, buffer_length, MPI_CHREAL, dest[5],   4, world, &send_request[1]);
+        #else
         MPI_Isend(send_buffer_z1, buffer_length, MPI_CHREAL, dest[5],   4, world, &send_request[1]);
+        #endif
 
         //keep track of how many sends and receives are expected
         ireq++;
@@ -977,6 +1061,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
 void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_SLAB(int *flags)
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   int iwait;
   int index = 0;
   int wait_max=0;
@@ -1002,6 +1087,7 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_SLAB(int *flags)
 
 void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   
   #ifdef PARTICLES
   // If we are transfering the particles buffers we dont need to unload the main buffers
@@ -1049,13 +1135,18 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
 void Grid3D::Unload_MPI_Comm_Buffers(int index)
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   switch(flag_decomp)
   {
     case SLAB_DECOMP:
       Unload_MPI_Comm_Buffers_SLAB(index);
       break;
     case BLOCK_DECOMP:
+      #ifdef DEVICE_COMM
+      Unload_MPI_Comm_Buffers_BLOCK_Cuda(index);
+      #else
       Unload_MPI_Comm_Buffers_BLOCK(index);
+      #endif
       break;
   }
 }
@@ -1063,6 +1154,7 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
 
 void Grid3D::Unload_MPI_Comm_Buffers_SLAB(int index)
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   int i, j, k, ii;
   int idx;
   int gidx;
@@ -1110,6 +1202,7 @@ void Grid3D::Unload_MPI_Comm_Buffers_SLAB(int index)
 
 void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   int i, j, k, ii;
   int idx;
   int gidx;

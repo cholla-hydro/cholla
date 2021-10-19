@@ -18,6 +18,8 @@
 #include <iostream>
 #include <fstream>
 
+#include "global_cuda.h"
+
 using namespace std;
 
 /*! \fn void Set_Initial_Conditions(parameters P)
@@ -76,6 +78,9 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
   }
+  #ifdef DEVICE_COMM
+  CudaSafeCall( cudaMemcpy(dev_conserved, &C.density[0], H.n_fields*H.n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
+  #endif
 
 }
 

@@ -21,6 +21,10 @@
 #include "cosmology/cosmology.h"
 #endif
 
+#ifdef DEVICE_COMM
+#include "global_cuda.h"
+#endif
+
 using namespace std;
 
 // #define OUTPUT_ENERGY
@@ -74,6 +78,10 @@ void Write_Message_To_Log_File( const char* message ){
 /* Write the initial conditions */
 void WriteData(Grid3D &G, struct parameters P, int nfile)
 {
+  #ifdef DEVICE_COMM
+  // copy the updated conserved variable array back to the CPU
+  CudaSafeCall( cudaMemcpy(&G.C.density[0], dev_conserved, G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
+  #endif
   
   chprintf( "\nSaving Snapshot: %d \n", nfile );
   

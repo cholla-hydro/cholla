@@ -38,7 +38,9 @@
 #include"parallel_omp.h"
 #endif
 
+#include "nvtx.h"
 
+#include "global_cuda.h"
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
@@ -284,6 +286,10 @@ void Grid3D::AllocateMemory(void)
   Load_Cuda_Textures();
   #endif  
 
+  #ifdef DEVICE_COMM
+  CudaSafeCall( cudaMalloc((void**)&dev_conserved, H.n_fields*H.n_cells*sizeof(Real)) );
+  #endif
+
 }
 
 
@@ -498,6 +504,7 @@ Real Grid3D::calc_dti_CPU()
  *  \brief Update the conserved quantities in each cell. */
 Real Grid3D::Update_Grid(void)
 {
+  nvtx_raii _nvtx(__FUNCTION__, __LINE__);
   Real *g0, *g1;
   if (gflag == 0) {
     g0 = &(buffer0[0]);
@@ -658,7 +665,7 @@ Real Grid3D::Update_Hydro_Grid( ){
   // Extrapolate gravitational potential for hydro step
   Extrapolate_Grav_Potential();
   #endif
-  
+
   dti = Update_Grid();
     
   #ifdef CPU_TIME

@@ -35,6 +35,8 @@
 #include "timing_functions.h"
 #endif
 
+#include "global_cuda.h"
+
 struct Rotation
 {
   /*! \var nx
@@ -557,6 +559,12 @@ class Grid3D
      *  \brief Set the extents of the ghost region we are initializing. */
     void Set_Boundary_Extents(int dir, int *imin, int *imax);
 
+    void Set_Ghost_Cells(int imin[3], int imax[3], Real a[3], int flags[6], int dir);
+
+    #ifdef DEVICE_COMM
+    void Set_Ghost_Cells_Cuda(int imin[3], int imax[3], Real a[3], int flags[6], int dir);
+    #endif
+
     /*! \fn Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a)
      *  \brief Given the i,j,k index of a ghost cell, return the index of the
         corresponding real cell, and reverse the momentum if necessary. */
@@ -603,12 +611,23 @@ class Grid3D
     void Unload_MPI_Comm_Buffers(int index);
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
+    #ifdef DEVICE_COMM
+    void Unload_MPI_Comm_Buffers_BLOCK_Cuda(int index);
+    #endif
     int Load_Hydro_Buffer_X0();
     int Load_Hydro_Buffer_X1();
     int Load_Hydro_Buffer_Y0();
     int Load_Hydro_Buffer_Y1();
     int Load_Hydro_Buffer_Z0();
     int Load_Hydro_Buffer_Z1();
+    #ifdef DEVICE_COMM
+    int Load_Hydro_Buffer_X0_Cuda();
+    int Load_Hydro_Buffer_X1_Cuda();
+    int Load_Hydro_Buffer_Y0_Cuda();
+    int Load_Hydro_Buffer_Y1_Cuda();
+    int Load_Hydro_Buffer_Z0_Cuda();
+    int Load_Hydro_Buffer_Z1_Cuda();
+    #endif
 #endif /*MPI_CHOLLA*/
 
   #ifdef GRAVITY
@@ -642,6 +661,14 @@ class Grid3D
   void Load_and_Send_Particles_Y1( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_Z0( int ireq_n_particles, int ireq_particles_transfer );
   void Load_and_Send_Particles_Z1( int ireq_n_particles, int ireq_particles_transfer );
+  #ifdef DEVICE_COMM
+  void Load_and_Send_Particles_X0_Cuda( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_X1_Cuda( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Y0_Cuda( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Y1_Cuda( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Z0_Cuda( int ireq_n_particles, int ireq_particles_transfer );
+  void Load_and_Send_Particles_Z1_Cuda( int ireq_n_particles, int ireq_particles_transfer );
+  #endif
   void Unload_Particles_from_Buffer_X0( int *flags );
   void Unload_Particles_from_Buffer_X1( int *flags );
   void Unload_Particles_from_Buffer_Y0( int *flags );

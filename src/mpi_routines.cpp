@@ -9,6 +9,10 @@
 #include "MPI_Comm_node.h"
 #include <iostream>
 
+#ifdef DEVICE_COMM
+#include <global_cuda.h>
+#endif
+
 /*Global MPI Variables*/
 int procID; /*process rank*/
 int nproc;  /*number of processes in global comm*/
@@ -57,6 +61,21 @@ Real *recv_buffer_y0;
 Real *recv_buffer_y1;
 Real *recv_buffer_z0;
 Real *recv_buffer_z1;
+
+#ifdef DEVICE_COMM
+Real *dev_send_buffer_x0 = nullptr;
+Real *dev_send_buffer_x1 = nullptr;
+Real *dev_send_buffer_y0 = nullptr;
+Real *dev_send_buffer_y1 = nullptr;
+Real *dev_send_buffer_z0 = nullptr;
+Real *dev_send_buffer_z1 = nullptr;
+Real *dev_recv_buffer_x0 = nullptr;
+Real *dev_recv_buffer_x1 = nullptr;
+Real *dev_recv_buffer_y0 = nullptr;
+Real *dev_recv_buffer_y1 = nullptr;
+Real *dev_recv_buffer_z0 = nullptr;
+Real *dev_recv_buffer_z1 = nullptr;
+#endif
 
 int send_buffer_length;
 int recv_buffer_length;
@@ -224,7 +243,38 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
   #endif /*BLOCK*/
 }
 
+void Deallocate_MPI_Buffers(){
+#ifdef DEVICE_COMM
+  CudaSafeCall(cudaFree(dev_send_buffer_x0));
+  CudaSafeCall(cudaFree(dev_recv_buffer_x1));
+  CudaSafeCall(cudaFree(dev_send_buffer_x0));
+  CudaSafeCall(cudaFree(dev_recv_buffer_x1));
 
+  CudaSafeCall(cudaFree(dev_send_buffer_y0));
+  CudaSafeCall(cudaFree(dev_recv_buffer_y1));
+  CudaSafeCall(cudaFree(dev_send_buffer_y0));
+  CudaSafeCall(cudaFree(dev_recv_buffer_y1));
+
+  // TODO: Check if these buffers are allocated
+  CudaSafeCall(cudaFree(dev_send_buffer_z0));
+  CudaSafeCall(cudaFree(dev_recv_buffer_z1));
+  CudaSafeCall(cudaFree(dev_send_buffer_z0));
+  CudaSafeCall(cudaFree(dev_recv_buffer_z1));
+#endif
+}
+
+
+/*\fn void FinalizeChollaMPI(void) */
+/* Routine to finalize MPI */
+void FinalizeChollaMPI()
+{
+
+  /*initialize MPI*/
+  MPI_Finalize();
+
+  Deallocate_MPI_Buffers();
+
+}
 
 /* Perform domain decomposition */
 void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
@@ -1040,6 +1090,14 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
     chprintf("Error allocating recv_buffer_x1 in Allocate_MPI_Buffers_BLOCK (n = %ld, size = %ld).\n",xbsize,xbsize*sizeof(Real));
     chexit(-1);
   }
+
+  #ifdef DEVICE_COMM
+  CudaSafeCall(cudaMalloc(&dev_send_buffer_x0, xbsize*sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&dev_send_buffer_x1, xbsize*sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&dev_recv_buffer_x0, xbsize*sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&dev_recv_buffer_x1, xbsize*sizeof(Real)));
+  #endif
+
   if(!(send_buffer_y0 = (Real *) malloc(ybsize*sizeof(Real))))
   {
     chprintf("Error allocating send_buffer_y0 in Allocate_MPI_Buffers_BLOCK (n = %ld, size = %ld).\n",ybsize,ybsize*sizeof(Real));
@@ -1060,7 +1118,14 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
     chprintf("Error allocating recv_buffer_y1 in Allocate_MPI_Buffers_BLOCK (n = %ld, size = %ld).\n",ybsize,ybsize*sizeof(Real));
     chexit(-1);
   }
-  
+
+  #ifdef DEVICE_COMM
+  CudaSafeCall(cudaMalloc(&dev_send_buffer_y0, ybsize*sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&dev_send_buffer_y1, ybsize*sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&dev_recv_buffer_y0, ybsize*sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&dev_recv_buffer_y1, ybsize*sizeof(Real)));
+  #endif
+
   #ifdef PARTICLES
   //Allocate buffers for particles transfers
   chprintf("Allocating MPI communication buffers for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
@@ -1128,6 +1193,14 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
       chprintf("Error allocating recv_buffer_z1 in Allocate_MPI_Buffers_BLOCK (n = %ld, size = %ld).\n",zbsize,zbsize*sizeof(Real));
       chexit(-1);
     }
+
+    #ifdef DEVICE_COMM
+    CudaSafeCall(cudaMalloc(&dev_send_buffer_z0, zbsize*sizeof(Real)));
+    CudaSafeCall(cudaMalloc(&dev_send_buffer_z1, zbsize*sizeof(Real)));
+    CudaSafeCall(cudaMalloc(&dev_recv_buffer_z0, zbsize*sizeof(Real)));
+    CudaSafeCall(cudaMalloc(&dev_recv_buffer_z1, zbsize*sizeof(Real)));
+    #endif
+
     #ifdef PARTICLES
     if(!(send_buffer_z0_particles = (Real *) malloc(buffer_length_particles_z0_send*sizeof(Real))))
     {
