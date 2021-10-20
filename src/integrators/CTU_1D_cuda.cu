@@ -133,7 +133,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
   CudaCheckError();
   #endif
 
-
+  /*
   // Apply cooling
   #ifdef COOLING_GPU
   hipLaunchKernelGGL(cooling_kernel, dimGrid, dimBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dev_dti_array);
@@ -156,7 +156,7 @@ Real CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
     max_dti = C_cfl/min_dt;
   }
   #endif
-
+  */
   #ifdef DYNAMIC_GPU_ALLOC
   // If memory is not single allocated then free the memory every timestep.
   Free_Memory_CTU_1D();

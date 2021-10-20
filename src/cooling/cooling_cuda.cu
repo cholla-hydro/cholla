@@ -13,6 +13,26 @@
 extern texture<float, 2, cudaReadModeElementType> coolTexObj;
 extern texture<float, 2, cudaReadModeElementType> heatTexObj;
 
+void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array){
+  // from global/global_cuda.h: TPB
+  int ngrid = (nx*ny*nz + TPB - 1) / TPB;
+  dim3 dim1dGrid(ngrid, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dt_array);
+  CudaCheckError();  
+}
+
+Real Cooling_Calc_dt(Real *d_dt_array, Real *h_dt_array, int nx, int ny, int nz){
+  int ngrid = (nx*ny*nz + TPB - 1) / TPB;
+  Real min_dt = 1e10;
+  CudaSafeCall( cudaMemcpy(h_dt_array, d_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+  for (int i=0; i<ngrid; i++) {
+    min_dt = fmin(min_dt, h_dt_array[i]);
+  }
+  return C_cfl/min_dt;
+}
+
+
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
@@ -365,7 +385,9 @@ __device__ Real Cloudy_cool(Real n, Real T)
 
   return cool;
 }
-#endif
+#endif //CLOUDY_COOL
+
+
 
 
 #endif //COOLING_GPU

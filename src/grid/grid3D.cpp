@@ -40,6 +40,9 @@
 #include "../utils/parallel_omp.h"
 #endif
 
+#ifdef COOLING_GPU
+#include "../cooling/cooling_cuda.h" // provides Cooling_Update
+#endif
 
 
 /*! \fn Grid3D(void)
@@ -617,7 +620,7 @@ Real Grid3D::Update_Grid(void)
     VL_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //VL
     #ifdef SIMPLE
-    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif//SIMPLE
     #endif
   }
@@ -627,14 +630,33 @@ Real Grid3D::Update_Grid(void)
     chexit(-1);
   }
 
+  
   #ifdef CUDA
-  // from hydro/hydro_cuda.h
+  
+  // ==Apply Cooling from cooling/cooling_cuda.h==
+  #ifdef COOLING_GPU
+  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, dt, gama, dev_dt_array);
+  #endif //COOLING_GPU
+
+  // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
   // Real old_max_dti = max_dti;
   max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
+  // Debug code:
   //if (old_max_dti != max_dti){
   //  printf("Different dti problem: %9.4f %9.4f\n",old_max_dti,max_dti);
   //}
-  #endif
+
+  // ==Copy the updated conserved variable array to CPU==
+  CudaSafeCall( cudaMemcpy(g1, C.device, H.n_fields*H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
+
+  #ifdef COOLING_GPU
+  // ==Calculate cooling dt from cooling/cooling_cuda.h==
+  // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in integrators 
+  Real cooling_max_dti = Cooling_Calc_dt(dev_dt_array, host_dt_array, H.nx, H.ny, H.nz);
+  max_dti = fmax(max_dti,cooling_max_dti);
+  
+  #endif // COOLING_GPU
+  #endif // CUDA
   
   // at this point g0 has the old data, g1 has the new data
   // point the grid variables at the new data

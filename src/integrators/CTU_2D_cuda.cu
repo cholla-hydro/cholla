@@ -205,6 +205,8 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
     CudaCheckError();
     #endif
 
+
+    /*
     // Apply cooling
     #ifdef COOLING_GPU
     hipLaunchKernelGGL(cooling_kernel, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
@@ -233,7 +235,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
       max_dti = 0.3/min_dt;
     }
     #endif
-
+    */
 
     // add one to the counter
     block++;

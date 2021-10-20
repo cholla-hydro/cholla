@@ -12,6 +12,19 @@
 #include "../global/global.h"
 
 
+/*! \fn void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
+ *  \brief When passed an array of conserved variables and a timestep, adjust the value
+           of the total energy for each cell according to the specified cooling function. */
+void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array);
+
+
+
+/*! \fn void Cooling_Calc_dt(Real *dev_dt_array)
+ *  \brief Calculate cooling-defined minimum timestep */
+Real Cooling_Calc_dt(Real *d_dt_array, Real *h_dt_array, int nx, int ny, int nz);
+
+
+
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
