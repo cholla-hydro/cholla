@@ -635,7 +635,7 @@ Real Grid3D::Update_Grid(void)
   
   // ==Apply Cooling from cooling/cooling_cuda.h==
   #ifdef COOLING_GPU
-  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, dt, gama, dev_dt_array);
+  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dt_array);
   #endif //COOLING_GPU
 
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
