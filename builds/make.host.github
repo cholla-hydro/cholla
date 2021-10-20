@@ -5,14 +5,15 @@ CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 ${F_OFFLOAD}
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 ${F_OFFLOAD}
-GPUFLAGS_DEBUG    = -g -O0 -std=c++11 -ccbin=mpicxx
-GPUFLAGS_OPTIMIZE = -g -O3 -std=c++11 -ccbin=mpicxx
+GPUFLAGS_DEBUG    = -std=c++11
+GPUFLAGS_OPTIMIZE = -std=c++11
 
 OMP_NUM_THREADS   = 7
 
 #-- Library
-CUDA_ROOT       := /usr/local/cuda-11.4
-HDF5_ROOT       := /usr/lib/x86_64-linux-gnu/hdf5/serial
+HIPCONFIG	    := $(HIPCONFIG)
+CUDA_ROOT       := $(CUDA_ROOT)
+HDF5_ROOT       := $(HDF5_ROOT)
 # FFTW_ROOT       = ${OLCF_FFTW_ROOT}
 # PFFT_ROOT       = /ccs/proj/csc380/cholla/fom/code/pfft
 # GRACKLE_ROOT    = /ccs/home/bvilasen/code/grackle
@@ -20,3 +21,18 @@ GOOGLETEST_ROOT := ${GOOGLETEST_ROOT}
 
 #-- MPI calls accept GPU buffers (requires GPU-aware MPI)
 # MPI_GPU = -DMPI_GPU
+
+ifndef HIPCONFIG
+	GPUFLAGS_DEBUG    += -g -O0 -ccbin=mpicxx
+	GPUFLAGS_OPTIMIZE += -g -O3 -ccbin=mpicxx
+endif
+
+ifdef HIPCONFIG
+	MPI_ROOT := ${MPI_ROOT}
+	CFLAGS_DEBUG      += -fPIE
+	CFLAGS_OPTIMIZE   += -fPIE
+	CXXFLAGS_DEBUG    += -fPIE
+	CXXFLAGS_OPTIMIZE += -fPIE
+	GPUFLAGS_DEBUG    += -fPIE
+	GPUFLAGS_OPTIMIZE += -fPIE
+endif

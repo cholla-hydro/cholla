@@ -1,0 +1,146 @@
+name: Cholla Compile
+
+on:
+  pull_request:
+    branches: [ CAAR-testing ]
+  workflow_dispatch:
+
+jobs:
+  Build:
+    name: ${{ matrix.gpu-api }}-${{ matrix.make-type }}-build
+    # if: ${{ false }}  # If uncommented this line will disable this job
+
+    # Choose OS/Runner
+    runs-on: ubuntu-latest
+
+    # Matrix for different make types
+    strategy:
+      fail-fast: false
+      matrix:
+        make-type: [hydro, gravity, disk, particles, cosmology]
+        gpu-api: [HIP, CUDA]
+        # NOTE: if more than one parameter is in any of these three variables
+        # you need to manually exclude it for the GPU API that doesn't use it.
+        # An example exclude is shown below but commented out. Uncomment and
+        # tweak it to fit your needs
+        # CUDA uses the cuda-toolkit-version and gcc-version
+        # HIP uses the clang-version
+        cuda-toolkit-version: ['11.2.2']
+        gcc-version: [10]
+        clang-version: [latest]
+        # exclude:
+        #   - gpu-api: HIP
+        #     make-type: hydro
+
+    # Setup environment variables
+    env:
+      CHOLLA_MACHINE: github
+      CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
+      CUDA_ROOT: /usr/local/cuda
+      HDF5_ROOT: /usr/lib/x86_64-linux-gnu/hdf5/serial
+      MPI_ROOT: /usr/lib/x86_64-linux-gnu/openmpi
+
+    # Run the job itself
+    steps:
+    # Install required Tools
+    - uses: actions/checkout@v2
+    - name: Install MPI
+      run: sudo apt install libhdf5-mpi-dev
+    - name: Show MPI version
+      run: ompi_info
+    - name: Install HDF5 Serial
+      run: sudo apt-get install libhdf5-serial-dev
+    - name: Show HDF5 config
+      run: |
+        h5cc -showconfig
+
+    # Install CUDA and dependencies if this is a CUDA build
+    - uses: Jimver/cuda-toolkit@v0.2.4
+      if: matrix.gpu-api == 'CUDA'
+      id: cuda-toolkit
+      with:
+        cuda: ${{ matrix.cuda-toolkit-version }}
+    - name: NVCC version & set CUDA_ROOT
+      if: matrix.gpu-api == 'CUDA'
+      run: |
+        nvcc -V
+    - name: Set up GCC
+      if: matrix.gpu-api == 'CUDA'
+      uses: egor-tensin/setup-gcc@v1
+      with:
+        version: ${{ matrix.gcc-version }}
+    - name: GCC Version
+      if: matrix.gpu-api == 'CUDA'
+      run: |
+        cc --version
+        c++ --version
+
+    # Install HIP and dependencies if this is a HIP build
+    - name: Setup Clang
+      if: matrix.gpu-api == 'HIP'
+      uses: egor-tensin/setup-clang@v1
+      with:
+        version: ${{ matrix.clang-version }}
+    - name: Install HIP-Clang
+      if: matrix.gpu-api == 'HIP'
+      run: |
+        sudo apt install wget gnupg2
+        wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | sudo apt-key add -
+        echo 'deb [arch=amd64] https://repo.radeon.com/rocm/apt/debian/ ubuntu main' | sudo tee /etc/apt/sources.list.d/rocm.list
+        sudo apt update
+
+        sudo apt install mesa-common-dev
+        sudo apt install comgr
+        sudo apt-get -y install rocm-dkms
+        sudo apt install hipfft
+
+        echo "ROCM_PATH=/opt/rocm" >> $GITHUB_ENV
+        echo "hello ${ROCM_PATH}"
+    - name: Verify HIP install
+      if: matrix.gpu-api == 'HIP'
+      run: /opt/rocm/bin/hipconfig --full
+    - name: Set HIPCONFIG
+      if: matrix.gpu-api == 'HIP'
+      run: |
+        echo "HIPCONFIG=$(hipconfig -C)" >> $GITHUB_ENV
+
+
+    # Generate setup file
+    - name: Create setup file
+      run: |
+        echo -e '
+        echo "mpicxx --version is: "
+        mpicxx --version
+
+        # export MPI_GPU="-DMPI_GPU"
+        export F_OFFLOAD="-fopenmp -foffload=disable"
+        export CHOLLA_ENVSET=1
+        ' >> builds/setup.githubActions.gcc.sh
+    - name: Show setup file
+      run: cat builds/setup.githubActions.gcc.sh
+
+    # Perform Build
+    - name: Cholla setup
+      run: |
+        source builds/scripts/run-tests.sh
+        setupTests -c gcc
+        echo "CHOLLA_ROOT           = ${CHOLLA_ROOT}"
+        echo "CHOLLA_LAUNCH_COMMAND = ${CHOLLA_LAUNCH_COMMAND}"
+
+        echo "CHOLLA_ROOT=${CHOLLA_ROOT}"                     >> $GITHUB_ENV
+        echo "CHOLLA_LAUNCH_COMMAND=${CHOLLA_LAUNCH_COMMAND}" >> $GITHUB_ENV
+        echo "F_OFFLOAD=${F_OFFLOAD}                          >> $GITHUB_ENV
+        echo "CHOLLA_ENVSET=${CHOLLA_ENVSET}                  >> $GITHUB_ENV
+    - name: Build GoogleTest
+      run: |
+        source builds/scripts/run-tests.sh
+        buildGoogleTest
+        echo "GOOGLETEST_ROOT=${GOOGLETEST_ROOT}" >> $GITHUB_ENV
+    - name: Build Cholla
+      run: |
+        source builds/scripts/run-tests.sh
+        buildCholla
+    - name: Build Tests
+      run: |
+        source builds/scripts/run-tests.sh
+        buildChollaTests

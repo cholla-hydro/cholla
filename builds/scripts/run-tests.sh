@@ -53,7 +53,11 @@ setupTests ()
 
   # Determine the hostname then use that to pick the right machine name and launch
   # command
-  FQDN=$(hostname --fqdn)
+  if [[ -n ${CHOLLA_MACHINE+x} ]]; then
+    FQDN=$CHOLLA_MACHINE
+  else
+    FQDN=$(hostname --fqdn)
+  fi
 
   case $FQDN in
     *summit* | *peak*)
@@ -66,7 +70,7 @@ setupTests ()
                                     --tasks_per_rs 1
                                     --gpu_per_rs 1)
       ;;
-    *crc.*)
+    *crc*)
       export CHOLLA_MACHINE='crc'
       export CHOLLA_LAUNCH_COMMAND=''
       ;;
@@ -76,6 +80,10 @@ setupTests ()
       ;;
     *c3po*)
       export CHOLLA_MACHINE='c3po'
+      export CHOLLA_LAUNCH_COMMAND=''
+      ;;
+    *github*)
+      export CHOLLA_MACHINE='github'
       export CHOLLA_LAUNCH_COMMAND=''
       ;;
     *)
@@ -163,6 +171,11 @@ buildGoogleTest ()
 # ==============================================================================
 
 # ==============================================================================
+# Run the tests with the required command line arguments.
+# \param[in] $1 (optional) The gtest filter command to use. Defaults to
+# "--gtest_filter=*tALL*:*t${CHOLLA_MAKE_TYPE^^}*". $1 must include the entire
+# command, not just the arguments, i.e. "--gtest_filter=*PATTERN*" not just
+# "*PATTERN*"
 runTests ()
 {
   echo -e "\nRunning Tests...\n"
@@ -170,13 +183,18 @@ runTests ()
   # Determine paths and set launch flags
   CHOLLA_OPTIONS=("--cholla-root ${CHOLLA_ROOT}"
                   "--build-type ${CHOLLA_MAKE_TYPE}"
-                  "--machine ${CHOLLA_MACHINE}"
-                  "--gtest_filter=*tALL*:*t${CHOLLA_MAKE_TYPE^^}*")
+                  "--machine ${CHOLLA_MACHINE}")
+
+  if [[ -n ${1+x} ]]; then
+    GTEST_FILTER="${1}"
+  else
+    GTEST_FILTER="--gtest_filter=*tALL*:*t${CHOLLA_MAKE_TYPE^^}*"
+  fi
 
   builtin cd $CHOLLA_ROOT
   ${launch_command[@]} \
     ${CHOLLA_ROOT}/bin/cholla.${CHOLLA_MAKE_TYPE}.${CHOLLA_MACHINE}.tests \
-    ${CHOLLA_OPTIONS[@]}
+    ${CHOLLA_OPTIONS[@]} ${GTEST_FILTER}
 }
 # ==============================================================================
 

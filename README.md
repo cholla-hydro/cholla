@@ -1,3 +1,5 @@
+![Compile](https://github.com/bcaddy/cholla/actions/workflows/build_tests.yml/badge.svg)
+
 CHOLLA
 ============
 A 3D GPU-based hydrodynamics code (Schneider & Robertson, ApJS, 2015).
