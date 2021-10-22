@@ -639,16 +639,13 @@ Real Grid3D::Update_Grid(void)
   #endif //COOLING_GPU
 
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
-  // Real old_max_dti = max_dti;
   max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
-  // Debug code:
-  //if (old_max_dti != max_dti){
-  //  printf("Different dti problem: %9.4f %9.4f\n",old_max_dti,max_dti);
-  //}
 
   // ==Copy the updated conserved variable array to CPU==
+  #ifndef HYDRO_GPU
   CudaSafeCall( cudaMemcpy(g1, C.device, H.n_fields*H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-
+  #endif
+  
   #ifdef COOLING_GPU
   // ==Calculate cooling dt from cooling/cooling_cuda.h==
   // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in integrators 

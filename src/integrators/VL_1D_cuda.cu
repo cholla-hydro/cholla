@@ -30,18 +30,12 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
 
 
 
-Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
+void VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
   //host_conserved0 contains the values at time n
   //host_conserved1 will contain the values at time n+1
-
-  // Initialize dt values
-  Real max_dti = 0;
-  #ifdef COOLING_GPU
-  Real min_dt = 1e10;
-  #endif
 
   int n_cells = nx;
   int ny = 1;
@@ -155,38 +149,12 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_
   CudaCheckError();
   #endif
 
-  /*
-  // Apply cooling
-  #ifdef COOLING_GPU
-  hipLaunchKernelGGL(cooling_kernel, dimGrid, dimBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dev_dt_array);
-  CudaCheckError();
-  #endif
-
-  // copy the conserved variable array back to the CPU
-  #ifndef HYDRO_GPU
-  CudaSafeCall( cudaMemcpy(host_conserved1, dev_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-  #endif //HYDRO_GPU
-
-  #ifdef COOLING_GPU
-  // copy the dt array from cooling onto the CPU
-  CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-  // find maximum inverse timestep from cooling time
-  for (int i=0; i<ngrid; i++) {
-    min_dt = fmin(min_dt, host_dt_array[i]);
-  }
-  if (min_dt < C_cfl/max_dti) {
-    max_dti = C_cfl/min_dt;
-  }
-  #endif
-  */
   #ifdef DYNAMIC_GPU_ALLOC
   // If memory is not single allocated then free the memory every timestep.
   Free_Memory_VL_1D();
   #endif
 
-
-  // return the maximum inverse timestep
-  return max_dti;
+  return;
 
 
 }

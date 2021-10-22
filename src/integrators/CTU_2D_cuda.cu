@@ -29,7 +29,7 @@ __global__ void Evolve_Interface_States_2D(Real *dev_Q_Lx, Real *dev_Q_Rx, Real 
                                            int nx, int ny, int n_ghost, Real dx, Real dy, Real dt, int n_fields);
 
 
-Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, int n_fields)
+void CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, int n_fields)
 {
 
   //Here, *host_conserved contains the entire
@@ -37,12 +37,6 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
   //concatenated into a 1-d array
   //host_conserved0 contains the values at time n,
   //host_conserved1 will contain the values at time n+1
-
-  // Initialize dt values
-  Real max_dti = 0;
-  #ifdef COOLING_GPU
-  Real min_dt = 1e10;
-  #endif
 
   if ( !block_size ) {
     // calculate the dimensions for each subgrid block
@@ -205,38 +199,6 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
     CudaCheckError();
     #endif
 
-
-    /*
-    // Apply cooling
-    #ifdef COOLING_GPU
-    hipLaunchKernelGGL(cooling_kernel, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
-    CudaCheckError();
-    #endif
-
-    #ifndef HYDRO_GPU
-    // copy the conserved variable array back to the CPU
-    CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-    #endif
-    
-    // copy the updated conserved variable array back into the host_conserved array on the CPU
-    host_return_block_2D(nx, ny, nx_s, ny_s, n_ghost, block, block1_tot, block2_tot, remainder1, remainder2, BLOCK_VOL, host_conserved1, buffer, n_fields);
-
-    #ifdef COOLING_GPU
-    // copy the dt array from cooling onto the CPU
-    CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-    // iterate through to find the minimum dt for this subgrid block
-    for (int i=0; i<ngrid; i++) {
-      min_dt = fmin(min_dt, host_dt_array[i]);
-    }
-    //printf("%f %f\n", min_dt, 0.3/max_dti);
-    if (min_dt < 0.3/max_dti) {
-      //printf("%f %f\n", min_dt, 0.3/max_dti);
-      min_dt = fmax(min_dt, 1.0);
-      max_dti = 0.3/min_dt;
-    }
-    #endif
-    */
-
     // add one to the counter
     block++;
 
@@ -248,8 +210,7 @@ Real CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
   Free_Memory_CTU_2D();
   #endif
 
-  // return the maximum inverse timestep
-  return max_dti;
+  return;
 
 }
 
