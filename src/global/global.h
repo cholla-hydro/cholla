@@ -52,8 +52,8 @@ typedef double Real;
 #define DENS_FLOOR 1e-5
 
 //Parameter for Enzo dual Energy Condition
-#define DE_ETA_1 0.001 //Ratio of U to E for wich  Inetrnal Energy is used to compute the Pressure
-#define DE_ETA_2 0.035 //Ratio of U to max(E_local) used to select wich Internal Energy is used for the update.
+#define DE_ETA_1 0.001 //Ratio of U to E for which  Internal Energy is used to compute the Pressure
+#define DE_ETA_2 0.035 //Ratio of U to max(E_local) used to select which Internal Energy is used for the update.
 
 // Maximum time step for cosmological simulations
 #define MAX_DELTA_A 0.001
@@ -126,7 +126,7 @@ typedef std::vector<Real> real_vector_t;
 typedef std::vector<part_int_t> int_vector_t;
 #ifdef MPI_CHOLLA
 // Constants for the inital size of the buffers for particles transfer
-// and the number of data transfered for each particle
+// and the number of data transferred for each particle
 extern int N_PARTICLES_TRANSFER;
 extern int N_DATA_PER_PARTICLE_TRANSFER;
 #endif//MPI_CHOLLA

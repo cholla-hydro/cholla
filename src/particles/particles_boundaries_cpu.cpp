@@ -201,7 +201,7 @@ void Particles_3D::Select_Particles_to_Transfer_All_CPU( int *flags ){
     }
   }
 
-  //Sort the transfer Indices (NOT NEEDED: All indices are sorted at the end of the transfer before removing transfered particles )
+  //Sort the transfer Indices (NOT NEEDED: All indices are sorted at the end of the transfer before removing transferred particles )
   // std::sort(out_indxs_vec_x0.begin(), out_indxs_vec_x0.end());
   // std::sort(out_indxs_vec_x1.begin(), out_indxs_vec_x1.end());
   // std::sort(out_indxs_vec_y0.begin(), out_indxs_vec_y0.end());
@@ -220,7 +220,7 @@ void Particles_3D::Select_Particles_to_Transfer_All_CPU( int *flags ){
 }
 
 
-//Load the particles that need to be transfered to the MPI buffer
+//Load the particles that need to be transferred to the MPI buffer
 void Particles_3D::Load_Particles_to_Buffer_CPU( int direction, int side, Real *send_buffer, int buffer_length  ){
 
   part_int_t n_out;
@@ -267,13 +267,13 @@ void Particles_3D::Load_Particles_to_Buffer_CPU( int direction, int side, Real *
   }
 
   part_int_t offset, offset_extra;
-  n_out = out_indxs_vec->size();  //Number of particles to be transfered
+  n_out = out_indxs_vec->size();  //Number of particles to be transferred
   offset = *n_in_buffer*N_DATA_PER_PARTICLE_TRANSFER; //Offset in the array to take in to account the particles that already reside in the buffer array
 
   part_int_t indx, pIndx;
   for ( indx=0; indx<n_out; indx++ ){
 
-    pIndx = (*out_indxs_vec)[indx]; // Index of the particle that will be transferd
+    pIndx = (*out_indxs_vec)[indx]; // Index of the particle that will be transferred
     //Copy the particle data to the buffer array in the following order ( position, velocity )
     send_buffer[ offset + 0 ] = pos_x[pIndx];
     send_buffer[ offset + 1 ] = pos_y[pIndx];
@@ -301,7 +301,7 @@ void Particles_3D::Load_Particles_to_Buffer_CPU( int direction, int side, Real *
 
     *n_in_buffer += 1; // add one to the number of particles in the transfer_buffer
     offset += N_DATA_PER_PARTICLE_TRANSFER;
-    //Check that the offset doesnt exceede the bufer size
+    //Check that the offset doesn't exceed the buffer size
     if ( offset > buffer_length ) std::cout << "ERROR: Buffer length exceeded on particles transfer" << std::endl;
   }
 }
@@ -338,7 +338,7 @@ void Particles_3D::Add_Particle_To_Buffer( Real *buffer, part_int_t n_in_buffer,
 }
 
 
-//After a particle was transfered, add the transfered particle data to the vectors that contain the data of the local particles
+//After a particle was transferred, add the transferred particle data to the vectors that contain the data of the local particles
 void Particles_3D::Add_Particle_To_Vectors( Real pId, Real pMass, Real pAge,
                             Real pPos_x, Real pPos_y, Real pPos_z,
                             Real pVel_x, Real pVel_y, Real pVel_z, int *flags ){
@@ -403,7 +403,7 @@ void Particles_3D::Unload_Particles_from_Buffer_CPU( int direction, int side, Re
   offset_buff = 0;
   part_int_t indx;
   for ( indx=0; indx<n_recv; indx++ ){
-    //Get the data for each transfered particle
+    //Get the data for each transferred particle
     pPos_x = recv_buffer[ offset_buff + 0 ];
     pPos_y = recv_buffer[ offset_buff + 1 ];
     pPos_z = recv_buffer[ offset_buff + 2 ];
@@ -529,13 +529,13 @@ void Particles_3D::Unload_Particles_from_Buffer_CPU( int direction, int side, Re
       continue;
     }
 
-    //If the particle doesnt have to be transfered to the y_directtion or z_direction, then add the particle date to the local vectors
+    //If the particle doesn't have to be transferred to the y_direction or z_direction, then add the particle date to the local vectors
     Add_Particle_To_Vectors( pId, pMass, pAge, pPos_x, pPos_y, pPos_z, pVel_x, pVel_y, pVel_z, flags );
   }
 }
 
 
-//Remove the particles that were transfered outside the local domain
+//Remove the particles that were transferred outside the local domain
 void Particles_3D::Remove_Transfered_Particles( void ){
 
   //Get the number of particles to delete
@@ -557,7 +557,7 @@ void Particles_3D::Remove_Transfered_Particles( void ){
   delete_indxs_vec.insert( delete_indxs_vec.end(), out_indxs_vec_z0.begin(), out_indxs_vec_z0.end() );
   delete_indxs_vec.insert( delete_indxs_vec.end(), out_indxs_vec_z1.begin(), out_indxs_vec_z1.end() );
 
-  //Clear the vectors that stored the transfered indices for each direction. All these indices are now stored in delete_indxs_vec
+  //Clear the vectors that stored the transferred indices for each direction. All these indices are now stored in delete_indxs_vec
   out_indxs_vec_x0.clear();
   out_indxs_vec_x1.clear();
   out_indxs_vec_y0.clear();
@@ -597,7 +597,7 @@ void Particles_3D::Remove_Transfered_Particles( void ){
   }
 
   //At the end the delete_indxs_vec must be empty
-  if ( delete_indxs_vec.size() != 0 ) std::cout << "ERROR: Deleting Transfered Particles " << std::endl;
+  if ( delete_indxs_vec.size() != 0 ) std::cout << "ERROR: Deleting Transferred Particles " << std::endl;
 
 
   //Check that the size of the particles data vectors is consistent with the local number of particles

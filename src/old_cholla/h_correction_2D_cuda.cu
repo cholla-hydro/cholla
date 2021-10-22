@@ -19,7 +19,7 @@ __global__ void calc_eta_x_2D(Real *dev_bounds_L, Real *dev_bounds_R, Real *eta_
 {
   int n_cells = nx*ny;
 
-  // declare primative variables for each stencil
+  // declare primitive variables for each stencil
   // these will be placed into registers for each thread
   Real pl, pr, al, ar;
 
@@ -65,7 +65,7 @@ __global__ void calc_eta_y_2D(Real *dev_bounds_L, Real *dev_bounds_R, Real *eta_
 {
   int n_cells = nx*ny;
 
-  // declare primative variables for each stencil
+  // declare primitive variables for each stencil
   // these will be placed into registers for each thread
   Real pl, pr, al, ar;
 

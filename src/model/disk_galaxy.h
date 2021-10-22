@@ -104,7 +104,7 @@ public:
 
 
     /**
-     * epicylic frequency
+     * epicyclic frequency
      */
     Real kappa2(Real R, Real z) {
       Real r = sqrt(R*R + z*z);

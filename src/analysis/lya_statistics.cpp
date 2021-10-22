@@ -887,7 +887,7 @@ void Analysis_Module::Transfer_Skewers_Data( int axis ){
 
 
       #ifdef PRINT_ANALYSIS_LOG
-      printf("  Recieving Skewers From pID: %d\n", mpi_id );
+      printf("  Receiving Skewers From pID: %d\n", mpi_id );
       #endif
 
       MPI_Recv( skewers_HI_density_local,   n_skewers*n_los_local, MPI_CHREAL, mpi_id, 0, world, &mpi_status  );
@@ -923,7 +923,7 @@ void Analysis_Module::Transfer_Skewers_Data( int axis ){
 
 
   #ifdef PRINT_ANALYSIS_LOG
-  chprintf("  Skewers Data Transfered\n" );
+  chprintf("  Skewers Data Transferred\n" );
   #endif
 }
 

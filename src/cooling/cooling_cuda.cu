@@ -248,7 +248,7 @@ __device__ Real primordial_cool(Real n, Real T)
   // set the hydrogen number density
   n_h = n;
 
-  // calculate the recombination and collisional ionziation rates
+  // calculate the recombination and collisional ionization rates
   // (Table 2 from Katz 1996)
   alpha_hp   = (8.4e-11) * (1.0/sqrt(T)) * pow((T/1e3),(-0.2)) * (1.0 / (1.0 + pow((T/1e6),(0.7))));
   alpha_hep  = (1.5e-10) * (pow(T,(-0.6353)));
@@ -257,7 +257,7 @@ __device__ Real primordial_cool(Real n, Real T)
   gamma_eh0  = (5.85e-11)* sqrt(T) * exp(-157809.1/T) * (1.0 / (1.0 + sqrt(T/1e5)));
   gamma_ehe0 = (2.38e-11)* sqrt(T) * exp(-285335.4/T) * (1.0 / (1.0 + sqrt(T/1e5)));
   gamma_ehep = (5.68e-12)* sqrt(T) * exp(-631515.0/T) * (1.0 / (1.0 + sqrt(T/1e5)));
-  // externally evaluated integrals for photoionziation rates
+  // externally evaluated integrals for photoionization rates
   // assumed J(nu) = 10^-22 (nu_L/nu)
   gamma_lh0 = 3.19851e-13;
   gamma_lhe0 = 3.13029e-13;

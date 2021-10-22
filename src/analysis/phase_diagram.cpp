@@ -1,4 +1,4 @@
-#ifdef ANALYSIS
+#if defined(ANALYSIS) && defined(PHASE_DIAGRAM)
 
 #include <stdio.h>      /* printf */
 #include <math.h>
@@ -56,7 +56,7 @@ void Grid3D::Compute_Phase_Diagram(){
     for ( j=0; j<ny_local; j++ ){
       for ( i=0; i<nx_local; i++ ){
           id_grid = (i+n_ghost) + (j+n_ghost)*nx_grid + (k+n_ghost)*nx_grid*ny_grid;
-          dens = C.density[id_grid] * Cosmo.rho_0_gas / Cosmo.rho_mean_baryon; // Baryionic overdensity
+          dens = C.density[id_grid] * Cosmo.rho_0_gas / Cosmo.rho_mean_baryon; // Baryonic overdensity
           // chprintf( "%f %f \n", dens, temp);
           #ifdef COOLING_GRACKLE
           temp = Cool.temperature[id_grid];
@@ -117,17 +117,5 @@ void Analysis_Module::Initialize_Phase_Diagram( struct parameters *P ){
   chprintf(" Phase Diagram Initialized.\n");
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif

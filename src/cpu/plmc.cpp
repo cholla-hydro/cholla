@@ -55,8 +55,8 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
 
 
   // Step 1 - Compute the eigenvalues of the linearized
-  //          equations in the primative variables using the cell-centered
-  //          primative variables
+  //          equations in the primitive variables using the cell-centered
+  //          primitive variables
   #ifdef CTU
   Real lambda_m = vx_i-a_i;
   Real lambda_0 = vx_i;
@@ -64,7 +64,7 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   #endif //CTU
 
 
-  // Step 2 - Compute the left, right, and centered differences of the primative variables
+  // Step 2 - Compute the left, right, and centered differences of the primitive variables
   //          Note that here L and R refer to locations relative to the cell center
   //          Stone Eqn 36
   Real del_d_L, del_vx_L, del_vy_L, del_vz_L, del_p_L;
@@ -196,7 +196,7 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   #endif
 
   // Step 5 - Project the monotonized difference in the characteristic variables back onto the
-  //          primative variables
+  //          primitive variables
   //          Stone Eqn 39
   Real del_d_m_i, del_vx_m_i, del_vy_m_i, del_vz_m_i, del_p_m_i;
 
@@ -208,7 +208,7 @@ void plmc(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
 
 
   // Step 6 - Compute the left and right interface values using the monotonized difference in the
-  //          primative variables
+  //          primitive variables
   //          Stone Eqns 40 & 41
   Real d_L_iph, vx_L_iph, vy_L_iph, vz_L_iph, p_L_iph;
   Real d_R_imh, vx_R_imh, vy_R_imh, vz_R_imh, p_R_imh;

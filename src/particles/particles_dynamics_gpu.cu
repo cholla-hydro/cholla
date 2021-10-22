@@ -15,7 +15,7 @@
 #include "../cosmology/cosmology.h"
 // #include "../cosmology/cosmology_functions_gpu.h"
 
-// FUTURE FIX: The Hubble function was defined here because I couldn't get it form onether file, tried -dc flag when compiling buu paris broke.
+// FUTURE FIX: The Hubble function was defined here because I couldn't get it form other file, tried -dc flag when compiling buu paris broke.
 __device__ Real Get_Hubble_Parameter_dev( Real a, Real H0, Real Omega_M, Real Omega_L, Real Omega_K ){
   Real a2 = a * a;
   Real a3 = a2 * a;
@@ -121,7 +121,7 @@ __global__ void Advance_Particles_KDK_Step1_Kernel( part_int_t n_local, Real dt,
   vel_y_dev[tid] += 0.5 * dt * grav_y_dev[tid];
   vel_z_dev[tid] += 0.5 * dt * grav_z_dev[tid];
 
-  //Advance Posiotions using advanced velocities
+  //Advance Positions using advanced velocities
   pos_x_dev[tid] += dt * vel_x_dev[tid];
   pos_y_dev[tid] += dt * vel_y_dev[tid];
   pos_z_dev[tid] += dt * vel_z_dev[tid];
@@ -209,7 +209,7 @@ __global__ void Advance_Particles_KDK_Step1_Cosmo_Kernel( part_int_t n_local, Re
   vel_y_dev[tid] = vel_y;
   vel_z_dev[tid] = vel_z;
 
-  //Advance Posiotions using advanced velocities
+  //Advance Positions using advanced velocities
   pos_x_dev[tid] += dt_half * vel_x;
   pos_y_dev[tid] += dt_half * vel_y;
   pos_z_dev[tid] += dt_half * vel_z;

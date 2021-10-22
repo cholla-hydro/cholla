@@ -90,7 +90,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
 
 
   // Step 1 - Compute the eigenvalues of the linearized equations in the
-  //          primative variables using the cell-centered primative variables
+  //          primitive variables using the cell-centered primitive variables
 
   lambda_m = vx_i-a_i;
   lambda_0 = vx_i;
@@ -99,7 +99,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
 
   // Steps 2 - 5 are repeated for cell i-1, i, and i+1
 
-  // Step 2 - Compute the left, right, centered, and van Leer differences of the primative variables
+  // Step 2 - Compute the left, right, centered, and van Leer differences of the primitive variables
   //          Note that here L and R refer to locations relative to the cell center
   //          Stone Eqn 36
 
@@ -199,7 +199,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
 
 
   // Step 5 - Project the monotonized difference in the characteristic variables back onto the
-  //          primative variables
+  //          primitive variables
   //          Stone Eqn 39
 
   del_d_m_imo  = del_a_0_m + del_a_1_m + del_a_4_m;
@@ -209,7 +209,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   del_p_m_imo  = a_imo*a_imo*del_a_0_m + a_imo*a_imo*del_a_4_m;
 
 
-  // Step 2 - Compute the left, right, centered, and van Leer differences of the primative variables
+  // Step 2 - Compute the left, right, centered, and van Leer differences of the primitive variables
   //          Note that here L and R refer to locations relative to the cell center
   //          Stone Eqn 36
 
@@ -308,7 +308,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
 
 
   // Step 5 - Project the monotonized difference in the characteristic variables back onto the
-  //          primative variables
+  //          primitive variables
   //          Stone Eqn 39
 
   del_d_m_i  = del_a_0_m + del_a_1_m + del_a_4_m;
@@ -318,7 +318,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
   del_p_m_i  = a_i*a_i*del_a_0_m + a_i*a_i*del_a_4_m;
 
 
-  // Step 2 - Compute the left, right, centered, and van Leer differences of the primative variables
+  // Step 2 - Compute the left, right, centered, and van Leer differences of the primitive variables
   //          Note that here L and R refer to locations relative to the cell center
   //          Stone Eqn 36
 
@@ -418,7 +418,7 @@ printf("% 10.8f % 10.8f % 10.8f % 10.8f % 10.8f\n", p_imt, p_imo, p_i, p_ipo, p_
 
 
   // Step 5 - Project the monotonized difference in the characteristic variables back onto the
-  //          primative variables
+  //          primitive variables
   //          Stone Eqn 39
 
   del_d_m_ipo  = del_a_0_m + del_a_1_m + del_a_4_m;

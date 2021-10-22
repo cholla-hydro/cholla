@@ -57,7 +57,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
   //if (xid > n_ghost-3 && xid < nx-n_ghost+1 && yid < ny && zid < nz)
   if (xid < nx && yid < ny && zid < nz)
   {
-    // retrieve primative variables
+    // retrieve primitive variables
     dl  = dev_bounds_L[            tid];
     vxl = dev_bounds_L[o1*n_cells + tid]/dl;
     vyl = dev_bounds_L[o2*n_cells + tid]/dl;
