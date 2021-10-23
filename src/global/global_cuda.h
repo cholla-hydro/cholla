@@ -14,6 +14,7 @@
 #define GLOBAL_CUDA_H
 
 #define TPB 256 // threads per block
+#define SIMB 4 // approx simultaneous blocks running
 //#define TPB 64
 
 
