@@ -13,6 +13,15 @@
 extern texture<float, 2, cudaReadModeElementType> coolTexObj;
 extern texture<float, 2, cudaReadModeElementType> heatTexObj;
 
+__device__ Real test_cool(int tid, Real n, Real T);
+__device__ Real primordial_cool(Real n, Real T);
+__device__ Real CIE_cool(Real n, Real T);
+#ifdef CLOUDY_COOL
+__device__ Real primordial_cool(Real n, Real T);
+#endif
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real *d_te_arr, Real *d_me_arr, bool *d_mask);
+
+
 void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real *return_total_energy, Real *return_mask_energy){
   // from global/global_cuda.h: TPB
   int ngrid = (nx*ny*nz + TPB - 1) / TPB;
@@ -21,8 +30,9 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
 
   Real *dev_te_array;
   Real *dev_me_array;
-  Real *h_te_array[SIMB*TPB];
-  Real *h_me_array[SIMB*TPB];
+  bool *dev_mask;
+  Real h_te_array[SIMB*TPB];
+  Real h_me_array[SIMB*TPB];
   CudaSafeCall( cudaMalloc (&dev_te_array,SIMB*TPB*sizeof(Real)));
   CudaSafeCall( cudaMalloc (&dev_me_array,SIMB*TPB*sizeof(Real)));
   CudaSafeCall( cudaMalloc (&dev_mask,nx*ny*nz*sizeof(bool)));
@@ -36,18 +46,18 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
   CudaSafeCall( cudaMemcpy(h_te_array, dev_te_array, SIMB*TPB*sizeof(Real), cudaMemcpyDeviceToHost) );
   CudaSafeCall( cudaMemcpy(h_me_array, dev_me_array, SIMB*TPB*sizeof(Real), cudaMemcpyDeviceToHost) );
 
-  Real te = 0.0;
-  Real me = 0.0;
+  Real total_energy = 0.0;
+  Real mask_energy = 0.0;
   for (int i=0; i<SIMB*TPB; i++) {
-    te += h_te_array[i];
-    me += h_me_array[i];
+    total_energy += h_te_array[i];
+    mask_energy += h_me_array[i];
   }
   cudaFree(dev_te_array);
   cudaFree(dev_me_array);
   cudaFree(dev_mask); 
 
-  *return_total_energy += te;
-  *return_mask_energy += me;
+  *return_total_energy += total_energy;
+  *return_mask_energy += mask_energy;
 }
 
 Real Cooling_Calc_dt(Real *d_dt_array, Real *h_dt_array, int nx, int ny, int nz){
