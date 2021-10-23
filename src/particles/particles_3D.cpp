@@ -86,7 +86,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   #endif
 
   #ifdef MPI_CHOLLA
-  //Vectors for the indices of the particles that need to be transfered via MPI
+  //Vectors for the indices of the particles that need to be transferred via MPI
   int_vector_t out_indxs_vec_x0;
   int_vector_t out_indxs_vec_x1;
   int_vector_t out_indxs_vec_y0;
@@ -147,7 +147,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
 
   #ifdef PARTICLES_GPU
   //Factor to allocate the particles data arrays on the GPU.
-  //When using MPI particles will be transfered to other GPU, for that reason we need extra memory allocated
+  //When using MPI particles will be transferred to other GPU, for that reason we need extra memory allocated
   #ifdef MPI_CHOLLA
   G.gpu_allocation_factor = 1.5;
   #else
@@ -300,7 +300,7 @@ void Particles_3D::Allocate_Memory_GPU_MPI(){
 
   G.n_transfer_h = (int *) malloc(sizeof(int));
 
-  // Used the global partivcles send/recv buffers that already have been alloctaed in Allocate_MPI_DeviceBuffers_BLOCK
+  // Used the global particles send/recv buffers that already have been alloctaed in Allocate_MPI_DeviceBuffers_BLOCK
   G.send_buffer_size_x0 = buffer_length_particles_x0_send;
   G.send_buffer_size_x1 = buffer_length_particles_x1_send;
   G.send_buffer_size_y0 = buffer_length_particles_y0_send;
@@ -388,7 +388,7 @@ void Particles_3D::Free_Memory_GPU(){
 
 void Particles_3D::Initialize_Grid_Values( void ){
 
-  //Initialize density and gravitaional field to 0.
+  //Initialize density and gravitational field to 0.
 
   int id;
   for( id=0; id<G.n_cells; id++ ){
@@ -654,7 +654,7 @@ void Particles_3D::Initialize_Zeldovich_Pancake( struct parameters *P ){
 
 
 void Grid3D::Initialize_Uniform_Particles(){
-  //Initialize positions asigning one particle at each cell in a uniform grid
+  //Initialize positions assigning one particle at each cell in a uniform grid
 
   int i, j, k, id;
   Real x_pos, y_pos, z_pos;

@@ -13,6 +13,26 @@
 extern texture<float, 2, cudaReadModeElementType> coolTexObj;
 extern texture<float, 2, cudaReadModeElementType> heatTexObj;
 
+void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array){
+  // from global/global_cuda.h: TPB
+  int ngrid = (nx*ny*nz + TPB - 1) / TPB;
+  dim3 dim1dGrid(ngrid, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dt_array);
+  CudaCheckError();  
+}
+
+Real Cooling_Calc_dt(Real *d_dt_array, Real *h_dt_array, int nx, int ny, int nz){
+  int ngrid = (nx*ny*nz + TPB - 1) / TPB;
+  Real min_dt = 1e10;
+  CudaSafeCall( cudaMemcpy(h_dt_array, d_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+  for (int i=0; i<ngrid; i++) {
+    min_dt = fmin(min_dt, h_dt_array[i]);
+  }
+  return C_cfl/min_dt;
+}
+
+
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
@@ -228,7 +248,7 @@ __device__ Real primordial_cool(Real n, Real T)
   // set the hydrogen number density
   n_h = n;
 
-  // calculate the recombination and collisional ionziation rates
+  // calculate the recombination and collisional ionization rates
   // (Table 2 from Katz 1996)
   alpha_hp   = (8.4e-11) * (1.0/sqrt(T)) * pow((T/1e3),(-0.2)) * (1.0 / (1.0 + pow((T/1e6),(0.7))));
   alpha_hep  = (1.5e-10) * (pow(T,(-0.6353)));
@@ -237,7 +257,7 @@ __device__ Real primordial_cool(Real n, Real T)
   gamma_eh0  = (5.85e-11)* sqrt(T) * exp(-157809.1/T) * (1.0 / (1.0 + sqrt(T/1e5)));
   gamma_ehe0 = (2.38e-11)* sqrt(T) * exp(-285335.4/T) * (1.0 / (1.0 + sqrt(T/1e5)));
   gamma_ehep = (5.68e-12)* sqrt(T) * exp(-631515.0/T) * (1.0 / (1.0 + sqrt(T/1e5)));
-  // externally evaluated integrals for photoionziation rates
+  // externally evaluated integrals for photoionization rates
   // assumed J(nu) = 10^-22 (nu_L/nu)
   gamma_lh0 = 3.19851e-13;
   gamma_lhe0 = 3.13029e-13;
@@ -365,7 +385,9 @@ __device__ Real Cloudy_cool(Real n, Real T)
 
   return cool;
 }
-#endif
+#endif //CLOUDY_COOL
+
+
 
 
 #endif //COOLING_GPU

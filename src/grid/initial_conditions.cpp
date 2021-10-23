@@ -61,7 +61,7 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     #ifndef ONLY_PARTICLES
     Disk_3D(P);
     #else
-    // Initialize a uniforn hydro grid when only integrating particles
+    // Initialize a m hydro grid when only integrating particles
     Uniform_Grid();
     #endif
   } else if (strcmp(P.init, "Spherical_Overpressure_3D")==0) {
@@ -72,7 +72,7 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     #ifndef ONLY_PARTICLES
     Read_Grid(P);
     #else
-    // Initialize a uniforn hydro grid when only integrating particles
+    // Initialize a uniform hydro grid when only integrating particles
     Uniform_Grid();
     #endif
   } else if (strcmp(P.init, "Uniform")==0) {
@@ -1235,7 +1235,7 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
         // // get the centered cell positions at (i,j,k)
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
-        //Analitical Initial Conditions
+        //Analytical Initial Conditions
         // dens = rho_0 / ( 1 - ( 1 + z_zeldovich ) / ( 1 + z_init ) * cos( k_x*( x_pos - x_center )) );
         // vel = - H0 * ( 1 + z_zeldovich ) / sqrt( 1 + z_init ) * sin( k_x*( x_pos - x_center )) / k_x;
         // temp = T_init * pow( dens / rho_0, 2./3 );

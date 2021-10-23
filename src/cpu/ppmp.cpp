@@ -56,7 +56,7 @@ void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   Real dx_i, dx_imo, dx_ipo, dx_imt, dx_ipt;
   dx_i = dx_imo = dx_ipo = dx_imt = dx_ipt = dx;
 
-  // declare the primative variables we are calculating
+  // declare the primitive variables we are calculating
   // note: dl & dr refer to the left and right boundary values of cell i
   Real dl, dr, vxl, vxr, vyl, vyr, vzl, vzr, pl, pr;
 
@@ -162,7 +162,7 @@ void ppmp(Real stencil[], Real bounds[], Real dx, Real dt, Real gamma)
   pr  = F_i * p_i  + (1 - F_i) * pr;
 #endif
 
-  //ensure that the parabolic distribution of each of the primative variables is monotonic
+  //ensure that the parabolic distribution of each of the primitive variables is monotonic
   //local maximum or minimum criterion (Fryxell Eqn 52, Fig 11)
   if ( (dr  - d_i)  * (d_i  - dl)  <= 0)  { dl  = dr  = d_i; }
   if ( (vxr - vx_i) * (vx_i - vxl) <= 0)  { vxl = vxr = vx_i; }

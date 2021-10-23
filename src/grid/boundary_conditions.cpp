@@ -17,7 +17,7 @@
 #endif
 
 /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
- *  \brief Set the boundary conditions for all componentes based on info in the parameters structure. */
+ *  \brief Set the boundary conditions for all components based on info in the parameters structure. */
 void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
 
   #ifndef ONLY_PARTICLES
@@ -35,8 +35,8 @@ void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
   #endif //CPU_TIME
   #endif //ONLY_PARTICLES
 
-  // If the Gravity cuopling is on the CPU, the potential is not in the Conserved arrays,
-  // and its boundaries need to be transfered separately
+  // If the Gravity coupling is on the CPU, the potential is not in the Conserved arrays,
+  // and its boundaries need to be transferred separately
   #ifdef GRAVITY
   #ifdef CPU_TIME
   Timer.Start_Timer();
@@ -54,7 +54,7 @@ void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
  *  \brief Set the boundary conditions based on info in the parameters structure. */
 void Grid3D::Set_Boundary_Conditions(parameters P) {
 
-  //Check Only one boundary type id being transfered
+  //Check Only one boundary type id being transferred
   int n_bounds = 0;
   n_bounds += (int) H.TRANSFER_HYDRO_BOUNDARIES;
   #ifdef GRAVITY
@@ -84,7 +84,7 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
     exit(-1);
   }
 
-  // If no boundaries are set to be transeferd then exit;
+  // If no boundaries are set to be transferred then exit;
   if ( n_bounds == 0 ){
      printf( " Warning: No boundary type for transfer \n");
      return;

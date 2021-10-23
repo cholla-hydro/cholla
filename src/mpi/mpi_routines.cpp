@@ -120,10 +120,10 @@ int buffer_length_particles_z0_recv;
 int buffer_length_particles_z1_send;
 int buffer_length_particles_z1_recv;
 
-// Request for Number Of Partciles to be transferd
+// Request for Number Of Particles to be transferred
 MPI_Request *send_request_n_particles;
 MPI_Request *recv_request_n_particles;
-// Request for Partciles Transfer
+// Request for Particles Transfer
 MPI_Request *send_request_particles_transfer;
 MPI_Request *recv_request_particles_transfer;
 #endif//PARTICLES
@@ -520,7 +520,7 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   //chprintf("Setting indices.\n");
   MPI_Barrier(world);
   n = 0;
-  //Gravity: Change the order of MPI processes asigment to match the assigment done by PFFT
+  //Gravity: Change the order of MPI processes assignment to match the assignment done by PFFT
   //Original:
   // for(i=0;i<nproc_x;i++)
   //   for(j=0;j<nproc_y;j++)
@@ -1039,7 +1039,7 @@ void Allocate_MPI_Buffers_BLOCK(struct Header *H)
   int factor = 2;
   N_PARTICLES_TRANSFER = n_max * n_max * factor ;
 
-  // Set the number of values that will be transfered for each particle
+  // Set the number of values that will be transferred for each particle
   N_DATA_PER_PARTICLE_TRANSFER = 6; // 3 positions and 3 velocities
   #ifndef SINGLE_PARTICLE_MASS
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle mass
@@ -1233,7 +1233,7 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   int factor = 2;
   N_PARTICLES_TRANSFER = n_max * n_max * factor ;
 
-  // Set the number of values that will be transfered for each particle
+  // Set the number of values that will be transferred for each particle
   N_DATA_PER_PARTICLE_TRANSFER = 6; // 3 positions and 3 velocities
   #ifndef SINGLE_PARTICLE_MASS
   N_DATA_PER_PARTICLE_TRANSFER += 1; //one more for the particle mass

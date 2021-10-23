@@ -199,7 +199,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
   #ifdef COUPLE_DELTA_E_KINETIC
   Real Ekin_0, Ekin_1;
   #endif//COUPLE_DELTA_E_KINETIC
-  #endif //GRAVTY
+  #endif //GRAVITY
 
   Real dtodx = dt/dx;
   Real dtody = dt/dy;
@@ -262,7 +262,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
                                   +  dtody * (dev_F_y[(n_fields-1)*n_cells + jmo] - dev_F_y[(n_fields-1)*n_cells + id])
                                   +  dtodz * (dev_F_z[(n_fields-1)*n_cells + kmo] - dev_F_z[(n_fields-1)*n_cells + id]);
                                   // +  0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
-                                  //Note: this term is added in a separate kernel to avoid syncronization issues
+                                  //Note: this term is added in a separate kernel to avoid synchronization issues
     #endif
 
     #ifdef DENSITY_FLOOR
@@ -547,7 +547,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
     max_dti[tid] = fmax(max_dti[tid], 0.0);
 
     #ifdef AVERAGE_SLOW_CELLS
-    // If the cell delta_t is smaller than the min_delta_t, then the cell is averaged over its neighbours
+    // If the cell delta_t is smaller than the min_delta_t, then the cell is averaged over its neighbors
     if (max_dti[tid] > max_dti_slow){
       // Average this cell
       printf(" Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f\n", xid, yid, zid, 1./max_dti[tid],  1./max_dti_slow );
@@ -582,6 +582,46 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
   // write the result for this block to global memory
   if (tid == 0) dti_array[blockIdx.x] = max_dti[0];
 
+}
+
+Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow){
+
+  // Assumes dev_conserved, dev_dti_array, and host_dti_array are already allocated
+  // global dev_dti_array is from global_cuda.h
+  // global host_dti_array is from global_cuda.h
+  // global TPB is from global_cuda.h
+  
+  int num_blocks = (nx*ny*nz + TPB - 1) / TPB;
+  // set values for GPU kernels
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(num_blocks, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB, 1, 1);
+  // compute dt and store in dev_dti_array
+
+  if (nx > 1 && ny == 1 && nz == 1) //1D
+  {
+    hipLaunchKernelGGL(Calc_dt_1D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, n_ghost, dx, dev_dti_array, gamma);
+  }
+  else if (nx > 1 && ny > 1 && nz == 1) //2D
+  {
+    hipLaunchKernelGGL(Calc_dt_2D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, n_ghost, dx, dy, dev_dti_array, gamma);
+  }
+  else if (nx > 1 && ny > 1 && nz > 1) //3D
+  {
+    hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, dx, dy, dz, dev_dti_array, gamma, max_dti_slow);
+  }
+  CudaCheckError();
+
+  // copy dev_dti_array to host_dti_array
+  CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, num_blocks*sizeof(Real), cudaMemcpyDeviceToHost) );
+
+  Real max_dti = 0.0;
+  for (int i=0; i<num_blocks; i++) {
+    max_dti = fmax(max_dti, host_dti_array[i]);
+  }
+  return max_dti;
+  
 }
 
 #ifdef DE
@@ -737,7 +777,7 @@ __global__ void Partial_Update_Advected_Internal_Energy_3D( Real *dev_conserved,
     // Use center values of neighbor cells for the divergence of velocity
     dev_conserved[(n_fields-1)*n_cells + id] += 0.5*P*(dtodx*(vx_imo-vx_ipo) + dtody*(vy_jmo-vy_jpo) + dtodz*(vz_kmo-vz_kpo));
 
-    // OPTION 2: Use the reconstrcted velocities to compute the velocity gradient
+    // OPTION 2: Use the reconstructed velocities to compute the velocity gradient
     //Use the reconstructed Velocities instead of neighbor cells centered values
     // vx_R = Q_Lx[1*n_cells + id]  / Q_Lx[id];
     // vx_L = Q_Rx[1*n_cells + imo] / Q_Rx[imo];
@@ -796,7 +836,7 @@ __global__ void Select_Internal_Energy_1D( Real *dev_conserved, int nx, int n_gh
 
     //Write Selected internal energy to the GasEnergy array ONLY
     //to avoid mixing updated and non-updated values of E
-    //since the Dual Energy condition depends on the neighbour cells
+    //since the Dual Energy condition depends on the neighbor cells
     dev_conserved[(n_fields-1)*n_cells + id] = U;
 
   }
@@ -948,7 +988,7 @@ __global__ void Sync_Energies_1D(Real *dev_conserved, int nx, int n_ghost, Real 
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     U = dev_conserved[(n_fields-1)*n_cells + id];
 
-    //Use the previusly selected Internal Energy to update the total energy
+    //Use the previously selected Internal Energy to update the total energy
     dev_conserved[4*n_cells + id] = 0.5*d*( vx*vx + vy*vy + vz*vz ) + U;
   }
 
@@ -979,7 +1019,7 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     U = dev_conserved[(n_fields-1)*n_cells + id];
 
-    //Use the previusly selected Internal Energy to update the total energy
+    //Use the previously selected Internal Energy to update the total energy
     dev_conserved[4*n_cells + id] = 0.5*d*( vx*vx + vy*vy + vz*vz ) + U;
   }
 
@@ -1011,7 +1051,7 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     U = dev_conserved[(n_fields-1)*n_cells + id];
 
-    //Use the previusly selected Internal Energy to update the total energy
+    //Use the previously selected Internal Energy to update the total energy
     dev_conserved[4*n_cells + id] = 0.5*d*( vx*vx + vy*vy + vz*vz ) + U;
   }
 }

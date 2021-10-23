@@ -167,7 +167,7 @@ void __global__ Extrapolate_Grav_Potential_Kernel( Real *dst_potential, Real *sr
   }
 
   #ifdef COSMOLOGY
-  //For cosmological simulation the potential is transformrd to 'comuving coordinates'
+  //For cosmological simulation the potential is transformed to 'comoving coordinates'
   pot_extrp *= cosmo_factor;
   #endif
 

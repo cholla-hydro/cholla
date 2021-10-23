@@ -20,7 +20,7 @@
 
 /*! \fn __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
  *  \brief When passed a stencil of conserved variables, returns the left and right
-           boundary values for the interface calculated using ppm with limiting in the primative variables. */
+           boundary values for the interface calculated using ppm with limiting in the primitive variables. */
 __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields)
 {
   int n_cells = nx*ny*nz;
@@ -35,7 +35,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     o1 = 3; o2 = 1; o3 = 2;
   }
 
-  // declare primative variables in the stencil
+  // declare primitive variables in the stencil
   Real d_i, vx_i, vy_i, vz_i, p_i;
   Real d_imo, vx_imo, vy_imo, vz_imo, p_imo;
   Real d_ipo, vx_ipo, vy_ipo, vz_ipo, p_ipo;
@@ -113,7 +113,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //   zs = 3; ze = nz-4;
   // }
 
-  //Ignore only the 2 ghost cells on each side ( intead of ignoring 3 ghost cells on each side )
+  //Ignore only the 2 ghost cells on each side ( instead of ignoring 3 ghost cells on each side )
   if (dir == 0) {
     xs = 2; xe = nx-3;
     ys = 0; ye = ny;
@@ -628,7 +628,7 @@ __device__ Real Calculate_Slope(Real q_imo, Real q_i, Real q_ipo)
   Real del_q_L, del_q_R, del_q_C, del_q_G;
   Real lim_slope_a, lim_slope_b, del_q_m;
 
-  // Compute the left, right, and centered differences of the primative variables
+  // Compute the left, right, and centered differences of the primitive variables
   // Note that here L and R refer to locations relative to the cell center
 
   // left
