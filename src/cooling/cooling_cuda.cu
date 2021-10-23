@@ -13,6 +13,15 @@
 extern texture<float, 2, cudaReadModeElementType> coolTexObj;
 extern texture<float, 2, cudaReadModeElementType> heatTexObj;
 
+__device__ Real test_cool(int tid, Real n, Real T);
+__device__ Real primordial_cool(Real n, Real T);
+__device__ Real CIE_cool(Real n, Real T);
+#ifdef CLOUDY_COOL
+__device__ Real primordial_cool(Real n, Real T);
+#endif
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real *d_te_arr, Real *d_me_arr, bool *d_mask);
+
+
 void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real *return_total_energy, Real *return_mask_energy){
   // from global/global_cuda.h: TPB
   int ngrid = (nx*ny*nz + TPB - 1) / TPB;
@@ -21,7 +30,7 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
 
   Real *dev_te_array;
   Real *dev_me_array;
-  Real *dev_mask;
+  bool *dev_mask;
   Real h_te_array[SIMB*TPB];
   Real h_me_array[SIMB*TPB];
   CudaSafeCall( cudaMalloc (&dev_te_array,SIMB*TPB*sizeof(Real)));
