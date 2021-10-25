@@ -28,23 +28,45 @@
 // =============================================================================
 void systemTest::SystemTestRunner::runTest()
 {
-    // Launch Cholla. Note that this dumps all console output to the console log
-    // file as requested by the user. The parallel launch might not actually
-    // speed things up at all. This is the first place to look for performance
-    // improvements
-    std::string const chollaRunCommand = _chollaPath + " "
-                                         + _chollaSettingsPath + " "
-                                         + _chollaLaunchParams + " "
-                                         + "outdir=" + _outputDirectory + "/"
-                                         + " >> " + _consoleOutputPath + " 2>&1 ";
-    system((chollaRunCommand).c_str()); // Args to send to "system" call
-    _safeMove("run_output.log", _outputDirectory);
-    _safeMove("run_timing.log", _outputDirectory);
+    // Only run if this variable is set to `true`. Generally this and
+    // globalCompareSystemTestResults should only be used for large MPI / tests
+    // where the user wishes to separate the execution of cholla and the /
+    // comparison of results onto different machines/jobs
+    if (globalRunCholla)
+    {
+        // Launch Cholla. Note that this dumps all console output to the console
+        // log file as requested by the user. The parallel launch might not
+        // actually speed things up at all. This is the first place to look for
+        // performance improvements
+        std::string const chollaRunCommand = globalMpiLauncher.getString() + " "
+                                            + std::to_string(numMpiRanks) + " "
+                                            + _chollaPath + " "
+                                            + _chollaSettingsPath + " "
+                                            + _chollaLaunchParams + " "
+                                            + "outdir=" + _outputDirectory + "/"
+                                            + " >> " + _consoleOutputPath + " 2>&1 ";
+        system(("echo Launch Command: " + chollaRunCommand + " >> " + _consoleOutputPath).c_str());
+        system((chollaRunCommand).c_str()); // Args to send to "system" call
+        _safeMove("run_output.log", _outputDirectory);
+        _safeMove("run_timing.log", _outputDirectory);
+    }
+
+    /// If set to false then no comparison will be performed. Generally this and
+    /// globalRunCholla should only be used for large MPI tests where the user
+    /// wishes to separate the execution of cholla and the comparison of results
+    /// onto different machines/jobs
+    if (not globalCompareSystemTestResults) return;
 
     // Make sure we have all the required data files and open the test data file
-    _checkFileExists(_testFilePath);
-    _testFile.openFile(_testFilePath, H5F_ACC_RDONLY);
-    _testDataSetNames = _findDataSetNames(_testFile);
+    _testFileVec.resize(numMpiRanks);
+    for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++)
+    {
+        std::string stringIndex = std::to_string(fileIndex);
+        _checkFileExists(_outputDirectory + "/1.h5." + stringIndex);
+        _testFileVec[fileIndex].openFile(_outputDirectory + "/1.h5." + stringIndex,
+                                         H5F_ACC_RDONLY);
+    }
+    _testDataSetNames = _findDataSetNames(_testFileVec[0]);
 
     // Start Performing Checks
     // =======================
@@ -69,20 +91,13 @@ void systemTest::SystemTestRunner::runTest()
             << "The test data does not contain the dataset '" + dataSetName
             + "' or contains it more than once.";
 
+
         // Get test data array
-        H5::DataSet const testDataSet = _testFile.openDataSet(dataSetName);
-        H5::DataSpace testDataSpace   = testDataSet.getSpace();
-
-        hsize_t testDims[3] = {1,1,1};
-        ASSERT_LE(testDataSpace.getSimpleExtentDims(testDims), 3)
-                << "Expected 3 or fewer dimensions in dataset";
-
-        // Allocate arrays, Note that I'm casting everything to double. Some
-        // of the arrays are ints in the HDF5 file and if the casting
-        // becomes an issue we can fix it later
-        size_t const testSize = testDims[0] * testDims[1] * testDims[2];
-        auto testData = std::shared_ptr<double[]>{ new double[testSize] };
-        testDataSet.read(testData.get(), H5::PredType::NATIVE_DOUBLE);
+        size_t testSize;
+        std::vector<size_t> testDims(3);
+        std::shared_ptr<double[]> testData = _getTestArray(dataSetName,
+                                                           testSize,
+                                                           testDims);
 
         // Get fiducial data array
         size_t fiducialSize;
@@ -101,7 +116,7 @@ void systemTest::SystemTestRunner::runTest()
             {
                 for (size_t k = 0; k < testDims[2]; k++)
                 {
-                    size_t index = (i * testDims[1] + j) * testDims[2] + k;
+                    size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
 
                     // Check for equality and iff not equal return difference
                     double absoluteDiff;
@@ -191,7 +206,7 @@ std::shared_ptr<double[]> systemTest::SystemTestRunner::generateSineArray(
                 double value    = offset + amplitude
                                   * std::sin(kx*i + ky*j + kz*k + phase);
 
-                size_t index    = (i * ny + j) * nz + k;
+                size_t index = (i * ny * nz) + (j * nz) + k;
                 outArray[index] = value;
             }
         }
@@ -227,7 +242,6 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &useFiducialFile,
     // Generate output paths, these files don't exist yet
     _outputDirectory    = ::globalChollaRoot.getString() + "/bin/" + _fullTestFileName;
     _consoleOutputPath  = _outputDirectory + "/" + _fullTestFileName + "_console.log";
-    _testFilePath       = _outputDirectory + "/1.h5.0";
 
     // Create the new directory and check that it exists
     // TODO: C++17: When we update to C++17 or newer this section should
@@ -235,10 +249,10 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &useFiducialFile,
     // TODO: it exists
     if (mkdir(_outputDirectory.c_str(), 0777) == -1)
     {
-        std::string errMessage = "Error: Directory '"
-                                 + _outputDirectory
-                                 + "' could not be created.";
-        throw std::runtime_error(errMessage);
+        std::cout << "Warning: Directory '"
+                      + _outputDirectory
+                      + "' either already exists or could not be created."
+                      << std::endl;
     }
 
     // Check that the files exist and load fiducial HDF5 file if required
@@ -259,7 +273,10 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &useFiducialFile,
 systemTest::SystemTestRunner::~SystemTestRunner()
 {
     _fiducialFile.close();
-    _testFile.close();
+    for (size_t i = 0; i < _testFileVec.size(); i++)
+    {
+        _testFileVec[i].close();
+    }
 }
 // =============================================================================
 
@@ -304,7 +321,7 @@ void systemTest::SystemTestRunner::_checkNumTimeSteps()
 {
     int fiducialNSteps, testNSteps;
 
-    H5::Attribute tStepAttr = _testFile.openAttribute("n_step");
+    H5::Attribute tStepAttr = _testFileVec[0].openAttribute("n_step");
     tStepAttr.read(H5::PredType::NATIVE_INT, &testNSteps);
 
     if (_fiducialFileExists)
@@ -323,13 +340,85 @@ void systemTest::SystemTestRunner::_checkNumTimeSteps()
 // =============================================================================
 
 // =============================================================================
+std::shared_ptr<double[]> systemTest::SystemTestRunner::_getTestArray(
+        std::string const &dataSetName,
+        size_t &length,
+        std::vector<size_t> &testDims)
+{
+    // Get the size of each dimension
+    int testDimsInt[3];
+    H5::Attribute dimensions = _testFileVec[0].openAttribute("dims");
+    dimensions.read(H5::PredType::NATIVE_INT, &testDimsInt);
+    for (size_t i = 0; i < 3; i++) {testDims[i] = testDimsInt[i];}
+
+    // Allocate the array
+    length = testDims[0] * testDims[1] * testDims[2];
+    auto testData = std::shared_ptr<double[]>{ new double[length] };
+
+    for (size_t rank = 0; rank < numMpiRanks; rank++)
+    {
+        // Open the dataset
+        H5::DataSet const testDataSet = _testFileVec[rank].openDataSet(dataSetName);
+
+        // Determine dataset size/shape and check that it's correct
+        H5::DataSpace const testDataSpace = testDataSet.getSpace();
+
+        hsize_t tempDims[3] = {1,1,1};
+        int numTestDims = testDataSpace.getSimpleExtentDims(tempDims);
+
+        // Allocate arrays, Note that I'm casting everything to double. Some
+        // of the arrays are ints in the HDF5 file and if the casting
+        // becomes an issue we can fix it later
+        size_t tempLength = tempDims[0] * tempDims[1] * tempDims[2];
+        auto tempArr = std::shared_ptr<double[]>{ new double[tempLength] };
+
+        // Read in data
+        testDataSet.read(tempArr.get(), H5::PredType::NATIVE_DOUBLE);
+
+        // Get offset
+        int offset[3];
+        H5::Attribute offsetAttr = _testFileVec[rank].openAttribute("offset");
+        offsetAttr.read(H5::PredType::NATIVE_INT, &offset);
+
+        // Get dims_local
+        int dimsLocal[3];
+        H5::Attribute dimsLocalAttr = _testFileVec[rank].openAttribute("dims_local");
+        dimsLocalAttr.read(H5::PredType::NATIVE_INT, &dimsLocal);
+
+        // Now we add the data to the larger array
+        size_t localIndex = 0;
+        for (size_t i = offset[0]; i < offset[0] + dimsLocal[0]; i++)
+        {
+            for (size_t j = offset[1]; j < offset[1] + dimsLocal[1]; j++)
+            {
+                for (size_t k = offset[2]; k < offset[2] + dimsLocal[2]; k++)
+                {
+                    // Compute the location to put the next element
+                    size_t overallIndex = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
+
+                    // Perform copy
+                    testData[overallIndex] = tempArr[localIndex];
+
+                    // Increment local index
+                    localIndex++;
+                }
+            }
+        }
+    }
+
+    // Return the entire, concatenated, dataset
+    return testData;
+}
+// =============================================================================
+
+// =============================================================================
 std::shared_ptr<double[]> systemTest::SystemTestRunner::_getFiducialArray(
         std::string const &dataSetName,
         size_t &length)
 {
     if (_fiducialFileExists)
     {
-        // Read in fiducial Data
+        // Open the dataset
         H5::DataSet const fiducialDataSet = _fiducialFile.openDataSet(dataSetName);
 
         // Determine dataset size/shape and check that it's correct

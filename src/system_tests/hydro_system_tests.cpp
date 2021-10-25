@@ -18,3 +18,19 @@ TEST(tHYDROSYSTEMSodShockTube,
     systemTest::SystemTestRunner sodTest;
     sodTest.runTest();
 }
+
+TEST(tHYDROSYSTEMSodShockTube,
+     CorrectInput2MpiRanksExpectCorrectOutput)
+{
+    systemTest::SystemTestRunner sodTest;
+    sodTest.numMpiRanks = 2;
+    sodTest.runTest();
+}
+
+TEST(tHYDROSYSTEMSodShockTube,
+     CorrectInput4MpiRanksExpectCorrectOutput)
+{
+    systemTest::SystemTestRunner sodTest;
+    sodTest.numMpiRanks = 4;
+    sodTest.runTest();
+}

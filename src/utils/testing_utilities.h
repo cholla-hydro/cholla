@@ -11,6 +11,10 @@
 // STL includes
 #include <string>
 
+// =============================================================================
+// NOTE: Global variables are declared as extern at the end of this file
+// =============================================================================
+
 /*!
  * \brief A namespace for various testing related utility functions. Many of
  * those functions will likely use the STL so this namespace should not be
@@ -106,7 +110,7 @@ namespace testingUtilities
          *
          * \param inputPath The path to be store in _path
          */
-        void initPath(std::string const &inputPath) {_string = inputPath;};
+        void init(std::string const &inputPath) {_string = inputPath;};
 
         /*!
          * \brief Get the String object
@@ -125,3 +129,6 @@ namespace testingUtilities
 extern testingUtilities::GlobalString globalChollaRoot;
 extern testingUtilities::GlobalString globalChollaBuild;
 extern testingUtilities::GlobalString globalChollaMachine;
+extern testingUtilities::GlobalString globalMpiLauncher;
+extern bool globalRunCholla;
+extern bool globalCompareSystemTestResults;

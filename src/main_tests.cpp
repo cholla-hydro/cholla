@@ -21,6 +21,9 @@
 testingUtilities::GlobalString globalChollaRoot;
 testingUtilities::GlobalString globalChollaBuild;
 testingUtilities::GlobalString globalChollaMachine;
+testingUtilities::GlobalString globalMpiLauncher;
+bool globalRunCholla;
+bool globalCompareSystemTestResults;
 
 
 /*!
@@ -48,8 +51,8 @@ class InputParser{
             }
 
             std::vector<std::string>::const_iterator itr;
-            itr =  std::find(this->tokens.begin(), this->tokens.end(), option);
-            if (itr != this->tokens.end() && ++itr != this->tokens.end())
+            itr =  std::find(this->_tokens.begin(), this->_tokens.end(), option);
+            if (itr != this->_tokens.end() && ++itr != this->_tokens.end())
             {
                 return *itr;
             }
@@ -72,8 +75,8 @@ class InputParser{
          */
         bool cmdOptionExists(const std::string &option) const
         {
-            return std::find(this->tokens.begin(), this->tokens.end(), option)
-            != this->tokens.end();
+            return std::find(this->_tokens.begin(), this->_tokens.end(), option)
+            != this->_tokens.end();
         }
         // =====================================================================
 
@@ -88,12 +91,12 @@ class InputParser{
         InputParser (int &argc, char **argv)
         {
             for (int i=1; i < argc; ++i)
-            this->tokens.push_back(std::string(argv[i]));
+                this->_tokens.push_back(std::string(argv[i]));
         }
         ~InputParser() = default;
         // =====================================================================
     private:
-        std::vector <std::string> tokens;
+        std::vector <std::string> _tokens;
 };
 
 /*!
@@ -118,11 +121,37 @@ int main(int argc, char **argv)
     // try "fast", it can also be set on a test by test basis
     ::testing::GTEST_FLAG(death_test_style) = "threadsafe";
 
-    // Initialize the global cholla root path variable from CLI arguments
+    // Initialize global variables
     InputParser input(argc, argv);
-    globalChollaRoot.initPath(input.getCmdOption("--cholla-root"));
-    globalChollaBuild.initPath(input.getCmdOption("--build-type"));
-    globalChollaMachine.initPath(input.getCmdOption("--machine"));
+    globalChollaRoot.init(input.getCmdOption("--cholla-root"));
+    globalChollaBuild.init(input.getCmdOption("--build-type"));
+    globalChollaMachine.init(input.getCmdOption("--machine"));
+    if (input.cmdOptionExists("--mpi-launcher"))
+    {
+        globalMpiLauncher.init(input.getCmdOption("--mpi-launcher"));
+    }
+    else
+    {
+        globalMpiLauncher.init("mpirun -np");
+    }
+
+    if (input.cmdOptionExists("--runCholla=false"))
+    {
+        globalRunCholla = false;
+    }
+    else
+    {
+        globalRunCholla = true;
+    }
+
+    if (input.cmdOptionExists("--compareSystemTestResults=false"))
+    {
+        globalCompareSystemTestResults = false;
+    }
+    else
+    {
+        globalCompareSystemTestResults = true;
+    }
 
     // Run test and return result
     return RUN_ALL_TESTS();

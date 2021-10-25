@@ -175,6 +175,7 @@ clean:
 clobber: clean
 	find . -type f -executable -name "cholla*" -exec rm -f '{}' \;
 	-find bin/ -type d -name "t*" -prune -exec rm -rf '{}' \;
+	rm -rf bin/cholla.*tests*.xml
 
 prereq-build:
 	builds/prereq.sh build $(MACHINE)

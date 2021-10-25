@@ -54,6 +54,9 @@ namespace systemTest
 class systemTest::SystemTestRunner
 {
 public:
+    /// The number of MPI ranks, defaults to 1
+    size_t numMpiRanks = 1;
+
     /*!
      * \brief Run the system test that has been set up
      *
@@ -70,9 +73,10 @@ public:
     /*!
      * \brief Get the Test File object
      *
+     * \param index The MPI rank of the file you want to return. Defaults to 0
      * \return H5::H5File
      */
-    H5::H5File getTestFile(){return _testFile;};
+    H5::H5File getTestFile(size_t const &i = 0){return _testFileVec[i];};
 
     /*!
      * \brief Get the vector of datasets that will be tested
@@ -198,7 +202,7 @@ private:
     /// The fiducial dat file
     H5::H5File _fiducialFile;
     /// The test data file
-    H5::H5File _testFile;
+    std::vector<H5::H5File> _testFileVec;
 
     /// The path to the Cholla executable
     std::string _chollaPath;
@@ -209,8 +213,6 @@ private:
     std::string _chollaSettingsPath;
     /// The path to the fiducial data file
     std::string _fiducialFilePath;
-    /// The path to the test data file
-    std::string _testFilePath;
     /// The path to the output directory
     std::string _outputDirectory;
     /// The path and name of the console output file
@@ -265,7 +267,21 @@ private:
     void _checkNumTimeSteps();
 
     /*!
-     * \brief Load the fiducial data from an HDF5 file
+     * \brief Load the test data from the HDF5 file(s). If there is more than
+     * one HDF5 file then it concatenates the contents into a single array
+     *
+     * \param[in] dataSetName The name of the dataset to get
+     * \param[out] length The total number of elements in the data set
+     * \param[out] testDims An array with the length of each dimension in it
+     * \return std::shared_ptr<double[]> A smart pointer pointing to the array
+     */
+    std::shared_ptr<double[]> _getTestArray(std::string const &dataSetName,
+                                            size_t &length,
+                                            std::vector<size_t> &testDims);
+
+    /*!
+     * \brief Load the fiducial data from an HDF5 file or return user set data
+     * array
      *
      * \param[in] dataSetName The name of the dataset to get
      * \param[out] length The total number of elements in the data set
