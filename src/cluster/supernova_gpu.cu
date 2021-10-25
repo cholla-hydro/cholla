@@ -3,7 +3,7 @@
 #include"../io/io.h" //defines chprintf
 #include"../global/global_cuda.h"//includes gpu.hpp
 #include"supernova.h"
-
+#include"../cooling/cooling_cuda.h" //includes d_cooling_weight
 
 //texture<float, 1, cudaReadModeElementType> mdotTexObj;
 //texture<float, 1, cudaReadModeElementType> edotTexObj;
@@ -403,7 +403,7 @@ void Supernova::Calc_Flags(Real time){
 // Lastly start doing some cuda timing tests on the flag + supernova step
 
 __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, Real *omega_array, bool *flags_array, 
-					  Real *d_mdot_array, Real *d_edot_array, Real *d_dti, Real *d_tracker,
+					  Real *d_mdot_array, Real *d_edot_array, Real *d_dti, Real *d_tracker, Real *d_cooling_weight,
 					  Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, 
 					  int nx, int ny, int nz, int pnx, int pny, int pnz, 
 					  int n_cells, int n_fields, int n_ghost,
@@ -471,6 +471,9 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
 				  local_i, local_j, local_k, 
 				  n_cells, n_fields,
 				  R_cl, a_density, a_energy, gidx);
+  #ifdef COOLING_GPU
+  d_cooling_weight[gidx] = weight;
+  #endif
   if (weight > 0.0 && dt > 0.0){
     Real dti = Calc_Timestep(hydro_dev, gidx, n_cells, gamma, dx, dy, dz);
     atomicMax(d_dti,dti);
@@ -522,7 +525,11 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
     cudaMemcpy(d_dti,&h_dti,sizeof(Real),cudaMemcpyHostToDevice);
   }
 
-
+  // Reset weights to 0
+  #ifdef COOLING_GPU
+  CudaSafeCall(cudaMemset(d_cooling_weight, 0, n_cells*sizeof(Real)));
+  #endif
+  
   // double start_time = get_time();
   int isize = 1+2*pnx;
   int jsize = 1+2*pny;
@@ -532,7 +539,7 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(Supernova_Feedback_Kernel,dim1dGrid,dim1dBlock,0,0,
 		     d_hydro_array, d_cluster_array, d_omega_array, d_flags_array,
-		     d_mdot_array, d_edot_array,d_dti,d_tracker,
+		     d_mdot_array, d_edot_array,d_dti,d_tracker,d_cooling_weight,
 		     xMin, yMin, zMin, dx, dy, dz, nx, ny, nz, pnx, pny, pnz,
 		     n_cells, n_fields, n_ghost, R_cl, density, gama, time, dt, n_cluster, supernova_e);
   CHECK(cudaDeviceSynchronize());

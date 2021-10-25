@@ -13,6 +13,8 @@
 extern texture<float, 2, cudaReadModeElementType> coolTexObj;
 extern texture<float, 2, cudaReadModeElementType> heatTexObj;
 
+Real *d_cooling_weight;
+
 __device__ Real test_cool(int tid, Real n, Real T);
 __device__ Real primordial_cool(Real n, Real T);
 __device__ Real CIE_cool(Real n, Real T);
@@ -30,17 +32,17 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
 
   Real *dev_te_array;
   Real *dev_me_array;
-  bool *dev_mask;
+  //bool *dev_mask;
   Real h_te_array[SIMB*TPB];
   Real h_me_array[SIMB*TPB];
   CudaSafeCall( cudaMalloc (&dev_te_array,SIMB*TPB*sizeof(Real)));
   CudaSafeCall( cudaMalloc (&dev_me_array,SIMB*TPB*sizeof(Real)));
-  CudaSafeCall( cudaMalloc (&dev_mask,nx*ny*nz*sizeof(bool)));
+  // CudaSafeCall( cudaMalloc (&dev_mask,nx*ny*nz*sizeof(bool)));
   CudaSafeCall( cudaMemset(dev_te_array, 0, SIMB*TPB*sizeof(Real)));
   CudaSafeCall( cudaMemset(dev_me_array, 0, SIMB*TPB*sizeof(Real)));
-  CudaSafeCall( cudaMemset(dev_mask, 1, nx*ny*nz*sizeof(bool)));
+  // CudaSafeCall( cudaMemset(d_cooling_mask, 1, nx*ny*nz*sizeof(bool)));
 
-  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dt_array, dev_te_array, dev_me_array, dev_mask);
+  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dt_array, dev_te_array, dev_me_array, d_cooling_weight);
   CudaCheckError();
 
   CudaSafeCall( cudaMemcpy(h_te_array, dev_te_array, SIMB*TPB*sizeof(Real), cudaMemcpyDeviceToHost) );
@@ -74,7 +76,7 @@ Real Cooling_Calc_dt(Real *d_dt_array, Real *h_dt_array, int nx, int ny, int nz)
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real *d_te_arr, Real *d_me_arr, bool *d_mask)
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real *d_te_arr, Real *d_me_arr, Real *d_mask)
 {
   __shared__ Real min_dt[TPB];
   
@@ -204,8 +206,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #endif
 
     atomicAdd(&d_te_arr[blockIdx.x%SIMB * TPB + tid], del_E);
-    if (d_mask[id]) {
-      atomicAdd(&d_me_arr[blockIdx.x%SIMB * TPB + tid], del_E);
+    if (d_mask[id] > 0.0) {
+      atomicAdd(&d_me_arr[blockIdx.x%SIMB * TPB + tid], d_mask[id]*del_E);
     }
     // calculate cooling rate for new T
     cool = CIE_cool(n, T);

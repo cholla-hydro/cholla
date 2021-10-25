@@ -302,6 +302,10 @@ void Grid3D::AllocateMemory(void)
   Load_Cuda_Textures();
   #endif
 
+  #ifdef COOLING_GPU
+  CudaSafeCall( cudaMalloc(&d_cooling_weight, H.n_cells*sizeof(Real)) );  
+  #endif
+
 }
 
 
@@ -820,6 +824,7 @@ void Grid3D::FreeMemory(void)
   #ifdef CLOUDY_COOL
   Free_Cuda_Textures();
   #endif
+  CudaSafeCall( cudaFree(d_cooling_weight) );  
   #endif
 
   #ifdef ANALYSIS
