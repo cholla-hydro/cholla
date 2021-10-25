@@ -21,7 +21,7 @@ __device__ Real CIE_cool(Real n, Real T);
 #ifdef CLOUDY_COOL
 __device__ Real primordial_cool(Real n, Real T);
 #endif
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real *d_te_arr, Real *d_me_arr, bool *d_mask);
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real *d_te_arr, Real *d_me_arr, Real *d_mask);
 
 
 void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real *return_total_energy, Real *return_mask_energy){
@@ -56,7 +56,7 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
   }
   cudaFree(dev_te_array);
   cudaFree(dev_me_array);
-  cudaFree(dev_mask); 
+  // cudaFree(dev_mask); 
 
   *return_total_energy += total_energy;
   *return_mask_energy += mask_energy;
