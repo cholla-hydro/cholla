@@ -19,7 +19,6 @@
 #include "../riemann_solvers/roe_cuda.h"
 #include "../riemann_solvers/hllc_cuda.h"
 #include "../old_cholla/h_correction_2D_cuda.h"
-#include "../cooling/cooling_cuda.h"
 #include "../old_cholla/subgrid_routines_2D.h"
 
 
