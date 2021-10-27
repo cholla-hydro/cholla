@@ -14,7 +14,7 @@ tout=50000.0
 # time interval for output
 outstep=6300.0
 # name of initial conditions
-init=Disk_3D
+init=Constant
 # domain properties
 xmin=-7.5
 ymin=-7.5
@@ -30,10 +30,11 @@ yu_bcnd=3
 zl_bcnd=3
 zu_bcnd=3
 # path to output directory
-outdir=testm82/
+outdir=out/m82/
 
 #################################################
 gamma=1.666666667
-
+rho=1e4
+P=1e-5
 supernova_rcl=0.3
 supernova_e=1

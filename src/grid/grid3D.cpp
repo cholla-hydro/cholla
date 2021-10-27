@@ -639,10 +639,10 @@ Real Grid3D::Update_Grid(void)
   
   // ==Apply Cooling from cooling/cooling_cuda.h==
   #ifdef COOLING_GPU
-  Real cooling_total_energy=0;
-  Real cooling_mask_energy=0;
+  //Real cooling_total_energy=0;
+  //Real cooling_mask_energy=0;
   Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dt_array, &cooling_total_energy, &cooling_mask_energy);
-  chprintf("cooling energy: %9.4f %9.4f \n",cooling_total_energy,cooling_mask_energy);
+  chprintf("cooling energy: %.15e %.15e \n",cooling_total_energy,cooling_mask_energy);
   #endif //COOLING_GPU
 
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==

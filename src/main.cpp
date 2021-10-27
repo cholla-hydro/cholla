@@ -186,18 +186,9 @@ int main(int argc, char *argv[])
     // get the start time
     start_step = get_time();
 
-    /*
-    printf("Supernova Update_Grid Finished\n");
-    fflush(stdout);
-
-    */
     // calculate the timestep
     G.set_dt(dti);
-    /*
-    printf("G.set_dt Finished\n");
-    fflush(stdout);
-    MPI_Barrier(world);
-    */
+
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
 
     #ifdef SUPERNOVA

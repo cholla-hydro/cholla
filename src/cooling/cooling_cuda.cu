@@ -14,6 +14,8 @@ extern texture<float, 2, cudaReadModeElementType> coolTexObj;
 extern texture<float, 2, cudaReadModeElementType> heatTexObj;
 
 Real *d_cooling_weight;
+Real cooling_total_energy=0;                                                                                                        
+Real cooling_mask_energy=0;  
 
 __device__ Real test_cool(int tid, Real n, Real T);
 __device__ Real primordial_cool(Real n, Real T);
@@ -32,15 +34,14 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
 
   Real *dev_te_array;
   Real *dev_me_array;
-  //bool *dev_mask;
+
   Real h_te_array[SIMB*TPB];
   Real h_me_array[SIMB*TPB];
   CudaSafeCall( cudaMalloc (&dev_te_array,SIMB*TPB*sizeof(Real)));
   CudaSafeCall( cudaMalloc (&dev_me_array,SIMB*TPB*sizeof(Real)));
-  // CudaSafeCall( cudaMalloc (&dev_mask,nx*ny*nz*sizeof(bool)));
+
   CudaSafeCall( cudaMemset(dev_te_array, 0, SIMB*TPB*sizeof(Real)));
   CudaSafeCall( cudaMemset(dev_me_array, 0, SIMB*TPB*sizeof(Real)));
-  // CudaSafeCall( cudaMemset(d_cooling_mask, 1, nx*ny*nz*sizeof(bool)));
 
   hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dt_array, dev_te_array, dev_me_array, d_cooling_weight);
   CudaCheckError();
@@ -56,7 +57,6 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
   }
   cudaFree(dev_te_array);
   cudaFree(dev_me_array);
-  // cudaFree(dev_mask); 
 
   *return_total_energy += total_energy;
   *return_mask_energy += mask_energy;

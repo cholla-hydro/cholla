@@ -12,7 +12,8 @@
 #include "../global/global.h"
 
 extern Real *d_cooling_weight;
-
+extern Real cooling_total_energy;
+extern Real cooling_mask_energy;
 /*! \fn void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
