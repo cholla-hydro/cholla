@@ -196,13 +196,14 @@ C_cfl/old_dti;
 void Supernova::Print_Tracker(Grid3D G){
   //h_tracker
   Copy_Tracker();
-  chprintf("Tracker:\t");
+  chprintf("Tracker: ");
+  const char* format = "%.15e ";
+  chprintf(format,G.H.t);
+  chprintf(format,G.H.dt);
   for (int i=0;i<n_tracker;i++){
     Real out = ReduceRealSum(h_tracker[i]);
-    chprintf("%10.5f \t",out);
+    chprintf(format,out);
   }
-  chprintf("%10.5f \t",G.H.t);
-  chprintf("%10.5f \t",G.H.dt);
   chprintf("\n");
 }
 
