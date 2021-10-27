@@ -642,7 +642,14 @@ Real Grid3D::Update_Grid(void)
   //Real cooling_total_energy=0;
   //Real cooling_mask_energy=0;
   Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dt_array, &cooling_total_energy, &cooling_mask_energy);
-  chprintf("cooling energy: %.15e %.15e \n",cooling_total_energy,cooling_mask_energy);
+  #ifdef MPI_CHOLLA
+  Real cooling_te = ReduceRealSum(cooling_total_energy);
+  Real cooling_me = ReduceRealSum(cooling_mask_energy);
+  #else
+  Real cooling_te = cooling_total_energy;
+  Real cooling_me = cooling_mask_energy;
+  #endif //MPI_CHOLLA
+  chprintf("cooling energy: %.15e %.15e \n",cooling_te,cooling_me);
   #endif //COOLING_GPU
 
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
