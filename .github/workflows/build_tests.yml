@@ -2,12 +2,19 @@ name: Cholla Compile
 
 on:
   pull_request:
-    branches: [ CAAR-testing ]
+    branches: [ CAAR ]
   workflow_dispatch:
 
 jobs:
   Build:
-    name: ${{ matrix.gpu-api }}-${{ matrix.make-type }}-build
+    name: >
+      Build
+      API:${{ matrix.gpu-api }}
+      Make-Type:${{ matrix.make-type }}
+      Cuda-toolkit:v${{ matrix.cuda-toolkit-version }}
+      GCC:v${{ matrix.gcc-version }}
+      ROCm-dkms:v${{ matrix.rocm-dkms-version }}
+      Clang:v${{ matrix.clang-version }}
     # if: ${{ false }}  # If uncommented this line will disable this job
 
     # Choose OS/Runner
@@ -27,6 +34,7 @@ jobs:
         # HIP uses the clang-version
         cuda-toolkit-version: ['11.2.2']
         gcc-version: [10]
+        rocm-dkms-version: [4.3.1]
         clang-version: [latest]
         # exclude:
         #   - gpu-api: HIP
@@ -81,12 +89,12 @@ jobs:
       uses: egor-tensin/setup-clang@v1
       with:
         version: ${{ matrix.clang-version }}
-    - name: Install HIP-Clang
+    - name: Install HIP, ROCm, and HIPFFT
       if: matrix.gpu-api == 'HIP'
       run: |
         sudo apt install wget gnupg2
         wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | sudo apt-key add -
-        echo 'deb [arch=amd64] https://repo.radeon.com/rocm/apt/debian/ ubuntu main' | sudo tee /etc/apt/sources.list.d/rocm.list
+        echo 'deb [arch=amd64] https://repo.radeon.com/rocm/apt/${{ matrix.rocm-dkms-version }}/ ubuntu main' | sudo tee /etc/apt/sources.list.d/rocm.list
         sudo apt update
 
         sudo apt install mesa-common-dev
@@ -122,7 +130,7 @@ jobs:
     # Perform Build
     - name: Cholla setup
       run: |
-        source builds/scripts/run-tests.sh
+        source builds/scripts/run_tests.sh
         setupTests -c gcc
         echo "CHOLLA_ROOT           = ${CHOLLA_ROOT}"
         echo "CHOLLA_LAUNCH_COMMAND = ${CHOLLA_LAUNCH_COMMAND}"
@@ -133,14 +141,14 @@ jobs:
         echo "CHOLLA_ENVSET=${CHOLLA_ENVSET}                  >> $GITHUB_ENV
     - name: Build GoogleTest
       run: |
-        source builds/scripts/run-tests.sh
+        source builds/scripts/run_tests.sh
         buildGoogleTest
         echo "GOOGLETEST_ROOT=${GOOGLETEST_ROOT}" >> $GITHUB_ENV
     - name: Build Cholla
       run: |
-        source builds/scripts/run-tests.sh
+        source builds/scripts/run_tests.sh
         buildCholla
     - name: Build Tests
       run: |
-        source builds/scripts/run-tests.sh
+        source builds/scripts/run_tests.sh
         buildChollaTests

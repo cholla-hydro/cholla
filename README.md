@@ -1,4 +1,4 @@
-![Compile](https://github.com/bcaddy/cholla/actions/workflows/build_tests.yml/badge.svg)
+![Compile](https://github.com/cholla-hydro/cholla/actions/workflows/build_tests.yml/badge.svg)
 
 CHOLLA
 ============
