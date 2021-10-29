@@ -9,6 +9,7 @@
 #endif
 #include "../global/global.h"
 #include "../grid/grid3D.h"
+#include "../hydro/hydro_cuda.h" // provides Calc_dt_GPU
 #include "../cpu/CTU_1D.h"
 #include "../cpu/CTU_2D.h"
 #include "../cpu/CTU_3D.h"
@@ -39,6 +40,9 @@
 #include "../utils/parallel_omp.h"
 #endif
 
+#ifdef COOLING_GPU
+#include "../cooling/cooling_cuda.h" // provides Cooling_Update
+#endif
 
 
 /*! \fn Grid3D(void)
@@ -568,10 +572,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifdef CTU
-    max_dti = CTU_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    CTU_Algorithm_1D_CUDA(g0, g1, C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_1D_CUDA(g0, g1, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    VL_Algorithm_1D_CUDA(g0, g1, C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
     #endif //VL
     #endif //CUDA
   }
@@ -589,10 +593,10 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifdef CTU
-    max_dti = CTU_Algorithm_2D_CUDA(g0, g1, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
+    CTU_Algorithm_2D_CUDA(g0, g1, C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_2D_CUDA(g0, g1, C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
+    VL_Algorithm_2D_CUDA(g0, g1, C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //VL
     #endif //CUDA
   }
@@ -610,13 +614,13 @@ Real Grid3D::Update_Grid(void)
 
     #ifdef CUDA
     #ifdef CTU
-    max_dti = CTU_Algorithm_3D_CUDA(g0, g1, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    CTU_Algorithm_3D_CUDA(g0, g1, C.device, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //not_VL
     #ifdef VL
-    max_dti = VL_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    VL_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //VL
     #ifdef SIMPLE
-    max_dti = Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif//SIMPLE
     #endif
   }
@@ -625,6 +629,32 @@ Real Grid3D::Update_Grid(void)
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(-1);
   }
+
+  
+  #ifdef CUDA
+  
+  // ==Apply Cooling from cooling/cooling_cuda.h==
+  #ifdef COOLING_GPU
+  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dt_array);
+  #endif //COOLING_GPU
+
+  // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
+  max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
+
+  // ==Copy the updated conserved variable array to CPU==
+  #ifndef HYDRO_GPU
+  CudaSafeCall( cudaMemcpy(g1, C.device, H.n_fields*H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
+  #endif
+  
+  #ifdef COOLING_GPU
+  // ==Calculate cooling dt from cooling/cooling_cuda.h==
+  // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in integrators 
+  Real cooling_max_dti = Cooling_Calc_dt(dev_dt_array, host_dt_array, H.nx, H.ny, H.nz);
+  max_dti = fmax(max_dti,cooling_max_dti);
+  
+  #endif // COOLING_GPU
+  #endif // CUDA
+  
   // at this point g0 has the old data, g1 has the new data
   // point the grid variables at the new data
   C.density  = &g1[0];

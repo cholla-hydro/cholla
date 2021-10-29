@@ -1,5 +1,5 @@
-/*! \file CTU_3D_cuda.cu
- *  \brief Definitions of the cuda 3D CTU algorithm functions. */
+/*! \file error_check_cuda.cu
+ *  \brief Error Check Cuda */
 
 #ifdef CUDA
 

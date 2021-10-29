@@ -584,6 +584,46 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
 
 }
 
+Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow){
+
+  // Assumes dev_conserved, dev_dti_array, and host_dti_array are already allocated
+  // global dev_dti_array is from global_cuda.h
+  // global host_dti_array is from global_cuda.h
+  // global TPB is from global_cuda.h
+  
+  int num_blocks = (nx*ny*nz + TPB - 1) / TPB;
+  // set values for GPU kernels
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(num_blocks, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB, 1, 1);
+  // compute dt and store in dev_dti_array
+
+  if (nx > 1 && ny == 1 && nz == 1) //1D
+  {
+    hipLaunchKernelGGL(Calc_dt_1D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, n_ghost, dx, dev_dti_array, gamma);
+  }
+  else if (nx > 1 && ny > 1 && nz == 1) //2D
+  {
+    hipLaunchKernelGGL(Calc_dt_2D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, n_ghost, dx, dy, dev_dti_array, gamma);
+  }
+  else if (nx > 1 && ny > 1 && nz > 1) //3D
+  {
+    hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, dx, dy, dz, dev_dti_array, gamma, max_dti_slow);
+  }
+  CudaCheckError();
+
+  // copy dev_dti_array to host_dti_array
+  CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, num_blocks*sizeof(Real), cudaMemcpyDeviceToHost) );
+
+  Real max_dti = 0.0;
+  for (int i=0; i<num_blocks; i++) {
+    max_dti = fmax(max_dti, host_dti_array[i]);
+  }
+  return max_dti;
+  
+}
+
 #ifdef DE
 __global__ void Partial_Update_Advected_Internal_Energy_1D( Real *dev_conserved, Real *Q_Lx, Real *Q_Rx, int nx, int n_ghost, Real dx, Real dt, Real gamma, int n_fields ){
 

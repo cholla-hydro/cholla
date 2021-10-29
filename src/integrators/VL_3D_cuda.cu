@@ -21,7 +21,6 @@
 #include "../riemann_solvers/roe_cuda.h"
 #include "../riemann_solvers/hllc_cuda.h"
 #include "../old_cholla/h_correction_3D_cuda.h"
-#include "../cooling/cooling_cuda.h"
 #include "../old_cholla/subgrid_routines_3D.h"
 #include "../io/io.h"
 #include "../riemann_solvers/hll_cuda.h"
@@ -30,7 +29,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
 
 
 
-Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
+void VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
     int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound,
     Real ybound, Real zbound, Real dt, int n_fields, Real density_floor,
@@ -41,13 +40,6 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
   //concatenated into a 1-d array
   //host_conserved0 contains the values at time n,
   //host_conserved1 will contain the values at time n+1
-
-  // Initialize dt values
-  Real max_dti = 0;
-  #ifdef COOLING_GPU
-  Real min_dt = 1e10;
-  #endif
-
 
   if ( !block_size ) {
     // calculate the dimensions for the subgrid blocks
@@ -263,43 +255,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     hipLaunchKernelGGL(Apply_Temperature_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, U_floor );
     CudaCheckError();
     #endif //TEMPERATURE_FLOOR
-
-    // Apply cooling
-    #ifdef COOLING_GPU
-    hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
-    CudaCheckError();
-    #endif
-
-    // Step 7: Calculate the next time step
-    hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama, max_dti_slow );
-    CudaCheckError();
-
-    // copy the updated conserved variable array back to the CPU
-    #ifndef HYDRO_GPU
-    CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
-    #endif
-
-    // copy the updated conserved variable array from the buffer into the host_conserved array on the CPU
-    host_return_block_3D(nx, ny, nz, nx_s, ny_s, nz_s, n_ghost, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, BLOCK_VOL, host_conserved1, buffer, n_fields);
-
-    // copy the dti array onto the CPU
-    CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-    // find maximum inverse timestep from CFL condition
-    for (int i=0; i<ngrid; i++) {
-      max_dti = fmax(max_dti, host_dti_array[i]);
-    }
-    #ifdef COOLING_GPU
-    // copy the dt array from cooling onto the CPU
-    CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-    // find maximum inverse timestep from cooling time
-    for (int i=0; i<ngrid; i++) {
-      min_dt = fmin(min_dt, host_dt_array[i]);
-    }
-    if (min_dt < C_cfl/max_dti) {
-      max_dti = C_cfl/min_dt;
-    }
-    #endif
-
+    
     // add one to the counter
     block++;
 
@@ -313,7 +269,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
 
 
   // return the maximum inverse timestep
-  return max_dti;
+  return;
 
 }
 
