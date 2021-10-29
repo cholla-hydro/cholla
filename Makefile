@@ -32,7 +32,7 @@ BUILD             ?= OPTIMIZE
 
 CFLAGS             = $(CFLAGS_$(BUILD))
 CXXFLAGS           = $(CXXFLAGS_$(BUILD))
-GPUFLAGS	   = $(GPUFLAGS_$(BUILD))
+GPUFLAGS	   += $(GPUFLAGS_$(BUILD))
 
 #-- Add flags and libraries as needed
 
@@ -99,7 +99,7 @@ ifdef HIPCONFIG
   DFLAGS    += -DO_HIP
   CXXFLAGS  += $(HIPCONFIG)
   GPUCXX    ?= hipcc
-  GPUFLAGS  += -Wall --amdgpu-target=gfx906,gfx908 -ferror-limit=1
+  GPUFLAGS  += -std=c++11 -Wall -ferror-limit=1
   LD        := $(CXX)
   LDFLAGS   := $(CXXFLAGS)
   LIBS      += -L$(ROCM_PATH)/lib -lamdhip64 -lhsa-runtime64
