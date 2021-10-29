@@ -1,0 +1,37 @@
+#
+# Parameter File for the 2D Noh problem described in Liska, 2003.
+#
+
+######################################
+# number of grid cells in the x dimension
+nx=200
+# number of grid cells in the y dimension
+ny=200
+# number of grid cells in the z dimension
+nz=1
+# output time
+tout=2.0
+# how often to output
+outstep=0.01
+# value of gamma
+gamma=1.66666667
+# name of initial conditions
+init=Noh_2D
+# domain properties
+xmin=0.0
+ymin=0.0
+zmin=0.0
+xlen=1.0
+ylen=1.0
+zlen=1.0
+# type of boundary conditions
+xl_bcnd=2
+xu_bcnd=4
+yl_bcnd=2
+yu_bcnd=4
+custom_bcnd=noh
+# path to output directory
+outdir=./
+
+
+

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #-- This script needs to be source-d in the terminal, e.g.
-#   source ./setup.summit.xl.sh 
+#   source ./setup.summit.xl.sh
 
 module load cray-python
 module load rocm
@@ -17,3 +17,5 @@ export MPI_GPU="-DMPI_GPU"
 export F_OFFLOAD="-fopenmp"
 
 export CHOLLA_ENVSET=1
+
+

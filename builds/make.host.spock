@@ -1,4 +1,4 @@
-#-- make.inc for Spock EAS at the OLCF with 
+#-- make.inc for Spock EAS at the OLCF with
 
 #-- Compiler and flags for different build type
 CC                = cc
@@ -12,13 +12,14 @@ HIPCONFIG	  = $(shell hipconfig -C)
 
 OMP_NUM_THREADS   = 8
 #-- How to launch job
-JOB_LAUNCH        = srun -u -A STF016 -n 1 -c 8 
+JOB_LAUNCH        = srun -u -A STF016 -n 1 -c 8
 
 #-- Library
 #HDF5_ROOT    = ${HDF5_ROOT}
-MPI_ROOT     = ${CRAY_MPICH_DIR}
-FFTW_ROOT    = $(shell dirname $(FFTW_DIR))
-GRACKLE_ROOT = #/ccs/proj/ast149/code/grackle
+MPI_ROOT        = ${CRAY_MPICH_DIR}
+FFTW_ROOT       = $(shell dirname $(FFTW_DIR))
+GRACKLE_ROOT    = #/ccs/proj/ast149/code/grackle
+GOOGLETEST_ROOT := $(if $(GOOGLETEST_ROOT),$(GOOGLETEST_ROOT),$(OLCF_GOOGLETEST_ROOT))
 
 #-- MPI calls accept GPU buffers (requires GPU-aware MPI)
 MPI_GPU = -DMPI_GPU
