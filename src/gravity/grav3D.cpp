@@ -100,17 +100,10 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
   chprintf("  N OMP Threads per MPI process: %d\n", N_OMP_THREADS);
   #endif
 
-#ifdef PARIS
-  const bool periodic = (P->xlg_bcnd != 3);
-#ifdef PARIS_TEST
   Poisson_solver.Initialize( Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz );
-  Poisson_solver_test.Initialize( Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz, periodic );
-#else
-  Poisson_solver.Initialize( Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz, periodic );
-#endif
-#else
-  Poisson_solver.Initialize( Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz );
-#endif
+  #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
+  Poisson_solver_test.Initialize( Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz );
+  #endif
 }
 
 void Grav3D::AllocateMemory_CPU(void)
@@ -173,7 +166,7 @@ void Grav3D::FreeMemory_CPU(void)
   #endif
 
   Poisson_solver.Reset();
-  #ifdef PARIS_TEST
+  #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
   Poisson_solver_test.Reset();
   #endif
 }

@@ -20,6 +20,10 @@
 #include "../gravity/potential_paris_3D.h"
 #endif
 
+#ifdef PARIS_GALACTIC
+#include "../gravity/potential_paris_galactic.h"
+#endif
+
 #ifdef HDF5
 #include <hdf5.h>
 #endif
@@ -115,7 +119,7 @@ class Grav3D
   #endif
 
   #ifdef PARIS
-  #if (defined(PFFT) || defined(CUFFT) || defined(SOR))
+  #if (defined(PFFT) || defined(CUFFT))
   #define PARIS_TEST
   Potential_Paris_3D Poisson_solver_test;
   #else
@@ -123,6 +127,14 @@ class Grav3D
   #endif
   #endif
 
+  #ifdef PARIS_GALACTIC
+  #ifdef SOR
+  #define PARIS_GALACTIC_TEST
+  Potential_Paris_Galactic Poisson_solver_test;
+  #else
+  Potential_Paris_Galactic Poisson_solver;
+  #endif
+  #endif
 
   struct Fields
   {

@@ -17,7 +17,7 @@ case $FQDN in
   *crc.*)
     echo "crc"
     exit 0;;
-  *spock* )
+  *spock* | birch*)
     echo "spock"
     exit 0 ;;
   *)

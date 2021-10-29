@@ -7,8 +7,7 @@ CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 ${F_OFFLOAD}
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 ${F_OFFLOAD}
-GPUFLAGS          = -std=c++11
-GPUFLAGS_DEBUG    = -g -O0 -std=c++11
+GPUFLAGS          = --offload-arch=gfx908
 HIPCONFIG	  = $(shell hipconfig -C)
 
 OMP_NUM_THREADS   = 8
