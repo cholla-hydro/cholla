@@ -20,7 +20,7 @@ gamma=1.66666667
 init=Disk_3D_particles
 bc_potential_type=1
 #init=Disk_3D
-nfull=100
+#nfull=100
 # domain properties
 xmin=-15
 ymin=-15
