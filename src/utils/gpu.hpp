@@ -80,7 +80,7 @@ static void __attribute__((unused)) check(const hipError_t err, const char *cons
 
 #include <cuda_runtime.h>
 
-#if defined(CUFFT) || defined(PARIS)
+#if defined(CUFFT) || defined(PARIS) || defined(PARIS_GALACTIC)
 
 #include <cufft.h>
 

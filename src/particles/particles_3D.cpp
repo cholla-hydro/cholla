@@ -18,7 +18,10 @@
 #include "../utils/parallel_omp.h"
 #endif
 
-Particles_3D::Particles_3D( void ){}
+Particles_3D::Particles_3D( void ):
+  TRANSFER_DENSITY_BOUNDARIES(false),
+  TRANSFER_PARTICLES_BOUNDARIES(false)
+{}
 
 void Grid3D::Initialize_Particles( struct parameters *P ){
 
