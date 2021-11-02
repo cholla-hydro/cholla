@@ -472,7 +472,9 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
 				  n_cells, n_fields,
 				  R_cl, a_density, a_energy, gidx);
   #ifdef COOLING_GPU
-  d_cooling_weight[gidx] = weight;
+  if (weight > 0.5) {
+    d_cooling_weight[gidx] = 1.0;
+  }
   #endif
   if (weight > 0.0 && dt > 0.0){
     Real dti = Calc_Timestep(hydro_dev, gidx, n_cells, gamma, dx, dy, dz);
