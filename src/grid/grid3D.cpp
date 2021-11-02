@@ -664,8 +664,8 @@ Real Grid3D::Update_Grid(void)
   #ifdef COOLING_GPU
   // ==Calculate cooling dt from cooling/cooling_cuda.h==
   // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in integrators 
-  Real cooling_max_dti = Cooling_Calc_dt(dev_dt_array, host_dt_array, H.nx, H.ny, H.nz);
-  max_dti = fmax(max_dti,cooling_max_dti);
+  // Real cooling_max_dti = Cooling_Calc_dt(dev_dt_array, host_dt_array, H.nx, H.ny, H.nz);
+  // max_dti = fmax(max_dti,cooling_max_dti);
   
   #endif // COOLING_GPU
   #endif // CUDA

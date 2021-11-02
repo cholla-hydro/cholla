@@ -530,6 +530,8 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
   // Reset weights to 0
   #ifdef COOLING_GPU
   CudaSafeCall(cudaMemset(d_cooling_weight, 0, n_cells*sizeof(Real)));
+  #else
+  Real* d_cooling_weight;
   #endif
   
   // double start_time = get_time();
