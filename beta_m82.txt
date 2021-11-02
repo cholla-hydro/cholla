@@ -4,24 +4,24 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=512
+nx=256
 # number of grid cells in the y dimension
-ny=512
+ny=256
 # number of grid cells in the z dimension
-nz=1024
+nz=256
 # final output time
-tout=40000.0
+tout=50000.0
 # time interval for output
-outstep=1000.0
+outstep=6300.0
 # name of initial conditions
-init=Disk_3D
+init=Constant
 # domain properties
-xmin=-5
-ymin=-5
-zmin=-5
-xlen=10
-ylen=10
-zlen=20
+xmin=-7.5
+ymin=-7.5
+zmin=-7.5
+xlen=15.0
+ylen=15.0
+zlen=15.0
 # type of boundary conditions
 xl_bcnd=3
 xu_bcnd=3
@@ -30,10 +30,14 @@ yu_bcnd=3
 zl_bcnd=3
 zu_bcnd=3
 # path to output directory
-outdir=out/512/
+outdir=out/m82/
 
 #################################################
-
-# supernova params 
-supernova_rcl=0.03
+gamma=1.666666667
+rho=1e4
+P=1e-5
+vx=0
+vy=0
+vz=0
+supernova_rcl=0.3
 supernova_e=1

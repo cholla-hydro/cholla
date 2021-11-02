@@ -2,7 +2,7 @@
 
 #-- separated output flag so that it can be overriden in target-specific 
 #   for make check
-OUTPUT    ?=  -DOUTPUT -DHDF5
+OUTPUT    ?=  -DOUTPUT -DHDF5 -DSLICES -DPROJECTION
 
 MPI_GPU   ?=
 
