@@ -76,7 +76,7 @@ public:
      * \param index The MPI rank of the file you want to return. Defaults to 0
      * \return H5::H5File
      */
-    H5::H5File getTestFile(size_t const &i = 0){return _testFileVec[i];};
+    H5::H5File getTestFile(size_t const &i = 0){return _testHydroFieldsFileVec[i];};
 
     /*!
      * \brief Get the vector of datasets that will be tested
@@ -122,39 +122,42 @@ public:
      * \brief Set or add a fiducial dataset
      *
      * \param[in] fieldName The name of the field to be added
-     * \param[in] dataArr The std::shared_ptr for the data array to be added as
+     * \param[in] dataArr The std::vector for the data vector to be added as
      * a data set
-     * \param[in] sizeOfArray The number of elements in `dataArr`
-     * \param[in] numTimeSteps (optional) Set the `_numFiducialTimeSteps` member variable
      */
     void setFiducialData(std::string const &fieldName,
-                         std::shared_ptr<double[]> const &dataArr,
-                         size_t const &sizeOfArr,
-                         int const &numTimeSteps=-1);
+                         std::vector<double> const &dataVec);
 
     /*!
-     * \brief Generate an array of the specified size populated by the specified
-     * value. Return a std::shared_ptr to that array.
+     * \brief Set the Fiducial Num Time Steps object
      *
-     * \param[in] value The value to populate the array with
-     * \param[in] nx (optional) The size of the array in the x-direction.
-     * Defaults to 1
-     * \param[in] ny (optional) The size of the array in the y-direction.
-     * Defaults to 1
-     * \param[in] nz (optional) The size of the array in the z-direction.
-     * Defaults to 1
-     * \return std::shared_ptr<double[]> A std::shared_ptr pointing at a
-     * 1-dimensional array of the required size
+     * \param numTimeSteps The number of time steps in the fiducial data
      */
-    std::shared_ptr<double[]> generateConstantArray(double const &value,
-                                                    size_t const &nx=1,
-                                                    size_t const &ny=1,
-                                                    size_t const &nz=1);
+    void setFiducialNumTimeSteps(int const &numTimeSteps)
+        {_numFiducialTimeSteps = numTimeSteps;};
 
     /*!
-     * \brief Generate an array of the specified size populated by a sine wave.
-     * Return a std::shared_ptr to that array. The equation used to generate the
-     * wave is:
+     * \brief Generate an vector of the specified size populated by the specified
+     * value.
+     *
+     * \param[in] value The value to populate the vector with
+     * \param[in] nx (optional) The size of the field in the x-direction.
+     * Defaults to 1
+     * \param[in] ny (optional) The size of the field in the y-direction.
+     * Defaults to 1
+     * \param[in] nz (optional) The size of the field in the z-direction.
+     * Defaults to 1
+     * \return std::vector<double> A 1-dimensional std::vector of the required
+     * size containing the data.
+     */
+    std::vector<double> generateConstantData(double const &value,
+                                             size_t const &nx=1,
+                                             size_t const &ny=1,
+                                             size_t const &nz=1);
+
+    /*!
+     * \brief Generate a std::vector of the specified size populated by a sine
+     * wave. The equation used to generate the wave is:
      *
      * wave = offset + amplitude * sin(kx*xIndex + ky*yIndex + kz*zIndex + phase)
      *
@@ -164,23 +167,24 @@ public:
      * \param[in] ky The y component of the wave vector in pixel units
      * \param[in] kz The z component of the wave vector in pixel units
      * \param[in] phase Phase of the sine wave
-     * \param[in] nx (optional) The size of the array in the x-direction.
+     * \param[in] nx (optional) The size of the field in the x-direction.
      * Defaults to 1
-     * \param[in] ny (optional) The size of the array in the y-direction.
+     * \param[in] ny (optional) The size of the field in the y-direction.
      * Defaults to 1
-     * \param[in] nz (optional) The size of the array in the z-direction.
+     * \param[in] nz (optional) The size of the field in the z-direction.
      * Defaults to 1
-     * \return std::shared_ptr<double[]>
+     * \return std::vector<double> A 1-dimensional std::vector of the required
+     * size containing the data.
      */
-    std::shared_ptr<double[]> generateSineArray(double const &offset,
-                                                double const &amplitude,
-                                                double const &kx,
-                                                double const &ky,
-                                                double const &kz,
-                                                double const &phase,
-                                                size_t const &nx=1,
-                                                size_t const &ny=1,
-                                                size_t const &nz=1);
+    std::vector<double> generateSineData(double const &offset,
+                                         double const &amplitude,
+                                         double const &kx,
+                                         double const &ky,
+                                         double const &kz,
+                                         double const &phase,
+                                         size_t const &nx=1,
+                                         size_t const &ny=1,
+                                         size_t const &nz=1);
 
     // Constructor and Destructor
     /*!
@@ -194,15 +198,19 @@ public:
      * convention. If false then the user MUST provide all the required settings
      * with the SystemTestRunner::setChollaLaunchParams method
      */
-    SystemTestRunner(bool const &useFiducialFile=true,
+    SystemTestRunner(bool const &particleData=false,
+                     bool const &hydroData=true,
+                     bool const &useFiducialFile=true,
                      bool const &useSettingsFile=true);
     ~SystemTestRunner();
 
 private:
     /// The fiducial dat file
     H5::H5File _fiducialFile;
-    /// The test data file
-    std::vector<H5::H5File> _testFileVec;
+    /// The test hydro field data files
+    std::vector<H5::H5File> _testHydroFieldsFileVec;
+    /// The test particle data files
+    std::vector<H5::H5File> _testParticlesFileVec;
 
     /// The path to the Cholla executable
     std::string _chollaPath;
@@ -229,16 +237,35 @@ private:
     /// The number of fiducial time steps
     int _numFiducialTimeSteps;
     /// Map of fiducial data sets if we're not using a fiducial file
-    std::unordered_map<std::string, std::shared_ptr<double[]>> _fiducialDataSets;
-    /// Map of the sizes of the fiducial data sets
-    std::unordered_map<std::string, size_t> _fiducialArrSize;
+    std::unordered_map<std::string, std::vector<double>> _fiducialDataSets;
+
+    /// The test particle IDs
+    std::vector<double> _testParticleIDs;
+    /// The total number of particles in the test dataset
+    size_t _testTotalNumParticles=0;
+    /// The fiducial particle IDs
+    std::vector<double> _fiducialParticleIDs;
+    /// The total number of particles in the fiducial dataset
+    size_t _fiducialTotalNumParticles=0;
 
     /// Flag to indicate if a fiducial HDF5 data file is being used or a
     /// programmatically generated H5File object. `true` = use a file, `false` =
     /// use generated H5File object
-    bool _fiducialFileExists=false;
+    bool _fiducialFileExists = false;
     /// Flag to choose whether or not to compare the number of time steps
-    bool _compareNumTimeSteps=true;
+    bool _compareNumTimeSteps = true;
+
+    /// Flag to indicate whether or not there is hydro field data
+    /// If true then hydro data files are searched for and will be compared to
+    /// fiducial values. If false then it is assumed that the test produces no
+    /// hydro field data
+    bool _hydroDataExists = true;
+    /// Flag to indicate whether or not there is particle data
+    /// If true then particle data files are searched for and will be compared
+    /// to fiducial values. If false then it is assumed that the test produces
+    /// no particle data
+    bool _particleDataExists = false;
+
 
     /*!
     * \brief Move a file. Throws an exception if the file does not exist.
@@ -267,28 +294,46 @@ private:
     void _checkNumTimeSteps();
 
     /*!
-     * \brief Load the test data from the HDF5 file(s). If there is more than
-     * one HDF5 file then it concatenates the contents into a single array
+     * \brief Load the test data for physical fields from the HDF5 file(s). If
+     * there is more than one HDF5 file then it concatenates the contents into a
+     * single vector. Particle data is handeled with _loadTestParticleData
      *
      * \param[in] dataSetName The name of the dataset to get
-     * \param[out] length The total number of elements in the data set
-     * \param[out] testDims An array with the length of each dimension in it
-     * \return std::shared_ptr<double[]> A smart pointer pointing to the array
+     * \param[out] testDims An vector with the length of each dimension in it
+     * \return std::vector<double> A vector containing the data
      */
-    std::shared_ptr<double[]> _getTestArray(std::string const &dataSetName,
-                                            size_t &length,
-                                            std::vector<size_t> &testDims);
+    std::vector<double> _loadTestFieldData(std::string dataSetName,
+                                           std::vector<size_t> &testDims);
 
     /*!
-     * \brief Load the fiducial data from an HDF5 file or return user set data
-     * array
+     * \brief Load the test data for particles from the HDF5 file(s). If
+     * there is more than one HDF5 file then it concatenates the contents into a
+     * single vector. Field data is handeled with _loadTestFieldData
      *
      * \param[in] dataSetName The name of the dataset to get
-     * \param[out] length The total number of elements in the data set
-     * \return std::shared_ptr<double[]> A smart pointer pointing to the array
+     * \return std::vector<double> A vector containing the data
      */
-    std::shared_ptr<double[]> _getFiducialArray(std::string const &dataSetName,
-                                                size_t &length);
+    std::vector<double> _loadTestParticleData(std::string const &dataSetName);
+
+    /*!
+     * \brief Load the test data for physical fields from the HDF5 file or
+     * returns the user set vector.
+     * Particle data is handeled with _loadFiducialParticleData.
+     *
+     * \param[in] dataSetName The name of the dataset to get
+     * \return std::vector<double> A vector with the contents of the data set
+     */
+    std::vector<double> _loadFiducialFieldData(std::string const &dataSetName);
+
+    /*!
+     * \brief Load the fiducial data for particles from the HDF5 file or return
+     * the user set vector. Field data is handeled with _loadFiducialFieldData
+     *
+     * \param[in] dataSetName The name of the dataset to get
+     * \return std::vector<double> A vector containing the data
+     */
+    std::vector<double> _loadFiducialParticleData(std::string const &dataSetName);
+
 
     /*!
      * \brief Return a vector of all the dataset names in the given HDF5 file

@@ -269,6 +269,10 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->P_r = atof(value);
   else if (strcmp(name, "diaph")==0)
     parms->diaph = atof(value);
+#ifdef PARTICLES
+  else if (strcmp(name, "prng_seed")==0)
+    parms->prng_seed = atoi(value);
+#endif // PARTICLES
 #ifdef ROTATED_PROJECTION
   else if (strcmp(name, "nxr")==0)
     parms->nxr = atoi(value);
