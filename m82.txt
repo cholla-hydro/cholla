@@ -32,8 +32,10 @@ zu_bcnd=3
 # path to output directory
 outdir=out/512/
 
-#################################################
-
 # supernova params 
 supernova_rcl=0.03
 supernova_e=1
+gamma=1.666666667
+
+#################################################
+
