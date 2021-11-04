@@ -556,7 +556,7 @@ Real Grid3D::Update_Grid(void)
   Real max_dti_slow;
   #ifdef AVERAGE_SLOW_CELLS
   //max_dti_slow = 1 / H.min_dt_slow;
-  max_dti_slow = 1 / H.dx;
+  max_dti_slow = 0.1 / H.dx;
   #else // NOT AVERAGE_SLOW_CELLS
   max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
   #endif //max_dti_slow
