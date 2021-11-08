@@ -33,7 +33,7 @@ jobs:
         # CUDA uses the cuda-toolkit-version and gcc-version
         # HIP uses the clang-version
         cuda-toolkit-version: ['11.2.2']
-        gcc-version: [10]
+        gcc-version: [9]
         rocm-dkms-version: [4.3.1]
         clang-version: [latest]
         # exclude:
