@@ -587,7 +587,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Real vx, vy, vz, vel, ac;
   Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
   #ifdef PARTICLE_IDS
-  Real id;
+  part_int_t id;
   #endif
   particle_mass = 1e4;  //solar masses
   //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
