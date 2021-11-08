@@ -68,7 +68,6 @@ disk.*
 .DS_Store
 
 .remote-sync.json
-.remote-sync_macos.json
 ._*
 .Spotlight-V100
 .Trashes
