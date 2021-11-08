@@ -788,6 +788,27 @@ Real ReducePartIntSum(part_int_t x)
   y = (part_int_t) out ;
   return y;
 }
+
+
+// Count the particles in the MPI ranks lower that this rank (procID) to get a global offset for the local IDs.
+part_int_t Get_Particles_IDs_Global_MPI_Offset( part_int_t n_local ){
+  part_int_t global_offset;
+  part_int_t *n_local_all, *n_local_send;
+  n_local_send = (part_int_t *) malloc( 1*sizeof(part_int_t) );
+  n_local_all  = (part_int_t *) malloc( nproc*sizeof(part_int_t) );
+  n_local_send[0] = n_local;
+
+  MPI_Allgather( n_local_send, 1, MPI_PART_INT, n_local_all, 1, MPI_PART_INT, world );
+  global_offset = 0;
+  for (int other_rank=0; other_rank<nproc; other_rank++ ){
+    if ( other_rank < procID ) global_offset += n_local_all[other_rank];
+  }
+  // printf("global_offset = %ld \n", global_offset );
+  free(n_local_send);
+  free(n_local_all);
+  return global_offset;
+}
+
 #endif
 
 
