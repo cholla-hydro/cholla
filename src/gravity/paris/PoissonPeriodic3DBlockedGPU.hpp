@@ -1,7 +1,7 @@
 #pragma once
 
 #include <mpi.h>
-#include "gpu.hpp"
+#include "../../utils/gpu.hpp"
 
 class PoissonPeriodic3DBlockedGPU {
   public:

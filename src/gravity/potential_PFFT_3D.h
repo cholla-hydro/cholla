@@ -4,7 +4,7 @@
 #ifndef POTENTIAL_PFFT_3D_H
 #define POTENTIAL_PFFT_3D_H
 
-#include "../global.h"
+#include "../global/global.h"
 #include <stdlib.h>
 #include <cmath>
 #include <time.h>
@@ -15,9 +15,9 @@
 
 
 class Potential_PFFT_3D{
-  
+
   public:
-  
+
   Real Lbox_x;
   Real Lbox_y;
   Real Lbox_z;
@@ -58,7 +58,7 @@ class Potential_PFFT_3D{
   Real xMin;
   Real yMin;
   Real zMin;
-  
+
   Real *input_density;
   Real *output_potential;
 
@@ -77,10 +77,10 @@ class Potential_PFFT_3D{
   Potential_PFFT_3D( void );
 
   void Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx, Real dy, Real dz );
-  
+
   void AllocateMemory_CPU( void );
   void Reset( void );
-  
+
   void Copy_Input( Real *input_density, Real Grav_Constant, Real dens_avrg, Real current_a );
   void Copy_Output( Real *output_potential );
   void Get_K_for_Green_function( void );
@@ -88,7 +88,7 @@ class Potential_PFFT_3D{
   void Apply_K2_Funtion( void );
   void Get_Index_Global(int i, int j, int k, int *i_global, int *j_global, int *k_global);
   Real Get_Potential( Real *input_density,  Real *output_potential, Real Grav_Constant, Real dens_avrg, Real current_a );
-  
+
 
 
 };
