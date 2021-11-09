@@ -179,6 +179,9 @@ Real ReduceRealAvg(Real x);
 /* MPI reduction wrapper for sum(part_int)*/
 Real ReducePartIntSum(part_int_t x);
 
+// Count the particles in the MPI ranks lower that this rank to get a global offset for the local IDs.
+part_int_t Get_Particles_IDs_Global_MPI_Offset( part_int_t n_local );
+
 // Function that checks if the buffer size For the particles transfer is large enough,
 // and grows the buffer if needed.
 void Check_and_Grow_Particles_Buffer( Real **part_buffer, int *current_size_ptr, int new_size );
