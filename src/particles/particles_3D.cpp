@@ -511,6 +511,21 @@ void Particles_3D::Initialize_Sphere( void ){
   #ifdef PARTICLES_CPU
   n_local = pos_x.size();
   #endif //PARTICLES_CPU
+  
+  #if defined(PARTICLE_IDS) && defined(MPI_CHOLLA)
+  // Get global IDs: Offset the local IDs to get unique global IDs across the MPI ranks
+  chprintf( " Computing Global Particles IDs offset \n" );
+  part_int_t global_id_offset;
+  global_id_offset = Get_Particles_IDs_Global_MPI_Offset( n_local );
+  #ifdef PARTICLES_CPU
+  for ( int p_indx=0; p_indx<n_local; p_indx++ ){
+    partIDs[p_indx] += global_id_offset;
+  }
+  #endif//PARTICLES_CPU   
+  #ifdef PARTICLES_GPU
+  //Particles IDs not implemented for PARTICLES_GPU yet
+  #endif//PARTICLES_GPU
+  #endif//PARTICLE_IDS and MPI_CHOLLA
 
   #ifdef PARTICLES_GPU
   //Copyt the particle data from tepmpotal Host buffer to GPU memory
@@ -572,7 +587,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Real vx, vy, vz, vel, ac;
   Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
   #ifdef PARTICLE_IDS
-  Real id;
+  part_int_t id;
   #endif
   particle_mass = 1e4;  //solar masses
   //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
@@ -636,6 +651,21 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   #ifdef PARTICLES_CPU
   n_local = pos_x.size();
   #endif
+  
+  #if defined(PARTICLE_IDS) && defined(MPI_CHOLLA)
+  // Get global IDs: Offset the local IDs to get unique global IDs across the MPI ranks
+  chprintf( " Computing Global Particles IDs offset \n" );
+  part_int_t global_id_offset;
+  global_id_offset = Get_Particles_IDs_Global_MPI_Offset( n_local );
+  #ifdef PARTICLES_CPU
+  for ( int p_indx=0; p_indx<n_local; p_indx++ ){
+    partIDs[p_indx] += global_id_offset;
+  }
+  #endif//PARTICLES_CPU   
+  #ifdef PARTICLES_GPU
+  //Particles IDs not implemented for PARTICLES_GPU yet
+  #endif//PARTICLES_GPU
+  #endif//PARTICLE_IDS and MPI_CHOLLA
 
   if (lost_particles > 0) chprintf("  lost %lu particles\n", lost_particles);
   chprintf( " Stellar Disk Particles Initialized, n_local: %lu\n", n_local);
