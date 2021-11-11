@@ -140,7 +140,15 @@ void Particles_3D::Copy_Particles_Array_Real_Device_to_Host( Real *array_dev, Re
   cudaDeviceSynchronize();
 }
 
+void Particles_3D::Copy_Particles_Array_Int_Host_to_Device( part_int_t *array_host, part_int_t *array_dev, part_int_t size) {
+  CudaSafeCall( cudaMemcpy(array_dev, array_host, size*sizeof(part_int_t), cudaMemcpyHostToDevice) );
+  cudaDeviceSynchronize();
+}
 
+void Particles_3D::Copy_Particles_Array_Int_Device_to_Host( part_int_t *array_dev, part_int_t *array_host, part_int_t size) {
+  CudaSafeCall( cudaMemcpy(array_host, array_dev, size*sizeof(part_int_t), cudaMemcpyDeviceToHost) );
+  cudaDeviceSynchronize();
+}
 
 __global__ void Set_Particles_Array_Real_Kernel( Real value, Real *array_dev, part_int_t size ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x ;
