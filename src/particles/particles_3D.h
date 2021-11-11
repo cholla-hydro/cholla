@@ -71,6 +71,9 @@ class Particles_3D
   #ifdef PARTICLE_IDS
   part_int_t *partIDs_dev;
   #endif
+  #ifdef PARTICLE_AGE
+  Real *age_dev;
+  #endif
   Real *mass_dev;
   Real *pos_x_dev;
   Real *pos_y_dev;

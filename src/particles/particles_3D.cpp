@@ -511,7 +511,7 @@ void Particles_3D::Initialize_Sphere( void ){
   #ifdef PARTICLES_CPU
   n_local = pos_x.size();
   #endif //PARTICLES_CPU
-  
+
   #if defined(PARTICLE_IDS) && defined(MPI_CHOLLA)
   // Get global IDs: Offset the local IDs to get unique global IDs across the MPI ranks
   chprintf( " Computing Global Particles IDs offset \n" );
@@ -557,13 +557,9 @@ void Particles_3D::Initialize_Sphere( void ){
 
 
 /**
- *   Initializes a disk population of uniform mass (\f$(10^4 M_\odot)\f$) stellar clusters
+ *   Initializes a disk population of uniform mass stellar clusters
  */
 void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
-  #ifdef PARTICLES_GPU
-      chprintf( " Initialize_Disk_Stellar_Clusters: PARTICLES_GPU not currently supported\n");
-      chexit(-1);
-  #endif
   #ifndef SINGLE_PARTICLE_MASS
       chprintf( " Initialize_Disk_Stellar_Clusters: only SINGLE_PARTICLE_MASS currently supported\n");
       chexit(-1);
@@ -583,17 +579,34 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Real R_max = sqrt(P->xlen*P->xlen + P->ylen*P->ylen)/2;
   R_max = P->xlen / 2.0;
 
+  real_vector_t temp_pos_x;
+  real_vector_t temp_pos_y;
+  real_vector_t temp_pos_z;
+  real_vector_t temp_vel_x;
+  real_vector_t temp_vel_y;
+  real_vector_t temp_vel_z;
+  real_vector_t temp_grav_x;
+  real_vector_t temp_grav_y;
+  real_vector_t temp_grav_z;
+  #ifndef SINGLE_PARTICLE_MASS
+  real_vector_t temp_mass;
+  #endif
+  #ifdef PARTICLE_IDS
+  int_vector_t temp_ids;
+  #endif
+  #ifdef PARTICLE_AGE
+  real_vector_t temp_age;
+  #endif
+
   Real x, y, z, R, phi;
   Real vx, vy, vz, vel, ac;
   Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
-  #ifdef PARTICLE_IDS
-  part_int_t id;
-  #endif
-  particle_mass = 1e4;  //solar masses
+
+  particle_mass = 1e5;  //solar masses
   //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
-  unsigned long int N = (long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
+  unsigned long int N = 38;//(long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
   long lost_particles = 0;
-  for ( unsigned long int i = 0; i < N; i++ ){
+  for ( part_int_t i = 0; i < N; i++ ){
       do {
           R = R_d*radialDist(generator);
       } while (R > R_max);
@@ -614,58 +627,94 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       vy =  vPhi*cos(phi);
       vz = 0;
 
-      #ifdef PARTICLES_CPU
-      //Copy the particle data to the particles vectors
-      pos_x.push_back(x);
-      pos_y.push_back(y);
-      pos_z.push_back(z);
-      vel_x.push_back(vx);
-      vel_y.push_back(vy);
-      vel_z.push_back(vz);
-      grav_x.push_back(0.0);
-      grav_y.push_back(0.0);
-      grav_z.push_back(0.0);
+      //add particle data to the particles vectors
+      temp_pos_x.push_back(x);
+      temp_pos_y.push_back(y);
+      temp_pos_z.push_back(z);
+      temp_vel_x.push_back(vx);
+      temp_vel_y.push_back(vy);
+      temp_vel_z.push_back(vz);
+      temp_grav_x.push_back(0.0);
+      temp_grav_y.push_back(0.0);
+      temp_grav_z.push_back(0.0);
 
       #ifdef PARTICLE_IDS
-      id =  i;
-      #ifdef PARALLEL_OMP
-        #pragma omp parallel num_threads( N_OMP_THREADS )
-        {
-          id += 1.0*omp_get_thread_num()/omp_get_num_threads();
-        }
-      #endif //PARALLEL_OMP
-      partIDs.push_back(id);
+      temp_ids.push_back(i);
       #endif //PARTICLE_IDS
 
       #ifdef PARTICLE_AGE
       //if (fabs(z) >= Z_d) age.push_back(1.1e4);
       //else age.push_back(0.0);
-      age.push_back(0.0);
+      temp_age.push_back(0.0);
       #endif
-
-      #endif//PARTICLES_CPU
   }
 
+  n_local = temp_pos_x.size();
 
-
-  #ifdef PARTICLES_CPU
-  n_local = pos_x.size();
-  #endif
-  
   #if defined(PARTICLE_IDS) && defined(MPI_CHOLLA)
   // Get global IDs: Offset the local IDs to get unique global IDs across the MPI ranks
   chprintf( " Computing Global Particles IDs offset \n" );
   part_int_t global_id_offset;
   global_id_offset = Get_Particles_IDs_Global_MPI_Offset( n_local );
-  #ifdef PARTICLES_CPU
   for ( int p_indx=0; p_indx<n_local; p_indx++ ){
-    partIDs[p_indx] += global_id_offset;
+    temp_ids[p_indx] += global_id_offset;
   }
-  #endif//PARTICLES_CPU   
-  #ifdef PARTICLES_GPU
-  //Particles IDs not implemented for PARTICLES_GPU yet
-  #endif//PARTICLES_GPU
   #endif//PARTICLE_IDS and MPI_CHOLLA
+
+  #ifdef PARTICLES_CPU
+  pos_x = temp_pos_x;
+  pos_y = temp_pos_y;
+  pos_z = temp_pos_z;
+  vel_x = temp_vel_x;
+  vel_y = temp_vel_y;
+  vel_z = temp_vel_z;
+  grav_x = temp_grav_x;
+  grav_y = temp_grav_y;
+  grav_z = temp_grav_z;
+  #ifndef SINGLE_PARTICLE_MASS // never will be the case...for now
+  mass   = temp_mass;
+  #endif
+  #ifdef PARTICLE_IDS
+  partIDs = temp_ids;
+  #endif
+  #ifdef PARTICLE_AGE
+  age = temp_age
+  #endif
+  #endif  //PARTICLES_CPU
+
+  #ifdef PARTICLES_GPU
+  particles_array_size = Compute_Particles_GPU_Array_Size(n_local);
+  Allocate_Particles_GPU_Array_Real( &pos_x_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device( temp_pos_x.data(), pos_x_dev, n_local);
+  Allocate_Particles_GPU_Array_Real( &pos_y_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device( temp_pos_y.data(), pos_y_dev, n_local);
+  Allocate_Particles_GPU_Array_Real( &pos_z_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device( temp_pos_z.data(), pos_z_dev, n_local);
+  Allocate_Particles_GPU_Array_Real( &vel_x_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device( temp_vel_x.data(), vel_x_dev, n_local);
+  Allocate_Particles_GPU_Array_Real( &vel_y_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device( temp_vel_y.data(), vel_y_dev, n_local);
+  Allocate_Particles_GPU_Array_Real( &vel_z_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device( temp_vel_z.data(), vel_z_dev, n_local);
+  Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device( temp_grav_x.data(), grav_x_dev, n_local);
+  Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device( temp_grav_y.data(), grav_y_dev, n_local);
+  Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device( temp_grav_z.data(), grav_z_dev, n_local);
+  #ifndef SINGLE_PARTICLE_MASS  // this is never the case...but it could change...
+  Allocate_Particles_GPU_Array_Real( &mass_dev, particles_array_size );
+  Copy_Particle_Array_Real_Host_to_Device(temp_mass.data(), mass_dev, n_local)
+  #endif
+  #ifdef PARTICLE_IDS
+  Allocate_Particles_GPU_Array_int( &partIDs_dev, particles_array_size );
+  Copy_Particle_Array_Int_Host_to_Device(temp_ids.data(), partIDs_dev, n_local);
+  #endif
+  #ifdef PARTICLE_AGE
+  Allocate_Particles_GPU_Array_Real( &age_dev, particles_array_size);
+  Copy_Particle_Array_Real_Host_to_Device(temp_age.data(), age_dev, n_local)
+  #endif
+  #endif  //PARTICLES_GPU
 
   if (lost_particles > 0) chprintf("  lost %lu particles\n", lost_particles);
   chprintf( " Stellar Disk Particles Initialized, n_local: %lu\n", n_local);
