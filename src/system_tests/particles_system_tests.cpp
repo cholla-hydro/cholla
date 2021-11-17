@@ -5,7 +5,6 @@
  *
  */
 
-
 // External Libraries and Headers
 #include <gtest/gtest.h>
 
@@ -15,6 +14,13 @@
 // =============================================================================
 // Test Suite: tPARTICLESSYSTEMSphericalCollapse
 // =============================================================================
+/*!
+ * \defgroup tPARTICLESSYSTEMSphericalCollapseParameterizedMpi_CorrectInputExpectCorrectOutput
+ * \brief Test the spherical collapse with particles initial conditions as a
+ * parameterized test with varying numbers of MPI ranks
+ *
+ */
+/// @{
 class tPARTICLESSYSTEMSphericalCollapseParameterizedMpi
       :public
       ::testing::TestWithParam<size_t>
@@ -39,4 +45,5 @@ TEST_P(tPARTICLESSYSTEMSphericalCollapseParameterizedMpi,
 INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput,
                          tPARTICLESSYSTEMSphericalCollapseParameterizedMpi,
                          ::testing::Values(1, 2, 4));
+/// @}
 // =============================================================================
