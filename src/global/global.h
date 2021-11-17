@@ -76,6 +76,8 @@ typedef double Real;
 #ifdef SCALAR
 // Set Number of scalar fields when not using grackle
 #define NSCALARS 1
+#else
+#define NSCALARS 0
 #endif//SCALAR
 #endif//COOLING_GRACKLE
 

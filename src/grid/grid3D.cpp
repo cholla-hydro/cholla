@@ -107,6 +107,11 @@ void Grid3D::Initialize(struct parameters *P)
   H.n_fields += NSCALARS;
   #endif
 
+  // if including magnetic fields increase the number of fields
+  #ifdef  MHD
+  H.n_fields += 3;
+  #endif  //MHD
+
   // if using dual energy formalism must track internal energy - always the last field!
   #ifdef DE
   H.n_fields++;
@@ -603,7 +608,7 @@ void Grid3D::FreeMemory(void)
 
   // free the timestep arrays
   CudaSafeCall( cudaFreeHost(host_dti_array) );
-  cudaFree(dev_dti_array);  
+  cudaFree(dev_dti_array);
 
   #ifdef GRAVITY
   CudaSafeCall( cudaFreeHost(C.Grav_potential) );

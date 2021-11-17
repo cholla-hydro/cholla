@@ -124,6 +124,21 @@ namespace testingUtilities
 
     // =========================================================================
     /*!
+     * \brief A simple function to compare two doubles with the nearlyEqualDbl
+     * function, perform a GTest assert on the result, and print out the values
+     *
+     * \param fiducialNumber The fiducial number to test against
+     * \param testNumber The unverified number to test
+     * \param outString A string to be printed in the first line of the output
+     * message. Format will be "Difference in outString"
+     */
+    void checkResults(double fiducialNumber,
+                      double testNumber,
+                      std::string outString);
+    // =========================================================================
+
+    // =========================================================================
+    /*!
      * \brief Holds a single std::string that's intended to be read only and
      * global. Use for storing the path of the root directory of Cholla
      *
