@@ -651,6 +651,15 @@ Real Grid3D::Update_Grid(void)
   Cool.fields.metal_density   = &C.scalar[ 6*H.n_cells ];
   #endif
   #endif
+
+
+  #ifdef RT
+  RT.abundances.HI_density      = &C.scalar[ 0*H.n_cells ];
+  RT.abundances.HII_density     = &C.scalar[ 1*H.n_cells ];
+  RT.abundances.HeI_density     = &C.scalar[ 2*H.n_cells ];
+  RT.abundances.HeII_density    = &C.scalar[ 3*H.n_cells ];
+  RT.abundances.HeIII_density   = &C.scalar[ 4*H.n_cells ];  
+  #endif
   
   // reset the grid flag to swap buffers
   gflag = (gflag+1)%2;

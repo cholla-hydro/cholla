@@ -253,7 +253,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
     pID = dataset_buffer_IDs[pIndx];
     #endif
     #ifdef PARTICLE_AGE
-    pAge = dataset_buffer_IDs[pIndx];
+    pAge = dataset_buffer_age[pIndx];
     #endif
     
     #ifdef TILED_INITIAL_CONDITIONS

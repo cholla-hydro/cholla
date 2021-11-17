@@ -22,8 +22,9 @@
 
 #ifdef PARTICLES
 #include "particles/particles_3D.h"
-#include "model/disk_galaxy.h"
 #endif
+
+#include "model/disk_galaxy.h"
 
 #ifdef COSMOLOGY
 #include"cosmology/cosmology.h"
@@ -311,6 +312,11 @@ class Grid3D
     #ifdef COOLING_GRACKLE
     // Object that contains data for Grackle cooling
     Cool_GK Cool;
+    #endif
+
+    #ifdef RT
+    // Object that contains data for radiative transfer
+    Rad3D RT;
     #endif
     
     #ifdef CPU_TIME
@@ -636,19 +642,32 @@ class Grid3D
     void Unload_MPI_Comm_Buffers(int index);
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
-    void Unload_MPI_Comm_DeviceBuffers_BLOCK(int index);
-    int Load_Hydro_Buffer_X0();
-    int Load_Hydro_Buffer_X1();
-    int Load_Hydro_Buffer_Y0();
-    int Load_Hydro_Buffer_Y1();
-    int Load_Hydro_Buffer_Z0();
-    int Load_Hydro_Buffer_Z1();
-    int Load_Hydro_DeviceBuffer_X0();
-    int Load_Hydro_DeviceBuffer_X1();
-    int Load_Hydro_DeviceBuffer_Y0();
-    int Load_Hydro_DeviceBuffer_Y1();
-    int Load_Hydro_DeviceBuffer_Z0();
-    int Load_Hydro_DeviceBuffer_Z1();
+    
+    int Load_Hydro_Buffer_X0(Real *buffer);
+    int Load_Hydro_Buffer_X1(Real *buffer);
+    int Load_Hydro_Buffer_Y0(Real *buffer);
+    int Load_Hydro_Buffer_Y1(Real *buffer);
+    int Load_Hydro_Buffer_Z0(Real *buffer);
+    int Load_Hydro_Buffer_Z1(Real *buffer);
+    int Load_Hydro_DeviceBuffer_X0(Real *buffer);
+    int Load_Hydro_DeviceBuffer_X1(Real *buffer);
+    int Load_Hydro_DeviceBuffer_Y0(Real *buffer);
+    int Load_Hydro_DeviceBuffer_Y1(Real *buffer);
+    int Load_Hydro_DeviceBuffer_Z0(Real *buffer);
+    int Load_Hydro_DeviceBuffer_Z1(Real *buffer);
+    
+    void Unload_Hydro_Buffer_X0(Real *buffer);
+    void Unload_Hydro_Buffer_X1(Real *buffer);
+    void Unload_Hydro_Buffer_Y0(Real *buffer);
+    void Unload_Hydro_Buffer_Y1(Real *buffer);
+    void Unload_Hydro_Buffer_Z0(Real *buffer);
+    void Unload_Hydro_Buffer_Z1(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_X0(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_X1(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_Y0(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_Y1(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_Z0(Real *buffer);
+    void Unload_Hydro_DeviceBuffer_Z1(Real *buffer);
 #endif /*MPI_CHOLLA*/
 
   #ifdef GRAVITY
@@ -678,6 +697,11 @@ class Grid3D
   #endif
   
   #endif//GRAVITY 
+
+  #ifdef GRAVITY_ANALYTIC_COMP
+  void Add_Analytic_Potential(struct parameters *P);
+  void Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal);
+  #endif //GRAVITY_ANALYTIC_COMP
   
   #ifdef PARTICLES
   void Initialize_Particles( struct parameters *P );
@@ -689,8 +713,6 @@ class Grid3D
   void Transfer_Particles_Boundaries( struct parameters P );
   Real Update_Grid_and_Particles_KDK( struct parameters P );
   void Set_Particles_Boundary( int dir, int side);
-  void Add_Analytic_Potential(struct parameters *P);
-  void Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal);
   #ifdef MPI_CHOLLA
   int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
   void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
@@ -762,6 +784,12 @@ class Grid3D
   void Advance_Particles_KDK_Cosmo_Step2_GPU();
   #endif//PARTICLES_GPU
   #endif//COSMOLOGY
+
+  #ifdef RT
+  void Initialize_RT();
+  void Allocate_Abundances();
+  #endif
+
   
   #ifdef COOLING_GRACKLE
   void Initialize_Grackle( struct parameters *P );
@@ -806,6 +834,11 @@ class Grid3D
 
 };
 
-
+// typedef for Grid3D_PointerMemberFunction 
+typedef void (Grid3D::*Grid3D_PMF_UnloadHydroBuffer)(Real *);
+typedef void (Grid3D::*Grid3D_PMF_UnloadGravityPotential) 
+               (int, int, Real *, int);
+typedef void (Grid3D::*Grid3D_PMF_UnloadParticleDensity) 
+               (int, int, Real *);
 
 #endif //GRID3D_H

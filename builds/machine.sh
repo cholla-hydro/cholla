@@ -14,7 +14,7 @@ case $FQDN in
   poplar.* | tulip.*)
     echo "poplar"
     exit 0 ;;
-  crc.*)
+  *crc.*)
     echo "crc"
     exit 0;;
   *spock* )

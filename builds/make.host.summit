@@ -21,6 +21,5 @@ FFTW_ROOT    = ${OLCF_FFTW_ROOT}
 PFFT_ROOT    = /ccs/proj/csc380/cholla/fom/code/pfft
 GRACKLE_ROOT = /ccs/home/bvilasen/code/grackle
 
-#Set the Hydro Conserved arrays to reside in the GPU
-#and MPI transfers are done from the GPU 
+#-- MPI calls accept GPU buffers (requires GPU-aware MPI)
 MPI_GPU = -DMPI_GPU

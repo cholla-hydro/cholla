@@ -54,8 +54,8 @@ void Grid3D::Set_Particles_Boundary( int dir, int side ){
   Real d_min, d_max, L;
   
   if ( dir == 0 ){
-    d_min = Particles.G.zMin;
-    d_max = Particles.G.zMax;
+    d_min = Particles.G.xMin;
+    d_max = Particles.G.xMax;
   }
   if ( dir == 1 ){
     d_min = Particles.G.yMin;

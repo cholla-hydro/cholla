@@ -11,7 +11,7 @@
 #include"error_handling.h"
 #include"mpi_routines.h"
 
-#ifdef MPI_GPU
+#ifdef HYDRO_GPU
 #include "omp.h"
 #endif
 
@@ -323,7 +323,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
     }
   }
   
-  #ifdef MPI_GPU
+  #ifdef HYDRO_GPU
   Set_Hydro_Boundaries_GPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
   #else
   Set_Hydro_Boundaries_CPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );

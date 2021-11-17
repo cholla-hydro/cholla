@@ -152,23 +152,6 @@ class Grav3D
     *  \brief Device Array containing the gravitational potential of each cell in the grid at the previous time step */
     Real *potential_1_d;
     
-    #if defined(MPI_CHOLLA) && !defined(MPI_GPU)
-    //Device buffers for potential transfers when the MPI_GPU is disabled
-    Real *send_buffer_potential_x0_d;
-    Real *send_buffer_potential_x1_d;
-    Real *send_buffer_potential_y0_d;
-    Real *send_buffer_potential_y1_d;
-    Real *send_buffer_potential_z0_d;
-    Real *send_buffer_potential_z1_d;
-    
-    Real *recv_buffer_potential_x0_d;
-    Real *recv_buffer_potential_x1_d;
-    Real *recv_buffer_potential_y0_d;
-    Real *recv_buffer_potential_y1_d;
-    Real *recv_buffer_potential_z0_d;
-    Real *recv_buffer_potential_z1_d;     
-    #endif//MPI_CHOLLA-MPI_GPU    
-    
     #endif //GRAVITY_GPU
     
     // Arrays for computing the potential values in isolated boundaries

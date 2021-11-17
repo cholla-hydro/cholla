@@ -108,6 +108,10 @@ int main(int argc, char *argv[])
   #ifdef COSMOLOGY
   G.Initialize_Cosmology(&P);
   #endif
+
+  #ifdef RT
+  G.Initialize_RT(&P);
+  #endif
   
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
@@ -147,7 +151,7 @@ int main(int argc, char *argv[])
   if (strcmp(P.init, "Read_Grid") != 0 || G.H.Output_Now ) {
     // write the initial conditions to file
     chprintf("Writing initial conditions to file...\n");
-    #ifdef MPI_GPU
+    #ifdef HYDRO_GPU
     cudaMemcpy(G.C.density, G.C.device, 
              G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
     #endif
@@ -253,7 +257,7 @@ int main(int argc, char *argv[])
     {
       #ifdef OUTPUT
       /*output the grid data*/
-      #ifdef MPI_GPU
+      #ifdef HYDRO_GPU
       cudaMemcpy(G.C.density, G.C.device, 
                  G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
       #endif
@@ -272,7 +276,7 @@ int main(int argc, char *argv[])
     #ifdef N_STEPS_LIMIT
     // Exit the loop when reached the limit number of steps (optional)
     if ( G.H.n_step == N_STEPS_LIMIT) {
-      #ifdef MPI_GPU
+      #ifdef HYDRO_GPU
       cudaMemcpy(G.C.density, G.C.device, 
                  G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
       #endif
