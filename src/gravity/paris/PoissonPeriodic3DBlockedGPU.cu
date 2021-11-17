@@ -275,7 +275,7 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
       cb[ib].y = ca[ia].y;
     });
 
-  // cb -> da 
+  // cb -> da
   CHECK(cufftExecZ2D(zd2d_,cb,da));
 
   // Copy slabs to blocks

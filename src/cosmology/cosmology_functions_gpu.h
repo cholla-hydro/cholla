@@ -1,10 +1,10 @@
 #if defined(COSMOLOGY) && defined(PARTICLES_GPU)
 
 
-#include"../grid3D.h"
-#include"../global.h"
-#include "../io.h"
-#include"gpu.hpp"
+#include "../grid/grid3D.h"
+#include "../global/global.h"
+#include "../io/io.h"
+#include "../utils/gpu.hpp"
 
 #define TPBX_COSMO 16
 #define TPBY_COSMO 8
