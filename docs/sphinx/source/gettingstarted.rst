@@ -29,7 +29,7 @@ Running (serial mode)
 
 To run cholla on a single GPU, you execute the binary and provide it with an input parameter file. For example, to run a 1D Sod Shock tube test, within the top-level directory you would type:
 
-``./cholla tests/1D/Sod.txt``
+``./cholla examples/1D/Sod.txt``
 
 The code will write some information about the input parameters to the terminal:
 
@@ -70,6 +70,6 @@ Cholla can also be run using multiple GPUs when it is compiled using the Message
 
 and compile the code. (If you have already compiled the code in serial mode, be sure to clean up first: ``make clean``.) Once the code is compiled with mpi, you can run it using as many processes as you have available GPUs - Cholla assumes there is one GPU per MPI process. For example, if you have 4 GPUs, you could run a 3D sound wave test via:
 
-``mpirun -np 4 ./cholla tests/3D/sound_wave.txt``
+``mpirun -np 4 ./cholla examples/3D/sound_wave.txt``
 
 The code will automatically divide the simulation domain amongst the GPUs. If you are running on a cluster, you may have to specify additional information about the number of GPUs per node in the batch submission script (e.g. PBS, slurm, LSF).

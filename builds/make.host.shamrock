@@ -13,7 +13,7 @@ OMP_NUM_THREADS = 10
 
 #-- Library
 CUDA_ROOT    = /usr/local/cuda-10.1/targets/x86_64-linux
-CUDA_LIB     = -L$(CUDA_ROOT)/lib6 -lcudart -lcufft
+CUDA_LIB     = -L$(CUDA_ROOT)/lib -lcudart -lcufft
 HDF5_ROOT    = /usr/lib/x86_64-linux-gnu/hdf5/serial
 FFTW_ROOT    = /home/bruno/code/fftw-3.3.8
 PFFT_ROOT    = /home/bruno/code/pfft

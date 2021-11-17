@@ -1,24 +1,24 @@
 #ifdef PARTICLES
 
-#include<stdio.h>
-#include<stdlib.h>
-#include"math.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "math.h"
 #include <iostream>
-#include"../global.h"
-#include"../grid3D.h"
-#include"../io.h"
-#include"particles_3D.h"
-#include"density_CIC.h"
+#include "../global/global.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "../particles/particles_3D.h"
+#include "../particles/density_CIC.h"
 #include "../model/disk_galaxy.h"
 
 
 #ifdef PARALLEL_OMP
-#include"../parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 //Get the Gravitational Field from the potential: g=-gradient(potential)
 void Grid3D::Get_Gravity_Field_Particles(){
-  
+
   #ifdef PARTICLES_CPU
 
   #ifndef PARALLEL_OMP
@@ -35,27 +35,27 @@ void Grid3D::Get_Gravity_Field_Particles(){
 
     Get_OMP_Grid_Indxs( Particles.G.nz_local + 2*Particles.G.n_ghost_particles_grid, N_OMP_THREADS, omp_id,  &g_start, &g_end );
 
-    Get_Gravity_Field_Particles_function( g_start, g_end);  
+    Get_Gravity_Field_Particles_function( g_start, g_end);
   }
   #endif//PARALLEL_OMP
   #endif//PARTICLES_CPU
-  
-  
+
+
   #ifdef PARTICLES_GPU
   Particles.Get_Gravity_Field_Particles_GPU( Grav.F.potential_h );
   #endif
-  
+
 }
 
 
 void Grid3D::Get_Gravity_CIC(){
-  
+
   #ifdef PARTICLES_CPU
-  
+
   #ifndef PARALLEL_OMP
   Get_Gravity_CIC_function( 0, Particles.n_local );
   #else
-  
+
   #pragma omp parallel num_threads( N_OMP_THREADS )
   {
     int omp_id, n_omp_procs;
@@ -63,14 +63,14 @@ void Grid3D::Get_Gravity_CIC(){
 
     omp_id = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    
+
     Get_OMP_Particles_Indxs( Particles.n_local, N_OMP_THREADS, omp_id,  &p_start, &p_end );
-    
+
     Get_Gravity_CIC_function( p_start, p_end );
-  }  
+  }
   #endif//PARALLEL_OMP
   #endif//PARTICLES_CPU
-  
+
   #ifdef PARTICLES_GPU
   Particles.Get_Gravity_CIC_GPU();
   #endif
@@ -85,7 +85,7 @@ void Particles_3D::Get_Gravity_Field_Particles_GPU( Real *potential_host ){
 }
 
 void Particles_3D::Get_Gravity_CIC_GPU(){
-  
+
   Get_Gravity_CIC_GPU_function( n_local, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax,  G.dx, G.dy, G.dz,  pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev,  grav_y_dev,  grav_z_dev, G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev );
 }
 
@@ -96,7 +96,7 @@ void Particles_3D::Get_Gravity_CIC_GPU(){
 
 //Compute the gradient of the potential
 void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
-  
+
   int nx_grav, ny_grav, nz_grav, nGHST_grav;
   nGHST_grav = Particles.G.n_ghost_particles_grid;
   nx_grav = Particles.G.nx_local + 2*nGHST_grav;
@@ -105,26 +105,26 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
 
   int nx_grid, ny_grid, nz_grid, nGHST_grid;
   Real *potential;
-  
+
   potential = Grav.F.potential_h;
   nGHST_grid = N_GHOST_POTENTIAL;
-    
+
   nx_grid = Grav.nx_local + 2*nGHST_grid;
   ny_grid = Grav.ny_local + 2*nGHST_grid;
   nz_grid = Grav.nz_local + 2*nGHST_grid;
 
   int nGHST = nGHST_grid - nGHST_grav;
-  
+
   Real dx, dy, dz;
   dx = Particles.G.dx;
   dy = Particles.G.dy;
   dz = Particles.G.dz;
-  
+
   #ifdef GRAVITY_5_POINTS_GRADIENT
   Real phi_ll, phi_rr;
   int id_ll, id_rr;
-  #endif  
-  
+  #endif
+
   Real phi_l, phi_r;
   int k, j, i, id_l, id_r, id;
   for ( k=g_start; k<g_end; k++ ){
@@ -137,7 +137,7 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
         phi_r = potential[id_r];
         #ifdef GRAVITY_5_POINTS_GRADIENT
         id_ll = (i-2 + nGHST) + (j + nGHST)*nx_grid + (k + nGHST)*ny_grid*nx_grid;
-        id_rr = (i+2 + nGHST) + (j + nGHST)*nx_grid + (k + nGHST)*ny_grid*nx_grid;  
+        id_rr = (i+2 + nGHST) + (j + nGHST)*nx_grid + (k + nGHST)*ny_grid*nx_grid;
         phi_ll = potential[id_ll];
         phi_rr = potential[id_rr];
         Particles.G.gravity_x[id] = -1 * ( -phi_rr + 8*phi_r - 8*phi_l + phi_ll) / (12*dx);
@@ -196,7 +196,7 @@ void Grid3D::Get_Gravity_Field_Particles_function( int g_start, int g_end ){
 
 //Get the CIC interpolation of the Gravitational field at the particles positions
 void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
-  
+
   int nx_g, ny_g, nz_g, nGHST;
   nGHST = Particles.G.n_ghost_particles_grid;
   nx_g = Particles.G.nx_local + 2*nGHST;
@@ -210,7 +210,7 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
   dx = Particles.G.dx;
   dy = Particles.G.dy;
   dz = Particles.G.dz;
-  
+
   part_int_t pIndx;
   int indx_x, indx_y, indx_z, indx;
   Real x_pos, y_pos, z_pos;
@@ -271,7 +271,7 @@ void Grid3D::Get_Gravity_CIC_function( part_int_t p_start, part_int_t p_end ){
       std::cout << std::endl;
       continue;
     }
-    
+
     cell_center_x = xMin + indx_x*dx + 0.5*dx;
     cell_center_y = yMin + indx_y*dy + 0.5*dy;
     cell_center_z = zMin + indx_z*dz + 0.5*dz;
