@@ -65,7 +65,7 @@ DFLAGS += -DVL
 #DFLAGS += -DDYNAMIC_GPU_ALLOC
 
 # Set the cooling function
-#DFLAGS += -DCOOLING_GPU 
+#DFLAGS += -DCOOLING_GPU
 #DFLAGS += -DCLOUDY_COOL
 
 # Use Tiled Iitial Conditions for Scaling Tets
@@ -105,7 +105,7 @@ DFLAGS += -DVL
 
 # Cosmological simulation
 #DFLAGS += -DCOSMOLOGY
- 
+
 # Use Grackle for cooling in cosmological simulations
 #DFLAGS += -DCOOLING_GRACKLE
 
@@ -183,7 +183,3 @@ $(EXEC): $(OBJS)
 
 clean:
 	 rm -f $(OBJS) $(EXEC)
-
-check-hydro: $(EXEC)
-	jsrun --smpiargs="-gpu" -n1 -a1 -c1 -g1 ./cholla tests/regression/hydro_input.txt
-	diff 1.txt.0 tests/regression/hydro_test.txt

@@ -1,16 +1,16 @@
 #ifdef COSMOLOGY
 
-#include"cosmology.h"
-#include "../io.h"
+#include "../cosmology/cosmology.h"
+#include "../io/io.h"
 
 
 
 Cosmology::Cosmology( void ){}
 
 void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Particles){
-  
+
   chprintf( "Cosmological Simulation\n");
-  
+
   H0 = P-> H0;
   cosmo_h = H0/100;
   H0 /= 1000;               //[km/s / kpc]
@@ -18,9 +18,9 @@ void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Pa
   Omega_L = P-> Omega_L;
   Omega_K = 1 - ( Omega_M + Omega_L );
   Omega_b = P-> Omega_b;
-  
+
   if(strcmp(P->init, "Read_Grid")==0){
-    // Read scale factor vaue from Particles
+    // Read scale factor value from Particles
     current_z = Particles.current_z;
     current_a = Particles.current_a;
   }
@@ -29,8 +29,8 @@ void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Pa
     current_a = 1. / ( current_z + 1 );
     Particles.current_z = current_z;
     Particles.current_a = current_a;
-  }  
-    
+  }
+
 
   // Set Scale factor in Gravity
   Grav.current_a = current_a;

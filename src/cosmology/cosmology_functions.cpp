@@ -1,24 +1,24 @@
 #ifdef COSMOLOGY
 
 
-#include"../grid3D.h"
-#include"../global.h"
-#include "../io.h"
+#include "../grid/grid3D.h"
+#include "../global/global.h"
+#include "../io/io.h"
 
 
 
 void Grid3D::Initialize_Cosmology( struct parameters *P ){
-  
+
   chprintf( "Initializing Cosmology... \n");
   Cosmo.Initialize( P, Grav, Particles );
-  
+
   // Change to comoving Cosmological System
   Change_Cosmological_Frame_Sytem( true );
-  
+
   if ( fabs( Cosmo.current_a - Cosmo.next_output ) < 1e-5 ) H.Output_Now = true;
-  
+
   chprintf( "Cosmology Successfully Initialized. \n\n");
-  
+
 }
 
 Real Cosmology::Get_da_from_dt( Real dt ){
@@ -41,40 +41,40 @@ Real Cosmology::Get_Hubble_Parameter( Real a ){
 }
 
 void Grid3D::Change_Cosmological_Frame_Sytem( bool forward ){
-  
+
   if (forward) chprintf( " Converting to Cosmological Comoving System\n");
   else chprintf( " Converting to Cosmological Physical System\n");
-  
+
   Change_DM_Frame_System( forward );
   #ifndef ONLY_PARTICLES
-  #ifdef MPI_GPU
+  #ifdef HYDRO_GPU
   Change_GAS_Frame_System_GPU( forward );
-  #endif //MPI_GPU
+  #endif //HYDRO_GPU
   Change_GAS_Frame_System( forward );
   #endif//ONLY_PARTICLES
 }
 void Grid3D::Change_DM_Frame_System( bool forward ){
-  
+
   #ifdef PARTICLES_CPU
-  
+
   part_int_t pIndx;
   Real vel_factor;
   vel_factor = 1;
 
-  
+
   for ( pIndx=0; pIndx<Particles.n_local; pIndx++ ){
     Particles.vel_x[pIndx] *= vel_factor;
     Particles.vel_y[pIndx] *= vel_factor;
     Particles.vel_z[pIndx] *= vel_factor;
   }
-  
+
   #endif //PARTICLES_CPU
-  
+
   // NOTE:Not implemented for PARTICLES_GPU, doesn't matter as long as vel_factor=1
 }
 
 void Grid3D::Change_GAS_Frame_System( bool forward ){
-  
+
   Real dens_factor, momentum_factor, energy_factor;
   if ( forward ){
     dens_factor = 1 / Cosmo.rho_0_gas;
