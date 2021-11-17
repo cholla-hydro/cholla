@@ -25,7 +25,7 @@
     && defined(HLLC)
 // Testing Calculate_HLLC_Fluxes_CUDA
 TEST(tHYDROCalculateHLLCFluxesCUDA,  // Test suite name
-     LeftSideExpectCorrectOutput)  // Test name
+     HighPressureSideExpectCorrectOutput)  // Test name
 {
     // Physical Values
     Real const density   = 1.0;

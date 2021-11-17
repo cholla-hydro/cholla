@@ -2,10 +2,12 @@
 
 #include <unistd.h>
 #include <random>
+#include <cstdint>
+#include <functional>
 #include <cmath>
 #include "../io/io.h"
 #include "../grid/grid3D.h"
-#include "../utils/random_functions.h"
+#include "../utils/prng_utilities.h"
 #include "../model/disk_galaxy.h"
 #include "../particles/particles_3D.h"
 #include "../utils/error_handling.h"
@@ -178,7 +180,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   Initialize_Grid_Values();
 
   // Initialize Particles
-  if (strcmp(P->init, "Spherical_Overdensity_3D")==0) Initialize_Sphere();
+  if (strcmp(P->init, "Spherical_Overdensity_3D")==0) Initialize_Sphere(P);
   else if (strcmp(P->init, "Zeldovich_Pancake")==0) Initialize_Zeldovich_Pancake( P );
   else if (strcmp(P->init, "Read_Grid")==0)  Load_Particles_Data(  P );
   else if (strcmp(P->init, "Disk_3D_particles") == 0)  Initialize_Disk_Stellar_Clusters(P);
@@ -404,7 +406,7 @@ void Particles_3D::Initialize_Grid_Values( void ){
   }
 }
 
-void Particles_3D::Initialize_Sphere( void ){
+void Particles_3D::Initialize_Sphere(struct parameters *P){
 
   //Initialize Random positions for sphere of quasi-uniform density
   chprintf( " Initializing Particles Uniform Sphere\n");
@@ -465,10 +467,14 @@ void Particles_3D::Initialize_Sphere( void ){
 
   part_int_t pID = 0;
   Real pPos_x, pPos_y, pPos_z, r;
+  ChollaPrngGenerator prng(P);
+  std::uniform_real_distribution<Real> xPositionPrng(G.xMin, G.xMax );
+  std::uniform_real_distribution<Real> yPositionPrng(G.yMin, G.yMax );
+  std::uniform_real_distribution<Real> zPositionPrng(G.zMin, G.zMax );
   while ( pID < n_particles_local ){
-    pPos_x = Rand_Real( G.xMin, G.xMax );
-    pPos_y = Rand_Real( G.yMin, G.yMax );
-    pPos_z = Rand_Real( G.zMin, G.zMax );
+    pPos_x = xPositionPrng(prng.generator);
+    pPos_y = yPositionPrng(prng.generator);
+    pPos_z = zPositionPrng(prng.generator);
 
     r = sqrt( (pPos_x-center_x)*(pPos_x-center_x) + (pPos_y-center_y)*(pPos_y-center_y) + (pPos_z-center_z)*(pPos_z-center_z) );
     if ( r > sphereR ) continue;
@@ -511,7 +517,7 @@ void Particles_3D::Initialize_Sphere( void ){
   #ifdef PARTICLES_CPU
   n_local = pos_x.size();
   #endif //PARTICLES_CPU
-  
+
   #if defined(PARTICLE_IDS) && defined(MPI_CHOLLA)
   // Get global IDs: Offset the local IDs to get unique global IDs across the MPI ranks
   chprintf( " Computing Global Particles IDs offset \n" );
@@ -521,7 +527,7 @@ void Particles_3D::Initialize_Sphere( void ){
   for ( int p_indx=0; p_indx<n_local; p_indx++ ){
     partIDs[p_indx] += global_id_offset;
   }
-  #endif//PARTICLES_CPU   
+  #endif//PARTICLES_CPU
   #ifdef PARTICLES_GPU
   //Particles IDs not implemented for PARTICLES_GPU yet
   #endif//PARTICLES_GPU
@@ -570,12 +576,13 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   #endif
   chprintf( " Initializing Particles Stellar Disk\n");
 
-  std::random_device rd;
-  std::mt19937 generator(rd());
-  std::gamma_distribution<Real> radialDist(2,1);  //for generating cyclindrical radii
-  std::uniform_real_distribution<Real> zDist(0, 1);      //for generating height above/below the disk.
+  // Set up the PRNG
+  ChollaPrngGenerator prng(P);
+
+  std::gamma_distribution<Real> radialDist(2,1);           //for generating cyclindrical radii
+  std::uniform_real_distribution<Real> zDist(0, 1);        //for generating height above/below the disk.
   std::uniform_real_distribution<Real> phiDist(0, 2*M_PI); //for generating phi
-  std::normal_distribution<Real> speedDist(0, 1); //for generating random speeds.
+  std::normal_distribution<Real> speedDist(0, 1);          //for generating random speeds.
 
   Real M_d = Galaxies::MW.getM_d(); // MW disk mass in M_sun (assumed to be all in stars)
   Real R_d = Galaxies::MW.getR_d(); // MW stellar disk scale length in kpc
@@ -595,10 +602,10 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   long lost_particles = 0;
   for ( unsigned long int i = 0; i < N; i++ ){
       do {
-          R = R_d*radialDist(generator);
+          R = R_d*radialDist(prng.generator);
       } while (R > R_max);
 
-      phi = phiDist(generator);
+      phi = phiDist(prng.generator);
       x = R * cos(phi);
       y = R * sin(phi);
       z = 0;
@@ -651,7 +658,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   #ifdef PARTICLES_CPU
   n_local = pos_x.size();
   #endif
-  
+
   #if defined(PARTICLE_IDS) && defined(MPI_CHOLLA)
   // Get global IDs: Offset the local IDs to get unique global IDs across the MPI ranks
   chprintf( " Computing Global Particles IDs offset \n" );
@@ -661,7 +668,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   for ( int p_indx=0; p_indx<n_local; p_indx++ ){
     partIDs[p_indx] += global_id_offset;
   }
-  #endif//PARTICLES_CPU   
+  #endif//PARTICLES_CPU
   #ifdef PARTICLES_GPU
   //Particles IDs not implemented for PARTICLES_GPU yet
   #endif//PARTICLES_GPU

@@ -10,6 +10,10 @@
 #include <gsl/gsl_spline2d.h>
 #endif
 
+#ifdef  PARTICLES
+  #include <cstdint>
+#endif  //PARTICLES
+
 #if PRECISION==1
 #ifndef TYPEDEF_DEFINED_REAL
 typedef float Real;
@@ -231,6 +235,11 @@ struct parameters
   Real v_r;
   Real P_r;
   Real diaph;
+#ifdef PARTICLES
+  // The random seed for particle simulations. With the default of 0 then a
+  // machine dependent seed will be generated.
+  std::uint_fast64_t prng_seed = 0;
+#endif // PARTICLES
 #ifdef ROTATED_PROJECTION
   int nxr;
   int nzr;

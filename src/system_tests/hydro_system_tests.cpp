@@ -12,25 +12,25 @@
 // Local includes
 #include "../system_tests/system_tester.h"
 
-TEST(tHYDROSYSTEMSodShockTube,
-     CorrectInputExpectCorrectOutput)
+// =============================================================================
+// Test Suite: tHYDROSYSTEMSodShockTube
+// =============================================================================
+class tHYDROSYSTEMSodShockTubeParameterizedMpi
+      :public
+      ::testing::TestWithParam<size_t>
 {
+protected:
     systemTest::SystemTestRunner sodTest;
+};
+
+TEST_P(tHYDROSYSTEMSodShockTubeParameterizedMpi,
+       CorrectInputExpectCorrectOutput)
+{
+    sodTest.numMpiRanks = GetParam();
     sodTest.runTest();
 }
 
-TEST(tHYDROSYSTEMSodShockTube,
-     CorrectInput2MpiRanksExpectCorrectOutput)
-{
-    systemTest::SystemTestRunner sodTest;
-    sodTest.numMpiRanks = 2;
-    sodTest.runTest();
-}
-
-TEST(tHYDROSYSTEMSodShockTube,
-     CorrectInput4MpiRanksExpectCorrectOutput)
-{
-    systemTest::SystemTestRunner sodTest;
-    sodTest.numMpiRanks = 4;
-    sodTest.runTest();
-}
+INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput,
+                         tHYDROSYSTEMSodShockTubeParameterizedMpi,
+                         ::testing::Values(1, 2, 4));
+// =============================================================================

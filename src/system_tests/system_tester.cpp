@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 
 // External Libraries and Headers
 #include <gtest/gtest.h>
@@ -28,10 +29,10 @@
 // =============================================================================
 void systemTest::SystemTestRunner::runTest()
 {
-    // Only run if this variable is set to `true`. Generally this and
-    // globalCompareSystemTestResults should only be used for large MPI / tests
-    // where the user wishes to separate the execution of cholla and the /
-    // comparison of results onto different machines/jobs
+    /// Only run if this variable is set to `true`. Generally this and
+    /// globalCompareSystemTestResults should only be used for large MPI / tests
+    /// where the user wishes to separate the execution of cholla and the /
+    /// comparison of results onto different machines/jobs
     if (globalRunCholla)
     {
         // Launch Cholla. Note that this dumps all console output to the console
@@ -58,15 +59,52 @@ void systemTest::SystemTestRunner::runTest()
     if (not globalCompareSystemTestResults) return;
 
     // Make sure we have all the required data files and open the test data file
-    _testFileVec.resize(numMpiRanks);
+    _testHydroFieldsFileVec.resize(numMpiRanks);
+    _testParticlesFileVec.resize(numMpiRanks);
     for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++)
     {
-        std::string stringIndex = std::to_string(fileIndex);
-        _checkFileExists(_outputDirectory + "/1.h5." + stringIndex);
-        _testFileVec[fileIndex].openFile(_outputDirectory + "/1.h5." + stringIndex,
-                                         H5F_ACC_RDONLY);
+        // Load the hydro data
+        if (_hydroDataExists)
+        {
+            std::string fileName = "/1.h5." + std::to_string(fileIndex);
+            _checkFileExists(_outputDirectory + fileName);
+            _testHydroFieldsFileVec[fileIndex].openFile(_outputDirectory + fileName,
+                                                        H5F_ACC_RDONLY);
+        }
+
+        // Load the particles data
+        if (_particleDataExists)
+        {
+            std::string fileName = "/1_particles.h5." + std::to_string(fileIndex);
+            _checkFileExists(_outputDirectory + fileName);
+            _testParticlesFileVec[fileIndex].openFile(_outputDirectory + fileName,
+                                                      H5F_ACC_RDONLY);
+        }
     }
-    _testDataSetNames = _findDataSetNames(_testFileVec[0]);
+
+    // If this is a particle build then read in the IDs and generate the sorting
+    // vector
+    if (_particleDataExists)
+    {
+        _testParticleIDs     = _loadTestParticleData("particle_IDs");
+
+        _fiducialParticleIDs = _loadFiducialParticleData("particle_IDs");
+    }
+
+    // Get the list of test dataset names
+    if (_hydroDataExists)
+        _testDataSetNames = _findDataSetNames(_testHydroFieldsFileVec[0]);
+    if (_particleDataExists)
+    {
+        // Load the data, replace the density value with the new name, then append
+        std::vector<std::string> particleNames = _findDataSetNames(_testParticlesFileVec[0]);
+        auto iter = std::find(particleNames.begin(), particleNames.end(), "density");
+        *iter = "particle_density";
+
+        _testDataSetNames.insert(_testDataSetNames.end(),
+                                 particleNames.begin(),
+                                 particleNames.end());
+    }
 
     // Start Performing Checks
     // =======================
@@ -75,13 +113,13 @@ void systemTest::SystemTestRunner::runTest()
 
     // Check that the test file has as many, or more, datasets than the fiducial
     // file. Provide a warning if the datasets are not the same size
-    EXPECT_GE(_testDataSetNames.size(), _fiducialDataSetNames.size());
-    if (_testDataSetNames.size() != _fiducialDataSetNames.size())
-    {
-        std::cout << std::endl << "Warning: The test data has "
-        << _testDataSetNames.size() <<  " datasets and the fiducial data has "
-        << _fiducialDataSetNames.size() << " datasets" << std::endl << std::endl;
-    }
+    EXPECT_GE(_testDataSetNames.size(), _fiducialDataSetNames.size())
+        << std::endl
+        << "Warning: The test data has "
+        << _testDataSetNames.size()
+        <<  " datasets and the fiducial data has "
+        << _fiducialDataSetNames.size()
+        << " datasets" << std::endl << std::endl;
 
     // Loop over the datasets to be tested
     for (auto dataSetName: _fiducialDataSetNames)
@@ -91,23 +129,54 @@ void systemTest::SystemTestRunner::runTest()
             << "The test data does not contain the dataset '" + dataSetName
             + "' or contains it more than once.";
 
+        // Get data vectors
+        std::vector<size_t> testDims(3,1);
+        std::vector<double> testData;
+        std::vector<double> fiducialData;
+        // This is just a vector of all the different dataset names for
+        // particles to help choose whether to call _loadTestParticleData
+        // or _loadTestFieldData
+        std::vector<std::string> particleIDs = {"particle_IDs",
+                                                "pos_x",
+                                                "pos_y",
+                                                "pos_z",
+                                                "vel_x",
+                                                "vel_y",
+                                                "vel_z"};
+        if (std::find(particleIDs.begin(), particleIDs.end(), dataSetName)
+            != particleIDs.end())
+        {
+            // This is a particle data set
 
-        // Get test data array
-        size_t testSize;
-        std::vector<size_t> testDims(3);
-        std::shared_ptr<double[]> testData = _getTestArray(dataSetName,
-                                                           testSize,
-                                                           testDims);
+            // Set some basic parameters
+            testDims[0] = _testTotalNumParticles;
 
-        // Get fiducial data array
-        size_t fiducialSize;
-        std::shared_ptr<double[]> fiducialData = _getFiducialArray(dataSetName,
-                                                                   fiducialSize);
+            // Load in the data. Note the special handling for particle_IDs
+            if (dataSetName == "particle_IDs")
+            {
+                testData     = _testParticleIDs;
+                fiducialData = _fiducialParticleIDs;
+            }
+            else
+            {
+                testData     = _loadTestParticleData(dataSetName);
+                fiducialData = _loadFiducialParticleData(dataSetName);
+            }
+        }
+        else
+        {
+            // This is a field data set
+            testData = _loadTestFieldData(dataSetName,
+                                          testDims);
+            // Get fiducial data
+            fiducialData = _loadFiducialFieldData(dataSetName);
+        }
 
         // Check that they're the same length
-        ASSERT_EQ(fiducialSize, testSize) << "The fiducial and test '"
-                                          << dataSetName
-                                          << "' datasets are not the same length";
+        ASSERT_EQ(fiducialData.size(), testData.size())
+                                        << "The fiducial and test '"
+                                        << dataSetName
+                                        << "' datasets are not the same length";
 
         // Compare values
         for (size_t i = 0; i < testDims[0]; i++)
@@ -121,8 +190,8 @@ void systemTest::SystemTestRunner::runTest()
                     // Check for equality and iff not equal return difference
                     double absoluteDiff;
                     int64_t ulpsDiff;
-                    bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData[index],
-                                                                     testData[index],
+                    bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData.at(index),
+                                                                     testData.at(index),
                                                                      absoluteDiff,
                                                                      ulpsDiff);
                     ASSERT_TRUE(areEqual)
@@ -144,9 +213,7 @@ void systemTest::SystemTestRunner::runTest()
 
 // =============================================================================
 void systemTest::SystemTestRunner::setFiducialData(std::string const &fieldName,
-                                                   std::shared_ptr<double[]> const &dataArr,
-                                                   size_t const &sizeOfArr,
-                                                   int const &numTimeSteps)
+                                                   std::vector<double> const &dataVec)
 {
     // First check if there's a fiducial data file
     if (_fiducialFileExists)
@@ -157,34 +224,30 @@ void systemTest::SystemTestRunner::setFiducialData(std::string const &fieldName,
         throw std::runtime_error(errMessage);
     }
 
-    // Check if we need to set the number of time steps
-    if (numTimeSteps >= 0) _numFiducialTimeSteps = numTimeSteps;
-
-    // Put new array into map and its size
-    _fiducialDataSets[fieldName] = dataArr;
-    _fiducialArrSize[fieldName] = sizeOfArr;
+    // Put new vector into map
+    _fiducialDataSets[fieldName] = dataVec;
 }
 // =============================================================================
 
 // =============================================================================
-std::shared_ptr<double[]> systemTest::SystemTestRunner::generateConstantArray(
+std::vector<double> systemTest::SystemTestRunner::generateConstantData(
                                                         double const &value,
                                                         size_t const &nx,
                                                         size_t const &ny,
                                                         size_t const &nz)
 {
-    size_t const arrSize = nx*ny*nz;
-    auto outArray = std::shared_ptr<double[]>{ new double[arrSize] };
-    for (size_t i = 0; i < arrSize; i++)
+    size_t const length = nx*ny*nz;
+    std::vector<double> outVec(length);
+    for (size_t i = 0; i < length; i++)
     {
-        outArray[i] = value;
+        outVec[i] = value;
     }
-    return outArray;
+    return outVec;
 }
 // =============================================================================
 
 // =============================================================================
-std::shared_ptr<double[]> systemTest::SystemTestRunner::generateSineArray(
+std::vector<double> systemTest::SystemTestRunner::generateSineData(
                                                         double const &offset,
                                                         double const &amplitude,
                                                         double const &kx,
@@ -195,61 +258,70 @@ std::shared_ptr<double[]> systemTest::SystemTestRunner::generateSineArray(
                                                         size_t const &ny,
                                                         size_t const &nz)
 {
-    size_t const arrSize = nx*ny*nz;
-    auto outArray = std::shared_ptr<double[]>{ new double[arrSize] };
+    size_t const length = nx*ny*nz;
+    std::vector<double> outVec(length);
     for (size_t i = 0; i < nx; i++)
     {
         for (size_t j = 0; j < ny; j++)
         {
             for (size_t k = 0; k < nz; k++)
             {
-                double value    = offset + amplitude
-                                  * std::sin(kx*i + ky*j + kz*k + phase);
+                double value = offset + amplitude
+                               * std::sin(kx*i + ky*j + kz*k + phase);
 
                 size_t index = (i * ny * nz) + (j * nz) + k;
-                outArray[index] = value;
+                outVec[index] = value;
             }
         }
     }
-    return outArray;
+    return outVec;
 }
 // =============================================================================
 
 // =============================================================================
 // Constructor
-systemTest::SystemTestRunner::SystemTestRunner(bool const &useFiducialFile,
+systemTest::SystemTestRunner::SystemTestRunner(bool const &particleData,
+                                               bool const &hydroData,
+                                               bool const &useFiducialFile,
                                                bool const &useSettingsFile)
+    :
+    _particleDataExists(particleData),
+    _hydroDataExists(hydroData)
 {
     // Get the test name, with and underscore instead of a "." since
     // we're actually generating file names
     const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
     std::stringstream nameStream;
-    nameStream << test_info->test_suite_name() << "_" << test_info->name();
-    _fullTestFileName = nameStream.str();
+    std::string suiteName = test_info->test_suite_name();
+    suiteName = suiteName.substr(suiteName.find("/")+1, suiteName.length());
+    nameStream << suiteName << "_" << test_info->name();
+    std::string fullTestName = nameStream.str();
+    _fullTestFileName = fullTestName.substr(0, fullTestName.find("/"));
 
-    // Generate the input paths
+    // Generate the input paths. Strip out everything after a "/" since that
+    // probably indicates a parameterized test
     _chollaPath         = ::globalChollaRoot.getString()
                           + "/bin/cholla."
                           + ::globalChollaBuild.getString()
                           + "." + ::globalChollaMachine.getString();
     _chollaSettingsPath = ::globalChollaRoot.getString()
                           + "/src/system_tests/input_files/"
-                          + _fullTestFileName +".txt";
+                          + _fullTestFileName + ".txt";
     _fiducialFilePath   = ::globalChollaRoot.getString()
                           + "/src/system_tests/fiducial_data/"
                           + _fullTestFileName + ".h5";
 
     // Generate output paths, these files don't exist yet
-    _outputDirectory    = ::globalChollaRoot.getString() + "/bin/" + _fullTestFileName;
+    _outputDirectory    = ::globalChollaRoot.getString() + "/bin/" + fullTestName;
     _consoleOutputPath  = _outputDirectory + "/" + _fullTestFileName + "_console.log";
 
     // Create the new directory and check that it exists
     // TODO: C++17: When we update to C++17 or newer this section should
     // TODO: use std::filesystem to create the directory and check that
     // TODO: it exists
-    if (mkdir(_outputDirectory.c_str(), 0777) == -1)
+    if (system(("mkdir --parents " + _outputDirectory).c_str()) != 0)
     {
-        std::cout << "Warning: Directory '"
+        std::cerr << "Warning: Directory '"
                       + _outputDirectory
                       + "' either already exists or could not be created."
                       << std::endl;
@@ -273,9 +345,10 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &useFiducialFile,
 systemTest::SystemTestRunner::~SystemTestRunner()
 {
     _fiducialFile.close();
-    for (size_t i = 0; i < _testFileVec.size(); i++)
+    for (size_t i = 0; i < _testHydroFieldsFileVec.size(); i++)
     {
-        _testFileVec[i].close();
+        if (_hydroDataExists) _testHydroFieldsFileVec[i].close();
+        if (_particleDataExists) _testParticlesFileVec[i].close();
     }
 }
 // =============================================================================
@@ -321,7 +394,21 @@ void systemTest::SystemTestRunner::_checkNumTimeSteps()
 {
     int fiducialNSteps, testNSteps;
 
-    H5::Attribute tStepAttr = _testFileVec[0].openAttribute("n_step");
+    H5::Attribute tStepAttr;
+    if (_hydroDataExists)
+    {
+        tStepAttr = _testHydroFieldsFileVec[0].openAttribute("n_step");
+    }
+    else if (_particleDataExists)
+    {
+        tStepAttr = _testParticlesFileVec[0].openAttribute("n_step");
+    }
+    else
+    {
+        std::string errMessage = "Error: Both hydro and particle data are  turned off.";
+        throw std::invalid_argument(errMessage);
+    }
+
     tStepAttr.read(H5::PredType::NATIVE_INT, &testNSteps);
 
     if (_fiducialFileExists)
@@ -340,52 +427,59 @@ void systemTest::SystemTestRunner::_checkNumTimeSteps()
 // =============================================================================
 
 // =============================================================================
-std::shared_ptr<double[]> systemTest::SystemTestRunner::_getTestArray(
-        std::string const &dataSetName,
-        size_t &length,
+std::vector<double> systemTest::SystemTestRunner::_loadTestFieldData(
+        std::string dataSetName,
         std::vector<size_t> &testDims)
 {
-    // Get the size of each dimension
-    int testDimsInt[3];
-    H5::Attribute dimensions = _testFileVec[0].openAttribute("dims");
-    dimensions.read(H5::PredType::NATIVE_INT, &testDimsInt);
-    for (size_t i = 0; i < 3; i++) {testDims[i] = testDimsInt[i];}
+    // Get the file we're using
+    std::vector<H5::H5File> file;
+    if (dataSetName == "particle_density")
+    {
+        file = _testParticlesFileVec;
+        dataSetName = "density";
+    }
+    else
+    {
+        file = _testHydroFieldsFileVec;
+    }
 
-    // Allocate the array
-    length = testDims[0] * testDims[1] * testDims[2];
-    auto testData = std::shared_ptr<double[]>{ new double[length] };
+    // Get the size of each dimension
+    H5::Attribute dimensions = file[0].openAttribute("dims");
+    dimensions.read(H5::PredType::NATIVE_ULONG, testDims.data());
+
+    // Allocate the vector
+    std::vector<double> testData(testDims[0] * testDims[1] * testDims[2]);
 
     for (size_t rank = 0; rank < numMpiRanks; rank++)
     {
         // Open the dataset
-        H5::DataSet const testDataSet = _testFileVec[rank].openDataSet(dataSetName);
+        H5::DataSet const testDataSet = file[rank].openDataSet(dataSetName);
 
         // Determine dataset size/shape and check that it's correct
         H5::DataSpace const testDataSpace = testDataSet.getSpace();
 
-        hsize_t tempDims[3] = {1,1,1};
-        int numTestDims = testDataSpace.getSimpleExtentDims(tempDims);
+        std::vector<hsize_t> tempDims{1,1,1};
+        int numTestDims = testDataSpace.getSimpleExtentDims(tempDims.data());
 
-        // Allocate arrays, Note that I'm casting everything to double. Some
-        // of the arrays are ints in the HDF5 file and if the casting
+        // Allocate vectors, Note that I'm casting everything to double. Some
+        // of the vectors are ints in the HDF5 file and if the casting
         // becomes an issue we can fix it later
-        size_t tempLength = tempDims[0] * tempDims[1] * tempDims[2];
-        auto tempArr = std::shared_ptr<double[]>{ new double[tempLength] };
+        std::vector<double> tempArr(tempDims[0] * tempDims[1] * tempDims[2]);
 
         // Read in data
-        testDataSet.read(tempArr.get(), H5::PredType::NATIVE_DOUBLE);
+        testDataSet.read(tempArr.data(), H5::PredType::NATIVE_DOUBLE);
 
         // Get offset
-        int offset[3];
-        H5::Attribute offsetAttr = _testFileVec[rank].openAttribute("offset");
-        offsetAttr.read(H5::PredType::NATIVE_INT, &offset);
+        std::vector<int> offset(3,1);
+        H5::Attribute offsetAttr = file[rank].openAttribute("offset");
+        offsetAttr.read(H5::PredType::NATIVE_INT, offset.data());
 
         // Get dims_local
-        int dimsLocal[3];
-        H5::Attribute dimsLocalAttr = _testFileVec[rank].openAttribute("dims_local");
-        dimsLocalAttr.read(H5::PredType::NATIVE_INT, &dimsLocal);
+        std::vector<int> dimsLocal(3,1);
+        H5::Attribute dimsLocalAttr = file[rank].openAttribute("dims_local");
+        dimsLocalAttr.read(H5::PredType::NATIVE_INT, dimsLocal.data());
 
-        // Now we add the data to the larger array
+        // Now we add the data to the larger vector
         size_t localIndex = 0;
         for (size_t i = offset[0]; i < offset[0] + dimsLocal[0]; i++)
         {
@@ -412,9 +506,77 @@ std::shared_ptr<double[]> systemTest::SystemTestRunner::_getTestArray(
 // =============================================================================
 
 // =============================================================================
-std::shared_ptr<double[]> systemTest::SystemTestRunner::_getFiducialArray(
-        std::string const &dataSetName,
-        size_t &length)
+std::vector<double> systemTest::SystemTestRunner::_loadTestParticleData(
+        std::string const &dataSetName)
+{
+    // Determine the total number of particles
+    if (_testTotalNumParticles == 0)
+    {
+        for (auto file: _testParticlesFileVec)
+        {
+            // Open the dataset
+            H5::DataSet const dataSet = file.openDataSet(dataSetName);
+
+            // Determine dataset size/shape and check that it's correct
+            H5::DataSpace dataSpace = dataSet.getSpace();
+
+            // Get the number of elements and increase the total count
+            size_t localNumParticles = dataSpace.getSimpleExtentNpoints();
+            _testTotalNumParticles += localNumParticles;
+        }
+    }
+
+    // Allocate the vectors
+    std::vector<double> unsortedTestData;
+    std::vector<double> testData(_testTotalNumParticles);
+
+    // Load in the data
+    for (size_t rank = 0; rank < numMpiRanks; rank++)
+    {
+        // Open the dataset
+        H5::DataSet const testDataSet = _testParticlesFileVec[rank].openDataSet(dataSetName);
+
+        // Determine dataset size/shape and check that it's correct
+        H5::DataSpace const testDataSpace = testDataSet.getSpace();
+
+        size_t localNumParticles = testDataSpace.getSimpleExtentNpoints();
+        std::vector<double> tempVector(localNumParticles);
+
+        // Read in data
+        testDataSet.read(tempVector.data(),
+                         H5::PredType::NATIVE_DOUBLE);
+        unsortedTestData.insert(unsortedTestData.end(),
+                                tempVector.begin(),
+                                tempVector.end() );
+    }
+
+    // Generate the sorting vector if it's not already generated
+    std::vector<size_t> tempSortedIndices;
+    if (dataSetName == "particle_IDs")
+    {
+        tempSortedIndices.resize(_testTotalNumParticles);
+        std::iota(tempSortedIndices.begin(), tempSortedIndices.end(), 0);
+        std::sort(tempSortedIndices.begin(), tempSortedIndices.end(),
+                [&](size_t A, size_t B) -> bool {
+                        return unsortedTestData[A] < unsortedTestData[B];
+                    });
+    }
+    std::vector<size_t> static const sortedIndices = tempSortedIndices;
+
+    // Sort the vector
+    for (size_t i = 0; i < _testTotalNumParticles; i++)
+    {
+        testData.at(i) = unsortedTestData.at(sortedIndices.at(i));
+    }
+
+    // Return the entire dataset fully concatenated and sorted
+    return testData;
+}
+// =============================================================================
+
+// =============================================================================
+std::vector<double> systemTest::SystemTestRunner::_loadFiducialFieldData(
+    std::string const &dataSetName)
 {
     if (_fiducialFileExists)
     {
@@ -424,24 +586,81 @@ std::shared_ptr<double[]> systemTest::SystemTestRunner::_getFiducialArray(
         // Determine dataset size/shape and check that it's correct
         H5::DataSpace fiducialDataSpace = fiducialDataSet.getSpace();
 
-        hsize_t fidDims[3] = {1,1,1};
-        fiducialDataSpace.getSimpleExtentDims(fidDims);
+        std::vector<hsize_t> fidDims{1,1,1};
+        fiducialDataSpace.getSimpleExtentDims(fidDims.data());
 
-        // Allocate arrays, Note that I'm casting everything to double. Some
-        // of the arrays are ints in the HDF5 file and if the casting
+        // Allocate vectors, Note that I'm casting everything to double. Some
+        // of the vectors are ints in the HDF5 file and if the casting
         // becomes an issue we can fix it later
-        length = fidDims[0] * fidDims[1] * fidDims[2];
-        auto fiducialData = std::shared_ptr<double[]>{ new double[length] };
+        std::vector<double> fiducialData(fidDims[0] * fidDims[1] * fidDims[2]);
 
         // Read in data
-        fiducialDataSet.read(fiducialData.get(), H5::PredType::NATIVE_DOUBLE);
+        fiducialDataSet.read(fiducialData.data(), H5::PredType::NATIVE_DOUBLE);
         return fiducialData;
     }
     else
     {
-        length = _fiducialArrSize[dataSetName];
         return _fiducialDataSets[dataSetName];
     }
+}
+// =============================================================================
+
+// =============================================================================
+std::vector<double> systemTest::SystemTestRunner::_loadFiducialParticleData(
+        std::string const &dataSetName)
+{
+    // Determine the total number of particles
+    if (_fiducialTotalNumParticles == 0)
+    {
+        // Open the dataset
+        H5::DataSet const dataSet = _fiducialFile.openDataSet(dataSetName);
+
+        // Determine dataset size/shape and check that it's correct
+        H5::DataSpace dataSpace = dataSet.getSpace();
+
+        // Get the number of elements and increase the total count
+        size_t localNumParticles = dataSpace.getSimpleExtentNpoints();
+        _fiducialTotalNumParticles += localNumParticles;
+    }
+
+    // Allocate the vectors
+    std::vector<double> unsortedFiducialData(_fiducialTotalNumParticles);
+    std::vector<double> fiducialData(_fiducialTotalNumParticles);
+
+    // Load in the data
+    // Open the dataset
+    H5::DataSet const fiducialDataSet = _fiducialFile.openDataSet(dataSetName);
+
+    // Determine dataset size/shape and check that it's correct
+    H5::DataSpace const testDataSpace = fiducialDataSet.getSpace();
+
+    size_t localNumParticles = testDataSpace.getSimpleExtentNpoints();
+
+    // Read in data
+    fiducialDataSet.read(unsortedFiducialData.data(),
+                         H5::PredType::NATIVE_DOUBLE);
+
+    // Generate the sorting vector if it's not already generated
+    std::vector<size_t> tempSortedIndices;
+    if (dataSetName == "particle_IDs")
+    {
+        tempSortedIndices.resize(_fiducialTotalNumParticles);
+        std::iota(tempSortedIndices.begin(), tempSortedIndices.end(), 0);
+        std::sort(tempSortedIndices.begin(), tempSortedIndices.end(),
+                  [&](size_t A, size_t B) -> bool {
+                        return unsortedFiducialData.at(A) < unsortedFiducialData.at(B);
+                    });
+    }
+    std::vector<size_t> const static sortedIndices = tempSortedIndices;
+
+    // Sort the vector
+    for (size_t i = 0; i < _fiducialTotalNumParticles; i++)
+    {
+        fiducialData.at(i) = unsortedFiducialData.at(sortedIndices.at(i));
+    }
+
+    // Return the entire dataset fully concatenated and sorted
+    return fiducialData;
 }
 // =============================================================================
 

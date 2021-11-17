@@ -21,6 +21,10 @@
 setupTests ()
 {
   echo -e "\nRunning Setup..."
+  unset CHOLLA_MAKE_TYPE
+  unset CHOLLA_COMPILER
+  unset BUILD_GTEST
+  unset MAKE_TYPE_ARG
   # Check arguments & default CHOLLA_MAKE_TYPE
   export CHOLLA_MAKE_TYPE='hydro'
 

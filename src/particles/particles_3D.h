@@ -265,7 +265,7 @@ class Particles_3D
 
   void Initialize_Grid_Values();
 
-  void Initialize_Sphere();
+  void Initialize_Sphere(struct parameters *P);
 
   void Initialize_Disk_Stellar_Clusters(struct parameters *P);
 

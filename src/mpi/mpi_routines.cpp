@@ -790,7 +790,8 @@ Real ReducePartIntSum(part_int_t x)
 }
 
 
-// Count the particles in the MPI ranks lower that this rank (procID) to get a global offset for the local IDs.
+// Count the particles in the MPI ranks lower than this rank (procID) to get a
+// global offset for the local IDs.
 part_int_t Get_Particles_IDs_Global_MPI_Offset( part_int_t n_local ){
   part_int_t global_offset;
   part_int_t *n_local_all, *n_local_send;
