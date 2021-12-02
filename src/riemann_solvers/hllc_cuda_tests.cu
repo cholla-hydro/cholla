@@ -31,12 +31,6 @@
     class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
     {
     protected:
-        // OOP
-        // 1. Get the state
-        // 2. Perform the calculations
-        // 3. Perform the check, should take some kind of stream for optional extra
-        //    output
-
         // =====================================================================
         /*!
          * \brief Compute and return the HLLC fluxes
