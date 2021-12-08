@@ -18,7 +18,7 @@ init=Disk_3D
 # domain properties
 xmin=-5
 ymin=-5
-zmin=-5
+zmin=-10
 xlen=10
 ylen=10
 zlen=20
