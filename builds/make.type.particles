@@ -11,11 +11,11 @@ DFLAGS += -DPARTICLES_CPU
 
 
 #Solve only an N-Body Simulation (No Hydro, DM Only simulation)
-# DFLAGS += -DONLY_PARTICLES
+DFLAGS += -DONLY_PARTICLES
 
 
 #Track Particles IDs and write them to the output files
-# DFLAGS += -DPARTICLE_IDS
+DFLAGS += -DPARTICLE_IDS
 
 
 #Track Particles Ages ( Stellar Populations )
