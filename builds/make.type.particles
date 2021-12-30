@@ -15,7 +15,7 @@ DFLAGS += -DONLY_PARTICLES
 
 
 #Track Particles IDs and write them to the output files
-DFLAGS += -DPARTICLE_IDS
+# DFLAGS += -DPARTICLE_IDS
 
 
 #Track Particles Ages ( Stellar Populations )
