@@ -25,5 +25,3 @@ FFTW_ROOT         = $(shell dirname $(FFTW_DIR))
 #-- Use GPU-aware MPI
 MPI_GPU           = -DMPI_GPU
 
-#-- Temporarily disabled output
-OUTPUT            = -DNULL_OUTPUT
