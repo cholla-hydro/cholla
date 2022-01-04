@@ -57,7 +57,7 @@ BUILD             ?= OPTIMIZE
 
 CFLAGS            += $(CFLAGS_$(BUILD))
 CXXFLAGS          += $(CXXFLAGS_$(BUILD))
-GPUFLAGS	        += $(GPUFLAGS_$(BUILD))
+GPUFLAGS          += $(GPUFLAGS_$(BUILD))
 
 #-- Add flags and libraries as needed
 

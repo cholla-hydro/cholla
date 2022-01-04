@@ -16,12 +16,15 @@ case $FQDN in
     exit 0 ;;
   *crc.*)
     echo "crc"
-    exit 0;;
+    exit 0 ;;
   *spock* | birch*)
     echo "spock"
     exit 0 ;;
   *c3po* )
     echo "c3po"
+    exit 0 ;;
+  *crusher* | *frontier* )
+    echo "frontier"
     exit 0 ;;
   *)
     host=$(hostname)
