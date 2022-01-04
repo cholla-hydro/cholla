@@ -15,6 +15,13 @@
 // =============================================================================
 // Test Suite: tHYDROSYSTEMSodShockTube
 // =============================================================================
+/*!
+ * \defgroup tHYDROSYSTEMSodShockTubeParameterizedMpi_CorrectInputExpectCorrectOutput
+ * \brief Test the Sod Shock tube initial conditions as a parameterized test
+ * with varying numbers of MPI ranks
+ *
+ */
+/// @{
 class tHYDROSYSTEMSodShockTubeParameterizedMpi
       :public
       ::testing::TestWithParam<size_t>
@@ -33,4 +40,5 @@ TEST_P(tHYDROSYSTEMSodShockTubeParameterizedMpi,
 INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput,
                          tHYDROSYSTEMSodShockTubeParameterizedMpi,
                          ::testing::Values(1, 2, 4));
+/// @}
 // =============================================================================
