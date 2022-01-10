@@ -265,13 +265,9 @@ struct parameters
   int n_proc_y;
   int n_proc_z;
 #endif
-
-#ifdef CHEMISTRY_GPU
-  char uvb_rates_file[MAXLEN]; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII  
-#endif
   int bc_potential_type;
-#ifdef COOLING_GRACKLE
-  char UVB_rates_file[MAXLEN];
+#if defined(COOLING_GRACKLE) || defined (CHEMISTRY_GPU)
+  char UVB_rates_file[MAXLEN]; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
 #endif  
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}

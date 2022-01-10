@@ -294,8 +294,8 @@ parms->scale_outputs_file[0] = '\0';
 #endif
 
 #ifdef CHEMISTRY_GPU
-    else if (strcmp(name, "uvb_rates_file")==0)
-      strncpy (parms->uvb_rates_file, value, MAXLEN);
+    else if (strcmp(name, "UVB_rates_file")==0)
+      strncpy (parms->UVB_rates_file, value, MAXLEN);
 #endif    
     else if (strcmp(name, "bc_potential_type")==0)
       parms->bc_potential_type  = atoi(value);
