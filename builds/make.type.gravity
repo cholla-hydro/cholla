@@ -12,7 +12,7 @@ DFLAGS += $(POISSON_SOLVER)
 #Keep the Gravity arrays resident in the GPU for high efficiency
 #NOTE: If using PARTICLES and GRAVITY_GPU is turned on, then PARTICLES_GPU has to be turned on 
 #NOTE: If using GRAVITY and GPU_MPI is turned on, then GRAVITY_GPU has to be turned on 
-# DFLAGS += -DGRAVITY_GPU
+DFLAGS += -DGRAVITY_CPU
 
 
 #Include an analytical potential on top on the Poisson Potential

@@ -313,6 +313,10 @@ parms->scale_outputs_file[0] = '\0';
       parms->lya_skewers_stride  = atoi(value);
     else if (strcmp(name, "lya_Pk_d_log_k")==0)
       parms->lya_Pk_d_log_k  = atof(value);
+    #ifdef OUTPUT_SKEWERS
+    else if (strcmp(name, "skewersdir")==0)
+      strncpy (parms->skewersdir, value, MAXLEN);
+    #endif
 #endif    
     else if (!is_param_valid(name))
       printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",

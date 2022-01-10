@@ -23,4 +23,4 @@ GRACKLE_ROOT = /ccs/home/bvilasen/code/grackle
 
 #Set the Hydro Conserved arrays to reside in the GPU
 #and MPI transfers are done from the GPU 
-GPU_MPI = -DGPU_MPI
+#GPU_MPI = -DGPU_MPI

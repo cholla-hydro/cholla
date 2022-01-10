@@ -274,6 +274,9 @@ struct parameters
   char analysisdir[MAXLEN];
   int lya_skewers_stride;
   Real lya_Pk_d_log_k;
+  #ifdef OUTPUT_SKEWERS
+  char skewersdir[MAXLEN];
+  #endif
 #endif
 };
 
