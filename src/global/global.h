@@ -25,7 +25,7 @@ typedef double Real;
 #endif
 #endif
 
-#define MAXLEN 140
+#define MAXLEN 2048
 #define TINY_NUMBER 1.0e-20
 #define PI 3.141592653589793
 #define MP 1.672622e-24 // mass of proton, grams
