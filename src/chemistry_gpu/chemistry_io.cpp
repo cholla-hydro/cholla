@@ -17,7 +17,7 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(  struct parameters *P ){
 
   char uvb_filename[100];
   // create the filename to read from
-  strcpy(uvb_filename, P->uvb_rates_file);
+  strcpy(uvb_filename, P->UVB_rates_file);
   chprintf( " Loading UVB rates: %s\n", uvb_filename);
   
 

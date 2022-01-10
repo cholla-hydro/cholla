@@ -43,6 +43,10 @@ void Time::Initialize(){
   #ifdef COOLING_GRACKLE
   time_cooling_all = 0;
   #endif
+  
+  #ifdef CHEMISTRY_GPU
+  time_chemistry_all = 0;
+  #endif
 
   chprintf( "\nTiming Functions is ON \n");
 }
