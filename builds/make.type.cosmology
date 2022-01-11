@@ -1,18 +1,18 @@
 include builds/make.type.particles
 
-# Solve the equation of motion (Particles and Hydro) on a comuving frame
+# Solve the equation of motion (Particles and Hydro) on a comoving frame
 DFLAGS += -DCOSMOLOGY
 
 
 # Use Grackle for cooling in cosmological simulations
-DFLAGS += -DCOOLING_GRACKLE -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DN_OMP_THREADS_GRACKLE=$(OMP_NUM_THREADS)
+#DFLAGS += -DCOOLING_GRACKLE -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DN_OMP_THREADS_GRACKLE=$(OMP_NUM_THREADS)
 #DFLAGS += -DGRACKLE_METALS
 
 
 # Solve the Primordial Chemical Network (H+He) on the GPU (Includes Photoheating and Photoionization)
-#DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY 
+DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY 
 
-# Permorm In-The-Fly analisys of Cosmological Simulations
+# Permorm In-The-Fly analysis of Cosmological Simulations
 DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS -DOUTPUT_SKEWERS
 
 
