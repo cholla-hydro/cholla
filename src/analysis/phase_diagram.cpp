@@ -1,4 +1,5 @@
 #ifdef ANALYSIS
+#ifdef PHASE_DIAGRAM
 
 #include <stdio.h>      /* printf */
 #include <math.h> 
@@ -60,9 +61,15 @@ void Grid3D::Compute_Phase_Diagram(){
           // chprintf( "%f %f \n", dens, temp);
           #ifdef COOLING_GRACKLE
           temp = Cool.temperature[id_grid];
+          #elif defined CHEMISTRY_GPU
+          temp = Chem.Fields.temperature_h[id_grid];
+          #else
+          chprintf( "ERROR: Temperature Field is only supported for Grackle Cooling or CHEMISTRY_GPU\n");
+          exit(-1);        
           #endif
+    
           if ( dens < dens_min || dens > dens_max || temp < temp_min || temp > temp_max ){
-            // printf("%f   %f\n", dens, temp );
+            printf("Outside Phase Diagram:  dens:%e   temp:%e \n", dens, temp );
             continue;
           }
           log_dens = log10(dens);
@@ -71,6 +78,10 @@ void Grid3D::Compute_Phase_Diagram(){
           indx_temp = ( log_temp - log_temp_min ) / log_delta_temp;
           
           indx_phase = indx_temp + indx_dens*n_temp;
+          if ( indx_phase >= n_dens*n_temp || indx_phase < 0 ){
+            printf("Index outside Phase Diagram:  indx:%d   N:%d  dens:%e   temp:%e  indx_dens:%d  indx_temp:%d   \n", indx_phase, n_dens*n_temp, dens, temp, indx_dens, indx_temp );
+            continue;
+          }
           Analysis.phase_diagram[indx_phase] += 1;
           
       }
@@ -120,14 +131,5 @@ void Analysis_Module::Initialize_Phase_Diagram( struct parameters *P ){
 
 
 
-
-
-
-
-
-
-
-
-
-
+#endif
 #endif
