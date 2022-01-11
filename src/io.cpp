@@ -1542,10 +1542,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     #ifdef OUTPUT_TEMPERATURE
     
-    #ifdef CHEMISTRY_GPU
-    Real *temperature;
-    temperature = (Real *) malloc ( H.n_cells * sizeof(Real) ); 
-    Compute_Gas_Temperature( temperature ); 
+    #ifdef CHEMISTRY_GPU 
+    Compute_Gas_Temperature( Chem.Fields.temperature_h ); 
     #endif
     
     // Copy the internal energy array to the memory buffer
@@ -1558,7 +1556,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           dataset_buffer[buf_id] = Cool.temperature[id];
           #endif
           #ifdef CHEMISTRY_GPU
-          dataset_buffer[buf_id] = temperature[id];
+          dataset_buffer[buf_id] = Chem.Fields.temperature_h[id];
           #endif
         }
       }
@@ -1569,10 +1567,6 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
-    
-    #ifdef CHEMISTRY_GPU
-    free(temperature);
-    #endif
     
     #endif //OUTPUT_TEMPERATURE
     

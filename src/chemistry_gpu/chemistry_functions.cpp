@@ -12,7 +12,12 @@
 void Grid3D::Initialize_Chemistry( struct parameters *P ){
   
   chprintf( "Initializing the GPU Chemistry Solver... \n");
+  
+  Chem.nx = H.nx;
+  Chem.ny = H.ny;
+  Chem.nz = H.nz;
 
+  Chem.gamma = gama;
   
   Chem.Initialize( P );
   
@@ -29,11 +34,21 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   #endif
   Chem.H.n_uvb_rates_samples  = Chem.n_uvb_rates_samples;
   Chem.H.uvb_rates_redshift_d = Chem.rates_z_d;
+  Chem.H.photo_ion_HI_rate_d   = Chem.Ion_rates_HI_d;
+  Chem.H.photo_ion_HeI_rate_d  = Chem.Ion_rates_HeI_d;
+  Chem.H.photo_ion_HeII_rate_d = Chem.Ion_rates_HeII_d;
+  Chem.H.photo_heat_HI_rate_d   = Chem.Heat_rates_HI_d;
+  Chem.H.photo_heat_HeI_rate_d  = Chem.Heat_rates_HeI_d;
+  Chem.H.photo_heat_HeII_rate_d = Chem.Heat_rates_HeII_d;
+  
+  chprintf( "Allocating Memory. \n\n");
+  int n_cells = H.nx * H.ny * H.nz;
+  Chem.Fields.temperature_h = (Real *) malloc(n_cells * sizeof(Real));
   
   chprintf( "Chemistry Solver Successfully Initialized. \n\n");
-  
-  
+
 }
+
 
 void Chem_GPU::Initialize( struct parameters *P ){
   
@@ -116,7 +131,7 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature ){
         
         #ifdef DE
         GE = C.GasEnergy[id];
-        P = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );  
+        P = GE * (gamma - 1.0);  
         #else 
         P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
         #endif
@@ -141,7 +156,7 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature ){
         temperature[id] = temp;
         
         // chprintf( "mu: %e \n", mu );
-        if ( id == 0 ) chprintf( "temp: %e    mu: %e \n", temp, mu );
+        if ( temp < 0 ) chprintf( "Negative Temperature: %e \n", temp );
         
       }
     }  
@@ -166,6 +181,8 @@ void Chem_GPU::Reset(){
   Free_Array_GPU_float( Ion_rates_HI_d );
   Free_Array_GPU_float( Ion_rates_HeI_d );
   Free_Array_GPU_float( Ion_rates_HeII_d );
+  
+  free( Fields.temperature_h );
   
 }
 

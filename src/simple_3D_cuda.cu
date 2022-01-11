@@ -244,7 +244,9 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
     hipLaunchKernelGGL(Update_Chemistry, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, 
-      Chem_H->density_conversion, Chem_H->energy_conversion, Chem_H->current_z, Chem_H->cosmological_parameters_d, Chem_H->n_uvb_rates_samples, Chem_H->uvb_rates_redshift_d );
+      Chem_H->density_conversion, Chem_H->energy_conversion, Chem_H->current_z, Chem_H->cosmological_parameters_d, Chem_H->n_uvb_rates_samples, Chem_H->uvb_rates_redshift_d,
+      Chem_H->photo_ion_HI_rate_d, Chem_H->photo_ion_HeI_rate_d, Chem_H->photo_ion_HeII_rate_d,
+      Chem_H->photo_heat_HI_rate_d, Chem_H->photo_heat_HeI_rate_d, Chem_H->photo_heat_HeII_rate_d  );
     CudaCheckError();
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);

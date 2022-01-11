@@ -113,13 +113,13 @@ int main(int argc, char *argv[])
   G.Initialize_Grackle(&P);
   #endif
   
+  #ifdef CHEMISTRY_GPU
+  G.Initialize_Chemistry(&P);
+  #endif
+  
   #ifdef ANALYSIS
   G.Initialize_Analysis_Module(&P);
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
-  #endif
-
-  #ifdef CHEMISTRY_GPU
-  G.Initialize_Chemistry(&P);
   #endif
   
   #ifdef GRAVITY

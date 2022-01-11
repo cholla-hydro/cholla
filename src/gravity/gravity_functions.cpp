@@ -75,7 +75,13 @@ void Grid3D::set_dt_Gravity(){
     chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
   }
   #endif
-  
+  #ifdef CHEMISTRY_GPU
+  if ( fabs(Cosmo.current_a + da_min - Chem.scale_factor_UVB_on) < 0.005 ){
+    da_min /= 2;
+    chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
+  }
+  #endif
+    
   //Limit delta_a if it's time to output
   if ( (Cosmo.current_a + da_min) >  Cosmo.next_output ){
     da_min = Cosmo.next_output - Cosmo.current_a;
