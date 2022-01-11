@@ -76,9 +76,12 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(  struct parameters *P ){
   }
   
   n_uvb_rates_samples = n_lines;
+  scale_factor_UVB_on = 1 / (rates_z_h[n_uvb_rates_samples-1] + 1 );
   chprintf(" Loaded UVB rates: \n");
   chprintf("  N redshift values: %d \n", n_uvb_rates_samples );
   chprintf("  z_min = %f    z_max = %f \n", rates_z_h[0], rates_z_h[n_uvb_rates_samples-1] );
+  chprintf("  UVB on:  a=%f \n", scale_factor_UVB_on  );
+  
 
 }
 

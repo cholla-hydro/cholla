@@ -8,10 +8,18 @@ struct Chemistry_Header
   Real density_conversion;
   Real energy_conversion;
   Real current_z;
-  float *cosmological_parameters_d;
   int n_uvb_rates_samples;
-  float *uvb_rates_redshift_d;
   Real runtime_chemistry_step;
+  
+  float *cosmological_parameters_d;
+  float *uvb_rates_redshift_d;
+  float *photo_ion_HI_rate_d;
+  float *photo_ion_HeI_rate_d;
+  float *photo_ion_HeII_rate_d;
+  float *photo_heat_HI_rate_d;
+  float *photo_heat_HeI_rate_d;
+  float *photo_heat_HeII_rate_d;
+  
 };
 
 
@@ -22,6 +30,14 @@ struct Chemistry_Header
 class Chem_GPU
 {
 public:
+  
+  int nx;
+  int ny;
+  int nz;
+  
+  Real gamma;
+  
+  Real scale_factor_UVB_on;
 
   float *cosmo_params_h;
   float *cosmo_params_d;
@@ -44,6 +60,23 @@ public:
   float *Ion_rates_HeII_d;
   
   struct Chemistry_Header H;
+  
+  
+  struct Fields
+  {
+    Real *temperature_h;
+  } Fields;
+  
+
+  // struct Fields_dev
+  // {
+  //   Real *HI_density;
+  //   Real *HII_density;
+  //   Real *HeI_density;
+  //   Real *HeII_density;
+  //   Real *HeIII_density;
+  //   Real *e_density;
+  // } Fields_dev;
   
   void Allocate_Array_GPU_Real( Real **array_dev, int size );
   void Allocate_Array_GPU_float( float **array_dev, int size );
