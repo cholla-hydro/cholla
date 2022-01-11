@@ -190,10 +190,14 @@ void systemTest::SystemTestRunner::runTest()
                     // Check for equality and iff not equal return difference
                     double absoluteDiff;
                     int64_t ulpsDiff;
+                    // Fixed epsilon is changed from the default since AMD/Clang
+                    // appear to differ from NVIDIA/GCC/XL by roughly 1E-12
+                    double fixedEpsilon = 5.0E-12;
                     bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData.at(index),
                                                                      testData.at(index),
                                                                      absoluteDiff,
-                                                                     ulpsDiff);
+                                                                     ulpsDiff,
+                                                                     fixedEpsilon);
                     ASSERT_TRUE(areEqual)
                         << std::endl
                         << "Difference in "

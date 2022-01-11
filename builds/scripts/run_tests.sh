@@ -23,7 +23,6 @@ setupTests ()
   echo -e "\nRunning Setup..."
   unset CHOLLA_MAKE_TYPE
   unset CHOLLA_COMPILER
-  unset BUILD_GTEST
   unset MAKE_TYPE_ARG
   # Check arguments & default CHOLLA_MAKE_TYPE
   export CHOLLA_MAKE_TYPE='hydro'
@@ -80,6 +79,10 @@ setupTests ()
     *c3po*)
       export CHOLLA_MACHINE='c3po'
       export CHOLLA_LAUNCH_COMMAND='mpirun -np'
+      ;;
+    *frontier* | *crusher*)
+      export CHOLLA_MACHINE='frontier'
+      export CHOLLA_LAUNCH_COMMAND='srun -n'
       ;;
     *github*)
       export CHOLLA_MACHINE='github'
@@ -206,6 +209,10 @@ runTests ()
 # GoogleTest to use instead of the machine default
 buildAndRunTests ()
 {
+  # Unset BUILD_GTEST so that subsequent runs aren't tied to what previous runs
+  # did
+  unset BUILD_GTEST
+
   # Check arguments
   local OPTIND
   while getopts "t:c:g" opt; do

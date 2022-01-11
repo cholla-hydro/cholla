@@ -1,4 +1,4 @@
-#-- make.host for Frontier at the OLCF with 
+#-- make.host for Frontier at the OLCF with
 #-- Compiler and flags for different build type
 CC                = cc
 CXX               = CC
@@ -16,11 +16,12 @@ HIPCONFIG	  = $(shell hipconfig -C)
 
 OMP_NUM_THREADS   = 8
 #-- How to launch job
-JOB_LAUNCH        = srun -u -A STF016 -n 1 -c 8 
+JOB_LAUNCH        = srun -u -A STF016 -n 1 -c 8
 
 #-- Library
 MPI_ROOT          = ${CRAY_MPICH_DIR}
 FFTW_ROOT         = $(shell dirname $(FFTW_DIR))
+GOOGLETEST_ROOT := $(if $(GOOGLETEST_ROOT),$(GOOGLETEST_ROOT),$(OLCF_GOOGLETEST_ROOT))
 
 #-- Use GPU-aware MPI
 MPI_GPU           = -DMPI_GPU
