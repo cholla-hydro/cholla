@@ -113,9 +113,10 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature ){
   
   int k, j, i, id;
   Real dens_HI, dens_HII, dens_HeI, dens_HeII, dens_HeIII, dens_e, gamma;
-  Real d, vx, vy, vz, E, E_kin, GE, P, mu, temp, cell_dens, cell_n; 
-  
+  Real d, vx, vy, vz, E, GE, mu, temp, cell_dens, cell_n; 
+  Real current_a, a2;
   gamma = gama;
+  
     
   for (k=0; k<H.nz; k++) {
     for (j=0; j<H.ny; j++) {
@@ -127,13 +128,11 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature ){
         vy =  C.momentum_y[id] / d;
         vz =  C.momentum_z[id] / d;
         E = C.Energy[id];
-        E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
-        
+
         #ifdef DE
         GE = C.GasEnergy[id];
-        P = GE * (gamma - 1.0);  
         #else 
-        P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+        GE = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz));
         #endif
         
         dens_HI    = C.HI_density[id];
@@ -147,16 +146,16 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature ){
         cell_n =  dens_HI + dens_HII + ( dens_HeI + dens_HeII + dens_HeIII )/4 + dens_e;
         mu = cell_dens / cell_n;
         
-        temp = P * MP  * mu / d / KB;
-        
         #ifdef COSMOLOGY
-        temp *= 1e10; // convert from (km/s)^2 to (cm/s)^2
+        current_a = Cosmo.current_a;
+        a2 = current_a * current_a;
+        GE *= Chem.H.energy_conversion / a2; 
         #endif
-         
-        temperature[id] = temp;
         
+        temp = GE * MP  * mu / d / KB * (gamma - 1.0);  ;
+        temperature[id] = temp;
         // chprintf( "mu: %e \n", mu );
-        if ( temp < 0 ) chprintf( "Negative Temperature: %e \n", temp );
+        // if ( temp > 1e7 ) chprintf( "Temperature: %e   mu: %e \n", temp, mu );  
         
       }
     }  
