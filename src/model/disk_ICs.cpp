@@ -1060,6 +1060,12 @@ void Grid3D::Disk_3D(parameters p)
         // store internal energy in Energy array
         C.Energy[id] += P/(gama-1.0);
 
+
+	// add a passive scalar
+	#ifdef SCALAR
+	C.scalar[id] = 0.0;
+	#endif
+	
       }
     }
   }
