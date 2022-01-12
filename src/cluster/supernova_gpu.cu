@@ -152,8 +152,8 @@ __device__ Real Supernova_Helper(Real *hydro_dev,
 	}
       }
     }
-#endif //SUPERD
     weight = count/8000.0;
+#endif //SUPERD
   } // endif  
 
   // Add values to hydro_dev
