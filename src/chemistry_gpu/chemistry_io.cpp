@@ -26,20 +26,25 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(  struct parameters *P ){
   std::string line;
   std::vector<std::vector<float>> v;
   int i = 0;
-
-  while (std::getline(in, line))
-  {
-     if ( line.find("#") == 0 ) continue;
-    
-     float value;
-     std::stringstream ss(line);
-     // chprintf( "%s \n", line.c_str() );
-     v.push_back(std::vector<float>());
-     
-     while (ss >> value){
-       v[i].push_back(value);
-     }
-     i += 1;    
+  if (in.is_open()){
+    while (std::getline(in, line))
+    {
+       if ( line.find("#") == 0 ) continue;
+      
+       float value;
+       std::stringstream ss(line);
+       // chprintf( "%s \n", line.c_str() );
+       v.push_back(std::vector<float>());
+       
+       while (ss >> value){
+         v[i].push_back(value);
+       }
+       i += 1;    
+    }
+    in.close();
+  } else{
+    chprintf(" Error: Unable to open UVB rates file: %s\n", uvb_filename);
+    exit(1);
   }
   
   int n_lines = i;
