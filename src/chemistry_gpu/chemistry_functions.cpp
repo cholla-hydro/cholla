@@ -109,7 +109,7 @@ void Grid3D::Update_Chemistry_Header(){
     
 }
 
-void Grid3D::Compute_Gas_Temperature(  Real *temperature ){
+void Grid3D::Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units ){
   
   int k, j, i, id;
   Real dens_HI, dens_HII, dens_HeI, dens_HeII, dens_HeIII, dens_e, gamma;
@@ -147,9 +147,13 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature ){
         mu = cell_dens / cell_n;
         
         #ifdef COSMOLOGY
-        current_a = Cosmo.current_a;
-        a2 = current_a * current_a;
-        GE *= Chem.H.energy_conversion / a2; 
+        if ( convert_cosmo_units ){
+          current_a = Cosmo.current_a;
+          a2 = current_a * current_a;
+          GE *= Chem.H.energy_conversion / a2; 
+        } else {
+          GE *= 1e10; // convert from (km/s)^2 to (cm/s)^2
+        }
         #endif
         
         temp = GE * MP  * mu / d / KB * (gamma - 1.0);  ;

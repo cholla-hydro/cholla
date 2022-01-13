@@ -1543,7 +1543,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     #ifdef OUTPUT_TEMPERATURE
     
     #ifdef CHEMISTRY_GPU 
-    Compute_Gas_Temperature( Chem.Fields.temperature_h ); 
+    Compute_Gas_Temperature( Chem.Fields.temperature_h, false ); 
     #endif
     
     // Copy the internal energy array to the memory buffer

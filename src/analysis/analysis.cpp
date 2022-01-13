@@ -87,7 +87,7 @@ void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
   
   #ifdef PHASE_DIAGRAM
   #ifdef CHEMISTRY_GPU
-  Compute_Gas_Temperature( Chem.Fields.temperature_h ); 
+  Compute_Gas_Temperature( Chem.Fields.temperature_h, true ); 
   #endif
   Compute_Phase_Diagram();
   #endif
