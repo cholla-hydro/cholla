@@ -3,6 +3,8 @@
 
 #include"../global.h"
 
+// #define TEXTURES_UVB_INTERPOLATION
+
 struct Chemistry_Header
 {
   Real density_conversion;
@@ -67,16 +69,6 @@ public:
     Real *temperature_h;
   } Fields;
   
-
-  // struct Fields_dev
-  // {
-  //   Real *HI_density;
-  //   Real *HII_density;
-  //   Real *HeI_density;
-  //   Real *HeII_density;
-  //   Real *HeIII_density;
-  //   Real *e_density;
-  // } Fields_dev;
   
   void Allocate_Array_GPU_Real( Real **array_dev, int size );
   void Allocate_Array_GPU_float( float **array_dev, int size );
@@ -91,10 +83,11 @@ public:
   
   void Copy_UVB_Rates_to_GPU();
     
-  void Bind_GPU_Textures( int size,  float *H_HI_h, float *H_HeI_h, float *H_HeII_h , float *I_HI_h, float *I_HeI_h, float *I_HeII_h );
-  
   void Reset( );
-
+  
+  #ifdef TEXTURES_UVB_INTERPOLATION
+  void Bind_GPU_Textures( int size,  float *H_HI_h, float *H_HeI_h, float *H_HeII_h , float *I_HI_h, float *I_HeI_h, float *I_HeII_h );
+  #endif
 
 
 

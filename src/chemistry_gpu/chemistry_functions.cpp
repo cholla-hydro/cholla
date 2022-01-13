@@ -73,8 +73,9 @@ void Chem_GPU::Initialize_UVB_Ionization_and_Heating_Rates( struct parameters *P
   
   Copy_UVB_Rates_to_GPU( );
   
+  #ifdef TEXTURES_UVB_INTERPOLATION
   Bind_GPU_Textures( n_uvb_rates_samples, Heat_rates_HI_h, Heat_rates_HeI_h, Heat_rates_HeII_h, Ion_rates_HI_h, Ion_rates_HeI_h, Ion_rates_HeII_h);
-
+  #endif
 }
 
 void Chem_GPU::Copy_UVB_Rates_to_GPU( ){

@@ -67,6 +67,20 @@ public:
   
 };
 
+__device__ int Binary_Search( int N, Real val, float *data, int indx_l, int indx_r ){
+  int n, indx;
+  n = indx_r - indx_l;
+  indx = indx_l + n/2;
+  if ( val >= data[N-1] ) return indx_r;
+  if ( val <= data[0]   ) return indx_l;
+  if ( indx_r == indx_l + 1 ) return indx_l;
+  if ( data[indx] <= val ) indx_l = indx;
+  else indx_r = indx;
+  return Binary_Search( N, val, data, indx_l, indx_r );
+}
+
+
+#ifdef TEXTURES_UVB_INTERPOLATION
 texture<float, 1, cudaReadModeElementType> tex_Heat_rate_HI;
 texture<float, 1, cudaReadModeElementType> tex_Heat_rate_HeI;
 texture<float, 1, cudaReadModeElementType> tex_Heat_rate_HeII;
@@ -137,25 +151,8 @@ void Chem_GPU::Bind_GPU_Textures( int size, float *H_HI_h, float *H_HeI_h, float
 
 }
 
-  
-  
-__device__ int Binary_Search( int N, Real val, float *data, int indx_l, int indx_r ){
-  int n, indx;
-  n = indx_r - indx_l;
-  indx = indx_l + n/2;
-  if ( val >= data[N-1] ) return indx_r;
-  if ( val <= data[0]   ) return indx_l;
-  if ( indx_r == indx_l + 1 ) return indx_l;
-  if ( data[indx] <= val ) indx_l = indx;
-  else indx_r = indx;
-  return Binary_Search( N, val, data, indx_l, indx_r );
-}
-
-
-
 
 __device__ void get_current_uvb_rates_textures( Real current_z, int n_uvb_rates_samples, float *rates_z, float &photo_i_HI, float &photo_h_HI, float &photo_i_HeI, float &photo_h_HeI, float &photo_i_HeII, float &photo_h_HeII ){
-  
   
   if ( current_z > rates_z[n_uvb_rates_samples - 1]){
     photo_h_HI   = 0;  
@@ -166,7 +163,6 @@ __device__ void get_current_uvb_rates_textures( Real current_z, int n_uvb_rates_
     photo_i_HeII = 0;  
     return;
   }
-  
   // Find closest value of z in rates_z such that z<=current_z
   int indx_l;
   indx_l = Binary_Search( n_uvb_rates_samples, current_z, rates_z, 0, n_uvb_rates_samples-1 );
@@ -190,12 +186,11 @@ __device__ void get_current_uvb_rates_textures( Real current_z, int n_uvb_rates_
   photo_i_HI   = tex1D( tex_Ion_rate_HI, x );
   photo_i_HeI  = tex1D( tex_Ion_rate_HeI, x );
   photo_i_HeII = tex1D( tex_Ion_rate_HeII, x );
-  // printf("%f  %f  %e  %e  %e  %e  %e  %e \n ", current_z, z_l, photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII );
-    
-                     
+  // printf("%f  %f  %e  %e  %e  %e  %e  %e \n ", current_z, z_l, photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII );                   
 }
-
-
+#endif //TEXTURES_UVB_INTERPOLATION
+  
+  
 __device__ Real linear_interpolation( Real delta_x, int indx_l, int indx_r, float*array ){
   float v_l, v_r; 
   Real v;
@@ -264,7 +259,7 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
   
   float photo_h_HI, photo_h_HeI, photo_h_HeII; 
   float photo_i_HI, photo_i_HeI, photo_i_HeII;  
-  Real current_z, temp, C, D, dt, delta_a;
+  Real current_z, temp, C, D, dt;
   Real dQ_dt_phot, dQ_dt_brem, dQ_dt_CMB, dQ_dt;
   Real Q_cool_rec_HII, Q_cool_rec_HeII, Q_cool_rec_HeII_d, Q_cool_rec_HeIII, dQ_dt_cool_recomb;
   Real Q_cool_collis_ext_HI, Q_cool_collis_ext_HeII, Q_cool_collis_ext_HeI;
@@ -272,9 +267,8 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
   Real recomb_HII, recomb_HeII, recomb_HeIII, recomb_HeII_d;
   Real coll_HI, coll_HeI, coll_HeII, coll_HI_HI, coll_HII_HI, coll_HeI_HI;
   Real dt_min_U, dt_min_HI, dt_min_e, dt_min_HeI, alpha_dt, n_min;
-  Real init_nHI, init_nHeI;
   
-  if ( t_chem >= dt_hydro ) return;
+  if ( t_chem >= dt_hydro ) return 0;
   
   // Avoid negative densities ( after the hydro step )
   n_min = 1e-20;
@@ -288,11 +282,18 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
    
   // Compute the resdrift at current_a
   current_z = 1/(current_a) - 1;
-    
+  
+  
   //Get Photoheating amd Photoionization rates as z=current_z
+  #if defined(TEXTURES_UVB_INTERPOLATION)
+  get_current_uvb_rates_textures( current_z, n_uvb_rates_samples, rates_z, 
+    photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII );
+  #else  
   get_current_uvb_rates_arrays( current_z, n_uvb_rates_samples, rates_z, 
     photo_i_HI_rates, photo_i_HeI_rates, photo_i_HeII_rates, photo_h_HI_rates, photo_h_HeI_rates, photo_h_HeII_rates,
-    photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII,   print );
+    photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII, print );
+  #endif
+  
     
   temp = TS.get_temperature();
   
@@ -389,8 +390,8 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
   
   // Get the minimum dt
   dt = fmin( dt_min_U, dt_min_HI );
-  // dt = fmin( dt_min_HeI, dt );
   dt = fmin( dt_min_e, dt );
+  // dt = fmin( dt_min_HeI, dt );
   if ( t_chem + dt > dt_hydro ) dt = dt_hydro - t_chem;
   if ( dt < 0 ) printf( "Chem_GPU: Negative dt: %e  dt_U: %e  dt_HI: %e  dt_e %e   n_HI: %e\n", dt, dt_min_U, dt_min_HI, dt_min_e, TS.n_HI );
   
@@ -426,7 +427,7 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
   // 1. Update HI
   C = recomb_HII*TS.n_HII*TS.n_e;
   D = photo_i_HI + coll_HI*TS.n_e + coll_HI_HI*TS.n_HI + coll_HII_HI*TS.n_HII + coll_HeI_HI*TS.n_HeI;
-  init_nHI = TS.n_HI;    
+  // init_nHI = TS.n_HI;    
   TS.n_HI = Update_BDF( TS.n_HI, C, D, dt );
   if ( TS.n_HI < n_min ) TS.n_HI = n_min;
   
@@ -472,8 +473,8 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
   // if ( TS.n_HeII < 0 )  printf( "Chem_GPU: Negative n_HeII: %e \n", TS.n_HeII );
   // if ( TS.n_HeIII < 0 ) printf( "Chem_GPU: Negative n_HeIII: %e \n", TS.n_HeIII );
   // if ( TS.n_e < 0 )     printf( "Chem_GPU: Negative n_e: %e \n", TS.n_e );
-  if ( rho < 0 )     printf( "Chem_GPU: Negative rho: %e \n", rho );
-  if ( TS.U < 0 )     printf( "Chem_GPU: Negative U: %e \n", TS.U );
+  // if ( rho < 0 )     printf( "Chem_GPU: Negative rho: %e \n", rho );
+  // if ( TS.U < 0 )     printf( "Chem_GPU: Negative U: %e \n", TS.U );
   
   return dt;
 
@@ -979,8 +980,6 @@ __device__ double recomb_HeII_rate(double T, double units, bool use_case_B )
 {
     double T_ev = T / 11605.0;
     double logT_ev = log(T_ev);
-
-    double k4;
     //If case B recombination on.
     if (use_case_B){
         return 1.26e-14 * pow(5.7067e5/T, 0.75) / units;
