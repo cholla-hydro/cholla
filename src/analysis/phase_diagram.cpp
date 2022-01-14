@@ -69,7 +69,7 @@ void Grid3D::Compute_Phase_Diagram(){
           #endif
     
           if ( dens < dens_min || dens > dens_max || temp < temp_min || temp > temp_max ){
-            printf("Outside Phase Diagram:  dens:%e   temp:%e \n", dens, temp );
+            // printf("Outside Phase Diagram:  dens:%e   temp:%e \n", dens, temp );
             continue;
           }
           log_dens = log10(dens);
