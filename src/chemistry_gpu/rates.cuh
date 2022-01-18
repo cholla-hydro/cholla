@@ -88,6 +88,10 @@ __device__ double cool_reHeIII_rate(double T, double units, bool use_case_B );
 // Cooling Bremsstrahlung
 __device__ double cool_brem_rate(double T, double units );
 
+//Calculation of comp.
+// Compton cooling
+__device__ double comp_rate(double units);
+
 
 // Colisional excitation of neutral hydrogen (HI) and singly ionized helium (HeII)
 Real __device__ Collisional_Ionization_Rate_e_HI_Abel97( Real temp );

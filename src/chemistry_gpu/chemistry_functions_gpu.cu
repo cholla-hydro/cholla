@@ -10,6 +10,8 @@
 
 #define eV_to_K 1.160451812e4
 #define K_to_eV 8.617333263e-5
+#define n_min 1e-20
+#define tiny  1e-20
   
 void Chem_GPU::Allocate_Array_GPU_float( float **array_dev, int size ){
   cudaMalloc( (void**)array_dev, size*sizeof(float));
@@ -28,7 +30,6 @@ void Chem_GPU::Free_Array_GPU_float( float *array_dev ){
 class Thermal_State{
 public: 
   
-  Real gamma;
   Real U;
   Real n_HI;
   Real n_HII;
@@ -38,7 +39,7 @@ public:
   Real n_e;
   
   // Constructor
-  __host__ __device__ Thermal_State( Real gamma_0=5/3, Real U_0=1,  Real n_HI_0=1, Real n_HII_0=0, Real n_HeI_0=1, Real n_HeII_0=0, Real n_HeIII_0=1, Real n_e_0=0    ) : gamma(gamma_0), U(U_0), n_HI(n_HI_0), n_HII(n_HII_0), n_HeI(n_HeI_0), n_HeII(n_HeII_0), n_HeIII(n_HeIII_0), n_e(n_e_0) {}
+  __host__ __device__ Thermal_State( Real U_0=1,  Real n_HI_0=1, Real n_HII_0=0, Real n_HeI_0=1, Real n_HeII_0=0, Real n_HeIII_0=1, Real n_e_0=0    ) :  U(U_0), n_HI(n_HI_0), n_HII(n_HII_0), n_HeI(n_HeI_0), n_HeII(n_HeII_0), n_HeIII(n_HeIII_0), n_e(n_e_0) {}
   
   __host__ __device__ Thermal_State operator+( const Thermal_State &TS ){
     return Thermal_State( U+TS.U, n_HI+TS.n_HI, n_HII+TS.n_HII, n_HeI+TS.n_HeI, n_HeII+TS.n_HeII, n_HeIII+TS.n_HeIII, n_e+TS.n_e );
@@ -58,11 +59,76 @@ public:
     return n_mass / n_tot;
   }
   
-  __host__ __device__ Real get_temperature(){
+  __host__ __device__ Real get_temperature( Real gamma ){
     Real mu, temp;
     mu = get_MMW();
     temp = (gamma - 1) * mu * U * MP / KB;
     return temp;
+  }
+  
+};
+
+
+# define N_SPECIES 7
+
+class Thermal_State_Array{
+public: 
+  
+  Real vals[N_SPECIES]; 
+  
+  // Constructor
+  __host__ __device__ Thermal_State_Array( Real n_HI=1,  Real n_HII=0,  Real n_HeI=1,  Real n_HeII=0, Real n_HeIII=0, Real n_e=0,  Real U=1  ){
+    vals[0] = n_HI;
+    vals[1] = n_HII;
+    vals[2] = n_HeI;
+    vals[3] = n_HeII;
+    vals[4] = n_HeIII;
+    vals[5] = n_e;
+    vals[6] = U;
+  } 
+  __host__ __device__ Thermal_State_Array operator+( const Thermal_State_Array &TS ){
+    Thermal_State_Array TS_r;
+    for (int i=0; i<N_SPECIES; i++) TS_r.vals[i] = vals[i] + TS.vals[i];
+    return TS_r;
+  }  
+  __host__ __device__ Thermal_State_Array operator-( const Thermal_State_Array &TS ){
+    Thermal_State_Array TS_r;
+    for (int i=0; i<N_SPECIES; i++) TS_r.vals[i] = vals[i] - TS.vals[i];
+    return TS_r;
+  }
+  __host__ __device__ Thermal_State_Array operator*( const Real &x ){
+    Thermal_State_Array TS_r;
+    for (int i=0; i<N_SPECIES; i++) TS_r.vals[i] = vals[i] * x;
+    return TS_r;
+  }  
+  __host__ __device__ Thermal_State_Array operator/( const Real &x ){
+    Thermal_State_Array TS_r;
+    for (int i=0; i<N_SPECIES; i++) TS_r.vals[i] = vals[i] / x;
+    return TS_r;
+  }
+  __host__ __device__ Thermal_State_Array operator+=( const Thermal_State_Array &TS ){
+    for (int i=0; i<N_SPECIES; i++) vals[i] += TS.vals[i];
+    return *this;
+  } 
+  __host__ __device__ Thermal_State_Array operator-=( const Thermal_State_Array &TS ){
+    for (int i=0; i<N_SPECIES; i++) vals[i] -= TS.vals[i];
+    return *this;
+  }  
+  __host__ __device__ Thermal_State_Array operator*=( const Thermal_State_Array &TS ){
+    for (int i=0; i<N_SPECIES; i++) vals[i] *= TS.vals[i];
+    return *this;
+  } 
+  __host__ __device__ Thermal_State_Array operator/=( const Thermal_State_Array &TS ){
+    for (int i=0; i<N_SPECIES; i++) this->vals[i] /= TS.vals[i];
+    return *this;
+  } 
+  __host__ __device__ Real get_MMW( ){
+    Real n_mass = vals[0] + vals[1] + 4 * ( vals[2] + vals[3] + vals[4] );
+    Real n_tot =  vals[0] + vals[1] + vals[2] + vals[3] + vals[4] + vals[5];  
+    return n_mass / n_tot;
+  }
+  __host__ __device__ Real get_temperature( Real gamma ){
+    return vals[6] * (gamma - 1) * get_MMW() * MP / KB;
   }
   
 };
@@ -239,9 +305,234 @@ __device__ void get_current_uvb_rates_arrays( Real current_z, int n_uvb_rates_sa
   // 
 
 }
-  
-                                       
 
+__device__ void Get_Rates( Thermal_State_Array &TS, Thermal_State_Array &C, Thermal_State_Array &D, Real rho,  Real gamma, Real current_a, int n_uvb_rates_samples, float *rates_z,
+                                 float *photo_h_HI_rates, float *photo_h_HeI_rates,float *photo_h_HeII_rates,
+                                 float *photo_i_HI_rates, float *photo_i_HeI_rates,float *photo_i_HeII_rates, bool print, bool use_case_B   ){
+
+  float photo_h_HI, photo_h_HeI, photo_h_HeII; 
+  float photo_i_HI, photo_i_HeI, photo_i_HeII;  
+  Real dQ_dt_phot, dQ_dt_brem, dQ_dt_CMB, dQ_dt;
+  Real Q_cool_rec_HII, Q_cool_rec_HeII, Q_cool_rec_HeII_d, Q_cool_rec_HeIII, dQ_dt_cool_recomb;
+  Real Q_cool_collis_ext_HI, Q_cool_collis_ext_HeII, Q_cool_collis_ext_HeI;
+  Real Q_cool_collis_ion_HI, Q_cool_collis_ion_HeI, Q_cool_collis_ion_HeII, dQ_dt_cool_collisional, Q_cool_collis_ion_HeIS; 
+  Real recomb_HII, recomb_HeII, recomb_HeIII, recomb_HeII_d;
+  Real coll_HI, coll_HeI, coll_HeII, coll_HI_HI, coll_HII_HI, coll_HeI_HI;
+  Real current_z, temp;
+  Real n_HI, n_HII, n_HeI, n_HeII, n_HeIII, n_e;  
+  
+  // Avoid negative densities ( after the hydro step )
+  for ( int i=0; i<N_SPECIES; i++ ){
+    if ( TS.vals[i] < n_min ) TS.vals[i] = n_min;
+  } 
+  
+  n_HI    = TS.vals[0];
+  n_HII   = TS.vals[1];
+  n_HeI   = TS.vals[2];
+  n_HeII  = TS.vals[3];
+  n_HeIII = TS.vals[4];
+  n_e     = TS.vals[5];
+  
+  double units = 1;
+
+  // Compute the resdrift at current_a
+  current_z = 1/(current_a) - 1;
+
+  //Get Photoheating amd Photoionization rates as z=current_z
+  #if defined(TEXTURES_UVB_INTERPOLATION)
+  get_current_uvb_rates_textures( current_z, n_uvb_rates_samples, rates_z, 
+   photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII );
+  #else  
+  get_current_uvb_rates_arrays( current_z, n_uvb_rates_samples, rates_z, 
+   photo_i_HI_rates, photo_i_HeI_rates, photo_i_HeII_rates, photo_h_HI_rates, photo_h_HeI_rates, photo_h_HeII_rates,
+   photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII, print );
+  #endif
+
+  temp = TS.get_temperature( gamma );
+
+  // Total Photoheating Rate
+  dQ_dt_phot = n_HI * photo_h_HI + n_HeI * photo_h_HeI + n_HeII * photo_h_HeII;  
+
+  // Recombination Cooling
+  Q_cool_rec_HII    = cool_reHII_rate( temp, units, use_case_B )   * n_HII   * n_e; 
+  Q_cool_rec_HeII   = cool_reHeII1_rate( temp, units, use_case_B ) * n_HeII  * n_e;
+  Q_cool_rec_HeII_d = cool_reHeII2_rate( temp, units )             * n_HeII  * n_e;
+  Q_cool_rec_HeIII  = cool_reHeIII_rate( temp, units, use_case_B ) * n_HeIII * n_e;
+  dQ_dt_cool_recomb = Q_cool_rec_HII + Q_cool_rec_HeII + Q_cool_rec_HeII_d + Q_cool_rec_HeIII;
+
+  // Collisional Cooling
+  Q_cool_collis_ext_HI   = cool_ceHI_rate( temp, units )    * n_HI   * n_e;
+  Q_cool_collis_ext_HeI  = cool_ceHeI_rate( temp, units )   * n_HeI  * n_e;
+  Q_cool_collis_ext_HeII = cool_ceHeII_rate( temp, units )  * n_HeII * n_e;
+  Q_cool_collis_ion_HI   = cool_ciHI_rate( temp, units )    * n_HI   * n_e;
+  Q_cool_collis_ion_HeI  = cool_ciHeI_rate( temp, units )   * n_HeI  * n_e;
+  Q_cool_collis_ion_HeIS  = cool_ciHeIS_rate( temp, units ) * n_HeI  * n_e;
+  Q_cool_collis_ion_HeII = cool_ciHeII_rate( temp, units )  * n_HeII * n_e;
+  dQ_dt_cool_collisional = Q_cool_collis_ext_HI + Q_cool_collis_ext_HeI + Q_cool_collis_ext_HeII 
+                        + Q_cool_collis_ion_HI + Q_cool_collis_ion_HeI + Q_cool_collis_ion_HeIS + Q_cool_collis_ion_HeII;
+
+  // Cooling Bremsstrahlung 
+  dQ_dt_brem = cool_brem_rate( temp, units ) * n_e * n_HII * n_HeII * n_HeIII;
+
+  // Compton cooling off the CMB 
+  dQ_dt_CMB = Cooling_Rate_Compton_CMB_MillesOstriker01( n_e, temp, current_z );
+  // dQ_dt_CMB = Cooling_Rate_Compton_CMB_Katz95( TS.n_e, temp, current_z ); 
+  // dQ_dt_CMB = comp_rate( units ) * TS.n_e;
+
+  // Net Heating and Cooling Rates 
+  dQ_dt  = dQ_dt_phot - dQ_dt_cool_recomb - dQ_dt_cool_collisional - dQ_dt_brem - dQ_dt_CMB;
+  
+  // Recombination Rates 
+  recomb_HII    = recomb_HII_rate( temp, units, use_case_B );
+  recomb_HeII   = recomb_HeII_rate( temp, units, use_case_B );
+  recomb_HeIII  = recomb_HeIII_rate( temp, units, use_case_B );
+  recomb_HeII_d = Recombination_Rate_dielectronic_HeII_Hui97( temp );
+  
+  // Collisional Ionization  Rates
+  coll_HI     = coll_i_HI_rate( temp, units );
+  coll_HeI    = coll_i_HeI_rate( temp, units );
+  coll_HeII   = coll_i_HeII_rate( temp, units );
+  coll_HI_HI  = coll_i_HI_HI_rate( temp, units );
+  coll_HII_HI = 0;
+  coll_HeI_HI = coll_i_HI_HeI_rate( temp, units );
+  
+  // HI construction and destruction
+  C.vals[0] = recomb_HII*n_HII*n_e;
+  D.vals[0] = photo_i_HI + coll_HI*n_e + coll_HI_HI*n_HI + coll_HII_HI*n_HII + coll_HeI_HI*n_HeI;
+
+  // HII construction and destruction
+  C.vals[1] = photo_i_HI*n_HI + coll_HI*n_HI*n_e + coll_HI_HI*n_HI*n_HI + coll_HII_HI*n_HII*n_HI + coll_HeI_HI*n_HeI*n_HI;
+  D.vals[1] = recomb_HII*n_e;  
+    
+  // HeI construction and destruction
+  C.vals[2] = recomb_HeII*n_HeII*n_e + recomb_HeII_d*n_HeII*n_e;
+  D.vals[2] = photo_i_HeI + coll_HeI*n_e;
+  
+  // HeII construction and destruction
+  C.vals[3] = photo_i_HeI*n_HeI + coll_HeI*n_HeI*n_e + recomb_HeIII*n_HeIII*n_e;
+  D.vals[3] = photo_i_HeII + coll_HeII*n_e + recomb_HeII*n_e + recomb_HeII_d*n_e;
+  
+  // HeIII construction and destruction
+  C.vals[4] = photo_i_HeII*n_HeII + coll_HeII*n_HeII*n_e;
+  D.vals[4] = recomb_HeIII*n_e;
+    
+  // e construction and destruction
+  C.vals[5] = photo_i_HI*n_HI + photo_i_HeI*n_HeI + photo_i_HeII*n_HeII +
+  coll_HI*n_HI*n_e + coll_HeI*n_HeI*n_e + coll_HeII*n_HeII*n_e + coll_HI_HI*n_HI*n_HI * coll_HII_HI*n_HII*n_HI * coll_HeI_HI*n_HeI*n_HI;
+  D.vals[5] = recomb_HII*n_HII + recomb_HeII*n_HeII + recomb_HeII_d*n_HeII + recomb_HeIII*n_HeIII;
+
+  // Internal energy construction 
+  C.vals[6] = dQ_dt / rho ;
+  D.vals[6] = 0;
+
+ }  
+ 
+__device__ Real Alpha( Real tau ){
+
+  if(tau < (0.1) )  {
+    constexpr Real a0 = 0.5;
+    constexpr Real a1 = 1.0/12;
+    constexpr Real a3 = -1.0/720;
+    constexpr Real a5 = 1.0/30240;
+    constexpr Real a7 = -1.0/1209600;
+
+    Real tau2 = tau*tau;
+    return (a0+tau*(a1+tau2*(a3+tau2*(a5+tau2*a7))));
+  } else  {
+    return (1-(1-exp(-tau))/tau)/(1-exp(-tau));
+  }
+} 
+ 
+__device__ void QSS_Step_1( Thermal_State_Array &TS_0, Thermal_State_Array &C_0, Thermal_State_Array &D_0, Thermal_State_Array &TS_out, Thermal_State_Array &RS,
+                            Real dt, Real rho,  Real gamma, Real current_a, int n_uvb_rates_samples, float *rates_z,
+                            float *photo_h_HI_rates, float *photo_h_HeI_rates,float *photo_h_HeII_rates,
+                            float *photo_i_HI_rates, float *photo_i_HeI_rates,float *photo_i_HeII_rates, bool print, bool use_case_B   ){                                
+
+  Thermal_State_Array TS_1, C_1, D_1;
+
+  // Predictor Step
+  Real alpha, tau, pbar;
+  for ( int i=0; i<N_SPECIES; i++ ){
+    tau = dt * D_0.vals[i];
+    alpha = Alpha( tau );
+    TS_1.vals[i] = TS_0.vals[i] + dt * ( C_0.vals[i] - D_0.vals[i] * TS_0.vals[i] ) / ( 1 + alpha * tau );
+  }
+  
+  // Get the rates for the corrector step
+  Get_Rates( TS_1, C_1, D_1, rho, gamma, current_a, n_uvb_rates_samples, rates_z,
+             photo_h_HI_rates, photo_h_HeI_rates, photo_h_HeII_rates,
+             photo_i_HI_rates, photo_i_HeI_rates, photo_i_HeII_rates, print, use_case_B   );
+  
+  // Update Using the corrector step
+  for ( int i=0; i<N_SPECIES; i++ ){
+    pbar = 0.5 * ( D_0.vals[i] + D_1.vals[i] );
+    tau = pbar * dt;
+    alpha = Alpha( tau );
+    TS_out.vals[i] = TS_0.vals[i] + dt * ( alpha*C_1.vals[i] + (1-alpha)*C_0.vals[i] - pbar * TS_0.vals[i] ) / ( 1 + alpha * tau );  
+    RS.vals[i] = TS_out.vals[i] - TS_1.vals[i];
+  }
+
+}
+
+__device__ void QSS_Step_N( Thermal_State_Array &TS_0, Thermal_State_Array &C_0, Thermal_State_Array &D_0, Thermal_State_Array &TS_out, Thermal_State_Array &RS,
+                            Real dt, Real rho,  Real gamma, Real current_a, int n_uvb_rates_samples, float *rates_z,
+                            float *photo_h_HI_rates, float *photo_h_HeI_rates,float *photo_h_HeII_rates,
+                            float *photo_i_HI_rates, float *photo_i_HeI_rates,float *photo_i_HeII_rates, bool print, bool use_case_B   ){                                
+
+  Thermal_State_Array TS_1, C_1, D_1;
+
+  // Predictor Step
+  Real alpha, tau, pbar;
+  for ( int i=0; i<N_SPECIES; i++ ){
+    tau = dt * D_0.vals[i];
+    alpha = Alpha( tau );
+    TS_1.vals[i] = TS_0.vals[i] + dt * ( C_0.vals[i] - D_0.vals[i] * TS_0.vals[i] ) / ( 1 + alpha * tau );
+    RS.vals[i] = TS_1.vals[i]; 
+  }
+  
+  int iter, num_iters;
+  Real rCor;
+  iter = 0;
+  num_iters = 2;
+  rCor = 1.0;
+  do
+  {
+    
+    // Get the rates for the corrector step
+    Get_Rates( TS_1, C_1, D_1, rho, gamma, current_a, n_uvb_rates_samples, rates_z,
+               photo_h_HI_rates, photo_h_HeI_rates, photo_h_HeII_rates,
+               photo_i_HI_rates, photo_i_HeI_rates, photo_i_HeII_rates, print, use_case_B   );
+               
+   // Update Using the corrector step
+   for ( int i=0; i<N_SPECIES; i++ ){
+     pbar = 0.5 * ( D_0.vals[i] + D_1.vals[i] );
+     tau = pbar * dt;
+     alpha = Alpha( tau );
+     TS_out.vals[i] = TS_0.vals[i] + dt * ( alpha*C_1.vals[i] + (1-alpha)*C_0.vals[i] - pbar * TS_0.vals[i] ) / ( 1 + alpha * tau );  
+   }
+   
+   //  Nick's black magic, designed to advance further when mode is oscillating
+   if ( ( TS_out.vals[0] - TS_0.vals[0] ) * ( RS.vals[0] - TS_0.vals[0] ) < 0 ){
+     num_iters = 4;
+     rCor = 0.2;
+   }
+   
+   iter ++;
+   
+   if ( iter < num_iters ){
+     for ( int i=0; i<N_SPECIES; i++ ){
+       TS_1.vals[i] = ( 1- rCor ) * TS_1.vals[i] + rCor * TS_out.vals[i]; 
+     }
+   }
+    
+  }
+  while ( iter < num_iters );
+  
+  for (int i=0; i<N_SPECIES; i++){
+    RS.vals[i] = TS_out.vals[i] - RS.vals[i];
+  }
+
+}
 
 __device__ Real Update_BDF( Real n, Real C, Real D, Real dt ){
   return ( n + C * dt ) / ( 1 + D * dt );
@@ -253,9 +544,9 @@ __device__ Real Get_dt_min( Real n, Real C, Real D, Real alpha ){
 }
   
 
-__device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Real H0, Real Omega_M, Real Omega_L, Real t_chem, Real dt_hydro, int n_uvb_rates_samples, float *rates_z,
+__device__ Real Step_Update_BDF( Thermal_State &TS, Real rho,  Real gamma, Real current_a, Real H0, Real Omega_M, Real Omega_L, Real t_chem, Real dt_hydro, int n_uvb_rates_samples, float *rates_z,
                                  float *photo_h_HI_rates, float *photo_h_HeI_rates,float *photo_h_HeII_rates,
-                                 float *photo_i_HI_rates, float *photo_i_HeI_rates,float *photo_i_HeII_rates, bool print, bool use_case_B ){
+                                 float *photo_i_HI_rates, float *photo_i_HeI_rates,float *photo_i_HeII_rates, bool print, bool use_case_B, bool use_prev_deriv, Real &dn_dt_HI_prev, Real &dn_dt_e_prev ){
   
   float photo_h_HI, photo_h_HeI, photo_h_HeII; 
   float photo_i_HI, photo_i_HeI, photo_i_HeII;  
@@ -266,23 +557,24 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
   Real Q_cool_collis_ion_HI, Q_cool_collis_ion_HeI, Q_cool_collis_ion_HeII, dQ_dt_cool_collisional, Q_cool_collis_ion_HeIS; 
   Real recomb_HII, recomb_HeII, recomb_HeIII, recomb_HeII_d;
   Real coll_HI, coll_HeI, coll_HeII, coll_HI_HI, coll_HII_HI, coll_HeI_HI;
-  Real dt_min_U, dt_min_HI, dt_min_e, dt_min_HeI, alpha_dt, n_min;
+  Real dt_min_U, dt_min_HI, dt_min_e, alpha_dt;
+  Real init_n_HI, init_n_e;
+  Real dn_dt_HI, dn_dt_e;
+  Real upd_n_e;
   
   if ( t_chem >= dt_hydro ) return 0;
   
   // Avoid negative densities ( after the hydro step )
-  n_min = 1e-20;
   if ( TS.n_HI    < n_min ) TS.n_HI = n_min;
   if ( TS.n_HII   < n_min ) TS.n_HII = n_min;
   if ( TS.n_HeI   < n_min ) TS.n_HeI = n_min;
   if ( TS.n_HeII  < n_min ) TS.n_HeII = n_min;
-  if ( TS.n_HeIII < n_min ) TS.n_HeIII = n_min;
+  if ( TS.n_HeIII < 1e-5*n_min ) TS.n_HeIII = 1e-5*n_min;
   
   double units = 1;
    
   // Compute the resdrift at current_a
   current_z = 1/(current_a) - 1;
-  
   
   //Get Photoheating amd Photoionization rates as z=current_z
   #if defined(TEXTURES_UVB_INTERPOLATION)
@@ -293,9 +585,8 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
     photo_i_HI_rates, photo_i_HeI_rates, photo_i_HeII_rates, photo_h_HI_rates, photo_h_HeI_rates, photo_h_HeII_rates,
     photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII, print );
   #endif
-  
     
-  temp = TS.get_temperature();
+  temp = TS.get_temperature( gamma );
   
   // Total Photoheating Rate
   dQ_dt_phot = TS.n_HI * photo_h_HI + TS.n_HeI * photo_h_HeI + TS.n_HeII * photo_h_HeII;  
@@ -350,7 +641,7 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
   recomb_HII    = recomb_HII_rate( temp, units, use_case_B );
   recomb_HeII   = recomb_HeII_rate( temp, units, use_case_B );
   recomb_HeIII  = recomb_HeIII_rate( temp, units, use_case_B );
-  recomb_HeII_d = Recombination_Rate_dielectronic_HeII_Hui97( temp );;
+  recomb_HeII_d = Recombination_Rate_dielectronic_HeII_Hui97( temp );
     
   // Collisional Ionization  Rates
   // coll_HI     = Collisional_Ionization_Rate_e_HI_Hui97( temp ); 
@@ -363,7 +654,7 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
   coll_HeI    = coll_i_HeI_rate( temp, units );
   coll_HeII   = coll_i_HeII_rate( temp, units );
   coll_HI_HI  = coll_i_HI_HI_rate( temp, units );
-  coll_HII_HI = 0;
+  coll_HII_HI = Collisional_Ionization_Rate_HII_HI_Lenzuni91( temp ); 
   coll_HeI_HI = coll_i_HI_HeI_rate( temp, units );
   
   // Compute delta_t for the time step
@@ -373,20 +664,33 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
   C = photo_i_HI*TS.n_HI + photo_i_HeI*TS.n_HeI + photo_i_HeII*TS.n_HeII +
       coll_HI*TS.n_HI*TS.n_e + coll_HeI*TS.n_HeI*TS.n_e + coll_HeII*TS.n_HeII*TS.n_e + coll_HI_HI*TS.n_HI*TS.n_HI * coll_HII_HI*TS.n_HII*TS.n_HI * coll_HeI_HI*TS.n_HeI*TS.n_HI;
   D = recomb_HII*TS.n_HII + recomb_HeII*TS.n_HeII + recomb_HeII_d*TS.n_HeII + recomb_HeIII*TS.n_HeIII;
-  // dt_min_e = Get_dt_min( TS.n_e, C, D, alpha_dt );
-  dt_min_e = alpha_dt * TS.n_e / fabs( C - D * TS.n_e );
+  dn_dt_e  = C - D * TS.n_e;
   
   // HI creation and destruction rates
   C = recomb_HII*TS.n_HII*TS.n_e;
   D = photo_i_HI + coll_HI*TS.n_e + coll_HI_HI*TS.n_HI + coll_HII_HI*TS.n_HII + coll_HeI_HI*TS.n_HeI;
-  // dt_min_HI = Get_dt_min( TS.n_HI, C, D, alpha_dt );    
-  dt_min_HI = alpha_dt * TS.n_HI / fabs( C - D * TS.n_HI );
+  dn_dt_HI  = C - D * TS.n_HI;  
+
+  dt_min_e  = alpha_dt * fabs( TS.n_e / dn_dt_e );
+  dt_min_HI = alpha_dt * fabs( TS.n_HI / dn_dt_HI );
   
-  // HeI creation and destruction rates
-  C = recomb_HeII*TS.n_HeII*TS.n_e + recomb_HeII_d*TS.n_HeII*TS.n_e;
-  D = photo_i_HeI + coll_HeI*TS.n_e;
-  // dt_min_HeI = Get_dt_min( TS.n_HeI, C, D, alpha_dt );    
-  dt_min_HeI = alpha_dt * TS.n_HeI / fabs( C - D * TS.n_HeI );
+  if ( use_prev_deriv ){
+    // Use the numerical time derivative from the previous step to compute dt.
+    //"replace the analytically calculated time
+    // derivatives in the above expression with numerical time derivatives
+    // (i.e. change from the previous subcycle step). This is helpful when
+    // we are close to equilibrium and the integrator is taking very small
+    // steps and regularly overshooting the equilibrium value."
+    // If the iteration count is high then take the smaller of
+    // the calculated dedot and last time step's actual dedot.
+    // This is intended to get around the problem of a low
+    // electron or HI fraction which is in equilibrium with high
+    // individual terms (which all nearly cancel).
+    dn_dt_HI = fmin( fabs( dn_dt_HI_prev ), fabs( dn_dt_HI ) );
+    dn_dt_e  = fmin( fabs( dn_dt_e_prev ),  fabs( dn_dt_e ) );
+    dt_min_HI = alpha_dt * fabs( TS.n_HI / dn_dt_HI );
+    dt_min_e  = alpha_dt * fabs( TS.n_e  / dn_dt_e  );
+  }
   
   // Get the minimum dt
   dt = fmin( dt_min_U, dt_min_HI );
@@ -423,58 +727,286 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho, Real current_a, Re
   // get_current_uvb_rates_arrays( current_z, n_uvb_rates_samples, rates_z, 
   //   photo_i_HI_rates, photo_i_HeI_rates, photo_i_HeII_rates, photo_h_HI_rates, photo_h_HeI_rates, photo_h_HeII_rates,
   //   photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII,   print );
+  
+  // Record initial states of HI and e to compute derivatives
+  init_n_HI = TS.n_HI;
+  init_n_e  = TS.n_e;
 
   // 1. Update HI
+  // C = recomb_HII*TS.n_HII*TS.n_e;
+  // D = photo_i_HI + coll_HI*TS.n_e + coll_HI_HI*TS.n_HI + coll_HII_HI*TS.n_HII + coll_HeI_HI*TS.n_HeI;
   C = recomb_HII*TS.n_HII*TS.n_e;
   D = photo_i_HI + coll_HI*TS.n_e + coll_HI_HI*TS.n_HI + coll_HII_HI*TS.n_HII + coll_HeI_HI*TS.n_HeI;
-  // init_nHI = TS.n_HI;    
+  init_n_HI = TS.n_HI; 
   TS.n_HI = Update_BDF( TS.n_HI, C, D, dt );
-  if ( TS.n_HI < n_min ) TS.n_HI = n_min;
+  // dn_dt_HI = ( TS.n_HI - init_n_HI ) / dt; //Record the time derivative for the next step
   
   // 1. Update HII
-  C = photo_i_HI*TS.n_HI + coll_HI*TS.n_HI*TS.n_e + coll_HI_HI*TS.n_HI*TS.n_HI + coll_HII_HI*TS.n_HII*TS.n_HI + coll_HeI_HI*TS.n_HeI*TS.n_HI;
-  D = recomb_HII*TS.n_e;  
+  // C = photo_i_HI*TS.n_HI + coll_HI*TS.n_HI*TS.n_e + coll_HI_HI*TS.n_HI*TS.n_HI + coll_HII_HI*TS.n_HII*TS.n_HI + coll_HeI_HI*TS.n_HeI*TS.n_HI;
+  // D = recomb_HII*TS.n_e;  
+  C = photo_i_HI*TS.n_HI + coll_HI*TS.n_HI*TS.n_e + coll_HI_HI*TS.n_HI*TS.n_HI + coll_HeI_HI*TS.n_HeI*TS.n_HI;
+  D = recomb_HII*TS.n_e - coll_HII_HI*TS.n_HI;  
   TS.n_HII = Update_BDF( TS.n_HII, C, D, dt );
-  // TS.n_HII += init_nHI - TS.n_HI;
-  if ( TS.n_HII < n_min ) TS.n_HII = n_min;
   
   // 3. Update electron
-  C = photo_i_HI*TS.n_HI + photo_i_HeI*TS.n_HeI + photo_i_HeII*TS.n_HeII +
-      coll_HI*TS.n_HI*TS.n_e + coll_HeI*TS.n_HeI*TS.n_e + coll_HeII*TS.n_HeII*TS.n_e + coll_HI_HI*TS.n_HI*TS.n_HI * coll_HII_HI*TS.n_HII*TS.n_HI * coll_HeI_HI*TS.n_HeI*TS.n_HI;
-  D= recomb_HII*TS.n_HII + recomb_HeII*TS.n_HeII + recomb_HeII_d*TS.n_HeII + recomb_HeIII*TS.n_HeIII;
-  TS.n_e = Update_BDF( TS.n_e, C, D, dt );
-  // TS.n_e = TS.n_HII + TS.n_HeII + TS.n_HeIII; 
-  if ( TS.n_e < n_min ) TS.n_e = n_min;
+  // C = photo_i_HI*TS.n_HI + photo_i_HeI*TS.n_HeI + photo_i_HeII*TS.n_HeII +
+  //     coll_HI*TS.n_HI*TS.n_e + coll_HeI*TS.n_HeI*TS.n_e + coll_HeII*TS.n_HeII*TS.n_e + coll_HI_HI*TS.n_HI*TS.n_HI + coll_HII_HI*TS.n_HII*TS.n_HI + coll_HeI_HI*TS.n_HeI*TS.n_HI;
+  // D = recomb_HII*TS.n_HII + recomb_HeII*TS.n_HeII + recomb_HeII_d*TS.n_HeII + recomb_HeIII*TS.n_HeIII;
+  C = photo_i_HI*TS.n_HI + photo_i_HeI*TS.n_HeI + photo_i_HeII*TS.n_HeII 
+      + coll_HI_HI*TS.n_HI*TS.n_HI + coll_HII_HI*TS.n_HII*TS.n_HI + coll_HeI_HI*TS.n_HeI*TS.n_HI;
+  D = recomb_HII*TS.n_HII + recomb_HeII*TS.n_HeII + recomb_HeII_d*TS.n_HeII + recomb_HeIII*TS.n_HeIII 
+      - coll_HI*TS.n_HI - coll_HeI*TS.n_HeI - coll_HeII*TS.n_HeII;
+  init_n_e = TS.n_e; 
+  // TS.n_e = Update_BDF( TS.n_e, C, D, dt );
+  upd_n_e = Update_BDF( TS.n_e, C, D, dt );
+  // dn_dt_e_prev = ( TS.n_e - init_n_e ) / dt; //Record the time derivative for the next step
   
   // 4. Update HeI
+  // C = recomb_HeII*TS.n_HeII*TS.n_e + recomb_HeII_d*TS.n_HeII*TS.n_e;
+  // D = photo_i_HeI + coll_HeI*TS.n_e;
   C = recomb_HeII*TS.n_HeII*TS.n_e + recomb_HeII_d*TS.n_HeII*TS.n_e;
   D = photo_i_HeI + coll_HeI*TS.n_e;
   TS.n_HeI = Update_BDF( TS.n_HeI, C, D, dt );
-  if ( TS.n_HeI < n_min ) TS.n_HeI = n_min;
   
   // 5. Update HeII
+  // C = photo_i_HeI*TS.n_HeI + coll_HeI*TS.n_HeI*TS.n_e + recomb_HeIII*TS.n_HeIII*TS.n_e;
+  // D = photo_i_HeII + coll_HeII*TS.n_e + recomb_HeII*TS.n_e + recomb_HeII_d*TS.n_e;
   C = photo_i_HeI*TS.n_HeI + coll_HeI*TS.n_HeI*TS.n_e + recomb_HeIII*TS.n_HeIII*TS.n_e;
   D = photo_i_HeII + coll_HeII*TS.n_e + recomb_HeII*TS.n_e + recomb_HeII_d*TS.n_e;
   TS.n_HeII = Update_BDF( TS.n_HeII, C, D, dt );
-  if ( TS.n_HeII < n_min ) TS.n_HeII = n_min;
   
   // 6. Update HeIII
+  // C = photo_i_HeII*TS.n_HeII + coll_HeII*TS.n_HeII*TS.n_e;
+  // D = recomb_HeIII*TS.n_e;
   C = photo_i_HeII*TS.n_HeII + coll_HeII*TS.n_HeII*TS.n_e;
   D = recomb_HeIII*TS.n_e;
   TS.n_HeIII = Update_BDF( TS.n_HeIII, C, D, dt );
-  if ( TS.n_HeIII < n_min ) TS.n_HeIII = n_min;
     
   // 7. Update internal energy
   TS.U += dQ_dt * dt / rho ;
   
-  // if ( TS.n_HI < 0 )    printf( "Chem_GPU: Negative n_HI: %e \n", TS.n_HI );
-  // if ( TS.n_HII < 0 )   printf( "Chem_GPU: Negative n_HII: %e \n", TS.n_HII );
-  // if ( TS.n_HeI < 0 )   printf( "Chem_GPU: Negative n_HeI: %e \n", TS.n_HeI );
-  // if ( TS.n_HeII < 0 )  printf( "Chem_GPU: Negative n_HeII: %e \n", TS.n_HeII );
-  // if ( TS.n_HeIII < 0 ) printf( "Chem_GPU: Negative n_HeIII: %e \n", TS.n_HeIII );
-  // if ( TS.n_e < 0 )     printf( "Chem_GPU: Negative n_e: %e \n", TS.n_e );
-  // if ( rho < 0 )     printf( "Chem_GPU: Negative rho: %e \n", rho );
-  // if ( TS.U < 0 )     printf( "Chem_GPU: Negative U: %e \n", TS.U );
+  TS.n_HI    = fmax( TS.n_HI,    tiny);
+  TS.n_HII   = fmax( TS.n_HII,   tiny);
+  TS.n_HeI   = fmax( TS.n_HeI,   tiny);
+  TS.n_HeII  = fmax( TS.n_HeII,  tiny);
+  TS.n_HeIII = fmax( TS.n_HeIII, 1e-5*tiny);
+  
+  // Use charge conservation to determine electron fraction
+  TS.n_e = TS.n_HII + TS.n_HeII + 2 * TS.n_HeIII;
+  
+  // Compute numerical derivatives
+  dn_dt_HI_prev = ( TS.n_HI - init_n_HI ) / fmax( dt, tiny ); 
+  dn_dt_e_prev  = ( TS.n_e  - init_n_e  ) / fmax( dt, tiny );
+  
+    
+  return dt;
+
+}
+
+
+
+__device__ Real Step_Update_BDF_Grackle( Thermal_State &TS, Real rho,  Real gamma, Real current_a, Real H0, Real Omega_M, Real Omega_L, Real t_chem, Real dt_hydro, int n_uvb_rates_samples, float *rates_z,
+                                 float *photo_h_HI_rates, float *photo_h_HeI_rates,float *photo_h_HeII_rates,
+                                 float *photo_i_HI_rates, float *photo_i_HeI_rates,float *photo_i_HeII_rates, bool print, bool use_case_B, bool high_iter, Real &dn_dt_HI_prev, Real &dn_dt_e_prev ){
+  
+  float photo_h_HI, photo_h_HeI, photo_h_HeII; 
+  float photo_i_HI, photo_i_HeI, photo_i_HeII;  
+  Real current_z, temp, C, D, dt;
+  Real dQ_dt_phot, dQ_dt_brem, dQ_dt_CMB, dQ_dt;
+  Real Q_cool_rec_HII, Q_cool_rec_HeII, Q_cool_rec_HeII_d, Q_cool_rec_HeIII, dQ_dt_cool_recomb;
+  Real Q_cool_collis_ext_HI, Q_cool_collis_ext_HeII, Q_cool_collis_ext_HeI;
+  Real Q_cool_collis_ion_HI, Q_cool_collis_ion_HeI, Q_cool_collis_ion_HeII, dQ_dt_cool_collisional, Q_cool_collis_ion_HeIS; 
+  Real recomb_HII, recomb_HeII, recomb_HeIII, recomb_HeII_d;
+  Real coll_HI, coll_HeI, coll_HeII, coll_HI_HI, coll_HII_HI, coll_HeI_HI;
+  Real dt_min_U, dt_min_HI, dt_min_e, alpha_dt;
+  Real upd_n_HI, upd_n_HII, upd_n_HeI, upd_n_HeII, upd_n_HeIII, upd_n_e;
+  Real dn_dt_HI, dn_dt_e;
+  Real init_n_HI, init_n_e;
+  
+  if ( t_chem >= dt_hydro ) return 0;
+  
+  // Avoid negative densities ( after the hydro step )
+  if ( TS.n_HI    < n_min ) TS.n_HI = n_min;
+  if ( TS.n_HII   < n_min ) TS.n_HII = n_min;
+  if ( TS.n_HeI   < n_min ) TS.n_HeI = n_min;
+  if ( TS.n_HeII  < n_min ) TS.n_HeII = n_min;
+  if ( TS.n_HeIII < 1e-5*n_min ) TS.n_HeIII = 1e-5*n_min;
+  
+  double units = 1;
+   
+  // Compute the resdrift at current_a
+  current_z = 1/(current_a) - 1;
+  
+  //Get Photoheating amd Photoionization rates as z=current_z
+  #if defined(TEXTURES_UVB_INTERPOLATION)
+  get_current_uvb_rates_textures( current_z, n_uvb_rates_samples, rates_z, 
+    photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII );
+  #else  
+  get_current_uvb_rates_arrays( current_z, n_uvb_rates_samples, rates_z, 
+    photo_i_HI_rates, photo_i_HeI_rates, photo_i_HeII_rates, photo_h_HI_rates, photo_h_HeI_rates, photo_h_HeII_rates,
+    photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII, print );
+  #endif
+    
+  temp = TS.get_temperature( gamma );
+  
+  // Total Photoheating Rate
+  dQ_dt_phot = TS.n_HI * photo_h_HI + TS.n_HeI * photo_h_HeI + TS.n_HeII * photo_h_HeII;  
+  
+  // Recombination Cooling
+  Q_cool_rec_HII    = cool_reHII_rate( temp, units, use_case_B )   * TS.n_HII * TS.n_e; 
+  Q_cool_rec_HeII   = cool_reHeII1_rate( temp, units, use_case_B ) * TS.n_HeII * TS.n_e;
+  Q_cool_rec_HeII_d = cool_reHeII2_rate( temp, units )             * TS.n_HeII * TS.n_e;
+  Q_cool_rec_HeIII  = cool_reHeIII_rate( temp, units, use_case_B ) * TS.n_HeIII * TS.n_e;
+  dQ_dt_cool_recomb = Q_cool_rec_HII + Q_cool_rec_HeII + Q_cool_rec_HeII_d + Q_cool_rec_HeIII;
+  
+  // Collisional Cooling
+  Q_cool_collis_ext_HI   = cool_ceHI_rate( temp, units )    * TS.n_HI * TS.n_e;
+  Q_cool_collis_ext_HeI  = cool_ceHeI_rate( temp, units )   * TS.n_HeI * TS.n_e;
+  Q_cool_collis_ext_HeII = cool_ceHeII_rate( temp, units )  * TS.n_HeII * TS.n_e;
+  Q_cool_collis_ion_HI   = cool_ciHI_rate( temp, units )    * TS.n_HI * TS.n_e;
+  Q_cool_collis_ion_HeI  = cool_ciHeI_rate( temp, units )   * TS.n_HeI * TS.n_e;
+  Q_cool_collis_ion_HeIS  = cool_ciHeIS_rate( temp, units ) * TS.n_HeI * TS.n_e;
+  Q_cool_collis_ion_HeII = cool_ciHeII_rate( temp, units )  * TS.n_HeII * TS.n_e;
+  dQ_dt_cool_collisional = Q_cool_collis_ext_HI + Q_cool_collis_ext_HeI + Q_cool_collis_ext_HeII 
+                         + Q_cool_collis_ion_HI + Q_cool_collis_ion_HeI + Q_cool_collis_ion_HeIS + Q_cool_collis_ion_HeII;
+ 
+  // Cooling Bremsstrahlung 
+  dQ_dt_brem = cool_brem_rate( temp, units ) * TS.n_e * TS.n_HII *  TS.n_HeII * TS.n_HeIII;
+  
+  // Compton cooling off the CMB 
+  dQ_dt_CMB = Cooling_Rate_Compton_CMB_MillesOstriker01( TS.n_e, temp, current_z );
+  // dQ_dt_CMB = Cooling_Rate_Compton_CMB_Katz95( TS.n_e, temp, current_z ); 
+  // dQ_dt_CMB = comp_rate( units );
+
+  // Net Heating and Cooling Rates 
+  dQ_dt  = dQ_dt_phot - dQ_dt_cool_recomb - dQ_dt_cool_collisional - dQ_dt_brem - dQ_dt_CMB;
+  
+  // Recombination Rates 
+  recomb_HII    = recomb_HII_rate( temp, units, use_case_B );
+  recomb_HeII   = recomb_HeII_rate( temp, units, use_case_B );
+  recomb_HeIII  = recomb_HeIII_rate( temp, units, use_case_B );
+  // recomb_HeII_d = 0;
+  recomb_HeII_d = Recombination_Rate_dielectronic_HeII_Hui97( temp );
+    
+  // Collisional Ionization  Rates
+  coll_HI     = coll_i_HI_rate( temp, units );
+  coll_HeI    = coll_i_HeI_rate( temp, units );
+  coll_HeII   = coll_i_HeII_rate( temp, units );
+  coll_HI_HI  = coll_i_HI_HI_rate( temp, units );
+  coll_HII_HI = Collisional_Ionization_Rate_HII_HI_Lenzuni91( temp ); 
+  // coll_HII_HI = 0; 
+  coll_HeI_HI = coll_i_HI_HeI_rate( temp, units );
+  
+  // Compute delta_t for the time step
+  alpha_dt = 0.1;
+  dt_min_U = TS.U / fabs(dQ_dt) * rho * alpha_dt;
+  
+  // Compute n_HI rate of change
+  dn_dt_HI = recomb_HII*TS.n_HII*TS.n_e - TS.n_HI * ( photo_i_HI + coll_HI*TS.n_e   
+             + coll_HI_HI*TS.n_HI + coll_HII_HI*TS.n_HII + coll_HeI_HI*TS.n_HeI ); 
+             
+  // Compute n_e rate of change
+  dn_dt_e = photo_i_HI*TS.n_HI + photo_i_HeI*TS.n_HeI + photo_i_HeII*TS.n_HeII  
+            + coll_HI*TS.n_HI*TS.n_e + coll_HeI*TS.n_HeI*TS.n_e + coll_HeII*TS.n_HeII*TS.n_e
+            + coll_HI_HI*TS.n_HI*TS.n_HI + coll_HII_HI*TS.n_HI*TS.n_HII + coll_HeI_HI*TS.n_HI*TS.n_HeI             
+            - recomb_HII*TS.n_HII*TS.n_e - recomb_HeII*TS.n_HeII*TS.n_e - recomb_HeII_d*TS.n_HeII*TS.n_e - recomb_HeIII*TS.n_HeIII*TS.n_e;
+  
+  // // Bound from below to prevent numerical errors
+  // if ( dn_dt_HI < tiny ) dn_dt_HI = fmin( tiny, TS.n_HI );
+  // if ( dn_dt_e  < tiny ) dn_dt_e  = fmin( tiny, TS.n_e  );
+  
+  // If the net rate is almost perfectly balanced then set
+  // it to zero (since it is zero to available precision)
+  if ( fmin( fabs(coll_HI*TS.n_HI*TS.n_e), fabs(recomb_HII*TS.n_HII*TS.n_e) ) / fmax( fabs(dn_dt_HI), fabs(dn_dt_e) ) > 1e6 ){
+    dn_dt_HI = tiny;
+    dn_dt_e  = tiny;
+  }
+  
+  if ( high_iter ){
+    // Use the numerical time derivative from the previous step to compute dt.
+    //"replace the analytically calculated time
+    // derivatives in the above expression with numerical time derivatives
+    // (i.e. change from the previous subcycle step). This is helpful when
+    // we are close to equilibrium and the integrator is taking very small
+    // steps and regularly overshooting the equilibrium value."
+    // If the iteration count is high then take the smaller of
+    // the calculated dedot and last time step's actual dedot.
+    // This is intended to get around the problem of a low
+    // electron or HI fraction which is in equilibrium with high
+    // individual terms (which all nearly cancel).
+    dn_dt_HI = fmin( fabs(dn_dt_HI), fabs(dn_dt_HI_prev) );
+    dn_dt_e  = fmin( fabs(dn_dt_e) , fabs(dn_dt_e_prev)  );
+  }
+  
+  // Get the minimum dt
+  dt_min_HI = alpha_dt * fabs( TS.n_HI / dn_dt_HI );
+  dt_min_e  = alpha_dt * fabs( TS.n_e  / dn_dt_e  );
+  dt = fmin( dt_min_U, dt_min_HI );
+  dt = fmin( dt_min_e, dt );
+  if ( t_chem + dt > dt_hydro ) dt = dt_hydro - t_chem;
+  if ( dt < 0 ) printf( "Chem_GPU: Negative dt: %e  dt_U: %e  dt_HI: %e  dt_e %e   n_HI: %e\n", dt, dt_min_U, dt_min_HI, dt_min_e, TS.n_HI );
+  // if ( print ) printf("Chem GPU: dt_U: %e  dt_HI: %e  dt_e: %e  \n", dt_min_U, dt_min_HI, dt_min_e );
+  
+  // Record initial states of HI and e to compute derivatives
+  init_n_HI = TS.n_HI;
+  init_n_e  = TS.n_e;
+  
+  // 1. Update HI
+  C = recomb_HII*TS.n_HII*TS.n_e;
+  D = photo_i_HI + coll_HI*TS.n_e + coll_HI_HI*TS.n_HI + coll_HII_HI*TS.n_HII + coll_HeI_HI*TS.n_HeI;
+  upd_n_HI = Update_BDF( TS.n_HI, C, D, dt );
+  TS.n_HI = upd_n_HI;
+
+  
+  // 1. Update HII
+  C = photo_i_HI*TS.n_HI + coll_HI*TS.n_HI*TS.n_e + coll_HI_HI*TS.n_HI*TS.n_HI + coll_HeI_HI*TS.n_HeI*TS.n_HI;
+  D = recomb_HII*TS.n_e - coll_HII_HI*TS.n_HI;  
+  upd_n_HII = Update_BDF( TS.n_HII, C, D, dt );
+  TS.n_HII = upd_n_HII;
+  
+  // 3. Update electron
+  C = photo_i_HI*TS.n_HI + photo_i_HeI*TS.n_HeI + photo_i_HeII*TS.n_HeII 
+      + coll_HI_HI*TS.n_HI*TS.n_HI + coll_HII_HI*TS.n_HII*TS.n_HI + coll_HeI_HI*TS.n_HeI*TS.n_HI;
+  D = recomb_HII*TS.n_HII + recomb_HeII*TS.n_HeII + recomb_HeII_d*TS.n_HeII + recomb_HeIII*TS.n_HeIII 
+      - coll_HI*TS.n_HI - coll_HeI*TS.n_HeI - coll_HeII*TS.n_HeII;
+  upd_n_e = Update_BDF( TS.n_e, C, D, dt );
+  // TS.n_e = upd_n_e;
+  
+  // 4. Update HeI
+  C = recomb_HeII*TS.n_HeII*TS.n_e + recomb_HeII_d*TS.n_HeII*TS.n_e;
+  D = photo_i_HeI + coll_HeI*TS.n_e;
+  upd_n_HeI = Update_BDF( TS.n_HeI, C, D, dt );
+  TS.n_HeI = upd_n_HeI;
+  
+  // 5. Update HeII
+  C = photo_i_HeI*TS.n_HeI + coll_HeI*TS.n_HeI*TS.n_e + recomb_HeIII*TS.n_HeIII*TS.n_e;
+  D = photo_i_HeII + coll_HeII*TS.n_e + recomb_HeII*TS.n_e + recomb_HeII_d*TS.n_e;
+  upd_n_HeII = Update_BDF( TS.n_HeII, C, D, dt );
+  TS.n_HeII = upd_n_HeII;
+  
+  // 6. Update HeIII
+  C = photo_i_HeII*TS.n_HeII + coll_HeII*TS.n_HeII*TS.n_e;
+  D = recomb_HeIII*TS.n_e;
+  upd_n_HeIII = Update_BDF( TS.n_HeIII, C, D, dt );
+  TS.n_HeIII = upd_n_HeIII;
+      
+  // 7. Update internal energy
+  TS.U += dQ_dt * dt / rho ;
+  
+  // Bound lower
+  TS.n_HI    = fmax( upd_n_HI,    tiny);
+  TS.n_HII   = fmax( upd_n_HII,   tiny);
+  TS.n_HeI   = fmax( upd_n_HeI,   tiny);
+  TS.n_HeII  = fmax( upd_n_HeII,  tiny);
+  TS.n_HeIII = fmax( upd_n_HeIII, 1e-5*tiny);
+  
+  // Use charge conservation to determine electron fraction
+  TS.n_e = TS.n_HII + TS.n_HeII + 2 * TS.n_HeIII;
+  // TS.n_e = upd_n_e;
+  
+  // Compute numerical derivatives
+  dn_dt_HI_prev = fabs( TS.n_HI - init_n_HI ) / fmax( dt, tiny ); 
+  dn_dt_e_prev  = fabs( TS.n_e  - init_n_e  ) / fmax( dt, tiny );
   
   return dt;
 
@@ -492,6 +1024,7 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
   Real GE, dt_chem, t_chem;
   Real H0, Omega_M, Omega_L;
   Real current_a, delta_a, a3, a2;
+  Real dn_dt_HI, dn_dt_e;
   
   n_cells = nx*ny*nz;
   
@@ -501,9 +1034,6 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
   yid = (id - zid*nx*ny) / nx;
   xid = id - zid*nx*ny - yid*nx;
   bool print;
-  
-  
-  // int MAX_ITER = 500;
   
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
@@ -538,7 +1068,6 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
     
     // Initialize the thermal state
     Thermal_State TS;    
-    TS.gamma   = gamma;
     TS.n_HI    = dev_conserved[ 5*n_cells + id] * density_conv / a3 / MP; 
     TS.n_HII   = dev_conserved[ 6*n_cells + id] * density_conv / a3 / MP; 
     TS.n_HeI   = dev_conserved[ 7*n_cells + id] * density_conv / a3 / MP / 4; 
@@ -547,19 +1076,25 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
     TS.n_e     = dev_conserved[10*n_cells + id] * density_conv / a3 / MP; 
     TS.U       = GE * d_inv; 
     
+    dn_dt_HI = 0;
+    dn_dt_e = 0;
     t_chem = 0;
     int n_iter = 0;
+    bool high_iter = false;
     while ( t_chem < dt_hydro ){
-    
-      dt_chem = Step_Update_BDF( TS, d, current_a, H0, Omega_M, Omega_L, t_chem, dt_hydro, n_uvb_rates_samples, rates_z,
+      
+      if ( n_iter > 50 ) high_iter = true; 
+      dt_chem = Step_Update_BDF_Grackle( TS, d, gamma, current_a, H0, Omega_M, Omega_L, t_chem, dt_hydro, n_uvb_rates_samples, rates_z,
                                  photo_i_HI_rates, photo_i_HeI_rates, photo_i_HeII_rates, 
-                                 photo_h_HI_rates, photo_h_HeI_rates, photo_h_HeII_rates, print, use_case_B );
+                                 photo_h_HI_rates, photo_h_HeI_rates, photo_h_HeII_rates, print, use_case_B, high_iter, dn_dt_HI, dn_dt_e );
       delta_a = H0 * sqrt( Omega_M/current_a + Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) * dt_chem;
       current_a = current_a + delta_a;
       t_chem += dt_chem;
       n_iter += 1;
       
     }
+    
+    if ( print ) printf("Chem_GPU: N Iter:  %d\n", n_iter );
       
     // Write the Updated Thermal State
     dev_conserved[ 5*n_cells + id] = TS.n_HI    / density_conv * a3 * MP; 
@@ -1221,6 +1756,13 @@ __device__ double cool_brem_rate(double T, double units )
     return 1.43e-27 * sqrt(T)
             * ( 1.1 + 0.34 * exp( -pow(5.5 - log10(T), 2) / 3.0) )
             / units;    
+}
+
+//Calculation of comp.
+// Compton cooling
+__device__ double comp_rate(double units)
+{
+    return 5.65e-36 / units;
 }
 
 
