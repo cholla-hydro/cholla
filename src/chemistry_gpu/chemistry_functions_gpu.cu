@@ -885,16 +885,16 @@ __device__ Real Step_Update_BDF_Grackle( Thermal_State &TS, Real rho,  Real gamm
   recomb_HII    = recomb_HII_rate( temp, units, use_case_B );
   recomb_HeII   = recomb_HeII_rate( temp, units, use_case_B );
   recomb_HeIII  = recomb_HeIII_rate( temp, units, use_case_B );
-  // recomb_HeII_d = 0;
-  recomb_HeII_d = Recombination_Rate_dielectronic_HeII_Hui97( temp );
+  recomb_HeII_d = 0;
+  // recomb_HeII_d = Recombination_Rate_dielectronic_HeII_Hui97( temp );
     
   // Collisional Ionization  Rates
   coll_HI     = coll_i_HI_rate( temp, units );
   coll_HeI    = coll_i_HeI_rate( temp, units );
   coll_HeII   = coll_i_HeII_rate( temp, units );
   coll_HI_HI  = coll_i_HI_HI_rate( temp, units );
-  coll_HII_HI = Collisional_Ionization_Rate_HII_HI_Lenzuni91( temp ); 
-  // coll_HII_HI = 0; 
+  // coll_HII_HI = Collisional_Ionization_Rate_HII_HI_Lenzuni91( temp ); 
+  coll_HII_HI = 0; 
   coll_HeI_HI = coll_i_HI_HeI_rate( temp, units );
   
   // Compute delta_t for the time step
@@ -1094,7 +1094,7 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
       
     }
     
-    if ( print ) printf("Chem_GPU: N Iter:  %d\n", n_iter );
+    // if ( print ) printf("Chem_GPU: N Iter:  %d\n", n_iter );
       
     // Write the Updated Thermal State
     dev_conserved[ 5*n_cells + id] = TS.n_HI    / density_conv * a3 * MP; 
