@@ -785,11 +785,11 @@ __device__ Real Step_Update_BDF( Thermal_State &TS, Real rho,  Real gamma, Real 
   // 7. Update internal energy
   TS.U += dQ_dt * dt / rho ;
   
-  TS.n_HI    = fmax( TS.n_HI,    tiny);
-  TS.n_HII   = fmax( TS.n_HII,   tiny);
-  TS.n_HeI   = fmax( TS.n_HeI,   tiny);
-  TS.n_HeII  = fmax( TS.n_HeII,  tiny);
-  TS.n_HeIII = fmax( TS.n_HeIII, 1e-5*tiny);
+  TS.n_HI    = fmax( TS.n_HI,    n_min);
+  TS.n_HII   = fmax( TS.n_HII,   n_min);
+  TS.n_HeI   = fmax( TS.n_HeI,   n_min);
+  TS.n_HeII  = fmax( TS.n_HeII,  n_min);
+  TS.n_HeIII = fmax( TS.n_HeIII, 1e-5*n_min);
   
   // Use charge conservation to determine electron fraction
   TS.n_e = TS.n_HII + TS.n_HeII + 2 * TS.n_HeIII;
@@ -947,6 +947,38 @@ __device__ Real Step_Update_BDF_Grackle( Thermal_State &TS, Real rho,  Real gamm
   if ( dt < 0 ) printf( "Chem_GPU: Negative dt: %e  dt_U: %e  dt_HI: %e  dt_e %e   n_HI: %e\n", dt, dt_min_U, dt_min_HI, dt_min_e, TS.n_HI );
   // if ( print ) printf("Chem GPU: dt_U: %e  dt_HI: %e  dt_e: %e  \n", dt_min_U, dt_min_HI, dt_min_e );
   
+  
+  
+  // // 0. Update internal energy
+  // TS.U += dQ_dt * dt / rho ;
+  // temp = TS.get_temperature( gamma );
+  // // Compute the ionization and recombination rates with the updated temperature
+  // // Recombination Rates 
+  // recomb_HII    = recomb_HII_rate( temp, units, use_case_B );
+  // recomb_HeII   = recomb_HeII_rate( temp, units, use_case_B );
+  // recomb_HeIII  = recomb_HeIII_rate( temp, units, use_case_B );
+  // recomb_HeII_d = 0;
+  // // recomb_HeII_d = Recombination_Rate_dielectronic_HeII_Hui97( temp );
+  // 
+  // // Collisional Ionization  Rates
+  // coll_HI     = coll_i_HI_rate( temp, units );
+  // coll_HeI    = coll_i_HeI_rate( temp, units );
+  // coll_HeII   = coll_i_HeII_rate( temp, units );
+  // coll_HI_HI  = coll_i_HI_HI_rate( temp, units );
+  // // coll_HII_HI = Collisional_Ionization_Rate_HII_HI_Lenzuni91( temp ); 
+  // coll_HII_HI = 0; 
+  // coll_HeI_HI = coll_i_HI_HeI_rate( temp, units );
+  
+  // Compute the resdrift at the end of the step
+  // Real delta_a = H0 * sqrt( Omega_M/current_a + Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) * dt;
+  // current_z = 1/(current_a+delta_a) - 1;
+  
+  // //Get Photoheating and Photoionization rates at the updated redshift
+  // get_current_uvb_rates_arrays( current_z, n_uvb_rates_samples, rates_z, 
+  //   photo_i_HI_rates, photo_i_HeI_rates, photo_i_HeII_rates, photo_h_HI_rates, photo_h_HeI_rates, photo_h_HeII_rates,
+  //   photo_i_HI, photo_h_HI, photo_i_HeI, photo_h_HeI, photo_i_HeII, photo_h_HeII,   print );
+  
+  
   // Record initial states of HI and e to compute derivatives
   init_n_HI = TS.n_HI;
   init_n_e  = TS.n_e;
@@ -994,11 +1026,11 @@ __device__ Real Step_Update_BDF_Grackle( Thermal_State &TS, Real rho,  Real gamm
   TS.U += dQ_dt * dt / rho ;
   
   // Bound lower
-  TS.n_HI    = fmax( upd_n_HI,    tiny);
-  TS.n_HII   = fmax( upd_n_HII,   tiny);
-  TS.n_HeI   = fmax( upd_n_HeI,   tiny);
-  TS.n_HeII  = fmax( upd_n_HeII,  tiny);
-  TS.n_HeIII = fmax( upd_n_HeIII, 1e-5*tiny);
+  TS.n_HI    = fmax( upd_n_HI,    n_min);
+  TS.n_HII   = fmax( upd_n_HII,   n_min);
+  TS.n_HeI   = fmax( upd_n_HeI,   n_min);
+  TS.n_HeII  = fmax( upd_n_HeII,  n_min);
+  TS.n_HeIII = fmax( upd_n_HeIII, 1e-5*n_min);
   
   // Use charge conservation to determine electron fraction
   TS.n_e = TS.n_HII + TS.n_HeII + 2 * TS.n_HeIII;
@@ -1437,7 +1469,8 @@ __device__ Real Cooling_Rate_Compton_CMB_MillesOstriker01( Real n_e, Real temp, 
   // M. Coleman Miller and Eve C. Ostriker 2001 (https://iopscience.iop.org/article/10.1086/323321/fulltext/)
   Real T_3, T_cm_3;
   T_3 = temp / 1e3;
-  T_cm_3 = 0; //# Don't know this value
+  // T_cm_3 = 0; //# Don't know this value
+  T_cm_3 = 2.726 * ( 1 + z ) / 1e3; //# Don't know this value
   return 5.6e-33 * n_e * pow( 1 + z , 4) * ( T_3 - T_cm_3 ) ;
 }
 
@@ -1758,12 +1791,28 @@ __device__ double cool_brem_rate(double T, double units )
             / units;    
 }
 
-//Calculation of comp.
-// Compton cooling
-__device__ double comp_rate(double units)
-{
-    return 5.65e-36 / units;
-}
+// //Calculation of comp.
+// // Compton cooling
+// __device__ double comp_rate(double units)
+// {
+//    / units
+//   // Set compton cooling coefficients (and temperature)
+//   comp1 = 5.65e-36 * (1._DKIND + zr)**4
+//   comp2 = 2.73_DKIND * (1._DKIND + zr)
+//   !                  Compton cooling or heating
+// 
+//        &           - comp1      * (tgas(i) - comp2)     * myde(i)*dom_inv
+//     return 5.65e-36 / units;
+// }
+// 
+// __device__ Real Cooling_Rate_Compton_CMB_MillesOstriker01( Real n_e, Real temp, Real z ){
+//   // M. Coleman Miller and Eve C. Ostriker 2001 (https://iopscience.iop.org/article/10.1086/323321/fulltext/)
+//   Real T_3, T_cm_3;
+//   T_3 = temp / 1e3;
+//   // T_cm_3 = 0; //# Don't know this value
+//   T_cm_3 = 2.726 * ( 1 + z ) / 1e3; //# Don't know this value
+//   return 5.6e-33 * n_e * pow( 1 + z , 4) * ( T_3 - T_cm_3 ) ;
+// }
 
 
 
