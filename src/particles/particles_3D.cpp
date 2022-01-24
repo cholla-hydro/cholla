@@ -287,10 +287,33 @@ part_int_t Particles_3D::Compute_Particles_GPU_Array_Size( part_int_t n ){
 
 
 #ifdef MPI_CHOLLA
+
+void Particles_3D::ReAllocate_Memory_GPU_MPI(){
+  
+  // Free the previous arrays
+  Free_GPU_Array_bool(G.transfer_particles_flags_d);
+  Free_GPU_Array_int(G.transfer_particles_indices_d);
+  Free_GPU_Array_int(G.replace_particles_indices_d);
+  Free_GPU_Array_int(G.transfer_particles_prefix_sum_d);
+  Free_GPU_Array_int(G.transfer_particles_prefix_sum_blocks_d);
+  
+  //Allocate new resized arrays for the particles MPI transfers
+  part_int_t buffer_size, half_blocks_size;
+  buffer_size = particles_array_size;
+  half_blocks_size = ( (buffer_size-1)/2   ) / TPB_PARTICLES + 1;
+  Allocate_Particles_GPU_Array_bool( &G.transfer_particles_flags_d,      buffer_size );
+  Allocate_Particles_GPU_Array_int(  &G.transfer_particles_indices_d,    buffer_size );
+  Allocate_Particles_GPU_Array_int(  &G.replace_particles_indices_d,     buffer_size );
+  Allocate_Particles_GPU_Array_int(  &G.transfer_particles_prefix_sum_d, buffer_size );
+  Allocate_Particles_GPU_Array_int(  &G.transfer_particles_prefix_sum_blocks_d, half_blocks_size );
+  printf(" New allocation of arrays for particles transfers   new_size: %d \n", (int)buffer_size   );
+  
+}
+
 void Particles_3D::Allocate_Memory_GPU_MPI(){
 
-  //Allocate memory for the the particles MPI transfers
 
+  //Allocate memory for the the particles MPI transfers
   part_int_t buffer_size, half_blocks_size;
 
   buffer_size = Compute_Particles_GPU_Array_Size( n_local );
