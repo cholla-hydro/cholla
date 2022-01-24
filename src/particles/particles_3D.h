@@ -231,7 +231,6 @@ class Particles_3D
   void Allocate_Particles_GPU_Array_bool( bool **array_dev, part_int_t size );
   void Allocate_Particles_GPU_Array_int( int **array_dev, part_int_t size );
   void Allocate_Particles_Grid_Field_Real( Real **array_dev, int size );
-  void Reallocate_and_Copy_Partciles_Array_Real( Real **src_array_dev, part_int_t size_initial, part_int_t size_end );
   void Copy_Particles_Array_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
   void Copy_Particles_Array_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);
   void Set_Particles_Array_Real( Real value, Real *array_dev, part_int_t size);
@@ -310,6 +309,7 @@ class Particles_3D
 
   #ifdef PARTICLES_GPU
   void Allocate_Memory_GPU_MPI();
+  void ReAllocate_Memory_GPU_MPI();
   void Load_Particles_to_Buffer_GPU( int direction, int side, Real *send_buffer, int buffer_length  );
   #endif //PARTICLES_GPU
   #endif
