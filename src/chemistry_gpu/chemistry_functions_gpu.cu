@@ -812,7 +812,7 @@ __device__ Real Step_Update_BDF_Grackle( Thermal_State &TS, Real rho,  Real gamm
   float photo_h_HI, photo_h_HeI, photo_h_HeII; 
   float photo_i_HI, photo_i_HeI, photo_i_HeII;  
   Real current_z, temp, C, D, dt;
-  Real dQ_dt_phot, dQ_dt_brem, dQ_dt_CMB, dQ_dt;
+  Real dQ_dt_phot, dQ_dt_brem, dQ_dt_CMB, dQ_dt_xray, dQ_dt;
   Real Q_cool_rec_HII, Q_cool_rec_HeII, Q_cool_rec_HeII_d, Q_cool_rec_HeIII, dQ_dt_cool_recomb;
   Real Q_cool_collis_ext_HI, Q_cool_collis_ext_HeII, Q_cool_collis_ext_HeI;
   Real Q_cool_collis_ion_HI, Q_cool_collis_ion_HeI, Q_cool_collis_ion_HeII, dQ_dt_cool_collisional, Q_cool_collis_ion_HeIS; 
@@ -874,12 +874,16 @@ __device__ Real Step_Update_BDF_Grackle( Thermal_State &TS, Real rho,  Real gamm
   dQ_dt_brem = cool_brem_rate( temp, units ) * TS.n_e * TS.n_HII *  TS.n_HeII * TS.n_HeIII;
   
   // Compton cooling off the CMB 
-  dQ_dt_CMB = Cooling_Rate_Compton_CMB_MillesOstriker01( TS.n_e, temp, current_z );
+  // dQ_dt_CMB = Cooling_Rate_Compton_CMB_MillesOstriker01( TS.n_e, temp, current_z );
   // dQ_dt_CMB = Cooling_Rate_Compton_CMB_Katz95( TS.n_e, temp, current_z ); 
-  // dQ_dt_CMB = comp_rate( units );
+  dQ_dt_CMB = comp_rate( TS.n_e, temp, current_z, units );
+  
+  // X-ray compton heating
+  dQ_dt_xray = xray_heat_rate( TS.n_e, temp, current_z, units );
+  // dQ_dt_xray = 0;
 
   // Net Heating and Cooling Rates 
-  dQ_dt  = dQ_dt_phot - dQ_dt_cool_recomb - dQ_dt_cool_collisional - dQ_dt_brem - dQ_dt_CMB;
+  dQ_dt  = dQ_dt_phot - dQ_dt_cool_recomb - dQ_dt_cool_collisional - dQ_dt_brem - dQ_dt_CMB - dQ_dt_xray;
   
   // Recombination Rates 
   recomb_HII    = recomb_HII_rate( temp, units, use_case_B );
@@ -1791,20 +1795,50 @@ __device__ double cool_brem_rate(double T, double units )
             / units;    
 }
 
-// //Calculation of comp.
-// // Compton cooling
-// __device__ double comp_rate(double units)
-// {
-//    / units
-//   // Set compton cooling coefficients (and temperature)
-//   comp1 = 5.65e-36 * (1._DKIND + zr)**4
-//   comp2 = 2.73_DKIND * (1._DKIND + zr)
-//   !                  Compton cooling or heating
-// 
-//        &           - comp1      * (tgas(i) - comp2)     * myde(i)*dom_inv
-//     return 5.65e-36 / units;
-// }
-// 
+// X-ray compton heating
+__device__ double xray_heat_rate( Real n_e, Real T,  Real Redshift, Real units )
+{
+  double RedshiftXrayCutoff, comp_xray, temp_xray;
+  RedshiftXrayCutoff = 5.0;
+
+  /* This is sigma_thompson * c * (effective <h \nu>/<m_e c^2>) *
+     U_xray * 1eV.  U_xray is the energy density of XRB in , <h \nu>
+     is the average photon energy in keV, corrected for relativistic
+     effects.  Eq.(4) and Eq.(11) of Madau & Efstathiou (1999) */
+  comp_xray = 4.15e-13 * 3.0e10 *
+    (31.8*pow(1.0+Redshift, 0.3333)/511.0) * 
+    (6.3e-5 * 1.6e-12) * 
+    pow(1.0 + Redshift, 4) * 
+    exp(-pow(Redshift/RedshiftXrayCutoff, 2)) / 
+    units; 
+
+  /* The effective temperature (in K).  Eq.(10) of Madau &
+     Efstathiou (1999) with U_xray(z=0) = 6.3e-5 and U_cmb(z=0) =
+     0.256 eV/cm3 */
+  temp_xray = 31.8e3*pow(1.0+Redshift, 0.3333)*1.6e-12/
+    (4.0*1.38e-16) *
+    6.3e-5 * pow(1.0 + Redshift, 4) * 
+    exp(-pow(Redshift/RedshiftXrayCutoff, 2)) /
+    (0.256 * (1+Redshift));  
+    
+
+  return comp_xray * ( T - temp_xray ) * n_e / 1e19;
+  
+}
+
+//Calculation of comp.
+// Compton cooling
+__device__ double comp_rate(Real n_e, Real T, Real zr, double units)
+{
+  Real comp1, comp2;
+  // Set compton cooling coefficients (and temperature)
+  comp1 = 5.65e-36 * pow(1.0 + zr, 4);
+  comp2 = 2.73 * (1.0 + zr);
+  // Compton cooling or heating
+  return comp1 * ( T - comp2 ) *n_e;
+
+}
+
 // __device__ Real Cooling_Rate_Compton_CMB_MillesOstriker01( Real n_e, Real temp, Real z ){
 //   // M. Coleman Miller and Eve C. Ostriker 2001 (https://iopscience.iop.org/article/10.1086/323321/fulltext/)
 //   Real T_3, T_cm_3;

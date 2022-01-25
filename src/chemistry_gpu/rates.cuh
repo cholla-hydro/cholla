@@ -90,7 +90,11 @@ __device__ double cool_brem_rate(double T, double units );
 
 //Calculation of comp.
 // Compton cooling
-__device__ double comp_rate(double units);
+__device__ double comp_rate(Real n_e, Real T, Real zr, double units);
+
+
+// X-ray compton heating
+__device__ double xray_heat_rate( Real n_e, Real T,  Real Redshift, Real units );
 
 
 // Colisional excitation of neutral hydrogen (HI) and singly ionized helium (HeII)
