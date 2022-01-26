@@ -36,20 +36,8 @@ void systemTest::SystemTestRunner::runTest()
     if (globalRunCholla)
     {
         // Launch Cholla. Note that this dumps all console output to the console
-        // log file as requested by the user. The parallel launch might not
-        // actually speed things up at all. This is the first place to look for
-        // performance improvements
-        std::string const chollaRunCommand = globalMpiLauncher.getString() + " "
-                                            + std::to_string(numMpiRanks) + " "
-                                            + _chollaPath + " "
-                                            + _chollaSettingsPath + " "
-                                            + _chollaLaunchParams + " "
-                                            + "outdir=" + _outputDirectory + "/"
-                                            + " >> " + _consoleOutputPath + " 2>&1 ";
-        system(("echo Launch Command: " + chollaRunCommand + " >> " + _consoleOutputPath).c_str());
-        system((chollaRunCommand).c_str()); // Args to send to "system" call
-        _safeMove("run_output.log", _outputDirectory);
-        _safeMove("run_timing.log", _outputDirectory);
+        // log file as requested by the user.
+        launchCholla();
     }
 
     /// If set to false then no comparison will be performed. Generally this and
@@ -212,6 +200,25 @@ void systemTest::SystemTestRunner::runTest()
             }
         }
     }
+}
+// =============================================================================
+
+// =============================================================================
+void systemTest::SystemTestRunner::launchCholla()
+{
+    // Launch Cholla. Note that this dumps all console output to the console
+    // log file as requested by the user.
+    std::string const chollaRunCommand = globalMpiLauncher.getString() + " "
+                                        + std::to_string(numMpiRanks) + " "
+                                        + _chollaPath + " "
+                                        + _chollaSettingsPath + " "
+                                        + chollaLaunchParams + " "
+                                        + "outdir=" + _outputDirectory + "/"
+                                        + " >> " + _consoleOutputPath + " 2>&1 ";
+    system(("echo Launch Command: " + chollaRunCommand + " >> " + _consoleOutputPath).c_str());
+    system((chollaRunCommand).c_str()); // Args to send to "system" call
+    _safeMove("run_output.log", _outputDirectory);
+    _safeMove("run_timing.log", _outputDirectory);
 }
 // =============================================================================
 

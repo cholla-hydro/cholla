@@ -58,10 +58,52 @@ public:
     size_t numMpiRanks = 1;
 
     /*!
+     * \brief Set the parameters that Cholla launches with, potentially entirely
+     * replacing the need for a settings file. A string of the launch parameters
+     * that will override the values in the settings file (if given). Any of
+     * Cholla's standard launch paramters work except `outdir` as that is
+     * reserved for usage in the systemTest::SystemTestRunner.runTest() method
+     */
+    std::string chollaLaunchParams;
+
+    /*!
      * \brief Run the system test that has been set up
      *
      */
     void runTest();
+
+    void launchCholla();
+
+    /*!
+     * \brief Get the Cholla Path object
+     *
+     * \return std::string The path to the Cholla executable
+     */
+    std::string getChollaPath(){return _chollaPath;};
+
+    /*!
+     * \brief Get the Cholla Settings File Path object
+     *
+     * \return std::string The full filename/path to the settings file used to
+     * initialize Cholla
+     */
+    std::string getChollaSettingsFilePath(){return _chollaSettingsPath;};
+
+    /*!
+     * \brief Get the Output Directory object
+     *
+     * \return std::string The path to the directory where all the output is
+     * stored
+     */
+    std::string getOutputDirectory(){return _outputDirectory;};
+
+    /*!
+     * \brief Get the Console Output Path object
+     *
+     * \return std::string The full filename/path to the file where all the
+     * console output is stored
+     */
+    std::string getConsoleOutputPath(){return _consoleOutputPath;};
 
     /*!
      * \brief Get the Fiducial File object
@@ -105,18 +147,6 @@ public:
      */
     void setCompareNumTimeSteps(bool const &compare)
     {_compareNumTimeSteps = compare;};
-
-    /*!
-     * \brief Set the parameters that Cholla launches with, potentially entirely
-     * replacing the need for a settings file
-     *
-     * \param[in] chollaParams A string of the launch parameters that will
-     * override the values in the settings file (if given). Any of Cholla's
-     * standard launch paramters work except `outdir` as that is reserved for
-     * usage in the systemTest::SystemTestRunner.runTest() method
-     */
-    void setChollaLaunchParams(std::string const &chollaParams)
-    {_chollaLaunchParams = chollaParams;};
 
     /*!
      * \brief Set or add a fiducial dataset
@@ -190,6 +220,8 @@ public:
     /*!
      * \brief Construct a new System Test Runner object
      *
+     * \param[in] particleData Is there particle data?
+     * \param[in] hydroData Is there hydro data?
      * \param[in] useFiducialFile Indicate if you're using a HDF5 file or will
      * generate your own. Defaults to `true`, i.e. using an HDF5 file. Set to
      * `false` to generate your own
@@ -225,9 +257,6 @@ private:
     std::string _outputDirectory;
     /// The path and name of the console output file
     std::string _consoleOutputPath;
-
-    /// The user defined parameters to launch Cholla with
-    std::string _chollaLaunchParams;
 
     /// A list of all the data set names in the fiducial data file
     std::vector<std::string> _fiducialDataSetNames;
