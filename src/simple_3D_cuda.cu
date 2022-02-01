@@ -235,7 +235,11 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);  
     CudaCheckError();
     #endif
-    
+ 
+    // Step 4: Calculate the next time step
+    hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama, max_dti_slow );
+    CudaCheckError();
+
     // Update the H+He chemical Network and include Cooling and Photoheating  
     #ifdef CHEMISTRY_GPU
     float time;
@@ -243,21 +247,19 @@ Real Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
-    hipLaunchKernelGGL(Update_Chemistry, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, 
-      Chem_H->density_conversion, Chem_H->energy_conversion, Chem_H->current_z, Chem_H->cosmological_parameters_d, Chem_H->n_uvb_rates_samples, Chem_H->uvb_rates_redshift_d,
-      Chem_H->photo_ion_HI_rate_d, Chem_H->photo_ion_HeI_rate_d, Chem_H->photo_ion_HeII_rate_d,
-      Chem_H->photo_heat_HI_rate_d, Chem_H->photo_heat_HeI_rate_d, Chem_H->photo_heat_HeII_rate_d, false  );
+    // hipLaunchKernelGGL(Update_Chemistry, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, 
+    //   Chem_H->density_conversion, Chem_H->energy_conversion, Chem_H->current_z, Chem_H->cosmological_parameters_d, Chem_H->n_uvb_rates_samples, Chem_H->uvb_rates_redshift_d,
+    //   Chem_H->photo_ion_HI_rate_d, Chem_H->photo_ion_HeI_rate_d, Chem_H->photo_ion_HeII_rate_d,
+    //   Chem_H->photo_heat_HI_rate_d, Chem_H->photo_heat_HeI_rate_d, Chem_H->photo_heat_HeII_rate_d, false  );
+    hipLaunchKernelGGL(Update_Chemistry, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, *Chem_H);
+    
     CudaCheckError();
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&time, start, stop);
     Chem_H->runtime_chemistry_step = time;
     #endif
- 
-    // Step 4: Calculate the next time step
-    hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama, max_dti_slow );
-    CudaCheckError();
-
+    
     // copy the updated conserved variable array back to the CPU
     #ifndef GPU_MPI
     CudaSafeCall( cudaMemcpy(tmp2, dev_conserved, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyDeviceToHost) );
