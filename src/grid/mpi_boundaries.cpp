@@ -1,4 +1,4 @@
-#include "../grid/grid3D.h"
+#include "grid3D.h"
 #include "../mpi/mpi_routines.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"
@@ -48,7 +48,7 @@ void Grid3D::Set_Boundaries_MPI_SLAB(int *flags, struct parameters P)
     Set_Edge_Boundaries(1,flags);
 
   //1) load and post comm for buffers
-  Load_and_Send_MPI_Comm_Buffers(0, flags);
+  Load_and_Send_MPI_Comm_Buffers_SLAB(flags);
 
   //2) perform any additional boundary conditions
   //including whether the x face is non-MPI
@@ -89,7 +89,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 
     /* Step 1 - Send MPI x-boundaries */
     if (flags[0]==5 || flags[1]==5) {
-      Load_and_Send_MPI_Comm_Buffers(0, flags);
+      Load_and_Send_MPI_Comm_Buffers_BLOCK(0, flags);
     }
 
     /* Step 2 - Set non-MPI x-boundaries */
@@ -112,7 +112,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 
     /* Step 4 - Send MPI y-boundaries */
     if (flags[2]==5 || flags[3]==5) {
-      Load_and_Send_MPI_Comm_Buffers(1, flags);
+      Load_and_Send_MPI_Comm_Buffers_BLOCK(1, flags);
     }
 
     /* Step 5 - Set non-MPI y-boundaries */
@@ -133,7 +133,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 
     /* Step 7 - Send MPI z-boundaries */
     if (flags[4]==5 || flags[5]==5) {
-      Load_and_Send_MPI_Comm_Buffers(2, flags);
+      Load_and_Send_MPI_Comm_Buffers_BLOCK(2, flags);
     }
 
     /* Step 8 - Set non-MPI z-boundaries */
@@ -398,25 +398,6 @@ void Grid3D::Set_Edge_Boundary_Extents(int dir, int edge, int *imin, int *imax)
   }
 }
 
-
-
-
-void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
-{
-
-  switch(flag_decomp)
-  {
-    case SLAB_DECOMP:
-      /*load communication buffers*/
-      Load_and_Send_MPI_Comm_Buffers_SLAB(flags);
-      break;
-    case BLOCK_DECOMP:
-      /*load communication buffers*/
-      Load_and_Send_MPI_Comm_Buffers_BLOCK(dir, flags);
-      break;
-  }
-
-}
 
 void Grid3D::Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags)
 {
@@ -991,7 +972,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
       // load left x communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES )
-        {
+      {
         #ifdef HYDRO_GPU
         buffer_length = Load_Hydro_DeviceBuffer_X0(d_send_buffer_x0);
           #ifndef MPI_GPU
@@ -1001,7 +982,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
         #else
         buffer_length = Load_Hydro_Buffer_X0(h_send_buffer_x0);
         #endif
-        }
+      }
 
       #ifdef GRAVITY
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
@@ -1121,7 +1102,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
 
       if ( transfer_main_buffer ){
-	#if defined(MPI_GPU) && defined(HYDRO_GPU)
+	      #if defined(MPI_GPU) && defined(HYDRO_GPU)
         //post non-blocking receive right x communication buffer
         MPI_Irecv(d_recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
 
@@ -1205,7 +1186,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
 
       if ( transfer_main_buffer ){
-	#if defined(MPI_GPU) && defined(HYDRO_GPU)
+	      #if defined(MPI_GPU) && defined(HYDRO_GPU)
         //post non-blocking receive left y communication buffer
         MPI_Irecv(d_recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
 
@@ -1488,7 +1469,7 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_SLAB(int *flags)
     MPI_Waitany(wait_max,recv_request,&index,&status);
 
     //depending on which face arrived, load the buffer into the ghost grid
-    Unload_MPI_Comm_Buffers(status.MPI_TAG);
+    Unload_MPI_Comm_Buffers_SLAB(status.MPI_TAG);
   }
 
 }
@@ -1535,22 +1516,7 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
     //if (procID==1) MPI_Get_count(&status, MPI_CHREAL, &count);
     //if (procID==1) printf("Process 1 unloading direction %d, source %d, index %d, length %d.\n", status.MPI_TAG, status.MPI_SOURCE, index, count);
     //depending on which face arrived, load the buffer into the ghost grid
-    Unload_MPI_Comm_Buffers(status.MPI_TAG);
-  }
-}
-
-
-
-void Grid3D::Unload_MPI_Comm_Buffers(int index)
-{
-  switch(flag_decomp)
-  {
-    case SLAB_DECOMP:
-      Unload_MPI_Comm_Buffers_SLAB(index);
-      break;
-    case BLOCK_DECOMP:
-      Unload_MPI_Comm_Buffers_BLOCK(index);
-      break;
+    Unload_MPI_Comm_Buffers_BLOCK(status.MPI_TAG);
   }
 }
 

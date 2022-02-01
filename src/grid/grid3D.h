@@ -322,6 +322,13 @@ class Grid3D
     Analysis_Module Analysis;
     #endif
 
+    #ifdef FEEDBACK //TODO refactor this into Analysis module
+    Real countSN;
+    Real countResolved;
+    Real countUnresolved;
+    Real totalEnergy;
+    Real totalMomentum;
+    #endif
     struct Conserved
     {
       /*! \var density
@@ -629,12 +636,10 @@ class Grid3D
     void Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P);
     void Set_Edge_Boundaries(int dir, int *flags);
     void Set_Edge_Boundary_Extents(int dir, int edge, int *imin, int *imax);
-    void Load_and_Send_MPI_Comm_Buffers(int dir, int *flags);
     void Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags);
     void Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags);
     void Wait_and_Unload_MPI_Comm_Buffers_SLAB(int *flags);
     void Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags);
-    void Unload_MPI_Comm_Buffers(int index);
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
 
@@ -699,8 +704,13 @@ class Grid3D
   #endif//GRAVITY
 
   #ifdef GRAVITY_ANALYTIC_COMP
-  void Add_Analytic_Potential(struct parameters *P);
-  void Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal);
+  void Add_Analytic_Potential();
+  void Add_Analytic_Potential(int g_start, int g_end);
+  void Setup_Analytic_Potential(struct parameters *P);
+  void Setup_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal);
+  #ifdef GRAVITY_GPU
+  void Add_Analytic_Potential_GPU();
+  #endif
   #endif //GRAVITY_ANALYTIC_COMP
 
   #ifdef PARTICLES
@@ -713,7 +723,9 @@ class Grid3D
   void Transfer_Particles_Boundaries( struct parameters P );
   Real Update_Grid_and_Particles_KDK( struct parameters P );
   void Set_Particles_Boundary( int dir, int side);
-  void Set_Particles_Open_Boundary(int dir, int side);
+  #ifdef PARTICLES_CPU
+  void Set_Particles_Open_Boundary_CPU(int dir, int side);
+  #endif
   #ifdef MPI_CHOLLA
   int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
   void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
@@ -762,11 +774,11 @@ class Grid3D
   void Advance_Particles_KDK_Step1_GPU();
   void Advance_Particles_KDK_Step2_GPU();
   void Set_Particles_Boundary_GPU( int dir, int side);
+  int Load_Particles_Density_Boundary_to_Buffer_GPU( int direction, int side, Real *buffer  );
+  void Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, int side, Real *buffer  );
   #endif//PARTICLES_GPU
   #ifdef GRAVITY_GPU
   void Copy_Particles_Density_GPU();
-  int Load_Particles_Density_Boundary_to_Buffer_GPU( int direction, int side, Real *buffer  );
-  void Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, int side, Real *buffer  );
   #endif//GRAVITY_GPU
   #endif//PARTICLES
 
@@ -821,8 +833,13 @@ class Grid3D
   #ifdef PARTICLES
   #ifdef DE
   #ifdef PARTICLE_AGE
-  void Cluster_Feedback();
-  void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end);
+  #ifdef FEEDBACK
+  Real Cluster_Feedback();
+  Real Cluster_Feedback_GPU();
+  void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end, Real* info, int thread_id, Real* dti);
+  void Compute_Gas_Velocity_Dispersion();
+  Real Calc_Timestep(int index);
+  #endif
   #endif
   #endif
   #endif

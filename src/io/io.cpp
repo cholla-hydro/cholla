@@ -136,7 +136,9 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   G.H.Output_Now = false;
   #endif
 
+  #ifdef MPI_CHOLLA
   MPI_Barrier(world);
+  #endif
 }
 
 

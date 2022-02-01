@@ -1,7 +1,4 @@
-#ifdef PARTICLES
-#ifdef DE
-#ifdef PARTICLE_AGE
-
+#if defined(PARTICLES) && defined(DE) && defined(PARTICLE_AGE) && defined(PARTICLE_CPU) && defined(FEEDBACK)
 
 #ifndef FEEDBACK_CIC_H
 #define FEEDBACK_CIC_H
@@ -11,7 +8,5 @@
 Real getClusterEnergyFeedback(Real t, Real dt, Real age);
 Real getClusterMassFeedback(Real t, Real dt, Real age);
 
-#endif
-#endif
 #endif
 #endif

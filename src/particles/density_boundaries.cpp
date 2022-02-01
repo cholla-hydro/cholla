@@ -2,7 +2,7 @@
 
 #include "../io/io.h"
 #include "../grid/grid3D.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
 #include <iostream>
 
 //Copy the particles density boundaries for non-MPI PERIODIC transfers

@@ -8,7 +8,7 @@
 #include "../global/global.h"
 #include "../grid/grid3D.h"
 #include "../io/io.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
 
 #ifdef HDF5
 #include <hdf5.h>
@@ -359,7 +359,7 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   chprintf( " Allocated GPU memory for particle data\n");
   // printf( " Loaded %ld  particles ", n_to_load);
 
-  //Copyt the particle data to GPU memory
+  //Copy the particle data to GPU memory
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_px, pos_x_dev, n_local);
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_py, pos_y_dev, n_local);
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_pz, pos_z_dev, n_local);
@@ -479,7 +479,9 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   part_int_t i, j, k, id, buf_id;
   hid_t     dataset_id, dataspace_id;
   Real      *dataset_buffer;
+  #ifdef PARTICLE_IDS
   part_int_t  *dataset_buffer_IDs;
+  #endif
   herr_t    status;
   part_int_t n_local = Particles.n_local;
   hsize_t   dims[1];
@@ -621,6 +623,9 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer_IDs[i] = Particles.partIDs[i];
   #endif //PARTICLES_CPU
+  #ifdef PARTICLES_GPU
+  Particles.Copy_Particles_Array_Int_Device_to_Host( Particles.partIDs_dev, dataset_buffer_IDs, Particles.n_local );
+  #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/particle_IDs", H5T_STD_I64LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_LONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_IDs);
   status = H5Dclose(dataset_id);
@@ -631,6 +636,9 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.age[i];
   #endif //PARTICLES_CPU
+  #ifdef PARTICLES_GPU
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.age_dev, dataset_buffer, Particles.n_local );
+  #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/age", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
   status = H5Dclose(dataset_id);

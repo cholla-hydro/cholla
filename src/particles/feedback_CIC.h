@@ -7,10 +7,11 @@
 #define FEEDBACK_CIC_H
 #include "../global/global.h"
 
-#define ENERGY_FEEDBACK_RATE 5.25958e-07  //Rate is 1e51 erg/100M_solar spread out over 10Myr
+const int N_INFO = 5;
 
 Real getClusterEnergyFeedback(Real t, Real dt, Real age);
 Real getClusterMassFeedback(Real t, Real dt, Real age);
+std::tuple<int, Real, Real, Real, Real> getClusterFeedback(Real t, Real dt, Real age, Real density);
 
 #endif
 #endif

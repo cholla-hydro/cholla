@@ -9,7 +9,7 @@
 #include "../global/global_cuda.h"
 #include "../grid/grid3D.h"
 #include "../io/io.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
 
 #ifdef COSMOLOGY
 #include "../cosmology/cosmology.h"
@@ -103,8 +103,6 @@ Real Particles_3D::Calc_Particles_dt_GPU_function( int ngrid, part_int_t n_parti
   }
 
   return max_dti;
-
-
 
 }
 

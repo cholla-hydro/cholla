@@ -2,7 +2,7 @@
 
 #include "../io/io.h"
 #include "../grid/grid3D.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
 #include <iostream>
 
 
@@ -168,4 +168,4 @@ void Grid3D::Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, i
 
 #endif//MPI_CHOLLA
 
-#endif//PARTICLES_GPU
+#endif//PARTICLES_GPU & GRAVITY_GPU

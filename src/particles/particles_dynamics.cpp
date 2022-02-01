@@ -7,7 +7,7 @@
 #include <iostream>
 #include "../global/global.h"
 #include "../grid/grid3D.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
 #include "../io/io.h"
 
 #ifdef PARALLEL_OMP

@@ -187,16 +187,12 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   int nPB, nBoundaries;
   int *iaBoundary, *iaCell;
 
-#ifdef   MPI_CHOLLA
+  #ifdef   MPI_CHOLLA
   /*if the cell face is an mpi boundary, exit */
-  if(flags[dir]==5)
-    return;
-#endif /*MPI_CHOLLA*/
-
-
+  if(flags[dir]==5) return;
+  #endif /*MPI_CHOLLA*/
 
   #ifdef GRAVITY
-
   if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
     if ( flags[dir] == 1 ){
       // Set Periodic Boundaries for the ghost cells.
@@ -254,9 +250,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
     }
     return;
   }
-  #endif
 
-  #ifdef PARTICLES
   if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
     if ( flags[dir] ==1 ){
       #ifdef PARTICLES_CPU
@@ -278,10 +272,13 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       #endif//PARTICLES_GPU
 
 
-      } else if (flags[dir] == 3) {
-        #ifdef PARTICLES_CPU
-        Set_Particles_Open_Boundary(dir/2, dir%2);
-        #endif
+    } else if (flags[dir] == 3) {
+      #ifdef PARTICLES_CPU
+      Set_Particles_Open_Boundary_CPU(dir/2, dir%2);
+      #endif
+      #ifdef PARTICLES_GPU
+      Particles.Set_Particles_Open_Boundary_GPU(dir/2, dir%2);
+      #endif
     }
     return;
   }

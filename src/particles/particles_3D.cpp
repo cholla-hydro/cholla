@@ -9,7 +9,7 @@
 #include "../grid/grid3D.h"
 #include "../utils/prng_utilities.h"
 #include "../model/disk_galaxy.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
 #include "../utils/error_handling.h"
 
 #ifdef MPI_CHOLLA
@@ -359,6 +359,15 @@ void Particles_3D::Free_Memory_GPU(){
   Free_GPU_Array_Real(grav_x_dev);
   Free_GPU_Array_Real(grav_y_dev);
   Free_GPU_Array_Real(grav_z_dev);
+  #ifdef PARTICLE_IDS
+  Free_GPU_Array(partIDs_dev);
+  #endif
+  #ifdef PARTICLE_AGE
+  Free_GPU_Array_Real(age_dev);
+  #endif
+  #ifndef SINGLE_PARTICLE_MASS
+  Free_GPU_Array_Real(mass_dev);
+  #endif
 
   #ifdef MPI_CHOLLA
   Free_GPU_Array_bool( G.transfer_particles_flags_d);
@@ -446,6 +455,9 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
   #ifndef SINGLE_PARTICLE_MASS
   Allocate_Particles_GPU_Array_Real( &mass_dev, particles_array_size);
   #endif
+  #ifdef PARTICLE_IDS
+  Allocate_Particles_GPU_Array_Part_Int( &partIDs_dev, particles_array_size );
+  #endif
   n_local = n_particles_local;
 
   //Allocate temporal Host arrays for the particles data
@@ -457,6 +469,9 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
   Real *temp_vel_z  = (Real *) malloc(particles_array_size*sizeof(Real));
   #ifndef SINGLE_PARTICLE_MASS
   Real *temp_mass   = (Real *) malloc(particles_array_size*sizeof(Real));
+  #endif
+  #ifdef PARTICLE_IDS
+  part_int_t *temp_id = (part_int_t *) malloc(particles_array_size*sizeof(part_int_t));
   #endif
 
   chprintf( " Allocated GPU memory for particle data\n");
@@ -509,6 +524,9 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
     #ifndef SINGLE_PARTICLE_MASS
     temp_mass[pID]  = Mparticle;
     #endif
+    #ifdef PARTICLE_IDS
+    temp_id[pID] = pID;
+    #endif
     #endif //PARTICLES_GPU
 
     pID += 1;
@@ -529,7 +547,9 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
   }
   #endif//PARTICLES_CPU
   #ifdef PARTICLES_GPU
-  //Particles IDs not implemented for PARTICLES_GPU yet
+  for ( int p_indx=0; p_indx<n_local; p_indx++ ){
+    temp_id[p_indx] += global_id_offset;
+  }
   #endif//PARTICLES_GPU
   #endif//PARTICLE_IDS and MPI_CHOLLA
 
@@ -544,6 +564,9 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
   #ifndef SINGLE_PARTICLE_MASS
   Copy_Particles_Array_Real_Host_to_Device( temp_mass, mass_dev, n_local);
   #endif
+  #ifdef PARTICLE_IDS
+  Copy_Particles_Array_Int_Host_to_Device( temp_id, partIDs_dev, n_local);
+  #endif
 
   //Free the temporal host buffers
   free( temp_pos_x );
@@ -554,6 +577,9 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
   free( temp_vel_z );
   #ifndef SINGLE_PARTICLE_MASS
   free( temp_mass );
+  #endif
+  #ifdef PARTICLE_IDS
+  free( temp_id );
   #endif
   #endif //PARTICLES_GPU
 
@@ -611,7 +637,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
 
   particle_mass = 1e5;  //solar masses
   //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
-  unsigned long int N = 38;//(long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
+  unsigned long int N = 38; //(long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
   long lost_particles = 0;
   for ( part_int_t i = 0; i < N; i++ ){
       do {
@@ -635,6 +661,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       vz = 0;
 
       //add particle data to the particles vectors
+      //if (i == 15) {
       temp_pos_x.push_back(x);
       temp_pos_y.push_back(y);
       temp_pos_z.push_back(z);
@@ -645,28 +672,27 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       temp_grav_y.push_back(0.0);
       temp_grav_z.push_back(0.0);
 
-      #ifdef PARTICLE_IDS
-      temp_ids.push_back(i);
-      #endif //PARTICLE_IDS
-
       #ifdef PARTICLE_AGE
       //if (fabs(z) >= Z_d) age.push_back(1.1e4);
       //else age.push_back(0.0);
       temp_age.push_back(0.0);
       #endif
+      //}
   }
 
   n_local = temp_pos_x.size();
 
-  #if defined(PARTICLE_IDS) && defined(MPI_CHOLLA)
+  #if defined(PARTICLE_IDS) 
+  part_int_t global_id_offset = 0;
+  #ifdef MPI_CHOLLA
   // Get global IDs: Offset the local IDs to get unique global IDs across the MPI ranks
   chprintf( " Computing Global Particles IDs offset \n" );
-  part_int_t global_id_offset;
   global_id_offset = Get_Particles_IDs_Global_MPI_Offset( n_local );
-  for ( int p_indx=0; p_indx<n_local; p_indx++ ){
-    temp_ids[p_indx] += global_id_offset;
+  #endif //MPI_CHOLLA
+  for ( int i=0; i<n_local; i++ ){
+    temp_ids.push_back( i + global_id_offset);
   }
-  #endif//PARTICLE_IDS and MPI_CHOLLA
+  #endif//PARTICLE_IDS
 
   #ifdef PARTICLES_CPU
   pos_x = temp_pos_x;
@@ -678,14 +704,14 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   grav_x = temp_grav_x;
   grav_y = temp_grav_y;
   grav_z = temp_grav_z;
-  #ifndef SINGLE_PARTICLE_MASS // never will be the case...for now
+  #ifndef SINGLE_PARTICLE_MASS // for now this won't be the case
   mass   = temp_mass;
   #endif
   #ifdef PARTICLE_IDS
   partIDs = temp_ids;
   #endif
   #ifdef PARTICLE_AGE
-  age = temp_age
+  age = temp_age;
   #endif
   #endif  //PARTICLES_CPU
 
@@ -709,17 +735,18 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Copy_Particles_Array_Real_Host_to_Device( temp_grav_y.data(), grav_y_dev, n_local);
   Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_array_size);
   Copy_Particles_Array_Real_Host_to_Device( temp_grav_z.data(), grav_z_dev, n_local);
-  #ifndef SINGLE_PARTICLE_MASS  // this is never the case...but it could change...
+  #ifndef SINGLE_PARTICLE_MASS
   Allocate_Particles_GPU_Array_Real( &mass_dev, particles_array_size );
-  Copy_Particle_Array_Real_Host_to_Device(temp_mass.data(), mass_dev, n_local)
+  Copy_Particles_Array_Real_Host_to_Device(temp_mass.data(), mass_dev, n_local);
   #endif
   #ifdef PARTICLE_IDS
-  Allocate_Particles_GPU_Array_int( &partIDs_dev, particles_array_size );
-  Copy_Particle_Array_Int_Host_to_Device(temp_ids.data(), partIDs_dev, n_local);
+  Allocate_Particles_GPU_Array_Part_Int( &partIDs_dev, particles_array_size );
+  Copy_Particles_Array_Int_Host_to_Device(temp_ids.data(), partIDs_dev, n_local);
+  for(int i : temp_ids) chprintf("ID VECTOR: = %d \n", i);
   #endif
   #ifdef PARTICLE_AGE
   Allocate_Particles_GPU_Array_Real( &age_dev, particles_array_size);
-  Copy_Particle_Array_Real_Host_to_Device(temp_age.data(), age_dev, n_local)
+  Copy_Particles_Array_Real_Host_to_Device(temp_age.data(), age_dev, n_local);
   #endif
   #endif  //PARTICLES_GPU
 

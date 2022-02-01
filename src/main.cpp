@@ -13,6 +13,9 @@
 #include "grid/grid3D.h"
 #include "io/io.h"
 #include "utils/error_handling.h"
+#ifdef FEEDBACK
+#include "particles/supernova.h"
+#endif
 
 
 int main(int argc, char *argv[])
@@ -118,6 +121,25 @@ int main(int argc, char *argv[])
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   #endif
 
+  #ifdef FEEDBACK
+  G.countSN = 0;
+  G.countResolved = 0;
+  G.countUnresolved = 0;
+  G.totalEnergy = 0;
+  G.totalMomentum = 0;
+  #ifdef PARTICLES_GPU
+  #ifdef MPI_CHOLLA
+  Supernova::initState(&P, G.Particles.n_local, 4);
+  #else
+  Supernova::initState(&P, G.Particles.n_local);
+  #endif // MPI_CHOLLA
+  #endif // PARTICLES_GPU
+  #endif // FEEDBACK
+
+  #ifdef GRAVITY_ANALYTIC_COMP
+  G.Setup_Analytic_Potential(&P);
+  #endif
+
   #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential( &P);
@@ -127,11 +149,6 @@ int main(int argc, char *argv[])
   chprintf("Setting boundary conditions...\n");
   G.Set_Boundary_Conditions_Grid(P);
   chprintf("Boundary conditions set.\n");
-
-  #ifdef GRAVITY_ANALYTIC_COMP
-  // add analytic component to gravity potential.
-  G.Add_Analytic_Potential(&P);
-  #endif
 
   #ifdef PARTICLES
   // Get the particles acceleration for the first timestep
@@ -211,9 +228,9 @@ int main(int argc, char *argv[])
     //Set the Grid boundary conditions for next time step
     G.Set_Boundary_Conditions_Grid(P);
 
-    #ifdef GRAVITY_ANALYTIC_COMP
+    #if defined(GRAVITY_ANALYTIC_COMP) && !defined(GRAVITY_GPU)
     // add analytic component to gravity potential.
-    G.Add_Analytic_Potential(&P);
+    G.Add_Analytic_Potential();
     #endif
 
     #ifdef PARTICLES
@@ -221,8 +238,22 @@ int main(int argc, char *argv[])
     G.Advance_Particles( 2 );
     #endif
 
-    #ifdef PARTICLE_AGE
-    //G.Cluster_Feedback();
+    #ifdef FEEDBACK
+    Real fdti = G.Cluster_Feedback();
+    if (fdti != 0 && dti != 0) {
+      printf("DTI COMP: returned: %.4e [%.4e kyr]\n", fdti, 1/fdti);
+      printf("           current: %.4e [ %.4e kyr ] \n", dti, 1/dti);
+
+    } else {
+      printf("DTI COMP: returned: %.4e, current: %.4e\n", fdti, dti);
+    }
+    if (fdti > dti) {
+      printf("      CHANGING\n");
+      dti = fdti;
+    }
+    #ifdef ANALYSIS
+    G.Compute_Gas_Velocity_Dispersion();
+    #endif
     #endif
 
     #ifdef CPU_TIME
@@ -257,6 +288,12 @@ int main(int argc, char *argv[])
       cudaMemcpy(G.C.density, G.C.device,
                  G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
       #endif
+      int my_y = G.H.ny/2;
+      int my_z = G.H.nz/2;
+      for (int i = 0; i < 10; i++) {
+         chprintf("density[%d, %d, %d] = %.4e\n", i, my_y, my_z, G.C.density[i + my_y*G.H.nx + my_z*G.H.nx*G.H.ny]);
+      }
+
       WriteData(G, P, nfile);
       // add one to the output file count
       nfile++;

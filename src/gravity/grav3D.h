@@ -150,6 +150,10 @@ class Grav3D
      *  \brief Array containing the gravitational potential of each cell in the grid at the previous time step */
     Real *potential_1_h;
 
+    #ifdef GRAVITY_ANALYTIC_COMP
+    Real *analytic_potential_h;
+    #endif
+
     #ifdef GRAVITY_GPU
 
     /*! \var density_d
@@ -163,6 +167,10 @@ class Grav3D
     /*! \var potential_d
     *  \brief Device Array containing the gravitational potential of each cell in the grid at the previous time step */
     Real *potential_1_d;
+
+    #ifdef GRAVITY_ANALYTIC_COMP
+    Real *analytic_potential_d;
+    #endif
 
     #endif //GRAVITY_GPU
 

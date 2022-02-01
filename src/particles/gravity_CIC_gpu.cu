@@ -7,7 +7,7 @@
 #include "../utils/gpu.hpp"
 #include "../global/global.h"
 #include "../global/global_cuda.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
 
 #ifdef GRAVITY_GPU
 #include "../grid/grid3D.h"
@@ -136,7 +136,7 @@ __device__ void Get_Indexes_CIC_Gravity( Real xMin, Real yMin, Real zMin, Real d
 }
 
 //Kernel to compute the gravitational field at the particles positions via Cloud-In-Cell
-__global__ void Get_Gravity_CIC_Kernel( part_int_t n_local, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev,  Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx, int ny, int nz, int n_ghost  ){
+__global__ void Get_Gravity_CIC_Kernel( part_int_t n_local, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev,  Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx, int ny, int nz, int n_ghost, part_int_t *partIDs_dev  ){
 
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x ;
 
@@ -168,7 +168,9 @@ __global__ void Get_Gravity_CIC_Kernel( part_int_t n_local, Real *gravity_x_dev,
   if ( pos_y < yMin || pos_y >= yMax ) in_local = false;
   if ( pos_z < zMin || pos_z >= zMax ) in_local = false;
   if ( ! in_local  ) {
+    #ifndef HIDE_CIC_ERRORS
     printf(" Gravity CIC Error: Particle outside local domain");
+    #endif
     return;
   }
 
@@ -241,11 +243,24 @@ __global__ void Get_Gravity_CIC_Kernel( part_int_t n_local, Real *gravity_x_dev,
   grav_y_dev[tid] = g_y;
   grav_z_dev[tid] = g_z;
 
+  /*
+  if (partIDs_dev[tid] == 15) {
+    //printf("    (g_x_bl, g_y_bl) (%.4e, %.4e)\n", g_x_bl, g_y_bl);
+    //printf("    (g_x_br, g_y_br) (%.4e, %.4e)\n", g_x_br, g_y_br);
+    //printf("    (g_x_bu, g_y_bu) (%.4e, %.4e)\n", g_x_bu, g_y_bu);
+    //printf("    (g_x_bru, g_y_bru) (%.4e, %.4e)\n", g_x_bru, g_y_bru);
+    //printf("    (g_x_tl, g_y_tl) (%.4e, %.4e)\n", g_x_tl, g_y_tl);
+    //printf("    (g_x_tr, g_y_tr) (%.4e, %.4e)\n", g_x_tr, g_y_tr);
+    //printf("    (g_x_tu, g_y_tu) (%.4e, %.4e)\n", g_x_tu, g_y_tu);
+    //printf("    (x, y) -> (%f, %f)\n", pos_x, pos_y);
+    //printf("    (g_x_tru, g_y_tru) (%.4e, %.4e)\n", g_x_tru, g_y_tru);
+    printf("    -------->ID 15: pos (%f, %f), grav (%.4e, %.4e)\n", pos_x, pos_y, g_x, g_y);
+  }*/
 }
 
 
 //Call the kernel to compote the gravitational field at the particles positions ( CIC )
-void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin,  Real zMax, Real dx, Real dy, Real dz,   Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev,  Real *grav_y_dev,  Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev ){
+void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin,  Real zMax, Real dx, Real dy, Real dz,   Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev,  Real *grav_y_dev,  Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev, part_int_t *partIDs_dev ){
 
   // set values for GPU kernels
   int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -254,8 +269,10 @@ void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_loca
   //  number of threads per 1D block
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
 
-  hipLaunchKernelGGL(Get_Gravity_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, gravity_x_dev, gravity_y_dev, gravity_z_dev, pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
-  CudaCheckError();
+  hipLaunchKernelGGL(Get_Gravity_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, gravity_x_dev, gravity_y_dev, gravity_z_dev, pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid, partIDs_dev );
+  CHECK(cudaDeviceSynchronize());
+
+  //CudaCheckError();
 
 }
 

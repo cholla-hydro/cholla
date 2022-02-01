@@ -211,14 +211,14 @@ struct parameters
   int yu_bcnd;
   int zl_bcnd;
   int zu_bcnd;
-#ifdef   MPI_CHOLLA
+//#ifdef   MPI_CHOLLA   FIXME: verify this change is needed.
   int xlg_bcnd;
   int xug_bcnd;
   int ylg_bcnd;
   int yug_bcnd;
   int zlg_bcnd;
   int zug_bcnd;
-#endif /*MPI_CHOLLA*/
+//#endif /*MPI_CHOLLA*/
   char custom_bcnd[MAXLEN];
   char outdir[MAXLEN];
   char indir[MAXLEN]; //Folder to load Initial conditions from
