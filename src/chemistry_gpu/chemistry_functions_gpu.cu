@@ -461,7 +461,7 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
     d  *= density_conv / a3;
     GE *= energy_conv  / a2; 
     dt_hydro = dt_hydro * current_a * current_a / H0 * 1000 * KPC / Chem_H.time_units;
-    delta_a = H0 * sqrt( Omega_M/current_a + Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) * dt_hydro * Chem_H.time_units;
+    // delta_a = H0 * sqrt( Omega_M/current_a + Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) * dt_hydro * Chem_H.time_units;
         
     // Initialize the thermal state
     Thermal_State TS;    
