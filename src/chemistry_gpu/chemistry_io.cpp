@@ -59,16 +59,19 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(  struct parameters *P ){
   Ion_rates_HeI_h   = (float *)malloc(sizeof(float)*n_lines);
   Ion_rates_HeII_h  = (float *)malloc(sizeof(float)*n_lines);
   
-  Real eV_to_ergs = 1.60218e-12;
+  Real eV_to_ergs, heat_units, ion_units; 
+  eV_to_ergs = 1.60218e-12;
+  heat_units = eV_to_ergs / H.cooling_units;
+  ion_units  = H.time_units;
   
   for (i=0; i<n_lines; i++ ){
     rates_z_h[i] = v[i][0] ;
-    Ion_rates_HI_h[i]    = v[i][1];
-    Heat_rates_HI_h[i]   = v[i][2] * eV_to_ergs;
-    Ion_rates_HeI_h[i]   = v[i][3];
-    Heat_rates_HeI_h[i]  = v[i][4] * eV_to_ergs;
-    Ion_rates_HeII_h[i]  = v[i][5];
-    Heat_rates_HeII_h[i] = v[i][6] * eV_to_ergs;
+    Ion_rates_HI_h[i]    = v[i][1] * ion_units;
+    Heat_rates_HI_h[i]   = v[i][2] * heat_units;
+    Ion_rates_HeI_h[i]   = v[i][3] * ion_units;
+    Heat_rates_HeI_h[i]  = v[i][4] * heat_units;
+    Ion_rates_HeII_h[i]  = v[i][5] * ion_units;
+    Heat_rates_HeII_h[i] = v[i][6] * heat_units;
     // chprintf( " %f  %e  %e  %e   \n", rates_z_h[i], Heat_rates_HI_h[i],  Heat_rates_HeI_h[i],  Heat_rates_HeII_h[i]);
     // chprintf( " %f  %f  \n", rates_z_h[i], Heat_rates_HI_h[i] );
   }

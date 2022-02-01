@@ -35,6 +35,7 @@ typedef double Real;
 #define MSUN_CGS 1.98847e33; //Msun in gr
 #define KPC_CGS 3.086e21;  //kpc in cm
 #define KM_CGS 1e5; //km in cm
+#define MH 1.67262171e-24 //Mass of hydrogen [g]   
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
 #define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
@@ -77,7 +78,7 @@ typedef double Real;
 // Inital Chemistry fractions
 #define INITIAL_FRACTION_HI        0.75984603480
 #define INITIAL_FRACTION_HII       1.53965115054e-4
-#define INITIAL_FRACTION_HEI       0.23999999997
+#define INITIAL_FRACTION_HEI       0.24000000008
 #define INITIAL_FRACTION_HEII      9.59999999903e-15
 #define INITIAL_FRACTION_HEIII     9.59999999903e-18
 #define INITIAL_FRACTION_ELECTRON  1.53965115054e-4

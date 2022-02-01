@@ -3,17 +3,71 @@
 
 #include"../global.h"
 
+#define CHEM_TINY 1e-20
+
+//Define the type of a generic rate function.
+typedef Real (*Rate_Function_T)( Real, Real );
+
+
 // #define TEXTURES_UVB_INTERPOLATION
 
 struct Chemistry_Header
 {
+  Real gamma;
   Real density_conversion;
   Real energy_conversion;
   Real current_z;
-  int n_uvb_rates_samples;
   Real runtime_chemistry_step;
+  Real H_fraction;
+  
+  // Units system
+  Real a_value;
+  Real density_units;
+  Real length_units;
+  Real time_units;
+  Real velocity_units;
+  Real cooling_units;
+  Real reaction_units;
+  Real dens_number_conv;
   
   float *cosmological_parameters_d;
+    
+  // Interpolation tables for the rates
+  int  N_Temp_bins;
+  Real Temp_start;
+  Real Temp_end;
+  
+  Real *cool_ceHI_d;
+  Real *cool_ceHeI_d;
+  Real *cool_ceHeII_d;
+  
+  Real *cool_ciHI_d;
+  Real *cool_ciHeI_d;
+  Real *cool_ciHeII_d;
+  Real *cool_ciHeIS_d;
+  
+  Real *cool_reHII_d;
+  Real *cool_reHeII1_d;
+  Real *cool_reHeII2_d;
+  Real *cool_reHeIII_d;
+  
+  Real *cool_brem_d;
+  
+  Real cool_compton;
+  
+  Real *k_coll_i_HI_d;
+  Real *k_coll_i_HeI_d;
+  Real *k_coll_i_HeII_d;
+  Real *k_coll_i_HI_HI_d;
+  Real *k_coll_i_HI_HeI_d;
+  
+  Real *k_recomb_HII_d;
+  Real *k_recomb_HeII_d;
+  Real *k_recomb_HeIII_d;
+  
+  int max_iter;
+
+  int n_uvb_rates_samples;
   float *uvb_rates_redshift_d;
   float *photo_ion_HI_rate_d;
   float *photo_ion_HeI_rate_d;
@@ -37,7 +91,8 @@ public:
   int ny;
   int nz;
   
-  Real gamma;
+  
+  bool use_case_B_recombination;
   
   Real scale_factor_UVB_on;
 
@@ -71,11 +126,19 @@ public:
   
   
   void Allocate_Array_GPU_Real( Real **array_dev, int size );
+  void Copy_Real_Array_to_Device( int size, Real *array_h, Real *array_d );
+  void Free_Array_GPU_Real( Real *array_dev );
   void Allocate_Array_GPU_float( float **array_dev, int size );
   void Copy_Float_Array_to_Device( int size, float *array_h, float *array_d );
   void Free_Array_GPU_float( float *array_dev );
       
   void Initialize( struct parameters *P );
+  
+  void Generate_Reaction_Rate_Table( Real **rate_table_array_d, Rate_Function_T rate_function, Real units  );
+  
+  void Initialize_Cooling_Rates();
+  
+    void Initialize_Reaction_Rates();
   
   void Initialize_UVB_Ionization_and_Heating_Rates( struct parameters *P );
   
