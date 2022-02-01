@@ -51,8 +51,9 @@ CC                ?= cc
 CXX               ?= CC
 
 CFLAGS_OPTIMIZE   ?= -Ofast
-CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++11
-GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++11
+# FIXME  put back -std=c++11
+CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++17
+GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++17
 BUILD             ?= OPTIMIZE
 
 CFLAGS            += $(CFLAGS_$(BUILD))

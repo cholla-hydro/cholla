@@ -661,7 +661,6 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       vz = 0;
 
       //add particle data to the particles vectors
-      //if (i == 15) {
       temp_pos_x.push_back(x);
       temp_pos_y.push_back(y);
       temp_pos_z.push_back(z);
@@ -677,7 +676,6 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       //else age.push_back(0.0);
       temp_age.push_back(0.0);
       #endif
-      //}
   }
 
   n_local = temp_pos_x.size();
@@ -742,7 +740,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   #ifdef PARTICLE_IDS
   Allocate_Particles_GPU_Array_Part_Int( &partIDs_dev, particles_array_size );
   Copy_Particles_Array_Int_Host_to_Device(temp_ids.data(), partIDs_dev, n_local);
-  for(int i : temp_ids) chprintf("ID VECTOR: = %d \n", i);
+  for(int i : temp_ids) chprintf("ID VECTOR: = %d \n", i); //FIXME debug output only
   #endif
   #ifdef PARTICLE_AGE
   Allocate_Particles_GPU_Array_Real( &age_dev, particles_array_size);
