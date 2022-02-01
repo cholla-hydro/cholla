@@ -30,6 +30,10 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   
   Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
   
+  Chem.H.H0 = P->H0;
+  Chem.H.Omega_M = P->Omega_M;
+  Chem.H.Omega_L = P->Omega_L;
+  
   
   // Set up the units system.
   Real Msun, kpc_cgs, kpc_km, dens_to_CGS;
@@ -64,11 +68,9 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   // Real kpc_cgs = KPC_CGS;
   Chem.H.density_conversion = Cosmo.rho_0_gas * Cosmo.cosmo_h * Cosmo.cosmo_h / pow( kpc_cgs, 3) * MSUN_CGS ; 
   Chem.H.energy_conversion  =  Cosmo.v_0_gas * Cosmo.v_0_gas * 1e10;  //km^2 -> cm^2 ;
-  Chem.H.cosmological_parameters_d = Chem.cosmo_params_d;
   #else // Not COSMOLOGY
   Chem.H.density_conversion = 1.0;
   Chem.H.energy_conversion  = 1.0;
-  Chem.H.cosmological_parameters_d = NULL;
   #endif
   Chem.H.n_uvb_rates_samples  = Chem.n_uvb_rates_samples;
   Chem.H.uvb_rates_redshift_d = Chem.rates_z_d;
@@ -117,15 +119,6 @@ void Chem_GPU::Generate_Reaction_Rate_Table( Real **rate_table_array_d, Rate_Fun
 
 
 void Chem_GPU::Initialize( struct parameters *P ){
-  
-  chprintf( " Initializing Cosmological Parameters... \n");
-  cosmo_params_h = (float *)malloc(3*sizeof(Real));
-  cosmo_params_h[0] = (float)P->H0;
-  cosmo_params_h[1] = (float)P->Omega_M;
-  cosmo_params_h[2] = (float)P->Omega_L;
-  
-  Allocate_Array_GPU_float( &cosmo_params_d, 3 );
-  Copy_Float_Array_to_Device( 3, cosmo_params_h, cosmo_params_d );
   
   Initialize_Cooling_Rates();
   

@@ -30,7 +30,10 @@ struct Chemistry_Header
   Real reaction_units;
   Real dens_number_conv;
   
-  float *cosmological_parameters_d;
+  // Cosmological parameters
+  Real H0;
+  Real Omega_M;
+  Real Omega_L;
     
   // Interpolation tables for the rates
   int  N_Temp_bins;

@@ -405,10 +405,8 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
   int id, xid, yid, zid, n_cells, n_iter;
   Real d, d_inv, vx, vy, vz;
   Real GE, E_kin, dt_chem, t_chem;
-  Real H0, Omega_M, Omega_L;
   Real current_a, a3, a2;
   
-  float *cosmo_params = Chem_H.cosmological_parameters_d;
   Real current_z, density_conv, energy_conv;
   current_z = Chem_H.current_z;
   density_conv = Chem_H.density_conversion;
@@ -448,20 +446,15 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
   
     print = false;
     // if ( xid == n_ghost && yid == n_ghost && zid == n_ghost ) print = true;
-    
-    // Load Cosmological Parameters
-    H0 = cosmo_params[0];
-    Omega_M = cosmo_params[1];
-    Omega_L = cosmo_params[2];
-    
+        
     // Convert to cgs units
     current_a = 1 / ( current_z + 1);
     a2 = current_a * current_a;
     a3 = a2 * current_a;  
     d  *= density_conv / a3;
     GE *= energy_conv  / a2; 
-    dt_hydro = dt_hydro * current_a * current_a / H0 * 1000 * KPC / Chem_H.time_units;
-    // delta_a = H0 * sqrt( Omega_M/current_a + Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) * dt_hydro * Chem_H.time_units;
+    dt_hydro = dt_hydro * current_a * current_a / Chem_H.H0 * 1000 * KPC / Chem_H.time_units;
+    // delta_a = Chem_H.H0 * sqrt( Chem_H.Omega_M/current_a + Chem_H.Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) * dt_hydro * Chem_H.time_units;
         
     // Initialize the thermal state
     Thermal_State TS;    
@@ -547,6 +540,9 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
     TS.d_HeI   *= correct_He;
     TS.d_HeII  *= correct_He;
     TS.d_HeIII *= correct_He;
+    
+    // Use charge conservation to determine electron fractioan
+    TS.d_e = TS.d_HII + TS.d_HeII/4.0 + TS.d_HeIII/2.0;
        
     // Write the Updated Thermal State
     dev_conserved[ 5*n_cells + id] = TS.d_HI    * a3; 
