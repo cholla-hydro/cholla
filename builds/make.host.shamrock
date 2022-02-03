@@ -22,3 +22,5 @@ PFFT_ROOT    = /home/bruno/code/pfft
 #GRACKLE_ROOT = /home/bruno/code/grackle_modified
 GRACKLE_ROOT = /home/bruno/local
 
+#Paris does not do GPU_MPI transfers 
+PARIS_MPI_GPU = -DPARIS_NO_GPU_MPI
