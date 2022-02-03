@@ -2268,6 +2268,8 @@
     {
         testParams const parameters;
 
+        double const fixedEpsilon = 7E-12;
+
         std::vector<double> const fiducialVelocityDoubleStarY{-1.5775383335759607, 3.803188977150934};
         std::vector<double> const fiducialVelocityDoubleStarZ{-3.4914062207842482, -4.2662645349592765};
         std::vector<double> const fiducialMagneticDoubleStarY{45.259313435283325, 71.787329583230417};
@@ -2324,7 +2326,8 @@
                                            parameters.names.at(i) + ", EnergyDoubleStarL");
             testingUtilities::checkResults(fiducialEnergyDoubleStarR[i],
                                            testEnergyDoubleStarR,
-                                           parameters.names.at(i) + ", EnergyDoubleStarR");
+                                           parameters.names.at(i) + ", EnergyDoubleStarR",
+                                           fixedEpsilon);
         }
     }
 

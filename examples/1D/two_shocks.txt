@@ -1,5 +1,5 @@
 #
-# Parameter File for Toro test 4, a collision of two shocks. 
+# Parameter File for Toro test 4, a collision of two shocks.
 # Parameters derived from Toro, Sec. 6.4.4, test 4
 #
 
@@ -34,13 +34,18 @@ outdir=./
 # density of left state
 rho_l=5.99924
 # velocity of left state
-v_l=19.5975
+vx_l=19.5975
+vy_l=0.0
+vz_l=0.0
+
 # pressure of left state
 P_l=460.894
 # density of right state
 rho_r=5.99242
 # velocity of right state
-v_r=-6.19633
+vx_r=-6.19633
+vy_r=0.0
+vz_r=0.0
 # pressure of right state
 P_r=46.095
 # location of initial discontinuity

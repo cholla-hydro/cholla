@@ -1,20 +1,24 @@
 #
-# Parameter File for 1D strong shock test
+# Parameter File for 3D Dai & Woodward MHD shock tube
+# Citation: Dai & Woodward 1998 "On The Diverrgence-Free Condition and
+# Conservation Laws in Numerical Simulations for Supersonic Magnetohydrodynamic
+# Flows"
 #
 
 ################################################
 # number of grid cells in the x dimension
-nx=100
+nx=32
 # number of grid cells in the y dimension
-ny=1
+ny=32
 # number of grid cells in the z dimension
-nz=1
+nz=32
 # final output time
-tout=0.07
+tout=0.2
 # time interval for output
-outstep=0.07
+outstep=0.2
 # name of initial conditions
 init=Riemann
+
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -22,32 +26,48 @@ zmin=0.0
 xlen=1.0
 ylen=1.0
 zlen=1.0
+
 # type of boundary conditions
 xl_bcnd=3
 xu_bcnd=3
+yl_bcnd=3
+yu_bcnd=3
+zl_bcnd=3
+zu_bcnd=3
+
 # path to output directory
 outdir=./
 
 #################################################
 # Parameters for 1D Riemann problems
 # density of left state
-rho_l=10.0
+rho_l=1.08
 # velocity of left state
 vx_l=0.0
 vy_l=0.0
 vz_l=0.0
 # pressure of left state
-P_l=100.0
+P_l=1.0
+# Magnetic field of the left state
+Bx_l=14.17963081
+By_l=12.76166773
+Bz_l=7.0898154
+
 # density of right state
 rho_r=1.0
 # velocity of right state
 vx_r=0.0
 vy_r=0.0
-vz_r=0.0
+vz_r=1.0
 # pressure of right state
-P_r=1.0
+P_r=0.2
+# Magnetic field of the right state
+Bx_r=14.17963081
+By_r=14.17963081
+Bz_r=7.0898154
+
 # location of initial discontinuity
 diaph=0.5
 # value of gamma
-gamma=1.4
+gamma=1.6666666666666667
 

@@ -264,24 +264,34 @@ void Grid3D::AllocateMemory(void)
   C.Energy   = &(C.host[4*H.n_cells]);
   #ifdef SCALAR
   C.scalar  = &(C.host[5*H.n_cells]);
-  #endif
+  #endif  //SCALAR
+  #ifdef  MHD
+  C.magnetic_x = &(C.host[(5 + NSCALARS)*H.n_cells]);
+  C.magnetic_y = &(C.host[(6 + NSCALARS)*H.n_cells]);
+  C.magnetic_z = &(C.host[(7 + NSCALARS)*H.n_cells]);
+  #endif  //MHD
   #ifdef DE
   C.GasEnergy = &(C.host[(H.n_fields-1)*H.n_cells]);
-  #endif
+  #endif  //DE
 
   // allocate memory for the conserved variable arrays on the device
   CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
-  C.d_density     = C.device;
-  C.d_momentum_x  = &(C.device[H.n_cells]);
-  C.d_momentum_y  = &(C.device[2*H.n_cells]);
-  C.d_momentum_z  = &(C.device[3*H.n_cells]);
-  C.d_Energy      = &(C.device[4*H.n_cells]);
+  C.d_density    = C.device;
+  C.d_momentum_x = &(C.device[H.n_cells]);
+  C.d_momentum_y = &(C.device[2*H.n_cells]);
+  C.d_momentum_z = &(C.device[3*H.n_cells]);
+  C.d_Energy     = &(C.device[4*H.n_cells]);
   #ifdef SCALAR
-  C.d_scalar      = &(C.device[5*H.n_cells]);
-  #endif
+  C.d_scalar     = &(C.device[5*H.n_cells]);
+  #endif  // SCALAR
+  #ifdef  MHD
+  C.d_magnetic_x   = &(C.device[(5 + NSCALARS)*H.n_cells]);
+  C.d_magnetic_y   = &(C.device[(6 + NSCALARS)*H.n_cells]);
+  C.d_magnetic_z   = &(C.device[(7 + NSCALARS)*H.n_cells]);
+  #endif  //MHD
   #ifdef DE
-  C.d_GasEnergy   = &(C.device[(H.n_fields-1)*H.n_cells]);
-  #endif
+  C.d_GasEnergy  = &(C.device[(H.n_fields-1)*H.n_cells]);
+  #endif  // DE
 
   // set the number of thread blocks for the GPU grid (declared in global_cuda)
   ngrid = (H.n_cells + TPB - 1) / TPB;
@@ -317,7 +327,7 @@ void Grid3D::AllocateMemory(void)
 
   #ifdef CLOUDY_COOL
   Load_Cuda_Textures();
-  #endif
+  #endif  // CLOUDY_COOL
 
 }
 

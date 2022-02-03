@@ -28,13 +28,15 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
   Set_Gammas(P.gamma);
 
   if (strcmp(P.init, "Constant")==0) {
-    Constant(P.rho, P.vx, P.vy, P.vz, P.P);
+    Constant(P.rho, P.vx, P.vy, P.vz, P.P, P.Bx, P.By, P.Bz);
   } else if (strcmp(P.init, "Sound_Wave")==0) {
     Sound_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);
   } else if (strcmp(P.init, "Square_Wave")==0) {
     Square_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);
   } else if (strcmp(P.init, "Riemann")==0) {
-    Riemann(P.rho_l, P.v_l, P.P_l, P.rho_r, P.v_r, P.P_r, P.diaph);
+    Riemann(P.rho_l, P.vx_l, P.vy_l, P.vz_l, P.P_l, P.Bx_l, P.By_l, P.Bz_l,
+            P.rho_r, P.vx_r, P.vy_r, P.vz_r, P.P_r, P.Bx_r, P.By_r, P.Bz_r,
+            P.diaph);
   } else if (strcmp(P.init, "Shu_Osher")==0) {
     Shu_Osher();
   } else if (strcmp(P.init, "Blast_1D")==0) {
@@ -71,10 +73,10 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
   } else if (strcmp(P.init, "Read_Grid")==0) {
     #ifndef ONLY_PARTICLES
     Read_Grid(P);
-    #else
+    #else  // ONLY_PARTICLES
     // Initialize a uniform hydro grid when only integrating particles
     Uniform_Grid();
-    #endif
+    #endif  // ONLY_PARTICLES
   } else if (strcmp(P.init, "Uniform")==0) {
     Uniform_Grid();
   } else if (strcmp(P.init, "Zeldovich_Pancake")==0) {
@@ -181,9 +183,9 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
 
 
 
-/*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
+/*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real By, Real Bz)
  *  \brief Constant gas properties. */
-void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
+void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real By, Real Bz)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
@@ -211,25 +213,34 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P)
   }
 
   // set initial values of conserved variables
-  for(k=kstart; k<kend; k++) {
-    for(j=jstart; j<jend; j++) {
-      for(i=istart; i<iend; i++) {
+  for(k=kstart; k<kend+1; k++) {
+    for(j=jstart; j<jend+1; j++) {
+      for(i=istart; i<iend+1; i++) {
 
         //get cell index
         id = i + j*H.nx + k*H.nx*H.ny;
 
-        // get cell-centered position
-        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        // Set the magnetic field including the first "ghost" cell which is
+        // really the right face of the last grid cell
+        #ifdef  MHD
+          C.magnetic_x[id] = Bx;
+          C.magnetic_y[id] = By;
+          C.magnetic_z[id] = Bz;
+        #endif  // MHD
 
-        // set constant initial states
-        C.density[id]    = rho;
-        C.momentum_x[id] = rho*vx;
-        C.momentum_y[id] = rho*vy;
-        C.momentum_z[id] = rho*vz;
-        C.Energy[id]     = P/(gama-1.0) + 0.5*rho*(vx*vx + vy*vy + vz*vz);
-        #ifdef DE
-        C.GasEnergy[id]  = P/(gama-1.0);
-        #endif
+        // Exclude the first ghost cell
+        if ((k < kend) and (j < jend) and (i < iend))
+        {
+          // set constant initial states
+          C.density[id]    = rho;
+          C.momentum_x[id] = rho*vx;
+          C.momentum_y[id] = rho*vy;
+          C.momentum_z[id] = rho*vz;
+          C.Energy[id]     = P/(gama-1.0) + 0.5*rho*(vx*vx + vy*vy + vz*vz);
+          #ifdef DE
+          C.GasEnergy[id]  = P/(gama-1.0);
+          #endif  // DE
+        }
 /*
         if (i==istart && j==jstart && k==kstart) {
           n = rho*DENSITY_UNIT / (mu*MP);
@@ -372,9 +383,13 @@ void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
 }
 
 
-/*! \fn void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph)
+/*! \fn void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real Bx_l, Real By_l, Real Bz_l,
+                     Real rho_r, Real vx_r, Real vy_r, Real vz_r, Real P_r, Real Bx_r, Real By_r, Real Bz_r,
+                     Real diaph)
  *  \brief Initialize the grid with a Riemann problem. */
-void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph)
+void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real Bx_l, Real By_l, Real Bz_l,
+                     Real rho_r, Real vx_r, Real vy_r, Real vz_r, Real P_r, Real Bx_r, Real By_r, Real Bz_r,
+                     Real diaph)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
@@ -400,6 +415,26 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
     kend   = H.nz;
   }
 
+  #ifdef MHD
+    auto setMagnetFields = [&] ()
+    {
+      Real x_pos_face = x_pos - 0.5 * H.dx;
+
+      if (x_pos_face < diaph)
+      {
+        C.magnetic_x[id] = Bx_l;
+        C.magnetic_y[id] = By_l;
+        C.magnetic_z[id] = Bz_l;
+      }
+      else
+      {
+        C.magnetic_x[id] = Bx_r;
+        C.magnetic_y[id] = By_r;
+        C.magnetic_z[id] = Bz_r;
+      }
+    };
+  #endif  // MHD
+
   // set initial values of conserved variables
   for(k=kstart; k<kend; k++) {
     for(j=jstart; j<jend; j++) {
@@ -414,34 +449,48 @@ void Grid3D::Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real 
         if (x_pos < diaph)
         {
           C.density[id]    = rho_l;
-          C.momentum_x[id] = rho_l * v_l;
-          C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*v_l*v_l;
+          C.momentum_x[id] = rho_l * vx_l;
+          C.momentum_y[id] = rho_l * vy_l;
+          C.momentum_z[id] = rho_l * vz_l;
+          C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*(vx_l*vx_l + vy_l*vy_l + vz_l*vz_l);
           #ifdef SCALAR
           C.scalar[id] = 1.0*rho_l;
-          #endif
+          #endif  //SCALAR
           #ifdef DE
           C.GasEnergy[id]  = P_l/(gama-1.0);
-          #endif
+          #endif  //DE
         }
         else
         {
           C.density[id]    = rho_r;
-          C.momentum_x[id] = rho_r * v_r;
-          C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*v_r*v_r;
+          C.momentum_x[id] = rho_r * vx_r;
+          C.momentum_y[id] = rho_r * vy_r;
+          C.momentum_z[id] = rho_r * vz_r;
+          C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*(vx_r*vx_r + vy_r*vy_r + vz_r*vz_r);
           #ifdef SCALAR
           C.scalar[id] = 0.0*rho_r;
-          #endif
+          #endif  //SCALAR
           #ifdef DE
           C.GasEnergy[id]  = P_r/(gama-1.0);
-          #endif
+          #endif  //DE
         }
+
+        #ifdef  MHD
+        setMagnetFields();
+        #endif  //MHD
       }
     }
   }
+
+  #ifdef  MHD
+    // Assign the last face for MHD
+    id = iend + jend*H.nx + kend*H.nx*H.ny;
+
+    // get cell-centered position
+    Get_Position(iend, jend, kend, &x_pos, &y_pos, &z_pos);
+
+    setMagnetFields();
+  #endif  //MHD
 }
 
 
@@ -1170,7 +1219,14 @@ void Grid3D::Uniform_Grid()
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
     for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
       for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+
         id = i + j*H.nx + k*H.nx*H.ny;
+
+        #ifdef  MHD
+          C.magnetic_x[id] = 0;
+          C.magnetic_y[id] = 0;
+          C.magnetic_z[id] = 0;
+        #endif  // MHD
 
         C.density[id] = 0;
         C.momentum_x[id] = 0;
@@ -1184,6 +1240,14 @@ void Grid3D::Uniform_Grid()
       }
     }
   }
+
+  #ifdef  MHD
+    // Set the last face in the grid
+    id = (H.nx-H.n_ghost) + (H.ny-H.n_ghost)*H.nx + (H.nz-H.n_ghost)*H.nx*H.ny;
+    C.magnetic_x[id] = 0;
+    C.magnetic_y[id] = 0;
+    C.magnetic_z[id] = 0;
+  #endif  // MHD
 }
 
 void Grid3D::Zeldovich_Pancake( struct parameters P ){

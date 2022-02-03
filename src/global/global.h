@@ -43,12 +43,13 @@ typedef double Real;
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
 #define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
-#define MASS_UNIT 1.98855e33 // 1 solar mass in grams
+#define MASS_UNIT 1.98855e33 // 1 solar mass in gramsgit st
 #define DENSITY_UNIT (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT))
 #define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
 #define ENERGY_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
+#define MAGNETIC_FIELD_UNIT (sqrt(MASS_UNIT/LENGTH_UNIT) / TIME_UNIT)
 
 #define LOG_FILE_NAME "run_output.log"
 
@@ -80,6 +81,12 @@ typedef double Real;
 #define NSCALARS 0
 #endif//SCALAR
 #endif//COOLING_GRACKLE
+
+#ifdef  MHD
+  #define N_MHD_FIELDS 3
+#else
+  #define N_MHD_FIELDS 0
+#endif  //MHD
 
 // Inital Chemistry fractions
 #define INITIAL_FRACTION_HI        0.75984603480
@@ -233,12 +240,25 @@ struct parameters
   Real vz;
   Real P;
   Real A;
+  Real Bx;
+  Real By;
+  Real Bz;
   Real rho_l;
-  Real v_l;
+  Real vx_l;
+  Real vy_l=0;
+  Real vz_l=0;
   Real P_l;
+  Real Bx_l;
+  Real By_l;
+  Real Bz_l;
   Real rho_r;
-  Real v_r;
+  Real vx_r;
+  Real vy_r=0;
+  Real vz_r=0;
   Real P_r;
+  Real Bx_r;
+  Real By_r;
+  Real Bz_r;
   Real diaph;
 #ifdef PARTICLES
   // The random seed for particle simulations. With the default of 0 then a

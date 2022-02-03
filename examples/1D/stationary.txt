@@ -1,5 +1,5 @@
 #
-# Parameter File for Toro test 5, a stationary contact. 
+# Parameter File for Toro test 5, a stationary contact.
 # Parameters derived from Toro, Sec. 6.4.4, test 5
 # Same as test 3a from Liska, 2003.
 #
@@ -35,13 +35,18 @@ outdir=./
 # density of left state
 rho_l=1.0
 # velocity of left state
-v_l=-19.59745
+vx_l=-19.59745
+vy_l=0.0
+vz_l=0.0
+
 # pressure of left state
 P_l=1000
 # density of right state
 rho_r=1.0
 # velocity of right state
-v_r=-19.59745
+vx_r=-19.59745
+vy_r=0.0
+vz_r=0.0
 # pressure of right state
 P_r=0.01
 # location of initial discontinuity
