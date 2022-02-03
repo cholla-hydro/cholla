@@ -289,7 +289,16 @@ void Grid3D::AllocateMemory(void)
   #ifdef DE
   C.d_GasEnergy   = &(C.device[(H.n_fields-1)*H.n_cells]);
   #endif
-
+  
+  #ifdef CHEMISTRY_GPU
+  C.HI_density    = &C.scalar[ 0*H.n_cells ];
+  C.HII_density   = &C.scalar[ 1*H.n_cells ];
+  C.HeI_density   = &C.scalar[ 2*H.n_cells ];
+  C.HeII_density  = &C.scalar[ 3*H.n_cells ];
+  C.HeIII_density = &C.scalar[ 4*H.n_cells ];
+  C.e_density     = &C.scalar[ 5*H.n_cells ];
+  #endif
+  
   // initialize array
   for (int i=0; i<H.n_fields*H.n_cells; i++)
   {
@@ -555,7 +564,17 @@ Real Grid3D::Update_Grid(void)
   #else // NOT AVERAGE_SLOW_CELLS
   max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
   #endif //max_dti_slow
-
+  
+    
+  struct Chemistry_Header *Chem_Header;
+  #ifdef CHEMISTRY_GPU
+  Update_Chemistry_Header();
+  Chem_Header = &Chem.H;
+  #else
+  Chem_Header = NULL;
+  #endif 
+  
+  
   // Pass the structure of conserved variables to the CTU update functions
   // The function returns the updated variables
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) //1D
@@ -620,7 +639,7 @@ Real Grid3D::Update_Grid(void)
     VL_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //VL
     #ifdef SIMPLE
-    Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow, Chem_Header );
     #endif//SIMPLE
     #endif
   }
@@ -681,7 +700,16 @@ Real Grid3D::Update_Grid(void)
   Cool.fields.metal_density   = &C.scalar[ 6*H.n_cells ];
   #endif
   #endif
-
+  
+  #ifdef CHEMISTRY_GPU
+  C.HI_density    = &C.scalar[ 0*H.n_cells ];
+  C.HII_density   = &C.scalar[ 1*H.n_cells ];
+  C.HeI_density   = &C.scalar[ 2*H.n_cells ];
+  C.HeII_density  = &C.scalar[ 3*H.n_cells ];
+  C.HeIII_density = &C.scalar[ 4*H.n_cells ];
+  C.e_density     = &C.scalar[ 5*H.n_cells ];
+  #endif
+  
   // reset the grid flag to swap buffers
   gflag = (gflag+1)%2;
 
@@ -694,7 +722,7 @@ Real Grid3D::Update_Grid(void)
 Real Grid3D::Update_Hydro_Grid( ){
 
   #ifdef ONLY_PARTICLES
-  // Dond integrate the Hydro when only solving for particles
+  // Don't integrate the Hydro when only solving for particles
   return 1e-10;
   #endif
 
@@ -712,7 +740,15 @@ Real Grid3D::Update_Hydro_Grid( ){
   dti = Update_Grid();
 
   #ifdef CPU_TIME
+  #ifdef CHEMISTRY_GPU
+  //Subtract the time spent on the Chemical Update (Chem runtime was measured in ms, while the timer is on secs )
+  Timer.Substract_Time_From_Timer( Chem.H.runtime_chemistry_step / 1000 );
+  #endif
   Timer.End_and_Record_Time( 1 );
+  #ifdef CHEMISTRY_GPU
+  //Subtract the time spent on the Chemical Update 
+  Timer.Record_Time_Chemistry( Chem.H.runtime_chemistry_step );
+  #endif
   #endif //CPU_TIME
 
   #ifdef COOLING_GRACKLE
@@ -818,7 +854,11 @@ void Grid3D::FreeMemory(void)
   Free_Cuda_Textures();
   #endif
   #endif
-
+  
+  #ifdef CHEMISTRY_GPU
+  Chem.Reset();
+  #endif
+  
   #ifdef ANALYSIS
   Analysis.Reset();
   #endif

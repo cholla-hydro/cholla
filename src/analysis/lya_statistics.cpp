@@ -1346,8 +1346,12 @@ void Grid3D::Populate_Lya_Skewers_Local( int axis ){
         HI_density    = Cool.fields.HI_density[id_grid]   * Cosmo.rho_0_gas;
         HeII_density  = Cool.fields.HeII_density[id_grid] * Cosmo.rho_0_gas;
         temperature   = Cool.temperature[id_grid];
-        #else
-        chprintf( "ERROR: Lya Statistics only supported for Grackle Cooling \n");
+        #elif defined CHEMISTRY_GPU
+        HI_density    = C.HI_density[id_grid]   * Cosmo.rho_0_gas;
+        HeII_density  = C.HeII_density[id_grid] * Cosmo.rho_0_gas;
+        temperature   = Chem.Fields.temperature_h[id_grid];
+        #else 
+        chprintf( "ERROR: Lya Statistics only supported for Grackle Cooling or CHEMISTRY_GPU\n");
         exit(-1);
         #endif
         HI_density_los[skewer_id*n_los + id_los]   = HI_density;

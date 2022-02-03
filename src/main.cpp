@@ -112,12 +112,16 @@ int main(int argc, char *argv[])
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
   #endif
-
+  
+  #ifdef CHEMISTRY_GPU
+  G.Initialize_Chemistry(&P);
+  #endif
+  
   #ifdef ANALYSIS
   G.Initialize_Analysis_Module(&P);
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   #endif
-
+  
   #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential( &P);

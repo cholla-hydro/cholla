@@ -38,6 +38,10 @@
 #include "../utils/timing_functions.h"
 #endif
 
+#ifdef CHEMISTRY_GPU
+#include "chemistry_gpu/chemistry_gpu.h"
+#endif 
+
 #ifdef ANALYSIS
 #include "../analysis/analysis.h"
 #endif
@@ -317,6 +321,11 @@ class Grid3D
     #ifdef CPU_TIME
     Time Timer;
     #endif
+    
+    #ifdef CHEMISTRY_GPU
+    // Object that contains data for the GPU chemistry solver
+    Chem_GPU Chem;
+    #endif
 
     #ifdef ANALYSIS
     Analysis_Module Analysis;
@@ -360,7 +369,17 @@ class Grid3D
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
+      
+      #ifdef CHEMISTRY_GPU
+      Real *HI_density;
+      Real *HII_density;
+      Real *HeI_density;
+      Real *HeII_density;
+      Real *HeIII_density;
+      Real *e_density;
+      #endif 
 
+      
       /*! pointer to conserved variable on device */
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z,
@@ -621,6 +640,8 @@ class Grid3D
     void Uniform_Grid();
 
     void Zeldovich_Pancake( struct parameters P );
+    
+    void Chemistry_Test( struct parameters P );
 
 
 #ifdef   MPI_CHOLLA
@@ -796,7 +817,13 @@ class Grid3D
   void Update_Internal_Energy();
   void Do_Cooling_Step_Grackle();
   #endif
-
+  
+  #ifdef CHEMISTRY_GPU
+  void Initialize_Chemistry( struct parameters *P );
+  void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
+  void Update_Chemistry_Header();
+  #endif
+  
   #ifdef ANALYSIS
   void Initialize_Analysis_Module( struct parameters *P );
   void Compute_and_Output_Analysis( struct parameters *P );

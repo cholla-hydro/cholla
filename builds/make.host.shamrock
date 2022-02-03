@@ -3,6 +3,8 @@
 #-- Compiler and flags for different build type
 CC                = mpicc
 CXX               = mpicxx
+#CC                = gcc
+#CXX               = g++
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 
@@ -17,5 +19,6 @@ CUDA_LIB     = -L$(CUDA_ROOT)/lib -lcudart -lcufft
 HDF5_ROOT    = /usr/lib/x86_64-linux-gnu/hdf5/serial
 FFTW_ROOT    = /home/bruno/code/fftw-3.3.8
 PFFT_ROOT    = /home/bruno/code/pfft
+#GRACKLE_ROOT = /home/bruno/code/grackle_modified
 GRACKLE_ROOT = /home/bruno/local
 

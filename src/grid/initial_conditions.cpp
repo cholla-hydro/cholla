@@ -78,7 +78,9 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
   } else if (strcmp(P.init, "Uniform")==0) {
     Uniform_Grid();
   } else if (strcmp(P.init, "Zeldovich_Pancake")==0) {
-    Zeldovich_Pancake(P);
+    Zeldovich_Pancake(P);    
+  } else if (strcmp(P.init, "Chemistry_Test")==0) {
+    Chemistry_Test(P);    
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
@@ -1272,7 +1274,109 @@ void Grid3D::Zeldovich_Pancake( struct parameters P ){
 
 
 
+void Grid3D::Chemistry_Test( struct parameters P )
+{
+  chprintf( "Initializing Chemistry Test...\n");
+  
+  Real H0, Omega_M, Omega_L, Omega_b, current_z, rho_gas_mean,  kpc_cgs, G, z, h, mu, T0, U,rho_gas;
+  Real HI_frac, HII_frac, HeI_frac, HeII_frac, HeIII_frac, e_frac, metal_frac,_min;
+  
+  H0 = P.H0;
+  Omega_M = P.Omega_M;
+  Omega_L = P.Omega_L;
+  Omega_b = P.Omega_b;
+  z = P.Init_redshift;
+  kpc_cgs = KPC_CGS;
+  G = G_COSMO;
+  h = H0/100;
+  T0 = 230.0;
+  
+  // M_sun = MSUN_CGS;
+  rho_gas_mean = 3*pow(H0*1e-3, 2)/(8*M_PI*G) * Omega_b / pow(h, 2)  ;
+  chprintf( " z = %f \n", z );
+  chprintf( " HO = %f \n", H0 );
+  chprintf( " Omega_L = %f \n", Omega_L );
+  chprintf( " Omega_M = %f \n", Omega_M );
+  chprintf( " Omega_b = %f \n", Omega_b );
+  chprintf( " rho_gas_mean = %f h^2 Msun kpc^-3\n", rho_gas_mean );
+  chprintf( " T0 = %f k\n", T0 );
+  rho_gas = rho_gas_mean * pow(h, 2) / pow( kpc_cgs, 3) * MSUN_CGS;
+  chprintf( " rho_gas = %e g/cm^3\n", rho_gas );
+  
+  
+  
+  
+  
+  // frac_min = 1e-10;
+  // HI_frac = INITIAL_FRACTION_HI;
+  // HII_frac = frac_min;
+  // HeI_frac = INITIAL_FRACTION_HEI;
+  // HeII_frac = frac_min;
+  // HeIII_frac = frac_min;
+  // e_frac = HII_frac + HeII_frac + 2*HeIII_frac;
+  // 
+  HI_frac = INITIAL_FRACTION_HI;
+  HII_frac = INITIAL_FRACTION_HII;
+  HeI_frac = INITIAL_FRACTION_HEI;
+  HeII_frac = INITIAL_FRACTION_HEII;
+  HeIII_frac = INITIAL_FRACTION_HEIII;
+  e_frac = INITIAL_FRACTION_ELECTRON;
+  metal_frac = INITIAL_FRACTION_METAL;
+  
+  
+  mu = ( HI_frac + HII_frac + HeI_frac + HeII_frac + HeIII_frac ) / ( HI_frac + HII_frac + (HeI_frac + HeII_frac + HeIII_frac)/4 + e_frac );
+  U = rho_gas_mean *  T0 / (gama - 1) / MP / mu * KB * 1e-10;
+  chprintf( " mu = %f \n", mu);
+  chprintf( " U0 = %f \n", U );
+  
+  chprintf( " HI_0 = %f \n", rho_gas_mean * HI_frac );
+  
+  
+  int i, j, k, id;
+  // set the initial values of the conserved variables
+  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+        id = i + j*H.nx + k*H.nx*H.ny;
 
+        C.density[id] =  rho_gas_mean;
+        C.momentum_x[id] = 0;
+        C.momentum_y[id] = 0;
+        C.momentum_z[id] = 0;
+        C.Energy[id] = U;
+
+        #ifdef DE
+        C.GasEnergy[id] = U;
+        #endif
+        
+        #ifdef CHEMISTRY_GPU
+        C.HI_density[id]    =  rho_gas_mean * HI_frac;
+        C.HII_density[id]   =  rho_gas_mean * HII_frac;
+        C.HeI_density[id]   =  rho_gas_mean * HeI_frac;
+        C.HeII_density[id]  =  rho_gas_mean * HeII_frac;
+        C.HeIII_density[id] =  rho_gas_mean * HeIII_frac;
+        C.e_density[id]     =  rho_gas_mean * e_frac;
+        #endif
+        
+        
+        #ifdef COOLING_GRACKLE
+        C.scalar[0*H.n_cells + id] = rho_gas_mean * HI_frac;
+        C.scalar[1*H.n_cells + id] = rho_gas_mean * HII_frac;
+        C.scalar[2*H.n_cells + id] = rho_gas_mean * HeI_frac;
+        C.scalar[3*H.n_cells + id] = rho_gas_mean * HeII_frac;
+        C.scalar[4*H.n_cells + id] = rho_gas_mean * HeIII_frac;
+        C.scalar[5*H.n_cells + id] = rho_gas_mean * e_frac;
+        #ifdef GRACKLE_METALS
+        C.scalar[6*H.n_cells + id] = rho_gas_mean * metal_frac;
+        #endif
+        #endif
+        
+        
+      }
+    }
+  }
+  
+}
 
 
 
