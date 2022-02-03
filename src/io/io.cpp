@@ -23,8 +23,8 @@
 
 using namespace std;
 
-#define OUTPUT_ENERGY
-#define OUTPUT_MOMENTUM
+//#define OUTPUT_ENERGY
+//#define OUTPUT_MOMENTUM
 
 /* function used to rotate points about an axis in 3D for the rotated projection output routine */
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
@@ -1456,11 +1456,10 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    if ( output_full_ionization || H.Output_Complete_Data ){
-      dataset_id = H5Dcreate(file_id, "/HeII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      status = H5Dclose(dataset_id);
-    }
+    dataset_id = H5Dcreate(file_id, "/HeII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
+  
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1470,12 +1469,9 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    if ( output_full_ionization || H.Output_Complete_Data ){
-      dataset_id = H5Dcreate(file_id, "/HeIII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      status = H5Dclose(dataset_id);
-    }
-
+    dataset_id = H5Dcreate(file_id, "/HeIII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    status = H5Dclose(dataset_id);
 
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {

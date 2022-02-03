@@ -145,7 +145,7 @@ ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   DFLAGS += -DSCALAR
   CXXFLAGS += -I$(GRACKLE_ROOT)/include
   GPUFLAGS += -I$(GRACKLE_ROOT)/include
-  LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle
+  LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle 
 endif
 
 .SUFFIXES: .c .cpp .cu .o

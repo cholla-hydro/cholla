@@ -11,7 +11,7 @@ DFLAGS += -DPARTICLES_GPU
 
 
 #Solve only an N-Body Simulation (No Hydro, DM Only simulation)
-# DFLAGS += -DONLY_PARTICLES
+#DFLAGS += -DONLY_PARTICLES
 
 
 # Track Particles IDs and write them to the output files
