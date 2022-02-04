@@ -1,7 +1,6 @@
 #ifdef CHEMISTRY_GPU
 
 #include "chemistry_gpu.h"
-#include "chemistry_functions_gpu.cuh"
 #include "../hydro/hydro_cuda.h"
 #include "../global/global_cuda.h"
 #include "../io/io.h"

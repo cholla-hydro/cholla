@@ -25,11 +25,6 @@
 #include "../io/io.h"
 #include "../riemann_solvers/hll_cuda.h"
 
-#ifdef CHEMISTRY_GPU
-#include"chemistry_gpu/chemistry_functions_gpu.cuh"
-#endif
-
-
 
 
 void Simple_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
