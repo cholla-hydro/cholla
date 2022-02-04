@@ -10,11 +10,11 @@ DFLAGS += -DCOSMOLOGY
 
 
 # Solve the Primordial Chemical Network (H+He) on the GPU (Includes Radiative Cooling, Photoheating and Photoionization)
-DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY 
+#DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY 
 
 
 # Perform In-The-Fly analysis of Cosmological Simulations
-DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS -DOUTPUT_SKEWERS
+#DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS -DOUTPUT_SKEWERS
 
 
 # Average Slow cell when the cell delta_t is very small
