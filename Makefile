@@ -5,7 +5,7 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
-DIRS     := src src/analysis src/cooling src/cooling_grackle src/cosmology \
+DIRS     := src src/analysis src/chemistry_gpu src/cooling src/cooling_grackle src/cosmology \
             src/cpu src/global src/gravity src/gravity/paris src/grid src/hydro \
             src/integrators src/io src/main.cpp src/main_tests.cpp \
             src/model src/mpi src/old_cholla src/particles src/reconstruction \
