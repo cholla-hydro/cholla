@@ -2,12 +2,12 @@
 
 
 #include "chemistry_gpu.h"
-#include "../grid3D.h"
-#include "../io.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
 #include "rates.cuh"
 
 #ifdef DE
-#include"../hydro_cuda.h"
+#include"../hydro/hydro_cuda.h"
 #endif
 
 #define TINY 1e-20
@@ -214,7 +214,7 @@ void Chem_GPU::Copy_UVB_Rates_to_GPU( ){
   
 }
 
-void Grid3D::Update_Chemistry_Header(){
+void Grid3D::Update_Chemistry(){
   
   #ifdef COSMOLOGY
   Chem.H.current_z = Cosmo.current_z;
@@ -222,9 +222,12 @@ void Grid3D::Update_Chemistry_Header(){
   Chem.H.current_z = 0;
   #endif
   
-  Chem.H.runtime_chemistry_step = 0;
-    
+  
+  Do_Chemistry_Update( C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H );
+  
 }
+
+
 
 void Grid3D::Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units ){
   

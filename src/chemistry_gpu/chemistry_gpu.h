@@ -1,7 +1,7 @@
 #ifndef CHEMISTRY_GPU_H
 #define CHEMISTRY_GPU_H
 
-#include"../global.h"
+#include"../global/global.h"
 
 #define CHEM_TINY 1e-20
 
@@ -19,6 +19,7 @@ struct Chemistry_Header
   Real current_z;
   Real runtime_chemistry_step;
   Real H_fraction;
+  
   
   // Units system
   Real a_value;
@@ -155,9 +156,15 @@ public:
   void Bind_GPU_Textures( int size,  float *H_HI_h, float *H_HeI_h, float *H_HeII_h , float *I_HI_h, float *I_HeI_h, float *I_HeII_h );
   #endif
 
-
-
 };
+
+
+/*! \fn void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
+*  \brief When passed an array of conserved variables and a timestep, update the ionization fractions of H and He and update 
+the internal energy to account for radiative cooling and photoheating from the UV background. */
+void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Chemistry_Header &Chem_H);
+
+
 
 #endif
 #endif

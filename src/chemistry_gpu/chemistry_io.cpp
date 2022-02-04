@@ -6,7 +6,7 @@
 #include <sstream>
 #include <fstream>
 #include "chemistry_gpu.h"
-#include "../io.h"
+#include "../io/io.h"
 
 
 using namespace std;

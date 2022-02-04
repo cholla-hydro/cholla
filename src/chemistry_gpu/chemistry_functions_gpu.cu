@@ -2,9 +2,9 @@
 
 #include "chemistry_gpu.h"
 #include "chemistry_functions_gpu.cuh"
-#include "../hydro_cuda.h"
-#include "../global_cuda.h"
-#include "../io.h"
+#include "../hydro/hydro_cuda.h"
+#include "../global/global_cuda.h"
+#include "../io/io.h"
 #include "rates.cuh"
 #include "rates_Katz95.cuh"
 
@@ -13,6 +13,7 @@
 #define n_min 1e-20
 #define tiny  1e-20
 
+#define TPB_CHEM 256
 
 void Chem_GPU::Allocate_Array_GPU_float( float **array_dev, int size ){
 cudaMalloc( (void**)array_dev, size*sizeof(float));
@@ -399,7 +400,7 @@ __device__ void Update_Step( Thermal_State &TS, Chemistry_Header &Chem_H, Real d
  }
 
 
-__global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt_hydro, Chemistry_Header Chem_H   ){
+__global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt_hydro, Chemistry_Header Chem_H   ){
   
     
   int id, xid, yid, zid, n_cells, n_iter;
@@ -571,6 +572,25 @@ __global__ void Update_Chemistry( Real *dev_conserved, int nx, int ny, int nz, i
   }
 }
 
+void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Chemistry_Header &Chem_H){
+  
+  float time;
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start, 0);
+  
+  int ngrid = (nx*ny*nz + TPB_CHEM - 1) / TPB_CHEM;
+  dim3 dim1dGrid(ngrid, 1, 1);
+  dim3 dim1dBlock(TPB_CHEM, 1, 1);                                          
+  hipLaunchKernelGGL(Update_Chemistry_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, Chem_H );
+  
+  CudaCheckError();
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&time, start, stop);
+  Chem_H.runtime_chemistry_step = (Real) time;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

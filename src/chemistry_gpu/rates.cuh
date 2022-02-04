@@ -1,7 +1,7 @@
 #ifdef CHEMISTRY_GPU
 
 #include "chemistry_gpu.h"
-#include"../global_cuda.h"
+#include"../global/global_cuda.h"
 
 
 

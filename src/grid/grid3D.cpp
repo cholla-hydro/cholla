@@ -564,16 +564,7 @@ Real Grid3D::Update_Grid(void)
   #else // NOT AVERAGE_SLOW_CELLS
   max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
   #endif //max_dti_slow
-  
     
-  struct Chemistry_Header *Chem_Header;
-  #ifdef CHEMISTRY_GPU
-  Update_Chemistry_Header();
-  Chem_Header = &Chem.H;
-  #else
-  Chem_Header = NULL;
-  #endif 
-  
   
   // Pass the structure of conserved variables to the CTU update functions
   // The function returns the updated variables
@@ -639,7 +630,7 @@ Real Grid3D::Update_Grid(void)
     VL_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif //VL
     #ifdef SIMPLE
-    Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow, Chem_Header );
+    Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
     #endif//SIMPLE
     #endif
   }
@@ -657,9 +648,14 @@ Real Grid3D::Update_Grid(void)
   Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dt_array);
   #endif //COOLING_GPU
 
+  // Update the H and He ionization fractions and apply cooling and photoheating
+  #ifdef CHEMISTRY_GPU
+  Update_Chemistry( );
+  #endif
+  
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
   max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
-
+    
   // ==Copy the updated conserved variable array to CPU==
   #ifndef HYDRO_GPU
   CudaSafeCall( cudaMemcpy(g1, C.device, H.n_fields*H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
