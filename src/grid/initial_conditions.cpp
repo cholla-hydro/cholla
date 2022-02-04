@@ -1278,6 +1278,8 @@ void Grid3D::Chemistry_Test( struct parameters P )
 {
   chprintf( "Initializing Chemistry Test...\n");
   
+  
+  #ifdef COSMOLOGY
   Real H0, Omega_M, Omega_L, Omega_b, current_z, rho_gas_mean,  kpc_cgs, G, z, h, mu, T0, U,rho_gas;
   Real HI_frac, HII_frac, HeI_frac, HeII_frac, HeIII_frac, e_frac, metal_frac,_min;
   
@@ -1375,6 +1377,11 @@ void Grid3D::Chemistry_Test( struct parameters P )
       }
     }
   }
+  
+  #else //COSMOLOGY
+  chprintf( "This requires COSMOLOGY turned on! \n");
+  chexit(-1);
+  #endif //COSMOLOGY 
   
 }
 
