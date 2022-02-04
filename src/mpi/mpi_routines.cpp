@@ -1316,7 +1316,8 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   CudaSafeCall ( cudaMalloc (&d_recv_buffer_z1_particles, buffer_length_particles_z1_recv*sizeof(Real)) );
 
   #if !defined(MPI_GPU)
-  chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
+  chprintf("Allocating MPI communication buffers on Host for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
+  
   h_send_buffer_x0_particles = (Real *) malloc ( buffer_length_particles_x0_send*sizeof(Real) );
   h_send_buffer_x1_particles = (Real *) malloc ( buffer_length_particles_x1_send*sizeof(Real) );
   h_send_buffer_y0_particles = (Real *) malloc ( buffer_length_particles_y0_send*sizeof(Real) );
@@ -1329,6 +1330,7 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   h_recv_buffer_y1_particles = (Real *) malloc ( buffer_length_particles_y1_recv*sizeof(Real) );
   h_recv_buffer_z0_particles = (Real *) malloc ( buffer_length_particles_z0_recv*sizeof(Real) );
   h_recv_buffer_z1_particles = (Real *) malloc ( buffer_length_particles_z1_recv*sizeof(Real) );
+  
   #endif
 
   #endif//PARTICLES_GPU
