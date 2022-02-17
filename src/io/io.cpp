@@ -1082,7 +1082,6 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
   bool output_energy;
   bool output_momentum;
-  bool output_magnetic;
 
   #ifdef OUTPUT_ENERGY
   output_energy = true;
@@ -1096,14 +1095,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   output_momentum = false;
   #endif  //OUTPUT_MOMENTUM
 
-  #ifdef OUTPUT_MAGNETIC
-    output_magnetic = true;
-  #else
-    output_magnetic = false;
-  #endif // OUTPUT_MAGNETIC
-
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-
   bool output_metals, output_electrons, output_full_ionization;
   #ifdef OUTPUT_METALS
   output_metals = true;
@@ -1121,7 +1113,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   output_full_ionization = false;
   #endif  //OUTPUT_FULL_IONIZATION
 
-  #endif //COOLING_GRACKLE
+  #endif // COOLING_GRACKLE or CHEMISTRY_GPU
 
   #if defined(GRAVITY_GPU) && defined(OUTPUT_POTENTIAL)
   CudaSafeCall( cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential*sizeof(Real), cudaMemcpyDeviceToHost) );
@@ -1845,7 +1837,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           }
         }
       }
-      if ( output_magnetic || H.Output_Complete_Data ){
+      if ( H.Output_Complete_Data ){
         // Create a dataset id for x magnetic field
         dataset_id = H5Dcreate(file_id, "/magnetic_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         // Write the x magnetic field array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
@@ -1864,7 +1856,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           }
         }
       }
-      if ( output_magnetic || H.Output_Complete_Data ){
+      if ( H.Output_Complete_Data ){
         // Create a dataset id for y magnetic field
         dataset_id = H5Dcreate(file_id, "/magnetic_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         // Write the y magnetic field array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
@@ -1883,7 +1875,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           }
         }
       }
-      if ( output_magnetic || H.Output_Complete_Data ){
+      if ( H.Output_Complete_Data ){
         // Create a dataset id for z magnetic field
         dataset_id = H5Dcreate(file_id, "/magnetic_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         // Write the z magnetic field array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!

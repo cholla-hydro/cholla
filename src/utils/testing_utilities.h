@@ -124,27 +124,6 @@ namespace testingUtilities
 
     // =========================================================================
     /*!
-     * \brief A simple function to compare two doubles with the nearlyEqualDbl
-     * function, perform a GTest assert on the result, and print out the values
-     *
-     * \param[in] fiducialNumber The fiducial number to test against
-     * \param[in] testNumber The unverified number to test
-     * \param[in] outString A string to be printed in the first line of the output
-     * message. Format will be "Difference in outString"
-     * \param[in] fixedEpsilon The fixed epsilon to use in the comparison.
-     * Negative values are ignored and default behaviour is used
-     * \param[in] ulpsEpsilon The ULP epsilon to use in the comparison. Negative
-     * values are ignored and default behaviour is used
-     */
-    void checkResults(double fiducialNumber,
-                      double testNumber,
-                      std::string outString,
-                      double fixedEpsilon = -999,
-                      int ulpsEpsilon = -999);
-    // =========================================================================
-
-    // =========================================================================
-    /*!
      * \brief Holds a single std::string that's intended to be read only and
      * global. Use for storing the path of the root directory of Cholla
      *

@@ -380,7 +380,7 @@ void Grid3D::AllocateMemory(void)
   #ifdef GRAVITY
   //Set dt for hydro and particles
   set_dt_Gravity();
-  #endif
+  #endif  //GRAVITY
 
   #ifdef CPU_TIME
   Timer.Calc_dt.End();
