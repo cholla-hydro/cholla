@@ -781,22 +781,20 @@ void Grid3D::FreeMemory(void)
   CudaSafeCall( cudaFree(C.d_Grav_potential) );
   #endif
 
-  #ifndef DYNAMIC_GPU_ALLOC
   // If memory is single allocated, free the memory at the end of the simulation.
   #ifdef CTU
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_CTU_1D();
   if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_CTU_2D();
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_CTU_3D();
-  #endif
+  #endif //CTU
   #ifdef VL
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_VL_1D();
   if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_VL_2D();
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_VL_3D();
-  #endif
+  #endif // VL
   #ifdef SIMPLE
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_Simple_3D();
-  #endif
-  #endif
+  #endif // SIMPLE
 
   #ifdef GRAVITY
   Grav.FreeMemory_CPU();
