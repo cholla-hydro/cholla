@@ -12,7 +12,6 @@
 #include "../mpi/mpi_routines.h"
 
 #ifdef HYDRO_GPU
-#include "omp.h"
 #include "../mpi/cuda_pack_buffers.h"
 #endif
 
@@ -291,245 +290,14 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
 
   #ifdef HYDRO_GPU
+  // from mpi/cuda_pack_buffers.cu 
   PackGhostCells(C.device,
 		 H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags,
 		 imax[0]-imin[0], imax[1]-imin[1], imax[2]-imin[2],
 		 imin[0], imin[1], imin[2], dir);
 
-  #else
-
-  nPB = (imax[0]-imin[0]) * (imax[1]-imin[1]) * (imax[2]-imin[2]);
-  iaBoundary = ( int * ) malloc ( sizeof ( int ) * nPB );
-  iaCell     = ( int * ) malloc ( sizeof ( int ) * nPB );
-
-  /*set ghost cells*/
-  nBoundaries = 0;
-
-  for (k=imin[2]; k<imax[2]; k++) {
-    for (j=imin[1]; j<imax[1]; j++) {
-      for (i=imin[0]; i<imax[0]; i++) {
-
-        //reset sign of momenta
-        a[0] = 1.;
-        a[1] = 1.;
-        a[2] = 1.;
-
-        //find the ghost cell index
-        gidx = i + j*H.nx + k*H.nx*H.ny;
-
-        //find the corresponding real cell index and momenta signs
-        idx  = Set_Boundary_Mapping(i,j,k,flags,&a[0]);
-
-        //idx will be >= 0 if the boundary mapping function has
-        //not set this ghost cell by hand, for instance for analytical
-        //boundary conditions
-        //
-        //Otherwise, the boundary mapping function will set idx<0
-        //if this ghost cell has been set by hand
-        if(idx>=0)
-          {
-          iaBoundary[nBoundaries] = gidx;
-          iaCell[nBoundaries]     = idx;
-          nBoundaries++;
-          }
-      }
-    }
-  }
-
-
-  //Set_Hydro_Boundaries_GPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
-
-  Set_Hydro_Boundaries_CPU ( a, iaBoundary, iaCell, nBoundaries, dir, flags );
-
-
-  free ( iaBoundary );
-  free ( iaCell );
   #endif
 }
-
-void Grid3D::Set_Hydro_Boundaries_CPU
-       ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
-         int dir, int *flags ) {
-
-  Real *c_density,
-       *c_momentum_x, *c_momentum_y, *c_momentum_z,
-       *c_energy, *c_scalar, *c_gasEnergy;
-
-  c_density    = C.density;
-  c_momentum_x = C.momentum_x;
-  c_momentum_y = C.momentum_y;
-  c_momentum_z = C.momentum_z;
-  c_energy     = C.Energy;
-  #ifdef DE
-  c_gasEnergy  = C.GasEnergy;
-  #endif
-  #ifdef SCALAR
-  c_scalar     = C.scalar;
-  #endif
-
-  for (int iB = 0; iB < nBoundaries; iB++ ) {
-
-    //set the ghost cell value
-    c_density[iaBoundary[iB]]    = c_density[iaCell[iB]];
-    c_momentum_x[iaBoundary[iB]] = c_momentum_x[iaCell[iB]]*Sign[0];
-    c_momentum_y[iaBoundary[iB]] = c_momentum_y[iaCell[iB]]*Sign[1];
-    c_momentum_z[iaBoundary[iB]] = c_momentum_z[iaCell[iB]]*Sign[2];
-    c_energy[iaBoundary[iB]]     = c_energy[iaCell[iB]];
-
-    #ifdef DE
-    c_gasEnergy[iaBoundary[iB]]  = c_gasEnergy[iaCell[iB]];
-    #endif
-    #ifdef SCALAR
-    for (int ii=0; ii<NSCALARS; ii++) {
-      c_scalar[iaBoundary[iB] + ii*H.n_cells]
-        = c_scalar[iaCell[iB] + ii*H.n_cells];
-    }
-    #endif
-
-    //for outflow boundaries, set momentum to restrict inflow
-
-    if (flags[dir] == 3) {
-      int momdex = iaBoundary[iB] + (dir/2+1)*H.n_cells;
-      // (X) Dir 0,1 -> Mom 1 -> c_density[gidx+1*n_cells]
-      // (Y) Dir 2,3 -> Mom 2 -> c_density[gidx+2*n_cells]
-      // (Z) Dir 4,5 -> Mom 3 -> c_density[gidx+3*n_cells]
-      // If a momentum is set to 0, subtract its kinetic energy [gidx+4*n_cells]
-      if (dir%2 == 0){
-	// Direction 0,2,4 are left-side, don't allow inflow with positive momentum
-	if (c_density[momdex] > 0.0) {
-	  c_energy[iaBoundary[iB]] -= 0.5*(c_density[momdex]*c_density[momdex])/c_density[iaBoundary[iB]];
-	  c_density[momdex] = 0.0;
-	}
-      } else {
-	// Direction 1,3,5 are right-side, don't allow inflow with negative momentum
-	if (c_density[momdex] < 0.0) {
-	  c_energy[iaBoundary[iB]] -= 0.5*(c_density[momdex]*c_density[momdex])/c_density[iaBoundary[iB]];
-	  c_density[momdex] = 0.0;
-	}
-      }
-
-      /*
-      // first subtract kinetic energy from total
-      c_energy[iaBoundary[iB]] -=
-        0.5*(c_momentum_x[iaBoundary[iB]] * c_momentum_x[iaBoundary[iB]]
-             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]]
-             + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
-             /c_density[iaBoundary[iB]];
-
-      if (dir == 0) {
-        c_momentum_x[iaBoundary[iB]] = fmin(c_momentum_x[iaBoundary[iB]], 0.0);
-      }
-      if (dir == 1) {
-        c_momentum_x[iaBoundary[iB]] = fmax(c_momentum_x[iaBoundary[iB]], 0.0);
-      }
-      if (dir == 2) {
-        c_momentum_y[iaBoundary[iB]] = fmin(c_momentum_y[iaBoundary[iB]], 0.0);
-      }
-      if (dir == 3) {
-        c_momentum_y[iaBoundary[iB]] = fmax(c_momentum_y[iaBoundary[iB]], 0.0);
-      }
-      if (dir == 4) {
-        c_momentum_z[iaBoundary[iB]] = fmin(c_momentum_z[iaBoundary[iB]], 0.0);
-      }
-      if (dir == 5) {
-        c_momentum_z[iaBoundary[iB]] = fmax(c_momentum_z[iaBoundary[iB]], 0.0);
-      }
-      // now re-add the new kinetic energy
-      c_energy[iaBoundary[iB]] +=
-        0.5*(c_momentum_x[iaBoundary[iB]]*c_momentum_x[iaBoundary[iB]]
-             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]]
-             + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
-            /c_density[iaBoundary[iB]];
-      */
-    }//end restrict outflow
-
-
-  }
-}
-
-void Grid3D::Set_Hydro_Boundaries_GPU
-       ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
-         int dir, int *flags ) {
-
-  int n_cells;
-  Real *c_density,
-       *c_momentum_x, *c_momentum_y, *c_momentum_z,
-       *c_energy, *c_scalar, *c_gasEnergy;
-
-  c_density    = C.d_density;
-  c_momentum_x = C.d_momentum_x;
-  c_momentum_y = C.d_momentum_y;
-  c_momentum_z = C.d_momentum_z;
-  c_energy     = C.d_Energy;
-  c_gasEnergy  = C.d_GasEnergy;
-  c_scalar     = C.d_scalar;
-  n_cells      = H.n_cells;
-
-  #pragma omp target data map \
-    ( to: iaCell[0:nBoundaries], iaBoundary[0:nBoundaries], Sign[0:3] )
-  {
-  #pragma omp target teams distribute parallel for \
-    is_device_ptr ( c_density, c_momentum_x, c_momentum_y, \
-                    c_momentum_z, c_energy, c_gasEnergy, c_scalar )
-  for (int iB = 0; iB < nBoundaries; iB++ ) {
-    //set the ghost cell value
-    c_density[iaBoundary[iB]]    = c_density[iaCell[iB]];
-    c_momentum_x[iaBoundary[iB]] = c_momentum_x[iaCell[iB]]*Sign[0];
-    c_momentum_y[iaBoundary[iB]] = c_momentum_y[iaCell[iB]]*Sign[1];
-    c_momentum_z[iaBoundary[iB]] = c_momentum_z[iaCell[iB]]*Sign[2];
-    c_energy[iaBoundary[iB]]     = c_energy[iaCell[iB]];
-
-    #ifdef DE
-    c_gasEnergy[iaBoundary[iB]]  = c_gasEnergy[iaCell[iB]];
-    #endif
-    #ifdef SCALAR
-    for (int ii=0; ii<NSCALARS; ii++) {
-      c_scalar[iaBoundary[iB] + ii*n_cells]
-        = c_scalar[iaCell[iB] + ii*n_cells];
-      }
-    #endif
-    }
-
-  if ( flags[dir] == 3 ) {
-    #pragma omp target teams distribute parallel for \
-      is_device_ptr ( c_density, c_momentum_x, c_momentum_y, \
-                      c_momentum_z, c_energy, c_gasEnergy, c_scalar )
-    for (int iB = 0; iB < nBoundaries; iB++ ) {
-      c_energy[iaBoundary[iB]] -=
-        0.5*(c_momentum_x[iaBoundary[iB]] * c_momentum_x[iaBoundary[iB]]
-             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]]
-             + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
-             /c_density[iaBoundary[iB]];
-
-      if (dir == 0) {
-        c_momentum_x[iaBoundary[iB]] = fmin(c_momentum_x[iaBoundary[iB]], 0.0);
-        }
-      if (dir == 1) {
-        c_momentum_x[iaBoundary[iB]] = fmax(c_momentum_x[iaBoundary[iB]], 0.0);
-        }
-      if (dir == 2) {
-        c_momentum_y[iaBoundary[iB]] = fmin(c_momentum_y[iaBoundary[iB]], 0.0);
-        }
-      if (dir == 3) {
-        c_momentum_y[iaBoundary[iB]] = fmax(c_momentum_y[iaBoundary[iB]], 0.0);
-        }
-      if (dir == 4) {
-        c_momentum_z[iaBoundary[iB]] = fmin(c_momentum_z[iaBoundary[iB]], 0.0);
-        }
-      if (dir == 5) {
-        c_momentum_z[iaBoundary[iB]] = fmax(c_momentum_z[iaBoundary[iB]], 0.0);
-        }
-      // now re-add the new kinetic energy
-      c_energy[iaBoundary[iB]] +=
-        0.5*(c_momentum_x[iaBoundary[iB]]*c_momentum_x[iaBoundary[iB]]
-             + c_momentum_y[iaBoundary[iB]]*c_momentum_y[iaBoundary[iB]]
-             + c_momentum_z[iaBoundary[iB]]*c_momentum_z[iaBoundary[iB]])
-            /c_density[iaBoundary[iB]];
-      }
-    }
-  }
-}
-
 
 /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
  *  \brief Set the extents of the ghost region we are initializing. */
@@ -626,6 +394,13 @@ void Grid3D::Set_Boundary_Extents(int dir, int *imin, int *imax)
     *(imax+2) = ku;
   }
 }
+
+
+// Set_Boundary_Mapping and Find_Index
+// only used in grid/mpi_boundaries.cpp=void Grid3D::Set_Edge_Boundaries(int dir, int *flags)
+// only used in grid/mpi_boundaries.cpp=void Grid3D::Set_Boundaries_MPI_SLAB(int *flags, struct parameters P)
+// Deprecate once SLAB is deprecated
+// GPU boundaries has its own copy of Find_Index                            
 
 /*! \fn Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a)
  *  \brief Given the i,j,k index of a ghost cell, return the index of the

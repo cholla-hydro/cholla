@@ -580,13 +580,6 @@ class Grid3D
      *  \brief Apply boundary conditions to the grid. */
     void Set_Boundaries(int dir, int flags[]);
 
-    void Set_Hydro_Boundaries_CPU
-           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
-             int dir, int *flags );
-    void Set_Hydro_Boundaries_GPU
-           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
-             int dir, int *flags );
-
     /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
      *  \brief Set the extents of the ghost region we are initializing. */
     void Set_Boundary_Extents(int dir, int *imin, int *imax);
@@ -638,15 +631,6 @@ class Grid3D
     void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
 
-    void Load_Hydro_Buffer_CPU(Real *buffer, int idxoffset, int isize, int jsize, int ksize);
-
-    int Load_Hydro_Buffer_X0(Real *buffer);
-    int Load_Hydro_Buffer_X1(Real *buffer);
-    int Load_Hydro_Buffer_Y0(Real *buffer);
-    int Load_Hydro_Buffer_Y1(Real *buffer);
-    int Load_Hydro_Buffer_Z0(Real *buffer);
-    int Load_Hydro_Buffer_Z1(Real *buffer);
-
     int Load_Hydro_DeviceBuffer_X0(Real *buffer);
     int Load_Hydro_DeviceBuffer_X1(Real *buffer);
     int Load_Hydro_DeviceBuffer_Y0(Real *buffer);
@@ -654,14 +638,6 @@ class Grid3D
     int Load_Hydro_DeviceBuffer_Z0(Real *buffer);
     int Load_Hydro_DeviceBuffer_Z1(Real *buffer);
 
-    void Unload_Hydro_Buffer_CPU(Real *buffer, int idxoffset, int isize, int jsize, int ksize);
-
-    void Unload_Hydro_Buffer_X0(Real *buffer);
-    void Unload_Hydro_Buffer_X1(Real *buffer);
-    void Unload_Hydro_Buffer_Y0(Real *buffer);
-    void Unload_Hydro_Buffer_Y1(Real *buffer);
-    void Unload_Hydro_Buffer_Z0(Real *buffer);
-    void Unload_Hydro_Buffer_Z1(Real *buffer);
     void Unload_Hydro_DeviceBuffer_X0(Real *buffer);
     void Unload_Hydro_DeviceBuffer_X1(Real *buffer);
     void Unload_Hydro_DeviceBuffer_Y0(Real *buffer);
