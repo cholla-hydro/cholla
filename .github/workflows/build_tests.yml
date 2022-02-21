@@ -13,7 +13,6 @@ jobs:
       Make-Type:${{ matrix.make-type }}
       Cuda-toolkit:v${{ matrix.cuda-toolkit-version }}
       GCC:v${{ matrix.gcc-version }}
-      ROCm-dkms:v${{ matrix.rocm-dkms-version }}
       Clang:v${{ matrix.clang-version }}
     # if: ${{ false }}  # If uncommented this line will disable this job
 
@@ -34,8 +33,8 @@ jobs:
         # HIP uses the clang-version
         cuda-toolkit-version: ['11.2.2']
         gcc-version: [9]
-        rocm-dkms-version: [4.3.1]
         clang-version: [latest]
+        mpi: ['openmpi'] #Can use mpich and/or openmpi
         # exclude:
         #   - gpu-api: HIP
         #     make-type: hydro
@@ -50,12 +49,15 @@ jobs:
 
     # Run the job itself
     steps:
+
     # Install required Tools
     - uses: actions/checkout@v2
-    - name: Install MPI
-      run: sudo apt install libhdf5-mpi-dev
+    - name: Setup MPI
+      uses: mpi4py/setup-mpi@v1
+      with:
+        mpi: ${{ matrix.mpi }}
     - name: Show MPI version
-      run: ompi_info
+      run: mpirun --version
     - name: Install HDF5 Serial
       run: sudo apt-get install libhdf5-serial-dev
     - name: Show HDF5 config
@@ -92,14 +94,11 @@ jobs:
     - name: Install HIP, ROCm, and HIPFFT
       if: matrix.gpu-api == 'HIP'
       run: |
-        sudo apt install wget gnupg2
-        wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | sudo apt-key add -
-        echo 'deb [arch=amd64] https://repo.radeon.com/rocm/apt/${{ matrix.rocm-dkms-version }}/ ubuntu main' | sudo tee /etc/apt/sources.list.d/rocm.list
-        sudo apt update
+        sudo apt-get update
+        wget https://repo.radeon.com/amdgpu-install/21.50/ubuntu/focal/amdgpu-install_21.50.50000-1_all.deb
+        sudo apt-get -y install ./amdgpu-install_21.50.50000-1_all.deb
+        sudo amdgpu-install -y --usecase=rocm
 
-        sudo apt install mesa-common-dev
-        sudo apt install comgr
-        sudo apt-get -y install rocm-dkms
         sudo apt install hipfft
 
         echo "ROCM_PATH=/opt/rocm" >> $GITHUB_ENV
