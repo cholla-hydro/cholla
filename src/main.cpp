@@ -295,7 +295,6 @@ int main(int argc, char *argv[])
 
   #ifdef CPU_TIME
   // Print timing statistics
-  G.Timer.Get_Average_Times();
   G.Timer.Print_Average_Times( P );
   #endif
 

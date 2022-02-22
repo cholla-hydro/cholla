@@ -312,7 +312,7 @@ void Grid3D::AllocateMemory(void)
   Real max_dti;
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Calc_dt.Start();
   #endif
 
   #ifdef ONLY_PARTICLES
@@ -350,7 +350,7 @@ void Grid3D::AllocateMemory(void)
   #endif
 
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time(0);
+  Timer.Calc_dt.End();
   #endif
 
 
@@ -701,7 +701,7 @@ Real Grid3D::Update_Hydro_Grid( ){
   Real dti;
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Hydro.Start();
   #endif //CPU_TIME
 
   #ifdef GRAVITY
@@ -712,16 +712,16 @@ Real Grid3D::Update_Hydro_Grid( ){
   dti = Update_Grid();
 
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 1 );
+  Timer.Hydro.End();
   #endif //CPU_TIME
 
   #ifdef COOLING_GRACKLE
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Cooling.Start();
   #endif
   Do_Cooling_Step_Grackle( );
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time(10);
+  Timer.Cooling.End();
   #endif
   #endif//COOLING_GRACKLE
 
