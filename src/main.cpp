@@ -70,6 +70,7 @@ int main(int argc, char *argv[])
   // initialize the grid
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
+  chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx, G.H.ny, G.H.nz, G.H.nx*G.H.ny*G.H.nz);
 
   char *message = (char*)malloc(50 * sizeof(char));
   sprintf(message, "Initializing Simulation" );

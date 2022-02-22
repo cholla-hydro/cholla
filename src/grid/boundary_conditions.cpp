@@ -12,7 +12,7 @@
 #include "../mpi/mpi_routines.h"
 
 #ifdef HYDRO_GPU
-#include "../mpi/cuda_pack_buffers.h"
+#include "../mpi/cuda_boundaries.h" // provides PackGhostCells
 #endif
 
 /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
@@ -290,7 +290,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
 
   #ifdef HYDRO_GPU
-  // from mpi/cuda_pack_buffers.cu 
+  // from mpi/cuda_boundaries.cu 
   PackGhostCells(C.device,
 		 H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags,
 		 imax[0]-imin[0], imax[1]-imin[1], imax[2]-imin[2],
@@ -396,160 +396,6 @@ void Grid3D::Set_Boundary_Extents(int dir, int *imin, int *imax)
 }
 
 
-// Set_Boundary_Mapping and Find_Index
-// only used in grid/mpi_boundaries.cpp=void Grid3D::Set_Edge_Boundaries(int dir, int *flags)
-// only used in grid/mpi_boundaries.cpp=void Grid3D::Set_Boundaries_MPI_SLAB(int *flags, struct parameters P)
-// Deprecate once SLAB is deprecated
-// GPU boundaries has its own copy of Find_Index                            
-
-/*! \fn Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a)
- *  \brief Given the i,j,k index of a ghost cell, return the index of the
-    corresponding real cell, and reverse the momentum if necessary. */
-int Grid3D::Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a)
-{
-  // index of real cell we're mapping to
-  int ir, jr, kr, idx;
-  ir = jr = kr = idx = 0;
-
-  /* 1D */
-  if (H.nx>1) {
-
-    // set index on -x face
-    if (ig < H.n_ghost) {
-      ir = Find_Index(ig, H.nx, flags[0], 0, &a[0]);
-    }
-    // set index on +x face
-    else if (ig >= H.nx-H.n_ghost) {
-      ir = Find_Index(ig, H.nx, flags[1], 1, &a[0]);
-    }
-    // set i index for multi-D problems
-    else {
-      ir = ig;
-    }
-
-    // if custom x boundaries are needed, set index to -1 and return
-    if (ir < 0) {
-      return idx = -1;
-    }
-
-    // otherwise add i index to ghost cell mapping
-    idx += ir;
-
-  }
-
-  /* 2D */
-  if (H.ny > 1) {
-
-    // set index on -y face
-    if (jg < H.n_ghost) {
-      jr = Find_Index(jg, H.ny, flags[2], 0, &a[1]);
-    }
-    // set index on +y face
-    else if (jg >= H.ny-H.n_ghost) {
-      jr = Find_Index(jg, H.ny, flags[3], 1, &a[1]);
-    }
-    // set j index for multi-D problems
-    else {
-      jr = jg;
-    }
-
-    // if custom y boundaries are needed, set index to -1 and return
-    if (jr < 0) {
-      return idx = -1;
-    }
-
-    // otherwise add j index to ghost cell mapping
-    idx += H.nx*jr;
-
-  }
-
-  /* 3D */
-  if (H.nz > 1) {
-
-    // set index on -z face
-    if (kg < H.n_ghost) {
-      kr = Find_Index(kg, H.nz, flags[4], 0, &a[2]);
-    }
-    // set index on +z face
-    else if (kg >= H.nz-H.n_ghost) {
-      kr = Find_Index(kg, H.nz, flags[5], 1, &a[2]);
-    }
-    // set k index for multi-D problems
-    else {
-      kr = kg;
-    }
-
-    // if custom z boundaries are needed, set index to -1 and return
-    if (kr < 0) {
-      return idx = -1;
-    }
-
-    // otherwise add k index to ghost cell mapping
-    idx += H.nx*H.ny*kr;
-
-  }
-
-  return idx;
-}
-
-/*! \fn int Find_Index(int ig, int nx, int flag, int face, Real *a)
- *  \brief Given a ghost cell index and boundary flag,
-    return the index of the corresponding real cell. */
-int Grid3D::Find_Index(int ig, int nx, int flag, int face, Real *a)
-{
-  int id;
-
-  // lower face
-  if (face==0) {
-    switch(flag)
-    {
-      // periodic
-      case 1: id = ig+nx-2*H.n_ghost;
-        break;
-      // reflective
-      case 2: id = 2*H.n_ghost-ig-1;
-        *(a) = -1.0;
-        break;
-      // transmissive
-      case 3: id = H.n_ghost;
-        break;
-      // custom
-      case 4: id = -1;
-        break;
-      // MPI
-      case 5: id = ig;
-        break;
-      // default is periodic
-      default: id = ig+nx-2*H.n_ghost;
-    }
-  }
-  // upper face
-  else {
-    switch(flag)
-    {
-      // periodic
-      case 1: id = ig-nx+2*H.n_ghost;
-        break;
-      // reflective
-      case 2: id = 2*(nx-H.n_ghost)-ig-1;
-        *(a) = -1.0;
-        break;
-      // transmissive
-      case 3: id = nx-H.n_ghost-1;
-        break;
-      // custom
-      case 4: id = -1;
-        break;
-      // MPI
-      case 5: id = ig;
-        break;
-      // default is periodic
-      default: id = ig-nx+2*H.n_ghost;
-    }
-  }
-
-  return id;
-}
 
 /*! \fn void Custom_Boundary(char bcnd[MAXLEN])
  *  \brief Select appropriate custom boundary function. */
