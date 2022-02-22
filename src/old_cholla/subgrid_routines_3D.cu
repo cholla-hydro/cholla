@@ -10,7 +10,7 @@
 #include "../global/global.h"
 #include "../mpi/mpi_routines.h"
 #include "../old_cholla/subgrid_routines_3D.h"
-
+#include "../utils/gpu.hpp"
 
 
 
