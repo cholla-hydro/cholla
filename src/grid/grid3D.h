@@ -599,26 +599,9 @@ class Grid3D
      *  \brief Apply boundary conditions to the grid. */
     void Set_Boundaries(int dir, int flags[]);
 
-    void Set_Hydro_Boundaries_CPU
-           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
-             int dir, int *flags );
-    void Set_Hydro_Boundaries_GPU
-           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
-             int dir, int *flags );
-
     /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
      *  \brief Set the extents of the ghost region we are initializing. */
     void Set_Boundary_Extents(int dir, int *imin, int *imax);
-
-    /*! \fn Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a)
-     *  \brief Given the i,j,k index of a ghost cell, return the index of the
-        corresponding real cell, and reverse the momentum if necessary. */
-    int  Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a);
-
-    /*! \fn int Find_Index(int ig, int nx, int flag, int face, Real *a)
-     *  \brief Given a ghost cell index and boundary flag,
-        return the index of the corresponding real cell. */
-    int  Find_Index(int ig, int nx, int flag, int face, Real *a);
 
     /*! \fn void Custom_Boundary(char bcnd[MAXLEN])
      *  \brief Select appropriate custom boundary function. */
@@ -646,27 +629,12 @@ class Grid3D
 
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);
-    void Set_Boundaries_MPI_SLAB(int *flags, struct parameters P);
     void Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P);
-    void Set_Edge_Boundaries(int dir, int *flags);
-    void Set_Edge_Boundary_Extents(int dir, int edge, int *imin, int *imax);
     void Load_and_Send_MPI_Comm_Buffers(int dir, int *flags);
-    void Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags);
     void Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags);
-    void Wait_and_Unload_MPI_Comm_Buffers_SLAB(int *flags);
     void Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags);
     void Unload_MPI_Comm_Buffers(int index);
-    void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
-
-    void Load_Hydro_Buffer_CPU(Real *buffer, int idxoffset, int isize, int jsize, int ksize);
-
-    int Load_Hydro_Buffer_X0(Real *buffer);
-    int Load_Hydro_Buffer_X1(Real *buffer);
-    int Load_Hydro_Buffer_Y0(Real *buffer);
-    int Load_Hydro_Buffer_Y1(Real *buffer);
-    int Load_Hydro_Buffer_Z0(Real *buffer);
-    int Load_Hydro_Buffer_Z1(Real *buffer);
 
     int Load_Hydro_DeviceBuffer_X0(Real *buffer);
     int Load_Hydro_DeviceBuffer_X1(Real *buffer);
@@ -675,14 +643,6 @@ class Grid3D
     int Load_Hydro_DeviceBuffer_Z0(Real *buffer);
     int Load_Hydro_DeviceBuffer_Z1(Real *buffer);
 
-    void Unload_Hydro_Buffer_CPU(Real *buffer, int idxoffset, int isize, int jsize, int ksize);
-
-    void Unload_Hydro_Buffer_X0(Real *buffer);
-    void Unload_Hydro_Buffer_X1(Real *buffer);
-    void Unload_Hydro_Buffer_Y0(Real *buffer);
-    void Unload_Hydro_Buffer_Y1(Real *buffer);
-    void Unload_Hydro_Buffer_Z0(Real *buffer);
-    void Unload_Hydro_Buffer_Z1(Real *buffer);
     void Unload_Hydro_DeviceBuffer_X0(Real *buffer);
     void Unload_Hydro_DeviceBuffer_X1(Real *buffer);
     void Unload_Hydro_DeviceBuffer_Y0(Real *buffer);

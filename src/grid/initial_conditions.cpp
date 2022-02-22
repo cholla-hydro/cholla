@@ -325,7 +325,7 @@ void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
         #ifdef SCALAR
         C.scalar[id] = C.density[id]*0.0;
         #endif
-        if (x_pos > 0.25*H.domlen_x && x_pos < 0.75*H.domlen_x)
+        if (x_pos > 0.25*H.xdglobal && x_pos < 0.75*H.xdglobal)
         {
           C.density[id]    = rho*A;
           C.momentum_x[id] = rho*A * vx;

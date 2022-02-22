@@ -321,7 +321,7 @@ void Time::Print_Average_Times( struct parameters P ){
   string header;
 
 
-  chprintf( "Writing timming values to file: %s  \n", file_name.c_str());
+  chprintf( "Writing timing values to file: %s  \n", file_name.c_str());
 
   header = "#n_proc  nx  ny  nz  n_omp  n_steps  ";
 
