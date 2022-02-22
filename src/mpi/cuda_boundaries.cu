@@ -1,8 +1,11 @@
 #include "../utils/gpu.hpp"
 #include "../global/global.h"
 #include "../global/global_cuda.h"
-#include "../mpi/cuda_pack_buffers.h"
+#include "../mpi/cuda_boundaries.h"
 
+__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a);
+
+__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],int nx, int ny, int nz, int n_ghost); 
 
 __global__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells)
 {
@@ -56,20 +59,6 @@ void UnpackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksi
   hipLaunchKernelGGL(UnpackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
 }
 
-void PackGhostCells(Real * c_head,
-		    int nx, int ny, int nz, int n_fields, int n_cells, int n_ghost, int flags[],
-		    int isize, int jsize, int ksize,
-		    int imin, int jmin, int kmin, int dir)
-{
-  dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
-  dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(PackGhostCellsKernel,dim1dGrid,dim1dBlock,0,0,c_head,
-		     nx,ny,nz,n_fields,n_cells,n_ghost,
-		     flags[0],flags[1],flags[2],flags[3],flags[4],flags[5],
-		     isize,jsize,ksize,imin,jmin,kmin,dir);
-
-}
-
 __global__ void PackGhostCellsKernel(Real * c_head,
 				     int nx, int ny, int nz, int n_fields, int n_cells, int n_ghost,
 				     int f0, int f1, int f2, int f3, int f4, int f5,
@@ -80,8 +69,8 @@ __global__ void PackGhostCellsKernel(Real * c_head,
   int flags[6] = {f0,f1,f2,f3,f4,f5};
 
   // using thread ID calculate which ghost cell this is
-  // calculate which real cell using Grid3D::Set_Boundary_Mapping
-  // and Grid3D::Find_Index
+  // calculate which real cell using SetBoundaryMapping
+  // and FindIndex
   // set variables, flipping momentum sign when needed
   // if flags[dir] == 3 correct the energy
 
@@ -144,6 +133,20 @@ __global__ void PackGhostCellsKernel(Real * c_head,
     }//end energy correction for transmissive boundaries
   }//end idx>=0
 }//end function
+
+void PackGhostCells(Real * c_head,
+		    int nx, int ny, int nz, int n_fields, int n_cells, int n_ghost, int flags[],
+		    int isize, int jsize, int ksize,
+		    int imin, int jmin, int kmin, int dir)
+{
+  dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+  hipLaunchKernelGGL(PackGhostCellsKernel,dim1dGrid,dim1dBlock,0,0,c_head,
+		     nx,ny,nz,n_fields,n_cells,n_ghost,
+		     flags[0],flags[1],flags[2],flags[3],flags[4],flags[5],
+		     isize,jsize,ksize,imin,jmin,kmin,dir);
+
+}
 
 __device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], int nx, int ny, int nz, int n_ghost){
   // nx, ny, nz, n_ghost

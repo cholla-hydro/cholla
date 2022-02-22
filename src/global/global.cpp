@@ -10,7 +10,7 @@
 #include <set>
 #include <ctype.h>
 #include "../global/global.h"
-
+#include "../io/io.h" //defines chprintf
 
 /* Global variables */
 Real gama; // Ratio of specific heats
@@ -184,7 +184,7 @@ parms->scale_outputs_file[0] = '\0';
     else
       strncpy (value, s, MAXLEN);
     parse_param(name,value,parms);
-    printf("Override with %s=%s\n",name,value);
+    chprintf("Override with %s=%s\n",name,value);
 
   }
 }
@@ -343,6 +343,6 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->lya_Pk_d_log_k  = atof(value);
 #endif
   else if (!is_param_valid(name))
-    printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
+    chprintf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
 	    name, value);
 }

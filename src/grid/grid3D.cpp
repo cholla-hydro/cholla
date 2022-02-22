@@ -641,11 +641,6 @@ Real Grid3D::Update_Grid(void)
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
   max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
 
-  // ==Copy the updated conserved variable array to CPU==
-  #ifndef HYDRO_GPU
-  CudaSafeCall( cudaMemcpy(g1, C.device, H.n_fields*H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-  #endif
-  
   #ifdef COOLING_GPU
   // ==Calculate cooling dt from cooling/cooling_cuda.h==
   // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in integrators 
@@ -781,22 +776,20 @@ void Grid3D::FreeMemory(void)
   CudaSafeCall( cudaFree(C.d_Grav_potential) );
   #endif
 
-  #ifndef DYNAMIC_GPU_ALLOC
   // If memory is single allocated, free the memory at the end of the simulation.
   #ifdef CTU
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_CTU_1D();
   if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_CTU_2D();
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_CTU_3D();
-  #endif
+  #endif //CTU
   #ifdef VL
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_VL_1D();
   if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_VL_2D();
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_VL_3D();
-  #endif
+  #endif // VL
   #ifdef SIMPLE
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_Simple_3D();
-  #endif
-  #endif
+  #endif // SIMPLE
 
   #ifdef GRAVITY
   Grav.FreeMemory_CPU();
