@@ -190,9 +190,6 @@ void Print_Domain_Properties(struct Header H);
 /* Allocate MPI communication buffers*/
 void Allocate_MPI_Buffers(struct Header *H);
 
-/* Allocate MPI communication buffers for a BLOCK decomposition */
-void Allocate_MPI_Buffers_BLOCK(struct Header *H);
-
 /* Allocate MPI communication GPU buffers for a BLOCK decomposition */
 void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H);
 
