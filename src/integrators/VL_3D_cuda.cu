@@ -285,10 +285,7 @@ void Free_Memory_VL_3D(){
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
   #endif
-  #if defined( GRAVITY )
-  cudaFree(dev_grav_potential);
-  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer_potential) );
-  #endif
+
 
 }
 
