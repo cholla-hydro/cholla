@@ -143,13 +143,22 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   G.n_cells = (G.nx_local+2*G.n_ghost_particles_grid) * (G.ny_local+2*G.n_ghost_particles_grid) * (G.nz_local+2*G.n_ghost_particles_grid);
 
   //Set the boundary types
+  #ifdef MPI_CHOLLA
   G.boundary_type_x0 = P->xlg_bcnd;
   G.boundary_type_x1 = P->xug_bcnd;
   G.boundary_type_y0 = P->ylg_bcnd;
   G.boundary_type_y1 = P->yug_bcnd;
   G.boundary_type_z0 = P->zlg_bcnd;
   G.boundary_type_z1 = P->zug_bcnd;
-
+  #else
+  G.boundary_type_x0 = P->xl_bcnd;
+  G.boundary_type_x1 = P->xu_bcnd;
+  G.boundary_type_y0 = P->yl_bcnd;
+  G.boundary_type_y1 = P->yu_bcnd;
+  G.boundary_type_z0 = P->zl_bcnd;
+  G.boundary_type_z1 = P->zu_bcnd;
+  #endif
+    
   #ifdef PARTICLES_GPU
   //Factor to allocate the particles data arrays on the GPU.
   //When using MPI particles will be transferred to other GPU, for that reason we need extra memory allocated

@@ -327,7 +327,10 @@ void parse_param(char *name,char *value, struct parameters *parms){
 #endif
   else if (strcmp(name, "bc_potential_type")==0)
     parms->bc_potential_type  = atoi(value);
-
+#ifdef CHEMISTRY_GPU
+    else if (strcmp(name, "UVB_rates_file")==0)
+      strncpy (parms->UVB_rates_file, value, MAXLEN);
+#endif  
 #ifdef COOLING_GRACKLE
   else if (strcmp(name, "UVB_rates_file")==0)
     strncpy (parms->UVB_rates_file, value, MAXLEN);
@@ -341,6 +344,10 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->lya_skewers_stride  = atoi(value);
   else if (strcmp(name, "lya_Pk_d_log_k")==0)
     parms->lya_Pk_d_log_k  = atof(value);
+  #ifdef OUTPUT_SKEWERS
+  else if (strcmp(name, "skewersdir")==0)
+    strncpy (parms->skewersdir, value, MAXLEN);
+  #endif
 #endif
   else if (!is_param_valid(name))
     chprintf ("WARNING: %s/%s: Unknown parameter/value pair!\n",

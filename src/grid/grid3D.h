@@ -38,6 +38,10 @@
 #include "../utils/timing_functions.h"
 #endif
 
+#ifdef CHEMISTRY_GPU
+#include "chemistry_gpu/chemistry_gpu.h"
+#endif 
+
 #ifdef ANALYSIS
 #include "../analysis/analysis.h"
 #endif
@@ -317,6 +321,11 @@ class Grid3D
     #ifdef CPU_TIME
     Time Timer;
     #endif
+    
+    #ifdef CHEMISTRY_GPU
+    // Object that contains data for the GPU chemistry solver
+    Chem_GPU Chem;
+    #endif
 
     #ifdef ANALYSIS
     Analysis_Module Analysis;
@@ -360,7 +369,17 @@ class Grid3D
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
+      
+      #ifdef CHEMISTRY_GPU
+      Real *HI_density;
+      Real *HII_density;
+      Real *HeI_density;
+      Real *HeII_density;
+      Real *HeIII_density;
+      Real *e_density;
+      #endif 
 
+      
       /*! pointer to conserved variable on device */
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z,
@@ -604,6 +623,8 @@ class Grid3D
     void Uniform_Grid();
 
     void Zeldovich_Pancake( struct parameters P );
+    
+    void Chemistry_Test( struct parameters P );
 
 
 #ifdef   MPI_CHOLLA
@@ -756,7 +777,13 @@ class Grid3D
   void Update_Internal_Energy();
   void Do_Cooling_Step_Grackle();
   #endif
-
+  
+  #ifdef CHEMISTRY_GPU
+  void Initialize_Chemistry( struct parameters *P );
+  void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
+  void Update_Chemistry();
+  #endif
+  
   #ifdef ANALYSIS
   void Initialize_Analysis_Module( struct parameters *P );
   void Compute_and_Output_Analysis( struct parameters *P );
@@ -770,12 +797,16 @@ class Grid3D
 
   #ifdef LYA_STATISTICS
   void Populate_Lya_Skewers_Local( int axis );
-  void Compute_Transmitted_Flux_Skewer( int skewer_id, int axis, int chemical_type );
+  void Compute_Transmitted_Flux_Skewer( int skewer_id, int axis );
   void Compute_Lya_Statistics( );
   void Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis );
   void Initialize_Power_Spectrum_Measurements( int axis );
+  #ifdef OUTPUT_SKEWERS
+  void Output_Skewers_File( struct parameters *P );
+  void Write_Skewers_Header_HDF5( hid_t file_id );
+  void Write_Skewers_Data_HDF5( hid_t file_id );
   #endif
-
+  #endif//LYA_STATISTICS
   #endif//ANALYSIS
 
   #ifdef PARTICLES

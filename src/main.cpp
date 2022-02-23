@@ -113,12 +113,16 @@ int main(int argc, char *argv[])
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
   #endif
-
+  
+  #ifdef CHEMISTRY_GPU
+  G.Initialize_Chemistry(&P);
+  #endif
+  
   #ifdef ANALYSIS
   G.Initialize_Analysis_Module(&P);
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   #endif
-
+  
   #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential( &P);
@@ -148,10 +152,6 @@ int main(int argc, char *argv[])
   if (strcmp(P.init, "Read_Grid") != 0 || G.H.Output_Now ) {
     // write the initial conditions to file
     chprintf("Writing initial conditions to file...\n");
-    #ifdef HYDRO_GPU
-    cudaMemcpy(G.C.density, G.C.device,
-             G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
-    #endif
     WriteData(G, P, nfile);
   }
   // add one to the output file count
@@ -254,10 +254,6 @@ int main(int argc, char *argv[])
     {
       #ifdef OUTPUT
       /*output the grid data*/
-      #ifdef HYDRO_GPU
-      cudaMemcpy(G.C.density, G.C.device,
-                 G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
-      #endif
       WriteData(G, P, nfile);
       // add one to the output file count
       nfile++;
@@ -273,10 +269,6 @@ int main(int argc, char *argv[])
     #ifdef N_STEPS_LIMIT
     // Exit the loop when reached the limit number of steps (optional)
     if ( G.H.n_step == N_STEPS_LIMIT) {
-      #ifdef HYDRO_GPU
-      cudaMemcpy(G.C.density, G.C.device,
-                 G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
-      #endif
       WriteData(G, P, nfile);
       break;
     }
