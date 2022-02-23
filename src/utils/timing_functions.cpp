@@ -57,7 +57,7 @@ void Time::Initialize(){
 
   n_steps = 0;
 
-  // Add or remove timers by editing this list.
+  // Add or remove timers by editing this list, keep TOTAL at the end
   // add NAME to timing_functions.h
   // add Timer.NAME.Start() and Timer.NAME.End() where appropriate.
   
@@ -82,8 +82,9 @@ void Time::Initialize(){
     &(Cooling = OneTime("Cooling")),
     #endif
     #ifdef CHEMISTRY_GPU
-    &(Chemistry = OneTime("Chemistry"));
+    &(Chemistry = OneTime("Chemistry")),
     #endif
+    &(Total = OneTime("Total")),
   };
   
 
@@ -100,18 +101,11 @@ void Time::Print_Times(){
 // once at end of run in main.cpp
 void Time::Print_Average_Times( struct parameters P ){
 
-  Real time_total=0;
-
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
 
   for (OneTime* x : onetimes){
-    time_total += x->t_all;
     x->PrintAverage();
   }
-  time_total /= n_steps;
-
-  chprintf(" Time %-19s avg: %9.4f   ms\n", "Total", time_total);
-
 
   std::string file_name ( "run_timing.log" );
   std::string header;
@@ -125,7 +119,6 @@ void Time::Print_Average_Times( struct parameters P ){
     header += "  ";
   }
 
-  header += "total  ";
   header += " \n";
 
   bool file_exists = false;
@@ -162,8 +155,6 @@ void Time::Print_Average_Times( struct parameters P ){
   for (OneTime* x : onetimes){
     out_file << x->t_all << " ";
   }
-
-  out_file << time_total << " ";
 
   out_file << "\n";
   out_file.close();

@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
   // initialize the grid
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
-  chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx, G.H.ny, G.H.nz, G.H.nx*G.H.ny*G.H.nz);
 
   char *message = (char*)malloc(50 * sizeof(char));
   sprintf(message, "Initializing Simulation" );
@@ -179,6 +178,10 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   {
     // get the start time
+    
+    #ifdef CPU_TIME
+    G.Timer.Total.Start();
+    #endif //CPU_TIME
     start_step = get_time();
 
     // calculate the timestep
@@ -224,6 +227,10 @@ int main(int argc, char *argv[])
     #ifdef PARTICLE_AGE
     //G.Cluster_Feedback();
     #endif
+
+    #ifdef CPU_TIME
+    G.Timer.Total.End();
+    #endif //CPU_TIME
 
     #ifdef CPU_TIME
     G.Timer.Print_Times();
@@ -281,6 +288,7 @@ int main(int argc, char *argv[])
       break;
     }
     #endif
+
 
   } /*end loop over timesteps*/
 

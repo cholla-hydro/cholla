@@ -40,6 +40,7 @@ public:
 
   int n_steps;
 
+  OneTime Total;
   OneTime Calc_dt;
   OneTime Hydro;
   OneTime Boundaries;
