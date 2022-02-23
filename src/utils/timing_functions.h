@@ -18,6 +18,8 @@ class OneTime
   Real t_avg;
   Real t_all=0;
   bool inactive=true;
+  OneTime(void){
+  }
   OneTime(const char* input_name){
     name = input_name;
     inactive=false;
