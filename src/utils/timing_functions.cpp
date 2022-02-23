@@ -14,11 +14,14 @@ using namespace std;
 #include "../mpi/mpi_routines.h"
 #endif
 
+// Do nothing if inactive
 
 void OneTime::Start(){
+  if (inactive) return;
   time_start = get_time();
 }
 void OneTime::End(){
+  if (inactive) return;
   Real time_end = get_time();
   Real time = (time_end - time_start)*1000;
 #ifdef MPI_CHOLLA
@@ -29,7 +32,7 @@ void OneTime::End(){
   t_min = time;
   t_max = time;
   t_avg = time;
-  #endif
+#endif
   if (n_steps > 0) t_all += t_max;
   n_steps++;
 }
@@ -50,20 +53,31 @@ void Time::Initialize(){
 
   n_steps = 0;
 
-  Calc_dt = OneTime("Calc_dt");
-  Hydro = OneTime("Hydro");
-  Boundaries = OneTime("Boundaries");
-  Grav_Potential = OneTime("Grav_Potential");
-  Pot_Boundaries = OneTime("Pot_Boundaries");
-  Part_Density = OneTime("Part_Density");
-  Part_Boundaries = OneTime("Part_Boundaries");
-  Part_Dens_Transf = OneTime("Part_Dens_Transf");
-  Advance_Part_1 = OneTime("Advance_Part_1");
-  Advance_Part_2 = OneTime("Advance_Part_2");
-  Cooling = OneTime("Cooling");
+  onetimes = {
+    #ifdef PARTICLES
+    Calc_dt = OneTime("Calc_dt"),
+    #endif
+    Hydro = OneTime("Hydro"),
+    Boundaries = OneTime("Boundaries"),
+    #ifdef GRAVITY
+    Grav_Potential = OneTime("Grav_Potential"),
+    Pot_Boundaries = OneTime("Pot_Boundaries"),
+    #endif
+    #ifdef PARTICLES
+    Part_Density = OneTime("Part_Density"),
+    Part_Boundaries = OneTime("Part_Boundaries"),
+    Part_Dens_Transf = OneTime("Part_Dens_Transf"),
+    Advance_Part_1 = OneTime("Advance_Part_1"),
+    Advance_Part_2 = OneTime("Advance_Part_2"),
+    #endif
+    #ifdef COOLING_GRACKLE
+    Cooling = OneTime("Cooling"),
+    #endif
+  };
 
   chprintf( "\nTiming Functions is ON \n");
 
+  /*
   onetimes = {
     Calc_dt,
     #ifdef GRAVITY
@@ -84,27 +98,25 @@ void Time::Initialize(){
     Cooling,
     #endif
   };
+  */
 }
 
-
+// once per timestep in main.cpp
 void Time::Print_Times(){
   for (OneTime x : onetimes){
     x.PrintStep();
   }
-
 }
 
+// once at end of run in main.cpp
 void Time::Print_Average_Times( struct parameters P ){
 
   Real time_total=0;
 
-  for (OneTime x : onetimes){
-    time_total += x.t_all;
-  }
-
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
 
   for (OneTime x : onetimes){
+    time_total += x.t_all;
     x.PrintAverage();
   }
 
@@ -119,7 +131,8 @@ void Time::Print_Average_Times( struct parameters P ){
 
   for (OneTime x : onetimes){
     header += x.name;
-  }   
+  }
+  
   header += "total  ";
   header += " \n";
 
@@ -131,7 +144,6 @@ void Time::Print_Average_Times( struct parameters P ){
   } else{
     chprintf( " Creating File: %s \n", file_name.c_str() );
   }
-
 
   #ifdef MPI_CHOLLA
   if ( procID != 0 ) return;
