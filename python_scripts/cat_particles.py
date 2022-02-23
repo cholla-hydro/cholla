@@ -77,7 +77,7 @@ for n in range(ns, ne+1):
 
     filein.close()
 
-  # wrte out the new datasets
+  # write out the new datasets
   fileout.create_dataset('x', data=x)
   fileout.create_dataset('y', data=y)
   fileout.create_dataset('z', data=z)

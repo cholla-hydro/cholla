@@ -2,7 +2,7 @@
 #define DISK_GALAXY
 
 #include <cmath>
-#include "../global.h"
+#include "../global/global.h"
 
 class DiskGalaxy {
 
@@ -29,7 +29,7 @@ public:
 
     /**
      *     Radial acceleration in miyamoto nagai
-     */          
+     */
     Real gr_disk_D3D(Real R, Real z) {
         Real A = R_d + sqrt(Z_d*Z_d + z*z);
         Real B = pow(A*A + R*R, 1.5);
@@ -93,18 +93,26 @@ public:
         return -GN * M_d / C;
     };
 
+    Real rho_disk_D3D(const Real r, const Real z) {
+      const Real a = R_d;
+      const Real c = Z_d;
+      const Real b = sqrt(z*z+c*c);
+      const Real d = a+b;
+      const Real s = r*r+d*d;
+      return M_d*c*c*(a*(d*d+r*r)+3.0*b*d*d)/(4.0*M_PI*b*b*b*pow(s,2.5));
+    }
 
     /**
      *  Convenience method that returns the combined gravitational potential
      *  of the disk and halo.
-     */    
+     */
     Real phi_total_D3D(Real R, Real z) {
       return phi_halo_D3D(R, z) + phi_disk_D3D(R, z);
     };
 
 
     /**
-     * epicylic frequency
+     * epicyclic frequency
      */
     Real kappa2(Real R, Real z) {
       Real r = sqrt(R*R + z*z);
@@ -112,7 +120,7 @@ public:
       Real C = GN * M_h / (R_h * log_func(c_vir));
       Real A = R_d + sqrt(z*z + Z_d*Z_d);
       Real B = sqrt(R*R + A*A);
-        
+
       Real phiH_prime = -C*R/(r*r)/(1 + x) + C*log(1+x)*R_h*R/(r*r*r) + GN*M_d*R/(B*B*B);
       Real phiH_prime_prime = -C/(r*r)/(1+x) + 2*C*R*R/(r*r*r*r)/(1+x) + C/((1+x)*(1+x))*R*R/R_h/(r*r*r) +
                C*R*R/(1+x)/(r*r*r*r) + C*log(1+x)*R_h/(r*r*r)*(1 - 3*R*R/(r*r)) +
@@ -126,14 +134,14 @@ public:
         return M_d/(2*M_PI)/(R_d*R_d)*exp(-R/R_d);
     };
 
-    Real sigma_crit(Real R) { 
+    Real sigma_crit(Real R) {
         return 3.36*GN*surface_density(R)/sqrt(kappa2(R,0.0));
-    };    
+    };
 
 
-    Real getM_d() { return M_d; };
-    Real getR_d() { return R_d; };
-    Real getZ_d() { return Z_d; };
+    Real getM_d() const { return M_d; };
+    Real getR_d() const { return R_d; };
+    Real getZ_d() const { return Z_d; };
 
 };
 

@@ -3,6 +3,8 @@
 #-- Compiler and flags for different build type
 CC                = mpicc
 CXX               = mpicxx
+#CC                = gcc
+#CXX               = g++
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 
@@ -13,12 +15,12 @@ OMP_NUM_THREADS = 10
 
 #-- Library
 CUDA_ROOT    = /usr/local/cuda-10.1/targets/x86_64-linux
-CUDA_LIB     = -L$(CUDA_ROOT)/lib6 -lcudart -lcufft
+CUDA_LIB     = -L$(CUDA_ROOT)/lib -lcudart -lcufft
 HDF5_ROOT    = /usr/lib/x86_64-linux-gnu/hdf5/serial
 FFTW_ROOT    = /home/bruno/code/fftw-3.3.8
 PFFT_ROOT    = /home/bruno/code/pfft
+#GRACKLE_ROOT = /home/bruno/code/grackle_modified
 GRACKLE_ROOT = /home/bruno/local
 
-#Paris does not do MPI_GPU transfers 
+#Paris does not do GPU_MPI transfers 
 PARIS_MPI_GPU = -DPARIS_NO_GPU_MPI
-

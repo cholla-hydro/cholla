@@ -80,7 +80,7 @@ PoissonPeriodic3DBlockedGPU::PoissonPeriodic3DBlockedGPU(const int n[3], const d
     CHECK(cufftPlanMany(&zd2d_,2,njnk,njnh,1,njh,njnk,1,njk,CUFFT_Z2D,niSlab));
     CHECK(cufftPlanMany(&zz1d_,1,&ni_,&ni_,1,ni_,&ni_,1,ni_,CUFFT_Z2Z,njhPencil));
   }
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaHostAlloc(&ha_,bytes_+bytes_,cudaHostAllocDefault));
   assert(ha_);
   hb_ = ha_+nMax;
@@ -89,7 +89,7 @@ PoissonPeriodic3DBlockedGPU::PoissonPeriodic3DBlockedGPU(const int n[3], const d
 
 PoissonPeriodic3DBlockedGPU::~PoissonPeriodic3DBlockedGPU()
 {
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaFreeHost(ha_));
   ha_ = hb_ = nullptr;
 #endif
@@ -128,7 +128,7 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
 
   // Copy blocks to slabs
 
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,da,bytes_,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,nBlockSlab,MPI_DOUBLE,hb_,nBlockSlab,MPI_DOUBLE,commSlab_);
   CHECK(cudaMemcpyAsync(db,hb_,bytes_,cudaMemcpyHostToDevice,0));
@@ -163,7 +163,7 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
   const int njhPencil = (njh+m-1)/m;
   const int nSlabPencil = 2*njhPencil*niSlab;
 
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,da,bytes_,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,nSlabPencil,MPI_DOUBLE,hb_,nSlabPencil,MPI_DOUBLE,MPI_COMM_WORLD);
   CHECK(cudaMemcpyAsync(db,hb_,bytes_,cudaMemcpyHostToDevice,0));
@@ -257,7 +257,7 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
       cb[ib].y = ca[ia].y;
     });
 
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(hb_,db,bytes_,cudaMemcpyDeviceToHost));
   MPI_Alltoall(hb_,nSlabPencil,MPI_DOUBLE,ha_,nSlabPencil,MPI_DOUBLE,commWorld_);
   CHECK(cudaMemcpyAsync(da,ha_,bytes_,cudaMemcpyHostToDevice,0));
@@ -275,7 +275,7 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
       cb[ib].y = ca[ia].y;
     });
 
-  // cb -> da 
+  // cb -> da
   CHECK(cufftExecZ2D(zd2d_,cb,da));
 
   // Copy slabs to blocks
@@ -290,7 +290,7 @@ void PoissonPeriodic3DBlockedGPU::solve(const long bytes, double *const da, doub
       db[ib] = divN*da[ia];
     });
 
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
   CHECK(cudaMemcpy(hb_,db,bytes_,cudaMemcpyDeviceToHost));
   MPI_Alltoall(hb_,nBlockSlab,MPI_DOUBLE,ha_,nBlockSlab,MPI_DOUBLE,commSlab_);
   CHECK(cudaMemcpyAsync(da,ha_,bytes_,cudaMemcpyHostToDevice,0));

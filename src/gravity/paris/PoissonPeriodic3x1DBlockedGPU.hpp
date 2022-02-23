@@ -2,7 +2,7 @@
 
 #include <mpi.h>
 
-#include "gpu.hpp"
+#include "../../utils/gpu.hpp"
 
 class PoissonPeriodic3x1DBlockedGPU {
   public:
@@ -22,7 +22,7 @@ class PoissonPeriodic3x1DBlockedGPU {
     int dhq_,dip_,djp_,djq_;
     size_t bytes_;
     cufftHandle c2ci_,c2cj_,c2rk_,r2ck_;
-#ifdef PARIS_NO_GPU_MPI
+#ifndef MPI_GPU
     double *ha_, *hb_;
 #endif
 };

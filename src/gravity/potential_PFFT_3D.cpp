@@ -1,9 +1,9 @@
 #ifdef GRAVITY
 #ifdef PFFT
 
-#include "potential_PFFT_3D.h"
-#include<iostream>
-#include "../io.h"
+#include "../gravity/potential_PFFT_3D.h"
+#include <iostream>
+#include "../io/io.h"
 
 
 
@@ -20,7 +20,7 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
   xMin = x_min;
   yMin = y_min;
   zMin = z_min;
-  
+
   //Set uniform ( dx, dy, dz )
   dx = dx_real;
   dy = dy_real;
@@ -36,17 +36,17 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
   ny_local = ny_real;
   nz_local = nz_real;
 
-  //Index where k=0, this will be computed afterwards 
+  //Index where k=0, this will be computed afterwards
   index_0 = -1;
 
   //Total and local number of cells
   n_cells_local = nx_local*ny_local*nz_local;
   n_cells_total = nx_total*ny_total*nz_total;
-  
+
   chprintf( " Using Poisson Solver: PFFT\n");
-  
+
   #ifdef ANALITIC_POISSON_SOLVER
-  chprintf( " WARNING: Using Analitic Poisson Solver instead of Discretized.\n");
+  chprintf( " WARNING: Using Analytic Poisson Solver instead of Discretized.\n");
   #endif
 
   //Set the number of MPI processes
@@ -56,7 +56,7 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
   pfft_init();
 
   chprintf( "  PFFT: L[ %f %f %f ] N_local[ %d %d %d ] dx[ %f %f %f ]\n", Lbox_x, Lbox_y, Lbox_z, nx_local, ny_local, nz_local, dx, dy, dz );
-  
+
   //Set the MPI processes grid
   nprocs_grid_pfft[0] = nproc_z;
   nprocs_grid_pfft[1] = nproc_y;
@@ -71,7 +71,7 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
   pfft_create_procmesh(3, MPI_COMM_WORLD, nprocs_grid_pfft, &comm_pfft);
   MPI_Comm_rank( comm_pfft, &procID_pfft );
   MPI_Cart_coords( comm_pfft, procID_pfft, 3, pcoords_pfft);
-  
+
   /* Get parameters of data distribution  for a Real-To-Complex transform*/
   //local_n_in_pfft: local size for the input array
   //local_in_start_pfft: offset for computing the global index for the input array
@@ -80,7 +80,7 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
   alloc_local_fwd = pfft_local_size_dft_r2c_3d(
     n_pfft, comm_pfft, PFFT_TRANSPOSED_OUT ,
     local_n_in_pfft, local_in_start_pfft, local_n_transform_fwd_pfft, local_transform_fwd_start_pfft);
-    
+
   /* Get parameters of data distribution  for a Complex-To-Real transform*/
   //local_n_transform_bwd_pfft: local size for the backward transform array
   //local_transform_bwd_start_pfft: offset for computing the global index for the backward transform array
@@ -89,7 +89,7 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
   alloc_local_bwd = pfft_local_size_dft_c2r_3d(
       n_pfft, comm_pfft, PFFT_TRANSPOSED_IN ,
       local_n_transform_bwd_pfft, local_transform_bwd_start_pfft, local_n_out_pfft, local_out_start_pfft);
-      
+
   //Check the dimensions of the input and the transform, make sure that dimensions and offsets  are the same
   bool domain_error = false;
   if ( alloc_local_fwd != alloc_local_bwd ) domain_error = true;
@@ -108,32 +108,32 @@ void Potential_PFFT_3D::Initialize( Real Lx, Real Ly, Real Lz, Real x_min, Real 
   chprintf("  PFFT process: nx:%d ny:%d nz:%d \n", nprocs_grid_pfft[2], nprocs_grid_pfft[1], nprocs_grid_pfft[0]);
   chprintf("  PFFT cells:   nx:%d ny:%d nz:%d \n", n_pfft[2], n_pfft[1], n_pfft[0]);
   chprintf("  PFFT local:   nx:%d ny:%d nz:%d \n", local_n_in_pfft[2], local_n_in_pfft[1], local_n_in_pfft[0] );
-  
+
   //Check that size of the local PFFT domain is the same as the local Cholla doamin
   if ( local_n_in_pfft[2] != nx_local ||  local_n_in_pfft[1] != ny_local ||  local_n_in_pfft[0] != nz_local ){
     std::cout << " ERROR: PFFT domain is not the same as Cholla domain\n" << std::endl;
     std::cout << " PFFT   Domain: [ " << local_n_in_pfft[2] << " , " << local_n_in_pfft[1] << " , " << local_n_in_pfft[0] << " ]" << std::endl;
-    std::cout << " Cholla Domain: [ " << nx_local << " , " << ny_local << " , " << nz_local << " ]" << std::endl;  
+    std::cout << " Cholla Domain: [ " << nx_local << " , " << ny_local << " , " << nz_local << " ]" << std::endl;
     exit(-1);
   }
-  
-  
-  
+
+
+
   AllocateMemory_CPU();
-  
+
   chprintf( "  PFFT: Creating FFT plan...\n");
-  //  Plan parallel  FFTs (forward) 
+  //  Plan parallel  FFTs (forward)
   plan_fwd = pfft_plan_dft_r2c_3d(n_pfft, F.input, F.transform, comm_pfft,
       PFFT_FORWARD, PFFT_TRANSPOSED_OUT | PFFT_MEASURE);
 
-  // Plan parallel  FFTs (backward) 
+  // Plan parallel  FFTs (backward)
   plan_bwd = pfft_plan_dft_c2r_3d(n_pfft, F.transform, F.output, comm_pfft,
       PFFT_BACKWARD, PFFT_TRANSPOSED_IN | PFFT_MEASURE);
-      
-  //Compute the Greens Function factor to obtain the potential in Fourier space    
+
+  //Compute the Greens Function factor to obtain the potential in Fourier space
   chprintf( "  PFFT: Computing K for Gravity Green Funtion\n");
   Get_K_for_Green_function();
-  
+
   #ifdef GRAVITY_LONG_INTS
   chprintf( "  PFFT: Using Long ints for potential calculation.\n");
   #endif
@@ -161,7 +161,7 @@ void Potential_PFFT_3D::Reset( void ){
 //Copy the density to the input_array of the poisson solver
 void Potential_PFFT_3D::Copy_Input( Real *input_density, Real Grav_Constant, Real dens_avrg, Real current_a ){
   int i, k, j, id;
-  
+
   // #ifdef PARALLEL_OMP
   // #pragma omp parallel for num_threads(N_OMP_THREADS)
   // #endif
@@ -185,7 +185,7 @@ void Potential_PFFT_3D::Copy_Input( Real *input_density, Real Grav_Constant, Rea
 void Potential_PFFT_3D::Copy_Output( Real *output_potential ){
   int id, id_pot;
   int i, k, j;
-  
+
   // #ifdef PARALLEL_OMP
   // #pragma omp parallel for num_threads(N_OMP_THREADS)
   // #endif
@@ -207,7 +207,7 @@ void Potential_PFFT_3D::Get_K_for_Green_function( void){
   Real k_x, k_y, k_z, G_x, G_y, G_z, G;
 
   double ksqrd;
-  //Get the global index in the box to compute the Greens Function factor 
+  //Get the global index in the box to compute the Greens Function factor
   for(ptrdiff_t k1=local_transform_fwd_start_pfft[1]; k1<local_transform_fwd_start_pfft[1]+local_n_transform_fwd_pfft[1]; k1++){
     for(ptrdiff_t k2=local_transform_fwd_start_pfft[2]; k2<local_transform_fwd_start_pfft[2]+local_n_transform_fwd_pfft[2]; k2++){
       for(ptrdiff_t k0=local_transform_fwd_start_pfft[0]; k0<local_transform_fwd_start_pfft[0]+local_n_transform_fwd_pfft[0]; k0++){
@@ -247,7 +247,7 @@ void Potential_PFFT_3D::Get_K_for_Green_function( void){
 void Potential_PFFT_3D::Apply_G_Funtion( void ){
   Real G_val;
   int i;
-  
+
   // #ifdef PARALLEL_OMP
   // #pragma omp parallel for num_threads(N_OMP_THREADS)
   // #endif
@@ -281,7 +281,7 @@ void Potential_PFFT_3D::Apply_K2_Funtion( void ){
   int i_g, j_g, k_g;
   int id;
   int k, j, i;
-  
+
   // #ifdef PARALLEL_OMP
   // #pragma omp parallel for num_threads(N_OMP_THREADS)
   // #endif
@@ -314,7 +314,7 @@ void Potential_PFFT_3D::Apply_K2_Funtion( void ){
   }
 }
 
-//Compute the Potential from the input_density and save it in output_potential 
+//Compute the Potential from the input_density and save it in output_potential
 Real Potential_PFFT_3D::Get_Potential( Real *input_density,  Real *output_potential, Real Grav_Constant, Real dens_avrg, Real current_a ){
 
   //Copy the input density
@@ -324,14 +324,14 @@ Real Potential_PFFT_3D::Get_Potential( Real *input_density,  Real *output_potent
 
   //Compute the FFT forward transform
   pfft_execute( plan_fwd );
-  
+
   //Multiply the FFT transform by the Greens function to obtain the potential in Fourier space
   Apply_G_Funtion();
   // Apply_K2_Funtion();
-  
-  //Compute the FFT backward (inverse) transform 
+
+  //Compute the FFT backward (inverse) transform
   pfft_execute( plan_bwd );
-  
+
   //Copy the result to output_potential
   Copy_Output( output_potential );
 
