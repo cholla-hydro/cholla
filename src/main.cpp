@@ -93,7 +93,6 @@ int main(int argc, char *argv[])
   Write_Message_To_Log_File( message );
   #endif
 
-
   #ifdef CPU_TIME
   G.Timer.Initialize();
   #endif

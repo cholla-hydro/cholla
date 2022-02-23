@@ -1,6 +1,5 @@
 /*! \file grid3D.cpp
  *  \brief Definitions of the Grid3D class */
-
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>

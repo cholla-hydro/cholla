@@ -7,9 +7,6 @@
 #include <fstream>
 #include <string>
 
-
-using namespace std;
-
 #ifdef MPI_CHOLLA
 #include "../mpi/mpi_routines.h"
 #endif
@@ -28,6 +25,7 @@ void OneTime::End(){
   if (inactive) return;
   Real time_end = get_time();
   Real time = (time_end - time_start)*1000;
+
 #ifdef MPI_CHOLLA
   t_min = ReduceRealMin(time);
   t_max = ReduceRealMax(time);
@@ -44,9 +42,11 @@ void OneTime::End(){
 void OneTime::PrintStep(){
   chprintf(" Time %-19s min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", name, t_min, t_max, t_avg);
 }
+
 void OneTime::PrintAverage(){
   if (n_steps > 1) chprintf(" Time %-19s avg: %9.4f   ms\n", name, t_all/(n_steps-1));
 }
+
 void OneTime::PrintAll(){
   chprintf(" Time %-19s all: %9.4f   ms\n", name, t_all);
 }
@@ -57,61 +57,41 @@ void Time::Initialize(){
 
   n_steps = 0;
 
+  // Add or remove timers by editing this list, and then adding Timer.NAME.Start() and Timer.NAME.End() where appropriate.
+  
   onetimes = {
     #ifdef PARTICLES
-    Calc_dt = OneTime("Calc_dt"),
+    &(Calc_dt = OneTime("Calc_dt")),
     #endif
-    Hydro = OneTime("Hydro"),
-    Boundaries = OneTime("Boundaries"),
+    &(Hydro = OneTime("Hydro")),
+    &(Boundaries = OneTime("Boundaries")),
     #ifdef GRAVITY
-    Grav_Potential = OneTime("Grav_Potential"),
-    Pot_Boundaries = OneTime("Pot_Boundaries"),
+    &(Grav_Potential = OneTime("Grav_Potential")),
+    &(Pot_Boundaries = OneTime("Pot_Boundaries")),
     #endif
     #ifdef PARTICLES
-    Part_Density = OneTime("Part_Density"),
-    Part_Boundaries = OneTime("Part_Boundaries"),
-    Part_Dens_Transf = OneTime("Part_Dens_Transf"),
-    Advance_Part_1 = OneTime("Advance_Part_1"),
-    Advance_Part_2 = OneTime("Advance_Part_2"),
+    &(Part_Density = OneTime("Part_Density")),
+    &(Part_Boundaries = OneTime("Part_Boundaries")),
+    &(Part_Dens_Transf = OneTime("Part_Dens_Transf")),
+    &(Advance_Part_1 = OneTime("Advance_Part_1")),
+    &(Advance_Part_2 = OneTime("Advance_Part_2")),
     #endif
     #ifdef COOLING_GRACKLE
-    Cooling = OneTime("Cooling"),
+    &(Cooling = OneTime("Cooling")),
     #endif
     #ifdef CHEMISTRY_GPU
-    Chemistry = OneTime("Chemistry");
+    &(Chemistry = OneTime("Chemistry"));
     #endif
   };
-
+  
 
   chprintf( "\nTiming Functions is ON \n");
 
-  /*
-  onetimes = {
-    Calc_dt,
-    #ifdef GRAVITY
-    Grav_Potential,
-    Pot_Boundaries,
-    #endif
-    Hydro,
-    Boundaries,
-    #ifdef PARTICLES
-    Calc_dt,
-    Part_Density,
-    Part_Boundaries,
-    Part_Dens_Transf,
-    Advance_Part_1,
-    Advance_Part_2,
-    #endif
-    #ifdef COOLING_GRACKLE
-    Cooling,
-    #endif
-  };
-  */
 }
 
 void Time::Print_Times(){
-  for (OneTime x : onetimes){
-    x.PrintStep();
+  for (OneTime* x : onetimes){
+    x->PrintStep();
   }
 }
 
@@ -122,22 +102,22 @@ void Time::Print_Average_Times( struct parameters P ){
 
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
 
-  for (OneTime x : onetimes){
-    time_total += x.t_all;
-    x.PrintAverage();
+  for (OneTime* x : onetimes){
+    time_total += x->t_all;
+    x->PrintAverage();
   }
 
   chprintf(" Time Total             avg: %9.4f   ms\n\n", time_total);
 
-  string file_name ( "run_timing.log" );
-  string header;
+  std::string file_name ( "run_timing.log" );
+  std::string header;
 
   chprintf( "Writing timing values to file: %s  \n", file_name.c_str());
 
   header = "#n_proc  nx  ny  nz  n_omp  n_steps  ";
 
-  for (OneTime x : onetimes){
-    header += x.name;
+  for (OneTime* x : onetimes){
+    header += x->name;
   }
 
   header += "total  ";
@@ -156,10 +136,10 @@ void Time::Print_Average_Times( struct parameters P ){
   if ( procID != 0 ) return;
   #endif
 
-  ofstream out_file;
+  std::ofstream out_file;
 
 // Output timing values
-  out_file.open(file_name.c_str(), ios::app);
+  out_file.open(file_name.c_str(), std::ios::app);
   if ( !file_exists ) out_file << header;
   #ifdef MPI_CHOLLA
   out_file << nproc << " ";
@@ -174,8 +154,8 @@ void Time::Print_Average_Times( struct parameters P ){
   #endif
   out_file << n_steps << " ";
 
-  for (OneTime x : onetimes){
-    out_file << x.t_all << " ";
+  for (OneTime* x : onetimes){
+    out_file << x->t_all << " ";
   }
 
   out_file << time_total << " ";

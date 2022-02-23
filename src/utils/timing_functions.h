@@ -1,12 +1,12 @@
-
 #ifdef CPU_TIME
-
 #ifndef TIMING_FUNCTIONS_H
 #define TIMING_FUNCTIONS_H
 
 #include <vector>
 #include "../global/global.h"
 
+// Each instance of this class represents a single timer, timing a single section of code. 
+// All instances have their own n_steps, time_start, etc. so that all timers can run independently
 class OneTime
 {
  public:
@@ -32,7 +32,8 @@ class OneTime
   void PrintAll();
 };
 
-
+// Time loops through instances of OneTime. onetimes is initialized with pointers to each timer. 
+//
 class Time
 {
 public:
@@ -52,33 +53,15 @@ public:
   OneTime Cooling;
   OneTime Chemistry;
     
-  Real time_start;
-  Real time_end;
-  Real time;
-
-  std::vector<OneTime> onetimes;
+  std::vector<OneTime*> onetimes;
   
-  #ifdef CHEMISTRY_GPU
-  Real time_start_chemistry;
-  Real time_end_chemistry;
-  Real time_chemistry_min;
-  Real time_chemistry_max;
-  Real time_chemistry_mean;
-  Real time_chemistry_all;
-  #endif
-
   Time();
   void Initialize();
   void Print_Times();
-  void Get_Average_Times();
   void Print_Average_Times( struct parameters P );
-  
-  #ifdef CHEMISTRY_GPU
-  void Record_Time_Chemistry( Real time_chemistry );
-  #endif
   
 };
 
 
 #endif
-#endif
+#endif //CPU_TIME
