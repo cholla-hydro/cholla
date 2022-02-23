@@ -57,7 +57,9 @@ void Time::Initialize(){
 
   n_steps = 0;
 
-  // Add or remove timers by editing this list, and then adding Timer.NAME.Start() and Timer.NAME.End() where appropriate.
+  // Add or remove timers by editing this list.
+  // add NAME to timing_functions.h
+  // add Timer.NAME.Start() and Timer.NAME.End() where appropriate.
   
   onetimes = {
     #ifdef PARTICLES
@@ -106,8 +108,10 @@ void Time::Print_Average_Times( struct parameters P ){
     time_total += x->t_all;
     x->PrintAverage();
   }
+  time_total /= n_steps;
 
-  chprintf(" Time Total             avg: %9.4f   ms\n\n", time_total);
+  chprintf(" Time %-19s avg: %9.4f   ms\n", "Total", time_total);
+
 
   std::string file_name ( "run_timing.log" );
   std::string header;
@@ -118,6 +122,7 @@ void Time::Print_Average_Times( struct parameters P ){
 
   for (OneTime* x : onetimes){
     header += x->name;
+    header += "  ";
   }
 
   header += "total  ";
