@@ -14,12 +14,16 @@ using namespace std;
 #include "../mpi/mpi_routines.h"
 #endif
 
-// Do nothing if inactive
-
 void OneTime::Start(){
   if (inactive) return;
   time_start = get_time();
 }
+
+void OneTime::Subtract(Real time_to_subtract){
+  // Add the time_to_substract to the start time, that way the time_end - time_start is reduced by time_to_substract
+  time_start += time_to_subtract;
+}
+
 void OneTime::End(){
   if (inactive) return;
   Real time_end = get_time();
@@ -36,6 +40,7 @@ void OneTime::End(){
   if (n_steps > 0) t_all += t_max;
   n_steps++;
 }
+
 void OneTime::PrintStep(){
   chprintf(" Time %-19s min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", name, t_min, t_max, t_avg);
 }
@@ -47,7 +52,6 @@ void OneTime::PrintAll(){
 }
 
 Time::Time( void ){}
-
 
 void Time::Initialize(){
 
@@ -73,7 +77,11 @@ void Time::Initialize(){
     #ifdef COOLING_GRACKLE
     Cooling = OneTime("Cooling"),
     #endif
+    #ifdef CHEMISTRY_GPU
+    Chemistry = OneTime("Chemistry");
+    #endif
   };
+
 
   chprintf( "\nTiming Functions is ON \n");
 
@@ -94,14 +102,13 @@ void Time::Initialize(){
     Advance_Part_1,
     Advance_Part_2,
     #endif
-    #ifdef COOLING_GRACKLE 
+    #ifdef COOLING_GRACKLE
     Cooling,
     #endif
   };
   */
 }
 
-// once per timestep in main.cpp
 void Time::Print_Times(){
   for (OneTime x : onetimes){
     x.PrintStep();
@@ -132,7 +139,7 @@ void Time::Print_Average_Times( struct parameters P ){
   for (OneTime x : onetimes){
     header += x.name;
   }
-  
+
   header += "total  ";
   header += " \n";
 

@@ -25,6 +25,7 @@ class OneTime
     inactive=false;
   }
   void Start();
+  void Subtract(Real time_to_subtract);
   void End();
   void PrintStep();
   void PrintAverage();
@@ -49,19 +50,33 @@ public:
   OneTime Advance_Part_1;
   OneTime Advance_Part_2;
   OneTime Cooling;
+  OneTime Chemistry;
     
   Real time_start;
   Real time_end;
   Real time;
 
   std::vector<OneTime> onetimes;
+  
+  #ifdef CHEMISTRY_GPU
+  Real time_start_chemistry;
+  Real time_end_chemistry;
+  Real time_chemistry_min;
+  Real time_chemistry_max;
+  Real time_chemistry_mean;
+  Real time_chemistry_all;
+  #endif
 
   Time();
   void Initialize();
   void Print_Times();
   void Get_Average_Times();
   void Print_Average_Times( struct parameters P );
-
+  
+  #ifdef CHEMISTRY_GPU
+  void Record_Time_Chemistry( Real time_chemistry );
+  #endif
+  
 };
 
 

@@ -38,6 +38,10 @@
 #include "../utils/timing_functions.h"
 #endif
 
+#ifdef CHEMISTRY_GPU
+#include "chemistry_gpu/chemistry_gpu.h"
+#endif 
+
 #ifdef ANALYSIS
 #include "../analysis/analysis.h"
 #endif
@@ -317,6 +321,11 @@ class Grid3D
     #ifdef CPU_TIME
     Time Timer;
     #endif
+    
+    #ifdef CHEMISTRY_GPU
+    // Object that contains data for the GPU chemistry solver
+    Chem_GPU Chem;
+    #endif
 
     #ifdef ANALYSIS
     Analysis_Module Analysis;
@@ -360,7 +369,17 @@ class Grid3D
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
+      
+      #ifdef CHEMISTRY_GPU
+      Real *HI_density;
+      Real *HII_density;
+      Real *HeI_density;
+      Real *HeII_density;
+      Real *HeIII_density;
+      Real *e_density;
+      #endif 
 
+      
       /*! pointer to conserved variable on device */
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z,
@@ -580,26 +599,9 @@ class Grid3D
      *  \brief Apply boundary conditions to the grid. */
     void Set_Boundaries(int dir, int flags[]);
 
-    void Set_Hydro_Boundaries_CPU
-           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
-             int dir, int *flags );
-    void Set_Hydro_Boundaries_GPU
-           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
-             int dir, int *flags );
-
     /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
      *  \brief Set the extents of the ghost region we are initializing. */
     void Set_Boundary_Extents(int dir, int *imin, int *imax);
-
-    /*! \fn Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a)
-     *  \brief Given the i,j,k index of a ghost cell, return the index of the
-        corresponding real cell, and reverse the momentum if necessary. */
-    int  Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a);
-
-    /*! \fn int Find_Index(int ig, int nx, int flag, int face, Real *a)
-     *  \brief Given a ghost cell index and boundary flag,
-        return the index of the corresponding real cell. */
-    int  Find_Index(int ig, int nx, int flag, int face, Real *a);
 
     /*! \fn void Custom_Boundary(char bcnd[MAXLEN])
      *  \brief Select appropriate custom boundary function. */
@@ -621,31 +623,18 @@ class Grid3D
     void Uniform_Grid();
 
     void Zeldovich_Pancake( struct parameters P );
+    
+    void Chemistry_Test( struct parameters P );
 
 
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);
-    void Set_Boundaries_MPI_SLAB(int *flags, struct parameters P);
     void Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P);
-    void Set_Edge_Boundaries(int dir, int *flags);
-    void Set_Edge_Boundary_Extents(int dir, int edge, int *imin, int *imax);
     void Load_and_Send_MPI_Comm_Buffers(int dir, int *flags);
-    void Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags);
     void Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags);
-    void Wait_and_Unload_MPI_Comm_Buffers_SLAB(int *flags);
     void Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags);
     void Unload_MPI_Comm_Buffers(int index);
-    void Unload_MPI_Comm_Buffers_SLAB(int index);
     void Unload_MPI_Comm_Buffers_BLOCK(int index);
-
-    void Load_Hydro_Buffer_CPU(Real *buffer, int idxoffset, int isize, int jsize, int ksize);
-
-    int Load_Hydro_Buffer_X0(Real *buffer);
-    int Load_Hydro_Buffer_X1(Real *buffer);
-    int Load_Hydro_Buffer_Y0(Real *buffer);
-    int Load_Hydro_Buffer_Y1(Real *buffer);
-    int Load_Hydro_Buffer_Z0(Real *buffer);
-    int Load_Hydro_Buffer_Z1(Real *buffer);
 
     int Load_Hydro_DeviceBuffer_X0(Real *buffer);
     int Load_Hydro_DeviceBuffer_X1(Real *buffer);
@@ -654,14 +643,6 @@ class Grid3D
     int Load_Hydro_DeviceBuffer_Z0(Real *buffer);
     int Load_Hydro_DeviceBuffer_Z1(Real *buffer);
 
-    void Unload_Hydro_Buffer_CPU(Real *buffer, int idxoffset, int isize, int jsize, int ksize);
-
-    void Unload_Hydro_Buffer_X0(Real *buffer);
-    void Unload_Hydro_Buffer_X1(Real *buffer);
-    void Unload_Hydro_Buffer_Y0(Real *buffer);
-    void Unload_Hydro_Buffer_Y1(Real *buffer);
-    void Unload_Hydro_Buffer_Z0(Real *buffer);
-    void Unload_Hydro_Buffer_Z1(Real *buffer);
     void Unload_Hydro_DeviceBuffer_X0(Real *buffer);
     void Unload_Hydro_DeviceBuffer_X1(Real *buffer);
     void Unload_Hydro_DeviceBuffer_Y0(Real *buffer);
@@ -796,7 +777,13 @@ class Grid3D
   void Update_Internal_Energy();
   void Do_Cooling_Step_Grackle();
   #endif
-
+  
+  #ifdef CHEMISTRY_GPU
+  void Initialize_Chemistry( struct parameters *P );
+  void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
+  void Update_Chemistry();
+  #endif
+  
   #ifdef ANALYSIS
   void Initialize_Analysis_Module( struct parameters *P );
   void Compute_and_Output_Analysis( struct parameters *P );
@@ -810,12 +797,16 @@ class Grid3D
 
   #ifdef LYA_STATISTICS
   void Populate_Lya_Skewers_Local( int axis );
-  void Compute_Transmitted_Flux_Skewer( int skewer_id, int axis, int chemical_type );
+  void Compute_Transmitted_Flux_Skewer( int skewer_id, int axis );
   void Compute_Lya_Statistics( );
   void Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis );
   void Initialize_Power_Spectrum_Measurements( int axis );
+  #ifdef OUTPUT_SKEWERS
+  void Output_Skewers_File( struct parameters *P );
+  void Write_Skewers_Header_HDF5( hid_t file_id );
+  void Write_Skewers_Data_HDF5( hid_t file_id );
   #endif
-
+  #endif//LYA_STATISTICS
   #endif//ANALYSIS
 
   #ifdef PARTICLES

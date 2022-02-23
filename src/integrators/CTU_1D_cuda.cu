@@ -61,19 +61,10 @@ void CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
     #endif
 
-    #ifndef DYNAMIC_GPU_ALLOC
     // If memory is single allocated: memory_allocated becomes true and successive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    #endif
   }
-
-  // copy the conserved variable array onto the GPU
-  #ifndef HYDRO_GPU
-  CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved0, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
-  CudaCheckError();
-  #endif // HYDRO_GPU
-
 
   // Step 1: Do the reconstruction
   #ifdef PCM
@@ -128,13 +119,8 @@ void CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
   CudaCheckError();
   #endif
 
-  #ifdef DYNAMIC_GPU_ALLOC
-  // If memory is not single allocated then free the memory every timestep.
-  Free_Memory_CTU_1D();
-  #endif
 
   return;
-
 
 }
 

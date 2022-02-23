@@ -102,7 +102,6 @@ void Grid3D::Change_GAS_Frame_System( bool forward ){
         #endif
 
         #ifdef COOLING_GRACKLE
-        // if ( Grav.INITIAL ) continue;
         C.scalar[0*H.n_cells + id] *= dens_factor;
         C.scalar[1*H.n_cells + id] *= dens_factor;
         C.scalar[2*H.n_cells + id] *= dens_factor;
@@ -112,7 +111,17 @@ void Grid3D::Change_GAS_Frame_System( bool forward ){
         #ifdef GRACKLE_METALS
         C.scalar[6*H.n_cells + id] *= dens_factor;
         #endif
+        #endif//COOLING_GRACKLE
+        
+        #ifdef CHEMISTRY_GPU
+        C.scalar[0*H.n_cells + id] *= dens_factor;
+        C.scalar[1*H.n_cells + id] *= dens_factor;
+        C.scalar[2*H.n_cells + id] *= dens_factor;
+        C.scalar[3*H.n_cells + id] *= dens_factor;
+        C.scalar[4*H.n_cells + id] *= dens_factor;
+        C.scalar[5*H.n_cells + id] *= dens_factor;
         #endif
+
       }
     }
   }

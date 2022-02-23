@@ -61,9 +61,6 @@ DFLAGS += -DVL
 # Average Slow cell when the cell delta_t is very small
 #DFLAGS += -DAVERAGE_SLOW_CELLS
 
-# Allocate GPU memory every timestep
-#DFLAGS += -DDYNAMIC_GPU_ALLOC
-
 # Set the cooling function
 #DFLAGS += -DCOOLING_GPU
 #DFLAGS += -DCLOUDY_COOL

@@ -39,6 +39,7 @@ typedef double Real;
 #define MSUN_CGS 1.98847e33; //Msun in gr
 #define KPC_CGS 3.086e21;  //kpc in cm
 #define KM_CGS 1e5; //km in cm
+#define MH 1.67262171e-24 //Mass of hydrogen [g]   
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
 #define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
@@ -69,6 +70,8 @@ typedef double Real;
   #else
   #define NSCALARS 6
   #endif // GRACKLE_METALS
+#elif CHEMISTRY_GPU
+  #define NSCALARS 6
 #else
 #ifdef SCALAR
 // Set Number of scalar fields when not using grackle
@@ -79,7 +82,7 @@ typedef double Real;
 // Inital Chemistry fractions
 #define INITIAL_FRACTION_HI        0.75984603480
 #define INITIAL_FRACTION_HII       1.53965115054e-4
-#define INITIAL_FRACTION_HEI       0.23999999997
+#define INITIAL_FRACTION_HEI       0.24000000008
 #define INITIAL_FRACTION_HEII      9.59999999903e-15
 #define INITIAL_FRACTION_HEIII     9.59999999903e-18
 #define INITIAL_FRACTION_ELECTRON  1.53965115054e-4
@@ -272,14 +275,17 @@ struct parameters
   int n_proc_z;
 #endif
   int bc_potential_type;
-#ifdef COOLING_GRACKLE
-  char UVB_rates_file[MAXLEN];
-#endif
+#if defined(COOLING_GRACKLE) || defined (CHEMISTRY_GPU)
+  char UVB_rates_file[MAXLEN]; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
+#endif  
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
   char analysisdir[MAXLEN];
   int lya_skewers_stride;
   Real lya_Pk_d_log_k;
+  #ifdef OUTPUT_SKEWERS
+  char skewersdir[MAXLEN];
+  #endif
 #endif
 };
 

@@ -51,9 +51,9 @@ void VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     BLOCK_VOL = nx_s*ny_s*nz_s;
     // dimensions for the 1D GPU grid
     ngrid = (BLOCK_VOL + TPB - 1) / TPB;
-    #ifndef DYNAMIC_GPU_ALLOC
+
     block_size = true;
-    #endif
+
   }
   // set values for GPU kernels
   // number of blocks per 1D grid
@@ -119,12 +119,10 @@ void VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
     dev_grav_potential = NULL;
     #endif
 
-    #ifndef DYNAMIC_GPU_ALLOC
     // If memory is single allocated: memory_allocated becomes true and successive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    #endif
-    //d_conserved = dev_conserved;
+
   }
 
   // counter for which block we're on
@@ -139,11 +137,6 @@ void VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
 
     // calculate the global x, y, and z offsets of this subgrid block
     get_offsets_3D(nx_s, ny_s, nz_s, n_ghost, x_off, y_off, z_off, block, block1_tot, block2_tot, block3_tot, remainder1, remainder2, remainder3, &x_off_s, &y_off_s, &z_off_s);
-
-    // copy the conserved variables onto the GPU
-    #ifndef HYDRO_GPU
-    CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-    #endif
 
     #if defined( GRAVITY ) && !defined( GRAVITY_GPU )
     CudaSafeCall( cudaMemcpy(dev_grav_potential, temp_potential, BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
@@ -261,13 +254,6 @@ void VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1,
 
   }
 
-
-  #ifdef DYNAMIC_GPU_ALLOC
-  // If memory is not single allocated then free the memory every timestep.
-  Free_Memory_VL_3D();
-  #endif
-
-
   // return the maximum inverse timestep
   return;
 
@@ -299,10 +285,7 @@ void Free_Memory_VL_3D(){
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
   #endif
-  #if defined( GRAVITY )
-  cudaFree(dev_grav_potential);
-  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer_potential) );
-  #endif
+
 
 }
 
