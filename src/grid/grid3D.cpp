@@ -1,6 +1,5 @@
 /*! \file grid3D.cpp
  *  \brief Definitions of the Grid3D class */
-
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -321,7 +320,7 @@ void Grid3D::AllocateMemory(void)
   Real max_dti;
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Calc_dt.Start();
   #endif
 
   #ifdef ONLY_PARTICLES
@@ -359,7 +358,7 @@ void Grid3D::AllocateMemory(void)
   #endif
 
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time(0);
+  Timer.Calc_dt.End();
   #endif
 
 
@@ -650,7 +649,13 @@ Real Grid3D::Update_Grid(void)
 
   // Update the H and He ionization fractions and apply cooling and photoheating
   #ifdef CHEMISTRY_GPU
-  Update_Chemistry( );
+  #ifdef CPU_TIMER
+  Timer.Chemistry.Start();
+  #endif
+  Update_Chemistry();
+  #ifdef CPU_TIMER
+  Timer.Chemistry.End();
+  #endif
   #endif
   
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
@@ -720,7 +725,7 @@ Real Grid3D::Update_Hydro_Grid( ){
   Real dti;
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Hydro.Start();
   #endif //CPU_TIME
 
   #ifdef GRAVITY
@@ -732,23 +737,19 @@ Real Grid3D::Update_Hydro_Grid( ){
 
   #ifdef CPU_TIME
   #ifdef CHEMISTRY_GPU
+  Timer.Hydro.Subtract(Chem.H.runtime_chemistry_step / 1000);
   //Subtract the time spent on the Chemical Update (Chem runtime was measured in ms, while the timer is on secs )
-  Timer.Substract_Time_From_Timer( Chem.H.runtime_chemistry_step / 1000 );
   #endif
-  Timer.End_and_Record_Time( 1 );
-  #ifdef CHEMISTRY_GPU
-  //Subtract the time spent on the Chemical Update 
-  Timer.Record_Time_Chemistry( Chem.H.runtime_chemistry_step );
-  #endif
+  Timer.Hydro.End();
   #endif //CPU_TIME
 
   #ifdef COOLING_GRACKLE
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Cooling.Start();
   #endif
   Do_Cooling_Step_Grackle( );
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time(10);
+  Timer.Cooling.End();
   #endif
   #endif//COOLING_GRACKLE
 
