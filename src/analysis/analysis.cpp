@@ -88,9 +88,7 @@ void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
   chprintf("\nComputing Analysis \n");
   #endif
   
-  #ifdef HYDRO_GPU
   cudaMemcpy( C.density, C.device, H.n_fields*H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
-  #endif
 
   #ifdef PHASE_DIAGRAM
   #ifdef CHEMISTRY_GPU

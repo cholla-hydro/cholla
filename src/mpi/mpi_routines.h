@@ -36,11 +36,6 @@ extern MPI_Request *recv_request;
 extern int dest[6];
 extern int source[6];
 
-/* Decomposition flag */
-extern int flag_decomp;
-
-#define BLOCK_DECOMP 1	//block decomposition flag
-
 //Communication buffers
 
 // For BLOCK
@@ -187,11 +182,8 @@ void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, R
 /* Print information about the domain properties */
 void Print_Domain_Properties(struct Header H);
 
-/* Allocate MPI communication buffers*/
-void Allocate_MPI_Buffers(struct Header *H);
-
 /* Allocate MPI communication GPU buffers for a BLOCK decomposition */
-void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H);
+void Allocate_MPI_DeviceBuffers(struct Header *H);
 
 /* find the greatest prime factor of an integer */
 int greatest_prime_factor(int n);

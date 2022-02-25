@@ -1,7 +1,7 @@
 #include "../utils/gpu.hpp"
 #include "../global/global.h"
 #include "../global/global_cuda.h"
-#include "../mpi/cuda_boundaries.h"
+#include "cuda_boundaries.h"
 
 __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a);
 
@@ -59,7 +59,7 @@ void UnpackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksi
   hipLaunchKernelGGL(UnpackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
 }
 
-__global__ void PackGhostCellsKernel(Real * c_head,
+__global__ void SetGhostCellsKernel(Real * c_head,
 				     int nx, int ny, int nz, int n_fields, int n_cells, int n_ghost,
 				     int f0, int f1, int f2, int f3, int f4, int f5,
 				     int isize, int jsize, int ksize,
@@ -134,14 +134,14 @@ __global__ void PackGhostCellsKernel(Real * c_head,
   }//end idx>=0
 }//end function
 
-void PackGhostCells(Real * c_head,
+void SetGhostCells(Real * c_head,
 		    int nx, int ny, int nz, int n_fields, int n_cells, int n_ghost, int flags[],
 		    int isize, int jsize, int ksize,
 		    int imin, int jmin, int kmin, int dir)
 {
   dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(PackGhostCellsKernel,dim1dGrid,dim1dBlock,0,0,c_head,
+  hipLaunchKernelGGL(SetGhostCellsKernel,dim1dGrid,dim1dBlock,0,0,c_head,
 		     nx,ny,nz,n_fields,n_cells,n_ghost,
 		     flags[0],flags[1],flags[2],flags[3],flags[4],flags[5],
 		     isize,jsize,ksize,imin,jmin,kmin,dir);

@@ -76,9 +76,7 @@ void Write_Message_To_Log_File( const char* message ){
 void WriteData(Grid3D &G, struct parameters P, int nfile)
 {
   
-  #ifdef HYDRO_GPU
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
-  #endif
 
   chprintf( "\nSaving Snapshot: %d \n", nfile );
 

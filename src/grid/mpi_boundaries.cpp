@@ -6,7 +6,7 @@
 
 #include "../utils/gpu.hpp"
 #include "../global/global_cuda.h"//provides TPB
-#include "../mpi/cuda_boundaries.h"// provides PackBuffers3D and UnpackBuffers3D
+#include "../grid/cuda_boundaries.h"// provides PackBuffers3D and UnpackBuffers3D
 
 #ifdef MPI_CHOLLA
 
@@ -20,12 +20,7 @@ void Grid3D::Set_Boundaries_MPI(struct parameters P)
     Custom_Boundary(P.custom_bcnd);
   }
 
-  switch(flag_decomp)
-  {
-    case BLOCK_DECOMP:
-      Set_Boundaries_MPI_BLOCK(flags,P);
-      break;
-  }
+  Set_Boundaries_MPI_BLOCK(flags,P);
 
   #ifdef GRAVITY
   Grav.Set_Boundary_Flags( flags );
@@ -57,7 +52,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
     /* Step 3 - Receive MPI x-boundaries */
 
     if (flags[0]==5 || flags[1]==5) {
-      Wait_and_Unload_MPI_Comm_Buffers_BLOCK(0, flags);
+      Wait_and_Unload_MPI_Comm_Buffers(0, flags);
       #ifdef PARTICLES
       // Unload Particles buffers when transfering Particles
       if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(0, flags);
@@ -79,7 +74,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 
     /* Step 6 - Receive MPI y-boundaries */
     if (flags[2]==5 || flags[3]==5) {
-      Wait_and_Unload_MPI_Comm_Buffers_BLOCK(1, flags);
+      Wait_and_Unload_MPI_Comm_Buffers(1, flags);
       #ifdef PARTICLES
       // Unload Particles buffers when transfering Particles
       if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(1, flags);
@@ -100,7 +95,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 
     /* Step 9 - Receive MPI z-boundaries */
     if (flags[4]==5 || flags[5]==5) {
-      Wait_and_Unload_MPI_Comm_Buffers_BLOCK(2, flags);
+      Wait_and_Unload_MPI_Comm_Buffers(2, flags);
       #ifdef PARTICLES
       // Unload Particles buffers when transfering Particles
       if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(2, flags);
@@ -114,18 +109,6 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 
 }
 
-void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
-{
-
-  switch(flag_decomp)
-  {
-    case BLOCK_DECOMP:
-      /*load communication buffers*/
-      Load_and_Send_MPI_Comm_Buffers_BLOCK(dir, flags);
-      break;
-  }
-
-}
 
 int Grid3D::Load_Hydro_DeviceBuffer_X0 ( Real *send_buffer_x0 ){
   int offset;
@@ -377,7 +360,7 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Z1 ( Real *recv_buffer_z1 ) {
 
 }
 
-void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
+void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
 {
 
   #ifdef PARTICLES
@@ -410,13 +393,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load left x communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES )
         {
-        #ifdef HYDRO_GPU
         buffer_length = Load_Hydro_DeviceBuffer_X0(d_send_buffer_x0);
           #ifndef MPI_GPU
           cudaMemcpy(h_send_buffer_x0, d_send_buffer_x0, xbsize*sizeof(Real),
                      cudaMemcpyDeviceToHost);
           #endif
-        #endif
         }
 
       #ifdef GRAVITY
@@ -458,7 +439,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
 
       if ( transfer_main_buffer ){
-        #if defined(MPI_GPU) && defined(HYDRO_GPU)
+        #if defined(MPI_GPU)
         //post non-blocking receive left x communication buffer
         MPI_Irecv(d_recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0,
                   world, &recv_request[ireq]);
@@ -487,13 +468,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load right x communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES )
         {
-        #ifdef HYDRO_GPU
         buffer_length = Load_Hydro_DeviceBuffer_X1(d_send_buffer_x1);
           #ifndef MPI_GPU
           cudaMemcpy(h_send_buffer_x1, d_send_buffer_x1, xbsize*sizeof(Real),
                      cudaMemcpyDeviceToHost);
           #endif
-        #endif
         //printf("X1 len: %d\n", buffer_length);
         }
 
@@ -535,7 +514,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
 
       if ( transfer_main_buffer ){
-	#if defined(MPI_GPU) && defined(HYDRO_GPU)
+	#if defined(MPI_GPU)
         //post non-blocking receive right x communication buffer
         MPI_Irecv(d_recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
 
@@ -569,13 +548,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load left y communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES )
         {
-        #ifdef HYDRO_GPU
         buffer_length = Load_Hydro_DeviceBuffer_Y0(d_send_buffer_y0);
           #ifndef MPI_GPU
           cudaMemcpy(h_send_buffer_y0, d_send_buffer_y0, ybsize*sizeof(Real),
                      cudaMemcpyDeviceToHost);
           #endif
-        #endif
         //printf("Y0 len: %d\n", buffer_length);
         }
 
@@ -617,7 +594,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
 
       if ( transfer_main_buffer ){
-	#if defined(MPI_GPU) && defined(HYDRO_GPU)
+	#if defined(MPI_GPU)
         //post non-blocking receive left y communication buffer
         MPI_Irecv(d_recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
 
@@ -643,13 +620,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load right y communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES )
         {
-        #ifdef HYDRO_GPU
         buffer_length = Load_Hydro_DeviceBuffer_Y1(d_send_buffer_y1);
           #ifndef MPI_GPU
           cudaMemcpy(h_send_buffer_y1, d_send_buffer_y1, ybsize*sizeof(Real),
                      cudaMemcpyDeviceToHost);
           #endif
-        #endif
         //printf("Y1 len: %d\n", buffer_length);
         }
 
@@ -692,7 +667,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
 
       if ( transfer_main_buffer ){
-        #if defined(MPI_GPU) && defined(HYDRO_GPU)
+        #if defined(MPI_GPU)
         //post non-blocking receive right y communication buffer
         MPI_Irecv(d_recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
 
@@ -726,13 +701,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // left z communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES )
         {
-        #ifdef HYDRO_GPU
         buffer_length = Load_Hydro_DeviceBuffer_Z0(d_send_buffer_z0);
           #ifndef MPI_GPU
           cudaMemcpy(h_send_buffer_z0, d_send_buffer_z0, zbsize*sizeof(Real),
                      cudaMemcpyDeviceToHost);
           #endif
-        #endif
         //printf("Z0 len: %d\n", buffer_length);
         }
 
@@ -774,7 +747,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
 
       if ( transfer_main_buffer ){
-        #if defined(MPI_GPU) && defined(HYDRO_GPU)
+        #if defined(MPI_GPU)
         //post non-blocking receive left z communication buffer
         MPI_Irecv(d_recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
         //non-blocking send left z communication buffer
@@ -799,13 +772,11 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       // load right z communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES )
         {
-        #ifdef HYDRO_GPU
         buffer_length = Load_Hydro_DeviceBuffer_Z1(d_send_buffer_z1);
           #ifndef MPI_GPU
           cudaMemcpy(h_send_buffer_z1, d_send_buffer_z1, zbsize*sizeof(Real),
                      cudaMemcpyDeviceToHost);
           #endif
-        #endif
         //printf("Z1 len: %d\n", buffer_length);
         }
 
@@ -847,7 +818,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
       #endif
 
       if ( transfer_main_buffer ){
-        #if defined(MPI_GPU) && defined(HYDRO_GPU)
+        #if defined(MPI_GPU)
         //post non-blocking receive right x communication buffer
         MPI_Irecv(d_recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
 
@@ -874,7 +845,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
 
 }
 
-void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
+void Grid3D::Wait_and_Unload_MPI_Comm_Buffers(int dir, int *flags)
 {
 
   #ifdef PARTICLES
@@ -919,19 +890,7 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
   }
 }
 
-
-
 void Grid3D::Unload_MPI_Comm_Buffers(int index)
-{
-  switch(flag_decomp)
-  {
-    case BLOCK_DECOMP:
-      Unload_MPI_Comm_Buffers_BLOCK(index);
-      break;
-  }
-}
-
-void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
 {
 
   // local recv buffers
@@ -949,10 +908,9 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
   Grid3D_PMF_UnloadParticleDensity Fptr_Unload_Particle_Density;
 
   if ( H.TRANSFER_HYDRO_BOUNDARIES ) {
-    #ifdef HYDRO_GPU
-      #ifndef MPI_GPU
-      copyHostToDeviceReceiveBuffer ( index );
-      #endif
+    #ifndef MPI_GPU
+    copyHostToDeviceReceiveBuffer ( index );
+    #endif
     l_recv_buffer_x0 = d_recv_buffer_x0;
     l_recv_buffer_x1 = d_recv_buffer_x1;
     l_recv_buffer_y0 = d_recv_buffer_y0;
@@ -967,7 +925,6 @@ void Grid3D::Unload_MPI_Comm_Buffers_BLOCK(int index)
     Fptr_Unload_Hydro_Buffer_Z0 = &Grid3D::Unload_Hydro_DeviceBuffer_Z0;
     Fptr_Unload_Hydro_Buffer_Z1 = &Grid3D::Unload_Hydro_DeviceBuffer_Z1;
 
-    #endif // HYDRO_GPU
 
     switch ( index ) {
     case ( 0 ): (this->*Fptr_Unload_Hydro_Buffer_X0) ( l_recv_buffer_x0 ); break;

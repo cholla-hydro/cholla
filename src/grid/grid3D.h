@@ -631,10 +631,8 @@ class Grid3D
     void Set_Boundaries_MPI(struct parameters P);
     void Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P);
     void Load_and_Send_MPI_Comm_Buffers(int dir, int *flags);
-    void Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags);
-    void Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags);
+    void Wait_and_Unload_MPI_Comm_Buffers(int dir, int *flags);
     void Unload_MPI_Comm_Buffers(int index);
-    void Unload_MPI_Comm_Buffers_BLOCK(int index);
 
     int Load_Hydro_DeviceBuffer_X0(Real *buffer);
     int Load_Hydro_DeviceBuffer_X1(Real *buffer);
