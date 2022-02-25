@@ -10,9 +10,14 @@
 #include <limits>
 #include <cmath>
 #include <cstring>
+#include <iostream>
+
+// External Includes
+#include <gtest/gtest.h>    // Include GoogleTest and related libraries/headers
 
 // Local includes
 #include "../utils/testing_utilities.h" // Include the header file
+#include "../system_tests/system_tester.h" // provide systemTest class
 
 namespace testingUtilities
 {
@@ -64,4 +69,66 @@ namespace testingUtilities
         return ulpsDiff <= ulpsEpsilon;
     }
     // =========================================================================
+
+  void wrapperEqual(int i, int j, int k, std::string dataSetName, 
+		    double test_value, double fid_value, double fixedEpsilon=5.0E-12) {
+    // Check for equality and iff not equal return difference
+    double absoluteDiff;
+    int64_t ulpsDiff;
+    // Fixed epsilon is changed from the default since AMD/Clang
+    // appear to differ from NVIDIA/GCC/XL by roughly 1E-12
+    bool areEqual = testingUtilities::nearlyEqualDbl(fid_value,
+						     test_value,
+						     absoluteDiff,
+						     ulpsDiff,
+						     fixedEpsilon);
+    ASSERT_TRUE(areEqual)
+      << std::endl
+      << "Difference in "
+      << dataSetName
+      << " dataset at ["
+      << i << "," << j << "," << k <<"]" << std::endl
+      << "The fiducial value is:       " << fid_value           << std::endl
+      << "The test value is:           " << test_value          << std::endl
+      << "The absolute difference is:  " << absoluteDiff        << std::endl
+      << "The ULP difference is:       " << ulpsDiff            << std::endl;
+  }
+
+  void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value) {
+    std::vector<size_t> testDims(3,1);
+    std::vector<double> testData = testObject.loadTestFieldData(dataSetName,testDims);
+    for (size_t i = 0; i < testDims[0]; i++)
+      {
+	for (size_t j = 0; j < testDims[1]; j++)
+	  {
+	    for (size_t k = 0; k < testDims[2]; k++)
+	      {
+		size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
+
+		wrapperEqual(i,j,k,dataSetName,testData.at(index),value);
+	      }
+	  }
+      }
+  }
+
+  void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetName,
+		    double constant, double amplitude,
+		    double kx, double ky, double kz, double phase, double tolerance)
+  {
+    std::vector<size_t> testDims(3,1);
+    std::vector<double> testData = testObject.loadTestFieldData(dataSetName,testDims);
+    for (size_t i = 0; i < testDims[0]; i++)
+      {
+	for (size_t j = 0; j < testDims[1]; j++)
+	  {
+	    for (size_t k = 0; k < testDims[2]; k++)
+	      {
+		double value = constant + amplitude*std::sin(kx*i+ky*j+kz*k+phase);
+		size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
+		wrapperEqual(i,j,k,dataSetName,testData.at(index),value,tolerance);
+	      }
+	  }
+      }
+  }
+
 }

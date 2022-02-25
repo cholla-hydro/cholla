@@ -10,6 +10,7 @@
 
 // STL includes
 #include <string>
+#include "../system_tests/system_tester.h" // provide systemTest class
 
 // =============================================================================
 // NOTE: Global variables are declared as extern at the end of this file
@@ -91,6 +92,14 @@ namespace testingUtilities
                         double  const &fixedEpsilon = 1E-14,
                         int     const &ulpsEpsilon  = 4);
     // =========================================================================
+
+    void wrapperEqual(int i, int j, int k, std::string dataSetName, double test_value, double fid_value, double fixedEpsilon);
+
+    void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value);
+
+    void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetName,
+		      double constant, double amplitude, double kx, double ky, double kz,
+		      double phase, double tolerance);
 
     // =========================================================================
     /*!
