@@ -493,7 +493,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Grav_Potential.Start();
   #endif
 
   #ifdef PARTICLES
@@ -591,7 +591,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   #endif
 
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 3 );
+  Timer.Grav_Potential.End();
   #endif
 
 }
