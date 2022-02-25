@@ -7,6 +7,7 @@
 
 // STL Includes
 #include <iostream>
+#include <string>
 
 // External Includes
 #include <gtest/gtest.h>    // Include GoogleTest and related libraries/headers
@@ -30,13 +31,13 @@ TEST(tCOOLINGPracticeTest, PracticeTestExpectCorrectOutput) // test suite name, 
     Real absoluteDiff;
     Real ulpsDiff;
 
-    Bool istrue;
+    Bool isTrue;
 
     istrue = nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
     
-    EXPECT_TRUE(istrue)
-            << “The fiducial value is:       ” << fiducialNumber  << std::endl
-            << “The test value is:           ” << testNumber      << std::endl
+    EXPECT_TRUE(isTrue)
+            << “The fiducial value is:       “ << fiducialNumber  << std::endl
+            << “The test value is:           “ << testNumber      << std::endl
             << “The absolute difference is:  ” << absoluteDiff    << std::endl
             << “The ULP difference is:       ” << ulpsDiff        << std::endl;
 }
