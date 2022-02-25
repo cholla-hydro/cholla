@@ -91,4 +91,7 @@ TEST(tHYDROSYSTEMSoundWave3D,
   testObject.openHydroTestData();
 
   testingUtilities::analyticSine(testObject,"density",1.0,amplitude,kx,0.0,0.0,phase,tolerance);
+  testingUtilities::analyticSine(testObject,"momentum_x",0.0,amplitude,kx,0.0,0.0,phase,tolerance);
+  //testingUtilities::analyticSine(testObject,"momentum_y",0.0,amplitude,kx,0.0,0.0,0.0,tolerance);
+  //testingUtilities::analyticSine(testObject,"momentum_z",0.0,amplitude,kx,0.0,0.0,0.0,tolerance);
 }

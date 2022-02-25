@@ -1,4 +1,3 @@
-
 /*!
  * \file testing_utilites.cpp
  * \author Robert 'Bob' Caddy (rvc@pitt.edu)
@@ -70,28 +69,66 @@ namespace testingUtilities
     }
     // =========================================================================
 
+    // =========================================================================
+    void checkResults(double fiducialNumber,
+                      double testNumber,
+                      std::string outString,
+                      double fixedEpsilon,
+                      int ulpsEpsilon)
+    {
+        // Check for equality and if not equal return difference
+        double absoluteDiff;
+        int64_t ulpsDiff;
+        bool areEqual;
+
+        if ((fixedEpsilon < 0) and (ulpsEpsilon < 0))
+        {
+            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
+                                                        testNumber,
+                                                        absoluteDiff,
+                                                        ulpsDiff);
+        }
+        else if ((fixedEpsilon > 0) and (ulpsEpsilon < 0))
+        {
+            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
+                                                        testNumber,
+                                                        absoluteDiff,
+                                                        ulpsDiff,
+                                                        fixedEpsilon);
+        }
+        else
+        {
+            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
+                                                        testNumber,
+                                                        absoluteDiff,
+                                                        ulpsDiff,
+                                                        fixedEpsilon,
+                                                        ulpsEpsilon);
+        }
+
+        EXPECT_TRUE(areEqual)
+            << "Difference in "                << outString       << std::endl
+            << "The fiducial value is:       " << fiducialNumber  << std::endl
+            << "The test value is:           " << testNumber      << std::endl
+            << "The absolute difference is:  " << absoluteDiff    << std::endl
+            << "The ULP difference is:       " << ulpsDiff        << std::endl;
+    }
+    // =========================================================================
+
   void wrapperEqual(int i, int j, int k, std::string dataSetName, 
 		    double test_value, double fid_value, double fixedEpsilon=5.0E-12) {
-    // Check for equality and iff not equal return difference
-    double absoluteDiff;
-    int64_t ulpsDiff;
-    // Fixed epsilon is changed from the default since AMD/Clang
-    // appear to differ from NVIDIA/GCC/XL by roughly 1E-12
-    bool areEqual = testingUtilities::nearlyEqualDbl(fid_value,
-						     test_value,
-						     absoluteDiff,
-						     ulpsDiff,
-						     fixedEpsilon);
-    ASSERT_TRUE(areEqual)
-      << std::endl
-      << "Difference in "
-      << dataSetName
-      << " dataset at ["
-      << i << "," << j << "," << k <<"]" << std::endl
-      << "The fiducial value is:       " << fid_value           << std::endl
-      << "The test value is:           " << test_value          << std::endl
-      << "The absolute difference is:  " << absoluteDiff        << std::endl
-      << "The ULP difference is:       " << ulpsDiff            << std::endl;
+
+    std::string outString;
+    outString += dataSetName;
+    outString += " dataset at [";
+    outString += i;
+    outString += ",";
+    outString += j;
+    outString += ",";
+    outString += k;
+    outString += "]";
+
+    checkResults(fid_value,test_value,outString,fixedEpsilon);
   }
 
   void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value) {
@@ -130,5 +167,8 @@ namespace testingUtilities
 	  }
       }
   }
+
+
+
 
 }
