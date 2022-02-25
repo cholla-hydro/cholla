@@ -1,4 +1,3 @@
-
 /*!
  * \file testing_utilites.cpp
  * \author Robert 'Bob' Caddy (rvc@pitt.edu)
@@ -10,6 +9,10 @@
 #include <limits>
 #include <cmath>
 #include <cstring>
+#include <iostream>
+
+// External Includes
+#include <gtest/gtest.h>    // Include GoogleTest and related libraries/headers
 
 // Local includes
 #include "../utils/testing_utilities.h" // Include the header file
@@ -62,6 +65,52 @@ namespace testingUtilities
         // Handle all other cases and pass back the difference in ULPs
         ulpsDiff = ulpsDistanceDbl(a, b);
         return ulpsDiff <= ulpsEpsilon;
+    }
+    // =========================================================================
+
+    // =========================================================================
+    void checkResults(double fiducialNumber,
+                      double testNumber,
+                      std::string outString,
+                      double fixedEpsilon,
+                      int ulpsEpsilon)
+    {
+        // Check for equality and if not equal return difference
+        double absoluteDiff;
+        int64_t ulpsDiff;
+        bool areEqual;
+
+        if ((fixedEpsilon < 0) and (ulpsEpsilon < 0))
+        {
+            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
+                                                        testNumber,
+                                                        absoluteDiff,
+                                                        ulpsDiff);
+        }
+        else if ((fixedEpsilon > 0) and (ulpsEpsilon < 0))
+        {
+            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
+                                                        testNumber,
+                                                        absoluteDiff,
+                                                        ulpsDiff,
+                                                        fixedEpsilon);
+        }
+        else
+        {
+            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
+                                                        testNumber,
+                                                        absoluteDiff,
+                                                        ulpsDiff,
+                                                        fixedEpsilon,
+                                                        ulpsEpsilon);
+        }
+
+        EXPECT_TRUE(areEqual)
+            << "Difference in "                << outString       << std::endl
+            << "The fiducial value is:       " << fiducialNumber  << std::endl
+            << "The test value is:           " << testNumber      << std::endl
+            << "The absolute difference is:  " << absoluteDiff    << std::endl
+            << "The ULP difference is:       " << ulpsDiff        << std::endl;
     }
     // =========================================================================
 }
