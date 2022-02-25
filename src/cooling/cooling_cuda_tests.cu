@@ -36,10 +36,10 @@ TEST(tCOOLINGPracticeTest, PracticeTestExpectCorrectOutput) // test suite name, 
     istrue = nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
     
     EXPECT_TRUE(isTrue)
-            << “The fiducial value is:       “ << fiducialNumber  << std::endl
-            << “The test value is:           “ << testNumber      << std::endl
-            << “The absolute difference is:  ” << absoluteDiff    << std::endl
-            << “The ULP difference is:       ” << ulpsDiff        << std::endl;
+            << "The fiducial value is:       " << fiducialNumber  << std::endl
+            << "The test value is:           " << testNumber      << std::endl
+            << "The absolute difference is:  " << absoluteDiff    << std::endl
+            << "The ULP difference is:       " << ulpsDiff        << std::endl;
 }
 
 #endif // COOLING
