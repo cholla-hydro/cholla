@@ -74,6 +74,7 @@ public:
 
     void launchCholla();
 
+    void openHydroTestData();
     /*!
      * \brief Get the Cholla Path object
      *
@@ -184,6 +185,18 @@ public:
                                              size_t const &nx=1,
                                              size_t const &ny=1,
                                              size_t const &nz=1);
+
+    /*!
+     * \brief Load the test data for physical fields from the HDF5 file(s). If
+     * there is more than one HDF5 file then it concatenates the contents into a
+     * single vector. Particle data is handeled with _loadTestParticleData
+     *
+     * \param[in] dataSetName The name of the dataset to get
+     * \param[out] testDims An vector with the length of each dimension in it
+     * \return std::vector<double> A vector containing the data
+     */
+    std::vector<double> loadTestFieldData(std::string dataSetName,
+					  std::vector<size_t> &testDims);
 
     /*!
      * \brief Generate a std::vector of the specified size populated by a sine
@@ -321,18 +334,6 @@ private:
      *
      */
     void _checkNumTimeSteps();
-
-    /*!
-     * \brief Load the test data for physical fields from the HDF5 file(s). If
-     * there is more than one HDF5 file then it concatenates the contents into a
-     * single vector. Particle data is handeled with _loadTestParticleData
-     *
-     * \param[in] dataSetName The name of the dataset to get
-     * \param[out] testDims An vector with the length of each dimension in it
-     * \return std::vector<double> A vector containing the data
-     */
-    std::vector<double> _loadTestFieldData(std::string dataSetName,
-                                           std::vector<size_t> &testDims);
 
     /*!
      * \brief Load the test data for particles from the HDF5 file(s). If

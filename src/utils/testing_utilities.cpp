@@ -16,6 +16,7 @@
 
 // Local includes
 #include "../utils/testing_utilities.h" // Include the header file
+#include "../system_tests/system_tester.h" // provide systemTest class
 
 namespace testingUtilities
 {
@@ -113,4 +114,61 @@ namespace testingUtilities
             << "The ULP difference is:       " << ulpsDiff        << std::endl;
     }
     // =========================================================================
+
+  void wrapperEqual(int i, int j, int k, std::string dataSetName, 
+		    double test_value, double fid_value, double fixedEpsilon=5.0E-12) {
+
+    std::string outString;
+    outString += dataSetName;
+    outString += " dataset at [";
+    outString += i;
+    outString += ",";
+    outString += j;
+    outString += ",";
+    outString += k;
+    outString += "]";
+
+    checkResults(fid_value,test_value,outString,fixedEpsilon);
+  }
+
+  void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value) {
+    std::vector<size_t> testDims(3,1);
+    std::vector<double> testData = testObject.loadTestFieldData(dataSetName,testDims);
+    for (size_t i = 0; i < testDims[0]; i++)
+      {
+	for (size_t j = 0; j < testDims[1]; j++)
+	  {
+	    for (size_t k = 0; k < testDims[2]; k++)
+	      {
+		size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
+
+		wrapperEqual(i,j,k,dataSetName,testData.at(index),value);
+	      }
+	  }
+      }
+  }
+
+  void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetName,
+		    double constant, double amplitude,
+		    double kx, double ky, double kz, double phase, double tolerance)
+  {
+    std::vector<size_t> testDims(3,1);
+    std::vector<double> testData = testObject.loadTestFieldData(dataSetName,testDims);
+    for (size_t i = 0; i < testDims[0]; i++)
+      {
+	for (size_t j = 0; j < testDims[1]; j++)
+	  {
+	    for (size_t k = 0; k < testDims[2]; k++)
+	      {
+		double value = constant + amplitude*std::sin(kx*i+ky*j+kz*k+phase);
+		size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
+		wrapperEqual(i,j,k,dataSetName,testData.at(index),value,tolerance);
+	      }
+	  }
+      }
+  }
+
+
+
+
 }
