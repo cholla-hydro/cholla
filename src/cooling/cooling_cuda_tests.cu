@@ -1,7 +1,7 @@
 /*!
-* \file hllc_cuda_tests.cpp
-* \author Robert 'Bob' Caddy (rvc@pitt.edu)
-* \brief Test the code units within hllc_cuda.cu
+* \file cooling_cuda_tests.cpp
+* \author Helena Richie (helenarichie@pitt.edu)
+* \brief Testing the CIE cooling rate function in cooling_cuda.cu
 *
 */
 
@@ -10,15 +10,15 @@
 #include <string>
 
 // External Includes
-#include <gtest/gtest.h>    // Include GoogleTest and related libraries/headers
+#include <gtest/gtest.h> // Include GoogleTest and related libraries/headers
 
 // Local Includes
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
-#include "../cooling/cooling_cuda.h"   // Include code to test
+#include "../cooling/cooling_cuda.h" // Include code to test
 
-#ifdef COOLING
+#ifdef COOLING_GPU
 
 TEST(tCOOLINGPracticeTest, PracticeTestExpectCorrectOutput) // test suite name, test name
 {
