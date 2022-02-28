@@ -675,6 +675,7 @@ class Grid3D
   int Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real *buffer, int buffer_start  );
   void Unload_Gravity_Potential_from_Buffer_GPU( int direction, int side, Real *buffer, int buffer_start  );
   void Set_Potential_Boundaries_Isolated_GPU( int direction, int side, int *flags );
+  void Set_Potential_Boundaries_Periodic_GPU( int direction, int side, int *flags );
   #endif
 
   #endif//GRAVITY

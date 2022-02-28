@@ -200,7 +200,12 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
     if ( flags[dir] == 1 ){
       // Set Periodic Boundaries for the ghost cells.
       #ifdef GRAVITY_GPU
-      
+      if ( dir == 0 ) Set_Potential_Boundaries_Periodic_GPU( 0, 0, flags );
+      if ( dir == 1 ) Set_Potential_Boundaries_Periodic_GPU( 0, 1, flags );
+      if ( dir == 2 ) Set_Potential_Boundaries_Periodic_GPU( 1, 0, flags );
+      if ( dir == 3 ) Set_Potential_Boundaries_Periodic_GPU( 1, 1, flags );
+      if ( dir == 4 ) Set_Potential_Boundaries_Periodic_GPU( 2, 0, flags );
+      if ( dir == 5 ) Set_Potential_Boundaries_Periodic_GPU( 2, 1, flags );
       #else
       if ( dir == 0 ) Set_Potential_Boundaries_Periodic( 0, 0, flags );
       if ( dir == 1 ) Set_Potential_Boundaries_Periodic( 0, 1, flags );
