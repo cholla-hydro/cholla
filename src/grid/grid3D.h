@@ -744,6 +744,7 @@ class Grid3D
   void Advance_Particles_KDK_Step1_GPU();
   void Advance_Particles_KDK_Step2_GPU();
   void Set_Particles_Boundary_GPU( int dir, int side);
+  void Set_Particles_Density_Boundaries_Periodic_GPU( int direction, int side );
   #endif//PARTICLES_GPU
   #ifdef GRAVITY_GPU
   void Copy_Particles_Density_GPU();

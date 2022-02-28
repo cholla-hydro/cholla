@@ -254,12 +254,22 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   if ( Particles.TRANSFER_DENSITY_BOUNDARIES ){
     if ( flags[dir] ==1 ){
       // Set Periodic Boundaries for the particles density.
+      #ifdef PARTICLES_GPU
+      if ( dir == 0 ) Set_Particles_Density_Boundaries_Periodic_GPU( 0, 0 );
+      if ( dir == 1 ) Set_Particles_Density_Boundaries_Periodic_GPU( 0, 1 );
+      if ( dir == 2 ) Set_Particles_Density_Boundaries_Periodic_GPU( 1, 0 );
+      if ( dir == 3 ) Set_Particles_Density_Boundaries_Periodic_GPU( 1, 1 );
+      if ( dir == 4 ) Set_Particles_Density_Boundaries_Periodic_GPU( 2, 0 );
+      if ( dir == 5 ) Set_Particles_Density_Boundaries_Periodic_GPU( 2, 1 );
+      #endif
+      #ifdef PARTICLES_CPU       
       if ( dir == 0 ) Set_Particles_Density_Boundaries_Periodic( 0, 0 );
       if ( dir == 1 ) Set_Particles_Density_Boundaries_Periodic( 0, 1 );
       if ( dir == 2 ) Set_Particles_Density_Boundaries_Periodic( 1, 0 );
       if ( dir == 3 ) Set_Particles_Density_Boundaries_Periodic( 1, 1 );
       if ( dir == 4 ) Set_Particles_Density_Boundaries_Periodic( 2, 0 );
       if ( dir == 5 ) Set_Particles_Density_Boundaries_Periodic( 2, 1 );
+      #endif
     }
     return;
   }
