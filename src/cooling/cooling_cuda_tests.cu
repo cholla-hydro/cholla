@@ -28,8 +28,8 @@ TEST(tCOOLINGPracticeTest, PracticeTestExpectCorrectOutput) // test suite name, 
 
     Real const fiducialNumber = 100;
 
-    Real absoluteDiff;
-    Real ulpsDiff;
+    double absoluteDiff;
+    int64_t ulpsDiff;
 
     bool isTrue;
 
