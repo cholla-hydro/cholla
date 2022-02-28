@@ -33,7 +33,7 @@ TEST(tCOOLINGPracticeTest, PracticeTestExpectCorrectOutput) // test suite name, 
 
     Bool isTrue;
 
-    istrue = nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
+    isTrue = nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
     
     EXPECT_TRUE(isTrue)
             << "The fiducial value is:       " << fiducialNumber  << std::endl
