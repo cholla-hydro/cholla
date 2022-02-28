@@ -17,7 +17,6 @@
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
 #include "../cooling/cooling_cuda.h" // Include code to test
-#include "../utils/testing_utilities.h"
 
 #ifdef COOLING_GPU
 
@@ -34,7 +33,7 @@ TEST(tCOOLINGPracticeTest, PracticeTestExpectCorrectOutput) // test suite name, 
 
     bool isTrue;
 
-    isTrue = nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
+    isTrue = testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
     
     EXPECT_TRUE(isTrue)
             << "The fiducial value is:       " << fiducialNumber  << std::endl
