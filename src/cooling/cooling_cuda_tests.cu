@@ -17,6 +17,7 @@
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
 #include "../cooling/cooling_cuda.h" // Include code to test
+#include "../utils/testing_utilities.h"
 
 #ifdef COOLING_GPU
 
