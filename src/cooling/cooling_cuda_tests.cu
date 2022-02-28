@@ -31,7 +31,7 @@ TEST(tCOOLINGPracticeTest, PracticeTestExpectCorrectOutput) // test suite name, 
     Real absoluteDiff;
     Real ulpsDiff;
 
-    Bool isTrue;
+    bool isTrue;
 
     isTrue = nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
     
