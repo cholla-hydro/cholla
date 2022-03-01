@@ -740,20 +740,8 @@ part_int_t Get_Particles_IDs_Global_MPI_Offset( part_int_t n_local ){
 /* Set the domain properties used in initial_conditions.cpp Grid3D::Set_Domain_Properties */
 void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, Real xlen_global, Real ylen_global, Real zlen_global, struct Header *H)
 {
-  Real xmin_local;
-  Real ymin_local;
-  Real zmin_local;
   Real xlen, ylen, zlen;
 
-  //each domain decomposition option must set its
-  //own local domain sizes and local xyz bounds
-  //
-  //this is done by specifying *min_local
-  //and *len
-
-  /*For a block decomposition:                    */
-  /*each direction's properties need specification*/
-  
   /*the local domain will be xlen_global * nx_local / nx_global */
   xlen = xlen_global * ((Real) nx_local)/((Real) nx_global);
   
@@ -763,30 +751,11 @@ void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, R
   /*the local domain will be zlen_global * nz_local / nz_global */
   zlen = zlen_global * ((Real) nz_local)/((Real) nz_global);
   
-  /*the local minimum bound will be xmin_global + xlen_global* nx_local_start / nx_global */
-  //nx_local_start is indexed from start of real cells
-  xmin_local = xmin_global + xlen_global * ((Real) nx_local_start) / ((Real) nx_global );
-  
-  /*the local minimum bound will be ymin_global + ylen_global* ny_local_start / ny_global */
-  //ny_local_start is indexed from start of real cells
-  ymin_local = ymin_global + ylen_global * ((Real) ny_local_start) / ((Real) ny_global );
-  
-  /*the local minimum bound will be zmin_global + zlen_global* nz_local_start / nz_global */
-  //nz_local_start is indexed from start of real cells
-  zmin_local = zmin_global + zlen_global * ((Real) nz_local_start) / ((Real) nz_global );
-  
-  //we've set the necessary properties
-  //for this domain
-
-  //the local domains and cell sizes
-  //are always set this way
-
-  //printf("ProcessID: %d xbound: %f  xdglobal: %f  xblocal: %f\n", procID, H->xbound, H->xdglobal, H->xblocal);
-
   /* 1-D case */
   if(H->nx > 1 && H->ny==1 && H->nz==1)
   {
     H->dx = xlen_global / ((Real) nx_global);
+
     H->domlen_x = H->dx * (H->nx - 2*H->n_ghost);
     H->domlen_y =  ylen / ((Real) nx_global);
     H->domlen_z =  zlen / ((Real) nx_global);
@@ -800,9 +769,11 @@ void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, R
   {
     H->dx = xlen_global / ((Real) nx_global);
     H->dy = ylen_global / ((Real) ny_global);
+
     H->domlen_x = H->dx * (H->nx - 2*H->n_ghost);
     H->domlen_y = H->dy * (H->ny - 2*H->n_ghost);
     H->domlen_z =  zlen / ((Real) nx_global);
+
     H->dz = H->domlen_z;
   }
 

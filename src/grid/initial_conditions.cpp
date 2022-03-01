@@ -98,28 +98,32 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
  *  \brief Set local domain properties */
 void Grid3D::Set_Domain_Properties(struct parameters P)
 {
+  // Global Boundary Coordinates
   H.xbound = P.xmin;
   H.ybound = P.ymin;
   H.zbound = P.zmin;
 
+  // Global Domain Lengths
   H.xdglobal = P.xlen;
   H.ydglobal = P.ylen;
   H.zdglobal = P.zlen;
-
 
 #ifndef MPI_CHOLLA
   Real nx_param = (Real) (H.nx - 2*H.n_ghost);
   Real ny_param = (Real) (H.ny - 2*H.n_ghost);
   Real nz_param = (Real) (H.nz - 2*H.n_ghost);
 
+  // Local Boundary Coordinates
   H.xblocal = H.xbound;
   H.yblocal = H.ybound;
   H.zblocal = H.zbound;
+
 #else
   Real nx_param = (Real) nx_global;
   Real ny_param = (Real) ny_global;
   Real nz_param = (Real) nz_global;
 
+  // Local Boundary Coordinates
   H.xblocal = H.xbound + P.xlen * ((Real) nx_local_start) / nx_param;
   H.yblocal = H.ybound + P.ylen * ((Real) ny_local_start) / ny_param;
   H.zblocal = H.zbound + P.zlen * ((Real) nz_local_start) / nz_param;
@@ -132,7 +136,7 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
   {
     H.dx = P.xlen / nx_param;
 
-    H.domlen_x =  P.xlen; // ifdef MPI_CHOLLA this would be different
+    H.domlen_x =  P.xlen; // ifdef MPI_CHOLLA this is H.dx * nx_param
     H.domlen_y =  P.ylen / nx_param;
     H.domlen_z =  P.zlen / nx_param;
 
@@ -146,8 +150,8 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
     H.dx = P.xlen / nx_param;
     H.dy = P.ylen / ny_param;
 
-    H.domlen_x =  P.xlen; //
-    H.domlen_y =  P.ylen; //
+    H.domlen_x =  P.xlen; // ifdef MPI_CHOLLA this is H.dx * nx_param
+    H.domlen_y =  P.ylen; // ifdef MPI_CHOLLA this is H.dy * ny_param
     H.domlen_z =  P.zlen / nx_param;
 
     H.dz = H.domlen_z;
@@ -160,9 +164,9 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
     H.dy = P.ylen / ny_param;
     H.dz = P.zlen / nz_param;
 
-    H.domlen_x = P.xlen; //
-    H.domlen_y = P.ylen; //
-    H.domlen_z = P.zlen; //
+    H.domlen_x = P.xlen; // ifdef MPI_CHOLLA this could be H.dx * nx_param
+    H.domlen_y = P.ylen; // ifdef MPI_CHOLLA this could be H.dy * ny_param
+    H.domlen_z = P.zlen; // ifdef MPI_CHOLLA this could be H.dz * nz_param
   }
 
 
