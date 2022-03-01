@@ -22,8 +22,8 @@
 
 TEST(tCOOLINGPracticeTest, PracticeTestExpectCorrectOutput) // test suite name, test name
 {
-    Real const testn = 5;
-    Real const testT = 5;
+    Real const testn = 1.0;
+    Real const testT = 5.0;
     Real const testNumber = CIE_cool(testn, testT);
 
     Real const fiducialNumber = 100;
