@@ -7,11 +7,11 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *
 
 __device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],int nx, int ny, int nz, int n_ghost); 
 
-__global__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells)
+__global__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int buffer_ncells, int n_fields, int n_cells)
 {
   int id,i,j,k,idx,ii;
   id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id >= offset){
+  if (id >= buffer_ncells){
     return;
   }
   k = id/(isize*jsize);
@@ -21,25 +21,26 @@ __global__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int
   // idxoffset contains offset terms from
   // idx = (i+ioffset) + (j+joffset)*H.nx + (k+koffset)*H.nx*H.ny;
   for (ii=0; ii<n_fields; ii++) {
-    *(buffer + id + ii*offset) = c_head[idx + ii*n_cells];
+    *(buffer + id + ii*buffer_ncells) = c_head[idx + ii*n_cells];
   }
 
 }
 
 
-void PackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells){
-  dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
+void PackBuffers3D(Real * buffer, Real * c_head, int nx, int ny, int n_fields, int n_cells, int idxoffset, int isize, int jsize, int ksize){
+  int buffer_ncells = isize*jsize*ksize;
+  dim3 dim1dGrid((buffer_ncells+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(PackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
+  hipLaunchKernelGGL(PackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,buffer_ncells,n_fields,n_cells);
   CHECK(cudaDeviceSynchronize());
 }
 
 
-__global__ void UnpackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells)
+__global__ void UnpackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int buffer_ncells, int n_fields, int n_cells)
 {
   int id,i,j,k,idx,ii;
   id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id >= offset){
+  if (id >= buffer_ncells){
     return;
   }
   k = id/(isize*jsize);
@@ -47,16 +48,17 @@ __global__ void UnpackBuffers3DKernel(Real * buffer, Real * c_head, int isize, i
   i = id - k*isize*jsize - j*isize;
   idx  = i + (j+k*ny)*nx + idxoffset;
   for (ii=0; ii<n_fields; ii++) {
-    c_head[idx + ii*n_cells] = *(buffer + id + ii*offset);
+    c_head[idx + ii*n_cells] = *(buffer + id + ii*buffer_ncells);
   }
 
 }
 
-
-void UnpackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells){
-  dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
+void UnpackBuffers3D(Real * buffer, Real * c_head, int nx, int ny, int n_fields, int n_cells, int idxoffset, int isize, int jsize, int ksize){
+//void UnpackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int n_cells){
+  int buffer_ncells = isize*jsize*ksize;
+  dim3 dim1dGrid((buffer_ncells+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(UnpackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,offset,n_fields,n_cells);
+  hipLaunchKernelGGL(UnpackBuffers3DKernel,dim1dGrid,dim1dBlock,0,0,buffer,c_head,isize,jsize,ksize,nx,ny,idxoffset,buffer_ncells,n_fields,n_cells);
 }
 
 __global__ void SetGhostCellsKernel(Real * c_head,

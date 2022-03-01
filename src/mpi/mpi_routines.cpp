@@ -778,21 +778,8 @@ void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, R
   //we've set the necessary properties
   //for this domain
 
-  /*the global bounds are always set this way*/
-  H->xbound = xmin_global;
-  H->ybound = ymin_global;
-  H->zbound = zmin_global;
-
-  /*the global domains are always set this way*/
-  H->xdglobal = xlen_global;
-  H->ydglobal = ylen_global;
-  H->zdglobal = zlen_global;
-
   //the local domains and cell sizes
   //are always set this way
-  H->xblocal = xmin_local;
-  H->yblocal = ymin_local;
-  H->zblocal = zmin_local;
 
   //printf("ProcessID: %d xbound: %f  xdglobal: %f  xblocal: %f\n", procID, H->xbound, H->xdglobal, H->xblocal);
 

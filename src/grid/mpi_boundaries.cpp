@@ -111,28 +111,21 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
 
 
 int Grid3D::Load_Hydro_DeviceBuffer_X0 ( Real *send_buffer_x0 ){
-  int offset;
-  Real *c_head;
-
-  c_head = (Real *)C.device;
 
   // 1D
   if (H.ny == 1 && H.nz == 1) {
-    offset = H.n_ghost;
     int idxoffset = H.n_ghost;
-    PackBuffers3D(send_buffer_x0,c_head,H.n_ghost,1    ,1    ,H.nx,H.ny,idxoffset,H.n_ghost,H.n_fields,H.n_cells);
+    PackBuffers3D(send_buffer_x0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,1,1);
   }
   // 2D
   if (H.ny > 1 && H.nz == 1) {
-    offset = H.n_ghost*(H.ny-2*H.n_ghost);
     int idxoffset = H.n_ghost + H.n_ghost*H.nx;
-    PackBuffers3D(send_buffer_x0,c_head,H.n_ghost,H.ny-2*H.n_ghost,1    ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    PackBuffers3D(send_buffer_x0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,H.ny-2*H.n_ghost,1);
   }
   // 3D
   if (H.ny > 1 && H.nz > 1) {
-    offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
     int idxoffset = H.n_ghost + H.n_ghost*H.nx + H.n_ghost*H.nx*H.ny;
-    PackBuffers3D(send_buffer_x0,c_head,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    PackBuffers3D(send_buffer_x0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost);
   }
 
   return x_buffer_length;
@@ -141,27 +134,21 @@ int Grid3D::Load_Hydro_DeviceBuffer_X0 ( Real *send_buffer_x0 ){
 
 // load right x communication buffer
 int Grid3D::Load_Hydro_DeviceBuffer_X1 ( Real *send_buffer_x1 ){
-  int offset;
-  Real *c_head;
-  c_head = (Real *)C.device;
 
   // 1D
   if (H.ny == 1 && H.nz == 1) {
-    offset = H.n_ghost;
     int idxoffset = H.nx-2*H.n_ghost;
-    PackBuffers3D(send_buffer_x1,c_head,H.n_ghost,1,1,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    PackBuffers3D(send_buffer_x1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,1,1);
   }
   // 2D
   if (H.ny > 1 && H.nz == 1) {
-    offset = H.n_ghost*(H.ny-2*H.n_ghost);
     int idxoffset = H.nx-2*H.n_ghost + H.n_ghost*H.nx;
-    PackBuffers3D(send_buffer_x1,c_head,H.n_ghost,H.ny-2*H.n_ghost,1    ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    PackBuffers3D(send_buffer_x1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,H.ny-2*H.n_ghost,1);
   }
   // 3D
   if (H.ny > 1 && H.nz > 1) {
-    offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
     int idxoffset = H.nx-2*H.n_ghost + H.n_ghost*H.nx + H.n_ghost*H.nx*H.ny;
-    PackBuffers3D(send_buffer_x1,c_head,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    PackBuffers3D(send_buffer_x1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost);
   }
 
   return x_buffer_length;
@@ -169,118 +156,93 @@ int Grid3D::Load_Hydro_DeviceBuffer_X1 ( Real *send_buffer_x1 ){
 
 // load left y communication buffer
 int Grid3D::Load_Hydro_DeviceBuffer_Y0 ( Real *send_buffer_y0 ){
-  int offset;
-  Real *c_head;
-  c_head = (Real *)C.device;
+
   // 2D
   if (H.nz == 1) {
-    offset = H.n_ghost*H.nx;
     int idxoffset = H.n_ghost*H.nx;
-    PackBuffers3D(send_buffer_y0,c_head,H.nx,H.n_ghost,1               ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    PackBuffers3D(send_buffer_y0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.n_ghost,1);
   }
   // 3D
   if (H.nz > 1) {
-    offset = H.nx*H.n_ghost*(H.nz-2*H.n_ghost);
     int idxoffset = H.n_ghost*H.nx + H.n_ghost*H.nx*H.ny;
-    PackBuffers3D(send_buffer_y0,c_head,H.nx,H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    PackBuffers3D(send_buffer_y0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.n_ghost,H.nz-2*H.n_ghost);
   }
+
   return y_buffer_length;
 }
 
 int Grid3D::Load_Hydro_DeviceBuffer_Y1 ( Real *send_buffer_y1 ){
-  int offset;
-  Real *c_head;
-  c_head = (Real *)C.device;
 
   // 2D
   if (H.nz == 1) {
-    offset = H.n_ghost*H.nx;
     int idxoffset = (H.ny-2*H.n_ghost)*H.nx;
-    PackBuffers3D(send_buffer_y1,c_head,H.nx,H.n_ghost, 1              ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    PackBuffers3D(send_buffer_y1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.n_ghost,1);
   }
   // 3D
   if (H.nz > 1) {
-    offset = H.nx * H.n_ghost * (H.nz-2*H.n_ghost);
     int idxoffset = (H.ny-2*H.n_ghost)*H.nx + H.n_ghost*H.nx*H.ny;
-    PackBuffers3D(send_buffer_y1,c_head,H.nx,H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    PackBuffers3D(send_buffer_y1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.n_ghost,H.nz-2*H.n_ghost);
   }
+
   return y_buffer_length;
+
 }
 
 // load left z communication buffer
 int Grid3D::Load_Hydro_DeviceBuffer_Z0 ( Real *send_buffer_z0 ){
-  Real *c_head;
-  c_head = (Real *)C.device;
 
   // 3D
-  int offset = H.n_ghost*H.nx*H.ny;
   int idxoffset = H.n_ghost*H.nx*H.ny;
-  PackBuffers3D(send_buffer_z0,c_head,H.nx,H.ny,H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+  PackBuffers3D(send_buffer_z0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.ny,H.n_ghost);
 
   return z_buffer_length;
 }
 
 int Grid3D::Load_Hydro_DeviceBuffer_Z1 ( Real *send_buffer_z1 ){
-  Real *c_head;
-  c_head = (Real *)C.device;
-  int offset = H.n_ghost*H.nx*H.ny;
+
+  // 3D
   int idxoffset = (H.nz-2*H.n_ghost)*H.nx*H.ny;
-  PackBuffers3D(send_buffer_z1,c_head,H.nx,H.ny,H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+  PackBuffers3D(send_buffer_z1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.ny,H.n_ghost);
 
   return z_buffer_length;
 }
 
 void Grid3D::Unload_Hydro_DeviceBuffer_X0 ( Real *recv_buffer_x0 ) {
-  int offset;
-  Real *c_head;
-
-  c_head = (Real *) C.device;
 
   // 1D
   if (H.ny == 1 && H.nz == 1) {
-    offset = H.n_ghost;
     int idxoffset = 0;
-    UnpackBuffers3D(recv_buffer_x0,c_head,H.n_ghost,1,1    ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    UnpackBuffers3D(recv_buffer_x0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,1,1);
   }
   // 2D
   if (H.ny > 1 && H.nz == 1) {
-    offset = H.n_ghost*(H.ny-2*H.n_ghost);
     int idxoffset = H.n_ghost*H.nx;
-    UnpackBuffers3D(recv_buffer_x0,c_head,H.n_ghost,H.ny-2*H.n_ghost,1    ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    UnpackBuffers3D(recv_buffer_x0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,H.ny-2*H.n_ghost,1);
   }
   // 3D
   if (H.nz > 1) {
-    offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
     int idxoffset = H.n_ghost*(H.nx+H.nx*H.ny);
-    UnpackBuffers3D(recv_buffer_x0,c_head,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    UnpackBuffers3D(recv_buffer_x0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost);
   }
 
 }
 
 void Grid3D::Unload_Hydro_DeviceBuffer_X1 ( Real *recv_buffer_x1 ) {
 
-  int offset;
-  Real *c_head;
-
-  c_head = (Real *) C.device;
-
   // 1D
   if (H.ny == 1 && H.nz == 1) {
-    offset = H.n_ghost;
     int idxoffset = H.nx - H.n_ghost;
-    UnpackBuffers3D(recv_buffer_x1,c_head,H.n_ghost ,1 ,1 ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    UnpackBuffers3D(recv_buffer_x1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,1,1);
   }
   // 2D
   if (H.ny > 1 && H.nz == 1) {
-    offset = H.n_ghost*(H.ny-2*H.n_ghost);
     int idxoffset = H.nx - H.n_ghost + H.n_ghost*H.nx;
-    UnpackBuffers3D(recv_buffer_x1,c_head,H.n_ghost ,H.ny-2*H.n_ghost ,1 ,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    UnpackBuffers3D(recv_buffer_x1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,H.ny-2*H.n_ghost,1);
   }
   // 3D
   if (H.nz > 1) {
-    offset = H.n_ghost*(H.ny-2*H.n_ghost)*(H.nz-2*H.n_ghost);
     int idxoffset = H.nx - H.n_ghost + H.n_ghost*(H.nx+H.nx*H.ny);
-    UnpackBuffers3D(recv_buffer_x1,c_head,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    UnpackBuffers3D(recv_buffer_x1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.n_ghost,H.ny-2*H.n_ghost,H.nz-2*H.n_ghost);
   }
 
 }
@@ -288,22 +250,15 @@ void Grid3D::Unload_Hydro_DeviceBuffer_X1 ( Real *recv_buffer_x1 ) {
 
 void Grid3D::Unload_Hydro_DeviceBuffer_Y0 ( Real *recv_buffer_y0 ) {
 
-  int offset;
-  Real *c_head;
-
-  c_head = (Real *) C.device;
-
   // 2D
   if (H.nz == 1) {
-    offset = H.n_ghost*H.nx;
     int idxoffset = 0;
-    UnpackBuffers3D(recv_buffer_y0,c_head,H.nx,H.n_ghost,1,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    UnpackBuffers3D(recv_buffer_y0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.n_ghost,1);
   }
   // 3D
   if (H.nz > 1) {
-    offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
     int idxoffset = H.n_ghost*H.nx*H.ny;
-    UnpackBuffers3D(recv_buffer_y0,c_head,H.nx,H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    UnpackBuffers3D(recv_buffer_y0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.n_ghost,H.nz-2*H.n_ghost);
   }
 
 }
@@ -311,22 +266,15 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Y0 ( Real *recv_buffer_y0 ) {
 
 void Grid3D::Unload_Hydro_DeviceBuffer_Y1 ( Real *recv_buffer_y1 ) {
 
-  int offset;
-  Real *c_head;
-
-  c_head = (Real *) C.device;
-
   // 2D
   if (H.nz == 1) {
-    offset = H.n_ghost*H.nx;
     int idxoffset = (H.ny-H.n_ghost)*H.nx;
-    UnpackBuffers3D(recv_buffer_y1,c_head,H.nx,H.n_ghost,1,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    UnpackBuffers3D(recv_buffer_y1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.n_ghost,1);
   }
   // 3D
   if (H.nz > 1) {
-    offset = H.n_ghost*H.nx*(H.nz-2*H.n_ghost);
     int idxoffset = (H.ny-H.n_ghost)*H.nx + H.n_ghost*H.nx*H.ny;
-    UnpackBuffers3D(recv_buffer_y1,c_head,H.nx,H.n_ghost,H.nz-2*H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
+    UnpackBuffers3D(recv_buffer_y1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.n_ghost,H.nz-2*H.n_ghost);
   }
 
 }
@@ -335,29 +283,17 @@ void Grid3D::Unload_Hydro_DeviceBuffer_Y1 ( Real *recv_buffer_y1 ) {
 
 void Grid3D::Unload_Hydro_DeviceBuffer_Z0 ( Real *recv_buffer_z0 ) {
 
-  int offset;
-  Real *c_head;
-
-  c_head = (Real *) C.device;
-
-  offset = H.n_ghost*H.nx*H.ny;
+  // 3D
   int idxoffset = 0;
-  UnpackBuffers3D(recv_buffer_z0,c_head,H.nx,H.ny,H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
-
+  UnpackBuffers3D(recv_buffer_z0,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.ny,H.n_ghost);
 }
 
 
 void Grid3D::Unload_Hydro_DeviceBuffer_Z1 ( Real *recv_buffer_z1 ) {
 
-  int offset;
-  Real *c_head;
-
-  c_head = (Real *) C.device;
-
-  offset = H.n_ghost*H.nx*H.ny;
+  // 3D
   int idxoffset = (H.nz-H.n_ghost)*H.nx*H.ny;
-  UnpackBuffers3D(recv_buffer_z1,c_head,H.nx,H.ny,H.n_ghost,H.nx,H.ny,idxoffset,offset,H.n_fields,H.n_cells);
-
+  UnpackBuffers3D(recv_buffer_z1,C.device,H.nx,H.ny,H.n_fields,H.n_cells,idxoffset,H.nx,H.ny,H.n_ghost);
 }
 
 void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
