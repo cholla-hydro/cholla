@@ -334,7 +334,7 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &particleData,
                           + "/src/system_tests/input_files/"
                           + _fullTestFileName + ".txt";
     _fiducialFilePath   = ::globalChollaRoot.getString()
-                          + "/src/system_tests/fiducial_data/"
+                          + "/cholla-tests-data/system_tests/"
                           + _fullTestFileName + ".h5";
 
     // Generate output paths, these files don't exist yet
