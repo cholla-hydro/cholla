@@ -317,7 +317,7 @@ class Grid3D
     // Object that contains data for Grackle cooling
     Cool_GK Cool;
     #endif
-
+    
     #ifdef CPU_TIME
     Time Timer;
     #endif

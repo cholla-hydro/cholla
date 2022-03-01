@@ -155,7 +155,8 @@ Real Grid3D::Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end ){
 void Grid3D::Advance_Particles( int N_step ){
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  if ( N_step == 1) Timer.Advance_Part_1.Start();
+  if ( N_step == 2) Timer.Advance_Part_2.Start();
   #endif
 
   #ifdef PARTICLES_KDK
@@ -175,8 +176,8 @@ void Grid3D::Advance_Particles( int N_step ){
   }
 
   #ifdef CPU_TIME
-  if ( N_step == 1) Timer.End_and_Record_Time(6);
-  if ( N_step == 2) Timer.End_and_Record_Time(7);
+  if ( N_step == 1) Timer.Advance_Part_1.End();
+  if ( N_step == 2) Timer.Advance_Part_2.End();
   #endif
 
 }

@@ -23,11 +23,11 @@ void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
   //Transfer Particles Boundaries
   Particles.TRANSFER_PARTICLES_BOUNDARIES = true;
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Part_Boundaries.Start();
   #endif
   Set_Boundary_Conditions(P);
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 8 );
+  Timer.Part_Boundaries.End();
   #endif
   Particles.TRANSFER_PARTICLES_BOUNDARIES = false;
 

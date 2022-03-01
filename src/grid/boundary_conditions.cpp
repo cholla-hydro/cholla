@@ -23,13 +23,13 @@ void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
 
   // Transfer Hydro Conserved boundaries
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Boundaries.Start();
   #endif //CPU_TIME
   H.TRANSFER_HYDRO_BOUNDARIES = true;
   Set_Boundary_Conditions(P);
   H.TRANSFER_HYDRO_BOUNDARIES = false;
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 2 );
+  Timer.Boundaries.End();
   #endif //CPU_TIME
   #endif //ONLY_PARTICLES
 
@@ -37,13 +37,13 @@ void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
   // and its boundaries need to be transferred separately
   #ifdef GRAVITY
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Pot_Boundaries.Start();
   #endif
   Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
   Set_Boundary_Conditions(P);
   Grav.TRANSFER_POTENTIAL_BOUNDARIES = false;
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 9 );
+  Timer.Pot_Boundaries.End();
   #endif
   #endif
 }
