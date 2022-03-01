@@ -163,7 +163,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   //Factor to allocate the particles data arrays on the GPU.
   //When using MPI particles will be transferred to other GPU, for that reason we need extra memory allocated
   #ifdef MPI_CHOLLA
-  G.gpu_allocation_factor = 1.5;
+  G.gpu_allocation_factor = 1.25;
   #else
   G.gpu_allocation_factor = 1.0;
   #endif
