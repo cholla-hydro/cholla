@@ -8,6 +8,7 @@
 // STL Includes
 #include <iostream>
 #include <string>
+#include <math.h>
 
 // External Includes
 #include <gtest/gtest.h> // Include GoogleTest and related libraries/headers
@@ -20,10 +21,10 @@
 
 #ifdef COOLING_GPU
 
-TEST(tCOOLINGPracticeTest, PracticeTestExpectCorrectOutput) // test suite name, test name
+TEST(tCOOLINGTestCIECool, TestCIECoolExpectCorrectOutput) // test suite name, test name
 {
     Real const testn = 1.0;
-    Real const testT = 5.0;
+    Real const testT = pow(10, 5.0);
     Real const testNumber = CIE_cool(testn, testT);
 
     Real const fiducialNumber = 100;
