@@ -1,7 +1,7 @@
 /*!
-* \file cooling_cuda_tests.cpp
+* \file dust_cuda_tests.cu
 * \author Helena Richie (helenarichie@pitt.edu)
-* \brief Testing the CIE cooling rate function in cooling_cuda.cu
+* \brief Test dust model functions
 *
 */
 
@@ -19,7 +19,7 @@
 #include "../utils/testing_utilities.h"
 #include "../cooling/cooling_cuda.h" // Include code to test
 
-#ifdef COOLING_GPU
+#ifdef DUST_GPU
 
 TEST(tCOOLINGTestCIECool, TestCIECoolExpectCorrectOutput) // test suite name, test name
 {
@@ -43,4 +43,4 @@ TEST(tCOOLINGTestCIECool, TestCIECoolExpectCorrectOutput) // test suite name, te
             << "The ULP difference is:       " << ulpsDiff        << std::endl;
 }
 
-#endif // COOLING_GPU
+#endif // DUST_GPU
