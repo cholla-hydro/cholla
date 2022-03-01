@@ -167,6 +167,10 @@ void Grid3D::set_dt_Gravity(){
     Grav.dt_prev = Grav.dt_now;
     Grav.dt_now = H.dt;
   }
+  
+  #if defined(PARTICLES_GPU) && defined(PRINT_MAX_MEMORY_USAGE)
+  Particles.Print_Max_Memory_Usage();
+  #endif
 }
 
 //NOT USED: Get Average density on the Global dommain

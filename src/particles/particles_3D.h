@@ -14,6 +14,7 @@
 #ifdef PARTICLES_GPU
 #define TPB_PARTICLES 1024
 // #define PRINT_GPU_MEMORY
+#define PRINT_MAX_MEMORY_USAGE
 #endif
 
 
@@ -256,6 +257,10 @@ class Particles_3D
   void Replace_Tranfered_Particles_GPU( int n_transfer );
   void Unload_Particles_from_Buffer_GPU( int direction, int side , Real *recv_buffer_h, int n_recv );
   void Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d );
+  #ifdef PRINT_MAX_MEMORY_USAGE
+  void Print_Max_Memory_Usage();
+  #endif
+  
   #endif //PARTICLES_GPU
 
 
