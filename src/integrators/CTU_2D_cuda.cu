@@ -47,9 +47,9 @@ void CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
     BLOCK_VOL = nx_s*ny_s*nz_s;
     // dimensions for the 1D GPU grid
     ngrid = (BLOCK_VOL + TPB - 1) / (TPB);
-    #ifndef DYNAMIC_GPU_ALLOC
+
     block_size = true;
-    #endif
+
   }
   // set values for GPU kernels
   // number of blocks per 1D grid
@@ -93,11 +93,9 @@ void CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
     #endif
 
-    #ifndef DYNAMIC_GPU_ALLOC
     // If memory is single allocated: memory_allocated becomes true and successive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    #endif
   }
 
   // counter for which block we're on
@@ -113,11 +111,6 @@ void CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
     // calculate the global x and y offsets of this subgrid block
     // (only needed for gravitational potential)
     get_offsets_2D(nx_s, ny_s, n_ghost, x_off, y_off, block, block1_tot, block2_tot, remainder1, remainder2, &x_off_s, &y_off_s);
-
-    #ifndef HYDRO_GPU
-    // copy the conserved variables onto the GPU
-    CudaSafeCall( cudaMemcpy(dev_conserved, tmp1, n_fields*BLOCK_VOL*sizeof(Real), cudaMemcpyHostToDevice) );
-    #endif
 
     // Step 1: Do the reconstruction
     #ifdef PCM
@@ -202,12 +195,6 @@ void CTU_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
     block++;
 
   }
-
-
-  #ifdef DYNAMIC_GPU_ALLOC
-  // If memory is not single allocated then free the memory every timestep.
-  Free_Memory_CTU_2D();
-  #endif
 
   return;
 

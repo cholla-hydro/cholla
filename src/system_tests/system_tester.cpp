@@ -27,6 +27,7 @@
 // =============================================================================
 
 // =============================================================================
+
 void systemTest::SystemTestRunner::runTest()
 {
     /// Only run if this variable is set to `true`. Generally this and
@@ -123,7 +124,7 @@ void systemTest::SystemTestRunner::runTest()
         std::vector<double> fiducialData;
         // This is just a vector of all the different dataset names for
         // particles to help choose whether to call _loadTestParticleData
-        // or _loadTestFieldData
+        // or loadTestFieldData
         std::vector<std::string> particleIDs = {"particle_IDs",
                                                 "pos_x",
                                                 "pos_y",
@@ -154,7 +155,7 @@ void systemTest::SystemTestRunner::runTest()
         else
         {
             // This is a field data set
-            testData = _loadTestFieldData(dataSetName,
+            testData = loadTestFieldData(dataSetName,
                                           testDims);
             // Get fiducial data
             fiducialData = _loadFiducialFieldData(dataSetName);
@@ -219,6 +220,20 @@ void systemTest::SystemTestRunner::launchCholla()
     system((chollaRunCommand).c_str()); // Args to send to "system" call
     _safeMove("run_output.log", _outputDirectory);
     _safeMove("run_timing.log", _outputDirectory);
+}
+// =============================================================================
+
+// =============================================================================
+void systemTest::SystemTestRunner::openHydroTestData()
+{
+   _testHydroFieldsFileVec.resize(numMpiRanks);
+    for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++)
+    {
+      std::string fileName = "/1.h5." + std::to_string(fileIndex);
+      _checkFileExists(_outputDirectory + fileName);
+      _testHydroFieldsFileVec[fileIndex].openFile(_outputDirectory + fileName,
+                                                        H5F_ACC_RDONLY);
+    }
 }
 // =============================================================================
 
@@ -438,7 +453,7 @@ void systemTest::SystemTestRunner::_checkNumTimeSteps()
 // =============================================================================
 
 // =============================================================================
-std::vector<double> systemTest::SystemTestRunner::_loadTestFieldData(
+std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(
         std::string dataSetName,
         std::vector<size_t> &testDims)
 {

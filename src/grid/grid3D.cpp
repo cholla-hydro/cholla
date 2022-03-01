@@ -1,6 +1,5 @@
 /*! \file grid3D.cpp
  *  \brief Definitions of the Grid3D class */
-
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -321,7 +320,7 @@ void Grid3D::AllocateMemory(void)
   Real max_dti;
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Calc_dt.Start();
   #endif
 
   #ifdef ONLY_PARTICLES
@@ -359,7 +358,7 @@ void Grid3D::AllocateMemory(void)
   #endif
 
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time(0);
+  Timer.Calc_dt.End();
   #endif
 
 
@@ -650,17 +649,18 @@ Real Grid3D::Update_Grid(void)
 
   // Update the H and He ionization fractions and apply cooling and photoheating
   #ifdef CHEMISTRY_GPU
-  Update_Chemistry( );
+  #ifdef CPU_TIMER
+  Timer.Chemistry.Start();
+  #endif
+  Update_Chemistry();
+  #ifdef CPU_TIMER
+  Timer.Chemistry.End();
+  #endif
   #endif
   
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
   max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
-    
-  // ==Copy the updated conserved variable array to CPU==
-  #ifndef HYDRO_GPU
-  CudaSafeCall( cudaMemcpy(g1, C.device, H.n_fields*H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-  #endif
-  
+
   #ifdef COOLING_GPU
   // ==Calculate cooling dt from cooling/cooling_cuda.h==
   // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in integrators 
@@ -725,7 +725,7 @@ Real Grid3D::Update_Hydro_Grid( ){
   Real dti;
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Hydro.Start();
   #endif //CPU_TIME
 
   #ifdef GRAVITY
@@ -737,23 +737,19 @@ Real Grid3D::Update_Hydro_Grid( ){
 
   #ifdef CPU_TIME
   #ifdef CHEMISTRY_GPU
+  Timer.Hydro.Subtract(Chem.H.runtime_chemistry_step / 1000);
   //Subtract the time spent on the Chemical Update (Chem runtime was measured in ms, while the timer is on secs )
-  Timer.Substract_Time_From_Timer( Chem.H.runtime_chemistry_step / 1000 );
   #endif
-  Timer.End_and_Record_Time( 1 );
-  #ifdef CHEMISTRY_GPU
-  //Subtract the time spent on the Chemical Update 
-  Timer.Record_Time_Chemistry( Chem.H.runtime_chemistry_step );
-  #endif
+  Timer.Hydro.End();
   #endif //CPU_TIME
 
   #ifdef COOLING_GRACKLE
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Cooling.Start();
   #endif
   Do_Cooling_Step_Grackle( );
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time(10);
+  Timer.Cooling.End();
   #endif
   #endif//COOLING_GRACKLE
 
@@ -813,22 +809,20 @@ void Grid3D::FreeMemory(void)
   CudaSafeCall( cudaFree(C.d_Grav_potential) );
   #endif
 
-  #ifndef DYNAMIC_GPU_ALLOC
   // If memory is single allocated, free the memory at the end of the simulation.
   #ifdef CTU
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_CTU_1D();
   if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_CTU_2D();
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_CTU_3D();
-  #endif
+  #endif //CTU
   #ifdef VL
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_VL_1D();
   if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_VL_2D();
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_VL_3D();
-  #endif
+  #endif // VL
   #ifdef SIMPLE
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_Simple_3D();
-  #endif
-  #endif
+  #endif // SIMPLE
 
   #ifdef GRAVITY
   Grav.FreeMemory_CPU();

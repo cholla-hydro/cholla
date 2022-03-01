@@ -92,7 +92,6 @@ int main(int argc, char *argv[])
   Write_Message_To_Log_File( message );
   #endif
 
-
   #ifdef CPU_TIME
   G.Timer.Initialize();
   #endif
@@ -179,6 +178,10 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   {
     // get the start time
+    
+    #ifdef CPU_TIME
+    G.Timer.Total.Start();
+    #endif //CPU_TIME
     start_step = get_time();
 
     // calculate the timestep
@@ -224,6 +227,10 @@ int main(int argc, char *argv[])
     #ifdef PARTICLE_AGE
     //G.Cluster_Feedback();
     #endif
+
+    #ifdef CPU_TIME
+    G.Timer.Total.End();
+    #endif //CPU_TIME
 
     #ifdef CPU_TIME
     G.Timer.Print_Times();
@@ -282,12 +289,12 @@ int main(int argc, char *argv[])
     }
     #endif
 
+
   } /*end loop over timesteps*/
 
 
   #ifdef CPU_TIME
   // Print timing statistics
-  G.Timer.Get_Average_Times();
   G.Timer.Print_Average_Times( P );
   #endif
 
