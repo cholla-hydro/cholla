@@ -23,7 +23,7 @@
 
 TEST(tCOOLINGTestCIECool, TestCIECoolExpectCorrectOutput) // test suite name, test name
 {
-    Real const testn = 1.0;
+    Real const testn = pow(10, -8);
     Real const testT = pow(10, 5.0);
     Real const testNumber = CIE_cool(testn, testT);
 
