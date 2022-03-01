@@ -11,9 +11,8 @@
 #include "../utils/error_handling.h"
 #include "../mpi/mpi_routines.h"
 
-#ifdef HYDRO_GPU
-#include "../mpi/cuda_boundaries.h" // provides PackGhostCells
-#endif
+#include "../grid/cuda_boundaries.h" // provides SetGhostCells
+
 
 /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
  *  \brief Set the boundary conditions for all components based on info in the parameters structure. */
@@ -289,14 +288,12 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   //get the extents of the ghost region we are initializing
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
 
-  #ifdef HYDRO_GPU
-  // from mpi/cuda_boundaries.cu 
-  PackGhostCells(C.device,
+  // from grid/cuda_boundaries.cu 
+  SetGhostCells(C.device,
 		 H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags,
 		 imax[0]-imin[0], imax[1]-imin[1], imax[2]-imin[2],
 		 imin[0], imin[1], imin[2], dir);
 
-  #endif
 }
 
 /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
