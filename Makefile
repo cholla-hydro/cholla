@@ -39,6 +39,7 @@ else
   # This isn't a test build so clear out testing related files
   CFILES   := $(filter-out src/system_tests/% %_tests.c,$(CFILES))
   CPPFILES := $(filter-out src/system_tests/% %_tests.cpp,$(CPPFILES))
+  CPPFILES := $(filter-out src/utils/testing_utilities.cpp,$(CPPFILES))
   GPUFILES := $(filter-out src/system_tests/% %_tests.cu,$(GPUFILES))
 endif
 
@@ -145,7 +146,7 @@ ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   DFLAGS += -DSCALAR
   CXXFLAGS += -I$(GRACKLE_ROOT)/include
   GPUFLAGS += -I$(GRACKLE_ROOT)/include
-  LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle 
+  LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle
 endif
 
 ifeq ($(findstring -DCHEMISTRY_GPU,$(DFLAGS)),-DCHEMISTRY_GPU)

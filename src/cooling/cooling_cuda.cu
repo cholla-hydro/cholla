@@ -329,7 +329,7 @@ __device__ Real primordial_cool(Real n, Real T)
 /* \fn __device__ Real CIE_cool(Real n, Real T)
  * \brief Analytic fit to a solar metallicity CIE cooling curve
           calculated using Cloudy. */
-__device__ Real CIE_cool(Real n, Real T)
+__device__ __host__ Real CIE_cool(Real n, Real T)
 {
   Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
   Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
