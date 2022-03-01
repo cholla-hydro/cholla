@@ -23,11 +23,11 @@
 
 TEST(tCOOLINGTestCIECool, TestCIECoolExpectCorrectOutput) // test suite name, test name
 {
-    Real const testn = pow(10, -8);
+    Real const testn = 1;
     Real const testT = pow(10, 5.0);
     Real const testNumber = CIE_cool(testn, testT);
 
-    Real const fiducialNumber = 100;
+    Real const fiducialNumber = 4.6639082688443984*pow(10, -22);
 
     double absoluteDiff;
     int64_t ulpsDiff;
