@@ -138,7 +138,7 @@ void VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_
   hipLaunchKernelGGL(Select_Internal_Energy_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, n_fields);
   hipLaunchKernelGGL(Sync_Energies_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, gama, n_fields);
   CudaCheckError();
-  #endif    
+  #endif
 
   return;
 
