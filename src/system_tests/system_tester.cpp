@@ -27,7 +27,6 @@
 // =============================================================================
 
 // =============================================================================
-
 void systemTest::SystemTestRunner::runTest()
 {
     /// Only run if this variable is set to `true`. Generally this and
@@ -77,7 +76,7 @@ void systemTest::SystemTestRunner::runTest()
     {
         _testParticleIDs     = _loadTestParticleData("particle_IDs");
 
-        _fiducialParticleIDs = _loadFiducialParticleData("particle_IDs");
+        if (_fiducialFileExists) _fiducialParticleIDs = _loadFiducialParticleData("particle_IDs");
     }
 
     // Get the list of test dataset names
@@ -216,8 +215,16 @@ void systemTest::SystemTestRunner::launchCholla()
                                         + chollaLaunchParams + " "
                                         + "outdir=" + _outputDirectory + "/"
                                         + " >> " + _consoleOutputPath + " 2>&1 ";
-    system(("echo Launch Command: " + chollaRunCommand + " >> " + _consoleOutputPath).c_str());
-    system((chollaRunCommand).c_str()); // Args to send to "system" call
+    auto returnEcho = system(("echo Launch Command: " + chollaRunCommand + " >> " + _consoleOutputPath).c_str());
+    auto returnLaunch = system((chollaRunCommand).c_str());
+    EXPECT_EQ(returnEcho, 0)
+        << "Warning: Echoing the launch command to the console output file "
+        << "returned a non-zero exit status code. Launch command is `"
+        << chollaRunCommand <<  "`" << std::endl;
+    EXPECT_EQ(returnLaunch, 0)
+        << "Warning: Launching Cholla returned a non-zero exit status. Likely "
+        << "failed to launch. Please see the log files" << std::endl;
+
     _safeMove("run_output.log", _outputDirectory);
     _safeMove("run_timing.log", _outputDirectory);
 }
@@ -635,58 +642,65 @@ std::vector<double> systemTest::SystemTestRunner::_loadFiducialFieldData(
 std::vector<double> systemTest::SystemTestRunner::_loadFiducialParticleData(
         std::string const &dataSetName)
 {
-    // Determine the total number of particles
-    if (_fiducialTotalNumParticles == 0)
+    if (_fiducialFileExists)
     {
+        // Determine the total number of particles
+        if (_fiducialTotalNumParticles == 0)
+        {
+            // Open the dataset
+            H5::DataSet const dataSet = _fiducialFile.openDataSet(dataSetName);
+
+            // Determine dataset size/shape and check that it's correct
+            H5::DataSpace dataSpace = dataSet.getSpace();
+
+            // Get the number of elements and increase the total count
+            size_t localNumParticles = dataSpace.getSimpleExtentNpoints();
+            _fiducialTotalNumParticles += localNumParticles;
+        }
+
+        // Allocate the vectors
+        std::vector<double> unsortedFiducialData(_fiducialTotalNumParticles);
+        std::vector<double> fiducialData(_fiducialTotalNumParticles);
+
+        // Load in the data
         // Open the dataset
-        H5::DataSet const dataSet = _fiducialFile.openDataSet(dataSetName);
+        H5::DataSet const fiducialDataSet = _fiducialFile.openDataSet(dataSetName);
 
         // Determine dataset size/shape and check that it's correct
-        H5::DataSpace dataSpace = dataSet.getSpace();
+        H5::DataSpace const testDataSpace = fiducialDataSet.getSpace();
 
-        // Get the number of elements and increase the total count
-        size_t localNumParticles = dataSpace.getSimpleExtentNpoints();
-        _fiducialTotalNumParticles += localNumParticles;
+        size_t localNumParticles = testDataSpace.getSimpleExtentNpoints();
+
+        // Read in data
+        fiducialDataSet.read(unsortedFiducialData.data(),
+                            H5::PredType::NATIVE_DOUBLE);
+
+        // Generate the sorting vector if it's not already generated
+        std::vector<size_t> tempSortedIndices;
+        if (dataSetName == "particle_IDs")
+        {
+            tempSortedIndices.resize(_fiducialTotalNumParticles);
+            std::iota(tempSortedIndices.begin(), tempSortedIndices.end(), 0);
+            std::sort(tempSortedIndices.begin(), tempSortedIndices.end(),
+                    [&](size_t A, size_t B) -> bool {
+                            return unsortedFiducialData.at(A) < unsortedFiducialData.at(B);
+                        });
+        }
+        std::vector<size_t> const static sortedIndices = tempSortedIndices;
+
+        // Sort the vector
+        for (size_t i = 0; i < _fiducialTotalNumParticles; i++)
+        {
+            fiducialData.at(i) = unsortedFiducialData.at(sortedIndices.at(i));
+        }
+
+        // Return the entire dataset fully concatenated and sorted
+        return fiducialData;
     }
-
-    // Allocate the vectors
-    std::vector<double> unsortedFiducialData(_fiducialTotalNumParticles);
-    std::vector<double> fiducialData(_fiducialTotalNumParticles);
-
-    // Load in the data
-    // Open the dataset
-    H5::DataSet const fiducialDataSet = _fiducialFile.openDataSet(dataSetName);
-
-    // Determine dataset size/shape and check that it's correct
-    H5::DataSpace const testDataSpace = fiducialDataSet.getSpace();
-
-    size_t localNumParticles = testDataSpace.getSimpleExtentNpoints();
-
-    // Read in data
-    fiducialDataSet.read(unsortedFiducialData.data(),
-                         H5::PredType::NATIVE_DOUBLE);
-
-    // Generate the sorting vector if it's not already generated
-    std::vector<size_t> tempSortedIndices;
-    if (dataSetName == "particle_IDs")
+    else
     {
-        tempSortedIndices.resize(_fiducialTotalNumParticles);
-        std::iota(tempSortedIndices.begin(), tempSortedIndices.end(), 0);
-        std::sort(tempSortedIndices.begin(), tempSortedIndices.end(),
-                  [&](size_t A, size_t B) -> bool {
-                        return unsortedFiducialData.at(A) < unsortedFiducialData.at(B);
-                    });
+        return _fiducialDataSets[dataSetName];
     }
-    std::vector<size_t> const static sortedIndices = tempSortedIndices;
-
-    // Sort the vector
-    for (size_t i = 0; i < _fiducialTotalNumParticles; i++)
-    {
-        fiducialData.at(i) = unsortedFiducialData.at(sortedIndices.at(i));
-    }
-
-    // Return the entire dataset fully concatenated and sorted
-    return fiducialData;
 }
 // =============================================================================
 
