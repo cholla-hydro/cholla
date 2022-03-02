@@ -656,7 +656,7 @@ class Grid3D
   void Copy_Hydro_Density_to_Gravity();
   void Extrapolate_Grav_Potential_Function( int g_start, int g_end );
   void Extrapolate_Grav_Potential();
-  void Copy_Potential_Boundaries( int direction, int side, int *flags );
+  void Set_Potential_Boundaries_Periodic( int direction, int side, int *flags );
   int Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Unload_Gravity_Potential_from_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Set_Potential_Boundaries_Isolated( int direction, int side, int *flags );
@@ -673,6 +673,7 @@ class Grid3D
   int Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real *buffer, int buffer_start  );
   void Unload_Gravity_Potential_from_Buffer_GPU( int direction, int side, Real *buffer, int buffer_start  );
   void Set_Potential_Boundaries_Isolated_GPU( int direction, int side, int *flags );
+  void Set_Potential_Boundaries_Periodic_GPU( int direction, int side, int *flags );
   #endif
 
   #endif//GRAVITY
@@ -688,7 +689,7 @@ class Grid3D
   void Copy_Particles_Density_function( int g_start, int g_end );
   void Copy_Particles_Density();
   void Copy_Particles_Density_to_Gravity(struct parameters P);
-  void Copy_Particles_Density_Boundaries( int direction, int side );
+  void Set_Particles_Density_Boundaries_Periodic( int direction, int side );
   void Transfer_Particles_Boundaries( struct parameters P );
   Real Update_Grid_and_Particles_KDK( struct parameters P );
   void Set_Particles_Boundary( int dir, int side);
@@ -741,6 +742,7 @@ class Grid3D
   void Advance_Particles_KDK_Step1_GPU();
   void Advance_Particles_KDK_Step2_GPU();
   void Set_Particles_Boundary_GPU( int dir, int side);
+  void Set_Particles_Density_Boundaries_Periodic_GPU( int direction, int side );
   #endif//PARTICLES_GPU
   #ifdef GRAVITY_GPU
   void Copy_Particles_Density_GPU();
