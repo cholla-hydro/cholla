@@ -6,10 +6,8 @@ OUTPUT    ?=  -DOUTPUT -DHDF5
 
 MPI_GPU   ?=
 
-DFLAGS	  += -DHYDRO_GPU
 DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA 
-DFLAGS    += -DBLOCK
 DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
@@ -19,6 +17,9 @@ DFLAGS    += -DSIMPLE
 else
 DFLAGS    += -DVL
 endif
+
+# need this if using Disk_3D
+# DFLAGS += -DDISK_ICS
 
 # Apply a density and temperature floor
 DFLAGS    += -DDENSITY_FLOOR
@@ -31,7 +32,7 @@ DFLAGS    += -DDE
 # DFLAGS    += -DCOOLING_GPU
 
 #Measure the Timing of the different stages
-DFLAGS += -DCPU_TIME
+DFLAGS    += -DCPU_TIME
 
 DFLAGS    += $(OUTPUT)
 

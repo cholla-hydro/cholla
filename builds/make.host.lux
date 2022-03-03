@@ -15,7 +15,9 @@ OMP_NUM_THREADS = 10
 #-- Library
 CUDA_ROOT    = /cm/shared/apps/cuda10.2/toolkit/current
 HDF5_ROOT    = /cm/shared/apps/hdf5/1.10.6
-FFTW_ROOT    = /data/groups/comp-astro/bruno/code_mpi_local/fftw-3.3.8
+FFTW_ROOT    = /home/brvillas/code/fftw-3.3.8
 PFFT_ROOT    = /data/groups/comp-astro/bruno/code_mpi_local/pfft
 GRACKLE_ROOT = /home/brvillas/code/grackle
 
+#Paris does not do GPU_MPI transfers 
+PARIS_MPI_GPU = -DPARIS_NO_GPU_MPI
