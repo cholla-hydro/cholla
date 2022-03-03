@@ -31,7 +31,7 @@ void Grid3D::Initialize_Particles( struct parameters *P ){
 
   Particles.Initialize( P, Grav, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal );
 
-  #ifdef GRAVITY_GPU
+  #if defined (PARTICLES GPU) && defined (GRAVITY GPU)
   // Set the GPU array for the particles potential equal to the Gravity GPU array for the potential
   Particles.G.potential_dev = Grav.F.potential_d;
   #endif
@@ -261,6 +261,10 @@ void Particles_3D::Allocate_Memory( void ){
   G.gravity_x = (Real *) malloc(G.n_cells*sizeof(Real));
   G.gravity_y = (Real *) malloc(G.n_cells*sizeof(Real));
   G.gravity_z = (Real *) malloc(G.n_cells*sizeof(Real));
+  #ifdef GRAVITY_GPU
+  // Array to copy the particles density to the device for computing the potential in the device
+  Allocate_Particles_Grid_Field_Real( &G.density_dev, G.n_cells);
+  #endif
   #endif
 
   #ifdef PARTICLES_GPU
