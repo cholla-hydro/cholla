@@ -34,10 +34,6 @@ MPI_Request *recv_request;
 int dest[6];
 int source[6];
 
-/* Decomposition flag */
-int flag_decomp;
-
-
 //Communication buffers
 
 // For BLOCK
@@ -238,10 +234,6 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
   #endif /*CUDA*/
   // #endif//ONLY_PARTICLES
 
-  //set decomposition flag
-  #ifdef   BLOCK
-  flag_decomp = BLOCK_DECOMP;
-  #endif /*BLOCK*/
 }
 
 
@@ -249,30 +241,8 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
 /* Perform domain decomposition */
 void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
 {
-  int domain_flag = 0;
 
-  switch(flag_decomp)
-  {
-    case BLOCK_DECOMP:
-      /*We use a block domain decomposition */
-      domain_flag = 1;
-
-      /* use a block decomposition */
-      DomainDecompositionBLOCK(P, H, nx_gin, ny_gin, nz_gin);
-
-      break;
-
-    default:
-      /*We use a block domain decomposition */
-      domain_flag = 1;
-
-      /* use a block decomposition */
-      DomainDecompositionBLOCK(P, H, nx_gin, ny_gin, nz_gin);
-
-      break;
-  }
-
-
+  DomainDecompositionBLOCK(P, H, nx_gin, ny_gin, nz_gin);
 
   // set grid dimensions
   H->nx = nx_local+2*H->n_ghost;
@@ -289,33 +259,10 @@ void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int
 
   //printf("In DomainDecomposition: nx %d ny %d nz %d nc %d\n",H->nx,H->ny,H->nz,H->n_cells);
 
-  /* make sure the domain is specified in the makefile */
-  if(domain_flag==0)
-  {
-    chprintf("Domain not specified in makefile. Aborting!\n");
-    chexit(-1);
-  }
-
-
   //Allocate communication buffers
-  Allocate_MPI_Buffers(H);
+  Allocate_MPI_DeviceBuffers(H);
 
 }
-
-
-void Allocate_MPI_Buffers(struct Header *H)
-{
-  switch(flag_decomp)
-  {
-    case BLOCK_DECOMP:
-      #if defined(HYDRO_GPU) || defined(GRAVITY_GPU) \
-          || defined(PARTICLES_GPU)
-      Allocate_MPI_DeviceBuffers_BLOCK(H);
-      #endif
-      break;
-  }
-}
-
 
 /* Perform domain decomposition */
 void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
@@ -586,232 +533,7 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
 
 }
 
-
-/* MPI reduction wrapper for max(Real)*/
-Real ReduceRealMax(Real x)
-{
-  Real in = x;
-  Real out;
-  Real y;
-
-  MPI_Allreduce(&in, &out, 1, MPI_CHREAL, MPI_MAX, world);
-  y = (Real) out;
-  return y;
-}
-
-
-/* MPI reduction wrapper for min(Real)*/
-Real ReduceRealMin(Real x)
-{
-  Real in = x;
-  Real out;
-  Real y;
-
-  MPI_Allreduce(&in, &out, 1, MPI_CHREAL, MPI_MIN, world);
-  y = (Real) out;
-  return y;
-}
-
-
-/* MPI reduction wrapper for avg(Real)*/
-Real ReduceRealAvg(Real x)
-{
-  Real in = x;
-  Real out;
-  Real y;
-
-  MPI_Allreduce(&in, &out, 1, MPI_CHREAL, MPI_SUM, world);
-  y = (Real) out / nproc;
-  return y;
-}
-
-#ifdef PARTICLES
-/* MPI reduction wrapper for sum(part_int)*/
-Real ReducePartIntSum(part_int_t x)
-{
-  part_int_t in = x;
-  part_int_t out;
-  part_int_t y;
-
-  #ifdef PARTICLES_LONG_INTS
-  MPI_Allreduce(&in, &out, 1, MPI_LONG, MPI_SUM, world);
-  #else
-  MPI_Allreduce(&in, &out, 1, MPI_INT, MPI_SUM, world);
-  #endif
-  y = (part_int_t) out ;
-  return y;
-}
-
-
-// Count the particles in the MPI ranks lower than this rank (procID) to get a
-// global offset for the local IDs.
-part_int_t Get_Particles_IDs_Global_MPI_Offset( part_int_t n_local ){
-  part_int_t global_offset;
-  part_int_t *n_local_all, *n_local_send;
-  n_local_send = (part_int_t *) malloc( 1*sizeof(part_int_t) );
-  n_local_all  = (part_int_t *) malloc( nproc*sizeof(part_int_t) );
-  n_local_send[0] = n_local;
-
-  MPI_Allgather( n_local_send, 1, MPI_PART_INT, n_local_all, 1, MPI_PART_INT, world );
-  global_offset = 0;
-  for (int other_rank=0; other_rank<nproc; other_rank++ ){
-    if ( other_rank < procID ) global_offset += n_local_all[other_rank];
-  }
-  // printf("global_offset = %ld \n", global_offset );
-  free(n_local_send);
-  free(n_local_all);
-  return global_offset;
-}
-
-#endif
-
-
-/* Set the domain properties */
-void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, Real xlen_global, Real ylen_global, Real zlen_global, struct Header *H)
-{
-  Real xmin_local;
-  Real ymin_local;
-  Real zmin_local;
-  Real xlen, ylen, zlen;
-  int pd_flag = 0;
-
-
-  //each domain decomposition option must set its
-  //own local domain sizes and local xyz bounds
-  //
-  //this is done by specifying *min_local
-  //and *len
-
-  if(flag_decomp==BLOCK_DECOMP)
-  {
-    /*For a block decomposition:                    */
-    /*each direction's properties need specification*/
-
-    /*the local domain will be xlen_global * nx_local / nx_global */
-    xlen = xlen_global * ((Real) nx_local)/((Real) nx_global);
-
-    /*the local domain will be ylen_global * ny_local / ny_global */
-    ylen = ylen_global * ((Real) ny_local)/((Real) ny_global);
-
-    /*the local domain will be zlen_global * nz_local / nz_global */
-    zlen = zlen_global * ((Real) nz_local)/((Real) nz_global);
-
-    /*the local minimum bound will be xmin_global + xlen_global* nx_local_start / nx_global */
-    //nx_local_start is indexed from start of real cells
-    xmin_local = xmin_global + xlen_global * ((Real) nx_local_start) / ((Real) nx_global );
-
-    /*the local minimum bound will be ymin_global + ylen_global* ny_local_start / ny_global */
-    //ny_local_start is indexed from start of real cells
-    ymin_local = ymin_global + ylen_global * ((Real) ny_local_start) / ((Real) ny_global );
-
-    /*the local minimum bound will be zmin_global + zlen_global* nz_local_start / nz_global */
-    //nz_local_start is indexed from start of real cells
-    zmin_local = zmin_global + zlen_global * ((Real) nz_local_start) / ((Real) nz_global );
-
-    //printf("xmin_global %e xlen_global %e xmin_local %e xlen %e\n",xmin_global,xlen_global,xmin_local,xlen);
-    //printf("ymin_global %e ylen_global %e ymin_local %e ylen %e\n",ymin_global,ylen_global,ymin_local,ylen);
-    //printf("zmin_global %e zlen_global %e zmin_local %e zlen %e\n",zmin_global,zlen_global,zmin_local,zlen);
-
-    //we've set the necessary properties
-    //for this domain
-    pd_flag = 1;
-  }
-
-  /*the global bounds are always set this way*/
-  H->xbound = xmin_global;
-  H->ybound = ymin_global;
-  H->zbound = zmin_global;
-
-  /*the global domains are always set this way*/
-  H->xdglobal = xlen_global;
-  H->ydglobal = ylen_global;
-  H->zdglobal = zlen_global;
-
-  //the local domains and cell sizes
-  //are always set this way
-  H->xblocal = xmin_local;
-  H->yblocal = ymin_local;
-  H->zblocal = zmin_local;
-
-  //printf("ProcessID: %d xbound: %f  xdglobal: %f  xblocal: %f\n", procID, H->xbound, H->xdglobal, H->xblocal);
-
-  /*perform 1-D first*/
-  if(H->nx > 1 && H->ny==1 && H->nz==1)
-  {
-    H->domlen_x =  xlen;
-    //H->domlen_y =  ylen / (H->nx - 2*H->n_ghost);
-    //H->domlen_z =  zlen / (H->nx - 2*H->n_ghost);
-    H->domlen_y =  ylen / ((Real) nx_global);
-    H->domlen_z =  zlen / ((Real) nx_global);
-    H->dx = xlen_global / ((Real) nx_global);
-    H->domlen_x = H->dx * (H->nx - 2*H->n_ghost);
-    //H->dx = H->domlen_x / (H->nx - 2*H->n_ghost);
-    H->dy = H->domlen_y;
-    H->dz = H->domlen_z;
-  }
-
-  /*perform 2-D next*/
-  if(H->nx > 1 && H->ny>1 && H->nz==1)
-  {
-    H->domlen_x =  xlen;
-    H->domlen_y =  ylen;
-    //H->domlen_z =  zlen / (H->nx - 2*H->n_ghost);
-    H->domlen_z =  zlen / ((Real) nx_global);
-    //H->dx = H->domlen_x / (H->nx - 2*H->n_ghost);
-    H->dx = xlen_global / ((Real) nx_global);
-    H->dy = ylen_global / ((Real) ny_global);
-    //H->dy = H->domlen_y / (H->ny - 2*H->n_ghost);
-    H->dz = H->domlen_z;
-    H->domlen_x = H->dx * (H->nx - 2*H->n_ghost);
-    H->domlen_y = H->dy * (H->ny - 2*H->n_ghost);
-  }
-
-  /*perform 3-D last*/
-  if(H->nx>1 && H->ny>1 && H->nz>1)
-  {
-    H->domlen_x = xlen;
-    H->domlen_y = ylen;
-    H->domlen_z = zlen;
-    H->dx = H->domlen_x / (H->nx - 2*H->n_ghost);
-    H->dy = H->domlen_y / (H->ny - 2*H->n_ghost);
-    H->dz = H->domlen_z / (H->nz - 2*H->n_ghost);
-  }
-
-  /* make sure the domain is properly set for this decomposition*/
-  if(pd_flag==0)
-  {
-    chprintf("Domain properties are not specified for this decomposition. Aborting!\n");
-    chexit(-1);
-  }
-}
-
-
-
-/* Print information about the domain properties */
-void Print_Domain_Properties(struct Header H)
-{
-  int i;
-  fflush(stdout);
-  MPI_Barrier(world);
-  for(i=0;i<nproc;i++)
-  {
-    if(i==procID)
-    {
-      printf("procID %d nxl %ld nxls %ld\n",procID,nx_local,nx_local_start);
-      printf("xb %e yb %e zb %e xbl %e ybl %e zbl %e\n",H.xbound,H.ybound,H.zbound,H.xblocal,H.yblocal,H.zblocal);
-      printf("xd %e yd %e zd %e xdl %e ydl %e zdl %e\n",H.xdglobal,H.ydglobal,H.zdglobal,H.domlen_x,H.domlen_y,H.domlen_z);
-      printf("dx %e\n",H.dx);
-      printf("dy %e\n",H.dy);
-      printf("dz %e\n",H.dz);
-      printf("*********\n");
-    }
-    fflush(stdout);
-    MPI_Barrier(world);
-  }
-
-}
-
-void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
+void Allocate_MPI_DeviceBuffers(struct Header *H)
 {
   int xbsize, ybsize, zbsize;
   if (H->ny==1 && H->nz==1) {
@@ -899,7 +621,7 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   h_recv_buffer_z0 = (Real *) malloc ( zbsize*sizeof(Real) );
   h_recv_buffer_z1 = (Real *) malloc ( zbsize*sizeof(Real) );
   #endif
-  
+
   #ifdef PARTICLES
   #ifdef PARTICLES_GPU
   chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
@@ -932,11 +654,178 @@ void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H)
   h_recv_buffer_z0_particles = (Real *) malloc ( buffer_length_particles_z0_recv*sizeof(Real) );
   h_recv_buffer_z1_particles = (Real *) malloc ( buffer_length_particles_z1_recv*sizeof(Real) );
   #endif
-  
-  #endif//PARTICLES
 
+  #endif//PARTICLES
+  
+}
+
+
+/* MPI reduction wrapper for max(Real)*/
+Real ReduceRealMax(Real x)
+{
+  Real in = x;
+  Real out;
+  Real y;
+
+  MPI_Allreduce(&in, &out, 1, MPI_CHREAL, MPI_MAX, world);
+  y = (Real) out;
+  return y;
+}
+
+
+/* MPI reduction wrapper for min(Real)*/
+Real ReduceRealMin(Real x)
+{
+  Real in = x;
+  Real out;
+  Real y;
+
+  MPI_Allreduce(&in, &out, 1, MPI_CHREAL, MPI_MIN, world);
+  y = (Real) out;
+  return y;
+}
+
+
+/* MPI reduction wrapper for avg(Real)*/
+Real ReduceRealAvg(Real x)
+{
+  Real in = x;
+  Real out;
+  Real y;
+
+  MPI_Allreduce(&in, &out, 1, MPI_CHREAL, MPI_SUM, world);
+  y = (Real) out / nproc;
+  return y;
+}
+
+#ifdef PARTICLES
+/* MPI reduction wrapper for sum(part_int)*/
+Real ReducePartIntSum(part_int_t x)
+{
+  part_int_t in = x;
+  part_int_t out;
+  part_int_t y;
+
+  #ifdef PARTICLES_LONG_INTS
+  MPI_Allreduce(&in, &out, 1, MPI_LONG, MPI_SUM, world);
+  #else
+  MPI_Allreduce(&in, &out, 1, MPI_INT, MPI_SUM, world);
+  #endif
+  y = (part_int_t) out ;
+  return y;
+}
+
+
+// Count the particles in the MPI ranks lower than this rank (procID) to get a
+// global offset for the local IDs.
+part_int_t Get_Particles_IDs_Global_MPI_Offset( part_int_t n_local ){
+  part_int_t global_offset;
+  part_int_t *n_local_all, *n_local_send;
+  n_local_send = (part_int_t *) malloc( 1*sizeof(part_int_t) );
+  n_local_all  = (part_int_t *) malloc( nproc*sizeof(part_int_t) );
+  n_local_send[0] = n_local;
+
+  MPI_Allgather( n_local_send, 1, MPI_PART_INT, n_local_all, 1, MPI_PART_INT, world );
+  global_offset = 0;
+  for (int other_rank=0; other_rank<nproc; other_rank++ ){
+    if ( other_rank < procID ) global_offset += n_local_all[other_rank];
+  }
+  // printf("global_offset = %ld \n", global_offset );
+  free(n_local_send);
+  free(n_local_all);
+  return global_offset;
+}
+
+#endif
+
+
+/* Set the domain properties used in initial_conditions.cpp Grid3D::Set_Domain_Properties */
+void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, Real xlen_global, Real ylen_global, Real zlen_global, struct Header *H)
+{
+  Real xlen, ylen, zlen;
+
+  /*the local domain will be xlen_global * nx_local / nx_global */
+  xlen = xlen_global * ((Real) nx_local)/((Real) nx_global);
+  
+  /*the local domain will be ylen_global * ny_local / ny_global */
+  ylen = ylen_global * ((Real) ny_local)/((Real) ny_global);
+  
+  /*the local domain will be zlen_global * nz_local / nz_global */
+  zlen = zlen_global * ((Real) nz_local)/((Real) nz_global);
+  
+  /* 1-D case */
+  if(H->nx > 1 && H->ny==1 && H->nz==1)
+  {
+    H->dx = xlen_global / ((Real) nx_global);
+
+    H->domlen_x = H->dx * (H->nx - 2*H->n_ghost);
+    H->domlen_y =  ylen / ((Real) nx_global);
+    H->domlen_z =  zlen / ((Real) nx_global);
+
+    H->dy = H->domlen_y;
+    H->dz = H->domlen_z;
+  }
+
+  /* 2-D case */
+  if(H->nx > 1 && H->ny>1 && H->nz==1)
+  {
+    H->dx = xlen_global / ((Real) nx_global);
+    H->dy = ylen_global / ((Real) ny_global);
+
+    H->domlen_x = H->dx * (H->nx - 2*H->n_ghost);
+    H->domlen_y = H->dy * (H->ny - 2*H->n_ghost);
+    H->domlen_z =  zlen / ((Real) nx_global);
+
+    H->dz = H->domlen_z;
+  }
+
+  /* 3-D case */
+  if(H->nx>1 && H->ny>1 && H->nz>1)
+  {
+    H->domlen_x = xlen;
+    H->domlen_y = ylen;
+    H->domlen_z = zlen;
+    H->dx = H->domlen_x / (H->nx - 2*H->n_ghost);
+    H->dy = H->domlen_y / (H->ny - 2*H->n_ghost);
+    H->dz = H->domlen_z / (H->nz - 2*H->n_ghost);
+  }
 
 }
+
+
+
+/* Print information about the domain properties */
+void Print_Domain_Properties(struct Header H)
+{
+  int i;
+  fflush(stdout);
+  MPI_Barrier(world);
+  for(i=0;i<nproc;i++)
+  {
+    if(i==procID)
+    {
+      printf("procID %d nxl %ld nxls %ld\n",procID,nx_local,nx_local_start);
+      printf("xb %e yb %e zb %e xbl %e ybl %e zbl %e\n",H.xbound,H.ybound,H.zbound,H.xblocal,H.yblocal,H.zblocal);
+      printf("xd %e yd %e zd %e xdl %e ydl %e zdl %e\n",H.xdglobal,H.ydglobal,H.zdglobal,H.domlen_x,H.domlen_y,H.domlen_z);
+      printf("dx %e\n",H.dx);
+      printf("dy %e\n",H.dy);
+      printf("dz %e\n",H.dz);
+      printf("*********\n");
+    }
+    fflush(stdout);
+    MPI_Barrier(world);
+  }
+
+}
+
+
+
+
+
+
+
+
+
 
 
 #ifdef PARTICLES
@@ -996,56 +885,61 @@ void TileBlockDecomposition(void)
   int np_z = 1;
   //printf("nproc %d n_gpf %d\n",nproc,n_gpf);
 
+  /* 1-D case is trivial */
+  if (nz_global==1 && ny_global==1) {
+    nproc_x = nproc;
+    nproc_y = 1;
+    nproc_z = 1;
+    return;
+  }
+
   /*find the greatest prime factor of the number of MPI processes*/
   n_gpf = greatest_prime_factor(nproc);
-  //printf("nproc %d n_gpf %d\n",nproc,n_gpf);
+
+  /* 2-D case
+     we can just assign domain*/
+
+  if (nz_global==1) {
+    np_x = n_gpf;
+    np_y = nproc/np_x;
+    // ensure nproc_x > nproc_y
+    if (np_x < np_y) {
+      nproc_x = np_y;
+      nproc_y = np_x;
+    } else {
+      nproc_x = np_x;
+      nproc_y = np_y;
+    }
+    nproc_z = 1;
+    return;
+  }
 
   /*base decomposition on whether n_gpf==2*/
-  if(n_gpf!=2)
-  {
-    /*if we are dealing with two dimensions, we can just assign domain*/
-    if(nz_global==1)
-    {
-      np_x = n_gpf;
-      np_y = nproc/np_x;
-      np_z = 1;
-
-    }else{
-      /*we are in 3-d, so split remainder evenly*/
-      np_x  = n_gpf;
-      n_gpf = greatest_prime_factor(nproc/n_gpf);
-      if(n_gpf!=2)
-      {
-        /*the next greatest prime is odd, so just split*/
-        np_y = n_gpf;
-        np_z = nproc/(np_x*np_y);
-      }else{
-        /*increase ny, nz round-robin*/
-        while(np_x*np_y*np_z < nproc)
+  if(n_gpf!=2) {
+    /*we are in 3-d, so split remainder evenly*/
+    np_x  = n_gpf;
+    n_gpf = greatest_prime_factor(nproc/n_gpf);
+    if(n_gpf!=2) {
+      /*the next greatest prime is odd, so just split*/
+      np_y = n_gpf;
+      np_z = nproc/(np_x*np_y);
+    } else {
+      /*increase ny, nz round-robin*/
+      while(np_x*np_y*np_z < nproc)
         {
-        	np_y*=2;
-        	if(np_x*np_y*np_z==nproc)
-        		break;
-        	np_z*=2;
+	  np_y*=2;
+	  if(np_x*np_y*np_z==nproc)
+	    break;
+	  np_z*=2;
         }
 
-      }
     }
+  } else {
+    /*nproc is a power of 2*/
+    /*we are in 3-d, so split remainder evenly*/
 
-  }else{
-  	/*nproc is a power of 2*/
-    /*if we are dealing with two dimensions, we can just assign domain*/
-    if(nz_global==1)
-    {
-      np_x = n_gpf;
-      np_y = nproc/np_x;
-      np_z = 1;
-
-    }else{
-      /*we are in 3-d, so split remainder evenly*/
-
-      /*increase nx, ny, nz round-robin*/
-      while(np_x*np_y*np_z < nproc)
+    /*increase nx, ny, nz round-robin*/
+    while(np_x*np_y*np_z < nproc)
       {
         np_x*=2;
         if(np_x*np_y*np_z==nproc)
@@ -1055,8 +949,8 @@ void TileBlockDecomposition(void)
           break;
         np_z*=2;
       }
-    }
   }
+  
 
   //reorder x, y, z
 
