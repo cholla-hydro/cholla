@@ -446,7 +446,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
                      cudaMemcpyDeviceToHost);
           #endif
         #else
-        buffer_length = Load_Particles_Density_Boundary_to_Buffer( 0, 0, h_send_buffer_x0  );
+          #ifndef MPI_GPU 
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 0, 0, h_send_buffer_x0  );
+          #else
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 0, 0, h_send_buffer_x0_particles  );
+          cudaMemcpy(d_send_buffer_x0, h_send_buffer_x0_particles, buffer_length*sizeof(Real), cudaMemcpyHostToDevice);
+          #endif
         #endif
       }
       else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
@@ -523,7 +528,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
                      cudaMemcpyDeviceToHost);
           #endif
         #else
-        buffer_length = Load_Particles_Density_Boundary_to_Buffer( 0, 1, h_send_buffer_x1  );
+          #ifndef MPI_GPU 
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 0, 1, h_send_buffer_x1  );
+          #else
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 0, 1, h_send_buffer_x1_particles  );
+          cudaMemcpy(d_send_buffer_x1, h_send_buffer_x1_particles, buffer_length*sizeof(Real), cudaMemcpyHostToDevice);
+          #endif
         #endif
       }
       else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
@@ -605,7 +615,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
                      cudaMemcpyDeviceToHost);
           #endif
         #else
-        buffer_length = Load_Particles_Density_Boundary_to_Buffer( 1, 0, h_send_buffer_y0  );
+          #ifndef MPI_GPU 
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 1, 0, h_send_buffer_y0  );
+          #else
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 1, 0, h_send_buffer_y0_particles  );
+          cudaMemcpy(d_send_buffer_y0, h_send_buffer_y0_particles, buffer_length*sizeof(Real), cudaMemcpyHostToDevice);
+          #endif
         #endif
       }
       else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
@@ -680,7 +695,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
                      cudaMemcpyDeviceToHost);
           #endif
         #else
-        buffer_length = Load_Particles_Density_Boundary_to_Buffer( 1, 1, h_send_buffer_y1  );
+          #ifndef MPI_GPU 
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 1, 1, h_send_buffer_y1  );
+          #else
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 1, 1, h_send_buffer_y1_particles  );
+          cudaMemcpy(d_send_buffer_y1, h_send_buffer_y1_particles, buffer_length*sizeof(Real), cudaMemcpyHostToDevice);
+          #endif
         #endif
       }
       else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
@@ -762,7 +782,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
                      cudaMemcpyDeviceToHost);
           #endif
         #else
-        buffer_length = Load_Particles_Density_Boundary_to_Buffer( 2, 0, h_send_buffer_z0  );
+          #ifndef MPI_GPU 
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 2, 0, h_send_buffer_z0  );
+          #else
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 2, 0, h_send_buffer_z0_particles  );
+          cudaMemcpy(d_send_buffer_z0, h_send_buffer_z0_particles, buffer_length*sizeof(Real), cudaMemcpyHostToDevice);
+          #endif
         #endif
       }
       else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
@@ -835,7 +860,12 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags)
                      cudaMemcpyDeviceToHost);
           #endif
         #else
-        buffer_length = Load_Particles_Density_Boundary_to_Buffer( 2, 1, h_send_buffer_z1  );
+          #ifndef MPI_GPU 
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 2, 1, h_send_buffer_z1  );
+          #else
+          buffer_length = Load_Particles_Density_Boundary_to_Buffer( 2, 1, h_send_buffer_z1_particles  );
+          cudaMemcpy(d_send_buffer_z1, h_send_buffer_z1_particles, buffer_length*sizeof(Real), cudaMemcpyHostToDevice);
+          #endif
         #endif
       }
       else if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
