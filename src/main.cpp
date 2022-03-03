@@ -111,16 +111,16 @@ int main(int argc, char *argv[])
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
   #endif
-  
+
   #ifdef CHEMISTRY_GPU
   G.Initialize_Chemistry(&P);
   #endif
-  
+
   #ifdef ANALYSIS
   G.Initialize_Analysis_Module(&P);
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   #endif
-  
+
   #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential( &P);
@@ -178,13 +178,14 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   {
     // get the start time
-    
     #ifdef CPU_TIME
     G.Timer.Total.Start();
     #endif //CPU_TIME
     start_step = get_time();
 
-    // calculate the timestep
+    // calculate the timestep. Note: this computes the timestep ONLY on the
+    // first loop, on subsequent time steps it just calls the MPI_Allreduce to
+    // determine the global timestep
     G.set_dt(dti);
 
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;

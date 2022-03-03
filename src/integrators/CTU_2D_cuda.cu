@@ -147,7 +147,7 @@ void CTU_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_o
 void Free_Memory_CTU_2D() {
 
   // free the CPU memory
-  CudaSafeCall( cudaFreeHost(host_dti_array) );
+  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
   #ifdef COOLING_GPU
   CudaSafeCall( cudaFreeHost(host_dt_array) );
   #endif
@@ -160,7 +160,6 @@ void Free_Memory_CTU_2D() {
   cudaFree(Q_Ry);
   cudaFree(F_x);
   cudaFree(F_y);
-  cudaFree(dev_dti_array);
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
   #endif

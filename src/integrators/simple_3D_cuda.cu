@@ -151,7 +151,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
   hipLaunchKernelGGL(Apply_Temperature_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, U_floor );
   CudaCheckError();
   #endif //TEMPERATURE_FLOOR
-  
+
 
   return;
 
@@ -161,7 +161,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
 void Free_Memory_Simple_3D(){
 
   // free CPU memory
-  CudaSafeCall( cudaFreeHost(host_dti_array) );
+  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
   #ifdef COOLING_GPU
   CudaSafeCall( cudaFreeHost(host_dt_array) );
   #endif
@@ -177,7 +177,6 @@ void Free_Memory_Simple_3D(){
   cudaFree(F_x);
   cudaFree(F_y);
   cudaFree(F_z);
-  cudaFree(dev_dti_array);
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
   #endif
