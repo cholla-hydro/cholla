@@ -7,16 +7,6 @@ fi
 
 FQDN=$(hostname --fqdn)
 
-<<<<<<< HEAD
-if [[ $FQDN == *"c3po."* ]] ; then
-  echo "c3po"
-  exit 0
-fi
-
-
-echo "unknown"
-exit 1
-=======
 case $FQDN in
   *summit* | *peak*)
     echo "summit"
@@ -43,4 +33,3 @@ case $FQDN in
     echo `hostname`
     exit 0
 esac
->>>>>>> 94fdc498101d98279008e1e6a7ba0ae030da23cd
