@@ -9,9 +9,6 @@
 #include "../global/global.h"
 #include "../grid/grid3D.h"
 #include "../hydro/hydro_cuda.h" // provides Calc_dt_GPU
-#include "../cpu/CTU_1D.h"
-#include "../cpu/CTU_2D.h"
-#include "../cpu/CTU_3D.h"
 #include "../integrators/CTU_1D_cuda.h"
 #include "../integrators/CTU_2D_cuda.h"
 #include "../integrators/CTU_3D_cuda.h"
@@ -566,20 +563,9 @@ Real Grid3D::Update_Grid(void)
   #endif //max_dti_slow
     
   
-  // Pass the structure of conserved variables to the CTU update functions
-  // The function returns the updated variables
+  // Run the hydro integrator on the grid
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) //1D
   {
-    #ifndef CUDA
-    #ifdef CTU
-    CTU_Algorithm_1D(&(C.density[0]), H.nx, H.n_ghost, H.dx, H.dt);
-    #endif //not_VL
-    #ifdef VL
-    chprintf("VL algorithm not implemented in non-cuda version.");
-    chexit(-1);
-    #endif //VL
-    #endif //not_CUDA
-
     #ifdef CUDA
     #ifdef CTU
     CTU_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
@@ -591,16 +577,6 @@ Real Grid3D::Update_Grid(void)
   }
   else if (H.nx > 1 && H.ny > 1 && H.nz == 1) //2D
   {
-    #ifndef CUDA
-    #ifdef CTU
-    CTU_Algorithm_2D(&(C.density[0]), H.nx, H.ny, H.n_ghost, H.dx, H.dy, H.dt);
-    #endif //not_VL
-    #ifdef VL
-    chprintf("VL algorithm not implemented in non-cuda version.");
-    chexit(-1);
-    #endif //VL
-    #endif //not_CUDA
-
     #ifdef CUDA
     #ifdef CTU
     CTU_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
@@ -612,16 +588,6 @@ Real Grid3D::Update_Grid(void)
   }
   else if (H.nx > 1 && H.ny > 1 && H.nz > 1) //3D
   {
-    #ifndef CUDA
-    #ifdef CTU
-    CTU_Algorithm_3D(&(C.density[0]), H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, H.dt);
-    #endif //not_VL
-    #ifdef VL
-    chprintf("VL algorithm not implemented in non-cuda version.");
-    chexit(-1);
-    #endif //VL
-    #endif //not_CUDA
-
     #ifdef CUDA
     #ifdef CTU
     CTU_Algorithm_3D_CUDA(C.device, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
