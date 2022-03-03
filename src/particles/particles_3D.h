@@ -165,7 +165,11 @@ class Particles_3D
     Real *gravity_x;
     Real *gravity_y;
     Real *gravity_z;
+    #ifdef GRAVITY_GPU
+    Real *density_dev;
     #endif
+    #endif
+    
 
     #ifdef PARTICLES_GPU
     Real *density_dev;
@@ -222,16 +226,17 @@ class Particles_3D
 
   void Initialize( struct parameters *P, Grav3D &Grav,  Real xbound, Real ybound, Real zbound, Real xdglobal, Real ydglobal, Real zdglobal  );
 
+  void Allocate_Particles_Grid_Field_Real( Real **array_dev, int size );
+  void Free_GPU_Array_Real( Real *array );
+  
   #ifdef PARTICLES_GPU
 
-  void Free_GPU_Array_Real( Real *array );
   void Free_GPU_Array_int( int *array );
   void Free_GPU_Array_bool( bool *array );
   void Allocate_Memory_GPU();
   void Allocate_Particles_GPU_Array_Real( Real **array_dev, part_int_t size );
   void Allocate_Particles_GPU_Array_bool( bool **array_dev, part_int_t size );
   void Allocate_Particles_GPU_Array_int( int **array_dev, part_int_t size );
-  void Allocate_Particles_Grid_Field_Real( Real **array_dev, int size );
   void Copy_Particles_Array_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
   void Copy_Particles_Array_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);
   void Set_Particles_Array_Real( Real value, Real *array_dev, part_int_t size);

@@ -1,4 +1,4 @@
-#if defined(PARTICLES) && defined(PARTICLES_GPU)
+#if defined(PARTICLES) 
 
 #include <unistd.h>
 #include <stdio.h>
@@ -9,6 +9,33 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../particles/particles_3D.h"
+
+
+
+
+
+void Particles_3D::Free_GPU_Array_Real( Real *array ){ cudaFree(array); }
+
+
+void Particles_3D::Allocate_Particles_Grid_Field_Real( Real **array_dev, int size ){
+  size_t global_free, global_total;
+  CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
+  #ifdef PRINT_GPU_MEMORY
+  chprintf( "Allocating GPU Memory:  %ld  MB free \n", global_free/1000000);
+  #endif
+  if ( global_free < size*sizeof(Real) ){
+    printf( "ERROR: Not enough global device memory \n" );
+    printf( " Available Memory: %ld  MB \n", global_free/1000000  );
+    printf( " Requested Memory: %ld  MB \n", size*sizeof(Real)/1000000  );
+    exit(-1);
+  }
+  CudaSafeCall( cudaMalloc((void**)array_dev,  size*sizeof(Real)) );
+  cudaDeviceSynchronize();
+}
+
+
+
+#ifdef PARTICLES_GPU
 
 #ifdef PRINT_MAX_MEMORY_USAGE
 #include "../mpi/mpi_routines.h"
@@ -38,7 +65,6 @@ void Particles_3D::Print_Max_Memory_Usage(){
 
 
 
-void Particles_3D::Free_GPU_Array_Real( Real *array ){ cudaFree(array); }
 void Particles_3D::Free_GPU_Array_int( int *array )  { cudaFree(array); }
 void Particles_3D::Free_GPU_Array_bool( bool *array ){ cudaFree(array); }
 
@@ -59,22 +85,6 @@ void Copy_Device_to_Device( Real *src_array_dev, Real *dst_array_dev, part_int_t
 
 
 void Particles_3D::Allocate_Particles_GPU_Array_Real( Real **array_dev, part_int_t size ){
-  size_t global_free, global_total;
-  CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
-  #ifdef PRINT_GPU_MEMORY
-  chprintf( "Allocating GPU Memory:  %ld  MB free \n", global_free/1000000);
-  #endif
-  if ( global_free < size*sizeof(Real) ){
-    printf( "ERROR: Not enough global device memory \n" );
-    printf( " Available Memory: %ld  MB \n", global_free/1000000  );
-    printf( " Requested Memory: %ld  MB \n", size*sizeof(Real)/1000000  );
-    exit(-1);
-  }
-  CudaSafeCall( cudaMalloc((void**)array_dev,  size*sizeof(Real)) );
-  cudaDeviceSynchronize();
-}
-
-void Particles_3D::Allocate_Particles_Grid_Field_Real( Real **array_dev, int size ){
   size_t global_free, global_total;
   CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
   #ifdef PRINT_GPU_MEMORY
@@ -159,5 +169,5 @@ void Particles_3D::Set_Particles_Array_Real( Real value, Real *array_dev, part_i
 
 
 
-
+#endif //PARTICLES_GPU
 #endif//PARTICLES

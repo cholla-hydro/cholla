@@ -220,6 +220,13 @@ void Grid3D::Extrapolate_Grav_Potential_GPU(){
 }
 
 
+void Grid3D::Copy_Potential_From_GPU(){
+  CudaSafeCall( cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential*sizeof(Real), cudaMemcpyDeviceToHost) );
+  cudaDeviceSynchronize();
+  
+}
+
+
 
 
 

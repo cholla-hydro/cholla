@@ -745,6 +745,8 @@ class Grid3D
   void Set_Particles_Boundary_GPU( int dir, int side);
   #endif//PARTICLES_GPU
   #ifdef GRAVITY_GPU
+  void Copy_Potential_From_GPU();
+  void Copy_Particles_Density_to_GPU();
   void Copy_Particles_Density_GPU();
   int Load_Particles_Density_Boundary_to_Buffer_GPU( int direction, int side, Real *buffer  );
   void Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, int side, Real *buffer  );
