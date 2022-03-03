@@ -17,11 +17,11 @@
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
-#include "../cooling/cooling_cuda.h" // Include code to test
+#include "../dust/dust_cuda_updated.h" // Include code to test
 
 #ifdef DUST_GPU
 
-TEST(tCOOLINGTestCIECool, TestCIECoolExpectCorrectOutput) // test suite name, test name
+TEST(tDUSTAccretionTest, AccretionTestExpectCorrectOutput) // test suite name, test name
 {
     Real const testn = 1;
     Real const testT = pow(10, 5.0);
