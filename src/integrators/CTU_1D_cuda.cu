@@ -24,14 +24,10 @@
 
 
 
-void CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
+void CTU_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
 {
-  //Here, *host_conserved contains the entire
+  //Here, *dev_conserved contains the entire
   //set of conserved variables on the grid
-  //host_conserved0 contains the values at time n
-  //host_conserved1 will contain the values at time n+1
-
-  // Initialize dt values
 
   int n_cells = nx;
   int ny = 1;
@@ -44,22 +40,12 @@ void CTU_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d
 
   if ( !memory_allocated ) {
 
-    // allocate an array on the CPU to hold max_dti returned from each thread block
-    CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
-    #ifdef COOLING_GPU
-    CudaSafeCall( cudaHostAlloc(&host_dt_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
-    #endif
-
     // allocate memory on the GPU
     dev_conserved = d_conserved;
     //CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Lx, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Rx, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_x,   (n_fields)*n_cells*sizeof(Real)) );
-    CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-    #if defined COOLING_GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
-    #endif
 
     // If memory is single allocated: memory_allocated becomes true and successive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
