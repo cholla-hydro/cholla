@@ -31,7 +31,7 @@ void Grid3D::Initialize_Particles( struct parameters *P ){
 
   Particles.Initialize( P, Grav, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal );
 
-  #if defined (PARTICLES GPU) && defined (GRAVITY GPU)
+  #if defined (PARTICLES_GPU) && defined (GRAVITY_GPU)
   // Set the GPU array for the particles potential equal to the Gravity GPU array for the potential
   Particles.G.potential_dev = Grav.F.potential_d;
   #endif
