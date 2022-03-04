@@ -11,9 +11,8 @@
 #include "../utils/error_handling.h"
 #include "../mpi/mpi_routines.h"
 
-#ifdef HYDRO_GPU
-#include "../mpi/cuda_boundaries.h" // provides PackGhostCells
-#endif
+#include "../grid/cuda_boundaries.h" // provides SetGhostCells
+
 
 /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
  *  \brief Set the boundary conditions for all components based on info in the parameters structure. */
@@ -199,12 +198,21 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){
     if ( flags[dir] == 1 ){
       // Set Periodic Boundaries for the ghost cells.
-      if ( dir == 0 ) Copy_Potential_Boundaries( 0, 0, flags );
-      if ( dir == 1 ) Copy_Potential_Boundaries( 0, 1, flags );
-      if ( dir == 2 ) Copy_Potential_Boundaries( 1, 0, flags );
-      if ( dir == 3 ) Copy_Potential_Boundaries( 1, 1, flags );
-      if ( dir == 4 ) Copy_Potential_Boundaries( 2, 0, flags );
-      if ( dir == 5 ) Copy_Potential_Boundaries( 2, 1, flags );
+      #ifdef GRAVITY_GPU
+      if ( dir == 0 ) Set_Potential_Boundaries_Periodic_GPU( 0, 0, flags );
+      if ( dir == 1 ) Set_Potential_Boundaries_Periodic_GPU( 0, 1, flags );
+      if ( dir == 2 ) Set_Potential_Boundaries_Periodic_GPU( 1, 0, flags );
+      if ( dir == 3 ) Set_Potential_Boundaries_Periodic_GPU( 1, 1, flags );
+      if ( dir == 4 ) Set_Potential_Boundaries_Periodic_GPU( 2, 0, flags );
+      if ( dir == 5 ) Set_Potential_Boundaries_Periodic_GPU( 2, 1, flags );
+      #else
+      if ( dir == 0 ) Set_Potential_Boundaries_Periodic( 0, 0, flags );
+      if ( dir == 1 ) Set_Potential_Boundaries_Periodic( 0, 1, flags );
+      if ( dir == 2 ) Set_Potential_Boundaries_Periodic( 1, 0, flags );
+      if ( dir == 3 ) Set_Potential_Boundaries_Periodic( 1, 1, flags );
+      if ( dir == 4 ) Set_Potential_Boundaries_Periodic( 2, 0, flags );
+      if ( dir == 5 ) Set_Potential_Boundaries_Periodic( 2, 1, flags );
+      #endif
     }
     if ( flags[dir] == 3 ){
 
@@ -244,12 +252,23 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   #ifdef PARTICLES
   if ( Particles.TRANSFER_DENSITY_BOUNDARIES ){
     if ( flags[dir] ==1 ){
-      if ( dir == 0 ) Copy_Particles_Density_Boundaries( 0, 0 );
-      if ( dir == 1 ) Copy_Particles_Density_Boundaries( 0, 1 );
-      if ( dir == 2 ) Copy_Particles_Density_Boundaries( 1, 0 );
-      if ( dir == 3 ) Copy_Particles_Density_Boundaries( 1, 1 );
-      if ( dir == 4 ) Copy_Particles_Density_Boundaries( 2, 0 );
-      if ( dir == 5 ) Copy_Particles_Density_Boundaries( 2, 1 );
+      // Set Periodic Boundaries for the particles density.
+      #ifdef PARTICLES_GPU
+      if ( dir == 0 ) Set_Particles_Density_Boundaries_Periodic_GPU( 0, 0 );
+      if ( dir == 1 ) Set_Particles_Density_Boundaries_Periodic_GPU( 0, 1 );
+      if ( dir == 2 ) Set_Particles_Density_Boundaries_Periodic_GPU( 1, 0 );
+      if ( dir == 3 ) Set_Particles_Density_Boundaries_Periodic_GPU( 1, 1 );
+      if ( dir == 4 ) Set_Particles_Density_Boundaries_Periodic_GPU( 2, 0 );
+      if ( dir == 5 ) Set_Particles_Density_Boundaries_Periodic_GPU( 2, 1 );
+      #endif
+      #ifdef PARTICLES_CPU       
+      if ( dir == 0 ) Set_Particles_Density_Boundaries_Periodic( 0, 0 );
+      if ( dir == 1 ) Set_Particles_Density_Boundaries_Periodic( 0, 1 );
+      if ( dir == 2 ) Set_Particles_Density_Boundaries_Periodic( 1, 0 );
+      if ( dir == 3 ) Set_Particles_Density_Boundaries_Periodic( 1, 1 );
+      if ( dir == 4 ) Set_Particles_Density_Boundaries_Periodic( 2, 0 );
+      if ( dir == 5 ) Set_Particles_Density_Boundaries_Periodic( 2, 1 );
+      #endif
     }
     return;
   }
@@ -289,14 +308,12 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   //get the extents of the ghost region we are initializing
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
 
-  #ifdef HYDRO_GPU
-  // from mpi/cuda_boundaries.cu 
-  PackGhostCells(C.device,
+  // from grid/cuda_boundaries.cu 
+  SetGhostCells(C.device,
 		 H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags,
 		 imax[0]-imin[0], imax[1]-imin[1], imax[2]-imin[2],
 		 imin[0], imin[1], imin[2], dir);
 
-  #endif
 }
 
 /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)

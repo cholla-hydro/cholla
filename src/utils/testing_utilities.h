@@ -10,6 +10,7 @@
 
 // STL includes
 #include <string>
+#include "../system_tests/system_tester.h" // provide systemTest class
 
 // =============================================================================
 // NOTE: Global variables are declared as extern at the end of this file
@@ -90,6 +91,35 @@ namespace testingUtilities
                         int64_t &ulpsDiff,
                         double  const &fixedEpsilon = 1E-14,
                         int     const &ulpsEpsilon  = 4);
+    // =========================================================================
+
+    void wrapperEqual(int i, int j, int k, std::string dataSetName, double test_value, double fid_value, double fixedEpsilon);
+
+    void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value);
+
+    void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetName,
+		      double constant, double amplitude, double kx, double ky, double kz,
+		      double phase, double tolerance);
+
+    // =========================================================================
+    /*!
+     * \brief A simple function to compare two doubles with the nearlyEqualDbl
+     * function, perform a GTest assert on the result, and print out the values
+     *
+     * \param[in] fiducialNumber The fiducial number to test against
+     * \param[in] testNumber The unverified number to test
+     * \param[in] outString A string to be printed in the first line of the output
+     * message. Format will be "Difference in outString"
+     * \param[in] fixedEpsilon The fixed epsilon to use in the comparison.
+     * Negative values are ignored and default behaviour is used
+     * \param[in] ulpsEpsilon The ULP epsilon to use in the comparison. Negative
+     * values are ignored and default behaviour is used
+     */
+    void checkResults(double fiducialNumber,
+                      double testNumber,
+                      std::string outString,
+                      double fixedEpsilon = -999,
+                      int ulpsEpsilon = -999);
     // =========================================================================
 
     // =========================================================================

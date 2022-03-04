@@ -18,7 +18,7 @@
 
 
 extern bool memory_allocated; // Flag becomes true after allocating the memory on the first timestep
-extern bool block_size; // Flag becomes true after determining subgrid block size on the first timestep
+extern bool dt_memory_allocated; // Flag becomes true after allocating the memory on the first calc_dt_GPU call
 
 // Arrays are global so that they can be allocated only once.
 // Not all arrays will be allocated for every integrator

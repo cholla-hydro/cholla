@@ -103,6 +103,80 @@ void Grid3D::Set_Potential_Boundaries_Isolated_GPU( int direction, int side, int
 
 #endif //GRAV_ISOLATED_BOUNDARY
 
+
+void __global__ Set_Potential_Boundaries_Periodic_kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz, int n_ghost, Real *potential_d ){
+  
+  // get a global thread ID
+  int tid, tid_i, tid_j, tid_k, tid_src, tid_dst;
+  tid = threadIdx.x + blockIdx.x * blockDim.x;
+  tid_k = tid / (n_i*n_j);
+  tid_j = (tid - tid_k*n_i*n_j) / n_i;
+  tid_i = tid - tid_k*n_i*n_j - tid_j*n_i;
+  
+  if ( tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost ) return;
+  
+  if ( direction == 0 ){
+    if ( side == 0 ) tid_src = ( nx - 2*n_ghost + tid_k )  + (tid_i)*nx  + (tid_j)*nx*ny;
+    if ( side == 0 ) tid_dst = ( tid_k )                   + (tid_i)*nx  + (tid_j)*nx*ny;
+    if ( side == 1 ) tid_src = ( n_ghost + tid_k  )        + (tid_i)*nx  + (tid_j)*nx*ny;
+    if ( side == 1 ) tid_dst = ( nx - n_ghost + tid_k )    + (tid_i)*nx  + (tid_j)*nx*ny;
+
+  }
+  if ( direction == 1 ){
+    if ( side == 0 ) tid_src = (tid_i) + ( ny - 2*n_ghost + tid_k  )*nx  + (tid_j)*nx*ny;
+    if ( side == 0 ) tid_dst = (tid_i) + ( tid_k )*nx                    + (tid_j)*nx*ny;
+    if ( side == 1 ) tid_src = (tid_i) + ( n_ghost + tid_k  )*nx         + (tid_j)*nx*ny;
+    if ( side == 1 ) tid_dst = (tid_i) + ( ny - n_ghost + tid_k )*nx     + (tid_j)*nx*ny;
+  }
+  if ( direction == 2 ){
+    if ( side == 0 ) tid_src = (tid_i) + (tid_j)*nx + ( nz - 2*n_ghost + tid_k  )*nx*ny;
+    if ( side == 0 ) tid_dst = (tid_i) + (tid_j)*nx + ( tid_k  )*nx*ny;
+    if ( side == 1 ) tid_src = (tid_i) + (tid_j)*nx + ( n_ghost + tid_k  )*nx*ny;
+    if ( side == 1 ) tid_dst = (tid_i) + (tid_j)*nx + ( nz - n_ghost + tid_k  )*nx*ny;
+  }
+  
+  potential_d[tid_dst] = potential_d[tid_src];
+  
+}
+
+
+void Grid3D::Set_Potential_Boundaries_Periodic_GPU( int direction, int side, int *flags ){
+  
+  int n_i, n_j, n_ghost, size;
+  int nx_g, ny_g, nz_g;
+  n_ghost = N_GHOST_POTENTIAL;
+  nx_g = Grav.nx_local + 2*n_ghost;
+  ny_g = Grav.ny_local + 2*n_ghost;
+  nz_g = Grav.nz_local + 2*n_ghost;
+
+  if ( direction == 0 ){
+    n_i = ny_g;
+    n_j = nz_g;
+  }
+  if ( direction == 1 ){
+    n_i = nx_g;
+    n_j = nz_g;
+  }
+  if ( direction == 2 ){
+    n_i = nx_g;
+    n_j = ny_g;
+  }
+
+  size = N_GHOST_POTENTIAL * n_i * n_j;
+
+  // set values for GPU kernels
+  int ngrid = ( size - 1 ) / TPB_GRAV + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_GRAV, 1, 1);
+
+  // Copy the potential boundary from buffer to potential array
+  hipLaunchKernelGGL( Set_Potential_Boundaries_Periodic_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, n_i, n_j, nx_g, ny_g, nz_g, n_ghost, Grav.F.potential_d );
+
+
+}
+
 __global__ void Load_Transfer_Buffer_GPU_kernel( int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d   ){
 
   // get a global thread ID
@@ -173,58 +247,6 @@ int Grid3D::Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real 
   hipLaunchKernelGGL( Load_Transfer_Buffer_GPU_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j,  nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, send_buffer_d  );
   CHECK(cudaDeviceSynchronize());
 
-  // NOTE: I couldn't figure out how top do it using OpenMP
-  // int i, j, k, indx, indx_buff;
-  // if ( direction == 0 ){
-  //   #pragma omp target teams distribute parallel for collapse ( 2 ) \
-  //           private ( indx, indx_buff ) \
-  //           firstprivate ( side ) \
-  //           is_device_ptr ( send_buffer_d, potential_d )
-  //   for ( k=0; k<nz_g; k++ ){
-  //     for ( j=0; j<ny_g; j++ ){
-  //       for ( i=0; i<nGHST; i++ ){
-  //         if ( side == 0 ) indx = (i+nGHST) + (j)*nx_g + (k)*nx_g*ny_g;
-  //         if ( side == 1 ) indx = (nx_g - 2*nGHST + i) + (j)*nx_g + (k)*nx_g*ny_g;
-  //         indx_buff = (j) + (k)*ny_g + i*ny_g*nz_g ;
-  //         send_buffer_d[indx_buff] = potential_d[indx];
-  //       }
-  //     }
-  //   }
-  // }
-  //
-  //
-  // if ( direction == 1 ){
-  //   #pragma omp target teams distribute parallel for collapse ( 3 ) \
-  //           private ( indx, indx_buff ) \
-  //           firstprivate ( side ) \
-  //           is_device_ptr ( send_buffer_d, potential_d )
-  //   for ( k=0; k<nz_g; k++ ){
-  //     for ( j=0; j<nGHST; j++ ){
-  //       for ( i=0; i<nx_g; i++ ){
-  //         if ( side == 0 ) indx = (i) + (j+nGHST)*nx_g + (k)*nx_g*ny_g;
-  //         if ( side == 1 ) indx = (i) + (ny_g - 2*nGHST + j)*nx_g + (k)*nx_g*ny_g;
-  //         indx_buff = (i) + (k)*nx_g + j*nx_g*nz_g ;
-  //         send_buffer_d[indx_buff] = potential_d[indx];
-  //       }
-  //     }
-  //   }
-  // }
-  //
-  // if ( direction == 1 ){
-  //   for ( k=0; k<nGHST; k++ ){
-  //     for ( j=0; j<ny_g; j++ ){
-  //       for ( i=0; i<nx_g; i++ ){
-  //         if ( side == 0 ) indx = (i) + (j)*nx_g + (k+nGHST)*nx_g*ny_g;
-  //         if ( side == 1 ) indx = (i) + (j)*nx_g + (nz_g - 2*nGHST + k)*nx_g*ny_g;
-  //         indx_buff = (i) + (j)*nx_g + k*nx_g*ny_g ;
-  //         send_buffer_d[indx_buff] = potential_d[indx];
-  //       }
-  //     }
-  //   }
-  // }
-  //
-
-  // printf( "Loaded Gravity Buffer \n" );
   return size_buffer;
 }
 
