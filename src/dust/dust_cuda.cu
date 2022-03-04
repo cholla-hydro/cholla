@@ -1,7 +1,7 @@
 #ifdef CUDA
 #ifdef DUST_GPU
 
-#include"dust_cuda_updated.h"
+#include"dust_cuda.h"
 #include<math.h>
 #include<vector.h>
 #include"global.h"
