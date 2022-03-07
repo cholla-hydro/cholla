@@ -1,0 +1,3 @@
+[submodule "cholla-tests-data"]
+	path = cholla-tests-data
+	url = https://github.com/cholla-hydro/cholla-tests-data.git
