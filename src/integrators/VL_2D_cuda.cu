@@ -152,7 +152,6 @@ void Free_Memory_VL_2D() {
 
   // free the CPU memory
   if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
-  CudaSafeCall( cudaFreeHost(host_dti_array) );
   #ifdef COOLING_GPU
   CudaSafeCall( cudaFreeHost(host_dt_array) );
   #endif
@@ -166,7 +165,6 @@ void Free_Memory_VL_2D() {
   cudaFree(Q_Ry);
   cudaFree(F_x);
   cudaFree(F_y);
-  cudaFree(dev_dti_array);
   #ifdef COOLING_GPU
   cudaFree(dev_dt_array);
   #endif
