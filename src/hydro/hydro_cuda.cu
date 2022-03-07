@@ -586,31 +586,12 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
 
 Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow){
 
-  // Assumes dev_conserved array is already allocated
-  // global TPB is from global_cuda.h
-
-  int num_blocks = (nx*ny*nz + TPB - 1) / TPB;
-
-  // Allocate host and device arrays
-  Real *host_dti_array, *dev_dti_array;
-  CudaSafeCall( cudaHostAlloc(&host_dti_array, num_blocks*sizeof(Real), cudaHostAllocDefault) );
-  CudaSafeCall( cudaMalloc((void**)&dev_dti_array, num_blocks*sizeof(Real)) );
-
   // set values for GPU kernels
   // number of blocks per 1D grid
-  dim3 dim1dGrid(num_blocks, 1, 1);
+  dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
   dim3 dim1dBlock(TPB, 1, 1);
 
-  #ifdef COOLING_GPU
-  if (! dt_memory_allocated) {
-    // allocate arrays on the CPU and GPU to hold max_dti returned from each
-    // thread block for cooling
-    CudaSafeCall( cudaHostAlloc(&host_dt_array, num_blocks*sizeof(Real), cudaHostAllocDefault) );
-    CudaSafeCall( cudaMalloc((void**)&dev_dt_array, num_blocks*sizeof(Real)) );
-    dt_memory_allocated = true;
-  }
-  #endif  // COOLING
 
   // compute dt and store in dev_dti_array
   if (nx > 1 && ny == 1 && nz == 1) //1D
@@ -628,16 +609,12 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real 
   CudaCheckError();
 
   // copy dev_dti_array to host_dti_array
-  CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, num_blocks*sizeof(Real), cudaMemcpyDeviceToHost) );
+  CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
 
   Real max_dti = 0.0;
-  for (int i=0; i<num_blocks; i++) {
+  for (int i=0; i<ngrid; i++) {
     max_dti = fmax(max_dti, host_dti_array[i]);
   }
-
-  // Deallocate arrays
-  CudaSafeCall( cudaFreeHost(host_dti_array) );
-  cudaFree(dev_dti_array);
 
   return max_dti;
 }

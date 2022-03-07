@@ -265,14 +265,6 @@ void Grid3D::AllocateMemory(void)
   C.GasEnergy = &(buffer0[(H.n_fields-1)*H.n_cells]);
   #endif
 
-  #if defined( GRAVITY )
-  CudaSafeCall( cudaHostAlloc(&C.Grav_potential, H.n_cells*sizeof(Real), cudaHostAllocDefault) );
-  CudaSafeCall( cudaMalloc((void**)&C.d_Grav_potential, H.n_cells*sizeof(Real)) );
-  #else
-  C.Grav_potential   = NULL;
-  C.d_Grav_potential = NULL;
-  #endif
-
   // allocate memory for the conserved variable arrays on the device
   CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
   C.d_density     = C.device;
@@ -286,6 +278,23 @@ void Grid3D::AllocateMemory(void)
   #ifdef DE
   C.d_GasEnergy   = &(C.device[(H.n_fields-1)*H.n_cells]);
   #endif
+
+  // set the number of thread blocks for the GPU grid (declared in global_cuda)
+  ngrid = (H.n_cells + TPB - 1) / TPB;
+
+  // arrays that hold the max_dti calculation for hydro for each thread block (pre reduction)
+  CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
+  CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
+
+
+  #if defined( GRAVITY )
+  CudaSafeCall( cudaHostAlloc(&C.Grav_potential, H.n_cells*sizeof(Real), cudaHostAllocDefault) );
+  CudaSafeCall( cudaMalloc((void**)&C.d_Grav_potential, H.n_cells*sizeof(Real)) );
+  #else
+  C.Grav_potential   = NULL;
+  C.d_Grav_potential = NULL;
+  #endif
+
 
   #ifdef CHEMISTRY_GPU
   C.HI_density    = &C.scalar[ 0*H.n_cells ];
@@ -304,7 +313,6 @@ void Grid3D::AllocateMemory(void)
   }
 
   #ifdef CLOUDY_COOL
-  //printf("Warning: Cloudy cooling isn't currently working. No cooling will be applied.\n");
   Load_Cuda_Textures();
   #endif
 
@@ -480,10 +488,9 @@ Real Grid3D::Update_Grid(void)
 
   #ifdef COOLING_GPU
   // ==Calculate cooling dt from cooling/cooling_cuda.h==
-  // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in integrators
-  Real cooling_max_dti = Cooling_Calc_dt(dev_dt_array, host_dt_array, H.nx, H.ny, H.nz);
-  max_dti = fmax(max_dti,cooling_max_dti);
-
+  // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in Allocate_Memory
+  Real cooling_max_dti = Cooling_Calc_dt(dev_dti_array, host_dti_array, H.nx, H.ny, H.nz);
+  max_dti = fmax(max_dti, cooling_max_dti);
   #endif // COOLING_GPU
   #endif // CUDA
 
@@ -620,6 +627,10 @@ void Grid3D::FreeMemory(void)
   // free the conserved variable arrays
   CudaSafeCall( cudaFreeHost(buffer0) );
   CudaSafeCall( cudaFreeHost(buffer1) );
+
+  // free the timestep arrays
+  CudaSafeCall( cudaFreeHost(host_dti_array) );
+  cudaFree(dev_dti_array);  
 
   #ifdef GRAVITY
   CudaSafeCall( cudaFreeHost(C.Grav_potential) );
