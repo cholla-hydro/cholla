@@ -199,7 +199,6 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
 void Free_Memory_VL_3D(){
 
   // free CPU memory
-  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
   #ifdef COOLING_GPU
   CudaSafeCall( cudaFreeHost(host_dt_array) );
   #endif
