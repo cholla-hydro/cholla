@@ -39,8 +39,6 @@ void CTU_Algorithm_3D_CUDA(Real *d_conserved, int nx, int ny, int nz, int x_off,
   int n_cells = nx*ny*nz;
 
   // set values for GPU kernels
-  // dimensions for the 1D GPU grid
-  ngrid = (n_cells + TPB - 1) / TPB;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -192,11 +190,6 @@ void CTU_Algorithm_3D_CUDA(Real *d_conserved, int nx, int ny, int nz, int x_off,
 
 void Free_Memory_CTU_3D() {
 
-  // free CPU memory
-  #ifdef COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );
-  #endif
-
   // free the GPU memory
   cudaFree(dev_conserved);
   cudaFree(Q_Lx);
@@ -208,9 +201,6 @@ void Free_Memory_CTU_3D() {
   cudaFree(F_x);
   cudaFree(F_y);
   cudaFree(F_z);
-  #ifdef COOLING_GPU
-  cudaFree(dev_dt_array);
-  #endif
   #if defined( GRAVITY )
   cudaFree(dev_grav_potential);
   #endif

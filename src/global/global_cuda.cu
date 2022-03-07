@@ -6,6 +6,7 @@
 #include "../global/global.h"
 
 // Declare global variables
+bool memory_allocated;
 Real *dev_conserved, *dev_conserved_half;
 Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
 Real *eta_x, *eta_y, *eta_z, *etah_x, *etah_y, *etah_z;

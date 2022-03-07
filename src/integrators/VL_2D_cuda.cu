@@ -38,9 +38,6 @@ void VL_Algorithm_2D_CUDA ( Real *d_conserved, int nx, int ny, int x_off, int y_
   int n_cells = nx*ny;
   int nz = 1;
 
-  // dimensions for the 1D GPU grid
-  ngrid = (n_cells + TPB - 1) / (TPB);
-
   // set values for GPU kernels
   // number of blocks per 1D grid
   dim3 dim2dGrid(ngrid, 1, 1);
@@ -150,12 +147,6 @@ void VL_Algorithm_2D_CUDA ( Real *d_conserved, int nx, int ny, int x_off, int y_
 
 void Free_Memory_VL_2D() {
 
-  // free the CPU memory
-  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
-  #ifdef COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );
-  #endif
-
   // free the GPU memory
   cudaFree(dev_conserved);
   cudaFree(dev_conserved_half);
@@ -165,9 +156,6 @@ void Free_Memory_VL_2D() {
   cudaFree(Q_Ry);
   cudaFree(F_x);
   cudaFree(F_y);
-  #ifdef COOLING_GPU
-  cudaFree(dev_dt_array);
-  #endif
 
 }
 

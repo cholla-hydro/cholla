@@ -38,8 +38,6 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
   int n_cells = nx*ny*nz;
 
   // set values for GPU kernels
-  // dimensions for the 1D GPU grid
-  ngrid = (n_cells + TPB - 1) / TPB;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -160,12 +158,6 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
 
 void Free_Memory_Simple_3D(){
 
-  // free CPU memory
-  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
-  #ifdef COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );
-  #endif
-
   // free the GPU memory
   cudaFree(dev_conserved);
   cudaFree(Q_Lx);
@@ -177,9 +169,6 @@ void Free_Memory_Simple_3D(){
   cudaFree(F_x);
   cudaFree(F_y);
   cudaFree(F_z);
-  #ifdef COOLING_GPU
-  cudaFree(dev_dt_array);
-  #endif
 
 }
 

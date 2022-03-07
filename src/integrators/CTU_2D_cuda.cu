@@ -37,8 +37,6 @@ void CTU_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_o
   int nz = 1;
 
   // set values for GPU kernels
-  // dimensions for the 1D GPU grid
-  ngrid = (n_cells + TPB - 1) / (TPB);
   // number of blocks per 1D grid
   dim3 dim2dGrid(ngrid, 1, 1);
   //number of threads per 1D block
@@ -146,12 +144,6 @@ void CTU_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_o
 
 void Free_Memory_CTU_2D() {
 
-  // free the CPU memory
-  if (block_tot > 1) CudaSafeCall( cudaFreeHost(buffer) );
-  #ifdef COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );
-  #endif
-
   // free the GPU memory
   cudaFree(dev_conserved);
   cudaFree(Q_Lx);
@@ -160,9 +152,6 @@ void Free_Memory_CTU_2D() {
   cudaFree(Q_Ry);
   cudaFree(F_x);
   cudaFree(F_y);
-  #ifdef COOLING_GPU
-  cudaFree(dev_dt_array);
-  #endif
 
 }
 
