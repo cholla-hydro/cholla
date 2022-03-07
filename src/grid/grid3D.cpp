@@ -286,7 +286,7 @@ void Grid3D::AllocateMemory(void)
   #ifdef DE
   C.d_GasEnergy   = &(C.device[(H.n_fields-1)*H.n_cells]);
   #endif
-  
+
   #ifdef CHEMISTRY_GPU
   C.HI_density    = &C.scalar[ 0*H.n_cells ];
   C.HII_density   = &C.scalar[ 1*H.n_cells ];
@@ -329,20 +329,26 @@ void Grid3D::AllocateMemory(void)
   #else //NOT ONLY_PARTICLES
 
   //Compute the hydro delta_t ( H.dt )
-  if (H.n_step == 0) {
-    max_dti = calc_dti_CPU();
+  if (H.n_step == 0)
+  {
+    //Set the min_delta_t for averaging a slow cell
+    #ifdef AVERAGE_SLOW_CELLS
+      Real max_dti_slow = 1 / H.min_dt_slow;
+    #else // NOT AVERAGE_SLOW_CELLS
+      Real max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
+    #endif //max_dti_slow
+
+    // Compute the time step
+    max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
   }
   else {
-    #ifndef CUDA
-    max_dti = calc_dti_CPU();
-    #endif /*NO_CUDA*/
-    #ifdef CUDA
     max_dti = dti;
-    #endif /*CUDA*/
   }
 
   #ifdef MPI_CHOLLA
-  max_dti = ReduceRealMax(max_dti);
+    // Note that this is the MPI_Allreduce for every iteration of the loop, not
+    // just the first one
+    max_dti = ReduceRealMax(max_dti);
   #endif /*MPI_CHOLLA*/
 
 
@@ -361,162 +367,6 @@ void Grid3D::AllocateMemory(void)
 
 
 }
-
-/*! \fn Real calc_dti_CPU_1D()
- *  \brief Calculate the maximum inverse timestep on 1D, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU_1D(){
-  int i, id;
-  Real d_inv, vx, vy, vz, P, cs;
-  Real max_vx, max_vy, max_vz;
-  Real max_dti = 0.0;
-  max_vx = max_vy = max_vz = 0.0;
-  //Find the maximum wave speed in the grid
-  for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-    id = i;
-    d_inv = 1.0 / C.density[id];
-    vx = d_inv * C.momentum_x[id];
-    vy = d_inv * C.momentum_y[id];
-    vz = d_inv * C.momentum_z[id];
-    P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
-    cs = sqrt(d_inv * gama * P);
-    // compute maximum cfl velocity
-    max_vx = fmax(max_vx, fabs(vx) + cs);
-  }
-  // compute max inverse of dt
-  max_dti = max_vx / H.dx;
-  return max_dti;
-}
-
-/*! \fn Real calc_dti_CPU_2D()
- *  \brief Calculate the maximum inverse timestep on 2D, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU_2D(){
-  int i, j, id;
-  Real d_inv, vx, vy, vz, P, cs;
-  Real max_vx, max_vy, max_vz;
-  Real max_dti = 0.0;
-  max_vx = max_vy = max_vz = 0.0;
-  // Find the maximum wave speed in the grid
-  for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-      id = i + j*H.nx;
-      d_inv = 1.0 / C.density[id];
-      vx = d_inv * C.momentum_x[id];
-      vy = d_inv * C.momentum_y[id];
-      vz = d_inv * C.momentum_z[id];
-      P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
-      cs = sqrt(d_inv * gama * P);
-      // compute maximum cfl velocity
-      max_vx = fmax(max_vx, fabs(vx) + cs);
-      max_vy = fmax(max_vy, fabs(vy) + cs);
-    }
-  }
-  // compute max inverse of dt
-  max_dti = max_vx / H.dx;
-  max_dti = fmax(max_dti, max_vy / H.dy);
-  return max_dti;
-}
-
-/*! \fn Real calc_dti_CPU_3D_function()
- *  \brief Calculate the maximum inverse timestep on 3D using openMP, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU_3D_function( int g_start, int g_end ){
-  int i, j, k, id;
-  Real d_inv, vx, vy, vz, P, cs;
-  Real max_vx, max_vy, max_vz;
-  Real max_dti = 0.0;
-  max_vx = max_vy = max_vz = 0.0;
-
-
-  for (k=g_start; k<g_end; k++) {
-    for (j=0; j<H.ny_real; j++) {
-      for (i=0; i<H.nx_real; i++) {
-        id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-        d_inv = 1.0 / C.density[id];
-        vx = d_inv * C.momentum_x[id];
-        vy = d_inv * C.momentum_y[id];
-        vz = d_inv * C.momentum_z[id];
-        P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
-        cs = sqrt(d_inv * gama * P);
-
-        // compute maximum cfl velocity
-        max_vx = fmax(max_vx, fabs(vx) + cs);
-        max_vy = fmax(max_vy, fabs(vy) + cs);
-        max_vz = fmax(max_vz, fabs(vz) + cs);
-
-      }
-    }
-  }
-  // compute max inverse of dt
-  max_dti = max_vx / H.dx;
-  max_dti = fmax(max_dti, max_vy / H.dy);
-  max_dti = fmax(max_dti, max_vz / H.dy);
-  return max_dti;
-}
-
-/*! \fn Real calc_dti_CPU_3D()
- *  \brief Calculate the maximum inverse timestep on 3D, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU_3D(){
-
-  Real max_dti;
-
-  #ifndef PARALLEL_OMP
-  max_dti = calc_dti_CPU_3D_function( 0, H.nz_real );
-  #else
-
-  max_dti = 0;
-  Real max_dti_all[N_OMP_THREADS];
-  #pragma omp parallel num_threads( N_OMP_THREADS )
-  {
-    int omp_id, n_omp_procs;
-    int g_start, g_end;
-
-    omp_id = omp_get_thread_num();
-    n_omp_procs = omp_get_num_threads();
-    Get_OMP_Grid_Indxs( H.nz_real, n_omp_procs, omp_id, &g_start, &g_end  );
-    max_dti_all[omp_id] = calc_dti_CPU_3D_function( g_start, g_end );
-
-  }
-
-  for ( int i=0; i<N_OMP_THREADS; i++ ){
-    max_dti = fmax( max_dti, max_dti_all[i]);
-  }
-
-  #endif //PARALLEL_OMP
-
-  return max_dti;
-
-
-}
-
-/*! \fn Real calc_dti_CPU()
- *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU()
-{
-  Real max_dti;
-
-  // 1D
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
-    //Find the maximum wave speed in the grid
-    max_dti = calc_dti_CPU_1D();
-  }
-  // 2D
-  else if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
-    // Find the maximum wave speed in the grid
-    max_dti = calc_dti_CPU_2D();
-  }
-  // 3D
-  else if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-    // Find the maximum wave speed in the grid
-    max_dti = calc_dti_CPU_3D();
-  }
-  else {
-    chprintf("Invalid grid dimensions. Failed to compute dt.\n");
-    chexit(-1);
-  }
-
-  return max_dti;
-
-}
-
 
 /*! \fn void Update_Grid(void)
  *  \brief Update the conserved quantities in each cell. */
@@ -561,8 +411,8 @@ Real Grid3D::Update_Grid(void)
   #else // NOT AVERAGE_SLOW_CELLS
   max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
   #endif //max_dti_slow
-    
-  
+
+
   // Run the hydro integrator on the grid
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) //1D
   {
@@ -606,9 +456,9 @@ Real Grid3D::Update_Grid(void)
     chexit(-1);
   }
 
-  
+
   #ifdef CUDA
-  
+
   // ==Apply Cooling from cooling/cooling_cuda.h==
   #ifdef COOLING_GPU
   Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dt_array);
@@ -624,19 +474,19 @@ Real Grid3D::Update_Grid(void)
   Timer.Chemistry.End();
   #endif
   #endif
-  
+
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
   max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
 
   #ifdef COOLING_GPU
   // ==Calculate cooling dt from cooling/cooling_cuda.h==
-  // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in integrators 
+  // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in integrators
   Real cooling_max_dti = Cooling_Calc_dt(dev_dt_array, host_dt_array, H.nx, H.ny, H.nz);
   max_dti = fmax(max_dti,cooling_max_dti);
-  
+
   #endif // COOLING_GPU
   #endif // CUDA
-  
+
   // at this point g0 has the old data, g1 has the new data
   // point the grid variables at the new data
   C.density  = &g1[0];
@@ -663,7 +513,7 @@ Real Grid3D::Update_Grid(void)
   Cool.fields.metal_density   = &C.scalar[ 6*H.n_cells ];
   #endif
   #endif
-  
+
   #ifdef CHEMISTRY_GPU
   C.HI_density    = &C.scalar[ 0*H.n_cells ];
   C.HII_density   = &C.scalar[ 1*H.n_cells ];
@@ -672,7 +522,7 @@ Real Grid3D::Update_Grid(void)
   C.HeIII_density = &C.scalar[ 4*H.n_cells ];
   C.e_density     = &C.scalar[ 5*H.n_cells ];
   #endif
-  
+
   // reset the grid flag to swap buffers
   gflag = (gflag+1)%2;
 
@@ -811,11 +661,11 @@ void Grid3D::FreeMemory(void)
   Free_Cuda_Textures();
   #endif
   #endif
-  
+
   #ifdef CHEMISTRY_GPU
   Chem.Reset();
   #endif
-  
+
   #ifdef ANALYSIS
   Analysis.Reset();
   #endif
