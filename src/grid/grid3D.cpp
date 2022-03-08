@@ -248,23 +248,20 @@ void Grid3D::Initialize(struct parameters *P)
 void Grid3D::AllocateMemory(void)
 {
   // allocate memory for the conserved variable arrays
+  // allocate all the memory to density, to insure contiguous memory
   CudaSafeCall( cudaHostAlloc((void**)&C.host, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
 
-  // allocate all the memory to density, to insure contiguous memory
-  CudaSafeCall( cudaHostAlloc(&buffer0, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
-  CudaSafeCall( cudaHostAlloc(&buffer1, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
-
-  // point conserved variables to the appropriate locations in buffer
-  C.density  = &(buffer0[0]);
-  C.momentum_x = &(buffer0[H.n_cells]);
-  C.momentum_y = &(buffer0[2*H.n_cells]);
-  C.momentum_z = &(buffer0[3*H.n_cells]);
-  C.Energy   = &(buffer0[4*H.n_cells]);
+  // point conserved variables to the appropriate locations
+  C.density  = C.host;
+  C.momentum_x = &(C.host[H.n_cells]);
+  C.momentum_y = &(C.host[2*H.n_cells]);
+  C.momentum_z = &(C.host[3*H.n_cells]);
+  C.Energy   = &(C.host[4*H.n_cells]);
   #ifdef SCALAR
-  C.scalar  = &(buffer0[5*H.n_cells]);
+  C.scalar  = &(C.host[5*H.n_cells]);
   #endif
   #ifdef DE
-  C.GasEnergy = &(buffer0[(H.n_fields-1)*H.n_cells]);
+  C.GasEnergy = &(C.host[(H.n_fields-1)*H.n_cells]);
   #endif
 
   // allocate memory for the conserved variable arrays on the device
@@ -307,11 +304,10 @@ void Grid3D::AllocateMemory(void)
   C.e_density     = &C.scalar[ 5*H.n_cells ];
   #endif
 
-  // initialize array
+  // initialize host array
   for (int i=0; i<H.n_fields*H.n_cells; i++)
   {
-    buffer0[i] = 0.0;
-    buffer1[i] = 0.0;
+    C.host[i] = 0.0;
   }
 
   #ifdef CLOUDY_COOL
@@ -382,15 +378,6 @@ void Grid3D::AllocateMemory(void)
  *  \brief Update the conserved quantities in each cell. */
 Real Grid3D::Update_Grid(void)
 {
-  Real *g0, *g1;
-  if (gflag == 0) {
-    g0 = &(buffer0[0]);
-    g1 = &(buffer1[0]);
-  }
-  else {
-    g0 = &(buffer1[0]);
-    g1 = &(buffer0[0]);
-  }
 
   Real max_dti = 0;
   int x_off, y_off, z_off;
@@ -494,20 +481,6 @@ Real Grid3D::Update_Grid(void)
   max_dti = fmax(max_dti, cooling_max_dti);
   #endif // COOLING_GPU
   #endif // CUDA
-
-  // at this point g0 has the old data, g1 has the new data
-  // point the grid variables at the new data
-  C.density  = &g1[0];
-  C.momentum_x = &g1[H.n_cells];
-  C.momentum_y = &g1[2*H.n_cells];
-  C.momentum_z = &g1[3*H.n_cells];
-  C.Energy   = &g1[4*H.n_cells];
-  #ifdef SCALAR
-  C.scalar = &g1[5*H.n_cells];
-  #endif
-  #ifdef DE
-  C.GasEnergy = &g1[(H.n_fields-1)*H.n_cells];
-  #endif
 
   #ifdef COOLING_GRACKLE
   Cool.fields.density = C.density;
@@ -626,8 +599,7 @@ void Grid3D::Reset(void)
 void Grid3D::FreeMemory(void)
 {
   // free the conserved variable arrays
-  CudaSafeCall( cudaFreeHost(buffer0) );
-  CudaSafeCall( cudaFreeHost(buffer1) );
+  CudaSafeCall( cudaFreeHost(C.host) );
 
   // free the timestep arrays
   CudaSafeCall( cudaFreeHost(host_dti_array) );
