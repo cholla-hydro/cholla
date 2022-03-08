@@ -34,7 +34,6 @@ void CTU_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Re
   int nz = 1;
 
   // set the dimensions of the cuda grid
-  ngrid = (n_cells + TPB - 1) / TPB;
   dim3 dimGrid(ngrid, 1, 1);
   dim3 dimBlock(TPB, 1, 1);
 
@@ -112,19 +111,11 @@ void CTU_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Re
 
 void Free_Memory_CTU_1D() {
 
-  // free the CPU memory
-  #if defined COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );
-  #endif
-
   // free the GPU memory
   cudaFree(dev_conserved);
   cudaFree(Q_Lx);
   cudaFree(Q_Rx);
   cudaFree(F_x);
-  #if defined COOLING_GPU
-  cudaFree(dev_dt_array);
-  #endif
 
 }
 

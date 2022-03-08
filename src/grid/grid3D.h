@@ -290,14 +290,6 @@ class Grid3D
      *  \brief Rotation struct for data projections */
     struct Rotation R;
 
-    /*! \var buffer0
-     *  \brief Buffer to hold conserved variable arrays */
-    Real *buffer0;
-
-    /*! \var buffer1
-     *  \brief Buffer to hold conserved variable arrays */
-    Real *buffer1;
-
     #ifdef GRAVITY
     // Object that contains data for gravity
     Grav3D Grav;
@@ -333,6 +325,9 @@ class Grid3D
 
     struct Conserved
     {
+      /*! pointer to conserved variable array on the host */
+      Real *host;
+
       /*! \var density
        *  \brief Array containing the density of each cell in the grid */
       Real *density;
