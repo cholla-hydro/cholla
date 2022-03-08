@@ -248,6 +248,8 @@ void Grid3D::Initialize(struct parameters *P)
 void Grid3D::AllocateMemory(void)
 {
   // allocate memory for the conserved variable arrays
+  CudaSafeCall( cudaHostAlloc((void**)&C.host, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
+
   // allocate all the memory to density, to insure contiguous memory
   CudaSafeCall( cudaHostAlloc(&buffer0, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
   CudaSafeCall( cudaHostAlloc(&buffer1, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
@@ -467,9 +469,12 @@ Real Grid3D::Update_Grid(void)
 
   #ifdef CUDA
 
-  // ==Apply Cooling from cooling/cooling_cuda.h==
   #ifdef COOLING_GPU
-  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dt_array);
+  // ==Apply Cooling from cooling/cooling_cuda.h==
+  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dti_array);
+  // ==Calculate cooling dt from cooling/cooling_cuda.h==
+  // dev_dti_array and host_dti_array are global variables declared in global/global_cuda.h and allocated in Allocate_Memory
+  Real cooling_max_dti = Cooling_Calc_dt(dev_dti_array, host_dti_array, H.nx, H.ny, H.nz);
   #endif //COOLING_GPU
 
   // Update the H and He ionization fractions and apply cooling and photoheating
@@ -485,11 +490,7 @@ Real Grid3D::Update_Grid(void)
 
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
   max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
-
   #ifdef COOLING_GPU
-  // ==Calculate cooling dt from cooling/cooling_cuda.h==
-  // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in Allocate_Memory
-  Real cooling_max_dti = Cooling_Calc_dt(dev_dti_array, host_dti_array, H.nx, H.ny, H.nz);
   max_dti = fmax(max_dti, cooling_max_dti);
   #endif // COOLING_GPU
   #endif // CUDA

@@ -333,6 +333,9 @@ class Grid3D
 
     struct Conserved
     {
+      /*! pointer to conserved variable array on the host */
+      Real *host;
+
       /*! \var density
        *  \brief Array containing the density of each cell in the grid */
       Real *density;
