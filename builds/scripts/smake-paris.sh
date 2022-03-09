@@ -1,6 +1,6 @@
 #!/bin/bash
 
-module load gcc hdf5 cuda
+module load gcc hdf5 cuda fftw
 module list
 
 export HDF5INCLUDE=${OLCF_HDF5_ROOT}/include
@@ -11,5 +11,6 @@ export SUFFIX='.paris'
 export CC=mpicc
 export CXX=mpicxx
 export LIBS="-L${CUDA_DIR}/lib64"
+
 make clean
 make TYPE=gravity 

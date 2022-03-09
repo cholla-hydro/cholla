@@ -1,32 +1,41 @@
 #ifndef GRAV3D_H
 #define GRAV3D_H
 
-#include<stdio.h>
-#include"../global.h"
+#include <stdio.h>
+#include "../global/global.h"
 
 #ifdef PFFT
-#include"potential_PFFT_3D.h"
+#include "../gravity/potential_PFFT_3D.h"
 #endif
 
 #ifdef CUFFT
-#include"potential_CUFFT_3D.h"
+#include "../gravity/potential_CUFFT_3D.h"
 #endif
 
 #ifdef SOR
-#include"potential_SOR_3D.h"
+#include "../gravity/potential_SOR_3D.h"
 #endif
 
 #ifdef PARIS
-#include "potential_paris_3D.h"
+#include "../gravity/potential_paris_3D.h"
+#endif
+
+#ifdef PARIS_GALACTIC
+#include "../gravity/potential_paris_galactic.h"
 #endif
 
 #ifdef HDF5
-#include<hdf5.h>
+#include <hdf5.h>
 #endif
 
 #define GRAV_ISOLATED_BOUNDARY_X
 #define GRAV_ISOLATED_BOUNDARY_Y
 #define GRAV_ISOLATED_BOUNDARY_Z
+
+#define TPB_GRAV 1024
+#define TPBX_GRAV 16
+#define TPBY_GRAV 8
+#define TPBZ_GRAV 8
 
 /*! \class Grid3D
  *  \brief Class to create a the gravity object. */
@@ -90,17 +99,17 @@ class Grav3D
   Real Gconst;
 
   bool TRANSFER_POTENTIAL_BOUNDARIES;
-  
-  
+
+
   bool BC_FLAGS_SET;
   int *boundary_flags;
-  
-  
-  
+
+
+
   #ifdef PFFT
   Potential_PFFT_3D Poisson_solver;
   #endif
-  
+
   #ifdef CUFFT
   Potential_CUFFT_3D Poisson_solver;
   #endif
@@ -110,7 +119,7 @@ class Grav3D
   #endif
 
   #ifdef PARIS
-  #if (defined(PFFT) || defined(CUFFT) || defined(SOR))
+  #if (defined(PFFT) || defined(CUFFT))
   #define PARIS_TEST
   Potential_Paris_3D Poisson_solver_test;
   #else
@@ -118,10 +127,18 @@ class Grav3D
   #endif
   #endif
 
+  #ifdef PARIS_GALACTIC
+  #ifdef SOR
+  #define PARIS_GALACTIC_TEST
+  Potential_Paris_Galactic Poisson_solver_test;
+  #else
+  Potential_Paris_Galactic Poisson_solver;
+  #endif
+  #endif
 
   struct Fields
   {
-    /*! \var density
+    /*! \var density_h
      *  \brief Array containing the density of each cell in the grid */
     Real *density_h;
 
@@ -130,9 +147,25 @@ class Grav3D
     Real *potential_h;
 
     /*! \var potential_h
-     *  \brief Array containing the gravitational potential of each cell in the grid */
+     *  \brief Array containing the gravitational potential of each cell in the grid at the previous time step */
     Real *potential_1_h;
-    
+
+    #ifdef GRAVITY_GPU
+
+    /*! \var density_d
+     *  \brief Device Array containing the density of each cell in the grid */
+    Real *density_d;
+
+    /*! \var potential_d
+    *  \brief Device Array containing the gravitational potential of each cell in the grid */
+    Real *potential_d;
+
+    /*! \var potential_d
+    *  \brief Device Array containing the gravitational potential of each cell in the grid at the previous time step */
+    Real *potential_1_d;
+
+    #endif //GRAVITY_GPU
+
     // Arrays for computing the potential values in isolated boundaries
     #ifdef GRAV_ISOLATED_BOUNDARY_X
     Real *pot_boundary_x0;
@@ -146,8 +179,24 @@ class Grav3D
     Real *pot_boundary_z0;
     Real *pot_boundary_z1;
     #endif
+
+    #ifdef GRAVITY_GPU
+    #ifdef GRAV_ISOLATED_BOUNDARY_X
+    Real *pot_boundary_x0_d;
+    Real *pot_boundary_x1_d;
+    #endif
+    #ifdef GRAV_ISOLATED_BOUNDARY_Y
+    Real *pot_boundary_y0_d;
+    Real *pot_boundary_y1_d;
+    #endif
+    #ifdef GRAV_ISOLATED_BOUNDARY_Z
+    Real *pot_boundary_z0_d;
+    Real *pot_boundary_z1_d;
+    #endif
+    #endif//GRAVITY_GPU
+
   } F;
-  
+
   /*! \fn Grav3D(void)
   *  \brief Constructor for the gravity class */
   Grav3D(void);
@@ -159,15 +208,20 @@ class Grav3D
   void AllocateMemory_CPU(void);
   void Initialize_values_CPU();
   void FreeMemory_CPU(void);
-  
+
   Real Get_Average_Density( );
   Real Get_Average_Density_function( int g_start, int g_end );
 
   void Set_Boundary_Flags( int *flags );
-    
+
   #ifdef SOR
   void Copy_Isolated_Boundary_To_GPU_buffer( Real *isolated_boundary_h, Real *isolated_boundary_d, int boundary_size );
   void Copy_Isolated_Boundaries_To_GPU( struct parameters *P );
+  #endif
+
+  #ifdef GRAVITY_GPU
+  void AllocateMemory_GPU(void);
+  void FreeMemory_GPU(void);
   #endif
 
 };

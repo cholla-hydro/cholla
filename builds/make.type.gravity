@@ -2,12 +2,27 @@ include builds/make.type.hydro
 
 POISSON_SOLVER ?= -DPARIS
 
-DFLAGS += $(POISSON_SOLVER)
+#Include Gravity 
 DFLAGS += -DGRAVITY
-DFLAGS += -DGRAVITY_LONG_INTS
-DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
+DFLAGS += $(POISSON_SOLVER)
+
+#Keep the Gravity arrays resident in the GPU for high efficiency
+#NOTE: If using PARTICLES and GRAVITY_GPU is turned on, then PARTICLES_GPU has to be turned on 
+#NOTE: If using GRAVITY and MPI_GPU is turned on, then GRAVITY_GPU has to be turned on 
+DFLAGS += -DGRAVITY_GPU
+
+#Include an analytical potential on top on the Poisson Potential
+# DFLAGS += -DGRAVITY_ANALYTIC_COMP
+
+#Solve the Gradient of the Potential using a fourth order scheme (5 points) 
 DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
+
 DFLAGS += -DPARALLEL_OMP
 
-#-- OMP_NUM_THREADS should be set in make.host.*
-DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
+#Write the Gravitational Potential to the output files
+# DFLAGS += -DOUTPUT_POTENTIAL
+
+#Select if Paris will do GPU MPI transfers 
+#If not specified, Paris will do GPU MPI transfers by default
+#This is set in the system make.host file
+DFLAGS += $(PARIS_MPI_GPU)

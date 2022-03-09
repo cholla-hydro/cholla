@@ -22,6 +22,6 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/brvillas/code/grackle/lib
 
 cd /home/brvillas/cholla
 
-mpirun -N 1 --map-by ppr:8:node ./cholla tests/3D/Spherical_Collapse.txt
+mpirun -N 1 --map-by ppr:8:node ./cholla examples/3D/Spherical_Collapse.txt
 
 date

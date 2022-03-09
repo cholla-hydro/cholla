@@ -1,22 +1,23 @@
 #ifdef PARTICLES
 
-#include<stdio.h>
-#include<stdlib.h>
-#include"math.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "math.h"
 #include <iostream>
-#include"../global.h"
-#include"particles_3D.h"
-#include "../grid3D.h"
+#include "../global/global.h"
+#include "../particles/particles_3D.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
 
 #ifdef PARALLEL_OMP
-#include"../parallel_omp.h"
+#include "../utils/parallel_omp.h"
 #endif
 
 
 
 //Get the particles Cloud-In-Cell interpolated density
 void Particles_3D::Get_Density_CIC(){
-  
+
   #ifdef PARTICLES_CPU
   #ifdef PARALLEL_OMP
   Get_Density_CIC_OMP();
@@ -24,53 +25,56 @@ void Particles_3D::Get_Density_CIC(){
   Get_Density_CIC_Serial();
   #endif //PARALLEL_OMP
   #endif
-  
+
   #ifdef PARTICLES_GPU
   Get_Density_CIC_GPU();
   #endif
-  
+
 }
 
 
 //Compute the particles density and copy it to the array in Grav to compute the potential
 void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
-  
-  // Step 1: Get Partcles CIC Density
+
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Part_Density.Start();
   #endif
+
+  // Step 1: Get Particles CIC Density
   Particles.Clear_Density();
-  
   Particles.Get_Density_CIC();
-  
+
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 4 );
+  Timer.Part_Density.End();
   #endif
-  
-  
+
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Part_Dens_Transf.Start();
   #endif
   // Step 2: Transfer Particles CIC density Boundaries
   Transfer_Particles_Density_Boundaries(P);
 
   //Step 3: Copy Particles density to Gravity array
   Copy_Particles_Density();
-  
+
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 5 );
+  Timer.Part_Dens_Transf.End();
   #endif
-  
-  
+
+
 }
 
 //Copy the particles density to the density array in Grav to compute the potential
 void Grid3D::Copy_Particles_Density(){
-  
+
+  #ifdef GRAVITY_GPU
+  Copy_Particles_Density_GPU();
+  #else
+
   #ifndef PARALLEL_OMP
   Copy_Particles_Density_function( 0, Grav.nz_local );
   #else
-  
+
   #pragma omp parallel num_threads( N_OMP_THREADS )
   {
     int omp_id, n_omp_procs;
@@ -83,7 +87,9 @@ void Grid3D::Copy_Particles_Density(){
 
     Copy_Particles_Density_function( g_start, g_end  );
   }
-  #endif  
+  #endif//PARALLEL_OMP
+
+  #endif//GRAVITY_GPU
 }
 
 void Grid3D::Copy_Particles_Density_function( int g_start, int g_end ){
@@ -92,12 +98,12 @@ void Grid3D::Copy_Particles_Density_function( int g_start, int g_end ){
   nx_part = Particles.G.nx_local + 2*nGHST;
   ny_part = Particles.G.ny_local + 2*nGHST;
   nz_part = Particles.G.nz_local + 2*nGHST;
-  
+
   int nx_dens, ny_dens, nz_dens;
   nx_dens = Grav.nx_local;
   ny_dens = Grav.ny_local;
   nz_dens = Grav.nz_local;
-  
+
   int i, j, k, id_CIC, id_grid;
   for ( k=g_start; k<g_end; k++ ){
     for ( j=0; j<ny_dens; j++ ){
@@ -113,28 +119,28 @@ void Grid3D::Copy_Particles_Density_function( int g_start, int g_end ){
 
 //Clear the density array: density=0
 void::Particles_3D::Clear_Density(){
-   
+
   #ifdef PARTICLES_CPU
   for( int i=0; i<G.n_cells; i++ ) G.density[i] = 0;
   #endif
-  
+
   #ifdef PARTICLES_GPU
   Clear_Density_GPU();
-  #endif  
+  #endif
 }
 
 #ifdef PARTICLES_GPU
 
 void Particles_3D::Clear_Density_GPU(){
-  
+
   Clear_Density_GPU_function( G.density_dev, G.n_cells);
-  
+
 }
 
 void Particles_3D::Get_Density_CIC_GPU(){
-  
+
   Get_Density_CIC_GPU_function( n_local, particle_mass, G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax, G.dx, G.dy, G.dz, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.n_cells, G.density, G.density_dev, pos_x_dev, pos_y_dev, pos_z_dev, mass_dev );
-  
+
 }
 
 #endif //PARTICLES_GPU
@@ -198,9 +204,9 @@ void Particles_3D::Get_Density_CIC_Serial( ){
     if ( ! in_local  ) {
       std::cout << " Density CIC Error:" << std::endl;
       #ifdef PARTICLE_IDS
-      std::cout << " Particle outside Loacal  domain    pID: " << partIDs[pIndx] << std::endl;
+      std::cout << " Particle outside Local  domain    pID: " << partIDs[pIndx] << std::endl;
       #else
-      std::cout << " Particle outside Loacal  domain " << std::endl;
+      std::cout << " Particle outside Local  domain " << std::endl;
       #endif
       std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
       std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;
@@ -353,9 +359,9 @@ void Particles_3D::Get_Density_CIC_OMP( ){
       if ( ! in_local  ) {
         std::cout << " Density CIC Error:" << std::endl;
         #ifdef PARTICLE_IDS
-        std::cout << " Particle outside Loacal  domain    pID: " << partIDs[pIndx] << std::endl;
+        std::cout << " Particle outside Local  domain    pID: " << partIDs[pIndx] << std::endl;
         #else
-        std::cout << " Particle outside Loacal  domain " << std::endl;
+        std::cout << " Particle outside Local  domain " << std::endl;
         #endif
         std::cout << "  Domain X: " << G.xMin <<  "  " << G.xMax << std::endl;
         std::cout << "  Domain Y: " << G.yMin <<  "  " << G.yMax << std::endl;
@@ -415,19 +421,6 @@ void Particles_3D::Get_Density_CIC_OMP( ){
 #endif //PARALLEL_OMP
 
 #endif //PARTICLES_CPU
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #endif

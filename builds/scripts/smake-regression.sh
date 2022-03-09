@@ -1,6 +1,6 @@
 #!/bin/bash
 
-module load gcc hdf5 cuda
+module load gcc hdf5 cuda fftw
 module list
 
 export HDF5INCLUDE=${OLCF_HDF5_ROOT}/include

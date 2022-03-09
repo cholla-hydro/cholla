@@ -1,6 +1,7 @@
 # Files specific to this repo #
 ##############################
 cholla*
+googletest*
 
 # Compiled source #
 ###################
@@ -27,17 +28,24 @@ cholla*
 
 ## input files
 #parameter_file.txt
+data
 
 # Output files #
 ################
 *.h5
+*.h5.*
 *.bin
 out.*
 o.*
 run
 
+
+disk.*
+
+
 # Logs and databases #
 ######################
+*.err
 *.log
 *.sql
 *.sqlite
@@ -60,6 +68,7 @@ run
 .DS_Store
 
 .remote-sync.json
+.remote-sync_macos.json
 ._*
 .Spotlight-V100
 .Trashes
@@ -70,3 +79,9 @@ Thumbs.db
 ####################
 .idea
 .vscode
+
+# Documentation build files #
+#############################
+docs/doxygen/build
+docs/sphinx/build
+
