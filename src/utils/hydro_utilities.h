@@ -20,6 +20,18 @@ namespace hydroUtils {
         p = fmax(p, (Real) TINY_NUMBER);
         return p;
         }
+
+        inline __host__ __device__ Real _Calc_Temp(Real const &p, Real const &n) {
+            Real T = p * PRESSURE_UNIT / (n * KB);
+            return T;
+        }
+
+        #ifdef DE
+        inline __host__ __device__ Real _Calc_Temp_DE(Real const &d_gas, Real const &ge, Real const &gamma, Real const&n) {
+            Real T =  d_gas * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
+            return T;
+        }
+        #endif // DE 
                                             
     }
 }
