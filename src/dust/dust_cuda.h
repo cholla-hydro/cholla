@@ -15,10 +15,9 @@ __global__ void dust_kernel(Real *dev_conserved, int nx, int ny, int nz,
 int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array);
 
 // general purpose functions:
-__device__ void Get_Indices(int nx, int ny, int nz, int is, int ie, int js,
-int je, int ks, int ke);
+__device__ void Get_Indices(int n_ghost, int nx, int ny, int nz, int &is, int &ie, int &js, int &je, int &ks, int &ke);
 
-__device__ void Get_GTID(int id, int xid, int yid, int zid, int tid);
+__device__ void Get_GTID(int &id, int &xid, int &yid, int &zid, int &tid, int nx, int ny, int nz);
 
 __device__ Real Calc_Pressure(Real E, Real d_gas, Real vx, Real vy, Real vz, 
 Real gamma);

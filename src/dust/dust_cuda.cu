@@ -15,13 +15,13 @@ int n_fields, Real dt, Real gamma, Real *dt_array) {
     // get grid inidices
     int n_cells = nx * ny * nz;
     int is, ie, js, je, ks, ke;
-    Get_Indices(nx, ny, nz, is, ie, js, je, ks, ke);
+    Get_Indices(n_ghost, nx, ny, nz, is, ie, js, je, ks, ke);
 
     // get a global thread ID
     int id;
     int xid, yid, zid;
     int tid;
-    Get_GTID(id, xid, yid, zid, tid);
+    Get_GTID(id, xid, yid, zid, tid, nx, ny, nz);
 
     // define physics variables
     Real d_gas, d_dust; // fluid mass densities
@@ -37,6 +37,7 @@ int n_fields, Real dt, Real gamma, Real *dt_array) {
     Real dd_dt; // instantaneous rate of change in dust density
     Real dd; // change in dust density at current time-step
     Real dd_max = 0.01; // allowable percentage of dust density increase
+    Real dt_sub; //refined timestep
 
     _syncthreads();
     
@@ -120,7 +121,7 @@ Real Dust::calc_dd_dt() {
 
 // forward-Euler methods:
 
-__device__ void Get_Indices(int nx, int ny, int nz, int is, int ie, int js, int je, int ks, int ke) {
+__device__ void Get_Indices(int n_ghost, int nx, int ny, int nz, int &is, int &ie, int &js, int &je, int &ks, int &ke) {
     is = n_ghost;
     ie = nx - n_ghost;
     if (ny == 1) {
@@ -139,7 +140,7 @@ __device__ void Get_Indices(int nx, int ny, int nz, int is, int ie, int js, int 
     }
 }
 
-__device__ void Get_GTID(int id, int xid, int yid, int zid, int tid) {
+__device__ void Get_GTID(int &id, int &xid, int &yid, int &zid, int &tid, int nx, int ny, int nz) {
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
     int id = threadIdx.x + blockId * blockDim.x;
     int zid = id / (nx * ny);
