@@ -18,7 +18,6 @@
 
 
 extern bool memory_allocated; // Flag becomes true after allocating the memory on the first timestep
-extern bool dt_memory_allocated; // Flag becomes true after allocating the memory on the first calc_dt_GPU call
 
 // Arrays are global so that they can be allocated only once.
 // Not all arrays will be allocated for every integrator
@@ -28,41 +27,14 @@ extern Real *dev_conserved, *dev_conserved_half;
 // input states and associated interface fluxes (Q* and F* from Stone, 2008)
 extern Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
 // array of inverse timesteps for dt calculation
-extern Real *dev_dti_array;
-#ifdef COOLING_GPU
-// array of timesteps for dt calculation (cooling restriction)
-extern Real *dev_dt_array;
-#endif
-// Array on the CPU to hold max_dti returned from each thread block
 extern Real *host_dti_array;
-#ifdef COOLING_GPU
-extern Real *host_dt_array;
-#endif
-// Buffer to copy conserved variable blocks to/from
-extern Real *buffer;
-// Pointers for the location to copy from and to
-extern Real *tmp1;
-extern Real *tmp2;
+extern Real *dev_dti_array;
 
 //Arrays for potential in GPU: Will be set to NULL if not using GRAVITY
 extern Real *dev_grav_potential;
 extern Real *temp_potential;
 extern Real *buffer_potential;
 
-// Similarly, sizes of subgrid blocks and kernel dimensions are global variables
-// so subgrid splitting function is only called once
-// dimensions of subgrid blocks
-extern int nx_s, ny_s, nz_s;
-// x, y, and z offsets for subgrid blocks
-extern int x_off_s, y_off_s, z_off_s;
-// total number of subgrid blocks needed
-extern int block_tot;
-// number of subgrid blocks needed in each direction
-extern int block1_tot, block2_tot, block3_tot;
-// modulus of number of cells after block subdivision in each direction
-extern int remainder1, remainder2, remainder3;
-// number of cells in one subgrid block
-extern int BLOCK_VOL;
 // dimensions for the GPU grid
 extern int ngrid;
 

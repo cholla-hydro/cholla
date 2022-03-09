@@ -3,6 +3,8 @@ name: Cholla Compile
 on:
   pull_request:
     branches: [ CAAR ]
+  schedule:
+    - cron: "37 11 * * 1"
   workflow_dispatch:
 
 jobs:

@@ -20,7 +20,6 @@
 #include "../riemann_solvers/exact_cuda.h"
 #include "../riemann_solvers/roe_cuda.h"
 #include "../riemann_solvers/hllc_cuda.h"
-#include "../old_cholla/h_correction_3D_cuda.h"
 #include "../io/io.h"
 #include "../riemann_solvers/hll_cuda.h"
 
@@ -39,9 +38,6 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   //concatenated into a 1-d array
 
   int n_cells = nx*ny*nz;
-
-  // dimensions for the 1D GPU grid
-  ngrid = (n_cells + TPB - 1) / TPB;
 
   // set values for GPU kernels
   // number of blocks per 1D grid
@@ -191,19 +187,12 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
     hipLaunchKernelGGL(Apply_Temperature_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, U_floor );
     CudaCheckError();
     #endif //TEMPERATURE_FLOOR
-    
   return;
 
 }
 
 
 void Free_Memory_VL_3D(){
-
-  // free CPU memory
-  CudaSafeCall( cudaFreeHost(host_dti_array) );
-  #ifdef COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );
-  #endif
 
   // free the GPU memory
   cudaFree(dev_conserved);
@@ -217,11 +206,6 @@ void Free_Memory_VL_3D(){
   cudaFree(F_x);
   cudaFree(F_y);
   cudaFree(F_z);
-  cudaFree(dev_dti_array);
-  #ifdef COOLING_GPU
-  cudaFree(dev_dt_array);
-  #endif
-
 
 }
 
