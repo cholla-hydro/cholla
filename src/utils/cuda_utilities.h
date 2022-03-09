@@ -16,13 +16,13 @@ namespace cudaUtils {
     namespace {
         
         inline __host__ __device__ void Get_GTID(int &id, int &xid, int &yid, int &zid, int &tid, int const nx, int const ny, int const nz) {
-            int blockId = blockIdx + blockIdy * gridDimx;
-            id = threadIdx + blockId * blockDimx;
-            zid = id / (nx * ny);
-            yid = (id - zid * nx * ny) / nx;
-            xid = id - zid * nx * ny - yid * nx;
+            int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+            int id = threadIdx.x + blockId * blockDim.x;
+            int zid = id / (nx * ny);
+            int yid = (id - zid * nx * ny) / nx;
+            int xid = id - zid * nx * ny - yid * nx;
             // add a thread id within the block
-            tid = threadIdx;
+            int tid = threadIdx.x;
         }
     }
 }
