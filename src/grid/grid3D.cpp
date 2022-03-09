@@ -360,7 +360,7 @@ void Grid3D::AllocateMemory(void)
     #endif //max_dti_slow
 
     // Compute the time step
-    max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
+    max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama, max_dti_slow);
   }
   else {
     max_dti = dti;
@@ -491,7 +491,7 @@ Real Grid3D::Update_Grid(void)
   #endif
 
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
-  max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
+  max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama, max_dti_slow);
   #ifdef COOLING_GPU
   max_dti = fmax(max_dti, cooling_max_dti);
   #endif // COOLING_GPU

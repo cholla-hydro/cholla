@@ -23,7 +23,9 @@
 
 #if defined(CUDA)
 
-
+// =============================================================================
+// Tests for the Calc_dt_GPU function
+// =============================================================================
 TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
 {
 
@@ -37,7 +39,7 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   int const nx = 1;
   int const ny = 1;
   int const nz = 1;
-  int const n_fields   = 5;  // Total number of conserved fields  
+  int const n_fields   = 5;  // Total number of conserved fields
   int const  n_ghost = 0;
   Real dx = 1.0;
   Real dy = 1.0;
@@ -50,8 +52,8 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
 
   // Allocate host and device arrays and copy data
   cudaHostAlloc(&host_conserved, n_fields*sizeof(Real), cudaHostAllocDefault);
-  CudaSafeCall(cudaMalloc(&dev_conserved, n_fields*sizeof(Real)));  
-  CudaSafeCall(cudaMalloc(&dev_dti_array, sizeof(Real)));  
+  CudaSafeCall(cudaMalloc(&dev_conserved, n_fields*sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&dev_dti_array, sizeof(Real)));
 
   // Set values of conserved variables for input (host)
   host_conserved[0] = 1.0; // density
@@ -61,14 +63,14 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   host_conserved[4] = 1.0; // Energy
 
   // Copy host data to device arrray
-  CudaSafeCall(cudaMemcpy(dev_conserved, host_conserved, n_fields*sizeof(Real), cudaMemcpyHostToDevice));  
+  CudaSafeCall(cudaMemcpy(dev_conserved, host_conserved, n_fields*sizeof(Real), cudaMemcpyHostToDevice));
 
   // Run the kernel
-  hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, dx, dy, dz, dev_dti_array, gamma, max_dti_slow);
+  hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dx, dy, dz, dev_dti_array, gamma, max_dti_slow);
   CudaCheckError();
 
   // Copy the dt value back from the GPU
-  CudaSafeCall(cudaMemcpy(testDt, dev_dti_array, sizeof(Real), cudaMemcpyDeviceToHost));  
+  CudaSafeCall(cudaMemcpy(testDt, dev_dti_array, sizeof(Real), cudaMemcpyDeviceToHost));
 
   // Compare results
   // Check for equality and if not equal return difference
@@ -76,15 +78,101 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   double testData = testDt[0];
   double absoluteDiff;
   int64_t ulpsDiff;
-  bool areEqual; 
-  areEqual = testingUtilities::nearlyEqualDbl(fiducialDt, testData, absoluteDiff, ulpsDiff);	
+  bool areEqual;
+  areEqual = testingUtilities::nearlyEqualDbl(fiducialDt, testData, absoluteDiff, ulpsDiff);
   EXPECT_TRUE(areEqual)
     << "The fiducial value is:       " << fiducialDt << std::endl
     << "The test value is:           " << testData     << std::endl
     << "The absolute difference is:  " << absoluteDiff << std::endl
-    << "The ULP difference is:       " << ulpsDiff     << std::endl;  
-  
+    << "The ULP difference is:       " << ulpsDiff     << std::endl;
 }
+// =============================================================================
+// End of tests for the Calc_dt_GPU function
+// =============================================================================
+
+// =============================================================================
+// Tests for the hydroInverseCrossingTime function
+// =============================================================================
+TEST(tHYDROHydroInverseCrossingTime,
+     CorrectInputExpectCorrectOutput)
+{
+// Set test values
+double const energy    = 7.6976906577e2;
+double const density   = 1.6756968986;
+double const velocityX = 7.0829278656;
+double const velocityY = 5.9283073464;
+double const velocityZ = 8.8417748226;
+double const cellSizeX = 8.1019429453e2;
+double const cellSizeY = 7.1254780684e2;
+double const cellSizeZ = 7.5676716066e2;
+double const gamma = 5./3.;
+
+// Fiducial Values
+double const fiducialInverseCrossingTime = 0.038751126881804446;
+
+// Function to test
+double testInverseCrossingTime = hydroInverseCrossingTime(energy,
+                                                         density,
+                                                         1./density,
+                                                         velocityX,
+                                                         velocityY,
+                                                         velocityZ,
+                                                         cellSizeX,
+                                                         cellSizeY,
+                                                         cellSizeZ,
+                                                         gamma);
+
+// Check results
+testingUtilities::checkResults(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
+}
+// =============================================================================
+// End of tests for the hydroInverseCrossingTime function
+// =============================================================================
+
+// =============================================================================
+// Tests for the mhdInverseCrossingTime function
+// =============================================================================
+TEST(tMHDMhdInverseCrossingTime,
+     CorrectInputExpectCorrectOutput)
+{
+  // Set test values
+  double const energy    = 7.6976906577e2;
+  double const density   = 1.6756968986;
+  double const velocityX = 7.0829278656;
+  double const velocityY = 5.9283073464;
+  double const velocityZ = 8.8417748226;
+  double const magneticX = 9.2400807786;
+  double const magneticY = 8.0382409757;
+  double const magneticZ = 3.3284839263;
+  double const cellSizeX = 8.1019429453e2;
+  double const cellSizeY = 7.1254780684e2;
+  double const cellSizeZ = 7.5676716066e2;
+  double const gamma = 5./3.;
+
+  // Fiducial Values
+  double const fiducialInverseCrossingTime = 0.038688028391959103;
+
+  // Function to test
+  double testInverseCrossingTime = mhdInverseCrossingTime(energy,
+                                                          density,
+                                                          1./density,
+                                                          velocityX,
+                                                          velocityY,
+                                                          velocityZ,
+                                                          magneticX,
+                                                          magneticY,
+                                                          magneticZ,
+                                                          cellSizeX,
+                                                          cellSizeY,
+                                                          cellSizeZ,
+                                                          gamma);
 
 
-#endif
+  // Check results
+  testingUtilities::checkResults(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
+}
+// =============================================================================
+// End of tests for the mhdInverseCrossingTime function
+// =============================================================================
+
+#endif  // CUDA

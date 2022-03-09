@@ -256,4 +256,39 @@ namespace mhdUtils
     }
     // =========================================================================
 
+    // =========================================================================
+    /*!
+     * \brief Compute the cell centered average of the magnetic fields in a
+     * given cell
+     *
+     * \param[in] dev_conserved A pointer to the device array of conserved variables
+     * \param[in] id The 1D index into each grid subarray.
+     * \param[in] xid The x index
+     * \param[in] yid The y index
+     * \param[in] zid The z index
+     * \param[in] n_cells The total number of cells
+     * \param[in] nx The number of cells in the x-direction
+     * \param[in] ny The number of cells in the y-direction
+     * \param[out] avgBx The cell centered average magnetic field in the x-direction
+     * \param[out] avgBy The cell centered average magnetic field in the y-direction
+     * \param[out] avgBz The cell centered average magnetic field in the z-direction
+     */
+    inline __host__ __device__ void cellCenteredMagneticFields(Real const *dev_conserved,
+                                                               size_t const &id,
+                                                               size_t const &xid,
+                                                               size_t const &yid,
+                                                               size_t const &zid,
+                                                               size_t const &n_cells,
+                                                               size_t const &nx,
+                                                               size_t const &ny,
+                                                               Real &avgBx,
+                                                               Real &avgBy,
+                                                               Real &avgBz)
+    {
+        avgBx = 0.5 * (dev_conserved[(5+NSCALARS)*n_cells + id] + dev_conserved[(5+NSCALARS)*n_cells + ((xid+1) + yid*nx     + zid*nx*ny)]); // id+1 in x
+        avgBy = 0.5 * (dev_conserved[(6+NSCALARS)*n_cells + id] + dev_conserved[(6+NSCALARS)*n_cells + (xid     + (yid+1)*nx + zid*nx*ny)]); // id+1 in y
+        avgBz = 0.5 * (dev_conserved[(7+NSCALARS)*n_cells + id] + dev_conserved[(7+NSCALARS)*n_cells + (xid     + yid*nx     + (zid+1)*nx*ny)]); // id+1 in z
+    }
+    // =========================================================================
+
 } // end  namespace mhdUtils
