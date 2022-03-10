@@ -8,6 +8,7 @@
 #pragma once
 
 #include <iostream>
+#include <string>
 
 // Local Includes
 #include "../global/global.h"
@@ -32,7 +33,7 @@ namespace hydro_utilities {
         Real p;
         p = (E - 0.5 * d * (vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
         p = fmax(p, (Real) TINY_NUMBER);
-        std::cout << p;
+        std::cout << "\n" << p << "\n";
         return p;
         }
 
