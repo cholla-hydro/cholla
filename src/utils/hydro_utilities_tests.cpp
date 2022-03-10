@@ -44,7 +44,7 @@ namespace
         std::vector<double> px {8.2340416681e-100, 8.1019429453e2, 5.5062596954e100};
         std::vector<double> py {4.9924582299e-100, 7.1254780684e2, 6.5939640992e100};
         std::vector<double> pz {3.6703192739e-100, 7.5676716066e2, 7.2115881803e100};
-        std::vector<double> E {9.0342082433e-100, 9.6976906577e2, 9.9487120853e100};
+        std::vector<double> E {99.0342082433e-100, 99.6976906577e2, 99.9487120853e100};
         std::vector<double> p {2.2244082909e-100, 8.6772951021e2, 6.7261085663e100};
         std::vector<std::string> names{"Small number case", "Medium number case", "Large number case"};
     };
