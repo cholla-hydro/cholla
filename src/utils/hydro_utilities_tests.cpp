@@ -58,7 +58,7 @@ TEST(tHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutput) {
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real test_p= hydro_utilites::Calc_Pressure_Conserved(parameters.p.at(i), parameters.d.at(i), parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i), parameters.gamma);
+        Real test_p = hydro_utilities::Calc_Pressure_Conserved(parameters.p.at(i), parameters.d.at(i), parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i), parameters.gamma);
 
         testingUtilities::checkResults(fiducial_pressures.at(i), test_p, parameters.names.at(i));
     }
