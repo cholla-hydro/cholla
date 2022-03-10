@@ -41,10 +41,10 @@ namespace
         std::vector<double> vx {1.0378624601e-100, 1.0829278656e2, 1.8800514112e100};
         std::vector<double> vy {1.3583469014e-100, 1.9283073464e2, 1.2725717864e100};
         std::vector<double> vz {1.7182972216e-100, 1.8417748226e2, 1.5855352639e100};
-        std::vector<double> px {1.2340416681e-100, 1.1019429453e2, 1.5062596954e100};
-        std::vector<double> py {1.9924582299e-100, 1.1254780684e2, 1.5939640992e100};
-        std::vector<double> pz {1.6703192739e-100, 1.5676716066e2, 1.2115881803e100};
-        std::vector<double> E {9.0342082433e-100, 9.6976906577e2, 99.9487120853e100};
+        std::vector<double> px {0.2340416681e-100, 0.1019429453e2, 0.5062596954e100};
+        std::vector<double> py {0.9924582299e-100, 0.1254780684e2, 0.5939640992e100};
+        std::vector<double> pz {0.6703192739e-100, 0.5676716066e2, 0.2115881803e100};
+        std::vector<double> E {9.0342082433e-100, 9.6976906577e2, 9.9487120853e100};
         std::vector<double> p {2.2244082909e-100, 8.6772951021e2, 6.7261085663e100};
         std::vector<std::string> names{"Small number case", "Medium number case", "Large number case"};
     };
@@ -52,7 +52,7 @@ namespace
 
 TEST(tHYDROSYSTEMHydroUtilsCalcPressurePrimitive, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
-    std::vector<double> fiducial_ps {5, 5, 5};
+    std::vector<double> fiducial_ps {1e-20, 5, 5};
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
