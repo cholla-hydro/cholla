@@ -15,7 +15,7 @@
 namespace cuda_utilities {
     namespace {
         
-        inline __host__ __device__ void _Get_GTID(int &id, int &xid, int &yid, int &zid, int &tid, int const &nx, int const &ny, int const &nz) {
+        inline __host__ __device__ void Get_GTID(int &id, int &xid, int &yid, int &zid, int &tid, int const &nx, int const &ny, int const &nz) {
             int blockId = blockIdx.x + blockIdx.y * gridDim.x;
             int id = threadIdx.x + blockId * blockDim.x;
             int zid = id / (nx * ny);
@@ -25,7 +25,7 @@ namespace cuda_utilities {
             int tid = threadIdx.x;
         }
 
-        inline __host__ __device__ void _Get_Real_Indices(int const &n_ghost, int const &nx, int const &ny, int const &nz, int &is, int &ie, int &js, int &je, int &ks, int &ke) {
+        inline __host__ __device__ void Get_Real_Indices(int const &n_ghost, int const &nx, int const &ny, int const &nz, int &is, int &ie, int &js, int &je, int &ks, int &ke) {
             is = n_ghost;
             ie = nx - n_ghost;
             if (ny == 1) {

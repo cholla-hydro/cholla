@@ -26,20 +26,20 @@
 
 namespace hydro_utilities {
     namespace {
-        inline __host__ __device__ Real _Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
+        inline __host__ __device__ Real Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
         Real p;
         p = (E - 0.5 * d * (vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
         p = fmax(p, (Real) TINY_NUMBER);
         return p;
         }
 
-        inline __host__ __device__ Real _Calc_Pressure_Conserved(Real const &E, Real const &d, Real const &px, Real const &py, Real const&pz, Real const &gamma)) {
+        inline __host__ __device__ Real Calc_Pressure_Conserved(Real const &E, Real const &d, Real const &px, Real const &py, Real const&pz, Real const &gamma)) {
             Real p = (gamma - 1.) * (E - 0.5 * (px*px + ((py*py) + (pz*pz))) / d);
 
         return fmax(p, TINY_NUMBER);
         }
 
-        inline __host__ __device__ Real _Calc_Temp(Real const &p, Real const &n) {
+        inline __host__ __device__ Real Calc_Temp(Real const &p, Real const &n) {
             Real T = p * PRESSURE_UNIT / (n * KB);
             return T;
         }
@@ -51,7 +51,7 @@ namespace hydro_utilities {
         }
         #endif // DE
 
-        inline __host__ __device__ Real _Calc_Energy_Primitive(Real const &p, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
+        inline __host__ __device__ Real Calc_Energy_Primitive(Real const &p, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
         // Compute and return energy
         return (fmax(p, TINY_NUMBER)/(gamma - 1.)) + 0.5 * d * (vx*vx + vy*vy + vz*vz);
         }
