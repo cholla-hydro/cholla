@@ -50,7 +50,7 @@ namespace
     };
 }
 
-TEST(tHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutput) {
+TEST(tHYDROSYSTEMHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
     std::vector<double> fiducial_pressures{3.3366124363499995e-100,
                                          137786230.15630624,
