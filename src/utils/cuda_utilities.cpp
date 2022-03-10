@@ -1,5 +1,5 @@
 #include "../utils/cuda_utilities.h"
 
-namespace cudaUtils {
+namespace cuda_utilities {
 
-} // end namespace cudaUtils
+} // end namespace cuda_utilities

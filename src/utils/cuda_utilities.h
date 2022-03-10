@@ -12,7 +12,7 @@
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
 
-namespace cudaUtils {
+namespace cuda_utilities {
     namespace {
         
         inline __host__ __device__ void _Get_GTID(int &id, int &xid, int &yid, int &zid, int &tid, int const &nx, int const &ny, int const &nz) {
@@ -24,8 +24,8 @@ namespace cudaUtils {
             // add a thread id within the block
             int tid = threadIdx.x;
         }
-        
-        inline __host__ __device__ void _Get_Indices(int const &n_ghost, int const &nx, int const &ny, int const &nz, int &is, int &ie, int &js, int &je, int &ks, int &ke) {
+
+        inline __host__ __device__ void _Get_Real_Indices(int const &n_ghost, int const &nx, int const &ny, int const &nz, int &is, int &ie, int &js, int &je, int &ks, int &ke) {
             is = n_ghost;
             ie = nx - n_ghost;
             if (ny == 1) {

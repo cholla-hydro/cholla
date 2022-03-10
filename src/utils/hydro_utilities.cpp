@@ -1,5 +1,5 @@
 #include "../utils/hydro_utilities.h"
 
-namespace hydroUtils {
+namespace hydro_utilities {
 
-} // end namespace hydroUtils
+} // end namespace hydro_utilities

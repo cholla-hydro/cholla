@@ -12,13 +12,31 @@
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
 
-namespace hydroUtils {
+
+/*!
+* INDEX OF VARIABLES
+* p : pressure
+* vx, vy, vz : x, y, and z velocity
+* d : density
+* E : energy
+* T : temperature
+* px, py, pz : x, y, and z momentum
+* n : number density
+*/
+
+namespace hydro_utilities {
     namespace {
-        inline __host__ __device__ Real _Calc_Pressure(Real const &E, Real const &d_gas, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
+        inline __host__ __device__ Real _Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
         Real p;
-        p = (E - 0.5 * d_gas * (vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+        p = (E - 0.5 * d * (vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
         p = fmax(p, (Real) TINY_NUMBER);
         return p;
+        }
+
+        inline __host__ __device__ Real _Calc_Pressure_Conserved(Real const &E, Real const &d, Real const &px, Real const &py, Real const&pz, Real const &gamma)) {
+            Real p = (gamma - 1.) * (E - 0.5 * (px*px + ((py*py) + (pz*pz))) / d);
+
+        return fmax(p, TINY_NUMBER);
         }
 
         inline __host__ __device__ Real _Calc_Temp(Real const &p, Real const &n) {
@@ -27,11 +45,16 @@ namespace hydroUtils {
         }
 
         #ifdef DE
-        inline __host__ __device__ Real _Calc_Temp_DE(Real const &d_gas, Real const &ge, Real const &gamma, Real const&n) {
-            Real T =  d_gas * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
+        inline __host__ __device__ Real _Calc_Temp_DE(Real const &d, Real const &ge, Real const &gamma, Real const&n) {
+            Real T =  d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
             return T;
         }
-        #endif // DE 
+        #endif // DE
+
+        inline __host__ __device__ Real _Calc_Energy_Primitive(Real const &p, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
+        // Compute and return energy
+        return (fmax(p, TINY_NUMBER)/(gamma - 1.)) + 0.5 * d * (vx*vx + vy*vy + vz*vz);
+        }
                                             
     }
 }
