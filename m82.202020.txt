@@ -1,0 +1,60 @@
+#
+# Parameter File for 3D box filled with gas
+#
+
+################################################
+# number of grid cells in the x dimension
+nx=2048
+# number of grid cells in the y dimension
+ny=2048
+# number of grid cells in the z dimension
+nz=2048
+# final output time
+tout=40000.0
+# time interval for output
+outstep=50.0
+outstep_hydro=20
+# name of initial conditions
+init=Disk_3D
+# domain properties
+xmin=-10
+ymin=-10
+zmin=-10
+xlen=20
+ylen=20
+zlen=20
+# type of boundary conditions
+xl_bcnd=3
+xu_bcnd=3
+yl_bcnd=3
+yu_bcnd=3
+zl_bcnd=3
+zu_bcnd=3
+# path to output directory
+outdir=out/202020/
+
+# supernova params 
+supernova_rcl=0.03
+supernova_e=1
+gamma=1.666666667
+
+# rotated projection params
+# z-axis angle
+delta=0.0
+# y-axis angle
+theta=20.0
+# x-axis angle
+phi=20.0
+# horizontal size of output
+Lx=36.0
+# vertical size of output
+Lz=36.0
+# pixels
+nxr=2048
+nzr=2048
+# made as simulation runs (2) (1) reads in output
+flag_delta=2
+ddelta_dt=-0.001
+
+#################################################
+
