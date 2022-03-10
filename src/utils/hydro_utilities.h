@@ -30,11 +30,12 @@ namespace hydro_utilities {
         Real p;
         p = (E - 0.5 * d * (vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
         p = fmax(p, (Real) TINY_NUMBER);
+        std::cout << p;
         return p;
         }
 
         inline __host__ __device__ Real Calc_Pressure_Conserved(Real const &E, Real const &d, Real const &px, Real const &py, Real const &pz, Real const &gamma) {
-            Real p = (gamma - 1.) * (E - 0.5 * (px*px + ((py*py) + (pz*pz))) / d);
+            Real p = (gamma - 1.) * (E - 0.5 * (px*px + py*py + pz*pz)) / d);
 
         return fmax(p, TINY_NUMBER);
         }
