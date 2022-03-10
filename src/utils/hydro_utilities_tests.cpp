@@ -61,3 +61,15 @@ TEST(tHYDROSYSTEMHydroUtilsCalcPressurePrimitive, CorrectInputExpectCorrectOutpu
         testingUtilities::checkResults(fiducial_ps.at(i), test_ps, parameters.names.at(i));
     }
 }
+
+TEST(tHYDROSYSTEMHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutput) {
+    TestParams parameters;
+    std::vector<double> fiducial_ps {5, 5, 5};
+
+    for (size_t i = 0; i < parameters.names.size(); i++)
+    {
+        Real test_ps = hydro_utilities::Calc_Pressure_Conserved(parameters.E.at(i), parameters.d.at(i), parameters.px.at(i), parameters.py.at(i), parameters.pz.at(i), parameters.gamma);
+
+        testingUtilities::checkResults(fiducial_ps.at(i), test_ps, parameters.names.at(i));
+    }
+}
