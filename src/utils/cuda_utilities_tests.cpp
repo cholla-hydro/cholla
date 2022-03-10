@@ -16,7 +16,7 @@
 
 // Local Includes
 #include "../utils/testing_utilities.h"
-#include "../utils/mhd_utilities.h"
+#include "../utils/cuda_utilities.h"
 #include "../global/global.h"
 
 // =============================================================================
