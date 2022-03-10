@@ -31,6 +31,7 @@ namespace hydro_utilities {
     namespace {
         inline __host__ __device__ Real Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
             Real p;
+            std::cout << "\n" << E * (gamma-1.0) << "\n";
             std::cout << "\n" << 0.5 * d * (vx*vx + vy*vy + vz*vz) << "\n";
             p = (E - 0.5 * d * (vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
             //std::cout << "\n" << p << "\n";
