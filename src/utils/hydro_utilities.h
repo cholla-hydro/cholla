@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <iostream>
+
 // Local Includes
 #include "../global/global.h"
 #include "../global/global_cuda.h"
