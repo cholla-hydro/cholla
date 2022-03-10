@@ -33,7 +33,7 @@ namespace hydro_utilities {
             Real p;
             std::cout << "\n" << 0.5 * d * (vx*vx + vy*vy + vz*vz) << "\n";
             p = (E - 0.5 * d * (vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-            std::cout << "\n" << p << "\n";
+            //std::cout << "\n" << p << "\n";
             p = fmax(p, TINY_NUMBER);
             return p;
         }
