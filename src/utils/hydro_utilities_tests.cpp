@@ -52,7 +52,7 @@ namespace
 
 TEST(tHYDROSYSTEMHydroUtilsCalcPressurePrimitive, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
-    std::vector<double> fiducial_ps {1e-20, 139983415580.5549, 5};
+    std::vector<double> fiducial_ps {1e-20, 139983415580.5549, 1.2697896247496674e+301};
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
@@ -64,7 +64,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcPressurePrimitive, CorrectInputExpectCorrectOutpu
 
 TEST(tHYDROSYSTEMHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
-    std::vector<double> fiducial_ps {1e-20, 5979.1942892288798, 6.1692060819306795e+101};
+    std::vector<double> fiducial_ps {1e-20, 139984604373.87094, 1.3965808056866668e+301};
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
