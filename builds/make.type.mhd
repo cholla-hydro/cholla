@@ -6,10 +6,8 @@ OUTPUT    ?=  -DOUTPUT -DHDF5
 
 MPI_GPU   ?=
 
-DFLAGS	  += -DHYDRO_GPU
 DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
-DFLAGS    += -DBLOCK
 DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPPMP
 DFLAGS    += -DHLLD
@@ -47,6 +45,3 @@ DFLAGS    += $(OUTPUT)
 #If not specified, MPI_GPU is off by default
 #This is set in the system make.host file
 DFLAGS    += $(MPI_GPU)
-
-DFLAGS    += -DPARALLEL_OMP
-DFLAGS    += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
