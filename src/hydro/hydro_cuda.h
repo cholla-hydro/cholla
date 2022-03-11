@@ -33,28 +33,16 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
  * \param[in] gamma The adiabatic index
  * \return Real The maximum inverse crossing time in the cell
  */
-__device__ __host__ inline Real hydroInverseCrossingTime(Real const &E,
-                                                         Real const &d,
-                                                         Real const &d_inv,
-                                                         Real const &vx,
-                                                         Real const &vy,
-                                                         Real const &vz,
-                                                         Real const &dx,
-                                                         Real const &dy,
-                                                         Real const &dz,
-                                                         Real const &gamma)
-{
-  // Compute pressure and sound speed
-  Real P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-  Real cs = sqrt(d_inv * gamma * P);
-
-  // Find maximum inverse crossing time in the cell (i.e. minimum crossing time)
-  Real cellMaxInverseDt = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
-  cellMaxInverseDt      = fmax(cellMaxInverseDt, (fabs(vz)+cs)/dz);
-  cellMaxInverseDt      = fmax(cellMaxInverseDt, 0.0);
-
-  return cellMaxInverseDt;
-}
+__device__ __host__ Real hydroInverseCrossingTime(Real const &E,
+                                                  Real const &d,
+                                                  Real const &d_inv,
+                                                  Real const &vx,
+                                                  Real const &vy,
+                                                  Real const &vz,
+                                                  Real const &dx,
+                                                  Real const &dy,
+                                                  Real const &dz,
+                                                  Real const &gamma);
 
 /*!
  * \brief Determine the maximum inverse crossing time in a specific cell
@@ -74,31 +62,19 @@ __device__ __host__ inline Real hydroInverseCrossingTime(Real const &E,
  * \param[in] gamma The adiabatic index
  * \return Real The maximum inverse crossing time in the cell
  */
-__device__ __host__ inline Real mhdInverseCrossingTime(Real const &E,
-                                                       Real const &d,
-                                                       Real const &d_inv,
-                                                       Real const &vx,
-                                                       Real const &vy,
-                                                       Real const &vz,
-                                                       Real const &avgBx,
-                                                       Real const &avgBy,
-                                                       Real const &avgBz,
-                                                       Real const &dx,
-                                                       Real const &dy,
-                                                       Real const &dz,
-                                                       Real const &gamma)
-{
-  // Compute the gas pressure and fast magnetosonic speed
-  Real gasP = mhdUtils::computeGasPressure(E, d, vx*d, vy*d, vz*d, avgBx, avgBy, avgBz, gamma);
-  Real cf   = mhdUtils::fastMagnetosonicSpeed(d, gasP, avgBx, avgBy, avgBz, gamma);
-
-  // Find maximum inverse crossing time in the cell (i.e. minimum crossing time)
-  Real cellMaxInverseDt = fmax((fabs(vx)+cf)/dx, (fabs(vy)+cf)/dy);
-  cellMaxInverseDt      = fmax(cellMaxInverseDt, (fabs(vz)+cf)/dz);
-  cellMaxInverseDt      = fmax(cellMaxInverseDt, 0.0);
-
-  return cellMaxInverseDt;
-}
+__device__ __host__ Real mhdInverseCrossingTime(Real const &E,
+                                                Real const &d,
+                                                Real const &d_inv,
+                                                Real const &vx,
+                                                Real const &vy,
+                                                Real const &vz,
+                                                Real const &avgBx,
+                                                Real const &avgBy,
+                                                Real const &avgBz,
+                                                Real const &dx,
+                                                Real const &dy,
+                                                Real const &dz,
+                                                Real const &gamma);
 
 __global__ void Calc_dt_1D(Real *dev_conserved, int n_cells, int n_ghost, Real dx, Real *dti_array, Real gamma);
 
