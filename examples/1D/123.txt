@@ -42,9 +42,9 @@ P_l=0.4
 # density of right state
 rho_r=1.0
 # velocity of right state
-vx_l=2.0
-vy_l=0.0
-vz_l=0.0
+vx_r=2.0
+vy_r=0.0
+vz_r=0.0
 # pressure of right state
 P_r=0.4
 # location of initial discontinuity
