@@ -6,7 +6,7 @@
 #include <iostream>
 
 //Copy the particles density boundaries for non-MPI PERIODIC transfers
-void Grid3D::Copy_Particles_Density_Boundaries( int direction, int side ){
+void Grid3D::Set_Particles_Density_Boundaries_Periodic( int direction, int side ){
 
   int i, j, k, indx_src, indx_dst;
   int nGHST, nx_g, ny_g, nz_g;

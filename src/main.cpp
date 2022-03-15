@@ -95,7 +95,6 @@ int main(int argc, char *argv[])
   Write_Message_To_Log_File( message );
   #endif
 
-
   #ifdef CPU_TIME
   G.Timer.Initialize();
   #endif
@@ -114,6 +113,10 @@ int main(int argc, char *argv[])
 
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
+  #endif
+
+  #ifdef CHEMISTRY_GPU
+  G.Initialize_Chemistry(&P);
   #endif
 
   #ifdef ANALYSIS
@@ -164,10 +167,6 @@ int main(int argc, char *argv[])
   if (strcmp(P.init, "Read_Grid") != 0 || G.H.Output_Now ) {
     // write the initial conditions to file
     chprintf("Writing initial conditions to file...\n");
-    #ifdef HYDRO_GPU
-    cudaMemcpy(G.C.density, G.C.device,
-             G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
-    #endif
     WriteData(G, P, nfile);
   }
   // add one to the output file count
@@ -196,9 +195,14 @@ int main(int argc, char *argv[])
   while (G.H.t < P.tout)
   {
     // get the start time
+    #ifdef CPU_TIME
+    G.Timer.Total.Start();
+    #endif //CPU_TIME
     start_step = get_time();
 
-    // calculate the timestep
+    // calculate the timestep. Note: this computes the timestep ONLY on the
+    // first loop, on subsequent time steps it just calls the MPI_Allreduce to
+    // determine the global timestep
     G.set_dt(dti);
 
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
@@ -257,6 +261,10 @@ int main(int argc, char *argv[])
     #endif
 
     #ifdef CPU_TIME
+    G.Timer.Total.End();
+    #endif //CPU_TIME
+
+    #ifdef CPU_TIME
     G.Timer.Print_Times();
     #endif
 
@@ -284,16 +292,6 @@ int main(int argc, char *argv[])
     {
       #ifdef OUTPUT
       /*output the grid data*/
-      #ifdef HYDRO_GPU
-      cudaMemcpy(G.C.density, G.C.device,
-                 G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
-      #endif
-      int my_y = G.H.ny/2;
-      int my_z = G.H.nz/2;
-      for (int i = 0; i < 10; i++) {
-         chprintf("density[%d, %d, %d] = %.4e\n", i, my_y, my_z, G.C.density[i + my_y*G.H.nx + my_z*G.H.nx*G.H.ny]);
-      }
-
       WriteData(G, P, nfile);
       // add one to the output file count
       nfile++;
@@ -309,10 +307,6 @@ int main(int argc, char *argv[])
     #ifdef N_STEPS_LIMIT
     // Exit the loop when reached the limit number of steps (optional)
     if ( G.H.n_step == N_STEPS_LIMIT) {
-      #ifdef HYDRO_GPU
-      cudaMemcpy(G.C.density, G.C.device,
-                 G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
-      #endif
       WriteData(G, P, nfile);
       break;
     }
@@ -327,12 +321,12 @@ int main(int argc, char *argv[])
     }
     #endif
 
+
   } /*end loop over timesteps*/
 
 
   #ifdef CPU_TIME
   // Print timing statistics
-  G.Timer.Get_Average_Times();
   G.Timer.Print_Average_Times( P );
   #endif
 

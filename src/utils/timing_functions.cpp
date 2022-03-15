@@ -7,295 +7,119 @@
 #include <fstream>
 #include <string>
 
-
-using namespace std;
-
 #ifdef MPI_CHOLLA
 #include "../mpi/mpi_routines.h"
 #endif
 
+void OneTime::Start(){
+  if (inactive) return;
+  time_start = get_time();
+}
+
+void OneTime::Subtract(Real time_to_subtract){
+  // Add the time_to_substract to the start time, that way the time_end - time_start is reduced by time_to_substract
+  time_start += time_to_subtract;
+}
+
+void OneTime::End(){
+  if (inactive) return;
+  Real time_end = get_time();
+  Real time = (time_end - time_start)*1000;
+
+#ifdef MPI_CHOLLA
+  t_min = ReduceRealMin(time);
+  t_max = ReduceRealMax(time);
+  t_avg = ReduceRealAvg(time);
+#else
+  t_min = time;
+  t_max = time;
+  t_avg = time;
+#endif
+  if (n_steps > 0) t_all += t_max;
+  n_steps++;
+}
+
+void OneTime::PrintStep(){
+  chprintf(" Time %-19s min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", name, t_min, t_max, t_avg);
+}
+
+void OneTime::PrintAverage(){
+  if (n_steps > 1) chprintf(" Time %-19s avg: %9.4f   ms\n", name, t_all/(n_steps-1));
+}
+
+void OneTime::PrintAll(){
+  chprintf(" Time %-19s all: %9.4f   ms\n", name, t_all);
+}
 
 Time::Time( void ){}
-
 
 void Time::Initialize(){
 
   n_steps = 0;
 
-
-  time_hydro_all = 0;
-  time_bound_all = 0;
-
-  #ifdef GRAVITY
-  time_dt_all = 0;
-  time_potential_all = 0;
-  time_bound_pot_all = 0;
-  #endif
-
-  #ifdef PARTICLES
-  time_part_dens_all = 0;
-  time_part_dens_transf_all = 0;
-  time_part_tranf_all = 0;
-  time_advance_particles_1_all = 0;
-  time_advance_particles_2_all = 0;
-  #endif
-
-  #ifdef COOLING_GRACKLE
-  time_cooling_all = 0;
-  #endif
+  // Add or remove timers by editing this list, keep TOTAL at the end
+  // add NAME to timing_functions.h
+  // add Timer.NAME.Start() and Timer.NAME.End() where appropriate.
+  
+  onetimes = {
+    #ifdef PARTICLES
+    &(Calc_dt = OneTime("Calc_dt")),
+    #endif
+    &(Hydro = OneTime("Hydro")),
+    &(Boundaries = OneTime("Boundaries")),
+    #ifdef GRAVITY
+    &(Grav_Potential = OneTime("Grav_Potential")),
+    &(Pot_Boundaries = OneTime("Pot_Boundaries")),
+    #endif
+    #ifdef PARTICLES
+    &(Part_Density = OneTime("Part_Density")),
+    &(Part_Boundaries = OneTime("Part_Boundaries")),
+    &(Part_Dens_Transf = OneTime("Part_Dens_Transf")),
+    &(Advance_Part_1 = OneTime("Advance_Part_1")),
+    &(Advance_Part_2 = OneTime("Advance_Part_2")),
+    #endif
+    #ifdef COOLING_GRACKLE
+    &(Cooling = OneTime("Cooling")),
+    #endif
+    #ifdef CHEMISTRY_GPU
+    &(Chemistry = OneTime("Chemistry")),
+    #endif
+    &(Total = OneTime("Total")),
+  };
+  
 
   chprintf( "\nTiming Functions is ON \n");
+
 }
-
-
-void Time::Start_Timer(){
-  time_start = get_time();
-}
-
-void Time::End_and_Record_Time( int time_var ){
-
-  time_end = get_time();
-  time = (time_end - time_start)*1000;
-
-  Real t_min, t_max, t_avg;
-
-  #ifdef MPI_CHOLLA
-  t_min = ReduceRealMin(time);
-  t_max = ReduceRealMax(time);
-  t_avg = ReduceRealAvg(time);
-  #else
-  t_min = time;
-  t_max = time;
-  t_avg = time;
-  #endif
-
-  #ifdef GRAVITY
-  if( time_var == 0 ){
-    time_dt_min = t_min;
-    time_dt_max = t_max;
-    time_dt_mean = t_avg;
-    if (n_steps > 0) time_dt_all += t_max;
-  }
-  #endif
-
-
-  if( time_var == 1 ){
-    time_hydro_min = t_min;
-    time_hydro_max = t_max;
-    time_hydro_mean = t_avg;
-    if (n_steps > 0) time_hydro_all += t_max;
-  }
-  if( time_var == 2 ){
-    time_bound_min = t_min;
-    time_bound_max = t_max;
-    time_bound_mean = t_avg;
-    if (n_steps > 0) time_bound_all += t_max;
-  }
-  #ifdef GRAVITY
-  if( time_var == 3 ){
-    time_potential_min = t_min;
-    time_potential_max = t_max;
-    time_potential_mean = t_avg;
-    if (n_steps > 0) time_potential_all += t_max;
-  }
-
-  if( time_var == 9 ){
-    time_bound_pot_min = t_min;
-    time_bound_pot_max = t_max;
-    time_bound_pot_mean = t_avg;
-    if (n_steps > 0) time_bound_pot_all += t_max;
-  }
-  #endif
-
-  #ifdef PARTICLES
-  if( time_var == 4 ){
-    time_part_dens_min = t_min;
-    time_part_dens_max = t_max;
-    time_part_dens_mean = t_avg;
-    if (n_steps > 0) time_part_dens_all += t_max;
-  }
-
-  if( time_var == 5 ){
-    time_part_dens_transf_min = t_min;
-    time_part_dens_transf_max = t_max;
-    time_part_dens_transf_mean = t_avg;
-    if (n_steps > 0) time_part_dens_transf_all += t_max;
-  }
-
-  if( time_var == 6 ){
-    time_advance_particles_1_min = t_min;
-    time_advance_particles_1_max = t_max;
-    time_advance_particles_1_mean = t_avg;
-    if (n_steps > 0) time_advance_particles_1_all += t_max;
-  }
-
-  if( time_var == 7 ){
-    time_advance_particles_2_min = t_min;
-    time_advance_particles_2_max = t_max;
-    time_advance_particles_2_mean = t_avg;
-    if (n_steps > 0) time_advance_particles_2_all += t_max;
-  }
-
-  if( time_var == 8 ){
-    time_part_tranf_min = t_min;
-    time_part_tranf_max = t_max;
-    time_part_tranf_mean = t_avg;
-    if (n_steps > 0) time_part_tranf_all += t_max;
-  }
-  #endif
-
-  #ifdef COOLING_GRACKLE
-  if( time_var == 10 ){
-    time_cooling_min = t_min;
-    time_cooling_max = t_max;
-    time_cooling_mean = t_avg;
-    if (n_steps > 0) time_cooling_all += t_max;
-  }
-  #endif
-}
-
 
 void Time::Print_Times(){
-  #if defined( PARTICLES )
-  chprintf(" Time Calc dt           min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_dt_min, time_dt_max, time_dt_mean);
-  #endif
-  #ifndef ONLY_PARTICLES
-  chprintf(" Time Hydro             min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_hydro_min, time_hydro_max, time_hydro_mean);
-  chprintf(" Time Boundaries        min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_bound_min, time_bound_max, time_bound_mean);
-  #endif
-  #ifdef GRAVITY
-  chprintf(" Time Grav Potential    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_potential_min, time_potential_max, time_potential_mean);
-  chprintf(" Time Pot Boundaries    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_bound_pot_min, time_bound_pot_max, time_bound_pot_mean);
-  #endif
-  #ifdef PARTICLES
-  chprintf(" Time Part Density      min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_part_dens_min, time_part_dens_max, time_part_dens_mean);
-  chprintf(" Time Part Boundaries   min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_part_tranf_min, time_part_tranf_max, time_part_tranf_mean);
-  chprintf(" Time Part Dens Transf  min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_part_dens_transf_min, time_part_dens_transf_max, time_part_dens_transf_mean);
-  chprintf(" Time Advance Part 1    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_advance_particles_1_min, time_advance_particles_1_max, time_advance_particles_1_mean);
-  chprintf(" Time Advance Part 2    min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_advance_particles_2_min, time_advance_particles_2_max, time_advance_particles_2_mean);
-  #endif
-
-  #ifdef COOLING_GRACKLE
-  chprintf(" Time Cooling           min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", time_cooling_min, time_cooling_max, time_cooling_mean);
-  #endif
-
-
+  for (OneTime* x : onetimes){
+    x->PrintStep();
+  }
 }
 
-
-void Time::Get_Average_Times(){
-
-  n_steps -= 1; //Ignore the first timestep
-
-  time_hydro_all /= n_steps;
-  time_bound_all /= n_steps;
-
-  #if defined( PARTICLES)
-  time_dt_all /= n_steps;
-  #endif
-
-  #ifdef GRAVITY
-  time_potential_all /= n_steps;
-  time_bound_pot_all /= n_steps;
-  #ifdef PARTICLES
-  time_part_dens_all  /= n_steps;
-  time_part_tranf_all /= n_steps;
-  time_part_dens_transf_all /= n_steps;
-  time_advance_particles_1_all /= n_steps;
-  time_advance_particles_2_all /= n_steps;
-  #endif
-  #endif
-
-  #ifdef COOLING_GRACKLE
-  time_cooling_all /= n_steps;
-  #endif
-
-}
-
+// once at end of run in main.cpp
 void Time::Print_Average_Times( struct parameters P ){
 
-  Real time_total;
-  time_total = time_hydro_all + time_bound_all;
-
-  #if defined( PARTICLES)
-  time_total += time_dt_all;
-  #endif
-
-  #ifdef GRAVITY
-  time_total += time_bound_pot_all;
-  time_total += time_potential_all;
-  #ifdef PARTICLES
-  time_total += time_part_dens_all;
-  time_total += time_part_tranf_all;
-  time_total += time_part_dens_transf_all;
-  time_total += time_advance_particles_1_all;
-  time_total += time_advance_particles_2_all;
-  #endif
-  #endif
-
-  #ifdef COOLING_GRACKLE
-  time_total += time_cooling_all;
-  #endif
-
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
-  #if defined( PARTICLES)
-  chprintf(" Time Calc dt           avg: %9.4f   ms\n", time_dt_all);
-  #endif
-  #ifndef ONLY_PARTICLES
-  chprintf(" Time Hydro             avg: %9.4f   ms\n", time_hydro_all);
-  chprintf(" Time Boundaries        avg: %9.4f   ms\n", time_bound_all);
-  #endif
-  #ifdef GRAVITY
-  chprintf(" Time Grav Potential    avg: %9.4f   ms\n", time_potential_all);
-  chprintf(" Time Pot Boundaries    avg: %9.4f   ms\n", time_bound_pot_all);
-  #ifdef PARTICLES
-  chprintf(" Time Part Density      avg: %9.4f   ms\n", time_part_dens_all);
-  chprintf(" Time Part Boundaries   avg: %9.4f   ms\n", time_part_tranf_all);
-  chprintf(" Time Part Dens Transf  avg: %9.4f   ms\n", time_part_dens_transf_all);
-  chprintf(" Time Advance Part 1    avg: %9.4f   ms\n", time_advance_particles_1_all);
-  chprintf(" Time Advance Part 2    avg: %9.4f   ms\n", time_advance_particles_2_all);
-  #endif
-  #endif
 
-  #ifdef COOLING_GRACKLE
-  chprintf(" Time Cooling           avg: %9.4f   ms\n", time_cooling_all);
-  #endif
+  for (OneTime* x : onetimes){
+    x->PrintAverage();
+  }
 
-  chprintf(" Time Total             avg: %9.4f   ms\n\n", time_total);
+  std::string file_name ( "run_timing.log" );
+  std::string header;
 
-  string file_name ( "run_timing.log" );
-  string header;
-
-
-  chprintf( "Writing timming values to file: %s  \n", file_name.c_str());
+  chprintf( "Writing timing values to file: %s  \n", file_name.c_str());
 
   header = "#n_proc  nx  ny  nz  n_omp  n_steps  ";
 
+  for (OneTime* x : onetimes){
+    header += x->name;
+    header += "  ";
+  }
 
-
-  #if defined( PARTICLES)
-  header += "dt  ";
-  #endif
-  header += "hydo  ";
-  header += "bound  ";
-  #ifdef GRAVITY
-  header += "grav_pot  ";
-  header += "pot_bound  ";
-  #endif
-  #ifdef PARTICLES
-  header += "part_dens  ";
-  header += "part_bound  ";
-  header += "part_dens_boud  ";
-  header += "part_adv_1  ";
-  header += "part_adv_2  ";
-  #endif
-  #ifdef COOLING_GRACKLE
-  header += "cool  ";
-  #endif
-  header += "total  ";
   header += " \n";
-
-
 
   bool file_exists = false;
   if (FILE *file = fopen(file_name.c_str(), "r")){
@@ -306,15 +130,14 @@ void Time::Print_Average_Times( struct parameters P ){
     chprintf( " Creating File: %s \n", file_name.c_str() );
   }
 
-
   #ifdef MPI_CHOLLA
   if ( procID != 0 ) return;
   #endif
 
-  ofstream out_file;
+  std::ofstream out_file;
 
 // Output timing values
-  out_file.open(file_name.c_str(), ios::app);
+  out_file.open(file_name.c_str(), std::ios::app);
   if ( !file_exists ) out_file << header;
   #ifdef MPI_CHOLLA
   out_file << nproc << " ";
@@ -328,26 +151,10 @@ void Time::Print_Average_Times( struct parameters P ){
   out_file << 0 << " ";
   #endif
   out_file << n_steps << " ";
-  #if defined( PARTICLES)
-  out_file << time_dt_all << " ";
-  #endif
-  out_file << time_hydro_all << " ";
-  out_file << time_bound_all << " ";
-  #ifdef GRAVITY
-  out_file << time_potential_all << " ";
-  out_file << time_bound_pot_all << " ";
-  #endif
-  #ifdef PARTICLES
-  out_file << time_part_dens_all << " ";
-  out_file << time_part_tranf_all << " ";
-  out_file << time_part_dens_transf_all << " ";
-  out_file << time_advance_particles_1_all << " ";
-  out_file << time_advance_particles_2_all << " ";
-  #endif
-  #ifdef COOLING_GRACKLE
-  out_file << time_cooling_all << " ";
-  #endif
-  out_file << time_total << " ";
+
+  for (OneTime* x : onetimes){
+    out_file << x->t_all << " ";
+  }
 
   out_file << "\n";
   out_file.close();
@@ -355,18 +162,5 @@ void Time::Print_Average_Times( struct parameters P ){
   chprintf( "Saved Timing: %s \n\n", file_name.c_str() );
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif

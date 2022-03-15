@@ -248,7 +248,8 @@ void Particles_3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function( part_int_t n_
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
 
   hipLaunchKernelGGL(Advance_Particles_KDK_Step1_Cosmo_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, delta_a, pos_x_dev, pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K );
-  CudaCheckError();
+  CHECK(cudaDeviceSynchronize());
+  // CudaCheckError();
 
 }
 
@@ -264,7 +265,8 @@ void Particles_3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function( part_int_t n_
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
 
   hipLaunchKernelGGL(Advance_Particles_KDK_Step2_Cosmo_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, delta_a, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K );
-  CudaCheckError();
+  CHECK(cudaDeviceSynchronize());
+  // CudaCheckError();
 
 }
 
