@@ -8,10 +8,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include "../utils/gpu.hpp"
+#include "../utils/hydro_utilities.h"
 #include "../global/global.h"
 #include "../global/global_cuda.h"
-#include "../utils/hydro_utilities.h"
 #include "../integrators/VL_3D_cuda.h"
+#include "../hydro/hydro_cuda.h"
 #include "../reconstruction/pcm_cuda.h"
 #include "../reconstruction/plmp_cuda.h"
 #include "../reconstruction/plmc_cuda.h"
