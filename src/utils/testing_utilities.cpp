@@ -115,7 +115,7 @@ namespace testingUtilities
     }
     // =========================================================================
 
-  void wrapperEqual(int i, int j, int k, std::string dataSetName, 
+  void wrapperEqual(int i, int j, int k, std::string dataSetName,
 		    double test_value, double fid_value, double fixedEpsilon=5.0E-12) {
 
     std::string outString;

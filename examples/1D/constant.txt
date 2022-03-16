@@ -1,5 +1,5 @@
 #
-# Parameter File for box filled with gas 
+# Parameter File for box filled with gas
 #
 
 ################################################
@@ -41,6 +41,10 @@ vy=0
 vz=0
 # pressure
 P=1.380658e-5
+# Magnetic Field
+Bx=0.0
+By=0.0
+Bz=0.0
 # value of gamma
 gamma=1.666666667
 
