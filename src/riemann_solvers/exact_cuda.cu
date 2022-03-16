@@ -11,7 +11,7 @@
 #include "../riemann_solvers/exact_cuda.h"
 
 #ifdef DE //PRESSURE_DE
-#include "../hydro/hydro_cuda.h"
+#include "../utils/hydro_utilities.h"
 #endif
 
 
@@ -66,7 +66,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     E = dev_bounds_L[4*n_cells + tid];
     E_kin = 0.5 * dl * ( vxl*vxl + vyl*vyl + vzl*vzl );
     dge = dev_bounds_L[(n_fields-1)*n_cells + tid];
-    pl = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    pl = hydro_utilites::Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     pl  = (dev_bounds_L[4*n_cells + tid] - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     #endif //PRESSURE_DE
