@@ -10,7 +10,7 @@
 #include "../utils/gpu.hpp"
 #include "../global/global.h"
 #include "../global/global_cuda.h"
-#include "../hydro/hydro_cuda.h"
+#include "../utils/hydro_utilities.h"
 #include "../integrators/VL_3D_cuda.h"
 #include "../reconstruction/pcm_cuda.h"
 #include "../reconstruction/plmp_cuda.h"
@@ -250,7 +250,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     E = dev_conserved[4*n_cells + id];
     GE = dev_conserved[(n_fields-1)*n_cells + id];
     E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
-    P = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );
+    P = hydro_utilies::Get_Pressure_From_DE( E, E - E_kin, GE, gamma );
     P  = fmax(P, (Real) TINY_NUMBER);
     // P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
     //if (d < 0.0 || d != d) printf("Negative density before half step update.\n");
