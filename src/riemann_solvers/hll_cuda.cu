@@ -11,8 +11,8 @@
 
 #ifdef DE //PRESSURE_DE
 #include "../hydro/hydro_cuda.h"
+#include "../hydro_utilities.h"
 #endif
-
 
 
 /*! \fn Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
