@@ -18,9 +18,6 @@
 #include "../utils/hydro_utilities.h"
 #include "../global/global.h"
 
-// =============================================================================
-// Local helper functions
-
 /*!
 * INDEX OF VARIABLES
 * p : pressure
@@ -31,6 +28,9 @@
 * px, py, pz : x, y, and z momentum
 * n : number density
 */
+
+// =============================================================================
+// Local helper functions
 
 namespace
 {
