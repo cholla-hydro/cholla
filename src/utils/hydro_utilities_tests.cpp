@@ -101,3 +101,15 @@ TEST(tHYDROSYSTEMHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput) {
     }
 }
 #endif // DE
+
+TEST(tHYDROSYSTEMHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput) {
+    TestParams parameters;
+    std::vector<double> fiducial_Es {3.1519051484164999e-94, 336118467.45898658, 3.4003787759209402e+106};
+
+    for (size_t i = 0; i < parameters.names.size(); i++)
+    {
+        Real test_Es = hydro_utilities::Calc_Energy_Primitive(parameters.P.at(i), parameters.d.at(i), parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i), parameters.gamma);
+
+        testingUtilities::checkResults(fiducial_Es.at(i), test_Es, parameters.names.at(i));
+    }
+}
