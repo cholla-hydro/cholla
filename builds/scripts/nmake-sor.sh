@@ -6,7 +6,6 @@ module load gcc/8.1.0
 module list
 
 export CXX=CC
-export HIP_PLATFORM=''
 export MPI_HOME=$(dirname $(dirname $(which mpicc)))
 export OMP_NUM_THREADS=16
 export POISSON_SOLVER="-DSOR"

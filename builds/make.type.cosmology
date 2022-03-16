@@ -1,0 +1,33 @@
+include builds/make.type.particles
+
+# Solve the equation of motion (Particles and Hydro) on a comoving frame
+DFLAGS += -DCOSMOLOGY
+
+
+# Use Grackle for cooling and chemistry in cosmological simulations
+#DFLAGS += -DCOOLING_GRACKLE -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DN_OMP_THREADS_GRACKLE=$(OMP_NUM_THREADS)
+#DFLAGS += -DGRACKLE_METALS
+
+
+# Solve the Primordial Chemical Network (H+He) on the GPU (Includes Radiative Cooling, Photoheating and Photoionization)
+#DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY 
+
+
+# Perform In-The-Fly analysis of Cosmological Simulations
+#DFLAGS += -DANALYSIS -DPHASE_DIAGRAM -DLYA_STATISTICS -DOUTPUT_SKEWERS
+
+
+# Average Slow cell when the cell delta_t is very small
+DFLAGS += -DAVERAGE_SLOW_CELLS
+
+
+# Print Initial Statistics
+DFLAGS += -DPRINT_INITIAL_STATS
+
+
+# Output all data every N_OUTPUT_COMPLETE snapshots ( These are Restart Files )
+DFLAGS += -DN_OUTPUT_COMPLETE=1
+
+
+# Limit the number of steps to evolve
+#DFLAGS += -DN_STEPS_LIMIT=284
