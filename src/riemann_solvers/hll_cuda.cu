@@ -10,7 +10,6 @@
 #include "../riemann_solvers/hll_cuda.h"
 
 #ifdef DE //PRESSURE_DE
-//#include "../hydro/hydro_cuda.h"
 #include "../utils/hydro_utilities.h"
 #endif
 
