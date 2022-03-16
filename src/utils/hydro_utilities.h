@@ -57,7 +57,7 @@ namespace hydro_utilities {
         return (fmax(P, TINY_NUMBER)/(gamma - 1.)) + 0.5 * d * (vx*vx + vy*vy + vz*vz);
     }
 
-    inline __host__ __device__ Real Get_Pressure_From_DE(Real const &E, Real const &U_total, Real const &U_advected, Real const &gamma) {
+    inline __host__ __device__ Real Calc_Pressure_Primitive_DE(Real const &E, Real const &U_total, Real const &U_advected, Real const &gamma) {
         Real U, P;
         Real eta = DE_ETA_1;
         // Apply same condition as Byan+2013 to select the internal energy from which compute pressure.

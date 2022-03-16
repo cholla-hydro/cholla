@@ -48,6 +48,8 @@ namespace
         std::vector<double> P {2.2244082909e-100, 8.6772951021e2, 6.7261085663e100};
         std::vector<double> n {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
         std::vector<double> ge {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
+        std::vector<double> U_total {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
+        std::vector<double> U_advected {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
         std::vector<std::string> names{"Small number case", "Medium number case", "Large number case"};
     };
 }
@@ -111,5 +113,17 @@ TEST(tHYDROSYSTEMHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput)
         Real test_Es = hydro_utilities::Calc_Energy_Primitive(parameters.P.at(i), parameters.d.at(i), parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i), parameters.gamma);
 
         testingUtilities::checkResults(fiducial_Es.at(i), test_Es, parameters.names.at(i));
+    }
+}
+
+TEST(tHYDROSYSTEMHydroUtilsCalcPressureFromDE, CorrectInputExpectCorrectOutput) {
+    TestParams parameters;
+    std::vector<double> fiducial_Ps {3.1519051484164999e-94, 1784507.7619407175, 1.9018677140549926e+300};
+
+    for (size_t i = 0; i < parameters.names.size(); i++)
+    {
+        Real test_Ps = hydro_utilities::Calc_Pressure_From_DE(parameters.E.at(i), parameters.U_total.at(i), parameters.U_advected.at(i), parameters.gamma);
+
+        testingUtilities::checkResults(fiducial_Ps.at(i), test_Ps, parameters.names.at(i));
     }
 }
