@@ -87,7 +87,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     E = dev_bounds_R[4*n_cells + tid];
     E_kin = 0.5 * dr * ( vxr*vxr + vyr*vyr + vzr*vzr );
     dge = dev_bounds_R[(n_fields-1)*n_cells + tid];
-    pr = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    pr = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     pr  = (dev_bounds_R[4*n_cells + tid] - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
     #endif //PRESSURE_DE
