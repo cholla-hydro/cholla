@@ -15,7 +15,7 @@
 
 namespace cuda_utilities {
     namespace {
-        inline __host__ __device__ void Get_GTID(int &id, int &xid, int &yid, int &zid, int &tid, int const &nx, int const &ny, int const &nz) {
+        inline __device__ void Get_GTID(int &id, int &xid, int &yid, int &zid, int &tid, int const &nx, int const &ny, int const &nz) {
             int blockId = blockIdx.x + blockIdx.y * gridDim.x;
             int id = threadIdx.x + blockId * blockDim.x;
             int zid = id / (nx * ny);
