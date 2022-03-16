@@ -77,7 +77,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutpu
 
 TEST(tHYDROSYSTEMHydroUtilsCalcTemp, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
-    std::vector<double> fiducial_Ts {1e-20, 139984604373.87094, 1.3965808056866668e+301};
+    std::vector<double> fiducial_Ts {10335643.97340712, 37808388.612783447, 28968949.83344138};
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
