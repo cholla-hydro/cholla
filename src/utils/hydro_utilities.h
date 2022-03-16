@@ -46,7 +46,7 @@ namespace hydro_utilities {
     }
 
     #ifdef DE
-    inline __host__ __device__ Real _Calc_Temp_DE(Real const &d, Real const &ge, Real const &gamma, Real const&n) {
+    inline __host__ __device__ Real Calc_Temp_DE(Real const &d, Real const &ge, Real const &gamma, Real const&n) {
         Real T =  d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
         return T;
     }
