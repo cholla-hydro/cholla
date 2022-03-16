@@ -48,7 +48,6 @@ namespace
         std::vector<double> P {2.2244082909e-100, 8.6772951021e2, 6.7261085663e100};
         std::vector<double> n {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
         std::vector<double> ge {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
-        std::vector<double> gamma {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
         std::vector<std::string> names{"Small number case", "Medium number case", "Large number case"};
     };
 }
@@ -96,7 +95,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput) {
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real test_Ts = hydro_utilities::Calc_Temp_DE(parameters.d.at(i), parameters.ge.at(i), parameters.gamma.at(i), parameters.n.at(i));
+        Real test_Ts = hydro_utilities::Calc_Temp_DE(parameters.d.at(i), parameters.ge.at(i), parameters.gamma, parameters.n.at(i));
 
         testingUtilities::checkResults(fiducial_Ts.at(i), test_Ts, parameters.names.at(i));
     }
