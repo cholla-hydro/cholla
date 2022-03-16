@@ -48,6 +48,7 @@ namespace
         std::vector<double> P {2.2244082909e-100, 8.6772951021e2, 6.7261085663e100};
         std::vector<double> n {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
         std::vector<double> ge {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
+        std::vector<double> gamma {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
         std::vector<std::string> names{"Small number case", "Medium number case", "Large number case"};
     };
 }
