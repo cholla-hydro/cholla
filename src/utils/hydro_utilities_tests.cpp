@@ -91,7 +91,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcTemp, CorrectInputExpectCorrectOutput) {
 #ifdef DE
 TEST(tHYDROSYSTEMHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
-    std::vector<double> fiducial_Ts {10335643.97340712, 37808388.612783447, 28968949.83344138};
+    std::vector<double> fiducial_Ts {3.1519051484164999e-94, 336118467.45898658, 3.4003787759209402e+106};
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
