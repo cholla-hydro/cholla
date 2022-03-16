@@ -46,6 +46,7 @@ namespace
         std::vector<double> mz {0.6703192739e-100, 0.5676716066e2, 0.2115881803e100};
         std::vector<double> E {20.9342082433e-90, 20.9976906577e10, 20.9487120853e300};
         std::vector<double> P {2.2244082909e-100, 8.6772951021e2, 6.7261085663e100};
+        std::vector<double> n {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
         std::vector<std::string> names{"Small number case", "Medium number case", "Large number case"};
     };
 }
