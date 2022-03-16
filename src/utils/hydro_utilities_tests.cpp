@@ -122,7 +122,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcPressureFromDE, CorrectInputExpectCorrectOutput) 
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real test_Ps = hydro_utilities::Calc_Pressure_From_DE(parameters.E.at(i), parameters.U_total.at(i), parameters.U_advected.at(i), parameters.gamma);
+        Real test_Ps = hydro_utilities::Get_Pressure_From_DE(parameters.E.at(i), parameters.U_total.at(i), parameters.U_advected.at(i), parameters.gamma);
 
         testingUtilities::checkResults(fiducial_Ps.at(i), test_Ps, parameters.names.at(i));
     }
