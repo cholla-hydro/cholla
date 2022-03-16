@@ -11,7 +11,7 @@
 
 #ifdef DE //PRESSURE_DE
 #include "../hydro/hydro_cuda.h"
-#include "../hydro_utilities.h"
+#include "../utils/hydro_utilities.h"
 #endif
 
 
