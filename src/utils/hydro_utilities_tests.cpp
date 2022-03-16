@@ -104,7 +104,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput) {
 
 TEST(tHYDROSYSTEMHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
-    std::vector<double> fiducial_Es {3.1519051484164999e-94, 336118467.45898658, 3.4003787759209402e+106};
+    std::vector<double> fiducial_Es {3.1519051484164999e-94, 1784507.7619407175, 1.9018677140549926e+300};
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
