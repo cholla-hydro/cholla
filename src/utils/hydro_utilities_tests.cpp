@@ -73,3 +73,15 @@ TEST(tHYDROSYSTEMHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutpu
         testingUtilities::checkResults(fiducial_Ps.at(i), test_Ps, parameters.names.at(i));
     }
 }
+
+TEST(tHYDROSYSTEMHydroUtilsCalcTemp, CorrectInputExpectCorrectOutput) {
+    TestParams parameters;
+    std::vector<double> fiducial_Ts {1e-20, 139984604373.87094, 1.3965808056866668e+301};
+
+    for (size_t i = 0; i < parameters.names.size(); i++)
+    {
+        Real test_Ts = hydro_utilities::Calc_Temp(parameters.P.at(i), parameters.n.at(i));
+
+        testingUtilities::checkResults(fiducial_Ts.at(i), test_Ts, parameters.names.at(i));
+    }
+}
