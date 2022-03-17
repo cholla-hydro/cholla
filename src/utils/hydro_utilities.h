@@ -54,6 +54,7 @@ namespace hydro_utilities {
 
     inline __host__ __device__ Real Calc_Energy_Primitive(Real const &P, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
         // Compute and return energy
+        std::cout << 0.5 * d * (vx*vx + vy*vy + vz*vz) << "\n";
         return (fmax(P, TINY_NUMBER)/(gamma - 1.)) + 0.5 * d * (vx*vx + vy*vy + vz*vz);
     }
 

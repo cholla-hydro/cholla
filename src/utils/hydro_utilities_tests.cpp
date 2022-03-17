@@ -116,7 +116,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput)
     }
 }
 
-TEST(tHYDROSYSTEMHydroUtilsCalcPressureFromDE, CorrectInputExpectCorrectOutput) {
+TEST(tHYDROSYSTEMHydroUtilsGetPressureFromDE, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
     std::vector<double> fiducial_Ps {3.1519051484164999e-94, 71.713126573333341, 7.2549358980000001e+99};
 
