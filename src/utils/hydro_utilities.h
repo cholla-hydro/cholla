@@ -48,6 +48,7 @@ namespace hydro_utilities {
     #ifdef DE
     inline __host__ __device__ Real Calc_Temp_DE(Real const &d, Real const &ge, Real const &gamma, Real const&n) {
         Real T =  d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
+        std::cout << d * ge * (gamma - 1.0) << "\n";
         return T;
     }
     #endif // DE
@@ -68,7 +69,6 @@ namespace hydro_utilities {
             U = U_advected;
         }
         P = U * (gamma - 1.0);
-        std::cout << U << "\n";
         return P;
     }
 
