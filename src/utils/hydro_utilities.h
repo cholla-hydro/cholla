@@ -68,6 +68,7 @@ namespace hydro_utilities {
             U = U_advected;
         }
         P = U * (gamma - 1.0);
+        std::cout << U << "\n";
         return P;
     }
 
