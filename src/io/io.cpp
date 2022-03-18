@@ -409,16 +409,16 @@ void OutputSlices(Grid3D &G, struct parameters P, int nfile)
  *  \brief Write some relevant header info to a text output file. */
 void Grid3D::Write_Header_Text(FILE *fp)
 {
-
   // Write the header info to the output file
   fprintf(fp, "Header Information\n");
+  fprintf(fp, "Git Commit Hash = %s\n", GIT_HASH);
+  fprintf(fp, "Macro Flags     = %s\n", MACRO_FLAGS);
   fprintf(fp, "n_step: %d  sim t: %f  sim dt: %f\n", H.n_step, H.t, H.dt);
   fprintf(fp, "mass unit: %e  length unit: %e  time unit: %e\n", MASS_UNIT, LENGTH_UNIT, TIME_UNIT);
   fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz);
   fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound);
   fprintf(fp, "xlen: %f  ylen: %f  zlen: %f\n", H.domlen_x, H.domlen_y, H.domlen_z);
   fprintf(fp, "t: %f\n", H.t);
-
 }
 
 
