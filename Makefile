@@ -160,6 +160,12 @@ endif
 
 EXEC := bin/cholla$(SUFFIX)
 
+# Get the git hash and setup macro to store a string of all the other macros so
+# that they can be written to the save files
+DFLAGS      += -DGIT_HASH='"$(shell git rev-parse --verify HEAD)"'
+MACRO_FLAGS := -DMACRO_FLAGS='"$(DFLAGS)"'
+DFLAGS      += $(MACRO_FLAGS)
+
 $(EXEC): prereq-build $(OBJS)
 	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
 	eval $(EXTRA_COMMANDS)
