@@ -409,16 +409,16 @@ void OutputSlices(Grid3D &G, struct parameters P, int nfile)
  *  \brief Write some relevant header info to a text output file. */
 void Grid3D::Write_Header_Text(FILE *fp)
 {
-
   // Write the header info to the output file
   fprintf(fp, "Header Information\n");
+  fprintf(fp, "Git Commit Hash = %s\n", GIT_HASH);
+  fprintf(fp, "Macro Flags     = %s\n", MACRO_FLAGS);
   fprintf(fp, "n_step: %d  sim t: %f  sim dt: %f\n", H.n_step, H.t, H.dt);
   fprintf(fp, "mass unit: %e  length unit: %e  time unit: %e\n", MASS_UNIT, LENGTH_UNIT, TIME_UNIT);
   fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz);
   fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound);
   fprintf(fp, "xlen: %f  ylen: %f  zlen: %f\n", H.domlen_x, H.domlen_y, H.domlen_z);
   fprintf(fp, "t: %f\n", H.t);
-
 }
 
 
@@ -481,6 +481,22 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &gama);
   // Close the attribute
   status = H5Aclose(attribute_id);
+
+  // String attributes
+  hid_t stringType = H5Tcopy(H5T_C_S1);
+  H5Tset_size(stringType, H5T_VARIABLE);
+
+  attribute_id = H5Acreate(file_id, "Git Commit Hash", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char * gitHash = GIT_HASH;
+  status = H5Awrite(attribute_id, stringType, &gitHash);
+  H5Aclose(attribute_id);
+
+  attribute_id = H5Acreate(file_id, "Macro Flags", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char * macroFlags = MACRO_FLAGS;
+  status = H5Awrite(attribute_id, stringType, &macroFlags);
+  H5Aclose(attribute_id);
+
+  // Numeric Attributes
   attribute_id = H5Acreate(file_id, "t", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &H.t);
   status = H5Aclose(attribute_id);
@@ -701,6 +717,22 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &gama);
   // Close the attribute
   status = H5Aclose(attribute_id);
+
+  // String attributes
+  hid_t stringType = H5Tcopy(H5T_C_S1);
+  H5Tset_size(stringType, H5T_VARIABLE);
+
+  attribute_id = H5Acreate(file_id, "Git Commit Hash", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char * gitHash = GIT_HASH;
+  status = H5Awrite(attribute_id, stringType, &gitHash);
+  H5Aclose(attribute_id);
+
+  attribute_id = H5Acreate(file_id, "Macro Flags", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char * macroFlags = MACRO_FLAGS;
+  status = H5Awrite(attribute_id, stringType, &macroFlags);
+  H5Aclose(attribute_id);
+
+  // Numeric Attributes
   attribute_id = H5Acreate(file_id, "t", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &H.t);
   status = H5Aclose(attribute_id);
