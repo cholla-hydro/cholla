@@ -29,29 +29,20 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
 
 
 
-void VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
+void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
 {
-  //Here, *host_conserved contains the entire
+  //Here, *dev_conserved contains the entire
   //set of conserved variables on the grid
-  //host_conserved0 contains the values at time n
-  //host_conserved1 will contain the values at time n+1
 
   int n_cells = nx;
   int ny = 1;
   int nz = 1;
 
   // set the dimensions of the cuda grid
-  ngrid = (n_cells + TPB - 1) / TPB;
   dim3 dimGrid(ngrid, 1, 1);
   dim3 dimBlock(TPB, 1, 1);
 
   if ( !memory_allocated ) {
-
-    // allocate an array on the CPU to hold max_dti returned from each thread block
-    CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
-    #ifdef COOLING_GPU
-    CudaSafeCall( cudaHostAlloc(&host_dt_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
-    #endif
 
     // allocate memory on the GPU
     dev_conserved = d_conserved;
@@ -60,10 +51,6 @@ void VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_
     CudaSafeCall( cudaMalloc((void**)&Q_Lx, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Rx, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_x,   n_fields*n_cells*sizeof(Real)) );
-    CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-    #ifdef COOLING_GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
-    #endif
 
     // If memory is single allocated: memory_allocated becomes true and successive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
@@ -147,22 +134,12 @@ void VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_
 
 void Free_Memory_VL_1D() {
 
-  // free the CPU memory
-  CudaSafeCall( cudaFreeHost(host_dti_array) );
-  #ifdef COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );
-  #endif
-
   // free the GPU memory
   cudaFree(dev_conserved);
   cudaFree(dev_conserved_half);
   cudaFree(Q_Lx);
   cudaFree(Q_Rx);
   cudaFree(F_x);
-  cudaFree(dev_dti_array);
-  #ifdef COOLING_GPU
-  cudaFree(dev_dt_array);
-  #endif
 
 }
 

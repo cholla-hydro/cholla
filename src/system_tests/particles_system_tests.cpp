@@ -15,35 +15,16 @@
 // Test Suite: tPARTICLESSYSTEMSphericalCollapse
 // =============================================================================
 /*!
- * \defgroup tPARTICLESSYSTEMSphericalCollapseParameterizedMpi_CorrectInputExpectCorrectOutput
- * \brief Test the spherical collapse with particles initial conditions as a
- * parameterized test with varying numbers of MPI ranks
+ * \defgroup tPARTICLESSYSTEMSphericalCollapse_CorrectInputExpectCorrectOutput
+ * \brief Test the spherical collapse with particles initial conditions
  *
  */
 /// @{
-class tPARTICLESSYSTEMSphericalCollapseParameterizedMpi
-      :public
-      ::testing::TestWithParam<size_t>
+TEST(tPARTICLESSYSTEMSphericalCollapse,
+     CorrectInputExpectCorrectOutput)
 {
-public:
-   tPARTICLESSYSTEMSphericalCollapseParameterizedMpi()
-      :collapseTest(true)
-      {};
-    ~tPARTICLESSYSTEMSphericalCollapseParameterizedMpi() = default;
-
-protected:
-    systemTest::SystemTestRunner collapseTest;
-};
-
-TEST_P(tPARTICLESSYSTEMSphericalCollapseParameterizedMpi,
-       CorrectInputExpectCorrectOutput)
-{
-    collapseTest.numMpiRanks = GetParam();
+    systemTest::SystemTestRunner collapseTest(true);
     collapseTest.runTest();
 }
-
-INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput,
-                         tPARTICLESSYSTEMSphericalCollapseParameterizedMpi,
-                         ::testing::Values(1, 2, 4));
 /// @}
 // =============================================================================

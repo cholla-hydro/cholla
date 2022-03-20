@@ -3,6 +3,8 @@ name: Cholla Compile
 on:
   pull_request:
     branches: [ CAAR ]
+  schedule:
+    - cron: "37 11 * * 1"
   workflow_dispatch:
 
 jobs:
@@ -23,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        make-type: [hydro, gravity, disk, particles, cosmology]
+        make-type: [hydro, gravity, disk, particles, cosmology, mhd]
         gpu-api: [HIP, CUDA]
         # NOTE: if more than one parameter is in any of these three variables
         # you need to manually exclude it for the GPU API that doesn't use it.

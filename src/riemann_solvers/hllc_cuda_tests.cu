@@ -157,7 +157,7 @@
                                                                  ulpsDiff);
                 EXPECT_TRUE(areEqual)
                     << std::endl << customOutput << std::endl
-                    << "Difference in "                << fieldNames[i]   << std::endl
+                    << "There's a difference in "      << fieldNames[i]   << " Flux" << std::endl
                     << "The fiducial value is:       " << fiducialFlux[i] << std::endl
                     << "The test value is:           " << testFlux[i]     << std::endl
                     << "The absolute difference is:  " << absoluteDiff    << std::endl
