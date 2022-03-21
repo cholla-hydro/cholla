@@ -19,35 +19,48 @@
 #include "../utils/cuda_utilities.h"
 #include "../global/global.h"
 
-// =============================================================================
-// Local helper functions
-
-/*!
-* INDEX OF VARIABLES
-* p : pressure
-* vx, vy, vz : x, y, and z velocity
-* d : density
-* E : energy
-* T : temperature
-* px, py, pz : x, y, and z momentum
-* n : number density
+/*
+ PCM : n_ghost = 2
+ PLMP : n_ghost = 2
+ PLMC : n_ghost = 3
+ PPMP : n_ghost = 4
+ PPMC : n_ghost = 4
 */
 
+// =============================================================================
+// Local helper functions
 namespace
 {
     struct TestParams
     {
-        double gamma = 5./3.;
-        std::vector<double> d {8.4087201154e-100, 1.6756968986e2, 5.4882403847e100};
-        std::vector<double> vx {7.0378624601e-100, 7.0829278656e2, 1.8800514112e100};
-        std::vector<double> vy {7.3583469014e-100, 5.9283073464e2, 5.2725717864e100};
-        std::vector<double> vz {1.7182972216e-100, 8.8417748226e2, 1.5855352639e100};
-        std::vector<double> px {8.2340416681e-100, 8.1019429453e2, 5.5062596954e100};
-        std::vector<double> py {4.9924582299e-100, 7.1254780684e2, 6.5939640992e100};
-        std::vector<double> pz {3.6703192739e-100, 7.5676716066e2, 7.2115881803e100};
-        std::vector<double> E {3.0342082433e-100, 7.6976906577e2, 1.9487120853e100};
-        std::vector<double> p {2.2244082909e-100, 8.6772951021e2, 6.7261085663e100};
-        std::vector<std::string> names{"Small number case", "Medium number case", "Large number case"};
+        std::vector<int> n_ghost {2, 2, 3, 4};
+        std::vector<int> nx {1, 2048, 2048, 2048};
+        std::vector<int> ny {1, 2048, 2048, 2048};
+        std::vector<int> nz {1, 4096, 4096, 4096};
+        std::vector<std::string> names{"Single-cell 3D PCM/PLMP case", "Large 3D PCM/PLMP case", "Large PLMC case", "Large PPMP/PPMC case"};
+
     };
 }
 
+TEST(tHYDROSYSTEMCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput) {
+    TestParams parameters;
+    std::vector<vector<int>> fiducial_indices {{1, 2, 3, 4, 5, 6}, 
+                                               {4, 5, 6, 7, 8, 9}, 
+                                               {7, 8, 9, 4, 5, 6},
+                                               {7, 8, 9, 4, 5, 6}}; 
+
+    for (size_t i = 0; i < parameters.names.size(); i++)
+    {
+        int is;
+        int ie;
+        int js;
+        int je;
+        int ks;
+        int ke;
+        cuda_utilities::Get_Real_Indices(parameters.n_ghost.at(i), parameters.nx.at(i), parameters.ny.at(i), parameters.nz.at(i), is, ie, js, je, ks, ke);
+
+        std::vector<int> test_indices {is, ie, js, je, ks, ke};
+
+        testingUtilities::checkResults(fiducial_indices.at(i), test_indices, parameters.names.at(i));
+    }
+}
