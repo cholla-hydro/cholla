@@ -499,14 +499,14 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
 
   part_int_t pID = 0;
   Real pPos_x, pPos_y, pPos_z, r;
-  ChollaPrngGenerator prng(P);
+  std::mt19937_64 generator(P->prng_seed);
   std::uniform_real_distribution<Real> xPositionPrng(G.xMin, G.xMax );
   std::uniform_real_distribution<Real> yPositionPrng(G.yMin, G.yMax );
   std::uniform_real_distribution<Real> zPositionPrng(G.zMin, G.zMax );
   while ( pID < n_particles_local ){
-    pPos_x = xPositionPrng(prng.generator);
-    pPos_y = yPositionPrng(prng.generator);
-    pPos_z = zPositionPrng(prng.generator);
+    pPos_x = xPositionPrng(generator);
+    pPos_y = yPositionPrng(generator);
+    pPos_z = zPositionPrng(generator);
 
     r = sqrt( (pPos_x-center_x)*(pPos_x-center_x) + (pPos_y-center_y)*(pPos_y-center_y) + (pPos_z-center_z)*(pPos_z-center_z) );
     if ( r > sphereR ) continue;
@@ -609,7 +609,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   chprintf( " Initializing Particles Stellar Disk\n");
 
   // Set up the PRNG
-  ChollaPrngGenerator prng(P);
+  std::mt19937_64 generator(P->prng_seed);
 
   std::gamma_distribution<Real> radialDist(2,1);           //for generating cyclindrical radii
   std::uniform_real_distribution<Real> zDist(0, 1);        //for generating height above/below the disk.
@@ -634,10 +634,10 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   long lost_particles = 0;
   for ( unsigned long int i = 0; i < N; i++ ){
       do {
-          R = R_d*radialDist(prng.generator);
+          R = R_d*radialDist(generator);
       } while (R > R_max);
 
-      phi = phiDist(prng.generator);
+      phi = phiDist(generator);
       x = R * cos(phi);
       y = R * sin(phi);
       z = 0;
