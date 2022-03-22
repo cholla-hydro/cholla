@@ -63,7 +63,7 @@ TEST(tHYDROSYSTEMCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput) {
 
         for (int j = 0; j < test_indices.size(); j++) 
         {
-            testingUtilities::checkResults(fiducial_indices[i], test_indices[i][j], parameters.names[i]);
+            testingUtilities::checkResults(fiducial_indices[i][j], test_indices[i], parameters.names[i]);
         }
     }
 }
