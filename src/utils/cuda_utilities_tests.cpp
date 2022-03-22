@@ -37,7 +37,7 @@ namespace
         std::vector<int> nx {1, 2048, 2048, 2048};
         std::vector<int> ny {1, 2048, 2048, 2048};
         std::vector<int> nz {1, 4096, 4096, 4096};
-        std::vector<std::string> names{"Single-cell 3D PCM/PLMP case", "Large 3D PCM/PLMP case", "Large PLMC case", "Large PPMP/PPMC case"};
+        std::vector<std::string> names {"Single-cell 3D PCM/PLMP case", "Large 3D PCM/PLMP case", "Large PLMC case", "Large PPMP/PPMC case"};
 
     };
 }
@@ -60,10 +60,11 @@ TEST(tHYDROSYSTEMCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput) {
         cuda_utilities::Get_Real_Indices(parameters.n_ghost.at(i), parameters.nx.at(i), parameters.ny.at(i), parameters.nz.at(i), is, ie, js, je, ks, ke);
 
         std::vector<int> test_indices {is, ie, js, je, ks, ke};
+        std::vector<std::string> index_names {"is", "ie", "js", "je", "ks", "ke"};
 
-        for (int j = 0; j < test_indices.size(); j++) 
+        for (int j = 0; j < test_indices.size(); j++)
         {
-            testingUtilities::checkResults(fiducial_indices[i][j], test_indices[i], parameters.names[i]);
+            testingUtilities::checkResults(fiducial_indices[i][j], test_indices[i], index_names[i] + " " + parameters.names[i]);
         }
     }
 }
