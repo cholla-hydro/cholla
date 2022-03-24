@@ -625,9 +625,6 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Real x, y, z, R, phi;
   Real vx, vy, vz, vel, ac;
   Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
-  #ifdef PARTICLE_IDS
-  part_int_t id;
-  #endif
   particle_mass = 1e4;  //solar masses
   //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
   unsigned long int N = (long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
@@ -642,9 +639,9 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       y = R * sin(phi);
       z = 0;
 
-      if (x < G.xMin || x > G.xMax) continue;
-      if (y < G.yMin || y > G.yMax) continue;
-      if (z < G.zMin || z > G.zMax) continue;
+      if (x < G.xMin || x >= G.xMax) continue;
+      if (y < G.yMin || y >= G.yMax) continue;
+      if (z < G.zMin || z >= G.zMax) continue;
 
       ac  = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
       vPhi = sqrt(R*ac);
@@ -666,14 +663,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       grav_z.push_back(0.0);
 
       #ifdef PARTICLE_IDS
-      id =  i;
-      #ifdef PARALLEL_OMP
-        #pragma omp parallel num_threads( N_OMP_THREADS )
-        {
-          id += 1.0*omp_get_thread_num()/omp_get_num_threads();
-        }
-      #endif //PARALLEL_OMP
-      partIDs.push_back(id);
+      partIDs.push_back(i);
       #endif //PARTICLE_IDS
 
       #ifdef PARTICLE_AGE
