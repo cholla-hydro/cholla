@@ -40,7 +40,7 @@
 
 #ifdef CHEMISTRY_GPU
 #include "chemistry_gpu/chemistry_gpu.h"
-#endif 
+#endif
 
 #ifdef ANALYSIS
 #include "../analysis/analysis.h"
@@ -309,11 +309,11 @@ class Grid3D
     // Object that contains data for Grackle cooling
     Cool_GK Cool;
     #endif
-    
+
     #ifdef CPU_TIME
     Time Timer;
     #endif
-    
+
     #ifdef CHEMISTRY_GPU
     // Object that contains data for the GPU chemistry solver
     Chem_GPU Chem;
@@ -357,19 +357,19 @@ class Grid3D
       #ifdef MHD
       /*! \var magnetic_x \brief Array containing the magnetic field in the x
        *  direction of each cell in the grid. Note that this is the magnetic
-       *  field at the x-1/2 face of the cell since constrained transport
+       *  field at the x+1/2 face of the cell since constrained transport
        *  requires face centered, not cell centered, magnetic fields */
       Real *magnetic_x;
 
       /*! \var magnetic_y \brief Array containing the magnetic field in the y
        *  direction of each cell in the grid. Note that this is the magnetic
-       *  field at the y-1/2 face of the cell since constrained transport
+       *  field at the y+1/2 face of the cell since constrained transport
        *  requires face centered, not cell centered, magnetic fields */
       Real *magnetic_y;
 
       /*! \var magnetic_z \brief Array containing the magnetic field in the z
        *  direction of each cell in the grid. Note that this is the magnetic
-       *  field at the z-1/2 face of the cell since constrained transport
+       *  field at the z+1/2 face of the cell since constrained transport
        *  requires face centered, not cell centered, magnetic fields */
       Real *magnetic_z;
       #endif  // MHD
@@ -384,7 +384,7 @@ class Grid3D
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
-      
+
       #ifdef CHEMISTRY_GPU
       Real *HI_density;
       Real *HII_density;
@@ -392,9 +392,9 @@ class Grid3D
       Real *HeII_density;
       Real *HeIII_density;
       Real *e_density;
-      #endif 
+      #endif
 
-      
+
       /*! pointer to conserved variable on device */
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z,
@@ -643,7 +643,7 @@ class Grid3D
     void Uniform_Grid();
 
     void Zeldovich_Pancake( struct parameters P );
-    
+
     void Chemistry_Test( struct parameters P );
 
 
@@ -797,13 +797,13 @@ class Grid3D
   void Update_Internal_Energy();
   void Do_Cooling_Step_Grackle();
   #endif
-  
+
   #ifdef CHEMISTRY_GPU
   void Initialize_Chemistry( struct parameters *P );
   void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
   void Update_Chemistry();
   #endif
-  
+
   #ifdef ANALYSIS
   void Initialize_Analysis_Module( struct parameters *P );
   void Compute_and_Output_Analysis( struct parameters *P );
