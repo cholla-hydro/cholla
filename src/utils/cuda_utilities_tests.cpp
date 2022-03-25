@@ -45,9 +45,9 @@ namespace
 TEST(tHYDROSYSTEMCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
     std::vector<std::vector<int>> fiducial_indices {{2, 98, 0, 1, 0, 1}, 
-                                               {2, 2046, 2, 2046, 2, 4096}, 
-                                               {3, 2045, 3, 2045, 3, 4095},
-                                               {4, 2044, 4, 2044, 4, 4094}}; 
+                                               {2, 2046, 2, 2046, 2, 4094}, 
+                                               {3, 2045, 3, 2045, 3, 4093},
+                                               {4, 2044, 4, 2044, 4, 4092}}; 
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
