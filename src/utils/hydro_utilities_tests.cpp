@@ -93,7 +93,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcTemp, CorrectInputExpectCorrectOutput) {
 #ifdef DE
 TEST(tHYDROSYSTEMHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
-    std::vector<double> fiducial_Ts {10, 261106139.02514684, 1.2105231166585662e+107};
+    std::vector<double> fiducial_Ts {5.123106988008801e-09, 261106139.02514684, 1.2105231166585662e+107};
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
@@ -106,7 +106,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput) {
 
 TEST(tHYDROSYSTEMHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
-    std::vector<double> fiducial_Es {3.1519051484164999e-94, 1784507.7619407175, 1.9018677140549926e+300};
+    std::vector<double> fiducial_Es {3.3366124363499997e-10, 1784507.7619407175, 1.9018677140549926e+300};
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
@@ -118,7 +118,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput)
 
 TEST(tHYDROSYSTEMHydroUtilsGetPressureFromDE, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
-    std::vector<double> fiducial_Ps {3.1519051484164999e-94, 71.713126573333341, 7.2549358980000001e+99};
+    std::vector<double> fiducial_Ps {1.5927160260000002e-10, 71.713126573333341, 7.2549358980000001e+99};
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
