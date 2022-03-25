@@ -62,8 +62,6 @@ TEST(tHYDROSYSTEMCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput) {
         std::vector<std::string> index_names {"is", "ie", "js", "je", "ks", "ke"};
         std::vector<int> test_indices {is, ie, js, je, ks, ke};
 
-        std::cout << test_indices << "\n";
-
         for (size_t j = 0; j < test_indices.size(); j++)
         {
             testingUtilities::checkResults(fiducial_indices[i][j], test_indices[j], index_names[j] + " " + parameters.names[i]);
