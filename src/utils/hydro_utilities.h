@@ -48,16 +48,12 @@ namespace hydro_utilities {
     #ifdef DE
     inline __host__ __device__ Real Calc_Temp_DE(Real const &d, Real const &ge, Real const &gamma, Real const&n) {
         Real T =  d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
-        std::cout << d * ge * (gamma - 1.0) << "\n";
-        std::cout << T << "\n";
         return T;
     }
     #endif // DE
 
     inline __host__ __device__ Real Calc_Energy_Primitive(Real const &P, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
         // Compute and return energy
-        std::cout << 0.5 * d * (vx*vx + vy*vy + vz*vz) << "\n";
-        std::cout <<(fmax(P, TINY_NUMBER)/(gamma - 1.)) + 0.5 * d * (vx*vx + vy*vy + vz*vz) << "\n";
         return (fmax(P, TINY_NUMBER)/(gamma - 1.)) + 0.5 * d * (vx*vx + vy*vy + vz*vz);
     }
 
