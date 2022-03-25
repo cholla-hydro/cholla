@@ -37,7 +37,7 @@ namespace
     struct TestParams
     {
         double gamma = 5./3.;
-        std::vector<double> d {1.0087201154e-100, 1.0756968986e2, 1.0882403847e100};
+        std::vector<double> d {1.0087201154e-20, 1.0756968986e2, 1.0882403847e100};
         std::vector<double> vx {1.0378624601e-100, 1.0829278656e2, 1.0800514112e100};
         std::vector<double> vy {1.0583469014e-100, 1.0283073464e2, 1.0725717864e100};
         std::vector<double> vz {1.0182972216e-100, 1.0417748226e2, 1.0855352639e100};
