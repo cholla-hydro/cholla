@@ -59,21 +59,29 @@ int main(int argc, char *argv[])
   // read in the parameters
   parse_params (param_file, &P, argc, argv);
   // and output to screen
+  chprintf("Git Commit Hash = %s\n", GIT_HASH);
+  chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
   chprintf ("Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, boundaries = %d %d %d %d %d %d\n",
     P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
   if (strcmp(P.init, "Read_Grid") == 0  ) chprintf ("Input directory:  %s\n", P.indir);
   chprintf ("Output directory:  %s\n", P.outdir);
 
-  //Create a Log file to output run-time messages
+  //Create a Log file to output run-time messages and output the git hash and
+  //macro flags used
   Create_Log_File(P);
+  std::string message = "Git Commit Hash = " + std::string(GIT_HASH);
+  Write_Message_To_Log_File( message.c_str() );
+  message = "Macro Flags     = " + std::string(MACRO_FLAGS);
+  Write_Message_To_Log_File( message.c_str() );
+
+
 
   // initialize the grid
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
-  char *message = (char*)malloc(50 * sizeof(char));
-  sprintf(message, "Initializing Simulation" );
-  Write_Message_To_Log_File( message );
+  message = "Initializing Simulation";
+  Write_Message_To_Log_File( message.c_str() );
 
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
@@ -88,8 +96,8 @@ int main(int argc, char *argv[])
 
   #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2 );
-  sprintf(message, " eta_1: %0.3f   eta_2: %0.3f  ", DE_ETA_1, DE_ETA_2 );
-  Write_Message_To_Log_File( message );
+  message =  " eta_1: " + std::to_string(DE_ETA_1) + "   eta_2: " + std::to_string(DE_ETA_2);
+  Write_Message_To_Log_File( message.c_str() );
   #endif
 
   #ifdef CPU_TIME
@@ -173,8 +181,8 @@ int main(int argc, char *argv[])
 
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
-  sprintf(message, "Starting calculations." );
-  Write_Message_To_Log_File( message );
+  message = "Starting calculations.";
+  Write_Message_To_Log_File( message.c_str() );
   while (G.H.t < P.tout)
   {
     // get the start time
@@ -299,8 +307,8 @@ int main(int argc, char *argv[])
   G.Timer.Print_Average_Times( P );
   #endif
 
-  sprintf(message, "Simulation completed successfully." );
-  Write_Message_To_Log_File( message );
+  message = "Simulation completed successfully.";
+  Write_Message_To_Log_File( message.c_str() );
 
   // free the grid
   G.Reset();
