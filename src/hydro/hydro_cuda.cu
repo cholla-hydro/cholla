@@ -9,6 +9,7 @@
 #include "../global/global_cuda.h"
 #include "../hydro/hydro_cuda.h"
 #include "../gravity/gravity_cuda.h"
+#include "../utils/hydro_utilities.h"
 
 
 __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int x_off, int n_ghost, Real dx, Real xbound, Real dt, Real gamma, int n_fields)
@@ -711,7 +712,7 @@ __global__ void Partial_Update_Advected_Internal_Energy_1D( Real *dev_conserved,
     E = dev_conserved[4*n_cells + id];
     GE = dev_conserved[(n_fields-1)*n_cells + id];
     E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
-    P = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );
+    P = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, GE, gamma );
     P  = fmax(P, (Real) TINY_NUMBER);
 
     imo = xid-1;
@@ -760,7 +761,7 @@ __global__ void Partial_Update_Advected_Internal_Energy_2D( Real *dev_conserved,
     E = dev_conserved[4*n_cells + id];
     GE = dev_conserved[(n_fields-1)*n_cells + id];
     E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
-    P = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );
+    P = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, GE, gamma );
     P  = fmax(P, (Real) TINY_NUMBER);
 
     imo = xid-1 + yid*nx;
@@ -813,7 +814,7 @@ __global__ void Partial_Update_Advected_Internal_Energy_3D( Real *dev_conserved,
     E = dev_conserved[4*n_cells + id];
     GE = dev_conserved[(n_fields-1)*n_cells + id];
     E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
-    P = Get_Pressure_From_DE( E, E - E_kin, GE, gamma );
+    P = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, GE, gamma );
     P  = fmax(P, (Real) TINY_NUMBER);
 
     imo = xid-1 + yid*nx + zid*nx*ny;
