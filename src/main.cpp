@@ -48,6 +48,8 @@ int main(int argc, char *argv[])
   if (argc < 2)
   {
     chprintf("usage: %s <parameter_file>\n", argv[0]);
+    chprintf("Git Commit Hash = %s\n", GIT_HASH);
+    chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
     chexit(-1);
   } else {
     param_file = argv[1];

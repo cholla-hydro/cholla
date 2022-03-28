@@ -120,19 +120,31 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
   H.yblocal = H.ybound;
   H.zblocal = H.zbound;
 
+  H.xblocal_max = H.xblocal + P.xlen;
+  H.yblocal_max = H.yblocal + P.ylen; 
+  H.zblocal_max = H.zblocal + P.zlen; 
+
 #else
   Real nx_param = (Real) nx_global;
   Real ny_param = (Real) ny_global;
   Real nz_param = (Real) nz_global;
 
   // Local Boundary Coordinates
+  /*
   H.xblocal = H.xbound + P.xlen * ((Real) nx_local_start) / nx_param;
   H.yblocal = H.ybound + P.ylen * ((Real) ny_local_start) / ny_param;
   H.zblocal = H.zbound + P.zlen * ((Real) nz_local_start) / nz_param;
+  */
+  H.xblocal = H.xbound + ((Real) nx_local_start) * (P.xlen / nx_param);
+  H.yblocal = H.ybound + ((Real) ny_local_start) * (P.ylen / ny_param);
+  H.zblocal = H.zbound + ((Real) nz_local_start) * (P.zlen / nz_param);
+
+  H.xblocal_max = H.xbound + ((Real) (nx_local_start + H.nx - 2*H.n_ghost)) * (P.xlen / nx_param);
+  H.yblocal_max = H.ybound + ((Real) (ny_local_start + H.ny - 2*H.n_ghost)) * (P.ylen / ny_param);
+  H.zblocal_max = H.zbound + ((Real) (nz_local_start + H.nz - 2*H.n_ghost)) * (P.zlen / nz_param);
 
 #endif
 
-#ifndef MPI_CHOLLA
   /*perform 1-D first*/
   if(H.nx > 1 && H.ny==1 && H.nz==1)
   {
@@ -170,15 +182,6 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
     H.domlen_y = P.ylen; // ifdef MPI_CHOLLA this could be H.dy * ny_param
     H.domlen_z = P.zlen; // ifdef MPI_CHOLLA this could be H.dz * nz_param
   }
-
-
-
-#else  /*MPI_CHOLLA*/
-
-  /* set the local domains on each process */
-  Set_Parallel_Domain(P.xmin, P.ymin, P.zmin, P.xlen, P.ylen, P.zlen, &H);
-
-#endif /*MPI_CHOLLA*/
 }
 
 

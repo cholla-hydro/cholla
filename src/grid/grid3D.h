@@ -176,9 +176,21 @@ struct Header
   /*  \brief Local domain y-direction minimum */
   Real yblocal;
 
-  /*! \var zblocal*/
+  /*! \var zblocal */
   /*  \brief Local domain z-direction minimum */
   Real zblocal;
+
+  /*! \var xblocal_max */
+  /*  \brief Local domain x-direction maximum */
+  Real xblocal_max;
+
+  /*! \var yblocal_max */
+  /*  \brief Local domain y-direction maximum */
+  Real yblocal_max;
+
+  /*! \var zblocal_max */
+  /*  \brief Local domain z-direction maximum */
+  Real zblocal_max;
 
   /*! \var xdglobal */
   /*  \brief Global domain length in x-direction */
