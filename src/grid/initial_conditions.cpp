@@ -213,23 +213,23 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
   }
 
   // set initial values of conserved variables
-  for(k=kstart; k<kend+1; k++) {
-    for(j=jstart; j<jend+1; j++) {
-      for(i=istart; i<iend+1; i++) {
+  for(k=kstart-1; k<kend; k++) {
+    for(j=jstart-1; j<jend; j++) {
+      for(i=istart-1; i<iend; i++) {
 
         //get cell index
         id = i + j*H.nx + k*H.nx*H.ny;
 
-        // Set the magnetic field including the first "ghost" cell which is
-        // really the right face of the last grid cell
+        // Set the magnetic field including the rightmost ghost cell on the
+        // left side which is really the left face of the first grid cell
         #ifdef  MHD
           C.magnetic_x[id] = Bx;
           C.magnetic_y[id] = By;
           C.magnetic_z[id] = Bz;
         #endif  // MHD
 
-        // Exclude the first ghost cell on the "right" side
-        if ((k < kend) and (j < jend) and (i < iend))
+        // Exclude the rightmost ghost cell on the "left" side
+        if ((k >= kstart) and (j >= jstart) and (i >= istart))
         {
           // set constant initial states
           C.density[id]    = rho;
@@ -418,7 +418,7 @@ void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real
   #ifdef MHD
     auto setMagnetFields = [&] ()
     {
-      Real x_pos_face = x_pos - 0.5 * H.dx;
+      Real x_pos_face = x_pos + 0.5 * H.dx;
 
       if (x_pos_face < diaph)
       {
@@ -436,9 +436,9 @@ void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real
   #endif  // MHD
 
   // set initial values of conserved variables
-  for(k=kstart; k<kend+1; k++) {
-    for(j=jstart; j<jend+1; j++) {
-      for(i=istart; i<iend+1; i++) {
+  for(k=kstart-1; k<kend; k++) {
+    for(j=jstart-1; j<jend; j++) {
+      for(i=istart-1; i<iend; i++) {
 
         //get cell index
         id = i + j*H.nx + k*H.nx*H.ny;
@@ -447,13 +447,13 @@ void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
         #ifdef  MHD
-          // Set the magnetic field including the first "ghost" cell on the
-          // right side which is really the right face of the last grid cell
+          // Set the magnetic field including the rightmost ghost cell on the
+          // left side which is really the left face of the first grid cell
           setMagnetFields();
         #endif  //MHD
 
-        // Exclude the first ghost cell on the "right" side
-        if ((k < kend) and (j < jend) and (i < iend))
+        // Exclude the rightmost ghost cell on the "left" side
+        if ((k >= kstart) and (j >= jstart) and (i >= istart))
         {
           if (x_pos < diaph)
           {
@@ -1221,22 +1221,22 @@ void Grid3D::Uniform_Grid()
   size_t const kend   = H.nz-H.n_ghost;
 
   // set the initial values of the conserved variables
-  for (k=kstart; k<kend+1; k++) {
-    for (j=jstart; j<jend+1; j++) {
-      for (i=istart; i<iend+1; i++) {
+  for (k=kstart-1; k<kend; k++) {
+    for (j=jstart-1; j<jend; j++) {
+      for (i=istart-1; i<iend; i++) {
 
         id = i + j*H.nx + k*H.nx*H.ny;
 
         #ifdef  MHD
-          // Set the magnetic field including the first "ghost" cell on the
-          // right side which is really the right face of the last grid cell
+          // Set the magnetic field including the rightmost ghost cell on the
+          // left side which is really the left face of the first grid cell
           C.magnetic_x[id] = 0;
           C.magnetic_y[id] = 0;
           C.magnetic_z[id] = 0;
         #endif  // MHD
 
-        // Exclude the first ghost cell on the right side
-        if ((k < kend) and (j < jend) and (i < iend))
+        // Exclude the rightmost ghost cell on the "left" side
+        if ((k >= kstart) and (j >= jstart) and (i >= istart))
         {
           C.density[id] = 0;
           C.momentum_x[id] = 0;
