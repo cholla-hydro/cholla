@@ -285,9 +285,9 @@ namespace mhdUtils
                                                                Real &avgBy,
                                                                Real &avgBz)
     {
-        avgBx = 0.5 * (dev_conserved[(5+NSCALARS)*n_cells + id] + dev_conserved[(5+NSCALARS)*n_cells + ((xid+1) + yid*nx     + zid*nx*ny)]); // id+1 in x
-        avgBy = 0.5 * (dev_conserved[(6+NSCALARS)*n_cells + id] + dev_conserved[(6+NSCALARS)*n_cells + (xid     + (yid+1)*nx + zid*nx*ny)]); // id+1 in y
-        avgBz = 0.5 * (dev_conserved[(7+NSCALARS)*n_cells + id] + dev_conserved[(7+NSCALARS)*n_cells + (xid     + yid*nx     + (zid+1)*nx*ny)]); // id+1 in z
+        avgBx = 0.5 * (dev_conserved[(5+NSCALARS)*n_cells + id] + dev_conserved[(5+NSCALARS)*n_cells + ((xid-1) + yid*nx     + zid*nx*ny)]);
+        avgBy = 0.5 * (dev_conserved[(6+NSCALARS)*n_cells + id] + dev_conserved[(6+NSCALARS)*n_cells + (xid     + (yid-1)*nx + zid*nx*ny)]);
+        avgBz = 0.5 * (dev_conserved[(7+NSCALARS)*n_cells + id] + dev_conserved[(7+NSCALARS)*n_cells + (xid     + yid*nx     + (zid-1)*nx*ny)]);
     }
     // =========================================================================
 

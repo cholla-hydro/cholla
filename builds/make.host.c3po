@@ -4,7 +4,7 @@ CXX               = mpicxx
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 ${F_OFFLOAD}
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 ${F_OFFLOAD}
+CXXFLAGS_OPTIMIZE = -g -Ofast -std=c++11 ${F_OFFLOAD}
 GPUFLAGS_DEBUG    = -g -O0 -std=c++11 -ccbin=mpicxx
 GPUFLAGS_OPTIMIZE = -g -O3 -std=c++11 -ccbin=mpicxx
 
