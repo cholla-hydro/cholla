@@ -487,9 +487,9 @@ TEST(tMHDCellCenteredMagneticFields,
     std::iota(std::begin(testGrid), std::end(testGrid), 0.);
 
     // Fiducial and test variables
-    double const fiducialAvgBx = 638.5,
-                 fiducialAvgBy = 764.5,
-                 fiducialAvgBz = 892.5;
+    double const fiducialAvgBx = 637.5,
+                 fiducialAvgBy = 761.5,
+                 fiducialAvgBz = 883.5;
     double testAvgBx, testAvgBy, testAvgBz;
 
     // Call the function to test

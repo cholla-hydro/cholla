@@ -278,57 +278,23 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *
       // periodic
       case 1:
         id = ig+nx-2*n_ghost;
-        break;
-      // reflective
-      case 2:
-        id = 2*n_ghost-ig-1;
-        *(a) = -1.0;
-        break;
-      // transmissive
-      case 3:
-        id = n_ghost;
-        break;
-      // custom
-      case 4:
-        id = -1;
-        break;
-      // MPI
-      case 5:
-        id = ig;
-        break;
-      // default is periodic
-      default:
-        id = ig+nx-2*n_ghost;
-    }
-    #ifdef  MHD
-      idMag = id;
-    #endif  //MHD
-  }
-  // upper face
-  else
-  {
-    switch(flag)
-    {
-      // periodic
-      case 1:
-        id = ig-nx+2*n_ghost;
         #ifdef  MHD
           idMag = id;
         #endif  //MHD
         break;
       // reflective
       case 2:
-        id = 2*(nx-n_ghost)-ig-1;
+        id = 2*n_ghost-ig-1;
         *(a) = -1.0;
         #ifdef  MHD
-          idMag = id + 1;
+          idMag = id - 1;
         #endif  //MHD
-      break;
+        break;
       // transmissive
       case 3:
-        id = nx-n_ghost-1;
+        id = n_ghost;
         #ifdef  MHD
-          idMag = id + 1;
+          idMag = id - 1;
         #endif  //MHD
         break;
       // custom
@@ -347,11 +313,45 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *
         break;
       // default is periodic
       default:
-        id = ig-nx+2*n_ghost;
+        id = ig+nx-2*n_ghost;
         #ifdef  MHD
           idMag = id;
         #endif  //MHD
     }
+  }
+  // upper face
+  else
+  {
+    switch(flag)
+    {
+      // periodic
+      case 1:
+        id = ig-nx+2*n_ghost;
+        break;
+      // reflective
+      case 2:
+        id = 2*(nx-n_ghost)-ig-1;
+        *(a) = -1.0;
+      break;
+      // transmissive
+      case 3:
+        id = nx-n_ghost-1;
+        break;
+      // custom
+      case 4:
+        id = -1;
+        break;
+      // MPI
+      case 5:
+        id = ig;
+        break;
+      // default is periodic
+      default:
+        id = ig-nx+2*n_ghost;
+    }
+    #ifdef  MHD
+      idMag = id;
+    #endif  //MHD
   }
   return id;
 }
