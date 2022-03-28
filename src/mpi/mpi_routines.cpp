@@ -748,7 +748,6 @@ void Print_Domain_Properties(struct Header H)
     {
       printf("procID %d nxl %ld nxls %ld\n",procID,nx_local,nx_local_start);
       printf("xb %e yb %e zb %e xbl %e ybl %e zbl %e\n",H.xbound,H.ybound,H.zbound,H.xblocal,H.yblocal,H.zblocal);
-      printf("xd %e yd %e zd %e xdl %e ydl %e zdl %e\n",H.xdglobal,H.ydglobal,H.zdglobal,H.domlen_x,H.domlen_y,H.domlen_z);
       printf("dx %e\n",H.dx);
       printf("dy %e\n",H.dy);
       printf("dz %e\n",H.dz);

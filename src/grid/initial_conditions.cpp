@@ -149,13 +149,8 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
   if(H.nx > 1 && H.ny==1 && H.nz==1)
   {
     H.dx = P.xlen / nx_param;
-
-    H.domlen_x =  P.xlen; // ifdef MPI_CHOLLA this is H.dx * nx_param
-    H.domlen_y =  P.ylen / nx_param;
-    H.domlen_z =  P.zlen / nx_param;
-
-    H.dy = H.domlen_y;
-    H.dz = H.domlen_z;
+    H.dy = P.ylen;
+    H.dz = P.zlen;
   }
 
   /*perform 2-D next*/
@@ -163,12 +158,7 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
   {
     H.dx = P.xlen / nx_param;
     H.dy = P.ylen / ny_param;
-
-    H.domlen_x =  P.xlen; // ifdef MPI_CHOLLA this is H.dx * nx_param
-    H.domlen_y =  P.ylen; // ifdef MPI_CHOLLA this is H.dy * ny_param
-    H.domlen_z =  P.zlen / nx_param;
-
-    H.dz = H.domlen_z;
+    H.dz = P.zlen;
   }
 
   /*perform 3-D last*/
@@ -178,9 +168,6 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
     H.dy = P.ylen / ny_param;
     H.dz = P.zlen / nz_param;
 
-    H.domlen_x = P.xlen; // ifdef MPI_CHOLLA this could be H.dx * nx_param
-    H.domlen_y = P.ylen; // ifdef MPI_CHOLLA this could be H.dy * ny_param
-    H.domlen_z = P.zlen; // ifdef MPI_CHOLLA this could be H.dz * nz_param
   }
 }
 

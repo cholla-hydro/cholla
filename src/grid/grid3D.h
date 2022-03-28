@@ -156,19 +156,7 @@ struct Header
   /*  \brief Global domain z-direction minimum */
   Real zbound;
 
-  /*! \var domlen_x */
-  /*  \brief Local domain length in x-direction */
-  Real domlen_x;
-
-  /*! \var domlen_y */
-  /*  \brief Local domain length in y-direction */
-  Real domlen_y;
-
-  /*! \var domlen_z */
-  /*  \brief Local domain length in z-direction */
-  Real domlen_z;
-
-  /*! \var xblocal */
+   /*! \var xblocal */
   /*  \brief Local domain x-direction minimum */
   Real xblocal;
 
