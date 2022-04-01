@@ -122,9 +122,9 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   G.zMin = Grav.zMin;
 
   //Right boundaries of the local domain
-  G.xMax = G.xMin + G.nx_local*G.dx;
-  G.yMax = G.yMin + G.ny_local*G.dy;
-  G.zMax = G.zMin + G.nz_local*G.dz;
+  G.xMax = Grav.xMax;
+  G.yMax = Grav.yMax;
+  G.zMax = Grav.zMax;
 
   //Left boundaries of the global domain
   G.domainMin_x = xbound;

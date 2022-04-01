@@ -622,6 +622,12 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
   h_recv_buffer_z1 = (Real *) malloc ( zbsize*sizeof(Real) );
   #endif
 
+  // NOTE: When changing this ifdef check for compatibility with 
+  // Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer
+  // in particles/particles_boundaries.cpp
+
+  // Whether or not MPI_GPU is on, the device has transfer buffers for PARTICLES_GPU
+
   #if defined(PARTICLES) && defined(PARTICLES_GPU)
   chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
   CudaSafeCall ( cudaMalloc (&d_send_buffer_x0_particles, buffer_length_particles_x0_send*sizeof(Real)) );
@@ -636,8 +642,12 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
   CudaSafeCall ( cudaMalloc (&d_recv_buffer_y1_particles, buffer_length_particles_y1_recv*sizeof(Real)) );
   CudaSafeCall ( cudaMalloc (&d_recv_buffer_z0_particles, buffer_length_particles_z0_recv*sizeof(Real)) );
   CudaSafeCall ( cudaMalloc (&d_recv_buffer_z1_particles, buffer_length_particles_z1_recv*sizeof(Real)) );
+  #endif // PARTICLES && PARTICLES_GPU
 
-  #if !defined(MPI_GPU)
+  // CPU relies on host buffers, GPU without MPI_GPU relies on host buffers
+
+  #ifdef PARTICLES
+  #if (defined(PARTICLES_GPU) && !defined(MPI_GPU)) || defined(PARTICLES_CPU)
   chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
   h_send_buffer_x0_particles = (Real *) malloc ( buffer_length_particles_x0_send*sizeof(Real) );
   h_send_buffer_x1_particles = (Real *) malloc ( buffer_length_particles_x1_send*sizeof(Real) );
@@ -651,9 +661,8 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
   h_recv_buffer_y1_particles = (Real *) malloc ( buffer_length_particles_y1_recv*sizeof(Real) );
   h_recv_buffer_z0_particles = (Real *) malloc ( buffer_length_particles_z0_recv*sizeof(Real) );
   h_recv_buffer_z1_particles = (Real *) malloc ( buffer_length_particles_z1_recv*sizeof(Real) );
-  #endif
-
-  #endif//PARTICLES_GPU
+  #endif // (defined(PARTICLES_GPU) && !defined(MPI_GPU)) || defined(PARTICLES_CPU)
+  #endif //PARTICLES
 
 }
 
@@ -736,62 +745,6 @@ part_int_t Get_Particles_IDs_Global_MPI_Offset( part_int_t n_local ){
 
 #endif
 
-
-/* Set the domain properties used in initial_conditions.cpp Grid3D::Set_Domain_Properties */
-void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, Real xlen_global, Real ylen_global, Real zlen_global, struct Header *H)
-{
-  Real xlen, ylen, zlen;
-
-  /*the local domain will be xlen_global * nx_local / nx_global */
-  xlen = xlen_global * ((Real) nx_local)/((Real) nx_global);
-  
-  /*the local domain will be ylen_global * ny_local / ny_global */
-  ylen = ylen_global * ((Real) ny_local)/((Real) ny_global);
-  
-  /*the local domain will be zlen_global * nz_local / nz_global */
-  zlen = zlen_global * ((Real) nz_local)/((Real) nz_global);
-  
-  /* 1-D case */
-  if(H->nx > 1 && H->ny==1 && H->nz==1)
-  {
-    H->dx = xlen_global / ((Real) nx_global);
-
-    H->domlen_x = H->dx * (H->nx - 2*H->n_ghost);
-    H->domlen_y =  ylen / ((Real) nx_global);
-    H->domlen_z =  zlen / ((Real) nx_global);
-
-    H->dy = H->domlen_y;
-    H->dz = H->domlen_z;
-  }
-
-  /* 2-D case */
-  if(H->nx > 1 && H->ny>1 && H->nz==1)
-  {
-    H->dx = xlen_global / ((Real) nx_global);
-    H->dy = ylen_global / ((Real) ny_global);
-
-    H->domlen_x = H->dx * (H->nx - 2*H->n_ghost);
-    H->domlen_y = H->dy * (H->ny - 2*H->n_ghost);
-    H->domlen_z =  zlen / ((Real) nx_global);
-
-    H->dz = H->domlen_z;
-  }
-
-  /* 3-D case */
-  if(H->nx>1 && H->ny>1 && H->nz>1)
-  {
-    H->domlen_x = xlen;
-    H->domlen_y = ylen;
-    H->domlen_z = zlen;
-    H->dx = H->domlen_x / (H->nx - 2*H->n_ghost);
-    H->dy = H->domlen_y / (H->ny - 2*H->n_ghost);
-    H->dz = H->domlen_z / (H->nz - 2*H->n_ghost);
-  }
-
-}
-
-
-
 /* Print information about the domain properties */
 void Print_Domain_Properties(struct Header H)
 {
@@ -804,7 +757,6 @@ void Print_Domain_Properties(struct Header H)
     {
       printf("procID %d nxl %ld nxls %ld\n",procID,nx_local,nx_local_start);
       printf("xb %e yb %e zb %e xbl %e ybl %e zbl %e\n",H.xbound,H.ybound,H.zbound,H.xblocal,H.yblocal,H.zblocal);
-      printf("xd %e yd %e zd %e xdl %e ydl %e zdl %e\n",H.xdglobal,H.ydglobal,H.zdglobal,H.domlen_x,H.domlen_y,H.domlen_z);
       printf("dx %e\n",H.dx);
       printf("dy %e\n",H.dy);
       printf("dz %e\n",H.dz);

@@ -417,7 +417,6 @@ void Grid3D::Write_Header_Text(FILE *fp)
   fprintf(fp, "mass unit: %e  length unit: %e  time unit: %e\n", MASS_UNIT, LENGTH_UNIT, TIME_UNIT);
   fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz);
   fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound);
-  fprintf(fp, "xlen: %f  ylen: %f  zlen: %f\n", H.domlen_x, H.domlen_y, H.domlen_z);
   fprintf(fp, "t: %f\n", H.t);
 }
 
@@ -440,9 +439,6 @@ void Grid3D::Write_Header_Binary(FILE *fp)
   fwrite(&H.xbound, sizeof(Real), 1, fp);
   fwrite(&H.ybound, sizeof(Real), 1, fp);
   fwrite(&H.zbound, sizeof(Real), 1, fp);
-  fwrite(&H.domlen_x, sizeof(Real), 1, fp);
-  fwrite(&H.domlen_y, sizeof(Real), 1, fp);
-  fwrite(&H.domlen_z, sizeof(Real), 1, fp);
   fwrite(&H.xblocal, sizeof(Real), 1, fp);
   fwrite(&H.yblocal, sizeof(Real), 1, fp);
   fwrite(&H.zblocal, sizeof(Real), 1, fp);
@@ -2586,9 +2582,6 @@ void Grid3D::Read_Grid_Binary(FILE *fp)
   fread(&H.xbound, sizeof(Real), 1, fp);
   fread(&H.ybound, sizeof(Real), 1, fp);
   fread(&H.zbound, sizeof(Real), 1, fp);
-  fread(&H.domlen_x, sizeof(Real), 1, fp);
-  fread(&H.domlen_y, sizeof(Real), 1, fp);
-  fread(&H.domlen_z, sizeof(Real), 1, fp);
   fread(&H.xblocal, sizeof(Real), 1, fp);
   fread(&H.yblocal, sizeof(Real), 1, fp);
   fread(&H.zblocal, sizeof(Real), 1, fp);
