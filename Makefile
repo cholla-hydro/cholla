@@ -38,6 +38,11 @@ ifeq ($(TEST), true)
   CFLAGS   = $(TEST_FLAGS)
   CXXFLAGS = $(TEST_FLAGS)
   GPUFLAGS = $(TEST_FLAGS)
+
+  # Set the build flags to debug. This is mostly to avoid the approximations
+  # made by Ofast which break std::isnan and std::isinf which are required for
+  # the testing
+  BUILD = DEBUG
 else
   # This isn't a test build so clear out testing related files
   CFILES   := $(filter-out src/system_tests/% %_tests.c,$(CFILES))
