@@ -648,7 +648,7 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
 
   #ifdef PARTICLES
   #if (defined(PARTICLES_GPU) && !defined(MPI_GPU)) || defined(PARTICLES_CPU)
-  chprintf("Allocating MPI communication buffers on GPU for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
+  chprintf("Allocating MPI communication buffers on Host for particle transfers ( N_Particles: %d ).\n", N_PARTICLES_TRANSFER );
   h_send_buffer_x0_particles = (Real *) malloc ( buffer_length_particles_x0_send*sizeof(Real) );
   h_send_buffer_x1_particles = (Real *) malloc ( buffer_length_particles_x1_send*sizeof(Real) );
   h_send_buffer_y0_particles = (Real *) malloc ( buffer_length_particles_y0_send*sizeof(Real) );

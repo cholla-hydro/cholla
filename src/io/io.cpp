@@ -79,6 +79,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
 
   chprintf( "\nSaving Snapshot: %d \n", nfile );
+  
+  #ifdef HDF5
+  // Initialize HDF5 interface
+  H5open();
+  #endif
 
   #ifdef N_OUTPUT_COMPLETE
   //If nfile is multiple of N_OUTPUT_COMPLETE then output all data
@@ -137,6 +142,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   chprintf( "\n" );
   G.H.Output_Now = false;
   #endif
+  
+  #ifdef HDF5
+  // Cleanup HDF5
+  H5close();
+  #endif
 
   #ifdef MPI_CHOLLA
   MPI_Barrier(world);
@@ -185,7 +195,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
   #elif defined HDF5
   hid_t   file_id; /* file identifier */
   herr_t  status;
-
+  
   // Create a new file using default properties.
   file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -194,10 +204,10 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 
   // write the conserved variables to the output file
   G.Write_Grid_HDF5(file_id);
-
+  
   // close the file
   status = H5Fclose(file_id);
-
+  
   if (status < 0) {printf("File write failed.\n"); exit(-1); }
 
   #else
@@ -2090,7 +2100,6 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_Txzr);
     // Free the dataset id
     status = H5Dclose(dataset_id);
-
 
     // Create a dataset id for projected xz density
     dataset_id = H5Dcreate(file_id, "/vx_xzr", H5T_IEEE_F64BE, dataspace_xzr_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
