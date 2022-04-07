@@ -661,15 +661,8 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
   h_recv_buffer_y1_particles = (Real *) malloc ( buffer_length_particles_y1_recv*sizeof(Real) );
   h_recv_buffer_z0_particles = (Real *) malloc ( buffer_length_particles_z0_recv*sizeof(Real) );
   h_recv_buffer_z1_particles = (Real *) malloc ( buffer_length_particles_z1_recv*sizeof(Real) );
-<<<<<<< HEAD
-  
-  #endif
-
-  #endif//PARTICLES_GPU
-=======
   #endif // (defined(PARTICLES_GPU) && !defined(MPI_GPU)) || defined(PARTICLES_CPU)
   #endif //PARTICLES
->>>>>>> 308fbac6847548229ca30a37e8cec0734c6af6c7
 
 }
 
