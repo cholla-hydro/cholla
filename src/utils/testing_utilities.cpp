@@ -58,14 +58,25 @@ namespace testingUtilities
                         double  const &fixedEpsilon, // = 1E-14 by default
                         int     const &ulpsEpsilon)  // = 4 by default
     {
-        // Handle the near-zero case and pass back the absolute difference
-        absoluteDiff = std::abs(a - b);
-        if (absoluteDiff <= fixedEpsilon)
-            return true;
-
-        // Handle all other cases and pass back the difference in ULPs
+        // Compute differences
         ulpsDiff = ulpsDistanceDbl(a, b);
-        return ulpsDiff <= ulpsEpsilon;
+        absoluteDiff = std::abs(a - b);
+
+        // Perform the ULP check which is for numbers far from zero
+        if (ulpsDiff <= ulpsEpsilon)
+        {
+            return true;
+        }
+        // Perform the absolute check which is for numbers near zero
+        else if (absoluteDiff <= fixedEpsilon)
+        {
+            return true;
+        }
+        // if none of the checks have passed indicate test failure
+        else
+        {
+            return false;
+        }
     }
     // =========================================================================
 

@@ -44,10 +44,10 @@ namespace
 
 TEST(tHYDROCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
-    std::vector<std::vector<int>> fiducial_indices {{2, 98, 0, 1, 0, 1}, 
-                                               {2, 2046, 2, 2046, 2, 4094}, 
+    std::vector<std::vector<int>> fiducial_indices {{2, 98, 0, 1, 0, 1},
+                                               {2, 2046, 2, 2046, 2, 4094},
                                                {3, 2045, 3, 2045, 3, 4093},
-                                               {4, 2044, 4, 2044, 4, 4092}}; 
+                                               {4, 2044, 4, 2044, 4, 4092}};
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
@@ -68,3 +68,55 @@ TEST(tHYDROCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput) {
         }
     }
 }
+
+// =============================================================================
+TEST(tALLCompute3DIndices,
+     CorrectInputExpectCorrectOutput)
+{
+    // Parameters
+    int const id = 723;
+    int const nx = 34;
+    int const ny = 14;
+
+    // Fiducial Data
+    int const fiducialXid = 9;
+    int const fiducialYid = 7;
+    int const fiducialZid = 1;
+
+    // Test Variables
+    int testXid;
+    int testYid;
+    int testZid;
+
+    // Get test data
+    cuda_utilities::compute3DIndices(id, nx, ny, testXid, testYid, testZid);
+
+    EXPECT_EQ(fiducialXid, testXid);
+    EXPECT_EQ(fiducialYid, testYid);
+    EXPECT_EQ(fiducialZid, testZid);
+}
+// =============================================================================
+
+// =============================================================================
+TEST(tALLCompute1DIndex,
+     CorrectInputExpectCorrectOutput)
+{
+    // Parameters
+    int const xid = 72;
+    int const yid = 53;
+    int const zid = 14;
+    int const nx  = 128;
+    int const ny  = 64;
+
+    // Fiducial Data
+    int const fiducialId = 121544;
+
+    // Test Variable
+    int testId;
+
+    // Get test data
+    testId = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+
+    EXPECT_EQ(fiducialId, testId);
+}
+// =============================================================================

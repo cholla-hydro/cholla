@@ -361,16 +361,18 @@ TEST(tMHDSlowMagnetosonicSpeed,
     testParams parameters;
     std::vector<double> fiducialSlowMagnetosonicSpeed{0.0,
                                                       2.138424778167535,
-                                                      0.0};
+                                                      0.26678309355540852};
+    // Coefficient to make sure the output is well defined and not nan or inf
+    double const coef = 1E-95;
 
-    for (size_t i = 0; i < parameters.names.size(); i++)
+    for (size_t i = 2; i < parameters.names.size(); i++)
     {
         Real testSlowMagnetosonicSpeed = mhdUtils::slowMagnetosonicSpeed(
-                                                parameters.density.at(i),
-                                                parameters.pressureGas.at(i),
-                                                parameters.magneticX.at(i),
-                                                parameters.magneticY.at(i),
-                                                parameters.magneticZ.at(i),
+                                                parameters.density.at(i) * coef,
+                                                parameters.pressureGas.at(i) * coef,
+                                                parameters.magneticX.at(i) * coef,
+                                                parameters.magneticY.at(i) * coef,
+                                                parameters.magneticZ.at(i) * coef,
                                                 parameters.gamma);
 
         testingUtilities::checkResults(fiducialSlowMagnetosonicSpeed.at(i),
@@ -391,16 +393,18 @@ TEST(tMHDSlowMagnetosonicSpeed,
     testParams parameters;
     std::vector<double> fiducialSlowMagnetosonicSpeed{0.0,
                                                       276816332809.37604,
-                                                      0.0};
+                                                      1976400098318.3574};
+    // Coefficient to make sure the output is well defined and not nan or inf
+    double const coef = 1E-95;
 
-    for (size_t i = 0; i < parameters.names.size(); i++)
+    for (size_t i = 2; i < parameters.names.size(); i++)
     {
         Real testSlowMagnetosonicSpeed = mhdUtils::slowMagnetosonicSpeed(
-                                                -parameters.density.at(i),
-                                                parameters.pressureGas.at(i),
-                                                parameters.magneticX.at(i),
-                                                parameters.magneticY.at(i),
-                                                parameters.magneticZ.at(i),
+                                                -parameters.density.at(i) * coef,
+                                                parameters.pressureGas.at(i) * coef,
+                                                parameters.magneticX.at(i) * coef,
+                                                parameters.magneticY.at(i) * coef,
+                                                parameters.magneticZ.at(i) * coef,
                                                 parameters.gamma);
 
         testingUtilities::checkResults(fiducialSlowMagnetosonicSpeed.at(i),
