@@ -5,7 +5,10 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
-DIRS     := src src/analysis src/cooling src/cooling_grackle src/cosmology \
+# CHOLLA_ARCH defaults to sm_70 if not set in make.host
+CHOLLA_ARCH ?= sm_70
+
+DIRS     := src src/analysis src/chemistry_gpu src/cooling src/cooling_grackle src/cosmology \
             src/cpu src/global src/gravity src/gravity/paris src/grid src/hydro \
             src/integrators src/io src/main.cpp src/main_tests.cpp \
             src/model src/mpi src/old_cholla src/particles src/reconstruction \
@@ -35,10 +38,16 @@ ifeq ($(TEST), true)
   CFLAGS   = $(TEST_FLAGS)
   CXXFLAGS = $(TEST_FLAGS)
   GPUFLAGS = $(TEST_FLAGS)
+
+  # Set the build flags to debug. This is mostly to avoid the approximations
+  # made by Ofast which break std::isnan and std::isinf which are required for
+  # the testing
+  BUILD = DEBUG
 else
   # This isn't a test build so clear out testing related files
   CFILES   := $(filter-out src/system_tests/% %_tests.c,$(CFILES))
   CPPFILES := $(filter-out src/system_tests/% %_tests.cpp,$(CPPFILES))
+  CPPFILES := $(filter-out src/utils/testing_utilities.cpp,$(CPPFILES))
   GPUFILES := $(filter-out src/system_tests/% %_tests.cu,$(GPUFILES))
 endif
 
@@ -133,7 +142,7 @@ else
   CUDA_LIB  ?= -L$(CUDA_ROOT)/lib64 -lcudart
   CXXFLAGS  += $(CUDA_INC)
   GPUCXX    ?= nvcc
-  GPUFLAGS  += --expt-extended-lambda -arch sm_70 -fmad=false
+  GPUFLAGS  += --expt-extended-lambda -arch $(CHOLLA_ARCH) -fmad=false
   GPUFLAGS  += $(CUDA_INC)
   LD        := $(CXX)
   LDFLAGS   += $(CXXFLAGS)
@@ -148,9 +157,19 @@ ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle
 endif
 
+ifeq ($(findstring -DCHEMISTRY_GPU,$(DFLAGS)),-DCHEMISTRY_GPU)
+  DFLAGS += -DSCALAR
+endif
+
 .SUFFIXES: .c .cpp .cu .o
 
 EXEC := bin/cholla$(SUFFIX)
+
+# Get the git hash and setup macro to store a string of all the other macros so
+# that they can be written to the save files
+DFLAGS      += -DGIT_HASH='"$(shell git rev-parse --verify HEAD)"'
+MACRO_FLAGS := -DMACRO_FLAGS='"$(DFLAGS)"'
+DFLAGS      += $(MACRO_FLAGS)
 
 $(EXEC): prereq-build $(OBJS)
 	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)

@@ -75,7 +75,13 @@ void Grid3D::set_dt_Gravity(){
     chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
   }
   #endif
-
+  #ifdef CHEMISTRY_GPU
+  if ( fabs(Cosmo.current_a + da_min - Chem.scale_factor_UVB_on) < 0.005 ){
+    da_min /= 2;
+    chprintf( " Starting UVB. Limiting delta_a:  %f \n", da_min);
+  }
+  #endif
+    
   //Limit delta_a if it's time to output
   if ( (Cosmo.current_a + da_min) >  Cosmo.next_output ){
     da_min = Cosmo.next_output - Cosmo.current_a;
@@ -85,14 +91,20 @@ void Grid3D::set_dt_Gravity(){
   #ifdef ANALYSIS
   //Limit delta_a if it's time to run analysis
   if( Analysis.next_output_indx < Analysis.n_outputs ){
-    if ( (Cosmo.current_a + da_min) >  Analysis.next_output ){
+    if ( H.Output_Now && fabs(Cosmo.current_a + da_min  - Analysis.next_output ) < 1e-6 )  Analysis.Output_Now = true;
+    else if ( Cosmo.current_a + da_min  >  Analysis.next_output ){
       da_min = Analysis.next_output - Cosmo.current_a;
       Analysis.Output_Now = true;
     }
   }
   #endif
-
-
+  
+  if ( da_min < 0 ){
+    chprintf( "ERROR: Negative delta_a");
+    exit(-1);
+  } 
+  
+  
   //Set delta_a after it has been computed
   Cosmo.delta_a = da_min;
   //Convert delta_a back to delta_t
@@ -337,7 +349,7 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
 //Initialize the Grav Object at the beginning of the simulation
 void Grid3D::Initialize_Gravity( struct parameters *P ){
   chprintf( "\nInitializing Gravity... \n");
-  Grav.Initialize( H.xblocal, H.yblocal, H.zblocal, H.xdglobal, H.ydglobal, H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost_potential_offset, P  );
+  Grav.Initialize( H.xblocal, H.yblocal, H.zblocal, H.xblocal_max, H.yblocal_max, H.zblocal_max, H.xdglobal, H.ydglobal, H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost_potential_offset, P  );
   chprintf( "Gravity Successfully Initialized. \n\n");
 
   #ifdef PARIS_TEST
@@ -481,7 +493,7 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
 void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Grav_Potential.Start();
   #endif
 
   #ifdef PARTICLES
@@ -579,7 +591,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   #endif
 
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 3 );
+  Timer.Grav_Potential.End();
   #endif
 
 }

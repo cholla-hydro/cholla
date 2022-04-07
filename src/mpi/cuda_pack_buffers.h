@@ -25,9 +25,9 @@ __global__ void PackGhostCellsKernel(Real * c_head,
 				     int isize, int jsize, int ksize,
 				     int imin, int jmin, int kmin, int dir);
 
-__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],int nx, int ny, int nz, int n_ghost);
+__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],int nx, int ny, int nz, int n_ghost, int &magneticIdx);
 
-__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a);
+__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a, int &mr);
 
 
 #endif

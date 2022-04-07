@@ -10,7 +10,7 @@
 #include <set>
 #include <ctype.h>
 #include "../global/global.h"
-
+#include "../io/io.h" //defines chprintf
 
 /* Global variables */
 Real gama; // Ratio of specific heats
@@ -184,7 +184,7 @@ parms->scale_outputs_file[0] = '\0';
     else
       strncpy (value, s, MAXLEN);
     parse_param(name,value,parms);
-    printf("Override with %s=%s\n",name,value);
+    chprintf("Override with %s=%s\n",name,value);
 
   }
 }
@@ -253,20 +253,46 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->vz = atof(value);
   else if (strcmp(name, "P")==0)
     parms->P = atof(value);
+  else if (strcmp(name, "Bx")==0)
+    parms->Bx = atof(value);
+  else if (strcmp(name, "By")==0)
+    parms->By = atof(value);
+  else if (strcmp(name, "Bz")==0)
+    parms->Bz = atof(value);
   else if (strcmp(name, "A")==0)
     parms->A = atof(value);
   else if (strcmp(name, "rho_l")==0)
     parms->rho_l = atof(value);
-  else if (strcmp(name, "v_l")==0)
-    parms->v_l = atof(value);
+  else if (strcmp(name, "vx_l")==0)
+    parms->vx_l = atof(value);
+  else if (strcmp(name, "vy_l")==0)
+    parms->vy_l = atof(value);
+  else if (strcmp(name, "vz_l")==0)
+    parms->vz_l = atof(value);
   else if (strcmp(name, "P_l")==0)
     parms->P_l = atof(value);
+  else if (strcmp(name, "Bx_l")==0)
+    parms->Bx_l = atof(value);
+  else if (strcmp(name, "By_l")==0)
+    parms->By_l = atof(value);
+  else if (strcmp(name, "Bz_l")==0)
+    parms->Bz_l = atof(value);
   else if (strcmp(name, "rho_r")==0)
     parms->rho_r = atof(value);
-  else if (strcmp(name, "v_r")==0)
-    parms->v_r = atof(value);
+  else if (strcmp(name, "vx_r")==0)
+    parms->vx_r = atof(value);
+  else if (strcmp(name, "vy_r")==0)
+    parms->vy_r = atof(value);
+  else if (strcmp(name, "vz_r")==0)
+    parms->vz_r = atof(value);
   else if (strcmp(name, "P_r")==0)
     parms->P_r = atof(value);
+  else if (strcmp(name, "Bx_r")==0)
+    parms->Bx_r = atof(value);
+  else if (strcmp(name, "By_r")==0)
+    parms->By_r = atof(value);
+  else if (strcmp(name, "Bz_r")==0)
+    parms->Bz_r = atof(value);
   else if (strcmp(name, "diaph")==0)
     parms->diaph = atof(value);
 #ifdef PARTICLES
@@ -327,7 +353,10 @@ void parse_param(char *name,char *value, struct parameters *parms){
 #endif
   else if (strcmp(name, "bc_potential_type")==0)
     parms->bc_potential_type  = atoi(value);
-
+#ifdef CHEMISTRY_GPU
+    else if (strcmp(name, "UVB_rates_file")==0)
+      strncpy (parms->UVB_rates_file, value, MAXLEN);
+#endif  
 #ifdef COOLING_GRACKLE
   else if (strcmp(name, "UVB_rates_file")==0)
     strncpy (parms->UVB_rates_file, value, MAXLEN);
@@ -341,8 +370,12 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->lya_skewers_stride  = atoi(value);
   else if (strcmp(name, "lya_Pk_d_log_k")==0)
     parms->lya_Pk_d_log_k  = atof(value);
+  #ifdef OUTPUT_SKEWERS
+  else if (strcmp(name, "skewersdir")==0)
+    strncpy (parms->skewersdir, value, MAXLEN);
+  #endif
 #endif
   else if (!is_param_valid(name))
-    printf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
+    chprintf ("WARNING: %s/%s: Unknown parameter/value pair!\n",
 	    name, value);
 }

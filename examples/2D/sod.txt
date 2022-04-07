@@ -35,13 +35,17 @@ outdir=./
 # density of left state
 rho_l=1.0
 # velocity of left state
-v_l=0.0
+vx_l=0.0
+vy_l=0.0
+vz_l=0.0
 # pressure of left state
 P_l=1.0
 # density of right state
 rho_r=0.1
 # velocity of right state
-v_r=0.0
+vx_r=0.0
+vy_r=0.0
+vz_r=0.0
 # pressure of right state
 P_r=0.1
 # location of initial discontinuity
