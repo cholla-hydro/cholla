@@ -54,7 +54,7 @@ namespace
     };
 }
 
-TEST(tHYDROSYSTEMHydroUtilsCalcPressurePrimitive, CorrectInputExpectCorrectOutput) {
+TEST(tHYDROHydroUtilsCalcPressurePrimitive, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
     std::vector<double> fiducial_Ps {1e-20, 139983415580.5549, 1.2697896247496674e+301};
 
@@ -66,7 +66,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcPressurePrimitive, CorrectInputExpectCorrectOutpu
     }
 }
 
-TEST(tHYDROSYSTEMHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutput) {
+TEST(tHYDROHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
     std::vector<double> fiducial_Ps {1e-20, 139984604373.87094, 1.3965808056866668e+301};
 
@@ -78,7 +78,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutpu
     }
 }
 
-TEST(tHYDROSYSTEMHydroUtilsCalcTemp, CorrectInputExpectCorrectOutput) {
+TEST(tHYDROHydroUtilsCalcTemp, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
     std::vector<double> fiducial_Ts {3465185.0560059389, 29370603.906644326, 28968949.83344138};
 
@@ -91,7 +91,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcTemp, CorrectInputExpectCorrectOutput) {
 }
 
 #ifdef DE
-TEST(tHYDROSYSTEMHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput) {
+TEST(tHYDROHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
     std::vector<double> fiducial_Ts {5.123106988008801e-09, 261106139.02514684, 1.2105231166585662e+107};
 
@@ -104,7 +104,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput) {
 }
 #endif // DE
 
-TEST(tHYDROSYSTEMHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput) {
+TEST(tHYDROHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
     std::vector<double> fiducial_Es {3.3366124363499997e-10, 1784507.7619407175, 1.9018677140549926e+300};
 
@@ -116,7 +116,7 @@ TEST(tHYDROSYSTEMHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput)
     }
 }
 
-TEST(tHYDROSYSTEMHydroUtilsGetPressureFromDE, CorrectInputExpectCorrectOutput) {
+TEST(tHYDROHydroUtilsGetPressureFromDE, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
     std::vector<double> fiducial_Ps {1.5927160260000002e-10, 71.713126573333341, 7.2549358980000001e+99};
 
