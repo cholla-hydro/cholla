@@ -79,6 +79,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
 
   chprintf( "\nSaving Snapshot: %d \n", nfile );
+  
+  #ifdef HDF5
+  // Initialize HDF5 interface
+  H5open();
+  #endif
 
   #ifdef N_OUTPUT_COMPLETE
   //If nfile is multiple of N_OUTPUT_COMPLETE then output all data
@@ -137,6 +142,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   chprintf( "\n" );
   G.H.Output_Now = false;
   #endif
+  
+  #ifdef HDF5
+  // Cleanup HDF5
+  H5close();
+  #endif
 
   #ifdef MPI_CHOLLA
   MPI_Barrier(world);
@@ -185,7 +195,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
   #elif defined HDF5
   hid_t   file_id; /* file identifier */
   herr_t  status;
-
+  
   // Create a new file using default properties.
   file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -194,10 +204,10 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 
   // write the conserved variables to the output file
   G.Write_Grid_HDF5(file_id);
-
+  
   // close the file
   status = H5Fclose(file_id);
-
+  
   if (status < 0) {printf("File write failed.\n"); exit(-1); }
 
   #else
@@ -417,7 +427,6 @@ void Grid3D::Write_Header_Text(FILE *fp)
   fprintf(fp, "mass unit: %e  length unit: %e  time unit: %e\n", MASS_UNIT, LENGTH_UNIT, TIME_UNIT);
   fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz);
   fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound);
-  fprintf(fp, "xlen: %f  ylen: %f  zlen: %f\n", H.domlen_x, H.domlen_y, H.domlen_z);
   fprintf(fp, "t: %f\n", H.t);
 }
 
@@ -440,9 +449,6 @@ void Grid3D::Write_Header_Binary(FILE *fp)
   fwrite(&H.xbound, sizeof(Real), 1, fp);
   fwrite(&H.ybound, sizeof(Real), 1, fp);
   fwrite(&H.zbound, sizeof(Real), 1, fp);
-  fwrite(&H.domlen_x, sizeof(Real), 1, fp);
-  fwrite(&H.domlen_y, sizeof(Real), 1, fp);
-  fwrite(&H.domlen_z, sizeof(Real), 1, fp);
   fwrite(&H.xblocal, sizeof(Real), 1, fp);
   fwrite(&H.yblocal, sizeof(Real), 1, fp);
   fwrite(&H.zblocal, sizeof(Real), 1, fp);
@@ -2095,7 +2101,6 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     // Free the dataset id
     status = H5Dclose(dataset_id);
 
-
     // Create a dataset id for projected xz density
     dataset_id = H5Dcreate(file_id, "/vx_xzr", H5T_IEEE_F64BE, dataspace_xzr_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     // Write the projected density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
@@ -2586,9 +2591,6 @@ void Grid3D::Read_Grid_Binary(FILE *fp)
   fread(&H.xbound, sizeof(Real), 1, fp);
   fread(&H.ybound, sizeof(Real), 1, fp);
   fread(&H.zbound, sizeof(Real), 1, fp);
-  fread(&H.domlen_x, sizeof(Real), 1, fp);
-  fread(&H.domlen_y, sizeof(Real), 1, fp);
-  fread(&H.domlen_z, sizeof(Real), 1, fp);
   fread(&H.xblocal, sizeof(Real), 1, fp);
   fread(&H.yblocal, sizeof(Real), 1, fp);
   fread(&H.zblocal, sizeof(Real), 1, fp);
