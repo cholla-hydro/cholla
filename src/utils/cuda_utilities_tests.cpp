@@ -42,7 +42,7 @@ namespace
     };
 }
 
-TEST(tHYDROSYSTEMCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput) {
+TEST(tHYDROCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput) {
     TestParams parameters;
     std::vector<std::vector<int>> fiducial_indices {{2, 98, 0, 1, 0, 1},
                                                {2, 2046, 2, 2046, 2, 4094},
