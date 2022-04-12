@@ -31,7 +31,7 @@
  *
  */
 /// @{
-class tHYDROtCOOLINGSYSTEMSodShockTubeParameterizedMpi
+class tHYDROSYSTEMSodShockTubeParameterizedMpi
       :public
       ::testing::TestWithParam<size_t>
 {
@@ -39,7 +39,7 @@ protected:
     systemTest::SystemTestRunner sodTest;
 };
 
-TEST_P(tHYDROtCOOLINGSYSTEMSodShockTubeParameterizedMpi,
+TEST_P(tHYDROSYSTEMSodShockTubeParameterizedMpi,
        CorrectInputExpectCorrectOutput)
 {
     sodTest.numMpiRanks = GetParam();
@@ -47,7 +47,7 @@ TEST_P(tHYDROtCOOLINGSYSTEMSodShockTubeParameterizedMpi,
 }
 
 INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput,
-                         tHYDROtCOOLINGSYSTEMSodShockTubeParameterizedMpi,
+                         tHYDROSYSTEMSodShockTubeParameterizedMpi,
                          ::testing::Values(1, 2, 4));
 /// @}
 // =============================================================================
