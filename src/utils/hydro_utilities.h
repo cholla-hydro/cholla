@@ -25,50 +25,48 @@
 * T : temperature
 * mx, my, mz : x, y, and z momentum
 * n : number density
-
-* "k" prefix in a variable indicates that it is a const.
 */
 
 namespace hydro_utilities {
-    inline __host__ __device__ Real Calc_Pressure_Primitive(Real const &k_E, Real const &k_d, Real const &k_vx, Real const &k_vy, Real const &k_vz, Real const &k_gamma) {
+    inline __host__ __device__ Real Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
         Real P;
-        P = (k_E - 0.5 * k_d * (k_vx*k_vx + k_vy*k_vy + k_vz*k_vz)) * (k_gamma - 1.0);
+        P = (E - 0.5 * d * (vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
         P = fmax(P, TINY_NUMBER);
         return P;
     }
 
-    inline __host__ __device__ Real Calc_Pressure_Conserved(Real const &k_E, Real const &k_d, Real const &k_mx, Real const &k_my, Real const &k_mz, Real const &k_gamma) {
-        Real P = (k_E - 0.5 * (k_mx*k_mx + k_my*k_my + k_mz*k_mz) / k_d) * (k_gamma - 1.);
+    inline __host__ __device__ Real Calc_Pressure_Conserved(Real const &E, Real const &d, Real const &mx, Real const &my, Real const &mz, Real const &gamma) {
+        Real P= (E - 0.5 * (mx*mx + my*my + mz*mz) / d) * (gamma - 1.);
         return fmax(P, TINY_NUMBER);
     }
 
-    inline __host__ __device__ Real Calc_Temp(Real const &k_P, Real const &k_n) {
-        Real T = k_P * PRESSURE_UNIT / (k_n * KB);
+    inline __host__ __device__ Real Calc_Temp(Real const &P, Real const &n) {
+        Real T = P * PRESSURE_UNIT / (n * KB);
         return T;
     }
 
     #ifdef DE
-    inline __host__ __device__ Real Calc_Temp_DE(Real const &k_d, Real const &kge, Real const &k_gamma, Real const&k_n) {
-        Real T =  k_d * kge * (k_gamma - 1.0) * PRESSURE_UNIT / (k_n * KB);
+    inline __host__ __device__ Real Calc_Temp_DE(Real const &d, Real const &ge, Real const &gamma, Real const&n) {
+        Real T =  d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
         return T;
     }
     #endif // DE
 
-    inline __host__ __device__ Real Calc_Energy_Primitive(Real const &k_P, Real const &k_d, Real const &k_vx, Real const &k_vy, Real const &k_vz, Real const &k_gamma) {
+    inline __host__ __device__ Real Calc_Energy_Primitive(Real const &P, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
         // Compute and return energy
-        return (fmax(k_P, TINY_NUMBER)/(k_gamma - 1.)) + 0.5 * k_d * (k_vx*k_vx + k_vy*k_vy + k_vz*k_vz);
+        return (fmax(P, TINY_NUMBER)/(gamma - 1.)) + 0.5 * d * (vx*vx + vy*vy + vz*vz);
     }
 
-    inline __host__ __device__ Real Get_Pressure_From_DE(Real const &k_E, Real const &k_U_total, Real const &k_U_advected, Real const &k_gamma) {
+    inline __host__ __device__ Real Get_Pressure_From_DE(Real const &E, Real const &U_total, Real const &U_advected, Real const &gamma) {
         Real U, P;
-        Real const k_eta = DE_ETA_1;
+        Real eta = DE_ETA_1;
         // Apply same condition as Byan+2013 to select the internal energy from which compute pressure.
-        if (k_U_total/k_E > k_eta) {
-            U = k_U_total;
+        if (U_total/E > eta) {
+            U = U_total;
         } else {
-            U = k_U_advected;
+            U = U_advected;
         }
-        P = U * (k_gamma - 1.0);
+        P = U * (gamma - 1.0);
         return P;
     }
 
