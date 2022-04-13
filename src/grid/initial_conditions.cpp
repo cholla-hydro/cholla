@@ -1178,14 +1178,22 @@ void Grid3D::Clouds()
   Real T_bg, T_c;
   Real p_bg, p_c;
   Real mu = 0.6;
-  int n_cl = 4;
+  int n_cl = 1;
   int R_cl = 3.0; // cloud radius in code units (kpc)
   Real xcl, ycl, zcl;
-  xcl = 0.1*H.xdglobal;
+  xcl = 0.5*H.xdglobal;
   ycl = 0.5*H.ydglobal;
   zcl = 0.5*H.zdglobal;
   Real cl_pos[n_cl][3];
   Real r;
+  // Magellanic Stream Setup
+  for (int nn=0; nn<n_cl; nn++) {
+    cl_pos[nn][0] = (nn+1)*0.1*H.xdglobal+0.5*H.xdglobal;
+    cl_pos[nn][1] = (nn%2*0.1+0.45)*H.ydglobal;
+    cl_pos[nn][2] = 0.5*H.zdglobal;
+    printf("Cloud positions: %f %f %f\n", cl_pos[nn][0], cl_pos[nn][1], cl_pos[nn][2]);
+  }
+  // cloud sizes setup
   for (int nn=0; nn<n_cl; nn++) {
     cl_pos[nn][0] = (nn+1)*0.1*H.xdglobal+0.5*H.xdglobal;
     cl_pos[nn][1] = (nn%2*0.1+0.45)*H.ydglobal;
@@ -1198,7 +1206,8 @@ void Grid3D::Clouds()
   rho_bg = n_bg*mu*MP/DENSITY_UNIT;
   rho_c  = n_c*mu*MP/DENSITY_UNIT;
   vx_bg = 0.0;
-  vx_c  = -200*TIME_UNIT/KPC; // convert from km/s to kpc/kyr
+  //vx_c  = -200*TIME_UNIT/KPC; // convert from km/s to kpc/kyr
+  vx_c  = 0.0;
   vy_bg = vy_c = 0.0;
   vz_bg = vz_c = 0.0;
   T_bg = 3e6;
@@ -1250,8 +1259,8 @@ void Grid3D::Clouds()
         #endif
         // add clouds 
         for (int nn = 0; nn<n_cl; nn++) {
-          r = sqrt((x_pos - cl_pos[nn][0])*(x_pos - cl_pos[nn][0]) + (y_pos - cl_pos[nn][1])*(y_pos - cl_pos[nn][1]) + (z_pos - cl_pos[nn][2])*(z_pos - cl_pos[nn][2]));
-	  //r = sqrt((x_pos - nn*xcl)*(x_pos - nn*xcl) + (y_pos - ycl)*(y_pos - ycl) + (z_pos - zcl)*(z_pos - zcl));
+          //r = sqrt((x_pos - cl_pos[nn][0])*(x_pos - cl_pos[nn][0]) + (y_pos - cl_pos[nn][1])*(y_pos - cl_pos[nn][1]) + (z_pos - cl_pos[nn][2])*(z_pos - cl_pos[nn][2]));
+	        r = sqrt((x_pos - nn*xcl)*(x_pos - nn*xcl) + (y_pos - ycl)*(y_pos - ycl) + (z_pos - zcl)*(z_pos - zcl));
           if (r < R_cl) {
             C.density[id]    = rho_c;
             C.momentum_x[id] = rho_c*vx_c;
