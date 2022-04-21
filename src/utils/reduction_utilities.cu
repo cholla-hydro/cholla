@@ -17,10 +17,10 @@
     namespace reduction_utilities
     {
         // =====================================================================
-        __global__ void kernelReduceMax(Real *in, Real* out, size_t N)
+        __global__ void kernelReduceMax(Real *in, Real* out, size_t N, Real lowLimit)
         {
             // Initialize variable to store the max value
-            Real maxVal = -DBL_MAX;
+            Real maxVal = lowLimit;
 
             // Grid stride loop to perform as much of the reduction as possible
             for(size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < N; i += blockDim.x * gridDim.x)

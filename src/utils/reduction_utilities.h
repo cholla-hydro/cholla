@@ -114,39 +114,44 @@
 
         // =====================================================================
         /*!
-        * \brief Perform a reduction within the grid to find the maximum value
-        * of `val`. Note that this will overwrite the value in `out` with
-        * `-DBL_MAX`
-        *
-        * \details This function can perform a reduction to find the maximum of
-        * the thread local variable `val` across the entire grid. It relies on a
-        * warp-wise reduction using registers followed by a block-wise reduction
-        * using shared memory, and finally a grid-wise reduction using atomics.
-        * As a result the performance of this function is substantally improved
-        * by using as many threads per block as possible and as few blocks as
-        * possible since each block has to perform an atomic operation. To
-        * accomplish this it is recommened that you use the
-        * `reductionLaunchParams` functions to get the optimal number of blocks
-        * and threads per block to launch rather than relying on Cholla defaults
-        * and then within the kernel using a grid-stride loop to make sure the
-        * kernel works with any combination of threads and blocks. Note that
-        * after this function call you cannot use the reduced value in global
-        * memory since there is no grid wide sync. You can get around this by
-        * either launching a second kernel to do the next steps or by using
-        * cooperative groups to perform a grid wide sync. During it's execution
-        * it also calls multiple __synchThreads and so cannot be called from
-        * within any kind of thread guard.
-        *
-        * \param[in] val The thread local variable to find the maximum of across
-        * the grid
-        * \param[out] out The pointer to where to store the reduced scalar value
-        * in device memory
-        */
-        __inline__ __device__ void gridReduceMax(Real val, Real* out)
+         * \brief Perform a reduction within the grid to find the maximum value
+         * of `val`. Note that this will overwrite the value in `out` with
+         * the value of the optional argument `lowLimit` which defaults to
+         * `-DBL_MAX`
+         *
+         * \details This function can perform a reduction to find the maximum of
+         * the thread local variable `val` across the entire grid. It relies on a
+         * warp-wise reduction using registers followed by a block-wise reduction
+         * using shared memory, and finally a grid-wise reduction using atomics.
+         * As a result the performance of this function is substantally improved
+         * by using as many threads per block as possible and as few blocks as
+         * possible since each block has to perform an atomic operation. To
+         * accomplish this it is recommened that you use the
+         * `reductionLaunchParams` functions to get the optimal number of blocks
+         * and threads per block to launch rather than relying on Cholla defaults
+         * and then within the kernel using a grid-stride loop to make sure the
+         * kernel works with any combination of threads and blocks. Note that
+         * after this function call you cannot use the reduced value in global
+         * memory since there is no grid wide sync. You can get around this by
+         * either launching a second kernel to do the next steps or by using
+         * cooperative groups to perform a grid wide sync. During it's execution
+         * it also calls multiple __synchThreads and so cannot be called from
+         * within any kind of thread guard.
+         *
+         * \param[in] val The thread local variable to find the maximum of across
+         * the grid
+         * \param[out] out The pointer to where to store the reduced scalar value
+         * in device memory
+         * \param[in] lowLimit (optional)What value to initilize global memory
+         * with. Defaults to -DBL_MAX. This value will be the lowest possible
+         * value that the reduction can produce since all other values are
+         * compared against it
+         */
+        __inline__ __device__ void gridReduceMax(Real val, Real* out, Real lowLimit = -DBL_MAX)
         {
             // Set the value in global memory so meaningful comparisons can be
             // performed
-            if (threadIdx.x + blockIdx.x * blockDim.x == 0) *out = -DBL_MAX;
+            if (threadIdx.x + blockIdx.x * blockDim.x == 0) *out = lowLimit;
 
             // Reduce the entire block in parallel
             val = blockReduceMax(val);
@@ -159,16 +164,21 @@
         // =====================================================================
         /*!
          * \brief Find the maximum value in the array. Note that this will
-         * overwrite the value in `out` with `-DBL_MAX`. If `in` and `out` are
-         * the same array that's ok, all the loads are completed before the
+         * overwrite the value in `out` with the value of the optional argument
+         * `lowLimit` which defaults to `-DBL_MAX`. If `in` and `out` are the
+         * same array that's ok, all the loads are completed before the
          * overwrite occurs
          *
          * \param[in] in The pointer to the array to reduce in device memory
          * \param[out] out The pointer to where to store the reduced scalar
          * value in device memory
          * \param[in] N The size of the `in` array
+         * \param[in] lowLimit (optional) What value to initilize global memory
+         * with. Defaults to -DBL_MAX. This value will be the lowest possible
+         * value that the reduction can produce since all other values are
+         * compared against it
          */
-        __global__ void kernelReduceMax(Real *in, Real* out, size_t N);
+        __global__ void kernelReduceMax(Real *in, Real* out, size_t N, Real lowLimit = -DBL_MAX);
         // =====================================================================
 
         // =====================================================================
