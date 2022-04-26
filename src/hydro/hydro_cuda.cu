@@ -489,7 +489,7 @@ __global__ void Calc_dt_1D(Real *dev_conserved, int n_cells, int n_ghost, Real d
     }
   }
 
-  // do the grid wide reduction (find the max inverse timestep in the block)
+  // do the grid wide reduction (find the max inverse timestep in the grid)
   reduction_utilities::gridReduceMax(max_dti, dev_dti);
 }
 
@@ -531,7 +531,7 @@ __global__ void Calc_dt_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Rea
     }
   }
 
-  // do the grid wide reduction (find the max inverse timestep in the block)
+  // do the grid wide reduction (find the max inverse timestep in the grid)
   reduction_utilities::gridReduceMax(max_dti, dev_dti);
 }
 
@@ -612,7 +612,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
     }
   }
 
-  // do the grid wide reduction (find the max inverse timestep in the block)
+  // do the grid wide reduction (find the max inverse timestep in the grid)
   reduction_utilities::gridReduceMax(max_dti, dev_dti);
 }
 
