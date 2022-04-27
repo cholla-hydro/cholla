@@ -10,9 +10,8 @@
 #include "../riemann_solvers/hll_cuda.h"
 
 #ifdef DE //PRESSURE_DE
-#include "../hydro/hydro_cuda.h"
+#include "../utils/hydro_utilities.h"
 #endif
-
 
 
 /*! \fn Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields)
@@ -100,7 +99,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     vzl = mzl / dl;
     #ifdef DE //PRESSURE_DE
     E_kin = 0.5 * dl * ( vxl*vxl + vyl*vyl + vzl*vzl );
-    pl = Get_Pressure_From_DE( El, El - E_kin, dgel, gamma );
+    pl = hydro_utilities::Get_Pressure_From_DE( El, El - E_kin, dgel, gamma );
     #else
     pl  = (El - 0.5*dl*(vxl*vxl + vyl*vyl + vzl*vzl)) * (gamma - 1.0);
     #endif//DE
@@ -118,7 +117,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     vzr = mzr / dr;
     #ifdef DE //PRESSURE_DE
     E_kin = 0.5 * dr * ( vxr*vxr + vyr*vyr + vzr*vzr );
-    pr = Get_Pressure_From_DE( Er, Er - E_kin, dger, gamma );
+    pr = hydro_utilities::Get_Pressure_From_DE( Er, Er - E_kin, dger, gamma );
     #else
     pr  = (Er - 0.5*dr*(vxr*vxr + vyr*vyr + vzr*vzr)) * (gamma - 1.0);
     #endif//DE

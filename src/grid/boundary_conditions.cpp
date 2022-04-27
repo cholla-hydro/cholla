@@ -64,7 +64,7 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
   #ifdef PARTICLES
   n_bounds += (int) Particles.TRANSFER_PARTICLES_BOUNDARIES;
   n_bounds += (int) Particles.TRANSFER_DENSITY_BOUNDARIES;
-  #endif
+  #endif  //PARTICLES
 
   if ( n_bounds > 1 ){
     printf("ERROR: More than one boundary type for transfer. N boundary types: %d\n", n_bounds );
@@ -115,7 +115,7 @@ void Grid3D::Set_Boundary_Conditions(parameters P) {
 
   #ifdef GRAVITY
   Grav.Set_Boundary_Flags( flags );
-  #endif
+  #endif  //Gravity
 
 #else  /*MPI_CHOLLA*/
 
@@ -261,7 +261,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       if ( dir == 4 ) Set_Particles_Density_Boundaries_Periodic_GPU( 2, 0 );
       if ( dir == 5 ) Set_Particles_Density_Boundaries_Periodic_GPU( 2, 1 );
       #endif
-      #ifdef PARTICLES_CPU       
+      #ifdef PARTICLES_CPU
       if ( dir == 0 ) Set_Particles_Density_Boundaries_Periodic( 0, 0 );
       if ( dir == 1 ) Set_Particles_Density_Boundaries_Periodic( 0, 1 );
       if ( dir == 2 ) Set_Particles_Density_Boundaries_Periodic( 1, 0 );
@@ -272,7 +272,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
     }
     return;
   }
-  #endif
+  #endif  //PARTICLES
 
   #ifdef PARTICLES
   if ( Particles.TRANSFER_PARTICLES_BOUNDARIES ){
@@ -299,7 +299,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
       } else if (flags[dir] == 3) {
         #ifdef PARTICLES_CPU
         Set_Particles_Open_Boundary(dir/2, dir%2);
-        #endif
+        #endif  //PARTICLES_CPU
     }
     return;
   }
@@ -308,7 +308,7 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   //get the extents of the ghost region we are initializing
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
 
-  // from grid/cuda_boundaries.cu 
+  // from grid/cuda_boundaries.cu
   SetGhostCells(C.device,
 		 H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags,
 		 imax[0]-imin[0], imax[1]-imin[1], imax[2]-imin[2],

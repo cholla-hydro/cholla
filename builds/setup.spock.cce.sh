@@ -5,10 +5,9 @@
 
 module load PrgEnv-cray
 module load cray-python
-module load rocm
+module load rocm/4.5.0
 module load craype-accel-amd-gfx908
 module load cray-hdf5 cray-fftw
-unset GPUCXX
 
 #-- GPU-aware MPI
 export MPICH_GPU_SUPPORT_ENABLED=1
@@ -16,8 +15,6 @@ export MPICH_GPU_SUPPORT_ENABLED=1
 export LD_LIBRARY_PATH=${CRAY_LD_LIBRARY_PATH}:${LD_LIBRARY_PATH}
 
 export MPI_GPU="-DMPI_GPU"
-export F_OFFLOAD="-fopenmp"
+#export F_OFFLOAD="-fopenmp"
 
 export CHOLLA_ENVSET=1
-
-

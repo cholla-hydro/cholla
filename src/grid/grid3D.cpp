@@ -85,10 +85,23 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real
 #else   /*MPI_CHOLLA*/
 
   /* position relative to local xyz bounds */
+  /* This approach was replaced because it is less consistent for multiple cores.
+  Since distributive property does not perfectly hold for floating point operations
+
+  > Global_bound + global_i * dx
+
+  is more consistent than
+
+  >local_bound + local_i*dx = (global_bound + (global_i-local_i)*dx) + local_i*dx.
+
   *x_pos = H.xblocal + H.dx*(i-H.n_ghost) + 0.5*H.dx;
   *y_pos = H.yblocal + H.dy*(j-H.n_ghost) + 0.5*H.dy;
   *z_pos = H.zblocal + H.dz*(k-H.n_ghost) + 0.5*H.dz;
+  */
 
+  *x_pos = H.xbound + (nx_local_start+i-H.n_ghost)*H.dx + 0.5*H.dx;
+  *y_pos = H.ybound + (ny_local_start+j-H.n_ghost)*H.dy + 0.5*H.dy;
+  *z_pos = H.zbound + (nz_local_start+k-H.n_ghost)*H.dz + 0.5*H.dz;
 
 #endif  /*MPI_CHOLLA*/
 
@@ -106,6 +119,11 @@ void Grid3D::Initialize(struct parameters *P)
   #ifdef SCALAR
   H.n_fields += NSCALARS;
   #endif
+
+  // if including magnetic fields increase the number of fields
+  #ifdef  MHD
+  H.n_fields += 3;
+  #endif  //MHD
 
   // if using dual energy formalism must track internal energy - always the last field!
   #ifdef DE
@@ -259,24 +277,34 @@ void Grid3D::AllocateMemory(void)
   C.Energy   = &(C.host[4*H.n_cells]);
   #ifdef SCALAR
   C.scalar  = &(C.host[5*H.n_cells]);
-  #endif
+  #endif  //SCALAR
+  #ifdef  MHD
+  C.magnetic_x = &(C.host[(5 + NSCALARS)*H.n_cells]);
+  C.magnetic_y = &(C.host[(6 + NSCALARS)*H.n_cells]);
+  C.magnetic_z = &(C.host[(7 + NSCALARS)*H.n_cells]);
+  #endif  //MHD
   #ifdef DE
   C.GasEnergy = &(C.host[(H.n_fields-1)*H.n_cells]);
-  #endif
+  #endif  //DE
 
   // allocate memory for the conserved variable arrays on the device
   CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
-  C.d_density     = C.device;
-  C.d_momentum_x  = &(C.device[H.n_cells]);
-  C.d_momentum_y  = &(C.device[2*H.n_cells]);
-  C.d_momentum_z  = &(C.device[3*H.n_cells]);
-  C.d_Energy      = &(C.device[4*H.n_cells]);
+  C.d_density    = C.device;
+  C.d_momentum_x = &(C.device[H.n_cells]);
+  C.d_momentum_y = &(C.device[2*H.n_cells]);
+  C.d_momentum_z = &(C.device[3*H.n_cells]);
+  C.d_Energy     = &(C.device[4*H.n_cells]);
   #ifdef SCALAR
-  C.d_scalar      = &(C.device[5*H.n_cells]);
-  #endif
+  C.d_scalar     = &(C.device[5*H.n_cells]);
+  #endif  // SCALAR
+  #ifdef  MHD
+  C.d_magnetic_x   = &(C.device[(5 + NSCALARS)*H.n_cells]);
+  C.d_magnetic_y   = &(C.device[(6 + NSCALARS)*H.n_cells]);
+  C.d_magnetic_z   = &(C.device[(7 + NSCALARS)*H.n_cells]);
+  #endif  //MHD
   #ifdef DE
-  C.d_GasEnergy   = &(C.device[(H.n_fields-1)*H.n_cells]);
-  #endif
+  C.d_GasEnergy  = &(C.device[(H.n_fields-1)*H.n_cells]);
+  #endif  // DE
 
   // set the number of thread blocks for the GPU grid (declared in global_cuda)
   ngrid = (H.n_cells + TPB - 1) / TPB;
@@ -284,6 +312,7 @@ void Grid3D::AllocateMemory(void)
   // arrays that hold the max_dti calculation for hydro for each thread block (pre reduction)
   CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&dev_dti, sizeof(Real)) );
 
 
   #if defined( GRAVITY )
@@ -312,7 +341,7 @@ void Grid3D::AllocateMemory(void)
 
   #ifdef CLOUDY_COOL
   Load_Cuda_Textures();
-  #endif
+  #endif  // CLOUDY_COOL
 
 }
 
@@ -345,7 +374,7 @@ void Grid3D::AllocateMemory(void)
     #endif //max_dti_slow
 
     // Compute the time step
-    max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
+    max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama, max_dti_slow);
   }
   else {
     max_dti = dti;
@@ -365,7 +394,7 @@ void Grid3D::AllocateMemory(void)
   #ifdef GRAVITY
   //Set dt for hydro and particles
   set_dt_Gravity();
-  #endif
+  #endif  //GRAVITY
 
   #ifdef CPU_TIME
   Timer.Calc_dt.End();
@@ -476,7 +505,7 @@ Real Grid3D::Update_Grid(void)
   #endif
 
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
-  max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
+  max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama, max_dti_slow);
   #ifdef COOLING_GPU
   max_dti = fmax(max_dti, cooling_max_dti);
   #endif // COOLING_GPU
@@ -603,7 +632,8 @@ void Grid3D::FreeMemory(void)
 
   // free the timestep arrays
   CudaSafeCall( cudaFreeHost(host_dti_array) );
-  cudaFree(dev_dti_array);  
+  cudaFree(dev_dti_array);
+  cudaFree(dev_dti);
 
   #ifdef GRAVITY
   CudaSafeCall( cudaFreeHost(C.Grav_potential) );

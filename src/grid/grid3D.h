@@ -40,7 +40,7 @@
 
 #ifdef CHEMISTRY_GPU
 #include "chemistry_gpu/chemistry_gpu.h"
-#endif 
+#endif
 
 #ifdef ANALYSIS
 #include "../analysis/analysis.h"
@@ -156,19 +156,7 @@ struct Header
   /*  \brief Global domain z-direction minimum */
   Real zbound;
 
-  /*! \var domlen_x */
-  /*  \brief Local domain length in x-direction */
-  Real domlen_x;
-
-  /*! \var domlen_y */
-  /*  \brief Local domain length in y-direction */
-  Real domlen_y;
-
-  /*! \var domlen_z */
-  /*  \brief Local domain length in z-direction */
-  Real domlen_z;
-
-  /*! \var xblocal */
+   /*! \var xblocal */
   /*  \brief Local domain x-direction minimum */
   Real xblocal;
 
@@ -176,9 +164,21 @@ struct Header
   /*  \brief Local domain y-direction minimum */
   Real yblocal;
 
-  /*! \var zblocal*/
+  /*! \var zblocal */
   /*  \brief Local domain z-direction minimum */
   Real zblocal;
+
+  /*! \var xblocal_max */
+  /*  \brief Local domain x-direction maximum */
+  Real xblocal_max;
+
+  /*! \var yblocal_max */
+  /*  \brief Local domain y-direction maximum */
+  Real yblocal_max;
+
+  /*! \var zblocal_max */
+  /*  \brief Local domain z-direction maximum */
+  Real zblocal_max;
 
   /*! \var xdglobal */
   /*  \brief Global domain length in x-direction */
@@ -309,11 +309,11 @@ class Grid3D
     // Object that contains data for Grackle cooling
     Cool_GK Cool;
     #endif
-    
+
     #ifdef CPU_TIME
     Time Timer;
     #endif
-    
+
     #ifdef CHEMISTRY_GPU
     // Object that contains data for the GPU chemistry solver
     Chem_GPU Chem;
@@ -348,23 +348,43 @@ class Grid3D
        *  \brief Array containing the total Energy of each cell in the grid */
       Real *Energy;
 
+      #ifdef SCALAR
+      /*! \var scalar
+       *  \brief Array containing the values of the passive scalar variable(s). */
+      Real *scalar;
+      #endif  // SCALAR
+
+      #ifdef MHD
+      /*! \var magnetic_x \brief Array containing the magnetic field in the x
+       *  direction of each cell in the grid. Note that this is the magnetic
+       *  field at the x+1/2 face of the cell since constrained transport
+       *  requires face centered, not cell centered, magnetic fields */
+      Real *magnetic_x;
+
+      /*! \var magnetic_y \brief Array containing the magnetic field in the y
+       *  direction of each cell in the grid. Note that this is the magnetic
+       *  field at the y+1/2 face of the cell since constrained transport
+       *  requires face centered, not cell centered, magnetic fields */
+      Real *magnetic_y;
+
+      /*! \var magnetic_z \brief Array containing the magnetic field in the z
+       *  direction of each cell in the grid. Note that this is the magnetic
+       *  field at the z+1/2 face of the cell since constrained transport
+       *  requires face centered, not cell centered, magnetic fields */
+      Real *magnetic_z;
+      #endif  // MHD
+
       #ifdef DE
       /*! \var GasEnergy
        *  \brief Array containing the internal energy of each cell, only tracked separately when using
            the dual-energy formalism. */
       Real *GasEnergy;
-      #endif
-
-      #ifdef SCALAR
-      /*! \var scalar
-       *  \brief Array containing the values of the passive scalar variable(s). */
-      Real *scalar;
-      #endif
+      #endif  // DE
 
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
-      
+
       #ifdef CHEMISTRY_GPU
       Real *HI_density;
       Real *HII_density;
@@ -372,13 +392,14 @@ class Grid3D
       Real *HeII_density;
       Real *HeIII_density;
       Real *e_density;
-      #endif 
+      #endif
 
-      
+
       /*! pointer to conserved variable on device */
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z,
-           *d_Energy, *d_scalar, *d_GasEnergy;
+           *d_Energy, *d_scalar, *d_magnetic_x, *d_magnetic_y, *d_magnetic_z,
+           *d_GasEnergy;
 
        /*! pointer to gravitational potential on device */
       Real *d_Grav_potential;
@@ -516,7 +537,7 @@ class Grid3D
 
     /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
      *  \brief Constant gas properties. */
-    void Constant(Real rho, Real vx, Real vy, Real vz, Real P);
+    void Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real By, Real Bz);
 
     /*! \fn void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
      *  \brief Sine wave perturbation. */
@@ -526,9 +547,13 @@ class Grid3D
      *  \brief Square wave density perturbation with amplitude A*rho in pressure equilibrium. */
     void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
 
-    /*! \fn void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph)
+    /*! \fn void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real Bx_l, Real By_l, Real Bz_l,
+                         Real rho_r, Real vx_r, Real vy_r, Real vz_r, Real P_r, Real Bx_r, Real By_r, Real Bz_r,
+                         Real diaph)
      *  \brief Initialize the grid with a Riemann problem. */
-    void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph);
+    void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real Bx_l, Real By_l, Real Bz_l,
+                 Real rho_r, Real vx_r, Real vy_r, Real vz_r, Real P_r, Real Bx_r, Real By_r, Real Bz_r,
+                 Real diaph);
 
     /*! \fn void Shu_Osher()
      *  \brief Initialize the grid with the Shu-Osher shock tube problem. See Stone 2008, Section 8.1 */
@@ -620,7 +645,7 @@ class Grid3D
     void Uniform_Grid();
 
     void Zeldovich_Pancake( struct parameters P );
-    
+
     void Chemistry_Test( struct parameters P );
 
 
@@ -774,13 +799,13 @@ class Grid3D
   void Update_Internal_Energy();
   void Do_Cooling_Step_Grackle();
   #endif
-  
+
   #ifdef CHEMISTRY_GPU
   void Initialize_Chemistry( struct parameters *P );
   void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
   void Update_Chemistry();
   #endif
-  
+
   #ifdef ANALYSIS
   void Initialize_Analysis_Module( struct parameters *P );
   void Compute_and_Output_Analysis( struct parameters *P );

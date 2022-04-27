@@ -3,9 +3,9 @@
 #include "../global/global_cuda.h"
 #include "cuda_boundaries.h"
 
-__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a);
+__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a, int &idMag);
 
-__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],int nx, int ny, int nz, int n_ghost); 
+__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],int nx, int ny, int nz, int n_ghost,  int &magneticIdx);
 
 __global__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int buffer_ncells, int n_fields, int n_cells)
 {
@@ -66,7 +66,7 @@ __global__ void SetGhostCellsKernel(Real * c_head,
 				     int f0, int f1, int f2, int f3, int f4, int f5,
 				     int isize, int jsize, int ksize,
 				     int imin, int jmin, int kmin, int dir){
-  int id,i,j,k,gidx,idx,ii;
+  int id,i,j,k,gidx,idx,ii, magneticIdx;
   Real a[3] = {1.,1.,1.};
   int flags[6] = {f0,f1,f2,f3,f4,f5};
 
@@ -93,11 +93,17 @@ __global__ void SetGhostCellsKernel(Real * c_head,
   gidx = i + j*nx + k*nx*ny;
 
   // calculate idx (index of real cell) and a[:] for reflection
-  idx = SetBoundaryMapping(i,j,k,&a[0],flags,nx,ny,nz,n_ghost);
+  idx = SetBoundaryMapping(i,j,k,&a[0],flags,nx,ny,nz,n_ghost,magneticIdx);
 
   if (idx>=0){
     for (ii=0; ii<n_fields; ii++) {
-      c_head[gidx + ii*n_cells] = c_head[idx + ii*n_cells];
+      #ifdef  MHD
+        // Choose which index to use, the one for magnetic fields or not
+        int index = ((5+NSCALARS <= ii) and ( ii <= 7+NSCALARS))? magneticIdx: idx;
+        c_head[gidx + ii*n_cells] = c_head[index + ii*n_cells];
+      #else // MHD not defined
+        c_head[gidx + ii*n_cells] = c_head[idx + ii*n_cells];
+      #endif  //MHD
     }
     // momentum correction for reflection
     // these are set to -1 whenever ghost cells in a direction are in a reflective boundary condition
@@ -120,13 +126,13 @@ __global__ void SetGhostCellsKernel(Real * c_head,
       // (Z) Dir 4,5 -> Mom 3 -> c_head[gidx+3*n_cells]
       // If a momentum is set to 0, subtract its kinetic energy [gidx+4*n_cells]
       if (dir%2 == 0){
-	// Direction 0,2,4 are left-side, don't allow inflow with positive momentum	
+	// Direction 0,2,4 are left-side, don't allow inflow with positive momentum
 	if (c_head[momdex] > 0.0) {
 	  c_head[gidx+4*n_cells] -= 0.5*(c_head[momdex]*c_head[momdex])/c_head[gidx];
 	  c_head[momdex] = 0.0;
 	}
       } else {
-	// Direction 1,3,5 are right-side, don't allow inflow with negative momentum	
+	// Direction 1,3,5 are right-side, don't allow inflow with negative momentum
 	if (c_head[momdex] < 0.0) {
 	  c_head[gidx+4*n_cells] -= 0.5*(c_head[momdex]*c_head[momdex])/c_head[gidx];
 	  c_head[momdex] = 0.0;
@@ -150,33 +156,43 @@ void SetGhostCells(Real * c_head,
 
 }
 
-__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], int nx, int ny, int nz, int n_ghost){
+__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], int nx, int ny, int nz, int n_ghost, int &magneticIdx){
   // nx, ny, nz, n_ghost
   /* 1D */
-  int ir, jr, kr, idx;
-  ir=jr=kr=idx=0;
+  // irMag, jrMag, krMag are the magnetic indices
+  int ir, jr, kr, irMag, jrMag, krMag, idx;
+  ir=jr=kr=irMag=jrMag=krMag=idx=magneticIdx=0;
   if (nx>1) {
 
     // set index on -x face
     if (ig < n_ghost) {
-      ir = FindIndex(ig, nx, flags[0], 0, n_ghost, &a[0]);
+      ir = FindIndex(ig, nx, flags[0], 0, n_ghost, &a[0], irMag);
     }
     // set index on +x face
     else if (ig >= nx-n_ghost) {
-      ir = FindIndex(ig, nx, flags[1], 1, n_ghost, &a[0]);
+      ir = FindIndex(ig, nx, flags[1], 1, n_ghost, &a[0], irMag);
     }
     // set i index for multi-D problems
     else {
       ir = ig;
+      #ifdef  MHD
+        irMag = ig;
+      #endif  //MHD
     }
 
     // if custom x boundaries are needed, set index to -1 and return
     if (ir < 0) {
+      #ifdef  MHD
+        magneticIdx = -1;
+      #endif  //MHD
       return idx = -1;
     }
 
     // otherwise add i index to ghost cell mapping
     idx += ir;
+    #ifdef  MHD
+      magneticIdx += irMag;
+    #endif  //MHD
 
   }
 
@@ -185,24 +201,33 @@ __device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], 
 
     // set index on -y face
     if (jg < n_ghost) {
-      jr = FindIndex(jg, ny, flags[2], 0, n_ghost, &a[1]);
+      jr = FindIndex(jg, ny, flags[2], 0, n_ghost, &a[1], jrMag);
     }
     // set index on +y face
     else if (jg >= ny-n_ghost) {
-      jr = FindIndex(jg, ny, flags[3], 1, n_ghost, &a[1]);
+      jr = FindIndex(jg, ny, flags[3], 1, n_ghost, &a[1], jrMag);
     }
     // set j index for multi-D problems
     else {
       jr = jg;
+      #ifdef  MHD
+        jrMag = jg;
+      #endif  //MHD
     }
 
     // if custom y boundaries are needed, set index to -1 and return
     if (jr < 0) {
+      #ifdef  MHD
+        magneticIdx = -1;
+      #endif  //MHD
       return idx = -1;
     }
 
     // otherwise add j index to ghost cell mapping
     idx += nx*jr;
+    #ifdef  MHD
+      magneticIdx += nx*jrMag;
+    #endif  //MHD
 
   }
 
@@ -211,79 +236,122 @@ __device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], 
 
     // set index on -z face
     if (kg < n_ghost) {
-      kr = FindIndex(kg, nz, flags[4], 0, n_ghost, &a[2]);
+      kr = FindIndex(kg, nz, flags[4], 0, n_ghost, &a[2], krMag);
     }
     // set index on +z face
     else if (kg >= nz-n_ghost) {
-      kr = FindIndex(kg, nz, flags[5], 1, n_ghost, &a[2]);
+      kr = FindIndex(kg, nz, flags[5], 1, n_ghost, &a[2], krMag);
     }
     // set k index for multi-D problems
     else {
       kr = kg;
+      #ifdef  MHD
+        krMag = kg;
+      #endif  //MHD
     }
 
     // if custom z boundaries are needed, set index to -1 and return
     if (kr < 0) {
+      #ifdef  MHD
+        magneticIdx = -1;
+      #endif  //MHD
       return idx = -1;
     }
 
     // otherwise add k index to ghost cell mapping
     idx += nx*ny*kr;
-
+    #ifdef  MHD
+      magneticIdx += nx*ny*krMag;
+    #endif  //MHD
   }
   return idx;
 }
 
-__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a){
+__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a, int &idMag){
   int id;
 
   // lower face
-  if (face==0) {
+  if (face==0)
+  {
     switch(flag)
-      {
-	// periodic
-      case 1: id = ig+nx-2*n_ghost;
-	break;
-	// reflective
-      case 2: id = 2*n_ghost-ig-1;
-	*(a) = -1.0;
-	break;
-	// transmissive
-      case 3: id = n_ghost;
-	break;
-	// custom
-      case 4: id = -1;
-	break;
-	// MPI
-      case 5: id = ig;
-	break;
-	// default is periodic
-      default: id = ig+nx-2*n_ghost;
-      }
+    {
+      // periodic
+      case 1:
+        id = ig+nx-2*n_ghost;
+        #ifdef  MHD
+          idMag = id;
+        #endif  //MHD
+        break;
+      // reflective
+      case 2:
+        id = 2*n_ghost-ig-1;
+        *(a) = -1.0;
+        #ifdef  MHD
+          idMag = id - 1;
+        #endif  //MHD
+        break;
+      // transmissive
+      case 3:
+        id = n_ghost;
+        #ifdef  MHD
+          idMag = id - 1;
+        #endif  //MHD
+        break;
+      // custom
+      case 4:
+        id = -1;
+        #ifdef  MHD
+          idMag = -1;
+        #endif  //MHD
+        break;
+      // MPI
+      case 5:
+        id = ig;
+        #ifdef  MHD
+          idMag = id;
+        #endif  //MHD
+        break;
+      // default is periodic
+      default:
+        id = ig+nx-2*n_ghost;
+        #ifdef  MHD
+          idMag = id;
+        #endif  //MHD
+    }
   }
   // upper face
-  else {
+  else
+  {
     switch(flag)
-      {
-	// periodic
-      case 1: id = ig-nx+2*n_ghost;
-	break;
-	// reflective
-      case 2: id = 2*(nx-n_ghost)-ig-1;
-	*(a) = -1.0;
-	break;
-	// transmissive
-      case 3: id = nx-n_ghost-1;
-	break;
-	// custom
-      case 4: id = -1;
-	break;
-	// MPI
-      case 5: id = ig;
-	break;
-	// default is periodic
-      default: id = ig-nx+2*n_ghost;
-      }
+    {
+      // periodic
+      case 1:
+        id = ig-nx+2*n_ghost;
+        break;
+      // reflective
+      case 2:
+        id = 2*(nx-n_ghost)-ig-1;
+        *(a) = -1.0;
+      break;
+      // transmissive
+      case 3:
+        id = nx-n_ghost-1;
+        break;
+      // custom
+      case 4:
+        id = -1;
+        break;
+      // MPI
+      case 5:
+        id = ig;
+        break;
+      // default is periodic
+      default:
+        id = ig-nx+2*n_ghost;
+    }
+    #ifdef  MHD
+      idMag = id;
+    #endif  //MHD
   }
   return id;
 }

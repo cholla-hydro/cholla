@@ -190,11 +190,13 @@ runTests ()
   GTEST_REPORT="--gtest_output=xml:${CHOLLA_ROOT}/bin/"
 
   builtin cd $CHOLLA_ROOT
+  set -x
   "${CHOLLA_ROOT}/bin/cholla.${CHOLLA_MAKE_TYPE}.${CHOLLA_MACHINE}.tests" \
   "${CHOLLA_OPTIONS[@]}" \
   "${GTEST_FILTER}" \
   "${GTEST_REPORT}" \
   "${@}"
+  set +x
 }
 # ==============================================================================
 
