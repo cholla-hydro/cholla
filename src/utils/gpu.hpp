@@ -20,7 +20,10 @@ static void __attribute__((unused)) check(const hipfftResult err, const char *co
   exit(err);
 }
 
-#endif
+#endif  //CUFFT PARIS PARIC_GALACTIC
+
+#define WARPSIZE 64
+static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 
 #define CUFFT_D2Z HIPFFT_D2Z
 #define CUFFT_FORWARD HIPFFT_FORWARD
@@ -57,6 +60,8 @@ static void __attribute__((unused)) check(const hipfftResult err, const char *co
 #define cudaReadModeElementType hipReadModeElementType
 #define cudaSetDevice hipSetDevice
 #define cudaSuccess hipSuccess
+#define cudaDeviceProp hipDeviceProp_t
+#define cudaGetDeviceProperties hipGetDeviceProperties
 
 #define cufftDestroy hipfftDestroy
 #define cufftDoubleComplex hipfftDoubleComplex
@@ -76,7 +81,7 @@ static void __attribute__((unused)) check(const hipError_t err, const char *cons
   exit(err);
 }
 
-#else
+#else  // not O_HIP
 
 #include <cuda_runtime.h>
 
@@ -102,9 +107,12 @@ static void check(const cudaError_t err, const char *const file, const int line)
   exit(err);
 }
 
+#define WARPSIZE 32
+static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define hipLaunchKernelGGL(F,G,B,M,S,...) F<<<G,B,M,S>>>(__VA_ARGS__)
+#define __shfl_down(...) __shfl_down_sync(0xFFFFFFFF, __VA_ARGS__)
 
-#endif
+#endif  //O_HIP
 
 #define CHECK(X) check(X,__FILE__,__LINE__)
 
