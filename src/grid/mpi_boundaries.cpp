@@ -980,14 +980,29 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
       = &Grid3D::Unload_Particles_Density_Boundary_From_Buffer_GPU;
 
     #else
-
+    
+    #ifdef MPI_GPU 
+    if ( index == 0 ) Copy_Particles_Density_Buffer_Device_to_Host( 0, 0, d_recv_buffer_x0, h_recv_buffer_x0_particles );
+    if ( index == 1 ) Copy_Particles_Density_Buffer_Device_to_Host( 0, 1, d_recv_buffer_x1, h_recv_buffer_x1_particles );
+    if ( index == 2 ) Copy_Particles_Density_Buffer_Device_to_Host( 1, 0, d_recv_buffer_y0, h_recv_buffer_y0_particles );
+    if ( index == 3 ) Copy_Particles_Density_Buffer_Device_to_Host( 1, 1, d_recv_buffer_y1, h_recv_buffer_y1_particles );
+    if ( index == 4 ) Copy_Particles_Density_Buffer_Device_to_Host( 2, 0, d_recv_buffer_z0, h_recv_buffer_z0_particles );
+    if ( index == 5 ) Copy_Particles_Density_Buffer_Device_to_Host( 2, 1, d_recv_buffer_z1, h_recv_buffer_z1_particles );
+    l_recv_buffer_x0 = h_recv_buffer_x0_particles;
+    l_recv_buffer_x1 = h_recv_buffer_x1_particles;
+    l_recv_buffer_y0 = h_recv_buffer_y0_particles;
+    l_recv_buffer_y1 = h_recv_buffer_y1_particles;
+    l_recv_buffer_z0 = h_recv_buffer_z0_particles;
+    l_recv_buffer_z1 = h_recv_buffer_z1_particles;
+    #else
     l_recv_buffer_x0 = h_recv_buffer_x0;
     l_recv_buffer_x1 = h_recv_buffer_x1;
     l_recv_buffer_y0 = h_recv_buffer_y0;
     l_recv_buffer_y1 = h_recv_buffer_y1;
     l_recv_buffer_z0 = h_recv_buffer_z0;
     l_recv_buffer_z1 = h_recv_buffer_z1;
-
+    #endif //MPI_GPU
+    
     Fptr_Unload_Particle_Density
       = &Grid3D::Unload_Particles_Density_Boundary_From_Buffer;
 

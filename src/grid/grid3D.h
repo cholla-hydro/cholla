@@ -716,6 +716,7 @@ class Grid3D
   void Finish_Particles_Transfer();
   #endif//MPI_CHOLLA
   void Transfer_Particles_Density_Boundaries( struct parameters P );
+  void Copy_Particles_Density_Buffer_Device_to_Host( int direction, int side, Real *buffer_d, Real *buffer_h );
   // void Transfer_Particles_Boundaries( struct parameters P );
   void WriteData_Particles(  struct parameters P, int nfile);
   void OutputData_Particles(  struct parameters P, int nfile);
