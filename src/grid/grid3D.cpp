@@ -121,6 +121,10 @@ void Grid3D::Initialize(struct parameters *P)
 
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
+  
+  #ifdef AVERAGE_SLOW_CELLS
+  H.min_dt_slow = 1e-100; //Initialize the minumum dt to a tiny number
+  #endif
 
 #ifndef MPI_CHOLLA
 
