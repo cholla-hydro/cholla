@@ -1,37 +1,58 @@
 #ifdef CUDA
-#ifdef DUST_GPU
+#ifdef SCALAR
 
-#include"dust_cuda.h"
-#include<math.h>
-#include<vector.h>
-#include"global.h"
-#include"global_cuda.h"
-#include"gpu.hpp"
+#include "dust_model.h"
 
-__global__ void dust_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, 
-int n_fields, Real dt, Real gamma, Real *dt_array) {
-    __shared__ Real min_dt[TPB]; // TPB = threads per block
+#include <cstdio>
+#include<stdio.h>
+#include <fstream>
 
-    // get grid inidices
+#include <vector>
+
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../utils/gpu.hpp"
+#include "../utils/hydro_utilities.h"
+#include "../utils/cuda_utilities.h"
+#include "../grid/grid3D.h"
+
+int main() {
+  Conserved_Init(host_conserved, rho, vx, vy, vz, P, rho_d, gamma, k_n_cells, k_nx, k_ny, k_nz, k_n_ghost, k_n_fields);
+}
+  
+
+void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma) {
+    dim3 dim1dGrid(k_ngrid, 1, 1);
+    dim3 dim1dBlock(TPB, 1, 1);
+    hipLaunchKernelGGL(Dust_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gamma, params_dev);
+    CudaCheckError();  
+}
+
+__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma) {
+    //__shared__ Real min_dt[TPB];
+    // get grid indices
+    Real const K = 1e30;
     int n_cells = nx * ny * nz;
     int is, ie, js, je, ks, ke;
-    Get_Indices(n_ghost, nx, ny, nz, is, ie, js, je, ks, ke);
-
+    cuda_utilities::Get_Real_Indices(n_ghost, nx, ny, nz, is, ie, js, je, ks, ke);
     // get a global thread ID
-    int id;
-    int xid, yid, zid;
-    int tid;
-    Get_GTID(id, xid, yid, zid, tid, nx, ny, nz);
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+    int id = threadIdx.x + blockId * blockDim.x;
+    int zid = id / (nx * ny);
+    int yid = (id - zid * nx * ny) / nx;
+    int xid = id - zid * nx * ny - yid * nx;
+    // add a thread id within the block 
 
     // define physics variables
     Real d_gas, d_dust; // fluid mass densities
-    Real n; // gas number density
-    Real T, E, p; // temperature, energy, pressure
-    Real mu = 0.6; // mean molecular weight
+    Real n = 1; // gas number density
+    Real T, E, P; // temperature, energy, pressure
     Real vx, vy, vz; // velocities
     #ifdef DE
     Real ge;
     #endif // DE
+
+    dt *= 3.154e7; // in seconds
 
     // define integration variables
     Real dd_dt; // instantaneous rate of change in dust density
@@ -39,19 +60,24 @@ int n_fields, Real dt, Real gamma, Real *dt_array) {
     Real dd_max = 0.01; // allowable percentage of dust density increase
     Real dt_sub; //refined timestep
 
-    _syncthreads();
-    
     if (xid >= is && xid < ie && yid >= js && yid < je && zid >= ks && zid < ke) {
         // get quantities from dev_conserved
         d_gas = dev_conserved[id];
+        //d_dust = dev_conserved[5*n_cells + id];
         d_dust = dev_conserved[5*n_cells + id];
         E = dev_conserved[4*n_cells + id];
+        //printf("kernel: %7.4e\n", d_dust);
         // make sure thread hasn't crashed
-        if (E < 0.0 || E != E) return;
 
-        vx =  dev_conserved[1*n_cells + id] / d_gas;
-        vy =  dev_conserved[2*n_cells + id] / d_gas;
-        vz =  dev_conserved[3*n_cells + id] / d_gas;
+        // multiply small values by arbitrary constant to preserve precision
+        d_gas *= K;
+        d_dust *= K;
+
+        if (E < 0.0 || E != E) return;
+        
+        vx = dev_conserved[1*n_cells + id] / d_gas;
+        vy = dev_conserved[2*n_cells + id] / d_gas;
+        vz = dev_conserved[3*n_cells + id] / d_gas;
 
         #ifdef DE
         ge = dev_conserved[(n_fields-1)*n_cells + id] / d_gas;
@@ -59,113 +85,124 @@ int n_fields, Real dt, Real gamma, Real *dt_array) {
         #endif // DE
 
         // calculate physical quantities
-        p = Calc_Pressure(E, d_gas, vx, vy, vz, gamma);
+        P = hydro_utilities::Calc_Pressure_Primitive(E, d_gas, vx, vy, vz, gamma);
 
         Real T_init;
-        T_init = Calc_Temp(p, n);
+        T_init = hydro_utilities::Calc_Temp(P, n);
 
         #ifdef DE
-        T_init = Calc_Temp_DE(d_gas, ge, gamma, n);
+        T_init = hydro_utilities::Calc_Temp_DE(d_gas, ge, gamma, n);
         #endif // DE
 
         T = T_init;
 
-        // calculate change in dust density
-        Dust dustObj(T, n, dt, d_gas, d_dust);
-        dustObj.calc_tau_sp();
+        Real tau_sp = calc_tau_sp(n, T);
 
-        dd_dt = dustObj.calc_dd_dt();
+        dd_dt = calc_dd_dt(d_dust, tau_sp);
         dd = dd_dt * dt;
 
+        params_dev[0] = T;
+        params_dev[1] = n;
+        params_dev[2] = tau_sp/3.154e7;
+        params_dev[3] = dd_dt;
+        params_dev[4] = dd; 
+
         // ensure that dust density is not changing too rapidly
-        while (d_dust/dd > dd_max) {
+        bool time_refine = false;
+        while (dd/d_dust > dd_max) {
+            time_refine = true;
             dt_sub = dd_max * d_dust / dd_dt;
-            dustObj.d_dust += dt_sub * dd_dt;
-            dustObj.dt -= dt_sub;
-            dt = dustObj.dt;
-            dd_dt = dustObj.calc_dd_dt();
+            d_dust += dt_sub * dd_dt;
+            dt -= dt_sub;
+            dd_dt = calc_dd_dt(d_dust, tau_sp);
             dd = dt * dd_dt;
         }
 
-        // update dust and gas densities
-        dev_conserved[5*n_cells + id] = dustObj.d_dust;
-        dev_conserved[id] += dd;
-    }
-    __syncthreads();
-    
-    // do the reduction in shared memory (find the min timestep in the block)
-    for (unsigned int s=1; s<blockDim.x; s*=2) {
-        if (tid % (2*s) == 0) {
-            min_dt[tid] = fmin(min_dt[tid], min_dt[tid + s]);
-        }
-        __syncthreads();
-    }
-    // write the result for this block to global memory
-    if (tid == 0) dt_array[blockIdx.x] = min_dt[0];
+        params_dev[5] = time_refine;
 
+        // update dust density
+        d_dust += dd;
+
+        // remove scaling constant
+        d_gas /= K;
+        d_dust /= K;
+        dev_conserved[5*n_cells + id] = d_dust;
+        
+        #ifdef DE
+        dev_conserved[(n_fields-1)*n_cells + id] = d*ge;
+        #endif
+    }
 }
 
-void Dust::calc_tau_sp() {
+__device__ Real calc_tau_sp(Real n, Real T) {
+  Real YR_IN_S = 3.154e7;
   Real a1 = 1; // dust grain size in units of 0.1 micrometers
-  Real d0 = n/(6*pow(10,-4)); // gas density in units of 10^-27 g/cm^3
-  Real T_0 = 2*pow(10,6); // K
+  Real d0 = n / (6e-4); // gas density in units of 10^-27 g/cm^3
+  Real T_0 = 2e6; // K
   Real omega = 2.5;
-  Real A = 0.17*pow(10,9) * YR_IN_S; // 0.17 Gyr in s
+  Real A = 0.17e9 * YR_IN_S; // 0.17 Gyr in s
 
-  tau_sp = A * (a1/d0) * (pow(T_0/T, omega) + 1); // s
+  return A * (a1/d0) * (pow(T_0/T, omega) + 1); // s
 }
 
-Real Dust::calc_dd_dt() {
+__device__ Real calc_dd_dt(Real d_dust, Real tau_sp) {
     return -d_dust / (tau_sp/3);
 }
 
-// forward-Euler methods:
+// function to initialize conserved variable array, similar to Grid3D::Constant in grid/initial_conditions.cpp 
+void Conserved_Init(Real *host_conserved, Real rho, Real vx, Real vy, Real vz, Real P, Real rho_d, Real gamma, int n_cells, int nx, int ny, int nz, int n_ghost, int n_fields)
+{
+  int i, j, k, id;
+  int istart, jstart, kstart, iend, jend, kend;
 
-__device__ void Get_Indices(int n_ghost, int nx, int ny, int nz, int &is, int &ie, int &js, int &je, int &ks, int &ke) {
-    is = n_ghost;
-    ie = nx - n_ghost;
-    if (ny == 1) {
-    js = 0;
-    je = 1;
-    } else {
-    js = n_ghost;
-    je = ny - n_ghost;
+  istart = H.n_ghost;
+  iend   = H.nx-H.n_ghost;
+  if (H.ny > 1) {
+    jstart = H.n_ghost;
+    jend   = H.ny-H.n_ghost;
+  }
+  else {
+    jstart = 0;
+    jend   = H.ny;
+  }
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz-H.n_ghost;
+  }
+  else {
+    kstart = 0;
+    kend   = H.nz;
+  }
+
+  // set initial values of conserved variables
+  for(k=kstart-1; k<kend; k++) {
+    for(j=jstart-1; j<jend; j++) {
+      for(i=istart-1; i<iend; i++) {
+
+        //get cell index
+        id = i + j*nx + k*nx*ny;
+
+        // Exclude the rightmost ghost cell on the "left" side
+        if ((k >= kstart) and (j >= jstart) and (i >= istart))
+        {
+          // set constant initial states
+          host_conserved[id] = rho;
+          host_conserved[1*n_cells+id] = rho*vx;
+          host_conserved[2*n_cells+id] = rho*vy;
+          host_conserved[3*n_cells+id] = rho*vz;
+          host_conserved[4*n_cells+id] = P/(gamma-1.0) + 0.5*rho*(vx*vx + vy*vy + vz*vz);
+          #ifdef DE
+          host_conserved[(n_fields-1)*n_cells+id] = P/(gamma-1.0);
+          #endif  // DE
+          #ifdef SCALAR
+          host_conserved[5*n_cells+id] = rho_d;
+          #endif // SCALAR
+        }
+      }
     }
-    if (nz == 1) {
-    ks = 0;
-    ke = 1;
-    } else {
-    ks = n_ghost;
-    ke = nz - n_ghost;
-    }
+  }
 }
 
-__device__ void Get_GTID(int &id, int &xid, int &yid, int &zid, int &tid, int nx, int ny, int nz) {
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-    int id = threadIdx.x + blockId * blockDim.x;
-    int zid = id / (nx * ny);
-    int yid = (id - zid * nx * ny) / nx;
-    int xid = id - zid * nx * ny - yid * nx;
-    // add a thread id within the block
-    int tid = threadIdx.x;
-}
 
-__device__ Real Calc_Pressure(Real E, Real d_gas, Real vx, Real vy, Real vz, Real gamma) {
-    Real p;
-    p  = (E - 0.5 * d_gas * (vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-    p  = fmax(p, (Real) TINY_NUMBER);
-    return p;
-}
-
-__device__ Real Calc_Temp(Real p, Real n) {
-    Real T = p * PRESSURE_UNIT / (n * KB);
-    return T;
-}
-
-__device__ Real Calc_Temp_DE(Real d_gas, Real ge, Real gamma, Real n) {
-    Real T =  d_gas * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
-    return T;
-}
-
-#endif // DUST_GPU
+#endif // SCALAR
 #endif // CUDA
