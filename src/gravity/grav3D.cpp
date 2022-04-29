@@ -17,7 +17,7 @@
 
 Grav3D::Grav3D( void ){}
 
-void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, Real Lz, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P )
+void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real x_max, Real y_max, Real z_max, Real Lx, Real Ly, Real Lz, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P )
 {
 
   //Set Box Size
@@ -29,6 +29,13 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, R
   xMin = x_min;
   yMin = y_min;
   zMin = z_min;
+
+  //Set Box Right boundary positions
+  xMax = x_max;
+  yMax = y_max;
+  zMax = z_max;
+
+
 
   //Set uniform ( dx, dy, dz )
   dx = dx_real;

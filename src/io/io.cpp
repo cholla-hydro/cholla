@@ -9,17 +9,17 @@
 #include <ctime>
 #ifdef HDF5
 #include <hdf5.h>
-#endif
+#endif  //HDF5
 #include "../io/io.h"
 #include "../grid/grid3D.h"
 #ifdef MPI_CHOLLA
 #include "../mpi/mpi_routines.h"
-#endif
+#endif  //MPI_CHOLLA
 #include "../utils/error_handling.h"
 
 #ifdef COSMOLOGY
 #include "../cosmology/cosmology.h"
-#endif
+#endif  //COSMOLOGY
 
 using namespace std;
 
@@ -75,10 +75,15 @@ void Write_Message_To_Log_File( const char* message ){
 /* Write the initial conditions */
 void WriteData(Grid3D &G, struct parameters P, int nfile)
 {
-  
+
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
 
   chprintf( "\nSaving Snapshot: %d \n", nfile );
+  
+  #ifdef HDF5
+  // Initialize HDF5 interface
+  H5open();
+  #endif
 
   #ifdef N_OUTPUT_COMPLETE
   //If nfile is multiple of N_OUTPUT_COMPLETE then output all data
@@ -137,6 +142,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   chprintf( "\n" );
   G.H.Output_Now = false;
   #endif
+  
+  #ifdef HDF5
+  // Cleanup HDF5
+  H5close();
+  #endif
 
   #ifdef MPI_CHOLLA
   MPI_Barrier(world);
@@ -185,7 +195,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
   #elif defined HDF5
   hid_t   file_id; /* file identifier */
   herr_t  status;
-
+  
   // Create a new file using default properties.
   file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -194,10 +204,10 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 
   // write the conserved variables to the output file
   G.Write_Grid_HDF5(file_id);
-
+  
   // close the file
   status = H5Fclose(file_id);
-
+  
   if (status < 0) {printf("File write failed.\n"); exit(-1); }
 
   #else
@@ -397,10 +407,10 @@ void OutputSlices(Grid3D &G, struct parameters P, int nfile)
 
   #ifdef MPI_CHOLLA
   if (status < 0) {printf("OutputSlices: File write failed. ProcID: %d\n", procID); chexit(-1); }
-  #else
+  #else  // MPI_CHOLLA is not defined
   if (status < 0) {printf("OutputSlices: File write failed.\n"); exit(-1); }
-  #endif
-  #else
+  #endif  // MPI_CHOLLA
+  #else  // HDF5 is not defined
   printf("OutputSlices only defined for hdf5 writes.\n");
   #endif //HDF5
 }
@@ -409,16 +419,15 @@ void OutputSlices(Grid3D &G, struct parameters P, int nfile)
  *  \brief Write some relevant header info to a text output file. */
 void Grid3D::Write_Header_Text(FILE *fp)
 {
-
   // Write the header info to the output file
   fprintf(fp, "Header Information\n");
+  fprintf(fp, "Git Commit Hash = %s\n", GIT_HASH);
+  fprintf(fp, "Macro Flags     = %s\n", MACRO_FLAGS);
   fprintf(fp, "n_step: %d  sim t: %f  sim dt: %f\n", H.n_step, H.t, H.dt);
   fprintf(fp, "mass unit: %e  length unit: %e  time unit: %e\n", MASS_UNIT, LENGTH_UNIT, TIME_UNIT);
   fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz);
   fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound);
-  fprintf(fp, "xlen: %f  ylen: %f  zlen: %f\n", H.domlen_x, H.domlen_y, H.domlen_z);
   fprintf(fp, "t: %f\n", H.t);
-
 }
 
 
@@ -440,9 +449,6 @@ void Grid3D::Write_Header_Binary(FILE *fp)
   fwrite(&H.xbound, sizeof(Real), 1, fp);
   fwrite(&H.ybound, sizeof(Real), 1, fp);
   fwrite(&H.zbound, sizeof(Real), 1, fp);
-  fwrite(&H.domlen_x, sizeof(Real), 1, fp);
-  fwrite(&H.domlen_y, sizeof(Real), 1, fp);
-  fwrite(&H.domlen_z, sizeof(Real), 1, fp);
   fwrite(&H.xblocal, sizeof(Real), 1, fp);
   fwrite(&H.yblocal, sizeof(Real), 1, fp);
   fwrite(&H.zblocal, sizeof(Real), 1, fp);
@@ -481,6 +487,22 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &gama);
   // Close the attribute
   status = H5Aclose(attribute_id);
+
+  // String attributes
+  hid_t stringType = H5Tcopy(H5T_C_S1);
+  H5Tset_size(stringType, H5T_VARIABLE);
+
+  attribute_id = H5Acreate(file_id, "Git Commit Hash", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char * gitHash = GIT_HASH;
+  status = H5Awrite(attribute_id, stringType, &gitHash);
+  H5Aclose(attribute_id);
+
+  attribute_id = H5Acreate(file_id, "Macro Flags", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char * macroFlags = MACRO_FLAGS;
+  status = H5Awrite(attribute_id, stringType, &macroFlags);
+  H5Aclose(attribute_id);
+
+  // Numeric Attributes
   attribute_id = H5Acreate(file_id, "t", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &H.t);
   status = H5Aclose(attribute_id);
@@ -517,6 +539,13 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   attribute_id = H5Acreate(file_id, "energy_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &energy_unit);
   status = H5Aclose(attribute_id);
+
+  #ifdef MHD
+    double magnetic_field_unit = MAGNETIC_FIELD_UNIT;
+    attribute_id = H5Acreate(file_id, "magnetic_field_unit", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &magnetic_field_unit);
+    status = H5Aclose(attribute_id);
+  #endif  //MHD
 
   #ifdef COSMOLOGY
   attribute_id = H5Acreate(file_id, "H0", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
@@ -559,6 +588,17 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
   status = H5Aclose(attribute_id);
 
+  #ifdef  MHD
+    for (size_t i = 0; i < 3; i++)
+    {
+      int_data[i]++;
+    }
+
+    attribute_id = H5Acreate(file_id, "magnetic_field_dims", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
+    status = H5Aclose(attribute_id);
+  #endif  //MHD
+
   #ifdef MPI_CHOLLA
   int_data[0] = H.nx_real;
   int_data[1] = H.ny_real;
@@ -567,6 +607,16 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   attribute_id = H5Acreate(file_id, "dims_local", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
   status = H5Aclose(attribute_id);
+
+  #ifdef  MHD
+    int_data[0] = H.nx_real + 1;
+    int_data[1] = H.ny_real + 1;
+    int_data[2] = H.nz_real + 1;
+
+    attribute_id = H5Acreate(file_id, "magnetic_field_dims_local", H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
+    status = H5Aclose(attribute_id);
+  #endif  //MHD
 
   int_data[0] = nx_local_start;
   int_data[1] = ny_local_start;
@@ -673,6 +723,22 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &gama);
   // Close the attribute
   status = H5Aclose(attribute_id);
+
+  // String attributes
+  hid_t stringType = H5Tcopy(H5T_C_S1);
+  H5Tset_size(stringType, H5T_VARIABLE);
+
+  attribute_id = H5Acreate(file_id, "Git Commit Hash", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char * gitHash = GIT_HASH;
+  status = H5Awrite(attribute_id, stringType, &gitHash);
+  H5Aclose(attribute_id);
+
+  attribute_id = H5Acreate(file_id, "Macro Flags", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char * macroFlags = MACRO_FLAGS;
+  status = H5Awrite(attribute_id, stringType, &macroFlags);
+  H5Aclose(attribute_id);
+
+  // Numeric Attributes
   attribute_id = H5Acreate(file_id, "t", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &H.t);
   status = H5Aclose(attribute_id);
@@ -794,7 +860,7 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   chprintf("Outputting rotation data with delta = %e, theta = %e, phi = %e, Lx = %f, Lz = %f\n",R.delta,R.theta,R.phi,R.Lx,R.Lz);
 
 }
-#endif
+#endif  //HDF5
 
 /*! \fn void Write_Grid_Text(FILE *fp)
  *  \brief Write the conserved quantities to a text output file. */
@@ -807,6 +873,9 @@ void Grid3D::Write_Grid_Text(FILE *fp)
   // 1D case
   if (H.nx>1 && H.ny==1 && H.nz==1) {
     fprintf(fp, "id\trho\tmx\tmy\tmz\tE");
+    #ifdef  MHD
+     fprintf(fp, "\tmagX\tmagY\tmagZ");
+    #endif  //MHD
     #ifdef DE
     fprintf(fp, "\tge");
     #endif
@@ -814,17 +883,32 @@ void Grid3D::Write_Grid_Text(FILE *fp)
     for (i=H.n_ghost; i < H.nx-H.n_ghost; i++) {
       id = i;
       fprintf(fp, "%d\t%f\t%f\t%f\t%f\t%f", i-H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
+      #ifdef MHD
+        fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
+      #endif  //MHD
       #ifdef DE
       fprintf(fp, "\t%f", C.GasEnergy[id]);
-      #endif
+      #endif  //DE
       fprintf(fp, "\n");
     }
+    #ifdef  MHD
+      // Save the last line of magnetic fields
+      id = H.nx-H.n_ghost;
+      fprintf(fp, "%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", id, C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
+      #ifdef DE
+        fprintf(fp, "\tNan");
+      #endif  //DE
+      fprintf(fp, "\n");
+    #endif  //MHD
   }
 
   // 2D case
   else if (H.nx>1 && H.ny>1 && H.nz==1) {
 
     fprintf(fp, "idx\tidy\trho\tmx\tmy\tmz\tE");
+    #ifdef  MHD
+     fprintf(fp, "\tmagX\tmagY\tmagZ");
+    #endif  //MHD
     #ifdef DE
     fprintf(fp, "\tge");
     #endif
@@ -833,12 +917,33 @@ void Grid3D::Write_Grid_Text(FILE *fp)
       for (j=H.n_ghost; j < H.ny-H.n_ghost; j++) {
         id = i + j*H.nx;
         fprintf(fp, "%d\t%d\t%f\t%f\t%f\t%f\t%f", i-H.n_ghost, j-H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
+        #ifdef MHD
+          fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
+        #endif  //MHD
         #ifdef DE
         fprintf(fp, "\t%f", C.GasEnergy[id]);
-        #endif
+        #endif  //DE
         fprintf(fp, "\n");
       }
+      #ifdef  MHD
+        // Save the last line of magnetic fields
+        id = i + (H.ny-H.n_ghost)*H.nx;
+        fprintf(fp, "%d\t%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", i-H.n_ghost, H.ny-2*H.n_ghost, C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
+        #ifdef DE
+          fprintf(fp, "\tNan");
+        #endif  //DE
+        fprintf(fp, "\n");
+      #endif  //MHD
     }
+    #ifdef  MHD
+      // Save the last line of magnetic fields
+      id = H.nx-H.n_ghost + (H.ny-H.n_ghost)*H.nx;
+      fprintf(fp, "%d\t%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", H.nx-2*H.n_ghost, H.ny-2*H.n_ghost, C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
+      #ifdef DE
+        fprintf(fp, "\tNan");
+      #endif  //DE
+      fprintf(fp, "\n");
+    #endif  //MHD
   }
 
   // 3D case
@@ -847,21 +952,39 @@ void Grid3D::Write_Grid_Text(FILE *fp)
     #ifdef DE
     fprintf(fp, "\tge");
     #endif
+    #ifdef  MHD
+     fprintf(fp, "\tmagX\tmagY\tmagZ");
+    #endif  //MHD
     fprintf(fp, "\n");
-    for (i=H.n_ghost; i < H.nx-H.n_ghost; i++) {
-      for (j=H.n_ghost; j < H.ny-H.n_ghost; j++) {
-        for (k=H.n_ghost; k < H.nz-H.n_ghost; k++) {
+    for (i=H.n_ghost-1; i < H.nx-H.n_ghost; i++) {
+      for (j=H.n_ghost-1; j < H.ny-H.n_ghost; j++) {
+        for (k=H.n_ghost-1; k < H.nz-H.n_ghost; k++) {
           id = i + j*H.nx + k*H.nx*H.ny;
-          fprintf(fp, "%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f", i-H.n_ghost, j-H.n_ghost, k-H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
-          #ifdef DE
-          fprintf(fp, "\t%f", C.GasEnergy[id]);
-          #endif
+
+          // Exclude the rightmost ghost cell on the "left" side for the hydro
+          // variables
+          if ((i >= H.n_ghost) and (j >= H.n_ghost) and (k >= H.n_ghost))
+          {
+            fprintf(fp, "%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f", i-H.n_ghost, j-H.n_ghost, k-H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
+            #ifdef DE
+            fprintf(fp, "\t%f", C.GasEnergy[id]);
+            #endif  //DE
+          }
+          else
+          {
+            fprintf(fp, "%d\t%d\t%d\tn/a\tn/a\tn/a\tn/a\tn/a", i-H.n_ghost, j-H.n_ghost, k-H.n_ghost);
+            #ifdef DE
+              fprintf(fp, "\tn/a");
+            #endif  //DE
+          }
+          #ifdef MHD
+            fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
+          #endif  //MHD
           fprintf(fp, "\n");
         }
       }
     }
   }
-
 }
 
 
@@ -975,8 +1098,8 @@ void Grid3D::Write_Grid_Binary(FILE *fp)
 void Grid3D::Write_Grid_HDF5(hid_t file_id)
 {
   int i, j, k, id, buf_id;
-  hid_t     dataset_id, dataspace_id; 
-  hid_t     dataset_id_full, dataspace_id_full; 
+  hid_t     dataset_id, dataspace_id;
+  hid_t     dataset_id_full, dataspace_id_full;
   Real      *dataset_buffer;
   herr_t    status;
 
@@ -985,39 +1108,39 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
   #ifdef OUTPUT_ENERGY
   output_energy = true;
-  #else
+  #else  // not OUTPUT_ENERGY
   output_energy = false;
-  #endif
+  #endif  //OUTPUT_ENERGY
 
   #ifdef OUTPUT_MOMENTUM
   output_momentum = true;
-  #else
+  #else  // not OUTPUT_MOMENTUM
   output_momentum = false;
-  #endif
-  
+  #endif  //OUTPUT_MOMENTUM
+
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
   bool output_metals, output_electrons, output_full_ionization;
   #ifdef OUTPUT_METALS
   output_metals = true;
-  #else
+  #else  // not OUTPUT_METALS
   output_metals = false;
-  #endif
+  #endif  //OUTPUT_METALS
   #ifdef OUTPUT_ELECTRONS
   output_electrons = true;
-  #else
+  #else  // not OUTPUT_ELECTRONS
   output_electrons = false;
-  #endif
+  #endif  //OUTPUT_ELECTRONS
   #ifdef OUTPUT_FULL_IONIZATION
   output_full_ionization = true;
-  #else
+  #else  // not OUTPUT_FULL_IONIZATION
   output_full_ionization = false;
-  #endif
+  #endif  //OUTPUT_FULL_IONIZATION
 
-  #endif //COOLING_GRACKLE
+  #endif // COOLING_GRACKLE or CHEMISTRY_GPU
 
   #if defined(GRAVITY_GPU) && defined(OUTPUT_POTENTIAL)
   CudaSafeCall( cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential*sizeof(Real), cudaMemcpyDeviceToHost) );
-  #endif//GRAVITY_GPU
+  #endif//GRAVITY_GPU and OUTPUT_POTENTIAL
 
 
 
@@ -1107,7 +1230,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       // Free the dataset id
       status = H5Dclose(dataset_id);
     }
-    #endif
+    #endif  //SCALAR
 
     #ifdef DE
     // Copy the internal energy array to the memory buffer
@@ -1120,7 +1243,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
-    #endif
+    #endif  //DE
 
     // Free the dataspace id
     status = H5Sclose(dataspace_id);
@@ -1243,7 +1366,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       // Free the dataset id
       status = H5Dclose(dataset_id);
     }
-    #endif
+    #endif  //SCALAR
 
 
     #ifdef DE
@@ -1262,7 +1385,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
-    #endif
+    #endif  //DE
 
     // Free the dataspace id
     status = H5Sclose(dataspace_id);
@@ -1406,7 +1529,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       // Free the dataset id
       status = H5Dclose(dataset_id);
     }
-    #else // Write Chemistry when using GRACKLE
+    #else // COOLING_GRACKLE or CHEMISTRY_GPU. Write Chemistry when using GRACKLE
     #ifdef OUTPUT_CHEMISTRY
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
@@ -1415,10 +1538,10 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
           #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.HI_density[id];
-          #endif
+          #endif  //COOLING_GRACKLE
           #ifdef CHEMISTRY_GPU
           dataset_buffer[buf_id] = C.HI_density[id];
-          #endif
+          #endif  //CHEMISTRY_GPU
         }
       }
     }
@@ -1433,11 +1556,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
           #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.HII_density[id];
-          #endif
+          #endif  //COOLING_GRACKLE
           #ifdef CHEMISTRY_GPU
           dataset_buffer[buf_id] = C.HII_density[id];
-          #endif
-          
+          #endif  //CHEMISTRY_GPU
+
         }
       }
     }
@@ -1454,10 +1577,10 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
           #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.HeI_density[id];
-          #endif
+          #endif  //COOLING_GRACKLE
           #ifdef CHEMISTRY_GPU
           dataset_buffer[buf_id] = C.HeI_density[id];
-          #endif
+          #endif  //CHEMISTRY_GPU
         }
       }
     }
@@ -1473,17 +1596,17 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
           #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.HeII_density[id];
-          #endif
+          #endif  //COOLING_GRACKLE
           #ifdef CHEMISTRY_GPU
           dataset_buffer[buf_id] = C.HeII_density[id];
-          #endif
+          #endif  //CHEMISTRY_GPU
         }
       }
     }
     dataset_id = H5Dcreate(file_id, "/HeII_density", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     status = H5Dclose(dataset_id);
-  
+
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
         for (i=0; i<H.nx_real; i++) {
@@ -1491,10 +1614,10 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
           #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.HeIII_density[id];
-          #endif
+          #endif  //COOLING_GRACKLE
           #ifdef CHEMISTRY_GPU
           dataset_buffer[buf_id] = C.HeIII_density[id];
-          #endif
+          #endif  //CHEMISTRY_GPU
         }
       }
     }
@@ -1509,10 +1632,10 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
           #ifdef COOLING_GRACKLE
           dataset_buffer[buf_id] = Cool.fields.e_density[id];
-          #endif
+          #endif  //COOLING_GRACKLE
           #ifdef CHEMISTRY_GPU
           dataset_buffer[buf_id] = C.e_density[id];
-          #endif
+          #endif  //CHEMISTRY_GPU
         }
       }
     }
@@ -1543,11 +1666,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     #endif //OUTPUT_CHEMISTRY
 
     #ifdef OUTPUT_TEMPERATURE
-    
-    #ifdef CHEMISTRY_GPU 
-    Compute_Gas_Temperature( Chem.Fields.temperature_h, false ); 
-    #endif
-    
+
+    #ifdef CHEMISTRY_GPU
+    Compute_Gas_Temperature( Chem.Fields.temperature_h, false );
+    #endif  //CHEMISTRY_GPU
+
     // Copy the internal energy array to the memory buffer
     for (k=0; k<H.nz_real; k++) {
       for (j=0; j<H.ny_real; j++) {
@@ -1569,7 +1692,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
-    
+
     #endif //OUTPUT_TEMPERATURE
 
     #endif //COOLING_GRACKLE
@@ -1594,7 +1717,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       // Free the dataset id
       status = H5Dclose(dataset_id);
     }
-    #endif
+    #endif  //DE
 
     #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
     // Copy the potential array to the memory buffer
@@ -1615,11 +1738,80 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
     status = H5Dclose(dataset_id);
-    #endif//GRAVITY
+    #endif//GRAVITY and OUTPUT_POTENTIAL
+
+    #ifdef  MHD
+      // Start by creating a dataspace and buffer that is large enough for the
+      // magnetic field since it's one larger than the rest
+      free(dataset_buffer);
+      dataset_buffer = (Real *) malloc((H.nx_real+1)*(H.ny_real+1)*(H.nz_real+1)*sizeof(Real));
+
+      // Create the data space for the datasets
+      dims[0]++;
+      dims[1]++;
+      dims[2]++;
+      dataspace_id = H5Screate_simple(3, dims, NULL);
+
+      // Copy the x magnetic field array to the memory buffer
+      for (k=0; k<H.nz_real+1; k++) {
+        for (j=0; j<H.ny_real+1; j++) {
+          for (i=0; i<H.nx_real+1; i++) {
+            id = (i+H.n_ghost-1) + (j+H.n_ghost-1)*H.nx + (k+H.n_ghost-1)*H.nx*H.ny;
+            buf_id = k + j*(H.nz_real+1) + i*(H.nz_real+1)*(H.ny_real+1);
+            dataset_buffer[buf_id] = C.magnetic_x[id];
+          }
+        }
+      }
+      if ( H.Output_Complete_Data ){
+        // Create a dataset id for x magnetic field
+        dataset_id = H5Dcreate(file_id, "/magnetic_x", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // Write the x magnetic field array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+        status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+        // Free the dataset id
+        status = H5Dclose(dataset_id);
+      }
+
+      // Copy the y magnetic field array to the memory buffer
+      for (k=0; k<H.nz_real+1; k++) {
+        for (j=0; j<H.ny_real+1; j++) {
+          for (i=0; i<H.nx_real+1; i++) {
+            id = (i+H.n_ghost-1) + (j+H.n_ghost-1)*H.nx + (k+H.n_ghost-1)*H.nx*H.ny;
+            buf_id = k + j*(H.nz_real+1) + i*(H.nz_real+1)*(H.ny_real+1);
+            dataset_buffer[buf_id] = C.magnetic_y[id];
+          }
+        }
+      }
+      if ( H.Output_Complete_Data ){
+        // Create a dataset id for y magnetic field
+        dataset_id = H5Dcreate(file_id, "/magnetic_y", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // Write the y magnetic field array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+        status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+        // Free the dataset id
+        status = H5Dclose(dataset_id);
+      }
+
+      // Copy the z magnetic field array to the memory buffer
+      for (k=0; k<H.nz_real+1; k++) {
+        for (j=0; j<H.ny_real+1; j++) {
+          for (i=0; i<H.nx_real+1; i++) {
+            id = (i+H.n_ghost-1) + (j+H.n_ghost-1)*H.nx + (k+H.n_ghost-1)*H.nx*H.ny;
+            buf_id = k + j*(H.nz_real+1) + i*(H.nz_real+1)*(H.ny_real+1);
+            dataset_buffer[buf_id] = C.magnetic_z[id];
+          }
+        }
+      }
+      if ( H.Output_Complete_Data ){
+        // Create a dataset id for z magnetic field
+        dataset_id = H5Dcreate(file_id, "/magnetic_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        // Write the z magnetic field array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+        status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+        // Free the dataset id
+        status = H5Dclose(dataset_id);
+      }
+    #endif  //MHD
 
     // Free the dataspace id
     status = H5Sclose(dataspace_id);
-
   }
   free(dataset_buffer);
 
@@ -1908,7 +2100,6 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_Txzr);
     // Free the dataset id
     status = H5Dclose(dataset_id);
-
 
     // Create a dataset id for projected xz density
     dataset_id = H5Dcreate(file_id, "/vx_xzr", H5T_IEEE_F64BE, dataspace_xzr_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -2335,15 +2526,15 @@ void Grid3D::Read_Grid(struct parameters P) {
   strcat(filename,".bin");
   #elif defined HDF5
   strcat(filename,".h5");
-  #endif
+  #endif  // BINARY or HDF5
   // for now assumes you will run on the same number of processors
   #ifdef MPI_CHOLLA
   #ifdef TILED_INITIAL_CONDITIONS
   sprintf(filename,"%sics_%dMpc_%d.h5", P.indir, (int) P.tile_length/1000, H.nx_real); //Everyone reads the same file
-  #else
+  #else  // TILED_INITIAL_CONDITIONS is not defined
   sprintf(filename,"%s.%d",filename,procID);
   #endif //TILED_INITIAL_CONDITIONS
-  #endif
+  #endif  //MPI_CHOLLA
 
   #if defined BINARY
   FILE *fp;
@@ -2376,7 +2567,7 @@ void Grid3D::Read_Grid(struct parameters P) {
 
   // close the file
   status = H5Fclose(file_id);
-  #endif
+  #endif  // BINARY or HDF5
 
 
 }
@@ -2400,9 +2591,6 @@ void Grid3D::Read_Grid_Binary(FILE *fp)
   fread(&H.xbound, sizeof(Real), 1, fp);
   fread(&H.ybound, sizeof(Real), 1, fp);
   fread(&H.zbound, sizeof(Real), 1, fp);
-  fread(&H.domlen_x, sizeof(Real), 1, fp);
-  fread(&H.domlen_y, sizeof(Real), 1, fp);
-  fread(&H.domlen_z, sizeof(Real), 1, fp);
   fread(&H.xblocal, sizeof(Real), 1, fp);
   fread(&H.yblocal, sizeof(Real), 1, fp);
   fread(&H.zblocal, sizeof(Real), 1, fp);
@@ -2624,7 +2812,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     // Copy the internal energy array to the grid
     id = H.n_ghost;
     memcpy(&(C.GasEnergy[id]), &dataset_buffer[0], H.nx_real*sizeof(Real));
-    #endif
+    #endif  //DE
 
     #ifdef SCALAR
     for (int s=0; s<NSCALARS; s++) {
@@ -2646,10 +2834,8 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
       id = H.n_ghost;
       memcpy(&(C.scalar[id + s*H.n_cells]), &dataset_buffer[0], H.nx_real*sizeof(Real));
     }
-    #endif
-
+    #endif  //SCALAR
   }
-
 
   // 2D case
   if (H.nx>1 && H.ny>1 && H.nz==1) {
@@ -2759,7 +2945,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
         C.GasEnergy[id] = dataset_buffer[buf_id];
       }
     }
-    #endif
+    #endif  //DE
 
 
     #ifdef SCALAR
@@ -2787,8 +2973,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
         }
       }
     }
-    #endif
-
+    #endif  //SCALAR
   }
 
   // 3D case
@@ -2836,11 +3021,11 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     mean_l = mean_g;
     max_l = max_g;
     min_l = min_g;
-    #endif
+    #endif  //MPI_CHOLLA
 
     #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
     chprintf( " Density  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3] \n", mean_l, min_l, max_l );
-    #endif
+    #endif  //PRINT_INITIAL_STATS and COSMOLOGY
 
 
     // Open the x momentum dataset
@@ -2875,11 +3060,11 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     mean_l = mean_g;
     max_l = max_g;
     min_l = min_g;
-    #endif
+    #endif  //MPI_CHOLLA
 
     #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
     chprintf( " abs(Momentum X)  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 km s^-1] \n", mean_l, min_l, max_l );
-    #endif
+    #endif  //PRINT_INITIAL_STATS and COSMOLOGY
 
     // Open the y momentum dataset
     dataset_id = H5Dopen(file_id, "/momentum_y", H5P_DEFAULT);
@@ -2913,11 +3098,11 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     mean_l = mean_g;
     max_l = max_g;
     min_l = min_g;
-    #endif
+    #endif  //MPI_CHOLLA
 
     #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
     chprintf( " abs(Momentum Y)  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 km s^-1] \n", mean_l, min_l, max_l );
-    #endif
+    #endif  //PRINT_INITIAL_STATS and COSMOLOGY
 
 
     // Open the z momentum dataset
@@ -2952,11 +3137,11 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     mean_l = mean_g;
     max_l = max_g;
     min_l = min_g;
-    #endif
+    #endif  //MPI_CHOLLA
 
     #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
     chprintf( " abs(Momentum Z)  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 km s^-1] \n", mean_l, min_l, max_l );
-    #endif
+    #endif  //PRINT_INITIAL_STATS and COSMOLOGY
 
 
     // Open the Energy dataset
@@ -2991,11 +3176,11 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     mean_l = mean_g;
     max_l = max_g;
     min_l = min_g;
-    #endif
+    #endif  //MPI_CHOLLA
 
     #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
     chprintf( " Energy  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 km^2 s^-2 ] \n", mean_l, min_l, max_l );
-    #endif
+    #endif  //PRINT_INITIAL_STATS and COSMOLOGY
 
 
     #ifdef DE
@@ -3048,12 +3233,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     temp_mean_l = temp_mean_g;
     temp_max_l = temp_max_g;
     temp_min_l = temp_min_g;
-    #endif
+    #endif  //MPI_CHOLLA
 
     #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
     chprintf( " GasEnergy  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 km^2 s^-2 ] \n", mean_l, min_l, max_l );
     chprintf( " Temperature  Mean: %f   Min: %f   Max: %f      [ K ] \n", temp_mean_l, temp_min_l, temp_max_l );
-    #endif
+    #endif  //PRINT_INITIAL_STATS and COSMOLOGY
 
     #endif//DE
 
@@ -3103,7 +3288,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
       chprintf( " Initial elect Fraction: %e \n", e_frac);
       #ifdef GRACKLE_METALS
       chprintf( " Initial metal Fraction: %e \n", metal_frac);
-      #endif
+      #endif  //GRACKEL_METALS
       for (k=0; k<H.nz_real; k++) {
         for (j=0; j<H.ny_real; j++) {
           for (i=0; i<H.nx_real; i++) {
@@ -3209,13 +3394,134 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           }
         }
       }
-      #endif
+      #endif  //GRACKLE_METALS
     }
     #endif//COOLING_GRACKLE
     #endif//SCALAR
+
+    #ifdef  MHD
+      // Start by creating a dataspace and buffer that is large enough for the
+      // magnetic field since it's one larger than the rest
+      free(dataset_buffer);
+      dataset_buffer = (Real *) malloc((H.nz_real+1)*(H.ny_real+1)*(H.nx_real+1)*sizeof(Real));
+
+
+      // Open the x magnetic field dataset
+      dataset_id = H5Dopen(file_id, "/magnetic_x", H5P_DEFAULT);
+      // Read the x magnetic field array into the dataset buffer  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+
+      mean_l = 0;
+      min_l = 1e65;
+      max_l = -1;
+      // Copy the x magnetic field array to the grid
+      for (k=0; k<H.nz_real+1; k++) {
+        for (j=0; j<H.ny_real+1; j++) {
+          for (i=0; i<H.nx_real+1; i++) {
+            id = (i+H.n_ghost-1) + (j+H.n_ghost-1)*H.nx + (k+H.n_ghost-1)*H.nx*H.ny;
+            buf_id = k + j*(H.nz_real+1) + i*(H.nz_real+1)*(H.ny_real+1);
+            C.magnetic_x[id] = dataset_buffer[buf_id];
+            mean_l += fabs(C.magnetic_x[id]);
+            if ( fabs(C.magnetic_x[id]) > max_l ) max_l = fabs(C.magnetic_x[id]);
+            if ( fabs(C.magnetic_x[id]) < min_l ) min_l = fabs(C.magnetic_x[id]);
+          }
+        }
+      }
+      mean_l /= ( (H.nz_real+1) * (H.ny_real+1) * (H.nx_real+1) );
+
+      #if MPI_CHOLLA
+        mean_g = ReduceRealAvg( mean_l );
+        max_g = ReduceRealMax( max_l );
+        min_g = ReduceRealMin( min_l );
+        mean_l = mean_g;
+        max_l = max_g;
+        min_l = min_g;
+      #endif  //MPI_CHOLLA
+
+      #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
+        chprintf( " abs(Magnetic X)  Mean: %f   Min: %f   Max: %f      [ Msun^1/2 kpc^-1/2 s^-1] \n", mean_l, min_l, max_l );
+      #endif  //PRINT_INITIAL_STATS and COSMOLOGY
+
+      // Open the y magnetic field dataset
+      dataset_id = H5Dopen(file_id, "/magnetic_y", H5P_DEFAULT);
+      // Read the y magnetic field array into the dataset buffer  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+
+      mean_l = 0;
+      min_l = 1e65;
+      max_l = -1;
+      // Copy the y magnetic field array to the grid
+      for (k=0; k<H.nz_real+1; k++) {
+        for (j=0; j<H.ny_real+1; j++) {
+          for (i=0; i<H.nx_real+1; i++) {
+            id = (i+H.n_ghost-1) + (j+H.n_ghost-1)*H.nx + (k+H.n_ghost-1)*H.nx*H.ny;
+            buf_id = k + j*(H.nz_real+1) + i*(H.nz_real+1)*(H.ny_real+1);
+            C.magnetic_y[id] = dataset_buffer[buf_id];
+            mean_l += fabs(C.magnetic_y[id]);
+            if ( fabs(C.magnetic_y[id]) > max_l ) max_l = fabs(C.magnetic_y[id]);
+            if ( fabs(C.magnetic_y[id]) < min_l ) min_l = fabs(C.magnetic_y[id]);
+          }
+        }
+      }
+      mean_l /= ( (H.nz_real+1) * (H.ny_real+1) * (H.nx_real+1) );
+
+      #if MPI_CHOLLA
+        mean_g = ReduceRealAvg( mean_l );
+        max_g = ReduceRealMax( max_l );
+        min_g = ReduceRealMin( min_l );
+        mean_l = mean_g;
+        max_l = max_g;
+        min_l = min_g;
+      #endif  //MPI_CHOLLA
+
+      #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
+        chprintf( " abs(Magnetic Y)  Mean: %f   Min: %f   Max: %f      [ Msun^1/2 kpc^-1/2 s^-1] \n", mean_l, min_l, max_l );
+      #endif  //PRINT_INITIAL_STATS and COSMOLOGY
+
+      // Open the z magnetic field dataset
+      dataset_id = H5Dopen(file_id, "/magnetic_z", H5P_DEFAULT);
+      // Read the z magnetic field array into the dataset buffer  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
+      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+      // Free the dataset id
+      status = H5Dclose(dataset_id);
+
+      mean_l = 0;
+      min_l = 1e65;
+      max_l = -1;
+      // Copy the z magnetic field array to the grid
+      for (k=0; k<H.nz_real+1; k++) {
+        for (j=0; j<H.ny_real+1; j++) {
+          for (i=0; i<H.nx_real+1; i++) {
+            id = (i+H.n_ghost-1) + (j+H.n_ghost-1)*H.nx + (k+H.n_ghost-1)*H.nx*H.ny;
+            buf_id = k + j*(H.nz_real+1) + i*(H.nz_real+1)*(H.ny_real+1);
+            C.magnetic_z[id] = dataset_buffer[buf_id];
+            mean_l += fabs(C.magnetic_z[id]);
+            if ( fabs(C.magnetic_z[id]) > max_l ) max_l = fabs(C.magnetic_z[id]);
+            if ( fabs(C.magnetic_z[id]) < min_l ) min_l = fabs(C.magnetic_z[id]);
+          }
+        }
+      }
+      mean_l /= ( (H.nz_real+1) * (H.ny_real+1) * (H.nx_real+1) );
+
+      #if MPI_CHOLLA
+        mean_g = ReduceRealAvg( mean_l );
+        max_g = ReduceRealMax( max_l );
+        min_g = ReduceRealMin( min_l );
+        mean_l = mean_g;
+        max_l = max_g;
+        min_l = min_g;
+      #endif  //MPI_CHOLLA
+
+      #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
+        chprintf( " abs(Magnetic Z)  Mean: %f   Min: %f   Max: %f      [ Msun^1/2 kpc^-1/2 s^-1] \n", mean_l, min_l, max_l );
+      #endif  //PRINT_INITIAL_STATS and COSMOLOGY
+    #endif  //MHD
   }
   free(dataset_buffer);
-
 }
 #endif
 

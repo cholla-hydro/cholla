@@ -122,9 +122,9 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   G.zMin = Grav.zMin;
 
   //Right boundaries of the local domain
-  G.xMax = G.xMin + G.nx_local*G.dx;
-  G.yMax = G.yMin + G.ny_local*G.dy;
-  G.zMax = G.zMin + G.nz_local*G.dz;
+  G.xMax = Grav.xMax;
+  G.yMax = Grav.yMax;
+  G.zMax = Grav.zMax;
 
   //Left boundaries of the global domain
   G.domainMin_x = xbound;
@@ -503,14 +503,14 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
 
   part_int_t pID = 0;
   Real pPos_x, pPos_y, pPos_z, r;
-  ChollaPrngGenerator prng(P);
+  std::mt19937_64 generator(P->prng_seed);
   std::uniform_real_distribution<Real> xPositionPrng(G.xMin, G.xMax );
   std::uniform_real_distribution<Real> yPositionPrng(G.yMin, G.yMax );
   std::uniform_real_distribution<Real> zPositionPrng(G.zMin, G.zMax );
   while ( pID < n_particles_local ){
-    pPos_x = xPositionPrng(prng.generator);
-    pPos_y = yPositionPrng(prng.generator);
-    pPos_z = zPositionPrng(prng.generator);
+    pPos_x = xPositionPrng(generator);
+    pPos_y = yPositionPrng(generator);
+    pPos_z = zPositionPrng(generator);
 
     r = sqrt( (pPos_x-center_x)*(pPos_x-center_x) + (pPos_y-center_y)*(pPos_y-center_y) + (pPos_z-center_z)*(pPos_z-center_z) );
     if ( r > sphereR ) continue;
@@ -613,7 +613,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   chprintf( " Initializing Particles Stellar Disk\n");
 
   // Set up the PRNG
-  ChollaPrngGenerator prng(P);
+  std::mt19937_64 generator(P->prng_seed);
 
   std::gamma_distribution<Real> radialDist(2,1);           //for generating cyclindrical radii
   std::uniform_real_distribution<Real> zDist(0, 1);        //for generating height above/below the disk.
@@ -629,26 +629,23 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Real x, y, z, R, phi;
   Real vx, vy, vz, vel, ac;
   Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
-  #ifdef PARTICLE_IDS
-  part_int_t id;
-  #endif
   particle_mass = 1e4;  //solar masses
   //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
   unsigned long int N = (long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
   long lost_particles = 0;
   for ( unsigned long int i = 0; i < N; i++ ){
       do {
-          R = R_d*radialDist(prng.generator);
+          R = R_d*radialDist(generator);
       } while (R > R_max);
 
-      phi = phiDist(prng.generator);
+      phi = phiDist(generator);
       x = R * cos(phi);
       y = R * sin(phi);
       z = 0;
 
-      if (x < G.xMin || x > G.xMax) continue;
-      if (y < G.yMin || y > G.yMax) continue;
-      if (z < G.zMin || z > G.zMax) continue;
+      if (x < G.xMin || x >= G.xMax) continue;
+      if (y < G.yMin || y >= G.yMax) continue;
+      if (z < G.zMin || z >= G.zMax) continue;
 
       ac  = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
       vPhi = sqrt(R*ac);
@@ -670,14 +667,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       grav_z.push_back(0.0);
 
       #ifdef PARTICLE_IDS
-      id =  i;
-      #ifdef PARALLEL_OMP
-        #pragma omp parallel num_threads( N_OMP_THREADS )
-        {
-          id += 1.0*omp_get_thread_num()/omp_get_num_threads();
-        }
-      #endif //PARALLEL_OMP
-      partIDs.push_back(id);
+      partIDs.push_back(i);
       #endif //PARTICLE_IDS
 
       #ifdef PARTICLE_AGE
@@ -689,26 +679,9 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
       #endif//PARTICLES_CPU
   }
 
-
-
   #ifdef PARTICLES_CPU
   n_local = pos_x.size();
   #endif
-
-  #if defined(PARTICLE_IDS) && defined(MPI_CHOLLA)
-  // Get global IDs: Offset the local IDs to get unique global IDs across the MPI ranks
-  chprintf( " Computing Global Particles IDs offset \n" );
-  part_int_t global_id_offset;
-  global_id_offset = Get_Particles_IDs_Global_MPI_Offset( n_local );
-  #ifdef PARTICLES_CPU
-  for ( int p_indx=0; p_indx<n_local; p_indx++ ){
-    partIDs[p_indx] += global_id_offset;
-  }
-  #endif//PARTICLES_CPU
-  #ifdef PARTICLES_GPU
-  //Particles IDs not implemented for PARTICLES_GPU yet
-  #endif//PARTICLES_GPU
-  #endif//PARTICLE_IDS and MPI_CHOLLA
 
   if (lost_particles > 0) chprintf("  lost %lu particles\n", lost_particles);
   chprintf( " Stellar Disk Particles Initialized, n_local: %lu\n", n_local);

@@ -15,8 +15,7 @@ DFLAGS += -DPARTICLES_CPU
 
 
 # Track Particles IDs and write them to the output files
-# TODO This should be renabled when particle IDs on GPU are fixed
-# DFLAGS += -DPARTICLE_IDS
+DFLAGS += -DPARTICLE_IDS
 
 
 #Track Particles Ages ( Stellar Populations )

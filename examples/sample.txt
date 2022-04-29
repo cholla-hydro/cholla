@@ -27,7 +27,7 @@ ylen=1.0
 tout=0.2
 # time interval for output
 outstep=0.01
-# ratio of specific heats 
+# ratio of specific heats
 gamma=1.4
 # name of initial conditions
 init=Riemann
@@ -47,13 +47,17 @@ outdir=./
 # density of left state
 rho_l=1.0
 # velocity of left state
-v_l=0
+vx_l=0.0
+vy_l=0.0
+vz_l=0.0
 # pressure of left state
 P_l=1.0
 # density of right state
 rho_r=0.1
 # velocity of right state
-v_r=0
+vx_r=0.0
+vy_r=0.0
+vz_r=0.0
 # pressure of right state
 P_r=0.1
 # location of initial discontinuity
