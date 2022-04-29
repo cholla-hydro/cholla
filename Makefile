@@ -5,6 +5,9 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
+# CHOLLA_ARCH defaults to sm_70 if not set in make.host
+CHOLLA_ARCH ?= sm_70
+
 DIRS     := src src/analysis src/chemistry_gpu src/cooling src/cooling_grackle src/cosmology \
             src/cpu src/global src/gravity src/gravity/paris src/grid src/hydro \
             src/integrators src/io src/main.cpp src/main_tests.cpp \
@@ -35,6 +38,11 @@ ifeq ($(TEST), true)
   CFLAGS   = $(TEST_FLAGS)
   CXXFLAGS = $(TEST_FLAGS)
   GPUFLAGS = $(TEST_FLAGS)
+
+  # Set the build flags to debug. This is mostly to avoid the approximations
+  # made by Ofast which break std::isnan and std::isinf which are required for
+  # the testing
+  BUILD = DEBUG
 else
   # This isn't a test build so clear out testing related files
   CFILES   := $(filter-out src/system_tests/% %_tests.c,$(CFILES))
@@ -134,7 +142,7 @@ else
   CUDA_LIB  ?= -L$(CUDA_ROOT)/lib64 -lcudart
   CXXFLAGS  += $(CUDA_INC)
   GPUCXX    ?= nvcc
-  GPUFLAGS  += --expt-extended-lambda -arch sm_70 -fmad=false
+  GPUFLAGS  += --expt-extended-lambda -arch $(CHOLLA_ARCH) -fmad=false
   GPUFLAGS  += $(CUDA_INC)
   LD        := $(CXX)
   LDFLAGS   += $(CXXFLAGS)
@@ -156,6 +164,12 @@ endif
 .SUFFIXES: .c .cpp .cu .o
 
 EXEC := bin/cholla$(SUFFIX)
+
+# Get the git hash and setup macro to store a string of all the other macros so
+# that they can be written to the save files
+DFLAGS      += -DGIT_HASH='"$(shell git rev-parse --verify HEAD)"'
+MACRO_FLAGS := -DMACRO_FLAGS='"$(DFLAGS)"'
+DFLAGS      += $(MACRO_FLAGS)
 
 $(EXEC): prereq-build $(OBJS)
 	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)

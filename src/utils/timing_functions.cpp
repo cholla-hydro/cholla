@@ -60,7 +60,7 @@ void Time::Initialize(){
   // Add or remove timers by editing this list, keep TOTAL at the end
   // add NAME to timing_functions.h
   // add Timer.NAME.Start() and Timer.NAME.End() where appropriate.
-  
+
   onetimes = {
     #ifdef PARTICLES
     &(Calc_dt = OneTime("Calc_dt")),
@@ -86,7 +86,7 @@ void Time::Initialize(){
     #endif
     &(Total = OneTime("Total")),
   };
-  
+
 
   chprintf( "\nTiming Functions is ON \n");
 
@@ -111,6 +111,9 @@ void Time::Print_Average_Times( struct parameters P ){
   std::string header;
 
   chprintf( "Writing timing values to file: %s  \n", file_name.c_str());
+
+  std::string gitHash    = "Git Commit Hash = " + std::string(GIT_HASH)    + std::string("\n");
+  std::string macroFlags = "Macro Flags     = " + std::string(MACRO_FLAGS) + std::string("\n\n");
 
   header = "#n_proc  nx  ny  nz  n_omp  n_steps  ";
 
@@ -138,7 +141,12 @@ void Time::Print_Average_Times( struct parameters P ){
 
 // Output timing values
   out_file.open(file_name.c_str(), std::ios::app);
-  if ( !file_exists ) out_file << header;
+  if ( !file_exists )
+  {
+    out_file << gitHash;
+    out_file << macroFlags;
+    out_file << header;
+  }
   #ifdef MPI_CHOLLA
   out_file << nproc << " ";
   #else

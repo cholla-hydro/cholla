@@ -1,11 +1,13 @@
+#!/usr/bin/env python3
+
 import h5py
 from shutil import copy
 
 # Paths for all the files
 rootPath      = ''
-hydroPath     = rootPath + '1.h5.0'
-particlesPath = rootPath + '1_particles.h5.0'
-destPath      = rootPath + 'combined.h5'
+hydroPath     = rootPath + '/1.h5.0'
+particlesPath = rootPath + '/1_particles.h5.0'
+destPath      = rootPath + '/combined.h5'
 
 # Open the hdf5 files and create the new file
 hydroFile     = h5py.File(hydroPath,'r')

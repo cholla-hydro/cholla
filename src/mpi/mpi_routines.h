@@ -176,9 +176,6 @@ part_int_t Get_Particles_IDs_Global_MPI_Offset( part_int_t n_local );
 void Check_and_Grow_Particles_Buffer( Real **part_buffer, int *current_size_ptr, int new_size );
 #endif
 
-/* Set the domain properties */
-void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, Real xlen_global, Real ylen_global, Real zlen_global, struct Header *H);
-
 /* Print information about the domain properties */
 void Print_Domain_Properties(struct Header H);
 

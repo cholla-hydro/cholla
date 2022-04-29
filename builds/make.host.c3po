@@ -4,7 +4,7 @@ CXX               = mpicxx
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 ${F_OFFLOAD}
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 ${F_OFFLOAD}
+CXXFLAGS_OPTIMIZE = -g -Ofast -std=c++11 ${F_OFFLOAD}
 GPUFLAGS_DEBUG    = -g -O0 -std=c++11 -ccbin=mpicxx
 GPUFLAGS_OPTIMIZE = -g -O3 -std=c++11 -ccbin=mpicxx
 
@@ -13,6 +13,7 @@ OMP_NUM_THREADS   = 7
 #-- Library
 CUDA_ROOT       := /usr/local/cuda-11.4
 HDF5_ROOT       := /usr/lib/x86_64-linux-gnu/hdf5/serial
+MPI_ROOT        := /usr/lib/x86_64-linux-gnu/openmpi
 # FFTW_ROOT       = ${OLCF_FFTW_ROOT}
 # PFFT_ROOT       = /ccs/proj/csc380/cholla/fom/code/pfft
 # GRACKLE_ROOT    = /ccs/home/bvilasen/code/grackle

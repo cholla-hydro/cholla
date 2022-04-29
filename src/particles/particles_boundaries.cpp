@@ -455,9 +455,9 @@ void Grid3D::Load_and_Send_Particles_Z1( int ireq_n_particles, int ireq_particle
   Particles.Load_Particles_to_Buffer_GPU(2, 1, send_buffer_z1_particles,  buffer_length_particles_z1_send );
   #endif //PARTICLES_GPU
 
-  MPI_Isend(&Particles.n_send_z1, 1, MPI_CHREAL, dest[5],   4, world, &send_request_n_particles[1]);
+  MPI_Isend(&Particles.n_send_z1, 1, MPI_PART_INT, dest[5],   4, world, &send_request_n_particles[1]);
   MPI_Request_free(send_request_n_particles+1);
-  MPI_Irecv(&Particles.n_recv_z1, 1, MPI_CHREAL, source[5], 5, world, &recv_request_n_particles[ireq_n_particles]);
+  MPI_Irecv(&Particles.n_recv_z1, 1, MPI_PART_INT, source[5], 5, world, &recv_request_n_particles[ireq_n_particles]);
   // if ( Particles.n_send_z1 > 0 )   std::cout << " Sent Z1: " << Particles.n_send_z1 << std::endl;
   buffer_length = Particles.n_send_z1 * N_DATA_PER_PARTICLE_TRANSFER;
   #ifdef PARTICLES_CPU
