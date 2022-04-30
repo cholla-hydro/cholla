@@ -579,7 +579,7 @@ void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghos
   cudaEventCreate(&stop);
   cudaEventRecord(start, 0);
   
-  int ngrid = (nx*ny*nz + TPB_CHEM - 1) / TPB_CHEM;
+  int ngrid = (nx*ny*nz - 1) / TPB_CHEM + 1;
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB_CHEM, 1, 1);                                          
   hipLaunchKernelGGL(Update_Chemistry_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, Chem_H );
