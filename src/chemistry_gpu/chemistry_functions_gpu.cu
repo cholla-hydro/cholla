@@ -73,6 +73,13 @@ __host__ __device__ Real get_temperature( Real gamma ){
   return temp;
 }
 
+__host__ __device__ Real compute_U( Real temp, Real gamma ){
+  Real mu, U_local;
+  mu = get_MMW();
+  U_local = temp / ( gamma - 1 ) / mu / MP * KB / 1e10;
+  return U_local;
+}
+
 };
 
 __device__ void get_temperature_indx( Real T, Chemistry_Header &Chem_H, int &temp_indx, Real &delta_T, Real temp_old, bool print ){
@@ -307,6 +314,10 @@ __device__ Real Get_Chemistry_dt( Thermal_State &TS, Chemistry_Header &Chem_H, R
     printf( "#### Equlibrium  \n" );
   }
   
+  #ifdef TEMPERATURE_FLOOR
+  if ( TS.get_temperature( Chem_H.gamma ) < TEMP_FLOOR )  TS.U = TS.compute_U( TEMP_FLOOR, Chem_H.gamma ); 
+  #endif
+  
   energy = fmax( TS.U * TS.d, tiny );
   dt = fmin( fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot )  );
   dt = fmin( fabs( 0.1 * energy / U_dot ), dt  );
@@ -393,6 +404,9 @@ __device__ void Update_Step( Thermal_State &TS, Chemistry_Header &Chem_H, Real d
   
   // Update internal energy
   TS.U += U_dot / TS.d * dt;
+  #ifdef TEMPERATURE_FLOOR
+  if ( TS.get_temperature( Chem_H.gamma ) < TEMP_FLOOR )  TS.U = TS.compute_U( TEMP_FLOOR, Chem_H.gamma ); 
+  #endif
   if ( print ) printf("Updated U: %e \n", TS.U);  
   
 
