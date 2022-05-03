@@ -85,14 +85,14 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real
 #else   /*MPI_CHOLLA*/
 
   /* position relative to local xyz bounds */
-  /* This approach was replaced because it is less consistent for multiple cores. 
-  Since distributive property does not perfectly hold for floating point operations     
+  /* This approach was replaced because it is less consistent for multiple cores.
+  Since distributive property does not perfectly hold for floating point operations
 
-  > Global_bound + global_i * dx 
+  > Global_bound + global_i * dx
 
-  is more consistent than 
+  is more consistent than
 
-  >local_bound + local_i*dx = (global_bound + (global_i-local_i)*dx) + local_i*dx. 
+  >local_bound + local_i*dx = (global_bound + (global_i-local_i)*dx) + local_i*dx.
 
   *x_pos = H.xblocal + H.dx*(i-H.n_ghost) + 0.5*H.dx;
   *y_pos = H.yblocal + H.dy*(j-H.n_ghost) + 0.5*H.dy;
@@ -101,7 +101,7 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real
 
   *x_pos = H.xbound + (nx_local_start+i-H.n_ghost)*H.dx + 0.5*H.dx;
   *y_pos = H.ybound + (ny_local_start+j-H.n_ghost)*H.dy + 0.5*H.dy;
-  *z_pos = H.zbound + (nz_local_start+k-H.n_ghost)*H.dz + 0.5*H.dz;  
+  *z_pos = H.zbound + (nz_local_start+k-H.n_ghost)*H.dz + 0.5*H.dz;
 
 #endif  /*MPI_CHOLLA*/
 
@@ -312,6 +312,7 @@ void Grid3D::AllocateMemory(void)
   // arrays that hold the max_dti calculation for hydro for each thread block (pre reduction)
   CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&dev_dti, sizeof(Real)) );
 
 
   #if defined( GRAVITY )
@@ -632,6 +633,7 @@ void Grid3D::FreeMemory(void)
   // free the timestep arrays
   CudaSafeCall( cudaFreeHost(host_dti_array) );
   cudaFree(dev_dti_array);
+  cudaFree(dev_dti);
 
   #ifdef GRAVITY
   CudaSafeCall( cudaFreeHost(C.Grav_potential) );
