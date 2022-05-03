@@ -10,24 +10,23 @@ ny=256
 # number of grid cells in the z dimension
 nz=256
 # final output time
-tout=10000
-#tout=3
+tout=200
 # time interval for output
-outstep=100
+outstep=20
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
 init=Disk_3D_particles
-bc_potential_type=1
 #init=Disk_3D
+bc_potential_type=1
 #nfull=100
 # domain properties
-xmin=-15
-ymin=-15
-zmin=-15
-xlen=30
-ylen=30
-zlen=30
+xmin=-2
+ymin=-2
+zmin=-2
+xlen=4
+ylen=4
+zlen=4
 # type of boundary conditions
 xl_bcnd=3
 xu_bcnd=3
@@ -47,3 +46,4 @@ flag_delta=2
 ddelta_dt=-0.001
 # path to output directory
 outdir=./raw/
+prng_seed=42

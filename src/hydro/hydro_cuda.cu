@@ -380,8 +380,28 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     dev_conserved[4*n_cells + id] += Ekin_1 - Ekin_0;
     #endif
 
+/*
+    //if (xid > n_ghost-1 && xid < 10 && yid == 128 && zid == 137) {
+    //if (xid == 50  && yid == 118 && zid < 128) {
+    if (xid == 50  && yid == 118) {
+      d  =  dev_conserved[            id];
+      d_inv = 1.0 / d;
+      vx =  dev_conserved[1*n_cells + id] * d_inv;
+      vy =  dev_conserved[2*n_cells + id] * d_inv;
+      vz =  dev_conserved[3*n_cells + id] * d_inv;
+      
+      //Real P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+      //printf("gx,gy,gz[%d, %d, %d] = [%.4e, %.4e, %4e]\n", xid, yid, zid, gx, gy, gz);
+      //printf("vx, vy, vz[%d, %d, %d] = [%.4e, %.4e, %4e]\n", xid, yid, zid, vx_n, vy_n, vz_n);
+      //printf("P[%d, %d, %d] = %4e\n", xid, yid, zid, P);
+      //printf("d[%d, %d, %d] = %4e\n", xid, yid, zid, d);
+       // printf("vx,vy,vz[%d, %d, %d] = [%.4e, %.4e, %4e]\n", xid, yid, zid, vx, vy, vz);
+       #ifdef DE
+       //printf("U[%d, %d, %d] = %4e\n", xid, yid, zid, dev_conserved[5*n_cells + id] * d_inv);
+       #endif
+      }*/
 
-    #endif
+    #endif //GRAVITY
 
 
     #if !( defined(DENSITY_FLOOR) && defined(TEMPERATURE_FLOOR) )

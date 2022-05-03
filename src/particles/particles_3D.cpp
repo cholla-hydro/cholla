@@ -624,17 +624,14 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
  *   Initializes a disk population of uniform mass stellar clusters
  */
 void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
-  #ifndef SINGLE_PARTICLE_MASS
-      chprintf( " Initialize_Disk_Stellar_Clusters: only SINGLE_PARTICLE_MASS currently supported\n");
-      chexit(-1);
-  #endif
   chprintf( " Initializing Particles Stellar Disk\n");
 
   // Set up the PRNG
-  ChollaPrngGenerator prng(P);
+  std::mt19937_64 generator {P->prng_seed};
 
   std::gamma_distribution<Real> radialDist(2,1);           //for generating cyclindrical radii
-  std::uniform_real_distribution<Real> zDist(0, 1);        //for generating height above/below the disk.
+  std::uniform_real_distribution<Real> zDist(-0.2, 0.2);
+  std::uniform_real_distribution<Real> vzDist(-1e-8, 1e-8);
   std::uniform_real_distribution<Real> phiDist(0, 2*M_PI); //for generating phi
   std::normal_distribution<Real> speedDist(0, 1);          //for generating random speeds.
 
@@ -653,66 +650,65 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   real_vector_t temp_grav_x;
   real_vector_t temp_grav_y;
   real_vector_t temp_grav_z;
-  #ifndef SINGLE_PARTICLE_MASS
   real_vector_t temp_mass;
-  #endif
-  #ifdef PARTICLE_IDS
-  int_vector_t temp_ids;
-  #endif
-  #ifdef PARTICLE_AGE
+  int_vector_t  temp_ids;
   real_vector_t temp_age;
-  #endif
 
   Real x, y, z, R, phi;
   Real vx, vy, vz, vel, ac;
   Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
 
-  particle_mass = 1e5;  //solar masses
   //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
-  unsigned long int N = 38; //(long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
+  //unsigned long int N = 13; //(long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
+  Real total_mass = 0;
+  Real upper_limit_cluster_mass = 1e7;
   long lost_particles = 0;
-  for ( part_int_t i = 0; i < N; i++ ){
-      do {
-          R = R_d*radialDist(prng.generator);
-      } while (R > R_max);
+  part_int_t id = -1;
+  while (total_mass < upper_limit_cluster_mass) {
+    Real cluster_mass = Galaxies::MW.singleClusterMass(generator);
+    total_mass += cluster_mass;
+    id += 1; // do this here before we check whether the particle is in the MPI domain, otherwise 
+            // could end up with duplicated IDs
+    do {
+      R = R_d*radialDist(generator);
+    } while (R > R_max);
 
-      phi = phiDist(prng.generator);
-      x = R * cos(phi);
-      y = R * sin(phi);
-      z = 0;
+    phi = phiDist(generator);
+    x = R * cos(phi);
+    y = R * sin(phi);
+    z = 0.0; //zDist(generator);
 
-      if (x < G.xMin || x > G.xMax) continue;
-      if (y < G.yMin || y > G.yMax) continue;
-      if (z < G.zMin || z > G.zMax) continue;
+    if (x < G.xMin || x > G.xMax) continue;
+    if (y < G.yMin || y > G.yMax) continue;
+    if (z < G.zMin || z > G.zMax) continue;
 
-      ac  = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
-      vPhi = sqrt(R*ac);
+    ac  = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
+    vPhi = sqrt(R*ac);
 
-      vx =  -vPhi*sin(phi);
-      vy =  vPhi*cos(phi);
-      vz = 0;
+    vx =  -vPhi*sin(phi);
+    vy =  vPhi*cos(phi);
+    vz =  0.0; //vzDist(generator);
 
-      //add particle data to the particles vectors
-      temp_pos_x.push_back(x);
-      temp_pos_y.push_back(y);
-      temp_pos_z.push_back(z);
-      temp_vel_x.push_back(vx);
-      temp_vel_y.push_back(vy);
-      temp_vel_z.push_back(vz);
-      temp_grav_x.push_back(0.0);
-      temp_grav_y.push_back(0.0);
-      temp_grav_z.push_back(0.0);
-
-      #ifdef PARTICLE_AGE
-      //if (fabs(z) >= Z_d) age.push_back(1.1e4);
-      //else age.push_back(0.0);
-      temp_age.push_back(0.0);
-      #endif
+    //add particle data to the particles vectors
+    temp_pos_x.push_back(x);
+    temp_pos_y.push_back(y);
+    temp_pos_z.push_back(z);
+    temp_vel_x.push_back(vx);
+    temp_vel_y.push_back(vy);
+    temp_vel_z.push_back(vz);
+    temp_grav_x.push_back(0.0);
+    temp_grav_y.push_back(0.0);
+    temp_grav_z.push_back(0.0);
+    temp_mass.push_back(cluster_mass);
+    //if (fabs(z) >= Z_d) age.push_back(1.1e4);
+    //else age.push_back(0.0);
+    temp_age.push_back(0.0);
+    temp_ids.push_back(id);
   }
 
   n_local = temp_pos_x.size();
 
-  #if defined(PARTICLE_IDS) 
+/* 
   part_int_t global_id_offset = 0;
   #ifdef MPI_CHOLLA
   // Get global IDs: Offset the local IDs to get unique global IDs across the MPI ranks
@@ -722,27 +718,21 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   for ( int i=0; i<n_local; i++ ){
     temp_ids.push_back( i + global_id_offset);
   }
-  #endif//PARTICLE_IDS
+  */
 
   #ifdef PARTICLES_CPU
-  pos_x = temp_pos_x;
-  pos_y = temp_pos_y;
-  pos_z = temp_pos_z;
-  vel_x = temp_vel_x;
-  vel_y = temp_vel_y;
-  vel_z = temp_vel_z;
-  grav_x = temp_grav_x;
-  grav_y = temp_grav_y;
-  grav_z = temp_grav_z;
-  #ifndef SINGLE_PARTICLE_MASS // for now this won't be the case
-  mass   = temp_mass;
-  #endif
-  #ifdef PARTICLE_IDS
+  pos_x   = temp_pos_x;
+  pos_y   = temp_pos_y;
+  pos_z   = temp_pos_z;
+  vel_x   = temp_vel_x;
+  vel_y   = temp_vel_y;
+  vel_z   = temp_vel_z;
+  grav_x  = temp_grav_x;
+  grav_y  = temp_grav_y;
+  grav_z  = temp_grav_z;
+  mass    = temp_mass;
   partIDs = temp_ids;
-  #endif
-  #ifdef PARTICLE_AGE
-  age = temp_age;
-  #endif
+  age     = temp_age;
   #endif  //PARTICLES_CPU
 
   #ifdef PARTICLES_GPU
@@ -765,29 +755,22 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Copy_Particles_Array_Real_Host_to_Device( temp_grav_y.data(), grav_y_dev, n_local);
   Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_array_size);
   Copy_Particles_Array_Real_Host_to_Device( temp_grav_z.data(), grav_z_dev, n_local);
-  #ifndef SINGLE_PARTICLE_MASS
   Allocate_Particles_GPU_Array_Real( &mass_dev, particles_array_size );
   Copy_Particles_Array_Real_Host_to_Device(temp_mass.data(), mass_dev, n_local);
-  #endif
-  #ifdef PARTICLE_IDS
   Allocate_Particles_GPU_Array_Part_Int( &partIDs_dev, particles_array_size );
   Copy_Particles_Array_Int_Host_to_Device(temp_ids.data(), partIDs_dev, n_local);
-  for(int i : temp_ids) chprintf("ID VECTOR: = %d \n", i); //FIXME debug output only
-  #endif
-  #ifdef PARTICLE_AGE
   Allocate_Particles_GPU_Array_Real( &age_dev, particles_array_size);
   Copy_Particles_Array_Real_Host_to_Device(temp_age.data(), age_dev, n_local);
-  #endif
   #endif  //PARTICLES_GPU
 
   if (lost_particles > 0) chprintf("  lost %lu particles\n", lost_particles);
-  chprintf( " Stellar Disk Particles Initialized, n_local: %lu\n", n_local);
+  chprintf( "Stellar Disk Particles Initialized, n_total: %lu, n_local: %lu, total_mass: %.3e s.m.\n", id, n_local, total_mass);
 }
 
 
 void Particles_3D::Initialize_Zeldovich_Pancake( struct parameters *P ){
 
-  //No partidcles for the Zeldovich Pancake problem. n_local=0
+  //No particles for the Zeldovich Pancake problem. n_local=0
 
   chprintf("Setting Zeldovich Pancake initial conditions...\n");
 

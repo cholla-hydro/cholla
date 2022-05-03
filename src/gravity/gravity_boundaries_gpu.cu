@@ -96,6 +96,13 @@ void Grid3D::Set_Potential_Boundaries_Isolated_GPU( int direction, int side, int
   // Copy the potential boundary from buffer to potential array
   hipLaunchKernelGGL( Set_Potential_Boundaries_Isolated_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j, nx_g, ny_g, nz_g, n_ghost, Grav.F.potential_d, pot_boundary_d );
 
+  /*if (direction == 0 && side == 0) 
+      gpuFor(N_GHOST_POTENTIAL, 
+        GPU_LAMBDA(const int i) {
+            printf("boundary_potential[%d, %d, %d] = %.4e\n", i, n_i/2, n_j/2, pot_boundary_d[i*n_i*n_j + n_i/2 + n_i*n_j/2]);
+        }
+      );*/
+
 }
 
 

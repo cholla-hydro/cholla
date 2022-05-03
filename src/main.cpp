@@ -15,7 +15,10 @@
 #include "utils/error_handling.h"
 #ifdef FEEDBACK
 #include "particles/supernova.h"
-#endif
+#ifdef ANALYSIS
+#include "analysis/feedback_analysis.h"
+#endif 
+#endif //FEEDBACK
 
 
 int main(int argc, char *argv[])
@@ -122,9 +125,12 @@ int main(int argc, char *argv[])
   #ifdef ANALYSIS
   G.Initialize_Analysis_Module(&P);
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
+  #ifdef FEEDBACK
+  FeedbackAnalysis feedback_analysis(G);
+  #endif
   #endif
 
-  #ifdef FEEDBACK
+  #ifdef FEEDBACK  //TODO: refactor this: encapsulate init in a method
   G.countSN = 0;
   G.countResolved = 0;
   G.countUnresolved = 0;
@@ -136,6 +142,8 @@ int main(int argc, char *argv[])
   #else
   Supernova::initState(&P, G.Particles.n_local);
   #endif // MPI_CHOLLA
+  #else // else we have PARTICLES_CPU
+  //Supernova::initState(&P); 
   #endif // PARTICLES_GPU
   #endif // FEEDBACK
 
@@ -152,6 +160,10 @@ int main(int argc, char *argv[])
   chprintf("Setting boundary conditions...\n");
   G.Set_Boundary_Conditions_Grid(P);
   chprintf("Boundary conditions set.\n");
+
+  #ifdef GRAVITY_ANALYTIC_COMP
+  G.Add_Analytic_Potential();
+  #endif
 
   #ifdef PARTICLES
   // Get the particles acceleration for the first timestep
@@ -231,9 +243,8 @@ int main(int argc, char *argv[])
 
     //Set the Grid boundary conditions for next time step
     G.Set_Boundary_Conditions_Grid(P);
-
-    #if defined(GRAVITY_ANALYTIC_COMP) && !defined(GRAVITY_GPU)
-    // add analytic component to gravity potential.
+    
+    #ifdef GRAVITY_ANALYTIC_COMP
     G.Add_Analytic_Potential();
     #endif
 
@@ -245,18 +256,16 @@ int main(int argc, char *argv[])
     #ifdef FEEDBACK
     Real fdti = G.Cluster_Feedback();
     if (fdti != 0 && dti != 0) {
-      printf("DTI COMP: returned: %.4e [%.4e kyr]\n", fdti, 1/fdti);
-      printf("           current: %.4e [ %.4e kyr ] \n", dti, 1/dti);
+      chprintf("DTI COMP: returned: %.4e [%.4e kyr]\n", fdti, 1/fdti);
+      chprintf("           current: %.4e [ %.4e kyr ] \n", dti, 1/dti);
 
-    } else {
-      printf("DTI COMP: returned: %.4e, current: %.4e\n", fdti, dti);
-    }
+    } 
     if (fdti > dti) {
-      printf("      CHANGING\n");
+      chprintf("      UPDATING dti\n");
       dti = fdti;
     }
     #ifdef ANALYSIS
-    G.Compute_Gas_Velocity_Dispersion();
+    feedback_analysis.Compute_Gas_Velocity_Dispersion(G);
     #endif
     #endif
 

@@ -4,10 +4,12 @@
 #ifdef FEEDBACK
 
 #include <iostream>
+#include <cstring>
 #include "feedback_CIC.h"
 #include "particles_3D.h"
 #include "../grid/grid3D.h"
 #include "../io/io.h"
+#include "../global/global.h"
 #include "supernova.h"
 #include <random>
 #include <tuple>
@@ -26,12 +28,16 @@
 std::random_device rd;
 //std::mt19937_64 gen(rd());
 std::mt19937_64 generator(42);   //FIXME read this in from init params or ChollaPrngGenerator
+/*
+void Supernova::initState(struct parameters *P) {
+    generator.seed(P->prng_seed);
+}*/
 
 
-std::tuple<int, Real, Real, Real, Real> getClusterFeedback(Real t, Real dt, Real age, Real density) {
+std::tuple<int, Real, Real, Real, Real> getClusterFeedback(Real t, Real dt, Real mass, Real age, Real density) {
     int N = 0;
-    if (t + age <= 1.0e4) {
-       std::poisson_distribution<int> distribution(Supernova::SNR * dt);
+    if (t - age <= 1.0e4) {
+       std::poisson_distribution<int> distribution(Supernova::SNR * mass * dt);
        N = distribution(generator);
     }
     Real n_0 = density * DENSITY_UNIT / (Supernova::MU*MP);  // in cm^{-3}
@@ -48,6 +54,10 @@ std::tuple<int, Real, Real, Real, Real> getClusterFeedback(Real t, Real dt, Real
 
 
 Real Grid3D::Cluster_Feedback() {
+  #ifdef CPU_TIME
+  Timer.Feedback.Start();
+  #endif
+
   Real max_sn_dti = 0;
   #ifdef PARTICLES_GPU
   max_sn_dti = Cluster_Feedback_GPU();
@@ -101,7 +111,7 @@ Real Grid3D::Cluster_Feedback() {
   MPI_Reduce(&partiallyReducedInfo, &reducedInfo, N_INFO, MPI_CHREAL, MPI_SUM, root, world);
   if (procID==root) {
   #else 
-    reducedInfo = partiallyReducedInfo;
+    memcpy(reducedInfo, partiallyReducedInfo, sizeof(partiallyReducedInfo));
   #endif //MPI_CHOLLA
 
     countSN += reducedInfo[SN];
@@ -133,6 +143,11 @@ Real Grid3D::Cluster_Feedback() {
   free(thread_dti);
 
   #endif //PARTICLES_GPU
+
+  #ifdef CPU_TIME
+  Timer.Feedback.End();
+  #endif
+
   return max_sn_dti;
 }
 
@@ -181,9 +196,10 @@ void Grid3D::Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end, Rea
     pcell_z = (int) floor( ( pos_z - zMin ) / H.dz ) + H.n_ghost;
     pcell_index = pcell_x + pcell_y*nx_g + pcell_z*nx_g*ny_g;
 
-    auto [N, energy, mass, momentum, r_sf] = getClusterFeedback(H.t, H.dt, Particles.age[pIndx], C.density[pcell_index]);
+    auto [N, energy, mass, momentum, r_sf] = getClusterFeedback(H.t, H.dt, Particles.mass[pIndx], Particles.age[pIndx], C.density[pcell_index]);
     if (N == 0) continue;
 
+    Particles.mass[pIndx] -= mass;
     feedback_energy = energy / dV;
     feedback_density = mass / dV;
     feedback_momentum = momentum / sqrt(3) / dV;

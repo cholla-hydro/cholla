@@ -22,9 +22,9 @@ void __global__ Change_GAS_Frame_System_kernel( Real dens_factor, Real momentum_
   tid_y = blockIdx.y * blockDim.y + threadIdx.y;
   tid_z = blockIdx.z * blockDim.z + threadIdx.z;
 
-  if (tid_x >= nx || tid_y >= ny || tid_z >= nz ) return;
+if (tid_x >= nx || tid_y >= ny || tid_z >= nz ) return;
 
-  tid_grid = tid_x + tid_y*nx + tid_z*nx*ny;
+  tid_grid = tid_x + tid_y*nx + tid_z*nx*ny;  
 
   density_d[tid_grid]    = density_d[tid_grid]    * dens_factor;
   momentum_x_d[tid_grid] = momentum_x_d[tid_grid] * momentum_factor;

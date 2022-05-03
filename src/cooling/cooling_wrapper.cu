@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../global/global.h"
+#include "../global/global_cuda.h"
 #include "../cooling/cooling_wrapper.h"
 #include "../cooling/cooling_cuda.h"
 

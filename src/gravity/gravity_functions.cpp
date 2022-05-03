@@ -18,11 +18,11 @@
 #include <vector>
 #endif
 
-#ifdef PARTICLES
+//#ifdef PARTICLES
 #include "../model/disk_galaxy.h"
-#endif
+//#endif
 
-//Set delta_t when using gravity
+//Set delta_t when usi#ng gravity
 void Grid3D::set_dt_Gravity(){
 
   //Delta_t for the hydro
@@ -589,11 +589,7 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   #endif
   printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local);
   #endif
-
-  #ifdef GRAVITY_ANALYTIC_COMP
-  Add_Analytic_Potential();
-  #endif
-
+  
   #ifdef CPU_TIME
   Timer.Grav_Potential.End();
   #endif
@@ -629,7 +625,7 @@ void Grid3D::Add_Analytic_Potential() {
   Add_Analytic_Potential_GPU();
   #else
   #ifndef PARALLEL_OMP
-  Add_Analytic_Potential(0, Grav.nz_local);
+  Add_Analytic_Potential(0, Grav.nz_local + 2*N_GHOST_POTENTIAL );
   #else
   #pragma omp parallel num_threads( N_OMP_THREADS )
   {
@@ -638,7 +634,7 @@ void Grid3D::Add_Analytic_Potential() {
 
     omp_id = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    Get_OMP_Grid_Indxs( Grav.nz_local, n_omp_procs, omp_id, &g_start, &g_end  );
+    Get_OMP_Grid_Indxs( Grav.nz_local+ 2*N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end  );
 
     Add_Analytic_Potential(g_start, g_end);
   }
@@ -712,7 +708,7 @@ void Grid3D::Setup_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy&
   int nz = Grav.nz_local + 2*N_GHOST_POTENTIAL;
 
   // the fraction of the disk that's not modelled (and so its analytic contribution must be added)
-  Real non_mod_frac = 1; //0.0; //1.0;
+  Real non_mod_frac = 0.9; //0.0; //1.0;
 
   int k, j, i, id;
   Real x_pos, y_pos, z_pos, R;

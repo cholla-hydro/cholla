@@ -58,7 +58,7 @@ void Potential_Paris_Galactic::Get_Potential(const Real *const density, Real *co
   const Real dy = dr_[1];
   const Real dz = dr_[0];
 
-  const Real md = 0; //galaxy.getM_d();  //FIXME temporary change for debugging small # clusters
+  const Real md = 0.1*galaxy.getM_d();  //FIXME temporary change for debugging small # clusters
   const Real rd = galaxy.getR_d();
   const Real zd = galaxy.getZ_d();
 

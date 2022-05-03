@@ -137,7 +137,7 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_GPU(){
 
 
 
-#if defined(GRAVITY_ANALYTIC_COMP) && defined(GRAVITY_GPU)
+#if defined(GRAVITY_ANALYTIC_COMP)
 void __global__ Add_Analytic_Potential_Kernel( Real *analytic_d, Real *potential_d, int nx_pot, int ny_pot, int nz_pot) {
   int tid_x, tid_y, tid_z, tid;
   tid_x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -147,13 +147,15 @@ void __global__ Add_Analytic_Potential_Kernel( Real *analytic_d, Real *potential
   if (tid_x >= nx_pot || tid_y >= ny_pot || tid_z >= nz_pot ) return;
 
   tid= tid_x + tid_y*nx_pot + tid_z*nx_pot*ny_pot;
+  
+  potential_d[tid] += analytic_d[tid];
   /*
-  if (tid_x < nx_pot && tid_y == 0 && tid_z == (nz_pot/2)) {
-    printf("potential_d[%d, %d, %d] = %.4e\n", tid_x, tid_y, tid_z, potential_d[tid]);
+  if (tid_x < 10 && tid_y == (ny_pot/2) && tid_z == (nz_pot/2)) {
+    //printf("potential_d[%d, %d, %d] = %.4e\n", tid_x, tid_y, tid_z, potential_d[tid]);
     printf("analytic_d[%d, %d, %d] = %.4e\n", tid_x, tid_y, tid_z, analytic_d[tid]);
-  }*/
-  //potential_d[tid] += analytic_d[tid];
-  potential_d[tid] = analytic_d[tid];  // FIXME debug only
+  }
+  */
+  
 }
 
 
@@ -180,8 +182,13 @@ void Grid3D::Add_Analytic_Potential_GPU() {
   //Copy the analytic potential from the device array to the device potential array
   hipLaunchKernelGGL(Add_Analytic_Potential_Kernel, dim3dGrid, dim3dBlock, 0, 0, Grav.F.analytic_potential_d, Grav.F.potential_d, nx_pot, ny_pot, nz_pot);
   cudaDeviceSynchronize();
+  /*gpuFor(10, 
+    GPU_LAMBDA(const int i) {
+        printf("potential_after_analytic[%d, %d, %d] = %.4e\n", i, ny_pot/2, nz_pot/2, Grav.F.potential_d[i + nx_pot*ny_pot/2 + nx_pot*ny_pot*nz_pot/2]);
+    }
+  );*/
 }
-#endif //GRAVITY_ANALYTIC_COMP && GRAVITY_GPU
+#endif //GRAVITY_ANALYTIC_COMP
 
 
 
@@ -265,6 +272,11 @@ void Grid3D::Extrapolate_Grav_Potential_GPU(){
   dim3 dim3dBlock(tpb_x, tpb_y, tpb_z);
 
   hipLaunchKernelGGL(Extrapolate_Grav_Potential_Kernel, dim3dGrid, dim3dBlock, 0, 0, C.d_Grav_potential, Grav.F.potential_d, Grav.F.potential_1_d, nx_pot, ny_pot, nz_pot, nx_grid, ny_grid, nz_grid, n_offset, dt_now, dt_prev, Grav.INITIAL, cosmo_factor );
+  /*gpuFor(10, 
+    GPU_LAMBDA(const int i) {
+        printf("extrapolated potential[%d, %d, %d] = %.4e\n", i, ny_pot/2, nz_pot/2, C.d_Grav_potential[i + nx_pot*ny_pot/2 + nx_pot*ny_pot*nz_pot/2]);
+    }
+  );*/
 
 }
 
