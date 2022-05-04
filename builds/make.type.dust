@@ -19,24 +19,11 @@ else
 DFLAGS    += -DVL
 endif
 
-# need this if using Disk_3D
-# DFLAGS += -DDISK_ICS
-
-# Apply a density and temperature floor
-DFLAGS    += -DDENSITY_FLOOR
-DFLAGS    += -DTEMPERATURE_FLOOR
-
-# Solve the Gas Internal Energy usisng a Dual Energy Formalism
-DFLAGS    += -DDE
-
 # Evolve additional scalars
 # DFLAGS += -DSCALAR
 
-# Apply the cooling in the GPU from precomputed tables
-DFLAGS    += -DCOOLING_GPU
-
 #Measure the Timing of the different stages
-DFLAGS += -DCPU_TIME
+#DFLAGS += -DCPU_TIME
 
 DFLAGS    += $(OUTPUT)
 
@@ -45,6 +32,3 @@ DFLAGS    += $(OUTPUT)
 #If not specified, MPI_GPU is off by default
 #This is set in the system make.host file
 DFLAGS    += $(MPI_GPU)
-
-DFLAGS    += -DPARALLEL_OMP
-DFLAGS    += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
