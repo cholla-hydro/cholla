@@ -20,7 +20,10 @@ DFLAGS    += -DVL
 endif
 
 # Evolve additional scalars
-# DFLAGS += -DSCALAR
+DFLAGS += -DSCALAR
+
+# Define dust macro
+DFLAGS += -DDUST
 
 #Measure the Timing of the different stages
 #DFLAGS += -DCPU_TIME
