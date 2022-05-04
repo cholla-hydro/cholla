@@ -1,7 +1,8 @@
 #ifdef CUDA
+#ifdef DUST
 #ifdef SCALAR
 
-#include "dust_model.h"
+#include "dust_cuda.h"
 
 #include <cstdio>
 #include<stdio.h>
@@ -16,15 +17,10 @@
 #include "../utils/cuda_utilities.h"
 #include "../grid/grid3D.h"
 
-int main() {
-  Conserved_Init(host_conserved, rho, vx, vy, vz, P, rho_d, gamma, k_n_cells, k_nx, k_ny, k_nz, k_n_ghost, k_n_fields);
-}
-  
-
 void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma) {
-    dim3 dim1dGrid(k_ngrid, 1, 1);
+    dim3 dim1dGrid(ngrid, 1, 1);
     dim3 dim1dBlock(TPB, 1, 1);
-    hipLaunchKernelGGL(Dust_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gamma, params_dev);
+    hipLaunchKernelGGL(Dust_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gamma);
     CudaCheckError();  
 }
 
@@ -101,12 +97,6 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
         dd_dt = calc_dd_dt(d_dust, tau_sp);
         dd = dd_dt * dt;
 
-        params_dev[0] = T;
-        params_dev[1] = n;
-        params_dev[2] = tau_sp/3.154e7;
-        params_dev[3] = dd_dt;
-        params_dev[4] = dd; 
-
         // ensure that dust density is not changing too rapidly
         bool time_refine = false;
         while (dd/d_dust > dd_max) {
@@ -117,8 +107,6 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
             dd_dt = calc_dd_dt(d_dust, tau_sp);
             dd = dt * dd_dt;
         }
-
-        params_dev[5] = time_refine;
 
         // update dust density
         d_dust += dd;
@@ -149,60 +137,7 @@ __device__ Real calc_dd_dt(Real d_dust, Real tau_sp) {
     return -d_dust / (tau_sp/3);
 }
 
-// function to initialize conserved variable array, similar to Grid3D::Constant in grid/initial_conditions.cpp 
-void Conserved_Init(Real *host_conserved, Real rho, Real vx, Real vy, Real vz, Real P, Real rho_d, Real gamma, int n_cells, int nx, int ny, int nz, int n_ghost, int n_fields)
-{
-  int i, j, k, id;
-  int istart, jstart, kstart, iend, jend, kend;
-
-  istart = H.n_ghost;
-  iend   = H.nx-H.n_ghost;
-  if (H.ny > 1) {
-    jstart = H.n_ghost;
-    jend   = H.ny-H.n_ghost;
-  }
-  else {
-    jstart = 0;
-    jend   = H.ny;
-  }
-  if (H.nz > 1) {
-    kstart = H.n_ghost;
-    kend   = H.nz-H.n_ghost;
-  }
-  else {
-    kstart = 0;
-    kend   = H.nz;
-  }
-
-  // set initial values of conserved variables
-  for(k=kstart-1; k<kend; k++) {
-    for(j=jstart-1; j<jend; j++) {
-      for(i=istart-1; i<iend; i++) {
-
-        //get cell index
-        id = i + j*nx + k*nx*ny;
-
-        // Exclude the rightmost ghost cell on the "left" side
-        if ((k >= kstart) and (j >= jstart) and (i >= istart))
-        {
-          // set constant initial states
-          host_conserved[id] = rho;
-          host_conserved[1*n_cells+id] = rho*vx;
-          host_conserved[2*n_cells+id] = rho*vy;
-          host_conserved[3*n_cells+id] = rho*vz;
-          host_conserved[4*n_cells+id] = P/(gamma-1.0) + 0.5*rho*(vx*vx + vy*vy + vz*vz);
-          #ifdef DE
-          host_conserved[(n_fields-1)*n_cells+id] = P/(gamma-1.0);
-          #endif  // DE
-          #ifdef SCALAR
-          host_conserved[5*n_cells+id] = rho_d;
-          #endif // SCALAR
-        }
-      }
-    }
-  }
-}
-
 
 #endif // SCALAR
+#endif // DUST
 #endif // CUDA

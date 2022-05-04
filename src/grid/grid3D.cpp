@@ -41,7 +41,7 @@
 #endif
 
 #ifdef DUST
-#include "../dust/dust_cuda.h" // provides dust_update
+#include "../dust/dust_cuda.h" // provides Dust_Update
 #endif
 
 
@@ -499,7 +499,7 @@ Real Grid3D::Update_Grid(void)
 
   #ifdef DUST
   // ==Apply dust from dust/dust_cuda.h==
-  dust_update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dti_array);
+  Dust_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
   #endif // DUST
 
   // Update the H and He ionization fractions and apply cooling and photoheating
