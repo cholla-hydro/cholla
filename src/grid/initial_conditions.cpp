@@ -230,6 +230,12 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
           #ifdef DE
           C.GasEnergy[id]  = P/(gama-1.0);
           #endif  // DE
+
+          #ifdef SCALAR
+          #ifdef DUST
+          C.scalar[id] = rho*1e-2;
+          #endif // DUST
+          #endif // SCALAR
         }
 /*
         if (i==istart && j==jstart && k==kstart) {
