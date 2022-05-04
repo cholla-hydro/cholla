@@ -40,6 +40,10 @@
 #include "../cooling/cooling_cuda.h" // provides Cooling_Update
 #endif
 
+#ifdef DUST
+#include "../dust/dust_cuda.h" // provides dust_update
+#endif
+
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
@@ -492,6 +496,11 @@ Real Grid3D::Update_Grid(void)
   // dev_dti_array and host_dti_array are global variables declared in global/global_cuda.h and allocated in Allocate_Memory
   Real cooling_max_dti = Cooling_Calc_dt(dev_dti_array, host_dti_array, H.nx, H.ny, H.nz);
   #endif //COOLING_GPU
+
+  #ifdef DUST
+  // ==Apply dust from dust/dust_cuda.h==
+  dust_update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dti_array);
+  #endif // DUST
 
   // Update the H and He ionization fractions and apply cooling and photoheating
   #ifdef CHEMISTRY_GPU
