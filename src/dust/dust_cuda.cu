@@ -41,14 +41,13 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 
     // define physics variables
     Real d_gas, d_dust; // fluid mass densities
-    Real n = 1; // gas number density
+    Real n; // gas number density
+    Real mu = 0.6; // mean molecular weight
     Real T, E, P; // temperature, energy, pressure
     Real vx, vy, vz; // velocities
     #ifdef DE
     Real ge;
     #endif // DE
-
-    dt *= 3.154e7; // in seconds
 
     // define integration variables
     Real dd_dt; // instantaneous rate of change in dust density
@@ -65,9 +64,7 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
         //printf("kernel: %7.4e\n", d_dust);
         // make sure thread hasn't crashed
 
-        // multiply small values by arbitrary constant to preserve precision
-        d_gas *= K;
-        d_dust *= K;
+        n = d_gas*DENSITY_UNIT / (mu * MP);
 
         if (E < 0.0 || E != E) return;
         
@@ -92,7 +89,7 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 
         T = T_init;
 
-        Real tau_sp = calc_tau_sp(n, T);
+        Real tau_sp = calc_tau_sp(n, T) / TIME_UNIT; // s
 
         dd_dt = calc_dd_dt(d_dust, tau_sp);
         dd = dd_dt * dt;
@@ -111,9 +108,6 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
         // update dust density
         d_dust += dd;
 
-        // remove scaling constant
-        d_gas /= K;
-        d_dust /= K;
         dev_conserved[5*n_cells + id] = d_dust;
         
         #ifdef DE
@@ -130,13 +124,14 @@ __device__ Real calc_tau_sp(Real n, Real T) {
   Real omega = 2.5;
   Real A = 0.17e9 * YR_IN_S; // 0.17 Gyr in s
 
-  return A * (a1/d0) * (pow(T_0/T, omega) + 1); // s
+  Real tau_sp = A * (a1/d0) * (pow(T_0/T, omega) + 1); // s
+
+  return tau_sp;
 }
 
 __device__ Real calc_dd_dt(Real d_dust, Real tau_sp) {
     return -d_dust / (tau_sp/3);
 }
-
 
 #endif // SCALAR
 #endif // DUST
