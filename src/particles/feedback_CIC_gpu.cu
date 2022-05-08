@@ -35,7 +35,7 @@ __device__ double atomicMax(double* address, double val)
 
 __global__ void initState_kernel(unsigned int seed, curandStateMRG32k3a_t* states) {
     int id = blockIdx.x*blockDim.x + threadIdx.x;
-    curand_init(seed, id, 0, &states[id]);
+    curand_init(seed + id, id, 0, &states[id]);
 }
 
 
@@ -50,6 +50,7 @@ __global__ void initState_kernel(unsigned int seed, curandStateMRG32k3a_t* state
 void Supernova::initState(struct parameters *P, part_int_t n_local, Real allocation_factor) {
   printf("Supernova::initState start\n");
   n_states = n_local*allocation_factor;
+  //n_states = 10;
   cudaMalloc((void**) &curandStates, n_states*sizeof(curandStateMRG32k3a_t));
 
   //int ngrid =  (n_states + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -94,10 +95,19 @@ __device__ Real Calc_Timestep(Real gamma, Real *density, Real *momentum_x, Real 
 }
 
 
+
+__device__ Real frac(int i, Real dx) {
+  return (-0.5*i*i -0.5*i + 1 + i*dx)*0.5;
+}
+
+__device__ Real d_fr(int i, Real dx) {
+  return (dx > 0.5)*i*(1-2*dx) + ((i+1)*dx + 0.5*(i - 1)) -3*(i-1)*(i+1)*(0.5 - dx);
+}
+
 __global__ void Cluster_Feedback_Kernel(part_int_t n_local, Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev, 
-    Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin, Real xLen, Real yLen, Real zLen, 
-    Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, Real t, Real dt, Real* dti, Real* info,
-    Real* density, Real* gasEnergy, Real* energy, Real* momentum_x, Real* momentum_y, Real* momentum_z, Real gamma, curandStateMRG32k3a_t* states){
+  Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin, Real xLen, Real yLen, Real zLen, 
+  Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, Real t, Real dt, Real* dti, Real* info,
+  Real* density, Real* gasEnergy, Real* energy, Real* momentum_x, Real* momentum_y, Real* momentum_z, Real gamma, curandStateMRG32k3a_t* states){
 
     __shared__ Real s_info[FEED_INFO_N*TPB_FEEDBACK]; // for collecting SN feedback information, like # of SNe or # resolved.
     int tid = threadIdx.x;
@@ -109,7 +119,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, Real* pos_x_dev, Rea
     s_info[FEED_INFO_N*tid + 3] = 0;
     s_info[FEED_INFO_N*tid + 4] = 0;
 
-   if ( gtid < n_local) {
+    if (gtid < n_local) {
       Real xMax, yMax, zMax;
       xMax = xMin + xLen;
       yMax = yMin + yLen;
@@ -118,7 +128,9 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, Real* pos_x_dev, Rea
       Real pos_x, pos_y, pos_z;
       Real cell_center_x, cell_center_y, cell_center_z;
       Real delta_x, delta_y, delta_z;
-      Real feedback_energy = 0, feedback_density=0, feedback_momentum=0, n_0, shell_radius;
+      Real x_frac, y_frac, z_frac;
+      Real px, py, pz, ek, d;
+      Real feedback_energy=0, feedback_density=0, feedback_momentum=0, n_0, shell_radius;
       bool is_resolved = false;
       int pcell_x, pcell_y, pcell_z, pcell_index;
       Real dV = dx*dy*dz;
@@ -128,7 +140,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, Real* pos_x_dev, Rea
       pos_y = pos_y_dev[gtid];
       pos_z = pos_z_dev[gtid];
 
-      bool in_local = (pos_x >= xMin && pos_x < zMax) &&
+      bool in_local = (pos_x >= xMin && pos_x < xMax) &&
                       (pos_y >= yMin && pos_y < yMax) &&
                       (pos_z >= zMin && pos_z < zMax);
       if (!in_local) {
@@ -136,11 +148,11 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, Real* pos_x_dev, Rea
                 pos_x, pos_y, pos_z, xMin, xMax, yMin, yMax, zMin, zMax);
       }
 
-      int indx_x = (int) floor( ( pos_x - xMin - 0.5*dx ) / dx );
-      int indx_y = (int) floor( ( pos_y - yMin - 0.5*dy ) / dy );
-      int indx_z = (int) floor( ( pos_z - zMin - 0.5*dz ) / dz );
+      int indx_x = (int) floor( ( pos_x - xMin ) / dx );
+      int indx_y = (int) floor( ( pos_y - yMin ) / dy );
+      int indx_z = (int) floor( ( pos_z - zMin ) / dz );
 
-      bool ignore = indx_x < -1 || indx_y < -1 || indx_z < -1 || indx_x > nx_g-3 || indx_y > ny_g-3 || indx_y > nz_g-3;
+      bool ignore = indx_x < 0 || indx_y < 0 || indx_z < 0 || indx_x > nx_g-2 || indx_y > ny_g-2 || indx_z > nz_g-2;
       if (ignore) {
           printf(" Feedback GPU: Particle CIC index err [%f  %f  %f]  [%d %d %d] [%d %d %d] \n ", 
                 pos_x, pos_y, pos_z, indx_x, indx_y, indx_z, nx_g, ny_g, nz_g);
@@ -159,13 +171,13 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, Real* pos_x_dev, Rea
           states[gtid] = state;
 
           if (N > 0) {
-            // first subtract ejected mass from particle
             mass_dev[gtid]   -= N * Supernova::MASS_PER_SN; 
             feedback_energy   = N * Supernova::ENERGY_PER_SN / dV;
             feedback_density  = N * Supernova::MASS_PER_SN / dV;
             n_0 = density[pcell_index] * DENSITY_UNIT / (Supernova::MU*MP);
-            feedback_momentum = Supernova::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(N, 0.93) / sqrt(3.0) / dV;
+            feedback_momentum = Supernova::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(N, 0.93);
             shell_radius  = Supernova::R_SH * pow(n_0, -0.46) * pow(N, 0.29);
+            //printf("  N=%d, shell_rad=%0.4e, n_0=%0.4e\n", N, shell_radius, n_0);
             is_resolved = 3 * max(dx, max(dy, dz)) <= shell_radius; 
       
             s_info[FEED_INFO_N*tid] = 1.*N;
@@ -175,126 +187,81 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, Real* pos_x_dev, Rea
             cell_center_x = xMin + indx_x*dx + 0.5*dx;
             cell_center_y = yMin + indx_y*dy + 0.5*dy;
             cell_center_z = zMin + indx_z*dz + 0.5*dz;
-            delta_x = 1 - ( pos_x - cell_center_x ) / dx;
-            delta_y = 1 - ( pos_y - cell_center_y ) / dy;
-            delta_z = 1 - ( pos_z - cell_center_z ) / dz;
-            indx_x += n_ghost;
-            indx_y += n_ghost;
-            indx_z += n_ghost;
 
-            int indx = indx_x + indx_y*nx_g + indx_z*nx_g*ny_g;
 
-            if (!is_resolved) s_info[FEED_INFO_N*tid + 4] = feedback_momentum * dV;
-            if (is_resolved) {
-              atomicAdd(&density[indx], feedback_density  * delta_x * delta_y * delta_z);
-              atomicAdd(&gasEnergy[indx], feedback_energy  * delta_x * delta_y * delta_z);
-              atomicAdd(&energy[indx], feedback_energy  * delta_x * delta_y * delta_z);
-              s_info[FEED_INFO_N*tid + 3] = feedback_energy  * fabs(delta_x * delta_y * delta_z) * dV;
-            } else {
-              atomicAdd(&momentum_x[indx], -delta_x * feedback_momentum);
-              atomicAdd(&momentum_y[indx], -delta_y * feedback_momentum);
-              atomicAdd(&momentum_z[indx], -delta_z * feedback_momentum);
-              //s_info[FEED_INFO_N*tid + 4] = (fabs(delta_x) /*+ fabs(delta_y) + fabs(delta_z)*/)*feedback_momentum * dV;
+            int indx;
+
+            if (is_resolved) { //if resolved inject energy and density
+              s_info[FEED_INFO_N*tid + 3] = feedback_energy *dV;
+
+              indx_x = (int) floor( ( pos_x - xMin - 0.5*dx ) / dx );
+              indx_y = (int) floor( ( pos_y - yMin - 0.5*dy ) / dy );
+              indx_z = (int) floor( ( pos_z - zMin - 0.5*dz ) / dz );
+
+              cell_center_x = xMin + indx_x*dx + 0.5*dx;
+              cell_center_y = yMin + indx_y*dy + 0.5*dy;
+              cell_center_z = zMin + indx_z*dz + 0.5*dz;
+
+              delta_x = 1 - ( pos_x - cell_center_x ) / dx;
+              delta_y = 1 - ( pos_y - cell_center_y ) / dy;
+              delta_z = 1 - ( pos_z - cell_center_z ) / dz;
+              indx_x += n_ghost;
+              indx_y += n_ghost;
+              indx_z += n_ghost;
+
+              for (int i = 0; i < 2; i++) {
+                for (int j = 0; j < 2; j++) {
+                  for (int k = 0; k < 2; k++) {
+                    indx = (indx_x+i) + (indx_y+j)*nx_g + (indx_z+k)*nx_g*ny_g;
+
+                    // i_frac are the fractions of energy/density to be allocated
+                    // to each of the 8 cells.
+                    x_frac = i*(1-delta_x) + (1-i)*delta_x;
+                    y_frac = j*(1-delta_y) + (1-j)*delta_y;
+                    z_frac = k*(1-delta_z) + (1-k)*delta_z;
+
+                    atomicAdd(&density[indx],   x_frac * y_frac * z_frac * feedback_density);
+                    atomicAdd(&gasEnergy[indx], x_frac * y_frac * z_frac * feedback_energy );
+                    atomicAdd(&energy[indx],    x_frac * y_frac * z_frac * feedback_energy );
+
+                    local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz));
+                  }
+                }
+              }
+            } else {  //if not resolved, inject momentum and density
+              s_info[FEED_INFO_N*tid + 4] = feedback_momentum;
+              feedback_momentum /= sqrt(3.0);
+
+              delta_x =  ( pos_x - indx_x*dx ) / dx;
+              delta_y =  ( pos_y - indx_y*dy ) / dy;
+              delta_z =  ( pos_z - indx_z*dz ) / dz;
+              indx_x += n_ghost;
+              indx_y += n_ghost;
+              indx_z += n_ghost;
+
+              for (int i = -1; i < 2; i++) {
+                for (int j = -1; j < 2; j++) {
+                  for (int k = -1; k < 2; k++) {
+                    // index in array of conserved quantities
+                    indx = (indx_x+i) + (indx_y+j)*nx_g + (indx_z+k)*nx_g*ny_g;
+
+                    px = d_fr(i, delta_x) * frac(j, delta_y) * frac(k, delta_z) * feedback_momentum;
+                    py = frac(i, delta_x) * d_fr(j, delta_y) * frac(k, delta_z) * feedback_momentum;
+                    pz = frac(i, delta_x) * frac(j, delta_y) * d_fr(k, delta_z) * feedback_momentum;
+                    d  = frac(i, delta_x) * frac(j, delta_y) * frac(k, delta_z) * feedback_density;
+                    ek = (px*px + py+py + pz*pz)/2/d;
+
+                    atomicAdd(&momentum_x[indx], px);
+                    atomicAdd(&momentum_y[indx], py);
+                    atomicAdd(&momentum_z[indx], pz);
+                    atomicAdd(   &density[indx], d );
+                    atomicAdd(    &energy[indx], ek);
+
+                    local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz));
+                  }
+                }
+              }
             }
-            local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz));
-
-            indx = (indx_x+1) + indx_y*nx_g + indx_z*nx_g*ny_g;
-            if (is_resolved) {
-              atomicAdd(&density[indx], feedback_density  * (1-delta_x) * delta_y * delta_z);
-              atomicAdd(&gasEnergy[indx], feedback_energy  * (1-delta_x) * delta_y * delta_z);
-              atomicAdd(&energy[indx], feedback_energy  * (1-delta_x) * delta_y * delta_z);
-              s_info[FEED_INFO_N*tid + 3] += feedback_energy  * fabs((1-delta_x) * delta_y * delta_z) * dV;
-            } else {
-              atomicAdd(&momentum_x[indx],  delta_x * feedback_momentum);
-              atomicAdd(&momentum_y[indx], -delta_y * feedback_momentum);
-              atomicAdd(&momentum_z[indx], -delta_z * feedback_momentum);
-             // s_info[FEED_INFO_N*tid + 4] += (fabs(delta_x) /*+ fabs(delta_y) + fabs(delta_z)*/)*feedback_momentum * dV;
-            }
-            local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz));
-
-            indx = indx_x + (indx_y+1)*nx_g + indx_z*nx_g*ny_g;
-            if (is_resolved) {
-              atomicAdd(&density[indx], feedback_density  * delta_x * (1-delta_y) * delta_z);
-              atomicAdd(&gasEnergy[indx], feedback_energy  * delta_x * (1-delta_y) * delta_z);
-              atomicAdd(&energy[indx], feedback_energy  * delta_x * (1-delta_y) * delta_z);
-              s_info[FEED_INFO_N*tid + 3] += feedback_energy  * fabs(delta_x * (1-delta_y )* delta_z) * dV;
-            } else {
-              atomicAdd(&momentum_x[indx], -delta_x * feedback_momentum);
-              atomicAdd(&momentum_y[indx],  delta_y * feedback_momentum);
-              atomicAdd(&momentum_z[indx],  -delta_z * feedback_momentum);
-              //s_info[FEED_INFO_N*tid + 4] += (fabs(delta_x) /*+ fabs(delta_y) + fabs(delta_z)*/)*feedback_momentum * dV;
-            }
-            local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz));
-
-            indx = indx_x + indx_y*nx_g + (indx_z+1)*nx_g*ny_g;
-            if (is_resolved) {
-              atomicAdd(&density[indx], feedback_density  * delta_x * delta_y * (1-delta_z));
-              atomicAdd(&gasEnergy[indx], feedback_energy  * delta_x * delta_y * (1-delta_z));
-              atomicAdd(&energy[indx], feedback_energy  * delta_x * delta_y * (1-delta_z));
-              s_info[FEED_INFO_N*tid + 3] += feedback_energy  * fabs(delta_x * delta_y * (1 - delta_z)) * dV;
-            } else {
-              atomicAdd(&momentum_x[indx], -delta_x * feedback_momentum);
-              atomicAdd(&momentum_y[indx], -delta_y * feedback_momentum);
-              atomicAdd(&momentum_z[indx],  delta_z * feedback_momentum); 
-              //s_info[FEED_INFO_N*tid + 4] += (fabs(delta_x) /*+ fabs(delta_y) + fabs(delta_z)*/)*feedback_momentum * dV;
-            }
-            local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz));
-
-            indx = (indx_x+1) + (indx_y+1)*nx_g + indx_z*nx_g*ny_g;
-            if (is_resolved) {
-              atomicAdd(&density[indx], feedback_density  * (1-delta_x) * (1-delta_y) * delta_z);
-              atomicAdd(&gasEnergy[indx], feedback_energy  * (1-delta_x) * (1-delta_y) * delta_z);
-              atomicAdd(&energy[indx], feedback_energy  * (1-delta_x) * (1-delta_y) * delta_z);
-              s_info[FEED_INFO_N*tid + 3] += feedback_energy  * fabs((1-delta_x) * (1-delta_y) * delta_z) * dV;
-            } else {
-              atomicAdd(&momentum_x[indx], delta_x * feedback_momentum);
-              atomicAdd(&momentum_y[indx],  delta_y * feedback_momentum);
-              atomicAdd(&momentum_z[indx], -delta_z * feedback_momentum);
-              //s_info[FEED_INFO_N*tid + 4] += (fabs(delta_x) /*+ fabs(delta_y) + fabs(delta_z)*/)*feedback_momentum * dV;
-            }
-            local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz));
-
-            indx = (indx_x+1) + indx_y*nx_g + (indx_z+1)*nx_g*ny_g;
-            if (is_resolved) {
-              atomicAdd(&density[indx], feedback_density  * (1-delta_x) * delta_y * (1-delta_z));
-              atomicAdd(&gasEnergy[indx], feedback_energy  * (1-delta_x) * delta_y * (1-delta_z));
-              atomicAdd(&energy[indx], feedback_energy  * (1-delta_x) * delta_y * (1-delta_z));
-              s_info[FEED_INFO_N*tid + 3] += feedback_energy  * fabs((1-delta_x) * delta_y * (1-delta_z)) * dV;
-            } else {
-              atomicAdd(&momentum_x[indx],  delta_x * feedback_momentum);
-              atomicAdd(&momentum_y[indx], -delta_y * feedback_momentum);
-              atomicAdd(&momentum_z[indx],  delta_z * feedback_momentum);
-              //s_info[FEED_INFO_N*tid + 4] += (fabs(delta_x) /*+ fabs(delta_y) + fabs(delta_z)*/)*feedback_momentum * dV;
-            }
-            local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz));
-
-            indx = indx_x + (indx_y+1)*nx_g + (indx_z+1)*nx_g*ny_g;
-            if (is_resolved) {
-              atomicAdd(&density[indx], feedback_density  * delta_x * (1-delta_y) * (1-delta_z));
-              atomicAdd(&gasEnergy[indx], feedback_energy  * delta_x * (1-delta_y) * (1-delta_z));
-              atomicAdd(&energy[indx], feedback_energy  * delta_x * (1-delta_y) * (1-delta_z));
-              s_info[FEED_INFO_N*tid + 3] += feedback_energy * fabs(delta_x * (1-delta_y) * (1-delta_z)) * dV;
-            } else {
-              atomicAdd(&momentum_x[indx], -delta_x * feedback_momentum);
-              atomicAdd(&momentum_y[indx],  delta_y * feedback_momentum);
-              atomicAdd(&momentum_z[indx],  delta_z * feedback_momentum);
-              //s_info[FEED_INFO_N*tid + 4] += (fabs(delta_x) /*+ fabs(delta_y) + fabs(delta_z)*/)*feedback_momentum * dV;
-            }
-            local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz));
-
-            indx = (indx_x+1) + (indx_y+1)*nx_g + (indx_z+1)*nx_g*ny_g;
-            if (is_resolved) {
-              atomicAdd(&density[indx], feedback_density * (1-delta_x) * (1-delta_y) * (1-delta_z));
-              atomicAdd(&gasEnergy[indx], feedback_energy * (1-delta_x) * (1-delta_y) * (1-delta_z));
-              atomicAdd(&energy[indx], feedback_energy * (1-delta_x) * (1-delta_y) * (1-delta_z));
-              s_info[FEED_INFO_N*tid + 3] += feedback_energy * fabs((1-delta_x) * (1-delta_y) * (1-delta_z)) * dV;
-            } else {
-              atomicAdd(&momentum_x[indx],  delta_x * feedback_momentum);
-              atomicAdd(&momentum_y[indx],  delta_y * feedback_momentum);
-              atomicAdd(&momentum_z[indx],  delta_z * feedback_momentum);
-              //s_info[FEED_INFO_N*tid + 4] += (fabs(delta_x) /*+ fabs(delta_y) + fabs(delta_z)*/)*feedback_momentum * dV;
-            }
-            local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz));
             atomicMax(dti, local_dti);
           } 
         }
@@ -325,7 +292,6 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, Real* pos_x_dev, Rea
 }
 
 
-
 Real Grid3D::Cluster_Feedback_GPU() {
   if (H.dt == 0) return 0.0;
 
@@ -348,7 +314,7 @@ Real Grid3D::Cluster_Feedback_GPU() {
   // d_info is currently done on each block.  Only the first block reduction 
   // is used 
 
-  hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0,  Particles.n_local, Particles.pos_x_dev, Particles.pos_y_dev, Particles.pos_z_dev, 
+  hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0,  Particles.n_local, Particles.pos_x_dev, Particles.pos_y_dev, Particles.pos_z_dev,
        Particles.mass_dev, Particles.age_dev, H.xblocal, H.yblocal, H.zblocal, H.domlen_x, H.domlen_y, H.domlen_z, 
        H.dx, H.dy, H.dz, H.nx, H.ny, H.nz, H.n_ghost, H.t, H.dt, d_dti, d_info,
        C.d_density, C.d_GasEnergy, C.d_Energy, C.d_momentum_x, C.d_momentum_y, C.d_momentum_z, gama, Supernova::curandStates);

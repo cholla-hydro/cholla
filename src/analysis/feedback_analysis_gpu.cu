@@ -5,8 +5,9 @@
 #include <cstdio>
 #ifdef PARTICLES_GPU
 
+#define MU 0.6
 // in cgs, this is 0.01 cm^{-3}
-#define MIN_DENSITY 148273.7
+#define MIN_DENSITY 0.01 * MP * MU *LENGTH_UNIT * LENGTH_UNIT * LENGTH_UNIT / MASS_UNIT  // 148279.7
 #define TPB_ANALYSIS 1024
 
 
@@ -146,7 +147,6 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion_GPU(Grid3D& G) {
   total_vel = h_partial_vel[0];
   #endif
 
-  chprintf("sum(density): %.5e, sum(|v-v_circ|^2*dens): %.5e\n", total_mass, total_vel);  //FIXME remove debug printout
   chprintf("feedback: time %f, dt=%f, vrms = %f km/s\n",  G.H.t,  G.H.dt, sqrt(total_vel/total_mass)*VELOCITY_UNIT/1e5);
 
   CHECK(cudaFree(d_partial_vel));
