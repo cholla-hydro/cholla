@@ -31,40 +31,6 @@ void Copy_Device_to_Device( Real *src_array_dev, Real *dst_array_dev, part_int_t
 
 }
 
-void Particles_3D::Reallocate_and_Copy_Partciles_Array_Real( Real **src_array_dev, part_int_t size_initial, part_int_t size_end  ){
-  size_t global_free, global_total;
-  CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
-  cudaDeviceSynchronize();
-  #ifdef PRINT_GPU_MEMORY
-  printf( "ReAllocating GPU Memory:  %ld  MB free \n", global_free/1000000);
-  #endif
-  if ( global_free < size_end*sizeof(Real) ){
-    printf( "ERROR: Not enough global device memory \n" );
-    printf( " Available Memory: %ld  MB \n", global_free/1000000  );
-    printf( " Requested Memory: %ld  MB \n", size_end*sizeof(Real)/1000000  );
-    exit(-1);
-  }
-  Real *temp_array_dev;
-  CudaSafeCall( cudaMalloc((void**)&temp_array_dev,  size_end*sizeof(Real)) );
-  cudaDeviceSynchronize();
-  // printf( " Allocated GPU Memory:  %ld  MB \n", size_end*sizeof(Real)/1000000 );
-  if ( size_initial*sizeof(Real) > size_end*sizeof(Real) ){
-    printf("ERROR: Memory to copy larger than array size\n" );
-    exit(-1);
-  }
-  // printf( " Copying:  %ld  ->  %ld  \n", size_initial*sizeof(Real), size_end*sizeof(Real) );
-  // CudaSafeCall( cudaMemcpy(temp_array_dev, *src_array_dev, size_initial*sizeof(Real), cudaMemcpyDeviceToDevice) );
-  // NOTE: cudaMemcpy is not working! made kernel to do the device to device copy
-  Copy_Device_to_Device( *src_array_dev, temp_array_dev,  size_initial );
-  cudaDeviceSynchronize();
-  CudaSafeCall( cudaFree( *src_array_dev ));
-  cudaDeviceSynchronize();
-  *src_array_dev = temp_array_dev;
-
-}
-
-
-
 
 void Particles_3D::Allocate_Particles_GPU_Array_Real( Real **array_dev, part_int_t size ){
   size_t global_free, global_total;

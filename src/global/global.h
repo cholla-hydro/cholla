@@ -25,7 +25,7 @@ typedef double Real;
 #endif
 #endif
 
-#define MAXLEN 140
+#define MAXLEN 2048
 #define TINY_NUMBER 1.0e-20
 #define PI 3.141592653589793
 #define MP 1.672622e-24 // mass of proton, grams
@@ -39,15 +39,17 @@ typedef double Real;
 #define MSUN_CGS 1.98847e33; //Msun in gr
 #define KPC_CGS 3.086e21;  //kpc in cm
 #define KM_CGS 1e5; //km in cm
+#define MH 1.67262171e-24 //Mass of hydrogen [g]   
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
 #define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
-#define MASS_UNIT 1.98855e33 // 1 solar mass in grams
+#define MASS_UNIT 1.98847e33 // 1 solar mass in grams
 #define DENSITY_UNIT (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT))
 #define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
 #define ENERGY_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
+#define MAGNETIC_FIELD_UNIT (sqrt(MASS_UNIT/LENGTH_UNIT) / TIME_UNIT)
 
 #define LOG_FILE_NAME "run_output.log"
 
@@ -74,18 +76,27 @@ typedef double Real;
   #else
   #define NSCALARS 6
   #endif // GRACKLE_METALS
+#elif CHEMISTRY_GPU
+  #define NSCALARS 6
 #else
 #ifdef SCALAR
 // Set Number of scalar fields when not using grackle
 #define NSCALARS 1
+#else
+#define NSCALARS 0
 #endif//SCALAR
 #endif//COOLING_GRACKLE
 
+#ifdef  MHD
+  #define N_MHD_FIELDS 3
+#else
+  #define N_MHD_FIELDS 0
+#endif  //MHD
 
 // Inital Chemistry fractions
 #define INITIAL_FRACTION_HI        0.75984603480
 #define INITIAL_FRACTION_HII       1.53965115054e-4
-#define INITIAL_FRACTION_HEI       0.23999999997
+#define INITIAL_FRACTION_HEI       0.24000000008
 #define INITIAL_FRACTION_HEII      9.59999999903e-15
 #define INITIAL_FRACTION_HEIII     9.59999999903e-18
 #define INITIAL_FRACTION_ELECTRON  1.53965115054e-4
@@ -234,12 +245,25 @@ struct parameters
   Real vz;
   Real P;
   Real A;
+  Real Bx;
+  Real By;
+  Real Bz;
   Real rho_l;
-  Real v_l;
+  Real vx_l;
+  Real vy_l=0;
+  Real vz_l=0;
   Real P_l;
+  Real Bx_l;
+  Real By_l;
+  Real Bz_l;
   Real rho_r;
-  Real v_r;
+  Real vx_r;
+  Real vy_r=0;
+  Real vz_r=0;
   Real P_r;
+  Real Bx_r;
+  Real By_r;
+  Real Bz_r;
   Real diaph;
 #ifdef PARTICLES
   // The random seed for particle simulations. With the default of 0 then a
@@ -278,14 +302,17 @@ struct parameters
   int n_proc_z;
 #endif
   int bc_potential_type;
-#ifdef COOLING_GRACKLE
-  char UVB_rates_file[MAXLEN];
-#endif
+#if defined(COOLING_GRACKLE) || defined (CHEMISTRY_GPU)
+  char UVB_rates_file[MAXLEN]; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
+#endif  
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
   char analysisdir[MAXLEN];
   int lya_skewers_stride;
   Real lya_Pk_d_log_k;
+  #ifdef OUTPUT_SKEWERS
+  char skewersdir[MAXLEN];
+  #endif
 #endif
 };
 

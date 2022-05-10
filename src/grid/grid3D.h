@@ -38,6 +38,10 @@
 #include "../utils/timing_functions.h"
 #endif
 
+#ifdef CHEMISTRY_GPU
+#include "chemistry_gpu/chemistry_gpu.h"
+#endif
+
 #ifdef ANALYSIS
 #include "../analysis/analysis.h"
 #endif
@@ -152,19 +156,7 @@ struct Header
   /*  \brief Global domain z-direction minimum */
   Real zbound;
 
-  /*! \var domlen_x */
-  /*  \brief Local domain length in x-direction */
-  Real domlen_x;
-
-  /*! \var domlen_y */
-  /*  \brief Local domain length in y-direction */
-  Real domlen_y;
-
-  /*! \var domlen_z */
-  /*  \brief Local domain length in z-direction */
-  Real domlen_z;
-
-  /*! \var xblocal */
+   /*! \var xblocal */
   /*  \brief Local domain x-direction minimum */
   Real xblocal;
 
@@ -172,9 +164,21 @@ struct Header
   /*  \brief Local domain y-direction minimum */
   Real yblocal;
 
-  /*! \var zblocal*/
+  /*! \var zblocal */
   /*  \brief Local domain z-direction minimum */
   Real zblocal;
+
+  /*! \var xblocal_max */
+  /*  \brief Local domain x-direction maximum */
+  Real xblocal_max;
+
+  /*! \var yblocal_max */
+  /*  \brief Local domain y-direction maximum */
+  Real yblocal_max;
+
+  /*! \var zblocal_max */
+  /*  \brief Local domain z-direction maximum */
+  Real zblocal_max;
 
   /*! \var xdglobal */
   /*  \brief Global domain length in x-direction */
@@ -286,14 +290,6 @@ class Grid3D
      *  \brief Rotation struct for data projections */
     struct Rotation R;
 
-    /*! \var buffer0
-     *  \brief Buffer to hold conserved variable arrays */
-    Real *buffer0;
-
-    /*! \var buffer1
-     *  \brief Buffer to hold conserved variable arrays */
-    Real *buffer1;
-
     #ifdef GRAVITY
     // Object that contains data for gravity
     Grav3D Grav;
@@ -323,12 +319,20 @@ class Grid3D
     Time Timer;
     #endif
 
+    #ifdef CHEMISTRY_GPU
+    // Object that contains data for the GPU chemistry solver
+    Chem_GPU Chem;
+    #endif
+
     #ifdef ANALYSIS
     Analysis_Module Analysis;
     #endif
 
     struct Conserved
     {
+      /*! pointer to conserved variable array on the host */
+      Real *host;
+
       /*! \var density
        *  \brief Array containing the density of each cell in the grid */
       Real *density;
@@ -349,27 +353,58 @@ class Grid3D
        *  \brief Array containing the total Energy of each cell in the grid */
       Real *Energy;
 
+      #ifdef SCALAR
+      /*! \var scalar
+       *  \brief Array containing the values of the passive scalar variable(s). */
+      Real *scalar;
+      #endif  // SCALAR
+
+      #ifdef MHD
+      /*! \var magnetic_x \brief Array containing the magnetic field in the x
+       *  direction of each cell in the grid. Note that this is the magnetic
+       *  field at the x+1/2 face of the cell since constrained transport
+       *  requires face centered, not cell centered, magnetic fields */
+      Real *magnetic_x;
+
+      /*! \var magnetic_y \brief Array containing the magnetic field in the y
+       *  direction of each cell in the grid. Note that this is the magnetic
+       *  field at the y+1/2 face of the cell since constrained transport
+       *  requires face centered, not cell centered, magnetic fields */
+      Real *magnetic_y;
+
+      /*! \var magnetic_z \brief Array containing the magnetic field in the z
+       *  direction of each cell in the grid. Note that this is the magnetic
+       *  field at the z+1/2 face of the cell since constrained transport
+       *  requires face centered, not cell centered, magnetic fields */
+      Real *magnetic_z;
+      #endif  // MHD
+
       #ifdef DE
       /*! \var GasEnergy
        *  \brief Array containing the internal energy of each cell, only tracked separately when using
            the dual-energy formalism. */
       Real *GasEnergy;
-      #endif
-
-      #ifdef SCALAR
-      /*! \var scalar
-       *  \brief Array containing the values of the passive scalar variable(s). */
-      Real *scalar;
-      #endif
+      #endif  // DE
 
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
 
+      #ifdef CHEMISTRY_GPU
+      Real *HI_density;
+      Real *HII_density;
+      Real *HeI_density;
+      Real *HeII_density;
+      Real *HeIII_density;
+      Real *e_density;
+      #endif
+
+
       /*! pointer to conserved variable on device */
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z,
-           *d_Energy, *d_scalar, *d_GasEnergy;
+           *d_Energy, *d_scalar, *d_magnetic_x, *d_magnetic_y, *d_magnetic_z,
+           *d_GasEnergy;
 
        /*! pointer to gravitational potential on device */
       Real *d_Grav_potential;
@@ -507,7 +542,7 @@ class Grid3D
 
     /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
      *  \brief Constant gas properties. */
-    void Constant(Real rho, Real vx, Real vy, Real vz, Real P);
+    void Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real By, Real Bz);
 
     /*! \fn void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
      *  \brief Sine wave perturbation. */
@@ -517,9 +552,13 @@ class Grid3D
      *  \brief Square wave density perturbation with amplitude A*rho in pressure equilibrium. */
     void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
 
-    /*! \fn void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph)
+    /*! \fn void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real Bx_l, Real By_l, Real Bz_l,
+                         Real rho_r, Real vx_r, Real vy_r, Real vz_r, Real P_r, Real Bx_r, Real By_r, Real Bz_r,
+                         Real diaph)
      *  \brief Initialize the grid with a Riemann problem. */
-    void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph);
+    void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real Bx_l, Real By_l, Real Bz_l,
+                 Real rho_r, Real vx_r, Real vy_r, Real vz_r, Real P_r, Real Bx_r, Real By_r, Real Bz_r,
+                 Real diaph);
 
     /*! \fn void Shu_Osher()
      *  \brief Initialize the grid with the Shu-Osher shock tube problem. See Stone 2008, Section 8.1 */
@@ -585,26 +624,9 @@ class Grid3D
      *  \brief Apply boundary conditions to the grid. */
     void Set_Boundaries(int dir, int flags[]);
 
-    void Set_Hydro_Boundaries_CPU
-           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
-             int dir, int *flags );
-    void Set_Hydro_Boundaries_GPU
-           ( Real *Sign, int *iaBoundary, int *iaCell, int nBoundaries,
-             int dir, int *flags );
-
     /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
      *  \brief Set the extents of the ghost region we are initializing. */
     void Set_Boundary_Extents(int dir, int *imin, int *imax);
-
-    /*! \fn Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a)
-     *  \brief Given the i,j,k index of a ghost cell, return the index of the
-        corresponding real cell, and reverse the momentum if necessary. */
-    int  Set_Boundary_Mapping(int ig, int jg, int kg, int flags[], Real *a);
-
-    /*! \fn int Find_Index(int ig, int nx, int flag, int face, Real *a)
-     *  \brief Given a ghost cell index and boundary flag,
-        return the index of the corresponding real cell. */
-    int  Find_Index(int ig, int nx, int flag, int face, Real *a);
 
     /*! \fn void Custom_Boundary(char bcnd[MAXLEN])
      *  \brief Select appropriate custom boundary function. */
@@ -627,30 +649,15 @@ class Grid3D
 
     void Zeldovich_Pancake( struct parameters P );
 
+    void Chemistry_Test( struct parameters P );
+
 
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);
-    void Set_Boundaries_MPI_SLAB(int *flags, struct parameters P);
     void Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P);
-    void Set_Edge_Boundaries(int dir, int *flags);
-    void Set_Edge_Boundary_Extents(int dir, int edge, int *imin, int *imax);
     void Load_and_Send_MPI_Comm_Buffers(int dir, int *flags);
-    void Load_and_Send_MPI_Comm_Buffers_SLAB(int *flags);
-    void Load_and_Send_MPI_Comm_Buffers_BLOCK(int dir, int *flags);
-    void Wait_and_Unload_MPI_Comm_Buffers_SLAB(int *flags);
-    void Wait_and_Unload_MPI_Comm_Buffers_BLOCK(int dir, int *flags);
+    void Wait_and_Unload_MPI_Comm_Buffers(int dir, int *flags);
     void Unload_MPI_Comm_Buffers(int index);
-    void Unload_MPI_Comm_Buffers_SLAB(int index);
-    void Unload_MPI_Comm_Buffers_BLOCK(int index);
-
-    void Load_Hydro_Buffer_CPU(Real *buffer, int idxoffset, int isize, int jsize, int ksize);
-
-    int Load_Hydro_Buffer_X0(Real *buffer);
-    int Load_Hydro_Buffer_X1(Real *buffer);
-    int Load_Hydro_Buffer_Y0(Real *buffer);
-    int Load_Hydro_Buffer_Y1(Real *buffer);
-    int Load_Hydro_Buffer_Z0(Real *buffer);
-    int Load_Hydro_Buffer_Z1(Real *buffer);
 
     int Load_Hydro_DeviceBuffer_X0(Real *buffer);
     int Load_Hydro_DeviceBuffer_X1(Real *buffer);
@@ -659,14 +666,6 @@ class Grid3D
     int Load_Hydro_DeviceBuffer_Z0(Real *buffer);
     int Load_Hydro_DeviceBuffer_Z1(Real *buffer);
 
-    void Unload_Hydro_Buffer_CPU(Real *buffer, int idxoffset, int isize, int jsize, int ksize);
-
-    void Unload_Hydro_Buffer_X0(Real *buffer);
-    void Unload_Hydro_Buffer_X1(Real *buffer);
-    void Unload_Hydro_Buffer_Y0(Real *buffer);
-    void Unload_Hydro_Buffer_Y1(Real *buffer);
-    void Unload_Hydro_Buffer_Z0(Real *buffer);
-    void Unload_Hydro_Buffer_Z1(Real *buffer);
     void Unload_Hydro_DeviceBuffer_X0(Real *buffer);
     void Unload_Hydro_DeviceBuffer_X1(Real *buffer);
     void Unload_Hydro_DeviceBuffer_Y0(Real *buffer);
@@ -682,7 +681,7 @@ class Grid3D
   void Copy_Hydro_Density_to_Gravity();
   void Extrapolate_Grav_Potential_Function( int g_start, int g_end );
   void Extrapolate_Grav_Potential();
-  void Copy_Potential_Boundaries( int direction, int side, int *flags );
+  void Set_Potential_Boundaries_Periodic( int direction, int side, int *flags );
   int Load_Gravity_Potential_To_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Unload_Gravity_Potential_from_Buffer( int direction, int side, Real *buffer, int buffer_start  );
   void Set_Potential_Boundaries_Isolated( int direction, int side, int *flags );
@@ -699,6 +698,7 @@ class Grid3D
   int Load_Gravity_Potential_To_Buffer_GPU( int direction, int side, Real *buffer, int buffer_start  );
   void Unload_Gravity_Potential_from_Buffer_GPU( int direction, int side, Real *buffer, int buffer_start  );
   void Set_Potential_Boundaries_Isolated_GPU( int direction, int side, int *flags );
+  void Set_Potential_Boundaries_Periodic_GPU( int direction, int side, int *flags );
   #endif
 
   #endif//GRAVITY
@@ -714,7 +714,7 @@ class Grid3D
   void Copy_Particles_Density_function( int g_start, int g_end );
   void Copy_Particles_Density();
   void Copy_Particles_Density_to_Gravity(struct parameters P);
-  void Copy_Particles_Density_Boundaries( int direction, int side );
+  void Set_Particles_Density_Boundaries_Periodic( int direction, int side );
   void Transfer_Particles_Boundaries( struct parameters P );
   Real Update_Grid_and_Particles_KDK( struct parameters P );
   void Set_Particles_Boundary( int dir, int side);
@@ -767,6 +767,7 @@ class Grid3D
   void Advance_Particles_KDK_Step1_GPU();
   void Advance_Particles_KDK_Step2_GPU();
   void Set_Particles_Boundary_GPU( int dir, int side);
+  void Set_Particles_Density_Boundaries_Periodic_GPU( int direction, int side );
   #endif//PARTICLES_GPU
   #ifdef GRAVITY_GPU
   void Copy_Particles_Density_GPU();
@@ -807,6 +808,12 @@ class Grid3D
   void Do_Cooling_Step_Grackle();
   #endif
 
+  #ifdef CHEMISTRY_GPU
+  void Initialize_Chemistry( struct parameters *P );
+  void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
+  void Update_Chemistry();
+  #endif
+
   #ifdef ANALYSIS
   void Initialize_Analysis_Module( struct parameters *P );
   void Compute_and_Output_Analysis( struct parameters *P );
@@ -820,12 +827,16 @@ class Grid3D
 
   #ifdef LYA_STATISTICS
   void Populate_Lya_Skewers_Local( int axis );
-  void Compute_Transmitted_Flux_Skewer( int skewer_id, int axis, int chemical_type );
+  void Compute_Transmitted_Flux_Skewer( int skewer_id, int axis );
   void Compute_Lya_Statistics( );
   void Compute_Flux_Power_Spectrum_Skewer( int skewer_id, int axis );
   void Initialize_Power_Spectrum_Measurements( int axis );
+  #ifdef OUTPUT_SKEWERS
+  void Output_Skewers_File( struct parameters *P );
+  void Write_Skewers_Header_HDF5( hid_t file_id );
+  void Write_Skewers_Data_HDF5( hid_t file_id );
   #endif
-
+  #endif//LYA_STATISTICS
   #endif//ANALYSIS
 
   #ifdef PARTICLES

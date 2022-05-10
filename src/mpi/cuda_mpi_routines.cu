@@ -1,3 +1,4 @@
+#ifdef MPI_CHOLLA
 #include <stdio.h>
 #include "../utils/gpu.hpp"
 #include "../io/io.h"
@@ -48,3 +49,4 @@ int initialize_cuda_mpi(int myid, int nprocs)
   return 0;
 
 }
+#endif //MPI_CHOLLA

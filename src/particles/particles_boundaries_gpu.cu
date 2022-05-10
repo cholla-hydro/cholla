@@ -223,7 +223,12 @@ __global__ void Get_Transfer_Indices_Kernel( part_int_t n_total, bool *transfer_
   tid =  threadIdx.x + blockIdx.x * blockDim.x;
   if ( tid >= n_total ) return;
   transfer_index = prefix_sum_d[tid];
-
+  
+  if ( transfer_index < 0 || transfer_index >= n_total ){
+    printf( "#### PARTICLE TRANSFER ERROR:  transfer index outside domain: %d \n", transfer_index  ); 
+    return;
+  }
+  
   if ( transfer_flags_d[tid] ) transfer_indices_d[transfer_index] = tid;
 
 }
@@ -243,6 +248,12 @@ __global__ void Select_Indices_to_Replace_Tranfered_Kernel( part_int_t n_total, 
 
   prefix_sum_inv = n_transfer - prefix_sum_d[tid];
   replace_id = tid_inv - prefix_sum_inv;
+  
+  
+  if ( replace_id < 0 || replace_id >= n_total ){
+    printf( "#### PARTICLE TRANSFER ERROR:  replace index outside domain: %d \n", replace_id  );
+    return;
+  } 
   replace_indices_d[replace_id] = tid;
 
 }
@@ -303,19 +314,19 @@ part_int_t Select_Particles_to_Transfer_GPU_function( part_int_t n_local, int si
 
   hipLaunchKernelGGL( Prefix_Sum_Blocks_Kernel, 1, dim1dBlock , 0, 0,  grid_size_half, transfer_prefix_sum_blocks_d );
   CudaCheckError();
-
+  
   hipLaunchKernelGGL( Sum_Blocks_Kernel, dim1dGrid,   dim1dBlock, 0, 0,  n_local, transfer_prefix_sum_d, transfer_prefix_sum_blocks_d );
   CudaCheckError();
-
+  
   hipLaunchKernelGGL( Get_N_Transfer_Particles_Kernel, 1, 1, 0, 0,  n_local,  n_transfer_d, transfer_flags_d, transfer_prefix_sum_d );
   CudaCheckError();
-
+  
   CudaSafeCall( cudaMemcpy( n_transfer_h, n_transfer_d, sizeof(int), cudaMemcpyDeviceToHost) );
   CudaCheckError();
-
+  
   hipLaunchKernelGGL( Get_Transfer_Indices_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local , transfer_flags_d, transfer_prefix_sum_d, transfer_indices_d );
   CudaCheckError();
-
+  
   hipLaunchKernelGGL( Select_Indices_to_Replace_Tranfered_Kernel, dim1dGrid, dim1dBlock , 0, 0,  n_local, n_transfer_h[0], transfer_flags_d, transfer_prefix_sum_d, replace_indices_d );
   CudaCheckError();
 

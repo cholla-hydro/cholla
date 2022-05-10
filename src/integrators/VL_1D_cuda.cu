@@ -29,64 +29,33 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
 
 
 
-void VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
+void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
 {
-  //Here, *host_conserved contains the entire
+  //Here, *dev_conserved contains the entire
   //set of conserved variables on the grid
-  //host_conserved0 contains the values at time n
-  //host_conserved1 will contain the values at time n+1
 
   int n_cells = nx;
   int ny = 1;
   int nz = 1;
 
   // set the dimensions of the cuda grid
-  ngrid = (n_cells + TPB - 1) / TPB;
   dim3 dimGrid(ngrid, 1, 1);
   dim3 dimBlock(TPB, 1, 1);
 
   if ( !memory_allocated ) {
 
-    // allocate an array on the CPU to hold max_dti returned from each thread block
-    CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
-    #ifdef COOLING_GPU
-    CudaSafeCall( cudaHostAlloc(&host_dt_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
-    #endif
-
     // allocate memory on the GPU
     dev_conserved = d_conserved;
-<<<<<<< HEAD:src/VL_1D_cuda.cu
-=======
     //CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*n_cells*sizeof(Real)) );
->>>>>>> 2d1bfc6b82d9213b51fcdc66ca3c63ac71be9da7:src/integrators/VL_1D_cuda.cu
     CudaSafeCall( cudaMalloc((void**)&dev_conserved_half, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Lx, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Rx, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_x,   n_fields*n_cells*sizeof(Real)) );
-    CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-    #ifdef COOLING_GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
-    #endif
 
-    #ifndef DYNAMIC_GPU_ALLOC
     // If memory is single allocated: memory_allocated becomes true and successive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
-    #endif
   }
-
-  // copy the conserved variable array onto the GPU
-<<<<<<< HEAD:src/VL_1D_cuda.cu
-  #ifndef GPU_MPI
-  CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved0, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
-  CudaCheckError();
-  #endif
-=======
-  #ifndef HYDRO_GPU
-  CudaSafeCall( cudaMemcpy(dev_conserved, host_conserved0, n_fields*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
-  CudaCheckError();
-  #endif //HYDRO_GPU
->>>>>>> 2d1bfc6b82d9213b51fcdc66ca3c63ac71be9da7:src/integrators/VL_1D_cuda.cu
 
   // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
   hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, gama, n_fields);
@@ -156,51 +125,7 @@ void VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_
   hipLaunchKernelGGL(Select_Internal_Energy_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, n_fields);
   hipLaunchKernelGGL(Sync_Energies_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, gama, n_fields);
   CudaCheckError();
-<<<<<<< HEAD:src/VL_1D_cuda.cu
   #endif    
-
-
-  // Apply cooling
-  #ifdef COOLING_GPU
-  hipLaunchKernelGGL(cooling_kernel, dimGrid, dimBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dev_dt_array);
-  CudaCheckError();
-  #endif
-
-
-  // Step 7: Calculate the next timestep
-  hipLaunchKernelGGL(Calc_dt_1D, dimGrid, dimBlock, 0, 0, dev_conserved, n_cells, n_ghost, dx, dev_dti_array, gama);
-  CudaCheckError();
-
-
-  // copy the conserved variable array back to the CPU
-  #ifndef GPU_MPI
-  CudaSafeCall( cudaMemcpy(host_conserved1, dev_conserved, n_fields*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-  #endif
-
-  // copy the dti array onto the CPU
-  CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-  // iterate through to find the maximum inverse dt for this subgrid block
-  for (int i=0; i<ngrid; i++) {
-    max_dti = fmax(max_dti, host_dti_array[i]);
-  }
-  #ifdef COOLING_GPU
-  // copy the dt array from cooling onto the CPU
-  CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-  // find maximum inverse timestep from cooling time
-  for (int i=0; i<ngrid; i++) {
-    min_dt = fmin(min_dt, host_dt_array[i]);
-  }  
-  if (min_dt < C_cfl/max_dti) {
-    max_dti = C_cfl/min_dt;
-  }
-=======
->>>>>>> 2d1bfc6b82d9213b51fcdc66ca3c63ac71be9da7:src/integrators/VL_1D_cuda.cu
-  #endif
-
-  #ifdef DYNAMIC_GPU_ALLOC
-  // If memory is not single allocated then free the memory every timestep.
-  Free_Memory_VL_1D();
-  #endif
 
   return;
 
@@ -209,22 +134,12 @@ void VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, Real *d_
 
 void Free_Memory_VL_1D() {
 
-  // free the CPU memory
-  CudaSafeCall( cudaFreeHost(host_dti_array) );
-  #ifdef COOLING_GPU
-  CudaSafeCall( cudaFreeHost(host_dt_array) );
-  #endif
-
   // free the GPU memory
   cudaFree(dev_conserved);
   cudaFree(dev_conserved_half);
   cudaFree(Q_Lx);
   cudaFree(Q_Rx);
   cudaFree(F_x);
-  cudaFree(dev_dti_array);
-  #ifdef COOLING_GPU
-  cudaFree(dev_dt_array);
-  #endif
 
 }
 

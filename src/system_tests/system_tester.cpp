@@ -36,20 +36,8 @@ void systemTest::SystemTestRunner::runTest()
     if (globalRunCholla)
     {
         // Launch Cholla. Note that this dumps all console output to the console
-        // log file as requested by the user. The parallel launch might not
-        // actually speed things up at all. This is the first place to look for
-        // performance improvements
-        std::string const chollaRunCommand = globalMpiLauncher.getString() + " "
-                                            + std::to_string(numMpiRanks) + " "
-                                            + _chollaPath + " "
-                                            + _chollaSettingsPath + " "
-                                            + _chollaLaunchParams + " "
-                                            + "outdir=" + _outputDirectory + "/"
-                                            + " >> " + _consoleOutputPath + " 2>&1 ";
-        system(("echo Launch Command: " + chollaRunCommand + " >> " + _consoleOutputPath).c_str());
-        system((chollaRunCommand).c_str()); // Args to send to "system" call
-        _safeMove("run_output.log", _outputDirectory);
-        _safeMove("run_timing.log", _outputDirectory);
+        // log file as requested by the user.
+        launchCholla();
     }
 
     /// If set to false then no comparison will be performed. Generally this and
@@ -88,7 +76,7 @@ void systemTest::SystemTestRunner::runTest()
     {
         _testParticleIDs     = _loadTestParticleData("particle_IDs");
 
-        _fiducialParticleIDs = _loadFiducialParticleData("particle_IDs");
+        if (_fiducialFileExists) _fiducialParticleIDs = _loadFiducialParticleData("particle_IDs");
     }
 
     // Get the list of test dataset names
@@ -135,7 +123,7 @@ void systemTest::SystemTestRunner::runTest()
         std::vector<double> fiducialData;
         // This is just a vector of all the different dataset names for
         // particles to help choose whether to call _loadTestParticleData
-        // or _loadTestFieldData
+        // or loadTestFieldData
         std::vector<std::string> particleIDs = {"particle_IDs",
                                                 "pos_x",
                                                 "pos_y",
@@ -166,7 +154,7 @@ void systemTest::SystemTestRunner::runTest()
         else
         {
             // This is a field data set
-            testData = _loadTestFieldData(dataSetName,
+            testData = loadTestFieldData(dataSetName,
                                           testDims);
             // Get fiducial data
             fiducialData = _loadFiducialFieldData(dataSetName);
@@ -190,10 +178,14 @@ void systemTest::SystemTestRunner::runTest()
                     // Check for equality and iff not equal return difference
                     double absoluteDiff;
                     int64_t ulpsDiff;
+                    // Fixed epsilon is changed from the default since AMD/Clang
+                    // appear to differ from NVIDIA/GCC/XL by roughly 1E-12
+                    double fixedEpsilon = 5.0E-12;
                     bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData.at(index),
                                                                      testData.at(index),
                                                                      absoluteDiff,
-                                                                     ulpsDiff);
+                                                                     ulpsDiff,
+                                                                     fixedEpsilon);
                     ASSERT_TRUE(areEqual)
                         << std::endl
                         << "Difference in "
@@ -207,6 +199,47 @@ void systemTest::SystemTestRunner::runTest()
                 }
             }
         }
+    }
+}
+// =============================================================================
+
+// =============================================================================
+void systemTest::SystemTestRunner::launchCholla()
+{
+    // Launch Cholla. Note that this dumps all console output to the console
+    // log file as requested by the user.
+    std::string const chollaRunCommand = globalMpiLauncher.getString() + " "
+                                        + std::to_string(numMpiRanks) + " "
+                                        + _chollaPath + " "
+                                        + _chollaSettingsPath + " "
+                                        + chollaLaunchParams + " "
+                                        + "outdir=" + _outputDirectory + "/"
+                                        + " >> " + _consoleOutputPath + " 2>&1 ";
+    auto returnEcho = system(("echo Launch Command: " + chollaRunCommand + " >> " + _consoleOutputPath).c_str());
+    auto returnLaunch = system((chollaRunCommand).c_str());
+    EXPECT_EQ(returnEcho, 0)
+        << "Warning: Echoing the launch command to the console output file "
+        << "returned a non-zero exit status code. Launch command is `"
+        << chollaRunCommand <<  "`" << std::endl;
+    EXPECT_EQ(returnLaunch, 0)
+        << "Warning: Launching Cholla returned a non-zero exit status. Likely "
+        << "failed to launch. Please see the log files" << std::endl;
+
+    _safeMove("run_output.log", _outputDirectory);
+    _safeMove("run_timing.log", _outputDirectory);
+}
+// =============================================================================
+
+// =============================================================================
+void systemTest::SystemTestRunner::openHydroTestData()
+{
+   _testHydroFieldsFileVec.resize(numMpiRanks);
+    for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++)
+    {
+      std::string fileName = "/1.h5." + std::to_string(fileIndex);
+      _checkFileExists(_outputDirectory + fileName);
+      _testHydroFieldsFileVec[fileIndex].openFile(_outputDirectory + fileName,
+                                                        H5F_ACC_RDONLY);
     }
 }
 // =============================================================================
@@ -308,7 +341,7 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &particleData,
                           + "/src/system_tests/input_files/"
                           + _fullTestFileName + ".txt";
     _fiducialFilePath   = ::globalChollaRoot.getString()
-                          + "/src/system_tests/fiducial_data/"
+                          + "/cholla-tests-data/system_tests/"
                           + _fullTestFileName + ".h5";
 
     // Generate output paths, these files don't exist yet
@@ -427,7 +460,7 @@ void systemTest::SystemTestRunner::_checkNumTimeSteps()
 // =============================================================================
 
 // =============================================================================
-std::vector<double> systemTest::SystemTestRunner::_loadTestFieldData(
+std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(
         std::string dataSetName,
         std::vector<size_t> &testDims)
 {
@@ -609,58 +642,65 @@ std::vector<double> systemTest::SystemTestRunner::_loadFiducialFieldData(
 std::vector<double> systemTest::SystemTestRunner::_loadFiducialParticleData(
         std::string const &dataSetName)
 {
-    // Determine the total number of particles
-    if (_fiducialTotalNumParticles == 0)
+    if (_fiducialFileExists)
     {
+        // Determine the total number of particles
+        if (_fiducialTotalNumParticles == 0)
+        {
+            // Open the dataset
+            H5::DataSet const dataSet = _fiducialFile.openDataSet(dataSetName);
+
+            // Determine dataset size/shape and check that it's correct
+            H5::DataSpace dataSpace = dataSet.getSpace();
+
+            // Get the number of elements and increase the total count
+            size_t localNumParticles = dataSpace.getSimpleExtentNpoints();
+            _fiducialTotalNumParticles += localNumParticles;
+        }
+
+        // Allocate the vectors
+        std::vector<double> unsortedFiducialData(_fiducialTotalNumParticles);
+        std::vector<double> fiducialData(_fiducialTotalNumParticles);
+
+        // Load in the data
         // Open the dataset
-        H5::DataSet const dataSet = _fiducialFile.openDataSet(dataSetName);
+        H5::DataSet const fiducialDataSet = _fiducialFile.openDataSet(dataSetName);
 
         // Determine dataset size/shape and check that it's correct
-        H5::DataSpace dataSpace = dataSet.getSpace();
+        H5::DataSpace const testDataSpace = fiducialDataSet.getSpace();
 
-        // Get the number of elements and increase the total count
-        size_t localNumParticles = dataSpace.getSimpleExtentNpoints();
-        _fiducialTotalNumParticles += localNumParticles;
+        size_t localNumParticles = testDataSpace.getSimpleExtentNpoints();
+
+        // Read in data
+        fiducialDataSet.read(unsortedFiducialData.data(),
+                            H5::PredType::NATIVE_DOUBLE);
+
+        // Generate the sorting vector if it's not already generated
+        std::vector<size_t> tempSortedIndices;
+        if (dataSetName == "particle_IDs")
+        {
+            tempSortedIndices.resize(_fiducialTotalNumParticles);
+            std::iota(tempSortedIndices.begin(), tempSortedIndices.end(), 0);
+            std::sort(tempSortedIndices.begin(), tempSortedIndices.end(),
+                    [&](size_t A, size_t B) -> bool {
+                            return unsortedFiducialData.at(A) < unsortedFiducialData.at(B);
+                        });
+        }
+        std::vector<size_t> const static sortedIndices = tempSortedIndices;
+
+        // Sort the vector
+        for (size_t i = 0; i < _fiducialTotalNumParticles; i++)
+        {
+            fiducialData.at(i) = unsortedFiducialData.at(sortedIndices.at(i));
+        }
+
+        // Return the entire dataset fully concatenated and sorted
+        return fiducialData;
     }
-
-    // Allocate the vectors
-    std::vector<double> unsortedFiducialData(_fiducialTotalNumParticles);
-    std::vector<double> fiducialData(_fiducialTotalNumParticles);
-
-    // Load in the data
-    // Open the dataset
-    H5::DataSet const fiducialDataSet = _fiducialFile.openDataSet(dataSetName);
-
-    // Determine dataset size/shape and check that it's correct
-    H5::DataSpace const testDataSpace = fiducialDataSet.getSpace();
-
-    size_t localNumParticles = testDataSpace.getSimpleExtentNpoints();
-
-    // Read in data
-    fiducialDataSet.read(unsortedFiducialData.data(),
-                         H5::PredType::NATIVE_DOUBLE);
-
-    // Generate the sorting vector if it's not already generated
-    std::vector<size_t> tempSortedIndices;
-    if (dataSetName == "particle_IDs")
+    else
     {
-        tempSortedIndices.resize(_fiducialTotalNumParticles);
-        std::iota(tempSortedIndices.begin(), tempSortedIndices.end(), 0);
-        std::sort(tempSortedIndices.begin(), tempSortedIndices.end(),
-                  [&](size_t A, size_t B) -> bool {
-                        return unsortedFiducialData.at(A) < unsortedFiducialData.at(B);
-                    });
+        return _fiducialDataSets[dataSetName];
     }
-    std::vector<size_t> const static sortedIndices = tempSortedIndices;
-
-    // Sort the vector
-    for (size_t i = 0; i < _fiducialTotalNumParticles; i++)
-    {
-        fiducialData.at(i) = unsortedFiducialData.at(sortedIndices.at(i));
-    }
-
-    // Return the entire dataset fully concatenated and sorted
-    return fiducialData;
 }
 // =============================================================================
 

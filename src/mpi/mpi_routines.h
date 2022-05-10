@@ -36,18 +36,7 @@ extern MPI_Request *recv_request;
 extern int dest[6];
 extern int source[6];
 
-/* Decomposition flag */
-extern int flag_decomp;
-
-#define SLAB_DECOMP  1 	//slab  decomposition flag
-#define BLOCK_DECOMP 2	//block decomposition flag
-
 //Communication buffers
-// For SLAB
-extern Real *send_buffer_0;
-extern Real *send_buffer_1;
-extern Real *recv_buffer_0;
-extern Real *recv_buffer_1;
 
 // For BLOCK
 extern Real *d_send_buffer_x0;
@@ -160,7 +149,7 @@ void InitializeChollaMPI(int *pargc, char **pargv[]);
 
 /* Perform domain decomposition */
 void DomainDecomposition(struct parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
-void DomainDecompositionSLAB(struct parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
+
 void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
 
 /*tile MPI processes in a block decomposition*/
@@ -187,23 +176,11 @@ part_int_t Get_Particles_IDs_Global_MPI_Offset( part_int_t n_local );
 void Check_and_Grow_Particles_Buffer( Real **part_buffer, int *current_size_ptr, int new_size );
 #endif
 
-/* Set the domain properties */
-void Set_Parallel_Domain(Real xmin_global, Real ymin_global, Real zmin_global, Real xlen_global, Real ylen_global, Real zlen_global, struct Header *H);
-
 /* Print information about the domain properties */
 void Print_Domain_Properties(struct Header H);
 
-/* Allocate MPI communication buffers*/
-void Allocate_MPI_Buffers(struct Header *H);
-
-/* Allocate MPI communication buffers for a SLAB decomposition */
-void Allocate_MPI_Buffers_SLAB(struct Header *H);
-
-/* Allocate MPI communication buffers for a BLOCK decomposition */
-void Allocate_MPI_Buffers_BLOCK(struct Header *H);
-
 /* Allocate MPI communication GPU buffers for a BLOCK decomposition */
-void Allocate_MPI_DeviceBuffers_BLOCK(struct Header *H);
+void Allocate_MPI_DeviceBuffers(struct Header *H);
 
 /* find the greatest prime factor of an integer */
 int greatest_prime_factor(int n);

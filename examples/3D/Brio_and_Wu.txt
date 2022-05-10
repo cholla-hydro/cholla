@@ -1,0 +1,72 @@
+#
+# Parameter File for 3D Brio & Wu MHD shock tube
+# Citation: Brio & Wu 1988 "An Upwind Differencing Scheme for the Equations of
+# Ideal Magnetohydrodynamics"
+#
+
+################################################
+# number of grid cells in the x dimension
+nx=32
+# number of grid cells in the y dimension
+ny=32
+# number of grid cells in the z dimension
+nz=32
+# final output time
+tout=0.1
+# time interval for output
+outstep=0.1
+# name of initial conditions
+init=Riemann
+
+# domain properties
+xmin=0.0
+ymin=0.0
+zmin=0.0
+xlen=1.0
+ylen=1.0
+zlen=1.0
+
+# type of boundary conditions
+xl_bcnd=3
+xu_bcnd=3
+yl_bcnd=3
+yu_bcnd=3
+zl_bcnd=3
+zu_bcnd=3
+
+# path to output directory
+outdir=./
+
+#################################################
+# Parameters for 1D Riemann problems
+# density of left state
+rho_l=1.0
+# velocity of left state
+vx_l=0
+vy_l=0
+vz_l=0
+# pressure of left state
+P_l=1.0
+# Magnetic field of the left state
+Bx_l=0.75
+By_l=1.0
+Bz_l=0.0
+
+# density of right state
+rho_r=0.128
+# velocity of right state
+vx_r=0
+vy_r=0
+vz_r=0
+# pressure of right state
+P_r=0.1
+# Magnetic field of the right state
+Bx_r=0.75
+By_r=-1.0
+Bz_r=0.0
+
+# location of initial discontinuity
+diaph=0.5
+# value of gamma
+gamma=2
+
