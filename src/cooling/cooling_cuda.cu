@@ -70,7 +70,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef DE
   Real ge;
   #endif
-  Real T_min = 1.0e4; // minimum temperature allowed
+  //Real T_min = 1.0e4; // minimum temperature allowed
 
   mu = 0.6;
   //mu = 1.27;
