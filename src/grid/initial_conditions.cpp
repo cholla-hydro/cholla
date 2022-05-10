@@ -1,3 +1,4 @@
+/*! \file initial_conditions.cpp
 /*  \brief Definitions of initial conditions for different tests.
            Note that the grid is mapped to 1D as i + (x_dim)*j + (x_dim*y_dim)*k.
            Functions are members of the Grid3D class. */
