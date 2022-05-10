@@ -180,9 +180,6 @@ void Grid3D::Initialize(struct parameters *P)
     flag_init = 1;
   }
 
-  // Set the flag that tells Update_Grid which buffer to read from
-  gflag = 0;
-
   // Set header variables for time within the simulation
   H.t = 0.0;
   // and the number of timesteps taken
@@ -533,8 +530,6 @@ Real Grid3D::Update_Grid(void)
   C.e_density     = &C.scalar[ 5*H.n_cells ];
   #endif
 
-  // reset the grid flag to swap buffers
-  gflag = (gflag+1)%2;
 
   return max_dti;
 
