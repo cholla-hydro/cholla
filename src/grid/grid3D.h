@@ -791,15 +791,11 @@ class Grid3D
   #endif//PARTICLES_GPU
   #endif//COSMOLOGY
 
-<<<<<<< HEAD:src/grid3D.h
   #ifdef RT
   void Initialize_RT();
   void Allocate_Abundances();
   #endif
 
-  
-=======
->>>>>>> CAAR:src/grid/grid3D.h
   #ifdef COOLING_GRACKLE
   void Initialize_Grackle( struct parameters *P );
   void Allocate_Memory_Grackle();
