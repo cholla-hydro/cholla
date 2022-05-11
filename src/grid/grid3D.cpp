@@ -180,9 +180,6 @@ void Grid3D::Initialize(struct parameters *P)
     flag_init = 1;
   }
 
-  // Set the flag that tells Update_Grid which buffer to read from
-  gflag = 0;
-
   // Set header variables for time within the simulation
   H.t = 0.0;
   // and the number of timesteps taken
@@ -332,6 +329,16 @@ void Grid3D::AllocateMemory(void)
   C.HeIII_density = &C.scalar[ 4*H.n_cells ];
   C.e_density     = &C.scalar[ 5*H.n_cells ];
   #endif
+
+
+  #ifdef RT
+  chprintf( " Setting pointers for: HI, HII, HeI, HeII, HeIII, densities\n");  
+  C.HI_density    = &C.scalar[ 0*H.n_cells ];
+  C.HII_density   = &C.scalar[ 1*H.n_cells ];
+  C.HeI_density   = &C.scalar[ 2*H.n_cells ];
+  C.HeII_density  = &C.scalar[ 3*H.n_cells ];
+  C.HeIII_density = &C.scalar[ 4*H.n_cells ];
+  #endif  
 
   // initialize host array
   for (int i=0; i<H.n_fields*H.n_cells; i++)

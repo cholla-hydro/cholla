@@ -278,10 +278,6 @@ class Grid3D
      *  \brief Initialization flag */
     int flag_init;
 
-    /*! \var gflag
-     *  \brief Flag that determines which buffer contains updated conserved variables */
-    int gflag;
-
     /*! \var struct Header H
      *  \brief Header for the grid */
     struct Header H;
@@ -399,6 +395,13 @@ class Grid3D
       Real *e_density;
       #endif
 
+      #ifdef RT
+      Real *HI_density;
+      Real *HII_density;
+      Real *HeI_density;
+      Real *HeII_density;
+      Real *HeIII_density;
+      #endif      
 
       /*! pointer to conserved variable on device */
       Real *device;
