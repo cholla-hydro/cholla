@@ -39,6 +39,23 @@ void OneTime::End(){
   n_steps++;
 }
 
+
+void OneTime::RecordTime( Real time ){
+  time *=  1000; //Convert from secs to ms
+  #ifdef MPI_CHOLLA
+  t_min = ReduceRealMin(time);
+  t_max = ReduceRealMax(time);
+  t_avg = ReduceRealAvg(time);
+  #else
+  t_min = time;
+  t_max = time;
+  t_avg = time;
+  #endif
+  if (n_steps > 0) t_all += t_max;
+  n_steps++;
+}
+
+
 void OneTime::PrintStep(){
   chprintf(" Time %-19s min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", name, t_min, t_max, t_avg);
 }

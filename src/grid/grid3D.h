@@ -736,6 +736,7 @@ class Grid3D
   void Finish_Particles_Transfer();
   #endif//MPI_CHOLLA
   void Transfer_Particles_Density_Boundaries( struct parameters P );
+  void Copy_Particles_Density_Buffer_Device_to_Host( int direction, int side, Real *buffer_d, Real *buffer_h );
   // void Transfer_Particles_Boundaries( struct parameters P );
   void WriteData_Particles(  struct parameters P, int nfile);
   void OutputData_Particles(  struct parameters P, int nfile);
@@ -765,6 +766,8 @@ class Grid3D
   void Set_Particles_Density_Boundaries_Periodic_GPU( int direction, int side );
   #endif//PARTICLES_GPU
   #ifdef GRAVITY_GPU
+  void Copy_Potential_From_GPU();
+  void Copy_Particles_Density_to_GPU();
   void Copy_Particles_Density_GPU();
   int Load_Particles_Density_Boundary_to_Buffer_GPU( int direction, int side, Real *buffer  );
   void Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, int side, Real *buffer  );

@@ -6,7 +6,7 @@ DFLAGS += -DPARTICLES
 
 #Solve the particles in the GPU or CPU
 #NOTE: If using PARTICLES and MPI_GPU is turned on, then PARTICLES_GPU has to be turned on
-# DFLAGS += -DPARTICLES_CPU
+#DFLAGS += -DPARTICLES_CPU
 DFLAGS += -DPARTICLES_GPU
 
 

@@ -68,6 +68,9 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
 void Grid3D::Copy_Particles_Density(){
 
   #ifdef GRAVITY_GPU
+  #ifdef PARTICLES_CPU
+  Copy_Particles_Density_to_GPU();
+  #endif
   Copy_Particles_Density_GPU();
   #else
 
