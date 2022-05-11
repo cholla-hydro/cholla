@@ -25,9 +25,7 @@ void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 }
 
 __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma) {
-    //__shared__ Real min_dt[TPB];
     // get grid indices
-    Real const K = 1e30;
     int n_cells = nx * ny * nz;
     int is, ie, js, je, ks, ke;
     cuda_utilities::Get_Real_Indices(n_ghost, nx, ny, nz, is, ie, js, je, ks, ke);
@@ -58,13 +56,12 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     if (xid >= is && xid < ie && yid >= js && yid < je && zid >= ks && zid < ke) {
         // get quantities from dev_conserved
         d_gas = dev_conserved[id];
-        //d_dust = dev_conserved[5*n_cells + id];
         d_dust = dev_conserved[5*n_cells + id];
         E = dev_conserved[4*n_cells + id];
         //printf("kernel: %7.4e\n", d_dust);
         // make sure thread hasn't crashed
 
-        n = d_gas*DENSITY_UNIT / (mu * MP);
+        n = d_gas*DENSITY_UNIT / (mu*MP);
 
         if (E < 0.0 || E != E) return;
         
@@ -89,15 +86,13 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 
         T = T_init;
 
-        Real tau_sp = calc_tau_sp(n, T) / TIME_UNIT; // s
+        Real tau_sp = calc_tau_sp(n, T) / TIME_UNIT; // kyr, sim units
 
-        dd_dt = calc_dd_dt(d_dust, tau_sp);
+        dd_dt = calc_dd_dt(d_dust, tau_sp); 
         dd = dd_dt * dt;
 
         // ensure that dust density is not changing too rapidly
-        bool time_refine = false;
         while (dd/d_dust > dd_max) {
-            time_refine = true;
             dt_sub = dd_max * d_dust / dd_dt;
             d_dust += dt_sub * dd_dt;
             dt -= dt_sub;
