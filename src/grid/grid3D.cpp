@@ -136,6 +136,10 @@ void Grid3D::Initialize(struct parameters *P)
 
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
+  
+  #ifdef AVERAGE_SLOW_CELLS
+  H.min_dt_slow = 1e-100; //Initialize the minumum dt to a tiny number
+  #endif
 
 #ifndef MPI_CHOLLA
 
@@ -363,15 +367,8 @@ void Grid3D::AllocateMemory(void)
   //Compute the hydro delta_t ( H.dt )
   if (H.n_step == 0)
   {
-    //Set the min_delta_t for averaging a slow cell
-    #ifdef AVERAGE_SLOW_CELLS
-      Real max_dti_slow = 1 / H.min_dt_slow;
-    #else // NOT AVERAGE_SLOW_CELLS
-      Real max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
-    #endif //max_dti_slow
-
     // Compute the time step
-    max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama, max_dti_slow);
+    max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama );
   }
   else {
     max_dti = dti;
@@ -427,14 +424,6 @@ Real Grid3D::Update_Grid(void)
   U_floor /=  Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
   #endif
 
-  //Set the min_delta_t for averaging a slow cell
-  Real max_dti_slow;
-  #ifdef AVERAGE_SLOW_CELLS
-  max_dti_slow = 1 / H.min_dt_slow;
-  #else // NOT AVERAGE_SLOW_CELLS
-  max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
-  #endif //max_dti_slow
-
 
   // Run the hydro integrator on the grid
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) //1D
@@ -463,13 +452,13 @@ Real Grid3D::Update_Grid(void)
   {
     #ifdef CUDA
     #ifdef CTU
-    CTU_Algorithm_3D_CUDA(C.device, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    CTU_Algorithm_3D_CUDA(C.device, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
     #endif //not_VL
     #ifdef VL
-    VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
     #endif //VL
     #ifdef SIMPLE
-    Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
     #endif//SIMPLE
     #endif
   }
@@ -492,17 +481,21 @@ Real Grid3D::Update_Grid(void)
 
   // Update the H and He ionization fractions and apply cooling and photoheating
   #ifdef CHEMISTRY_GPU
-  #ifdef CPU_TIMER
-  Timer.Chemistry.Start();
-  #endif
   Update_Chemistry();
-  #ifdef CPU_TIMER
-  Timer.Chemistry.End();
+  #ifdef CPU_TIME
+  Timer.Chemistry.RecordTime( Chem.H.runtime_chemistry_step );
   #endif
   #endif
+  
+  #ifdef AVERAGE_SLOW_CELLS
+  //Set the min_delta_t for averaging a slow cell
+  Real max_dti_slow;
+  max_dti_slow = 1 / H.min_dt_slow;
+  Average_Slow_Cells( C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow );
+  #endif //AVERAGE_SLOW_CELLS
 
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
-  max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama, max_dti_slow);
+  max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama );
   #ifdef COOLING_GPU
   max_dti = fmax(max_dti, cooling_max_dti);
   #endif // COOLING_GPU
@@ -559,8 +552,8 @@ Real Grid3D::Update_Hydro_Grid( ){
 
   #ifdef CPU_TIME
   #ifdef CHEMISTRY_GPU
-  Timer.Hydro.Subtract(Chem.H.runtime_chemistry_step / 1000);
-  //Subtract the time spent on the Chemical Update (Chem runtime was measured in ms, while the timer is on secs )
+  Timer.Hydro.Subtract(Chem.H.runtime_chemistry_step);
+  //Subtract the time spent on the Chemical Update 
   #endif
   Timer.Hydro.End();
   #endif //CPU_TIME

@@ -1,4 +1,4 @@
-#if defined(PARTICLES) && defined(PARTICLES_GPU)
+#ifdef PARTICLES 
 
 #include <unistd.h>
 #include <stdio.h>
@@ -8,7 +8,16 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../particles/particles_3D.h"
+#include "../grid/grid3D.h"
 
+#ifdef GRAVITY_GPU
+void Grid3D::Copy_Particles_Density_to_GPU(){
+  CudaSafeCall( cudaMemcpy(Particles.G.density_dev, Particles.G.density, Particles.G.n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
+}
+
+#endif
+
+#ifdef PARTICLES_GPU
 
 //Define atomic_add if it's not supported
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
@@ -144,4 +153,5 @@ void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particl
   #endif
 }
 
-#endif
+#endif//PARTICLES_GPU
+#endif//PARTICLES
