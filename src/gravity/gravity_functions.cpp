@@ -115,7 +115,8 @@ void Grid3D::set_dt_Gravity(){
 
   #ifdef AVERAGE_SLOW_CELLS
   //Set the min_delta_t for averaging a slow cell
-  min_dt_slow = Particles.dt / Particles.C_cfl * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a ) / SLOW_FACTOR;
+  da_particles = fmin( da_particles, Cosmo.max_delta_a );
+  min_dt_slow = Cosmo.Get_dt_from_da( da_particles ) / Particles.C_cfl * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a ) / SLOW_FACTOR;
   H.min_dt_slow = min_dt_slow;
   #endif
 
@@ -167,6 +168,10 @@ void Grid3D::set_dt_Gravity(){
     Grav.dt_prev = Grav.dt_now;
     Grav.dt_now = H.dt;
   }
+  
+  #if defined(PARTICLES_GPU) && defined(PRINT_MAX_MEMORY_USAGE)
+  Particles.Print_Max_Memory_Usage();
+  #endif
 }
 
 //NOT USED: Get Average density on the Global dommain
