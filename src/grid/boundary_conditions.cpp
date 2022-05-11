@@ -313,7 +313,6 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
 		 H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags,
 		 imax[0]-imin[0], imax[1]-imin[1], imax[2]-imin[2],
 		 imin[0], imin[1], imin[2], dir);
-
 }
 
 /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
