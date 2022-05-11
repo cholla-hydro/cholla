@@ -356,4 +356,173 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *
   return id;
 }
 
+void Noh_Boundary_CUDA(Real * c_device, int nx, int ny, int nz, int n_cells, int n_ghost,
+                       int x_off, int y_off, int z_off, Real dx, Real dy, Real dz,
+                       Real xbound, Real ybound, Real zbound, Real t)
+{
+
+  // determine the size of the grid to launch
+  // need at least as many threads as the largest boundary face
+  // current implementation assumes the test is run on a cube...
+  int isize, jsize, ksize;
+  isize = n_ghost;
+  jsize = ny;
+  ksize = nz;
+
+  dim3 dim1dGrid((isize*jsize*ksize+TPB-1)/TPB, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+
+  // launch the boundary kernel
+  hipLaunchKernelGGL(Noh_Boundary_kernel,dim1dGrid,dim1dBlock,0,0,c_device,
+		     nx,ny,nz,n_cells,n_ghost,
+         x_off,y_off,z_off,H.dx,H.dy,H.dz,H.xbound,H.ybound,H.zbound,H.t);
+
+
+
+}
+
+
+__global__ void Noh_Boundary_kernel(Real * c_device,
+				     int nx, int ny, int nz, int n_cells, int n_ghost,
+             int x_off, int y_off, int z_off,
+             Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real t)
+{
+  int id,xid,yid,zid,gid;
+  Real x_pos, y_pos, z_pos, r;
+  Real vx, vy, vz, d_0, P_0;
+
+  d_0 = 1.0;
+  P_0 = 1.0e-6;  
+
+  // calculate ghost cell ID and i,j,k in GPU grid
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+
+  int isize, jsize, ksize;
+
+  // +x boundary first
+  isize = n_ghost;
+  jsize = ny;
+  ksize = nz;
+
+  // not true i,j,k but relative i,j,k in the GPU grid
+  zid = id/(isize*jsize);
+  yid = (id - k*isize*jsize)/isize;
+  xid = id - k*isize*jsize - j*isize;
+
+  // map thread id to ghost cell id
+  xid += nx-n_ghost; // +x boundary
+  gid = xid + yid*nx + zid*nx*ny;
+
+  if (xid >= nx-n_ghost && xid < nx && yid < ny && zid < nz) {
+
+    // use the subgrid offset and global boundaries to calculate absolute positions on the grid
+    x_pos = (x_off + xid - n_ghost + 0.5)*dx + xbound;
+    y_pos = (y_off + yid - n_ghost + 0.5)*dy + ybound;
+    z_pos = (z_off + zid - n_ghost + 0.5)*dz + zbound;
+
+    // for 2D calculate polar r
+    if (nz == 1) r = sqrt(x_pos*x_pos + y_pos*y_pos);
+    // for 3D calculate spherical r
+    else r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
+
+    // calculate the velocities
+    vx = -x_pos / r;
+    vy = -y_pos / r;
+    if (nz > 1) vz = -z_pos / r;
+    else vz = 0;
+    // set the conserved quantities
+    if (nz > 1) c_device[gid] = d_0*(1.0 + t/r)*(1.0 + t/r);
+    else c_device[gid]    = d_0*(1.0 + t/r);
+    c_device[gid+1*n_cells] = vx*c_device[gid];
+    c_device[gid+2*n_cells] = vy*c_device[gid];
+    c_device[gid+3*n_cells] = vz*c_device[gid];
+    c_device[gid+4*n_cells] = P_0/(gama-1.0) + 0.5*c_device[gid];
+  }
+  __syncthreads();  
+
+  // +y boundary next
+  isize = nx;
+  jsize = n_ghost;
+  ksize = nz;
+
+  // not true i,j,k but relative i,j,k
+  zid = id/(isize*jsize);
+  yid = (id - k*isize*jsize)/isize;
+  xid = id - k*isize*jsize - j*isize;
+
+  // map thread id to ghost cell id
+  yid += ny-n_ghost; // +y boundary
+  gid = xid + yid*nx + zid*nx*ny;
+
+  if (xid < nx && yid >= ny-n_ghost && yid < ny && zid < nz) {
+
+    // use the subgrid offset and global boundaries to calculate absolute positions on the grid
+    x_pos = (x_off + xid - n_ghost + 0.5)*dx + xbound;
+    y_pos = (y_off + yid - n_ghost + 0.5)*dy + ybound;
+    z_pos = (z_off + zid - n_ghost + 0.5)*dz + zbound;
+
+    // for 2D calculate polar r
+    if (nz == 1) r = sqrt(x_pos*x_pos + y_pos*y_pos);
+    // for 3D, calculate spherical r
+    else r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
+
+    // calculate the velocities
+    vx = -x_pos / r;
+    vy = -y_pos / r;
+    if (nz > 1) vz = -z_pos / r;
+    else vz = 0;
+    // set the conserved quantities
+    if (nz > 1) c_device[gid] = d_0*(1.0 + t/r)*(1.0 + t/r);
+    else c_device[gid]    = d_0*(1.0 + t/r);
+    c_device[gid+1*n_cells] = vx*c_device[gid];
+    c_device[gid+2*n_cells] = vy*c_device[gid];
+    c_device[gid+3*n_cells] = vz*c_device[gid];
+    c_device[gid+4*n_cells] = P_0/(gama-1.0) + 0.5*c_device[gid];
+  } 
+  __syncthreads();  
+
+  // +z boundary last (only if 3D)
+  if (nz == 1) return;
+
+  isize = nx;
+  jsize = ny;
+  ksize = n_ghost;
+
+  // not true i,j,k but relative i,j,k
+  zid = id/(isize*jsize);
+  yid = (id - k*isize*jsize)/isize;
+  xid = id - k*isize*jsize - j*isize;
+
+  // map thread id to ghost cell id
+  zid += nz-n_ghost; // +z boundary
+  gid = xid + yid*nx + zid*nx*ny;
+
+  if (xid < nx && yid < ny && zid >= nz-n_ghost && zid < nz) {
+
+    // use the subgrid offset and global boundaries to calculate absolute positions on the grid
+    x_pos = (x_off + xid - n_ghost + 0.5)*dx + xbound;
+    y_pos = (y_off + yid - n_ghost + 0.5)*dy + ybound;
+    z_pos = (z_off + zid - n_ghost + 0.5)*dz + zbound;
+
+    // for 2D calculate polar r
+    if (nz == 1) r = sqrt(x_pos*x_pos + y_pos*y_pos);
+    // for 3D, calculate spherical r
+    else r = sqrt(x_pos*x_pos + y_pos*y_pos + z_pos*z_pos);
+
+    // calculate the velocities
+    vx = -x_pos / r;
+    vy = -y_pos / r;
+    if (nz > 1) vz = -z_pos / r;
+    else vz = 0;
+    // set the conserved quantities
+    if (nz > 1) c_device[gid] = d_0*(1.0 + t/r)*(1.0 + t/r);
+    else c_device[gid]    = d_0*(1.0 + t/r);
+    c_device[gid+1*n_cells] = vx*c_device[gid];
+    c_device[gid+2*n_cells] = vy*c_device[gid];
+    c_device[gid+3*n_cells] = vz*c_device[gid];
+    c_device[gid+4*n_cells] = P_0/(gama-1.0) + 0.5*c_device[gid];
+  } 
+
+
+}
 
