@@ -454,7 +454,7 @@ void Grid3D::Noh_Boundary()
 
   Noh_Boundary_CUDA(C.device, H.nx, H.ny, H.nz, H.n_cells, H.n_ghost,
                     x_off, y_off, z_off, H.dx, H.dy, H.dz, 
-                    H.xbound, H.ybound, H.zbound, H.t);
+                    H.xbound, H.ybound, H.zbound, gama, H.t);
 
 /*
   int i, j, k, id;

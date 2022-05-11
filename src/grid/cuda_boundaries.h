@@ -16,6 +16,6 @@ void SetGhostCells(Real * c_head,
 
 void Noh_Boundary_CUDA(Real * c_device, int nx, int ny, int nz, int n_cells, int n_ghost,
                        int x_off, int y_off, int z_off, Real dx, Real dy, Real dz,
-                       Real xbound, Real ybound, Real zbound, Real t);        
+                       Real xbound, Real ybound, Real zbound, Real gamma, Real t);        
 
 #endif
