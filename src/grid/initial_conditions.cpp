@@ -297,6 +297,9 @@ void Grid3D::Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
         C.momentum_y[id] = C.momentum_y[id] + A * sin(2.0*PI*x_pos);
         C.momentum_z[id] = C.momentum_z[id] + A * sin(2.0*PI*x_pos);
         C.Energy[id]     = C.Energy[id]     + A * (1.5) * sin(2*PI*x_pos);
+        #ifdef DE
+	C.GasEnergy[id]  = P/(gama-1.0);
+        #endif  //DE
       }
     }
   }
@@ -516,6 +519,11 @@ void Grid3D::Shu_Osher()
       Real P = 1.0;
       C.Energy[id] = P/(gama-1.0) + 0.5*C.density[id]*vx*vx;
     }
+    #ifdef DE
+    C.GasEnergy[id]  = P/(gama-1.0);
+    #endif  //DE
+
+
   }
 }
 
@@ -541,7 +549,6 @@ void Grid3D::Blast_1D()
       C.momentum_y[id] = 0.0;
       C.momentum_z[id] = 0.0;
       P = 1000.0;
-      C.Energy[id] = P/(gama-1.0);
     }
     else if (x_pos > 0.9)
     {
@@ -550,7 +557,6 @@ void Grid3D::Blast_1D()
       C.momentum_y[id] = 0.0;
       C.momentum_z[id] = 0.0;
       P = 100;
-      C.Energy[id] = P/(gama-1.0);
     }
     else
     {
@@ -559,8 +565,12 @@ void Grid3D::Blast_1D()
       C.momentum_y[id] = 0.0;
       C.momentum_z[id] = 0.0;
       P = 0.01;
-      C.Energy[id] = P/(gama-1.0);
     }
+    C.Energy[id] = P/(gama-1.0);
+    #ifdef DE
+    C.GasEnergy[id]  = P/(gama-1.0);
+    #endif  //DE
+    
   }
 }
 
@@ -612,7 +622,6 @@ void Grid3D::KH()
           C.momentum_x[id] = v2*C.density[id];
           C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
-          C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
           #ifdef SCALAR
           C.scalar[id] = 0.0;
           #endif
@@ -623,7 +632,7 @@ void Grid3D::KH()
           C.momentum_x[id] = v2*C.density[id];
           C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
-          C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+
           #ifdef SCALAR
           C.scalar[id] = 0.0;
           #endif
@@ -635,11 +644,17 @@ void Grid3D::KH()
           C.momentum_x[id] = v1*C.density[id];
           C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
-          C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+       
           #ifdef SCALAR
           C.scalar[id] = 1.0*d1;
           #endif
         }
+	C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+        #ifdef DE
+        C.GasEnergy[id]  = P/(gama-1.0);
+        #endif  //DE
+
+
       }
     }
   }
@@ -657,7 +672,6 @@ void Grid3D::KH_res_ind()
   Real mx, my, mz;
   Real r, yc, zc, phi;
   Real d1, d2, v1, v2, P, dy, A;
-
   istart = H.n_ghost;
   iend   = H.nx-H.n_ghost;
   jstart = H.n_ghost;
@@ -683,6 +697,8 @@ void Grid3D::KH_res_ind()
   dy = 0.05; // width of ramp function (see Robertson 2009)
   A = 0.1; // amplitude of the perturbation
 
+  // Note: ramp function from Robertson 2009 is 1/Ramp(y) = (1 + exp(2*(y-0.25)/dy))*(1 + exp(2*(0.75 - y)/dy));  
+
   // set the initial values of the conserved variables
   for (k=kstart; k<kend; k++) {
     for (j=jstart; j<jend; j++) {
@@ -690,6 +706,7 @@ void Grid3D::KH_res_ind()
         id = i + j*H.nx + k*H.nx*H.ny;
         // get the centered x and y positions
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+
 
         // inner fluid
         if (fabs(y_pos-0.5) < 0.25)
@@ -726,10 +743,6 @@ void Grid3D::KH_res_ind()
         }
         //C.momentum_y[id] = C.density[id] * A*sin(4*PI*x_pos);
         C.momentum_z[id] = 0.0;
-        mx = C.momentum_x[id];
-        my = C.momentum_y[id];
-        mz = C.momentum_z[id];
-        C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];
 
         // cylindrical version (3D only)
         r = sqrt((z_pos-zc)*(z_pos-zc) + (y_pos-yc)*(y_pos-yc)); // center the cylinder at yc, zc
@@ -741,10 +754,6 @@ void Grid3D::KH_res_ind()
           C.momentum_x[id] = v1*C.density[id] - C.density[id] * exp( -0.5*pow(r-0.25 - sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
           C.momentum_y[id] = cos(phi) * C.density[id] * A*sin(4*PI*x_pos) * exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
           C.momentum_z[id] = sin(phi) * C.density[id] * A*sin(4*PI*x_pos) * exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
-          mx = C.momentum_x[id];
-          my = C.momentum_y[id];
-          mz = C.momentum_z[id];
-          C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];
         }
         else // outside the cylinder
         {
@@ -752,15 +761,21 @@ void Grid3D::KH_res_ind()
           C.momentum_x[id] = v2*C.density[id] + C.density[id] * exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) );
           C.momentum_y[id] = cos(phi) * C.density[id] * A*sin(4*PI*x_pos) * (1.0 - exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) ));
           C.momentum_z[id] = sin(phi) * C.density[id] * A*sin(4*PI*x_pos) * (1.0 - exp( -0.5*pow(r-0.25 + sqrt(-2.0*dy*dy*log(0.5)),2)/(dy*dy) ));
-          mx = C.momentum_x[id];
-          my = C.momentum_y[id];
-          mz = C.momentum_z[id];
-          C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];
         }
+	
+	// No matter what we do with the density and momentum, set the Energy and GasEnergy appropriately
+	mx = C.momentum_x[id];
+	my = C.momentum_y[id];
+	mz = C.momentum_z[id];
+	C.Energy[id] = P/(gama-1.0) + 0.5*(mx*mx + my*my + mz*mz)/C.density[id];	
 
-      }
-    }
-  }
+        #ifdef DE
+	C.GasEnergy[id]  = P/(gama-1.0);
+        #endif // DE
+
+      }// i loop
+    }// j loop
+  }//k loop
 
 
 }
@@ -798,7 +813,6 @@ void Grid3D::Rayleigh_Taylor()
         C.momentum_x[id] = 0.0;
         C.momentum_y[id] = dl*vy;
         C.momentum_z[id] = 0.0;
-        C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_y[id]*C.momentum_y[id])/C.density[id];
       }
       // upper half of slab
       else
@@ -809,8 +823,13 @@ void Grid3D::Rayleigh_Taylor()
         C.momentum_x[id] = 0.0;
         C.momentum_y[id] = du*vy;
         C.momentum_z[id] = 0.0;
-        C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_y[id]*C.momentum_y[id])/C.density[id];
       }
+
+      C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_y[id]*C.momentum_y[id])/C.density[id];
+      #ifdef DE
+      C.GasEnergy[id]  = P/(gama-1.0);
+      #endif // DE
+
     }
   }
 
@@ -910,6 +929,10 @@ void Grid3D::Gresho()
       C.momentum_y[id] = d*vy;
       C.momentum_z[id] = 0.0;
       C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+      #ifdef DE
+      C.GasEnergy[id]  = P/(gama-1.0);
+      #endif // DE
+
       //r = sqrt((x_pos-xc)*(x_pos-xc) + (y_pos-yc)*(y_pos-yc));
       //printf("%f %f %f %f %f\n", x_pos, y_pos, r, vx, vy);
     }
@@ -974,7 +997,7 @@ void Grid3D::Noh_2D()
   Real x_pos, y_pos, z_pos;
   Real vx, vy, P, r;
 
-
+  P = 1.0e-6;
   // set the initial values of the conserved variables
   for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
     for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
@@ -989,7 +1012,10 @@ void Grid3D::Noh_2D()
       C.momentum_x[id] = - x_pos / r;
       C.momentum_y[id] = - y_pos / r;
       C.momentum_z[id] = 0.0;
-      C.Energy[id] = 1.0e-6/(gama-1.0) + 0.5;
+      C.Energy[id] = P/(gama-1.0) + 0.5;
+      #ifdef DE
+      C.GasEnergy[id]  = P/(gama-1.0);
+      #endif // DE
     }
   }
 
@@ -1004,6 +1030,7 @@ void Grid3D::Noh_3D()
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r;
 
+  Real P=1.0e-6;
 
   // set the initial values of the conserved variables
   for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
@@ -1019,7 +1046,10 @@ void Grid3D::Noh_3D()
         C.momentum_x[id] = - x_pos / r;
         C.momentum_y[id] = - y_pos / r;
         C.momentum_z[id] = - z_pos / r;
-        C.Energy[id] = 1.0e-6/(gama-1.0) + 0.5;
+        C.Energy[id] = P/(gama-1.0) + 0.5;
+        #ifdef DE
+        C.GasEnergy[id]  = P/(gama-1.0);
+        #endif //DE
       }
     }
   }
@@ -1085,6 +1115,10 @@ void Grid3D::Disk_2D()
       C.momentum_y[id] = d*vy;
       C.momentum_z[id] = 0.0;
       C.Energy[id] = P/(gama-1.0) + 0.5*d*(vx*vx + vy*vy);
+
+      #ifdef DE
+      C.GasEnergy[id]  = P/(gama-1.0);
+      #endif //DE
       //printf("%e %e %f %f %f %f %f\n", x_pos, y_pos, d, Sigma, vx, vy, P);
     }
   }
