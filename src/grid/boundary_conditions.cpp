@@ -185,6 +185,10 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   int nPB, nBoundaries;
   int *iaBoundary, *iaCell;
 
+  /*if the cell face is an custom boundary, exit */
+  if(flags[dir]==4)
+    return;
+
 #ifdef   MPI_CHOLLA
   /*if the cell face is an mpi boundary, exit */
   if(flags[dir]==5)
@@ -418,6 +422,7 @@ void Grid3D::Set_Boundary_Extents(int dir, int *imin, int *imax)
 void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
 {
   if (strcmp(bcnd, "noh")==0) {
+    // from grid/cuda_boundaries.cu
     Noh_Boundary();
   }
   else {
@@ -433,6 +438,24 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
     as per the Noh problem in Liska, 2003, or in Stone, 2008. */
 void Grid3D::Noh_Boundary()
 {
+  // This is now a wrapper function -- the actual boundary setting
+  // functions are in grid/cuda_boundaries.cu
+
+  int x_off, y_off, z_off;
+  // set x, y, & z offsets of local CPU volume to pass to GPU
+  // so global position on the grid is known
+  x_off = y_off = z_off = 0;
+  #ifdef MPI_CHOLLA
+  x_off = nx_local_start;
+  y_off = ny_local_start;
+  z_off = nz_local_start;
+  #endif
+
+  Noh_Boundary_CUDA(C.device, H.nx, H.ny, H.nz, H.n_cells, H.n_ghost,
+                    x_off, y_off, z_off, H.dx, H.dy, H.dz, 
+                    H.xbound, H.ybound, H.zbound, gama, H.t);
+
+/*
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r;
   Real vx, vy, vz, d_0, P_0, P;
@@ -521,7 +544,7 @@ void Grid3D::Noh_Boundary()
     }
 
   }
-
+*/
 }
 
 
