@@ -31,7 +31,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
 void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
     int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound,
     Real ybound, Real zbound, Real dt, int n_fields, Real density_floor,
-    Real U_floor, Real *host_grav_potential, Real max_dti_slow)
+    Real U_floor, Real *host_grav_potential )
 {
 
   //Here, *dev_conserved contains the entire

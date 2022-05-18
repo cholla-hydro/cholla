@@ -48,7 +48,6 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   Real *dev_conserved;
   Real *dev_dti_array;
   Real gamma = 5.0/3.0;
-  Real max_dti_slow = 1e10;
 
   // Allocate host and device arrays and copy data
   cudaHostAlloc(&host_conserved, n_fields*sizeof(Real), cudaHostAllocDefault);
@@ -66,7 +65,7 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   CudaSafeCall(cudaMemcpy(dev_conserved, host_conserved, n_fields*sizeof(Real), cudaMemcpyHostToDevice));
 
   // Run the kernel
-  hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dx, dy, dz, dev_dti_array, gamma, max_dti_slow);
+  hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dx, dy, dz, dev_dti_array, gamma );
   CudaCheckError();
 
   // Copy the dt value back from the GPU
