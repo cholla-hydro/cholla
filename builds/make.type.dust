@@ -1,4 +1,4 @@
-#-- Default hydro + dust_gpu
+#-- Default hydro + dust
 
 #-- separated output flag so that it can be overriden in target-specific
 #   for make check
@@ -24,6 +24,9 @@ DFLAGS += -DSCALAR
 
 # Define dust macro
 DFLAGS += -DDUST
+
+# Apply the cooling in the GPU from precomputed tables
+DFLAGS += -DCOOLING_GPU
 
 #Measure the Timing of the different stages
 #DFLAGS += -DCPU_TIME
