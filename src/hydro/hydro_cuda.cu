@@ -536,7 +536,7 @@ __global__ void Calc_dt_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Rea
 }
 
 
-__global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real *dev_dti, Real gamma, Real max_dti_slow)
+__global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real *dev_dti, Real gamma )
 {
   Real max_dti = -DBL_MAX;
 
@@ -581,34 +581,6 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
         max_dti = fmax(max_dti,hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma));
       #endif  //MHD
 
-      #ifdef AVERAGE_SLOW_CELLS
-      // If the cell delta_t is smaller than the min_delta_t, then the cell is averaged over its neighbors
-      if (max_dti > max_dti_slow){
-        // Average this cell
-        printf(" Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f\n", xid, yid, zid, 1./max_dti,  1./max_dti_slow );
-        Average_Cell_All_Fields( xid, yid, zid, nx, ny, nz, n_cells, n_fields, dev_conserved );
-
-        // Recompute max_dti for this cell
-        d  =  dev_conserved[            id];
-        d_inv = 1.0 / d;
-        vx =  dev_conserved[1*n_cells + id] * d_inv;
-        vy =  dev_conserved[2*n_cells + id] * d_inv;
-        vz =  dev_conserved[3*n_cells + id] * d_inv;
-        E  = dev_conserved[4*n_cells + id];
-        #ifdef  MHD
-          // Compute the cell centered magnetic field using a straight average of
-          // the faces
-          mhdUtils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, avgBx, avgBy, avgBz);
-        #endif  //MHD
-
-        // Compute the maximum inverse crossing time in the cell
-        #ifdef  MHD
-          max_dti = fmax(max_dti,mhdInverseCrossingTime(E, d, d_inv, vx, vy, vz, avgBx, avgBy, avgBz, dx, dy, dz, gamma));
-        #else  // not MHD
-          max_dti = fmax(max_dti,hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma));
-        #endif  //MHD
-      }
-      #endif  //AVERAGE_SLOW_CELLS
     }
   }
 
@@ -616,7 +588,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_gh
   reduction_utilities::gridReduceMax(max_dti, dev_dti);
 }
 
-Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow)
+Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma )
 {
   // set values for GPU kernels
   uint threadsPerBlock, numBlocks;
@@ -634,7 +606,7 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
   }
   else if (nx > 1 && ny > 1 && nz > 1) //3D
   {
-    hipLaunchKernelGGL(Calc_dt_3D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dx, dy, dz, dev_dti, gamma, max_dti_slow);
+    hipLaunchKernelGGL(Calc_dt_3D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dx, dy, dz, dev_dti, gamma );
   }
   CudaCheckError();
 
@@ -645,6 +617,67 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 
   return max_dti;
 }
+
+
+#ifdef AVERAGE_SLOW_CELLS
+
+void Average_Slow_Cells( Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow ){
+  
+  // set values for GPU kernels
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB, 1, 1);
+  
+  if (nx > 1 && ny > 1 && nz > 1){ //3D
+    hipLaunchKernelGGL(Average_Slow_Cells_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dx, dy, dz, gamma, max_dti_slow );
+  }
+}
+
+__global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow ){
+  int id, xid, yid, zid, n_cells;
+  Real d, d_inv, vx, vy, vz, E, max_dti;
+  #ifdef  MHD
+    Real avgBx, avgBy, avgBz;
+  #endif  //MHD
+  
+  n_cells = nx*ny*nz;
+
+  // get a global thread ID
+  cuda_utilities::compute3DIndices(id, nx, ny, xid, yid, zid);
+
+
+  // threads corresponding to real cells do the calculation
+  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
+  {
+    d  =  dev_conserved[            id];
+    d_inv = 1.0 / d;
+    vx =  dev_conserved[1*n_cells + id] * d_inv;
+    vy =  dev_conserved[2*n_cells + id] * d_inv;
+    vz =  dev_conserved[3*n_cells + id] * d_inv;
+    E  =  dev_conserved[4*n_cells + id];
+    
+    #ifdef  MHD
+      // Compute the cell centered magnetic field using a straight average of the faces
+      mhdUtils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, avgBx, avgBy, avgBz);
+    #endif  //MHD
+    
+    // Compute the maximum inverse crossing time in the cell
+    #ifdef  MHD
+      max_dti = mhdInverseCrossingTime(E, d, d_inv, vx, vy, vz, avgBx, avgBy, avgBz, dx, dy, dz, gamma);
+    #else  // not MHD
+      max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
+    #endif  //MHD
+    
+    if (max_dti > max_dti_slow){
+      // Average this cell
+      printf(" Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f\n", xid, yid, zid, 1./max_dti,  1./max_dti_slow );
+      Average_Cell_All_Fields( xid, yid, zid, nx, ny, nz, n_cells, n_fields, dev_conserved );
+    }
+  }
+}
+#endif //AVERAGE_SLOW_CELLS    
+
 
 #ifdef DE
 __global__ void Partial_Update_Advected_Internal_Energy_1D( Real *dev_conserved, Real *Q_Lx, Real *Q_Rx, int nx, int n_ghost, Real dx, Real dt, Real gamma, int n_fields ){
