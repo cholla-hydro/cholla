@@ -31,6 +31,8 @@ DFLAGS += -DCOOLING_GPU
 #Measure the Timing of the different stages
 #DFLAGS += -DCPU_TIME
 
+#DFLAGS += -DSLICES
+
 DFLAGS    += $(OUTPUT)
 
 #Select if the Hydro Conserved data will reside in the GPU
