@@ -12,15 +12,15 @@ ny=128
 # number of grid cells in the z dimension
 nz=128
 # x direction lower domain boundary
-xmin=-1.0
+xmin=0.0
 # x direction domain length
 xlen=2.0
 # y direction lower domain boundary
-ymin=-0.5
+ymin=0.0
 # y direction domain length
 ylen=1.0
 # z direction lower domain boundary
-zmin=-0.5
+zmin=0.0
 # y direction domain length
 zlen=1.0
 # final output time
