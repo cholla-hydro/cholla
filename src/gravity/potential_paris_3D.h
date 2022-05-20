@@ -2,7 +2,7 @@
 
 #if defined(GRAVITY) && defined(PARIS)
 
-#include "paris/PoissonPeriodic3x1DBlockedGPU.hpp"
+#include "paris/ParisPeriodic.hpp"
 #include "../global/global.h"
 
 class Potential_Paris_3D {
@@ -15,7 +15,7 @@ class Potential_Paris_3D {
   protected:
     int dn_[3];
     Real dr_[3],lo_[3],lr_[3],myLo_[3];
-    PoissonPeriodic3x1DBlockedGPU *pp_;
+    ParisPeriodic *pp_;
     long minBytes_;
     long densityBytes_;
     long potentialBytes_;
