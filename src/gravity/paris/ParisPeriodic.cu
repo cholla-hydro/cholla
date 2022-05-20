@@ -64,9 +64,9 @@ void ParisPeriodic::solve(const size_t bytes, double *const density, double *con
         const double k2 = sqr(double(k)*ddk);
 #endif
         const double d = -1.0/(i2+j2+k2);
-        return cufftDoubleComplex(b*d);
+        return cufftDoubleComplex{d*b.x,d*b.y};
       } else {
-        return cufftDoubleComplex(0);
+        return cufftDoubleComplex{0.0,0.0};
       }
     });
 }

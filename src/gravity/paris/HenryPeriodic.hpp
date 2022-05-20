@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <mpi.h>
 
 #include "../../utils/gpu.hpp"
