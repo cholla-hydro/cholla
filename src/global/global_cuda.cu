@@ -13,7 +13,6 @@ Real *eta_x, *eta_y, *eta_z, *etah_x, *etah_y, *etah_z;
 Real *host_dti_array;
 Real *dev_dti_array;
 Real *dev_dti;
-int ngrid;
 
 //Arrays for potential in GPU: Will be set to NULL if not using GRAVITY
 Real *dev_grav_potential;

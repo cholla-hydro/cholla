@@ -308,7 +308,7 @@ void Grid3D::AllocateMemory(void)
   #endif  // DE
 
   // set the number of thread blocks for the GPU grid (declared in global_cuda)
-  ngrid = (H.n_cells + TPB - 1) / TPB;
+  int ngrid = (H.n_cells + TPB - 1) / TPB;
 
   // arrays that hold the max_dti calculation for hydro for each thread block (pre reduction)
   CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );

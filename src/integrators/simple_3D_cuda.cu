@@ -36,7 +36,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
   //set of conserved variables on the grid
   //concatenated into a 1-d array
   int n_cells = nx*ny*nz;
-
+  int ngrid = (n_cells + TPB - 1) / TPB;
   // set values for GPU kernels
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);

@@ -37,10 +37,6 @@ extern Real *dev_grav_potential;
 extern Real *temp_potential;
 extern Real *buffer_potential;
 
-// dimensions for the GPU grid
-extern int ngrid;
-
-
 #define CudaSafeCall( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
 #define CudaCheckError()    __cudaCheckError( __FILE__, __LINE__ )
 
