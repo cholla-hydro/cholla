@@ -624,6 +624,8 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 void Average_Slow_Cells( Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow ){
   
   // set values for GPU kernels
+  int n_cells = nx*ny*nz;
+  int ngrid = (n_cells + TPB - 1) / TPB;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -635,15 +637,17 @@ void Average_Slow_Cells( Real *dev_conserved, int nx, int ny, int nz, int n_ghos
 }
 
 __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow ){
+
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, max_dti;
   #ifdef  MHD
     Real avgBx, avgBy, avgBz;
   #endif  //MHD
   
+  // get a global thread ID
+  id = threadIdx.x + blockIdx.x * blockDim.x;
   n_cells = nx*ny*nz;
 
-  // get a global thread ID
   cuda_utilities::compute3DIndices(id, nx, ny, xid, yid, zid);
 
 

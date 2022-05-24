@@ -37,6 +37,7 @@ void CTU_Algorithm_3D_CUDA(Real *d_conserved, int nx, int ny, int nz, int x_off,
   //concatenated into a 1-d array
 
   int n_cells = nx*ny*nz;
+  int ngrid = (n_cells + TPB - 1) / TPB;
 
   // set values for GPU kernels
   // number of blocks per 1D grid
