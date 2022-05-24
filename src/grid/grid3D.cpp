@@ -308,6 +308,7 @@ void Grid3D::AllocateMemory(void)
   #endif  // DE
 
 
+  // array that holds the max_dti calculation for hydro for each thread block (pre reduction)
   CudaSafeCall( cudaMalloc((void**)&dev_dti, sizeof(Real)) );
 
 

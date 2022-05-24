@@ -24,7 +24,6 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
 }
 
 
-
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
@@ -99,19 +98,19 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     n = d*DENSITY_UNIT / (mu * MP);
 
     // calculate the temperature of the gas
-    //#ifndef DE
     T_init = p*PRESSURE_UNIT/ (n*KB);
-    //#endif
     #ifdef DE
-    //T_init = ge*(gamma-1.0)*SP_ENERGY_UNIT*mu*MP/KB;
     T_init = d*ge*(gamma-1.0)*PRESSURE_UNIT/(n*KB);
     #endif
 
     // calculate cooling rate per volume
     T = T_init;
     // call the cooling function
+    #ifdef CLOUDY_COOL
+    cool = Cloudy_cool(n, T);
+    #else
     cool = CIE_cool(n, T);
-    //cool = Cloudy_cool(n, T);
+    #endif
 
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
@@ -125,8 +124,11 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       // how much time is left from the original timestep?
       dt -= dt_sub;
       // calculate cooling again
+      #ifdef CLOUDY_COOL
+      cool = Cloudy_cool(n, T);
+      #else
       cool = CIE_cool(n, T);
-      //cool = Cloudy_cool(n, T);
+      #endif
       // calculate new change in temperature
       del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
     }
@@ -141,9 +143,12 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     ge -= KB*del_T / (mu*MP*(gamma-1.0)*SP_ENERGY_UNIT);
     #endif
     // calculate cooling rate for new T
+    #ifdef CLOUDY_COOL
+    cool = Cloudy_cool(n, T);
+    #else
     cool = CIE_cool(n, T);
-    //cool = Cloudy_cool(n, T);
     //printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
+    #endif
 
     // and send back from kernel
     dev_conserved[4*n_cells + id] = E;
