@@ -13,31 +13,19 @@
 extern texture<float, 2, cudaReadModeElementType> coolTexObj;
 extern texture<float, 2, cudaReadModeElementType> heatTexObj;
 
-void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array){
+void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma){
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dt_array);
+  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama);
   CudaCheckError();  
-}
-
-Real Cooling_Calc_dt(Real *d_dt_array, Real *h_dt_array, int nx, int ny, int nz){
-  int ngrid = (nx*ny*nz + TPB - 1) / TPB;
-  Real min_dt = 1e10;
-  CudaSafeCall( cudaMemcpy(h_dt_array, d_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
-  for (int i=0; i<ngrid; i++) {
-    min_dt = fmin(min_dt, h_dt_array[i]);
-  }
-  return C_cfl/min_dt;
 }
 
 
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array)
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
 {
-  __shared__ Real min_dt[TPB];
-
   int n_cells = nx*ny*nz;
   int is, ie, js, je, ks, ke;
   is = n_ghost;
@@ -70,7 +58,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef DE
   Real ge;
   #endif
-  //Real T_min = 1.0e4; // minimum temperature allowed
 
   mu = 0.6;
   //mu = 1.27;
@@ -81,12 +68,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   int zid = id / (nx*ny);
   int yid = (id - zid*nx*ny) / nx;
   int xid = id - zid*nx*ny - yid*nx;
-  // and a thread id within the block
-  int tid = threadIdx.x;
 
-  // set min dt to a high number
-  min_dt[tid] = 1e10;
-  __syncthreads();
 
   // only threads corresponding to real cells do the calculation
   if (xid >= is && xid < ie && yid >= js && yid < je && zid >= ks && zid < ke) {
@@ -112,20 +94,19 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     n = d*DENSITY_UNIT / (mu * MP);
 
     // calculate the temperature of the gas
-    //#ifndef DE
     T_init = p*PRESSURE_UNIT/ (n*KB);
-    //#endif
     #ifdef DE
-    //T_init = ge*(gamma-1.0)*SP_ENERGY_UNIT*mu*MP/KB;
     T_init = d*ge*(gamma-1.0)*PRESSURE_UNIT/(n*KB);
     #endif
 
     // calculate cooling rate per volume
     T = T_init;
-    //if (T > T_max) printf("%3d %3d %3d High T cell. n: %e  T: %e\n", xid, yid, zid, n, T);
     // call the cooling function
+    #ifdef CLOUDY_COOL
+    cool = Cloudy_cool(n, T);
+    #else
     cool = CIE_cool(n, T);
-    //cool = Cloudy_cool(n, T);
+    #endif
 
     // calculate change in temperature given dt
     del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
@@ -139,20 +120,17 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       // how much time is left from the original timestep?
       dt -= dt_sub;
       // calculate cooling again
+      #ifdef CLOUDY_COOL
+      cool = Cloudy_cool(n, T);
+      #else
       cool = CIE_cool(n, T);
-      //cool = Cloudy_cool(n, T);
+      #endif
       // calculate new change in temperature
       del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
     }
 
     // calculate final temperature
     T -= del_T;
-
-    // set a temperature floor
-    // (don't change this cell if the thread crashed)
-    //if (T > 0.0 && E > 0.0) T = fmax(T, T_min);
-    // set a temperature ceiling
-    //T = fmin(T, T_max);
 
     // adjust value of energy based on total change in temperature
     del_T = T_init - T; // total change in T
@@ -161,14 +139,11 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     ge -= KB*del_T / (mu*MP*(gamma-1.0)*SP_ENERGY_UNIT);
     #endif
     // calculate cooling rate for new T
+    #ifdef CLOUDY_COOL
+    cool = Cloudy_cool(n, T);
+    #else
     cool = CIE_cool(n, T);
-    //cool = Cloudy_cool(n, T);
-    //printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
-    // only use good cells in timestep calculation (in case some have crashed)
-    if (n > 0 && T > 0 && cool > 0.0) {
-      // limit the timestep such that delta_T is 10%
-      min_dt[tid] = 0.1*T*n*KB/(cool*TIME_UNIT*(gamma-1.0));
-    }
+    #endif
 
     // and send back from kernel
     dev_conserved[4*n_cells + id] = E;
@@ -177,19 +152,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #endif
 
   }
-  __syncthreads();
-
-  // do the reduction in shared memory (find the min timestep in the block)
-  for (unsigned int s=1; s<blockDim.x; s*=2) {
-    if (tid % (2*s) == 0) {
-      min_dt[tid] = fmin(min_dt[tid], min_dt[tid + s]);
-    }
-    __syncthreads();
-  }
-
-  // write the result for this block to global memory
-  if (tid == 0) dt_array[blockIdx.x] = min_dt[0];
-
 
 }
 
