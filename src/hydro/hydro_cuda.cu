@@ -647,6 +647,8 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 void Average_Slow_Cells( Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow ){
   
   // set values for GPU kernels
+  int n_cells = nx*ny*nz;
+  int ngrid = (n_cells + TPB - 1) / TPB;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block

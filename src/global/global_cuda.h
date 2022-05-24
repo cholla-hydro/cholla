@@ -26,11 +26,13 @@ extern bool memory_allocated; // Flag becomes true after allocating the memory o
 extern Real *dev_conserved, *dev_conserved_half;
 // input states and associated interface fluxes (Q* and F* from Stone, 2008)
 extern Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
-// array of inverse timesteps for dt calculation, used ONLY for cooling
-extern Real *host_dti_array;
-extern Real *dev_dti_array;
+
 // Scalar for storing device side hydro/MHD time steps
 extern Real *dev_dti;
+
+// array of inverse timesteps for dt calculation (brought back by Alwin May 24 2022)
+extern Real *host_dti_array;
+extern Real *dev_dti_array;
 
 //Arrays for potential in GPU: Will be set to NULL if not using GRAVITY
 extern Real *dev_grav_potential;

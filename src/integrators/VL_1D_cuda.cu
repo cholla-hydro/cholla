@@ -39,7 +39,6 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
   int nz = 1;
   int ngrid = (n_cells + TPB - 1) / TPB;
 
-
   // set the dimensions of the cuda grid
   dim3 dimGrid(ngrid, 1, 1);
   dim3 dimBlock(TPB, 1, 1);
