@@ -58,7 +58,8 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
 
     Real *dev_max_array;
     CudaSafeCall(cudaMalloc(&dev_max_array, numBlocks*sizeof(Real)));
-    cudaMemset(dev_max_array,-DBL_MAX,numBlocks*sizeof(Real));
+    // Sets all bytes to 0.
+    cudaMemset(dev_max_array,0,numBlocks*sizeof(Real));
     
     Real host_max_array[numBlocks];
     //Real *host_max_array = (Real *) malloc(numBlocks*sizeof(Real));
