@@ -26,9 +26,6 @@ extern bool memory_allocated; // Flag becomes true after allocating the memory o
 extern Real *dev_conserved, *dev_conserved_half;
 // input states and associated interface fluxes (Q* and F* from Stone, 2008)
 extern Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
-// array of inverse timesteps for dt calculation, used ONLY for cooling
-extern Real *host_dti_array;
-extern Real *dev_dti_array;
 // Scalar for storing device side hydro/MHD time steps
 extern Real *dev_dti;
 
@@ -36,9 +33,6 @@ extern Real *dev_dti;
 extern Real *dev_grav_potential;
 extern Real *temp_potential;
 extern Real *buffer_potential;
-
-// dimensions for the GPU grid
-extern int ngrid;
 
 
 #define CudaSafeCall( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
