@@ -17,4 +17,8 @@ Real *dev_grav_potential;
 Real *temp_potential;
 Real *buffer_potential;
 
+// Arrays for calc_dt
+Real *host_dti_array;
+Real *dev_dti_array;
+
 #endif //CUDA

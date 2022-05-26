@@ -308,7 +308,10 @@ void Grid3D::AllocateMemory(void)
   #endif  // DE
 
 
-  // array that holds the max_dti calculation for hydro for each thread block (pre reduction)
+  // arrays that hold the max_dti calculation for hydro for each thread block (pre reduction)
+  int ngrid = (H.n_cells + TPB - 1) / TPB;
+  CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
+  CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti, sizeof(Real)) );
 
 
@@ -609,6 +612,8 @@ void Grid3D::FreeMemory(void)
   CudaSafeCall( cudaFreeHost(C.host) );
 
   // free the timestep arrays
+  CudaSafeCall( cudaFreeHost(host_dti_array) );
+  cudaFree(dev_dti_array);
   cudaFree(dev_dti);
 
   #ifdef GRAVITY
