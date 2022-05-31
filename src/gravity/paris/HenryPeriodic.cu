@@ -20,6 +20,7 @@ HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3], const double hi
   nk_(n[2]),
   bytes_(0)
 {
+  // Pencil sub-decomposition within a 3D block
   mq_ = int(round(sqrt(mk_)));
   while (mk_%mq_) mq_--;
   mp_ = mk_/mq_;
@@ -28,6 +29,7 @@ HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3], const double hi
   idp_ = idk_/mq_;
   idq_ = idk_%mq_;
 
+  // Communicators of tasks within pencils in each dimension
   {
     const int color = idi_*mj_+idj_;
     const int key = idk_;
@@ -43,6 +45,9 @@ HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3], const double hi
     const int key = idi_*mp_+idp_;
     MPI_Comm_split(MPI_COMM_WORLD,color,key,&commI_);
   }
+
+  // Maximum numbers of elements for various decompositions and dimensions
+  
   dh_ = (nh_+mk_-1)/mk_;
   di_ = (ni_+mi_-1)/mi_;
   dj_ = (nj_+mj_-1)/mj_;
@@ -55,6 +60,8 @@ HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3], const double hi
   const int mip = mi_*mp_;
   djp_ = (nj_+mip-1)/mip;
 
+  // Maximum memory needed by work arrays
+  
   const long nMax = std::max(
     { long(di_)*long(dj_)*long(dk_),
       long(mp_)*long(mq_)*long(dip_)*long(djq_)*long(dk_),
@@ -67,12 +74,14 @@ HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3], const double hi
   assert(nMax <= INT_MAX);
   bytes_ = nMax*sizeof(double);
 
+  // FFT objects
   CHECK(cufftPlanMany(&c2ci_,1,&ni_,&ni_,1,ni_,&ni_,1,ni_,CUFFT_Z2Z,djp_*dhq_));
   CHECK(cufftPlanMany(&c2cj_,1,&nj_,&nj_,1,nj_,&nj_,1,nj_,CUFFT_Z2Z,dip_*dhq_));
   CHECK(cufftPlanMany(&c2rk_,1,&nk_,&nh_,1,nh_,&nk_,1,nk_,CUFFT_Z2D,dip_*djq_));
   CHECK(cufftPlanMany(&r2ck_,1,&nk_,&nk_,1,nk_,&nh_,1,nh_,CUFFT_D2Z,dip_*djq_));
 
 #ifndef MPI_GPU
+  // Host arrays for MPI communication
   CHECK(cudaHostAlloc(&ha_,bytes_+bytes_,cudaHostAllocDefault));
   assert(ha_);
   hb_ = ha_+nMax;

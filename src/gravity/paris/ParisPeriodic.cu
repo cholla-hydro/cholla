@@ -29,9 +29,11 @@ ParisPeriodic::ParisPeriodic(const int n[3], const double lo[3], const double hi
 
 void ParisPeriodic::solve(const size_t bytes, double *const density, double *const potential) const
 {
+  // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_;
   const double ddi = ddi_, ddj = ddj_, ddk = ddk_;
 
+  // Poisson-solve constants that depend on divergence-operator approximation
 #ifdef PARIS_3PT
   const int nk = nk_;
   const double si = M_PI/double(ni);
@@ -44,6 +46,7 @@ void ParisPeriodic::solve(const size_t bytes, double *const density, double *con
   const double sk = 2.0*M_PI/double(nk);
 #endif
 
+  // Provide FFT filter with a lambda that does Poisson solve in frequency space
   henry.filter(bytes,density,potential,
     [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
       if (i || j || k) {
