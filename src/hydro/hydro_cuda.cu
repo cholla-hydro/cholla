@@ -642,10 +642,12 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
   #endif  //MHD
   
   n_cells = nx*ny*nz;
-
+  
   // get a global thread ID
-  cuda_utilities::compute3DIndices(id, nx, ny, xid, yid, zid);
-
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx*ny);
+  yid = (id - zid*nx*ny) / nx;
+  xid = id - zid*nx*ny - yid*nx;
 
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
