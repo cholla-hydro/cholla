@@ -39,7 +39,7 @@
         {
             for (int offset = warpSize/2; offset > 0; offset /= 2)
             {
-                val = max(val, __shfl_down(val, offset));
+                val = fmax(val, __shfl_down(val, offset));
             }
             return val;
         }
@@ -106,7 +106,7 @@
                 assumed = old;
                 old = atomicCAS(address_as_ull,
                                 assumed,
-                                __double_as_longlong(fmax(val, __longlong_as_double(assumed))));
+                                __double_as_longlong(fmax(__longlong_as_double(assumed),val)));
             } while (assumed != old);
             return __longlong_as_double(old);
         }
@@ -149,6 +149,8 @@
          */
         __inline__ __device__ void gridReduceMax(Real val, Real* out, Real lowLimit = -DBL_MAX)
         {
+            __syncthreads();              // Wait for all threads to calculate val;
+	  
             // Set the value in global memory so meaningful comparisons can be
             // performed
             if (threadIdx.x + blockIdx.x * blockDim.x == 0) *out = lowLimit;
@@ -157,7 +159,8 @@
             val = blockReduceMax(val);
 
             // Write block level reduced value to the output scalar atomically
-            if (threadIdx.x == 0) atomicMax_double(out, val);
+            // if (threadIdx.x == 0) atomicMax_double(out, val);
+	    if (threadIdx.x == 0) out[blockIdx.x] = val;
         }
         // =====================================================================
 

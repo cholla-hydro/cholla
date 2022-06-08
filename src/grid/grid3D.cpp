@@ -311,10 +311,9 @@ void Grid3D::AllocateMemory(void)
   C.d_GasEnergy  = &(C.device[(H.n_fields-1)*H.n_cells]);
   #endif  // DE
 
-  // set the number of thread blocks for the GPU grid (declared in global_cuda)
-  ngrid = (H.n_cells + TPB - 1) / TPB;
 
   // arrays that hold the max_dti calculation for hydro for each thread block (pre reduction)
+  int ngrid = (H.n_cells + TPB - 1) / TPB;
   CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&dev_dti, sizeof(Real)) );
@@ -477,10 +476,7 @@ Real Grid3D::Update_Grid(void)
 
   #ifdef COOLING_GPU
   // ==Apply Cooling from cooling/cooling_cuda.h==
-  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dti_array);
-  // ==Calculate cooling dt from cooling/cooling_cuda.h==
-  // dev_dti_array and host_dti_array are global variables declared in global/global_cuda.h and allocated in Allocate_Memory
-  Real cooling_max_dti = Cooling_Calc_dt(dev_dti_array, host_dti_array, H.nx, H.ny, H.nz);
+  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
   #endif //COOLING_GPU
 
   #ifdef DUST
@@ -505,9 +501,6 @@ Real Grid3D::Update_Grid(void)
 
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
   max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama );
-  #ifdef COOLING_GPU
-  max_dti = fmax(max_dti, cooling_max_dti);
-  #endif // COOLING_GPU
   #endif // CUDA
 
   #ifdef COOLING_GRACKLE

@@ -97,7 +97,7 @@ static void check(const cufftResult err, const char *const file, const int line)
   exit(err);
 }
 
-#endif
+#endif //defined(CUFFT) || defined(PARIS) || defined(PARIS_GALACTIC)
 
 static void check(const cudaError_t err, const char *const file, const int line)
 {
