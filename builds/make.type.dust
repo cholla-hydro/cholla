@@ -26,12 +26,12 @@ DFLAGS += -DSCALAR
 DFLAGS += -DDUST
 
 # Apply the cooling in the GPU from precomputed tables
-DFLAGS += -DCOOLING_GPU
+# DFLAGS += -DCOOLING_GPU
 
 #Measure the Timing of the different stages
 #DFLAGS += -DCPU_TIME
 
-#DFLAGS += -DSLICES
+DFLAGS += -DSLICES
 
 DFLAGS    += $(OUTPUT)
 

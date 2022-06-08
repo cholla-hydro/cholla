@@ -24,9 +24,9 @@ zmin=0.0
 # y direction domain length
 zlen=1.0
 # final output time
-tout=0.2
+tout=1e6
 # time interval for output
-outstep=0.2
+outstep=1e5
 # ratio of specific heats
 gamma=1.66666667
 # name of initial conditions
