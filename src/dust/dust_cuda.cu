@@ -58,8 +58,6 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
         d_gas = dev_conserved[id];
         d_dust = dev_conserved[5*n_cells + id];
         E = dev_conserved[4*n_cells + id];
-        //printf("kernel: %7.4e\n", d_dust);
-        // make sure thread hasn't crashed
 
         n = d_gas*DENSITY_UNIT / (mu*MP);
 
