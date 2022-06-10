@@ -1344,7 +1344,7 @@ void Grid3D::Clouds()
             C.GasEnergy[id]  = p_cl/(gama-1.0);
             #endif
             #ifdef SCALAR
-            C.scalar[id] = C.density[id]*0.3;
+            C.scalar[id] = C.density[id]*0.01;
             #endif
           }
         }
