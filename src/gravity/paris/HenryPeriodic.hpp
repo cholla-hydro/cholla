@@ -1,127 +1,91 @@
-#ifdef PARIS
-
-#include "PoissonPeriodic3x1DBlockedGPU.hpp"
+#pragma once
 
 #include <algorithm>
-#include <cassert>
-#include <climits>
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
+#include <mpi.h>
 
-__host__ __device__
-static inline double sqr(const double x) { return x*x; }
+#include "../../utils/gpu.hpp"
 
-PoissonPeriodic3x1DBlockedGPU::PoissonPeriodic3x1DBlockedGPU(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3]):
-#ifdef PARIS_3PT
-  ddi_(2.0*double(n[0]-1)/(hi[0]-lo[0])),
-  ddj_(2.0*double(n[1]-1)/(hi[1]-lo[1])),
-  ddk_(2.0*double(n[2]-1)/(hi[2]-lo[2])),
-#elif defined PARIS_5PT
-  ddi_(sqr(double(n[0]-1)/(hi[0]-lo[0]))/6.0),
-  ddj_(sqr(double(n[1]-1)/(hi[1]-lo[1]))/6.0),
-  ddk_(sqr(double(n[2]-1)/(hi[2]-lo[2]))/6.0),
-#else
-  ddi_{2.0*M_PI*double(n[0]-1)/(double(n[0])*(hi[0]-lo[0]))},
-  ddj_{2.0*M_PI*double(n[1]-1)/(double(n[1])*(hi[1]-lo[1]))},
-  ddk_{2.0*M_PI*double(n[2]-1)/(double(n[2])*(hi[2]-lo[2]))},
-#endif
-  idi_(id[0]),
-  idj_(id[1]),
-  idk_(id[2]),
-  mi_(m[0]),
-  mj_(m[1]),
-  mk_(m[2]),
-  nh_(n[2]/2+1),
-  ni_(n[0]),
-  nj_(n[1]),
-  nk_(n[2]),
-  bytes_(0)
-{
-  mq_ = int(round(sqrt(mk_)));
-  while (mk_%mq_) mq_--;
-  mp_ = mk_/mq_;
-  assert(mp_*mq_ == mk_);
+/**
+ * @brief Generic distributed-memory 3D FFT filter.
+ */
+class HenryPeriodic {
+  public:
 
-  idp_ = idk_/mq_;
-  idq_ = idk_%mq_;
+    /**
+     * @param[in] n[3] { Global number of cells in each dimension, without ghost cells. }
+     * @param[in] lo[3] { Physical location of the global lower bound of each dimension. }
+     * @param[in] hi[3] { Physical location of the global upper bound of each dimension, minus one grid cell. 
+     *                     The one-cell difference is because of the periodic domain.
+     *                     See @ref Potential_Paris_3D::Initialize for an example computation of these arguments. }
+     * @param[in] m[3] { Number of MPI tasks in each dimension. }
+     * @param[in] id[3] { Coordinates of this MPI task, starting at `{0,0,0}`. }
+     */
+    HenryPeriodic(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3]);
 
-  {
-    const int color = idi_*mj_+idj_;
-    const int key = idk_;
-    MPI_Comm_split(MPI_COMM_WORLD,color,key,&commK_);
-  }
-  {
-    const int color = idi_*mp_+idp_;
-    const int key = idj_*mq_+idq_;
-    MPI_Comm_split(MPI_COMM_WORLD,color,key,&commJ_);
-  }
-  {
-    const int color = idj_*mq_+idq_;
-    const int key = idi_*mp_+idp_;
-    MPI_Comm_split(MPI_COMM_WORLD,color,key,&commI_);
-  }
-  const int dh = (nh_+mk_-1)/mk_;
-  di_ = (ni_+mi_-1)/mi_;
-  dj_ = (nj_+mj_-1)/mj_;
-  dk_ = (nk_+mk_-1)/mk_;
+    ~HenryPeriodic();
 
-  dip_ = (di_+mp_-1)/mp_;
-  djq_ = (dj_+mq_-1)/mq_;
-  const int mjq = mj_*mq_;
-  dhq_ = (nh_+mjq-1)/mjq;
-  const int mip = mi_*mp_;
-  djp_ = (nj_+mip-1)/mip;
+    /**
+     * @return { Number of bytes needed for array arguments for @ref filter. }
+     */
+    size_t bytes() const { return bytes_; }
 
-  const long nMax = std::max(
-    { long(di_)*long(dj_)*long(dk_),
-      long(mp_)*long(mq_)*long(dip_)*long(djq_)*long(dk_),
-      long(2)*long(dip_)*long(djq_)*long(mk_)*long(dh),
-      long(2)*long(dip_)*long(mp_)*long(djq_)*long(mq_)*long(dh),
-      long(2)*long(dip_)*long(djq_)*long(mjq)*long(dhq_),
-      long(2)*long(dip_)*long(dhq_)*long(mip)*long(djp_),
-      long(2)*djp_*long(dhq_)*long(mip)*long(dip_)
-    });
-  assert(nMax <= INT_MAX);
-  bytes_ = nMax*sizeof(double);
+    /**
+     * @detail { Performs a 3D FFT on the real input field,
+     *           applies the provided filter in frequency space,
+     *           and perform the inverse 3D FFT. 
+     *           Expects fields in 3D block distribution with no ghost cells. }
+     * @tparam F { Type of functor that will applied in frequency space.
+     *             Should be resolved implicitly by the compiler. }
+     * @param[in] bytes { Number of bytes allocated for arguments @ref before and @ref after.
+     *                    Used to ensure that the arrays have enough extra work space. }
+     * @param[in,out] before { Input field for filtering. Modified as a work array.
+     *                         Must be at least @ref bytes() bytes, likely larger than the original field. }
+     * @param[out] after { Output field, filtered. Modified as a work array.
+     *                     Must be at least @ref bytes() bytes, likely larger than the actual output field. }
+     * @param[in] f { Functor or lambda function to be used as a filter.
+     *                The operator should have the following prototype.
+     *                \code
+     *                complex f(int i, int j, int k, complex before)
+     *                \endcode
+     *                Arguments `i`, `j`, and `k` are the frequency-space coordinates.
+     *                Argument `before` is the input value at those indices, after the FFT.
+     *                The function should return the filtered value. }
+     */
+    template <typename F>
+    void filter(const size_t bytes, double *const before, double *const after, const F f) const;
 
-  CHECK(cufftPlanMany(&c2ci_,1,&ni_,&ni_,1,ni_,&ni_,1,ni_,CUFFT_Z2Z,djp_*dhq_));
-  CHECK(cufftPlanMany(&c2cj_,1,&nj_,&nj_,1,nj_,&nj_,1,nj_,CUFFT_Z2Z,dip_*dhq_));
-  CHECK(cufftPlanMany(&c2rk_,1,&nk_,&nh_,1,nh_,&nk_,1,nk_,CUFFT_Z2D,dip_*djq_));
-  CHECK(cufftPlanMany(&r2ck_,1,&nk_,&nk_,1,nk_,&nh_,1,nh_,CUFFT_D2Z,dip_*djq_));
-
+  private:
+    int idi_,idj_,idk_; //!< MPI coordinates of 3D block
+    int mi_,mj_,mk_; //!< Number of MPI tasks in each dimension of 3D domain
+    int nh_; //!< Global number of complex values in Z dimension, after R2C transform
+    int ni_,nj_,nk_; //!< Global number of real points in each dimension
+    int mp_,mq_; //!< Number of MPI tasks in X and Y dimensions of Z pencil
+    int idp_,idq_; //!< X and Y task IDs within Z pencil
+    MPI_Comm commI_,commJ_,commK_; //!< Communicators of fellow tasks in X, Y, and Z pencils
+    int dh_,di_,dj_,dk_; //!< Max number of local points in each dimension
+    int dhq_,dip_,djp_,djq_; //!< Max number of local points in dimensions of 2D decompositions
+    size_t bytes_; //!< Max bytes needed for argument arrays
+    cufftHandle c2ci_,c2cj_,c2rk_,r2ck_; //!< Objects for forward and inverse FFTs
 #ifndef MPI_GPU
-  CHECK(cudaHostAlloc(&ha_,bytes_+bytes_,cudaHostAllocDefault));
-  assert(ha_);
-  hb_ = ha_+nMax;
+    double *ha_, *hb_; //!< Host copies for MPI messages
 #endif
-}
+};
 
-PoissonPeriodic3x1DBlockedGPU::~PoissonPeriodic3x1DBlockedGPU()
-{
-#ifndef MPI_GPU
-  CHECK(cudaFreeHost(ha_));
-  ha_ = hb_ = nullptr;
-#endif
-  CHECK(cufftDestroy(r2ck_));
-  CHECK(cufftDestroy(c2rk_));
-  CHECK(cufftDestroy(c2cj_));
-  CHECK(cufftDestroy(c2ci_));
-  MPI_Comm_free(&commI_);
-  MPI_Comm_free(&commJ_);
-  MPI_Comm_free(&commK_);
-}
+#if defined(__HIP__) || defined(__CUDACC__)
 
-void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const density, double *const potential) const
+template <typename F>
+void HenryPeriodic::filter(const size_t bytes, double *const before, double *const after, const F f) const
 {
+  // Make sure arguments have enough space
   assert(bytes >= bytes_);
 
-  double *const a = potential;
-  double *const b = density;
+  double *const a = after;
+  double *const b = before;
   cufftDoubleComplex *const ac = reinterpret_cast<cufftDoubleComplex*>(a);
   cufftDoubleComplex *const bc = reinterpret_cast<cufftDoubleComplex*>(b);
 
-  const double ddi = ddi_, ddj = ddj_, ddk = ddk_;
+  // Local copies of member variables for lambda capture
+
   const int di = di_, dj = dj_, dk = dk_;
   const int dhq = dhq_, dip = dip_, djp = djp_, djq = djq_;
   const int idi = idi_, idj = idj_, idk = idk_;
@@ -130,20 +94,26 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
   const int mp = mp_, mq = mq_;
   const int nh = nh_, ni = ni_, nj = nj_, nk = nk_;
 
+  // Indices and sizes for pencil redistributions
+
   const int idip = idi*mp+idp;
   const int idjq = idj*mq+idq;
   const int mip = mi*mp;
   const int mjq = mj*mq;
 
+  // Reorder 3D block into sub-pencils
+
   gpuFor(
     mp,mq,dip,djq,dk,
     GPU_LAMBDA(const int p, const int q, const int i, const int j, const int k) {
-      const int ii = p*dip+i;
+      const int ii = p*dip+i; 
       const int jj = q*djq+j;
       const int ia = k+dk*(j+djq*(i+dip*(q+mq*p)));
       const int ib = k+dk*(jj+dj*ii);
       a[ia] = b[ib];
     });
+
+  // Redistribute into Z pencils
 
   const int countK = dip*djq*dk;
 #ifndef MPI_GPU
@@ -155,6 +125,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
   MPI_Alltoall(a,countK,MPI_DOUBLE,b,countK,MPI_DOUBLE,commK_);
 #endif
 
+  // Make Z pencils contiguous in Z
   {
     const int iLo = idi*di+idp*dip;
     const int iHi = std::min({iLo+dip,(idi+1)*di,ni});
@@ -171,8 +142,11 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
         }
       });
   }
+
+  // Real-to-complex FFT in Z
   CHECK(cufftExecD2Z(r2ck_,a,bc));
 
+  // Rearrange for Y redistribution
   {
     const int iLo = idi*di+idp*dip;
     const int iHi = std::min({iLo+dip,(idi+1)*di,ni});
@@ -190,6 +164,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
+  // Redistribute for Y pencils
   const int countJ = 2*dip*djq*dhq;
 #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
@@ -200,6 +175,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
   MPI_Alltoall(a,countJ,MPI_DOUBLE,b,countJ,MPI_DOUBLE,commJ_);
 #endif
 
+  // Make Y pencils contiguous in Y
   {
     const int iLo = idi*di+idp*dip;
     const int iHi = std::min({iLo+dip,(idi+1)*di,ni});
@@ -218,8 +194,10 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
+  // Forward FFT in Y
   CHECK(cufftExecZ2Z(c2cj_,ac,bc,CUFFT_FORWARD));
 
+  // Rearrange for X redistribution
   {
     const int iLo = idi*di+idp*dip;
     const int iHi = std::min({iLo+dip,(idi+1)*di,ni});
@@ -230,13 +208,14 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       GPU_LAMBDA(const int p, const int k, const int i, const int j) {
         const int jj = p*djp+j;
         if (jj < nj) {
-            const int ia = j+djp*(i+dip*(k+dhq*p));
-            const int ib = jj+nj*(i+dip*k);
-            ac[ia] = bc[ib];
-          }
-        });
+          const int ia = j+djp*(i+dip*(k+dhq*p));
+          const int ib = jj+nj*(i+dip*k);
+          ac[ia] = bc[ib];
+        }
+      });
   }
 
+  // Redistribute for X pencils
   const int countI = 2*dip*djp*dhq;
 #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
@@ -247,6 +226,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
   MPI_Alltoall(a,countI,MPI_DOUBLE,b,countI,MPI_DOUBLE,commI_);
 #endif
 
+  // Make X pencils contiguous in X
   {
     const int jLo = idip*djp;
     const int jHi = std::min(jLo+djp,nj);
@@ -265,17 +245,10 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
+  // Forward FFT in X
   CHECK(cufftExecZ2Z(c2ci_,ac,bc,CUFFT_FORWARD));
 
-#ifdef PARIS_3PT
-  const double si = M_PI/double(ni);
-  const double sj = M_PI/double(nj);
-  const double sk = M_PI/double(nk);
-#elif defined PARIS_5PT
-  const double si = 2.0*M_PI/double(ni);
-  const double sj = 2.0*M_PI/double(nj);
-  const double sk = 2.0*M_PI/double(nk);
-#endif
+  // Apply filter in frequency space distributed in X pencils
 
   const int jLo = idip*djp;
   const int jHi = std::min(jLo+djp,nj);
@@ -287,34 +260,14 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
     GPU_LAMBDA(const int j0, const int k0, const int i) {
       const int j = jLo+j0;
       const int k = kLo+k0;
-      if (i || j || k) {
-#ifdef PARIS_3PT
-        const double i2 = sqr(sin(double(min(i,ni-i))*si)*ddi);
-        const double j2 = sqr(sin(double(min(j,nj-j))*sj)*ddj);
-        const double k2 = sqr(sin(double(k)*sk)*ddk);
-#elif defined PARIS_5PT
-        const double ci = cos(double(min(i,ni-i))*si);
-        const double cj = cos(double(min(j,nj-j))*sj);
-        const double ck = cos(double(k)*sk);
-        const double i2 = ddi*(2.0*ci*ci-16.0*ci+14.0);
-        const double j2 = ddj*(2.0*cj*cj-16.0*cj+14.0);
-        const double k2 = ddk*(2.0*ck*ck-16.0*ck+14.0);
-#else
-        const double i2 = sqr(double(min(i,ni-i))*ddi);
-        const double j2 = sqr(double(min(j,nj-j))*ddj);
-        const double k2 = sqr(double(k)*ddk);
-#endif
-        const double d = -1.0/(i2+j2+k2);
-        const int iab = i+ni*(k0+dhq*j0);
-        ac[iab].x = d*bc[iab].x;
-        ac[iab].y = d*bc[iab].y;
-      } else {
-        ac[0].x = ac[0].y = 0;
-      }
+      const int iab = i+ni*(k0+dhq*j0);
+      ac[iab] = f(i,j,k,bc[iab]);
     });
 
+  // Backward FFT in X
   CHECK(cufftExecZ2Z(c2ci_,ac,bc,CUFFT_INVERSE));
 
+  // Rearrange for Y redistribution
   {
     const int jLo = idip*djp;
     const int jHi = std::min(jLo+djp,nj);
@@ -333,6 +286,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
+  // Redistribute for Y pencils
 #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,countI,MPI_DOUBLE,hb_,countI,MPI_DOUBLE,commI_);
@@ -342,6 +296,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
   MPI_Alltoall(a,countI,MPI_DOUBLE,b,countI,MPI_DOUBLE,commI_);
 #endif
 
+  // Make Y pencils contiguous in Y
   {
     const int iLo = idi*di+idp*dip;
     const int iHi = std::min({iLo+dip,(idi+1)*di,ni});
@@ -359,8 +314,10 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
+  // Backward FFT in Y
   CHECK(cufftExecZ2Z(c2cj_,ac,bc,CUFFT_INVERSE));
 
+  // Rearrange for Z redistribution
   {
     const int iLo = idi*di+idp*dip;
     const int iHi = std::min({iLo+dip,(idi+1)*di,ni});
@@ -379,6 +336,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
+  // Redistribute in Z pencils
 #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,countJ,MPI_DOUBLE,hb_,countJ,MPI_DOUBLE,commJ_);
@@ -388,6 +346,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
   MPI_Alltoall(a,countJ,MPI_DOUBLE,b,countJ,MPI_DOUBLE,commJ_);
 #endif
 
+  // Make Z pencils contiguous in Z
   {
     const int iLo = idi*di+idp*dip;
     const int iHi = std::min({iLo+dip,(idi+1)*di,ni});
@@ -405,8 +364,10 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
+  // Complex-to-real FFT in Z
   CHECK(cufftExecZ2D(c2rk_,ac,b));
 
+  // Rearrange for 3D-block redistribution
   {
     const int iLo = idi*di+idp*dip;
     const int iHi = std::min({iLo+dip,(idi+1)*di,ni});
@@ -424,6 +385,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
       });
   }
 
+  // Redistribute for 3D blocks
 #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_,a,bytes,cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_,countK,MPI_DOUBLE,hb_,countK,MPI_DOUBLE,commK_);
@@ -433,6 +395,7 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
   MPI_Alltoall(a,countK,MPI_DOUBLE,b,countK,MPI_DOUBLE,commK_);
 #endif
 
+  // Rearrange into 3D blocks and apply FFT normalization
   {
     const double divN = 1.0/(double(ni)*double(nj)*double(nk));
     const int kLo = idk*dk;
@@ -452,3 +415,4 @@ void PoissonPeriodic3x1DBlockedGPU::solve(const size_t bytes, double *const dens
 }
 
 #endif
+
