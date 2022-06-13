@@ -24,3 +24,5 @@ GRACKLE_ROOT = /home/bruno/local
 
 #Paris does not do GPU_MPI transfers 
 PARIS_MPI_GPU = -DPARIS_NO_GPU_MPI
+
+CHOLLA_ARCH = sm_60

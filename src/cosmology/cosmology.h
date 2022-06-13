@@ -8,7 +8,8 @@
 #include "../global/global.h"
 #include "../particles/particles_3D.h"
 #include "../gravity/grav3D.h"
-
+#include "power_spectrum.h"
+#include "../fft/fft_3D.h"
 
 class Cosmology
 {
@@ -53,8 +54,32 @@ public:
   real_vector_t scale_outputs;
   Real next_output;
   bool exit_now;
-
-
+  
+  bool generate_initial_conditions;
+  struct Initial_Conditions{
+  
+    // For generating cosmological initial conditions
+    
+    int nx_local;
+    int ny_local;
+    int nz_local;
+    
+    int nx_total;
+    int ny_total;
+    int nz_total;
+    
+    Real *random_fluctiations;
+    Real *rescaled_random_fluctiations_dm;
+    Real *rescaled_random_fluctiations_gas;
+    
+    Cosmo_Power_Spectrum Power_Spectrum;
+    
+    FFT_3D FFT;
+    
+  } ICs;
+   
+  
+  
   Cosmology( void );
   void Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Particles );
 

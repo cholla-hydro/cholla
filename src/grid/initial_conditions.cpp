@@ -85,6 +85,8 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     Zeldovich_Pancake(P);
   } else if (strcmp(P.init, "Chemistry_Test")==0) {
     Chemistry_Test(P);
+  } else if (strcmp(P.init, "Generate_Cosmological_ICs")==0) {
+    chprintf("Cosmological initial conditions will be generated afterwards.\n");  
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);

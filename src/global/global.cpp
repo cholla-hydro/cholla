@@ -336,6 +336,8 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->Omega_L  = atof(value);
   else if (strcmp(name, "Omega_b")==0)
     parms->Omega_b  = atof(value);
+  else if (strcmp(name, "cosmo_ics_pk_file")==0)
+    strncpy (parms->cosmo_ics_pk_file, value, MAXLEN);
 #endif //COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   else if (strcmp(name, "tile_length")==0)
