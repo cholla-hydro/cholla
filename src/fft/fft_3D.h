@@ -16,6 +16,11 @@ class FFT_3D
     void Reset();
     
     void Filter_inv_k2( double *input, double *output, bool in_device ) const; 
+
+    void Filter_rescale_by_power_spectrum( double *input, double *output, bool in_device, int size, double *dev_k, double *dev_pk ) const;
+     
+    void Filter_rescale_by_k_k2( double *input, double *output, bool in_device, int direction, double D ) const;
+ 
     
   protected:
     int dn_[3];

@@ -64,6 +64,8 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
   ddj_ = 2.0*M_PI*double(n[1]-1)/(double(n[1])*(hi[1]-lo_[1]));
   ddk_ = 2.0*M_PI*double(n[2]-1)/(double(n[2])*(hi[2]-lo_[2]));
   
+  // printf( " delta_k:  x: %e   y: %e   z: %e  \n", ddi_, ddj_, ddk_ );
+  
   henry_ = new HenryPeriodic(n,lo_,hi,m,id);
   assert(henry_);
   // pp_ = new ParisPeriodic(n,lo_,hi,m,id);
@@ -102,6 +104,9 @@ void FFT_3D::Reset()
 }
 
 FFT_3D::~FFT_3D() { Reset(); }
+
+
+
 
 
 
