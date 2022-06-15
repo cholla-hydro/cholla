@@ -278,10 +278,6 @@ class Grid3D
      *  \brief Initialization flag */
     int flag_init;
 
-    /*! \var gflag
-     *  \brief Flag that determines which buffer contains updated conserved variables */
-    int gflag;
-
     /*! \var struct Header H
      *  \brief Header for the grid */
     struct Header H;
@@ -640,6 +636,8 @@ class Grid3D
      *  \brief Initialize the grid with a 3D spherical overdensity for gravitational collapse */
     void Spherical_Overdensity_3D();
 
+    void Clouds();
+    
     void Uniform_Grid();
 
     void Zeldovich_Pancake( struct parameters P );
@@ -839,6 +837,10 @@ class Grid3D
   void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end);
   #endif
   #endif
+  #endif
+  
+  #ifdef COSMOLOGY
+  void Generate_Cosmological_Initial_Conditions( struct parameters *P );
   #endif
 
 };

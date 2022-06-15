@@ -5,6 +5,61 @@
 #include "../global/global.h"
 #include "../io/io.h"
 
+Real Cosmology::Get_Linear_Growth_Factor_Deriv( Real a ){
+  Real delta_a, D_l, D_r, t_l, t_r;
+  delta_a = 1e-5;
+  D_l = Get_Linear_Growth_Factor( a - delta_a );
+  D_r = Get_Linear_Growth_Factor( a + delta_a );
+  t_l = Get_Current_Time( a - delta_a );
+  t_r = Get_Current_Time( a + delta_a );
+  return ( D_r - D_l ) / ( t_r - t_l ); 
+}
+
+Real Cosmology::Time_Integrand( Real a ){
+  Real H = Get_Hubble_Parameter_Full( a );
+  return 1 / ( H * a ) ; 
+}
+
+Real Cosmology::Get_Current_Time( Real a_end ){
+  int n_iter = 1e8;
+  Real a, a_start, delta_a, integral, H;
+  a_start = 1e-50;
+  delta_a = ( a_end - a_start ) / n_iter;
+  
+  // Integrate using Simpon's method
+  integral =  Time_Integrand(a_start) + Time_Integrand(a_end);
+  for ( int i=1; i<n_iter; i++ ){
+    a = a_start + i * delta_a;
+    if ( i%2 == 0 ) integral += 2 * Time_Integrand(a);
+    else integral += 4 * Time_Integrand(a);
+  }
+  integral *= delta_a / 3;
+  return integral * KPC;
+}
+
+
+Real Cosmology::Growth_Factor_Integrand( Real a ){
+  Real H = Get_Hubble_Parameter_Full( a );
+  return 1 / pow( H * a, 3); 
+}
+
+Real Cosmology::Get_Linear_Growth_Factor( Real a_end ){
+  int n_iter = 1e7;
+  Real a, a_start, delta_a, integral, H;
+  a_start = 1e-50;
+  delta_a = ( a_end - a_start ) / n_iter;
+  
+  // Integrate using Simpon's method
+  integral =  Growth_Factor_Integrand(a_start) + Growth_Factor_Integrand(a_end);
+  for ( int i=1; i<n_iter; i++ ){
+    a = a_start + i * delta_a;
+    if ( i%2 == 0 ) integral += 2 * Growth_Factor_Integrand(a);
+    else integral += 4 * Growth_Factor_Integrand(a);
+  }
+  integral *= delta_a / 3;
+  H = Get_Hubble_Parameter_Full( a );
+  return double(5.0)/2 * H0 * H0 * Omega_M * H * integral;
+}
 
 
 void Grid3D::Initialize_Cosmology( struct parameters *P ){
@@ -37,6 +92,15 @@ Real Cosmology::Get_Hubble_Parameter( Real a ){
   Real a2 = a * a;
   Real a3 = a2 * a;
   Real factor = ( Omega_M/a3 + Omega_K/a2 + Omega_L );
+  return H0 * sqrt(factor);
+}
+
+
+Real Cosmology::Get_Hubble_Parameter_Full( Real a ){
+  Real a2 = a * a;
+  Real a3 = a2 * a;
+  Real a4 = a3 * a;
+  Real factor = ( Omega_R/a4 + Omega_M/a3 + Omega_K/a2 + Omega_L );
   return H0 * sqrt(factor);
 }
 

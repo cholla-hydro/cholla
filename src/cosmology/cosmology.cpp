@@ -18,6 +18,7 @@ void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Pa
   Omega_L = P-> Omega_L;
   Omega_K = 1 - ( Omega_M + Omega_L );
   Omega_b = P-> Omega_b;
+  Omega_R = 4.166e-5 / ( cosmo_h * cosmo_h ); // From Planck 2018
 
   if(strcmp(P->init, "Read_Grid")==0){
     // Read scale factor value from Particles
@@ -76,6 +77,34 @@ void Cosmology::Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Pa
   chprintf( " Max delta_a: %f \n", MAX_DELTA_A);
 
   Set_Scale_Outputs( P );
+  
+  if ( strcmp(P->init, "Generate_Cosmological_ICs")==0) generate_initial_conditions = true;
+  else generate_initial_conditions = false;
+  
+  
+  if ( generate_initial_conditions ){
+    
+    // Initialize parameters for initial conditions generator
+    ICs.nx_local = Grav.nx_local;
+    ICs.ny_local = Grav.ny_local;
+    ICs.nz_local = Grav.nz_local;
+    ICs.nx_total = Grav.nx_total;
+    ICs.ny_total = Grav.ny_total;
+    ICs.nz_total = Grav.nz_total;
+    
+  } else {
+    
+    ICs.nx_local = 0;
+    ICs.nx_local = 0;
+    ICs.nx_local = 0;
+    ICs.nx_total = 0;
+    ICs.nx_total = 0;
+    ICs.nx_total = 0;
+    ICs.random_fluctiations = NULL;
+    ICs.rescaled_random_fluctiations_dm = NULL;
+    ICs.rescaled_random_fluctiations_gas = NULL;
+    
+  }
 
 }
 

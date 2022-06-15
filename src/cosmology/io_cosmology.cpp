@@ -10,7 +10,7 @@ using namespace std;
 
 void Cosmology::Load_Scale_Outputs( struct parameters *P ) {
 
-  char filename_1[100];
+  char filename_1[MAXLEN];
   // create the filename to read from
   strcpy(filename_1, P->scale_outputs_file);
   chprintf( " Loading Scale_Factor Outpus: %s\n", filename_1);

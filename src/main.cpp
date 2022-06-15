@@ -116,6 +116,7 @@ int main(int argc, char *argv[])
 
   #ifdef COSMOLOGY
   G.Initialize_Cosmology(&P);
+  if ( G.Cosmo.generate_initial_conditions ) G.Generate_Cosmological_Initial_Conditions( &P );
   #endif
 
   #ifdef COOLING_GRACKLE

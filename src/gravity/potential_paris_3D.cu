@@ -151,7 +151,7 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
   assert(dn_[1] == n[1]/m[1]);
   assert(dn_[2] == n[2]/m[2]);
 
-  pp_ = new PoissonPeriodic3x1DBlockedGPU(n,lo_,hi,m,id);
+  pp_ = new ParisPeriodic(n,lo_,hi,m,id);
   assert(pp_);
   minBytes_ = pp_->bytes();
   densityBytes_ = long(sizeof(Real))*dn_[0]*dn_[1]*dn_[2];

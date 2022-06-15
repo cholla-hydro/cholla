@@ -458,11 +458,12 @@ __device__ __host__ Real mhdInverseCrossingTime(Real const &E,
 
 
 
-__global__ void Calc_dt_1D(Real *dev_conserved, int n_cells, int n_ghost, Real dx, Real *dev_dti, Real gamma)
+__global__ void Calc_dt_1D(Real *dev_conserved, Real *dev_dti, Real gamma, int n_ghost, int nx, Real dx)
 {
   Real max_dti = -DBL_MAX;
 
   Real d, d_inv, vx, vy, vz, P, cs;
+  int n_cells = nx;
 
   // Grid stride loop to perform as much of the reduction as possible. The
   // fact that `id` has type `size_t` is important. I'm not totally sure why
@@ -495,7 +496,7 @@ __global__ void Calc_dt_1D(Real *dev_conserved, int n_cells, int n_ghost, Real d
 
 
 
-__global__ void Calc_dt_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Real dx, Real dy, Real *dev_dti, Real gamma)
+__global__ void Calc_dt_2D(Real *dev_conserved, Real *dev_dti, Real gamma, int n_ghost, int nx, int ny, Real dx, Real dy)
 {
   Real max_dti = -DBL_MAX;
 
@@ -536,7 +537,7 @@ __global__ void Calc_dt_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Rea
 }
 
 
-__global__ void Calc_dt_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real *dev_dti, Real gamma )
+__global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n_ghost, int n_fields, int nx, int ny, int nz, Real dx, Real dy, Real dz)
 {
   Real max_dti = -DBL_MAX;
 
@@ -592,30 +593,52 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 {
   // set values for GPU kernels
   uint threadsPerBlock, numBlocks;
-  reduction_utilities::reductionLaunchParams(numBlocks, threadsPerBlock);
+  int ngrid = (nx*ny*nz + TPB - 1 )/TPB;
+  // reduction_utilities::reductionLaunchParams(numBlocks, threadsPerBlock); // Uncomment this if we fix the AtomicDouble bug - Alwin
+  threadsPerBlock = TPB;
+  numBlocks = ngrid;
 
+  Real* dev_dti = dev_dti_array;
+  
 
   // compute dt and store in dev_dti
   if (nx > 1 && ny == 1 && nz == 1) //1D
   {
-    hipLaunchKernelGGL(Calc_dt_1D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, nx, n_ghost, dx, dev_dti, gamma);
+    hipLaunchKernelGGL(Calc_dt_1D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, dev_dti, gamma, n_ghost, nx, dx);
   }
   else if (nx > 1 && ny > 1 && nz == 1) //2D
   {
-    hipLaunchKernelGGL(Calc_dt_2D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, nx, ny, n_ghost, dx, dy, dev_dti, gamma);
+    hipLaunchKernelGGL(Calc_dt_2D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, dev_dti, gamma, n_ghost, nx, ny, dx, dy);
   }
   else if (nx > 1 && ny > 1 && nz > 1) //3D
   {
-    hipLaunchKernelGGL(Calc_dt_3D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dx, dy, dz, dev_dti, gamma );
+    hipLaunchKernelGGL(Calc_dt_3D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, dev_dti, gamma, n_ghost, n_fields, nx, ny, nz, dx, dy, dz);
   }
   CudaCheckError();
 
+  Real max_dti=0;
+
+  /* Uncomment the below if we fix the AtomicDouble bug - Alwin
   // copy device side max_dti to host side max_dti
-  Real max_dti;
+
+
   CudaSafeCall( cudaMemcpy(&max_dti, dev_dti, sizeof(Real), cudaMemcpyDeviceToHost) );
   cudaDeviceSynchronize();
 
   return max_dti;
+  */
+  
+  int dev_dti_length = numBlocks;
+  CudaSafeCall(cudaMemcpy(host_dti_array,dev_dti, dev_dti_length*sizeof(Real), cudaMemcpyDeviceToHost));
+  cudaDeviceSynchronize();
+  
+  for (int i=0;i<dev_dti_length;i++){
+    max_dti = fmax(max_dti,host_dti_array[i]);
+  }
+
+  return max_dti;
+
+  
 }
 
 
@@ -624,6 +647,8 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 void Average_Slow_Cells( Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow ){
   
   // set values for GPU kernels
+  int n_cells = nx*ny*nz;
+  int ngrid = (n_cells + TPB - 1) / TPB;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -635,12 +660,15 @@ void Average_Slow_Cells( Real *dev_conserved, int nx, int ny, int nz, int n_ghos
 }
 
 __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow ){
+
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, max_dti;
   #ifdef  MHD
     Real avgBx, avgBy, avgBz;
   #endif  //MHD
   
+  // get a global thread ID
+  id = threadIdx.x + blockIdx.x * blockDim.x;
   n_cells = nx*ny*nz;
   
   // get a global thread ID
