@@ -326,6 +326,8 @@ void parse_param(char *name,char *value, struct parameters *parms){
     strncpy (parms->scale_outputs_file, value, MAXLEN);
   else if (strcmp(name, "Init_redshift")==0)
     parms->Init_redshift  = atof(value);
+  else if (strcmp(name, "Init_temperature")==0)
+    parms->Init_temperature  = atof(value);
   else if (strcmp(name, "End_redshift")==0)
     parms->End_redshift  = atof(value);
   else if (strcmp(name, "H0")==0)

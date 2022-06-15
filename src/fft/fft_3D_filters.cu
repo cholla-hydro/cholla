@@ -58,15 +58,15 @@ void FFT_3D::Filter_rescale_by_k_k2( double *input, double *output, bool in_devi
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
         int id_k = k < nk/2 ? k : k - nk;
-        double kx = id_i * ddi;
+        double kz = id_i * ddi;
         double ky = id_j * ddj;
-        double kz = id_k * ddk;  
+        double kx = id_k * ddk;  
         double k2 = kx*kx + ky*ky + kz*kz ;
         if ( k2 == 0 ) k2 = 1.0;
         double factor;
-        if      (direction == 0) factor = kx / k2 / D;
+        if      (direction == 0) factor = kz / k2 / D;
         else if (direction == 1) factor = ky / k2 / D;
-        else if (direction == 2) factor = kz / k2 / D;
+        else if (direction == 2) factor = kx / k2 / D;
         else printf("Wrong direction %d\n", direction ); 
          // multiply b by 1j*factor ( Imaginary Number)
         return cufftDoubleComplex{-factor*b.y,factor*b.x};
@@ -105,9 +105,9 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
         int id_k = k < nk/2 ? k : k - nk;
-        double kx = id_i * ddi;
+        double kz = id_i * ddi;
         double ky = id_j * ddj;
-        double kz = id_k * ddk;  
+        double kx = id_k * ddk;  
         const double k_mag = sqrt( kx*kx + ky*ky + kz*kz );
         double pk = linear_interpolation( k_mag, dev_k, dev_pk, size );
         if ( i==1 && j==1 && k==1 ) printf("###### kx: %e  ky: %e  kz: %e  k_mag: %e  pk: %e \n", kx, ky, kz, k_mag, pk );  
