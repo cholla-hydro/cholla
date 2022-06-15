@@ -20,6 +20,7 @@ public:
   Real Omega_L;
   Real Omega_K;
   Real Omega_b;
+  Real Omega_R;
 
   Real cosmo_G;
   Real cosmo_h;
@@ -89,9 +90,17 @@ public:
   void Set_Next_Scale_Output( );
 
   Real Get_Hubble_Parameter( Real a );
+  Real Get_Hubble_Parameter_Full( Real a );
 
   Real Get_da_from_dt( Real dt );
   Real Get_dt_from_da( Real da );
+  
+  Real Time_Integrand( Real a );
+  Real Get_Current_Time( Real a );
+  
+  Real Growth_Factor_Integrand( Real a );
+  Real Get_Linear_Growth_Factor( Real a );
+  Real Get_Linear_Growth_Factor_Deriv( Real a );
 
 };
 
