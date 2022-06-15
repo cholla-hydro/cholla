@@ -386,7 +386,7 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
   free( GasEnergy ); 
   
   Cosmo.ICs.FFT.Reset();
-  chprintf( "Cosmological initial conditions generated successfully. \n" );
+  chprintf( "Cosmological initial conditions generated successfully. \n\n" );
 
 }
 

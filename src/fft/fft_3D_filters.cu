@@ -110,7 +110,7 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
         double kx = id_k * ddk;  
         const double k_mag = sqrt( kx*kx + ky*ky + kz*kz );
         double pk = linear_interpolation( k_mag, dev_k, dev_pk, size );
-        if ( i==1 && j==1 && k==1 ) printf("###### kx: %e  ky: %e  kz: %e  k_mag: %e  pk: %e \n", kx, ky, kz, k_mag, pk );  
+        // if ( i==1 && j==1 && k==1 ) printf("###### kx: %e  ky: %e  kz: %e  k_mag: %e  pk: %e \n", kx, ky, kz, k_mag, pk );  
         pk = sqrt(pk);
         return cufftDoubleComplex{pk*b.x,pk*b.y};
       } else {
