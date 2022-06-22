@@ -677,7 +677,6 @@ __host__ __device__ Real coll_i_HeI_rate( Real T, Real units )
 __host__ __device__ Real recomb_HeII_rate( Real T, Real units, bool use_case_B )
 {
     Real T_ev = T / 11605.0;
-    Real logT_ev = log(T_ev);
     //If case B recombination on.
     if (use_case_B){
         return 1.26e-14 * pow(5.7067e5/T, 0.75) / units;
@@ -696,7 +695,6 @@ __host__ __device__ Real recomb_HeII_rate( Real T, Real units, bool use_case_B )
 __host__ __device__ Real recomb_HeII_rate_case_A( Real T, Real units )
 {
     Real T_ev = T / 11605.0;
-    Real logT_ev = log(T_ev);
     if (T_ev > 0.8){
         return (1.54e-9*(1.0 + 0.3 / exp(8.099328789667/T_ev))
              / (exp(40.49664394833662/T_ev)*pow(T_ev, 1.5))
