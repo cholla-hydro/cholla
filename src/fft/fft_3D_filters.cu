@@ -9,7 +9,7 @@
 #include <climits>
 
 
-__host__ __device__ static inline double sqr(const double x) { return x*x; }
+__host__ __device__ static inline Real sqr(const Real x) { return x*x; }
 
 __device__ Real linear_interpolation( Real x, Real *x_vals, Real *y_vals, int N ){
   if ( x <= x_vals[0] ){
@@ -35,11 +35,11 @@ __device__ Real linear_interpolation( Real x, Real *x_vals, Real *y_vals, int N 
 
 
 
-void FFT_3D::Filter_rescale_by_k_k2( double *input, double *output, bool in_device, int direction, double D ) const
+void FFT_3D::Filter_rescale_by_k_k2( Real *input, Real *output, bool in_device, int direction, Real D ) const
 {
   // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_, nk = nk_;
-  const double ddi = ddi_, ddj = ddj_, ddk = ddk_;
+  const Real ddi = ddi_, ddj = ddj_, ddk = ddk_;
   const size_t bytes = minBytes_;
 
   if ( in_device ){
@@ -58,12 +58,12 @@ void FFT_3D::Filter_rescale_by_k_k2( double *input, double *output, bool in_devi
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
         int id_k = k < nk/2 ? k : k - nk;
-        double kz = id_i * ddi;
-        double ky = id_j * ddj;
-        double kx = id_k * ddk;  
-        double k2 = kx*kx + ky*ky + kz*kz ;
+        Real kz = id_i * ddi;
+        Real ky = id_j * ddj;
+        Real kx = id_k * ddk;  
+        Real k2 = kx*kx + ky*ky + kz*kz ;
         if ( k2 == 0 ) k2 = 1.0;
-        double factor;
+        Real factor = 0;
         if      (direction == 0) factor = kz / k2 / D;
         else if (direction == 1) factor = ky / k2 / D;
         else if (direction == 2) factor = kx / k2 / D;
@@ -82,11 +82,11 @@ void FFT_3D::Filter_rescale_by_k_k2( double *input, double *output, bool in_devi
     } 
 }
 
-void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bool in_device, int size, double *dev_k, double *dev_pk ) const
+void FFT_3D::Filter_rescale_by_power_spectrum( Real *input, Real *output, bool in_device, int size, Real *dev_k, Real *dev_pk, Real dx3 ) const
 {
   // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_, nk = nk_;
-  const double ddi = ddi_, ddj = ddj_, ddk = ddk_;
+  const Real ddi = ddi_, ddj = ddj_, ddk = ddk_;
   const size_t bytes = minBytes_;
   
   if ( in_device ){
@@ -105,12 +105,13 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
         int id_k = k < nk/2 ? k : k - nk;
-        double kz = id_i * ddi;
-        double ky = id_j * ddj;
-        double kx = id_k * ddk;  
-        const double k_mag = sqrt( kx*kx + ky*ky + kz*kz );
-        double pk = linear_interpolation( k_mag, dev_k, dev_pk, size );
-        // if ( i==1 && j==1 && k==1 ) printf("###### kx: %e  ky: %e  kz: %e  k_mag: %e  pk: %e \n", kx, ky, kz, k_mag, pk );  
+        Real kz = id_i * ddi;
+        Real ky = id_j * ddj;
+        Real kx = id_k * ddk;  
+        const Real k_mag = sqrt( kx*kx + ky*ky + kz*kz );
+        Real pk = linear_interpolation( k_mag, dev_k, dev_pk, size );
+        // NOTE: Rescale by dx^3. If not the pnormalization of the resulting P(k) changes with resolution
+        pk *= dx3; 
         pk = sqrt(pk);
         return cufftDoubleComplex{pk*b.x,pk*b.y};
       } else {
@@ -126,11 +127,11 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
     
 }
 
-void FFT_3D::Filter_inv_k2( double *const input, double *const output, bool in_device ) const
+void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_device ) const
 {
   // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_;
-  const double ddi = ddi_, ddj = ddj_, ddk = ddk_;
+  const Real ddi = ddi_, ddj = ddj_, ddk = ddk_;
   const size_t bytes = minBytes_;
   
   if ( in_device ){
@@ -143,10 +144,10 @@ void FFT_3D::Filter_inv_k2( double *const input, double *const output, bool in_d
   henry_->filter(bytes, db_, da_,
     [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
       if (i || j || k) {
-        const double i2 = sqr(double(min(i,ni-i))*ddi);
-        const double j2 = sqr(double(min(j,nj-j))*ddj);
-        const double k2 = sqr(double(k)*ddk);
-        const double d = -1.0/(i2+j2+k2);
+        const Real i2 = sqr(double(min(i,ni-i))*ddi);
+        const Real j2 = sqr(double(min(j,nj-j))*ddj);
+        const Real k2 = sqr(double(k)*ddk);
+        const Real d = -1.0/(i2+j2+k2);
         return cufftDoubleComplex{d*b.x,d*b.y};
       } else {
         return cufftDoubleComplex{0.0,0.0};

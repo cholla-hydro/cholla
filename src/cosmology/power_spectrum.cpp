@@ -43,7 +43,7 @@ void Cosmo_Power_Spectrum:: Load_Power_Spectum_From_File( struct parameters *P )
   
   } else{
   
-    chprintf(" Error: Unable to open UVB rates file: %s\n", pk_filename);
+    chprintf(" Error: Unable to open Power Spectrum file: %s\n", pk_filename);
     exit(1);
   
   }
@@ -57,7 +57,7 @@ void Cosmo_Power_Spectrum:: Load_Power_Spectum_From_File( struct parameters *P )
   host_pk_gas = (Real *)malloc( host_size*sizeof(Real) );
   
   for (i=0; i<n_lines; i++ ){
-    host_k[i]      = v[i][0] *1e-3; //Convert from 1/(Mpc/h) to  1/(kpc/h)
+    host_k[i]      = v[i][0] * 1e-3; //Convert from 1/(Mpc/h) to 1/(kpc/h)
     host_pk_dm[i]  = v[i][1]; 
     host_pk_gas[i] = v[i][2]; 
   }

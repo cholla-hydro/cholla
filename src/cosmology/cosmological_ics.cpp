@@ -19,8 +19,20 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
   Cosmo.ICs.rescaled_random_fluctiations_dm  = (Real *) malloc(n_local*sizeof(Real));
   Cosmo.ICs.rescaled_random_fluctiations_gas = (Real *) malloc(n_local*sizeof(Real));
   
-  std::random_device rd{};
-  std::mt19937 gen{rd()};
+  long unsigned int random_seed;
+  if ( P->cosmo_ics_random_seed == -1 ){
+    random_seed = static_cast<long unsigned int>( time(0) + procID );
+    chprintf( " Using time based random seed: %ld\n", random_seed);
+  } else{
+    random_seed = static_cast<long unsigned int>( P->cosmo_ics_random_seed + procID );
+    chprintf( " Using user specified random seed: %ld \n", random_seed);
+  }
+  
+  // This uses a system seed
+  // std::random_device rd{};
+  // std::mt19937 gen{rd()};
+  
+  std::mt19937 gen{ random_seed };
   std::normal_distribution<Real> d( 0, 1 );
   
   Real mean, sigma;
@@ -55,8 +67,9 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
   
   chprintf( " Generating particles initial conditions... \n");
   // Call the FFT with filter to multuply by the sqrt of the DM Power Spectrum
+  Real dx3 = H.dx * H.dy * H.dz;
   Cosmo.ICs.FFT.Filter_rescale_by_power_spectrum( Cosmo.ICs.random_fluctiations, Cosmo.ICs.rescaled_random_fluctiations_dm, false,
-                         Cosmo.ICs.Power_Spectrum.host_size, Cosmo.ICs.Power_Spectrum.dev_k, Cosmo.ICs.Power_Spectrum.dev_pk_dm );
+                         Cosmo.ICs.Power_Spectrum.host_size, Cosmo.ICs.Power_Spectrum.dev_k, Cosmo.ICs.Power_Spectrum.dev_pk_dm, dx3 );
   
   
   Real *displacements_x, *displacements_y, *displacements_z;
@@ -78,18 +91,23 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
   Cosmo.ICs.FFT.Filter_rescale_by_k_k2( Cosmo.ICs.rescaled_random_fluctiations_dm, displacements_x, false, 2, D );
   
   //Initialize min and max values for position and velocity to print initial Statistics
+  Real dx_min, dy_min, dz_min;
+  Real dx_max, dy_max, dz_max;
   Real vx_min, vy_min, vz_min;
   Real vx_max, vy_max, vz_max;
+  dx_min = dy_min = dz_min = 1e64;
+  dx_max = dy_max = dz_max = -1e64;
   vx_min = vy_min = vz_min = 1e64;
   vx_max = vy_max = vz_max = -1e64;
   
-  bool in_local;
+  
   int indx_i, indx_j, indx_k, indx;
   for ( indx_k=0; indx_k<Cosmo.ICs.nz_local; indx_k++ ){
     for ( indx_j=0; indx_j<Cosmo.ICs.ny_local; indx_j++ ){
       for ( indx_i=0; indx_i<Cosmo.ICs.nx_local; indx_i++ ){
         indx = indx_i + indx_j*Cosmo.ICs.nx_local + indx_k*Cosmo.ICs.nx_local*Cosmo.ICs.ny_local;
   
+        // Particles can be displaced out of the local domain, a particles boundary transfer is excecuted at the end. 
         positions_x[indx] = H.xblocal + ( indx_i + 0.5 ) * H.dx + D * displacements_x[indx];
         positions_y[indx] = H.yblocal + ( indx_j + 0.5 ) * H.dy + D * displacements_y[indx];
         positions_z[indx] = H.zblocal + ( indx_k + 0.5 ) * H.dz + D * displacements_z[indx];
@@ -97,7 +115,14 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
         velocities_x[indx] = Cosmo.current_a * D_dot * displacements_x[indx] * KPC / Cosmo.cosmo_h; // km /s
         velocities_y[indx] = Cosmo.current_a * D_dot * displacements_y[indx] * KPC / Cosmo.cosmo_h; // km /s
         velocities_z[indx] = Cosmo.current_a * D_dot * displacements_z[indx] * KPC / Cosmo.cosmo_h; // km /s
-  
+        
+        dx_min = fmin( dx_min, D * displacements_x[indx] );
+        dy_min = fmin( dy_min, D * displacements_y[indx] );
+        dz_min = fmin( dz_min, D * displacements_z[indx] );  
+        dx_max = fmax( dx_max, D * displacements_x[indx] );
+        dy_max = fmax( dy_max, D * displacements_y[indx] );
+        dz_max = fmax( dz_max, D * displacements_z[indx] );
+        
         vx_min = fmin( vx_min, velocities_x[indx] );
         vy_min = fmin( vy_min, velocities_y[indx] );
         vz_min = fmin( vz_min, velocities_z[indx] );  
@@ -105,29 +130,16 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
         vy_max = fmax( vy_max, velocities_y[indx] );
         vz_max = fmax( vz_max, velocities_z[indx] );  
   
-        in_local = true;
-        if ( positions_x[indx] < Particles.G.xMin || positions_x[indx] >= Particles.G.xMax ) in_local = false;
-        if ( positions_y[indx] < Particles.G.yMin || positions_y[indx] >= Particles.G.yMax ) in_local = false;
-        if ( positions_z[indx] < Particles.G.zMin || positions_z[indx] >= Particles.G.zMax ) in_local = false;
-        
-        // Particles can be displaced out of the local domain, a particles boundary transfer is excecuted at the end. 
-        // if ( ! in_local  ) {
-        //   #ifdef PARTICLE_IDS
-        //   std::cout << " Particle outside Local  domain    pID: " << pID << std::endl;
-        //   #else
-        //   std::cout << " Particle outside Local  domain " << std::endl;
-        //   #endif
-        //   std::cout << "  Domain X: " << Particles.G.xMin <<  "  " << Particles.G.xMax << std::endl;
-        //   std::cout << "  Domain Y: " << Particles.G.yMin <<  "  " << Particles.G.yMax << std::endl;
-        //   std::cout << "  Domain Z: " << Particles.G.zMin <<  "  " << Particles.G.zMax << std::endl;
-        //   std::cout << "  Particle X: " << positions_x[indx] << std::endl;
-        //   std::cout << "  Particle Y: " << positions_y[indx] << std::endl;
-        //   std::cout << "  Particle Z: " << positions_z[indx] << std::endl;
-        //   continue;
-        // }
       }    
     }
   }
+  
+  dx_min = ReduceRealMin( dx_min );
+  dy_min = ReduceRealMin( dy_min );
+  dz_min = ReduceRealMin( dz_min );
+  dx_max = ReduceRealMax( dx_max );
+  dy_max = ReduceRealMax( dy_max );
+  dz_max = ReduceRealMax( dz_max );
   
   vx_min = ReduceRealMin( vx_min );
   vy_min = ReduceRealMin( vy_min );
@@ -151,9 +163,12 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
   
   //Print initial Statistics
   #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
-  chprintf( "  Vel X   Min: %e   Max: %e   [ km/s ]\n", vx_min, vx_max );
-  chprintf( "  Vel Y   Min: %e   Max: %e   [ km/s ]\n", vy_min, vy_max );
-  chprintf( "  Vel Z   Min: %e   Max: %e   [ km/s ]\n", vz_min, vz_max );
+  chprintf( "  Displacements X   Min: %e   Max: %e   [ kpc/h ]\n", dx_min, dx_max );
+  chprintf( "  Displacements Y   Min: %e   Max: %e   [ kpc/h ]\n", dy_min, dy_max );
+  chprintf( "  Displacements Z   Min: %e   Max: %e   [ kpc/h ]\n", dz_min, dz_max );
+  chprintf( "  Velocities X      Min: %e   Max: %e   [ km/s ]\n", vx_min, vx_max );
+  chprintf( "  Velocities Y      Min: %e   Max: %e   [ km/s ]\n", vy_min, vy_max );
+  chprintf( "  Velocities Z      Min: %e   Max: %e   [ km/s ]\n", vz_min, vz_max );
   #endif//PRINT_INITIAL_STATS
   
   #ifdef PARTICLES_CPU
@@ -216,10 +231,8 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
   
   // Call the FFT with filter to multuply by the sqrt of the Gas Power Spectrum
   Cosmo.ICs.FFT.Filter_rescale_by_power_spectrum( Cosmo.ICs.random_fluctiations, Cosmo.ICs.rescaled_random_fluctiations_gas, false,
-                         Cosmo.ICs.Power_Spectrum.host_size, Cosmo.ICs.Power_Spectrum.dev_k, Cosmo.ICs.Power_Spectrum.dev_pk_gas );
+                         Cosmo.ICs.Power_Spectrum.host_size, Cosmo.ICs.Power_Spectrum.dev_k, Cosmo.ICs.Power_Spectrum.dev_pk_gas, dx3 );
   
-  
-                         
   // Call the FFT with filter to multiply the GAS fluctuations by ik/k^2/D  
   Cosmo.ICs.FFT.Filter_rescale_by_k_k2( Cosmo.ICs.rescaled_random_fluctiations_gas, displacements_z, false, 0, D );
   Cosmo.ICs.FFT.Filter_rescale_by_k_k2( Cosmo.ICs.rescaled_random_fluctiations_gas, displacements_y, false, 1, D );
