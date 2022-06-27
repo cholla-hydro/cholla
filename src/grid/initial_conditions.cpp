@@ -1279,7 +1279,7 @@ void Grid3D::Clouds()
   n_cl  = 5.4e-2;
   rho_bg = n_bg*mu*MP/DENSITY_UNIT;
   rho_cl  = n_cl*mu*MP/DENSITY_UNIT;
-  vx_bg = 10*TIME_UNIT/KPC;
+  vx_bg = 1000*TIME_UNIT/KPC;
   //vx_c  = -200*TIME_UNIT/KPC; // convert from km/s to kpc/kyr
   vx_cl  = 0.0;
   vy_bg = vy_cl = 0.0;

@@ -18,6 +18,8 @@
 #include "../grid/grid3D.h"
 
 void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma) {
+    int n_cells = nx * ny * nz;
+    int ngrid = (n_cells + TPB - 1) / TPB;
     dim3 dim1dGrid(ngrid, 1, 1);
     dim3 dim1dBlock(TPB, 1, 1);
     hipLaunchKernelGGL(Dust_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gamma);
@@ -27,6 +29,7 @@ void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma) {
     // get grid indices
     int n_cells = nx * ny * nz;
+    int ngrid = (n_cells + TPB - 1) / TPB;
     int is, ie, js, je, ks, ke;
     cuda_utilities::Get_Real_Indices(n_ghost, nx, ny, nz, is, ie, js, je, ks, ke);
     // get a global thread ID
@@ -58,6 +61,8 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
         d_gas = dev_conserved[id];
         d_dust = dev_conserved[5*n_cells + id];
         E = dev_conserved[4*n_cells + id];
+        //printf("kernel: %7.4e\n", d_dust);
+        // make sure thread hasn't crashed
 
         n = d_gas*DENSITY_UNIT / (mu*MP);
 
