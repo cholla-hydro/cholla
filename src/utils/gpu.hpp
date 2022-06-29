@@ -8,7 +8,7 @@
 
 #include <hip/hip_runtime.h>
 
-#if defined(CUFFT) || defined(PARIS) || defined(PARIS_GALACTIC)
+#if defined(PARIS) || defined(PARIS_GALACTIC)
 
 #include <hipfft.h>
 
@@ -20,7 +20,7 @@ static void __attribute__((unused)) check(const hipfftResult err, const char *co
   exit(err);
 }
 
-#endif  //CUFFT PARIS PARIC_GALACTIC
+#endif  // PARIS PARIC_GALACTIC
 
 #define WARPSIZE 64
 static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
@@ -85,7 +85,7 @@ static void __attribute__((unused)) check(const hipError_t err, const char *cons
 
 #include <cuda_runtime.h>
 
-#if defined(CUFFT) || defined(PARIS) || defined(PARIS_GALACTIC)
+#if defined(PARIS) || defined(PARIS_GALACTIC)
 
 #include <cufft.h>
 
@@ -97,7 +97,7 @@ static void check(const cufftResult err, const char *const file, const int line)
   exit(err);
 }
 
-#endif //defined(CUFFT) || defined(PARIS) || defined(PARIS_GALACTIC)
+#endif // defined(PARIS) || defined(PARIS_GALACTIC)
 
 static void check(const cudaError_t err, const char *const file, const int line)
 {
