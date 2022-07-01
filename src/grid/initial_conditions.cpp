@@ -1275,11 +1275,11 @@ void Grid3D::Clouds()
     printf("Cloud positions: %f %f %f\n", cl_pos[nn][0], cl_pos[nn][1], cl_pos[nn][2]);
   }
 
-  n_bg = 1.68e-4;
+  n_bg = 1e-2;
   n_cl  = 1;
   rho_bg = n_bg*mu*MP/DENSITY_UNIT;
   rho_cl  = n_cl*mu*MP/DENSITY_UNIT;
-  vx_bg = 10*TIME_UNIT/KPC;
+  vx_bg = 100*TIME_UNIT/KPC;
   //vx_c  = -200*TIME_UNIT/KPC; // convert from km/s to kpc/kyr
   vx_cl  = 0.0;
   vy_bg = vy_cl = 0.0;

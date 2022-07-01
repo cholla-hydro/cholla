@@ -10,7 +10,7 @@ DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DBLOCK
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMC
+DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
 
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
