@@ -67,7 +67,7 @@ jobs:
         h5cc -showconfig
 
     # Install CUDA and dependencies if this is a CUDA build
-    - uses: Jimver/cuda-toolkit@v0.2.4
+    - uses: Jimver/cuda-toolkit@v0.2.8
       if: matrix.gpu-api == 'CUDA'
       id: cuda-toolkit
       with:
