@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ CAAR ]
   schedule:
-    - cron: "37 11 * * 1"
+    - cron: "37 07 * * 1"  # run every Monday at 07:37UTC. Crontab computed with crontab.guru
   workflow_dispatch:
 
 jobs:
