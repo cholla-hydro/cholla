@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ CAAR ]
   schedule:
-    - cron: "37 11 * * 1"
+    - cron: "37 07 * * 1"  # run every Monday at 07:37UTC. Crontab computed with crontab.guru
   workflow_dispatch:
 
 jobs:
@@ -67,7 +67,7 @@ jobs:
         h5cc -showconfig
 
     # Install CUDA and dependencies if this is a CUDA build
-    - uses: Jimver/cuda-toolkit@v0.2.4
+    - uses: Jimver/cuda-toolkit@v0.2.8
       if: matrix.gpu-api == 'CUDA'
       id: cuda-toolkit
       with:

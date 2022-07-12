@@ -39,7 +39,7 @@
         {
             for (int offset = warpSize/2; offset > 0; offset /= 2)
             {
-                val = fmax(val, __shfl_down(val, offset));
+                val = max(val, __shfl_down(val, offset));
             }
             return val;
         }
@@ -115,9 +115,10 @@
         // =====================================================================
         /*!
          * \brief Perform a reduction within the grid to find the maximum value
-         * of `val`. Note that this will overwrite the value in `out` with
-         * the value of the optional argument `lowLimit` which defaults to
-         * `-DBL_MAX`
+         * of `val`. Note that the value of `out` should be set appropriately
+         * before the kernel launch that uses this function to avoid any
+         * potential race condition; the `cuda_utilities::setScalarDeviceMemory`
+         * function exists for this purpose.
          *
          * \details This function can perform a reduction to find the maximum of
          * the thread local variable `val` across the entire grid. It relies on a
@@ -126,7 +127,7 @@
          * As a result the performance of this function is substantally improved
          * by using as many threads per block as possible and as few blocks as
          * possible since each block has to perform an atomic operation. To
-         * accomplish this it is recommened that you use the
+         * accomplish this it is reccommened that you use the
          * `reductionLaunchParams` functions to get the optimal number of blocks
          * and threads per block to launch rather than relying on Cholla defaults
          * and then within the kernel using a grid-stride loop to make sure the
@@ -142,46 +143,33 @@
          * the grid
          * \param[out] out The pointer to where to store the reduced scalar value
          * in device memory
-         * \param[in] lowLimit (optional)What value to initilize global memory
-         * with. Defaults to -DBL_MAX. This value will be the lowest possible
-         * value that the reduction can produce since all other values are
-         * compared against it
          */
-        __inline__ __device__ void gridReduceMax(Real val, Real* out, Real lowLimit = -DBL_MAX)
+        __inline__ __device__ void gridReduceMax(Real val, Real* out)
         {
-            __syncthreads();              // Wait for all threads to calculate val;
-	  
-            // Set the value in global memory so meaningful comparisons can be
-            // performed
-            if (threadIdx.x + blockIdx.x * blockDim.x == 0) *out = lowLimit;
+            // __syncthreads();  // Wait for all threads to calculate val;
 
             // Reduce the entire block in parallel
             val = blockReduceMax(val);
 
             // Write block level reduced value to the output scalar atomically
-            // if (threadIdx.x == 0) atomicMax_double(out, val);
-	    if (threadIdx.x == 0) out[blockIdx.x] = val;
+            if (threadIdx.x == 0) atomicMax_double(out, val);
         }
         // =====================================================================
 
         // =====================================================================
         /*!
-         * \brief Find the maximum value in the array. Note that this will
-         * overwrite the value in `out` with the value of the optional argument
-         * `lowLimit` which defaults to `-DBL_MAX`. If `in` and `out` are the
-         * same array that's ok, all the loads are completed before the
-         * overwrite occurs
+         * \brief Find the maximum value in the array. Make sure to initialize
+         * `out` correctly before using this kernel; the
+         * `cuda_utilities::setScalarDeviceMemory` function exists for this
+         * purpose. If `in` and `out` are the same array that's ok, all the
+         * loads are completed before the overwrite occurs.
          *
          * \param[in] in The pointer to the array to reduce in device memory
          * \param[out] out The pointer to where to store the reduced scalar
          * value in device memory
          * \param[in] N The size of the `in` array
-         * \param[in] lowLimit (optional) What value to initilize global memory
-         * with. Defaults to -DBL_MAX. This value will be the lowest possible
-         * value that the reduction can produce since all other values are
-         * compared against it
          */
-        __global__ void kernelReduceMax(Real *in, Real* out, size_t N, Real lowLimit = -DBL_MAX);
+        __global__ void kernelReduceMax(Real *in, Real* out, size_t N);
         // =====================================================================
 
         // =====================================================================
