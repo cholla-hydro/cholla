@@ -142,7 +142,7 @@ jobs:
         echo "CHOLLA_ENVSET=${CHOLLA_ENVSET}                  >> $GITHUB_ENV
     - name: Build GoogleTest
       run: |
-        source builds/scripts/run_tests.sh
+        source builds/run_tests.sh
         buildGoogleTest
         echo "GOOGLETEST_ROOT=${GOOGLETEST_ROOT}" >> $GITHUB_ENV
     - name: Build Cholla
