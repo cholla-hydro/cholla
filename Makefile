@@ -60,8 +60,8 @@ CC                ?= cc
 CXX               ?= CC
 
 CFLAGS_OPTIMIZE   ?= -Ofast
-CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++11
-GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++11
+CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++17
+GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++17
 BUILD             ?= OPTIMIZE
 
 CFLAGS            += $(CFLAGS_$(BUILD))
@@ -117,7 +117,7 @@ ifdef HIPCONFIG
   DFLAGS    += -DO_HIP
   CXXFLAGS  += $(HIPCONFIG)
   GPUCXX    ?= hipcc
-  GPUFLAGS  += -std=c++11 -Wall -ferror-limit=1
+  GPUFLAGS  += -std=c++17 -Wall -ferror-limit=1
   LD        := $(CXX)
   LDFLAGS   := $(CXXFLAGS)
   LIBS      += -L$(ROCM_PATH)/lib -lamdhip64 -lhsa-runtime64
