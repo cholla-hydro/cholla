@@ -1,0 +1,23 @@
+
+#-- Compiler and flags for different build type
+CC                = mpicc
+CXX               = mpicxx
+CFLAGS_DEBUG      = -g -O0
+CFLAGS_OPTIMIZE   = -Ofast
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++17
+CHOLLA_ARCH       = sm_70
+OMP_NUM_THREADS   = 16
+#-- How to launch job
+JOB_LAUNCH        = jsrun -n 1 -g 1 -c 7 --bind packed:7 -a 1
+
+#-- Library
+# GCC_ROOT        = /ihome/crc/install/power9/gcc/10.1.0/build-gcc-8.3.1
+# CUDA_ROOT       = /ihome/crc/install/power9/cuda/11.1.0
+# HDF5_ROOT       = /ihome/crc/install/power9/hdf5/1.12.0/build-gcc-10.1.0
+# MPI_ROOT        = /ihome/crc/install/power9/openmpi/4.0.5/build-gcc-10.1.0
+# FFTW_ROOT       = /ihome/crc/install/fftw/3.3.8/intel-mpi-intel-2019.4
+GOOGLETEST_ROOT := ${GOOGLETEST_ROOT}
+
+#-- MPI calls accept GPU buffers (requires GPU-aware MPI)
+MPI_GPU = -DMPI_GPU

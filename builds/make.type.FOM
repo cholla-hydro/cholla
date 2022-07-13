@@ -1,0 +1,24 @@
+
+POISSON_SOLVER ?= -DPARIS
+
+include builds/make.type.gravity
+
+DFLAGS += $(POISSON_SOLVER)
+DFLAGS += -DN_STEPS_LIMIT=26
+DFLAGS += -DDE
+DFLAGS += -DTILED_INITIAL_CONDITIONS
+DFLAGS += -DPRINT_INITIAL_STATS
+DFLAGS += -DCPU_TIME
+DFLAGS += -DPARTICLES
+DFLAGS += -DPARTICLES_GPU
+DFLAGS += -DSINGLE_PARTICLE_MASS
+DFLAGS += -DCOSMOLOGY
+
+EXTRA_COMMANDS = \
+"mkdir -p data && cd data \
+   && wget https://www.dropbox.com/s/v5zzuk5ma1a3x6g/ics_25Mpc_128.h5 \
+   && wget https://www.dropbox.com/s/ean9331oqacemlq/ics_25Mpc_128_particles.h5 \
+   && wget https://www.dropbox.com/s/rbtoo3jx9a558ip/ics_25Mpc_256.h5 \
+   && wget https://www.dropbox.com/s/7bq5an37uudtlz0/ics_25Mpc_256_particles.h5"
+
+

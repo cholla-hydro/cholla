@@ -3,16 +3,16 @@
 
 #ifdef MPI_CHOLLA
 #include <mpi.h>
-#include "mpi_routines.h"
+#include "mpi/mpi_routines.h"
 #endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "global.h"
-#include "grid3D.h"
-#include "io.h"
-#include "error_handling.h"
+#include "global/global.h"
+#include "grid/grid3D.h"
+#include "io/io.h"
+#include "utils/error_handling.h"
 
 
 int main(int argc, char *argv[])
@@ -45,9 +45,11 @@ int main(int argc, char *argv[])
 
 
   // read in command line arguments
-  if (argc != 2)
+  if (argc < 2)
   {
     chprintf("usage: %s <parameter_file>\n", argv[0]);
+    chprintf("Git Commit Hash = %s\n", GIT_HASH);
+    chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
     chexit(-1);
   } else {
     param_file = argv[1];
@@ -57,20 +59,31 @@ int main(int argc, char *argv[])
   Grid3D G;
 
   // read in the parameters
-  parse_params (param_file, &P);
+  parse_params (param_file, &P, argc, argv);
   // and output to screen
-  chprintf ("Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, boundaries = %d %d %d %d %d %d\n", 
+  chprintf("Git Commit Hash = %s\n", GIT_HASH);
+  chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
+  chprintf ("Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, boundaries = %d %d %d %d %d %d\n",
     P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
   if (strcmp(P.init, "Read_Grid") == 0  ) chprintf ("Input directory:  %s\n", P.indir);
   chprintf ("Output directory:  %s\n", P.outdir);
-  
-  //Create a Log file to output run-time messages
+
+  //Create a Log file to output run-time messages and output the git hash and
+  //macro flags used
   Create_Log_File(P);
+  std::string message = "Git Commit Hash = " + std::string(GIT_HASH);
+  Write_Message_To_Log_File( message.c_str() );
+  message = "Macro Flags     = " + std::string(MACRO_FLAGS);
+  Write_Message_To_Log_File( message.c_str() );
+
+
 
   // initialize the grid
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
+  message = "Initializing Simulation";
+  Write_Message_To_Log_File( message.c_str() );
 
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
@@ -80,47 +93,59 @@ int main(int argc, char *argv[])
   if (strcmp(P.init, "Read_Grid") == 0) {
     dti = C_cfl / G.H.dt;
     outtime += G.H.t;
-    nfile = P.nfile*P.nfull;
+    nfile = P.nfile;
   }
-  
+
   #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2 );
-  char *message = (char*)malloc(50 * sizeof(char));
-  sprintf(message, " eta_1: %0.3f   eta_2: %0.3f  ", DE_ETA_1, DE_ETA_2 );
-  Write_Message_To_Log_File( message );
+  message =  " eta_1: " + std::to_string(DE_ETA_1) + "   eta_2: " + std::to_string(DE_ETA_2);
+  Write_Message_To_Log_File( message.c_str() );
   #endif
-  
-  
+
   #ifdef CPU_TIME
   G.Timer.Initialize();
   #endif
-  
+
   #ifdef GRAVITY
   G.Initialize_Gravity(&P);
   #endif
-  
+
   #ifdef PARTICLES
   G.Initialize_Particles(&P);
   #endif
-  
+
   #ifdef COSMOLOGY
   G.Initialize_Cosmology(&P);
   #endif
-  
+
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
   #endif
 
+  #ifdef CHEMISTRY_GPU
+  G.Initialize_Chemistry(&P);
+  #endif
+
+  #ifdef ANALYSIS
+  G.Initialize_Analysis_Module(&P);
+  if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
+  #endif
+
   #ifdef GRAVITY
-  // Get the gravitaional potential for the first timestep
+  // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential( &P);
   #endif
 
   // Set boundary conditions (assign appropriate values to ghost cells) for hydro and potential
   chprintf("Setting boundary conditions...\n");
   G.Set_Boundary_Conditions_Grid(P);
-  chprintf("Boundary conditions set.\n");  
-  
+  chprintf("Boundary conditions set.\n");
+
+  #ifdef GRAVITY_ANALYTIC_COMP
+  // add analytic component to gravity potential.
+  G.Add_Analytic_Potential(&P);
+  #endif
+
   #ifdef PARTICLES
   // Get the particles acceleration for the first timestep
   G.Get_Particles_Acceleration();
@@ -133,9 +158,9 @@ int main(int argc, char *argv[])
 
   #ifdef OUTPUT
   if (strcmp(P.init, "Read_Grid") != 0 || G.H.Output_Now ) {
-  // write the initial conditions to file
-  chprintf("Writing initial conditions to file...\n");
-  WriteData(G, P, nfile);
+    // write the initial conditions to file
+    chprintf("Writing initial conditions to file...\n");
+    WriteData(G, P, nfile);
   }
   // add one to the output file count
   nfile++;
@@ -155,33 +180,40 @@ int main(int argc, char *argv[])
   printf("Init %9.4f\n", init);
   #endif //MPI_CHOLLA
   #endif //CPU_TIME
-  
+
   // Evolve the grid, one timestep at a time
   chprintf("Starting calculations.\n");
+  message = "Starting calculations.";
+  Write_Message_To_Log_File( message.c_str() );
   while (G.H.t < P.tout)
   {
     // get the start time
+    #ifdef CPU_TIME
+    G.Timer.Total.Start();
+    #endif //CPU_TIME
     start_step = get_time();
-    
-    // calculate the timestep
+
+    // calculate the timestep. Note: this computes the timestep ONLY on the
+    // first loop, on subsequent time steps it just calls the MPI_Allreduce to
+    // determine the global timestep
     G.set_dt(dti);
 
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
-    
+
     #ifdef PARTICLES
     //Advance the particles KDK( first step ): Velocities are updated by 0.5*dt and positions are updated by dt
-    G.Advance_Particles( 1 );   
-    //Transfer the particles that moved outside the local domain  
-    G.Transfer_Particles_Boundaries(P); 
+    G.Advance_Particles( 1 );
+    //Transfer the particles that moved outside the local domain
+    G.Transfer_Particles_Boundaries(P);
     #endif
-    
+
     // Advance the grid by one timestep
     dti = G.Update_Hydro_Grid();
-    
+
     // update the simulation time ( t += dt )
     G.Update_Time();
-    
-        
+
+
     #ifdef GRAVITY
     //Compute Gravitational potential for next step
     G.Compute_Gravitational_Potential( &P);
@@ -190,14 +222,27 @@ int main(int argc, char *argv[])
     // add one to the timestep count
     G.H.n_step++;
 
-    //Set the Grid boundary conditions for next time step 
+    //Set the Grid boundary conditions for next time step
     G.Set_Boundary_Conditions_Grid(P);
-    
+
+    #ifdef GRAVITY_ANALYTIC_COMP
+    // add analytic component to gravity potential.
+    G.Add_Analytic_Potential(&P);
+    #endif
+
     #ifdef PARTICLES
     ///Advance the particles KDK( second step ): Velocities are updated by 0.5*dt using the Accelerations at the new positions
     G.Advance_Particles( 2 );
     #endif
-    
+
+    #ifdef PARTICLE_AGE
+    //G.Cluster_Feedback();
+    #endif
+
+    #ifdef CPU_TIME
+    G.Timer.Total.End();
+    #endif //CPU_TIME
+
     #ifdef CPU_TIME
     G.Timer.Print_Times();
     #endif
@@ -208,16 +253,20 @@ int main(int argc, char *argv[])
     G.H.t_wall = stop_total-start_total;
     #ifdef MPI_CHOLLA
     G.H.t_wall = ReduceRealMax(G.H.t_wall);
-    #endif 
-    chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n\n", 
+    #endif
+    chprintf("n_step: %d   sim time: %10.7f   sim timestep: %7.4e  timestep time = %9.3f ms   total time = %9.4f s\n\n",
       G.H.n_step, G.H.t, G.H.dt, (stop_step-start_step)*1000, G.H.t_wall);
-    
+
     #ifdef OUTPUT_ALWAYS
     G.H.Output_Now = true;
     #endif
-    
+
+    #ifdef ANALYSIS
+    if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
+    #endif
+
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0) G.H.Output_Now = true;
-    
+
     if (G.H.t == outtime || G.H.Output_Now )
     {
       #ifdef OUTPUT
@@ -227,36 +276,41 @@ int main(int argc, char *argv[])
       nfile++;
       #endif //OUTPUT
       // update to the next output time
-      outtime += P.outstep;      
+      outtime += P.outstep;
     }
-    
+
     #ifdef CPU_TIME
     G.Timer.n_steps += 1;
     #endif
-    
+
     #ifdef N_STEPS_LIMIT
     // Exit the loop when reached the limit number of steps (optional)
-    if ( G.H.n_step == N_STEPS_LIMIT) break;
+    if ( G.H.n_step == N_STEPS_LIMIT) {
+      WriteData(G, P, nfile);
+      break;
+    }
     #endif
 
+
     #ifdef COSMOLOGY
-    // Exit the loop when reached the last scale_factor output 
-    if ( G.Cosmo.current_a >= G.Cosmo.scale_outputs[G.Cosmo.n_outputs-1] ) {
+    // Exit the loop when reached the last scale_factor output
+    if ( G.Cosmo.exit_now ) {
       chprintf( "\nReached Last Cosmological Output: Ending Simulation\n");
       break;
     }
     #endif
 
+
   } /*end loop over timesteps*/
-  
-  
+
+
   #ifdef CPU_TIME
   // Print timing statistics
-  G.Timer.Get_Average_Times();
   G.Timer.Print_Average_Times( P );
   #endif
-  
-  Write_Message_To_Log_File( "Run completed successfully!");
+
+  message = "Simulation completed successfully.";
+  Write_Message_To_Log_File( message.c_str() );
 
   // free the grid
   G.Reset();

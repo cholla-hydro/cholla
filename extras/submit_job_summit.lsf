@@ -16,4 +16,4 @@ export WORK_DIR=$MEMBERWORK/ast149/sphere_explosion
 cd $MEMBERWORK/ast149/cholla
 date
 #export OMP_NUM_THREADS=10
-jsrun -n 8 -a 1 -c 7 -g 1 -r 4 -l CPU-CPU -d packed -b packed:7 ./cholla tests/3D/Spherical_Overpressure.txt > $WORK_DIR/run_output.log |sort 
+jsrun -n 8 -a 1 -c 7 -g 1 -r 4 -l CPU-CPU -d packed -b packed:7 ./cholla examples/3D/Spherical_Overpressure.txt > $WORK_DIR/run_output.log |sort
