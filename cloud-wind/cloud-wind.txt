@@ -32,8 +32,8 @@ gamma=1.66666667
 # name of initial conditions
 init=Clouds
 # type of boundary condition, options include 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom)
-xl_bcnd=1
-xu_bcnd=1
+xl_bcnd=wind
+xu_bcnd=3
 yl_bcnd=3
 yu_bcnd=3
 zl_bcnd=3
