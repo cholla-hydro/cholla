@@ -201,9 +201,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
   Real pot_ll, pot_rr;
   #endif
 
-  #ifdef COUPLE_DELTA_E_KINETIC
-  Real Ekin_0, Ekin_1;
-  #endif//COUPLE_DELTA_E_KINETIC
   #endif //GRAVITY
 
   Real dtodx = dt/dx;
@@ -315,11 +312,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
     vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
 
-    #ifdef COUPLE_DELTA_E_KINETIC
-    //The Kinetic Energy before adding the gravity term to the Momentum
-    Ekin_0 = 0.5 * d_n * ( vx_n*vx_n + vy_n*vy_n + vz_n*vz_n );
-    #endif
-
     // Calculate the -gradient of potential
     // Get X componet of gravity field
     id_l = (xid-1) + (yid)*nx + (zid)*nx*ny;
@@ -371,20 +363,8 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     dev_conserved[3*n_cells + id] += 0.5*dt*gz*(d + d_n);
 
     //Add gravity term to Total Energy
-    #ifdef COUPLE_GRAVITATIONAL_WORK
     //Add the work done by the gravitational force
     dev_conserved[4*n_cells + id] += 0.5* dt * ( gx*(d*vx + d_n*vx_n) +  gy*(d*vy + d_n*vy_n) +  gz*(d*vz + d_n*vz_n) );
-    #endif
-
-    #ifdef COUPLE_DELTA_E_KINETIC
-    //Add the the exact change in kinetic energy due to the gravity term added to the Momentum
-    vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
-    vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
-    vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
-    Ekin_1 = 0.5 * d_n * ( vx_n*vx_n + vy_n*vy_n + vz_n*vz_n );
-    dev_conserved[4*n_cells + id] += Ekin_1 - Ekin_0;
-    #endif
-
 
     #endif
 
