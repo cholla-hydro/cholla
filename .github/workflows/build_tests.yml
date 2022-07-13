@@ -131,7 +131,7 @@ jobs:
     # Perform Build
     - name: Cholla setup
       run: |
-        source builds/scripts/run_tests.sh
+        source builds/run_tests.sh
         setupTests -c gcc
         echo "CHOLLA_ROOT           = ${CHOLLA_ROOT}"
         echo "CHOLLA_LAUNCH_COMMAND = ${CHOLLA_LAUNCH_COMMAND}"
@@ -142,14 +142,14 @@ jobs:
         echo "CHOLLA_ENVSET=${CHOLLA_ENVSET}                  >> $GITHUB_ENV
     - name: Build GoogleTest
       run: |
-        source builds/scripts/run_tests.sh
+        source builds/run_tests.sh
         buildGoogleTest
         echo "GOOGLETEST_ROOT=${GOOGLETEST_ROOT}" >> $GITHUB_ENV
     - name: Build Cholla
       run: |
-        source builds/scripts/run_tests.sh
+        source builds/run_tests.sh
         buildCholla
     - name: Build Tests
       run: |
-        source builds/scripts/run_tests.sh
+        source builds/run_tests.sh
         buildChollaTests
