@@ -2,7 +2,7 @@ name: Cholla Compile
 
 on:
   pull_request:
-    branches: [ CAAR ]
+#    branches: [ CAAR ]
   schedule:
     - cron: "37 07 * * 1"  # run every Monday at 07:37UTC. Crontab computed with crontab.guru
   workflow_dispatch:
