@@ -26,7 +26,6 @@
 #include "../mpi/mpi_routines.h"
 #endif
 #include <stdio.h>
-#include "../old_cholla/flux_correction.h"
 #ifdef CLOUDY_COOL
 #include "../cooling/cooling_wrapper.h"
 #endif
