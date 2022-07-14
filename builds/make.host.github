@@ -5,8 +5,8 @@ CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++17 ${F_OFFLOAD}
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++17 ${F_OFFLOAD}
-GPUFLAGS_DEBUG    = -std=c++11
-GPUFLAGS_OPTIMIZE = -std=c++11
+GPUFLAGS_DEBUG    = -std=c++17
+GPUFLAGS_OPTIMIZE = -std=c++17
 
 OMP_NUM_THREADS   = 7
 
