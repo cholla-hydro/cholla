@@ -30,7 +30,7 @@ namespace // Anonymous namespace
         CudaSafeCall(cudaPointerGetAttributes(&ptrAttributes, devVector.data()));
 
         // Warning strings
-        std::string const typeMessage    = "ptrAttributes.type should be 2 since "
+        std::string typeMessage          = "ptrAttributes.type should be 2 since "
                                            "that indicates type cudaMemoryTypeDevice. "
                                            "0 is cudaMemoryTypeUnregistered, "
                                            "1 is cudaMemoryTypeHost, and "
@@ -40,7 +40,12 @@ namespace // Anonymous namespace
         std::string const hostPtrMessage = "The host pointer is not nullptr";
 
         // Check that the pointer information is correct
-        EXPECT_EQ(2, ptrAttributes.type)                << typeMessage;
+        #ifdef  O_HIP
+            typeMessage = "ptrAttributes.memoryType should be 1 since that indicates a HIP device pointer.";
+            EXPECT_EQ(1, ptrAttributes.memoryType)      << typeMessage;
+        #else // O_HIP is not defined i.e. we're using CUDA
+            EXPECT_EQ(2, ptrAttributes.type)            << typeMessage;
+        #endif  // O_HIP
         EXPECT_EQ(0, ptrAttributes.device)              << deviceMessage;
         EXPECT_NE(nullptr, ptrAttributes.devicePointer) << devPtrMessage;
         EXPECT_EQ(nullptr, ptrAttributes.hostPointer)   << hostPtrMessage;
@@ -79,19 +84,26 @@ TEST(tALLDeviceVectorDestructor,
    CudaSafeCall(cudaPointerGetAttributes(&ptrAttributes, devVector.data()));
 
     // Warning strings
-    std::string const typeMessage    = "ptrAttributes.type should be 0 since "
+    std::string typeMessage          = "ptrAttributes.type should be 0 since "
                                        "that indicates type cudaMemoryTypeUnregistered"
                                        "0 is cudaMemoryTypeUnregistered, "
                                        "1 is cudaMemoryTypeHost, "
                                        "2 is cudaMemoryTypeDevice, and"
                                        "3 is cudaMemoryTypeManaged";
-    std::string const deviceMessage  = "The pointer should be on device 0";
+    std::string deviceMessage        = "The pointer should be null which is device -2";
     std::string const devPtrMessage  = "The device pointer is nullptr";
     std::string const hostPtrMessage = "The host pointer is not nullptr";
 
     // Check that the pointer information is correct
-    EXPECT_EQ(0, ptrAttributes.type)                << typeMessage;
-    EXPECT_EQ(-2, ptrAttributes.device)             << deviceMessage;
+    #ifdef  O_HIP
+        typeMessage = "ptrAttributes.memoryType should be 1 since that indicates a HIP device pointer.";
+        deviceMessage = "The pointer should be 0";
+        EXPECT_EQ(0, ptrAttributes.memoryType)      << typeMessage;
+        EXPECT_EQ(0, ptrAttributes.device)          << deviceMessage;
+    #else // O_HIP is not defined i.e. we're using CUDA
+        EXPECT_EQ(0, ptrAttributes.type)            << typeMessage;
+        EXPECT_EQ(-2, ptrAttributes.device)         << deviceMessage;
+    #endif  // O_HIP
     EXPECT_EQ(nullptr, ptrAttributes.devicePointer) << devPtrMessage;
     EXPECT_EQ(nullptr, ptrAttributes.hostPointer)   << hostPtrMessage;
 }
@@ -118,7 +130,7 @@ TEST(tALLDeviceVectorStdVectorHostToDeviceCopyAndIndexing,
 }
 
 TEST(tALLDeviceVectorArrayHostToDeviceCopyAndIndexing,
-    CheckDeviceMemoryValuesAndIndexingOperationsExpectCorrectMemoryValues)
+     CheckDeviceMemoryValuesAndIndexingOperationsExpectCorrectMemoryValues)
 {
    // Initialize the vectors
    size_t const vectorSize = 10;
@@ -219,10 +231,10 @@ TEST(tALLDeviceVectorResize,
      SetLargerSizeExpectCorrectSize)
 {
     // Initialize the vectors
-    size_t const vectorSize = 10;
+    size_t const originalSize = 10;
     size_t const newSize    = 20;
-    cuda_utilities::DeviceVector<double> devVector{vectorSize};
-    std::vector<double> stdVec(vectorSize);
+    cuda_utilities::DeviceVector<double> devVector{originalSize};
+    std::vector<double> stdVec(originalSize);
     std::iota(stdVec.begin(), stdVec.end(), 0);
 
     // Copy the value to the device memory
@@ -238,7 +250,7 @@ TEST(tALLDeviceVectorResize,
     checkPointerAttributes(devVector);
 
     // Check the values
-    for (size_t i = 0; i < newSize; i++)
+    for (size_t i = 0; i < originalSize; i++)
     {
         double const fiducialValue = (i < stdVec.size())? stdVec.at(i): 0;
         EXPECT_EQ(fiducialValue, devVector.at(i));

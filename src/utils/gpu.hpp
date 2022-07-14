@@ -52,6 +52,7 @@ static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define cudaMalloc hipMalloc
 #define cudaMemcpy hipMemcpy
 #define cudaMemcpyAsync hipMemcpyAsync
+#define cudaMemcpyPeer hipMemcpyPeer
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
 #define cudaMemcpyDeviceToDevice hipMemcpyDeviceToDevice
 #define cudaMemcpyHostToDevice hipMemcpyHostToDevice
@@ -62,6 +63,8 @@ static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define cudaSuccess hipSuccess
 #define cudaDeviceProp hipDeviceProp_t
 #define cudaGetDeviceProperties hipGetDeviceProperties
+#define cudaPointerAttributes hipPointerAttribute_t
+#define cudaPointerGetAttributes hipPointerGetAttributes
 
 #define cufftDestroy hipfftDestroy
 #define cufftDoubleComplex hipfftDoubleComplex
