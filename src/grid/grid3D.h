@@ -623,10 +623,14 @@ class Grid3D
      *  \brief Select appropriate custom boundary function. */
     void Custom_Boundary(char bcnd[MAXLEN]);
 
+    /*! \fn void Wind_Boundary()
+     *  \brief Apply a constant wind to the -x boundary. */
+    void Wind_Boundary();
+
     /*! \fn void Noh_Boundary()
      *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces,
         as per the Noh problem in Liska, 2003, or in Stone, 2008. */
-    void Wind_Boundary();
+    void Noh_Boundary();
 
     /*! \fn void Spherical_Overpressure_3D()
      *  \brief Initialize the grid with a 3D spherical overdensity and overpressue. */
