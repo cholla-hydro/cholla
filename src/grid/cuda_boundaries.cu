@@ -382,10 +382,24 @@ __global__ void Wind_Boundary_kernel(Real * c_device,
   xid = id - zid*isize*jsize - yid*isize;
 
   // map thread id to ghost cell id
-  xid += 0; // +x boundary
+  xid += 0; // -x boundary
   gid = xid + yid*nx + zid*nx*ny;
 
   if (xid >= nx-n_ghost && xid < nx && yid < ny && zid < nz) {
+
+
+    Real n_0;
+    Real vx, vy, vz, d_0, P_0;
+
+    n_0 = 1e-2; // same value as n_bg in cloud initial condition function
+
+    // same values as rho_bg and p_bg in cloud initial condition function
+    d_0 = n_bg*mu*MP/DENSITY_UNIT;
+    P_0 = n_bg*KB*T_bg / PRESSURE_UNIT;
+
+    vx = 100*TIME_UNIT/KPC; // km/s
+    vy = 0.0; // km/s
+    vz = 0.0; // km/s
 
     // use the subgrid offset and global boundaries to calculate absolute positions on the grid
     x_pos = (x_off + xid - n_ghost + 0.5)*dx + xbound;
@@ -395,10 +409,11 @@ __global__ void Wind_Boundary_kernel(Real * c_device,
     vx = -10*TIME_UNIT/KPC; // km/s
 
     // set conserved variables
-    c_device[gid+1*n_cells] = vx*c_device[gid];
-    c_device[gid+2*n_cells] = vy*c_device[gid];
-    c_device[gid+3*n_cells] = vz*c_device[gid];
-    c_device[gid+4*n_cells] = P_0/(gamma-1.0) + 0.5*c_device[gid];
+    c_device[gid] = d_0;
+    c_device[gid+1*n_cells] = vx*d_0;
+    c_device[gid+2*n_cells] = vy*d_0;
+    c_device[gid+3*n_cells] = vz*d_0;
+    c_device[gid+4*n_cells] = P_0/(gama-1.0) + 0.5*d_0*(vx*vx + vy*vy + vz*vz);
   }
   __syncthreads();
 }
