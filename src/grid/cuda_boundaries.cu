@@ -363,8 +363,20 @@ __global__ void Wind_Boundary_kernel(Real * c_device,
              Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real gamma, Real t)
 {
   int id, xid, yid, zid, gid;
-  Real x_pos, y_pos, z_pos, r;
-  Real vx;
+  Real n_0, T_0;
+  Real mu = 0.6;
+  Real vx, vy, vz, d_0, P_0;
+
+  n_0 = 1e-2; // same value as n_bg in cloud initial condition function (cm^-3)
+  T_0 = 3e6; // same value as T_bg in cloud initial condition function (K)
+
+  // same values as rho_bg and p_bg in cloud initial condition function
+  d_0 = n_0*mu*MP/DENSITY_UNIT;
+  P_0 = n_0*KB*T_0 / PRESSURE_UNIT;
+
+  vx = 100*TIME_UNIT/KPC; // km/s * (cholla unit conversion)
+  vy = 0.0;
+  vz = 0.0;
 
   // calculate ghost cell ID and i,j,k in GPU grid
   id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -386,34 +398,12 @@ __global__ void Wind_Boundary_kernel(Real * c_device,
   gid = xid + yid*nx + zid*nx*ny;
 
   if (xid >= nx-n_ghost && xid < nx && yid < ny && zid < nz) {
-
-
-    Real n_0;
-    Real vx, vy, vz, d_0, P_0;
-
-    n_0 = 1e-2; // same value as n_bg in cloud initial condition function (cm^-3)
-
-    // same values as rho_bg and p_bg in cloud initial condition function
-    d_0 = n_bg*mu*MP/DENSITY_UNIT;
-    P_0 = n_bg*KB*T_bg / PRESSURE_UNIT;
-
-    vx = 100*TIME_UNIT/KPC; // km/s * (cholla unit conversion)
-    vy = 0.0;
-    vz = 0.0;
-
-    // use the subgrid offset and global boundaries to calculate absolute positions on the grid
-    x_pos = (x_off + xid - n_ghost + 0.5)*dx + xbound;
-    y_pos = (y_off + yid - n_ghost + 0.5)*dy + ybound;
-    z_pos = (z_off + zid - n_ghost + 0.5)*dz + zbound;
-
-    vx = -10*TIME_UNIT/KPC; // km/s
-
     // set conserved variables
     c_device[gid] = d_0;
     c_device[gid+1*n_cells] = vx*d_0;
     c_device[gid+2*n_cells] = vy*d_0;
     c_device[gid+3*n_cells] = vz*d_0;
-    c_device[gid+4*n_cells] = P_0/(gama-1.0) + 0.5*d_0*(vx*vx + vy*vy + vz*vz);
+    c_device[gid+4*n_cells] = P_0/(gamma-1.0) + 0.5*d_0*(vx*vx + vy*vy + vz*vz);
   }
   __syncthreads();
 }
