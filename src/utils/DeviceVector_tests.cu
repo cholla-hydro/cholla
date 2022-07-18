@@ -150,6 +150,22 @@ TEST(tALLDeviceVectorArrayHostToDeviceCopyAndIndexing,
    }
 }
 
+TEST(tALLDeviceVectorArrayAssignmentMethod,
+     AssignSingleValuesExpectCorrectMemoryValues)
+{
+    // Initialize the vectors
+    size_t const vectorSize = 10;
+    cuda_utilities::DeviceVector<double> devVector{vectorSize};
+
+    // Perform assignment
+    devVector.assign(13);
+    devVector.assign(17,4);
+
+    // Check the values in device memory
+    EXPECT_EQ(13, devVector.at(0));
+    EXPECT_EQ(17, devVector.at(4));
+}
+
 TEST(tALLDeviceVectorStdVectorDeviceToHostCopy,
      CheckHostMemoryValuesExpectCorrectMemoryValues)
 {

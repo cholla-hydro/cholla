@@ -94,6 +94,16 @@ namespace cuda_utilities
         T const at(size_t const index);
 
         /*!
+        * \brief Assign a single value in the array. Should generally only be
+        * used when the pointer points to a scalar value. By default this
+        * writes `hostValue` to the 0th element of the array.
+        *
+        * \param[in] hostValue The value to write to the device array
+        * \param[in] index The location to write the value to, defaults to zero.
+        */
+        void assign(T const &hostValue, size_t const &index=0);
+
+        /*!
          * \brief Resize the device container to contain `newSize` elements. If
          * `newSize` is greater than the current size then all the values are
          * kept and the rest of the array is default initialized. If `newSize`
@@ -255,6 +265,17 @@ namespace cuda_utilities
                                     + " of "
                                     + std::to_string(_size));
         }
+    }
+    // =========================================================================
+
+    // =========================================================================
+    template <typename T>
+    void DeviceVector<T>::assign(T const &hostValue, size_t const &index)
+    {
+        CudaSafeCall(cudaMemcpy(&(_ptr[index]),  // destination
+                                &hostValue,      // source
+                                sizeof(T),
+                                cudaMemcpyHostToDevice));
     }
     // =========================================================================
 
