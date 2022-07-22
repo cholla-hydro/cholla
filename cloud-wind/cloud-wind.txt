@@ -24,15 +24,15 @@ zmin=0.0
 # y direction domain length
 zlen=1.0
 # final output time
-tout=1e6
+tout=1e5
 # time interval for output
-outstep=1e5
+outstep=1e3
 # ratio of specific heats
 gamma=1.66666667
 # name of initial conditions
 init=Clouds
 # type of boundary condition, options include 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom)
-xl_bcnd=wind
+xl_bcnd=4
 xu_bcnd=3
 yl_bcnd=3
 yu_bcnd=3
@@ -40,5 +40,5 @@ zl_bcnd=3
 zu_bcnd=3
 # path to output directory
 outdir=./
-
-
+nfile=1e10
+custom_bcnd=wind

@@ -372,7 +372,7 @@ __global__ void Wind_Boundary_kernel(Real * c_device,
 
   // same values as rho_bg and p_bg in cloud initial condition function
   d_0 = n_0*mu*MP/DENSITY_UNIT;
-  P_0 = n_0*KB*T_0 / PRESSURE_UNIT;
+  P_0 = n_0*KB*T_0/PRESSURE_UNIT;
 
   vx = 100*TIME_UNIT/KPC; // km/s * (cholla unit conversion)
   vy = 0.0;
@@ -397,14 +397,21 @@ __global__ void Wind_Boundary_kernel(Real * c_device,
   xid += 0; // -x boundary
   gid = xid + yid*nx + zid*nx*ny;
 
-  if (xid >= nx-n_ghost && xid < nx && yid < ny && zid < nz) {
+  // printf("xid: %d\n", xid);
+  // printf("yid: %d\n", yid);
+  // printf("zid: %d\n", zid);
+  // printf("gid: %d\n", gid);  
+
+  if (xid <= n_ghost && xid < nx && yid < ny && zid < nz) {
     // set conserved variables
+    // printf("hello\n"); 
     c_device[gid] = d_0;
     c_device[gid+1*n_cells] = vx*d_0;
     c_device[gid+2*n_cells] = vy*d_0;
     c_device[gid+3*n_cells] = vz*d_0;
     c_device[gid+4*n_cells] = P_0/(gamma-1.0) + 0.5*d_0*(vx*vx + vy*vy + vz*vz);
   }
+  // printf("oh no\n");
   __syncthreads();
 }
 
