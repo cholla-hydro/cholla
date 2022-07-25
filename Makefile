@@ -76,9 +76,15 @@ GPUFLAGS += $(DFLAGS) -Isrc
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifdef HIPCONFIG
-    CXXFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
-    GPUFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
-    LIBS += -L$(ROCM_PATH)/hipfft/lib -lhipfft
+    ifeq ($(CHOLLA_MACHINE), github)
+      CXXFLAGS += -I$(HIPFFT_PATH)/include/hipfft -I$(HIPFFT_PATH)/hipfft/include
+      GPUFLAGS += -I$(HIPFFT_PATH)/include/hipfft -I$(HIPFFT_PATH)/hipfft/include
+      LIBS += -L$(HIPFFT_PATH)/hipfft/lib -lhipfft
+    else
+      CXXFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
+      GPUFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
+      LIBS += -L$(ROCM_PATH)/hipfft/lib -lhipfft
+    endif
   else
     LIBS += -lcufft
   endif
