@@ -60,8 +60,8 @@ CC                ?= cc
 CXX               ?= CC
 
 CFLAGS_OPTIMIZE   ?= -g -Ofast
-CXXFLAGS_OPTIMIZE ?= -g -Ofast -std=c++17
-GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++17
+CXXFLAGS_OPTIMIZE ?= -g -Ofast -std=c++14
+GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++14
 BUILD             ?= OPTIMIZE
 
 CFLAGS            += $(CFLAGS_$(BUILD))

@@ -4,8 +4,8 @@ CC                = mpicc
 CXX               = mpicxx
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -Ofast
-CXXFLAGS_DEBUG    = -g -O0 -std=c++17
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++17
+CXXFLAGS_DEBUG    = -g -O0 -std=c++14
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++14
 CHOLLA_ARCH       = sm_70
 OMP_NUM_THREADS   = 16
 #-- How to launch job
