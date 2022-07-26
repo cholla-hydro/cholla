@@ -19,8 +19,8 @@ void Extend_GPU_Array_Real( Real **current_array_d, int current_size, int new_si
   
   if ( global_free < new_size*sizeof(Real) ){
     printf( "ERROR: Not enough global device memory \n" );
-    printf( " Available Memory: %d  MB \n", (int) global_free/1000000  );
-    printf( " Requested Memory: %d  MB \n", (int) new_size*sizeof(Real)/1000000  );
+    printf( " Available Memory: %d  MB \n", (int) (global_free/1000000)  );
+    printf( " Requested Memory: %d  MB \n", (int) (new_size*sizeof(Real)/1000000)  );
     // exit(-1);
   }
   
