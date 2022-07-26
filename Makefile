@@ -59,8 +59,8 @@ OBJS     := $(subst .c,.o,$(CFILES)) \
 CC                ?= cc
 CXX               ?= CC
 
-CFLAGS_OPTIMIZE   ?= -Ofast
-CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++17
+CFLAGS_OPTIMIZE   ?= -g -Ofast
+CXXFLAGS_OPTIMIZE ?= -g -Ofast -std=c++17
 GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++17
 BUILD             ?= OPTIMIZE
 
@@ -76,8 +76,8 @@ GPUFLAGS += $(DFLAGS) -Isrc
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifdef HIPCONFIG
-    CXXFLAGS += -I$(ROCM_PATH)/hipfft/include
-    GPUFLAGS += -I$(ROCM_PATH)/hipfft/include
+    CXXFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
+    GPUFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
     LIBS += -L$(ROCM_PATH)/hipfft/lib -lhipfft
   else
     LIBS += -lcufft
@@ -117,10 +117,9 @@ ifdef HIPCONFIG
   DFLAGS    += -DO_HIP
   CXXFLAGS  += $(HIPCONFIG)
   GPUCXX    ?= hipcc
-  GPUFLAGS  += -std=c++17 -Wall -ferror-limit=1
   LD        := $(CXX)
-  LDFLAGS   := $(CXXFLAGS)
-  LIBS      += -L$(ROCM_PATH)/lib -lamdhip64 -lhsa-runtime64
+  LDFLAGS   := $(CXXFLAGS) -L$(ROCM_PATH)/lib
+  LIBS      += -lamdhip64
 else
   CUDA_INC  ?= -I$(CUDA_ROOT)/include
   CUDA_LIB  ?= -L$(CUDA_ROOT)/lib64 -lcudart
