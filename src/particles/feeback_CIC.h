@@ -1,4 +1,4 @@
-#if defined(PARTICLES) && defined(DE) && defined(PARTICLE_AGE) && defined(PARTICLE_CPU) && defined(FEEDBACK)
+#if defined(PARTICLES) && defined(DE) && defined(PARTICLE_AGE) && defined(PARTICLE_CPU) && defined(SUPERNOVA)
 
 #ifndef FEEDBACK_CIC_H
 #define FEEDBACK_CIC_H

@@ -15,7 +15,7 @@
 #include "../riemann_solvers/hlld_cuda.h"
 
 #ifdef DE //PRESSURE_DE
-    #include "../hydro/hydro_cuda.h"
+    #include "../utils/hydro_utilities.h"
 #endif // DE
 
 #ifdef CUDA
@@ -118,7 +118,7 @@
                     * _hlldInternal::_dotProduct(magneticXL, magneticYL, magneticZL,
                                                  magneticXL, magneticYL, magneticZL);
 
-                Real const gasPressureL   = fmax(Get_Pressure_From_DE(energyL,
+                Real const gasPressureL   = fmax(hydro_utilities::Get_Pressure_From_DE(energyL,
                                                                       energyL - energyKineticL - energyMagneticL,
                                                                       thermalEnergyConservedL,
                                                                       gamma),
@@ -156,7 +156,7 @@
                     * _hlldInternal::_dotProduct(magneticXR, magneticYR, magneticZR,
                                                  magneticXR, magneticYR, magneticZR);
 
-                Real const gasPressureR   = fmax(Get_Pressure_From_DE(energyR,
+                Real const gasPressureR   = fmax(hydro_utilities::Get_Pressure_From_DE(energyR,
                                                                       energyR - energyKineticR - energyMagneticR,
                                                                       thermalEnergyConservedR,
                                                                       gamma),

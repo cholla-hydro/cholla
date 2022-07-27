@@ -80,7 +80,7 @@ void Grid3D::Compute_Lya_Statistics( ){
 #endif //LYA_STATISTICS
 
 
-#ifdef FEEDBACK
+#ifdef SUPERNOVA
 void Grid3D::Compute_Gas_Velocity_Dispersion() {
   #ifdef PARTICLES_CPU
   int i, j, k, id, idm, idp;
@@ -188,7 +188,7 @@ void Grid3D::Compute_Gas_Velocity_Dispersion() {
   chprintf("feedback: time %f, dt=%f, vrms_p = %f km/s, vrms_a = %f km/s\n",  H.t,  H.dt, vrms_poisson, vrms_analytic);
   #endif // PARTICLES_CPU
 }
-#endif // FEEDBACK
+#endif // SUPERNOVA
 
 
 void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){

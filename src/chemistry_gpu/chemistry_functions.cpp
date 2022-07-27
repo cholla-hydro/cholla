@@ -20,6 +20,8 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   Chem.ny = H.ny;
   Chem.nz = H.nz;
   
+  Chem.H.runtime_chemistry_step = 0;
+  
   Chem.use_case_B_recombination = false;
   
   // Initialize the Chemistry Header

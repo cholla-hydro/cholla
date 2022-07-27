@@ -22,6 +22,7 @@ class FeedbackAnalysis {
     int countUnresolved;
     Real totalEnergy;
     Real totalMomentum;
+    Real totalUnresEnergy;
 
     FeedbackAnalysis(Grid3D& G);
     ~FeedbackAnalysis();

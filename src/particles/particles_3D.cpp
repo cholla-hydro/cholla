@@ -31,7 +31,7 @@ void Grid3D::Initialize_Particles( struct parameters *P ){
 
   Particles.Initialize( P, Grav, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal );
 
-  #ifdef GRAVITY_GPU
+  #if defined (PARTICLES_GPU) && defined (GRAVITY_GPU)
   // Set the GPU array for the particles potential equal to the Gravity GPU array for the potential
   Particles.G.potential_dev = Grav.F.potential_d;
   #endif
@@ -122,9 +122,9 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   G.zMin = Grav.zMin;
 
   //Right boundaries of the local domain
-  G.xMax = G.xMin + G.nx_local*G.dx;
-  G.yMax = G.yMin + G.ny_local*G.dy;
-  G.zMax = G.zMin + G.nz_local*G.dz;
+  G.xMax = Grav.xMax;
+  G.yMax = Grav.yMax;
+  G.zMax = Grav.zMax;
 
   //Left boundaries of the global domain
   G.domainMin_x = xbound;
@@ -163,7 +163,7 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   //Factor to allocate the particles data arrays on the GPU.
   //When using MPI particles will be transferred to other GPU, for that reason we need extra memory allocated
   #ifdef MPI_CHOLLA
-  G.gpu_allocation_factor = 1.5;
+  G.gpu_allocation_factor = 1.25;
   #else
   G.gpu_allocation_factor = 1.0;
   #endif
@@ -261,6 +261,10 @@ void Particles_3D::Allocate_Memory( void ){
   G.gravity_x = (Real *) malloc(G.n_cells*sizeof(Real));
   G.gravity_y = (Real *) malloc(G.n_cells*sizeof(Real));
   G.gravity_z = (Real *) malloc(G.n_cells*sizeof(Real));
+  #ifdef GRAVITY_GPU
+  // Array to copy the particles density to the device for computing the potential in the device
+  Allocate_Particles_Grid_Field_Real( &G.density_dev, G.n_cells);
+  #endif
   #endif
 
   #ifdef PARTICLES_GPU
@@ -514,14 +518,14 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
 
   part_int_t pID = 0;
   Real pPos_x, pPos_y, pPos_z, r;
-  ChollaPrngGenerator prng(P);
+  std::mt19937_64 generator(P->prng_seed);
   std::uniform_real_distribution<Real> xPositionPrng(G.xMin, G.xMax );
   std::uniform_real_distribution<Real> yPositionPrng(G.yMin, G.yMax );
   std::uniform_real_distribution<Real> zPositionPrng(G.zMin, G.zMax );
   while ( pID < n_particles_local ){
-    pPos_x = xPositionPrng(prng.generator);
-    pPos_y = yPositionPrng(prng.generator);
-    pPos_z = zPositionPrng(prng.generator);
+    pPos_x = xPositionPrng(generator);
+    pPos_y = yPositionPrng(generator);
+    pPos_z = zPositionPrng(generator);
 
     r = sqrt( (pPos_x-center_x)*(pPos_x-center_x) + (pPos_y-center_y)*(pPos_y-center_y) + (pPos_z-center_z)*(pPos_z-center_z) );
     if ( r > sphereR ) continue;
@@ -627,10 +631,10 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   chprintf( " Initializing Particles Stellar Disk\n");
 
   // Set up the PRNG
-  std::mt19937_64 generator {P->prng_seed};
+  std::mt19937_64 generator(P->prng_seed);
 
   std::gamma_distribution<Real> radialDist(2,1);           //for generating cyclindrical radii
-  std::uniform_real_distribution<Real> zDist(-0.2, 0.2);
+  std::uniform_real_distribution<Real> zDist(-0.005, 0.005);
   std::uniform_real_distribution<Real> vzDist(-1e-8, 1e-8);
   std::uniform_real_distribution<Real> phiDist(0, 2*M_PI); //for generating phi
   std::normal_distribution<Real> speedDist(0, 1);          //for generating random speeds.
@@ -657,11 +661,10 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   Real x, y, z, R, phi;
   Real vx, vy, vz, vel, ac;
   Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
-
   //unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc radius
   //unsigned long int N = 13; //(long int)(6.5e6 * 0.9272485558395908);   // 15kpc radius
   Real total_mass = 0;
-  Real upper_limit_cluster_mass = 3e7;
+  Real upper_limit_cluster_mass = 1e7;
   long lost_particles = 0;
   part_int_t id = -1;
   while (total_mass < upper_limit_cluster_mass) {
@@ -676,11 +679,11 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
     phi = phiDist(generator);
     x = R * cos(phi);
     y = R * sin(phi);
-    z = 0.0; //zDist(generator);
+    z = zDist(generator);
 
-    if (x < G.xMin || x > G.xMax) continue;
-    if (y < G.yMin || y > G.yMax) continue;
-    if (z < G.zMin || z > G.zMax) continue;
+    if (x < G.xMin || x >= G.xMax) continue;
+    if (y < G.yMin || y >= G.yMax) continue;
+    if (z < G.zMin || z >= G.zMax) continue;
 
     ac  = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
     vPhi = sqrt(R*ac);
@@ -764,7 +767,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   #endif  //PARTICLES_GPU
 
   if (lost_particles > 0) chprintf("  lost %lu particles\n", lost_particles);
-  chprintf( "Stellar Disk Particles Initialized, n_total: %lu, n_local: %lu, total_mass: %.3e s.m.\n", id, n_local, total_mass);
+  chprintf( "Stellar Disk Particles Initialized, n_total: %lu, n_local: %lu, total_mass: %.3e s.m.\n", id+1, n_local, total_mass);
 }
 
 

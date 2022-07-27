@@ -14,6 +14,7 @@
 #ifdef PARTICLES_GPU
 #define TPB_PARTICLES 1024
 // #define PRINT_GPU_MEMORY
+#define PRINT_MAX_MEMORY_USAGE
 #endif
 
 
@@ -167,7 +168,11 @@ class Particles_3D
     Real *gravity_x;
     Real *gravity_y;
     Real *gravity_z;
+    #ifdef GRAVITY_GPU
+    Real *density_dev;
     #endif
+    #endif
+    
 
     #ifdef PARTICLES_GPU
     Real *density_dev;
@@ -224,9 +229,10 @@ class Particles_3D
 
   void Initialize( struct parameters *P, Grav3D &Grav,  Real xbound, Real ybound, Real zbound, Real xdglobal, Real ydglobal, Real zdglobal  );
 
+  void Free_GPU_Array_Real( Real *array );
+  
   #ifdef PARTICLES_GPU
 
-  void Free_GPU_Array_Real( Real *array );
   void Free_GPU_Array_int( int *array );
   void Free_GPU_Array_bool( bool *array );
   template< typename T > void Free_GPU_Array( T *array ){ cudaFree(array); }  //TODO remove the Free_GPU_Array_<type> functions
@@ -264,6 +270,10 @@ class Particles_3D
   void Unload_Particles_from_Buffer_GPU( int direction, int side , Real *recv_buffer_h, int n_recv );
   void Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d );
   void Set_Particles_Open_Boundary_GPU( int dir, int side );
+  #ifdef PRINT_MAX_MEMORY_USAGE
+  void Print_Max_Memory_Usage();
+  #endif
+  
   #endif //PARTICLES_GPU
 
 

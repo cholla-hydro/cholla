@@ -40,7 +40,7 @@
 
 #ifdef CHEMISTRY_GPU
 #include "chemistry_gpu/chemistry_gpu.h"
-#endif 
+#endif
 
 #ifdef ANALYSIS
 #include "../analysis/analysis.h"
@@ -156,19 +156,7 @@ struct Header
   /*  \brief Global domain z-direction minimum */
   Real zbound;
 
-  /*! \var domlen_x */
-  /*  \brief Local domain length in x-direction */
-  Real domlen_x;
-
-  /*! \var domlen_y */
-  /*  \brief Local domain length in y-direction */
-  Real domlen_y;
-
-  /*! \var domlen_z */
-  /*  \brief Local domain length in z-direction */
-  Real domlen_z;
-
-  /*! \var xblocal */
+   /*! \var xblocal */
   /*  \brief Local domain x-direction minimum */
   Real xblocal;
 
@@ -176,9 +164,21 @@ struct Header
   /*  \brief Local domain y-direction minimum */
   Real yblocal;
 
-  /*! \var zblocal*/
+  /*! \var zblocal */
   /*  \brief Local domain z-direction minimum */
   Real zblocal;
+
+  /*! \var xblocal_max */
+  /*  \brief Local domain x-direction maximum */
+  Real xblocal_max;
+
+  /*! \var yblocal_max */
+  /*  \brief Local domain y-direction maximum */
+  Real yblocal_max;
+
+  /*! \var zblocal_max */
+  /*  \brief Local domain z-direction maximum */
+  Real zblocal_max;
 
   /*! \var xdglobal */
   /*  \brief Global domain length in x-direction */
@@ -278,10 +278,6 @@ class Grid3D
      *  \brief Initialization flag */
     int flag_init;
 
-    /*! \var gflag
-     *  \brief Flag that determines which buffer contains updated conserved variables */
-    int gflag;
-
     /*! \var struct Header H
      *  \brief Header for the grid */
     struct Header H;
@@ -309,11 +305,11 @@ class Grid3D
     // Object that contains data for Grackle cooling
     Cool_GK Cool;
     #endif
-    
+
     #ifdef CPU_TIME
     Time Timer;
     #endif
-    
+
     #ifdef CHEMISTRY_GPU
     // Object that contains data for the GPU chemistry solver
     Chem_GPU Chem;
@@ -323,12 +319,13 @@ class Grid3D
     Analysis_Module Analysis;
     #endif
 
-    #ifdef FEEDBACK //TODO refactor this into Analysis module
+    #ifdef SUPERNOVA //TODO refactor this into Analysis module
     Real countSN;
     Real countResolved;
     Real countUnresolved;
     Real totalEnergy;
     Real totalMomentum;
+    Real totalUnresEnergy;
     #endif
     struct Conserved
     {
@@ -364,19 +361,19 @@ class Grid3D
       #ifdef MHD
       /*! \var magnetic_x \brief Array containing the magnetic field in the x
        *  direction of each cell in the grid. Note that this is the magnetic
-       *  field at the x-1/2 face of the cell since constrained transport
+       *  field at the x+1/2 face of the cell since constrained transport
        *  requires face centered, not cell centered, magnetic fields */
       Real *magnetic_x;
 
       /*! \var magnetic_y \brief Array containing the magnetic field in the y
        *  direction of each cell in the grid. Note that this is the magnetic
-       *  field at the y-1/2 face of the cell since constrained transport
+       *  field at the y+1/2 face of the cell since constrained transport
        *  requires face centered, not cell centered, magnetic fields */
       Real *magnetic_y;
 
       /*! \var magnetic_z \brief Array containing the magnetic field in the z
        *  direction of each cell in the grid. Note that this is the magnetic
-       *  field at the z-1/2 face of the cell since constrained transport
+       *  field at the z+1/2 face of the cell since constrained transport
        *  requires face centered, not cell centered, magnetic fields */
       Real *magnetic_z;
       #endif  // MHD
@@ -391,7 +388,7 @@ class Grid3D
       /*! \var grav_potential
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
-      
+
       #ifdef CHEMISTRY_GPU
       Real *HI_density;
       Real *HII_density;
@@ -399,9 +396,9 @@ class Grid3D
       Real *HeII_density;
       Real *HeIII_density;
       Real *e_density;
-      #endif 
+      #endif
 
-      
+
       /*! pointer to conserved variable on device */
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z,
@@ -647,10 +644,12 @@ class Grid3D
      *  \brief Initialize the grid with a 3D spherical overdensity for gravitational collapse */
     void Spherical_Overdensity_3D();
 
+    void Clouds();
+    
     void Uniform_Grid();
 
     void Zeldovich_Pancake( struct parameters P );
-    
+
     void Chemistry_Test( struct parameters P );
 
 
@@ -750,6 +749,7 @@ class Grid3D
   void Finish_Particles_Transfer();
   #endif//MPI_CHOLLA
   void Transfer_Particles_Density_Boundaries( struct parameters P );
+  void Copy_Particles_Density_Buffer_Device_to_Host( int direction, int side, Real *buffer_d, Real *buffer_h );
   // void Transfer_Particles_Boundaries( struct parameters P );
   void WriteData_Particles(  struct parameters P, int nfile);
   void OutputData_Particles(  struct parameters P, int nfile);
@@ -779,6 +779,8 @@ class Grid3D
   void Set_Particles_Density_Boundaries_Periodic_GPU( int direction, int side );
   #endif//PARTICLES_GPU
   #ifdef GRAVITY_GPU
+  void Copy_Potential_From_GPU();
+  void Copy_Particles_Density_to_GPU();
   void Copy_Particles_Density_GPU();
   int Load_Particles_Density_Boundary_to_Buffer_GPU( int direction, int side, Real *buffer  );
   void Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, int side, Real *buffer  );
@@ -811,13 +813,13 @@ class Grid3D
   void Update_Internal_Energy();
   void Do_Cooling_Step_Grackle();
   #endif
-  
+
   #ifdef CHEMISTRY_GPU
   void Initialize_Chemistry( struct parameters *P );
   void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
   void Update_Chemistry();
   #endif
-  
+
   #ifdef ANALYSIS
   void Initialize_Analysis_Module( struct parameters *P );
   void Compute_and_Output_Analysis( struct parameters *P );
@@ -846,7 +848,7 @@ class Grid3D
   #ifdef PARTICLES
   #ifdef DE
   #ifdef PARTICLE_AGE
-  #ifdef FEEDBACK
+  #ifdef SUPERNOVA
   Real Cluster_Feedback();
   Real Cluster_Feedback_GPU();
   void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end, Real* info, int thread_id, Real* dti);

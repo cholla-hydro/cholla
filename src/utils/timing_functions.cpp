@@ -39,6 +39,23 @@ void OneTime::End(){
   n_steps++;
 }
 
+
+void OneTime::RecordTime( Real time ){
+  time *=  1000; //Convert from secs to ms
+  #ifdef MPI_CHOLLA
+  t_min = ReduceRealMin(time);
+  t_max = ReduceRealMax(time);
+  t_avg = ReduceRealAvg(time);
+  #else
+  t_min = time;
+  t_max = time;
+  t_avg = time;
+  #endif
+  if (n_steps > 0) t_all += t_max;
+  n_steps++;
+}
+
+
 void OneTime::PrintStep(){
   chprintf(" Time %-19s min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", name, t_min, t_max, t_avg);
 }
@@ -60,7 +77,7 @@ void Time::Initialize(){
   // Add or remove timers by editing this list, keep TOTAL at the end
   // add NAME to timing_functions.h
   // add Timer.NAME.Start() and Timer.NAME.End() where appropriate.
-  
+
   onetimes = {
     #ifdef PARTICLES
     &(Calc_dt = OneTime("Calc_dt")),
@@ -84,15 +101,15 @@ void Time::Initialize(){
     #ifdef CHEMISTRY_GPU
     &(Chemistry = OneTime("Chemistry")),
     #endif
-    #ifdef FEEDBACK
+    #ifdef SUPERNOVA
     &(Feedback = OneTime("Feedback")),
     #ifdef ANALYSIS
     &(FeedbackAnalysis = OneTime("FeedbackAnalysis")),
     #endif
-    #endif // FEEDBACK
+    #endif // SUPERNOVA
     &(Total = OneTime("Total")),
   };
-  
+
 
   chprintf( "\nTiming Functions is ON \n");
 
@@ -117,6 +134,9 @@ void Time::Print_Average_Times( struct parameters P ){
   std::string header;
 
   chprintf( "Writing timing values to file: %s  \n", file_name.c_str());
+
+  std::string gitHash    = "Git Commit Hash = " + std::string(GIT_HASH)    + std::string("\n");
+  std::string macroFlags = "Macro Flags     = " + std::string(MACRO_FLAGS) + std::string("\n\n");
 
   header = "#n_proc  nx  ny  nz  n_omp  n_steps  ";
 
@@ -144,7 +164,12 @@ void Time::Print_Average_Times( struct parameters P ){
 
 // Output timing values
   out_file.open(file_name.c_str(), std::ios::app);
-  if ( !file_exists ) out_file << header;
+  if ( !file_exists )
+  {
+    out_file << gitHash;
+    out_file << macroFlags;
+    out_file << header;
+  }
   #ifdef MPI_CHOLLA
   out_file << nproc << " ";
   #else

@@ -30,13 +30,14 @@ __global__ void Evolve_Interface_States_3D(Real *dev_conserved, Real *dev_Q_Lx, 
                                            Real dx, Real dy, Real dz, Real dt, int n_fields);
 
 
-void CTU_Algorithm_3D_CUDA(Real *d_conserved, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt, int n_fields , Real density_floor, Real U_floor, Real *host_grav_potential, Real max_dti_slow )
+void CTU_Algorithm_3D_CUDA(Real *d_conserved, int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt, int n_fields , Real density_floor, Real U_floor, Real *host_grav_potential )
 {
   //Here, *dev_conserved contains the entire
   //set of conserved variables on the grid
   //concatenated into a 1-d array
 
   int n_cells = nx*ny*nz;
+  int ngrid = (n_cells + TPB - 1) / TPB;
 
   // set values for GPU kernels
   // number of blocks per 1D grid

@@ -19,7 +19,7 @@
 //Transfer the particles that moved outside the local domain
 void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
 
-
+  CudaCheckError();
   //Transfer Particles Boundaries
   Particles.TRANSFER_PARTICLES_BOUNDARIES = true;
   #ifdef CPU_TIME
@@ -30,7 +30,7 @@ void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
   Timer.Part_Boundaries.End();
   #endif
   Particles.TRANSFER_PARTICLES_BOUNDARIES = false;
-
+  CudaCheckError();
 }
 
 #ifdef MPI_CHOLLA
@@ -455,9 +455,9 @@ void Grid3D::Load_and_Send_Particles_Z1( int ireq_n_particles, int ireq_particle
   Particles.Load_Particles_to_Buffer_GPU(2, 1, send_buffer_z1_particles,  buffer_length_particles_z1_send );
   #endif //PARTICLES_GPU
 
-  MPI_Isend(&Particles.n_send_z1, 1, MPI_CHREAL, dest[5],   4, world, &send_request_n_particles[1]);
+  MPI_Isend(&Particles.n_send_z1, 1, MPI_PART_INT, dest[5],   4, world, &send_request_n_particles[1]);
   MPI_Request_free(send_request_n_particles+1);
-  MPI_Irecv(&Particles.n_recv_z1, 1, MPI_CHREAL, source[5], 5, world, &recv_request_n_particles[ireq_n_particles]);
+  MPI_Irecv(&Particles.n_recv_z1, 1, MPI_PART_INT, source[5], 5, world, &recv_request_n_particles[ireq_n_particles]);
   // if ( Particles.n_send_z1 > 0 )   std::cout << " Sent Z1: " << Particles.n_send_z1 << std::endl;
   buffer_length = Particles.n_send_z1 * N_DATA_PER_PARTICLE_TRANSFER;
   #ifdef PARTICLES_CPU
@@ -835,7 +835,7 @@ void Particles_3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *rec
 
   part_int_t n_local_after = n_local + n_recv;
   if ( n_local_after > particles_array_size ){
-    printf(" Reallocating GPU particles arrays \n" );
+    printf(" Reallocating GPU particles arrays. N local particles: %d \n", n_local_after );
     int new_size = G.gpu_allocation_factor * n_local_after;
     Extend_GPU_Array( &pos_x_dev,  (int) particles_array_size, new_size, true  );
     Extend_GPU_Array( &pos_y_dev,  (int) particles_array_size, new_size, false );

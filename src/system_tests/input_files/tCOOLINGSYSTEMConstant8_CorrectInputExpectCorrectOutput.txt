@@ -1,0 +1,56 @@
+#
+# Parameter File for 3D Constant
+#
+
+################################################
+# number of grid cells in the x dimension
+nx=2
+# number of grid cells in the y dimension
+ny=2
+# number of grid cells in the z dimension
+nz=2
+# final output time
+tout=90
+# time interval for output
+outstep=90
+# name of initial conditions
+init=Constant
+# domain properties
+xmin=0.0
+ymin=0.0
+zmin=0.0
+xlen=1.0
+ylen=1.0
+zlen=1.0
+# type of boundary conditions
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
+# path to output directory
+outdir=./
+
+#################################################
+rho=6.9498489284711e5
+# velocity
+vx=0
+vy=0
+vz=0
+# pressure
+P=1
+# 1e8 Kelvin = 1e13*1/1e5
+# value of gamma
+gamma=1.666666667
+
+
+# Choose rho so that pressure (cholla units) = temperature (Kelvin)
+# n = d*DENSITY_UNIT / (mu * MP);  
+# T = p*PRESSURE_UNIT/ (n*KB)  = (p/d) * mu*MP * PRESSURE_UNIT / (KB * DENSITY_UNIT)
+# Let d = mu*MP * PRESSURE_UNIT / (KB * DENSITY_UNIT) = (mu*MP/KB) * (VELOCITY_UNIT)**2
+# = (0.6 * 1.672622e-24 / 1.380658e-16) * (3.08567758e21 / 3.15569e10)**2
+# = 69498489284711.24 = 6.9498489284711e13
+# Choose rho so that pressure (cholla units) = temperature / e13 (Kelvin) 
+# T = p * (6.9e13)/d
+# T/e13 = p * (6.9)/d

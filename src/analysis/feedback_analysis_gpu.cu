@@ -7,7 +7,7 @@
 
 #define MU 0.6
 // in cgs, this is 0.01 cm^{-3}
-#define MIN_DENSITY 0.01 * MP * MU *LENGTH_UNIT * LENGTH_UNIT * LENGTH_UNIT / MASS_UNIT  // 148279.7
+#define MIN_DENSITY 0.01 * MP * MU * LENGTH_UNIT * LENGTH_UNIT * LENGTH_UNIT / MASS_UNIT  // 148279.7
 #define TPB_ANALYSIS 1024
 
 
@@ -42,10 +42,10 @@ void __global__ Reduce_Tubulence_kernel(int nx, int ny, int nz, int n_ghost, Rea
     vx =  momentum_x[id]/ density[id];
     vy =  momentum_y[id]/ density[id];
     vz =  momentum_z[id]/ density[id];
-    s_vel[tid] += ((vx - circ_vel_x[id])*(vx - circ_vel_x[id]) + 
-                   (vy - circ_vel_y[id])*(vy - circ_vel_y[id]) + 
+    s_vel[tid] = ( (vx - circ_vel_x[id])*(vx - circ_vel_x[id]) +
+                   (vy - circ_vel_y[id])*(vy - circ_vel_y[id]) +
                    (vz*vz)
-                  )*density[id];
+                 )*density[id];
   }
   __syncthreads();
 
@@ -69,8 +69,6 @@ void __global__ Reduce_Tubulence_kernel_2(Real *input_m, Real *input_v, Real *ou
   __shared__ Real s_vel[TPB_ANALYSIS];
 
   size_t tid = threadIdx.x;
-  //size_t i = blockIdx.x*(TPB_ANALYSIS*2) + tid;
-  //size_t gridSize = TPB_ANALYSIS*2*gridDim.x;
   size_t i = blockIdx.x*(TPB_ANALYSIS) + tid;
   size_t gridSize = TPB_ANALYSIS*gridDim.x;
   s_mass[tid] = 0;
@@ -81,7 +79,6 @@ void __global__ Reduce_Tubulence_kernel_2(Real *input_m, Real *input_v, Real *ou
     s_vel[tid] += input_v[i]; 
     i += gridSize;
   }
-  //while (i < n) { s_mass[tid] += input[i] + input[i+TPB_ANALYSIS]; i += gridSize; }
   __syncthreads();
 
   if (TPB_ANALYSIS >= 1024) { if (tid < 512) { s_mass[tid] += s_mass[tid + 512]; s_vel[tid] += s_vel[tid + 512]; } __syncthreads(); }
@@ -146,6 +143,10 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion_GPU(Grid3D& G) {
   total_mass = h_partial_mass[0];
   total_vel = h_partial_vel[0];
   #endif
+
+  if (total_vel < 0 || total_mass < 0) {
+    chprintf("feedback trouble.  total_vel = %.3e, total_mass = %.3e\n", total_vel, total_mass);
+  }
 
   chprintf("feedback: time %f, dt=%f, vrms = %f km/s\n",  G.H.t,  G.H.dt, sqrt(total_vel/total_mass)*VELOCITY_UNIT/1e5);
 

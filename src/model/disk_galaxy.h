@@ -141,12 +141,12 @@ public:
     };
 
 
-    Real getM_d() const { return M_d; };
-    Real getR_d() const { return R_d; };
-    Real getZ_d() const { return Z_d; };
-    Real getM_vir() const { return M_vir;  };
-    Real getR_vir() const { return R_vir;  };
-    Real getC_vir() const { return c_vir;  };
+    Real getM_d()    const { return M_d;    };
+    Real getR_d()    const { return R_d;    };
+    Real getZ_d()    const { return Z_d;    };
+    Real getM_vir()  const { return M_vir;  };
+    Real getR_vir()  const { return R_vir;  };
+    Real getC_vir()  const { return c_vir;  };
     Real getR_cool() const { return r_cool; };
 
 };
@@ -186,7 +186,7 @@ class ClusteredDiskGalaxy: public DiskGalaxy {
 namespace Galaxies {
     // all masses in M_sun and all distances in kpc
     //static DiskGalaxy MW(6.5e10, 3.5, (3.5/5.0), 1.0e12, 261, 20, 157.0);
-    static ClusteredDiskGalaxy MW(1e3, 5e5, 6.5e10, 2.7, 0.7, 1.077e12, 261, 18, 157.0);
+    static ClusteredDiskGalaxy MW(1e4, 5e5, 6.5e10, 2.7, 0.7, 1.077e12, 261, 18, 157.0);
     static DiskGalaxy M82(1.0e10, 0.8, 0.15, 5.0e10, 0.8/0.015, 10, 100.0);
 };
 

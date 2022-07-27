@@ -154,6 +154,7 @@ Real Grid3D::Calc_Particles_dt_function( part_int_t p_start, part_int_t p_end ){
 //Update the particles positions and velocities
 void Grid3D::Advance_Particles( int N_step ){
 
+  CudaCheckError();
   #ifdef CPU_TIME
   if ( N_step == 1) Timer.Advance_Part_1.Start();
   if ( N_step == 2) Timer.Advance_Part_2.Start();
@@ -179,6 +180,7 @@ void Grid3D::Advance_Particles( int N_step ){
   if ( N_step == 1) Timer.Advance_Part_1.End();
   if ( N_step == 2) Timer.Advance_Part_2.End();
   #endif
+  CudaCheckError();
 
 }
 

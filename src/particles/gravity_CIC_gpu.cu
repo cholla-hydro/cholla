@@ -1,4 +1,4 @@
-#if defined(PARTICLES) && defined(PARTICLES_GPU)
+#ifdef PARTICLES 
 
 #include <unistd.h>
 #include <stdio.h>
@@ -13,6 +13,7 @@
 #include "../grid/grid3D.h"
 #endif
 
+#ifdef PARTICLES_GPU
 
 //Copy the potential from host to device
 void Particles_3D::Copy_Potential_To_GPU( Real *potential_host, Real *potential_dev, int n_cells_potential ){
@@ -288,6 +289,8 @@ void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_loca
   //CudaCheckError();
 
 }
+
+#endif //PARTICLES_GPU
 
 #ifdef GRAVITY_GPU
 

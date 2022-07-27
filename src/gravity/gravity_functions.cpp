@@ -115,7 +115,8 @@ void Grid3D::set_dt_Gravity(){
 
   #ifdef AVERAGE_SLOW_CELLS
   //Set the min_delta_t for averaging a slow cell
-  min_dt_slow = Particles.dt / Particles.C_cfl * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a ) / SLOW_FACTOR;
+  da_particles = fmin( da_particles, Cosmo.max_delta_a );
+  min_dt_slow = Cosmo.Get_dt_from_da( da_particles ) / Particles.C_cfl * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a ) / SLOW_FACTOR;
   H.min_dt_slow = min_dt_slow;
   #endif
 
@@ -143,7 +144,8 @@ void Grid3D::set_dt_Gravity(){
 
   #ifdef AVERAGE_SLOW_CELLS
   //Set the min_delta_t for averaging a slow cell
-  min_dt_slow = dt_particles / Particles.C_cfl / SLOW_FACTOR;
+  //min_dt_slow = dt_particles / Particles.C_cfl / SLOW_FACTOR;
+  min_dt_slow = 3*H.dx;
   H.min_dt_slow = min_dt_slow;
   #endif
 
@@ -155,7 +157,8 @@ void Grid3D::set_dt_Gravity(){
 
   #if defined( AVERAGE_SLOW_CELLS) && !defined( PARTICLES )
   //Set the min_delta_t for averaging a slow cell ( for now the min_dt_slow is set to a large value, change this with your condition )
-  min_dt_slow = H.dt / C_cfl * 100 ;
+  //min_dt_slow = H.dt / C_cfl * 100 ;
+  min_dt_slow = 3*H.dx;
   H.min_dt_slow = min_dt_slow;
   #endif
 
@@ -167,6 +170,10 @@ void Grid3D::set_dt_Gravity(){
     Grav.dt_prev = Grav.dt_now;
     Grav.dt_now = H.dt;
   }
+  
+  #if defined(PARTICLES_GPU) && defined(PRINT_MAX_MEMORY_USAGE)
+  Particles.Print_Max_Memory_Usage();
+  #endif
 }
 
 //NOT USED: Get Average density on the Global dommain
@@ -349,7 +356,7 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
 //Initialize the Grav Object at the beginning of the simulation
 void Grid3D::Initialize_Gravity( struct parameters *P ){
   chprintf( "\nInitializing Gravity... \n");
-  Grav.Initialize( H.xblocal, H.yblocal, H.zblocal, H.xdglobal, H.ydglobal, H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost_potential_offset, P  );
+  Grav.Initialize( H.xblocal, H.yblocal, H.zblocal, H.xblocal_max, H.yblocal_max, H.zblocal_max, H.xdglobal, H.ydglobal, H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost_potential_offset, P  );
   chprintf( "Gravity Successfully Initialized. \n\n");
 
   #ifdef PARIS_TEST

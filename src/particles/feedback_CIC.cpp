@@ -1,7 +1,7 @@
 #ifdef PARTICLES
 #ifdef DE
 #ifdef PARTICLE_AGE
-#ifdef FEEDBACK
+#ifdef SUPERNOVA
 
 #include <iostream>
 #include <cstring>
@@ -61,9 +61,6 @@ Real Grid3D::Cluster_Feedback() {
   Real max_sn_dti = 0;
   #ifdef PARTICLES_GPU
   max_sn_dti = Cluster_Feedback_GPU();
-  #ifdef MPI_CHOLLA
-  max_sn_dti = ReduceRealMax(max_sn_dti);
-  #endif // MPI_CHOLLA
   #else
   Real* feedbackInfo;
   Real* thread_dti;
@@ -376,4 +373,4 @@ void Grid3D::Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end, Rea
 #endif //PARTICLE_AGE
 #endif //DE
 #endif //PARTICLES
-#endif //FEEDBACK
+#endif //SUPERNOVA
