@@ -5,8 +5,8 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
-# CHOLLA_ARCH defaults to sm_70 if not set in make.host
-CHOLLA_ARCH ?= sm_70
+# CUDA_ARCH defaults to sm_70 if not set in make.host
+CUDA_ARCH ?= sm_70
 
 DIRS     := src src/analysis src/chemistry_gpu src/cooling src/cooling_grackle src/cosmology \
             src/cpu src/global src/gravity src/gravity/paris src/grid src/hydro \
@@ -125,7 +125,7 @@ else
   CUDA_LIB  ?= -L$(CUDA_ROOT)/lib64 -lcudart
   CXXFLAGS  += $(CUDA_INC)
   GPUCXX    ?= nvcc
-  GPUFLAGS  += --expt-extended-lambda -arch $(CHOLLA_ARCH) -fmad=false
+  GPUFLAGS  += --expt-extended-lambda -arch $(CUDA_ARCH) -fmad=false
   GPUFLAGS  += $(CUDA_INC)
   LD        := $(CXX)
   LDFLAGS   += $(CXXFLAGS)
