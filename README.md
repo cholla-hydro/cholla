@@ -17,9 +17,9 @@ See the Wiki associated with this repository for more details.
 Configuration Notes
 ------------
 Most of the configuration options available in *Cholla* are selected by commenting/uncommenting
-the appropriate line in a make.type file or by setting environment variables in a make.host file. A Makefile is included in the top level directory -- this Makefile is not intended to be modified directly. Instead, after downloading the code, you should
+the appropriate line in a make.type file or by setting environment variables in a make.host file. A Makefile is included in the top level directory, but this Makefile is not intended to be modified directly. Instead, after downloading the code, you should
 be able to configure it for your machine by creating a build script based on one of the make.host examples in the builds directory (see the wiki for more details). Examples of configurations that require edits to a make.type file include single vs
-double precision, output format, the reconstruction method, Riemann solver, integrator, and cooling. Examples of configurations that require edits to a make.host file include library paths, compiler options, and the gpu-enabled MPI. The entire code must be recompiled any time you change the configuration. For more information on the various options, see the "[Makefile](https://github.com/cholla-hydro/cholla/wiki/Makefile)" page of the wiki.
+double precision, output format, the reconstruction method, Riemann solver, integrator, and cooling. Examples of configurations that require edits to a make.host file include library paths, compiler options, and gpu-enabled MPI. The entire code must be recompiled any time you change the configuration. For more information on the various options, see the "[Makefile](https://github.com/cholla-hydro/cholla/wiki/Makefile-Parameters)" page of the wiki.
 
 
 Running Cholla
@@ -27,17 +27,17 @@ Running Cholla
 To run the code after it is compiled, you must supply an input file with parameters and a problem that matches a function
 in the `initial_conditions` file. For example, to run a 1D Sod Shock Tube test, you would type
 
-```./bin/cholla.host.type examples/1D/Sod.txt```
+```./bin/cholla.[host].hydro examples/1D/Sod.txt```
 
-in the directory with the `cholla` binary. Some output will be generated in the terminal, and output files will be written in the directory specified in the input parameter file.
+in the directory with the `cholla` binary (where [host] depends on your machine name). Some output will be generated in the terminal, and output files will be written in the directory specified in the input parameter file. More information on input parameters can be found on the "[Input File](https://github.com/cholla-hydro/cholla/wiki/Input-File-Parameters)" page of the wiki.
 
 To run *Cholla* in parallel mode, the `CHOLLA_MPI` macro must be defined at compile time, by including it in the build script (see make.type.hydro for an example). Then you can run
 using a command like the following:
 
-```srun -n4 ./cholla.host.type examples/3D/sound_wave.txt```
+```srun -n4 ./cholla.[host].hydro examples/3D/sound_wave.txt```
 
 Each process will be assigned a GPU. *Cholla* cannot be run with more processes than available GPUs,
-so MPI mode is most useful on a cluster (or for testing parallel behavior with a single process).
+so MPI mode is most useful on a cluster (or for testing parallel behavior with a single process). Note that more recent AMD devices have 2 GPUs (or GCDs) per accelerator device, so you can run with 2x the number of MPI tasks.
 
 More information about compiling and running *Cholla* can be found in the wiki associated with this repository.
 
