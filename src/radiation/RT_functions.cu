@@ -8,9 +8,9 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-#include"gpu.hpp"
-#include"global.h"
-#include"global_cuda.h"
+#include"../utils/gpu.hpp"
+#include"../global/global.h"
+#include"../global/global_cuda.h"
 #include"RT_functions.h"
 
 // CPU function that will call the GPU-based RT functions

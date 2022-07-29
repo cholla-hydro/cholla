@@ -6,18 +6,12 @@
 #ifndef RT_H
 #define RT_H
 
-#include"../global.h"
+#include "../global/global.h"
 
 
 class Rad3D
 {
   public:
-
-  // Struct for storing abundance data
-  RT_field_data abundances;
-
-  // constructor
-  Rad3D( void );
 
   void Initialize( struct parameters *P);
 

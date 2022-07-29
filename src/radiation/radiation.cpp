@@ -1,4 +1,4 @@
-/*! \file RT.cpp
+/*! \file radiation.cpp
  *  \brief Definitions for the radiative transfer wrapper */
 
 
@@ -8,14 +8,10 @@
 #include<stdlib.h>
 #include<string.h>
 #include<math.h>
-#include"../global.h"
-#include"../io.h"
-
-#include"RT.h"
-
-
-
-Rad3D::Rad3D( void ){}
+#include"radiation.h"
+#include"../global/global.h"
+#include "../grid/grid3D.h"
+#include"../io/io.h"
 
 
 
@@ -24,13 +20,14 @@ void Grid3D::Initialize_RT( struct parameters *P ) {
 
   chprintf( "Initializing Radiative Transfer...\n");
 
-  RT.Initialize( P );
+  Rad.Initialize( P );
 
   // allocate memory for abundances (these can be passive scalars added to the hydro grid)
-  Allocate_Abundances();
+  // This is done in grid3D::Allocate_Memory
+  //Allocate_Abundances();
 
   // allocate memory for radiation fields (non-advecting, 2 per frequency plus 1 optically thin field)
-  RT.Allocate_Memory_RT();
+  Rad.Allocate_Memory_RT();
 
   // allocate memory for Eddington tensor?
 
@@ -47,17 +44,16 @@ void Rad3D::Initialize( struct parameters *P) {
 
 
 // Sets pointers for abundances (already allocated in Grid3D.cpp)
-void Grid3D::Allocate_Abundances() {
+//void Grid3D::Allocate_Abundances() {
+//
+//  chprintf( " Setting pointers for: HI, HII, HeI, HeII, HeIII, densities\n");
+//  RT.HI_density      = &C.scalar[ 0*H.n_cells ];
+//  RT.HII_density     = &C.scalar[ 1*H.n_cells ];
+//  RT.HeI_density     = &C.scalar[ 2*H.n_cells ];
+//  RT.HeII_density    = &C.scalar[ 3*H.n_cells ];
+//  RhT.HeIII_density   = &C.scalar[ 4*H.n_cells ];
 
-chprintf( " Setting pointers for: HI, HII, HeI, HeII, HeIII, densities\n");
-RT.abundances.HI_density      = &C.scalar[ 0*H.n_cells ];
-RT.abundances.HII_density     = &C.scalar[ 1*H.n_cells ];
-RT.abundances.HeI_density     = &C.scalar[ 2*H.n_cells ];
-RT.abundances.HeII_density    = &C.scalar[ 3*H.n_cells ];
-RT.abundances.HeIII_density   = &C.scalar[ 4*H.n_cells ];
-
-
-}
+//}
 
 
 // function to allocate memory for radiation fields

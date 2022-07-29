@@ -34,6 +34,10 @@
 #include "../cooling_grackle/cool_grackle.h"
 #endif
 
+#ifdef RT
+#include "../radiation/radiation.h"
+#endif
+
 #ifdef CPU_TIME
 #include "../utils/timing_functions.h"
 #endif
@@ -308,7 +312,7 @@ class Grid3D
 
     #ifdef RT
     // Object that contains data for radiative transfer
-    Rad3D RT;
+    Rad3D Rad;
     #endif
     
     #ifdef CPU_TIME
@@ -395,6 +399,13 @@ class Grid3D
       Real *e_density;
       #endif
 
+      #ifdef RT
+      Real *HI_density;
+      Real *HII_density;
+      Real *HeI_density;
+      Real *HeII_density;
+      Real *HeIII_density;
+      #endif
 
       /*! pointer to conserved variable on device */
       Real *device;
@@ -793,11 +804,6 @@ class Grid3D
   #endif//PARTICLES_GPU
   #endif//COSMOLOGY
 
-  #ifdef RT
-  void Initialize_RT();
-  void Allocate_Abundances();
-  #endif
-
   #ifdef COOLING_GRACKLE
   void Initialize_Grackle( struct parameters *P );
   void Allocate_Memory_Grackle();
@@ -813,6 +819,10 @@ class Grid3D
   void Initialize_Chemistry( struct parameters *P );
   void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
   void Update_Chemistry();
+  #endif
+
+  #ifdef RT
+  void Initialize_RT( struct parameters *P );
   #endif
 
   #ifdef ANALYSIS

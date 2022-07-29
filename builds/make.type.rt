@@ -1,0 +1,4 @@
+include builds/make.type.hydro
+
+# Turn on Radiative Transfer
+DFLAGS += -DRT -DSCALAR

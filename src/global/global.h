@@ -65,11 +65,7 @@ typedef double Real;
 #define MAX_DELTA_A 0.001
 #define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
-// Set the number of abundance fields for RT
-#ifdef RT
-  #define NSCALARS 5
-#endif
-
+// Set the number of abundance fields for grackle
 #ifdef COOLING_GRACKLE
   #ifdef GRACKLE_METALS
   #define NSCALARS 7
@@ -78,14 +74,17 @@ typedef double Real;
   #endif // GRACKLE_METALS
 #elif CHEMISTRY_GPU
   #define NSCALARS 6
+// Set the number of abundance fields for RT
+#elif RT
+  #define NSCALARS 5
 #else
+// Set default number of scalar fields
 #ifdef SCALAR
-// Set Number of scalar fields when not using grackle
 #define NSCALARS 1
 #else
 #define NSCALARS 0
 #endif//SCALAR
-#endif//COOLING_GRACKLE
+#endif//COOLING OR RT
 
 #ifdef  MHD
   #define N_MHD_FIELDS 3

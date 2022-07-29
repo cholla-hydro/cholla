@@ -331,6 +331,15 @@ void Grid3D::AllocateMemory(void)
   C.e_density     = &C.scalar[ 5*H.n_cells ];
   #endif
 
+  #ifdef RT
+  C.HI_density    = &C.scalar[ 0*H.n_cells ];
+  C.HII_density   = &C.scalar[ 1*H.n_cells ];
+  C.HeI_density   = &C.scalar[ 2*H.n_cells ];
+  C.HeII_density  = &C.scalar[ 3*H.n_cells ];
+  C.HeIII_density = &C.scalar[ 4*H.n_cells ];
+  #endif
+
+
   // initialize host array
   for (int i=0; i<H.n_fields*H.n_cells; i++)
   {
@@ -502,14 +511,6 @@ Real Grid3D::Update_Grid(void)
   #endif
   #endif
 
-  #ifdef RT
-  RT.abundances.HI_density      = &C.scalar[ 0*H.n_cells ];
-  RT.abundances.HII_density     = &C.scalar[ 1*H.n_cells ];
-  RT.abundances.HeI_density     = &C.scalar[ 2*H.n_cells ];
-  RT.abundances.HeII_density    = &C.scalar[ 3*H.n_cells ];
-  RT.abundances.HeIII_density   = &C.scalar[ 4*H.n_cells ];  
-  #endif
-  
   #ifdef CHEMISTRY_GPU
   C.HI_density    = &C.scalar[ 0*H.n_cells ];
   C.HII_density   = &C.scalar[ 1*H.n_cells ];
@@ -517,6 +518,14 @@ Real Grid3D::Update_Grid(void)
   C.HeII_density  = &C.scalar[ 3*H.n_cells ];
   C.HeIII_density = &C.scalar[ 4*H.n_cells ];
   C.e_density     = &C.scalar[ 5*H.n_cells ];
+  #endif
+
+  #ifdef RT
+  C.HI_density      = &C.scalar[ 0*H.n_cells ];
+  C.HII_density     = &C.scalar[ 1*H.n_cells ];
+  C.HeI_density     = &C.scalar[ 2*H.n_cells ];
+  C.HeII_density    = &C.scalar[ 3*H.n_cells ];
+  C.HeIII_density   = &C.scalar[ 4*H.n_cells ];  
   #endif
 
   return max_dti;

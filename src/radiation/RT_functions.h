@@ -6,7 +6,7 @@
 #ifndef RT_FUNCTIONS_H
 #define RT_FUNCTIONS_H
 
-#include"global.h"
+#include "../global/global.h"
 
 void rtSolve(void);
 
