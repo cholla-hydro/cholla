@@ -1,5 +1,5 @@
-/*! \file VL_3D_cuda.cu
- *  \brief Definitions of the cuda 3D VL algorithm functions. */
+/*! \file simple_3D_cuda.cu
+ *  \brief Definitions of the cuda 3D simple algorithm functions. */
 
 #ifdef CUDA
 #ifdef SIMPLE
@@ -20,7 +20,6 @@
 #include "../riemann_solvers/exact_cuda.h"
 #include "../riemann_solvers/roe_cuda.h"
 #include "../riemann_solvers/hllc_cuda.h"
-#include "../old_cholla/h_correction_3D_cuda.h"
 #include "../io/io.h"
 #include "../riemann_solvers/hll_cuda.h"
 
@@ -30,12 +29,13 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
           int nx, int ny, int nz, int x_off, int y_off,
           int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound,
           Real ybound, Real zbound, Real dt, int n_fields, Real density_floor,
-          Real U_floor,  Real *host_grav_potential, Real max_dti_slow )
+          Real U_floor,  Real *host_grav_potential  )
 {
   //Here, *dev_conserved contains the entire
   //set of conserved variables on the grid
   //concatenated into a 1-d array
   int n_cells = nx*ny*nz;
+  int ngrid = (n_cells + TPB - 1) / TPB;
 
   // set values for GPU kernels
   // number of blocks per 1D grid
@@ -47,9 +47,12 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
   temp_potential = host_grav_potential;
 
   if ( !memory_allocated ){
-
+    size_t global_free, global_total;
+    CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
+    
     // allocate memory on the GPU
-    // CudaSafeCall( cudaMalloc((void**)&dev_conserved, n_fields*n_cells*sizeof(Real)) );
+    chprintf( " Allocating Hydro Memory: nfields: %d   n_cells: %d   nx: %d  ny: %d  nz: %d \n", n_fields, n_cells, nx, ny, nz );
+    chprintf( " Memory needed: %f GB    Free: %f GB    Total:  %f GB  \n", n_fields*n_cells*sizeof(Real)/1e9, global_free/1e9, global_total/1e9  );
     dev_conserved = d_conserved;
     CudaSafeCall( cudaMalloc((void**)&Q_Lx,  n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&Q_Rx,  n_fields*n_cells*sizeof(Real)) );
@@ -71,6 +74,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
     // If memory is single allocated: memory_allocated becomes true and successive timesteps won't allocate memory.
     // If the memory is not single allocated: memory_allocated remains Null and memory is allocated every timestep.
     memory_allocated = true;
+    chprintf( " Memory allocated \n"  );
 
   }
 
@@ -78,7 +82,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
   CudaSafeCall( cudaMemcpy(dev_grav_potential, temp_potential, n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
   #endif
 
-
+  
   // Step 1: Construct left and right interface values using updated conserved variables
   #ifdef PCM
   hipLaunchKernelGGL(PCM_Reconstruction_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, n_fields);
@@ -104,9 +108,9 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
   hipLaunchKernelGGL(PPMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt, gama, 2, n_fields);
   CudaCheckError();
   #endif //PPMC
-
-
-  // Step 2: Calculate the fluxes again
+  
+  
+  // Step 2: Calculate the fluxes
   #ifdef EXACT
   hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
@@ -128,23 +132,23 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
   hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
   #endif //HLL
   CudaCheckError();
-
+  
   #ifdef DE
   // Compute the divergence of Vel before updating the conserved array, this solves synchronization issues when adding this term on Update_Conserved_Variables_3D
   hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_3D, dim1dGrid, dim1dBlock, 0, 0,  dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dx, dy, dz,  dt, gama, n_fields );
   CudaCheckError();
   #endif
-
+  
   // Step 3: Update the conserved variable array
   hipLaunchKernelGGL(Update_Conserved_Variables_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved,  Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, F_x, F_y, F_z, nx, ny, nz, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt, gama, n_fields, density_floor, dev_grav_potential);
   CudaCheckError();
-
+  
   #ifdef DE
   hipLaunchKernelGGL(Select_Internal_Energy_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields);
   hipLaunchKernelGGL(Sync_Energies_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, gama, n_fields);
   CudaCheckError();
   #endif
-
+  
   #ifdef TEMPERATURE_FLOOR
   hipLaunchKernelGGL(Apply_Temperature_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, U_floor );
   CudaCheckError();

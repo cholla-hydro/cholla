@@ -19,7 +19,6 @@
 #include "../riemann_solvers/exact_cuda.h"
 #include "../riemann_solvers/roe_cuda.h"
 #include "../riemann_solvers/hllc_cuda.h"
-#include "../old_cholla/h_correction_2D_cuda.h"
 
 
 __global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *dev_conserved_half,
@@ -37,6 +36,7 @@ void VL_Algorithm_2D_CUDA ( Real *d_conserved, int nx, int ny, int x_off, int y_
 
   int n_cells = nx*ny;
   int nz = 1;
+  int ngrid = (n_cells + TPB - 1) / TPB;
 
   // set values for GPU kernels
   // number of blocks per 1D grid

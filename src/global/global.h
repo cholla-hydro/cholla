@@ -54,8 +54,8 @@ typedef double Real;
 #define LOG_FILE_NAME "run_output.log"
 
 //Conserved Floor Values
-#define TEMP_FLOOR 1e-3
-#define DENS_FLOOR 1e-5
+#define TEMP_FLOOR 1e-3 // in Kelvin
+#define DENS_FLOOR 1e-5 // in code units
 
 //Parameter for Enzo dual Energy Condition
 #define DE_ETA_1 0.001 //Ratio of U to E for which  Internal Energy is used to compute the Pressure
@@ -102,9 +102,6 @@ typedef double Real;
 #define INITIAL_FRACTION_ELECTRON  1.53965115054e-4
 #define INITIAL_FRACTION_METAL     1.00000000000e-10
 
-//Default Gravity Compiler Flags
-#define GRAVITY_LONG_INTS
-#define COUPLE_GRAVITATIONAL_WORK
 
 //Default Particles Compiler Flags
 #define PARTICLES_LONG_INTS
@@ -128,11 +125,7 @@ typedef double Real;
 #endif //GRAVITY_5_POINTS_GRADIENT
 
 
-#ifdef GRAVITY_LONG_INTS
 typedef long int grav_int_t;
-#else
-typedef int grav_int_t;
-#endif//GRAVITY_LONG_INTS
 #endif
 
 #ifdef PARTICLES
@@ -211,11 +204,11 @@ struct parameters
   Real gamma;
   char init[MAXLEN];
   int nfile;
-  int outstep_hydro;
-  int outstep_particle;
-  int outstep_projection;
-  int outstep_rotated_projection;
-  int outstep_slice;
+  int n_hydro;
+  int n_particle;
+  int n_projection;
+  int n_rotated_projection;
+  int n_slice;
   Real xmin;
   Real ymin;
   Real zmin;

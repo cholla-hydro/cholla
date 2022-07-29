@@ -4,7 +4,7 @@
 #   source ./setup.summit.gcc.sh
 
 #module load gcc/10.2.0 cuda/11.4.0 fftw hdf5 python
-module load gcc cuda fftw hdf5 python
+module load gcc cuda fftw hdf5 python googletest/1.11.0
 
 #export F_OFFLOAD="-fopenmp -foffload=nvptx-none='-lm -Ofast'"
 export F_OFFLOAD="-fopenmp -foffload=disable"
