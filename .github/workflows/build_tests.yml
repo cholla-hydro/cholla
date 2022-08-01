@@ -2,9 +2,9 @@ name: Cholla Compile
 
 on:
   pull_request:
-    branches: [ CAAR ]
+#    branches: [ CAAR ]
   schedule:
-    - cron: "37 11 * * 1"
+    - cron: "37 07 * * 1"  # run every Monday at 07:37UTC. Crontab computed with crontab.guru
   workflow_dispatch:
 
 jobs:
@@ -67,7 +67,7 @@ jobs:
         h5cc -showconfig
 
     # Install CUDA and dependencies if this is a CUDA build
-    - uses: Jimver/cuda-toolkit@v0.2.4
+    - uses: Jimver/cuda-toolkit@v0.2.8
       if: matrix.gpu-api == 'CUDA'
       id: cuda-toolkit
       with:
@@ -131,7 +131,7 @@ jobs:
     # Perform Build
     - name: Cholla setup
       run: |
-        source builds/scripts/run_tests.sh
+        source builds/run_tests.sh
         setupTests -c gcc
         echo "CHOLLA_ROOT           = ${CHOLLA_ROOT}"
         echo "CHOLLA_LAUNCH_COMMAND = ${CHOLLA_LAUNCH_COMMAND}"
@@ -142,14 +142,14 @@ jobs:
         echo "CHOLLA_ENVSET=${CHOLLA_ENVSET}                  >> $GITHUB_ENV
     - name: Build GoogleTest
       run: |
-        source builds/scripts/run_tests.sh
+        source builds/run_tests.sh
         buildGoogleTest
         echo "GOOGLETEST_ROOT=${GOOGLETEST_ROOT}" >> $GITHUB_ENV
     - name: Build Cholla
       run: |
-        source builds/scripts/run_tests.sh
+        source builds/run_tests.sh
         buildCholla
     - name: Build Tests
       run: |
-        source builds/scripts/run_tests.sh
+        source builds/run_tests.sh
         buildChollaTests

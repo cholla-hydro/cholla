@@ -1,5 +1,5 @@
-/*! \file VL_3D_cuda.cu
- *  \brief Definitions of the cuda 3D VL algorithm functions. */
+/*! \file simple_3D_cuda.cu
+ *  \brief Definitions of the cuda 3D simple algorithm functions. */
 
 #ifdef CUDA
 #ifdef SIMPLE
@@ -20,7 +20,6 @@
 #include "../riemann_solvers/exact_cuda.h"
 #include "../riemann_solvers/roe_cuda.h"
 #include "../riemann_solvers/hllc_cuda.h"
-#include "../old_cholla/h_correction_3D_cuda.h"
 #include "../io/io.h"
 #include "../riemann_solvers/hll_cuda.h"
 
@@ -111,7 +110,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved,  Real *d_grav_potential,
   #endif //PPMC
   
   
-  // Step 2: Calculate the fluxes again
+  // Step 2: Calculate the fluxes
   #ifdef EXACT
   hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
   hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);

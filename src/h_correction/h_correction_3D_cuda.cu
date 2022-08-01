@@ -7,7 +7,7 @@
 #include <math.h>
 #include "../global/global.h"
 #include "../global/global_cuda.h"
-#include "../old_cholla/h_correction_3D_cuda.h"
+#include "../h_correction/h_correction_3D_cuda.h"
 
 
 

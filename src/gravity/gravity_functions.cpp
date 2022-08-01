@@ -357,53 +357,6 @@ void Grid3D::Initialize_Gravity( struct parameters *P ){
   Grav.Initialize( H.xblocal, H.yblocal, H.zblocal, H.xblocal_max, H.yblocal_max, H.zblocal_max, H.xdglobal, H.ydglobal, H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost_potential_offset, P  );
   chprintf( "Gravity Successfully Initialized. \n\n");
 
-  #ifdef PARIS_TEST
-
-  chprintf("Analytic Test of Poisson Solvers:\n");
-  const long ng = N_GHOST_POTENTIAL;
-  std::vector<Real> rho(Grav.n_cells);
-  std::vector<Real> exact(Grav.n_cells_potential);
-
-  const Real dlx = 1.0/H.xdglobal;
-  const Real dly = 1.0/H.ydglobal;
-  const Real dlz = 1.0/H.zdglobal;
-  const Real ddlx = dlx*dlx;
-  const Real ddly = dly*dly;
-  const Real ddlz = dlz*dlz;
-
-  #pragma omp parallel for
-  for (int k = 0; k < Grav.nz_local; k++) {
-    const Real z = (Grav.zMin-H.zbound+Real(k)*Grav.dz)*dlz;
-    long ijk = long(k)*Grav.ny_local*Grav.nx_local;
-    for (int j = 0; j < Grav.ny_local; j++) {
-      const Real y = (Grav.yMin-H.ybound+Real(j)*Grav.dy)*dly;
-      for (int i = 0; i < Grav.nx_local; i++, ijk++) {
-        const Real x = (Grav.xMin-H.xbound+Real(i)*Grav.dx)*dlx;
-        rho[ijk] = periodicD(x,y,z,ddlx,ddly,ddlz);
-        const long ijkg = i+ng+(Grav.nx_local+ng+ng)*(j+ng+(Grav.ny_local+ng+ng)*(k+ng));
-        exact[ijkg] = periodicF(x,y,z);
-      }
-    }
-  }
-  std::vector<Real> p(Grav.n_cells_potential,0);
-  Grav.Poisson_solver_test.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
-  chprintf("Paris");
-  printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
-
-  for (Real &pijk : p) pijk = 0;
-
-  #ifdef CUFFT
-  chprintf("CUFFT");
-  Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
-  #endif
-  #ifdef PFFT
-  chprintf("PFFT");
-  Grav.Poisson_solver.Get_Potential(rho.data(),p.data(),Real(1)/(4*M_PI),0,1);
-  #endif
-  printDiff(p.data(),exact.data(),Grav.nx_local,Grav.ny_local,Grav.nz_local);
-
-  #endif
-
   if (P->bc_potential_type == 1) {
 
     const int ng = N_GHOST_POTENTIAL;
@@ -582,18 +535,6 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   #else
   Grav.Poisson_solver.Get_Potential( input_density, output_potential, Grav_Constant, dens_avrg, current_a);
   #endif//SOR
-
-  #ifdef PARIS_TEST
-  std::vector<Real> p(Grav.n_cells_potential);
-  Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h,p.data(),Grav_Constant,dens_avrg,current_a);
-  #ifdef CUFFT
-  chprintf("Paris vs CUFFT");
-  #endif
-  #ifdef PFFT
-  chprintf("Paris vs PFFT");
-  #endif
-  printDiff(p.data(),Grav.F.potential_h,Grav.nx_local,Grav.ny_local,Grav.nz_local);
-  #endif
 
   #ifdef CPU_TIME
   Timer.Grav_Potential.End();

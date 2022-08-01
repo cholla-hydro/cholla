@@ -1,5 +1,5 @@
-/*! \file VL_3D_cuda.h
- *  \brief Declarations for the cuda version of the 3D VL algorithm. */
+/*! \file simple_3D_cuda.h
+ *  \brief Declarations for the cuda version of the 3D simple algorithm. */
 
 #ifdef CUDA
 

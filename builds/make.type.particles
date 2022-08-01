@@ -18,11 +18,12 @@ DFLAGS += -DPARTICLES_GPU
 DFLAGS += -DPARTICLE_IDS
 
 
-#Track Particles Ages ( Stellar Populations )
+# Track Particle Ages ( Stellar Populations )
 # DFLAGS += -DPARTICLE_AGE
 
 
-#All the particles have the same mass, if turned off particles masses have to be speciffied
+# All the particles have the same mass by default
+# if turned off particle masses have to be specified
 DFLAGS += -DSINGLE_PARTICLE_MASS
 
 

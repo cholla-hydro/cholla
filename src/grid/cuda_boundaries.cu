@@ -424,12 +424,13 @@ __global__ void Noh_Boundary_kernel(Real * c_device,
   // calculate ghost cell ID and i,j,k in GPU grid
   id = threadIdx.x + blockIdx.x * blockDim.x;
 
-  int isize, jsize, ksize;
+  int isize, jsize;
+  // int ksize;
 
   // +x boundary first
   isize = n_ghost;
   jsize = ny;
-  ksize = nz;
+  // ksize = nz;
 
   // not true i,j,k but relative i,j,k in the GPU grid
   zid = id/(isize*jsize);
@@ -470,7 +471,7 @@ __global__ void Noh_Boundary_kernel(Real * c_device,
   // +y boundary next
   isize = nx;
   jsize = n_ghost;
-  ksize = nz;
+  // ksize = nz;
 
   // not true i,j,k but relative i,j,k
   zid = id/(isize*jsize);
@@ -513,7 +514,7 @@ __global__ void Noh_Boundary_kernel(Real * c_device,
 
   isize = nx;
   jsize = ny;
-  ksize = n_ghost;
+  // ksize = n_ghost;
 
   // not true i,j,k but relative i,j,k
   zid = id/(isize*jsize);

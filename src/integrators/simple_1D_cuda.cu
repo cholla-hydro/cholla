@@ -1,5 +1,5 @@
-/*! \file CTU_1D_cuda.cu
- *  \brief Definitions of the cuda CTU algorithm functions. */
+/*! \file simple_1D_cuda.cu
+ *  \brief Definitions of the 1D simple algorithm functions. */
 
 #ifdef CUDA
 
@@ -10,7 +10,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../hydro/hydro_cuda.h"
-#include "../integrators/CTU_1D_cuda.h"
+#include "../integrators/simple_1D_cuda.h"
 #include "../reconstruction/pcm_cuda.h"
 #include "../reconstruction/plmp_cuda.h"
 #include "../reconstruction/plmc_cuda.h"
@@ -24,7 +24,7 @@
 
 
 
-void CTU_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
+void Simple_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
 {
   //Here, *dev_conserved contains the entire
   //set of conserved variables on the grid
@@ -110,7 +110,7 @@ void CTU_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Re
 
 }
 
-void Free_Memory_CTU_1D() {
+void Free_Memory_Simple_1D() {
 
   // free the GPU memory
   cudaFree(dev_conserved);

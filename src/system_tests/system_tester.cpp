@@ -226,7 +226,8 @@ void systemTest::SystemTestRunner::launchCholla()
         << "failed to launch. Please see the log files" << std::endl;
 
     _safeMove("run_output.log", _outputDirectory);
-    _safeMove("run_timing.log", _outputDirectory);
+    // TODO: instead of commenting out, change to check if exist
+    //_safeMove("run_timing.log", _outputDirectory);
 }
 // =============================================================================
 
