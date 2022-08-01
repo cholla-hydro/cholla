@@ -13,8 +13,8 @@
 #include "../utils/gpu.hpp"
 
 
-namespace cuda_utilities {
-
+namespace cuda_utilities
+{
     /*!
      * \brief Compute the x, y, and z indices based off of the 1D index
      *
@@ -74,4 +74,26 @@ namespace cuda_utilities {
             ke = nz - n_ghost;
         }
     }
+
+    // =========================================================================
+    /*!
+    * \brief Set the value that `pointer` points at in GPU memory to `value`.
+    * This only sets the first value in memory so if `pointer` points to an
+    * array then only `pointer[0]` will be set; i.e. this effectively does
+    * `pointer = &value`
+    *
+    * \tparam T Any scalar type
+    * \param[in] pointer The location in GPU memory
+    * \param[in] value The value to set `*pointer` to
+    */
+    template <typename T>
+    void setScalarDeviceMemory(T *pointer, T const value)
+    {
+        CudaSafeCall(
+            cudaMemcpy(pointer,  // destination
+                       &value,   // source
+                       sizeof(T),
+                       cudaMemcpyHostToDevice));
+    }
+    // =========================================================================
 }

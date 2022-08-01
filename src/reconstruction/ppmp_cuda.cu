@@ -52,7 +52,8 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // declare other variables
   Real del_q_imo, del_q_i, del_q_ipo;
 
-  #ifdef CTU
+  #ifndef VL
+//  #ifdef CTU
   Real cs, cl, cr; // sound speed in cell i, and at left and right boundaries
   Real del_d, del_vx, del_vy, del_vz, del_p; // "slope" accross cell i
   Real d_6, vx_6, vy_6, vz_6, p_6;
@@ -71,7 +72,8 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   #ifdef DE
   Real ge_i, ge_imo, ge_ipo, ge_imt, ge_ipt, ge_L, ge_R, E_kin, E, dge;
-  #ifdef CTU
+  #ifndef VL
+//  #ifdef CTU
   Real del_ge, ge_6, geL_0, geR_0;
   #endif
   #endif
@@ -79,7 +81,8 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   #ifdef SCALAR
   Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS], scalar_imt[NSCALARS], scalar_ipt[NSCALARS];
   Real scalar_L[NSCALARS], scalar_R[NSCALARS];
-  #ifdef CTU
+  #ifndef VL
+//  #ifdef CTU
   Real del_scalar[NSCALARS], scalar_6[NSCALARS], scalarL_0[NSCALARS], scalarR_0[NSCALARS];
   #endif
   #endif
@@ -421,8 +424,8 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
 #endif
 
-
-#ifdef CTU
+#ifndef VL
+//#ifdef CTU
     // compute sound speed in cell i
     cs = sqrt(gamma * p_i / d_i);
 

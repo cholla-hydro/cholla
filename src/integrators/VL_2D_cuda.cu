@@ -19,7 +19,6 @@
 #include "../riemann_solvers/exact_cuda.h"
 #include "../riemann_solvers/roe_cuda.h"
 #include "../riemann_solvers/hllc_cuda.h"
-#include "../old_cholla/h_correction_2D_cuda.h"
 
 
 __global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *dev_conserved_half,
