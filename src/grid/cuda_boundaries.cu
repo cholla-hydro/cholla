@@ -395,23 +395,16 @@ __global__ void Wind_Boundary_kernel(Real * c_device,
 
   // map thread id to ghost cell id
   xid += 0; // -x boundary
-  gid = xid + yid*nx + zid*nx*ny;
-
-  // printf("xid: %d\n", xid);
-  // printf("yid: %d\n", yid);
-  // printf("zid: %d\n", zid);
-  // printf("gid: %d\n", gid);  
+  gid = xid + yid*nx + zid*nx*ny; 
 
   if (xid <= n_ghost && xid < nx && yid < ny && zid < nz) {
     // set conserved variables
-    // printf("hello\n"); 
     c_device[gid] = d_0;
     c_device[gid+1*n_cells] = vx*d_0;
     c_device[gid+2*n_cells] = vy*d_0;
     c_device[gid+3*n_cells] = vz*d_0;
     c_device[gid+4*n_cells] = P_0/(gamma-1.0) + 0.5*d_0*(vx*vx + vy*vy + vz*vz);
   }
-  // printf("oh no\n");
   __syncthreads();
 }
 
