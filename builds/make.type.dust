@@ -13,6 +13,8 @@ DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
 
+DFLAGS    += -DE
+
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
 else
