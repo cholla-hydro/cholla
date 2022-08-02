@@ -390,21 +390,16 @@ class Grid3D
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
 
-      #ifdef CHEMISTRY_GPU
+      #if defined(RT) || defined(CHEMISTRY_GPU)
       Real *HI_density;
       Real *HII_density;
       Real *HeI_density;
       Real *HeII_density;
       Real *HeIII_density;
-      Real *e_density;
       #endif
 
-      #ifdef RT
-      Real *HI_density;
-      Real *HII_density;
-      Real *HeI_density;
-      Real *HeII_density;
-      Real *HeIII_density;
+      #ifdef CHEMISTRY_GPU
+      Real *e_density;
       #endif
 
       /*! pointer to conserved variable on device */

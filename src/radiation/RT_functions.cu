@@ -14,7 +14,7 @@
 #include"RT_functions.h"
 
 // CPU function that will call the GPU-based RT functions
-void rtSolve(void)
+void rtSolve(Real *dev_conserved)
 {
 /*
 

@@ -13,11 +13,26 @@ class Rad3D
 {
   public:
 
-  void Initialize( struct parameters *P);
+  // number of frequencies
+  const static int n_freq = 3;
 
-  void Allocate_Memory_RT();
+  struct RT_Fields
+  {
+    // pointers to near and far radiation fields on the host and device
+    // near field
+    Real *rfn;
+    Real *dev_rfn;
+    // far field
+    Real *rff;
+    Real *dev_rff;
+    // optically thin near field
+    Real *ot;
+    Real *dev_ot;
 
-  void Free_Memory(void);
+  } RT_Fields;
+
+
+  void Free_Memory_RT(void);
 
 };
 

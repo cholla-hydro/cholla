@@ -20,14 +20,21 @@ void Grid3D::Initialize_RT( struct parameters *P ) {
 
   chprintf( "Initializing Radiative Transfer...\n");
 
-  Rad.Initialize( P );
-
   // allocate memory for abundances (these can be passive scalars added to the hydro grid)
   // This is done in grid3D::Allocate_Memory
   //Allocate_Abundances();
+  chprintf( " N scalar fields: %d \n", NSCALARS );
 
   // allocate memory for radiation fields (non-advecting, 2 per frequency plus 1 optically thin field)
-  Rad.Allocate_Memory_RT();
+  chprintf( "Allocating memory for radiation fields. \n");
+  // allocate memory on the host
+  Rad.RT_Fields.rfn = (Real *) malloc(Rad.n_freq*H.n_cells * sizeof(Real));  
+  Rad.RT_Fields.rff = (Real *) malloc(Rad.n_freq*H.n_cells * sizeof(Real)); 
+  Rad.RT_Fields.ot = (Real *) malloc(H.n_cells * sizeof(Real));
+  // allocate memory on the device
+  CudaSafeCall( cudaMalloc((void**)&Rad.RT_Fields.dev_rfn, Rad.n_freq*H.n_cells*sizeof(Real)) );  
+  CudaSafeCall( cudaMalloc((void**)&Rad.RT_Fields.dev_rff, Rad.n_freq*H.n_cells*sizeof(Real)) );  
+  CudaSafeCall( cudaMalloc((void**)&Rad.RT_Fields.dev_ot, H.n_cells*sizeof(Real)) );
 
   // allocate memory for Eddington tensor?
 
@@ -36,42 +43,16 @@ void Grid3D::Initialize_RT( struct parameters *P ) {
 }
 
 
-void Rad3D::Initialize( struct parameters *P) {
-
-  chprintf( " N scalar fields: %d \n", NSCALARS );
-
+void Rad3D::Free_Memory_RT(void){
+  
+  free( RT_Fields.rfn);
+  free( RT_Fields.rff);
+  free( RT_Fields.ot);
+  cudaFree(RT_Fields.dev_rfn);  
+  cudaFree(RT_Fields.dev_rff);  
+  cudaFree(RT_Fields.dev_ot);  
+  
 }
-
-
-// Sets pointers for abundances (already allocated in Grid3D.cpp)
-//void Grid3D::Allocate_Abundances() {
-//
-//  chprintf( " Setting pointers for: HI, HII, HeI, HeII, HeIII, densities\n");
-//  RT.HI_density      = &C.scalar[ 0*H.n_cells ];
-//  RT.HII_density     = &C.scalar[ 1*H.n_cells ];
-//  RT.HeI_density     = &C.scalar[ 2*H.n_cells ];
-//  RT.HeII_density    = &C.scalar[ 3*H.n_cells ];
-//  RhT.HeIII_density   = &C.scalar[ 4*H.n_cells ];
-
-//}
-
-
-// function to allocate memory for radiation fields
-void Rad3D::Allocate_Memory_RT(void) {
-
-
-}
-
-
-void rtStart(void) {
-
-}
-
-void rtFinish(void) {
-
-}
-
-
 
 
 #endif // RT

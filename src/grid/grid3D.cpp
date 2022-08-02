@@ -33,7 +33,9 @@
 #ifdef PARALLEL_OMP
 #include "../utils/parallel_omp.h"
 #endif
-
+#ifdef RT
+#include "../radiation/radiation.h"
+#endif
 #ifdef COOLING_GPU
 #include "../cooling/cooling_cuda.h" // provides Cooling_Update
 #endif
@@ -322,23 +324,17 @@ void Grid3D::AllocateMemory(void)
   #endif
 
 
-  #ifdef CHEMISTRY_GPU
+  #if defined(RT) || defined(CHEMISTRY_GPU)
   C.HI_density    = &C.scalar[ 0*H.n_cells ];
   C.HII_density   = &C.scalar[ 1*H.n_cells ];
   C.HeI_density   = &C.scalar[ 2*H.n_cells ];
   C.HeII_density  = &C.scalar[ 3*H.n_cells ];
   C.HeIII_density = &C.scalar[ 4*H.n_cells ];
+  #endif
+
+  #ifdef CHEMISTRY_GPU
   C.e_density     = &C.scalar[ 5*H.n_cells ];
   #endif
-
-  #ifdef RT
-  C.HI_density    = &C.scalar[ 0*H.n_cells ];
-  C.HII_density   = &C.scalar[ 1*H.n_cells ];
-  C.HeI_density   = &C.scalar[ 2*H.n_cells ];
-  C.HeII_density  = &C.scalar[ 3*H.n_cells ];
-  C.HeIII_density = &C.scalar[ 4*H.n_cells ];
-  #endif
-
 
   // initialize host array
   for (int i=0; i<H.n_fields*H.n_cells; i++)
@@ -511,21 +507,15 @@ Real Grid3D::Update_Grid(void)
   #endif
   #endif
 
-  #ifdef CHEMISTRY_GPU
+  #if defined(CHEMISTRY_GPU) || defined(RT)
   C.HI_density    = &C.scalar[ 0*H.n_cells ];
   C.HII_density   = &C.scalar[ 1*H.n_cells ];
   C.HeI_density   = &C.scalar[ 2*H.n_cells ];
   C.HeII_density  = &C.scalar[ 3*H.n_cells ];
   C.HeIII_density = &C.scalar[ 4*H.n_cells ];
-  C.e_density     = &C.scalar[ 5*H.n_cells ];
   #endif
-
-  #ifdef RT
-  C.HI_density      = &C.scalar[ 0*H.n_cells ];
-  C.HII_density     = &C.scalar[ 1*H.n_cells ];
-  C.HeI_density     = &C.scalar[ 2*H.n_cells ];
-  C.HeII_density    = &C.scalar[ 3*H.n_cells ];
-  C.HeIII_density   = &C.scalar[ 4*H.n_cells ];  
+  #if defined(CHEMISTRY_GPU)
+  C.e_density     = &C.scalar[ 5*H.n_cells ];
   #endif
 
   return max_dti;
@@ -621,6 +611,7 @@ void Grid3D::FreeMemory(void)
 {
   // free the conserved variable arrays
   CudaSafeCall( cudaFreeHost(C.host) );
+  cudaFree(C.device);
 
   // free the timestep arrays
   CudaSafeCall( cudaFreeHost(host_dti_array) );
@@ -663,6 +654,10 @@ void Grid3D::FreeMemory(void)
   #ifdef CLOUDY_COOL
   Free_Cuda_Textures();
   #endif
+  #endif
+
+  #ifdef RT
+  Rad.Free_Memory_RT();
   #endif
 
   #ifdef CHEMISTRY_GPU

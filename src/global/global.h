@@ -5,10 +5,6 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#ifdef COOLING_CPU
-#include <gsl/gsl_spline.h>
-#include <gsl/gsl_spline2d.h>
-#endif
 
 #ifdef  PARTICLES
   #include <cstdint>
@@ -72,11 +68,11 @@ typedef double Real;
   #else
   #define NSCALARS 6
   #endif // GRACKLE_METALS
+#elif RT
+// Set the number of abundance fields for RT
+  #define NSCALARS 5
 #elif CHEMISTRY_GPU
   #define NSCALARS 6
-// Set the number of abundance fields for RT
-#elif RT
-  #define NSCALARS 5
 #else
 // Set default number of scalar fields
 #ifdef SCALAR
@@ -84,7 +80,7 @@ typedef double Real;
 #else
 #define NSCALARS 0
 #endif//SCALAR
-#endif//COOLING OR RT
+#endif//COOLING, CHEMISTRY, OR RT
 
 #ifdef  MHD
   #define N_MHD_FIELDS 3
@@ -160,14 +156,6 @@ extern Real C_cfl; // CFL number (0 - 0.5)
 extern Real t_comm;
 extern Real t_other;
 
-#ifdef COOLING_CPU
-extern gsl_interp_accel *acc;
-extern gsl_interp_accel *xacc;
-extern gsl_interp_accel *yacc;
-extern gsl_spline *highT_C_spline;
-extern gsl_spline2d *lowT_C_spline;
-extern gsl_spline2d *lowT_H_spline;
-#endif
 #ifdef COOLING_GPU
 extern float *cooling_table;
 extern float *heating_table;
@@ -184,12 +172,6 @@ extern double get_time(void);
 /*! \fn int sgn
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int sgn(Real x);
-
-#ifndef CUDA
-/*! \fn Real calc_eta(Real cW[], Real gamma)
- *  \brief Calculate the eta value for the H correction. */
-extern Real calc_eta(Real cW[], Real gamma);
-#endif
 
 
 struct parameters
