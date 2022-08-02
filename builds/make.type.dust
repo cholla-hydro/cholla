@@ -13,14 +13,8 @@ DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 16de385... add dual energy flag to build for wind boundary simulations
 DFLAGS    += -DDE
 
->>>>>>> 16de385... add dual energy flag to build for wind boundary simulations
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
 else
@@ -40,6 +34,7 @@ DFLAGS += -DCOOLING_GPU
 #DFLAGS += -DCPU_TIME
 
 DFLAGS += -DSLICES
+DFLAGS += -DPROJECTION
 
 DFLAGS    += $(OUTPUT)
 
