@@ -15,6 +15,7 @@ jobs:
       Make-Type:${{ matrix.make-type }}
       Cuda-toolkit:v${{ matrix.cuda-toolkit-version }}
       GCC:v${{ matrix.gcc-version }}
+      ROCm:v${{ matrix.rocm-version }}
       Clang:v${{ matrix.clang-version }}
     # if: ${{ false }}  # If uncommented this line will disable this job
 
@@ -35,6 +36,7 @@ jobs:
         # HIP uses the clang-version
         cuda-toolkit-version: ['11.2.2']
         gcc-version: [9]
+        rocm-version: ['5.1.0']
         clang-version: [latest]
         mpi: ['openmpi'] #Can use mpich and/or openmpi
         # exclude:
@@ -93,40 +95,60 @@ jobs:
       uses: egor-tensin/setup-clang@v1
       with:
         version: ${{ matrix.clang-version }}
-    - name: Install HIP, ROCm, and HIPFFT
+    - name: Install ROCm
       if: matrix.gpu-api == 'HIP'
       run: |
+        # Download and install the installation script
         sudo apt-get update
-        wget https://repo.radeon.com/amdgpu-install/21.50/ubuntu/focal/amdgpu-install_21.50.50000-1_all.deb
-        sudo apt-get -y install ./amdgpu-install_21.50.50000-1_all.deb
-        sudo amdgpu-install -y --usecase=rocm
+        wget https://repo.radeon.com/amdgpu-install/22.20.1/ubuntu/focal/amdgpu-install_22.20.50201-1_all.deb
+        sudo apt-get install ./amdgpu-install_22.20.50201-1_all.deb
 
-        sudo apt install hipfft
+        # Add the repo for the version of ROCm that we want
+        ROCM_VERSION=${{ matrix.rocm-version }}
+        if [ "${ROCM_VERSION:0-1}" = "0" ]
+        then
+            # If the last character is a "0" then trim the last ".0"
+            ROCM_REPO_VERSION="${ROCM_VERSION:0:3}"
+        else
+            ROCM_REPO_VERSION=$ROCM_VERSION
+        fi
+        echo "deb [arch=amd64] https://repo.radeon.com/rocm/apt/${ROCM_REPO_VERSION} ubuntu main" | sudo tee /etc/apt/sources.list.d/rocm.list
+        sudo apt update
 
-        echo "ROCM_PATH=/opt/rocm" >> $GITHUB_ENV
-        echo "hello ${ROCM_PATH}"
-    - name: Verify HIP install
+        # Install ROCm
+        sudo amdgpu-install -y --usecase=rocm --rocmrelease=${ROCM_VERSION}
+    - name: Install hipFFT and RocFFT
       if: matrix.gpu-api == 'HIP'
-      run: /opt/rocm/bin/hipconfig --full
-    - name: Set HIPCONFIG
+      run: |
+        # Setup RocFFT installation
+        sudo apt install gnupg2
+        wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | sudo apt-key add -
+        echo 'deb [arch=amd64] https://repo.radeon.com/rocm/apt/debian/ ubuntu main' | sudo tee /etc/apt/sources.list.d/rocm.list
+        sudo apt update
+
+        sudo apt install -y hipfft rocfft
+    - name: Verify HIP install and find hipfft.h
+      if: matrix.gpu-api == 'HIP'
+      run: |
+        hipconfig --full
+        echo "Looking for hipfft.h"
+        find /opt -name hipfft.h
+    - name: Set Environment Variables and Files
       if: matrix.gpu-api == 'HIP'
       run: |
         echo "HIPCONFIG=$(hipconfig -C)" >> $GITHUB_ENV
-
-
-    # Generate setup file
-    - name: Create setup file
+        echo "ROCM_PATH=$(hipconfig -R)" >> $GITHUB_ENV
+        echo "HIPFFT_PATH=/opt/rocm-5.2.0" >> $GITHUB_ENV
+        echo "gfx90a" | sudo tee --append $(hipconfig -R)/bin/target.lst  # trick ROCm into thinking there's a GPU
+    - name: Echo Environment Variables and Files
+      if: matrix.gpu-api == 'HIP'
       run: |
-        echo -e '
-        echo "mpicxx --version is: "
-        mpicxx --version
+        echo "HIPCONFIG = ${HIPCONFIG}"
+        echo "ROCM_PATH = ${ROCM_PATH}"
+        echo "HIPFFT_PATH = ${HIPFFT_PATH}"
 
-        # export MPI_GPU="-DMPI_GPU"
-        export F_OFFLOAD="-fopenmp -foffload=disable"
-        export CHOLLA_ENVSET=1
-        ' >> builds/setup.githubActions.gcc.sh
-    - name: Show setup file
-      run: cat builds/setup.githubActions.gcc.sh
+        echo "The contents of $(hipconfig -R)/bin/target.lst are:"
+        sudo cat $(hipconfig -R)/bin/target.lst
 
     # Perform Build
     - name: Cholla setup
