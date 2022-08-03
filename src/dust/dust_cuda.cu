@@ -109,7 +109,7 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
         dev_conserved[5*n_cells + id] = d_dust;
         
         #ifdef DE
-        dev_conserved[(n_fields-1)*n_cells + id] = d*ge;
+        dev_conserved[(n_fields-1)*n_cells + id] = d_dust*ge;
         #endif
     }
 }

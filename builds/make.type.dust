@@ -13,7 +13,8 @@ DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
 
-DFLAGS    += -DDE
+# DFLAGS    += -DDE
+DFLAGS    += -DTEMPERATURE_FLOOR
 
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
