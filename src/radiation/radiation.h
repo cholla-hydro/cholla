@@ -13,6 +13,9 @@ class Rad3D
 {
   public:
 
+  // number of ghost cells for RT boundaries
+  int n_ghost_rt = 2;
+
   // number of frequencies
   const static int n_freq = 3;
 

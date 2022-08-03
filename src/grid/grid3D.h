@@ -817,7 +817,8 @@ class Grid3D
   #endif
 
   #ifdef RT
-  void Initialize_RT( struct parameters *P );
+  void Initialize_RT();
+  void Update_RT();
   #endif
 
   #ifdef ANALYSIS

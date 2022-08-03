@@ -13,8 +13,14 @@
 #include"../global/global_cuda.h"
 #include"RT_functions.h"
 
+void rtBoundaries(Real *dev_scalar, Real *rtFields)
+{
+
+
+}
+
 // CPU function that will call the GPU-based RT functions
-void rtSolve(Real *dev_conserved)
+void rtSolve(Real *dev_scalar)
 {
 /*
 

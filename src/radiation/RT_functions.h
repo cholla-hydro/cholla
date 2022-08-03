@@ -8,7 +8,9 @@
 
 #include "../global/global.h"
 
-void rtSolve(void);
+void rtSolve(Real *dev_scalar);
+
+void rtBoundaries(Real *dev_scalar, Real *rtFields);
 
 #endif //VL_3D_CUDA_H
 #endif //CUDA

@@ -9,6 +9,7 @@
 #include<string.h>
 #include<math.h>
 #include"radiation.h"
+#include"RT_functions.h"
 #include"../global/global.h"
 #include "../grid/grid3D.h"
 #include"../io/io.h"
@@ -16,7 +17,7 @@
 
 
 // function to do various initialization tasks, i.e. allocating memory, etc.
-void Grid3D::Initialize_RT( struct parameters *P ) {
+void Grid3D::Initialize_RT(void) {
 
   chprintf( "Initializing Radiative Transfer...\n");
 
@@ -42,6 +43,17 @@ void Grid3D::Initialize_RT( struct parameters *P ) {
 
 }
 
+// function to call the radiation solver from main
+void Grid3D::Update_RT() {
+
+  // call the OTVET iteration
+  // passes d_scalar as that is the pointer to the first abundance array, HI
+  rtSolve(C.d_scalar);
+
+  // pass boundaries
+  rtBoundaries(C.d_scalar, Rad.RT_Fields.dev_rfn);
+
+}
 
 void Rad3D::Free_Memory_RT(void){
   

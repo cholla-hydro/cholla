@@ -507,6 +507,7 @@ Real Grid3D::Update_Grid(void)
   #endif
   #endif
 
+  // Is this needed now that conserved variable data lives on the GPU?
   #if defined(CHEMISTRY_GPU) || defined(RT)
   C.HI_density    = &C.scalar[ 0*H.n_cells ];
   C.HII_density   = &C.scalar[ 1*H.n_cells ];
