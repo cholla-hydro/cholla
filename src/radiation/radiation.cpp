@@ -21,23 +21,28 @@ void Grid3D::Initialize_RT(void) {
 
   chprintf( "Initializing Radiative Transfer...\n");
 
-  // allocate memory for abundances (these can be passive scalars added to the hydro grid)
+  // Set radition grid parameters
+  Rad.nx = H.nx_real + 2*Rad.n_ghost;
+  Rad.ny = H.ny_real + 2*Rad.n_ghost;
+  Rad.nz = H.nz_real + 2*Rad.n_ghost;
+  Rad.n_cells = Rad.nx*Rad.ny*Rad.nz;
+
+  // Allocate memory for abundances (passive scalars added to the hydro grid)
   // This is done in grid3D::Allocate_Memory
-  //Allocate_Abundances();
   chprintf( " N scalar fields: %d \n", NSCALARS );
 
-  // allocate memory for radiation fields (non-advecting, 2 per frequency plus 1 optically thin field)
+  // Allocate memory for radiation fields (non-advecting, 2 per frequency plus 1 optically thin field)
   chprintf( "Allocating memory for radiation fields. \n");
   // allocate memory on the host
-  Rad.RT_Fields.rfn = (Real *) malloc(Rad.n_freq*H.n_cells * sizeof(Real));  
-  Rad.RT_Fields.rff = (Real *) malloc(Rad.n_freq*H.n_cells * sizeof(Real)); 
-  Rad.RT_Fields.ot = (Real *) malloc(H.n_cells * sizeof(Real));
+  Rad.rtFields.rfn = (Real *) malloc(Rad.n_freq*Rad.n_cells * sizeof(Real));  
+  Rad.rtFields.rff = (Real *) malloc(Rad.n_freq*Rad.n_cells * sizeof(Real)); 
+  Rad.rtFields.ot = (Real *) malloc(Rad.n_cells * sizeof(Real));
   // allocate memory on the device
-  CudaSafeCall( cudaMalloc((void**)&Rad.RT_Fields.dev_rfn, Rad.n_freq*H.n_cells*sizeof(Real)) );  
-  CudaSafeCall( cudaMalloc((void**)&Rad.RT_Fields.dev_rff, Rad.n_freq*H.n_cells*sizeof(Real)) );  
-  CudaSafeCall( cudaMalloc((void**)&Rad.RT_Fields.dev_ot, H.n_cells*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Rad.rtFields.dev_rfn, Rad.n_freq*Rad.n_cells*sizeof(Real)) );  
+  CudaSafeCall( cudaMalloc((void**)&Rad.rtFields.dev_rff, Rad.n_freq*Rad.n_cells*sizeof(Real)) );  
+  CudaSafeCall( cudaMalloc((void**)&Rad.rtFields.dev_ot, Rad.n_cells*sizeof(Real)) );
 
-  // allocate memory for Eddington tensor?
+  // Allocate memory for Eddington tensor only on device?
 
 
 
@@ -51,18 +56,18 @@ void Grid3D::Update_RT() {
   rtSolve(C.d_scalar);
 
   // pass boundaries
-  rtBoundaries(C.d_scalar, Rad.RT_Fields.dev_rfn);
+  rtBoundaries(C.d_scalar, Rad.rtFields);
 
 }
 
 void Rad3D::Free_Memory_RT(void){
   
-  free( RT_Fields.rfn);
-  free( RT_Fields.rff);
-  free( RT_Fields.ot);
-  cudaFree(RT_Fields.dev_rfn);  
-  cudaFree(RT_Fields.dev_rff);  
-  cudaFree(RT_Fields.dev_ot);  
+  free( rtFields.rfn);
+  free( rtFields.rff);
+  free( rtFields.ot);
+  cudaFree(rtFields.dev_rfn);  
+  cudaFree(rtFields.dev_rff);  
+  cudaFree(rtFields.dev_ot);  
   
 }
 

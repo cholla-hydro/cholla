@@ -11,9 +11,10 @@
 #include"../utils/gpu.hpp"
 #include"../global/global.h"
 #include"../global/global_cuda.h"
+#include"radiation.h"
 #include"RT_functions.h"
 
-void rtBoundaries(Real *dev_scalar, Real *rtFields)
+void rtBoundaries(Real *dev_scalar, struct Rad3D::RT_Fields &rtFields)
 {
 
 

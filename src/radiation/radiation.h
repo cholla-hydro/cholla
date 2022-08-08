@@ -14,7 +14,13 @@ class Rad3D
   public:
 
   // number of ghost cells for RT boundaries
-  int n_ghost_rt = 2;
+  int n_ghost = 2;
+
+  // cells in radiation fields grid
+  int nx;
+  int ny;
+  int nz;
+  int n_cells;
 
   // number of frequencies
   const static int n_freq = 3;
@@ -32,7 +38,7 @@ class Rad3D
     Real *ot;
     Real *dev_ot;
 
-  } RT_Fields;
+  } rtFields;
 
 
   void Free_Memory_RT(void);
