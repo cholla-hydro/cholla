@@ -3,15 +3,17 @@ CC                = mpicc
 CXX               = mpicxx
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
-CXXFLAGS_DEBUG    = -g -O0 -std=c++17 ${F_OFFLOAD}
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++17 ${F_OFFLOAD}
-GPUFLAGS_DEBUG    = -std=c++11
-GPUFLAGS_OPTIMIZE = -std=c++11
+CXXFLAGS_DEBUG    = -g -O0 -std=c++14 ${F_OFFLOAD}
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++14 ${F_OFFLOAD}
+GPUFLAGS_DEBUG    = -std=c++14
+GPUFLAGS_OPTIMIZE = -std=c++14
 
 OMP_NUM_THREADS   = 7
 
 #-- Library
-HIPCONFIG	    := $(HIPCONFIG)
+ifdef HIPCONFIG
+	HIPCONFIG := -I$(shell hipconfig -R)/include $(shell hipconfig -C)
+endif
 CUDA_ROOT       := $(CUDA_ROOT)
 HDF5_ROOT       := $(HDF5_ROOT)
 # FFTW_ROOT       = ${OLCF_FFTW_ROOT}

@@ -136,13 +136,17 @@ buildGoogleTest ()
 
   # All the flags to pass to GoogleTest when building and GTEST URL
   GOOGLETEST_URL="https://github.com/google/googletest.git"
-  GOOGLETEST_VERSION="release-1.12.1"  # the tag for the latest version that supports C++11
+
+  # Uncomment this line to run with the last version of GoogleTest that supports
+  # C++11
+  # GOOGLETEST_VERSION="-b release-1.12.1"
+
   CMAKE_FLAGS=(-DGTEST_HAS_PTHREAD=1
               -DCMAKE_C_COMPILER=gcc
               -DCMAKE_CXX_COMPILER=g++)
 
   # Download and build
-  git clone --depth 1 -b $GOOGLETEST_VERSION $GOOGLETEST_URL  && \
+  git clone --depth 1 $GOOGLETEST_VERSION $GOOGLETEST_URL  && \
   builtin cd googletest      && \
   mkdir build                && \
   builtin cd build           && \
