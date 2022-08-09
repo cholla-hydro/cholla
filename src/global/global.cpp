@@ -53,26 +53,6 @@ int sgn(Real x)
     else return 1;
 }
 
-#ifndef CUDA
-/*! \fn Real calc_eta(Real cW[], Real gamma)
- *  \brief Calculate the eta value for the H correction. */
-Real calc_eta(Real cW[], Real gamma)
-{
-  Real pl, pr, al, ar;
-
-  pl = (cW[8] - 0.5*(cW[2]*cW[2] + cW[4]*cW[4] + cW[6]*cW[6])/cW[0]) * (gamma-1.0);
-  pl = fmax(pl, TINY_NUMBER);
-  pr = (cW[9] - 0.5*(cW[3]*cW[3] + cW[5]*cW[5] + cW[7]*cW[7])/cW[1]) * (gamma-1.0);
-  pr = fmax(pr, TINY_NUMBER);
-
-  al = sqrt(gamma*pl/cW[0]);
-  ar = sqrt(gamma*pr/cW[1]);
-
-  return 0.5*fabs((cW[3]/cW[1] + ar) - (cW[2]/cW[0]-al));
-
-}
-#endif //NO CUDA
-
 
 /*! \fn char trim(char *s)
  *  \brief Gets rid of trailing and leading whitespace. */
@@ -123,11 +103,11 @@ void parse_params (char *param_file, struct parameters * parms, int argc, char**
     return;
   }
   // set default hydro file output parameter
-  parms->outstep_hydro=1;
-  parms->outstep_particle=1;
-  parms->outstep_slice=1;
-  parms->outstep_projection=1;
-  parms->outstep_rotated_projection=1;
+  parms->n_hydro=1;
+  parms->n_particle=1;
+  parms->n_slice=1;
+  parms->n_projection=1;
+  parms->n_rotated_projection=1;
 
 #ifdef ROTATED_PROJECTION
   //initialize rotation parameters to zero
@@ -211,8 +191,16 @@ void parse_param(char *name,char *value, struct parameters *parms){
     strncpy (parms->init, value, MAXLEN);
   else if (strcmp(name, "nfile")==0)
     parms->nfile = atoi(value);
-  else if (strcmp(name, "outstep_hydro")==0)
-    parms->outstep_hydro = atoi(value);
+  else if (strcmp(name, "n_hydro")==0)
+    parms->n_hydro = atoi(value);
+  else if (strcmp(name, "n_particle")==0)
+    parms->n_particle = atoi(value);
+  else if (strcmp(name, "n_projection")==0)
+    parms->n_projection = atoi(value);
+  else if (strcmp(name, "n_rotated_projection")==0)
+    parms->n_rotated_projection = atoi(value);
+  else if (strcmp(name, "n_slice")==0)
+    parms->n_slice = atoi(value);
   else if (strcmp(name, "xmin")==0)
     parms->xmin = atof(value);
   else if (strcmp(name, "ymin")==0)

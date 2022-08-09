@@ -30,6 +30,7 @@ class OneTime
   void PrintStep();
   void PrintAverage();
   void PrintAll();
+  void RecordTime( Real time );
 };
 
 // Time loops through instances of OneTime. onetimes is initialized with pointers to each timer. 

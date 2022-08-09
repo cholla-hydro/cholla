@@ -34,6 +34,10 @@
 #include "../cooling_grackle/cool_grackle.h"
 #endif
 
+#ifdef RT
+#include "../radiation/radiation.h"
+#endif
+
 #ifdef CPU_TIME
 #include "../utils/timing_functions.h"
 #endif
@@ -308,7 +312,7 @@ class Grid3D
 
     #ifdef RT
     // Object that contains data for radiative transfer
-    Rad3D RT;
+    Rad3D Rad;
     #endif
     
     #ifdef CPU_TIME
@@ -386,22 +390,17 @@ class Grid3D
       *  \brief Array containing the gravitational potential of each cell, only tracked separately when using  GRAVITY. */
       Real *Grav_potential;
 
-      #ifdef CHEMISTRY_GPU
+      #if defined(RT) || defined(CHEMISTRY_GPU)
       Real *HI_density;
       Real *HII_density;
       Real *HeI_density;
       Real *HeII_density;
       Real *HeIII_density;
-      Real *e_density;
       #endif
 
-      #ifdef RT
-      Real *HI_density;
-      Real *HII_density;
-      Real *HeI_density;
-      Real *HeII_density;
-      Real *HeIII_density;
-      #endif      
+      #ifdef CHEMISTRY_GPU
+      Real *e_density;
+      #endif
 
       /*! pointer to conserved variable on device */
       Real *device;
@@ -648,6 +647,8 @@ class Grid3D
      *  \brief Initialize the grid with a 3D spherical overdensity for gravitational collapse */
     void Spherical_Overdensity_3D();
 
+    void Clouds();
+    
     void Uniform_Grid();
 
     void Zeldovich_Pancake( struct parameters P );
@@ -744,6 +745,7 @@ class Grid3D
   void Finish_Particles_Transfer();
   #endif//MPI_CHOLLA
   void Transfer_Particles_Density_Boundaries( struct parameters P );
+  void Copy_Particles_Density_Buffer_Device_to_Host( int direction, int side, Real *buffer_d, Real *buffer_h );
   // void Transfer_Particles_Boundaries( struct parameters P );
   void WriteData_Particles(  struct parameters P, int nfile);
   void OutputData_Particles(  struct parameters P, int nfile);
@@ -773,6 +775,8 @@ class Grid3D
   void Set_Particles_Density_Boundaries_Periodic_GPU( int direction, int side );
   #endif//PARTICLES_GPU
   #ifdef GRAVITY_GPU
+  void Copy_Potential_From_GPU();
+  void Copy_Particles_Density_to_GPU();
   void Copy_Particles_Density_GPU();
   int Load_Particles_Density_Boundary_to_Buffer_GPU( int direction, int side, Real *buffer  );
   void Unload_Particles_Density_Boundary_From_Buffer_GPU( int direction, int side, Real *buffer  );
@@ -795,11 +799,6 @@ class Grid3D
   #endif//PARTICLES_GPU
   #endif//COSMOLOGY
 
-  #ifdef RT
-  void Initialize_RT();
-  void Allocate_Abundances();
-  #endif
-
   #ifdef COOLING_GRACKLE
   void Initialize_Grackle( struct parameters *P );
   void Allocate_Memory_Grackle();
@@ -815,6 +814,11 @@ class Grid3D
   void Initialize_Chemistry( struct parameters *P );
   void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
   void Update_Chemistry();
+  #endif
+
+  #ifdef RT
+  void Initialize_RT();
+  void Update_RT();
   #endif
 
   #ifdef ANALYSIS

@@ -1,4 +1,4 @@
-#if defined(COSMOLOGY) && defined(PARTICLES_GPU)
+#if defined(COSMOLOGY) 
 
 
 #include "../grid/grid3D.h"

@@ -20,6 +20,10 @@
 void Grid3D::Get_Gravity_Field_Particles(){
 
   #ifdef PARTICLES_CPU
+  
+  #ifdef GRAVITY_GPU
+  Copy_Potential_From_GPU();
+  #endif
 
   #ifndef PARALLEL_OMP
   Get_Gravity_Field_Particles_function( 0, Particles.G.nz_local + 2*Particles.G.n_ghost_particles_grid);

@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
   #endif
 
   #ifdef RT
-  G.Initialize_RT(&P);
+  G.Initialize_RT();
   #endif
   
   #ifdef COOLING_GRACKLE
@@ -213,6 +213,11 @@ int main(int argc, char *argv[])
 
     // Advance the grid by one timestep
     dti = G.Update_Hydro_Grid();
+
+    #ifdef RT
+    // Perform the radiative transfer solve
+    G.Update_RT();
+    #endif
 
     // update the simulation time ( t += dt )
     G.Update_Time();

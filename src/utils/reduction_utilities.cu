@@ -17,13 +17,15 @@
     namespace reduction_utilities
     {
         // =====================================================================
-        __global__ void kernelReduceMax(Real *in, Real* out, size_t N, Real lowLimit)
+        __global__ void kernelReduceMax(Real *in, Real* out, size_t N)
         {
-            // Initialize variable to store the max value
-            Real maxVal = lowLimit;
+            // Initialize maxVal to the smallest possible number
+            Real maxVal = -DBL_MAX;
 
             // Grid stride loop to perform as much of the reduction as possible
-            for(size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < N; i += blockDim.x * gridDim.x)
+            for(size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+                i < N;
+                 i += blockDim.x * gridDim.x)
             {
                 // A transformation could go here
 
@@ -31,11 +33,12 @@
                 maxVal = max(maxVal,in[i]);
             }
 
-            // Find the maximum val in the grid and write it to `out`. Note that there
-            // is no execution/memory barrier after this and so the reduced scalar is
-            // not available for use in this kernel. The grid wide barrier can be
-            // accomplished by ending this kernel here and then launching a new one or
-            // by using cooperative groups. If this becomes a need it can be added later
+            // Find the maximum val in the grid and write it to `out`. Note that
+            // there is no execution/memory barrier after this and so the
+            // reduced scalar is not available for use in this kernel. The grid
+            // wide barrier can be accomplished by ending this kernel here and
+            // then launching a new one or by using cooperative groups. If this
+            // becomes a need it can be added later
             gridReduceMax(maxVal, out);
         }
         // =====================================================================

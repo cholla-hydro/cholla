@@ -5,10 +5,6 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#ifdef COOLING_CPU
-#include <gsl/gsl_spline.h>
-#include <gsl/gsl_spline2d.h>
-#endif
 
 #ifdef  PARTICLES
   #include <cstdint>
@@ -54,8 +50,8 @@ typedef double Real;
 #define LOG_FILE_NAME "run_output.log"
 
 //Conserved Floor Values
-#define TEMP_FLOOR 1e-3
-#define DENS_FLOOR 1e-5
+#define TEMP_FLOOR 1e-3 // in Kelvin
+#define DENS_FLOOR 1e-5 // in code units
 
 //Parameter for Enzo dual Energy Condition
 #define DE_ETA_1 0.001 //Ratio of U to E for which  Internal Energy is used to compute the Pressure
@@ -65,24 +61,35 @@ typedef double Real;
 #define MAX_DELTA_A 0.001
 #define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
+<<<<<<< HEAD
+// Set the number of abundance fields for grackle
+=======
+>>>>>>> d3dd2526e866c080ae727c0df4d359eb2d6f9c30
 #ifdef COOLING_GRACKLE
   #ifdef GRACKLE_METALS
   #define NSCALARS 7
   #else
   #define NSCALARS 6
   #endif // GRACKLE_METALS
+#elif RT
+// Set the number of abundance fields for RT
+  #define NSCALARS 5
 #elif CHEMISTRY_GPU
   #define NSCALARS 6
 #elif RT
   #define NSCALARS 5
 #else
+// Set default number of scalar fields
 #ifdef SCALAR
+<<<<<<< HEAD
+=======
 // Set Number of scalar fields when not using grackle or RT
+>>>>>>> d3dd2526e866c080ae727c0df4d359eb2d6f9c30
 #define NSCALARS 1
 #else
 #define NSCALARS 0
 #endif//SCALAR
-#endif//COOLING_GRACKLE
+#endif//COOLING, CHEMISTRY, OR RT
 
 #ifdef  MHD
   #define N_MHD_FIELDS 3
@@ -99,9 +106,6 @@ typedef double Real;
 #define INITIAL_FRACTION_ELECTRON  1.53965115054e-4
 #define INITIAL_FRACTION_METAL     1.00000000000e-10
 
-//Default Gravity Compiler Flags
-#define GRAVITY_LONG_INTS
-#define COUPLE_GRAVITATIONAL_WORK
 
 //Default Particles Compiler Flags
 #define PARTICLES_LONG_INTS
@@ -125,11 +129,7 @@ typedef double Real;
 #endif //GRAVITY_5_POINTS_GRADIENT
 
 
-#ifdef GRAVITY_LONG_INTS
 typedef long int grav_int_t;
-#else
-typedef int grav_int_t;
-#endif//GRAVITY_LONG_INTS
 #endif
 
 #ifdef PARTICLES
@@ -165,14 +165,6 @@ extern Real C_cfl; // CFL number (0 - 0.5)
 extern Real t_comm;
 extern Real t_other;
 
-#ifdef COOLING_CPU
-extern gsl_interp_accel *acc;
-extern gsl_interp_accel *xacc;
-extern gsl_interp_accel *yacc;
-extern gsl_spline *highT_C_spline;
-extern gsl_spline2d *lowT_C_spline;
-extern gsl_spline2d *lowT_H_spline;
-#endif
 #ifdef COOLING_GPU
 extern float *cooling_table;
 extern float *heating_table;
@@ -190,12 +182,6 @@ extern double get_time(void);
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int sgn(Real x);
 
-#ifndef CUDA
-/*! \fn Real calc_eta(Real cW[], Real gamma)
- *  \brief Calculate the eta value for the H correction. */
-extern Real calc_eta(Real cW[], Real gamma);
-#endif
-
 
 struct parameters
 {
@@ -208,11 +194,11 @@ struct parameters
   Real gamma;
   char init[MAXLEN];
   int nfile;
-  int outstep_hydro;
-  int outstep_particle;
-  int outstep_projection;
-  int outstep_rotated_projection;
-  int outstep_slice;
+  int n_hydro;
+  int n_particle;
+  int n_projection;
+  int n_rotated_projection;
+  int n_slice;
   Real xmin;
   Real ymin;
   Real zmin;

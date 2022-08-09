@@ -14,6 +14,11 @@ tout=3000
 #tout=3
 # time interval for output
 outstep=100
+n_hydro=1
+n_particle=2
+n_slice=3
+n_projection=4
+n_rotated_projection=5
 # value of gamma
 gamma=1.66666667
 # name of initial conditions

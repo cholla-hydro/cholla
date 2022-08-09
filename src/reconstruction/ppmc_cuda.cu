@@ -11,7 +11,7 @@
 #include "../reconstruction/ppmc_cuda.h"
 
 #ifdef DE //PRESSURE_DE
-#include "../hydro/hydro_cuda.h"
+#include "../utils/hydro_utilities.h"
 #endif
 
 
@@ -130,7 +130,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_i * ( vx_i*vx_i + vy_i*vy_i + vz_i*vz_i );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_i = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    p_i = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_i  = (dev_conserved[4*n_cells + id] - 0.5*d_i*(vx_i*vx_i + vy_i*vy_i + vz_i*vz_i)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -155,7 +155,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_imo * ( vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_imo = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    p_imo = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -180,7 +180,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_ipo * ( vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_ipo = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    p_ipo = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_ipo  = (dev_conserved[4*n_cells + id] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -205,7 +205,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_imt * ( vx_imt*vx_imt + vy_imt*vy_imt + vz_imt*vz_imt );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_imt = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    p_imt = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_imt  = (dev_conserved[4*n_cells + id] - 0.5*d_imt*(vx_imt*vx_imt + vy_imt*vy_imt + vz_imt*vz_imt)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -230,7 +230,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_ipt * ( vx_ipt*vx_ipt + vy_ipt*vy_ipt + vz_ipt*vz_ipt );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_ipt = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    p_ipt = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_ipt  = (dev_conserved[4*n_cells + id] - 0.5*d_ipt*(vx_ipt*vx_ipt + vy_ipt*vy_ipt + vz_ipt*vz_ipt)) * (gamma - 1.0);
     #endif //PRESSURE_DE

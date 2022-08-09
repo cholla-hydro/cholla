@@ -31,6 +31,7 @@ DFLAGS    += -DDE
 
 # Apply the cooling in the GPU from precomputed tables
 DFLAGS    += -DCOOLING_GPU
+#DFLAGS    += -DCLOUDY_COOL
 
 #Measure the Timing of the different stages
 DFLAGS += -DCPU_TIME
