@@ -21,7 +21,7 @@ void Grid3D::Initialize_RT(void) {
 
   chprintf( "Initializing Radiative Transfer...\n");
 
-  // Set radition grid parameters
+  // Set radiation grid parameters
   Rad.nx = H.nx_real + 2*Rad.n_ghost;
   Rad.ny = H.ny_real + 2*Rad.n_ghost;
   Rad.nz = H.nz_real + 2*Rad.n_ghost;
@@ -39,35 +39,74 @@ void Grid3D::Initialize_RT(void) {
   Rad.rtFields.ot = (Real *) malloc(Rad.n_cells * sizeof(Real));
   // allocate memory on the device
   CudaSafeCall( cudaMalloc((void**)&Rad.rtFields.dev_rfn, Rad.n_freq*Rad.n_cells*sizeof(Real)) );  
-  CudaSafeCall( cudaMalloc((void**)&Rad.rtFields.dev_rff, Rad.n_freq*Rad.n_cells*sizeof(Real)) );  
+  CudaSafeCall( cudaMalloc((void**)&Rad.rtFields.dev_rff, Rad.n_freq*Rad.n_cells*sizeof(Real)) ); 
   CudaSafeCall( cudaMalloc((void**)&Rad.rtFields.dev_ot, Rad.n_cells*sizeof(Real)) );
 
-  // Allocate memory for Eddington tensor only on device?
+  // Allocate memory for Eddington tensor only on device
+  CudaSafeCall( cudaMalloc((void**)&Rad.rtFields.dev_et, 6*Rad.n_cells*sizeof(Real)) );
 
+  // Allocate memory for radiation source field only on device
+  CudaSafeCall( cudaMalloc((void**)&Rad.rtFields.dev_rs, Rad.n_cells*sizeof(Real)) );
 
+  // Initialize Field values (for now)
+  Rad.Initialize_RT_Fields();
 
 }
+
 
 // function to call the radiation solver from main
 void Grid3D::Update_RT() {
 
-  // call the OTVET iteration
-  // passes d_scalar as that is the pointer to the first abundance array, HI
-  rtSolve(C.d_scalar);
-
-  // pass boundaries
-  rtBoundaries(C.d_scalar, Rad.rtFields);
+  // passes d_scalar as that is the pointer to the first abundance array, rho_HI
+  Rad.rtSolve(C.d_scalar);
 
 }
 
-void Rad3D::Free_Memory_RT(void){
+// function to initialize radiation fields (temporary)
+void Rad3D::Initialize_RT_Fields(void) {
+
+  // set values for frequency fields
+  int i, j, k, id;
+  int istart, jstart, kstart, iend, jend, kend;
+
+  istart = n_ghost;
+  iend   = nx-n_ghost;
+  jstart = n_ghost;
+  jend   = ny-n_ghost;
+  kstart = n_ghost;
+  kend   = nz-n_ghost;
+
+  // set initial states for CPU fields
+  for(k=kstart-1; k<kend; k++) {
+    for(j=jstart-1; j<jend; j++) {
+      for(i=istart-1; i<iend; i++) {
+
+        //get cell index
+        id = i + j*nx + k*nx*ny;
+
+        for (int ii=0; ii<n_freq; ii++) {
+          rtFields.rfn[id + n_freq*n_cells] = n_freq;
+          rtFields.rff[id + n_freq*n_cells] = n_freq;
+        }
+        rtFields.ot[id] = 1;
+      }
+    }
+  }  
+  // set GPU fields (in cuda source code)
+  Initialize_RT_Fields_GPU();
+
+}
+
+void Rad3D::Free_Memory_RT(void) {
   
   free( rtFields.rfn);
   free( rtFields.rff);
   free( rtFields.ot);
   cudaFree(rtFields.dev_rfn);  
   cudaFree(rtFields.dev_rff);  
-  cudaFree(rtFields.dev_ot);  
+  cudaFree(rtFields.dev_ot); 
+  cudaFree(rtFields.dev_et); 
+  cudaFree(rtFields.dev_rs); 
   
 }
 

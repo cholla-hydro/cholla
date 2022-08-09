@@ -135,7 +135,7 @@ void __global__ Set_Potential_Boundaries_Periodic_kernel(int direction, int side
     if ( side == 1 ) tid_dst = (tid_i) + (tid_j)*nx + ( nz - n_ghost + tid_k  )*nx*ny;
   }
   
-  potential_d[tid_dst] = potential_d[tid_src];
+    potential_d[tid_dst] = potential_d[tid_src];
   
 }
 

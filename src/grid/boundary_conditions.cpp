@@ -175,15 +175,8 @@ int Grid3D::Check_Custom_Boundary(int *flags, struct parameters P)
  *  \brief Apply boundary conditions to the grid. */
 void Grid3D::Set_Boundaries(int dir, int flags[])
 {
-  int i, j, k;
   int imin[3] = {0,0,0};
   int imax[3] = {H.nx,H.ny,H.nz};
-  Real a[3]   = {1,1,1};  //sign of momenta
-  int idx;    //index of a real cell
-  int gidx;   //index of a ghost cell
-
-  int nPB, nBoundaries;
-  int *iaBoundary, *iaCell;
 
   /*if the cell face is an custom boundary, exit */
   if(flags[dir]==4)

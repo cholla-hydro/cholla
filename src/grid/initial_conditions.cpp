@@ -1176,7 +1176,7 @@ void Grid3D::Spherical_Overpressure_3D()
 }
 
 /*! \fn void Spherical_Overdensity_3D()
- *  \brief Spherical overdensity for gravitational colapse */
+ *  \brief Spherical overdensity for gravitational collapse */
 void Grid3D::Spherical_Overdensity_3D()
 {
  int i, j, k, id;

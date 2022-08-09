@@ -8,6 +8,7 @@
 
 #include "../global/global.h"
 
+#define TPB_RT 1024
 
 class Rad3D
 {
@@ -37,9 +38,24 @@ class Rad3D
     // optically thin near field
     Real *ot;
     Real *dev_ot;
+    // Eddington tensor
+    Real *dev_et;
+    // radiation source field
+    Real *dev_rs;
 
   } rtFields;
 
+  void Initialize_RT_Fields(void);
+
+  void Initialize_RT_Fields_GPU(void);
+
+  void rtSolve(Real *dev_scalar);
+
+  void Calc_Absorption(void);
+
+  void OTVETIteration(void);
+
+  void rtBoundaries();
 
   void Free_Memory_RT(void);
 
