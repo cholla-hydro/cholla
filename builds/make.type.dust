@@ -20,7 +20,7 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
 else
-DFLAGS    += -DSIMPLE
+DFLAGS    += -DVL
 endif
 
 # Evolve additional scalars
