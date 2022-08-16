@@ -54,7 +54,7 @@ namespace hydro_utilities {
 
     inline __host__ __device__ Real Calc_Energy_Primitive(Real const &P, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
         // Compute and return energy
-        return (fmax(P, TINY_NUMBER)/gamma - 1.) + 0.5 * d * (vx*vx + vy*vy + vz*vz);
+        return (fmax(P, TINY_NUMBER)/(gamma - 1.)) + 0.5 * d * (vx*vx + vy*vy + vz*vz);
     }
 
     inline __host__ __device__ Real Get_Pressure_From_DE(Real const &E, Real const &U_total, Real const &U_advected, Real const &gamma) {
