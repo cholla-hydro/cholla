@@ -40,6 +40,6 @@ zl_bcnd=3
 zu_bcnd=3
 # path to output directory
 outdir=./
-nfile=1e10
+# nfile=1e10
 custom_bcnd=wind
-n_hydro=3728643
+# n_hydro=3728643

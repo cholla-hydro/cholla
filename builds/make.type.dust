@@ -10,12 +10,12 @@ DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DBLOCK
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMP
+DFLAGS    += -DPPMC
 DFLAGS    += -DHLLC
 
-DFLAGS    += -DDE
+# DFLAGS    += -DDE
 # DFLAGS    += -DAVERAGE_SLOW_CELLS
-# DFLAGS    += -DTEMPERATURE_FLOOR
+DFLAGS    += -DTEMPERATURE_FLOOR
 
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
