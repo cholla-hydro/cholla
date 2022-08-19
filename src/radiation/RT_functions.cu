@@ -28,6 +28,15 @@ void Rad3D::Initialize_RT_Fields_GPU(void) {
 
 }
 
+void Rad3D::Copy_RT_Fields(void) {
+
+  // copy data back from GPU to CPU
+  CudaSafeCall( cudaMemcpy(rtFields.rfn, rtFields.dev_rfn, n_freq*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
+  CudaSafeCall( cudaMemcpy(rtFields.rff, rtFields.dev_rff, n_freq*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
+  CudaSafeCall( cudaMemcpy(rtFields.ot, rtFields.dev_ot, n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  
+
+}
+
 void __global__ Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz, int n_ghost, int n_freq, struct Rad3D::RT_Fields &rtFields){
 
   int n_cells = nx*ny*nz;
@@ -97,7 +106,7 @@ void Set_RT_Boundaries_Periodic( int direction, int side, int nx, int ny, int nz
   //  number of threads per 1D block
   dim3 dim1dBlock(TPB_RT, 1, 1);
 
-  // Copy the potential boundary from buffer to potential array
+  // Copy the kernel to set the boundary cells (non MPI)
   hipLaunchKernelGGL( Set_RT_Boundaries_Periodic_Kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, n_i, n_j, nx_g, ny_g, nz_g, n_ghost, n_freq, rtFields);
 
 
@@ -116,7 +125,7 @@ void Rad3D::rtBoundaries(void)
 }
 
 // Function to launch the kernel to calculate absorption coefficients
-void Rad3D::Calc_Absorption(void)
+void Rad3D::Calc_Absorption(Real *dev_scalar)
 {
 
 }
@@ -133,7 +142,7 @@ void Rad3D::OTVETIteration(void)
 void Rad3D::rtSolve(Real *dev_scalar)
 {
    // first call absorption coefficient kernel
-
+   Calc_Absorption(dev_scalar);
 
    // then call OTVET iteration kernel
    OTVETIteration();

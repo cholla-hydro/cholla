@@ -85,14 +85,14 @@ void Rad3D::Initialize_RT_Fields(void) {
         id = i + j*nx + k*nx*ny;
 
         for (int ii=0; ii<n_freq; ii++) {
-          rtFields.rfn[id + n_freq*n_cells] = n_freq;
-          rtFields.rff[id + n_freq*n_cells] = n_freq;
+          rtFields.rfn[id + ii*n_cells] = ii;
+          rtFields.rff[id + ii*n_cells] = n_freq+ii;
         }
         rtFields.ot[id] = 1;
       }
     }
   }  
-  // set GPU fields (in cuda source code)
+  // set GPU fields (in RT_functions.cu)
   Initialize_RT_Fields_GPU();
 
 }
