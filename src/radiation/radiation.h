@@ -49,9 +49,11 @@ class Rad3D
 
   void Initialize_RT_Fields_GPU(void);
 
+  void Copy_RT_Fields(void);
+
   void rtSolve(Real *dev_scalar);
 
-  void Calc_Absorption(void);
+  void Calc_Absorption(Real *dev_scalar);
 
   void OTVETIteration(void);
 
