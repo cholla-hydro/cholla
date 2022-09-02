@@ -43,7 +43,7 @@ void Cosmo_Power_Spectrum:: Load_Power_Spectum_From_File( struct parameters *P )
   
   } else{
   
-    chprintf(" Error: Unable to open Power Spectrum file: %s\n", pk_filename);
+    chprintf(" Error: Unable to open the input power spectrum file: %s\n", pk_filename);
     exit(1);
   
   }
@@ -56,10 +56,15 @@ void Cosmo_Power_Spectrum:: Load_Power_Spectum_From_File( struct parameters *P )
   host_pk_dm  = (Real *)malloc( host_size*sizeof(Real) );
   host_pk_gas = (Real *)malloc( host_size*sizeof(Real) );
   
+  chprintf( "Lbox = %f   n_grid = %d ", P->xlen, P->nx  );
+  
+  Real dx = P->xlen / P->nx; 
+  Real pk_factor = 1 / ( dx * dx * dx );
+  
   for (i=0; i<n_lines; i++ ){
-    host_k[i]      = v[i][0] * 1e-3; //Convert from 1/(Mpc/h) to 1/(kpc/h)
-    host_pk_dm[i]  = v[i][1]; 
-    host_pk_gas[i] = v[i][2]; 
+    host_k[i]      = v[i][0] * 1e-3; //Convert from 1/(Mpc/h) to  1/(kpc/h)
+    host_pk_dm[i]  = v[i][1] * pk_factor;  //IMPORTANT: The Power Spectrum has to be rescaled by the reolution volume!! Need to understand this! 
+    host_pk_gas[i] = v[i][2] * pk_factor; 
   }
   
   CudaSafeCall( cudaMalloc((void**)&dev_size,   sizeof(int)) );
