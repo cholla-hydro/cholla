@@ -52,15 +52,15 @@ void FFT_3D::Filter_rescale_by_k_k2( double *input, double *output, bool in_devi
   henry_->filter(bytes, db_, da_,
     [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
       if (i || j || k) {
-      // const double kx = double(min(i,ni-i))*ddi;
-      // const double ky = double(min(j,nj-j))*ddj;
-      // const double kz = double(k)*ddk;
+        // Get the global indices 
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
         int id_k = k < nk/2 ? k : k - nk;
+        // Compute kx, ky, and kz from the indices
         double kz = id_i * ddi;
         double ky = id_j * ddj;
         double kx = id_k * ddk;  
+        // Compute the magnitude of k squared
         double k2 = kx*kx + ky*ky + kz*kz ;
         if ( k2 == 0 ) k2 = 1.0;
         double factor;
@@ -99,15 +99,15 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
   henry_->filter(bytes, db_, da_,
     [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
       if (i || j || k) {
-        // const double kx = double(min(i,ni-i))*ddi;
-        // const double ky = double(min(j,nj-j))*ddj;
-        // const double kz = double(k)*ddk;
+        // Get the global indices 
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
         int id_k = k < nk/2 ? k : k - nk;
+        // Compute kx, ky, and kz from the indices
         double kz = id_i * ddi;
         double ky = id_j * ddj;
         double kx = id_k * ddk;  
+        // Compute the magnitude of k 
         const double k_mag = sqrt( kx*kx + ky*ky + kz*kz );
         double pk = linear_interpolation( k_mag, dev_k, dev_pk, size );
         // if ( i==1 && j==1 && k==1 ) printf("###### kx: %e  ky: %e  kz: %e  k_mag: %e  pk: %e \n", kx, ky, kz, k_mag, pk );  
