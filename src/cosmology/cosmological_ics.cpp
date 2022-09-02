@@ -250,6 +250,19 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
   dens_max  = momentum_x_max  = momentum_y_max  = momentum_z_max  = Energy_max  = GasEnergy_max  = -1e64;
   dens_mean = momentum_x_mean = momentum_y_mean = momentum_z_mean = Energy_mean = GasEnergy_mean = 0.0;
   
+  Real mmw = 1; 
+  #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
+  Real HI_frac = INITIAL_FRACTION_HI;
+  Real HII_frac = INITIAL_FRACTION_HII;
+  Real HeI_frac = INITIAL_FRACTION_HEI;
+  Real HeII_frac = INITIAL_FRACTION_HEII;
+  Real HeIII_frac = INITIAL_FRACTION_HEIII;
+  Real e_frac = INITIAL_FRACTION_ELECTRON;
+  Real metal_frac = INITIAL_FRACTION_METAL;
+  mmw = ( HI_frac + HII_frac + HeI_frac + HeII_frac + HeIII_frac ) / ( HI_frac + HII_frac + ( HeI_frac + HeII_frac + HeIII_frac )/4 + e_frac );
+  #endif
+  
+  
   for ( indx_k=0; indx_k<Cosmo.ICs.nz_local; indx_k++ ){
     for ( indx_j=0; indx_j<Cosmo.ICs.ny_local; indx_j++ ){
       for ( indx_i=0; indx_i<Cosmo.ICs.nx_local; indx_i++ ){
@@ -259,7 +272,7 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
         momentum_x[indx] = density[indx] * Cosmo.current_a * D_dot * displacements_x[indx] * KPC / Cosmo.cosmo_h;
         momentum_y[indx] = density[indx] * Cosmo.current_a * D_dot * displacements_y[indx] * KPC / Cosmo.cosmo_h;
         momentum_z[indx] = density[indx] * Cosmo.current_a * D_dot * displacements_z[indx] * KPC / Cosmo.cosmo_h;
-        GasEnergy[indx] = density[indx] * initial_temp / ( gama - 1 ) / MP * KB / 1e10 ;
+        GasEnergy[indx] = density[indx] * initial_temp / ( gama - 1 ) / MP * KB / 1e10 / mmw;
         Energy[indx] = GasEnergy[indx] + 0.5 * ( momentum_x[indx]*momentum_x[indx] + momentum_y[indx]*momentum_y[indx] + momentum_z[indx]*momentum_z[indx]  ) / density[indx];
   
         dens_max = fmax( dens_max, density[indx] );
@@ -320,30 +333,25 @@ void Grid3D::Generate_Cosmological_Initial_Conditions( struct parameters *P  ){
   GasEnergy_mean = ReduceRealAvg( GasEnergy_mean );
   chprintf( "  GasEnergy  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 km^2 s^-2 ]\n", GasEnergy_mean, GasEnergy_min, GasEnergy_max );
   
-  int nx_grid, ny_grid, nz_grid, indx_grid;
-  nx_grid = Cosmo.ICs.nx_local + 2*H.n_ghost;
-  ny_grid = Cosmo.ICs.ny_local + 2*H.n_ghost;
-  nz_grid = Cosmo.ICs.nz_local + 2*H.n_ghost;
-  
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-  Real HI_frac = INITIAL_FRACTION_HI;
-  Real HII_frac = INITIAL_FRACTION_HII;
-  Real HeI_frac = INITIAL_FRACTION_HEI;
-  Real HeII_frac = INITIAL_FRACTION_HEII;
-  Real HeIII_frac = INITIAL_FRACTION_HEIII;
-  Real e_frac = INITIAL_FRACTION_ELECTRON;
-  Real metal_frac = INITIAL_FRACTION_METAL;
   chprintf( "  Initial HI Fraction:    %e \n", HI_frac);
   chprintf( "  Initial HII Fraction:   %e \n", HII_frac);
   chprintf( "  Initial HeI Fraction:   %e \n", HeI_frac);
   chprintf( "  Initial HeII Fraction:  %e \n", HeII_frac);
   chprintf( "  Initial HeIII Fraction: %e \n", HeIII_frac);
   chprintf( "  Initial elect Fraction: %e \n", e_frac);
+  chprintf( "  Initial mmw: %f \n", mmw);
   #endif
   #ifdef GRACKLE_METALS
   chprintf( "  Initial metal Fraction: %e \n", metal_frac);
   #endif  //GRACKEL_METALS
   
+  
+  int nx_grid, ny_grid, nz_grid, indx_grid;
+  nx_grid = Cosmo.ICs.nx_local + 2*H.n_ghost;
+  ny_grid = Cosmo.ICs.ny_local + 2*H.n_ghost;
+  nz_grid = Cosmo.ICs.nz_local + 2*H.n_ghost;
+    
   for ( indx_k=0; indx_k<Cosmo.ICs.nz_local; indx_k++ ){
     for ( indx_j=0; indx_j<Cosmo.ICs.ny_local; indx_j++ ){
       for ( indx_i=0; indx_i<Cosmo.ICs.nx_local; indx_i++ ){
