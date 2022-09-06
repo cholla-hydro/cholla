@@ -68,7 +68,6 @@ void Grid3D::Set_Particles_Boundary_GPU( int dir, int side ){
 
   hipLaunchKernelGGL(Set_Particles_Boundary_Kernel, dim1dGrid, dim1dBlock, 0, 0,  side, Particles.n_local, pos_dev, d_min, d_max, L  );
   CudaCheckError();
-
 }
 
 
