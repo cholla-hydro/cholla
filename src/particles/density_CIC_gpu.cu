@@ -1,4 +1,4 @@
-#ifdef PARTICLES 
+#ifdef PARTICLES
 
 #include <unistd.h>
 #include <stdio.h>
@@ -143,9 +143,12 @@ void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particl
   //  number of threads per 1D block
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
 
-  hipLaunchKernelGGL(Get_Density_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, particle_mass, density_dev, pos_x_dev, pos_y_dev, pos_z_dev, mass_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
-  CudaCheckError();
-  cudaDeviceSynchronize();
+  // Only runs if there are local particles
+  if (n_local > 0) {
+    hipLaunchKernelGGL(Get_Density_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, particle_mass, density_dev, pos_x_dev, pos_y_dev, pos_z_dev, mass_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
+    CudaCheckError();
+    cudaDeviceSynchronize();
+  }
 
   #if !defined(GRAVITY_GPU)
   //Copy the density from device to host
