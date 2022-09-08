@@ -13,11 +13,6 @@
  * \brief Load the Cloudy cooling tables into texture memory on the GPU. */
 void Load_Cuda_Textures();
 
-/* \fn void Load_Cooling_Tables(float* cooling_table, float* heating_table)
- * \brief Load the Cloudy cooling tables into host (CPU) memory. */
-void Load_Cooling_Tables(float* cooling_table, float* heating_table);
-
-
 /* \fn void Free_Cuda_Textures()
  * \brief Unbind the texture memory on the GPU, and free the associated Cuda arrays. */
 void Free_Cuda_Textures();
