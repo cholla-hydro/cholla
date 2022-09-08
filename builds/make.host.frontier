@@ -8,8 +8,8 @@ GPUCXX           ?= hipcc
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
 
-CXXFLAGS_DEBUG    = -g -O0 -std=c++14
-CXXFLAGS_OPTIMIZE = -g -Ofast -std=c++14 -Wno-unused-result
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17
+CXXFLAGS_OPTIMIZE = -g -Ofast -std=c++17 -Wno-unused-result
 
 GPUFLAGS          = --offload-arch=gfx90a -Wno-unused-result
 HIPCONFIG	  = -I$(ROCM_PATH)/include $(shell hipconfig -C) # workaround for Rocm 5.2 warnings
