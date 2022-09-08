@@ -66,7 +66,11 @@ GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++17
 
 CFLAGS_DEBUG      ?= -g -O0
 CXXFLAGS_DEBUG    ?= -g -O0 -std=c++17
-GPUFLAGS_DEBUG    ?= -g -G -cudart shared -O0 -std=c++17 -ccbin=mpicxx
+ifdef HIPCONFIG
+  GPUFLAGS_DEBUG    ?= -g -O0 -std=c++17
+else
+  GPUFLAGS_DEBUG    ?= -g -G -cudart shared -O0 -std=c++17 -ccbin=mpicxx
+endif
 
 BUILD             ?= OPTIMIZE
 
