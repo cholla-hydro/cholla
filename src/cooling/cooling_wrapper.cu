@@ -13,8 +13,6 @@
 
 cudaTextureObject_t coolTexObj = 0;
 cudaTextureObject_t heatTexObj = 0;
-//texture<float, 2, cudaReadModeElementType> coolTexObj;
-//texture<float, 2, cudaReadModeElementType> heatTexObj;
 cudaArray* cuCoolArray;
 cudaArray* cuHeatArray;
 
@@ -114,12 +112,14 @@ void Load_Cuda_Textures()
   cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny);
 
   // Copy the cooling and heating arrays from host to device
-  // in host memory
-  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
-  //cudaMemcpy(cuCoolArray, cooling_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
-  //cudaMemcpy(cuHeatArray, heating_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
 
+  // cudaMemcpyToArray is being deprecated 
+  // cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
+  // cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
+
+  cudaMemcpy2DToArray(cuCoolArray, 0, 0, cooling_table, nx*sizeof(float) , nx*sizeof(float), ny, cudaMemcpyHostToDevice);
+  cudaMemcpy2DToArray(cuHeatArray, 0, 0, heating_table, nx*sizeof(float) , nx*sizeof(float), ny, cudaMemcpyHostToDevice);
+  
   // Specify textures
   struct cudaResourceDesc coolResDesc;
   memset(&coolResDesc, 0, sizeof(coolResDesc));
@@ -133,8 +133,8 @@ void Load_Cuda_Textures()
   // Specify texture object parameters (same for both tables)
   struct cudaTextureDesc texDesc;
   memset(&texDesc, 0, sizeof(texDesc));
-  texDesc.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  texDesc.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
+  texDesc.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values dimension 0
+  texDesc.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values dimension 1
   texDesc.filterMode = cudaFilterModeLinear;
   texDesc.readMode = cudaReadModeElementType;
   texDesc.normalizedCoords = 1;
@@ -149,64 +149,9 @@ void Load_Cuda_Textures()
 
 }
 
-
-/* \fn void Load_Cuda_Textures()
- * \brief Load the Cloudy cooling tables into texture memory on the GPU. */
-/*
-void Load_Cuda_Textures()
-{
-
-  float *cooling_table;
-  float *heating_table;
-  const int nx = 81;
-  const int ny = 121;
-
-  // allocate host arrays to be copied to textures
-  // these arrays are declared as external pointers in global.h
-  CudaSafeCall( cudaHostAlloc(&cooling_table, nx*ny*sizeof(float), cudaHostAllocDefault) );
-  CudaSafeCall( cudaHostAlloc(&heating_table, nx*ny*sizeof(float), cudaHostAllocDefault) );
-
-  // Load cooling tables into the host arrays
-  Load_Cooling_Tables(cooling_table, heating_table);
-
-  // Allocate CUDA arrays in device memory
-  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
-  cudaMallocArray(&cuCoolArray, &channelDesc, nx, ny);
-  cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny);
-  // Copy to device memory the cooling and heating arrays
-  // in host memory
-  cudaMemcpyToArray(cuCoolArray, 0, 0, cooling_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpyToArray(cuHeatArray, 0, 0, heating_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
-
-
-  // Specify texture reference parameters (same for both tables)
-  coolTexObj.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  coolTexObj.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  coolTexObj.filterMode = cudaFilterModeLinear; // bi-linear interpolation
-  coolTexObj.normalized = true;
-  heatTexObj.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  heatTexObj.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values
-  heatTexObj.filterMode = cudaFilterModeLinear; // bi-linear interpolation
-  heatTexObj.normalized = true;
-
-  cudaBindTextureToArray(coolTexObj, cuCoolArray);
-  cudaBindTextureToArray(heatTexObj, cuHeatArray);
-
-  // Free the memory associated with the cooling tables on the host
-  CudaSafeCall( cudaFreeHost(cooling_table) );
-  CudaSafeCall( cudaFreeHost(heating_table) );
-
-}
-*/
-
-
-
-
 void Free_Cuda_Textures()
 {
   // unbind the cuda textures
-  // cudaUnbindTexture(coolTexObj);
-  // cudaUnbindTexture(heatTexObj);
   cudaDestroyTextureObject(coolTexObj);
   cudaDestroyTextureObject(heatTexObj);
 

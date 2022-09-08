@@ -12,8 +12,6 @@
 
 extern cudaTextureObject_t coolTexObj;
 extern cudaTextureObject_t heatTexObj;
-//extern texture<float, 2, cudaReadModeElementType> coolTexObj;
-//extern texture<float, 2, cudaReadModeElementType> heatTexObj;
 
 void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma){
 
