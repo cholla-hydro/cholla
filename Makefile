@@ -35,10 +35,11 @@ ifeq ($(TEST), true)
   CPPFILES  := $(filter-out src/main.cpp,$(CPPFILES))
   LIBS      += -L$(GOOGLETEST_ROOT)/lib64 -pthread -lgtest -lhdf5_cpp
   TEST_FLAGS = -I$(GOOGLETEST_ROOT)/include
-  CFLAGS   = $(TEST_FLAGS)
-  CXXFLAGS = $(TEST_FLAGS)
-  GPUFLAGS = $(TEST_FLAGS)
+  CFLAGS   += $(TEST_FLAGS)
+  CXXFLAGS += $(TEST_FLAGS)
+  GPUFLAGS += $(TEST_FLAGS)
 
+  # HACK
   # Set the build flags to debug. This is mostly to avoid the approximations
   # made by Ofast which break std::isnan and std::isinf which are required for
   # the testing
@@ -62,6 +63,11 @@ CXX               ?= CC
 CFLAGS_OPTIMIZE   ?= -g -Ofast
 CXXFLAGS_OPTIMIZE ?= -g -Ofast -std=c++17
 GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++17
+
+CFLAGS_DEBUG      ?= -g -O0
+CXXFLAGS_DEBUG    ?= -g -O0 -std=c++17
+GPUFLAGS_DEBUG    ?= -g -G -cudart shared -O0 -std=c++17 -ccbin=mpicxx
+
 BUILD             ?= OPTIMIZE
 
 CFLAGS            += $(CFLAGS_$(BUILD))
