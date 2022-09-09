@@ -110,7 +110,7 @@ buildCholla ()
 {
   echo -e "\nBuilding Cholla...\n"
   builtin cd $CHOLLA_ROOT
-  make -j TYPE=${CHOLLA_MAKE_TYPE}
+  make -j TYPE=${CHOLLA_MAKE_TYPE} BUILD=${1}
 }
 # ==============================================================================
 
@@ -220,9 +220,11 @@ buildAndRunTests ()
   # did
   unset BUILD_GTEST
 
+  BUILD_MODE='OPTIMIZE'
+
   # Check arguments
   local OPTIND
-  while getopts "t:c:g" opt; do
+  while getopts "t:c:g:d" opt; do
     case $opt in
         t)  # Set the make type
             MAKE_TYPE_ARG="-t ${OPTARG}"
@@ -232,6 +234,9 @@ buildAndRunTests ()
             ;;
         g)  # Build GoogleTest locally?
             BUILD_GTEST=true
+            ;;
+        d)  # Build the debug version of Cholla?
+            BUILD_MODE='DEBUG'
             ;;
         \?)
             echo "Invalid option: -${OPTARG}" >&2
@@ -249,8 +254,8 @@ buildAndRunTests ()
   if [[ -n $BUILD_GTEST ]]; then
     buildGoogleTest
   fi
-  buildCholla  && \
-  buildChollaTests  && \
+  buildCholla $BUILD_MODE && \
+  buildChollaTests && \
   runTests
 }
 # ==============================================================================

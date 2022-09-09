@@ -158,7 +158,7 @@ jobs:
     - name: Build Cholla
       run: |
         source builds/run_tests.sh
-        buildCholla
+        buildCholla OPTIMIZE
     - name: Build Tests
       run: |
         source builds/run_tests.sh
