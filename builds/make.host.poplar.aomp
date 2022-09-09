@@ -6,8 +6,8 @@ CXX               = mpicxx
 HIPCONFIG         = $(shell hipconfig -C)
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -Ofast
-CXXFLAGS_DEBUG    = -g -O0 -std=c++11
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++11
+CXXFLAGS_DEBUG    = -g -O0 -std=c++14
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++14
 GPUFLAGS          = --offload-arch=gfx906,gfx908
 LIBS              = -lm -lstdc++
 
