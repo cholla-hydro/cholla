@@ -45,9 +45,10 @@ __global__ void Test_Cloudy_Textures_Kernel(int num_n, int num_T, cudaTextureObj
   id_T = id/num_n;
   id_n = id%num_n;
 
+  float grid_offset = 0.1/512.0;
   // Min value, but include id=-1 as an outside value to check clamping. Use dx = 0.05 instead of 0.1 to check interpolation
-  float log_T = 1.0  + (id_T-1)*0.05;
-  float log_n = -6.0 + (id_n-1)*0.05;
+  float log_T = 1.0  + (id_T-1)*0.05 + grid_offset;
+  float log_n = -6.0 + (id_n-1)*0.05 + grid_offset;
     
   // Remap for texture with normalized coords
   // float rlog_T = (log_T - 1.0) / 8.1;
