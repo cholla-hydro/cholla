@@ -16,6 +16,69 @@ cudaTextureObject_t heatTexObj = 0;
 cudaArray* cuCoolArray;
 cudaArray* cuHeatArray;
 
+__device__ float lerp(float v0, float v1, float f)
+{
+  return fma(f, v1, fma(-f,v0,v0));
+}
+__device__ float Bilinear_Custom(cudaTextureObject_t tex, float x, float y)
+{
+  float px = floorf(x);
+  float py = floorf(y);
+  float fx = x - px;
+  float fy = y - py;
+  px += 0.5;
+  py += 0.5;
+  float t00 = tex2D<float>(tex,px,py);
+  float t01 = tex2D<float>(tex,px,py+1);
+  float t10 = tex2D<float>(tex,px+1,py);
+  float t11 = tex2D<float>(tex,px+1,py+1);
+  return lerp(lerp(t00, t10, fx), lerp(t01, t11, fx), fy);
+   
+}
+/* Consider this function only to be used at the end of Load_Cuda_Textures when testing
+ * Evaluate texture on grid of size num_n num_T for variables n,T */
+__global__ void Test_Cloudy_Textures_Kernel(int num_n, int num_T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+{
+  int id,id_n,id_T;
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+  // Calculate log_T and log_n based on id
+  id_T = id/num_n;
+  id_n = id%num_n;
+
+  // Min value, but include id=-1 as an outside value to check clamping. Use dx = 0.05 instead of 0.1 to check interpolation
+  float log_T = 1.0  + (id_T-1)*0.05;
+  float log_n = -6.0 + (id_n-1)*0.05;
+    
+  // Remap for texture with normalized coords
+  // float rlog_T = (log_T - 1.0) / 8.1;
+  // float rlog_n = (log_n + 6.0) / 12.1;
+
+  // Remap for texture without normalized coords
+  float rlog_T = (log_T - 1.0) * 10;
+  float rlog_n = (log_n + 6.0) * 10;  
+  
+  // Evaluate
+  float lambda = Bilinear_Custom(coolTexObj, rlog_T, rlog_n); // tex2D<float>(coolTexObj, rlog_T, rlog_n);
+  float heat = Bilinear_Custom(heatTexObj, rlog_T, rlog_n); // tex2D<float>(heatTexObj, rlog_T, rlog_n);  
+
+  // Hackfully print it out for processing for correctness
+  printf("TEST_Cloudy: %.17e %.17e %.17e %.17e \n",log_T, log_n, lambda, heat);
+    
+}
+
+/* Consider this function only to be used at the end of Load_Cuda_Textures when testing
+ * Evaluate texture on grid of size num_n num_T for variables n,T */
+void Test_Cloudy_Textures()
+{
+  int num_n = 1+2*121;
+  int num_T = 1+2*81;
+  dim3 dim1dGrid((num_n*num_T+TPB-1)/TPB, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+  hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel,dim1dGrid,dim1dBlock,0,0,num_n,num_T,coolTexObj,heatTexObj);
+  CHECK(cudaDeviceSynchronize());
+  printf("Exiting due to Test_Cloudy_Textures() being called \n");
+  exit(0);
+}
 
 /* \fn void Host_Read_Cooling_Tables(float* cooling_table, float* heating_table)
  * \brief Load the Cloudy cooling tables into host (CPU) memory. */
@@ -92,7 +155,7 @@ void Host_Read_Cooling_Tables(float* cooling_table, float* heating_table)
  * \brief Load the Cloudy cooling tables into texture memory on the GPU. */
 void Load_Cuda_Textures()
 {
-  printf("Initializing Cloudy Textures");
+  printf("Initializing Cloudy Textures\n");
   float *cooling_table;
   float *heating_table;
   const int nx = 81;
@@ -135,9 +198,9 @@ void Load_Cuda_Textures()
   memset(&texDesc, 0, sizeof(texDesc));
   texDesc.addressMode[0] = cudaAddressModeClamp; // out-of-bounds fetches return border values dimension 0
   texDesc.addressMode[1] = cudaAddressModeClamp; // out-of-bounds fetches return border values dimension 1
-  texDesc.filterMode = cudaFilterModeLinear;
+  texDesc.filterMode = cudaFilterModePoint;//cudaFilterModeLinear;
   texDesc.readMode = cudaReadModeElementType;
-  texDesc.normalizedCoords = 1;
+  texDesc.normalizedCoords = 0;
 
   // Create texture objects
   cudaCreateTextureObject(&coolTexObj, &coolResDesc, &texDesc, NULL);
@@ -147,6 +210,9 @@ void Load_Cuda_Textures()
   CudaSafeCall( cudaFreeHost(cooling_table) );
   CudaSafeCall( cudaFreeHost(heating_table) );
 
+  // Run Test
+  Test_Cloudy_Textures();
+  
 }
 
 void Free_Cuda_Textures()

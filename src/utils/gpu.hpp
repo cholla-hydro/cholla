@@ -84,6 +84,7 @@ static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define cudaTextureDesc hipTextureDesc
 #define cudaAddressModeClamp hipAddressModeClamp
 #define cudaFilterModeLinear hipFilterModeLinear
+#define cudaFilterModePoint hipFilterModePoint 
 // Texture Definitions
 
 // FFT definitions
