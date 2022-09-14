@@ -17,7 +17,7 @@ outstep=100
 gamma=1.6666667
 # name of initial conditions
 init=Disk_3D
-outstep_hydro=10
+n_hydro=10
 # domain properties
 xmin=-5
 ymin=-5

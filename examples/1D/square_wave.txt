@@ -13,7 +13,7 @@ nz=1
 tout=1.0
 # time interval for output
 outstep=0.01
-outstep_hydro=1
+n_hydro=1
 # name of initial conditions
 init=Square_Wave
 # size of domain

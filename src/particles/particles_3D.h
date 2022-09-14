@@ -229,10 +229,10 @@ class Particles_3D
 
   void Initialize( struct parameters *P, Grav3D &Grav,  Real xbound, Real ybound, Real zbound, Real xdglobal, Real ydglobal, Real zdglobal  );
 
-  void Free_GPU_Array_Real( Real *array );
   
   #ifdef PARTICLES_GPU
 
+  void Free_GPU_Array_Real( Real *array );
   void Free_GPU_Array_int( int *array );
   void Free_GPU_Array_bool( bool *array );
   template< typename T > void Free_GPU_Array( T *array ){ cudaFree(array); }  //TODO remove the Free_GPU_Array_<type> functions

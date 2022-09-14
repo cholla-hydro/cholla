@@ -835,7 +835,7 @@ void Particles_3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *rec
 
   part_int_t n_local_after = n_local + n_recv;
   if ( n_local_after > particles_array_size ){
-    printf(" Reallocating GPU particles arrays. N local particles: %d \n", n_local_after );
+    printf(" Reallocating GPU particles arrays. N local particles: %ld \n", n_local_after );
     int new_size = G.gpu_allocation_factor * n_local_after;
     Extend_GPU_Array( &pos_x_dev,  (int) particles_array_size, new_size, true  );
     Extend_GPU_Array( &pos_y_dev,  (int) particles_array_size, new_size, false );

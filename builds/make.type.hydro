@@ -1,46 +1,29 @@
 #-- Default hydro only build
 
-#-- separated output flag so that it can be overriden in target-specific
-#   for make check
-OUTPUT    ?=  -DOUTPUT -DHDF5
-
-MPI_GPU   ?=
-
 DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMP
+DFLAGS    += -DPPMC
 DFLAGS    += -DHLLC
 
-ifeq ($(findstring cosmology,$(TYPE)),cosmology)
+# Integrator
 DFLAGS    += -DSIMPLE
-else
-DFLAGS    += -DVL
-endif
-
-# need this if using Disk_3D
-# DFLAGS += -DDISK_ICS
+#DFLAGS    += -DVL
 
 # Apply a density and temperature floor
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
 
 # Solve the Gas Internal Energy usisng a Dual Energy Formalism
-DFLAGS    += -DDE
+#DFLAGS    += -DDE
 
-# Apply the cooling in the GPU from precomputed tables
-# DFLAGS    += -DCOOLING_GPU
+# Apply cooling on the GPU from precomputed tables
+#DFLAGS    += -DCOOLING_GPU
 
-#Measure the Timing of the different stages
-DFLAGS    += -DCPU_TIME
+# Measure the Timing of the different stages
+#DFLAGS    += -DCPU_TIME
 
+# Select output format
+# Can also add -DSLICES and -DPROJECTIONS
+OUTPUT    ?=  -DOUTPUT -DHDF5
 DFLAGS    += $(OUTPUT)
-
-#Select if the Hydro Conserved data will reside in the GPU
-#and the MPI transfers are done from the GPU
-#If not specified, MPI_GPU is off by default
-#This is set in the system make.host file
-DFLAGS    += $(MPI_GPU)
-
-DFLAGS    += -DPARALLEL_OMP
-DFLAGS    += -DN_OMP_THREADS=$(OMP_NUM_THREADS)

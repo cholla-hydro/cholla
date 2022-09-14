@@ -4,14 +4,6 @@
 #include <stdio.h>
 #include "../global/global.h"
 
-#ifdef PFFT
-#include "../gravity/potential_PFFT_3D.h"
-#endif
-
-#ifdef CUFFT
-#include "../gravity/potential_CUFFT_3D.h"
-#endif
-
 #ifdef SOR
 #include "../gravity/potential_SOR_3D.h"
 #endif
@@ -108,26 +100,12 @@ class Grav3D
   int *boundary_flags;
 
 
-
-  #ifdef PFFT
-  Potential_PFFT_3D Poisson_solver;
-  #endif
-
-  #ifdef CUFFT
-  Potential_CUFFT_3D Poisson_solver;
-  #endif
-
   #ifdef SOR
   Potential_SOR_3D Poisson_solver;
   #endif
 
   #ifdef PARIS
-  #if (defined(PFFT) || defined(CUFFT))
-  #define PARIS_TEST
-  Potential_Paris_3D Poisson_solver_test;
-  #else
   Potential_Paris_3D Poisson_solver;
-  #endif
   #endif
 
   #ifdef PARIS_GALACTIC

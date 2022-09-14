@@ -5,8 +5,8 @@ TYPE    ?= hydro
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)
 
-# CHOLLA_ARCH defaults to sm_70 if not set in make.host
-CHOLLA_ARCH ?= sm_70
+# CUDA_ARCH defaults to sm_70 if not set in make.host
+CUDA_ARCH ?= sm_70
 
 DIRS     := src src/analysis src/chemistry_gpu src/cooling src/cooling_grackle src/cosmology \
             src/cpu src/global src/gravity src/gravity/paris src/grid src/hydro \
@@ -60,9 +60,8 @@ CC                ?= cc
 CXX               ?= CC
 
 CFLAGS_OPTIMIZE   ?= -Ofast
-# FIXME  put back -std=c++11
-CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++17
-GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++17
+CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++14
+GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++14
 BUILD             ?= OPTIMIZE
 
 CFLAGS            += $(CFLAGS_$(BUILD))
@@ -75,26 +74,10 @@ CFLAGS   += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc
 
-ifeq ($(findstring -DPFFT,$(DFLAGS)),-DPFFT)
-  CXXFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
-  GPUFLAGS += -I$(FFTW_ROOT)/include -I$(PFFT_ROOT)/include
-  LIBS += -L$(FFTW_ROOT)/lib -L$(PFFT_ROOT)/lib -lpfft -lfftw3_mpi -lfftw3
-endif
-
-ifeq ($(findstring -DCUFFT,$(DFLAGS)),-DCUFFT)
-  ifdef HIPCONFIG
-    CXXFLAGS += -I$(ROCM_PATH)/hipfft/include
-    GPUFLAGS += -I$(ROCM_PATH)/hipfft/include
-    LIBS += -L$(ROCM_PATH)/hipfft/lib -lhipfft
-  else
-    LIBS += -lcufft
-  endif
-endif
-
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifdef HIPCONFIG
-    CXXFLAGS += -I$(ROCM_PATH)/hipfft/include
-    GPUFLAGS += -I$(ROCM_PATH)/hipfft/include
+    CXXFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
+    GPUFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
     LIBS += -L$(ROCM_PATH)/hipfft/lib -lhipfft
   else
     LIBS += -lcufft
@@ -134,16 +117,15 @@ ifdef HIPCONFIG
   DFLAGS    += -DO_HIP
   CXXFLAGS  += $(HIPCONFIG)
   GPUCXX    ?= hipcc
-  GPUFLAGS  += -std=c++11 -Wall -ferror-limit=1
   LD        := $(CXX)
-  LDFLAGS   := $(CXXFLAGS)
-  LIBS      += -L$(ROCM_PATH)/lib -lamdhip64 -lhsa-runtime64
+  LDFLAGS   := $(CXXFLAGS) -L$(ROCM_PATH)/lib
+  LIBS      += -lamdhip64
 else
   CUDA_INC  ?= -I$(CUDA_ROOT)/include
   CUDA_LIB  ?= -L$(CUDA_ROOT)/lib64 -lcudart
   CXXFLAGS  += $(CUDA_INC)
   GPUCXX    ?= nvcc
-  GPUFLAGS  += --expt-extended-lambda -arch $(CHOLLA_ARCH) -fmad=false
+  GPUFLAGS  += --expt-extended-lambda -arch $(CUDA_ARCH) -fmad=false
   GPUFLAGS  += $(CUDA_INC)
   LD        := $(CXX)
   LDFLAGS   += $(CXXFLAGS)

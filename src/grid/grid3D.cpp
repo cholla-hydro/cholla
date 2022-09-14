@@ -9,15 +9,14 @@
 #include "../global/global.h"
 #include "../grid/grid3D.h"
 #include "../hydro/hydro_cuda.h" // provides Calc_dt_GPU
-#include "../integrators/CTU_1D_cuda.h"
-#include "../integrators/CTU_2D_cuda.h"
-#include "../integrators/CTU_3D_cuda.h"
 #include "../integrators/VL_1D_cuda.h"
 #include "../integrators/VL_2D_cuda.h"
 #include "../integrators/VL_3D_cuda.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"
 #include "../utils/ran.h"
+#include "../integrators/simple_1D_cuda.h"
+#include "../integrators/simple_2D_cuda.h"
 #include "../integrators/simple_3D_cuda.h"
 #ifdef MPI_CHOLLA
 #include <mpi.h>
@@ -27,7 +26,6 @@
 #include "../mpi/mpi_routines.h"
 #endif
 #include <stdio.h>
-#include "../old_cholla/flux_correction.h"
 #ifdef CLOUDY_COOL
 #include "../cooling/cooling_wrapper.h"
 #endif
@@ -428,31 +426,28 @@ Real Grid3D::Update_Grid(void)
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) //1D
   {
     #ifdef CUDA
-    #ifdef CTU
-    CTU_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
-    #endif //not_VL
     #ifdef VL
     VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
     #endif //VL
+    #ifdef SIMPLE
+    Simple_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    #endif //SIMPLE
     #endif //CUDA
   }
   else if (H.nx > 1 && H.ny > 1 && H.nz == 1) //2D
   {
     #ifdef CUDA
-    #ifdef CTU
-    CTU_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
-    #endif //not_VL
     #ifdef VL
     VL_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //VL
+    #ifdef SIMPLE 
+    Simple_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
+    #endif //SIMPLE
     #endif //CUDA
   }
   else if (H.nx > 1 && H.ny > 1 && H.nz > 1) //3D
   {
     #ifdef CUDA
-    #ifdef CTU
-    CTU_Algorithm_3D_CUDA(C.device, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
-    #endif //not_VL
     #ifdef VL
     VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
     #endif //VL
@@ -622,17 +617,14 @@ void Grid3D::FreeMemory(void)
   #endif
 
   // If memory is single allocated, free the memory at the end of the simulation.
-  #ifdef CTU
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_CTU_1D();
-  if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_CTU_2D();
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_CTU_3D();
-  #endif //CTU
   #ifdef VL
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_VL_1D();
   if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_VL_2D();
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_VL_3D();
   #endif // VL
   #ifdef SIMPLE
+  if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_Simple_1D();
+  if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_Simple_2D();
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_Simple_3D();
   #endif // SIMPLE
 

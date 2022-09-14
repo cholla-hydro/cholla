@@ -201,9 +201,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
   Real pot_ll, pot_rr;
   #endif
 
-  #ifdef COUPLE_DELTA_E_KINETIC
-  Real Ekin_0, Ekin_1;
-  #endif//COUPLE_DELTA_E_KINETIC
   #endif //GRAVITY
 
   Real dtodx = dt/dx;
@@ -315,11 +312,6 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
     vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
 
-    #ifdef COUPLE_DELTA_E_KINETIC
-    //The Kinetic Energy before adding the gravity term to the Momentum
-    Ekin_0 = 0.5 * d_n * ( vx_n*vx_n + vy_n*vy_n + vz_n*vz_n );
-    #endif
-
     // Calculate the -gradient of potential
     // Get X componet of gravity field
     id_l = (xid-1) + (yid)*nx + (zid)*nx*ny;
@@ -371,40 +363,8 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     dev_conserved[3*n_cells + id] += 0.5*dt*gz*(d + d_n);
 
     //Add gravity term to Total Energy
-    #ifdef COUPLE_GRAVITATIONAL_WORK
     //Add the work done by the gravitational force
     dev_conserved[4*n_cells + id] += 0.5* dt * ( gx*(d*vx + d_n*vx_n) +  gy*(d*vy + d_n*vy_n) +  gz*(d*vz + d_n*vz_n) );
-    #endif
-
-    #ifdef COUPLE_DELTA_E_KINETIC
-    //Add the the exact change in kinetic energy due to the gravity term added to the Momentum
-    vx_n =  dev_conserved[1*n_cells + id] * d_inv_n;
-    vy_n =  dev_conserved[2*n_cells + id] * d_inv_n;
-    vz_n =  dev_conserved[3*n_cells + id] * d_inv_n;
-    Ekin_1 = 0.5 * d_n * ( vx_n*vx_n + vy_n*vy_n + vz_n*vz_n );
-    dev_conserved[4*n_cells + id] += Ekin_1 - Ekin_0;
-    #endif
-
-/*
-    //if (xid > n_ghost-1 && xid < 10 && yid == 128 && zid == 137) {
-    //if (xid == 50  && yid == 118 && zid < 128) {
-    if (xid == 50  && yid == 118) {
-      d  =  dev_conserved[            id];
-      d_inv = 1.0 / d;
-      vx =  dev_conserved[1*n_cells + id] * d_inv;
-      vy =  dev_conserved[2*n_cells + id] * d_inv;
-      vz =  dev_conserved[3*n_cells + id] * d_inv;
-      
-      //Real P  = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-      //printf("gx,gy,gz[%d, %d, %d] = [%.4e, %.4e, %4e]\n", xid, yid, zid, gx, gy, gz);
-      //printf("vx, vy, vz[%d, %d, %d] = [%.4e, %.4e, %4e]\n", xid, yid, zid, vx_n, vy_n, vz_n);
-      //printf("P[%d, %d, %d] = %4e\n", xid, yid, zid, P);
-      //printf("d[%d, %d, %d] = %4e\n", xid, yid, zid, d);
-       // printf("vx,vy,vz[%d, %d, %d] = [%.4e, %.4e, %4e]\n", xid, yid, zid, vx, vy, vz);
-       #ifdef DE
-       //printf("U[%d, %d, %d] = %4e\n", xid, yid, zid, dev_conserved[5*n_cells + id] * d_inv);
-       #endif
-      }*/
 
     #endif //GRAVITY
 
@@ -510,8 +470,10 @@ __global__ void Calc_dt_1D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
     }
   }
 
-  // do the grid wide reduction (find the max inverse timestep in the grid)
-  reduction_utilities::gridReduceMax(max_dti, dev_dti);
+  // do the block wide reduction (find the max inverse timestep in the block)
+  // then write it to that block's location in the dev_dti array
+  max_dti = reduction_utilities::blockReduceMax(max_dti);
+  if (threadIdx.x == 0) dev_dti[blockIdx.x] = max_dti;
 }
 
 
@@ -552,8 +514,10 @@ __global__ void Calc_dt_2D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
     }
   }
 
-  // do the grid wide reduction (find the max inverse timestep in the grid)
-  reduction_utilities::gridReduceMax(max_dti, dev_dti);
+  // do the block wide reduction (find the max inverse timestep in the block)
+  // then write it to that block's location in the dev_dti array
+  max_dti = reduction_utilities::blockReduceMax(max_dti);
+  if (threadIdx.x == 0) dev_dti[blockIdx.x] = max_dti;
 }
 
 
@@ -605,8 +569,10 @@ __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
     }
   }
 
-  // do the grid wide reduction (find the max inverse timestep in the grid)
-  reduction_utilities::gridReduceMax(max_dti, dev_dti);
+  // do the block wide reduction (find the max inverse timestep in the block)
+  // then write it to that block's location in the dev_dti array
+  max_dti = reduction_utilities::blockReduceMax(max_dti);
+  if (threadIdx.x == 0) dev_dti[blockIdx.x] = max_dti;
 }
 
 Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma )
@@ -619,7 +585,7 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
   numBlocks = ngrid;
 
   Real* dev_dti = dev_dti_array;
-  
+
 
   // compute dt and store in dev_dti
   if (nx > 1 && ny == 1 && nz == 1) //1D
@@ -647,11 +613,11 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 
   return max_dti;
   */
-  
+
   int dev_dti_length = numBlocks;
   CudaSafeCall(cudaMemcpy(host_dti_array,dev_dti, dev_dti_length*sizeof(Real), cudaMemcpyDeviceToHost));
   cudaDeviceSynchronize();
-  
+
   for (int i=0;i<dev_dti_length;i++){
     max_dti = fmax(max_dti,host_dti_array[i]);
   }
@@ -665,7 +631,7 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 #ifdef AVERAGE_SLOW_CELLS
 
 void Average_Slow_Cells( Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow ){
-  
+
   // set values for GPU kernels
   int n_cells = nx*ny*nz;
   int ngrid = (n_cells + TPB - 1) / TPB;
@@ -673,7 +639,7 @@ void Average_Slow_Cells( Real *dev_conserved, int nx, int ny, int nz, int n_ghos
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
   dim3 dim1dBlock(TPB, 1, 1);
-  
+
   if (nx > 1 && ny > 1 && nz > 1){ //3D
     hipLaunchKernelGGL(Average_Slow_Cells_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dx, dy, dz, gamma, max_dti_slow );
   }
@@ -704,12 +670,12 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
     vy =  dev_conserved[2*n_cells + id] * d_inv;
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     E  =  dev_conserved[4*n_cells + id];
-    
+
     #ifdef  MHD
       // Compute the cell centered magnetic field using a straight average of the faces
       mhdUtils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, avgBx, avgBy, avgBz);
     #endif  //MHD
-    
+
     // Compute the maximum inverse crossing time in the cell
     #ifdef  MHD
       max_dti = mhdInverseCrossingTime(E, d, d_inv, vx, vy, vz, avgBx, avgBy, avgBz, dx, dy, dz, gamma);

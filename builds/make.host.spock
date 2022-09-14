@@ -14,6 +14,7 @@ GPUFLAGS          = --offload-arch=gfx908
 HIPCONFIG	  = $(shell hipconfig -C)
 
 OMP_NUM_THREADS   = 8
+
 #-- How to launch job
 JOB_LAUNCH        = srun -u -A STF016 -n 1 -c 8
 

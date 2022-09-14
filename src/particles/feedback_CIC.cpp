@@ -210,9 +210,9 @@ void Grid3D::Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end, Rea
     indx_y = (int) floor( ( pos_y - yMin - 0.5*H.dy ) / H.dy );
     indx_z = (int) floor( ( pos_z - zMin - 0.5*H.dz ) / H.dz );
 
-    in_local = (pos_x >= H.xblocal && pos_x < H.xblocal + H.domlen_x) &&
-               (pos_y >= H.yblocal && pos_y < H.yblocal + H.domlen_y) &&
-               (pos_z >= H.zblocal && pos_z < H.zblocal + H.domlen_z);
+    in_local = (pos_x >= H.xblocal && pos_x < H.xblocal_max) &&
+               (pos_y >= H.yblocal && pos_y < H.yblocal_max) &&
+               (pos_z >= H.zblocal && pos_z < H.zblocal_max);
     if (!in_local) {
       std::cout << " Cluster_FeedbackError:" << std::endl;
       #ifdef PARTICLE_IDS
@@ -220,9 +220,9 @@ void Grid3D::Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end, Rea
       #else
       std::cout << " Particle outside local  domain " << std::endl;
       #endif
-      std::cout << "  Domain X: " << xMin <<  "  " << H.xblocal + H.domlen_x << std::endl;
-      std::cout << "  Domain Y: " << yMin <<  "  " << H.yblocal + H.domlen_y << std::endl;
-      std::cout << "  Domain Z: " << zMin <<  "  " << H.zblocal + H.domlen_z << std::endl;
+      std::cout << "  Domain X: " << xMin <<  "  " << H.xblocal_max << std::endl;
+      std::cout << "  Domain Y: " << yMin <<  "  " << H.yblocal_max << std::endl;
+      std::cout << "  Domain Z: " << zMin <<  "  " << H.zblocal_max << std::endl;
       std::cout << "  Particle X: " << pos_x << std::endl;
       std::cout << "  Particle Y: " << pos_y << std::endl;
       std::cout << "  Particle Z: " << pos_z << std::endl;

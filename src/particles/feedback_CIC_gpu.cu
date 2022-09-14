@@ -163,7 +163,8 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real
       Real cell_center_x, cell_center_y, cell_center_z;
       Real delta_x, delta_y, delta_z;
       Real x_frac, y_frac, z_frac;
-      Real px, py, pz, eg, t_b, t_a, v_1, v_2, d, d_b, d_a, p_b, p_a, e;
+      Real px, py, pz, d; 
+      //Real t_b, t_a, v_1, v_2, d_b, d_a, p_b, p_a, e;
       Real feedback_energy=0, feedback_density=0, feedback_momentum=0, n_0, shell_radius;
       bool is_resolved = false;
       Real dV = dx*dy*dz;

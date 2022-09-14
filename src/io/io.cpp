@@ -85,6 +85,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   H5open();
   #endif
 
+  #ifdef HDF5
+  // Initialize HDF5 interface
+  H5open();
+  #endif
+
   #ifdef N_OUTPUT_COMPLETE
   //If nfile is multiple of N_OUTPUT_COMPLETE then output all data
   if ( nfile%N_OUTPUT_COMPLETE == 0 ){
@@ -106,23 +111,23 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
 
   #ifndef ONLY_PARTICLES
   /*call the data output routine for Hydro data*/
-  if (nfile % P.outstep_hydro == 0) OutputData(G,P,nfile);
+  if (nfile % P.n_hydro == 0) OutputData(G,P,nfile);
   #endif
 
   #ifdef PROJECTION
-  if (nfile % P.outstep_projection == 0) OutputProjectedData(G,P,nfile);
+  if (nfile % P.n_projection == 0) OutputProjectedData(G,P,nfile);
   #endif /*PROJECTION*/
 
   #ifdef ROTATED_PROJECTION
-  if (nfile % P.outstep_rotated_projection == 0) OutputRotatedProjectedData(G,P,nfile);
+  if (nfile % P.n_rotated_projection == 0) OutputRotatedProjectedData(G,P,nfile);
   #endif /*ROTATED_PROJECTION*/
 
   #ifdef SLICES
-  if (nfile % P.outstep_slice == 0) OutputSlices(G,P,nfile);
+  if (nfile % P.n_slice == 0) OutputSlices(G,P,nfile);
   #endif /*SLICES*/
 
   #ifdef PARTICLES
-  if (nfile % P.outstep_particle == 0) G.WriteData_Particles( P, nfile );
+  if (nfile % P.n_particle == 0) G.WriteData_Particles(P, nfile);
   #endif
 
   #ifdef COSMOLOGY
@@ -143,6 +148,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   G.H.Output_Now = false;
   #endif
   
+  #ifdef HDF5
+  // Cleanup HDF5
+  H5close();
+  #endif
+
   #ifdef HDF5
   // Cleanup HDF5
   H5close();
@@ -2578,33 +2588,33 @@ void Grid3D::Read_Grid(struct parameters P) {
 void Grid3D::Read_Grid_Binary(FILE *fp)
 {
   int id, i, j, k;
+  size_t rs;
 
   // Read in the header data
-  fread(&H.n_cells, sizeof(int), 1, fp);
-  fread(&H.n_ghost, sizeof(int), 1, fp);
-  fread(&H.nx, sizeof(int), 1, fp);
-  fread(&H.ny, sizeof(int), 1, fp);
-  fread(&H.nz, sizeof(int), 1, fp);
-  fread(&H.nx_real, sizeof(int), 1, fp);
-  fread(&H.ny_real, sizeof(int), 1, fp);
-  fread(&H.nz_real, sizeof(int), 1, fp);
-  fread(&H.xbound, sizeof(Real), 1, fp);
-  fread(&H.ybound, sizeof(Real), 1, fp);
-  fread(&H.zbound, sizeof(Real), 1, fp);
-  fread(&H.xblocal, sizeof(Real), 1, fp);
-  fread(&H.yblocal, sizeof(Real), 1, fp);
-  fread(&H.zblocal, sizeof(Real), 1, fp);
-  fread(&H.xdglobal, sizeof(Real), 1, fp);
-  fread(&H.ydglobal, sizeof(Real), 1, fp);
-  fread(&H.zdglobal, sizeof(Real), 1, fp);
-  fread(&H.dx, sizeof(Real), 1, fp);
-  fread(&H.dy, sizeof(Real), 1, fp);
-  fread(&H.dz, sizeof(Real), 1, fp);
-  fread(&H.t, sizeof(Real), 1, fp);
-  fread(&H.dt, sizeof(Real), 1, fp);
-  fread(&H.t_wall, sizeof(Real), 1, fp);
-  fread(&H.n_step, sizeof(int), 1, fp);
-  //fread(&H, 1, 184, fp);
+  rs = fread(&H.n_cells, sizeof(int), 1, fp);
+  rs = fread(&H.n_ghost, sizeof(int), 1, fp);
+  rs = fread(&H.nx, sizeof(int), 1, fp);
+  rs = fread(&H.ny, sizeof(int), 1, fp);
+  rs = fread(&H.nz, sizeof(int), 1, fp);
+  rs = fread(&H.nx_real, sizeof(int), 1, fp);
+  rs = fread(&H.ny_real, sizeof(int), 1, fp);
+  rs = fread(&H.nz_real, sizeof(int), 1, fp);
+  rs = fread(&H.xbound, sizeof(Real), 1, fp);
+  rs = fread(&H.ybound, sizeof(Real), 1, fp);
+  rs = fread(&H.zbound, sizeof(Real), 1, fp);
+  rs = fread(&H.xblocal, sizeof(Real), 1, fp);
+  rs = fread(&H.yblocal, sizeof(Real), 1, fp);
+  rs = fread(&H.zblocal, sizeof(Real), 1, fp);
+  rs = fread(&H.xdglobal, sizeof(Real), 1, fp);
+  rs = fread(&H.ydglobal, sizeof(Real), 1, fp);
+  rs = fread(&H.zdglobal, sizeof(Real), 1, fp);
+  rs = fread(&H.dx, sizeof(Real), 1, fp);
+  rs = fread(&H.dy, sizeof(Real), 1, fp);
+  rs = fread(&H.dz, sizeof(Real), 1, fp);
+  rs = fread(&H.t, sizeof(Real), 1, fp);
+  rs = fread(&H.dt, sizeof(Real), 1, fp);
+  rs = fread(&H.t_wall, sizeof(Real), 1, fp);
+  rs =fread(&H.n_step, sizeof(int), 1, fp);
 
 
   // Read in the conserved quantities from the input file
@@ -2778,7 +2788,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
 
 
     // Open the z momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_x", H5P_DEFAULT);
+    dataset_id = H5Dopen(file_id, "/momentum_z", H5P_DEFAULT);
     // Read the x momentum array into the dataset buffer // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
