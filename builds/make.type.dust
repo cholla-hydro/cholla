@@ -14,13 +14,14 @@ DFLAGS    += -DPPMC
 DFLAGS    += -DHLLC
 
 # DFLAGS    += -DDE
-# DFLAGS    += -DAVERAGE_SLOW_CELLS
+DFLAGS    += -DAVERAGE_SLOW_CELLS
 DFLAGS    += -DTEMPERATURE_FLOOR
 
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
 else
 DFLAGS    += -DVL
+# DFLAGS    += -DSIMPLE
 endif
 
 # Evolve additional scalars

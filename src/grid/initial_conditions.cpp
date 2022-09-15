@@ -239,13 +239,11 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
           #endif // DUST
           #endif // SCALAR
         }
-/*
         if (i==istart && j==jstart && k==kstart) {
           n = rho*DENSITY_UNIT / (mu*MP);
           T = P*PRESSURE_UNIT / (n*KB);
           printf("Initial n = %e, T = %e\n", n, T);
         }
-*/
       }
     }
   }
@@ -1255,7 +1253,7 @@ void Grid3D::Clouds()
   Real p_bg, p_cl; // background and cloud pressure
   Real mu = 0.6; // mean atomic weight
   int N_cl = 1; // number of clouds
-  Real R_cl = 0.1; // cloud radius in code units (kpc)
+  Real R_cl = 0.01; // cloud radius in code units (kpc)
   Real cl_pos[N_cl][3]; // array of cloud positions
   Real r;
 

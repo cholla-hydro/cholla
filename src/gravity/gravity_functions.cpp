@@ -116,7 +116,8 @@ void Grid3D::set_dt_Gravity(){
   #ifdef AVERAGE_SLOW_CELLS
   //Set the min_delta_t for averaging a slow cell
   da_particles = fmin( da_particles, Cosmo.max_delta_a );
-  min_dt_slow = Cosmo.Get_dt_from_da( da_particles ) / Particles.C_cfl * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a ) / SLOW_FACTOR;
+  // min_dt_slow = Cosmo.Get_dt_from_da( da_particles ) / Particles.C_cfl * Cosmo.H0 / ( Cosmo.current_a * Cosmo.current_a ) / SLOW_FACTOR;
+  min_dt_slow = 1e-2 / TIME_UNIT;
   H.min_dt_slow = min_dt_slow;
   #endif
 
@@ -144,7 +145,9 @@ void Grid3D::set_dt_Gravity(){
 
   #ifdef AVERAGE_SLOW_CELLS
   //Set the min_delta_t for averaging a slow cell
-  min_dt_slow = dt_particles / Particles.C_cfl / SLOW_FACTOR;
+  //min_dt_slow = dt_particles / Particles.C_cfl / SLOW_FACTOR;
+  printf("/nhell0!!/n");
+  min_dt_slow = 1e10;
   H.min_dt_slow = min_dt_slow;
   #endif
 
@@ -156,7 +159,18 @@ void Grid3D::set_dt_Gravity(){
 
   #if defined( AVERAGE_SLOW_CELLS) && !defined( PARTICLES )
   //Set the min_delta_t for averaging a slow cell ( for now the min_dt_slow is set to a large value, change this with your condition )
-  min_dt_slow = H.dt / C_cfl * 100 ;
+  // min_dt_slow = H.dt / C_cfl * 100 ;
+  printf("/nhowdy!!/n");
+  min_dt_slow = 1e10;
+  H.min_dt_slow = min_dt_slow;
+  #endif
+
+  #ifdef AVERAGE_SLOW_CELLS
+  //Set the min_delta_t for averaging a slow cell ( for now the min_dt_slow is set to a large value, change this with your condition )
+  // min_dt_slow = H.dt / C_cfl * 100 ;
+  printf("/nhi!!/n");
+  printf("/nhi!!/n");
+  min_dt_slow = 1e10;
   H.min_dt_slow = min_dt_slow;
   #endif
 

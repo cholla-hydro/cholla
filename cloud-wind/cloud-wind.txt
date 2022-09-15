@@ -42,4 +42,4 @@ zu_bcnd=3
 outdir=./
 # nfile=1e10
 custom_bcnd=wind
-# n_hydro=3728643
+n_hydro=3728643
