@@ -3,16 +3,17 @@ CC                = mpicc
 CXX               = mpicxx
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
-CXXFLAGS_DEBUG    = -g -O0 -std=c++14 ${F_OFFLOAD}
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++14 ${F_OFFLOAD}
-GPUFLAGS_DEBUG    = -std=c++14
-GPUFLAGS_OPTIMIZE = -std=c++14
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17 ${F_OFFLOAD}
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++17 ${F_OFFLOAD}
+GPUFLAGS_DEBUG    = -g -G -cudart shared -O0 -std=c++17
+GPUFLAGS_OPTIMIZE = -g -O3 -std=c++17
 
 OMP_NUM_THREADS   = 7
 
 #-- Library
 ifdef HIPCONFIG
 	HIPCONFIG := -I$(shell hipconfig -R)/include $(shell hipconfig -C)
+	GPUFLAGS_DEBUG = -g -O0 -std=c++17
 endif
 CUDA_ROOT       := $(CUDA_ROOT)
 HDF5_ROOT       := $(HDF5_ROOT)
@@ -23,11 +24,6 @@ GOOGLETEST_ROOT := ${GOOGLETEST_ROOT}
 
 #-- MPI calls accept GPU buffers (requires GPU-aware MPI)
 # MPI_GPU = -DMPI_GPU
-
-ifndef HIPCONFIG
-	GPUFLAGS_DEBUG    += -g -O0 -ccbin=mpicxx
-	GPUFLAGS_OPTIMIZE += -g -O3 -ccbin=mpicxx
-endif
 
 ifdef HIPCONFIG
 	MPI_ROOT := ${MPI_ROOT}

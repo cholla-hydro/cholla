@@ -79,7 +79,7 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
 
   chprintf( "\nSaving Snapshot: %d \n", nfile );
-  
+
   #ifdef HDF5
   // Initialize HDF5 interface
   H5open();
@@ -142,7 +142,7 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   chprintf( "\n" );
   G.H.Output_Now = false;
   #endif
-  
+
   #ifdef HDF5
   // Cleanup HDF5
   H5close();
@@ -195,7 +195,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
   #elif defined HDF5
   hid_t   file_id; /* file identifier */
   herr_t  status;
-  
+
   // Create a new file using default properties.
   file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -204,10 +204,10 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 
   // write the conserved variables to the output file
   G.Write_Grid_HDF5(file_id);
-  
+
   // close the file
   status = H5Fclose(file_id);
-  
+
   if (status < 0) {printf("File write failed.\n"); exit(-1); }
 
   #else
@@ -2778,7 +2778,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
 
 
     // Open the z momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_x", H5P_DEFAULT);
+    dataset_id = H5Dopen(file_id, "/momentum_z", H5P_DEFAULT);
     // Read the x momentum array into the dataset buffer // NOTE: NEED TO FIX FOR FLOAT REAL!!!
     status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
     // Free the dataset id
