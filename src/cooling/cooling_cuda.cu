@@ -9,6 +9,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../cooling/cooling_cuda.h"
+#include "../cooling/texture_utilities.h"
 
 extern cudaTextureObject_t coolTexObj;
 extern cudaTextureObject_t heatTexObj;
@@ -335,19 +336,24 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   log_T = log10(T);
 
   // remap coordinates for texture
-  log_T = (log_T - 1.0)/8.1;
-  log_n = (log_n + 6.0)/12.1;
+  // remapped = (input - TABLE_MIN_VALUE)*(1/TABLE_SPACING)
+  // remapped = (input - TABLE_MIN_VALUE)*(NUM_CELLS_PER_DECADE)  
+  log_T = (log_T - 1.0)*10;
+  log_n = (log_n + 6.0)*10;
 
+  // Note: although the cloudy table columns are n,T,L,H , T is the fastest variable so it is treated as "x"
+  // This is why the Texture calls are T first, then n: Bilinear_Texture(tex, log_T, log_n) 
+  
   // don't cool below 10 K
   if (log10(T) > 1.0) {
-  lambda = tex2D<float>(coolTexObj, log_T, log_n);
+    lambda = Bilinear_Texture(coolTexObj, log_T, log_n);
   }
   else lambda = 0.0;
-  H = tex2D<float>(heatTexObj, log_T, log_n);
+  H = Bilinear_Texture(heatTexObj, log_T, log_n);
 
   // cooling rate per unit volume
   cool = n*n*(powf(10, lambda) - powf(10, H));
-  printf("DEBUG Cloudy L350: %.17e\n",cool);
+  // printf("DEBUG Cloudy L350: %.17e\n",cool);
   return cool;
 }
 #endif //CLOUDY_COOL
