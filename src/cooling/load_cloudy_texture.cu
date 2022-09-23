@@ -14,8 +14,6 @@
 
 #include "../io/io.h" // provides chprintf
 
-cudaTextureObject_t coolTexObj = 0;
-cudaTextureObject_t heatTexObj = 0;
 cudaArray* cuCoolArray;
 cudaArray* cuHeatArray;
 

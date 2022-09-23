@@ -14,8 +14,8 @@
 #include "../cooling/texture_utilities.h"
 #endif
 
-extern cudaTextureObject_t coolTexObj;
-extern cudaTextureObject_t heatTexObj;
+cudaTextureObject_t coolTexObj = 0;
+cudaTextureObject_t heatTexObj = 0;
 
 void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma){
 
