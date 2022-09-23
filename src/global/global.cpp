@@ -121,7 +121,7 @@ void parse_params (char *param_file, struct parameters * parms, int argc, char**
   if (fp == NULL)
   {
     chprintf("Exiting at file %s line %d: failed to read param file %s \n", __FILE__, __LINE__, param_file);
-    exit(-1);
+    exit(1);
     return;
   }
   // set default hydro file output parameter
