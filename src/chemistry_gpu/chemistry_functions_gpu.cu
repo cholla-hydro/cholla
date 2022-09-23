@@ -467,7 +467,12 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
     a3 = a2 * current_a;  
     d  *= density_conv / a3;
     GE *= energy_conv  / a2; 
-    dt_hydro = dt_hydro * current_a * current_a / Chem_H.H0 * 1000 * KPC / Chem_H.time_units;
+    dt_hydro = dt_hydro / Chem_H.time_units;
+
+#ifdef COSMOLOGY
+    dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC 
+#endif //COSMOLOGY
+    //dt_hydro = dt_hydro * current_a * current_a / Chem_H.H0 * 1000 * KPC / Chem_H.time_units;
     // delta_a = Chem_H.H0 * sqrt( Chem_H.Omega_M/current_a + Chem_H.Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) * dt_hydro * Chem_H.time_units;
         
     // Initialize the thermal state
