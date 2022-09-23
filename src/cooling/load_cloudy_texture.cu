@@ -12,6 +12,8 @@
 #include "../cooling/cooling_cuda.h"
 #include "../cooling/texture_utilities.h"
 
+#include "../io/io.h" // provides chprintf
+
 cudaTextureObject_t coolTexObj = 0;
 cudaTextureObject_t heatTexObj = 0;
 cudaArray* cuCoolArray;
@@ -47,16 +49,25 @@ void Host_Read_Cooling_Tables(float* cooling_table, float* heating_table)
   // Read in cloudy cooling/heating curve (function of density and temperature)
   i=0;
 
-  const char* cloudy_filename1 = "src/cooling/cloudy_coolingcurve.txt";
-  const char* cloudy_filename2 = "./cloudy_coolingcurve.txt";
+  const char* cloudy_filename1 = "./cloudy_coolingcurve.txt";
+  const char* cloudy_filename2 = "src/cooling/cloudy_coolingcurve.txt";
+  const char* file_in_use;
+  
   infile = fopen(cloudy_filename1, "r");
+  file_in_use = cloudy_filename1;
   if (infile == NULL) {
     infile = fopen(cloudy_filename2, "r");
+    file_in_use = cloudy_filename2;
   }
+
+  
   if (infile == NULL) {
-    printf("Unable to open Cloudy file with expected relative paths:\n %s \n OR \n %s\n", cloudy_filename1, cloudy_filename2);
+    chprintf("Unable to open Cloudy file with expected relative paths:\n %s \n OR \n %s\n", cloudy_filename1, cloudy_filename2);
     exit(1);
+  } else {
+    chprintf("Using Cloudy file at relative path: %s \n", file_in_use);
   }
+  
 
   while (fgets(buffer, sizeof(buffer), infile) != NULL)
   {
@@ -237,7 +248,7 @@ __global__ void Test_Cloudy_Speed_Kernel(int num_n, int num_T, cudaTextureObject
   // float rlog_n = (log_n + 6.0) * 10;
 
   float rlog_T = (id_T - 1)*0.0125;
-  float rlog_n = (id_T - 1)*0.0125;
+  float rlog_n = (id_n - 1)*0.0125;
 
   // Evaluate
   float lambda = Bilinear_Texture(coolTexObj, rlog_T, rlog_n); // tex2D<float>(coolTexObj, rlog_T, rlog_n);

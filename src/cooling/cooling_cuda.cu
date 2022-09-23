@@ -9,7 +9,10 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../cooling/cooling_cuda.h"
+
+#ifdef CLOUDY_COOL
 #include "../cooling/texture_utilities.h"
+#endif
 
 extern cudaTextureObject_t coolTexObj;
 extern cudaTextureObject_t heatTexObj;
