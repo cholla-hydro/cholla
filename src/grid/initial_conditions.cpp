@@ -85,6 +85,8 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     Zeldovich_Pancake(P);
   } else if (strcmp(P.init, "Chemistry_Test")==0) {
     Chemistry_Test(P);
+  } else if (strcmp(P.init, "Iliev0")==0) {
+    Iliev0(P);
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
@@ -1618,6 +1620,51 @@ void Grid3D::Chemistry_Test( struct parameters P )
   chexit(-1);
   #endif //COSMOLOGY
 
+}
+
+
+void Grid3D::Iliev0( struct parameters P )
+{
+#if defined(RT) ///&& defined(CHEMISTRY_GPU)
+    Real rho = MP*1/DENSITY_UNIT;    // 1 per cc
+    Real U = 1.5*KB*100/ENERGY_UNIT; // 100 K
+
+    chprintf("rho=%g U=%g\n",rho,U);
+
+  int i, j, k, id;
+//  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
+//    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
+//      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
+  for (k=0; k<H.nz; k++) {
+    for (j=0; j<H.ny; j++) {
+      for (i=0; i<H.nx; i++) {
+
+        //get cell index
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        C.density[id] =  rho;
+        C.momentum_x[id] = 0;
+        C.momentum_y[id] = 0;
+        C.momentum_z[id] = 0;
+        C.Energy[id] = U;
+
+        #ifdef DE
+        C.GasEnergy[id] = U;
+        #endif
+
+        C.HI_density[id]    =  0.76 * rho * 1;
+        C.HII_density[id]   =  0.76 * rho * 1.0e-10;
+        C.HeI_density[id]   =  0.24 * rho * 1.0e-10;
+        C.HeII_density[id]  =  0.24 * rho * 1.0e-10;
+        C.HeIII_density[id] =  0.24 * rho * 1.0e-10;
+        //C.e_density[id]     =  rho * 1.0e-10;
+      }
+    }
+  }
+#else //defined(RT) && defined(CHEMISTRY_GPU)
+  chprintf( "This requires RT && CHEMISTRY_GPU turned on! \n");
+  chexit(-1);
+#endif //defined(RT) && defined(CHEMISTRY_GPU)
 }
 
 

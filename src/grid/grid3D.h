@@ -655,6 +655,8 @@ class Grid3D
 
     void Chemistry_Test( struct parameters P );
 
+    void Iliev0( struct parameters P );
+
 
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);

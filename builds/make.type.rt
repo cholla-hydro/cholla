@@ -1,7 +1,7 @@
 include builds/make.type.hydro
 
 # Turn on Radiative Transfer
-DFLAGS += -DRT -DSCALAR
+DFLAGS += -DRT -DSCALAR  -DCHEMISTRY_GPU
 
 # Output abundances
 DFLAGS += -DOUTPUT_CHEMISTRY
