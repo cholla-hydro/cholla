@@ -185,6 +185,7 @@
         * \param[in] deviceNum optional: which device is being targeted.
         * Defaults to zero
         */
+        typedef unsigned int uint;
         void reductionLaunchParams(uint &numBlocks,
                                    uint &threadsPerBlock,
                                    uint const &deviceNum=0);

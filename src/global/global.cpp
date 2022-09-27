@@ -3,12 +3,12 @@
 
 
 #include <math.h>
-#include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <set>
 #include <ctype.h>
+#include <chrono>
 #include "../global/global.h"
 #include "../io/io.h" //defines chprintf
 
@@ -40,9 +40,9 @@ void Set_Gammas(Real gamma_in)
  *  \brief Returns the current clock time. */
 double get_time(void)
 {
-  struct timeval timer;
-  gettimeofday(&timer,NULL);
-  return timer.tv_sec + 1.0e-6*timer.tv_usec;
+    static std::chrono::high_resolution_clock::time_point t0 = std::chrono::high_resolution_clock::now();
+    std::chrono::nanoseconds d = std::chrono::high_resolution_clock::now() - t0;
+    return (1.0e-9*d.count());
 }
 
 /*! \fn int sgn

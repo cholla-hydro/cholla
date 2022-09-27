@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\chemistry_gpu\chemistry_functions.cpp" />
+    <ClCompile Include="..\src\chemistry_gpu\chemistry_io.cpp" />
+    <ClCompile Include="..\src\global\global.cpp" />
+    <ClCompile Include="..\src\grid\boundary_conditions.cpp" />
+    <ClCompile Include="..\src\grid\grid3D.cpp" />
+    <ClCompile Include="..\src\grid\initial_conditions.cpp" />
+    <ClCompile Include="..\src\grid\mpi_boundaries.cpp" />
+    <ClCompile Include="..\src\io\io.cpp" />
+    <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\model\disk_ICs.cpp" />
+    <ClCompile Include="..\src\mpi\MPI_Comm_node.c" />
+    <ClCompile Include="..\src\mpi\mpi_routines.cpp" />
+    <ClCompile Include="..\src\radiation\radiation.cpp" />
+    <ClCompile Include="..\src\utils\cuda_utilities.cpp" />
+    <ClCompile Include="..\src\utils\error_handling.cpp" />
+    <ClCompile Include="..\src\utils\hydro_utilities.cpp" />
+    <ClCompile Include="..\src\utils\mhd_utilities.cpp" />
+    <ClCompile Include="..\src\utils\parallel_omp.cpp" />
+    <ClCompile Include="..\src\utils\timing_functions.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\chemistry_gpu\chemistry_gpu.h" />
+    <ClInclude Include="..\src\chemistry_gpu\rates.cuh" />
+    <ClInclude Include="..\src\chemistry_gpu\rates_Katz95.cuh" />
+    <ClInclude Include="..\src\global\global.h" />
+    <ClInclude Include="..\src\global\global_cuda.h" />
+    <ClInclude Include="..\src\grid\cuda_boundaries.h" />
+    <ClInclude Include="..\src\grid\grid3D.h" />
+    <ClInclude Include="..\src\hydro\hydro_cuda.h" />
+    <ClInclude Include="..\src\integrators\simple_1D_cuda.h" />
+    <ClInclude Include="..\src\integrators\simple_2D_cuda.h" />
+    <ClInclude Include="..\src\integrators\simple_3D_cuda.h" />
+    <ClInclude Include="..\src\integrators\VL_1D_cuda.h" />
+    <ClInclude Include="..\src\integrators\VL_2D_cuda.h" />
+    <ClInclude Include="..\src\integrators\VL_3D_cuda.h" />
+    <ClInclude Include="..\src\io\io.h" />
+    <ClInclude Include="..\src\model\disk_galaxy.h" />
+    <ClInclude Include="..\src\mpi\cuda_mpi_routines.h" />
+    <ClInclude Include="..\src\mpi\MPI_Comm_node.h" />
+    <ClInclude Include="..\src\mpi\mpi_routines.h" />
+    <ClInclude Include="..\src\radiation\radiation.h" />
+    <ClInclude Include="..\src\radiation\RT_functions.h" />
+    <ClInclude Include="..\src\reconstruction\pcm_cuda.h" />
+    <ClInclude Include="..\src\reconstruction\plmc_cuda.h" />
+    <ClInclude Include="..\src\reconstruction\plmp_cuda.h" />
+    <ClInclude Include="..\src\reconstruction\ppmc_cuda.h" />
+    <ClInclude Include="..\src\reconstruction\ppmp_cuda.h" />
+    <ClInclude Include="..\src\riemann_solvers\exact_cuda.h" />
+    <ClInclude Include="..\src\riemann_solvers\hllc_cuda.h" />
+    <ClInclude Include="..\src\riemann_solvers\hlld_cuda.h" />
+    <ClInclude Include="..\src\riemann_solvers\hll_cuda.h" />
+    <ClInclude Include="..\src\riemann_solvers\roe_cuda.h" />
+    <ClInclude Include="..\src\utils\cuda_utilities.h" />
+    <ClInclude Include="..\src\utils\error_check_cuda.h" />
+    <ClInclude Include="..\src\utils\error_handling.h" />
+    <ClInclude Include="..\src\utils\gpu.hpp" />
+    <ClInclude Include="..\src\utils\gpu_arrays_functions.h" />
+    <ClInclude Include="..\src\utils\hydro_utilities.h" />
+    <ClInclude Include="..\src\utils\mhd_utilities.h" />
+    <ClInclude Include="..\src\utils\parallel_omp.h" />
+    <ClInclude Include="..\src\utils\prng_utilities.h" />
+    <ClInclude Include="..\src\utils\ran.h" />
+    <ClInclude Include="..\src\utils\reduction_utilities.h" />
+    <ClInclude Include="..\src\utils\timing_functions.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\src\chemistry_gpu\chemistry_functions_gpu.cu" />
+    <CudaCompile Include="..\src\global\global_cuda.cu" />
+    <CudaCompile Include="..\src\grid\cuda_boundaries.cu" />
+    <CudaCompile Include="..\src\hydro\hydro_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\simple_1D_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\simple_2D_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\simple_3D_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\VL_1D_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\VL_2D_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\VL_3D_cuda.cu" />
+    <CudaCompile Include="..\src\mpi\cuda_mpi_routines.cu" />
+    <CudaCompile Include="..\src\radiation\RT_functions.cu" />
+    <CudaCompile Include="..\src\reconstruction\pcm_cuda.cu" />
+    <CudaCompile Include="..\src\reconstruction\plmc_cuda.cu" />
+    <CudaCompile Include="..\src\reconstruction\plmp_cuda.cu" />
+    <CudaCompile Include="..\src\reconstruction\ppmc_cuda.cu" />
+    <CudaCompile Include="..\src\reconstruction\ppmp_cuda.cu" />
+    <CudaCompile Include="..\src\riemann_solvers\exact_cuda.cu" />
+    <CudaCompile Include="..\src\riemann_solvers\hllc_cuda.cu" />
+    <CudaCompile Include="..\src\riemann_solvers\hlld_cuda.cu" />
+    <CudaCompile Include="..\src\riemann_solvers\hll_cuda.cu" />
+    <CudaCompile Include="..\src\riemann_solvers\roe_cuda.cu" />
+    <CudaCompile Include="..\src\utils\error_check_cuda.cu" />
+    <CudaCompile Include="..\src\utils\gpu_arrays_functions.cu" />
+    <CudaCompile Include="..\src\utils\reduction_utilities.cu" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C11D49FF-0FDE-4932-8094-653151AF2B45}</ProjectGuid>
+    <RootNamespace>cholla</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.7.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>RT;SCALAR;CHEMISTRY_GPU;CUDA;GIT_HASH="NNN";MACRO_FLAGS="NNN";MPI_CHOLLA;PRECISION=2;PPMC;HLLC;SIMPLE;DENSITY_FLOOR;TEMPERATURE_FLOOR;WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);C:\Program Files (x86)\Microsoft SDKs\MPI\Include</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4244;4101</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>msmpi.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(CudaToolkitLibDir);C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64</AdditionalLibraryDirectories>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.7.targets" />
+  </ImportGroup>
+</Project>

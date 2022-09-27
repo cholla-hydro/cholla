@@ -578,7 +578,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
 Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma )
 {
   // set values for GPU kernels
-  uint threadsPerBlock, numBlocks;
+  unsigned int threadsPerBlock, numBlocks;
   int ngrid = (nx*ny*nz + TPB - 1 )/TPB;
   // reduction_utilities::reductionLaunchParams(numBlocks, threadsPerBlock); // Uncomment this if we fix the AtomicDouble bug - Alwin
   threadsPerBlock = TPB;

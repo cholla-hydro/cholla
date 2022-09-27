@@ -47,6 +47,10 @@ typedef double Real;
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
 #define MAGNETIC_FIELD_UNIT (sqrt(MASS_UNIT/LENGTH_UNIT) / TIME_UNIT)
 
+#ifndef M_PI
+#define M_PI 3.141592653589793238462643383279
+#endif
+
 #define LOG_FILE_NAME "run_output.log"
 
 //Conserved Floor Values

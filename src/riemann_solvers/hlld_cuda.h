@@ -50,7 +50,7 @@
          * \brief Used for some comparisons. Value was chosen to match what is
          * used in Athena
          */
-        Real static const _hlldSmallNumber = 1.0e-8;
+        Real constexpr _hlldSmallNumber = 1.0e-8;
 
         /*!
          * \brief Compute the left, right, star, and middle wave speeds. Also

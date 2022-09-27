@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\io\io.cpp" />
+    <ClCompile Include="..\src\mpi\MPI_Comm_node.c" />
+    <ClCompile Include="..\src\mpi\mpi_routines.cpp" />
+    <ClCompile Include="..\src\radiation\radiation.cpp" />
+    <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\grid\boundary_conditions.cpp" />
+    <ClCompile Include="..\src\grid\grid3D.cpp" />
+    <ClCompile Include="..\src\grid\initial_conditions.cpp" />
+    <ClCompile Include="..\src\grid\mpi_boundaries.cpp" />
+    <ClCompile Include="..\src\utils\error_handling.cpp" />
+    <ClCompile Include="..\src\utils\cuda_utilities.cpp" />
+    <ClCompile Include="..\src\utils\hydro_utilities.cpp" />
+    <ClCompile Include="..\src\utils\mhd_utilities.cpp" />
+    <ClCompile Include="..\src\utils\parallel_omp.cpp" />
+    <ClCompile Include="..\src\utils\timing_functions.cpp" />
+    <ClCompile Include="..\src\model\disk_ICs.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\io\io.h" />
+    <ClInclude Include="..\src\mpi\cuda_mpi_routines.h" />
+    <ClInclude Include="..\src\mpi\MPI_Comm_node.h" />
+    <ClInclude Include="..\src\mpi\mpi_routines.h" />
+    <ClInclude Include="..\src\radiation\radiation.h" />
+    <ClInclude Include="..\src\radiation\RT_functions.h" />
+    <ClInclude Include="..\src\reconstruction\pcm_cuda.h" />
+    <ClInclude Include="..\src\reconstruction\plmc_cuda.h" />
+    <ClInclude Include="..\src\reconstruction\plmp_cuda.h" />
+    <ClInclude Include="..\src\reconstruction\ppmc_cuda.h" />
+    <ClInclude Include="..\src\reconstruction\ppmp_cuda.h" />
+    <ClInclude Include="..\src\riemann_solvers\exact_cuda.h" />
+    <ClInclude Include="..\src\riemann_solvers\hll_cuda.h" />
+    <ClInclude Include="..\src\riemann_solvers\hllc_cuda.h" />
+    <ClInclude Include="..\src\riemann_solvers\hlld_cuda.h" />
+    <ClInclude Include="..\src\riemann_solvers\roe_cuda.h" />
+    <ClInclude Include="..\src\grid\cuda_boundaries.h" />
+    <ClInclude Include="..\src\grid\grid3D.h" />
+    <ClInclude Include="..\src\utils\error_handling.h" />
+    <ClInclude Include="..\src\utils\cuda_utilities.h" />
+    <ClInclude Include="..\src\utils\error_check_cuda.h" />
+    <ClInclude Include="..\src\utils\gpu.hpp" />
+    <ClInclude Include="..\src\utils\gpu_arrays_functions.h" />
+    <ClInclude Include="..\src\utils\hydro_utilities.h" />
+    <ClInclude Include="..\src\utils\mhd_utilities.h" />
+    <ClInclude Include="..\src\utils\parallel_omp.h" />
+    <ClInclude Include="..\src\utils\prng_utilities.h" />
+    <ClInclude Include="..\src\utils\ran.h" />
+    <ClInclude Include="..\src\utils\reduction_utilities.h" />
+    <ClInclude Include="..\src\utils\timing_functions.h" />
+    <ClInclude Include="..\src\model\disk_galaxy.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\src\mpi\cuda_mpi_routines.cu" />
+    <CudaCompile Include="..\src\radiation\RT_functions.cu" />
+    <CudaCompile Include="..\src\reconstruction\pcm_cuda.cu" />
+    <CudaCompile Include="..\src\reconstruction\plmc_cuda.cu" />
+    <CudaCompile Include="..\src\reconstruction\plmp_cuda.cu" />
+    <CudaCompile Include="..\src\reconstruction\ppmc_cuda.cu" />
+    <CudaCompile Include="..\src\reconstruction\ppmp_cuda.cu" />
+    <CudaCompile Include="..\src\riemann_solvers\exact_cuda.cu" />
+    <CudaCompile Include="..\src\riemann_solvers\hll_cuda.cu" />
+    <CudaCompile Include="..\src\riemann_solvers\hllc_cuda.cu" />
+    <CudaCompile Include="..\src\riemann_solvers\hlld_cuda.cu" />
+    <CudaCompile Include="..\src\riemann_solvers\roe_cuda.cu" />
+    <CudaCompile Include="..\src\grid\cuda_boundaries.cu" />
+    <CudaCompile Include="..\src\utils\error_check_cuda.cu" />
+    <CudaCompile Include="..\src\utils\gpu_arrays_functions.cu" />
+    <CudaCompile Include="..\src\utils\reduction_utilities.cu" />
+  </ItemGroup>
+</Project>

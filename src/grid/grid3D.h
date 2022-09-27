@@ -43,7 +43,7 @@
 #endif
 
 #ifdef CHEMISTRY_GPU
-#include "chemistry_gpu/chemistry_gpu.h"
+#include "../chemistry_gpu/chemistry_gpu.h"
 #endif
 
 #ifdef ANALYSIS
