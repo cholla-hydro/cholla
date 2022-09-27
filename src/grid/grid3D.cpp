@@ -27,7 +27,7 @@
 #endif
 #include <stdio.h>
 #ifdef CLOUDY_COOL
-#include "../cooling/cooling_wrapper.h"
+#include "../cooling/load_cloudy_texture.h" // provides Load_Cuda_Textures and Free_Cuda_Textures
 #endif
 
 #ifdef PARALLEL_OMP
