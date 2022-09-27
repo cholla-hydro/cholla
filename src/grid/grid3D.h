@@ -838,6 +838,10 @@ class Grid3D
   #endif
   #endif
   #endif
+  
+  #ifdef COSMOLOGY
+  void Generate_Cosmological_Initial_Conditions( struct parameters *P );
+  #endif
 
 };
 

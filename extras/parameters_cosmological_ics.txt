@@ -1,0 +1,42 @@
+# Parameter File for the a Cosmological Simulation.
+######################################
+nx=256
+ny=256
+nz=256
+tout=1000
+outstep=1000
+gamma=1.66666667
+#init=Read_Grid
+init=Generate_Cosmological_ICs
+#Cosmological Parameters
+H0=67.66
+Omega_M=0.3111
+Omega_b=0.0497
+Omega_L=0.6889
+Init_redshift=100.0
+Init_temperature=282.023
+# domain properties
+xmin=0.0
+ymin=0.0
+zmin=0.0
+xlen=50000.0
+ylen=50000.0
+zlen=50000.0
+# type of boundary conditions
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
+cosmo_ics_random_seed=1234567
+cosmo_ics_pk_file=/home/brvillas/cholla/extras/input_power_spectrum_lcdm.txt
+outdir=/data/groups/comp-astro/bruno/cosmo_sims/cholla_ics/256_50Mpc/snapshot_files/
+scale_outputs_file=/home/brvillas/cholla/scale_output_files/outputs_cosmo_testing.txt
+UVB_rates_file=/home/brvillas/cholla/extras/uvb_rates_V22.txt
+#Analysis
+lya_skewers_stride=8
+lya_Pk_d_log_k=0.1
+analysis_scale_outputs_file=/home/bruno/cholla/scale_output_files/outputs_cosmo_analysis_56.txt
+analysisdir=/data/groups/comp-astro/bruno/cosmo_sims/cholla_ics/256_50Mpc/analysis_files/
+skewersdir=/data/groups/comp-astro/bruno/cosmo_sims/cholla_ics/256_50Mpc/skewers_files/

@@ -142,6 +142,8 @@ void parse_params (char *param_file, struct parameters * parms, int argc, char**
 #ifdef COSMOLOGY
 //Initialize file name as an empty string
 parms->scale_outputs_file[0] = '\0';
+parms->cosmo_ics_pk_file[0] = '\0';
+parms->cosmo_ics_random_seed = -1;
 #endif
 
 
@@ -334,6 +336,8 @@ void parse_param(char *name,char *value, struct parameters *parms){
     strncpy (parms->scale_outputs_file, value, MAXLEN);
   else if (strcmp(name, "Init_redshift")==0)
     parms->Init_redshift  = atof(value);
+  else if (strcmp(name, "Init_temperature")==0)
+    parms->Init_temperature  = atof(value);
   else if (strcmp(name, "End_redshift")==0)
     parms->End_redshift  = atof(value);
   else if (strcmp(name, "H0")==0)
@@ -344,6 +348,10 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->Omega_L  = atof(value);
   else if (strcmp(name, "Omega_b")==0)
     parms->Omega_b  = atof(value);
+  else if (strcmp(name, "cosmo_ics_pk_file")==0)
+    strncpy (parms->cosmo_ics_pk_file, value, MAXLEN);
+  else if (strcmp(name, "cosmo_ics_random_seed")==0)
+    parms->cosmo_ics_random_seed  = atoi(value);
 #endif //COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   else if (strcmp(name, "tile_length")==0)

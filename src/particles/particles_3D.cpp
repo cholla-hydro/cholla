@@ -189,11 +189,15 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   Initialize_Grid_Values();
 
   // Initialize Particles
-  if (strcmp(P->init, "Spherical_Overdensity_3D")==0) Initialize_Sphere(P);
-  else if (strcmp(P->init, "Zeldovich_Pancake")==0) Initialize_Zeldovich_Pancake( P );
-  else if (strcmp(P->init, "Read_Grid")==0)  Load_Particles_Data(  P );
+  if      (strcmp(P->init, "Spherical_Overdensity_3D")==0)  Initialize_Sphere(P);
+  else if (strcmp(P->init, "Zeldovich_Pancake")==0)    Initialize_Zeldovich_Pancake( P );
+  else if (strcmp(P->init, "Read_Grid")==0)            Load_Particles_Data(  P );
   else if (strcmp(P->init, "Disk_3D_particles") == 0)  Initialize_Disk_Stellar_Clusters(P);
-
+  else if (strcmp(P->init, "Generate_Cosmological_ICs") == 0){
+    chprintf( " Paricles initial conditions will be generated after Cosmology is initialized. \n");
+    return;
+  }
+  
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);
   #else

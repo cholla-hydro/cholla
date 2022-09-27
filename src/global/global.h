@@ -276,8 +276,11 @@ struct parameters
   Real Omega_L;
   Real Omega_b;
   Real Init_redshift;
+  Real Init_temperature;
   Real End_redshift;
   char scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations
+  char cosmo_ics_pk_file[MAXLEN]; //File for the power spectrum used to generate cosmological initial conditions
+  int cosmo_ics_random_seed; 
 #endif //COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   Real tile_length;

@@ -83,7 +83,7 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   Chem.H.photo_heat_HeI_rate_d  = Chem.Heat_rates_HeI_d;
   Chem.H.photo_heat_HeII_rate_d = Chem.Heat_rates_HeII_d;
   
-  chprintf( "Allocating Memory. \n\n");
+  chprintf( "Allocating Memory. \n");
   int n_cells = H.nx * H.ny * H.nz;
   Chem.Fields.temperature_h = (Real *) malloc(n_cells * sizeof(Real));
   
