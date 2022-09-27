@@ -40,8 +40,6 @@ __global__ void Get_Gravity_Field_Particles_Kernel(  Real *potential_dev, Real *
   nx_pot = nx + 2*n_ghost_potential;
   ny_pot = ny + 2*n_ghost_potential;
 
-  // if (tid == 0) printf( "potential: %f\n", potential_dev[tid]  );
-
   int nGHST = n_ghost_potential - n_ghost_particles_grid;
 
   Real phi_l, phi_r;
@@ -95,13 +93,6 @@ __global__ void Get_Gravity_Field_Particles_Kernel(  Real *potential_dev, Real *
   #else
   gravity_z_dev[tid] = -0.5 * ( phi_r - phi_l ) / dz;
   #endif
-  
-  /*
-  if (tid_x < 10 && tid_y == (ny_grav/2) && tid_z == (nz_grav/2)) {
-    printf("gravity_x_dev[%d, %d, %d] = %.4e\n", tid_x, tid_y, tid_z, gravity_x_dev[tid]);
-    //printf("analytic_d[%d, %d, %d] = %.4e\n", tid_x, tid_y, tid_z, analytic_d[tid]);
-  }
-  */
 }
 
 
@@ -132,13 +123,6 @@ void Particles_3D::Get_Gravity_Field_Particles_GPU_function( int nx_local, int n
 
   hipLaunchKernelGGL(Get_Gravity_Field_Particles_Kernel, dim3dGrid, dim3dBlock, 0, 0,  potential_dev, gravity_x_dev, gravity_y_dev, gravity_z_dev, nx_local, ny_local, nz_local, n_ghost_particles_grid, N_GHOST_POTENTIAL, dx, dy, dz );
   CudaCheckError();
-
-  /*
-  gpuFor(10, 
-    GPU_LAMBDA(const int i) {
-        printf("potential_final[%d, %d, %d] = %.4e\n", i, ny_g/2, nz_g/2, potential_dev[i + nx_g*ny_g/2 + nx_g*ny_g*nz_g/2]);
-    }
-  );*/
 }
 
 
@@ -255,19 +239,6 @@ __global__ void Get_Gravity_CIC_Kernel( part_int_t n_local, Real *gravity_x_dev,
   grav_y_dev[tid] = g_y;
   grav_z_dev[tid] = g_z;
 
-  /*
-  if (partIDs_dev[tid] == 15) {
-    //printf("    (g_x_bl, g_y_bl) (%.4e, %.4e)\n", g_x_bl, g_y_bl);
-    //printf("    (g_x_br, g_y_br) (%.4e, %.4e)\n", g_x_br, g_y_br);
-    //printf("    (g_x_bu, g_y_bu) (%.4e, %.4e)\n", g_x_bu, g_y_bu);
-    //printf("    (g_x_bru, g_y_bru) (%.4e, %.4e)\n", g_x_bru, g_y_bru);
-    //printf("    (g_x_tl, g_y_tl) (%.4e, %.4e)\n", g_x_tl, g_y_tl);
-    //printf("    (g_x_tr, g_y_tr) (%.4e, %.4e)\n", g_x_tr, g_y_tr);
-    //printf("    (g_x_tu, g_y_tu) (%.4e, %.4e)\n", g_x_tu, g_y_tu);
-    //printf("    (x, y) -> (%f, %f)\n", pos_x, pos_y);
-    //printf("    (g_x_tru, g_y_tru) (%.4e, %.4e)\n", g_x_tru, g_y_tru);
-    printf("    -------->ID 15: pos (%f, %f), grav (%.4e, %.4e)\n", pos_x, pos_y, g_x, g_y);
-  }*/
 }
 
 

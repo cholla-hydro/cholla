@@ -1,16 +1,20 @@
-#ifndef SUPERNOVA_H
-#define SUPERNOVA_H
-
-#include "../global/global.h" 
+#pragma once
 #ifdef PARTICLES_GPU
+
+#include "../global/global.h"
+#include "../analysis/feedback_analysis.h"
+#ifdef O_HIP
+#include <hiprand.h>
+#include <hiprand_kernel.h>
+#else
 #include <curand_kernel.h>
 #include <curand.h>
-#endif
+#endif //O_HIP
 
 
-namespace Supernova {
+namespace supernova {
      const int SN = 0, RESOLVED = 1, NOT_RESOLVED = 2, ENERGY = 3, MOMENTUM = 4, UNRES_ENERGY = 5;
-     
+
      // supernova rate: 1SN / 100 solar masses per 40^4 kyr
      static const Real SNR=2.5e-7;
      static const Real ENERGY_PER_SN  = 1e51 / MASS_UNIT*TIME_UNIT*TIME_UNIT/LENGTH_UNIT/LENGTH_UNIT;
@@ -20,17 +24,12 @@ namespace Supernova {
      static const Real R_SH   = 0.0302;         // 30.2 pc * n_0^{-0.46} -> eq.(31) Kim & Ostriker (2015)
      static const Real SN_ERA = 4.0e4;          // assume SN occur during first 40 Myr after cluster formation.
 
-     #ifdef PARTICLES_GPU
-     extern curandStateMRG32k3a_t*  curandStates;
+
+     extern curandStateMRG32k3a_t*  randStates;
      extern part_int_t n_states;
-
-     void initState(struct parameters *P, part_int_t n_local, Real allocation_factor = 1);
-     //void initState(struct parameters *P);
-
      extern Real t_buff, dt_buff;
 
-     #endif //PARTICLES_GPU
+     void initState(struct parameters *P, part_int_t n_local, Real allocation_factor = 1);
+     Real Cluster_Feedback(Grid3D& G, FeedbackAnalysis& sn_analysis);
 }
-
-
-#endif
+#endif //PARTICLES_GPU

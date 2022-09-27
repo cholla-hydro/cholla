@@ -89,6 +89,13 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   endif
 endif
 
+ifeq ($(findstring -DSUPERNOVA,$(DFLAGS)),-DSUPERNOVA)
+    ifdef HIPCONFIG
+	CXXFLAGS += -I$(ROCM_PATH)/include/hiprand -I$(ROCM_PATH)/hiprand/include
+	GPUFLAGS += -I$(ROCM_PATH)/include/hiprand -I$(ROCM_PATH)/hiprand/include
+    endif
+endif
+
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
   CXXFLAGS += -I$(HDF5_ROOT)/include
   GPUFLAGS += -I$(HDF5_ROOT)/include

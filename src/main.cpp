@@ -138,27 +138,15 @@ int main(int argc, char *argv[])
   #ifdef ANALYSIS
   G.Initialize_Analysis_Module(&P);
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
-  #ifdef SUPERNOVA
-  FeedbackAnalysis feedback_analysis(G);
-  #endif
   #endif
 
-  #ifdef SUPERNOVA  //TODO: refactor this: encapsulate init in a method
-  G.countSN = 0;
-  G.countResolved = 0;
-  G.countUnresolved = 0;
-  G.totalEnergy = 0;
-  G.totalMomentum = 0;
-  G.totalUnresEnergy = 0;
-  #ifdef PARTICLES_GPU
+  #ifdef SUPERNOVA
+  FeedbackAnalysis sn_analysis(G);
   #ifdef MPI_CHOLLA
-  Supernova::initState(&P, G.Particles.n_total_initial);
+  supernova::initState(&P, G.Particles.n_total_initial);
   #else
-  Supernova::initState(&P, G.Particles.n_local);
+  supernova::initState(&P, G.Particles.n_local);
   #endif // MPI_CHOLLA
-  #else // else we have PARTICLES_CPU
-  //Supernova::initState(&P); 
-  #endif // PARTICLES_GPU
   #endif // SUPERNOVA
 
   #ifdef STAR_FORMATION
@@ -238,7 +226,7 @@ int main(int argc, char *argv[])
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
 
     #ifdef SUPERNOVA
-    G.Cluster_Feedback();
+    supernova::Cluster_Feedback(G, sn_analysis);
     #endif //SUPERNOVA
 
     #ifdef PARTICLES
@@ -304,7 +292,7 @@ int main(int argc, char *argv[])
     #ifdef ANALYSIS
     if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
     #ifdef SUPERNOVA
-        feedback_analysis.Compute_Gas_Velocity_Dispersion(G);
+        sn_analysis.Compute_Gas_Velocity_Dispersion(G);
     #endif
     #endif
 

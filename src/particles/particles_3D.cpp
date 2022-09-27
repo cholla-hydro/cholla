@@ -703,8 +703,6 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
     temp_grav_y.push_back(0.0);
     temp_grav_z.push_back(0.0);
     temp_mass.push_back(cluster_mass);
-    //if (fabs(z) >= Z_d) age.push_back(1.1e4);
-    //else age.push_back(0.0);
     temp_age.push_back(0.0);
     temp_ids.push_back(id);
   }

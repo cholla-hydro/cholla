@@ -6,6 +6,7 @@
 #include "../mpi/mpi_routines.h"
 #endif 
 
+#define VRMS_CUTOFF_DENSITY 0.01*0.6*MP/DENSITY_UNIT
 
 FeedbackAnalysis::FeedbackAnalysis(Grid3D& G) {
   // allocate arrays
@@ -94,7 +95,7 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion(Grid3D& G) {
         id = i + j*G.H.nx + k*G.H.nx*G.H.ny;
         id_grav = (i + ghost_diff) + (j + ghost_diff)*nx_grav + (k + ghost_diff)*nx_grav*ny_grav;
 
-        if (G.C.density[id] < 148273.7) continue;  // in cgs, this is 0.01 cm^{-3}  FIXME put into a constant
+        if (G.C.density[id] < VRMS_CUTOFF_DENSITY) continue;  // in cgs, this is 0.01 cm^{-3}
 
         G.Get_Position(i, j, k, &x, &y, &z);
         r = sqrt(x*x + y*y);

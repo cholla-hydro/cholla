@@ -76,6 +76,10 @@ static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define cufftPlan3d hipfftPlan3d
 #define cufftPlanMany hipfftPlanMany
 
+#define curandStateMRG32k3a_t hiprandStateMRG32k3a_t
+#define curand_init hiprand_init
+#define curand_poisson hiprand_poisson
+
 static void __attribute__((unused)) check(const hipError_t err, const char *const file, const int line)
 {
   if (err == hipSuccess) return;

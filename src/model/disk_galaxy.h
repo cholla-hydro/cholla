@@ -1,6 +1,8 @@
 #ifndef DISK_GALAXY
 #define DISK_GALAXY
 
+#define SIMULATED_FRACTION 0.1
+
 #include <cmath>
 #include <iostream>
 #include <random>

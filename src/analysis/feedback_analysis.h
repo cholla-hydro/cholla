@@ -8,21 +8,19 @@
 class FeedbackAnalysis {
     
     Real *h_circ_vel_x, *h_circ_vel_y;
-    #ifdef PARTICLES_GPU
-    Real *d_circ_vel_x, *d_circ_vel_y;
-    #endif
 
     #ifdef PARTICLES_GPU
+    Real *d_circ_vel_x, *d_circ_vel_y;
     void Compute_Gas_Velocity_Dispersion_GPU(Grid3D& G);
     #endif
 
     public: 
-    int countSN;
-    int countResolved;
-    int countUnresolved;
-    Real totalEnergy;
-    Real totalMomentum;
-    Real totalUnresEnergy;
+    int  countSN          {0};
+    int  countResolved    {0};
+    int  countUnresolved  {0};
+    Real totalEnergy      {0};
+    Real totalMomentum    {0};
+    Real totalUnresEnergy {0};
 
     FeedbackAnalysis(Grid3D& G);
     ~FeedbackAnalysis();

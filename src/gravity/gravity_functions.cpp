@@ -656,7 +656,7 @@ void Grid3D::Setup_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy&
   int nz = Grav.nz_local + 2*N_GHOST_POTENTIAL;
 
   // the fraction of the disk that's not modelled (and so its analytic contribution must be added)
-  Real non_mod_frac = 0.9; //0.0; //1.0;
+  Real non_mod_frac = 1 - SIMULATED_FRACTION;
 
   int k, j, i, id;
   Real x_pos, y_pos, z_pos, R;
@@ -695,7 +695,7 @@ void Grid3D::Add_Analytic_Potential(int g_start, int g_end) {
     }
   }
 }
-#endif
+#endif //GRAVITY_ANALYTIC_COMP
 
 
 //Extrapolate the potential to obtain phi_n+1/2

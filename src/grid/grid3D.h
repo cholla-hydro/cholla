@@ -845,20 +845,6 @@ class Grid3D
   #endif//LYA_STATISTICS
   #endif//ANALYSIS
 
-  #ifdef PARTICLES
-  #ifdef DE
-  #ifdef PARTICLE_AGE
-  #ifdef SUPERNOVA
-  Real Cluster_Feedback();
-  Real Cluster_Feedback_GPU();
-  void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end, Real* info, int thread_id, Real* dti);
-  void Compute_Gas_Velocity_Dispersion();
-  Real Calc_Timestep(int index);
-  #endif
-  #endif
-  #endif
-  #endif
-
 };
 
 // typedef for Grid3D_PointerMemberFunction

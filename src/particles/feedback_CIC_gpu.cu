@@ -18,13 +18,14 @@
 #define i_MOMENTUM 4
 #define i_UNRES_ENERGY 5
 
-namespace Supernova {
-  curandStateMRG32k3a_t*  curandStates;
+namespace supernova {
+  curandStateMRG32k3a_t*  randStates;
   part_int_t n_states;
   Real t_buff, dt_buff;
 }
 
 
+#ifndef O_HIP
 __device__ double atomicMax(double* address, double val)
 {
   unsigned long long int* address_as_ull = (unsigned long long int*)address;
@@ -37,7 +38,7 @@ __device__ double atomicMax(double* address, double val)
   } while (assumed != old);
   return __longlong_as_double(old);
 }
-
+#endif //O_HIP
 
 __global__ void initState_kernel(unsigned int seed, curandStateMRG32k3a_t* states) {
     int id = blockIdx.x*blockDim.x + threadIdx.x;
@@ -50,54 +51,33 @@ __global__ void initState_kernel(unsigned int seed, curandStateMRG32k3a_t* state
  * @brief Initialize the cuRAND state, which is analogous to the concept of generators in CPU code.
  * The state object maintains configuration and status the cuRAND context for each thread on the GPU.
  * Initialize more than the number of local particles since the latter will change through MPI transfers.
- * 
- * @param n_local 
- * @param allocation_factor 
+ *
+ * @param n_local
+ * @param allocation_factor
  */
-void Supernova::initState(struct parameters *P, part_int_t n_local, Real allocation_factor) {
-  printf("Supernova::initState start\n");
+void supernova::initState(struct parameters *P, part_int_t n_local, Real allocation_factor) {
+  printf("supernova::initState start\n");
   t_buff = 0;
   dt_buff = 0;
   n_states = n_local*allocation_factor;
-  //n_states = 10;
-  cudaMalloc((void**) &curandStates, n_states*sizeof(curandStateMRG32k3a_t));
 
-  //int ngrid =  (n_states + TPB_PARTICLES - 1) / TPB_PARTICLES;
-  int ngrid =  (n_states + 64- 1) / 64;
+  cudaMalloc((void**) &randStates, n_states*sizeof(curandStateMRG32k3a_t));
 
+  int ngrid =  (n_states + TPB_FEEDBACK- 1) / TPB_FEEDBACK;
   dim3 grid(ngrid);
-  //dim3 block(TPB_PARTICLES);
-  dim3 block(64);
+  dim3 block(TPB_FEEDBACK);
 
-  printf("Supernova::initState: n_states=%d, ngrid=%d, threads=%d\n", n_states, ngrid, 64);
-  hipLaunchKernelGGL(initState_kernel, grid, block, 0, 0, P->prng_seed, curandStates);
+  hipLaunchKernelGGL(initState_kernel, grid, block, 0, 0, P->prng_seed, randStates);
   CHECK(cudaDeviceSynchronize());
-  printf("Supernova::initState end\n");
+  printf("supernova::initState end: n_states=%d, ngrid=%d, threads=%d\n", n_states, ngrid, TPB_FEEDBACK);
 }
-
-
-/*
-__device__ void Single_Cluster_Feedback(Real t, Real dt, Real age, Real density, Real* feedback, curandStateMRG32k3a_t* state) {
-  int N = 0;
-  if (t + age <= Supernova::SN_ERA) { 
-     N = curand_poisson (state, Supernova::SNR * dt);
-  }
-  Real n_0 = density * DENSITY_UNIT / (Supernova::MU*MP);  // in cm^{-3}
-
-  feedback[Supernova::NUMBER]       = N * 1.0;                                                    // number of SN 
-  feedback[Supernova::ENERGY]       = N * Supernova::ENERGY_PER_SN;                               // total energy
-  feedback[Supernova::MASS]         = N * Supernova::MASS_PER_SN;                                 // total mass
-  feedback[Supernova::MOMENTUM]     = Supernova::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(N, 0.93); // final momentum
-  feedback[Supernova::SHELL_RADIUS] = Supernova::R_SH * pow(n_0, -0.46) * pow(N, 0.29);           // shell formation radius
-}
-*/
 
 
 __device__ Real Calc_Timestep(Real gamma, Real *density, Real *momentum_x, Real *momentum_y, Real *momentum_z, Real *energy, int index, Real dx, Real dy, Real dz){
   Real dens = fmax(density[index], DENS_FLOOR);
   Real d_inv = 1.0 / dens;
   Real vx = momentum_x[index] * d_inv;
-  Real vy = momentum_y[index] * d_inv; 
+  Real vy = momentum_y[index] * d_inv;
   Real vz = momentum_z[index] * d_inv;
   Real P  = fmax((energy[index]- 0.5*dens*(vx*vx + vy*vy + vz*vz))*(gamma-1.0), TINY_NUMBER);
   Real cs = sqrt(gamma * P * d_inv);
@@ -137,12 +117,12 @@ __device__ Real GetAverageDensity(Real *density, int xi, int yi, int zi, int nxg
 
 
 __device__ Real GetAverageNumberDensity_CGS(Real *density, int xi, int yi, int zi, int nxg, int nyg, int ng) {
-  return GetAverageDensity(density, xi, yi, zi, nxg, nyg, ng) * DENSITY_UNIT / (Supernova::MU*MP);
+  return GetAverageDensity(density, xi, yi, zi, nxg, nyg, ng) * DENSITY_UNIT / (supernova::MU*MP);
 }
 
 
-__global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev, 
-  Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, 
+__global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev,
+  Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax,
   Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, Real t, Real dt, Real* dti, Real* info,
   Real* density, Real* gasEnergy, Real* energy, Real* momentum_x, Real* momentum_y, Real* momentum_z, Real gamma, curandStateMRG32k3a_t* states,
   Real* prev_dens, int* prev_N, short direction){
@@ -163,7 +143,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real
       Real cell_center_x, cell_center_y, cell_center_z;
       Real delta_x, delta_y, delta_z;
       Real x_frac, y_frac, z_frac;
-      Real px, py, pz, d; 
+      Real px, py, pz, d;
       //Real t_b, t_a, v_1, v_2, d_b, d_a, p_b, p_a, e;
       Real feedback_energy=0, feedback_density=0, feedback_momentum=0, n_0, shell_radius;
       bool is_resolved = false;
@@ -181,7 +161,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real
                       (pos_y >= yMin && pos_y < yMax) &&
                       (pos_z >= zMin && pos_z < zMax);
       if (!in_local) {
-          printf(" Feedback GPU: Particle outside local domain [%f  %f  %f]  [%f %f] [%f %f] [%f %f]\n ", 
+          printf(" Feedback GPU: Particle outside local domain [%f  %f  %f]  [%f %f] [%f %f] [%f %f]\n ",
                 pos_x, pos_y, pos_z, xMin, xMax, yMin, yMax, zMin, zMax);
       }
 
@@ -193,25 +173,25 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real
 
       bool ignore = indx_x < 0 || indx_y < 0 || indx_z < 0 || indx_x >= nx_g-2*n_ghost || indx_y >= ny_g-2*n_ghost || indx_z >= nz_g-2*n_ghost;
       if (ignore) {
-          printf(" Feedback GPU: Particle CIC index err [%f  %f  %f]  [%d %d %d] [%d %d %d] \n ", 
+          printf(" Feedback GPU: Particle CIC index err [%f  %f  %f]  [%d %d %d] [%d %d %d] \n ",
                 pos_x, pos_y, pos_z, indx_x, indx_y, indx_z, nx_g, ny_g, nz_g);
       }
 
       if (!ignore && in_local) {
 
         int N = 0;
-        if ((t - age_dev[gtid]) <= Supernova::SN_ERA) {
-          if (direction == -1) N = -prev_N[gtid]; 
+        if ((t - age_dev[gtid]) <= supernova::SN_ERA) {
+          if (direction == -1) N = -prev_N[gtid];
           else {
             curandStateMRG32k3a_t state = states[gtid];
-            N = curand_poisson (&state, Supernova::SNR * mass_dev[gtid] * dt);
+            N = curand_poisson (&state, supernova::SNR * mass_dev[gtid] * dt);
             states[gtid] = state;
             prev_N[gtid] = N;
           }
           if (N != 0) {
-            mass_dev[gtid]   -= N * Supernova::MASS_PER_SN; 
-            feedback_energy   = N * Supernova::ENERGY_PER_SN / dV;
-            feedback_density  = N * Supernova::MASS_PER_SN / dV;
+            mass_dev[gtid]   -= N * supernova::MASS_PER_SN;
+            feedback_energy   = N * supernova::ENERGY_PER_SN / dV;
+            feedback_density  = N * supernova::MASS_PER_SN / dV;
             if (direction == -1) n_0 = prev_dens[gtid];
             else {
               n_0 = GetAverageNumberDensity_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
@@ -223,15 +203,15 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real
             //cudaGetDevice(&devId);
             //printf("[%d: %d] N: %d, time: %.4e, dt: %.4e, e: %.4e, n_0: %.4e\n", devId, gtid, N, t, dt, feedback_energy, n_0);
 
-            feedback_momentum = direction*Supernova::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV;
-            shell_radius  = Supernova::R_SH * pow(n_0, -0.46) * pow(fabsf(N), 0.29);
-            is_resolved = 3 * max(dx, max(dy, dz)) <= shell_radius; 
+            feedback_momentum = direction*supernova::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV;
+            shell_radius  = supernova::R_SH * pow(n_0, -0.46) * pow(fabsf(N), 0.29);
+            is_resolved = 3 * max(dx, max(dy, dz)) <= shell_radius;
             if (!is_resolved) printf("UR[%f] at (%d, %d, %d)  id=%d, N=%d, shell_rad=%0.4e, n_0=%0.4e\n",
                                         t, indx_x + n_ghost, indx_y + n_ghost, indx_z + n_ghost, (int)id[gtid], N, shell_radius, n_0);
-      
+
             s_info[FEED_INFO_N*tid] = 1.*N;
             if (is_resolved) s_info[FEED_INFO_N*tid + 1] =  direction * 1.0;
-            else             s_info[FEED_INFO_N*tid + 2] =  direction * 1.0;  
+            else             s_info[FEED_INFO_N*tid + 2] =  direction * 1.0;
 
             int indx;
 
@@ -329,8 +309,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real
                     px =  x_frac * feedback_momentum;
                     py =  y_frac * feedback_momentum;
                     pz =  z_frac * feedback_momentum;
-                    //d = (abs(x_frac) + abs(y_frac) + abs(z_frac)) / 6 * (feedback_density + n_0*Supernova::MU*MP/DENSITY_UNIT);
-                    d = (abs(x_frac) + abs(y_frac) + abs(z_frac)) / 6 * feedback_density + n_0*Supernova::MU*MP/DENSITY_UNIT;
+                    d = (abs(x_frac) + abs(y_frac) + abs(z_frac)) / 6 * feedback_density + n_0*supernova::MU*MP/DENSITY_UNIT;
 
                     //d  = frac(i, delta_x) * frac(j, delta_y) * frac(k, delta_z) * feedback_density;
                     //e  = frac(i, delta_x) * frac(j, delta_y) * frac(k, delta_z) * feedback_energy;
@@ -401,7 +380,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real
               }
             }
             if (direction > 0) atomicMax(dti, local_dti);
-          } 
+          }
         }
       }
     }
@@ -432,12 +411,15 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real
 }
 
 
+Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis) {
+  #ifdef CPU_TIME
+  G.Timer.Feedback.Start();
+  #endif
 
-Real Grid3D::Cluster_Feedback_GPU() {
-  if (H.dt == 0) return 0.0;
+  if (G.H.dt == 0) return 0.0;
 
-  if (Particles.n_local > Supernova::n_states) {
-    printf("ERROR: not enough cuRAND states (%d) for %f local particles\n", Supernova::n_states, Particles.n_local );
+  if (G.Particles.n_local > supernova::n_states) {
+    printf("ERROR: not enough cuRAND states (%d) for %d local particles\n", supernova::n_states, G.Particles.n_local );
     exit(-1);
   }
 
@@ -451,29 +433,29 @@ Real Grid3D::Cluster_Feedback_GPU() {
   int*  d_prev_N;
 
 
-  if (Particles.n_local > 0) {
+  if (G.Particles.n_local > 0) {
     CHECK(cudaMalloc(&d_dti, sizeof(Real)));
     CHECK(cudaMemcpy(d_dti, &h_dti, sizeof(Real), cudaMemcpyHostToDevice));
-    CHECK(cudaMalloc(&d_prev_dens, Particles.n_local*sizeof(Real)));
-    CHECK(cudaMalloc(&d_prev_N, Particles.n_local*sizeof(int)));
-    CHECK(cudaMemset(d_prev_dens, 0, Particles.n_local*sizeof(Real)));
-    CHECK(cudaMemset(d_prev_N, 0, Particles.n_local*sizeof(int)));  
-  
-    ngrid = std::ceil((1.*Particles.n_local)/TPB_FEEDBACK);
+    CHECK(cudaMalloc(&d_prev_dens, G.Particles.n_local*sizeof(Real)));
+    CHECK(cudaMalloc(&d_prev_N, G.Particles.n_local*sizeof(int)));
+    CHECK(cudaMemset(d_prev_dens, 0, G.Particles.n_local*sizeof(Real)));
+    CHECK(cudaMemset(d_prev_N, 0, G.Particles.n_local*sizeof(int)));
+
+    ngrid = std::ceil((1.*G.Particles.n_local)/TPB_FEEDBACK);
     CHECK(cudaMalloc((void**)&d_info,  FEED_INFO_N*ngrid*sizeof(Real)));
   }
-  //FIXME info collection and max dti calculation 
-  // only works if ngrid is 1.  The reason being that reduction of 
-  // d_info is currently done on each block.  Only the first block reduction 
-  // is used 
+  // TODO: info collection and max dti calculation
+  // assumes ngrid is 1.  The reason being that reduction of
+  // d_info is currently done on each block.  Only the first block reduction
+  // is used
 
   do {
-    direction = 1; 
-    if (Particles.n_local > 0) {
-      hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0,  Particles.n_local, Particles.partIDs_dev, Particles.pos_x_dev, Particles.pos_y_dev, Particles.pos_z_dev,
-         Particles.mass_dev, Particles.age_dev, H.xblocal, H.yblocal, H.zblocal, H.xblocal_max, H.yblocal_max, H.zblocal_max, 
-         H.dx, H.dy, H.dz, H.nx, H.ny, H.nz, H.n_ghost, H.t, H.dt, d_dti, d_info,
-         C.d_density, C.d_GasEnergy, C.d_Energy, C.d_momentum_x, C.d_momentum_y, C.d_momentum_z, gama, Supernova::curandStates, d_prev_dens, d_prev_N, direction);
+    direction = 1;
+    if (G.Particles.n_local > 0) {
+      hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0,  G.Particles.n_local, G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
+         G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal, G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max,
+         G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti, d_info,
+         G.C.d_density, G.C.d_GasEnergy, G.C.d_Energy, G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, gama, supernova::randStates, d_prev_dens, d_prev_N, direction);
 
       CHECK(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
     }
@@ -483,22 +465,22 @@ Real Grid3D::Cluster_Feedback_GPU() {
     MPI_Barrier(world);
     #endif // MPI_CHOLLA
 
-    if (h_dti != 0 && (C_cfl/h_dti < H.dt)) {  // timestep too big: need to undo the last operation
+    if (h_dti != 0 && (C_cfl/h_dti < G.H.dt)) {  // timestep too big: need to undo the last operation
       direction = -1;
-      if (Particles.n_local > 0) {
-        hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0,  Particles.n_local, Particles.partIDs_dev, Particles.pos_x_dev, Particles.pos_y_dev, Particles.pos_z_dev,
-          Particles.mass_dev, Particles.age_dev, H.xblocal, H.yblocal, H.zblocal, H.xblocal_max, H.yblocal_max, H.zblocal_max, 
-          H.dx, H.dy, H.dz, H.nx, H.ny, H.nz, H.n_ghost, H.t, H.dt, d_dti, d_info,
-          C.d_density, C.d_GasEnergy, C.d_Energy, C.d_momentum_x, C.d_momentum_y, C.d_momentum_z, gama, Supernova::curandStates, d_prev_dens, d_prev_N, direction);
-     
-        CHECK(cudaDeviceSynchronize()); 
+      if (G.Particles.n_local > 0) {
+        hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0,  G.Particles.n_local, G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
+          G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal, G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max,
+          G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti, d_info,
+          G.C.d_density, G.C.d_GasEnergy, G.C.d_Energy, G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, gama, supernova::randStates, d_prev_dens, d_prev_N, direction);
+
+        CHECK(cudaDeviceSynchronize());
       }
-      H.dt = C_cfl/h_dti;
+      G.H.dt = C_cfl/h_dti;
     }
 
   } while (direction == -1);
 
-  if (Particles.n_local > 0) {
+  if (G.Particles.n_local > 0) {
     CHECK(cudaMemcpy(&h_info, d_info, FEED_INFO_N*sizeof(Real), cudaMemcpyDeviceToHost));
     CHECK(cudaFree(d_dti));
     CHECK(cudaFree(d_info));
@@ -512,30 +494,35 @@ Real Grid3D::Cluster_Feedback_GPU() {
   info = h_info;
   #endif
 
-  countSN += (int)info[Supernova::SN];
-  countResolved += (int)info[Supernova::RESOLVED];
-  countUnresolved += (int)info[Supernova::NOT_RESOLVED];
-  totalEnergy += info[Supernova::ENERGY];
-  totalMomentum += info[Supernova::MOMENTUM];
-  totalUnresEnergy += info[Supernova::UNRES_ENERGY];
+  analysis.countSN += (int)info[supernova::SN];
+  analysis.countResolved += (int)info[supernova::RESOLVED];
+  analysis.countUnresolved += (int)info[supernova::NOT_RESOLVED];
+  analysis.totalEnergy += info[supernova::ENERGY];
+  analysis.totalMomentum += info[supernova::MOMENTUM];
+  analysis.totalUnresEnergy += info[supernova::UNRES_ENERGY];
 
   Real resolved_ratio = 0.0;
-  if (info[Supernova::RESOLVED] > 0 || info[Supernova::NOT_RESOLVED] > 0) {
-    resolved_ratio = info[Supernova::RESOLVED]/(info[Supernova::RESOLVED] + info[Supernova::NOT_RESOLVED]);
+  if (info[supernova::RESOLVED] > 0 || info[supernova::NOT_RESOLVED] > 0) {
+    resolved_ratio = info[supernova::RESOLVED]/(info[supernova::RESOLVED] + info[supernova::NOT_RESOLVED]);
   }
   Real global_resolved_ratio = 0.0;
-  if (countResolved > 0 || countUnresolved > 0) {
-    global_resolved_ratio = countResolved / (countResolved + countUnresolved);
+  if (analysis.countResolved > 0 || analysis.countUnresolved > 0) {
+    global_resolved_ratio = analysis.countResolved / (analysis.countResolved + analysis.countUnresolved);
   }
 
-  chprintf("iteration %d: number of SN: %d, ratio of resolved %.3e\n", H.n_step, (long)info[Supernova::SN], resolved_ratio);
-  chprintf("    this iteration: energy: %.5e erg.  momentum: %.5e S.M. km/s  unres_energy: %.5e erg\n", 
-                info[Supernova::ENERGY]*MASS_UNIT*LENGTH_UNIT*LENGTH_UNIT/TIME_UNIT/TIME_UNIT, info[Supernova::MOMENTUM]*VELOCITY_UNIT/1e5,
-                info[Supernova::UNRES_ENERGY]*MASS_UNIT*LENGTH_UNIT*LENGTH_UNIT/TIME_UNIT/TIME_UNIT);
-  chprintf("    cummulative: #SN: %d, ratio of resolved (R: %d, UR: %d) = %.3e\n", (long)countSN, (long)countResolved, (long)countUnresolved, global_resolved_ratio);
-  chprintf("    energy: %.5e erg.  Total momentum: %.5e S.M. km/s, Total unres energy: %.5e\n", totalEnergy*MASS_UNIT*LENGTH_UNIT*LENGTH_UNIT/TIME_UNIT/TIME_UNIT, 
-                    totalMomentum*VELOCITY_UNIT/1e5, totalUnresEnergy*MASS_UNIT*LENGTH_UNIT*LENGTH_UNIT/TIME_UNIT/TIME_UNIT);
-  
+  chprintf("iteration %d: number of SN: %d, ratio of resolved %.3e\n", G.H.n_step, (long)info[supernova::SN], resolved_ratio);
+  chprintf("    this iteration: energy: %.5e erg.  momentum: %.5e S.M. km/s  unres_energy: %.5e erg\n",
+                info[supernova::ENERGY]*MASS_UNIT*LENGTH_UNIT*LENGTH_UNIT/TIME_UNIT/TIME_UNIT, info[supernova::MOMENTUM]*VELOCITY_UNIT/1e5,
+                info[supernova::UNRES_ENERGY]*MASS_UNIT*LENGTH_UNIT*LENGTH_UNIT/TIME_UNIT/TIME_UNIT);
+  chprintf("    cummulative: #SN: %d, ratio of resolved (R: %d, UR: %d) = %.3e\n", (long)analysis.countSN, (long)analysis.countResolved,
+                (long)analysis.countUnresolved, global_resolved_ratio);
+  chprintf("    energy: %.5e erg.  Total momentum: %.5e S.M. km/s, Total unres energy: %.5e\n",
+                analysis.totalEnergy*MASS_UNIT*LENGTH_UNIT*LENGTH_UNIT/TIME_UNIT/TIME_UNIT, analysis.totalMomentum*VELOCITY_UNIT/1e5,
+                analysis.totalUnresEnergy*MASS_UNIT*LENGTH_UNIT*LENGTH_UNIT/TIME_UNIT/TIME_UNIT);
+
+  #ifdef CPU_TIME
+  G.Timer.Feedback.End();
+  #endif
 
   return h_dti;
 }
