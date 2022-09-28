@@ -185,7 +185,7 @@ clean:
 	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)*" -exec rm -f '{}' \;
 
 clobber: clean
-	find bin/ -type f -executable -name "cholla*" -exec rm -f '{}' \;
+	-find bin/ -type f -executable -name "cholla*" -exec rm -f '{}' \;
 	-find bin/ -type d -name "t*" -prune -exec rm -rf '{}' \;
 	rm -rf bin/cholla.*tests*.xml
 
