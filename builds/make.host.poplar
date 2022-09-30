@@ -7,6 +7,7 @@ CFLAGS_DEBUG      = -g -O0 ${F_OFFLOAD}
 CFLAGS_OPTIMIZE   = -Ofast ${F_OFFLOAD}
 CXXFLAGS_DEBUG    = -g -O0 -std=c++17 ${F_OFFLOAD}
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++17 ${F_OFFLOAD}
+
 GPUFLAGS          = --offload-arch=gfx906,gfx908
 HIPCONFIG         = $(shell hipconfig -C)
 
