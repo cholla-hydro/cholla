@@ -6,7 +6,6 @@ CXX               = CC
 
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -g -O2
-
 CXXFLAGS_DEBUG    = -g -O0 -std=c++17
 CXXFLAGS_OPTIMIZE = -g -Ofast -std=c++17
 
