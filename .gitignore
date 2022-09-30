@@ -1,6 +1,5 @@
 # Files specific to this repo #
 ##############################
-cholla*
 googletest*
 
 # Compiled source #
@@ -24,7 +23,7 @@ makefile.summit
 *.o
 
 ##executable
-cholla*
+cholla.*
 
 ## input files
 #parameter_file.txt
