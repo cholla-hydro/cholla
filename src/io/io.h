@@ -1,5 +1,4 @@
-#ifndef IO_CHOLLA_H
-#define IO_CHOLLA_H
+#pragma once
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
@@ -29,4 +28,6 @@ void Create_Log_File( struct parameters P );
 void Write_Message_To_Log_File( const char* message );
 
 void write_debug ( Real *Value, const char *fname, int nValues, int iProc );
-#endif /*IO_CHOLLA_H*/
+
+// From io/viz.cu
+void OutputViz3D(Grid3D &G, struct parameters P, int nfile);
