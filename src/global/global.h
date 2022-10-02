@@ -204,6 +204,8 @@ struct parameters
   int n_projection;
   int n_rotated_projection;
   int n_slice;
+  int n_outviz=0;
+  int outviz_density=0;
   Real xmin;
   Real ymin;
   Real zmin;

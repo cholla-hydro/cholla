@@ -72,7 +72,7 @@ void Write_Message_To_Log_File( const char* message ){
     out_file.close();
 }
 
-/* Write the initial conditions */
+/* Write Cholla Output Data */
 void WriteData(Grid3D &G, struct parameters P, int nfile)
 {
 
@@ -109,6 +109,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   if (nfile % P.n_hydro == 0) OutputData(G,P,nfile);
   #endif
 
+  // This function does other checks to make sure it is valid (3D only)
+  #ifdef HDF5
+  if (P.n_outviz && nfile % P.n_outviz == 0) OutputViz3D(G,P,nfile);
+  #endif
+  
   #ifdef PROJECTION
   if (nfile % P.n_projection == 0) OutputProjectedData(G,P,nfile);
   #endif /*PROJECTION*/

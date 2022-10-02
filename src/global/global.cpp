@@ -223,6 +223,10 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->n_rotated_projection = atoi(value);
   else if (strcmp(name, "n_slice")==0)
     parms->n_slice = atoi(value);
+  else if (strcmp(name, "n_outviz")==0)
+    parms->n_outviz = atoi(value);
+  else if (strcmp(name, "outviz_density")==0)
+    parms->outviz_density = atoi(value);
   else if (strcmp(name, "xmin")==0)
     parms->xmin = atof(value);
   else if (strcmp(name, "ymin")==0)
@@ -366,7 +370,7 @@ void parse_param(char *name,char *value, struct parameters *parms){
 #ifdef CHEMISTRY_GPU
     else if (strcmp(name, "UVB_rates_file")==0)
       strncpy (parms->UVB_rates_file, value, MAXLEN);
-#endif  
+#endif
 #ifdef COOLING_GRACKLE
   else if (strcmp(name, "UVB_rates_file")==0)
     strncpy (parms->UVB_rates_file, value, MAXLEN);
