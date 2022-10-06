@@ -30,4 +30,9 @@ void Write_Message_To_Log_File( const char* message );
 void write_debug ( Real *Value, const char *fname, int nValues, int iProc );
 
 // From io/viz.cu
+
 void OutputViz3D(Grid3D &G, struct parameters P, int nfile);
+
+// Use GPU to pack source -> device_buffer, then copy device_buffer -> buffer, then write HDF5 field 
+void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id, float* buffer, float* device_buffer, Real* source, const char* name);
+void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id, double* buffer, double* device_buffer, Real* source, const char* name);  
