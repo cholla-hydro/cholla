@@ -35,10 +35,11 @@ ifeq ($(TEST), true)
   CPPFILES  := $(filter-out src/main.cpp,$(CPPFILES))
   LIBS      += -L$(GOOGLETEST_ROOT)/lib64 -pthread -lgtest -lhdf5_cpp
   TEST_FLAGS = -I$(GOOGLETEST_ROOT)/include
-  CFLAGS   = $(TEST_FLAGS)
-  CXXFLAGS = $(TEST_FLAGS)
-  GPUFLAGS = $(TEST_FLAGS)
+  CFLAGS   += $(TEST_FLAGS)
+  CXXFLAGS += $(TEST_FLAGS)
+  GPUFLAGS += $(TEST_FLAGS)
 
+  # HACK
   # Set the build flags to debug. This is mostly to avoid the approximations
   # made by Ofast which break std::isnan and std::isinf which are required for
   # the testing
@@ -59,9 +60,18 @@ OBJS     := $(subst .c,.o,$(CFILES)) \
 CC                ?= cc
 CXX               ?= CC
 
-CFLAGS_OPTIMIZE   ?= -Ofast
-CXXFLAGS_OPTIMIZE ?= -Ofast -std=c++14
-GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++14
+CFLAGS_OPTIMIZE   ?= -g -Ofast
+CXXFLAGS_OPTIMIZE ?= -g -Ofast -std=c++17
+GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++17
+
+CFLAGS_DEBUG      ?= -g -O0
+CXXFLAGS_DEBUG    ?= -g -O0 -std=c++17
+ifdef HIPCONFIG
+  GPUFLAGS_DEBUG    ?= -g -O0 -std=c++17
+else
+  GPUFLAGS_DEBUG    ?= -g -G -cudart shared -O0 -std=c++17 -ccbin=mpicxx
+endif
+
 BUILD             ?= OPTIMIZE
 
 CFLAGS            += $(CFLAGS_$(BUILD))
@@ -182,7 +192,7 @@ clean:
 	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)*" -exec rm -f '{}' \;
 
 clobber: clean
-	find . -type f -executable -name "cholla*" -exec rm -f '{}' \;
+	-find bin/ -type f -executable -name "cholla*" -exec rm -f '{}' \;
 	-find bin/ -type d -name "t*" -prune -exec rm -rf '{}' \;
 	rm -rf bin/cholla.*tests*.xml
 

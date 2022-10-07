@@ -10,8 +10,12 @@
 #include "../global/global_cuda.h"
 #include "../cooling/cooling_cuda.h"
 
-extern texture<float, 2, cudaReadModeElementType> coolTexObj;
-extern texture<float, 2, cudaReadModeElementType> heatTexObj;
+#ifdef CLOUDY_COOL
+#include "../cooling/texture_utilities.h"
+#endif
+
+cudaTextureObject_t coolTexObj = 0;
+cudaTextureObject_t heatTexObj = 0;
 
 void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma){
 
@@ -19,15 +23,15 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
   int ngrid = (n_cells + TPB - 1) / TPB;
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama);
+  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, coolTexObj, heatTexObj);
   CudaCheckError();  
 }
 
 
-/*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
+/*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
 {
 
   int n_cells = nx*ny*nz;
@@ -107,7 +111,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T = T_init;
     // call the cooling function
     #ifdef CLOUDY_COOL
-    cool = Cloudy_cool(n, T);
+    cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
     #else
     cool = CIE_cool(n, T);
     #endif
@@ -125,7 +129,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       dt -= dt_sub;
       // calculate cooling again
       #ifdef CLOUDY_COOL
-      cool = Cloudy_cool(n, T);
+      cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
       #else
       cool = CIE_cool(n, T);
       #endif
@@ -145,7 +149,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
     // calculate cooling rate for new T
     #ifdef CLOUDY_COOL
-    cool = Cloudy_cool(n, T);
+    cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
     #else
     cool = CIE_cool(n, T);
     //printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
@@ -323,10 +327,10 @@ __device__ Real CIE_cool(Real n, Real T)
 
 
 #ifdef CLOUDY_COOL
-/* \fn __device__ Real Cloudy_cool(Real n, Real T)
+/* \fn __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
  * \brief Uses texture mapping to interpolate Cloudy cooling/heating
           tables at z = 0 with solar metallicity and an HM05 UV background. */
-__device__ Real Cloudy_cool(Real n, Real T)
+__device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
 {
   Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
   Real H = 0.0; //heating rate, erg s^-1 cm^3
@@ -336,19 +340,24 @@ __device__ Real Cloudy_cool(Real n, Real T)
   log_T = log10(T);
 
   // remap coordinates for texture
-  log_T = (log_T - 1.0)/8.1;
-  log_n = (log_n + 6.0)/12.1;
+  // remapped = (input - TABLE_MIN_VALUE)*(1/TABLE_SPACING)
+  // remapped = (input - TABLE_MIN_VALUE)*(NUM_CELLS_PER_DECADE)  
+  log_T = (log_T - 1.0)*10;
+  log_n = (log_n + 6.0)*10;
 
+  // Note: although the cloudy table columns are n,T,L,H , T is the fastest variable so it is treated as "x"
+  // This is why the Texture calls are T first, then n: Bilinear_Texture(tex, log_T, log_n) 
+  
   // don't cool below 10 K
   if (log10(T) > 1.0) {
-  lambda = tex2D<float>(coolTexObj, log_T, log_n);
+    lambda = Bilinear_Texture(coolTexObj, log_T, log_n);
   }
   else lambda = 0.0;
-  H = tex2D<float>(heatTexObj, log_T, log_n);
+  H = Bilinear_Texture(heatTexObj, log_T, log_n);
 
   // cooling rate per unit volume
   cool = n*n*(powf(10, lambda) - powf(10, H));
-
+  // printf("DEBUG Cloudy L350: %.17e\n",cool);
   return cool;
 }
 #endif //CLOUDY_COOL

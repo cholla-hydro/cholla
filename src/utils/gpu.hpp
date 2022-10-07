@@ -66,6 +66,31 @@ static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define cudaPointerAttributes hipPointerAttribute_t
 #define cudaPointerGetAttributes hipPointerGetAttributes
 
+// Texture definitions
+#define cudaArray hipArray
+#define cudaMallocArray hipMallocArray 
+#define cudaFreeArray hipFreeArray
+#define cudaMemcpyToArray hipMemcpyToArray
+#define cudaMemcpy2DToArray hipMemcpy2DToArray
+
+
+#define cudaTextureObject_t hipTextureObject_t
+#define cudaCreateTextureObject hipCreateTextureObject
+#define cudaDestroyTextureObject hipDestroyTextureObject
+
+#define cudaChannelFormatDesc hipChannelFormatDesc
+#define cudaCreateChannelDesc hipCreateChannelDesc
+#define cudaChannelFormatKindFloat hipChannelFormatKindFloat
+
+#define cudaResourceDesc hipResourceDesc
+#define cudaResourceTypeArray hipResourceTypeArray
+#define cudaTextureDesc hipTextureDesc
+#define cudaAddressModeClamp hipAddressModeClamp
+#define cudaFilterModeLinear hipFilterModeLinear
+#define cudaFilterModePoint hipFilterModePoint 
+// Texture Definitions
+
+// FFT definitions
 #define cufftDestroy hipfftDestroy
 #define cufftDoubleComplex hipfftDoubleComplex
 #define cufftDoubleReal hipfftDoubleReal
