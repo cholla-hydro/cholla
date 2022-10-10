@@ -58,7 +58,7 @@ jobs:
     steps:
 
     # Install required Tools
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     # Show versions
     - name: Show MPI version
