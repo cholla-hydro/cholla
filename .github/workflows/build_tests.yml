@@ -12,10 +12,6 @@ jobs:
       Build
       ${{ matrix.container.name }}
       TYPE=${{ matrix.make-type }}
-
-    # Cuda-toolkit:v${{ matrix.cuda-toolkit-version }}
-    # GCC:v${{ matrix.gcc-version }}
-    # ROCm:v${{ matrix.rocm-version }}
     # if: ${{ false }}  # If uncommented this line will disable this job
 
     # Choose OS/Runner
@@ -31,20 +27,6 @@ jobs:
       matrix:
         make-type: [hydro, gravity, disk, particles, cosmology, mhd]
         container: [{name: "CUDA", link: "docker://alwinm/cholla:cuda_github"}, {name: "HIP",link: "docker://alwinm/cholla:hip_github"},]
-        # gpu-api: [CUDA]
-        # NOTE: if more than one parameter is in any of these three variables
-        # you need to manually exclude it for the GPU API that doesn't use it.
-        # An example exclude is shown below but commented out. Uncomment and
-        # tweak it to fit your needs
-        # CUDA uses the cuda-toolkit-version and gcc-version
-        # HIP uses the clang-version
-        # cuda-toolkit-version: ['11.2.2']
-        # gcc-version: [9]
-        # rocm-version: ['5.1.0']
-        mpi: ['openmpi'] #Can use mpich and/or openmpi
-        # exclude:
-        #   - gpu-api: HIP
-        #     make-type: hydro
 
     # Setup environment variables
     env:
