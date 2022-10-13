@@ -272,11 +272,6 @@ void Grid3D::Extrapolate_Grav_Potential_GPU(){
   dim3 dim3dBlock(tpb_x, tpb_y, tpb_z);
 
   hipLaunchKernelGGL(Extrapolate_Grav_Potential_Kernel, dim3dGrid, dim3dBlock, 0, 0, C.d_Grav_potential, Grav.F.potential_d, Grav.F.potential_1_d, nx_pot, ny_pot, nz_pot, nx_grid, ny_grid, nz_grid, n_offset, dt_now, dt_prev, Grav.INITIAL, cosmo_factor );
-  /*gpuFor(10, 
-    GPU_LAMBDA(const int i) {
-        printf("extrapolated potential[%d, %d, %d] = %.4e\n", i, ny_pot/2, nz_pot/2, C.d_Grav_potential[i + nx_pot*ny_pot/2 + nx_pot*ny_pot*nz_pot/2]);
-    }
-  );*/
 
 }
 
