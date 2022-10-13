@@ -103,14 +103,13 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion(Grid3D& G) {
         vcp = sqrt(r*fabs(G.Particles.G.gravity_x[id_grav]*x/r +  G.Particles.G.gravity_y[id_grav]*y/r));
         vcxp =  -y/r * vcp;
         vcyp =   x/r * vcp;
-        //auto [vcx, vcy] = Galaxies::MW.rotation_velocity(x, y);
         vx =  G.C.momentum_x[id]/ G.C.density[id];
         vy =  G.C.momentum_y[id]/ G.C.density[id];
         vz =  G.C.momentum_z[id]/ G.C.density[id];
 
         partial_var_poisson  += ((vx - vcxp)*(vx - vcxp) + (vy - vcyp)*(vy - vcyp) + vz*vz)* G.C.density[id];
-        partial_var_analytic += (  (vx - circ_vel_x_h[id])*(vx - circ_vel_x_h[id]) + 
-                                   (vy - circ_vel_y_h[id])*(vy - circ_vel_y_h[id]) +
+        partial_var_analytic += (  (vx - h_circ_vel_x[id])*(vx - h_circ_vel_x[id]) + 
+                                   (vy - h_circ_vel_y[id])*(vy - h_circ_vel_y[id]) +
                                    (vz*vz)
                                 )* G.C.density[id];
       }

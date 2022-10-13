@@ -1,5 +1,5 @@
 #pragma once
-#ifdef PARTICLES_GPU
+#if defined(PARTICLES_GPU) && defined(SUPERNOVA)
 
 #include "../global/global.h"
 #include "../analysis/feedback_analysis.h"
@@ -32,4 +32,4 @@ namespace supernova {
      void initState(struct parameters *P, part_int_t n_local, Real allocation_factor = 1);
      Real Cluster_Feedback(Grid3D& G, FeedbackAnalysis& sn_analysis);
 }
-#endif //PARTICLES_GPU
+#endif //PARTICLES_GPU && SUPERNOVA

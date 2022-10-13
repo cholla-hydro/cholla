@@ -74,11 +74,10 @@ void Grav3D::Initialize( Real x_min, Real y_min, Real z_min, Real x_max, Real y_
 
   //Set the Gravitational Constant ( units must be consistent )
   Gconst = GN;
-  /*
   if (strcmp(P->init, "Spherical_Overdensity_3D")==0){
     Gconst = 1;
     chprintf(" WARNING: Using Gravitational Constant G=1.\n");
-  }*/
+  }
 
   //Flag to transfer the Potential boundaries
   TRANSFER_POTENTIAL_BOUNDARIES = false;

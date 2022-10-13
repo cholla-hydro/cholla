@@ -1,4 +1,4 @@
-#if defined(SUPERNOVA) && defined(PARTICLES_GPU)
+#if defined(SUPERNOVA) && defined(PARTICLES_GPU) && defined(PARTICLE_AGE) && defined(PARTICLE_IDS)
 
 #include <unistd.h>
 #include <stdio.h>
@@ -528,4 +528,4 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis) {
 }
 
 
-#endif //SUPERNOVA & PARTICLES_GPU
+#endif //SUPERNOVA & PARTICLES_GPU & PARTICLE_IDS & PARTICLE_AGE

@@ -140,14 +140,14 @@ int main(int argc, char *argv[])
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   #endif
 
-  #ifdef SUPERNOVA
+  #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
   FeedbackAnalysis sn_analysis(G);
   #ifdef MPI_CHOLLA
   supernova::initState(&P, G.Particles.n_total_initial);
   #else
   supernova::initState(&P, G.Particles.n_local);
   #endif // MPI_CHOLLA
-  #endif // SUPERNOVA
+  #endif // SUPERNOVA && PARTICLE_AGE
 
   #ifdef STAR_FORMATION
   star_formation::Initialize(G);
@@ -225,9 +225,9 @@ int main(int argc, char *argv[])
 
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
 
-    #ifdef SUPERNOVA
+    #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
     supernova::Cluster_Feedback(G, sn_analysis);
-    #endif //SUPERNOVA
+    #endif //SUPERNOVA && PARTICLE_AGE
 
     #ifdef PARTICLES
     //Advance the particles KDK( first step ): Velocities are updated by 0.5*dt and positions are updated by dt
@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
 
     #ifdef ANALYSIS
     if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
-    #ifdef SUPERNOVA
+    #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
         sn_analysis.Compute_Gas_Velocity_Dispersion(G);
     #endif
     #endif

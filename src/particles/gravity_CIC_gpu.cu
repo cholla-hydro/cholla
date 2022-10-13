@@ -134,7 +134,7 @@ __device__ void Get_Indexes_CIC_Gravity( Real xMin, Real yMin, Real zMin, Real d
 }
 
 //Kernel to compute the gravitational field at the particles positions via Cloud-In-Cell
-__global__ void Get_Gravity_CIC_Kernel( part_int_t n_local, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev,  Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx, int ny, int nz, int n_ghost, part_int_t *partIDs_dev  ){
+__global__ void Get_Gravity_CIC_Kernel( part_int_t n_local, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev,  Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx, int ny, int nz, int n_ghost){
 
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x ;
 
@@ -243,7 +243,7 @@ __global__ void Get_Gravity_CIC_Kernel( part_int_t n_local, Real *gravity_x_dev,
 
 
 //Call the kernel to compote the gravitational field at the particles positions ( CIC )
-void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin,  Real zMax, Real dx, Real dy, Real dz,   Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev,  Real *grav_y_dev,  Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev, part_int_t *partIDs_dev ){
+void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin,  Real zMax, Real dx, Real dy, Real dz,   Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev,  Real *grav_y_dev,  Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev){
 
   // set values for GPU kernels
   int ngrid =  (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -257,7 +257,7 @@ void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_loca
     hipLaunchKernelGGL(Get_Gravity_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, gravity_x_dev,
             gravity_y_dev, gravity_z_dev, pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev,
             xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local,
-            n_ghost_particles_grid, partIDs_dev );
+            n_ghost_particles_grid);
     CudaCheckError();
   }
 

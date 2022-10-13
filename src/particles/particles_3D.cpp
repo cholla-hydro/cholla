@@ -192,7 +192,9 @@ void Particles_3D::Initialize( struct parameters *P, Grav3D &Grav,  Real xbound,
   if (strcmp(P->init, "Spherical_Overdensity_3D")==0) Initialize_Sphere(P);
   else if (strcmp(P->init, "Zeldovich_Pancake")==0) Initialize_Zeldovich_Pancake( P );
   else if (strcmp(P->init, "Read_Grid")==0)  Load_Particles_Data(  P );
+  #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
   else if (strcmp(P->init, "Disk_3D_particles") == 0)  Initialize_Disk_Stellar_Clusters(P);
+  #endif
 
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);
@@ -624,6 +626,7 @@ void Particles_3D::Initialize_Sphere(struct parameters *P){
 }
 
 
+#if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
 /**
  *   Initializes a disk population of uniform mass stellar clusters
  */
@@ -767,6 +770,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P) {
   if (lost_particles > 0) chprintf("  lost %lu particles\n", lost_particles);
   chprintf( "Stellar Disk Particles Initialized, n_total: %lu, n_local: %lu, total_mass: %.3e s.m.\n", id+1, n_local, total_mass);
 }
+#endif
 
 
 void Particles_3D::Initialize_Zeldovich_Pancake( struct parameters *P ){
