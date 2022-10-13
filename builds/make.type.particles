@@ -1,12 +1,12 @@
 include builds/make.type.gravity
 
-#Include Particles 
+#Include Particles
 DFLAGS += -DPARTICLES
 
 
 #Solve the particles in the GPU or CPU
-#NOTE: If using PARTICLES and MPI_GPU is turned on, then PARTICLES_GPU has to be turned on 
-# DFLAGS += -DPARTICLES_CPU
+#NOTE: If using PARTICLES and MPI_GPU is turned on, then PARTICLES_GPU has to be turned on
+#DFLAGS += -DPARTICLES_CPU
 DFLAGS += -DPARTICLES_GPU
 
 
@@ -14,15 +14,16 @@ DFLAGS += -DPARTICLES_GPU
 # DFLAGS += -DONLY_PARTICLES
 
 
-#Track Particles IDs and write them to the output files
-# DFLAGS += -DPARTICLE_IDS
+# Track Particles IDs and write them to the output files
+DFLAGS += -DPARTICLE_IDS
 
 
-#Track Particles Ages ( Stellar Populations )
+# Track Particle Ages ( Stellar Populations )
 # DFLAGS += -DPARTICLE_AGE
 
 
-#All the particles have the same mass, if turned off particles masses have to be speciffied
+# All the particles have the same mass by default
+# if turned off particle masses have to be specified
 DFLAGS += -DSINGLE_PARTICLE_MASS
 
 

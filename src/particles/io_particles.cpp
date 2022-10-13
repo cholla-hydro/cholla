@@ -17,7 +17,7 @@
 #include "../mpi/mpi_routines.h"
 #endif
 
-#define OUTPUT_PARTICLES_DATA
+// #define OUTPUT_PARTICLES_DATA
 
 
 void Particles_3D::Load_Particles_Data( struct parameters *P){
@@ -469,6 +469,16 @@ void Grid3D::Write_Particles_Header_HDF5( hid_t file_id){
   status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Particles.particle_mass);
   status = H5Aclose(attribute_id);
   #endif
+  
+  #ifdef COSMOLOGY
+  attribute_id = H5Acreate(file_id, "current_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.current_z);
+  status = H5Aclose(attribute_id);
+  
+  attribute_id = H5Acreate(file_id, "current_a", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.current_a);
+  status = H5Aclose(attribute_id);
+  #endif
 
   status = H5Sclose(dataspace_id);
 
@@ -493,13 +503,13 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   output_particle_data = false;
   #endif
 
-  #ifdef GRAVITY_GPU
+  #ifdef PARTICLES_GPU
   //Copy the device arrays from the device to the host
   CudaSafeCall( cudaMemcpy(Particles.G.density, Particles.G.density_dev, Particles.G.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-  #if defined(OUTPUT_POTENTIAL) && defined(ONLY_PARTICLES)
+  #endif//PARTICLES_GPU
+  #if defined(OUTPUT_POTENTIAL) && defined(ONLY_PARTICLES) && defined(GRAVITY_GPU)
   CudaSafeCall( cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential*sizeof(Real), cudaMemcpyDeviceToHost) );
   #endif//OUTPUT_POTENTIAL
-  #endif//GRAVITY_GPU
 
 
 

@@ -3,7 +3,7 @@
 #include"../io/io.h" //defines chprintf
 #include"../global/global_cuda.h"//includes gpu.hpp
 #include"supernova.h"
-#include"../cooling/cooling_cuda.h" //includes d_cooling_weight
+#include"../cooling/cooling_cuda.h"
 
 //texture<float, 1, cudaReadModeElementType> mdotTexObj;
 //texture<float, 1, cudaReadModeElementType> edotTexObj;
@@ -16,6 +16,7 @@ namespace Supernova {
   Real* d_mdot_array;//holds m_dot(cluster)[time]
   Real* d_edot_array;//holds e_dot(cluster)[time]
   Real* d_dti;
+  Real* d_cooling_weight;
 
   Real* d_tracker;
   Real h_tracker[] = {0,0,0,0,0};
@@ -62,6 +63,9 @@ void Supernova::Initialize_GPU(void){
   CudaSafeCall( cudaMalloc (&d_tracker, n_tracker*sizeof(Real)));
   cudaMemcpy(d_tracker, h_tracker, n_tracker*sizeof(Real),cudaMemcpyHostToDevice);
 
+  #ifdef COOLING_GPU
+  CudaSafeCall( cudaMalloc(&d_cooling_weight, n_cells*sizeof(Real)) );
+  #endif
 
   Calc_Omega();                                                                 
   InitializeS99(); 
@@ -530,8 +534,6 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
   // Reset weights to 0
   #ifdef COOLING_GPU
   CudaSafeCall(cudaMemset(d_cooling_weight, 0, n_cells*sizeof(Real)));
-  #else
-  Real* d_cooling_weight;
   #endif
   
   // double start_time = get_time();

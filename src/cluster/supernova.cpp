@@ -194,7 +194,9 @@ C_cfl/old_dti;
 }
 
 void Supernova::Print_Tracker(Grid3D G){
+  
   //h_tracker
+  /* 
   Copy_Tracker();
   chprintf("Tracker: ");
   const char* format = "%.15e ";
@@ -205,6 +207,7 @@ void Supernova::Print_Tracker(Grid3D G){
     chprintf(format,out);
   }
   chprintf("\n");
+  */
 }
 
 #endif //SUPERNOVA

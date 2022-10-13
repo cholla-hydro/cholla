@@ -37,5 +37,26 @@ supernova_rcl=0.03
 supernova_e=1
 gamma=1.666666667
 
+# float 32 output params
+n_out_float32=1
+out_float32_density=1
+
 #################################################
 
+# rotated projection params
+# z-axis angle
+delta=0.0
+# y-axis angle
+theta=20.0
+# x-axis angle
+phi=20.0
+# horizontal size of output
+Lx=9.0
+# vertical size of output
+Lz=9.0
+# pixels
+nxr=512
+nzr=512
+# made as simulation runs (2) (1) reads in output
+flag_delta=2
+ddelta_dt=-0.001

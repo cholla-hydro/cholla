@@ -1,14 +1,13 @@
 #-- Default hydro + cooling_gpu
 
-#-- separated output flag so that it can be overriden in target-specific 
+#-- separated output flag so that it can be overriden in target-specific
 #   for make check
 OUTPUT    ?=  -DOUTPUT -DHDF5
 
 MPI_GPU   ?=
 
-DFLAGS	  += -DHYDRO_GPU
 DFLAGS    += -DCUDA
-DFLAGS    += -DMPI_CHOLLA 
+DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DBLOCK
 DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPPMP
@@ -32,6 +31,7 @@ DFLAGS    += -DDE
 
 # Apply the cooling in the GPU from precomputed tables
 DFLAGS    += -DCOOLING_GPU
+#DFLAGS    += -DCLOUDY_COOL
 
 #Measure the Timing of the different stages
 DFLAGS += -DCPU_TIME
@@ -40,9 +40,9 @@ DFLAGS    += $(OUTPUT)
 
 #Select if the Hydro Conserved data will reside in the GPU
 #and the MPI transfers are done from the GPU
-#If not specified, MPI_GPU is off by default 
+#If not specified, MPI_GPU is off by default
 #This is set in the system make.host file
-DFLAGS    += $(MPI_GPU)  
+DFLAGS    += $(MPI_GPU)
 
 DFLAGS    += -DPARALLEL_OMP
 DFLAGS    += -DN_OMP_THREADS=$(OMP_NUM_THREADS)

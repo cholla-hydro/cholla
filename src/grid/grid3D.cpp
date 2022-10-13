@@ -1,6 +1,5 @@
 /*! \file grid3D.cpp
  *  \brief Definitions of the Grid3D class */
-
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -10,18 +9,14 @@
 #include "../global/global.h"
 #include "../grid/grid3D.h"
 #include "../hydro/hydro_cuda.h" // provides Calc_dt_GPU
-#include "../cpu/CTU_1D.h"
-#include "../cpu/CTU_2D.h"
-#include "../cpu/CTU_3D.h"
-#include "../integrators/CTU_1D_cuda.h"
-#include "../integrators/CTU_2D_cuda.h"
-#include "../integrators/CTU_3D_cuda.h"
 #include "../integrators/VL_1D_cuda.h"
 #include "../integrators/VL_2D_cuda.h"
 #include "../integrators/VL_3D_cuda.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"
 #include "../utils/ran.h"
+#include "../integrators/simple_1D_cuda.h"
+#include "../integrators/simple_2D_cuda.h"
 #include "../integrators/simple_3D_cuda.h"
 #ifdef MPI_CHOLLA
 #include <mpi.h>
@@ -31,9 +26,8 @@
 #include "../mpi/mpi_routines.h"
 #endif
 #include <stdio.h>
-#include "../old_cholla/flux_correction.h"
 #ifdef CLOUDY_COOL
-#include "../cooling/cooling_wrapper.h"
+#include "../cooling/load_cloudy_texture.h" // provides Load_Cuda_Textures and Free_Cuda_Textures
 #endif
 
 #ifdef PARALLEL_OMP
@@ -89,10 +83,23 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real
 #else   /*MPI_CHOLLA*/
 
   /* position relative to local xyz bounds */
+  /* This approach was replaced because it is less consistent for multiple cores.
+  Since distributive property does not perfectly hold for floating point operations
+
+  > Global_bound + global_i * dx
+
+  is more consistent than
+
+  >local_bound + local_i*dx = (global_bound + (global_i-local_i)*dx) + local_i*dx.
+
   *x_pos = H.xblocal + H.dx*(i-H.n_ghost) + 0.5*H.dx;
   *y_pos = H.yblocal + H.dy*(j-H.n_ghost) + 0.5*H.dy;
   *z_pos = H.zblocal + H.dz*(k-H.n_ghost) + 0.5*H.dz;
+  */
 
+  *x_pos = H.xbound + (nx_local_start+i-H.n_ghost)*H.dx + 0.5*H.dx;
+  *y_pos = H.ybound + (ny_local_start+j-H.n_ghost)*H.dy + 0.5*H.dy;
+  *z_pos = H.zbound + (nz_local_start+k-H.n_ghost)*H.dz + 0.5*H.dz;
 
 #endif  /*MPI_CHOLLA*/
 
@@ -111,6 +118,11 @@ void Grid3D::Initialize(struct parameters *P)
   H.n_fields += NSCALARS;
   #endif
 
+  // if including magnetic fields increase the number of fields
+  #ifdef  MHD
+  H.n_fields += 3;
+  #endif  //MHD
+
   // if using dual energy formalism must track internal energy - always the last field!
   #ifdef DE
   H.n_fields++;
@@ -122,6 +134,10 @@ void Grid3D::Initialize(struct parameters *P)
 
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
+  
+  #ifdef AVERAGE_SLOW_CELLS
+  H.min_dt_slow = 1e-100; //Initialize the minumum dt to a tiny number
+  #endif
 
 #ifndef MPI_CHOLLA
 
@@ -165,9 +181,6 @@ void Grid3D::Initialize(struct parameters *P)
     // mark that we are initializing
     flag_init = 1;
   }
-
-  // Set the flag that tells Update_Grid which buffer to read from
-  gflag = 0;
 
   // Set header variables for time within the simulation
   H.t = 0.0;
@@ -253,21 +266,52 @@ void Grid3D::AllocateMemory(void)
 {
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
-  CudaSafeCall( cudaHostAlloc(&buffer0, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
-  CudaSafeCall( cudaHostAlloc(&buffer1, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
+  CudaSafeCall( cudaHostAlloc((void**)&C.host, H.n_fields*H.n_cells*sizeof(Real), cudaHostAllocDefault) );
 
-  // point conserved variables to the appropriate locations in buffer
-  C.density  = &(buffer0[0]);
-  C.momentum_x = &(buffer0[H.n_cells]);
-  C.momentum_y = &(buffer0[2*H.n_cells]);
-  C.momentum_z = &(buffer0[3*H.n_cells]);
-  C.Energy   = &(buffer0[4*H.n_cells]);
+  // point conserved variables to the appropriate locations
+  C.density  = C.host;
+  C.momentum_x = &(C.host[H.n_cells]);
+  C.momentum_y = &(C.host[2*H.n_cells]);
+  C.momentum_z = &(C.host[3*H.n_cells]);
+  C.Energy   = &(C.host[4*H.n_cells]);
   #ifdef SCALAR
-  C.scalar  = &(buffer0[5*H.n_cells]);
-  #endif
+  C.scalar  = &(C.host[5*H.n_cells]);
+  #endif  //SCALAR
+  #ifdef  MHD
+  C.magnetic_x = &(C.host[(5 + NSCALARS)*H.n_cells]);
+  C.magnetic_y = &(C.host[(6 + NSCALARS)*H.n_cells]);
+  C.magnetic_z = &(C.host[(7 + NSCALARS)*H.n_cells]);
+  #endif  //MHD
   #ifdef DE
-  C.GasEnergy = &(buffer0[(H.n_fields-1)*H.n_cells]);
-  #endif
+  C.GasEnergy = &(C.host[(H.n_fields-1)*H.n_cells]);
+  #endif  //DE
+
+  // allocate memory for the conserved variable arrays on the device
+  CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
+  C.d_density    = C.device;
+  C.d_momentum_x = &(C.device[H.n_cells]);
+  C.d_momentum_y = &(C.device[2*H.n_cells]);
+  C.d_momentum_z = &(C.device[3*H.n_cells]);
+  C.d_Energy     = &(C.device[4*H.n_cells]);
+  #ifdef SCALAR
+  C.d_scalar     = &(C.device[5*H.n_cells]);
+  #endif  // SCALAR
+  #ifdef  MHD
+  C.d_magnetic_x   = &(C.device[(5 + NSCALARS)*H.n_cells]);
+  C.d_magnetic_y   = &(C.device[(6 + NSCALARS)*H.n_cells]);
+  C.d_magnetic_z   = &(C.device[(7 + NSCALARS)*H.n_cells]);
+  #endif  //MHD
+  #ifdef DE
+  C.d_GasEnergy  = &(C.device[(H.n_fields-1)*H.n_cells]);
+  #endif  // DE
+
+
+  // arrays that hold the max_dti calculation for hydro for each thread block (pre reduction)
+  int ngrid = (H.n_cells + TPB - 1) / TPB;
+  CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
+  CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&dev_dti, sizeof(Real)) );
+
 
   #if defined( GRAVITY )
   CudaSafeCall( cudaHostAlloc(&C.Grav_potential, H.n_cells*sizeof(Real), cudaHostAllocDefault) );
@@ -277,34 +321,26 @@ void Grid3D::AllocateMemory(void)
   C.d_Grav_potential = NULL;
   #endif
 
-  CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
-  C.d_density     = C.device;
-  C.d_momentum_x  = &(C.device[H.n_cells]);
-  C.d_momentum_y  = &(C.device[2*H.n_cells]);
-  C.d_momentum_z  = &(C.device[3*H.n_cells]);
-  C.d_Energy      = &(C.device[4*H.n_cells]);
-  #ifdef SCALAR
-  C.d_scalar      = &(C.device[5*H.n_cells]);
-  #endif
-  #ifdef DE
-  C.d_GasEnergy   = &(C.device[(H.n_fields-1)*H.n_cells]);
+
+  #ifdef CHEMISTRY_GPU
+  C.HI_density    = &C.scalar[ 0*H.n_cells ];
+  C.HII_density   = &C.scalar[ 1*H.n_cells ];
+  C.HeI_density   = &C.scalar[ 2*H.n_cells ];
+  C.HeII_density  = &C.scalar[ 3*H.n_cells ];
+  C.HeIII_density = &C.scalar[ 4*H.n_cells ];
+  C.e_density     = &C.scalar[ 5*H.n_cells ];
   #endif
 
-  // initialize array
+  // initialize host array
   for (int i=0; i<H.n_fields*H.n_cells; i++)
   {
-    buffer0[i] = 0.0;
-    buffer1[i] = 0.0;
+    C.host[i] = 0.0;
   }
 
   #ifdef CLOUDY_COOL
-  //printf("Warning: Cloudy cooling isn't currently working. No cooling will be applied.\n");
   Load_Cuda_Textures();
-  #endif
+  #endif  // CLOUDY_COOL
 
-  #ifdef COOLING_GPU
-  CudaSafeCall( cudaMalloc(&d_cooling_weight, H.n_cells*sizeof(Real)) );  
-  #endif
 
 }
 
@@ -316,7 +352,7 @@ void Grid3D::AllocateMemory(void)
   Real max_dti;
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Calc_dt.Start();
   #endif
 
   #ifdef ONLY_PARTICLES
@@ -327,20 +363,19 @@ void Grid3D::AllocateMemory(void)
   #else //NOT ONLY_PARTICLES
 
   //Compute the hydro delta_t ( H.dt )
-  if (H.n_step == 0) {
-    max_dti = calc_dti_CPU();
+  if (H.n_step == 0)
+  {
+    // Compute the time step
+    max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama );
   }
   else {
-    #ifndef CUDA
-    max_dti = calc_dti_CPU();
-    #endif /*NO_CUDA*/
-    #ifdef CUDA
     max_dti = dti;
-    #endif /*CUDA*/
   }
 
   #ifdef MPI_CHOLLA
-  max_dti = ReduceRealMax(max_dti);
+    // Note that this is the MPI_Allreduce for every iteration of the loop, not
+    // just the first one
+    max_dti = ReduceRealMax(max_dti);
   #endif /*MPI_CHOLLA*/
 
 
@@ -351,184 +386,19 @@ void Grid3D::AllocateMemory(void)
   #ifdef GRAVITY
   //Set dt for hydro and particles
   set_dt_Gravity();
-  #endif
+  #endif  //GRAVITY
 
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time(0);
+  Timer.Calc_dt.End();
   #endif
 
 
 }
-
-/*! \fn Real calc_dti_CPU_1D()
- *  \brief Calculate the maximum inverse timestep on 1D, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU_1D(){
-  int i, id;
-  Real d_inv, vx, vy, vz, P, cs;
-  Real max_vx, max_vy, max_vz;
-  Real max_dti = 0.0;
-  max_vx = max_vy = max_vz = 0.0;
-  //Find the maximum wave speed in the grid
-  for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-    id = i;
-    d_inv = 1.0 / C.density[id];
-    vx = d_inv * C.momentum_x[id];
-    vy = d_inv * C.momentum_y[id];
-    vz = d_inv * C.momentum_z[id];
-    P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
-    cs = sqrt(d_inv * gama * P);
-    // compute maximum cfl velocity
-    max_vx = fmax(max_vx, fabs(vx) + cs);
-  }
-  // compute max inverse of dt
-  max_dti = max_vx / H.dx;
-  return max_dti;
-}
-
-/*! \fn Real calc_dti_CPU_2D()
- *  \brief Calculate the maximum inverse timestep on 2D, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU_2D(){
-  int i, j, id;
-  Real d_inv, vx, vy, vz, P, cs;
-  Real max_vx, max_vy, max_vz;
-  Real max_dti = 0.0;
-  max_vx = max_vy = max_vz = 0.0;
-  // Find the maximum wave speed in the grid
-  for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
-    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-      id = i + j*H.nx;
-      d_inv = 1.0 / C.density[id];
-      vx = d_inv * C.momentum_x[id];
-      vy = d_inv * C.momentum_y[id];
-      vz = d_inv * C.momentum_z[id];
-      P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
-      cs = sqrt(d_inv * gama * P);
-      // compute maximum cfl velocity
-      max_vx = fmax(max_vx, fabs(vx) + cs);
-      max_vy = fmax(max_vy, fabs(vy) + cs);
-    }
-  }
-  // compute max inverse of dt
-  max_dti = max_vx / H.dx;
-  max_dti = fmax(max_dti, max_vy / H.dy);
-  return max_dti;
-}
-
-/*! \fn Real calc_dti_CPU_3D_function()
- *  \brief Calculate the maximum inverse timestep on 3D using openMP, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU_3D_function( int g_start, int g_end ){
-  int i, j, k, id;
-  Real d_inv, vx, vy, vz, P, cs;
-  Real max_vx, max_vy, max_vz;
-  Real max_dti = 0.0;
-  max_vx = max_vy = max_vz = 0.0;
-
-
-  for (k=g_start; k<g_end; k++) {
-    for (j=0; j<H.ny_real; j++) {
-      for (i=0; i<H.nx_real; i++) {
-        id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
-        d_inv = 1.0 / C.density[id];
-        vx = d_inv * C.momentum_x[id];
-        vy = d_inv * C.momentum_y[id];
-        vz = d_inv * C.momentum_z[id];
-        P = fmax((C.Energy[id] - 0.5*C.density[id]*(vx*vx + vy*vy + vz*vz) )*(gama-1.0), TINY_NUMBER);
-        cs = sqrt(d_inv * gama * P);
-
-        // compute maximum cfl velocity
-        max_vx = fmax(max_vx, fabs(vx) + cs);
-        max_vy = fmax(max_vy, fabs(vy) + cs);
-        max_vz = fmax(max_vz, fabs(vz) + cs);
-
-      }
-    }
-  }
-  // compute max inverse of dt
-  max_dti = max_vx / H.dx;
-  max_dti = fmax(max_dti, max_vy / H.dy);
-  max_dti = fmax(max_dti, max_vz / H.dy);
-  return max_dti;
-}
-
-/*! \fn Real calc_dti_CPU_3D()
- *  \brief Calculate the maximum inverse timestep on 3D, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU_3D(){
-
-  Real max_dti;
-
-  #ifndef PARALLEL_OMP
-  max_dti = calc_dti_CPU_3D_function( 0, H.nz_real );
-  #else
-
-  max_dti = 0;
-  Real max_dti_all[N_OMP_THREADS];
-  #pragma omp parallel num_threads( N_OMP_THREADS )
-  {
-    int omp_id, n_omp_procs;
-    int g_start, g_end;
-
-    omp_id = omp_get_thread_num();
-    n_omp_procs = omp_get_num_threads();
-    Get_OMP_Grid_Indxs( H.nz_real, n_omp_procs, omp_id, &g_start, &g_end  );
-    max_dti_all[omp_id] = calc_dti_CPU_3D_function( g_start, g_end );
-
-  }
-
-  for ( int i=0; i<N_OMP_THREADS; i++ ){
-    max_dti = fmax( max_dti, max_dti_all[i]);
-  }
-
-  #endif //PARALLEL_OMP
-
-  return max_dti;
-
-
-}
-
-/*! \fn Real calc_dti_CPU()
- *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */
-Real Grid3D::calc_dti_CPU()
-{
-  Real max_dti;
-
-  // 1D
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
-    //Find the maximum wave speed in the grid
-    max_dti = calc_dti_CPU_1D();
-  }
-  // 2D
-  else if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
-    // Find the maximum wave speed in the grid
-    max_dti = calc_dti_CPU_2D();
-  }
-  // 3D
-  else if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-    // Find the maximum wave speed in the grid
-    max_dti = calc_dti_CPU_3D();
-  }
-  else {
-    chprintf("Invalid grid dimensions. Failed to compute dt.\n");
-    chexit(-1);
-  }
-
-  return max_dti;
-
-}
-
 
 /*! \fn void Update_Grid(void)
  *  \brief Update the conserved quantities in each cell. */
 Real Grid3D::Update_Grid(void)
 {
-  Real *g0, *g1;
-  if (gflag == 0) {
-    g0 = &(buffer0[0]);
-    g1 = &(buffer1[0]);
-  }
-  else {
-    g0 = &(buffer1[0]);
-    g1 = &(buffer0[0]);
-  }
 
   Real max_dti = 0;
   int x_off, y_off, z_off;
@@ -552,80 +422,38 @@ Real Grid3D::Update_Grid(void)
   U_floor /=  Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
   #endif
 
-  //Set the min_delta_t for averaging a slow cell
-  Real max_dti_slow;
-  #ifdef AVERAGE_SLOW_CELLS
-  //max_dti_slow = 1 / H.min_dt_slow;
-  max_dti_slow = 0.1 / H.dx;
-  #else // NOT AVERAGE_SLOW_CELLS
-  max_dti_slow = 0; // max_dti_slow is not used if NOT AVERAGE_SLOW_CELLS
-  #endif //max_dti_slow
 
-  // Pass the structure of conserved variables to the CTU update functions
-  // The function returns the updated variables
+  // Run the hydro integrator on the grid
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) //1D
   {
-    #ifndef CUDA
-    #ifdef CTU
-    CTU_Algorithm_1D(&(C.density[0]), H.nx, H.n_ghost, H.dx, H.dt);
-    #endif //not_VL
-    #ifdef VL
-    chprintf("VL algorithm not implemented in non-cuda version.");
-    chexit(-1);
-    #endif //VL
-    #endif //not_CUDA
-
     #ifdef CUDA
-    #ifdef CTU
-    CTU_Algorithm_1D_CUDA(g0, g1, C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
-    #endif //not_VL
     #ifdef VL
-    VL_Algorithm_1D_CUDA(g0, g1, C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
     #endif //VL
+    #ifdef SIMPLE
+    Simple_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    #endif //SIMPLE
     #endif //CUDA
   }
   else if (H.nx > 1 && H.ny > 1 && H.nz == 1) //2D
   {
-    #ifndef CUDA
-    #ifdef CTU
-    CTU_Algorithm_2D(&(C.density[0]), H.nx, H.ny, H.n_ghost, H.dx, H.dy, H.dt);
-    #endif //not_VL
-    #ifdef VL
-    chprintf("VL algorithm not implemented in non-cuda version.");
-    chexit(-1);
-    #endif //VL
-    #endif //not_CUDA
-
     #ifdef CUDA
-    #ifdef CTU
-    CTU_Algorithm_2D_CUDA(g0, g1, C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
-    #endif //not_VL
     #ifdef VL
-    VL_Algorithm_2D_CUDA(g0, g1, C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
+    VL_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //VL
+    #ifdef SIMPLE 
+    Simple_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
+    #endif //SIMPLE
     #endif //CUDA
   }
   else if (H.nx > 1 && H.ny > 1 && H.nz > 1) //3D
   {
-    #ifndef CUDA
-    #ifdef CTU
-    CTU_Algorithm_3D(&(C.density[0]), H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, H.dt);
-    #endif //not_VL
-    #ifdef VL
-    chprintf("VL algorithm not implemented in non-cuda version.");
-    chexit(-1);
-    #endif //VL
-    #endif //not_CUDA
-
     #ifdef CUDA
-    #ifdef CTU
-    CTU_Algorithm_3D_CUDA(g0, g1, C.device, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
-    #endif //not_VL
     #ifdef VL
-    VL_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
     #endif //VL
     #ifdef SIMPLE
-    Simple_Algorithm_3D_CUDA(g0, g1, C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential, max_dti_slow );
+    Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor, C.Grav_potential );
     #endif//SIMPLE
     #endif
   }
@@ -635,11 +463,11 @@ Real Grid3D::Update_Grid(void)
     chexit(-1);
   }
 
-  
+
   #ifdef CUDA
-  
-  // ==Apply Cooling from cooling/cooling_cuda.h==
+
   #ifdef COOLING_GPU
+  /* HEAD	
   //Real cooling_total_energy=0;
   //Real cooling_mask_energy=0;
   Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, dev_dt_array, &cooling_total_energy, &cooling_mask_energy);
@@ -651,38 +479,32 @@ Real Grid3D::Update_Grid(void)
   Real cooling_me = cooling_mask_energy;
   #endif //MPI_CHOLLA
   chprintf("cooling energy: %.15e %.15e \n",cooling_te,cooling_me);
+  */ 
+
+  // ==Apply Cooling from cooling/cooling_cuda.h==
+  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
+
   #endif //COOLING_GPU
 
-  // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
-  max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.dx, H.dy, H.dz, gama, max_dti_slow);
+  // Update the H and He ionization fractions and apply cooling and photoheating
+  #ifdef CHEMISTRY_GPU
+  Update_Chemistry();
+  #ifdef CPU_TIME
+  Timer.Chemistry.RecordTime( Chem.H.runtime_chemistry_step );
+  #endif
+  #endif
+  
+  #ifdef AVERAGE_SLOW_CELLS
+  //Set the min_delta_t for averaging a slow cell
+  Real max_dti_slow;
+  max_dti_slow = 1 / H.min_dt_slow;
+  max_dti_slow = 0.1 / H.dx;
+  Average_Slow_Cells( C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow );
+  #endif //AVERAGE_SLOW_CELLS
 
-  // ==Copy the updated conserved variable array to CPU==
-  #ifndef HYDRO_GPU
-  CudaSafeCall( cudaMemcpy(g1, C.device, H.n_fields*H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-  #endif
-  
-  #ifdef COOLING_GPU
-  // ==Calculate cooling dt from cooling/cooling_cuda.h==
-  // dev_dt_array and host_dt_array are global variables declared in global/global_cuda.h and allocated in integrators 
-  // Real cooling_max_dti = Cooling_Calc_dt(dev_dt_array, host_dt_array, H.nx, H.ny, H.nz);
-  // max_dti = fmax(max_dti,cooling_max_dti);
-  
-  #endif // COOLING_GPU
+  // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
+  max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama );
   #endif // CUDA
-  
-  // at this point g0 has the old data, g1 has the new data
-  // point the grid variables at the new data
-  C.density  = &g1[0];
-  C.momentum_x = &g1[H.n_cells];
-  C.momentum_y = &g1[2*H.n_cells];
-  C.momentum_z = &g1[3*H.n_cells];
-  C.Energy   = &g1[4*H.n_cells];
-  #ifdef SCALAR
-  C.scalar = &g1[5*H.n_cells];
-  #endif
-  #ifdef DE
-  C.GasEnergy = &g1[(H.n_fields-1)*H.n_cells];
-  #endif
 
   #ifdef COOLING_GRACKLE
   Cool.fields.density = C.density;
@@ -697,8 +519,15 @@ Real Grid3D::Update_Grid(void)
   #endif
   #endif
 
-  // reset the grid flag to swap buffers
-  gflag = (gflag+1)%2;
+  #ifdef CHEMISTRY_GPU
+  C.HI_density    = &C.scalar[ 0*H.n_cells ];
+  C.HII_density   = &C.scalar[ 1*H.n_cells ];
+  C.HeI_density   = &C.scalar[ 2*H.n_cells ];
+  C.HeII_density  = &C.scalar[ 3*H.n_cells ];
+  C.HeIII_density = &C.scalar[ 4*H.n_cells ];
+  C.e_density     = &C.scalar[ 5*H.n_cells ];
+  #endif
+
 
   return max_dti;
 
@@ -709,14 +538,14 @@ Real Grid3D::Update_Grid(void)
 Real Grid3D::Update_Hydro_Grid( ){
 
   #ifdef ONLY_PARTICLES
-  // Dond integrate the Hydro when only solving for particles
+  // Don't integrate the Hydro when only solving for particles
   return 1e-10;
   #endif
 
   Real dti;
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Hydro.Start();
   #endif //CPU_TIME
 
   #ifdef GRAVITY
@@ -727,16 +556,20 @@ Real Grid3D::Update_Hydro_Grid( ){
   dti = Update_Grid();
 
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 1 );
+  #ifdef CHEMISTRY_GPU
+  Timer.Hydro.Subtract(Chem.H.runtime_chemistry_step);
+  //Subtract the time spent on the Chemical Update 
+  #endif
+  Timer.Hydro.End();
   #endif //CPU_TIME
 
   #ifdef COOLING_GRACKLE
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Cooling.Start();
   #endif
   Do_Cooling_Step_Grackle( );
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time(10);
+  Timer.Cooling.End();
   #endif
   #endif//COOLING_GRACKLE
 
@@ -788,30 +621,29 @@ void Grid3D::Reset(void)
 void Grid3D::FreeMemory(void)
 {
   // free the conserved variable arrays
-  CudaSafeCall( cudaFreeHost(buffer0) );
-  CudaSafeCall( cudaFreeHost(buffer1) );
+  CudaSafeCall( cudaFreeHost(C.host) );
+
+  // free the timestep arrays
+  CudaSafeCall( cudaFreeHost(host_dti_array) );
+  cudaFree(dev_dti_array);
+  cudaFree(dev_dti);
 
   #ifdef GRAVITY
   CudaSafeCall( cudaFreeHost(C.Grav_potential) );
   CudaSafeCall( cudaFree(C.d_Grav_potential) );
   #endif
 
-  #ifndef DYNAMIC_GPU_ALLOC
   // If memory is single allocated, free the memory at the end of the simulation.
-  #ifdef CTU
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_CTU_1D();
-  if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_CTU_2D();
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_CTU_3D();
-  #endif
   #ifdef VL
   if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_VL_1D();
   if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_VL_2D();
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_VL_3D();
-  #endif
+  #endif // VL
   #ifdef SIMPLE
+  if (H.nx > 1 && H.ny == 1 && H.nz == 1) Free_Memory_Simple_1D();
+  if (H.nx > 1 && H.ny > 1 && H.nz == 1) Free_Memory_Simple_2D();
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) Free_Memory_Simple_3D();
-  #endif
-  #endif
+  #endif // SIMPLE
 
   #ifdef GRAVITY
   Grav.FreeMemory_CPU();
@@ -832,7 +664,10 @@ void Grid3D::FreeMemory(void)
   #ifdef CLOUDY_COOL
   Free_Cuda_Textures();
   #endif
-  CudaSafeCall( cudaFree(d_cooling_weight) );  
+  #endif
+
+  #ifdef CHEMISTRY_GPU
+  Chem.Reset();
   #endif
 
   #ifdef ANALYSIS

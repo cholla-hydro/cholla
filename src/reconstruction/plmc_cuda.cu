@@ -12,7 +12,7 @@
 #include "../reconstruction/plmc_cuda.h"
 
 #ifdef DE //PRESSURE_DE
-#include "../hydro/hydro_cuda.h"
+#include "../utils/hydro_utilities.h"
 #endif
 
 
@@ -55,14 +55,13 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real d_L_iph, vx_L_iph, vy_L_iph, vz_L_iph, p_L_iph;
   Real d_R_imh, vx_R_imh, vy_R_imh, vz_R_imh, p_R_imh;
   Real C;
-  // #ifdef CTU
   #ifndef VL
   Real dtodx = dt/dx;
   Real lambda_m, lambda_0, lambda_p;
   Real qx;
   Real lamdiff;
   Real sum_0, sum_1, sum_2, sum_3, sum_4;
-  #endif //CTU
+  #endif // not VL
   #ifdef DE
   Real ge_i, ge_imo, ge_ipo;
   Real del_ge_L, del_ge_R, del_ge_C, del_ge_G;
@@ -71,17 +70,16 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real E, E_kin, dge;
   #ifndef VL
   Real sum_ge;
-  #endif //CTU
+  #endif // not VL
   #endif
   #ifdef SCALAR
   Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS];
   Real del_scalar_L[NSCALARS], del_scalar_R[NSCALARS], del_scalar_C[NSCALARS], del_scalar_G[NSCALARS];
   Real del_scalar_m_i[NSCALARS];
   Real scalar_L_iph[NSCALARS], scalar_R_imh[NSCALARS];
-  // #ifdef CTU
   #ifndef VL
   Real sum_scalar[NSCALARS];
-  #endif //CTU
+  #endif // not VL
   #endif
 
   // get a thread ID
@@ -123,7 +121,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_i * ( vx_i*vx_i + vy_i*vy_i + vz_i*vz_i );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_i = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    p_i = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_i  = (dev_conserved[4*n_cells + id] - 0.5*d_i*(vx_i*vx_i + vy_i*vy_i + vz_i*vz_i)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -148,7 +146,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_imo * ( vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_imo = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    p_imo = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_imo  = (dev_conserved[4*n_cells + id] - 0.5*d_imo*(vx_imo*vx_imo + vy_imo*vy_imo + vz_imo*vz_imo)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -173,7 +171,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     E = dev_conserved[4*n_cells + id];
     E_kin = 0.5 * d_ipo * ( vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo );
     dge = dev_conserved[(n_fields-1)*n_cells + id];
-    p_ipo = Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
+    p_ipo = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, dge, gamma );
     #else
     p_ipo  = (dev_conserved[4*n_cells + id] - 0.5*d_ipo*(vx_ipo*vx_ipo + vy_ipo*vy_ipo + vz_ipo*vz_ipo)) * (gamma - 1.0);
     #endif //PRESSURE_DE
@@ -194,7 +192,6 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
     // Compute the eigenvalues of the linearized equations in the
     // primitive variables using the cell-centered primitive variables
-    // #ifdef CTU
     #ifndef VL
     lambda_m = vx_i-a_i;
     lambda_0 = vx_i;
@@ -441,7 +438,6 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #endif
 
 
-    // #ifdef CTU
     #ifndef VL
     // Integrate linear interpolation function over domain of dependence
     // defined by max(min) eigenvalue
@@ -591,7 +587,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       scalar_R_imh[i] += 0.5*dtodx*sum_scalar[i];
     }
     #endif
-    #endif //CTU
+    #endif // not VL
 
     // apply minimum constraints
     d_R_imh = fmax(d_R_imh, (Real) TINY_NUMBER);

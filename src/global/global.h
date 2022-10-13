@@ -10,6 +10,10 @@
 #include <gsl/gsl_spline2d.h>
 #endif
 
+#ifdef  PARTICLES
+  #include <cstdint>
+#endif  //PARTICLES
+
 #if PRECISION==1
 #ifndef TYPEDEF_DEFINED_REAL
 typedef float Real;
@@ -21,7 +25,7 @@ typedef double Real;
 #endif
 #endif
 
-#define MAXLEN 140
+#define MAXLEN 2048
 #define TINY_NUMBER 1.0e-20
 #define PI 3.141592653589793
 #define MP 1.672622e-24 // mass of proton, grams
@@ -35,21 +39,23 @@ typedef double Real;
 #define MSUN_CGS 1.98847e33; //Msun in gr
 #define KPC_CGS 3.086e21;  //kpc in cm
 #define KM_CGS 1e5; //km in cm
+#define MH 1.67262171e-24 //Mass of hydrogen [g]   
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
 #define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
-#define MASS_UNIT 1.98855e33 // 1 solar mass in grams
+#define MASS_UNIT 1.98847e33 // 1 solar mass in grams
 #define DENSITY_UNIT (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT))
 #define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
 #define ENERGY_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 #define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
+#define MAGNETIC_FIELD_UNIT (sqrt(MASS_UNIT/LENGTH_UNIT) / TIME_UNIT)
 
 #define LOG_FILE_NAME "run_output.log"
 
 //Conserved Floor Values
-#define TEMP_FLOOR 1e-3
-#define DENS_FLOOR 1e-5
+#define TEMP_FLOOR 1e-3 // in Kelvin
+#define DENS_FLOOR 1e-5 // in code units
 
 //Parameter for Enzo dual Energy Condition
 #define DE_ETA_1 0.001 //Ratio of U to E for which  Internal Energy is used to compute the Pressure
@@ -65,25 +71,32 @@ typedef double Real;
   #else
   #define NSCALARS 6
   #endif // GRACKLE_METALS
+#elif CHEMISTRY_GPU
+  #define NSCALARS 6
 #else
 #ifdef SCALAR
 // Set Number of scalar fields when not using grackle
 #define NSCALARS 1
+#else
+#define NSCALARS 0
 #endif//SCALAR
 #endif//COOLING_GRACKLE
+
+#ifdef  MHD
+  #define N_MHD_FIELDS 3
+#else
+  #define N_MHD_FIELDS 0
+#endif  //MHD
 
 // Inital Chemistry fractions
 #define INITIAL_FRACTION_HI        0.75984603480
 #define INITIAL_FRACTION_HII       1.53965115054e-4
-#define INITIAL_FRACTION_HEI       0.23999999997
+#define INITIAL_FRACTION_HEI       0.24000000008
 #define INITIAL_FRACTION_HEII      9.59999999903e-15
 #define INITIAL_FRACTION_HEIII     9.59999999903e-18
 #define INITIAL_FRACTION_ELECTRON  1.53965115054e-4
 #define INITIAL_FRACTION_METAL     1.00000000000e-10
 
-//Default Gravity Compiler Flags
-#define GRAVITY_LONG_INTS
-#define COUPLE_GRAVITATIONAL_WORK
 
 //Default Particles Compiler Flags
 #define PARTICLES_LONG_INTS
@@ -107,11 +120,7 @@ typedef double Real;
 #endif //GRAVITY_5_POINTS_GRADIENT
 
 
-#ifdef GRAVITY_LONG_INTS
 typedef long int grav_int_t;
-#else
-typedef int grav_int_t;
-#endif//GRAVITY_LONG_INTS
 #endif
 
 #ifdef PARTICLES
@@ -190,11 +199,25 @@ struct parameters
   Real gamma;
   char init[MAXLEN];
   int nfile;
-  int outstep_hydro;
-  int outstep_particle;
-  int outstep_projection;
-  int outstep_rotated_projection;
-  int outstep_slice;
+  int n_hydro;
+  int n_particle;
+  int n_projection;
+  int n_rotated_projection;
+  int n_slice;
+  int n_out_float32=0;
+  int out_float32_density=0;
+  int out_float32_momentum_x=0;
+  int out_float32_momentum_y=0;
+  int out_float32_momentum_z=0;
+  int out_float32_Energy=0;
+#ifdef DE
+  int out_float32_GasEnergy=0;
+#endif
+#ifdef MHD
+  int out_float32_magnetic_x=0;
+  int out_float32_magnetic_y=0;
+  int out_float32_magnetic_z=0;
+#endif
   Real xmin;
   Real ymin;
   Real zmin;
@@ -224,13 +247,31 @@ struct parameters
   Real vz;
   Real P;
   Real A;
+  Real Bx;
+  Real By;
+  Real Bz;
   Real rho_l;
-  Real v_l;
+  Real vx_l;
+  Real vy_l=0;
+  Real vz_l=0;
   Real P_l;
+  Real Bx_l;
+  Real By_l;
+  Real Bz_l;
   Real rho_r;
-  Real v_r;
+  Real vx_r;
+  Real vy_r=0;
+  Real vz_r=0;
   Real P_r;
+  Real Bx_r;
+  Real By_r;
+  Real Bz_r;
   Real diaph;
+#ifdef PARTICLES
+  // The random seed for particle simulations. With the default of 0 then a
+  // machine dependent seed will be generated.
+  std::uint_fast64_t prng_seed = 0;
+#endif // PARTICLES
 #ifdef ROTATED_PROJECTION
   int nxr;
   int nzr;
@@ -263,14 +304,17 @@ struct parameters
   int n_proc_z;
 #endif
   int bc_potential_type;
-#ifdef COOLING_GRACKLE
-  char UVB_rates_file[MAXLEN];
-#endif
+#if defined(COOLING_GRACKLE) || defined (CHEMISTRY_GPU)
+  char UVB_rates_file[MAXLEN]; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
+#endif  
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
   char analysisdir[MAXLEN];
   int lya_skewers_stride;
   Real lya_Pk_d_log_k;
+  #ifdef OUTPUT_SKEWERS
+  char skewersdir[MAXLEN];
+  #endif
 #endif
 #ifdef SUPERNOVA
   int supernova_e;

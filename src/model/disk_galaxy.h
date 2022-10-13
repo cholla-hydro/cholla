@@ -93,6 +93,14 @@ public:
         return -GN * M_d / C;
     };
 
+    Real rho_disk_D3D(const Real r, const Real z) {
+      const Real a = R_d;
+      const Real c = Z_d;
+      const Real b = sqrt(z*z+c*c);
+      const Real d = a+b;
+      const Real s = r*r+d*d;
+      return M_d*c*c*(a*(d*d+r*r)+3.0*b*d*d)/(4.0*M_PI*b*b*b*pow(s,2.5));
+    }
 
     /**
      *  Convenience method that returns the combined gravitational potential
@@ -131,9 +139,9 @@ public:
     };
 
 
-    Real getM_d() { return M_d; };
-    Real getR_d() { return R_d; };
-    Real getZ_d() { return Z_d; };
+    Real getM_d() const { return M_d; };
+    Real getR_d() const { return R_d; };
+    Real getZ_d() const { return Z_d; };
 
 };
 

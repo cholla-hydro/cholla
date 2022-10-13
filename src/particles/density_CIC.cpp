@@ -37,7 +37,7 @@ void Particles_3D::Get_Density_CIC(){
 void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Part_Density.Start();
   #endif
 
   // Step 1: Get Particles CIC Density
@@ -45,11 +45,11 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
   Particles.Get_Density_CIC();
 
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 4 );
+  Timer.Part_Density.End();
   #endif
 
   #ifdef CPU_TIME
-  Timer.Start_Timer();
+  Timer.Part_Dens_Transf.Start();
   #endif
   // Step 2: Transfer Particles CIC density Boundaries
   Transfer_Particles_Density_Boundaries(P);
@@ -58,7 +58,7 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
   Copy_Particles_Density();
 
   #ifdef CPU_TIME
-  Timer.End_and_Record_Time( 5 );
+  Timer.Part_Dens_Transf.End();
   #endif
 
 
@@ -68,6 +68,9 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P){
 void Grid3D::Copy_Particles_Density(){
 
   #ifdef GRAVITY_GPU
+  #ifdef PARTICLES_CPU
+  Copy_Particles_Density_to_GPU();
+  #endif
   Copy_Particles_Density_GPU();
   #else
 

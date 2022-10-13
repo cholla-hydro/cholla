@@ -1,0 +1,55 @@
+#
+# Parameter File for Toro test 4, a collision of two shocks.
+# Parameters derived from Toro, Sec. 6.4.4, test 4
+#
+
+################################################
+# number of grid cells in the x dimension
+nx=100
+# number of grid cells in the y dimension
+ny=1
+# number of grid cells in the z dimension
+nz=1
+# final output time
+tout=0.035
+# time interval for output
+outstep=0.035
+# name of initial conditions
+init=Riemann
+# domain properties
+xmin=0.0
+ymin=0.0
+zmin=0.0
+xlen=1.0
+ylen=1.0
+zlen=1.0
+# type of boundary conditions
+xl_bcnd=3
+xu_bcnd=3
+# path to output directory
+outdir=./
+
+#################################################
+# Parameters for 1D Riemann problems
+# density of left state
+rho_l=5.99924
+# velocity of left state
+vx_l=19.5975
+vy_l=0.0
+vz_l=0.0
+
+# pressure of left state
+P_l=460.894
+# density of right state
+rho_r=5.99242
+# velocity of right state
+vx_r=-6.19633
+vy_r=0.0
+vz_r=0.0
+# pressure of right state
+P_r=46.095
+# location of initial discontinuity
+diaph=0.4
+# value of gamma
+gamma=1.4
+

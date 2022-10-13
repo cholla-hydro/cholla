@@ -1,6 +1,6 @@
 # Files specific to this repo #
 ##############################
-cholla*
+googletest*
 
 # Compiled source #
 ###################
@@ -23,7 +23,7 @@ makefile.summit
 *.o
 
 ##executable
-cholla*
+cholla.*
 
 ## input files
 #parameter_file.txt
@@ -32,6 +32,7 @@ data
 # Output files #
 ################
 *.h5
+*.h5.*
 *.bin
 out.*
 o.*
@@ -66,6 +67,7 @@ disk.*
 .DS_Store
 
 .remote-sync.json
+.remote-sync_macos.json
 ._*
 .Spotlight-V100
 .Trashes

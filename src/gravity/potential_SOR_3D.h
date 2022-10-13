@@ -116,7 +116,7 @@ class Potential_SOR_3D{
 
 
   void Initialize_Potential( int nx, int ny, int nz, int n_ghost_potential, Real *potential_d, Real *density_d );
-  void Copy_Input_And_Initialize( Real *input_density, Real Grav_Constant, Real dens_avrg, Real current_a );
+  void Copy_Input_And_Initialize( Real *input_density, const Real *input_potential, Real Grav_Constant, Real dens_avrg, Real current_a );
 
   void Poisson_iteration( int n_cells, int nx, int ny, int nz, int n_ghost_potential, Real dx, Real dy, Real dz, Real omega, Real epsilon, Real *density_d, Real *potential_d, bool *converged_h, bool *converged_d );
   void Poisson_iteration_Patial_1( int n_cells, int nx, int ny, int nz, int n_ghost_potential, Real dx, Real dy, Real dz, Real omega, Real epsilon, Real *density_d, Real *potential_d, bool *converged_h, bool *converged_d );

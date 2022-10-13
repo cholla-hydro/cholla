@@ -125,12 +125,6 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_GPU(){
   cosmo_rho_0_gas = 1.0;
   #endif
 
-  #ifndef HYDRO_GPU
-  //Copy the hydro density from host to device
-  int n_cells_total = ( nx_local + 2*n_ghost ) * ( ny_local + 2*n_ghost ) * ( nz_local + 2*n_ghost );
-  CudaSafeCall( cudaMemcpy(C.d_density, C.density, n_cells_total*sizeof(Real), cudaMemcpyHostToDevice) );
-  #endif//HYDRO_GPU
-
   //Copy the density from the device array to the Poisson input density array
   hipLaunchKernelGGL(Copy_Hydro_Density_to_Gravity_Kernel, dim3dGrid, dim3dBlock, 0, 0,  C.d_density, Grav.F.density_d, nx_local, ny_local, nz_local, n_ghost, cosmo_rho_0_gas);
 
@@ -218,6 +212,14 @@ void Grid3D::Extrapolate_Grav_Potential_GPU(){
   hipLaunchKernelGGL(Extrapolate_Grav_Potential_Kernel, dim3dGrid, dim3dBlock, 0, 0, C.d_Grav_potential, Grav.F.potential_d, Grav.F.potential_1_d, nx_pot, ny_pot, nz_pot, nx_grid, ny_grid, nz_grid, n_offset, dt_now, dt_prev, Grav.INITIAL, cosmo_factor );
 
 }
+
+#ifdef PARTICLES_CPU
+void Grid3D::Copy_Potential_From_GPU(){
+  CudaSafeCall( cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential*sizeof(Real), cudaMemcpyDeviceToHost) );
+  cudaDeviceSynchronize();
+}
+#endif //PARTICLES_CPU
+
 
 
 

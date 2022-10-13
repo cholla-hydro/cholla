@@ -1,0 +1,52 @@
+#
+# Parameter File for 3D box filled with gas
+#
+
+################################################
+# number of grid cells in the x dimension
+nx=256
+# number of grid cells in the y dimension
+ny=256
+# number of grid cells in the z dimension
+nz=256
+# final output time
+tout=100000.0
+# time interval for output
+outstep=100000.0
+# name of initial conditions
+init=Constant
+# domain properties
+xmin=-7.5
+ymin=-7.5
+zmin=-7.5
+xlen=15.0
+ylen=15.0
+zlen=15.0
+# type of boundary conditions
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
+# path to output directory
+outdir=./
+
+#################################################
+# density
+rho=1e4
+# velocity
+vx=0
+vy=0
+vz=0
+# pressure
+P=1.380658e-5
+# Magnetic Field
+Bx=0.0
+By=0.0
+Bz=0.0
+# value of gamma
+gamma=1.666666667
+
+supernova_rcl=0.3
+supernova_e=1

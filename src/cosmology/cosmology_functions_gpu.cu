@@ -1,4 +1,4 @@
-#if defined(COSMOLOGY) && defined(PARTICLES_GPU)
+#if defined(COSMOLOGY)
 
 
 #include "../cosmology/cosmology_functions_gpu.h"

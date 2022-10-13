@@ -6,7 +6,7 @@
 #include <iostream>
 
 //Copy the particles density boundaries for non-MPI PERIODIC transfers
-void Grid3D::Copy_Particles_Density_Boundaries( int direction, int side ){
+void Grid3D::Set_Particles_Density_Boundaries_Periodic( int direction, int side ){
 
   int i, j, k, indx_src, indx_dst;
   int nGHST, nx_g, ny_g, nz_g;
@@ -86,6 +86,24 @@ void Grid3D::Transfer_Particles_Density_Boundaries( struct parameters P ){
 
 
 #ifdef MPI_CHOLLA
+
+
+void Grid3D::Copy_Particles_Density_Buffer_Device_to_Host( int direction, int side, Real *buffer_d, Real *buffer_h ){
+
+  int nGHST, nx_g, ny_g, nz_g, buffer_length;
+  nGHST = Particles.G.n_ghost_particles_grid;
+  nx_g = Particles.G.nx_local + 2*nGHST;
+  ny_g = Particles.G.ny_local + 2*nGHST;
+  nz_g = Particles.G.nz_local + 2*nGHST;
+  
+  if ( direction == 0 ) buffer_length = nGHST * ny_g * nz_g;
+  if ( direction == 1 ) buffer_length = nGHST * nx_g * nz_g;
+  if ( direction == 2 ) buffer_length = nGHST * nx_g * ny_g;
+  
+  cudaMemcpy( buffer_h, buffer_d, buffer_length*sizeof(Real), cudaMemcpyDeviceToHost);
+  
+}
+
 
 //Load the particles density boundaries to the MPI buffers for transfer, return the size of the transfer buffer
 int Grid3D::Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer  ){

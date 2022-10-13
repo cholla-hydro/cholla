@@ -14,6 +14,7 @@
 #ifdef PARTICLES_GPU
 #define TPB_PARTICLES 1024
 // #define PRINT_GPU_MEMORY
+#define PRINT_MAX_MEMORY_USAGE
 #endif
 
 
@@ -164,7 +165,11 @@ class Particles_3D
     Real *gravity_x;
     Real *gravity_y;
     Real *gravity_z;
+    #ifdef GRAVITY_GPU
+    Real *density_dev;
     #endif
+    #endif
+    
 
     #ifdef PARTICLES_GPU
     Real *density_dev;
@@ -221,17 +226,17 @@ class Particles_3D
 
   void Initialize( struct parameters *P, Grav3D &Grav,  Real xbound, Real ybound, Real zbound, Real xdglobal, Real ydglobal, Real zdglobal  );
 
+  void Allocate_Particles_Grid_Field_Real( Real **array_dev, int size );
+  void Free_GPU_Array_Real( Real *array );
+  
   #ifdef PARTICLES_GPU
 
-  void Free_GPU_Array_Real( Real *array );
   void Free_GPU_Array_int( int *array );
   void Free_GPU_Array_bool( bool *array );
   void Allocate_Memory_GPU();
   void Allocate_Particles_GPU_Array_Real( Real **array_dev, part_int_t size );
   void Allocate_Particles_GPU_Array_bool( bool **array_dev, part_int_t size );
   void Allocate_Particles_GPU_Array_int( int **array_dev, part_int_t size );
-  void Allocate_Particles_Grid_Field_Real( Real **array_dev, int size );
-  void Reallocate_and_Copy_Partciles_Array_Real( Real **src_array_dev, part_int_t size_initial, part_int_t size_end );
   void Copy_Particles_Array_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
   void Copy_Particles_Array_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);
   void Set_Particles_Array_Real( Real value, Real *array_dev, part_int_t size);
@@ -257,6 +262,10 @@ class Particles_3D
   void Replace_Tranfered_Particles_GPU( int n_transfer );
   void Unload_Particles_from_Buffer_GPU( int direction, int side , Real *recv_buffer_h, int n_recv );
   void Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d );
+  #ifdef PRINT_MAX_MEMORY_USAGE
+  void Print_Max_Memory_Usage();
+  #endif
+  
   #endif //PARTICLES_GPU
 
 
@@ -265,7 +274,7 @@ class Particles_3D
 
   void Initialize_Grid_Values();
 
-  void Initialize_Sphere();
+  void Initialize_Sphere(struct parameters *P);
 
   void Initialize_Disk_Stellar_Clusters(struct parameters *P);
 
@@ -310,6 +319,7 @@ class Particles_3D
 
   #ifdef PARTICLES_GPU
   void Allocate_Memory_GPU_MPI();
+  void ReAllocate_Memory_GPU_MPI();
   void Load_Particles_to_Buffer_GPU( int direction, int side, Real *send_buffer, int buffer_length  );
   #endif //PARTICLES_GPU
   #endif

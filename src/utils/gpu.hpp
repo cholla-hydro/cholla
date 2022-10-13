@@ -8,7 +8,7 @@
 
 #include <hip/hip_runtime.h>
 
-#if defined(CUFFT) || defined(PARIS)
+#if defined(PARIS) || defined(PARIS_GALACTIC)
 
 #include <hipfft.h>
 
@@ -20,7 +20,10 @@ static void __attribute__((unused)) check(const hipfftResult err, const char *co
   exit(err);
 }
 
-#endif
+#endif  // PARIS PARIC_GALACTIC
+
+#define WARPSIZE 64
+static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 
 #define CUFFT_D2Z HIPFFT_D2Z
 #define CUFFT_FORWARD HIPFFT_FORWARD
@@ -49,6 +52,7 @@ static void __attribute__((unused)) check(const hipfftResult err, const char *co
 #define cudaMalloc hipMalloc
 #define cudaMemcpy hipMemcpy
 #define cudaMemcpyAsync hipMemcpyAsync
+#define cudaMemcpyPeer hipMemcpyPeer
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
 #define cudaMemcpyDeviceToDevice hipMemcpyDeviceToDevice
 #define cudaMemcpyHostToDevice hipMemcpyHostToDevice
@@ -57,7 +61,36 @@ static void __attribute__((unused)) check(const hipfftResult err, const char *co
 #define cudaReadModeElementType hipReadModeElementType
 #define cudaSetDevice hipSetDevice
 #define cudaSuccess hipSuccess
+#define cudaDeviceProp hipDeviceProp_t
+#define cudaGetDeviceProperties hipGetDeviceProperties
+#define cudaPointerAttributes hipPointerAttribute_t
+#define cudaPointerGetAttributes hipPointerGetAttributes
 
+// Texture definitions
+#define cudaArray hipArray
+#define cudaMallocArray hipMallocArray 
+#define cudaFreeArray hipFreeArray
+#define cudaMemcpyToArray hipMemcpyToArray
+#define cudaMemcpy2DToArray hipMemcpy2DToArray
+
+
+#define cudaTextureObject_t hipTextureObject_t
+#define cudaCreateTextureObject hipCreateTextureObject
+#define cudaDestroyTextureObject hipDestroyTextureObject
+
+#define cudaChannelFormatDesc hipChannelFormatDesc
+#define cudaCreateChannelDesc hipCreateChannelDesc
+#define cudaChannelFormatKindFloat hipChannelFormatKindFloat
+
+#define cudaResourceDesc hipResourceDesc
+#define cudaResourceTypeArray hipResourceTypeArray
+#define cudaTextureDesc hipTextureDesc
+#define cudaAddressModeClamp hipAddressModeClamp
+#define cudaFilterModeLinear hipFilterModeLinear
+#define cudaFilterModePoint hipFilterModePoint 
+// Texture Definitions
+
+// FFT definitions
 #define cufftDestroy hipfftDestroy
 #define cufftDoubleComplex hipfftDoubleComplex
 #define cufftDoubleReal hipfftDoubleReal
@@ -76,11 +109,11 @@ static void __attribute__((unused)) check(const hipError_t err, const char *cons
   exit(err);
 }
 
-#else
+#else  // not O_HIP
 
 #include <cuda_runtime.h>
 
-#if defined(CUFFT) || defined(PARIS)
+#if defined(PARIS) || defined(PARIS_GALACTIC)
 
 #include <cufft.h>
 
@@ -92,7 +125,7 @@ static void check(const cufftResult err, const char *const file, const int line)
   exit(err);
 }
 
-#endif
+#endif // defined(PARIS) || defined(PARIS_GALACTIC)
 
 static void check(const cudaError_t err, const char *const file, const int line)
 {
@@ -102,9 +135,12 @@ static void check(const cudaError_t err, const char *const file, const int line)
   exit(err);
 }
 
+#define WARPSIZE 32
+static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define hipLaunchKernelGGL(F,G,B,M,S,...) F<<<G,B,M,S>>>(__VA_ARGS__)
+#define __shfl_down(...) __shfl_down_sync(0xFFFFFFFF, __VA_ARGS__)
 
-#endif
+#endif  //O_HIP
 
 #define CHECK(X) check(X,__FILE__,__LINE__)
 

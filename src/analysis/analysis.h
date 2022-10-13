@@ -140,27 +140,87 @@ public:
   Real *full_temperature_x;
   Real *full_temperature_y;
   Real *full_temperature_z;
-
-  Real *full_optical_depth_x;
-  Real *full_optical_depth_y;
-  Real *full_optical_depth_z;
-
+  
+  Real *full_optical_depth_HI_x;
+  Real *full_optical_depth_HI_y;
+  Real *full_optical_depth_HI_z;
+  
+  Real *full_optical_depth_HeII_x;
+  Real *full_optical_depth_HeII_y;
+  Real *full_optical_depth_HeII_z;
+  
   Real *full_vel_Hubble_x;
   Real *full_vel_Hubble_y;
   Real *full_vel_Hubble_z;
-
-  Real *transmitted_flux_x;
-  Real *transmitted_flux_y;
-  Real *transmitted_flux_z;
-
-  Real Flux_mean_root_x;
-  Real Flux_mean_root_y;
-  Real Flux_mean_root_z;
-
-  Real Flux_mean_x;
-  Real Flux_mean_y;
-  Real Flux_mean_z;
-
+  
+  Real *skewers_transmitted_flux_HI_x;
+  Real *skewers_transmitted_flux_HI_y;
+  Real *skewers_transmitted_flux_HI_z;
+  
+  Real *skewers_transmitted_flux_HeII_x;
+  Real *skewers_transmitted_flux_HeII_y;
+  Real *skewers_transmitted_flux_HeII_z;
+  
+  #ifdef OUTPUT_SKEWERS
+  
+  Real *skewers_density_local_x;
+  Real *skewers_density_local_y;
+  Real *skewers_density_local_z;
+  
+  Real *skewers_density_root_x;
+  Real *skewers_density_root_y;
+  Real *skewers_density_root_z;
+  
+  Real *skewers_density_x_global;
+  Real *skewers_density_y_global;
+  Real *skewers_density_z_global;
+  
+  
+  Real *skewers_HI_density_x_global;
+  Real *skewers_HI_density_y_global;
+  Real *skewers_HI_density_z_global;
+  
+  Real *skewers_HeII_density_x_global;
+  Real *skewers_HeII_density_y_global;
+  Real *skewers_HeII_density_z_global;
+  
+  Real *skewers_temperature_x_global;
+  Real *skewers_temperature_y_global;
+  Real *skewers_temperature_z_global;
+  
+  Real *skewers_los_velocity_x_global;
+  Real *skewers_los_velocity_y_global;
+  Real *skewers_los_velocity_z_global;
+  
+  Real *skewers_transmitted_flux_HI_x_global;
+  Real *skewers_transmitted_flux_HI_y_global;
+  Real *skewers_transmitted_flux_HI_z_global;
+  
+  Real *skewers_transmitted_flux_HeII_x_global;
+  Real *skewers_transmitted_flux_HeII_y_global;
+  Real *skewers_transmitted_flux_HeII_z_global;
+  
+  Real *transfer_buffer_root_x;
+  Real *transfer_buffer_root_y;
+  Real *transfer_buffer_root_z;
+  #endif
+    
+  Real Flux_mean_root_HI_x;
+  Real Flux_mean_root_HI_y;
+  Real Flux_mean_root_HI_z;
+  
+  Real Flux_mean_root_HeII_x;
+  Real Flux_mean_root_HeII_y;
+  Real Flux_mean_root_HeII_z;
+    
+  Real Flux_mean_HI_x;
+  Real Flux_mean_HI_y;
+  Real Flux_mean_HI_z;
+  
+  Real Flux_mean_HeII_x;
+  Real Flux_mean_HeII_y;
+  Real Flux_mean_HeII_z;
+    
   Real Flux_mean_HI;
   Real Flux_mean_HeII;
 
@@ -220,8 +280,12 @@ public:
   Real *ps_global_y;
   Real *ps_global_z;
   Real *ps_mean;
-  Real *k_ceters;
-
+  Real *k_centers;
+  
+  bool *root_procs_x;
+  bool *root_procs_y;
+  bool *root_procs_z; 
+  
   #ifdef MPI_CHOLLA
   Real *mpi_domain_boundary_x;
   Real *mpi_domain_boundary_y;
@@ -253,10 +317,11 @@ public:
   void Transfer_Skewers_Data( int axis );
   void Compute_Lya_Mean_Flux_Skewer( int skewer_id, int axis );
   void Reduce_Lya_Mean_Flux_Axis( int axis );
-  void Reduce_Lya_Mean_Flux_Global( int chemical_type );
+  void Reduce_Lya_Mean_Flux_Global( );
   void Clear_Power_Spectrum_Measurements( void );
   void Reduce_Power_Spectrum_Axis( int axis );
   void Reduce_Power_Spectrum_Global( );
+  void Transfer_Skewers_Global_Axis( int axis );
   #endif
 };
 

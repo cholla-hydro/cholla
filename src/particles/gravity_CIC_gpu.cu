@@ -1,4 +1,4 @@
-#if defined(PARTICLES) && defined(PARTICLES_GPU)
+#ifdef PARTICLES
 
 #include <unistd.h>
 #include <stdio.h>
@@ -13,6 +13,7 @@
 #include "../grid/grid3D.h"
 #endif
 
+#ifdef PARTICLES_GPU
 
 //Copy the potential from host to device
 void Particles_3D::Copy_Potential_To_GPU( Real *potential_host, Real *potential_dev, int n_cells_potential ){
@@ -254,10 +255,15 @@ void Particles_3D::Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_loca
   //  number of threads per 1D block
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
 
-  hipLaunchKernelGGL(Get_Gravity_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, gravity_x_dev, gravity_y_dev, gravity_z_dev, pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
-  CudaCheckError();
+  // Only runs if there are local particles
+  if (n_local > 0) {
+    hipLaunchKernelGGL(Get_Gravity_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local, gravity_x_dev, gravity_y_dev, gravity_z_dev, pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid );
+    CudaCheckError();
+  }
 
 }
+
+#endif //PARTICLES_GPU
 
 #ifdef GRAVITY_GPU
 

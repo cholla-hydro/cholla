@@ -1,0 +1,23 @@
+#-- make.inc for the Lux Cluster
+
+#-- Compiler and flags for different build type
+CC                = gcc
+CXX               = g++
+CFLAGS_DEBUG      = -g -O0
+CFLAGS_OPTIMIZE   = -g -O2
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++17
+
+
+OMP_NUM_THREADS = 10
+
+#-- Library
+CUDA_ROOT    = /usr/local/cuda-10.0
+HDF5_ROOT    = /usr/lib/x86_64-linux-gnu/hdf5/serial
+FFTW_ROOT    = /home/bruno/apps/fftw-3.3.5
+PFFT_ROOT    = /home/bruno/apps/pfft-1.0.8-alpha
+GRACKLE_ROOT = /home/bruno/code/grackle
+
+POISSON_SOLVER = -DCUFFT
+
+

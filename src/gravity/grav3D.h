@@ -4,20 +4,16 @@
 #include <stdio.h>
 #include "../global/global.h"
 
-#ifdef PFFT
-#include "../gravity/potential_PFFT_3D.h"
-#endif
-
-#ifdef CUFFT
-#include "../gravity/potential_CUFFT_3D.h"
-#endif
-
 #ifdef SOR
 #include "../gravity/potential_SOR_3D.h"
 #endif
 
 #ifdef PARIS
 #include "../gravity/potential_paris_3D.h"
+#endif
+
+#ifdef PARIS_GALACTIC
+#include "../gravity/potential_paris_galactic.h"
 #endif
 
 #ifdef HDF5
@@ -46,6 +42,9 @@ class Grav3D
   Real xMin;
   Real yMin;
   Real zMin;
+  Real xMax;
+  Real yMax;
+  Real zMax;
   /*! \var nx
   *  \brief Total number of cells in the x-dimension */
   int nx_total;
@@ -101,28 +100,22 @@ class Grav3D
   int *boundary_flags;
 
 
-
-  #ifdef PFFT
-  Potential_PFFT_3D Poisson_solver;
-  #endif
-
-  #ifdef CUFFT
-  Potential_CUFFT_3D Poisson_solver;
-  #endif
-
   #ifdef SOR
   Potential_SOR_3D Poisson_solver;
   #endif
 
   #ifdef PARIS
-  #if (defined(PFFT) || defined(CUFFT) || defined(SOR))
-  #define PARIS_TEST
-  Potential_Paris_3D Poisson_solver_test;
-  #else
   Potential_Paris_3D Poisson_solver;
   #endif
-  #endif
 
+  #ifdef PARIS_GALACTIC
+  #ifdef SOR
+  #define PARIS_GALACTIC_TEST
+  Potential_Paris_Galactic Poisson_solver_test;
+  #else
+  Potential_Paris_Galactic Poisson_solver;
+  #endif
+  #endif
 
   struct Fields
   {
@@ -191,7 +184,7 @@ class Grav3D
 
   /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
   *  \brief Initialize the grid. */
-  void Initialize( Real x_min, Real y_min, Real z_min, Real Lx, Real Ly, Real Lz, int nx_total, int ny_total, int nz_total, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P);
+  void Initialize( Real x_min, Real y_min, Real z_min, Real x_max, Real y_max, Real z_max, Real Lx, Real Ly, Real Lz, int nx_total, int ny_total, int nz_total, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P);
 
   void AllocateMemory_CPU(void);
   void Initialize_values_CPU();

@@ -120,14 +120,16 @@ void parse_params (char *param_file, struct parameters * parms, int argc, char**
   FILE *fp = fopen (param_file, "r");
   if (fp == NULL)
   {
+    chprintf("Exiting at file %s line %d: failed to read param file %s \n", __FILE__, __LINE__, param_file);
+    exit(1);
     return;
   }
   // set default hydro file output parameter
-  parms->outstep_hydro=1;
-  parms->outstep_particle=1;
-  parms->outstep_slice=1;
-  parms->outstep_projection=1;
-  parms->outstep_rotated_projection=1;
+  parms->n_hydro=1;
+  parms->n_particle=1;
+  parms->n_slice=1;
+  parms->n_projection=1;
+  parms->n_rotated_projection=1;
 
 #ifdef ROTATED_PROJECTION
   //initialize rotation parameters to zero
@@ -211,8 +213,40 @@ void parse_param(char *name,char *value, struct parameters *parms){
     strncpy (parms->init, value, MAXLEN);
   else if (strcmp(name, "nfile")==0)
     parms->nfile = atoi(value);
-  else if (strcmp(name, "outstep_hydro")==0)
-    parms->outstep_hydro = atoi(value);
+  else if (strcmp(name, "n_hydro")==0)
+    parms->n_hydro = atoi(value);
+  else if (strcmp(name, "n_particle")==0)
+    parms->n_particle = atoi(value);
+  else if (strcmp(name, "n_projection")==0)
+    parms->n_projection = atoi(value);
+  else if (strcmp(name, "n_rotated_projection")==0)
+    parms->n_rotated_projection = atoi(value);
+  else if (strcmp(name, "n_slice")==0)
+    parms->n_slice = atoi(value);
+  else if (strcmp(name, "n_out_float32")==0)
+    parms->n_out_float32 = atoi(value);
+  else if (strcmp(name, "out_float32_density")==0)
+    parms->out_float32_density = atoi(value);
+  else if (strcmp(name, "out_float32_momentum_x")==0)
+    parms->out_float32_momentum_x = atoi(value);
+  else if (strcmp(name, "out_float32_momentum_y")==0)
+    parms->out_float32_momentum_y = atoi(value);
+  else if (strcmp(name, "out_float32_momentum_z")==0)
+    parms->out_float32_momentum_z = atoi(value);
+  else if (strcmp(name, "out_float32_Energy")==0)
+    parms->out_float32_Energy = atoi(value);
+#ifdef DE
+  else if (strcmp(name, "out_float32_GasEnergy")==0)
+    parms->out_float32_GasEnergy = atoi(value);
+#endif // DE
+#ifdef MHD
+  else if (strcmp(name, "out_float32_magnetic_x")==0)
+    parms->out_float32_magnetic_x = atoi(value);
+  else if (strcmp(name, "out_float32_magnetic_y")==0)
+    parms->out_float32_magnetic_y = atoi(value);
+  else if (strcmp(name, "out_float32_magnetic_z")==0)
+    parms->out_float32_magnetic_z = atoi(value);
+#endif // MHD
   else if (strcmp(name, "xmin")==0)
     parms->xmin = atof(value);
   else if (strcmp(name, "ymin")==0)
@@ -253,22 +287,52 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->vz = atof(value);
   else if (strcmp(name, "P")==0)
     parms->P = atof(value);
+  else if (strcmp(name, "Bx")==0)
+    parms->Bx = atof(value);
+  else if (strcmp(name, "By")==0)
+    parms->By = atof(value);
+  else if (strcmp(name, "Bz")==0)
+    parms->Bz = atof(value);
   else if (strcmp(name, "A")==0)
     parms->A = atof(value);
   else if (strcmp(name, "rho_l")==0)
     parms->rho_l = atof(value);
-  else if (strcmp(name, "v_l")==0)
-    parms->v_l = atof(value);
+  else if (strcmp(name, "vx_l")==0)
+    parms->vx_l = atof(value);
+  else if (strcmp(name, "vy_l")==0)
+    parms->vy_l = atof(value);
+  else if (strcmp(name, "vz_l")==0)
+    parms->vz_l = atof(value);
   else if (strcmp(name, "P_l")==0)
     parms->P_l = atof(value);
+  else if (strcmp(name, "Bx_l")==0)
+    parms->Bx_l = atof(value);
+  else if (strcmp(name, "By_l")==0)
+    parms->By_l = atof(value);
+  else if (strcmp(name, "Bz_l")==0)
+    parms->Bz_l = atof(value);
   else if (strcmp(name, "rho_r")==0)
     parms->rho_r = atof(value);
-  else if (strcmp(name, "v_r")==0)
-    parms->v_r = atof(value);
+  else if (strcmp(name, "vx_r")==0)
+    parms->vx_r = atof(value);
+  else if (strcmp(name, "vy_r")==0)
+    parms->vy_r = atof(value);
+  else if (strcmp(name, "vz_r")==0)
+    parms->vz_r = atof(value);
   else if (strcmp(name, "P_r")==0)
     parms->P_r = atof(value);
+  else if (strcmp(name, "Bx_r")==0)
+    parms->Bx_r = atof(value);
+  else if (strcmp(name, "By_r")==0)
+    parms->By_r = atof(value);
+  else if (strcmp(name, "Bz_r")==0)
+    parms->Bz_r = atof(value);
   else if (strcmp(name, "diaph")==0)
     parms->diaph = atof(value);
+#ifdef PARTICLES
+  else if (strcmp(name, "prng_seed")==0)
+    parms->prng_seed = atoi(value);
+#endif // PARTICLES
 #ifdef ROTATED_PROJECTION
   else if (strcmp(name, "nxr")==0)
     parms->nxr = atoi(value);
@@ -323,7 +387,10 @@ void parse_param(char *name,char *value, struct parameters *parms){
 #endif
   else if (strcmp(name, "bc_potential_type")==0)
     parms->bc_potential_type  = atoi(value);
-
+#ifdef CHEMISTRY_GPU
+    else if (strcmp(name, "UVB_rates_file")==0)
+      strncpy (parms->UVB_rates_file, value, MAXLEN);
+#endif
 #ifdef COOLING_GRACKLE
   else if (strcmp(name, "UVB_rates_file")==0)
     strncpy (parms->UVB_rates_file, value, MAXLEN);
@@ -337,6 +404,10 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->lya_skewers_stride  = atoi(value);
   else if (strcmp(name, "lya_Pk_d_log_k")==0)
     parms->lya_Pk_d_log_k  = atof(value);
+  #ifdef OUTPUT_SKEWERS
+  else if (strcmp(name, "skewersdir")==0)
+    strncpy (parms->skewersdir, value, MAXLEN);
+  #endif
 #endif
 #ifdef SUPERNOVA
   else if (strcmp(name, "supernova_e")==0)  
