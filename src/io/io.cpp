@@ -80,6 +80,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields*G.H.n_cells*sizeof(Real), cudaMemcpyDeviceToHost);
 
   chprintf( "\nSaving Snapshot: %d \n", nfile );
+  
+  #ifdef HDF5
+  // Initialize HDF5 interface
+  H5open();
+  #endif
 
   #ifdef HDF5
   // Initialize HDF5 interface
@@ -148,6 +153,11 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   chprintf( "\n" );
   G.H.Output_Now = false;
   #endif
+  
+  #ifdef HDF5
+  // Cleanup HDF5
+  H5close();
+  #endif
 
   #ifdef HDF5
   // Cleanup HDF5
@@ -201,7 +211,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
   #elif defined HDF5
   hid_t   file_id; /* file identifier */
   herr_t  status;
-
+  
   // Create a new file using default properties.
   file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -210,10 +220,10 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 
   // write the conserved variables to the output file
   G.Write_Grid_HDF5(file_id);
-
+  
   // close the file
   status = H5Fclose(file_id);
-
+  
   if (status < 0) {printf("File write failed.\n"); exit(-1); }
 
   #else

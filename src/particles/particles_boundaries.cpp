@@ -5,12 +5,12 @@
 #include <iostream>
 #include "../grid/grid3D.h"
 #include "../io/io.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
 
 #ifdef MPI_CHOLLA
 #include "../mpi/mpi_routines.h"
 #ifdef PARTICLES_GPU
-#include "../particles/particles_boundaries_gpu.h"
+#include "particles_boundaries_gpu.h"
 #include "../utils/gpu_arrays_functions.h"
 #endif//PARTICLES_GPU
 #endif//MPI_CHOLLA
@@ -19,7 +19,7 @@
 //Transfer the particles that moved outside the local domain
 void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
 
-
+  CudaCheckError();
   //Transfer Particles Boundaries
   Particles.TRANSFER_PARTICLES_BOUNDARIES = true;
   #ifdef CPU_TIME
@@ -30,7 +30,7 @@ void Grid3D::Transfer_Particles_Boundaries( struct parameters P ){
   Timer.Part_Boundaries.End();
   #endif
   Particles.TRANSFER_PARTICLES_BOUNDARIES = false;
-
+  CudaCheckError();
 }
 
 #ifdef MPI_CHOLLA
@@ -182,7 +182,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef MPI_GPU 
     if ( buffer_length > Particles.G.recv_buffer_size_x0 ){
       printf( "Extending Particles Transfer Buffer  ");
-      Extend_GPU_Array_Real( &recv_buffer_x0_particles, Particles.G.recv_buffer_size_x0, Particles.G.gpu_allocation_factor*buffer_length, true );
+      Extend_GPU_Array( &recv_buffer_x0_particles, Particles.G.recv_buffer_size_x0, Particles.G.gpu_allocation_factor*buffer_length, true );
       Particles.G.recv_buffer_size_x0 = (part_int_t) Particles.G.gpu_allocation_factor*buffer_length;
     }
     #else
@@ -201,7 +201,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef MPI_GPU 
     if ( buffer_length > Particles.G.recv_buffer_size_x1 ){
       printf( "Extending Particles Transfer Buffer  ");
-      Extend_GPU_Array_Real( &recv_buffer_x1_particles, Particles.G.recv_buffer_size_x1, Particles.G.gpu_allocation_factor*buffer_length, true  );
+      Extend_GPU_Array( &recv_buffer_x1_particles, Particles.G.recv_buffer_size_x1, Particles.G.gpu_allocation_factor*buffer_length, true  );
       Particles.G.recv_buffer_size_x1 = (part_int_t) Particles.G.gpu_allocation_factor*buffer_length;
     }
     #else
@@ -220,7 +220,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef MPI_GPU 
     if ( buffer_length > Particles.G.recv_buffer_size_y0 ){
       printf( "Extending Particles Transfer Buffer  ");
-      Extend_GPU_Array_Real( &recv_buffer_y0_particles, Particles.G.recv_buffer_size_y0, Particles.G.gpu_allocation_factor*buffer_length, true  );
+      Extend_GPU_Array( &recv_buffer_y0_particles, Particles.G.recv_buffer_size_y0, Particles.G.gpu_allocation_factor*buffer_length, true  );
       Particles.G.recv_buffer_size_y0 = (part_int_t) Particles.G.gpu_allocation_factor*buffer_length;
     }
     #else
@@ -239,7 +239,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef MPI_GPU
     if ( buffer_length > Particles.G.recv_buffer_size_y1 ){ 
       printf( "Extending Particles Transfer Buffer  ");
-      Extend_GPU_Array_Real( &recv_buffer_y1_particles, Particles.G.recv_buffer_size_y1, Particles.G.gpu_allocation_factor*buffer_length, true  );
+      Extend_GPU_Array( &recv_buffer_y1_particles, Particles.G.recv_buffer_size_y1, Particles.G.gpu_allocation_factor*buffer_length, true  );
       Particles.G.recv_buffer_size_y1 = (part_int_t) Particles.G.gpu_allocation_factor*buffer_length;
     }
     #else
@@ -258,7 +258,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef MPI_GPU 
     if ( buffer_length > Particles.G.recv_buffer_size_z0 ){
       printf( "Extending Particles Transfer Buffer  ");
-      Extend_GPU_Array_Real( &recv_buffer_z0_particles, Particles.G.recv_buffer_size_z0, Particles.G.gpu_allocation_factor*buffer_length, true  );
+      Extend_GPU_Array( &recv_buffer_z0_particles, Particles.G.recv_buffer_size_z0, Particles.G.gpu_allocation_factor*buffer_length, true  );
       Particles.G.recv_buffer_size_z0 = (part_int_t) Particles.G.gpu_allocation_factor*buffer_length;
     }
     #else
@@ -277,7 +277,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef MPI_GPU 
     if ( buffer_length > Particles.G.recv_buffer_size_z1 ){
       printf( "Extending Particles Transfer Buffer  ");
-      Extend_GPU_Array_Real( &recv_buffer_z1_particles, Particles.G.recv_buffer_size_z1, Particles.G.gpu_allocation_factor*buffer_length, true  );
+      Extend_GPU_Array( &recv_buffer_z1_particles, Particles.G.recv_buffer_size_z1, Particles.G.gpu_allocation_factor*buffer_length, true  );
       Particles.G.recv_buffer_size_z1 = (part_int_t) Particles.G.gpu_allocation_factor*buffer_length;
     }
     #else
@@ -658,7 +658,7 @@ int Particles_3D::Select_Particles_to_Transfer_GPU( int direction, int side ){
     domainMax = G.zMax;
     domainMin = G.zMin;
   }
-
+  //chprintf("n_local=%d SELECT PARTICLES: %d dir, %d side. Max/Min %.4e/%.4e \n", n_local, direction, side, domainMax, domainMin);
   //Set the number of particles that will be sent and load the particles data into the transfer buffers
   n_transfer = Select_Particles_to_Transfer_GPU_function(  n_local, side, domainMin, domainMax, pos, G.n_transfer_d, G.n_transfer_h, G.transfer_particles_flags_d, G.transfer_particles_indices_d, G.replace_particles_indices_d, G.transfer_particles_prefix_sum_d, G.transfer_particles_prefix_sum_blocks_d  );
   CHECK(cudaDeviceSynchronize());
@@ -674,6 +674,7 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
   Real *pos, *send_buffer_d;
   Real domainMin, domainMax;
   int bt_pos_x, bt_pos_y, bt_pos_z, bt_non_pos;
+  int field_id = -1;
 
   bt_pos_x = -1;
   bt_pos_y = -1;
@@ -732,31 +733,36 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
     }
   }
 
-
-
   // If the number of particles in the array exceeds the size of the array, extend the array
   if ( (*n_send + n_transfer)*N_DATA_PER_PARTICLE_TRANSFER > *buffer_size  ){
     printf( "Extending Particles Transfer Buffer  ");
-    Extend_GPU_Array_Real( &send_buffer_d, *buffer_size,  G.gpu_allocation_factor*(*n_send + n_transfer)*N_DATA_PER_PARTICLE_TRANSFER, true  );
+    Extend_GPU_Array( &send_buffer_d, *buffer_size,  G.gpu_allocation_factor*(*n_send + n_transfer)*N_DATA_PER_PARTICLE_TRANSFER, true  );
     *buffer_size = (part_int_t) G.gpu_allocation_factor*(*n_send + n_transfer)*N_DATA_PER_PARTICLE_TRANSFER;
   }
 
   // Load the particles that will be transferred into the buffers
   n_fields_to_transfer = N_DATA_PER_PARTICLE_TRANSFER;
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 0, n_fields_to_transfer, pos_x_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_x );
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 1, n_fields_to_transfer, pos_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_y );
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 2, n_fields_to_transfer, pos_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_z );
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 3, n_fields_to_transfer, vel_x_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 4, n_fields_to_transfer, vel_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
-  Load_Particles_to_Transfer_GPU_function( n_transfer, 5, n_fields_to_transfer, vel_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
-
+  Load_Particles_to_Transfer_GPU_function( n_transfer, ++field_id, n_fields_to_transfer, pos_x_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_x );
+  Load_Particles_to_Transfer_GPU_function( n_transfer, ++field_id, n_fields_to_transfer, pos_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_y );
+  Load_Particles_to_Transfer_GPU_function( n_transfer, ++field_id, n_fields_to_transfer, pos_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_pos_z );
+  Load_Particles_to_Transfer_GPU_function( n_transfer, ++field_id, n_fields_to_transfer, vel_x_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
+  Load_Particles_to_Transfer_GPU_function( n_transfer, ++field_id, n_fields_to_transfer, vel_y_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
+  Load_Particles_to_Transfer_GPU_function( n_transfer, ++field_id, n_fields_to_transfer, vel_z_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
+  #ifndef SINGLE_PARTICLE_MASS
+  Load_Particles_to_Transfer_GPU_function( n_transfer, ++field_id, n_fields_to_transfer, mass_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
+  #endif
+  #ifdef PARTICLE_IDS
+  Load_Particles_to_Transfer_Int_GPU_function( n_transfer, ++field_id, n_fields_to_transfer, partIDs_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
+  #endif
+  #ifdef PARTICLE_AGE
+  Load_Particles_to_Transfer_GPU_function( n_transfer, ++field_id, n_fields_to_transfer, age_dev, G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax, bt_non_pos );
+  #endif
   CHECK(cudaDeviceSynchronize());
 
   *n_send += n_transfer;
   // if ( *n_send > 0 ) printf( "###Transfered %ld  particles\n", *n_send);
-
-
 }
+
 
 
 void Particles_3D::Replace_Tranfered_Particles_GPU( int n_transfer ){
@@ -768,6 +774,15 @@ void Particles_3D::Replace_Tranfered_Particles_GPU( int n_transfer ){
   Replace_Transfered_Particles_GPU_function( n_transfer, vel_x_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, vel_y_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
   Replace_Transfered_Particles_GPU_function( n_transfer, vel_z_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
+  #ifndef SINGLE_PARTICLE_MASS
+  Replace_Transfered_Particles_GPU_function( n_transfer, mass_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
+  #endif
+  #ifdef PARTICLE_IDS
+  Replace_Transfered_Particles_Int_GPU_function( n_transfer, partIDs_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
+  #endif
+  #ifdef PARTICLE_AGE
+  Replace_Transfered_Particles_GPU_function( n_transfer, age_dev, G.transfer_particles_indices_d, G.replace_particles_indices_d, false );
+  #endif
 
   CHECK(cudaDeviceSynchronize());
   // Update the local number of particles
@@ -777,52 +792,94 @@ void Particles_3D::Replace_Tranfered_Particles_GPU( int n_transfer ){
 
 
 void Particles_3D::Load_Particles_to_Buffer_GPU( int direction, int side, Real *send_buffer_h, int buffer_length ){
-
   int n_transfer;
-
   n_transfer = Select_Particles_to_Transfer_GPU( direction, side );
 
   Copy_Transfer_Particles_to_Buffer_GPU( n_transfer, direction, side, send_buffer_h, buffer_length );
 
   Replace_Tranfered_Particles_GPU( n_transfer );
+}
 
+
+/** 
+ * Open boundary conditions follows the same logic as Load_Particles_to_Buffer_GPU, except that the particles that are selected for transfer are
+ * not moved into any buffer (Copy_Transfer_Particles_to_Buffer_GPU step is skipped).  Also the domainMix/domainMax are the global min/max values.
+ */
+void Particles_3D::Set_Particles_Open_Boundary_GPU( int dir, int side ){
+  int n_transfer;
+  /*Real *pos;
+  Real domainMin, domainMax;
+
+  if ( dir == 0 ){
+    domainMin = G.domainMin_x;
+    domainMax = G.domainMax_x;
+  }
+  if ( dir == 1 ){
+    domainMin = G.domainMin_y;
+    domainMax = G.domainMax_y;
+  }
+  if ( dir == 2 ){
+    domainMin = G.domainMin_z;
+    domainMax = G.domainMax_z;
+  }*/
+  n_transfer = Select_Particles_to_Transfer_GPU(dir, side);
+  //n_transfer = Select_Particles_to_Transfer_GPU_function(  n_local, side, domainMin, domainMax, pos, G.n_transfer_d, G.n_transfer_h, G.transfer_particles_flags_d, G.transfer_particles_indices_d, G.replace_particles_indices_d, G.transfer_particles_prefix_sum_d, G.transfer_particles_prefix_sum_blocks_d  );
+  //CHECK(cudaDeviceSynchronize());
+  //chprintf("OPEN condition: removing %d\n", n_transfer);
+  Replace_Tranfered_Particles_GPU( n_transfer );
 }
 
 
 void Particles_3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d ){
-
   int n_fields_to_transfer;
 
   part_int_t n_local_after = n_local + n_recv;
   if ( n_local_after > particles_array_size ){
     printf(" Reallocating GPU particles arrays. N local particles: %ld \n", n_local_after );
     int new_size = G.gpu_allocation_factor * n_local_after;
-    Extend_GPU_Array_Real( &pos_x_dev,  (int) particles_array_size, new_size, true  );
-    Extend_GPU_Array_Real( &pos_y_dev,  (int) particles_array_size, new_size, false );
-    Extend_GPU_Array_Real( &pos_z_dev,  (int) particles_array_size, new_size, false );
-    Extend_GPU_Array_Real( &vel_x_dev,  (int) particles_array_size, new_size, false );
-    Extend_GPU_Array_Real( &vel_y_dev,  (int) particles_array_size, new_size, false );
-    Extend_GPU_Array_Real( &vel_z_dev,  (int) particles_array_size, new_size, false );
-    Extend_GPU_Array_Real( &grav_x_dev, (int) particles_array_size, new_size, false );
-    Extend_GPU_Array_Real( &grav_y_dev, (int) particles_array_size, new_size, false );
-    Extend_GPU_Array_Real( &grav_z_dev, (int) particles_array_size, new_size, false );
+    Extend_GPU_Array( &pos_x_dev,  (int) particles_array_size, new_size, true  );
+    Extend_GPU_Array( &pos_y_dev,  (int) particles_array_size, new_size, false );
+    Extend_GPU_Array( &pos_z_dev,  (int) particles_array_size, new_size, false );
+    Extend_GPU_Array( &vel_x_dev,  (int) particles_array_size, new_size, false );
+    Extend_GPU_Array( &vel_y_dev,  (int) particles_array_size, new_size, false );
+    Extend_GPU_Array( &vel_z_dev,  (int) particles_array_size, new_size, false );
+    Extend_GPU_Array( &grav_x_dev, (int) particles_array_size, new_size, false );
+    Extend_GPU_Array( &grav_y_dev, (int) particles_array_size, new_size, false );
+    Extend_GPU_Array( &grav_z_dev, (int) particles_array_size, new_size, false );
+    #ifndef SINGLE_PARTICLE_MASS
+    Extend_GPU_Array( &mass_dev,   (int)particles_array_size, new_size, false );
+    #endif
+    #ifdef PARTICLE_IDS
+    Extend_GPU_Array( &partIDs_dev, (int)particles_array_size, new_size, false );
+    #endif
+    #ifdef PARTICLE_AGE
+    Extend_GPU_Array( &age_dev, (int)particles_array_size, new_size, false );
+    #endif
     particles_array_size = (part_int_t) new_size;
     ReAllocate_Memory_GPU_MPI();
   }
 
   // Unload the particles that were transferred from the buffers
+  int field_id = -1;
   n_fields_to_transfer = N_DATA_PER_PARTICLE_TRANSFER;
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 0, n_fields_to_transfer, pos_x_dev, recv_buffer_d  );
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 1, n_fields_to_transfer, pos_y_dev, recv_buffer_d  );
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 2, n_fields_to_transfer, pos_z_dev, recv_buffer_d  );
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 3, n_fields_to_transfer, vel_x_dev, recv_buffer_d  );
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 4, n_fields_to_transfer, vel_y_dev, recv_buffer_d  );
-  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, 5, n_fields_to_transfer, vel_z_dev, recv_buffer_d  );
-  //
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, ++field_id, n_fields_to_transfer, pos_x_dev, recv_buffer_d  );
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, ++field_id, n_fields_to_transfer, pos_y_dev, recv_buffer_d  );
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, ++field_id, n_fields_to_transfer, pos_z_dev, recv_buffer_d  );
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, ++field_id, n_fields_to_transfer, vel_x_dev, recv_buffer_d  );
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, ++field_id, n_fields_to_transfer, vel_y_dev, recv_buffer_d  );
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, ++field_id, n_fields_to_transfer, vel_z_dev, recv_buffer_d  );
+  #ifndef SINGLE_PARTICLE_MASS
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, ++field_id, n_fields_to_transfer, mass_dev, recv_buffer_d  );
+  #endif
+  #ifdef PARTICLE_IDS
+  Unload_Particles_Int_to_Transfer_GPU_function( n_local, n_recv, ++field_id, n_fields_to_transfer, partIDs_dev, recv_buffer_d  );
+  #endif
+  #ifdef PARTICLE_AGE
+  Unload_Particles_to_Transfer_GPU_function( n_local, n_recv, ++field_id, n_fields_to_transfer, age_dev, recv_buffer_d  );
+  #endif
+
   n_local += n_recv;
   // if ( n_recv > 0 ) printf( "###Unloaded %d  particles\n", n_recv );
-
-
 }
 
 
@@ -876,14 +933,7 @@ void Particles_3D::Unload_Particles_from_Buffer_GPU( int direction, int side , R
 
 }
 
-
-
-
 #endif //PARTICLES_GPU
-
-
-
-
 
 
 #endif //MPI_CHOLLA

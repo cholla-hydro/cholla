@@ -7,8 +7,8 @@
 #include "../global/global.h"
 #include "../grid/grid3D.h"
 #include "../io/io.h"
-#include "../particles/particles_3D.h"
-#include "../particles/density_CIC.h"
+#include "particles_3D.h"
+#include "density_CIC.h"
 #include "../model/disk_galaxy.h"
 
 
@@ -90,7 +90,7 @@ void Particles_3D::Get_Gravity_Field_Particles_GPU( Real *potential_host ){
 
 void Particles_3D::Get_Gravity_CIC_GPU(){
 
-  Get_Gravity_CIC_GPU_function( n_local, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax,  G.dx, G.dy, G.dz,  pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev,  grav_y_dev,  grav_z_dev, G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev );
+  Get_Gravity_CIC_GPU_function( n_local, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax,  G.dx, G.dy, G.dz,  pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev,  grav_y_dev,  grav_z_dev, G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev);
 }
 
 #endif //PARTICLES_GPU

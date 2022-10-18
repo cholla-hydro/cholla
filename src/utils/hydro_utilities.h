@@ -28,6 +28,7 @@
 */
 
 namespace hydro_utilities {
+
     inline __host__ __device__ Real Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy, Real const &vz, Real const &gamma) {
         Real P;
         P = (E - 0.5 * d * (vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
@@ -69,5 +70,11 @@ namespace hydro_utilities {
         P = U * (gamma - 1.0);
         return P;
     }
+
+    inline __host__ __device__ Real Calc_Sound_Speed(Real const &E, Real const &d, Real const &mx, Real const &my, Real const &mz, Real const &gamma) {
+        Real P = Calc_Pressure_Conserved(E, d, mx, my, mz, gamma);
+        return sqrt(gamma * P / d);
+    }
+
 
 }

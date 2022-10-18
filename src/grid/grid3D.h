@@ -319,6 +319,14 @@ class Grid3D
     Analysis_Module Analysis;
     #endif
 
+    #ifdef SUPERNOVA //TODO refactor this into Analysis module
+    Real countSN;
+    Real countResolved;
+    Real countUnresolved;
+    Real totalEnergy;
+    Real totalMomentum;
+    Real totalUnresEnergy;
+    #endif
     struct Conserved
     {
       /*! pointer to conserved variable array on the host */
@@ -697,8 +705,13 @@ class Grid3D
   #endif//GRAVITY
 
   #ifdef GRAVITY_ANALYTIC_COMP
-  void Add_Analytic_Potential(struct parameters *P);
-  void Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal);
+  void Add_Analytic_Potential();
+  void Add_Analytic_Potential(int g_start, int g_end);
+  void Setup_Analytic_Potential(struct parameters *P);
+  void Setup_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal);
+  #ifdef GRAVITY_GPU
+  void Add_Analytic_Potential_GPU();
+  #endif
   #endif //GRAVITY_ANALYTIC_COMP
 
   #ifdef PARTICLES
@@ -711,7 +724,9 @@ class Grid3D
   void Transfer_Particles_Boundaries( struct parameters P );
   Real Update_Grid_and_Particles_KDK( struct parameters P );
   void Set_Particles_Boundary( int dir, int side);
-  void Set_Particles_Open_Boundary(int dir, int side);
+  #ifdef PARTICLES_CPU
+  void Set_Particles_Open_Boundary_CPU(int dir, int side);
+  #endif
   #ifdef MPI_CHOLLA
   int Load_Particles_Density_Boundary_to_Buffer( int direction, int side, Real *buffer );
   void Unload_Particles_Density_Boundary_From_Buffer( int direction, int side, Real *buffer );
@@ -829,15 +844,6 @@ class Grid3D
   #endif
   #endif//LYA_STATISTICS
   #endif//ANALYSIS
-
-  #ifdef PARTICLES
-  #ifdef DE
-  #ifdef PARTICLE_AGE
-  void Cluster_Feedback();
-  void Cluster_Feedback_Function(part_int_t p_start, part_int_t p_end);
-  #endif
-  #endif
-  #endif
 
 };
 

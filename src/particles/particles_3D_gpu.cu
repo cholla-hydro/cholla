@@ -8,7 +8,9 @@
 #include "../io/io.h"
 #include "../global/global.h"
 #include "../global/global_cuda.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
+
+
 
 
 
@@ -69,12 +71,14 @@ void Particles_3D::Free_GPU_Array_int( int *array )  { cudaFree(array); }
 void Particles_3D::Free_GPU_Array_bool( bool *array ){ cudaFree(array); }
 
 
-void __global__ Copy_Device_to_Device_Kernel( Real *src_array_dev, Real *dst_array_dev, part_int_t size ){
+template< typename T >
+void __global__ Copy_Device_to_Device_Kernel( T *src_array_dev, T *dst_array_dev, part_int_t size ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x ;
   if ( tid < size ) dst_array_dev[tid] = src_array_dev[tid];
 }
 
-void Copy_Device_to_Device( Real *src_array_dev, Real *dst_array_dev, part_int_t size ){
+template< typename T >
+void Copy_Device_to_Device( T *src_array_dev, T *dst_array_dev, part_int_t size ){
   int ngrid =  (size + TPB_PARTICLES - 1) / TPB_PARTICLES;
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
@@ -116,6 +120,22 @@ void Particles_3D::Allocate_Particles_GPU_Array_int( int **array_dev, part_int_t
   cudaDeviceSynchronize();
 }
 
+void Particles_3D::Allocate_Particles_GPU_Array_Part_Int( part_int_t **array_dev, part_int_t size ){
+  size_t global_free, global_total;
+  CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
+  #ifdef PRINT_GPU_MEMORY
+  chprintf( "Allocating GPU Memory:  %ld  MB free \n", global_free/1000000);
+  #endif
+  if ( global_free < size*sizeof(part_int_t) ){
+    printf( "ERROR: Not enough global device memory \n" );
+    printf( " Available Memory: %ld  MB \n", global_free/1000000  );
+    printf( " Requested Memory: %ld  MB \n", size*sizeof(part_int_t)/1000000  );
+    exit(-1);
+  }
+  CudaSafeCall( cudaMalloc((void**)array_dev,  size*sizeof(part_int_t)) );
+  cudaDeviceSynchronize();
+}
+
 void Particles_3D::Allocate_Particles_GPU_Array_bool( bool **array_dev, part_int_t size ){
   size_t global_free, global_total;
   CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
@@ -142,7 +162,15 @@ void Particles_3D::Copy_Particles_Array_Real_Device_to_Host( Real *array_dev, Re
   cudaDeviceSynchronize();
 }
 
+void Particles_3D::Copy_Particles_Array_Int_Host_to_Device( part_int_t *array_host, part_int_t *array_dev, part_int_t size) {
+  CudaSafeCall( cudaMemcpy(array_dev, array_host, size*sizeof(part_int_t), cudaMemcpyHostToDevice) );
+  cudaDeviceSynchronize();
+}
 
+void Particles_3D::Copy_Particles_Array_Int_Device_to_Host( part_int_t *array_dev, part_int_t *array_host, part_int_t size) {
+  CudaSafeCall( cudaMemcpy(array_host, array_dev, size*sizeof(part_int_t), cudaMemcpyDeviceToHost) );
+  cudaDeviceSynchronize();
+}
 
 __global__ void Set_Particles_Array_Real_Kernel( Real value, Real *array_dev, part_int_t size ){
   int tid = blockIdx.x * blockDim.x + threadIdx.x ;

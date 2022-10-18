@@ -101,6 +101,12 @@ void Time::Initialize(){
     #ifdef CHEMISTRY_GPU
     &(Chemistry = OneTime("Chemistry")),
     #endif
+    #ifdef SUPERNOVA
+    &(Feedback = OneTime("Feedback")),
+    #ifdef ANALYSIS
+    &(FeedbackAnalysis = OneTime("FeedbackAnalysis")),
+    #endif
+    #endif // SUPERNOVA
     &(Total = OneTime("Total")),
   };
 

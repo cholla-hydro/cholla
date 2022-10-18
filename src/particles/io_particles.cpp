@@ -8,7 +8,7 @@
 #include "../global/global.h"
 #include "../grid/grid3D.h"
 #include "../io/io.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
 
 #ifdef HDF5
 #include <hdf5.h>
@@ -42,7 +42,7 @@ void Particles_3D::Load_Particles_Data( struct parameters *P){
   #ifdef TILED_INITIAL_CONDITIONS
   sprintf(filename,"%sics_%dMpc_%d_particles.h5", P->indir, (int) P->tile_length/1000, G.nx_local); //Everyone reads the same file
   #else
-  if (strcmp(P->init, "Disk_3D_particles") != 0) sprintf(filename,"%s.%d",filename,procID);
+  sprintf(filename,"%s.%d",filename,procID);
   #endif //TILED_INITIAL_CONDITIONS
   #endif
 
@@ -116,11 +116,9 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   #ifndef MPI_CHOLLA
   chprintf(" Loading %ld particles\n", n_to_load);
   #else
-  if (strcmp(P->init, "Disk_3D_particles") != 0) {
-    part_int_t n_total_load;
-    n_total_load = ReducePartIntSum( n_to_load );
-    chprintf( " Total Particles To Load: %ld\n", n_total_load );
-  }
+  part_int_t n_total_load;
+  n_total_load = ReducePartIntSum( n_to_load );
+  chprintf( " Total Particles To Load: %ld\n", n_total_load );
   // Print individual n_to_load
   // for ( int i=0; i<nproc; i++ ){
   //   if ( procID == i ) std::cout << "  [pId:"  << procID << "]  Loading Particles: " << n_local <<  std::endl;
@@ -354,19 +352,38 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   Allocate_Particles_GPU_Array_Real( &grav_x_dev, particles_array_size);
   Allocate_Particles_GPU_Array_Real( &grav_y_dev, particles_array_size);
   Allocate_Particles_GPU_Array_Real( &grav_z_dev, particles_array_size);
+  #ifndef SINGLE_PARTICLE_MASS
+  Allocate_Particles_GPU_Array_Real( &mass_dev, particles_array_size);
+  #endif
+  #ifdef PARTICLE_IDS
+  Allocate_Particles_GPU_Array_Part_Int( &partIDs_dev, particles_array_size);
+  #endif
+  #ifdef PARTICLE_AGE
+  Allocate_Particles_GPU_Array_Real( &age_dev, particles_array_size);
+  #endif
+
   n_local = n_to_load;
 
   chprintf( " Allocated GPU memory for particle data\n");
   // printf( " Loaded %ld  particles ", n_to_load);
 
-  //Copyt the particle data to GPU memory
+  //Copy the particle data to GPU memory
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_px, pos_x_dev, n_local);
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_py, pos_y_dev, n_local);
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_pz, pos_z_dev, n_local);
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vx, vel_x_dev, n_local);
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vy, vel_y_dev, n_local);
   Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_vz, vel_z_dev, n_local);
+  #ifndef SINGLE_PARTICLE_MASS
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_m, mass_dev, n_local);
   #endif
+  #ifdef PARTICLE_IDS
+  Copy_Particles_Array_Int_Host_to_Device( dataset_buffer_IDs, partIDs_dev, n_local);
+  #endif
+  #ifdef PARTICLE_AGE
+  Copy_Particles_Array_Real_Host_to_Device( dataset_buffer_age, age_dev, n_local);
+  #endif
+  #endif //PARTICLES_GPU
 
   #ifndef MPI_CHOLLA
   chprintf( " Loaded  %ld  particles\n", n_local );
@@ -489,7 +506,9 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   part_int_t i, j, k, id, buf_id;
   hid_t     dataset_id, dataspace_id;
   Real      *dataset_buffer;
+  #ifdef PARTICLE_IDS
   part_int_t  *dataset_buffer_IDs;
+  #endif
   herr_t    status;
   part_int_t n_local = Particles.n_local;
   hsize_t   dims[1];
@@ -631,6 +650,9 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer_IDs[i] = Particles.partIDs[i];
   #endif //PARTICLES_CPU
+  #ifdef PARTICLES_GPU
+  Particles.Copy_Particles_Array_Int_Device_to_Host( Particles.partIDs_dev, dataset_buffer_IDs, Particles.n_local );
+  #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/particle_IDs", H5T_STD_I64LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_LONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer_IDs);
   status = H5Dclose(dataset_id);
@@ -641,6 +663,9 @@ void Grid3D::Write_Particles_Data_HDF5( hid_t file_id){
   #ifdef PARTICLES_CPU
   for ( i=0; i<n_local; i++) dataset_buffer[i] = Particles.age[i];
   #endif //PARTICLES_CPU
+  #ifdef PARTICLES_GPU
+  Particles.Copy_Particles_Array_Real_Device_to_Host( Particles.age_dev, dataset_buffer, Particles.n_local );
+  #endif//PARTICLES_GPU
   dataset_id = H5Dcreate(file_id, "/age", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
   status = H5Dclose(dataset_id);

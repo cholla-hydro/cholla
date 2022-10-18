@@ -72,6 +72,9 @@ class Particles_3D
   #ifdef PARTICLE_IDS
   part_int_t *partIDs_dev;
   #endif
+  #ifdef PARTICLE_AGE
+  Real *age_dev;
+  #endif
   Real *mass_dev;
   Real *pos_x_dev;
   Real *pos_y_dev;
@@ -233,12 +236,16 @@ class Particles_3D
 
   void Free_GPU_Array_int( int *array );
   void Free_GPU_Array_bool( bool *array );
+  template< typename T > void Free_GPU_Array( T *array ){ cudaFree(array); }  //TODO remove the Free_GPU_Array_<type> functions
   void Allocate_Memory_GPU();
   void Allocate_Particles_GPU_Array_Real( Real **array_dev, part_int_t size );
   void Allocate_Particles_GPU_Array_bool( bool **array_dev, part_int_t size );
   void Allocate_Particles_GPU_Array_int( int **array_dev, part_int_t size );
+  void Allocate_Particles_GPU_Array_Part_Int( part_int_t **array_dev, part_int_t size );
   void Copy_Particles_Array_Real_Host_to_Device( Real *array_host, Real *array_dev, part_int_t size);
   void Copy_Particles_Array_Real_Device_to_Host( Real *array_dev, Real *array_host, part_int_t size);
+  void Copy_Particles_Array_Int_Host_to_Device( part_int_t *array_host, part_int_t *array_dev, part_int_t size);
+  void Copy_Particles_Array_Int_Device_to_Host( part_int_t *array_dev, part_int_t *array_host, part_int_t size);
   void Set_Particles_Array_Real( Real value, Real *array_dev, part_int_t size);
   void Free_Memory_GPU();
   void Initialize_Grid_Values_GPU();
@@ -250,7 +257,7 @@ class Particles_3D
   void Get_Gravity_Field_Particles_GPU( Real *potential_host );
   void Get_Gravity_Field_Particles_GPU_function( int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells_potential, Real dx, Real dy, Real dz,  Real *potential_host, Real *potential_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev  );
   void Get_Gravity_CIC_GPU();
-  void Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin,  Real zMax, Real dx, Real dy, Real dz,   Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev,  Real *grav_y_dev,  Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev );
+  void Get_Gravity_CIC_GPU_function( part_int_t n_local, int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax, Real zMin,  Real zMax, Real dx, Real dy, Real dz,   Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev,  Real *grav_y_dev,  Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev, Real *gravity_z_dev);
   Real Calc_Particles_dt_GPU_function( int ngrid, part_int_t n_local, Real dx, Real dy, Real dz, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *dti_array_host, Real *dti_array_dev );
   void Advance_Particles_KDK_Step1_GPU_function( part_int_t n_local, Real dt, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev  );
   void Advance_Particles_KDK_Step1_Cosmo_GPU_function( part_int_t n_local, Real delta_a, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K  );
@@ -262,6 +269,7 @@ class Particles_3D
   void Replace_Tranfered_Particles_GPU( int n_transfer );
   void Unload_Particles_from_Buffer_GPU( int direction, int side , Real *recv_buffer_h, int n_recv );
   void Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d );
+  void Set_Particles_Open_Boundary_GPU( int dir, int side );
   #ifdef PRINT_MAX_MEMORY_USAGE
   void Print_Max_Memory_Usage();
   #endif
@@ -276,7 +284,9 @@ class Particles_3D
 
   void Initialize_Sphere(struct parameters *P);
 
+#if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
   void Initialize_Disk_Stellar_Clusters(struct parameters *P);
+#endif
 
   void Initialize_Zeldovich_Pancake( struct parameters *P );
 

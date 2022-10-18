@@ -99,8 +99,6 @@ void Grid3D::Set_Potential_Boundaries_Isolated_GPU( int direction, int side, int
 }
 
 
-
-
 #endif //GRAV_ISOLATED_BOUNDARY
 
 

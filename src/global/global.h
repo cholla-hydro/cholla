@@ -32,6 +32,7 @@ typedef double Real;
 #define KB 1.380658e-16 // boltzmann constant, cgs
 //#define GN 6.67259e-8 // gravitational constant, cgs
 #define GN 4.49451e-18 // gravitational constant, kpc^3 / M_sun / kyr^2
+#define C_L 0.306594593 // speed of light in kpc/kyr
 
 #define MYR 31.536e12 //Myears in secs
 #define KPC 3.086e16 // kpc in km
