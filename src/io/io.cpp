@@ -1820,6 +1820,11 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     int nx_dset = R.nx;
     int nz_dset = R.nz;
 
+    if (R.nx * R.nz == 0) {
+      chprintf("WARNING: compiled with -DROTATED_PROJECTION but input parameters nxr or nzr = 0\n");
+      return;
+    }
+
     // set the projected dataset size for this process to capture
     // this piece of the simulation volume
     // min and max values were set in the header write
@@ -1920,15 +1925,17 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     // Free the dataspace id
     status = H5Sclose(dataspace_xzr_id);
 
-  }
-  else printf("Rotated projection write only implemented for 3D data.\n");
+    //free the data
+    free(dataset_buffer_dxzr);
+    free(dataset_buffer_Txzr);
+    free(dataset_buffer_vxxzr);
+    free(dataset_buffer_vyxzr);
+    free(dataset_buffer_vzxzr);
 
-  //free the data
-  free(dataset_buffer_dxzr);
-  free(dataset_buffer_Txzr);
-  free(dataset_buffer_vxxzr);
-  free(dataset_buffer_vyxzr);
-  free(dataset_buffer_vzxzr);
+  }
+  else chprintf("Rotated projection write only implemented for 3D data.\n");
+
+
 
 }
 #endif //HDF5
