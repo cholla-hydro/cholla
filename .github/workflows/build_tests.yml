@@ -2,7 +2,6 @@ name: Cholla Compile
 
 on:
   pull_request:
-#    branches: [ CAAR ]
   schedule:
     - cron: "37 07 * * 1"  # run every Monday at 07:37UTC. Crontab computed with crontab.guru
   workflow_dispatch:
@@ -11,35 +10,23 @@ jobs:
   Build:
     name: >
       Build
-      API:${{ matrix.gpu-api }}
-      Make-Type:${{ matrix.make-type }}
-      Cuda-toolkit:v${{ matrix.cuda-toolkit-version }}
-      GCC:v${{ matrix.gcc-version }}
-      ROCm:v${{ matrix.rocm-version }}
+      ${{ matrix.container.name }}
+      TYPE=${{ matrix.make-type }}
     # if: ${{ false }}  # If uncommented this line will disable this job
 
     # Choose OS/Runner
     runs-on: ubuntu-latest
-
+    container: 
+      image: ${{matrix.container.link}} 
+    defaults:
+      run:
+        shell: bash
     # Matrix for different make types
     strategy:
       fail-fast: false
       matrix:
         make-type: [hydro, gravity, disk, particles, cosmology, mhd]
-        gpu-api: [HIP, CUDA]
-        # NOTE: if more than one parameter is in any of these three variables
-        # you need to manually exclude it for the GPU API that doesn't use it.
-        # An example exclude is shown below but commented out. Uncomment and
-        # tweak it to fit your needs
-        # CUDA uses the cuda-toolkit-version and gcc-version
-        # HIP uses the clang-version
-        cuda-toolkit-version: ['11.2.2']
-        gcc-version: [9]
-        rocm-version: ['5.1.0']
-        mpi: ['openmpi'] #Can use mpich and/or openmpi
-        # exclude:
-        #   - gpu-api: HIP
-        #     make-type: hydro
+        container: [{name: "CUDA", link: "docker://alwinm/cholla:cuda_github"}, {name: "HIP",link: "docker://alwinm/cholla:hip_github"},]
 
     # Setup environment variables
     env:
@@ -53,90 +40,31 @@ jobs:
     steps:
 
     # Install required Tools
-    - uses: actions/checkout@v2
-    - name: Setup MPI
-      uses: mpi4py/setup-mpi@v1
-      with:
-        mpi: ${{ matrix.mpi }}
+    - uses: actions/checkout@v3
+
+    # Show versions
     - name: Show MPI version
       run: mpirun --version
-    - name: Install HDF5 Serial
-      run: sudo apt-get install libhdf5-serial-dev
     - name: Show HDF5 config
       run: |
         h5cc -showconfig
-
-    # Install CUDA and dependencies if this is a CUDA build
-    - uses: Jimver/cuda-toolkit@v0.2.8
-      if: matrix.gpu-api == 'CUDA'
-      id: cuda-toolkit
-      with:
-        cuda: ${{ matrix.cuda-toolkit-version }}
-    - name: NVCC version & set CUDA_ROOT
-      if: matrix.gpu-api == 'CUDA'
+    - name: Git Safe Directory
       run: |
-        nvcc -V
-    - name: Set up GCC
-      if: matrix.gpu-api == 'CUDA'
-      uses: egor-tensin/setup-gcc@v1
-      with:
-        version: ${{ matrix.gcc-version }}
-    - name: GCC Version
-      if: matrix.gpu-api == 'CUDA'
+        git --version
+        git config --global --add safe.directory /__w/cholla/cholla
+        git config --global --add safe.directory '*'
+    - name: Show CUDA and gcc version
+      if: matrix.container.name == 'CUDA'
       run: |
         cc --version
         c++ --version
-
-    # Install HIP and dependencies if this is a HIP build
-    - name: Setup ROCm
-      if: matrix.gpu-api == 'HIP'
+        nvcc -V
+    - name: Show HIP and hipcc version
+      if: matrix.container.name == 'HIP'
       run: |
-        # Download and install the installation script
-        sudo apt-get update
-        wget https://repo.radeon.com/amdgpu-install/22.20.1/ubuntu/focal/amdgpu-install_22.20.50201-1_all.deb
-        sudo apt-get install -y ./amdgpu-install_22.20.50201-1_all.deb
-
-        # Get names correct by stripping out the last ".0" if it exists
-        ROCM_VERSION=${{ matrix.rocm-version }}
-        if [ "${ROCM_VERSION:0-1}" = "0" ]
-        then
-            # If the last character is a "0" then trim the last ".0"
-            ROCM_REPO_VERSION="${ROCM_VERSION:0:3}"
-        else
-            ROCM_REPO_VERSION=$ROCM_VERSION
-        fi
-
-        # Add the repo for the version of ROCm that we want
-        echo "deb [arch=amd64] https://repo.radeon.com/rocm/apt/${ROCM_REPO_VERSION} ubuntu main" | sudo tee /etc/apt/sources.list.d/rocm.list
-        sudo apt update
-    - name: Install ROCm
-      if: matrix.gpu-api == 'HIP'
-      run: |
-        # Install ROCm
-        sudo amdgpu-install -y --usecase=rocm --rocmrelease=${{ matrix.rocm-version }}
-    - name: Install hipFFT and RocFFT
-      if: matrix.gpu-api == 'HIP'
-      run: |
-        sudo apt install -y hipfft${{ matrix.rocm-version }} rocfft${{ matrix.rocm-version }}
-    - name: Verify HIP install
-      if: matrix.gpu-api == 'HIP'
-      run: |
+        hipcc --version
         hipconfig --full
-    - name: Set Environment Variables and Files
-      if: matrix.gpu-api == 'HIP'
-      run: |
-        echo "HIPCONFIG=$(hipconfig -C)" >> $GITHUB_ENV
-        echo "ROCM_PATH=$(hipconfig -R)" >> $GITHUB_ENV
-        echo "gfx90a" | sudo tee --append $(hipconfig -R)/bin/target.lst  # trick ROCm into thinking there's a GPU
-    - name: Echo Environment Variables and Files
-      if: matrix.gpu-api == 'HIP'
-      run: |
-        echo "HIPCONFIG = ${HIPCONFIG}"
-        echo "ROCM_PATH = ${ROCM_PATH}"
-        echo "HIPFFT_PATH = ${HIPFFT_PATH}"
-
-        echo "The contents of $(hipconfig -R)/bin/target.lst are:"
-        sudo cat $(hipconfig -R)/bin/target.lst
+    
 
     # Perform Build
     - name: Cholla setup
@@ -145,7 +73,6 @@ jobs:
         setupTests -c gcc
         echo "CHOLLA_ROOT           = ${CHOLLA_ROOT}"
         echo "CHOLLA_LAUNCH_COMMAND = ${CHOLLA_LAUNCH_COMMAND}"
-
         echo "CHOLLA_ROOT=${CHOLLA_ROOT}"                     >> $GITHUB_ENV
         echo "CHOLLA_LAUNCH_COMMAND=${CHOLLA_LAUNCH_COMMAND}" >> $GITHUB_ENV
         echo "F_OFFLOAD=${F_OFFLOAD}                          >> $GITHUB_ENV
@@ -158,7 +85,7 @@ jobs:
     - name: Build Cholla
       run: |
         source builds/run_tests.sh
-        buildCholla
+        buildCholla OPTIMIZE
     - name: Build Tests
       run: |
         source builds/run_tests.sh
