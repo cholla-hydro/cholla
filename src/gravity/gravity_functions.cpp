@@ -18,11 +18,11 @@
 #include <vector>
 #endif
 
-#ifdef PARTICLES
+//#ifdef PARTICLES
 #include "../model/disk_galaxy.h"
-#endif
+//#endif
 
-//Set delta_t when using gravity
+//Set delta_t when usi#ng gravity
 void Grid3D::set_dt_Gravity(){
 
   //Delta_t for the hydro
@@ -144,7 +144,8 @@ void Grid3D::set_dt_Gravity(){
 
   #ifdef AVERAGE_SLOW_CELLS
   //Set the min_delta_t for averaging a slow cell
-  min_dt_slow = dt_particles / Particles.C_cfl / SLOW_FACTOR;
+  //min_dt_slow = dt_particles / Particles.C_cfl / SLOW_FACTOR;
+  min_dt_slow = 3*H.dx;
   H.min_dt_slow = min_dt_slow;
   #endif
 
@@ -156,7 +157,8 @@ void Grid3D::set_dt_Gravity(){
 
   #if defined( AVERAGE_SLOW_CELLS) && !defined( PARTICLES )
   //Set the min_delta_t for averaging a slow cell ( for now the min_dt_slow is set to a large value, change this with your condition )
-  min_dt_slow = H.dt / C_cfl * 100 ;
+  //min_dt_slow = H.dt / C_cfl * 100 ;
+  min_dt_slow = 3*H.dx;
   H.min_dt_slow = min_dt_slow;
   #endif
 
@@ -539,13 +541,13 @@ void Grid3D::Compute_Gravitational_Potential( struct parameters *P ){
   #ifdef CPU_TIME
   Timer.Grav_Potential.End();
   #endif
-
 }
 
+
 #ifdef GRAVITY_ANALYTIC_COMP
-void Grid3D::Add_Analytic_Potential(struct parameters *P) {
+void Grid3D::Setup_Analytic_Potential(struct parameters *P) {
   #ifndef PARALLEL_OMP
-  Add_Analytic_Galaxy_Potential(0, Grav.nz_local, Galaxies::MW);
+  Setup_Analytic_Galaxy_Potential(0, Grav.nz_local + 2*N_GHOST_POTENTIAL, Galaxies::MW);
   #else
   #pragma omp parallel num_threads( N_OMP_THREADS )
   {
@@ -554,13 +556,40 @@ void Grid3D::Add_Analytic_Potential(struct parameters *P) {
 
     omp_id = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    Get_OMP_Grid_Indxs( Grav.nz_local, n_omp_procs, omp_id, &g_start, &g_end  );
+    Get_OMP_Grid_Indxs( Grav.nz_local + 2*N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end  );
 
-    Add_Analytic_Galaxy_Potential(g_start, g_end, Galaxies::MW);
+    Setup_Analytic_Galaxy_Potential(g_start, g_end, Galaxies::MW);
   }
   #endif
+
+  #ifdef GRAVITY_GPU
+  CudaSafeCall( cudaMemcpy(Grav.F.analytic_potential_d, Grav.F.analytic_potential_h, Grav.n_cells_potential*sizeof(Real), cudaMemcpyHostToDevice) );
+  #endif
 }
-#endif
+
+
+void Grid3D::Add_Analytic_Potential() {
+  #ifdef GRAVITY_GPU
+  Add_Analytic_Potential_GPU();
+  #else
+  #ifndef PARALLEL_OMP
+  Add_Analytic_Potential(0, Grav.nz_local + 2*N_GHOST_POTENTIAL );
+  #else
+  #pragma omp parallel num_threads( N_OMP_THREADS )
+  {
+    int omp_id, n_omp_procs;
+    int g_start, g_end;
+
+    omp_id = omp_get_thread_num();
+    n_omp_procs = omp_get_num_threads();
+    Get_OMP_Grid_Indxs( Grav.nz_local+ 2*N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end  );
+
+    Add_Analytic_Potential(g_start, g_end);
+  }
+  #endif //PARALLEL_OMP
+  #endif // GRAVITY_GPU else
+}
+#endif //GRAVITY_ANALYTIC_COMP
 
 
 void Grid3D::Copy_Hydro_Density_to_Gravity_Function( int g_start, int g_end){
@@ -621,17 +650,13 @@ void Grid3D::Copy_Hydro_Density_to_Gravity(){
 
 
 #ifdef GRAVITY_ANALYTIC_COMP
-/**
- * Adds a specified potential function to the potential calculated from solving the Poisson equation.
- * The raison d'etre is to solve the evolution of a system where not all particles are simulated.
- */
-void Grid3D::Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal) {
+void Grid3D::Setup_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& gal) {
   int nx = Grav.nx_local + 2*N_GHOST_POTENTIAL;
   int ny = Grav.ny_local + 2*N_GHOST_POTENTIAL;
   int nz = Grav.nz_local + 2*N_GHOST_POTENTIAL;
 
   // the fraction of the disk that's not modelled (and so its analytic contribution must be added)
-  //Real non_mod_frac = 0.0;
+  Real non_mod_frac = 1 - SIMULATED_FRACTION;
 
   int k, j, i, id;
   Real x_pos, y_pos, z_pos, R;
@@ -639,18 +664,38 @@ void Grid3D::Add_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy& g
     for ( j=0; j<ny; j++ ){
       for ( i=0; i<nx; i++ ){
         id = i + j*nx + k*nx*ny;
-        // does this also work with MPI?  is Grav.xMin equivalent to H.xblocal, for example.
         x_pos = Grav.xMin + Grav.dx*(i-N_GHOST_POTENTIAL) + 0.5*Grav.dx;
         y_pos = Grav.yMin + Grav.dy*(j-N_GHOST_POTENTIAL) + 0.5*Grav.dy;
         z_pos = Grav.zMin + Grav.dz*(k-N_GHOST_POTENTIAL) + 0.5*Grav.dz;
         R = sqrt(x_pos*x_pos + y_pos*y_pos);
-        //Grav.F.potential_h[id] += non_mod_frac*gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos);
-        Grav.F.potential_h[id] += gal.phi_halo_D3D(R, z_pos);
+        Grav.F.analytic_potential_h[id] = non_mod_frac*gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos);
       }
     }
   }
 }
-#endif
+
+
+/**
+ * Adds a specified potential function to the potential calculated from solving the Poisson equation.
+ * External grav potential not due to simulated matter. 
+ */
+void Grid3D::Add_Analytic_Potential(int g_start, int g_end) {
+  int nx = Grav.nx_local + 2*N_GHOST_POTENTIAL;
+  int ny = Grav.ny_local + 2*N_GHOST_POTENTIAL;
+  int nz = Grav.nz_local + 2*N_GHOST_POTENTIAL;
+
+  int k, j, i, id;
+  Real x_pos, y_pos, z_pos, R;
+  for ( k=g_start; k<g_end; k++ ){
+    for ( j=0; j<ny; j++ ){
+      for ( i=0; i<nx; i++ ){
+        id = i + j*nx + k*nx*ny;
+        Grav.F.potential_h[id] += Grav.F.analytic_potential_h[id];
+      }
+    }
+  }
+}
+#endif //GRAVITY_ANALYTIC_COMP
 
 
 //Extrapolate the potential to obtain phi_n+1/2

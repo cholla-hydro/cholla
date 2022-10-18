@@ -366,7 +366,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
     //Add the work done by the gravitational force
     dev_conserved[4*n_cells + id] += 0.5* dt * ( gx*(d*vx + d_n*vx_n) +  gy*(d*vy + d_n*vy_n) +  gz*(d*vz + d_n*vz_n) );
 
-    #endif
+    #endif //GRAVITY
 
 
     #if !( defined(DENSITY_FLOOR) && defined(TEMPERATURE_FLOOR) )
@@ -623,6 +623,8 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
   }
 
   return max_dti;
+
+  
 }
 
 
@@ -647,10 +649,11 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
 
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, max_dti;
+  Real speed, temp, P, cs;
   #ifdef  MHD
     Real avgBx, avgBy, avgBz;
   #endif  //MHD
-
+  
   // get a global thread ID
   id = threadIdx.x + blockIdx.x * blockDim.x;
   n_cells = nx*ny*nz;
@@ -679,15 +682,20 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
     #else  // not MHD
       max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
     #endif  //MHD
-
+    
     if (max_dti > max_dti_slow){
+      speed = sqrt(vx*vx + vy*vy + vz*vz);
+      temp = (gamma - 1)*(E - 0.5*(speed*speed)*d)*ENERGY_UNIT/(d*DENSITY_UNIT/0.6/MP)/KB;
+      P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
+      cs = sqrt(d_inv * gamma * P)*VELOCITY_UNIT*1e-5;
       // Average this cell
-      printf(" Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f\n", xid, yid, zid, 1./max_dti,  1./max_dti_slow );
+      printf(" Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f, n=%.3e, T=%.3e, v=%.3e (%.3e, %.3e, %.3e), cs=%.3e\n", xid, yid, zid, 1./max_dti,  1./max_dti_slow, 
+                 dev_conserved[id]*DENSITY_UNIT/0.6/MP, temp, speed*VELOCITY_UNIT*1e-5, vx*VELOCITY_UNIT*1e-5, vy*VELOCITY_UNIT*1e-5, vz*VELOCITY_UNIT*1e-5, cs);
       Average_Cell_All_Fields( xid, yid, zid, nx, ny, nz, n_cells, n_fields, dev_conserved );
     }
   }
 }
-#endif //AVERAGE_SLOW_CELLS
+#endif //AVERAGE_SLOW_CELLS    
 
 
 #ifdef DE

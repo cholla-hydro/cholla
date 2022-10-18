@@ -1,4 +1,4 @@
-#include "../grid/grid3D.h"
+#include "grid3D.h"
 #include "../mpi/mpi_routines.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"
@@ -328,13 +328,13 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
 
       // load left x communication buffer
       if ( H.TRANSFER_HYDRO_BOUNDARIES )
-        {
+      {
         buffer_length = Load_Hydro_DeviceBuffer_X0(d_send_buffer_x0);
           #ifndef MPI_GPU
           cudaMemcpy(h_send_buffer_x0, d_send_buffer_x0, xbsize*sizeof(Real),
                      cudaMemcpyDeviceToHost);
           #endif
-        }
+      }
 
       #ifdef GRAVITY
       if ( Grav.TRANSFER_POTENTIAL_BOUNDARIES ){

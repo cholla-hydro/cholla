@@ -133,6 +133,10 @@ void Grav3D::AllocateMemory_CPU(void)
   F.pot_boundary_z0  = (Real *) malloc(N_GHOST_POTENTIAL*nx_local*ny_local*sizeof(Real)); //array for the potential isolated boundary
   F.pot_boundary_z1  = (Real *) malloc(N_GHOST_POTENTIAL*nx_local*ny_local*sizeof(Real));
   #endif
+
+  #ifdef GRAVITY_ANALYTIC_COMP
+  F.analytic_potential_h = (Real *) malloc(n_cells_potential*sizeof(Real));
+  #endif
 }
 
 void Grav3D::Set_Boundary_Flags( int *flags ){
@@ -175,6 +179,10 @@ void Grav3D::FreeMemory_CPU(void)
   Poisson_solver.Reset();
   #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
   Poisson_solver_test.Reset();
+  #endif
+
+  #ifdef GRAVITY_ANALYTIC_COMP
+  free(F.analytic_potential_h);
   #endif
 }
 

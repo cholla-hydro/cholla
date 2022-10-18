@@ -9,6 +9,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../reconstruction/ppmc_cuda.h"
+#include "../utils/hydro_utilities.h"
 
 #ifdef DE //PRESSURE_DE
 #include "../utils/hydro_utilities.h"

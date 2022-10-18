@@ -146,6 +146,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #ifdef DE
     ge -= KB*del_T / (mu*MP*(gamma-1.0)*SP_ENERGY_UNIT);
     #endif
+
     // calculate cooling rate for new T
     #ifdef CLOUDY_COOL
     cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);

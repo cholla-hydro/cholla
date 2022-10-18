@@ -5,7 +5,7 @@
 #include <iostream>
 #include "../grid/grid3D.h"
 #include "../io/io.h"
-#include "../particles/particles_3D.h"
+#include "particles_3D.h"
 
 #ifdef MPI_CHOLLA
 #include "../mpi/mpi_routines.h"
@@ -100,23 +100,21 @@ void Grid3D::Set_Particles_Boundary( int dir, int side ){
 
 
 //Set open boundaries for particles when not using MPI
-void Grid3D::Set_Particles_Open_Boundary( int dir, int side ){
-  Real d_min, d_max, L;
+void Grid3D::Set_Particles_Open_Boundary_CPU( int dir, int side ){
+  Real d_min, d_max;
 
   if ( dir == 0 ){
-    d_min = Particles.G.xMin;
-    d_max = Particles.G.xMax;
+    d_min = Particles.G.domainMin_x;
+    d_max = Particles.G.domainMax_x;
   }
   if ( dir == 1 ){
-    d_min = Particles.G.yMin;
-    d_max = Particles.G.yMax;
+    d_min = Particles.G.domainMin_y;
+    d_max = Particles.G.domainMax_y;
   }
   if ( dir == 2 ){
-    d_min = Particles.G.zMin;
-    d_max = Particles.G.zMax;
+    d_min = Particles.G.domainMin_z;
+    d_max = Particles.G.domainMax_z;
   }
-
-  L = d_max - d_min;
 
   Real pos;
   int_vector_t removed_indices;

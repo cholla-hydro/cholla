@@ -1,7 +1,11 @@
 #ifndef DISK_GALAXY
 #define DISK_GALAXY
 
+#define SIMULATED_FRACTION 0.1
+
 #include <cmath>
+#include <iostream>
+#include <random>
 #include "../global/global.h"
 
 class DiskGalaxy {
@@ -139,16 +143,52 @@ public:
     };
 
 
-    Real getM_d() const { return M_d; };
-    Real getR_d() const { return R_d; };
-    Real getZ_d() const { return Z_d; };
+    Real getM_d()    const { return M_d;    };
+    Real getR_d()    const { return R_d;    };
+    Real getZ_d()    const { return Z_d;    };
+    Real getM_vir()  const { return M_vir;  };
+    Real getR_vir()  const { return R_vir;  };
+    Real getC_vir()  const { return c_vir;  };
+    Real getR_cool() const { return r_cool; };
+
+};
+
+class ClusteredDiskGalaxy: public DiskGalaxy {
+    private:
+        Real lower_cluster_mass, higher_cluster_mass;
+        Real normalization;
+
+    public:
+        ClusteredDiskGalaxy(Real lm, Real hm, Real md, Real rd, Real zd, Real mvir, Real rvir, Real cvir, Real rcool) 
+            : DiskGalaxy {md, rd, zd, mvir, rvir, cvir, rcool}, lower_cluster_mass {lm}, higher_cluster_mass {hm} {
+                //if (lower_cluster_mass >= higher_cluster_mass) 
+                normalization = 1/log(higher_cluster_mass/lower_cluster_mass);
+            };
+        
+        Real getLowerClusterMass() const {return lower_cluster_mass;}
+        Real getHigherClusterMass() const {return higher_cluster_mass;}
+        Real getNormalization() const {return normalization;}
+
+
+        std::vector<Real>  generateClusterPopulationMasses(int N, std::mt19937_64 generator) {
+            std::vector<Real> population;
+            for (int i = 0; i < N; i++) {
+                population.push_back(singleClusterMass(generator));
+            }
+            return population;
+        }
+
+        Real singleClusterMass(std::mt19937_64 generator) {
+            std::uniform_real_distribution<Real> uniform_distro(0, 1);
+            return lower_cluster_mass * exp(uniform_distro(generator)/normalization);
+        }
 
 };
 
 namespace Galaxies {
     // all masses in M_sun and all distances in kpc
     //static DiskGalaxy MW(6.5e10, 3.5, (3.5/5.0), 1.0e12, 261, 20, 157.0);
-    static DiskGalaxy MW(6.5e10, 2.7, 0.7, 1.077e12, 261, 18, 157.0);
+    static ClusteredDiskGalaxy MW(1e4, 5e5, 6.5e10, 2.7, 0.7, 1.077e12, 261, 18, 157.0);
     static DiskGalaxy M82(1.0e10, 0.8, 0.15, 5.0e10, 0.8/0.015, 10, 100.0);
 };
 

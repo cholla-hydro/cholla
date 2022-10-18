@@ -15,6 +15,10 @@ void Grav3D::AllocateMemory_GPU(){
 
   #ifdef GRAVITY_GPU
 
+  #ifdef GRAVITY_ANALYTIC_COMP
+  CudaSafeCall( cudaMalloc((void**)&F.analytic_potential_d, n_cells_potential*sizeof(Real)) );
+  #endif
+
   #ifdef GRAV_ISOLATED_BOUNDARY_X
   CudaSafeCall( cudaMalloc((void**)&F.pot_boundary_x0_d, N_GHOST_POTENTIAL*ny_local*nz_local*sizeof(Real)) );
   CudaSafeCall( cudaMalloc((void**)&F.pot_boundary_x1_d, N_GHOST_POTENTIAL*ny_local*nz_local*sizeof(Real)) );
@@ -42,6 +46,10 @@ void Grav3D::FreeMemory_GPU(void){
 
 
   #ifdef GRAVITY_GPU
+
+  #ifdef GRAVITY_ANALYTIC_COMP
+  cudaFree( F.analytic_potential_d );
+  #endif
 
   #ifdef GRAV_ISOLATED_BOUNDARY_X
   cudaFree( F.pot_boundary_x0_d);
@@ -92,8 +100,8 @@ void __global__ Copy_Hydro_Density_to_Gravity_Kernel( Real *src_density_d, Real 
   #else
   dst_density_d[tid_dens]  = dens;
   #endif
-
 }
+
 
 void Grid3D::Copy_Hydro_Density_to_Gravity_GPU(){
 
@@ -102,8 +110,6 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_GPU(){
   ny_local = Grav.ny_local;
   nz_local = Grav.nz_local;
   n_ghost  = H.n_ghost;
-
-
 
   // set values for GPU kernels
   int tpb_x = TPBX_GRAV;
@@ -127,9 +133,64 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_GPU(){
 
   //Copy the density from the device array to the Poisson input density array
   hipLaunchKernelGGL(Copy_Hydro_Density_to_Gravity_Kernel, dim3dGrid, dim3dBlock, 0, 0,  C.d_density, Grav.F.density_d, nx_local, ny_local, nz_local, n_ghost, cosmo_rho_0_gas);
-
-
 }
+
+
+
+#if defined(GRAVITY_ANALYTIC_COMP)
+void __global__ Add_Analytic_Potential_Kernel( Real *analytic_d, Real *potential_d, int nx_pot, int ny_pot, int nz_pot) {
+  int tid_x, tid_y, tid_z, tid;
+  tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+  tid_y = blockIdx.y * blockDim.y + threadIdx.y;
+  tid_z = blockIdx.z * blockDim.z + threadIdx.z;
+
+  if (tid_x >= nx_pot || tid_y >= ny_pot || tid_z >= nz_pot ) return;
+
+  tid= tid_x + tid_y*nx_pot + tid_z*nx_pot*ny_pot;
+  
+  potential_d[tid] += analytic_d[tid];
+  /*
+  if (tid_x < 10 && tid_y == (ny_pot/2) && tid_z == (nz_pot/2)) {
+    //printf("potential_d[%d, %d, %d] = %.4e\n", tid_x, tid_y, tid_z, potential_d[tid]);
+    printf("analytic_d[%d, %d, %d] = %.4e\n", tid_x, tid_y, tid_z, analytic_d[tid]);
+  }
+  */
+  
+}
+
+
+void Grid3D::Add_Analytic_Potential_GPU() {
+  int nx_pot, ny_pot, nz_pot;
+  nx_pot = Grav.nx_local + 2*N_GHOST_POTENTIAL;
+  ny_pot = Grav.ny_local + 2*N_GHOST_POTENTIAL;
+  nz_pot = Grav.nz_local + 2*N_GHOST_POTENTIAL;
+
+  // set values for GPU kernels
+  int tpb_x = TPBX_GRAV;
+  int tpb_y = TPBY_GRAV;
+  int tpb_z = TPBZ_GRAV;
+
+  int ngrid_x = (nx_pot - 1) / tpb_x + 1;
+  int ngrid_y = (ny_pot - 1) / tpb_y + 1;
+  int ngrid_z = (nz_pot - 1) / tpb_z + 1;
+
+  // number of blocks per 1D grid
+  dim3 dim3dGrid(ngrid_x, ngrid_y, ngrid_z);
+  //  number of threads per 1D block
+  dim3 dim3dBlock(tpb_x, tpb_y, tpb_z);
+
+  //Copy the analytic potential from the device array to the device potential array
+  hipLaunchKernelGGL(Add_Analytic_Potential_Kernel, dim3dGrid, dim3dBlock, 0, 0, Grav.F.analytic_potential_d, Grav.F.potential_d, nx_pot, ny_pot, nz_pot);
+  cudaDeviceSynchronize();
+  /*gpuFor(10, 
+    GPU_LAMBDA(const int i) {
+        printf("potential_after_analytic[%d, %d, %d] = %.4e\n", i, ny_pot/2, nz_pot/2, Grav.F.potential_d[i + nx_pot*ny_pot/2 + nx_pot*ny_pot*nz_pot/2]);
+    }
+  );*/
+}
+#endif //GRAVITY_ANALYTIC_COMP
+
+
 
 void __global__ Extrapolate_Grav_Potential_Kernel( Real *dst_potential, Real *src_potential_0, Real *src_potential_1,
         int nx_pot, int ny_pot, int nz_pot, int nx_grid, int ny_grid, int nz_grid, int n_offset,
@@ -170,6 +231,7 @@ void __global__ Extrapolate_Grav_Potential_Kernel( Real *dst_potential, Real *sr
   //Set phi_n-1 = phi_n, to use it during the next step
   src_potential_1[tid_pot] = pot_now;
 }
+
 
 void Grid3D::Extrapolate_Grav_Potential_GPU(){
 
