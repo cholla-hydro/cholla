@@ -92,17 +92,6 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
    }
 }
 
-
-
-/*! \fn Real minof3(Real a, Real b, Real c)
- *  \brief Returns the minimum of three floating point numbers. */
-__device__ inline Real minof3(Real a, Real b, Real c)
-{
-  return fmin(a, fmin(b,c));
-}
-
-
-
 /*! \fn int sgn_CUDA
  *  \brief Mathematical sign function. Returns sign of x. */
 __device__ inline int sgn_CUDA(Real x)
@@ -110,9 +99,6 @@ __device__ inline int sgn_CUDA(Real x)
   if (x < 0) return -1;
   else return 1;
 }
-
-
-__global__ void test_function();
 
 
 //Define atomic_add if it's not supported

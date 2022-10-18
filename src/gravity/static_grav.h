@@ -4,17 +4,16 @@
            functions in hydro_cuda.cu. */
 #ifdef CUDA
 
+#pragma once
+
 #include <stdio.h>
-#include <math.h>
-#include "../utils/gpu.hpp"
-#include "../global/global.h"
-#include "../global/global_cuda.h"
-#include "../gravity/gravity_cuda.h"
+#include <math.h> // provides sqrt log cos sin atan etc.
+#include "../global/global.h" // provides GN etc.
 
 // Work around lack of pow(Real,int) in Hip Clang for Rocm 3.5
 static inline __device__ Real pow2(const Real x) { return x*x; }
 
-__device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound, Real *gx)
+inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound, Real *gx)
 {
   Real x_pos, r_disk, r_halo;
   x_pos = (x_off + xid - n_ghost + 0.5)*dx + xbound;
@@ -52,7 +51,7 @@ __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound,
 }
 
 
-__device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real *gx, Real *gy)
+inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real *gx, Real *gy)
 {
   Real x_pos, y_pos, r, phi;
   // use the subgrid offset and global boundaries to calculate absolute positions on the grid
@@ -108,7 +107,7 @@ __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, R
 }
 
 
-__device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz)
+inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz)
 {
   Real x_pos, y_pos, z_pos, r_disk, r_halo;
   // use the subgrid offset and global boundaries to calculate absolute positions on the grid

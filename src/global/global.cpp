@@ -223,6 +223,30 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->n_rotated_projection = atoi(value);
   else if (strcmp(name, "n_slice")==0)
     parms->n_slice = atoi(value);
+  else if (strcmp(name, "n_out_float32")==0)
+    parms->n_out_float32 = atoi(value);
+  else if (strcmp(name, "out_float32_density")==0)
+    parms->out_float32_density = atoi(value);
+  else if (strcmp(name, "out_float32_momentum_x")==0)
+    parms->out_float32_momentum_x = atoi(value);
+  else if (strcmp(name, "out_float32_momentum_y")==0)
+    parms->out_float32_momentum_y = atoi(value);
+  else if (strcmp(name, "out_float32_momentum_z")==0)
+    parms->out_float32_momentum_z = atoi(value);
+  else if (strcmp(name, "out_float32_Energy")==0)
+    parms->out_float32_Energy = atoi(value);
+#ifdef DE
+  else if (strcmp(name, "out_float32_GasEnergy")==0)
+    parms->out_float32_GasEnergy = atoi(value);
+#endif // DE
+#ifdef MHD
+  else if (strcmp(name, "out_float32_magnetic_x")==0)
+    parms->out_float32_magnetic_x = atoi(value);
+  else if (strcmp(name, "out_float32_magnetic_y")==0)
+    parms->out_float32_magnetic_y = atoi(value);
+  else if (strcmp(name, "out_float32_magnetic_z")==0)
+    parms->out_float32_magnetic_z = atoi(value);
+#endif // MHD
   else if (strcmp(name, "xmin")==0)
     parms->xmin = atof(value);
   else if (strcmp(name, "ymin")==0)
@@ -366,7 +390,7 @@ void parse_param(char *name,char *value, struct parameters *parms){
 #ifdef CHEMISTRY_GPU
     else if (strcmp(name, "UVB_rates_file")==0)
       strncpy (parms->UVB_rates_file, value, MAXLEN);
-#endif  
+#endif
 #ifdef COOLING_GRACKLE
   else if (strcmp(name, "UVB_rates_file")==0)
     strncpy (parms->UVB_rates_file, value, MAXLEN);
