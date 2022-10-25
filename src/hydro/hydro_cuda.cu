@@ -10,7 +10,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../hydro/hydro_cuda.h"
-#include "../gravity/gravity_cuda.h"
+#include "../gravity/static_grav.h"
 #include "../utils/hydro_utilities.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/reduction_utilities.h"

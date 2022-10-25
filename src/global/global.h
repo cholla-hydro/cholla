@@ -204,6 +204,20 @@ struct parameters
   int n_projection;
   int n_rotated_projection;
   int n_slice;
+  int n_out_float32=0;
+  int out_float32_density=0;
+  int out_float32_momentum_x=0;
+  int out_float32_momentum_y=0;
+  int out_float32_momentum_z=0;
+  int out_float32_Energy=0;
+#ifdef DE
+  int out_float32_GasEnergy=0;
+#endif
+#ifdef MHD
+  int out_float32_magnetic_x=0;
+  int out_float32_magnetic_y=0;
+  int out_float32_magnetic_z=0;
+#endif
   Real xmin;
   Real ymin;
   Real zmin;
