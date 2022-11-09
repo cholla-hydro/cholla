@@ -26,7 +26,7 @@ zlen=1.0
 # final output time
 tout=9e4
 # time interval for output
-outstep=1e2
+outstep=1e3
 # ratio of specific heats
 gamma=1.66666667
 # name of initial conditions

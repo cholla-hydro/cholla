@@ -591,7 +591,7 @@ void Grid3D::KH()
   Real vx, vy, vz;
   Real d1, d2, v1, v2, P, A;
 
-  d1 = 2.0;
+  d1 = 200.0;
   d2 = 1.0;
   v1 = 0.5;
   v2 = -0.5;
@@ -1253,7 +1253,7 @@ void Grid3D::Clouds()
   Real p_bg, p_cl; // background and cloud pressure
   Real mu = 0.6; // mean atomic weight
   int N_cl = 1; // number of clouds
-  Real R_cl = 0.01; // cloud radius in code units (kpc)
+  Real R_cl = 0.1; // cloud radius in code units (kpc)
   Real cl_pos[N_cl][3]; // array of cloud positions
   Real r;
 
@@ -1278,8 +1278,6 @@ void Grid3D::Clouds()
   rho_bg = n_bg*mu*MP/DENSITY_UNIT;
   rho_cl  = n_cl*mu*MP/DENSITY_UNIT;
   vx_bg = 100*TIME_UNIT/KPC;
-  // vx_bg = 0.0;
-  //vx_c  = -200*TIME_UNIT/KPC; // convert from km/s to kpc/kyr
   vx_cl  = 0.0;
   vy_bg = vy_cl = 0.0;
   vz_bg = vz_cl = 0.0;
@@ -1343,7 +1341,7 @@ void Grid3D::Clouds()
             C.GasEnergy[id]  = p_cl/(gama-1.0);
             #endif
             #ifdef SCALAR
-            C.scalar[id] = C.density[id]*0.01;
+            C.scalar[id] = rho_cl*0.01;
             #endif
           }
         }
