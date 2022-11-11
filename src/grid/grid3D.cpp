@@ -141,7 +141,7 @@ void Grid3D::Initialize(struct parameters *P)
   
   #ifdef AVERAGE_SLOW_CELLS
   #ifndef DUST
-  H.min_dt_slow = 1e-10; //Initialize the minumum dt to a tiny number
+  H.min_dt_slow = 1e-100; //Initialize the minumum dt to a tiny number
   #else 
   H.min_dt_slow = 1e-2;
   #endif // DUST
