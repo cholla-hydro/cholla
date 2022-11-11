@@ -1325,7 +1325,7 @@ void Grid3D::Clouds()
         #ifdef DE
         C.GasEnergy[id]  = p_bg/(gama-1.0);
         #endif
-        #ifdef SCALAR
+        #ifdef DUST
         C.scalar[id] = C.density[id]*0.0;
         #endif
         // add clouds 
@@ -1340,7 +1340,7 @@ void Grid3D::Clouds()
             #ifdef DE
             C.GasEnergy[id]  = p_cl/(gama-1.0);
             #endif
-            #ifdef SCALAR
+            #ifdef DUST
             C.scalar[id] = rho_cl*0.01;
             #endif
           }

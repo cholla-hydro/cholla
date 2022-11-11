@@ -466,7 +466,6 @@ __global__ void Noh_Boundary_kernel(Real * c_device,
     c_device[gid+3*n_cells] = vz*c_device[gid];
     c_device[gid+4*n_cells] = P_0/(gamma-1.0) + 0.5*c_device[gid];
   }
-  __syncthreads();  
 
   // +y boundary next
   isize = nx;
