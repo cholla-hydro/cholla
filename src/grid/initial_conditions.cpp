@@ -591,7 +591,7 @@ void Grid3D::KH()
   Real vx, vy, vz;
   Real d1, d2, v1, v2, P, A;
 
-  d1 = 200.0;
+  d1 = 2.0;
   d2 = 1.0;
   v1 = 0.5;
   v2 = -0.5;
