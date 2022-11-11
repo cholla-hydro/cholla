@@ -1,0 +1,28 @@
+name: cpp-linter
+
+on: [pull_request, push]
+
+jobs:
+  cpp-format:
+    runs-on: ubuntu-latest
+
+    # Setup environment variables
+    env:
+      CLANG_FORMAT_VERSION: 15
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install clang-format
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
+          sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-15 main"
+          sudo apt install clang-format-15
+          sudo ln --symbolic --force /usr/bin/clang-format-15 /usr/bin/clang-format
+      - name: Verify clang-format installation
+        run: |
+          clang-format-15 --version
+          which clang-format-15
+          clang-format --version
+          which clang-format
+      - name: Check if files are properly formatted
+        run: tools/clang-format_runner.sh --dry-run --Werror

@@ -1,0 +1,9 @@
+# To tell git blame to ignore these commits run this command in the repo.
+# `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+# Requires git v2.23 or greater. Each entry must include the full 40 character
+# hash
+
+# Strip all trailing whitespace
+40fcc44334cc92572beb726961e23beb6be8ae2f
+
+# Reformat Code with clang-format
