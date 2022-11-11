@@ -571,16 +571,6 @@ __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
       Real n = d*DENSITY_UNIT/(0.6*MP);
       Real T = hydro_utilities::Calc_Temp(P, n);
 
-      if (max_dti > 1) {
-        printf("\nmax_dti: %e\n", max_dti);
-        printf("E: %e g/(cm^2⋅s^2)\n", E*ENERGY_UNIT);
-        printf("P: %e g/(cm⋅s^2)\n", P*PRESSURE_UNIT);
-        printf("T: %e K\n", T);
-        printf("cs: %e km/s\n", cs*1e-5*VELOCITY_UNIT);
-        printf("d: %e g/cm^3\n", d*DENSITY_UNIT);
-        printf("vx: %e km/s\n", vx*1e-5*VELOCITY_UNIT);
-      }
-
     }
   }
 
