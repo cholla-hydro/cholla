@@ -566,11 +566,6 @@ __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
         max_dti = fmax(max_dti,hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma));
       #endif  //MHD
 
-      Real P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-      Real cs = sqrt(d_inv * gamma * P);
-      Real n = d*DENSITY_UNIT/(0.6*MP);
-      Real T = hydro_utilities::Calc_Temp(P, n);
-
     }
   }
 
