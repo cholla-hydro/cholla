@@ -161,7 +161,12 @@ void Grid3D::set_dt_Gravity(){
 
   #if defined( AVERAGE_SLOW_CELLS) && !defined( PARTICLES )
   //Set the min_delta_t for averaging a slow cell ( for now the min_dt_slow is set to a large value, change this with your condition )
-  min_dt_slow = H.dt / C_cfl * 100 ;
+  //min_dt_slow = H.dt / C_cfl * 100 ;
+  #ifndef DUST // Not using dust
+  min_dt_slow = 3*H.dx;
+  #else
+  min_dt_slow = 1e10;
+  #endif // DUST
   H.min_dt_slow = min_dt_slow;
   #endif
 
