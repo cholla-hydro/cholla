@@ -425,6 +425,10 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
     // from grid/cuda_boundaries.cu
     Noh_Boundary();
   }
+  if (strcmp(bcnd, "wind")==0) {
+    // from grid/cuda_boundaries.cu
+    Wind_Boundary();
+  }
   else {
     printf("ABORT: %s -> Unknown custom boundary condition.\n", bcnd);
     exit(0);
@@ -432,6 +436,26 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
 }
 
 
+
+/*! \fn void Wind_Boundary()
+ *  \brief Apply wind boundary */
+void Grid3D::Wind_Boundary()
+{
+
+  int x_off, y_off, z_off;
+  // set x, y, & z offsets of local CPU volume to pass to GPU
+  // so global position on the grid is known
+  x_off = y_off = z_off = 0;
+  #ifdef MPI_CHOLLA
+  x_off = nx_local_start;
+  y_off = ny_local_start;
+  z_off = nz_local_start;
+  #endif
+
+  Wind_Boundary_CUDA(C.device, H.nx, H.ny, H.nz, H.n_cells, H.n_ghost,
+         x_off, y_off, z_off, H.dx, H.dy, H.dz, 
+         H.xbound, H.ybound, H.zbound, gama, H.t);
+}
 
 /*! \fn void Noh_Boundary()
  *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces,
@@ -459,15 +483,12 @@ void Grid3D::Noh_Boundary()
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r;
   Real vx, vy, vz, d_0, P_0, P;
-
   d_0 = 1.0;
   P_0 = 1.0e-6;
-
   // set exact boundaries on the +x face
   for (k=0; k<H.nz; k++) {
     for (j=0; j<H.ny; j++) {
       for (i=H.nx-H.n_ghost; i<H.nx; i++) {
-
         id = i + j*H.nx + k*H.nx*H.ny;
         // get the (centered) x, y, and z positions at (x,y,z)
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
@@ -485,16 +506,13 @@ void Grid3D::Noh_Boundary()
         C.momentum_y[id] = vy*C.density[id];
         C.momentum_z[id] = vz*C.density[id];
         C.Energy[id]     = P_0/(gama-1.0) + 0.5*C.density[id];
-
       }
     }
   }
-
   // set exact boundaries on the +y face
   for (k=0; k<H.nz; k++) {
     for (j=H.ny-H.n_ghost; j<H.ny; j++) {
       for (i=0; i<H.nx; i++) {
-
         id = i + j*H.nx + k*H.nx*H.ny;
         // get the (centered) x, y, and z positions at (x,y,z)
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
@@ -512,18 +530,14 @@ void Grid3D::Noh_Boundary()
         C.momentum_y[id] = vy*C.density[id];
         C.momentum_z[id] = vz*C.density[id];
         C.Energy[id]     = P_0/(gama-1.0) + 0.5*C.density[id];
-
       }
     }
   }
-
   // set exact boundaries on the +z face
   if (H.nz > 1) {
-
     for (k=H.nz-H.n_ghost; k<H.nz; k++) {
       for (j=0; j<H.ny; j++) {
         for (i=0; i<H.nx; i++) {
-
           id = i + j*H.nx + k*H.nx*H.ny;
           // get the (centered) x, y, and z positions at (x,y,z)
           Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
@@ -538,13 +552,9 @@ void Grid3D::Noh_Boundary()
           C.momentum_y[id] = vy*C.density[id];
           C.momentum_z[id] = vz*C.density[id];
           C.Energy[id]     = P_0/(gama-1.0) + 0.5*C.density[id];
-
         }
       }
     }
-
   }
 */
 }
-
-
