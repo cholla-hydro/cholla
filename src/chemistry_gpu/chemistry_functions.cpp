@@ -32,16 +32,18 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   
   Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
   
+#ifdef COSMOLOGY
   Chem.H.H0 = P->H0;
   Chem.H.Omega_M = P->Omega_M;
   Chem.H.Omega_L = P->Omega_L;
-  
+#endif
   
   // Set up the units system.
   Real Msun, kpc_cgs, kpc_km, dens_to_CGS;
   Msun = MSUN_CGS;
   kpc_cgs = KPC_CGS;
   kpc_km  = KPC;
+#ifdef COSMOLOGY
   dens_to_CGS = Cosmo.rho_0_gas * Msun / kpc_cgs / kpc_cgs / kpc_cgs * Cosmo.cosmo_h * Cosmo.cosmo_h;
   
   // These are conversions from code units to cgs. Following Grackle
@@ -51,7 +53,10 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   Chem.H.time_units     = kpc_km / Cosmo.cosmo_h ;
   Chem.H.velocity_units = Chem.H.length_units /Chem.H.time_units; 
   Chem.H.dens_number_conv = Chem.H.density_units * pow(Chem.H.a_value, 3) / MH;
-  
+#else
+  chprintf("EXITING: Chemistry is not supported without Cosmology, see %s::%d\n",__FILE__,__LINE__);
+  exit(-1);
+#endif  
   Real dens_base, length_base, time_base;
   dens_base   = Chem.H.density_units * Chem.H.a_value * Chem.H.a_value * Chem.H.a_value;
   length_base = Chem.H.length_units / Chem.H.a_value;
@@ -254,7 +259,7 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_uni
         #ifdef DE
         GE = C.GasEnergy[id];
         #else 
-        GE = (dev_conserved[4*n_cells + id] - 0.5*d*(vx*vx + vy*vy + vz*vz));
+        GE = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)); // TODO: this probably needs to be fixed for MHD 
         #endif
         
         dens_HI    = C.HI_density[id];

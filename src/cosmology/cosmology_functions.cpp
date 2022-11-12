@@ -4,6 +4,7 @@
 #include "../grid/grid3D.h"
 #include "../global/global.h"
 #include "../io/io.h"
+#include "../grid/grid_enum.h"
 
 
 
@@ -102,24 +103,24 @@ void Grid3D::Change_GAS_Frame_System( bool forward ){
         #endif
 
         #ifdef COOLING_GRACKLE
-        C.scalar[0*H.n_cells + id] *= dens_factor;
-        C.scalar[1*H.n_cells + id] *= dens_factor;
-        C.scalar[2*H.n_cells + id] *= dens_factor;
-        C.scalar[3*H.n_cells + id] *= dens_factor;
-        C.scalar[4*H.n_cells + id] *= dens_factor;
-        C.scalar[5*H.n_cells + id] *= dens_factor;
+	C.HI_density[id]    *= dens_factor;
+	C.HII_density[id]   *= dens_factor;
+	C.HeI_density[id]   *= dens_factor;
+	C.HeII_density[id]  *= dens_factor;
+	C.HeIII_density[id] *= dens_factor;
+	C.e_density[id]     *= dens_factor;
         #ifdef GRACKLE_METALS
-        C.scalar[6*H.n_cells + id] *= dens_factor;
+	C.metal_density[id] *= dens_factor;
         #endif
         #endif//COOLING_GRACKLE
         
         #ifdef CHEMISTRY_GPU
-        C.scalar[0*H.n_cells + id] *= dens_factor;
-        C.scalar[1*H.n_cells + id] *= dens_factor;
-        C.scalar[2*H.n_cells + id] *= dens_factor;
-        C.scalar[3*H.n_cells + id] *= dens_factor;
-        C.scalar[4*H.n_cells + id] *= dens_factor;
-        C.scalar[5*H.n_cells + id] *= dens_factor;
+	C.HI_density[id]    *= dens_factor;
+	C.HII_density[id]   *= dens_factor;
+	C.HeI_density[id]   *= dens_factor;
+	C.HeII_density[id]  *= dens_factor;
+	C.HeIII_density[id] *= dens_factor;
+	C.e_density[id]     *= dens_factor;
         #endif
 
       }

@@ -1591,14 +1591,14 @@ void Grid3D::Chemistry_Test( struct parameters P )
 
 
         #ifdef COOLING_GRACKLE
-        C.scalar[0*H.n_cells + id] = rho_gas_mean * HI_frac;
-        C.scalar[1*H.n_cells + id] = rho_gas_mean * HII_frac;
-        C.scalar[2*H.n_cells + id] = rho_gas_mean * HeI_frac;
-        C.scalar[3*H.n_cells + id] = rho_gas_mean * HeII_frac;
-        C.scalar[4*H.n_cells + id] = rho_gas_mean * HeIII_frac;
-        C.scalar[5*H.n_cells + id] = rho_gas_mean * e_frac;
+        C.HI_density[id]    =  rho_gas_mean * HI_frac;
+        C.HII_density[id]   =  rho_gas_mean * HII_frac;
+        C.HeI_density[id]   =  rho_gas_mean * HeI_frac;
+        C.HeII_density[id]  =  rho_gas_mean * HeII_frac;
+        C.HeIII_density[id] =  rho_gas_mean * HeIII_frac;
+        C.e_density[id]     =  rho_gas_mean * e_frac;
         #ifdef GRACKLE_METALS
-        C.scalar[6*H.n_cells + id] = rho_gas_mean * metal_frac;
+	C.metal_density[id] =  rho_gas_mean * metal_frac;	
         #endif
         #endif
 

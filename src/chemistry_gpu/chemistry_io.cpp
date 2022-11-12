@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <cstring> // provides std::strcpy (strcpy in this file)
 #include "chemistry_gpu.h"
 #include "../io/io.h"
 
