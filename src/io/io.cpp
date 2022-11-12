@@ -235,7 +235,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 
 void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 {
-  
+
   Header H = G.H;
   // Do nothing in 1-D and 2-D case
   if (H.ny_real == 1) {
@@ -3055,14 +3055,14 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           for (i=0; i<H.nx_real; i++) {
             id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
             dens = C.density[id];
-            C.scalar[0*H.n_cells + id] = HI_frac * dens;
-            C.scalar[1*H.n_cells + id] = HII_frac * dens;
-            C.scalar[2*H.n_cells + id] = HeI_frac * dens;
-            C.scalar[3*H.n_cells + id] = HeII_frac * dens;
-            C.scalar[4*H.n_cells + id] = HeIII_frac * dens;
-            C.scalar[5*H.n_cells + id] = e_frac * dens;
+	    C.HI_density[id]    = HI_frac * dens;
+	    C.HII_density[id]   = HII_frac * dens;
+	    C.HeI_density[id]   = HeI_frac * dens;
+	    C.HeII_density[id]  = HeII_frac * dens;
+	    C.HeIII_density[id] = HeIII_frac * dens;
+	    C.e_density[id]     = e_frac * dens;
             #ifdef GRACKLE_METALS
-            C.scalar[6*H.n_cells + id] = metal_frac * dens;
+	    C.metal_density[id] = metal_frac * dens;
             #endif
           }
         }
@@ -3077,7 +3077,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           for (i=0; i<H.nx_real; i++) {
             id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
             buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-            C.scalar[0*H.n_cells + id] = dataset_buffer[buf_id];
+	    C.HI_density[id] = dataset_buffer[buf_id];
             // chprintf("%f \n",  C.scalar[0*H.n_cells + id] / C.density[id]);
           }
         }
@@ -3090,7 +3090,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           for (i=0; i<H.nx_real; i++) {
             id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
             buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-            C.scalar[1*H.n_cells + id] = dataset_buffer[buf_id];
+	    C.HII_density[id] = dataset_buffer[buf_id];
           }
         }
       }
@@ -3102,7 +3102,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           for (i=0; i<H.nx_real; i++) {
             id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
             buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-            C.scalar[2*H.n_cells + id] = dataset_buffer[buf_id];
+	    C.HeI_density[id] = dataset_buffer[buf_id];
           }
         }
       }
@@ -3114,7 +3114,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           for (i=0; i<H.nx_real; i++) {
             id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
             buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-            C.scalar[3*H.n_cells + id] = dataset_buffer[buf_id];
+	    C.HeII_density[id] = dataset_buffer[buf_id];
           }
         }
       }
@@ -3126,7 +3126,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           for (i=0; i<H.nx_real; i++) {
             id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
             buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-            C.scalar[4*H.n_cells + id] = dataset_buffer[buf_id];
+	    C.HeIII_density[id] = dataset_buffer[buf_id];
           }
         }
       }
@@ -3138,7 +3138,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           for (i=0; i<H.nx_real; i++) {
             id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
             buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-            C.scalar[5*H.n_cells + id] = dataset_buffer[buf_id];
+	    C.e_density[id] = dataset_buffer[buf_id];
           }
         }
       }
@@ -3151,7 +3151,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           for (i=0; i<H.nx_real; i++) {
             id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
             buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-            C.scalar[6*H.n_cells + id] = dataset_buffer[buf_id];
+	    C.metal_density[id] = dataset_buffer[buf_id];
           }
         }
       }
