@@ -4,5 +4,4 @@
 #   source ./setup.c3po.gcc.sh
 
 # export MPI_GPU="-DMPI_GPU"
-export F_OFFLOAD="-fopenmp -foffload=disable"
 export CHOLLA_ENVSET=1

@@ -29,10 +29,6 @@
 // =============================================================================
 TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
 {
-
-  Real* testDt;
-  cudaHostAlloc(&testDt, sizeof(Real), cudaHostAllocDefault);
-
   // Call the function we are testing
   int num_blocks = 1;
   dim3 dim1dGrid(num_blocks, 1, 1);
@@ -58,7 +54,8 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   host_conserved.at(4) = 1.0; // Energy
 
   // Copy host data to device arrray
-  dev_conserved.cpyHostToDevice(host_conserved);
+  CudaSafeCall(cudaMemcpy(dev_conserved, host_conserved, n_fields*sizeof(Real), cudaMemcpyHostToDevice));
+  //__global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n_ghost, int n_fields, int nx, int ny, int nz, Real dx, Real dy, Real dz)
 
   // Run the kernel
   hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0,

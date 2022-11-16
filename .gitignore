@@ -1,6 +1,7 @@
 # Files specific to this repo #
 ##############################
 googletest*
+tidy_results*.txt
 
 # Compiled source #
 ###################

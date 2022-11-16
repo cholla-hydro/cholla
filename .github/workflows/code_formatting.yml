@@ -1,4 +1,4 @@
-name: cpp-linter
+name: Code Formatting
 
 on: [pull_request, push]
 
@@ -15,13 +15,13 @@ jobs:
       - name: Install clang-format
         run: |
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
-          sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-15 main"
-          sudo apt install clang-format-15
-          sudo ln --symbolic --force /usr/bin/clang-format-15 /usr/bin/clang-format
+          sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-${{ env.CLANG_FORMAT_VERSION }} main"
+          sudo apt install clang-format-${{ env.CLANG_FORMAT_VERSION }}
+          sudo ln --symbolic --force /usr/bin/clang-format-${{ env.CLANG_FORMAT_VERSION }} /usr/bin/clang-format
       - name: Verify clang-format installation
         run: |
-          clang-format-15 --version
-          which clang-format-15
+          clang-format-${{ env.CLANG_FORMAT_VERSION }} --version
+          which clang-format-${{ env.CLANG_FORMAT_VERSION }}
           clang-format --version
           which clang-format
       - name: Check if files are properly formatted
