@@ -1247,7 +1247,7 @@ void Grid3D::Clouds()
   Real p_bg, p_cl; // background and cloud pressure
   Real mu = 0.6; // mean atomic weight
   int N_cl = 1; // number of clouds
-  Real R_cl = 0.1; // cloud radius in code units (kpc)
+  Real R_cl = 2.5; // cloud radius in code units (kpc)
   Real cl_pos[N_cl][3]; // array of cloud positions
   Real r;
 
@@ -1261,17 +1261,18 @@ void Grid3D::Clouds()
 
   // single centered cloud setup
   for (int nn=0; nn<N_cl; nn++) {
-    cl_pos[nn][0] = 0.1*H.xdglobal;
+    cl_pos[nn][0] = 0.5*H.xdglobal;
     cl_pos[nn][1] = 0.5*H.ydglobal;
     cl_pos[nn][2] = 0.5*H.zdglobal;
     printf("Cloud positions: %f %f %f\n", cl_pos[nn][0], cl_pos[nn][1], cl_pos[nn][2]);
   }
 
-  n_bg = 1e-2;
-  n_cl  = 1;
+  n_bg = 1.68e-4;
+  n_cl  = 5.4e-2;
   rho_bg = n_bg*mu*MP/DENSITY_UNIT;
   rho_cl  = n_cl*mu*MP/DENSITY_UNIT;
-  vx_bg = 100*TIME_UNIT/KPC;
+  vx_bg = 0.0;
+  //vx_c  = -200*TIME_UNIT/KPC; // convert from km/s to kpc/kyr
   vx_cl  = 0.0;
   vy_bg = vy_cl = 0.0;
   vz_bg = vz_cl = 0.0;
@@ -1319,7 +1320,7 @@ void Grid3D::Clouds()
         #ifdef DE
         C.GasEnergy[id]  = p_bg/(gama-1.0);
         #endif
-        #ifdef DUST
+        #ifdef SCALAR
         C.scalar[id] = C.density[id]*0.0;
         #endif
         // add clouds 
