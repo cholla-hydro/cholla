@@ -55,14 +55,7 @@ typedef double Real;
 #define LOG_FILE_NAME "run_output.log"
 
 //Conserved Floor Values
-#ifdef DUST
-#define TEMP_FLOOR 10 // in Kelvin
-#else // NOT DUST
 #define TEMP_FLOOR 1e-3
-#endif
-
-
-
 #define DENS_FLOOR 1e-5 // in code units
 
 //Parameter for Enzo dual Energy Condition
