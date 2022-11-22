@@ -357,6 +357,58 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *
 }
 
 
+__global__ void Wind_Boundary_kernel(Real * c_device,
+				     int nx, int ny, int nz, int n_cells, int n_ghost,
+             int x_off, int y_off, int z_off,
+             Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real gamma, Real t)
+{
+  int id, xid, yid, zid, gid;
+  Real n_0, T_0;
+  Real mu = 0.6;
+  Real vx, vy, vz, d_0, P_0;
+
+  n_0 = 1e-2; // same value as n_bg in cloud initial condition function (cm^-3)
+  T_0 = 3e6; // same value as T_bg in cloud initial condition function (K)
+
+  // same values as rho_bg and p_bg in cloud initial condition function
+  d_0 = n_0*mu*MP/DENSITY_UNIT;
+  P_0 = n_0*KB*T_0/PRESSURE_UNIT;
+
+  vx = 100*TIME_UNIT/KPC; // km/s * (cholla unit conversion)
+  vy = 0.0;
+  vz = 0.0;
+
+  // calculate ghost cell ID and i,j,k in GPU grid
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+
+  int isize, jsize, ksize;
+
+  // -x boundary
+  isize = n_ghost;
+  jsize = ny;
+  ksize = nz;
+
+  // not true i,j,k but relative i,j,k in the GPU grid
+  zid = id / (isize * jsize);
+  yid = (id - zid*isize*jsize) / isize;
+  xid = id - zid*isize*jsize - yid*isize;
+
+  // map thread id to ghost cell id
+  xid += 0; // -x boundary
+  gid = xid + yid*nx + zid*nx*ny; 
+
+  if (xid <= n_ghost && xid < nx && yid < ny && zid < nz) {
+    // set conserved variables
+    c_device[gid] = d_0;
+    c_device[gid+1*n_cells] = vx*d_0;
+    c_device[gid+2*n_cells] = vy*d_0;
+    c_device[gid+3*n_cells] = vz*d_0;
+    c_device[gid+4*n_cells] = P_0/(gamma-1.0) + 0.5*d_0*(vx*vx + vy*vy + vz*vz);
+  }
+  __syncthreads();
+}
+
+
 __global__ void Noh_Boundary_kernel(Real * c_device,
 				     int nx, int ny, int nz, int n_cells, int n_ghost,
              int x_off, int y_off, int z_off,
@@ -414,7 +466,6 @@ __global__ void Noh_Boundary_kernel(Real * c_device,
     c_device[gid+3*n_cells] = vz*c_device[gid];
     c_device[gid+4*n_cells] = P_0/(gamma-1.0) + 0.5*c_device[gid];
   }
-  __syncthreads();  
 
   // +y boundary next
   isize = nx;
@@ -501,6 +552,31 @@ __global__ void Noh_Boundary_kernel(Real * c_device,
 }
 
 
+void Wind_Boundary_CUDA(Real * c_device, int nx, int ny, int nz, int n_cells, int n_ghost,
+            int x_off, int y_off, int z_off, Real dx, Real dy, Real dz,
+            Real xbound, Real ybound, Real zbound, Real gamma, Real t)
+{
+  // determine the size of the grid to launch
+  // need at least as many threads as the largest boundary face
+  // current implementation assumes the test is run on a cube...
+  int isize, jsize, ksize;
+  isize = n_ghost;
+  jsize = ny;
+  ksize = nz;
+
+  dim3 dim1dGrid((isize*jsize*ksize + TPB-1) / TPB, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+
+  // launch the boundary kernel
+  hipLaunchKernelGGL(Wind_Boundary_kernel, dim1dGrid, dim1dBlock, 0, 0, 
+    c_device, nx, ny, nz, n_cells, n_ghost, x_off, y_off, z_off, dx, dy, dz,
+    xbound, ybound, zbound, gamma, t);
+
+}
+
+
+
+
 void Noh_Boundary_CUDA(Real * c_device, int nx, int ny, int nz, int n_cells, int n_ghost,
                        int x_off, int y_off, int z_off, Real dx, Real dy, Real dz,
                        Real xbound, Real ybound, Real zbound, Real gamma, Real t)
@@ -522,8 +598,4 @@ void Noh_Boundary_CUDA(Real * c_device, int nx, int ny, int nz, int n_cells, int
 		     nx,ny,nz,n_cells,n_ghost,
          x_off,y_off,z_off,dx,dy,dz,xbound,ybound,zbound,gamma,t);
 
-
-
 }
-
-

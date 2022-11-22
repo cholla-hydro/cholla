@@ -38,6 +38,10 @@
 #include "../cooling/cooling_cuda.h" // provides Cooling_Update
 #endif
 
+#ifdef DUST
+#include "../dust/dust_cuda.h" // provides Dust_Update
+#endif
+
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
@@ -137,7 +141,7 @@ void Grid3D::Initialize(struct parameters *P)
   
   #ifdef AVERAGE_SLOW_CELLS
   H.min_dt_slow = 1e-100; //Initialize the minumum dt to a tiny number
-  #endif
+  #endif // AVERAGE_SLOW_CELLS
 
 #ifndef MPI_CHOLLA
 
@@ -469,6 +473,11 @@ Real Grid3D::Update_Grid(void)
   // ==Apply Cooling from cooling/cooling_cuda.h==
   Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
   #endif //COOLING_GPU
+
+  #ifdef DUST
+  // ==Apply dust from dust/dust_cuda.h==
+  Dust_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
+  #endif // DUST
 
   // Update the H and He ionization fractions and apply cooling and photoheating
   #ifdef CHEMISTRY_GPU
