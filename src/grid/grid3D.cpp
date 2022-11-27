@@ -185,7 +185,7 @@ void Grid3D::Initialize(struct parameters *P)
   }
 
   // Set header variables for time within the simulation
-  H.t = 0.0;
+  H.t = P->tinit;
   // and the number of timesteps taken
   H.n_step = 0;
   // and the wall time

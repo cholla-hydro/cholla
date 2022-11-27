@@ -90,3 +90,4 @@ docs/sphinx/build
 /win/.vs/win
 /win/win.vcxproj.filters~
 *.vcxproj~
+/win/plot.py~

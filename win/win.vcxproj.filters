@@ -17,6 +17,9 @@
     <ClCompile Include="..\src\utils\parallel_omp.cpp" />
     <ClCompile Include="..\src\utils\timing_functions.cpp" />
     <ClCompile Include="..\src\model\disk_ICs.cpp" />
+    <ClCompile Include="..\src\chemistry_gpu\chemistry_functions.cpp" />
+    <ClCompile Include="..\src\chemistry_gpu\chemistry_io.cpp" />
+    <ClCompile Include="..\src\global\global.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\io\io.h" />
@@ -50,6 +53,18 @@
     <ClInclude Include="..\src\utils\reduction_utilities.h" />
     <ClInclude Include="..\src\utils\timing_functions.h" />
     <ClInclude Include="..\src\model\disk_galaxy.h" />
+    <ClInclude Include="..\src\chemistry_gpu\chemistry_gpu.h" />
+    <ClInclude Include="..\src\chemistry_gpu\rates.cuh" />
+    <ClInclude Include="..\src\chemistry_gpu\rates_Katz95.cuh" />
+    <ClInclude Include="..\src\global\global.h" />
+    <ClInclude Include="..\src\global\global_cuda.h" />
+    <ClInclude Include="..\src\hydro\hydro_cuda.h" />
+    <ClInclude Include="..\src\integrators\simple_1D_cuda.h" />
+    <ClInclude Include="..\src\integrators\simple_2D_cuda.h" />
+    <ClInclude Include="..\src\integrators\simple_3D_cuda.h" />
+    <ClInclude Include="..\src\integrators\VL_1D_cuda.h" />
+    <ClInclude Include="..\src\integrators\VL_2D_cuda.h" />
+    <ClInclude Include="..\src\integrators\VL_3D_cuda.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\src\mpi\cuda_mpi_routines.cu" />
@@ -68,5 +83,14 @@
     <CudaCompile Include="..\src\utils\error_check_cuda.cu" />
     <CudaCompile Include="..\src\utils\gpu_arrays_functions.cu" />
     <CudaCompile Include="..\src\utils\reduction_utilities.cu" />
+    <CudaCompile Include="..\src\chemistry_gpu\chemistry_functions_gpu.cu" />
+    <CudaCompile Include="..\src\global\global_cuda.cu" />
+    <CudaCompile Include="..\src\hydro\hydro_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\simple_1D_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\simple_2D_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\simple_3D_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\VL_1D_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\VL_2D_cuda.cu" />
+    <CudaCompile Include="..\src\integrators\VL_3D_cuda.cu" />
   </ItemGroup>
 </Project>

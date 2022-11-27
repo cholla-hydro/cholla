@@ -31,10 +31,10 @@ typedef double Real;
 
 #define MYR 31.536e12 //Myears in secs
 #define KPC 3.086e16 // kpc in km
-#define G_COSMO 4.300927161e-06; // gravitational constant, kpc km^2 s^-2 Msun^-1
-#define MSUN_CGS 1.98847e33; //Msun in gr
-#define KPC_CGS 3.086e21;  //kpc in cm
-#define KM_CGS 1e5; //km in cm
+#define G_COSMO 4.300927161e-06 // gravitational constant, kpc km^2 s^-2 Msun^-1
+#define MSUN_CGS 1.98847e33 //Msun in gr
+#define KPC_CGS 3.086e21  //kpc in cm
+#define KM_CGS 1e5 //km in cm
 #define MH 1.67262171e-24 //Mass of hydrogen [g]   
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
@@ -72,12 +72,10 @@ typedef double Real;
   #else
   #define NSCALARS 6
   #endif // GRACKLE_METALS
+#elif CHEMISTRY_GPU
+  #define NSCALARS 5 // NG 221127 - no need to advect electrons, they are a derived field
 #elif RT
 // Set the number of abundance fields for RT
-  #define NSCALARS 5
-#elif CHEMISTRY_GPU
-  #define NSCALARS 6
-#elif RT
   #define NSCALARS 5
 #else
 // Set default number of scalar fields
@@ -186,8 +184,10 @@ struct parameters
   int nx;
   int ny;
   int nz;
+  double tinit=0;
   double tout;
   double outstep;
+  double outlog = 0;
   int n_steps_output;
   Real gamma;
   char init[MAXLEN];

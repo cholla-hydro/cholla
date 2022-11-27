@@ -319,7 +319,8 @@ __device__ Real Get_Chemistry_dt( Thermal_State &TS, Chemistry_Header &Chem_H, R
   #endif
   
   energy = fmax( TS.U * TS.d, tiny );
-  dt = fmin( fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot )  );
+  ///dt = fmin( fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot )  ); NG electrons should not set the time-step, they are a derived quantity
+  dt = fabs( 0.1 * TS.d_HI / HI_dot );
   dt = fmin( fabs( 0.1 * energy / U_dot ), dt  );
   dt = fmin( 0.5 * dt_hydro, dt );
   dt = fmin( dt_hydro - t_chem, dt );
@@ -457,9 +458,9 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
     #else 
     GE  = dev_conserved[4*n_cells + id] - E_kin;
     #endif
-  
+ 
     print = false;
-    // if ( xid == n_ghost && yid == n_ghost && zid == n_ghost ) print = true;
+    ///if ( xid == n_ghost && yid == n_ghost && zid == n_ghost ) print = true;
         
     // Convert to cgs units
     current_a = 1 / ( current_z + 1);
@@ -467,7 +468,7 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
     a3 = a2 * current_a;  
     d  *= density_conv / a3;
     GE *= energy_conv  / a2; 
-    dt_hydro = dt_hydro / Chem_H.time_units;
+    ///dt_hydro = dt_hydro / Chem_H.time_units; NG 221126: this is a bug, integration is in code units
 
 #ifdef COSMOLOGY
     dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC 
@@ -483,7 +484,7 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
     TS.d_HeI   = dev_conserved[ 7*n_cells + id] / a3; 
     TS.d_HeII  = dev_conserved[ 8*n_cells + id] / a3; 
     TS.d_HeIII = dev_conserved[ 9*n_cells + id] / a3; 
-    TS.d_e     = dev_conserved[10*n_cells + id] / a3; 
+    //TS.d_e     = dev_conserved[10*n_cells + id] / a3; NG 221127: removed, no need to advect electrons, they are a derived field
     TS.U       = GE * d_inv * 1e-10; 
     
     // Ceiling species
@@ -492,7 +493,10 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
     TS.d_HeI   = fmax( TS.d_HeI,   tiny );
     TS.d_HeII  = fmax( TS.d_HeII,  tiny );
     TS.d_HeIII = fmax( TS.d_HeIII, 1e-5*tiny );
-    TS.d_e     = fmax( TS.d_e,     tiny );
+    //TS.d_e     = fmax( TS.d_e,     tiny );  NG 221127: removed, no need to advect electrons, they are a derived field
+
+    // Use charge conservation to determine electron fractioan
+    TS.d_e = TS.d_HII + TS.d_HeII/4.0 + TS.d_HeIII/2.0;
     
     // Compute temperature at first iteration
     temp_prev = TS.get_temperature( Chem_H.gamma );
@@ -559,17 +563,14 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
     TS.d_HeI   *= correct_He;
     TS.d_HeII  *= correct_He;
     TS.d_HeIII *= correct_He;
-    
-    // Use charge conservation to determine electron fractioan
-    TS.d_e = TS.d_HII + TS.d_HeII/4.0 + TS.d_HeIII/2.0;
-       
+           
     // Write the Updated Thermal State
     dev_conserved[ 5*n_cells + id] = TS.d_HI    * a3; 
     dev_conserved[ 6*n_cells + id] = TS.d_HII   * a3; 
     dev_conserved[ 7*n_cells + id] = TS.d_HeI   * a3; 
     dev_conserved[ 8*n_cells + id] = TS.d_HeII  * a3; 
     dev_conserved[ 9*n_cells + id] = TS.d_HeIII * a3; 
-    dev_conserved[10*n_cells + id] = TS.d_e     * a3; 
+    //dev_conserved[10*n_cells + id] = TS.d_e     * a3; NG 221127: removed, no need to advect electrons, they are a derived field
     d = d / density_conv * a3;
     GE = TS.U / d_inv / energy_conv * a2 / 1e-10;
     dev_conserved[4*n_cells + id]  = GE + E_kin;  
@@ -584,7 +585,7 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
     if ( print ) printf("Updated HeII:  %e\n",  TS.d_HeII  * a3  );
     if ( print ) printf("Updated HeIII:  %e\n", TS.d_HeIII * a3  );    
     if ( print ) printf("Updated e:  %e\n",     TS.d_e     * a3  );
-    if ( print ) printf("Updated GE:  %e\n", dev_conserved[(n_fields-1)*n_cells + id]  );
+    if ( print ) printf("Updated GE:  %e\n", GE );
     if ( print ) printf("Updated E:   %e\n", dev_conserved[4*n_cells + id]  );
     
   }
@@ -778,8 +779,10 @@ __device__ Real recomb_HII_rate_case_A( Real T, Real units )
 __device__ Real recomb_HII_rate_case_B( Real T, Real units )
 {
     if (T < 1.0e9) {
-        return 4.881357e-6*pow(T, -1.5) \
-            * pow((1.0 + 1.14813e2*pow(T, -0.407)), -2.242) / units;
+        auto ret = 4.881357e-6*pow(T, -1.5) \
+            * pow((1.0 + 1.14813e2*pow(T, -0.407)), -2.242);
+        ///printf("T=%lg R=%lg units=%lg\n",T,ret,units);
+        return ret/units;
     } else {
         return tiny;
     }  

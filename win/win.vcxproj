@@ -139,15 +139,15 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>RT;SCALAR;CHEMISTRY_GPU;CUDA;GIT_HASH="NNN";MACRO_FLAGS="NNN";MPI_CHOLLA;PRECISION=2;PPMC;HLLC;SIMPLE;DENSITY_FLOOR;TEMPERATURE_FLOOR;WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);C:\Program Files (x86)\Microsoft SDKs\MPI\Include</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>H5_BUILT_AS_DYNAMIC_LIB;HDF5;OUTPUT;RT;SCALAR;CHEMISTRY_GPU;OUTPUT_CHEMISTRY;OUTPUT_RADIATION;CUDA;GIT_HASH="NNN";MACRO_FLAGS="NNN";MPI_CHOLLA;PRECISION=2;PPMC;HLLC;SIMPLE;DENSITY_FLOOR;TEMPERATURE_FLOOR;WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\Home\Anaconda3\Library\include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);C:\Program Files (x86)\Microsoft SDKs\MPI\Include</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4244;4101</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>msmpi.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(CudaToolkitLibDir);C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>hdf5_hl.lib;hdf5.lib;msmpi.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\Home\Anaconda3\Library\lib;%(AdditionalLibraryDirectories);$(CudaToolkitLibDir);C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64</AdditionalLibraryDirectories>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>

@@ -22,7 +22,7 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   
   Chem.H.runtime_chemistry_step = 0;
   
-  Chem.use_case_B_recombination = false;
+  Chem.use_case_B_recombination = true;
   
   // Initialize the Chemistry Header
   Chem.H.gamma = gama;
@@ -30,7 +30,7 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   Chem.H.Temp_start = 1.0;
   Chem.H.Temp_end   = 1000000000.0;
   
-  Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
+  Chem.H.H_fraction = 1; // HACK INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
  
 #ifdef COSMOLOGY 
   Chem.H.H0 = P->H0;
@@ -51,7 +51,7 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   // These are conversions from code units to cgs. Following Grackle
   Chem.H.density_units  = dens_to_CGS;
   Chem.H.length_units   = kpc_cgs;
-  Chem.H.time_units     = kpc_km;
+  Chem.H.time_units     = TIME_UNIT;
   Chem.H.dens_number_conv = Chem.H.density_units / MH;
 #ifdef COSMOLOGY
   Chem.H.a_value = Cosmo.current_a;
@@ -71,7 +71,8 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
 #endif //COSMOLOGY
 
   time_base   = Chem.H.time_units;   
-  Chem.H.cooling_units   = ( pow(length_base, 2) * pow(MH, 2) ) / ( dens_base * pow(time_base, 3) );
+  ///Chem.H.cooling_units   = ( pow(length_base, 2) * pow(MH, 2) ) / ( dens_base * pow(time_base, 3) ); NG 221127 - this is incorrect
+  Chem.H.cooling_units = 1.0e10 * MH * MH / (dens_base * time_base ); // NG 221127 - fixed
   Chem.H.reaction_units = MH / (dens_base * time_base );
   // printf(" cooling_units: %e\n", Chem.H.cooling_units );
   // printf(" reaction_units: %e\n", Chem.H.reaction_units );
@@ -86,8 +87,8 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   Chem.H.density_conversion = Cosmo.rho_0_gas * Cosmo.cosmo_h * Cosmo.cosmo_h / pow( kpc_cgs, 3) * MSUN_CGS ; 
   Chem.H.energy_conversion  =  Cosmo.v_0_gas * Cosmo.v_0_gas * 1e10;  //km^2 -> cm^2 ;
   #else // Not COSMOLOGY
-  Chem.H.density_conversion = 1.0;
-  Chem.H.energy_conversion  = 1.0;
+  Chem.H.density_conversion = DENSITY_UNIT;
+  Chem.H.energy_conversion  = ENERGY_UNIT/DENSITY_UNIT; // NG: this is energy per unit mass
   #endif
   Chem.H.n_uvb_rates_samples  = Chem.n_uvb_rates_samples;
   Chem.H.uvb_rates_redshift_d = Chem.rates_z_d;
@@ -142,10 +143,8 @@ void Chem_GPU::Initialize( struct parameters *P ){
   Initialize_Reaction_Rates();
 
   Initialize_UVB_Ionization_and_Heating_Rates( P );
-  
-  
-  
 }
+
 
 void Chem_GPU::Initialize_Cooling_Rates( ){
   

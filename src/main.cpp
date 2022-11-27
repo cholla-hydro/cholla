@@ -285,6 +285,7 @@ int main(int argc, char *argv[])
       nfile++;
       #endif //OUTPUT
       // update to the next output time
+      if(P.outlog != 0) P.outstep *= pow(10.0,P.outlog);
       outtime += P.outstep;
     }
 

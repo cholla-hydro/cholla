@@ -1356,12 +1356,12 @@ void Grid3D::Uniform_Grid()
   int i, j, k, id;
 
   // Set limits
-  size_t const istart = H.n_ghost;
-  size_t const iend   = H.nx-H.n_ghost;
-  size_t const jstart = H.n_ghost;
-  size_t const jend   = H.ny-H.n_ghost;
-  size_t const kstart = H.n_ghost;
-  size_t const kend   = H.nz-H.n_ghost;
+  int const istart = H.n_ghost;
+  int const iend   = H.nx-H.n_ghost;
+  int const jstart = H.n_ghost;
+  int const jend   = H.ny-H.n_ghost;
+  int const kstart = H.n_ghost;
+  int const kend   = H.nz-H.n_ghost;
 
   // set the initial values of the conserved variables
   for (k=kstart-1; k<kend; k++) {
@@ -1623,9 +1623,15 @@ void Grid3D::Chemistry_Test( struct parameters P )
 }
 
 
+#include "../chemistry_gpu/chemistry_gpu.h"
+
+
 void Grid3D::Iliev0( struct parameters P )
 {
-#if defined(RT) ///&& defined(CHEMISTRY_GPU)
+#if defined(RT) && defined(CHEMISTRY_GPU)
+    
+    Chem.use_case_B_recombination = true;
+
     Real rho = MP*1/DENSITY_UNIT;    // 1 per cc
     Real U = 1.5*KB*100/ENERGY_UNIT; // 100 K
 
@@ -1652,11 +1658,11 @@ void Grid3D::Iliev0( struct parameters P )
         C.GasEnergy[id] = U;
         #endif
 
-        C.HI_density[id]    =  0.76 * rho * 1;
-        C.HII_density[id]   =  0.76 * rho * 1.0e-10;
-        C.HeI_density[id]   =  0.24 * rho * 1.0e-10;
-        C.HeII_density[id]  =  0.24 * rho * 1.0e-10;
-        C.HeIII_density[id] =  0.24 * rho * 1.0e-10;
+        C.HI_density[id]    =  rho * 1;
+        C.HII_density[id]   =  rho * 1.0e-10;
+        C.HeI_density[id]   =  rho * 1.0e-10;
+        C.HeII_density[id]  =  rho * 1.0e-10;
+        C.HeIII_density[id] =  rho * 1.0e-10;
         //C.e_density[id]     =  rho * 1.0e-10;
       }
     }

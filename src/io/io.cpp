@@ -2038,6 +2038,11 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
 #endif //HDF5
 
 
+#ifdef _WIN32
+#define drand48()  (double(rand())/double(RAND_MAX))
+#endif
+
+
 #ifdef HDF5
 /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
  *  \brief Write rotated projected data to a file, at the current simulation time. */
