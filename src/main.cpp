@@ -40,7 +40,6 @@ int main(int argc, char *argv[])
   // start the total time
   start_total = get_time();
 
-  // TestGridEnum();
   /* Initialize MPI communication */
   #ifdef MPI_CHOLLA
   InitializeChollaMPI(&argc, &argv);
