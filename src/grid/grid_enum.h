@@ -1,12 +1,15 @@
 #pragma once
 
-// An experimental enum which holds offsets for grid quantities
-// In the final form of this approach, this file will also set nfields and NSCALARS, 
-// so that adding a field only requires registering it here.
+// An enum which holds offsets for grid quantities
+// In the final form of this approach, this file will also set nfields (not yet) and NSCALARS (done)
+// so that adding a field only requires registering it here: 
+// grid knows to allocate memory based on nfields and NSCALARS 
+// and values can be accessed with density[ncells*grid_enum::enum_name + id]
+// example: C.device[H.n_cells*grid_enum::basic_scalar + id]
 
 
 // enum notes:
-// Must be "unscoped" to be implicitly treated as int: this means cannot use "enum class" or "enum struct"
+// For advanced devs: must be "unscoped" to be implicitly treated as int: this means cannot use "enum class" or "enum struct"
 // Wrapped in namespace to give it an effective scope to prevent collisions
 // enum values (i.e. density) belong to their enclosing scope, which necessitates the namespace wrapping
 // --otherwise "density" would be available in global scope
@@ -15,7 +18,7 @@
 namespace grid_enum {
 enum : int {
 
-  // Don't touch hydro quantities until all of hydro is made consistent with grid_enum (if ever)
+  // Don't change order of hydro quantities until all of hydro is made consistent with grid_enum (if ever) because enum values depend on order
   density,
   momentum_x,
   momentum_y,
@@ -46,7 +49,7 @@ enum : int {
 
 
   finalscalar_plus_1, // needed to calculate NSCALARS
-  finalscalar = finalscalar_plus_1 - 1; // resets enum to finalscalar so fields afterwards are correct
+  finalscalar = finalscalar_plus_1 - 1, // resets enum to finalscalar so fields afterwards are correct
   
   // so that anything after starts with scalar + NSCALARS
   #endif // SCALAR
@@ -65,3 +68,5 @@ enum : int {
 
 };
 }
+
+#define NSCALARS grid_enum::nscalars
