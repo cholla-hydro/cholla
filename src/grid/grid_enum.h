@@ -5,11 +5,17 @@
 // so that adding a field only requires registering it here.
 
 
-// Must be unscoped to be treated as int
+// enum notes:
+// Must be "unscoped" to be implicitly treated as int: this means cannot use "enum class" or "enum struct"
+// Wrapped in namespace to give it an effective scope to prevent collisions
+// enum values (i.e. density) belong to their enclosing scope, which necessitates the namespace wrapping
+// --otherwise "density" would be available in global scope
 // ": int" forces underlying type to be int
-enum grid_enum : int {
 
-  // Don't touch hydro quantities until all of hydro is refactored (if ever)
+namespace grid_enum {
+enum : int {
+
+  // Don't touch hydro quantities until all of hydro is made consistent with grid_enum (if ever)
   density,
   momentum_x,
   momentum_y,
@@ -21,12 +27,27 @@ enum grid_enum : int {
   scalar,
   scalar_minus_1 = scalar - 1,// so that next enum item starts at same index as scalar
 
-  // TODO: Add scalars here:
+  // Add scalars here, wrapped appropriately with ifdefs:
+  #ifdef BASIC_SCALAR
+  basic_scalar,
+  #endif
+
+  #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
+  HI_density,
+  HII_density,
+  HeI_density,
+  HeII_density,
+  HeIII_density,
+  e_density,
+  #ifdef GRACKLE_METALS
+  metal_density,
+  #endif
+  #endif
 
 
-  finalscalar_plus_1,
-  // TODO: set finalscalar = finalscalar_plus_1 - 1, and then define NSCALARS equivalent from here. 
-  finalscalar = scalar + NSCALARS - 1, 
+  finalscalar_plus_1, // needed to calculate NSCALARS
+  finalscalar = finalscalar_plus_1 - 1; // resets enum to finalscalar so fields afterwards are correct
+  
   // so that anything after starts with scalar + NSCALARS
   #endif // SCALAR
   #ifdef MHD
@@ -40,15 +61,7 @@ enum grid_enum : int {
   num_fields,
 
 //Aliases
-  #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-  HI_density = scalar,
-  HII_density,
-  HeI_density,
-  HeII_density,
-  HeIII_density,
-  e_density,
-  #ifdef GRACKLE_METALS
-  metal_density,
-  #endif
-  #endif
+  nscalars = finalscalar_plus_1 - scalar,
+
 };
+}
