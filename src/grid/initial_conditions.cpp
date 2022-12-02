@@ -356,7 +356,9 @@ void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
         C.GasEnergy[id]  = P/(gama-1.0);
         #endif
         #ifdef SCALAR
-        C.scalar[id] = C.density[id]*0.0;
+	#ifdef BASIC_SCALAR
+        C.basic_scalar[id] = C.density[id]*0.0;
+	#endif
         #endif
         if (x_pos > 0.25*H.xdglobal && x_pos < 0.75*H.xdglobal)
         {
@@ -369,7 +371,9 @@ void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
           C.GasEnergy[id]  = P/(gama-1.0);
           #endif
           #ifdef SCALAR
-          C.scalar[id] = C.density[id]*1.0;
+	  #ifdef BASIC_SCALAR
+          C.basic_scalar[id] = C.density[id]*1.0;
+	  #endif
           #endif
         }
       }
@@ -458,7 +462,9 @@ void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real
             C.momentum_z[id] = rho_l * vz_l;
             C.Energy[id]     = P_l/(gama-1.0) + 0.5*rho_l*(vx_l*vx_l + vy_l*vy_l + vz_l*vz_l);
             #ifdef SCALAR
-            C.scalar[id] = 1.0*rho_l;
+	    #ifdef BASIC_SCALAR
+            C.basic_scalar[id] = 1.0*rho_l;
+	    #endif
             #endif  //SCALAR
             #ifdef DE
             C.GasEnergy[id]  = P_l/(gama-1.0);
@@ -472,7 +478,9 @@ void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real
             C.momentum_z[id] = rho_r * vz_r;
             C.Energy[id]     = P_r/(gama-1.0) + 0.5*rho_r*(vx_r*vx_r + vy_r*vy_r + vz_r*vz_r);
             #ifdef SCALAR
-            C.scalar[id] = 0.0*rho_r;
+	    #ifdef BASIC_SCALAR
+            C.basic_scalar[id] = 0.0*rho_r;
+	    #endif
             #endif  //SCALAR
             #ifdef DE
             C.GasEnergy[id]  = P_r/(gama-1.0);
@@ -623,7 +631,9 @@ void Grid3D::KH()
           C.momentum_y[id] = C.density[id]*A*sin(4*PI*x_pos);
           C.momentum_z[id] = 0.0;
           #ifdef SCALAR
-          C.scalar[id] = 0.0;
+	  #ifdef BASIC_SCALAR
+          C.basic_scalar[id] = 0.0;
+	  #endif
           #endif
         }
         else if (y_pos >= 3.0*H.ydglobal/4.0)
@@ -634,7 +644,9 @@ void Grid3D::KH()
           C.momentum_z[id] = 0.0;
 
           #ifdef SCALAR
-          C.scalar[id] = 0.0;
+	  #ifdef BASIC_SCALAR
+          C.basic_scalar[id] = 0.0;
+	  #endif
           #endif
         }
         // inner half of slab
@@ -646,7 +658,9 @@ void Grid3D::KH()
           C.momentum_z[id] = 0.0;
        
           #ifdef SCALAR
-          C.scalar[id] = 1.0*d1;
+	  #ifdef BASIC_SCALAR
+          C.basic_scalar[id] = 1.0*d1;
+	  #endif
           #endif
         }
 	C.Energy[id] = P/(gama-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + C.momentum_y[id]*C.momentum_y[id])/C.density[id];
@@ -1323,7 +1337,9 @@ void Grid3D::Clouds()
         C.GasEnergy[id]  = p_bg/(gama-1.0);
         #endif
         #ifdef SCALAR
-        C.scalar[id] = C.density[id]*0.0;
+	#ifdef BASIC_SCALAR
+        C.basic_scalar[id] = C.density[id]*0.0;
+	#endif
         #endif
         // add clouds 
         for (int nn = 0; nn<N_cl; nn++) {
@@ -1338,7 +1354,9 @@ void Grid3D::Clouds()
             C.GasEnergy[id]  = p_cl/(gama-1.0);
             #endif
             #ifdef SCALAR
-            C.scalar[id] = C.density[id]*0.3;
+	    #ifdef BASIC_SCALAR
+            C.basic_scalar[id] = C.density[id]*0.3;
+	    #endif
             #endif
           }
         }

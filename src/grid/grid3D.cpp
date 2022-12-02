@@ -276,7 +276,10 @@ void Grid3D::AllocateMemory(void)
   C.momentum_z = &(C.host[3*H.n_cells]);
   C.Energy   = &(C.host[4*H.n_cells]);
   #ifdef SCALAR
-  C.scalar  = &(C.host[5*H.n_cells]);
+  C.scalar  = &(C.host[H.n_cells*grid_enum::scalar]);
+  #ifdef BASIC_SCALAR
+  C.basic_scalar  = &(C.host[H.n_cells*grid_enum::basic_scalar]);
+  #endif
   #endif  //SCALAR
   #ifdef  MHD
   C.magnetic_x = &(C.host[(5 + NSCALARS)*H.n_cells]);
@@ -295,7 +298,10 @@ void Grid3D::AllocateMemory(void)
   C.d_momentum_z = &(C.device[3*H.n_cells]);
   C.d_Energy     = &(C.device[4*H.n_cells]);
   #ifdef SCALAR
-  C.d_scalar     = &(C.device[5*H.n_cells]);
+  C.d_scalar     = &(C.device[H.n_cells*grid_enum::scalar]);
+  #ifdef BASIC_SCALAR
+  C.d_basic_scalar     = &(C.device[H.n_cells*grid_enum::basic_scalar]);
+  #endif
   #endif  // SCALAR
   #ifdef  MHD
   C.d_magnetic_x   = &(C.device[(5 + NSCALARS)*H.n_cells]);
