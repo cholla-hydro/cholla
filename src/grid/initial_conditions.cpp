@@ -225,14 +225,18 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
           #ifdef DE
           C.GasEnergy[id]  = P/(gama-1.0);
           #endif  // DE
+
+          #ifdef SCALAR
+          #ifdef DUST
+          C.scalar[id] = rho*1e-2;
+          #endif // DUST
+          #endif // SCALAR
         }
-/*
         if (i==istart && j==jstart && k==kstart) {
           n = rho*DENSITY_UNIT / (mu*MP);
           T = P*PRESSURE_UNIT / (n*KB);
           printf("Initial n = %e, T = %e\n", n, T);
         }
-*/
       }
     }
   }
@@ -1347,9 +1351,15 @@ void Grid3D::Clouds()
             #ifdef DE
             C.GasEnergy[id]  = p_cl/(gama-1.0);
             #endif
+
             #ifdef SCALAR
 	    #ifdef BASIC_SCALAR
             C.basic_scalar[id] = C.density[id]*0.3;
+	    #endif
+
+	    //TODO for Helena: Alwin merged this from dev but isn't sure if it is right. 
+            #ifdef DUST
+            C.scalar[id] = rho_cl*0.01;
 	    #endif
             #endif
           }
