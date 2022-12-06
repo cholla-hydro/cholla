@@ -6,4 +6,8 @@
 # Strip all trailing whitespace
 40fcc44334cc92572beb726961e23beb6be8ae2f
 
+# Source Files Reorganization
+50ce61188d43f778e5a31a28b95bbc7312a5bbfb
+b78d8c96680c9c2d5a5d41656895cb3795e1e204
+
 # Reformat Code with clang-format
