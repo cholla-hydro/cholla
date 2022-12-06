@@ -225,12 +225,6 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
           #ifdef DE
           C.GasEnergy[id]  = P/(gama-1.0);
           #endif  // DE
-
-          #ifdef SCALAR
-          #ifdef DUST
-          C.scalar[id] = rho*1e-2;
-          #endif // DUST
-          #endif // SCALAR
         }
         if (i==istart && j==jstart && k==kstart) {
           n = rho*DENSITY_UNIT / (mu*MP);
@@ -1335,9 +1329,9 @@ void Grid3D::Clouds()
         C.GasEnergy[id]  = p_bg/(gama-1.0);
         #endif
         #ifdef SCALAR
-	#ifdef BASIC_SCALAR
-        C.basic_scalar[id] = C.density[id]*0.0;
-	#endif
+        #ifdef BASIC_SCALAR
+          C.basic_scalar[id] = C.density[id]*0.0;
+        #endif
         #endif
         // add clouds 
         for (int nn = 0; nn<N_cl; nn++) {
@@ -1350,18 +1344,11 @@ void Grid3D::Clouds()
             C.Energy[id]     = p_cl/(gama-1.0) + 0.5*rho_cl*(vx_cl*vx_cl + vy_cl*vy_cl + vz_cl*vz_cl);
             #ifdef DE
             C.GasEnergy[id]  = p_cl/(gama-1.0);
-            #endif
+            #endif // DE
 
-            #ifdef SCALAR
-	    #ifdef BASIC_SCALAR
-            C.basic_scalar[id] = C.density[id]*0.3;
-	    #endif
-
-	    //TODO for Helena: Alwin merged this from dev but isn't sure if it is right. 
             #ifdef DUST
-            C.scalar[id] = rho_cl*0.01;
-	    #endif
-            #endif
+              C.density[id+H.n_cells*grid_enum::dust_density] = rho_cl*1e-2;
+            #endif // DUST
           }
         }
       }
