@@ -334,12 +334,12 @@ void Grid3D::AllocateMemory(void)
 
 
   #ifdef CHEMISTRY_GPU
-  C.HI_density     = &C.density[ H.n_cells*grid_enum::HI_density ];
-  C.HII_density    = &C.density[ H.n_cells*grid_enum::HII_density ];
-  C.HeI_density    = &C.density[ H.n_cells*grid_enum::HeI_density ];
-  C.HeII_density   = &C.density[ H.n_cells*grid_enum::HeII_density ];
-  C.HeIII_density  = &C.density[ H.n_cells*grid_enum::HeIII_density ];
-  C.e_density      = &C.density[ H.n_cells*grid_enum::e_density ];
+  C.HI_density     = &C.host[ H.n_cells*grid_enum::HI_density ];
+  C.HII_density    = &C.host[ H.n_cells*grid_enum::HII_density ];
+  C.HeI_density    = &C.host[ H.n_cells*grid_enum::HeI_density ];
+  C.HeII_density   = &C.host[ H.n_cells*grid_enum::HeII_density ];
+  C.HeIII_density  = &C.host[ H.n_cells*grid_enum::HeIII_density ];
+  C.e_density      = &C.host[ H.n_cells*grid_enum::e_density ];
   #endif
 
   // initialize host array
@@ -507,25 +507,25 @@ Real Grid3D::Update_Grid(void)
 
   #ifdef COOLING_GRACKLE
   Cool.fields.density = C.density;
-  Cool.fields.HI_density     = &C.density[ H.n_cells*grid_enum::HI_density ];
-  Cool.fields.HII_density    = &C.density[ H.n_cells*grid_enum::HII_density ];
-  Cool.fields.HeI_density    = &C.density[ H.n_cells*grid_enum::HeI_density ];
-  Cool.fields.HeII_density   = &C.density[ H.n_cells*grid_enum::HeII_density ];
-  Cool.fields.HeIII_density  = &C.density[ H.n_cells*grid_enum::HeIII_density ];
-  Cool.fields.e_density      = &C.density[ H.n_cells*grid_enum::e_density ];
+  Cool.fields.HI_density     = &C.host[ H.n_cells*grid_enum::HI_density ];
+  Cool.fields.HII_density    = &C.host[ H.n_cells*grid_enum::HII_density ];
+  Cool.fields.HeI_density    = &C.host[ H.n_cells*grid_enum::HeI_density ];
+  Cool.fields.HeII_density   = &C.host[ H.n_cells*grid_enum::HeII_density ];
+  Cool.fields.HeIII_density  = &C.host[ H.n_cells*grid_enum::HeIII_density ];
+  Cool.fields.e_density      = &C.host[ H.n_cells*grid_enum::e_density ];
 
   #ifdef GRACKLE_METALS
-  Cool.fields.metal_density  = &C.density[ H.n_cells*grid_enum::metal_density ];
+  Cool.fields.metal_density  = &C.host[ H.n_cells*grid_enum::metal_density ];
   #endif
   #endif
 
   #ifdef CHEMISTRY_GPU
-  C.HI_density     = &C.density[ H.n_cells*grid_enum::HI_density ];
-  C.HII_density    = &C.density[ H.n_cells*grid_enum::HII_density ];
-  C.HeI_density    = &C.density[ H.n_cells*grid_enum::HeI_density ];
-  C.HeII_density   = &C.density[ H.n_cells*grid_enum::HeII_density ];
-  C.HeIII_density  = &C.density[ H.n_cells*grid_enum::HeIII_density ];
-  C.e_density      = &C.density[ H.n_cells*grid_enum::e_density ];
+  C.HI_density     = &C.host[ H.n_cells*grid_enum::HI_density ];
+  C.HII_density    = &C.host[ H.n_cells*grid_enum::HII_density ];
+  C.HeI_density    = &C.host[ H.n_cells*grid_enum::HeI_density ];
+  C.HeII_density   = &C.host[ H.n_cells*grid_enum::HeII_density ];
+  C.HeIII_density  = &C.host[ H.n_cells*grid_enum::HeIII_density ];
+  C.e_density      = &C.host[ H.n_cells*grid_enum::e_density ];
   #endif
 
 

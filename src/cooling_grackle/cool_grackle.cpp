@@ -147,16 +147,16 @@ Cool.fields.y_velocity      = NULL;
 Cool.fields.z_velocity      = NULL;
 
 chprintf( " Allocating memory for: HI, HII, HeI, HeII, HeIII, e   densities\n");
-Cool.fields.HI_density     = &C.density[ H.n_cells*grid_enum::HI_density ];
-Cool.fields.HII_density    = &C.density[ H.n_cells*grid_enum::HII_density ];
-Cool.fields.HeI_density    = &C.density[ H.n_cells*grid_enum::HeI_density ];
-Cool.fields.HeII_density   = &C.density[ H.n_cells*grid_enum::HeII_density ];
-Cool.fields.HeIII_density  = &C.density[ H.n_cells*grid_enum::HeIII_density ];
-Cool.fields.e_density      = &C.density[ H.n_cells*grid_enum::e_density ];
+Cool.fields.HI_density     = &C.host[ H.n_cells*grid_enum::HI_density ];
+Cool.fields.HII_density    = &C.host[ H.n_cells*grid_enum::HII_density ];
+Cool.fields.HeI_density    = &C.host[ H.n_cells*grid_enum::HeI_density ];
+Cool.fields.HeII_density   = &C.host[ H.n_cells*grid_enum::HeII_density ];
+Cool.fields.HeIII_density  = &C.host[ H.n_cells*grid_enum::HeIII_density ];
+Cool.fields.e_density      = &C.host[ H.n_cells*grid_enum::e_density ];
 
 #ifdef GRACKLE_METALS
 chprintf( " Allocating memory for: metal density\n");
-Cool.fields.metal_density  = &C.density[ H.n_cells*grid_enum::metal_density ];
+Cool.fields.metal_density  = &C.host[ H.n_cells*grid_enum::metal_density ];
 #else
 Cool.fields.metal_density  = NULL;
 #endif
