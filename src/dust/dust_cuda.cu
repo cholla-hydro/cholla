@@ -57,19 +57,19 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 
     if (xid >= is && xid < ie && yid >= js && yid < je && zid >= ks && zid < ke) {
         // get conserved quanitites
-        d_gas = dev_conserved[n_cells*grid_enum::density + id];
-        d_dust = dev_conserved[n_cells*grid_enum::dust_density + id];
-        E = dev_conserved[n_cells*grid_enum::Energy + id];
+        d_gas  = dev_conserved[id + n_cells*grid_enum::density];
+        d_dust = dev_conserved[id + n_cells*grid_enum::dust_density];
+        E      = dev_conserved[id + n_cells*grid_enum::Energy];
 
         n = d_gas*DENSITY_UNIT / (mu*MP);
 
         if (E < 0.0 || E != E) return;
         
-        vx = dev_conserved[n_cells*grid_enum::momentum_x + id] / d_gas;
-        vy = dev_conserved[n_cells*grid_enum::momentum_y + id] / d_gas;
-        vz = dev_conserved[n_cells*grid_enum::momentum_z + id] / d_gas;
+        vx = dev_conserved[id + n_cells*grid_enum::momentum_x ] / d_gas;
+        vy = dev_conserved[id + n_cells*grid_enum::momentum_y ] / d_gas;
+        vz = dev_conserved[id + n_cells*grid_enum::momentum_z ] / d_gas;
         #ifdef DE
-        ge = dev_conserved[n_cells*grid_enum::GasEnergy + id] / d_gas;
+        ge = dev_conserved[id + n_cells*grid_enum::GasEnergy ] / d_gas;
         ge = fmax(ge, (Real) TINY_NUMBER);
         #endif // DE
 
@@ -102,10 +102,10 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
         // update dust density
         d_dust += dd;
 
-        dev_conserved[n_cells*grid_enum::dust_density + id] = d_dust;
+        dev_conserved[id + n_cells*grid_enum::dust_density ] = d_dust;
         
         #ifdef DE
-        dev_conserved[n_cells*grid_enum::GasEnergy + id] = d_dust*ge;
+        dev_conserved[id + n_cells*grid_enum::GasEnergy ] = d_dust*ge;
         #endif
     }
 }

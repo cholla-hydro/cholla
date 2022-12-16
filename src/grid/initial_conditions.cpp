@@ -1347,7 +1347,7 @@ void Grid3D::Clouds()
             #endif // DE
 
             #ifdef DUST
-              C.density[id+H.n_cells*grid_enum::dust_density] = rho_cl*1e-2;
+              C.host[id+H.n_cells*grid_enum::dust_density] = rho_cl*1e-2;
             #endif // DUST
           }
         }

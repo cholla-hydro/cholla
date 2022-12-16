@@ -4,8 +4,8 @@
 // In the final form of this approach, this file will also set nfields (not yet) and NSCALARS (done)
 // so that adding a field only requires registering it here: 
 // grid knows to allocate memory based on nfields and NSCALARS 
-// and values can be accessed with density[ncells*grid_enum::enum_name + id]
-// example: C.device[H.n_cells*grid_enum::basic_scalar + id]
+// and values can be accessed with density[id + ncells*grid_enum::enum_name]
+// example: C.device[id + H.n_cells*grid_enum::basic_scalar]
 
 
 // enum notes:
@@ -68,7 +68,7 @@ enum : int {
   #endif
   num_fields,
 
-//Aliases
+//Aliases and manually computed enums
   nscalars = finalscalar_plus_1 - scalar,
 
 };
