@@ -48,6 +48,10 @@ enum : int {
   #endif
   #endif
 
+  #ifdef DUST
+  dust_density,
+  #endif // DUST
+
   #endif // SCALAR
 
   finalscalar_plus_1, // needed to calculate NSCALARS
