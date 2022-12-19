@@ -19,6 +19,7 @@
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
+#include "../utils/DeviceVector.h"
 #include "../hydro/hydro_cuda.h"   // Include code to test
 
 #if defined(CUDA)
@@ -44,38 +45,31 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   Real dx = 1.0;
   Real dy = 1.0;
   Real dz = 1.0;
-  Real *host_conserved;
-  Real *dev_conserved;
-  Real *dev_dti_array;
+  std::vector<Real> host_conserved(n_fields);
+  cuda_utilities::DeviceVector<Real> dev_conserved(n_fields);
+  cuda_utilities::DeviceVector<Real> dev_dti(1);
   Real gamma = 5.0/3.0;
 
-  // Allocate host and device arrays and copy data
-  cudaHostAlloc(&host_conserved, n_fields*sizeof(Real), cudaHostAllocDefault);
-  CudaSafeCall(cudaMalloc(&dev_conserved, n_fields*sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&dev_dti_array, sizeof(Real)));
-
   // Set values of conserved variables for input (host)
-  host_conserved[0] = 1.0; // density
-  host_conserved[1] = 0.0; // x momentum
-  host_conserved[2] = 0.0; // y momentum
-  host_conserved[3] = 0.0; // z momentum
-  host_conserved[4] = 1.0; // Energy
+  host_conserved.at(0) = 1.0; // density
+  host_conserved.at(1) = 0.0; // x momentum
+  host_conserved.at(2) = 0.0; // y momentum
+  host_conserved.at(3) = 0.0; // z momentum
+  host_conserved.at(4) = 1.0; // Energy
 
   // Copy host data to device arrray
-  CudaSafeCall(cudaMemcpy(dev_conserved, host_conserved, n_fields*sizeof(Real), cudaMemcpyHostToDevice));
-  //__global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n_ghost, int n_fields, int nx, int ny, int nz, Real dx, Real dy, Real dz)                        
+  dev_conserved.cpyHostToDevice(host_conserved);
 
   // Run the kernel
-  hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_dti_array, gamma, n_ghost, n_fields, nx, ny, nz, dx, dy, dz);
+  hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0,
+                     dev_conserved.data(), dev_dti.data(), gamma, n_ghost,
+                     n_fields, nx, ny, nz, dx, dy, dz);
   CudaCheckError();
-
-  // Copy the dt value back from the GPU
-  CudaSafeCall(cudaMemcpy(testDt, dev_dti_array, sizeof(Real), cudaMemcpyDeviceToHost));
 
   // Compare results
   // Check for equality and if not equal return difference
-  double fiducialDt = 1.0540925533894598;
-  double testData = testDt[0];
+  double const fiducialDt = 1.0540925533894598;
+  double const testData = dev_dti.at(0);
   double absoluteDiff;
   int64_t ulpsDiff;
   bool areEqual;

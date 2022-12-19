@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <float.h>
+#include <limits>
 
 #include "../utils/gpu.hpp"
 #include "../global/global.h"
@@ -14,6 +15,7 @@
 #include "../utils/hydro_utilities.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/reduction_utilities.h"
+#include "../utils/DeviceVector.h"
 
 
 __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, int n_cells, int x_off, int n_ghost, Real dx, Real xbound, Real dt, Real gamma, int n_fields)
@@ -425,8 +427,8 @@ __device__ __host__ Real mhdInverseCrossingTime(Real const &E,
                                                 Real const &gamma)
 {
   // Compute the gas pressure and fast magnetosonic speed
-  Real gasP = mhdUtils::computeGasPressure(E, d, vx*d, vy*d, vz*d, avgBx, avgBy, avgBz, gamma);
-  Real cf   = mhdUtils::fastMagnetosonicSpeed(d, gasP, avgBx, avgBy, avgBz, gamma);
+  Real gasP = mhd::utils::computeGasPressure(E, d, vx*d, vy*d, vz*d, avgBx, avgBy, avgBz, gamma);
+  Real cf   = mhd::utils::fastMagnetosonicSpeed(d, gasP, avgBx, avgBy, avgBz, gamma);
 
   // Find maximum inverse crossing time in the cell (i.e. minimum crossing time)
   Real cellMaxInverseDt = fmax((fabs(vx)+cf)/dx, (fabs(vy)+cf)/dy);
@@ -470,10 +472,8 @@ __global__ void Calc_dt_1D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
     }
   }
 
-  // do the block wide reduction (find the max inverse timestep in the block)
-  // then write it to that block's location in the dev_dti array
-  max_dti = reduction_utilities::blockReduceMax(max_dti);
-  if (threadIdx.x == 0) dev_dti[blockIdx.x] = max_dti;
+  // do the grid wide reduction (find the max inverse timestep in the grid)
+  reduction_utilities::gridReduceMax(max_dti, dev_dti);
 }
 
 
@@ -514,10 +514,8 @@ __global__ void Calc_dt_2D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
     }
   }
 
-  // do the block wide reduction (find the max inverse timestep in the block)
-  // then write it to that block's location in the dev_dti array
-  max_dti = reduction_utilities::blockReduceMax(max_dti);
-  if (threadIdx.x == 0) dev_dti[blockIdx.x] = max_dti;
+  // do the grid wide reduction (find the max inverse timestep in the grid)
+  reduction_utilities::gridReduceMax(max_dti, dev_dti);
 }
 
 
@@ -556,7 +554,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
       #ifdef  MHD
         // Compute the cell centered magnetic field using a straight average of
         // the faces
-        mhdUtils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, avgBx, avgBy, avgBz);
+        mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, avgBx, avgBy, avgBz);
       #endif  //MHD
 
       // Compute the maximum inverse crossing time in the cell
@@ -569,62 +567,44 @@ __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
     }
   }
 
-  // do the block wide reduction (find the max inverse timestep in the block)
-  // then write it to that block's location in the dev_dti array
-  max_dti = reduction_utilities::blockReduceMax(max_dti);
-  if (threadIdx.x == 0) dev_dti[blockIdx.x] = max_dti;
+  // do the grid wide reduction (find the max inverse timestep in the grid)
+  reduction_utilities::gridReduceMax(max_dti, dev_dti);
 }
 
 Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma )
 {
-  // set values for GPU kernels
-  uint threadsPerBlock, numBlocks;
-  int ngrid = (nx*ny*nz + TPB - 1 )/TPB;
-  // reduction_utilities::reductionLaunchParams(numBlocks, threadsPerBlock); // Uncomment this if we fix the AtomicDouble bug - Alwin
-  threadsPerBlock = TPB;
-  numBlocks = ngrid;
+  // Allocate the device memory
+  cuda_utilities::DeviceVector<Real> static dev_dti(1);
 
-  Real* dev_dti = dev_dti_array;
-
+  // Set the device side inverse time step to the smallest possible double so
+  // that the reduction isn't using the maximum value of the previous iteration
+  dev_dti.assign(std::numeric_limits<double>::lowest());
 
   // compute dt and store in dev_dti
   if (nx > 1 && ny == 1 && nz == 1) //1D
   {
-    hipLaunchKernelGGL(Calc_dt_1D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, dev_dti, gamma, n_ghost, nx, dx);
+    // set launch parameters for GPU kernels.
+    cuda_utilities::AutomaticLaunchParams static const launchParams(Calc_dt_1D);
+    hipLaunchKernelGGL(Calc_dt_1D, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
+                       dev_conserved, dev_dti.data(), gamma, n_ghost, nx, dx);
   }
   else if (nx > 1 && ny > 1 && nz == 1) //2D
   {
-    hipLaunchKernelGGL(Calc_dt_2D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, dev_dti, gamma, n_ghost, nx, ny, dx, dy);
+    // set launch parameters for GPU kernels.
+    cuda_utilities::AutomaticLaunchParams static const launchParams(Calc_dt_2D);
+    hipLaunchKernelGGL(Calc_dt_2D, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
+                       dev_conserved, dev_dti.data(), gamma, n_ghost, nx, ny, dx, dy);
   }
   else if (nx > 1 && ny > 1 && nz > 1) //3D
   {
-    hipLaunchKernelGGL(Calc_dt_3D, numBlocks, threadsPerBlock, 0, 0, dev_conserved, dev_dti, gamma, n_ghost, n_fields, nx, ny, nz, dx, dy, dz);
+    // set launch parameters for GPU kernels.
+    cuda_utilities::AutomaticLaunchParams static const launchParams(Calc_dt_3D);
+    hipLaunchKernelGGL(Calc_dt_3D, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
+                       dev_conserved, dev_dti.data(), gamma, n_ghost, n_fields, nx, ny, nz, dx, dy, dz);
   }
   CudaCheckError();
 
-  Real max_dti=0;
-
-  /* Uncomment the below if we fix the AtomicDouble bug - Alwin
-  // copy device side max_dti to host side max_dti
-
-
-  CudaSafeCall( cudaMemcpy(&max_dti, dev_dti, sizeof(Real), cudaMemcpyDeviceToHost) );
-  cudaDeviceSynchronize();
-
-  return max_dti;
-  */
-
-  int dev_dti_length = numBlocks;
-  CudaSafeCall(cudaMemcpy(host_dti_array,dev_dti, dev_dti_length*sizeof(Real), cudaMemcpyDeviceToHost));
-  cudaDeviceSynchronize();
-
-  for (int i=0;i<dev_dti_length;i++){
-    max_dti = fmax(max_dti,host_dti_array[i]);
-  }
-
-  return max_dti;
-
-  
+  return dev_dti[0];
 }
 
 
@@ -653,7 +633,7 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
   #ifdef  MHD
     Real avgBx, avgBy, avgBz;
   #endif  //MHD
-  
+
   // get a global thread ID
   id = threadIdx.x + blockIdx.x * blockDim.x;
   n_cells = nx*ny*nz;
@@ -682,20 +662,20 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
     #else  // not MHD
       max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
     #endif  //MHD
-    
+
     if (max_dti > max_dti_slow){
       speed = sqrt(vx*vx + vy*vy + vz*vz);
       temp = (gamma - 1)*(E - 0.5*(speed*speed)*d)*ENERGY_UNIT/(d*DENSITY_UNIT/0.6/MP)/KB;
       P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
       cs = sqrt(d_inv * gamma * P)*VELOCITY_UNIT*1e-5;
       // Average this cell
-      printf(" Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f, n=%.3e, T=%.3e, v=%.3e (%.3e, %.3e, %.3e), cs=%.3e\n", xid, yid, zid, 1./max_dti,  1./max_dti_slow, 
+      printf(" Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f, n=%.3e, T=%.3e, v=%.3e (%.3e, %.3e, %.3e), cs=%.3e\n", xid, yid, zid, 1./max_dti,  1./max_dti_slow,
                  dev_conserved[id]*DENSITY_UNIT/0.6/MP, temp, speed*VELOCITY_UNIT*1e-5, vx*VELOCITY_UNIT*1e-5, vy*VELOCITY_UNIT*1e-5, vz*VELOCITY_UNIT*1e-5, cs);
       Average_Cell_All_Fields( xid, yid, zid, nx, ny, nz, n_cells, n_fields, dev_conserved );
     }
   }
 }
-#endif //AVERAGE_SLOW_CELLS    
+#endif //AVERAGE_SLOW_CELLS
 
 
 #ifdef DE
@@ -829,7 +809,13 @@ __global__ void Partial_Update_Advected_Internal_Energy_3D( Real *dev_conserved,
     //PRESSURE_DE
     E = dev_conserved[4*n_cells + id];
     GE = dev_conserved[(n_fields-1)*n_cells + id];
-    E_kin = 0.5 * d * ( vx*vx + vy*vy + vz*vz );
+    E_kin = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(d, vx, vy, vz);
+    #ifdef  MHD
+      // Add the magnetic energy
+      Real centeredBx, centeredBy, centeredBz;
+      mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, centeredBx, centeredBy, centeredBz)
+      E_kin += mhd::utils::computeMagneticEnergy(magX, magY, magZ);
+    #endif  //MHD
     P = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, GE, gamma );
     P  = fmax(P, (Real) TINY_NUMBER);
 

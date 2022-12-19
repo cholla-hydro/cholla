@@ -11,6 +11,7 @@
 #include <iostream>
 #include <numeric>
 #include <cmath>
+#include <random>
 
 // External Includes
 #include <gtest/gtest.h>    // Include GoogleTest and related libraries/headers
@@ -45,12 +46,11 @@ namespace
 }
 // =============================================================================
 
-
 // =============================================================================
-// Tests for the mhdUtils::computeEnergy function
+// Tests for the mhd::utils::computeEnergy function
 // =============================================================================
 /*!
- * \brief Test the mhdUtils::computeEnergy function with the standard set of
+ * \brief Test the mhd::utils::computeEnergy function with the standard set of
  * parameters
  *
  */
@@ -64,7 +64,7 @@ TEST(tMHDComputeEnergy,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testEnergy = mhdUtils::computeEnergy(parameters.pressureGas.at(i),
+        Real testEnergy = mhd::utils::computeEnergy(parameters.pressureGas.at(i),
                                                   parameters.density.at(i),
                                                   parameters.velocityX.at(i),
                                                   parameters.velocityY.at(i),
@@ -81,7 +81,7 @@ TEST(tMHDComputeEnergy,
 }
 
 /*!
- * \brief Test the mhdUtils::computeEnergy function with a the standard set of
+ * \brief Test the mhd::utils::computeEnergy function with a the standard set of
  * parameters except pressure is now negative
  *
  */
@@ -95,7 +95,7 @@ TEST(tMHDComputeEnergy,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testEnergy = mhdUtils::computeEnergy(-parameters.pressureGas.at(i),
+        Real testEnergy = mhd::utils::computeEnergy(-parameters.pressureGas.at(i),
                                                   parameters.density.at(i),
                                                   parameters.velocityX.at(i),
                                                   parameters.velocityY.at(i),
@@ -111,14 +111,14 @@ TEST(tMHDComputeEnergy,
     }
 }
 // =============================================================================
-// End of tests for the mhdUtils::computeEnergy function
+// End of tests for the mhd::utils::computeEnergy function
 // =============================================================================
 
 // =============================================================================
-// Tests for the mhdUtils::computeGasPressure function
+// Tests for the mhd::utils::computeGasPressure function
 // =============================================================================
 /*!
- * \brief Test the mhdUtils::computeGasPressure function with the standard set of
+ * \brief Test the mhd::utils::computeGasPressure function with the standard set of
  * parameters. Energy has been increased to avoid negative pressures
  *
  */
@@ -133,7 +133,7 @@ TEST(tMHDComputeGasPressure,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testGasPressure = mhdUtils::computeGasPressure(energyMultiplier.at(i) * parameters.energy.at(i),
+        Real testGasPressure = mhd::utils::computeGasPressure(energyMultiplier.at(i) * parameters.energy.at(i),
                                                             parameters.density.at(i),
                                                             parameters.momentumX.at(i),
                                                             parameters.momentumY.at(i),
@@ -150,7 +150,7 @@ TEST(tMHDComputeGasPressure,
 }
 
 /*!
- * \brief Test the mhdUtils::computeGasPressure function with a the standard set
+ * \brief Test the mhd::utils::computeGasPressure function with a the standard set
  * of parameters which produce negative pressures
  *
  */
@@ -161,7 +161,7 @@ TEST(tMHDComputeGasPressure,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testGasPressure = mhdUtils::computeGasPressure(parameters.energy.at(i),
+        Real testGasPressure = mhd::utils::computeGasPressure(parameters.energy.at(i),
                                                             parameters.density.at(i),
                                                             parameters.momentumX.at(i),
                                                             parameters.momentumY.at(i),
@@ -178,15 +178,15 @@ TEST(tMHDComputeGasPressure,
     }
 }
 // =============================================================================
-// End of tests for the mhdUtils::computeGasPressure function
+// End of tests for the mhd::utils::computeGasPressure function
 // =============================================================================
 
 
 // =============================================================================
-// Tests for the mhdUtils::computeThermalEnergy function
+// Tests for the mhd::utils::computeThermalEnergy function
 // =============================================================================
 /*!
- * \brief Test the mhdUtils::computeThermalEnergy function with the standard set
+ * \brief Test the mhd::utils::computeThermalEnergy function with the standard set
  * of parameters.
  *
  */
@@ -201,7 +201,7 @@ TEST(tMHDComputeThermalEnergy,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testGasPressure = mhdUtils::computeThermalEnergy(energyMultiplier.at(i) * parameters.energy.at(i),
+        Real testGasPressure = mhd::utils::computeThermalEnergy(energyMultiplier.at(i) * parameters.energy.at(i),
                                                               parameters.density.at(i),
                                                               parameters.momentumX.at(i),
                                                               parameters.momentumY.at(i),
@@ -217,14 +217,46 @@ TEST(tMHDComputeThermalEnergy,
     }
 }
 // =============================================================================
-// End of tests for the mhdUtils::computeThermalEnergyfunction
+// End of tests for the mhd::utils::computeThermalEnergy function
 // =============================================================================
 
 // =============================================================================
-// Tests for the mhdUtils::computeTotalPressure function
+// Tests for the mhd::utils::computeMagneticEnergy function
 // =============================================================================
 /*!
- * \brief Test the mhdUtils::computeTotalPressure function with the standard set
+ * \brief Test the mhd::utils::computeMagneticEnergy function with the standard
+ * set of parameters.
+ *
+ */
+TEST(tMHDcomputeMagneticEnergy,
+     CorrectInputExpectCorrectOutput)
+{
+    testParams parameters;
+    std::vector<double> energyMultiplier{1.0E85, 1.0E4, 1.0E105};
+    std::vector<double> fiducialEnergy{0.0,
+                                       805356.08013056568,
+                                       6.7079331637514162e+201};
+
+    for (size_t i = 0; i < parameters.names.size(); i++)
+    {
+        Real testMagneticEnergy = mhd::utils::computeMagneticEnergy(parameters.magneticX.at(i),
+                                                                  parameters.magneticY.at(i),
+                                                                  parameters.magneticZ.at(i));
+
+        testingUtilities::checkResults(fiducialEnergy.at(i),
+                                       testMagneticEnergy,
+                                       parameters.names.at(i));
+    }
+}
+// =============================================================================
+// End of tests for the mhd::utils::computeMagneticEnergy function
+// =============================================================================
+
+// =============================================================================
+// Tests for the mhd::utils::computeTotalPressure function
+// =============================================================================
+/*!
+ * \brief Test the mhd::utils::computeTotalPressure function with the standard set
  * of parameters.
  *
  */
@@ -238,7 +270,7 @@ TEST(tMHDComputeTotalPressure,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testTotalPressure = mhdUtils::computeTotalPressure(parameters.pressureGas.at(i),
+        Real testTotalPressure = mhd::utils::computeTotalPressure(parameters.pressureGas.at(i),
                                                                 parameters.magneticX.at(i),
                                                                 parameters.magneticY.at(i),
                                                                 parameters.magneticZ.at(i));
@@ -250,7 +282,7 @@ TEST(tMHDComputeTotalPressure,
 }
 
 /*!
- * \brief Test the mhdUtils::computeTotalPressure function with a the standard
+ * \brief Test the mhd::utils::computeTotalPressure function with a the standard
  * set of parameters. Gas pressure has been multiplied and made negative to
  * generate negative total pressures
  *
@@ -263,7 +295,7 @@ TEST(tMHDComputeTotalPressure,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testTotalPressure = mhdUtils::computeTotalPressure(pressureMultiplier.at(i) * parameters.pressureGas.at(i),
+        Real testTotalPressure = mhd::utils::computeTotalPressure(pressureMultiplier.at(i) * parameters.pressureGas.at(i),
                                                                 parameters.magneticX.at(i),
                                                                 parameters.magneticY.at(i),
                                                                 parameters.magneticZ.at(i));
@@ -275,14 +307,14 @@ TEST(tMHDComputeTotalPressure,
     }
 }
 // =============================================================================
-// End of tests for the mhdUtils::computeTotalPressure function
+// End of tests for the mhd::utils::computeTotalPressure function
 // =============================================================================
 
 // =============================================================================
-// Tests for the mhdUtils::fastMagnetosonicSpeed function
+// Tests for the mhd::utils::fastMagnetosonicSpeed function
 // =============================================================================
 /*!
- * \brief Test the mhdUtils::fastMagnetosonicSpeed function with the standard
+ * \brief Test the mhd::utils::fastMagnetosonicSpeed function with the standard
  * set of parameters. All values are reduced by 1e-25 in the large number case
  * to avoid overflow
  *
@@ -298,7 +330,7 @@ TEST(tMHDFastMagnetosonicSpeed,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testFastMagnetosonicSpeed = mhdUtils::fastMagnetosonicSpeed(
+        Real testFastMagnetosonicSpeed = mhd::utils::fastMagnetosonicSpeed(
                                                 coef.at(i)*parameters.density.at(i),
                                                 coef.at(i)*parameters.pressureGas.at(i),
                                                 coef.at(i)*parameters.magneticX.at(i),
@@ -313,7 +345,7 @@ TEST(tMHDFastMagnetosonicSpeed,
 }
 
 /*!
- * \brief Test the mhdUtils::fastMagnetosonicSpeed function with the standard
+ * \brief Test the mhd::utils::fastMagnetosonicSpeed function with the standard
  * set of parameters, density is negative. All values are reduced by 1e-25 in
  * the large number case to avoid overflow.
  *
@@ -329,7 +361,7 @@ TEST(tMHDFastMagnetosonicSpeed,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testFastMagnetosonicSpeed = mhdUtils::fastMagnetosonicSpeed(
+        Real testFastMagnetosonicSpeed = mhd::utils::fastMagnetosonicSpeed(
                                                 -coef.at(i)*parameters.density.at(i),
                                                 coef.at(i)*parameters.pressureGas.at(i),
                                                 coef.at(i)*parameters.magneticX.at(i),
@@ -343,14 +375,14 @@ TEST(tMHDFastMagnetosonicSpeed,
     }
 }
 // =============================================================================
-// End of tests for the mhdUtils::fastMagnetosonicSpeed function
+// End of tests for the mhd::utils::fastMagnetosonicSpeed function
 // =============================================================================
 
 // =============================================================================
-// Tests for the mhdUtils::slowMagnetosonicSpeed function
+// Tests for the mhd::utils::slowMagnetosonicSpeed function
 // =============================================================================
 /*!
- * \brief Test the mhdUtils::slowMagnetosonicSpeed function with the standard
+ * \brief Test the mhd::utils::slowMagnetosonicSpeed function with the standard
  * set of parameters. All values are reduced by 1e-25 in the large number case
  * to avoid overflow
  *
@@ -367,7 +399,7 @@ TEST(tMHDSlowMagnetosonicSpeed,
 
     for (size_t i = 2; i < parameters.names.size(); i++)
     {
-        Real testSlowMagnetosonicSpeed = mhdUtils::slowMagnetosonicSpeed(
+        Real testSlowMagnetosonicSpeed = mhd::utils::slowMagnetosonicSpeed(
                                                 parameters.density.at(i) * coef,
                                                 parameters.pressureGas.at(i) * coef,
                                                 parameters.magneticX.at(i) * coef,
@@ -382,7 +414,7 @@ TEST(tMHDSlowMagnetosonicSpeed,
 }
 
 /*!
- * \brief Test the mhdUtils::slowMagnetosonicSpeed function with the standard
+ * \brief Test the mhd::utils::slowMagnetosonicSpeed function with the standard
  * set of parameters, density is negative. All values are reduced by 1e-25 in
  * the large number case to avoid overflow.
  *
@@ -399,7 +431,7 @@ TEST(tMHDSlowMagnetosonicSpeed,
 
     for (size_t i = 2; i < parameters.names.size(); i++)
     {
-        Real testSlowMagnetosonicSpeed = mhdUtils::slowMagnetosonicSpeed(
+        Real testSlowMagnetosonicSpeed = mhd::utils::slowMagnetosonicSpeed(
                                                 -parameters.density.at(i) * coef,
                                                 parameters.pressureGas.at(i) * coef,
                                                 parameters.magneticX.at(i) * coef,
@@ -413,14 +445,14 @@ TEST(tMHDSlowMagnetosonicSpeed,
     }
 }
 // =============================================================================
-// End of tests for the mhdUtils::slowMagnetosonicSpeed function
+// End of tests for the mhd::utils::slowMagnetosonicSpeed function
 // =============================================================================
 
 // =============================================================================
-// Tests for the mhdUtils::alfvenSpeed function
+// Tests for the mhd::utils::alfvenSpeed function
 // =============================================================================
 /*!
- * \brief Test the mhdUtils::alfvenSpeed function with the standard set of
+ * \brief Test the mhd::utils::alfvenSpeed function with the standard set of
  * parameters.
  *
  */
@@ -434,7 +466,7 @@ TEST(tMHDAlfvenSpeed,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testAlfvenSpeed = mhdUtils::alfvenSpeed(parameters.magneticX.at(i),
+        Real testAlfvenSpeed = mhd::utils::alfvenSpeed(parameters.magneticX.at(i),
                                                      parameters.density.at(i));
 
         testingUtilities::checkResults(fiducialAlfvenSpeed.at(i),
@@ -444,7 +476,7 @@ TEST(tMHDAlfvenSpeed,
 }
 
 /*!
- * \brief Test the mhdUtils::alfvenSpeed function with the standard set of
+ * \brief Test the mhd::utils::alfvenSpeed function with the standard set of
  * parameters except density is negative
  *
  */
@@ -458,7 +490,7 @@ TEST(tMHDAlfvenSpeed,
 
     for (size_t i = 0; i < parameters.names.size(); i++)
     {
-        Real testAlfvenSpeed = mhdUtils::alfvenSpeed(parameters.magneticX.at(i),
+        Real testAlfvenSpeed = mhd::utils::alfvenSpeed(parameters.magneticX.at(i),
                                                      -parameters.density.at(i));
 
         testingUtilities::checkResults(fiducialAlfvenSpeed.at(i),
@@ -467,11 +499,11 @@ TEST(tMHDAlfvenSpeed,
     }
 }
 // =============================================================================
-// End of tests for the mhdUtils::alfvenSpeed function
+// End of tests for the mhd::utils::alfvenSpeed function
 // =============================================================================
 
 // =============================================================================
-// Tests for the mhdUtils::cellCenteredMagneticFields function
+// Tests for the mhd::utils::cellCenteredMagneticFields function
 // =============================================================================
 TEST(tMHDCellCenteredMagneticFields,
      CorrectInputExpectCorrectOutput)
@@ -497,7 +529,7 @@ TEST(tMHDCellCenteredMagneticFields,
     double testAvgBx, testAvgBy, testAvgBz;
 
     // Call the function to test
-    mhdUtils::cellCenteredMagneticFields(testGrid.data(), id, xid, yid, zid, n_cells, nx, ny, testAvgBx, testAvgBy, testAvgBz);
+    mhd::utils::cellCenteredMagneticFields(testGrid.data(), id, xid, yid, zid, n_cells, nx, ny, testAvgBx, testAvgBy, testAvgBz);
 
     // Check the results
     testingUtilities::checkResults(fiducialAvgBx, testAvgBx, "cell centered Bx value");
@@ -505,5 +537,5 @@ TEST(tMHDCellCenteredMagneticFields,
     testingUtilities::checkResults(fiducialAvgBz, testAvgBz, "cell centered Bz value");
 }
 // =============================================================================
-// End of tests for the mhdUtils::cellCenteredMagneticFields function
+// End of tests for the mhd::utils::cellCenteredMagneticFields function
 // =============================================================================

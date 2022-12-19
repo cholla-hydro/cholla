@@ -42,19 +42,5 @@
             gridReduceMax(maxVal, out);
         }
         // =====================================================================
-
-        // =====================================================================
-        void reductionLaunchParams(uint &numBlocks, uint &threadsPerBlock, uint const &deviceNum)
-        {
-            cudaDeviceProp prop;
-            cudaGetDeviceProperties(&prop, deviceNum);
-
-            // Divide the total number of allowed threads by the number of
-            // threads per block
-            threadsPerBlock =  prop.maxThreadsPerBlock;
-            numBlocks       = (prop.maxThreadsPerMultiProcessor * prop.multiProcessorCount)
-                              / threadsPerBlock;
-        }
-        // =====================================================================
     }//reduction_utilities
 #endif  //CUDA

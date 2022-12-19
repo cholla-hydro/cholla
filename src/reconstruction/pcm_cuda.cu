@@ -7,7 +7,8 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../reconstruction/pcm_cuda.h"
-
+#include "../utils/mhd_utilities.h"
+#include "../utils/cuda_utilities.h"
 
 __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int n_cells, int n_ghost, Real gamma, int n_fields)
 {
@@ -18,11 +19,11 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
 
   #ifdef DE
   Real ge;
-  #endif
+  #endif  //DE
 
   #ifdef SCALAR
   Real scalar[NSCALARS];
-  #endif
+  #endif  //SCALAR
 
   // get a global thread ID
   int xid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -43,10 +44,10 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
     for (int i=0; i<NSCALARS; i++) {
       scalar[i] = dev_conserved[(5+i)*n_cells + id];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
+    #endif  //DE
 
     // send values back from the kernel
     dev_bounds_L[            id] = d;
@@ -58,10 +59,10 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_L[(5+i)*n_cells + id] = scalar[i];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     dev_bounds_L[(n_fields-1)*n_cells + id] = ge;
-    #endif
+    #endif  //DE
 
     // retrieve appropriate conserved variables
     id = xid+1;
@@ -74,10 +75,10 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
     for (int i=0; i<NSCALARS; i++) {
       scalar[i] = dev_conserved[(5+i)*n_cells + id];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
+    #endif  //DE
 
     // send values back from the kernel
     id = xid;
@@ -90,10 +91,10 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, R
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_R[(5+i)*n_cells + id] = scalar[i];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     dev_bounds_R[(n_fields-1)*n_cells + id] = ge;
-    #endif
+    #endif  //DE
 
   }
 
@@ -108,10 +109,10 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
   Real d, mx, my, mz, E;
   #ifdef DE
   Real ge;
-  #endif
+  #endif  //DE
   #ifdef SCALAR
   Real scalar[NSCALARS];
-  #endif
+  #endif  //SCALAR
 
   int n_cells = nx*ny;
 
@@ -137,10 +138,10 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     for (int i=0; i<NSCALARS; i++) {
       scalar[i] = dev_conserved[(5+i)*n_cells + id];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
+    #endif  //DE
 
     // send values back from the kernel
     dev_bounds_Lx[            id] = d;
@@ -152,10 +153,10 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_Lx[(5+i)*n_cells + id] = scalar[i];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     dev_bounds_Lx[(n_fields-1)*n_cells + id] = ge;
-    #endif
+    #endif  //DE
 
     // retrieve appropriate conserved variables
     id = xid+1 + yid*nx;
@@ -168,10 +169,10 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     for (int i=0; i<NSCALARS; i++) {
       scalar[i] = dev_conserved[(5+i)*n_cells + id];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
+    #endif  //DE
 
     // send values back from the kernel
     id = xid + yid*nx;
@@ -184,10 +185,10 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_Rx[(5+i)*n_cells + id] = scalar[i];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     dev_bounds_Rx[(n_fields-1)*n_cells + id] = ge;
-    #endif
+    #endif  //DE
   }
 
   // y direction
@@ -204,10 +205,10 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     for (int i=0; i<NSCALARS; i++) {
       scalar[i] = dev_conserved[(5+i)*n_cells + id];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
+    #endif  //DE
 
     // send values back from the kernel
     dev_bounds_Ly[            id] = d;
@@ -219,10 +220,10 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_Ly[(5+i)*n_cells + id] = scalar[i];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     dev_bounds_Ly[(n_fields-1)*n_cells + id] = ge;
-    #endif
+    #endif  //DE
 
     // retrieve appropriate conserved variables
     id = xid + (yid+1)*nx;
@@ -235,10 +236,10 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     for (int i=0; i<NSCALARS; i++) {
       scalar[i] = dev_conserved[(5+i)*n_cells + id];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
+    #endif  //DE
 
     // send values back from the kernel
     id = xid + yid*nx;
@@ -251,10 +252,10 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, 
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_Ry[(5+i)*n_cells + id] = scalar[i];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     dev_bounds_Ry[(n_fields-1)*n_cells + id] = ge;
-    #endif
+    #endif  //DE
   }
 
 }
@@ -269,224 +270,179 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
 
   // declare conserved variables for each stencil
   // these will be placed into registers for each thread
-  Real d, mx, my, mz, E;
-  #ifdef DE
-  Real ge;
-  #endif
   #ifdef SCALAR
   Real scalar[NSCALARS];
-  #endif
+  #endif  //SCALAR
 
-
-  int n_cells = nx*ny*nz;
+  int const n_cells = nx*ny*nz;
 
   // get a thread ID
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  int zid = tid / (nx*ny);
-  int yid = (tid - zid*nx*ny) / nx;
-  int xid = tid - zid*nx*ny - yid*nx;
-  int id = xid + yid*nx + zid*nx*ny;
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  int xid, yid, zid;
+  cuda_utilities::compute3DIndices(id, nx, ny, xid, yid, zid);
 
-  // x direction
-  if (xid < nx-1 && yid < ny && zid < nz)
+  // Guard to avoid out of bounds threads
+  if (xid < nx && yid < ny && zid < nz)
   {
-    // retrieve appropriate conserved variables
-    id = xid + yid*nx + zid*nx*ny;
-    d  = dev_conserved[            id];
-    mx = dev_conserved[  n_cells + id];
-    my = dev_conserved[2*n_cells + id];
-    mz = dev_conserved[3*n_cells + id];
-    E  = dev_conserved[4*n_cells + id];
+    // ========================================
+    // Retrieve appropriate conserved variables
+    // ========================================
+    Real const d  = dev_conserved[            id];
+    Real const mx = dev_conserved[  n_cells + id];
+    Real const my = dev_conserved[2*n_cells + id];
+    Real const mz = dev_conserved[3*n_cells + id];
+    Real const E  = dev_conserved[4*n_cells + id];
     #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      scalar[i] = dev_conserved[(5+i)*n_cells + id];
-    }
-    #endif
+      for (int i=0; i<NSCALARS; i++)
+      {
+        scalar[i] = dev_conserved[(5+i)*n_cells + id];
+      }
+    #endif  //SCALAR
+    #ifdef  MHD
+      Real cellCenteredBx, cellCenteredBy, cellCenteredBz;
+      mhd::utils::cellCenteredMagneticFields(dev_conserved,
+                                           id, xid, yid, zid, n_cells, nx, ny,
+                                           cellCenteredBx, cellCenteredBy, cellCenteredBz);
+    #endif  //MHD
     #ifdef DE
-    ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
+      Real const ge = dev_conserved[(n_fields-1)*n_cells + id];
+    #endif  //DE
 
-    // send values back from the kernel
+    // ================================
+    // Send values back from the kernel
+    // ================================
+
+    // Send the x+1/2 Left interface
     dev_bounds_Lx[            id] = d;
     dev_bounds_Lx[  n_cells + id] = mx;
     dev_bounds_Lx[2*n_cells + id] = my;
     dev_bounds_Lx[3*n_cells + id] = mz;
     dev_bounds_Lx[4*n_cells + id] = E;
     #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      dev_bounds_Lx[(5+i)*n_cells + id] = scalar[i];
-    }
-    #endif
+      for (int i=0; i<NSCALARS; i++)
+      {
+        dev_bounds_Lx[(5+i)*n_cells + id] = scalar[i];
+      }
+    #endif  //SCALAR
+    #ifdef  MHD
+      dev_bounds_Lx[(5+NSCALARS)*n_cells + id] = cellCenteredBy;
+      dev_bounds_Lx[(6+NSCALARS)*n_cells + id] = cellCenteredBz;
+    #endif  //MHD
     #ifdef DE
-    dev_bounds_Lx[(n_fields-1)*n_cells + id] = ge;
-    #endif
+      dev_bounds_Lx[(n_fields-1)*n_cells + id] = ge;
+    #endif  //DE
 
-    // retrieve appropriate conserved variables
-    id = xid+1 + yid*nx + zid*nx*ny;
-    d  = dev_conserved[            id];
-    mx = dev_conserved[  n_cells + id];
-    my = dev_conserved[2*n_cells + id];
-    mz = dev_conserved[3*n_cells + id];
-    E  = dev_conserved[4*n_cells + id];
-    #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      scalar[i] = dev_conserved[(5+i)*n_cells + id];
-    }
-    #endif
-    #ifdef DE
-    ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
-
-    // send values back from the kernel
-    id = xid + yid*nx + zid*nx*ny;
-    dev_bounds_Rx[            id] = d;
-    dev_bounds_Rx[  n_cells + id] = mx;
-    dev_bounds_Rx[2*n_cells + id] = my;
-    dev_bounds_Rx[3*n_cells + id] = mz;
-    dev_bounds_Rx[4*n_cells + id] = E;
-    #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      dev_bounds_Rx[(5+i)*n_cells + id] = scalar[i];
-    }
-    #endif
-    #ifdef DE
-    dev_bounds_Rx[(n_fields-1)*n_cells + id] = ge;
-    #endif
-  }
-
-  // y direction
-  if (xid < nx && yid < ny-1 && zid < nz)
-  {
-    // retrieve appropriate conserved variables
-    id = xid + yid*nx + zid*nx*ny;
-    d  = dev_conserved[            id];
-    mx = dev_conserved[  n_cells + id];
-    my = dev_conserved[2*n_cells + id];
-    mz = dev_conserved[3*n_cells + id];
-    E  = dev_conserved[4*n_cells + id];
-    #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      scalar[i] = dev_conserved[(5+i)*n_cells + id];
-    }
-    #endif
-    #ifdef DE
-    ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
-
-    // send values back from the kernel
+    // Send the y+1/2 Left interface
     dev_bounds_Ly[            id] = d;
     dev_bounds_Ly[  n_cells + id] = mx;
     dev_bounds_Ly[2*n_cells + id] = my;
     dev_bounds_Ly[3*n_cells + id] = mz;
     dev_bounds_Ly[4*n_cells + id] = E;
     #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      dev_bounds_Ly[(5+i)*n_cells + id] = scalar[i];
-    }
-    #endif
+      for (int i=0; i<NSCALARS; i++)
+      {
+        dev_bounds_Ly[(5+i)*n_cells + id] = scalar[i];
+      }
+    #endif  //SCALAR
+    #ifdef  MHD
+      dev_bounds_Ly[(5+NSCALARS)*n_cells + id] = cellCenteredBz;
+      dev_bounds_Ly[(6+NSCALARS)*n_cells + id] = cellCenteredBx;
+    #endif  //MHD
     #ifdef DE
-    dev_bounds_Ly[(n_fields-1)*n_cells + id] = ge;
-    #endif
+      dev_bounds_Ly[(n_fields-1)*n_cells + id] = ge;
+    #endif  //DE
 
-    // retrieve appropriate conserved variables
-    id = xid + (yid+1)*nx + zid*nx*ny;
-    d  = dev_conserved[            id];
-    mx = dev_conserved[  n_cells + id];
-    my = dev_conserved[2*n_cells + id];
-    mz = dev_conserved[3*n_cells + id];
-    E  = dev_conserved[4*n_cells + id];
-    #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      scalar[i] = dev_conserved[(5+i)*n_cells + id];
-    }
-    #endif
-    #ifdef DE
-    ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
-
-    // send values back from the kernel
-    id = xid + yid*nx + zid*nx*ny;
-    dev_bounds_Ry[            id] = d;
-    dev_bounds_Ry[  n_cells + id] = mx;
-    dev_bounds_Ry[2*n_cells + id] = my;
-    dev_bounds_Ry[3*n_cells + id] = mz;
-    dev_bounds_Ry[4*n_cells + id] = E;
-    #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      dev_bounds_Ry[(5+i)*n_cells + id] = scalar[i];
-    }
-    #endif
-    #ifdef DE
-    dev_bounds_Ry[(n_fields-1)*n_cells + id] = ge;
-    #endif
-  }
-
-  // z direction
-  if (xid < nx && yid < ny && zid < nz-1)
-  {
-    // retrieve appropriate conserved variables
-    id = xid + yid*nx + zid*nx*ny;
-    d  = dev_conserved[            id];
-    mx = dev_conserved[  n_cells + id];
-    my = dev_conserved[2*n_cells + id];
-    mz = dev_conserved[3*n_cells + id];
-    E  = dev_conserved[4*n_cells + id];
-    #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      scalar[i] = dev_conserved[(5+i)*n_cells + id];
-    }
-    #endif
-    #ifdef DE
-    ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
-
-    // send values back from the kernel
+    // Send the z+1/2 Left interface
     dev_bounds_Lz[            id] = d;
     dev_bounds_Lz[  n_cells + id] = mx;
     dev_bounds_Lz[2*n_cells + id] = my;
     dev_bounds_Lz[3*n_cells + id] = mz;
     dev_bounds_Lz[4*n_cells + id] = E;
     #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      dev_bounds_Lz[(5+i)*n_cells + id] = scalar[i];
-    }
-    #endif
+      for (int i=0; i<NSCALARS; i++)
+      {
+        dev_bounds_Lz[(5+i)*n_cells + id] = scalar[i];
+      }
+    #endif  //SCALAR
+    #ifdef  MHD
+      dev_bounds_Lz[(5+NSCALARS)*n_cells + id] = cellCenteredBx;
+      dev_bounds_Lz[(6+NSCALARS)*n_cells + id] = cellCenteredBy;
+    #endif  //MHD
     #ifdef DE
-    dev_bounds_Lz[(n_fields-1)*n_cells + id] = ge;
-    #endif
+      dev_bounds_Lz[(n_fields-1)*n_cells + id] = ge;
+    #endif  //DE
 
-    // retrieve appropriate conserved variables
-    id = xid + yid*nx + (zid+1)*nx*ny;
-    d  = dev_conserved[            id];
-    mx = dev_conserved[  n_cells + id];
-    my = dev_conserved[2*n_cells + id];
-    mz = dev_conserved[3*n_cells + id];
-    E  = dev_conserved[4*n_cells + id];
-    #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      scalar[i] = dev_conserved[(5+i)*n_cells + id];
+    // Send the x-1/2 Right interface
+    if (xid > 0)
+    {
+      id = cuda_utilities::compute1DIndex(xid-1, yid, zid, nx, ny);
+      dev_bounds_Rx[            id] = d;
+      dev_bounds_Rx[  n_cells + id] = mx;
+      dev_bounds_Rx[2*n_cells + id] = my;
+      dev_bounds_Rx[3*n_cells + id] = mz;
+      dev_bounds_Rx[4*n_cells + id] = E;
+      #ifdef SCALAR
+        for (int i=0; i<NSCALARS; i++)
+        {
+          dev_bounds_Rx[(5+i)*n_cells + id] = scalar[i];
+        }
+      #endif  //SCALAR
+      #ifdef  MHD
+        dev_bounds_Rx[(5+NSCALARS)*n_cells + id] = cellCenteredBy;
+        dev_bounds_Rx[(6+NSCALARS)*n_cells + id] = cellCenteredBz;
+      #endif  //MHD
+      #ifdef DE
+        dev_bounds_Rx[(n_fields-1)*n_cells + id] = ge;
+      #endif  //DE
     }
-    #endif
-    #ifdef DE
-    ge = dev_conserved[(n_fields-1)*n_cells + id];
-    #endif
 
-    // send values back from the kernel
-    id = xid + yid*nx + zid*nx*ny;
-    dev_bounds_Rz[            id] = d;
-    dev_bounds_Rz[  n_cells + id] = mx;
-    dev_bounds_Rz[2*n_cells + id] = my;
-    dev_bounds_Rz[3*n_cells + id] = mz;
-    dev_bounds_Rz[4*n_cells + id] = E;
-    #ifdef SCALAR
-    for (int i=0; i<NSCALARS; i++) {
-      dev_bounds_Rz[(5+i)*n_cells + id] = scalar[i];
+    if (yid > 0)
+    {
+      // Send the y-1/2 Right interface
+      id = cuda_utilities::compute1DIndex(xid, yid-1, zid, nx, ny);
+      dev_bounds_Ry[            id] = d;
+      dev_bounds_Ry[  n_cells + id] = mx;
+      dev_bounds_Ry[2*n_cells + id] = my;
+      dev_bounds_Ry[3*n_cells + id] = mz;
+      dev_bounds_Ry[4*n_cells + id] = E;
+      #ifdef SCALAR
+        for (int i=0; i<NSCALARS; i++)
+        {
+          dev_bounds_Ry[(5+i)*n_cells + id] = scalar[i];
+        }
+      #endif  //SCALAR
+      #ifdef  MHD
+        dev_bounds_Ry[(5+NSCALARS)*n_cells + id] = cellCenteredBz;
+        dev_bounds_Ry[(6+NSCALARS)*n_cells + id] = cellCenteredBx;
+      #endif  //MHD
+      #ifdef DE
+        dev_bounds_Ry[(n_fields-1)*n_cells + id] = ge;
+      #endif  //DE
+      }
+
+    if (zid > 0)
+    {
+      // Send the z-1/2 Right interface
+      id = cuda_utilities::compute1DIndex(xid, yid, zid-1, nx, ny);
+      dev_bounds_Rz[            id] = d;
+      dev_bounds_Rz[  n_cells + id] = mx;
+      dev_bounds_Rz[2*n_cells + id] = my;
+      dev_bounds_Rz[3*n_cells + id] = mz;
+      dev_bounds_Rz[4*n_cells + id] = E;
+      #ifdef SCALAR
+        for (int i=0; i<NSCALARS; i++)
+        {
+          dev_bounds_Rz[(5+i)*n_cells + id] = scalar[i];
+        }
+      #endif  //SCALAR
+      #ifdef  MHD
+        dev_bounds_Rz[(5+NSCALARS)*n_cells + id] = cellCenteredBx;
+        dev_bounds_Rz[(6+NSCALARS)*n_cells + id] = cellCenteredBy;
+      #endif  //MHD
+      #ifdef DE
+        dev_bounds_Rz[(n_fields-1)*n_cells + id] = ge;
+      #endif  //DE
     }
-    #endif
-    #ifdef DE
-    dev_bounds_Rz[(n_fields-1)*n_cells + id] = ge;
-    #endif
-
   }
 }
 

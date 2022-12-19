@@ -1,5 +1,5 @@
 /*!
- * \file device_vector_tests.cu
+ * \file DeviceVector_tests.cu
  * \author Robert 'Bob' Caddy (rvc@pitt.edu)
  * \brief Tests for the DeviceVector class
  *
@@ -81,7 +81,7 @@ TEST(tALLDeviceVectorDestructor,
 
    // Get the pointer information
    cudaPointerAttributes ptrAttributes;
-   CudaSafeCall(cudaPointerGetAttributes(&ptrAttributes, devVector.data()));
+   cudaPointerGetAttributes(&ptrAttributes, devVector.data());
 
     // Warning strings
     std::string typeMessage          = "ptrAttributes.type should be 0 since "
@@ -106,6 +106,9 @@ TEST(tALLDeviceVectorDestructor,
     #endif  // O_HIP
     EXPECT_EQ(nullptr, ptrAttributes.devicePointer) << devPtrMessage;
     EXPECT_EQ(nullptr, ptrAttributes.hostPointer)   << hostPtrMessage;
+
+    // Reconstruct DeviceVector object to avoid error
+    new (&devVector) cuda_utilities::DeviceVector<double>{vectorSize};
 }
 
 TEST(tALLDeviceVectorStdVectorHostToDeviceCopyAndIndexing,

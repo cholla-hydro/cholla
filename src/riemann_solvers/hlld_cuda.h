@@ -13,23 +13,32 @@
 #include "../global/global.h"
 
 #ifdef CUDA
-
+/*!
+ * \brief Namespace for MHD code
+ *
+ */
+namespace mhd
+{
     /*!
      * \brief Compute the HLLD fluxes from Miyoshi & Kusano 2005
      *
-     * \param[in]  dev_bounds_L
-     * \param[in]  dev_bounds_R
-     * \param[out] dev_flux
-     * \param[in]  nx
-     * \param[in]  ny
-     * \param[in]  nz
-     * \param[in]  n_ghost
-     * \param[in]  gamma
-     * \param[in]  dir
-     * \param[in]  n_fields
+     * \param[in]  dev_bounds_L The interface states on the left side of the interface
+     * \param[in]  dev_bounds_R The interface states on the right side of the interface
+     * \param[in]  dev_magnetic_face A pointer to the begining of the conserved
+     * magnetic field array that is stored at the interface. I.e. for the
+     * X-direction solve this would be the begining of the X-direction fields
+     * \param[out] dev_flux The output flux
+     * \param[in]  nx Number of cells in the X-direction
+     * \param[in]  ny Number of cells in the Y-direction
+     * \param[in]  nz Number of cells in the Z-direction
+     * \param[in]  n_ghost Number of ghost cells on each side
+     * \param[in]  gamma The adiabatic index
+     * \param[in]  dir The direction that the solve is taking place in. 0=X, 1=Y, 2=Z
+     * \param[in]  n_fields The total number of fields
      */
     __global__ void Calculate_HLLD_Fluxes_CUDA(Real *dev_bounds_L,
                                                Real *dev_bounds_R,
+                                               Real *dev_magnetic_face,
                                                Real *dev_flux,
                                                int nx,
                                                int ny,
@@ -44,7 +53,7 @@
      * solver
      *
      */
-    namespace _hlldInternal
+    namespace _internal
     {
         /*!
          * \brief Used for some comparisons. Value was chosen to match what is
@@ -65,7 +74,7 @@
          * \param[in] velocityZL Velocity in the Z-direction, left side
          * \param[in] gasPressureL Gas pressure, left side
          * \param[in] totalPressureL Total MHD pressure, left side
-         * \param[in] magneticXL Magnetic field in the X-direction, left side
+         * \param[in] magneticX Magnetic field in the X-direction, left side
          * \param[in] magneticYL Magnetic field in the Y-direction, left side
          * \param[in] magneticZL Magnetic field in the Z-direction, left side
          * \param[in] densityR Density, right side
@@ -77,7 +86,6 @@
          * \param[in] velocityZR Velocity in the Z-direction, right side
          * \param[in] gasPressureR Gas pressure, right side
          * \param[in] totalPressureR Total MHD pressure, right side
-         * \param[in] magneticXR Magnetic field in the X-direction, right side
          * \param[in] magneticYR Magnetic field in the Y-direction, right side
          * \param[in] magneticZR Magnetic field in the Z-direction, right side
          * \param[in] gamma Adiabatic index
@@ -98,7 +106,7 @@
                                                         Real const &velocityZL,
                                                         Real const &gasPressureL,
                                                         Real const &totalPressureL,
-                                                        Real const &magneticXL,
+                                                        Real const &magneticX,
                                                         Real const &magneticYL,
                                                         Real const &magneticZL,
                                                         Real const &densityR,
@@ -110,7 +118,6 @@
                                                         Real const &velocityZR,
                                                         Real const &gasPressureR,
                                                         Real const &totalPressureR,
-                                                        Real const &magneticXR,
                                                         Real const &magneticYR,
                                                         Real const &magneticZR,
                                                         Real const &gamma,
@@ -267,26 +274,6 @@
                                              Real &magneticStarFluxZ);
 
         /*!
-         * \brief Compute the dot product of a and b.
-         *
-         * \param[in] a1 The first element of a
-         * \param[in] a2 The second element of a
-         * \param[in] a3 The third element of a
-         * \param[in] b1 The first element of b
-         * \param[in] b2 The second element of b
-         * \param[in] b3 The third element of b
-         *
-         * \return Real The dot product of a and b
-         */
-        inline __device__ __host__ Real _dotProduct(Real const &a1,
-                                                    Real const &a2,
-                                                    Real const &a3,
-                                                    Real const &b1,
-                                                    Real const &b2,
-                                                    Real const &b3)
-        {return a1*b1 + ((a2*b2) + (a3*b3));};
-
-        /*!
          * \brief Compute the double star state
          *
          * \param[in] speedM
@@ -390,6 +377,6 @@
                                                    Real &magneticDoubleStarFluxY,
                                                    Real &magneticDoubleStarFluxZ);
 
-    } // _hlldInternal namespace
-
+    } // end namespace mhd::_internal
+} // end namespace mhd
 #endif //CUDA

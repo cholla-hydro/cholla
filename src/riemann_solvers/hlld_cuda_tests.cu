@@ -21,7 +21,7 @@
 #include "../utils/mhd_utilities.h"
 #include "../riemann_solvers/hlld_cuda.h"   // Include code to test
 
-#if defined(CUDA) && defined(HLLD)
+#ifdef CUDA
     // =========================================================================
     // Integration tests for the entire HLLD solver. Unit tests are below
     // =========================================================================
@@ -59,15 +59,23 @@
                                         int const &direction=0)
         {
 
-            // Rearrange X, Y, and Z values if a different direction is chosen
-            // besides default
-            stateLeft  = _cycleXYZ(stateLeft, direction);
-            stateRight = _cycleXYZ(stateRight, direction);
+            // Rearrange X, Y, and Z values for the chosen direction
+            std::rotate(stateLeft.begin() + 1, stateLeft.begin() + 4 - direction, stateLeft.begin() + 4);
+            std::rotate(stateRight.begin()+ 1, stateRight.begin()+ 4 - direction, stateRight.begin()+ 4);
+
+            // Create new vectors that store the values in the way that the HLLD
+            // solver expects
+            size_t const magXIndex = 5+NSCALARS;
+            EXPECT_DOUBLE_EQ(stateLeft.at(magXIndex), stateRight.at(magXIndex))
+                << "The left and right magnetic fields are not equal";
+            std::vector<Real> const magneticX{stateLeft.at(magXIndex)};
+            stateLeft.erase(stateLeft.begin() + magXIndex);
+            stateRight.erase(stateRight.begin() + magXIndex);
 
             // Simulation Paramters
-            int const nx        = 1;  // Number of cells in the x-direction?
-            int const ny        = 1;  // Number of cells in the y-direction?
-            int const nz        = 1;  // Number of cells in the z-direction?
+            int const nx        = 1;  // Number of cells in the x-direction
+            int const ny        = 1;  // Number of cells in the y-direction
+            int const nz        = 1;  // Number of cells in the z-direction
             int const nGhost    = 0;  // Isn't actually used it appears
             int nFields         = 8;  // Total number of conserved fields
             #ifdef  SCALAR
@@ -83,33 +91,40 @@
 
             // Create the std::vector to store the fluxes and declare the device
             // pointers
-            std::vector<Real> testFlux(nFields);
+            std::vector<Real> testFlux(nFields-1, 0);
             Real *devConservedLeft;
             Real *devConservedRight;
+            Real *devConservedMagXFace;
             Real *devTestFlux;
 
             // Allocate device arrays and copy data
-            CudaSafeCall(cudaMalloc(&devConservedLeft,  nFields*sizeof(Real)));
-            CudaSafeCall(cudaMalloc(&devConservedRight, nFields*sizeof(Real)));
-            CudaSafeCall(cudaMalloc(&devTestFlux,       nFields*sizeof(Real)));
+            CudaSafeCall(cudaMalloc(&devConservedLeft,     stateLeft.size()*sizeof(Real)));
+            CudaSafeCall(cudaMalloc(&devConservedRight,   stateRight.size()*sizeof(Real)));
+            CudaSafeCall(cudaMalloc(&devConservedMagXFace, magneticX.size()*sizeof(Real)));
+            CudaSafeCall(cudaMalloc(&devTestFlux,           testFlux.size()*sizeof(Real)));
 
             CudaSafeCall(cudaMemcpy(devConservedLeft,
                          stateLeft.data(),
-                         nFields*sizeof(Real),
+                         stateLeft.size()*sizeof(Real),
                          cudaMemcpyHostToDevice));
             CudaSafeCall(cudaMemcpy(devConservedRight,
                          stateRight.data(),
-                         nFields*sizeof(Real),
+                         stateRight.size()*sizeof(Real),
+                         cudaMemcpyHostToDevice));
+            CudaSafeCall(cudaMemcpy(devConservedMagXFace,
+                         magneticX.data(),
+                         magneticX.size()*sizeof(Real),
                          cudaMemcpyHostToDevice));
 
             // Run kernel
-            hipLaunchKernelGGL(Calculate_HLLD_Fluxes_CUDA,
+            hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA,
                                dimGrid,
                                dimBlock,
                                0,
                                0,
                                devConservedLeft,   // the "left" interface
                                devConservedRight,  // the "right" interface
+                               devConservedMagXFace,  // the magnetic field at the interface
                                devTestFlux,
                                nx,
                                ny,
@@ -122,12 +137,24 @@
             CudaCheckError();
             CudaSafeCall(cudaMemcpy(testFlux.data(),
                                     devTestFlux,
-                                    nFields*sizeof(Real),
+                                    testFlux.size()*sizeof(Real),
                                     cudaMemcpyDeviceToHost));
 
             // Make sure to sync with the device so we have the results
             cudaDeviceSynchronize();
             CudaCheckError();
+
+            // Free device arrays
+            cudaFree(devConservedLeft);
+            cudaFree(devConservedRight);
+            cudaFree(devConservedMagXFace);
+            cudaFree(devTestFlux);
+
+            // The HLLD solver only writes the the first two "slots" for
+            // magnetic flux so let's rearrange to make sure we have all the
+            // magnetic fluxes in the right spots
+            testFlux.insert(testFlux.begin() + magXIndex, 0.0);
+            std::rotate(testFlux.begin() + 1, testFlux.begin() + 1 + direction, testFlux.begin() + 4);  // Rotate momentum
 
             return testFlux;
         }
@@ -185,10 +212,6 @@
                                     scalarFlux.begin() + NSCALARS);
             #endif  //SCALAR
 
-            // Rearrange X, Y, and Z values if a different direction is chosen
-            // besides default
-            fiducialFlux = _cycleXYZ(fiducialFlux, direction);
-
             ASSERT_TRUE(    (fiducialFlux.size() == testFlux.size())
                         and (fiducialFlux.size() == fieldNames.size()))
                 << "The fiducial flux, test flux, and field name vectors are not all the same length" << std::endl
@@ -242,7 +265,7 @@
             output.at(1) = input.at(1) * input.at(0);  // X Velocity to momentum
             output.at(2) = input.at(2) * input.at(0);  // Y Velocity to momentum
             output.at(3) = input.at(3) * input.at(0);  // Z Velocity to momentum
-            output.at(4) = mhdUtils::computeEnergy(input.at(4),
+            output.at(4) = mhd::utils::computeEnergy(input.at(4),
                                                    input.at(0),
                                                    input.at(1),
                                                    input.at(2),
@@ -266,7 +289,7 @@
                               conservedScalar.begin() + NSCALARS);
             #endif //SCALAR
             #ifdef  DE
-                output.push_back(mhdUtils::computeThermalEnergy(output.at(4),
+                output.push_back(mhd::utils::computeThermalEnergy(output.at(4),
                                                                 output.at(0),
                                                                 output.at(1),
                                                                 output.at(2),
@@ -294,52 +317,6 @@
         }
         // =====================================================================
     private:
-        // =====================================================================
-        /*!
-         * \brief Cyclically permute the vector quantities in the list of
-         * conserved variables so that the same interfaces and fluxes can be
-         * used to test the HLLD solver in all 3 directions.
-         *
-         * \param[in,out] conservedVec The std::vector of conserved variables to
-         * be cyclically permutated
-         * \param[in] direction Which plane the interface is. 0 = plane normal
-         * to X, 1 = plane normal to Y, 2 = plane normal to Z
-         *
-         * \return std::vector<Real> The cyclically permutated list of conserved
-         * variables
-         */
-        std::vector<Real> inline _cycleXYZ(std::vector<Real> conservedVec,
-                                           int const &direction)
-        {
-            switch (direction)
-            {
-            case 0:  // Plane normal to X. Default case, do nothing
-                ;
-                break;
-            case 1:  // Plane normal to Y
-            case 2:  // Plane normal to Z
-                // Fall through for both Y and Z normal planes
-                {
-                    size_t shift = 3 - direction;
-                    auto momentumBegin = conservedVec.begin()+1;
-                    auto magneticBegin = conservedVec.begin()+5;
-                    #ifdef  SCALAR
-                        magneticBegin += NSCALARS;
-                    #endif  //SCALAR
-
-                    std::rotate(momentumBegin, momentumBegin+shift, momentumBegin+3);
-                    std::rotate(magneticBegin, magneticBegin+shift, magneticBegin+3);
-                }
-                break;
-            default:
-                throw std::invalid_argument(("Invalid Value of `direction`"
-                    " passed to `_cycleXYZ`. Value passed was "
-                     + std::to_string(direction) + ", should be 0, 1, or 2."));
-                break;
-            }
-            return conservedVec;
-        }
-        // =====================================================================
     };
     // =========================================================================
 
@@ -1527,6 +1504,61 @@
 
     // =========================================================================
     /*!
+    * \brief Test the HLLD Riemann Solver using the constant states from the
+    * examples in cholla/examples/3D
+    *
+    */
+    TEST_F(tMHDCalculateHLLDFluxesCUDA,
+           ConstantStatesExpectCorrectFlux)
+    {
+        // Constant Values
+        Real const gamma = 5./3.;
+
+        std::vector<Real> const primitiveScalar{1.1069975296, 2.2286185018, 3.3155141875};
+
+        // States
+        std::vector<Real> const                   // | Density | X-Velocity | Y-Velocity | Z-Velocity | Pressure    | X-Magnetic Field | Y-Magnetic Field | Z-Magnetic Field | Adiabatic Index | Passive Scalars |
+        zeroMagneticField       = primitive2Conserved({1e4,      0.0,         0.0,         0.0,         1.380658E-5,  0.0,               0.0,               0.0},               gamma,            primitiveScalar),
+        onesMagneticField       = primitive2Conserved({1e4,      0.0,         0.0,         0.0,         1.380658E-5,  1.0,               1.0,               1.0},               gamma,            primitiveScalar);
+
+        for (size_t direction = 2; direction < 3; direction++)
+        {
+            {
+                std::string const outputString {"Left State:  Constant state, zero magnetic field\n"
+                                                "Right State: Constant state, zero magnetic field\n"
+                                                "HLLD State: Left Star"};
+                // Compute the fluxes and check for correctness
+                // Order of Fluxes is rho, vec(V), E, vec(B)
+                std::vector<Real> const fiducialFlux{0,1.380658e-05,0,0,0,0,0,0};
+                std::vector<Real> const scalarFlux{0,0,0};
+                Real thermalEnergyFlux = 0.;
+                std::vector<Real> const testFluxes = computeFluxes(zeroMagneticField,
+                                                                   zeroMagneticField,
+                                                                   gamma,
+                                                                   direction);
+                checkResults(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
+            }
+            {
+                std::string const outputString {"Left State:  Constant state, ones magnetic field\n"
+                                                "Right State: Constant state, ones magnetic field\n"
+                                                "HLLD State: Left Double Star"};
+                // Compute the fluxes and check for correctness
+                // Order of Fluxes is rho, vec(V), E, vec(B)
+                std::vector<Real> const fiducialFlux{0, 0.50001380657999994, -1, -1, -1.7347234759768071e-18, 0.0, 3.4694469519536142e-18, 3.4694469519536142e-18};
+                std::vector<Real> const scalarFlux{1.5731381063233131e-14, 3.1670573744690958e-14, 4.7116290424753513e-14};
+                Real thermalEnergyFlux = 0.;
+                std::vector<Real> const testFluxes = computeFluxes(onesMagneticField,
+                    onesMagneticField,
+                                                                   gamma,
+                                                                   direction);
+                checkResults(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
+            }
+        }
+    }
+    // =========================================================================
+
+    // =========================================================================
+    /*!
     * \brief Test the HLLD Riemann Solver with the degenerate state
     *
     */
@@ -1633,11 +1665,11 @@
             negativeDensityPressure.insert(negativeDensityPressure.begin()+5, conservedScalar.begin(), conservedScalar.begin() + NSCALARS);
         #endif  // SCALAR
         #ifdef  DE
-            negativePressure.push_back(mhdUtils::computeThermalEnergy(negativePressure.at(4),negativePressure.at(0),negativePressure.at(1),negativePressure.at(2),negativePressure.at(3),negativePressure.at(5 + NSCALARS),negativePressure.at(6 + NSCALARS),negativePressure.at(7 + NSCALARS),gamma));
-            negativeEnergy.push_back(mhdUtils::computeThermalEnergy(negativeEnergy.at(4),negativeEnergy.at(0),negativeEnergy.at(1),negativeEnergy.at(2),negativeEnergy.at(3),negativeEnergy.at(5 + NSCALARS),negativeEnergy.at(6 + NSCALARS),negativeEnergy.at(7 + NSCALARS),gamma));
-            negativeDensity.push_back(mhdUtils::computeThermalEnergy(negativeDensity.at(4),negativeDensity.at(0),negativeDensity.at(1),negativeDensity.at(2),negativeDensity.at(3),negativeDensity.at(5 + NSCALARS),negativeDensity.at(6 + NSCALARS),negativeDensity.at(7 + NSCALARS),gamma));
-            negativeDensityEnergyPressure.push_back(mhdUtils::computeThermalEnergy(negativeDensityEnergyPressure.at(4),negativeDensityEnergyPressure.at(0),negativeDensityEnergyPressure.at(1),negativeDensityEnergyPressure.at(2),negativeDensityEnergyPressure.at(3),negativeDensityEnergyPressure.at(5 + NSCALARS),negativeDensityEnergyPressure.at(6 + NSCALARS),negativeDensityEnergyPressure.at(7 + NSCALARS),gamma));
-            negativeDensityPressure.push_back(mhdUtils::computeThermalEnergy(negativeDensityPressure.at(4),negativeDensityPressure.at(0),negativeDensityPressure.at(1),negativeDensityPressure.at(2),negativeDensityPressure.at(3),negativeDensityPressure.at(5 + NSCALARS),negativeDensityPressure.at(6 + NSCALARS),negativeDensityPressure.at(7 + NSCALARS),gamma));
+            negativePressure.push_back(mhd::utils::computeThermalEnergy(negativePressure.at(4),negativePressure.at(0),negativePressure.at(1),negativePressure.at(2),negativePressure.at(3),negativePressure.at(5 + NSCALARS),negativePressure.at(6 + NSCALARS),negativePressure.at(7 + NSCALARS),gamma));
+            negativeEnergy.push_back(mhd::utils::computeThermalEnergy(negativeEnergy.at(4),negativeEnergy.at(0),negativeEnergy.at(1),negativeEnergy.at(2),negativeEnergy.at(3),negativeEnergy.at(5 + NSCALARS),negativeEnergy.at(6 + NSCALARS),negativeEnergy.at(7 + NSCALARS),gamma));
+            negativeDensity.push_back(mhd::utils::computeThermalEnergy(negativeDensity.at(4),negativeDensity.at(0),negativeDensity.at(1),negativeDensity.at(2),negativeDensity.at(3),negativeDensity.at(5 + NSCALARS),negativeDensity.at(6 + NSCALARS),negativeDensity.at(7 + NSCALARS),gamma));
+            negativeDensityEnergyPressure.push_back(mhd::utils::computeThermalEnergy(negativeDensityEnergyPressure.at(4),negativeDensityEnergyPressure.at(0),negativeDensityEnergyPressure.at(1),negativeDensityEnergyPressure.at(2),negativeDensityEnergyPressure.at(3),negativeDensityEnergyPressure.at(5 + NSCALARS),negativeDensityEnergyPressure.at(6 + NSCALARS),negativeDensityEnergyPressure.at(7 + NSCALARS),gamma));
+            negativeDensityPressure.push_back(mhd::utils::computeThermalEnergy(negativeDensityPressure.at(4),negativeDensityPressure.at(0),negativeDensityPressure.at(1),negativeDensityPressure.at(2),negativeDensityPressure.at(3),negativeDensityPressure.at(5 + NSCALARS),negativeDensityPressure.at(6 + NSCALARS),negativeDensityPressure.at(7 + NSCALARS),gamma));
         #endif  //DE
 
         for (size_t direction = 0; direction < 3; direction++)
@@ -1726,7 +1758,7 @@
     // =========================================================================
 
     // =========================================================================
-    // Unit tests for the contents of the _hlldInternal namespace
+    // Unit tests for the contents of the mhd::_internal namespace
     // =========================================================================
     /*!
      * \brief A struct to hold some basic test values
@@ -1827,10 +1859,10 @@
             {
                 for (size_t i = 0; i < names.size(); i++)
                 {
-                    gasPressureL.push_back(mhdUtils::computeGasPressure(energyL[i], densityL[i], momentumXL[i], momentumYL[i], momentumZL[i], magneticXL[i], magneticYL[i], magneticZL[i], gamma));
-                    gasPressureR.push_back(mhdUtils::computeGasPressure(energyR[i], densityR[i], momentumXR[i], momentumYR[i], momentumZR[i], magneticXR[i], magneticYR[i], magneticZR[i], gamma));
-                    totalPressureL.push_back(mhdUtils::computeTotalPressure(gasPressureL.back(), magneticXL[i], magneticYL[i], magneticZL[i]));
-                    totalPressureR.push_back(mhdUtils::computeTotalPressure(gasPressureL.back(), magneticXR[i], magneticYR[i], magneticZR[i]));
+                    gasPressureL.push_back(mhd::utils::computeGasPressure(energyL[i], densityL[i], momentumXL[i], momentumYL[i], momentumZL[i], magneticXL[i], magneticYL[i], magneticZL[i], gamma));
+                    gasPressureR.push_back(mhd::utils::computeGasPressure(energyR[i], densityR[i], momentumXR[i], momentumYR[i], momentumZR[i], magneticXR[i], magneticYR[i], magneticZR[i], gamma));
+                    totalPressureL.push_back(mhd::utils::computeTotalPressure(gasPressureL.back(), magneticXL[i], magneticYL[i], magneticZL[i]));
+                    totalPressureR.push_back(mhd::utils::computeTotalPressure(gasPressureL.back(), magneticXR[i], magneticYR[i], magneticZR[i]));
                 }
             }
         };
@@ -1839,7 +1871,7 @@
 
     // =========================================================================
     /*!
-     * \brief Test the _hlldInternal::_approximateWaveSpeeds function
+     * \brief Test the mhd::_internal::_approximateWaveSpeeds function
      *
      */
     TEST(tMHDHlldInternalApproximateWaveSpeeds,
@@ -1850,7 +1882,7 @@
         std::vector<double> const fiducialSpeedR      {24.295526347371595, 12.519790189404299};
         std::vector<double> const fiducialSpeedM      {-0.81760587897407833, -0.026643804611559244};
         std::vector<double> const fiducialSpeedStarL  {-19.710500632936679, -4.4880642018724357};
-        std::vector<double> const fiducialSpeedStarR  {9.777062240423124, 9.17474383484066};
+        std::vector<double> const fiducialSpeedStarR  {9.6740190040662242, 3.4191202933087519};
         std::vector<double> const fiducialDensityStarL{24.101290139122913, 50.132466596958501};
         std::vector<double> const fiducialDensityStarR{78.154104734671265, 84.041595114910123};
 
@@ -1864,7 +1896,7 @@
 
         for (size_t i = 0; i < parameters.names.size(); i++)
         {
-            _hlldInternal::_approximateWaveSpeeds(parameters.densityL[i],
+            mhd::_internal::_approximateWaveSpeeds(parameters.densityL[i],
                                                   parameters.momentumXL[i],
                                                   parameters.momentumYL[i],
                                                   parameters.momentumZL[i],
@@ -1885,7 +1917,6 @@
                                                   parameters.velocityZR[i],
                                                   parameters.gasPressureR[i],
                                                   parameters.totalPressureR[i],
-                                                  parameters.magneticXR[i],
                                                   parameters.magneticYR[i],
                                                   parameters.magneticZR[i],
                                                   parameters.gamma,
@@ -1924,7 +1955,7 @@
 
     // =========================================================================
     /*!
-     * \brief Test the _hlldInternal::_starFluxes function in the non-degenerate
+     * \brief Test the mhd::_internal::_starFluxes function in the non-degenerate
      * case
      *
      */
@@ -1961,7 +1992,7 @@
 
         for (size_t i = 0; i < parameters.names.size(); i++)
         {
-            _hlldInternal::_starFluxes(parameters.speedM[i],
+            mhd::_internal::_starFluxes(parameters.speedM[i],
                                        parameters.speedSide[i],
                                        parameters.densityL[i],
                                        parameters.velocityXL[i],
@@ -2038,7 +2069,7 @@
     }
 
     /*!
-     * \brief Test the _hlldInternal::_starFluxes function in the degenerate
+     * \brief Test the mhd::_internal::_starFluxes function in the degenerate
      * case
      *
      */
@@ -2078,7 +2109,7 @@
 
         for (size_t i = 0; i < parameters.names.size(); i++)
         {
-            _hlldInternal::_starFluxes(parameters.speedM[i],
+            mhd::_internal::_starFluxes(parameters.speedM[i],
                                         parameters.speedSide[i],
                                         parameters.densityL[i],
                                         parameters.velocityXL[i],
@@ -2157,7 +2188,7 @@
 
     // =========================================================================
     /*!
-     * \brief Test the _hlldInternal::_nonStarFluxes function
+     * \brief Test the mhd::_internal::_nonStarFluxes function
      *
      */
     TEST(tMHDHlldInternalNonStarFluxes,
@@ -2183,7 +2214,7 @@
 
         for (size_t i = 0; i < parameters.names.size(); i++)
         {
-            _hlldInternal::_nonStarFluxes(parameters.momentumXL[i],
+            mhd::_internal::_nonStarFluxes(parameters.momentumXL[i],
                                           parameters.velocityXL[i],
                                           parameters.velocityYL[i],
                                           parameters.velocityZL[i],
@@ -2228,38 +2259,7 @@
 
     // =========================================================================
     /*!
-     * \brief Test the _hlldInternal::_dotProduct function
-     *
-     */
-    TEST(tMHDHlldInternalDotProduct,
-         CorrectInputExpectCorrectOutput)
-    {
-        testParams const parameters;
-
-        std::vector<double> const fiducialDotProduct{5149.7597411033557,6127.2319832451567};
-
-        double testDotProduct;
-
-        for (size_t i = 0; i < parameters.names.size(); i++)
-        {
-            testDotProduct = _hlldInternal::_dotProduct(parameters.momentumXL[i],
-                                                        parameters.momentumYL[i],
-                                                        parameters.momentumZL[i],
-                                                        parameters.magneticXL[i],
-                                                        parameters.magneticYL[i],
-                                                        parameters.magneticZL[i]);
-
-            // Now check results
-            testingUtilities::checkResults(fiducialDotProduct[i],
-                                           testDotProduct,
-                                           parameters.names.at(i) + ", DotProduct");
-            }
-    }
-    // =========================================================================
-
-    // =========================================================================
-    /*!
-     * \brief Test the _hlldInternal::_doubleStarState function. Non-degenerate
+     * \brief Test the mhd::_internal::_doubleStarState function. Non-degenerate
      * state
      *
     */
@@ -2286,7 +2286,7 @@
 
         for (size_t i = 0; i < parameters.names.size(); i++)
         {
-            _hlldInternal::_doubleStarState(parameters.speedM[i],
+            mhd::_internal::_doubleStarState(parameters.speedM[i],
                                             parameters.magneticXL[i],
                                             parameters.totalPressureStarL[i],
                                             parameters.densityStarL[i],
@@ -2332,7 +2332,7 @@
     }
 
     /*!
-     * \brief Test the _hlldInternal::_doubleStarState function in the
+     * \brief Test the mhd::_internal::_doubleStarState function in the
      * degenerate state.
      *
     */
@@ -2357,7 +2357,7 @@
 
         for (size_t i = 0; i < parameters.names.size(); i++)
         {
-            _hlldInternal::_doubleStarState(parameters.speedM[i],
+            mhd::_internal::_doubleStarState(parameters.speedM[i],
                                             0.0,
                                             parameters.totalPressureStarL[i],
                                             parameters.densityStarL[i],
@@ -2403,7 +2403,7 @@
 
     // =========================================================================
     /*!
-     * \brief Test the _hlldInternal::_doubleStarFluxes function
+     * \brief Test the mhd::_internal::_doubleStarFluxes function
      *
      */
     TEST(tMHDHlldInternalDoubleStarFluxes,
@@ -2428,7 +2428,7 @@
 
         for (size_t i = 0; i < parameters.names.size(); i++)
         {
-            _hlldInternal::_doubleStarFluxes(parameters.speedSide[i],
+            mhd::_internal::_doubleStarFluxes(parameters.speedSide[i],
                                              parameters.momentumStarFluxX[i],
                                              parameters.momentumStarFluxY[i],
                                              parameters.momentumStarFluxZ[i],
@@ -2480,7 +2480,7 @@
 
     // =========================================================================
     /*!
-     * \brief Test the _hlldInternal::_returnFluxes function
+     * \brief Test the mhd::_internal::_returnFluxes function
      *
      */
     TEST(tMHDHlldInternalReturnFluxes,
@@ -2532,10 +2532,10 @@
             int const fiducialMomentumIndexY = threadId + n_cells * o2;
             int const fiducialMomentumIndexZ = threadId + n_cells * o3;
             int const fiducialEnergyIndex    = threadId + n_cells * 4;
-            int const fiducialMagneticYIndex = threadId + n_cells * (o2 + 4 + NSCALARS);
-            int const fiducialMagneticZIndex = threadId + n_cells * (o3 + 4 + NSCALARS);
+            int const fiducialMagneticYIndex = threadId + n_cells * (5 + NSCALARS);
+            int const fiducialMagneticZIndex = threadId + n_cells * (6 + NSCALARS);
 
-            _hlldInternal::_returnFluxes(threadId,
+            mhd::_internal::_returnFluxes(threadId,
                                          o1,
                                          o2,
                                          o3,
@@ -2578,4 +2578,4 @@
         }
     }
     // =========================================================================
-#endif  // CUDA & HLLD
+#endif  // CUDA

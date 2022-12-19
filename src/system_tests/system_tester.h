@@ -72,9 +72,24 @@ public:
      */
     void runTest();
 
+    /*!
+     * \brief Compute the L1 error for each field compared to the initial
+     * conditions. Doesn't work with particle data
+     *
+     * \param[in] maxAllowedL1Error The maximum allowed L1 error for this test
+     * \param[in] maxAllowedError The maximum allowed for any value in the test
+     *
+     */
+    void runL1ErrorTest(double const &maxAllowedL1Error, double const &maxAllowedError=1E-7);
+
+    /*!
+     * \brief Launch Cholla as it is set up
+     *
+     */
     void launchCholla();
 
     void openHydroTestData();
+
     /*!
      * \brief Get the Cholla Path object
      *
@@ -127,6 +142,13 @@ public:
      * \return std::vector<std::string>
      */
     std::vector<std::string> getDataSetsToTest(){return _fiducialDataSetNames;};
+
+    /*!
+     * \brief Set the Fixed Epsilon value
+     *
+     * \param[in] newVal The new value of fixed epsilon
+     */
+    void setFixedEpsilon(double const &newVal){_fixedEpsilon = newVal;};
 
     /*!
      * \brief Choose which datasets to test. By default it tests all the
@@ -193,10 +215,12 @@ public:
      *
      * \param[in] dataSetName The name of the dataset to get
      * \param[out] testDims An vector with the length of each dimension in it
+     * \param[in] file (optional) The vector of HDF5 files to load
      * \return std::vector<double> A vector containing the data
      */
     std::vector<double> loadTestFieldData(std::string dataSetName,
-					  std::vector<size_t> &testDims);
+                                          std::vector<size_t> &testDims,
+                                          std::vector<H5::H5File> file={});
 
     /*!
      * \brief Generate a std::vector of the specified size populated by a sine
@@ -241,7 +265,7 @@ public:
      * \param[in] useSettingsFile Indicate if you're using a settings file. If
      * `true` then the settings file is automatically found based on the naming
      * convention. If false then the user MUST provide all the required settings
-     * with the SystemTestRunner::setChollaLaunchParams method
+     * with the SystemTestRunner::chollaLaunchParams member variable
      */
     SystemTestRunner(bool const &particleData=false,
                      bool const &hydroData=true,
@@ -289,6 +313,10 @@ private:
     std::vector<double> _fiducialParticleIDs;
     /// The total number of particles in the fiducial dataset
     size_t _fiducialTotalNumParticles=0;
+
+    /// Fixed epsilon is changed from the default since AMD/Clang
+    /// appear to differ from NVIDIA/GCC/XL by roughly 1E-12
+    double _fixedEpsilon = 5.0E-12;
 
     /// Flag to indicate if a fiducial HDF5 data file is being used or a
     /// programmatically generated H5File object. `true` = use a file, `false` =

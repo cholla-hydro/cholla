@@ -17,7 +17,7 @@
 #include "particles/supernova.h"
 #ifdef ANALYSIS
 #include "analysis/feedback_analysis.h"
-#endif 
+#endif
 #endif //SUPERNOVA
 #ifdef STAR_FORMATION
 #include "particles/star_formation.h"
@@ -52,7 +52,6 @@ int main(int argc, char *argv[])
   struct parameters P;
   int nfile = 0; // number of output files
   Real outtime = 0; // current output time
-
 
   // read in command line arguments
   if (argc < 2)
@@ -191,6 +190,12 @@ int main(int argc, char *argv[])
   // add one to the output file count
   nfile++;
   #endif //OUTPUT
+
+  #ifdef  MHD
+    // Check that the initial magnetic field has zero divergence
+    G.checkMagneticDivergence(G, P, nfile);
+  #endif  //MHD
+
   // increment the next output time
   outtime += P.outstep;
 
@@ -254,7 +259,7 @@ int main(int argc, char *argv[])
 
     //Set the Grid boundary conditions for next time step
     G.Set_Boundary_Conditions_Grid(P);
-    
+
     #ifdef GRAVITY_ANALYTIC_COMP
     G.Add_Analytic_Potential();
     #endif
@@ -266,7 +271,7 @@ int main(int argc, char *argv[])
 
     #ifdef STAR_FORMATION
     star_formation::Star_Formation(G);
-    #endif 
+    #endif
 
     #ifdef CPU_TIME
     G.Timer.Total.End();
@@ -332,6 +337,10 @@ int main(int argc, char *argv[])
     }
     #endif
 
+    #ifdef  MHD
+      // Check that the magnetic field has zero divergence
+      G.checkMagneticDivergence(G, P, nfile);
+    #endif  //MHD
   } /*end loop over timesteps*/
 
 

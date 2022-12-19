@@ -11,17 +11,27 @@
 #include "../utils/gpu.hpp"
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../utils/hydro_utilities.h"
 #include "../utils/mhd_utilities.h"
 #include "../riemann_solvers/hlld_cuda.h"
+#include "../utils/cuda_utilities.h"
+#include "../utils/math_utilities.h"
 
 #ifdef DE //PRESSURE_DE
     #include "../utils/hydro_utilities.h"
 #endif // DE
 
 #ifdef CUDA
+/*!
+ * \brief Namespace for MHD code
+ *
+ */
+namespace mhd
+{
     // =========================================================================
     __global__ void Calculate_HLLD_Fluxes_CUDA(Real *dev_bounds_L,
                                                Real *dev_bounds_R,
+                                               Real *dev_magnetic_face,
                                                Real *dev_flux,
                                                int nx,
                                                int ny,
@@ -34,9 +44,8 @@
         // get a thread index
         int blockId  = blockIdx.x + blockIdx.y*gridDim.x;
         int threadId = threadIdx.x + blockId * blockDim.x;
-        int zid = threadId / (nx*ny);
-        int yid = (threadId - zid*nx*ny) / nx;
-        int xid = threadId - zid*nx*ny - yid*nx;
+        int xid, yid, zid;
+        cuda_utilities::compute3DIndices(threadId, nx, ny, xid, yid, zid);
 
         // Number of cells
         int n_cells = nx*ny*nz;
@@ -48,20 +57,24 @@
         if (direction==2) {o1 = 3; o2 = 1; o3 = 2;}
 
         // Thread guard to avoid overrun
-        if (xid < nx and yid < ny and zid < nz)
+        if (xid < nx and
+            yid < ny and
+            zid < nz)
         {
             // ============================
             // Retrieve conserved variables
             // ============================
+            // The magnetic field in the X-direction
+            Real magneticX = dev_magnetic_face[threadId];
+
             // Left interface
             Real densityL   = dev_bounds_L[threadId];
             Real momentumXL = dev_bounds_L[threadId + n_cells * o1];
             Real momentumYL = dev_bounds_L[threadId + n_cells * o2];
             Real momentumZL = dev_bounds_L[threadId + n_cells * o3];
             Real energyL    = dev_bounds_L[threadId + n_cells * 4];
-            Real magneticXL = dev_bounds_L[threadId + n_cells * (o1 + 4 + NSCALARS)];
-            Real magneticYL = dev_bounds_L[threadId + n_cells * (o2 + 4 + NSCALARS)];
-            Real magneticZL = dev_bounds_L[threadId + n_cells * (o3 + 4 + NSCALARS)];
+            Real magneticYL = dev_bounds_L[threadId + n_cells * (5 + NSCALARS)];
+            Real magneticZL = dev_bounds_L[threadId + n_cells * (6 + NSCALARS)];
 
             #ifdef SCALAR
                 Real scalarConservedL[NSCALARS];
@@ -80,9 +93,8 @@
             Real momentumYR = dev_bounds_R[threadId + n_cells * o2];
             Real momentumZR = dev_bounds_R[threadId + n_cells * o3];
             Real energyR    = dev_bounds_R[threadId + n_cells * 4];
-            Real magneticXR = dev_bounds_R[threadId + n_cells * (o1 + 4 + NSCALARS)];
-            Real magneticYR = dev_bounds_R[threadId + n_cells * (o2 + 4 + NSCALARS)];
-            Real magneticZR = dev_bounds_R[threadId + n_cells * (o3 + 4 + NSCALARS)];
+            Real magneticYR = dev_bounds_R[threadId + n_cells * (5 + NSCALARS)];
+            Real magneticZR = dev_bounds_R[threadId + n_cells * (6 + NSCALARS)];
 
             #ifdef SCALAR
                 Real scalarConservedR[NSCALARS];
@@ -110,35 +122,30 @@
             Real const velocityZL = momentumZL / densityL;
 
             #ifdef DE //PRESSURE_DE
-                Real const energyKineticL = 0.5 * densityL
-                    * _hlldInternal::_dotProduct(velocityXL, velocityYL, velocityZL,
-                                                 velocityXL, velocityYL, velocityZL);
-
-                Real const energyMagneticL = 0.5
-                    * _hlldInternal::_dotProduct(magneticXL, magneticYL, magneticZL,
-                                                 magneticXL, magneticYL, magneticZL);
+                Real energyNonThermal =   hydro_utilities::Calc_Kinetic_Energy_From_Velocity(densityL, velocityXL, velocityYL, velocityZL)
+                                        + mhd::utils::computeMagneticEnergy(magneticX, magneticYL, magneticZL);
 
                 Real const gasPressureL   = fmax(hydro_utilities::Get_Pressure_From_DE(energyL,
-                                                                      energyL - energyKineticL - energyMagneticL,
+                                                                      energyL - energyNonThermal,
                                                                       thermalEnergyConservedL,
                                                                       gamma),
                                                  (Real) TINY_NUMBER);
             #else
                 // Note that this function does the positive pressure check
                 // internally
-                Real const gasPressureL  = mhdUtils::computeGasPressure(energyL,
+                Real const gasPressureL  = mhd::utils::computeGasPressure(energyL,
                                                                         densityL,
                                                                         momentumXL,
                                                                         momentumYL,
                                                                         momentumZL,
-                                                                        magneticXL,
+                                                                        magneticX,
                                                                         magneticYL,
                                                                         magneticZL,
                                                                         gamma);
             #endif //PRESSURE_DE
 
-            Real const totalPressureL = mhdUtils::computeTotalPressure(gasPressureL,
-                                                                       magneticXL,
+            Real const totalPressureL = mhd::utils::computeTotalPressure(gasPressureL,
+                                                                       magneticX,
                                                                        magneticYL,
                                                                        magneticZL);
 
@@ -148,42 +155,37 @@
             Real const velocityZR = momentumZR / densityR;
 
             #ifdef DE //PRESSURE_DE
-                Real const energyKineticR = 0.5 * densityR
-                    * _hlldInternal::_dotProduct(velocityXR, velocityYR, velocityZR,
-                                                 velocityXR, velocityYR, velocityZR);
-
-                Real const energyMagneticR = 0.5
-                    * _hlldInternal::_dotProduct(magneticXR, magneticYR, magneticZR,
-                                                 magneticXR, magneticYR, magneticZR);
+                energyNonThermal =   hydro_utilities::Calc_Kinetic_Energy_From_Velocity(densityR, velocityXR, velocityYR, velocityZR)
+                                   + mhd::utils::computeMagneticEnergy(magneticX, magneticYR, magneticZR);
 
                 Real const gasPressureR   = fmax(hydro_utilities::Get_Pressure_From_DE(energyR,
-                                                                      energyR - energyKineticR - energyMagneticR,
+                                                                      energyR - energyNonThermal,
                                                                       thermalEnergyConservedR,
                                                                       gamma),
                                                  (Real) TINY_NUMBER);
             #else
                 // Note that this function does the positive pressure check
                 // internally
-                Real const gasPressureR  = mhdUtils::computeGasPressure(energyR,
+                Real const gasPressureR  = mhd::utils::computeGasPressure(energyR,
                                                                   densityR,
                                                                   momentumXR,
                                                                   momentumYR,
                                                                   momentumZR,
-                                                                  magneticXR,
+                                                                  magneticX,
                                                                   magneticYR,
                                                                   magneticZR,
                                                                   gamma);
             #endif //PRESSURE_DE
 
-            Real const totalPressureR = mhdUtils::computeTotalPressure(gasPressureR,
-                                                                 magneticXR,
+            Real const totalPressureR = mhd::utils::computeTotalPressure(gasPressureR,
+                                                                 magneticX,
                                                                  magneticYR,
                                                                  magneticZR);
 
             // Compute the approximate wave speeds and density in the star
             // regions
             Real speedL, speedR, speedM, speedStarL, speedStarR, densityStarL, densityStarR;
-            _hlldInternal::_approximateWaveSpeeds(densityL,
+            mhd::_internal::_approximateWaveSpeeds(densityL,
                                                   momentumXL,
                                                   momentumYL,
                                                   momentumZL,
@@ -192,7 +194,7 @@
                                                   velocityZL,
                                                   gasPressureL,
                                                   totalPressureL,
-                                                  magneticXL,
+                                                  magneticX,
                                                   magneticYL,
                                                   magneticZL,
                                                   densityR,
@@ -204,7 +206,6 @@
                                                   velocityZR,
                                                   gasPressureR,
                                                   totalPressureR,
-                                                  magneticXR,
                                                   magneticYR,
                                                   magneticZR,
                                                   gamma,
@@ -222,13 +223,13 @@
             // Left state
             Real densityFluxL, momentumFluxXL, momentumFluxYL, momentumFluxZL,
                  magneticFluxYL, magneticFluxZL, energyFluxL;
-            _hlldInternal::_nonStarFluxes(momentumXL,
+            mhd::_internal::_nonStarFluxes(momentumXL,
                                           velocityXL,
                                           velocityYL,
                                           velocityZL,
                                           totalPressureL,
                                           energyL,
-                                          magneticXL,
+                                          magneticX,
                                           magneticYL,
                                           magneticZL,
                                           densityFluxL,
@@ -243,7 +244,7 @@
             // In this state the flow is supersonic
             if (speedL >= 0.0)
             {
-                _hlldInternal::_returnFluxes(threadId, o1, o2, o3, n_cells,
+                mhd::_internal::_returnFluxes(threadId, o1, o2, o3, n_cells,
                                              dev_flux,
                                              densityFluxL,
                                              momentumFluxXL, momentumFluxYL, momentumFluxZL,
@@ -263,13 +264,13 @@
             // Right state
             Real densityFluxR, momentumFluxXR, momentumFluxYR, momentumFluxZR,
                  magneticFluxYR, magneticFluxZR, energyFluxR;
-            _hlldInternal::_nonStarFluxes(momentumXR,
+            mhd::_internal::_nonStarFluxes(momentumXR,
                                           velocityXR,
                                           velocityYR,
                                           velocityZR,
                                           totalPressureR,
                                           energyR,
-                                          magneticXR,
+                                          magneticX,
                                           magneticYR,
                                           magneticZR,
                                           densityFluxR,
@@ -284,7 +285,7 @@
             // In this state the flow is supersonic
             if (speedR <= 0.0)
             {
-                _hlldInternal::_returnFluxes(threadId, o1, o2, o3, n_cells,
+                mhd::_internal::_returnFluxes(threadId, o1, o2, o3, n_cells,
                                              dev_flux,
                                              densityFluxR,
                                              momentumFluxXR, momentumFluxYR, momentumFluxZR,
@@ -317,7 +318,7 @@
                  densityStarFluxL,
                  momentumStarFluxXL, momentumStarFluxYL, momentumStarFluxZL,
                  magneticStarFluxYL, magneticStarFluxZL, energyStarFluxL;
-            _hlldInternal::_starFluxes(speedM,
+            mhd::_internal::_starFluxes(speedM,
                                        speedL,
                                        densityL,
                                        velocityXL,
@@ -328,7 +329,7 @@
                                        momentumZL,
                                        energyL,
                                        totalPressureL,
-                                       magneticXL,
+                                       magneticX,
                                        magneticYL,
                                        magneticZL,
                                        densityStarL,
@@ -357,7 +358,7 @@
             // In this state the flow is subsonic
             if (speedStarL >= 0.0)
             {
-                _hlldInternal::_returnFluxes(threadId, o1, o2, o3, n_cells,
+                mhd::_internal::_returnFluxes(threadId, o1, o2, o3, n_cells,
                                              dev_flux,
                                              densityStarFluxL,
                                              momentumStarFluxXL, momentumStarFluxYL, momentumStarFluxZL,
@@ -381,7 +382,7 @@
                  densityStarFluxR,
                  momentumStarFluxXR, momentumStarFluxYR, momentumStarFluxZR,
                  magneticStarFluxYR, magneticStarFluxZR, energyStarFluxR;
-            _hlldInternal::_starFluxes(speedM,
+            mhd::_internal::_starFluxes(speedM,
                                        speedR,
                                        densityR,
                                        velocityXR,
@@ -392,7 +393,7 @@
                                        momentumZR,
                                        energyR,
                                        totalPressureR,
-                                       magneticXR,
+                                       magneticX,
                                        magneticYR,
                                        magneticZR,
                                        densityStarR,
@@ -421,7 +422,7 @@
             // In this state the flow is subsonic
             if (speedStarR <= 0.0)
             {
-                _hlldInternal::_returnFluxes(threadId, o1, o2, o3, n_cells,
+                mhd::_internal::_returnFluxes(threadId, o1, o2, o3, n_cells,
                                              dev_flux,
                                              densityStarFluxR,
                                              momentumStarFluxXR, momentumStarFluxYR, momentumStarFluxZR,
@@ -445,8 +446,8 @@
             Real velocityDoubleStarY, velocityDoubleStarZ,
                  magneticDoubleStarY, magneticDoubleStarZ,
                  energyDoubleStarL, energyDoubleStarR;
-            _hlldInternal::_doubleStarState(speedM,
-                                            magneticXL,
+            mhd::_internal::_doubleStarState(speedM,
+                                            magneticX,
                                             totalPressureStar,
                                             densityStarL,
                                             velocityStarYL,
@@ -473,7 +474,7 @@
                 Real momentumDoubleStarFluxX, momentumDoubleStarFluxY, momentumDoubleStarFluxZ,
                      energyDoubleStarFlux,
                      magneticDoubleStarFluxY, magneticDoubleStarFluxZ;
-                _hlldInternal::_doubleStarFluxes(speedStarL,
+                mhd::_internal::_doubleStarFluxes(speedStarL,
                                                  momentumStarFluxXL,
                                                  momentumStarFluxYL,
                                                  momentumStarFluxZL,
@@ -500,7 +501,7 @@
                                                  magneticDoubleStarFluxY,
                                                  magneticDoubleStarFluxZ);
 
-                _hlldInternal::_returnFluxes(threadId, o1, o2, o3, n_cells,
+                mhd::_internal::_returnFluxes(threadId, o1, o2, o3, n_cells,
                                              dev_flux,
                                              densityStarFluxL,
                                              momentumDoubleStarFluxX, momentumDoubleStarFluxY, momentumDoubleStarFluxZ,
@@ -525,7 +526,7 @@
                 Real momentumDoubleStarFluxX, momentumDoubleStarFluxY, momentumDoubleStarFluxZ,
                      energyDoubleStarFlux,
                      magneticDoubleStarFluxY, magneticDoubleStarFluxZ;
-                _hlldInternal::_doubleStarFluxes(speedStarR,
+                mhd::_internal::_doubleStarFluxes(speedStarR,
                                                  momentumStarFluxXR,
                                                  momentumStarFluxYR,
                                                  momentumStarFluxZR,
@@ -552,7 +553,7 @@
                                                  magneticDoubleStarFluxY,
                                                  magneticDoubleStarFluxZ);
 
-                _hlldInternal::_returnFluxes(threadId, o1, o2, o3, n_cells,
+                mhd::_internal::_returnFluxes(threadId, o1, o2, o3, n_cells,
                                              dev_flux,
                                              densityStarFluxR,
                                              momentumDoubleStarFluxX, momentumDoubleStarFluxY, momentumDoubleStarFluxZ,
@@ -575,7 +576,7 @@
     };
     // =========================================================================
 
-    namespace _hlldInternal
+    namespace _internal
     {
         // =====================================================================
         __device__ __host__ void _approximateWaveSpeeds(Real const &densityL,
@@ -587,7 +588,7 @@
                                                         Real const &velocityZL,
                                                         Real const &gasPressureL,
                                                         Real const &totalPressureL,
-                                                        Real const &magneticXL,
+                                                        Real const &magneticX,
                                                         Real const &magneticYL,
                                                         Real const &magneticZL,
                                                         Real const &densityR,
@@ -599,7 +600,6 @@
                                                         Real const &velocityZR,
                                                         Real const &gasPressureR,
                                                         Real const &totalPressureR,
-                                                        Real const &magneticXR,
                                                         Real const &magneticYR,
                                                         Real const &magneticZR,
                                                         Real const &gamma,
@@ -612,15 +612,15 @@
                                                         Real &densityStarR)
         {
             // Get the fast magnetosonic wave speeds
-            Real magSonicL = mhdUtils::fastMagnetosonicSpeed(densityL,
+            Real magSonicL = mhd::utils::fastMagnetosonicSpeed(densityL,
                                                              gasPressureL,
-                                                             magneticXL,
+                                                             magneticX,
                                                              magneticYL,
                                                              magneticZL,
                                                              gamma);
-            Real magSonicR = mhdUtils::fastMagnetosonicSpeed(densityR,
+            Real magSonicR = mhd::utils::fastMagnetosonicSpeed(densityR,
                                                              gasPressureR,
-                                                             magneticXR,
+                                                             magneticX,
                                                              magneticYR,
                                                              magneticZR,
                                                              gamma);
@@ -646,8 +646,8 @@
             densityStarR = densityR * (speedR - velocityXR) / (speedR - speedM);
 
             // Compute the S_L^* and S_R^* wave speeds
-            speedStarL = speedM - mhdUtils::alfvenSpeed(magneticXL, densityStarL);
-            speedStarR = speedM + mhdUtils::alfvenSpeed(magneticXR, densityStarR);
+            speedStarL = speedM - mhd::utils::alfvenSpeed(magneticX, densityStarL);
+            speedStarR = speedM + mhd::utils::alfvenSpeed(magneticX, densityStarR);
         }
         // =====================================================================
 
@@ -701,13 +701,13 @@
                                                 Real const &magneticFluxY,
                                                 Real const &magneticFluxZ)
         {
-            dev_flux[threadId]                                 = densityFlux;
-            dev_flux[threadId + n_cells * o1]                  = momentumFluxX;
-            dev_flux[threadId + n_cells * o2]                  = momentumFluxY;
-            dev_flux[threadId + n_cells * o3]                  = momentumFluxZ;
-            dev_flux[threadId + n_cells * 4]                   = energyFlux;
-            dev_flux[threadId + n_cells * (o2 + 4 + NSCALARS)] = magneticFluxY;
-            dev_flux[threadId + n_cells * (o3 + 4 + NSCALARS)] = magneticFluxZ;
+            dev_flux[threadId]                            = densityFlux;
+            dev_flux[threadId + n_cells * o1]             = momentumFluxX;
+            dev_flux[threadId + n_cells * o2]             = momentumFluxY;
+            dev_flux[threadId + n_cells * o3]             = momentumFluxZ;
+            dev_flux[threadId + n_cells * 4]              = energyFlux;
+            dev_flux[threadId + n_cells * (5 + NSCALARS)] = magneticFluxY;
+            dev_flux[threadId + n_cells * (6 + NSCALARS)] = magneticFluxZ;
         }
         // =====================================================================
 
@@ -752,7 +752,7 @@
             if (fabs(density * (speedSide - velocityX)
                              * (speedSide - speedM)
                              - (magneticX * magneticX))
-                < totalPressureStar * _hlldInternal::_hlldSmallNumber)
+                < totalPressureStar * mhd::_internal::_hlldSmallNumber)
             {
                 velocityStarY = velocityY;
                 velocityStarZ = velocityZ;
@@ -780,8 +780,8 @@
             energyStar = ( energy * (speedSide - velocityX)
                         - totalPressure * velocityX
                         + totalPressureStar * speedM
-                        + magneticX * (_hlldInternal::_dotProduct(velocityX, velocityY, velocityZ, magneticX, magneticY, magneticZ)
-                                     - _hlldInternal::_dotProduct(speedM, velocityStarY, velocityStarZ, magneticX, magneticStarY, magneticStarZ)))
+                        + magneticX * (math_utils::dotProduct(velocityX, velocityY, velocityZ, magneticX, magneticY, magneticZ)
+                                     - math_utils::dotProduct(speedM, velocityStarY, velocityStarZ, magneticX, magneticStarY, magneticStarZ)))
                         / (speedSide - speedM);
 
             // Now compute the star state fluxes
@@ -819,7 +819,7 @@
                                                   Real &energyDoubleStarR)
         {
             // if Bx is zero then just return the star state
-            if (magneticX < _hlldInternal::_hlldSmallNumber * totalPressureStar)
+            if (magneticX < mhd::_internal::_hlldSmallNumber * totalPressureStar)
             {
                 velocityDoubleStarY = velocityStarYL;
                 velocityDoubleStarZ = velocityStarZL;
@@ -856,17 +856,17 @@
                                       + magXSign * (sqrtDL * sqrtDR) * (velocityStarZR - velocityStarZL));
 
                 // Double star energy
-                Real velDblStarDotMagDblStar = _hlldInternal::_dotProduct(speedM,
+                Real velDblStarDotMagDblStar = math_utils::dotProduct(speedM,
                                                                           velocityDoubleStarY,
                                                                           velocityDoubleStarZ,
                                                                           magneticX,
                                                                           magneticDoubleStarY,
                                                                           magneticDoubleStarZ);
                 energyDoubleStarL = energyStarL - sqrtDL * magXSign
-                    * (_hlldInternal::_dotProduct(speedM, velocityStarYL, velocityStarZL, magneticX, magneticStarYL, magneticStarZL)
+                    * (math_utils::dotProduct(speedM, velocityStarYL, velocityStarZL, magneticX, magneticStarYL, magneticStarZL)
                     - velDblStarDotMagDblStar);
                 energyDoubleStarR = energyStarR + sqrtDR * magXSign
-                    * (_hlldInternal::_dotProduct(speedM, velocityStarYR, velocityStarZR, magneticX, magneticStarYR, magneticStarZR)
+                    * (math_utils::dotProduct(speedM, velocityStarYR, velocityStarZR, magneticX, magneticStarYR, magneticStarZR)
                     - velDblStarDotMagDblStar);
             }
         }
@@ -909,7 +909,7 @@
         }
         // =====================================================================
 
-    } // _hlldInternal namespace
-
+    } // mhd::_internal namespace
+} // end namespace mhd
 
 #endif // CUDA

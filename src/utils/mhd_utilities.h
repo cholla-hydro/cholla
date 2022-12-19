@@ -15,14 +15,17 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
+#include "../utils/cuda_utilities.h"
 
-/*!
- * \brief Namespace for MHD utilities
- *
- */
-namespace mhdUtils
-{
-    namespace // Anonymouse namespace
+namespace mhd{
+namespace utils{
+    /*!
+     * \brief Namespace for functions required by functions within the mhd::utils
+     * namespace. Everything in this name space should be regarded as private
+     * but is made accesible for testing
+     *
+     */
+    namespace _internal
     {
         // =====================================================================
         /*!
@@ -59,11 +62,12 @@ namespace mhdUtils
             return sqrt( (term1 + waveChoice * term2) / (2.0 * fmax(density, TINY_NUMBER)) );
         }
         // =====================================================================
-    }// Anonymouse namespace
+    }// mhd::utils::_internal namespace
 
     // =========================================================================
     /*!
-     * \brief Compute the MHD energy in the cell
+     * \brief Compute the energy in a cell. If MHD is not defined then simply
+     * return the hydro only energy
      *
      * \param[in] pressure The gas pressure
      * \param[in] density The density
@@ -87,9 +91,13 @@ namespace mhdUtils
                                                   Real const &gamma)
     {
         // Compute and return energy
-        return (fmax(pressure,TINY_NUMBER)/(gamma - 1.))
-                + 0.5 * density * (velocityX*velocityX + ((velocityY*velocityY) + (velocityZ*velocityZ)))
-                + 0.5 * (magneticX*magneticX + ((magneticY*magneticY) + (magneticZ*magneticZ)));
+        Real energy =  (fmax(pressure,TINY_NUMBER)/(gamma - 1.))
+                       + 0.5 * density * (velocityX*velocityX + ((velocityY*velocityY) + (velocityZ*velocityZ)));
+        #ifdef  MHD
+            energy += 0.5 * (magneticX*magneticX + ((magneticY*magneticY) + (magneticZ*magneticZ)));
+        #endif  //MHD
+
+        return energy;
     }
     // =========================================================================
 
@@ -159,6 +167,23 @@ namespace mhdUtils
 
     // =========================================================================
     /*!
+     * \brief Compute the magnetic energy
+     *
+     * \param[in] magneticX The magnetic field in the X-direction
+     * \param[in] magneticY The magnetic field in the Y-direction
+     * \param[in] magneticZ The magnetic field in the Z-direction
+     * \return Real The magnetic energy
+     */
+    inline __host__ __device__ Real computeMagneticEnergy(Real const &magneticX,
+                                                          Real const &magneticY,
+                                                          Real const &magneticZ)
+    {
+        return 0.5 * (magneticX*magneticX + ((magneticY*magneticY) + (magneticZ*magneticZ)));
+    }
+    // =========================================================================
+
+    // =========================================================================
+    /*!
      * \brief Compute the total MHD pressure. I.e. magnetic pressure + gas
      * pressure
      *
@@ -199,13 +224,13 @@ namespace mhdUtils
                                                           Real const &gamma)
     {
         // Compute the sound speed
-        return _magnetosonicSpeed(density,
-                                  pressure,
-                                  magneticX,
-                                  magneticY,
-                                  magneticZ,
-                                  gamma,
-                                  1.0);
+        return mhd::utils::_internal::_magnetosonicSpeed(density,
+                                                      pressure,
+                                                      magneticX,
+                                                      magneticY,
+                                                      magneticZ,
+                                                      gamma,
+                                                      1.0);
     }
     // =========================================================================
 
@@ -229,13 +254,13 @@ namespace mhdUtils
                                                           Real const &gamma)
     {
         // Compute the sound speed
-        return _magnetosonicSpeed(density,
-                                  pressure,
-                                  magneticX,
-                                  magneticY,
-                                  magneticZ,
-                                  gamma,
-                                  -1.0);
+        return mhd::utils::_internal::_magnetosonicSpeed(density,
+                                                      pressure,
+                                                      magneticX,
+                                                      magneticY,
+                                                      magneticZ,
+                                                      gamma,
+                                                      -1.0);
     }
     // =========================================================================
 
@@ -285,10 +310,20 @@ namespace mhdUtils
                                                                Real &avgBy,
                                                                Real &avgBz)
     {
-        avgBx = 0.5 * (dev_conserved[(5+NSCALARS)*n_cells + id] + dev_conserved[(5+NSCALARS)*n_cells + ((xid-1) + yid*nx     + zid*nx*ny)]);
-        avgBy = 0.5 * (dev_conserved[(6+NSCALARS)*n_cells + id] + dev_conserved[(6+NSCALARS)*n_cells + (xid     + (yid-1)*nx + zid*nx*ny)]);
-        avgBz = 0.5 * (dev_conserved[(7+NSCALARS)*n_cells + id] + dev_conserved[(7+NSCALARS)*n_cells + (xid     + yid*nx     + (zid-1)*nx*ny)]);
+        // Ternary operator to check that no values outside of the magnetic field
+        // arrays are loaded. If the cell is on the edge that doesn't have magnetic
+        // fields on both sides then instead set the centered magnetic field to be
+        // equal to the magnetic field of the closest edge. T
+        avgBx = (xid > 0) ?
+            /*if true*/ 0.5 * (dev_conserved[(5+NSCALARS)*n_cells + id] + dev_conserved[(5+NSCALARS)*n_cells + cuda_utilities::compute1DIndex(xid-1, yid,   zid,   nx, ny)]):
+            /*if false*/       dev_conserved[(5+NSCALARS)*n_cells + id];
+        avgBy = (yid > 0) ?
+            /*if true*/ 0.5 * (dev_conserved[(6+NSCALARS)*n_cells + id] + dev_conserved[(6+NSCALARS)*n_cells + cuda_utilities::compute1DIndex(xid,   yid-1, zid,   nx, ny)]):
+            /*if false*/       dev_conserved[(6+NSCALARS)*n_cells + id];
+        avgBz = (zid > 0) ?
+            /*if true*/ 0.5 * (dev_conserved[(7+NSCALARS)*n_cells + id] + dev_conserved[(7+NSCALARS)*n_cells + cuda_utilities::compute1DIndex(xid,   yid,   zid-1, nx, ny)]):
+            /*if false*/       dev_conserved[(7+NSCALARS)*n_cells + id];
     }
     // =========================================================================
-
-} // end  namespace mhdUtils
+} // end namespace mhd::utils
+} // end namespace mhd

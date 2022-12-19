@@ -46,22 +46,22 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   #ifdef DE
   Real ge_i, ge_imo, ge_ipo, ge_L, ge_R, dge_L, dge_R, E_kin, E, dge;
-  #endif
+  #endif  //DE
   #ifdef SCALAR
   Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS];
   Real scalar_L[NSCALARS], scalar_R[NSCALARS], dscalar_L[NSCALARS], dscalar_R[NSCALARS];
-  #endif
+  #endif  //SCALAR
 
   #ifndef VL //Don't use velocities to reconstruct when using VL
   Real dtodx = dt/dx;
   Real dfl, dfr, mxfl, mxfr, myfl, myfr, mzfl, mzfr, Efl, Efr;
   #ifdef DE
   Real gefl, gefr;
-  #endif
+  #endif  //DE
   #ifdef SCALAR
   Real scalarfl[NSCALARS], scalarfr[NSCALARS];
-  #endif
-  #endif
+  #endif  //SCALAR
+  #endif  //VL
 
   // get a thread ID
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
@@ -111,10 +111,10 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     for (int i=0; i<NSCALARS; i++) {
       scalar_i[i] = dev_conserved[(5+i)*n_cells + id] / d_i;
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     ge_i = dge / d_i;
-    #endif
+    #endif  //DE
     // cell i-1
     if (dir == 0) id = xid-1 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid-1)*nx + zid*nx*ny;
@@ -136,10 +136,10 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     for (int i=0; i<NSCALARS; i++) {
       scalar_imo[i] = dev_conserved[(5+i)*n_cells + id] / d_imo;
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     ge_imo = dge / d_imo;
-    #endif
+    #endif  //DE
     // cell i+1
     if (dir == 0) id = xid+1 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid+1)*nx + zid*nx*ny;
@@ -161,10 +161,10 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     for (int i=0; i<NSCALARS; i++) {
       scalar_ipo[i] = dev_conserved[(5+i)*n_cells + id] / d_ipo;
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     ge_ipo =  dge / d_ipo;
-    #endif
+    #endif  //DE
 
 
     // Calculate the interface values for each primitive variable
@@ -175,12 +175,12 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     Interface_Values_PLM(p_imo,  p_i,  p_ipo,  &p_L,  &p_R);
     #ifdef DE
     Interface_Values_PLM(ge_imo,  ge_i,  ge_ipo,  &ge_L,  &ge_R);
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       Interface_Values_PLM(scalar_imo[i],  scalar_i[i],  scalar_ipo[i],  &scalar_L[i],  &scalar_R[i]);
     }
-    #endif
+    #endif  //SCALAR
 
     // Apply mimimum constraints
     d_L = fmax(d_L, (Real) TINY_NUMBER);
@@ -200,13 +200,13 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #ifdef DE
     dge_L = d_L*ge_L;
     dge_R = d_R*ge_R;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       dscalar_L[i] = d_L*scalar_L[i];
       dscalar_R[i] = d_R*scalar_R[i];
     }
-    #endif
+    #endif  //SCALAR
 
     // #ifdef CTU
     #ifndef VL //Don't use velocities to reconstruct when using VL
@@ -224,13 +224,13 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #ifdef DE
     gefl = dge_L*vx_L;
     gefr = dge_R*vx_R;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalarfl[i] = dscalar_L[i]*vx_L;
       scalarfr[i] = dscalar_R[i]*vx_R;
     }
-    #endif
+    #endif  //SCALAR
 
     // Evolve the boundary extrapolated values half a timestep.
     d_L += 0.5 * (dtodx) * (dfl - dfr);
@@ -246,13 +246,13 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     #ifdef DE
     dge_L += 0.5 * (dtodx) * (gefl - gefr);
     dge_R += 0.5 * (dtodx) * (gefl - gefr);
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       dscalar_L[i] += 0.5 * (dtodx) * (scalarfl[i] - scalarfr[i]);
       dscalar_R[i] += 0.5 * (dtodx) * (scalarfl[i] - scalarfr[i]);
     }
-    #endif
+    #endif  //SCALAR
 
     #endif //NO VL
 
@@ -271,10 +271,10 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_R[(5+i)*n_cells + id] = dscalar_L[i];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     dev_bounds_R[(n_fields-1)*n_cells + id] = dge_L;
-    #endif
+    #endif  //DE
     // bounds_L refers to the left side of the i+1/2 interface
     id = xid + yid*nx + zid*nx*ny;
     dev_bounds_L[            id] = d_R;
@@ -286,10 +286,10 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_L[(5+i)*n_cells + id] = dscalar_R[i];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     dev_bounds_L[(n_fields-1)*n_cells + id] = dge_R;
-    #endif
+    #endif  //DE
 
   }
 }

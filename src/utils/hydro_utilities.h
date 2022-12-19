@@ -71,6 +71,40 @@ namespace hydro_utilities {
         return P;
     }
 
+    /*!
+     * \brief Compute the kinetic energy from the density and velocities
+     *
+     * \param[in] d The density
+     * \param[in] vx The x velocity
+     * \param[in] vy The y velocity
+     * \param[in] vz The z velocity
+     * \return Real The kinetic energy
+     */
+    inline __host__ __device__ Real Calc_Kinetic_Energy_From_Velocity(Real const &d,
+                                                                      Real const &vx,
+                                                                      Real const &vy,
+                                                                      Real const &vz)
+    {
+        return 0.5 * d * (vx*vx + vy*vy * vz*vz);
+    }
+
+    /*!
+     * \brief Compute the kinetic energy from the density and momenta
+     *
+     * \param[in] d The density
+     * \param[in] mx The x momentum
+     * \param[in] my The y momentum
+     * \param[in] mz The z momentum
+     * \return Real The kinetic energy
+     */
+    inline __host__ __device__ Real Calc_Kinetic_Energy_From_Momentum(Real const &d,
+                                                                      Real const &mx,
+                                                                      Real const &my,
+                                                                      Real const &mz)
+    {
+        return (0.5 / d) * (mx*mx + my*my * mz*mz);
+    }
+
     inline __host__ __device__ Real Calc_Sound_Speed(Real const &E, Real const &d, Real const &mx, Real const &my, Real const &mz, Real const &gamma) {
         Real P = Calc_Pressure_Conserved(E, d, mx, my, mz, gamma);
         return sqrt(gamma * P / d);

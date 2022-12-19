@@ -20,7 +20,7 @@ static void __attribute__((unused)) check(const hipfftResult err, const char *co
   exit(err);
 }
 
-#endif  // PARIS PARIC_GALACTIC
+#endif  //CUFFT PARIS PARIS_GALACTIC
 
 #define WARPSIZE 64
 static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
@@ -53,6 +53,7 @@ static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define cudaMemcpy hipMemcpy
 #define cudaMemcpyAsync hipMemcpyAsync
 #define cudaMemcpyPeer hipMemcpyPeer
+#define cudaMemcpyPeer hipMemcpyPeer
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
 #define cudaMemcpyDeviceToDevice hipMemcpyDeviceToDevice
 #define cudaMemcpyHostToDevice hipMemcpyHostToDevice
@@ -65,10 +66,11 @@ static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define cudaGetDeviceProperties hipGetDeviceProperties
 #define cudaPointerAttributes hipPointerAttribute_t
 #define cudaPointerGetAttributes hipPointerGetAttributes
+#define cudaOccupancyMaxPotentialBlockSize hipOccupancyMaxPotentialBlockSize
 
 // Texture definitions
 #define cudaArray hipArray
-#define cudaMallocArray hipMallocArray 
+#define cudaMallocArray hipMallocArray
 #define cudaFreeArray hipFreeArray
 #define cudaMemcpyToArray hipMemcpyToArray
 #define cudaMemcpy2DToArray hipMemcpy2DToArray
@@ -87,8 +89,10 @@ static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define cudaTextureDesc hipTextureDesc
 #define cudaAddressModeClamp hipAddressModeClamp
 #define cudaFilterModeLinear hipFilterModeLinear
-#define cudaFilterModePoint hipFilterModePoint 
+#define cudaFilterModePoint hipFilterModePoint
 // Texture Definitions
+#define cudaPointerAttributes hipPointerAttribute_t
+#define cudaPointerGetAttributes hipPointerGetAttributes
 
 // FFT definitions
 #define cufftDestroy hipfftDestroy

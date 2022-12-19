@@ -42,7 +42,7 @@ typedef double Real;
 #define MSUN_CGS 1.98847e33; //Msun in gr
 #define KPC_CGS 3.086e21;  //kpc in cm
 #define KM_CGS 1e5; //km in cm
-#define MH 1.67262171e-24 //Mass of hydrogen [g]   
+#define MH 1.67262171e-24 //Mass of hydrogen [g]
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
 #define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
@@ -235,9 +235,9 @@ struct parameters
   Real vz;
   Real P;
   Real A;
-  Real Bx;
-  Real By;
-  Real Bz;
+  Real Bx=0;
+  Real By=0;
+  Real Bz=0;
   Real rho_l;
   Real vx_l;
   Real vy_l=0;
@@ -255,6 +255,16 @@ struct parameters
   Real By_r;
   Real Bz_r;
   Real diaph;
+  Real rEigenVec_rho = 0;
+  Real rEigenVec_MomentumX  = 0;
+  Real rEigenVec_MomentumY  = 0;
+  Real rEigenVec_MomentumZ  = 0;
+  Real rEigenVec_E   = 0;
+  Real rEigenVec_Bx  = 0;
+  Real rEigenVec_By  = 0;
+  Real rEigenVec_Bz  = 0;
+  Real pitch = 0;
+  Real yaw = 0;
 #ifdef PARTICLES
   // The random seed for particle simulations. With the default of 0 then a
   // machine dependent seed will be generated.
@@ -294,7 +304,7 @@ struct parameters
   int bc_potential_type;
 #if defined(COOLING_GRACKLE) || defined (CHEMISTRY_GPU)
   char UVB_rates_file[MAXLEN]; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
-#endif  
+#endif
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
   char analysisdir[MAXLEN];
