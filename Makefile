@@ -188,8 +188,15 @@ CFLAGS_CLANG_TIDY   := $(subst -I/, -isystem /,$(CFLAGS))
 GPUFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(GPUFLAGS))
 GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS))
 GPUFLAGS_CLANG_TIDY += --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes
+CPPFILES_TIDY := $(CPPFILES)
+CFILES_TIDY   := $(CFILES)
+GPUFILES_TIDY := $(GPUFILES)
 
-
+ifdef TIDY_FILES
+  CPPFILES_TIDY := $(filter $(TIDY_FILES), $(CPPFILES_TIDY))
+  CFILES_TIDY   := $(filter $(TIDY_FILES), $(CFILES_TIDY))
+  GPUFILES_TIDY := $(filter $(TIDY_FILES), $(GPUFILES_TIDY))
+endif
 
 $(EXEC): prereq-build $(OBJS)
 	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
@@ -213,9 +220,9 @@ tidy:
 # Flags we might want
 # - --warnings-as-errors=<string> Upgrade all warnings to error, good for CI
 	clang-tidy --verify-config
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES) -- $(DFLAGS) $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp.log 2>&1 & \
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(CFILES)   -- $(DFLAGS) $(CFLAGS_CLANG_TIDY)   $(LIBS_CLANG_TIDY)) > tidy_results_c.log   2>&1 & \
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES) -- $(DFLAGS) $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu.log 2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(DFLAGS) $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp.log 2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(CFILES_TIDY)   -- $(DFLAGS) $(CFLAGS_CLANG_TIDY)   $(LIBS_CLANG_TIDY)) > tidy_results_c.log   2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES_TIDY) -- $(DFLAGS) $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu.log 2>&1 & \
 	for i in 1 2 3; do wait -n; done
 
 clean:
