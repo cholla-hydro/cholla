@@ -67,8 +67,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
       // `Q_Lx` interface store the reconstructed Y and Z magnetic fields in
       // that order, the `Q_Ly` interface stores the Z and X mangetic fields in
       // that order, and the `Q_Lz` interface stores the X and Y magnetic fields
-      // in that order. These fields start at the (5+NSCALARS)*n_cells and
-      // (6+NSCALARS)*n_cells locations respectively. The interface state arrays
+      // in that order. These fields can be indexed with the Q_?_dir grid_enums. The interface state arrays
       // store in the interface on the "right" side of the cell, so the flux
       // arrays store the fluxes through the right interface
       //
@@ -77,12 +76,12 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
       // -cross(V,B)x is the negative of the x-component of V cross B. Note that
       // "X" is the direction the solver is running in this case, not
       // necessarily the true "X".
-      //  F_x[(5+NSCALARS)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_Z
-      //  F_x[(6+NSCALARS)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_Y
-      //  F_y[(5+NSCALARS)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_X
-      //  F_y[(6+NSCALARS)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_Z
-      //  F_z[(5+NSCALARS)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_Y
-      //  F_z[(6+NSCALARS)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_X
+      //  F_x[(grid_enum::fluxX_magnetic_z)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_Z
+      //  F_x[(grid_enum::fluxX_magnetic_y)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_Y
+      //  F_y[(grid_enum::fluxY_magnetic_x)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_X
+      //  F_y[(grid_enum::fluxY_magnetic_z)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_Z
+      //  F_z[(grid_enum::fluxZ_magnetic_y)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_Y
+      //  F_z[(grid_enum::fluxZ_magnetic_x)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_X
       size_t const arraySize   = (n_fields-1) * n_cells * sizeof(Real);
       size_t const ctArraySize =            3 * n_cells * sizeof(Real);
     #else  // not MHD
@@ -157,9 +156,9 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
     hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
     #endif //HLL
     #ifdef HLLD
-    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, &(dev_conserved[(5 + NSCALARS) * n_cells]), F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
-    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, &(dev_conserved[(6 + NSCALARS) * n_cells]), F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
-    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, &(dev_conserved[(7 + NSCALARS) * n_cells]), F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
+    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, &(dev_conserved[(grid_enum::magnetic_x) * n_cells]), F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, &(dev_conserved[(grid_enum::magnetic_y) * n_cells]), F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
+    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, &(dev_conserved[(grid_enum::magnetic_z) * n_cells]), F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
     #endif //HLLD
     CudaCheckError();
 
@@ -227,9 +226,9 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
     hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
     #endif //HLLC
     #ifdef HLLD
-    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, &(dev_conserved_half[(5 + NSCALARS) * n_cells]), F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
-    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, &(dev_conserved_half[(6 + NSCALARS) * n_cells]), F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
-    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, &(dev_conserved_half[(7 + NSCALARS) * n_cells]), F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
+    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, &(dev_conserved_half[(grid_enum::magnetic_x) * n_cells]), F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, &(dev_conserved_half[(grid_enum::magnetic_y) * n_cells]), F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
+    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, &(dev_conserved_half[(grid_enum::magnetic_z) * n_cells]), F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
     #endif //HLLD
     CudaCheckError();
 

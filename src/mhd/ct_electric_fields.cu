@@ -44,12 +44,12 @@ namespace mhd
             // fields/EMF. -cross(V,B)x is the negative of the x-component of V
             // cross B. Note that "X" is the direction the solver is running in
             // this case, not necessarily the true "X".
-            //  F_x[(5+NSCALARS)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_Z
-            //  F_x[(6+NSCALARS)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_Y
-            //  F_y[(5+NSCALARS)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_X
-            //  F_y[(6+NSCALARS)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_Z
-            //  F_z[(5+NSCALARS)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_Y
-            //  F_z[(6+NSCALARS)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_X
+            //  F_x[(grid_enum::fluxX_magnetic_z)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_Z
+            //  F_x[(grid_enum::fluxX_magnetic_y)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_Y
+            //  F_y[(grid_enum::fluxY_magnetic_x)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_X
+            //  F_y[(grid_enum::fluxY_magnetic_z)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_Z
+            //  F_z[(grid_enum::fluxZ_magnetic_y)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_Y
+            //  F_z[(grid_enum::fluxZ_magnetic_x)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_X
 
             // Notes on Implementation Details
             // - The density flux has the same sign as the velocity on the face
@@ -147,10 +147,10 @@ namespace mhd
             // Load the face centered electric fields  Note the negative signs to
             // convert from magnetic flux to electric field
 
-            face_y_pos = + fluxZ[cuda_utilities::compute1DIndex(xid  , yid  , zid-1, nx, ny) + (6+NSCALARS)*n_cells];
-            face_y_neg = + fluxZ[cuda_utilities::compute1DIndex(xid  , yid-1, zid-1, nx, ny) + (6+NSCALARS)*n_cells];
-            face_z_pos = - fluxY[cuda_utilities::compute1DIndex(xid  , yid-1, zid  , nx, ny) + (5+NSCALARS)*n_cells];
-            face_z_neg = - fluxY[cuda_utilities::compute1DIndex(xid  , yid-1, zid-1, nx, ny) + (5+NSCALARS)*n_cells];
+            face_y_pos = + fluxZ[cuda_utilities::compute1DIndex(xid  , yid  , zid-1, nx, ny) + (grid_enum::fluxZ_magnetic_x)*n_cells];
+            face_y_neg = + fluxZ[cuda_utilities::compute1DIndex(xid  , yid-1, zid-1, nx, ny) + (grid_enum::fluxZ_magnetic_x)*n_cells];
+            face_z_pos = - fluxY[cuda_utilities::compute1DIndex(xid  , yid-1, zid  , nx, ny) + (grid_enum::fluxY_magnetic_x)*n_cells];
+            face_z_neg = - fluxY[cuda_utilities::compute1DIndex(xid  , yid-1, zid-1, nx, ny) + (grid_enum::fluxY_magnetic_x)*n_cells];
 
             // sum and average face centered electric fields and slopes to get the
             // edge averaged electric field.
@@ -233,10 +233,10 @@ namespace mhd
 
             // Load the face centered electric fields  Note the negative signs to
             // convert from magnetic flux to electric field
-            face_x_pos = - fluxZ[cuda_utilities::compute1DIndex(xid  , yid, zid-1, nx, ny) + (5+NSCALARS)*n_cells];
-            face_x_neg = - fluxZ[cuda_utilities::compute1DIndex(xid-1, yid, zid-1, nx, ny) + (5+NSCALARS)*n_cells];
-            face_z_pos = + fluxX[cuda_utilities::compute1DIndex(xid-1, yid, zid  , nx, ny) + (6+NSCALARS)*n_cells];
-            face_z_neg = + fluxX[cuda_utilities::compute1DIndex(xid-1, yid, zid-1, nx, ny) + (6+NSCALARS)*n_cells];
+            face_x_pos = - fluxZ[cuda_utilities::compute1DIndex(xid  , yid, zid-1, nx, ny) + (grid_enum::fluxZ_magnetic_y)*n_cells];
+            face_x_neg = - fluxZ[cuda_utilities::compute1DIndex(xid-1, yid, zid-1, nx, ny) + (grid_enum::fluxZ_magnetic_y)*n_cells];
+            face_z_pos = + fluxX[cuda_utilities::compute1DIndex(xid-1, yid, zid  , nx, ny) + (grid_enum::fluxX_magnetic_y)*n_cells];
+            face_z_neg = + fluxX[cuda_utilities::compute1DIndex(xid-1, yid, zid-1, nx, ny) + (grid_enum::fluxX_magnetic_y)*n_cells];
 
             // sum and average face centered electric fields and slopes to get the
             // edge averaged electric field.
@@ -319,10 +319,10 @@ namespace mhd
 
             // Load the face centered electric fields  Note the negative signs to
             // convert from magnetic flux to electric field
-            face_x_pos = + fluxY[cuda_utilities::compute1DIndex(xid  , yid-1, zid, nx, ny) + (6+NSCALARS)*n_cells];
-            face_x_neg = + fluxY[cuda_utilities::compute1DIndex(xid-1, yid-1, zid, nx, ny) + (6+NSCALARS)*n_cells];
-            face_y_pos = - fluxX[cuda_utilities::compute1DIndex(xid-1, yid  , zid, nx, ny) + (5+NSCALARS)*n_cells];
-            face_y_neg = - fluxX[cuda_utilities::compute1DIndex(xid-1, yid-1, zid, nx, ny) + (5+NSCALARS)*n_cells];
+            face_x_pos = + fluxY[cuda_utilities::compute1DIndex(xid  , yid-1, zid, nx, ny) + (grid_enum::fluxY_magnetic_z)*n_cells];
+            face_x_neg = + fluxY[cuda_utilities::compute1DIndex(xid-1, yid-1, zid, nx, ny) + (grid_enum::fluxY_magnetic_z)*n_cells];
+            face_y_pos = - fluxX[cuda_utilities::compute1DIndex(xid-1, yid  , zid, nx, ny) + (grid_enum::fluxX_magnetic_z)*n_cells];
+            face_y_neg = - fluxX[cuda_utilities::compute1DIndex(xid-1, yid-1, zid, nx, ny) + (grid_enum::fluxX_magnetic_z)*n_cells];
 
             // sum and average face centered electric fields and slopes to get the
             // edge averaged electric field.

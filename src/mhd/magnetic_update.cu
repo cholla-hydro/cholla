@@ -61,17 +61,17 @@ namespace mhd
             // Perform Updates
 
             // X field update
-            destinationGrid[threadId + (5+NSCALARS)*n_cells] = sourceGrid[threadId + (5+NSCALARS)*n_cells]
+            destinationGrid[threadId + (grid_enum::magnetic_x)*n_cells] = sourceGrid[threadId + (grid_enum::magnetic_x)*n_cells]
                 + dtodz * (electric_y_3 - electric_y_1)
                 + dtody * (electric_z_1 - electric_z_3);
 
             // Y field update
-            destinationGrid[threadId + (6+NSCALARS)*n_cells] = sourceGrid[threadId + (6+NSCALARS)*n_cells]
+            destinationGrid[threadId + (grid_enum::magnetic_y)*n_cells] = sourceGrid[threadId + (grid_enum::magnetic_y)*n_cells]
                 + dtodx * (electric_z_3 - electric_z_2)
                 + dtodz * (electric_x_1 - electric_x_3);
 
             // Z field update
-            destinationGrid[threadId + (7+NSCALARS)*n_cells] = sourceGrid[threadId + (7+NSCALARS)*n_cells]
+            destinationGrid[threadId + (grid_enum::magnetic_z)*n_cells] = sourceGrid[threadId + (grid_enum::magnetic_z)*n_cells]
                 + dtody * (electric_x_3 - electric_x_2)
                 + dtodx * (electric_y_2 - electric_y_3);
         }

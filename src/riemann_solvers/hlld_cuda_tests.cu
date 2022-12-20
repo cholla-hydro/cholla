@@ -16,6 +16,7 @@
 
 // Local Includes
 #include "../global/global_cuda.h"
+#include "../grid/grid_enum.h"
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
 #include "../utils/mhd_utilities.h"
@@ -65,12 +66,11 @@
 
             // Create new vectors that store the values in the way that the HLLD
             // solver expects
-            size_t const magXIndex = 5+NSCALARS;
-            EXPECT_DOUBLE_EQ(stateLeft.at(magXIndex), stateRight.at(magXIndex))
+            EXPECT_DOUBLE_EQ(stateLeft.at(grid_enum::magnetic_x), stateRight.at(grid_enum::magnetic_x))
                 << "The left and right magnetic fields are not equal";
-            std::vector<Real> const magneticX{stateLeft.at(magXIndex)};
-            stateLeft.erase(stateLeft.begin() + magXIndex);
-            stateRight.erase(stateRight.begin() + magXIndex);
+            std::vector<Real> const magneticX{stateLeft.at(grid_enum::magnetic_x)};
+            stateLeft.erase(stateLeft.begin() + grid_enum::magnetic_x);
+            stateRight.erase(stateRight.begin() + grid_enum::magnetic_x);
 
             // Simulation Paramters
             int const nx        = 1;  // Number of cells in the x-direction
@@ -153,7 +153,7 @@
             // The HLLD solver only writes the the first two "slots" for
             // magnetic flux so let's rearrange to make sure we have all the
             // magnetic fluxes in the right spots
-            testFlux.insert(testFlux.begin() + magXIndex, 0.0);
+            testFlux.insert(testFlux.begin() + grid_enum::magnetic_x, 0.0);
             std::rotate(testFlux.begin() + 1, testFlux.begin() + 1 + direction, testFlux.begin() + 4);  // Rotate momentum
 
             return testFlux;
@@ -294,9 +294,9 @@
                                                                 output.at(1),
                                                                 output.at(2),
                                                                 output.at(3),
-                                                                output.at(5 + NSCALARS),
-                                                                output.at(6 + NSCALARS),
-                                                                output.at(7 + NSCALARS),
+                                                                output.at(grid_enum::magnetic_x),
+                                                                output.at(grid_enum::magnetic_y),
+                                                                output.at(grid_enum::magnetic_z),
                                                                 gamma));
             #endif  //DE
             return output;
@@ -1665,11 +1665,11 @@
             negativeDensityPressure.insert(negativeDensityPressure.begin()+5, conservedScalar.begin(), conservedScalar.begin() + NSCALARS);
         #endif  // SCALAR
         #ifdef  DE
-            negativePressure.push_back(mhd::utils::computeThermalEnergy(negativePressure.at(4),negativePressure.at(0),negativePressure.at(1),negativePressure.at(2),negativePressure.at(3),negativePressure.at(5 + NSCALARS),negativePressure.at(6 + NSCALARS),negativePressure.at(7 + NSCALARS),gamma));
-            negativeEnergy.push_back(mhd::utils::computeThermalEnergy(negativeEnergy.at(4),negativeEnergy.at(0),negativeEnergy.at(1),negativeEnergy.at(2),negativeEnergy.at(3),negativeEnergy.at(5 + NSCALARS),negativeEnergy.at(6 + NSCALARS),negativeEnergy.at(7 + NSCALARS),gamma));
-            negativeDensity.push_back(mhd::utils::computeThermalEnergy(negativeDensity.at(4),negativeDensity.at(0),negativeDensity.at(1),negativeDensity.at(2),negativeDensity.at(3),negativeDensity.at(5 + NSCALARS),negativeDensity.at(6 + NSCALARS),negativeDensity.at(7 + NSCALARS),gamma));
-            negativeDensityEnergyPressure.push_back(mhd::utils::computeThermalEnergy(negativeDensityEnergyPressure.at(4),negativeDensityEnergyPressure.at(0),negativeDensityEnergyPressure.at(1),negativeDensityEnergyPressure.at(2),negativeDensityEnergyPressure.at(3),negativeDensityEnergyPressure.at(5 + NSCALARS),negativeDensityEnergyPressure.at(6 + NSCALARS),negativeDensityEnergyPressure.at(7 + NSCALARS),gamma));
-            negativeDensityPressure.push_back(mhd::utils::computeThermalEnergy(negativeDensityPressure.at(4),negativeDensityPressure.at(0),negativeDensityPressure.at(1),negativeDensityPressure.at(2),negativeDensityPressure.at(3),negativeDensityPressure.at(5 + NSCALARS),negativeDensityPressure.at(6 + NSCALARS),negativeDensityPressure.at(7 + NSCALARS),gamma));
+            negativePressure.push_back(mhd::utils::computeThermalEnergy(negativePressure.at(4),negativePressure.at(0),negativePressure.at(1),negativePressure.at(2),negativePressure.at(3),negativePressure.at(grid_enum::magnetic_x),negativePressure.at(grid_enum::magnetic_y),negativePressure.at(grid_enum::magnetic_z),gamma));
+            negativeEnergy.push_back(mhd::utils::computeThermalEnergy(negativeEnergy.at(4),negativeEnergy.at(0),negativeEnergy.at(1),negativeEnergy.at(2),negativeEnergy.at(3),negativeEnergy.at(grid_enum::magnetic_x),negativeEnergy.at(grid_enum::magnetic_y),negativeEnergy.at(grid_enum::magnetic_z),gamma));
+            negativeDensity.push_back(mhd::utils::computeThermalEnergy(negativeDensity.at(4),negativeDensity.at(0),negativeDensity.at(1),negativeDensity.at(2),negativeDensity.at(3),negativeDensity.at(grid_enum::magnetic_x),negativeDensity.at(grid_enum::magnetic_y),negativeDensity.at(grid_enum::magnetic_z),gamma));
+            negativeDensityEnergyPressure.push_back(mhd::utils::computeThermalEnergy(negativeDensityEnergyPressure.at(4),negativeDensityEnergyPressure.at(0),negativeDensityEnergyPressure.at(1),negativeDensityEnergyPressure.at(2),negativeDensityEnergyPressure.at(3),negativeDensityEnergyPressure.at(grid_enum::magnetic_x),negativeDensityEnergyPressure.at(grid_enum::magnetic_y),negativeDensityEnergyPressure.at(grid_enum::magnetic_z),gamma));
+            negativeDensityPressure.push_back(mhd::utils::computeThermalEnergy(negativeDensityPressure.at(4),negativeDensityPressure.at(0),negativeDensityPressure.at(1),negativeDensityPressure.at(2),negativeDensityPressure.at(3),negativeDensityPressure.at(grid_enum::magnetic_x),negativeDensityPressure.at(grid_enum::magnetic_y),negativeDensityPressure.at(grid_enum::magnetic_z),gamma));
         #endif  //DE
 
         for (size_t direction = 0; direction < 3; direction++)
@@ -2532,8 +2532,8 @@
             int const fiducialMomentumIndexY = threadId + n_cells * o2;
             int const fiducialMomentumIndexZ = threadId + n_cells * o3;
             int const fiducialEnergyIndex    = threadId + n_cells * 4;
-            int const fiducialMagneticYIndex = threadId + n_cells * (5 + NSCALARS);
-            int const fiducialMagneticZIndex = threadId + n_cells * (6 + NSCALARS);
+            int const fiducialMagneticYIndex = threadId + n_cells * (grid_enum::magnetic_x);
+            int const fiducialMagneticZIndex = threadId + n_cells * (grid_enum::magnetic_y);
 
             mhd::_internal::_returnFluxes(threadId,
                                          o1,

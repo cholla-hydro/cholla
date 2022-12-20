@@ -2,8 +2,8 @@
 
 // An enum which holds offsets for grid quantities
 // In the final form of this approach, this file will also set nfields (not yet) and NSCALARS (done)
-// so that adding a field only requires registering it here: 
-// grid knows to allocate memory based on nfields and NSCALARS 
+// so that adding a field only requires registering it here:
+// grid knows to allocate memory based on nfields and NSCALARS
 // and values can be accessed with density[id + ncells*grid_enum::enum_name]
 // example: C.device[id + H.n_cells*grid_enum::basic_scalar]
 
@@ -55,7 +55,7 @@ enum : int {
   #endif // SCALAR
 
   finalscalar_plus_1, // needed to calculate NSCALARS
-  finalscalar = finalscalar_plus_1 - 1, // resets enum to finalscalar so fields afterwards are correct  
+  finalscalar = finalscalar_plus_1 - 1, // resets enum to finalscalar so fields afterwards are correct
   // so that anything after starts with scalar + NSCALARS
 
   #ifdef MHD
@@ -69,7 +69,29 @@ enum : int {
   num_fields,
 
 //Aliases and manually computed enums
+  #ifdef  MHD
+  num_flux_fields = num_fields-1,
+  num_interface_fields = num_fields-1,
+  #else
+  num_flux_fields = num_fields,
+  num_interface_fields = num_fields,
+  #endif  //MHD
   nscalars = finalscalar_plus_1 - scalar,
+  magnetic_start = magnetic_x,
+  magnetic_end   = magnetic_z,
+  // Note that the direction of the flux, the suffix _? indicates the direction of the electric field, not the magnetic flux
+  fluxX_magnetic_z = magnetic_start,
+  fluxX_magnetic_y = magnetic_start+1,
+  fluxY_magnetic_x = magnetic_start,
+  fluxY_magnetic_z = magnetic_start+1,
+  fluxZ_magnetic_y = magnetic_start,
+  fluxZ_magnetic_x = magnetic_start+1,
+  Q_x_magnetic_y = magnetic_start,
+  Q_x_magnetic_z = magnetic_start+1,
+  Q_y_magnetic_z = magnetic_start,
+  Q_y_magnetic_x = magnetic_start+1,
+  Q_z_magnetic_x = magnetic_start,
+  Q_z_magnetic_y = magnetic_start+1
 
 };
 }

@@ -1193,12 +1193,12 @@ __device__ void Average_Cell_All_Fields( int i, int j, int k, int nx, int ny, in
   Average_Cell_Single_Field( 4, i, j, k, nx, ny, nz, ncells, conserved );
   #ifdef  MHD
     // Average MHD
-    Average_Cell_Single_Field( 5+NSCALARS, i,   j,   k,   nx, ny, nz, ncells, conserved );
-    Average_Cell_Single_Field( 6+NSCALARS, i,   j,   k,   nx, ny, nz, ncells, conserved );
-    Average_Cell_Single_Field( 7+NSCALARS, i,   j,   k,   nx, ny, nz, ncells, conserved );
-    Average_Cell_Single_Field( 5+NSCALARS, i-1, j,   k,   nx, ny, nz, ncells, conserved );
-    Average_Cell_Single_Field( 6+NSCALARS, i,   j-1, k,   nx, ny, nz, ncells, conserved );
-    Average_Cell_Single_Field( 7+NSCALARS, i,   j,   k-1, nx, ny, nz, ncells, conserved );
+    Average_Cell_Single_Field( grid_enum::magnetic_x, i,   j,   k,   nx, ny, nz, ncells, conserved );
+    Average_Cell_Single_Field( grid_enum::magnetic_y, i,   j,   k,   nx, ny, nz, ncells, conserved );
+    Average_Cell_Single_Field( grid_enum::magnetic_z, i,   j,   k,   nx, ny, nz, ncells, conserved );
+    Average_Cell_Single_Field( grid_enum::magnetic_x, i-1, j,   k,   nx, ny, nz, ncells, conserved );
+    Average_Cell_Single_Field( grid_enum::magnetic_y, i,   j-1, k,   nx, ny, nz, ncells, conserved );
+    Average_Cell_Single_Field( grid_enum::magnetic_z, i,   j,   k-1, nx, ny, nz, ncells, conserved );
   #endif  //MHD
   #ifdef DE
   // Average GasEnergy

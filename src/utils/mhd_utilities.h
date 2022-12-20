@@ -315,14 +315,14 @@ namespace utils{
         // fields on both sides then instead set the centered magnetic field to be
         // equal to the magnetic field of the closest edge. T
         avgBx = (xid > 0) ?
-            /*if true*/ 0.5 * (dev_conserved[(5+NSCALARS)*n_cells + id] + dev_conserved[(5+NSCALARS)*n_cells + cuda_utilities::compute1DIndex(xid-1, yid,   zid,   nx, ny)]):
-            /*if false*/       dev_conserved[(5+NSCALARS)*n_cells + id];
+            /*if true*/ 0.5 * (dev_conserved[(grid_enum::magnetic_x)*n_cells + id] + dev_conserved[(grid_enum::magnetic_x)*n_cells + cuda_utilities::compute1DIndex(xid-1, yid,   zid,   nx, ny)]):
+            /*if false*/       dev_conserved[(grid_enum::magnetic_x)*n_cells + id];
         avgBy = (yid > 0) ?
-            /*if true*/ 0.5 * (dev_conserved[(6+NSCALARS)*n_cells + id] + dev_conserved[(6+NSCALARS)*n_cells + cuda_utilities::compute1DIndex(xid,   yid-1, zid,   nx, ny)]):
-            /*if false*/       dev_conserved[(6+NSCALARS)*n_cells + id];
+            /*if true*/ 0.5 * (dev_conserved[(grid_enum::magnetic_y)*n_cells + id] + dev_conserved[(grid_enum::magnetic_y)*n_cells + cuda_utilities::compute1DIndex(xid,   yid-1, zid,   nx, ny)]):
+            /*if false*/       dev_conserved[(grid_enum::magnetic_y)*n_cells + id];
         avgBz = (zid > 0) ?
-            /*if true*/ 0.5 * (dev_conserved[(7+NSCALARS)*n_cells + id] + dev_conserved[(7+NSCALARS)*n_cells + cuda_utilities::compute1DIndex(xid,   yid,   zid-1, nx, ny)]):
-            /*if false*/       dev_conserved[(7+NSCALARS)*n_cells + id];
+            /*if true*/ 0.5 * (dev_conserved[(grid_enum::magnetic_z)*n_cells + id] + dev_conserved[(grid_enum::magnetic_z)*n_cells + cuda_utilities::compute1DIndex(xid,   yid,   zid-1, nx, ny)]):
+            /*if false*/       dev_conserved[(grid_enum::magnetic_z)*n_cells + id];
     }
     // =========================================================================
 } // end namespace mhd::utils

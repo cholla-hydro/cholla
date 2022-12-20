@@ -16,6 +16,7 @@
 #include "../riemann_solvers/hlld_cuda.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/math_utilities.h"
+#include "../grid/grid_enum.h"
 
 #ifdef DE //PRESSURE_DE
     #include "../utils/hydro_utilities.h"
@@ -73,8 +74,8 @@ namespace mhd
             Real momentumYL = dev_bounds_L[threadId + n_cells * o2];
             Real momentumZL = dev_bounds_L[threadId + n_cells * o3];
             Real energyL    = dev_bounds_L[threadId + n_cells * 4];
-            Real magneticYL = dev_bounds_L[threadId + n_cells * (5 + NSCALARS)];
-            Real magneticZL = dev_bounds_L[threadId + n_cells * (6 + NSCALARS)];
+            Real magneticYL = dev_bounds_L[threadId + n_cells * (grid_enum::Q_x_magnetic_y)];
+            Real magneticZL = dev_bounds_L[threadId + n_cells * (grid_enum::Q_x_magnetic_z)];
 
             #ifdef SCALAR
                 Real scalarConservedL[NSCALARS];
@@ -93,8 +94,8 @@ namespace mhd
             Real momentumYR = dev_bounds_R[threadId + n_cells * o2];
             Real momentumZR = dev_bounds_R[threadId + n_cells * o3];
             Real energyR    = dev_bounds_R[threadId + n_cells * 4];
-            Real magneticYR = dev_bounds_R[threadId + n_cells * (5 + NSCALARS)];
-            Real magneticZR = dev_bounds_R[threadId + n_cells * (6 + NSCALARS)];
+            Real magneticYR = dev_bounds_R[threadId + n_cells * (grid_enum::Q_x_magnetic_y)];
+            Real magneticZR = dev_bounds_R[threadId + n_cells * (grid_enum::Q_x_magnetic_z)];
 
             #ifdef SCALAR
                 Real scalarConservedR[NSCALARS];
@@ -706,8 +707,8 @@ namespace mhd
             dev_flux[threadId + n_cells * o2]             = momentumFluxY;
             dev_flux[threadId + n_cells * o3]             = momentumFluxZ;
             dev_flux[threadId + n_cells * 4]              = energyFlux;
-            dev_flux[threadId + n_cells * (5 + NSCALARS)] = magneticFluxY;
-            dev_flux[threadId + n_cells * (6 + NSCALARS)] = magneticFluxZ;
+            dev_flux[threadId + n_cells * (grid_enum::fluxX_magnetic_z)] = magneticFluxY;
+            dev_flux[threadId + n_cells * (grid_enum::fluxX_magnetic_y)] = magneticFluxZ;
         }
         // =====================================================================
 

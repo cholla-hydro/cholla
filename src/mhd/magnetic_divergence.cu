@@ -59,14 +59,14 @@ namespace mhd
 
                 // Compute divergence
                 cellDivergence =
-                    ((   dev_conserved[id       + (5+NSCALARS)*n_cells]
-                       - dev_conserved[id_xMin1 + (5+NSCALARS)*n_cells])
+                    ((   dev_conserved[id       + (grid_enum::magnetic_x)*n_cells]
+                       - dev_conserved[id_xMin1 + (grid_enum::magnetic_x)*n_cells])
                     / dx)
-                    + (( dev_conserved[id       + (6+NSCALARS)*n_cells]
-                       - dev_conserved[id_yMin1 + (6+NSCALARS)*n_cells])
+                    + (( dev_conserved[id       + (grid_enum::magnetic_y)*n_cells]
+                       - dev_conserved[id_yMin1 + (grid_enum::magnetic_y)*n_cells])
                     / dy)
-                    + (( dev_conserved[id       + (7+NSCALARS)*n_cells]
-                       - dev_conserved[id_zMin1 + (7+NSCALARS)*n_cells])
+                    + (( dev_conserved[id       + (grid_enum::magnetic_z)*n_cells]
+                       - dev_conserved[id_zMin1 + (grid_enum::magnetic_z)*n_cells])
                     / dz);
 
                 maxDivergence = max(maxDivergence, fabs(cellDivergence));

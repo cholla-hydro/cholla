@@ -107,10 +107,10 @@ namespace mhd
             Real const density    =          dev_conserved[idxCentered                                ];
             Real const Momentum2  =          dev_conserved[idxCentered + (modPlus1+1)         *n_cells];
             Real const Momentum3  =          dev_conserved[idxCentered + (modPlus2+1)         *n_cells];
-            Real const B2Centered = 0.5 * (  dev_conserved[idxCentered + (modPlus1+5+NSCALARS)*n_cells]
-                                           + dev_conserved[idxB2Shift  + (modPlus1+5+NSCALARS)*n_cells]);
-            Real const B3Centered = 0.5 * (  dev_conserved[idxCentered + (modPlus2+5+NSCALARS)*n_cells]
-                                           + dev_conserved[idxB3Shift  + (modPlus2+5+NSCALARS)*n_cells]);
+            Real const B2Centered = 0.5 * (  dev_conserved[idxCentered + (modPlus1+grid_enum::magnetic_start)*n_cells]
+                                           + dev_conserved[idxB2Shift  + (modPlus1+grid_enum::magnetic_start)*n_cells]);
+            Real const B3Centered = 0.5 * (  dev_conserved[idxCentered + (modPlus2+grid_enum::magnetic_start)*n_cells]
+                                           + dev_conserved[idxB3Shift  + (modPlus2+grid_enum::magnetic_start)*n_cells]);
 
             // Compute the electric field in the center with a cross product
             Real const electric_centered = (Momentum3*B2Centered - Momentum2*B3Centered) / density;
@@ -118,7 +118,7 @@ namespace mhd
             // Load face centered electric field, note fluxSign to correctly do
             // the shift from magnetic flux to EMF/electric field and to choose
             // which field to use
-            Real const electric_face = fluxSign * flux[idxFlux + (int(fluxSign == 1)+5+NSCALARS)*n_cells];
+            Real const electric_face = fluxSign * flux[idxFlux + (int(fluxSign == 1)+grid_enum::magnetic_start)*n_cells];
 
             // Compute the slope and return it
             return electric_face - electric_centered;

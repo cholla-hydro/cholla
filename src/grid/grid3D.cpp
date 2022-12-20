@@ -299,9 +299,9 @@ void Grid3D::AllocateMemory(void)
   #endif
   #endif  //SCALAR
   #ifdef  MHD
-  C.magnetic_x = &(C.host[(5 + NSCALARS)*H.n_cells]);
-  C.magnetic_y = &(C.host[(6 + NSCALARS)*H.n_cells]);
-  C.magnetic_z = &(C.host[(7 + NSCALARS)*H.n_cells]);
+  C.magnetic_x = &(C.host[(grid_enum::magnetic_x)*H.n_cells]);
+  C.magnetic_y = &(C.host[(grid_enum::magnetic_y)*H.n_cells]);
+  C.magnetic_z = &(C.host[(grid_enum::magnetic_z)*H.n_cells]);
   #endif  //MHD
   #ifdef DE
   C.GasEnergy = &(C.host[(H.n_fields-1)*H.n_cells]);
@@ -322,9 +322,9 @@ void Grid3D::AllocateMemory(void)
   #endif
   #endif  // SCALAR
   #ifdef  MHD
-  C.d_magnetic_x   = &(C.device[(5 + NSCALARS)*H.n_cells]);
-  C.d_magnetic_y   = &(C.device[(6 + NSCALARS)*H.n_cells]);
-  C.d_magnetic_z   = &(C.device[(7 + NSCALARS)*H.n_cells]);
+  C.d_magnetic_x   = &(C.device[(grid_enum::magnetic_x)*H.n_cells]);
+  C.d_magnetic_y   = &(C.device[(grid_enum::magnetic_y)*H.n_cells]);
+  C.d_magnetic_z   = &(C.device[(grid_enum::magnetic_z)*H.n_cells]);
   #endif  //MHD
   #ifdef DE
   C.d_GasEnergy  = &(C.device[(H.n_fields-1)*H.n_cells]);
