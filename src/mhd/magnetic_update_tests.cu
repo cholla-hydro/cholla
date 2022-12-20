@@ -44,10 +44,10 @@ public:
         dx(2.5),
         dy(2.5),
         dz(2.5),
-        sourceGrid      (n_cells * (8+NSCALARS)),
-        destinationGrid (n_cells * (8+NSCALARS), -999.),
+        sourceGrid      (n_cells * (grid_enum::num_fields)),
+        destinationGrid (n_cells * (grid_enum::num_fields), -999.),
         ctElectricFields(n_cells * 3),
-        fiducialData    (n_cells * (8+NSCALARS), -999.),
+        fiducialData    (n_cells * (grid_enum::num_fields), -999.),
         dimGrid((n_cells + TPB - 1),1,1),
         dimBlock(TPB,1,1)
     {

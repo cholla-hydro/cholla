@@ -48,7 +48,7 @@ public:
         fluxX(n_cells * (grid_enum::num_flux_fields)),
         fluxY(n_cells * (grid_enum::num_flux_fields)),
         fluxZ(n_cells * (grid_enum::num_flux_fields)),
-        grid (n_cells * (8+NSCALARS)),
+        grid (n_cells * (grid_enum::num_fields)),
         testCTElectricFields(n_cells * 3, -999.),
         fiducialData(n_cells * 3, -999.),
         dimGrid((n_cells + TPB - 1),1,1),

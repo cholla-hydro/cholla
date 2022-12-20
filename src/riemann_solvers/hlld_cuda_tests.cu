@@ -204,13 +204,13 @@
             #endif  //DE
             #ifdef  SCALAR
                 std::vector<std::string> scalarNames{"Scalar 1", "Scalar 2", "Scalar 3"};
-                fieldNames.insert(fieldNames.begin()+5,
+                fieldNames.insert(fieldNames.begin() + grid_enum::magnetic_start,
                                   scalarNames.begin(),
-                                  scalarNames.begin() + NSCALARS);
+                                  scalarNames.begin() + grid_enum::nscalars);
 
-                fiducialFlux.insert(fiducialFlux.begin()+5,
+                fiducialFlux.insert(fiducialFlux.begin() + grid_enum::magnetic_start,
                                     scalarFlux.begin(),
-                                    scalarFlux.begin() + NSCALARS);
+                                    scalarFlux.begin() + grid_enum::nscalars);
             #endif  //SCALAR
 
             ASSERT_TRUE(    (fiducialFlux.size() == testFlux.size())
@@ -285,9 +285,9 @@
                                primitiveScalars.end(),
                                conservedScalar.begin(),
                                [&](Real const &c){ return c*output.at(0); });
-                output.insert(output.begin()+5,
+                output.insert(output.begin() + grid_enum::magnetic_start,
                               conservedScalar.begin(),
-                              conservedScalar.begin() + NSCALARS);
+                              conservedScalar.begin() + grid_enum::nscalars);
             #endif //SCALAR
             #ifdef  DE
                 output.push_back(mhd::utils::computeThermalEnergy(output.at(4),
@@ -1659,11 +1659,11 @@
 
         #ifdef SCALAR
             std::vector<Real> const conservedScalar{1.1069975296, 2.2286185018, 3.3155141875};
-            negativePressure.insert(negativePressure.begin()+5, conservedScalar.begin(), conservedScalar.begin() + NSCALARS);
-            negativeEnergy.insert(negativeEnergy.begin()+5, conservedScalar.begin(), conservedScalar.begin() + NSCALARS);
-            negativeDensity.insert(negativeDensity.begin()+5, conservedScalar.begin(), conservedScalar.begin() + NSCALARS);
-            negativeDensityEnergyPressure.insert(negativeDensityEnergyPressure.begin()+5, conservedScalar.begin(), conservedScalar.begin() + NSCALARS);
-            negativeDensityPressure.insert(negativeDensityPressure.begin()+5, conservedScalar.begin(), conservedScalar.begin() + NSCALARS);
+            negativePressure.insert(negativePressure.begin()+5, conservedScalar.begin(), conservedScalar.begin() + grid_enum::nscalars);
+            negativeEnergy.insert(negativeEnergy.begin()+5, conservedScalar.begin(), conservedScalar.begin() + grid_enum::nscalars);
+            negativeDensity.insert(negativeDensity.begin()+5, conservedScalar.begin(), conservedScalar.begin() + grid_enum::nscalars);
+            negativeDensityEnergyPressure.insert(negativeDensityEnergyPressure.begin()+5, conservedScalar.begin(), conservedScalar.begin() + grid_enum::nscalars);
+            negativeDensityPressure.insert(negativeDensityPressure.begin()+5, conservedScalar.begin(), conservedScalar.begin() + grid_enum::nscalars);
         #endif  // SCALAR
         #ifdef  DE
             negativePressure.push_back(mhd::utils::computeThermalEnergy(negativePressure.at(4),negativePressure.at(0),negativePressure.at(1),negativePressure.at(2),negativePressure.at(3),negativePressure.at(grid_enum::magnetic_x),negativePressure.at(grid_enum::magnetic_y),negativePressure.at(grid_enum::magnetic_z),gamma));

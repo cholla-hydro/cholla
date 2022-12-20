@@ -517,7 +517,7 @@ TEST(tMHDCellCenteredMagneticFields,
     size_t const n_cells = std::pow(5,3);
     // Make sure the vector is large enough that the locations where the
     // magnetic field would be in the real grid are filled
-    std::vector<double> testGrid(n_cells * (8+NSCALARS));
+    std::vector<double> testGrid(n_cells * (grid_enum::num_fields));
     // Populate the grid with values where testGrid.at(i) = double(i). The
     // values chosen aren't that important, just that every cell has a unique
     // value
