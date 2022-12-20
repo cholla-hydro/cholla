@@ -15,6 +15,7 @@
 #include "../utils/hydro_utilities.h"
 #include "../utils/cuda_utilities.h"
 #include "../grid/grid3D.h"
+#include "../grid/grid_enum.h"
 
 void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma) {
     int n_cells = nx * ny * nz;
@@ -56,20 +57,19 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 
     if (xid >= is && xid < ie && yid >= js && yid < je && zid >= ks && zid < ke) {
         // get conserved quanitites
-        d_gas = dev_conserved[id];
-        d_dust = dev_conserved[5*n_cells + id];
-        E = dev_conserved[4*n_cells + id];
+        d_gas  = dev_conserved[id + n_cells*grid_enum::density];
+        d_dust = dev_conserved[id + n_cells*grid_enum::dust_density];
+        E      = dev_conserved[id + n_cells*grid_enum::Energy];
 
         n = d_gas*DENSITY_UNIT / (mu*MP);
 
         if (E < 0.0 || E != E) return;
         
-        vx = dev_conserved[1*n_cells + id] / d_gas;
-        vy = dev_conserved[2*n_cells + id] / d_gas;
-        vz = dev_conserved[3*n_cells + id] / d_gas;
-
+        vx = dev_conserved[id + n_cells*grid_enum::momentum_x ] / d_gas;
+        vy = dev_conserved[id + n_cells*grid_enum::momentum_y ] / d_gas;
+        vz = dev_conserved[id + n_cells*grid_enum::momentum_z ] / d_gas;
         #ifdef DE
-        ge = dev_conserved[(n_fields-1)*n_cells + id] / d_gas;
+        ge = dev_conserved[id + n_cells*grid_enum::GasEnergy ] / d_gas;
         ge = fmax(ge, (Real) TINY_NUMBER);
         #endif // DE
 
@@ -102,10 +102,10 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
         // update dust density
         d_dust += dd;
 
-        dev_conserved[5*n_cells + id] = d_dust;
+        dev_conserved[id + n_cells*grid_enum::dust_density ] = d_dust;
         
         #ifdef DE
-        dev_conserved[(n_fields-1)*n_cells + id] = d_dust*ge;
+        dev_conserved[id + n_cells*grid_enum::GasEnergy ] = d_dust*ge;
         #endif
     }
 }

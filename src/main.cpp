@@ -23,6 +23,7 @@
 #include "particles/star_formation.h"
 #endif
 
+#include "grid/grid_enum.h"
 
 int main(int argc, char *argv[])
 {

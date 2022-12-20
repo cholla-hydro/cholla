@@ -5,6 +5,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#include "../grid/grid_enum.h" // defines NSCALARS
+
 #ifdef COOLING_CPU
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_spline2d.h>
@@ -66,22 +68,7 @@ typedef double Real;
 #define MAX_DELTA_A 0.001
 #define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
-#ifdef COOLING_GRACKLE
-  #ifdef GRACKLE_METALS
-  #define NSCALARS 7
-  #else
-  #define NSCALARS 6
-  #endif // GRACKLE_METALS
-#elif CHEMISTRY_GPU
-  #define NSCALARS 6
-#else
-#ifdef SCALAR
-// Set Number of scalar fields when not using grackle
-#define NSCALARS 1
-#else
-#define NSCALARS 0
-#endif//SCALAR
-#endif//COOLING_GRACKLE
+
 
 #ifdef  MHD
   #define N_MHD_FIELDS 3
