@@ -83,13 +83,14 @@ jobs:
 
     # Run Clang-tidy
     - name: Run clang-tidy
+      if: matrix.container.name == 'CUDA'
       run: make tidy TYPE=${{ matrix.make-type }} CLANG_TIDY_ARGS="--warnings-as-errors=*"
     - name: Display tidy_results_cpp.txt
-      if: always()
+      if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
       run: cat tidy_results_cpp.txt
     - name: Display tidy_results_c.txt
-      if: always()
+      if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
       run: cat tidy_results_c.txt
     - name: Display tidy_results_gpu.txt
-      if: always()
+      if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
       run: cat tidy_results_gpu.txt
