@@ -134,7 +134,7 @@ ifdef HIPCONFIG
   DFLAGS    += -DO_HIP
   CXXFLAGS  += $(HIPCONFIG)
   GPUCXX    ?= hipcc
-  GPUFLAGS  += -Wall -ferror-limit=1
+  GPUFLAGS  += -Wall
   LD        := $(CXX)
   LDFLAGS   := $(CXXFLAGS) -L$(ROCM_PATH)/lib
   LIBS      += -lamdhip64
