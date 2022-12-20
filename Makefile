@@ -213,9 +213,9 @@ tidy:
 # Flags we might want
 # - --warnings-as-errors=<string> Upgrade all warnings to error, good for CI
 	clang-tidy --verify-config
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES) -- $(DFLAGS) $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp.txt 2>&1 & \
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(CFILES)   -- $(DFLAGS) $(CFLAGS_CLANG_TIDY)   $(LIBS_CLANG_TIDY)) > tidy_results_c.txt   2>&1 & \
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES) -- $(DFLAGS) $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu.txt 2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES) -- $(DFLAGS) $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp.log 2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(CFILES)   -- $(DFLAGS) $(CFLAGS_CLANG_TIDY)   $(LIBS_CLANG_TIDY)) > tidy_results_c.log   2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES) -- $(DFLAGS) $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu.log 2>&1 & \
 	for i in 1 2 3; do wait -n; done
 
 clean:
