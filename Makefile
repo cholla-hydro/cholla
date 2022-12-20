@@ -38,9 +38,6 @@ ifeq ($(TEST), true)
   CFLAGS   += $(TEST_FLAGS)
   CXXFLAGS += $(TEST_FLAGS)
   GPUFLAGS += $(TEST_FLAGS)
-  CFLAGS   += $(TEST_FLAGS)
-  CXXFLAGS += $(TEST_FLAGS)
-  GPUFLAGS += $(TEST_FLAGS)
 
   # HACK
   # Set the build flags to debug. This is mostly to avoid the approximations
