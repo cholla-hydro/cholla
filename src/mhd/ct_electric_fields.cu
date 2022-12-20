@@ -11,7 +11,7 @@
 
 // Local Includes
 #include "../mhd/ct_electric_fields.h"
-
+#ifdef MHD
 namespace mhd
 {
    // =========================================================================
@@ -338,3 +338,4 @@ namespace mhd
     }
     // =========================================================================
 } // end namespace mhd
+#endif // MHD

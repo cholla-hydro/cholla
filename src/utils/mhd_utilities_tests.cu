@@ -505,6 +505,7 @@ TEST(tMHDAlfvenSpeed,
 // =============================================================================
 // Tests for the mhd::utils::cellCenteredMagneticFields function
 // =============================================================================
+#ifdef MHD
 TEST(tMHDCellCenteredMagneticFields,
      CorrectInputExpectCorrectOutput)
 {
@@ -536,6 +537,7 @@ TEST(tMHDCellCenteredMagneticFields,
     testingUtilities::checkResults(fiducialAvgBy, testAvgBy, "cell centered By value");
     testingUtilities::checkResults(fiducialAvgBz, testAvgBz, "cell centered Bz value");
 }
+#endif // MHD
 // =============================================================================
 // End of tests for the mhd::utils::cellCenteredMagneticFields function
 // =============================================================================

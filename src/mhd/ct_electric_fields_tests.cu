@@ -20,6 +20,7 @@
 #include "../mhd/ct_electric_fields.h"
 #include "../global/global.h"
 
+#ifdef MHD
 // =============================================================================
 // Tests for the mhd::Calculate_CT_Electric_Fields kernel
 // =============================================================================
@@ -205,3 +206,4 @@ TEST_F(tMHDCalculateCTElectricFields,
     runTest();
 }
 // =============================================================================
+#endif // MHD

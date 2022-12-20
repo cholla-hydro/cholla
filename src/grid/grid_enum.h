@@ -68,7 +68,9 @@ enum : int {
   #endif
   num_fields,
 
-//Aliases and manually computed enums
+  //Aliases and manually computed enums
+  nscalars = finalscalar_plus_1 - scalar,
+  
   #ifdef  MHD
   num_flux_fields = num_fields-1,
   num_interface_fields = num_fields-1,
@@ -76,9 +78,11 @@ enum : int {
   num_flux_fields = num_fields,
   num_interface_fields = num_fields,
   #endif  //MHD
-  nscalars = finalscalar_plus_1 - scalar,
+
+  #ifdef MHD
   magnetic_start = magnetic_x,
   magnetic_end   = magnetic_z,
+
   // Note that the direction of the flux, the suffix _? indicates the direction of the electric field, not the magnetic flux
   fluxX_magnetic_z = magnetic_start,
   fluxX_magnetic_y = magnetic_start+1,
@@ -86,12 +90,14 @@ enum : int {
   fluxY_magnetic_z = magnetic_start+1,
   fluxZ_magnetic_y = magnetic_start,
   fluxZ_magnetic_x = magnetic_start+1,
+
   Q_x_magnetic_y = magnetic_start,
   Q_x_magnetic_z = magnetic_start+1,
   Q_y_magnetic_z = magnetic_start,
   Q_y_magnetic_x = magnetic_start+1,
   Q_z_magnetic_x = magnetic_start,
   Q_z_magnetic_y = magnetic_start+1
+  #endif  // MHD
 
 };
 }

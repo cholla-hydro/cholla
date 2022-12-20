@@ -23,10 +23,8 @@
 #endif // DE
 
 #ifdef CUDA
-/*!
- * \brief Namespace for MHD code
- *
- */
+
+#ifdef MHD
 namespace mhd
 {
     // =========================================================================
@@ -912,5 +910,5 @@ namespace mhd
 
     } // mhd::_internal namespace
 } // end namespace mhd
-
+#endif // MHD
 #endif // CUDA

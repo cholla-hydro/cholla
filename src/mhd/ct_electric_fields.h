@@ -17,10 +17,7 @@
 #include "../utils/gpu.hpp"
 #include "../utils/cuda_utilities.h"
 
-/*!
- * \brief Namespace for MHD code
- *
- */
+#ifdef MHD
 namespace mhd
 {
     /*!
@@ -153,3 +150,4 @@ namespace mhd
                                                  int const n_cells);
     // =========================================================================
 } // end  namespace mhd
+#endif // MHD

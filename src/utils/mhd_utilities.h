@@ -282,6 +282,7 @@ namespace utils{
     // =========================================================================
 
     // =========================================================================
+    #ifdef MHD
     /*!
      * \brief Compute the cell centered average of the magnetic fields in a
      * given cell
@@ -324,6 +325,7 @@ namespace utils{
             /*if true*/ 0.5 * (dev_conserved[(grid_enum::magnetic_z)*n_cells + id] + dev_conserved[(grid_enum::magnetic_z)*n_cells + cuda_utilities::compute1DIndex(xid,   yid,   zid-1, nx, ny)]):
             /*if false*/       dev_conserved[(grid_enum::magnetic_z)*n_cells + id];
     }
+    #endif // MHD
     // =========================================================================
 } // end namespace mhd::utils
 } // end namespace mhd

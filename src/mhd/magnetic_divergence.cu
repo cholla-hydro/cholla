@@ -20,7 +20,7 @@
 #include "../utils/cuda_utilities.h"
 #include "../utils/reduction_utilities.h"
 #include "../utils/DeviceVector.h"
-
+#ifdef MHD
 namespace mhd
 {
     // =========================================================================
@@ -110,3 +110,4 @@ namespace mhd
     }
     // =========================================================================
 } // end namespace mhd
+#endif // MHD

@@ -23,6 +23,7 @@
 #include "../riemann_solvers/hlld_cuda.h"   // Include code to test
 
 #ifdef CUDA
+#ifdef MHD
     // =========================================================================
     // Integration tests for the entire HLLD solver. Unit tests are below
     // =========================================================================
@@ -2578,4 +2579,5 @@
         }
     }
     // =========================================================================
+#endif // MHD
 #endif  // CUDA

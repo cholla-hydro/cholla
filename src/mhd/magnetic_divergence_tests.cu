@@ -21,6 +21,7 @@
 #include "../utils/DeviceVector.h"
 #include "../global/global.h"
 
+#ifdef MHD
 // =============================================================================
 // Tests for the magnetic field divergence functions
 // =============================================================================
@@ -57,3 +58,4 @@ TEST(tMHDLaunchCalculateMagneticDivergence, CorrectInputExpectCorrectOutput)
 // =============================================================================
 // End of tests for the magnetic field divergence functions
 // =============================================================================
+#endif // MHD

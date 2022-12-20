@@ -12,7 +12,7 @@
 // Local Includes
 #include "../mhd/magnetic_update.h"
 #include "../utils/cuda_utilities.h"
-
+#ifdef MHD
 namespace mhd
 {
     // =========================================================================
@@ -78,3 +78,4 @@ namespace mhd
     }
     // =========================================================================
 } // end namespace mhd
+#endif // MHD

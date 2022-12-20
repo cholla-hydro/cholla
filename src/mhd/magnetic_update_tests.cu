@@ -19,6 +19,7 @@
 #include "../utils/cuda_utilities.h"
 #include "../mhd/magnetic_update.h"
 
+#ifdef MHD
 // =============================================================================
 /*!
  * \brief Test fixture for tMHDUpdateMagneticField3D test suite
@@ -148,3 +149,4 @@ TEST_F(tMHDUpdateMagneticField3D,
     runTest();
 }
 // =============================================================================
+#endif // MHD
