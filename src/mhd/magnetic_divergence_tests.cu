@@ -17,6 +17,7 @@
 
 // Local Includes
 #include "../utils/testing_utilities.h"
+#include "../grid/grid3D.h"
 #include "../mhd/magnetic_divergence.h"
 #include "../utils/DeviceVector.h"
 #include "../global/global.h"
@@ -25,35 +26,45 @@
 // =============================================================================
 // Tests for the magnetic field divergence functions
 // =============================================================================
-TEST(tMHDLaunchCalculateMagneticDivergence, CorrectInputExpectCorrectOutput)
+TEST(tMHDGrid3DcheckMagneticDivergence, CorrectInputExpectCorrectOutput)
 {
     // Grid Parameters & testing parameters
     size_t const gridSize = 96; // Needs to be at least 64 so that each thread has a value
     size_t const n_ghost  = 4;
-    size_t const nx       = gridSize+2*n_ghost, ny = nx, nz = nx;
-    size_t const n_cells  = nx*ny*nz;
-    size_t const n_fields = 8;
-    Real   const dx       = 3, dy = dx, dz = dx;
-    std::vector<Real> host_grid(n_cells*n_fields);
 
-    // Fill grid with random values and randomly assign maximum value
+    // Instantiate Grid3D object
+    Grid3D G;
+    G.H.dx       = 3;
+    G.H.dy       = G.H.dx;
+    G.H.dz       = G.H.dx;
+    G.H.nx       = gridSize+2*n_ghost;
+    G.H.ny       = G.H.nx;
+    G.H.nz       = G.H.nx;
+    G.H.n_cells  = G.H.nx * G.H.ny * G.H.nz;
+    G.H.n_fields = 8;
+
+    // Setup host grid. Fill host grid with random values and randomly assign
+    // maximum value
+    std::vector<Real> host_grid(G.H.n_cells * G.H.n_fields);
     std::mt19937 prng(1);
     std::uniform_real_distribution<double> doubleRand(1, 5);
     for (size_t i = 0; i < host_grid.size(); i++)
     {
-        host_grid.at(i) = doubleRand(prng);
+        host_grid.at(i) = doubleRand(prng) / 1E15;
     }
 
     // Allocating and copying to device
     cuda_utilities::DeviceVector<double> dev_grid(host_grid.size());
+    G.C.device   = dev_grid.data();
     dev_grid.cpyHostToDevice(host_grid);
 
-    // Get test data
-    Real testDivergence = mhd::launchCalculateMagneticDivergence(dev_grid.data(), dx, dy, dz, nx, ny, nz, n_cells);
-
+    // Perform test
+    InitializeChollaMPI(NULL, NULL);
+    G.checkMagneticDivergence();
+    MPI_Finalize();
     // Perform Comparison
-    Real const fiducialDivergence = 3.6318132783263106;
-    testingUtilities::checkResults(fiducialDivergence, testDivergence, "maximum divergence");
+    Real const fiducialDivergence = 3.6318132783263106 / 1E15;
+    testingUtilities::checkResults(fiducialDivergence, G.H.max_magnetic_divergence, "maximum divergence");
 }
 // =============================================================================
 // End of tests for the magnetic field divergence functions

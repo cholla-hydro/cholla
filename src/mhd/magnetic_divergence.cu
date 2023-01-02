@@ -16,11 +16,15 @@
 // External Includes
 
 // Local Includes
+#include "../grid/grid3D.h"
+#include "../io/io.h"
 #include "../mhd/magnetic_divergence.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/reduction_utilities.h"
 #include "../utils/DeviceVector.h"
+#include "../utils/error_handling.h"
 #ifdef MHD
+
 namespace mhd
 {
     // =========================================================================
@@ -77,37 +81,53 @@ namespace mhd
         reduction_utilities::gridReduceMax(maxDivergence, dev_maxDivergence);
     }
     // =========================================================================
-
-    // =========================================================================
-    Real launchCalculateMagneticDivergence(Real const *dev_conserved,
-                                           Real const dx,
-                                           Real const dy,
-                                           Real const dz,
-                                           int const nx,
-                                           int const ny,
-                                           int const nz,
-                                           int const n_cells)
-    {
-        // First let's create some variables we'll need.
-        cuda_utilities::AutomaticLaunchParams static const launchParams(mhd::calculateMagneticDivergence);
-        cuda_utilities::DeviceVector<Real> static dev_maxDivergence(1);
-
-        // Set the device side inverse time step to the smallest possible double
-        // so that the reduction isn't using the maximum value of the previous
-        // iteration
-        dev_maxDivergence.assign(std::numeric_limits<Real>::lowest());
-
-        // Now lets get the local maximum divergence
-        hipLaunchKernelGGL(mhd::calculateMagneticDivergence,
-                           launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
-                           dev_conserved, dev_maxDivergence.data(),
-                           dx, dy, dz,
-                           nx, ny, nz,
-                           n_cells);
-        CudaCheckError();
-
-        return dev_maxDivergence[0];
-    }
-    // =========================================================================
 } // end namespace mhd
+
+// =============================================================================
+void Grid3D::checkMagneticDivergence()
+{
+    // Compute the local value of the divergence
+    // First let's create some variables we'll need.
+    cuda_utilities::AutomaticLaunchParams static const launchParams(mhd::calculateMagneticDivergence);
+    cuda_utilities::DeviceVector<Real> static dev_maxDivergence(1);
+
+    // Set the device side inverse time step to the smallest possible double
+    // so that the reduction isn't using the maximum value of the previous
+    // iteration
+    dev_maxDivergence.assign(std::numeric_limits<Real>::lowest());
+
+    // Now lets get the local maximum divergence
+    hipLaunchKernelGGL(mhd::calculateMagneticDivergence,
+                        launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
+                        C.device, dev_maxDivergence.data(),
+                        H.dx, H.dy, H.dz,
+                        H.nx, H.ny, H.nz,
+                        H.n_cells);
+    CudaCheckError();
+    H.max_magnetic_divergence = dev_maxDivergence[0];
+
+    #ifdef  MPI_CHOLLA
+    // Now that we have the local maximum let's get the global maximum
+    H.max_magnetic_divergence = ReduceRealMax(H.max_magnetic_divergence);
+    #endif  //MPI_CHOLLA
+
+    // If the magnetic divergence is greater than the limit then raise a warning and exit
+    if (H.max_magnetic_divergence > H.magnetic_divergence_limit)
+    {
+        // Report the error and exit
+        chprintf("The magnetic divergence has exceeded the maximum allowed value. Divergence = %7.4e, the maximum allowed divergence = %7.4e\n", H.max_magnetic_divergence, H.magnetic_divergence_limit);
+        chexit(-1);
+    }
+    else if (H.max_magnetic_divergence < 0.0)
+    {
+        // Report the error and exit
+        chprintf("The magnetic divergence is negative. Divergence = %7.4e\n", H.max_magnetic_divergence);
+        chexit(-1);
+    }
+    else  // The magnetic divergence is within acceptable bounds
+    {
+        chprintf("Global maximum magnetic divergence = %7.4e\n", H.max_magnetic_divergence);
+    }
+}
+// =============================================================================
 #endif // MHD

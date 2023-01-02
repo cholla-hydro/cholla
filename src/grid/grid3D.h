@@ -412,7 +412,7 @@ class Grid3D
       /*! pointer to conserved variable on device */
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z,
-	   *d_Energy, *d_scalar, *d_basic_scalar, 
+	   *d_Energy, *d_scalar, *d_basic_scalar,
 	   *d_magnetic_x, *d_magnetic_y, *d_magnetic_z,
            *d_GasEnergy;
 
@@ -466,7 +466,12 @@ class Grid3D
     void Update_Time();
 
     #ifdef  MHD
-      void checkMagneticDivergence(Grid3D &G, struct parameters P, int nfile);
+      /*!
+       * \brief Compute the maximum magnetic divergence in the grid and report
+       * an error if it exceeds Grid3D::H::magnetic_divergence_limit or is
+       * negative.
+       */
+      void checkMagneticDivergence();
     #endif  //MHD
 
      /*! \fn void Write_Header_Text(FILE *fp)
@@ -679,7 +684,7 @@ class Grid3D
     void Spherical_Overdensity_3D();
 
     void Clouds();
-    
+
     void Uniform_Grid();
 
     void Zeldovich_Pancake( struct parameters P );

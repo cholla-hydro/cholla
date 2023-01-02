@@ -43,11 +43,6 @@
 #include "../dust/dust_cuda.h" // provides Dust_Update
 #endif
 
-#ifdef  MHD
-  #include "../mhd/magnetic_divergence.h"
-#endif  //MHD
-
-
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
 Grid3D::Grid3D(void)
@@ -608,39 +603,6 @@ void Grid3D::Update_Time(){
 
 
 }
-
-#ifdef  MHD
-  void Grid3D::checkMagneticDivergence(Grid3D &G, struct parameters P, int nfile)
-  {
-    // Compute the local value of the divergence
-    H.max_magnetic_divergence = mhd::launchCalculateMagneticDivergence(C.device, H.dx, H.dy, H.dz, H.nx, H.ny, H.nz, H.n_cells);
-
-    #ifdef  MPI_CHOLLA
-      // Now that we have the local maximum let's get the global maximum
-      H.max_magnetic_divergence =  ReduceRealMax(H.max_magnetic_divergence);
-    #endif  //MPI_CHOLLA
-
-    // If the magnetic divergence is greater than the limit then raise a warning and exit
-    if (H.max_magnetic_divergence > H.magnetic_divergence_limit)
-    {
-      // Report the error and exit
-      chprintf("The magnetic divergence has exceeded the maximum allowed value. Divergence = %7.4e, the maximum allowed divergence = %7.4e\n",
-               H.max_magnetic_divergence, H.magnetic_divergence_limit);
-      chexit(-1);
-    }
-    else if (H.max_magnetic_divergence < 0.0)
-    {
-      // Report the error and exit
-      chprintf("The magnetic divergence is negative. Divergence = %7.4e\n",
-               H.max_magnetic_divergence);
-      chexit(-1);
-    }
-    else  // The magnetic divergence is within acceptable bounds
-    {
-      chprintf("Global maximum magnetic divergence = %7.4e\n", H.max_magnetic_divergence);
-    }
-  }
-#endif  //MHD
 
 /*! \fn void Reset(void)
  *  \brief Reset the Grid3D class. */

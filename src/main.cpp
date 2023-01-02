@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 
   #ifdef  MHD
     // Check that the initial magnetic field has zero divergence
-    G.checkMagneticDivergence(G, P, nfile);
+    G.checkMagneticDivergence();
   #endif  //MHD
 
   // increment the next output time
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
 
     #ifdef  MHD
       // Check that the magnetic field has zero divergence
-      G.checkMagneticDivergence(G, P, nfile);
+      G.checkMagneticDivergence();
     #endif  //MHD
   } /*end loop over timesteps*/
 

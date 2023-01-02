@@ -51,31 +51,4 @@ namespace mhd
                                                 int const nz,
                                                 int const n_cells);
     // =========================================================================
-
-    // =========================================================================
-    /*!
-     * \brief Handling launching and returning the value from the
-     * `mhd::calculateMagneticDivergence` kernel
-     *
-     * \param[in] dev_conserved The device array of conserved variables
-     * \param[in] dx Cell size in the X-direction
-     * \param[in] dy Cell size in the Y-direction
-     * \param[in] dz Cell size in the Z-direction
-     * \param[in] nx Number of cells in the X-direction
-     * \param[in] ny Number of cells in the Y-direction
-     * \param[in] nz Number of cells in the Z-direction
-     * \param[in] n_cells Total number of cells
-     * \return Real The maximum divergence of the magnetic field in the local
-     * part of the grid
-     */
-    Real launchCalculateMagneticDivergence(Real const *dev_conserved,
-                                           Real const dx,
-                                           Real const dy,
-                                           Real const dz,
-                                           int const nx,
-                                           int const ny,
-                                           int const nz,
-                                           int const n_cells);
-    // =========================================================================
-
 } // end namespace mhd
