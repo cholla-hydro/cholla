@@ -267,8 +267,6 @@
          */
         __inline__ __device__ void gridReduceMax(Real val, Real* out)
         {
-            // __syncthreads();  // Wait for all threads to calculate val;
-            // __syncthreads();  // Wait for all threads to calculate val;
 
             // Reduce the entire block in parallel
             val = blockReduceMax(val);

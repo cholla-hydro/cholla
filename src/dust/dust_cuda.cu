@@ -111,7 +111,7 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 }
 
 // McKinnon et al. (2017)
-__device__ Real calc_tau_sp(Real n, Real T) {
+__device__ __host__ Real calc_tau_sp(Real n, Real T) {
   Real YR_IN_S = 3.154e7;
   Real a1 = 1; // dust grain size in units of 0.1 micrometers
   Real d0 = n / (6e-4); // gas density in units of 10^-27 g/cm^3
@@ -125,7 +125,7 @@ __device__ Real calc_tau_sp(Real n, Real T) {
 }
 
 // McKinnon et al. (2017)
-__device__ Real calc_dd_dt(Real d_dust, Real tau_sp) {
+__device__ __host__ Real calc_dd_dt(Real d_dust, Real tau_sp) {
     return -d_dust / (tau_sp/3);
 }
 

@@ -604,6 +604,7 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
   }
   CudaCheckError();
 
+  // Note: dev_dti[0] is DeviceVector syntactic sugar for returning a value via cudaMemcpy
   return dev_dti[0];
 }
 
