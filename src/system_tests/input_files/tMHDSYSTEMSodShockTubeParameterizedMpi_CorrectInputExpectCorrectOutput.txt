@@ -1,5 +1,5 @@
 #
-# Parameter File for 1D Sod Shock tube
+# Parameter File for 3D Sod Shock tube
 #
 
 ################################################

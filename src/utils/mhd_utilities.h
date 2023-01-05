@@ -298,32 +298,39 @@ namespace utils{
      * \param[out] avgBx The cell centered average magnetic field in the x-direction
      * \param[out] avgBy The cell centered average magnetic field in the y-direction
      * \param[out] avgBz The cell centered average magnetic field in the z-direction
+     *
+     * \return Real local struct with the X, Y, and Z cell centered magnetic
+     * fields. Intended to be called with structured binding like `auto [x, y,
+     * z] = mhd::utils::cellCenteredMagneticFields(*args*)
      */
-    inline __host__ __device__ void cellCenteredMagneticFields(Real const *dev_conserved,
+    inline __host__ __device__ auto cellCenteredMagneticFields(Real const *dev_conserved,
                                                                size_t const &id,
                                                                size_t const &xid,
                                                                size_t const &yid,
                                                                size_t const &zid,
                                                                size_t const &n_cells,
                                                                size_t const &nx,
-                                                               size_t const &ny,
-                                                               Real &avgBx,
-                                                               Real &avgBy,
-                                                               Real &avgBz)
+                                                               size_t const &ny)
     {
         // Ternary operator to check that no values outside of the magnetic field
         // arrays are loaded. If the cell is on the edge that doesn't have magnetic
         // fields on both sides then instead set the centered magnetic field to be
         // equal to the magnetic field of the closest edge. T
-        avgBx = (xid > 0) ?
+        Real avgBx = (xid > 0) ?
             /*if true*/ 0.5 * (dev_conserved[(grid_enum::magnetic_x)*n_cells + id] + dev_conserved[(grid_enum::magnetic_x)*n_cells + cuda_utilities::compute1DIndex(xid-1, yid,   zid,   nx, ny)]):
             /*if false*/       dev_conserved[(grid_enum::magnetic_x)*n_cells + id];
-        avgBy = (yid > 0) ?
+        Real avgBy = (yid > 0) ?
             /*if true*/ 0.5 * (dev_conserved[(grid_enum::magnetic_y)*n_cells + id] + dev_conserved[(grid_enum::magnetic_y)*n_cells + cuda_utilities::compute1DIndex(xid,   yid-1, zid,   nx, ny)]):
             /*if false*/       dev_conserved[(grid_enum::magnetic_y)*n_cells + id];
-        avgBz = (zid > 0) ?
+        Real avgBz = (zid > 0) ?
             /*if true*/ 0.5 * (dev_conserved[(grid_enum::magnetic_z)*n_cells + id] + dev_conserved[(grid_enum::magnetic_z)*n_cells + cuda_utilities::compute1DIndex(xid,   yid,   zid-1, nx, ny)]):
             /*if false*/       dev_conserved[(grid_enum::magnetic_z)*n_cells + id];
+
+        struct returnStruct
+        {
+            Real x, y, z;
+        };
+        return returnStruct{avgBx, avgBy, avgBz};
     }
     #endif // MHD
     // =========================================================================

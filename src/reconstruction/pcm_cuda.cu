@@ -299,10 +299,8 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved,
       }
     #endif  //SCALAR
     #ifdef  MHD
-      Real cellCenteredBx, cellCenteredBy, cellCenteredBz;
-      mhd::utils::cellCenteredMagneticFields(dev_conserved,
-                                           id, xid, yid, zid, n_cells, nx, ny,
-                                           cellCenteredBx, cellCenteredBy, cellCenteredBz);
+      auto const [cellCenteredBx, cellCenteredBy, cellCenteredBz] = mhd::utils::cellCenteredMagneticFields(dev_conserved,
+                                           id, xid, yid, zid, n_cells, nx, ny);
     #endif  //MHD
     #ifdef DE
       Real const ge = dev_conserved[(n_fields-1)*n_cells + id];

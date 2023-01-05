@@ -524,9 +524,6 @@ __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
   Real max_dti = -DBL_MAX;
 
   Real d, d_inv, vx, vy, vz, E;
-  #ifdef  MHD
-    Real avgBx, avgBy, avgBz;
-  #endif  //MHD
   int xid, yid, zid, n_cells;
 
   n_cells = nx*ny*nz;
@@ -554,7 +551,7 @@ __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
       #ifdef  MHD
         // Compute the cell centered magnetic field using a straight average of
         // the faces
-        mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, avgBx, avgBy, avgBz);
+        auto const [avgBx, avgBy, avgBz] = mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny);
       #endif  //MHD
 
       // Compute the maximum inverse crossing time in the cell
@@ -631,9 +628,6 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, max_dti;
   Real speed, temp, P, cs;
-  #ifdef  MHD
-    Real avgBx, avgBy, avgBz;
-  #endif  //MHD
 
   // get a global thread ID
   id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -654,7 +648,7 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
 
     #ifdef  MHD
       // Compute the cell centered magnetic field using a straight average of the faces
-      mhdUtils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, avgBx, avgBy, avgBz);
+      auto [avgBx, avgBy, avgBz] = mhdUtils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny);
     #endif  //MHD
 
     // Compute the maximum inverse crossing time in the cell
@@ -813,8 +807,7 @@ __global__ void Partial_Update_Advected_Internal_Energy_3D( Real *dev_conserved,
     E_kin = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(d, vx, vy, vz);
     #ifdef  MHD
       // Add the magnetic energy
-      Real centeredBx, centeredBy, centeredBz;
-      mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, centeredBx, centeredBy, centeredBz)
+      auto [centeredBx, centeredBy, centeredBz] = mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny)
       E_kin += mhd::utils::computeMagneticEnergy(magX, magY, magZ);
     #endif  //MHD
     P = hydro_utilities::Get_Pressure_From_DE( E, E - E_kin, GE, gamma );

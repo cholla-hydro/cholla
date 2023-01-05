@@ -53,7 +53,6 @@ static constexpr int maxWarpsPerBlock = 1024/WARPSIZE;
 #define cudaMemcpy hipMemcpy
 #define cudaMemcpyAsync hipMemcpyAsync
 #define cudaMemcpyPeer hipMemcpyPeer
-#define cudaMemcpyPeer hipMemcpyPeer
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
 #define cudaMemcpyDeviceToDevice hipMemcpyDeviceToDevice
 #define cudaMemcpyHostToDevice hipMemcpyHostToDevice
