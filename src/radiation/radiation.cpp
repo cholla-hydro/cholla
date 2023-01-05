@@ -27,6 +27,8 @@ void Grid3D::Initialize_RT(void) {
   Rad.nz = H.nz_real + 2*Rad.n_ghost;
   Rad.n_cells = Rad.nx*Rad.ny*Rad.nz;
 
+  Rad.dx = H.dx;
+
   // Allocate memory for abundances (passive scalars added to the hydro grid)
   // This is done in grid3D::Allocate_Memory
   chprintf( " N scalar fields: %d \n", NSCALARS );
@@ -48,9 +50,13 @@ void Grid3D::Initialize_RT(void) {
   // Allocate memory for radiation source field only on device
   CudaSafeCall( cudaMalloc((void**)&Rad.rtFields.dev_rs, Rad.n_cells*sizeof(Real)) );
 
+  // Allocate temporary fields on device
+  CudaSafeCall( cudaMalloc((void**)&Rad.tmpFields.dev_abc, Rad.n_freq*Rad.n_cells*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Rad.tmpFields.dev_rfnNew, Rad.n_cells*sizeof(Real)) );
+  CudaSafeCall( cudaMalloc((void**)&Rad.tmpFields.dev_rffNew, Rad.n_cells*sizeof(Real)) );
+
   // Initialize Field values (for now)
   Rad.Initialize_RT_Fields();
-
 }
 
 
@@ -85,10 +91,9 @@ void Rad3D::Initialize_RT_Fields(void) {
         id = i + j*nx + k*nx*ny;
 
         for (int ii=0; ii<n_freq; ii++) {
-          rtFields.rfn[id + ii*n_cells] = ii;
-          rtFields.rff[id + ii*n_cells] = n_freq+ii;
+          rtFields.rfn[id + ii*n_cells] = rtFields.rff[id + ii*n_cells] = 0;
         }
-        rtFields.ot[id] = 1;
+        rtFields.ot[id] = 0;
       }
     }
   }  
@@ -102,12 +107,17 @@ void Rad3D::Free_Memory_RT(void) {
   free( rtFields.rfn);
   free( rtFields.rff);
   free( rtFields.ot);
+  if(rtFields.et != nullptr) free( rtFields.et);
+  if(rtFields.rs != nullptr) free( rtFields.rs);
   cudaFree(rtFields.dev_rfn);  
   cudaFree(rtFields.dev_rff);  
   cudaFree(rtFields.dev_ot); 
   cudaFree(rtFields.dev_et); 
   cudaFree(rtFields.dev_rs); 
   
+  cudaFree(tmpFields.dev_abc); 
+  cudaFree(tmpFields.dev_rfnNew); 
+  cudaFree(tmpFields.dev_rffNew); 
 }
 
 

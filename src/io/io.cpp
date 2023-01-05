@@ -1635,7 +1635,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     status = H5Dclose(dataset_id);
 
     // don't output e- if we're just using RT (it's not defined)
-    #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
+    #if defined(COOLING_GRACKLE)
     if ( output_electrons || H.Output_Complete_Data ){
       for (k=0; k<H.nz_real; k++) {
         for (j=0; j<H.ny_real; j++) {

@@ -12,7 +12,15 @@
 
 #define TINY 1e-20
 
-void Grid3D::Initialize_Chemistry( struct parameters *P ){
+void Grid3D::Initialize_Chemistry_Start( struct parameters *P ){
+  
+  Chem.use_case_B_recombination = false;
+ 
+  Chem.H.H_fraction = 0.76;
+}
+
+
+void Grid3D::Initialize_Chemistry_Finish( struct parameters *P ){
   
   chprintf( "Initializing the GPU Chemistry Solver... \n");
   
@@ -21,17 +29,13 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   Chem.nz = H.nz;
   
   Chem.H.runtime_chemistry_step = 0;
-  
-  Chem.use_case_B_recombination = true;
-  
+   
   // Initialize the Chemistry Header
   Chem.H.gamma = gama;
   Chem.H.N_Temp_bins = 600;
   Chem.H.Temp_start = 1.0;
   Chem.H.Temp_end   = 1000000000.0;
   
-  Chem.H.H_fraction = 1; // HACK INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
- 
 #ifdef COSMOLOGY 
   Chem.H.H0 = P->H0;
   Chem.H.Omega_M = P->Omega_M;
@@ -276,7 +280,7 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_uni
         dens_HeI   = C.HeI_density[id];
         dens_HeII  = C.HeII_density[id];
         dens_HeIII = C.HeIII_density[id]; 
-        dens_e     = C.e_density[id];
+        dens_e     = dens_HII + dens_HeII + 2*dens_HeIII;
         
         cell_dens = dens_HI + dens_HII + dens_HeI + dens_HeII + dens_HeIII;
         cell_n =  dens_HI + dens_HII + ( dens_HeI + dens_HeII + dens_HeIII )/4 + dens_e;

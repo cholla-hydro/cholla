@@ -23,8 +23,17 @@ class Rad3D
   int nz;
   int n_cells;
 
+  // flag for the last iteration
+  bool lastIteration = false;
+
   // number of frequencies
   const static int n_freq = 3;
+
+  // prefactor for the far field source (q*<kF> in nedin2014) 
+  Real rsFarFactor = 0; // the default value is used in tests
+
+  //  cell size (assuming cubic cells)
+  Real dx;
 
   struct RT_Fields
   {
@@ -38,12 +47,23 @@ class Rad3D
     // optically thin near field
     Real *ot;
     Real *dev_ot;
-    // Eddington tensor
+    // Eddington tensor. By default it is not needed on host, but some tests require it.
+    Real *et = nullptr;
     Real *dev_et;
-    // radiation source field
+    // radiation source field. By default it is not needed on host, but some tests require it.
+    Real *rs = nullptr;
     Real *dev_rs;
 
   } rtFields;
+
+  struct TMP_Fields
+  {
+    // additional temporary fields
+    // absorption coefficient;
+    Real *dev_abc;
+    // updated fields on the device
+    Real *dev_rfnNew, *dev_rffNew;
+  } tmpFields;
 
   void Initialize_RT_Fields(void);
 

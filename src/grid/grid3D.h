@@ -398,10 +398,6 @@ class Grid3D
       Real *HeIII_density;
       #endif
 
-      #ifdef CHEMISTRY_GPU
-      Real *e_density;
-      #endif
-
       /*! pointer to conserved variable on device */
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z,
@@ -655,7 +651,9 @@ class Grid3D
 
     void Chemistry_Test( struct parameters P );
 
-    void Iliev0( struct parameters P );
+    void Iliev0( const parameters& P );
+    void Iliev1( const parameters& P );
+    ///void Iliev2( const parameters& P );
 
 
 #ifdef   MPI_CHOLLA
@@ -813,7 +811,8 @@ class Grid3D
   #endif
 
   #ifdef CHEMISTRY_GPU
-  void Initialize_Chemistry( struct parameters *P );
+  void Initialize_Chemistry_Start( struct parameters *P );
+  void Initialize_Chemistry_Finish( struct parameters *P );
   void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
   void Update_Chemistry();
   #endif

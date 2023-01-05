@@ -13,6 +13,8 @@
 #include"../global/global_cuda.h"
 #include"radiation.h"
 #include"RT_functions.h"
+#include "alt/atomic_data_decl.h"
+
 
 void Rad3D::Initialize_RT_Fields_GPU(void) {
 
@@ -25,7 +27,6 @@ void Rad3D::Initialize_RT_Fields_GPU(void) {
   // (set to 0 for now, call a kernel to set different values)
   cudaMemset(rtFields.dev_et, 0, 6*n_cells*sizeof(Real));  
   cudaMemset(rtFields.dev_rs, 0, n_cells*sizeof(Real));  
-
 }
 
 void Rad3D::Copy_RT_Fields(void) {
@@ -35,47 +36,14 @@ void Rad3D::Copy_RT_Fields(void) {
   CudaSafeCall( cudaMemcpy(rtFields.rff, rtFields.dev_rff, n_freq*n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
   CudaSafeCall( cudaMemcpy(rtFields.ot, rtFields.dev_ot, n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );  
 
+  if(rtFields.et != nullptr)
+  {
+    CudaSafeCall( cudaMemcpy(rtFields.dev_et, rtFields.et, 6*n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
+  }
 }
 
-void __global__ Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz, int n_ghost, int n_freq, struct Rad3D::RT_Fields &rtFields){
 
-  int n_cells = nx*ny*nz;
-  
-  // get a global thread ID
-  int tid, tid_i, tid_j, tid_k, tid_src, tid_dst;
-  tid = threadIdx.x + blockIdx.x * blockDim.x;
-  tid_k = tid / (n_i*n_j);
-  tid_j = (tid - tid_k*n_i*n_j) / n_i;
-  tid_i = tid - tid_k*n_i*n_j - tid_j*n_i;
-  
-  if ( tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost ) return;
-  
-  if ( direction == 0 ){
-    if ( side == 0 ) tid_src = ( nx - 2*n_ghost + tid_k )  + (tid_i)*nx  + (tid_j)*nx*ny;
-    if ( side == 0 ) tid_dst = ( tid_k )                   + (tid_i)*nx  + (tid_j)*nx*ny;
-    if ( side == 1 ) tid_src = ( n_ghost + tid_k  )        + (tid_i)*nx  + (tid_j)*nx*ny;
-    if ( side == 1 ) tid_dst = ( nx - n_ghost + tid_k )    + (tid_i)*nx  + (tid_j)*nx*ny;
-  }
-  if ( direction == 1 ){
-    if ( side == 0 ) tid_src = (tid_i) + ( ny - 2*n_ghost + tid_k  )*nx  + (tid_j)*nx*ny;
-    if ( side == 0 ) tid_dst = (tid_i) + ( tid_k )*nx                    + (tid_j)*nx*ny;
-    if ( side == 1 ) tid_src = (tid_i) + ( n_ghost + tid_k  )*nx         + (tid_j)*nx*ny;
-    if ( side == 1 ) tid_dst = (tid_i) + ( ny - n_ghost + tid_k )*nx     + (tid_j)*nx*ny;
-  }
-  if ( direction == 2 ){
-    if ( side == 0 ) tid_src = (tid_i) + (tid_j)*nx + ( nz - 2*n_ghost + tid_k  )*nx*ny;
-    if ( side == 0 ) tid_dst = (tid_i) + (tid_j)*nx + ( tid_k  )*nx*ny;
-    if ( side == 1 ) tid_src = (tid_i) + (tid_j)*nx + ( n_ghost + tid_k  )*nx*ny;
-    if ( side == 1 ) tid_dst = (tid_i) + (tid_j)*nx + ( nz - n_ghost + tid_k  )*nx*ny;
-  }
-  
-  for (int i=0; i<n_freq; i++) {
-    rtFields.dev_rfn[tid_dst+i*n_cells] = rtFields.dev_rfn[tid_src+i*n_cells];
-    rtFields.dev_rff[tid_dst+i*n_cells] = rtFields.dev_rff[tid_src+i*n_cells];
-  }
-  
-}
-
+void __global__ Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz, int n_ghost, int n_freq, struct Rad3D::RT_Fields &rtFields);
 void Set_RT_Boundaries_Periodic( int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq, struct Rad3D::RT_Fields &rtFields){
   
   int n_i, n_j, size;
@@ -108,8 +76,6 @@ void Set_RT_Boundaries_Periodic( int direction, int side, int nx, int ny, int nz
 
   // Copy the kernel to set the boundary cells (non MPI)
   hipLaunchKernelGGL( Set_RT_Boundaries_Periodic_Kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, n_i, n_j, nx_g, ny_g, nz_g, n_ghost, n_freq, rtFields);
-
-
 }
 
 // Set boundary cells for radiation fields (non MPI)
@@ -121,21 +87,89 @@ void Rad3D::rtBoundaries(void)
   Set_RT_Boundaries_Periodic(1,1, nx, ny, nz, n_ghost, n_freq, rtFields); 
   Set_RT_Boundaries_Periodic(2,0, nx, ny, nz, n_ghost, n_freq, rtFields); 
   Set_RT_Boundaries_Periodic(2,1, nx, ny, nz, n_ghost, n_freq, rtFields); 
-
 }
+
 
 // Function to launch the kernel to calculate absorption coefficients
+void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, CrossSectionInCU cs, const Real* __restrict__ dens, Real* __restrict__ abc);
 void Rad3D::Calc_Absorption(Real *dev_scalar)
 {
+  int ngrid = (n_cells + TPB_RT - 1) / TPB_RT;
 
+  // set values for GPU kernels
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
+  auto fac = pow(LENGTH_UNIT,2);
+#ifdef COSMOLOGY
+#error "Not implemented.\n"
+#endif
+  CrossSectionInCU cs;
+  cs.HIatHI = Physics::AtomicData::CrossSection().csHIatHI*fac;
+  cs.HIatHeI = Physics::AtomicData::CrossSection().csHIatHeI*fac;
+  cs.HIatHeII = Physics::AtomicData::CrossSection().csHIatHeII*fac;
+  cs.HeIatHeI = Physics::AtomicData::CrossSection().csHeIatHeI*fac;
+  cs.HeIatHeII = Physics::AtomicData::CrossSection().csHeIatHeII*fac;
+  cs.HeIIatHeII = Physics::AtomicData::CrossSection().csHeIIatHeII*fac;
+
+  // Launch the kernel 
+  hipLaunchKernelGGL(Calc_Absorption_Kernel,dim1dGrid,dim1dBlock,0,0,
+      nx,ny,nz,
+      cs,
+      dev_scalar,
+      tmpFields.dev_abc);
 }
+
 
 // Function to launch the OTVETIteration kernel
 // should function the way "LAUNCH" does on slack
+void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost,
+    Real dx,
+    bool lastIteration,
+    const Real rsFarFactor,
+    const Real* __restrict__ rs,
+    const Real* __restrict__ et,
+    const Real* __restrict__ rfOT,
+    const Real* __restrict__ rfNear,
+    const Real* __restrict__ rfFar,
+    const Real* __restrict__ abc,
+    Real* __restrict__ rfNearNew,
+    Real* __restrict__ rfFarNew,
+    int deb);
 void Rad3D::OTVETIteration(void)
 {
+  int ngrid = (n_cells + TPB_RT - 1) / TPB_RT;
 
+  // set values for GPU kernels
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
 
+  // Launch the kernel for one frequency at a time
+  for(int freq=0; freq<n_freq; freq++)
+  {
+    hipLaunchKernelGGL(OTVETIteration_Kernel,dim1dGrid,dim1dBlock,0,0,
+        nx,ny,nz,
+        n_ghost,
+        dx,
+        lastIteration,
+        rsFarFactor,
+        rtFields.dev_rs,
+        rtFields.dev_et,
+        rtFields.ot,
+        rtFields.dev_rfn+freq*n_cells,
+        rtFields.dev_rff+freq*n_cells,
+        tmpFields.dev_abc+freq*n_cells,
+        tmpFields.dev_rfnNew,
+        tmpFields.dev_rffNew,
+        0);
+
+    CudaSafeCall( cudaMemcpy(tmpFields.dev_rfnNew, rtFields.dev_rfn+freq*n_cells, n_cells*sizeof(Real), cudaMemcpyDeviceToDevice) );
+    CudaSafeCall( cudaMemcpy(tmpFields.dev_rffNew, rtFields.dev_rff+freq*n_cells, n_cells*sizeof(Real), cudaMemcpyDeviceToDevice) );
+  }
 }
 
 // CPU function that calls the GPU-based RT functions
@@ -176,7 +210,7 @@ GIVEN:
 
   1) abundance fields as mass density \rhoHI, \rhoHeI, \rhoHeII
   2) radiation source field \rs
-  3) optically thin near radiation field \ot ("0-frequency field", 0-frequency far field is just idenstically 1)
+  3) optically thin near radiation field \ot ("0-frequency field", 0-frequency far field is just identically 1)
 
      \ot = \frac{1}{4\pi} int d^3 x_1 \frac{\rs(x_1)}{(x-x_1)^2}
 

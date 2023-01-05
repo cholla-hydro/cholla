@@ -8,9 +8,23 @@
 
 #include "../global/global.h"
 #include "radiation.h"
+#include "alt/decl.h"
 
 //void rtSolve(Real *dev_scalar, struct Rad3D::RT_Fields &rtFields);
 
+
+struct DEVICE_ALIGN_DECL CrossSectionInCU
+{
+    //
+    //  Some cached values that are used often
+    //
+    Real HIatHI;
+    Real HIatHeI;
+    Real HIatHeII;
+    Real HeIatHeI;
+    Real HeIatHeII;
+    Real HeIIatHeII;
+};
 
 #endif //VL_3D_CUDA_H
 #endif //CUDA

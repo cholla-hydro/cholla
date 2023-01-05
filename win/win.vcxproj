@@ -23,6 +23,8 @@
     <ClCompile Include="..\src\model\disk_ICs.cpp" />
     <ClCompile Include="..\src\mpi\MPI_Comm_node.c" />
     <ClCompile Include="..\src\mpi\mpi_routines.cpp" />
+    <ClCompile Include="..\src\radiation\alt\atomic_data.cpp" />
+    <ClCompile Include="..\src\radiation\alt\photo_rates_csi_gpu.cpp" />
     <ClCompile Include="..\src\radiation\radiation.cpp" />
     <ClCompile Include="..\src\utils\cuda_utilities.cpp" />
     <ClCompile Include="..\src\utils\error_handling.cpp" />
@@ -51,6 +53,18 @@
     <ClInclude Include="..\src\mpi\cuda_mpi_routines.h" />
     <ClInclude Include="..\src\mpi\MPI_Comm_node.h" />
     <ClInclude Include="..\src\mpi\mpi_routines.h" />
+    <ClInclude Include="..\src\radiation\alt\align.h" />
+    <ClInclude Include="..\src\radiation\alt\atomic_data.h" />
+    <ClInclude Include="..\src\radiation\alt\atomic_data_decl.h" />
+    <ClInclude Include="..\src\radiation\alt\constant.h" />
+    <ClInclude Include="..\src\radiation\alt\decl.h" />
+    <ClInclude Include="..\src\radiation\alt\gpu_pointer.h" />
+    <ClInclude Include="..\src\radiation\alt\photo_rates_csi.ANY.h" />
+    <ClInclude Include="..\src\radiation\alt\photo_rates_csi_gpu.h" />
+    <ClInclude Include="..\src\radiation\alt\static_table.h" />
+    <ClInclude Include="..\src\radiation\alt\static_table_gpu.cuh" />
+    <ClInclude Include="..\src\radiation\alt\static_table_gpu.h" />
+    <ClInclude Include="..\src\radiation\alt\table_base.h" />
     <ClInclude Include="..\src\radiation\radiation.h" />
     <ClInclude Include="..\src\radiation\RT_functions.h" />
     <ClInclude Include="..\src\reconstruction\pcm_cuda.h" />
@@ -88,7 +102,10 @@
     <CudaCompile Include="..\src\integrators\VL_2D_cuda.cu" />
     <CudaCompile Include="..\src\integrators\VL_3D_cuda.cu" />
     <CudaCompile Include="..\src\mpi\cuda_mpi_routines.cu" />
+    <CudaCompile Include="..\src\radiation\alt\photo_rates_csi_gpu.cu" />
+    <CudaCompile Include="..\src\radiation\alt\static_table_gpu.cu" />
     <CudaCompile Include="..\src\radiation\RT_functions.cu" />
+    <CudaCompile Include="..\src\radiation\RT_kernels.cu" />
     <CudaCompile Include="..\src\reconstruction\pcm_cuda.cu" />
     <CudaCompile Include="..\src\reconstruction\plmc_cuda.cu" />
     <CudaCompile Include="..\src\reconstruction\plmp_cuda.cu" />
@@ -148,6 +165,7 @@
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>hdf5_hl.lib;hdf5.lib;msmpi.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\Users\Home\Anaconda3\Library\lib;%(AdditionalLibraryDirectories);$(CudaToolkitLibDir);C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64</AdditionalLibraryDirectories>
+      <AdditionalOptions>/NODEFAULTLIB:library %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>

@@ -87,6 +87,8 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     Chemistry_Test(P);
   } else if (strcmp(P.init, "Iliev0")==0) {
     Iliev0(P);
+  } else if (strcmp(P.init, "Iliev1")==0) {
+    Iliev1(P);
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
@@ -1626,10 +1628,11 @@ void Grid3D::Chemistry_Test( struct parameters P )
 #include "../chemistry_gpu/chemistry_gpu.h"
 
 
-void Grid3D::Iliev0( struct parameters P )
+void Grid3D::Iliev0( const parameters& P )
 {
 #if defined(RT) && defined(CHEMISTRY_GPU)
     
+    Chem.H.H_fraction = 1;
     Chem.use_case_B_recombination = true;
 
     Real rho = MP*1/DENSITY_UNIT;    // 1 per cc
@@ -1663,7 +1666,6 @@ void Grid3D::Iliev0( struct parameters P )
         C.HeI_density[id]   =  rho * 1.0e-10;
         C.HeII_density[id]  =  rho * 1.0e-10;
         C.HeIII_density[id] =  rho * 1.0e-10;
-        //C.e_density[id]     =  rho * 1.0e-10;
       }
     }
   }
@@ -1673,6 +1675,78 @@ void Grid3D::Iliev0( struct parameters P )
 #endif //defined(RT) && defined(CHEMISTRY_GPU)
 }
 
+
+void Grid3D::Iliev1( const parameters& P )
+{
+#if defined(RT) && defined(CHEMISTRY_GPU)
+    
+    Chem.H.H_fraction = 1;
+    Chem.use_case_B_recombination = true;
+
+    Real rho = MP*1.0e-3/DENSITY_UNIT;    // 1.0e-3 per cc
+    Real U = 1.5*KB*2*1.0e4/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
+    Real xe = 1.2e-3;
+
+    chprintf("rho=%g U=%g\n",rho,U);
+
+    double xcen[3] = { H.xbound+0.5*H.xdglobal, H.ybound+0.5*H.ydglobal, H.zbound+0.5*H.zdglobal };
+    double dx2 = H.dx*H.dx;
+
+    Real Nsource = 5e48/2.998e10/(4*3.1415927*pow(LENGTH_UNIT,2));  // 5e48 phots/s/c/(4*pi*Ul^2)
+
+    Rad.rtFields.et = (Real *) malloc(Rad.n_cells * sizeof(Real) * 6);
+    Rad.rtFields.rs = (Real *) malloc(Rad.n_cells * sizeof(Real));
+
+  int i, j, k, id;
+  for (k=0; k<H.nz; k++) {
+    for (j=0; j<H.ny; j++) {
+      for (i=0; i<H.nx; i++) {
+
+        //get cell index
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        C.density[id] =  rho;
+        C.momentum_x[id] = 0;
+        C.momentum_y[id] = 0;
+        C.momentum_z[id] = 0;
+        C.Energy[id] = U;
+
+        #ifdef DE
+        C.GasEnergy[id] = U;
+        #endif
+
+        C.HI_density[id]    =  rho * (1-xe);
+        C.HII_density[id]   =  rho * xe;
+        C.HeI_density[id]   =  rho * 1.0e-20;
+        C.HeII_density[id]  =  rho * 1.0e-20;
+        C.HeIII_density[id] =  rho * 1.0e-20;
+
+        double x[3] = { H.xblocal+H.dx*(i+0.5), H.yblocal+H.dy*(i+0.5), H.zblocal+H.dz*(i+0.5) };
+
+        double r2 = 0;
+        for(int axis=0; axis<3; axis++)
+        {
+            x[axis] -= xcen[axis];
+            r2 += x[axis]*x[axis];
+        }
+
+        Rad.rtFields.rs[id] = (r2<dx2 ? 0.125*Nsource : 0);
+        Rad.rtFields.ot[id] = Nsource/(dx2+r2);
+        Rad.rtFields.et[id+0*Rad.n_cells] = (dx2/3.0+x[0]*x[0])/(dx2+r2);
+        Rad.rtFields.et[id+1*Rad.n_cells] = (        x[1]*x[0])/(dx2+r2);
+        Rad.rtFields.et[id+2*Rad.n_cells] = (        x[2]*x[0])/(dx2+r2);
+        Rad.rtFields.et[id+3*Rad.n_cells] = (dx2/3.0+x[1]*x[1])/(dx2+r2);
+        Rad.rtFields.et[id+4*Rad.n_cells] = (        x[2]*x[1])/(dx2+r2);
+        Rad.rtFields.et[id+5*Rad.n_cells] = (dx2/3.0+x[2]*x[2])/(dx2+r2);
+
+      }
+    }
+  }
+#else //defined(RT) && defined(CHEMISTRY_GPU)
+  chprintf( "This requires RT && CHEMISTRY_GPU turned on! \n");
+  chexit(-1);
+#endif //defined(RT) && defined(CHEMISTRY_GPU)
+}
 
 
 

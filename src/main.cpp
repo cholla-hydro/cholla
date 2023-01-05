@@ -85,6 +85,10 @@ int main(int argc, char *argv[])
   message = "Initializing Simulation";
   Write_Message_To_Log_File( message.c_str() );
 
+  #ifdef CHEMISTRY_GPU
+  G.Initialize_Chemistry_Start(&P);
+  #endif
+
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P);
@@ -127,7 +131,7 @@ int main(int argc, char *argv[])
   #endif
 
   #ifdef CHEMISTRY_GPU
-  G.Initialize_Chemistry(&P);
+  G.Initialize_Chemistry_Finish(&P);
   #endif
 
   #ifdef ANALYSIS
