@@ -74,11 +74,11 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
       // store in the interface on the "right" side of the cell, so the flux
       // arrays store the fluxes through the right interface
       //
-      // According to the source code of Athena, the following equation relate
-      // the magnetic flux to the face centered electric fields/EMF.
-      // -cross(V,B)x is the negative of the x-component of V cross B. Note that
-      // "X" is the direction the solver is running in this case, not
-      // necessarily the true "X".
+      // According to Stone et al. 2008 section 5.3 and the source code of
+      // Athena, the following equation relate the magnetic flux to the face
+      // centered electric fields/EMF. -cross(V,B)x is the negative of the
+      // x-component of V cross B. Note that "X" is the direction the solver is
+      // running in this case, not necessarily the true "X".
       //  F_x[(grid_enum::fluxX_magnetic_z)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_Z
       //  F_x[(grid_enum::fluxX_magnetic_y)*n_cells] = VxBz - BxVz =  (-cross(V,B))y =  EMF_Y
       //  F_y[(grid_enum::fluxY_magnetic_x)*n_cells] = VxBy - BxVy = -(-cross(V,B))z = -EMF_X
