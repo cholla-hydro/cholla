@@ -1,7 +1,9 @@
 /*!
  * \file hlld_cuda.cu
  * \author Robert 'Bob' Caddy (rvc@pitt.edu)
- * \brief Contains the implementation of the HLLD solver
+ * \brief Contains the implementation of the HLLD solver from Miyoshi & Kusano 2005
+ * "A multi-state HLL approximate Riemann solver for ideal magnetohydrodynamics",
+ * hereafter referred to as M&K 2005
  *
 */
 
@@ -241,6 +243,7 @@ namespace mhd
 
             // If we're in the L state then assign fluxes and return.
             // In this state the flow is supersonic
+            // M&K 2005 equation 66
             if (speedL >= 0.0)
             {
                 mhd::_internal::_returnFluxes(threadId, o1, o2, o3, n_cells,
@@ -282,6 +285,7 @@ namespace mhd
 
             // If we're in the R state then assign fluxes and return.
             // In this state the flow is supersonic
+            // M&K 2005 equation 66
             if (speedR <= 0.0)
             {
                 mhd::_internal::_returnFluxes(threadId, o1, o2, o3, n_cells,
@@ -307,6 +311,8 @@ namespace mhd
             // =================================================================
             // Shared quantity
             // note that velocityStarX = speedM
+            // M&K 2005 equation 23, might need to switch to eqn. 41 in the
+            // future though they should produce identical results
             Real totalPressureStar = totalPressureL + densityL
                                                       * (speedL - velocityXL)
                                                       * (speedM - velocityXL);
@@ -355,6 +361,7 @@ namespace mhd
 
             // If we're in the L* state then assign fluxes and return.
             // In this state the flow is subsonic
+            // M&K 2005 equation 66
             if (speedStarL >= 0.0)
             {
                 mhd::_internal::_returnFluxes(threadId, o1, o2, o3, n_cells,
@@ -419,6 +426,7 @@ namespace mhd
 
             // If we're in the R* state then assign fluxes and return.
             // In this state the flow is subsonic
+            // M&K 2005 equation 66
             if (speedStarR <= 0.0)
             {
                 mhd::_internal::_returnFluxes(threadId, o1, o2, o3, n_cells,
@@ -468,6 +476,7 @@ namespace mhd
                                             energyDoubleStarR);
 
             // Compute and return L** fluxes
+            // M&K 2005 equation 66
             if (speedM >= 0.0)
             {
                 Real momentumDoubleStarFluxX, momentumDoubleStarFluxY, momentumDoubleStarFluxZ,
@@ -520,6 +529,7 @@ namespace mhd
                 return;
             }
             // Compute and return R** fluxes
+            // M&K 2005 equation 66
             else if (speedStarR >= 0.0)
             {
                 Real momentumDoubleStarFluxX, momentumDoubleStarFluxY, momentumDoubleStarFluxZ,
@@ -626,11 +636,13 @@ namespace mhd
 
             // Compute the S_L and S_R wave speeds.
             // Version suggested by Miyoshi & Kusano 2005 and used in Athena
+            // M&K 2005 equation 67
             Real magSonicMax = fmax(magSonicL, magSonicR);
             speedL = fmin(velocityXL, velocityXR) - magSonicMax;
             speedR = fmax(velocityXL, velocityXR) + magSonicMax;
 
             // Compute the S_M wave speed
+            // M&K 2005 equation 38
             speedM = // Numerator
                           ( momentumXR * (speedR - velocityXR)
                           - momentumXL * (speedL - velocityXL)
@@ -641,10 +653,12 @@ namespace mhd
                           - densityL * (speedL - velocityXL));
 
             // Compute the densities in the star state
+            // M&K 2005 equation 43
             densityStarL = densityL * (speedL - velocityXL) / (speedL - speedM);
             densityStarR = densityR * (speedR - velocityXR) / (speedR - speedM);
 
             // Compute the S_L^* and S_R^* wave speeds
+            // M&K 2005 equation 51
             speedStarL = speedM - mhd::utils::alfvenSpeed(magneticX, densityStarL);
             speedStarR = speedM + mhd::utils::alfvenSpeed(magneticX, densityStarR);
         }
@@ -668,6 +682,7 @@ namespace mhd
                                                 Real &magneticFluxZ,
                                                 Real &energyFlux)
         {
+            // M&K 2005 equation 2
             densityFlux   = momentumX;
 
             momentumFluxX = momentumX * velocityX + totalPressure - magneticX * magneticX;
@@ -748,6 +763,7 @@ namespace mhd
                                              Real &magneticStarFluxZ)
         {
             // Check for and handle the degenerate case
+            // Explained at the top of page 326 in M&K 2005
             if (fabs(density * (speedSide - velocityX)
                              * (speedSide - speedM)
                              - (magneticX * magneticX))
@@ -760,22 +776,26 @@ namespace mhd
             }
             else
             {
+                // Denominator for M&K 2005 equations 44-47
                 Real const denom = density * (speedSide - velocityX)
                                            * (speedSide - speedM)
                                            - (magneticX * magneticX);
 
                 // Compute the velocity and magnetic field in the star state
+                // M&K 2005 equations 44 & 46
                 Real coef     = magneticX  * (speedM - velocityX) / denom;
                 velocityStarY = velocityY - magneticY * coef;
                 velocityStarZ = velocityZ - magneticZ * coef;
 
+                // M&K 2005 equations 45 & 47
                 Real tmpPower = (speedSide - velocityX);
-                tmpPower = tmpPower * tmpPower;
-                coef = (density * tmpPower - (magneticX * magneticX)) / denom;
+                tmpPower      = tmpPower * tmpPower;
+                coef          = (density * tmpPower - (magneticX * magneticX)) / denom;
                 magneticStarY = magneticY * coef;
                 magneticStarZ = magneticZ * coef;
             }
 
+            // M&K 2005 equation 48
             energyStar = ( energy * (speedSide - velocityX)
                         - totalPressure * velocityX
                         + totalPressureStar * speedM
@@ -784,6 +804,7 @@ namespace mhd
                         / (speedSide - speedM);
 
             // Now compute the star state fluxes
+            // M&K 2005 equations 64
             densityStarFlux   = densityFlux   + speedSide * (densityStar - density);;
             momentumStarFluxX = momentumFluxX + speedSide * (densityStar * speedM - momentumX);;
             momentumStarFluxY = momentumFluxY + speedSide * (densityStar * velocityStarY - momentumY);;
@@ -818,14 +839,16 @@ namespace mhd
                                                   Real &energyDoubleStarR)
         {
             // if Bx is zero then just return the star state
+            // Explained at the top of page 328 in M&K 2005. Essentially when
+            // magneticX is 0 this reduces to the HLLC solver
             if (magneticX < mhd::_internal::_hlldSmallNumber * totalPressureStar)
             {
                 velocityDoubleStarY = velocityStarYL;
                 velocityDoubleStarZ = velocityStarZL;
                 magneticDoubleStarY = magneticStarYL;
                 magneticDoubleStarZ = magneticStarZL;
-                energyDoubleStarL    = energyStarL;
-                energyDoubleStarR    = energyStarR;
+                energyDoubleStarL   = energyStarL;
+                energyDoubleStarR   = energyStarR;
             }
             else
             {
@@ -839,6 +862,7 @@ namespace mhd
                 // and magnetic fields along with the energy
 
                 // Double Star velocities
+                // M&K 2005 equations 59 & 60
                 velocityDoubleStarY = inverseDensities * (sqrtDL * velocityStarYL
                                       + sqrtDR * velocityStarYR
                                       + magXSign * (magneticStarYR - magneticStarYL));
@@ -847,6 +871,7 @@ namespace mhd
                                       + magXSign * (magneticStarZR - magneticStarZL));
 
                 // Double star magnetic fields
+                // M&K 2005 equations 61 & 62
                 magneticDoubleStarY = inverseDensities * (sqrtDL * magneticStarYR
                                       + sqrtDR * magneticStarYL
                                       + magXSign * (sqrtDL * sqrtDR) * (velocityStarYR - velocityStarYL));
@@ -861,6 +886,7 @@ namespace mhd
                                                                           magneticX,
                                                                           magneticDoubleStarY,
                                                                           magneticDoubleStarZ);
+                // M&K 2005 equation 63
                 energyDoubleStarL = energyStarL - sqrtDL * magXSign
                     * (math_utils::dotProduct(speedM, velocityStarYL, velocityStarZL, magneticX, magneticStarYL, magneticStarZL)
                     - velDblStarDotMagDblStar);
@@ -899,6 +925,7 @@ namespace mhd
                                                    Real &magneticDoubleStarFluxY,
                                                    Real &magneticDoubleStarFluxZ)
         {
+            // M&K 2005 equation 65
             momentumDoubleStarFluxX = momentumStarFluxX + speedStarSide * (velocityDoubleStarX - velocityStarX) * densityStar;
             momentumDoubleStarFluxY = momentumStarFluxY + speedStarSide * (velocityDoubleStarY - velocityStarY) * densityStar;
             momentumDoubleStarFluxZ = momentumStarFluxZ + speedStarSide * (velocityDoubleStarZ - velocityStarZ) * densityStar;

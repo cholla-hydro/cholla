@@ -1,7 +1,9 @@
 /*!
  * \file ct_electric_fields.cu
  * \author Robert 'Bob' Caddy (rvc@pitt.edu)
- * \brief Contains implementation for the CT electric fields code
+ * \brief Contains implementation for the CT electric fields code. Method from
+ * Stone & Gardiner 2009 "A simple unsplit Godunov method for multidimensional
+ * MHD" hereafter referred to as "S&G 2009"
  *
  */
 
@@ -80,7 +82,7 @@ namespace mhd
             // X electric field
             // ================
 
-            // Y-direction slope on the positive Y side
+            // Y-direction slope on the positive Y side. S&G 2009 equation 23
             signUpwind = fluxZ[cuda_utilities::compute1DIndex(xid, yid, zid-1, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -96,7 +98,7 @@ namespace mhd
                                    + mhd::_internal::_ctSlope(fluxY, dev_conserved, -1, 0, -1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
             }
 
-            // Y-direction slope on the negative Y side
+            // Y-direction slope on the negative Y side. S&G 2009 equation 23
             signUpwind = fluxZ[cuda_utilities::compute1DIndex(xid, yid-1, zid-1, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -112,7 +114,7 @@ namespace mhd
                                    + mhd::_internal::_ctSlope(fluxY, dev_conserved, -1, 0, 1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
             }
 
-            // Z-direction slope on the positive Z side
+            // Z-direction slope on the positive Z side. S&G 2009 equation 23
             signUpwind = fluxY[cuda_utilities::compute1DIndex(xid, yid-1, zid, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -128,7 +130,7 @@ namespace mhd
                                    + mhd::_internal::_ctSlope(fluxZ, dev_conserved, 1, 0, -1, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
             }
 
-            // Z-direction slope on the negative Z side
+            // Z-direction slope on the negative Z side. S&G 2009 equation 23
             signUpwind = fluxY[cuda_utilities::compute1DIndex(xid, yid-1, zid-1, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -154,6 +156,7 @@ namespace mhd
 
             // sum and average face centered electric fields and slopes to get the
             // edge averaged electric field.
+            // S&G 2009 equation 22
             ctElectricFields[threadId + 0*n_cells] = 0.25 * (+ face_y_pos
                                                              + face_y_neg
                                                              + face_z_pos
@@ -167,7 +170,7 @@ namespace mhd
             // Y electric field
             // ================
 
-            // X-direction slope on the positive X side
+            // X-direction slope on the positive X side. S&G 2009 equation 23
             signUpwind = fluxZ[cuda_utilities::compute1DIndex(xid, yid, zid-1, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -183,7 +186,7 @@ namespace mhd
                                    + mhd::_internal::_ctSlope(fluxX, dev_conserved, 1, 1, -1, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
             }
 
-            // X-direction slope on the negative X side
+            // X-direction slope on the negative X side. S&G 2009 equation 23
             signUpwind = fluxZ[cuda_utilities::compute1DIndex(xid-1, yid, zid-1, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -199,7 +202,7 @@ namespace mhd
                                    + mhd::_internal::_ctSlope(fluxX, dev_conserved, 1, 1, 0, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
             }
 
-            // Z-direction slope on the positive Z side
+            // Z-direction slope on the positive Z side. S&G 2009 equation 23
             signUpwind = fluxX[cuda_utilities::compute1DIndex(xid-1, yid, zid, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -215,7 +218,7 @@ namespace mhd
                                    + mhd::_internal::_ctSlope(fluxZ, dev_conserved, -1, 1, -1, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
             }
 
-            // Z-direction slope on the negative Z side
+            // Z-direction slope on the negative Z side. S&G 2009 equation 23
             signUpwind = fluxX[cuda_utilities::compute1DIndex(xid-1, yid, zid-1, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -240,6 +243,7 @@ namespace mhd
 
             // sum and average face centered electric fields and slopes to get the
             // edge averaged electric field.
+            // S&G 2009 equation 22
             ctElectricFields[threadId + 1*n_cells] = 0.25 * (+ face_x_pos
                                                              + face_x_neg
                                                              + face_z_pos
@@ -253,7 +257,7 @@ namespace mhd
             // Z electric field
             // ================
 
-            // Y-direction slope on the positive Y side
+            // Y-direction slope on the positive Y side. S&G 2009 equation 23
             signUpwind = fluxX[cuda_utilities::compute1DIndex(xid-1, yid, zid, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -269,7 +273,7 @@ namespace mhd
                                    + mhd::_internal::_ctSlope(fluxY, dev_conserved, 1, 2, -1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
             }
 
-            // Y-direction slope on the negative Y side
+            // Y-direction slope on the negative Y side. S&G 2009 equation 23
             signUpwind = fluxX[cuda_utilities::compute1DIndex(xid-1, yid-1, zid, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -285,7 +289,7 @@ namespace mhd
                                    + mhd::_internal::_ctSlope(fluxY, dev_conserved, 1, 2, 1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
             }
 
-            // X-direction slope on the positive X side
+            // X-direction slope on the positive X side. S&G 2009 equation 23
             signUpwind = fluxY[cuda_utilities::compute1DIndex(xid, yid-1, zid, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -301,7 +305,7 @@ namespace mhd
                                    + mhd::_internal::_ctSlope(fluxX, dev_conserved, -1, 2, -1, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
             }
 
-            // X-direction slope on the negative X side
+            // X-direction slope on the negative X side. S&G 2009 equation 23
             signUpwind = fluxY[cuda_utilities::compute1DIndex(xid-1, yid-1, zid, nx, ny)];
             if (signUpwind > 0.0)
             {
@@ -326,6 +330,7 @@ namespace mhd
 
             // sum and average face centered electric fields and slopes to get the
             // edge averaged electric field.
+            // S&G 2009 equation 22
             ctElectricFields[threadId + 2*n_cells] = 0.25 * (+ face_x_pos
                                                              + face_x_neg
                                                              + face_y_pos

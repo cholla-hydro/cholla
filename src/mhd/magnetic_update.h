@@ -1,7 +1,9 @@
 /*!
  * \file magnetic_update.h
  * \author Robert 'Bob' Caddy (rvc@pitt.edu)
- * \brief Contains the declaration of the kernel to update the magnetic field
+ * \brief Contains the declaration of the kernel to update the magnetic field.
+ * Method from Stone & Gardiner 2009 "A simple unsplit Godunov method for
+ * multidimensional MHD" hereafter referred to as "S&G 2009"
  *
  */
 

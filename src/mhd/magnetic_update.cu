@@ -1,7 +1,9 @@
 /*!
  * \file magnetic_update.cu
  * \author Robert 'Bob' Caddy (rvc@pitt.edu)
- * \brief Contains the definition of the kernel to update the magnetic field
+ * \brief Contains the definition of the kernel to update the magnetic field.
+ * Method from Stone & Gardiner 2009 "A simple unsplit Godunov method for
+ * multidimensional MHD" hereafter referred to as "S&G 2009"
  *
  */
 
@@ -61,16 +63,19 @@ namespace mhd
             // Perform Updates
 
             // X field update
+            // S&G 2009 equation 10
             destinationGrid[threadId + (grid_enum::magnetic_x)*n_cells] = sourceGrid[threadId + (grid_enum::magnetic_x)*n_cells]
                 + dtodz * (electric_y_3 - electric_y_1)
                 + dtody * (electric_z_1 - electric_z_3);
 
             // Y field update
+            // S&G 2009 equation 11
             destinationGrid[threadId + (grid_enum::magnetic_y)*n_cells] = sourceGrid[threadId + (grid_enum::magnetic_y)*n_cells]
                 + dtodx * (electric_z_3 - electric_z_2)
                 + dtodz * (electric_x_1 - electric_x_3);
 
             // Z field update
+            // S&G 2009 equation 12
             destinationGrid[threadId + (grid_enum::magnetic_z)*n_cells] = sourceGrid[threadId + (grid_enum::magnetic_z)*n_cells]
                 + dtody * (electric_x_3 - electric_x_2)
                 + dtodx * (electric_y_2 - electric_y_3);

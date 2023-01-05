@@ -5,7 +5,9 @@
  * for the various kernels, functions, and tools required for the 3D VL+CT MHD
  * integrator. Due to the CUDA/HIP compiler requiring that device functions be
  * directly accessible to the file they're used in most device functions will be
- * implemented in the header file
+ * implemented in the header file. Uses the same method described in Stone et
+ * al. 2008 "ATHENA: A new code for astrophysical MHD", hereafter referred to as
+ * Stone et al. 2008
  *
  */
 
@@ -62,6 +64,7 @@ namespace mhd
                 id_zMin1 = cuda_utilities::compute1DIndex(xid  , yid  , zid-1, nx, ny);
 
                 // Compute divergence
+                // Stone et al. 2008 equation 25
                 cellDivergence =
                     ((   dev_conserved[id       + (grid_enum::magnetic_x)*n_cells]
                        - dev_conserved[id_xMin1 + (grid_enum::magnetic_x)*n_cells])

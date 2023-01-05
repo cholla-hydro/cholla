@@ -1,5 +1,8 @@
 /*! \file VL_3D_cuda.cu
- *  \brief Definitions of the cuda 3 D VL algorithm functions. */
+ *  \brief Definitions of the cuda 3 D VL algorithm functions. MHD algorithm
+ *  from Stone & Gardiner 2009 "A simple unsplit Godunov method for
+ *  multidimensional MHD"
+ */
 
 #if  defined(CUDA) && defined(VL)
 

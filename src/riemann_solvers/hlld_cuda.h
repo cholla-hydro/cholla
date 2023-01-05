@@ -1,7 +1,9 @@
 /*!
  * \file hlld_cuda.cu
  * \author Robert 'Bob' Caddy (rvc@pitt.edu)
- * \brief Contains the declaration of the HLLD solver
+ * \brief Contains the declaration of the HLLD solver from Miyoshi & Kusano 2005
+ * "A multi-state HLL approximate Riemann solver for ideal magnetohydrodynamics",
+ * hereafter referred to as M&K 2005
  *
  */
 
@@ -63,7 +65,8 @@ namespace mhd
 
         /*!
          * \brief Compute the left, right, star, and middle wave speeds. Also
-         * returns the densities in the star states
+         * returns the densities in the star states. M&K 2005 equations 38, 43,
+         * 51, and 67
          *
          * \param[in] densityL Density, left side
          * \param[in] momentumXL Momentum in the X-direction, left side
@@ -198,7 +201,8 @@ namespace mhd
                                                Real const &energyFlux);
 
         /*!
-         * \brief Compute the fluxes in the left or right star state
+         * \brief Compute the fluxes in the left or right star state. M&K 2005
+         * equations 44-48, 64
          *
          * \param[in] speedM Speed of the central wave
          * \param[in] speedSide Speed of the non-star wave on the side being computed
@@ -274,7 +278,7 @@ namespace mhd
                                              Real &magneticStarFluxZ);
 
         /*!
-         * \brief Compute the double star state
+         * \brief Compute the double star state. M&K 2005 equations 59-63
          *
          * \param[in] speedM
          * \param[in] magneticX
@@ -321,7 +325,7 @@ namespace mhd
                                                   Real &energyDoubleStarR);
 
         /*!
-         * \brief Compute the double star state fluxes
+         * \brief Compute the double star state fluxes. M&K 2005 equation 65
          *
          * \param[in] speedStarSide The star speed on the side being computed
          * \param[in] momentumStarFluxX

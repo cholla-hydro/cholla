@@ -1,7 +1,9 @@
 /*!
  * \file ct_electric_fields.h
  * \author Robert 'Bob' Caddy (rvc@pitt.edu)
- * \brief Contains the declaration for the kernel that computes the CT electric fields
+ * \brief Contains the declaration for the kernel that computes the CT electric
+ * fields. Method from Stone & Gardiner 2009 "A simple unsplit Godunov method
+ * for multidimensional MHD" hereafter referred to as "S&G 2009"
  *
  */
 
@@ -31,7 +33,8 @@ namespace mhd
         // =====================================================================
         /*!
          * \brief Compute and return the slope of the electric field used to
-           compute the CT electric fields
+         * compute the CT electric fields. This function implements S&G 2009
+         * equation 24
          *
          * \param[in] flux The flux array
          * \param[in] dev_conserved The conserved variable array
@@ -118,10 +121,11 @@ namespace mhd
             Real const electric_face = fluxSign * flux[idxFlux + (int(fluxSign == 1)+grid_enum::magnetic_start)*n_cells];
 
             // Compute the slope and return it
+            // S&G 2009 equation 24
             return electric_face - electric_centered;
         }
         // =====================================================================
-    }// _mhd_internal namespace
+    }// mhd::_internal namespace
 
     // =========================================================================
     /*!
