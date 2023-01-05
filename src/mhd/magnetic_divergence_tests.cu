@@ -17,7 +17,6 @@
 
 // Local Includes
 #include "../utils/testing_utilities.h"
-#include "../grid/grid3D.h"
 #include "../mhd/magnetic_divergence.h"
 #include "../utils/DeviceVector.h"
 #include "../global/global.h"
@@ -60,11 +59,11 @@ TEST(tMHDGrid3DcheckMagneticDivergence, CorrectInputExpectCorrectOutput)
 
     // Perform test
     InitializeChollaMPI(NULL, NULL);
-    G.checkMagneticDivergence();
+    double max_magnetic_divergence = mhd::checkMagneticDivergence(G);
     MPI_Finalize();
     // Perform Comparison
     Real const fiducialDivergence = 3.6318132783263106 / 1E15;
-    testingUtilities::checkResults(fiducialDivergence, G.H.max_magnetic_divergence, "maximum divergence");
+    testingUtilities::checkResults(fiducialDivergence, max_magnetic_divergence, "maximum divergence");
 }
 // =============================================================================
 // End of tests for the magnetic field divergence functions

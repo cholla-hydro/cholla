@@ -81,10 +81,9 @@ namespace mhd
         reduction_utilities::gridReduceMax(maxDivergence, dev_maxDivergence);
     }
     // =========================================================================
-} // end namespace mhd
 
 // =============================================================================
-void Grid3D::checkMagneticDivergence()
+Real checkMagneticDivergence(Grid3D const &G)
 {
     // Compute the local value of the divergence
     // First let's create some variables we'll need.
@@ -99,35 +98,39 @@ void Grid3D::checkMagneticDivergence()
     // Now lets get the local maximum divergence
     hipLaunchKernelGGL(mhd::calculateMagneticDivergence,
                         launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
-                        C.device, dev_maxDivergence.data(),
-                        H.dx, H.dy, H.dz,
-                        H.nx, H.ny, H.nz,
-                        H.n_cells);
+                        G.C.device, dev_maxDivergence.data(),
+                        G.H.dx, G.H.dy, G.H.dz,
+                        G.H.nx, G.H.ny, G.H.nz,
+                        G.H.n_cells);
     CudaCheckError();
-    H.max_magnetic_divergence = dev_maxDivergence[0];
+    Real max_magnetic_divergence = dev_maxDivergence[0];
 
     #ifdef  MPI_CHOLLA
     // Now that we have the local maximum let's get the global maximum
-    H.max_magnetic_divergence = ReduceRealMax(H.max_magnetic_divergence);
+    max_magnetic_divergence = ReduceRealMax(max_magnetic_divergence);
     #endif  //MPI_CHOLLA
 
     // If the magnetic divergence is greater than the limit then raise a warning and exit
-    if (H.max_magnetic_divergence > H.magnetic_divergence_limit)
+    Real static const magnetic_divergence_limit = 1.0E-14;
+    if (max_magnetic_divergence > magnetic_divergence_limit)
     {
         // Report the error and exit
-        chprintf("The magnetic divergence has exceeded the maximum allowed value. Divergence = %7.4e, the maximum allowed divergence = %7.4e\n", H.max_magnetic_divergence, H.magnetic_divergence_limit);
+        chprintf("The magnetic divergence has exceeded the maximum allowed value. Divergence = %7.4e, the maximum allowed divergence = %7.4e\n", max_magnetic_divergence, magnetic_divergence_limit);
         chexit(-1);
     }
-    else if (H.max_magnetic_divergence < 0.0)
+    else if (max_magnetic_divergence < 0.0)
     {
         // Report the error and exit
-        chprintf("The magnetic divergence is negative. Divergence = %7.4e\n", H.max_magnetic_divergence);
+        chprintf("The magnetic divergence is negative. Divergence = %7.4e\n", max_magnetic_divergence);
         chexit(-1);
     }
     else  // The magnetic divergence is within acceptable bounds
     {
-        chprintf("Global maximum magnetic divergence = %7.4e\n", H.max_magnetic_divergence);
+        chprintf("Global maximum magnetic divergence = %7.4e\n", max_magnetic_divergence);
     }
+
+    return max_magnetic_divergence;
 }
 // =============================================================================
+} // end namespace mhd
 #endif // MHD

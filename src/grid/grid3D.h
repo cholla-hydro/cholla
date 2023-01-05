@@ -245,12 +245,6 @@ struct Header
   Real sphere_center_y;
   Real sphere_center_z;
 
-  #ifdef  MHD
-    Real max_magnetic_divergence;
-    Real const magnetic_divergence_limit = 1.0E-14;
-  #endif  //MHD
-
-
   #ifdef GRAVITY
   /*! \var n_ghost_potential_offset
   *  \brief Number of offset betewen hydro_ghost_cells and potential_ghost_cells */
@@ -464,17 +458,7 @@ class Grid3D
     Real Update_Hydro_Grid(void);
 
     void Update_Time();
-
-    #ifdef  MHD
-      /*!
-       * \brief Compute the maximum magnetic divergence in the grid and report
-       * an error if it exceeds Grid3D::H::magnetic_divergence_limit or is
-       * negative.
-       */
-      void checkMagneticDivergence();
-    #endif  //MHD
-
-     /*! \fn void Write_Header_Text(FILE *fp)
+    /*! \fn void Write_Header_Text(FILE *fp)
      *  \brief Write the relevant header info to a text output file. */
     void Write_Header_Text(FILE *fp);
 

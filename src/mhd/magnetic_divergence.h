@@ -14,6 +14,7 @@
 
 // Local Includes
 #include "../global/global.h"
+#include "../grid/grid3D.h"
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
 
@@ -50,5 +51,20 @@ namespace mhd
                                                 int const ny,
                                                 int const nz,
                                                 int const n_cells);
+    // =========================================================================
+
+    // =========================================================================
+    /*!
+     * \brief Compute the maximum magnetic divergence in the grid and report
+     * an error if it exceeds the magnetic divergence limit or is negative. The
+     * magnetic divergence limit is 1E-14 as determined by Athena as a
+     * reasonable upper bound for correctness.
+     *
+     * \param G The grid object
+     * \return Real The maximum magnetic divergence found in the grid. Can
+     * usually be ignored since all checking is done in the fucntion, mostly
+     * this return is for testing.
+     */
+    Real checkMagneticDivergence(Grid3D const &G);
     // =========================================================================
 } // end namespace mhd
