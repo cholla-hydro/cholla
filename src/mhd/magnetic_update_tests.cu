@@ -36,7 +36,7 @@ public:
     */
     tMHDUpdateMagneticField3D()
         :
-        nx(2),
+        nx(3),
         ny(nx),
         nz(nx),
         n_cells(nx*ny*nz),
@@ -141,9 +141,9 @@ TEST_F(tMHDUpdateMagneticField3D,
        CorrectInputExpectCorrectOutput)
 {
     // Fiducial values
-    fiducialData.at(40) = 42.559999999999995;
-    fiducialData.at(48) = 44.160000000000004;
-    fiducialData.at(56) = 57.280000000000001;
+    fiducialData.at(135) = 142.68000000000001;
+    fiducialData.at(162) = 151.75999999999999;
+    fiducialData.at(189) = 191.56;
 
     // Launch kernel and check results
     runTest();

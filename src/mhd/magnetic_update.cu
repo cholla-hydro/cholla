@@ -36,9 +36,9 @@ namespace mhd
 
         // Thread guard to avoid overrun and to skip ghost cells that cannot be
         // evolved due to missing electric fields that can't be reconstructed
-        if (    xid < nx-1
-            and yid < ny-1
-            and zid < nz-1)
+        if (    xid < nx-2
+            and yid < ny-2
+            and zid < nz-2)
         {
             // Compute the three dt/dx quantities
             Real const dtodx = dt/dx;
