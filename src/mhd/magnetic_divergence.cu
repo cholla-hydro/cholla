@@ -90,9 +90,8 @@ Real checkMagneticDivergence(Grid3D const &G)
     cuda_utilities::AutomaticLaunchParams static const launchParams(mhd::calculateMagneticDivergence);
     cuda_utilities::DeviceVector<Real> static dev_maxDivergence(1);
 
-    // Set the device side inverse time step to the smallest possible double
-    // so that the reduction isn't using the maximum value of the previous
-    // iteration
+    // Set the device side divergence to the smallest possible double so that
+    // the reduction isn't using the maximum value of the previous iteration
     dev_maxDivergence.assign(std::numeric_limits<Real>::lowest());
 
     // Now lets get the local maximum divergence
