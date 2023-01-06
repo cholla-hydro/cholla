@@ -4,6 +4,6 @@
     <LocalDebuggerCommandArguments>iliev1.txt</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)/test</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerEnvironment>PATH=$(PATH);C:\Users\Home\Anaconda3\Library\bin</LocalDebuggerEnvironment>
+    <LocalDebuggerEnvironment>PATH=$(PATH);C:\Users\Home\Anaconda3\Library\bin;C:\Users\Nick\Anaconda3\Library\bin</LocalDebuggerEnvironment>
   </PropertyGroup>
 </Project>

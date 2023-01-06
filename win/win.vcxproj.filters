@@ -64,6 +64,9 @@
     <ClCompile Include="..\src\radiation\alt\photo_rates_csi_gpu.cpp">
       <Filter>alt</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\radiation\alt\spectral_shape.cpp">
+      <Filter>alt</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\grid\cuda_boundaries.h">
@@ -229,6 +232,9 @@
       <Filter>alt</Filter>
     </ClInclude>
     <ClInclude Include="..\src\radiation\alt\photo_rates_csi_gpu.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\spectral_shape.h">
       <Filter>alt</Filter>
     </ClInclude>
   </ItemGroup>

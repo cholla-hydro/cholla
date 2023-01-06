@@ -18,7 +18,7 @@ namespace PhotoRatesCSI
     //
     struct TableWrapperGPU
     {
-        TableWrapperGPU(unsigned int numRadsPerFreq, unsigned int numRates, const PhotoRateTableStretchCSI& stretch);
+        TableWrapperGPU(unsigned int numRadsPerFreq, unsigned int numRates);
         ~TableWrapperGPU();
 
         void Update(unsigned int rad, const float* spectralShape, float norm);

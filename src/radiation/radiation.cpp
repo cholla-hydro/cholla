@@ -13,7 +13,19 @@
 #include"../global/global.h"
 #include "../grid/grid3D.h"
 #include"../io/io.h"
+#include "alt/photo_rates_csi_gpu.h"
 
+
+Rad3D::Rad3D()
+{
+    photoRates = new PhotoRatesCSI::TableWrapperGPU(2,7);
+}
+
+
+Rad3D::~Rad3D()
+{
+    delete photoRates;
+}
 
 
 // function to do various initialization tasks, i.e. allocating memory, etc.

@@ -21,13 +21,22 @@ namespace PhotoRatesCSI
 };
 
 
-PhotoRatesCSI::TableWrapperGPU::TableWrapperGPU(unsigned int numRadsPerFreq_, unsigned int numRates_, const PhotoRateTableStretchCSI& stretch)
+PhotoRatesCSI::TableWrapperGPU::TableWrapperGPU(unsigned int numRadsPerFreq_, unsigned int numRates_)
 {
     numRadsPerFreq = numRadsPerFreq_;
     numRates = numRates_;
 
     dTableData.resize(numRadsPerFreq);
     bSpectralShapes.resize(numRadsPerFreq);
+
+    PhotoRateTableStretchCSI stretch;
+    //
+    //  Table precision (calibrated with ALTAIR):
+    //    1.0% -> 96
+    //    1.5% -> 64
+    //    2.0% -> 40
+    //
+    stretch.Set(64);
 
     bTables.Alloc(numRadsPerFreq);
     for(unsigned int rad=0; rad<numRadsPerFreq; rad++)

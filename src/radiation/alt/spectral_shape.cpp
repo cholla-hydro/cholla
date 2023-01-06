@@ -1,27 +1,20 @@
 /*LICENSE*/
-#include "common.h"
-
 
 #include <cmath>
 
-#include "physics/atomic_data/atomic_data.h"
+#include "atomic_data.h"
 #include "spectral_shape.h"
 
 
-using namespace Physics::RT;
-using namespace Physics::AtomicData;
-
-
-void SpectralShape::Normalize(STL::Vector<float>& s)
+void SpectralShape::Normalize(std::vector<float>& s)
 {
-    auto xs = CrossSections();
+    auto xs = Physics::AtomicData::CrossSections();
 
     float w = 0;
-    for(unsigned int i=xs->thresholds[CrossSection::IonizationHI].idx; i<xs->nxi; i++)
+    for(unsigned int i=xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx; i<xs->nxi; i++)
     {
         w += s[i];
     }
-    ASSERT(w > 0);
     w *= xs->dxi;
     for(unsigned int i=0; i<xs->nxi; i++)
     {
@@ -36,14 +29,14 @@ void SpectralShape::Normalize(STL::Vector<float>& s)
 //
 //  PopII and PopIII shapes from Ricotti et al 2002ApJ...575...33R.
 //
-void SpectralShape::PopII(STL::Vector<float>& s)
+void SpectralShape::PopII(std::vector<float>& s)
 {
-    auto xs = CrossSections();
+    auto xs = Physics::AtomicData::CrossSections();
 
     s.assign(xs->nxi,0);
     for(unsigned int i=0; i<xs->nxi; i++)
     {
-        float e = xs->hnu_eV[i]/Ry_eV;
+        float e = xs->hnu_eV[i]/Physics::AtomicData::Ry_eV;
     
         if(e < 1)
         {
@@ -67,14 +60,14 @@ void SpectralShape::PopII(STL::Vector<float>& s)
 }
 
 
-void SpectralShape::PopIII(STL::Vector<float>& s)
+void SpectralShape::PopIII(std::vector<float>& s)
 {
-    auto xs = CrossSections();
+    auto xs = Physics::AtomicData::CrossSections();
 
     s.assign(xs->nxi,0);
     for(unsigned int i=0; i<xs->nxi; i++)
     {
-        float e = xs->hnu_eV[i]/Ry_eV;
+        float e = xs->hnu_eV[i]/Physics::AtomicData::Ry_eV;
 
         if(e < 1)
         {
@@ -98,9 +91,9 @@ void SpectralShape::PopIII(STL::Vector<float>& s)
 //  Average QSO spectral shape from Richards et al 2006ApJS..166..470R and Hopkins et al 2007, ApJ, 654, 731
 //  (i.e. NG's fit to it).
 //
-void SpectralShape::Quasar(STL::Vector<float>& s)
+void SpectralShape::Quasar(std::vector<float>& s)
 {
-    auto xs = CrossSections();
+    auto xs = Physics::AtomicData::CrossSections();
 
     s.assign(xs->nxi,0);
     for(unsigned int i=0; i<xs->nxi; i++)
@@ -115,11 +108,9 @@ void SpectralShape::Quasar(STL::Vector<float>& s)
 //
 //  Black body spectrum.
 //
-void SpectralShape::BlackBody(float tem, STL::Vector<float>& s)
+void SpectralShape::BlackBody(float tem, std::vector<float>& s)
 {
-    ASSERT(tem > 1000);
-
-    auto xs = CrossSections();
+    auto xs = Physics::AtomicData::CrossSections();
 
     s.assign(xs->nxi,0);
     for(unsigned int i=0; i<xs->nxi; i++)

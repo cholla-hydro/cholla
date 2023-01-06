@@ -10,6 +10,10 @@
 
 #define TPB_RT 1024
 
+
+namespace PhotoRatesCSI { struct TableWrapperGPU; };
+
+
 class Rad3D
 {
   public:
@@ -64,6 +68,11 @@ class Rad3D
     // updated fields on the device
     Real *dev_rfnNew, *dev_rffNew;
   } tmpFields;
+
+  PhotoRatesCSI::TableWrapperGPU *photoRates;
+
+  Rad3D();
+  ~Rad3D();
 
   void Initialize_RT_Fields(void);
 

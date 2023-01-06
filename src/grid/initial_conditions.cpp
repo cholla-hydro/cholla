@@ -1676,6 +1676,12 @@ void Grid3D::Iliev0( const parameters& P )
 }
 
 
+#include "../radiation/alt/atomic_data.h"
+#include "../radiation/alt/constant.h"
+#include "../radiation/alt/photo_rates_csi_gpu.h"
+#include "../radiation/alt/spectral_shape.h"
+
+
 void Grid3D::Iliev1( const parameters& P )
 {
 #if defined(RT) && defined(CHEMISTRY_GPU)
@@ -1692,10 +1698,20 @@ void Grid3D::Iliev1( const parameters& P )
     double xcen[3] = { H.xbound+0.5*H.xdglobal, H.ybound+0.5*H.ydglobal, H.zbound+0.5*H.zdglobal };
     double dx2 = H.dx*H.dx;
 
-    Real Nsource = 5e48/2.998e10/(4*3.1415927*pow(LENGTH_UNIT,2));  // 5e48 phots/s/c/(4*pi*Ul^2)
+    Real Nsource = 5e48/Constant::c/(4*3.1415927*pow(LENGTH_UNIT,2));  // 5e48 phots/s/c/(4*pi*Ul^2)
 
     Rad.rtFields.et = (Real *) malloc(Rad.n_cells * sizeof(Real) * 6);
     Rad.rtFields.rs = (Real *) malloc(Rad.n_cells * sizeof(Real));
+
+    auto xs = Physics::AtomicData::CrossSections();
+    std::vector<float> spectralShape(xs->nxi,0);
+    //
+    //  6.34/5.92 is because the frequency bin at HI threshold has the left edge at Ry, and the bin center is at
+    //  Ry*exp(0.5*xiStep) = 1.025*Ry, where the cross section is 5.92e-18, not 6.34e-18.
+    //
+    spectralShape[xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx] = 1/xs->dxi*6.34/5.92;
+
+    Rad.photoRates->Update(0,spectralShape.data(),xs->dxi*Constant::c*1.0e-24*TIME_UNIT);
 
   int i, j, k, id;
   for (k=0; k<H.nz; k++) {
