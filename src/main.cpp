@@ -89,6 +89,10 @@ int main(int argc, char *argv[])
   G.Initialize_Chemistry_Start(&P);
   #endif
 
+#ifdef RT
+  G.Rad.Initialize_Start(P);
+  #endif
+
   // Set initial conditions and calculate first dt
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P);
@@ -100,6 +104,10 @@ int main(int argc, char *argv[])
     nfile = P.nfile;
   }
 
+  #ifdef RT
+  G.Rad.Initialize_Finish();
+  #endif
+  
   #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2 );
   message =  " eta_1: " + std::to_string(DE_ETA_1) + "   eta_2: " + std::to_string(DE_ETA_2);
@@ -122,10 +130,6 @@ int main(int argc, char *argv[])
   G.Initialize_Cosmology(&P);
   #endif
 
-  #ifdef RT
-  G.Initialize_RT();
-  #endif
-  
   #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
   #endif
@@ -215,13 +219,13 @@ int main(int argc, char *argv[])
     G.Transfer_Particles_Boundaries(P);
     #endif
 
-    // Advance the grid by one timestep
-    dti = G.Update_Hydro_Grid();
-
     #ifdef RT
     // Perform the radiative transfer solve
     G.Update_RT();
     #endif
+
+    // Advance the grid by one timestep
+    dti = G.Update_Hydro_Grid();
 
     // update the simulation time ( t += dt )
     G.Update_Time();

@@ -7,6 +7,8 @@
 #include "rates.cuh"
 #include "rates_Katz95.cuh"
 
+#include "../radiation/alt/static_table_gpu.cuh"
+
 #define eV_to_K 1.160451812e4
 #define K_to_eV 8.617333263e-5
 #define n_min 1e-20
@@ -244,35 +246,88 @@ __device__ Real linear_interpolation( Real delta_x, int indx_l, int indx_r, floa
   return v; 
 }
 
-__device__ void Get_Current_UVB_Rates( Real current_z, Chemistry_Header &Chem_H,
+__device__ void Get_Current_Photo_Rates( Chemistry_Header &Chem_H, const Real *rf, int id, int ncells, 
                                        float &photo_i_HI, float &photo_i_HeI, float &photo_i_HeII, 
                                        float &photo_h_HI, float &photo_h_HeI, float &photo_h_HeII, bool print ){
-    
-  if ( current_z > Chem_H.uvb_rates_redshift_d[Chem_H.n_uvb_rates_samples - 1]){
-    photo_h_HI   = 0;  
-    photo_h_HeI  = 0;  
-    photo_h_HeII = 0;  
-    photo_i_HI   = 0;  
-    photo_i_HeI  = 0;  
-    photo_i_HeII = 0;  
-    return;
-    
-  }  
-  // Find closest value of z in rates_z such that z<=current_z
-  int indx_l;
-  Real z_l, z_r, delta_x;
-  indx_l = Binary_Search( Chem_H.n_uvb_rates_samples, current_z, Chem_H.uvb_rates_redshift_d, 0, Chem_H.n_uvb_rates_samples-1 );
-  z_l = Chem_H.uvb_rates_redshift_d[indx_l];
-  z_r = Chem_H.uvb_rates_redshift_d[indx_l+1];
-  delta_x = (current_z - z_l) / ( z_r - z_l );
-  
-  photo_i_HI   = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_ion_HI_rate_d );
-  photo_i_HeI  = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_ion_HeI_rate_d );
-  photo_i_HeII = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_ion_HeII_rate_d );
-  photo_h_HI   = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_heat_HI_rate_d );
-  photo_h_HeI  = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_heat_HeI_rate_d );
-  photo_h_HeII = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_heat_HeII_rate_d );
-    
+    if(rf != nullptr)
+    {
+        const float rfN0 = rf[id+0*ncells];
+        const float rfNHI = rf[id+1*ncells];
+        const float rfNHeI = rf[id+2*ncells];
+        const float rfNHeII = rf[id+3*ncells];
+        
+        float tauHI = (rfNHI>rfN0 ? 0 : (rfNHI>0 ? -log(1.0e-35+rfNHI/rfN0) : 1001));
+        float tauHeI = (rfNHeI>rfN0 ? 0 : (rfNHeI>0 ? -log(1.0e-35+rfNHeI/rfN0) : 1001));
+        float tauHeII = (rfNHeII>rfN0 ? 0 : (rfNHeII>0 ? -log(1.0e-35+rfNHeII/rfN0) : 1001));
+        
+        float x[3] = { Chem_H.dStretch->tau2x(tauHI), Chem_H.dStretch->tau2x(tauHeI), Chem_H.dStretch->tau2x(tauHeII) };
+
+        float pRates[6];       
+        Chem_H.dTables[0]->GetValues(x,pRates,0,6);
+        
+        for(unsigned int i=0; i<6; i++)
+        {
+            pRates[i] *= rfN0;
+        }
+
+        if(Chem_H.dTables[1] != nullptr)
+        {
+            const float rfFHI = rf[id+4*ncells];
+            const float rfFHeI = rf[id+5*ncells];
+            const float rfFHeII = rf[id+6*ncells];
+            
+            float tauHI = (rfFHI>1 ? 0 : (rfFHI>0 ? -log(1.0e-35+rfFHI) : 1001));
+            float tauHeI = (rfFHeI>1 ? 0 : (rfFHeI>0 ? -log(1.0e-35+rfFHeI) : 1001));
+            float tauHeII = (rfFHeII>1 ? 0 : (rfFHeII>0 ? -log(1.0e-35+rfFHeII) : 1001));
+            
+            x[0] = Chem_H.dStretch->tau2x(tauHI);
+            x[1] = Chem_H.dStretch->tau2x(tauHeI);
+            x[2] = Chem_H.dStretch->tau2x(tauHeII);
+            
+            float pRates2[6];
+            Chem_H.dTables[1]->GetValues(x,pRates2,0,6);
+            
+            for(unsigned int i=0; i<6; i++)
+            {
+                pRates[i] += pRates2[i];
+            }
+        }
+
+        photo_i_HI   = pRates[0];  
+        photo_h_HI   = pRates[1];  
+        photo_i_HeI  = pRates[2];  
+        photo_h_HeI  = pRates[3];  
+        photo_i_HeII = pRates[4];  
+        photo_h_HeII = pRates[5];  
+    }
+    else
+    {
+        if( Chem_H.current_z > Chem_H.uvb_rates_redshift_d[Chem_H.n_uvb_rates_samples - 1])
+        {
+            photo_h_HI   = 0;  
+            photo_h_HeI  = 0;  
+            photo_h_HeII = 0;  
+            photo_i_HI   = 0;  
+            photo_i_HeI  = 0;  
+            photo_i_HeII = 0;  
+            return;
+        }  
+
+        // Find closest value of z in rates_z such that z<=current_z
+        int indx_l;
+        Real z_l, z_r, delta_x;
+        indx_l = Binary_Search( Chem_H.n_uvb_rates_samples, Chem_H.current_z, Chem_H.uvb_rates_redshift_d, 0, Chem_H.n_uvb_rates_samples-1 );
+        z_l = Chem_H.uvb_rates_redshift_d[indx_l];
+        z_r = Chem_H.uvb_rates_redshift_d[indx_l+1];
+        delta_x = (Chem_H.current_z - z_l) / ( z_r - z_l );
+        
+        photo_i_HI   = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_ion_HI_rate_d );
+        photo_i_HeI  = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_ion_HeI_rate_d );
+        photo_i_HeII = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_ion_HeII_rate_d );
+        photo_h_HI   = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_heat_HI_rate_d );
+        photo_h_HeI  = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_heat_HeI_rate_d );
+        photo_h_HeII = linear_interpolation( delta_x, indx_l, indx_l+1, Chem_H.photo_heat_HeII_rate_d );
+    }
 }
 
 __device__ Real Get_Chemistry_dt( Thermal_State &TS, Chemistry_Header &Chem_H, Real &HI_dot, Real &e_dot, Real U_dot, 
@@ -414,16 +469,14 @@ __device__ void Update_Step( Thermal_State &TS, Chemistry_Header &Chem_H, Real d
  }
 
 
-__global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt_hydro, Chemistry_Header Chem_H   ){
+__global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt_hydro, Chemistry_Header Chem_H   ){
   
-    
   int id, xid, yid, zid, n_cells, n_iter;
   Real d, d_inv, vx, vy, vz;
   Real GE, E_kin, dt_chem, t_chem;
   Real current_a, a3, a2;
   
-  Real current_z, density_conv, energy_conv;
-  current_z = Chem_H.current_z;
+  Real density_conv, energy_conv;
   density_conv = Chem_H.density_conversion;
   energy_conv  = Chem_H.energy_conversion;
   
@@ -433,7 +486,6 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
   float photo_i_HI, photo_i_HeI, photo_i_HeII;
   float photo_h_HI, photo_h_HeI, photo_h_HeII;
   Real correct_H, correct_He;
-  
   
   n_cells = nx*ny*nz;
   
@@ -460,10 +512,13 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
     #endif
  
     print = false;
-    ///if ( xid == n_ghost && yid == n_ghost && zid == n_ghost ) print = true;
+    if ( id == 183995 )
+    {
+        print = true;
+    }
         
     // Convert to cgs units
-    current_a = 1 / ( current_z + 1);
+    current_a = 1 / ( Chem_H.current_z + 1);
     a2 = current_a * current_a;
     a3 = a2 * current_a;  
     d  *= density_conv / a3;
@@ -521,7 +576,8 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
     // }
     
     // Get the photoheating and photoionization rates at z=current_z
-    Get_Current_UVB_Rates( current_z, Chem_H, photo_i_HI, photo_i_HeI, photo_i_HeII, 
+    Get_Current_Photo_Rates( Chem_H, dev_rf, id, n_cells,
+      photo_i_HI, photo_i_HeI, photo_i_HeII, 
       photo_h_HI, photo_h_HeI, photo_h_HeII, print );
     
     HI_dot_prev = 0;
@@ -532,7 +588,7 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
       
       if (print) printf("########################################## Iter %d \n", n_iter );
           
-      U_dot = Get_Cooling_Rates( TS, Chem_H, Chem_H.dens_number_conv, current_z, temp_prev, 
+      U_dot = Get_Cooling_Rates( TS, Chem_H, Chem_H.dens_number_conv, Chem_H.current_z, temp_prev, 
                                  photo_h_HI, photo_h_HeI, photo_h_HeII, print );
       
       Get_Reaction_Rates( TS, Chem_H, k_coll_i_HI, k_coll_i_HeI, k_coll_i_HeII,
@@ -591,7 +647,7 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, int nx, int ny, in
   }
 }
 
-void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Chemistry_Header &Chem_H){
+void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Chemistry_Header &Chem_H){
   
   float time;
   cudaEvent_t start, stop;
@@ -602,7 +658,7 @@ void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghos
   int ngrid = (nx*ny*nz - 1) / TPB_CHEM + 1;
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB_CHEM, 1, 1);                                          
-  hipLaunchKernelGGL(Update_Chemistry_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, Chem_H );
+  hipLaunchKernelGGL(Update_Chemistry_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_rf, nx, ny, nz, n_ghost, n_fields, dt, Chem_H );
   
   CudaCheckError();
   cudaEventRecord(stop, 0);

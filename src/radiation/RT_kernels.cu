@@ -8,7 +8,7 @@
 #include "RT_functions.h"
 
 
-void __global__ Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz, int n_ghost, int n_freq, struct Rad3D::RT_Fields &rtFields)
+void __global__ Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz, int n_ghost, int n_freq, struct Rad3D::RT_Fields rtFields)
 {
 
   int n_cells = nx*ny*nz;
@@ -42,13 +42,13 @@ void __global__ Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n
   }
   
   for (int i=0; i<n_freq; i++) {
-    rtFields.dev_rfn[tid_dst+i*n_cells] = rtFields.dev_rfn[tid_src+i*n_cells];
-    rtFields.dev_rff[tid_dst+i*n_cells] = rtFields.dev_rff[tid_src+i*n_cells];
+    rtFields.dev_rf[tid_dst+(1+i)*n_cells] = rtFields.dev_rf[tid_src+(1+i)*n_cells];
+    rtFields.dev_rf[tid_dst+(1+n_freq+i)*n_cells] = rtFields.dev_rf[tid_src+(1+n_freq+i)*n_cells];
   }
 }
 
 
-void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, CrossSectionInCU cs, const Real* __restrict__ dens, Real* __restrict__ abc)
+void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, CrossSectionInCU xs, const Real* __restrict__ dens, Real* __restrict__ abc)
 {
     const int tid = threadIdx.x + blockIdx.x*blockDim.x;
     const int jk = tid/nx;
@@ -62,9 +62,9 @@ void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, CrossSectionInCU 
     const Real densHeI = dens[i+nx*(j+ny*(k+2*nz))];
     const Real densHeII = dens[i+nx*(j+ny*(k+3*nz))];
 
-    abc[i+nx*(j+ny*(k+0*nz))] = cs.HIatHI*densHI;
-    abc[i+nx*(j+ny*(k+1*nz))] = cs.HIatHeI*densHI + cs.HeIatHeI*densHeI;
-    abc[i+nx*(j+ny*(k+2*nz))] = cs.HIatHeII*densHI + cs.HeIatHeII*densHeI + cs.HeIIatHeII*densHeII;
+    abc[i+nx*(j+ny*(k+0*nz))] = xs.HIatHI*densHI;
+    abc[i+nx*(j+ny*(k+1*nz))] = xs.HIatHeI*densHI + xs.HeIatHeI*densHeI;
+    abc[i+nx*(j+ny*(k+2*nz))] = xs.HIatHeII*densHI + xs.HeIatHeII*densHeI + xs.HeIIatHeII*densHeII;
 }
 
 
@@ -231,7 +231,7 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost,
     Real rfu2 = rfNear[i+nx*(j+nz*k)] + alpha*Au*du;
     Real rfv2 = rfFar[i+nx*(j+nz*k)] + alpha*Av*dv;
     
-    ///if(deb==1 && i==0 && j==3 && k==1) printf("GPU %g = %g + %g %g\n",rf2,rfNear[i+nx*(j+nz*k)],A,d);
+    if(i==35 && j==35 && k==35) printf("GPU %g = %g + %g %g (ot=%g) %g %g\n",rfu2,rfNear[i+nx*(j+nz*k)],Au,du,rfOT[i+nx*(j+nz*k)],abc[i+nx*(j+nz*k)],uminus_wII);
 
     if(lastIteration)
     {

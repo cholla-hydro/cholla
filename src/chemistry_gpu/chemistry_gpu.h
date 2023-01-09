@@ -9,6 +9,14 @@
 typedef Real (*Rate_Function_T)( Real, Real );
 
 
+class Grid3D;
+
+#ifdef RT
+#include "../radiation/alt/photo_rates_csi.ANY.h"
+#include "../radiation/alt/photo_rates_csi_gpu.h"
+#endif
+
+
 // #define TEXTURES_UVB_INTERPOLATION
 
 struct Chemistry_Header
@@ -80,6 +88,10 @@ struct Chemistry_Header
   float *photo_heat_HeI_rate_d;
   float *photo_heat_HeII_rate_d;
   
+#ifdef RT
+    const StaticTableGPU<float,3,'x'>* dTables[2];
+    const PhotoRateTableStretchCSI *dStretch;
+#endif
 };
 
 
@@ -94,7 +106,6 @@ public:
   int nx;
   int ny;
   int nz;
-  
   
   bool use_case_B_recombination;
   
@@ -122,7 +133,6 @@ public:
   
   struct Chemistry_Header H;
   
-  
   struct Fields
   {
     Real *temperature_h;
@@ -142,7 +152,7 @@ public:
   
   void Initialize_Cooling_Rates();
   
-    void Initialize_Reaction_Rates();
+  void Initialize_Reaction_Rates();
   
   void Initialize_UVB_Ionization_and_Heating_Rates( struct parameters *P );
   
@@ -155,14 +165,13 @@ public:
   #ifdef TEXTURES_UVB_INTERPOLATION
   void Bind_GPU_Textures( int size,  float *H_HI_h, float *H_HeI_h, float *H_HeII_h , float *I_HI_h, float *I_HeI_h, float *I_HeII_h );
   #endif
-
 };
 
 
 /*! \fn void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
 *  \brief When passed an array of conserved variables and a timestep, update the ionization fractions of H and He and update 
 the internal energy to account for radiative cooling and photoheating from the UV background. */
-void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Chemistry_Header &Chem_H);
+void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Chemistry_Header &Chem_H);
 
 
 

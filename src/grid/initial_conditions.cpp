@@ -1690,7 +1690,7 @@ void Grid3D::Iliev1( const parameters& P )
     Chem.use_case_B_recombination = true;
 
     Real rho = MP*1.0e-3/DENSITY_UNIT;    // 1.0e-3 per cc
-    Real U = 1.5*KB*2*1.0e4/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
+    Real U = 1.5*KB*2*1.0e4*1.0e-3/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
     Real xe = 1.2e-3;
 
     chprintf("rho=%g U=%g\n",rho,U);
@@ -1698,10 +1698,8 @@ void Grid3D::Iliev1( const parameters& P )
     double xcen[3] = { H.xbound+0.5*H.xdglobal, H.ybound+0.5*H.ydglobal, H.zbound+0.5*H.zdglobal };
     double dx2 = H.dx*H.dx;
 
-    Real Nsource = 5e48/Constant::c/(4*3.1415927*pow(LENGTH_UNIT,2));  // 5e48 phots/s/c/(4*pi*Ul^2)
-
-    Rad.rtFields.et = (Real *) malloc(Rad.n_cells * sizeof(Real) * 6);
-    Rad.rtFields.rs = (Real *) malloc(Rad.n_cells * sizeof(Real));
+    Rad.rtFields.et = (Real *) malloc(H.n_cells * sizeof(Real) * 6);
+    Rad.rtFields.rs = (Real *) malloc(H.n_cells * sizeof(Real));
 
     auto xs = Physics::AtomicData::CrossSections();
     std::vector<float> spectralShape(xs->nxi,0);
@@ -1709,7 +1707,7 @@ void Grid3D::Iliev1( const parameters& P )
     //  6.34/5.92 is because the frequency bin at HI threshold has the left edge at Ry, and the bin center is at
     //  Ry*exp(0.5*xiStep) = 1.025*Ry, where the cross section is 5.92e-18, not 6.34e-18.
     //
-    spectralShape[xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx] = 1/xs->dxi*6.34/5.92;
+    spectralShape[xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx] = 5e48/Constant::c/pow(LENGTH_UNIT,2)/xs->dxi*6.34/5.92;
 
     Rad.photoRates->Update(0,spectralShape.data(),xs->dxi*Constant::c*1.0e-24*TIME_UNIT);
 
@@ -1719,7 +1717,7 @@ void Grid3D::Iliev1( const parameters& P )
       for (i=0; i<H.nx; i++) {
 
         //get cell index
-        id = i + j*H.nx + k*H.nx*H.ny;
+        id = i + H.nx*(j+H.ny*k);
 
         C.density[id] =  rho;
         C.momentum_x[id] = 0;
@@ -1737,7 +1735,7 @@ void Grid3D::Iliev1( const parameters& P )
         C.HeII_density[id]  =  rho * 1.0e-20;
         C.HeIII_density[id] =  rho * 1.0e-20;
 
-        double x[3] = { H.xblocal+H.dx*(i+0.5), H.yblocal+H.dy*(i+0.5), H.zblocal+H.dz*(i+0.5) };
+        double x[3] = { H.xblocal+H.dx*(i+0.5-H.n_ghost), H.yblocal+H.dy*(j+0.5-H.n_ghost), H.zblocal+H.dz*(k+0.5-H.n_ghost) };
 
         double r2 = 0;
         for(int axis=0; axis<3; axis++)
@@ -1746,14 +1744,22 @@ void Grid3D::Iliev1( const parameters& P )
             r2 += x[axis]*x[axis];
         }
 
-        Rad.rtFields.rs[id] = (r2<dx2 ? 0.125*Nsource : 0);
-        Rad.rtFields.ot[id] = Nsource/(dx2+r2);
-        Rad.rtFields.et[id+0*Rad.n_cells] = (dx2/3.0+x[0]*x[0])/(dx2+r2);
-        Rad.rtFields.et[id+1*Rad.n_cells] = (        x[1]*x[0])/(dx2+r2);
-        Rad.rtFields.et[id+2*Rad.n_cells] = (        x[2]*x[0])/(dx2+r2);
-        Rad.rtFields.et[id+3*Rad.n_cells] = (dx2/3.0+x[1]*x[1])/(dx2+r2);
-        Rad.rtFields.et[id+4*Rad.n_cells] = (        x[2]*x[1])/(dx2+r2);
-        Rad.rtFields.et[id+5*Rad.n_cells] = (dx2/3.0+x[2]*x[2])/(dx2+r2);
+        if(r2 < dx2)
+        {
+            printf("Center: %d (%d,%d,%d)\n",id,i,j,k);
+        }
+
+        Rad.rtFields.rs[id] = (r2<dx2 ? 0.125/pow(H.dx,3) : 0);
+
+        Rad.rtFields.rf[id] = 1/(12.5664*(dx2+r2));
+        for(int ii=1; ii<1+2*Rad.n_freq; ii++) Rad.rtFields.rf[id+ii*H.n_cells] = 0;
+
+        Rad.rtFields.et[id+0*H.n_cells] = (dx2/3.0+x[0]*x[0])/(dx2+r2);
+        Rad.rtFields.et[id+1*H.n_cells] = (        x[1]*x[0])/(dx2+r2);
+        Rad.rtFields.et[id+2*H.n_cells] = (        x[2]*x[0])/(dx2+r2);
+        Rad.rtFields.et[id+3*H.n_cells] = (dx2/3.0+x[1]*x[1])/(dx2+r2);
+        Rad.rtFields.et[id+4*H.n_cells] = (        x[2]*x[1])/(dx2+r2);
+        Rad.rtFields.et[id+5*H.n_cells] = (dx2/3.0+x[2]*x[2])/(dx2+r2);
 
       }
     }

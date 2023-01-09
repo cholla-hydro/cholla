@@ -37,8 +37,8 @@ typedef double Real;
 #define KM_CGS 1e5 //km in cm
 #define MH 1.67262171e-24 //Mass of hydrogen [g]   
 
-#define TIME_UNIT 3.15569e10 // 1 kyr in s
-#define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
+#define TIME_UNIT (1e3*3.15569e10) // 1 kyr in s
+#define LENGTH_UNIT (13.2*3.08567758e21) // 1 kpc in cm
 #define MASS_UNIT 1.98847e33 // 1 solar mass in grams
 #define DENSITY_UNIT (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT))
 #define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
@@ -286,6 +286,9 @@ struct parameters
 #if defined(COOLING_GRACKLE) || defined (CHEMISTRY_GPU)
   char UVB_rates_file[MAXLEN]; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
 #endif  
+#ifdef RT
+  int num_iterations = 10;
+#endif
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
   char analysisdir[MAXLEN];

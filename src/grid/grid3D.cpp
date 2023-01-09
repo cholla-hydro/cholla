@@ -43,7 +43,7 @@
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
-Grid3D::Grid3D(void)
+Grid3D::Grid3D(void) : Rad(this->H)
 {
   // set initialization flag to 0
   flag_init = 0;
@@ -652,7 +652,7 @@ void Grid3D::FreeMemory(void)
   #endif
 
   #ifdef RT
-  Rad.Free_Memory_RT();
+  Rad.Free_Memory();
   #endif
 
   #ifdef CHEMISTRY_GPU

@@ -1754,20 +1754,20 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     #if defined(RT) && defined(OUTPUT_RADIATION)
     // for near and far fields, loop over frequencies
-    for (int n=0; n<Rad.n_freq; n++) {
+    for (int n=0; n<(1+2*Rad.n_freq); n++) {
       // create the name of the dataset
       char dataset[100];
       char number[10];
-      strcpy(dataset, "/rfn");
+      strcpy(dataset, "/rf");
       sprintf(number, "%d", n);
       strcat(dataset,number);  
       // Copy the near field array to the memory buffer
       for (k=0; k<H.nz_real; k++) {
         for (j=0; j<H.ny_real; j++) {
           for (i=0; i<H.nx_real; i++) {
-            id = (i+Rad.n_ghost) + (j+Rad.n_ghost)*Rad.nx + (k+Rad.n_ghost)*Rad.nx*Rad.ny;
+            id = (i+H.n_ghost) + (j+H.n_ghost)*H.nx + (k+H.n_ghost)*H.nx*H.ny;
             buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-            dataset_buffer[buf_id] = Rad.rtFields.rfn[id+n*Rad.n_cells];
+            dataset_buffer[buf_id] = Rad.rtFields.rf[id+n*H.n_cells];
           }
         }
       }
@@ -1777,45 +1777,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
       // Free the dataset id
       status = H5Dclose(dataset_id);
-
-      // create the name of the dataset
-      strcpy(dataset, "/rff");
-      sprintf(number, "%d", n);
-      strcat(dataset,number);  
-      // Copy the far field array to the memory buffer
-      for (k=0; k<H.nz_real; k++) {
-        for (j=0; j<H.ny_real; j++) {
-          for (i=0; i<H.nx_real; i++) {
-            id = (i+Rad.n_ghost) + (j+Rad.n_ghost)*Rad.nx + (k+Rad.n_ghost)*Rad.nx*Rad.ny;
-            buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-            dataset_buffer[buf_id] = Rad.rtFields.rff[id+n*Rad.n_cells];
-          }
-        }
-      }
-      // Create a dataset id for far field 
-      dataset_id = H5Dcreate(file_id, dataset, H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-      // Write the density array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
-      status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      // Free the dataset id
-      status = H5Dclose(dataset_id);      
     }
-    // Now do optically thin field
-    // Copy the optically thin field array to the memory buffer
-    for (k=0; k<H.nz_real; k++) {
-      for (j=0; j<H.ny_real; j++) {
-        for (i=0; i<H.nx_real; i++) {
-          id = (i+Rad.n_ghost) + (j+Rad.n_ghost)*Rad.nx + (k+Rad.n_ghost)*Rad.nx*Rad.ny;
-          buf_id = k + j*H.nz_real + i*H.nz_real*H.ny_real;
-          dataset_buffer[buf_id] = Rad.rtFields.ot[id];
-        }
-      }
-    }
-    // Create a dataset id for optically thin field 
-    dataset_id = H5Dcreate(file_id, "/ot", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    // Write the array to file  // NOTE: NEED TO FIX FOR FLOAT REAL!!!
-    status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);    
     #endif//RT and OUTPUT_RADIATION
 
     #ifdef  MHD

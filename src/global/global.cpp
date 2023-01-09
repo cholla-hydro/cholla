@@ -349,6 +349,10 @@ void parse_param(char *name,char *value, struct parameters *parms){
     else if (strcmp(name, "UVB_rates_file")==0)
       strncpy (parms->UVB_rates_file, value, MAXLEN);
 #endif  
+#ifdef RT
+  else if (strcmp(name, "num_iterations")==0)
+    parms->num_iterations  = atoi(value);
+#endif
 #ifdef COOLING_GRACKLE
   else if (strcmp(name, "UVB_rates_file")==0)
     strncpy (parms->UVB_rates_file, value, MAXLEN);
