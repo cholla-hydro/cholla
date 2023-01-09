@@ -1709,7 +1709,7 @@ void Grid3D::Iliev1( const parameters& P )
     //
     spectralShape[xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx] = 5e48/Constant::c/pow(LENGTH_UNIT,2)/xs->dxi*6.34/5.92;
 
-    Rad.photoRates->Update(0,spectralShape.data(),xs->dxi*Constant::c*1.0e-24*TIME_UNIT);
+    Rad.photoRates->Update(0,spectralShape.data(),xs->dxi*Constant::c*1.0e-24);
 
   int i, j, k, id;
   for (k=0; k<H.nz; k++) {

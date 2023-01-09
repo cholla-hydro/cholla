@@ -11,55 +11,6 @@ namespace
 {
     struct AtomicDataOnGPU
     {
-        AtomicDataOnGPU()
-        {
-            auto xs = Physics::AtomicData::CrossSections();
-
-            for(unsigned int k=0; k<3+Physics::AtomicData::CrossSection::Num; k++)
-            {
-                dArrs[k].Alloc(sizeof(float)*xs->nxi);
-            }
-
-            GPU::HostBuffer<float> h;
-            h.Alloc(xs->nxi);
-            memcpy(h.Ptr(),xs->xi,sizeof(float)*xs->nxi);
-            h.BlockingTransferToDevice(dArrs[0]);
-            memcpy(h.Ptr(),xs->hnu_K,sizeof(float)*xs->nxi);
-            h.BlockingTransferToDevice(dArrs[1]);
-            memcpy(h.Ptr(),xs->hnu_eV,sizeof(float)*xs->nxi);
-            h.BlockingTransferToDevice(dArrs[2]);
-            for(unsigned int k=0; k<Physics::AtomicData::CrossSection::Num; k++)
-            {
-                memcpy(h.Ptr(),xs->cs[k],sizeof(float)*xs->nxi);
-                h.BlockingTransferToDevice(dArrs[3+k]);
-            }
-            h.Free();
-
-            GPU::HostBuffer<Physics::AtomicData::CrossSection> hxs(1);
-            *hxs.Ptr() = *xs;
-
-            hxs.Ptr()->xi = dArrs[0];
-            hxs.Ptr()->hnu_K = dArrs[1];
-            hxs.Ptr()->hnu_eV = dArrs[2];
-            for(unsigned int k=0; k<Physics::AtomicData::CrossSection::Num; k++)
-            {
-                hxs.Ptr()->cs[k] = dArrs[3+k];
-            }
-
-            dCrossSection.Alloc(1);
-            hxs.BlockingTransferToDevice(dCrossSection);
-        }
-
-        ~AtomicDataOnGPU()
-        {
-            dCrossSection.Free();
-
-            for(unsigned int k=0; k<3+Physics::AtomicData::CrossSection::Num; k++)
-            {
-                dArrs[k].Free();
-            }
-        }
-
         GPU::DeviceBuffer<Physics::AtomicData::CrossSection> dCrossSection;
         GPU::DeviceBuffer<float> dArrs[Physics::AtomicData::CrossSection::Num+3];
     };
@@ -132,11 +83,52 @@ void Physics::AtomicData::Create()
     gCrossSections.csHeIatHeI = gCrossSections.cs[CrossSection::IonizationHeI][gCrossSections.thresholds[CrossSection::IonizationHeI].idx];
     gCrossSections.csHeIatHeII = gCrossSections.cs[CrossSection::IonizationHeI][gCrossSections.thresholds[CrossSection::IonizationHeII].idx];
     gCrossSections.csHeIIatHeII = gCrossSections.cs[CrossSection::IonizationHeII][gCrossSections.thresholds[CrossSection::IonizationHeII].idx];
+
+    for(unsigned int k=0; k<3+Physics::AtomicData::CrossSection::Num; k++)
+    {
+        gAtomicDataOnGPU.dArrs[k].Alloc(sizeof(float)*gCrossSections.nxi);
+    }
+
+    GPU::HostBuffer<float> h;
+    h.Alloc(gCrossSections.nxi);
+    memcpy(h.Ptr(),gCrossSections.xi,sizeof(float)*gCrossSections.nxi);
+    h.BlockingTransferToDevice(gAtomicDataOnGPU.dArrs[0]);
+    memcpy(h.Ptr(),gCrossSections.hnu_K,sizeof(float)*gCrossSections.nxi);
+    h.BlockingTransferToDevice(gAtomicDataOnGPU.dArrs[1]);
+    memcpy(h.Ptr(),gCrossSections.hnu_eV,sizeof(float)*gCrossSections.nxi);
+    h.BlockingTransferToDevice(gAtomicDataOnGPU.dArrs[2]);
+    for(unsigned int k=0; k<Physics::AtomicData::CrossSection::Num; k++)
+    {
+        memcpy(h.Ptr(),gCrossSections.cs[k],sizeof(float)*gCrossSections.nxi);
+        h.BlockingTransferToDevice(gAtomicDataOnGPU.dArrs[3+k]);
+    }
+    h.Free();
+
+    GPU::HostBuffer<Physics::AtomicData::CrossSection> hxs(1);
+    *hxs.Ptr() = gCrossSections;
+
+    hxs.Ptr()->xi = gAtomicDataOnGPU.dArrs[0];
+    hxs.Ptr()->hnu_K = gAtomicDataOnGPU.dArrs[1];
+    hxs.Ptr()->hnu_eV = gAtomicDataOnGPU.dArrs[2];
+    for(unsigned int k=0; k<Physics::AtomicData::CrossSection::Num; k++)
+    {
+        hxs.Ptr()->cs[k] = gAtomicDataOnGPU.dArrs[3+k];
+    }
+
+    gAtomicDataOnGPU.dCrossSection.Alloc(1);
+    hxs.BlockingTransferToDevice(gAtomicDataOnGPU.dCrossSection);
 }
 
 
 void Physics::AtomicData::Delete()
 {
+    gAtomicDataOnGPU.dCrossSection.Free();
+    
+    for(unsigned int k=0; k<3+Physics::AtomicData::CrossSection::Num; k++)
+    {
+        gAtomicDataOnGPU.dArrs[k].Free();
+    }
+
     for(unsigned int k=0; k<CrossSection::Num; k++)
     {
         delete [] gCrossSections.cs[k];

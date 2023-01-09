@@ -221,8 +221,7 @@ __device__ void Get_Reaction_Rates( Thermal_State &TS, Chemistry_Header &Chem_H,
   if (print) printf("k_coll_i_HI_HeI: %e \n", k_coll_i_HI_HeI );  
   if (print) printf("k_recomb_HII: %e \n", k_recomb_HII );
   if (print) printf("k_recomb_HeII: %e \n", k_recomb_HeII );
-  if (print) printf("k_recomb_HeIII: %e \n", k_recomb_HeIII );
-  
+  if (print) printf("k_recomb_HeIII: %e \n", k_recomb_HeIII );  
 }
 
 __device__ int Binary_Search( int N, Real val, float *data, int indx_l, int indx_r ){
@@ -260,9 +259,8 @@ __device__ void Get_Current_Photo_Rates( Chemistry_Header &Chem_H, const Real *r
         float tauHeI = (rfNHeI>rfN0 ? 0 : (rfNHeI>0 ? -log(1.0e-35+rfNHeI/rfN0) : 1001));
         float tauHeII = (rfNHeII>rfN0 ? 0 : (rfNHeII>0 ? -log(1.0e-35+rfNHeII/rfN0) : 1001));
         
-        float x[3] = { Chem_H.dStretch->tau2x(tauHI), Chem_H.dStretch->tau2x(tauHeI), Chem_H.dStretch->tau2x(tauHeII) };
-
         float pRates[6];       
+        float x[3] = { Chem_H.dStretch->tau2x(tauHI), Chem_H.dStretch->tau2x(tauHeI), Chem_H.dStretch->tau2x(tauHeII) };
         Chem_H.dTables[0]->GetValues(x,pRates,0,6);
         
         for(unsigned int i=0; i<6; i++)
@@ -294,11 +292,11 @@ __device__ void Get_Current_Photo_Rates( Chemistry_Header &Chem_H, const Real *r
         }
 
         photo_i_HI   = pRates[0];  
-        photo_h_HI   = pRates[1];  
+        photo_h_HI   = pRates[1]/11604;  // in eV, not K
         photo_i_HeI  = pRates[2];  
-        photo_h_HeI  = pRates[3];  
+        photo_h_HeI  = pRates[3]/11604;  
         photo_i_HeII = pRates[4];  
-        photo_h_HeII = pRates[5];  
+        photo_h_HeII = pRates[5]/11604;  
     }
     else
     {
@@ -512,9 +510,9 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
     #endif
  
     print = false;
-    if ( id == 183995 )
+    if(xid==35 && yid==35 && zid==35)
     {
-        print = true;
+        ///print = true;
     }
         
     // Convert to cgs units
@@ -593,6 +591,12 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
       
       Get_Reaction_Rates( TS, Chem_H, k_coll_i_HI, k_coll_i_HeI, k_coll_i_HeII,
                           k_coll_i_HI_HI, k_coll_i_HI_HeI, k_recomb_HII, k_recomb_HeII, k_recomb_HeIII, print  );
+      if (print)
+      {
+        printf("k_photo_ion_HI: %e \n", photo_i_HI);
+        printf("k_photo_ion_HeI: %e \n", photo_i_HeI);
+        printf("k_photo_ion_HeII: %e \n", photo_i_HeII);
+      }
       
       dt_chem = Get_Chemistry_dt( TS, Chem_H, HI_dot, e_dot, U_dot, 
                         k_coll_i_HI, k_coll_i_HeI, k_coll_i_HeII, k_coll_i_HI_HI, k_coll_i_HI_HeI,

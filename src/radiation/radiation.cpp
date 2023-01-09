@@ -20,7 +20,8 @@
 Rad3D::Rad3D(const Header& grid_) : grid(grid_)
 {
     Physics::AtomicData::Create();
-    photoRates = new PhotoRatesCSI::TableWrapperGPU(2,7);
+    ///photoRates = new PhotoRatesCSI::TableWrapperGPU(2,6);
+    photoRates = new PhotoRatesCSI::TableWrapperGPU(1,6);
 }
 
 

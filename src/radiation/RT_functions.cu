@@ -104,7 +104,7 @@ void Rad3D::rtBoundaries(void)
 
 
 // Function to launch the kernel to calculate absorption coefficients
-void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, CrossSectionInCU cs, const Real* __restrict__ dens, Real* __restrict__ abc);
+void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSectionInCU cs, const Real* __restrict__ dens, Real* __restrict__ abc);
 void Rad3D::Calc_Absorption(Real *dev_scalar)
 {
   int ngrid = (grid.n_cells + TPB_RT - 1) / TPB_RT;
@@ -129,7 +129,7 @@ void Rad3D::Calc_Absorption(Real *dev_scalar)
 
   // Launch the kernel 
   hipLaunchKernelGGL(Calc_Absorption_Kernel,dim1dGrid,dim1dBlock,0,0,
-      grid.nx,grid.ny,grid.nz,
+      grid.nx,grid.ny,grid.nz,grid.dx,
       xs,
       dev_scalar,
       rtFields.dev_abc);
@@ -200,7 +200,7 @@ void Rad3D::rtSolve(Real *dev_scalar)
     Calc_Absorption(dev_scalar);
 
     int niters = this->num_iterations;
-    Real speedOfLightInCodeUnits = 3e10/LENGTH_UNIT*TIME_UNIT;
+    Real speedOfLightInCodeUnits = 3e10/VELOCITY_UNIT;
     int niters2 = (dt>0 ? static_cast<int>(1+speedOfLightInCodeUnits*dt/grid.dx) : niters);
     if(niters > niters2) niters = niters2;
 

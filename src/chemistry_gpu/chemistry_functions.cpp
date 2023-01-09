@@ -318,6 +318,7 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_uni
 
 void Chem_GPU::Reset(){
   
+#ifndef RT
   free( rates_z_h );
   free( Heat_rates_HI_h );
   free( Heat_rates_HeI_h );
@@ -333,7 +334,7 @@ void Chem_GPU::Reset(){
   Free_Array_GPU_float( Ion_rates_HI_d );
   Free_Array_GPU_float( Ion_rates_HeI_d );
   Free_Array_GPU_float( Ion_rates_HeII_d );
-  
+#endif
   free( Fields.temperature_h );
   
 }

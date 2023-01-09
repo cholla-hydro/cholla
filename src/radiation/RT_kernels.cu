@@ -48,7 +48,7 @@ void __global__ Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n
 }
 
 
-void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, CrossSectionInCU xs, const Real* __restrict__ dens, Real* __restrict__ abc)
+void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSectionInCU xs, const Real* __restrict__ dens, Real* __restrict__ abc)
 {
     const int tid = threadIdx.x + blockIdx.x*blockDim.x;
     const int jk = tid/nx;
@@ -62,9 +62,9 @@ void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, CrossSectionInCU 
     const Real densHeI = dens[i+nx*(j+ny*(k+2*nz))];
     const Real densHeII = dens[i+nx*(j+ny*(k+3*nz))];
 
-    abc[i+nx*(j+ny*(k+0*nz))] = xs.HIatHI*densHI;
-    abc[i+nx*(j+ny*(k+1*nz))] = xs.HIatHeI*densHI + xs.HeIatHeI*densHeI;
-    abc[i+nx*(j+ny*(k+2*nz))] = xs.HIatHeII*densHI + xs.HeIatHeII*densHeI + xs.HeIIatHeII*densHeII;
+    abc[i+nx*(j+ny*(k+0*nz))] = dx*(xs.HIatHI*densHI);
+    abc[i+nx*(j+ny*(k+1*nz))] = dx*(xs.HIatHeI*densHI+xs.HeIatHeI*densHeI);
+    abc[i+nx*(j+ny*(k+2*nz))] = dx*(xs.HIatHeII*densHI+xs.HeIatHeII*densHeI+xs.HeIIatHeII*densHeII);
 }
 
 
