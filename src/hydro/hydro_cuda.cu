@@ -548,14 +548,12 @@ __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
       vy    = dev_conserved[2*n_cells + id] * d_inv;
       vz    = dev_conserved[3*n_cells + id] * d_inv;
       E     = dev_conserved[4*n_cells + id];
+
+      // Compute the maximum inverse crossing time in the cell
       #ifdef  MHD
         // Compute the cell centered magnetic field using a straight average of
         // the faces
         auto const [avgBx, avgBy, avgBz] = mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny);
-      #endif  //MHD
-
-      // Compute the maximum inverse crossing time in the cell
-      #ifdef  MHD
         max_dti = fmax(max_dti,mhdInverseCrossingTime(E, d, d_inv, vx, vy, vz, avgBx, avgBy, avgBz, dx, dy, dz, gamma));
       #else  // not MHD
         max_dti = fmax(max_dti,hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma));
@@ -646,17 +644,8 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
     vz =  dev_conserved[3*n_cells + id] * d_inv;
     E  =  dev_conserved[4*n_cells + id];
 
-    #ifdef  MHD
-      // Compute the cell centered magnetic field using a straight average of the faces
-      auto [avgBx, avgBy, avgBz] = mhdUtils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny);
-    #endif  //MHD
-
     // Compute the maximum inverse crossing time in the cell
-    #ifdef  MHD
-      max_dti = mhdInverseCrossingTime(E, d, d_inv, vx, vy, vz, avgBx, avgBy, avgBz, dx, dy, dz, gamma);
-    #else  // not MHD
-      max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
-    #endif  //MHD
+    max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
 
     if (max_dti > max_dti_slow){
       speed = sqrt(vx*vx + vy*vy + vz*vz);
@@ -1185,15 +1174,7 @@ __device__ void Average_Cell_All_Fields( int i, int j, int k, int nx, int ny, in
   Average_Cell_Single_Field( 3, i, j, k, nx, ny, nz, ncells, conserved );
   // Average Energy
   Average_Cell_Single_Field( 4, i, j, k, nx, ny, nz, ncells, conserved );
-  #ifdef  MHD
-    // Average MHD
-    Average_Cell_Single_Field( grid_enum::magnetic_x, i,   j,   k,   nx, ny, nz, ncells, conserved );
-    Average_Cell_Single_Field( grid_enum::magnetic_y, i,   j,   k,   nx, ny, nz, ncells, conserved );
-    Average_Cell_Single_Field( grid_enum::magnetic_z, i,   j,   k,   nx, ny, nz, ncells, conserved );
-    Average_Cell_Single_Field( grid_enum::magnetic_x, i-1, j,   k,   nx, ny, nz, ncells, conserved );
-    Average_Cell_Single_Field( grid_enum::magnetic_y, i,   j-1, k,   nx, ny, nz, ncells, conserved );
-    Average_Cell_Single_Field( grid_enum::magnetic_z, i,   j,   k-1, nx, ny, nz, ncells, conserved );
-  #endif  //MHD
+
   #ifdef DE
   // Average GasEnergy
   Average_Cell_Single_Field( n_fields-1, i, j, k, nx, ny, nz, ncells, conserved );
