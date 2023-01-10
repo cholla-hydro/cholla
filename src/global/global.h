@@ -37,9 +37,12 @@ typedef double Real;
 #define KM_CGS 1e5 //km in cm
 #define MH 1.67262171e-24 //Mass of hydrogen [g]   
 
-#define TIME_UNIT (1e3*3.15569e10) // 1 kyr in s
-#define LENGTH_UNIT (13.2*3.08567758e21) // 1 kpc in cm
+#define TIME_UNIT 3.15569e10 // 1 kyr in s
+#define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
 #define MASS_UNIT 1.98847e33 // 1 solar mass in grams
+//#define TIME_UNIT (1e3*3.15569e10) // 1 kyr in s
+//#define LENGTH_UNIT (13.2*3.08567758e21) // 1 kpc in cm
+//#define MASS_UNIT 1.1289245801680841e+41 //1.98847e33 // 1 solar mass in grams
 #define DENSITY_UNIT (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT))
 #define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
 #define ENERGY_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)

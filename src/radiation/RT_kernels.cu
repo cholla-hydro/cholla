@@ -231,7 +231,7 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost,
     Real rfu2 = rfNear[i+nx*(j+nz*k)] + alpha*Au*du;
     Real rfv2 = rfFar[i+nx*(j+nz*k)] + alpha*Av*dv;
     
-    if(i==35 && j==35 && k==35) printf("GPU %g = %g + %g %g (ot=%g) %g %g\n",rfu2,rfNear[i+nx*(j+nz*k)],Au,du,rfOT[i+nx*(j+nz*k)],abc[i+nx*(j+nz*k)],uminus_wII);
+    ///if(deb!=0 && i==37 && j==36 && k==36) printf("GPU %g = %g + %g %g (ot=%g) %g,%g,%g,%g,%g,%g,%g,%g\n",rfu2,rfNear[i+nx*(j+nz*k)],Au,du,rfOT[i+nx*(j+nz*k)],dx*rs[i+nx*(j+nz*k)],abc[i+nx*(j+nz*k)]*rfNear[i+nx*(j+nz*k)],fuxp,fuxm,fuyp,fuym,fuzp,fuzm);
 
     if(lastIteration)
     {

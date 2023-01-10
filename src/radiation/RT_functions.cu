@@ -184,7 +184,7 @@ void Rad3D::OTVETIteration(void)
         rtFields.dev_abc+freq*grid.n_cells,
         rfNearNew,
         rfFarNew,
-        0);
+        (freq==0 ? 1 : 0));
 
     CudaSafeCall( cudaMemcpyAsync(rfNearOld, rfNearNew, grid.n_cells*sizeof(Real), cudaMemcpyDeviceToDevice) );
     CudaSafeCall( cudaMemcpyAsync(rfFarOld, rfFarNew, grid.n_cells*sizeof(Real), cudaMemcpyDeviceToDevice) );

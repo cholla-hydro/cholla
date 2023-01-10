@@ -108,6 +108,9 @@ void Grid3D::Initialize_Chemistry_Finish( struct parameters *P ){
   Chem.H.dTables[0] = Rad.photoRates->bTables[0];
   Chem.H.dTables[1] = (Rad.photoRates->bTables.Count()>1 ? Rad.photoRates->bTables[1] : nullptr);
   Chem.H.dStretch = Rad.photoRates->bStretch.DevicePtr();
+
+  Chem.H.unitPhotoHeating = KB * 1e-10 * Chem.H.time_units * Chem.H.density_units / MH / MH;
+  Chem.H.unitPhotoIonization = Chem.H.time_units;
 #endif // RT
 
   chprintf( "Allocating Memory. \n\n");

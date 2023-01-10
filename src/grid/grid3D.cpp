@@ -43,7 +43,10 @@
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
-Grid3D::Grid3D(void) : Rad(this->H)
+Grid3D::Grid3D(void)
+#ifdef RT
+    : Rad(this->H)
+#endif
 {
   // set initialization flag to 0
   flag_init = 0;

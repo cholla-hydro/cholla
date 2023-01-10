@@ -84,7 +84,7 @@ __host__ __device__ Real compute_U( Real temp, Real gamma ){
 
 };
 
-__device__ void get_temperature_indx( Real T, Chemistry_Header &Chem_H, int &temp_indx, Real &delta_T, Real temp_old, bool print ){
+__device__ void get_temperature_indx( Real T, Chemistry_Header &Chem_H, int &temp_indx, Real &delta_T, Real temp_old, int print ){
   
   Real logT, logT_start, d_logT, logT_l, logT_r;
   logT = log( 0.5 * ( T + temp_old ) );
@@ -112,13 +112,13 @@ __device__ Real interpolate_rate( Real *rate_table, int indx, Real delta ){
 }
 
 __device__ Real Get_Cooling_Rates( Thermal_State &TS, Chemistry_Header &Chem_H, Real dens_number_conv, Real current_z, Real temp_prev,
-                                   float photo_h_HI, float photo_h_HeI, float photo_h_HeII, bool print ){
+                                   float photo_h_HI, float photo_h_HeI, float photo_h_HeII, int print ){
   
   int temp_indx;
   Real temp, delta_T, U_dot;
   temp = TS.get_temperature( Chem_H.gamma );  
   get_temperature_indx( temp, Chem_H, temp_indx, delta_T, temp_prev, print );
-  if (print) printf("mu: %f  temp: %f  temp_indx: %d  delta_T: %f  \n", TS.get_MMW(), temp, temp_indx, delta_T );                                 
+  if (print > 1) printf("mu: %f  temp: %f  temp_indx: %d  delta_T: %f  \n", TS.get_MMW(), temp, temp_indx, delta_T );                                 
   U_dot = 0.0;
   
   // Collisional excitation cooling
@@ -149,12 +149,14 @@ __device__ Real Get_Cooling_Rates( Thermal_State &TS, Chemistry_Header &Chem_H, 
   cool_brem = interpolate_rate( Chem_H.cool_brem_d, temp_indx, delta_T ) * ( TS.d_HII +  TS.d_HeII/4.0 + TS.d_HeIII ) * TS.d_e;
   U_dot -= cool_brem;
   
+#ifdef COSMOLOGY
   // Compton cooling or heating
   Real cool_compton, temp_cmb;
   temp_cmb = 2.73 * ( 1.0 + current_z );
   cool_compton = Chem_H.cool_compton * pow(1.0 + current_z, 4) * ( temp - temp_cmb ) * TS.d_e / dens_number_conv;  
   U_dot -= cool_compton;
-  
+#endif
+
   // Phothoheating
   Real photo_heat;
   photo_heat = ( photo_h_HI * TS.d_HI + 0.25 * ( photo_h_HeI * TS.d_HeI + photo_h_HeII * TS.d_HeII ) ) / dens_number_conv;  
@@ -164,30 +166,32 @@ __device__ Real Get_Cooling_Rates( Thermal_State &TS, Chemistry_Header &Chem_H, 
   if ( fabs(U_dot) < tiny ) U_dot = tiny;
   
   
-  if (print) printf("HI: %e  \n", TS.d_HI );
-  if (print) printf("HII: %e  \n", TS.d_HII );
-  if (print) printf("HeI: %e  \n", TS.d_HeI );
-  if (print) printf("HeII: %e  \n", TS.d_HeII );
-  if (print) printf("HeIII: %e  \n", TS.d_HeIII );
-  if (print) printf("de: %e  \n", TS.d_e ); 
-  if (print) printf("Cooling ceHI: %e  \n", cool_ceHI );
-  if (print) printf("Cooling ceHeI: %e   \n", cool_ceHeI );
-  if (print) printf("Cooling ceHeII: %e   \n", cool_ceHeII );
-  if (print) printf("Cooling ciHI: %e  \n", cool_ciHI );
-  if (print) printf("Cooling ciHeI: %e  \n", cool_ciHeI );
-  if (print) printf("Cooling ciHeII: %e  \n", cool_ciHeII );
-  if (print) printf("Cooling ciHeIS: %e  \n", cool_ciHeIS );
-  if (print) printf("Cooling reHII: %e  \n", cool_reHII );
-  if (print) printf("Cooling reHeII1: %e  \n", cool_reHeII1 );
-  if (print) printf("Cooling reHeII2: %e  \n", cool_reHeII2 );
-  if (print) printf("Cooling reHeIII: %e  \n", cool_reHeIII );
-  if (print) printf("Cooling brem: %e  \n", cool_brem );
-  if (print) printf("Cooling piHI: %e   rate: %e \n", photo_h_HI, photo_h_HI * TS.d_HI / dens_number_conv  );
-  if (print) printf("Cooling piHeI: %e  rate: %e \n", photo_h_HeI, photo_h_HeI *  TS.d_HeI / dens_number_conv * 0.25  );
-  if (print) printf("Cooling piHeII: %e rate: %e \n", photo_h_HeII, photo_h_HeII *  TS.d_HeII / dens_number_conv * 0.25);
-  if (print) printf("Cooling DOM: %e  \n", dens_number_conv );
-  if (print) printf("Cooling compton: %e  \n", cool_compton );
-  if (print) printf("Cooling U_dot: %e  \n", U_dot );
+  if (print > 1) printf("HI: %e  \n", TS.d_HI );
+  if (print > 1) printf("HII: %e  \n", TS.d_HII );
+  if (print > 1) printf("HeI: %e  \n", TS.d_HeI );
+  if (print > 1) printf("HeII: %e  \n", TS.d_HeII );
+  if (print > 1) printf("HeIII: %e  \n", TS.d_HeIII );
+  if (print > 1) printf("de: %e  \n", TS.d_e ); 
+  if (print > 1) printf("Cooling ceHI: %e  \n", cool_ceHI );
+  if (print > 1) printf("Cooling ceHeI: %e   \n", cool_ceHeI );
+  if (print > 1) printf("Cooling ceHeII: %e   \n", cool_ceHeII );
+  if (print > 1) printf("Cooling ciHI: %e  \n", cool_ciHI );
+  if (print > 1) printf("Cooling ciHeI: %e  \n", cool_ciHeI );
+  if (print > 1) printf("Cooling ciHeII: %e  \n", cool_ciHeII );
+  if (print > 1) printf("Cooling ciHeIS: %e  \n", cool_ciHeIS );
+  if (print > 1) printf("Cooling reHII: %e  \n", cool_reHII );
+  if (print > 1) printf("Cooling reHeII1: %e  \n", cool_reHeII1 );
+  if (print > 1) printf("Cooling reHeII2: %e  \n", cool_reHeII2 );
+  if (print > 1) printf("Cooling reHeIII: %e  \n", cool_reHeIII );
+  if (print > 1) printf("Cooling brem: %e  \n", cool_brem );
+  if (print > 0) printf("Cooling piHI: %e   rate: %e \n", photo_h_HI, photo_h_HI * TS.d_HI / dens_number_conv  );
+  if (print > 1) printf("Cooling piHeI: %e  rate: %e \n", photo_h_HeI, photo_h_HeI *  TS.d_HeI / dens_number_conv * 0.25  );
+  if (print > 1) printf("Cooling piHeII: %e rate: %e \n", photo_h_HeII, photo_h_HeII *  TS.d_HeII / dens_number_conv * 0.25);
+  if (print > 1) printf("Cooling DOM: %e  \n", dens_number_conv );
+#ifdef COSMOLOGY
+  if (print > 1) printf("Cooling compton: %e  \n", cool_compton );
+#endif
+  if (print > 0) printf("Cooling U_dot: %e  \n", U_dot );
   
 
   return U_dot;
@@ -195,7 +199,7 @@ __device__ Real Get_Cooling_Rates( Thermal_State &TS, Chemistry_Header &Chem_H, 
 }
 
 __device__ void Get_Reaction_Rates( Thermal_State &TS, Chemistry_Header &Chem_H, Real &k_coll_i_HI, Real &k_coll_i_HeI, Real &k_coll_i_HeII,
-                                    Real &k_coll_i_HI_HI, Real &k_coll_i_HI_HeI, Real &k_recomb_HII, Real &k_recomb_HeII, Real &k_recomb_HeIII, bool print  ){
+                                    Real &k_coll_i_HI_HI, Real &k_coll_i_HI_HeI, Real &k_recomb_HII, Real &k_recomb_HeII, Real &k_recomb_HeIII, int print  ){
     
   int temp_indx;
   Real temp, delta_T;
@@ -213,15 +217,15 @@ __device__ void Get_Reaction_Rates( Thermal_State &TS, Chemistry_Header &Chem_H,
   k_recomb_HeII  = interpolate_rate( Chem_H.k_recomb_HeII_d,  temp_indx, delta_T );
   k_recomb_HeIII = interpolate_rate( Chem_H.k_recomb_HeIII_d, temp_indx, delta_T );
   
-  if (print) printf("logT: %f   temp_indx: %d\n", log(temp), temp_indx );
-  if (print) printf("k_coll_i_HI: %e \n", k_coll_i_HI );
-  if (print) printf("k_coll_i_HeI: %e \n", k_coll_i_HeI );
-  if (print) printf("k_coll_i_HeII: %e \n", k_coll_i_HeII );
-  if (print) printf("k_coll_i_HI_HI: %e \n", k_coll_i_HI_HI );
-  if (print) printf("k_coll_i_HI_HeI: %e \n", k_coll_i_HI_HeI );  
-  if (print) printf("k_recomb_HII: %e \n", k_recomb_HII );
-  if (print) printf("k_recomb_HeII: %e \n", k_recomb_HeII );
-  if (print) printf("k_recomb_HeIII: %e \n", k_recomb_HeIII );  
+  if (print > 1) printf("logT: %f   temp_indx: %d\n", log(temp), temp_indx );
+  if (print > 1) printf("k_coll_i_HI: %e \n", k_coll_i_HI );
+  if (print > 1) printf("k_coll_i_HeI: %e \n", k_coll_i_HeI );
+  if (print > 1) printf("k_coll_i_HeII: %e \n", k_coll_i_HeII );
+  if (print > 1) printf("k_coll_i_HI_HI: %e \n", k_coll_i_HI_HI );
+  if (print > 1) printf("k_coll_i_HI_HeI: %e \n", k_coll_i_HI_HeI );  
+  if (print > 1) printf("k_recomb_HII: %e \n", k_recomb_HII );
+  if (print > 1) printf("k_recomb_HeII: %e \n", k_recomb_HeII );
+  if (print > 1) printf("k_recomb_HeIII: %e \n", k_recomb_HeIII );  
 }
 
 __device__ int Binary_Search( int N, Real val, float *data, int indx_l, int indx_r ){
@@ -247,7 +251,7 @@ __device__ Real linear_interpolation( Real delta_x, int indx_l, int indx_r, floa
 
 __device__ void Get_Current_Photo_Rates( Chemistry_Header &Chem_H, const Real *rf, int id, int ncells, 
                                        float &photo_i_HI, float &photo_i_HeI, float &photo_i_HeII, 
-                                       float &photo_h_HI, float &photo_h_HeI, float &photo_h_HeII, bool print ){
+                                       float &photo_h_HI, float &photo_h_HeI, float &photo_h_HeII, int print ){
     if(rf != nullptr)
     {
         const float rfN0 = rf[id+0*ncells];
@@ -291,12 +295,12 @@ __device__ void Get_Current_Photo_Rates( Chemistry_Header &Chem_H, const Real *r
             }
         }
 
-        photo_i_HI   = pRates[0];  
-        photo_h_HI   = pRates[1]/11604;  // in eV, not K
-        photo_i_HeI  = pRates[2];  
-        photo_h_HeI  = pRates[3]/11604;  
-        photo_i_HeII = pRates[4];  
-        photo_h_HeII = pRates[5]/11604;  
+        photo_i_HI   = pRates[0]*Chem_H.unitPhotoIonization;  
+        photo_h_HI   = pRates[1]*Chem_H.unitPhotoHeating;
+        photo_i_HeI  = pRates[2]*Chem_H.unitPhotoIonization;  
+        photo_h_HeI  = pRates[3]*Chem_H.unitPhotoHeating;
+        photo_i_HeII = pRates[4]*Chem_H.unitPhotoIonization;  
+        photo_h_HeII = pRates[5]*Chem_H.unitPhotoHeating;
     }
     else
     {
@@ -333,7 +337,7 @@ __device__ Real Get_Chemistry_dt( Thermal_State &TS, Chemistry_Header &Chem_H, R
                              Real k_recomb_HII, Real k_recomb_HeII, Real k_recomb_HeIII,
                              float photo_i_HI, float photo_i_HeI, float photo_i_HeII, 
                              int n_iter, Real HI_dot_prev, Real e_dot_prev, 
-                             Real t_chem, Real dt_hydro, bool print  ){
+                             Real t_chem, Real dt_hydro, int print  ){
                                
  Real dt, energy;
   // Rate of change of HI 
@@ -383,12 +387,15 @@ __device__ Real Get_Chemistry_dt( Thermal_State &TS, Chemistry_Header &Chem_H, R
   }
   
   
-  if (print) printf("HIdot: %e\n", HI_dot ); 
-  if (print) printf("edot: %e\n", e_dot );     
-  if (print) printf("energy: %e\n", TS.U * TS.d );     
-  if (print) printf("Udot: %e\n", U_dot );     
-  if (print) printf("dt_hydro: %e\n", dt_hydro );
-  if (print) printf("dt: %e\n", dt );     
+  if (print > 0)
+  {
+      printf("HIdot: %e (%g,%g)\n", HI_dot, k_recomb_HII*TS.d_HII*TS.d_e, photo_i_HI*TS.d_HI ); 
+  }
+  if (print > 1) printf("edot: %e\n", e_dot );     
+  if (print > 1) printf("energy: %e\n", TS.U * TS.d );     
+  if (print > 1) printf("Udot: %e\n", U_dot );     
+  if (print > 1) printf("dt_hydro: %e\n", dt_hydro );
+  if (print > 1) printf("dt: %e\n", dt );     
   
   return dt;                                      
   
@@ -398,7 +405,7 @@ __device__ void Update_Step( Thermal_State &TS, Chemistry_Header &Chem_H, Real d
                              Real k_coll_i_HeII, Real k_coll_i_HI_HI, Real k_coll_i_HI_HeI,
                              Real k_recomb_HII, Real k_recomb_HeII, Real k_recomb_HeIII, 
                              float photo_i_HI, float photo_i_HeI, float photo_i_HeII, 
-                             Real &HI_dot_prev, Real &e_dot_prev, Real &temp_prev, bool print ){
+                             Real &HI_dot_prev, Real &e_dot_prev, Real &temp_prev, int print ){
                
   Real d_HI_p, d_HII_p, d_HeI_p, d_HeII_p, d_HeIII_p,  d_e_p;
   Real s_coef, a_coef;
@@ -407,13 +414,13 @@ __device__ void Update_Step( Thermal_State &TS, Chemistry_Header &Chem_H, Real d
   s_coef = k_recomb_HII * TS.d_HII * TS.d_e;
   a_coef = k_coll_i_HI * TS.d_e + k_coll_i_HI_HI * TS.d_HI + k_coll_i_HI_HeI * TS.d_HeI/4.0 + photo_i_HI;
   d_HI_p = ( dt * s_coef + TS.d_HI ) / ( 1.0 + dt*a_coef ); 
-  if ( print ) printf("Update HI  s_coef: %e    a_coef: %e   HIp: %e \n", s_coef, a_coef, d_HI_p );
+  if ( print > 1 ) printf("Update HI  s_coef: %e    a_coef: %e   HIp: %e \n", s_coef, a_coef, d_HI_p );
   
   // Update HII
   s_coef = k_coll_i_HI * d_HI_p * TS.d_e + k_coll_i_HI_HI * d_HI_p * d_HI_p + k_coll_i_HI_HeI * d_HI_p * TS.d_HeI/4.0 + photo_i_HI * d_HI_p;
   a_coef = k_recomb_HII * TS.d_e;
   d_HII_p = ( dt * s_coef + TS.d_HII ) / ( 1.0 + dt*a_coef ); 
-  if ( print ) printf("Update HII  s_coef: %e    a_coef: %e   HIIp: %e \n", s_coef, a_coef, d_HII_p );
+  if ( print > 1 ) printf("Update HII  s_coef: %e    a_coef: %e   HIIp: %e \n", s_coef, a_coef, d_HII_p );
   
   // Update electron
   s_coef = k_coll_i_HI_HI * d_HI_p * d_HI_p + k_coll_i_HI_HeI * d_HI_p * TS.d_HeI/4.0 
@@ -421,25 +428,25 @@ __device__ void Update_Step( Thermal_State &TS, Chemistry_Header &Chem_H, Real d
   a_coef = - k_coll_i_HI * TS.d_HI  + k_recomb_HII * TS.d_HII - k_coll_i_HeI * TS.d_HeI/4.0 + k_recomb_HeII * TS.d_HeII/4.0
            - k_coll_i_HeII * TS.d_HeII/4.0 + k_recomb_HeIII * TS.d_HeIII/4.0;
   d_e_p = ( dt * s_coef + TS.d_e ) / ( 1.0 + dt*a_coef ); 
-  if ( print ) printf("Update e  s_coef: %e    a_coef: %e   ep: %e \n", s_coef, a_coef, d_e_p );
+  if ( print > 1 ) printf("Update e  s_coef: %e    a_coef: %e   ep: %e \n", s_coef, a_coef, d_e_p );
   
   // Update HeI
   s_coef = k_recomb_HeII * TS.d_HeII * TS.d_e;
   a_coef = k_coll_i_HeI * TS.d_e + photo_i_HeI;
   d_HeI_p = ( dt * s_coef + TS.d_HeI ) / ( 1.0 + dt*a_coef ); 
-  if ( print ) printf("Update HeI  s_coef: %e    a_coef: %e   HeIp: %e \n", s_coef, a_coef, d_HeI_p );
+  if ( print > 1 ) printf("Update HeI  s_coef: %e    a_coef: %e   HeIp: %e \n", s_coef, a_coef, d_HeI_p );
   
   // Update HeII
   s_coef = k_coll_i_HeI * d_HeI_p * TS.d_e + k_recomb_HeIII * TS.d_HeIII * TS.d_e + photo_i_HeI * d_HeI_p;
   a_coef = k_recomb_HeII * TS.d_e + k_coll_i_HeII * TS.d_e + photo_i_HeII;
   d_HeII_p = ( dt * s_coef + TS.d_HeII ) / ( 1.0 + dt*a_coef ); 
-  if ( print ) printf("Update HeII  s_coef: %e    a_coef: %e   HeIIp: %e \n", s_coef, a_coef, d_HeII_p );
+  if ( print > 1 ) printf("Update HeII  s_coef: %e    a_coef: %e   HeIIp: %e \n", s_coef, a_coef, d_HeII_p );
   
   // Update HeIII
   s_coef = k_coll_i_HeII * d_HeII_p * TS.d_e + photo_i_HeII * d_HeII_p;
   a_coef = k_recomb_HeIII * TS.d_e;
   d_HeIII_p = ( dt * s_coef + TS.d_HeIII ) / ( 1.0 + dt*a_coef ); 
-  if ( print ) printf("Update HeIII  s_coef: %e    a_coef: %e   HeIIIp: %e \n", s_coef, a_coef, d_HeIII_p );
+  if ( print > 1 ) printf("Update HeIII  s_coef: %e    a_coef: %e   HeIIIp: %e \n", s_coef, a_coef, d_HeIII_p );
   
   // Record the temperature for the next step
   temp_prev = TS.get_temperature( Chem_H.gamma ); 
@@ -461,7 +468,7 @@ __device__ void Update_Step( Thermal_State &TS, Chemistry_Header &Chem_H, Real d
   #ifdef TEMPERATURE_FLOOR
   if ( TS.get_temperature( Chem_H.gamma ) < TEMP_FLOOR )  TS.U = TS.compute_U( TEMP_FLOOR, Chem_H.gamma ); 
   #endif
-  if ( print ) printf("Updated U: %e \n", TS.U);  
+  if ( print > 1 ) printf("Updated U: %e \n", TS.U);  
   
 
  }
@@ -492,7 +499,7 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
   zid = id / (nx*ny);
   yid = (id - zid*nx*ny) / nx;
   xid = id - zid*nx*ny - yid*nx;
-  bool print;
+  int print = 0;
   
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
@@ -509,10 +516,9 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
     GE  = dev_conserved[4*n_cells + id] - E_kin;
     #endif
  
-    print = false;
-    if(xid==35 && yid==35 && zid==35)
+    if(xid==36 && yid==36 && zid==36)
     {
-        ///print = true;
+        ///print = 1;
     }
         
     // Convert to cgs units
@@ -584,14 +590,14 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
     t_chem = 0;
     while ( t_chem < dt_hydro ){
       
-      if (print) printf("########################################## Iter %d \n", n_iter );
+      if (print != 0) printf("########################################## Iter %d \n", n_iter );
           
       U_dot = Get_Cooling_Rates( TS, Chem_H, Chem_H.dens_number_conv, Chem_H.current_z, temp_prev, 
                                  photo_h_HI, photo_h_HeI, photo_h_HeII, print );
       
       Get_Reaction_Rates( TS, Chem_H, k_coll_i_HI, k_coll_i_HeI, k_coll_i_HeII,
                           k_coll_i_HI_HI, k_coll_i_HI_HeI, k_recomb_HII, k_recomb_HeII, k_recomb_HeIII, print  );
-      if (print)
+      if(print > 1)
       {
         printf("k_photo_ion_HI: %e \n", photo_i_HI);
         printf("k_photo_ion_HeI: %e \n", photo_i_HeI);
@@ -613,7 +619,7 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
       if ( n_iter == Chem_H.max_iter ) break;
           
     }
-    if ( print ) printf("Chem_GPU: N Iter:  %d\n", n_iter );      
+    if ( print > 1 ) printf("Chem_GPU: N Iter:  %d\n", n_iter );      
     
     // Make consistent abundances with the H and He density
     correct_H = Chem_H.H_fraction * TS.d / ( TS.d_HI + TS.d_HII );
@@ -638,15 +644,15 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
     dev_conserved[(n_fields-1)*n_cells + id] = GE;
     #endif
     
-    if ( print ) printf("###########################################\n" );
-    if ( print ) printf("Updated HI:  %e\n",    TS.d_HI    * a3  );
-    if ( print ) printf("Updated HII:  %e\n",   TS.d_HII   * a3  );
-    if ( print ) printf("Updated HeI:  %e\n",   TS.d_HeI   * a3  );
-    if ( print ) printf("Updated HeII:  %e\n",  TS.d_HeII  * a3  );
-    if ( print ) printf("Updated HeIII:  %e\n", TS.d_HeIII * a3  );    
-    if ( print ) printf("Updated e:  %e\n",     TS.d_e     * a3  );
-    if ( print ) printf("Updated GE:  %e\n", GE );
-    if ( print ) printf("Updated E:   %e\n", dev_conserved[4*n_cells + id]  );
+    if ( print != 0 ) printf("###########################################\n" );
+    if ( print != 0 ) printf("Updated HI:  %e\n",    TS.d_HI    * a3  );
+    if ( print != 0 ) printf("Updated HII:  %e\n",   TS.d_HII   * a3  );
+    if ( print != 0 ) printf("Updated HeI:  %e\n",   TS.d_HeI   * a3  );
+    if ( print != 0 ) printf("Updated HeII:  %e\n",  TS.d_HeII  * a3  );
+    if ( print != 0 ) printf("Updated HeIII:  %e\n", TS.d_HeIII * a3  );    
+    if ( print != 0 ) printf("Updated e:  %e\n",     TS.d_e     * a3  );
+    if ( print != 0 ) printf("Updated GE:  %e\n", GE );
+    if ( print != 0 ) printf("Updated E:   %e\n", dev_conserved[4*n_cells + id]  );
     
   }
 }

@@ -91,6 +91,8 @@ struct Chemistry_Header
 #ifdef RT
     const StaticTableGPU<float,3,'x'>* dTables[2];
     const PhotoRateTableStretchCSI *dStretch;
+    Real unitPhotoHeating;
+    Real unitPhotoIonization;
 #endif
 };
 

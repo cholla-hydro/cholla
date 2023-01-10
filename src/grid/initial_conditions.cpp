@@ -1630,7 +1630,7 @@ void Grid3D::Chemistry_Test( struct parameters P )
 
 void Grid3D::Iliev0( const parameters& P )
 {
-#if defined(RT) && defined(CHEMISTRY_GPU)
+#if defined(CHEMISTRY_GPU)
     
     Chem.H.H_fraction = 1;
     Chem.use_case_B_recombination = true;
@@ -1669,10 +1669,10 @@ void Grid3D::Iliev0( const parameters& P )
       }
     }
   }
-#else //defined(RT) && defined(CHEMISTRY_GPU)
-  chprintf( "This requires RT && CHEMISTRY_GPU turned on! \n");
+#else //defined(CHEMISTRY_GPU)
+  chprintf( "This requires CHEMISTRY_GPU turned on! \n");
   chexit(-1);
-#endif //defined(RT) && defined(CHEMISTRY_GPU)
+#endif //defined(CHEMISTRY_GPU)
 }
 
 
@@ -1689,7 +1689,7 @@ void Grid3D::Iliev1( const parameters& P )
     Chem.H.H_fraction = 1;
     Chem.use_case_B_recombination = true;
 
-    Real rho = MP*1.0e-3/DENSITY_UNIT;    // 1.0e-3 per cc
+    Real rho = 1.670673249e-24*1.0e-3/DENSITY_UNIT;    // 1.0e-3 per cc
     Real U = 1.5*KB*2*1.0e4*1.0e-3/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
     Real xe = 1.2e-3;
 
@@ -1744,11 +1744,6 @@ void Grid3D::Iliev1( const parameters& P )
             r2 += x[axis]*x[axis];
         }
 
-        if(r2 < dx2)
-        {
-            printf("Center: %d (%d,%d,%d)\n",id,i,j,k);
-        }
-
         Rad.rtFields.rs[id] = (r2<dx2 ? 0.125/pow(H.dx,3) : 0);
 
         Rad.rtFields.rf[id] = 1/(12.5664*(dx2+r2));
@@ -1756,14 +1751,15 @@ void Grid3D::Iliev1( const parameters& P )
 
         Rad.rtFields.et[id+0*H.n_cells] = (dx2/3.0+x[0]*x[0])/(dx2+r2);
         Rad.rtFields.et[id+1*H.n_cells] = (        x[1]*x[0])/(dx2+r2);
-        Rad.rtFields.et[id+2*H.n_cells] = (        x[2]*x[0])/(dx2+r2);
-        Rad.rtFields.et[id+3*H.n_cells] = (dx2/3.0+x[1]*x[1])/(dx2+r2);
+        Rad.rtFields.et[id+2*H.n_cells] = (dx2/3.0+x[1]*x[1])/(dx2+r2);
+        Rad.rtFields.et[id+3*H.n_cells] = (        x[2]*x[0])/(dx2+r2);
         Rad.rtFields.et[id+4*H.n_cells] = (        x[2]*x[1])/(dx2+r2);
         Rad.rtFields.et[id+5*H.n_cells] = (dx2/3.0+x[2]*x[2])/(dx2+r2);
 
       }
     }
   }
+
 #else //defined(RT) && defined(CHEMISTRY_GPU)
   chprintf( "This requires RT && CHEMISTRY_GPU turned on! \n");
   chexit(-1);
