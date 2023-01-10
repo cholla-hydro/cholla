@@ -10,10 +10,9 @@ CUDA_ARCH ?= sm_70
 
 DIRS     := src src/analysis src/chemistry_gpu src/cooling src/cooling_grackle src/cosmology \
             src/cpu src/global src/gravity src/gravity/paris src/grid src/hydro \
-            src/cluster \
-            src/integrators src/io src/main.cpp src/main_tests.cpp \
+            src/integrators src/io src/main.cpp src/main_tests.cpp src/mhd\
             src/model src/mpi src/old_cholla src/particles src/reconstruction \
-            src/riemann_solvers src/system_tests src/utils
+            src/riemann_solvers src/system_tests src/utils src/dust
 
 SUFFIX ?= .$(TYPE).$(MACHINE)
 
@@ -100,6 +99,13 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   endif
 endif
 
+ifeq ($(findstring -DSUPERNOVA,$(DFLAGS)),-DSUPERNOVA)
+    ifdef HIPCONFIG
+	CXXFLAGS += -I$(ROCM_PATH)/include/hiprand -I$(ROCM_PATH)/hiprand/include
+	GPUFLAGS += -I$(ROCM_PATH)/include/hiprand -I$(ROCM_PATH)/hiprand/include
+    endif
+endif
+
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
   CXXFLAGS += -I$(HDF5_ROOT)/include
   GPUFLAGS += -I$(HDF5_ROOT)/include
@@ -128,6 +134,7 @@ ifdef HIPCONFIG
   DFLAGS    += -DO_HIP
   CXXFLAGS  += $(HIPCONFIG)
   GPUCXX    ?= hipcc
+  #GPUFLAGS  += -Wall
   LD        := $(CXX)
   LDFLAGS   := $(CXXFLAGS) -L$(ROCM_PATH)/lib
   LIBS      += -lamdhip64

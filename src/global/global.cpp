@@ -329,6 +329,26 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->Bz_r = atof(value);
   else if (strcmp(name, "diaph")==0)
     parms->diaph = atof(value);
+  else if (strcmp(name, "rEigenVec_rho")==0)
+    parms->rEigenVec_rho = atof(value);
+  else if (strcmp(name, "rEigenVec_MomentumX")==0)
+    parms->rEigenVec_MomentumX = atof(value);
+  else if (strcmp(name, "rEigenVec_MomentumY")==0)
+    parms->rEigenVec_MomentumY = atof(value);
+  else if (strcmp(name, "rEigenVec_MomentumZ")==0)
+    parms->rEigenVec_MomentumZ = atof(value);
+  else if (strcmp(name, "rEigenVec_E")==0)
+      parms->rEigenVec_E = atof(value);
+  else if (strcmp(name, "rEigenVec_Bx")==0)
+    parms->rEigenVec_Bx = atof(value);
+  else if (strcmp(name, "rEigenVec_By")==0)
+    parms->rEigenVec_By = atof(value);
+  else if (strcmp(name, "rEigenVec_Bz")==0)
+    parms->rEigenVec_Bz = atof(value);
+  else if (strcmp(name, "pitch")==0)
+    parms->pitch = atof(value);
+  else if (strcmp(name, "yaw")==0)
+    parms->yaw = atof(value);
 #ifdef PARTICLES
   else if (strcmp(name, "prng_seed")==0)
     parms->prng_seed = atoi(value);

@@ -54,6 +54,8 @@ public:
   OneTime Advance_Part_2;
   OneTime Cooling;
   OneTime Chemistry;
+  OneTime Feedback;
+  OneTime FeedbackAnalysis;
     
   std::vector<OneTime*> onetimes;
   

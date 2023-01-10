@@ -110,7 +110,7 @@ buildCholla ()
 {
   echo -e "\nBuilding Cholla...\n"
   builtin cd $CHOLLA_ROOT
-  make -j TYPE=${CHOLLA_MAKE_TYPE} BUILD=${1}
+  make --jobs=$(nproc) TYPE=${CHOLLA_MAKE_TYPE} BUILD=${1}
 }
 # ==============================================================================
 
@@ -121,7 +121,7 @@ buildChollaTests ()
 {
   echo
   builtin cd $CHOLLA_ROOT
-  make -j TYPE=${CHOLLA_MAKE_TYPE} TEST=true
+  make --jobs=$(nproc) TYPE=${CHOLLA_MAKE_TYPE} TEST=true
 }
 # ==============================================================================
 

@@ -14,7 +14,20 @@
 #include "grid/grid3D.h"
 #include "io/io.h"
 #include "utils/error_handling.h"
+#ifdef SUPERNOVA
+#include "particles/supernova.h"
+#ifdef ANALYSIS
+#include "analysis/feedback_analysis.h"
+#endif
+#endif //SUPERNOVA
+#ifdef STAR_FORMATION
+#include "particles/star_formation.h"
+#endif
+#ifdef  MHD
+#include "mhd/magnetic_divergence.h"
+#endif  //MHD
 
+#include "grid/grid_enum.h"
 
 int main(int argc, char *argv[])
 {
@@ -43,7 +56,6 @@ int main(int argc, char *argv[])
   struct parameters P;
   int nfile = 0; // number of output files
   Real outtime = 0; // current output time
-
 
   // read in command line arguments
   if (argc < 2)
@@ -132,6 +144,23 @@ int main(int argc, char *argv[])
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   #endif
 
+  #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
+  FeedbackAnalysis sn_analysis(G);
+  #ifdef MPI_CHOLLA
+  supernova::initState(&P, G.Particles.n_total_initial);
+  #else
+  supernova::initState(&P, G.Particles.n_local);
+  #endif // MPI_CHOLLA
+  #endif // SUPERNOVA && PARTICLE_AGE
+
+  #ifdef STAR_FORMATION
+  star_formation::Initialize(G);
+  #endif
+
+  #ifdef GRAVITY_ANALYTIC_COMP
+  G.Setup_Analytic_Potential(&P);
+  #endif
+
   #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential( &P);
@@ -143,8 +172,7 @@ int main(int argc, char *argv[])
   chprintf("Boundary conditions set.\n");
 
   #ifdef GRAVITY_ANALYTIC_COMP
-  // add analytic component to gravity potential.
-  G.Add_Analytic_Potential(&P);
+  G.Add_Analytic_Potential();
   #endif
 
   #ifdef PARTICLES
@@ -170,6 +198,12 @@ int main(int argc, char *argv[])
   // add one to the output file count
   nfile++;
   #endif //OUTPUT
+
+  #ifdef  MHD
+    // Check that the initial magnetic field has zero divergence
+    mhd::checkMagneticDivergence(G);
+  #endif  //MHD
+
   // increment the next output time
   outtime += P.outstep;
 
@@ -205,11 +239,9 @@ int main(int argc, char *argv[])
 
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
 
-    #ifdef SUPERNOVA
-    Supernova::Update_Grid(G, dti);
-    #endif
-
-
+    #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
+    supernova::Cluster_Feedback(G, sn_analysis);
+    #endif //SUPERNOVA && PARTICLE_AGE
 
     #ifdef PARTICLES
     //Advance the particles KDK( first step ): Velocities are updated by 0.5*dt and positions are updated by dt
@@ -237,8 +269,7 @@ int main(int argc, char *argv[])
     G.Set_Boundary_Conditions_Grid(P);
 
     #ifdef GRAVITY_ANALYTIC_COMP
-    // add analytic component to gravity potential.
-    G.Add_Analytic_Potential(&P);
+    G.Add_Analytic_Potential();
     #endif
 
     #ifdef PARTICLES
@@ -246,8 +277,8 @@ int main(int argc, char *argv[])
     G.Advance_Particles( 2 );
     #endif
 
-    #ifdef PARTICLE_AGE
-    //G.Cluster_Feedback();
+    #ifdef STAR_FORMATION
+    star_formation::Star_Formation(G);
     #endif
 
     #ifdef CPU_TIME
@@ -274,6 +305,9 @@ int main(int argc, char *argv[])
 
     #ifdef ANALYSIS
     if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
+    #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
+        sn_analysis.Compute_Gas_Velocity_Dispersion(G);
+    #endif
     #endif
 
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0) G.H.Output_Now = true;
@@ -311,7 +345,10 @@ int main(int argc, char *argv[])
     }
     #endif
 
-
+    #ifdef  MHD
+      // Check that the magnetic field has zero divergence
+      mhd::checkMagneticDivergence(G);
+    #endif  //MHD
   } /*end loop over timesteps*/
 
 

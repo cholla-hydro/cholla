@@ -34,7 +34,6 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
 __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
 {
 
-
   int n_cells = nx*ny*nz;
   int is, ie, js, je, ks, ke;
   is = n_ghost;
@@ -148,13 +147,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #ifdef DE
     ge -= KB*del_T / (mu*MP*(gamma-1.0)*SP_ENERGY_UNIT);
     #endif
-
-    /* Tracking cooling
-    atomicAdd(&d_te_arr[blockIdx.x%SIMB * TPB + tid], del_E);
-    if (d_mask[id] > 0.0) {
-      atomicAdd(&d_me_arr[blockIdx.x%SIMB * TPB + tid], d_mask[id]*del_E);
-    }
-    */
 
     // calculate cooling rate for new T
     #ifdef CLOUDY_COOL

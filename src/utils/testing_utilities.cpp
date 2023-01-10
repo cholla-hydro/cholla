@@ -80,52 +80,6 @@ namespace testingUtilities
     }
     // =========================================================================
 
-    // =========================================================================
-    void checkResults(double fiducialNumber,
-                      double testNumber,
-                      std::string outString,
-                      double fixedEpsilon,
-                      int ulpsEpsilon)
-    {
-        // Check for equality and if not equal return difference
-        double absoluteDiff;
-        int64_t ulpsDiff;
-        bool areEqual;
-
-        if ((fixedEpsilon < 0) and (ulpsEpsilon < 0))
-        {
-            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
-                                                        testNumber,
-                                                        absoluteDiff,
-                                                        ulpsDiff);
-        }
-        else if ((fixedEpsilon > 0) and (ulpsEpsilon < 0))
-        {
-            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
-                                                        testNumber,
-                                                        absoluteDiff,
-                                                        ulpsDiff,
-                                                        fixedEpsilon);
-        }
-        else
-        {
-            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
-                                                        testNumber,
-                                                        absoluteDiff,
-                                                        ulpsDiff,
-                                                        fixedEpsilon,
-                                                        ulpsEpsilon);
-        }
-
-        EXPECT_TRUE(areEqual)
-            << "Difference in "                << outString       << std::endl
-            << "The fiducial value is:       " << fiducialNumber  << std::endl
-            << "The test value is:           " << testNumber      << std::endl
-            << "The absolute difference is:  " << absoluteDiff    << std::endl
-            << "The ULP difference is:       " << ulpsDiff        << std::endl;
-    }
-    // =========================================================================
-
   void wrapperEqual(int i, int j, int k, std::string dataSetName,
 		    double test_value, double fid_value, double fixedEpsilon=5.0E-12) {
 
@@ -139,24 +93,24 @@ namespace testingUtilities
     outString += k;
     outString += "]";
 
-    checkResults(fid_value,test_value,outString,fixedEpsilon);
+    ASSERT_NO_FATAL_FAILURE(checkResults<1>(fid_value,test_value,outString,fixedEpsilon));
   }
 
   void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value) {
     std::vector<size_t> testDims(3,1);
     std::vector<double> testData = testObject.loadTestFieldData(dataSetName,testDims);
     for (size_t i = 0; i < testDims[0]; i++)
+    {
+      for (size_t j = 0; j < testDims[1]; j++)
       {
-	for (size_t j = 0; j < testDims[1]; j++)
-	  {
-	    for (size_t k = 0; k < testDims[2]; k++)
-	      {
-		size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
+        for (size_t k = 0; k < testDims[2]; k++)
+          {
+            size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
 
-		wrapperEqual(i,j,k,dataSetName,testData.at(index),value);
-	      }
-	  }
+            ASSERT_NO_FATAL_FAILURE(wrapperEqual(i,j,k,dataSetName,testData.at(index),value));
+          }
       }
+    }
   }
 
   void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetName,
@@ -166,17 +120,17 @@ namespace testingUtilities
     std::vector<size_t> testDims(3,1);
     std::vector<double> testData = testObject.loadTestFieldData(dataSetName,testDims);
     for (size_t i = 0; i < testDims[0]; i++)
-      {
-	for (size_t j = 0; j < testDims[1]; j++)
-	  {
-	    for (size_t k = 0; k < testDims[2]; k++)
-	      {
-		double value = constant + amplitude*std::sin(kx*i+ky*j+kz*k+phase);
-		size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
-		wrapperEqual(i,j,k,dataSetName,testData.at(index),value,tolerance);
-	      }
-	  }
-      }
+    {
+      for (size_t j = 0; j < testDims[1]; j++)
+        {
+          for (size_t k = 0; k < testDims[2]; k++)
+            {
+              double value = constant + amplitude*std::sin(kx*i+ky*j+kz*k+phase);
+              size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
+              ASSERT_NO_FATAL_FAILURE(wrapperEqual(i,j,k,dataSetName,testData.at(index),value,tolerance));
+            }
+        }
+    }
   }
 
 

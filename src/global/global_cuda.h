@@ -26,14 +26,12 @@ extern bool memory_allocated; // Flag becomes true after allocating the memory o
 // conserved variables
 extern Real *dev_conserved, *dev_conserved_half;
 // input states and associated interface fluxes (Q* and F* from Stone, 2008)
+// Note that for hydro the size of these arrays is n_fields*n_cells*sizeof(Real)
+// while for MHD it is (n_fields-1)*n_cells*sizeof(Real), i.e. they has one
+// fewer field than you would expect
 extern Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
-
-// Scalar for storing device side hydro/MHD time steps
-extern Real *dev_dti;
-
-// array of inverse timesteps for dt calculation (brought back by Alwin May 24 2022)
-extern Real *host_dti_array;
-extern Real *dev_dti_array;
+// Constrained transport electric fields
+extern Real *ctElectricFields;
 
 //Arrays for potential in GPU: Will be set to NULL if not using GRAVITY
 extern Real *dev_grav_potential;
@@ -93,17 +91,6 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort=true)
    }
 }
 
-
-
-/*! \fn Real minof3(Real a, Real b, Real c)
- *  \brief Returns the minimum of three floating point numbers. */
-__device__ inline Real minof3(Real a, Real b, Real c)
-{
-  return fmin(a, fmin(b,c));
-}
-
-
-
 /*! \fn int sgn_CUDA
  *  \brief Mathematical sign function. Returns sign of x. */
 __device__ inline int sgn_CUDA(Real x)
@@ -113,8 +100,21 @@ __device__ inline int sgn_CUDA(Real x)
 }
 
 
-__global__ void test_function();
-
+//Define atomic_add if it's not supported
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
+#else
+__device__ double atomicAdd(double* address, double val)
+{
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                __double_as_longlong(val + __longlong_as_double(assumed)));
+    } while (assumed != old);
+    return __longlong_as_double(old);
+}
+#endif
 
 
 #endif //GLOBAL_CUDA_H

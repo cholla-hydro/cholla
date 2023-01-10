@@ -3,9 +3,9 @@
 #include "../global/global_cuda.h"
 #include "cuda_boundaries.h"
 
-__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a, int &idMag);
+__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a);
 
-__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],int nx, int ny, int nz, int n_ghost,  int &magneticIdx);
+__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],int nx, int ny, int nz, int n_ghost);
 
 __global__ void PackBuffers3DKernel(Real * buffer, Real * c_head, int isize, int jsize, int ksize, int nx, int ny, int idxoffset, int buffer_ncells, int n_fields, int n_cells)
 {
@@ -66,7 +66,7 @@ __global__ void SetGhostCellsKernel(Real * c_head,
 				     int f0, int f1, int f2, int f3, int f4, int f5,
 				     int isize, int jsize, int ksize,
 				     int imin, int jmin, int kmin, int dir){
-  int id,i,j,k,gidx,idx,ii, magneticIdx;
+  int id,i,j,k,gidx,idx,ii;
   Real a[3] = {1.,1.,1.};
   int flags[6] = {f0,f1,f2,f3,f4,f5};
 
@@ -93,17 +93,11 @@ __global__ void SetGhostCellsKernel(Real * c_head,
   gidx = i + j*nx + k*nx*ny;
 
   // calculate idx (index of real cell) and a[:] for reflection
-  idx = SetBoundaryMapping(i,j,k,&a[0],flags,nx,ny,nz,n_ghost,magneticIdx);
+  idx = SetBoundaryMapping(i,j,k,&a[0],flags,nx,ny,nz,n_ghost);
 
   if (idx>=0){
     for (ii=0; ii<n_fields; ii++) {
-      #ifdef  MHD
-        // Choose which index to use, the one for magnetic fields or not
-        int index = ((5+NSCALARS <= ii) and ( ii <= 7+NSCALARS))? magneticIdx: idx;
-        c_head[gidx + ii*n_cells] = c_head[index + ii*n_cells];
-      #else // MHD not defined
-        c_head[gidx + ii*n_cells] = c_head[idx + ii*n_cells];
-      #endif  //MHD
+      c_head[gidx + ii*n_cells] = c_head[idx + ii*n_cells];
     }
     // momentum correction for reflection
     // these are set to -1 whenever ghost cells in a direction are in a reflective boundary condition
@@ -156,43 +150,33 @@ void SetGhostCells(Real * c_head,
 
 }
 
-__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], int nx, int ny, int nz, int n_ghost, int &magneticIdx){
+__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], int nx, int ny, int nz, int n_ghost){
   // nx, ny, nz, n_ghost
   /* 1D */
-  // irMag, jrMag, krMag are the magnetic indices
-  int ir, jr, kr, irMag, jrMag, krMag, idx;
-  ir=jr=kr=irMag=jrMag=krMag=idx=magneticIdx=0;
+  int ir, jr, kr, idx;
+  ir=jr=kr=idx=0;
   if (nx>1) {
 
     // set index on -x face
     if (ig < n_ghost) {
-      ir = FindIndex(ig, nx, flags[0], 0, n_ghost, &a[0], irMag);
+      ir = FindIndex(ig, nx, flags[0], 0, n_ghost, &a[0]);
     }
     // set index on +x face
     else if (ig >= nx-n_ghost) {
-      ir = FindIndex(ig, nx, flags[1], 1, n_ghost, &a[0], irMag);
+      ir = FindIndex(ig, nx, flags[1], 1, n_ghost, &a[0]);
     }
     // set i index for multi-D problems
     else {
       ir = ig;
-      #ifdef  MHD
-        irMag = ig;
-      #endif  //MHD
     }
 
     // if custom x boundaries are needed, set index to -1 and return
     if (ir < 0) {
-      #ifdef  MHD
-        magneticIdx = -1;
-      #endif  //MHD
       return idx = -1;
     }
 
     // otherwise add i index to ghost cell mapping
     idx += ir;
-    #ifdef  MHD
-      magneticIdx += irMag;
-    #endif  //MHD
 
   }
 
@@ -201,33 +185,24 @@ __device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], 
 
     // set index on -y face
     if (jg < n_ghost) {
-      jr = FindIndex(jg, ny, flags[2], 0, n_ghost, &a[1], jrMag);
+      jr = FindIndex(jg, ny, flags[2], 0, n_ghost, &a[1]);
     }
     // set index on +y face
     else if (jg >= ny-n_ghost) {
-      jr = FindIndex(jg, ny, flags[3], 1, n_ghost, &a[1], jrMag);
+      jr = FindIndex(jg, ny, flags[3], 1, n_ghost, &a[1]);
     }
     // set j index for multi-D problems
     else {
       jr = jg;
-      #ifdef  MHD
-        jrMag = jg;
-      #endif  //MHD
     }
 
     // if custom y boundaries are needed, set index to -1 and return
     if (jr < 0) {
-      #ifdef  MHD
-        magneticIdx = -1;
-      #endif  //MHD
       return idx = -1;
     }
 
     // otherwise add j index to ghost cell mapping
     idx += nx*jr;
-    #ifdef  MHD
-      magneticIdx += nx*jrMag;
-    #endif  //MHD
 
   }
 
@@ -236,38 +211,29 @@ __device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], 
 
     // set index on -z face
     if (kg < n_ghost) {
-      kr = FindIndex(kg, nz, flags[4], 0, n_ghost, &a[2], krMag);
+      kr = FindIndex(kg, nz, flags[4], 0, n_ghost, &a[2]);
     }
     // set index on +z face
     else if (kg >= nz-n_ghost) {
-      kr = FindIndex(kg, nz, flags[5], 1, n_ghost, &a[2], krMag);
+      kr = FindIndex(kg, nz, flags[5], 1, n_ghost, &a[2]);
     }
     // set k index for multi-D problems
     else {
       kr = kg;
-      #ifdef  MHD
-        krMag = kg;
-      #endif  //MHD
     }
 
     // if custom z boundaries are needed, set index to -1 and return
     if (kr < 0) {
-      #ifdef  MHD
-        magneticIdx = -1;
-      #endif  //MHD
       return idx = -1;
     }
 
     // otherwise add k index to ghost cell mapping
     idx += nx*ny*kr;
-    #ifdef  MHD
-      magneticIdx += nx*ny*krMag;
-    #endif  //MHD
   }
   return idx;
 }
 
-__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a, int &idMag){
+__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a){
   int id;
 
   // lower face
@@ -278,45 +244,27 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *
       // periodic
       case 1:
         id = ig+nx-2*n_ghost;
-        #ifdef  MHD
-          idMag = id;
-        #endif  //MHD
         break;
       // reflective
       case 2:
         id = 2*n_ghost-ig-1;
         *(a) = -1.0;
-        #ifdef  MHD
-          idMag = id - 1;
-        #endif  //MHD
         break;
       // transmissive
       case 3:
         id = n_ghost;
-        #ifdef  MHD
-          idMag = id - 1;
-        #endif  //MHD
         break;
       // custom
       case 4:
         id = -1;
-        #ifdef  MHD
-          idMag = -1;
-        #endif  //MHD
         break;
       // MPI
       case 5:
         id = ig;
-        #ifdef  MHD
-          idMag = id;
-        #endif  //MHD
         break;
       // default is periodic
       default:
         id = ig+nx-2*n_ghost;
-        #ifdef  MHD
-          idMag = id;
-        #endif  //MHD
     }
   }
   // upper face
@@ -349,11 +297,60 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *
       default:
         id = ig-nx+2*n_ghost;
     }
-    #ifdef  MHD
-      idMag = id;
-    #endif  //MHD
   }
   return id;
+}
+
+
+__global__ void Wind_Boundary_kernel(Real * c_device,
+				     int nx, int ny, int nz, int n_cells, int n_ghost,
+             int x_off, int y_off, int z_off,
+             Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real gamma, Real t)
+{
+  int id, xid, yid, zid, gid;
+  Real n_0, T_0;
+  Real mu = 0.6;
+  Real vx, vy, vz, d_0, P_0;
+
+  n_0 = 1e-2; // same value as n_bg in cloud initial condition function (cm^-3)
+  T_0 = 3e6; // same value as T_bg in cloud initial condition function (K)
+
+  // same values as rho_bg and p_bg in cloud initial condition function
+  d_0 = n_0*mu*MP/DENSITY_UNIT;
+  P_0 = n_0*KB*T_0/PRESSURE_UNIT;
+
+  vx = 100*TIME_UNIT/KPC; // km/s * (cholla unit conversion)
+  vy = 0.0;
+  vz = 0.0;
+
+  // calculate ghost cell ID and i,j,k in GPU grid
+  id = threadIdx.x + blockIdx.x * blockDim.x;
+
+  int isize, jsize, ksize;
+
+  // -x boundary
+  isize = n_ghost;
+  jsize = ny;
+  ksize = nz;
+
+  // not true i,j,k but relative i,j,k in the GPU grid
+  zid = id / (isize * jsize);
+  yid = (id - zid*isize*jsize) / isize;
+  xid = id - zid*isize*jsize - yid*isize;
+
+  // map thread id to ghost cell id
+  xid += 0; // -x boundary
+  gid = xid + yid*nx + zid*nx*ny; 
+
+  if (xid <= n_ghost && xid < nx && yid < ny && zid < nz) {
+    // set conserved variables
+    c_device[gid] = d_0;
+    c_device[gid+1*n_cells] = vx*d_0;
+    c_device[gid+2*n_cells] = vy*d_0;
+    c_device[gid+3*n_cells] = vz*d_0;
+    c_device[gid+4*n_cells] = P_0/(gamma-1.0) + 0.5*d_0*(vx*vx + vy*vy + vz*vz);
+  }
+  __syncthreads();
 }
 
 
@@ -414,7 +411,6 @@ __global__ void Noh_Boundary_kernel(Real * c_device,
     c_device[gid+3*n_cells] = vz*c_device[gid];
     c_device[gid+4*n_cells] = P_0/(gamma-1.0) + 0.5*c_device[gid];
   }
-  __syncthreads();  
 
   // +y boundary next
   isize = nx;
@@ -501,6 +497,31 @@ __global__ void Noh_Boundary_kernel(Real * c_device,
 }
 
 
+void Wind_Boundary_CUDA(Real * c_device, int nx, int ny, int nz, int n_cells, int n_ghost,
+            int x_off, int y_off, int z_off, Real dx, Real dy, Real dz,
+            Real xbound, Real ybound, Real zbound, Real gamma, Real t)
+{
+  // determine the size of the grid to launch
+  // need at least as many threads as the largest boundary face
+  // current implementation assumes the test is run on a cube...
+  int isize, jsize, ksize;
+  isize = n_ghost;
+  jsize = ny;
+  ksize = nz;
+
+  dim3 dim1dGrid((isize*jsize*ksize + TPB-1) / TPB, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+
+  // launch the boundary kernel
+  hipLaunchKernelGGL(Wind_Boundary_kernel, dim1dGrid, dim1dBlock, 0, 0, 
+    c_device, nx, ny, nz, n_cells, n_ghost, x_off, y_off, z_off, dx, dy, dz,
+    xbound, ybound, zbound, gamma, t);
+
+}
+
+
+
+
 void Noh_Boundary_CUDA(Real * c_device, int nx, int ny, int nz, int n_cells, int n_ghost,
                        int x_off, int y_off, int z_off, Real dx, Real dy, Real dz,
                        Real xbound, Real ybound, Real zbound, Real gamma, Real t)
@@ -522,8 +543,4 @@ void Noh_Boundary_CUDA(Real * c_device, int nx, int ny, int nz, int n_cells, int
 		     nx,ny,nz,n_cells,n_ghost,
          x_off,y_off,z_off,dx,dy,dz,xbound,ybound,zbound,gamma,t);
 
-
-
 }
-
-

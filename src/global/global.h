@@ -5,6 +5,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#include "../grid/grid_enum.h" // defines NSCALARS
+
 #ifdef COOLING_CPU
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_spline2d.h>
@@ -32,6 +34,7 @@ typedef double Real;
 #define KB 1.380658e-16 // boltzmann constant, cgs
 //#define GN 6.67259e-8 // gravitational constant, cgs
 #define GN 4.49451e-18 // gravitational constant, kpc^3 / M_sun / kyr^2
+#define C_L 0.306594593 // speed of light in kpc/kyr
 
 #define MYR 31.536e12 //Myears in secs
 #define KPC 3.086e16 // kpc in km
@@ -39,7 +42,7 @@ typedef double Real;
 #define MSUN_CGS 1.98847e33; //Msun in gr
 #define KPC_CGS 3.086e21;  //kpc in cm
 #define KM_CGS 1e5; //km in cm
-#define MH 1.67262171e-24 //Mass of hydrogen [g]   
+#define MH 1.67262171e-24 //Mass of hydrogen [g]
 
 #define TIME_UNIT 3.15569e10 // 1 kyr in s
 #define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
@@ -54,7 +57,7 @@ typedef double Real;
 #define LOG_FILE_NAME "run_output.log"
 
 //Conserved Floor Values
-#define TEMP_FLOOR 1e-3 // in Kelvin
+#define TEMP_FLOOR 1e-3
 #define DENS_FLOOR 1e-5 // in code units
 
 //Parameter for Enzo dual Energy Condition
@@ -65,22 +68,13 @@ typedef double Real;
 #define MAX_DELTA_A 0.001
 #define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
-#ifdef COOLING_GRACKLE
-  #ifdef GRACKLE_METALS
-  #define NSCALARS 7
-  #else
-  #define NSCALARS 6
-  #endif // GRACKLE_METALS
-#elif CHEMISTRY_GPU
-  #define NSCALARS 6
+
+
+#ifdef  MHD
+  #define N_MHD_FIELDS 3
 #else
-#ifdef SCALAR
-// Set Number of scalar fields when not using grackle
-#define NSCALARS 1
-#else
-#define NSCALARS 0
-#endif//SCALAR
-#endif//COOLING_GRACKLE
+  #define N_MHD_FIELDS 0
+#endif  //MHD
 
 #ifdef  MHD
   #define N_MHD_FIELDS 3
@@ -247,9 +241,9 @@ struct parameters
   Real vz;
   Real P;
   Real A;
-  Real Bx;
-  Real By;
-  Real Bz;
+  Real Bx=0;
+  Real By=0;
+  Real Bz=0;
   Real rho_l;
   Real vx_l;
   Real vy_l=0;
@@ -267,6 +261,16 @@ struct parameters
   Real By_r;
   Real Bz_r;
   Real diaph;
+  Real rEigenVec_rho = 0;
+  Real rEigenVec_MomentumX  = 0;
+  Real rEigenVec_MomentumY  = 0;
+  Real rEigenVec_MomentumZ  = 0;
+  Real rEigenVec_E   = 0;
+  Real rEigenVec_Bx  = 0;
+  Real rEigenVec_By  = 0;
+  Real rEigenVec_Bz  = 0;
+  Real pitch = 0;
+  Real yaw = 0;
 #ifdef PARTICLES
   // The random seed for particle simulations. With the default of 0 then a
   // machine dependent seed will be generated.
@@ -306,7 +310,7 @@ struct parameters
   int bc_potential_type;
 #if defined(COOLING_GRACKLE) || defined (CHEMISTRY_GPU)
   char UVB_rates_file[MAXLEN]; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
-#endif  
+#endif
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
   char analysisdir[MAXLEN];
@@ -315,10 +319,6 @@ struct parameters
   #ifdef OUTPUT_SKEWERS
   char skewersdir[MAXLEN];
   #endif
-#endif
-#ifdef SUPERNOVA
-  int supernova_e;
-  Real supernova_rcl;
 #endif
 };
 

@@ -102,10 +102,12 @@ void Grid3D::Compute_and_Output_Analysis( struct parameters *P ){
   #endif
 
   //Write to HDF5 file
+  #if defined(COSMOLOGY) || defined(PHASE_DIAGRAM) || defined(LYA_STATISTICS)
   #ifdef MPI_CHOLLA
   if ( procID == 0 ) Output_Analysis(P);
   #else
   Output_Analysis(P);
+  #endif
   #endif
 
 

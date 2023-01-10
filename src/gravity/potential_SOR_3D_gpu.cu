@@ -355,7 +355,7 @@ void Potential_SOR_3D::Copy_Potential_From_Host( Real *output_potential ){
 
 
 
-__global__ void Load_Transfer_Buffer_GPU_kernel( int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d   ){
+__global__ void Load_Transfer_Buffer_GPU_kernel_SOR( int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d   ){
 
   // get a global thread ID
   int tid, tid_i, tid_j, tid_k, tid_buffer, tid_pot;
@@ -435,7 +435,7 @@ __global__ void Load_Transfer_Buffer_GPU_Half_kernel( int direction, int side, i
 
 
 
-__global__ void Unload_Transfer_Buffer_GPU_kernel( int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d   ){
+__global__ void Unload_Transfer_Buffer_GPU_kernel_SOR( int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny, int nz, int n_ghost_transfer, int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d   ){
 
   // get a global thread ID
   int tid, tid_i, tid_j, tid_k, tid_buffer, tid_pot;
@@ -544,7 +544,7 @@ void Potential_SOR_3D::Load_Transfer_Buffer_GPU( int direction, int side, int nx
 
 
   // Load_Transfer_Buffer_GPU_kernel<<<dim1dGrid,dim1dBlock>>>( direction, side, size_buffer, n_i, n_j,  nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d  );
-  hipLaunchKernelGGL( Load_Transfer_Buffer_GPU_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j,  nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d  );
+  hipLaunchKernelGGL( Load_Transfer_Buffer_GPU_kernel_SOR, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j,  nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d  );
 
 }
 
@@ -614,7 +614,7 @@ void Potential_SOR_3D::Unload_Transfer_Buffer_GPU( int direction, int side, int 
 
 
   // Unload_Transfer_Buffer_GPU_kernel<<<dim1dGrid,dim1dBlock>>>( direction, side, size_buffer, n_i, n_j, nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d  );
-  hipLaunchKernelGGL(Unload_Transfer_Buffer_GPU_kernel,dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j, nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d  );
+  hipLaunchKernelGGL(Unload_Transfer_Buffer_GPU_kernel_SOR,dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j, nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, transfer_buffer_d  );
 
 }
 

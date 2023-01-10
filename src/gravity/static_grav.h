@@ -7,11 +7,8 @@
 #pragma once
 
 #include <stdio.h>
-#include <math.h> // provides sqrt, log, cos, sin, atan (list incomplete)
-#include "../global/global.h" // provides GN (list incomplete)
-
-//#include "../utils/gpu.hpp" // provides nothing (list complete)
-//#include "../global/global_cuda.h" // provides nothing (list complete)
+#include <math.h> // provides sqrt log cos sin atan etc.
+#include "../global/global.h" // provides GN etc.
 
 // Work around lack of pow(Real,int) in Hip Clang for Rocm 3.5
 static inline __device__ Real pow2(const Real x) { return x*x; }

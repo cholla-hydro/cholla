@@ -17,6 +17,8 @@
 // Local Includes
 #include "../utils/testing_utilities.h"
 #include "../utils/reduction_utilities.h"
+#include "../utils/cuda_utilities.h"
+#include "../utils/DeviceVector.h"
 #include "../global/global.h"
 
 
@@ -28,8 +30,7 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
 {
     // Launch parameters
     // =================
-    uint numBlocks, threadsPerBlock;
-    reduction_utilities::reductionLaunchParams(numBlocks, threadsPerBlock);
+    cuda_utilities::AutomaticLaunchParams static const launchParams(reduction_utilities::kernelReduceMax);
 
     // Grid Parameters & testing parameters
     // ====================================
@@ -37,7 +38,6 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
     size_t const size     = std::pow(gridSize, 3);;
     Real   const maxValue = 4;
     std::vector<Real> host_grid(size);
-    Real host_max = -DBL_MAX;
 
     // Fill grid with random values and assign maximum value
     std::mt19937 prng(1);
@@ -52,44 +52,22 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
 
     // Allocating and copying to device
     // ================================
-    Real *dev_grid;
-    CudaSafeCall(cudaMalloc(&dev_grid, host_grid.size() * sizeof(Real)));
-    CudaSafeCall(cudaMemcpy(dev_grid, host_grid.data(), host_grid.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    cuda_utilities::DeviceVector<Real> dev_grid(host_grid.size());
+    dev_grid.cpyHostToDevice(host_grid);
 
-    Real *dev_max_array;
-    CudaSafeCall(cudaMalloc(&dev_max_array, numBlocks*sizeof(Real)));
-    // Sets all bytes to 0.
-    cudaMemset(dev_max_array,0,numBlocks*sizeof(Real));
-    
-    Real host_max_array[numBlocks];
-    //Real *host_max_array = (Real *) malloc(numBlocks*sizeof(Real));
-    //CudaSafeCall( cudaHostAlloc(&host_max_array, numBlocks*sizeof(Real), cudaHostAllocDefault) );
 
+    cuda_utilities::DeviceVector<Real> static dev_max(1);
+    dev_max.assign(std::numeric_limits<double>::lowest());
 
     // Do the reduction
     // ================
-    hipLaunchKernelGGL(reduction_utilities::kernelReduceMax, numBlocks, threadsPerBlock, 0, 0, dev_grid, dev_max_array, host_grid.size());
+    hipLaunchKernelGGL(reduction_utilities::kernelReduceMax,
+                       launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
+                       dev_grid.data(), dev_max.data(), host_grid.size());
     CudaCheckError();
 
-
-    // Copy back and sync
-    // ==================
-    CudaSafeCall(cudaMemcpy(&host_max_array, dev_max_array, numBlocks*sizeof(Real), cudaMemcpyDeviceToHost));
-    cudaDeviceSynchronize();
-
-    for (int i = 0; i < numBlocks; i++)
-    {
-        host_max = fmax(host_max,host_max_array[i]);
-    }
-
-    //free(host_max_array);
-
-    cudaFree(dev_max_array);
-
-    cudaFree(dev_grid);
-
     // Perform comparison
-    testingUtilities::checkResults(maxValue, host_max, "maximum value found");
+    testingUtilities::checkResults(maxValue, dev_max.at(0), "maximum value found");
 }
 // =============================================================================
 // Tests for divergence max reduction

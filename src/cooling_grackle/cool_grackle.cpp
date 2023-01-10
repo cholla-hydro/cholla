@@ -6,7 +6,7 @@
 #include <math.h>
 #include "../io/io.h"
 #include "../cooling_grackle/cool_grackle.h"
-
+#include "../grid/grid_enum.h"
 
 
 Cool_GK::Cool_GK( void ){}
@@ -146,20 +146,19 @@ Cool.fields.x_velocity      = NULL;
 Cool.fields.y_velocity      = NULL;
 Cool.fields.z_velocity      = NULL;
 
-
 chprintf( " Allocating memory for: HI, HII, HeI, HeII, HeIII, e   densities\n");
-Cool.fields.HI_density      = &C.scalar[ 0*n_cells ];
-Cool.fields.HII_density     = &C.scalar[ 1*n_cells ];
-Cool.fields.HeI_density     = &C.scalar[ 2*n_cells ];
-Cool.fields.HeII_density    = &C.scalar[ 3*n_cells ];
-Cool.fields.HeIII_density   = &C.scalar[ 4*n_cells ];
-Cool.fields.e_density       = &C.scalar[ 5*n_cells ];
+Cool.fields.HI_density     = &C.host[ H.n_cells*grid_enum::HI_density ];
+Cool.fields.HII_density    = &C.host[ H.n_cells*grid_enum::HII_density ];
+Cool.fields.HeI_density    = &C.host[ H.n_cells*grid_enum::HeI_density ];
+Cool.fields.HeII_density   = &C.host[ H.n_cells*grid_enum::HeII_density ];
+Cool.fields.HeIII_density  = &C.host[ H.n_cells*grid_enum::HeIII_density ];
+Cool.fields.e_density      = &C.host[ H.n_cells*grid_enum::e_density ];
 
 #ifdef GRACKLE_METALS
 chprintf( " Allocating memory for: metal density\n");
-Cool.fields.metal_density   = &C.scalar[ 6*n_cells ];
+Cool.fields.metal_density  = &C.host[ H.n_cells*grid_enum::metal_density ];
 #else
-Cool.fields.metal_density   = NULL;
+Cool.fields.metal_density  = NULL;
 #endif
 
 #ifdef OUTPUT_TEMPERATURE

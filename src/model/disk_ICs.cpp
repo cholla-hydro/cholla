@@ -13,6 +13,7 @@
 #include "../mpi/mpi_routines.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"
+#include "disk_galaxy.h"
 
 
 // #define DISK_ICS
@@ -772,23 +773,17 @@ void Grid3D::Disk_3D(parameters p)
 
   #ifdef MW_MODEL
   // MW model
-  M_vir = 1.0e12; // viral mass of MW in M_sun
-  M_d = 6.5e10; // mass of disk in M_sun (assume all stars)
-  R_d = 3.5; // MW stellar disk scale length in kpc
-  z_d = 3.5/5.0; // MW stellar disk scale height in kpc
-  R_vir = 261; // MW viral radius in kpc
-  c_vir = 20; // MW halo concentration (to account for adiabatic contraction)
-  r_cool = 157.0; // cooling radius in kpc (MW)
-  #else
-  // M82 model
-  M_d = 1.0e10; // mass of M82 disk in M_sun (Greco 2012)
-  M_vir = 5.0e10; // viral mass of M82 in M_sun (guess)
-  R_d = 0.8; // M82 stellar disk scale length in kpc (Mayya 2009)
-  R_vir = R_d/0.015; // M82 viral radius in kpc from R_(1/2) = 0.015 R_200 (Kravtsov 2013)
-  z_d = 0.15; // M82 stellar thin disk scale height in kpc (Lim 2013)
-  c_vir = 10; // M82 halo concentration
-  r_cool = 100.0; // cooling in kpc (M82, guess)
-  #endif // MW_MODEL
+  DiskGalaxy galaxy = Galaxies::MW;
+  // M82 model Galaxies::M82;
+
+  M_vir = galaxy.getM_vir(); // viral mass in M_sun
+  M_d = galaxy.getM_d();  // mass of disk in M_sun (assume all stars)
+  R_d = galaxy.getR_d(); // stellar disk scale length in kpc
+  z_d = galaxy.getZ_d(); // stellar disk scale height in kpc
+  R_vir = galaxy.getR_vir(); // viral radius in kpc
+  c_vir = galaxy.getC_vir(); // halo concentration (to account for adiabatic contraction)
+  r_cool = galaxy.getR_cool(); // cooling radius in kpc (MW)
+
   M_h = M_vir - M_d; // halo mass in M_sun
   R_s = R_vir / c_vir; // halo scale length in kpc
   //T_d = 5.9406e5; // SET TO MATCH K_EOS SET BY HAND for K_eos   = 1.859984e-14

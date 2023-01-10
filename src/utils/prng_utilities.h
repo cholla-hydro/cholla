@@ -26,8 +26,10 @@ public:
             // This should give a fairly random seed even if std::random_device
             // isn't random
             std::string hashString = std::to_string(std::random_device{}())
-                                    + std::to_string(std::chrono::high_resolution_clock::now().time_since_epoch().count())
-                                    + std::to_string(static_cast<std::uint_fast64_t>(procID));
+                                    #ifdef MPI_CHOLLA
+                                    + std::to_string(static_cast<std::uint_fast64_t>(procID))
+                                    #endif
+                                    + std::to_string(std::chrono::high_resolution_clock::now().time_since_epoch().count());
             std::size_t hashedSeed = std::hash<std::string>{}(hashString);
             P->prng_seed = static_cast<std::uint_fast64_t>(hashedSeed);
         }

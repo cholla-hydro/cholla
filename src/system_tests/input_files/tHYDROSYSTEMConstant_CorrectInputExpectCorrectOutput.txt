@@ -1,5 +1,5 @@
 #
-# Parameter File for 3D Constant
+# Parameter File for 3D box filled with gas
 #
 
 ################################################
@@ -39,6 +39,10 @@ vx=0
 vy=0
 vz=0
 # pressure
-P=1e-5
+P=1.380658e-5
+# Magnetic Field
+Bx=1.0e-5
+By=2.0e-5
+Bz=3.0e-5
 # value of gamma
 gamma=1.666666667

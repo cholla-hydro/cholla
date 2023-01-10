@@ -120,23 +120,3 @@ TEST(tALLCompute1DIndex,
     EXPECT_EQ(fiducialId, testId);
 }
 // =============================================================================
-
-// =============================================================================
-TEST(tALLSetScalarDeviceMemory,
-     TypeDoubleInputExpectCorrectValueSet)
-{
-    double value = 173.246;
-    double *dev_ptr, host_val;
-    CudaSafeCall(cudaMalloc(&dev_ptr, sizeof(double)));
-
-    cuda_utilities::setScalarDeviceMemory<double>(dev_ptr, value);
-
-    CudaSafeCall(
-        cudaMemcpy(&host_val,  // destination
-                    dev_ptr,    // source
-                    sizeof(double),
-                    cudaMemcpyDeviceToHost));
-
-    EXPECT_EQ(value, host_val);
-}
-// =============================================================================

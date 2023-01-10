@@ -9,9 +9,9 @@
 #include "../io/io.h"
 #include "../global/global.h"
 #include "../global/global_cuda.h"
-#include "../particles/particles_3D.h"
 #include "../grid/grid3D.h"
-#include "../particles/particles_boundaries_gpu.h"
+#include "particles_boundaries_gpu.h"
+#include "particles_3D.h"
 
 #define SCAN_SHARED_SIZE 2*TPB_PARTICLES
 
@@ -81,17 +81,10 @@ __global__ void Get_Transfer_Flags_Kernel( part_int_t n_total, int side,  Real d
   bool transfer = 0;
 
   Real pos = pos_d[tid];
-  // if ( tid < 1 ) printf( "%f\n", pos);
 
-  if ( side == 0 ){
-    if ( pos < d_min ) transfer = 1;
-  }
+  if ( side == 0 && pos < d_min) transfer = 1;
+  if ( side == 1 && pos >= d_max) transfer = 1;
 
-  if ( side == 1 ){
-    if ( pos >= d_max ) transfer = 1;
-  }
-
-  // if ( transfer ) printf( "##Thread particles transfer\n");
   transfer_flags_d[tid] = transfer;
 }
 
@@ -233,7 +226,7 @@ __global__ void Get_Transfer_Indices_Kernel( part_int_t n_total, bool *transfer_
 }
 
 
-__global__ void Select_Indices_to_Replace_Tranfered_Kernel( part_int_t n_total, int n_transfer, bool *transfer_flags_d, int *prefix_sum_d, int *replace_indices_d ){
+__global__ void Select_Indices_to_Replace_Transfered_Kernel( part_int_t n_total, int n_transfer, bool *transfer_flags_d, int *prefix_sum_d, int *replace_indices_d ){
 
   int tid, tid_inv;
   tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -258,9 +251,8 @@ __global__ void Select_Indices_to_Replace_Tranfered_Kernel( part_int_t n_total, 
 }
 
 
-
-__global__ void Replace_Transfered_Particles_Kernel( int n_transfer, Real *field_d, int *transfer_indices_d, int *replace_indices_d, bool print_replace ){
-
+template< typename T>
+__global__ void Replace_Transfered_Particles_Kernel( int n_transfer, T *field_d, int *transfer_indices_d, int *replace_indices_d, bool print_replace ){
   int tid;
   tid = threadIdx.x + blockIdx.x * blockDim.x;
   if ( tid >= n_transfer ) return;
@@ -270,7 +262,7 @@ __global__ void Replace_Transfered_Particles_Kernel( int n_transfer, Real *field
   src_id = replace_indices_d[tid];
 
   if ( dst_id < src_id ){
-    if (print_replace) printf("Replacing: %f \n", field_d[dst_id] );
+    if (print_replace) printf("Replacing: %f \n", field_d[dst_id]*1.0 );
     field_d[dst_id] = field_d[src_id];
   }
 
@@ -288,6 +280,19 @@ void Replace_Transfered_Particles_GPU_function(  int n_transfer, Real *field_d, 
   hipLaunchKernelGGL( Replace_Transfered_Particles_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_transfer,  field_d, transfer_indices_d, replace_indices_d, print_replace );
   CudaCheckError();
 
+}
+
+
+void Replace_Transfered_Particles_Int_GPU_function(  int n_transfer, part_int_t *field_d, int *transfer_indices_d, int *replace_indices_d, bool print_replace ){
+  int grid_size;
+  grid_size =  (n_transfer - 1) / TPB_PARTICLES + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(grid_size, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
+
+  hipLaunchKernelGGL( Replace_Transfered_Particles_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_transfer,  field_d, transfer_indices_d, replace_indices_d, print_replace );
+  CudaCheckError();
 }
 
 
@@ -330,8 +335,8 @@ part_int_t Select_Particles_to_Transfer_GPU_function( part_int_t n_local, int si
   
   hipLaunchKernelGGL( Get_Transfer_Indices_Kernel, dim1dGrid, dim1dBlock, 0, 0,  n_local , transfer_flags_d, transfer_prefix_sum_d, transfer_indices_d );
   CudaCheckError();
-  
-  hipLaunchKernelGGL( Select_Indices_to_Replace_Tranfered_Kernel, dim1dGrid, dim1dBlock , 0, 0,  n_local, n_transfer_h[0], transfer_flags_d, transfer_prefix_sum_d, replace_indices_d );
+
+  hipLaunchKernelGGL( Select_Indices_to_Replace_Transfered_Kernel, dim1dGrid, dim1dBlock , 0, 0,  n_local, n_transfer_h[0], transfer_flags_d, transfer_prefix_sum_d, replace_indices_d );
   CudaCheckError();
 
   // if ( n_transfer_h[0] > 0 )printf( "N transfer: %d\n", n_transfer_h[0]);
@@ -375,7 +380,41 @@ void Load_Particles_to_Transfer_GPU_function(  int n_transfer, int field_id, int
 
 }
 
+__global__ void Load_Transfered_Particles_Ints_to_Buffer_Kernel( int n_transfer, int field_id, int n_fields_to_transfer, part_int_t *field_d, int *transfer_indices_d, Real *send_buffer_d, Real domainMin, Real domainMax, int boundary_type  ){
 
+  int tid;
+  tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if ( tid >= n_transfer ) return;
+
+  int src_id, dst_id;
+  part_int_t field_val;
+  src_id = transfer_indices_d[tid];
+  dst_id = tid * n_fields_to_transfer + field_id;
+  field_val = field_d[src_id];
+
+  // Set global periodic boundary conditions
+  if ( boundary_type == 1 && field_val < domainMin )  field_val += ( domainMax - domainMin );
+  if ( boundary_type == 1 && field_val >= domainMax ) field_val -= ( domainMax - domainMin );
+  send_buffer_d[dst_id] = __longlong_as_double(field_val);
+
+}
+
+
+void Load_Particles_to_Transfer_Int_GPU_function(  int n_transfer, int field_id, int n_fields_to_transfer,  part_int_t *field_d, int *transfer_indices_d, Real *send_buffer_d, Real domainMin, Real domainMax, int boundary_type ){
+  // set values for GPU kernels
+  int grid_size;
+  grid_size =  (n_transfer - 1) / TPB_PARTICLES + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(grid_size, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
+
+  hipLaunchKernelGGL( Load_Transfered_Particles_Ints_to_Buffer_Kernel, dim1dGrid, dim1dBlock , 0, 0,  n_transfer, field_id, n_fields_to_transfer, field_d, transfer_indices_d, send_buffer_d, domainMin, domainMax, boundary_type );
+  CudaCheckError();
+
+}
+
+#ifdef MPI_CHOLLA
 void Copy_Particles_GPU_Buffer_to_Host_Buffer( int n_transfer, Real *buffer_h, Real *buffer_d ){
 
   int transfer_size;
@@ -395,7 +434,7 @@ void Copy_Particles_Host_Buffer_to_GPU_Buffer( int n_transfer, Real *buffer_h, R
   CudaCheckError();
 
 }
-
+#endif //MPI_CHOLLA
 
 __global__ void Unload_Transfered_Particles_from_Buffer_Kernel( int n_local, int n_transfer, int field_id, int n_fields_to_transfer, Real *field_d,  Real *recv_buffer_d  ){
 
@@ -421,6 +460,34 @@ void Unload_Particles_to_Transfer_GPU_function( int n_local, int n_transfer, int
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
 
   hipLaunchKernelGGL( Unload_Transfered_Particles_from_Buffer_Kernel, dim1dGrid, dim1dBlock , 0, 0, n_local, n_transfer, field_id, n_fields_to_transfer, field_d, recv_buffer_d );
+  CudaCheckError();
+
+}
+
+__global__ void Unload_Transfered_Particles_Int_from_Buffer_Kernel( int n_local, int n_transfer, int field_id, int n_fields_to_transfer, part_int_t *field_d,  Real *recv_buffer_d  ){
+
+  int tid;
+  tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if ( tid >= n_transfer ) return;
+
+  int src_id, dst_id;
+  src_id = tid * n_fields_to_transfer + field_id;
+  dst_id = n_local + tid;
+  field_d[dst_id] = __double_as_longlong(recv_buffer_d[src_id]);
+
+}
+
+void Unload_Particles_Int_to_Transfer_GPU_function( int n_local, int n_transfer, int field_id, int n_fields_to_transfer,  part_int_t *field_d,  Real *recv_buffer_d  ){
+
+  // set values for GPU kernels
+  int grid_size;
+  grid_size =  (n_transfer - 1) / TPB_PARTICLES + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(grid_size, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
+
+  hipLaunchKernelGGL( Unload_Transfered_Particles_Int_from_Buffer_Kernel, dim1dGrid, dim1dBlock , 0, 0, n_local, n_transfer, field_id, n_fields_to_transfer, field_d, recv_buffer_d );
   CudaCheckError();
 
 }

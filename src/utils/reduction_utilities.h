@@ -8,7 +8,7 @@
 #pragma once
 
 // STL Includes
-#include <float.h>
+#include <cstdint>
 
 // External Includes
 
@@ -78,7 +78,80 @@
         }
         // =====================================================================
 
+        #ifndef O_HIP
         // =====================================================================
+        // This section handles the atomics. It is complicated because CUDA
+        // doesn't currently support atomics with non-integral types.
+        // This code is taken from
+        // https://github.com/rapidsai/cuml/blob/dc14361ba11c41f7a4e1e6a3625bbadd0f52daf7/cpp/src_prims/stats/minmax.cuh
+        // with slight tweaks for our use case.
+        // =====================================================================
+        /*!
+         * \brief Do a device side bit cast
+         *
+         * \tparam To The output type
+         * \tparam From The input type
+         * \param from The input value
+         * \return To The bit cast version of From as type To
+         */
+        template <class To, class From>
+        __device__ constexpr To bit_cast(const From& from) noexcept
+        {
+            // TODO: replace with `std::bitcast` once we adopt C++20 or libcu++ adds it
+            To to{};
+            static_assert(sizeof(To) == sizeof(From));
+            memcpy(&to, &from, sizeof(To));
+            return to;
+        }
+
+        /*!
+         * \brief Encode a float as an int
+         *
+         * \param val The float to encode
+         * \return int The encoded int
+         */
+        inline __device__ int encode(float val)
+        {
+            int i = bit_cast<int>(val);
+            return i >= 0 ? i : (1 << 31) | ~i;
+        }
+
+        /*!
+         * \brief Encode a double as a long long int
+         *
+         * \param val The double to encode
+         * \return long long The encoded long long int
+         */
+        inline __device__ long long encode(double val)
+        {
+            std::int64_t i = bit_cast<std::int64_t>(val);
+            return i >= 0 ? i : (1ULL << 63) | ~i;
+        }
+
+        /*!
+         * \brief Decodes an int as a float
+         *
+         * \param val The int to decode
+         * \return float The decoded float
+         */
+        inline __device__ float decode(int val)
+        {
+            if (val < 0) val = (1 << 31) | ~val;
+            return bit_cast<float>(val);
+        }
+
+        /*!
+         * \brief Decodes a long long int as a double
+         *
+         * \param val The long long to decode
+         * \return double The decoded double
+         */
+        inline __device__ double decode(long long val)
+        {
+            if (val < 0) val = (1ULL << 63) | ~val;
+            return bit_cast<double>(val);
+        }
+        #endif  //O_HIP
         /*!
         * \brief Perform an atomic reduction to find the maximum value of `val`
         *
@@ -88,33 +161,81 @@
         * the grid. Typically this should be a partial reduction that has
         * already been reduced to the block level
         */
-        __inline__ __device__ double atomicMax_double(double* address, double val)
+        inline __device__ float atomicMaxBits(float* address, float val)
         {
-            unsigned long long int* address_as_ull = (unsigned long long int*) address;
-            unsigned long long int old = *address_as_ull, assumed;
-            // Explanation of loop here:
-            // https://stackoverflow.com/questions/16077464/atomicadd-for-double-on-gpu
-            // The loop is to make sure the value at address doesn't change
-            // between the load at the atomic since the entire operation isn't
-            // atomic
+            #ifdef O_HIP
+                return atomicMax(address, val);
+            #else //O_HIP
+                int old = atomicMax((int*)address, encode(val));
+                return decode(old);
+            #endif //O_HIP
+        }
 
-            // While it appears that this could result in many times more atomic
-            // operations than required, in practice it's only a handful of
-            // extra operation even in the worst case. Running with 16,000
-            // blocks gives ~8-37 atomics after brief testing
-            do {
-                assumed = old;
-                old = atomicCAS(address_as_ull,
-                                assumed,
-                                __double_as_longlong(fmax(__longlong_as_double(assumed),val)));
-            } while (assumed != old);
-            return __longlong_as_double(old);
+        /*!
+        * \brief Perform an atomic reduction to find the maximum value of `val`
+        *
+        * \param[out] address The pointer to where to store the reduced scalar
+        * value in device memory
+        * \param[in] val The thread local variable to find the maximum of across
+        * the grid. Typically this should be a partial reduction that has
+        * already been reduced to the block level
+        */
+        inline __device__ double atomicMaxBits(double* address, double val)
+        {
+            #ifdef O_HIP
+                return atomicMax(address, val);
+            #else //O_HIP
+                long long old = atomicMax((long long*)address, encode(val));
+                return decode(old);
+            #endif //O_HIP
+        }
+
+        /*!
+        * \brief Perform an atomic reduction to find the minimum value of `val`
+        *
+        * \param[out] address The pointer to where to store the reduced scalar
+        * value in device memory
+        * \param[in] val The thread local variable to find the minimum of across
+        * the grid. Typically this should be a partial reduction that has
+        * already been reduced to the block level
+        */
+        inline __device__ float atomicMinBits(float* address, float val)
+        {
+            #ifdef O_HIP
+                return atomicMin(address, val);
+            #else //O_HIP
+                int old = atomicMin((int*)address, encode(val));
+                return decode(old);
+            #endif //O_HIP
+        }
+
+        /*!
+        * \brief Perform an atomic reduction to find the minimum value of `val`
+        *
+        * \param[out] address The pointer to where to store the reduced scalar
+        * value in device memory
+        * \param[in] val The thread local variable to find the minimum of across
+        * the grid. Typically this should be a partial reduction that has
+        * already been reduced to the block level
+        */
+        inline __device__ double atomicMinBits(double* address, double val)
+        {
+            #ifdef O_HIP
+                return atomicMin(address, val);
+            #else //O_HIP
+                long long old = atomicMin((long long*)address, encode(val));
+                return decode(old);
+            #endif //O_HIP
         }
         // =====================================================================
 
         // =====================================================================
         /*!
          * \brief Perform a reduction within the grid to find the maximum value
+         * of `val`. Note that the value of `out` should be set appropriately
+         * before the kernel launch that uses this function to avoid any
+         * potential race condition; the `cuda_utilities::setScalarDeviceMemory`
+         * function exists for this purpose.
          * of `val`. Note that the value of `out` should be set appropriately
          * before the kernel launch that uses this function to avoid any
          * potential race condition; the `cuda_utilities::setScalarDeviceMemory`
@@ -128,7 +249,7 @@
          * by using as many threads per block as possible and as few blocks as
          * possible since each block has to perform an atomic operation. To
          * accomplish this it is reccommened that you use the
-         * `reductionLaunchParams` functions to get the optimal number of blocks
+         * `AutomaticLaunchParams` functions to get the optimal number of blocks
          * and threads per block to launch rather than relying on Cholla defaults
          * and then within the kernel using a grid-stride loop to make sure the
          * kernel works with any combination of threads and blocks. Note that
@@ -146,18 +267,22 @@
          */
         __inline__ __device__ void gridReduceMax(Real val, Real* out)
         {
-            // __syncthreads();  // Wait for all threads to calculate val;
 
             // Reduce the entire block in parallel
             val = blockReduceMax(val);
 
             // Write block level reduced value to the output scalar atomically
-            if (threadIdx.x == 0) atomicMax_double(out, val);
+            if (threadIdx.x == 0) atomicMaxBits(out, val);
         }
         // =====================================================================
 
         // =====================================================================
         /*!
+         * \brief Find the maximum value in the array. Make sure to initialize
+         * `out` correctly before using this kernel; the
+         * `cuda_utilities::setScalarDeviceMemory` function exists for this
+         * purpose. If `in` and `out` are the same array that's ok, all the
+         * loads are completed before the overwrite occurs.
          * \brief Find the maximum value in the array. Make sure to initialize
          * `out` correctly before using this kernel; the
          * `cuda_utilities::setScalarDeviceMemory` function exists for this
@@ -170,24 +295,6 @@
          * \param[in] N The size of the `in` array
          */
         __global__ void kernelReduceMax(Real *in, Real* out, size_t N);
-        // =====================================================================
-
-        // =====================================================================
-        /*!
-        * \brief Determine the optimal number of blocks and threads per block to
-        * use when launching a reduction kernel
-        *
-        * \param[out] numBlocks The maximum number of blocks that are
-        * scheduleable by the device in use when each block has the maximum
-        * number of threads
-        * \param[out] threadsPerBlock The maximum threads per block supported by
-        * the device in use
-        * \param[in] deviceNum optional: which device is being targeted.
-        * Defaults to zero
-        */
-        void reductionLaunchParams(uint &numBlocks,
-                                   uint &threadsPerBlock,
-                                   uint const &deviceNum=0);
         // =====================================================================
     }  // namespace reduction_utilities
 #endif  //CUDA
