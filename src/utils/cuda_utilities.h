@@ -12,7 +12,6 @@
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
 
-
 namespace cuda_utilities
 {
     /*!
@@ -75,25 +74,61 @@ namespace cuda_utilities
         }
     }
 
-    // =========================================================================
     /*!
-    * \brief Set the value that `pointer` points at in GPU memory to `value`.
-    * This only sets the first value in memory so if `pointer` points to an
-    * array then only `pointer[0]` will be set; i.e. this effectively does
-    * `pointer = &value`
-    *
-    * \tparam T Any scalar type
-    * \param[in] pointer The location in GPU memory
-    * \param[in] value The value to set `*pointer` to
-    */
-    template <typename T>
-    void setScalarDeviceMemory(T *pointer, T const value)
+     * \brief Initialize GPU memory
+     *
+     * \param[in] ptr The pointer to GPU memory
+     * \param[in] N The size of the array in bytes
+     */
+    inline void initGpuMemory(Real *ptr, size_t N)
     {
-        CudaSafeCall(
-            cudaMemcpy(pointer,  // destination
-                       &value,   // source
-                       sizeof(T),
-                       cudaMemcpyHostToDevice));
+        CudaSafeCall(cudaMemset(ptr, 0, N));
     }
-    // =========================================================================
-}
+
+    // =====================================================================
+    /*!
+     * \brief Struct to determine the optimal number of blocks and threads
+     * per block to use when launching a kernel. The member
+     * variables are `threadsPerBlock` and `numBlocks` which are chosen with
+     the occupancy API. Can target any device on the system through the
+     * optional constructor argument.
+     * NOTE: On AMD there's currently an issue that stops kernels from being
+     * passed. As a workaround for now this struct just returns the maximum
+     * number of blocks and threads per block that a MI250X can run at once.
+     *
+     */
+    template <typename T>
+    struct AutomaticLaunchParams
+    {
+    public:
+        /*!
+         * \brief Construct a new Reduction Launch Params object. By default it
+         * generates values of numBlocks and threadsPerBlock suitable for a
+         * kernel with a grid-stride loop. For a kernel with one thread per
+         * element set the optional `numElements` argument to the number of
+         * elements
+         *
+         * \param[in] kernel The kernel to determine the launch parameters for
+         * \param[in] numElements The number of elements in the array that
+         the kernel operates on
+         */
+        AutomaticLaunchParams(T &kernel, size_t numElements=0)
+        {
+            cudaOccupancyMaxPotentialBlockSize(&numBlocks, &threadsPerBlock, kernel, 0, 0);
+
+            if (numElements > 0)
+            {
+                numBlocks = (numElements + threadsPerBlock - 1) / threadsPerBlock;
+            }
+        }
+
+        /// Defaulted Destructor
+        ~AutomaticLaunchParams()=default;
+
+        /// The maximum number of threads per block that the device supports
+        int threadsPerBlock;
+        /// The maximum number of scheduleable blocks on the device
+        int numBlocks;
+    };
+    // =====================================================================
+} // end namespace cuda_utilities

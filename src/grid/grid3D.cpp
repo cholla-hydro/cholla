@@ -43,7 +43,6 @@
 #include "../dust/dust_cuda.h" // provides Dust_Update
 #endif
 
-
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
 Grid3D::Grid3D(void)
@@ -71,6 +70,15 @@ Grid3D::Grid3D(void)
   #ifdef GRAVITY
   H.n_ghost_potential_offset = H.n_ghost - N_GHOST_POTENTIAL;
   #endif
+
+  #ifdef  MHD
+    // Set the number of ghost cells high enough for MHD
+    if (H.n_ghost < 3)
+    {
+      chprintf("Insufficient number of ghost cells for MHD. H.n_ghost was %i, setting to 3.\n", H.n_ghost);
+      H.n_ghost = 3;
+    }
+  #endif  //MHD
 
 }
 
@@ -139,7 +147,7 @@ void Grid3D::Initialize(struct parameters *P)
 
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
-  
+
   #ifdef AVERAGE_SLOW_CELLS
   H.min_dt_slow = 1e-100; //Initialize the minumum dt to a tiny number
   #endif // AVERAGE_SLOW_CELLS
@@ -286,9 +294,9 @@ void Grid3D::AllocateMemory(void)
   #endif
   #endif  //SCALAR
   #ifdef  MHD
-  C.magnetic_x = &(C.host[(5 + NSCALARS)*H.n_cells]);
-  C.magnetic_y = &(C.host[(6 + NSCALARS)*H.n_cells]);
-  C.magnetic_z = &(C.host[(7 + NSCALARS)*H.n_cells]);
+  C.magnetic_x = &(C.host[(grid_enum::magnetic_x)*H.n_cells]);
+  C.magnetic_y = &(C.host[(grid_enum::magnetic_y)*H.n_cells]);
+  C.magnetic_z = &(C.host[(grid_enum::magnetic_z)*H.n_cells]);
   #endif  //MHD
   #ifdef DE
   C.GasEnergy = &(C.host[(H.n_fields-1)*H.n_cells]);
@@ -296,6 +304,7 @@ void Grid3D::AllocateMemory(void)
 
   // allocate memory for the conserved variable arrays on the device
   CudaSafeCall( cudaMalloc((void**)&C.device, H.n_fields*H.n_cells*sizeof(Real)) );
+  cuda_utilities::initGpuMemory(C.device, H.n_fields*H.n_cells*sizeof(Real));
   C.d_density    = C.device;
   C.d_momentum_x = &(C.device[H.n_cells]);
   C.d_momentum_y = &(C.device[2*H.n_cells]);
@@ -308,21 +317,13 @@ void Grid3D::AllocateMemory(void)
   #endif
   #endif  // SCALAR
   #ifdef  MHD
-  C.d_magnetic_x   = &(C.device[(5 + NSCALARS)*H.n_cells]);
-  C.d_magnetic_y   = &(C.device[(6 + NSCALARS)*H.n_cells]);
-  C.d_magnetic_z   = &(C.device[(7 + NSCALARS)*H.n_cells]);
+  C.d_magnetic_x   = &(C.device[(grid_enum::magnetic_x)*H.n_cells]);
+  C.d_magnetic_y   = &(C.device[(grid_enum::magnetic_y)*H.n_cells]);
+  C.d_magnetic_z   = &(C.device[(grid_enum::magnetic_z)*H.n_cells]);
   #endif  //MHD
   #ifdef DE
   C.d_GasEnergy  = &(C.device[(H.n_fields-1)*H.n_cells]);
   #endif  // DE
-
-
-  // arrays that hold the max_dti calculation for hydro for each thread block (pre reduction)
-  int ngrid = (H.n_cells + TPB - 1) / TPB;
-  CudaSafeCall( cudaHostAlloc(&host_dti_array, ngrid*sizeof(Real), cudaHostAllocDefault) );
-  CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-  CudaSafeCall( cudaMalloc((void**)&dev_dti, sizeof(Real)) );
-
 
   #if defined( GRAVITY )
   CudaSafeCall( cudaHostAlloc(&C.Grav_potential, H.n_cells*sizeof(Real), cudaHostAllocDefault) );
@@ -451,7 +452,7 @@ Real Grid3D::Update_Grid(void)
     #ifdef VL
     VL_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //VL
-    #ifdef SIMPLE 
+    #ifdef SIMPLE
     Simple_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
     #endif //SIMPLE
     #endif //CUDA
@@ -493,7 +494,7 @@ Real Grid3D::Update_Grid(void)
   Timer.Chemistry.RecordTime( Chem.H.runtime_chemistry_step );
   #endif
   #endif
-  
+
   #ifdef AVERAGE_SLOW_CELLS
   //Set the min_delta_t for averaging a slow cell
   Real max_dti_slow;
@@ -540,7 +541,7 @@ Real Grid3D::Update_Hydro_Grid( ){
   #ifdef ONLY_PARTICLES
   // Don't integrate the Hydro when only solving for particles
   return 1e-10;
-  #endif
+  #endif  //ONLY_PARTICLES
 
   Real dti;
 
@@ -551,26 +552,26 @@ Real Grid3D::Update_Hydro_Grid( ){
   #ifdef GRAVITY
   // Extrapolate gravitational potential for hydro step
   Extrapolate_Grav_Potential();
-  #endif
+  #endif  //GRAVITY
 
   dti = Update_Grid();
 
   #ifdef CPU_TIME
   #ifdef CHEMISTRY_GPU
   Timer.Hydro.Subtract(Chem.H.runtime_chemistry_step);
-  //Subtract the time spent on the Chemical Update 
-  #endif
+  //Subtract the time spent on the Chemical Update
+  #endif //CHEMISTRY_GPU
   Timer.Hydro.End();
   #endif //CPU_TIME
 
   #ifdef COOLING_GRACKLE
   #ifdef CPU_TIME
   Timer.Cooling.Start();
-  #endif
+  #endif  //CPU_TIME
   Do_Cooling_Step_Grackle( );
   #ifdef CPU_TIME
   Timer.Cooling.End();
-  #endif
+  #endif  //CPU_TIME
   #endif//COOLING_GRACKLE
 
 
@@ -622,11 +623,6 @@ void Grid3D::FreeMemory(void)
 {
   // free the conserved variable arrays
   CudaSafeCall( cudaFreeHost(C.host) );
-
-  // free the timestep arrays
-  CudaSafeCall( cudaFreeHost(host_dti_array) );
-  cudaFree(dev_dti_array);
-  cudaFree(dev_dti);
 
   #ifdef GRAVITY
   CudaSafeCall( cudaFreeHost(C.Grav_potential) );

@@ -1,5 +1,5 @@
 /*!
- * \file device_vector.h
+ * \file DeviceVector.h
  * \author Robert 'Bob' Caddy (rvc@pitt.edu)
  * \brief Contains the declartion and implementation of the DeviceVector
  * class. Note that since this is a templated class the implementation must be
@@ -48,8 +48,10 @@ namespace cuda_utilities
          *
          * \param[in] size The number of elements desired in the array. Can be
          * any positive integer.
+         * \param[in] initialize (optional) If true then initialize the GPU
+         * memory to int(0)
          */
-        DeviceVector(size_t const size) {_allocate(size);}
+        DeviceVector(size_t const size, bool const initialize=false);
 
         /*!
          * \brief Destroy the Device Vector object by calling the `_deAllocate`
@@ -178,7 +180,7 @@ namespace cuda_utilities
         void _allocate(size_t const size)
         {
             _size=size;
-            CudaSafeCall(cudaMalloc(&_ptr, size*sizeof(T)));
+            CudaSafeCall(cudaMalloc(&_ptr, _size*sizeof(T)));
         }
 
         /*!
@@ -198,9 +200,21 @@ namespace cuda_utilities
 // =============================================================================
 namespace cuda_utilities
 {
-
     // =========================================================================
     // Public Methods
+    // =========================================================================
+
+    // =========================================================================
+    template <typename T>
+    DeviceVector<T>::DeviceVector(size_t const size, bool const initialize)
+    {
+        _allocate(size);
+
+        if (initialize)
+        {
+            CudaSafeCall(cudaMemset(_ptr, 0, _size*sizeof(T)));
+        }
+    }
     // =========================================================================
 
     // =========================================================================

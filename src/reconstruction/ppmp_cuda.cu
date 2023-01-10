@@ -43,7 +43,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real d_ipt, vx_ipt, vy_ipt, vz_ipt, p_ipt;
   #ifdef FLATTENING
   Real p_imth, p_ipth;
-  #endif
+  #endif  //FLATTENING
 
   // declare left and right interface values
   Real d_L, vx_L, vy_L, vz_L, p_L;
@@ -68,15 +68,15 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real dR_p, vxR_p, pR_p;
   Real chi_L_m, chi_L_0, chi_L_p;
   Real chi_R_m, chi_R_0, chi_R_p;
-  #endif
+  #endif  //CTU
 
   #ifdef DE
   Real ge_i, ge_imo, ge_ipo, ge_imt, ge_ipt, ge_L, ge_R, E_kin, E, dge;
   #ifndef VL
 //  #ifdef CTU
   Real del_ge, ge_6, geL_0, geR_0;
-  #endif
-  #endif
+  #endif  //CTU
+  #endif  //DE
 
   #ifdef SCALAR
   Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS], scalar_imt[NSCALARS], scalar_ipt[NSCALARS];
@@ -84,8 +84,8 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   #ifndef VL
 //  #ifdef CTU
   Real del_scalar[NSCALARS], scalar_6[NSCALARS], scalarL_0[NSCALARS], scalarR_0[NSCALARS];
-  #endif
-  #endif
+  #endif  //CTU
+  #endif  //SCALAR
 
 
 
@@ -153,12 +153,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_i  = fmax(p_i, (Real) TINY_NUMBER);
     #ifdef DE
     ge_i = dge / d_i;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalar_i[i] =  dev_conserved[(5+i)*n_cells + id] / d_i;
     }
-    #endif
+    #endif  //SCALAR
     // cell i-1
     if (dir == 0) id = xid-1 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid-1)*nx + zid*nx*ny;
@@ -178,12 +178,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_imo  = fmax(p_imo, (Real) TINY_NUMBER);
     #ifdef DE
     ge_imo = dge / d_imo;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalar_imo[i]  =  dev_conserved[(5+i)*n_cells + id] / d_imo;
     }
-    #endif
+    #endif  //SCALAR
     // cell i+1
     if (dir == 0) id = xid+1 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid+1)*nx + zid*nx*ny;
@@ -203,12 +203,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_ipo  = fmax(p_ipo, (Real) TINY_NUMBER);
     #ifdef DE
     ge_ipo = dge / d_ipo;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalar_ipo[i]  =  dev_conserved[(5+i)*n_cells + id] / d_ipo;
     }
-    #endif
+    #endif  //SCALAR
     // cell i-2
     if (dir == 0) id = xid-2 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid-2)*nx + zid*nx*ny;
@@ -228,12 +228,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_imt  = fmax(p_imt, (Real) TINY_NUMBER);
     #ifdef DE
     ge_imt = dge / d_imt;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalar_imt[i]  =  dev_conserved[(5+i)*n_cells + id] / d_imt;
     }
-    #endif
+    #endif  //SCALAR
     // cell i+2
     if (dir == 0) id = xid+2 + yid*nx + zid*nx*ny;
     if (dir == 1) id = xid + (yid+2)*nx + zid*nx*ny;
@@ -253,12 +253,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_ipt  = fmax(p_ipt, (Real) TINY_NUMBER);
     #ifdef DE
     ge_ipt = dge / d_ipt;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalar_ipt[i]  =  dev_conserved[(5+i)*n_cells + id] / d_ipt;
     }
-    #endif
+    #endif  //SCALAR
     #ifdef FLATTENING
     // cell i-3
     if (dir == 0) id = xid-3 + yid*nx + zid*nx*ny;
@@ -330,7 +330,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
     // Calculate the interface values for internal energy
     Interface_Values_PPM(ge_imo,  ge_i,  ge_ipo,  del_q_imo, del_q_i, del_q_ipo, &ge_L,  &ge_R);
-    #endif
+    #endif  //DE
 
     #ifdef SCALAR
     // Calculate the monotonized slopes for cells imo, i, ipo (passive scalars)
@@ -342,7 +342,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       // Calculate the interface values for the passive scalars
       Interface_Values_PPM(scalar_imo[i],  scalar_i[i],  scalar_ipo[i],  del_q_imo, del_q_i, del_q_ipo, &scalar_L[i],  &scalar_R[i]);
     }
-    #endif
+    #endif  //SCALAR
 
 #ifdef STEEPENING
     Real d2_rho_imo, d2_rho_ipo, eta_i;
@@ -375,7 +375,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
         }
       }
     }
-#endif
+#endif  //STEEPENING
 
 #ifdef FLATTENING
     Real F_imo, F_i, F_ipo;
@@ -403,12 +403,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_L  = F_i * p_i  + (1 - F_i) * p_L;
     #ifdef DE
     ge_L = F_i * ge_i + (1 - F_i) * ge_L;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalar_L[i] = F_i * scalar_i[i] + (1 - F_i) * scalar_L[i];
     }
-    #endif
+    #endif  //SCALAR
     d_R  = F_i * d_i  + (1 - F_i) * d_R;
     vx_R = F_i * vx_i + (1 - F_i) * vx_R;
     vy_R = F_i * vy_i + (1 - F_i) * vy_R;
@@ -416,13 +416,13 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_R  = F_i * p_i  + (1 - F_i) * p_R;
     #ifdef DE
     ge_R = F_i * ge_i + (1 - F_i) * ge_R;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalar_R[i] = F_i * scalar_i[i] + (1 - F_i) * scalar_R[i];
     }
-    #endif
-#endif
+    #endif  //SCALAR
+#endif  //FLATTENING
 
 #ifndef VL
 //#ifdef CTU
@@ -440,12 +440,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     del_p  = p_R  - p_L;
     #ifdef DE
     del_ge = ge_R - ge_L;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       del_scalar[i] = scalar_R[i] - scalar_L[i];
     }
-    #endif
+    #endif  //SCALAR
 
     d_6  = 6.0 * (d_i  - 0.5*(d_L  + d_R));  // Fryxell Eqn 30
     vx_6 = 6.0 * (vx_i - 0.5*(vx_L + vx_R)); // Fryxell Eqn 30
@@ -454,12 +454,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_6  = 6.0 * (p_i  - 0.5*(p_L  + p_R));  // Fryxell Eqn 30
     #ifdef DE
     ge_6 = 6.0 * (ge_i - 0.5*(ge_L + ge_R)); // Fryxell Eqn 30
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalar_6[i] = 6.0 * (scalar_i[i] - 0.5*(scalar_L[i] + scalar_R[i])); // Fryxell Eqn 30
     }
-    #endif
+    #endif  //SCALAR
 
     // set speed of characteristics (v-c, v, v+c) using average values of v and c
     lambda_m = vx_i - cs;
@@ -485,12 +485,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vzL_0 = vz_L + 0.5 * alpha_0 * (del_vz + vz_6 * (1 - (2./3.) * alpha_0));
     #ifdef DE
     geL_0 = ge_L + 0.5 * alpha_0 * (del_ge + ge_6 * (1 - (2./3.) * alpha_0));
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalarL_0[i] = scalar_L[i] + 0.5 * alpha_0 * (del_scalar[i] + scalar_6[i] * (1 - (2./3.) * alpha_0));
     }
-    #endif
+    #endif  //SCALAR
     pL_0  = p_L  + 0.5 * alpha_0 * (del_p  + p_6  * (1 - (2./3.) * alpha_0));
     vxL_p = vx_L + 0.5 * alpha_p * (del_vx + vx_6 * (1 - (2./3.) * alpha_p));
     pL_p  = p_L  + 0.5 * alpha_p * (del_p  + p_6  * (1 - (2./3.) * alpha_p));
@@ -503,12 +503,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vzR_0 = vz_R - 0.5 * beta_0 * (del_vz - vz_6 * (1 - (2./3.) * beta_0));
     #ifdef DE
     geR_0 = ge_R - 0.5 * beta_0 * (del_ge - ge_6 * (1 - (2./3.) * beta_0));
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalarR_0[i] = scalar_R[i] - 0.5 * beta_0 * (del_scalar[i] - scalar_6[i] * (1 - (2./3.) * beta_0));
     }
-    #endif
+    #endif  //SCALAR
     pR_0  = p_R  - 0.5 * beta_0 * (del_p  - p_6  * (1 - (2./3.) * beta_0));
     dR_p  = d_R  - 0.5 * beta_p * (del_d  - d_6  * (1 - (2./3.) * beta_p));
     vxR_p = vx_R - 0.5 * beta_p * (del_vx - vx_6 * (1 - (2./3.) * beta_p));
@@ -524,12 +524,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_L  = pL_m;
     #ifdef DE
     ge_L = geL_0;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalar_L[i] = scalarL_0[i];
     }
-    #endif
+    #endif  //SCALAR
     // right
     d_R  = dR_p;
     vx_R = vxR_p;
@@ -538,12 +538,12 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_R  = pR_p;
     #ifdef DE
     ge_R = geR_0;
-    #endif
+    #endif  //DE
     #ifdef SCALAR
     for (int i=0; i<NSCALARS; i++) {
       scalar_R[i] = scalarR_0[i];
     }
-    #endif
+    #endif  //SCALAR
 
     // correct these initial guesses by taking into account the number of
     // characteristics on each side of the interface
@@ -599,10 +599,10 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_R[(5+i)*n_cells + id] = d_L*scalar_L[i];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     dev_bounds_R[(n_fields-1)*n_cells + id] = d_L*ge_L;
-    #endif
+    #endif  //DE
     // bounds_L refers to the left side of the i+1/2 interface
     id = xid + yid*nx + zid*nx*ny;
     dev_bounds_L[            id] = d_R;
@@ -614,10 +614,10 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     for (int i=0; i<NSCALARS; i++) {
       dev_bounds_L[(5+i)*n_cells + id] = d_R*scalar_R[i];
     }
-    #endif
+    #endif  //SCALAR
     #ifdef DE
     dev_bounds_L[(n_fields-1)*n_cells + id] = d_R*ge_R;
-    #endif
+    #endif  //DE
 
   }
 }

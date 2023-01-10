@@ -42,9 +42,9 @@ vz=0
 # pressure
 P=1.380658e-5
 # Magnetic Field
-Bx=0.0
-By=0.0
-Bz=0.0
+Bx=1.0e-5
+By=2.0e-5
+Bz=3.0e-5
 # value of gamma
 gamma=1.666666667
 

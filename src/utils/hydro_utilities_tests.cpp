@@ -127,3 +127,45 @@ TEST(tHYDROHydroUtilsGetPressureFromDE, CorrectInputExpectCorrectOutput) {
         testingUtilities::checkResults(fiducial_Ps.at(i), test_Ps, parameters.names.at(i));
     }
 }
+
+TEST(tHYDROtMHDCalcKineticEnergyFromVelocity, CorrectInputExpectCorrectOutput) {
+    TestParams parameters;
+    std::vector<double> fiducialEnergies{0.0,
+                                         6.307524975350106e-145,
+                                         7.3762470327090601e+249};
+    double const coef = 1E-50;
+
+    for (size_t i = 0; i < parameters.names.size(); i++)
+    {
+        Real testEnergy = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(
+                                                    coef*parameters.d.at(i),
+                                                    coef*parameters.vx.at(i),
+                                                    coef*parameters.vy.at(i),
+                                                    coef*parameters.vz.at(i));
+
+        testingUtilities::checkResults(fiducialEnergies.at(i),
+                                       testEnergy,
+                                       parameters.names.at(i));
+    }
+}
+
+TEST(tHYDROtMHDCalcKineticEnergyFromMomentum, CorrectInputExpectCorrectOutput) {
+    TestParams parameters;
+    std::vector<double> fiducialEnergies{0.0,
+                                         0.0,
+                                         7.2568536478335773e+147};
+    double const coef = 1E-50;
+
+    for (size_t i = 0; i < parameters.names.size(); i++)
+    {
+        Real testEnergy = hydro_utilities::Calc_Kinetic_Energy_From_Momentum(
+                                                    coef*parameters.d.at(i),
+                                                    coef*parameters.mx.at(i),
+                                                    coef*parameters.my.at(i),
+                                                    coef*parameters.mz.at(i));
+
+        testingUtilities::checkResults(fiducialEnergies.at(i),
+                                       testEnergy,
+                                       parameters.names.at(i));
+    }
+}

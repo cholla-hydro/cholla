@@ -3,6 +3,8 @@
 #include "../global/global.h"
 #include "../grid/grid3D.h"
 #include <iostream>
+#include <sstream>
+#include <iomanip>
 
 
 /* Write the data */
@@ -25,6 +27,23 @@ void OutputSlices(Grid3D &G, struct parameters P, int nfile);
 
 /* MPI-safe printf routine */
 int chprintf(const char * __restrict sdata, ...);
+
+/*!
+ * \brief Convert a floating point number to a string such that it can be
+ * exactly deserialized back from a string to the same floating point number.
+ *
+ * \tparam T Any floating point type
+ * \param[in] input The floating point number to convert
+ * \return std::string The string representation of the input floating point
+ */
+template<typename T>
+std::string to_string_exact(T const &input)
+{
+    std::stringstream output;
+    output << std::setprecision(std::numeric_limits<T>::max_digits10);
+    output << input;
+    return output.str();
+}
 
 void Create_Log_File( struct parameters P );
 

@@ -38,14 +38,14 @@ void Grid3D::Set_Boundary_Conditions_Grid( parameters P){
   #ifdef GRAVITY
   #ifdef CPU_TIME
   Timer.Pot_Boundaries.Start();
-  #endif
+  #endif //CPU_TIME
   Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
   Set_Boundary_Conditions(P);
   Grav.TRANSFER_POTENTIAL_BOUNDARIES = false;
   #ifdef CPU_TIME
   Timer.Pot_Boundaries.End();
-  #endif
-  #endif
+  #endif //CPU_TIME
+  #endif //GRAVITY
 }
 
 /*! \fn void Set_Boundary_Conditions(parameters P)

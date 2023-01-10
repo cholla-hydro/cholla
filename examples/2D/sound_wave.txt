@@ -33,18 +33,17 @@ outdir=./
 
 #################################################
 # Parameters for linear wave problems
-# initial density 
+# initial density
 rho=1.0
-# velocity in the x direction 
+# velocity in the x direction
 vx=0
 # velocity in the y direction
 vy=0
 # velocity in the z direction
 vz=0
-# initial pressure 
+# initial pressure
 P=0.6
 # amplitude of perturbing oscillations
 A=1e-4
 # value of gamma
 gamma=1.666666666666667
-

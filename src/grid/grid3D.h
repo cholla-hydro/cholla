@@ -245,7 +245,6 @@ struct Header
   Real sphere_center_y;
   Real sphere_center_z;
 
-
   #ifdef GRAVITY
   /*! \var n_ghost_potential_offset
   *  \brief Number of offset betewen hydro_ghost_cells and potential_ghost_cells */
@@ -407,7 +406,7 @@ class Grid3D
       /*! pointer to conserved variable on device */
       Real *device;
       Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z,
-	   *d_Energy, *d_scalar, *d_basic_scalar, 
+	   *d_Energy, *d_scalar, *d_basic_scalar,
 	   *d_magnetic_x, *d_magnetic_y, *d_magnetic_z,
            *d_GasEnergy;
 
@@ -450,26 +449,6 @@ class Grid3D
     void set_dt_Gravity();
     #endif
 
-    /*! \fn Real calc_dti_CPU_1D()
-     *  \brief Calculate the maximum inverse timestep on 1D, according to the CFL condition (Toro 6.17). */
-    Real calc_dti_CPU_1D();
-
-    /*! \fn Real calc_dti_CPU_2D()
-     *  \brief Calculate the maximum inverse timestep on 2D, according to the CFL condition (Toro 6.17). */
-    Real calc_dti_CPU_2D();
-
-    /*! \fn Real calc_dti_CPU_3D_function()
-     *  \brief Calculate the maximum inverse timestep on 3D using openMP, according to the CFL condition (Toro 6.17). */
-    Real calc_dti_CPU_3D_function( int g_start, int g_end );
-
-    /*! \fn Real calc_dti_CPU_3D()
-     *  \brief Calculate the maximum inverse timestep on 3D, according to the CFL condition (Toro 6.17). */
-    Real calc_dti_CPU_3D();
-
-    /*! \fn Real calc_dti_CPU()
-     *  \brief Calculate the maximum inverse timestep, according to the CFL condition (Toro 6.17). */
-    Real calc_dti_CPU();
-
     /*! \fn void Update_Grid(void)
      *  \brief Update the conserved quantities in each cell. */
     Real Update_Grid(void);
@@ -479,8 +458,7 @@ class Grid3D
     Real Update_Hydro_Grid(void);
 
     void Update_Time();
-
-     /*! \fn void Write_Header_Text(FILE *fp)
+    /*! \fn void Write_Header_Text(FILE *fp)
      *  \brief Write the relevant header info to a text output file. */
     void Write_Header_Text(FILE *fp);
 
@@ -552,6 +530,41 @@ class Grid3D
     /*! \fn void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
      *  \brief Sine wave perturbation. */
     void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
+
+    /*!
+     * \brief Initialize the grid with a simple linear wave.
+     *
+     * \param[in] rho The background density
+     * \param[in] vx The background velocity in the X-direction
+     * \param[in] vy The background velocity in the Y-direction
+     * \param[in] vz The background velocity in the Z-direction
+     * \param[in] P The background pressure
+     * \param[in] A The amplitude of the wave
+     * \param[in] Bx The background magnetic field in the X-direction
+     * \param[in] By The background magnetic field in the Y-direction
+     * \param[in] Bz The background magnetic field in the Z-direction
+     * \param[in] rEigenVec_rho The right eigenvector component for the density
+     * \param[in] rEigenVec_MomentumX The right eigenvector component for the velocity
+     * in the X-direction
+     * \param[in] rEigenVec_MomentumY The right eigenvector component for the velocity
+     * in the Y-direction
+     * \param[in] rEigenVec_MomentumZ The right eigenvector component for the velocity
+     * in the Z-direction
+     * \param[in] rEigenVec_E The right eigenvector component for the energy
+     * \param[in] rEigenVec_Bx The right eigenvector component for the magnetic
+     * field in the X-direction
+     * \param[in] rEigenVec_By The right eigenvector component for the magnetic
+     * field in the Y-direction
+     * \param[in] rEigenVec_Bz The right eigenvector component for the magnetic
+     * field in the Z-direction
+     * \param[in] pitch The pitch angle of the linear wave
+     * \param[in] yaw The yaw angle of the linear wave
+     */
+    void Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A,
+                     Real Bx, Real By, Real Bz, Real rEigenVec_rho,
+                     Real rEigenVec_MomentumX, Real rEigenVec_MomentumY, Real rEigenVec_MomentumZ,
+                     Real rEigenVec_E, Real rEigenVec_Bx, Real rEigenVec_By,
+                     Real rEigenVec_Bz, Real pitch, Real yaw);
 
     /*! \fn void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
      *  \brief Square wave density perturbation with amplitude A*rho in pressure equilibrium. */
@@ -655,7 +668,7 @@ class Grid3D
     void Spherical_Overdensity_3D();
 
     void Clouds();
-    
+
     void Uniform_Grid();
 
     void Zeldovich_Pancake( struct parameters P );

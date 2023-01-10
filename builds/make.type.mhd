@@ -9,15 +9,14 @@ MPI_GPU   ?=
 DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMP
+# Currently MHD only supports PCM reconstruction. Higher order reconstruction
+# methods will be added later
+DFLAGS    += -DPCM
 DFLAGS    += -DHLLD
 DFLAGS    += -DMHD
 
-ifeq ($(findstring cosmology,$(TYPE)),cosmology)
-DFLAGS    += -DSIMPLE
-else
+# MHD only supports the Van Leer integrator
 DFLAGS    += -DVL
-endif
 
 # need this if using Disk_3D
 # DFLAGS += -DDISK_ICS
@@ -45,3 +44,15 @@ DFLAGS    += $(OUTPUT)
 #If not specified, MPI_GPU is off by default
 #This is set in the system make.host file
 DFLAGS    += $(MPI_GPU)
+
+# NOTE: The following macros are to help facilitate debugging and should not be
+# used on scientific runs
+
+# Do CUDA error checking
+DFLAGS += -DCUDA_ERROR_CHECK
+
+# Limit the number of steps to evolve.
+# DFLAGS += -DN_STEPS_LIMIT=1000
+
+# Output on every time step
+# DFLAGS += -DOUTPUT_ALWAYS

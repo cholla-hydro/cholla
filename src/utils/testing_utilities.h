@@ -10,6 +10,10 @@
 
 // STL includes
 #include <string>
+#include <sstream>
+#include <limits>
+#include <iomanip>
+
 #include "../system_tests/system_tester.h" // provide systemTest class
 
 // =============================================================================
@@ -106,6 +110,8 @@ namespace testingUtilities
      * \brief A simple function to compare two doubles with the nearlyEqualDbl
      * function, perform a GTest assert on the result, and print out the values
      *
+     * \tparam checkType The type of GTest assertion to use. "0" for and
+     * "EXPECT" and "1" for an "ASSERT"
      * \param[in] fiducialNumber The fiducial number to test against
      * \param[in] testNumber The unverified number to test
      * \param[in] outString A string to be printed in the first line of the output
@@ -115,11 +121,66 @@ namespace testingUtilities
      * \param[in] ulpsEpsilon The ULP epsilon to use in the comparison. Negative
      * values are ignored and default behaviour is used
      */
+    template<int checkType = 0>
     void checkResults(double fiducialNumber,
                       double testNumber,
                       std::string outString,
                       double fixedEpsilon = -999,
-                      int ulpsEpsilon = -999);
+                      int ulpsEpsilon = -999)
+    {
+        // Check for equality and if not equal return difference
+        double absoluteDiff;
+        int64_t ulpsDiff;
+        bool areEqual;
+
+        if ((fixedEpsilon < 0) and (ulpsEpsilon < 0))
+        {
+            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
+                                                        testNumber,
+                                                        absoluteDiff,
+                                                        ulpsDiff);
+        }
+        else if ((fixedEpsilon > 0) and (ulpsEpsilon < 0))
+        {
+            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
+                                                        testNumber,
+                                                        absoluteDiff,
+                                                        ulpsDiff,
+                                                        fixedEpsilon);
+        }
+        else
+        {
+            areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber,
+                                                        testNumber,
+                                                        absoluteDiff,
+                                                        ulpsDiff,
+                                                        fixedEpsilon,
+                                                        ulpsEpsilon);
+        }
+
+        std::stringstream outputMessage;
+        outputMessage << std::setprecision(std::numeric_limits<double>::max_digits10)
+                      << "Difference in "                << outString       << std::endl
+                      << "The fiducial value is:       " << fiducialNumber  << std::endl
+                      << "The test value is:           " << testNumber      << std::endl
+                      << "The absolute difference is:  " << absoluteDiff    << std::endl
+                      << "The ULP difference is:       " << ulpsDiff        << std::endl;
+
+        if (checkType == 0)
+        {
+          EXPECT_TRUE(areEqual) << outputMessage.str();
+        }
+        else if (checkType == 1)
+        {
+          ASSERT_TRUE(areEqual) << outputMessage.str();
+        }
+        else
+        {
+          throw std::runtime_error("Incorrect template argument passed to "
+                                   "checkResults. Options are 0 and 1 but "
+                                   + std::to_string(checkType) + " was passed");
+        }
+    }
     // =========================================================================
 
     // =========================================================================

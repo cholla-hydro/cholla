@@ -10,7 +10,7 @@ CUDA_ARCH ?= sm_70
 
 DIRS     := src src/analysis src/chemistry_gpu src/cooling src/cooling_grackle src/cosmology \
             src/cpu src/global src/gravity src/gravity/paris src/grid src/hydro \
-            src/integrators src/io src/main.cpp src/main_tests.cpp \
+            src/integrators src/io src/main.cpp src/main_tests.cpp src/mhd\
             src/model src/mpi src/old_cholla src/particles src/reconstruction \
             src/riemann_solvers src/system_tests src/utils src/dust
 
@@ -134,6 +134,7 @@ ifdef HIPCONFIG
   DFLAGS    += -DO_HIP
   CXXFLAGS  += $(HIPCONFIG)
   GPUCXX    ?= hipcc
+  #GPUFLAGS  += -Wall
   LD        := $(CXX)
   LDFLAGS   := $(CXXFLAGS) -L$(ROCM_PATH)/lib
   LIBS      += -lamdhip64
