@@ -31,8 +31,8 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
 
     auto thr = dXS->thresholds;
 
-    float* values = const_cast<float*>(dTable->GetFullData()) + dTable->Lidx(i+si*(j+sj*k),0);
-    for(int v=0; v<n; v++) values[v] = 0;
+    float values[7];
+    for(int m=0; m<n; m++) values[m] = 0;
 
     const float tauHI = dStretch->x2tau(dStretch->xMin+dStretch->xBin*i);
     const float tauHeI = dStretch->x2tau(dStretch->xMin+dStretch->xBin*j);
@@ -102,12 +102,12 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
         }
     };
     
-    for(unsigned int m=0; m<n; m++)
+    auto out = const_cast<float*>(dTable->GetFullData()) + dTable->Lidx(i+si*(j+sj*k),0);
+    for(int m=0; m<n; m++)
     {
-        values[m] *= norm;
+        out[m] = values[m]*norm;
+        if(out[m] > 1.0e-4) printf("**FT** %d %g\n",m,out[m]);
     }
-
-    ///if(i==1 && j==1 && k==1) printf("GPU A %g - %g,%g\n",norm,values[0],values[1]);
 }
 
  
