@@ -48,11 +48,6 @@ void Rad3D::Copy_RT_Fields(void) {
 
   // copy data back from GPU to CPU
   CudaSafeCall( cudaMemcpy(rtFields.rf, rtFields.dev_rf, (1+2*n_freq)*grid.n_cells*sizeof(Real), cudaMemcpyDeviceToHost) );
-
-  if(rtFields.et != nullptr)
-  {
-    CudaSafeCall( cudaMemcpy(rtFields.dev_et, rtFields.et, 6*grid.n_cells*sizeof(Real), cudaMemcpyHostToDevice) );
-  }
 }
 
 
