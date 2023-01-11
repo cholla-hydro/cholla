@@ -191,8 +191,8 @@ CheckOptions:
   readability-identifier-naming.ClassCase: 'CamelCase'
   # readability-identifier-naming.MemberCase: 'lower_case'
   # readability-identifier-naming.MethodCase: 'CamelCase'
-  readability-identifier-naming.PrivateMemberPrefix: '_'
-  readability-identifier-naming.PrivateMethodPrefix: '_'
+  readability-identifier-naming.PrivateMemberSuffix: '_'
+  readability-identifier-naming.PrivateMethodSuffix: '_'
 
   # readability-identifier-naming.StructCase: 'CamelCase'
 ...
