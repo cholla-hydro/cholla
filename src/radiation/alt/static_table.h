@@ -61,7 +61,7 @@ template<typename value_t, unsigned int N> inline void StaticTable<value_t,N>::C
 {
     if(this->mYs != nullptr)
     {
-        DELARR(this->mYs);
+        delete [] this->mYs;
         this->Reset();
     }
 }
@@ -69,24 +69,17 @@ template<typename value_t, unsigned int N> inline void StaticTable<value_t,N>::C
 
 template<typename value_t, unsigned int N> inline void StaticTable<value_t,N>::Build(const Builder& builder, unsigned int numVars, const unsigned int size[N], const value_t xmin[N], const value_t xmax[N])
 {
-    ASSERT(builder);
-    ASSERT(numVars != 0);
-    ASSERT(this->mYs == nullptr);
-
     unsigned int vol = 1;
     for(unsigned int n=0; n<N; n++)
     {
-        ASSERT(size[n] > 1);
-        ASSERT(xmin[n] < xmax[n]);
-
         vol *= size[n];
     }
 
-    auto ys = NEWARR(value_t,numVars*vol);
+    auto ys = new value_t[numVars*vol];
     this->Set(ys,numVars,size,xmin,xmax);
 
     value_t x[N];
-    value_t *y = NEWARR(value_t,numVars);
+    value_t *y = new value_t[numVars];
     for(unsigned int idx=0; idx<vol; idx++)
     {
         unsigned int l = idx;
@@ -103,15 +96,12 @@ template<typename value_t, unsigned int N> inline void StaticTable<value_t,N>::B
             ys[this->Lidx(idx,var)] = y[var];
         }
     }
-    DELARR(y);
+    delete [] y;
 }
 
 
 template<typename value_t, unsigned int N> inline void StaticTable<value_t,N>::Build(const Builder& builder, unsigned int numVars, unsigned int size, value_t xmin, value_t xmax)
 {
-    ASSERT(xmin < xmax);
-    ASSERT(size > 1);
-
     unsigned int size1[N];
     value_t xmin1[N], xmax1[N];
     for(unsigned int n=0; n<N; n++)
