@@ -41,20 +41,20 @@ for n in range(ns, ne+1):
       for unit in units:
         fileout.attrs[unit] = [head[unit][0]]
 
-      d  = fileout.create_dataset("density", (nx, ny, nz), chunks=True)
-      mx = fileout.create_dataset("momentum_x", (nx, ny, nz), chunks=True)
-      my = fileout.create_dataset("momentum_y", (nx, ny, nz), chunks=True)
-      mz = fileout.create_dataset("momentum_z", (nx, ny, nz), chunks=True)
-      E  = fileout.create_dataset("Energy", (nx, ny, nz), chunks=True)
+      d  = fileout.create_dataset("density", (nx, ny, nz), chunks=True, dtype=filein['density'].dtype)
+      mx = fileout.create_dataset("momentum_x", (nx, ny, nz), chunks=True, dtype=filein['momentum_x'].dtype)
+      my = fileout.create_dataset("momentum_y", (nx, ny, nz), chunks=True, dtype=filein['momentum_y'].dtype)
+      mz = fileout.create_dataset("momentum_z", (nx, ny, nz), chunks=True, dtype=filein['momentum_z'].dtype)
+      E  = fileout.create_dataset("Energy", (nx, ny, nz), chunks=True, dtype=filein['Energy'].dtype)
       try:
-        GE = fileout.create_dataset("GasEnergy", (nx, ny, nz), chunks=True)
+        GE = fileout.create_dataset("GasEnergy", (nx, ny, nz), chunks=True, dtype=filein['GasEnergy'].dtype)
       except KeyError:
         print('No Dual energy data present');
       try:
         [nx_mag, ny_mag, nz_mag] = head['magnetic_field_dims']
-        bx = fileout.create_dataset("magnetic_x", (nx_mag, ny_mag, nz_mag), chunks=True)
-        by = fileout.create_dataset("magnetic_y", (nx_mag, ny_mag, nz_mag), chunks=True)
-        bz = fileout.create_dataset("magnetic_z", (nx_mag, ny_mag, nz_mag), chunks=True)
+        bx = fileout.create_dataset("magnetic_x", (nx_mag, ny_mag, nz_mag), chunks=True, dtype=filein['magnetic_x'].dtype)
+        by = fileout.create_dataset("magnetic_y", (nx_mag, ny_mag, nz_mag), chunks=True, dtype=filein['magnetic_y'].dtype)
+        bz = fileout.create_dataset("magnetic_z", (nx_mag, ny_mag, nz_mag), chunks=True, dtype=filein['magnetic_z'].dtype)
       except KeyError:
         print('No magnetic field data present');
 
