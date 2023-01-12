@@ -1239,18 +1239,19 @@ void Grid3D::Spherical_Overdensity_3D()
  int i, j, k, id;
  Real x_pos, y_pos, z_pos, r, center_x, center_y, center_z;
  Real density, pressure, overDensity, overPressure, energy, radius, background_density;
- Real mu = 0.6;
  Real vx, vy, vz, v2;
- center_x = 0.0;
- center_y = 0.0;
- center_z = 0.0;
- overDensity = 1000 * mu * MP / DENSITY_UNIT; // 100 particles per cm^3
+ center_x = 0.5;
+ center_y = 0.5;
+ center_z = 0.5;
+ //overDensity = 1000 * mu * MP / DENSITY_UNIT; // 100 particles per cm^3
+ overDensity = 1;
  overPressure = 0;
  vx = 0;
  vy = 0;
  vz = 0;
- radius = 0.02;
- background_density = mu * MP / DENSITY_UNIT; // 1 particles per cm^3
+ radius = 0.2;
+ //background_density = mu * MP / DENSITY_UNIT; // 1 particles per cm^3
+ background_density = 0.0005;
  H.sphere_density = overDensity;
  H.sphere_radius = radius;
  H.sphere_background_density = background_density;
