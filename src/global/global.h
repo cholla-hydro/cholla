@@ -270,6 +270,9 @@ struct parameters
   // machine dependent seed will be generated.
   std::uint_fast64_t prng_seed = 0;
 #endif // PARTICLES
+#ifdef SUPERNOVA
+  char snr_filename[MAXLEN];
+#endif
 #ifdef ROTATED_PROJECTION
   int nxr;
   int nzr;

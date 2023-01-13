@@ -1,9 +1,13 @@
 #if defined(SUPERNOVA) && defined(PARTICLES_GPU) && defined(PARTICLE_AGE) && defined(PARTICLE_IDS)
 
+#include <fstream>
+#include <sstream>
+#include <cstring>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <vector>
 #include "../grid/grid3D.h"
 #include "../global/global_cuda.h"
 #include "../global/global.h"
@@ -21,7 +25,8 @@
 namespace supernova {
   curandStateMRG32k3a_t*  randStates;
   part_int_t n_states;
-  Real t_buff, dt_buff;
+  Real *dev_snr, snr_dt, time_sn_start, time_sn_end;
+  int snr_n;
 }
 
 
@@ -43,33 +48,96 @@ __device__ double atomicMax(double* address, double val)
 __global__ void initState_kernel(unsigned int seed, curandStateMRG32k3a_t* states) {
     int id = blockIdx.x*blockDim.x + threadIdx.x;
     curand_init(seed, id, 0, &states[id]);
-
 }
 
 
 /**
- * @brief Initialize the cuRAND state, which is analogous to the concept of generators in CPU code.
- * The state object maintains configuration and status the cuRAND context for each thread on the GPU.
- * Initialize more than the number of local particles since the latter will change through MPI transfers.
+ * @brief Does 2 things:
+ * -# Read in SN rate data from Starburst 99. If no file exists, assume a constant rate.
+ * -# Initialize the cuRAND state, which is analogous to the concept of generators in CPU code.
+ *    The state object maintains configuration and status the cuRAND context for each thread on the GPU.
+ *    Initialize more than the number of local particles since the latter will change through MPI transfers.
  *
- * @param n_local
+ * @param P pointer to parameters struct. Passes in starburst 99 filename and random number gen seed.
+ * @param n_local  number of local particles on the GPU
  * @param allocation_factor
  */
 void supernova::initState(struct parameters *P, part_int_t n_local, Real allocation_factor) {
   printf("supernova::initState start\n");
-  t_buff = 0;
-  dt_buff = 0;
-  n_states = n_local*allocation_factor;
+  std::string snr_filename(P->snr_filename);
+  if (snr_filename.size()) {
+    chprintf("Specified a SNR filename %s.\n", &snr_filename[0]);
 
+    // read in array of supernova rate values.
+    std::ifstream snr_in(snr_filename);
+    if (!snr_in.is_open()) {
+      chprintf("ERROR: but couldn't read SNR file.\n");
+      exit(-1);
+    }
+
+    std::vector<Real> snr_time;
+    std::vector<Real> snr;
+
+    const int N_HEADER = 7;       // S'99 has 7 rows of header information
+    const char* s99_delim = " ";  // S'99 data separator
+    std::string line;
+    int line_counter = 0;
+
+    while (snr_in.good()) {
+        std::getline(snr_in, line);
+        if (line_counter++ < N_HEADER) continue; // skip header processing
+
+        int i = 0;
+        char *data = strtok(const_cast<char*>(line.c_str()), s99_delim);
+        while (data != nullptr) {
+            if (i == 0) {
+              // in the following divide by # years per kyr (1000)
+              snr_time.push_back(std::stof(std::string(data)) / 1000);
+            }
+            else if (i == 1) {
+              snr.push_back(pow(10, std::stof(std::string(data))) / 1000);
+            }
+            if (i > 0) break;  // only care about the first 2 items.  Once i = 1 can break here.
+            data = strtok(nullptr, s99_delim);
+            i++;
+        }
+    }
+
+    time_sn_end = snr_time[snr_time.size() - 1];
+    time_sn_start = snr_time[0];
+    // the following is the time interval between data points
+    // (i.e. assumes regular temporal spacing)
+    snr_dt = (time_sn_end - time_sn_start) / (snr.size() - 1);
+
+    CHECK(cudaMalloc((void**) &dev_snr, snr.size() * sizeof(Real)));
+    CHECK(cudaMemcpy(dev_snr, snr.data(), snr.size() * sizeof(Real), cudaMemcpyHostToDevice));
+
+  } else {
+    chprintf("No SN rate file specified.  Using constant rate\n");
+    time_sn_start = DEFAULT_SN_START;
+    time_sn_end   = DEFAULT_SN_END;
+  }
+
+  // Now ititialize the poisson random number generator state.
+  n_states = n_local*allocation_factor;
   cudaMalloc((void**) &randStates, n_states*sizeof(curandStateMRG32k3a_t));
 
-  int ngrid =  (n_states + TPB_FEEDBACK- 1) / TPB_FEEDBACK;
+  int ngrid = (n_states + TPB_FEEDBACK - 1) / TPB_FEEDBACK;
   dim3 grid(ngrid);
   dim3 block(TPB_FEEDBACK);
 
   hipLaunchKernelGGL(initState_kernel, grid, block, 0, 0, P->prng_seed, randStates);
   CHECK(cudaDeviceSynchronize());
   printf("supernova::initState end: n_states=%d, ngrid=%d, threads=%d\n", n_states, ngrid, TPB_FEEDBACK);
+}
+
+
+__device__ Real GetSNRate(Real t, Real* dev_snr, Real snr_dt, Real t_start, Real t_end) {
+  if (t < t_start|| t >= t_end) return 0;
+  if (dev_snr == nullptr) return supernova::DEFAULT_SNR;
+
+  int index = (int)( (t - t_start) / snr_dt);
+  return dev_snr[index] + (t - index * snr_dt) * (dev_snr[index + 1] - dev_snr[index]) / snr_dt;
 }
 
 
@@ -125,7 +193,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real
   Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax,
   Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, Real t, Real dt, Real* dti, Real* info,
   Real* density, Real* gasEnergy, Real* energy, Real* momentum_x, Real* momentum_y, Real* momentum_z, Real gamma, curandStateMRG32k3a_t* states,
-  Real* prev_dens, int* prev_N, short direction){
+  Real* prev_dens, int* prev_N, short direction, Real* dev_snr, Real snr_dt, Real time_sn_start, Real time_sn_end) {
 
     __shared__ Real s_info[FEED_INFO_N*TPB_FEEDBACK]; // for collecting SN feedback information, like # of SNe or # resolved.
     int tid = threadIdx.x;
@@ -180,11 +248,11 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t *id, Real
       if (!ignore && in_local) {
 
         int N = 0;
-        if ((t - age_dev[gtid]) <= supernova::SN_ERA) {
+        if ((t - age_dev[gtid]) <= time_sn_end) {  // only calculate this if there will be SN feedback
           if (direction == -1) N = -prev_N[gtid];
           else {
             curandStateMRG32k3a_t state = states[gtid];
-            N = curand_poisson (&state, supernova::SNR * mass_dev[gtid] * dt);
+            N = curand_poisson (&state, GetSNRate(t - age_dev[gtid], dev_snr, snr_dt, time_sn_start, time_sn_end) * mass_dev[gtid] * dt);
             states[gtid] = state;
             prev_N[gtid] = N;
           }
@@ -455,7 +523,8 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis) {
       hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0,  G.Particles.n_local, G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
          G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal, G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max,
          G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti, d_info,
-         G.C.d_density, G.C.d_GasEnergy, G.C.d_Energy, G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, gama, supernova::randStates, d_prev_dens, d_prev_N, direction);
+         G.C.d_density, G.C.d_GasEnergy, G.C.d_Energy, G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, gama, supernova::randStates, d_prev_dens, d_prev_N, direction,
+         dev_snr, snr_dt, time_sn_start, time_sn_end);
 
       CHECK(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
     }
@@ -471,7 +540,8 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis) {
         hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0,  G.Particles.n_local, G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
           G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal, G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max,
           G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti, d_info,
-          G.C.d_density, G.C.d_GasEnergy, G.C.d_Energy, G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, gama, supernova::randStates, d_prev_dens, d_prev_N, direction);
+          G.C.d_density, G.C.d_GasEnergy, G.C.d_Energy, G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, gama, supernova::randStates, d_prev_dens, d_prev_N, direction,
+          dev_snr, snr_dt, time_sn_start, time_sn_end);
 
         CHECK(cudaDeviceSynchronize());
       }
