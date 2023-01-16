@@ -552,7 +552,7 @@ std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(
   if (dataSetName == "particle_density") {
     file        = _testParticlesFileVec;
     dataSetName = "density";
-  } else if (file.size() == 0) {
+  } else if (file.empty()) {
     file = _testHydroFieldsFileVec;
   }
 
