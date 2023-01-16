@@ -55,8 +55,7 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   host_conserved.at(4) = 1.0;  // Energy
 
   // Copy host data to device arrray
-  CudaSafeCall(cudaMemcpy(dev_conserved, host_conserved,
-                          n_fields * sizeof(Real), cudaMemcpyHostToDevice));
+  dev_conserved.cpyHostToDevice(host_conserved);
   //__global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma,
   // int n_ghost, int n_fields, int nx, int ny, int nz, Real dx, Real dy, Real
   // dz)
