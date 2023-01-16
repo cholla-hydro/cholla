@@ -1,21 +1,24 @@
 #ifdef CUDA
-#ifdef DUST
+  #ifdef DUST
 
-#ifndef DUST_CUDA_H
-#define DUST_CUDA_H
+    #ifndef DUST_CUDA_H
+      #define DUST_CUDA_H
 
-#include "../utils/gpu.hpp"
-#include <math.h>
-#include "../global/global.h"
+      #include <math.h>
 
-void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma);
+      #include "../global/global.h"
+      #include "../utils/gpu.hpp"
 
-__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma);
+void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost,
+                 int n_fields, Real dt, Real gamma);
+
+__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz,
+                            int n_ghost, int n_fields, Real dt, Real gamma);
 
 __device__ __host__ Real calc_tau_sp(Real n, Real T);
 
 __device__ __host__ Real calc_dd_dt(Real d_dust, Real tau_sp);
 
-#endif // DUST
-#endif // CUDA
-#endif // DUST_CUDA_H
+    #endif  // DUST
+  #endif    // CUDA
+#endif      // DUST_CUDA_H

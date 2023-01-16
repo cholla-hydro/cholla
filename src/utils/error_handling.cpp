@@ -1,21 +1,17 @@
 #include "../utils/error_handling.h"
-#ifdef   MPI_CHOLLA
-#include <mpi.h>
+#ifdef MPI_CHOLLA
+  #include <mpi.h>
 void chexit(int code)
 {
-
-  if(code==0)
-  {
+  if (code == 0) {
     /*exit normally*/
     MPI_Finalize();
     exit(code);
 
-  }else{
-
+  } else {
     /*exit with non-zero error code*/
-    MPI_Abort(MPI_COMM_WORLD,code);
+    MPI_Abort(MPI_COMM_WORLD, code);
     exit(code);
-
   }
 }
 #else  /*MPI_CHOLLA*/

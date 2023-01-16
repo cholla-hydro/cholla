@@ -20,11 +20,10 @@
  *
  */
 /// @{
-TEST(tGRAVITYSYSTEMSphericalCollapse,
-     CorrectInputExpectCorrectOutput)
+TEST(tGRAVITYSYSTEMSphericalCollapse, CorrectInputExpectCorrectOutput)
 {
-    systemTest::SystemTestRunner collapseTest;
-    collapseTest.runTest();
+  systemTest::SystemTestRunner collapseTest;
+  collapseTest.runTest();
 }
 /// @}
 // =============================================================================

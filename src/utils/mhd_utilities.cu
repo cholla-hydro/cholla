@@ -19,4 +19,4 @@
 namespace mhd::utils
 {
 
-} // end namespace mhd::utils
+}  // end namespace mhd::utils
