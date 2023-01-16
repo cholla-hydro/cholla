@@ -74,8 +74,8 @@ void supernova::initState(struct parameters* P, part_int_t n_local,
 {
   printf("supernova::initState start\n");
   std::string snr_filename(P->snr_filename);
-  if (snr_filename.size()) {
-    chprintf("Specified a SNR filename %s.\n", &snr_filename[0]);
+  if (not snr_filename.empty()) {
+    chprintf("Specified a SNR filename %s.\n", snr_filename.data());
 
     // read in array of supernova rate values.
     std::ifstream snr_in(snr_filename);
@@ -97,7 +97,7 @@ void supernova::initState(struct parameters* P, part_int_t n_local,
       if (line_counter++ < N_HEADER) continue;  // skip header processing
 
       int i      = 0;
-      char* data = strtok(const_cast<char*>(line.c_str()), s99_delim);
+      char* data = strtok(line.data(), s99_delim);
       while (data != nullptr) {
         if (i == 0) {
           // in the following divide by # years per kyr (1000)
