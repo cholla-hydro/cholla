@@ -17,8 +17,7 @@
 #include "../utils/gpu.hpp"
 #include "../utils/cuda_utilities.h"
 
-namespace mhd{
-namespace utils{
+namespace mhd::utils{
     /*!
      * \brief Namespace for functions required by functions within the mhd::utils
      * namespace. Everything in this name space should be regarded as private
@@ -335,4 +334,3 @@ namespace utils{
     #endif // MHD
     // =========================================================================
 } // end namespace mhd::utils
-} // end namespace mhd
