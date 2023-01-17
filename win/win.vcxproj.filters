@@ -293,7 +293,7 @@
     <CudaCompile Include="..\src\radiation\alt\static_table_gpu.cu">
       <Filter>alt</Filter>
     </CudaCompile>
-    <CudaCompile Include="..\src\radiation\alt\photo_rates_csi_gpu.cu">
+    <CudaCompile Include="..\src\radiation\alt\photo_rates_csi_gpu.GPU.cu">
       <Filter>alt</Filter>
     </CudaCompile>
     <CudaCompile Include="..\src\grid\cuda_boundaries.cu">

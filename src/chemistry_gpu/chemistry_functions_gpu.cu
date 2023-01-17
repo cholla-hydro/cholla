@@ -383,7 +383,7 @@ __device__ Real Get_Chemistry_dt( Thermal_State &TS, Chemistry_Header &Chem_H, R
   dt = fmin( dt_hydro - t_chem, dt );
   
   if ( n_iter == Chem_H.max_iter-1 ){
-    printf("##### Chem_GPU: dt_hydro: %e   t_chem: %e   dens: %e   temp: %e  GE: %e  U_dot: %e   dt_HI: %e   dt_e: %e   dt_U: %e \n", dt_hydro,  t_chem, TS.d, TS.get_temperature(Chem_H.gamma), energy, U_dot, fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot ), fabs( 0.1 * TS.U * TS.d / U_dot )   ) ;
+    ///printf("##### Chem_GPU: dt_hydro: %e   t_chem: %e   dens: %e   temp: %e  GE: %e  U_dot: %e   dt_HI: %e   dt_e: %e   dt_U: %e \n", dt_hydro,  t_chem, TS.d, TS.get_temperature(Chem_H.gamma), energy, U_dot, fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot ), fabs( 0.1 * TS.U * TS.d / U_dot )   ) ;
   }
   
   
@@ -516,7 +516,7 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
     GE  = dev_conserved[4*n_cells + id] - E_kin;
     #endif
  
-    if(xid==36 && yid==36 && zid==36)
+    if(xid==37 && yid==37 && zid==36)
     {
         ///print = 1;
     }

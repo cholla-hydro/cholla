@@ -1749,12 +1749,15 @@ void Grid3D::Iliev1( const parameters& P )
         Rad.rtFields.rf[id] = 1/(12.5664*(dx2+r2));
         for(int ii=1; ii<1+2*Rad.n_freq; ii++) Rad.rtFields.rf[id+ii*H.n_cells] = 0;
 
-        Rad.rtFields.et[id+0*H.n_cells] = (dx2/3.0+x[0]*x[0])/(dx2+r2);
-        Rad.rtFields.et[id+1*H.n_cells] = (        x[1]*x[0])/(dx2+r2);
-        Rad.rtFields.et[id+2*H.n_cells] = (dx2/3.0+x[1]*x[1])/(dx2+r2);
-        Rad.rtFields.et[id+3*H.n_cells] = (        x[2]*x[0])/(dx2+r2);
-        Rad.rtFields.et[id+4*H.n_cells] = (        x[2]*x[1])/(dx2+r2);
-        Rad.rtFields.et[id+5*H.n_cells] = (dx2/3.0+x[2]*x[2])/(dx2+r2);
+        //
+        //  NG 230117: ET seems to require larger softening than OT, why this is so I do not understand, need to explore further.
+        //
+        Rad.rtFields.et[id+0*H.n_cells] = (4*dx2/3.0+x[0]*x[0])/(4*dx2+r2);
+        Rad.rtFields.et[id+1*H.n_cells] = (          x[1]*x[0])/(4*dx2+r2);
+        Rad.rtFields.et[id+2*H.n_cells] = (4*dx2/3.0+x[1]*x[1])/(4*dx2+r2);
+        Rad.rtFields.et[id+3*H.n_cells] = (          x[2]*x[0])/(4*dx2+r2);
+        Rad.rtFields.et[id+4*H.n_cells] = (          x[2]*x[1])/(4*dx2+r2);
+        Rad.rtFields.et[id+5*H.n_cells] = (4*dx2/3.0+x[2]*x[2])/(4*dx2+r2);
 
       }
     }
