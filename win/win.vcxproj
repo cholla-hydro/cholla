@@ -104,7 +104,7 @@
     <CudaCompile Include="..\src\integrators\VL_2D_cuda.cu" />
     <CudaCompile Include="..\src\integrators\VL_3D_cuda.cu" />
     <CudaCompile Include="..\src\mpi\cuda_mpi_routines.cu" />
-    <CudaCompile Include="..\src\radiation\alt\photo_rates_csi_gpu.cu" />
+    <CudaCompile Include="..\src\radiation\alt\photo_rates_csi_gpu.GPU.cu" />
     <CudaCompile Include="..\src\radiation\alt\static_table_gpu.cu" />
     <CudaCompile Include="..\src\radiation\RT_functions.cu" />
     <CudaCompile Include="..\src\radiation\RT_kernels.cu" />
