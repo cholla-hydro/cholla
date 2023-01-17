@@ -675,7 +675,8 @@ void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf, int nx, int ny
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&time, start, stop);
   Chem_H.runtime_chemistry_step = (Real) time/1000; // (Convert ms to secs )
-
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

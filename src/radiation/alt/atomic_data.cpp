@@ -1,6 +1,8 @@
 /*LICENSE*/
 
 
+#include <cstring>
+
 #include "atomic_data.h"
 #include "constant.h"
 #include "gpu_pointer.h"

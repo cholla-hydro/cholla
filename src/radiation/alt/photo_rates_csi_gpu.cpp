@@ -1,6 +1,8 @@
 /*LICENSE*/
 
 
+#include <cstring>
+
 #include "gpu_pointer.h"
 
 #include "atomic_data.h"
@@ -69,5 +71,6 @@ void PhotoRatesCSI::TableWrapperGPU::Update(unsigned int rad, const float* spect
 
     bSpectralShapes[rad].BlockingTransferToDevice();
     UpdateTable(bStretch.HostPtr()->size,numRates,bTables[rad],bStretch.DevicePtr(),bSpectralShapes[rad].DevicePtr(),Physics::AtomicData::CrossSectionsGPU(),norm);
+    cudaStreamSynchronize(0);
 }
   

@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <cstring>
 #include "chemistry_gpu.h"
 #include "../io/io.h"
 
@@ -94,18 +95,5 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(  struct parameters *P ){
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #endif
+
