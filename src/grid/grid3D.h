@@ -652,8 +652,7 @@ class Grid3D
     void Chemistry_Test( struct parameters P );
 
     void Iliev0( const parameters& P );
-    void Iliev1( const parameters& P );
-    ///void Iliev2( const parameters& P );
+    void Iliev125( const parameters& P, int test );
 
 
 #ifdef   MPI_CHOLLA

@@ -89,7 +89,7 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost,
     const Real alpha = 0.8; // Parameters from cpp code
     const Real gamma = 1;
     const Real epsNum = 1.0e-6;
-    const Real facOverOT = 1.5;
+    const Real facOverOT = 2;
     
     const int tid = threadIdx.x + blockIdx.x*blockDim.x;
     const int jk = tid/nx;
@@ -231,7 +231,7 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost,
     Real rfu2 = rfNear[i+nx*(j+nz*k)] + alpha*Au*du;
     Real rfv2 = rfFar[i+nx*(j+nz*k)] + alpha*Av*dv;
     
-    ///if(deb!=0 && i==37 && j==36 && k==36) printf("GPU %g = %g + %g %g (ot=%g) %g,%g,%g,%g,%g,%g,%g,%g\n",rfu2,rfNear[i+nx*(j+nz*k)],Au,du,rfOT[i+nx*(j+nz*k)],dx*rs[i+nx*(j+nz*k)],abc[i+nx*(j+nz*k)]*rfNear[i+nx*(j+nz*k)],fuxp,fuxm,fuyp,fuym,fuzp,fuzm);
+    ///if(deb!=0 && i==36 && j==36 && k==36) printf("GPU %g = %g + %g %g (ot=%g) %g,%g,%g,%g,%g,%g,%g,%g\n",rfu2,rfNear[i+nx*(j+nz*k)],Au,du,rfOT[i+nx*(j+nz*k)],dx*rs[i+nx*(j+nz*k)],abc[i+nx*(j+nz*k)]*rfNear[i+nx*(j+nz*k)],fuxp,fuxm,fuyp,fuym,fuzp,fuzm);
 
     if(lastIteration)
     {

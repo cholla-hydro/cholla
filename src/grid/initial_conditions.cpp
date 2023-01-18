@@ -88,7 +88,11 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
   } else if (strcmp(P.init, "Iliev0")==0) {
     Iliev0(P);
   } else if (strcmp(P.init, "Iliev1")==0) {
-    Iliev1(P);
+    Iliev125(P,1);
+  } else if (strcmp(P.init, "Iliev2")==0) {
+    Iliev125(P,2);
+  } else if (strcmp(P.init, "Iliev5")==0) {
+    Iliev125(P,5);
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
@@ -1682,16 +1686,32 @@ void Grid3D::Iliev0( const parameters& P )
 #include "../radiation/alt/spectral_shape.h"
 
 
-void Grid3D::Iliev1( const parameters& P )
+void Grid3D::Iliev125( const parameters& P, int test )
 {
 #if defined(RT) && defined(CHEMISTRY_GPU)
     
     Chem.H.H_fraction = 1;
     Chem.use_case_B_recombination = true;
 
-    Real rho = 1.670673249e-24*1.0e-3/DENSITY_UNIT;    // 1.0e-3 per cc
-    Real U = 1.5*KB*2*1.0e4*1.0e-3/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
+    Real U, rho = 1.670673249e-24*1.0e-3/DENSITY_UNIT;    // 1.0e-3 per cc
     Real xe = 1.2e-3;
+    switch(test)
+    {
+        case 1:
+        {
+            U = 1.5*KB*2*1.0e4*1.0e-3/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
+            break;
+        }
+        case 2:
+        {
+            U = 1.5*KB*1.0e2*1.0e-3/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
+            break;
+        }
+        default:
+        {
+            fprintf(stderr,"Invalid test parameter %d.\n",test);
+        }
+    }
 
     chprintf("rho=%g U=%g\n",rho,U);
 
@@ -1703,11 +1723,22 @@ void Grid3D::Iliev1( const parameters& P )
 
     auto xs = Physics::AtomicData::CrossSections();
     std::vector<float> spectralShape(xs->nxi,0);
-    //
-    //  6.34/5.92 is because the frequency bin at HI threshold has the left edge at Ry, and the bin center is at
-    //  Ry*exp(0.5*xiStep) = 1.025*Ry, where the cross section is 5.92e-18, not 6.34e-18.
-    //
-    spectralShape[xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx] = 5e48/Constant::c/pow(LENGTH_UNIT,2)/xs->dxi*6.34/5.92;
+    if(test == 1)
+    {
+        //
+        //  6.34/5.92 is because the frequency bin at HI threshold has the left edge at Ry, and the bin center is at
+        //  Ry*exp(0.5*xiStep) = 1.025*Ry, where the cross section is 5.92e-18, not 6.34e-18.
+        //
+        spectralShape[xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx] = 5e48/Constant::c/pow(LENGTH_UNIT,2)/xs->dxi*6.34/5.92;
+    }
+    else
+    {
+        SpectralShape::BlackBody(1.0e5,spectralShape);
+        for(auto &s : spectralShape)
+        {
+            s *= 5e48/Constant::c/pow(LENGTH_UNIT,2);
+        }
+    }
 
     Rad.photoRates->Update(0,spectralShape.data(),xs->dxi*Constant::c*1.0e-24);
 
@@ -1744,20 +1775,21 @@ void Grid3D::Iliev1( const parameters& P )
             r2 += x[axis]*x[axis];
         }
 
-        Rad.rtFields.rs[id] = (r2<dx2 ? 0.125/pow(H.dx,3) : 0);
-
-        Rad.rtFields.rf[id] = 1/(12.5664*(dx2+r2));
-        for(int ii=1; ii<1+2*Rad.n_freq; ii++) Rad.rtFields.rf[id+ii*H.n_cells] = 0;
-
+        auto eps2ot = 4*dx2;
         //
         //  NG 230117: ET seems to require larger softening than OT, why this is so I do not understand, need to explore further.
         //
-        Rad.rtFields.et[id+0*H.n_cells] = (4*dx2/3.0+x[0]*x[0])/(4*dx2+r2);
-        Rad.rtFields.et[id+1*H.n_cells] = (          x[1]*x[0])/(4*dx2+r2);
-        Rad.rtFields.et[id+2*H.n_cells] = (4*dx2/3.0+x[1]*x[1])/(4*dx2+r2);
-        Rad.rtFields.et[id+3*H.n_cells] = (          x[2]*x[0])/(4*dx2+r2);
-        Rad.rtFields.et[id+4*H.n_cells] = (          x[2]*x[1])/(4*dx2+r2);
-        Rad.rtFields.et[id+5*H.n_cells] = (4*dx2/3.0+x[2]*x[2])/(4*dx2+r2);
+        auto eps2et = 4*eps2ot;
+        
+        Rad.rtFields.rf[id] = 1/(12.5664*(eps2ot+r2));
+        for(int ii=1; ii<1+2*Rad.n_freq; ii++) Rad.rtFields.rf[id+ii*H.n_cells] = 0;
+
+        Rad.rtFields.et[id+0*H.n_cells] = (eps2et/3+x[0]*x[0])/(eps2et+r2);
+        Rad.rtFields.et[id+1*H.n_cells] = (         x[1]*x[0])/(eps2et+r2);
+        Rad.rtFields.et[id+2*H.n_cells] = (eps2et/3+x[1]*x[1])/(eps2et+r2);
+        Rad.rtFields.et[id+3*H.n_cells] = (         x[2]*x[0])/(eps2et+r2);
+        Rad.rtFields.et[id+4*H.n_cells] = (         x[2]*x[1])/(eps2et+r2);
+        Rad.rtFields.et[id+5*H.n_cells] = (eps2et/3+x[2]*x[2])/(eps2et+r2);
 
       }
     }
