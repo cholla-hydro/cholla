@@ -1699,7 +1699,7 @@ void Grid3D::Iliev125( const parameters& P, int test )
     {
         case 1:
         {
-            U = 1.5*KB*2*1.0e4*1.0e-3/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
+            U = 1.5*KB*1.0e4*1.0e-3/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
             break;
         }
         case 2:
