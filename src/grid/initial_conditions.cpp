@@ -1637,7 +1637,7 @@ void Grid3D::Iliev0( const parameters& P )
 #if defined(CHEMISTRY_GPU)
     
     Chem.H.H_fraction = 1;
-    Chem.use_case_B_recombination = true;
+    Chem.recombination_case = 1;
 
     Real rho = MP*1/DENSITY_UNIT;    // 1 per cc
     Real U = 1.5*KB*100/ENERGY_UNIT; // 100 K
@@ -1691,7 +1691,7 @@ void Grid3D::Iliev125( const parameters& P, int test )
 #if defined(RT) && defined(CHEMISTRY_GPU)
     
     Chem.H.H_fraction = 1;
-    Chem.use_case_B_recombination = true;
+    Chem.recombination_case = (test==1 ? 2 : 1);
 
     Real U, rho = 1.670673249e-24*1.0e-3/DENSITY_UNIT;    // 1.0e-3 per cc
     Real xe = 1.2e-3;

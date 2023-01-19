@@ -109,7 +109,12 @@ public:
   int ny;
   int nz;
   
-  bool use_case_B_recombination;
+  //
+  //  0: case A
+  //  1: case B
+  //  2: special case for Iliev1 test
+  //
+  int recombination_case;
   
   Real scale_factor_UVB_on;
 

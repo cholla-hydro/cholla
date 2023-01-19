@@ -15,7 +15,7 @@
 
 void Grid3D::Initialize_Chemistry_Start( struct parameters *P ){
   
-  Chem.use_case_B_recombination = false;
+  Chem.recombination_case = 0;
  
   Chem.H.H_fraction = 0.76;
 }
@@ -174,14 +174,23 @@ void Chem_GPU::Initialize_Cooling_Rates( ){
   Generate_Reaction_Rate_Table( &H.cool_ciHeII_d, cool_ciHeII_rate, units );
   Generate_Reaction_Rate_Table( &H.cool_ciHeIS_d, cool_ciHeIS_rate, units );
   
-  if ( ! use_case_B_recombination ){
-    Generate_Reaction_Rate_Table( &H.cool_reHII_d,   cool_reHII_rate_case_A,   units );
-    Generate_Reaction_Rate_Table( &H.cool_reHeII1_d, cool_reHeII1_rate_case_A, units ); 
-    Generate_Reaction_Rate_Table( &H.cool_reHeIII_d, cool_reHeIII_rate_case_A, units );
-  } else {
-    Generate_Reaction_Rate_Table( &H.cool_reHII_d,   cool_reHII_rate_case_B,   units );
-    Generate_Reaction_Rate_Table( &H.cool_reHeII1_d, cool_reHeII1_rate_case_B, units );
-    Generate_Reaction_Rate_Table( &H.cool_reHeIII_d, cool_reHeIII_rate_case_B, units );
+  switch(recombination_case)
+  {
+      case 0:
+      {
+        Generate_Reaction_Rate_Table( &H.cool_reHII_d,   cool_reHII_rate_case_A,   units );
+        Generate_Reaction_Rate_Table( &H.cool_reHeII1_d, cool_reHeII1_rate_case_A, units ); 
+        Generate_Reaction_Rate_Table( &H.cool_reHeIII_d, cool_reHeIII_rate_case_A, units );
+        break;
+      }
+      case 1:
+      case 2:
+      {
+        Generate_Reaction_Rate_Table( &H.cool_reHII_d,   cool_reHII_rate_case_B,   units );
+        Generate_Reaction_Rate_Table( &H.cool_reHeII1_d, cool_reHeII1_rate_case_B, units );
+        Generate_Reaction_Rate_Table( &H.cool_reHeIII_d, cool_reHeIII_rate_case_B, units );
+        break;
+      }
   }
   Generate_Reaction_Rate_Table( &H.cool_reHeII2_d, cool_reHeII2_rate, units );
   
@@ -201,14 +210,29 @@ void Chem_GPU::Initialize_Reaction_Rates(){
   Generate_Reaction_Rate_Table( &H.k_coll_i_HI_HI_d,   coll_i_HI_HI_rate,  units );
   Generate_Reaction_Rate_Table( &H.k_coll_i_HI_HeI_d,  coll_i_HI_HeI_rate, units );
   
-  if ( ! use_case_B_recombination ){  
-    Generate_Reaction_Rate_Table( &H.k_recomb_HII_d,   recomb_HII_rate_case_A,   units );
-    Generate_Reaction_Rate_Table( &H.k_recomb_HeII_d,  recomb_HeII_rate_case_A,  units );
-    Generate_Reaction_Rate_Table( &H.k_recomb_HeIII_d, recomb_HeIII_rate_case_A, units );  
-  } else {
-    Generate_Reaction_Rate_Table( &H.k_recomb_HII_d,   recomb_HII_rate_case_B,   units );
-    Generate_Reaction_Rate_Table( &H.k_recomb_HeII_d,  recomb_HeII_rate_case_B,  units );
-    Generate_Reaction_Rate_Table( &H.k_recomb_HeIII_d, recomb_HeIII_rate_case_B, units );
+  switch(recombination_case)
+  {
+      case 0:
+      {
+        Generate_Reaction_Rate_Table( &H.k_recomb_HII_d,   recomb_HII_rate_case_A,   units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeII_d,  recomb_HeII_rate_case_A,  units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeIII_d, recomb_HeIII_rate_case_A, units );  
+        break;
+      }
+      case 1:
+      {
+        Generate_Reaction_Rate_Table( &H.k_recomb_HII_d,   recomb_HII_rate_case_B,   units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeII_d,  recomb_HeII_rate_case_B,  units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeIII_d, recomb_HeIII_rate_case_B, units );
+        break;
+      }
+      case 2:
+      {
+        Generate_Reaction_Rate_Table( &H.k_recomb_HII_d,   recomb_HII_rate_case_Iliev1,   units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeII_d,  recomb_HeII_rate_case_B,  units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeIII_d, recomb_HeIII_rate_case_B, units );
+        break;
+      }
   }
 }
 

@@ -516,9 +516,9 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
     GE  = dev_conserved[4*n_cells + id] - E_kin;
     #endif
  
-    if(xid==37 && yid==37 && zid==36)
+    if(xid==67 && yid==67 && zid==67)
     {
-        ///print = 1;
+        ///print = 2;
     }
         
     // Convert to cgs units
@@ -645,12 +645,11 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
     #endif
     
     if ( print != 0 ) printf("###########################################\n" );
-    if ( print != 0 ) printf("Updated HI:  %e\n",    TS.d_HI    * a3  );
-    if ( print != 0 ) printf("Updated HII:  %e\n",   TS.d_HII   * a3  );
-    if ( print != 0 ) printf("Updated HeI:  %e\n",   TS.d_HeI   * a3  );
-    if ( print != 0 ) printf("Updated HeII:  %e\n",  TS.d_HeII  * a3  );
-    if ( print != 0 ) printf("Updated HeIII:  %e\n", TS.d_HeIII * a3  );    
-    if ( print != 0 ) printf("Updated e:  %e\n",     TS.d_e     * a3  );
+    if ( print != 0 ) printf("Updated HI:  %e\n",    TS.d_HI/TS.d );
+    if ( print != 0 ) printf("Updated HII:  %e\n",   TS.d_HII/TS.d );
+    if ( print != 0 ) printf("Updated HeI:  %e\n",   TS.d_HeI/TS.d );
+    if ( print != 0 ) printf("Updated HeII:  %e\n",  TS.d_HeII/TS.d );
+    if ( print != 0 ) printf("Updated HeIII:  %e\n", TS.d_HeIII/TS.d );    
     if ( print != 0 ) printf("Updated GE:  %e\n", GE );
     if ( print != 0 ) printf("Updated E:   %e\n", dev_conserved[4*n_cells + id]  );
     
@@ -853,6 +852,12 @@ __device__ Real recomb_HII_rate_case_B( Real T, Real units )
     } else {
         return tiny;
     }  
+}
+
+
+__device__ Real recomb_HII_rate_case_Iliev1( Real T, Real units )
+{
+    return 2.59e-13 / units;
 }
 
 
