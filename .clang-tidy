@@ -1,0 +1,202 @@
+# This settings file for clang-tidy chooses which checks to run, the settings
+# for those checks, etc. It uses as many of the default values as possible and
+# runs all checks with some exclusions by default.
+#
+# The full list of clang-format 15 checks and documentation can be found
+# [here](https://releases.llvm.org/15.0.0/tools/clang/tools/extra/docs/clang-tidy/index.html)
+#
+# The "Checks" command should have 5 sections seperated by a newline:
+# 1. Turn on all checks by default. Done with "*"
+# 2. Turn off the catagories of checks we don't want
+# 3. Turn off specific, individual checks we don't want
+# 4. Turn on checks that we do want from from the catagories of checks that we
+#    didn't want
+# 5. Turn off the checks that we do want but that aren't passing yet
+---
+Checks: "*,
+
+        -abseil-*,
+        -altera-*,
+        -android-*,
+        -boost-*,
+        -darwin-*,
+        -fuchsia-*,
+        -linuxkernel-*,
+        -llvmlibc-*,
+        -*objc*,
+        -*osx*,
+        -zircon-*,
+
+        -modernize-use-trailing-return-type,
+        -readability-avoid-const-params-in-decls,
+        -readability-static-accessed-through-instance,
+
+        google-readability-avoid-underscore-in-googletest-name,
+        google-upgrade-googletest-case,
+
+        -bugprone-assignment-in-if-condition,
+        -bugprone-branch-clone,
+        -bugprone-easily-swappable-parameters,
+        -bugprone-implicit-widening-of-multiplication-result,
+        -bugprone-integer-division,
+        -bugprone-macro-parentheses,
+        -bugprone-narrowing-conversions,
+        -bugprone-reserved-identifier,
+        -bugprone-signed-char-misuse,
+        -bugprone-string-integer-assignment,
+        -cert-dcl37-c,
+        -cert-dcl50-cpp,
+        -cert-dcl51-cpp,
+        -cert-dcl59-cpp,
+        -cert-env33-c,
+        -cert-err33-c,
+        -cert-err34-c,
+        -cert-err58-cpp,
+        -cert-msc32-c,
+        -cert-msc51-cpp,
+        -cert-str34-c,
+        -clang-analyzer-core.CallAndMessage,
+        -clang-analyzer-core.NullDereference,
+        -clang-analyzer-core.UndefinedBinaryOperatorResult,
+        -clang-analyzer-core.uninitialized.ArraySubscript,
+        -clang-analyzer-core.uninitialized.Assign,
+        -clang-analyzer-core.uninitialized.UndefReturn,
+        -clang-analyzer-deadcode.DeadStores,
+        -clang-analyzer-optin.performance.Padding,
+        -clang-analyzer-security.insecureAPI.strcpy,
+        -clang-analyzer-valist.Uninitialized,
+        -clang-diagnostic-format,
+        -clang-diagnostic-macro-redefined,
+        -clang-diagnostic-unknown-cuda-version,
+        -clang-diagnostic-unused-command-line-argument,
+        -clang-diagnostic-unused-result,
+        -concurrency-mt-unsafe,
+        -cppcoreguidelines-avoid-c-arrays,
+        -cppcoreguidelines-avoid-magic-numbers,
+        -cppcoreguidelines-avoid-non-const-global-variables,
+        -cppcoreguidelines-explicit-virtual-functions,
+        -cppcoreguidelines-init-variables,
+        -cppcoreguidelines-macro-usage,
+        -cppcoreguidelines-narrowing-conversions,
+        -cppcoreguidelines-no-malloc,
+        -cppcoreguidelines-non-private-member-variables-in-classes,
+        -cppcoreguidelines-owning-memory,
+        -cppcoreguidelines-prefer-member-initializer,
+        -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+        -cppcoreguidelines-pro-bounds-constant-array-index,
+        -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+        -cppcoreguidelines-pro-type-cstyle-cast,
+        -cppcoreguidelines-pro-type-member-init,
+        -cppcoreguidelines-pro-type-reinterpret-cast,
+        -cppcoreguidelines-pro-type-vararg,
+        -cppcoreguidelines-special-member-functions,
+        -cppcoreguidelines-virtual-class-destructor,
+        -google-build-namespaces,
+        -google-build-using-namespace,
+        -google-explicit-constructor,
+        -google-global-names-in-headers,
+        -google-readability-braces-around-statements,
+        -google-readability-casting,
+        -google-readability-namespace-comments,
+        -google-readability-todo,
+        -google-runtime-int,
+        -hicpp-avoid-c-arrays,
+        -hicpp-braces-around-statements,
+        -hicpp-deprecated-headers,
+        -hicpp-explicit-conversions,
+        -hicpp-member-init,
+        -hicpp-multiway-paths-covered,
+        -hicpp-no-array-decay,
+        -hicpp-no-malloc,
+        -hicpp-signed-bitwise,
+        -hicpp-special-member-functions,
+        -hicpp-use-auto,
+        -hicpp-use-emplace,
+        -hicpp-use-equals-default,
+        -hicpp-use-noexcept,
+        -hicpp-use-nullptr,
+        -hicpp-use-override,
+        -hicpp-vararg,
+        -llvm-else-after-return,
+        -llvm-header-guard,
+        -llvm-include-order,
+        -llvm-namespace-comment,
+        -misc-confusable-identifiers,
+        -misc-const-correctness,
+        -misc-non-private-member-variables-in-classes,
+        -misc-unused-parameters,
+        -modernize-avoid-c-arrays,
+        -modernize-deprecated-headers,
+        -modernize-loop-convert,
+        -modernize-macro-to-enum,
+        -modernize-redundant-void-arg,
+        -modernize-use-auto,
+        -modernize-use-bool-literals,
+        -modernize-use-default-member-init,
+        -modernize-use-emplace,
+        -modernize-use-equals-default,
+        -modernize-use-nodiscard,
+        -modernize-use-noexcept,
+        -modernize-use-nullptr,
+        -modernize-use-override,
+        -modernize-use-using,
+        -openmp-use-default-none,
+        -performance-faster-string-find,
+        -performance-for-range-copy,
+        -performance-inefficient-vector-operation,
+        -performance-unnecessary-value-param,
+        -readability-braces-around-statements,
+        -readability-const-return-type,
+        -readability-convert-member-functions-to-static,
+        -readability-delete-null-pointer,
+        -readability-duplicate-include,
+        -readability-else-after-return,
+        -readability-function-cognitive-complexity,
+        -readability-identifier-length,
+        -readability-identifier-naming,
+        -readability-implicit-bool-conversion,
+        -readability-inconsistent-declaration-parameter-name,
+        -readability-isolate-declaration,
+        -readability-magic-numbers,
+        -readability-make-member-function-const,
+        -readability-non-const-parameter,
+        -readability-redundant-control-flow,
+        -readability-redundant-preprocessor,
+        -readability-simplify-boolean-expr,
+        -readability-suspicious-call-argument"
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+AnalyzeTemporaryDtors: false
+FormatStyle:     'file'
+UseColor: false
+CheckOptions:
+  # readability-identifier-naming allowed casing types
+  # - lower_case
+  # - UPPER_CASE
+  # - camelBack
+  # - CamelCase
+  # - camel_Snake_Back
+  # - Camel_Snake_Case
+  # - aNy_CasE
+  #
+  # Entries that are commented out probably aren't needed but it should be verified
+  readability-identifier-naming.VariableCase: 'lower_case'
+  readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
+  readability-identifier-naming.NamespaceCase: 'lower_case'
+  readability-identifier-naming.MacroDefinitionCase: 'UPPER_CASE'
+  readability-identifier-naming.TypedefCase: 'CamelCase'
+  readability-identifier-naming.TypeAliasCase: 'CamelCase'
+  readability-identifier-naming.EnumCase: 'CamelCase'
+  readability-identifier-naming.ConstantCase: 'lower_case'
+
+  readability-identifier-naming.ConstantPrefix: 'k_'
+  readability-identifier-naming.GlobalVariablePrefix: 'g_'
+
+  readability-identifier-naming.ClassCase: 'CamelCase'
+  # readability-identifier-naming.MemberCase: 'lower_case'
+  # readability-identifier-naming.MethodCase: 'CamelCase'
+  readability-identifier-naming.PrivateMemberSuffix: '_'
+  readability-identifier-naming.PrivateMethodSuffix: '_'
+
+  # readability-identifier-naming.StructCase: 'CamelCase'
+...

@@ -3,17 +3,19 @@
 
 #ifdef CUDA
 
-#ifndef ROE_CUDA_H
-#define Roe_CUDA_H
+  #ifndef ROE_CUDA_H
+    #define Roe_CUDA_H
 
-#include "../global/global.h"
+    #include "../global/global.h"
 
+/*! \fn Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real
+ * *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah,
+ * int dir, int n_fields) \brief Roe Riemann solver based on the version
+ * described in Stone et al, 2008. */
+__global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L,
+                                          Real *dev_bounds_R, Real *dev_flux,
+                                          int nx, int ny, int nz, int n_ghost,
+                                          Real gamma, int dir, int n_fields);
 
-/*! \fn Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah, int dir, int n_fields)
- *  \brief Roe Riemann solver based on the version described in Stone et al, 2008. */
-__global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int n_fields);
-
-
-
-#endif //ROE_CUDA_H
-#endif //CUDA
+  #endif  // ROE_CUDA_H
+#endif    // CUDA

@@ -2,29 +2,30 @@
 #define GRAV3D_H
 
 #include <stdio.h>
+
 #include "../global/global.h"
 
 #ifdef SOR
-#include "../gravity/potential_SOR_3D.h"
+  #include "../gravity/potential_SOR_3D.h"
 #endif
 
 #ifdef PARIS
-#include "../gravity/potential_paris_3D.h"
+  #include "../gravity/potential_paris_3D.h"
 #endif
 
 #ifdef PARIS_GALACTIC
-#include "../gravity/potential_paris_galactic.h"
+  #include "../gravity/potential_paris_galactic.h"
 #endif
 
 #ifdef HDF5
-#include <hdf5.h>
+  #include <hdf5.h>
 #endif
 
 #define GRAV_ISOLATED_BOUNDARY_X
 #define GRAV_ISOLATED_BOUNDARY_Y
 #define GRAV_ISOLATED_BOUNDARY_Z
 
-#define TPB_GRAV 1024
+#define TPB_GRAV  1024
 #define TPBX_GRAV 16
 #define TPBY_GRAV 8
 #define TPBZ_GRAV 8
@@ -33,8 +34,7 @@
  *  \brief Class to create a the gravity object. */
 class Grav3D
 {
-  public:
-
+ public:
   Real Lbox_x;
   Real Lbox_y;
   Real Lbox_z;
@@ -46,45 +46,43 @@ class Grav3D
   Real yMax;
   Real zMax;
   /*! \var nx
-  *  \brief Total number of cells in the x-dimension */
+   *  \brief Total number of cells in the x-dimension */
   int nx_total;
   /*! \var ny
-  *  \brief Total number of cells in the y-dimension */
+   *  \brief Total number of cells in the y-dimension */
   int ny_total;
   /*! \var nz
-  *  \brief Total number of cells in the z-dimension */
+   *  \brief Total number of cells in the z-dimension */
   int nz_total;
 
   /*! \var nx_local
-  *  \brief Local number of cells in the x-dimension */
+   *  \brief Local number of cells in the x-dimension */
   int nx_local;
   /*! \var ny_local
-  *  \brief Local number of cells in the y-dimension */
+   *  \brief Local number of cells in the y-dimension */
   int ny_local;
   /*! \var nz_local
-  *  \brief Local number of cells in the z-dimension */
+   *  \brief Local number of cells in the z-dimension */
   int nz_local;
 
   /*! \var dx
-  *  \brief x-width of cells */
+   *  \brief x-width of cells */
   Real dx;
   /*! \var dy
-  *  \brief y-width of cells */
+   *  \brief y-width of cells */
   Real dy;
   /*! \var dz
-  *  \brief z-width of cells */
+   *  \brief z-width of cells */
   Real dz;
 
-  #ifdef COSMOLOGY
+#ifdef COSMOLOGY
   Real current_a;
-  #endif
+#endif
 
-  Real dens_avrg ;
-
+  Real dens_avrg;
 
   int n_cells;
   int n_cells_potential;
-
 
   bool INITIAL;
 
@@ -95,125 +93,130 @@ class Grav3D
 
   bool TRANSFER_POTENTIAL_BOUNDARIES;
 
-
   bool BC_FLAGS_SET;
   int *boundary_flags;
 
-
-  #ifdef SOR
+#ifdef SOR
   Potential_SOR_3D Poisson_solver;
-  #endif
+#endif
 
-  #ifdef PARIS
+#ifdef PARIS
   Potential_Paris_3D Poisson_solver;
-  #endif
+#endif
 
-  #ifdef PARIS_GALACTIC
+#ifdef PARIS_GALACTIC
   #ifdef SOR
-  #define PARIS_GALACTIC_TEST
+    #define PARIS_GALACTIC_TEST
   Potential_Paris_Galactic Poisson_solver_test;
   #else
   Potential_Paris_Galactic Poisson_solver;
   #endif
-  #endif
+#endif
 
-  struct Fields
-  {
+  struct Fields {
     /*! \var density_h
      *  \brief Array containing the density of each cell in the grid */
     Real *density_h;
 
     /*! \var potential_h
-     *  \brief Array containing the gravitational potential of each cell in the grid */
+     *  \brief Array containing the gravitational potential of each cell in the
+     * grid */
     Real *potential_h;
 
     /*! \var potential_h
-     *  \brief Array containing the gravitational potential of each cell in the grid at the previous time step */
+     *  \brief Array containing the gravitational potential of each cell in the
+     * grid at the previous time step */
     Real *potential_1_h;
 
-    #ifdef GRAVITY_ANALYTIC_COMP
+#ifdef GRAVITY_ANALYTIC_COMP
     Real *analytic_potential_h;
-    #endif
+#endif
 
-    #ifdef GRAVITY_GPU
+#ifdef GRAVITY_GPU
 
     /*! \var density_d
      *  \brief Device Array containing the density of each cell in the grid */
     Real *density_d;
 
     /*! \var potential_d
-    *  \brief Device Array containing the gravitational potential of each cell in the grid */
+     *  \brief Device Array containing the gravitational potential of each cell
+     * in the grid */
     Real *potential_d;
 
     /*! \var potential_d
-    *  \brief Device Array containing the gravitational potential of each cell in the grid at the previous time step */
+     *  \brief Device Array containing the gravitational potential of each cell
+     * in the grid at the previous time step */
     Real *potential_1_d;
 
-    #ifdef GRAVITY_ANALYTIC_COMP
+  #ifdef GRAVITY_ANALYTIC_COMP
     Real *analytic_potential_d;
-    #endif
+  #endif
 
-    #endif //GRAVITY_GPU
+#endif  // GRAVITY_GPU
 
-    // Arrays for computing the potential values in isolated boundaries
-    #ifdef GRAV_ISOLATED_BOUNDARY_X
+// Arrays for computing the potential values in isolated boundaries
+#ifdef GRAV_ISOLATED_BOUNDARY_X
     Real *pot_boundary_x0;
     Real *pot_boundary_x1;
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Y
+#endif
+#ifdef GRAV_ISOLATED_BOUNDARY_Y
     Real *pot_boundary_y0;
     Real *pot_boundary_y1;
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Z
+#endif
+#ifdef GRAV_ISOLATED_BOUNDARY_Z
     Real *pot_boundary_z0;
     Real *pot_boundary_z1;
-    #endif
+#endif
 
-    #ifdef GRAVITY_GPU
-    #ifdef GRAV_ISOLATED_BOUNDARY_X
+#ifdef GRAVITY_GPU
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
     Real *pot_boundary_x0_d;
     Real *pot_boundary_x1_d;
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Y
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
     Real *pot_boundary_y0_d;
     Real *pot_boundary_y1_d;
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Z
+  #endif
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
     Real *pot_boundary_z0_d;
     Real *pot_boundary_z1_d;
-    #endif
-    #endif//GRAVITY_GPU
+  #endif
+#endif  // GRAVITY_GPU
 
   } F;
 
   /*! \fn Grav3D(void)
-  *  \brief Constructor for the gravity class */
+   *  \brief Constructor for the gravity class */
   Grav3D(void);
 
   /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
-  *  \brief Initialize the grid. */
-  void Initialize( Real x_min, Real y_min, Real z_min, Real x_max, Real y_max, Real z_max, Real Lx, Real Ly, Real Lz, int nx_total, int ny_total, int nz_total, int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P);
+   *  \brief Initialize the grid. */
+  void Initialize(Real x_min, Real y_min, Real z_min, Real x_max, Real y_max,
+                  Real z_max, Real Lx, Real Ly, Real Lz, int nx_total,
+                  int ny_total, int nz_total, int nx_real, int ny_real,
+                  int nz_real, Real dx_real, Real dy_real, Real dz_real,
+                  int n_ghost_pot_offset, struct parameters *P);
 
   void AllocateMemory_CPU(void);
   void Initialize_values_CPU();
   void FreeMemory_CPU(void);
 
-  Real Get_Average_Density( );
-  Real Get_Average_Density_function( int g_start, int g_end );
+  Real Get_Average_Density();
+  Real Get_Average_Density_function(int g_start, int g_end);
 
-  void Set_Boundary_Flags( int *flags );
+  void Set_Boundary_Flags(int *flags);
 
-  #ifdef SOR
-  void Copy_Isolated_Boundary_To_GPU_buffer( Real *isolated_boundary_h, Real *isolated_boundary_d, int boundary_size );
-  void Copy_Isolated_Boundaries_To_GPU( struct parameters *P );
-  #endif
+#ifdef SOR
+  void Copy_Isolated_Boundary_To_GPU_buffer(Real *isolated_boundary_h,
+                                            Real *isolated_boundary_d,
+                                            int boundary_size);
+  void Copy_Isolated_Boundaries_To_GPU(struct parameters *P);
+#endif
 
-  #ifdef GRAVITY_GPU
+#ifdef GRAVITY_GPU
   void AllocateMemory_GPU(void);
   void FreeMemory_GPU(void);
-  #endif
-
+#endif
 };
 
-
-#endif //GRAV3D_H
+#endif  // GRAV3D_H

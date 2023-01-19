@@ -16,10 +16,7 @@
 // Local Includes
 #include "../utils/mhd_utilities.h"
 
-namespace mhd{
-namespace utils
+namespace mhd::utils
 {
 
-}//utils
-
-} // end namespace mhd
+}  // end namespace mhd::utils

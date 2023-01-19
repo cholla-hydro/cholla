@@ -1,12 +1,14 @@
 #ifdef CPU_TIME
-#ifndef TIMING_FUNCTIONS_H
-#define TIMING_FUNCTIONS_H
+  #ifndef TIMING_FUNCTIONS_H
+    #define TIMING_FUNCTIONS_H
 
-#include <vector>
-#include "../global/global.h"
+    #include <vector>
 
-// Each instance of this class represents a single timer, timing a single section of code. 
-// All instances have their own n_steps, time_start, etc. so that all timers can run independently
+    #include "../global/global.h"
+
+// Each instance of this class represents a single timer, timing a single
+// section of code. All instances have their own n_steps, time_start, etc. so
+// that all timers can run independently
 class OneTime
 {
  public:
@@ -16,13 +18,13 @@ class OneTime
   Real t_min;
   Real t_max;
   Real t_avg;
-  Real t_all=0;
-  bool inactive=true;
-  OneTime(void){
-  }
-  OneTime(const char* input_name){
-    name = input_name;
-    inactive=false;
+  Real t_all    = 0;
+  bool inactive = true;
+  OneTime(void) {}
+  OneTime(const char* input_name)
+  {
+    name     = input_name;
+    inactive = false;
   }
   void Start();
   void Subtract(Real time_to_subtract);
@@ -30,15 +32,15 @@ class OneTime
   void PrintStep();
   void PrintAverage();
   void PrintAll();
-  void RecordTime( Real time );
+  void RecordTime(Real time);
 };
 
-// Time loops through instances of OneTime. onetimes is initialized with pointers to each timer. 
+// Time loops through instances of OneTime. onetimes is initialized with
+// pointers to each timer.
 //
 class Time
 {
-public:
-
+ public:
   int n_steps;
 
   OneTime Total;
@@ -56,16 +58,14 @@ public:
   OneTime Chemistry;
   OneTime Feedback;
   OneTime FeedbackAnalysis;
-    
+
   std::vector<OneTime*> onetimes;
-  
+
   Time();
   void Initialize();
   void Print_Times();
-  void Print_Average_Times( struct parameters P );
-  
+  void Print_Average_Times(struct parameters P);
 };
 
-
-#endif
-#endif //CPU_TIME
+  #endif
+#endif  // CPU_TIME

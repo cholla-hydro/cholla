@@ -1,47 +1,37 @@
 
 #ifdef CPU_TIME
 
-#include "../utils/timing_functions.h"
-#include "../io/io.h"
-#include <iostream>
-#include <fstream>
-#include <string>
+  #include "../utils/timing_functions.h"
 
-#ifdef MPI_CHOLLA
-#include "../mpi/mpi_routines.h"
-#endif
+  #include <fstream>
+  #include <iostream>
+  #include <string>
 
-void OneTime::Start(){
+  #include "../io/io.h"
+
+  #ifdef MPI_CHOLLA
+    #include "../mpi/mpi_routines.h"
+  #endif
+
+void OneTime::Start()
+{
   if (inactive) return;
   time_start = get_time();
 }
 
-void OneTime::Subtract(Real time_to_subtract){
-  // Add the time_to_substract to the start time, that way the time_end - time_start is reduced by time_to_substract
+void OneTime::Subtract(Real time_to_subtract)
+{
+  // Add the time_to_substract to the start time, that way the time_end -
+  // time_start is reduced by time_to_substract
   time_start += time_to_subtract;
 }
 
-void OneTime::End(){
+void OneTime::End()
+{
   if (inactive) return;
   Real time_end = get_time();
-  Real time = (time_end - time_start)*1000;
+  Real time     = (time_end - time_start) * 1000;
 
-#ifdef MPI_CHOLLA
-  t_min = ReduceRealMin(time);
-  t_max = ReduceRealMax(time);
-  t_avg = ReduceRealAvg(time);
-#else
-  t_min = time;
-  t_max = time;
-  t_avg = time;
-#endif
-  if (n_steps > 0) t_all += t_max;
-  n_steps++;
-}
-
-
-void OneTime::RecordTime( Real time ){
-  time *=  1000; //Convert from secs to ms
   #ifdef MPI_CHOLLA
   t_min = ReduceRealMin(time);
   t_max = ReduceRealMax(time);
@@ -55,23 +45,43 @@ void OneTime::RecordTime( Real time ){
   n_steps++;
 }
 
-
-void OneTime::PrintStep(){
-  chprintf(" Time %-19s min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", name, t_min, t_max, t_avg);
+void OneTime::RecordTime(Real time)
+{
+  time *= 1000;  // Convert from secs to ms
+  #ifdef MPI_CHOLLA
+  t_min = ReduceRealMin(time);
+  t_max = ReduceRealMax(time);
+  t_avg = ReduceRealAvg(time);
+  #else
+  t_min = time;
+  t_max = time;
+  t_avg = time;
+  #endif
+  if (n_steps > 0) t_all += t_max;
+  n_steps++;
 }
 
-void OneTime::PrintAverage(){
-  if (n_steps > 1) chprintf(" Time %-19s avg: %9.4f   ms\n", name, t_all/(n_steps-1));
+void OneTime::PrintStep()
+{
+  chprintf(" Time %-19s min: %9.4f  max: %9.4f  avg: %9.4f   ms\n", name, t_min,
+           t_max, t_avg);
 }
 
-void OneTime::PrintAll(){
+void OneTime::PrintAverage()
+{
+  if (n_steps > 1)
+    chprintf(" Time %-19s avg: %9.4f   ms\n", name, t_all / (n_steps - 1));
+}
+
+void OneTime::PrintAll()
+{
   chprintf(" Time %-19s all: %9.4f   ms\n", name, t_all);
 }
 
-Time::Time( void ){}
+Time::Time(void) {}
 
-void Time::Initialize(){
-
+void Time::Initialize()
+{
   n_steps = 0;
 
   // Add or remove timers by editing this list, keep TOTAL at the end
@@ -79,68 +89,69 @@ void Time::Initialize(){
   // add Timer.NAME.Start() and Timer.NAME.End() where appropriate.
 
   onetimes = {
-    #ifdef PARTICLES
-    &(Calc_dt = OneTime("Calc_dt")),
-    #endif
-    &(Hydro = OneTime("Hydro")),
-    &(Boundaries = OneTime("Boundaries")),
-    #ifdef GRAVITY
-    &(Grav_Potential = OneTime("Grav_Potential")),
-    &(Pot_Boundaries = OneTime("Pot_Boundaries")),
-    #endif
-    #ifdef PARTICLES
-    &(Part_Density = OneTime("Part_Density")),
-    &(Part_Boundaries = OneTime("Part_Boundaries")),
-    &(Part_Dens_Transf = OneTime("Part_Dens_Transf")),
-    &(Advance_Part_1 = OneTime("Advance_Part_1")),
-    &(Advance_Part_2 = OneTime("Advance_Part_2")),
-    #endif
-    #ifdef COOLING_GRACKLE
-    &(Cooling = OneTime("Cooling")),
-    #endif
-    #ifdef CHEMISTRY_GPU
-    &(Chemistry = OneTime("Chemistry")),
-    #endif
-    #ifdef SUPERNOVA
-    &(Feedback = OneTime("Feedback")),
+  #ifdef PARTICLES
+      &(Calc_dt = OneTime("Calc_dt")),
+  #endif
+      &(Hydro = OneTime("Hydro")),
+      &(Boundaries = OneTime("Boundaries")),
+  #ifdef GRAVITY
+      &(Grav_Potential = OneTime("Grav_Potential")),
+      &(Pot_Boundaries = OneTime("Pot_Boundaries")),
+  #endif
+  #ifdef PARTICLES
+      &(Part_Density = OneTime("Part_Density")),
+      &(Part_Boundaries = OneTime("Part_Boundaries")),
+      &(Part_Dens_Transf = OneTime("Part_Dens_Transf")),
+      &(Advance_Part_1 = OneTime("Advance_Part_1")),
+      &(Advance_Part_2 = OneTime("Advance_Part_2")),
+  #endif
+  #ifdef COOLING_GRACKLE
+      &(Cooling = OneTime("Cooling")),
+  #endif
+  #ifdef CHEMISTRY_GPU
+      &(Chemistry = OneTime("Chemistry")),
+  #endif
+  #ifdef SUPERNOVA
+      &(Feedback = OneTime("Feedback")),
     #ifdef ANALYSIS
-    &(FeedbackAnalysis = OneTime("FeedbackAnalysis")),
+      &(FeedbackAnalysis = OneTime("FeedbackAnalysis")),
     #endif
-    #endif // SUPERNOVA
-    &(Total = OneTime("Total")),
+  #endif  // SUPERNOVA
+      &(Total = OneTime("Total")),
   };
 
-
-  chprintf( "\nTiming Functions is ON \n");
-
+  chprintf("\nTiming Functions is ON \n");
 }
 
-void Time::Print_Times(){
-  for (OneTime* x : onetimes){
+void Time::Print_Times()
+{
+  for (OneTime* x : onetimes) {
     x->PrintStep();
   }
 }
 
 // once at end of run in main.cpp
-void Time::Print_Average_Times( struct parameters P ){
-
+void Time::Print_Average_Times(struct parameters P)
+{
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
 
-  for (OneTime* x : onetimes){
+  for (OneTime* x : onetimes) {
     x->PrintAverage();
   }
 
-  std::string file_name ( "run_timing.log" );
+  std::string file_name("run_timing.log");
   std::string header;
 
-  chprintf( "Writing timing values to file: %s  \n", file_name.c_str());
+  chprintf("Writing timing values to file: %s  \n", file_name.c_str());
 
-  std::string gitHash    = "Git Commit Hash = " + std::string(GIT_HASH)    + std::string("\n");
-  std::string macroFlags = "Macro Flags     = " + std::string(MACRO_FLAGS) + std::string("\n\n");
+  std::string gitHash =
+      "Git Commit Hash = " + std::string(GIT_HASH) + std::string("\n");
+  std::string macroFlags =
+      "Macro Flags     = " + std::string(MACRO_FLAGS) + std::string("\n\n");
 
   header = "#n_proc  nx  ny  nz  n_omp  n_steps  ";
 
-  for (OneTime* x : onetimes){
+  for (OneTime* x : onetimes) {
     header += x->name;
     header += "  ";
   }
@@ -148,24 +159,23 @@ void Time::Print_Average_Times( struct parameters P ){
   header += " \n";
 
   bool file_exists = false;
-  if (FILE *file = fopen(file_name.c_str(), "r")){
+  if (FILE* file = fopen(file_name.c_str(), "r")) {
     file_exists = true;
-    chprintf( " File exists, appending values: %s \n", file_name.c_str() );
-    fclose( file );
-  } else{
-    chprintf( " Creating File: %s \n", file_name.c_str() );
+    chprintf(" File exists, appending values: %s \n", file_name.c_str());
+    fclose(file);
+  } else {
+    chprintf(" Creating File: %s \n", file_name.c_str());
   }
 
   #ifdef MPI_CHOLLA
-  if ( procID != 0 ) return;
+  if (procID != 0) return;
   #endif
 
   std::ofstream out_file;
 
-// Output timing values
+  // Output timing values
   out_file.open(file_name.c_str(), std::ios::app);
-  if ( !file_exists )
-  {
+  if (!file_exists) {
     out_file << gitHash;
     out_file << macroFlags;
     out_file << header;
@@ -183,15 +193,14 @@ void Time::Print_Average_Times( struct parameters P ){
   #endif
   out_file << n_steps << " ";
 
-  for (OneTime* x : onetimes){
+  for (OneTime* x : onetimes) {
     out_file << x->t_all << " ";
   }
 
   out_file << "\n";
   out_file.close();
 
-  chprintf( "Saved Timing: %s \n\n", file_name.c_str() );
-
+  chprintf("Saved Timing: %s \n\n", file_name.c_str());
 }
 
 #endif

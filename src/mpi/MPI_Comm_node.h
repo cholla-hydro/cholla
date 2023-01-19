@@ -5,10 +5,10 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif //__cplusplus
+#endif  //__cplusplus
 MPI_Comm MPI_Comm_node(int *pid, int *np);
 #ifdef __cplusplus
 }
-#endif //__cplusplus
+#endif  //__cplusplus
 
-#endif //MPI_COMM_NODE
+#endif  // MPI_COMM_NODE
