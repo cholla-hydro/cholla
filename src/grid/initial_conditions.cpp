@@ -1694,7 +1694,7 @@ void Grid3D::Iliev125( const parameters& P, int test )
     Chem.recombination_case = (test==1 ? 2 : 1);
 
     Real U, rho = 1.670673249e-24*1.0e-3/DENSITY_UNIT;    // 1.0e-3 per cc
-    Real xe = 1.2e-3;
+    Real xe = (test==5 ? 0 : 1.2e-3);
     switch(test)
     {
         case 1:
@@ -1703,6 +1703,7 @@ void Grid3D::Iliev125( const parameters& P, int test )
             break;
         }
         case 2:
+        case 5:
         {
             U = 1.5*KB*1.0e2*1.0e-3/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
             break;

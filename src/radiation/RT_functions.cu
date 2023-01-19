@@ -197,7 +197,7 @@ void Rad3D::rtSolve(Real *dev_scalar)
     int niters = this->num_iterations;
     Real speedOfLightInCodeUnits = 3e10/VELOCITY_UNIT;
     int niters2 = (dt>0 ? static_cast<int>(1+speedOfLightInCodeUnits*dt/grid.dx) : niters);
-    ///if(niters > niters2) niters = niters2;
+    if(niters > niters2) niters = niters2;
 
     for(int iter=0; iter<niters; iter++)
     {
