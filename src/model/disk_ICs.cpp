@@ -771,7 +771,6 @@ void Grid3D::Disk_3D(parameters p)
   Real rho_floor;
   Real r_cool;
 
-  #ifdef MW_MODEL
   // MW model
   DiskGalaxy galaxy = Galaxies::MW;
   // M82 model Galaxies::M82;

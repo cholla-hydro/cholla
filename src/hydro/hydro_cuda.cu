@@ -604,64 +604,6 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 }
 
 
-#ifdef AVERAGE_SLOW_CELLS
-
-void Average_Slow_Cells( Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow ){
-
-  // set values for GPU kernels
-  int n_cells = nx*ny*nz;
-  int ngrid = (n_cells + TPB - 1) / TPB;
-  // number of blocks per 1D grid
-  dim3 dim1dGrid(ngrid, 1, 1);
-  //  number of threads per 1D block
-  dim3 dim1dBlock(TPB, 1, 1);
-
-  if (nx > 1 && ny > 1 && nz > 1){ //3D
-    hipLaunchKernelGGL(Average_Slow_Cells_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dx, dy, dz, gamma, max_dti_slow );
-  }
-}
-
-__global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma, Real max_dti_slow ){
-
-  int id, xid, yid, zid, n_cells;
-  Real d, d_inv, vx, vy, vz, E, max_dti;
-  Real speed, temp, P, cs;
-
-  // get a global thread ID
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-  n_cells = nx*ny*nz;
-
-  cuda_utilities::compute3DIndices(id, nx, ny, xid, yid, zid);
-
-
-  // threads corresponding to real cells do the calculation
-  if (xid > n_ghost-1 && xid < nx-n_ghost && yid > n_ghost-1 && yid < ny-n_ghost && zid > n_ghost-1 && zid < nz-n_ghost)
-  {
-    d  =  dev_conserved[            id];
-    d_inv = 1.0 / d;
-    vx =  dev_conserved[1*n_cells + id] * d_inv;
-    vy =  dev_conserved[2*n_cells + id] * d_inv;
-    vz =  dev_conserved[3*n_cells + id] * d_inv;
-    E  =  dev_conserved[4*n_cells + id];
-
-    // Compute the maximum inverse crossing time in the cell
-    max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
-
-    if (max_dti > max_dti_slow){
-      speed = sqrt(vx*vx + vy*vy + vz*vz);
-      temp = (gamma - 1)*(E - 0.5*(speed*speed)*d)*ENERGY_UNIT/(d*DENSITY_UNIT/0.6/MP)/KB;
-      P  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0);
-      cs = sqrt(d_inv * gamma * P)*VELOCITY_UNIT*1e-5;
-      // Average this cell
-      printf(" Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f, n=%.3e, T=%.3e, v=%.3e (%.3e, %.3e, %.3e), cs=%.3e\n", xid, yid, zid, 1./max_dti,  1./max_dti_slow,
-                 dev_conserved[id]*DENSITY_UNIT/0.6/MP, temp, speed*VELOCITY_UNIT*1e-5, vx*VELOCITY_UNIT*1e-5, vy*VELOCITY_UNIT*1e-5, vz*VELOCITY_UNIT*1e-5, cs);
-      Average_Cell_All_Fields( xid, yid, zid, nx, ny, nz, n_cells, n_fields, dev_conserved );
-    }
-  }
-}
-#endif //AVERAGE_SLOW_CELLS
-
-
 
 #ifdef AVERAGE_SLOW_CELLS
 

@@ -87,31 +87,23 @@ void Copy_Device_to_Device( T *src_array_dev, T *dst_array_dev, part_int_t size 
 
 }
 
-#ifdef PARTICLES_GPU
 
-#ifdef PRINT_MAX_MEMORY_USAGE
-#include "../mpi/mpi_routines.h"
-
-void Particles_3D::Print_Max_Memory_Usage(){
-  
+void Particles_3D::Allocate_Particles_GPU_Array_Real( int **array_dev, part_int_t size ){
   size_t global_free, global_total;
   CudaSafeCall( cudaMemGetInfo( &global_free, &global_total ) );
+  #ifdef PRINT_GPU_MEMORY
+  chprintf( "Allocating GPU Memory:  %ld  MB free \n", global_free/1000000);
+  #endif
+  if ( global_free < size*sizeof(int) ){
+    printf( "ERROR: Not enough global device memory \n" );
+    printf( " Available Memory: %ld  MB \n", global_free/1000000  );
+    printf( " Requested Memory: %ld  MB \n", size*sizeof(int)/1000000  );
+    exit(-1);
+  }
+  CudaSafeCall( cudaMalloc((void**)array_dev,  size*sizeof(int)) );
   cudaDeviceSynchronize();
-  
-  part_int_t n_local_max, n_total, mem_usage;
-  Real fraction_max, global_free_min;
-  
-  n_local_max = (part_int_t) ReduceRealMax( (Real) n_local );
-  n_total = ReducePartIntSum( n_local );
-  fraction_max = (Real) n_local_max / (Real) n_total;
-  mem_usage = n_local_max * 9 * sizeof(Real); //Usage for pos, vel ans accel.
-  
-  global_free_min = ReduceRealMin( (Real) global_free  );
-  
-  chprintf( " Particles GPU Memory: N_local_max: %ld  (%.1f %)  mem_usage: %ld MB     global_free_min: %.1f MB  \n", n_local_max, fraction_max*100, mem_usage/1000000, global_free_min/1000000 );
-  
-  
 }
+
 
 void Particles_3D::Allocate_Particles_GPU_Array_int( int **array_dev, part_int_t size ){
   size_t global_free, global_total;

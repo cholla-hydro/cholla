@@ -320,6 +320,10 @@ struct parameters
   char skewersdir[MAXLEN];
   #endif
 #endif
+#ifdef SUPERNOVA
+  int supernova_e;
+  Real supernova_rcl;
+#endif
 };
 
 

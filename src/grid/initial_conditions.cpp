@@ -1647,30 +1647,6 @@ void Grid3D::Chemistry_Test( struct parameters P )
   e_frac = INITIAL_FRACTION_ELECTRON;
   metal_frac = INITIAL_FRACTION_METAL;
 
-        #ifdef COOLING_GRACKLE
-        C.scalar[0*H.n_cells + id] = rho_gas_mean * HI_frac;
-        C.scalar[1*H.n_cells + id] = rho_gas_mean * HII_frac;
-        C.scalar[2*H.n_cells + id] = rho_gas_mean * HeI_frac;
-        C.scalar[3*H.n_cells + id] = rho_gas_mean * HeII_frac;
-        C.scalar[4*H.n_cells + id] = rho_gas_mean * HeIII_frac;
-        C.scalar[5*H.n_cells + id] = rho_gas_mean * e_frac;
-        #ifdef GRACKLE_METALS
-        C.scalar[6*H.n_cells + id] = rho_gas_mean * metal_frac;
-        #endif
-        #endif
-
-
-      }
-    }
-  }
-
-  #else //COSMOLOGY
-  chprintf( "This requires COSMOLOGY turned on! \n");
-  chexit(-1);
-  #endif //COSMOLOGY
-
-}
-
 
   mu = ( HI_frac + HII_frac + HeI_frac + HeII_frac + HeIII_frac ) / ( HI_frac + HII_frac + (HeI_frac + HeII_frac + HeIII_frac)/4 + e_frac );
   U = rho_gas_mean *  T0 / (gama - 1) / MP / mu * KB * 1e-10;
