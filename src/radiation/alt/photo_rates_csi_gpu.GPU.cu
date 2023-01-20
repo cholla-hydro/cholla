@@ -116,11 +116,11 @@ namespace PhotoRatesCSI
     StaticTableGPU<float,3,'x'>* CreateTable(float* data, unsigned int numRates, const PhotoRateTableStretchCSI& stretch)
     {
         StaticTableGPU<float,3,'x'> *d;
-        cudaMalloc(&d,sizeof(StaticTableGPU<float,3,'x'>));
+        CudaSafeCall(cudaMalloc(&d,sizeof(StaticTableGPU<float,3,'x'>)));
         if(d != nullptr)
         {
             StaticTableGPU<float,3,'x'> h(data,numRates,stretch.size,stretch.xMin,stretch.xMax);
-            cudaMemcpy(d,&h,sizeof(StaticTableGPU<float,3,'x'>),cudaMemcpyHostToDevice);
+            CudaSafeCall(cudaMemcpy(d,&h,sizeof(StaticTableGPU<float,3,'x'>),cudaMemcpyHostToDevice));
         }
         return d;
     }
@@ -128,7 +128,7 @@ namespace PhotoRatesCSI
     
     void DeleteTable(StaticTableGPU<float,3,'x'>* d)
     {
-        cudaFree(d);
+        CudaSafeCall(cudaFree(d));
     }
     
     

@@ -6,7 +6,7 @@
 
 #include <initializer_list>
 #include <cuda_runtime.h>
-
+#include "../../global/global_cuda.h"
 
 namespace GPU
 {
@@ -191,8 +191,8 @@ namespace GPU
         if(count != 0)
         {
             mCount = count;
-            cudaMalloc(&mPtr,count*sizeof(T));
-            if(zero) cudaMemset(mPtr,0,sizeof(T)*mCount);
+            CudaSafeCall(cudaMalloc(&mPtr,count*sizeof(T)));
+            if(zero) CudaSafeCall(cudaMemset(mPtr,0,sizeof(T)*mCount));
         }
     }
 
