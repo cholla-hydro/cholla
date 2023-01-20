@@ -31,6 +31,8 @@ if(len(sys.argv) > 2):
     ##
 ##
 
+print(d['rf1'][32,0,0])
+
 rho = d['density'][...]
 vx = d['momentum_x'][...]/rho
 vy = d['momentum_x'][...]/rho
@@ -45,19 +47,21 @@ xHII = d['HII_density'][...]/(rho)
 U = ENERGY_UNIT*(d['Energy'][...]-0.5*rho*(vx**2+vy**2+vz**2))
 T = U/(1.5*nb*1.38e-16)
 
-print("xHI=%10.3e xHII=%10.3e T=%10.3e"%(xHI.mean(),xHII.mean(),T.mean()))
+print("xHI=%10.3e xHII=%10.3e T=%10.3e nb=%10.3e"%(xHI.mean(),xHII.mean(),T.mean(),nb.mean()))
 
 fig = plt.figure(figsize=(9.20,3.10))
 fig.subplots_adjust(left=0.05,right=0.95,bottom=0.05,top=0.95,wspace=0.05)
 
-ax1 = fig.add_subplot(1,3,1)
-ax2 = fig.add_subplot(1,3,2)
-ax3 = fig.add_subplot(1,3,3)
+ax1 = fig.add_subplot(1,4,1)
+ax2 = fig.add_subplot(1,4,2)
+ax3 = fig.add_subplot(1,4,3)
+ax4 = fig.add_subplot(1,4,4)
 import matplotlib.colors as col
 
 ax1.imshow(xHI[xHI.shape[0]//2,:,:],cmap="rainbow",vmin=1.0e-3,vmax=1)
 ax2.imshow(xHII[xHI.shape[0]//2,:,:],cmap="rainbow",vmin=1.0e-3,vmax=1)
-ax3.imshow(d['rf1'][xHI.shape[0]//2,:,:],cmap="rainbow",norm=col.LogNorm(vmin=1.0e-8,clip=0))
+ax3.imshow(d['rf1'][xHI.shape[0]//2,:,:],cmap="rainbow",norm=col.SymLogNorm(1.0e-8,vmin=1.0e-8,clip=1))
+ax4.imshow(1e3*nb[xHI.shape[0]//2,:,:],cmap="rainbow",vmin=0.5,vmax=1.5)
 
 plt.show()
 
