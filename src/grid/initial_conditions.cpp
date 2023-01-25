@@ -93,6 +93,8 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     Iliev125(P,2);
   } else if (strcmp(P.init, "Iliev5")==0) {
     Iliev125(P,5);
+  } else if (strcmp(P.init, "Iliev6")==0) {
+    Iliev6(P);
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
@@ -1699,13 +1701,13 @@ void Grid3D::Iliev125( const parameters& P, int test )
     {
         case 1:
         {
-            U = 1.5*KB*1.0e4*1.0e-3/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
+            U = 1.5*KB*1.0e4*1.0e-3/ENERGY_UNIT;
             break;
         }
         case 2:
         case 5:
         {
-            U = 1.5*KB*1.0e2*1.0e-3/ENERGY_UNIT; // first 2 because the temperature after ionization drops by a factor of 2: Xtot=XH -> Xtot=XH+Xe
+            U = 1.5*KB*1.0e2*1.0e-3/ENERGY_UNIT;
             break;
         }
         default:
@@ -1775,6 +1777,99 @@ void Grid3D::Iliev125( const parameters& P, int test )
             x[axis] -= xcen[axis];
             r2 += x[axis]*x[axis];
         }
+
+        auto eps2ot = 4*dx2;
+        //
+        //  NG 230117: ET seems to require larger softening than OT, why this is so I do not understand, need to explore further.
+        //
+        auto eps2et = 4*eps2ot;
+        
+        Rad.rtFields.rs[id] = (r2<dx2 ? 0.125/pow(H.dx,3) : 0);
+        Rad.rtFields.rf[id] = 1/(12.5664*(eps2ot+r2));
+        for(int ii=1; ii<1+2*Rad.n_freq; ii++) Rad.rtFields.rf[id+ii*H.n_cells] = 0;
+
+        Rad.rtFields.et[id+0*H.n_cells] = (eps2et/3+x[0]*x[0])/(eps2et+r2);
+        Rad.rtFields.et[id+1*H.n_cells] = (         x[1]*x[0])/(eps2et+r2);
+        Rad.rtFields.et[id+2*H.n_cells] = (eps2et/3+x[1]*x[1])/(eps2et+r2);
+        Rad.rtFields.et[id+3*H.n_cells] = (         x[2]*x[0])/(eps2et+r2);
+        Rad.rtFields.et[id+4*H.n_cells] = (         x[2]*x[1])/(eps2et+r2);
+        Rad.rtFields.et[id+5*H.n_cells] = (eps2et/3+x[2]*x[2])/(eps2et+r2);
+
+      }
+    }
+  }
+
+#else //defined(RT) && defined(CHEMISTRY_GPU)
+  chprintf( "This requires RT && CHEMISTRY_GPU turned on! \n");
+  chexit(-1);
+#endif //defined(RT) && defined(CHEMISTRY_GPU)
+}
+
+
+void Grid3D::Iliev6( const parameters& P )
+{
+#if defined(RT) && defined(CHEMISTRY_GPU)
+    
+    Chem.H.H_fraction = 1;
+    Chem.recombination_case = 1;
+
+    Real rho0 = 1.670673249e-24*3.2/DENSITY_UNIT;    // 3.2 per cc
+    Real xe = 0;
+    Real U0 = 1.5*KB*1.0e2*3.2/ENERGY_UNIT;
+
+    double xcen[3] = { H.xbound+0.5*H.xdglobal, H.ybound+0.5*H.ydglobal, H.zbound+0.5*H.zdglobal };
+    double dx2 = H.dx*H.dx;
+
+    Rad.rtFields.et = (Real *) malloc(H.n_cells * sizeof(Real) * 6);
+    Rad.rtFields.rs = (Real *) malloc(H.n_cells * sizeof(Real));
+
+    auto xs = Physics::AtomicData::CrossSections();
+    std::vector<float> spectralShape(xs->nxi,0);
+    SpectralShape::BlackBody(1.0e5,spectralShape);
+    for(auto &s : spectralShape)
+    {
+        s *= 1.0e50/Constant::c/pow(LENGTH_UNIT,2);
+    }
+
+    Rad.photoRates->Update(0,spectralShape.data(),xs->dxi*Constant::c*1.0e-24);
+
+    Real r2core = pow(0.0915/(2*0.8)*H.xdglobal,2);
+    
+  int i, j, k, id;
+  for (k=0; k<H.nz; k++) {
+    for (j=0; j<H.ny; j++) {
+      for (i=0; i<H.nx; i++) {
+
+        //get cell index
+        id = i + H.nx*(j+H.ny*k);
+
+        double x[3] = { H.xblocal+H.dx*(i+0.5-H.n_ghost), H.yblocal+H.dy*(j+0.5-H.n_ghost), H.zblocal+H.dz*(k+0.5-H.n_ghost) };
+
+        double r2 = 0;
+        for(int axis=0; axis<3; axis++)
+        {
+            x[axis] -= xcen[axis];
+            r2 += x[axis]*x[axis];
+        }
+
+        Real rho = rho0*(r2<r2core ? 1 : (r2core/r2));
+        Real U = U0*(r2<r2core ? 1 : (r2core/r2));
+        
+        C.density[id] =  rho;
+        C.momentum_x[id] = 0;
+        C.momentum_y[id] = 0;
+        C.momentum_z[id] = 0;
+        C.Energy[id] = U;
+
+        #ifdef DE
+        C.GasEnergy[id] = U;
+        #endif
+
+        C.HI_density[id]    =  rho * (1-xe);
+        C.HII_density[id]   =  rho * xe;
+        C.HeI_density[id]   =  rho * 1.0e-20;
+        C.HeII_density[id]  =  rho * 1.0e-20;
+        C.HeIII_density[id] =  rho * 1.0e-20;
 
         auto eps2ot = 4*dx2;
         //

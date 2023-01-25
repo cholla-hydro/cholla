@@ -653,6 +653,7 @@ class Grid3D
 
     void Iliev0( const parameters& P );
     void Iliev125( const parameters& P, int test );
+    void Iliev6( const parameters& P );
 
 
 #ifdef   MPI_CHOLLA
