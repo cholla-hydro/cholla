@@ -772,8 +772,12 @@ void Grid3D::Disk_3D(parameters p)
   Real r_cool;
 
   // MW model
-  DiskGalaxy galaxy = Galaxies::MW;
+  #ifdef MW_MODEL
+  //DiskGalaxy galaxy = Galaxies::MW;
+  #else
   // M82 model Galaxies::M82;
+  DiskGalaxy galaxy = Galaxies::M82;
+  #endif
 
   M_vir = galaxy.getM_vir(); // viral mass in M_sun
   M_d = galaxy.getM_d();  // mass of disk in M_sun (assume all stars)

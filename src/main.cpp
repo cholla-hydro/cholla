@@ -14,15 +14,6 @@
 #include "grid/grid3D.h"
 #include "io/io.h"
 #include "utils/error_handling.h"
-#ifdef SUPERNOVA
-#include "particles/supernova.h"
-#ifdef ANALYSIS
-#include "analysis/feedback_analysis.h"
-#endif
-#endif //SUPERNOVA
-#ifdef STAR_FORMATION
-#include "particles/star_formation.h"
-#endif
 #ifdef  MHD
 #include "mhd/magnetic_divergence.h"
 #endif  //MHD
@@ -144,19 +135,6 @@ int main(int argc, char *argv[])
   if ( G.Analysis.Output_Now ) G.Compute_and_Output_Analysis(&P);
   #endif
 
-  #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
-  FeedbackAnalysis sn_analysis(G);
-  #ifdef MPI_CHOLLA
-  supernova::initState(&P, G.Particles.n_total_initial);
-  #else
-  supernova::initState(&P, G.Particles.n_local);
-  #endif // MPI_CHOLLA
-  #endif // SUPERNOVA && PARTICLE_AGE
-
-  #ifdef STAR_FORMATION
-  star_formation::Initialize(G);
-  #endif
-
   #ifdef GRAVITY_ANALYTIC_COMP
   G.Setup_Analytic_Potential(&P);
   #endif
@@ -239,9 +217,9 @@ int main(int argc, char *argv[])
 
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
 
-    #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
-    supernova::Cluster_Feedback(G, sn_analysis);
-    #endif //SUPERNOVA && PARTICLE_AGE
+    #ifdef SUPERNOVA
+    Supernova::Update_Grid(G, dti);
+    #endif
 
     #ifdef PARTICLES
     //Advance the particles KDK( first step ): Velocities are updated by 0.5*dt and positions are updated by dt

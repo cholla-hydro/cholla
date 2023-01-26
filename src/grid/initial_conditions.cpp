@@ -169,7 +169,6 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
     H.dx = P.xlen / nx_param;
     H.dy = P.ylen / ny_param;
     H.dz = P.zlen / nz_param;
-
   }
 }
 
