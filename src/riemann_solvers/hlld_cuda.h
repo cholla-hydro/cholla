@@ -59,84 +59,119 @@ namespace _internal
 Real static const _hlldSmallNumber = 1.0e-8;
 
 /*!
- * \brief Compute the left, right, star, and middle wave speeds. Also
- * returns the densities in the star states. M&K 2005 equations 38, 43,
- * 51, and 67
+ * \brief Holds all the data needed for the non-star states of the HLLD solver
  *
- * \param[in] densityL Density, left side
- * \param[in] momentumXL Momentum in the X-direction, left side
- * \param[in] momentumYL Momentum in the Y-direction, left side
- * \param[in] momentumZL Momentum in the Z-direction, left side
- * \param[in] velocityXL Velocity in the X-direction, left side
- * \param[in] velocityYL Velocity in the Y-direction, left side
- * \param[in] velocityZL Velocity in the Z-direction, left side
- * \param[in] gasPressureL Gas pressure, left side
- * \param[in] totalPressureL Total MHD pressure, left side
- * \param[in] magneticX Magnetic field in the X-direction, left side
- * \param[in] magneticYL Magnetic field in the Y-direction, left side
- * \param[in] magneticZL Magnetic field in the Z-direction, left side
- * \param[in] densityR Density, right side
- * \param[in] momentumXR Momentum in the X-direction, right side
- * \param[in] momentumYR Momentum in the Y-direction, right side
- * \param[in] momentumZR Momentum in the Z-direction, right side
- * \param[in] velocityXR Velocity in the X-direction, right side
- * \param[in] velocityYR Velocity in the Y-direction, right side
- * \param[in] velocityZR Velocity in the Z-direction, right side
- * \param[in] gasPressureR Gas pressure, right side
- * \param[in] totalPressureR Total MHD pressure, right side
- * \param[in] magneticYR Magnetic field in the Y-direction, right side
- * \param[in] magneticZR Magnetic field in the Z-direction, right side
- * \param[in] gamma Adiabatic index
- * \param[out] speedL Approximate speed of the left most wave
- * \param[out] speedR Approximate speed of the right most wave
- * \param[out] speedM Speed of the middle wave
- * \param[out] speedStarL Speed of the left star state wave
- * \param[out] speedStarR Speed of the right star state wave
- * \param[out] densityStarL Density in left star region
- * \param[out] densityStarR Density in right star region
  */
-__device__ __host__ void _approximateWaveSpeeds(
-    Real const &densityL, Real const &momentumXL, Real const &momentumYL,
-    Real const &momentumZL, Real const &velocityXL, Real const &velocityYL,
-    Real const &velocityZL, Real const &gasPressureL,
-    Real const &totalPressureL, Real const &magneticX, Real const &magneticYL,
-    Real const &magneticZL, Real const &densityR, Real const &momentumXR,
-    Real const &momentumYR, Real const &momentumZR, Real const &velocityXR,
-    Real const &velocityYR, Real const &velocityZR, Real const &gasPressureR,
-    Real const &totalPressureR, Real const &magneticYR, Real const &magneticZR,
-    Real const &gamma, Real &speedL, Real &speedR, Real &speedM,
-    Real &speedStarL, Real &speedStarR, Real &densityStarL, Real &densityStarR);
+struct State {
+  Real density, velocityX, velocityY, velocityZ, energy, magneticY, magneticZ,
+      gasPressure, totalPressure;
+  #ifdef SCALAR
+  Real scalarSpecific[grid_enum::nscalars];
+  #endif  // SCALAR
+  #ifdef DE
+  Real thermalEnergySpecific;
+  #endif  // DE
+};
 
 /*!
- * \brief Compute the fluxes in the left or right non-star state
+ * \brief Holds all the data needed for the star states of the HLLD solver
+ * except total pressure and x velocity as those are shared between the left and
+ * right states
  *
- * \param[in] momentumX Momentum in the X-direction
- * \param[in] velocityX Velocity in the X-direction
- * \param[in] velocityY Velocity in the Y-direction
- * \param[in] velocityZ Velocity in the Z-direction
- * \param[in] totalPressure Total MHD pressure
- * \param[in] energy Energy
- * \param[in] magneticX Magnetic field in -direction
- * \param[in] magneticY Magnetic field in -direction
- * \param[in] magneticZ Magnetic field in -direction
- * \param[out] densityFlux The density flux
- * \param[out] momentumFluxX The momentum flux in the X-direction
- * \param[out] momentumFluxY The momentum flux in the Y-direction
- * \param[out] momentumFluxZ The momentum flux in the Z-direction
- * \param[out] magneticFluxY The magnetic field flux in the Y-direction
- * \param[out] magneticFluxZ The magnetic field flux in the Z-direction
- * \param[out] energyFlux The energy flux
  */
-__device__ __host__ void _nonStarFluxes(
-    Real const &momentumX, Real const &velocityX, Real const &velocityY,
-    Real const &velocityZ, Real const &totalPressure, Real const &energy,
-    Real const &magneticX, Real const &magneticY, Real const &magneticZ,
-    Real &densityFlux, Real &momentumFluxX, Real &momentumFluxY,
-    Real &momentumFluxZ, Real &magneticFluxY, Real &magneticFluxZ,
-    Real &energyFlux);
+struct StarState {
+  // velocityStarX = Speeds.M
+  // Total pressure is computed on its own since it's shared
+  Real density, velocityY, velocityZ, energy, magneticY, magneticZ;
+};
 
 /*!
- * \brief Assign the given flux values to the dev_flux array
+ * \brief Holds all the data needed for the double star states of the HLLD
+ * solver except the x velocity, density, and total pressure since those are all
+ * inherited from the star state.
+ *
+ */
+struct DoubleStarState {
+  // velocityDoubleStarX = Speeds.M
+  // densityDoubleStar = densityStar
+  // pressureDoubleStar = pressureStar
+  // Shared values
+  Real velocityY, velocityZ, magneticY, magneticZ;
+  // Different values
+  Real energyL, energyR;
+};
+
+/*!
+ * \brief Holds all the data needed for the fluxes in the HLLD solver
+ *
+ */
+struct Flux {
+  Real density, momentumX, momentumY, momentumZ, energy, magneticY, magneticZ;
+};
+
+/*!
+ * \brief Holds all the data needed for the speeds in the HLLD solver
+ *
+ */
+struct Speeds {
+  Real L, LStar, M, RStar, R;
+};
+
+/*!
+ * \brief Load and compute the left or right state
+ *
+ * \param interfaceArr The interface array to load from
+ * \param magneticX The X magnetic field
+ * \param gamma The adiabatic index
+ * \param threadId The thread ID
+ * \param n_cells Total number of cells
+ * \param o1 Direction parameter
+ * \param o2 Direction parameter
+ * \param o3 Direction parameter
+ * \return mhd::_internal::State The loaded state
+ */
+__device__ __host__ mhd::_internal::State loadState(
+    Real const *interfaceArr, Real const &magneticX, Real const &gamma,
+    int const &threadId, int const &n_cells, int const &o1, int const &o2,
+    int const &o3);
+
+/*!
+ * \brief Compute the approximate left and right wave speeds. M&K 2005 equation
+ * 67
+ */
+__device__ __host__ mhd::_internal::Speeds approximateLRWaveSpeeds(
+    mhd::_internal::State const &stateL, mhd::_internal::State const &stateR,
+    Real const &magneticX, Real const &gamma);
+
+/*!
+ * \brief Compute the approximate middle wave speed. M&K 2005 equation 38
+ */
+__device__ __host__ Real approximateMiddleWaveSpeed(
+    mhd::_internal::State const &stateL, mhd::_internal::State const &stateR,
+    mhd::_internal::Speeds const &speed);
+
+/*!
+ * \brief Compute the approximate left and right wave speeds. M&K 2005 equation
+ * 51
+ */
+__device__ __host__ Real
+approximateStarWaveSpeed(mhd::_internal::StarState const &starState,
+                         mhd::_internal::Speeds const &speed,
+                         Real const &magneticX, Real const &side);
+
+/*!
+ * \brief Compute the fluxes in the left or right non-star state. M&K 2005
+ * equation 2
+ *
+ * \param state The state to compute the flux of
+ * \param magneticX The X magnetic field
+ * \return mhd::_internal::Flux The flux in the state
+ */
+__device__ __host__ mhd::_internal::Flux nonStarFluxes(
+    mhd::_internal::State const &state, Real const &magneticX);
+
+/*!
+ * \brief Write the given flux values to the dev_flux array
  *
  * \param[in] threadId The thread ID
  * \param[in] o1 Offset to get indexing right
@@ -144,159 +179,91 @@ __device__ __host__ void _nonStarFluxes(
  * \param[in] o3 Offset to get indexing right
  * \param[in] n_cells Number of cells
  * \param[out] dev_flux The flux array
- * \param[in] densityFlux The density flux
- * \param[in] momentumFluxX The momentum flux in the X-direction
- * \param[in] momentumFluxY The momentum flux in the Y-direction
- * \param[in] momentumFluxZ The momentum flux in the Z-direction
- * \param[in] magneticFluxY The magnetic field flux in the X-direction
- * \param[in] magneticFluxZ The magnetic field flux in the Y-direction
- * \param[in] energyFlux The energy flux
+ * \param[in] flux The fluxes to write out
+ * \param[in] state The left or right state depending on if this is a return for
+ * one of the left states or one of the right states
  */
-__device__ __host__ void _returnFluxes(
-    int const &threadId, int const &o1, int const &o2, int const &o3,
-    int const &n_cells, Real *dev_flux, Real const &densityFlux,
-    Real const &momentumFluxX, Real const &momentumFluxY,
-    Real const &momentumFluxZ, Real const &magneticFluxY,
-    Real const &magneticFluxZ, Real const &energyFlux);
+__device__ __host__ void returnFluxes(int const &threadId, int const &o1,
+                                      int const &o2, int const &o3,
+                                      int const &n_cells, Real *dev_flux,
+                                      mhd::_internal::Flux const &flux,
+                                      mhd::_internal::State const &state);
 
 /*!
- * \brief Compute the fluxes in the left or right star state. M&K 2005
- * equations 44-48, 64
+ * \brief Compute the total pressure in the star states. M&K 2005 equation 41
  *
- * \param[in] speedM Speed of the central wave
- * \param[in] speedSide Speed of the non-star wave on the side being computed
- * \param[in] density Density
- * \param[in] velocityX Velocity in the X-direction
- * \param[in] velocityY Velocity in the Y-direction
- * \param[in] velocityZ Velocity in the Z-direction
- * \param[in] momentumX Momentum in the X-direction
- * \param[in] momentumY Momentum in the Y-direction
- * \param[in] momentumZ Momentum in the Z-direction
- * \param[in] energy Energy
- * \param[in] totalPressure Total MHD pressure
- * \param[in] magneticX Magnetic field in the X-direction
- * \param[in] magneticY Magnetic field in the Y-direction
- * \param[in] magneticZ Magnetic field in the Z-direction
- * \param[in] densityStar Density in the star state
- * \param[in] totalPressureStar Total MHD pressure in the star state
- * \param[in] densityFlux Density Flux from the non-star state
- * \param[in] momentumFluxX Momentum flux from the non-star state in the
- * X-direction \param[in] momentumFluxY Momentum flux from the non-star state in
- * the Y-direction \param[in] momentumFluxZ Momentum flux from the non-star
- * state in the Z-direction \param[in] energyFlux Energy flux from the non-star
- * state \param[in] magneticFluxY Magnetic flux from the non-star state in the
- * X-direction \param[in] magneticFluxZ Magnetic flux from the non-star state in
- * the Y-direction \param[out] velocityStarY Velocity in the star state in the
- * Y-direction \param[out] velocityStarZ Velocity in the star state in the
- * Z-direction \param[out] energyStar Energy in the star state \param[out]
- * magneticStarY Magnetic field in the star state in the X-direction \param[out]
- * magneticStarZ Magnetic field in the star state in the Y-direction \param[out]
- * densityStarFlux Density flux in the star state \param[out] momentumStarFluxX
- * Momentum flux in the star state in the X-direction \param[out]
- * momentumStarFluxY Momentum flux in the star state in the Y-direction
- * \param[out] momentumStarFluxZ Momentum flux in the star state in the
- * Z-direction \param[out] energyStarFlux Energy flux in the star state
- * \param[out] magneticStarFluxY Magnetic field flux in the star state in the
- * X-direction \param[out] magneticStarFluxZ Magnetic field flux in the star
- * state in the Y-direction
- *
+ * \param stateL The left state
+ * \param stateR The right state
+ * \param speed The wave speeds
+ * \return Real The total pressure in the star state
  */
-__device__ __host__ void _starFluxes(
-    Real const &speedM, Real const &speedSide, Real const &density,
-    Real const &velocityX, Real const &velocityY, Real const &velocityZ,
-    Real const &momentumX, Real const &momentumY, Real const &momentumZ,
-    Real const &energy, Real const &totalPressure, Real const &magneticX,
-    Real const &magneticY, Real const &magneticZ, Real const &densityStar,
-    Real const &totalPressureStar, Real const &densityFlux,
-    Real const &momentumFluxX, Real const &momentumFluxY,
-    Real const &momentumFluxZ, Real const &energyFlux,
-    Real const &magneticFluxY, Real const &magneticFluxZ, Real &velocityStarY,
-    Real &velocityStarZ, Real &energyStar, Real &magneticStarY,
-    Real &magneticStarZ, Real &densityStarFlux, Real &momentumStarFluxX,
-    Real &momentumStarFluxY, Real &momentumStarFluxZ, Real &energyStarFlux,
-    Real &magneticStarFluxY, Real &magneticStarFluxZ);
+__device__ __host__ Real starTotalPressure(mhd::_internal::State const &stateL,
+                                           mhd::_internal::State const &stateR,
+                                           mhd::_internal::Speeds const &speed);
+
+/*!
+ * \brief Compute the L* or R* state. M&K 2005 equations 43-48
+ *
+ * \param state The non-star state on the same side as the desired star
+ * state \param speed The wavespeeds \param speedSide The wave speed on the
+ * same side as the desired star state \param magneticX The magnetic field
+ * in the x direction \param totalPressureStar The total pressure in the
+ * star state \return mhd::_internal::StarState The computed star state
+ */
+__device__ __host__ mhd::_internal::StarState computeStarState(
+    mhd::_internal::State const &state, mhd::_internal::Speeds const &speed,
+    Real const &speedSide, Real const &magneticX,
+    Real const &totalPressureStar);
+
+/*!
+ * \brief Compute the flux in the star state. M&K 2005 equation 64
+ *
+ * \param starState The star state to compute the flux of
+ * \param state The non-star state on the same side as the star state
+ * \param flux The non-star flux on the same side as the star state
+ * \param speed The wave speeds
+ * \param speedSide The non-star wave speed on the same side as the star state
+ * \return mhd::_internal::Flux The flux in the star state
+ */
+__device__ __host__ mhd::_internal::Flux starFluxes(
+    mhd::_internal::StarState const &starState,
+    mhd::_internal::State const &state, mhd::_internal::Flux const &flux,
+    mhd::_internal::Speeds const &speed, Real const &speedSide);
 
 /*!
  * \brief Compute the double star state. M&K 2005 equations 59-63
  *
- * \param[in] speedM
- * \param[in] magneticX
- * \param[in] totalPressureStar
- * \param[in] densityStarL
- * \param[in] velocityStarYL
- * \param[in] velocityStarZL
- * \param[in] energyStarL
- * \param[in] magneticStarYL
- * \param[in] magneticStarZL
- * \param[in] densityStarR
- * \param[in] velocityStarYR
- * \param[in] velocityStarZR
- * \param[in] energyStarR
- * \param[in] magneticStarYR
- * \param[in] magneticStarZR
- * \param[out] velocityDoubleStarY
- * \param[out] velocityDoubleStarZ
- * \param[out] magneticDoubleStarY
- * \param[out] magneticDoubleStarZ
- * \param[out] energyDoubleStarL
- * \param[out] energyDoubleStarR
+ * \param starStateL The Left star state
+ * \param starStateR The Right star state
+ * \param magneticX The x magnetic field
+ * \param totalPressureStar The total pressure in the star state
+ * \param speed The approximate wave speeds
+ * \return mhd::_internal::DoubleStarState The double star state
  */
-__device__ __host__ void _doubleStarState(
-    Real const &speedM, Real const &magneticX, Real const &totalPressureStar,
-    Real const &densityStarL, Real const &velocityStarYL,
-    Real const &velocityStarZL, Real const &energyStarL,
-    Real const &magneticStarYL, Real const &magneticStarZL,
-    Real const &densityStarR, Real const &velocityStarYR,
-    Real const &velocityStarZR, Real const &energyStarR,
-    Real const &magneticStarYR, Real const &magneticStarZR,
-    Real &velocityDoubleStarY, Real &velocityDoubleStarZ,
-    Real &magneticDoubleStarY, Real &magneticDoubleStarZ,
-    Real &energyDoubleStarL, Real &energyDoubleStarR);
+__device__ __host__ mhd::_internal::DoubleStarState computeDoubleStarState(
+    mhd::_internal::StarState const &starStateL,
+    mhd::_internal::StarState const &starStateR, Real const &magneticX,
+    Real const &totalPressureStar, mhd::_internal::Speeds const &speed);
 
 /*!
  * \brief Compute the double star state fluxes. M&K 2005 equation 65
  *
- * \param[in] speedStarSide The star speed on the side being computed
- * \param[in] momentumStarFluxX
- * \param[in] momentumStarFluxY
- * \param[in] momentumStarFluxZ
- * \param[in] energyStarFlux
- * \param[in] magneticStarFluxY
- * \param[in] magneticStarFluxZ
- * \param[in] densityStar
- * \param[in] velocityStarX
- * \param[in] velocityStarY
- * \param[in] velocityStarZ
- * \param[in] energyStar
- * \param[in] magneticStarY
- * \param[in] magneticStarZ
- * \param[in] velocityDoubleStarX
- * \param[in] velocityDoubleStarY
- * \param[in] velocityDoubleStarZ
- * \param[in] energyDoubleStar
- * \param[in] magneticDoubleStarY
- * \param[in] magneticDoubleStarZ
- * \param[out] momentumDoubleStarFluxX
- * \param[out] momentumDoubleStarFluxY
- * \param[out] momentumDoubleStarFluxZ
- * \param[out] energyDoubleStarFlux
- * \param[out] magneticDoubleStarFluxY
- * \param[out] magneticDoubleStarFluxZ
+ * \param doubleStarState The double star states
+ * \param starState The star state on the same side
+ * \param state The non-star state on the same side
+ * \param flux The non-star flux on the same side
+ * \param speed The approximate wave speeds
+ * \param speedSide The wave speed on the same side
+ * \param speedSideStar The star wave speed on the same side
+ * \return __device__
  */
-__device__ __host__ void _doubleStarFluxes(
-    Real const &speedStarSide, Real const &momentumStarFluxX,
-    Real const &momentumStarFluxY, Real const &momentumStarFluxZ,
-    Real const &energyStarFlux, Real const &magneticStarFluxY,
-    Real const &magneticStarFluxZ, Real const &densityStar,
-    Real const &velocityStarX, Real const &velocityStarY,
-    Real const &velocityStarZ, Real const &energyStar,
-    Real const &magneticStarY, Real const &magneticStarZ,
-    Real const &velocityDoubleStarX, Real const &velocityDoubleStarY,
-    Real const &velocityDoubleStarZ, Real const &energyDoubleStar,
-    Real const &magneticDoubleStarY, Real const &magneticDoubleStarZ,
-    Real &momentumDoubleStarFluxX, Real &momentumDoubleStarFluxY,
-    Real &momentumDoubleStarFluxZ, Real &energyDoubleStarFlux,
-    Real &magneticDoubleStarFluxY, Real &magneticDoubleStarFluxZ);
+__device__ __host__ mhd::_internal::Flux computeDoubleStarFluxes(
+    mhd::_internal::DoubleStarState const &doubleStarState,
+    Real const &doubleStarStateEnergy,
+    mhd::_internal::StarState const &starState,
+    mhd::_internal::State const &state, mhd::_internal::Flux const &flux,
+    mhd::_internal::Speeds const &speed, Real const &speedSide,
+    Real const &speedSideStar);
 
 }  // namespace _internal
 }  // end namespace mhd
