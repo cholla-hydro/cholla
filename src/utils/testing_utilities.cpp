@@ -54,7 +54,7 @@ int64_t ulpsDistanceDbl(double const &a, double const &b)
 bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff,
                     int64_t &ulpsDiff,
                     double const &fixedEpsilon,  // = 1E-14 by default
-                    int const &ulpsEpsilon)      // = 4 by default
+                    int64_t const &ulpsEpsilon)  // = 4 by default
 {
   // Compute differences
   ulpsDiff     = ulpsDistanceDbl(a, b);
