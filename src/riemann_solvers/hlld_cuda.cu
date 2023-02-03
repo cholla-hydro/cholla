@@ -44,7 +44,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real *dev_bounds_L,
   cuda_utilities::compute3DIndices(threadId, nx, ny, xid, yid, zid);
 
   // Thread guard to avoid overrun
-  if (xid >= nx and yid >= ny and zid >= nz) return;
+  if (xid >= nx or yid >= ny or zid >= nz) return;
 
   // Number of cells
   int n_cells = nx * ny * nz;
