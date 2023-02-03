@@ -10,8 +10,6 @@
   #include "../io/io.h"
   #include "chemistry_gpu.h"
 
-using namespace std;
-
 void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct parameters *P)
 {
   char uvb_filename[100];

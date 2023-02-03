@@ -22,8 +22,6 @@
 #include "../utils/math_utilities.h"
 #include "../utils/mhd_utilities.h"
 
-using namespace std;
-
 /*! \fn void Set_Initial_Conditions(parameters P)
  *  \brief Set the initial conditions based on info in the parameters structure.
  */
@@ -1533,8 +1531,8 @@ void Grid3D::Zeldovich_Pancake(struct parameters P)
 
   real_vector_t ics_values;
 
-  ifstream file_in(filename);
-  string line;
+  std::ifstream file_in(filename);
+  std::string line;
   Real ic_val;
   if (file_in.is_open()) {
     while (getline(file_in, line)) {
