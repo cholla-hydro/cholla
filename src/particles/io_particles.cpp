@@ -510,7 +510,7 @@ void Grid3D::Write_Particles_Header_HDF5(hid_t file_id)
   status       = H5Aclose(attribute_id);
   attribute_id = H5Acreate(file_id, "n_particles_local", H5T_STD_I64BE,
                            dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_ULONG, &Particles.n_local);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_LONG, &Particles.n_local);
   status       = H5Aclose(attribute_id);
 
     #ifdef SINGLE_PARTICLE_MASS

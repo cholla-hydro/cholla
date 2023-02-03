@@ -120,6 +120,13 @@ void Grav3D::Initialize(Real x_min, Real y_min, Real z_min, Real x_max,
                                  nx_total, ny_total, nz_total, nx_local,
                                  ny_local, nz_local, dx, dy, dz);
   #endif
+
+  // At the end of initializing, set restart state if needed
+  
+  if ((strcmp(P->init, "Read_Grid") == 0) && (P->nfile > 0))
+  {
+    Read_Restart_HDF5(P, P->nfile);
+  }
 }
 
 void Grav3D::AllocateMemory_CPU(void)
