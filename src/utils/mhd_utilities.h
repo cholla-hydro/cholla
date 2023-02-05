@@ -14,6 +14,7 @@
 // Local Includes
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../riemann_solvers/hlld_cuda.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
 
@@ -128,6 +129,25 @@ inline __host__ __device__ Real computeGasPressure(
                           ((magneticY * magneticY) + (magneticZ * magneticZ))));
 
   return fmax(pressure, TINY_NUMBER);
+}
+
+/*!
+ * \brief Specialzation of mhd::utils::computeGasPressure for use in the HLLD
+ * solver
+ *
+ * \param state The State to compute the gas pressure of
+ * \param magneticX The X magnetic field
+ * \param gamma The adiabatic index
+ * \return Real The gas pressure
+ */
+inline __host__ __device__ Real
+computeGasPressure(mhd::_internal::State const &state, Real const &magneticX,
+                   Real const &gamma)
+{
+  return mhd::utils::computeGasPressure(
+      state.energy, state.density, state.velocityX * state.density,
+      state.velocityY * state.density, state.velocityZ * state.density,
+      magneticX, state.magneticY, state.magneticZ, gamma);
 }
 // =========================================================================
 
