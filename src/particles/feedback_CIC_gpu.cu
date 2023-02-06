@@ -232,7 +232,326 @@ __device__ bool Particle_Is_Alone(Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_
   return true;
 }
 
+__device__ Real Cluster_Feedback_Resolved(Real pos_x, Real pos_y, Real pos_z,
+					  Real xMin, Real yMin, Real zMin,
+					  Real dx, Real dy, Real dz,
+					  int nx_g, int ny_g, int n_ghost, int n_cells,
+					  Real gamma, Real* conserved_device,
+					  short direction,
+					  Real feedback_density, Real feedback_energy)
+{
+  // For 2x2x2, a particle between 0-0.5 injects onto cell - 1
+  int indx_x = (int)floor((pos_x - xMin - 0.5 * dx) / dx);
+  int indx_y = (int)floor((pos_y - yMin - 0.5 * dy) / dy);
+  int indx_z = (int)floor((pos_z - zMin - 0.5 * dz) / dz);
+
+  Real cell_center_x = xMin + indx_x * dx + 0.5 * dx;
+  Real cell_center_y = yMin + indx_y * dy + 0.5 * dy;
+  Real cell_center_z = zMin + indx_z * dz + 0.5 * dz;
+
+  Real delta_x = 1 - (pos_x - cell_center_x) / dx;
+  Real delta_y = 1 - (pos_y - cell_center_y) / dy;
+  Real delta_z = 1 - (pos_z - cell_center_z) / dz;
+
+  Real* density    = conserved_device;
+  Real* momentum_x = &conserved_device[n_cells*grid_enum::momentum_x];
+  Real* momentum_y = &conserved_device[n_cells*grid_enum::momentum_y];
+  Real* momentum_z = &conserved_device[n_cells*grid_enum::momentum_z];
+  Real* energy     = &conserved_device[n_cells*grid_enum::Energy];
+  Real* gasEnergy  = &conserved_device[n_cells*grid_enum::GasEnergy];  
+
+  Real local_dti = 0;
+
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 2; j++) {
+      for (int k = 0; k < 2; k++) {
+	int indx = (indx_x + i + n_ghost) +
+                   (indx_y + j + n_ghost) * nx_g +
+          	   (indx_z + k + n_ghost) * nx_g * ny_g;
+	Real x_frac = i * (1 - delta_x) + (1 - i) * delta_x;
+	Real y_frac = j * (1 - delta_y) + (1 - j) * delta_y;
+	Real z_frac = k * (1 - delta_z) + (1 - k) * delta_z;
+
+	atomicAdd(&density[indx],
+		  x_frac * y_frac * z_frac * feedback_density);
+	atomicAdd(&gasEnergy[indx],
+		  x_frac * y_frac * z_frac * feedback_energy);
+	atomicAdd(&energy[indx],
+		  x_frac * y_frac * z_frac * feedback_energy);
+
+	if (direction > 0) {
+	  Real cell_dti = Calc_Timestep(gamma, density, momentum_x, momentum_y,
+					momentum_z, energy, indx, dx, dy, dz);
+	
+	  local_dti = fmax(local_dti, cell_dti);	  
+	}
+
+
+      } // k loop
+    } // j loop
+  } // i loop
+
+  return local_dti;
+}
+
+
+__device__ Real Cluster_Feedback_Unresolved(Real pos_x, Real pos_y, Real pos_z,
+					    Real xMin, Real yMin, Real zMin,
+					    Real dx, Real dy, Real dz,
+					    int nx_g, int ny_g, int n_ghost, int n_cells,
+					    Real gamma, Real* conserved_device,
+					    short direction,
+					    Real feedback_density, Real feedback_momentum,
+					    Real n_0)
+{
+  // For 3x3x3 the index just centers on the cell containing the particle
+  int indx_x = (int)floor((pos_x - xMin) / dx);                                                                           
+  int indx_y = (int)floor((pos_y - yMin) / dy);                                                                           
+  int indx_z = (int)floor((pos_z - zMin) / dz);  
+  
+  Real delta_x = (pos_x - xMin - indx_x * dx) / dx;
+  Real delta_y = (pos_y - yMin - indx_y * dy) / dy;
+  Real delta_z = (pos_z - zMin - indx_z * dz) / dz;
+
+  Real local_dti = 0;
+
+  Real* density    = conserved_device;
+  Real* momentum_x = &conserved_device[n_cells*grid_enum::momentum_x];
+  Real* momentum_y = &conserved_device[n_cells*grid_enum::momentum_y];
+  Real* momentum_z = &conserved_device[n_cells*grid_enum::momentum_z];  
+  Real* energy     = &conserved_device[n_cells*grid_enum::Energy];
+  Real* gasEnergy  = &conserved_device[n_cells*grid_enum::GasEnergy];  
+  
+  for (int i = -1; i < 2; i++) {
+    for (int j = -1; j < 2; j++) {
+      for (int k = -1; k < 2; k++) {
+	// index in array of conserved quantities
+	int indx = (indx_x + i + n_ghost) +
+	           (indx_y + j + n_ghost) * nx_g +
+	           (indx_z + k + n_ghost) * nx_g * ny_g;
+
+	Real x_frac =
+	  d_fr(i, delta_x) * frac(j, delta_y) * frac(k, delta_z);
+	Real y_frac =
+	  frac(i, delta_x) * d_fr(j, delta_y) * frac(k, delta_z);
+	Real z_frac =
+	  frac(i, delta_x) * frac(j, delta_y) * d_fr(k, delta_z);
+
+	Real px = x_frac * feedback_momentum;
+	Real py = y_frac * feedback_momentum;
+	Real pz = z_frac * feedback_momentum;
+	Real d  = (abs(x_frac) + abs(y_frac) + abs(z_frac)) / 6 *
+	          feedback_density +
+	          n_0 * supernova::MU * MP / DENSITY_UNIT;
+
+	atomicAdd(&momentum_x[indx], px);                                                                         
+	atomicAdd(&momentum_y[indx], py);                                                                         
+	atomicAdd(&momentum_z[indx], pz); 
+	density[indx] = d;
+	energy[indx]  = (momentum_x[indx] * momentum_x[indx] +                                                    
+			 momentum_y[indx] * momentum_y[indx] +                                                     
+			 momentum_z[indx] * momentum_z[indx]) /                                                    
+	                2 / density[indx] +                                                                    
+	                gasEnergy[indx]; 	
+	
+	if (direction > 0) {
+	  Real cell_dti = Calc_Timestep(gamma, density, momentum_x, momentum_y,
+					momentum_z, energy, indx, dx, dy, dz);
+	
+	  local_dti = fmax(local_dti, cell_dti);
+	}
+      
+
+	
+      } // k loop
+    } // j loop
+  } // i loop
+
+  return local_dti;
+
+
+
+}
+
+
+__device__ void Cluster_Feedback_Helper(part_int_t n_local,
+					Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev,
+					Real* age_dev, Real* mass_dev, part_int_t* id_dev,
+					Real xMin, Real yMin, Real zMin,
+					Real xMax, Real yMax, Real zMax,
+					Real dx, Real dy, Real dz,
+					int nx_g, int ny_g, int nz_g,
+					int n_ghost,
+					int n_step,
+					Real t, Real dt, Real* dti,
+					Real* dev_snr, Real snr_dt, Real time_sn_start, Real time_sn_end,
+					Real* prev_dens, int* prev_N,
+					short direction,
+					Real* s_info, Real* conserved_dev, Real gamma)
+{
+  int tid = threadIdx.x;
+  int gtid = blockIdx.x * blockDim.x + tid;
+  // Bounds check on particle arrays
+  if (gtid >= n_local) return;
+
+  Real pos_x = pos_x_dev[gtid];
+  Real pos_y = pos_y_dev[gtid];
+  Real pos_z = pos_z_dev[gtid];
+  bool in_local = (pos_x >= xMin && pos_x < xMax) &&
+                  (pos_y >= yMin && pos_y < yMax) &&
+                  (pos_z >= zMin && pos_z < zMax);
+  // Particle is outside bounds, exit
+  if (!in_local) return;
+
+  int indx_x = (int)floor((pos_x - xMin) / dx);
+  int indx_y = (int)floor((pos_y - yMin) / dy);
+  int indx_z = (int)floor((pos_z - zMin) / dz);
+  bool ignore = indx_x < 0 || indx_y < 0 || indx_z < 0 ||
+                indx_x >= nx_g - 2 * n_ghost ||
+                indx_y >= ny_g - 2 * n_ghost ||
+                indx_z >= nz_g - 2 * n_ghost;
+  // Ignore this particle, exit
+  if (ignore) return;
+
+  bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx);
+  if (!is_alone) return;
+
+  
+  // note age_dev is actually the time of birth
+  Real age = t - age_dev[gtid];
+  if (age > time_sn_end) return;
+
+  int N = 0;
+  if (direction == -1) {
+    N = -prev_N[gtid];
+  } else {
+    Real average_num_sn = GetSNRate(age, dev_snr, snr_dt,
+                                    time_sn_start, time_sn_end) * mass_dev[gtid] * dt;
+    feedback_prng_t state;
+    curand_init(42,0,0,&state);
+    unsigned long long skip = n_step * 10000 + id_dev[gtid];
+    skipahead(skip, &state); // provided by curand
+    N = (int) curand_poisson(&state, average_num_sn);
+    prev_N[gtid] = N;
+  }
+
+  // No supernova, exit
+  if (N == 0) return;
+
+  Real n_0;
+  if (direction == -1) {
+    n_0 = prev_dens[gtid];
+  } else {
+    Real* density = conserved_dev;
+    n_0 = GetAverageNumberDensity_CGS(density, indx_x, indx_y, indx_z,
+                                              nx_g, ny_g, n_ghost);
+    prev_dens[gtid] = n_0;
+  }
+
+
+  mass_dev[gtid] -= N * supernova::MASS_PER_SN;
+  Real dV                = dx * dy * dz;
+  Real feedback_energy   = N * supernova::ENERGY_PER_SN / dV;
+  Real feedback_density  = N * supernova::MASS_PER_SN / dV;
+  Real feedback_momentum = direction * supernova::FINAL_MOMENTUM *
+                           pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV;
+
+
+  Real shell_radius = supernova::R_SH * pow(n_0, -0.46) * pow(fabsf(N), 0.29);
+  bool is_resolved = 3 * max(dx, max(dy, dz)) <= shell_radius;
+
+  int n_cells = nx_g * ny_g * nz_g;
+  
+  Real local_dti = 0.0;
+  if (is_resolved) {
+    local_dti = Cluster_Feedback_Resolved( pos_x,  pos_y,  pos_z,
+					   xMin,  yMin,  zMin,
+					   dx,  dy,  dz,
+					   nx_g,  ny_g,  n_ghost,  n_cells,
+					   gamma, conserved_dev,
+					   direction,
+					   feedback_density,  feedback_energy);
+    // inject energy and density
+  } else {
+    // inject momentum and density
+    local_dti = Cluster_Feedback_Unresolved( pos_x,  pos_y,  pos_z,
+					     xMin,  yMin,  zMin,
+					     dx,  dy,  dz,
+					     nx_g,  ny_g,  n_ghost,  n_cells,
+					     gamma, conserved_dev,
+					     direction,
+					     feedback_density,  feedback_momentum,
+					     n_0);
+
+  }
+
+  if (direction > 0) atomicMax(dti, local_dti);
+
+  return;
+
+}
+
 __global__ void Cluster_Feedback_Kernel(
+    part_int_t n_local, part_int_t* id_dev, Real* pos_x_dev, Real* pos_y_dev,
+    Real* pos_z_dev, Real* mass_dev, Real* age_dev, Real xMin, Real yMin,
+    Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz,
+    int nx_g, int ny_g, int nz_g, int n_ghost, Real t, Real dt, Real* dti,
+    Real* info, Real* density, Real* gasEnergy, Real* energy, Real* momentum_x,
+    Real* momentum_y, Real* momentum_z, Real gamma,
+    feedback_prng_t* states, Real* prev_dens, int* prev_N,
+    short direction, Real* dev_snr, Real snr_dt, Real time_sn_start,
+    Real time_sn_end, int n_step)
+{
+
+  int tid  = threadIdx.x;
+  //int gtid = blockIdx.x * blockDim.x + tid;
+
+  // for collecting SN feedback information  
+  __shared__ Real s_info[FEED_INFO_N * TPB_FEEDBACK];  
+
+  Cluster_Feedback_Helper(n_local,
+			  pos_x_dev, pos_y_dev, pos_z_dev,
+			  age_dev, mass_dev, id_dev,
+			  xMin, yMin, zMin,
+			  xMax, yMax, zMax,
+			  dx, dy, dz,
+			  nx_g, ny_g, nz_g,
+			  n_ghost,
+			  n_step,
+			  t, dt, dti,
+			  dev_snr, snr_dt, time_sn_start, time_sn_end,
+			  prev_dens, prev_N,
+			  direction,
+			  s_info, density, gamma);
+    
+  
+  __syncthreads();
+
+  // reduce the info from all the threads in the block
+  for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+    if (tid < s) {
+      s_info[FEED_INFO_N * tid] += s_info[FEED_INFO_N * (tid + s)];
+      s_info[FEED_INFO_N * tid + 1] += s_info[FEED_INFO_N * (tid + s) + 1];
+      s_info[FEED_INFO_N * tid + 2] += s_info[FEED_INFO_N * (tid + s) + 2];
+      s_info[FEED_INFO_N * tid + 3] += s_info[FEED_INFO_N * (tid + s) + 3];
+      s_info[FEED_INFO_N * tid + 4] += s_info[FEED_INFO_N * (tid + s) + 4];
+      s_info[FEED_INFO_N * tid + 5] += s_info[FEED_INFO_N * (tid + s) + 5];
+    }
+    __syncthreads();
+  }
+
+  if (tid == 0) {
+    info[FEED_INFO_N * blockIdx.x]     = s_info[0];
+    info[FEED_INFO_N * blockIdx.x + 1] = s_info[1];
+    info[FEED_INFO_N * blockIdx.x + 2] = s_info[2];
+    info[FEED_INFO_N * blockIdx.x + 3] = s_info[3];
+    info[FEED_INFO_N * blockIdx.x + 4] = s_info[4];
+    info[FEED_INFO_N * blockIdx.x + 5] = s_info[5];
+  }
+    
+}
+
+__global__ void Cluster_Feedback_Kernel2(
     part_int_t n_local, part_int_t* id, Real* pos_x_dev, Real* pos_y_dev,
     Real* pos_z_dev, Real* mass_dev, Real* age_dev, Real xMin, Real yMin,
     Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz,
@@ -560,7 +879,7 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
 
-                  
+
                   //printf("INDX DEBUG: n_step: %d id: %d indx: %d \n", n_step, (int) id[gtid], indx);
 
                   if (indx >= nx_g * ny_g * nz_g) {
@@ -570,8 +889,8 @@ __global__ void Cluster_Feedback_Kernel(
                   atomicAdd(&momentum_x[indx], px);
                   atomicAdd(&momentum_y[indx], py);
                   atomicAdd(&momentum_z[indx], pz);
-                  
-                  /*
+
+
                   density[indx] = d;
                   energy[indx]  = (momentum_x[indx] * momentum_x[indx] +
                                   momentum_y[indx] * momentum_y[indx] +
@@ -579,7 +898,7 @@ __global__ void Cluster_Feedback_Kernel(
                                      2 / density[indx] +
                                  gasEnergy[indx];
 
-                  */
+
 
                   // atomicAdd(    &energy[indx], e );
                   // atomicAdd(   &density[indx], d );
