@@ -17,7 +17,7 @@
   #include "../io/io.h"
   #include "supernova.h"
 
-  #define TPB_FEEDBACK   256
+  #define TPB_FEEDBACK   128
   #define FEED_INFO_N    6
   #define i_RES          1
   #define i_UNRES        2
@@ -25,9 +25,12 @@
   #define i_MOMENTUM     4
   #define i_UNRES_ENERGY 5
 
+typedef curandStateMRG32k3a_t feedback_prng_t;
+//typedef curandStatePhilox4_32_10_t feedback_prng_t;
+
 namespace supernova
 {
-curandStateMRG32k3a_t* randStates;
+feedback_prng_t* randStates;
 part_int_t n_states;
 Real *dev_snr, snr_dt, time_sn_start, time_sn_end;
 int snr_n;
@@ -49,7 +52,7 @@ __device__ double atomicMax(double* address, double val)
   #endif  // O_HIP
 
 __global__ void initState_kernel(unsigned int seed,
-                                 curandStateMRG32k3a_t* states)
+                                 feedback_prng_t* states)
 {
   int id = blockIdx.x * blockDim.x + threadIdx.x;
   curand_init(seed, id, 0, &states[id]);
@@ -72,7 +75,7 @@ __global__ void initState_kernel(unsigned int seed,
 void supernova::initState(struct parameters* P, part_int_t n_local,
                           Real allocation_factor)
 {
-  printf("supernova::initState start\n");
+  chprintf("supernova::initState start\n");
   std::string snr_filename(P->snr_filename);
   if (not snr_filename.empty()) {
     chprintf("Specified a SNR filename %s.\n", snr_filename.data());
@@ -129,9 +132,9 @@ void supernova::initState(struct parameters* P, part_int_t n_local,
     time_sn_end   = DEFAULT_SN_END;
   }
 
-  // Now ititialize the poisson random number generator state.
+  // Now initialize the poisson random number generator state.
   n_states = n_local * allocation_factor;
-  cudaMalloc((void**)&randStates, n_states * sizeof(curandStateMRG32k3a_t));
+  cudaMalloc((void**)&randStates, n_states * sizeof(feedback_prng_t));
 
   int ngrid = (n_states + TPB_FEEDBACK - 1) / TPB_FEEDBACK;
   dim3 grid(ngrid);
@@ -140,8 +143,8 @@ void supernova::initState(struct parameters* P, part_int_t n_local,
   hipLaunchKernelGGL(initState_kernel, grid, block, 0, 0, P->prng_seed,
                      randStates);
   CHECK(cudaDeviceSynchronize());
-  printf("supernova::initState end: n_states=%d, ngrid=%d, threads=%d\n",
-         n_states, ngrid, TPB_FEEDBACK);
+  chprintf("supernova::initState end: n_states=%ld, ngrid=%d, threads=%d\n",
+	   n_states, ngrid, TPB_FEEDBACK);
 }
 
 __device__ Real GetSNRate(Real t, Real* dev_snr, Real snr_dt, Real t_start,
@@ -191,14 +194,14 @@ __device__ Real d_fr(int i, Real dx)
 }
 
 __device__ Real GetAverageDensity(Real* density, int xi, int yi, int zi,
-                                  int nxg, int nyg, int ng)
+                                  int nx_grid, int ny_grid, int n_ghost)
 {
   Real d_average = 0.0;
   for (int i = -1; i < 2; i++) {
     for (int j = -1; j < 2; j++) {
       for (int k = -1; k < 2; k++) {
-        d_average += density[(xi + ng + i) + (yi + ng + j) * nxg +
-                             (zi + ng + k) * nxg * nyg];
+        d_average += density[(xi + n_ghost + i) + (yi + n_ghost + j) * nx_grid +
+                             (zi + n_ghost + k) * nx_grid * ny_grid];
       }
     }
   }
@@ -206,10 +209,27 @@ __device__ Real GetAverageDensity(Real* density, int xi, int yi, int zi,
 }
 
 __device__ Real GetAverageNumberDensity_CGS(Real* density, int xi, int yi,
-                                            int zi, int nxg, int nyg, int ng)
+                                            int zi, int nx_grid, int ny_grid, int n_ghost)
 {
-  return GetAverageDensity(density, xi, yi, zi, nxg, nyg, ng) * DENSITY_UNIT /
+  return GetAverageDensity(density, xi, yi, zi, nx_grid, ny_grid, n_ghost) * DENSITY_UNIT /
          (supernova::MU * MP);
+}
+
+__device__ bool Particle_Is_Alone(Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev, part_int_t n_local, int gtid, Real dx)
+{
+  Real x0 = pos_x_dev[gtid];
+  Real y0 = pos_y_dev[gtid];
+  Real z0 = pos_z_dev[gtid];
+  // Brute force loop to see if particle is alone
+  for (int i=0;i<n_local;i++) {
+    if (i == gtid) continue;
+    if (abs(x0 - pos_x_dev[i]) > dx) continue;
+    if (abs(y0 - pos_y_dev[i]) > dx) continue;
+    if (abs(z0 - pos_z_dev[i]) > dx) continue;
+    // If we made it here, something is too close.
+    return false;
+  }
+  return true;
 }
 
 __global__ void Cluster_Feedback_Kernel(
@@ -219,9 +239,9 @@ __global__ void Cluster_Feedback_Kernel(
     int nx_g, int ny_g, int nz_g, int n_ghost, Real t, Real dt, Real* dti,
     Real* info, Real* density, Real* gasEnergy, Real* energy, Real* momentum_x,
     Real* momentum_y, Real* momentum_z, Real gamma,
-    curandStateMRG32k3a_t* states, Real* prev_dens, int* prev_N,
+    feedback_prng_t* states, Real* prev_dens, int* prev_N,
     short direction, Real* dev_snr, Real snr_dt, Real time_sn_start,
-    Real time_sn_end)
+    Real time_sn_end, int n_step)
 {
   __shared__ Real
       s_info[FEED_INFO_N *
@@ -254,14 +274,14 @@ __global__ void Cluster_Feedback_Kernel(
     pos_x = pos_x_dev[gtid];
     pos_y = pos_y_dev[gtid];
     pos_z = pos_z_dev[gtid];
-    // printf("(%d): pos:(%.4e, %.4e, %.4e)\n", gtid, pos_x, pos_y, pos_z);
-    // printf("(%d): MIN:(%.4e, %.4e, %.4e)\n", gtid, xMin, yMin, xMin);
+    // kernel_printf("(%d): pos:(%.4e, %.4e, %.4e)\n", gtid, pos_x, pos_y, pos_z);
+    // kernel_printf("(%d): MIN:(%.4e, %.4e, %.4e)\n", gtid, xMin, yMin, xMin);
 
     bool in_local = (pos_x >= xMin && pos_x < xMax) &&
                     (pos_y >= yMin && pos_y < yMax) &&
                     (pos_z >= zMin && pos_z < zMax);
     if (!in_local) {
-      printf(
+      kernel_printf(
           " Feedback GPU: Particle outside local domain [%f  %f  %f]  [%f %f] "
           "[%f %f] [%f %f]\n ",
           pos_x, pos_y, pos_z, xMin, xMax, yMin, yMax, zMin, zMax);
@@ -270,32 +290,52 @@ __global__ void Cluster_Feedback_Kernel(
     int indx_x = (int)floor((pos_x - xMin) / dx);
     int indx_y = (int)floor((pos_y - yMin) / dy);
     int indx_z = (int)floor((pos_z - zMin) / dz);
-    // printf("(%d): indx:(%d, %d, %d)\n", gtid, indx_x, indx_y, indx_z);
+    // kernel_printf("(%d): indx:(%d, %d, %d)\n", gtid, indx_x, indx_y, indx_z);
 
     bool ignore = indx_x < 0 || indx_y < 0 || indx_z < 0 ||
                   indx_x >= nx_g - 2 * n_ghost ||
                   indx_y >= ny_g - 2 * n_ghost || indx_z >= nz_g - 2 * n_ghost;
     if (ignore) {
-      printf(
+      kernel_printf(
           " Feedback GPU: Particle CIC index err [%f  %f  %f]  [%d %d %d] [%d "
           "%d %d] \n ",
           pos_x, pos_y, pos_z, indx_x, indx_y, indx_z, nx_g, ny_g, nz_g);
     }
 
-    if (!ignore && in_local) {
+    // Avoid overlap issues for now
+    bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx) ;
+
+    if (!ignore && in_local && is_alone) {
       int N = 0;
-      if ((t - age_dev[gtid]) <=
-          time_sn_end) {  // only calculate this if there will be SN feedback
+      // only calculate this if there will be SN feedback
+      if ((t - age_dev[gtid]) <= time_sn_end) {
         if (direction == -1)
           N = -prev_N[gtid];
         else {
-          curandStateMRG32k3a_t state = states[gtid];
-          N                           = curand_poisson(&state,
-                                                       GetSNRate(t - age_dev[gtid], dev_snr, snr_dt,
-                                                                 time_sn_start, time_sn_end) *
-                                                           mass_dev[gtid] * dt);
-          states[gtid]                = state;
-          prev_N[gtid]                = N;
+          Real average_num_sn = GetSNRate(t - age_dev[gtid], dev_snr, snr_dt,
+					  time_sn_start, time_sn_end) * mass_dev[gtid] * dt;
+
+	  //N = (int) (average_num_sn + 0.5);
+
+
+          feedback_prng_t state;// = states[0]; // load initial state
+
+	        curand_init(42,0,0,&state);
+          unsigned long long skip = n_step * 10000 + id[gtid];
+          skipahead(skip, &state); // provided by curand
+          unsigned int debug_state = curand(&state);
+
+
+          //state = states[gtid];
+
+
+
+
+          N = (int) curand_poisson(&state, average_num_sn);
+          printf("PRNG DEBUG: n_step: %d id: %d skip: %llu debug_state: %u N: %d \n",
+                 n_step, (int) id[gtid], skip, debug_state, N);
+          //states[gtid] = state; // don't write back to state, keep it pristine
+          prev_N[gtid]          = N;
         }
         if (N != 0) {
           mass_dev[gtid] -= N * supernova::MASS_PER_SN;
@@ -312,7 +352,7 @@ __global__ void Cluster_Feedback_Kernel(
           // cudaGetDeviceCount(&devcount);
           // int devId;
           // cudaGetDevice(&devId);
-          // printf("[%d: %d] N: %d, time: %.4e, dt: %.4e, e: %.4e, n_0:
+          // kernel_printf("[%d: %d] N: %d, time: %.4e, dt: %.4e, e: %.4e, n_0:
           // %.4e\n", devId, gtid, N, t, dt, feedback_energy, n_0);
 
           feedback_momentum = direction * supernova::FINAL_MOMENTUM *
@@ -321,7 +361,7 @@ __global__ void Cluster_Feedback_Kernel(
               supernova::R_SH * pow(n_0, -0.46) * pow(fabsf(N), 0.29);
           is_resolved = 3 * max(dx, max(dy, dz)) <= shell_radius;
           if (!is_resolved)
-            printf(
+            kernel_printf(
                 "UR[%f] at (%d, %d, %d)  id=%d, N=%d, shell_rad=%0.4e, "
                 "n_0=%0.4e\n",
                 t, indx_x + n_ghost, indx_y + n_ghost, indx_z + n_ghost,
@@ -360,7 +400,7 @@ __global__ void Cluster_Feedback_Kernel(
                          (indx_z + k) * nx_g * ny_g;
 
                   if (abs(momentum_x[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Rb: (%d, %d, %d) vx = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -368,7 +408,7 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
                   if (abs(momentum_y[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Rb: (%d, %d, %d) vy = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -376,7 +416,7 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
                   if (abs(momentum_z[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Rb: (%d, %d, %d) vz = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -398,7 +438,7 @@ __global__ void Cluster_Feedback_Kernel(
                             x_frac * y_frac * z_frac * feedback_energy);
 
                   if (abs(momentum_x[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Ra: (%d, %d, %d) vx = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -406,7 +446,7 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
                   if (abs(momentum_y[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Ra: (%d, %d, %d) vy = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -414,7 +454,7 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
                   if (abs(momentum_z[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Ra: (%d, %d, %d) vz = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -436,8 +476,8 @@ __global__ void Cluster_Feedback_Kernel(
             delta_x = (pos_x - xMin - indx_x * dx) / dx;
             delta_y = (pos_y - yMin - indx_y * dy) / dy;
             delta_z = (pos_z - zMin - indx_z * dz) / dz;
-            // printf("(%d):indx:(%d, %d, %d)\n", gtid, indx_x, indx_y, indx_z);
-            // printf("(%d): pos:(%.4e, %.4e, %.4e), delta_x (%.2e, %.2e,
+            // kernel_printf("(%d):indx:(%d, %d, %d)\n", gtid, indx_x, indx_y, indx_z);
+            // kernel_printf("(%d): pos:(%.4e, %.4e, %.4e), delta_x (%.2e, %.2e,
             // %.2e)\n", gtid, pos_x, pos_y, pos_z, delta_x, delta_y, delta_z);
 
             indx_x += n_ghost;
@@ -447,7 +487,7 @@ __global__ void Cluster_Feedback_Kernel(
             if (abs(feedback_momentum / feedback_density * VELOCITY_UNIT *
                     1e-5) >
                 40000) {  // injected speeds are greater than 4e4 km/s
-              printf(
+              kernel_printf(
                   "**** (%d, %d, %d) injected speeds are %.3e km/s\n", indx_x,
                   indx_y, indx_z,
                   feedback_momentum / feedback_density * VELOCITY_UNIT * 1e-5);
@@ -477,10 +517,10 @@ __global__ void Cluster_Feedback_Kernel(
 
                   // d  = frac(i, delta_x) * frac(j, delta_y) * frac(k, delta_z)
                   // * feedback_density; e  = frac(i, delta_x) * frac(j,
-                  // delta_y) * frac(k, delta_z) * feedback_energy; printf("(%d,
+                  // delta_y) * frac(k, delta_z) * feedback_energy; kernel_printf("(%d,
                   // %d, %d): delta:(%.4e, %.4e, %.4e), frac: %.4e\n", indx_x,
                   // indx_y, indx_z, delta_x, delta_y, delta_z, frac(i,
-                  // delta_x)*frac(j, delta_y)*frac(k, delta_z)); printf("(%d,
+                  // delta_x)*frac(j, delta_y)*frac(k, delta_z)); kernel_printf("(%d,
                   // %d, %d):(%d SN) (i:%d, j:%d, k:%d) before: %.4e\n", indx_x,
                   // indx_y, indx_z, N, i, j, k,
                   // density[indx]*DENSITY_UNIT/0.6/MP);
@@ -496,7 +536,7 @@ __global__ void Cluster_Feedback_Kernel(
                   // density[indx]*DENSITY_UNIT/0.6/MP;
 
                   if (abs(momentum_x[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Ub: (%d, %d, %d) vx = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -504,7 +544,7 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
                   if (abs(momentum_y[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Ub: (%d, %d, %d) vy = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -512,7 +552,7 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
                   if (abs(momentum_z[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Ub: (%d, %d, %d) vz = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -520,15 +560,26 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
 
+                  
+                  //printf("INDX DEBUG: n_step: %d id: %d indx: %d \n", n_step, (int) id[gtid], indx);
+
+                  if (indx >= nx_g * ny_g * nz_g) {
+                    printf("INDX DEBUG\n");
+                  }
+
                   atomicAdd(&momentum_x[indx], px);
                   atomicAdd(&momentum_y[indx], py);
                   atomicAdd(&momentum_z[indx], pz);
+                  
+                  /*
                   density[indx] = d;
                   energy[indx]  = (momentum_x[indx] * momentum_x[indx] +
                                   momentum_y[indx] * momentum_y[indx] +
                                   momentum_z[indx] * momentum_z[indx]) /
                                      2 / density[indx] +
                                  gasEnergy[indx];
+
+                  */
 
                   // atomicAdd(    &energy[indx], e );
                   // atomicAdd(   &density[indx], d );
@@ -538,7 +589,7 @@ __global__ void Cluster_Feedback_Kernel(
                       density[indx] * dV;
 
                   if (abs(momentum_x[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Ua: (%d, %d, %d) vx = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -546,7 +597,7 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
                   if (abs(momentum_y[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Ua: (%d, %d, %d) vy = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -554,7 +605,7 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
                   if (abs(momentum_z[indx] / density[indx]) >= C_L) {
-                    printf(
+                    kernel_printf(
                         "%d, Ua: (%d, %d, %d) vz = %.3e, d = %.3e, n_0 = "
                         "%.3e\n",
                         direction, indx_x + i, indx_y + j, indx_z + k,
@@ -576,22 +627,22 @@ __global__ void Cluster_Feedback_Kernel(
                   // momentum_y[indx]*momentum_y[indx] +
                   // momentum_z[indx]*momentum_z[indx])*VELOCITY_UNIT/1e5;
 
-                  // printf("(%d, %d, %d):(CM: %.2e, SN: %d) (i:%d, j:%d, k:%d)
+                  // kernel_printf("(%d, %d, %d):(CM: %.2e, SN: %d) (i:%d, j:%d, k:%d)
                   // v_1: %.5e v_2: %.5e   V_DIFF-> %.4f %%\n", indx_x, indx_y,
                   // indx_z, mass_dev[gtid], N, i, j, k, v_1, v_2,
-                  // (v_2-v_1)/v_1*100); printf("   (%d, %d, %d):(%d SN) (i:%d,
+                  // (v_2-v_1)/v_1*100); kernel_printf("   (%d, %d, %d):(%d SN) (i:%d,
                   // j:%d, k:%d) T_b: %.5e T_a: %.5e   T_DIFF-> %.4f %%\n",
                   // indx_x, indx_y, indx_z, N, i, j, k, t_b, t_a,
-                  // (t_a-t_b)/t_b*100); printf("      (%d, %d, %d):(%d SN)
+                  // (t_a-t_b)/t_b*100); kernel_printf("      (%d, %d, %d):(%d SN)
                   // (i:%d, j:%d, k:%d) d_b: %.5e d_a: %.5e   D_DIFF-> %.1f
                   // %%\n", indx_x, indx_y, indx_z, N, i, j, k, d_b, d_a,
-                  // (d_a-d_b)/d_b*100); printf("         (%d, %d, %d):(%d SN)
+                  // (d_a-d_b)/d_b*100); kernel_printf("         (%d, %d, %d):(%d SN)
                   // (i:%d, j:%d, k:%d) p_b: %.5e p_a: %.5e   P_DIFF-> %.4f
                   // %%\n", indx_x, indx_y, indx_z, N, i, j, k, p_b, p_a,
                   // (p_a-p_b)/p_b*100);
 
                   if (direction > 0) {
-                    // printf("urs time:%.3e id:%d N:%d d:%.5e\n", t, id[gtid],
+                    // kernel_printf("urs time:%.3e id:%d N:%d d:%.5e\n", t, id[gtid],
                     // N, n_0);
                     local_dti = fmax(
                         local_dti,
@@ -641,11 +692,13 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
 
   if (G.H.dt == 0) return 0.0;
 
+  /*
   if (G.Particles.n_local > supernova::n_states) {
-    printf("ERROR: not enough cuRAND states (%d) for %d local particles\n",
+    printf("ERROR: not enough cuRAND states (%ld) for %ld local particles\n",
            supernova::n_states, G.Particles.n_local);
     exit(-1);
   }
+  */
 
   Real h_dti = 0.0;
   int direction, ngrid;
@@ -686,7 +739,7 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
           d_info, G.C.d_density, G.C.d_GasEnergy, G.C.d_Energy,
           G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, gama,
           supernova::randStates, d_prev_dens, d_prev_N, direction, dev_snr,
-          snr_dt, time_sn_start, time_sn_end);
+          snr_dt, time_sn_start, time_sn_end, G.H.n_step);
 
       CHECK(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
     }
@@ -696,9 +749,9 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
     MPI_Barrier(world);
   #endif  // MPI_CHOLLA
 
-    if (h_dti != 0 &&
-        (C_cfl / h_dti <
-         G.H.dt)) {  // timestep too big: need to undo the last operation
+    if (h_dti != 0 && (C_cfl / h_dti < G.H.dt))
+    {
+      // timestep too big: need to undo the last operation
       direction = -1;
       if (G.Particles.n_local > 0) {
         hipLaunchKernelGGL(
@@ -711,7 +764,7 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
             d_info, G.C.d_density, G.C.d_GasEnergy, G.C.d_Energy,
             G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, gama,
             supernova::randStates, d_prev_dens, d_prev_N, direction, dev_snr,
-            snr_dt, time_sn_start, time_sn_end);
+            snr_dt, time_sn_start, time_sn_end, G.H.n_step);
 
         CHECK(cudaDeviceSynchronize());
       }
