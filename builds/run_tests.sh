@@ -214,6 +214,7 @@ runTests ()
 # argument is the value of COMPILER which does not occur for all setup scripts
 # \param[in] -g (optional) If set then download and build a local version of
 # GoogleTest to use instead of the machine default
+# \param[in] -d (optional) Build Cholla in debug mode
 buildAndRunTests ()
 {
   # Unset BUILD_GTEST so that subsequent runs aren't tied to what previous runs

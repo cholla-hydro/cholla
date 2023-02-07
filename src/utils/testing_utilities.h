@@ -93,7 +93,7 @@ int64_t ulpsDistanceDbl(double const &a, double const &b);
  */
 bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff,
                     int64_t &ulpsDiff, double const &fixedEpsilon = 1E-14,
-                    int const &ulpsEpsilon = 4);
+                    int64_t const &ulpsEpsilon = 4);
 // =========================================================================
 
 void wrapperEqual(int i, int j, int k, std::string dataSetName,
@@ -126,7 +126,7 @@ void analyticSine(systemTest::SystemTestRunner testObject,
 template <int checkType = 0>
 void checkResults(double fiducialNumber, double testNumber,
                   std::string outString, double fixedEpsilon = -999,
-                  int ulpsEpsilon = -999)
+                  int64_t ulpsEpsilon = -999)
 {
   // Check for equality and if not equal return difference
   double absoluteDiff;
