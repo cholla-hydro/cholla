@@ -116,19 +116,9 @@ __device__ double atomicAdd(double *address, double val)
 }
     #endif
 
-  // This helper function exists to easily enable/disable printfs inside kernels
-  // And makes it easier to find printfs inside kernels
-
-    #ifndef DISABLE_KERNEL_PRINTF
-      #define kernel_printf printf
-    #else
-inline __device__ int kernel_printf(const char *format, ...)
-{
-  // printf returns number of characters printed if success, negative value
-  // otherwise
-  return 0;
-}
-    #endif  // DISABLE_KERNEL_PRINTF
+    // This helper function exists to make it easier to find printfs inside
+    // kernels
+    #define kernel_printf printf
 
   #endif  // GLOBAL_CUDA_H
 

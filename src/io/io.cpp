@@ -157,7 +157,7 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   H5close();
 #endif
 
-#if defined(GRAVITY) && defined(GRAVITY_RESTART) && defined(HDF5)
+#if defined(GRAVITY) && defined(HDF5)
   G.Grav.Write_Restart_HDF5(&P, nfile);
 #endif
 
