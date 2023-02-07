@@ -305,10 +305,10 @@ __global__ void Cluster_Feedback_Kernel(
     }
 
     // Avoid overlap issues for now
-    bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local,
-                                      gtid, 6 * dx);
+    //bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local,
+    //                                  gtid, 6 * dx);
 
-    if (!ignore && in_local && is_alone) {
+    if (!ignore && in_local) {
       int N = 0;
       // only calculate this if there will be SN feedback
       if ((t - age_dev[gtid]) <= time_sn_end) {
@@ -326,15 +326,10 @@ __global__ void Cluster_Feedback_Kernel(
           curand_init(42, 0, 0, &state);
           unsigned long long skip = n_step * 10000 + id[gtid];
           skipahead(skip, &state);  // provided by curand
-          unsigned int debug_state = curand(&state);
-
-          // state = states[gtid];
+          // unsigned int debug_state = curand(&state);
 
           N = (int)curand_poisson(&state, average_num_sn);
-          printf(
-              "PRNG DEBUG: n_step: %d id: %d skip: %llu debug_state: %u N: %d "
-              "\n",
-              n_step, (int)id[gtid], skip, debug_state, N);
+
           // states[gtid] = state; // don't write back to state, keep it
           // pristine
           prev_N[gtid] = N;
@@ -563,18 +558,11 @@ __global__ void Cluster_Feedback_Kernel(
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
 
-                  // printf("INDX DEBUG: n_step: %d id: %d indx: %d \n", n_step,
-                  // (int) id[gtid], indx);
-
-                  if (indx >= nx_g * ny_g * nz_g) {
-                    printf("INDX DEBUG\n");
-                  }
-
                   atomicAdd(&momentum_x[indx], px);
                   atomicAdd(&momentum_y[indx], py);
                   atomicAdd(&momentum_z[indx], pz);
 
-                  /*
+                  
                   density[indx] = d;
                   energy[indx]  = (momentum_x[indx] * momentum_x[indx] +
                                   momentum_y[indx] * momentum_y[indx] +
@@ -582,7 +570,7 @@ __global__ void Cluster_Feedback_Kernel(
                                      2 / density[indx] +
                                  gasEnergy[indx];
 
-                  */
+                  
 
                   // atomicAdd(    &energy[indx], e );
                   // atomicAdd(   &density[indx], d );
