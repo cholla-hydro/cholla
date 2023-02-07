@@ -8,6 +8,11 @@
   #include "../io/io.h"
 #endif
 
+#ifdef MPI_CHOLLA
+// provides procID
+  #include "../mpi/mpi_routines.h"
+#endif  // MPI_CHOLLA
+
 #ifdef HDF5
   #include <hdf5.h>
 #endif
