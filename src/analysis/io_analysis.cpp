@@ -7,8 +7,6 @@
   #include "../grid/grid3D.h"
   #include "../io/io.h"
 
-using namespace std;
-
 // #define OUTPUT_SKEWERS_TRANSMITTED_FLUX
 
   #ifdef OUTPUT_SKEWERS

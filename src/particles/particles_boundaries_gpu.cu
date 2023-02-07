@@ -81,12 +81,12 @@ __global__ void Get_Transfer_Flags_Kernel(part_int_t n_total, int side,
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid >= n_total) return;
 
-  bool transfer = 0;
+  bool transfer = false;
 
   Real pos = pos_d[tid];
 
-  if (side == 0 && pos < d_min) transfer = 1;
-  if (side == 1 && pos >= d_max) transfer = 1;
+  if (side == 0 && pos < d_min) transfer = true;
+  if (side == 1 && pos >= d_max) transfer = true;
 
   transfer_flags_d[tid] = transfer;
 }

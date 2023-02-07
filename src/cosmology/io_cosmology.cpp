@@ -6,8 +6,6 @@
   #include "../cosmology/cosmology.h"
   #include "../io/io.h"
 
-using namespace std;
-
 void Cosmology::Load_Scale_Outputs(struct parameters *P)
 {
   char filename_1[100];
@@ -15,8 +13,8 @@ void Cosmology::Load_Scale_Outputs(struct parameters *P)
   strcpy(filename_1, P->scale_outputs_file);
   chprintf(" Loading Scale_Factor Outpus: %s\n", filename_1);
 
-  ifstream file_out(filename_1);
-  string line;
+  std::ifstream file_out(filename_1);
+  std::string line;
   Real a_value;
   if (file_out.is_open()) {
     while (getline(file_out, line)) {
