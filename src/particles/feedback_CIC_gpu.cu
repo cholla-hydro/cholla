@@ -305,7 +305,8 @@ __global__ void Cluster_Feedback_Kernel(
     }
 
     // Avoid overlap issues for now
-    //bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local,
+    // bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev,
+    // n_local,
     //                                  gtid, 6 * dx);
 
     if (!ignore && in_local) {
@@ -562,15 +563,12 @@ __global__ void Cluster_Feedback_Kernel(
                   atomicAdd(&momentum_y[indx], py);
                   atomicAdd(&momentum_z[indx], pz);
 
-                  
                   density[indx] = d;
                   energy[indx]  = (momentum_x[indx] * momentum_x[indx] +
                                   momentum_y[indx] * momentum_y[indx] +
                                   momentum_z[indx] * momentum_z[indx]) /
                                      2 / density[indx] +
                                  gasEnergy[indx];
-
-                  
 
                   // atomicAdd(    &energy[indx], e );
                   // atomicAdd(   &density[indx], d );
