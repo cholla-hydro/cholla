@@ -84,7 +84,7 @@ void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile)
   dims[0] = n_cells_potential;
 
   dataspace_id = H5Screate_simple(1, dims, NULL);
-  HDF5_Dataset(file_id, dataspace_id, F.potential_1_h, "/potential");
+  Write_HDF5_Dataset(file_id, dataspace_id, F.potential_1_h, "/potential");
   H5Sclose(dataspace_id);
 
   H5Fclose(file_id);
