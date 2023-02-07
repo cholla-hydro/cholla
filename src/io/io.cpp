@@ -23,8 +23,6 @@
   #include "../cosmology/cosmology.h"
 #endif  // COSMOLOGY
 
-using namespace std;
-
 // #define OUTPUT_ENERGY
 // #define OUTPUT_MOMENTUM
 
@@ -39,7 +37,7 @@ void Create_Log_File(struct parameters P)
   if (procID != 0) return;
 #endif
 
-  string file_name(LOG_FILE_NAME);
+  std::string file_name(LOG_FILE_NAME);
   chprintf("\nCreating Log File: %s \n\n", file_name.c_str());
 
   bool file_exists = false;
@@ -54,8 +52,8 @@ void Create_Log_File(struct parameters P)
   // convert now to string form
   char *dt = ctime(&now);
 
-  ofstream out_file;
-  out_file.open(file_name.c_str(), ios::app);
+  std::ofstream out_file;
+  out_file.open(file_name.c_str(), std::ios::app);
   out_file << "\n";
   out_file << "Run date: " << dt;
   out_file.close();
@@ -67,10 +65,10 @@ void Write_Message_To_Log_File(const char *message)
   if (procID != 0) return;
 #endif
 
-  string file_name(LOG_FILE_NAME);
-  ofstream out_file;
-  out_file.open(file_name.c_str(), ios::app);
-  out_file << message << endl;
+  std::string file_name(LOG_FILE_NAME);
+  std::ofstream out_file;
+  out_file.open(file_name.c_str(), std::ios::app);
+  out_file << message << std::endl;
   out_file.close();
 }
 

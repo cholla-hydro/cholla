@@ -11,8 +11,6 @@
       #include <fftw3.h>
     #endif
 
-using namespace std;
-
 class Analysis_Module
 {
  public:

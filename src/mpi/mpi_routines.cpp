@@ -821,7 +821,7 @@ int greatest_prime_factor(int n)
 
   if (n == 1 || n == 2) return n;
 
-  while (1) {
+  while (true) {
     while (!(ns % np)) {
       ns = ns / np;
     }
