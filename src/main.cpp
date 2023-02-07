@@ -226,9 +226,9 @@ int main(int argc, char *argv[])
   chprintf("Starting calculations.\n");
   message = "Starting calculations.";
   Write_Message_To_Log_File(message.c_str());
-  
+
   // Compute inverse timestep for the first time
-  dti = G.Calc_DTI();
+  dti = G.Calc_Inverse_Timestep();
 
   while (G.H.t < P.tout) {
 // get the start time

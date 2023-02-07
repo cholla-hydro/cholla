@@ -434,7 +434,7 @@ class Grid3D
    * *zpos) \brief Get the cell-centered position based on cell index */
   void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real *zpos);
 
-  Real Calc_DTI(); 
+  Real Calc_Inverse_Timestep();
 
   /*! \fn void Set_Domain_Properties(struct parameters P)
    *  \brief Set local domain properties */

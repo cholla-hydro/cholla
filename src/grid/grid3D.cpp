@@ -120,14 +120,13 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos,
 #endif /*MPI_CHOLLA*/
 }
 
-
-
-Real Grid3D::Calc_DTI()
+Real Grid3D::Calc_Inverse_Timestep()
 {
-  // ==Calculate the next inverse time step using Calc_dt_GPU from hydro/hydro_cuda.h==
-  return Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama );
+  // ==Calculate the next inverse time step using Calc_dt_GPU from
+  // hydro/hydro_cuda.h==
+  return Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx,
+                     H.dy, H.dz, gama);
 }
-
 
 /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
  *  \brief Initialize the grid. */
@@ -510,7 +509,7 @@ Real Grid3D::Update_Grid(void)
   #endif  // AVERAGE_SLOW_CELLS
 
   // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==
-  max_dti = Calc_DTI();
+  max_dti = Calc_Inverse_Timestep();
 
 #endif  // CUDA
 

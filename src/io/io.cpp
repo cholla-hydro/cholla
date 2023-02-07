@@ -157,7 +157,7 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   H5close();
 #endif
 
-#if defined(GRAVITY) && defined(GRAVITY_RESTART) && defined(HDF5) 
+#if defined(GRAVITY) && defined(GRAVITY_RESTART) && defined(HDF5)
   G.Grav.Write_Restart_HDF5(&P, nfile);
 #endif
 
@@ -1302,17 +1302,19 @@ void Grid3D::Write_Grid_Binary(FILE *fp)
 
 #ifdef HDF5
 
-herr_t Read_HDF5_Dataset(hid_t file_id, double* dataset_buffer, const char* name)
+herr_t Read_HDF5_Dataset(hid_t file_id, double *dataset_buffer,
+                         const char *name)
 {
   hid_t dataset_id = H5Dopen(file_id, name, H5P_DEFAULT);
-  herr_t status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-  status = H5Dclose(dataset_id);
+  herr_t status    = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,
+                             H5P_DEFAULT, dataset_buffer);
+  status           = H5Dclose(dataset_id);
   return status;
 }
 // Helper function which uses the correct HDF5 arguments based on the type of
 // dataset_buffer to avoid writing garbage
-herr_t HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double *dataset_buffer,
-                    const char *name)
+herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id,
+                          double *dataset_buffer, const char *name)
 {
   // Create a dataset id for density
   hid_t dataset_id = H5Dcreate(file_id, name, H5T_IEEE_F64BE, dataspace_id,
@@ -1325,8 +1327,8 @@ herr_t HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double *dataset_buffer,
   return status;
 }
 
-herr_t HDF5_Dataset(hid_t file_id, hid_t dataspace_id, float *dataset_buffer,
-                    const char *name)
+herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id,
+                          float *dataset_buffer, const char *name)
 {
   // Create a dataset id for density
   hid_t dataset_id = H5Dcreate(file_id, name, H5T_IEEE_F32BE, dataspace_id,
@@ -1347,7 +1349,8 @@ void Write_HDF5_Field_1D_CPU(Header H, hid_t file_id, hid_t dataspace_id,
   int id = H.n_ghost;
   memcpy(&dataset_buffer[0], &(source[id]), H.nx_real * sizeof(Real));
   // Buffer write to HDF5 Dataset
-  herr_t status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer, name);
+  herr_t status =
+      Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer, name);
 }
 
 void Write_HDF5_Field_1D_CPU(Header H, hid_t file_id, hid_t dataspace_id,
@@ -1360,7 +1363,8 @@ void Write_HDF5_Field_1D_CPU(Header H, hid_t file_id, hid_t dataspace_id,
     dataset_buffer[i] = (float)source[i + H.n_ghost];
   }
   // Buffer write to HDF5 Dataset
-  herr_t status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer, name);
+  herr_t status =
+      Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer, name);
 }
 
 void Write_HDF5_Field_2D_CPU(Header H, hid_t file_id, hid_t dataspace_id,
@@ -1377,7 +1381,8 @@ void Write_HDF5_Field_2D_CPU(Header H, hid_t file_id, hid_t dataspace_id,
     }
   }
   // Buffer write to HDF5 Dataset
-  herr_t status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer, name);
+  herr_t status =
+      Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer, name);
 }
 
 // Convert double to float if necessary
@@ -1395,7 +1400,8 @@ void Write_HDF5_Field_2D_CPU(Header H, hid_t file_id, hid_t dataspace_id,
     }
   }
   // Buffer write to HDF5 Dataset
-  herr_t status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer, name);
+  herr_t status =
+      Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer, name);
 }
 
 /*! \fn void Write_Grid_HDF5(hid_t file_id)
@@ -1488,7 +1494,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       memcpy(&dataset_buffer[0], &(C.scalar[id + s * H.n_cells]),
              H.nx_real * sizeof(Real));
       // dataset here is just a name
-      status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer, dataset);
+      status =
+          Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer, dataset);
     }
 
   #endif  // SCALAR
@@ -1547,7 +1554,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
 
-      status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer, dataset);
+      status =
+          Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer, dataset);
     }
   #endif  // SCALAR
 
@@ -1634,7 +1642,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
           }
         }
       }
-      status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer, dataset);
+      status =
+          Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer, dataset);
     }
     #else  // COOLING_GRACKLE or CHEMISTRY_GPU. Write Chemistry when using
            // GRACKLE
@@ -1654,7 +1663,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer, "/HI_density");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer,
+                                "/HI_density");
 
     for (k = 0; k < H.nz_real; k++) {
       for (j = 0; j < H.ny_real; j++) {
@@ -1672,8 +1682,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       }
     }
     if (output_full_ionization || H.Output_Complete_Data) {
-      status =
-          HDF5_Dataset(file_id, dataspace_id, dataset_buffer, "/HII_density");
+      status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer,
+                                  "/HII_density");
     }
 
     for (k = 0; k < H.nz_real; k++) {
@@ -1692,8 +1702,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       }
     }
     if (output_full_ionization || H.Output_Complete_Data) {
-      status =
-          HDF5_Dataset(file_id, dataspace_id, dataset_buffer, "/HeI_density");
+      status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer,
+                                  "/HeI_density");
     }
     for (k = 0; k < H.nz_real; k++) {
       for (j = 0; j < H.ny_real; j++) {
@@ -1710,8 +1720,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    status =
-        HDF5_Dataset(file_id, dataspace_id, dataset_buffer, "/HeII_density");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer,
+                                "/HeII_density");
 
     for (k = 0; k < H.nz_real; k++) {
       for (j = 0; j < H.ny_real; j++) {
@@ -1728,8 +1738,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    status =
-        HDF5_Dataset(file_id, dataspace_id, dataset_buffer, "/HeIII_density");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer,
+                                "/HeIII_density");
 
     for (k = 0; k < H.nz_real; k++) {
       for (j = 0; j < H.ny_real; j++) {
@@ -1747,8 +1757,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       }
     }
     if (output_electrons || H.Output_Complete_Data) {
-      status =
-          HDF5_Dataset(file_id, dataspace_id, dataset_buffer, "/e_density");
+      status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer,
+                                  "/e_density");
     }
 
         #ifdef GRACKLE_METALS
@@ -1763,8 +1773,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       }
     }
     if (output_metals || H.Output_Complete_Data) {
-      status =
-          HDF5_Dataset(file_id, dataspace_id, dataset_buffer, "/metal_density");
+      status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer,
+                                  "/metal_density");
     }
         #endif  // GRACKLE_METALS
 
@@ -1793,8 +1803,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
       }
     }
 
-    status =
-        HDF5_Dataset(file_id, dataspace_id, dataset_buffer, "/temperature");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer,
+                                "/temperature");
 
       #endif  // OUTPUT_TEMPERATURE
 
@@ -1827,8 +1837,8 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
         }
       }
     }
-    status =
-        HDF5_Dataset(file_id, dataspace_id, dataset_buffer, "/grav_potential");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer,
+                                "/grav_potential");
   #endif  // GRAVITY and OUTPUT_POTENTIAL
 
   #ifdef MHD
@@ -1956,14 +1966,14 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     }
 
     // Write the projected density and temperature arrays to file
-    status =
-        HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dxy, "/d_xy");
-    status =
-        HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_dxz, "/d_xz");
-    status =
-        HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txy, "/T_xy");
-    status =
-        HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txz, "/T_xz");
+    status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dxy,
+                                "/d_xy");
+    status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_dxz,
+                                "/d_xz");
+    status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txy,
+                                "/T_xy");
+    status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txz,
+                                "/T_xz");
 
     // Free the dataspace ids
     status = H5Sclose(dataspace_xz_id);
@@ -2112,16 +2122,16 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     }
 
     // Write projected d,T,vx,vy,vz
-    status =
-        HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_dxzr, "/d_xzr");
-    status =
-        HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_Txzr, "/T_xzr");
-    status = HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vxxzr,
-                          "/vx_xzr");
-    status = HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vyxzr,
-                          "/vy_xzr");
-    status = HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vzxzr,
-                          "/vz_xzr");
+    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_dxzr,
+                                "/d_xzr");
+    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_Txzr,
+                                "/T_xzr");
+    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vxxzr,
+                                "/vx_xzr");
+    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vyxzr,
+                                "/vy_xzr");
+    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vzxzr,
+                                "/vz_xzr");
 
     // Free the dataspace id
     status = H5Sclose(dataspace_xzr_id);
@@ -2243,17 +2253,23 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     }
 
     // Write out the xy datasets for each variable
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_d, "/d_xy");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mx, "/mx_xy");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_xy");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_xy");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_xy");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_d, "/d_xy");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mx, "/mx_xy");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_xy");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_xy");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_xy");
   #ifdef DE
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_xy");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_xy");
   #endif
   #ifdef SCALAR
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_scalar,
-                          "/scalar_xy");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_scalar,
+                                "/scalar_xy");
   #endif
     // Free the dataspace id
     status = H5Sclose(dataspace_id);
@@ -2339,17 +2355,23 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     }
 
     // Write out the xz datasets for each variable
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_d, "/d_xz");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mx, "/mx_xz");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_xz");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_xz");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_xz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_d, "/d_xz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mx, "/mx_xz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_xz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_xz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_xz");
   #ifdef DE
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_xz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_xz");
   #endif
   #ifdef SCALAR
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_scalar,
-                          "/scalar_xz");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_scalar,
+                                "/scalar_xz");
   #endif
 
     // Free the dataspace id
@@ -2436,17 +2458,23 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     }
 
     // Write out the yz datasets for each variable
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_d, "/d_yz");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mx, "/mx_yz");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_yz");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_yz");
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_yz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_d, "/d_yz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mx, "/mx_yz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_yz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_yz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_yz");
   #ifdef DE
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_yz");
+    status =
+        Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_yz");
   #endif
   #ifdef SCALAR
-    status = HDF5_Dataset(file_id, dataspace_id, dataset_buffer_scalar,
-                          "/scalar_yz");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_scalar,
+                                "/scalar_yz");
   #endif
 
     // Free the dataspace id
