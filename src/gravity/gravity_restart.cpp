@@ -100,7 +100,9 @@ void Grav3D::Read_Restart_HDF5(struct parameters* P, int nfile)
            __FILE__, __LINE__);
 }
 
-void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile) {}
-chprintf("WARNING from file %s line %d: Write_Restart_HDF5 did nothing",
-         __FILE__, __LINE__);
+void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile)
+{
+  chprintf("WARNING from file %s line %d: Write_Restart_HDF5 did nothing",
+           __FILE__, __LINE__);
+}
 #endif

@@ -720,7 +720,7 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny,
       P  = (E - 0.5 * d * (vx * vx + vy * vy + vz * vz)) * (gamma - 1.0);
       cs = sqrt(d_inv * gamma * P) * VELOCITY_UNIT * 1e-5;
       // Average this cell
-      printf(
+      kernel_printf(
           " Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f, n=%.3e, "
           "T=%.3e, v=%.3e (%.3e, %.3e, %.3e), cs=%.3e\n",
           xid, yid, zid, 1. / max_dti, 1. / max_dti_slow,
