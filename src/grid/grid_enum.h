@@ -86,6 +86,10 @@ enum : int {
   magnetic_start = magnetic_x,
   magnetic_end   = magnetic_z,
 
+  ct_elec_x = 0,
+  ct_elec_y = 1,
+  ct_elec_z = 2,
+
   // Note that the direction of the flux, the suffix _? indicates the direction
   // of the electric field, not the magnetic flux
   fluxX_magnetic_z = magnetic_start,
