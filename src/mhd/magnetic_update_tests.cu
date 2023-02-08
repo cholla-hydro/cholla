@@ -122,9 +122,9 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
 TEST_F(tMHDUpdateMagneticField3D, CorrectInputExpectCorrectOutput)
 {
   // Fiducial values
-  fiducialData.at(135) = 142.68000000000001;
-  fiducialData.at(162) = 151.75999999999999;
-  fiducialData.at(189) = 191.56;
+  fiducialData.at(148) = 155.68000000000001;
+  fiducialData.at(175) = 164.75999999999999;
+  fiducialData.at(202) = 204.56;
 
   // Launch kernel and check results
   runTest();

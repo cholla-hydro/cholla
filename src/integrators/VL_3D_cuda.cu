@@ -117,7 +117,6 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
 
   #ifdef MHD
     CudaSafeCall(cudaMalloc((void **)&ctElectricFields, ctArraySize));
-    cuda_utilities::initGpuMemory(ctElectricFields, ctArraySize);
   #endif  // MHD
 
   #if defined(GRAVITY)

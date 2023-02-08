@@ -28,7 +28,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
 
   // Thread guard to avoid overrun and to skip the first two cells since
   // those ghost cells can't be reconstructed
-  if (xid > 1 and yid > 1 and zid > 1 and xid < nx and yid < ny and zid < nz) {
+  if (xid > 0 and yid > 0 and zid > 0 and xid < nx and yid < ny and zid < nz) {
     // According to Stone et al. 2008 section 5.3 and the source code of
     // Athena, the following equation relate the magnetic flux to the
     // face centered electric fields/EMF. -cross(V,B)x is the negative

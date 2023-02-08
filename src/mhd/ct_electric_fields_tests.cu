@@ -39,7 +39,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
    *
    */
   tMHDCalculateCTElectricFields()
-      : nx(3),
+      : nx(2),
         ny(nx),
         nz(nx),
         n_cells(nx * ny * nz),
@@ -130,9 +130,9 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
 TEST_F(tMHDCalculateCTElectricFields, PositiveVelocityExpectCorrectOutput)
 {
   // Fiducial values
-  fiducialData.at(26) = 206.29859653255295;
-  fiducialData.at(53) = -334.90052254763339;
-  fiducialData.at(80) = 209.53472440298236;
+  fiducialData.at(7)  = 60.951467108788492;
+  fiducialData.at(15) = -98.736587665919359;
+  fiducialData.at(23) = 61.768055665002557;
 
   // Launch kernel and check results
   runTest();
@@ -143,9 +143,9 @@ TEST_F(tMHDCalculateCTElectricFields, PositiveVelocityExpectCorrectOutput)
 TEST_F(tMHDCalculateCTElectricFields, NegativeVelocityExpectCorrectOutput)
 {
   // Fiducial values
-  fiducialData.at(26) = 203.35149422304994;
-  fiducialData.at(53) = -330.9860399765279;
-  fiducialData.at(80) = 208.55149905461991;
+  fiducialData.at(7)  = 59.978246483260179;
+  fiducialData.at(15) = -97.279949010457187;
+  fiducialData.at(23) = 61.280813140085613;
 
   // Set the density fluxes to be negative to indicate a negative velocity
   // across the face
@@ -164,9 +164,9 @@ TEST_F(tMHDCalculateCTElectricFields, NegativeVelocityExpectCorrectOutput)
 TEST_F(tMHDCalculateCTElectricFields, ZeroVelocityExpectCorrectOutput)
 {
   // Fiducial values
-  fiducialData.at(26) = 204.82504537780144;
-  fiducialData.at(53) = -332.94328126208063;
-  fiducialData.at(80) = 209.04311172880114;
+  fiducialData.at(7)  = 60.464856796024335;
+  fiducialData.at(15) = -98.008268338188287;
+  fiducialData.at(23) = 61.524434402544081;
 
   // Set the density fluxes to be negative to indicate a negative velocity
   // across the face

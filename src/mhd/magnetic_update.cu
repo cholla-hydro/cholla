@@ -30,7 +30,8 @@ __global__ void Update_Magnetic_Field_3D(Real *sourceGrid, Real *destinationGrid
 
   // Thread guard to avoid overrun and to skip ghost cells that cannot be
   // evolved due to missing electric fields that can't be reconstructed
-  if (xid < nx - 2 and yid < ny - 2 and zid < nz - 2) {
+  if (xid > 0 and yid > 0 and zid > 0 and xid < nx - 1 and yid < ny - 1 and
+      zid < nz - 1) {
     // Compute the three dt/dx quantities
     Real const dtodx = dt / dx;
     Real const dtody = dt / dy;
