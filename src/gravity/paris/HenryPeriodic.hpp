@@ -24,8 +24,7 @@ class HenryPeriodic
    * @param[in] m[3] { Number of MPI tasks in each dimension. }
    * @param[in] id[3] { Coordinates of this MPI task, starting at `{0,0,0}`. }
    */
-  HenryPeriodic(const int n[3], const double lo[3], const double hi[3],
-                const int m[3], const int id[3]);
+  HenryPeriodic(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3]);
 
   ~HenryPeriodic();
 
@@ -59,22 +58,21 @@ class HenryPeriodic
    * the FFT. The function should return the filtered value. }
    */
   template <typename F>
-  void filter(const size_t bytes, double *const before, double *const after,
-              const F f) const;
+  void filter(const size_t bytes, double *const before, double *const after, const F f) const;
 
  private:
   int idi_, idj_, idk_;  //!< MPI coordinates of 3D block
   int mi_, mj_, mk_;     //!< Number of MPI tasks in each dimension of 3D domain
-  int nh_;  //!< Global number of complex values in Z dimension, after R2C
-            //!< transform
-  int ni_, nj_, nk_;  //!< Global number of real points in each dimension
-  int mp_, mq_;       //!< Number of MPI tasks in X and Y dimensions of Z pencil
-  int idp_, idq_;     //!< X and Y task IDs within Z pencil
+  int nh_;               //!< Global number of complex values in Z dimension, after R2C
+                         //!< transform
+  int ni_, nj_, nk_;     //!< Global number of real points in each dimension
+  int mp_, mq_;          //!< Number of MPI tasks in X and Y dimensions of Z pencil
+  int idp_, idq_;        //!< X and Y task IDs within Z pencil
   MPI_Comm commI_, commJ_,
-      commK_;  //!< Communicators of fellow tasks in X, Y, and Z pencils
+      commK_;              //!< Communicators of fellow tasks in X, Y, and Z pencils
   int dh_, di_, dj_, dk_;  //!< Max number of local points in each dimension
   int dhq_, dip_, djp_,
-      djq_;  //!< Max number of local points in dimensions of 2D decompositions
+      djq_;       //!< Max number of local points in dimensions of 2D decompositions
   size_t bytes_;  //!< Max bytes needed for argument arrays
   cufftHandle c2ci_, c2cj_, c2rk_,
       r2ck_;  //!< Objects for forward and inverse FFTs
@@ -86,8 +84,7 @@ class HenryPeriodic
 #if defined(__HIP__) || defined(__CUDACC__)
 
 template <typename F>
-void HenryPeriodic::filter(const size_t bytes, double *const before,
-                           double *const after, const F f) const
+void HenryPeriodic::filter(const size_t bytes, double *const before, double *const after, const F f) const
 {
   // Make sure arguments have enough space
   assert(bytes >= bytes_);
@@ -117,9 +114,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
   // Reorder 3D block into sub-pencils
 
   gpuFor(
-      mp, mq, dip, djq, dk,
-      GPU_LAMBDA(const int p, const int q, const int i, const int j,
-                 const int k) {
+      mp, mq, dip, djq, dk, GPU_LAMBDA(const int p, const int q, const int i, const int j, const int k) {
         const int ii = p * dip + i;
         const int jj = q * djq + j;
         const int ia = k + dk * (j + djq * (i + dip * (q + mq * p)));
@@ -146,8 +141,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int jLo = idj * dj + idq * djq;
     const int jHi = std::min({jLo + djq, (idj + 1) * dj, nj});
     gpuFor(
-        iHi - iLo, jHi - jLo, mk, dk,
-        GPU_LAMBDA(const int i, const int j, const int pq, const int k) {
+        iHi - iLo, jHi - jLo, mk, dk, GPU_LAMBDA(const int i, const int j, const int pq, const int k) {
           const int kk = pq * dk + k;
           if (kk < nk) {
             const int ia = kk + nk * (j + djq * i);
@@ -167,8 +161,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int jLo = idj_ * dj_ + idq * djq;
     const int jHi = std::min({jLo + djq, (idj + 1) * dj, nj});
     gpuFor(
-        mjq, iHi - iLo, jHi - jLo, dhq,
-        GPU_LAMBDA(const int q, const int i, const int j, const int k) {
+        mjq, iHi - iLo, jHi - jLo, dhq, GPU_LAMBDA(const int q, const int i, const int j, const int k) {
           const int kk = q * dhq + k;
           if (kk < nh) {
             const int ia = k + dhq * (j + djq * (i + dip * q));
@@ -196,9 +189,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int kLo = idjq * dhq;
     const int kHi = std::min(kLo + dhq, nh);
     gpuFor(
-        kHi - kLo, iHi - iLo, mj, mq, djq,
-        GPU_LAMBDA(const int k, const int i, const int r, const int q,
-                   const int j) {
+        kHi - kLo, iHi - iLo, mj, mq, djq, GPU_LAMBDA(const int k, const int i, const int r, const int q, const int j) {
           const int rdj = r * dj;
           const int jj  = rdj + q * djq + j;
           if ((jj < nj) && (jj < rdj + dj)) {
@@ -219,8 +210,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int kLo = idjq * dhq;
     const int kHi = std::min(kLo + dhq, nh);
     gpuFor(
-        mip, kHi - kLo, iHi - iLo, djp,
-        GPU_LAMBDA(const int p, const int k, const int i, const int j) {
+        mip, kHi - kLo, iHi - iLo, djp, GPU_LAMBDA(const int p, const int k, const int i, const int j) {
           const int jj = p * djp + j;
           if (jj < nj) {
             const int ia = j + djp * (i + dip * (k + dhq * p));
@@ -248,9 +238,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int kLo = idjq * dhq;
     const int kHi = std::min(kLo + dhq, nh);
     gpuFor(
-        jHi - jLo, kHi - kLo, mi, mp, dip,
-        GPU_LAMBDA(const int j, const int k, const int r, const int p,
-                   const int i) {
+        jHi - jLo, kHi - kLo, mi, mp, dip, GPU_LAMBDA(const int j, const int k, const int r, const int p, const int i) {
           const int rdi = r * di;
           const int ii  = rdi + p * dip + i;
           if ((ii < ni) && (ii < rdi + di)) {
@@ -272,8 +260,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
   const int kHi = std::min(kLo + dhq, nh);
 
   gpuFor(
-      jHi - jLo, kHi - kLo, ni,
-      GPU_LAMBDA(const int j0, const int k0, const int i) {
+      jHi - jLo, kHi - kLo, ni, GPU_LAMBDA(const int j0, const int k0, const int i) {
         const int j   = jLo + j0;
         const int k   = kLo + k0;
         const int iab = i + ni * (k0 + dhq * j0);
@@ -290,9 +277,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int kLo = idjq * dhq;
     const int kHi = std::min(kLo + dhq, nh);
     gpuFor(
-        mi, mp, jHi - jLo, kHi - kLo, dip,
-        GPU_LAMBDA(const int r, const int p, const int j, const int k,
-                   const int i) {
+        mi, mp, jHi - jLo, kHi - kLo, dip, GPU_LAMBDA(const int r, const int p, const int j, const int k, const int i) {
           const int rdi = r * di;
           const int ii  = rdi + p * dip + i;
           if ((ii < ni) && (ii < rdi + di)) {
@@ -320,8 +305,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int kLo = idjq * dhq;
     const int kHi = std::min(kLo + dhq, nh);
     gpuFor(
-        kHi - kLo, iHi - iLo, mip, djp,
-        GPU_LAMBDA(const int k, const int i, const int p, const int j) {
+        kHi - kLo, iHi - iLo, mip, djp, GPU_LAMBDA(const int k, const int i, const int p, const int j) {
           const int jj = p * djp + j;
           if (jj < nj) {
             const int ia = jj + nj * (i + dip * k);
@@ -341,9 +325,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int kLo = idjq * dhq;
     const int kHi = std::min(kLo + dhq, nh);
     gpuFor(
-        mj, mq, kHi - kLo, iHi - iLo, djq,
-        GPU_LAMBDA(const int r, const int q, const int k, const int i,
-                   const int j) {
+        mj, mq, kHi - kLo, iHi - iLo, djq, GPU_LAMBDA(const int r, const int q, const int k, const int i, const int j) {
           const int rdj = r * dj;
           const int jj  = rdj + q * djq + j;
           if ((jj < nj) && (jj < rdj + dj)) {
@@ -371,8 +353,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int jLo = idj * dj + idq * djq;
     const int jHi = std::min({jLo + djq, (idj + 1) * dj, nj});
     gpuFor(
-        iHi - iLo, jHi - jLo, mjq, dhq,
-        GPU_LAMBDA(const int i, const int j, const int q, const int k) {
+        iHi - iLo, jHi - jLo, mjq, dhq, GPU_LAMBDA(const int i, const int j, const int q, const int k) {
           const int kk = q * dhq + k;
           if (kk < nh) {
             const int ia = kk + nh * (j + djq * i);
@@ -392,8 +373,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int jLo = idj * dj + idq * djq;
     const int jHi = std::min({jLo + djq, (idj + 1) * dj, nj});
     gpuFor(
-        mk, iHi - iLo, jHi - jLo, dk,
-        GPU_LAMBDA(const int pq, const int i, const int j, const int k) {
+        mk, iHi - iLo, jHi - jLo, dk, GPU_LAMBDA(const int pq, const int i, const int j, const int k) {
           const int kk = pq * dk + k;
           if (kk < nk) {
             const int ia = k + dk * (j + djq * (i + dip * pq));
@@ -419,9 +399,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before,
     const int kLo     = idk * dk;
     const int kHi     = std::min(kLo + dk, nk);
     gpuFor(
-        mp, dip, mq, djq, kHi - kLo,
-        GPU_LAMBDA(const int p, const int i, const int q, const int j,
-                   const int k) {
+        mp, dip, mq, djq, kHi - kLo, GPU_LAMBDA(const int p, const int i, const int q, const int j, const int k) {
           const int ii = p * dip + i;
           const int jj = q * djq + j;
           if ((ii < di) && (jj < dj)) {

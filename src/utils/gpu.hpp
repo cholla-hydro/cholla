@@ -12,12 +12,10 @@
 
     #include <hipfft.h>
 
-static void __attribute__((unused))
-check(const hipfftResult err, const char *const file, const int line)
+static void __attribute__((unused)) check(const hipfftResult err, const char *const file, const int line)
 {
   if (err == HIPFFT_SUCCESS) return;
-  fprintf(stderr, "HIPFFT ERROR AT LINE %d OF FILE '%s': %d\n", line, file,
-          err);
+  fprintf(stderr, "HIPFFT ERROR AT LINE %d OF FILE '%s': %d\n", line, file, err);
   fflush(stderr);
   exit(err);
 }
@@ -110,12 +108,11 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define curand                hiprand
   #define curand_poisson        hiprand_poisson
 
-static void __attribute__((unused))
-check(const hipError_t err, const char *const file, const int line)
+static void __attribute__((unused)) check(const hipError_t err, const char *const file, const int line)
 {
   if (err == hipSuccess) return;
-  fprintf(stderr, "HIP ERROR AT LINE %d OF FILE '%s': %s %s\n", line, file,
-          hipGetErrorName(err), hipGetErrorString(err));
+  fprintf(stderr, "HIP ERROR AT LINE %d OF FILE '%s': %s %s\n", line, file, hipGetErrorName(err),
+          hipGetErrorString(err));
   fflush(stderr);
   exit(err);
 }
@@ -141,8 +138,8 @@ static void check(const cufftResult err, const char *const file, const int line)
 static void check(const cudaError_t err, const char *const file, const int line)
 {
   if (err == cudaSuccess) return;
-  fprintf(stderr, "CUDA ERROR AT LINE %d OF FILE '%s': %s %s\n", line, file,
-          cudaGetErrorName(err), cudaGetErrorString(err));
+  fprintf(stderr, "CUDA ERROR AT LINE %d OF FILE '%s': %s %s\n", line, file, cudaGetErrorName(err),
+          cudaGetErrorString(err));
   fflush(stderr);
   exit(err);
 }
@@ -161,8 +158,7 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
 #if defined(__CUDACC__) || defined(__HIPCC__)
 
 template <typename F>
-__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun0(const int n0,
-                                                           const F f)
+__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun0(const int n0, const F f)
 {
   const int i0 = blockIdx.x * blockDim.x + threadIdx.x;
   if (i0 < n0) f(i0);
@@ -195,8 +191,7 @@ __global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun1x1(const F f)
 }
 
 template <typename F>
-__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun2x0(const int n1,
-                                                             const F f)
+__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun2x0(const int n1, const F f)
 {
   const int i0 = blockIdx.y;
   const int i1 = blockIdx.x * blockDim.x + threadIdx.x;
@@ -252,8 +247,7 @@ __global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun2x1(const F f)
 }
 
 template <typename F>
-__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun3x0(const int n2,
-                                                             const F f)
+__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun3x0(const int n2, const F f)
 {
   const int i0 = blockIdx.z;
   const int i1 = blockIdx.y;
@@ -317,9 +311,7 @@ __global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun3x1(const F f)
 }
 
 template <typename F>
-__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun4x0(const int n23,
-                                                             const int n3,
-                                                             const F f)
+__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun4x0(const int n23, const int n3, const F f)
 {
   const int i23 = blockIdx.x * blockDim.x + threadIdx.x;
   if (i23 < n23) {
@@ -381,8 +373,7 @@ __global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun3x2(const F f)
 }
 
 template <typename F>
-__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun4x1(const int n1,
-                                                             const F f)
+__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun4x1(const int n1, const F f)
 {
   const int i01 = blockIdx.z;
   const int i0  = i01 / n1;
@@ -394,10 +385,7 @@ __global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun4x1(const int n1,
 }
 
 template <typename F>
-__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun5x0(const int n1,
-                                                             const int n34,
-                                                             const int n4,
-                                                             const F f)
+__global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun5x0(const int n1, const int n34, const int n4, const F f)
 {
   const int i34 = blockIdx.x * blockDim.x + threadIdx.x;
   if (i34 < n34) {
@@ -412,8 +400,7 @@ __global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun5x0(const int n1,
 }
 
 template <typename F>
-void gpuFor(const int n0, const int n1, const int n2, const int n3,
-            const int n4, const F f)
+void gpuFor(const int n0, const int n1, const int n2, const int n3, const int n4, const F f)
 {
   if ((n0 <= 0) || (n1 <= 0) || (n2 <= 0) || (n3 <= 0) || (n4 <= 0)) return;
   const long nl01 = long(n0) * long(n1);
