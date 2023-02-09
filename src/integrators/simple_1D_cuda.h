@@ -8,8 +8,8 @@
 
     #include "../global/global.h"
 
-void Simple_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost,
-                              Real dx, Real xbound, Real dt, int n_fields);
+void Simple_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt,
+                              int n_fields);
 
 void Free_Memory_Simple_1D();
 

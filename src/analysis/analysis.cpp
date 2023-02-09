@@ -84,8 +84,7 @@ void Grid3D::Compute_and_Output_Analysis(struct parameters *P)
   chprintf("\nComputing Analysis \n");
   #endif
 
-  cudaMemcpy(C.density, C.device, H.n_fields * H.n_cells * sizeof(Real),
-             cudaMemcpyDeviceToHost);
+  cudaMemcpy(C.density, C.device, H.n_fields * H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
   #ifdef PHASE_DIAGRAM
     #ifdef CHEMISTRY_GPU
@@ -108,8 +107,7 @@ void Grid3D::Compute_and_Output_Analysis(struct parameters *P)
   #endif
 
   #ifdef LYA_STATISTICS
-  if (Analysis.Computed_Flux_Power_Spectrum == 1)
-    Analysis.Clear_Power_Spectrum_Measurements();
+  if (Analysis.Computed_Flux_Power_Spectrum == 1) Analysis.Clear_Power_Spectrum_Measurements();
   #endif
 
   #ifdef COSMOLOGY
@@ -139,17 +137,13 @@ void Grid3D::Initialize_Analysis_Module(struct parameters *P)
   z_now = 0;
   #endif
 
-  Analysis.Initialize(H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal,
-                      H.zblocal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real,
-                      H.nz_real, H.dx, H.dy, H.dz, H.n_ghost, z_now, P);
+  Analysis.Initialize(H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal, P->nx, P->ny, P->nz,
+                      H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost, z_now, P);
 }
 
-void Analysis_Module::Initialize(Real Lx, Real Ly, Real Lz, Real x_min,
-                                 Real y_min, Real z_min, int nx, int ny, int nz,
-                                 int nx_real, int ny_real, int nz_real,
-                                 Real dx_real, Real dy_real, Real dz_real,
-                                 int n_ghost_hydro, Real z_now,
-                                 struct parameters *P)
+void Analysis_Module::Initialize(Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz,
+                                 int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real,
+                                 int n_ghost_hydro, Real z_now, struct parameters *P)
 {
   // Domain Length
   Lbox_x = Lx;

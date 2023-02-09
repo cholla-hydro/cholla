@@ -29,8 +29,7 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
 {
   // Launch parameters
   // =================
-  cuda_utilities::AutomaticLaunchParams static const launchParams(
-      reduction_utilities::kernelReduceMax);
+  cuda_utilities::AutomaticLaunchParams static const launchParams(reduction_utilities::kernelReduceMax);
 
   // Grid Parameters & testing parameters
   // ====================================
@@ -42,8 +41,7 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
 
   // Fill grid with random values and assign maximum value
   std::mt19937 prng(1);
-  std::uniform_real_distribution<double> doubleRand(-std::abs(maxValue) - 1,
-                                                    std::abs(maxValue) - 1);
+  std::uniform_real_distribution<double> doubleRand(-std::abs(maxValue) - 1, std::abs(maxValue) - 1);
   std::uniform_int_distribution<int> intRand(0, host_grid.size() - 1);
   for (size_t i = 0; i < host_grid.size(); i++) {
     host_grid.at(i) = doubleRand(prng);
@@ -60,14 +58,12 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
 
   // Do the reduction
   // ================
-  hipLaunchKernelGGL(reduction_utilities::kernelReduceMax,
-                     launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
+  hipLaunchKernelGGL(reduction_utilities::kernelReduceMax, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
                      dev_grid.data(), dev_max.data(), host_grid.size());
   CudaCheckError();
 
   // Perform comparison
-  testingUtilities::checkResults(maxValue, dev_max.at(0),
-                                 "maximum value found");
+  testingUtilities::checkResults(maxValue, dev_max.at(0), "maximum value found");
 }
 // =============================================================================
 // Tests for divergence max reduction

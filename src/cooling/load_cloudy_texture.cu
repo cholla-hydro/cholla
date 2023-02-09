@@ -110,17 +110,14 @@ void Load_Cuda_Textures()
 
   // allocate host arrays to be copied to textures
   // these arrays are declared as external pointers in global.h
-  CudaSafeCall(cudaHostAlloc(&cooling_table, nx * ny * sizeof(float),
-                             cudaHostAllocDefault));
-  CudaSafeCall(cudaHostAlloc(&heating_table, nx * ny * sizeof(float),
-                             cudaHostAllocDefault));
+  CudaSafeCall(cudaHostAlloc(&cooling_table, nx * ny * sizeof(float), cudaHostAllocDefault));
+  CudaSafeCall(cudaHostAlloc(&heating_table, nx * ny * sizeof(float), cudaHostAllocDefault));
 
   // Read cooling tables into the host arrays
   Host_Read_Cooling_Tables(cooling_table, heating_table);
 
   // Allocate CUDA arrays in device memory
-  cudaChannelFormatDesc channelDesc =
-      cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
   cudaMallocArray(&cuCoolArray, &channelDesc, nx, ny);
   cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny);
 
@@ -131,10 +128,10 @@ void Load_Cuda_Textures()
   // cudaMemcpyHostToDevice); cudaMemcpyToArray(cuHeatArray, 0, 0,
   // heating_table, nx*ny*sizeof(float), cudaMemcpyHostToDevice);
 
-  cudaMemcpy2DToArray(cuCoolArray, 0, 0, cooling_table, nx * sizeof(float),
-                      nx * sizeof(float), ny, cudaMemcpyHostToDevice);
-  cudaMemcpy2DToArray(cuHeatArray, 0, 0, heating_table, nx * sizeof(float),
-                      nx * sizeof(float), ny, cudaMemcpyHostToDevice);
+  cudaMemcpy2DToArray(cuCoolArray, 0, 0, cooling_table, nx * sizeof(float), nx * sizeof(float), ny,
+                      cudaMemcpyHostToDevice);
+  cudaMemcpy2DToArray(cuHeatArray, 0, 0, heating_table, nx * sizeof(float), nx * sizeof(float), ny,
+                      cudaMemcpyHostToDevice);
 
   // Specify textures
   struct cudaResourceDesc coolResDesc;
@@ -149,12 +146,10 @@ void Load_Cuda_Textures()
   // Specify texture object parameters (same for both tables)
   struct cudaTextureDesc texDesc;
   memset(&texDesc, 0, sizeof(texDesc));
-  texDesc.addressMode[0] =
-      cudaAddressModeClamp;  // out-of-bounds fetches return border values
-                             // dimension 0
-  texDesc.addressMode[1] =
-      cudaAddressModeClamp;  // out-of-bounds fetches return border values
-                             // dimension 1
+  texDesc.addressMode[0] = cudaAddressModeClamp;  // out-of-bounds fetches return border values
+                                                  // dimension 0
+  texDesc.addressMode[1] = cudaAddressModeClamp;  // out-of-bounds fetches return border values
+                                                  // dimension 1
   texDesc.filterMode = cudaFilterModePoint;
   // We use point mode instead of Linear mode in order to do the interpolation
   // ourselves. Linear mode introduces errors since it only uses 8 bits.
@@ -190,8 +185,7 @@ void Free_Cuda_Textures()
 
 /* Consider this function only to be used at the end of Load_Cuda_Textures when
  * testing Evaluate texture on grid of size num_n num_T for variables n,T */
-__global__ void Test_Cloudy_Textures_Kernel(int num_n, int num_T,
-                                            cudaTextureObject_t coolTexObj,
+__global__ void Test_Cloudy_Textures_Kernel(int num_n, int num_T, cudaTextureObject_t coolTexObj,
                                             cudaTextureObject_t heatTexObj)
 {
   int id, id_n, id_T;
@@ -215,10 +209,8 @@ __global__ void Test_Cloudy_Textures_Kernel(int num_n, int num_T,
   float rlog_n = (log_n + 6.0) * 10;
 
   // Evaluate
-  float lambda = Bilinear_Texture(
-      coolTexObj, rlog_T, rlog_n);  // tex2D<float>(coolTexObj, rlog_T, rlog_n);
-  float heat = Bilinear_Texture(
-      heatTexObj, rlog_T, rlog_n);  // tex2D<float>(heatTexObj, rlog_T, rlog_n);
+  float lambda = Bilinear_Texture(coolTexObj, rlog_T, rlog_n);  // tex2D<float>(coolTexObj, rlog_T, rlog_n);
+  float heat   = Bilinear_Texture(heatTexObj, rlog_T, rlog_n);  // tex2D<float>(heatTexObj, rlog_T, rlog_n);
 
   // Hackfully print it out for processing for correctness
   printf("TEST_Cloudy: %.17e %.17e %.17e %.17e \n", log_T, log_n, lambda, heat);
@@ -226,8 +218,7 @@ __global__ void Test_Cloudy_Textures_Kernel(int num_n, int num_T,
 
 /* Consider this function only to be used at the end of Load_Cuda_Textures when
  * testing Evaluate texture on grid of size num_n num_T for variables n,T */
-__global__ void Test_Cloudy_Speed_Kernel(int num_n, int num_T,
-                                         cudaTextureObject_t coolTexObj,
+__global__ void Test_Cloudy_Speed_Kernel(int num_n, int num_T, cudaTextureObject_t coolTexObj,
                                          cudaTextureObject_t heatTexObj)
 {
   int id, id_n, id_T;
@@ -253,10 +244,8 @@ __global__ void Test_Cloudy_Speed_Kernel(int num_n, int num_T,
   float rlog_n = (id_n - 1) * 0.0125;
 
   // Evaluate
-  float lambda = Bilinear_Texture(
-      coolTexObj, rlog_T, rlog_n);  // tex2D<float>(coolTexObj, rlog_T, rlog_n);
-  float heat = Bilinear_Texture(
-      heatTexObj, rlog_T, rlog_n);  // tex2D<float>(heatTexObj, rlog_T, rlog_n);
+  float lambda = Bilinear_Texture(coolTexObj, rlog_T, rlog_n);  // tex2D<float>(coolTexObj, rlog_T, rlog_n);
+  float heat   = Bilinear_Texture(heatTexObj, rlog_T, rlog_n);  // tex2D<float>(heatTexObj, rlog_T, rlog_n);
 
   // Hackfully print it out for processing for correctness
   // printf("TEST_Cloudy: %.17e %.17e %.17e %.17e \n",log_T, log_n, lambda,
@@ -271,8 +260,7 @@ void Test_Cloudy_Textures()
   int num_T = 1 + 2 * 81;
   dim3 dim1dGrid((num_n * num_T + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel, dim1dGrid, dim1dBlock, 0, 0,
-                     num_n, num_T, coolTexObj, heatTexObj);
+  hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel, dim1dGrid, dim1dBlock, 0, 0, num_n, num_T, coolTexObj, heatTexObj);
   CHECK(cudaDeviceSynchronize());
   printf("Exiting due to Test_Cloudy_Textures() being called \n");
   exit(0);
@@ -287,8 +275,7 @@ void Test_Cloudy_Speed()
   CHECK(cudaDeviceSynchronize());
   Real time_start = get_time();
   for (int i = 0; i < 100; i++) {
-    hipLaunchKernelGGL(Test_Cloudy_Speed_Kernel, dim1dGrid, dim1dBlock, 0, 0,
-                       num_n, num_T, coolTexObj, heatTexObj);
+    hipLaunchKernelGGL(Test_Cloudy_Speed_Kernel, dim1dGrid, dim1dBlock, 0, 0, num_n, num_T, coolTexObj, heatTexObj);
   }
   CHECK(cudaDeviceSynchronize());
   Real time_end = get_time();

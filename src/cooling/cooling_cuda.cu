@@ -18,16 +18,14 @@
 cudaTextureObject_t coolTexObj = 0;
 cudaTextureObject_t heatTexObj = 0;
 
-void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost,
-                    int n_fields, Real dt, Real gamma)
+void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
 {
   int n_cells = nx * ny * nz;
   int ngrid   = (n_cells + TPB - 1) / TPB;
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved,
-                     nx, ny, nz, n_ghost, n_fields, dt, gama, coolTexObj,
-                     heatTexObj);
+  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt,
+                     gama, coolTexObj, heatTexObj);
   CudaCheckError();
 }
 
@@ -37,10 +35,8 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost,
  *  \brief When passed an array of conserved variables and a timestep, adjust
  the value of the total energy for each cell according to the specified cooling
  function. */
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz,
-                               int n_ghost, int n_fields, Real dt, Real gamma,
-                               cudaTextureObject_t coolTexObj,
-                               cudaTextureObject_t heatTexObj)
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
+                               Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
 {
   int n_cells = nx * ny * nz;
   int is, ie, js, je, ks, ke;
@@ -200,10 +196,8 @@ __device__ Real primordial_cool(Real n, Real T)
 {
   Real n_h, Y, y, g_ff, cool;
   Real n_h0, n_hp, n_he0, n_hep, n_hepp, n_e, n_e_old;
-  Real alpha_hp, alpha_hep, alpha_d, alpha_hepp, gamma_eh0, gamma_ehe0,
-      gamma_ehep;
-  Real le_h0, le_hep, li_h0, li_he0, li_hep, lr_hp, lr_hep, lr_hepp, ld_hep,
-      l_ff;
+  Real alpha_hp, alpha_hep, alpha_d, alpha_hepp, gamma_eh0, gamma_ehe0, gamma_ehep;
+  Real le_h0, le_hep, li_h0, li_he0, li_hep, lr_hp, lr_hep, lr_hepp, ld_hep, l_ff;
   Real gamma_lh0, gamma_lhe0, gamma_lhep, e_h0, e_he0, e_hep, H;
   int heat_flag, n_iter;
   Real diff, tol;
@@ -220,19 +214,13 @@ __device__ Real primordial_cool(Real n, Real T)
 
   // calculate the recombination and collisional ionization rates
   // (Table 2 from Katz 1996)
-  alpha_hp = (8.4e-11) * (1.0 / sqrt(T)) * pow((T / 1e3), (-0.2)) *
-             (1.0 / (1.0 + pow((T / 1e6), (0.7))));
-  alpha_hep = (1.5e-10) * (pow(T, (-0.6353)));
-  alpha_d   = (1.9e-3) * (pow(T, (-1.5))) * exp(-470000.0 / T) *
-            (1.0 + 0.3 * exp(-94000.0 / T));
-  alpha_hepp = (3.36e-10) * (1.0 / sqrt(T)) * pow((T / 1e3), (-0.2)) *
-               (1.0 / (1.0 + pow((T / 1e6), (0.7))));
-  gamma_eh0 =
-      (5.85e-11) * sqrt(T) * exp(-157809.1 / T) * (1.0 / (1.0 + sqrt(T / 1e5)));
-  gamma_ehe0 =
-      (2.38e-11) * sqrt(T) * exp(-285335.4 / T) * (1.0 / (1.0 + sqrt(T / 1e5)));
-  gamma_ehep =
-      (5.68e-12) * sqrt(T) * exp(-631515.0 / T) * (1.0 / (1.0 + sqrt(T / 1e5)));
+  alpha_hp   = (8.4e-11) * (1.0 / sqrt(T)) * pow((T / 1e3), (-0.2)) * (1.0 / (1.0 + pow((T / 1e6), (0.7))));
+  alpha_hep  = (1.5e-10) * (pow(T, (-0.6353)));
+  alpha_d    = (1.9e-3) * (pow(T, (-1.5))) * exp(-470000.0 / T) * (1.0 + 0.3 * exp(-94000.0 / T));
+  alpha_hepp = (3.36e-10) * (1.0 / sqrt(T)) * pow((T / 1e3), (-0.2)) * (1.0 / (1.0 + pow((T / 1e6), (0.7))));
+  gamma_eh0  = (5.85e-11) * sqrt(T) * exp(-157809.1 / T) * (1.0 / (1.0 + sqrt(T / 1e5)));
+  gamma_ehe0 = (2.38e-11) * sqrt(T) * exp(-285335.4 / T) * (1.0 / (1.0 + sqrt(T / 1e5)));
+  gamma_ehep = (5.68e-12) * sqrt(T) * exp(-631515.0 / T) * (1.0 / (1.0 + sqrt(T / 1e5)));
   // externally evaluated integrals for photoionization rates
   // assumed J(nu) = 10^-22 (nu_L/nu)
   gamma_lh0  = 3.19851e-13;
@@ -264,11 +252,9 @@ __device__ Real primordial_cool(Real n, Real T)
       if (diff < tol) break;
     }
   } else {
-    n_h0  = n_h * alpha_hp / (alpha_hp + gamma_eh0);
-    n_hp  = n_h - n_h0;
-    n_hep = y * n_h /
-            (1.0 + (alpha_hep + alpha_d) / (gamma_ehe0) +
-             (gamma_ehep) / alpha_hepp);
+    n_h0   = n_h * alpha_hp / (alpha_hp + gamma_eh0);
+    n_hp   = n_h - n_h0;
+    n_hep  = y * n_h / (1.0 + (alpha_hep + alpha_d) / (gamma_ehe0) + (gamma_ehep) / alpha_hepp);
     n_he0  = n_hep * (alpha_hep + alpha_d) / (gamma_ehe0);
     n_hepp = n_hep * (gamma_ehep) / alpha_hepp;
     n_e    = n_hp + n_hep + 2 * n_hepp;
@@ -276,30 +262,20 @@ __device__ Real primordial_cool(Real n, Real T)
 
   // using number densities, calculate cooling rates for
   // various processes (Table 1 from Katz 1996)
-  le_h0 = (7.50e-19) * exp(-118348.0 / T) * (1.0 / (1.0 + sqrt(T / 1e5))) *
-          n_e * n_h0;
-  le_hep = (5.54e-17) * pow(T, (-0.397)) * exp(-473638.0 / T) *
-           (1.0 / (1.0 + sqrt(T / 1e5))) * n_e * n_hep;
-  li_h0 = (1.27e-21) * sqrt(T) * exp(-157809.1 / T) *
-          (1.0 / (1.0 + sqrt(T / 1e5))) * n_e * n_h0;
-  li_he0 = (9.38e-22) * sqrt(T) * exp(-285335.4 / T) *
-           (1.0 / (1.0 + sqrt(T / 1e5))) * n_e * n_he0;
-  li_hep = (4.95e-22) * sqrt(T) * exp(-631515.0 / T) *
-           (1.0 / (1.0 + sqrt(T / 1e5))) * n_e * n_hep;
-  lr_hp = (8.70e-27) * sqrt(T) * pow((T / 1e3), (-0.2)) *
-          (1.0 / (1.0 + pow((T / 1e6), (0.7)))) * n_e * n_hp;
+  le_h0   = (7.50e-19) * exp(-118348.0 / T) * (1.0 / (1.0 + sqrt(T / 1e5))) * n_e * n_h0;
+  le_hep  = (5.54e-17) * pow(T, (-0.397)) * exp(-473638.0 / T) * (1.0 / (1.0 + sqrt(T / 1e5))) * n_e * n_hep;
+  li_h0   = (1.27e-21) * sqrt(T) * exp(-157809.1 / T) * (1.0 / (1.0 + sqrt(T / 1e5))) * n_e * n_h0;
+  li_he0  = (9.38e-22) * sqrt(T) * exp(-285335.4 / T) * (1.0 / (1.0 + sqrt(T / 1e5))) * n_e * n_he0;
+  li_hep  = (4.95e-22) * sqrt(T) * exp(-631515.0 / T) * (1.0 / (1.0 + sqrt(T / 1e5))) * n_e * n_hep;
+  lr_hp   = (8.70e-27) * sqrt(T) * pow((T / 1e3), (-0.2)) * (1.0 / (1.0 + pow((T / 1e6), (0.7)))) * n_e * n_hp;
   lr_hep  = (1.55e-26) * pow(T, (0.3647)) * n_e * n_hep;
-  lr_hepp = (3.48e-26) * sqrt(T) * pow((T / 1e3), (-0.2)) *
-            (1.0 / (1.0 + pow((T / 1e6), (0.7)))) * n_e * n_hepp;
-  ld_hep = (1.24e-13) * pow(T, (-1.5)) * exp(-470000.0 / T) *
-           (1.0 + 0.3 * exp(-94000.0 / T)) * n_e * n_hep;
-  g_ff =
-      1.1 + 0.34 * exp(-(5.5 - log(T)) * (5.5 - log(T)) / 3.0);  // Gaunt factor
-  l_ff = (1.42e-27) * g_ff * sqrt(T) * (n_hp + n_hep + 4 * n_hepp) * n_e;
+  lr_hepp = (3.48e-26) * sqrt(T) * pow((T / 1e3), (-0.2)) * (1.0 / (1.0 + pow((T / 1e6), (0.7)))) * n_e * n_hepp;
+  ld_hep  = (1.24e-13) * pow(T, (-1.5)) * exp(-470000.0 / T) * (1.0 + 0.3 * exp(-94000.0 / T)) * n_e * n_hep;
+  g_ff    = 1.1 + 0.34 * exp(-(5.5 - log(T)) * (5.5 - log(T)) / 3.0);  // Gaunt factor
+  l_ff    = (1.42e-27) * g_ff * sqrt(T) * (n_hp + n_hep + 4 * n_hepp) * n_e;
 
   // calculate total cooling rate (erg s^-1 cm^-3)
-  cool = le_h0 + le_hep + li_h0 + li_he0 + li_hep + lr_hp + lr_hep + lr_hepp +
-         ld_hep + l_ff;
+  cool = le_h0 + le_hep + li_h0 + li_he0 + li_hep + lr_hp + lr_hep + lr_hepp + ld_hep + l_ff;
 
   // calculate total photoionization heating rate
   H = 0.0;
@@ -342,8 +318,7 @@ __device__ Real CIE_cool(Real n, Real T)
  coolTexObj, cudaTextureObject_t heatTexObj)
  * \brief Uses texture mapping to interpolate Cloudy cooling/heating
           tables at z = 0 with solar metallicity and an HM05 UV background. */
-__device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj,
-                            cudaTextureObject_t heatTexObj)
+__device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
 {
   Real lambda = 0.0;  // cooling rate, erg s^-1 cm^3
   Real H      = 0.0;  // heating rate, erg s^-1 cm^3

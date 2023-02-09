@@ -79,10 +79,8 @@ int main(int argc, char *argv[])
   chprintf(
       "Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, "
       "boundaries = %d %d %d %d %d %d\n",
-      P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd,
-      P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
-  if (strcmp(P.init, "Read_Grid") == 0)
-    chprintf("Input directory:  %s\n", P.indir);
+      P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
+  if (strcmp(P.init, "Read_Grid") == 0) chprintf("Input directory:  %s\n", P.indir);
   chprintf("Output directory:  %s\n", P.outdir);
 
   // Create a Log file to output run-time messages and output the git hash and
@@ -95,8 +93,7 @@ int main(int argc, char *argv[])
 
   // initialize the grid
   G.Initialize(&P);
-  chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real,
-           G.H.ny_real, G.H.nz_real, G.H.n_cells);
+  chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
   message = "Initializing Simulation";
   Write_Message_To_Log_File(message.c_str());
@@ -112,10 +109,8 @@ int main(int argc, char *argv[])
   }
 
 #ifdef DE
-  chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n",
-           DE_ETA_1, DE_ETA_2);
-  message = " eta_1: " + std::to_string(DE_ETA_1) +
-            "   eta_2: " + std::to_string(DE_ETA_2);
+  chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2);
+  message = " eta_1: " + std::to_string(DE_ETA_1) + "   eta_2: " + std::to_string(DE_ETA_2);
   Write_Message_To_Log_File(message.c_str());
 #endif
 
@@ -185,8 +180,7 @@ int main(int argc, char *argv[])
   G.Get_Particles_Acceleration();
 #endif
 
-  chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy,
-           G.H.dz);
+  chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n", gama);
   chprintf("Nstep = %d  Simulation time = %f\n", G.H.n_step, G.H.t);
 
@@ -215,8 +209,7 @@ int main(int argc, char *argv[])
   init_min = ReduceRealMin(init);
   init_max = ReduceRealMax(init);
   init_avg = ReduceRealAvg(init);
-  chprintf("Init  min: %9.4f  max: %9.4f  avg: %9.4f\n", init_min, init_max,
-           init_avg);
+  chprintf("Init  min: %9.4f  max: %9.4f  avg: %9.4f\n", init_min, init_max, init_avg);
   #else
   printf("Init %9.4f\n", init);
   #endif  // MPI_CHOLLA

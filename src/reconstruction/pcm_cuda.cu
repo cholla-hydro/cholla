@@ -11,8 +11,7 @@
   #include "../utils/gpu.hpp"
   #include "../utils/mhd_utilities.h"
 
-__global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L,
-                                      Real *dev_bounds_R, int n_cells,
+__global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int n_cells,
                                       int n_ghost, Real gamma, int n_fields)
 {
   // declare conserved variables for each stencil
@@ -98,10 +97,9 @@ __global__ void PCM_Reconstruction_1D(Real *dev_conserved, Real *dev_bounds_L,
   }
 }
 
-__global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx,
-                                      Real *dev_bounds_Rx, Real *dev_bounds_Ly,
-                                      Real *dev_bounds_Ry, int nx, int ny,
-                                      int n_ghost, Real gamma, int n_fields)
+__global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx, Real *dev_bounds_Rx,
+                                      Real *dev_bounds_Ly, Real *dev_bounds_Ry, int nx, int ny, int n_ghost, Real gamma,
+                                      int n_fields)
 {
   // declare conserved variables for each stencil
   // these will be placed into registers for each thread
@@ -256,11 +254,9 @@ __global__ void PCM_Reconstruction_2D(Real *dev_conserved, Real *dev_bounds_Lx,
   }
 }
 
-__global__ void PCM_Reconstruction_3D(Real *dev_conserved, Real *dev_bounds_Lx,
-                                      Real *dev_bounds_Rx, Real *dev_bounds_Ly,
-                                      Real *dev_bounds_Ry, Real *dev_bounds_Lz,
-                                      Real *dev_bounds_Rz, int nx, int ny,
-                                      int nz, int n_ghost, Real gamma,
+__global__ void PCM_Reconstruction_3D(Real *dev_conserved, Real *dev_bounds_Lx, Real *dev_bounds_Rx,
+                                      Real *dev_bounds_Ly, Real *dev_bounds_Ry, Real *dev_bounds_Lz,
+                                      Real *dev_bounds_Rz, int nx, int ny, int nz, int n_ghost, Real gamma,
                                       int n_fields)
 {
   // declare conserved variables for each stencil
@@ -293,8 +289,7 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved, Real *dev_bounds_Lx,
   #endif  // SCALAR
   #ifdef MHD
     auto const [cellCenteredBx, cellCenteredBy, cellCenteredBz] =
-        mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid,
-                                               n_cells, nx, ny);
+        mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny);
   #endif  // MHD
   #ifdef DE
     Real const ge = dev_conserved[(n_fields - 1) * n_cells + id];
@@ -363,7 +358,7 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved, Real *dev_bounds_Lx,
 
     // Send the x-1/2 Right interface
     if (xid > 0) {
-      id = cuda_utilities::compute1DIndex(xid - 1, yid, zid, nx, ny);
+      id                              = cuda_utilities::compute1DIndex(xid - 1, yid, zid, nx, ny);
       dev_bounds_Rx[id]               = d;
       dev_bounds_Rx[n_cells + id]     = mx;
       dev_bounds_Rx[2 * n_cells + id] = my;
@@ -385,7 +380,7 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved, Real *dev_bounds_Lx,
 
     if (yid > 0) {
       // Send the y-1/2 Right interface
-      id = cuda_utilities::compute1DIndex(xid, yid - 1, zid, nx, ny);
+      id                              = cuda_utilities::compute1DIndex(xid, yid - 1, zid, nx, ny);
       dev_bounds_Ry[id]               = d;
       dev_bounds_Ry[n_cells + id]     = mx;
       dev_bounds_Ry[2 * n_cells + id] = my;
@@ -407,7 +402,7 @@ __global__ void PCM_Reconstruction_3D(Real *dev_conserved, Real *dev_bounds_Lx,
 
     if (zid > 0) {
       // Send the z-1/2 Right interface
-      id = cuda_utilities::compute1DIndex(xid, yid, zid - 1, nx, ny);
+      id                              = cuda_utilities::compute1DIndex(xid, yid, zid - 1, nx, ny);
       dev_bounds_Rz[id]               = d;
       dev_bounds_Rz[n_cells + id]     = mx;
       dev_bounds_Rz[2 * n_cells + id] = my;

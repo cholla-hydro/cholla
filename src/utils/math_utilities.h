@@ -39,8 +39,7 @@ namespace math_utils
  * order <x1, x2, x2>. Intended to be captured with structured binding
  */
 template <typename T>
-inline std::tuple<T, T, T> rotateCoords(Real const &x_1, Real const &x_2,
-                                        Real const &x_3, Real const &pitch,
+inline std::tuple<T, T, T> rotateCoords(Real const &x_1, Real const &x_2, Real const &x_3, Real const &pitch,
                                         Real const &yaw)
 {
   // Compute the sines and cosines. Correct for floating point errors if
@@ -51,10 +50,8 @@ inline std::tuple<T, T, T> rotateCoords(Real const &x_1, Real const &x_2,
   Real const cos_pitch = (pitch == 0.5 * M_PI) ? 0 : std::cos(pitch);
 
   // Perform the rotation
-  Real const x_1_rot = (x_1 * cos_pitch * cos_yaw) + (x_2 * sin_yaw) +
-                       (x_3 * sin_pitch * cos_yaw);
-  Real const x_2_rot = (x_1 * cos_pitch * sin_yaw) + (x_2 * cos_yaw) +
-                       (x_3 * sin_pitch * sin_yaw);
+  Real const x_1_rot = (x_1 * cos_pitch * cos_yaw) + (x_2 * sin_yaw) + (x_3 * sin_pitch * cos_yaw);
+  Real const x_2_rot = (x_1 * cos_pitch * sin_yaw) + (x_2 * cos_yaw) + (x_3 * sin_pitch * sin_yaw);
   Real const x_3_rot = (x_1 * sin_pitch) + (x_3 * cos_pitch);
 
   if (std::is_same<T, int>::value) {
@@ -78,8 +75,7 @@ inline std::tuple<T, T, T> rotateCoords(Real const &x_1, Real const &x_2,
  *
  * \return Real The dot product of a and b
  */
-inline __device__ __host__ Real dotProduct(Real const &a1, Real const &a2,
-                                           Real const &a3, Real const &b1,
+inline __device__ __host__ Real dotProduct(Real const &a1, Real const &a2, Real const &a3, Real const &b1,
                                            Real const &b2, Real const &b3)
 {
   return a1 * b1 + ((a2 * b2) + (a3 * b3));

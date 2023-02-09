@@ -47,16 +47,13 @@ void Grid3D::Compute_Phase_Diagram()
   int indx_dens, indx_temp, indx_phase;
 
   // Clear Phase Dikagram
-  for (indx_phase = 0; indx_phase < n_temp * n_dens; indx_phase++)
-    Analysis.phase_diagram[indx_phase] = 0;
+  for (indx_phase = 0; indx_phase < n_temp * n_dens; indx_phase++) Analysis.phase_diagram[indx_phase] = 0;
 
   for (k = 0; k < nz_local; k++) {
     for (j = 0; j < ny_local; j++) {
       for (i = 0; i < nx_local; i++) {
-        id_grid = (i + n_ghost) + (j + n_ghost) * nx_grid +
-                  (k + n_ghost) * nx_grid * ny_grid;
-        dens = C.density[id_grid] * Cosmo.rho_0_gas /
-               Cosmo.rho_mean_baryon;  // Baryonic overdensity
+        id_grid = (i + n_ghost) + (j + n_ghost) * nx_grid + (k + n_ghost) * nx_grid * ny_grid;
+        dens    = C.density[id_grid] * Cosmo.rho_0_gas / Cosmo.rho_mean_baryon;  // Baryonic overdensity
   // chprintf( "%f %f \n", dens, temp);
   #ifdef COOLING_GRACKLE
         temp = Cool.temperature[id_grid];
@@ -69,8 +66,7 @@ void Grid3D::Compute_Phase_Diagram()
         exit(-1);
   #endif
 
-        if (dens < dens_min || dens > dens_max || temp < temp_min ||
-            temp > temp_max) {
+        if (dens < dens_min || dens > dens_max || temp < temp_min || temp > temp_max) {
           // printf("Outside Phase Diagram:  dens:%e   temp:%e \n", dens, temp
           // );
           continue;
@@ -99,23 +95,19 @@ void Grid3D::Compute_Phase_Diagram()
   // %f\n", phase_sum_local );
 
   #ifdef MPI_CHOLLA
-  MPI_Reduce(Analysis.phase_diagram, Analysis.phase_diagram_global,
-             n_temp * n_dens, MPI_FLOAT, MPI_SUM, 0, world);
+  MPI_Reduce(Analysis.phase_diagram, Analysis.phase_diagram_global, n_temp * n_dens, MPI_FLOAT, MPI_SUM, 0, world);
   if (procID == 0)
     for (indx_phase = 0; indx_phase < n_temp * n_dens; indx_phase++)
-      Analysis.phase_diagram[indx_phase] =
-          Analysis.phase_diagram_global[indx_phase];
+      Analysis.phase_diagram[indx_phase] = Analysis.phase_diagram_global[indx_phase];
   #endif
 
   // Compute the sum for normalization
   Real phase_sum = 0;
-  for (indx_phase = 0; indx_phase < n_temp * n_dens; indx_phase++)
-    phase_sum += Analysis.phase_diagram[indx_phase];
+  for (indx_phase = 0; indx_phase < n_temp * n_dens; indx_phase++) phase_sum += Analysis.phase_diagram[indx_phase];
   chprintf(" Phase Diagram Sum Global: %f\n", phase_sum);
 
   // Normalize the Phase Diagram
-  for (indx_phase = 0; indx_phase < n_temp * n_dens; indx_phase++)
-    Analysis.phase_diagram[indx_phase] /= phase_sum;
+  for (indx_phase = 0; indx_phase < n_temp * n_dens; indx_phase++) Analysis.phase_diagram[indx_phase] /= phase_sum;
 }
 
 void Analysis_Module::Initialize_Phase_Diagram(struct parameters *P)
@@ -131,8 +123,7 @@ void Analysis_Module::Initialize_Phase_Diagram(struct parameters *P)
   phase_diagram = (float *)malloc(n_dens * n_temp * sizeof(float));
 
   #ifdef MPI_CHOLLA
-  if (procID == 0)
-    phase_diagram_global = (float *)malloc(n_dens * n_temp * sizeof(float));
+  if (procID == 0) phase_diagram_global = (float *)malloc(n_dens * n_temp * sizeof(float));
   #endif
   chprintf(" Phase Diagram Initialized.\n");
 }

@@ -45,22 +45,19 @@ void Cool_GK::Initialize(struct parameters *P, Cosmology &Cosmo)
   Real kpc  = KPC_CGS;
   Real km   = KM_CGS
 
-      dens_to_CGS =
-          dens_conv * Msun / kpc / kpc / kpc * Cosmo.cosmo_h * Cosmo.cosmo_h;
-  vel_to_CGS    = km;
-  energy_to_CGS = km * km;
+      dens_to_CGS = dens_conv * Msun / kpc / kpc / kpc * Cosmo.cosmo_h * Cosmo.cosmo_h;
+  vel_to_CGS      = km;
+  energy_to_CGS   = km * km;
 
   // First, set up the units system.
   // These are conversions from code units to cgs.
   units.comoving_coordinates = 1;    // 1 if cosmological sim, 0 if not
   units.a_units              = 1.0;  // units for the expansion factor
   units.a_value              = Cosmo.current_a / units.a_units;
-  units.density_units =
-      dens_to_CGS / Cosmo.current_a / Cosmo.current_a / Cosmo.current_a;
-  units.length_units   = kpc / Cosmo.cosmo_h * Cosmo.current_a;
-  units.time_units     = KPC / Cosmo.cosmo_h;
-  units.velocity_units = units.length_units / Cosmo.current_a /
-                         units.time_units;  // since u = a * dx/dt
+  units.density_units        = dens_to_CGS / Cosmo.current_a / Cosmo.current_a / Cosmo.current_a;
+  units.length_units         = kpc / Cosmo.cosmo_h * Cosmo.current_a;
+  units.time_units           = KPC / Cosmo.cosmo_h;
+  units.velocity_units       = units.length_units / Cosmo.current_a / units.time_units;  // since u = a * dx/dt
 
   // Second, create a chemistry object for parameters.  This needs to be a
   // pointer.
@@ -99,9 +96,7 @@ void Cool_GK::Initialize(struct parameters *P, Cosmology &Cosmo)
   data->omp_nthreads = N_OMP_THREADS_GRACKLE;
   #endif
 
-  if (data->UVbackground == 1)
-    chprintf("GRACKLE: Loading UV Background File: %s\n",
-             data->grackle_data_file);
+  if (data->UVbackground == 1) chprintf("GRACKLE: Loading UV Background File: %s\n", data->grackle_data_file);
 
   // Finally, initialize the chemistry object.
   if (initialize_chemistry_data(&units) == 0) {
@@ -150,8 +145,7 @@ void Grid3D::Allocate_Memory_Grackle()
   Cool.fields.y_velocity = NULL;
   Cool.fields.z_velocity = NULL;
 
-  chprintf(
-      " Allocating memory for: HI, HII, HeI, HeII, HeIII, e   densities\n");
+  chprintf(" Allocating memory for: HI, HII, HeI, HeII, HeIII, e   densities\n");
   Cool.fields.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   Cool.fields.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   Cool.fields.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];

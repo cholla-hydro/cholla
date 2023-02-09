@@ -27,8 +27,7 @@ void Grid3D::Get_Gravity_Field_Particles()
     #endif
 
     #ifndef PARALLEL_OMP
-  Get_Gravity_Field_Particles_function(
-      0, Particles.G.nz_local + 2 * Particles.G.n_ghost_particles_grid);
+  Get_Gravity_Field_Particles_function(0, Particles.G.nz_local + 2 * Particles.G.n_ghost_particles_grid);
     #else
 
       #pragma omp parallel num_threads(N_OMP_THREADS)
@@ -39,9 +38,8 @@ void Grid3D::Get_Gravity_Field_Particles()
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
 
-    Get_OMP_Grid_Indxs(
-        Particles.G.nz_local + 2 * Particles.G.n_ghost_particles_grid,
-        N_OMP_THREADS, omp_id, &g_start, &g_end);
+    Get_OMP_Grid_Indxs(Particles.G.nz_local + 2 * Particles.G.n_ghost_particles_grid, N_OMP_THREADS, omp_id, &g_start,
+                       &g_end);
 
     Get_Gravity_Field_Particles_function(g_start, g_end);
   }
@@ -69,8 +67,7 @@ void Grid3D::Get_Gravity_CIC()
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
 
-    Get_OMP_Particles_Indxs(Particles.n_local, N_OMP_THREADS, omp_id, &p_start,
-                            &p_end);
+    Get_OMP_Particles_Indxs(Particles.n_local, N_OMP_THREADS, omp_id, &p_start, &p_end);
 
     Get_Gravity_CIC_function(p_start, p_end);
   }
@@ -85,19 +82,16 @@ void Grid3D::Get_Gravity_CIC()
   #ifdef PARTICLES_GPU
 void Particles_3D::Get_Gravity_Field_Particles_GPU(Real *potential_host)
 {
-  Get_Gravity_Field_Particles_GPU_function(
-      G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid,
-      G.n_cells_potential, G.dx, G.dy, G.dz, potential_host, G.potential_dev,
-      G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev);
+  Get_Gravity_Field_Particles_GPU_function(G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid,
+                                           G.n_cells_potential, G.dx, G.dy, G.dz, potential_host, G.potential_dev,
+                                           G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev);
 }
 
 void Particles_3D::Get_Gravity_CIC_GPU()
 {
-  Get_Gravity_CIC_GPU_function(
-      n_local, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid,
-      G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax, G.dx, G.dy, G.dz,
-      pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev,
-      G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev);
+  Get_Gravity_CIC_GPU_function(n_local, G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.xMin, G.xMax,
+                               G.yMin, G.yMax, G.zMin, G.zMax, G.dx, G.dy, G.dz, pos_x_dev, pos_y_dev, pos_z_dev,
+                               grav_x_dev, grav_y_dev, grav_z_dev, G.gravity_x_dev, G.gravity_y_dev, G.gravity_z_dev);
 }
 
   #endif  // PARTICLES_GPU
@@ -140,22 +134,17 @@ void Grid3D::Get_Gravity_Field_Particles_function(int g_start, int g_end)
   for (k = g_start; k < g_end; k++) {
     for (j = 0; j < ny_grav; j++) {
       for (i = 0; i < nx_grav; i++) {
-        id   = (i) + (j)*nx_grav + (k)*ny_grav * nx_grav;
-        id_l = (i - 1 + nGHST) + (j + nGHST) * nx_grid +
-               (k + nGHST) * ny_grid * nx_grid;
-        id_r = (i + 1 + nGHST) + (j + nGHST) * nx_grid +
-               (k + nGHST) * ny_grid * nx_grid;
+        id    = (i) + (j)*nx_grav + (k)*ny_grav * nx_grav;
+        id_l  = (i - 1 + nGHST) + (j + nGHST) * nx_grid + (k + nGHST) * ny_grid * nx_grid;
+        id_r  = (i + 1 + nGHST) + (j + nGHST) * nx_grid + (k + nGHST) * ny_grid * nx_grid;
         phi_l = potential[id_l];
         phi_r = potential[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll = (i - 2 + nGHST) + (j + nGHST) * nx_grid +
-                (k + nGHST) * ny_grid * nx_grid;
-        id_rr = (i + 2 + nGHST) + (j + nGHST) * nx_grid +
-                (k + nGHST) * ny_grid * nx_grid;
-        phi_ll = potential[id_ll];
-        phi_rr = potential[id_rr];
-        Particles.G.gravity_x[id] =
-            -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+        id_ll                     = (i - 2 + nGHST) + (j + nGHST) * nx_grid + (k + nGHST) * ny_grid * nx_grid;
+        id_rr                     = (i + 2 + nGHST) + (j + nGHST) * nx_grid + (k + nGHST) * ny_grid * nx_grid;
+        phi_ll                    = potential[id_ll];
+        phi_rr                    = potential[id_rr];
+        Particles.G.gravity_x[id] = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
     #else
         Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
     #endif
@@ -166,22 +155,17 @@ void Grid3D::Get_Gravity_Field_Particles_function(int g_start, int g_end)
   for (k = g_start; k < g_end; k++) {
     for (j = 0; j < ny_grav; j++) {
       for (i = 0; i < nx_grav; i++) {
-        id   = (i) + (j)*nx_grav + (k)*ny_grav * nx_grav;
-        id_l = (i + nGHST) + (j - 1 + nGHST) * nx_grid +
-               (k + nGHST) * ny_grid * nx_grid;
-        id_r = (i + nGHST) + (j + 1 + nGHST) * nx_grid +
-               (k + nGHST) * ny_grid * nx_grid;
+        id    = (i) + (j)*nx_grav + (k)*ny_grav * nx_grav;
+        id_l  = (i + nGHST) + (j - 1 + nGHST) * nx_grid + (k + nGHST) * ny_grid * nx_grid;
+        id_r  = (i + nGHST) + (j + 1 + nGHST) * nx_grid + (k + nGHST) * ny_grid * nx_grid;
         phi_l = potential[id_l];
         phi_r = potential[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll = (i + nGHST) + (j - 2 + nGHST) * nx_grid +
-                (k + nGHST) * ny_grid * nx_grid;
-        id_rr = (i + nGHST) + (j + 2 + nGHST) * nx_grid +
-                (k + nGHST) * ny_grid * nx_grid;
-        phi_ll = potential[id_ll];
-        phi_rr = potential[id_rr];
-        Particles.G.gravity_y[id] =
-            -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
+        id_ll                     = (i + nGHST) + (j - 2 + nGHST) * nx_grid + (k + nGHST) * ny_grid * nx_grid;
+        id_rr                     = (i + nGHST) + (j + 2 + nGHST) * nx_grid + (k + nGHST) * ny_grid * nx_grid;
+        phi_ll                    = potential[id_ll];
+        phi_rr                    = potential[id_rr];
+        Particles.G.gravity_y[id] = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
     // if (i == 0) {
     //   std::cout << "phi_ll[" << id_ll << "] = " << phi_ll << std::endl;
     // }
@@ -195,22 +179,17 @@ void Grid3D::Get_Gravity_Field_Particles_function(int g_start, int g_end)
   for (k = g_start; k < g_end; k++) {
     for (j = 0; j < ny_grav; j++) {
       for (i = 0; i < nx_grav; i++) {
-        id   = (i) + (j)*nx_grav + (k)*ny_grav * nx_grav;
-        id_l = (i + nGHST) + (j + nGHST) * nx_grid +
-               (k - 1 + nGHST) * ny_grid * nx_grid;
-        id_r = (i + nGHST) + (j + nGHST) * nx_grid +
-               (k + 1 + nGHST) * ny_grid * nx_grid;
+        id    = (i) + (j)*nx_grav + (k)*ny_grav * nx_grav;
+        id_l  = (i + nGHST) + (j + nGHST) * nx_grid + (k - 1 + nGHST) * ny_grid * nx_grid;
+        id_r  = (i + nGHST) + (j + nGHST) * nx_grid + (k + 1 + nGHST) * ny_grid * nx_grid;
         phi_l = potential[id_l];
         phi_r = potential[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll = (i + nGHST) + (j + nGHST) * nx_grid +
-                (k - 2 + nGHST) * ny_grid * nx_grid;
-        id_rr = (i + nGHST) + (j + nGHST) * nx_grid +
-                (k + 2 + nGHST) * ny_grid * nx_grid;
-        phi_ll = potential[id_ll];
-        phi_rr = potential[id_rr];
-        Particles.G.gravity_z[id] =
-            -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
+        id_ll                     = (i + nGHST) + (j + nGHST) * nx_grid + (k - 2 + nGHST) * ny_grid * nx_grid;
+        id_rr                     = (i + nGHST) + (j + nGHST) * nx_grid + (k + 2 + nGHST) * ny_grid * nx_grid;
+        phi_ll                    = potential[id_ll];
+        phi_rr                    = potential[id_rr];
+        Particles.G.gravity_z[id] = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
     #else
         Particles.G.gravity_z[id] = -0.5 * (phi_r - phi_l) / dz;
     #endif
@@ -254,8 +233,7 @@ void Grid3D::Get_Gravity_CIC_function(part_int_t p_start, part_int_t p_end)
     x_pos = Particles.pos_x[pIndx];
     y_pos = Particles.pos_y[pIndx];
     z_pos = Particles.pos_z[pIndx];
-    Get_Indexes_CIC(xMin, yMin, zMin, dx, dy, dz, x_pos, y_pos, z_pos, indx_x,
-                    indx_y, indx_z);
+    Get_Indexes_CIC(xMin, yMin, zMin, dx, dy, dz, x_pos, y_pos, z_pos, indx_x, indx_y, indx_z);
     if (indx_x < -1) ignore = true;
     if (indx_y < -1) ignore = true;
     if (indx_z < -1) ignore = true;
@@ -268,17 +246,13 @@ void Grid3D::Get_Gravity_CIC_function(part_int_t p_start, part_int_t p_end)
     if (!in_local) {
       std::cout << " Gravity CIC Error:" << std::endl;
     #ifdef PARTICLE_IDS
-      std::cout << " Particle outside Local  domain    pID: "
-                << Particles.partIDs[pIndx] << std::endl;
+      std::cout << " Particle outside Local  domain    pID: " << Particles.partIDs[pIndx] << std::endl;
     #else
       std::cout << " Particle outside Local  domain " << std::endl;
     #endif
-      std::cout << "  Domain X: " << Particles.G.xMin << "  "
-                << Particles.G.xMax << std::endl;
-      std::cout << "  Domain Y: " << Particles.G.yMin << "  "
-                << Particles.G.yMax << std::endl;
-      std::cout << "  Domain Z: " << Particles.G.zMin << "  "
-                << Particles.G.zMax << std::endl;
+      std::cout << "  Domain X: " << Particles.G.xMin << "  " << Particles.G.xMax << std::endl;
+      std::cout << "  Domain Y: " << Particles.G.yMin << "  " << Particles.G.yMax << std::endl;
+      std::cout << "  Domain Z: " << Particles.G.zMin << "  " << Particles.G.zMax << std::endl;
       std::cout << "  Particle X: " << x_pos << std::endl;
       std::cout << "  Particle Y: " << y_pos << std::endl;
       std::cout << "  Particle Z: " << z_pos << std::endl;
@@ -289,8 +263,7 @@ void Grid3D::Get_Gravity_CIC_function(part_int_t p_start, part_int_t p_end)
     }
     if (ignore) {
     #ifdef PARTICLE_IDS
-      std::cout << "ERROR GRAVITY_CIC Index    pID: "
-                << Particles.partIDs[pIndx] << std::endl;
+      std::cout << "ERROR GRAVITY_CIC Index    pID: " << Particles.partIDs[pIndx] << std::endl;
     #else
       std::cout << "ERROR GRAVITY_CIC Index " << std::endl;
     #endif
@@ -354,32 +327,20 @@ void Grid3D::Get_Gravity_CIC_function(part_int_t p_start, part_int_t p_end)
     g_y_tru = Particles.G.gravity_y[indx];
     g_z_tru = Particles.G.gravity_z[indx];
 
-    g_x = g_x_bl * (delta_x) * (delta_y) * (delta_z) +
-          g_x_br * (1 - delta_x) * (delta_y) * (delta_z) +
-          g_x_bu * (delta_x) * (1 - delta_y) * (delta_z) +
-          g_x_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
-          g_x_tl * (delta_x) * (delta_y) * (1 - delta_z) +
-          g_x_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
-          g_x_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) +
-          g_x_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
+    g_x = g_x_bl * (delta_x) * (delta_y) * (delta_z) + g_x_br * (1 - delta_x) * (delta_y) * (delta_z) +
+          g_x_bu * (delta_x) * (1 - delta_y) * (delta_z) + g_x_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
+          g_x_tl * (delta_x) * (delta_y) * (1 - delta_z) + g_x_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
+          g_x_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) + g_x_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
 
-    g_y = g_y_bl * (delta_x) * (delta_y) * (delta_z) +
-          g_y_br * (1 - delta_x) * (delta_y) * (delta_z) +
-          g_y_bu * (delta_x) * (1 - delta_y) * (delta_z) +
-          g_y_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
-          g_y_tl * (delta_x) * (delta_y) * (1 - delta_z) +
-          g_y_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
-          g_y_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) +
-          g_y_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
+    g_y = g_y_bl * (delta_x) * (delta_y) * (delta_z) + g_y_br * (1 - delta_x) * (delta_y) * (delta_z) +
+          g_y_bu * (delta_x) * (1 - delta_y) * (delta_z) + g_y_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
+          g_y_tl * (delta_x) * (delta_y) * (1 - delta_z) + g_y_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
+          g_y_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) + g_y_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
 
-    g_z = g_z_bl * (delta_x) * (delta_y) * (delta_z) +
-          g_z_br * (1 - delta_x) * (delta_y) * (delta_z) +
-          g_z_bu * (delta_x) * (1 - delta_y) * (delta_z) +
-          g_z_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
-          g_z_tl * (delta_x) * (delta_y) * (1 - delta_z) +
-          g_z_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
-          g_z_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) +
-          g_z_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
+    g_z = g_z_bl * (delta_x) * (delta_y) * (delta_z) + g_z_br * (1 - delta_x) * (delta_y) * (delta_z) +
+          g_z_bu * (delta_x) * (1 - delta_y) * (delta_z) + g_z_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
+          g_z_tl * (delta_x) * (delta_y) * (1 - delta_z) + g_z_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
+          g_z_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) + g_z_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
 
     Particles.grav_x[pIndx] = g_x;
     Particles.grav_y[pIndx] = g_y;

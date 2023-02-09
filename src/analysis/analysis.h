@@ -291,10 +291,9 @@ class Analysis_Module
     #endif
 
   Analysis_Module(void);
-  void Initialize(Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min,
-                  int nx, int ny, int nz, int nx_real, int ny_real, int nz_real,
-                  Real dx_real, Real dy_real, Real dz_real, int n_ghost_hydro,
-                  Real z_now, struct parameters *P);
+  void Initialize(Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz, int nx_real,
+                  int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_hydro, Real z_now,
+                  struct parameters *P);
   void Reset(void);
 
   void Load_Scale_Outputs(struct parameters *P);

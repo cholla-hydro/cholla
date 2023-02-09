@@ -80,8 +80,7 @@ class systemTest::SystemTestRunner
    * \param[in] maxAllowedError The maximum allowed for any value in the test
    *
    */
-  void runL1ErrorTest(double const &maxAllowedL1Error,
-                      double const &maxAllowedError = 1E-7);
+  void runL1ErrorTest(double const &maxAllowedL1Error, double const &maxAllowedError = 1E-7);
 
   /*!
    * \brief Launch Cholla as it is set up
@@ -135,20 +134,14 @@ class systemTest::SystemTestRunner
    * \param index The MPI rank of the file you want to return. Defaults to 0
    * \return H5::H5File
    */
-  H5::H5File getTestFile(size_t const &i = 0)
-  {
-    return _testHydroFieldsFileVec[i];
-  };
+  H5::H5File getTestFile(size_t const &i = 0) { return _testHydroFieldsFileVec[i]; };
 
   /*!
    * \brief Get the vector of datasets that will be tested
    *
    * \return std::vector<std::string>
    */
-  std::vector<std::string> getDataSetsToTest()
-  {
-    return _fiducialDataSetNames;
-  };
+  std::vector<std::string> getDataSetsToTest() { return _fiducialDataSetNames; };
 
   /*!
    * \brief Set the Fixed Epsilon value
@@ -166,10 +159,7 @@ class systemTest::SystemTestRunner
    * \param[in] dataSetNames A std::vector of std::strings where each entry is
    * a dataset name. Note that it is case sensitive
    */
-  void setDataSetsToTest(std::vector<std::string> const &dataSetNames)
-  {
-    _fiducialDataSetNames = dataSetNames;
-  };
+  void setDataSetsToTest(std::vector<std::string> const &dataSetNames) { _fiducialDataSetNames = dataSetNames; };
 
   /*!
    * \brief Set the Compare Num Time Steps object
@@ -177,10 +167,7 @@ class systemTest::SystemTestRunner
    * \param[in] compare Defaults to `true`. If false then the number of
    * timesteps is not compared.
    */
-  void setCompareNumTimeSteps(bool const &compare)
-  {
-    _compareNumTimeSteps = compare;
-  };
+  void setCompareNumTimeSteps(bool const &compare) { _compareNumTimeSteps = compare; };
 
   /*!
    * \brief Set or add a fiducial dataset
@@ -189,18 +176,14 @@ class systemTest::SystemTestRunner
    * \param[in] dataArr The std::vector for the data vector to be added as
    * a data set
    */
-  void setFiducialData(std::string const &fieldName,
-                       std::vector<double> const &dataVec);
+  void setFiducialData(std::string const &fieldName, std::vector<double> const &dataVec);
 
   /*!
    * \brief Set the Fiducial Num Time Steps object
    *
    * \param numTimeSteps The number of time steps in the fiducial data
    */
-  void setFiducialNumTimeSteps(int const &numTimeSteps)
-  {
-    _numFiducialTimeSteps = numTimeSteps;
-  };
+  void setFiducialNumTimeSteps(int const &numTimeSteps) { _numFiducialTimeSteps = numTimeSteps; };
 
   /*!
    * \brief Generate an vector of the specified size populated by the specified
@@ -216,9 +199,7 @@ class systemTest::SystemTestRunner
    * \return std::vector<double> A 1-dimensional std::vector of the required
    * size containing the data.
    */
-  std::vector<double> generateConstantData(double const &value,
-                                           size_t const &nx = 1,
-                                           size_t const &ny = 1,
+  std::vector<double> generateConstantData(double const &value, size_t const &nx = 1, size_t const &ny = 1,
                                            size_t const &nz = 1);
 
   /*!
@@ -231,8 +212,7 @@ class systemTest::SystemTestRunner
    * \param[in] file (optional) The vector of HDF5 files to load
    * \return std::vector<double> A vector containing the data
    */
-  std::vector<double> loadTestFieldData(std::string dataSetName,
-                                        std::vector<size_t> &testDims,
+  std::vector<double> loadTestFieldData(std::string dataSetName, std::vector<size_t> &testDims,
                                         std::vector<H5::H5File> file = {});
 
   /*!
@@ -256,10 +236,9 @@ class systemTest::SystemTestRunner
    * \return std::vector<double> A 1-dimensional std::vector of the required
    * size containing the data.
    */
-  std::vector<double> generateSineData(
-      double const &offset, double const &amplitude, double const &kx,
-      double const &ky, double const &kz, double const &phase,
-      size_t const &nx = 1, size_t const &ny = 1, size_t const &nz = 1);
+  std::vector<double> generateSineData(double const &offset, double const &amplitude, double const &kx,
+                                       double const &ky, double const &kz, double const &phase, size_t const &nx = 1,
+                                       size_t const &ny = 1, size_t const &nz = 1);
 
   // Constructor and Destructor
   /*!
@@ -275,9 +254,7 @@ class systemTest::SystemTestRunner
    * convention. If false then the user MUST provide all the required settings
    * with the SystemTestRunner::chollaLaunchParams member variable
    */
-  SystemTestRunner(bool const &particleData    = false,
-                   bool const &hydroData       = true,
-                   bool const &useFiducialFile = true,
+  SystemTestRunner(bool const &particleData = false, bool const &hydroData = true, bool const &useFiducialFile = true,
                    bool const &useSettingsFile = true);
   ~SystemTestRunner();
 
@@ -352,8 +329,7 @@ class systemTest::SystemTestRunner
    * \param[in] destinationDirectory The path to the director the file should
    * be moved to
    */
-  void _safeMove(std::string const &sourcePath,
-                 std::string const &destinationDirectory);
+  void _safeMove(std::string const &sourcePath, std::string const &destinationDirectory);
 
   /*!
    * \brief Checks if the given file exists. Throws an exception if the

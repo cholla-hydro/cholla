@@ -16,8 +16,7 @@
  *  \brief When passed the left and right boundary values at an interface,
  calculates the eta value for the interface according to the forumulation in
  Sanders et al, 1998. */
-__global__ void calc_eta_x_2D(Real *dev_bounds_L, Real *dev_bounds_R,
-                              Real *eta_x, int nx, int ny, int n_ghost,
+__global__ void calc_eta_x_2D(Real *dev_bounds_L, Real *dev_bounds_R, Real *eta_x, int nx, int ny, int n_ghost,
                               Real gamma)
 {
   int n_cells = nx * ny;
@@ -34,35 +33,29 @@ __global__ void calc_eta_x_2D(Real *dev_bounds_L, Real *dev_bounds_R,
   int yid = (tid - zid * nx * ny) / nx;
   int xid = tid - zid * nx * ny - yid * nx;
 
-  if (xid > n_ghost - 2 && xid < nx - n_ghost && yid > n_ghost - 2 &&
-      yid < ny - n_ghost + 1) {
+  if (xid > n_ghost - 2 && xid < nx - n_ghost && yid > n_ghost - 2 && yid < ny - n_ghost + 1) {
     // load the interface values into registers
     id = xid + yid * nx;
-    pl =
-        (dev_bounds_L[4 * n_cells + id] -
-         0.5 *
-             (dev_bounds_L[n_cells + id] * dev_bounds_L[n_cells + id] +
-              dev_bounds_L[2 * n_cells + id] * dev_bounds_L[2 * n_cells + id] +
-              dev_bounds_L[3 * n_cells + id] * dev_bounds_L[3 * n_cells + id]) /
-             dev_bounds_L[id]) *
-        (gamma - 1.0);
+    pl = (dev_bounds_L[4 * n_cells + id] - 0.5 *
+                                               (dev_bounds_L[n_cells + id] * dev_bounds_L[n_cells + id] +
+                                                dev_bounds_L[2 * n_cells + id] * dev_bounds_L[2 * n_cells + id] +
+                                                dev_bounds_L[3 * n_cells + id] * dev_bounds_L[3 * n_cells + id]) /
+                                               dev_bounds_L[id]) *
+         (gamma - 1.0);
     pl = fmax(pl, (Real)1.0e-20);
-    pr =
-        (dev_bounds_R[4 * n_cells + id] -
-         0.5 *
-             (dev_bounds_R[n_cells + id] * dev_bounds_R[n_cells + id] +
-              dev_bounds_R[2 * n_cells + id] * dev_bounds_R[2 * n_cells + id] +
-              dev_bounds_R[3 * n_cells + id] * dev_bounds_R[3 * n_cells + id]) /
-             dev_bounds_R[id]) *
-        (gamma - 1.0);
+    pr = (dev_bounds_R[4 * n_cells + id] - 0.5 *
+                                               (dev_bounds_R[n_cells + id] * dev_bounds_R[n_cells + id] +
+                                                dev_bounds_R[2 * n_cells + id] * dev_bounds_R[2 * n_cells + id] +
+                                                dev_bounds_R[3 * n_cells + id] * dev_bounds_R[3 * n_cells + id]) /
+                                               dev_bounds_R[id]) *
+         (gamma - 1.0);
     pr = fmax(pr, (Real)1.0e-20);
 
     al = sqrt(gamma * pl / dev_bounds_L[id]);
     ar = sqrt(gamma * pl / dev_bounds_R[id]);
 
-    eta_x[id] =
-        0.5 * fabs((dev_bounds_R[n_cells + id] / dev_bounds_R[id] + ar) -
-                   (dev_bounds_L[n_cells + id] / dev_bounds_L[id] - al));
+    eta_x[id] = 0.5 * fabs((dev_bounds_R[n_cells + id] / dev_bounds_R[id] + ar) -
+                           (dev_bounds_L[n_cells + id] / dev_bounds_L[id] - al));
   }
 }
 
@@ -71,8 +64,7 @@ __global__ void calc_eta_x_2D(Real *dev_bounds_L, Real *dev_bounds_R,
  *  \brief When passed the left and right boundary values at an interface,
  calculates the eta value for the interface according to the forumulation in
  Sanders et al, 1998. */
-__global__ void calc_eta_y_2D(Real *dev_bounds_L, Real *dev_bounds_R,
-                              Real *eta_y, int nx, int ny, int n_ghost,
+__global__ void calc_eta_y_2D(Real *dev_bounds_L, Real *dev_bounds_R, Real *eta_y, int nx, int ny, int n_ghost,
                               Real gamma)
 {
   int n_cells = nx * ny;
@@ -89,33 +81,29 @@ __global__ void calc_eta_y_2D(Real *dev_bounds_L, Real *dev_bounds_R,
   int yid = (tid - zid * nx * ny) / nx;
   int xid = tid - zid * nx * ny - yid * nx;
 
-  if (yid > n_ghost - 2 && yid < ny - n_ghost && xid > n_ghost - 2 &&
-      xid < nx - n_ghost + 1) {
+  if (yid > n_ghost - 2 && yid < ny - n_ghost && xid > n_ghost - 2 && xid < nx - n_ghost + 1) {
     // load the interface values into registers
     id = xid + yid * nx;
-    pl = (dev_bounds_L[4 * n_cells + id] -
-          0.5 *
-              (dev_bounds_L[2 * n_cells + id] * dev_bounds_L[2 * n_cells + id] +
-               dev_bounds_L[3 * n_cells + id] * dev_bounds_L[3 * n_cells + id] +
-               dev_bounds_L[n_cells + id] * dev_bounds_L[n_cells + id]) /
-              dev_bounds_L[id]) *
+    pl = (dev_bounds_L[4 * n_cells + id] - 0.5 *
+                                               (dev_bounds_L[2 * n_cells + id] * dev_bounds_L[2 * n_cells + id] +
+                                                dev_bounds_L[3 * n_cells + id] * dev_bounds_L[3 * n_cells + id] +
+                                                dev_bounds_L[n_cells + id] * dev_bounds_L[n_cells + id]) /
+                                               dev_bounds_L[id]) *
          (gamma - 1.0);
     pl = fmax(pl, (Real)1.0e-20);
-    pr = (dev_bounds_R[4 * n_cells + id] -
-          0.5 *
-              (dev_bounds_R[2 * n_cells + id] * dev_bounds_R[2 * n_cells + id] +
-               dev_bounds_R[3 * n_cells + id] * dev_bounds_R[3 * n_cells + id] +
-               dev_bounds_R[n_cells + id] * dev_bounds_R[n_cells + id]) /
-              dev_bounds_R[id]) *
+    pr = (dev_bounds_R[4 * n_cells + id] - 0.5 *
+                                               (dev_bounds_R[2 * n_cells + id] * dev_bounds_R[2 * n_cells + id] +
+                                                dev_bounds_R[3 * n_cells + id] * dev_bounds_R[3 * n_cells + id] +
+                                                dev_bounds_R[n_cells + id] * dev_bounds_R[n_cells + id]) /
+                                               dev_bounds_R[id]) *
          (gamma - 1.0);
     pr = fmax(pr, (Real)1.0e-20);
 
     al = sqrt(gamma * pl / dev_bounds_L[id]);
     ar = sqrt(gamma * pl / dev_bounds_R[id]);
 
-    eta_y[id] =
-        0.5 * fabs((dev_bounds_R[2 * n_cells + id] / dev_bounds_R[id] + ar) -
-                   (dev_bounds_L[2 * n_cells + id] / dev_bounds_L[id] - al));
+    eta_y[id] = 0.5 * fabs((dev_bounds_R[2 * n_cells + id] / dev_bounds_R[id] + ar) -
+                           (dev_bounds_L[2 * n_cells + id] / dev_bounds_L[id] - al));
   }
 }
 
@@ -124,8 +112,7 @@ __global__ void calc_eta_y_2D(Real *dev_bounds_L, Real *dev_bounds_R,
  *  \brief When passed the eta values at every interface, calculates
            the eta_h value for the interface according to the forumulation in
  Sanders et al, 1998. */
-__global__ void calc_etah_x_2D(Real *eta_x, Real *eta_y, Real *etah_x, int nx,
-                               int ny, int n_ghost)
+__global__ void calc_etah_x_2D(Real *eta_x, Real *eta_y, Real *etah_x, int nx, int ny, int n_ghost)
 {
   // get a thread ID
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
@@ -137,8 +124,7 @@ __global__ void calc_etah_x_2D(Real *eta_x, Real *eta_y, Real *etah_x, int nx,
 
   Real etah;
 
-  if (xid > n_ghost - 2 && xid < nx - n_ghost && yid > n_ghost - 1 &&
-      yid < ny - n_ghost) {
+  if (xid > n_ghost - 2 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost) {
     id = xid + yid * nx;
 
     etah = fmax(eta_y[xid + (yid - 1) * nx], eta_y[id]);
@@ -155,8 +141,7 @@ __global__ void calc_etah_x_2D(Real *eta_x, Real *eta_y, Real *etah_x, int nx,
  *  \brief When passed the eta values at every interface, calculates
            the eta_h value for the interface according to the forumulation in
  Sanders et al, 1998. */
-__global__ void calc_etah_y_2D(Real *eta_x, Real *eta_y, Real *etah_y, int nx,
-                               int ny, int n_ghost)
+__global__ void calc_etah_y_2D(Real *eta_x, Real *eta_y, Real *etah_y, int nx, int ny, int n_ghost)
 {
   // get a thread ID
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
@@ -168,8 +153,7 @@ __global__ void calc_etah_y_2D(Real *eta_x, Real *eta_y, Real *etah_y, int nx,
 
   Real etah;
 
-  if (yid > n_ghost - 2 && yid < ny - n_ghost && xid > n_ghost - 1 &&
-      xid < nx - n_ghost) {
+  if (yid > n_ghost - 2 && yid < ny - n_ghost && xid > n_ghost - 1 && xid < nx - n_ghost) {
     id = xid + yid * nx;
 
     etah = fmax(eta_x[xid - 1 + yid * nx], eta_x[id]);

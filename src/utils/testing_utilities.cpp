@@ -51,8 +51,7 @@ int64_t ulpsDistanceDbl(double const &a, double const &b)
 // =========================================================================
 
 // =========================================================================
-bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff,
-                    int64_t &ulpsDiff,
+bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff, int64_t &ulpsDiff,
                     double const &fixedEpsilon,  // = 1E-14 by default
                     int64_t const &ulpsEpsilon)  // = 4 by default
 {
@@ -75,8 +74,7 @@ bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff,
 }
 // =========================================================================
 
-void wrapperEqual(int i, int j, int k, std::string dataSetName,
-                  double test_value, double fid_value,
+void wrapperEqual(int i, int j, int k, std::string dataSetName, double test_value, double fid_value,
                   double fixedEpsilon = 5.0E-12)
 {
   std::string outString;
@@ -89,44 +87,35 @@ void wrapperEqual(int i, int j, int k, std::string dataSetName,
   outString += k;
   outString += "]";
 
-  ASSERT_NO_FATAL_FAILURE(
-      checkResults<1>(fid_value, test_value, outString, fixedEpsilon));
+  ASSERT_NO_FATAL_FAILURE(checkResults<1>(fid_value, test_value, outString, fixedEpsilon));
 }
 
-void analyticConstant(systemTest::SystemTestRunner testObject,
-                      std::string dataSetName, double value)
+void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value)
 {
   std::vector<size_t> testDims(3, 1);
-  std::vector<double> testData =
-      testObject.loadTestFieldData(dataSetName, testDims);
+  std::vector<double> testData = testObject.loadTestFieldData(dataSetName, testDims);
   for (size_t i = 0; i < testDims[0]; i++) {
     for (size_t j = 0; j < testDims[1]; j++) {
       for (size_t k = 0; k < testDims[2]; k++) {
         size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
 
-        ASSERT_NO_FATAL_FAILURE(
-            wrapperEqual(i, j, k, dataSetName, testData.at(index), value));
+        ASSERT_NO_FATAL_FAILURE(wrapperEqual(i, j, k, dataSetName, testData.at(index), value));
       }
     }
   }
 }
 
-void analyticSine(systemTest::SystemTestRunner testObject,
-                  std::string dataSetName, double constant, double amplitude,
-                  double kx, double ky, double kz, double phase,
-                  double tolerance)
+void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetName, double constant, double amplitude,
+                  double kx, double ky, double kz, double phase, double tolerance)
 {
   std::vector<size_t> testDims(3, 1);
-  std::vector<double> testData =
-      testObject.loadTestFieldData(dataSetName, testDims);
+  std::vector<double> testData = testObject.loadTestFieldData(dataSetName, testDims);
   for (size_t i = 0; i < testDims[0]; i++) {
     for (size_t j = 0; j < testDims[1]; j++) {
       for (size_t k = 0; k < testDims[2]; k++) {
-        double value =
-            constant + amplitude * std::sin(kx * i + ky * j + kz * k + phase);
+        double value = constant + amplitude * std::sin(kx * i + ky * j + kz * k + phase);
         size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
-        ASSERT_NO_FATAL_FAILURE(wrapperEqual(
-            i, j, k, dataSetName, testData.at(index), value, tolerance));
+        ASSERT_NO_FATAL_FAILURE(wrapperEqual(i, j, k, dataSetName, testData.at(index), value, tolerance));
       }
     }
   }

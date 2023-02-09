@@ -61,11 +61,9 @@ Real calc_eta(Real cW[], Real gamma)
 {
   Real pl, pr, al, ar;
 
-  pl = (cW[8] - 0.5 * (cW[2] * cW[2] + cW[4] * cW[4] + cW[6] * cW[6]) / cW[0]) *
-       (gamma - 1.0);
+  pl = (cW[8] - 0.5 * (cW[2] * cW[2] + cW[4] * cW[4] + cW[6] * cW[6]) / cW[0]) * (gamma - 1.0);
   pl = fmax(pl, TINY_NUMBER);
-  pr = (cW[9] - 0.5 * (cW[3] * cW[3] + cW[5] * cW[5] + cW[7] * cW[7]) / cW[1]) *
-       (gamma - 1.0);
+  pr = (cW[9] - 0.5 * (cW[3] * cW[3] + cW[5] * cW[5] + cW[7] * cW[7]) / cW[1]) * (gamma - 1.0);
   pr = fmax(pr, TINY_NUMBER);
 
   al = sqrt(gamma * pl / cW[0]);
@@ -95,11 +93,9 @@ char *trim(char *s)
 }
 
 const std::set<const char *> optionalParams = {
-    "flag_delta", "ddelta_dt",     "n_delta",      "Lz",
-    "Lx",         "phi",           "theta",        "delta",
-    "nzr",        "nxr",           "H0",           "Omega_M",
-    "Omega_L",    "Init_redshift", "End_redshift", "tile_length",
-    "n_proc_x",   "n_proc_y",      "n_proc_z"};
+    "flag_delta",   "ddelta_dt",   "n_delta",  "Lz",       "Lx",      "phi",     "theta",
+    "delta",        "nzr",         "nxr",      "H0",       "Omega_M", "Omega_L", "Init_redshift",
+    "End_redshift", "tile_length", "n_proc_x", "n_proc_y", "n_proc_z"};
 
 /*! \fn int is_param_valid(char *name);
  * \brief Verifies that a param is valid (even if not needed).  Avoids
@@ -116,15 +112,13 @@ void parse_param(char *name, char *value, struct parameters *parms);
 
 /*! \fn void parse_params(char *param_file, struct parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
-void parse_params(char *param_file, struct parameters *parms, int argc,
-                  char **argv)
+void parse_params(char *param_file, struct parameters *parms, int argc, char **argv)
 {
   int buf;
   char *s, buff[256];
   FILE *fp = fopen(param_file, "r");
   if (fp == NULL) {
-    chprintf("Exiting at file %s line %d: failed to read param file %s \n",
-             __FILE__, __LINE__, param_file);
+    chprintf("Exiting at file %s line %d: failed to read param file %s \n", __FILE__, __LINE__, param_file);
     exit(1);
     return;
   }

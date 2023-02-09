@@ -85,10 +85,7 @@ void Grid3D::Transfer_Particles_Density_Boundaries(struct parameters P)
 
   #ifdef MPI_CHOLLA
 
-void Grid3D::Copy_Particles_Density_Buffer_Device_to_Host(int direction,
-                                                          int side,
-                                                          Real *buffer_d,
-                                                          Real *buffer_h)
+void Grid3D::Copy_Particles_Density_Buffer_Device_to_Host(int direction, int side, Real *buffer_d, Real *buffer_h)
 {
   int nGHST, nx_g, ny_g, nz_g, buffer_length;
   nGHST = Particles.G.n_ghost_particles_grid;
@@ -100,14 +97,12 @@ void Grid3D::Copy_Particles_Density_Buffer_Device_to_Host(int direction,
   if (direction == 1) buffer_length = nGHST * nx_g * nz_g;
   if (direction == 2) buffer_length = nGHST * nx_g * ny_g;
 
-  cudaMemcpy(buffer_h, buffer_d, buffer_length * sizeof(Real),
-             cudaMemcpyDeviceToHost);
+  cudaMemcpy(buffer_h, buffer_d, buffer_length * sizeof(Real), cudaMemcpyDeviceToHost);
 }
 
 // Load the particles density boundaries to the MPI buffers for transfer, return
 // the size of the transfer buffer
-int Grid3D::Load_Particles_Density_Boundary_to_Buffer(int direction, int side,
-                                                      Real *buffer)
+int Grid3D::Load_Particles_Density_Boundary_to_Buffer(int direction, int side, Real *buffer)
 {
   int i, j, k, indx, indx_buff, buffer_length;
   int nGHST, nx_g, ny_g, nz_g;
@@ -122,8 +117,7 @@ int Grid3D::Load_Particles_Density_Boundary_to_Buffer(int direction, int side,
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) indx = (i) + (j)*nx_g + (k)*nx_g * ny_g;
-          if (side == 1)
-            indx = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
+          if (side == 1) indx = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
           indx_buff         = i + j * nx_g + k * nx_g * ny_g;
           buffer[indx_buff] = Particles.G.density[indx];
         }
@@ -138,8 +132,7 @@ int Grid3D::Load_Particles_Density_Boundary_to_Buffer(int direction, int side,
       for (j = 0; j < nGHST; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) indx = (i) + (j)*nx_g + (k)*nx_g * ny_g;
-          if (side == 1)
-            indx = (i) + (ny_g - nGHST + j) * nx_g + (k)*nx_g * ny_g;
+          if (side == 1) indx = (i) + (ny_g - nGHST + j) * nx_g + (k)*nx_g * ny_g;
           indx_buff         = i + k * nx_g + j * nx_g * nz_g;
           buffer[indx_buff] = Particles.G.density[indx];
         }
@@ -167,9 +160,7 @@ int Grid3D::Load_Particles_Density_Boundary_to_Buffer(int direction, int side,
 }
 
 // Unload the particles density boundaries from the MPI buffers after transfer
-void Grid3D::Unload_Particles_Density_Boundary_From_Buffer(int direction,
-                                                           int side,
-                                                           Real *buffer)
+void Grid3D::Unload_Particles_Density_Boundary_From_Buffer(int direction, int side, Real *buffer)
 {
   int i, j, k, indx, indx_buff, buffer_length;
   int nGHST, nx_g, ny_g, nz_g;
@@ -184,8 +175,7 @@ void Grid3D::Unload_Particles_Density_Boundary_From_Buffer(int direction,
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) indx = (i) + (j)*nx_g + (k + nGHST) * nx_g * ny_g;
-          if (side == 1)
-            indx = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;
+          if (side == 1) indx = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;
           indx_buff = i + j * nx_g + k * nx_g * ny_g;
           Particles.G.density[indx] += buffer[indx_buff];
         }
@@ -199,8 +189,7 @@ void Grid3D::Unload_Particles_Density_Boundary_From_Buffer(int direction,
       for (j = 0; j < nGHST; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) indx = (i) + (j + nGHST) * nx_g + (k)*nx_g * ny_g;
-          if (side == 1)
-            indx = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;
+          if (side == 1) indx = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;
           indx_buff = i + k * nx_g + j * nx_g * nz_g;
           Particles.G.density[indx] += buffer[indx_buff];
         }
@@ -214,8 +203,7 @@ void Grid3D::Unload_Particles_Density_Boundary_From_Buffer(int direction,
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nGHST; i++) {
           if (side == 0) indx = (i + nGHST) + (j)*nx_g + (k)*nx_g * ny_g;
-          if (side == 1)
-            indx = (nx_g - 2 * nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
+          if (side == 1) indx = (nx_g - 2 * nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
           indx_buff = j + k * ny_g + i * ny_g * nz_g;
           Particles.G.density[indx] += buffer[indx_buff];
         }

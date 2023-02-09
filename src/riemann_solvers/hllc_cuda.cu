@@ -18,10 +18,8 @@
  * *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int
  * n_fields) \brief HLLC Riemann solver based on the version described in Toro
  * (2006), Sec. 10.4. */
-__global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L,
-                                           Real *dev_bounds_R, Real *dev_flux,
-                                           int nx, int ny, int nz, int n_ghost,
-                                           Real gamma, int dir, int n_fields)
+__global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny,
+                                           int nz, int n_ghost, Real gamma, int dir, int n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
@@ -49,9 +47,8 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L,
   Real dgel, dger, gel, ger, gels, gers, f_ge_l, f_ge_r, f_ge, E_kin;
   #endif
   #ifdef SCALAR
-  Real dscl[NSCALARS], dscr[NSCALARS], scl[NSCALARS], scr[NSCALARS],
-      scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS],
-      f_sc[NSCALARS];
+  Real dscl[NSCALARS], dscr[NSCALARS], scl[NSCALARS], scr[NSCALARS], scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS],
+      f_sc_r[NSCALARS], f_sc[NSCALARS];
   #endif
 
   Real etah = 0;
@@ -244,8 +241,7 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L,
     else {
       // compute contact wave speed and pressure in star region (Batten eqns 34
       // & 36)
-      Sm = (dr * vxr * (Sr - vxr) - dl * vxl * (Sl - vxl) + pl - pr) /
-           (dr * (Sr - vxr) - dl * (Sl - vxl));
+      Sm = (dr * vxr * (Sr - vxr) - dl * vxl * (Sl - vxl) + pl - pr) / (dr * (Sr - vxr) - dl * (Sl - vxl));
       ps = dl * (vxl - Sl) * (vxl - Sm) + pl;
 
       // conserved variables in the left star state (Batten eqns 35 - 40)
@@ -279,25 +275,18 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L,
   #endif
 
       // compute the hllc flux (Batten eqn 27)
-      f_d  = 0.5 * (f_d_l + f_d_r + (Sr - fabs(Sm)) * drs +
-                   (Sl + fabs(Sm)) * dls - Sl * dl - Sr * dr);
-      f_mx = 0.5 * (f_mx_l + f_mx_r + (Sr - fabs(Sm)) * mxrs +
-                    (Sl + fabs(Sm)) * mxls - Sl * mxl - Sr * mxr);
-      f_my = 0.5 * (f_my_l + f_my_r + (Sr - fabs(Sm)) * myrs +
-                    (Sl + fabs(Sm)) * myls - Sl * myl - Sr * myr);
-      f_mz = 0.5 * (f_mz_l + f_mz_r + (Sr - fabs(Sm)) * mzrs +
-                    (Sl + fabs(Sm)) * mzls - Sl * mzl - Sr * mzr);
-      f_E  = 0.5 * (f_E_l + f_E_r + (Sr - fabs(Sm)) * Ers +
-                   (Sl + fabs(Sm)) * Els - Sl * El - Sr * Er);
+      f_d  = 0.5 * (f_d_l + f_d_r + (Sr - fabs(Sm)) * drs + (Sl + fabs(Sm)) * dls - Sl * dl - Sr * dr);
+      f_mx = 0.5 * (f_mx_l + f_mx_r + (Sr - fabs(Sm)) * mxrs + (Sl + fabs(Sm)) * mxls - Sl * mxl - Sr * mxr);
+      f_my = 0.5 * (f_my_l + f_my_r + (Sr - fabs(Sm)) * myrs + (Sl + fabs(Sm)) * myls - Sl * myl - Sr * myr);
+      f_mz = 0.5 * (f_mz_l + f_mz_r + (Sr - fabs(Sm)) * mzrs + (Sl + fabs(Sm)) * mzls - Sl * mzl - Sr * mzr);
+      f_E  = 0.5 * (f_E_l + f_E_r + (Sr - fabs(Sm)) * Ers + (Sl + fabs(Sm)) * Els - Sl * El - Sr * Er);
   #ifdef DE
-      f_ge = 0.5 * (f_ge_l + f_ge_r + (Sr - fabs(Sm)) * gers +
-                    (Sl + fabs(Sm)) * gels - Sl * dgel - Sr * dger);
+      f_ge = 0.5 * (f_ge_l + f_ge_r + (Sr - fabs(Sm)) * gers + (Sl + fabs(Sm)) * gels - Sl * dgel - Sr * dger);
   #endif
   #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        f_sc[i] =
-            0.5 * (f_sc_l[i] + f_sc_r[i] + (Sr - fabs(Sm)) * scrs[i] +
-                   (Sl + fabs(Sm)) * scls[i] - Sl * dscl[i] - Sr * dscr[i]);
+        f_sc[i] = 0.5 * (f_sc_l[i] + f_sc_r[i] + (Sr - fabs(Sm)) * scrs[i] + (Sl + fabs(Sm)) * scls[i] - Sl * dscl[i] -
+                         Sr * dscr[i]);
       }
   #endif
 

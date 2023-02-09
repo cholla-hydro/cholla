@@ -14,8 +14,7 @@
 
 // Copy Real (non-ghost) cells from source to a double destination (for writing
 // HDF5 in double precision)
-__global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real,
-                                      int nz_real, int n_ghost,
+__global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost,
                                       double* destination, Real* source)
 {
   int dest_id, source_id, id, i, j, k;
@@ -38,8 +37,7 @@ __global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real,
 
 // Copy Real (non-ghost) cells from source to a float destination (for writing
 // HDF5 in float precision)
-__global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real,
-                                      int nz_real, int n_ghost,
+__global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost,
                                       float* destination, Real* source)
 {
   int dest_id, source_id, id, i, j, k;
@@ -62,10 +60,8 @@ __global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real,
 
 // When buffer is double, automatically use the double version of everything
 // using function overloading
-void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real,
-                      int n_ghost, hid_t file_id, double* buffer,
-                      double* device_buffer, Real* device_source,
-                      const char* name)
+void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id, double* buffer,
+                      double* device_buffer, Real* device_source, const char* name)
 {
   herr_t status;
   hsize_t dims[3];
@@ -77,12 +73,9 @@ void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real,
   // Copy non-ghost parts of source to buffer
   dim3 dim1dGrid((nx_real * ny_real * nz_real + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(CopyReal3D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny,
-                     nx_real, ny_real, nz_real, n_ghost, device_buffer,
-                     device_source);
-  CudaSafeCall(cudaMemcpy(buffer, device_buffer,
-                          nx_real * ny_real * nz_real * sizeof(double),
-                          cudaMemcpyDeviceToHost));
+  hipLaunchKernelGGL(CopyReal3D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny, nx_real, ny_real, nz_real, n_ghost,
+                     device_buffer, device_source);
+  CudaSafeCall(cudaMemcpy(buffer, device_buffer, nx_real * ny_real * nz_real * sizeof(double), cudaMemcpyDeviceToHost));
 
   // Write Buffer to HDF5
   status = Write_HDF5_Dataset(file_id, dataspace_id, buffer, name);
@@ -95,10 +88,8 @@ void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real,
 
 // When buffer is float, automatically use the float version of everything using
 // function overloading
-void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real,
-                      int n_ghost, hid_t file_id, float* buffer,
-                      float* device_buffer, Real* device_source,
-                      const char* name)
+void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id, float* buffer,
+                      float* device_buffer, Real* device_source, const char* name)
 {
   herr_t status;
   hsize_t dims[3];
@@ -110,12 +101,9 @@ void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real,
   // Copy non-ghost parts of source to buffer
   dim3 dim1dGrid((nx_real * ny_real * nz_real + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(CopyReal3D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny,
-                     nx_real, ny_real, nz_real, n_ghost, device_buffer,
-                     device_source);
-  CudaSafeCall(cudaMemcpy(buffer, device_buffer,
-                          nx_real * ny_real * nz_real * sizeof(float),
-                          cudaMemcpyDeviceToHost));
+  hipLaunchKernelGGL(CopyReal3D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny, nx_real, ny_real, nz_real, n_ghost,
+                     device_buffer, device_source);
+  CudaSafeCall(cudaMemcpy(buffer, device_buffer, nx_real * ny_real * nz_real * sizeof(float), cudaMemcpyDeviceToHost));
 
   // Write Buffer to HDF5
   status = Write_HDF5_Dataset(file_id, dataspace_id, buffer, name);

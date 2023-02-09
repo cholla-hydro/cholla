@@ -18,10 +18,8 @@
  * *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int
  * n_fields) \brief HLLC Riemann solver based on the version described in Toro
  * (2006), Sec. 10.4. */
-__global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L,
-                                          Real *dev_bounds_R, Real *dev_flux,
-                                          int nx, int ny, int nz, int n_ghost,
-                                          Real gamma, int dir, int n_fields)
+__global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny,
+                                          int nz, int n_ghost, Real gamma, int dir, int n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
@@ -49,8 +47,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L,
   Real dgel, dger, f_ge_l, f_ge_r, f_ge, E_kin;
   #endif
   #ifdef SCALAR
-  Real dscl[NSCALARS], dscr[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS],
-      f_sc[NSCALARS];
+  Real dscl[NSCALARS], dscr[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
   #endif
 
   // Real etah = 0;
@@ -240,23 +237,17 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L,
     }
     // otherwise compute subsonic flux
     else {
-      f_d = ((Sr * f_d_l) - (Sl * f_d_r) + Sl * Sr * (dr - dl)) / (Sr - Sl);
-      f_mx =
-          ((Sr * f_mx_l) - (Sl * f_mx_r) + Sl * Sr * (mxr - mxl)) / (Sr - Sl);
-      f_my =
-          ((Sr * f_my_l) - (Sl * f_my_r) + Sl * Sr * (myr - myl)) / (Sr - Sl);
-      f_mz =
-          ((Sr * f_mz_l) - (Sl * f_mz_r) + Sl * Sr * (mzr - mzl)) / (Sr - Sl);
-      f_E = ((Sr * f_E_l) - (Sl * f_E_r) + Sl * Sr * (Er - El)) / (Sr - Sl);
+      f_d  = ((Sr * f_d_l) - (Sl * f_d_r) + Sl * Sr * (dr - dl)) / (Sr - Sl);
+      f_mx = ((Sr * f_mx_l) - (Sl * f_mx_r) + Sl * Sr * (mxr - mxl)) / (Sr - Sl);
+      f_my = ((Sr * f_my_l) - (Sl * f_my_r) + Sl * Sr * (myr - myl)) / (Sr - Sl);
+      f_mz = ((Sr * f_mz_l) - (Sl * f_mz_r) + Sl * Sr * (mzr - mzl)) / (Sr - Sl);
+      f_E  = ((Sr * f_E_l) - (Sl * f_E_r) + Sl * Sr * (Er - El)) / (Sr - Sl);
   #ifdef DE
-      f_ge =
-          ((Sr * f_ge_l) - (Sl * f_ge_r) + Sl * Sr * (dger - dgel)) / (Sr - Sl);
+      f_ge = ((Sr * f_ge_l) - (Sl * f_ge_r) + Sl * Sr * (dger - dgel)) / (Sr - Sl);
   #endif
   #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        f_sc[i] = ((Sr * f_sc_l[i]) - (Sl * f_sc_r[i]) +
-                   Sl * Sr * (dscr[i] - dscl[i])) /
-                  (Sr - Sl);
+        f_sc[i] = ((Sr * f_sc_l[i]) - (Sl * f_sc_r[i]) + Sl * Sr * (dscr[i] - dscl[i])) / (Sr - Sl);
       }
   #endif
 

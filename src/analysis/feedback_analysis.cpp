@@ -40,10 +40,8 @@ FeedbackAnalysis::FeedbackAnalysis(Grid3D& G)
   }
 
 #ifdef PARTICLES_GPU
-  CHECK(cudaMemcpy(d_circ_vel_x, h_circ_vel_x, G.H.n_cells * sizeof(Real),
-                   cudaMemcpyHostToDevice));
-  CHECK(cudaMemcpy(d_circ_vel_y, h_circ_vel_y, G.H.n_cells * sizeof(Real),
-                   cudaMemcpyHostToDevice));
+  CHECK(cudaMemcpy(d_circ_vel_x, h_circ_vel_x, G.H.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  CHECK(cudaMemcpy(d_circ_vel_y, h_circ_vel_y, G.H.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 #endif
 }
 
@@ -69,10 +67,8 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion(Grid3D& G)
   Real x, y, z, r, xpm, xpp, ypm, ypp, zpm, zpp;
   Real Pm, Pp;
   Real dPdx, dPdy, dPdr;
-  Real vx, vy, vz, vrms_poisson, vrms_analytic, vcp, vca, vcxp, vcyp, vcxa,
-      vcya;
-  Real total_mass, partial_mass = 0, total_var_analytic = 0,
-                   total_var_poisson = 0, partial_var_poisson = 0,
+  Real vx, vy, vz, vrms_poisson, vrms_analytic, vcp, vca, vcxp, vcyp, vcxa, vcya;
+  Real total_mass, partial_mass = 0, total_var_analytic = 0, total_var_poisson = 0, partial_var_poisson = 0,
                    partial_var_analytic = 0;
 
   int n_ghost_grav = G.Particles.G.n_ghost_particles_grid;
@@ -83,8 +79,7 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion(Grid3D& G)
   for (k = 0; k < G.H.nz_real; k++) {
     for (j = 0; j < G.H.ny_real; j++) {
       for (i = 0; i < G.H.nx_real; i++) {
-        id = (i + G.H.n_ghost) + (j + G.H.n_ghost) * G.H.nx +
-             (k + G.H.n_ghost) * G.H.nx * G.H.ny;
+        id = (i + G.H.n_ghost) + (j + G.H.n_ghost) * G.H.nx + (k + G.H.n_ghost) * G.H.nx * G.H.ny;
         partial_mass += G.C.density[id];
       }
     }
@@ -99,30 +94,24 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion(Grid3D& G)
     for (j = G.H.n_ghost; j < G.H.ny - G.H.n_ghost; j++) {
       for (i = G.H.n_ghost; i < G.H.nx - G.H.n_ghost; i++) {
         id      = i + j * G.H.nx + k * G.H.nx * G.H.ny;
-        id_grav = (i + ghost_diff) + (j + ghost_diff) * nx_grav +
-                  (k + ghost_diff) * nx_grav * ny_grav;
+        id_grav = (i + ghost_diff) + (j + ghost_diff) * nx_grav + (k + ghost_diff) * nx_grav * ny_grav;
 
-        if (G.C.density[id] < VRMS_CUTOFF_DENSITY)
-          continue;  // in cgs, this is 0.01 cm^{-3}
+        if (G.C.density[id] < VRMS_CUTOFF_DENSITY) continue;  // in cgs, this is 0.01 cm^{-3}
 
         G.Get_Position(i, j, k, &x, &y, &z);
         r = sqrt(x * x + y * y);
 
-        vcp  = sqrt(r * fabs(G.Particles.G.gravity_x[id_grav] * x / r +
-                             G.Particles.G.gravity_y[id_grav] * y / r));
+        vcp  = sqrt(r * fabs(G.Particles.G.gravity_x[id_grav] * x / r + G.Particles.G.gravity_y[id_grav] * y / r));
         vcxp = -y / r * vcp;
         vcyp = x / r * vcp;
         vx   = G.C.momentum_x[id] / G.C.density[id];
         vy   = G.C.momentum_y[id] / G.C.density[id];
         vz   = G.C.momentum_z[id] / G.C.density[id];
 
-        partial_var_poisson +=
-            ((vx - vcxp) * (vx - vcxp) + (vy - vcyp) * (vy - vcyp) + vz * vz) *
-            G.C.density[id];
-        partial_var_analytic +=
-            ((vx - h_circ_vel_x[id]) * (vx - h_circ_vel_x[id]) +
-             (vy - h_circ_vel_y[id]) * (vy - h_circ_vel_y[id]) + (vz * vz)) *
-            G.C.density[id];
+        partial_var_poisson += ((vx - vcxp) * (vx - vcxp) + (vy - vcyp) * (vy - vcyp) + vz * vz) * G.C.density[id];
+        partial_var_analytic += ((vx - h_circ_vel_x[id]) * (vx - h_circ_vel_x[id]) +
+                                 (vy - h_circ_vel_y[id]) * (vy - h_circ_vel_y[id]) + (vz * vz)) *
+                                G.C.density[id];
       }
     }
   }
@@ -130,22 +119,19 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion(Grid3D& G)
   partial_var_analytic /= total_mass;
 
   #ifdef MPI_CHOLLA
-  MPI_Reduce(&partial_var_poisson, &total_var_poisson, 1, MPI_CHREAL, MPI_SUM,
-             root, world);
-  MPI_Reduce(&partial_var_analytic, &total_var_analytic, 1, MPI_CHREAL, MPI_SUM,
-             root, world);
+  MPI_Reduce(&partial_var_poisson, &total_var_poisson, 1, MPI_CHREAL, MPI_SUM, root, world);
+  MPI_Reduce(&partial_var_analytic, &total_var_analytic, 1, MPI_CHREAL, MPI_SUM, root, world);
 
   #else
   total_var_poisson  = partial_var_poisson;
   total_var_analytic = partial_var_analytic;
   #endif
 
-  vrms_poisson =
-      sqrt(total_var_poisson) * VELOCITY_UNIT / 1e5;  // output in km/s
+  vrms_poisson  = sqrt(total_var_poisson) * VELOCITY_UNIT / 1e5;  // output in km/s
   vrms_analytic = sqrt(total_var_analytic) * VELOCITY_UNIT / 1e5;
 
-  chprintf("feedback: time %f, dt=%f, vrms_p = %f km/s, vrms_a = %f km/s\n",
-           G.H.t, G.H.dt, vrms_poisson, vrms_analytic);
+  chprintf("feedback: time %f, dt=%f, vrms_p = %f km/s, vrms_a = %f km/s\n", G.H.t, G.H.dt, vrms_poisson,
+           vrms_analytic);
 
 #elif defined(PARTICLES_GPU)
   Compute_Gas_Velocity_Dispersion_GPU(G);

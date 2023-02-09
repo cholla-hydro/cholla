@@ -25,31 +25,27 @@
  *
  */
 /// @{
-class tMHDSYSTEMConstantParameterizedMpi
-    : public ::testing::TestWithParam<size_t>
+class tMHDSYSTEMConstantParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  protected:
   systemTest::SystemTestRunner constantTest;
 };
 
 // Test with all mangetic fields set to zero
-TEST_P(tMHDSYSTEMConstantParameterizedMpi,
-       ZeroMagneticFieldCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMConstantParameterizedMpi, ZeroMagneticFieldCorrectInputExpectCorrectOutput)
 {
   constantTest.numMpiRanks = GetParam();
   constantTest.runTest();
 }
 
 // Test with all mangetic fields set to one
-TEST_P(tMHDSYSTEMConstantParameterizedMpi,
-       MagneticFieldCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMConstantParameterizedMpi, MagneticFieldCorrectInputExpectCorrectOutput)
 {
   constantTest.numMpiRanks = GetParam();
   constantTest.runTest();
 }
 
-INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMConstantParameterizedMpi,
-                         ::testing::Values(1, 2, 4));
+INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMConstantParameterizedMpi, ::testing::Values(1, 2, 4));
 /// @}
 // =============================================================================
 
@@ -63,34 +59,26 @@ INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMConstantParameterizedMpi,
  *
  */
 /// @{
-class tMHDSYSTEMLinearWavesParameterizedAngle
-    : public ::testing::TestWithParam<std::tuple<double, double, double, int>>
+class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<std::tuple<double, double, double, int>>
 {
  public:
-  tMHDSYSTEMLinearWavesParameterizedAngle()
-      : waveTest(false, true, false, false){};
+  tMHDSYSTEMLinearWavesParameterizedAngle() : waveTest(false, true, false, false){};
 
  protected:
   systemTest::SystemTestRunner waveTest;
 
 #ifdef PCM
-  double const allowedL1Error =
-      4E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError = 4E-7;
+  double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 4E-7;
 #else   // PCM
-  double const allowedL1Error =
-      1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError = 1E-7;
+  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1E-7;
 #endif  // PCM
 
-  void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho,
-                       double const &rEigenVec_MomentumX,
-                       double const &rEigenVec_MomentumY,
-                       double const &rEigenVec_MomentumZ,
-                       double const &rEigenVec_E, double const &rEigenVec_Bx,
-                       double const &rEigenVec_By, double const &rEigenVec_Bz,
-                       double const &pitch, double const &yaw,
-                       double const &domain, int const &domain_direction,
+  void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
+                       double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
+                       double const &rEigenVec_Bx, double const &rEigenVec_By, double const &rEigenVec_Bz,
+                       double const &pitch, double const &yaw, double const &domain, int const &domain_direction,
                        double const &vx = 0.0)
   {
     // Constant for all tests
@@ -134,8 +122,7 @@ class tMHDSYSTEMLinearWavesParameterizedAngle
         std::swap(rEigenVec_MomentumX_rot, rEigenVec_MomentumZ_rot);
         break;
       default:
-        throw std::invalid_argument(
-            "Invalid value of domain_direction given to setLaunchParams");
+        throw std::invalid_argument("Invalid value of domain_direction given to setLaunchParams");
         break;
     }
 
@@ -143,20 +130,15 @@ class tMHDSYSTEMLinearWavesParameterizedAngle
     waveTest.chollaLaunchParams.append(" nx=" + to_string_exact<int>(nx));
     waveTest.chollaLaunchParams.append(" ny=" + to_string_exact<int>(ny));
     waveTest.chollaLaunchParams.append(" nz=" + to_string_exact<int>(nz));
-    waveTest.chollaLaunchParams.append(" tout=" +
-                                       to_string_exact<double>(tOut));
-    waveTest.chollaLaunchParams.append(" outstep=" +
-                                       to_string_exact<double>(tOut));
+    waveTest.chollaLaunchParams.append(" tout=" + to_string_exact<double>(tOut));
+    waveTest.chollaLaunchParams.append(" outstep=" + to_string_exact<double>(tOut));
     waveTest.chollaLaunchParams.append(" init=Linear_Wave");
     waveTest.chollaLaunchParams.append(" xmin=0.0");
     waveTest.chollaLaunchParams.append(" ymin=0.0");
     waveTest.chollaLaunchParams.append(" zmin=0.0");
-    waveTest.chollaLaunchParams.append(" xlen=" +
-                                       to_string_exact<double>(x_len));
-    waveTest.chollaLaunchParams.append(" ylen=" +
-                                       to_string_exact<double>(y_len));
-    waveTest.chollaLaunchParams.append(" zlen=" +
-                                       to_string_exact<double>(z_len));
+    waveTest.chollaLaunchParams.append(" xlen=" + to_string_exact<double>(x_len));
+    waveTest.chollaLaunchParams.append(" ylen=" + to_string_exact<double>(y_len));
+    waveTest.chollaLaunchParams.append(" zlen=" + to_string_exact<double>(z_len));
     waveTest.chollaLaunchParams.append(" xl_bcnd=1");
     waveTest.chollaLaunchParams.append(" xu_bcnd=1");
     waveTest.chollaLaunchParams.append(" yl_bcnd=1");
@@ -164,52 +146,31 @@ class tMHDSYSTEMLinearWavesParameterizedAngle
     waveTest.chollaLaunchParams.append(" zl_bcnd=1");
     waveTest.chollaLaunchParams.append(" zu_bcnd=1");
     waveTest.chollaLaunchParams.append(" rho=1.0");
-    waveTest.chollaLaunchParams.append(" vx=" +
-                                       to_string_exact<double>(vx_rot));
-    waveTest.chollaLaunchParams.append(" vy=" +
-                                       to_string_exact<double>(vy_rot));
-    waveTest.chollaLaunchParams.append(" vz=" +
-                                       to_string_exact<double>(vz_rot));
-    waveTest.chollaLaunchParams.append(" P=" +
-                                       to_string_exact<double>(1 / gamma));
-    waveTest.chollaLaunchParams.append(" Bx=" +
-                                       to_string_exact<double>(Bx_rot));
-    waveTest.chollaLaunchParams.append(" By=" +
-                                       to_string_exact<double>(By_rot));
-    waveTest.chollaLaunchParams.append(" Bz=" +
-                                       to_string_exact<double>(Bz_rot));
+    waveTest.chollaLaunchParams.append(" vx=" + to_string_exact<double>(vx_rot));
+    waveTest.chollaLaunchParams.append(" vy=" + to_string_exact<double>(vy_rot));
+    waveTest.chollaLaunchParams.append(" vz=" + to_string_exact<double>(vz_rot));
+    waveTest.chollaLaunchParams.append(" P=" + to_string_exact<double>(1 / gamma));
+    waveTest.chollaLaunchParams.append(" Bx=" + to_string_exact<double>(Bx_rot));
+    waveTest.chollaLaunchParams.append(" By=" + to_string_exact<double>(By_rot));
+    waveTest.chollaLaunchParams.append(" Bz=" + to_string_exact<double>(Bz_rot));
     waveTest.chollaLaunchParams.append(" A='1e-6'");
-    waveTest.chollaLaunchParams.append(" gamma=" +
-                                       to_string_exact<double>(gamma));
-    waveTest.chollaLaunchParams.append(" rEigenVec_rho=" +
-                                       to_string_exact<double>(rEigenVec_rho));
-    waveTest.chollaLaunchParams.append(
-        " rEigenVec_MomentumX=" +
-        to_string_exact<double>(rEigenVec_MomentumX_rot));
-    waveTest.chollaLaunchParams.append(
-        " rEigenVec_MomentumY=" +
-        to_string_exact<double>(rEigenVec_MomentumY_rot));
-    waveTest.chollaLaunchParams.append(
-        " rEigenVec_MomentumZ=" +
-        to_string_exact<double>(rEigenVec_MomentumZ_rot));
-    waveTest.chollaLaunchParams.append(" rEigenVec_E=" +
-                                       to_string_exact<double>(rEigenVec_E));
-    waveTest.chollaLaunchParams.append(
-        " rEigenVec_Bx=" + to_string_exact<double>(rEigenVec_Bx_rot));
-    waveTest.chollaLaunchParams.append(
-        " rEigenVec_By=" + to_string_exact<double>(rEigenVec_By_rot));
-    waveTest.chollaLaunchParams.append(
-        " rEigenVec_Bz=" + to_string_exact<double>(rEigenVec_Bz_rot));
-    waveTest.chollaLaunchParams.append(" pitch=" +
-                                       to_string_exact<double>(pitch));
+    waveTest.chollaLaunchParams.append(" gamma=" + to_string_exact<double>(gamma));
+    waveTest.chollaLaunchParams.append(" rEigenVec_rho=" + to_string_exact<double>(rEigenVec_rho));
+    waveTest.chollaLaunchParams.append(" rEigenVec_MomentumX=" + to_string_exact<double>(rEigenVec_MomentumX_rot));
+    waveTest.chollaLaunchParams.append(" rEigenVec_MomentumY=" + to_string_exact<double>(rEigenVec_MomentumY_rot));
+    waveTest.chollaLaunchParams.append(" rEigenVec_MomentumZ=" + to_string_exact<double>(rEigenVec_MomentumZ_rot));
+    waveTest.chollaLaunchParams.append(" rEigenVec_E=" + to_string_exact<double>(rEigenVec_E));
+    waveTest.chollaLaunchParams.append(" rEigenVec_Bx=" + to_string_exact<double>(rEigenVec_Bx_rot));
+    waveTest.chollaLaunchParams.append(" rEigenVec_By=" + to_string_exact<double>(rEigenVec_By_rot));
+    waveTest.chollaLaunchParams.append(" rEigenVec_Bz=" + to_string_exact<double>(rEigenVec_Bz_rot));
+    waveTest.chollaLaunchParams.append(" pitch=" + to_string_exact<double>(pitch));
     waveTest.chollaLaunchParams.append(" yaw=" + to_string_exact<double>(yaw));
   }
 };
 
 // Fast Magnetosonic Waves Moving Left and Right
 // =============================================
-TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
-       FastMagnetosonicWaveRightMovingCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveRightMovingCorrectInputExpectCorrectOutput)
 {
   // Specific to this test
   double const waveSpeed              = 2.;
@@ -229,10 +190,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX,
-                  rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain,
-                  domain_direction);
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
@@ -245,8 +204,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
 #endif  // PCM
 }
 
-TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
-       FastMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
 {
   // Specific to this test
   double const waveSpeed              = 2.;
@@ -266,10 +224,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX,
-                  rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain,
-                  domain_direction);
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
@@ -284,8 +240,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
 
 // Slow Magnetosonic Waves Moving Left and Right
 // =============================================
-TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
-       SlowMagnetosonicWaveRightMovingCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveRightMovingCorrectInputExpectCorrectOutput)
 {
   // Specific to this test
   double const waveSpeed              = 0.5;
@@ -305,10 +260,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX,
-                  rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain,
-                  domain_direction);
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
@@ -317,8 +270,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
   waveTest.runL1ErrorTest(allowedL1Error, allowedError);
 }
 
-TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
-       SlowMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
 {
   // Specific to this test
   double const waveSpeed              = 0.5;
@@ -338,10 +290,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX,
-                  rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain,
-                  domain_direction);
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
@@ -352,8 +302,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
 
 // Alfven Waves Moving Left and Right
 // =============================================
-TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
-       AlfvenWaveRightMovingCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveRightMovingCorrectInputExpectCorrectOutput)
 {
   // Specific to this test
   double const waveSpeed              = 1.0;
@@ -372,10 +321,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX,
-                  rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain,
-                  domain_direction);
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
@@ -384,8 +331,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
   waveTest.runL1ErrorTest(allowedL1Error, allowedError);
 }
 
-TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
-       AlfvenWaveLeftMovingCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveLeftMovingCorrectInputExpectCorrectOutput)
 {
   // Specific to this test
   double const waveSpeed              = 1.0;
@@ -404,10 +350,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX,
-                  rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain,
-                  domain_direction);
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
@@ -418,8 +362,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
 
 // Contact Wave Moving Right
 // ===================================
-TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
-       MHDContactWaveCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveCorrectInputExpectCorrectOutput)
 {
   // Specific to this test
   double const waveSpeed              = 1.0;
@@ -439,10 +382,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX,
-                  rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain,
-                  domain_direction, velocityX);
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, velocityX);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
@@ -455,14 +396,13 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle,
 #endif  // PCM
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    , tMHDSYSTEMLinearWavesParameterizedAngle,
-    ::testing::Values(std::make_tuple(0.0 * M_PI, 0.0 * M_PI, 0.5, 1),
-                      std::make_tuple(0.0 * M_PI, 0.5 * M_PI, 0.5, 2),
-                      std::make_tuple(0.5 * M_PI, 0.0 * M_PI, 0.5, 3)
-                      // std::make_tuple(std::asin(2./3.),
-                      // std::asin(2./std::sqrt(5.)), 1.5, 1)
-                      ));
+INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedAngle,
+                         ::testing::Values(std::make_tuple(0.0 * M_PI, 0.0 * M_PI, 0.5, 1),
+                                           std::make_tuple(0.0 * M_PI, 0.5 * M_PI, 0.5, 2),
+                                           std::make_tuple(0.5 * M_PI, 0.0 * M_PI, 0.5, 3)
+                                           // std::make_tuple(std::asin(2./3.),
+                                           // std::asin(2./std::sqrt(5.)), 1.5, 1)
+                                           ));
 /// @}
 // =============================================================================
 
@@ -479,8 +419,7 @@ INSTANTIATE_TEST_SUITE_P(
  *
  */
 /// @{
-class tMHDSYSTEMSodShockTubeParameterizedMpi
-    : public ::testing::TestWithParam<size_t>
+class tMHDSYSTEMSodShockTubeParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  protected:
   systemTest::SystemTestRunner sodTest;
@@ -492,8 +431,7 @@ TEST_P(tMHDSYSTEMSodShockTubeParameterizedMpi, CorrectInputExpectCorrectOutput)
   sodTest.runTest();
 }
 
-INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput,
-                         tMHDSYSTEMSodShockTubeParameterizedMpi,
+INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput, tMHDSYSTEMSodShockTubeParameterizedMpi,
                          ::testing::Values(1, 2, 4));
 /// @}
 // =============================================================================
@@ -518,32 +456,25 @@ TEST(tMHDSYSTEMEinfeldtStrongRarefaction, CorrectInputExpectCorrectOutput)
  *
  */
 /// @{
-class tMHDSYSTEMLinearWavesParameterizedMpi
-    : public ::testing::TestWithParam<int>
+class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<int>
 {
  public:
-  tMHDSYSTEMLinearWavesParameterizedMpi()
-      : waveTest(false, true, false, false){};
+  tMHDSYSTEMLinearWavesParameterizedMpi() : waveTest(false, true, false, false){};
 
  protected:
   systemTest::SystemTestRunner waveTest;
 
 #ifdef PCM
-  double const allowedL1Error =
-      4E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError = 4E-7;
+  double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 4E-7;
 #else   // PCM
-  double const allowedL1Error =
-      1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError = 1E-7;
+  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1E-7;
 #endif  // PCM
 
-  void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho,
-                       double const &rEigenVec_MomentumX,
-                       double const &rEigenVec_MomentumY,
-                       double const &rEigenVec_MomentumZ,
-                       double const &rEigenVec_E, double const &rEigenVec_Bx,
-                       double const &rEigenVec_By, double const &rEigenVec_Bz)
+  void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
+                       double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
+                       double const &rEigenVec_Bx, double const &rEigenVec_By, double const &rEigenVec_Bz)
   {
     // Constant for all tests
     size_t const N      = 32;
@@ -555,20 +486,15 @@ class tMHDSYSTEMLinearWavesParameterizedMpi
     waveTest.chollaLaunchParams.append(" nx=" + to_string_exact<int>(2 * N));
     waveTest.chollaLaunchParams.append(" ny=" + to_string_exact<int>(N));
     waveTest.chollaLaunchParams.append(" nz=" + to_string_exact<int>(N));
-    waveTest.chollaLaunchParams.append(" tout=" +
-                                       to_string_exact<double>(tOut));
-    waveTest.chollaLaunchParams.append(" outstep=" +
-                                       to_string_exact<double>(tOut));
+    waveTest.chollaLaunchParams.append(" tout=" + to_string_exact<double>(tOut));
+    waveTest.chollaLaunchParams.append(" outstep=" + to_string_exact<double>(tOut));
     waveTest.chollaLaunchParams.append(" init=Linear_Wave");
     waveTest.chollaLaunchParams.append(" xmin=0.0");
     waveTest.chollaLaunchParams.append(" ymin=0.0");
     waveTest.chollaLaunchParams.append(" zmin=0.0");
-    waveTest.chollaLaunchParams.append(" xlen=" +
-                                       to_string_exact<double>(2 * domain));
-    waveTest.chollaLaunchParams.append(" ylen=" +
-                                       to_string_exact<double>(domain));
-    waveTest.chollaLaunchParams.append(" zlen=" +
-                                       to_string_exact<double>(domain));
+    waveTest.chollaLaunchParams.append(" xlen=" + to_string_exact<double>(2 * domain));
+    waveTest.chollaLaunchParams.append(" ylen=" + to_string_exact<double>(domain));
+    waveTest.chollaLaunchParams.append(" zlen=" + to_string_exact<double>(domain));
     waveTest.chollaLaunchParams.append(" xl_bcnd=1");
     waveTest.chollaLaunchParams.append(" xu_bcnd=1");
     waveTest.chollaLaunchParams.append(" yl_bcnd=1");
@@ -579,37 +505,26 @@ class tMHDSYSTEMLinearWavesParameterizedMpi
     waveTest.chollaLaunchParams.append(" vx=0");
     waveTest.chollaLaunchParams.append(" vy=0");
     waveTest.chollaLaunchParams.append(" vz=0");
-    waveTest.chollaLaunchParams.append(" P=" +
-                                       to_string_exact<double>(1 / gamma));
+    waveTest.chollaLaunchParams.append(" P=" + to_string_exact<double>(1 / gamma));
     waveTest.chollaLaunchParams.append(" Bx=1");
     waveTest.chollaLaunchParams.append(" By=1.5");
     waveTest.chollaLaunchParams.append(" Bz=0");
     waveTest.chollaLaunchParams.append(" A='1e-6'");
-    waveTest.chollaLaunchParams.append(" gamma=" +
-                                       to_string_exact<double>(gamma));
-    waveTest.chollaLaunchParams.append(" rEigenVec_rho=" +
-                                       to_string_exact<double>(rEigenVec_rho));
-    waveTest.chollaLaunchParams.append(
-        " rEigenVec_MomentumX=" + to_string_exact<double>(rEigenVec_MomentumX));
-    waveTest.chollaLaunchParams.append(
-        " rEigenVec_MomentumY=" + to_string_exact<double>(rEigenVec_MomentumY));
-    waveTest.chollaLaunchParams.append(
-        " rEigenVec_MomentumZ=" + to_string_exact<double>(rEigenVec_MomentumZ));
-    waveTest.chollaLaunchParams.append(" rEigenVec_E=" +
-                                       to_string_exact<double>(rEigenVec_E));
-    waveTest.chollaLaunchParams.append(" rEigenVec_Bx=" +
-                                       to_string_exact<double>(rEigenVec_Bx));
-    waveTest.chollaLaunchParams.append(" rEigenVec_By=" +
-                                       to_string_exact<double>(rEigenVec_By));
-    waveTest.chollaLaunchParams.append(" rEigenVec_Bz=" +
-                                       to_string_exact<double>(rEigenVec_Bz));
+    waveTest.chollaLaunchParams.append(" gamma=" + to_string_exact<double>(gamma));
+    waveTest.chollaLaunchParams.append(" rEigenVec_rho=" + to_string_exact<double>(rEigenVec_rho));
+    waveTest.chollaLaunchParams.append(" rEigenVec_MomentumX=" + to_string_exact<double>(rEigenVec_MomentumX));
+    waveTest.chollaLaunchParams.append(" rEigenVec_MomentumY=" + to_string_exact<double>(rEigenVec_MomentumY));
+    waveTest.chollaLaunchParams.append(" rEigenVec_MomentumZ=" + to_string_exact<double>(rEigenVec_MomentumZ));
+    waveTest.chollaLaunchParams.append(" rEigenVec_E=" + to_string_exact<double>(rEigenVec_E));
+    waveTest.chollaLaunchParams.append(" rEigenVec_Bx=" + to_string_exact<double>(rEigenVec_Bx));
+    waveTest.chollaLaunchParams.append(" rEigenVec_By=" + to_string_exact<double>(rEigenVec_By));
+    waveTest.chollaLaunchParams.append(" rEigenVec_Bz=" + to_string_exact<double>(rEigenVec_Bz));
   }
 };
 
 // Slow Magnetosonic Waves Moving Left and Right
 // =============================================
-TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi,
-       SlowMagnetosonicWaveRightMovingCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveRightMovingCorrectInputExpectCorrectOutput)
 {
   // Specific to this test
   double const waveSpeed = 0.5;
@@ -629,8 +544,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi,
   waveTest.numMpiRanks = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX,
-                  rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz);
 
   // Set the number of timesteps
@@ -640,8 +554,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi,
   waveTest.runL1ErrorTest(allowedL1Error, allowedError);
 }
 
-TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi,
-       SlowMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
+TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
 {
   // Specific to this test
   double const waveSpeed = 0.5;
@@ -661,8 +574,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi,
   waveTest.numMpiRanks = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX,
-                  rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz);
 
   // Set the number of timesteps
@@ -672,7 +584,6 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi,
   waveTest.runL1ErrorTest(allowedL1Error, allowedError);
 }
 
-INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedMpi,
-                         ::testing::Values(1, 2, 4));
+INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedMpi, ::testing::Values(1, 2, 4));
 /// @}
 // =============================================================================

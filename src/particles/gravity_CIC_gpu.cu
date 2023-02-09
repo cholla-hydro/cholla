@@ -17,20 +17,16 @@
   #ifdef PARTICLES_GPU
 
 // Copy the potential from host to device
-void Particles_3D::Copy_Potential_To_GPU(Real *potential_host,
-                                         Real *potential_dev,
-                                         int n_cells_potential)
+void Particles_3D::Copy_Potential_To_GPU(Real *potential_host, Real *potential_dev, int n_cells_potential)
 {
-  CudaSafeCall(cudaMemcpy(potential_dev, potential_host,
-                          n_cells_potential * sizeof(Real),
-                          cudaMemcpyHostToDevice));
+  CudaSafeCall(cudaMemcpy(potential_dev, potential_host, n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
 }
 
 // Kernel to compute the gradient of the potential
-__global__ void Get_Gravity_Field_Particles_Kernel(
-    Real *potential_dev, Real *gravity_x_dev, Real *gravity_y_dev,
-    Real *gravity_z_dev, int nx, int ny, int nz, int n_ghost_particles_grid,
-    int n_ghost_potential, Real dx, Real dy, Real dz)
+__global__ void Get_Gravity_Field_Particles_Kernel(Real *potential_dev, Real *gravity_x_dev, Real *gravity_y_dev,
+                                                   Real *gravity_z_dev, int nx, int ny, int nz,
+                                                   int n_ghost_particles_grid, int n_ghost_potential, Real dx, Real dy,
+                                                   Real dz)
 {
   int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
   int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -58,72 +54,57 @@ __global__ void Get_Gravity_Field_Particles_Kernel(
     #endif
 
   // Get Potential Gradient X
-  id_l = (tid_x - 1 + nGHST) + (tid_y + nGHST) * nx_pot +
-         (tid_z + nGHST) * ny_pot * nx_pot;
-  id_r = (tid_x + 1 + nGHST) + (tid_y + nGHST) * nx_pot +
-         (tid_z + nGHST) * ny_pot * nx_pot;
+  id_l  = (tid_x - 1 + nGHST) + (tid_y + nGHST) * nx_pot + (tid_z + nGHST) * ny_pot * nx_pot;
+  id_r  = (tid_x + 1 + nGHST) + (tid_y + nGHST) * nx_pot + (tid_z + nGHST) * ny_pot * nx_pot;
   phi_l = potential_dev[id_l];
   phi_r = potential_dev[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-  id_ll = (tid_x - 2 + nGHST) + (tid_y + nGHST) * nx_pot +
-          (tid_z + nGHST) * ny_pot * nx_pot;
-  id_rr = (tid_x + 2 + nGHST) + (tid_y + nGHST) * nx_pot +
-          (tid_z + nGHST) * ny_pot * nx_pot;
-  phi_ll = potential_dev[id_ll];
-  phi_rr = potential_dev[id_rr];
-  gravity_x_dev[tid] =
-      -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+  id_ll              = (tid_x - 2 + nGHST) + (tid_y + nGHST) * nx_pot + (tid_z + nGHST) * ny_pot * nx_pot;
+  id_rr              = (tid_x + 2 + nGHST) + (tid_y + nGHST) * nx_pot + (tid_z + nGHST) * ny_pot * nx_pot;
+  phi_ll             = potential_dev[id_ll];
+  phi_rr             = potential_dev[id_rr];
+  gravity_x_dev[tid] = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
     #else
   gravity_x_dev[tid] = -0.5 * (phi_r - phi_l) / dx;
     #endif
 
   // Get Potential Gradient Y
-  id_l = (tid_x + nGHST) + (tid_y - 1 + nGHST) * nx_pot +
-         (tid_z + nGHST) * ny_pot * nx_pot;
-  id_r = (tid_x + nGHST) + (tid_y + 1 + nGHST) * nx_pot +
-         (tid_z + nGHST) * ny_pot * nx_pot;
+  id_l  = (tid_x + nGHST) + (tid_y - 1 + nGHST) * nx_pot + (tid_z + nGHST) * ny_pot * nx_pot;
+  id_r  = (tid_x + nGHST) + (tid_y + 1 + nGHST) * nx_pot + (tid_z + nGHST) * ny_pot * nx_pot;
   phi_l = potential_dev[id_l];
   phi_r = potential_dev[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-  id_ll = (tid_x + nGHST) + (tid_y - 2 + nGHST) * nx_pot +
-          (tid_z + nGHST) * ny_pot * nx_pot;
-  id_rr = (tid_x + nGHST) + (tid_y + 2 + nGHST) * nx_pot +
-          (tid_z + nGHST) * ny_pot * nx_pot;
-  phi_ll = potential_dev[id_ll];
-  phi_rr = potential_dev[id_rr];
-  gravity_y_dev[tid] =
-      -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
+  id_ll              = (tid_x + nGHST) + (tid_y - 2 + nGHST) * nx_pot + (tid_z + nGHST) * ny_pot * nx_pot;
+  id_rr              = (tid_x + nGHST) + (tid_y + 2 + nGHST) * nx_pot + (tid_z + nGHST) * ny_pot * nx_pot;
+  phi_ll             = potential_dev[id_ll];
+  phi_rr             = potential_dev[id_rr];
+  gravity_y_dev[tid] = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
     #else
   gravity_y_dev[tid] = -0.5 * (phi_r - phi_l) / dy;
     #endif
 
   // Get Potential Gradient Z
-  id_l = (tid_x + nGHST) + (tid_y + nGHST) * nx_pot +
-         (tid_z - 1 + nGHST) * ny_pot * nx_pot;
-  id_r = (tid_x + nGHST) + (tid_y + nGHST) * nx_pot +
-         (tid_z + 1 + nGHST) * ny_pot * nx_pot;
+  id_l  = (tid_x + nGHST) + (tid_y + nGHST) * nx_pot + (tid_z - 1 + nGHST) * ny_pot * nx_pot;
+  id_r  = (tid_x + nGHST) + (tid_y + nGHST) * nx_pot + (tid_z + 1 + nGHST) * ny_pot * nx_pot;
   phi_l = potential_dev[id_l];
   phi_r = potential_dev[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-  id_ll = (tid_x + nGHST) + (tid_y + nGHST) * nx_pot +
-          (tid_z - 2 + nGHST) * ny_pot * nx_pot;
-  id_rr = (tid_x + nGHST) + (tid_y + nGHST) * nx_pot +
-          (tid_z + 2 + nGHST) * ny_pot * nx_pot;
-  phi_ll = potential_dev[id_ll];
-  phi_rr = potential_dev[id_rr];
-  gravity_z_dev[tid] =
-      -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
+  id_ll              = (tid_x + nGHST) + (tid_y + nGHST) * nx_pot + (tid_z - 2 + nGHST) * ny_pot * nx_pot;
+  id_rr              = (tid_x + nGHST) + (tid_y + nGHST) * nx_pot + (tid_z + 2 + nGHST) * ny_pot * nx_pot;
+  phi_ll             = potential_dev[id_ll];
+  phi_rr             = potential_dev[id_rr];
+  gravity_z_dev[tid] = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
     #else
   gravity_z_dev[tid] = -0.5 * (phi_r - phi_l) / dz;
     #endif
 }
 
 // Call the kernel to compute the gradient of the potential
-void Particles_3D::Get_Gravity_Field_Particles_GPU_function(
-    int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid,
-    int n_cells_potential, Real dx, Real dy, Real dz, Real *potential_host,
-    Real *potential_dev, Real *gravity_x_dev, Real *gravity_y_dev,
-    Real *gravity_z_dev)
+void Particles_3D::Get_Gravity_Field_Particles_GPU_function(int nx_local, int ny_local, int nz_local,
+                                                            int n_ghost_particles_grid, int n_cells_potential, Real dx,
+                                                            Real dy, Real dz, Real *potential_host, Real *potential_dev,
+                                                            Real *gravity_x_dev, Real *gravity_y_dev,
+                                                            Real *gravity_z_dev)
 {
     #ifndef GRAVITY_GPU
   Copy_Potential_To_GPU(potential_host, potential_dev, n_cells_potential);
@@ -146,18 +127,15 @@ void Particles_3D::Get_Gravity_Field_Particles_GPU_function(
   //  number of threads per 1D block
   dim3 dim3dBlock(tpb_x, tpb_y, tpb_z);
 
-  hipLaunchKernelGGL(Get_Gravity_Field_Particles_Kernel, dim3dGrid, dim3dBlock,
-                     0, 0, potential_dev, gravity_x_dev, gravity_y_dev,
-                     gravity_z_dev, nx_local, ny_local, nz_local,
-                     n_ghost_particles_grid, N_GHOST_POTENTIAL, dx, dy, dz);
+  hipLaunchKernelGGL(Get_Gravity_Field_Particles_Kernel, dim3dGrid, dim3dBlock, 0, 0, potential_dev, gravity_x_dev,
+                     gravity_y_dev, gravity_z_dev, nx_local, ny_local, nz_local, n_ghost_particles_grid,
+                     N_GHOST_POTENTIAL, dx, dy, dz);
   CudaCheckError();
 }
 
 // Get CIC indexes from the particles positions
-__device__ void Get_Indexes_CIC_Gravity(Real xMin, Real yMin, Real zMin,
-                                        Real dx, Real dy, Real dz, Real pos_x,
-                                        Real pos_y, Real pos_z, int &indx_x,
-                                        int &indx_y, int &indx_z)
+__device__ void Get_Indexes_CIC_Gravity(Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, Real pos_x,
+                                        Real pos_y, Real pos_z, int &indx_x, int &indx_y, int &indx_z)
 {
   indx_x = (int)floor((pos_x - xMin - 0.5 * dx) / dx);
   indx_y = (int)floor((pos_y - yMin - 0.5 * dy) / dy);
@@ -166,12 +144,11 @@ __device__ void Get_Indexes_CIC_Gravity(Real xMin, Real yMin, Real zMin,
 
 // Kernel to compute the gravitational field at the particles positions via
 // Cloud-In-Cell
-__global__ void Get_Gravity_CIC_Kernel(
-    part_int_t n_local, Real *gravity_x_dev, Real *gravity_y_dev,
-    Real *gravity_z_dev, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev,
-    Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real xMin, Real yMin,
-    Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz,
-    int nx, int ny, int nz, int n_ghost)
+__global__ void Get_Gravity_CIC_Kernel(part_int_t n_local, Real *gravity_x_dev, Real *gravity_y_dev,
+                                       Real *gravity_z_dev, Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev,
+                                       Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real xMin, Real yMin,
+                                       Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx,
+                                       int ny, int nz, int n_ghost)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -194,8 +171,7 @@ __global__ void Get_Gravity_CIC_Kernel(
   pos_z = pos_z_dev[tid];
 
   int indx_x, indx_y, indx_z, indx;
-  Get_Indexes_CIC_Gravity(xMin, yMin, zMin, dx, dy, dz, pos_x, pos_y, pos_z,
-                          indx_x, indx_y, indx_z);
+  Get_Indexes_CIC_Gravity(xMin, yMin, zMin, dx, dy, dz, pos_x, pos_y, pos_z, indx_x, indx_y, indx_z);
 
   bool in_local = true;
 
@@ -257,32 +233,20 @@ __global__ void Get_Gravity_CIC_Kernel(
   g_y_tru = gravity_y_dev[indx];
   g_z_tru = gravity_z_dev[indx];
 
-  g_x = g_x_bl * (delta_x) * (delta_y) * (delta_z) +
-        g_x_br * (1 - delta_x) * (delta_y) * (delta_z) +
-        g_x_bu * (delta_x) * (1 - delta_y) * (delta_z) +
-        g_x_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
-        g_x_tl * (delta_x) * (delta_y) * (1 - delta_z) +
-        g_x_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
-        g_x_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) +
-        g_x_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
+  g_x = g_x_bl * (delta_x) * (delta_y) * (delta_z) + g_x_br * (1 - delta_x) * (delta_y) * (delta_z) +
+        g_x_bu * (delta_x) * (1 - delta_y) * (delta_z) + g_x_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
+        g_x_tl * (delta_x) * (delta_y) * (1 - delta_z) + g_x_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
+        g_x_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) + g_x_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
 
-  g_y = g_y_bl * (delta_x) * (delta_y) * (delta_z) +
-        g_y_br * (1 - delta_x) * (delta_y) * (delta_z) +
-        g_y_bu * (delta_x) * (1 - delta_y) * (delta_z) +
-        g_y_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
-        g_y_tl * (delta_x) * (delta_y) * (1 - delta_z) +
-        g_y_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
-        g_y_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) +
-        g_y_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
+  g_y = g_y_bl * (delta_x) * (delta_y) * (delta_z) + g_y_br * (1 - delta_x) * (delta_y) * (delta_z) +
+        g_y_bu * (delta_x) * (1 - delta_y) * (delta_z) + g_y_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
+        g_y_tl * (delta_x) * (delta_y) * (1 - delta_z) + g_y_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
+        g_y_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) + g_y_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
 
-  g_z = g_z_bl * (delta_x) * (delta_y) * (delta_z) +
-        g_z_br * (1 - delta_x) * (delta_y) * (delta_z) +
-        g_z_bu * (delta_x) * (1 - delta_y) * (delta_z) +
-        g_z_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
-        g_z_tl * (delta_x) * (delta_y) * (1 - delta_z) +
-        g_z_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
-        g_z_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) +
-        g_z_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
+  g_z = g_z_bl * (delta_x) * (delta_y) * (delta_z) + g_z_br * (1 - delta_x) * (delta_y) * (delta_z) +
+        g_z_bu * (delta_x) * (1 - delta_y) * (delta_z) + g_z_bru * (1 - delta_x) * (1 - delta_y) * (delta_z) +
+        g_z_tl * (delta_x) * (delta_y) * (1 - delta_z) + g_z_tr * (1 - delta_x) * (delta_y) * (1 - delta_z) +
+        g_z_tu * (delta_x) * (1 - delta_y) * (1 - delta_z) + g_z_tru * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
 
   grav_x_dev[tid] = g_x;
   grav_y_dev[tid] = g_y;
@@ -291,13 +255,12 @@ __global__ void Get_Gravity_CIC_Kernel(
 
 // Call the kernel to compote the gravitational field at the particles positions
 // ( CIC )
-void Particles_3D::Get_Gravity_CIC_GPU_function(
-    part_int_t n_local, int nx_local, int ny_local, int nz_local,
-    int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax,
-    Real zMin, Real zMax, Real dx, Real dy, Real dz, Real *pos_x_dev,
-    Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev, Real *grav_y_dev,
-    Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev,
-    Real *gravity_z_dev)
+void Particles_3D::Get_Gravity_CIC_GPU_function(part_int_t n_local, int nx_local, int ny_local, int nz_local,
+                                                int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax,
+                                                Real zMin, Real zMax, Real dx, Real dy, Real dz, Real *pos_x_dev,
+                                                Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev, Real *grav_y_dev,
+                                                Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev,
+                                                Real *gravity_z_dev)
 {
   // set values for GPU kernels
   int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -308,12 +271,9 @@ void Particles_3D::Get_Gravity_CIC_GPU_function(
 
   // Only runs if there are local particles
   if (n_local > 0) {
-    hipLaunchKernelGGL(Get_Gravity_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0,
-                       n_local, gravity_x_dev, gravity_y_dev, gravity_z_dev,
-                       pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev,
-                       grav_z_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy,
-                       dz, nx_local, ny_local, nz_local,
-                       n_ghost_particles_grid);
+    hipLaunchKernelGGL(Get_Gravity_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, gravity_x_dev, gravity_y_dev,
+                       gravity_z_dev, pos_x_dev, pos_y_dev, pos_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, xMin, yMin,
+                       zMin, xMax, yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local, n_ghost_particles_grid);
     CudaCheckError();
   }
 }
@@ -322,10 +282,8 @@ void Particles_3D::Get_Gravity_CIC_GPU_function(
 
   #ifdef GRAVITY_GPU
 
-void __global__ Copy_Particles_Density_Kernel(Real *dst_density,
-                                              Real *src_density, int nx_local,
-                                              int ny_local, int nz_local,
-                                              int n_ghost)
+void __global__ Copy_Particles_Density_Kernel(Real *dst_density, Real *src_density, int nx_local, int ny_local,
+                                              int nz_local, int n_ghost)
 {
   int tid_x, tid_y, tid_z, tid_CIC, tid_dens;
   tid_x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -370,9 +328,8 @@ void Grid3D::Copy_Particles_Density_GPU()
   //  number of threads per 1D block
   dim3 dim3dBlock(tpb_x, tpb_y, tpb_z);
 
-  hipLaunchKernelGGL(Copy_Particles_Density_Kernel, dim3dGrid, dim3dBlock, 0, 0,
-                     Grav.F.density_d, Particles.G.density_dev, nx_local,
-                     ny_local, nz_local, n_ghost);
+  hipLaunchKernelGGL(Copy_Particles_Density_Kernel, dim3dGrid, dim3dBlock, 0, 0, Grav.F.density_d,
+                     Particles.G.density_dev, nx_local, ny_local, nz_local, n_ghost);
 }
 
   #endif  // GRAVITY_GPU

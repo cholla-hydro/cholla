@@ -27,9 +27,8 @@
 TEST(tMHDGrid3DcheckMagneticDivergence, CorrectInputExpectCorrectOutput)
 {
   // Grid Parameters & testing parameters
-  size_t const gridSize =
-      96;  // Needs to be at least 64 so that each thread has a value
-  size_t const n_ghost = 4;
+  size_t const gridSize = 96;  // Needs to be at least 64 so that each thread has a value
+  size_t const n_ghost  = 4;
 
   // Instantiate Grid3D object
   Grid3D G;
@@ -62,8 +61,7 @@ TEST(tMHDGrid3DcheckMagneticDivergence, CorrectInputExpectCorrectOutput)
   MPI_Finalize();
   // Perform Comparison
   Real const fiducialDivergence = 3.6318132783263106 / 1E15;
-  testingUtilities::checkResults(fiducialDivergence, max_magnetic_divergence,
-                                 "maximum divergence");
+  testingUtilities::checkResults(fiducialDivergence, max_magnetic_divergence, "maximum divergence");
 }
 // =============================================================================
 // End of tests for the magnetic field divergence functions
