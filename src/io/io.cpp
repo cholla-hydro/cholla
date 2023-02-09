@@ -655,82 +655,43 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   H5Aclose(attribute_id);
 
   // Numeric Attributes
-  attribute_id     = H5Acreate(file_id, "t", H5T_IEEE_F64BE, dataspace_id,
-                               H5P_DEFAULT, H5P_DEFAULT);
-  status           = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &H.t);
-  status           = H5Aclose(attribute_id);
-  attribute_id     = H5Acreate(file_id, "dt", H5T_IEEE_F64BE, dataspace_id,
-                               H5P_DEFAULT, H5P_DEFAULT);
-  status           = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &H.dt);
-  status           = H5Aclose(attribute_id);
-  attribute_id     = H5Acreate(file_id, "n_step", H5T_STD_I32BE, dataspace_id,
-                               H5P_DEFAULT, H5P_DEFAULT);
-  status           = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_step);
-  status           = H5Aclose(attribute_id);
-  attribute_id     = H5Acreate(file_id, "n_fields", H5T_STD_I32BE, dataspace_id,
-                               H5P_DEFAULT, H5P_DEFAULT);
-  status           = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_fields);
-  status           = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.t, "t");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.dt, "dt");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_step, "n_step");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_fields, "n_fields");
   double time_unit = TIME_UNIT;
-  attribute_id = H5Acreate(file_id, "time_unit", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &time_unit);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &time_unit, "time_unit");
   double length_unit = LENGTH_UNIT;
-  attribute_id = H5Acreate(file_id, "length_unit", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &length_unit);
-  status       = H5Aclose(attribute_id);
+  status =
+      Write_HDF5_Attribute(file_id, dataspace_id, &length_unit, "length_unit");
   double mass_unit = MASS_UNIT;
-  attribute_id = H5Acreate(file_id, "mass_unit", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &mass_unit);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &mass_unit, "mass_unit");
   double velocity_unit = VELOCITY_UNIT;
-  attribute_id         = H5Acreate(file_id, "velocity_unit", H5T_IEEE_F64BE,
-                                   dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &velocity_unit);
-  status = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &velocity_unit,
+                                "velocity_unit");
   double density_unit = DENSITY_UNIT;
-  attribute_id        = H5Acreate(file_id, "density_unit", H5T_IEEE_F64BE,
-                                  dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status             = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &density_unit);
-  status             = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &density_unit,
+                                "density_unit");
   double energy_unit = ENERGY_UNIT;
-  attribute_id = H5Acreate(file_id, "energy_unit", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &energy_unit);
-  status       = H5Aclose(attribute_id);
+  status =
+      Write_HDF5_Attribute(file_id, dataspace_id, &energy_unit, "energy_unit");
 
   #ifdef MHD
   double magnetic_field_unit = MAGNETIC_FIELD_UNIT;
-  attribute_id = H5Acreate(file_id, "magnetic_field_unit", H5T_IEEE_F64BE,
-                           dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &magnetic_field_unit);
-  status = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &magnetic_field_unit,
+                                "magnetic_field_unit");
   #endif  // MHD
 
   #ifdef COSMOLOGY
-  attribute_id = H5Acreate(file_id, "H0", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.H0);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "Omega_M", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_M);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "Omega_L", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_L);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "Current_z", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.current_z);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "Current_a", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.current_a);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.H0, "H0");
+  status =
+      Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.Omega_M, "Omega_M");
+  status =
+      Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.Omega_L, "Omega_L");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.current_z,
+                                "Current_z");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.current_a,
+                                "Current_a");
   #endif
 
   // Close the dataspace
@@ -752,20 +713,15 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   int_data[2] = nz_global;
   #endif
 
-  attribute_id = H5Acreate(file_id, "dims", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
 
   #ifdef MHD
   for (size_t i = 0; i < 3; i++) {
     int_data[i]++;
   }
 
-  attribute_id = H5Acreate(file_id, "magnetic_field_dims", H5T_STD_I32BE,
-                           dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data,
+                                "magnetic_field_dims");
   #endif  // MHD
 
   #ifdef MPI_CHOLLA
@@ -773,67 +729,47 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   int_data[1] = H.ny_real;
   int_data[2] = H.nz_real;
 
-  attribute_id = H5Acreate(file_id, "dims_local", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
 
     #ifdef MHD
   int_data[0] = H.nx_real + 1;
   int_data[1] = H.ny_real + 1;
   int_data[2] = H.nz_real + 1;
 
-  attribute_id = H5Acreate(file_id, "magnetic_field_dims_local", H5T_STD_I32BE,
-                           dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data,
+                                "magnetic_field_dims_local");
     #endif  // MHD
 
   int_data[0] = nx_local_start;
   int_data[1] = ny_local_start;
   int_data[2] = nz_local_start;
 
-  attribute_id = H5Acreate(file_id, "offset", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "offset");
 
   int_data[0] = nproc_x;
   int_data[1] = nproc_y;
   int_data[2] = nproc_z;
 
-  attribute_id = H5Acreate(file_id, "nprocs", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "nprocs");
   #endif
 
   Real_data[0] = H.xbound;
   Real_data[1] = H.ybound;
   Real_data[2] = H.zbound;
 
-  attribute_id = H5Acreate(file_id, "bounds", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "bounds");
 
   Real_data[0] = H.xdglobal;
   Real_data[1] = H.ydglobal;
   Real_data[2] = H.zdglobal;
 
-  attribute_id = H5Acreate(file_id, "domain", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "domain");
 
   Real_data[0] = H.dx;
   Real_data[1] = H.dy;
   Real_data[2] = H.dz;
 
-  attribute_id = H5Acreate(file_id, "dx", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "dx");
 
   // Close the dataspace
   status = H5Sclose(dataspace_id);
@@ -919,71 +855,26 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   H5Aclose(attribute_id);
 
   // Numeric Attributes
-  attribute_id = H5Acreate(file_id, "t", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &H.t);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "dt", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &H.dt);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "n_step", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_step);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "n_fields", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &H.n_fields);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.t, "t");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.dt, "dt");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_step, "n_step");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_fields, "n_fields");
 
   // Rotation data
-  attribute_id = H5Acreate(file_id, "nxr", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nx);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "nzr", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nz);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "nx_min", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nx_min);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "nz_min", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nz_min);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "nx_max", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nx_max);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "nz_max", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &R.nz_max);
-  status       = H5Aclose(attribute_id);
-  delta        = 180. * R.delta / M_PI;
-  attribute_id = H5Acreate(file_id, "delta", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &delta);
-  status       = H5Aclose(attribute_id);
-  theta        = 180. * R.theta / M_PI;
-  attribute_id = H5Acreate(file_id, "theta", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &theta);
-  status       = H5Aclose(attribute_id);
-  phi          = 180. * R.phi / M_PI;
-  attribute_id = H5Acreate(file_id, "phi", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &phi);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "Lx", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &R.Lx);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "Lz", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &R.Lz);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nx, "nxr");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nz, "nzr");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nx_min, "nx_min");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nz_min, "nz_min");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nx_max, "nx_max");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nz_max, "nz_max");
+  delta  = 180. * R.delta / M_PI;
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &delta, "delta");
+  theta  = 180. * R.theta / M_PI;
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &theta, "theta");
+  phi    = 180. * R.phi / M_PI;
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &phi, "phi");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.Lx, "Lx");
+  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.Lz, "Lz");
   // Close the dataspace
   status = H5Sclose(dataspace_id);
 
@@ -1003,57 +894,39 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
   int_data[2] = nz_global;
   #endif
 
-  attribute_id = H5Acreate(file_id, "dims", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
 
   #ifdef MPI_CHOLLA
   int_data[0] = H.nx_real;
   int_data[1] = H.ny_real;
   int_data[2] = H.nz_real;
 
-  attribute_id = H5Acreate(file_id, "dims_local", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
 
   int_data[0] = nx_local_start;
   int_data[1] = ny_local_start;
   int_data[2] = nz_local_start;
 
-  attribute_id = H5Acreate(file_id, "offset", H5T_STD_I32BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, int_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "offset");
   #endif
 
   Real_data[0] = H.xbound;
   Real_data[1] = H.ybound;
   Real_data[2] = H.zbound;
 
-  attribute_id = H5Acreate(file_id, "bounds", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "bounds");
 
   Real_data[0] = H.xdglobal;
   Real_data[1] = H.ydglobal;
   Real_data[2] = H.zdglobal;
 
-  attribute_id = H5Acreate(file_id, "domain", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "domain");
 
   Real_data[0] = H.dx;
   Real_data[1] = H.dy;
   Real_data[2] = H.dz;
 
-  attribute_id = H5Acreate(file_id, "dx", H5T_IEEE_F64BE, dataspace_id,
-                           H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, Real_data);
-  status       = H5Aclose(attribute_id);
+  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "dx");
 
   // Close the dataspace
   status = H5Sclose(dataspace_id);
@@ -1299,6 +1172,25 @@ void Grid3D::Write_Grid_Binary(FILE *fp)
 }
 
 #ifdef HDF5
+herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id,
+                            double *attribute, const char *name)
+{
+  hid_t attribute_id = H5Acreate(file_id, name, H5T_IEEE_F64BE, dataspace_id,
+                                 H5P_DEFAULT, H5P_DEFAULT);
+  herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, attribute);
+  status             = H5Aclose(attribute_id);
+  return status;
+}
+
+herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int *attribute,
+                            const char *name)
+{
+  hid_t attribute_id = H5Acreate(file_id, name, H5T_STD_I32BE, dataspace_id,
+                                 H5P_DEFAULT, H5P_DEFAULT);
+  herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_INT, attribute);
+  status             = H5Aclose(attribute_id);
+  return status;
+}
 
 herr_t Read_HDF5_Dataset(hid_t file_id, double *dataset_buffer,
                          const char *name)
