@@ -201,10 +201,15 @@ class Grav3D
   void Initialize_values_CPU();
   void FreeMemory_CPU(void);
 
+  void Read_Restart_HDF5(struct parameters* P, int nfile);
+  void Write_Restart_HDF5(struct parameters* P, int nfile);
+
   Real Get_Average_Density();
   Real Get_Average_Density_function(int g_start, int g_end);
 
   void Set_Boundary_Flags(int *flags);
+
+  
 
 #ifdef SOR
   void Copy_Isolated_Boundary_To_GPU_buffer(Real *isolated_boundary_h,

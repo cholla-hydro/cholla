@@ -41,7 +41,9 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct parameters P)
 
   // Step 1: Get Particles CIC Density
   Particles.Clear_Density();
+  #ifndef DISABLE_DENSITY_CIC
   Particles.Get_Density_CIC();
+  #endif
 
   #ifdef CPU_TIME
   Timer.Part_Density.End();

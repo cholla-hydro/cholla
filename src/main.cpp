@@ -101,13 +101,12 @@ int main(int argc, char *argv[])
   message = "Initializing Simulation";
   Write_Message_To_Log_File(message.c_str());
 
-  // Set initial conditions and calculate first dt
+  // Set initial conditions
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P);
   chprintf("Initial conditions set.\n");
   // set main variables for Read_Grid initial conditions
   if (strcmp(P.init, "Read_Grid") == 0) {
-    dti = C_cfl / G.H.dt;
     outtime += G.H.t;
     nfile = P.nfile;
   }
@@ -189,8 +188,7 @@ int main(int argc, char *argv[])
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy,
            G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n", gama);
-  chprintf("Nstep = %d  Timestep = %f  Simulation time = %f\n", G.H.n_step,
-           G.H.dt, G.H.t);
+  chprintf("Nstep = %d  Simulation time = %f\n", G.H.n_step, G.H.t);
 
 #ifdef OUTPUT
   if (strcmp(P.init, "Read_Grid") != 0 || G.H.Output_Now) {
@@ -228,6 +226,10 @@ int main(int argc, char *argv[])
   chprintf("Starting calculations.\n");
   message = "Starting calculations.";
   Write_Message_To_Log_File(message.c_str());
+  
+  // Compute inverse timestep for the first time
+  dti = G.Calc_DTI();
+
   while (G.H.t < P.tout) {
 // get the start time
 #ifdef CPU_TIME

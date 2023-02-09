@@ -1,3 +1,5 @@
+DFLAGS += -DDISABLE_KERNEL_PRINTF
+
 MPI_GPU = -DMPI_GPU
 DFLAGS += -DPARTICLES
 #DFLAGS += -DPARTICLES_CPU
@@ -11,8 +13,11 @@ DFLAGS += -DANALYSIS
 #DFLAGS += -DPARTICLES_KDK
 
 
+
 DFLAGS += -DGRAVITY
 DFLAGS += -DGRAVITY_GPU
+DFLAGS += -DGRAVITY_RESTART # For making gravity restarts more consistent
+DFLAGS += -DDISABLE_DENSITY_CIC # For preventing atomicAdd inconsistency
 # Use both -DSOR and -DPARIS_GALACTIC to run analytic test and compare solutions
 #DFLAGS += -DSOR
 DFLAGS += -DPARIS_GALACTIC

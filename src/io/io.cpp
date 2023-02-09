@@ -85,11 +85,6 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   H5open();
 #endif
 
-#ifdef HDF5
-  // Initialize HDF5 interface
-  H5open();
-#endif
-
 #ifdef N_OUTPUT_COMPLETE
   // If nfile is multiple of N_OUTPUT_COMPLETE then output all data
   if (nfile % N_OUTPUT_COMPLETE == 0) {
@@ -160,9 +155,8 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
   H5close();
 #endif
 
-#ifdef HDF5
-  // Cleanup HDF5
-  H5close();
+#if defined(GRAVITY) && defined(GRAVITY_RESTART) && defined(HDF5) 
+  G.Grav.Write_Restart_HDF5(&P, nfile);
 #endif
 
 #ifdef MPI_CHOLLA
@@ -1306,6 +1300,13 @@ void Grid3D::Write_Grid_Binary(FILE *fp)
 
 #ifdef HDF5
 
+herr_t Read_HDF5_Dataset(hid_t file_id, double* dataset_buffer, const char* name)
+{
+  hid_t dataset_id = H5Dopen(file_id, name, H5P_DEFAULT);
+  herr_t status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+  status = H5Dclose(dataset_id);
+  return status;
+}
 // Helper function which uses the correct HDF5 arguments based on the type of
 // dataset_buffer to avoid writing garbage
 herr_t HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double *dataset_buffer,

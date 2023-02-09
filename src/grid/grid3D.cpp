@@ -120,6 +120,15 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos,
 #endif /*MPI_CHOLLA*/
 }
 
+
+
+Real Grid3D::Calc_DTI()
+{
+  // ==Calculate the next inverse time step using Calc_dt_GPU from hydro/hydro_cuda.h==
+  return Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama );
+}
+
+
 /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
  *  \brief Initialize the grid. */
 void Grid3D::Initialize(struct parameters *P)
@@ -376,14 +385,8 @@ void Grid3D::set_dt(Real dti)
 
 #else  // NOT ONLY_PARTICLES
 
-  // Compute the hydro delta_t ( H.dt )
-  if (H.n_step == 0) {
-    // Compute the time step
-    max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells,
-                          H.dx, H.dy, H.dz, gama);
-  } else {
-    max_dti = dti;
-  }
+  // dti is calculated before first loop and at the end of Update_Grid
+  max_dti = dti;
 
   #ifdef MPI_CHOLLA
   // Note that this is the MPI_Allreduce for every iteration of the loop, not
@@ -506,9 +509,9 @@ Real Grid3D::Update_Grid(void)
                      H.dy, H.dz, gama, max_dti_slow);
   #endif  // AVERAGE_SLOW_CELLS
 
-  // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==
-  max_dti = Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx,
-                        H.dy, H.dz, gama);
+  // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==
+  max_dti = Calc_DTI();
+
 #endif  // CUDA
 
 #ifdef COOLING_GRACKLE

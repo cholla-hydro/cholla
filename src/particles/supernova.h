@@ -32,10 +32,6 @@ static const Real DEFAULT_SN_END =
 static const Real DEFAULT_SN_START =
     4000;  // default value for when SNe start (4 Myr)
 
-extern curandStateMRG32k3a_t* randStates;
-extern part_int_t n_states;
-extern Real *dev_snr, snr_dt, time_sn_end, time_sn_start;
-
 void initState(struct parameters* P, part_int_t n_local,
                Real allocation_factor = 1);
 Real Cluster_Feedback(Grid3D& G, FeedbackAnalysis& sn_analysis);
