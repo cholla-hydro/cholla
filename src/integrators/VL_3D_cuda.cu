@@ -176,12 +176,18 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      2, n_fields);
   #endif  // HLL
   #ifdef HLLD
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx,
-                     &(dev_conserved[(grid_enum::magnetic_x)*n_cells]), F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry,
-                     &(dev_conserved[(grid_enum::magnetic_y)*n_cells]), F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz,
-                     &(dev_conserved[(grid_enum::magnetic_z)*n_cells]), F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0,
+                     0, Q_Lx, Q_Rx,
+                     &(dev_conserved[(grid_enum::magnetic_x)*n_cells]), F_x,
+                     n_cells, gama, 0, n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0,
+                     0, Q_Ly, Q_Ry,
+                     &(dev_conserved[(grid_enum::magnetic_y)*n_cells]), F_y,
+                     n_cells, gama, 1, n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0,
+                     0, Q_Lz, Q_Rz,
+                     &(dev_conserved[(grid_enum::magnetic_z)*n_cells]), F_z,
+                     n_cells, gama, 2, n_fields);
   #endif  // HLLD
   CudaCheckError();
 
@@ -277,15 +283,18 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      2, n_fields);
   #endif  // HLLC
   #ifdef HLLD
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx,
-                     &(dev_conserved_half[(grid_enum::magnetic_x)*n_cells]), F_x, nx, ny, nz, n_ghost, gama, 0,
-                     n_fields);
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry,
-                     &(dev_conserved_half[(grid_enum::magnetic_y)*n_cells]), F_y, nx, ny, nz, n_ghost, gama, 1,
-                     n_fields);
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz,
-                     &(dev_conserved_half[(grid_enum::magnetic_z)*n_cells]), F_z, nx, ny, nz, n_ghost, gama, 2,
-                     n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0,
+                     0, Q_Lx, Q_Rx,
+                     &(dev_conserved_half[(grid_enum::magnetic_x)*n_cells]),
+                     F_x, n_cells, gama, 0, n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0,
+                     0, Q_Ly, Q_Ry,
+                     &(dev_conserved_half[(grid_enum::magnetic_y)*n_cells]),
+                     F_y, n_cells, gama, 1, n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0,
+                     0, Q_Lz, Q_Rz,
+                     &(dev_conserved_half[(grid_enum::magnetic_z)*n_cells]),
+                     F_z, n_cells, gama, 2, n_fields);
   #endif  // HLLD
   CudaCheckError();
 

@@ -71,11 +71,11 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
     stateRight.erase(stateRight.begin() + grid_enum::magnetic_x);
 
     // Simulation Paramters
-    int const nx     = 1;  // Number of cells in the x-direction
-    int const ny     = 1;  // Number of cells in the y-direction
-    int const nz     = 1;  // Number of cells in the z-direction
-    int const nGhost = 0;  // Isn't actually used it appears
-    int nFields      = 8;  // Total number of conserved fields
+    int const nx      = 1;  // Number of cells in the x-direction
+    int const ny      = 1;  // Number of cells in the y-direction
+    int const nz      = 1;  // Number of cells in the z-direction
+    int const n_cells = nx * ny * nz;
+    int nFields       = 8;  // Total number of conserved fields
     #ifdef SCALAR
     nFields += NSCALARS;
     #endif  // SCALAR
@@ -109,11 +109,12 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
         cudaMemcpy(devConservedMagXFace, magneticX.data(), magneticX.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
     // Run kernel
-    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dimGrid, dimBlock, 0, 0,
-                       devConservedLeft,      // the "left" interface
-                       devConservedRight,     // the "right" interface
-                       devConservedMagXFace,  // the magnetic field at the interface
-                       devTestFlux, nx, ny, nz, nGhost, gamma, direction, nFields);
+    hipLaunchKernelGGL(
+        mhd::Calculate_HLLD_Fluxes_CUDA, dimGrid, dimBlock, 0, 0,
+        devConservedLeft,      // the "left" interface
+        devConservedRight,     // the "right" interface
+        devConservedMagXFace,  // the magnetic field at the interface
+        devTestFlux, n_cells, gamma, direction, nFields);
 
     CudaCheckError();
     CudaSafeCall(cudaMemcpy(testFlux.data(), devTestFlux, testFlux.size() * sizeof(Real), cudaMemcpyDeviceToHost));

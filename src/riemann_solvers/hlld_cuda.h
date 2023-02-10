@@ -25,22 +25,23 @@ namespace mhd
  * \brief Compute the HLLD fluxes from Miyoshi & Kusano 2005
  *
  * \param[in]  dev_bounds_L The interface states on the left side of the
- * interface \param[in]  dev_bounds_R The interface states on the right side of
- * the interface \param[in]  dev_magnetic_face A pointer to the begining of the
+ * interface
+ * \param[in]  dev_bounds_R The interface states on the right side of
+ * the interface
+ * \param[in]  dev_magnetic_face A pointer to the begining of the
  * conserved magnetic field array that is stored at the interface. I.e. for the
  * X-direction solve this would be the begining of the X-direction fields
  * \param[out] dev_flux The output flux
- * \param[in]  nx Number of cells in the X-direction
- * \param[in]  ny Number of cells in the Y-direction
- * \param[in]  nz Number of cells in the Z-direction
+ * \param[in]  n_cells Total number of cells
  * \param[in]  n_ghost Number of ghost cells on each side
- * \param[in]  gamma The adiabatic index
  * \param[in]  dir The direction that the solve is taking place in. 0=X, 1=Y,
- * 2=Z \param[in]  n_fields The total number of fields
+ * 2=Z
+ * \param[in]  n_fields The total number of fields
  */
-__global__ void Calculate_HLLD_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_magnetic_face,
-                                           Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma,
-                                           int direction, int n_fields);
+__global__ void Calculate_HLLD_Fluxes_CUDA(
+    Real const *dev_bounds_L, Real const *dev_bounds_R,
+    Real const *dev_magnetic_face, Real *dev_flux, int const n_cells,
+    Real const gamma, int const direction, int const n_fields);
 
 /*!
  * \brief Namespace to hold private functions used within the HLLD
