@@ -39,11 +39,9 @@ namespace mhd
  * \param[in] nz Number of cells in the Z-direction
  * \param[in] n_cells Total number of cells
  */
-__global__ void calculateMagneticDivergence(Real const *dev_conserved,
-                                            Real *maxDivergence, Real const dx,
-                                            Real const dy, Real const dz,
-                                            int const nx, int const ny,
-                                            int const nz, int const n_cells);
+__global__ void calculateMagneticDivergence(Real const *dev_conserved, Real *maxDivergence, Real const dx,
+                                            Real const dy, Real const dz, int const nx, int const ny, int const nz,
+                                            int const n_cells);
 // =========================================================================
 
 // =========================================================================

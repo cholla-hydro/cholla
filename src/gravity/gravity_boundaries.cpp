@@ -7,11 +7,9 @@
   #include "../io/io.h"
   #include "../model/disk_galaxy.h"
 
-  #if defined(GRAV_ISOLATED_BOUNDARY_X) || \
-      defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
+  #if defined(GRAV_ISOLATED_BOUNDARY_X) || defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
 
-void Grid3D::Compute_Potential_Boundaries_Isolated(int dir,
-                                                   struct parameters *P)
+void Grid3D::Compute_Potential_Boundaries_Isolated(int dir, struct parameters *P)
 {
   // Set Isolated Boundaries for the ghost cells.
   int bc_potential_type = P->bc_potential_type;
@@ -24,8 +22,7 @@ void Grid3D::Compute_Potential_Boundaries_Isolated(int dir,
   if (dir == 5) Compute_Potential_Isolated_Boundary(2, 1, bc_potential_type);
 }
 
-void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side,
-                                               int *flags)
+void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *flags)
 {
   Real *pot_boundary;
   int n_i, n_j, nGHST;
@@ -72,25 +69,16 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side,
         id_buffer = i + j * n_i + k * n_i * n_j;
 
         if (direction == 0) {
-          if (side == 0)
-            id_grid = (k) + (i + nGHST) * nx_g + (j + nGHST) * nx_g * ny_g;
-          if (side == 1)
-            id_grid = (k + nx_local + nGHST) + (i + nGHST) * nx_g +
-                      (j + nGHST) * nx_g * ny_g;
+          if (side == 0) id_grid = (k) + (i + nGHST) * nx_g + (j + nGHST) * nx_g * ny_g;
+          if (side == 1) id_grid = (k + nx_local + nGHST) + (i + nGHST) * nx_g + (j + nGHST) * nx_g * ny_g;
         }
         if (direction == 1) {
-          if (side == 0)
-            id_grid = (i + nGHST) + (k)*nx_g + (j + nGHST) * nx_g * ny_g;
-          if (side == 1)
-            id_grid = (i + nGHST) + (k + ny_local + nGHST) * nx_g +
-                      (j + nGHST) * nx_g * ny_g;
+          if (side == 0) id_grid = (i + nGHST) + (k)*nx_g + (j + nGHST) * nx_g * ny_g;
+          if (side == 1) id_grid = (i + nGHST) + (k + ny_local + nGHST) * nx_g + (j + nGHST) * nx_g * ny_g;
         }
         if (direction == 2) {
-          if (side == 0)
-            id_grid = (i + nGHST) + (j + nGHST) * nx_g + (k)*nx_g * ny_g;
-          if (side == 1)
-            id_grid = (i + nGHST) + (j + nGHST) * nx_g +
-                      (k + nz_local + nGHST) * nx_g * ny_g;
+          if (side == 0) id_grid = (i + nGHST) + (j + nGHST) * nx_g + (k)*nx_g * ny_g;
+          if (side == 1) id_grid = (i + nGHST) + (j + nGHST) * nx_g + (k + nz_local + nGHST) * nx_g * ny_g;
         }
 
         Grav.F.potential_h[id_grid] = pot_boundary[id_buffer];
@@ -99,8 +87,7 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side,
   }
 }
 
-void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side,
-                                                 int bc_potential_type)
+void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc_potential_type)
 {
   Real domain_l, Lx_local, Ly_local, Lz_local;
   Real *pot_boundary;
@@ -139,16 +126,14 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side,
   }
     #endif
 
-  Real M, cm_pos_x, cm_pos_y, cm_pos_z, pos_x, pos_y, pos_z, r, delta_x,
-      delta_y, delta_z;
+  Real M, cm_pos_x, cm_pos_y, cm_pos_z, pos_x, pos_y, pos_z, r, delta_x, delta_y, delta_z;
 
   if (bc_potential_type == 0) {
     const Real r0 = H.sphere_radius;
-    M = (H.sphere_density - H.sphere_background_density) * 4.0 * M_PI * r0 *
-        r0 * r0 / 3.0;
-    cm_pos_x = H.sphere_center_x;
-    cm_pos_y = H.sphere_center_y;
-    cm_pos_z = H.sphere_center_z;
+    M             = (H.sphere_density - H.sphere_background_density) * 4.0 * M_PI * r0 * r0 * r0 / 3.0;
+    cm_pos_x      = H.sphere_center_x;
+    cm_pos_y      = H.sphere_center_y;
+    cm_pos_z      = H.sphere_center_z;
   }
 
   // for bc_pontential_type = 1 the mod_frac is the fraction
@@ -190,8 +175,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side,
           delta_x = pos_x - cm_pos_x;
           delta_y = pos_y - cm_pos_y;
           delta_z = pos_z - cm_pos_z;
-          r       = sqrt((delta_x * delta_x) + (delta_y * delta_y) +
-                         (delta_z * delta_z));
+          r       = sqrt((delta_x * delta_x) + (delta_y * delta_y) + (delta_z * delta_z));
           pot_val = -Grav.Gconst * M / r;
         } else if (bc_potential_type == 1) {
           // M-W disk potential
@@ -211,8 +195,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side,
 
   #endif  // GRAV_ISOLATED_BOUNDARY_X
 
-void Grid3D::Set_Potential_Boundaries_Periodic(int direction, int side,
-                                               int *flags)
+void Grid3D::Set_Potential_Boundaries_Periodic(int direction, int side, int *flags)
 {
   // Flags: 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi)
 
@@ -229,8 +212,7 @@ void Grid3D::Set_Potential_Boundaries_Periodic(int direction, int side,
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nGHST; i++) {
           if (side == 0) {
-            indx_src = (nx_g - 2 * nGHST + i) + (j)*nx_g +
-                       (k)*nx_g * ny_g;  // Periodic
+            indx_src = (nx_g - 2 * nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
             indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           if (side == 1) {
@@ -249,8 +231,7 @@ void Grid3D::Set_Potential_Boundaries_Periodic(int direction, int side,
       for (j = 0; j < nGHST; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) {
-            indx_src = (i) + (ny_g - 2 * nGHST + j) * nx_g +
-                       (k)*nx_g * ny_g;  // Periodic
+            indx_src = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;  // Periodic
             indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           if (side == 1) {
@@ -269,8 +250,7 @@ void Grid3D::Set_Potential_Boundaries_Periodic(int direction, int side,
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) {
-            indx_src = (i) + (j)*nx_g +
-                       (nz_g - 2 * nGHST + k) * nx_g * ny_g;  // Periodic
+            indx_src = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;  // Periodic
             indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           if (side == 1) {
@@ -285,8 +265,7 @@ void Grid3D::Set_Potential_Boundaries_Periodic(int direction, int side,
 }
 
   #ifdef MPI_CHOLLA
-int Grid3D::Load_Gravity_Potential_To_Buffer(int direction, int side,
-                                             Real *buffer, int buffer_start)
+int Grid3D::Load_Gravity_Potential_To_Buffer(int direction, int side, Real *buffer, int buffer_start)
 {
   int i, j, k, indx, indx_buff, length;
   int nGHST, nx_g, ny_g, nz_g;
@@ -302,8 +281,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer(int direction, int side,
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nGHST; i++) {
           if (side == 0) indx = (i + nGHST) + (j)*nx_g + (k)*nx_g * ny_g;
-          if (side == 1)
-            indx = (nx_g - 2 * nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
+          if (side == 1) indx = (nx_g - 2 * nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
           indx_buff                        = (j) + (k)*ny_g + i * ny_g * nz_g;
           buffer[buffer_start + indx_buff] = Grav.F.potential_h[indx];
         }
@@ -318,8 +296,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer(int direction, int side,
       for (j = 0; j < nGHST; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) indx = (i) + (j + nGHST) * nx_g + (k)*nx_g * ny_g;
-          if (side == 1)
-            indx = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;
+          if (side == 1) indx = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;
           indx_buff                        = (i) + (k)*nx_g + j * nx_g * nz_g;
           buffer[buffer_start + indx_buff] = Grav.F.potential_h[indx];
         }
@@ -334,8 +311,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer(int direction, int side,
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) indx = (i) + (j)*nx_g + (k + nGHST) * nx_g * ny_g;
-          if (side == 1)
-            indx = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;
+          if (side == 1) indx = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;
           indx_buff                        = (i) + (j)*nx_g + k * nx_g * ny_g;
           buffer[buffer_start + indx_buff] = Grav.F.potential_h[indx];
         }
@@ -345,9 +321,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer(int direction, int side,
   return length;
 }
 
-void Grid3D::Unload_Gravity_Potential_from_Buffer(int direction, int side,
-                                                  Real *buffer,
-                                                  int buffer_start)
+void Grid3D::Unload_Gravity_Potential_from_Buffer(int direction, int side, Real *buffer, int buffer_start)
 {
   int i, j, k, indx, indx_buff;
   int nGHST, nx_g, ny_g, nz_g;
@@ -376,8 +350,7 @@ void Grid3D::Unload_Gravity_Potential_from_Buffer(int direction, int side,
       for (j = 0; j < nGHST; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) indx = (i) + (j)*nx_g + (k)*nx_g * ny_g;
-          if (side == 1)
-            indx = (i) + (ny_g - nGHST + j) * nx_g + (k)*nx_g * ny_g;
+          if (side == 1) indx = (i) + (ny_g - nGHST + j) * nx_g + (k)*nx_g * ny_g;
           indx_buff                = (i) + (k)*nx_g + j * nx_g * nz_g;
           Grav.F.potential_h[indx] = buffer[buffer_start + indx_buff];
         }
@@ -391,8 +364,7 @@ void Grid3D::Unload_Gravity_Potential_from_Buffer(int direction, int side,
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) indx = (i) + (j)*nx_g + (k)*nx_g * ny_g;
-          if (side == 1)
-            indx = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
+          if (side == 1) indx = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
           indx_buff                = (i) + (j)*nx_g + k * nx_g * ny_g;
           Grav.F.potential_h[indx] = buffer[buffer_start + indx_buff];
         }

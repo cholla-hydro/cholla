@@ -16,20 +16,17 @@
     #include "../utils/hydro_utilities.h"
     #include "dust_cuda.h"
 
-void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost,
-                 int n_fields, Real dt, Real gamma)
+void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
 {
   int n_cells = nx * ny * nz;
   int ngrid   = (n_cells + TPB - 1) / TPB;
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(Dust_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved,
-                     nx, ny, nz, n_ghost, n_fields, dt, gamma);
+  hipLaunchKernelGGL(Dust_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gamma);
   CudaCheckError();
 }
 
-__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz,
-                            int n_ghost, int n_fields, Real dt, Real gamma)
+__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
 {
   // get grid indices
   int n_cells = nx * ny * nz;
@@ -130,10 +127,7 @@ __device__ __host__ Real calc_tau_sp(Real n, Real T)
 }
 
 // McKinnon et al. (2017)
-__device__ __host__ Real calc_dd_dt(Real d_dust, Real tau_sp)
-{
-  return -d_dust / (tau_sp / 3);
-}
+__device__ __host__ Real calc_dd_dt(Real d_dust, Real tau_sp) { return -d_dust / (tau_sp / 3); }
 
   #endif  // DUST
 #endif    // CUDA

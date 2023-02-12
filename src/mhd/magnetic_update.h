@@ -44,9 +44,8 @@ namespace mhd
  * \param[in] dy The size of each cell in the y-direction
  * \param[in] dz The size of each cell in the z-direction
  */
-__global__ void Update_Magnetic_Field_3D(
-    Real *sourceGrid, Real *destinationGrid, Real *ctElectricFields,
-    int const nx, int const ny, int const nz, int const n_cells, Real const dt,
-    Real const dx, Real const dy, Real const dz);
+__global__ void Update_Magnetic_Field_3D(Real *sourceGrid, Real *destinationGrid, Real *ctElectricFields, int const nx,
+                                         int const ny, int const nz, int const n_cells, Real const dt, Real const dx,
+                                         Real const dy, Real const dz);
 // =========================================================================
 }  // end namespace mhd

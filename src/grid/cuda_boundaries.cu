@@ -3,16 +3,12 @@
 #include "../utils/gpu.hpp"
 #include "cuda_boundaries.h"
 
-__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost,
-                         Real *a);
+__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a);
 
-__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],
-                                  int nx, int ny, int nz, int n_ghost);
+__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], int nx, int ny, int nz, int n_ghost);
 
-__global__ void PackBuffers3DKernel(Real *buffer, Real *c_head, int isize,
-                                    int jsize, int ksize, int nx, int ny,
-                                    int idxoffset, int buffer_ncells,
-                                    int n_fields, int n_cells)
+__global__ void PackBuffers3DKernel(Real *buffer, Real *c_head, int isize, int jsize, int ksize, int nx, int ny,
+                                    int idxoffset, int buffer_ncells, int n_fields, int n_cells)
 {
   int id, i, j, k, idx, ii;
   id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -30,22 +26,19 @@ __global__ void PackBuffers3DKernel(Real *buffer, Real *c_head, int isize,
   }
 }
 
-void PackBuffers3D(Real *buffer, Real *c_head, int nx, int ny, int n_fields,
-                   int n_cells, int idxoffset, int isize, int jsize, int ksize)
+void PackBuffers3D(Real *buffer, Real *c_head, int nx, int ny, int n_fields, int n_cells, int idxoffset, int isize,
+                   int jsize, int ksize)
 {
   int buffer_ncells = isize * jsize * ksize;
   dim3 dim1dGrid((buffer_ncells + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(PackBuffers3DKernel, dim1dGrid, dim1dBlock, 0, 0, buffer,
-                     c_head, isize, jsize, ksize, nx, ny, idxoffset,
-                     buffer_ncells, n_fields, n_cells);
+  hipLaunchKernelGGL(PackBuffers3DKernel, dim1dGrid, dim1dBlock, 0, 0, buffer, c_head, isize, jsize, ksize, nx, ny,
+                     idxoffset, buffer_ncells, n_fields, n_cells);
   CHECK(cudaDeviceSynchronize());
 }
 
-__global__ void UnpackBuffers3DKernel(Real *buffer, Real *c_head, int isize,
-                                      int jsize, int ksize, int nx, int ny,
-                                      int idxoffset, int buffer_ncells,
-                                      int n_fields, int n_cells)
+__global__ void UnpackBuffers3DKernel(Real *buffer, Real *c_head, int isize, int jsize, int ksize, int nx, int ny,
+                                      int idxoffset, int buffer_ncells, int n_fields, int n_cells)
 {
   int id, i, j, k, idx, ii;
   id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -61,9 +54,8 @@ __global__ void UnpackBuffers3DKernel(Real *buffer, Real *c_head, int isize,
   }
 }
 
-void UnpackBuffers3D(Real *buffer, Real *c_head, int nx, int ny, int n_fields,
-                     int n_cells, int idxoffset, int isize, int jsize,
-                     int ksize)
+void UnpackBuffers3D(Real *buffer, Real *c_head, int nx, int ny, int n_fields, int n_cells, int idxoffset, int isize,
+                     int jsize, int ksize)
 {
   // void UnpackBuffers3D(Real * buffer, Real * c_head, int isize, int jsize,
   // int ksize, int nx, int ny, int idxoffset, int offset, int n_fields, int
@@ -71,15 +63,12 @@ void UnpackBuffers3D(Real *buffer, Real *c_head, int nx, int ny, int n_fields,
   int buffer_ncells = isize * jsize * ksize;
   dim3 dim1dGrid((buffer_ncells + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(UnpackBuffers3DKernel, dim1dGrid, dim1dBlock, 0, 0, buffer,
-                     c_head, isize, jsize, ksize, nx, ny, idxoffset,
-                     buffer_ncells, n_fields, n_cells);
+  hipLaunchKernelGGL(UnpackBuffers3DKernel, dim1dGrid, dim1dBlock, 0, 0, buffer, c_head, isize, jsize, ksize, nx, ny,
+                     idxoffset, buffer_ncells, n_fields, n_cells);
 }
 
-__global__ void SetGhostCellsKernel(Real *c_head, int nx, int ny, int nz,
-                                    int n_fields, int n_cells, int n_ghost,
-                                    int f0, int f1, int f2, int f3, int f4,
-                                    int f5, int isize, int jsize, int ksize,
+__global__ void SetGhostCellsKernel(Real *c_head, int nx, int ny, int nz, int n_fields, int n_cells, int n_ghost,
+                                    int f0, int f1, int f2, int f3, int f4, int f5, int isize, int jsize, int ksize,
                                     int imin, int jmin, int kmin, int dir)
 {
   int id, i, j, k, gidx, idx, ii;
@@ -140,16 +129,14 @@ __global__ void SetGhostCellsKernel(Real *c_head, int nx, int ny, int nz,
         // Direction 0,2,4 are left-side, don't allow inflow with positive
         // momentum
         if (c_head[momdex] > 0.0) {
-          c_head[gidx + 4 * n_cells] -=
-              0.5 * (c_head[momdex] * c_head[momdex]) / c_head[gidx];
+          c_head[gidx + 4 * n_cells] -= 0.5 * (c_head[momdex] * c_head[momdex]) / c_head[gidx];
           c_head[momdex] = 0.0;
         }
       } else {
         // Direction 1,3,5 are right-side, don't allow inflow with negative
         // momentum
         if (c_head[momdex] < 0.0) {
-          c_head[gidx + 4 * n_cells] -=
-              0.5 * (c_head[momdex] * c_head[momdex]) / c_head[gidx];
+          c_head[gidx + 4 * n_cells] -= 0.5 * (c_head[momdex] * c_head[momdex]) / c_head[gidx];
           c_head[momdex] = 0.0;
         }
       }
@@ -157,20 +144,17 @@ __global__ void SetGhostCellsKernel(Real *c_head, int nx, int ny, int nz,
   }    // end idx>=0
 }  // end function
 
-void SetGhostCells(Real *c_head, int nx, int ny, int nz, int n_fields,
-                   int n_cells, int n_ghost, int flags[], int isize, int jsize,
-                   int ksize, int imin, int jmin, int kmin, int dir)
+void SetGhostCells(Real *c_head, int nx, int ny, int nz, int n_fields, int n_cells, int n_ghost, int flags[], int isize,
+                   int jsize, int ksize, int imin, int jmin, int kmin, int dir)
 {
   dim3 dim1dGrid((isize * jsize * ksize + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(SetGhostCellsKernel, dim1dGrid, dim1dBlock, 0, 0, c_head,
-                     nx, ny, nz, n_fields, n_cells, n_ghost, flags[0], flags[1],
-                     flags[2], flags[3], flags[4], flags[5], isize, jsize,
-                     ksize, imin, jmin, kmin, dir);
+  hipLaunchKernelGGL(SetGhostCellsKernel, dim1dGrid, dim1dBlock, 0, 0, c_head, nx, ny, nz, n_fields, n_cells, n_ghost,
+                     flags[0], flags[1], flags[2], flags[3], flags[4], flags[5], isize, jsize, ksize, imin, jmin, kmin,
+                     dir);
 }
 
-__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],
-                                  int nx, int ny, int nz, int n_ghost)
+__device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[], int nx, int ny, int nz, int n_ghost)
 {
   // nx, ny, nz, n_ghost
   /* 1D */
@@ -249,8 +233,7 @@ __device__ int SetBoundaryMapping(int ig, int jg, int kg, Real *a, int flags[],
   return idx;
 }
 
-__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost,
-                         Real *a)
+__device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a)
 {
   int id;
 
@@ -315,10 +298,8 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost,
   return id;
 }
 
-__global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz,
-                                     int n_cells, int n_ghost, int x_off,
-                                     int y_off, int z_off, Real dx, Real dy,
-                                     Real dz, Real xbound, Real ybound,
+__global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int n_cells, int n_ghost, int x_off,
+                                     int y_off, int z_off, Real dx, Real dy, Real dz, Real xbound, Real ybound,
                                      Real zbound, Real gamma, Real t)
 {
   int id, xid, yid, zid, gid;
@@ -362,16 +343,13 @@ __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz,
     c_device[gid + 1 * n_cells] = vx * d_0;
     c_device[gid + 2 * n_cells] = vy * d_0;
     c_device[gid + 3 * n_cells] = vz * d_0;
-    c_device[gid + 4 * n_cells] =
-        P_0 / (gamma - 1.0) + 0.5 * d_0 * (vx * vx + vy * vy + vz * vz);
+    c_device[gid + 4 * n_cells] = P_0 / (gamma - 1.0) + 0.5 * d_0 * (vx * vx + vy * vy + vz * vz);
   }
   __syncthreads();
 }
 
-__global__ void Noh_Boundary_kernel(Real *c_device, int nx, int ny, int nz,
-                                    int n_cells, int n_ghost, int x_off,
-                                    int y_off, int z_off, Real dx, Real dy,
-                                    Real dz, Real xbound, Real ybound,
+__global__ void Noh_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int n_cells, int n_ghost, int x_off,
+                                    int y_off, int z_off, Real dx, Real dy, Real dz, Real xbound, Real ybound,
                                     Real zbound, Real gamma, Real t)
 {
   int id, xid, yid, zid, gid;
@@ -526,10 +504,8 @@ __global__ void Noh_Boundary_kernel(Real *c_device, int nx, int ny, int nz,
   }
 }
 
-void Wind_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells,
-                        int n_ghost, int x_off, int y_off, int z_off, Real dx,
-                        Real dy, Real dz, Real xbound, Real ybound, Real zbound,
-                        Real gamma, Real t)
+void Wind_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells, int n_ghost, int x_off, int y_off,
+                        int z_off, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real gamma, Real t)
 {
   // determine the size of the grid to launch
   // need at least as many threads as the largest boundary face
@@ -543,15 +519,12 @@ void Wind_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells,
   dim3 dim1dBlock(TPB, 1, 1);
 
   // launch the boundary kernel
-  hipLaunchKernelGGL(Wind_Boundary_kernel, dim1dGrid, dim1dBlock, 0, 0,
-                     c_device, nx, ny, nz, n_cells, n_ghost, x_off, y_off,
-                     z_off, dx, dy, dz, xbound, ybound, zbound, gamma, t);
+  hipLaunchKernelGGL(Wind_Boundary_kernel, dim1dGrid, dim1dBlock, 0, 0, c_device, nx, ny, nz, n_cells, n_ghost, x_off,
+                     y_off, z_off, dx, dy, dz, xbound, ybound, zbound, gamma, t);
 }
 
-void Noh_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells,
-                       int n_ghost, int x_off, int y_off, int z_off, Real dx,
-                       Real dy, Real dz, Real xbound, Real ybound, Real zbound,
-                       Real gamma, Real t)
+void Noh_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells, int n_ghost, int x_off, int y_off,
+                       int z_off, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real gamma, Real t)
 {
   // determine the size of the grid to launch
   // need at least as many threads as the largest boundary face
@@ -565,7 +538,6 @@ void Noh_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells,
   dim3 dim1dBlock(TPB, 1, 1);
 
   // launch the boundary kernel
-  hipLaunchKernelGGL(Noh_Boundary_kernel, dim1dGrid, dim1dBlock, 0, 0, c_device,
-                     nx, ny, nz, n_cells, n_ghost, x_off, y_off, z_off, dx, dy,
-                     dz, xbound, ybound, zbound, gamma, t);
+  hipLaunchKernelGGL(Noh_Boundary_kernel, dim1dGrid, dim1dBlock, 0, 0, c_device, nx, ny, nz, n_cells, n_ghost, x_off,
+                     y_off, z_off, dx, dy, dz, xbound, ybound, zbound, gamma, t);
 }

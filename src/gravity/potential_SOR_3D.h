@@ -89,16 +89,15 @@ class Potential_SOR_3D
 
   Potential_SOR_3D(void);
 
-  void Initialize(Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min,
-                  int nx, int ny, int nz, int nx_real, int ny_real, int nz_real,
-                  Real dx, Real dy, Real dz);
+  void Initialize(Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz, int nx_real,
+                  int ny_real, int nz_real, Real dx, Real dy, Real dz);
 
   void AllocateMemory_CPU(void);
   void AllocateMemory_GPU(void);
   void FreeMemory_GPU(void);
   void Reset(void);
-  void Copy_Input(int n_cells, Real *input_d, Real *input_density_h,
-                  Real Grav_Constant, Real dens_avrg, Real current_a);
+  void Copy_Input(int n_cells, Real *input_d, Real *input_density_h, Real Grav_Constant, Real dens_avrg,
+                  Real current_a);
 
   void Copy_Output(Real *output_potential);
   void Copy_Potential_From_Host(Real *output_potential);
@@ -113,51 +112,35 @@ class Potential_SOR_3D
   void Free_Array_GPU_Real(Real *array_dev);
   void Free_Array_GPU_bool(bool *array_dev);
 
-  void Initialize_Potential(int nx, int ny, int nz, int n_ghost_potential,
-                            Real *potential_d, Real *density_d);
-  void Copy_Input_And_Initialize(Real *input_density,
-                                 const Real *input_potential,
-                                 Real Grav_Constant, Real dens_avrg,
+  void Initialize_Potential(int nx, int ny, int nz, int n_ghost_potential, Real *potential_d, Real *density_d);
+  void Copy_Input_And_Initialize(Real *input_density, const Real *input_potential, Real Grav_Constant, Real dens_avrg,
                                  Real current_a);
 
-  void Poisson_iteration(int n_cells, int nx, int ny, int nz,
-                         int n_ghost_potential, Real dx, Real dy, Real dz,
-                         Real omega, Real epsilon, Real *density_d,
-                         Real *potential_d, bool *converged_h,
+  void Poisson_iteration(int n_cells, int nx, int ny, int nz, int n_ghost_potential, Real dx, Real dy, Real dz,
+                         Real omega, Real epsilon, Real *density_d, Real *potential_d, bool *converged_h,
                          bool *converged_d);
-  void Poisson_iteration_Patial_1(int n_cells, int nx, int ny, int nz,
-                                  int n_ghost_potential, Real dx, Real dy,
-                                  Real dz, Real omega, Real epsilon,
-                                  Real *density_d, Real *potential_d,
-                                  bool *converged_h, bool *converged_d);
-  void Poisson_iteration_Patial_2(int n_cells, int nx, int ny, int nz,
-                                  int n_ghost_potential, Real dx, Real dy,
-                                  Real dz, Real omega, Real epsilon,
-                                  Real *density_d, Real *potential_d,
-                                  bool *converged_h, bool *converged_d);
+  void Poisson_iteration_Patial_1(int n_cells, int nx, int ny, int nz, int n_ghost_potential, Real dx, Real dy, Real dz,
+                                  Real omega, Real epsilon, Real *density_d, Real *potential_d, bool *converged_h,
+                                  bool *converged_d);
+  void Poisson_iteration_Patial_2(int n_cells, int nx, int ny, int nz, int n_ghost_potential, Real dx, Real dy, Real dz,
+                                  Real omega, Real epsilon, Real *density_d, Real *potential_d, bool *converged_h,
+                                  bool *converged_d);
   void Poisson_Partial_Iteration(int n_step, Real omega, Real epsilon);
 
-  void Load_Transfer_Buffer_GPU(int direction, int side, int nx, int ny, int nz,
-                                int n_ghost_transfer, int n_ghost_potential,
-                                Real *potential_d, Real *transfer_buffer_d);
-  void Load_Transfer_Buffer_Half_GPU(int direction, int side, int nx, int ny,
-                                     int nz, int n_ghost_transfer,
-                                     int n_ghost_potential, Real *potential_d,
-                                     Real *transfer_buffer_d);
+  void Load_Transfer_Buffer_GPU(int direction, int side, int nx, int ny, int nz, int n_ghost_transfer,
+                                int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d);
+  void Load_Transfer_Buffer_Half_GPU(int direction, int side, int nx, int ny, int nz, int n_ghost_transfer,
+                                     int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d);
   void Load_Transfer_Buffer_GPU_x0();
   void Load_Transfer_Buffer_GPU_x1();
   void Load_Transfer_Buffer_GPU_y0();
   void Load_Transfer_Buffer_GPU_y1();
   void Load_Transfer_Buffer_GPU_z0();
   void Load_Transfer_Buffer_GPU_z1();
-  void Unload_Transfer_Buffer_GPU(int direction, int side, int nx, int ny,
-                                  int nz, int n_ghost_transfer,
-                                  int n_ghost_potential, Real *potential_d,
-                                  Real *transfer_buffer_d);
-  void Unload_Transfer_Buffer_Half_GPU(int direction, int side, int nx, int ny,
-                                       int nz, int n_ghost_transfer,
-                                       int n_ghost_potential, Real *potential_d,
-                                       Real *transfer_buffer_d);
+  void Unload_Transfer_Buffer_GPU(int direction, int side, int nx, int ny, int nz, int n_ghost_transfer,
+                                  int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d);
+  void Unload_Transfer_Buffer_Half_GPU(int direction, int side, int nx, int ny, int nz, int n_ghost_transfer,
+                                       int n_ghost_potential, Real *potential_d, Real *transfer_buffer_d);
   void Unload_Transfer_Buffer_GPU_x0();
   void Unload_Transfer_Buffer_GPU_x1();
   void Unload_Transfer_Buffer_GPU_y0();
@@ -172,13 +155,10 @@ class Potential_SOR_3D
   // void Load_Transfer_Buffer_GPU_All();
   // void Unload_Transfer_Buffer_GPU_All();
 
-  void Copy_Transfer_Buffer_To_Host(int size_buffer, Real *transfer_bufer_h,
-                                    Real *transfer_buffer_d);
-  void Copy_Transfer_Buffer_To_Device(int size_buffer, Real *transfer_bufer_h,
-                                      Real *transfer_buffer_d);
+  void Copy_Transfer_Buffer_To_Host(int size_buffer, Real *transfer_bufer_h, Real *transfer_buffer_d);
+  void Copy_Transfer_Buffer_To_Device(int size_buffer, Real *transfer_bufer_h, Real *transfer_buffer_d);
 
-  void Set_Isolated_Boundary_Conditions(int *boundary_flags,
-                                        struct parameters *P);
+  void Set_Isolated_Boundary_Conditions(int *boundary_flags, struct parameters *P);
   void Set_Isolated_Boundary_GPU(int direction, int side, Real *boundary_d);
 
     #ifdef MPI_CHOLLA

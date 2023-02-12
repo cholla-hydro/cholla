@@ -191,11 +191,9 @@ class Grav3D
 
   /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
    *  \brief Initialize the grid. */
-  void Initialize(Real x_min, Real y_min, Real z_min, Real x_max, Real y_max,
-                  Real z_max, Real Lx, Real Ly, Real Lz, int nx_total,
-                  int ny_total, int nz_total, int nx_real, int ny_real,
-                  int nz_real, Real dx_real, Real dy_real, Real dz_real,
-                  int n_ghost_pot_offset, struct parameters *P);
+  void Initialize(Real x_min, Real y_min, Real z_min, Real x_max, Real y_max, Real z_max, Real Lx, Real Ly, Real Lz,
+                  int nx_total, int ny_total, int nz_total, int nx_real, int ny_real, int nz_real, Real dx_real,
+                  Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P);
 
   void AllocateMemory_CPU(void);
   void Initialize_values_CPU();
@@ -210,9 +208,7 @@ class Grav3D
   void Set_Boundary_Flags(int *flags);
 
 #ifdef SOR
-  void Copy_Isolated_Boundary_To_GPU_buffer(Real *isolated_boundary_h,
-                                            Real *isolated_boundary_d,
-                                            int boundary_size);
+  void Copy_Isolated_Boundary_To_GPU_buffer(Real *isolated_boundary_h, Real *isolated_boundary_d, int boundary_size);
   void Copy_Isolated_Boundaries_To_GPU(struct parameters *P);
 #endif
 

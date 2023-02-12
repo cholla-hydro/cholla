@@ -57,8 +57,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
     CudaSafeCall(cudaMalloc(&dev_fluxY, fluxY.size() * sizeof(double)));
     CudaSafeCall(cudaMalloc(&dev_fluxZ, fluxZ.size() * sizeof(double)));
     CudaSafeCall(cudaMalloc(&dev_grid, grid.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_testCTElectricFields,
-                            testCTElectricFields.size() * sizeof(double)));
+    CudaSafeCall(cudaMalloc(&dev_testCTElectricFields, testCTElectricFields.size() * sizeof(double)));
 
     // Populate the grids with values where vector.at(i) = double(i). The
     // values chosen aren't that important, just that every cell has a unique
@@ -89,8 +88,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
   std::vector<double> fiducialData;
 
   // device pointers
-  double *dev_fluxX, *dev_fluxY, *dev_fluxZ, *dev_grid,
-      *dev_testCTElectricFields;
+  double *dev_fluxX, *dev_fluxY, *dev_fluxZ, *dev_grid, *dev_testCTElectricFields;
 
   /*!
    * \brief Launch the kernel and check results
@@ -99,42 +97,30 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
   void runTest()
   {
     // Copy values to GPU
-    CudaSafeCall(cudaMemcpy(dev_fluxX, fluxX.data(),
-                            fluxX.size() * sizeof(Real),
-                            cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_fluxY, fluxY.data(),
-                            fluxY.size() * sizeof(Real),
-                            cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_fluxZ, fluxZ.data(),
-                            fluxZ.size() * sizeof(Real),
-                            cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_grid, grid.data(), grid.size() * sizeof(Real),
-                            cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(
-        dev_testCTElectricFields, testCTElectricFields.data(),
-        testCTElectricFields.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(dev_fluxX, fluxX.data(), fluxX.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(dev_fluxY, fluxY.data(), fluxY.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(dev_fluxZ, fluxZ.data(), fluxZ.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(dev_grid, grid.data(), grid.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(dev_testCTElectricFields, testCTElectricFields.data(),
+                            testCTElectricFields.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
     // Call the kernel to test
-    hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, dimGrid, dimBlock, 0,
-                       0, dev_fluxX, dev_fluxY, dev_fluxZ, dev_grid,
-                       dev_testCTElectricFields, nx, ny, nz, n_cells);
+    hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, dimGrid, dimBlock, 0, 0, dev_fluxX, dev_fluxY, dev_fluxZ,
+                       dev_grid, dev_testCTElectricFields, nx, ny, nz, n_cells);
     CudaCheckError();
 
     // Copy test data back
-    CudaSafeCall(cudaMemcpy(
-        testCTElectricFields.data(), dev_testCTElectricFields,
-        testCTElectricFields.size() * sizeof(Real), cudaMemcpyDeviceToHost));
+    CudaSafeCall(cudaMemcpy(testCTElectricFields.data(), dev_testCTElectricFields,
+                            testCTElectricFields.size() * sizeof(Real), cudaMemcpyDeviceToHost));
     cudaDeviceSynchronize();
 
     // Check the results
     for (size_t i = 0; i < fiducialData.size(); i++) {
       int xid, yid, zid;
       cuda_utilities::compute3DIndices(i, nx, ny, xid, yid, zid);
-      testingUtilities::checkResults(
-          fiducialData.at(i), testCTElectricFields.at(i),
-          "value at i = " + std::to_string(i) + ", xid  = " +
-              std::to_string(xid) + ", yid  = " + std::to_string(yid) +
-              ", zid  = " + std::to_string(zid));
+      testingUtilities::checkResults(fiducialData.at(i), testCTElectricFields.at(i),
+                                     "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
+                                         ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
     }
   }
 };

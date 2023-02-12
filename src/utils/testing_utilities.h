@@ -91,21 +91,17 @@ int64_t ulpsDistanceDbl(double const &a, double const &b);
  * \param[in] ulpsEpsilon The allowed difference of ULPs. Defaults to 4
  * \return bool Whether or not the numbers are equal
  */
-bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff,
-                    int64_t &ulpsDiff, double const &fixedEpsilon = 1E-14,
-                    int64_t const &ulpsEpsilon = 4);
+bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff, int64_t &ulpsDiff,
+                    double const &fixedEpsilon = 1E-14, int64_t const &ulpsEpsilon = 4);
 // =========================================================================
 
-void wrapperEqual(int i, int j, int k, std::string dataSetName,
-                  double test_value, double fid_value, double fixedEpsilon);
+void wrapperEqual(int i, int j, int k, std::string dataSetName, double test_value, double fid_value,
+                  double fixedEpsilon);
 
-void analyticConstant(systemTest::SystemTestRunner testObject,
-                      std::string dataSetName, double value);
+void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value);
 
-void analyticSine(systemTest::SystemTestRunner testObject,
-                  std::string dataSetName, double constant, double amplitude,
-                  double kx, double ky, double kz, double phase,
-                  double tolerance);
+void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetName, double constant, double amplitude,
+                  double kx, double ky, double kz, double phase, double tolerance);
 
 // =========================================================================
 /*!
@@ -124,8 +120,7 @@ void analyticSine(systemTest::SystemTestRunner testObject,
  * values are ignored and default behaviour is used
  */
 template <int checkType = 0>
-void checkResults(double fiducialNumber, double testNumber,
-                  std::string outString, double fixedEpsilon = -999,
+void checkResults(double fiducialNumber, double testNumber, std::string outString, double fixedEpsilon = -999,
                   int64_t ulpsEpsilon = -999)
 {
   // Check for equality and if not equal return difference
@@ -134,22 +129,18 @@ void checkResults(double fiducialNumber, double testNumber,
   bool areEqual;
 
   if ((fixedEpsilon < 0) and (ulpsEpsilon < 0)) {
-    areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber,
-                                                absoluteDiff, ulpsDiff);
+    areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
   } else if ((fixedEpsilon > 0) and (ulpsEpsilon < 0)) {
-    areEqual = testingUtilities::nearlyEqualDbl(
-        fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon);
+    areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon);
   } else {
-    areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber,
-                                                absoluteDiff, ulpsDiff,
-                                                fixedEpsilon, ulpsEpsilon);
+    areEqual =
+        testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon, ulpsEpsilon);
   }
 
   std::stringstream outputMessage;
-  outputMessage << std::setprecision(std::numeric_limits<double>::max_digits10)
-                << "Difference in " << outString << std::endl
-                << "The fiducial value is:       " << fiducialNumber
+  outputMessage << std::setprecision(std::numeric_limits<double>::max_digits10) << "Difference in " << outString
                 << std::endl
+                << "The fiducial value is:       " << fiducialNumber << std::endl
                 << "The test value is:           " << testNumber << std::endl
                 << "The absolute difference is:  " << absoluteDiff << std::endl
                 << "The ULP difference is:       " << ulpsDiff << std::endl;

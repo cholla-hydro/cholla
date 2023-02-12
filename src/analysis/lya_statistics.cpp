@@ -111,28 +111,24 @@ void Analysis_Module::Transfer_Skewers_Global_Axis(int axis)
     // Write the local data into the global array
     for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
       for (int los_id = 0; los_id < n_los; los_id++) {
-        skewers_density_global[skewer_id * n_los + los_id] =
-            skewers_density_root[skewer_id * n_los + los_id];
+        skewers_density_global[skewer_id * n_los + los_id] = skewers_density_root[skewer_id * n_los + los_id];
       }
     }
     // Write the remote data into the global array
     n_added = 1;
     for (int p_id = 1; p_id < nproc; p_id++) {
       if (!root_procs[p_id]) continue;
-      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0,
-               world, &mpi_status);
+      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0, world, &mpi_status);
       offset = n_added * n_skewers_root * n_los;
       for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
         for (int los_id = 0; los_id < n_los; los_id++) {
-          skewers_density_global[offset + skewer_id * n_los + los_id] =
-              transfer_buffer[skewer_id * n_los + los_id];
+          skewers_density_global[offset + skewer_id * n_los + los_id] = transfer_buffer[skewer_id * n_los + los_id];
         }
       }
       n_added += 1;
     }
   } else {
-    MPI_Send(skewers_density_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0,
-             world);
+    MPI_Send(skewers_density_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
     #endif
 
@@ -141,28 +137,24 @@ void Analysis_Module::Transfer_Skewers_Global_Axis(int axis)
     // Write the local data into the global array
     for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
       for (int los_id = 0; los_id < n_los; los_id++) {
-        skewers_HI_density_global[skewer_id * n_los + los_id] =
-            skewers_HI_density_root[skewer_id * n_los + los_id];
+        skewers_HI_density_global[skewer_id * n_los + los_id] = skewers_HI_density_root[skewer_id * n_los + los_id];
       }
     }
     // Write the remote data into the global array
     n_added = 1;
     for (int p_id = 1; p_id < nproc; p_id++) {
       if (!root_procs[p_id]) continue;
-      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0,
-               world, &mpi_status);
+      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0, world, &mpi_status);
       offset = n_added * n_skewers_root * n_los;
       for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
         for (int los_id = 0; los_id < n_los; los_id++) {
-          skewers_HI_density_global[offset + skewer_id * n_los + los_id] =
-              transfer_buffer[skewer_id * n_los + los_id];
+          skewers_HI_density_global[offset + skewer_id * n_los + los_id] = transfer_buffer[skewer_id * n_los + los_id];
         }
       }
       n_added += 1;
     }
   } else {
-    MPI_Send(skewers_HI_density_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0,
-             world);
+    MPI_Send(skewers_HI_density_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
 
   // Set the HeII density array
@@ -170,16 +162,14 @@ void Analysis_Module::Transfer_Skewers_Global_Axis(int axis)
     // Write the local data into the global array
     for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
       for (int los_id = 0; los_id < n_los; los_id++) {
-        skewers_HeII_density_global[skewer_id * n_los + los_id] =
-            skewers_HeII_density_root[skewer_id * n_los + los_id];
+        skewers_HeII_density_global[skewer_id * n_los + los_id] = skewers_HeII_density_root[skewer_id * n_los + los_id];
       }
     }
     // Write the remote data into the global array
     n_added = 1;
     for (int p_id = 1; p_id < nproc; p_id++) {
       if (!root_procs[p_id]) continue;
-      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0,
-               world, &mpi_status);
+      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0, world, &mpi_status);
       offset = n_added * n_skewers_root * n_los;
       for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
         for (int los_id = 0; los_id < n_los; los_id++) {
@@ -190,8 +180,7 @@ void Analysis_Module::Transfer_Skewers_Global_Axis(int axis)
       n_added += 1;
     }
   } else {
-    MPI_Send(skewers_HeII_density_root, n_skewers_root * n_los, MPI_CHREAL, 0,
-             0, world);
+    MPI_Send(skewers_HeII_density_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
 
   // Set the temeprature array
@@ -199,28 +188,24 @@ void Analysis_Module::Transfer_Skewers_Global_Axis(int axis)
     // Write the local data into the global array
     for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
       for (int los_id = 0; los_id < n_los; los_id++) {
-        skewers_temperature_global[skewer_id * n_los + los_id] =
-            skewers_temperature_root[skewer_id * n_los + los_id];
+        skewers_temperature_global[skewer_id * n_los + los_id] = skewers_temperature_root[skewer_id * n_los + los_id];
       }
     }
     // Write the remote data into the global array
     n_added = 1;
     for (int p_id = 1; p_id < nproc; p_id++) {
       if (!root_procs[p_id]) continue;
-      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0,
-               world, &mpi_status);
+      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0, world, &mpi_status);
       offset = n_added * n_skewers_root * n_los;
       for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
         for (int los_id = 0; los_id < n_los; los_id++) {
-          skewers_temperature_global[offset + skewer_id * n_los + los_id] =
-              transfer_buffer[skewer_id * n_los + los_id];
+          skewers_temperature_global[offset + skewer_id * n_los + los_id] = transfer_buffer[skewer_id * n_los + los_id];
         }
       }
       n_added += 1;
     }
   } else {
-    MPI_Send(skewers_temperature_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0,
-             world);
+    MPI_Send(skewers_temperature_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
 
   // Set the los_velocity array
@@ -228,16 +213,14 @@ void Analysis_Module::Transfer_Skewers_Global_Axis(int axis)
     // Write the local data into the global array
     for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
       for (int los_id = 0; los_id < n_los; los_id++) {
-        skewers_los_velocity_global[skewer_id * n_los + los_id] =
-            skewers_los_velocity_root[skewer_id * n_los + los_id];
+        skewers_los_velocity_global[skewer_id * n_los + los_id] = skewers_los_velocity_root[skewer_id * n_los + los_id];
       }
     }
     // Write the remote data into the global array
     n_added = 1;
     for (int p_id = 1; p_id < nproc; p_id++) {
       if (!root_procs[p_id]) continue;
-      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0,
-               world, &mpi_status);
+      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0, world, &mpi_status);
       offset = n_added * n_skewers_root * n_los;
       for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
         for (int los_id = 0; los_id < n_los; los_id++) {
@@ -248,8 +231,7 @@ void Analysis_Module::Transfer_Skewers_Global_Axis(int axis)
       n_added += 1;
     }
   } else {
-    MPI_Send(skewers_los_velocity_root, n_skewers_root * n_los, MPI_CHREAL, 0,
-             0, world);
+    MPI_Send(skewers_los_velocity_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
 
   // Set the HI Flux array
@@ -257,28 +239,24 @@ void Analysis_Module::Transfer_Skewers_Global_Axis(int axis)
     // Write the local data into the global array
     for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
       for (int los_id = 0; los_id < n_los; los_id++) {
-        skewers_F_HI_global[skewer_id * n_los + los_id] =
-            skewers_F_HI_root[skewer_id * n_los + los_id];
+        skewers_F_HI_global[skewer_id * n_los + los_id] = skewers_F_HI_root[skewer_id * n_los + los_id];
       }
     }
     // Write the remote data into the global array
     n_added = 1;
     for (int p_id = 1; p_id < nproc; p_id++) {
       if (!root_procs[p_id]) continue;
-      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0,
-               world, &mpi_status);
+      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0, world, &mpi_status);
       offset = n_added * n_skewers_root * n_los;
       for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
         for (int los_id = 0; los_id < n_los; los_id++) {
-          skewers_F_HI_global[offset + skewer_id * n_los + los_id] =
-              transfer_buffer[skewer_id * n_los + los_id];
+          skewers_F_HI_global[offset + skewer_id * n_los + los_id] = transfer_buffer[skewer_id * n_los + los_id];
         }
       }
       n_added += 1;
     }
   } else {
-    MPI_Send(skewers_F_HI_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0,
-             world);
+    MPI_Send(skewers_F_HI_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
 
   // Set the HeII Flux array
@@ -286,28 +264,24 @@ void Analysis_Module::Transfer_Skewers_Global_Axis(int axis)
     // Write the local data into the global array
     for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
       for (int los_id = 0; los_id < n_los; los_id++) {
-        skewers_F_HeII_global[skewer_id * n_los + los_id] =
-            skewers_F_HeII_root[skewer_id * n_los + los_id];
+        skewers_F_HeII_global[skewer_id * n_los + los_id] = skewers_F_HeII_root[skewer_id * n_los + los_id];
       }
     }
     // Write the remote data into the global array
     n_added = 1;
     for (int p_id = 1; p_id < nproc; p_id++) {
       if (!root_procs[p_id]) continue;
-      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0,
-               world, &mpi_status);
+      MPI_Recv(transfer_buffer, n_skewers_root * n_los, MPI_CHREAL, p_id, 0, world, &mpi_status);
       offset = n_added * n_skewers_root * n_los;
       for (int skewer_id = 0; skewer_id < n_skewers_root; skewer_id++) {
         for (int los_id = 0; los_id < n_los; los_id++) {
-          skewers_F_HeII_global[offset + skewer_id * n_los + los_id] =
-              transfer_buffer[skewer_id * n_los + los_id];
+          skewers_F_HeII_global[offset + skewer_id * n_los + los_id] = transfer_buffer[skewer_id * n_los + los_id];
         }
       }
       n_added += 1;
     }
   } else {
-    MPI_Send(skewers_F_HeII_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0,
-             world);
+    MPI_Send(skewers_F_HeII_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
 }
 
@@ -325,13 +299,11 @@ int Locate_Index(Real val, Real *values, int N)
   }
 
   if (val < values[index - 1]) {
-    chprintf("ERROR; Value less than left edge:  val=%f    left=%f \n", val,
-             values[index - 1]);
+    chprintf("ERROR; Value less than left edge:  val=%f    left=%f \n", val, values[index - 1]);
     exit(-1);
   }
   if (val > values[index]) {
-    chprintf("ERROR; Value grater than right edge:  val=%f    right=%f \n", val,
-             values[index]);
+    chprintf("ERROR; Value grater than right edge:  val=%f    right=%f \n", val, values[index]);
     exit(-1);
   }
 
@@ -421,8 +393,7 @@ void Grid3D::Initialize_Power_Spectrum_Measurements(int axis)
   k_start = log10(0.99 * k_vals[1]);
 
   if (d_log_k == 0) {
-    chprintf(
-        "ERROR: d_log_k = 0    Set  lya_Pk_d_log_k in the parameter file \n");
+    chprintf("ERROR: d_log_k = 0    Set  lya_Pk_d_log_k in the parameter file \n");
     exit(-1);
   }
 
@@ -491,8 +462,7 @@ void Grid3D::Initialize_Power_Spectrum_Measurements(int axis)
 
   // Create array  for global PS
   if (axis == 2) {
-    if (Analysis.n_hist_edges_x != Analysis.n_hist_edges_y ||
-        Analysis.n_hist_edges_x != Analysis.n_hist_edges_z) {
+    if (Analysis.n_hist_edges_x != Analysis.n_hist_edges_y || Analysis.n_hist_edges_x != Analysis.n_hist_edges_z) {
       chprintf("ERROR: PS Histogram sizes dont match \n");
       exit(-1);
     } else {
@@ -500,8 +470,7 @@ void Grid3D::Initialize_Power_Spectrum_Measurements(int axis)
       Analysis.k_centers = (Real *)malloc(n_bins * sizeof(Real));
 
       for (int bin_id = 0; bin_id < n_bins; bin_id++) {
-        Analysis.k_centers[bin_id] = sqrt(Analysis.hist_k_edges_x[bin_id] *
-                                          Analysis.hist_k_edges_x[bin_id + 1]);
+        Analysis.k_centers[bin_id] = sqrt(Analysis.hist_k_edges_x[bin_id] * Analysis.hist_k_edges_x[bin_id + 1]);
       }
     }
   }
@@ -596,8 +565,7 @@ void Grid3D::Compute_Flux_Power_Spectrum_Skewer(int skewer_id, int axis)
   }
 
   for (int los_id = 0; los_id < n_los; los_id++) {
-    delta_F[los_id] = skewers_transmitted_flux[skewer_id * n_los + los_id] /
-                      Analysis.Flux_mean_HI;
+    delta_F[los_id] = skewers_transmitted_flux[skewer_id * n_los + los_id] / Analysis.Flux_mean_HI;
   }
 
   // Compute the r2c FFT
@@ -613,9 +581,7 @@ void Grid3D::Compute_Flux_Power_Spectrum_Skewer(int skewer_id, int axis)
 
   // Compute the amplitude of the FFT
   for (int i = 0; i < n_fft; i++) {
-    fft2_delta_F[i] = (fft_delta_F[i][0] * fft_delta_F[i][0] +
-                       fft_delta_F[i][1] * fft_delta_F[i][1]) /
-                      n_los / n_los;
+    fft2_delta_F[i] = (fft_delta_F[i][0] * fft_delta_F[i][0] + fft_delta_F[i][1] * fft_delta_F[i][1]) / n_los / n_los;
   }
 
   // Arrange in k-bins
@@ -630,9 +596,7 @@ void Grid3D::Compute_Flux_Power_Spectrum_Skewer(int skewer_id, int axis)
     k_val = k_vals[i];
     if (k_val == 0) continue;
     bin_id = Locate_Index(k_val, hist_k_edges, n_hist_edges);
-    if (bin_id < 0)
-      chprintf(" %d:   %e    %e   %e \n", bin_id, hist_k_edges[0], k_val,
-               hist_k_edges[1]);
+    if (bin_id < 0) chprintf(" %d:   %e    %e   %e \n", bin_id, hist_k_edges[0], k_val, hist_k_edges[1]);
     if (bin_id < 0 || bin_id >= n_bins) continue;
     hist_PS[bin_id] += fft2_delta_F[i];
     hist_n[bin_id] += 1;
@@ -654,8 +618,7 @@ void Grid3D::Compute_Flux_Power_Spectrum_Skewer(int skewer_id, int axis)
   }
 
   if (hist_sum != n_fft - 1) {
-    printf("ERROR: Histogram sum doesn't match n_pfft:  sum=%d    n_fft=%d \n",
-           hist_sum, n_fft - 1);
+    printf("ERROR: Histogram sum doesn't match n_pfft:  sum=%d    n_fft=%d \n", hist_sum, n_fft - 1);
     exit(-1);
   }
 
@@ -711,9 +674,7 @@ void Analysis_Module::Reduce_Power_Spectrum_Global()
   int n_bins = n_hist_edges_x - 1;
 
   for (int bin_id = 0; bin_id < n_bins; bin_id++) {
-    ps_mean[bin_id] =
-        (ps_global_x[bin_id] + ps_global_y[bin_id] + ps_global_z[bin_id]) /
-        n_PS_total;
+    ps_mean[bin_id] = (ps_global_x[bin_id] + ps_global_y[bin_id] + ps_global_z[bin_id]) / n_PS_total;
   }
 
   chprintf(" PS Bins: %d     N_Skewers_Processed: %d \n", n_bins, n_PS_total);
@@ -726,21 +687,17 @@ void Analysis_Module::Reduce_Power_Spectrum_Global()
 
 void Analysis_Module::Reduce_Lya_Mean_Flux_Global()
 {
-  n_skewers_processed =
-      n_skewers_processed_x + n_skewers_processed_y + n_skewers_processed_z;
-  Flux_mean_HI = (Flux_mean_HI_x * n_skewers_processed_x +
-                  Flux_mean_HI_y * n_skewers_processed_y +
+  n_skewers_processed = n_skewers_processed_x + n_skewers_processed_y + n_skewers_processed_z;
+  Flux_mean_HI        = (Flux_mean_HI_x * n_skewers_processed_x + Flux_mean_HI_y * n_skewers_processed_y +
                   Flux_mean_HI_z * n_skewers_processed_z) /
                  n_skewers_processed;
   ;
-  Flux_mean_HeII = (Flux_mean_HeII_x * n_skewers_processed_x +
-                    Flux_mean_HeII_y * n_skewers_processed_y +
+  Flux_mean_HeII = (Flux_mean_HeII_x * n_skewers_processed_x + Flux_mean_HeII_y * n_skewers_processed_y +
                     Flux_mean_HeII_z * n_skewers_processed_z) /
                    n_skewers_processed;
   ;
-  chprintf(
-      " N_Skewers_Processed  Global: %d    F_Mean_HI: %e  F_Mean_HeII: %e\n",
-      n_skewers_processed, Flux_mean_HI, Flux_mean_HeII);
+  chprintf(" N_Skewers_Processed  Global: %d    F_Mean_HI: %e  F_Mean_HeII: %e\n", n_skewers_processed, Flux_mean_HI,
+           Flux_mean_HeII);
 }
 
 void Analysis_Module::Reduce_Lya_Mean_Flux_Axis(int axis)
@@ -784,18 +741,16 @@ void Analysis_Module::Reduce_Lya_Mean_Flux_Axis(int axis)
       #ifdef PRINT_ANALYSIS_LOG
   for (int i = 0; i < nproc; i++) {
     if (procID == i)
-      printf("   procID:%d   Flux_HI_Sum: %e     N_Skewers_Processed: %d \n",
-             procID, (*Flux_mean_root_HI), *n_skewers_processed_root);
+      printf("   procID:%d   Flux_HI_Sum: %e     N_Skewers_Processed: %d \n", procID, (*Flux_mean_root_HI),
+             *n_skewers_processed_root);
     MPI_Barrier(world);
     sleep(1);
   }
       #endif
 
   MPI_Allreduce(Flux_mean_root_HI, Flux_mean_HI, 1, MPI_CHREAL, MPI_SUM, world);
-  MPI_Allreduce(Flux_mean_root_HeII, Flux_mean_HeII, 1, MPI_CHREAL, MPI_SUM,
-                world);
-  MPI_Allreduce(n_skewers_processed_root, n_skewers_processed, 1, MPI_INT,
-                MPI_SUM, world);
+  MPI_Allreduce(Flux_mean_root_HeII, Flux_mean_HeII, 1, MPI_CHREAL, MPI_SUM, world);
+  MPI_Allreduce(n_skewers_processed_root, n_skewers_processed, 1, MPI_INT, MPI_SUM, world);
 
     #else
 
@@ -807,8 +762,8 @@ void Analysis_Module::Reduce_Lya_Mean_Flux_Axis(int axis)
 
   *Flux_mean_HI   = *Flux_mean_HI / *n_skewers_processed;
   *Flux_mean_HeII = *Flux_mean_HeII / *n_skewers_processed;
-  chprintf("  N_Skewers_Processed: %d  Flux Mean HI: %e  Flux_mean_HeII: %e \n",
-           *n_skewers_processed, *Flux_mean_HI, *Flux_mean_HeII);
+  chprintf("  N_Skewers_Processed: %d  Flux Mean HI: %e  Flux_mean_HeII: %e \n", *n_skewers_processed, *Flux_mean_HI,
+           *Flux_mean_HeII);
 }
 
 void Analysis_Module::Compute_Lya_Mean_Flux_Skewer(int skewer_id, int axis)
@@ -857,10 +812,8 @@ void Analysis_Module::Compute_Lya_Mean_Flux_Skewer(int skewer_id, int axis)
   F_mean_HI   = 0;
   F_mean_HeII = 0;
   for (int los_id = 0; los_id < n_los; los_id++) {
-    F_mean_HI +=
-        skewers_transmitted_flux_HI[skewer_id * n_los + los_id] / n_los;
-    F_mean_HeII +=
-        skewers_transmitted_flux_HeII[skewer_id * n_los + los_id] / n_los;
+    F_mean_HI += skewers_transmitted_flux_HI[skewer_id * n_los + los_id] / n_los;
+    F_mean_HeII += skewers_transmitted_flux_HeII[skewer_id * n_los + los_id] / n_los;
   }
 
   *F_mean_root_HI += F_mean_HI;
@@ -979,8 +932,7 @@ void Grid3D::Compute_Transmitted_Flux_Skewer(int skewer_id, int axis)
 
   // printf( "  Computing Skewer ID: %d \n", skewer_id );
 
-  Real density_HI, density_HeII, velocity, temperature, Msun, kpc, Mp, kpc3, Me,
-      e_charge, c, Kb;
+  Real density_HI, density_HeII, velocity, temperature, Msun, kpc, Mp, kpc3, Me, e_charge, c, Kb;
 
   // Constants in CGS
   Kb       = 1.38064852e-16;  // g (cm/s)^2 K-1
@@ -994,10 +946,10 @@ void Grid3D::Compute_Transmitted_Flux_Skewer(int skewer_id, int axis)
 
   // Fill the Real cells first
   for (int los_id = 0; los_id < n_los_total; los_id++) {
-    density_HI   = skewers_HI_density_root[skewer_id * n_los_total + los_id];
-    density_HeII = skewers_HeII_density_root[skewer_id * n_los_total + los_id];
-    velocity     = skewers_velocity_root[skewer_id * n_los_total + los_id];
-    temperature  = skewers_temperature_root[skewer_id * n_los_total + los_id];
+    density_HI                          = skewers_HI_density_root[skewer_id * n_los_total + los_id];
+    density_HeII                        = skewers_HeII_density_root[skewer_id * n_los_total + los_id];
+    velocity                            = skewers_velocity_root[skewer_id * n_los_total + los_id];
+    temperature                         = skewers_temperature_root[skewer_id * n_los_total + los_id];
     full_density_HI[los_id + n_ghost]   = density_HI;
     full_density_HeII[los_id + n_ghost] = density_HeII;
     full_velocity[los_id + n_ghost]     = velocity;
@@ -1006,23 +958,18 @@ void Grid3D::Compute_Transmitted_Flux_Skewer(int skewer_id, int axis)
 
   // Fill the ghost cells
   for (int los_id = 0; los_id < n_ghost; los_id++) {
-    full_density_HI[los_id]   = full_density_HI[n_los_total + los_id];
-    full_density_HeII[los_id] = full_density_HeII[n_los_total + los_id];
-    full_velocity[los_id]     = full_velocity[n_los_total + los_id];
-    full_temperature[los_id]  = full_temperature[n_los_total + los_id];
-    full_density_HI[n_los_total + n_ghost + los_id] =
-        full_density_HI[n_ghost + los_id];
-    full_density_HeII[n_los_total + n_ghost + los_id] =
-        full_density_HeII[n_ghost + los_id];
-    full_velocity[n_los_total + n_ghost + los_id] =
-        full_velocity[n_ghost + los_id];
-    full_temperature[n_los_total + n_ghost + los_id] =
-        full_temperature[n_ghost + los_id];
+    full_density_HI[los_id]                           = full_density_HI[n_los_total + los_id];
+    full_density_HeII[los_id]                         = full_density_HeII[n_los_total + los_id];
+    full_velocity[los_id]                             = full_velocity[n_los_total + los_id];
+    full_temperature[los_id]                          = full_temperature[n_los_total + los_id];
+    full_density_HI[n_los_total + n_ghost + los_id]   = full_density_HI[n_ghost + los_id];
+    full_density_HeII[n_los_total + n_ghost + los_id] = full_density_HeII[n_ghost + los_id];
+    full_velocity[n_los_total + n_ghost + los_id]     = full_velocity[n_ghost + los_id];
+    full_temperature[n_los_total + n_ghost + los_id]  = full_temperature[n_ghost + los_id];
   }
 
   Real dens_factor, dens_factor_HI, dens_factor_HeII, vel_factor;
-  dens_factor = 1. / (Cosmo.current_a * Cosmo.current_a * Cosmo.current_a) *
-                Cosmo.cosmo_h * Cosmo.cosmo_h;
+  dens_factor      = 1. / (Cosmo.current_a * Cosmo.current_a * Cosmo.current_a) * Cosmo.cosmo_h * Cosmo.cosmo_h;
   dens_factor_HI   = dens_factor * Msun / (kpc3) / Mp;
   dens_factor_HeII = dens_factor * Msun / (kpc3) / (4 * Mp);
   vel_factor       = 1e5;  // cm/s
@@ -1042,18 +989,14 @@ void Grid3D::Compute_Transmitted_Flux_Skewer(int skewer_id, int axis)
     full_vel_Hubble[los_id] = (los_id - n_ghost + 0.5) * dv_Hubble;
   }
 
-  Lya_lambda_HI = 1.21567e-5;  // cm  Rest wave length of the Lyman Alpha
-                               // Transition Hydrogen
-  Lya_lambda_HeII =
-      Lya_lambda_HI /
-      4;  // cm  Rest wave length of the Lyman Alpha Transition Helium II
-  f_12  = 0.416;  // Lya transition Oscillator strength
-  H_cgs = H * 1e5 / kpc;
+  Lya_lambda_HI = 1.21567e-5;           // cm  Rest wave length of the Lyman Alpha
+                                        // Transition Hydrogen
+  Lya_lambda_HeII = Lya_lambda_HI / 4;  // cm  Rest wave length of the Lyman Alpha Transition Helium II
+  f_12            = 0.416;              // Lya transition Oscillator strength
+  H_cgs           = H * 1e5 / kpc;
 
-  Lya_sigma_HI =
-      M_PI * e_charge * e_charge / Me / c * Lya_lambda_HI * f_12 / H_cgs;
-  Lya_sigma_HeII =
-      M_PI * e_charge * e_charge / Me / c * Lya_lambda_HeII * f_12 / H_cgs;
+  Lya_sigma_HI   = M_PI * e_charge * e_charge / Me / c * Lya_lambda_HI * f_12 / H_cgs;
+  Lya_sigma_HeII = M_PI * e_charge * e_charge / Me / c * Lya_lambda_HeII * f_12 / H_cgs;
 
   // Compute the optical depth
   Real b_HI_j, n_HI_j;
@@ -1085,10 +1028,8 @@ void Grid3D::Compute_Transmitted_Flux_Skewer(int skewer_id, int axis)
 
   // Compute the transmitted_flux
   for (int los_id = 0; los_id < n_los_total; los_id++) {
-    skewers_transmitted_flux_HI[skewer_id * n_los_total + los_id] =
-        exp(-full_optical_depth_HI[los_id + n_ghost]);
-    skewers_transmitted_flux_HeII[skewer_id * n_los_total + los_id] =
-        exp(-full_optical_depth_HeII[los_id + n_ghost]);
+    skewers_transmitted_flux_HI[skewer_id * n_los_total + los_id]   = exp(-full_optical_depth_HI[los_id + n_ghost]);
+    skewers_transmitted_flux_HeII[skewer_id * n_los_total + los_id] = exp(-full_optical_depth_HeII[los_id + n_ghost]);
   }
 }
 
@@ -1199,18 +1140,14 @@ void Analysis_Module::Transfer_Skewers_Data(int axis)
 
     for (int skewer_id = 0; skewer_id < n_skewers; skewer_id++) {
       for (int los_id = 0; los_id < n_los_local; los_id++) {
-        HI_density = skewers_HI_density_local[skewer_id * n_los_local + los_id];
-        HeII_density =
-            skewers_HeII_density_local[skewer_id * n_los_local + los_id];
-        velocity = skewers_velocity_local[skewer_id * n_los_local + los_id];
-        temperature =
-            skewers_temperature_local[skewer_id * n_los_local + los_id];
-        skewers_HI_density_root[skewer_id * n_los_total + los_id] = HI_density;
-        skewers_HeII_density_root[skewer_id * n_los_total + los_id] =
-            HeII_density;
-        skewers_velocity_root[skewer_id * n_los_total + los_id] = velocity;
-        skewers_temperature_root[skewer_id * n_los_total + los_id] =
-            temperature;
+        HI_density   = skewers_HI_density_local[skewer_id * n_los_local + los_id];
+        HeII_density = skewers_HeII_density_local[skewer_id * n_los_local + los_id];
+        velocity     = skewers_velocity_local[skewer_id * n_los_local + los_id];
+        temperature  = skewers_temperature_local[skewer_id * n_los_local + los_id];
+        skewers_HI_density_root[skewer_id * n_los_total + los_id]   = HI_density;
+        skewers_HeII_density_root[skewer_id * n_los_total + los_id] = HeII_density;
+        skewers_velocity_root[skewer_id * n_los_total + los_id]     = velocity;
+        skewers_temperature_root[skewer_id * n_los_total + los_id]  = temperature;
       #ifdef OUTPUT_SKEWERS
         density = skewers_density_local[skewer_id * n_los_local + los_id];
         skewers_density_root[skewer_id * n_los_total + los_id] = density;
@@ -1239,37 +1176,27 @@ void Analysis_Module::Transfer_Skewers_Data(int axis)
       printf("  Receiving Skewers From pID: %d\n", mpi_id);
       #endif
 
-      MPI_Recv(skewers_HI_density_local, n_skewers * n_los_local, MPI_CHREAL,
-               mpi_id, 0, world, &mpi_status);
-      MPI_Recv(skewers_velocity_local, n_skewers * n_los_local, MPI_CHREAL,
-               mpi_id, 1, world, &mpi_status);
-      MPI_Recv(skewers_temperature_local, n_skewers * n_los_local, MPI_CHREAL,
-               mpi_id, 2, world, &mpi_status);
-      MPI_Recv(skewers_HeII_density_local, n_skewers * n_los_local, MPI_CHREAL,
-               mpi_id, 3, world, &mpi_status);
+      MPI_Recv(skewers_HI_density_local, n_skewers * n_los_local, MPI_CHREAL, mpi_id, 0, world, &mpi_status);
+      MPI_Recv(skewers_velocity_local, n_skewers * n_los_local, MPI_CHREAL, mpi_id, 1, world, &mpi_status);
+      MPI_Recv(skewers_temperature_local, n_skewers * n_los_local, MPI_CHREAL, mpi_id, 2, world, &mpi_status);
+      MPI_Recv(skewers_HeII_density_local, n_skewers * n_los_local, MPI_CHREAL, mpi_id, 3, world, &mpi_status);
 
       #ifdef OUTPUT_SKEWERS
-      MPI_Recv(skewers_density_local, n_skewers * n_los_local, MPI_CHREAL,
-               mpi_id, 4, world, &mpi_status);
+      MPI_Recv(skewers_density_local, n_skewers * n_los_local, MPI_CHREAL, mpi_id, 4, world, &mpi_status);
       #endif
 
       for (int skewer_id = 0; skewer_id < n_skewers; skewer_id++) {
         for (int los_id = 0; los_id < n_los_local; los_id++) {
-          skewers_HI_density_root[skewer_id * n_los_total + indx * n_los_local +
-                                  los_id] =
+          skewers_HI_density_root[skewer_id * n_los_total + indx * n_los_local + los_id] =
               skewers_HI_density_local[skewer_id * n_los_local + los_id];
-          skewers_HeII_density_root[skewer_id * n_los_total +
-                                    indx * n_los_local + los_id] =
+          skewers_HeII_density_root[skewer_id * n_los_total + indx * n_los_local + los_id] =
               skewers_HeII_density_local[skewer_id * n_los_local + los_id];
-          skewers_velocity_root[skewer_id * n_los_total + indx * n_los_local +
-                                los_id] =
+          skewers_velocity_root[skewer_id * n_los_total + indx * n_los_local + los_id] =
               skewers_velocity_local[skewer_id * n_los_local + los_id];
-          skewers_temperature_root[skewer_id * n_los_total +
-                                   indx * n_los_local + los_id] =
+          skewers_temperature_root[skewer_id * n_los_total + indx * n_los_local + los_id] =
               skewers_temperature_local[skewer_id * n_los_local + los_id];
       #ifdef OUTPUT_SKEWERS
-          skewers_density_root[skewer_id * n_los_total + indx * n_los_local +
-                               los_id] =
+          skewers_density_root[skewer_id * n_los_total + indx * n_los_local + los_id] =
               skewers_density_local[skewer_id * n_los_local + los_id];
       #endif
         }
@@ -1278,17 +1205,12 @@ void Analysis_Module::Transfer_Skewers_Data(int axis)
   }
 
   else {
-    MPI_Send(skewers_HI_density_local, n_skewers * n_los_local, MPI_CHREAL,
-             root_id, 0, world);
-    MPI_Send(skewers_velocity_local, n_skewers * n_los_local, MPI_CHREAL,
-             root_id, 1, world);
-    MPI_Send(skewers_temperature_local, n_skewers * n_los_local, MPI_CHREAL,
-             root_id, 2, world);
-    MPI_Send(skewers_HeII_density_local, n_skewers * n_los_local, MPI_CHREAL,
-             root_id, 3, world);
+    MPI_Send(skewers_HI_density_local, n_skewers * n_los_local, MPI_CHREAL, root_id, 0, world);
+    MPI_Send(skewers_velocity_local, n_skewers * n_los_local, MPI_CHREAL, root_id, 1, world);
+    MPI_Send(skewers_temperature_local, n_skewers * n_los_local, MPI_CHREAL, root_id, 2, world);
+    MPI_Send(skewers_HeII_density_local, n_skewers * n_los_local, MPI_CHREAL, root_id, 3, world);
       #ifdef OUTPUT_SKEWERS
-    MPI_Send(skewers_density_local, n_skewers * n_los_local, MPI_CHREAL,
-             root_id, 4, world);
+    MPI_Send(skewers_density_local, n_skewers * n_los_local, MPI_CHREAL, root_id, 4, world);
       #endif
   }
 
@@ -1380,18 +1302,11 @@ void Grid3D::Populate_Lya_Skewers_Local(int axis)
       for (int id_los = 0; id_los < n_los; id_los++) {
         id_i = i * stride;
         id_j = j * stride;
-        if (axis == 0)
-          id_grid = (id_los + n_ghost) + (id_i + n_ghost) * nx_grid +
-                    (id_j + n_ghost) * nx_grid * nz_grid;
-        if (axis == 1)
-          id_grid = (id_i + n_ghost) + (id_los + n_ghost) * nx_grid +
-                    (id_j + n_ghost) * nx_grid * nz_grid;
-        if (axis == 2)
-          id_grid = (id_i + n_ghost) + (id_j + n_ghost) * nx_grid +
-                    (id_los + n_ghost) * nx_grid * nz_grid;
+        if (axis == 0) id_grid = (id_los + n_ghost) + (id_i + n_ghost) * nx_grid + (id_j + n_ghost) * nx_grid * nz_grid;
+        if (axis == 1) id_grid = (id_i + n_ghost) + (id_los + n_ghost) * nx_grid + (id_j + n_ghost) * nx_grid * nz_grid;
+        if (axis == 2) id_grid = (id_i + n_ghost) + (id_j + n_ghost) * nx_grid + (id_los + n_ghost) * nx_grid * nz_grid;
         density  = C.density[id_grid] * Cosmo.rho_0_gas;
-        velocity = momentum_los[id_grid] * Cosmo.rho_0_gas * Cosmo.v_0_gas /
-                   Cosmo.current_a / density;
+        velocity = momentum_los[id_grid] * Cosmo.rho_0_gas * Cosmo.v_0_gas / Cosmo.current_a / density;
     #ifdef COOLING_GRACKLE
         HI_density   = Cool.fields.HI_density[id_grid] * Cosmo.rho_0_gas;
         HeII_density = Cool.fields.HeII_density[id_grid] * Cosmo.rho_0_gas;
@@ -1419,8 +1334,7 @@ void Grid3D::Populate_Lya_Skewers_Local(int axis)
   }
 
   if (skewer_id != n_skewers_local) {
-    printf("ERROR: Skewers numbers don't match.  ID: %d   N_skewers: %d \n ",
-           skewer_id, n_skewers_local);
+    printf("ERROR: Skewers numbers don't match.  ID: %d   N_skewers: %d \n ", skewer_id, n_skewers_local);
     exit(-1);
   }
 }
@@ -1461,41 +1375,26 @@ void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
     #endif
 
   // Alocate Memory For Properties of Local Skewers
-  skewers_HI_density_local_x =
-      (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
-  skewers_HI_density_local_y =
-      (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
-  skewers_HI_density_local_z =
-      (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
+  skewers_HI_density_local_x = (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
+  skewers_HI_density_local_y = (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
+  skewers_HI_density_local_z = (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
 
-  skewers_HeII_density_local_x =
-      (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
-  skewers_HeII_density_local_y =
-      (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
-  skewers_HeII_density_local_z =
-      (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
+  skewers_HeII_density_local_x = (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
+  skewers_HeII_density_local_y = (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
+  skewers_HeII_density_local_z = (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
 
-  skewers_velocity_local_x =
-      (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
-  skewers_velocity_local_y =
-      (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
-  skewers_velocity_local_z =
-      (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
+  skewers_velocity_local_x = (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
+  skewers_velocity_local_y = (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
+  skewers_velocity_local_z = (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
 
-  skewers_temperature_local_x =
-      (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
-  skewers_temperature_local_y =
-      (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
-  skewers_temperature_local_z =
-      (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
+  skewers_temperature_local_x = (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
+  skewers_temperature_local_y = (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
+  skewers_temperature_local_z = (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
 
     #ifdef OUTPUT_SKEWERS
-  skewers_density_local_x =
-      (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
-  skewers_density_local_y =
-      (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
-  skewers_density_local_z =
-      (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
+  skewers_density_local_x = (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
+  skewers_density_local_y = (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
+  skewers_density_local_z = (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
     #endif
 
     // for (int i=0; i<nproc; i++ ){
@@ -1511,12 +1410,9 @@ void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
   mpi_domain_boundary_y = (Real *)malloc(nproc * sizeof(Real));
   mpi_domain_boundary_z = (Real *)malloc(nproc * sizeof(Real));
 
-  MPI_Allgather(&xMin, 1, MPI_CHREAL, mpi_domain_boundary_x, 1, MPI_CHREAL,
-                world);
-  MPI_Allgather(&yMin, 1, MPI_CHREAL, mpi_domain_boundary_y, 1, MPI_CHREAL,
-                world);
-  MPI_Allgather(&zMin, 1, MPI_CHREAL, mpi_domain_boundary_z, 1, MPI_CHREAL,
-                world);
+  MPI_Allgather(&xMin, 1, MPI_CHREAL, mpi_domain_boundary_x, 1, MPI_CHREAL, world);
+  MPI_Allgather(&yMin, 1, MPI_CHREAL, mpi_domain_boundary_y, 1, MPI_CHREAL, world);
+  MPI_Allgather(&zMin, 1, MPI_CHREAL, mpi_domain_boundary_z, 1, MPI_CHREAL, world);
 
   root_id_x = -1;
   root_id_y = -1;
@@ -1524,14 +1420,11 @@ void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
 
   // Find root_id
   for (int i = 0; i < nproc; i++) {
-    if (mpi_domain_boundary_x[i] == xMin_global &&
-        mpi_domain_boundary_y[i] == yMin && mpi_domain_boundary_z[i] == zMin)
+    if (mpi_domain_boundary_x[i] == xMin_global && mpi_domain_boundary_y[i] == yMin && mpi_domain_boundary_z[i] == zMin)
       root_id_x = i;
-    if (mpi_domain_boundary_y[i] == yMin_global &&
-        mpi_domain_boundary_x[i] == xMin && mpi_domain_boundary_z[i] == zMin)
+    if (mpi_domain_boundary_y[i] == yMin_global && mpi_domain_boundary_x[i] == xMin && mpi_domain_boundary_z[i] == zMin)
       root_id_y = i;
-    if (mpi_domain_boundary_z[i] == zMin_global &&
-        mpi_domain_boundary_x[i] == xMin && mpi_domain_boundary_y[i] == yMin)
+    if (mpi_domain_boundary_z[i] == zMin_global && mpi_domain_boundary_x[i] == xMin && mpi_domain_boundary_y[i] == yMin)
       root_id_z = i;
   }
 
@@ -1543,12 +1436,9 @@ void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
 
   // Construct the procIDs for the processors skewers
   for (int i = 0; i < nproc; i++) {
-    if (mpi_domain_boundary_y[i] == yMin && mpi_domain_boundary_z[i] == zMin)
-      mpi_indices_x.push_back(i);
-    if (mpi_domain_boundary_x[i] == xMin && mpi_domain_boundary_z[i] == zMin)
-      mpi_indices_y.push_back(i);
-    if (mpi_domain_boundary_x[i] == xMin && mpi_domain_boundary_y[i] == yMin)
-      mpi_indices_z.push_back(i);
+    if (mpi_domain_boundary_y[i] == yMin && mpi_domain_boundary_z[i] == zMin) mpi_indices_x.push_back(i);
+    if (mpi_domain_boundary_x[i] == xMin && mpi_domain_boundary_z[i] == zMin) mpi_indices_y.push_back(i);
+    if (mpi_domain_boundary_x[i] == xMin && mpi_domain_boundary_y[i] == yMin) mpi_indices_z.push_back(i);
   }
 
   int n_mpi_x = mpi_indices_x.size();
@@ -1562,8 +1452,7 @@ void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
     while (!sorted) {
       sorted = true;
       for (int i = 0; i < n_mpi_x - 1; i++) {
-        if (mpi_domain_boundary_x[mpi_indices_x[i]] >
-            mpi_domain_boundary_x[mpi_indices_x[i + 1]]) {
+        if (mpi_domain_boundary_x[mpi_indices_x[i]] > mpi_domain_boundary_x[mpi_indices_x[i + 1]]) {
           temp_indx            = mpi_indices_x[i];
           mpi_indices_x[i]     = mpi_indices_x[i + 1];
           mpi_indices_x[i + 1] = temp_indx;
@@ -1578,8 +1467,7 @@ void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
     while (!sorted) {
       sorted = true;
       for (int i = 0; i < n_mpi_y - 1; i++) {
-        if (mpi_domain_boundary_y[mpi_indices_y[i]] >
-            mpi_domain_boundary_y[mpi_indices_y[i + 1]]) {
+        if (mpi_domain_boundary_y[mpi_indices_y[i]] > mpi_domain_boundary_y[mpi_indices_y[i + 1]]) {
           temp_indx            = mpi_indices_y[i];
           mpi_indices_y[i]     = mpi_indices_y[i + 1];
           mpi_indices_y[i + 1] = temp_indx;
@@ -1594,8 +1482,7 @@ void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
     while (!sorted) {
       sorted = true;
       for (int i = 0; i < n_mpi_z - 1; i++) {
-        if (mpi_domain_boundary_z[mpi_indices_z[i]] >
-            mpi_domain_boundary_z[mpi_indices_z[i + 1]]) {
+        if (mpi_domain_boundary_z[mpi_indices_z[i]] > mpi_domain_boundary_z[mpi_indices_z[i + 1]]) {
           temp_indx            = mpi_indices_z[i];
           mpi_indices_z[i]     = mpi_indices_z[i + 1];
           mpi_indices_z[i + 1] = temp_indx;
@@ -1660,12 +1547,9 @@ void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
   }
 
   // Gather the root processes
-  MPI_Gather(&am_I_root_x, 1, MPI_C_BOOL, root_procs_x, 1, MPI_C_BOOL, 0,
-             world);
-  MPI_Gather(&am_I_root_y, 1, MPI_C_BOOL, root_procs_y, 1, MPI_C_BOOL, 0,
-             world);
-  MPI_Gather(&am_I_root_z, 1, MPI_C_BOOL, root_procs_z, 1, MPI_C_BOOL, 0,
-             world);
+  MPI_Gather(&am_I_root_x, 1, MPI_C_BOOL, root_procs_x, 1, MPI_C_BOOL, 0, world);
+  MPI_Gather(&am_I_root_y, 1, MPI_C_BOOL, root_procs_y, 1, MPI_C_BOOL, 0, world);
+  MPI_Gather(&am_I_root_z, 1, MPI_C_BOOL, root_procs_z, 1, MPI_C_BOOL, 0, world);
 
   int n_skewers_global_x, n_skewers_global_y, n_skewers_global_z;
   if (procID == 0) {
@@ -1678,67 +1562,42 @@ void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
       n_skewers_global_z += n_skewers_local_z * root_procs_z[p_id];
     }
   }
-  chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x,
-           n_skewers_global_y, n_skewers_global_z);
+  chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewers_global_y, n_skewers_global_z);
 
       // Allocate Memory for Global Skewers Data
       #ifdef OUTPUT_SKEWERS
   if (procID == 0) {
-    skewers_transmitted_flux_HI_x_global =
-        (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
-    skewers_transmitted_flux_HI_y_global =
-        (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
-    skewers_transmitted_flux_HI_z_global =
-        (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
+    skewers_transmitted_flux_HI_x_global = (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
+    skewers_transmitted_flux_HI_y_global = (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
+    skewers_transmitted_flux_HI_z_global = (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
 
-    skewers_transmitted_flux_HeII_x_global =
-        (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
-    skewers_transmitted_flux_HeII_y_global =
-        (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
-    skewers_transmitted_flux_HeII_z_global =
-        (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
+    skewers_transmitted_flux_HeII_x_global = (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
+    skewers_transmitted_flux_HeII_y_global = (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
+    skewers_transmitted_flux_HeII_z_global = (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
 
-    skewers_density_x_global =
-        (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
-    skewers_density_y_global =
-        (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
-    skewers_density_z_global =
-        (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
+    skewers_density_x_global = (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
+    skewers_density_y_global = (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
+    skewers_density_z_global = (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
 
-    skewers_HI_density_x_global =
-        (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
-    skewers_HI_density_y_global =
-        (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
-    skewers_HI_density_z_global =
-        (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
+    skewers_HI_density_x_global = (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
+    skewers_HI_density_y_global = (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
+    skewers_HI_density_z_global = (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
 
-    skewers_HeII_density_x_global =
-        (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
-    skewers_HeII_density_y_global =
-        (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
-    skewers_HeII_density_z_global =
-        (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
+    skewers_HeII_density_x_global = (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
+    skewers_HeII_density_y_global = (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
+    skewers_HeII_density_z_global = (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
 
-    skewers_temperature_x_global =
-        (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
-    skewers_temperature_y_global =
-        (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
-    skewers_temperature_z_global =
-        (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
+    skewers_temperature_x_global = (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
+    skewers_temperature_y_global = (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
+    skewers_temperature_z_global = (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
 
-    skewers_los_velocity_x_global =
-        (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
-    skewers_los_velocity_y_global =
-        (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
-    skewers_los_velocity_z_global =
-        (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
+    skewers_los_velocity_x_global = (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
+    skewers_los_velocity_y_global = (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
+    skewers_los_velocity_z_global = (Real *)malloc(n_skewers_global_z * nz_total * sizeof(Real));
 
-    transfer_buffer_root_x =
-        (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
-    transfer_buffer_root_y =
-        (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
-    transfer_buffer_root_z =
-        (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
+    transfer_buffer_root_x = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
+    transfer_buffer_root_y = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
+    transfer_buffer_root_z = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
   }
       #endif
 
@@ -1792,107 +1651,83 @@ void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
       #endif
 
   if (am_I_root_x) {
-    skewers_HI_density_root_x =
-        (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
-    skewers_HeII_density_root_x =
-        (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
-    skewers_velocity_root_x =
-        (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
-    skewers_temperature_root_x =
-        (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
-    full_HI_density_x         = (Real *)malloc(n_los_full_x * sizeof(Real));
-    full_HeII_density_x       = (Real *)malloc(n_los_full_x * sizeof(Real));
-    full_velocity_x           = (Real *)malloc(n_los_full_x * sizeof(Real));
-    full_temperature_x        = (Real *)malloc(n_los_full_x * sizeof(Real));
-    full_optical_depth_HI_x   = (Real *)malloc(n_los_full_x * sizeof(Real));
-    full_optical_depth_HeII_x = (Real *)malloc(n_los_full_x * sizeof(Real));
-    full_vel_Hubble_x         = (Real *)malloc(n_los_full_x * sizeof(Real));
-    skewers_transmitted_flux_HI_x =
-        (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
-    skewers_transmitted_flux_HeII_x =
-        (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
+    skewers_HI_density_root_x       = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
+    skewers_HeII_density_root_x     = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
+    skewers_velocity_root_x         = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
+    skewers_temperature_root_x      = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
+    full_HI_density_x               = (Real *)malloc(n_los_full_x * sizeof(Real));
+    full_HeII_density_x             = (Real *)malloc(n_los_full_x * sizeof(Real));
+    full_velocity_x                 = (Real *)malloc(n_los_full_x * sizeof(Real));
+    full_temperature_x              = (Real *)malloc(n_los_full_x * sizeof(Real));
+    full_optical_depth_HI_x         = (Real *)malloc(n_los_full_x * sizeof(Real));
+    full_optical_depth_HeII_x       = (Real *)malloc(n_los_full_x * sizeof(Real));
+    full_vel_Hubble_x               = (Real *)malloc(n_los_full_x * sizeof(Real));
+    skewers_transmitted_flux_HI_x   = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
+    skewers_transmitted_flux_HeII_x = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
       #if OUTPUT_SKEWERS
-    skewers_density_root_x =
-        (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
+    skewers_density_root_x = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
       #endif
 
     // Alocate Memory For Power Spectrum Calculation
-    delta_F_x     = (Real *)malloc(nx_total * sizeof(Real));
-    vel_Hubble_x  = (Real *)malloc(nx_total * sizeof(Real));
-    fft_delta_F_x = (fftw_complex *)fftw_malloc(n_fft_x * sizeof(fftw_complex));
+    delta_F_x      = (Real *)malloc(nx_total * sizeof(Real));
+    vel_Hubble_x   = (Real *)malloc(nx_total * sizeof(Real));
+    fft_delta_F_x  = (fftw_complex *)fftw_malloc(n_fft_x * sizeof(fftw_complex));
     fft2_delta_F_x = (Real *)malloc(n_fft_x * sizeof(Real));
-    fftw_plan_x =
-        fftw_plan_dft_r2c_1d(nx_total, delta_F_x, fft_delta_F_x, FFTW_ESTIMATE);
+    fftw_plan_x    = fftw_plan_dft_r2c_1d(nx_total, delta_F_x, fft_delta_F_x, FFTW_ESTIMATE);
   }
   k_vals_x = (Real *)malloc(n_fft_x * sizeof(Real));
 
   if (am_I_root_y) {
-    skewers_HI_density_root_y =
-        (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
-    skewers_HeII_density_root_y =
-        (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
-    skewers_velocity_root_y =
-        (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
-    skewers_temperature_root_y =
-        (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
-    full_HI_density_y         = (Real *)malloc(n_los_full_y * sizeof(Real));
-    full_HeII_density_y       = (Real *)malloc(n_los_full_y * sizeof(Real));
-    full_velocity_y           = (Real *)malloc(n_los_full_y * sizeof(Real));
-    full_temperature_y        = (Real *)malloc(n_los_full_y * sizeof(Real));
-    full_optical_depth_HI_y   = (Real *)malloc(n_los_full_y * sizeof(Real));
-    full_optical_depth_HeII_y = (Real *)malloc(n_los_full_y * sizeof(Real));
-    full_vel_Hubble_y         = (Real *)malloc(n_los_full_y * sizeof(Real));
-    skewers_transmitted_flux_HI_y =
-        (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
-    skewers_transmitted_flux_HeII_y =
-        (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
+    skewers_HI_density_root_y       = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
+    skewers_HeII_density_root_y     = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
+    skewers_velocity_root_y         = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
+    skewers_temperature_root_y      = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
+    full_HI_density_y               = (Real *)malloc(n_los_full_y * sizeof(Real));
+    full_HeII_density_y             = (Real *)malloc(n_los_full_y * sizeof(Real));
+    full_velocity_y                 = (Real *)malloc(n_los_full_y * sizeof(Real));
+    full_temperature_y              = (Real *)malloc(n_los_full_y * sizeof(Real));
+    full_optical_depth_HI_y         = (Real *)malloc(n_los_full_y * sizeof(Real));
+    full_optical_depth_HeII_y       = (Real *)malloc(n_los_full_y * sizeof(Real));
+    full_vel_Hubble_y               = (Real *)malloc(n_los_full_y * sizeof(Real));
+    skewers_transmitted_flux_HI_y   = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
+    skewers_transmitted_flux_HeII_y = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
       #if OUTPUT_SKEWERS
-    skewers_density_root_y =
-        (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
+    skewers_density_root_y = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
       #endif
 
     // Alocate Memory For Power Spectrum Calculation
-    delta_F_y     = (Real *)malloc(ny_total * sizeof(Real));
-    vel_Hubble_y  = (Real *)malloc(ny_total * sizeof(Real));
-    fft_delta_F_y = (fftw_complex *)fftw_malloc(n_fft_y * sizeof(fftw_complex));
+    delta_F_y      = (Real *)malloc(ny_total * sizeof(Real));
+    vel_Hubble_y   = (Real *)malloc(ny_total * sizeof(Real));
+    fft_delta_F_y  = (fftw_complex *)fftw_malloc(n_fft_y * sizeof(fftw_complex));
     fft2_delta_F_y = (Real *)malloc(n_fft_y * sizeof(Real));
-    fftw_plan_y =
-        fftw_plan_dft_r2c_1d(ny_total, delta_F_y, fft_delta_F_y, FFTW_ESTIMATE);
+    fftw_plan_y    = fftw_plan_dft_r2c_1d(ny_total, delta_F_y, fft_delta_F_y, FFTW_ESTIMATE);
   }
   k_vals_y = (Real *)malloc(n_fft_y * sizeof(Real));
 
   if (am_I_root_z) {
-    skewers_HI_density_root_z =
-        (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
-    skewers_HeII_density_root_z =
-        (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
-    skewers_velocity_root_z =
-        (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
-    skewers_temperature_root_z =
-        (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
-    full_HI_density_z         = (Real *)malloc(n_los_full_z * sizeof(Real));
-    full_HeII_density_z       = (Real *)malloc(n_los_full_z * sizeof(Real));
-    full_velocity_z           = (Real *)malloc(n_los_full_z * sizeof(Real));
-    full_temperature_z        = (Real *)malloc(n_los_full_z * sizeof(Real));
-    full_optical_depth_HI_z   = (Real *)malloc(n_los_full_z * sizeof(Real));
-    full_optical_depth_HeII_z = (Real *)malloc(n_los_full_z * sizeof(Real));
-    full_vel_Hubble_z         = (Real *)malloc(n_los_full_z * sizeof(Real));
-    skewers_transmitted_flux_HI_z =
-        (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
-    skewers_transmitted_flux_HeII_z =
-        (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
+    skewers_HI_density_root_z       = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
+    skewers_HeII_density_root_z     = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
+    skewers_velocity_root_z         = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
+    skewers_temperature_root_z      = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
+    full_HI_density_z               = (Real *)malloc(n_los_full_z * sizeof(Real));
+    full_HeII_density_z             = (Real *)malloc(n_los_full_z * sizeof(Real));
+    full_velocity_z                 = (Real *)malloc(n_los_full_z * sizeof(Real));
+    full_temperature_z              = (Real *)malloc(n_los_full_z * sizeof(Real));
+    full_optical_depth_HI_z         = (Real *)malloc(n_los_full_z * sizeof(Real));
+    full_optical_depth_HeII_z       = (Real *)malloc(n_los_full_z * sizeof(Real));
+    full_vel_Hubble_z               = (Real *)malloc(n_los_full_z * sizeof(Real));
+    skewers_transmitted_flux_HI_z   = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
+    skewers_transmitted_flux_HeII_z = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
       #if OUTPUT_SKEWERS
-    skewers_density_root_z =
-        (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
+    skewers_density_root_z = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
       #endif
 
     // Alocate Memory For Power Spectrum Calculation
-    delta_F_z     = (Real *)malloc(nz_total * sizeof(Real));
-    vel_Hubble_z  = (Real *)malloc(nz_total * sizeof(Real));
-    fft_delta_F_z = (fftw_complex *)fftw_malloc(n_fft_z * sizeof(fftw_complex));
+    delta_F_z      = (Real *)malloc(nz_total * sizeof(Real));
+    vel_Hubble_z   = (Real *)malloc(nz_total * sizeof(Real));
+    fft_delta_F_z  = (fftw_complex *)fftw_malloc(n_fft_z * sizeof(fftw_complex));
     fft2_delta_F_z = (Real *)malloc(n_fft_z * sizeof(Real));
-    fftw_plan_z =
-        fftw_plan_dft_r2c_1d(nz_total, delta_F_z, fft_delta_F_z, FFTW_ESTIMATE);
+    fftw_plan_z    = fftw_plan_dft_r2c_1d(nz_total, delta_F_z, fft_delta_F_z, FFTW_ESTIMATE);
   }
   k_vals_z = (Real *)malloc(n_fft_z * sizeof(Real));
 

@@ -85,8 +85,7 @@ Grid3D::Grid3D(void)
 
 /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
  * *zpos) \brief Get the cell-centered position based on cell index */
-void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos,
-                          Real *z_pos)
+void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real *z_pos)
 {
 #ifndef MPI_CHOLLA
 
@@ -124,8 +123,7 @@ Real Grid3D::Calc_Inverse_Timestep()
 {
   // ==Calculate the next inverse time step using Calc_dt_GPU from
   // hydro/hydro_cuda.h==
-  return Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx,
-                     H.dy, H.dz, gama);
+  return Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama);
 }
 
 /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
@@ -288,9 +286,7 @@ void Grid3D::AllocateMemory(void)
 {
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
-  CudaSafeCall(cudaHostAlloc((void **)&C.host,
-                             H.n_fields * H.n_cells * sizeof(Real),
-                             cudaHostAllocDefault));
+  CudaSafeCall(cudaHostAlloc((void **)&C.host, H.n_fields * H.n_cells * sizeof(Real), cudaHostAllocDefault));
 
   // point conserved variables to the appropriate locations
   C.density    = C.host;
@@ -314,10 +310,8 @@ void Grid3D::AllocateMemory(void)
 #endif  // DE
 
   // allocate memory for the conserved variable arrays on the device
-  CudaSafeCall(
-      cudaMalloc((void **)&C.device, H.n_fields * H.n_cells * sizeof(Real)));
-  cuda_utilities::initGpuMemory(C.device,
-                                H.n_fields * H.n_cells * sizeof(Real));
+  CudaSafeCall(cudaMalloc((void **)&C.device, H.n_fields * H.n_cells * sizeof(Real)));
+  cuda_utilities::initGpuMemory(C.device, H.n_fields * H.n_cells * sizeof(Real));
   C.d_density    = C.device;
   C.d_momentum_x = &(C.device[H.n_cells]);
   C.d_momentum_y = &(C.device[2 * H.n_cells]);
@@ -339,10 +333,8 @@ void Grid3D::AllocateMemory(void)
 #endif  // DE
 
 #if defined(GRAVITY)
-  CudaSafeCall(cudaHostAlloc(&C.Grav_potential, H.n_cells * sizeof(Real),
-                             cudaHostAllocDefault));
-  CudaSafeCall(
-      cudaMalloc((void **)&C.d_Grav_potential, H.n_cells * sizeof(Real)));
+  CudaSafeCall(cudaHostAlloc(&C.Grav_potential, H.n_cells * sizeof(Real), cudaHostAllocDefault));
+  CudaSafeCall(cudaMalloc((void **)&C.d_Grav_potential, H.n_cells * sizeof(Real)));
 #else
   C.Grav_potential    = NULL;
   C.d_Grav_potential  = NULL;
@@ -438,45 +430,40 @@ Real Grid3D::Update_Grid(void)
   {
 #ifdef CUDA
   #ifdef VL
-    VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt,
-                         H.n_fields);
+    VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
   #endif  // VL
   #ifdef SIMPLE
-    Simple_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound,
-                             H.dt, H.n_fields);
+    Simple_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
   #endif                                         // SIMPLE
 #endif                                           // CUDA
   } else if (H.nx > 1 && H.ny > 1 && H.nz == 1)  // 2D
   {
 #ifdef CUDA
   #ifdef VL
-    VL_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx,
-                         H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
+    VL_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
+                         H.n_fields);
   #endif  // VL
   #ifdef SIMPLE
-    Simple_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost,
-                             H.dx, H.dy, H.xbound, H.ybound, H.dt, H.n_fields);
+    Simple_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
+                             H.n_fields);
   #endif                                        // SIMPLE
 #endif                                          // CUDA
   } else if (H.nx > 1 && H.ny > 1 && H.nz > 1)  // 3D
   {
 #ifdef CUDA
   #ifdef VL
-    VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off,
-                         y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz, H.xbound,
-                         H.ybound, H.zbound, H.dt, H.n_fields, density_floor,
-                         U_floor, C.Grav_potential);
+    VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
+                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor,
+                         C.Grav_potential);
   #endif  // VL
   #ifdef SIMPLE
-    Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz,
-                             x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz,
-                             H.xbound, H.ybound, H.zbound, H.dt, H.n_fields,
-                             density_floor, U_floor, C.Grav_potential);
+    Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
+                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor,
+                             C.Grav_potential);
   #endif  // SIMPLE
 #endif
   } else {
-    chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n",
-             H.nx, H.ny, H.nz);
+    chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(-1);
   }
 
@@ -504,8 +491,7 @@ Real Grid3D::Update_Grid(void)
   // Set the min_delta_t for averaging a slow cell
   Real max_dti_slow;
   max_dti_slow = 1 / H.min_dt_slow;
-  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx,
-                     H.dy, H.dz, gama, max_dti_slow);
+  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow);
   #endif  // AVERAGE_SLOW_CELLS
 
   // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==

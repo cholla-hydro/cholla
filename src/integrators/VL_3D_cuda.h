@@ -8,12 +8,9 @@
 
     #include "../global/global.h"
 
-void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
-                          int ny, int nz, int x_off, int y_off, int z_off,
-                          int n_ghost, Real dx, Real dy, Real dz, Real xbound,
-                          Real ybound, Real zbound, Real dt, int n_fields,
-                          Real density_floor, Real U_floor,
-                          Real *host_grav_potential);
+void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
+                          int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound,
+                          Real dt, int n_fields, Real density_floor, Real U_floor, Real *host_grav_potential);
 
 void Free_Memory_VL_3D();
 

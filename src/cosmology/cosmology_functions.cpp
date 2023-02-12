@@ -81,13 +81,11 @@ void Grid3D::Change_GAS_Frame_System(bool forward)
   if (forward) {
     dens_factor     = 1 / Cosmo.rho_0_gas;
     momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
-    energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas *
-                    Cosmo.current_a * Cosmo.current_a;
+    energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
   } else {
     dens_factor     = Cosmo.rho_0_gas;
     momentum_factor = Cosmo.rho_0_gas * Cosmo.v_0_gas / Cosmo.current_a;
-    energy_factor   = Cosmo.rho_0_gas * Cosmo.v_0_gas * Cosmo.v_0_gas /
-                    Cosmo.current_a / Cosmo.current_a;
+    energy_factor   = Cosmo.rho_0_gas * Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
   }
   int k, j, i, id;
   for (k = 0; k < H.nz; k++) {

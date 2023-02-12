@@ -7,9 +7,7 @@
 
   #include "HenryPeriodic.hpp"
 
-HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3],
-                             const double hi[3], const int m[3],
-                             const int id[3])
+HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3])
     : idi_(id[0]),
       idj_(id[1]),
       idk_(id[2]),
@@ -64,26 +62,21 @@ HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3],
 
   // Maximum memory needed by work arrays
 
-  const long nMax = std::max(
-      {long(di_) * long(dj_) * long(dk_),
-       long(mp_) * long(mq_) * long(dip_) * long(djq_) * long(dk_),
-       long(2) * long(dip_) * long(djq_) * long(mk_) * long(dh_),
-       long(2) * long(dip_) * long(mp_) * long(djq_) * long(mq_) * long(dh_),
-       long(2) * long(dip_) * long(djq_) * long(mjq) * long(dhq_),
-       long(2) * long(dip_) * long(dhq_) * long(mip) * long(djp_),
-       long(2) * djp_ * long(dhq_) * long(mip) * long(dip_)});
+  const long nMax =
+      std::max({long(di_) * long(dj_) * long(dk_), long(mp_) * long(mq_) * long(dip_) * long(djq_) * long(dk_),
+                long(2) * long(dip_) * long(djq_) * long(mk_) * long(dh_),
+                long(2) * long(dip_) * long(mp_) * long(djq_) * long(mq_) * long(dh_),
+                long(2) * long(dip_) * long(djq_) * long(mjq) * long(dhq_),
+                long(2) * long(dip_) * long(dhq_) * long(mip) * long(djp_),
+                long(2) * djp_ * long(dhq_) * long(mip) * long(dip_)});
   assert(nMax <= INT_MAX);
   bytes_ = nMax * sizeof(double);
 
   // FFT objects
-  CHECK(cufftPlanMany(&c2ci_, 1, &ni_, &ni_, 1, ni_, &ni_, 1, ni_, CUFFT_Z2Z,
-                      djp_ * dhq_));
-  CHECK(cufftPlanMany(&c2cj_, 1, &nj_, &nj_, 1, nj_, &nj_, 1, nj_, CUFFT_Z2Z,
-                      dip_ * dhq_));
-  CHECK(cufftPlanMany(&c2rk_, 1, &nk_, &nh_, 1, nh_, &nk_, 1, nk_, CUFFT_Z2D,
-                      dip_ * djq_));
-  CHECK(cufftPlanMany(&r2ck_, 1, &nk_, &nk_, 1, nk_, &nh_, 1, nh_, CUFFT_D2Z,
-                      dip_ * djq_));
+  CHECK(cufftPlanMany(&c2ci_, 1, &ni_, &ni_, 1, ni_, &ni_, 1, ni_, CUFFT_Z2Z, djp_ * dhq_));
+  CHECK(cufftPlanMany(&c2cj_, 1, &nj_, &nj_, 1, nj_, &nj_, 1, nj_, CUFFT_Z2Z, dip_ * dhq_));
+  CHECK(cufftPlanMany(&c2rk_, 1, &nk_, &nh_, 1, nh_, &nk_, 1, nk_, CUFFT_Z2D, dip_ * djq_));
+  CHECK(cufftPlanMany(&r2ck_, 1, &nk_, &nk_, 1, nk_, &nh_, 1, nh_, CUFFT_D2Z, dip_ * djq_));
 
   #ifndef MPI_GPU
   // Host arrays for MPI communication

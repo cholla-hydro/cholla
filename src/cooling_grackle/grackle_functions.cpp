@@ -33,9 +33,8 @@ void Grid3D::Initialize_Fields_Grackle()
         // Cool.fields.y_velocity[id] = 0.0;
         // Cool.fields.z_velocity[id] = 0.0;
 
-        Cool.fields.internal_energy[id] = C.GasEnergy[id] / C.density[id] *
-                                          Cool.energy_conv / Cosmo.current_a /
-                                          Cosmo.current_a;
+        Cool.fields.internal_energy[id] =
+            C.GasEnergy[id] / C.density[id] * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a;
       }
     }
   }
@@ -130,9 +129,8 @@ void Grid3D::Copy_Fields_To_Grackle_function(int g_start, int g_end)
 
         // if ( flag_DE ) U = GE;
         // else U = E - Ekin;
-        U = GE;
-        Cool.fields.internal_energy[id] =
-            U / d * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a;
+        U                               = GE;
+        Cool.fields.internal_energy[id] = U / d * Cool.energy_conv / Cosmo.current_a / Cosmo.current_a;
       }
     }
   }
@@ -171,9 +169,8 @@ void Grid3D::Update_Internal_Energy_function(int g_start, int g_end)
         // else if ( flag_DE == 1 ) U_0 = GE;
         // else std::cout << " ### Frag_DE ERROR: Flag_DE: " << flag_DE <<
         // std::endl;
-        U_0 = GE;
-        U_1 = Cool.fields.internal_energy[id] * dens / Cool.energy_conv *
-              Cosmo.current_a * Cosmo.current_a;
+        U_0     = GE;
+        U_1     = Cool.fields.internal_energy[id] * dens / Cool.energy_conv * Cosmo.current_a * Cosmo.current_a;
         delta_U = U_1 - U_0;
         C.GasEnergy[id] += delta_U;
         C.Energy[id] += delta_U;
@@ -186,17 +183,15 @@ void Grid3D::Do_Cooling_Step_Grackle()
 {
   Real kpc_cgs = KPC_CGS;
   // Update the units conversion
-  Cool.units.a_value = Cosmo.current_a / Cool.units.a_units;
-  Cool.units.density_units =
-      Cool.dens_to_CGS / Cosmo.current_a / Cosmo.current_a / Cosmo.current_a;
-  Cool.units.length_units = kpc_cgs / Cosmo.cosmo_h * Cosmo.current_a;
+  Cool.units.a_value       = Cosmo.current_a / Cool.units.a_units;
+  Cool.units.density_units = Cool.dens_to_CGS / Cosmo.current_a / Cosmo.current_a / Cosmo.current_a;
+  Cool.units.length_units  = kpc_cgs / Cosmo.cosmo_h * Cosmo.current_a;
 
   Copy_Fields_To_Grackle();
 
   Real dt_cool = Cosmo.dt_secs;
   chprintf(" dt_cool: %e s\n", dt_cool);
-  if (solve_chemistry(&Cool.units, &Cool.fields,
-                      dt_cool / Cool.units.time_units) == 0) {
+  if (solve_chemistry(&Cool.units, &Cool.fields, dt_cool / Cool.units.time_units) == 0) {
     chprintf("GRACKLE: Error in solve_chemistry.\n");
     return;
   }
@@ -222,8 +217,7 @@ Real Cool_GK::Get_Mean_Molecular_Weight(int cell_id)
   HeII_dens  = fields.HeII_density[cell_id];
   HeIII_dens = fields.HeIII_density[cell_id];
 
-  mu = dens / (HI_dens + 2 * HII_dens +
-               (HeI_dens + 2 * HeII_dens + 3 * HeIII_dens) / 4);
+  mu = dens / (HI_dens + 2 * HII_dens + (HeI_dens + 2 * HeII_dens + 3 * HeIII_dens) / 4);
   return mu;
 }
 

@@ -19,10 +19,8 @@
  * *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int
  * n_fields) \brief Exact Riemann solver based on the Fortran code given in
  * Sec. 4.9 of Toro (1999). */
-__global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L,
-                                            Real *dev_bounds_R, Real *dev_flux,
-                                            int nx, int ny, int nz, int n_ghost,
-                                            Real gamma, int dir, int n_fields)
+__global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny,
+                                            int nz, int n_ghost, Real gamma, int dir, int n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
@@ -79,9 +77,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L,
     dge   = dev_bounds_L[(n_fields - 1) * n_cells + tid];
     pl    = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
   #else
-    pl = (dev_bounds_L[4 * n_cells + tid] -
-          0.5 * dl * (vxl * vxl + vyl * vyl + vzl * vzl)) *
-         (gamma - 1.0);
+    pl = (dev_bounds_L[4 * n_cells + tid] - 0.5 * dl * (vxl * vxl + vyl * vyl + vzl * vzl)) * (gamma - 1.0);
   #endif  // PRESSURE_DE
     pl = fmax(pl, (Real)TINY_NUMBER);
   #ifdef SCALAR
@@ -102,9 +98,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L,
     dge   = dev_bounds_R[(n_fields - 1) * n_cells + tid];
     pr    = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
   #else
-    pr = (dev_bounds_R[4 * n_cells + tid] -
-          0.5 * dr * (vxr * vxr + vyr * vyr + vzr * vzr)) *
-         (gamma - 1.0);
+    pr = (dev_bounds_R[4 * n_cells + tid] - 0.5 * dr * (vxr * vxr + vyr * vyr + vzr * vzr)) * (gamma - 1.0);
   #endif  // PRESSURE_DE
     pr = fmax(pr, (Real)TINY_NUMBER);
   #ifdef SCALAR
@@ -165,8 +159,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L,
   }
 }
 
-__device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr,
-                            Real vxr, Real pr, Real cr, Real gamma)
+__device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma)
 {
   // purpose:  to provide a guessed value for pressure
   //    pm in the Star Region. The choice is made
@@ -182,10 +175,8 @@ __device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr,
 
   if (ppv < 0.0) ppv = 0.0;
   // Two-Shock Riemann solver with PVRS as estimate
-  gl = sqrt((2.0 / ((gamma + 1.0) * dl)) /
-            (((gamma - 1.0) / (gamma + 1.0)) * pl + ppv));
-  gr = sqrt((2.0 / ((gamma + 1.0) * dr)) /
-            (((gamma - 1.0) / (gamma + 1.0)) * pr + ppv));
+  gl = sqrt((2.0 / ((gamma + 1.0) * dl)) / (((gamma - 1.0) / (gamma + 1.0)) * pl + ppv));
+  gr = sqrt((2.0 / ((gamma + 1.0) * dr)) / (((gamma - 1.0) / (gamma + 1.0)) * pr + ppv));
   pm = (gl * pl + gr * pr - (vxr - vxl)) / (gl + gr);
 
   if (pm < 0.0) pm = TOL;
@@ -193,8 +184,7 @@ __device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr,
   return pm;
 }
 
-__device__ void prefun_CUDA(Real *f, Real *fd, Real p, Real dk, Real pk,
-                            Real ck, Real gamma)
+__device__ void prefun_CUDA(Real *f, Real *fd, Real p, Real dk, Real pk, Real ck, Real gamma)
 {
   // purpose:  to evaluate the pressure functions
   // fl and fr in the exact Riemann solver
@@ -204,22 +194,17 @@ __device__ void prefun_CUDA(Real *f, Real *fd, Real p, Real dk, Real pk,
 
   if (p <= pk) {
     // rarefaction wave
-    *f = (2.0 / (gamma - 1.0)) * ck *
-         (powf(p / pk, (gamma - 1.0) / (2.0 * gamma)) - 1.0);
+    *f  = (2.0 / (gamma - 1.0)) * ck * (powf(p / pk, (gamma - 1.0) / (2.0 * gamma)) - 1.0);
     *fd = (1.0 / (dk * ck)) * powf((p / pk), -((gamma + 1.0) / (2.0 * gamma)));
   } else {
     // shock wave
-    qrt = sqrt(((2.0 / (gamma + 1.0)) / dk) /
-               ((((gamma - 1.0) / (gamma + 1.0)) * pk) + p));
+    qrt = sqrt(((2.0 / (gamma + 1.0)) / dk) / ((((gamma - 1.0) / (gamma + 1.0)) * pk) + p));
     *f  = (p - pk) * qrt;
-    *fd =
-        (1.0 - 0.5 * (p - pk) / ((((gamma - 1.0) / (gamma + 1.0)) * pk) + p)) *
-        qrt;
+    *fd = (1.0 - 0.5 * (p - pk) / ((((gamma - 1.0) / (gamma + 1.0)) * pk) + p)) * qrt;
   }
 }
 
-__device__ void starpv_CUDA(Real *p, Real *v, Real dl, Real vxl, Real pl,
-                            Real cl, Real dr, Real vxr, Real pr, Real cr,
+__device__ void starpv_CUDA(Real *p, Real *v, Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr,
                             Real gamma)
 {
   // purpose:  Uses Newton-Raphson iteration
@@ -253,9 +238,8 @@ __device__ void starpv_CUDA(Real *p, Real *v, Real dl, Real vxl, Real pl,
   *v = 0.5 * (vxl + vxr + fr - fl);
 }
 
-__device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v,
-                            Real *p, Real dl, Real vxl, Real pl, Real cl,
-                            Real dr, Real vxr, Real pr, Real cr, Real gamma)
+__device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real *p, Real dl, Real vxl, Real pl,
+                            Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma)
 {
   // purpose:  to sample the solution throughout the wave
   //   pattern. Pressure pm and velocity vm in the
@@ -274,8 +258,7 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v,
         *v = vxl;
         *p = pl;
       } else {
-        if (vm - cl * powf(pm / pl, (gamma - 1.0) / (2.0 * gamma)) <
-            0)  // sampled point is in star left state
+        if (vm - cl * powf(pm / pl, (gamma - 1.0) / (2.0 * gamma)) < 0)  // sampled point is in star left state
         {
           *d = dl * powf(pm / pl, 1.0 / gamma);
           *v = vm;
@@ -290,8 +273,7 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v,
       }
     } else  // left shock
     {
-      sl = vxl - cl * sqrt(((gamma + 1.0) / (2.0 * gamma)) * (pm / pl) +
-                           ((gamma - 1.0) / (2.0 * gamma)));
+      sl = vxl - cl * sqrt(((gamma + 1.0) / (2.0 * gamma)) * (pm / pl) + ((gamma - 1.0) / (2.0 * gamma)));
       if (sl >= 0)  // sampled point is in left data state
       {
         *d = dl;
@@ -299,8 +281,7 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v,
         *p = pl;
       } else  // sampled point is in star left state
       {
-        *d = dl * (pm / pl + ((gamma - 1.0) / (gamma + 1.0))) /
-             ((pm / pl) * ((gamma - 1.0) / (gamma + 1.0)) + 1.0);
+        *d = dl * (pm / pl + ((gamma - 1.0) / (gamma + 1.0))) / ((pm / pl) * ((gamma - 1.0) / (gamma + 1.0)) + 1.0);
         *v = vm;
         *p = pm;
       }
@@ -309,8 +290,7 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v,
   {
     if (pm > pr)  // right shock
     {
-      sr = vxr + cr * sqrt(((gamma + 1.0) / (2.0 * gamma)) * (pm / pr) +
-                           ((gamma - 1.0) / (2.0 * gamma)));
+      sr = vxr + cr * sqrt(((gamma + 1.0) / (2.0 * gamma)) * (pm / pr) + ((gamma - 1.0) / (2.0 * gamma)));
       if (sr <= 0)  // sampled point is in right data state
       {
         *d = dr;
@@ -318,8 +298,7 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v,
         *p = pr;
       } else  // sampled point is in star right state
       {
-        *d = dr * (pm / pr + ((gamma - 1.0) / (gamma + 1.0))) /
-             ((pm / pr) * ((gamma - 1.0) / (gamma + 1.0)) + 1.0);
+        *d = dr * (pm / pr + ((gamma - 1.0) / (gamma + 1.0))) / ((pm / pr) * ((gamma - 1.0) / (gamma + 1.0)) + 1.0);
         *v = vm;
         *p = pm;
       }
@@ -331,8 +310,7 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v,
         *v = vxr;
         *p = pr;
       } else {
-        if (vm + cr * powf(pm / pr, (gamma - 1.0) / (2.0 * gamma)) >=
-            0)  // sampled point is in star right state
+        if (vm + cr * powf(pm / pr, (gamma - 1.0) / (2.0 * gamma)) >= 0)  // sampled point is in star right state
         {
           *d = dr * powf(pm / pr, (1.0 / gamma));
           *v = vm;

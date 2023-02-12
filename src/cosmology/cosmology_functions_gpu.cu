@@ -11,10 +11,9 @@
 //
 // }
 
-void __global__ Change_GAS_Frame_System_kernel(
-    Real dens_factor, Real momentum_factor, Real energy_factor, int nx, int ny,
-    int nz, Real *density_d, Real *momentum_x_d, Real *momentum_y_d,
-    Real *momentum_z_d, Real *Energy_d, Real *GasEnergy_d)
+void __global__ Change_GAS_Frame_System_kernel(Real dens_factor, Real momentum_factor, Real energy_factor, int nx,
+                                               int ny, int nz, Real *density_d, Real *momentum_x_d, Real *momentum_y_d,
+                                               Real *momentum_z_d, Real *Energy_d, Real *GasEnergy_d)
 {
   int tid_x, tid_y, tid_z, tid_grid;
   tid_x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -44,13 +43,11 @@ void Grid3D::Change_GAS_Frame_System_GPU(bool forward)
   if (forward) {
     dens_factor     = 1 / Cosmo.rho_0_gas;
     momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
-    energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas *
-                    Cosmo.current_a * Cosmo.current_a;
+    energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
   } else {
     dens_factor     = Cosmo.rho_0_gas;
     momentum_factor = Cosmo.rho_0_gas * Cosmo.v_0_gas / Cosmo.current_a;
-    energy_factor   = Cosmo.rho_0_gas * Cosmo.v_0_gas * Cosmo.v_0_gas /
-                    Cosmo.current_a / Cosmo.current_a;
+    energy_factor   = Cosmo.rho_0_gas * Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
   }
 
   int nx, ny, nz;
@@ -77,10 +74,9 @@ void Grid3D::Change_GAS_Frame_System_GPU(bool forward)
   GasEnergy_d = NULL;
   #endif
 
-  hipLaunchKernelGGL(Change_GAS_Frame_System_kernel, dim3dGrid, dim3dBlock, 0,
-                     0, dens_factor, momentum_factor, energy_factor, nx, ny, nz,
-                     C.d_density, C.d_momentum_x, C.d_momentum_y,
-                     C.d_momentum_z, C.d_Energy, GasEnergy_d);
+  hipLaunchKernelGGL(Change_GAS_Frame_System_kernel, dim3dGrid, dim3dBlock, 0, 0, dens_factor, momentum_factor,
+                     energy_factor, nx, ny, nz, C.d_density, C.d_momentum_x, C.d_momentum_y, C.d_momentum_z, C.d_Energy,
+                     GasEnergy_d);
 }
 
 #endif  // COSMOLOGY

@@ -24,9 +24,8 @@ namespace cuda_utilities
  * \param[out] yid The y index
  * \param[out] zid The z index
  */
-inline __host__ __device__ void compute3DIndices(int const &id, int const &nx,
-                                                 int const &ny, int &xid,
-                                                 int &yid, int &zid)
+inline __host__ __device__ void compute3DIndices(int const &id, int const &nx, int const &ny, int &xid, int &yid,
+                                                 int &zid)
 {
   zid = id / (nx * ny);
   yid = (id - zid * nx * ny) / nx;
@@ -43,18 +42,14 @@ inline __host__ __device__ void compute3DIndices(int const &id, int const &nx,
  * \param ny The total number of cells in the y direction
  * \return int The 1D index
  */
-inline __host__ __device__ int compute1DIndex(int const &xid, int const &yid,
-                                              int const &zid, int const &nx,
+inline __host__ __device__ int compute1DIndex(int const &xid, int const &yid, int const &zid, int const &nx,
                                               int const &ny)
 {
   return xid + yid * nx + zid * nx * ny;
 }
 
-inline __host__ __device__ void Get_Real_Indices(int const &n_ghost,
-                                                 int const &nx, int const &ny,
-                                                 int const &nz, int &is,
-                                                 int &ie, int &js, int &je,
-                                                 int &ks, int &ke)
+inline __host__ __device__ void Get_Real_Indices(int const &n_ghost, int const &nx, int const &ny, int const &nz,
+                                                 int &is, int &ie, int &js, int &je, int &ks, int &ke)
 {
   is = n_ghost;
   ie = nx - n_ghost;
@@ -80,10 +75,7 @@ inline __host__ __device__ void Get_Real_Indices(int const &n_ghost,
  * \param[in] ptr The pointer to GPU memory
  * \param[in] N The size of the array in bytes
  */
-inline void initGpuMemory(Real *ptr, size_t N)
-{
-  CudaSafeCall(cudaMemset(ptr, 0, N));
-}
+inline void initGpuMemory(Real *ptr, size_t N) { CudaSafeCall(cudaMemset(ptr, 0, N)); }
 
 // =====================================================================
 /*!
@@ -113,8 +105,7 @@ struct AutomaticLaunchParams {
    */
   AutomaticLaunchParams(T &kernel, size_t numElements = 0)
   {
-    cudaOccupancyMaxPotentialBlockSize(&numBlocks, &threadsPerBlock, kernel, 0,
-                                       0);
+    cudaOccupancyMaxPotentialBlockSize(&numBlocks, &threadsPerBlock, kernel, 0, 0);
 
     if (numElements > 0) {
       numBlocks = (numElements + threadsPerBlock - 1) / threadsPerBlock;

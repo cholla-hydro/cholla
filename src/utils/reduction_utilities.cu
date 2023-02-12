@@ -23,8 +23,7 @@ __global__ void kernelReduceMax(Real* in, Real* out, size_t N)
   Real maxVal = -DBL_MAX;
 
   // Grid stride loop to perform as much of the reduction as possible
-  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < N;
-       i += blockDim.x * gridDim.x) {
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < N; i += blockDim.x * gridDim.x) {
     // A transformation could go here
 
     // Grid stride reduction

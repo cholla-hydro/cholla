@@ -7,8 +7,7 @@
 class PoissonZero3DBlockedGPU
 {
  public:
-  PoissonZero3DBlockedGPU(const int n[3], const double lo[3],
-                          const double hi[3], const int m[3], const int id[3]);
+  PoissonZero3DBlockedGPU(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3]);
   ~PoissonZero3DBlockedGPU();
   long bytes() const { return bytes_; }
   void solve(long bytes, double *density, double *potential) const;

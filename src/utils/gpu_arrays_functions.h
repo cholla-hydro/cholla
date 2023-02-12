@@ -9,13 +9,10 @@
 #include "../utils/gpu_arrays_functions.h"
 
 template <typename T>
-void Extend_GPU_Array(T **current_array_d, int current_size, int new_size,
-                      bool print_out)
+void Extend_GPU_Array(T **current_array_d, int current_size, int new_size, bool print_out)
 {
   if (new_size <= current_size) return;
-  if (print_out)
-    std::cout << " Extending GPU Array, size: " << current_size
-              << "  new_size: " << new_size << std::endl;
+  if (print_out) std::cout << " Extending GPU Array, size: " << current_size << "  new_size: " << new_size << std::endl;
 
   size_t global_free, global_total;
   CudaSafeCall(cudaMemGetInfo(&global_free, &global_total));
@@ -41,8 +38,7 @@ void Extend_GPU_Array(T **current_array_d, int current_size, int new_size,
   }
 
   // Copy the content of the original array to the new array
-  CudaSafeCall(cudaMemcpy(new_array_d, *current_array_d,
-                          current_size * sizeof(T), cudaMemcpyDeviceToDevice));
+  CudaSafeCall(cudaMemcpy(new_array_d, *current_array_d, current_size * sizeof(T), cudaMemcpyDeviceToDevice));
   cudaDeviceSynchronize();
   CudaCheckError();
 

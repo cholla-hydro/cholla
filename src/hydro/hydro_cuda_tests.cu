@@ -61,8 +61,7 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   // dz)
 
   // Run the kernel
-  hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0,
-                     dev_conserved.data(), dev_dti.data(), gamma, n_ghost,
+  hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), dev_dti.data(), gamma, n_ghost,
                      n_fields, nx, ny, nz, dx, dy, dz);
   CudaCheckError();
 
@@ -73,16 +72,11 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   double absoluteDiff;
   int64_t ulpsDiff;
   bool areEqual;
-  areEqual = testingUtilities::nearlyEqualDbl(fiducialDt, testData,
-                                              absoluteDiff, ulpsDiff);
-  EXPECT_TRUE(areEqual) << "The fiducial value is:       " << fiducialDt
-                        << std::endl
-                        << "The test value is:           " << testData
-                        << std::endl
-                        << "The absolute difference is:  " << absoluteDiff
-                        << std::endl
-                        << "The ULP difference is:       " << ulpsDiff
-                        << std::endl;
+  areEqual = testingUtilities::nearlyEqualDbl(fiducialDt, testData, absoluteDiff, ulpsDiff);
+  EXPECT_TRUE(areEqual) << "The fiducial value is:       " << fiducialDt << std::endl
+                        << "The test value is:           " << testData << std::endl
+                        << "The absolute difference is:  " << absoluteDiff << std::endl
+                        << "The ULP difference is:       " << ulpsDiff << std::endl;
 }
 // =============================================================================
 // End of tests for the Calc_dt_GPU function
@@ -108,14 +102,11 @@ TEST(tHYDROHydroInverseCrossingTime, CorrectInputExpectCorrectOutput)
   double const fiducialInverseCrossingTime = 0.038751126881804446;
 
   // Function to test
-  double testInverseCrossingTime = hydroInverseCrossingTime(
-      energy, density, 1. / density, velocityX, velocityY, velocityZ, cellSizeX,
-      cellSizeY, cellSizeZ, gamma);
+  double testInverseCrossingTime = hydroInverseCrossingTime(energy, density, 1. / density, velocityX, velocityY,
+                                                            velocityZ, cellSizeX, cellSizeY, cellSizeZ, gamma);
 
   // Check results
-  testingUtilities::checkResults(fiducialInverseCrossingTime,
-                                 testInverseCrossingTime,
-                                 "inverse crossing time");
+  testingUtilities::checkResults(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
 }
 // =============================================================================
 // End of tests for the hydroInverseCrossingTime function
@@ -144,14 +135,12 @@ TEST(tMHDMhdInverseCrossingTime, CorrectInputExpectCorrectOutput)
   double const fiducialInverseCrossingTime = 0.038688028391959103;
 
   // Function to test
-  double testInverseCrossingTime = mhdInverseCrossingTime(
-      energy, density, 1. / density, velocityX, velocityY, velocityZ, magneticX,
-      magneticY, magneticZ, cellSizeX, cellSizeY, cellSizeZ, gamma);
+  double testInverseCrossingTime =
+      mhdInverseCrossingTime(energy, density, 1. / density, velocityX, velocityY, velocityZ, magneticX, magneticY,
+                             magneticZ, cellSizeX, cellSizeY, cellSizeZ, gamma);
 
   // Check results
-  testingUtilities::checkResults(fiducialInverseCrossingTime,
-                                 testInverseCrossingTime,
-                                 "inverse crossing time");
+  testingUtilities::checkResults(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
 }
 // =============================================================================
 // End of tests for the mhdInverseCrossingTime function

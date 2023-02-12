@@ -110,8 +110,7 @@ void Grid3D::Copy_Particles_Density_function(int g_start, int g_end)
   for (k = g_start; k < g_end; k++) {
     for (j = 0; j < ny_dens; j++) {
       for (i = 0; i < nx_dens; i++) {
-        id_CIC = (i + nGHST) + (j + nGHST) * nx_part +
-                 (k + nGHST) * nx_part * ny_part;
+        id_CIC                    = (i + nGHST) + (j + nGHST) * nx_part + (k + nGHST) * nx_part * ny_part;
         id_grid                   = i + j * nx_dens + k * nx_dens * ny_dens;
         Grav.F.density_h[id_grid] = Particles.G.density[id_CIC];
       }
@@ -133,27 +132,21 @@ void ::Particles_3D::Clear_Density()
 
   #ifdef PARTICLES_GPU
 
-void Particles_3D::Clear_Density_GPU()
-{
-  Clear_Density_GPU_function(G.density_dev, G.n_cells);
-}
+void Particles_3D::Clear_Density_GPU() { Clear_Density_GPU_function(G.density_dev, G.n_cells); }
 
 void Particles_3D::Get_Density_CIC_GPU()
 {
-  Get_Density_CIC_GPU_function(
-      n_local, particle_mass, G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax,
-      G.dx, G.dy, G.dz, G.nx_local, G.ny_local, G.nz_local,
-      G.n_ghost_particles_grid, G.n_cells, G.density, G.density_dev, pos_x_dev,
-      pos_y_dev, pos_z_dev, mass_dev);
+  Get_Density_CIC_GPU_function(n_local, particle_mass, G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax, G.dx, G.dy, G.dz,
+                               G.nx_local, G.ny_local, G.nz_local, G.n_ghost_particles_grid, G.n_cells, G.density,
+                               G.density_dev, pos_x_dev, pos_y_dev, pos_z_dev, mass_dev);
 }
 
   #endif  // PARTICLES_GPU
 
   #ifdef PARTICLES_CPU
 // Get the CIC index from the particle position
-void Get_Indexes_CIC(Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz,
-                     Real pos_x, Real pos_y, Real pos_z, int &indx_x,
-                     int &indx_y, int &indx_z)
+void Get_Indexes_CIC(Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, Real pos_x, Real pos_y, Real pos_z,
+                     int &indx_x, int &indx_y, int &indx_z)
 {
   indx_x = (int)floor((pos_x - xMin - 0.5 * dx) / dx);
   indx_y = (int)floor((pos_y - yMin - 0.5 * dy) / dy);
@@ -197,8 +190,7 @@ void Particles_3D::Get_Density_CIC_Serial()
     x_pos = pos_x[pIndx];
     y_pos = pos_y[pIndx];
     z_pos = pos_z[pIndx];
-    Get_Indexes_CIC(xMin, yMin, zMin, dx, dy, dz, x_pos, y_pos, z_pos, indx_x,
-                    indx_y, indx_z);
+    Get_Indexes_CIC(xMin, yMin, zMin, dx, dy, dz, x_pos, y_pos, z_pos, indx_x, indx_y, indx_z);
     if (indx_x < -1) ignore = true;
     if (indx_y < -1) ignore = true;
     if (indx_z < -1) ignore = true;
@@ -211,8 +203,7 @@ void Particles_3D::Get_Density_CIC_Serial()
     if (!in_local) {
       std::cout << " Density CIC Error:" << std::endl;
     #ifdef PARTICLE_IDS
-      std::cout << " Particle outside Local  domain    pID: " << partIDs[pIndx]
-                << std::endl;
+      std::cout << " Particle outside Local  domain    pID: " << partIDs[pIndx] << std::endl;
     #else
       std::cout << " Particle outside Local  domain " << std::endl;
     #endif
@@ -226,8 +217,7 @@ void Particles_3D::Get_Density_CIC_Serial()
     }
     if (ignore) {
     #ifdef PARTICLE_IDS
-      std::cout << "ERROR Density CIC Index    pID: " << partIDs[pIndx]
-                << std::endl;
+      std::cout << "ERROR Density CIC Index    pID: " << partIDs[pIndx] << std::endl;
     #else
       std::cout << "ERROR Density CIC Index " << std::endl;
     #endif
@@ -364,8 +354,7 @@ void Particles_3D::Get_Density_CIC_OMP()
       if (!in_local) {
         std::cout << " Density CIC Error:" << std::endl;
       #ifdef PARTICLE_IDS
-        std::cout << " Particle outside Local  domain    pID: "
-                  << partIDs[pIndx] << std::endl;
+        std::cout << " Particle outside Local  domain    pID: " << partIDs[pIndx] << std::endl;
       #else
         std::cout << " Particle outside Local  domain " << std::endl;
       #endif
@@ -419,8 +408,7 @@ void Particles_3D::Get_Density_CIC_OMP()
         G.density[indx] += pMass * delta_x * (1 - delta_y) * (1 - delta_z);
 
         indx = (indx_x + 1) + (indx_y + 1) * nx_g + (indx_z + 1) * nx_g * ny_g;
-        G.density[indx] +=
-            pMass * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
+        G.density[indx] += pMass * (1 - delta_x) * (1 - delta_y) * (1 - delta_z);
       }
     }
   }

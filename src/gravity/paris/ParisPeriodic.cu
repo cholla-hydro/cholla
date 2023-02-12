@@ -6,9 +6,7 @@
 
 __host__ __device__ static inline double sqr(const double x) { return x * x; }
 
-ParisPeriodic::ParisPeriodic(const int n[3], const double lo[3],
-                             const double hi[3], const int m[3],
-                             const int id[3])
+ParisPeriodic::ParisPeriodic(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3])
     : ni_(n[0]),
       nj_(n[1]),
   #ifdef PARIS_3PT
@@ -30,8 +28,7 @@ ParisPeriodic::ParisPeriodic(const int n[3], const double lo[3],
 {
 }
 
-void ParisPeriodic::solve(const size_t bytes, double *const density,
-                          double *const potential) const
+void ParisPeriodic::solve(const size_t bytes, double *const density, double *const potential) const
 {
   // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_;
@@ -51,15 +48,13 @@ void ParisPeriodic::solve(const size_t bytes, double *const density,
   #endif
 
   // Provide FFT filter with a lambda that does Poisson solve in frequency space
-  henry.filter(
-      bytes, density, potential,
-      [=] __device__(const int i, const int j, const int k,
-                     const cufftDoubleComplex b) {
-        if (i || j || k) {
+  henry.filter(bytes, density, potential,
+               [=] __device__(const int i, const int j, const int k, const cufftDoubleComplex b) {
+                 if (i || j || k) {
   #ifdef PARIS_3PT
-          const double i2 = sqr(sin(double(min(i, ni - i)) * si) * ddi);
-          const double j2 = sqr(sin(double(min(j, nj - j)) * sj) * ddj);
-          const double k2 = sqr(sin(double(k) * sk) * ddk);
+                   const double i2 = sqr(sin(double(min(i, ni - i)) * si) * ddi);
+                   const double j2 = sqr(sin(double(min(j, nj - j)) * sj) * ddj);
+                   const double k2 = sqr(sin(double(k) * sk) * ddk);
   #elif defined PARIS_5PT
           const double ci = cos(double(min(i, ni - i)) * si);
           const double cj = cos(double(min(j, nj - j)) * sj);
@@ -72,12 +67,12 @@ void ParisPeriodic::solve(const size_t bytes, double *const density,
           const double j2 = sqr(double(min(j, nj - j)) * ddj);
           const double k2 = sqr(double(k) * ddk);
   #endif
-          const double d = -1.0 / (i2 + j2 + k2);
-          return cufftDoubleComplex{d * b.x, d * b.y};
-        } else {
-          return cufftDoubleComplex{0.0, 0.0};
-        }
-      });
+                   const double d = -1.0 / (i2 + j2 + k2);
+                   return cufftDoubleComplex{d * b.x, d * b.y};
+                 } else {
+                   return cufftDoubleComplex{0.0, 0.0};
+                 }
+               });
 }
 
 #endif

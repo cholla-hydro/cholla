@@ -144,10 +144,7 @@ class DeviceVector
    *
    * \param[in] vecIn The array whose contents are to be copied
    */
-  void cpyHostToDevice(std::vector<T> const &vecIn)
-  {
-    cpyHostToDevice(vecIn.data(), vecIn.size());
-  }
+  void cpyHostToDevice(std::vector<T> const &vecIn) { cpyHostToDevice(vecIn.data(), vecIn.size()); }
 
   /*!
    * \brief Copy the array from the device to a host array. Checks if the
@@ -164,10 +161,7 @@ class DeviceVector
    *
    * \param[out] vecOut The std::vector to copy the device array into
    */
-  void cpyDeviceToHost(std::vector<T> &vecOut)
-  {
-    cpyDeviceToHost(vecOut.data(), vecOut.size());
-  }
+  void cpyDeviceToHost(std::vector<T> &vecOut) { cpyDeviceToHost(vecOut.data(), vecOut.size()); }
 
  private:
   /// The size of the device array
@@ -254,8 +248,7 @@ template <typename T>
 T DeviceVector<T>::operator[](size_t const &index)
 {
   T hostValue;
-  CudaSafeCall(cudaMemcpy(&hostValue, &(_ptr[index]), sizeof(T),
-                          cudaMemcpyDeviceToHost));
+  CudaSafeCall(cudaMemcpy(&hostValue, &(_ptr[index]), sizeof(T), cudaMemcpyDeviceToHost));
   return hostValue;
 }
 // =========================================================================
@@ -293,15 +286,13 @@ template <typename T>
 void DeviceVector<T>::cpyHostToDevice(const T *arrIn, size_t const &arrSize)
 {
   if (arrSize <= _size) {
-    CudaSafeCall(
-        cudaMemcpy(_ptr, arrIn, arrSize * sizeof(T), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(_ptr, arrIn, arrSize * sizeof(T), cudaMemcpyHostToDevice));
   } else {
     throw std::out_of_range(
         "Warning: Couldn't copy array to device,"
         " device array is too small. Host array"
         " size=" +
-        std::to_string(arrSize) +
-        ", device array size=" + std::to_string(arrSize));
+        std::to_string(arrSize) + ", device array size=" + std::to_string(arrSize));
   }
 }
 // =========================================================================
@@ -311,19 +302,17 @@ template <typename T>
 void DeviceVector<T>::cpyDeviceToHost(T *arrOut, size_t const &arrSize)
 {
   if (_size <= arrSize) {
-    CudaSafeCall(
-        cudaMemcpy(arrOut, _ptr, _size * sizeof(T), cudaMemcpyDeviceToHost));
+    CudaSafeCall(cudaMemcpy(arrOut, _ptr, _size * sizeof(T), cudaMemcpyDeviceToHost));
   } else {
     throw std::out_of_range(
         "Warning: Couldn't copy array to host, "
         "host array is too small. Host array "
         "size=" +
-        std::to_string(arrSize) +
-        ", device array size=" + std::to_string(arrSize));
+        std::to_string(arrSize) + ", device array size=" + std::to_string(arrSize));
   }
 }
 // =========================================================================
 }  // end namespace cuda_utilities
-// =============================================================================
-// End definition of DeviceVector class
-// =============================================================================
+   // =============================================================================
+   // End definition of DeviceVector class
+   // =============================================================================

@@ -31,8 +31,7 @@ enum : int {
   // Always define scalar, scalar_minus_1, finalscalar_plus_1, finalscalar to
   // compute NSCALARS
   scalar,
-  scalar_minus_1 =
-      scalar - 1,  // so that next enum item starts at same index as scalar
+  scalar_minus_1 = scalar - 1,  // so that next enum item starts at same index as scalar
 
 #ifdef SCALAR
   // Add scalars here, wrapped appropriately with ifdefs:
@@ -58,10 +57,8 @@ enum : int {
 
 #endif  // SCALAR
 
-  finalscalar_plus_1,  // needed to calculate NSCALARS
-  finalscalar =
-      finalscalar_plus_1 -
-      1,  // resets enum to finalscalar so fields afterwards are correct
+  finalscalar_plus_1,                    // needed to calculate NSCALARS
+  finalscalar = finalscalar_plus_1 - 1,  // resets enum to finalscalar so fields afterwards are correct
 // so that anything after starts with scalar + NSCALARS
 
 #ifdef MHD

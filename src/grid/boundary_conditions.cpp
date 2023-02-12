@@ -74,18 +74,14 @@ void Grid3D::Set_Boundary_Conditions(parameters P)
         n_bounds);
     printf(" Boundary Hydro: %d\n", (int)H.TRANSFER_HYDRO_BOUNDARIES);
 #ifdef GRAVITY
-    printf(" Boundary Potential: %d\n",
-           (int)Grav.TRANSFER_POTENTIAL_BOUNDARIES);
+    printf(" Boundary Potential: %d\n", (int)Grav.TRANSFER_POTENTIAL_BOUNDARIES);
   #ifdef SOR
-    printf(" Boundary Poisson: %d\n",
-           (int)Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES);
+    printf(" Boundary Poisson: %d\n", (int)Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES);
   #endif  // SOR
 #endif    // GRAVITY
 #ifdef PARTICLES
-    printf(" Boundary Particles: %d\n",
-           (int)Particles.TRANSFER_PARTICLES_BOUNDARIES);
-    printf(" Boundary Particles Density: %d\n",
-           (int)Particles.TRANSFER_DENSITY_BOUNDARIES);
+    printf(" Boundary Particles: %d\n", (int)Particles.TRANSFER_PARTICLES_BOUNDARIES);
+    printf(" Boundary Particles Density: %d\n", (int)Particles.TRANSFER_DENSITY_BOUNDARIES);
 #endif  // PARTICLES
     exit(-1);
   }
@@ -308,9 +304,8 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   Set_Boundary_Extents(dir, &imin[0], &imax[0]);
 
   // from grid/cuda_boundaries.cu
-  SetGhostCells(C.device, H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost,
-                flags, imax[0] - imin[0], imax[1] - imin[1], imax[2] - imin[2],
-                imin[0], imin[1], imin[2], dir);
+  SetGhostCells(C.device, H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags, imax[0] - imin[0],
+                imax[1] - imin[1], imax[2] - imin[2], imin[0], imin[1], imin[2], dir);
 }
 
 /*! \fn Set_Boundary_Extents(int dir, int *imin, int *imax)
@@ -434,9 +429,8 @@ void Grid3D::Wind_Boundary()
   z_off = nz_local_start;
 #endif
 
-  Wind_Boundary_CUDA(C.device, H.nx, H.ny, H.nz, H.n_cells, H.n_ghost, x_off,
-                     y_off, z_off, H.dx, H.dy, H.dz, H.xbound, H.ybound,
-                     H.zbound, gama, H.t);
+  Wind_Boundary_CUDA(C.device, H.nx, H.ny, H.nz, H.n_cells, H.n_ghost, x_off, y_off, z_off, H.dx, H.dy, H.dz, H.xbound,
+                     H.ybound, H.zbound, gama, H.t);
 }
 
 /*! \fn void Noh_Boundary()
@@ -457,9 +451,8 @@ void Grid3D::Noh_Boundary()
   z_off = nz_local_start;
 #endif
 
-  Noh_Boundary_CUDA(C.device, H.nx, H.ny, H.nz, H.n_cells, H.n_ghost, x_off,
-                    y_off, z_off, H.dx, H.dy, H.dz, H.xbound, H.ybound,
-                    H.zbound, gama, H.t);
+  Noh_Boundary_CUDA(C.device, H.nx, H.ny, H.nz, H.n_cells, H.n_ghost, x_off, y_off, z_off, H.dx, H.dy, H.dz, H.xbound,
+                    H.ybound, H.zbound, gama, H.t);
 
   /*
     int i, j, k, id;

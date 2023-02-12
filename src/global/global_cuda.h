@@ -45,8 +45,7 @@ inline void __cudaSafeCall(cudaError err, const char *file, const int line)
 {
     #ifdef CUDA_ERROR_CHECK
   if (cudaSuccess != err) {
-    fprintf(stderr, "cudaSafeCall() failed at %s:%i : %s\n", file, line,
-            cudaGetErrorString(err));
+    fprintf(stderr, "cudaSafeCall() failed at %s:%i : %s\n", file, line, cudaGetErrorString(err));
     exit(-1);
   }
     #endif
@@ -59,8 +58,7 @@ inline void __cudaCheckError(const char *file, const int line)
     #ifdef CUDA_ERROR_CHECK
   cudaError err = cudaGetLastError();
   if (cudaSuccess != err) {
-    fprintf(stderr, "cudaCheckError() failed at %s:%i : %s\n", file, line,
-            cudaGetErrorString(err));
+    fprintf(stderr, "cudaCheckError() failed at %s:%i : %s\n", file, line, cudaGetErrorString(err));
     exit(-1);
   }
 
@@ -68,8 +66,7 @@ inline void __cudaCheckError(const char *file, const int line)
   // Comment away if needed.
   err = cudaDeviceSynchronize();
   if (cudaSuccess != err) {
-    fprintf(stderr, "cudaCheckError() with sync failed at %s:%i : %s\n", file,
-            line, cudaGetErrorString(err));
+    fprintf(stderr, "cudaCheckError() with sync failed at %s:%i : %s\n", file, line, cudaGetErrorString(err));
     exit(-1);
   }
     #endif
@@ -84,8 +81,7 @@ inline void __cudaCheckError(const char *file, const int line)
 inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
 {
   if (code != cudaSuccess) {
-    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
-            line);
+    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
     if (abort) exit(code);
   }
 }
@@ -109,8 +105,7 @@ __device__ double atomicAdd(double *address, double val)
   unsigned long long int old             = *address_as_ull, assumed;
   do {
     assumed = old;
-    old     = atomicCAS(address_as_ull, assumed,
-                        __double_as_longlong(val + __longlong_as_double(assumed)));
+    old     = atomicCAS(address_as_ull, assumed, __double_as_longlong(val + __longlong_as_double(assumed)));
   } while (assumed != old);
   return __longlong_as_double(old);
 }

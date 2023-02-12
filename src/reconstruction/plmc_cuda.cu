@@ -21,10 +21,8 @@
  gamma, int dir)
  *  \brief When passed a stencil of conserved variables, returns the left and
  right boundary values for the interface calculated using plm. */
-__global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
-                          Real *dev_bounds_R, int nx, int ny, int nz,
-                          int n_ghost, Real dx, Real dt, Real gamma, int dir,
-                          int n_fields)
+__global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz,
+                          int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields)
 {
   int n_cells = nx * ny * nz;
   int o1, o2, o3;
@@ -85,8 +83,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     #endif    // DE
     #ifdef SCALAR
   Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS];
-  Real del_scalar_L[NSCALARS], del_scalar_R[NSCALARS], del_scalar_C[NSCALARS],
-      del_scalar_G[NSCALARS];
+  Real del_scalar_L[NSCALARS], del_scalar_R[NSCALARS], del_scalar_C[NSCALARS], del_scalar_G[NSCALARS];
   Real del_scalar_m_i[NSCALARS];
   Real scalar_L_iph[NSCALARS], scalar_R_imh[NSCALARS];
       #ifndef VL
@@ -142,9 +139,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_i   = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
     #else   // not DE
-    p_i = (dev_conserved[4 * n_cells + id] -
-           0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) *
-          (gamma - 1.0);
+    p_i   = (dev_conserved[4 * n_cells + id] - 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) * (gamma - 1.0);
     #endif  // PRESSURE_DE
     p_i = fmax(p_i, (Real)TINY_NUMBER);
     #ifdef SCALAR
@@ -169,10 +164,8 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_imo = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
     #else   // not DE
-    p_imo =
-        (dev_conserved[4 * n_cells + id] -
-         0.5 * d_imo * (vx_imo * vx_imo + vy_imo * vy_imo + vz_imo * vz_imo)) *
-        (gamma - 1.0);
+    p_imo = (dev_conserved[4 * n_cells + id] - 0.5 * d_imo * (vx_imo * vx_imo + vy_imo * vy_imo + vz_imo * vz_imo)) *
+            (gamma - 1.0);
     #endif  // PRESSURE_DE
     p_imo = fmax(p_imo, (Real)TINY_NUMBER);
     #ifdef SCALAR
@@ -197,10 +190,8 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_ipo = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
     #else   // not DE
-    p_ipo =
-        (dev_conserved[4 * n_cells + id] -
-         0.5 * d_ipo * (vx_ipo * vx_ipo + vy_ipo * vy_ipo + vz_ipo * vz_ipo)) *
-        (gamma - 1.0);
+    p_ipo = (dev_conserved[4 * n_cells + id] - 0.5 * d_ipo * (vx_ipo * vx_ipo + vy_ipo * vy_ipo + vz_ipo * vz_ipo)) *
+            (gamma - 1.0);
     #endif  // PRESSURE_DE
     p_ipo = fmax(p_ipo, (Real)TINY_NUMBER);
     #ifdef SCALAR
@@ -291,8 +282,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
       del_scalar_R[i] = scalar_ipo[i] - scalar_i[i];
       del_scalar_C[i] = 0.5 * (scalar_ipo[i] - scalar_imo[i]);
       if (del_scalar_L[i] * del_scalar_R[i] > 0.0) {
-        del_scalar_G[i] = 2.0 * del_scalar_L[i] * del_scalar_R[i] /
-                          (del_scalar_L[i] + del_scalar_R[i]);
+        del_scalar_G[i] = 2.0 * del_scalar_L[i] * del_scalar_R[i] / (del_scalar_L[i] + del_scalar_R[i]);
       } else {
         del_scalar_G[i] = 0.0;
       }
@@ -369,10 +359,9 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     for (int i = 0; i < NSCALARS; i++) {
       del_scalar_m_i[i] = 0.0;
       if (del_scalar_L[i] * del_scalar_R[i] > 0.0) {
-        lim_slope_a = fmin(fabs(del_scalar_L[i]), fabs(del_scalar_R[i]));
-        lim_slope_b = fmin(fabs(del_scalar_C[i]), fabs(del_scalar_G[i]));
-        del_scalar_m_i[i] =
-            sgn_CUDA(del_scalar_C[i]) * fmin(2.0 * lim_slope_a, lim_slope_b);
+        lim_slope_a       = fmin(fabs(del_scalar_L[i]), fabs(del_scalar_R[i]));
+        lim_slope_b       = fmin(fabs(del_scalar_C[i]), fabs(del_scalar_G[i]));
+        del_scalar_m_i[i] = sgn_CUDA(del_scalar_C[i]) * fmin(2.0 * lim_slope_a, lim_slope_b);
       }
     }
     #endif  // SCALAR
@@ -470,13 +459,13 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
 
     #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      C               = scalar_R_imh[i] + scalar_L_iph[i];
-      scalar_R_imh[i] = fmax(fmin(scalar_i[i], scalar_imo[i]), scalar_R_imh[i]);
-      scalar_R_imh[i] = fmin(fmax(scalar_i[i], scalar_imo[i]), scalar_R_imh[i]);
-      scalar_L_iph[i] = C - scalar_R_imh[i];
-      scalar_L_iph[i] = fmax(fmin(scalar_i[i], scalar_ipo[i]), scalar_L_iph[i]);
-      scalar_L_iph[i] = fmin(fmax(scalar_i[i], scalar_ipo[i]), scalar_L_iph[i]);
-      scalar_R_imh[i] = C - scalar_L_iph[i];
+      C                 = scalar_R_imh[i] + scalar_L_iph[i];
+      scalar_R_imh[i]   = fmax(fmin(scalar_i[i], scalar_imo[i]), scalar_R_imh[i]);
+      scalar_R_imh[i]   = fmin(fmax(scalar_i[i], scalar_imo[i]), scalar_R_imh[i]);
+      scalar_L_iph[i]   = C - scalar_R_imh[i];
+      scalar_L_iph[i]   = fmax(fmin(scalar_i[i], scalar_ipo[i]), scalar_L_iph[i]);
+      scalar_L_iph[i]   = fmin(fmax(scalar_i[i], scalar_ipo[i]), scalar_L_iph[i]);
+      scalar_R_imh[i]   = C - scalar_L_iph[i];
       del_scalar_m_i[i] = scalar_L_iph[i] - scalar_R_imh[i];
     }
     #endif  // SCALAR
@@ -526,8 +515,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     if (lambda_m >= 0) {
       lamdiff = lambda_p - lambda_m;
 
-      sum_0 += lamdiff *
-               (-d_i * del_vx_m_i / (2 * a_i) + del_p_m_i / (2 * a_i * a_i));
+      sum_0 += lamdiff * (-d_i * del_vx_m_i / (2 * a_i) + del_p_m_i / (2 * a_i * a_i));
       sum_1 += lamdiff * (del_vx_m_i / 2.0 - del_p_m_i / (2 * a_i * d_i));
       sum_4 += lamdiff * (-d_i * del_vx_m_i * a_i / 2.0 + del_p_m_i / 2.0);
     }
@@ -549,8 +537,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     if (lambda_p >= 0) {
       lamdiff = lambda_p - lambda_p;
 
-      sum_0 += lamdiff *
-               (d_i * del_vx_m_i / (2 * a_i) + del_p_m_i / (2 * a_i * a_i));
+      sum_0 += lamdiff * (d_i * del_vx_m_i / (2 * a_i) + del_p_m_i / (2 * a_i * a_i));
       sum_1 += lamdiff * (del_vx_m_i / 2.0 + del_p_m_i / (2 * a_i * d_i));
       sum_4 += lamdiff * (d_i * del_vx_m_i * a_i / 2.0 + del_p_m_i / 2.0);
     }
@@ -583,8 +570,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     if (lambda_m <= 0) {
       lamdiff = lambda_m - lambda_m;
 
-      sum_0 += lamdiff *
-               (-d_i * del_vx_m_i / (2 * a_i) + del_p_m_i / (2 * a_i * a_i));
+      sum_0 += lamdiff * (-d_i * del_vx_m_i / (2 * a_i) + del_p_m_i / (2 * a_i * a_i));
       sum_1 += lamdiff * (del_vx_m_i / 2.0 - del_p_m_i / (2 * a_i * d_i));
       sum_4 += lamdiff * (-d_i * del_vx_m_i * a_i / 2.0 + del_p_m_i / 2.0);
     }
@@ -606,8 +592,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     if (lambda_p <= 0) {
       lamdiff = lambda_m - lambda_p;
 
-      sum_0 += lamdiff *
-               (d_i * del_vx_m_i / (2 * a_i) + del_p_m_i / (2 * a_i * a_i));
+      sum_0 += lamdiff * (d_i * del_vx_m_i / (2 * a_i) + del_p_m_i / (2 * a_i * a_i));
       sum_1 += lamdiff * (del_vx_m_i / 2.0 + del_p_m_i / (2 * a_i * d_i));
       sum_4 += lamdiff * (d_i * del_vx_m_i * a_i / 2.0 + del_p_m_i / 2.0);
     }
@@ -645,9 +630,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     dev_bounds_R[o2 * n_cells + id] = d_R_imh * vy_R_imh;
     dev_bounds_R[o3 * n_cells + id] = d_R_imh * vz_R_imh;
     dev_bounds_R[4 * n_cells + id] =
-        (p_R_imh / (gamma - 1.0)) +
-        0.5 * d_R_imh *
-            (vx_R_imh * vx_R_imh + vy_R_imh * vy_R_imh + vz_R_imh * vz_R_imh);
+        (p_R_imh / (gamma - 1.0)) + 0.5 * d_R_imh * (vx_R_imh * vx_R_imh + vy_R_imh * vy_R_imh + vz_R_imh * vz_R_imh);
     #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       dev_bounds_R[(5 + i) * n_cells + id] = d_R_imh * scalar_R_imh[i];
@@ -663,9 +646,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L,
     dev_bounds_L[o2 * n_cells + id] = d_L_iph * vy_L_iph;
     dev_bounds_L[o3 * n_cells + id] = d_L_iph * vz_L_iph;
     dev_bounds_L[4 * n_cells + id] =
-        (p_L_iph / (gamma - 1.0)) +
-        0.5 * d_L_iph *
-            (vx_L_iph * vx_L_iph + vy_L_iph * vy_L_iph + vz_L_iph * vz_L_iph);
+        (p_L_iph / (gamma - 1.0)) + 0.5 * d_L_iph * (vx_L_iph * vx_L_iph + vy_L_iph * vy_L_iph + vz_L_iph * vz_L_iph);
     #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       dev_bounds_L[(5 + i) * n_cells + id] = d_L_iph * scalar_L_iph[i];

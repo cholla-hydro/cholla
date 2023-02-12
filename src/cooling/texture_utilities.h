@@ -13,17 +13,13 @@
   #include "../global/global.h"
   #include "../utils/gpu.hpp"
 
-inline __device__ float lerp(float v0, float v1, float f)
-{
-  return fma(f, v1, fma(-f, v0, v0));
-}
+inline __device__ float lerp(float v0, float v1, float f) { return fma(f, v1, fma(-f, v0, v0)); }
 
 /* \fn float Bilinear_Texture(cudaTextureObject_t tex, float x, float y)
    \brief Access texture values from tex at coordinates (x,y) using bilinear
    interpolation
 */
-inline __device__ float Bilinear_Texture(cudaTextureObject_t tex, float x,
-                                         float y)
+inline __device__ float Bilinear_Texture(cudaTextureObject_t tex, float x, float y)
 {
   // Split coordinates into integer px/py and fractional fx/fy parts
   float px = floorf(x);
