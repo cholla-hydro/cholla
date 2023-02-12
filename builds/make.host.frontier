@@ -16,7 +16,7 @@ GPUFLAGS_DEBUG    = -g -O0 -std=c++17 --offload-arch=gfx90a -Wall -Wno-unused-re
 HIPCONFIG	  = -I$(ROCM_PATH)/include $(shell hipconfig -C) # workaround for Rocm 5.2 warnings
 #HIPCONFIG	  = $(shell hipconfig -C)
 
-OMP_NUM_THREADS   = 8
+OMP_NUM_THREADS   = 7
 #-- How to launch job
 JOB_LAUNCH        = srun -u -A STF016 -n 1 -c 8
 

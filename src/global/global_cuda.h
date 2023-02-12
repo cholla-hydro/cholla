@@ -116,6 +116,10 @@ __device__ double atomicAdd(double *address, double val)
 }
     #endif
 
+    // This helper function exists to make it easier to find printfs inside
+    // kernels
+    #define kernel_printf printf
+
   #endif  // GLOBAL_CUDA_H
 
 #endif  // CUDA

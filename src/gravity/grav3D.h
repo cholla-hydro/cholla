@@ -201,6 +201,9 @@ class Grav3D
   void Initialize_values_CPU();
   void FreeMemory_CPU(void);
 
+  void Read_Restart_HDF5(struct parameters *P, int nfile);
+  void Write_Restart_HDF5(struct parameters *P, int nfile);
+
   Real Get_Average_Density();
   Real Get_Average_Density_function(int g_start, int g_end);
 

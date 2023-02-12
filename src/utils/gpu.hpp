@@ -107,6 +107,7 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
 
   #define curandStateMRG32k3a_t hiprandStateMRG32k3a_t
   #define curand_init           hiprand_init
+  #define curand                hiprand
   #define curand_poisson        hiprand_poisson
 
 static void __attribute__((unused))

@@ -85,7 +85,7 @@ void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real,
                           cudaMemcpyDeviceToHost));
 
   // Write Buffer to HDF5
-  status = HDF5_Dataset(file_id, dataspace_id, buffer, name);
+  status = Write_HDF5_Dataset(file_id, dataspace_id, buffer, name);
 
   status = H5Sclose(dataspace_id);
   if (status < 0) {
@@ -118,7 +118,7 @@ void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real,
                           cudaMemcpyDeviceToHost));
 
   // Write Buffer to HDF5
-  status = HDF5_Dataset(file_id, dataspace_id, buffer, name);
+  status = Write_HDF5_Dataset(file_id, dataspace_id, buffer, name);
 
   status = H5Sclose(dataspace_id);
   if (status < 0) {
