@@ -38,10 +38,9 @@ namespace mhd
  * 2=Z
  * \param[in]  n_fields The total number of fields
  */
-__global__ void Calculate_HLLD_Fluxes_CUDA(
-    Real const *dev_bounds_L, Real const *dev_bounds_R,
-    Real const *dev_magnetic_face, Real *dev_flux, int const n_cells,
-    Real const gamma, int const direction, int const n_fields);
+__global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const *dev_bounds_R,
+                                           Real const *dev_magnetic_face, Real *dev_flux, int const n_cells,
+                                           Real const gamma, int const direction, int const n_fields);
 
 /*!
  * \brief Namespace to hold private functions used within the HLLD

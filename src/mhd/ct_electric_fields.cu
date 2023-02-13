@@ -70,9 +70,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     // ================
 
     // Y-direction slope on the positive Y side. S&G 2009 equation 23
-    signUpwind =
-        fluxZ[cuda_utilities::compute1DIndex(xid, yid, zid - 1, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxZ[cuda_utilities::compute1DIndex(xid, yid, zid - 1, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_y_pos = mhd::_internal::_ctSlope(fluxY, dev_conserved, -1, 0, 2, -1, 1, 2, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -85,9 +83,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     }
 
     // Y-direction slope on the negative Y side. S&G 2009 equation 23
-    signUpwind =
-        fluxZ[cuda_utilities::compute1DIndex(xid, yid - 1, zid - 1, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxZ[cuda_utilities::compute1DIndex(xid, yid - 1, zid - 1, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_y_neg = mhd::_internal::_ctSlope(fluxY, dev_conserved, -1, 0, 1, 2, 1, 2, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -99,9 +95,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     }
 
     // Z-direction slope on the positive Z side. S&G 2009 equation 23
-    signUpwind =
-        fluxY[cuda_utilities::compute1DIndex(xid, yid - 1, zid, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxY[cuda_utilities::compute1DIndex(xid, yid - 1, zid, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_z_pos = mhd::_internal::_ctSlope(fluxZ, dev_conserved, 1, 0, 1, -1, 1, 2, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -113,9 +107,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     }
 
     // Z-direction slope on the negative Z side. S&G 2009 equation 23
-    signUpwind =
-        fluxY[cuda_utilities::compute1DIndex(xid, yid - 1, zid - 1, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxY[cuda_utilities::compute1DIndex(xid, yid - 1, zid - 1, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_z_neg = mhd::_internal::_ctSlope(fluxZ, dev_conserved, 1, 0, 1, 2, 1, 2, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -142,17 +134,15 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     // edge averaged electric field.
     // S&G 2009 equation 22
     ctElectricFields[threadId + grid_enum::ct_elec_x * n_cells] =
-        0.25 * (+face_y_pos + face_y_neg + face_z_pos + face_z_neg +
-                slope_y_pos + slope_y_neg + slope_z_pos + slope_z_neg);
+        0.25 *
+        (+face_y_pos + face_y_neg + face_z_pos + face_z_neg + slope_y_pos + slope_y_neg + slope_z_pos + slope_z_neg);
 
     // ================
     // Y electric field
     // ================
 
     // X-direction slope on the positive X side. S&G 2009 equation 23
-    signUpwind =
-        fluxZ[cuda_utilities::compute1DIndex(xid, yid, zid - 1, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxZ[cuda_utilities::compute1DIndex(xid, yid, zid - 1, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_x_pos = mhd::_internal::_ctSlope(fluxX, dev_conserved, 1, 1, 2, -1, 0, 2, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -164,9 +154,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     }
 
     // X-direction slope on the negative X side. S&G 2009 equation 23
-    signUpwind =
-        fluxZ[cuda_utilities::compute1DIndex(xid - 1, yid, zid - 1, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxZ[cuda_utilities::compute1DIndex(xid - 1, yid, zid - 1, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_x_neg = mhd::_internal::_ctSlope(fluxX, dev_conserved, 1, 1, 0, 2, 0, 2, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -178,9 +166,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     }
 
     // Z-direction slope on the positive Z side. S&G 2009 equation 23
-    signUpwind =
-        fluxX[cuda_utilities::compute1DIndex(xid - 1, yid, zid, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxX[cuda_utilities::compute1DIndex(xid - 1, yid, zid, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_z_pos = mhd::_internal::_ctSlope(fluxZ, dev_conserved, -1, 1, 0, -1, 0, 2, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -193,9 +179,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     }
 
     // Z-direction slope on the negative Z side. S&G 2009 equation 23
-    signUpwind =
-        fluxX[cuda_utilities::compute1DIndex(xid - 1, yid, zid - 1, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxX[cuda_utilities::compute1DIndex(xid - 1, yid, zid - 1, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_z_neg = mhd::_internal::_ctSlope(fluxZ, dev_conserved, -1, 1, 0, 2, 0, 2, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -221,17 +205,15 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     // edge averaged electric field.
     // S&G 2009 equation 22
     ctElectricFields[threadId + grid_enum::ct_elec_y * n_cells] =
-        0.25 * (+face_x_pos + face_x_neg + face_z_pos + face_z_neg +
-                slope_x_pos + slope_x_neg + slope_z_pos + slope_z_neg);
+        0.25 *
+        (+face_x_pos + face_x_neg + face_z_pos + face_z_neg + slope_x_pos + slope_x_neg + slope_z_pos + slope_z_neg);
 
     // ================
     // Z electric field
     // ================
 
     // Y-direction slope on the positive Y side. S&G 2009 equation 23
-    signUpwind =
-        fluxX[cuda_utilities::compute1DIndex(xid - 1, yid, zid, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxX[cuda_utilities::compute1DIndex(xid - 1, yid, zid, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_y_pos = mhd::_internal::_ctSlope(fluxY, dev_conserved, 1, 2, 0, -1, 0, 1, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -243,9 +225,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     }
 
     // Y-direction slope on the negative Y side. S&G 2009 equation 23
-    signUpwind =
-        fluxX[cuda_utilities::compute1DIndex(xid - 1, yid - 1, zid, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxX[cuda_utilities::compute1DIndex(xid - 1, yid - 1, zid, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_y_neg = mhd::_internal::_ctSlope(fluxY, dev_conserved, 1, 2, 0, 1, 0, 1, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -257,9 +237,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     }
 
     // X-direction slope on the positive X side. S&G 2009 equation 23
-    signUpwind =
-        fluxY[cuda_utilities::compute1DIndex(xid, yid - 1, zid, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxY[cuda_utilities::compute1DIndex(xid, yid - 1, zid, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_x_pos = mhd::_internal::_ctSlope(fluxX, dev_conserved, -1, 2, 1, -1, 0, 1, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -272,9 +250,7 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     }
 
     // X-direction slope on the negative X side. S&G 2009 equation 23
-    signUpwind =
-        fluxY[cuda_utilities::compute1DIndex(xid - 1, yid - 1, zid, nx, ny) +
-              grid_enum::density * n_cells];
+    signUpwind = fluxY[cuda_utilities::compute1DIndex(xid - 1, yid - 1, zid, nx, ny) + grid_enum::density * n_cells];
     if (signUpwind > 0.0) {
       slope_x_neg = mhd::_internal::_ctSlope(fluxX, dev_conserved, -1, 2, 0, 1, 0, 1, xid, yid, zid, nx, ny, n_cells);
     } else if (signUpwind < 0.0) {
@@ -300,8 +276,8 @@ __global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *flux
     // edge averaged electric field.
     // S&G 2009 equation 22
     ctElectricFields[threadId + grid_enum::ct_elec_z * n_cells] =
-        0.25 * (+face_x_pos + face_x_neg + face_y_pos + face_y_neg +
-                slope_x_pos + slope_x_neg + slope_y_pos + slope_y_neg);
+        0.25 *
+        (+face_x_pos + face_x_neg + face_y_pos + face_y_neg + slope_x_pos + slope_x_neg + slope_y_pos + slope_y_neg);
   }
 }
 // =========================================================================

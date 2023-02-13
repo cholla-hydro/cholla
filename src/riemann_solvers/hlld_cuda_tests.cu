@@ -109,12 +109,11 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
         cudaMemcpy(devConservedMagXFace, magneticX.data(), magneticX.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
     // Run kernel
-    hipLaunchKernelGGL(
-        mhd::Calculate_HLLD_Fluxes_CUDA, dimGrid, dimBlock, 0, 0,
-        devConservedLeft,      // the "left" interface
-        devConservedRight,     // the "right" interface
-        devConservedMagXFace,  // the magnetic field at the interface
-        devTestFlux, n_cells, gamma, direction, nFields);
+    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dimGrid, dimBlock, 0, 0,
+                       devConservedLeft,      // the "left" interface
+                       devConservedRight,     // the "right" interface
+                       devConservedMagXFace,  // the magnetic field at the interface
+                       devTestFlux, n_cells, gamma, direction, nFields);
 
     CudaCheckError();
     CudaSafeCall(cudaMemcpy(testFlux.data(), devTestFlux, testFlux.size() * sizeof(Real), cudaMemcpyDeviceToHost));

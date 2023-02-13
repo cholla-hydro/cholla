@@ -30,10 +30,9 @@
 namespace mhd
 {
 // =========================================================================
-__global__ void Calculate_HLLD_Fluxes_CUDA(
-    Real const *dev_bounds_L, Real const *dev_bounds_R,
-    Real const *dev_magnetic_face, Real *dev_flux, int const n_cells,
-    Real const gamma, int const direction, int const n_fields)
+__global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const *dev_bounds_R,
+                                           Real const *dev_magnetic_face, Real *dev_flux, int const n_cells,
+                                           Real const gamma, int const direction, int const n_fields)
 {
   // get a thread index
   int threadId = threadIdx.x + blockIdx.x * blockDim.x;
