@@ -30,21 +30,15 @@
 namespace mhd
 {
 // =========================================================================
-__global__ void Calculate_HLLD_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_magnetic_face,
-                                           Real *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma,
-                                           int direction, int n_fields)
+__global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const *dev_bounds_R,
+                                           Real const *dev_magnetic_face, Real *dev_flux, int const n_cells,
+                                           Real const gamma, int const direction, int const n_fields)
 {
   // get a thread index
-  int blockId  = blockIdx.x + blockIdx.y * gridDim.x;
-  int threadId = threadIdx.x + blockId * blockDim.x;
-  int xid, yid, zid;
-  cuda_utilities::compute3DIndices(threadId, nx, ny, xid, yid, zid);
+  int threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
   // Thread guard to avoid overrun
-  if (xid >= nx or yid >= ny or zid >= nz) return;
-
-  // Number of cells
-  int n_cells = nx * ny * nz;
+  if (threadId >= n_cells) return;
 
   // Offsets & indices
   int o1, o2, o3;
@@ -296,6 +290,9 @@ __device__ __host__ void returnFluxes(int const &threadId, int const &o1, int co
                                       int const &n_cells, Real *dev_flux, mhd::_internal::Flux const &flux,
                                       mhd::_internal::State const &state)
 {
+  // Note that the direction of the grid_enum::fluxX_magnetic_DIR is the
+  // direction of the electric field that the magnetic flux is, not the magnetic
+  // flux
   dev_flux[threadId + n_cells * grid_enum::density]          = flux.density;
   dev_flux[threadId + n_cells * o1]                          = flux.momentumX;
   dev_flux[threadId + n_cells * o2]                          = flux.momentumY;

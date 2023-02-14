@@ -38,26 +38,26 @@ class tHYDROSYSTEMSodShockTubeParameterizedMpi : public ::testing::TestWithParam
 
 TEST_P(tHYDROSYSTEMSodShockTubeParameterizedMpi, CorrectInputExpectCorrectOutput)
 {
-#ifdef MHD
-  // Loosen correctness check to account for MHD only having PCM. This is
-  // about the error between PCM and PPMP in hydro
-  sodTest.setFixedEpsilon(1E-3);
+  // #ifdef MHD
+  //   // Loosen correctness check to account for MHD only having PCM. This is
+  //   // about the error between PCM and PPMP in hydro
+  //   sodTest.setFixedEpsilon(1E-3);
 
-  // Don't test the gas energy fields
-  auto datasetNames = sodTest.getDataSetsToTest();
-  datasetNames.erase(std::remove(datasetNames.begin(), datasetNames.end(), "GasEnergy"), datasetNames.end());
+  //   // Don't test the gas energy fields
+  //   auto datasetNames = sodTest.getDataSetsToTest();
+  //   datasetNames.erase(std::remove(datasetNames.begin(), datasetNames.end(), "GasEnergy"), datasetNames.end());
 
-  // Set the magnetic fiducial datasets to zero
-  size_t const size = std::pow(65, 3);
-  std::vector<double> const magVec(0, size);
+  //   // Set the magnetic fiducial datasets to zero
+  //   size_t const size = std::pow(65, 3);
+  //   std::vector<double> const magVec(0, size);
 
-  for (auto field : {"magnetic_x", "magnetic_y", "magnetic_z"}) {
-    sodTest.setFiducialData(field, magVec);
-    datasetNames.push_back(field);
-  }
+  //   for (const auto *field : {"magnetic_x", "magnetic_y", "magnetic_z"}) {
+  //     sodTest.setFiducialData(field, magVec);
+  //     datasetNames.push_back(field);
+  //   }
 
-  sodTest.setDataSetsToTest(datasetNames);
-#endif  // MHD
+  //   sodTest.setDataSetsToTest(datasetNames);
+  // #endif  // MHD
 
   sodTest.numMpiRanks = GetParam();
   sodTest.runTest();
