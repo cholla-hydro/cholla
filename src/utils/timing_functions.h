@@ -13,13 +13,13 @@ class OneTime
 {
  public:
   const char* name;
-  int n_steps = 0;
-  Real time_start;
-  Real t_min;
-  Real t_max;
-  Real t_avg;
-  Real t_all    = 0;
-  bool inactive = true;
+  int n_steps     = 0;
+  Real time_start = 0;
+  Real t_min      = 0;
+  Real t_max      = 0;
+  Real t_avg      = 0;
+  Real t_all      = 0;
+  bool inactive   = true;
   OneTime(void) {}
   OneTime(const char* input_name)
   {
