@@ -51,7 +51,7 @@ vz_l=0.5
 # pressure of left state
 P_l=0.95
 # Magnetic field of the left state
-Bx_l=7.0898154036220635
+Bx_l=0.5641895835477563
 By_l=1.0155412503859613
 Bz_l=0.5641895835477563
 
@@ -64,7 +64,7 @@ vz_r=0.0
 # pressure of right state
 P_r=1.0
 # Magnetic field of the right state
-Bx_r=7.0898154036220635
+Bx_r=0.5641895835477563
 By_r=1.1283791670955126
 Bz_r=0.5641895835477563
 
