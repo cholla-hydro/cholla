@@ -81,7 +81,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   // If we're in the L state then assign fluxes and return.
   // In this state the flow is supersonic
   // M&K 2005 equation 66
-  if (speed.L >= 0.0) {
+  if (speed.L > 0.0) {
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxL, stateL);
     return;
   }
@@ -91,7 +91,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   // If we're in the R state then assign fluxes and return.
   // In this state the flow is supersonic
   // M&K 2005 equation 66
-  if (speed.R <= 0.0) {
+  if (speed.R < 0.0) {
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxR, stateR);
     return;
   }
@@ -115,7 +115,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   // If we're in the L* state then assign fluxes and return.
   // In this state the flow is subsonic
   // M&K 2005 equation 66
-  if (speed.LStar >= 0.0) {
+  if (speed.LStar > 0.0 and speed.L <= 0.0) {
     fluxL = mhd::_internal::starFluxes(starStateL, stateL, fluxL, speed, speed.L);
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxL, stateL);
     return;
@@ -131,7 +131,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   // If we're in the R* state then assign fluxes and return.
   // In this state the flow is subsonic
   // M&K 2005 equation 66
-  if (speed.RStar <= 0.0) {
+  if (speed.RStar <= 0.0 and speed.R >= 0.0) {
     fluxR = mhd::_internal::starFluxes(starStateR, stateR, fluxR, speed, speed.R);
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxR, stateR);
     return;
@@ -145,7 +145,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
 
   // Compute and return L** fluxes
   // M&K 2005 equation 66
-  if (speed.M >= 0.0) {
+  if (speed.M > 0.0 and speed.LStar <= 0.0) {
     fluxL = mhd::_internal::computeDoubleStarFluxes(doubleStarState, doubleStarState.energyL, starStateL, stateL, fluxL,
                                                     speed, speed.L, speed.LStar);
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxL, stateL);
@@ -153,7 +153,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   }
   // Compute and return R** fluxes
   // M&K 2005 equation 66
-  else {  // if (speedStarR >= 0.0) {
+  if (speed.RStar > 0.0 and speed.M <= 0.0) {
     fluxR = mhd::_internal::computeDoubleStarFluxes(doubleStarState, doubleStarState.energyR, starStateR, stateR, fluxR,
                                                     speed, speed.R, speed.RStar);
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxR, stateR);
