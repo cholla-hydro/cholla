@@ -1147,6 +1147,18 @@ herr_t Read_HDF5_Dataset(hid_t file_id, double *dataset_buffer, const char *name
   status           = H5Dclose(dataset_id);
   return status;
 }
+
+herr_t Read_HDF5_Dataset(hid_t file_id, float *dataset_buffer, const char *name)
+{
+  hid_t dataset_id = H5Dopen(file_id, name, H5P_DEFAULT);
+  herr_t status    = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+  status           = H5Dclose(dataset_id);
+  return status;
+}
+
+
+
+
 // Helper function which uses the correct HDF5 arguments based on the type of
 // dataset_buffer to avoid writing garbage
 herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double *dataset_buffer, const char *name)
@@ -2422,6 +2434,64 @@ void Grid3D::Read_Grid_Binary(FILE *fp)
 }
 
 #ifdef HDF5
+
+
+void Fill_Grid_From_HDF5_Buffer(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost, Real* hdf5_buffer, Real* grid_buffer)
+{
+  // Note: for 1D ny_real and nz_real are not used
+  // And for 2D nz_real is not used.
+  // This protects the magnetic case where ny_real/nz_real += 1
+  
+  int i, j, k, id, buf_id;
+  // 3D case
+  if (nx > 1 && ny > 1 && nz > 1) {
+    for (k = 0; k < nz_real; k++) {
+      for (j = 0; j < ny_real; j++) {
+	for (i = 0; i < nx_real; i++) {
+	  id              = (i + n_ghost) + (j + n_ghost) * nx + (k + n_ghost) * nx * ny;
+	  buf_id          = k + j * nz_real + i * nz_real * ny_real;
+	  grid_buffer[id] = hdf5_buffer[buf_id];
+	}
+      }
+    }
+    return;
+  }
+  
+  // 2D case
+  if (nx > 1 && ny > 1 && nz == 1) {
+    for (j = 0; j < ny_real; j++) {
+      for (i = 0; i < nx_real; i++) {
+	id              = (i + n_ghost) + (j + n_ghost) * nx;
+	buf_id          = j + i * ny_real;
+	grid_buffer[id] = hdf5_buffer[buf_id];
+      }
+    }
+    return;
+  }
+  
+  // 1D case
+  if (nx > 1 && ny == 1 && nz == 1) {
+    id = n_ghost;
+    memcpy(&grid_buffer[id], &hdf5_buffer[0], nx_real * sizeof(Real));
+    return;
+  }
+}
+
+void Read_Grid_HDF5_Field(hid_t file_id, Real* dataset_buffer, Header H, Real* grid_buffer, const char* name)
+{
+  Read_HDF5_Dataset(file_id, dataset_buffer, name);
+  Fill_Grid_From_HDF5_Buffer(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, H.n_ghost, dataset_buffer, grid_buffer);
+}
+
+void Read_Grid_HDF5_Field_Magnetic(hid_t file_id, Real* dataset_buffer, Header H, Real* grid_buffer, const char* name)
+{
+  // Magnetic has 1 more real cell, 1 fewer n_ghost on one side. 
+  Read_HDF5_Dataset(file_id, dataset_buffer, name);
+  Fill_Grid_From_HDF5_Buffer(H.nx, H.ny, H.nz, H.nx_real + 1, H.ny_real + 1, H.nz_real + 1, H.n_ghost - 1, dataset_buffer, grid_buffer);
+}
+
+
+
 /*! \fn void Read_Grid_HDF5(hid_t file_id)
  *  \brief Read in grid data from an hdf5 file. */
 void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
@@ -2445,818 +2515,52 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
   status       = H5Aread(attribute_id, H5T_NATIVE_INT, &H.n_step);
   status       = H5Aclose(attribute_id);
 
-  // 1D case
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
-    // need a dataset buffer to remap fastest index
-    dataset_buffer = (Real *)malloc(H.nx_real * sizeof(Real));
+  #ifdef MHD
+  dataset_buffer = (Real *)malloc((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1) * sizeof(Real));
+  #else
+  dataset_buffer = (Real *)malloc((H.nz_real) * (H.ny_real) * (H.nx_real) * sizeof(Real));
+  #endif
 
-    // Open the density dataset
-    dataset_id = H5Dopen(file_id, "/density", H5P_DEFAULT);
-    // Read the density array into the dataset buffer // NOTE: NEED TO FIX FOR
-    // FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the density array to the grid
-    id = H.n_ghost;
-    memcpy(&(C.density[id]), &dataset_buffer[0], H.nx_real * sizeof(Real));
-
-    // Open the x momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_x", H5P_DEFAULT);
-    // Read the x momentum array into the dataset buffer // NOTE: NEED TO FIX
-    // FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the x momentum array to the grid
-    id = H.n_ghost;
-    memcpy(&(C.momentum_x[id]), &dataset_buffer[0], H.nx_real * sizeof(Real));
-
-    // Open the y momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_y", H5P_DEFAULT);
-    // Read the x momentum array into the dataset buffer // NOTE: NEED TO FIX
-    // FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the y momentum array to the grid
-    id = H.n_ghost;
-    memcpy(&(C.momentum_y[id]), &dataset_buffer[0], H.nx_real * sizeof(Real));
-
-    // Open the z momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_z", H5P_DEFAULT);
-    // Read the x momentum array into the dataset buffer // NOTE: NEED TO FIX
-    // FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the z momentum array to the grid
-    id = H.n_ghost;
-    memcpy(&(C.momentum_z[id]), &dataset_buffer[0], H.nx_real * sizeof(Real));
-
-    // Open the Energy dataset
-    dataset_id = H5Dopen(file_id, "/Energy", H5P_DEFAULT);
-    // Read the Energy array into the dataset buffer // NOTE: NEED TO FIX FOR
-    // FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the Energy array to the grid
-    id = H.n_ghost;
-    memcpy(&(C.Energy[id]), &dataset_buffer[0], H.nx_real * sizeof(Real));
-
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.density, "/density");
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.momentum_x, "/momentum_x");
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.momentum_y, "/momentum_y");
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.momentum_z, "/momentum_z");
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.Energy, "/Energy");
   #ifdef DE
-    // Open the internal energy dataset
-    dataset_id = H5Dopen(file_id, "/GasEnergy", H5P_DEFAULT);
-    // Read the Energy array into the dataset buffer // NOTE: NEED TO FIX FOR
-    // FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the internal energy array to the grid
-    id = H.n_ghost;
-    memcpy(&(C.GasEnergy[id]), &dataset_buffer[0], H.nx_real * sizeof(Real));
-  #endif  // DE
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.GasEnergy, "/GasEnergy");
+  #endif
 
   #ifdef SCALAR
-    for (int s = 0; s < NSCALARS; s++) {
-      // create the name of the dataset
-      char dataset[100];
-      char number[10];
-      strcpy(dataset, "/scalar");
-      sprintf(number, "%d", s);
-      strcat(dataset, number);
-
-      // Open the passive scalar dataset
-      dataset_id = H5Dopen(file_id, dataset, H5P_DEFAULT);
-      // Read the scalar array into the dataset buffer // NOTE: NEED TO FIX FOR
-      // FLOAT REAL!!!
-      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      // Free the dataset id
-      status = H5Dclose(dataset_id);
-
-      // Copy the scalar array to the grid
-      id = H.n_ghost;
-      memcpy(&(C.scalar[id + s * H.n_cells]), &dataset_buffer[0], H.nx_real * sizeof(Real));
-    }
-  #endif  // SCALAR
+    #if !defined(COOLING_GRACKLE) && !defined(CHEMISTRY_GPU) 
+  for (int s = 0; s < NSCALARS; s++) {
+    // create the name of the dataset
+    char dataset_name[100];
+    char number[10];
+    strcpy(dataset_name, "/scalar");
+    sprintf(number, "%d", s);
+    strcat(dataset_name, number);
+    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, &C.scalar[s * H.n_cells], dataset_name);
   }
-
-  // 2D case
-  if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
-    // need a dataset buffer to remap fastest index
-    dataset_buffer = (Real *)malloc(H.ny_real * H.nx_real * sizeof(Real));
-
-    // Open the density dataset
-    dataset_id = H5Dopen(file_id, "/density", H5P_DEFAULT);
-    // Read the density array into the dataset buffer  // NOTE: NEED TO FIX FOR
-    // FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the density array to the grid
-    for (j = 0; j < H.ny_real; j++) {
-      for (i = 0; i < H.nx_real; i++) {
-        id            = (i + H.n_ghost) + (j + H.n_ghost) * H.nx;
-        buf_id        = j + i * H.ny_real;
-        C.density[id] = dataset_buffer[buf_id];
-      }
-    }
-
-    // Open the x momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_x", H5P_DEFAULT);
-    // Read the x momentum array into the dataset buffer  // NOTE: NEED TO FIX
-    // FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the x momentum array to the grid
-    for (j = 0; j < H.ny_real; j++) {
-      for (i = 0; i < H.nx_real; i++) {
-        id               = (i + H.n_ghost) + (j + H.n_ghost) * H.nx;
-        buf_id           = j + i * H.ny_real;
-        C.momentum_x[id] = dataset_buffer[buf_id];
-      }
-    }
-
-    // Open the y momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_y", H5P_DEFAULT);
-    // Read the y momentum array into the dataset buffer  // NOTE: NEED TO FIX
-    // FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the y momentum array to the grid
-    for (j = 0; j < H.ny_real; j++) {
-      for (i = 0; i < H.nx_real; i++) {
-        id               = (i + H.n_ghost) + (j + H.n_ghost) * H.nx;
-        buf_id           = j + i * H.ny_real;
-        C.momentum_y[id] = dataset_buffer[buf_id];
-      }
-    }
-
-    // Open the z momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_z", H5P_DEFAULT);
-    // Read the z momentum array into the dataset buffer  // NOTE: NEED TO FIX
-    // FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the z momentum array to the grid
-    for (j = 0; j < H.ny_real; j++) {
-      for (i = 0; i < H.nx_real; i++) {
-        id               = (i + H.n_ghost) + (j + H.n_ghost) * H.nx;
-        buf_id           = j + i * H.ny_real;
-        C.momentum_z[id] = dataset_buffer[buf_id];
-      }
-    }
-
-    // Open the Energy dataset
-    dataset_id = H5Dopen(file_id, "/Energy", H5P_DEFAULT);
-    // Read the Energy array into the dataset buffer  // NOTE: NEED TO FIX FOR
-    // FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the Energy array to the grid
-    for (j = 0; j < H.ny_real; j++) {
-      for (i = 0; i < H.nx_real; i++) {
-        id           = (i + H.n_ghost) + (j + H.n_ghost) * H.nx;
-        buf_id       = j + i * H.ny_real;
-        C.Energy[id] = dataset_buffer[buf_id];
-      }
-    }
-
-  #ifdef DE
-    // Open the internal energy dataset
-    dataset_id = H5Dopen(file_id, "/GasEnergy", H5P_DEFAULT);
-    // Read the internal energy array into the dataset buffer  // NOTE: NEED TO
-    // FIX FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    // Copy the internal energy array to the grid
-    for (j = 0; j < H.ny_real; j++) {
-      for (i = 0; i < H.nx_real; i++) {
-        id              = (i + H.n_ghost) + (j + H.n_ghost) * H.nx;
-        buf_id          = j + i * H.ny_real;
-        C.GasEnergy[id] = dataset_buffer[buf_id];
-      }
-    }
-  #endif  // DE
-
-  #ifdef SCALAR
-    for (int s = 0; s < NSCALARS; s++) {
-      // create the name of the dataset
-      char dataset[100];
-      char number[10];
-      strcpy(dataset, "/scalar");
-      sprintf(number, "%d", s);
-      strcat(dataset, number);
-
-      // Open the scalar dataset
-      dataset_id = H5Dopen(file_id, dataset, H5P_DEFAULT);
-      // Read the scalar array into the dataset buffer  // NOTE: NEED TO FIX FOR
-      // FLOAT REAL!!!
-      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      // Free the dataset id
-      status = H5Dclose(dataset_id);
-
-      // Copy the scalar array to the grid
-      for (j = 0; j < H.ny_real; j++) {
-        for (i = 0; i < H.nx_real; i++) {
-          id                           = (i + H.n_ghost) + (j + H.n_ghost) * H.nx;
-          buf_id                       = j + i * H.ny_real;
-          C.scalar[id + s * H.n_cells] = dataset_buffer[buf_id];
-        }
-      }
-    }
+    #else
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HI_density, "/HI_density");
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HII_density, "/HII_density");
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HeI_density, "/HeI_density");  
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HeII_density, "/HeII_density");
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HeIII_density, "/HeIII_density");
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.e_density, "/e_density");    
+    #ifdef GRACKLE_METALS
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.metal_density, "/metal_density");  
+    #endif // GRACKLE_METALS
+    #endif // COOLING_GRACKLE , CHEMISTRY_GPU
   #endif  // SCALAR
-  }
-
-  // 3D case
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-    // Compute Statistic of Initial data
-    Real mean_l, min_l, max_l;
-    Real mean_g, min_g, max_g;
-
-    // need a dataset buffer to remap fastest index
-    dataset_buffer = (Real *)malloc(H.nz_real * H.ny_real * H.nx_real * sizeof(Real));
-
-    // Open the density dataset
-    dataset_id = H5Dopen(file_id, "/density", H5P_DEFAULT);
-    // Read the density array into the dataset buffer  // NOTE: NEED TO FIX FOR
-    // FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    mean_l = 0;
-    min_l  = 1e65;
-    max_l  = -1;
-
-    // Copy the density array to the grid
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        for (i = 0; i < H.nx_real; i++) {
-          id            = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-          buf_id        = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-          C.density[id] = dataset_buffer[buf_id];
-          mean_l += C.density[id];
-          if (C.density[id] > max_l) max_l = C.density[id];
-          if (C.density[id] < min_l) min_l = C.density[id];
-        }
-      }
-    }
-    mean_l /= (H.nz_real * H.ny_real * H.nx_real);
-
-  #if MPI_CHOLLA
-    mean_g = ReduceRealAvg(mean_l);
-    max_g  = ReduceRealMax(max_l);
-    min_g  = ReduceRealMin(min_l);
-    mean_l = mean_g;
-    max_l  = max_g;
-    min_l  = min_g;
-  #endif  // MPI_CHOLLA
-
-  #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
-    chprintf(" Density  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3] \n", mean_l, min_l, max_l);
-  #endif  // PRINT_INITIAL_STATS and COSMOLOGY
-
-    // Open the x momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_x", H5P_DEFAULT);
-    // Read the x momentum array into the dataset buffer  // NOTE: NEED TO FIX
-    // FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    mean_l = 0;
-    min_l  = 1e65;
-    max_l  = -1;
-    // Copy the x momentum array to the grid
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        for (i = 0; i < H.nx_real; i++) {
-          id               = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-          buf_id           = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-          C.momentum_x[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.momentum_x[id]);
-          if (fabs(C.momentum_x[id]) > max_l) max_l = fabs(C.momentum_x[id]);
-          if (fabs(C.momentum_x[id]) < min_l) min_l = fabs(C.momentum_x[id]);
-        }
-      }
-    }
-    mean_l /= (H.nz_real * H.ny_real * H.nx_real);
-
-  #if MPI_CHOLLA
-    mean_g = ReduceRealAvg(mean_l);
-    max_g  = ReduceRealMax(max_l);
-    min_g  = ReduceRealMin(min_l);
-    mean_l = mean_g;
-    max_l  = max_g;
-    min_l  = min_g;
-  #endif  // MPI_CHOLLA
-
-  #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
-    chprintf(
-        " abs(Momentum X)  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 "
-        "km s^-1] \n",
-        mean_l, min_l, max_l);
-  #endif  // PRINT_INITIAL_STATS and COSMOLOGY
-
-    // Open the y momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_y", H5P_DEFAULT);
-    // Read the y momentum array into the dataset buffer  // NOTE: NEED TO FIX
-    // FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    mean_l = 0;
-    min_l  = 1e65;
-    max_l  = -1;
-    // Copy the y momentum array to the grid
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        for (i = 0; i < H.nx_real; i++) {
-          id               = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-          buf_id           = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-          C.momentum_y[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.momentum_y[id]);
-          if (fabs(C.momentum_y[id]) > max_l) max_l = fabs(C.momentum_y[id]);
-          if (fabs(C.momentum_y[id]) < min_l) min_l = fabs(C.momentum_y[id]);
-        }
-      }
-    }
-    mean_l /= (H.nz_real * H.ny_real * H.nx_real);
-
-  #if MPI_CHOLLA
-    mean_g = ReduceRealAvg(mean_l);
-    max_g  = ReduceRealMax(max_l);
-    min_g  = ReduceRealMin(min_l);
-    mean_l = mean_g;
-    max_l  = max_g;
-    min_l  = min_g;
-  #endif  // MPI_CHOLLA
-
-  #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
-    chprintf(
-        " abs(Momentum Y)  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 "
-        "km s^-1] \n",
-        mean_l, min_l, max_l);
-  #endif  // PRINT_INITIAL_STATS and COSMOLOGY
-
-    // Open the z momentum dataset
-    dataset_id = H5Dopen(file_id, "/momentum_z", H5P_DEFAULT);
-    // Read the z momentum array into the dataset buffer  // NOTE: NEED TO FIX
-    // FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    mean_l = 0;
-    min_l  = 1e65;
-    max_l  = -1;
-    // Copy the z momentum array to the grid
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        for (i = 0; i < H.nx_real; i++) {
-          id               = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-          buf_id           = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-          C.momentum_z[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.momentum_z[id]);
-          if (fabs(C.momentum_z[id]) > max_l) max_l = fabs(C.momentum_z[id]);
-          if (fabs(C.momentum_z[id]) < min_l) min_l = fabs(C.momentum_z[id]);
-        }
-      }
-    }
-    mean_l /= (H.nz_real * H.ny_real * H.nx_real);
-
-  #if MPI_CHOLLA
-    mean_g = ReduceRealAvg(mean_l);
-    max_g  = ReduceRealMax(max_l);
-    min_g  = ReduceRealMin(min_l);
-    mean_l = mean_g;
-    max_l  = max_g;
-    min_l  = min_g;
-  #endif  // MPI_CHOLLA
-
-  #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
-    chprintf(
-        " abs(Momentum Z)  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 "
-        "km s^-1] \n",
-        mean_l, min_l, max_l);
-  #endif  // PRINT_INITIAL_STATS and COSMOLOGY
-
-    // Open the Energy dataset
-    dataset_id = H5Dopen(file_id, "/Energy", H5P_DEFAULT);
-    // Read the Energy array into the dataset buffer  // NOTE: NEED TO FIX FOR
-    // FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    mean_l = 0;
-    min_l  = 1e65;
-    max_l  = -1;
-    // Copy the Energy array to the grid
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        for (i = 0; i < H.nx_real; i++) {
-          id           = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-          buf_id       = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-          C.Energy[id] = dataset_buffer[buf_id];
-          mean_l += C.Energy[id];
-          if (C.Energy[id] > max_l) max_l = C.Energy[id];
-          if (C.Energy[id] < min_l) min_l = C.Energy[id];
-        }
-      }
-    }
-    mean_l /= (H.nz_real * H.ny_real * H.nx_real);
-
-  #if MPI_CHOLLA
-    mean_g = ReduceRealAvg(mean_l);
-    max_g  = ReduceRealMax(max_l);
-    min_g  = ReduceRealMin(min_l);
-    mean_l = mean_g;
-    max_l  = max_g;
-    min_l  = min_g;
-  #endif  // MPI_CHOLLA
-
-  #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
-    chprintf(
-        " Energy  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 km^2 "
-        "s^-2 ] \n",
-        mean_l, min_l, max_l);
-  #endif  // PRINT_INITIAL_STATS and COSMOLOGY
-
-  #ifdef DE
-    // Open the internal Energy dataset
-    dataset_id = H5Dopen(file_id, "/GasEnergy", H5P_DEFAULT);
-    // Read the internal Energy array into the dataset buffer  // NOTE: NEED TO
-    // FIX FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    Real temp, temp_max_l, temp_min_l, temp_mean_l;
-    Real temp_min_g, temp_max_g, temp_mean_g;
-    temp_mean_l = 0;
-    temp_min_l  = 1e65;
-    temp_max_l  = -1;
-    mean_l      = 0;
-    min_l       = 1e65;
-    max_l       = -1;
-    // Copy the internal Energy array to the grid
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        for (i = 0; i < H.nx_real; i++) {
-          id              = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-          buf_id          = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-          C.GasEnergy[id] = dataset_buffer[buf_id];
-          mean_l += C.GasEnergy[id];
-          if (C.GasEnergy[id] > max_l) max_l = C.GasEnergy[id];
-          if (C.GasEnergy[id] < min_l) min_l = C.GasEnergy[id];
-          temp = C.GasEnergy[id] / C.density[id] * (gama - 1) * MP / KB * 1e10;
-          temp_mean_l += temp;
-          // chprintf( "%f\n", temp);
-          if (temp > temp_max_l) temp_max_l = temp;
-          if (temp < temp_min_l) temp_min_l = temp;
-        }
-      }
-    }
-    mean_l /= (H.nz_real * H.ny_real * H.nx_real);
-    temp_mean_l /= (H.nz_real * H.ny_real * H.nx_real);
-
-    #if MPI_CHOLLA
-    mean_g      = ReduceRealAvg(mean_l);
-    max_g       = ReduceRealMax(max_l);
-    min_g       = ReduceRealMin(min_l);
-    mean_l      = mean_g;
-    max_l       = max_g;
-    min_l       = min_g;
-    temp_mean_g = ReduceRealAvg(temp_mean_l);
-    temp_max_g  = ReduceRealMax(temp_max_l);
-    temp_min_g  = ReduceRealMin(temp_min_l);
-    temp_mean_l = temp_mean_g;
-    temp_max_l  = temp_max_g;
-    temp_min_l  = temp_min_g;
-    #endif  // MPI_CHOLLA
-
-    #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
-    chprintf(
-        " GasEnergy  Mean: %f   Min: %f   Max: %f      [ h^2 Msun kpc^-3 km^2 "
-        "s^-2 ] \n",
-        mean_l, min_l, max_l);
-    chprintf(" Temperature  Mean: %f   Min: %f   Max: %f      [ K ] \n", temp_mean_l, temp_min_l, temp_max_l);
-    #endif  // PRINT_INITIAL_STATS and COSMOLOGY
-
-  #endif  // DE
-
-  #ifdef SCALAR
-    #if !defined(COOLING_GRACKLE) && !defined(CHEMISTRY_GPU)  // Dont Load scalars when using grackle or
-                                                              // CHEMISTRY_GPU
-    for (int s = 0; s < NSCALARS; s++) {
-      // create the name of the dataset
-      char dataset[100];
-      char number[10];
-      strcpy(dataset, "/scalar");
-      sprintf(number, "%d", s);
-      strcat(dataset, number);
-
-      // Open the scalar dataset
-      dataset_id = H5Dopen(file_id, dataset, H5P_DEFAULT);
-      // Read the scalar array into the dataset buffer  // NOTE: NEED TO FIX FOR
-      // FLOAT REAL!!!
-      status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      // Free the dataset id
-      status = H5Dclose(dataset_id);
-
-      // Copy the scalar array to the grid
-      for (k = 0; k < H.nz_real; k++) {
-        for (j = 0; j < H.ny_real; j++) {
-          for (i = 0; i < H.nx_real; i++) {
-            id                           = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-            buf_id                       = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-            C.scalar[id + s * H.n_cells] = dataset_buffer[buf_id];
-          }
-        }
-      }
-    }
-    #else  // Load Chemistry when using GRACKLE or CHEMISTRY_GPU
-    if (P.nfile == 0) {
-      Real dens;
-      Real HI_frac    = INITIAL_FRACTION_HI;
-      Real HII_frac   = INITIAL_FRACTION_HII;
-      Real HeI_frac   = INITIAL_FRACTION_HEI;
-      Real HeII_frac  = INITIAL_FRACTION_HEII;
-      Real HeIII_frac = INITIAL_FRACTION_HEIII;
-      Real e_frac     = INITIAL_FRACTION_ELECTRON;
-      Real metal_frac = INITIAL_FRACTION_METAL;
-      chprintf(" Initial HI Fraction:    %e \n", HI_frac);
-      chprintf(" Initial HII Fraction:   %e \n", HII_frac);
-      chprintf(" Initial HeI Fraction:   %e \n", HeI_frac);
-      chprintf(" Initial HeII Fraction:  %e \n", HeII_frac);
-      chprintf(" Initial HeIII Fraction: %e \n", HeIII_frac);
-      chprintf(" Initial elect Fraction: %e \n", e_frac);
-      #ifdef GRACKLE_METALS
-      chprintf(" Initial metal Fraction: %e \n", metal_frac);
-      #endif  // GRACKEL_METALS
-      for (k = 0; k < H.nz_real; k++) {
-        for (j = 0; j < H.ny_real; j++) {
-          for (i = 0; i < H.nx_real; i++) {
-            id                  = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-            dens                = C.density[id];
-            C.HI_density[id]    = HI_frac * dens;
-            C.HII_density[id]   = HII_frac * dens;
-            C.HeI_density[id]   = HeI_frac * dens;
-            C.HeII_density[id]  = HeII_frac * dens;
-            C.HeIII_density[id] = HeIII_frac * dens;
-            C.e_density[id]     = e_frac * dens;
-      #ifdef GRACKLE_METALS
-            C.metal_density[id] = metal_frac * dens;
-      #endif
-          }
-        }
-      }
-    } else {
-      dataset_id = H5Dopen(file_id, "/HI_density", H5P_DEFAULT);
-      status     = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      status     = H5Dclose(dataset_id);
-      for (k = 0; k < H.nz_real; k++) {
-        for (j = 0; j < H.ny_real; j++) {
-          for (i = 0; i < H.nx_real; i++) {
-            id               = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-            buf_id           = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-            C.HI_density[id] = dataset_buffer[buf_id];
-            // chprintf("%f \n",  C.scalar[0*H.n_cells + id] / C.density[id]);
-          }
-        }
-      }
-      dataset_id = H5Dopen(file_id, "/HII_density", H5P_DEFAULT);
-      status     = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      status     = H5Dclose(dataset_id);
-      for (k = 0; k < H.nz_real; k++) {
-        for (j = 0; j < H.ny_real; j++) {
-          for (i = 0; i < H.nx_real; i++) {
-            id                = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-            buf_id            = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-            C.HII_density[id] = dataset_buffer[buf_id];
-          }
-        }
-      }
-      dataset_id = H5Dopen(file_id, "/HeI_density", H5P_DEFAULT);
-      status     = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      status     = H5Dclose(dataset_id);
-      for (k = 0; k < H.nz_real; k++) {
-        for (j = 0; j < H.ny_real; j++) {
-          for (i = 0; i < H.nx_real; i++) {
-            id                = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-            buf_id            = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-            C.HeI_density[id] = dataset_buffer[buf_id];
-          }
-        }
-      }
-      dataset_id = H5Dopen(file_id, "/HeII_density", H5P_DEFAULT);
-      status     = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      status     = H5Dclose(dataset_id);
-      for (k = 0; k < H.nz_real; k++) {
-        for (j = 0; j < H.ny_real; j++) {
-          for (i = 0; i < H.nx_real; i++) {
-            id                 = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-            buf_id             = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-            C.HeII_density[id] = dataset_buffer[buf_id];
-          }
-        }
-      }
-      dataset_id = H5Dopen(file_id, "/HeIII_density", H5P_DEFAULT);
-      status     = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      status     = H5Dclose(dataset_id);
-      for (k = 0; k < H.nz_real; k++) {
-        for (j = 0; j < H.ny_real; j++) {
-          for (i = 0; i < H.nx_real; i++) {
-            id                  = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-            buf_id              = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-            C.HeIII_density[id] = dataset_buffer[buf_id];
-          }
-        }
-      }
-      dataset_id = H5Dopen(file_id, "/e_density", H5P_DEFAULT);
-      status     = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      status     = H5Dclose(dataset_id);
-      for (k = 0; k < H.nz_real; k++) {
-        for (j = 0; j < H.ny_real; j++) {
-          for (i = 0; i < H.nx_real; i++) {
-            id              = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-            buf_id          = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-            C.e_density[id] = dataset_buffer[buf_id];
-          }
-        }
-      }
-      #ifdef GRACKLE_METALS
-      dataset_id = H5Dopen(file_id, "/metal_density", H5P_DEFAULT);
-      status     = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-      status     = H5Dclose(dataset_id);
-      for (k = 0; k < H.nz_real; k++) {
-        for (j = 0; j < H.ny_real; j++) {
-          for (i = 0; i < H.nx_real; i++) {
-            id                  = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-            buf_id              = k + j * H.nz_real + i * H.nz_real * H.ny_real;
-            C.metal_density[id] = dataset_buffer[buf_id];
-          }
-        }
-      }
-      #endif  // GRACKLE_METALS
-    }
-    #endif    // COOLING_GRACKLE
-  #endif      // SCALAR
 
   #ifdef MHD
-    // Start by creating a dataspace and buffer that is large enough for the
-    // magnetic field since it's one larger than the rest
-    free(dataset_buffer);
-    dataset_buffer = (Real *)malloc((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1) * sizeof(Real));
+  Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_x, "/magnetic_x");
+  Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_y, "/magnetic_y");
+  Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_z, "/magnetic_z");      
+  #endif
 
-    // Open the x magnetic field dataset
-    dataset_id = H5Dopen(file_id, "/magnetic_x", H5P_DEFAULT);
-    // Read the x magnetic field array into the dataset buffer  // NOTE: NEED TO
-    // FIX FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
 
-    mean_l = 0;
-    min_l  = 1e65;
-    max_l  = -1;
-    // Copy the x magnetic field array to the grid
-    for (k = 0; k < H.nz_real + 1; k++) {
-      for (j = 0; j < H.ny_real + 1; j++) {
-        for (i = 0; i < H.nx_real + 1; i++) {
-          id               = (i + H.n_ghost - 1) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
-          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
-          C.magnetic_x[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.magnetic_x[id]);
-          if (fabs(C.magnetic_x[id]) > max_l) max_l = fabs(C.magnetic_x[id]);
-          if (fabs(C.magnetic_x[id]) < min_l) min_l = fabs(C.magnetic_x[id]);
-        }
-      }
-    }
-    mean_l /= ((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1));
-
-    #if MPI_CHOLLA
-    mean_g = ReduceRealAvg(mean_l);
-    max_g  = ReduceRealMax(max_l);
-    min_g  = ReduceRealMin(min_l);
-    mean_l = mean_g;
-    max_l  = max_g;
-    min_l  = min_g;
-    #endif  // MPI_CHOLLA
-
-    #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
-    chprintf(
-        " abs(Magnetic X)  Mean: %f   Min: %f   Max: %f      [ Msun^1/2 "
-        "kpc^-1/2 s^-1] \n",
-        mean_l, min_l, max_l);
-    #endif  // PRINT_INITIAL_STATS and COSMOLOGY
-
-    // Open the y magnetic field dataset
-    dataset_id = H5Dopen(file_id, "/magnetic_y", H5P_DEFAULT);
-    // Read the y magnetic field array into the dataset buffer  // NOTE: NEED TO
-    // FIX FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    mean_l = 0;
-    min_l  = 1e65;
-    max_l  = -1;
-    // Copy the y magnetic field array to the grid
-    for (k = 0; k < H.nz_real + 1; k++) {
-      for (j = 0; j < H.ny_real + 1; j++) {
-        for (i = 0; i < H.nx_real + 1; i++) {
-          id               = (i + H.n_ghost - 1) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
-          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
-          C.magnetic_y[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.magnetic_y[id]);
-          if (fabs(C.magnetic_y[id]) > max_l) max_l = fabs(C.magnetic_y[id]);
-          if (fabs(C.magnetic_y[id]) < min_l) min_l = fabs(C.magnetic_y[id]);
-        }
-      }
-    }
-    mean_l /= ((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1));
-
-    #if MPI_CHOLLA
-    mean_g = ReduceRealAvg(mean_l);
-    max_g  = ReduceRealMax(max_l);
-    min_g  = ReduceRealMin(min_l);
-    mean_l = mean_g;
-    max_l  = max_g;
-    min_l  = min_g;
-    #endif  // MPI_CHOLLA
-
-    #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
-    chprintf(
-        " abs(Magnetic Y)  Mean: %f   Min: %f   Max: %f      [ Msun^1/2 "
-        "kpc^-1/2 s^-1] \n",
-        mean_l, min_l, max_l);
-    #endif  // PRINT_INITIAL_STATS and COSMOLOGY
-
-    // Open the z magnetic field dataset
-    dataset_id = H5Dopen(file_id, "/magnetic_z", H5P_DEFAULT);
-    // Read the z magnetic field array into the dataset buffer  // NOTE: NEED TO
-    // FIX FOR FLOAT REAL!!!
-    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
-    // Free the dataset id
-    status = H5Dclose(dataset_id);
-
-    mean_l = 0;
-    min_l  = 1e65;
-    max_l  = -1;
-    // Copy the z magnetic field array to the grid
-    for (k = 0; k < H.nz_real + 1; k++) {
-      for (j = 0; j < H.ny_real + 1; j++) {
-        for (i = 0; i < H.nx_real + 1; i++) {
-          id               = (i + H.n_ghost - 1) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
-          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
-          C.magnetic_z[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.magnetic_z[id]);
-          if (fabs(C.magnetic_z[id]) > max_l) max_l = fabs(C.magnetic_z[id]);
-          if (fabs(C.magnetic_z[id]) < min_l) min_l = fabs(C.magnetic_z[id]);
-        }
-      }
-    }
-    mean_l /= ((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1));
-
-    #if MPI_CHOLLA
-    mean_g = ReduceRealAvg(mean_l);
-    max_g  = ReduceRealMax(max_l);
-    min_g  = ReduceRealMin(min_l);
-    mean_l = mean_g;
-    max_l  = max_g;
-    min_l  = min_g;
-    #endif  // MPI_CHOLLA
-
-    #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
-    chprintf(
-        " abs(Magnetic Z)  Mean: %f   Min: %f   Max: %f      [ Msun^1/2 "
-        "kpc^-1/2 s^-1] \n",
-        mean_l, min_l, max_l);
-    #endif  // PRINT_INITIAL_STATS and COSMOLOGY
-  #endif    // MHD
-  }
   free(dataset_buffer);
 }
 #endif

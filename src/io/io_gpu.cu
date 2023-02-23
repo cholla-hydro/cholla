@@ -4,12 +4,16 @@
   #include <hdf5.h>
 
   #include "../grid/grid3D.h"
-  #include "../io/io.h"  // To provide io.h with OutputViz3D
+  #include "../io/io.h"
 
 // Note that the HDF5 file and buffer will have size nx_real * ny_real * nz_real
-// whereas the conserved variables have size nx,ny,nz Note that magnetic fields
+// whereas the conserved variables have size nx,ny,nz.
+
+// Note that magnetic fields
 // add +1 to nx_real ny_real nz_real since an extra face needs to be output, but
-// also has the same size nx ny nz For the magnetic field case, a different
+// also has the same size nx ny nz.
+
+// For the magnetic field case, a different
 // nx_real+1 ny_real+1 nz_real+1 n_ghost-1 are provided as inputs.
 
 // Copy Real (non-ghost) cells from source to a double destination (for writing
