@@ -414,7 +414,7 @@ __device__ __host__ mhd::_internal::DoubleStarState computeDoubleStarState(mhd::
   // if Bx is zero then just return the star state
   // Explained at the top of page 328 in M&K 2005. Essentially when
   // magneticX is 0 this reduces to the HLLC solver
-  if (magneticX < mhd::_internal::_hlldSmallNumber * totalPressureStar) {
+  if (0.5 * (magneticX * magneticX) < mhd::_internal::_hlldSmallNumber * totalPressureStar) {
     if (speed.M >= 0.0) {
       // We're in the L** state but Bx=0 so return L* state
       doubleStarState.velocityY = starStateL.velocityY;
