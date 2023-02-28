@@ -84,6 +84,10 @@ void Grid3D::Set_Initial_Conditions(parameters P)
     Zeldovich_Pancake(P);
   } else if (strcmp(P.init, "Chemistry_Test") == 0) {
     Chemistry_Test(P);
+#ifdef MHD
+  } else if (strcmp(P.init, "Circularly_Polarized_Alfven_Wave") == 0) {
+    Circularly_Polarized_Alfven_Wave(P);
+#endif  // MHD
   } else {
     chprintf("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
@@ -1588,3 +1592,141 @@ void Grid3D::Chemistry_Test(struct parameters P)
   chexit(-1);
 #endif  // COSMOLOGY
 }
+
+#ifdef MHD
+void Grid3D::Circularly_Polarized_Alfven_Wave(struct parameters const P)
+{
+  // This test is only meaningful for a limited number of parameter values so I will check them here
+  assert(P.polarization == 1.0 or
+         P.polarization == -1.0 and
+             "The polarization for this test must be 1 (right polarized) or -1 (left polarized).");
+  assert(std::abs(P.vx) == 1.0 or
+         P.vx == 0.0 and "The x velocity for this test must be 0 (traveling wave) or 1 (standing wave).");
+
+  // Check the domain and angles
+  auto checkDomain = [](int const &nx, int const &ny, int const &nz, Real const &xlen, Real const &ylen,
+                        Real const &zlen) {
+    assert(nx == 2 * ny and nx == 2 * nz and "This test requires that the number of cells be of shape 2L x L x L");
+    assert(xlen == 2 * ylen and xlen == 2 * zlen and "This test requires that the domain be of shape 2L x L x L");
+  };
+  if ((P.pitch == 0.0 and P.yaw == 0.0) or (P.pitch == std::asin(2. / 3.) and P.yaw == std::asin(2. / std::sqrt(5.)))) {
+    checkDomain(P.nx, P.ny, P.nz, P.xlen, P.ylen, P.zlen);
+  } else if (P.pitch == 0.5 * M_PI and P.yaw == 0.0) {
+    checkDomain(P.ny, P.nz, P.nx, P.ylen, P.zlen, P.xlen);
+  } else if (P.pitch == 0.0 and P.yaw == 0.5 * M_PI) {
+    checkDomain(P.nz, P.nx, P.ny, P.zlen, P.xlen, P.ylen);
+  } else {
+    assert(false and "This test does not support these angles");
+  }
+
+  // Parameters for tests.
+  Real const density    = 1.0;
+  Real const pressure   = 0.1;
+  Real const velocity_x = P.vx;
+  Real const amplitude  = 0.1;  // the amplitude of the wave
+  Real const magnetic_x = 1.0;
+
+  // Angles
+  Real const sin_yaw   = std::sin(P.yaw);
+  Real const cos_yaw   = std::cos(P.yaw);
+  Real const sin_pitch = std::sin(P.pitch);
+  Real const cos_pitch = std::cos(P.pitch);
+
+  // Compute the wave quantities
+  Real const wavelength = 1.;
+  Real const wavenumber = 2.0 * M_PI / wavelength;  // the angular wave number k
+
+  // Compute the vector potentials
+  std::vector<Real> vectorPotential(3 * H.n_cells, 0);
+  auto Compute_Vector_Potential = [&](Real const &x_loc, Real const &y_loc, Real const &z_loc) {
+    // The "_rot" variables are the rotated version
+    Real const x_rot = x_loc * cos_pitch * cos_yaw + y_loc * cos_pitch * sin_yaw + z_loc * sin_pitch;
+    Real const y_rot = -x_loc * sin_yaw + y_loc * cos_yaw;
+
+    Real const a_y = P.polarization * (amplitude / wavenumber) * std::sin(wavenumber * x_rot);
+    Real const a_z = (amplitude / wavenumber) * std::cos(wavenumber * x_rot) + magnetic_x * y_rot;
+
+    return std::make_pair(a_y, a_z);
+  };
+
+  for (int k = 0; k < H.nz; k++) {
+    for (int j = 0; j < H.ny; j++) {
+      for (int i = 0; i < H.nx; i++) {
+        // Get cell index
+        int const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        Real x, y, z;
+        Get_Position(i, j, k, &x, &y, &z);
+
+        auto vectorPot                         = Compute_Vector_Potential(x, y + H.dy / 2., z + H.dz / 2.);
+        vectorPotential.at(id + 0 * H.n_cells) = -vectorPot.first * sin_yaw - vectorPot.second * sin_pitch * cos_yaw;
+
+        vectorPot                              = Compute_Vector_Potential(x + H.dx / 2., y, z + H.dz / 2.);
+        vectorPotential.at(id + 1 * H.n_cells) = vectorPot.first * cos_yaw - vectorPot.second * sin_pitch * sin_yaw;
+
+        vectorPot                              = Compute_Vector_Potential(x + H.dx / 2., y + H.dy / 2., z);
+        vectorPotential.at(id + 2 * H.n_cells) = vectorPot.second * cos_pitch;
+      }
+    }
+  }
+
+  // Compute the magnetic field
+  for (int k = 1; k < H.nz; k++) {
+    for (int j = 1; j < H.ny; j++) {
+      for (int i = 1; i < H.nx; i++) {
+        // Get cell index. The "xmo" means: X direction Minus One
+        int const id    = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+        int const idxmo = cuda_utilities::compute1DIndex(i - 1, j, k, H.nx, H.ny);
+        int const idymo = cuda_utilities::compute1DIndex(i, j - 1, k, H.nx, H.ny);
+        int const idzmo = cuda_utilities::compute1DIndex(i, j, k - 1, H.nx, H.ny);
+
+        C.magnetic_x[id] = (vectorPotential.at(id + 2 * H.n_cells) - vectorPotential.at(idymo + 2 * H.n_cells)) / H.dy -
+                           (vectorPotential.at(id + 1 * H.n_cells) - vectorPotential.at(idzmo + 1 * H.n_cells)) / H.dz;
+        C.magnetic_y[id] = (vectorPotential.at(id + 0 * H.n_cells) - vectorPotential.at(idzmo + 0 * H.n_cells)) / H.dz -
+                           (vectorPotential.at(id + 2 * H.n_cells) - vectorPotential.at(idxmo + 2 * H.n_cells)) / H.dx;
+        C.magnetic_z[id] = (vectorPotential.at(id + 1 * H.n_cells) - vectorPotential.at(idxmo + 1 * H.n_cells)) / H.dx -
+                           (vectorPotential.at(id + 0 * H.n_cells) - vectorPotential.at(idymo + 0 * H.n_cells)) / H.dy;
+      }
+    }
+  }
+
+  // set initial values of non-magnetic conserved variables
+  for (int k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
+        // get cell index
+        int const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        // get cell-centered position
+        Real x_pos, y_pos, z_pos;
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        Real const x_pos_rot = x_pos * cos_pitch * cos_yaw + y_pos * cos_pitch * sin_yaw + z_pos * sin_pitch;
+
+        // Compute the momentum
+        Real const momentum_x = density * velocity_x;
+        Real const momentum_y = -P.polarization * density * amplitude * std::sin(wavenumber * x_pos_rot);
+        Real const momentum_z = -density * amplitude * std::cos(wavenumber * x_pos_rot);
+        Real const momentum_x_rot =
+            momentum_x * cos_pitch * cos_yaw - momentum_y * sin_yaw - momentum_z * sin_pitch * cos_yaw;
+        Real const momentum_y_rot =
+            momentum_x * cos_pitch * sin_yaw + momentum_y * cos_yaw - momentum_z * sin_pitch * sin_yaw;
+        Real const momentum_z_rot = momentum_x * sin_pitch + momentum_z * cos_pitch;
+
+        // Compute the Energy
+        auto const magnetic_centered =
+            mhd::utils::cellCenteredMagneticFields(C.host, id, i, j, k, H.n_cells, H.nx, H.ny);
+        Real const energy = mhd::utils::computeEnergy(
+            pressure, density, momentum_x_rot / density, momentum_y_rot / density, momentum_z_rot / density,
+            magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
+
+        // Final assignment
+        C.density[id]    = density;
+        C.momentum_x[id] = momentum_x_rot;
+        C.momentum_y[id] = momentum_y_rot;
+        C.momentum_z[id] = momentum_z_rot;
+        C.Energy[id]     = energy;
+      }
+    }
+  }
+}
+#endif  // MHD
