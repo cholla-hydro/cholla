@@ -390,23 +390,27 @@ __global__ void Noh_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int 
     z_pos = (z_off + zid - n_ghost + 0.5) * dz + zbound;
 
     // for 2D calculate polar r
-    if (nz == 1) r = sqrt(x_pos * x_pos + y_pos * y_pos);
-    // for 3D calculate spherical r
-    else
+    if (nz == 1) {
+      r = sqrt(x_pos * x_pos + y_pos * y_pos);
+      // for 3D calculate spherical r
+    } else {
       r = sqrt(x_pos * x_pos + y_pos * y_pos + z_pos * z_pos);
+    }
 
     // calculate the velocities
     vx = -x_pos / r;
     vy = -y_pos / r;
-    if (nz > 1)
+    if (nz > 1) {
       vz = -z_pos / r;
-    else
+    } else {
       vz = 0;
+    }
     // set the conserved quantities
-    if (nz > 1)
+    if (nz > 1) {
       c_device[gid] = d_0 * (1.0 + t / r) * (1.0 + t / r);
-    else
+    } else {
       c_device[gid] = d_0 * (1.0 + t / r);
+    }
     c_device[gid + 1 * n_cells] = vx * c_device[gid];
     c_device[gid + 2 * n_cells] = vy * c_device[gid];
     c_device[gid + 3 * n_cells] = vz * c_device[gid];
@@ -435,23 +439,27 @@ __global__ void Noh_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int 
     z_pos = (z_off + zid - n_ghost + 0.5) * dz + zbound;
 
     // for 2D calculate polar r
-    if (nz == 1) r = sqrt(x_pos * x_pos + y_pos * y_pos);
-    // for 3D, calculate spherical r
-    else
+    if (nz == 1) {
+      r = sqrt(x_pos * x_pos + y_pos * y_pos);
+      // for 3D, calculate spherical r
+    } else {
       r = sqrt(x_pos * x_pos + y_pos * y_pos + z_pos * z_pos);
+    }
 
     // calculate the velocities
     vx = -x_pos / r;
     vy = -y_pos / r;
-    if (nz > 1)
+    if (nz > 1) {
       vz = -z_pos / r;
-    else
+    } else {
       vz = 0;
+    }
     // set the conserved quantities
-    if (nz > 1)
+    if (nz > 1) {
       c_device[gid] = d_0 * (1.0 + t / r) * (1.0 + t / r);
-    else
+    } else {
       c_device[gid] = d_0 * (1.0 + t / r);
+    }
     c_device[gid + 1 * n_cells] = vx * c_device[gid];
     c_device[gid + 2 * n_cells] = vy * c_device[gid];
     c_device[gid + 3 * n_cells] = vz * c_device[gid];
@@ -483,23 +491,27 @@ __global__ void Noh_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int 
     z_pos = (z_off + zid - n_ghost + 0.5) * dz + zbound;
 
     // for 2D calculate polar r
-    if (nz == 1) r = sqrt(x_pos * x_pos + y_pos * y_pos);
-    // for 3D, calculate spherical r
-    else
+    if (nz == 1) {
+      r = sqrt(x_pos * x_pos + y_pos * y_pos);
+      // for 3D, calculate spherical r
+    } else {
       r = sqrt(x_pos * x_pos + y_pos * y_pos + z_pos * z_pos);
+    }
 
     // calculate the velocities
     vx = -x_pos / r;
     vy = -y_pos / r;
-    if (nz > 1)
+    if (nz > 1) {
       vz = -z_pos / r;
-    else
+    } else {
       vz = 0;
+    }
     // set the conserved quantities
-    if (nz > 1)
+    if (nz > 1) {
       c_device[gid] = d_0 * (1.0 + t / r) * (1.0 + t / r);
-    else
+    } else {
       c_device[gid] = d_0 * (1.0 + t / r);
+    }
     c_device[gid + 1 * n_cells] = vx * c_device[gid];
     c_device[gid + 2 * n_cells] = vy * c_device[gid];
     c_device[gid + 3 * n_cells] = vz * c_device[gid];

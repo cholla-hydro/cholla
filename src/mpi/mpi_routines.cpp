@@ -241,15 +241,17 @@ void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int
   // set grid dimensions
   H->nx      = nx_local + 2 * H->n_ghost;
   H->nx_real = nx_local;
-  if (ny_local == 1)
+  if (ny_local == 1) {
     H->ny = 1;
-  else
+  } else {
     H->ny = ny_local + 2 * H->n_ghost;
+  }
   H->ny_real = ny_local;
-  if (nz_local == 1)
+  if (nz_local == 1) {
     H->nz = 1;
-  else
+  } else {
     H->nz = nz_local + 2 * H->n_ghost;
+  }
   H->nz_real = nz_local;
 
   // set total number of cells
@@ -324,8 +326,8 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   //      for(k=0;k<nproc_z;k++)
   //
 
-  for (k = 0; k < nproc_z; k++)
-    for (j = 0; j < nproc_y; j++)
+  for (k = 0; k < nproc_z; k++) {
+    for (j = 0; j < nproc_y; j++) {
       for (i = 0; i < nproc_x; i++) {
         ix[n] = i;
         iy[n] = j;
@@ -351,6 +353,8 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
         }
         n++;
       }
+    }
+  }
 
   /* set local x, y, z subdomain sizes */
   n = nx_global % nproc_x;

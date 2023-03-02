@@ -821,21 +821,27 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     if ((p_R - p_i) * (p_i - p_L) <= 0) p_L = p_R = p_i;
 
     if (6.0 * (d_R - d_L) * (d_i - 0.5 * (d_L + d_R)) > (d_R - d_L) * (d_R - d_L)) d_L = 3.0 * d_i - 2.0 * d_R;
-    if (6.0 * (vx_R - vx_L) * (vx_i - 0.5 * (vx_L + vx_R)) > (vx_R - vx_L) * (vx_R - vx_L))
+    if (6.0 * (vx_R - vx_L) * (vx_i - 0.5 * (vx_L + vx_R)) > (vx_R - vx_L) * (vx_R - vx_L)) {
       vx_L = 3.0 * vx_i - 2.0 * vx_R;
-    if (6.0 * (vy_R - vy_L) * (vy_i - 0.5 * (vy_L + vy_R)) > (vy_R - vy_L) * (vy_R - vy_L))
+    }
+    if (6.0 * (vy_R - vy_L) * (vy_i - 0.5 * (vy_L + vy_R)) > (vy_R - vy_L) * (vy_R - vy_L)) {
       vy_L = 3.0 * vy_i - 2.0 * vy_R;
-    if (6.0 * (vz_R - vz_L) * (vz_i - 0.5 * (vz_L + vz_R)) > (vz_R - vz_L) * (vz_R - vz_L))
+    }
+    if (6.0 * (vz_R - vz_L) * (vz_i - 0.5 * (vz_L + vz_R)) > (vz_R - vz_L) * (vz_R - vz_L)) {
       vz_L = 3.0 * vz_i - 2.0 * vz_R;
+    }
     if (6.0 * (p_R - p_L) * (p_i - 0.5 * (p_L + p_R)) > (p_R - p_L) * (p_R - p_L)) p_L = 3.0 * p_i - 2.0 * p_R;
 
     if (6.0 * (d_R - d_L) * (d_i - 0.5 * (d_L + d_R)) < -(d_R - d_L) * (d_R - d_L)) d_R = 3.0 * d_i - 2.0 * d_L;
-    if (6.0 * (vx_R - vx_L) * (vx_i - 0.5 * (vx_L + vx_R)) < -(vx_R - vx_L) * (vx_R - vx_L))
+    if (6.0 * (vx_R - vx_L) * (vx_i - 0.5 * (vx_L + vx_R)) < -(vx_R - vx_L) * (vx_R - vx_L)) {
       vx_R = 3.0 * vx_i - 2.0 * vx_L;
-    if (6.0 * (vy_R - vy_L) * (vy_i - 0.5 * (vy_L + vy_R)) < -(vy_R - vy_L) * (vy_R - vy_L))
+    }
+    if (6.0 * (vy_R - vy_L) * (vy_i - 0.5 * (vy_L + vy_R)) < -(vy_R - vy_L) * (vy_R - vy_L)) {
       vy_R = 3.0 * vy_i - 2.0 * vy_L;
-    if (6.0 * (vz_R - vz_L) * (vz_i - 0.5 * (vz_L + vz_R)) < -(vz_R - vz_L) * (vz_R - vz_L))
+    }
+    if (6.0 * (vz_R - vz_L) * (vz_i - 0.5 * (vz_L + vz_R)) < -(vz_R - vz_L) * (vz_R - vz_L)) {
       vz_R = 3.0 * vz_i - 2.0 * vz_L;
+    }
     if (6.0 * (p_R - p_L) * (p_i - 0.5 * (p_L + p_R)) < -(p_R - p_L) * (p_R - p_L)) p_R = 3.0 * p_i - 2.0 * p_L;
 
     d_L  = fmax(fmin(d_i, d_imo), d_L);
@@ -861,10 +867,12 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
     #ifdef DE
     if ((ge_R - ge_i) * (ge_i - ge_L) <= 0) ge_L = ge_R = ge_i;
-    if (6.0 * (ge_R - ge_L) * (ge_i - 0.5 * (ge_L + ge_R)) > (ge_R - ge_L) * (ge_R - ge_L))
+    if (6.0 * (ge_R - ge_L) * (ge_i - 0.5 * (ge_L + ge_R)) > (ge_R - ge_L) * (ge_R - ge_L)) {
       ge_L = 3.0 * ge_i - 2.0 * ge_R;
-    if (6.0 * (ge_R - ge_L) * (ge_i - 0.5 * (ge_L + ge_R)) < -(ge_R - ge_L) * (ge_R - ge_L))
+    }
+    if (6.0 * (ge_R - ge_L) * (ge_i - 0.5 * (ge_L + ge_R)) < -(ge_R - ge_L) * (ge_R - ge_L)) {
       ge_R = 3.0 * ge_i - 2.0 * ge_L;
+    }
     ge_L = fmax(fmin(ge_i, ge_imo), ge_L);
     ge_L = fmin(fmax(ge_i, ge_imo), ge_L);
     ge_R = fmax(fmin(ge_i, ge_ipo), ge_R);
@@ -875,11 +883,13 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     for (int i = 0; i < NSCALARS; i++) {
       if ((scalar_R[i] - scalar_i[i]) * (scalar_i[i] - scalar_L[i]) <= 0) scalar_L[i] = scalar_R[i] = scalar_i[i];
       if (6.0 * (scalar_R[i] - scalar_L[i]) * (scalar_i[i] - 0.5 * (scalar_L[i] + scalar_R[i])) >
-          (scalar_R[i] - scalar_L[i]) * (scalar_R[i] - scalar_L[i]))
+          (scalar_R[i] - scalar_L[i]) * (scalar_R[i] - scalar_L[i])) {
         scalar_L[i] = 3.0 * scalar_i[i] - 2.0 * scalar_R[i];
+      }
       if (6.0 * (scalar_R[i] - scalar_L[i]) * (scalar_i[i] - 0.5 * (scalar_L[i] + scalar_R[i])) <
-          -(scalar_R[i] - scalar_L[i]) * (scalar_R[i] - scalar_L[i]))
+          -(scalar_R[i] - scalar_L[i]) * (scalar_R[i] - scalar_L[i])) {
         scalar_R[i] = 3.0 * scalar_i[i] - 2.0 * scalar_L[i];
+      }
       scalar_L[i] = fmax(fmin(scalar_i[i], scalar_imo[i]), scalar_L[i]);
       scalar_L[i] = fmin(fmax(scalar_i[i], scalar_imo[i]), scalar_L[i]);
       scalar_R[i] = fmax(fmin(scalar_i[i], scalar_ipo[i]), scalar_R[i]);

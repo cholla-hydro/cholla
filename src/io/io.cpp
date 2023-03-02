@@ -302,36 +302,45 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
     float *device_dataset_buffer = device_dataset_vector.data();
     float *dataset_buffer        = (float *)malloc(buffer_size * sizeof(float));
 
-    if (P.out_float32_density > 0)
+    if (P.out_float32_density > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_density, "/density");
-    if (P.out_float32_momentum_x > 0)
+    }
+    if (P.out_float32_momentum_x > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_momentum_x, "/momentum_x");
-    if (P.out_float32_momentum_y > 0)
+    }
+    if (P.out_float32_momentum_y > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_momentum_y, "/momentum_y");
-    if (P.out_float32_momentum_z > 0)
+    }
+    if (P.out_float32_momentum_z > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_momentum_z, "/momentum_z");
-    if (P.out_float32_Energy > 0)
+    }
+    if (P.out_float32_Energy > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_Energy, "/Energy");
+    }
 #ifdef DE
-    if (P.out_float32_GasEnergy > 0)
+    if (P.out_float32_GasEnergy > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_GasEnergy, "/GasEnergy");
+    }
 #endif  // DE
 #ifdef MHD
-    if (P.out_float32_magnetic_x > 0)
+    if (P.out_float32_magnetic_x > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
                        device_dataset_buffer, G.C.d_magnetic_x, "/magnetic_x");
-    if (P.out_float32_magnetic_y > 0)
+    }
+    if (P.out_float32_magnetic_y > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
                        device_dataset_buffer, G.C.d_magnetic_y, "/magnetic_y");
-    if (P.out_float32_magnetic_z > 0)
+    }
+    if (P.out_float32_magnetic_z > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
                        device_dataset_buffer, G.C.d_magnetic_z, "/magnetic_z");
+    }
 #endif
 
     free(dataset_buffer);
@@ -1743,8 +1752,9 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     // Free the dataspace ids
     status = H5Sclose(dataspace_xz_id);
     status = H5Sclose(dataspace_xy_id);
-  } else
+  } else {
     printf("Projection write only works for 3D data.\n");
+  }
 
   free(dataset_buffer_dxy);
   free(dataset_buffer_dxz);
@@ -1901,8 +1911,9 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     free(dataset_buffer_vyxzr);
     free(dataset_buffer_vzxzr);
 
-  } else
+  } else {
     chprintf("Rotated projection write only implemented for 3D data.\n");
+  }
 }
 #endif  // HDF5
 
@@ -2221,8 +2232,9 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     free(dataset_buffer_scalar);
   #endif
 
-  } else
+  } else {
     printf("Slice write only works for 3D data.\n");
+  }
 }
 #endif  // HDF5
 

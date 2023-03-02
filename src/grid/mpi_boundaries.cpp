@@ -777,22 +777,28 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers(int dir, int *flags)
 
   // find out how many recvs we need to wait for
   if (dir == 0) {
-    if (flags[0] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
-    if (flags[1] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
+    if (flags[0] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[1] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
   }
   if (dir == 1) {
-    if (flags[2] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
-    if (flags[3] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
+    if (flags[2] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[3] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
   }
   if (dir == 2) {
-    if (flags[4] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
-    if (flags[5] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
+    if (flags[4] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[5] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
   }
 
   // wait for any receives to complete
