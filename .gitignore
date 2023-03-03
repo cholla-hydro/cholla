@@ -2,6 +2,7 @@
 ##############################
 googletest*
 tidy_results*.txt
+bin/*
 
 # Compiled source #
 ###################

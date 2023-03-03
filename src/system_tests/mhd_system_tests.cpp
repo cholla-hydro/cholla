@@ -16,40 +16,6 @@
 #include "../system_tests/system_tester.h"
 
 // =============================================================================
-// Test Suite: tMHDSYSTEMConstantParameterizedMpi
-// =============================================================================
-/*!
- * \defgroup tMHDSYSTEMConstantParameterizedMpi
- * \brief Test the constant initial conditions as a parameterized test
- * with varying numbers of MPI ranks
- *
- */
-/// @{
-class tMHDSYSTEMConstantParameterizedMpi : public ::testing::TestWithParam<size_t>
-{
- protected:
-  systemTest::SystemTestRunner constantTest;
-};
-
-// Test with all mangetic fields set to zero
-TEST_P(tMHDSYSTEMConstantParameterizedMpi, ZeroMagneticFieldCorrectInputExpectCorrectOutput)
-{
-  constantTest.numMpiRanks = GetParam();
-  constantTest.runTest();
-}
-
-// Test with all mangetic fields set to one
-TEST_P(tMHDSYSTEMConstantParameterizedMpi, MagneticFieldCorrectInputExpectCorrectOutput)
-{
-  constantTest.numMpiRanks = GetParam();
-  constantTest.runTest();
-}
-
-INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMConstantParameterizedMpi, ::testing::Values(1, 2, 4));
-/// @}
-// =============================================================================
-
-// =============================================================================
 // Test Suite: tMHDSYSTEMLinearWavesParameterizedAngle
 // =============================================================================
 /*!
@@ -407,46 +373,6 @@ INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedAngle,
 // =============================================================================
 
 // =============================================================================
-// Test Suite: tMHDSYSTEMSodShockTube
-// TODO: This is temporary. Remove once PPMP is implemented for MHD and replace
-// with the hydro sod test
-// =============================================================================
-/*!
- * \defgroup
- * tMHDSYSTEMSodShockTubeParameterizedMpi_CorrectInputExpectCorrectOutput \brief
- * Test the Sod Shock tube initial conditions as a parameterized test with
- * varying numbers of MPI ranks
- *
- */
-/// @{
-class tMHDSYSTEMSodShockTubeParameterizedMpi : public ::testing::TestWithParam<size_t>
-{
- protected:
-  systemTest::SystemTestRunner sodTest;
-};
-
-TEST_P(tMHDSYSTEMSodShockTubeParameterizedMpi, CorrectInputExpectCorrectOutput)
-{
-  sodTest.numMpiRanks = GetParam();
-  sodTest.runTest();
-}
-
-INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput, tMHDSYSTEMSodShockTubeParameterizedMpi,
-                         ::testing::Values(1, 2, 4));
-/// @}
-// =============================================================================
-
-// =============================================================================
-// Test Suite: tMHDSYSTEMEinfeldtStrongRarefaction
-// =============================================================================
-TEST(tMHDSYSTEMEinfeldtStrongRarefaction, CorrectInputExpectCorrectOutput)
-{
-  systemTest::SystemTestRunner rarefactionTest;
-  rarefactionTest.runTest();
-}
-// =============================================================================
-
-// =============================================================================
 // Test Suite: tMHDSYSTEMLinearWavesParameterizedMpi
 // =============================================================================
 /*!
@@ -522,6 +448,8 @@ class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<in
   }
 };
 
+INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedMpi, ::testing::Values(1, 2, 4));
+
 // Slow Magnetosonic Waves Moving Left and Right
 // =============================================
 TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveRightMovingCorrectInputExpectCorrectOutput)
@@ -584,6 +512,87 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorr
   waveTest.runL1ErrorTest(allowedL1Error, allowedError);
 }
 
-INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedMpi, ::testing::Values(1, 2, 4));
+/// @}
+// =============================================================================
+
+// =============================================================================
+// Test Suite: tMHDSYSTEMParameterizedMpi
+// =============================================================================
+/*!
+ * \defgroup tMHDSYSTEMParameterizedMpi
+ * \brief Test initial conditions as a parameterized test with varying numbers of MPI ranks
+ *
+ */
+/// @{
+class tMHDSYSTEMParameterizedMpi : public ::testing::TestWithParam<size_t>
+{
+ protected:
+  systemTest::SystemTestRunner test_runner;
+};
+INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMParameterizedMpi, ::testing::Values(1, 2, 4));
+
+/// Test constant state with all magnetic fields set to zero
+TEST_P(tMHDSYSTEMParameterizedMpi, ConstantWithZeroMagneticFieldCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
+
+/// Test constant state with all magnetic fields set to one
+TEST_P(tMHDSYSTEMParameterizedMpi, ConstantWithMagneticFieldCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
+
+/// TODO: This is temporary. Remove once PPMP is implemented for MHD and replace
+/// TODO: with the hydro sod test
+TEST_P(tMHDSYSTEMParameterizedMpi, SodShockTubeCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
+
+/// Test the MHD Einfeldt Strong Rarefaction (Einfeldt et al. 1991)
+TEST_P(tMHDSYSTEMParameterizedMpi, EinfeldtStrongRarefactionCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
+
+/// Test the Brio & Wu Shock Tube (Brio & Wu 1988)
+TEST_P(tMHDSYSTEMParameterizedMpi, BrioAndWuShockTubeCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
+
+/// Test the Dai & Woodward Shock Tube (Dai & Woodward 1998)
+TEST_P(tMHDSYSTEMParameterizedMpi, DaiAndWoodwardShockTubeCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
+
+/// Test the Ryu & Jones 1a Shock Tube (Ryu & Jones 1995)
+TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones1aShockTubeCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
+
+/// Test the Ryu & Jones 2a Shock Tube (Ryu & Jones 1995)
+TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones2aShockTubeCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
+
+/// Test the Ryu & Jones 4d Shock Tube (Ryu & Jones 1995)
+TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones4dShockTubeCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
 /// @}
 // =============================================================================
