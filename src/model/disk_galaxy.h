@@ -76,7 +76,9 @@ class DiskGalaxy
     Real C = GN * M_h / (R_h * log_func(c_vir));
 
     // limit x to non-zero value
-    if (x < 1.0e-9) x = 1.0e-9;
+    if (x < 1.0e-9) {
+      x = 1.0e-9;
+    }
 
     return -C * log(1 + x) / x;
   };

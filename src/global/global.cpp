@@ -82,11 +82,15 @@ char *trim(char *s)
   char *s1 = s, *s2 = &s[strlen(s) - 1];
 
   /* Trim and delimit right side */
-  while ((isspace(*s2)) && (s2 >= s1)) s2--;
+  while ((isspace(*s2)) && (s2 >= s1)) {
+    s2--;
+  }
   *(s2 + 1) = '\0';
 
   /* Trim left side */
-  while ((isspace(*s1)) && (s1 < s2)) s1++;
+  while ((isspace(*s1)) && (s1 < s2)) {
+    s1++;
+  }
 
   /* Copy finished string */
   strcpy(s, s1);
@@ -104,7 +108,9 @@ const std::set<const char *> optionalParams = {
 int is_param_valid(const char *param_name)
 {
   for (auto it = optionalParams.begin(); it != optionalParams.end(); ++it) {
-    if (strcmp(param_name, *it) == 0) return 1;
+    if (strcmp(param_name, *it) == 0) {
+      return 1;
+    }
   }
   return 0;
 }
@@ -148,7 +154,9 @@ void parse_params(char *param_file, struct parameters *parms, int argc, char **a
   /* Read next line */
   while ((s = fgets(buff, sizeof buff, fp)) != NULL) {
     /* Skip blank lines and comments */
-    if (buff[0] == '\n' || buff[0] == '#' || buff[0] == ';') continue;
+    if (buff[0] == '\n' || buff[0] == '#' || buff[0] == ';') {
+      continue;
+    }
 
     /* Parse name/value pair from line */
     char name[MAXLEN], value[MAXLEN];

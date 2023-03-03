@@ -121,7 +121,9 @@ Real phi_halo_D3D(Real R, Real z, Real *hdp)
   Real C = GN * M_h / (R_h * log_func(c_vir));
 
   // limit x to non-zero value
-  if (x < 1.0e-9) x = 1.0e-9;
+  if (x < 1.0e-9) {
+    x = 1.0e-9;
+  }
 
   // checked with wolfram alpha
   return -C * log(1 + x) / x;
@@ -320,7 +322,9 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   for (k = ks; k < nzt; k++) {
     z_1   = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;  // cell ceiling
     D_rho = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
-    if (D_rho >= 7.0) break;
+    if (D_rho >= 7.0) {
+      break;
+    }
   }
   // if(R<1.0)
   //   printf("Cells above disk (k-ks) = %d, z_1 = %e, exp(-D) = %e, R =
@@ -351,7 +355,9 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
     // find cell center, bottom, and top
     z_int_min = z_hc_D3D(k, dz, nz, ng) - 0.5 * dz;
     z_int_max = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;
-    if (z_int_max > z_disk_max) z_int_max = z_disk_max;
+    if (z_int_max > z_disk_max) {
+      z_int_max = z_disk_max;
+    }
     if (!flag) {
       dz_int  = (z_int_max - z_int_min) / ((Real)(n_int));
       phi_int = 0.0;
@@ -385,7 +391,9 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
 
   // check the surface density
   phi_int = 0.0;
-  for (k = 0; k < nzt; k++) phi_int += rho[k] * dz;
+  for (k = 0; k < nzt; k++) {
+    phi_int += rho[k] * dz;
+  }
 
   // printf("Surface density check R %e Sigma_r %e integral(rho*dz)
   // %e\n",R,Sigma_r,phi_int); printf("Done with isothermal disk.\n");
@@ -499,7 +507,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
       A_0 = D_rho - (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
       A_1 = D_rho - (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
       z_2 = z_1 - A_1 * (z_1 - z_0) / (A_1 - A_0);
-      if (fabs(z_2 - z_1) / fabs(z_1) > 10.) z_2 = 10. * z_1;
+      if (fabs(z_2 - z_1) / fabs(z_1) > 10.) {
+        z_2 = 10. * z_1;
+      }
       // advance limit
       z_0 = z_1;
       z_1 = z_2;
@@ -509,7 +519,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
         A_0      = D_rho - (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
         A_1      = D_rho - (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
         // make sure we haven't crossed 0
-        if (A_1 < 0) z_1 = z_0;
+        if (A_1 < 0) {
+          z_1 = z_0;
+        }
       }
       iter_phi++;
       if (iter_phi > 1000) {
@@ -566,7 +578,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
     // find cell center, bottom, and top
     z_int_min = z_hc_D3D(k, dz, nz, ng) - 0.5 * dz;
     z_int_max = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;
-    if (z_int_max > z_disk_max) z_int_max = z_disk_max;
+    if (z_int_max > z_disk_max) {
+      z_int_max = z_disk_max;
+    }
     if (!flag) {
       dz_int  = (z_int_max - z_int_min) / ((Real)(n_int));
       phi_int = 0.0;
@@ -602,7 +616,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
 
   // check the surface density
   phi_int = 0.0;
-  for (k = 0; k < nzt; k++) phi_int += rho[k] * dz;
+  for (k = 0; k < nzt; k++) {
+    phi_int += rho[k] * dz;
+  }
 }
 
 Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
@@ -633,7 +649,9 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
     A_1 = 1.0 - (phi_total_D3D(0, z_1, hdp) - Phi_0) / (cs * cs);
     z_2 = z_1 - A_1 * (z_1 - z_0) / (A_1 - A_0);
 
-    if (fabs(z_2 - z_1) / fabs(z_1) > 10.) z_2 = 10. * z_1;
+    if (fabs(z_2 - z_1) / fabs(z_1) > 10.) {
+      z_2 = 10. * z_1;
+    }
 
     // advance limit
     z_0 = z_1;
@@ -645,7 +663,9 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
       A_0      = 1.0 - (phi_total_D3D(0, z_0, hdp) - Phi_0) / (cs * cs);
       A_1      = 1.0 - (phi_total_D3D(0, z_1, hdp) - Phi_0) / (cs * cs);
       // make sure we haven't crossed 0
-      if (A_1 < 0) z_1 = z_0;
+      if (A_1 < 0) {
+        z_1 = z_0;
+      }
     }
     iter_phi++;
     if (iter_phi > 1000) {

@@ -468,7 +468,9 @@ __global__ void Noh_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int 
   __syncthreads();
 
   // +z boundary last (only if 3D)
-  if (nz == 1) return;
+  if (nz == 1) {
+    return;
+  }
 
   isize = nx;
   jsize = ny;

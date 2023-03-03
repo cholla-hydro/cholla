@@ -52,7 +52,9 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
       Wait_and_Unload_MPI_Comm_Buffers(0, flags);
   #ifdef PARTICLES
       // Unload Particles buffers when transfering Particles
-      if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(0, flags);
+      if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
+        Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(0, flags);
+      }
   #endif
     }
   }
@@ -72,7 +74,9 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
       Wait_and_Unload_MPI_Comm_Buffers(1, flags);
   #ifdef PARTICLES
       // Unload Particles buffers when transfering Particles
-      if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(1, flags);
+      if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
+        Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(1, flags);
+      }
   #endif
     }
   }
@@ -92,13 +96,17 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
       Wait_and_Unload_MPI_Comm_Buffers(2, flags);
   #ifdef PARTICLES
       // Unload Particles buffers when transfering Particles
-      if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(2, flags);
+      if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
+        Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(2, flags);
+      }
   #endif
     }
   }
 
   #ifdef PARTICLES
-  if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Finish_Particles_Transfer();
+  if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
+    Finish_Particles_Transfer();
+  }
   #endif
 }
 
@@ -458,7 +466,9 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
     }
   // Receive the number of particles transfer for X
   #ifdef PARTICLES
-    if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(dir, flags);
+    if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
+      Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(dir, flags);
+    }
   #endif
   }
 
@@ -608,7 +618,9 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
     }
   // Receive the number of particles transfer for Y
   #ifdef PARTICLES
-    if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(dir, flags);
+    if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
+      Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(dir, flags);
+    }
   #endif
   }
 
@@ -757,7 +769,9 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
     }
     // Receive the number of particles transfer for Z
   #ifdef PARTICLES
-    if (Particles.TRANSFER_PARTICLES_BOUNDARIES) Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(dir, flags);
+    if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
+      Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(dir, flags);
+    }
   #endif
   }
 }
@@ -767,7 +781,9 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers(int dir, int *flags)
   #ifdef PARTICLES
   // If we are transfering the particles buffers we dont need to unload the main
   // buffers
-  if (Particles.TRANSFER_PARTICLES_BOUNDARIES) return;
+  if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
+    return;
+  }
   #endif
 
   int iwait;
@@ -893,12 +909,24 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
 
     #endif  // GRAVITY_GPU
 
-    if (index == 0) (this->*Fptr_Unload_Gravity_Potential)(0, 0, l_recv_buffer_x0, 0);
-    if (index == 1) (this->*Fptr_Unload_Gravity_Potential)(0, 1, l_recv_buffer_x1, 0);
-    if (index == 2) (this->*Fptr_Unload_Gravity_Potential)(1, 0, l_recv_buffer_y0, 0);
-    if (index == 3) (this->*Fptr_Unload_Gravity_Potential)(1, 1, l_recv_buffer_y1, 0);
-    if (index == 4) (this->*Fptr_Unload_Gravity_Potential)(2, 0, l_recv_buffer_z0, 0);
-    if (index == 5) (this->*Fptr_Unload_Gravity_Potential)(2, 1, l_recv_buffer_z1, 0);
+    if (index == 0) {
+      (this->*Fptr_Unload_Gravity_Potential)(0, 0, l_recv_buffer_x0, 0);
+    }
+    if (index == 1) {
+      (this->*Fptr_Unload_Gravity_Potential)(0, 1, l_recv_buffer_x1, 0);
+    }
+    if (index == 2) {
+      (this->*Fptr_Unload_Gravity_Potential)(1, 0, l_recv_buffer_y0, 0);
+    }
+    if (index == 3) {
+      (this->*Fptr_Unload_Gravity_Potential)(1, 1, l_recv_buffer_y1, 0);
+    }
+    if (index == 4) {
+      (this->*Fptr_Unload_Gravity_Potential)(2, 0, l_recv_buffer_z0, 0);
+    }
+    if (index == 5) {
+      (this->*Fptr_Unload_Gravity_Potential)(2, 1, l_recv_buffer_z1, 0);
+    }
   }
 
     #ifdef SOR
@@ -910,12 +938,24 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
     l_recv_buffer_z0 = h_recv_buffer_z0;
     l_recv_buffer_z1 = h_recv_buffer_z1;
 
-    if (index == 0) Unload_Poisson_Boundary_From_Buffer(0, 0, l_recv_buffer_x0);
-    if (index == 1) Unload_Poisson_Boundary_From_Buffer(0, 1, l_recv_buffer_x1);
-    if (index == 2) Unload_Poisson_Boundary_From_Buffer(1, 0, l_recv_buffer_y0);
-    if (index == 3) Unload_Poisson_Boundary_From_Buffer(1, 1, l_recv_buffer_y1);
-    if (index == 4) Unload_Poisson_Boundary_From_Buffer(2, 0, l_recv_buffer_z0);
-    if (index == 5) Unload_Poisson_Boundary_From_Buffer(2, 1, l_recv_buffer_z1);
+    if (index == 0) {
+      Unload_Poisson_Boundary_From_Buffer(0, 0, l_recv_buffer_x0);
+    }
+    if (index == 1) {
+      Unload_Poisson_Boundary_From_Buffer(0, 1, l_recv_buffer_x1);
+    }
+    if (index == 2) {
+      Unload_Poisson_Boundary_From_Buffer(1, 0, l_recv_buffer_y0);
+    }
+    if (index == 3) {
+      Unload_Poisson_Boundary_From_Buffer(1, 1, l_recv_buffer_y1);
+    }
+    if (index == 4) {
+      Unload_Poisson_Boundary_From_Buffer(2, 0, l_recv_buffer_z0);
+    }
+    if (index == 5) {
+      Unload_Poisson_Boundary_From_Buffer(2, 1, l_recv_buffer_z1);
+    }
   }
     #endif  // SOR
 
@@ -940,12 +980,24 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
     #else
 
       #ifdef MPI_GPU
-    if (index == 0) Copy_Particles_Density_Buffer_Device_to_Host(0, 0, d_recv_buffer_x0, h_recv_buffer_x0_particles);
-    if (index == 1) Copy_Particles_Density_Buffer_Device_to_Host(0, 1, d_recv_buffer_x1, h_recv_buffer_x1_particles);
-    if (index == 2) Copy_Particles_Density_Buffer_Device_to_Host(1, 0, d_recv_buffer_y0, h_recv_buffer_y0_particles);
-    if (index == 3) Copy_Particles_Density_Buffer_Device_to_Host(1, 1, d_recv_buffer_y1, h_recv_buffer_y1_particles);
-    if (index == 4) Copy_Particles_Density_Buffer_Device_to_Host(2, 0, d_recv_buffer_z0, h_recv_buffer_z0_particles);
-    if (index == 5) Copy_Particles_Density_Buffer_Device_to_Host(2, 1, d_recv_buffer_z1, h_recv_buffer_z1_particles);
+    if (index == 0) {
+      Copy_Particles_Density_Buffer_Device_to_Host(0, 0, d_recv_buffer_x0, h_recv_buffer_x0_particles);
+    }
+    if (index == 1) {
+      Copy_Particles_Density_Buffer_Device_to_Host(0, 1, d_recv_buffer_x1, h_recv_buffer_x1_particles);
+    }
+    if (index == 2) {
+      Copy_Particles_Density_Buffer_Device_to_Host(1, 0, d_recv_buffer_y0, h_recv_buffer_y0_particles);
+    }
+    if (index == 3) {
+      Copy_Particles_Density_Buffer_Device_to_Host(1, 1, d_recv_buffer_y1, h_recv_buffer_y1_particles);
+    }
+    if (index == 4) {
+      Copy_Particles_Density_Buffer_Device_to_Host(2, 0, d_recv_buffer_z0, h_recv_buffer_z0_particles);
+    }
+    if (index == 5) {
+      Copy_Particles_Density_Buffer_Device_to_Host(2, 1, d_recv_buffer_z1, h_recv_buffer_z1_particles);
+    }
     l_recv_buffer_x0 = h_recv_buffer_x0_particles;
     l_recv_buffer_x1 = h_recv_buffer_x1_particles;
     l_recv_buffer_y0 = h_recv_buffer_y0_particles;
@@ -965,12 +1017,24 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
 
     #endif  // PARTICLES_GPU
 
-    if (index == 0) (this->*Fptr_Unload_Particle_Density)(0, 0, l_recv_buffer_x0);
-    if (index == 1) (this->*Fptr_Unload_Particle_Density)(0, 1, l_recv_buffer_x1);
-    if (index == 2) (this->*Fptr_Unload_Particle_Density)(1, 0, l_recv_buffer_y0);
-    if (index == 3) (this->*Fptr_Unload_Particle_Density)(1, 1, l_recv_buffer_y1);
-    if (index == 4) (this->*Fptr_Unload_Particle_Density)(2, 0, l_recv_buffer_z0);
-    if (index == 5) (this->*Fptr_Unload_Particle_Density)(2, 1, l_recv_buffer_z1);
+    if (index == 0) {
+      (this->*Fptr_Unload_Particle_Density)(0, 0, l_recv_buffer_x0);
+    }
+    if (index == 1) {
+      (this->*Fptr_Unload_Particle_Density)(0, 1, l_recv_buffer_x1);
+    }
+    if (index == 2) {
+      (this->*Fptr_Unload_Particle_Density)(1, 0, l_recv_buffer_y0);
+    }
+    if (index == 3) {
+      (this->*Fptr_Unload_Particle_Density)(1, 1, l_recv_buffer_y1);
+    }
+    if (index == 4) {
+      (this->*Fptr_Unload_Particle_Density)(2, 0, l_recv_buffer_z0);
+    }
+    if (index == 5) {
+      (this->*Fptr_Unload_Particle_Density)(2, 1, l_recv_buffer_z1);
+    }
   }
 
   #endif  // PARTICLES

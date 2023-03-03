@@ -92,7 +92,9 @@ void supernova::initState(struct parameters* P, part_int_t n_local, Real allocat
 
     while (snr_in.good()) {
       std::getline(snr_in, line);
-      if (line_counter++ < N_HEADER) continue;  // skip header processing
+      if (line_counter++ < N_HEADER) {
+        continue;
+      }  // skip header processing
 
       int i      = 0;
       char* data = strtok(line.data(), s99_delim);
@@ -142,8 +144,12 @@ void supernova::initState(struct parameters* P, part_int_t n_local, Real allocat
 
 __device__ Real GetSNRate(Real t, Real* dev_snr, Real snr_dt, Real t_start, Real t_end)
 {
-  if (t < t_start || t >= t_end) return 0;
-  if (dev_snr == nullptr) return supernova::DEFAULT_SNR;
+  if (t < t_start || t >= t_end) {
+    return 0;
+  }
+  if (dev_snr == nullptr) {
+    return supernova::DEFAULT_SNR;
+  }
 
   int index = (int)((t - t_start) / snr_dt);
   return dev_snr[index] + (t - index * snr_dt) * (dev_snr[index + 1] - dev_snr[index]) / snr_dt;
@@ -204,10 +210,18 @@ __device__ bool Particle_Is_Alone(Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_
   Real z0 = pos_z_dev[gtid];
   // Brute force loop to see if particle is alone
   for (int i = 0; i < n_local; i++) {
-    if (i == gtid) continue;
-    if (abs(x0 - pos_x_dev[i]) > dx) continue;
-    if (abs(y0 - pos_y_dev[i]) > dx) continue;
-    if (abs(z0 - pos_z_dev[i]) > dx) continue;
+    if (i == gtid) {
+      continue;
+    }
+    if (abs(x0 - pos_x_dev[i]) > dx) {
+      continue;
+    }
+    if (abs(y0 - pos_y_dev[i]) > dx) {
+      continue;
+    }
+    if (abs(z0 - pos_z_dev[i]) > dx) {
+      continue;
+    }
     // If we made it here, something is too close.
     return false;
   }
@@ -596,7 +610,9 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
               }
             }
           }
-          if (direction > 0) atomicMax(dti, local_dti);
+          if (direction > 0) {
+            atomicMax(dti, local_dti);
+          }
         }
       }
     }
@@ -633,7 +649,9 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
   G.Timer.Feedback.Start();
   #endif
 
-  if (G.H.dt == 0) return 0.0;
+  if (G.H.dt == 0) {
+    return 0.0;
+  }
 
   /*
   if (G.Particles.n_local > supernova::n_states) {

@@ -161,9 +161,15 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
     #endif  // SCALAR
     // cell i-1
-    if (dir == 0) id = xid - 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid - 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid - 1) * nx * ny;
+    if (dir == 0) {
+      id = xid - 1 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid - 1) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid - 1) * nx * ny;
+    }
     d_imo  = dev_conserved[id];
     vx_imo = dev_conserved[o1 * n_cells + id] / d_imo;
     vy_imo = dev_conserved[o2 * n_cells + id] / d_imo;
@@ -187,9 +193,15 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
     #endif  // SCALAR
     // cell i+1
-    if (dir == 0) id = xid + 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid + 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid + 1) * nx * ny;
+    if (dir == 0) {
+      id = xid + 1 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid + 1) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid + 1) * nx * ny;
+    }
     d_ipo  = dev_conserved[id];
     vx_ipo = dev_conserved[o1 * n_cells + id] / d_ipo;
     vy_ipo = dev_conserved[o2 * n_cells + id] / d_ipo;
@@ -213,9 +225,15 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
     #endif  // SCALAR
     // cell i-2
-    if (dir == 0) id = xid - 2 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid - 2) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid - 2) * nx * ny;
+    if (dir == 0) {
+      id = xid - 2 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid - 2) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid - 2) * nx * ny;
+    }
     d_imt  = dev_conserved[id];
     vx_imt = dev_conserved[o1 * n_cells + id] / d_imt;
     vy_imt = dev_conserved[o2 * n_cells + id] / d_imt;
@@ -239,9 +257,15 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
     #endif  // SCALAR
     // cell i+2
-    if (dir == 0) id = xid + 2 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid + 2) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid + 2) * nx * ny;
+    if (dir == 0) {
+      id = xid + 2 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid + 2) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid + 2) * nx * ny;
+    }
     d_ipt  = dev_conserved[id];
     vx_ipt = dev_conserved[o1 * n_cells + id] / d_ipt;
     vy_ipt = dev_conserved[o2 * n_cells + id] / d_ipt;
@@ -817,13 +841,25 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     //          of cell center lie between neighboring cell-centered values
     //          Stone Eqns 47 - 53
 
-    if ((d_R - d_i) * (d_i - d_L) <= 0) d_L = d_R = d_i;
-    if ((vx_R - vx_i) * (vx_i - vx_L) <= 0) vx_L = vx_R = vx_i;
-    if ((vy_R - vy_i) * (vy_i - vy_L) <= 0) vy_L = vy_R = vy_i;
-    if ((vz_R - vz_i) * (vz_i - vz_L) <= 0) vz_L = vz_R = vz_i;
-    if ((p_R - p_i) * (p_i - p_L) <= 0) p_L = p_R = p_i;
+    if ((d_R - d_i) * (d_i - d_L) <= 0) {
+      d_L = d_R = d_i;
+    }
+    if ((vx_R - vx_i) * (vx_i - vx_L) <= 0) {
+      vx_L = vx_R = vx_i;
+    }
+    if ((vy_R - vy_i) * (vy_i - vy_L) <= 0) {
+      vy_L = vy_R = vy_i;
+    }
+    if ((vz_R - vz_i) * (vz_i - vz_L) <= 0) {
+      vz_L = vz_R = vz_i;
+    }
+    if ((p_R - p_i) * (p_i - p_L) <= 0) {
+      p_L = p_R = p_i;
+    }
 
-    if (6.0 * (d_R - d_L) * (d_i - 0.5 * (d_L + d_R)) > (d_R - d_L) * (d_R - d_L)) d_L = 3.0 * d_i - 2.0 * d_R;
+    if (6.0 * (d_R - d_L) * (d_i - 0.5 * (d_L + d_R)) > (d_R - d_L) * (d_R - d_L)) {
+      d_L = 3.0 * d_i - 2.0 * d_R;
+    }
     if (6.0 * (vx_R - vx_L) * (vx_i - 0.5 * (vx_L + vx_R)) > (vx_R - vx_L) * (vx_R - vx_L)) {
       vx_L = 3.0 * vx_i - 2.0 * vx_R;
     }
@@ -833,9 +869,13 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     if (6.0 * (vz_R - vz_L) * (vz_i - 0.5 * (vz_L + vz_R)) > (vz_R - vz_L) * (vz_R - vz_L)) {
       vz_L = 3.0 * vz_i - 2.0 * vz_R;
     }
-    if (6.0 * (p_R - p_L) * (p_i - 0.5 * (p_L + p_R)) > (p_R - p_L) * (p_R - p_L)) p_L = 3.0 * p_i - 2.0 * p_R;
+    if (6.0 * (p_R - p_L) * (p_i - 0.5 * (p_L + p_R)) > (p_R - p_L) * (p_R - p_L)) {
+      p_L = 3.0 * p_i - 2.0 * p_R;
+    }
 
-    if (6.0 * (d_R - d_L) * (d_i - 0.5 * (d_L + d_R)) < -(d_R - d_L) * (d_R - d_L)) d_R = 3.0 * d_i - 2.0 * d_L;
+    if (6.0 * (d_R - d_L) * (d_i - 0.5 * (d_L + d_R)) < -(d_R - d_L) * (d_R - d_L)) {
+      d_R = 3.0 * d_i - 2.0 * d_L;
+    }
     if (6.0 * (vx_R - vx_L) * (vx_i - 0.5 * (vx_L + vx_R)) < -(vx_R - vx_L) * (vx_R - vx_L)) {
       vx_R = 3.0 * vx_i - 2.0 * vx_L;
     }
@@ -845,7 +885,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     if (6.0 * (vz_R - vz_L) * (vz_i - 0.5 * (vz_L + vz_R)) < -(vz_R - vz_L) * (vz_R - vz_L)) {
       vz_R = 3.0 * vz_i - 2.0 * vz_L;
     }
-    if (6.0 * (p_R - p_L) * (p_i - 0.5 * (p_L + p_R)) < -(p_R - p_L) * (p_R - p_L)) p_R = 3.0 * p_i - 2.0 * p_L;
+    if (6.0 * (p_R - p_L) * (p_i - 0.5 * (p_L + p_R)) < -(p_R - p_L) * (p_R - p_L)) {
+      p_R = 3.0 * p_i - 2.0 * p_L;
+    }
 
     d_L  = fmax(fmin(d_i, d_imo), d_L);
     d_L  = fmin(fmax(d_i, d_imo), d_L);
@@ -869,7 +911,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_R  = fmin(fmax(p_i, p_ipo), p_R);
 
     #ifdef DE
-    if ((ge_R - ge_i) * (ge_i - ge_L) <= 0) ge_L = ge_R = ge_i;
+    if ((ge_R - ge_i) * (ge_i - ge_L) <= 0) {
+      ge_L = ge_R = ge_i;
+    }
     if (6.0 * (ge_R - ge_L) * (ge_i - 0.5 * (ge_L + ge_R)) > (ge_R - ge_L) * (ge_R - ge_L)) {
       ge_L = 3.0 * ge_i - 2.0 * ge_R;
     }
@@ -884,7 +928,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
     #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      if ((scalar_R[i] - scalar_i[i]) * (scalar_i[i] - scalar_L[i]) <= 0) scalar_L[i] = scalar_R[i] = scalar_i[i];
+      if ((scalar_R[i] - scalar_i[i]) * (scalar_i[i] - scalar_L[i]) <= 0) {
+        scalar_L[i] = scalar_R[i] = scalar_i[i];
+      }
       if (6.0 * (scalar_R[i] - scalar_L[i]) * (scalar_i[i] - 0.5 * (scalar_L[i] + scalar_R[i])) >
           (scalar_R[i] - scalar_L[i]) * (scalar_R[i] - scalar_L[i])) {
         scalar_L[i] = 3.0 * scalar_i[i] - 2.0 * scalar_R[i];
@@ -1169,9 +1215,15 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     // Step 11 - Send final values back from kernel
 
     // bounds_R refers to the right side of the i-1/2 interface
-    if (dir == 0) id = xid - 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid - 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid - 1) * nx * ny;
+    if (dir == 0) {
+      id = xid - 1 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid - 1) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid - 1) * nx * ny;
+    }
     dev_bounds_R[id]                = d_L;
     dev_bounds_R[o1 * n_cells + id] = d_L * vx_L;
     dev_bounds_R[o2 * n_cells + id] = d_L * vy_L;

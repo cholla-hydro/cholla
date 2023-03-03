@@ -1112,11 +1112,15 @@ __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int
     Ekin  = 0.5 * d * (vx * vx + vy * vy + vz * vz);
 
     U = (E - Ekin) / d;
-    if (U < U_floor) dev_conserved[4 * n_cells + id] = Ekin + d * U_floor;
+    if (U < U_floor) {
+      dev_conserved[4 * n_cells + id] = Ekin + d * U_floor;
+    }
 
     #ifdef DE
     U = dev_conserved[(n_fields - 1) * n_cells + id] / d;
-    if (U < U_floor) dev_conserved[(n_fields - 1) * n_cells + id] = d * U_floor;
+    if (U < U_floor) {
+      dev_conserved[(n_fields - 1) * n_cells + id] = d * U_floor;
+    }
     #endif
   }
 }

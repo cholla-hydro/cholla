@@ -39,7 +39,9 @@ PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3], const double lo
       nk_(n[2])
 {
   mq_ = int(round(sqrt(mk_)));
-  while (mk_ % mq_) mq_--;
+  while (mk_ % mq_) {
+    mq_--;
+  }
   mp_ = mk_ / mq_;
   assert(mp_ * mq_ == mk_);
 
@@ -113,7 +115,9 @@ void print(const char *const title, const int ni, const int nj, const int nk, co
   printf("%s:\n", title);
   for (int i = 0; i < ni; i++) {
     for (int j = 0; j < nj; j++) {
-      for (int k = 0; k < nk; k++) printf("%.6f ", v[(i * nj + j) * nk + k]);
+      for (int k = 0; k < nk; k++) {
+        printf("%.6f ", v[(i * nj + j) * nk + k]);
+      }
       printf("  ");
     }
     printf("\n");

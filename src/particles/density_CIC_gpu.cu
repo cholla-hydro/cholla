@@ -53,7 +53,9 @@ __global__ void Get_Density_CIC_Kernel(part_int_t n_local, Real particle_mass, R
                                        int ny, int nz, int n_ghost)
 {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   int nx_g, ny_g;
   nx_g = nx + 2 * n_ghost;
@@ -79,9 +81,15 @@ __global__ void Get_Density_CIC_Kernel(part_int_t n_local, Real particle_mass, R
 
   bool in_local = true;
 
-  if (pos_x < xMin || pos_x >= xMax) in_local = false;
-  if (pos_y < yMin || pos_y >= yMax) in_local = false;
-  if (pos_z < zMin || pos_z >= zMax) in_local = false;
+  if (pos_x < xMin || pos_x >= xMax) {
+    in_local = false;
+  }
+  if (pos_y < yMin || pos_y >= yMax) {
+    in_local = false;
+  }
+  if (pos_z < zMin || pos_z >= zMax) {
+    in_local = false;
+  }
   if (!in_local) {
     printf(
         " Density CIC Error: Particle outside local domain [%f  %f  %f]  [%f "
