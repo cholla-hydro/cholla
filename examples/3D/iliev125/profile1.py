@@ -5,12 +5,13 @@ import sys, os, glob
 
 dir = os.getenv('ALTAIR_ROOT')
 if(dir == None):
-    print('Environment variable ALTAIR_ROOT must be set.')
-    sys.exit()
+    withALTAIR = False
+else:
+    withALTAIR = True
+    sys.path.insert(1,dir+"/python")
+    import altair.data
 ##
-sys.path.insert(1,dir+"/python")
 
-import altair.data
 
 TIME_UNIT = 3.15569e10
 LENGTH_UNIT = 3.08567758e21
@@ -38,23 +39,21 @@ ax2.set_xlim(0,1.05)
 ax2.set_xlabel(r"$r/L_{\rm box}$")
 ax2.set_ylim(-5,0.2)
 
-pathname = os.path.dirname(sys.argv[0])
-if(len(pathname) == 0): pathname = "."
-img = plt.imread(pathname+"/ref1_030.png")
-ax1.imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
-img = plt.imread(pathname+"/ref1_500.png")
-ax2.imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
+if(dir):
+    pathname = dir + "/tests/iliev/1"
+    img = plt.imread(pathname+"/ref1_030.png")
+    ax1.imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref1_500.png")
+    ax2.imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
+##
 
-aa = []
-
-
-def PlotC1(ax,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01):
+def PlotC1(ax,t,fnames,color="orange",lbox=2,alpha=0,eps=0.001):
         
     for fname in fnames:
         try:
             d = h5.File(fname, 'r')
             tf = d.attrs["t"]*1.0e-3
-            if(abs(np.log10(t)-np.log10(tf))<eps):
+            if(tf>0 and abs(np.log10(t)-np.log10(tf))<eps):
                 print("tf=",tf)
                 break
             ##
@@ -94,15 +93,15 @@ def PlotC1(ax,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01):
     vavg /= (1.0e-10+vnum)
     vrms = np.sqrt(np.abs(vrms/(1.0e-10+vnum)-vavg**2))
 
-    a = ax.plot(r,np.log10(1.0e-30+vavg),color=color,linestyle="-")
-    aa.append(a[0])
-    a = ax.plot(r,np.log10(1.0e-30+np.abs(1-vavg)),color=color,linestyle=":")
-    aa.append(a[0])
+    ax.plot(r,np.log10(1.0e-30+vavg),color=color,linestyle="-")
+    ax.plot(r,np.log10(1.0e-30+np.abs(1-vavg)),color=color,linestyle=":")
     if(alpha > 0): ax.fill_between(r,np.log10(1.0e-10+np.abs(vavg-vrms)),np.log10(1.0e-10+vavg+vrms),color=color,alpha=alpha)
 ##    
 
 def PlotA1(ax,t,fnames,color,lbox=2,alpha=0,eps=0.001):
 
+    assert(withALTAIR)
+    
     for fname in fnames:
         f = open(fname,"r")
         assert(f)
@@ -152,19 +151,18 @@ def PlotA1(ax,t,fnames,color,lbox=2,alpha=0,eps=0.001):
     vavg /= (1.0e-10+vnum)
     vrms = np.sqrt(np.abs(vrms/(1.0e-10+vnum)-vavg**2))
 
-    a = ax.plot(r,np.log10(1.0e-30+vavg),color=color,linestyle="-")
-    aa.append(a[0])
-    a = ax.plot(r,np.log10(1.0e-30+np.abs(1-vavg)),color=color,linestyle=":")
-    aa.append(a[0])
+    ax.plot(r,np.log10(1.0e-30+vavg),color=color,linestyle="-")
+    ax.plot(r,np.log10(1.0e-30+np.abs(1-vavg)),color=color,linestyle=":")
     if(alpha > 0): ax.fill_between(r,np.log10(1.0e-10+np.abs(vavg-vrms)),np.log10(1.0e-10+vavg+vrms),color=color,alpha=alpha)
 ##    
 
-def Plot2(alt,dname,color,lbox=2,eps=0.01):
+def Plot2(dname,color,lbox=2,eps=0.005):
 
     assert(os.path.isdir(dname))
 
-    if(alt):
-        ff = glob.glob(dname+"/out.*/manifest")
+    ff = glob.glob(dname+"/out.*/manifest")
+    if(ff):
+        assert(withALTAIR)
         ff.sort()
         Fun = PlotA1
     else:
@@ -173,7 +171,6 @@ def Plot2(alt,dname,color,lbox=2,eps=0.01):
         Fun = PlotC1
     ##
     
-    #Plot1(ax1,10,ff,color)
     Fun(ax1,30,ff,color,eps=eps)
     Fun(ax2,500,ff,color,eps=eps)
 ##
@@ -185,9 +182,7 @@ re = 5.4/6.6*(1-np.exp(-500/122.4))**0.333333
 ax2.plot([re,re],[-10,10],"k:")
  
 
-Plot2(1,"/data/gnedin/A/TEST/REF.GPU",color="b")
-Plot2(0,"OUT.0.01",color="r")
-Plot2(0,"OUT",color="orange")
+Plot2("OUT",color="orange")
  
 
 plt.show()

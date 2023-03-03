@@ -5,12 +5,13 @@ import sys, os, glob
 
 dir = os.getenv('ALTAIR_ROOT')
 if(dir == None):
-    print('Environment variable ALTAIR_ROOT must be set.')
-    sys.exit()
+    withALTAIR = False
+else:
+    withALTAIR = True
+    sys.path.insert(1,dir+"/python")
+    import altair.data
 ##
-sys.path.insert(1,dir+"/python")
 
-import altair.data
 
 TIME_UNIT = 3.15569e10
 LENGTH_UNIT = 3.08567758e21
@@ -42,21 +43,21 @@ axx[1][0].set_ylabel(r"$lg(T) [{\rm K}]$")
 #ax2.tick_params(axis="y",which="both",labelleft=False)
 
 
-pathname = dir + "/tests/rt/iliev125"
-if(len(pathname) == 0): pathname = "."
-img = plt.imread(pathname+"/ref2_010x.png")
-axx[0][0].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
-img = plt.imread(pathname+"/ref2_100x.png")
-axx[0][1].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
-img = plt.imread(pathname+"/ref2_500x.png")
-axx[0][2].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
-img = plt.imread(pathname+"/ref2_010T.png")
-axx[1][0].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
-img = plt.imread(pathname+"/ref2_100T.png")
-axx[1][1].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
-img = plt.imread(pathname+"/ref2_500T.png")
-axx[1][2].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
-
+if(dir):
+    pathname = dir + "/tests/iliev/2"
+    img = plt.imread(pathname+"/ref2_010x.png")
+    axx[0][0].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref2_100x.png")
+    axx[0][1].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref2_500x.png")
+    axx[0][2].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref2_010T.png")
+    axx[1][0].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref2_100T.png")
+    axx[1][1].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref2_500T.png")
+    axx[1][2].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
+##
 
 def PlotC1(axx,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01,lw=2,labs=False):
         
@@ -64,7 +65,7 @@ def PlotC1(axx,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01,lw=2,labs=False):
         try:
             d = h5.File(fname, 'r')
             tf = d.attrs["t"]*1.0e-3
-            if(abs(np.log10(t)-np.log10(tf))<eps):
+            if(tf>0 and abs(np.log10(t)-np.log10(tf))<eps):
                 print("tf=",tf)
                 break
             ##
@@ -124,6 +125,8 @@ def PlotC1(axx,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01,lw=2,labs=False):
 ##    
 
 def PlotA1(axx,t,fnames,color,lbox=2,alpha=0,eps=0.001,lw=2,labs=False):
+
+    assert(withALTAIR)
 
     for fname in fnames:
         f = open(fname,"r")
@@ -188,12 +191,13 @@ def PlotA1(axx,t,fnames,color,lbox=2,alpha=0,eps=0.001,lw=2,labs=False):
     axx[0].plot([re,re],[-10,10],"k:")
 ##    
 
-def Plot2(alt,dname,color,lbox=2,eps=0.01,times=[10,100,500],lw=2,labs=False):
+def Plot2(dname,color,lbox=2,eps=0.01,times=[10,100,500],lw=2,labs=False):
 
     assert(os.path.isdir(dname))
 
-    if(alt):
-        ff = glob.glob(dname+"/out.*/manifest")
+    ff = glob.glob(dname+"/out.*/manifest")
+    if(ff):
+        assert(withALTAIR)
         ff.sort()
         Fun = PlotA1
     else:
@@ -208,9 +212,7 @@ def Plot2(alt,dname,color,lbox=2,eps=0.01,times=[10,100,500],lw=2,labs=False):
 ##
 
 
-Plot2(1,"/data/gnedin/A/TEST/REF2.CPU",color="b",lw=4,labs=1)
-#Plot2(1,"/data/gnedin/A/TEST/REF2.GPU",color="r")
-Plot2(0,"REF.I2",color="orange")
+Plot2("OUT",color="orange")
  
 
 axx[1][0].legend()

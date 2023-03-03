@@ -22,10 +22,6 @@ NB_UNIT = (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT))/1.674e-24
 ENERGY_UNIT = (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
 
 
-TvsP = 1
-if(len(sys.argv)>1 and sys.argv[1]=="-P"): TvsP = 0
-
-
 fig = plt.figure(figsize=(9,9))
 fig.subplots_adjust(left=0.10,right=0.98,bottom=0.07,top=0.98,hspace=0.05,wspace=0.08)
 
@@ -37,52 +33,37 @@ axx[2][0].set_xlabel(r"$r/L_{\rm box}$")
 axx[2][1].set_xlabel(r"$r/L_{\rm box}$")
 axx[2][2].set_xlabel(r"$r/L_{\rm box}$")
 
-axx[0][0].set_ylim(-5,0.2)
+axx[0][0].set_ylim(-5,0.8)
 axx[0][0].set_ylabel(r"$lg(x_{\rm HI}), lg(x_{\rm HII})$")
-if(TvsP):
-    axx[1][0].set_ylim(3.5,4.6)
-    axx[1][0].set_ylabel(r"$lg(T) [{\rm K}]$")
-else:
-    axx[1][0].set_ylim(-17,-13.9)
-    axx[1][0].set_ylabel(r"$lg(P) [{\rm g/cm/s^2}]$")
-##
-axx[2][0].set_ylim(-4,-2.4)
+axx[1][0].set_ylim(3.5,4.6)
+axx[1][0].set_ylabel(r"$lg(T) [{\rm K}]$")
+axx[2][0].set_ylim(-4,0.8)
 axx[2][0].set_ylabel(r"$lg(n) [{\rm cm}^{-3}]$")
 
 #ax2.tick_params(axis="y",which="both",labelleft=False)
 
 
 if(dir):
-    pathname = dir + "/tests/iliev/5"
-    img = plt.imread(pathname+"/ref5_010x.png")
+    pathname = dir + "/tests/iliev/6"
+    img = plt.imread(pathname+"/ref3x.png")
     axx[0][0].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
-    img = plt.imread(pathname+"/ref5_200x.png")
+    img = plt.imread(pathname+"/ref10x.png")
     axx[0][1].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
-    img = plt.imread(pathname+"/ref5_500x.png")
+    img = plt.imread(pathname+"/ref25x.png")
     axx[0][2].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
-    if(TvsP):
-        img = plt.imread(pathname+"/ref5_010T.png")
-        axx[1][0].imshow(img,extent=[0,1,3.5,4.6],aspect="auto",alpha=1)
-        img = plt.imread(pathname+"/ref5_200T.png")
-        axx[1][1].imshow(img,extent=[0,1,3.5,4.6],aspect="auto",alpha=1)
-        img = plt.imread(pathname+"/ref5_500T.png")
-        axx[1][2].imshow(img,extent=[0,1,3.5,4.6],aspect="auto",alpha=1)
-    else:
-        img = plt.imread(pathname+"/ref5_010P.png")
-        axx[1][0].imshow(img,extent=[0,1,-17,-13.9],aspect="auto",alpha=1)
-        img = plt.imread(pathname+"/ref5_200P.png")
-        axx[1][1].imshow(img,extent=[0,1,-17,-13.9],aspect="auto",alpha=1)
-        img = plt.imread(pathname+"/ref5_500P.png")
-        axx[1][2].imshow(img,extent=[0,1,-17,-13.9],aspect="auto",alpha=1)
-    ##
-    img = plt.imread(pathname+"/ref5_010n.png")
-    axx[2][0].imshow(img,extent=[0,1.05,-4,-2.4],aspect="auto",alpha=1)
-    img = plt.imread(pathname+"/ref5_200n.png")
-    axx[2][1].imshow(img,extent=[0,1.05,-4,-2.4],aspect="auto",alpha=1)
-    img = plt.imread(pathname+"/ref5_500n.png")
-    axx[2][2].imshow(img,extent=[0,1.05,-4,-2.4],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref3T.png")
+    axx[1][0].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref10T.png")
+    axx[1][1].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref25T.png")
+    axx[1][2].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref3n.png")
+    axx[2][0].imshow(img,extent=[0,1.05,-4,0.8],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref10n.png")
+    axx[2][1].imshow(img,extent=[0,1.05,-4,0.8],aspect="auto",alpha=1)
+    img = plt.imread(pathname+"/ref25n.png")
+    axx[2][2].imshow(img,extent=[0,1.05,-4,0.8],aspect="auto",alpha=1)
 ##
-
 
 def PlotC1(axx,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01,lw=2,labs=False):
         
@@ -142,7 +123,6 @@ def PlotC1(axx,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01,lw=2,labs=False):
     tavg += h1
     h1, bins = np.histogram(r1,bins=rbins,weights=n1)
     navg += h1
-
     vavg /= (1.0e-10+vnum)
     vrms = np.sqrt(np.abs(vrms/(1.0e-10+vnum)-vavg**2))
     tavg /= (1.0e-10+vnum)
@@ -157,7 +137,7 @@ def PlotC1(axx,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01,lw=2,labs=False):
 ##
 
 
-def PlotA1(axx,t,fnames,color,lbox=2,alpha=0,eps=0.001):
+def PlotA1(axx,t,fnames,color,lbox=2,alpha=0):
 
     assert(withALTAIR)
     
@@ -170,7 +150,7 @@ def PlotA1(axx,t,fnames,color,lbox=2,alpha=0,eps=0.001):
         f.close()
         assert(s[:7] == "time = ")
         tf = float(s[7:15])
-        if(abs(t-tf) < eps):
+        if(abs(t-tf)<0.001):
             break
         ##
     else:
@@ -208,11 +188,7 @@ def PlotA1(axx,t,fnames,color,lbox=2,alpha=0,eps=0.001):
             ##
             v1 = d.Field(p,"HI-density")/d.Field(p,"gas-mass-density")
             n1 = d.Field(p,"den")/1.67067e-24
-            if(TvsP):
-                t1 = d.Field(p,"tem")
-            else:
-                t1 = d.Field(p,"P")
-            ##
+            t1 = d.Field(p,"tem")
             h0, bins = np.histogram(r1,bins=rbins)
             h1, bins = np.histogram(r1,bins=rbins,weights=v1)
             h2, bins = np.histogram(r1,bins=rbins,weights=v1**2)
@@ -239,12 +215,9 @@ def PlotA1(axx,t,fnames,color,lbox=2,alpha=0,eps=0.001):
 ##    
 
 
-def Plot2(dname,color,lbox=2,times=[10,200,500]):
+def Plot2(dname,color,lbox=2,times=[3,10,25]):
 
     assert(os.path.isdir(dname))
-
-    ff = glob.glob(dname+"/out.*/manifest")
-    ff.sort()
 
     ff = glob.glob(dname+"/out.*/manifest")
     if(ff):
@@ -257,9 +230,9 @@ def Plot2(dname,color,lbox=2,times=[10,200,500]):
         Fun = PlotC1
     ##
 
-    Plot1([axx[0][0],axx[1][0],axx[2][0]],times[0],ff,color,lbox=lbox)
-    Plot1([axx[0][1],axx[1][1],axx[2][1]],times[1],ff,color,lbox=lbox)
-    Plot1([axx[0][2],axx[1][2],axx[2][2]],times[2],ff,color,lbox=lbox)
+    Plot1([axx[0][0],axx[1][0],axx[2][0]],times[0],ff,color)
+    Plot1([axx[0][1],axx[1][1],axx[2][1]],times[1],ff,color)
+    Plot1([axx[0][2],axx[1][2],axx[2][2]],times[2],ff,color)
 ##
 
 
