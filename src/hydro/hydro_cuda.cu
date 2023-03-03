@@ -862,10 +862,11 @@ __global__ void Select_Internal_Energy_1D(Real *dev_conserved, int nx, int n_gho
     Emax = fmax(dev_conserved[4 * n_cells + imo], E);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + ipo]);
 
-    if (U_total / Emax > eta_2)
+    if (U_total / Emax > eta_2) {
       U = U_total;
-    else
+    } else {
       U = U_advected;
+    }
 
     // Optional: Avoid Negative Internal  Energies
     U = fmax(U, (Real)TINY_NUMBER);
@@ -919,10 +920,11 @@ __global__ void Select_Internal_Energy_2D(Real *dev_conserved, int nx, int ny, i
     Emax = fmax(Emax, dev_conserved[4 * n_cells + jmo]);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + jpo]);
 
-    if (U_total / Emax > eta_2)
+    if (U_total / Emax > eta_2) {
       U = U_total;
-    else
+    } else {
       U = U_advected;
+    }
 
     // Optional: Avoid Negative Internal  Energies
     U = fmax(U, (Real)TINY_NUMBER);
@@ -983,10 +985,11 @@ __global__ void Select_Internal_Energy_3D(Real *dev_conserved, int nx, int ny, i
     Emax = fmax(Emax, dev_conserved[4 * n_cells + kmo]);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + kpo]);
 
-    if (U_total / Emax > eta_2)
+    if (U_total / Emax > eta_2) {
       U = U_total;
-    else
+    } else {
       U = U_advected;
+    }
 
     // Optional: Avoid Negative Internal  Energies
     U = fmax(U, (Real)TINY_NUMBER);

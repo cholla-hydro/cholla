@@ -548,8 +548,9 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
   // Print a warning if the number of particles has changed from the initial
   // number of particles. This will indicate an error on the Particles
   // transfers.
-  if (N_particles_total != Particles.n_total_initial)
+  if (N_particles_total != Particles.n_total_initial) {
     chprintf(" WARNING: Lost Particles: %d \n", Particles.n_total_initial - N_particles_total);
+  }
 
   // Create the data space for the datasets
   dims[0]      = n_local;

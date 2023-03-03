@@ -194,16 +194,17 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound, R
   Initialize_Grid_Values();
 
   // Initialize Particles
-  if (strcmp(P->init, "Spherical_Overdensity_3D") == 0)
+  if (strcmp(P->init, "Spherical_Overdensity_3D") == 0) {
     Initialize_Sphere(P);
-  else if (strcmp(P->init, "Zeldovich_Pancake") == 0)
+  } else if (strcmp(P->init, "Zeldovich_Pancake") == 0) {
     Initialize_Zeldovich_Pancake(P);
-  else if (strcmp(P->init, "Read_Grid") == 0)
+  } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
   #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
-  else if (strcmp(P->init, "Disk_3D_particles") == 0)
+  } else if (strcmp(P->init, "Disk_3D_particles") == 0) {
     Initialize_Disk_Stellar_Clusters(P);
   #endif
+  }
 
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);

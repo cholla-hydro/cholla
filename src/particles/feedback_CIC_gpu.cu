@@ -103,9 +103,10 @@ void supernova::initState(struct parameters* P, part_int_t n_local, Real allocat
         } else if (i == 1) {
           snr.push_back(pow(10, std::stof(std::string(data))) / 1000);
         }
-        if (i > 0)
+        if (i > 0) {
           break;  // only care about the first 2 items.  Once i = 1 can break
-                  // here.
+        }         // here.
+
         data = strtok(nullptr, s99_delim);
         i++;
       }
@@ -285,9 +286,9 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
       int N = 0;
       // only calculate this if there will be SN feedback
       if ((t - age_dev[gtid]) <= time_sn_end) {
-        if (direction == -1)
+        if (direction == -1) {
           N = -prev_N[gtid];
-        else {
+        } else {
           Real average_num_sn =
               GetSNRate(t - age_dev[gtid], dev_snr, snr_dt, time_sn_start, time_sn_end) * mass_dev[gtid] * dt;
 
@@ -310,9 +311,9 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
           mass_dev[gtid] -= N * supernova::MASS_PER_SN;
           feedback_energy  = N * supernova::ENERGY_PER_SN / dV;
           feedback_density = N * supernova::MASS_PER_SN / dV;
-          if (direction == -1)
+          if (direction == -1) {
             n_0 = prev_dens[gtid];
-          else {
+          } else {
             n_0             = GetAverageNumberDensity_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
             prev_dens[gtid] = n_0;
           }
@@ -326,17 +327,19 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
           feedback_momentum = direction * supernova::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV;
           shell_radius      = supernova::R_SH * pow(n_0, -0.46) * pow(fabsf(N), 0.29);
           is_resolved       = 3 * max(dx, max(dy, dz)) <= shell_radius;
-          if (!is_resolved)
+          if (!is_resolved) {
             kernel_printf(
                 "UR[%f] at (%d, %d, %d)  id=%d, N=%d, shell_rad=%0.4e, "
                 "n_0=%0.4e\n",
                 t, indx_x + n_ghost, indx_y + n_ghost, indx_z + n_ghost, (int)id[gtid], N, shell_radius, n_0);
+          }
 
           s_info[FEED_INFO_N * tid] = 1. * N;
-          if (is_resolved)
+          if (is_resolved) {
             s_info[FEED_INFO_N * tid + 1] = direction * 1.0;
-          else
+          } else {
             s_info[FEED_INFO_N * tid + 2] = direction * 1.0;
+          }
 
           int indx;
 
@@ -423,9 +426,10 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
                         density[indx] * DENSITY_UNIT / 0.6 / MP, n_0);
                   }
 
-                  if (direction > 0)
+                  if (direction > 0) {
                     local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z,
                                                               energy, indx, dx, dy, dz));
+                  }
                 }
               }
             }

@@ -905,14 +905,16 @@ void Grid3D::Disk_3D(parameters p)
 
           //  pressure gradient along x direction
           // gradient calc is first order at boundaries
-          if (i == H.n_ghost)
+          if (i == H.n_ghost) {
             idm = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idm = (i - 1) + j * H.nx + k * H.nx * H.ny;
-          if (i == H.nx - H.n_ghost - 1)
+          }
+          if (i == H.nx - H.n_ghost - 1) {
             idp = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idp = (i + 1) + j * H.nx + k * H.nx * H.ny;
+          }
           Get_Position(i - 1, j, k, &xpm, &ypm, &zpm);
           Get_Position(i + 1, j, k, &xpp, &ypp, &zpp);
           Pm   = C.Energy[idm] * (gama - 1.0);  // only internal energy stored in energy currently
@@ -920,14 +922,16 @@ void Grid3D::Disk_3D(parameters p)
           dPdx = (Pp - Pm) / (xpp - xpm);
 
           // pressure gradient along y direction
-          if (j == H.n_ghost)
+          if (j == H.n_ghost) {
             idm = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idm = i + (j - 1) * H.nx + k * H.nx * H.ny;
-          if (j == H.ny - H.n_ghost - 1)
+          }
+          if (j == H.ny - H.n_ghost - 1) {
             idp = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idp = i + (j + 1) * H.nx + k * H.nx * H.ny;
+          }
           Get_Position(i, j - 1, k, &xpm, &ypm, &zpm);
           Get_Position(i, j + 1, k, &xpp, &ypp, &zpm);
           Pm   = C.Energy[idm] * (gama - 1.0);  // only internal energy stored in energy currently
@@ -963,8 +967,9 @@ void Grid3D::Disk_3D(parameters p)
 
             // sheepishly check for NaN's!
 
-            if ((d < 0) || (P < 0) || (isnan(d)) || (isnan(P)) || (d != d) || (P != P))
+            if ((d < 0) || (P < 0) || (isnan(d)) || (isnan(P)) || (d != d) || (P != P)) {
               printf("d %e P %e i %d j %d k %d id %d\n", d, P, i, j, k, id);
+            }
 
             if ((isnan(vx)) || (isnan(vy)) || (isnan(vz)) || (vx != vx) || (vy != vy) || (vz != vz)) {
               printf("vx %e vy %e vz %e i %d j %d k %d id %d\n", vx, vy, vz, i, j, k, id);

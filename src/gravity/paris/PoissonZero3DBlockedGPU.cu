@@ -158,8 +158,9 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
       mp, mq, dip, djq, dk, GPU_LAMBDA(const int p, const int q, const int i, const int j, const int k) {
         const int iLo = p * dip;
         const int jLo = q * djq;
-        if ((i + iLo < di) && (j + jLo < dj))
+        if ((i + iLo < di) && (j + jLo < dj)) {
           ua[(((p * mq + q) * dip + i) * djq + j) * dk + k] = ub[((i + iLo) * dj + j + jLo) * dk + k];
+        }
       });
   #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_, ua, bytes_, cudaMemcpyDeviceToHost));
@@ -510,8 +511,9 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
       mp, dip, mq, djq, dk, GPU_LAMBDA(const int p, const int i, const int q, const int j, const int k) {
         const int iLo = p * dip;
         const int jLo = q * djq;
-        if ((iLo + i < di) && (jLo + j < dj))
+        if ((iLo + i < di) && (jLo + j < dj)) {
           ua[((i + iLo) * dj + j + jLo) * dk + k] = ub[(((p * mq + q) * dip + i) * djq + j) * dk + k];
+        }
       });
 }
 

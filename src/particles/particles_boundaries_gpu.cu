@@ -141,8 +141,9 @@ __global__ void Scan_Kernel(part_int_t n_total, bool *transfer_flags_d, int *pre
 
   // Write results to device memory
   if (block_start + 2 * tid_block < n_total) prefix_sum_d[block_start + 2 * tid_block] = data_sh[2 * tid_block];
-  if (block_start + 2 * tid_block + 1 < n_total)
+  if (block_start + 2 * tid_block + 1 < n_total) {
     prefix_sum_d[block_start + 2 * tid_block + 1] = data_sh[2 * tid_block + 1];
+  }
 
   // Write the block sum
   int last_flag_block = (int)transfer_flags_d[block_start + 2 * (blockDim.x - 1) + 1];
