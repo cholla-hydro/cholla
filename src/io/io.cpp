@@ -3206,8 +3206,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
           C.magnetic_x[id] = dataset_buffer[buf_id];
           mean_l += fabs(C.magnetic_x[id]);
-          if (fabs(C.magnetic_x[id]) > max_l) max_l = fabs(C.magnetic_x[id]);
-          if (fabs(C.magnetic_x[id]) < min_l) min_l = fabs(C.magnetic_x[id]);
+          if (fabs(C.magnetic_x[id]) > max_l) {
+            max_l = fabs(C.magnetic_x[id]);
+          }
+          if (fabs(C.magnetic_x[id]) < min_l) {
+            min_l = fabs(C.magnetic_x[id]);
+          }
         }
       }
     }
@@ -3248,8 +3252,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
           C.magnetic_y[id] = dataset_buffer[buf_id];
           mean_l += fabs(C.magnetic_y[id]);
-          if (fabs(C.magnetic_y[id]) > max_l) max_l = fabs(C.magnetic_y[id]);
-          if (fabs(C.magnetic_y[id]) < min_l) min_l = fabs(C.magnetic_y[id]);
+          if (fabs(C.magnetic_y[id]) > max_l) {
+            max_l = fabs(C.magnetic_y[id]);
+          }
+          if (fabs(C.magnetic_y[id]) < min_l) {
+            min_l = fabs(C.magnetic_y[id]);
+          }
         }
       }
     }
@@ -3290,8 +3298,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
           C.magnetic_z[id] = dataset_buffer[buf_id];
           mean_l += fabs(C.magnetic_z[id]);
-          if (fabs(C.magnetic_z[id]) > max_l) max_l = fabs(C.magnetic_z[id]);
-          if (fabs(C.magnetic_z[id]) < min_l) min_l = fabs(C.magnetic_z[id]);
+          if (fabs(C.magnetic_z[id]) > max_l) {
+            max_l = fabs(C.magnetic_z[id]);
+          }
+          if (fabs(C.magnetic_z[id]) < min_l) {
+            min_l = fabs(C.magnetic_z[id]);
+          }
         }
       }
     }
