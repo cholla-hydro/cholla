@@ -192,7 +192,9 @@ __global__ void Advance_Particles_KDK_Step1_Cosmo_Kernel(part_int_t n_local, Rea
                                                          Real Omega_M, Real Omega_L, Real Omega_K)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   Real vel_x, vel_y, vel_z;
   vel_x = vel_x_dev[tid];
@@ -234,7 +236,9 @@ __global__ void Advance_Particles_KDK_Step2_Cosmo_Kernel(part_int_t n_local, Rea
                                                          Real Omega_M, Real Omega_L, Real Omega_K)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   Real vel_x, vel_y, vel_z;
   vel_x = vel_x_dev[tid];

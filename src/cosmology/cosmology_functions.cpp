@@ -13,7 +13,9 @@ void Grid3D::Initialize_Cosmology(struct parameters *P)
   // Change to comoving Cosmological System
   Change_Cosmological_Frame_Sytem(true);
 
-  if (fabs(Cosmo.current_a - Cosmo.next_output) < 1e-5) H.Output_Now = true;
+  if (fabs(Cosmo.current_a - Cosmo.next_output) < 1e-5) {
+    H.Output_Now = true;
+  }
 
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
