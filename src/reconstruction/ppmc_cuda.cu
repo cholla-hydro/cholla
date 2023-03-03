@@ -448,8 +448,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
         lim_slope_a         = fmin(fabs(del_scalar_L[i]), fabs(del_scalar_R[i]));
         lim_slope_b         = fmin(fabs(del_scalar_C[i]), fabs(del_scalar_G[i]));
         del_scalar_m_imo[i] = sgn_CUDA(del_scalar_C[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-      } else
+      } else {
         del_scalar_m_imo[i] = 0.0;
+      }
     }
     #endif  // SCALAR
 
@@ -620,8 +621,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
         lim_slope_a       = fmin(fabs(del_scalar_L[i]), fabs(del_scalar_R[i]));
         lim_slope_b       = fmin(fabs(del_scalar_C[i]), fabs(del_scalar_G[i]));
         del_scalar_m_i[i] = sgn_CUDA(del_scalar_C[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-      } else
+      } else {
         del_scalar_m_i[i] = 0.0;
+      }
     }
     #endif  // SCALAR
 
@@ -792,8 +794,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
         lim_slope_a         = fmin(fabs(del_scalar_L[i]), fabs(del_scalar_R[i]));
         lim_slope_b         = fmin(fabs(del_scalar_C[i]), fabs(del_scalar_G[i]));
         del_scalar_m_ipo[i] = sgn_CUDA(del_scalar_C[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-      } else
+      } else {
         del_scalar_m_ipo[i] = 0.0;
+      }
     }
     #endif  // SCALAR
 
