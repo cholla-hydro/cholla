@@ -64,7 +64,9 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 
     n = d_gas * DENSITY_UNIT / (mu * MP);
 
-    if (E < 0.0 || E != E) {return;}
+    if (E < 0.0 || E != E) {
+      return;
+    }
 
     vx = dev_conserved[id + n_cells * grid_enum::momentum_x] / d_gas;
     vy = dev_conserved[id + n_cells * grid_enum::momentum_y] / d_gas;
