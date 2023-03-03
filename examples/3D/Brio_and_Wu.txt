@@ -68,5 +68,5 @@ Bz_r=0.0
 # location of initial discontinuity
 diaph=0.5
 # value of gamma
-gamma=2
+gamma=2.0
 
