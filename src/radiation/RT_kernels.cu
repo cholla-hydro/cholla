@@ -8,6 +8,8 @@
 #include "RT_functions.h"
 
 
+#ifdef RT
+
 void __global__ Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz, int n_ghost, int n_freq, struct Rad3D::RT_Fields rtFields)
 {
 
@@ -241,3 +243,5 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost,
     rfNearNew[i+nx*(j+ny*k)] = (rfu2<0 ? 0 : rfu2);
     rfFarNew[i+nx*(j+ny*k)]  = (rfv2<0 ? 0 : rfv2);
 }
+
+#endif // RT

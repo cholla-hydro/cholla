@@ -34,9 +34,7 @@ def Plot(fname,color,lw=2):
     axx[1].plot(d[0],d[2],linewidth=lw,color=color)
 
 
-Plot("iliev0.res","orange",lw=4)
 Plot("cholla.res","b")
-
 
 
 plt.show()

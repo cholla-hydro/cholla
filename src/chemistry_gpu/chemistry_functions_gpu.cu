@@ -248,6 +248,7 @@ __device__ Real linear_interpolation( Real delta_x, int indx_l, int indx_r, floa
 __device__ void Get_Current_Photo_Rates( Chemistry_Header &Chem_H, const Real *rf, int id, int ncells, 
                                        float &photo_i_HI, float &photo_i_HeI, float &photo_i_HeII, 
                                        float &photo_h_HI, float &photo_h_HeI, float &photo_h_HeII, int print ){
+#ifdef RT
     if(rf != nullptr)
     {
         const float rfN0 = rf[id+0*ncells];
@@ -299,6 +300,7 @@ __device__ void Get_Current_Photo_Rates( Chemistry_Header &Chem_H, const Real *r
         photo_h_HeII = pRates[5]*Chem_H.unitPhotoHeating;
     }
     else
+#endif
     {
         if( Chem_H.current_z > Chem_H.uvb_rates_redshift_d[Chem_H.n_uvb_rates_samples - 1])
         {

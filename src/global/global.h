@@ -287,7 +287,7 @@ struct parameters
 #endif
   int bc_potential_type;
 #if defined(COOLING_GRACKLE) || defined (CHEMISTRY_GPU)
-  char UVB_rates_file[MAXLEN]; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
+  char UVB_rates_file[MAXLEN] = { 0 }; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
 #endif  
 #ifdef RT
   int num_iterations = 10;
