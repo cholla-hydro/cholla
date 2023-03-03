@@ -117,27 +117,27 @@ void Grid3D::Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(int dir, i
 
   // find out how many recvs we need to wait for
   if (dir == 0) {
-    if (flags[0] == 5) { // there is communication on this face
-      wait_max++;        // so we'll need to wait for its comm
+    if (flags[0] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
     }
-    if (flags[1] == 5) { // there is communication on this face
-      wait_max++;        // so we'll need to wait for its comm
+    if (flags[1] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
     }
   }
   if (dir == 1) {
-    if (flags[2] == 5) { // there is communication on this face
-      wait_max++;        // so we'll need to wait for its comm
+    if (flags[2] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
     }
-    if (flags[3] == 5) { // there is communication on this face
-      wait_max++;        // so we'll need to wait for its comm
+    if (flags[3] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
     }
   }
   if (dir == 2) {
-    if (flags[4] == 5) { // there is communication on this face
-      wait_max++;        // so we'll need to wait for its comm
+    if (flags[4] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
     }
-    if (flags[5] == 5) { // there is communication on this face
-      wait_max++;        // so we'll need to wait for its comm
+    if (flags[5] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
     }
   }
 
