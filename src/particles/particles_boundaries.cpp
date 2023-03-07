@@ -53,22 +53,28 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flag
 
   // find out how many recvs we need to wait for
   if (dir == 0) {
-    if (flags[0] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
-    if (flags[1] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
+    if (flags[0] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[1] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
   }
   if (dir == 1) {
-    if (flags[2] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
-    if (flags[3] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
+    if (flags[2] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[3] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
   }
   if (dir == 2) {
-    if (flags[4] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
-    if (flags[5] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
+    if (flags[4] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[5] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
   }
 
   // wait for any receives to complete
@@ -84,16 +90,34 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Particles_Buffers_BLOCK(int dir, int *flag
 void Grid3D::Unload_Particles_From_Buffers_BLOCK(int index, int *flags)
 {
   // Make sure not to unload when not transfering particles
-  if (Particles.TRANSFER_DENSITY_BOUNDARIES) return;
-  if (H.TRANSFER_HYDRO_BOUNDARIES) return;
-  if (Grav.TRANSFER_POTENTIAL_BOUNDARIES) return;
+  if (Particles.TRANSFER_DENSITY_BOUNDARIES) {
+    return;
+  }
+  if (H.TRANSFER_HYDRO_BOUNDARIES) {
+    return;
+  }
+  if (Grav.TRANSFER_POTENTIAL_BOUNDARIES) {
+    return;
+  }
 
-  if (index == 0) Unload_Particles_from_Buffer_X0(flags);
-  if (index == 1) Unload_Particles_from_Buffer_X1(flags);
-  if (index == 2) Unload_Particles_from_Buffer_Y0(flags);
-  if (index == 3) Unload_Particles_from_Buffer_Y1(flags);
-  if (index == 4) Unload_Particles_from_Buffer_Z0(flags);
-  if (index == 5) Unload_Particles_from_Buffer_Z1(flags);
+  if (index == 0) {
+    Unload_Particles_from_Buffer_X0(flags);
+  }
+  if (index == 1) {
+    Unload_Particles_from_Buffer_X1(flags);
+  }
+  if (index == 2) {
+    Unload_Particles_from_Buffer_Y0(flags);
+  }
+  if (index == 3) {
+    Unload_Particles_from_Buffer_Y1(flags);
+  }
+  if (index == 4) {
+    Unload_Particles_from_Buffer_Z0(flags);
+  }
+  if (index == 5) {
+    Unload_Particles_from_Buffer_Z1(flags);
+  }
 }
 
 // Wait for the Number of particles that will be transferred, and request the
@@ -101,7 +125,9 @@ void Grid3D::Unload_Particles_From_Buffers_BLOCK(int index, int *flags)
 void Grid3D::Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(int dir, int *flags)
 {
     #ifdef PARTICLES
-  if (!Particles.TRANSFER_PARTICLES_BOUNDARIES) return;
+  if (!Particles.TRANSFER_PARTICLES_BOUNDARIES) {
+    return;
+  }
     #endif
 
   int iwait;
@@ -111,22 +137,28 @@ void Grid3D::Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(int dir, i
 
   // find out how many recvs we need to wait for
   if (dir == 0) {
-    if (flags[0] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
-    if (flags[1] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
+    if (flags[0] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[1] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
   }
   if (dir == 1) {
-    if (flags[2] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
-    if (flags[3] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
+    if (flags[2] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[3] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
   }
   if (dir == 2) {
-    if (flags[4] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
-    if (flags[5] == 5)  // there is communication on this face
-      wait_max++;       // so we'll need to wait for its comm
+    if (flags[4] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[5] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
   }
 
   int ireq_particles_transfer = 0;

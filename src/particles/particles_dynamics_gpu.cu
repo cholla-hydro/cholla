@@ -70,7 +70,9 @@ __global__ void Calc_Particles_dti_Kernel(part_int_t n_local, Real dx, Real dy, 
   }
 
   // write the result for this block to global memory
-  if (tid == 0) dti_array[blockIdx.x] = max_dti[0];
+  if (tid == 0) {
+    dti_array[blockIdx.x] = max_dti[0];
+  }
 }
 
 Real Particles_3D::Calc_Particles_dt_GPU_function(int ngrid, part_int_t n_particles_local, Real dx, Real dy, Real dz,
@@ -112,7 +114,9 @@ __global__ void Advance_Particles_KDK_Step1_Kernel(part_int_t n_local, Real dt, 
                                                    Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   // Advance velocities by half a step
   vel_x_dev[tid] += 0.5 * dt * grav_x_dev[tid];
@@ -130,7 +134,9 @@ __global__ void Advance_Particles_KDK_Step2_Kernel(part_int_t n_local, Real dt, 
                                                    Real *grav_z_dev)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   // Advance velocities by the second half a step
   vel_x_dev[tid] += 0.5 * dt * grav_x_dev[tid];
@@ -186,7 +192,9 @@ __global__ void Advance_Particles_KDK_Step1_Cosmo_Kernel(part_int_t n_local, Rea
                                                          Real Omega_M, Real Omega_L, Real Omega_K)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   Real vel_x, vel_y, vel_z;
   vel_x = vel_x_dev[tid];
@@ -228,7 +236,9 @@ __global__ void Advance_Particles_KDK_Step2_Cosmo_Kernel(part_int_t n_local, Rea
                                                          Real Omega_M, Real Omega_L, Real Omega_K)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   Real vel_x, vel_y, vel_z;
   vel_x = vel_x_dev[tid];

@@ -80,7 +80,9 @@ int main(int argc, char *argv[])
       "Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, "
       "boundaries = %d %d %d %d %d %d\n",
       P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
-  if (strcmp(P.init, "Read_Grid") == 0) chprintf("Input directory:  %s\n", P.indir);
+  if (strcmp(P.init, "Read_Grid") == 0) {
+    chprintf("Input directory:  %s\n", P.indir);
+  }
   chprintf("Output directory:  %s\n", P.outdir);
 
   // Check the configuration
@@ -143,7 +145,9 @@ int main(int argc, char *argv[])
 
 #ifdef ANALYSIS
   G.Initialize_Analysis_Module(&P);
-  if (G.Analysis.Output_Now) G.Compute_and_Output_Analysis(&P);
+  if (G.Analysis.Output_Now) {
+    G.Compute_and_Output_Analysis(&P);
+  }
 #endif
 
 #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
@@ -238,7 +242,9 @@ int main(int argc, char *argv[])
     // determine the global timestep
     G.set_dt(dti);
 
-    if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
+    if (G.H.t + G.H.dt > outtime) {
+      G.H.dt = outtime - G.H.t;
+    }
 
 #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
     supernova::Cluster_Feedback(G, sn_analysis);
@@ -308,7 +314,9 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef ANALYSIS
-    if (G.Analysis.Output_Now) G.Compute_and_Output_Analysis(&P);
+    if (G.Analysis.Output_Now) {
+      G.Compute_and_Output_Analysis(&P);
+    }
   #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
     sn_analysis.Compute_Gas_Velocity_Dispersion(G);
   #endif

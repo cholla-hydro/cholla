@@ -168,20 +168,28 @@ void Potential_Paris_Galactic::Initialize(const Real lx, const Real ly, const Re
 void Potential_Paris_Galactic::Reset()
 {
   #ifndef GRAVITY_GPU
-  if (dc_) CHECK(cudaFree(dc_));
+  if (dc_) {
+    CHECK(cudaFree(dc_));
+  }
   dc_             = nullptr;
   potentialBytes_ = 0;
   #endif
 
-  if (db_) CHECK(cudaFree(db_));
+  if (db_) {
+    CHECK(cudaFree(db_));
+  }
   db_ = nullptr;
 
-  if (da_) CHECK(cudaFree(da_));
+  if (da_) {
+    CHECK(cudaFree(da_));
+  }
   da_ = nullptr;
 
   densityBytes_ = minBytes_ = 0;
 
-  if (pp_) delete pp_;
+  if (pp_) {
+    delete pp_;
+  }
   pp_ = nullptr;
 
   myLo_[2] = myLo_[1] = myLo_[0] = 0;

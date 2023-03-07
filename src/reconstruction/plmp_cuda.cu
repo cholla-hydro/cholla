@@ -132,9 +132,15 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     ge_i = dge / d_i;
   #endif  // DE
     // cell i-1
-    if (dir == 0) id = xid - 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid - 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid - 1) * nx * ny;
+    if (dir == 0) {
+      id = xid - 1 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid - 1) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid - 1) * nx * ny;
+    }
     d_imo  = dev_conserved[id];
     vx_imo = dev_conserved[o1 * n_cells + id] / d_imo;
     vy_imo = dev_conserved[o2 * n_cells + id] / d_imo;
@@ -158,9 +164,15 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     ge_imo = dge / d_imo;
   #endif  // DE
     // cell i+1
-    if (dir == 0) id = xid + 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid + 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid + 1) * nx * ny;
+    if (dir == 0) {
+      id = xid + 1 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid + 1) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid + 1) * nx * ny;
+    }
     d_ipo  = dev_conserved[id];
     vx_ipo = dev_conserved[o1 * n_cells + id] / d_ipo;
     vy_ipo = dev_conserved[o2 * n_cells + id] / d_ipo;
@@ -276,9 +288,15 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     // Convert the left and right states in the primitive to the conserved
     // variables send final values back from kernel bounds_R refers to the right
     // side of the i-1/2 interface
-    if (dir == 0) id = xid - 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid - 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid - 1) * nx * ny;
+    if (dir == 0) {
+      id = xid - 1 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid - 1) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid - 1) * nx * ny;
+    }
     dev_bounds_R[id]                = d_L;
     dev_bounds_R[o1 * n_cells + id] = mx_L;
     dev_bounds_R[o2 * n_cells + id] = my_L;

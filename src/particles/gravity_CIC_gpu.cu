@@ -37,7 +37,9 @@ __global__ void Get_Gravity_Field_Particles_Kernel(Real *potential_dev, Real *gr
   ny_grav = ny + 2 * n_ghost_particles_grid;
   nz_grav = nz + 2 * n_ghost_particles_grid;
 
-  if (tid_x >= nx_grav || tid_y >= ny_grav || tid_z >= nz_grav) return;
+  if (tid_x >= nx_grav || tid_y >= ny_grav || tid_z >= nz_grav) {
+    return;
+  }
   int tid = tid_x + tid_y * nx_grav + tid_z * nx_grav * ny_grav;
 
   int nx_pot, ny_pot;
@@ -152,7 +154,9 @@ __global__ void Get_Gravity_CIC_Kernel(part_int_t n_local, Real *gravity_x_dev, 
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   int nx_g, ny_g;
   nx_g = nx + 2 * n_ghost;
@@ -175,9 +179,15 @@ __global__ void Get_Gravity_CIC_Kernel(part_int_t n_local, Real *gravity_x_dev, 
 
   bool in_local = true;
 
-  if (pos_x < xMin || pos_x >= xMax) in_local = false;
-  if (pos_y < yMin || pos_y >= yMax) in_local = false;
-  if (pos_z < zMin || pos_z >= zMax) in_local = false;
+  if (pos_x < xMin || pos_x >= xMax) {
+    in_local = false;
+  }
+  if (pos_y < yMin || pos_y >= yMax) {
+    in_local = false;
+  }
+  if (pos_z < zMin || pos_z >= zMax) {
+    in_local = false;
+  }
   if (!in_local) {
     printf(" Gravity CIC Error: Particle outside local domain");
     return;
@@ -290,7 +300,9 @@ void __global__ Copy_Particles_Density_Kernel(Real *dst_density, Real *src_densi
   tid_y = blockIdx.y * blockDim.y + threadIdx.y;
   tid_z = blockIdx.z * blockDim.z + threadIdx.z;
 
-  if (tid_x >= nx_local || tid_y >= ny_local || tid_z >= nz_local) return;
+  if (tid_x >= nx_local || tid_y >= ny_local || tid_z >= nz_local) {
+    return;
+  }
 
   tid_dens = tid_x + tid_y * nx_local + tid_z * nx_local * ny_local;
 

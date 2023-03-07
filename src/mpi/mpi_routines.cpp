@@ -241,15 +241,17 @@ void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int
   // set grid dimensions
   H->nx      = nx_local + 2 * H->n_ghost;
   H->nx_real = nx_local;
-  if (ny_local == 1)
+  if (ny_local == 1) {
     H->ny = 1;
-  else
+  } else {
     H->ny = ny_local + 2 * H->n_ghost;
+  }
   H->ny_real = ny_local;
-  if (nz_local == 1)
+  if (nz_local == 1) {
     H->nz = 1;
-  else
+  } else {
     H->nz = nz_local + 2 * H->n_ghost;
+  }
   H->nz_real = nz_local;
 
   // set total number of cells
@@ -324,8 +326,8 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   //      for(k=0;k<nproc_z;k++)
   //
 
-  for (k = 0; k < nproc_z; k++)
-    for (j = 0; j < nproc_y; j++)
+  for (k = 0; k < nproc_z; k++) {
+    for (j = 0; j < nproc_y; j++) {
       for (i = 0; i < nproc_x; i++) {
         ix[n] = i;
         iy[n] = j;
@@ -335,22 +337,36 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
 
         if (n == procID) {
           dest[0] = i - 1;
-          if (dest[0] < 0) dest[0] += nproc_x;
+          if (dest[0] < 0) {
+            dest[0] += nproc_x;
+          }
           dest[1] = i + 1;
-          if (dest[1] >= nproc_x) dest[1] -= nproc_x;
+          if (dest[1] >= nproc_x) {
+            dest[1] -= nproc_x;
+          }
 
           dest[2] = j - 1;
-          if (dest[2] < 0) dest[2] += nproc_y;
+          if (dest[2] < 0) {
+            dest[2] += nproc_y;
+          }
           dest[3] = j + 1;
-          if (dest[3] >= nproc_y) dest[3] -= nproc_y;
+          if (dest[3] >= nproc_y) {
+            dest[3] -= nproc_y;
+          }
 
           dest[4] = k - 1;
-          if (dest[4] < 0) dest[4] += nproc_z;
+          if (dest[4] < 0) {
+            dest[4] += nproc_z;
+          }
           dest[5] = k + 1;
-          if (dest[5] >= nproc_z) dest[5] -= nproc_z;
+          if (dest[5] >= nproc_z) {
+            dest[5] -= nproc_z;
+          }
         }
         n++;
       }
+    }
+  }
 
   /* set local x, y, z subdomain sizes */
   n = nx_global % nproc_x;
@@ -398,7 +414,9 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
   }
 
   // find MPI sources
-  for (i = 0; i < 6; i++) source[i] = dest[i];
+  for (i = 0; i < 6; i++) {
+    source[i] = dest[i];
+  }
 
   // find MPI destinations
   dest[0] = tiling[dest[0]][iy[procID]][iz[procID]];
@@ -438,11 +456,15 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
       if (ix[procID] == 0) {
         P->xu_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->xl_bcnd == 1) P->xl_bcnd = 5;
+        if (P->xl_bcnd == 1) {
+          P->xl_bcnd = 5;
+        }
       } else {
         P->xl_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->xu_bcnd == 1) P->xu_bcnd = 5;
+        if (P->xu_bcnd == 1) {
+          P->xu_bcnd = 5;
+        }
       }
     } else {
       // this is completely an interior cell
@@ -461,11 +483,15 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
       if (iy[procID] == 0) {
         P->yu_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->yl_bcnd == 1) P->yl_bcnd = 5;
+        if (P->yl_bcnd == 1) {
+          P->yl_bcnd = 5;
+        }
       } else {
         P->yl_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->yu_bcnd == 1) P->yu_bcnd = 5;
+        if (P->yu_bcnd == 1) {
+          P->yu_bcnd = 5;
+        }
       }
     } else {
       // this is completely an interior cell
@@ -484,11 +510,15 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
       if (iz[procID] == 0) {
         P->zu_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->zl_bcnd == 1) P->zl_bcnd = 5;
+        if (P->zl_bcnd == 1) {
+          P->zl_bcnd = 5;
+        }
       } else {
         P->zl_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->zu_bcnd == 1) P->zu_bcnd = 5;
+        if (P->zu_bcnd == 1) {
+          P->zu_bcnd = 5;
+        }
       }
     } else {
       // this is completely an interior cell
@@ -711,7 +741,9 @@ part_int_t Get_Particles_IDs_Global_MPI_Offset(part_int_t n_local)
   MPI_Allgather(n_local_send, 1, MPI_PART_INT, n_local_all, 1, MPI_PART_INT, world);
   global_offset = 0;
   for (int other_rank = 0; other_rank < nproc; other_rank++) {
-    if (other_rank < procID) global_offset += n_local_all[other_rank];
+    if (other_rank < procID) {
+      global_offset += n_local_all[other_rank];
+    }
   }
   // printf("global_offset = %ld \n", global_offset );
   free(n_local_send);
@@ -747,7 +779,9 @@ void Print_Domain_Properties(struct Header H)
 void Check_and_Grow_Particles_Buffer(Real **part_buffer, int *current_size_ptr, int new_size)
 {
   int current_size = *current_size_ptr;
-  if (new_size <= current_size) return;
+  if (new_size <= current_size) {
+    return;
+  }
 
   new_size = (int)2 * new_size;
   std::cout << " #######  Growing Particles Transfer Buffer, size: " << current_size << "  new_size: " << new_size
@@ -770,14 +804,18 @@ int greatest_prime_factor(int n)
   int ns = n;
   int np = 2;
 
-  if (n == 1 || n == 2) return n;
+  if (n == 1 || n == 2) {
+    return n;
+  }
 
   while (true) {
     while (!(ns % np)) {
       ns = ns / np;
     }
 
-    if (ns == 1) break;
+    if (ns == 1) {
+      break;
+    }
 
     np++;
   }
@@ -837,7 +875,9 @@ void TileBlockDecomposition(void)
       /*increase ny, nz round-robin*/
       while (np_x * np_y * np_z < nproc) {
         np_y *= 2;
-        if (np_x * np_y * np_z == nproc) break;
+        if (np_x * np_y * np_z == nproc) {
+          break;
+        }
         np_z *= 2;
       }
     }
@@ -848,9 +888,13 @@ void TileBlockDecomposition(void)
     /*increase nx, ny, nz round-robin*/
     while (np_x * np_y * np_z < nproc) {
       np_x *= 2;
-      if (np_x * np_y * np_z == nproc) break;
+      if (np_x * np_y * np_z == nproc) {
+        break;
+      }
       np_y *= 2;
-      if (np_x * np_y * np_z == nproc) break;
+      if (np_x * np_y * np_z == nproc) {
+        break;
+      }
       np_z *= 2;
     }
   }
@@ -904,7 +948,9 @@ int ***three_dimensional_int_array(int n, int l, int m)
 void deallocate_three_dimensional_int_array(int ***x, int n, int l, int m)
 {
   for (int i = 0; i < n; i++) {
-    for (int j = 0; j < l; j++) delete[] x[i][j];
+    for (int j = 0; j < l; j++) {
+      delete[] x[i][j];
+    }
     delete[] x[i];
   }
   delete x;

@@ -121,7 +121,9 @@ Real phi_halo_D3D(Real R, Real z, Real *hdp)
   Real C = GN * M_h / (R_h * log_func(c_vir));
 
   // limit x to non-zero value
-  if (x < 1.0e-9) x = 1.0e-9;
+  if (x < 1.0e-9) {
+    x = 1.0e-9;
+  }
 
   // checked with wolfram alpha
   return -C * log(1 + x) / x;
@@ -308,18 +310,21 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   z_1   = z_hc_D3D(ks, dz, nz, ng) + 0.5 * dz;  // cell ceiling
   D_rho = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
 
-  if (exp(-1 * D_rho) < 0.1)
+  if (exp(-1 * D_rho) < 0.1) {
     printf(
         "WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e "
         "Phi_0 %E cs %e\n",
         R, D_rho, z_1, phi_total_D3D(R, z_1, hdp), Phi_0, cs);
+  }
 
   // let's find the cell above the disk where the
   // density falls by exp(-7) < 1.0e-3.
   for (k = ks; k < nzt; k++) {
     z_1   = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;  // cell ceiling
     D_rho = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
-    if (D_rho >= 7.0) break;
+    if (D_rho >= 7.0) {
+      break;
+    }
   }
   // if(R<1.0)
   //   printf("Cells above disk (k-ks) = %d, z_1 = %e, exp(-D) = %e, R =
@@ -350,7 +355,9 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
     // find cell center, bottom, and top
     z_int_min = z_hc_D3D(k, dz, nz, ng) - 0.5 * dz;
     z_int_max = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;
-    if (z_int_max > z_disk_max) z_int_max = z_disk_max;
+    if (z_int_max > z_disk_max) {
+      z_int_max = z_disk_max;
+    }
     if (!flag) {
       dz_int  = (z_int_max - z_int_min) / ((Real)(n_int));
       phi_int = 0.0;
@@ -384,7 +391,9 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
 
   // check the surface density
   phi_int = 0.0;
-  for (k = 0; k < nzt; k++) phi_int += rho[k] * dz;
+  for (k = 0; k < nzt; k++) {
+    phi_int += rho[k] * dz;
+  }
 
   // printf("Surface density check R %e Sigma_r %e integral(rho*dz)
   // %e\n",R,Sigma_r,phi_int); printf("Done with isothermal disk.\n");
@@ -498,7 +507,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
       A_0 = D_rho - (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
       A_1 = D_rho - (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
       z_2 = z_1 - A_1 * (z_1 - z_0) / (A_1 - A_0);
-      if (fabs(z_2 - z_1) / fabs(z_1) > 10.) z_2 = 10. * z_1;
+      if (fabs(z_2 - z_1) / fabs(z_1) > 10.) {
+        z_2 = 10. * z_1;
+      }
       // advance limit
       z_0 = z_1;
       z_1 = z_2;
@@ -508,7 +519,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
         A_0      = D_rho - (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
         A_1      = D_rho - (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
         // make sure we haven't crossed 0
-        if (A_1 < 0) z_1 = z_0;
+        if (A_1 < 0) {
+          z_1 = z_0;
+        }
       }
       iter_phi++;
       if (iter_phi > 1000) {
@@ -565,7 +578,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
     // find cell center, bottom, and top
     z_int_min = z_hc_D3D(k, dz, nz, ng) - 0.5 * dz;
     z_int_max = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;
-    if (z_int_max > z_disk_max) z_int_max = z_disk_max;
+    if (z_int_max > z_disk_max) {
+      z_int_max = z_disk_max;
+    }
     if (!flag) {
       dz_int  = (z_int_max - z_int_min) / ((Real)(n_int));
       phi_int = 0.0;
@@ -601,7 +616,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
 
   // check the surface density
   phi_int = 0.0;
-  for (k = 0; k < nzt; k++) phi_int += rho[k] * dz;
+  for (k = 0; k < nzt; k++) {
+    phi_int += rho[k] * dz;
+  }
 }
 
 Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
@@ -632,7 +649,9 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
     A_1 = 1.0 - (phi_total_D3D(0, z_1, hdp) - Phi_0) / (cs * cs);
     z_2 = z_1 - A_1 * (z_1 - z_0) / (A_1 - A_0);
 
-    if (fabs(z_2 - z_1) / fabs(z_1) > 10.) z_2 = 10. * z_1;
+    if (fabs(z_2 - z_1) / fabs(z_1) > 10.) {
+      z_2 = 10. * z_1;
+    }
 
     // advance limit
     z_0 = z_1;
@@ -644,7 +663,9 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
       A_0      = 1.0 - (phi_total_D3D(0, z_0, hdp) - Phi_0) / (cs * cs);
       A_1      = 1.0 - (phi_total_D3D(0, z_1, hdp) - Phi_0) / (cs * cs);
       // make sure we haven't crossed 0
-      if (A_1 < 0) z_1 = z_0;
+      if (A_1 < 0) {
+        z_1 = z_0;
+      }
     }
     iter_phi++;
     if (iter_phi > 1000) {
@@ -904,14 +925,16 @@ void Grid3D::Disk_3D(parameters p)
 
           //  pressure gradient along x direction
           // gradient calc is first order at boundaries
-          if (i == H.n_ghost)
+          if (i == H.n_ghost) {
             idm = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idm = (i - 1) + j * H.nx + k * H.nx * H.ny;
-          if (i == H.nx - H.n_ghost - 1)
+          }
+          if (i == H.nx - H.n_ghost - 1) {
             idp = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idp = (i + 1) + j * H.nx + k * H.nx * H.ny;
+          }
           Get_Position(i - 1, j, k, &xpm, &ypm, &zpm);
           Get_Position(i + 1, j, k, &xpp, &ypp, &zpp);
           Pm   = C.Energy[idm] * (gama - 1.0);  // only internal energy stored in energy currently
@@ -919,14 +942,16 @@ void Grid3D::Disk_3D(parameters p)
           dPdx = (Pp - Pm) / (xpp - xpm);
 
           // pressure gradient along y direction
-          if (j == H.n_ghost)
+          if (j == H.n_ghost) {
             idm = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idm = i + (j - 1) * H.nx + k * H.nx * H.ny;
-          if (j == H.ny - H.n_ghost - 1)
+          }
+          if (j == H.ny - H.n_ghost - 1) {
             idp = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idp = i + (j + 1) * H.nx + k * H.nx * H.ny;
+          }
           Get_Position(i, j - 1, k, &xpm, &ypm, &zpm);
           Get_Position(i, j + 1, k, &xpp, &ypp, &zpm);
           Pm   = C.Energy[idm] * (gama - 1.0);  // only internal energy stored in energy currently
@@ -962,8 +987,9 @@ void Grid3D::Disk_3D(parameters p)
 
             // sheepishly check for NaN's!
 
-            if ((d < 0) || (P < 0) || (isnan(d)) || (isnan(P)) || (d != d) || (P != P))
+            if ((d < 0) || (P < 0) || (isnan(d)) || (isnan(P)) || (d != d) || (P != P)) {
               printf("d %e P %e i %d j %d k %d id %d\n", d, P, i, j, k, id);
+            }
 
             if ((isnan(vx)) || (isnan(vy)) || (isnan(vz)) || (vx != vx) || (vy != vy) || (vz != vz)) {
               printf("vx %e vy %e vz %e i %d j %d k %d id %d\n", vx, vy, vz, i, j, k, id);

@@ -33,7 +33,9 @@ void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real
 void Create_Log_File(struct parameters P)
 {
 #ifdef MPI_CHOLLA
-  if (procID != 0) return;
+  if (procID != 0) {
+    return;
+  }
 #endif
 
   std::string file_name(LOG_FILE_NAME);
@@ -61,7 +63,9 @@ void Create_Log_File(struct parameters P)
 void Write_Message_To_Log_File(const char *message)
 {
 #ifdef MPI_CHOLLA
-  if (procID != 0) return;
+  if (procID != 0) {
+    return;
+  }
 #endif
 
   std::string file_name(LOG_FILE_NAME);
@@ -103,28 +107,40 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
 
 #ifndef ONLY_PARTICLES
   /*call the data output routine for Hydro data*/
-  if (nfile % P.n_hydro == 0) OutputData(G, P, nfile);
+  if (nfile % P.n_hydro == 0) {
+    OutputData(G, P, nfile);
+  }
 #endif
 
 // This function does other checks to make sure it is valid (3D only)
 #ifdef HDF5
-  if (P.n_out_float32 && nfile % P.n_out_float32 == 0) OutputFloat32(G, P, nfile);
+  if (P.n_out_float32 && nfile % P.n_out_float32 == 0) {
+    OutputFloat32(G, P, nfile);
+  }
 #endif
 
 #ifdef PROJECTION
-  if (nfile % P.n_projection == 0) OutputProjectedData(G, P, nfile);
+  if (nfile % P.n_projection == 0) {
+    OutputProjectedData(G, P, nfile);
+  }
 #endif /*PROJECTION*/
 
 #ifdef ROTATED_PROJECTION
-  if (nfile % P.n_rotated_projection == 0) OutputRotatedProjectedData(G, P, nfile);
+  if (nfile % P.n_rotated_projection == 0) {
+    OutputRotatedProjectedData(G, P, nfile);
+  }
 #endif /*ROTATED_PROJECTION*/
 
 #ifdef SLICES
-  if (nfile % P.n_slice == 0) OutputSlices(G, P, nfile);
+  if (nfile % P.n_slice == 0) {
+    OutputSlices(G, P, nfile);
+  }
 #endif /*SLICES*/
 
 #ifdef PARTICLES
-  if (nfile % P.n_particle == 0) G.WriteData_Particles(P, nfile);
+  if (nfile % P.n_particle == 0) {
+    G.WriteData_Particles(P, nfile);
+  }
 #endif
 
 #ifdef COSMOLOGY
@@ -138,8 +154,9 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
       chprintf(" Saved Snapshot: %d     z:%f   Exiting now\n", nfile, G.Cosmo.current_z);
     }
 
-  } else
+  } else {
     chprintf(" Saved Snapshot: %d     z:%f\n", nfile, G.Cosmo.current_z);
+  }
   G.Change_Cosmological_Frame_Sytem(true);
   chprintf("\n");
   G.H.Output_Now = false;
@@ -302,36 +319,45 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
     float *device_dataset_buffer = device_dataset_vector.data();
     float *dataset_buffer        = (float *)malloc(buffer_size * sizeof(float));
 
-    if (P.out_float32_density > 0)
+    if (P.out_float32_density > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_density, "/density");
-    if (P.out_float32_momentum_x > 0)
+    }
+    if (P.out_float32_momentum_x > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_momentum_x, "/momentum_x");
-    if (P.out_float32_momentum_y > 0)
+    }
+    if (P.out_float32_momentum_y > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_momentum_y, "/momentum_y");
-    if (P.out_float32_momentum_z > 0)
+    }
+    if (P.out_float32_momentum_z > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_momentum_z, "/momentum_z");
-    if (P.out_float32_Energy > 0)
+    }
+    if (P.out_float32_Energy > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_Energy, "/Energy");
+    }
 #ifdef DE
-    if (P.out_float32_GasEnergy > 0)
+    if (P.out_float32_GasEnergy > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_GasEnergy, "/GasEnergy");
+    }
 #endif  // DE
 #ifdef MHD
-    if (P.out_float32_magnetic_x > 0)
+    if (P.out_float32_magnetic_x > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
                        device_dataset_buffer, G.C.d_magnetic_x, "/magnetic_x");
-    if (P.out_float32_magnetic_y > 0)
+    }
+    if (P.out_float32_magnetic_y > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
                        device_dataset_buffer, G.C.d_magnetic_y, "/magnetic_y");
-    if (P.out_float32_magnetic_z > 0)
+    }
+    if (P.out_float32_magnetic_z > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
                        device_dataset_buffer, G.C.d_magnetic_z, "/magnetic_z");
+    }
 #endif
 
     free(dataset_buffer);
@@ -1743,8 +1769,9 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     // Free the dataspace ids
     status = H5Sclose(dataspace_xz_id);
     status = H5Sclose(dataspace_xy_id);
-  } else
+  } else {
     printf("Projection write only works for 3D data.\n");
+  }
 
   free(dataset_buffer_dxy);
   free(dataset_buffer_dxz);
@@ -1901,8 +1928,9 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     free(dataset_buffer_vyxzr);
     free(dataset_buffer_vzxzr);
 
-  } else
+  } else {
     chprintf("Rotated projection write only implemented for 3D data.\n");
+  }
 }
 #endif  // HDF5
 
@@ -2221,8 +2249,9 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     free(dataset_buffer_scalar);
   #endif
 
-  } else
+  } else {
     printf("Slice write only works for 3D data.\n");
+  }
 }
 #endif  // HDF5
 
@@ -2715,8 +2744,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id        = k + j * H.nz_real + i * H.nz_real * H.ny_real;
           C.density[id] = dataset_buffer[buf_id];
           mean_l += C.density[id];
-          if (C.density[id] > max_l) max_l = C.density[id];
-          if (C.density[id] < min_l) min_l = C.density[id];
+          if (C.density[id] > max_l) {
+            max_l = C.density[id];
+          }
+          if (C.density[id] < min_l) {
+            min_l = C.density[id];
+          }
         }
       }
     }
@@ -2754,8 +2787,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id           = k + j * H.nz_real + i * H.nz_real * H.ny_real;
           C.momentum_x[id] = dataset_buffer[buf_id];
           mean_l += fabs(C.momentum_x[id]);
-          if (fabs(C.momentum_x[id]) > max_l) max_l = fabs(C.momentum_x[id]);
-          if (fabs(C.momentum_x[id]) < min_l) min_l = fabs(C.momentum_x[id]);
+          if (fabs(C.momentum_x[id]) > max_l) {
+            max_l = fabs(C.momentum_x[id]);
+          }
+          if (fabs(C.momentum_x[id]) < min_l) {
+            min_l = fabs(C.momentum_x[id]);
+          }
         }
       }
     }
@@ -2796,8 +2833,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id           = k + j * H.nz_real + i * H.nz_real * H.ny_real;
           C.momentum_y[id] = dataset_buffer[buf_id];
           mean_l += fabs(C.momentum_y[id]);
-          if (fabs(C.momentum_y[id]) > max_l) max_l = fabs(C.momentum_y[id]);
-          if (fabs(C.momentum_y[id]) < min_l) min_l = fabs(C.momentum_y[id]);
+          if (fabs(C.momentum_y[id]) > max_l) {
+            max_l = fabs(C.momentum_y[id]);
+          }
+          if (fabs(C.momentum_y[id]) < min_l) {
+            min_l = fabs(C.momentum_y[id]);
+          }
         }
       }
     }
@@ -2838,8 +2879,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id           = k + j * H.nz_real + i * H.nz_real * H.ny_real;
           C.momentum_z[id] = dataset_buffer[buf_id];
           mean_l += fabs(C.momentum_z[id]);
-          if (fabs(C.momentum_z[id]) > max_l) max_l = fabs(C.momentum_z[id]);
-          if (fabs(C.momentum_z[id]) < min_l) min_l = fabs(C.momentum_z[id]);
+          if (fabs(C.momentum_z[id]) > max_l) {
+            max_l = fabs(C.momentum_z[id]);
+          }
+          if (fabs(C.momentum_z[id]) < min_l) {
+            min_l = fabs(C.momentum_z[id]);
+          }
         }
       }
     }
@@ -2880,8 +2925,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id       = k + j * H.nz_real + i * H.nz_real * H.ny_real;
           C.Energy[id] = dataset_buffer[buf_id];
           mean_l += C.Energy[id];
-          if (C.Energy[id] > max_l) max_l = C.Energy[id];
-          if (C.Energy[id] < min_l) min_l = C.Energy[id];
+          if (C.Energy[id] > max_l) {
+            max_l = C.Energy[id];
+          }
+          if (C.Energy[id] < min_l) {
+            min_l = C.Energy[id];
+          }
         }
       }
     }
@@ -2928,13 +2977,21 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id          = k + j * H.nz_real + i * H.nz_real * H.ny_real;
           C.GasEnergy[id] = dataset_buffer[buf_id];
           mean_l += C.GasEnergy[id];
-          if (C.GasEnergy[id] > max_l) max_l = C.GasEnergy[id];
-          if (C.GasEnergy[id] < min_l) min_l = C.GasEnergy[id];
+          if (C.GasEnergy[id] > max_l) {
+            max_l = C.GasEnergy[id];
+          }
+          if (C.GasEnergy[id] < min_l) {
+            min_l = C.GasEnergy[id];
+          }
           temp = C.GasEnergy[id] / C.density[id] * (gama - 1) * MP / KB * 1e10;
           temp_mean_l += temp;
           // chprintf( "%f\n", temp);
-          if (temp > temp_max_l) temp_max_l = temp;
-          if (temp < temp_min_l) temp_min_l = temp;
+          if (temp > temp_max_l) {
+            temp_max_l = temp;
+          }
+          if (temp < temp_min_l) {
+            temp_min_l = temp;
+          }
         }
       }
     }
@@ -3149,8 +3206,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
           C.magnetic_x[id] = dataset_buffer[buf_id];
           mean_l += fabs(C.magnetic_x[id]);
-          if (fabs(C.magnetic_x[id]) > max_l) max_l = fabs(C.magnetic_x[id]);
-          if (fabs(C.magnetic_x[id]) < min_l) min_l = fabs(C.magnetic_x[id]);
+          if (fabs(C.magnetic_x[id]) > max_l) {
+            max_l = fabs(C.magnetic_x[id]);
+          }
+          if (fabs(C.magnetic_x[id]) < min_l) {
+            min_l = fabs(C.magnetic_x[id]);
+          }
         }
       }
     }
@@ -3191,8 +3252,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
           C.magnetic_y[id] = dataset_buffer[buf_id];
           mean_l += fabs(C.magnetic_y[id]);
-          if (fabs(C.magnetic_y[id]) > max_l) max_l = fabs(C.magnetic_y[id]);
-          if (fabs(C.magnetic_y[id]) < min_l) min_l = fabs(C.magnetic_y[id]);
+          if (fabs(C.magnetic_y[id]) > max_l) {
+            max_l = fabs(C.magnetic_y[id]);
+          }
+          if (fabs(C.magnetic_y[id]) < min_l) {
+            min_l = fabs(C.magnetic_y[id]);
+          }
         }
       }
     }
@@ -3233,8 +3298,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
           buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
           C.magnetic_z[id] = dataset_buffer[buf_id];
           mean_l += fabs(C.magnetic_z[id]);
-          if (fabs(C.magnetic_z[id]) > max_l) max_l = fabs(C.magnetic_z[id]);
-          if (fabs(C.magnetic_z[id]) < min_l) min_l = fabs(C.magnetic_z[id]);
+          if (fabs(C.magnetic_z[id]) > max_l) {
+            max_l = fabs(C.magnetic_z[id]);
+          }
+          if (fabs(C.magnetic_z[id]) < min_l) {
+            min_l = fabs(C.magnetic_z[id]);
+          }
         }
       }
     }
@@ -3333,7 +3402,9 @@ void write_debug(Real *Value, const char *fname, int nValues, int iProc)
   sprintf(fn, "%s_%07d.txt", fname, iProc);
   FILE *fp = fopen(fn, "w");
 
-  for (int iV = 0; iV < nValues; iV++) fprintf(fp, "%e\n", Value[iV]);
+  for (int iV = 0; iV < nValues; iV++) {
+    fprintf(fp, "%e\n", Value[iV]);
+  }
 
   fclose(fp);
 }
