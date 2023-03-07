@@ -8,7 +8,6 @@
 
   #include "../global/global.h"
   #include "../io/io.h"
-  #include "../mpi/MPI_Comm_node.h"
   #include "../mpi/cuda_mpi_routines.h"
   #include "../utils/error_handling.h"
 
@@ -21,7 +20,6 @@ int procID_node; /*process rank on node*/
 int nproc_node;  /*number of MPI processes on node*/
 
 MPI_Comm world; /*global communicator*/
-MPI_Comm node;  /*global communicator*/
 
 MPI_Datatype MPI_CHREAL; /*set equal to MPI_FLOAT or MPI_DOUBLE*/
 
@@ -216,8 +214,6 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
   }
   #endif
 
-  /*set up node communicator*/
-  node = MPI_Comm_node(&procID_node, &nproc_node);
   // #ifdef ONLY_PARTICLES
   // chprintf("ONLY_PARTICLES: Initializing without CUDA support.\n");
   // #else
