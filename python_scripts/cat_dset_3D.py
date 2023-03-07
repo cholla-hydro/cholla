@@ -11,11 +11,10 @@ istart = 0*n_proc
 iend = 1*n_proc
 dnamein = './hdf5/raw/'
 dnameout = './hdf5/'
-DE = 0
 
 # loop over outputs
 for n in range(ns, ne+1):
-  
+
   # loop over files for a given output
   for i in range(istart, iend):
 
@@ -26,7 +25,7 @@ for n in range(ns, ne+1):
     # read in the header data from the input file
     head = filein.attrs
 
-    # if it's the first input file, write the header attributes 
+    # if it's the first input file, write the header attributes
     # and create the datasets in the output file
     if (i == 0):
       nx = head['dims'][0]
@@ -42,13 +41,22 @@ for n in range(ns, ne+1):
       for unit in units:
         fileout.attrs[unit] = [head[unit][0]]
 
-      d  = fileout.create_dataset("density", (nx, ny, nz), chunks=True)
-      mx = fileout.create_dataset("momentum_x", (nx, ny, nz), chunks=True)
-      my = fileout.create_dataset("momentum_y", (nx, ny, nz), chunks=True)
-      mz = fileout.create_dataset("momentum_z", (nx, ny, nz), chunks=True)
-      E  = fileout.create_dataset("Energy", (nx, ny, nz), chunks=True)
-      if (DE):
-        GE = fileout.create_dataset("GasEnergy", (nx, ny, nz), chunks=True)
+      d  = fileout.create_dataset("density", (nx, ny, nz), chunks=True, dtype=filein['density'].dtype)
+      mx = fileout.create_dataset("momentum_x", (nx, ny, nz), chunks=True, dtype=filein['momentum_x'].dtype)
+      my = fileout.create_dataset("momentum_y", (nx, ny, nz), chunks=True, dtype=filein['momentum_y'].dtype)
+      mz = fileout.create_dataset("momentum_z", (nx, ny, nz), chunks=True, dtype=filein['momentum_z'].dtype)
+      E  = fileout.create_dataset("Energy", (nx, ny, nz), chunks=True, dtype=filein['Energy'].dtype)
+      try:
+        GE = fileout.create_dataset("GasEnergy", (nx, ny, nz), chunks=True, dtype=filein['GasEnergy'].dtype)
+      except KeyError:
+        print('No Dual energy data present');
+      try:
+        [nx_mag, ny_mag, nz_mag] = head['magnetic_field_dims']
+        bx = fileout.create_dataset("magnetic_x", (nx_mag, ny_mag, nz_mag), chunks=True, dtype=filein['magnetic_x'].dtype)
+        by = fileout.create_dataset("magnetic_y", (nx_mag, ny_mag, nz_mag), chunks=True, dtype=filein['magnetic_y'].dtype)
+        bz = fileout.create_dataset("magnetic_z", (nx_mag, ny_mag, nz_mag), chunks=True, dtype=filein['magnetic_z'].dtype)
+      except KeyError:
+        print('No magnetic field data present');
 
     # write data from individual processor file to
     # correct location in concatenated file
@@ -63,9 +71,18 @@ for n in range(ns, ne+1):
     fileout['momentum_y'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl] = filein['momentum_y']
     fileout['momentum_z'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl] = filein['momentum_z']
     fileout['Energy'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl]  = filein['Energy']
-    if (DE):
+    try:
       fileout['GasEnergy'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl] = filein['GasEnergy']
-      
+    except KeyError:
+        print('No Dual energy data present');
+    try:
+      [nxl_mag, nyl_mag, nzl_mag] = head['magnetic_field_dims_local']
+      fileout['magnetic_x'][xs:xs+nxl_mag,ys:ys+nyl_mag,zs:zs+nzl_mag] = filein['magnetic_x']
+      fileout['magnetic_y'][xs:xs+nxl_mag,ys:ys+nyl_mag,zs:zs+nzl_mag] = filein['magnetic_y']
+      fileout['magnetic_z'][xs:xs+nxl_mag,ys:ys+nyl_mag,zs:zs+nzl_mag] = filein['magnetic_z']
+    except KeyError:
+        print('No magnetic field data present');
+
     filein.close()
 
   fileout.close()

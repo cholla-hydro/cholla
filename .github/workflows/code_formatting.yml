@@ -1,0 +1,28 @@
+name: Code Formatting
+
+on: [pull_request, push]
+
+jobs:
+  cpp-format:
+    runs-on: ubuntu-latest
+
+    # Setup environment variables
+    env:
+      CLANG_FORMAT_VERSION: 15
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install clang-format
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
+          sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-${{ env.CLANG_FORMAT_VERSION }} main"
+          sudo apt install clang-format-${{ env.CLANG_FORMAT_VERSION }}
+          sudo ln --symbolic --force /usr/bin/clang-format-${{ env.CLANG_FORMAT_VERSION }} /usr/bin/clang-format
+      - name: Verify clang-format installation
+        run: |
+          clang-format-${{ env.CLANG_FORMAT_VERSION }} --version
+          which clang-format-${{ env.CLANG_FORMAT_VERSION }}
+          clang-format --version
+          which clang-format
+      - name: Check if files are properly formatted
+        run: tools/clang-format_runner.sh --dry-run --Werror

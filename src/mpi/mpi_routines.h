@@ -1,42 +1,43 @@
 #ifdef MPI_CHOLLA
-#ifndef  MPI_ROUTINES_H
-#define  MPI_ROUTINES_H
-#include <mpi.h>
-#include <stddef.h>
-#include "../grid/grid3D.h"
-#include "../global/global.h"
+  #ifndef MPI_ROUTINES_H
+    #define MPI_ROUTINES_H
+    #include <mpi.h>
+    #include <stddef.h>
 
-#ifdef FFTW
-#include "fftw3.h"
-#include "fftw3-mpi.h"
-#endif /*FFTW*/
+    #include "../global/global.h"
+    #include "../grid/grid3D.h"
+
+    #ifdef FFTW
+      #include "fftw3-mpi.h"
+      #include "fftw3.h"
+    #endif /*FFTW*/
 
 /*Global MPI Variables*/
-extern int procID; /*process rank*/
-extern int nproc;  /*number of processes in global comm*/
-extern int root;   /*rank of root process*/
+extern int procID;      /*process rank*/
+extern int nproc;       /*number of processes in global comm*/
+extern int root;        /*rank of root process*/
 extern int procID_node; /*process rank on node*/
 extern int nproc_node;  /*number of MPI processes on node*/
 
-extern MPI_Comm world;	/*global communicator*/
-extern MPI_Comm node;	/*communicator for each node*/
+extern MPI_Comm world; /*global communicator*/
+extern MPI_Comm node;  /*communicator for each node*/
 
 extern MPI_Datatype MPI_CHREAL; /*data type describing float precision*/
 
-#ifdef PARTICLES
+    #ifdef PARTICLES
 extern MPI_Datatype MPI_PART_INT; /*data type describing interger for particles precision*/
-#endif
+    #endif
 
-//extern MPI_Request send_request[6];
-//extern MPI_Request recv_request[6];
+// extern MPI_Request send_request[6];
+// extern MPI_Request recv_request[6];
 extern MPI_Request *send_request;
 extern MPI_Request *recv_request;
 
-//MPI destinations and sources
+// MPI destinations and sources
 extern int dest[6];
 extern int source[6];
 
-//Communication buffers
+// Communication buffers
 
 // For BLOCK
 extern Real *d_send_buffer_x0;
@@ -65,8 +66,8 @@ extern Real *h_recv_buffer_y1;
 extern Real *h_recv_buffer_z0;
 extern Real *h_recv_buffer_z1;
 
-#ifdef PARTICLES
-//Buffers for particles transfers
+    #ifdef PARTICLES
+// Buffers for particles transfers
 extern Real *d_send_buffer_x0_particles;
 extern Real *d_send_buffer_x1_particles;
 extern Real *d_send_buffer_y0_particles;
@@ -113,8 +114,7 @@ extern MPI_Request *recv_request_n_particles;
 // Request for Particles Transfer
 extern MPI_Request *send_request_particles_transfer;
 extern MPI_Request *recv_request_particles_transfer;
-#endif//PARTICLES
-
+    #endif  // PARTICLES
 
 extern int send_buffer_length;
 extern int recv_buffer_length;
@@ -134,9 +134,9 @@ extern ptrdiff_t nx_local_start;
 extern ptrdiff_t ny_local_start;
 extern ptrdiff_t nz_local_start;
 
-#ifdef   FFTW
+    #ifdef FFTW
 extern ptrdiff_t n_local_complex;
-#endif /*FFTW*/
+    #endif /*FFTW*/
 
 /*number of MPI procs in each dimension*/
 extern int nproc_x;
@@ -164,17 +164,18 @@ Real ReduceRealMin(Real x);
 /* MPI reduction wrapper for avg(Real)*/
 Real ReduceRealAvg(Real x);
 
-#ifdef PARTICLES
+    #ifdef PARTICLES
 /* MPI reduction wrapper for sum(part_int)*/
 Real ReducePartIntSum(part_int_t x);
 
-// Count the particles in the MPI ranks lower that this rank to get a global offset for the local IDs.
-part_int_t Get_Particles_IDs_Global_MPI_Offset( part_int_t n_local );
+// Count the particles in the MPI ranks lower that this rank to get a global
+// offset for the local IDs.
+part_int_t Get_Particles_IDs_Global_MPI_Offset(part_int_t n_local);
 
-// Function that checks if the buffer size For the particles transfer is large enough,
-// and grows the buffer if needed.
-void Check_and_Grow_Particles_Buffer( Real **part_buffer, int *current_size_ptr, int new_size );
-#endif
+// Function that checks if the buffer size For the particles transfer is large
+// enough, and grows the buffer if needed.
+void Check_and_Grow_Particles_Buffer(Real **part_buffer, int *current_size_ptr, int new_size);
+    #endif
 
 /* Print information about the domain properties */
 void Print_Domain_Properties(struct Header H);
@@ -185,19 +186,18 @@ void Allocate_MPI_DeviceBuffers(struct Header *H);
 /* find the greatest prime factor of an integer */
 int greatest_prime_factor(int n);
 
-
 /*! \fn int ***three_dimensional_int_array(int n, int l, int m)
  *  *  \brief Allocate a three dimensional (n x l x m) int array
  *   */
 int ***three_dimensional_int_array(int n, int l, int m);
 
-/*! \fn void deallocate_three_int_dimensional_array(int ***x, int n, int l, int m)
- *  \brief De-allocate a three dimensional (n x l x m) int array.
+/*! \fn void deallocate_three_int_dimensional_array(int ***x, int n, int l, int
+ * m) \brief De-allocate a three dimensional (n x l x m) int array.
  *   */
 void deallocate_three_dimensional_int_array(int ***x, int n, int l, int m);
 
 /* Copy MPI receive buffers on Host to their device locations */
-void copyHostToDeviceReceiveBuffer ( int direction );
+void copyHostToDeviceReceiveBuffer(int direction);
 
-#endif /*MPI_ROUTINES_H*/
-#endif /*MPI_CHOLLA*/
+  #endif /*MPI_ROUTINES_H*/
+#endif   /*MPI_CHOLLA*/
