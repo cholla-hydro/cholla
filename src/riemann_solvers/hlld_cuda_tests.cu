@@ -369,6 +369,27 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, BrioAndWuShockTubeCorrectInputExpectCorrectO
     }
     {
       std::string const outputString{
+          "Left State:  Left Brio & Wu state with negative Bx\n"
+          "Right State: Right Brio & Wu state with negative Bx\n"
+          "HLLD State: Left Double Star State"};
+      // Compute the fluxes and check for correctness
+      // Order of Fluxes is rho, vec(V), E, vec(B)
+      std::vector<Real> const fiducialFlux{0.20673357746080057,   0.4661897584603672,
+                                           -0.061170028480309613, 0,
+                                           0.064707291981509041,  0.0,
+                                           1.0074980455427278,    0};
+      std::vector<Real> const scalarFlux{0.22885355953447648, 0.46073027567244362, 0.6854281091039145};
+      Real thermalEnergyFlux = 0.20673357746080046;
+
+      std::vector<Real> leftICsNegBx = leftICs, rightICsNegBx = rightICs;
+      leftICsNegBx[5]  = -leftICsNegBx[5];
+      rightICsNegBx[5] = -rightICsNegBx[5];
+
+      std::vector<Real> const testFluxes = computeFluxes(leftICsNegBx, rightICsNegBx, gamma, direction);
+      checkResults(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
+    }
+    {
+      std::string const outputString{
           "Left State:  Right Brio & Wu state\n"
           "Right State: Left Brio & Wu state\n"
           "HLLD State: Right Double Star State"};
@@ -1557,8 +1578,8 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, ConstantStatesExpectCorrectFlux)
       // Compute the fluxes and check for correctness
       // Order of Fluxes is rho, vec(V), E, vec(B)
       std::vector<Real> const fiducialFlux{
-          1.42108547152020037174e-14, 0.50001380657999994,   -1, -1, -1.7347234759768071e-18, 0.0,
-          3.4694469519536142e-18,     3.4694469519536142e-18};
+          -1.42108547152020037174e-14, 0.50001380657999994,   -1, -1, -1.7347234759768071e-18, 0.0,
+          3.4694469519536142e-18,      3.4694469519536142e-18};
       std::vector<Real> const scalarFlux{1.5731381063233131e-14, 3.1670573744690958e-14, 4.7116290424753513e-14};
       Real thermalEnergyFlux             = 0.;
       std::vector<Real> const testFluxes = computeFluxes(onesMagneticField, onesMagneticField, gamma, direction);

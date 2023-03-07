@@ -1,23 +1,20 @@
 #
-# Parameter File for 3D Ryu & Jones MHD shock tube 4d.
-# Citation: Ryu & Jones 1995 "Numerical Magnetohydrodynamics in Astrophysics:
-# Algorithms and Tests for One-Dimensional Flow"
-#
-# Note: There are many shock tubes in this paper. This settings file is
-# specifically for shock tube 4d
+# Parameter File for 3D Brio & Wu MHD shock tube
+# Citation: Brio & Wu 1988 "An Upwind Differencing Scheme for the Equations of
+# Ideal Magnetohydrodynamics"
 #
 
 ################################################
 # number of grid cells in the x dimension
-nx=256
+nx=64
 # number of grid cells in the y dimension
-ny=256
+ny=64
 # number of grid cells in the z dimension
-nz=256
+nz=64
 # final output time
-tout=0.08
+tout=0.1
 # time interval for output
-outstep=0.08
+outstep=0.1
 # name of initial conditions
 init=Riemann
 
@@ -45,30 +42,31 @@ outdir=./
 # density of left state
 rho_l=1.0
 # velocity of left state
-vx_l=10.0
-vy_l=0.0
-vz_l=0.0
+vx_l=0
+vy_l=0
+vz_l=0
 # pressure of left state
-P_l=20.0
+P_l=1.0
 # Magnetic field of the left state
-Bx_l=1.4104739588693909
-By_l=1.4104739588693909
+Bx_l=0.75
+By_l=1.0
 Bz_l=0.0
 
 # density of right state
-rho_r=1.0
+rho_r=0.128
 # velocity of right state
-vx_r=-10.0
-vy_r=0.0
-vz_r=0.0
+vx_r=0
+vy_r=0
+vz_r=0
 # pressure of right state
-P_r=1.0
+P_r=0.1
 # Magnetic field of the right state
-Bx_r=1.4104739588693909
-By_r=1.4104739588693909
+Bx_r=0.75
+By_r=-1.0
 Bz_r=0.0
 
 # location of initial discontinuity
 diaph=0.5
 # value of gamma
-gamma=1.6666666666666667
+gamma=2.0
+
