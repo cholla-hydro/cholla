@@ -83,6 +83,9 @@ int main(int argc, char *argv[])
   if (strcmp(P.init, "Read_Grid") == 0) chprintf("Input directory:  %s\n", P.indir);
   chprintf("Output directory:  %s\n", P.outdir);
 
+  // Check the configuration
+  Check_Configuration(P);
+
   // Create a Log file to output run-time messages and output the git hash and
   // macro flags used
   Create_Log_File(P);
