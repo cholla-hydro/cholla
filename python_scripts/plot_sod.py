@@ -17,7 +17,7 @@ dnameout='./'
 DE = 0 # dual energy flag - 1 if the test was run with dual energy
 i = 1 # output file number
 
-f = h5py.File(dnamein+str(i)+'.h5', 'r')
+f = h5py.File(dnamein+str(i)+'.h5.0', 'r')
 head = f.attrs
 nx = head['dims'][0]
 gamma = head['gamma'][0]

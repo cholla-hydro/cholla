@@ -48,7 +48,7 @@
         if (direction==2) {o1 = 3; o2 = 1; o3 = 2;}
 
         // Thread guard to avoid overrun
-        if (xid < nx and yid < ny and zid < nz)
+        if (xid < nx && yid < ny && zid < nz)
         {
             // ============================
             // Retrieve conserved variables

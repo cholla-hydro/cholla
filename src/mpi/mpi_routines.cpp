@@ -755,7 +755,7 @@ void Print_Domain_Properties(struct Header H)
   {
     if(i==procID)
     {
-      printf("procID %d nxl %ld nxls %ld\n",procID,nx_local,nx_local_start);
+      printf("procID %d nxl %td nxls %td\n",procID,nx_local,nx_local_start);
       printf("xb %e yb %e zb %e xbl %e ybl %e zbl %e\n",H.xbound,H.ybound,H.zbound,H.xblocal,H.yblocal,H.zblocal);
       printf("dx %e\n",H.dx);
       printf("dy %e\n",H.dy);

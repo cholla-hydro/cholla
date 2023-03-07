@@ -3,12 +3,12 @@
 
 
 #include <math.h>
-#include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <set>
 #include <ctype.h>
+#include <chrono>
 #include "../global/global.h"
 #include "../io/io.h" //defines chprintf
 
@@ -40,9 +40,9 @@ void Set_Gammas(Real gamma_in)
  *  \brief Returns the current clock time. */
 double get_time(void)
 {
-  struct timeval timer;
-  gettimeofday(&timer,NULL);
-  return timer.tv_sec + 1.0e-6*timer.tv_usec;
+    static std::chrono::high_resolution_clock::time_point t0 = std::chrono::high_resolution_clock::now();
+    std::chrono::nanoseconds d = std::chrono::high_resolution_clock::now() - t0;
+    return (1.0e-9*d.count());
 }
 
 /*! \fn int sgn
@@ -179,10 +179,14 @@ void parse_param(char *name,char *value, struct parameters *parms){
     parms->ny = atoi(value);
   else if (strcmp(name, "nz")==0)
     parms->nz = atoi(value);
+  else if (strcmp(name, "tinit")==0)
+    parms->tinit = atof(value);
   else if (strcmp(name, "tout")==0)
     parms->tout = atof(value);
   else if (strcmp(name, "outstep")==0)
     parms->outstep = atof(value);
+  else if (strcmp(name, "outlog")==0)
+    parms->outlog = atof(value);
   else if (strcmp(name, "n_steps_output")==0)
     parms->n_steps_output = atoi(value);
   else if (strcmp(name, "gamma")==0)
@@ -345,6 +349,10 @@ void parse_param(char *name,char *value, struct parameters *parms){
     else if (strcmp(name, "UVB_rates_file")==0)
       strncpy (parms->UVB_rates_file, value, MAXLEN);
 #endif  
+#ifdef RT
+  else if (strcmp(name, "num_iterations")==0)
+    parms->num_iterations  = atoi(value);
+#endif
 #ifdef COOLING_GRACKLE
   else if (strcmp(name, "UVB_rates_file")==0)
     strncpy (parms->UVB_rates_file, value, MAXLEN);

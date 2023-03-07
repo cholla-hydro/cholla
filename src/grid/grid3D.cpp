@@ -44,6 +44,9 @@
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
 Grid3D::Grid3D(void)
+#ifdef RT
+    : Rad(this->H)
+#endif
 {
   // set initialization flag to 0
   flag_init = 0;
@@ -185,7 +188,7 @@ void Grid3D::Initialize(struct parameters *P)
   }
 
   // Set header variables for time within the simulation
-  H.t = 0.0;
+  H.t = P->tinit;
   // and the number of timesteps taken
   H.n_step = 0;
   // and the wall time
@@ -325,26 +328,13 @@ void Grid3D::AllocateMemory(void)
 
 
   #if defined(RT) || defined(CHEMISTRY_GPU)
-  C.HI_density    = &C.scalar[ 0*H.n_cells ];
-  C.HII_density   = &C.scalar[ 1*H.n_cells ];
-  C.HeI_density   = &C.scalar[ 2*H.n_cells ];
-  C.HeII_density  = &C.scalar[ 3*H.n_cells ];
-  C.HeIII_density = &C.scalar[ 4*H.n_cells ];
-  #endif
-
-  #ifdef CHEMISTRY_GPU
-  C.e_density     = &C.scalar[ 5*H.n_cells ];
-  #endif
-
-
-  #ifdef RT
   chprintf( " Setting pointers for: HI, HII, HeI, HeII, HeIII, densities\n");  
   C.HI_density    = &C.scalar[ 0*H.n_cells ];
   C.HII_density   = &C.scalar[ 1*H.n_cells ];
   C.HeI_density   = &C.scalar[ 2*H.n_cells ];
   C.HeII_density  = &C.scalar[ 3*H.n_cells ];
   C.HeIII_density = &C.scalar[ 4*H.n_cells ];
-  #endif  
+  #endif
 
   // initialize host array
   for (int i=0; i<H.n_fields*H.n_cells; i++)
@@ -525,9 +515,6 @@ Real Grid3D::Update_Grid(void)
   C.HeII_density  = &C.scalar[ 3*H.n_cells ];
   C.HeIII_density = &C.scalar[ 4*H.n_cells ];
   #endif
-  #if defined(CHEMISTRY_GPU)
-  C.e_density     = &C.scalar[ 5*H.n_cells ];
-  #endif
 
   return max_dti;
 
@@ -668,7 +655,7 @@ void Grid3D::FreeMemory(void)
   #endif
 
   #ifdef RT
-  Rad.Free_Memory_RT();
+  Rad.Free_Memory();
   #endif
 
   #ifdef CHEMISTRY_GPU

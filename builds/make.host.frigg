@@ -4,17 +4,18 @@
 CC                = mpicc
 CXX               = mpicxx
 CFLAGS_DEBUG      = -g -O0
-CFLAGS_OPTIMIZE   = -g -O2
+CFLAGS_OPTIMIZE   = -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++11 
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++11 
-GPUFLAGS         = -std=c++11 
+CXXFLAGS_OPTIMIZE = -O2 -std=c++11 
+GPUFLAGS_DEBUG    = -std=c++11 -g -G -O0 -DCUDA_ERROR_CHECK
+GPUFLAGS_OPTIMIZE = -std=c++11 -O2 
 
 
 OMP_NUM_THREADS = 1
 
 #-- Library
 CUDA_ROOT    = /usr/local/cuda
-HDF5_ROOT    = /data/gnedin/soft/anaconda3
+HDF5_ROOT    = /data/gnedin/soft
 FFTW_ROOT    = /data/gnedin/soft
 #PFFT_ROOT    = /data/groups/comp-astro/bruno/code_mpi_local/pfft
 #GRACKLE_ROOT = /home/brvillas/code/grackle

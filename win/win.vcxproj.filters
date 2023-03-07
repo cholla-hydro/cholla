@@ -1,0 +1,344 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\grid\grid3D.cpp">
+      <Filter>grid</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\hydro_utilities.cpp">
+      <Filter>untouched\hydro</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\grid\initial_conditions.cpp">
+      <Filter>grid</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\chemistry_gpu\chemistry_functions.cpp">
+      <Filter>rt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\chemistry_gpu\chemistry_io.cpp">
+      <Filter>rt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\io\io.cpp">
+      <Filter>grid</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\main.cpp">
+      <Filter>grid</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\mhd_utilities.cpp">
+      <Filter>untouched\hydro</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\radiation\radiation.cpp">
+      <Filter>rt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\radiation\alt\atomic_data.cpp">
+      <Filter>alt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\radiation\alt\photo_rates_csi_gpu.cpp">
+      <Filter>alt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\radiation\alt\spectral_shape.cpp">
+      <Filter>alt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\grid\boundary_conditions.cpp">
+      <Filter>untouched</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\cuda_utilities.cpp">
+      <Filter>untouched</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\model\disk_ICs.cpp">
+      <Filter>untouched</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\error_handling.cpp">
+      <Filter>untouched</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\grid\mpi_boundaries.cpp">
+      <Filter>untouched</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\mpi\MPI_Comm_node.c">
+      <Filter>untouched</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\mpi\mpi_routines.cpp">
+      <Filter>untouched</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\parallel_omp.cpp">
+      <Filter>untouched</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\timing_functions.cpp">
+      <Filter>untouched</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\global\global.cpp">
+      <Filter>grid</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\grid\grid3D.h">
+      <Filter>grid</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\riemann_solvers\exact_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\riemann_solvers\hll_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\riemann_solvers\hllc_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\riemann_solvers\hlld_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\hydro\hydro_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\hydro_utilities.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\chemistry_gpu\chemistry_gpu.h">
+      <Filter>rt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\mhd_utilities.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\reconstruction\pcm_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\reconstruction\plmc_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\reconstruction\plmp_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\reconstruction\ppmc_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\reconstruction\ppmp_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\radiation.h">
+      <Filter>rt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\RT_functions.h">
+      <Filter>rt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\chemistry_gpu\rates.cuh">
+      <Filter>rt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\chemistry_gpu\rates_Katz95.cuh">
+      <Filter>rt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\riemann_solvers\roe_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\integrators\VL_1D_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\integrators\VL_2D_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\integrators\VL_3D_cuda.h">
+      <Filter>untouched\hydro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\atomic_data.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\atomic_data_decl.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\align.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\constant.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\static_table.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\table_base.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\decl.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\static_table_gpu.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\static_table_gpu.cuh">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\gpu_pointer.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\photo_rates_csi.ANY.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\photo_rates_csi_gpu.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\radiation\alt\spectral_shape.h">
+      <Filter>alt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\grid\cuda_boundaries.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\mpi\cuda_mpi_routines.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\cuda_utilities.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\model\disk_galaxy.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\error_check_cuda.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\error_handling.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\global\global_cuda.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\gpu.hpp">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\gpu_arrays_functions.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\io\io.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\mpi\MPI_Comm_node.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\mpi\mpi_routines.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\parallel_omp.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\prng_utilities.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\ran.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\reduction_utilities.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\integrators\simple_1D_cuda.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\integrators\simple_2D_cuda.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\integrators\simple_3D_cuda.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\timing_functions.h">
+      <Filter>untouched</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\global\global.h">
+      <Filter>grid</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\src\riemann_solvers\exact_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\riemann_solvers\hll_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\riemann_solvers\hllc_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\riemann_solvers\hlld_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\hydro\hydro_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\chemistry_gpu\chemistry_functions_gpu.cu">
+      <Filter>rt</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\reconstruction\pcm_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\reconstruction\plmc_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\reconstruction\plmp_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\reconstruction\ppmc_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\reconstruction\ppmp_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\radiation\RT_functions.cu">
+      <Filter>rt</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\riemann_solvers\roe_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\integrators\VL_1D_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\integrators\VL_2D_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\integrators\VL_3D_cuda.cu">
+      <Filter>untouched\hydro</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\radiation\RT_kernels.cu">
+      <Filter>rt</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\radiation\alt\static_table_gpu.cu">
+      <Filter>alt</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\radiation\alt\photo_rates_csi_gpu.GPU.cu">
+      <Filter>alt</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\grid\cuda_boundaries.cu">
+      <Filter>untouched</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\mpi\cuda_mpi_routines.cu">
+      <Filter>untouched</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\utils\error_check_cuda.cu">
+      <Filter>untouched</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\global\global_cuda.cu">
+      <Filter>untouched</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\utils\gpu_arrays_functions.cu">
+      <Filter>untouched</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\utils\reduction_utilities.cu">
+      <Filter>untouched</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\integrators\simple_1D_cuda.cu">
+      <Filter>untouched</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\integrators\simple_2D_cuda.cu">
+      <Filter>untouched</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\integrators\simple_3D_cuda.cu">
+      <Filter>untouched</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="grid">
+      <UniqueIdentifier>{1c25e05b-3aad-49d9-ac8a-1a50757545c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rt">
+      <UniqueIdentifier>{c96404bf-3d99-452a-bcb3-952dd9f2ec3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="alt">
+      <UniqueIdentifier>{00e2682d-7b8c-4f70-9107-fba55742edb0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="untouched">
+      <UniqueIdentifier>{49f2edbf-9234-40bd-b145-5c202518e114}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="untouched\hydro">
+      <UniqueIdentifier>{a7f39fea-9a41-4fff-b546-bfc67533db18}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

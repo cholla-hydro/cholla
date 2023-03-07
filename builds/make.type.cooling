@@ -2,7 +2,7 @@
 
 #-- separated output flag so that it can be overriden in target-specific
 #   for make check
-OUTPUT    ?=  -DOUTPUT -DHDF5
+OUTPUT    ?=  -DOUTPUT -DHDF5 -DOUTPUT_CHEMISTRY
 
 MPI_GPU   ?=
 
@@ -30,7 +30,7 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 DFLAGS    += -DDE
 
 # Apply the cooling in the GPU from precomputed tables
-DFLAGS    += -DCOOLING_GPU
+DFLAGS    += -DSCALAR -DCHEMISTRY_GPU
 #DFLAGS    += -DCLOUDY_COOL
 
 #Measure the Timing of the different stages

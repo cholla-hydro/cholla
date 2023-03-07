@@ -6,13 +6,22 @@
 #include "../io/io.h"
 #include "rates.cuh"
 
+
 #ifdef DE
 #include"../hydro/hydro_cuda.h"
 #endif
 
 #define TINY 1e-20
 
-void Grid3D::Initialize_Chemistry( struct parameters *P ){
+void Grid3D::Initialize_Chemistry_Start( struct parameters *P ){
+  
+  Chem.recombination_case = 0;
+ 
+  Chem.H.H_fraction = 0.76;
+}
+
+
+void Grid3D::Initialize_Chemistry_Finish( struct parameters *P ){
   
   chprintf( "Initializing the GPU Chemistry Solver... \n");
   
@@ -21,17 +30,13 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   Chem.nz = H.nz;
   
   Chem.H.runtime_chemistry_step = 0;
-  
-  Chem.use_case_B_recombination = false;
-  
+   
   // Initialize the Chemistry Header
   Chem.H.gamma = gama;
   Chem.H.N_Temp_bins = 600;
   Chem.H.Temp_start = 1.0;
   Chem.H.Temp_end   = 1000000000.0;
   
-  Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
- 
 #ifdef COSMOLOGY 
   Chem.H.H0 = P->H0;
   Chem.H.Omega_M = P->Omega_M;
@@ -51,7 +56,7 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   // These are conversions from code units to cgs. Following Grackle
   Chem.H.density_units  = dens_to_CGS;
   Chem.H.length_units   = kpc_cgs;
-  Chem.H.time_units     = kpc_km;
+  Chem.H.time_units     = TIME_UNIT;
   Chem.H.dens_number_conv = Chem.H.density_units / MH;
 #ifdef COSMOLOGY
   Chem.H.a_value = Cosmo.current_a;
@@ -71,7 +76,8 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
 #endif //COSMOLOGY
 
   time_base   = Chem.H.time_units;   
-  Chem.H.cooling_units   = ( pow(length_base, 2) * pow(MH, 2) ) / ( dens_base * pow(time_base, 3) );
+  ///Chem.H.cooling_units   = ( pow(length_base, 2) * pow(MH, 2) ) / ( dens_base * pow(time_base, 3) ); NG 221127 - this is incorrect
+  Chem.H.cooling_units = 1.0e10 * MH * MH / (dens_base * time_base ); // NG 221127 - fixed
   Chem.H.reaction_units = MH / (dens_base * time_base );
   // printf(" cooling_units: %e\n", Chem.H.cooling_units );
   // printf(" reaction_units: %e\n", Chem.H.reaction_units );
@@ -86,8 +92,8 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   Chem.H.density_conversion = Cosmo.rho_0_gas * Cosmo.cosmo_h * Cosmo.cosmo_h / pow( kpc_cgs, 3) * MSUN_CGS ; 
   Chem.H.energy_conversion  =  Cosmo.v_0_gas * Cosmo.v_0_gas * 1e10;  //km^2 -> cm^2 ;
   #else // Not COSMOLOGY
-  Chem.H.density_conversion = 1.0;
-  Chem.H.energy_conversion  = 1.0;
+  Chem.H.density_conversion = DENSITY_UNIT;
+  Chem.H.energy_conversion  = ENERGY_UNIT/DENSITY_UNIT; // NG: this is energy per unit mass
   #endif
   Chem.H.n_uvb_rates_samples  = Chem.n_uvb_rates_samples;
   Chem.H.uvb_rates_redshift_d = Chem.rates_z_d;
@@ -98,12 +104,20 @@ void Grid3D::Initialize_Chemistry( struct parameters *P ){
   Chem.H.photo_heat_HeI_rate_d  = Chem.Heat_rates_HeI_d;
   Chem.H.photo_heat_HeII_rate_d = Chem.Heat_rates_HeII_d;
   
+#ifdef RT
+  Chem.H.dTables[0] = Rad.photoRates->bTables[0];
+  Chem.H.dTables[1] = (Rad.photoRates->bTables.Count()>1 ? Rad.photoRates->bTables[1] : nullptr);
+  Chem.H.dStretch = Rad.photoRates->bStretch.DevicePtr();
+
+  Chem.H.unitPhotoHeating = KB * 1e-10 * Chem.H.time_units * Chem.H.density_units / MH / MH;
+  Chem.H.unitPhotoIonization = Chem.H.time_units;
+#endif // RT
+
   chprintf( "Allocating Memory. \n\n");
   int n_cells = H.nx * H.ny * H.nz;
   Chem.Fields.temperature_h = (Real *) malloc(n_cells * sizeof(Real));
   
   chprintf( "Chemistry Solver Successfully Initialized. \n\n");
-
 }
 
 
@@ -141,11 +155,11 @@ void Chem_GPU::Initialize( struct parameters *P ){
   
   Initialize_Reaction_Rates();
 
+#ifndef RT
   Initialize_UVB_Ionization_and_Heating_Rates( P );
-  
-  
-  
+#endif // RT
 }
+
 
 void Chem_GPU::Initialize_Cooling_Rates( ){
   
@@ -160,14 +174,23 @@ void Chem_GPU::Initialize_Cooling_Rates( ){
   Generate_Reaction_Rate_Table( &H.cool_ciHeII_d, cool_ciHeII_rate, units );
   Generate_Reaction_Rate_Table( &H.cool_ciHeIS_d, cool_ciHeIS_rate, units );
   
-  if ( ! use_case_B_recombination ){
-    Generate_Reaction_Rate_Table( &H.cool_reHII_d,   cool_reHII_rate_case_A,   units );
-    Generate_Reaction_Rate_Table( &H.cool_reHeII1_d, cool_reHeII1_rate_case_A, units ); 
-    Generate_Reaction_Rate_Table( &H.cool_reHeIII_d, cool_reHeIII_rate_case_A, units );
-  } else {
-    Generate_Reaction_Rate_Table( &H.cool_reHII_d,   cool_reHII_rate_case_B,   units );
-    Generate_Reaction_Rate_Table( &H.cool_reHeII1_d, cool_reHeII1_rate_case_B, units );
-    Generate_Reaction_Rate_Table( &H.cool_reHeIII_d, cool_reHeIII_rate_case_B, units );
+  switch(recombination_case)
+  {
+      case 0:
+      {
+        Generate_Reaction_Rate_Table( &H.cool_reHII_d,   cool_reHII_rate_case_A,   units );
+        Generate_Reaction_Rate_Table( &H.cool_reHeII1_d, cool_reHeII1_rate_case_A, units ); 
+        Generate_Reaction_Rate_Table( &H.cool_reHeIII_d, cool_reHeIII_rate_case_A, units );
+        break;
+      }
+      case 1:
+      case 2:
+      {
+        Generate_Reaction_Rate_Table( &H.cool_reHII_d,   cool_reHII_rate_case_B,   units );
+        Generate_Reaction_Rate_Table( &H.cool_reHeII1_d, cool_reHeII1_rate_case_B, units );
+        Generate_Reaction_Rate_Table( &H.cool_reHeIII_d, cool_reHeIII_rate_case_B, units );
+        break;
+      }
   }
   Generate_Reaction_Rate_Table( &H.cool_reHeII2_d, cool_reHeII2_rate, units );
   
@@ -187,14 +210,29 @@ void Chem_GPU::Initialize_Reaction_Rates(){
   Generate_Reaction_Rate_Table( &H.k_coll_i_HI_HI_d,   coll_i_HI_HI_rate,  units );
   Generate_Reaction_Rate_Table( &H.k_coll_i_HI_HeI_d,  coll_i_HI_HeI_rate, units );
   
-  if ( ! use_case_B_recombination ){  
-    Generate_Reaction_Rate_Table( &H.k_recomb_HII_d,   recomb_HII_rate_case_A,   units );
-    Generate_Reaction_Rate_Table( &H.k_recomb_HeII_d,  recomb_HeII_rate_case_A,  units );
-    Generate_Reaction_Rate_Table( &H.k_recomb_HeIII_d, recomb_HeIII_rate_case_A, units );  
-  } else {
-    Generate_Reaction_Rate_Table( &H.k_recomb_HII_d,   recomb_HII_rate_case_B,   units );
-    Generate_Reaction_Rate_Table( &H.k_recomb_HeII_d,  recomb_HeII_rate_case_B,  units );
-    Generate_Reaction_Rate_Table( &H.k_recomb_HeIII_d, recomb_HeIII_rate_case_B, units );
+  switch(recombination_case)
+  {
+      case 0:
+      {
+        Generate_Reaction_Rate_Table( &H.k_recomb_HII_d,   recomb_HII_rate_case_A,   units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeII_d,  recomb_HeII_rate_case_A,  units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeIII_d, recomb_HeIII_rate_case_A, units );  
+        break;
+      }
+      case 1:
+      {
+        Generate_Reaction_Rate_Table( &H.k_recomb_HII_d,   recomb_HII_rate_case_B,   units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeII_d,  recomb_HeII_rate_case_B,  units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeIII_d, recomb_HeIII_rate_case_B, units );
+        break;
+      }
+      case 2:
+      {
+        Generate_Reaction_Rate_Table( &H.k_recomb_HII_d,   recomb_HII_rate_case_Iliev1,   units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeII_d,  recomb_HeII_rate_case_B,  units );
+        Generate_Reaction_Rate_Table( &H.k_recomb_HeIII_d, recomb_HeIII_rate_case_B, units );
+        break;
+      }
   }
 }
 
@@ -239,11 +277,12 @@ void Grid3D::Update_Chemistry(){
   Chem.H.current_z = 0;
   #endif
   
-  
-  Do_Chemistry_Update( C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H );
-  
+#ifdef RT  
+  Do_Chemistry_Update( C.device, Rad.rtFields.dev_rf, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H );
+#else
+  Do_Chemistry_Update( C.device, nullptr, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H );
+#endif
 }
-
 
 
 void Grid3D::Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units ){
@@ -277,7 +316,7 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_uni
         dens_HeI   = C.HeI_density[id];
         dens_HeII  = C.HeII_density[id];
         dens_HeIII = C.HeIII_density[id]; 
-        dens_e     = C.e_density[id];
+        dens_e     = dens_HII + dens_HeII + 2*dens_HeIII;
         
         cell_dens = dens_HI + dens_HII + dens_HeI + dens_HeII + dens_HeIII;
         cell_n =  dens_HI + dens_HII + ( dens_HeI + dens_HeII + dens_HeIII )/4 + dens_e;
@@ -306,6 +345,7 @@ void Grid3D::Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_uni
 
 void Chem_GPU::Reset(){
   
+#ifndef RT
   free( rates_z_h );
   free( Heat_rates_HI_h );
   free( Heat_rates_HeI_h );
@@ -321,7 +361,7 @@ void Chem_GPU::Reset(){
   Free_Array_GPU_float( Ion_rates_HI_d );
   Free_Array_GPU_float( Ion_rates_HeI_d );
   Free_Array_GPU_float( Ion_rates_HeII_d );
-  
+#endif
   free( Fields.temperature_h );
   
 }
