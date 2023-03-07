@@ -85,6 +85,9 @@ int main(int argc, char *argv[])
   }
   chprintf("Output directory:  %s\n", P.outdir);
 
+  // Check the configuration
+  Check_Configuration(P);
+
   // Create a Log file to output run-time messages and output the git hash and
   // macro flags used
   Create_Log_File(P);
