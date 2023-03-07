@@ -43,21 +43,21 @@ axx[1][0].set_ylabel(r"$lg(T) [{\rm K}]$")
 #ax2.tick_params(axis="y",which="both",labelleft=False)
 
 
-if(dir):
-    pathname = dir + "/tests/iliev/2"
-    img = plt.imread(pathname+"/ref2_010x.png")
-    axx[0][0].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
-    img = plt.imread(pathname+"/ref2_100x.png")
-    axx[0][1].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
-    img = plt.imread(pathname+"/ref2_500x.png")
-    axx[0][2].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
-    img = plt.imread(pathname+"/ref2_010T.png")
-    axx[1][0].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
-    img = plt.imread(pathname+"/ref2_100T.png")
-    axx[1][1].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
-    img = plt.imread(pathname+"/ref2_500T.png")
-    axx[1][2].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
-##
+pathname = os.path.dirname(sys.argv[0])
+if(len(pathname) == 0): pathname = "."
+img = plt.imread(pathname+"/ref2_010x.png")
+axx[0][0].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
+img = plt.imread(pathname+"/ref2_100x.png")
+axx[0][1].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
+img = plt.imread(pathname+"/ref2_500x.png")
+axx[0][2].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
+img = plt.imread(pathname+"/ref2_010T.png")
+axx[1][0].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
+img = plt.imread(pathname+"/ref2_100T.png")
+axx[1][1].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
+img = plt.imread(pathname+"/ref2_500T.png")
+axx[1][2].imshow(img,extent=[0,1.05,3.5,4.6],aspect="auto",alpha=1)
+
 
 def PlotC1(axx,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01,lw=2,labs=False):
         
@@ -65,7 +65,7 @@ def PlotC1(axx,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01,lw=2,labs=False):
         try:
             d = h5.File(fname, 'r')
             tf = d.attrs["t"]*1.0e-3
-            if(tf>0 and abs(np.log10(t)-np.log10(tf))<eps):
+            if(abs(np.log10(t)-np.log10(tf))<eps):
                 print("tf=",tf)
                 break
             ##
@@ -127,7 +127,7 @@ def PlotC1(axx,t,fnames,color="orange",lbox=2,alpha=0,eps=0.01,lw=2,labs=False):
 def PlotA1(axx,t,fnames,color,lbox=2,alpha=0,eps=0.001,lw=2,labs=False):
 
     assert(withALTAIR)
-
+    
     for fname in fnames:
         f = open(fname,"r")
         assert(f)

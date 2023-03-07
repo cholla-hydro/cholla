@@ -1778,7 +1778,7 @@ void Grid3D::Iliev125( const parameters& P, int test )
             r2 += x[axis]*x[axis];
         }
 
-        auto eps2ot = 4*dx2;
+        auto eps2ot = dx2;
         //
         //  NG 230117: ET seems to require larger softening than OT, why this is so I do not understand, need to explore further.
         //
