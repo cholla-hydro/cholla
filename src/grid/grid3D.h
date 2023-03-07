@@ -32,11 +32,11 @@
 #endif
 
 #ifdef COOLING_GRACKLE
-#include "../cooling_grackle/cool_grackle.h"
+  #include "../cooling_grackle/cool_grackle.h"
 #endif
 
 #ifdef RT
-#include "../radiation/radiation.h"
+  #include "../radiation/radiation.h"
 #endif
 
 #ifdef CPU_TIME
@@ -44,7 +44,7 @@
 #endif
 
 #ifdef CHEMISTRY_GPU
-#include "../chemistry_gpu/chemistry_gpu.h"
+  #include "../chemistry_gpu/chemistry_gpu.h"
 #endif
 
 #ifdef ANALYSIS
@@ -301,19 +301,19 @@ class Grid3D
   Cosmology Cosmo;
 #endif
 
-    #ifdef COOLING_GRACKLE
-    // Object that contains data for Grackle cooling
-    Cool_GK Cool;
-    #endif
+#ifdef COOLING_GRACKLE
+  // Object that contains data for Grackle cooling
+  Cool_GK Cool;
+#endif
 
-    #ifdef RT
-    // Object that contains data for radiative transfer
-    Rad3D Rad;
-    #endif
-    
-    #ifdef CPU_TIME
-    Time Timer;
-    #endif
+#ifdef RT
+  // Object that contains data for radiative transfer
+  Rad3D Rad;
+#endif
+
+#ifdef CPU_TIME
+  Time Timer;
+#endif
 
 #ifdef CHEMISTRY_GPU
   // Object that contains data for the GPU chemistry solver
@@ -403,13 +403,13 @@ class Grid3D
      * tracked separately when using  GRAVITY. */
     Real *Grav_potential;
 
-      #if defined(RT) || defined(CHEMISTRY_GPU)
-      Real *HI_density;
-      Real *HII_density;
-      Real *HeI_density;
-      Real *HeII_density;
-      Real *HeIII_density;
-      #endif
+#if defined(RT) || defined(CHEMISTRY_GPU)
+    Real *HI_density;
+    Real *HII_density;
+    Real *HeI_density;
+    Real *HeII_density;
+    Real *HeIII_density;
+#endif
 
     /*! pointer to conserved variable on device */
     Real *device;
@@ -689,17 +689,16 @@ class Grid3D
 
   void Chemistry_Test(struct parameters P);
 
-    void Iliev0( const parameters& P );
-    void Iliev125( const parameters& P, int test );
-    void Iliev6( const parameters& P );
+  void Iliev0(const parameters &P);
+  void Iliev125(const parameters &P, int test);
+  void Iliev6(const parameters &P);
 
-
-#ifdef   MPI_CHOLLA
-    void Set_Boundaries_MPI(struct parameters P);
-    void Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P);
-    void Load_and_Send_MPI_Comm_Buffers(int dir, int *flags);
-    void Wait_and_Unload_MPI_Comm_Buffers(int dir, int *flags);
-    void Unload_MPI_Comm_Buffers(int index);
+#ifdef MPI_CHOLLA
+  void Set_Boundaries_MPI(struct parameters P);
+  void Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P);
+  void Load_and_Send_MPI_Comm_Buffers(int dir, int *flags);
+  void Wait_and_Unload_MPI_Comm_Buffers(int dir, int *flags);
+  void Unload_MPI_Comm_Buffers(int index);
 
   int Load_Hydro_DeviceBuffer_X0(Real *buffer);
   int Load_Hydro_DeviceBuffer_X1(Real *buffer);
@@ -855,17 +854,17 @@ class Grid3D
   void Do_Cooling_Step_Grackle();
 #endif
 
-  #ifdef CHEMISTRY_GPU
-  void Initialize_Chemistry_Start( struct parameters *P );
-  void Initialize_Chemistry_Finish( struct parameters *P );
-  void Compute_Gas_Temperature(  Real *temperature, bool convert_cosmo_units  );
+#ifdef CHEMISTRY_GPU
+  void Initialize_Chemistry_Start(struct parameters *P);
+  void Initialize_Chemistry_Finish(struct parameters *P);
+  void Compute_Gas_Temperature(Real *temperature, bool convert_cosmo_units);
   void Update_Chemistry();
-  #endif
+#endif
 
-  #ifdef RT
+#ifdef RT
   void Initialize_RT();
   void Update_RT();
-  #endif
+#endif
 
 #ifdef ANALYSIS
   void Initialize_Analysis_Module(struct parameters *P);

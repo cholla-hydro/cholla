@@ -86,7 +86,6 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
   }
 }
 
-
 /*! \fn int sgn_CUDA
  *  \brief Mathematical sign function. Returns sign of x. */
 __device__ inline int sgn_CUDA(Real x)

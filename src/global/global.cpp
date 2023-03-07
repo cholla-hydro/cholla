@@ -10,11 +10,11 @@
 #include <string.h>
 #include <sys/time.h>
 
-#include <set>
-#include <ctype.h>
 #include <chrono>
+#include <set>
+
 #include "../global/global.h"
-#include "../io/io.h" //defines chprintf
+#include "../io/io.h"  //defines chprintf
 
 /* Global variables */
 Real gama;   // Ratio of specific heats
@@ -41,9 +41,9 @@ void Set_Gammas(Real gamma_in)
  *  \brief Returns the current clock time. */
 double get_time(void)
 {
-    static std::chrono::high_resolution_clock::time_point t0 = std::chrono::high_resolution_clock::now();
-    std::chrono::nanoseconds d = std::chrono::high_resolution_clock::now() - t0;
-    return (1.0e-9*d.count());
+  static std::chrono::high_resolution_clock::time_point t0 = std::chrono::high_resolution_clock::now();
+  std::chrono::nanoseconds d                               = std::chrono::high_resolution_clock::now() - t0;
+  return (1.0e-9 * d.count());
 }
 
 /*! \fn int sgn
@@ -55,7 +55,6 @@ int sgn(Real x)
   else
     return 1;
 }
-
 
 /*! \fn char trim(char *s)
  *  \brief Gets rid of trailing and leading whitespace. */
@@ -180,15 +179,15 @@ void parse_param(char *name, char *value, struct parameters *parms)
     parms->ny = atoi(value);
   else if (strcmp(name, "nz") == 0)
     parms->nz = atoi(value);
-  else if (strcmp(name, "tinit")==0)
+  else if (strcmp(name, "tinit") == 0)
     parms->tinit = atof(value);
-  else if (strcmp(name, "tout")==0)
+  else if (strcmp(name, "tout") == 0)
     parms->tout = atof(value);
   else if (strcmp(name, "outstep") == 0)
     parms->outstep = atof(value);
-  else if (strcmp(name, "outlog")==0)
+  else if (strcmp(name, "outlog") == 0)
     parms->outlog = atof(value);
-  else if (strcmp(name, "n_steps_output")==0)
+  else if (strcmp(name, "n_steps_output") == 0)
     parms->n_steps_output = atoi(value);
   else if (strcmp(name, "gamma") == 0)
     parms->gamma = atof(value);
@@ -395,12 +394,12 @@ void parse_param(char *name, char *value, struct parameters *parms)
   else if (strcmp(name, "bc_potential_type") == 0)
     parms->bc_potential_type = atoi(value);
 #ifdef CHEMISTRY_GPU
-    else if (strcmp(name, "UVB_rates_file")==0)
-      strncpy (parms->UVB_rates_file, value, MAXLEN);
-#endif  
+  else if (strcmp(name, "UVB_rates_file") == 0)
+    strncpy(parms->UVB_rates_file, value, MAXLEN);
+#endif
 #ifdef RT
-  else if (strcmp(name, "num_iterations")==0)
-    parms->num_iterations  = atoi(value);
+  else if (strcmp(name, "num_iterations") == 0)
+    parms->num_iterations = atoi(value);
 #endif
 #ifdef COOLING_GRACKLE
   else if (strcmp(name, "UVB_rates_file") == 0)

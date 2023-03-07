@@ -35,7 +35,7 @@
   #include "../utils/parallel_omp.h"
 #endif
 #ifdef RT
-#include "../radiation/radiation.h"
+  #include "../radiation/radiation.h"
 #endif
 #ifdef COOLING_GPU
   #include "../cooling/cooling_cuda.h"  // provides Cooling_Update
@@ -345,14 +345,14 @@ void Grid3D::AllocateMemory(void)
   C.d_Grav_potential  = NULL;
 #endif
 
-  #if defined(RT) || defined(CHEMISTRY_GPU)
-  chprintf( " Setting pointers for: HI, HII, HeI, HeII, HeIII, densities\n");  
+#if defined(RT) || defined(CHEMISTRY_GPU)
+  chprintf(" Setting pointers for: HI, HII, HeI, HeII, HeIII, densities\n");
   C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
   C.HeII_density  = &C.host[H.n_cells * grid_enum::HeII_density];
-  C.HeIII_density = &C.host[H.n_cells * grid_enum::HeIII_density];  
-  #endif
+  C.HeIII_density = &C.host[H.n_cells * grid_enum::HeIII_density];
+#endif
 
   // initialize host array
   for (int i = 0; i < H.n_fields * H.n_cells; i++) {
@@ -518,15 +518,14 @@ Real Grid3D::Update_Grid(void)
   #endif
 #endif
 
-  // Is this needed now that conserved variable data lives on the GPU?
-  #if defined(CHEMISTRY_GPU) || defined(RT)
+// Is this needed now that conserved variable data lives on the GPU?
+#if defined(CHEMISTRY_GPU) || defined(RT)
   C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
   C.HeII_density  = &C.host[H.n_cells * grid_enum::HeII_density];
   C.HeIII_density = &C.host[H.n_cells * grid_enum::HeIII_density];
-  #endif
-
+#endif
 
   return max_dti;
 }
@@ -612,9 +611,8 @@ void Grid3D::Reset(void)
 void Grid3D::FreeMemory(void)
 {
   // free the conserved variable arrays
-  CudaSafeCall( cudaFreeHost(C.host) );
+  CudaSafeCall(cudaFreeHost(C.host));
   cudaFree(C.device);
-
 
 #ifdef GRAVITY
   CudaSafeCall(cudaFreeHost(C.Grav_potential));
@@ -652,11 +650,11 @@ void Grid3D::FreeMemory(void)
   #ifdef CLOUDY_COOL
   Free_Cuda_Textures();
   #endif
-  #endif
+#endif
 
-  #ifdef RT
+#ifdef RT
   Rad.Free_Memory();
-  #endif
+#endif
 
 #ifdef CHEMISTRY_GPU
   Chem.Reset();

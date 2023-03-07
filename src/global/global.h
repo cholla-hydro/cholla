@@ -6,7 +6,6 @@
 
 #include "../grid/grid_enum.h"  // defines NSCALARS
 
-
 #ifdef PARTICLES
   #include <cstdint>
 #endif  // PARTICLES
@@ -39,12 +38,12 @@ typedef double Real;
 #define KM_CGS   1e5;              // km in cm
 #define MH       1.67262171e-24    // Mass of hydrogen [g]
 
-#define TIME_UNIT           3.15569e10     // 1 kyr in s
-#define LENGTH_UNIT         3.08567758e21  // 1 kpc in cm
-#define MASS_UNIT           1.98847e33     // 1 solar mass in grams
-//#define TIME_UNIT (1e3*3.15569e10) // 1 kyr in s
-//#define LENGTH_UNIT (13.2*3.08567758e21) // 1 kpc in cm
-//#define MASS_UNIT 1.1289245801680841e+41 //1.98847e33 // 1 solar mass in grams
+#define TIME_UNIT   3.15569e10     // 1 kyr in s
+#define LENGTH_UNIT 3.08567758e21  // 1 kpc in cm
+#define MASS_UNIT   1.98847e33     // 1 solar mass in grams
+// #define TIME_UNIT (1e3*3.15569e10) // 1 kyr in s
+// #define LENGTH_UNIT (13.2*3.08567758e21) // 1 kpc in cm
+// #define MASS_UNIT 1.1289245801680841e+41 //1.98847e33 // 1 solar mass in grams
 #define DENSITY_UNIT        (MASS_UNIT / (LENGTH_UNIT * LENGTH_UNIT * LENGTH_UNIT))
 #define VELOCITY_UNIT       (LENGTH_UNIT / TIME_UNIT)
 #define ENERGY_UNIT         (DENSITY_UNIT * VELOCITY_UNIT * VELOCITY_UNIT)
@@ -53,7 +52,7 @@ typedef double Real;
 #define MAGNETIC_FIELD_UNIT (sqrt(MASS_UNIT / LENGTH_UNIT) / TIME_UNIT)
 
 #ifndef M_PI
-#define M_PI 3.141592653589793238462643383279
+  #define M_PI 3.141592653589793238462643383279
 #endif
 
 #define LOG_FILE_NAME "run_output.log"
@@ -164,13 +163,11 @@ extern double get_time(void);
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int sgn(Real x);
 
-
-struct parameters
-{
+struct parameters {
   int nx;
   int ny;
   int nz;
-  double tinit=0;
+  double tinit = 0;
   double tout;
   double outstep;
   double outlog = 0;
@@ -297,9 +294,9 @@ struct parameters
   int n_proc_z;
 #endif
   int bc_potential_type;
-#if defined(COOLING_GRACKLE) || defined (CHEMISTRY_GPU)
-  char UVB_rates_file[MAXLEN] = { 0 }; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
-#endif  
+#if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
+  char UVB_rates_file[MAXLEN] = {0};  // File for the UVB photoheating and photoionization rates of HI, HeI and HeII
+#endif
 #ifdef RT
   int num_iterations = 10;
 #endif

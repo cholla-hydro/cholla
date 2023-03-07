@@ -46,7 +46,7 @@ enum : int {
   HeII_density,
   HeIII_density,
     #ifdef GRACKLE_METALS
-    metal_density,
+  metal_density,
     #endif
   #endif
   #if defined(COOLING_GRACKLE)

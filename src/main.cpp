@@ -96,15 +96,15 @@ int main(int argc, char *argv[])
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
   message = "Initializing Simulation";
-  Write_Message_To_Log_File( message.c_str() );
+  Write_Message_To_Log_File(message.c_str());
 
-  #ifdef CHEMISTRY_GPU
+#ifdef CHEMISTRY_GPU
   G.Initialize_Chemistry_Start(&P);
-  #endif
+#endif
 
 #ifdef RT
   G.Rad.Initialize_Start(P);
-  #endif
+#endif
 
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
@@ -116,15 +116,15 @@ int main(int argc, char *argv[])
     nfile = P.nfile;
   }
 
-  #ifdef RT
+#ifdef RT
   G.Rad.Initialize_Finish();
-  #endif
-  
-  #ifdef DE
-  chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2 );
-  message =  " eta_1: " + std::to_string(DE_ETA_1) + "   eta_2: " + std::to_string(DE_ETA_2);
-  Write_Message_To_Log_File( message.c_str() );
-  #endif
+#endif
+
+#ifdef DE
+  chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2);
+  message = " eta_1: " + std::to_string(DE_ETA_1) + "   eta_2: " + std::to_string(DE_ETA_2);
+  Write_Message_To_Log_File(message.c_str());
+#endif
 
 #ifdef CPU_TIME
   G.Timer.Initialize();
@@ -146,9 +146,9 @@ int main(int argc, char *argv[])
   G.Initialize_Grackle(&P);
 #endif
 
-  #ifdef CHEMISTRY_GPU
+#ifdef CHEMISTRY_GPU
   G.Initialize_Chemistry_Finish(&P);
-  #endif
+#endif
 
 #ifdef ANALYSIS
   G.Initialize_Analysis_Module(&P);
@@ -259,12 +259,12 @@ int main(int argc, char *argv[])
     G.Advance_Particles(1);
     // Transfer the particles that moved outside the local domain
     G.Transfer_Particles_Boundaries(P);
-    #endif
+#endif
 
-    #ifdef RT
+#ifdef RT
     // Perform the radiative transfer solve
     G.Update_RT();
-    #endif
+#endif
 
     // Advance the grid by one timestep
     dti = G.Update_Hydro_Grid();
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
       nfile++;
 #endif  // OUTPUT
       // update to the next output time
-      if(P.outlog != 0) P.outstep *= pow(10.0,P.outlog);
+      if (P.outlog != 0) P.outstep *= pow(10.0, P.outlog);
       outtime += P.outstep;
     }
 
