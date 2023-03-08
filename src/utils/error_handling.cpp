@@ -1,6 +1,7 @@
 #include "../utils/error_handling.h"
 
 #include <cassert>
+#include <iostream>
 
 #ifdef MPI_CHOLLA
   #include <mpi.h>
@@ -62,7 +63,7 @@ void Check_Configuration(parameters const &P)
 // MHD Checks
 // ==========
 #ifdef MHD
-  assert(P.nx < 2 or P.ny < 2 or P.nz < 2 and "MHD runs must be 3D");
+  assert(P.nx > 1 or P.ny > 1 or P.nz > 1 and "MHD runs must be 3D");
 
   // Must use the correct integrator
   #if !defined(VL) || defined(SIMPLE)
@@ -90,8 +91,8 @@ void Check_Configuration(parameters const &P)
   }
 
   // Error if unsupported boundary condition is used
-  assert(P.xl_bcnd == 2 or P.xu_bcnd == 2 or P.yl_bcnd == 2 or P.yu_bcnd == 2 or P.zl_bcnd == 2 or
-         P.zu_bcnd == 2 && "MHD does not support reflective boundary conditions");
+  assert(P.xl_bcnd != 2 or P.xu_bcnd != 2 or P.yl_bcnd != 2 or P.yu_bcnd != 2 or P.zl_bcnd != 2 or
+         P.zu_bcnd != 2 && "MHD does not support reflective boundary conditions");
 
   // AVERAGE_SLOW_CELLS not supported on MHD
   #ifdef AVERAGE_SLOW_CELLS
