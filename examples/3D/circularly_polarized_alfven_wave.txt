@@ -1,0 +1,48 @@
+#
+# Parameter File for the circularly polarized Alfven Wave
+# See [Gardiner & Stone 2008](https://arxiv.org/abs/0712.2634) pages 4134-4135
+# for details.
+#
+
+################################################
+# number of grid cells in the x dimension
+nx=64
+# number of grid cells in the y dimension
+ny=32
+# number of grid cells in the z dimension
+nz=32
+# final output time
+tout=1.0
+# time interval for output
+outstep=1.0
+# name of initial conditions
+init=Circularly_Polarized_Alfven_Wave
+# domain properties
+xmin=0.0
+ymin=0.0
+zmin=0.0
+xlen=3.0
+ylen=1.5
+zlen=1.5
+# type of boundary conditions
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
+# path to output directory
+outdir=./
+
+#################################################
+# Parameters for linear wave problems
+# Polarization. 1 = right polarized, -1 = left polarized
+polarization=1.0
+# velocity in the x direction. 0 for moving wave, -1 for standing wave
+vx=0.0
+# pitch angle
+pitch=0.72972765622696634
+# yaw angle
+yaw=1.1071487177940904
+# value of gamma
+gamma=1.666666666666667
