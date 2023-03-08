@@ -357,6 +357,8 @@ void parse_param(char *name, char *value, struct parameters *parms)
     parms->pitch = atof(value);
   } else if (strcmp(name, "yaw") == 0) {
     parms->yaw = atof(value);
+  } else if (strcmp(name, "polarization") == 0) {
+    parms->polarization = atof(value);
 #ifdef PARTICLES
   } else if (strcmp(name, "prng_seed") == 0) {
     parms->prng_seed = atoi(value);
