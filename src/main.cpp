@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
 #endif /*MPI_CHOLLA*/
 
   Real dti = 0;  // inverse time step, 1.0 / dt
+  Real dt_log = 0.0; // initial time step for log stepping
 
   // input parameter variables
   char *param_file;
@@ -234,6 +235,9 @@ int main(int argc, char *argv[])
 
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();
+  if (P.outlog !=0) {
+    dt_log = P.outlog;
+  }
 
   while (G.H.t < P.tout) {
 // get the start time
@@ -242,9 +246,13 @@ int main(int argc, char *argv[])
 #endif  // CPU_TIME
     start_step = get_time();
 
-    // calculate the timestep. Note: this computes the timestep ONLY on the
-    // first loop, on subsequent time steps it just calls the MPI_Allreduce to
-    // determine the global timestep
+    // Use log step if it's smaller
+    if (P.outlog != 0) {
+      if (dti < 1.0/dt_log) {
+        dti = 1.0/dt_log;
+      }
+    }
+    // determine the global timestep (via MPI Allreduce)
     G.set_dt(dti);
 
     if (G.H.t + G.H.dt > outtime) G.H.dt = outtime - G.H.t;
@@ -339,7 +347,7 @@ int main(int argc, char *argv[])
       nfile++;
 #endif  // OUTPUT
       // update to the next output time
-      if (P.outlog != 0) P.outstep *= pow(10.0, P.outlog);
+      //if (P.outlog != 0) P.outstep *= pow(10.0, P.outlog);
       outtime += P.outstep;
     }
 
@@ -367,6 +375,12 @@ int main(int argc, char *argv[])
     // Check that the magnetic field has zero divergence
     mhd::checkMagneticDivergence(G);
 #endif  // MHD
+
+    // update the log timestep
+    if (P.outlog !=0) {
+      dt_log *= pow(10.0, 0.01);
+      printf("%e\n", dt_log);
+    }
   }     /*end loop over timesteps*/
 
 #ifdef CPU_TIME
