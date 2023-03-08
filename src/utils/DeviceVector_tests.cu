@@ -310,6 +310,7 @@ TEST(tALLDeviceVectorAt, OutOfBoundsAccessExpectThrowOutOfRange)
   devVector.cpyHostToDevice(stdVec);
 
   // Check that the .at() method throws the correct exception
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto)
   EXPECT_THROW(devVector.at(100), std::out_of_range);
 }
 
@@ -322,6 +323,7 @@ TEST(tALLDeviceVectorStdVectorHostToDeviceCopy, OutOfBoundsCopyExpectThrowOutOfR
   std::iota(stdVec.begin(), stdVec.end(), 0);
 
   // Copy the value to the device memory
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto)
   EXPECT_THROW(devVector.cpyHostToDevice(stdVec), std::out_of_range);
 }
 
@@ -334,5 +336,6 @@ TEST(tALLDeviceVectorStdVectorDeviceToHostCopy, OutOfBoundsCopyExpectThrowOutOfR
   std::iota(stdVec.begin(), stdVec.end(), 0);
 
   // Copy the value to the device memory
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto)
   EXPECT_THROW(devVector.cpyDeviceToHost(stdVec), std::out_of_range);
 }
