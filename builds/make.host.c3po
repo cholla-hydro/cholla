@@ -20,4 +20,4 @@ MPI_ROOT        := /usr/lib/x86_64-linux-gnu/openmpi
 GOOGLETEST_ROOT := ${GOOGLETEST_ROOT}
 
 #-- MPI calls accept GPU buffers (requires GPU-aware MPI)
-# MPI_GPU = -DMPI_GPU
+#MPI_GPU = -DMPI_GPU

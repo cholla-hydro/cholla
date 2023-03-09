@@ -31,6 +31,9 @@ class Rad3D
   // number of frequencies
   const static int n_freq = 3;
 
+  // array of boundary flags
+  int flags[6] = {0, 0, 0, 0, 0, 0};
+
   // prefactor for the far field source (q*<kF> in nedin2014)
   Real rsFarFactor = 0;  // the default value is used in tests
 

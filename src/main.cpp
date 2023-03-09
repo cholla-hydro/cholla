@@ -379,7 +379,6 @@ int main(int argc, char *argv[])
     // update the log timestep
     if (P.outlog !=0) {
       dt_log *= pow(10.0, 0.01);
-      printf("%e\n", dt_log);
     }
   }     /*end loop over timesteps*/
 

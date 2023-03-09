@@ -57,6 +57,14 @@ for n in range(ns, ne+1):
         bz = fileout.create_dataset("magnetic_z", (nx_mag, ny_mag, nz_mag), chunks=True, dtype=filein['magnetic_z'].dtype)
       except KeyError:
         print('No magnetic field data present');
+      try:
+        HI_d = fileout.create_dataset("HI_density", (nx, ny, nz), chunks=True, dtype=filein['HI_density'].dtype)
+        HII_d = fileout.create_dataset("HII_density", (nx, ny, nz), chunks=True, dtype=filein['HII_density'].dtype)
+        HeI_d = fileout.create_dataset("HeI_density", (nx, ny, nz), chunks=True, dtype=filein['HeI_density'].dtype)
+        HeII_d = fileout.create_dataset("HeII_density", (nx, ny, nz), chunks=True, dtype=filein['HeII_density'].dtype)
+        HeIII_d = fileout.create_dataset("HeIII_density", (nx, ny, nz), chunks=True, dtype=filein['HeIII_density'].dtype)
+      except KeyError:
+        print('No abundance data present');
 
     # write data from individual processor file to
     # correct location in concatenated file
@@ -82,6 +90,14 @@ for n in range(ns, ne+1):
       fileout['magnetic_z'][xs:xs+nxl_mag,ys:ys+nyl_mag,zs:zs+nzl_mag] = filein['magnetic_z']
     except KeyError:
         print('No magnetic field data present');
+    try:
+      fileout['HI_density'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl] = filein['HI_density']
+      fileout['HII_density'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl] = filein['HII_density']
+      fileout['HeI_density'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl] = filein['HeI_density']
+      fileout['HeII_density'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl] = filein['HeII_density']
+      fileout['HeIII_density'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl] = filein['HeIII_density']
+    except KeyError:
+        print("No abundance data present");
 
     filein.close()
 

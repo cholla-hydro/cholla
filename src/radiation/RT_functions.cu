@@ -16,6 +16,9 @@
     #include "alt/atomic_data.h"
     #include "alt/constant.h"
     #include "radiation.h"
+ #ifdef MPI_CHOLLA
+#include "../mpi/mpi_routines.h"
+#endif   
 
 void Rad3D::Initialize_GPU()
 {
@@ -45,7 +48,103 @@ void Rad3D::Copy_RT_Fields(void)
       cudaMemcpy(rtFields.rf, rtFields.dev_rf, (1 + 2 * n_freq) * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 }
 
-void __global__ Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz,
+__global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx,
+                                                int ny, int nz, int n_ghost_transfer, int n_ghost_potential, int n_freq,
+                                                struct Rad3D::RT_Fields rtFields, Real *transfer_buffer_d);
+int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
+                                struct Rad3D::RT_Fields& rtFields, Real *buffer, int buffer_start)
+{
+  //printf( "Loading RT Fields Buffer: Dir %d  side: %d \n", direction, side );
+  int nx_rt, ny_rt, nz_rt, size_buffer, n_ghost_rt, n_ghost_transfer, n_i, n_j, ngrid;
+  
+  // for now assume RT grid has the same dimensions as hydro grid
+  n_ghost_rt = n_ghost;
+  n_ghost_transfer  = n_ghost;
+  nx_rt            = nx;
+  ny_rt            = ny;
+  nz_rt            = nz;
+
+  if (direction == 0) {
+    n_i = ny_rt;
+    n_j = nz_rt;
+  }
+  if (direction == 1) {
+    n_i = nx_rt;
+    n_j = nz_rt;
+  }
+  if (direction == 2) {
+    n_i = nx_rt;
+    n_j = ny_rt;
+  }
+
+  // buffer size for 1 field
+  size_buffer = n_ghost_transfer * n_i * n_j;
+
+  // set values for GPU kernels
+  ngrid = (size_buffer - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
+  Real *send_buffer_d;
+  send_buffer_d = buffer;
+
+  hipLaunchKernelGGL(Load_RT_Buffer_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i,
+                     n_j, nx_rt, ny_rt, nz_rt, n_ghost_transfer, n_ghost_rt, n_freq, rtFields, send_buffer_d);
+  CHECK(cudaDeviceSynchronize());
+
+  //printf( "Loaded RT Fields Buffer: Dir %d  side: %d \n", direction, side );
+  return size_buffer * 2 * n_freq;
+}
+
+__global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx,
+                                                  int ny, int nz, int n_ghost_transfer, int n_ghost_potential, int n_freq,
+                                                  struct Rad3D::RT_Fields rtFields, Real *transfer_buffer_d);
+void Unload_RT_Fields_From_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
+                                struct Rad3D::RT_Fields& rtFields, Real *buffer, int buffer_start)
+{
+  //printf( "Unloading RT Fields Buffer: Dir %d  side: %d \n", direction, side );
+  int nx_rt, ny_rt, nz_rt, size_buffer, n_ghost_rt, n_ghost_transfer, n_i, n_j, ngrid;
+  
+  // for now assume RT grid has the same dimensions as hydro grid
+  n_ghost_rt = n_ghost;
+  n_ghost_transfer  = n_ghost;
+  nx_rt            = nx;
+  ny_rt            = ny;
+  nz_rt            = nz;
+
+  if (direction == 0) {
+    n_i = ny_rt;
+    n_j = nz_rt;
+  }
+  if (direction == 1) {
+    n_i = nx_rt;
+    n_j = nz_rt;
+  }
+  if (direction == 2) {
+    n_i = nx_rt;
+    n_j = ny_rt;
+  }  
+
+  // buffer size for 1 field
+  size_buffer = n_ghost_transfer * n_i * n_j;
+
+  // set values for GPU kernels
+  ngrid = (size_buffer - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
+  Real *recv_buffer_d;
+  recv_buffer_d = buffer;
+
+  hipLaunchKernelGGL(Unload_RT_Buffer_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i,
+                     n_j, nx_rt, ny_rt, nz_rt, n_ghost_transfer, n_ghost_rt, n_freq, rtFields, recv_buffer_d);
+}
+
+__global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz,
                                                   int n_ghost, int n_freq, struct Rad3D::RT_Fields rtFields);
 void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
                                 struct Rad3D::RT_Fields& rtFields)
@@ -83,16 +182,6 @@ void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz,
                      ny_g, nz_g, n_ghost, n_freq, rtFields);
 }
 
-// Set boundary cells for radiation fields (non MPI)
-void Rad3D::rtBoundaries(void)
-{
-  Set_RT_Boundaries_Periodic(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
-  Set_RT_Boundaries_Periodic(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
-  Set_RT_Boundaries_Periodic(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
-  Set_RT_Boundaries_Periodic(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
-  Set_RT_Boundaries_Periodic(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
-  Set_RT_Boundaries_Periodic(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
-}
 
 // Function to launch the kernel to calculate absorption coefficients
 void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSectionInCU cs,
@@ -179,7 +268,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
     // then call OTVET iteration kernel
     OTVETIteration();
 
-    // then call boundaries kernel
+    // then call boundaries functions
     rtBoundaries();
   }
   /*

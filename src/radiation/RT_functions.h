@@ -24,5 +24,14 @@ struct DEVICE_ALIGN_DECL CrossSectionInCU {
   Real HeIIatHeII;
 };
 
+int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
+                                struct Rad3D::RT_Fields& rtFields, Real *buffer, int buffer_start);
+
+void Unload_RT_Fields_From_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
+                                struct Rad3D::RT_Fields& rtFields, Real *buffer, int buffer_start);                                
+
+void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
+                                struct Rad3D::RT_Fields& rtFields);                                
+
   #endif  // VL_3D_CUDA_H
 #endif    // CUDA
