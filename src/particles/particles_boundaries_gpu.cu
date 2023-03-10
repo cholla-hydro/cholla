@@ -15,7 +15,7 @@
   #include "particles_3D.h"
   #include "particles_boundaries_gpu.h"
 
-  #define SCAN_SHARED_SIZE 2 * TPB_PARTICLES
+  #define SCAN_SHARED_SIZE (2 * TPB_PARTICLES)
 
 __global__ void Set_Particles_Boundary_Kernel(int side, part_int_t n_local, Real *pos_dev, Real d_min, Real d_max,
                                               Real d_length)

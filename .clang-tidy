@@ -37,7 +37,6 @@ Checks: "*,
 
         -bugprone-easily-swappable-parameters,
         -bugprone-implicit-widening-of-multiplication-result,
-        -bugprone-macro-parentheses,
         -bugprone-narrowing-conversions,
         -bugprone-reserved-identifier,
         -cert-dcl37-c,
@@ -155,7 +154,8 @@ Checks: "*,
         -readability-simplify-boolean-expr,
         -readability-suspicious-call-argument"
 WarningsAsErrors: ''
-HeaderFilterRegex: '.*'
+# More paths can be ignored by modifying this so that it looks like '^((?!/PATH/ONE/|/PATH/TWO/).)*$'
+HeaderFilterRegex: '^((?!/ihome/crc/install/power9/googletest/1.11.0/include/|/usr/lib/x86_64-linux-gnu/hdf5/serial/include/).)*$'
 AnalyzeTemporaryDtors: false
 FormatStyle:     'file'
 UseColor: false
