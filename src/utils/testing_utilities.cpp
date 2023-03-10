@@ -69,15 +69,12 @@ bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff, int6
   ulpsDiff     = ulpsDistanceDbl(a, b);
   absoluteDiff = std::abs(a - b);
 
-  // Perform the ULP check which is for numbers far from zero
-  if (ulpsDiff <= ulpsEpsilon) {
+  // Perform the ULP check which is for numbers far from zero and perform the absolute check which is for numbers near
+  // zero
+  if (ulpsDiff <= ulpsEpsilon or absoluteDiff <= fixedEpsilon) {
     return true;
   }
-  // Perform the absolute check which is for numbers near zero
-  else if (absoluteDiff <= fixedEpsilon) {
-    return true;
-  }
-  // if none of the checks have passed indicate test failure
+  // if the checks don't pass indicate test failure
   else {
     return false;
   }
