@@ -3,8 +3,6 @@
 #ifndef DEVICES_GPU_POINTER_H
 #define DEVICES_GPU_POINTER_H
 
-#include <cuda_runtime.h>
-
 #include <initializer_list>
 
 #include "../../global/global_cuda.h"

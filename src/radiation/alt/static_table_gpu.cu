@@ -1,7 +1,5 @@
 /*LICENSE*/
 
-#include <cuda_runtime.h>
-
 #include "../../global/global_cuda.h"
 #include "static_table_gpu.cuh"
 #include "static_table_gpu.h"
