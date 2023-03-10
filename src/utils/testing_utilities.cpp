@@ -87,11 +87,11 @@ void wrapperEqual(int i, int j, int k, std::string dataSetName, double test_valu
   std::string outString;
   outString += dataSetName;
   outString += " dataset at [";
-  outString += i;
+  outString += std::to_string(i);
   outString += ",";
-  outString += j;
+  outString += std::to_string(j);
   outString += ",";
-  outString += k;
+  outString += std::to_string(k);
   outString += "]";
 
   ASSERT_NO_FATAL_FAILURE(checkResults<1>(fid_value, test_value, outString, fixedEpsilon));
