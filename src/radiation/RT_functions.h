@@ -2,13 +2,14 @@
  *  \brief Declarations for the gpu RT functions. */
 
 #ifdef CUDA
+  #ifdef RT
 
-  #ifndef RT_FUNCTIONS_H
-    #define RT_FUNCTIONS_H
+    #ifndef RT_FUNCTIONS_H
+      #define RT_FUNCTIONS_H
 
-    #include "../global/global.h"
-    #include "alt/decl.h"
-    #include "radiation.h"
+      #include "../global/global.h"
+      #include "alt/decl.h"
+      #include "radiation.h"
 
 // void rtSolve(Real *dev_scalar, struct Rad3D::RT_Fields &rtFields);
 
@@ -41,5 +42,6 @@ __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer
 void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
                                 struct Rad3D::RT_Fields& rtFields);
 
-  #endif  // VL_3D_CUDA_H
-#endif    // CUDA
+    #endif  // VL_3D_CUDA_H
+  #endif    // RT
+#endif      // CUDA

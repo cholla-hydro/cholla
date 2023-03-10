@@ -19,4 +19,4 @@ do
     echo "$VAR"
 done
 
-/usr/lib/llvm-15/bin/clang-format -i --verbose "$@" -style="file" "${files[@]}"
+clang-format -i --verbose "$@" -style="file" "${files[@]}"
