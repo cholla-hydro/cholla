@@ -65,6 +65,8 @@ for n in range(ns, ne+1):
         HeIII_d = fileout.create_dataset("HeIII_density", (nx, ny, nz), chunks=True, dtype=filein['HeIII_density'].dtype)
       except KeyError:
         print('No abundance data present');
+      try:
+        rf1 = fileout.create_dataset("rf1", (nx, ny, nz), chunks=True, dtype=filein['rf1'].dtype)        
 
     # write data from individual processor file to
     # correct location in concatenated file
@@ -98,6 +100,8 @@ for n in range(ns, ne+1):
       fileout['HeIII_density'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl] = filein['HeIII_density']
     except KeyError:
         print("No abundance data present");
+    try:
+      fileout['rf1'][xs:xs+nxl,ys:ys+nyl,zs:zs+nzl] = filein['rf1']
 
     filein.close()
 

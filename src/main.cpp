@@ -50,8 +50,8 @@ int main(int argc, char *argv[])
   InitializeChollaMPI(&argc, &argv);
 #endif /*MPI_CHOLLA*/
 
-  Real dti = 0;  // inverse time step, 1.0 / dt
-  Real dt_log = 0.0; // initial time step for log stepping
+  Real dti    = 0;    // inverse time step, 1.0 / dt
+  Real dt_log = 0.0;  // initial time step for log stepping
 
   // input parameter variables
   char *param_file;
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
 
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();
-  if (P.outlog !=0) {
+  if (P.outlog != 0) {
     dt_log = P.outlog;
   }
 
@@ -248,8 +248,8 @@ int main(int argc, char *argv[])
 
     // Use log step if it's smaller
     if (P.outlog != 0) {
-      if (dti < 1.0/dt_log) {
-        dti = 1.0/dt_log;
+      if (dti < 1.0 / dt_log) {
+        dti = 1.0 / dt_log;
       }
     }
     // determine the global timestep (via MPI Allreduce)
@@ -347,7 +347,7 @@ int main(int argc, char *argv[])
       nfile++;
 #endif  // OUTPUT
       // update to the next output time
-      //if (P.outlog != 0) P.outstep *= pow(10.0, P.outlog);
+      // if (P.outlog != 0) P.outstep *= pow(10.0, P.outlog);
       outtime += P.outstep;
     }
 
@@ -377,10 +377,10 @@ int main(int argc, char *argv[])
 #endif  // MHD
 
     // update the log timestep
-    if (P.outlog !=0) {
+    if (P.outlog != 0) {
       dt_log *= pow(10.0, 0.01);
     }
-  }     /*end loop over timesteps*/
+  } /*end loop over timesteps*/
 
 #ifdef CPU_TIME
   // Print timing statistics

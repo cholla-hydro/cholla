@@ -7,52 +7,15 @@
 #include "../grid/grid3D.h"
 #include "RT_functions.h"
 #include "radiation.h"
- #ifdef MPI_CHOLLA
-#include "../mpi/mpi_routines.h"
-#endif   
-
+#ifdef MPI_CHOLLA
+  #include "../mpi/mpi_routines.h"
+#endif
 
 #ifdef RT
 
-__global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx,
-                                                int ny, int nz, int n_ghost_transfer, int n_ghost_potential, int n_freq,
-                                                struct Rad3D::RT_Fields rtFields, Real *transfer_buffer_d)
-{ 
-  // get a global thread ID
-  int tid, tid_i, tid_j, tid_k, tid_buffer, tid_rf;
-  tid   = threadIdx.x + blockIdx.x * blockDim.x;
-  tid_k = tid / (n_i * n_j);
-  tid_j = (tid - tid_k * n_i * n_j) / n_i;
-  tid_i = tid - tid_k * n_i * n_j - tid_j * n_i;
-
-  // total number of cells in the rt grid
-  int n_cells = nx*ny*nz;
-
-  if (tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost_transfer) return;
-
-  tid_buffer = tid_i + tid_j * n_i + tid_k * n_i * n_j;
-
-  if (direction == 0) {
-    if (side == 0) tid_rf = (n_ghost_potential + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
-    if (side == 1) tid_rf = (nx - n_ghost_potential - n_ghost_transfer + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
-  }
-  if (direction == 1) {
-    if (side == 0) tid_rf = (tid_i) + (n_ghost_potential + tid_k) * nx + (tid_j)*nx * ny;
-    if (side == 1) tid_rf = (tid_i) + (ny - n_ghost_potential - n_ghost_transfer + tid_k) * nx + (tid_j)*nx * ny;
-  }
-  if (direction == 2) {
-    if (side == 0) tid_rf = (tid_i) + (tid_j)*nx + (n_ghost_potential + tid_k) * nx * ny;
-    if (side == 1) tid_rf = (tid_i) + (tid_j)*nx + (nz - n_ghost_potential - n_ghost_transfer + tid_k) * nx * ny;
-  }
-  for (int i = 0; i < n_freq; i++) {
-    transfer_buffer_d[tid_buffer + (1 + i) * size_buffer] = rtFields.dev_rf[tid_rf + (1 + i) * n_cells];
-    transfer_buffer_d[tid_buffer + (1 + n_freq + i) * size_buffer] = rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells];
-  }
-}
-
-__global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx,
-                                                  int ny, int nz, int n_ghost_transfer, int n_ghost_potential, int n_freq,
-                                                  struct Rad3D::RT_Fields rtFields, Real *transfer_buffer_d)
+__global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,
+                                      int nz, int n_ghost_transfer, int n_ghost_rt, int n_freq,
+                                      struct Rad3D::RT_Fields rtFields, Real* transfer_buffer_d)
 {
   // get a global thread ID
   int tid, tid_i, tid_j, tid_k, tid_buffer, tid_rf;
@@ -62,28 +25,66 @@ __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer
   tid_i = tid - tid_k * n_i * n_j - tid_j * n_i;
 
   // total number of cells in the rt grid
-  int n_cells = nx*ny*nz;
+  int n_cells = nx * ny * nz;
 
   if (tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost_transfer) return;
 
   tid_buffer = tid_i + tid_j * n_i + tid_k * n_i * n_j;
 
   if (direction == 0) {
-    if (side == 0) tid_rf = (n_ghost_potential - n_ghost_transfer + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
-    if (side == 1) tid_rf = (nx - n_ghost_potential + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    if (side == 0) tid_rf = (n_ghost_rt + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    if (side == 1) tid_rf = (nx - n_ghost_rt - n_ghost_transfer + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
   }
   if (direction == 1) {
-    if (side == 0) tid_rf = (tid_i) + (n_ghost_potential - n_ghost_transfer + tid_k) * nx + (tid_j)*nx * ny;
-    if (side == 1) tid_rf = (tid_i) + (ny - n_ghost_potential + tid_k) * nx + (tid_j)*nx * ny;
+    if (side == 0) tid_rf = (tid_i) + (n_ghost_rt + tid_k) * nx + (tid_j)*nx * ny;
+    if (side == 1) tid_rf = (tid_i) + (ny - n_ghost_rt - n_ghost_transfer + tid_k) * nx + (tid_j)*nx * ny;
   }
   if (direction == 2) {
-    if (side == 0) tid_rf = (tid_i) + (tid_j)*nx + (n_ghost_potential - n_ghost_transfer + tid_k) * nx * ny;
-    if (side == 1) tid_rf = (tid_i) + (tid_j)*nx + (nz - n_ghost_potential + tid_k) * nx * ny;
+    if (side == 0) tid_rf = (tid_i) + (tid_j)*nx + (n_ghost_rt + tid_k) * nx * ny;
+    if (side == 1) tid_rf = (tid_i) + (tid_j)*nx + (nz - n_ghost_rt - n_ghost_transfer + tid_k) * nx * ny;
+  }
+  for (int i = 0; i < n_freq; i++) {
+    transfer_buffer_d[tid_buffer + i * size_buffer] = rtFields.dev_rf[tid_rf + (1 + i) * n_cells];
+    transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer] =
+        rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells];
+  }
+}
+
+__global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,
+                                        int nz, int n_ghost_transfer, int n_ghost_rt, int n_freq,
+                                        struct Rad3D::RT_Fields rtFields, Real* transfer_buffer_d)
+{
+  // get a global thread ID
+  int tid, tid_i, tid_j, tid_k, tid_buffer, tid_rf;
+  tid   = threadIdx.x + blockIdx.x * blockDim.x;
+  tid_k = tid / (n_i * n_j);
+  tid_j = (tid - tid_k * n_i * n_j) / n_i;
+  tid_i = tid - tid_k * n_i * n_j - tid_j * n_i;
+
+  // total number of cells in the rt grid
+  int n_cells = nx * ny * nz;
+
+  if (tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost_transfer) return;
+
+  tid_buffer = tid_i + tid_j * n_i + tid_k * n_i * n_j;
+
+  if (direction == 0) {
+    if (side == 0) tid_rf = (n_ghost_rt - n_ghost_transfer + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    if (side == 1) tid_rf = (nx - n_ghost_rt + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+  }
+  if (direction == 1) {
+    if (side == 0) tid_rf = (tid_i) + (n_ghost_rt - n_ghost_transfer + tid_k) * nx + (tid_j)*nx * ny;
+    if (side == 1) tid_rf = (tid_i) + (ny - n_ghost_rt + tid_k) * nx + (tid_j)*nx * ny;
+  }
+  if (direction == 2) {
+    if (side == 0) tid_rf = (tid_i) + (tid_j)*nx + (n_ghost_rt - n_ghost_transfer + tid_k) * nx * ny;
+    if (side == 1) tid_rf = (tid_i) + (tid_j)*nx + (nz - n_ghost_rt + tid_k) * nx * ny;
   }
 
   for (int i = 0; i < n_freq; i++) {
-    rtFields.dev_rf[tid_rf + (1 + i) * n_cells] = transfer_buffer_d[tid_buffer + (1 + i) * size_buffer];
-    rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells] = transfer_buffer_d[tid_buffer + (1 + n_freq + i) * size_buffer];
+    rtFields.dev_rf[tid_rf + (1 + i) * n_cells] = transfer_buffer_d[tid_buffer + i * size_buffer];
+    rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells] =
+        transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer];
   }
 }
 

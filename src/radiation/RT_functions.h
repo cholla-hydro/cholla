@@ -25,13 +25,21 @@ struct DEVICE_ALIGN_DECL CrossSectionInCU {
 };
 
 int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
-                                struct Rad3D::RT_Fields& rtFields, Real *buffer, int buffer_start);
+                             struct Rad3D::RT_Fields& rtFields, Real* buffer);
+
+__global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,
+                                      int nz, int n_ghost_transfer, int n_ghost_rt, int n_freq,
+                                      struct Rad3D::RT_Fields rtFields, Real* transfer_buffer_d);
 
 void Unload_RT_Fields_From_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
-                                struct Rad3D::RT_Fields& rtFields, Real *buffer, int buffer_start);                                
+                                  struct Rad3D::RT_Fields& rtFields, Real* buffer);
+
+__global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,
+                                        int nz, int n_ghost_transfer, int n_ghost_rt, int n_freq,
+                                        struct Rad3D::RT_Fields rtFields, Real* transfer_buffer_d);
 
 void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
-                                struct Rad3D::RT_Fields& rtFields);                                
+                                struct Rad3D::RT_Fields& rtFields);
 
   #endif  // VL_3D_CUDA_H
 #endif    // CUDA

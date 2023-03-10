@@ -83,65 +83,68 @@ void Grid3D::Update_RT()
 }
 
 // Set boundary cells for radiation fields
+// Current implementation only supports periodic boundaries
 void Rad3D::rtBoundaries(void)
 {
   int buffer_length;
-  int xbsize = x_buffer_length, ybsize = y_buffer_length, zbsize = z_buffer_length;  
+  int xbsize = x_buffer_length, ybsize = y_buffer_length, zbsize = z_buffer_length;
   int wait_max = 0;
-  int index = 0;
-  int ireq = 0;
-  MPI_Status status; 
+  int index    = 0;
+  int ireq     = 0;
+  MPI_Status status;
 
   // Send MPI x-boundaries
   if (flags[0] == 5) {
-    buffer_length = Load_RT_Fields_To_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_x0, 0);
+    buffer_length =
+        Load_RT_Fields_To_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_x0);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_x0, d_send_buffer_x0, xbsize * sizeof(Real), cudaMemcpyDeviceToHost);
-  #endif    
-    wait_max++; 
+  #endif
+    wait_max++;
 
- #if defined(MPI_GPU)
+  #if defined(MPI_GPU)
     // post non-blocking receive left x communication buffer
     MPI_Irecv(d_recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, world, &recv_request[ireq]);
     // non-blocking send left x communication buffer
     MPI_Isend(d_send_buffer_x0, buffer_length, MPI_CHREAL, dest[0], 1, world, &send_request[0]);
- #else
+  #else
     // post non-blocking receive left x communication buffer
     MPI_Irecv(h_recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, world, &recv_request[ireq]);
     // non-blocking send left x communication buffer
     MPI_Isend(h_send_buffer_x0, buffer_length, MPI_CHREAL, dest[0], 1, world, &send_request[0]);
-  #endif // MPI_GPU
+  #endif  // MPI_GPU
 
     MPI_Request_free(send_request);
     // keep track of how many sends and receives are expected
-    ireq++;  
+    ireq++;
   }
 
   if (flags[1] == 5) {
-    buffer_length = Load_RT_Fields_To_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_x1, 0);    
+    buffer_length =
+        Load_RT_Fields_To_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_x1);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_x1, d_send_buffer_x1, xbsize * sizeof(Real), cudaMemcpyDeviceToHost);
-  #endif    
+  #endif
     wait_max++;
 
- #if defined(MPI_GPU)
+  #if defined(MPI_GPU)
     // post non-blocking receive right x communication buffer
     MPI_Irecv(d_recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
     // non-blocking send right x communication buffer
     MPI_Isend(d_send_buffer_x1, buffer_length, MPI_CHREAL, dest[1], 0, world, &send_request[1]);
- #else
+  #else
     // post non-blocking receive right x communication buffer
     MPI_Irecv(h_recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
     // non-blocking send right x communication buffer
     MPI_Isend(h_send_buffer_x1, buffer_length, MPI_CHREAL, dest[1], 0, world, &send_request[1]);
- #endif // MPI_GPU
+  #endif  // MPI_GPU
 
     MPI_Request_free(send_request + 1);
     // keep track of how many sends and receives are expected
-    ireq++;  
+    ireq++;
   }
-  //printf("ireq: %d\n", ireq);
-  //printf("wait_max: %d\n", wait_max);
+  // printf("ireq: %d\n", ireq);
+  // printf("wait_max: %d\n", wait_max);
 
   /* Set non-MPI x-boundaries */
   if (flags[0] == 1) {
@@ -154,25 +157,190 @@ void Rad3D::rtBoundaries(void)
   /* Receive MPI x-boundaries */
   // wait for any receives to complete
   for (int iwait = 0; iwait < wait_max; iwait++) {
-    //printf("ProcID %d waiting for request %d.\n", procID, iwait);
-    // wait for recv completion
+    // printf("ProcID %d waiting for request %d.\n", procID, iwait);
+    //  wait for recv completion
     MPI_Waitany(wait_max, recv_request, &index, &status);
-    //printf("ProcID %d with status %d.\n", procID, status.MPI_TAG);
-    // depending on which face arrived, unload the buffer into the ghost grid
-    #ifndef MPI_GPU
+    // printf("ProcID %d with index %d, status %d.\n", procID, index, status.MPI_TAG);
+  //  depending on which face arrived, unload the buffer into the ghost grid
+  #ifndef MPI_GPU
     copyHostToDeviceReceiveBuffer(status.MPI_TAG);
-    #endif  // MPI_GPU 
-    if (status.MPI_TAG == 0) Unload_RT_Fields_From_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_x0, 0);
-    if (status.MPI_TAG == 1) Unload_RT_Fields_From_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_x1, 0);  
+  #endif  // MPI_GPU
+    if (status.MPI_TAG == 0)
+      Unload_RT_Fields_From_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_x0);
+    if (status.MPI_TAG == 1)
+      Unload_RT_Fields_From_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_x1);
   }
 
   // Barrier between directions
-  MPI_Barrier(world);  
+  MPI_Barrier(world);
+  fflush(stdout);
+  ireq     = 0;
+  wait_max = 0;
 
-  Set_RT_Boundaries_Periodic(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
-  Set_RT_Boundaries_Periodic(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
-  Set_RT_Boundaries_Periodic(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
-  Set_RT_Boundaries_Periodic(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+  // Send MPI y-boundaries
+  if (flags[2] == 5) {
+    buffer_length =
+        Load_RT_Fields_To_Buffer(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_y0);
+  #ifndef MPI_GPU
+    cudaMemcpy(h_send_buffer_y0, d_send_buffer_y0, ybsize * sizeof(Real), cudaMemcpyDeviceToHost);
+  #endif
+    wait_max++;
+
+  #if defined(MPI_GPU)
+    // post non-blocking receive left y communication buffer
+    MPI_Irecv(d_recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
+    // non-blocking send left y communication buffer
+    MPI_Isend(d_send_buffer_y0, buffer_length, MPI_CHREAL, dest[2], 3, world, &send_request[0]);
+  #else
+    // post non-blocking receive left y communication buffer
+    MPI_Irecv(h_recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
+    // non-blocking send left y communication buffer
+    MPI_Isend(h_send_buffer_y0, buffer_length, MPI_CHREAL, dest[2], 3, world, &send_request[0]);
+  #endif  // MPI_GPU
+
+    MPI_Request_free(send_request);
+    // keep track of how many sends and receives are expected
+    ireq++;
+  }
+
+  if (flags[3] == 5) {
+    buffer_length =
+        Load_RT_Fields_To_Buffer(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_y1);
+  #ifndef MPI_GPU
+    cudaMemcpy(h_send_buffer_y1, d_send_buffer_y1, ybsize * sizeof(Real), cudaMemcpyDeviceToHost);
+  #endif
+    wait_max++;
+
+  #if defined(MPI_GPU)
+    // post non-blocking receive right y communication buffer
+    MPI_Irecv(d_recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
+    // non-blocking send right y communication buffer
+    MPI_Isend(d_send_buffer_y1, buffer_length, MPI_CHREAL, dest[3], 2, world, &send_request[1]);
+  #else
+    // post non-blocking receive right y communication buffer
+    MPI_Irecv(h_recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
+    // non-blocking send right y communication buffer
+    MPI_Isend(h_send_buffer_y1, buffer_length, MPI_CHREAL, dest[3], 2, world, &send_request[1]);
+  #endif  // MPI_GPU
+
+    MPI_Request_free(send_request + 1);
+    // keep track of how many sends and receives are expected
+    ireq++;
+  }
+  // printf("ireq: %d\n", ireq);
+  // printf("wait_max: %d\n", wait_max);
+
+  /* Set non-MPI y-boundaries */
+  if (flags[2] == 1) {
+    Set_RT_Boundaries_Periodic(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+  }
+  if (flags[3] == 1) {
+    Set_RT_Boundaries_Periodic(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+  }
+
+  /* Receive MPI y-boundaries */
+  // wait for any receives to complete
+  for (int iwait = 0; iwait < wait_max; iwait++) {
+    // printf("ProcID %d waiting for request %d.\n", procID, iwait);
+    //  wait for recv completion
+    MPI_Waitany(wait_max, recv_request, &index, &status);
+    // printf("ProcID %d with index %d, status %d.\n", procID, index, status.MPI_TAG);
+  //  depending on which face arrived, unload the buffer into the ghost grid
+  #ifndef MPI_GPU
+    copyHostToDeviceReceiveBuffer(status.MPI_TAG);
+  #endif  // MPI_GPU
+    if (status.MPI_TAG == 2)
+      Unload_RT_Fields_From_Buffer(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_y0);
+    if (status.MPI_TAG == 3)
+      Unload_RT_Fields_From_Buffer(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_y1);
+  }
+
+  // Barrier between directions
+  MPI_Barrier(world);
+  fflush(stdout);
+  ireq     = 0;
+  wait_max = 0;
+
+  // Send MPI z-boundaries
+  if (flags[4] == 5) {
+    buffer_length =
+        Load_RT_Fields_To_Buffer(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_z0);
+    //printf("%d %d\n", buffer_length, zbsize);
+  #ifndef MPI_GPU
+    cudaMemcpy(h_send_buffer_z0, d_send_buffer_z0, zbsize * sizeof(Real), cudaMemcpyDeviceToHost);
+  #endif
+    wait_max++;
+
+  #if defined(MPI_GPU)
+    // post non-blocking receive left z communication buffer
+    MPI_Irecv(d_recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
+    // non-blocking send left z communication buffer
+    MPI_Isend(d_send_buffer_z0, buffer_length, MPI_CHREAL, dest[4], 5, world, &send_request[0]);
+  #else
+    // post non-blocking receive left z communication buffer
+    MPI_Irecv(h_recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 5, world, &recv_request[ireq]);
+    // non-blocking send left z communication buffer
+    MPI_Isend(h_send_buffer_z0, buffer_length, MPI_CHREAL, dest[4], 5, world, &send_request[0]);
+  #endif  // MPI_GPU
+
+    MPI_Request_free(send_request);
+    // keep track of how many sends and receives are expected
+    ireq++;
+  }
+
+  if (flags[5] == 5) {
+    buffer_length =
+        Load_RT_Fields_To_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_z1);
+    //printf("%d %d\n", buffer_length, zbsize);
+  #ifndef MPI_GPU
+    cudaMemcpy(h_send_buffer_z1, d_send_buffer_z1, zbsize * sizeof(Real), cudaMemcpyDeviceToHost);
+  #endif
+    wait_max++;
+
+  #if defined(MPI_GPU)
+    // post non-blocking receive right z communication buffer
+    MPI_Irecv(d_recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
+    // non-blocking send right z communication buffer
+    MPI_Isend(d_send_buffer_z1, buffer_length, MPI_CHREAL, dest[5], 4, world, &send_request[1]);
+  #else
+    // post non-blocking receive right z communication buffer
+    MPI_Irecv(h_recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
+    // non-blocking send right z communication buffer
+    MPI_Isend(h_send_buffer_z1, buffer_length, MPI_CHREAL, dest[5], 4, world, &send_request[1]);
+  #endif  // MPI_GPU
+
+    MPI_Request_free(send_request + 1);
+    // keep track of how many sends and receives are expected
+    ireq++;
+  }
+  // printf("ireq: %d\n", ireq);
+  // printf("wait_max: %d\n", wait_max);
+
+  /* Set non-MPI z-boundaries */
+  if (flags[4] == 1) {
+    Set_RT_Boundaries_Periodic(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+  }
+  if (flags[5] == 1) {
+    Set_RT_Boundaries_Periodic(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+  }
+
+  /* Receive MPI z-boundaries */
+  // wait for any receives to complete
+  for (int iwait = 0; iwait < wait_max; iwait++) {
+    // printf("ProcID %d waiting for request %d.\n", procID, iwait);
+    //  wait for recv completion
+    MPI_Waitany(wait_max, recv_request, &index, &status);
+    // printf("ProcID %d with index %d, status %d.\n", procID, index, status.MPI_TAG);
+  //  depending on which face arrived, unload the buffer into the ghost grid
+  #ifndef MPI_GPU
+    copyHostToDeviceReceiveBuffer(status.MPI_TAG);
+  #endif  // MPI_GPU
+    if (status.MPI_TAG == 4)
+      Unload_RT_Fields_From_Buffer(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_z0);
+    if (status.MPI_TAG == 5)
+      Unload_RT_Fields_From_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_z1);
+  }
+
 }
 
 void Rad3D::Free_Memory(void)
