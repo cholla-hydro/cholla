@@ -7,11 +7,11 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=32
+nx=256
 # number of grid cells in the y dimension
-ny=32
+ny=256
 # number of grid cells in the z dimension
-nz=32
+nz=256
 # final output time
 tout=0.2
 # time interval for output
@@ -43,28 +43,28 @@ outdir=./
 # density of left state
 rho_l=1.08
 # velocity of left state
-vx_l=0.0
-vy_l=0.0
-vz_l=0.0
+vx_l=1.2
+vy_l=0.01
+vz_l=0.5
 # pressure of left state
-P_l=1.0
+P_l=0.95
 # Magnetic field of the left state
-Bx_l=14.17963081
-By_l=12.76166773
-Bz_l=7.0898154
+Bx_l=0.5641895835477563
+By_l=1.0155412503859613
+Bz_l=0.5641895835477563
 
 # density of right state
 rho_r=1.0
 # velocity of right state
 vx_r=0.0
 vy_r=0.0
-vz_r=1.0
+vz_r=0.0
 # pressure of right state
-P_r=0.2
+P_r=1.0
 # Magnetic field of the right state
-Bx_r=14.17963081
-By_r=14.17963081
-Bz_r=7.0898154
+Bx_r=0.5641895835477563
+By_r=1.1283791670955126
+Bz_r=0.5641895835477563
 
 # location of initial discontinuity
 diaph=0.5

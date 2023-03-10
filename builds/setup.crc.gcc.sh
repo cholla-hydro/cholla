@@ -9,5 +9,5 @@ echo "mpicxx --version is: "
 mpicxx --version
 
 # export MPI_GPU="-DMPI_GPU"
-export F_OFFLOAD="-fopenmp -foffload=disable"
+export F_OFFLOAD="-fopenmp"
 export CHOLLA_ENVSET=1
