@@ -35,7 +35,6 @@ Checks: "*,
         google-readability-avoid-underscore-in-googletest-name,
         google-upgrade-googletest-case,
 
-        -bugprone-assignment-in-if-condition,
         -bugprone-branch-clone,
         -bugprone-easily-swappable-parameters,
         -bugprone-implicit-widening-of-multiplication-result,

@@ -181,35 +181,40 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
     #endif
   #endif
 
-  /*create the MPI_Request arrays for non-blocking sends*/
-  if (!(send_request = (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  /*create the MPI_Request arrays for non-blocking sends. If the malloc fails then print an error and exit*/
+  send_request = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!send_request) {
     chprintf("Error allocating send_request.\n");
     chexit(-2);
   }
-  if (!(recv_request = (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  recv_request = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!recv_request) {
     chprintf("Error allocating recv_request.\n");
     chexit(-2);
   }
 
   #ifdef PARTICLES
-  if (!(send_request_n_particles = (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  send_request_n_particles = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!send_request_n_particles) {
     chprintf(
         "Error allocating send_request for number of particles for "
         "transfer.\n");
     chexit(-2);
   }
-  if (!(recv_request_n_particles = (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  recv_request_n_particles = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!recv_request_n_particles) {
     chprintf(
         "Error allocating recv_request for number of particles for "
         "transfer.\n");
     chexit(-2);
   }
-
-  if (!(send_request_particles_transfer = (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  send_request_particles_transfer = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!send_request_particles_transfer) {
     chprintf("Error allocating send_request for particles transfer.\n");
     chexit(-2);
   }
-  if (!(recv_request_particles_transfer = (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  recv_request_particles_transfer = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!recv_request_particles_transfer) {
     chprintf("Error allocating recv_request for particles transfer.\n");
     chexit(-2);
   }
