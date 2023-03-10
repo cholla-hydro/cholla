@@ -44,9 +44,8 @@ __global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, 
     if (side == 1) tid_rf = (tid_i) + (tid_j)*nx + (nz - n_ghost_rt - n_ghost_transfer + tid_k) * nx * ny;
   }
   for (int i = 0; i < n_freq; i++) {
-    transfer_buffer_d[tid_buffer + i * size_buffer] = rtFields.dev_rf[tid_rf + (1 + i) * n_cells];
-    transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer] =
-        rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells];
+    transfer_buffer_d[tid_buffer + i * size_buffer]            = rtFields.dev_rf[tid_rf + (1 + i) * n_cells];
+    transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer] = rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells];
   }
 }
 
@@ -82,9 +81,8 @@ __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer
   }
 
   for (int i = 0; i < n_freq; i++) {
-    rtFields.dev_rf[tid_rf + (1 + i) * n_cells] = transfer_buffer_d[tid_buffer + i * size_buffer];
-    rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells] =
-        transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer];
+    rtFields.dev_rf[tid_rf + (1 + i) * n_cells]          = transfer_buffer_d[tid_buffer + i * size_buffer];
+    rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells] = transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer];
   }
 }
 

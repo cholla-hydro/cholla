@@ -265,7 +265,7 @@ void Rad3D::rtBoundaries(void)
   if (flags[4] == 5) {
     buffer_length =
         Load_RT_Fields_To_Buffer(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_z0);
-    //printf("%d %d\n", buffer_length, zbsize);
+    // printf("%d %d\n", buffer_length, zbsize);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_z0, d_send_buffer_z0, zbsize * sizeof(Real), cudaMemcpyDeviceToHost);
   #endif
@@ -291,7 +291,7 @@ void Rad3D::rtBoundaries(void)
   if (flags[5] == 5) {
     buffer_length =
         Load_RT_Fields_To_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_z1);
-    //printf("%d %d\n", buffer_length, zbsize);
+    // printf("%d %d\n", buffer_length, zbsize);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_z1, d_send_buffer_z1, zbsize * sizeof(Real), cudaMemcpyDeviceToHost);
   #endif
@@ -340,7 +340,6 @@ void Rad3D::rtBoundaries(void)
     if (status.MPI_TAG == 5)
       Unload_RT_Fields_From_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_z1);
   }
-
 }
 
 void Rad3D::Free_Memory(void)
