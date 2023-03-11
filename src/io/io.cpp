@@ -13,6 +13,7 @@
 #endif  // HDF5
 #include "../grid/grid3D.h"
 #include "../io/io.h"
+#include "../utils/timing_functions.h" // provides ScopedTimer
 #ifdef MPI_CHOLLA
   #include "../mpi/mpi_routines.h"
 #endif  // MPI_CHOLLA
@@ -2242,6 +2243,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
  *  \brief Read in grid data from an output file. */
 void Grid3D::Read_Grid(struct parameters P)
 {
+  //ScopedTimer("Read_Grid");
   char filename[100];
   char timestep[20];
   int nfile = P.nfile;  // output step you want to read from
@@ -2435,7 +2437,7 @@ void Grid3D::Read_Grid_Binary(FILE *fp)
 
 #ifdef HDF5
 
-
+/* \brief After HDF5 reads data into a buffer, remap and write to grid buffer. */
 void Fill_Grid_From_HDF5_Buffer(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost, Real* hdf5_buffer, Real* grid_buffer)
 {
   // Note: for 1D ny_real and nz_real are not used
@@ -2508,9 +2510,13 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
   attribute_id = H5Aopen(file_id, "t", H5P_DEFAULT);
   status       = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &H.t);
   status       = H5Aclose(attribute_id);
+  /*
+  // Alwin: I don't think this is needed anymore because dt of the current state of cells is calculated for consistency and output was using previous timestep's H.dt
+  // This is because dti = Update_Grid, then output, then dt = 1/MPI_Allreduce(dti) in next step
   attribute_id = H5Aopen(file_id, "dt", H5P_DEFAULT);
   status       = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &H.dt);
   status       = H5Aclose(attribute_id);
+  */
   attribute_id = H5Aopen(file_id, "n_step", H5P_DEFAULT);
   status       = H5Aread(attribute_id, H5T_NATIVE_INT, &H.n_step);
   status       = H5Aclose(attribute_id);

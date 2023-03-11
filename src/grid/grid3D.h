@@ -504,8 +504,12 @@ class Grid3D
 #endif
 
   /*! \fn void Read_Grid(struct parameters P)
-   *  \brief Read in grid data from an output file. */
+   *  \brief Read in grid data from 1-per-process output files. */
   void Read_Grid(struct parameters P);
+
+  /*! \fn void Read_Grid_Cat(struct parameters P)
+   *  \brief Read in grid data from a single concatenated output file. */
+  void Read_Grid_Cat(struct parameters P);  
 
   /*! \fn Read_Grid_Binary(FILE *fp)
    *  \brief Read in grid data from a binary file. */

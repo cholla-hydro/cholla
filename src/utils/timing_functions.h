@@ -1,11 +1,16 @@
+#pragma once
+
+
+#include <vector>
+
+#include "../global/global.h" // Provides get_time
+#include "../io/io.h" // Provides chprintf
+
+#ifdef MPI_CHOLLA
+#include "../mpi/mpi_routines.h" // Provides ReduceRealMin, Max, Avg
+#endif  
+
 #ifdef CPU_TIME
-  #ifndef TIMING_FUNCTIONS_H
-    #define TIMING_FUNCTIONS_H
-
-    #include <vector>
-
-    #include "../global/global.h"
-
 // Each instance of this class represents a single timer, timing a single
 // section of code. All instances have their own n_steps, time_start, etc. so
 // that all timers can run independently
@@ -66,6 +71,47 @@ class Time
   void Print_Times();
   void Print_Average_Times(struct parameters P);
 };
-
-  #endif
 #endif  // CPU_TIME
+
+
+// ScopedTimer does nothing if CPU_TIME is disabled
+/* \brief ScopedTimer helps time a scope. Initialize as first variable and C++ guarantees it is destroyed last */
+class ScopedTimer
+{
+ public:
+  const char* name;
+  double time_start = 0;
+  
+  /* \brief ScopedTimer Constructor initializes name and time */
+  ScopedTimer(const char* input_name)
+  {
+    #ifdef CPU_TIME
+    name = input_name;
+    time_start = get_time();
+    #endif
+  }
+  
+  /* \brief ScopedTimer Destructor computes dt and prints */
+  ~ScopedTimer(void)
+  {
+    #ifdef CPU_TIME
+    double time_elapsed_ms = (get_time() - time_start)*1000;
+    
+#ifdef MPI_CHOLLA
+    double t_min = ReduceRealMin(time_elapsed_ms);
+    double t_max = ReduceRealMax(time_elapsed_ms);
+    double t_avg = ReduceRealAvg(time_elapsed_ms);
+#else
+    double t_min = time_elapsed_ms;
+    double t_max = time_elapsed_ms;
+    double t_avg = time_elapsed_ms;
+#endif
+    //chprintf("ScopedTimer Min: %9.4f ms Max: %9.4f ms Avg: %9.4f ms %s \n", t_min, t_max, t_avg, name);
+    #endif
+  }
+  
+};
+
+
+
+
