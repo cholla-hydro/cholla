@@ -2243,7 +2243,7 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
  *  \brief Read in grid data from an output file. */
 void Grid3D::Read_Grid(struct parameters P)
 {
-  //ScopedTimer("Read_Grid");
+  ScopedTimer("Read_Grid");
   char filename[100];
   char timestep[20];
   int nfile = P.nfile;  // output step you want to read from
