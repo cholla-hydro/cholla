@@ -63,7 +63,7 @@ void Read_Grid_Cat_HDF5_Field_Magnetic(hid_t file_id, Real* dataset_buffer, Head
 void Grid3D::Read_Grid_Cat(struct parameters P)
 {
 
-  ScopedTimer("Read_Grid_Cat");
+  ScopedTimer timer("Read_Grid_Cat");
   herr_t status;
   char filename[100];
 
