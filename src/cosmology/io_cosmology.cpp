@@ -62,8 +62,9 @@ void Cosmology::Set_Scale_Outputs(struct parameters *P)
     next_output      = current_a;
     chprintf("  Next output index: %d  \n", next_output_indx);
     chprintf("  Next output z value: %f  \n", 1. / next_output - 1);
-  } else
+  } else {
     Load_Scale_Outputs(P);
+  }
 }
 
 void Cosmology::Set_Next_Scale_Output()

@@ -98,9 +98,11 @@ Real checkMagneticDivergence(Grid3D const &G)
   max_magnetic_divergence = ReduceRealMax(max_magnetic_divergence);
   #endif  // MPI_CHOLLA
 
-  // If the magnetic divergence is greater than the limit then raise a warning
-  // and exit
-  Real static const magnetic_divergence_limit = 1.0E-14;
+  // If the magnetic divergence is greater than the limit then raise a warning and exit.
+  // This maximum value of divergence was chosen after a discussion with Chris White of the Flatiron institute and an
+  // Athena dev. He said that in his experience issues start showing up at around 1E-8 divergence so this is set with an
+  // order of magnitude margin.
+  Real static const magnetic_divergence_limit = 1.0E-9;
   if (max_magnetic_divergence > magnetic_divergence_limit) {
     // Report the error and exit
     chprintf(

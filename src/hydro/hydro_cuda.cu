@@ -66,8 +66,9 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
     dev_conserved[n_cells + id] += 0.5 * dt * gx * (d + d_n);
     dev_conserved[4 * n_cells + id] += 0.25 * dt * gx * (d + d_n) * (vx + vx_n);
   #endif
-    if (dev_conserved[id] != dev_conserved[id])
+    if (dev_conserved[id] != dev_conserved[id]) {
       printf("%3d Thread crashed in final update. %f\n", id, dev_conserved[id]);
+    }
     /*
     d  =  dev_conserved[            id];
     d_inv = 1.0 / d;
@@ -861,10 +862,11 @@ __global__ void Select_Internal_Energy_1D(Real *dev_conserved, int nx, int n_gho
     Emax = fmax(dev_conserved[4 * n_cells + imo], E);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + ipo]);
 
-    if (U_total / Emax > eta_2)
+    if (U_total / Emax > eta_2) {
       U = U_total;
-    else
+    } else {
       U = U_advected;
+    }
 
     // Optional: Avoid Negative Internal  Energies
     U = fmax(U, (Real)TINY_NUMBER);
@@ -918,10 +920,11 @@ __global__ void Select_Internal_Energy_2D(Real *dev_conserved, int nx, int ny, i
     Emax = fmax(Emax, dev_conserved[4 * n_cells + jmo]);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + jpo]);
 
-    if (U_total / Emax > eta_2)
+    if (U_total / Emax > eta_2) {
       U = U_total;
-    else
+    } else {
       U = U_advected;
+    }
 
     // Optional: Avoid Negative Internal  Energies
     U = fmax(U, (Real)TINY_NUMBER);
@@ -982,10 +985,11 @@ __global__ void Select_Internal_Energy_3D(Real *dev_conserved, int nx, int ny, i
     Emax = fmax(Emax, dev_conserved[4 * n_cells + kmo]);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + kpo]);
 
-    if (U_total / Emax > eta_2)
+    if (U_total / Emax > eta_2) {
       U = U_total;
-    else
+    } else {
       U = U_advected;
+    }
 
     // Optional: Avoid Negative Internal  Energies
     U = fmax(U, (Real)TINY_NUMBER);
@@ -1108,11 +1112,15 @@ __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int
     Ekin  = 0.5 * d * (vx * vx + vy * vy + vz * vz);
 
     U = (E - Ekin) / d;
-    if (U < U_floor) dev_conserved[4 * n_cells + id] = Ekin + d * U_floor;
+    if (U < U_floor) {
+      dev_conserved[4 * n_cells + id] = Ekin + d * U_floor;
+    }
 
     #ifdef DE
     U = dev_conserved[(n_fields - 1) * n_cells + id] / d;
-    if (U < U_floor) dev_conserved[(n_fields - 1) * n_cells + id] = d * U_floor;
+    if (U < U_floor) {
+      dev_conserved[(n_fields - 1) * n_cells + id] = d * U_floor;
+    }
     #endif
   }
 }

@@ -65,7 +65,9 @@ Real Grid3D::Calc_Particles_dt_GPU()
   // set values for GPU kernels
   int ngrid = (Particles.n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
 
-  if (ngrid > Particles.G.size_blocks_array) chprintf(" Error: particles dt_array too small\n");
+  if (ngrid > Particles.G.size_blocks_array) {
+    chprintf(" Error: particles dt_array too small\n");
+  }
 
   Real max_dti;
   max_dti = Particles.Calc_Particles_dt_GPU_function(
@@ -155,13 +157,19 @@ void Grid3D::Advance_Particles(int N_step)
 {
   CudaCheckError();
   #ifdef CPU_TIME
-  if (N_step == 1) Timer.Advance_Part_1.Start();
-  if (N_step == 2) Timer.Advance_Part_2.Start();
+  if (N_step == 1) {
+    Timer.Advance_Part_1.Start();
+  }
+  if (N_step == 2) {
+    Timer.Advance_Part_2.Start();
+  }
   #endif
 
   #ifdef PARTICLES_KDK
   // Update the velocities by 0.5*delta_t and update the positions by delta_t
-  if (N_step == 1) Advance_Particles_KDK_Step1();
+  if (N_step == 1) {
+    Advance_Particles_KDK_Step1();
+  }
   #endif
 
   if (N_step == 2) {
@@ -175,8 +183,12 @@ void Grid3D::Advance_Particles(int N_step)
   }
 
   #ifdef CPU_TIME
-  if (N_step == 1) Timer.Advance_Part_1.End();
-  if (N_step == 2) Timer.Advance_Part_2.End();
+  if (N_step == 1) {
+    Timer.Advance_Part_1.End();
+  }
+  if (N_step == 2) {
+    Timer.Advance_Part_2.End();
+  }
   #endif
   CudaCheckError();
 }

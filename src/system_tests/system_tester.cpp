@@ -45,7 +45,9 @@ void systemTest::SystemTestRunner::runTest()
   /// globalRunCholla should only be used for large MPI tests where the user
   /// wishes to separate the execution of cholla and the comparison of results
   /// onto different machines/jobs
-  if (not globalCompareSystemTestResults) return;
+  if (not globalCompareSystemTestResults) {
+    return;
+  }
 
   // Make sure we have all the required data files and open the test data file
   _testHydroFieldsFileVec.resize(numMpiRanks);
@@ -71,11 +73,15 @@ void systemTest::SystemTestRunner::runTest()
   if (_particleDataExists) {
     _testParticleIDs = _loadTestParticleData("particle_IDs");
 
-    if (_fiducialFileExists) _fiducialParticleIDs = _loadFiducialParticleData("particle_IDs");
+    if (_fiducialFileExists) {
+      _fiducialParticleIDs = _loadFiducialParticleData("particle_IDs");
+    }
   }
 
   // Get the list of test dataset names
-  if (_hydroDataExists) _testDataSetNames = _findDataSetNames(_testHydroFieldsFileVec[0]);
+  if (_hydroDataExists) {
+    _testDataSetNames = _findDataSetNames(_testHydroFieldsFileVec[0]);
+  }
   if (_particleDataExists) {
     // Load the data, replace the density value with the new name, then append
     std::vector<std::string> particleNames = _findDataSetNames(_testParticlesFileVec[0]);
@@ -88,7 +94,9 @@ void systemTest::SystemTestRunner::runTest()
   // Start Performing Checks
   // =======================
   // Check the number of time steps
-  if (_compareNumTimeSteps) _checkNumTimeSteps();
+  if (_compareNumTimeSteps) {
+    _checkNumTimeSteps();
+  }
 
   // Check that the test file has as many, or more, datasets than the fiducial
   // file. Provide a warning if the datasets are not the same size
@@ -189,7 +197,9 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
   /// globalRunCholla should only be used for large MPI tests where the user
   /// wishes to separate the execution of cholla and the comparison of results
   /// onto different machines/jobs
-  if (not globalCompareSystemTestResults) return;
+  if (not globalCompareSystemTestResults) {
+    return;
+  }
 
   // Make sure we have all the required data files and open the data files
   _testHydroFieldsFileVec.resize(numMpiRanks);
@@ -213,7 +223,9 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
   // Start Performing Checks
   // =======================
   // Check the number of time steps
-  if (_compareNumTimeSteps) _checkNumTimeSteps();
+  if (_compareNumTimeSteps) {
+    _checkNumTimeSteps();
+  }
 
   // Check that the test file has as many, or more, datasets than the fiducial
   // file. Provide a warning if the datasets are not the same size
@@ -420,8 +432,12 @@ systemTest::SystemTestRunner::~SystemTestRunner()
 {
   _fiducialFile.close();
   for (size_t i = 0; i < _testHydroFieldsFileVec.size(); i++) {
-    if (_hydroDataExists) _testHydroFieldsFileVec[i].close();
-    if (_particleDataExists) _testParticlesFileVec[i].close();
+    if (_hydroDataExists) {
+      _testHydroFieldsFileVec[i].close();
+    }
+    if (_particleDataExists) {
+      _testParticlesFileVec[i].close();
+    }
   }
 }
 // =============================================================================

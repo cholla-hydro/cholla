@@ -13,7 +13,9 @@ void Grid3D::Initialize_Cosmology(struct parameters *P)
   // Change to comoving Cosmological System
   Change_Cosmological_Frame_Sytem(true);
 
-  if (fabs(Cosmo.current_a - Cosmo.next_output) < 1e-5) H.Output_Now = true;
+  if (fabs(Cosmo.current_a - Cosmo.next_output) < 1e-5) {
+    H.Output_Now = true;
+  }
 
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
@@ -42,10 +44,11 @@ Real Cosmology::Get_Hubble_Parameter(Real a)
 
 void Grid3D::Change_Cosmological_Frame_Sytem(bool forward)
 {
-  if (forward)
+  if (forward) {
     chprintf(" Converting to Cosmological Comoving System\n");
-  else
+  } else {
     chprintf(" Converting to Cosmological Physical System\n");
+  }
 
   Change_DM_Frame_System(forward);
   #ifndef ONLY_PARTICLES

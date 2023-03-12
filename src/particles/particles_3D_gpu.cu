@@ -66,7 +66,9 @@ template <typename T>
 void __global__ Copy_Device_to_Device_Kernel(T *src_array_dev, T *dst_array_dev, part_int_t size)
 {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid < size) dst_array_dev[tid] = src_array_dev[tid];
+  if (tid < size) {
+    dst_array_dev[tid] = src_array_dev[tid];
+  }
 }
 
 template <typename T>
@@ -176,7 +178,9 @@ void Particles_3D::Copy_Particles_Array_Int_Device_to_Host(part_int_t *array_dev
 __global__ void Set_Particles_Array_Real_Kernel(Real value, Real *array_dev, part_int_t size)
 {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid < size) array_dev[tid] = value;
+  if (tid < size) {
+    array_dev[tid] = value;
+  }
 }
 
 void Particles_3D::Set_Particles_Array_Real(Real value, Real *array_dev, part_int_t size)

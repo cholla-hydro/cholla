@@ -73,7 +73,9 @@ void __global__ Copy_Hydro_Density_to_Gravity_Kernel(Real *src_density_d, Real *
   tid_y = blockIdx.y * blockDim.y + threadIdx.y;
   tid_z = blockIdx.z * blockDim.z + threadIdx.z;
 
-  if (tid_x >= nx_local || tid_y >= ny_local || tid_z >= nz_local) return;
+  if (tid_x >= nx_local || tid_y >= ny_local || tid_z >= nz_local) {
+    return;
+  }
 
   tid_dens = tid_x + tid_y * nx_local + tid_z * nx_local * ny_local;
 
@@ -141,7 +143,9 @@ void __global__ Add_Analytic_Potential_Kernel(Real *analytic_d, Real *potential_
   tid_y = blockIdx.y * blockDim.y + threadIdx.y;
   tid_z = blockIdx.z * blockDim.z + threadIdx.z;
 
-  if (tid_x >= nx_pot || tid_y >= ny_pot || tid_z >= nz_pot) return;
+  if (tid_x >= nx_pot || tid_y >= ny_pot || tid_z >= nz_pot) {
+    return;
+  }
 
   tid = tid_x + tid_y * nx_pot + tid_z * nx_pot * ny_pot;
 
@@ -200,7 +204,9 @@ void __global__ Extrapolate_Grav_Potential_Kernel(Real *dst_potential, Real *src
   tid_y = blockIdx.y * blockDim.y + threadIdx.y;
   tid_z = blockIdx.z * blockDim.z + threadIdx.z;
 
-  if (tid_x >= nx_pot || tid_y >= ny_pot || tid_z >= nz_pot) return;
+  if (tid_x >= nx_pot || tid_y >= ny_pot || tid_z >= nz_pot) {
+    return;
+  }
 
   tid_pot = tid_x + tid_y * nx_pot + tid_z * nx_pot * ny_pot;
 

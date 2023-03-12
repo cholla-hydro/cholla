@@ -1,11 +1,8 @@
 #-- make.inc for Poplar, COE cluster at HPE
 
 #-- Compiler and flags for different build type
-CC                = mpicc
 CXX               = mpicxx
 HIPCONFIG         = $(shell hipconfig -C)
-CFLAGS_DEBUG      = -g -O0
-CFLAGS_OPTIMIZE   = -Ofast
 CXXFLAGS_DEBUG    = -g -O0 -std=c++17
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++17
 

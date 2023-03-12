@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        make-type: [hydro, gravity, disk, particles, cosmology, mhd]
+        make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust]
         container: [{name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}, {name: "HIP",link: "docker://chollahydro/cholla:rocm_github"},]
 
     # Setup environment variables
@@ -88,9 +88,6 @@ jobs:
     - name: Display tidy_results_cpp.log
       if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
       run: cat tidy_results_cpp.log
-    - name: Display tidy_results_c.log
-      if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
-      run: cat tidy_results_c.log
     - name: Display tidy_results_gpu.log
       if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
       run: cat tidy_results_gpu.log
