@@ -27,7 +27,7 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
     const float* csHI = dXS->cs[Physics::AtomicData::CrossSection::IonizationHI];
     const float* csHeI = dXS->cs[Physics::AtomicData::CrossSection::IonizationHeI];
     const float* csHeII = dXS->cs[Physics::AtomicData::CrossSection::IonizationHeII];
-    ///const float* csCVI = dXS->cs[Physics::AtomicData::CrossSection::IonizationCVI];
+    // const float* csCVI = dXS->cs[Physics::AtomicData::CrossSection::IonizationCVI];
 
     auto thr = dXS->thresholds;
 
@@ -96,8 +96,7 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
                 values[4] += w;
                 values[5] += w*(dXS->hnu_K[l]-Physics::AtomicData::TionHeII);
     
-                ///w = csCVI[l]*ss;
-                ///values[6] += w;
+                // values[6] += csCVI[l]*ss;
             }
         }
     };

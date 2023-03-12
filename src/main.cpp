@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
     #endif
 
     #ifdef PARTICLES
-    ///Advance the particles KDK( second step ): Velocities are updated by 0.5*dt using the Accelerations at the new positions
+    // Advance the particles KDK( second step ): Velocities are updated by 0.5*dt using the Accelerations at the new positions
     G.Advance_Particles( 2 );
     #endif
 

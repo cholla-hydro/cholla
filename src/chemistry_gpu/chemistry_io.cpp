@@ -62,7 +62,7 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(  struct parameters *P ){
   
   Real eV_to_ergs, heat_units, ion_units; 
   eV_to_ergs = 1.60218e-12;
-  /// heat_units_old = eV_to_ergs / H.cooling_units;  /// NG 221127: this is incorrect
+  // heat_units_old = eV_to_ergs / H.cooling_units;  /// NG 221127: this is incorrect
   heat_units = eV_to_ergs * 1e-10 * H.time_units * H.density_units / MH / MH;
   ion_units  = H.time_units;
   

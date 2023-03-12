@@ -374,14 +374,14 @@ __device__ Real Get_Chemistry_dt( Thermal_State &TS, Chemistry_Header &Chem_H, R
   #endif
   
   energy = fmax( TS.U * TS.d, tiny );
-  ///dt = fmin( fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot )  ); NG electrons should not set the time-step, they are a derived quantity
+  //dt = fmin( fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot )  ); NG electrons should not set the time-step, they are a derived quantity
   dt = fabs( 0.1 * TS.d_HI / HI_dot );
   dt = fmin( fabs( 0.1 * energy / U_dot ), dt  );
   dt = fmin( 0.5 * dt_hydro, dt );
   dt = fmin( dt_hydro - t_chem, dt );
   
   if ( n_iter == Chem_H.max_iter-1 ){
-    ///printf("##### Chem_GPU: dt_hydro: %e   t_chem: %e   dens: %e   temp: %e  GE: %e  U_dot: %e   dt_HI: %e   dt_e: %e   dt_U: %e \n", dt_hydro,  t_chem, TS.d, TS.get_temperature(Chem_H.gamma), energy, U_dot, fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot ), fabs( 0.1 * TS.U * TS.d / U_dot )   ) ;
+    //printf("##### Chem_GPU: dt_hydro: %e   t_chem: %e   dens: %e   temp: %e  GE: %e  U_dot: %e   dt_HI: %e   dt_e: %e   dt_U: %e \n", dt_hydro,  t_chem, TS.d, TS.get_temperature(Chem_H.gamma), energy, U_dot, fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot ), fabs( 0.1 * TS.U * TS.d / U_dot )   ) ;
   }
   
   
@@ -514,9 +514,9 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
     GE  = dev_conserved[4*n_cells + id] - E_kin;
     #endif
  
-    if(xid==67 && yid==67 && zid==67)
+    if(xid==35 && yid==35 && zid==35)
     {
-        ///print = 2;
+        print = 2;
     }
         
     // Convert to cgs units
@@ -525,7 +525,7 @@ __global__ void Update_Chemistry_kernel( Real *dev_conserved, const Real *dev_rf
     a3 = a2 * current_a;  
     d  *= density_conv / a3;
     GE *= energy_conv  / a2; 
-    ///dt_hydro = dt_hydro / Chem_H.time_units; NG 221126: this is a bug, integration is in code units
+    //dt_hydro = dt_hydro / Chem_H.time_units; NG 221126: this is a bug, integration is in code units
 
 #ifdef COSMOLOGY
     dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC 
@@ -845,7 +845,6 @@ __device__ Real recomb_HII_rate_case_B( Real T, Real units )
     if (T < 1.0e9) {
         auto ret = 4.881357e-6*pow(T, -1.5) \
             * pow((1.0 + 1.14813e2*pow(T, -0.407)), -2.242);
-        ///printf("T=%lg R=%lg units=%lg\n",T,ret,units);
         return ret/units;
     } else {
         return tiny;
