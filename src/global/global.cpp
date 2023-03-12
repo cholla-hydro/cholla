@@ -211,15 +211,15 @@ void parse_param(char *name, char *value, struct parameters *parms)
     parms->ny = atoi(value);
   } else if (strcmp(name, "nz") == 0) {
     parms->nz = atoi(value);
-  else if (strcmp(name, "tinit") == 0)
+  } else if (strcmp(name, "tinit") == 0) {
     parms->tinit = atof(value);
-  else if (strcmp(name, "tout") == 0)
+  } else if (strcmp(name, "tout") == 0) {
     parms->tout = atof(value);
   } else if (strcmp(name, "outstep") == 0) {
     parms->outstep = atof(value);
-  else if (strcmp(name, "outlog") == 0)
+  } else if (strcmp(name, "outlog") == 0) {
     parms->outlog = atof(value);
-  else if (strcmp(name, "n_steps_output") == 0)
+  } else if (strcmp(name, "n_steps_output") == 0) {
     parms->n_steps_output = atoi(value);
   } else if (strcmp(name, "gamma") == 0) {
     parms->gamma = atof(value);
@@ -432,7 +432,7 @@ void parse_param(char *name, char *value, struct parameters *parms)
     strncpy(parms->UVB_rates_file, value, MAXLEN);
 #endif
 #ifdef RT
-  else if (strcmp(name, "num_iterations") == 0)
+  } else if (strcmp(name, "num_iterations") == 0) {
     parms->num_iterations = atoi(value);
 #endif
 #ifdef COOLING_GRACKLE
