@@ -6,8 +6,9 @@ CXX               = CC
 HIPCONFIG         = $(shell hipconfig -C)
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -Ofast
-CXXFLAGS_DEBUG    = -g -O0 -std=c++11
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++11
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++17
+
 GPUFLAGS          = --offload-arch=gfx906,gfx908
 
 #-- How to launch job

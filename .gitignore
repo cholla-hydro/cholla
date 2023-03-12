@@ -1,7 +1,8 @@
 # Files specific to this repo #
 ##############################
-cholla*
 googletest*
+tidy_results*.txt
+bin/*
 
 # Compiled source #
 ###################
@@ -24,7 +25,7 @@ makefile.summit
 *.o
 
 ##executable
-cholla*
+cholla.*
 
 ## input files
 #parameter_file.txt

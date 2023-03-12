@@ -1,166 +1,148 @@
 /*! /file global.h
  *  /brief Declarations of global variables and functions. */
 
-
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#include "../grid/grid_enum.h"  // defines NSCALARS
 
-#ifdef  PARTICLES
+#ifdef PARTICLES
   #include <cstdint>
-#endif  //PARTICLES
+#endif  // PARTICLES
 
-#if PRECISION==1
-#ifndef TYPEDEF_DEFINED_REAL
+#if PRECISION == 1
+  #ifndef TYPEDEF_DEFINED_REAL
 typedef float Real;
+  #endif
 #endif
-#endif
-#if PRECISION==2
-#ifndef TYPEDEF_DEFINED_REAL
+#if PRECISION == 2
+  #ifndef TYPEDEF_DEFINED_REAL
 typedef double Real;
-#endif
+  #endif
 #endif
 
-#define MAXLEN 2048
+#define MAXLEN      2048
 #define TINY_NUMBER 1.0e-20
-#define PI 3.141592653589793
-#define MP 1.672622e-24 // mass of proton, grams
-#define KB 1.380658e-16 // boltzmann constant, cgs
-//#define GN 6.67259e-8 // gravitational constant, cgs
-#define GN 4.49451e-18 // gravitational constant, kpc^3 / M_sun / kyr^2
+#define PI          3.141592653589793
+#define MP          1.672622e-24  // mass of proton, grams
+#define KB          1.380658e-16  // boltzmann constant, cgs
+// #define GN 6.67259e-8 // gravitational constant, cgs
+#define GN  4.49451e-18  // gravitational constant, kpc^3 / M_sun / kyr^2
+#define C_L 0.306594593  // speed of light in kpc/kyr
 
-#define MYR 31.536e12 //Myears in secs
-#define KPC 3.086e16 // kpc in km
-#define G_COSMO 4.300927161e-06 // gravitational constant, kpc km^2 s^-2 Msun^-1
-#define MSUN_CGS 1.98847e33 //Msun in gr
-#define KPC_CGS 3.086e21  //kpc in cm
-#define KM_CGS 1e5 //km in cm
-#define MH 1.67262171e-24 //Mass of hydrogen [g]   
+#define MYR      31.536e12         // Myears in secs
+#define KPC      3.086e16          // kpc in km
+#define G_COSMO  4.300927161e-06;  // gravitational constant, kpc km^2 s^-2 Msun^-1
+#define MSUN_CGS 1.98847e33;       // Msun in gr
+#define KPC_CGS  3.086e21;         // kpc in cm
+#define KM_CGS   1e5;              // km in cm
+#define MH       1.67262171e-24    // Mass of hydrogen [g]
 
-#define TIME_UNIT 3.15569e10 // 1 kyr in s
-#define LENGTH_UNIT 3.08567758e21 // 1 kpc in cm
-#define MASS_UNIT 1.98847e33 // 1 solar mass in grams
-///#define TIME_UNIT (1e3*3.15569e10) // 1 kyr in s
-///#define LENGTH_UNIT (13.2*3.08567758e21) // 1 kpc in cm
-///#define MASS_UNIT 1.1289245801680841e+41 //1.98847e33 // 1 solar mass in grams
-#define DENSITY_UNIT (MASS_UNIT/(LENGTH_UNIT*LENGTH_UNIT*LENGTH_UNIT))
-#define VELOCITY_UNIT (LENGTH_UNIT/TIME_UNIT)
-#define ENERGY_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
-#define PRESSURE_UNIT (DENSITY_UNIT*VELOCITY_UNIT*VELOCITY_UNIT)
-#define SP_ENERGY_UNIT (VELOCITY_UNIT*VELOCITY_UNIT)
-#define MAGNETIC_FIELD_UNIT (sqrt(MASS_UNIT/LENGTH_UNIT) / TIME_UNIT)
+#define TIME_UNIT   3.15569e10     // 1 kyr in s
+#define LENGTH_UNIT 3.08567758e21  // 1 kpc in cm
+#define MASS_UNIT   1.98847e33     // 1 solar mass in grams
+/// #define TIME_UNIT (1e3*3.15569e10) // 1 kyr in s
+/// #define LENGTH_UNIT (13.2*3.08567758e21) // 1 kpc in cm
+/// #define MASS_UNIT 1.1289245801680841e+41 //1.98847e33 // 1 solar mass in grams
+#define DENSITY_UNIT        (MASS_UNIT / (LENGTH_UNIT * LENGTH_UNIT * LENGTH_UNIT))
+#define VELOCITY_UNIT       (LENGTH_UNIT / TIME_UNIT)
+#define ENERGY_UNIT         (DENSITY_UNIT * VELOCITY_UNIT * VELOCITY_UNIT)
+#define PRESSURE_UNIT       (DENSITY_UNIT * VELOCITY_UNIT * VELOCITY_UNIT)
+#define SP_ENERGY_UNIT      (VELOCITY_UNIT * VELOCITY_UNIT)
+#define MAGNETIC_FIELD_UNIT (sqrt(MASS_UNIT / LENGTH_UNIT) / TIME_UNIT)
 
 #ifndef M_PI
-#define M_PI 3.141592653589793238462643383279
+  #define M_PI 3.141592653589793238462643383279
 #endif
 
 #define LOG_FILE_NAME "run_output.log"
 
-//Conserved Floor Values
-#define TEMP_FLOOR 1e-3 // in Kelvin
-#define DENS_FLOOR 1e-5 // in code units
+// Conserved Floor Values
+#define TEMP_FLOOR 1e-3
+#define DENS_FLOOR 1e-5  // in code units
 
-//Parameter for Enzo dual Energy Condition
-#define DE_ETA_1 0.001 //Ratio of U to E for which  Internal Energy is used to compute the Pressure
-#define DE_ETA_2 0.035 //Ratio of U to max(E_local) used to select which Internal Energy is used for the update.
+// Parameter for Enzo dual Energy Condition
+#define DE_ETA_1 \
+  0.001  // Ratio of U to E for which  Internal Energy is used to compute the
+         // Pressure
+#define DE_ETA_2 \
+  0.035  // Ratio of U to max(E_local) used to select which Internal Energy is
+         // used for the update.
 
 // Maximum time step for cosmological simulations
-#define MAX_DELTA_A 0.001
+#define MAX_DELTA_A        0.001
 #define MAX_EXPANSION_RATE 0.01  // Limit delta(a)/a
 
-// Set the number of abundance fields for grackle
-#ifdef COOLING_GRACKLE
-  #ifdef GRACKLE_METALS
-  #define NSCALARS 7
-  #else
-  #define NSCALARS 6
-  #endif // GRACKLE_METALS
-#elif CHEMISTRY_GPU
-  #define NSCALARS 5 // NG 221127 - no need to advect electrons, they are a derived field
-#elif RT
-// Set the number of abundance fields for RT
-  #define NSCALARS 5
-#else
-// Set default number of scalar fields
-#ifdef SCALAR
-// Set Number of scalar fields when not using grackle or RT
-#define NSCALARS 1
-#else
-#define NSCALARS 0
-#endif//SCALAR
-#endif//COOLING, CHEMISTRY, OR RT
-
-#ifdef  MHD
+#ifdef MHD
   #define N_MHD_FIELDS 3
 #else
   #define N_MHD_FIELDS 0
-#endif  //MHD
+#endif  // MHD
 
 // Inital Chemistry fractions
-#define INITIAL_FRACTION_HI        0.75984603480
-#define INITIAL_FRACTION_HII       1.53965115054e-4
-#define INITIAL_FRACTION_HEI       0.24000000008
-#define INITIAL_FRACTION_HEII      9.59999999903e-15
-#define INITIAL_FRACTION_HEIII     9.59999999903e-18
-#define INITIAL_FRACTION_ELECTRON  1.53965115054e-4
-#define INITIAL_FRACTION_METAL     1.00000000000e-10
+#define INITIAL_FRACTION_HI       0.75984603480
+#define INITIAL_FRACTION_HII      1.53965115054e-4
+#define INITIAL_FRACTION_HEI      0.24000000008
+#define INITIAL_FRACTION_HEII     9.59999999903e-15
+#define INITIAL_FRACTION_HEIII    9.59999999903e-18
+#define INITIAL_FRACTION_ELECTRON 1.53965115054e-4
+#define INITIAL_FRACTION_METAL    1.00000000000e-10
 
-
-//Default Particles Compiler Flags
+// Default Particles Compiler Flags
 #define PARTICLES_LONG_INTS
 #define PARTICLES_KDK
 
-
 #ifdef GRAVITY
-#ifdef GRAVITY_5_POINTS_GRADIENT
-#ifdef PARTICLES
-#define N_GHOST_POTENTIAL 3 // 3 ghost cells are needed for 5 point gradient, ( one is for the CIC interpolation of the potential )
-#else
-#define N_GHOST_POTENTIAL 2 // 2 ghost cells are needed for 5 point gradient
-#endif //PARTICLES
+  #ifdef GRAVITY_5_POINTS_GRADIENT
+    #ifdef PARTICLES
+      #define N_GHOST_POTENTIAL \
+        3  // 3 ghost cells are needed for 5 point gradient, ( one is for the
+           // CIC interpolation of the potential )
+    #else
+      #define N_GHOST_POTENTIAL 2  // 2 ghost cells are needed for 5 point gradient
+    #endif                         // PARTICLES
 
-#else
-#ifdef PARTICLES
-#define N_GHOST_POTENTIAL 2 // 2 ghost cells are needed for 3 point gradient, ( one is for the CIC interpolation of the potential )
-#else
-#define N_GHOST_POTENTIAL 1 // 1 ghost cells are needed for 3 point gradient
-#endif //PARTICLES
-#endif //GRAVITY_5_POINTS_GRADIENT
-
+  #else
+    #ifdef PARTICLES
+      #define N_GHOST_POTENTIAL \
+        2  // 2 ghost cells are needed for 3 point gradient, ( one is for the
+           // CIC interpolation of the potential )
+    #else
+      #define N_GHOST_POTENTIAL 1  // 1 ghost cells are needed for 3 point gradient
+    #endif                         // PARTICLES
+  #endif                           // GRAVITY_5_POINTS_GRADIENT
 
 typedef long int grav_int_t;
 #endif
 
 #ifdef PARTICLES
-#ifdef PARTICLES_LONG_INTS
+  #ifdef PARTICLES_LONG_INTS
 typedef long int part_int_t;
-#else
+  #else
 typedef int part_int_t;
-#endif//PARTICLES_LONG_INTS
+  #endif  // PARTICLES_LONG_INTS
 
-#include <vector>
+  #include <vector>
 typedef std::vector<Real> real_vector_t;
 typedef std::vector<part_int_t> int_vector_t;
-#ifdef MPI_CHOLLA
+  #ifdef MPI_CHOLLA
 // Constants for the inital size of the buffers for particles transfer
 // and the number of data transferred for each particle
 extern int N_PARTICLES_TRANSFER;
 extern int N_DATA_PER_PARTICLE_TRANSFER;
-#endif//MPI_CHOLLA
+  #endif  // MPI_CHOLLA
 
-#ifdef AVERAGE_SLOW_CELLS
-#define SLOW_FACTOR 10
-#endif//AVERAGE_SLOW_CELLS
+  #ifdef AVERAGE_SLOW_CELLS
+    #define SLOW_FACTOR 10
+  #endif  // AVERAGE_SLOW_CELLS
 
-#endif//PARTICLES
+#endif  // PARTICLES
 
-
-#define SIGN(a) ( ((a) < 0.) ? -1. : 1. )
-
+#define SIGN(a) (((a) < 0.) ? -1. : 1.)
 
 /* Global variables */
-extern Real gama; // Ratio of specific heats
-extern Real C_cfl; // CFL number (0 - 0.5)
+extern Real gama;   // Ratio of specific heats
+extern Real C_cfl;  // CFL number (0 - 0.5)
 extern Real t_comm;
 extern Real t_other;
 
@@ -181,13 +163,11 @@ extern double get_time(void);
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int sgn(Real x);
 
-
-struct parameters
-{
+struct parameters {
   int nx;
   int ny;
   int nz;
-  double tinit=0;
+  double tinit = 0;
   double tout;
   double outstep;
   double outlog = 0;
@@ -200,6 +180,20 @@ struct parameters
   int n_projection;
   int n_rotated_projection;
   int n_slice;
+  int n_out_float32          = 0;
+  int out_float32_density    = 0;
+  int out_float32_momentum_x = 0;
+  int out_float32_momentum_y = 0;
+  int out_float32_momentum_z = 0;
+  int out_float32_Energy     = 0;
+#ifdef DE
+  int out_float32_GasEnergy = 0;
+#endif
+#ifdef MHD
+  int out_float32_magnetic_x = 0;
+  int out_float32_magnetic_y = 0;
+  int out_float32_magnetic_z = 0;
+#endif
   Real xmin;
   Real ymin;
   Real zmin;
@@ -212,7 +206,7 @@ struct parameters
   int yu_bcnd;
   int zl_bcnd;
   int zu_bcnd;
-#ifdef   MPI_CHOLLA
+#ifdef MPI_CHOLLA
   int xlg_bcnd;
   int xug_bcnd;
   int ylg_bcnd;
@@ -222,38 +216,51 @@ struct parameters
 #endif /*MPI_CHOLLA*/
   char custom_bcnd[MAXLEN];
   char outdir[MAXLEN];
-  char indir[MAXLEN]; //Folder to load Initial conditions from
-  Real rho;
-  Real vx;
-  Real vy;
-  Real vz;
-  Real P;
-  Real A;
-  Real Bx;
-  Real By;
-  Real Bz;
-  Real rho_l;
-  Real vx_l;
-  Real vy_l=0;
-  Real vz_l=0;
-  Real P_l;
-  Real Bx_l;
-  Real By_l;
-  Real Bz_l;
-  Real rho_r;
-  Real vx_r;
-  Real vy_r=0;
-  Real vz_r=0;
-  Real P_r;
-  Real Bx_r;
-  Real By_r;
-  Real Bz_r;
-  Real diaph;
+  char indir[MAXLEN];  // Folder to load Initial conditions from
+  Real rho                 = 0;
+  Real vx                  = 0;
+  Real vy                  = 0;
+  Real vz                  = 0;
+  Real P                   = 0;
+  Real A                   = 0;
+  Real Bx                  = 0;
+  Real By                  = 0;
+  Real Bz                  = 0;
+  Real rho_l               = 0;
+  Real vx_l                = 0;
+  Real vy_l                = 0;
+  Real vz_l                = 0;
+  Real P_l                 = 0;
+  Real Bx_l                = 0;
+  Real By_l                = 0;
+  Real Bz_l                = 0;
+  Real rho_r               = 0;
+  Real vx_r                = 0;
+  Real vy_r                = 0;
+  Real vz_r                = 0;
+  Real P_r                 = 0;
+  Real Bx_r                = 0;
+  Real By_r                = 0;
+  Real Bz_r                = 0;
+  Real diaph               = 0;
+  Real rEigenVec_rho       = 0;
+  Real rEigenVec_MomentumX = 0;
+  Real rEigenVec_MomentumY = 0;
+  Real rEigenVec_MomentumZ = 0;
+  Real rEigenVec_E         = 0;
+  Real rEigenVec_Bx        = 0;
+  Real rEigenVec_By        = 0;
+  Real rEigenVec_Bz        = 0;
+  Real pitch               = 0;
+  Real yaw                 = 0;
 #ifdef PARTICLES
   // The random seed for particle simulations. With the default of 0 then a
   // machine dependent seed will be generated.
   std::uint_fast64_t prng_seed = 0;
-#endif // PARTICLES
+#endif  // PARTICLES
+#ifdef SUPERNOVA
+  char snr_filename[MAXLEN];
+#endif
 #ifdef ROTATED_PROJECTION
   int nxr;
   int nzr;
@@ -273,11 +280,12 @@ struct parameters
   Real Omega_b;
   Real Init_redshift;
   Real End_redshift;
-  char scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations
-#endif //COSMOLOGY
+  char scale_outputs_file[MAXLEN];  // File for the scale_factor output values
+                                    // for cosmological simulations
+#endif                              // COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   Real tile_length;
-#endif //TILED_INITIAL_CONDITIONS
+#endif  // TILED_INITIAL_CONDITIONS
 
 #ifdef SET_MPI_GRID
   // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
@@ -286,14 +294,16 @@ struct parameters
   int n_proc_z;
 #endif
   int bc_potential_type;
-#if defined(COOLING_GRACKLE) || defined (CHEMISTRY_GPU)
-  char UVB_rates_file[MAXLEN] = { 0 }; //File for the UVB photoheating and photoionization rates of HI, HeI and HeII
-#endif  
+#if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
+  char UVB_rates_file[MAXLEN] = {0};  // File for the UVB photoheating and photoionization rates of HI, HeI and HeII
+#endif
 #ifdef RT
   int num_iterations = 10;
 #endif
 #ifdef ANALYSIS
-  char analysis_scale_outputs_file[MAXLEN]; //File for the scale_factor output values for cosmological simulations {{}}
+  char analysis_scale_outputs_file[MAXLEN];  // File for the scale_factor output
+                                             // values for cosmological
+                                             // simulations {{}}
   char analysisdir[MAXLEN];
   int lya_skewers_stride;
   Real lya_Pk_d_log_k;
@@ -303,13 +313,13 @@ struct parameters
 #endif
 };
 
-
 /*! \fn void parse_params(char *param_file, struct parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
-extern void parse_params (char *param_file, struct parameters * parms, int argc, char** argv);
+extern void parse_params(char *param_file, struct parameters *parms, int argc, char **argv);
 
 /*! \fn int is_param_valid(char *name);
- * \brief Verifies that a param is valid (even if not needed).  Avoids "warnings" in output. */
+ * \brief Verifies that a param is valid (even if not needed).  Avoids
+ * "warnings" in output. */
 extern int is_param_valid(const char *name);
 
-#endif //GLOBAL_H
+#endif  // GLOBAL_H

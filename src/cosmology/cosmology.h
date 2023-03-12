@@ -1,19 +1,19 @@
 #ifdef COSMOLOGY
 
-#ifndef COSMOLOGY_H
-#define COSMOLOGY_H
+  #ifndef COSMOLOGY_H
+    #define COSMOLOGY_H
 
-#include <stdio.h>
-#include <cmath>
-#include "../global/global.h"
-#include "../particles/particles_3D.h"
-#include "../gravity/grav3D.h"
+    #include <stdio.h>
 
+    #include <cmath>
+
+    #include "../global/global.h"
+    #include "../gravity/grav3D.h"
+    #include "../particles/particles_3D.h"
 
 class Cosmology
 {
-public:
-
+ public:
   Real H0;
   Real Omega_M;
   Real Omega_L;
@@ -54,21 +54,19 @@ public:
   Real next_output;
   bool exit_now;
 
+  Cosmology(void);
+  void Initialize(struct parameters *P, Grav3D &Grav, Particles_3D &Particles);
 
-  Cosmology( void );
-  void Initialize( struct parameters *P, Grav3D &Grav, Particles_3D &Particles );
+  void Load_Scale_Outputs(struct parameters *P);
+  void Set_Scale_Outputs(struct parameters *P);
 
-  void Load_Scale_Outputs( struct parameters *P );
-  void Set_Scale_Outputs( struct parameters *P );
+  void Set_Next_Scale_Output();
 
-  void Set_Next_Scale_Output( );
+  Real Get_Hubble_Parameter(Real a);
 
-  Real Get_Hubble_Parameter( Real a );
-
-  Real Get_da_from_dt( Real dt );
-  Real Get_dt_from_da( Real da );
-
+  Real Get_da_from_dt(Real dt);
+  Real Get_dt_from_da(Real da);
 };
 
-#endif
+  #endif
 #endif

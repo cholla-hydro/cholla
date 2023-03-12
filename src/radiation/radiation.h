@@ -3,25 +3,26 @@
 
 #ifdef RT
 
-#ifndef RT_H
-#define RT_H
+  #ifndef RT_H
+    #define RT_H
 
-#include "../global/global.h"
+    #include "../global/global.h"
 
-#define TPB_RT 1024
-
+    #define TPB_RT 1024
 
 struct Header;
 
-namespace PhotoRatesCSI { struct TableWrapperGPU; };
-
+namespace PhotoRatesCSI
+{
+struct TableWrapperGPU;
+};
 
 class Rad3D
 {
-  public:
-
-  // Number of sub-cycling iterations for the RT solver to take. This, in effect, sets the reduced speed of light used by the code:
-  // the reduced speed of light is num_iterations times the maximum speed of light anywhere in the computational domain.
+ public:
+  // Number of sub-cycling iterations for the RT solver to take. This, in effect, sets the reduced speed of light used
+  // by the code: the reduced speed of light is num_iterations times the maximum speed of light anywhere in the
+  // computational domain.
   int num_iterations;
 
   // flag for the last iteration
@@ -30,12 +31,15 @@ class Rad3D
   // number of frequencies
   const static int n_freq = 3;
 
-  // prefactor for the far field source (q*<kF> in nedin2014) 
-  Real rsFarFactor = 0; // the default value is used in tests
+  // array of boundary flags
+  int flags[6] = {0, 0, 0, 0, 0, 0};
 
-  struct RT_Fields
-  {
-    // pointers to radiation fields on the host and device (including the OT field - packed together for chemistry update)
+  // prefactor for the far field source (q*<kF> in nedin2014)
+  Real rsFarFactor = 0;  // the default value is used in tests
+
+  struct RT_Fields {
+    // pointers to radiation fields on the host and device (including the OT field - packed together for chemistry
+    // update)
     Real *rf;
     Real *dev_rf;
     // Eddington tensor. By default it is not needed on host, but some tests require it.
@@ -50,16 +54,15 @@ class Rad3D
     Real *dev_abc;
     // updated fields on the device
     Real *dev_rfNew;
-  }
-  rtFields;
+  } rtFields;
 
   PhotoRatesCSI::TableWrapperGPU *photoRates;
   const Header &grid;
 
-  Rad3D(const Header& grid_);
+  Rad3D(const Header &grid_);
   ~Rad3D();
 
-  void Initialize_Start(const parameters& params);
+  void Initialize_Start(const parameters &params);
   void Initialize_Finish();
   void Initialize_GPU();
 
@@ -74,8 +77,7 @@ class Rad3D
   void rtBoundaries();
 
   void Free_Memory();
-
 };
 
-#endif
-#endif //RT
+  #endif
+#endif  // RT
