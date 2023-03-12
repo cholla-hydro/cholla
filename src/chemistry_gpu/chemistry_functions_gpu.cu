@@ -844,7 +844,6 @@ __device__ Real recomb_HII_rate_case_Iliev1( Real T, Real units )
     return 2.59e-13 / units;
 }
 
-__device__ Real recomb_HII_rate_case_Iliev1(Real T, Real units) { return 2.59e-13 / units; }
 
 // Calculation of k5 (HeII + e --> HeIII + 2e)
 //  k5_rate

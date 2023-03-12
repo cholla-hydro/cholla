@@ -18,7 +18,9 @@
 #include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
 
-namespace mhd::utils
+namespace mhd
+{
+namespace utils
 {
 /*!
  * \brief Namespace for functions required by functions within the mhd::utils
@@ -312,4 +314,5 @@ inline __host__ __device__ auto cellCenteredMagneticFields(Real const *dev_conse
 }
 #endif  // MHD
 // =========================================================================
-}  // end namespace mhd::utils
+}  // end namespace utils
+}  // end namespace mhd
