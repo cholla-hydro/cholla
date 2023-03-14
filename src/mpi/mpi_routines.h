@@ -4,6 +4,8 @@
     #include <mpi.h>
     #include <stddef.h>
 
+    #include <utility>
+
     #include "../global/global.h"
     #include "../grid/grid3D.h"
 
@@ -198,6 +200,13 @@ void deallocate_three_dimensional_int_array(int ***x, int n, int l, int m);
 
 /* Copy MPI receive buffers on Host to their device locations */
 void copyHostToDeviceReceiveBuffer(int direction);
+
+/*!
+ * \brief Split the communicator for each node and return IDs
+ *
+ * \return std::pair<int, int> The rank id and total number of processes
+ */
+std::pair<int, int> MPI_Comm_node();
 
   #endif /*MPI_ROUTINES_H*/
 #endif   /*MPI_CHOLLA*/

@@ -5,6 +5,7 @@
   #include <mpi.h>
 
   #include <iostream>
+  #include <tuple>
 
   #include "../global/global.h"
   #include "../io/io.h"
@@ -213,6 +214,9 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
     chexit(-2);
   }
   #endif
+
+  /*set up node communicator*/
+  std::tie(procID_node, nproc_node) = MPI_Comm_node();
 
   // #ifdef ONLY_PARTICLES
   // chprintf("ONLY_PARTICLES: Initializing without CUDA support.\n");
@@ -976,6 +980,40 @@ void copyHostToDeviceReceiveBuffer(int direction)
       cudaMemcpy(d_recv_buffer_z1, h_recv_buffer_z1, zbsize * sizeof(Real), cudaMemcpyHostToDevice);
       break;
   }
+}
+
+std::pair<int, int> MPI_Comm_node()
+{
+  // get the global process rank
+  int myid, nproc;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+  MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+
+  // if there is the only one process, then just return the global rank and size
+  if (nproc == 1) {
+    return {myid, nproc};
+  }
+
+  // get the hostname of the node
+  std::string pname;  // node hostname
+  pname.resize(MPI_MAX_PROCESSOR_NAME);
+  int pname_length;  // length of node hostname
+
+  MPI_Get_processor_name(pname.data(), &pname_length);
+
+  // hash the name of the node. MPI_Comm_split doesn't like negative numbers and accepts ints not unsigned ints so we
+  // need to take the absolute value
+  int const hash = std::abs(static_cast<int>(std::hash<std::string>{}(pname)));
+
+  // split the communicator
+  MPI_Comm node_comm;  // communicator for the procs on each node
+  MPI_Comm_split(MPI_COMM_WORLD, hash, myid, &node_comm);
+
+  // get size and rank
+  MPI_Comm_rank(node_comm, &myid);
+  MPI_Comm_size(node_comm, &nproc);
+
+  return {myid, nproc};
 }
 
 #endif /*MPI_CHOLLA*/
