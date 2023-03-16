@@ -18,6 +18,7 @@
 
 // Local Includes
 #include "../global/global.h"
+#include "../grid/grid3D.h"
 #include "../utils/mhd_utilities.h"
 #include "../utils/testing_utilities.h"
 
@@ -416,4 +417,63 @@ TEST(tMHDCellCenteredMagneticFields, CorrectInputExpectCorrectOutput)
 #endif  // MHD
 // =============================================================================
 // End of tests for the mhd::utils::cellCenteredMagneticFields function
+// =============================================================================
+
+// =============================================================================
+// Tests for the mhd::utils::Init_Magnetic_Field_With_Vector_Potential function
+// =============================================================================
+#ifdef MHD
+TEST(tMHDInitMagneticFieldWithVectorPotential, CorrectInputExpectCorrectOutput)
+{
+  // Mock up Header and Conserved structs
+  Header H;
+  Grid3D::Conserved C;
+
+  H.nx      = 2;
+  H.ny      = 2;
+  H.nz      = 2;
+  H.n_cells = H.nx * H.ny * H.nz;
+  H.dx      = 0.2;
+  H.dy      = 0.2;
+  H.dz      = 0.2;
+
+  double const default_fiducial = -999;
+  std::vector<double> conserved_vector(H.n_cells * grid_enum::num_fields, default_fiducial);
+  C.host       = conserved_vector.data();
+  C.density    = &(C.host[grid_enum::density * H.n_cells]);
+  C.momentum_x = &(C.host[grid_enum::momentum_x * H.n_cells]);
+  C.momentum_y = &(C.host[grid_enum::momentum_y * H.n_cells]);
+  C.momentum_z = &(C.host[grid_enum::momentum_z * H.n_cells]);
+  C.Energy     = &(C.host[grid_enum::Energy * H.n_cells]);
+  C.magnetic_x = &(C.host[grid_enum::magnetic_x * H.n_cells]);
+  C.magnetic_y = &(C.host[grid_enum::magnetic_y * H.n_cells]);
+  C.magnetic_z = &(C.host[grid_enum::magnetic_z * H.n_cells]);
+
+  // Mock up vector potential
+  std::vector<double> vector_potential(H.n_cells * 3, 0);
+  std::iota(vector_potential.begin(), vector_potential.end(), 0);
+
+  // Run the function
+  mhd::utils::Init_Magnetic_Field_With_Vector_Potential(H, C, vector_potential);
+
+  // Check the results
+  double const bx_fiducial = -10.0;
+  double const by_fiducial = 15.0;
+  double const bz_fiducial = -5.0;
+
+  for (size_t i = 0; i < conserved_vector.size(); i++) {
+    if (i == 47) {
+      testingUtilities::checkResults(bx_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
+    } else if (i == 55) {
+      testingUtilities::checkResults(by_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
+    } else if (i == 63) {
+      testingUtilities::checkResults(bz_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
+    } else {
+      testingUtilities::checkResults(default_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
+    }
+  }
+}
+#endif  // MHD
+// =============================================================================
+// End of tests for the mhd::utils::Init_Magnetic_Field_With_Vector_Potential function
 // =============================================================================

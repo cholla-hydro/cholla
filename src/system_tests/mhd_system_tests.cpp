@@ -594,6 +594,13 @@ TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones4dShockTubeCorrectInputExpectCorre
   test_runner.numMpiRanks = GetParam();
   test_runner.runTest();
 }
+
+/// Test the Advecting Field Loop
+TEST_P(tMHDSYSTEMParameterizedMpi, AdvectingFieldLoopCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
 /// @}
 // =============================================================================
 

@@ -8,12 +8,14 @@
 #pragma once
 
 // STL Includes
+#include <vector>
 
 // External Includes
 
 // Local Includes
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../grid/grid3D.h"
 #include "../riemann_solvers/hlld_cuda.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
@@ -284,7 +286,7 @@ inline __host__ __device__ auto cellCenteredMagneticFields(Real const *dev_conse
   // Ternary operator to check that no values outside of the magnetic field
   // arrays are loaded. If the cell is on the edge that doesn't have magnetic
   // fields on both sides then instead set the centered magnetic field to be
-  // equal to the magnetic field of the closest edge. T
+  // equal to the magnetic field of the closest edge.
   Real avgBx = (xid > 0) ?
                          /*if true*/ 0.5 * (dev_conserved[(grid_enum::magnetic_x)*n_cells + id] +
                                             dev_conserved[(grid_enum::magnetic_x)*n_cells +
@@ -309,6 +311,18 @@ inline __host__ __device__ auto cellCenteredMagneticFields(Real const *dev_conse
   };
   return returnStruct{avgBx, avgBy, avgBz};
 }
-#endif  // MHD
 // =========================================================================
+
+// =========================================================================
+/*!
+ * \brief Initialize the magnitice field from the vector potential
+ *
+ * \param H The Header struct
+ * \param C The Conserved struct
+ * \param vectorPotential The vector potential in the same format as the other arrays in Cholla
+ */
+void Init_Magnetic_Field_With_Vector_Potential(Header const &H, Grid3D::Conserved const &C,
+                                               std::vector<Real> const &vectorPotential);
+// =========================================================================
+#endif  // MHD
 }  // end namespace mhd::utils
