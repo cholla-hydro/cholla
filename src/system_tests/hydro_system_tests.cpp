@@ -15,10 +15,6 @@
 #include "../system_tests/system_tester.h"
 #include "../utils/testing_utilities.h"
 
-#ifndef PI
-  #define PI 3.141592653589793
-#endif
-
 // =============================================================================
 // Test Suite: tHYDROtMHDSYSTEMSodShockTube
 // =============================================================================
@@ -89,7 +85,7 @@ TEST(tHYDROtMHDSYSTEMSoundWave3D, CorrectInputExpectCorrectOutput)
   double amplitude = 1e-5;
   double dx        = 1. / 64.;
 
-  double real_kx = 2 * PI;  // kx of the physical problem
+  double real_kx = 2 * M_PI;  // kx of the physical problem
 
   double kx        = real_kx * dx;
   double speed     = 1;                                  // speed of wave is 1 since P = 0.6 and gamma = 1.666667
