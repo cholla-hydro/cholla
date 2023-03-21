@@ -5,6 +5,7 @@
 
   #include "../grid/grid3D.h"
   #include "../io/io.h"  // To provide io.h with OutputViz3D
+  #include "../utils/cuda_utilities.h"
 
 // Note that the HDF5 file and buffer will have size nx_real * ny_real * nz_real
 // whereas the conserved variables have size nx,ny,nz Note that magnetic fields
@@ -15,22 +16,21 @@
 // Copy Real (non-ghost) cells from source to a double destination (for writing
 // HDF5 in double precision)
 __global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost,
-                                      double* destination, Real* source)
+                                      double* destination, Real* source, int mhd_direction)
 {
-  int dest_id, source_id, id, i, j, k;
-  id = threadIdx.x + blockIdx.x * blockDim.x;
+  int const id = threadIdx.x + blockIdx.x * blockDim.x;
 
-  k = id / (nx_real * ny_real);
-  j = (id - k * nx_real * ny_real) / nx_real;
-  i = id - j * nx_real - k * nx_real * ny_real;
+  int i, j, k;
+  cuda_utilities::compute3DIndices(id, nx_real, ny_real, i, j, k);
 
   if (k >= nz_real) {
     return;
   }
 
   // This converts into HDF5 indexing that plays well with Python
-  dest_id   = k + j * nz_real + i * ny_real * nz_real;
-  source_id = (i + n_ghost) + (j + n_ghost) * nx + (k + n_ghost) * nx * ny;
+  int const dest_id   = k + j * nz_real + i * ny_real * nz_real;
+  int const source_id = (i + n_ghost - int(mhd_direction == 0)) + (j + n_ghost - int(mhd_direction == 1)) * nx +
+                        (k + n_ghost - int(mhd_direction == 2)) * nx * ny;
 
   destination[dest_id] = (double)source[source_id];
 }
@@ -38,22 +38,23 @@ __global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real, 
 // Copy Real (non-ghost) cells from source to a float destination (for writing
 // HDF5 in float precision)
 __global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost,
-                                      float* destination, Real* source)
+                                      float* destination, Real* source, int mhd_direction)
 {
-  int dest_id, source_id, id, i, j, k;
-  id = threadIdx.x + blockIdx.x * blockDim.x;
+  int const id = threadIdx.x + blockIdx.x * blockDim.x;
 
-  k = id / (nx_real * ny_real);
-  j = (id - k * nx_real * ny_real) / nx_real;
-  i = id - j * nx_real - k * nx_real * ny_real;
+  int i, j, k;
+  cuda_utilities::compute3DIndices(id, nx_real, ny_real, i, j, k);
 
   if (k >= nz_real) {
     return;
   }
 
-  // This converts into HDF5 indexing that plays well with Python
-  dest_id   = k + j * nz_real + i * ny_real * nz_real;
-  source_id = (i + n_ghost) + (j + n_ghost) * nx + (k + n_ghost) * nx * ny;
+  // This converts into HDF5 indexing that plays well with Python.
+  // The `int(mhd_direction == NUM)` sections provide appropriate shifts for writing out the magnetic fields since they
+  // need an extra cell in the same direction as the field
+  int const dest_id   = k + j * nz_real + i * ny_real * nz_real;
+  int const source_id = (i + n_ghost - int(mhd_direction == 0)) + (j + n_ghost - int(mhd_direction == 1)) * nx +
+                        (k + n_ghost - int(mhd_direction == 2)) * nx * ny;
 
   destination[dest_id] = (float)source[source_id];
 }
@@ -61,7 +62,7 @@ __global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real, 
 // When buffer is double, automatically use the double version of everything
 // using function overloading
 void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id, double* buffer,
-                      double* device_buffer, Real* device_source, const char* name)
+                      double* device_buffer, Real* device_source, const char* name, int mhd_direction)
 {
   herr_t status;
   hsize_t dims[3];
@@ -74,7 +75,7 @@ void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int
   dim3 dim1dGrid((nx_real * ny_real * nz_real + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(CopyReal3D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny, nx_real, ny_real, nz_real, n_ghost,
-                     device_buffer, device_source);
+                     device_buffer, device_source, mhd_direction);
   CudaSafeCall(cudaMemcpy(buffer, device_buffer, nx_real * ny_real * nz_real * sizeof(double), cudaMemcpyDeviceToHost));
 
   // Write Buffer to HDF5
@@ -89,7 +90,7 @@ void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int
 // When buffer is float, automatically use the float version of everything using
 // function overloading
 void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id, float* buffer,
-                      float* device_buffer, Real* device_source, const char* name)
+                      float* device_buffer, Real* device_source, const char* name, int mhd_direction)
 {
   herr_t status;
   hsize_t dims[3];
@@ -102,7 +103,7 @@ void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int
   dim3 dim1dGrid((nx_real * ny_real * nz_real + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(CopyReal3D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny, nx_real, ny_real, nz_real, n_ghost,
-                     device_buffer, device_source);
+                     device_buffer, device_source, mhd_direction);
   CudaSafeCall(cudaMemcpy(buffer, device_buffer, nx_real * ny_real * nz_real * sizeof(float), cudaMemcpyDeviceToHost));
 
   // Write Buffer to HDF5

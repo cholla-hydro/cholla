@@ -1630,12 +1630,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #ifdef MHD
     if (H.Output_Complete_Data) {
       // Note: for WriteHDF5Field3D, use the left side n_ghost
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_x, "/magnetic_x");
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_y, "/magnetic_y");
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_z, "/magnetic_z");
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_buffer, C.d_magnetic_x, "/magnetic_x", 0);
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset + 1, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_buffer, C.d_magnetic_y, "/magnetic_y", 1);
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset + 1, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_buffer, C.d_magnetic_z, "/magnetic_z", 2);
     }
   #endif  // MHD
 
