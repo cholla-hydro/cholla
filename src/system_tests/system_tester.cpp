@@ -512,11 +512,18 @@ std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(std::string 
     file = _testHydroFieldsFileVec;
   }
 
-  // Get the size of each dimension. First check if the field is a magnetic
+  // Get the size of each dimension. Check if the field is a magnetic
   // field or not to make sure we're retreiving the right dimensions
-  std::string dimsName     = (dataSetName.find("magnetic") != std::string::npos) ? "magnetic_field_dims" : "dims";
-  H5::Attribute dimensions = file[0].openAttribute(dimsName.c_str());
+  H5::Attribute dimensions = file[0].openAttribute("dims");
   dimensions.read(H5::PredType::NATIVE_ULONG, testDims.data());
+
+  if (dataSetName == "magnetic_x") {
+    testDims.at(0)++;
+  } else if (dataSetName == "magnetic_y") {
+    testDims.at(1)++;
+  } else if (dataSetName == "magnetic_z") {
+    testDims.at(2)++;
+  }
 
   // Allocate the vector
   std::vector<double> testData(testDims[0] * testDims[1] * testDims[2]);
@@ -544,11 +551,17 @@ std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(std::string 
     H5::Attribute offsetAttr = file[rank].openAttribute("offset");
     offsetAttr.read(H5::PredType::NATIVE_INT, offset.data());
 
+    if (dataSetName == "magnetic_x") {
+      offset.at(0)--;
+    } else if (dataSetName == "magnetic_y") {
+      offset.at(1)--;
+    } else if (dataSetName == "magnetic_z") {
+      offset.at(2)--;
+    }
+
     // Get dims_local
     std::vector<int> dimsLocal(3, 1);
-    std::string dimsNameLocal =
-        (dataSetName.find("magnetic") != std::string::npos) ? "magnetic_field_dims_local" : "dims_local";
-    H5::Attribute dimsLocalAttr = file[rank].openAttribute(dimsNameLocal.c_str());
+    H5::Attribute dimsLocalAttr = file[rank].openAttribute("dims_local");
     dimsLocalAttr.read(H5::PredType::NATIVE_INT, dimsLocal.data());
 
     // Now we add the data to the larger vector

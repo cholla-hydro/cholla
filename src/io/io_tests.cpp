@@ -34,7 +34,7 @@ TEST(tHYDROtMHDReadGridHdf5, RestartSlowWaveExpectCorrectOutput)
   loadRun.numMpiRanks = num_ranks;
   loadRun.chollaLaunchParams.append(" init=Read_Grid nfile=0 indir=" + read_directory);
 
-  loadRun.setFiducialNumTimeSteps(427);
+  loadRun.setFiducialNumTimeSteps(854);
   loadRun.runL1ErrorTest(4.2E-7, 5.4E-7);
 }
 // =============================================================================

@@ -3183,23 +3183,20 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     min_l  = 1e65;
     max_l  = -1;
     // Copy the x magnetic field array to the grid
-    for (k = 0; k < H.nz_real + 1; k++) {
-      for (j = 0; j < H.ny_real + 1; j++) {
+    for (k = 0; k < H.nz_real; k++) {
+      for (j = 0; j < H.ny_real; j++) {
         for (i = 0; i < H.nx_real + 1; i++) {
-          id               = (i + H.n_ghost - 1) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
-          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
+          id               = (i + H.n_ghost - 1) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          buf_id           = k + j * (H.nz_real) + i * (H.nz_real) * (H.ny_real);
           C.magnetic_x[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.magnetic_x[id]);
-          if (fabs(C.magnetic_x[id]) > max_l) {
-            max_l = fabs(C.magnetic_x[id]);
-          }
-          if (fabs(C.magnetic_x[id]) < min_l) {
-            min_l = fabs(C.magnetic_x[id]);
-          }
+
+          mean_l += std::abs(C.magnetic_x[id]);
+          max_l = std::max(max_l, std::abs(C.magnetic_x[id]));
+          min_l = std::min(min_l, std::abs(C.magnetic_x[id]));
         }
       }
     }
-    mean_l /= ((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1));
+    mean_l /= ((H.nz_real + 1) * (H.ny_real) * (H.nx_real));
 
     #if MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
@@ -3229,23 +3226,20 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     min_l  = 1e65;
     max_l  = -1;
     // Copy the y magnetic field array to the grid
-    for (k = 0; k < H.nz_real + 1; k++) {
+    for (k = 0; k < H.nz_real; k++) {
       for (j = 0; j < H.ny_real + 1; j++) {
-        for (i = 0; i < H.nx_real + 1; i++) {
-          id               = (i + H.n_ghost - 1) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
-          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
+        for (i = 0; i < H.nx_real; i++) {
+          id               = (i + H.n_ghost) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          buf_id           = k + j * (H.nz_real) + i * (H.nz_real) * (H.ny_real + 1);
           C.magnetic_y[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.magnetic_y[id]);
-          if (fabs(C.magnetic_y[id]) > max_l) {
-            max_l = fabs(C.magnetic_y[id]);
-          }
-          if (fabs(C.magnetic_y[id]) < min_l) {
-            min_l = fabs(C.magnetic_y[id]);
-          }
+
+          mean_l += std::abs(C.magnetic_x[id]);
+          max_l = std::max(max_l, std::abs(C.magnetic_x[id]));
+          min_l = std::min(min_l, std::abs(C.magnetic_x[id]));
         }
       }
     }
-    mean_l /= ((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1));
+    mean_l /= ((H.nz_real) * (H.ny_real + 1) * (H.nx_real));
 
     #if MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
@@ -3276,22 +3270,19 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     max_l  = -1;
     // Copy the z magnetic field array to the grid
     for (k = 0; k < H.nz_real + 1; k++) {
-      for (j = 0; j < H.ny_real + 1; j++) {
-        for (i = 0; i < H.nx_real + 1; i++) {
-          id               = (i + H.n_ghost - 1) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
-          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
+      for (j = 0; j < H.ny_real; j++) {
+        for (i = 0; i < H.nx_real; i++) {
+          id               = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
+          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real);
           C.magnetic_z[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.magnetic_z[id]);
-          if (fabs(C.magnetic_z[id]) > max_l) {
-            max_l = fabs(C.magnetic_z[id]);
-          }
-          if (fabs(C.magnetic_z[id]) < min_l) {
-            min_l = fabs(C.magnetic_z[id]);
-          }
+
+          mean_l += std::abs(C.magnetic_x[id]);
+          max_l = std::max(max_l, std::abs(C.magnetic_x[id]));
+          min_l = std::min(min_l, std::abs(C.magnetic_x[id]));
         }
       }
     }
-    mean_l /= ((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1));
+    mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real + 1));
 
     #if MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
