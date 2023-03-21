@@ -1,7 +1,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
-#include "../utils/gpu.hpp"
 #include "../utils/cuda_utilities.h"
+#include "../utils/gpu.hpp"
 #include "cuda_boundaries.h"
 
 __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a);

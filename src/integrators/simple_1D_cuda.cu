@@ -29,10 +29,10 @@ void Simple_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost,
   // Here, *dev_conserved contains the entire
   // set of conserved variables on the grid
 
-  int n_cells = nx;
-  int ny      = 1;
-  int nz      = 1;
-  int ngrid   = (n_cells + TPB - 1) / TPB;
+  int n_cells             = nx;
+  [[maybe_unused]] int ny = 1;
+  [[maybe_unused]] int nz = 1;
+  int ngrid               = (n_cells + TPB - 1) / TPB;
 
   // set the dimensions of the cuda grid
   dim3 dimGrid(ngrid, 1, 1);
