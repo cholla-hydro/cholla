@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <limits>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
@@ -525,8 +526,8 @@ std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(std::string 
     testDims.at(2)++;
   }
 
-  // Allocate the vector
-  std::vector<double> testData(testDims[0] * testDims[1] * testDims[2]);
+  // Allocate the vector and initialize to a quiet NaN to make failed writes clearer
+  std::vector<double> testData(testDims[0] * testDims[1] * testDims[2], std::numeric_limits<double>::quiet_NaN());
 
   for (size_t rank = 0; rank < numMpiRanks; rank++) {
     // Open the dataset
@@ -551,18 +552,18 @@ std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(std::string 
     H5::Attribute offsetAttr = file[rank].openAttribute("offset");
     offsetAttr.read(H5::PredType::NATIVE_INT, offset.data());
 
-    if (dataSetName == "magnetic_x") {
-      offset.at(0)--;
-    } else if (dataSetName == "magnetic_y") {
-      offset.at(1)--;
-    } else if (dataSetName == "magnetic_z") {
-      offset.at(2)--;
-    }
-
     // Get dims_local
     std::vector<int> dimsLocal(3, 1);
     H5::Attribute dimsLocalAttr = file[rank].openAttribute("dims_local");
     dimsLocalAttr.read(H5::PredType::NATIVE_INT, dimsLocal.data());
+
+    if (dataSetName == "magnetic_x") {
+      dimsLocal.at(0)++;
+    } else if (dataSetName == "magnetic_y") {
+      dimsLocal.at(1)++;
+    } else if (dataSetName == "magnetic_z") {
+      dimsLocal.at(2)++;
+    }
 
     // Now we add the data to the larger vector
     size_t localIndex = 0;
