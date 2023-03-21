@@ -482,7 +482,7 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
   } else if (G.R.flag_delta == 2) {
     // case 2 -- outputting at a rotating delta
     // rotation rate given in the parameter file
-    G.R.delta = fmod(nfile * G.R.ddelta_dt * 2.0 * PI, (2.0 * PI));
+    G.R.delta = fmod(nfile * G.R.ddelta_dt * 2.0 * M_PI, (2.0 * M_PI));
 
     // Create a new file
     file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
