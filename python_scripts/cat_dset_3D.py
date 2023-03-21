@@ -76,10 +76,12 @@ for n in range(ns, ne+1):
     except KeyError:
         print('No Dual energy data present');
     try:
-      [nxl_mag, nyl_mag, nzl_mag] = head['magnetic_field_dims_local']
-      fileout['magnetic_x'][xs:xs+nxl_mag,ys:ys+nyl_mag,zs:zs+nzl_mag] = filein['magnetic_x']
-      fileout['magnetic_y'][xs:xs+nxl_mag,ys:ys+nyl_mag,zs:zs+nzl_mag] = filein['magnetic_y']
-      fileout['magnetic_z'][xs:xs+nxl_mag,ys:ys+nyl_mag,zs:zs+nzl_mag] = filein['magnetic_z']
+      xShift = 1 if xs>0 else 0
+      yShift = 1 if ys>0 else 0
+      zShift = 1 if zs>0 else 0
+      fileout['magnetic_x'][xs-xShift:xs+nxl, ys:ys+nyl,   zs:zs+nzl]   = filein['magnetic_x']
+      fileout['magnetic_y'][xs:xs+nxl,   ys-yShift:ys+nyl, zs:zs+nzl]   = filein['magnetic_y']
+      fileout['magnetic_z'][xs:xs+nxl,   ys:ys+nyl,   zs-zShift:zs+nzl] = filein['magnetic_z']
     except KeyError:
         print('No magnetic field data present');
 
