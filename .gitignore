@@ -88,8 +88,4 @@ docs/sphinx/build
 
 /win/test
 /win/x64/Debug
-/win/.vs/win
-/win/win.vcxproj.filters~
-*.vcxproj~
-/win/plot.py~
 /win/.vs/cholla
