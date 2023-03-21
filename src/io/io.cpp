@@ -710,28 +710,12 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
 
-  #ifdef MHD
-  for (size_t i = 0; i < 3; i++) {
-    int_data[i]++;
-  }
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "magnetic_field_dims");
-  #endif  // MHD
-
   #ifdef MPI_CHOLLA
   int_data[0] = H.nx_real;
   int_data[1] = H.ny_real;
   int_data[2] = H.nz_real;
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
-
-    #ifdef MHD
-  int_data[0] = H.nx_real + 1;
-  int_data[1] = H.ny_real + 1;
-  int_data[2] = H.nz_real + 1;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "magnetic_field_dims_local");
-    #endif  // MHD
 
   int_data[0] = nx_local_start;
   int_data[1] = ny_local_start;
