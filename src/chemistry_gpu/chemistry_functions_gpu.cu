@@ -522,8 +522,8 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     GE = dev_conserved[4 * n_cells + id] - E_kin;
   #endif
 
-    if (xid == 67 && yid == 67 && zid == 67) {
-      /// print = 2;
+    if (xid == n_ghost && yid == n_ghost && zid == n_ghost) {
+      ///print = 2;
     }
 
     // Convert to cgs units

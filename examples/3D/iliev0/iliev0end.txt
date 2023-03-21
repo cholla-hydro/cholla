@@ -14,7 +14,7 @@ tinit=5.0e2
 tout=1e4
 # time interval for output
 outstep=1.0
-outlog=0.1
+outstep_dexinc=0.1
 # name of initial conditions
 init=Read_Grid
 # domain properties

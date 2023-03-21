@@ -170,7 +170,9 @@ struct parameters {
   double tinit = 0;
   double tout;
   double outstep;
-  double outlog = 0;
+  double outstep_dexinc = 0;
+  double max_timestep = 0;
+  double max_timestep_dexinc = 0;
   int n_steps_output;
   Real gamma;
   char init[MAXLEN];

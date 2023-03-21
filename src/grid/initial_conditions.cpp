@@ -218,7 +218,7 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
 #endif  // MHD
 
         // Exclude the rightmost ghost cell on the "left" side
-        if ((k >= kstart) and (j >= jstart) and (i >= istart)) {
+        if ((k >= kstart) && (j >= jstart) && (i >= istart)) {
           // set constant initial states
           C.density[id]    = rho;
           C.momentum_x[id] = rho * vx;
@@ -472,7 +472,7 @@ void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real
 #endif  // MHD
 
         // Exclude the rightmost ghost cell on the "left" side
-        if ((k >= kstart) and (j >= jstart) and (i >= istart)) {
+        if ((k >= kstart) && (j >= jstart) && (i >= istart)) {
           if (x_pos < diaph) {
             C.density[id]    = rho_l;
             C.momentum_x[id] = rho_l * vx_l;
@@ -1247,7 +1247,7 @@ void Grid3D::Clouds()
   Real T_bg, T_cl;       // background and cloud temperature
   Real p_bg, p_cl;       // background and cloud pressure
   Real mu   = 0.6;       // mean atomic weight
-  int N_cl  = 1;         // number of clouds
+  constexpr int N_cl  = 1;         // number of clouds
   Real R_cl = 2.5;       // cloud radius in code units (kpc)
   Real cl_pos[N_cl][3];  // array of cloud positions
   Real r;
@@ -1352,7 +1352,7 @@ void Grid3D::Clouds()
 void Grid3D::Uniform_Grid()
 {
   chprintf(" Initializing Uniform Grid\n");
-  int i, j, k, id;
+  size_t i, j, k, id;
 
   // Set limits
   size_t const istart = H.n_ghost;
@@ -1377,7 +1377,7 @@ void Grid3D::Uniform_Grid()
 #endif  // MHD
 
         // Exclude the rightmost ghost cell on the "left" side
-        if ((k >= kstart) and (j >= jstart) and (i >= istart)) {
+        if ((k >= kstart) && (j >= jstart) && (i >= istart)) {
           C.density[id]    = 0;
           C.momentum_x[id] = 0;
           C.momentum_y[id] = 0;

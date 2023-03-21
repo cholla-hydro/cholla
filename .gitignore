@@ -92,3 +92,4 @@ docs/sphinx/build
 /win/win.vcxproj.filters~
 *.vcxproj~
 /win/plot.py~
+/win/.vs/cholla
