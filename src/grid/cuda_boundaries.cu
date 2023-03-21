@@ -1,6 +1,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
+#include "../utils/cuda_utilities.h"
 #include "cuda_boundaries.h"
 
 __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *a);
@@ -324,17 +325,8 @@ __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int
   // calculate ghost cell ID and i,j,k in GPU grid
   id = threadIdx.x + blockIdx.x * blockDim.x;
 
-  int isize, jsize, ksize;
-
-  // -x boundary
-  isize = n_ghost;
-  jsize = ny;
-  ksize = nz;
-
   // not true i,j,k but relative i,j,k in the GPU grid
-  zid = id / (isize * jsize);
-  yid = (id - zid * isize * jsize) / isize;
-  xid = id - zid * isize * jsize - yid * isize;
+  cuda_utilities::compute3DIndices(id, n_ghost, ny, xid, yid, zid);
 
   // map thread id to ghost cell id
   xid += 0;  // -x boundary
