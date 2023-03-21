@@ -51,10 +51,9 @@ for n in range(ns, ne+1):
       except KeyError:
         print('No Dual energy data present');
       try:
-        [nx_mag, ny_mag, nz_mag] = head['magnetic_field_dims']
-        bx = fileout.create_dataset("magnetic_x", (nx_mag, ny_mag, nz_mag), chunks=True, dtype=filein['magnetic_x'].dtype)
-        by = fileout.create_dataset("magnetic_y", (nx_mag, ny_mag, nz_mag), chunks=True, dtype=filein['magnetic_y'].dtype)
-        bz = fileout.create_dataset("magnetic_z", (nx_mag, ny_mag, nz_mag), chunks=True, dtype=filein['magnetic_z'].dtype)
+        bx = fileout.create_dataset("magnetic_x", (nx+1, ny, nz), chunks=True, dtype=filein['magnetic_x'].dtype)
+        by = fileout.create_dataset("magnetic_y", (nx, ny+1, nz), chunks=True, dtype=filein['magnetic_y'].dtype)
+        bz = fileout.create_dataset("magnetic_z", (nx, ny, nz+1), chunks=True, dtype=filein['magnetic_z'].dtype)
       except KeyError:
         print('No magnetic field data present');
 
@@ -76,12 +75,9 @@ for n in range(ns, ne+1):
     except KeyError:
         print('No Dual energy data present');
     try:
-      xShift = 1 if xs>0 else 0
-      yShift = 1 if ys>0 else 0
-      zShift = 1 if zs>0 else 0
-      fileout['magnetic_x'][xs-xShift:xs+nxl, ys:ys+nyl,   zs:zs+nzl]   = filein['magnetic_x']
-      fileout['magnetic_y'][xs:xs+nxl,   ys-yShift:ys+nyl, zs:zs+nzl]   = filein['magnetic_y']
-      fileout['magnetic_z'][xs:xs+nxl,   ys:ys+nyl,   zs-zShift:zs+nzl] = filein['magnetic_z']
+      fileout['magnetic_x'][xs:xs+nxl+1, ys:ys+nyl,   zs:zs+nzl]   = filein['magnetic_x']
+      fileout['magnetic_y'][xs:xs+nxl,   ys:ys+nyl+1, zs:zs+nzl]   = filein['magnetic_y']
+      fileout['magnetic_z'][xs:xs+nxl,   ys:ys+nyl,   zs:zs+nzl+1] = filein['magnetic_z']
     except KeyError:
         print('No magnetic field data present');
 
