@@ -8,6 +8,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <string>
 #ifdef HDF5
   #include <hdf5.h>
 #endif  // HDF5
@@ -179,29 +180,26 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
 /* Output the grid data to file. */
 void OutputData(Grid3D &G, struct parameters P, int nfile)
 {
-  char filename[MAXLEN];
-  char timestep[20];
-
   // create the filename
-  strcpy(filename, P.outdir);
-  sprintf(timestep, "%d", nfile);
-  strcat(filename, timestep);
+  std::string filename(P.outdir);
+  filename += std::to_string(nfile);
+
 #if defined BINARY
-  strcat(filename, ".bin");
+  filename += ".bin";
 #elif defined HDF5
-  strcat(filename, ".h5");
+  filename += ".h5";
 #else
   strcat(filename, ".txt");
   if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
 #endif
 #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
 #endif
 
 // open the file for binary writes
 #if defined BINARY
   FILE *out;
-  out = fopen(filename, "w");
+  out = fopen(filename.data(), "w");
   if (out == NULL) {
     printf("Error opening output file.\n");
     exit(-1);
@@ -222,7 +220,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
   herr_t status;
 
   // Create a new file using default properties.
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write the header (file attributes)
   G.Write_Header_HDF5(file_id);
@@ -273,16 +271,12 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
     return;
   }
 
-  char filename[MAXLEN];
-  char timestep[20];
-
   // create the filename
-  sprintf(timestep, "%d", nfile);
-  strcpy(filename, P.outdir);
-  strcat(filename, timestep);
-  strcat(filename, ".float32.h5");
+  std::string filename(P.outdir);
+  filename += std::to_string(nfile);
+  filename += ".float32.h5";
 #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
 #endif
 
   // create hdf5 file
@@ -290,7 +284,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
   herr_t status;
 
   // Create a new file using default properties.
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write the header (file attributes)
   G.Write_Header_HDF5(file_id);
@@ -375,24 +369,21 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 /* Output a projection of the grid data to file. */
 void OutputProjectedData(Grid3D &G, struct parameters P, int nfile)
 {
-  char filename[100];
-  char timestep[20];
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  strcpy(filename, P.outdir);
-  sprintf(timestep, "%d_proj", nfile);
-  strcat(filename, timestep);
-  strcat(filename, ".h5");
+  std::string filename(P.outdir);
+  filename += std::to_string(nfile);
+  filename += "_proj.h5";
 
   #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
   #endif /*MPI_CHOLLA*/
 
   // Create a new file
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write header (file attributes)
   G.Write_Header_HDF5(file_id);
@@ -423,20 +414,17 @@ void OutputProjectedData(Grid3D &G, struct parameters P, int nfile)
 /* Output a rotated projection of the grid data to file. */
 void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
 {
-  char filename[100];
-  char timestep[20];
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  strcpy(filename, P.outdir);
-  sprintf(timestep, "%d_rot_proj", nfile);
-  strcat(filename, timestep);
-  strcat(filename, ".h5");
+  std::string filename(P.outdir);
+  filename += std::to_string(nfile);
+  filename += "_rot_proj.h5";
 
   #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
   #endif /*MPI_CHOLLA*/
 
   if (G.R.flag_delta == 1) {
@@ -446,7 +434,7 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
     char fname[200];
 
     for (i_delta = 0; i_delta < G.R.n_delta; i_delta++) {
-      sprintf(fname, "%s.%d", filename, G.R.i_delta);
+      filename += "." + std::to_string(G.R.i_delta);
       chprintf("Outputting rotated projection %s.\n", fname);
 
       // determine delta about z by output index
@@ -485,7 +473,7 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
     G.R.delta = fmod(nfile * G.R.ddelta_dt * 2.0 * PI, (2.0 * PI));
 
     // Create a new file
-    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     // Write header (file attributes)
     G.Write_Header_Rotated_HDF5(file_id);
@@ -499,7 +487,7 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
     // case 0 -- just output at the delta given in the parameter file
 
     // Create a new file
-    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     // Write header (file attributes)
     G.Write_Header_Rotated_HDF5(file_id);
@@ -531,24 +519,21 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
 /* Output xy, xz, and yz slices of the grid data. */
 void OutputSlices(Grid3D &G, struct parameters P, int nfile)
 {
-  char filename[100];
-  char timestep[20];
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  strcpy(filename, P.outdir);
-  sprintf(timestep, "%d_slice", nfile);
-  strcat(filename, timestep);
-  strcat(filename, ".h5");
+  std::string filename(P.outdir);
+  filename += std::to_string(nfile);
+  filename += "_slice.h5";
 
   #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
   #endif /*MPI_CHOLLA*/
 
   // Create a new file
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write header (file attributes)
   G.Write_Header_HDF5(file_id);
@@ -2259,21 +2244,17 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
  *  \brief Read in grid data from an output file. */
 void Grid3D::Read_Grid(struct parameters P)
 {
-  char filename[100];
-  char timestep[20];
-  int nfile = P.nfile;  // output step you want to read from
-
   // create the filename to read from
   // assumes your data is in the outdir specified in the input file
   // strcpy(filename, P.outdir);
   // Changed to read initial conditions from indir
-  strcpy(filename, P.indir);
-  sprintf(timestep, "%d", nfile);
-  strcat(filename, timestep);
+  std::string filename(P.indir);
+  filename += std::to_string(P.nfile);
+
 #if defined BINARY
-  strcat(filename, ".bin");
+  filename += ".bin";
 #elif defined HDF5
-  strcat(filename, ".h5");
+  filename += ".h5";
 #endif  // BINARY or HDF5
 // for now assumes you will run on the same number of processors
 #ifdef MPI_CHOLLA
@@ -2281,7 +2262,7 @@ void Grid3D::Read_Grid(struct parameters P)
   sprintf(filename, "%sics_%dMpc_%d.h5", P.indir, (int)P.tile_length / 1000,
           H.nx_real);  // Everyone reads the same file
   #else                // TILED_INITIAL_CONDITIONS is not defined
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
   #endif               // TILED_INITIAL_CONDITIONS
 #endif                 // MPI_CHOLLA
 
@@ -2305,9 +2286,9 @@ void Grid3D::Read_Grid(struct parameters P)
   herr_t status;
 
   // open the file
-  file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  file_id = H5Fopen(filename.data(), H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) {
-    printf("Unable to open input file: %s\n", filename);
+    std::cout << "Unable to open input file: " << filename << std::endl;
     exit(0);
   }
 
