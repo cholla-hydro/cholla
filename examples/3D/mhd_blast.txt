@@ -1,0 +1,61 @@
+#
+# Parameter File for the MHD Blast wavelength
+# See [Gardiner & Stone 2008](https://arxiv.org/abs/0712.2634) for details.
+#
+
+################################################
+# number of grid cells in the x dimension
+nx=128
+# number of grid cells in the y dimension
+ny=128
+# number of grid cells in the z dimension
+nz=128
+# final output time
+tout=0.02
+# time interval for output
+outstep=0.02
+# name of initial conditions
+init=MHD_Spherical_Blast
+# domain properties
+xmin=-0.5
+ymin=-0.5
+zmin=-0.5
+xlen=1.0
+ylen=1.0
+zlen=1.0
+# type of boundary conditions
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
+# path to output directory
+outdir=./
+
+#################################################
+# Parameters for MHD Blast Wave problem
+
+# initial density
+rho=1.0
+# velocity in the x direction
+vx=0.0
+# velocity in the y direction
+vy=0.0
+# velocity in the z direction
+vz=0.0
+# initial pressure outside the blast zone
+P=1.0
+# initial pressure inside the blast zone
+P_blast=100.0
+# The radius of the blast zone
+R=0.125
+# magnetic field in the x direction. Equal to 10/sqrt(2)
+Bx=7.0710678118654746
+# magnetic field in the y direction
+By=0.0
+# magnetic field in the z direction. Equal to 10/sqrt(2)
+Bz=7.0710678118654746
+
+# value of gamma
+gamma=1.666666666666667

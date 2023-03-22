@@ -89,6 +89,8 @@ void Grid3D::Set_Initial_Conditions(parameters P)
     Circularly_Polarized_Alfven_Wave(P);
   } else if (strcmp(P.init, "Advecting_Field_Loop") == 0) {
     Advecting_Field_Loop(P);
+  } else if (strcmp(P.init, "MHD_Spherical_Blast") == 0) {
+    MHD_Spherical_Blast(P);
 #endif  // MHD
   } else {
     chprintf("ABORT: %s: Unknown initial conditions!\n", P.init);
@@ -1763,6 +1765,67 @@ void Grid3D::Advecting_Field_Loop(struct parameters const P)
         C.Energy[id]     = mhd::utils::computeEnergy(P.P, P.rho, C.momentum_x[id] / P.rho, C.momentum_y[id] / P.rho,
                                                      C.momentum_z[id] / P.rho, magnetic_centered.x, magnetic_centered.y,
                                                      magnetic_centered.z, ::gama);
+      }
+    }
+  }
+}
+
+void Grid3D::MHD_Spherical_Blast(struct parameters const P)
+{
+  // This test is only meaningful for a limited number of parameter values so I will check them here
+  // Check that the domain is centered on zero
+  assert((P.xmin + P.xlen / 2) == 0 and (P.ymin + P.ylen / 2) == 0 and (P.zmin + P.zlen / 2 == 0) and
+         "Domain must be centered at zero");
+
+  // Check that P.R is smaller than the size of the domain
+  Real const domain_size = std::hypot(P.xlen / 2, P.ylen / 2, P.zlen / 2);
+  assert(domain_size > P.R and "The size of the domain must be greater than P.R");
+
+  // Initialize the magnetic field
+  for (int k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
+        // get cell index
+        int const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        C.magnetic_x[id] = P.Bx;
+        C.magnetic_y[id] = P.By;
+        C.magnetic_z[id] = P.Bz;
+      }
+    }
+  }
+
+  for (int k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
+        // get cell index
+        int const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        // Set the fields that don't depend on pressure
+        C.density[id]    = P.rho;
+        C.momentum_x[id] = P.rho * P.vx;
+        C.momentum_y[id] = P.rho * P.vy;
+        C.momentum_z[id] = P.rho * P.vz;
+
+        // Get the cell centered positions
+        Real x, y, z;
+        Get_Position(i, j, k, &x, &y, &z);
+
+        // Compute the magnetic field in this cell
+        auto const magnetic_centered =
+            mhd::utils::cellCenteredMagneticFields(C.host, id, i, j, k, H.n_cells, H.nx, H.ny);
+
+        // Set the field(s) that do depend on pressure. That's just energy
+        Real radius = std::hypot(x, y, z);
+        if (radius < P.R) {
+          C.Energy[id] = mhd::utils::computeEnergy(
+              P.P_blast, C.density[id], C.momentum_x[id] / C.density[id], C.momentum_y[id] / C.density[id],
+              C.momentum_z[id] / C.density[id], magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
+        } else {
+          C.Energy[id] = mhd::utils::computeEnergy(
+              P.P, C.density[id], C.momentum_x[id] / C.density[id], C.momentum_y[id] / C.density[id],
+              C.momentum_z[id] / C.density[id], magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
+        }
       }
     }
   }

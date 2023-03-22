@@ -60,6 +60,9 @@ void Check_Configuration(parameters const &P)
 #endif  //! PRECISION
   static_assert(PRECISION == 2, "PRECISION must be 2. Single precision is not currently supported");
 
+  // Check that gamma, the ratio of specific heats, is greater than 1
+  assert(::gama <= 1.0 and "Gamma must be greater than one.");
+
 // MHD Checks
 // ==========
 #ifdef MHD
