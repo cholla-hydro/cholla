@@ -608,6 +608,13 @@ TEST_P(tMHDSYSTEMParameterizedMpi, MhdBlastWaveCorrectInputExpectCorrectOutput)
   test_runner.numMpiRanks = GetParam();
   test_runner.runTest();
 }
+
+/// Test the Orszag-Tang Vortex
+TEST_P(tMHDSYSTEMParameterizedMpi, OrszagTangVortexCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
 /// @}
 // =============================================================================
 

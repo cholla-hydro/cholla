@@ -705,6 +705,14 @@ class Grid3D
    * \param P The parameters struct
    */
   void MHD_Spherical_Blast(struct parameters const P);
+
+  /*!
+   * \brief Initialize the grid with the Orszag-Tang Vortex. See [Gardiner & Stone
+   * 2008](https://arxiv.org/abs/0712.2634)
+   *
+   * \param P The parameters.
+   */
+  void Orszag_Tang_Vortex();
 #endif  // MHD
 
 #ifdef MPI_CHOLLA
