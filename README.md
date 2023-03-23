@@ -1,8 +1,13 @@
-![Compile](https://github.com/cholla-hydro/cholla/actions/workflows/build_tests.yml/badge.svg)
+![Build & Lint](https://github.com/cholla-hydro/cholla/actions/workflows/build_and_lint.yml/badge.svg)
+![Code Formatting](https://github.com/cholla-hydro/cholla/actions/workflows/code_formatting.yml/badge.svg)
 
 CHOLLA
 ============
 A 3D GPU-based hydrodynamics code (Schneider & Robertson, ApJS, 2015).
+
+
+https://user-images.githubusercontent.com/3432028/188235319-e5eb4e5e-00c6-435f-a2f3-7e9f7929c883.mp4
+
 
 Getting started
 ----------------
