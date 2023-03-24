@@ -621,7 +621,7 @@ void Grid3D::KH()
         Get_Position(i, j, H.n_ghost, &x_pos, &y_pos, &z_pos);
 
         // outer quarters of slab
-        if (y_pos <= 1.0 * H.ydglobal / 4.0) {
+        if ((y_pos <= 1.0 * H.ydglobal / 4.0) or (y_pos >= 3.0 * H.ydglobal / 4.0)) {
           C.density[id]    = d2;
           C.momentum_x[id] = v2 * C.density[id];
           C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos);
@@ -631,25 +631,12 @@ void Grid3D::KH()
           C.basic_scalar[id] = 0.0;
   #endif
 #endif
-        } else if (y_pos >= 3.0 * H.ydglobal / 4.0) {
-          C.density[id]    = d2;
-          C.momentum_x[id] = v2 * C.density[id];
-          C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos);
-          C.momentum_z[id] = 0.0;
-
-#ifdef SCALAR
-  #ifdef BASIC_SCALAR
-          C.basic_scalar[id] = 0.0;
-  #endif
-#endif
-        }
         // inner half of slab
-        else {
+        } else {
           C.density[id]    = d1;
           C.momentum_x[id] = v1 * C.density[id];
           C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos);
           C.momentum_z[id] = 0.0;
-
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
           C.basic_scalar[id] = 1.0 * d1;
@@ -1110,7 +1097,7 @@ void Grid3D::Disk_2D()
 #ifdef DE
       C.GasEnergy[id] = P / (gama - 1.0);
 #endif  // DE
-      // printf("%e %e %f %f %f %f %f\n", x_pos, y_pos, d, Sigma, vx, vy, P);
+        // printf("%e %e %f %f %f %f %f\n", x_pos, y_pos, d, Sigma, vx, vy, P);
     }
   }
 }

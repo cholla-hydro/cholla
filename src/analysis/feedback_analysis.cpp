@@ -7,7 +7,7 @@
   #include "../mpi/mpi_routines.h"
 #endif
 
-#define VRMS_CUTOFF_DENSITY 0.01 * 0.6 * MP / DENSITY_UNIT
+#define VRMS_CUTOFF_DENSITY (0.01 * 0.6 * MP / DENSITY_UNIT)
 
 FeedbackAnalysis::FeedbackAnalysis(Grid3D& G)
 {

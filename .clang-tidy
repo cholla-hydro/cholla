@@ -27,6 +27,7 @@ Checks: "*,
         -*osx*,
         -zircon-*,
 
+        -bugprone-easily-swappable-parameters,
         -modernize-use-trailing-return-type,
         -readability-avoid-const-params-in-decls,
         -readability-static-accessed-through-instance,
@@ -35,18 +36,9 @@ Checks: "*,
         google-readability-avoid-underscore-in-googletest-name,
         google-upgrade-googletest-case,
 
-        -bugprone-assignment-in-if-condition,
-        -bugprone-branch-clone,
-        -bugprone-easily-swappable-parameters,
         -bugprone-implicit-widening-of-multiplication-result,
-        -bugprone-integer-division,
-        -bugprone-macro-parentheses,
         -bugprone-narrowing-conversions,
-        -bugprone-reserved-identifier,
-        -bugprone-string-integer-assignment,
-        -cert-dcl37-c,
         -cert-dcl50-cpp,
-        -cert-dcl51-cpp,
         -cert-dcl59-cpp,
         -cert-env33-c,
         -cert-err33-c,
@@ -159,7 +151,8 @@ Checks: "*,
         -readability-simplify-boolean-expr,
         -readability-suspicious-call-argument"
 WarningsAsErrors: ''
-HeaderFilterRegex: '.*'
+# More paths can be ignored by modifying this so that it looks like '^((?!/PATH/ONE/|/PATH/TWO/).)*$'
+HeaderFilterRegex: '^((?!/ihome/crc/install/power9/googletest/1.11.0/include/|/usr/lib/x86_64-linux-gnu/hdf5/serial/include/).)*$'
 AnalyzeTemporaryDtors: false
 FormatStyle:     'file'
 UseColor: false
