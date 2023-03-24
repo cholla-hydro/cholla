@@ -170,10 +170,10 @@ Real z_hc_D3D(int k, Real dz, int nz, int ng)
   // the real domain, and nz + 2*ng spanning the real + ghost domains
   if (!(nz % 2)) {
     // even # of cells
-    return 0.5 * dz + ((Real)(k - ng - nz / 2)) * dz;
+    return 0.5 * dz + ((Real)(k - ng - (int)(nz / 2))) * dz;
   } else {
     // odd # of cells
-    return ((Real)(k - ng - (nz - 1) / 2)) * dz;
+    return ((Real)(k - ng - (int)((nz - 1) / 2))) * dz;
   }
 }
 
