@@ -631,7 +631,7 @@ void Grid3D::KH()
           C.basic_scalar[id] = 0.0;
   #endif
 #endif
-        // inner half of slab
+          // inner half of slab
         } else {
           C.density[id]    = d1;
           C.momentum_x[id] = v1 * C.density[id];
