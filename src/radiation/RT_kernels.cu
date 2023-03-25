@@ -301,15 +301,14 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
   /// float d = pars.dx*rs.Val(0,iw,jw,kw) - abc.Val(0,iw,jw,kw)*rfNear.Val(0,iw,jw,kw) + flux.Val(0,ihp,jw,kw) -
   /// flux.Val(0,ihm,jw,kw) + flux.Val(1,iw,jhp,kw) - flux.Val(1,iw,jhm,kw) + flux.Val(2,iw,jw,khp) -
   /// flux.Val(2,iw,jw,khm);
-  const Real du = dx * rs[i + nx * (j + ny * k)] - abc[i + nx * (j + ny * k)] * rfNear[i + nx * (j + ny * k)] + fuxp - fuxm +
-            fuyp - fuym + fuzp - fuzm;
+  const Real du = dx * rs[i + nx * (j + ny * k)] - abc[i + nx * (j + ny * k)] * rfNear[i + nx * (j + ny * k)] + fuxp -
+                  fuxm + fuyp - fuym + fuzp - fuzm;
   const Real dv = dx * rsFarFactor * rfFar[i + nx * (j + ny * k)] -
-            abc[i + nx * (j + ny * k)] * rfFar[i + nx * (j + ny * k)] + fvxp - fvxm + fvyp - fvym + fvzp - fvzm;
+                  abc[i + nx * (j + ny * k)] * rfFar[i + nx * (j + ny * k)] + fvxp - fvxm + fvyp - fvym + fvzp - fvzm;
 
   /// float rfNew = rfNear.Val(0,iw,jw,kw) + alpha*A*d;
   Real rfu2 = rfNear[i + nx * (j + ny * k)] + alpha * Au * du;
   Real rfv2 = rfFar[i + nx * (j + ny * k)] + alpha * Av * dv;
-
 
   if (rfu2 != rfu2 || rfv2 != rfv2) {
     printf("OTVET nan | tid %d | %g | %g | %g | %g | %g | %g \n", tid, ahpcc, ahmcc, ahccp, ahccm, ahcpc, ahcmc);
