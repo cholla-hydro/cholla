@@ -310,10 +310,6 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
   Real rfu2 = rfNear[i + nx * (j + ny * k)] + alpha * Au * du;
   Real rfv2 = rfFar[i + nx * (j + ny * k)] + alpha * Av * dv;
 
-  if (rfu2 != rfu2 || rfv2 != rfv2) {
-    printf("OTVET nan | tid %d | %g | %g | %g | %g | %g | %g \n", tid, ahpcc, ahmcc, ahccp, ahccm, ahcpc, ahcmc);
-  }
-
   /// if(deb!=0 && i==36 && j==36 && k==36) printf("GPU %g = %g + %g %g (ot=%g)
   /// %g,%g,%g,%g,%g,%g,%g,%g\n",rfu2,rfNear[i+nx*(j+nz*k)],Au,du,rfOT[i+nx*(j+nz*k)],dx*rs[i+nx*(j+nz*k)],abc[i+nx*(j+nz*k)]*rfNear[i+nx*(j+nz*k)],fuxp,fuxm,fuyp,fuym,fuzp,fuzm);
 
