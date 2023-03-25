@@ -146,9 +146,9 @@ void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSec
       dx * (xs.HIatHeII * densHI + xs.HeIatHeII * densHeI + xs.HeIIatHeII * densHeII);
 }
 
-  #define PU(TT, I, J, K) rfNear[i + I + nx * (j + J + nz * (k + K))] * et##TT[i + I + nx * (j + J + nz * (k + K))]
+  #define PU(TT, I, J, K) rfNear[i + I + nx * (j + J + ny * (k + K))] * et##TT[i + I + nx * (j + J + ny * (k + K))]
   #define PV(TT, I, J, K) \
-    rfFar[i + I + nx * (j + J + nz * (k + K))] * (1.0f / 3.0f)  // et for the far field is unitary matrix/3
+    rfFar[i + I + nx * (j + J + ny * (k + K))] * (1.0f / 3.0f)  // et for the far field is unitary matrix/3
 
 void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
                                       const Real rsFarFactor, const Real* __restrict__ rs, const Real* __restrict__ et,
@@ -190,8 +190,8 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
   //  X-direction
   //
   /// float ahx = epsNum + 0.5f*(abc.Val(0,i,j,k)+abc.Val(0,i+1,j,k));
-  const Real ahpcc = epsNum + 0.5f * (abc[i + nx * (j + nz * k)] + abc[i + 1 + nx * (j + nz * k)]);
-  const Real ahmcc = epsNum + 0.5f * (abc[i + nx * (j + nz * k)] + abc[i - 1 + nx * (j + nz * k)]);
+  const Real ahpcc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + 1 + nx * (j + ny * k)]);
+  const Real ahmcc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i - 1 + nx * (j + ny * k)]);
 
   /// float ux = rfNear.Val(0,i+1,j,k)*et.Val(0,i+1,j,k) - rfNear.Val(0,i,j,k)*et.Val(0,i,j,k);
   Real uxp = PU(XX, 1, 0, 0) - PU(XX, 0, 0, 0);
@@ -223,8 +223,8 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
   //  Y-direction
   //
   /// float ahy = epsNum + 0.5f*(abc.Val(0,i,j,k)+abc.Val(0,i,j+1,k));
-  const Real ahcpc = epsNum + 0.5f * (abc[i + nx * (j + nz * k)] + abc[i + nx * (j + 1 + nz * k)]);
-  const Real ahcmc = epsNum + 0.5f * (abc[i + nx * (j + nz * k)] + abc[i + nx * (j - 1 + nz * k)]);
+  const Real ahcpc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + 1 + ny * k)]);
+  const Real ahcmc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j - 1 + ny * k)]);
 
   /// float uy = rfNear.Val(0,i,j+1,k)*et.Val(2,i,j+1,k) - rfNear.Val(0,i,j,k)*et.Val(2,i,j,k);
   uyp = PU(YY, 0, 1, 0) - PU(YY, 0, 0, 0);
@@ -256,8 +256,8 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
   //  Z-direction
   //
   /// float ahz = epsNum + 0.5f*(abc.Val(0,i,j,k)+abc.Val(0,i,j,k+1));
-  const Real ahccp = epsNum + 0.5f * (abc[i + nx * (j + nz * k)] + abc[i + nx * (j + nz * (k + 1))]);
-  const Real ahccm = epsNum + 0.5f * (abc[i + nx * (j + nz * k)] + abc[i + nx * (j + nz * (k - 1))]);
+  const Real ahccp = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + ny * (k + 1))]);
+  const Real ahccm = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + ny * (k - 1))]);
 
   /// float uz = rfNear.Val(0,i,j,k+1)*et.Val(5,i,j,k+1) - rfNear.Val(0,i,j,k)*et.Val(5,i,j,k);
   uzp = PU(ZZ, 0, 0, 1) - PU(ZZ, 0, 0, 0);
@@ -288,33 +288,38 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
   /// float minus_wII = et.Val(0,iw,jw,kw)*(abch.Val(0,ihm,jw,kw)+abch.Val(0,ihp,jw,kw)) +
   /// et.Val(2,iw,jw,kw)*(abch.Val(1,iw,jhm,kw)+abch.Val (1,iw,jhp,kw)) +
   /// et.Val(5,iw,jw,kw)*(abch.Val(2,iw,jw,khm)+abch.Val(2,iw,jw,khp));
-  const Real uminus_wII = etXX[i + nx * (j + nz * k)] * (1 / ahpcc + 1 / ahmcc) +
-                          etYY[i + nx * (j + nz * k)] * (1 / ahcpc + 1 / ahcmc) +
-                          etZZ[i + nx * (j + nz * k)] * (1 / ahccp + 1 / ahccm);
+  const Real uminus_wII = etXX[i + nx * (j + ny * k)] * (1 / ahpcc + 1 / ahmcc) +
+                          etYY[i + nx * (j + ny * k)] * (1 / ahcpc + 1 / ahcmc) +
+                          etZZ[i + nx * (j + ny * k)] * (1 / ahccp + 1 / ahccm);
   const Real vminus_wII = (1.0f / 3.0f) / ahpcc + (1.0f / 3.0f) / ahmcc + (1.0f / 3.0f) / ahcpc +
                           (1.0f / 3.0f) / ahcmc + (1.0f / 3.0f) / ahccp + (1.0f / 3.0f) / ahccm;
 
   /// float A = gamma/(1+gamma*(abc.Val(0,iw,jw,kw)+minus_wII));
-  const Real Au = gamma / (1 + gamma * (abc[i + nx * (j + nz * k)] + uminus_wII));
-  const Real Av = gamma / (1 + gamma * (abc[i + nx * (j + nz * k)] + vminus_wII));
+  const Real Au = gamma / (1 + gamma * (abc[i + nx * (j + ny * k)] + uminus_wII));
+  const Real Av = gamma / (1 + gamma * (abc[i + nx * (j + ny * k)] + vminus_wII));
 
   /// float d = pars.dx*rs.Val(0,iw,jw,kw) - abc.Val(0,iw,jw,kw)*rfNear.Val(0,iw,jw,kw) + flux.Val(0,ihp,jw,kw) -
   /// flux.Val(0,ihm,jw,kw) + flux.Val(1,iw,jhp,kw) - flux.Val(1,iw,jhm,kw) + flux.Val(2,iw,jw,khp) -
   /// flux.Val(2,iw,jw,khm);
-  Real du = dx * rs[i + nx * (j + nz * k)] - abc[i + nx * (j + nz * k)] * rfNear[i + nx * (j + nz * k)] + fuxp - fuxm +
+  const Real du = dx * rs[i + nx * (j + ny * k)] - abc[i + nx * (j + ny * k)] * rfNear[i + nx * (j + ny * k)] + fuxp - fuxm +
             fuyp - fuym + fuzp - fuzm;
-  Real dv = dx * rsFarFactor * rfFar[i + nx * (j + nz * k)] -
-            abc[i + nx * (j + nz * k)] * rfFar[i + nx * (j + nz * k)] + fvxp - fvxm + fvyp - fvym + fvzp - fvzm;
+  const Real dv = dx * rsFarFactor * rfFar[i + nx * (j + ny * k)] -
+            abc[i + nx * (j + ny * k)] * rfFar[i + nx * (j + ny * k)] + fvxp - fvxm + fvyp - fvym + fvzp - fvzm;
 
   /// float rfNew = rfNear.Val(0,iw,jw,kw) + alpha*A*d;
-  Real rfu2 = rfNear[i + nx * (j + nz * k)] + alpha * Au * du;
-  Real rfv2 = rfFar[i + nx * (j + nz * k)] + alpha * Av * dv;
+  Real rfu2 = rfNear[i + nx * (j + ny * k)] + alpha * Au * du;
+  Real rfv2 = rfFar[i + nx * (j + ny * k)] + alpha * Av * dv;
+
+
+  if (rfu2 != rfu2 || rfv2 != rfv2) {
+    printf("OTVET nan | tid %d | %g | %g | %g | %g | %g | %g \n", tid, ahpcc, ahmcc, ahccp, ahccm, ahcpc, ahcmc);
+  }
 
   /// if(deb!=0 && i==36 && j==36 && k==36) printf("GPU %g = %g + %g %g (ot=%g)
   /// %g,%g,%g,%g,%g,%g,%g,%g\n",rfu2,rfNear[i+nx*(j+nz*k)],Au,du,rfOT[i+nx*(j+nz*k)],dx*rs[i+nx*(j+nz*k)],abc[i+nx*(j+nz*k)]*rfNear[i+nx*(j+nz*k)],fuxp,fuxm,fuyp,fuym,fuzp,fuzm);
 
   if (lastIteration) {
-    if (rfu2 > facOverOT * rfOT[i + nx * (j + nz * k)]) rfu2 = facOverOT * rfOT[i + nx * (j + nz * k)];
+    if (rfu2 > facOverOT * rfOT[i + nx * (j + ny * k)]) rfu2 = facOverOT * rfOT[i + nx * (j + ny * k)];
     if (rfv2 > 1) rfv2 = 1;
   }
   rfNearNew[i + nx * (j + ny * k)] = (rfu2 < 0 ? 0 : rfu2);

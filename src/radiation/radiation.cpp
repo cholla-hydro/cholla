@@ -278,7 +278,7 @@ void Rad3D::rtBoundaries(void)
     MPI_Isend(d_send_buffer_z0, buffer_length, MPI_CHREAL, dest[4], 5, world, &send_request[0]);
   #else
     // post non-blocking receive left z communication buffer
-    MPI_Irecv(h_recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 5, world, &recv_request[ireq]);
+    MPI_Irecv(h_recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
     // non-blocking send left z communication buffer
     MPI_Isend(h_send_buffer_z0, buffer_length, MPI_CHREAL, dest[4], 5, world, &send_request[0]);
   #endif  // MPI_GPU
