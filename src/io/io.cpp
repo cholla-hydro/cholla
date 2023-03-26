@@ -482,7 +482,7 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
   } else if (G.R.flag_delta == 2) {
     // case 2 -- outputting at a rotating delta
     // rotation rate given in the parameter file
-    G.R.delta = fmod(nfile * G.R.ddelta_dt * 2.0 * PI, (2.0 * PI));
+    G.R.delta = fmod(nfile * G.R.ddelta_dt * 2.0 * M_PI, (2.0 * M_PI));
 
     // Create a new file
     file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -710,28 +710,12 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
 
-  #ifdef MHD
-  for (size_t i = 0; i < 3; i++) {
-    int_data[i]++;
-  }
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "magnetic_field_dims");
-  #endif  // MHD
-
   #ifdef MPI_CHOLLA
   int_data[0] = H.nx_real;
   int_data[1] = H.ny_real;
   int_data[2] = H.nz_real;
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
-
-    #ifdef MHD
-  int_data[0] = H.nx_real + 1;
-  int_data[1] = H.ny_real + 1;
-  int_data[2] = H.nz_real + 1;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "magnetic_field_dims_local");
-    #endif  // MHD
 
   int_data[0] = nx_local_start;
   int_data[1] = ny_local_start;
@@ -1646,12 +1630,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #ifdef MHD
     if (H.Output_Complete_Data) {
       // Note: for WriteHDF5Field3D, use the left side n_ghost
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_x, "/magnetic_x");
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_y, "/magnetic_y");
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_z, "/magnetic_z");
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_buffer, C.d_magnetic_x, "/magnetic_x", 0);
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset + 1, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_buffer, C.d_magnetic_y, "/magnetic_y", 1);
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset + 1, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_buffer, C.d_magnetic_z, "/magnetic_z", 2);
     }
   #endif  // MHD
 
@@ -3199,23 +3183,20 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     min_l  = 1e65;
     max_l  = -1;
     // Copy the x magnetic field array to the grid
-    for (k = 0; k < H.nz_real + 1; k++) {
-      for (j = 0; j < H.ny_real + 1; j++) {
+    for (k = 0; k < H.nz_real; k++) {
+      for (j = 0; j < H.ny_real; j++) {
         for (i = 0; i < H.nx_real + 1; i++) {
-          id               = (i + H.n_ghost - 1) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
-          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
+          id               = (i + H.n_ghost - 1) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          buf_id           = k + j * (H.nz_real) + i * (H.nz_real) * (H.ny_real);
           C.magnetic_x[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.magnetic_x[id]);
-          if (fabs(C.magnetic_x[id]) > max_l) {
-            max_l = fabs(C.magnetic_x[id]);
-          }
-          if (fabs(C.magnetic_x[id]) < min_l) {
-            min_l = fabs(C.magnetic_x[id]);
-          }
+
+          mean_l += std::abs(C.magnetic_x[id]);
+          max_l = std::max(max_l, std::abs(C.magnetic_x[id]));
+          min_l = std::min(min_l, std::abs(C.magnetic_x[id]));
         }
       }
     }
-    mean_l /= ((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1));
+    mean_l /= ((H.nz_real + 1) * (H.ny_real) * (H.nx_real));
 
     #if MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
@@ -3245,23 +3226,20 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     min_l  = 1e65;
     max_l  = -1;
     // Copy the y magnetic field array to the grid
-    for (k = 0; k < H.nz_real + 1; k++) {
+    for (k = 0; k < H.nz_real; k++) {
       for (j = 0; j < H.ny_real + 1; j++) {
-        for (i = 0; i < H.nx_real + 1; i++) {
-          id               = (i + H.n_ghost - 1) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
-          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
+        for (i = 0; i < H.nx_real; i++) {
+          id               = (i + H.n_ghost) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          buf_id           = k + j * (H.nz_real) + i * (H.nz_real) * (H.ny_real + 1);
           C.magnetic_y[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.magnetic_y[id]);
-          if (fabs(C.magnetic_y[id]) > max_l) {
-            max_l = fabs(C.magnetic_y[id]);
-          }
-          if (fabs(C.magnetic_y[id]) < min_l) {
-            min_l = fabs(C.magnetic_y[id]);
-          }
+
+          mean_l += std::abs(C.magnetic_x[id]);
+          max_l = std::max(max_l, std::abs(C.magnetic_x[id]));
+          min_l = std::min(min_l, std::abs(C.magnetic_x[id]));
         }
       }
     }
-    mean_l /= ((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1));
+    mean_l /= ((H.nz_real) * (H.ny_real + 1) * (H.nx_real));
 
     #if MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
@@ -3292,22 +3270,19 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     max_l  = -1;
     // Copy the z magnetic field array to the grid
     for (k = 0; k < H.nz_real + 1; k++) {
-      for (j = 0; j < H.ny_real + 1; j++) {
-        for (i = 0; i < H.nx_real + 1; i++) {
-          id               = (i + H.n_ghost - 1) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
-          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real + 1);
+      for (j = 0; j < H.ny_real; j++) {
+        for (i = 0; i < H.nx_real; i++) {
+          id               = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
+          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real);
           C.magnetic_z[id] = dataset_buffer[buf_id];
-          mean_l += fabs(C.magnetic_z[id]);
-          if (fabs(C.magnetic_z[id]) > max_l) {
-            max_l = fabs(C.magnetic_z[id]);
-          }
-          if (fabs(C.magnetic_z[id]) < min_l) {
-            min_l = fabs(C.magnetic_z[id]);
-          }
+
+          mean_l += std::abs(C.magnetic_x[id]);
+          max_l = std::max(max_l, std::abs(C.magnetic_x[id]));
+          min_l = std::min(min_l, std::abs(C.magnetic_x[id]));
         }
       }
     }
-    mean_l /= ((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1));
+    mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real + 1));
 
     #if MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);

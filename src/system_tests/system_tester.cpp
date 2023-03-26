@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <limits>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
@@ -512,14 +513,21 @@ std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(std::string 
     file = _testHydroFieldsFileVec;
   }
 
-  // Get the size of each dimension. First check if the field is a magnetic
+  // Get the size of each dimension. Check if the field is a magnetic
   // field or not to make sure we're retreiving the right dimensions
-  std::string dimsName     = (dataSetName.find("magnetic") != std::string::npos) ? "magnetic_field_dims" : "dims";
-  H5::Attribute dimensions = file[0].openAttribute(dimsName.c_str());
+  H5::Attribute dimensions = file[0].openAttribute("dims");
   dimensions.read(H5::PredType::NATIVE_ULONG, testDims.data());
 
-  // Allocate the vector
-  std::vector<double> testData(testDims[0] * testDims[1] * testDims[2]);
+  if (dataSetName == "magnetic_x") {
+    testDims.at(0)++;
+  } else if (dataSetName == "magnetic_y") {
+    testDims.at(1)++;
+  } else if (dataSetName == "magnetic_z") {
+    testDims.at(2)++;
+  }
+
+  // Allocate the vector and initialize to a quiet NaN to make failed writes clearer
+  std::vector<double> testData(testDims[0] * testDims[1] * testDims[2], std::numeric_limits<double>::quiet_NaN());
 
   for (size_t rank = 0; rank < numMpiRanks; rank++) {
     // Open the dataset
@@ -546,10 +554,16 @@ std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(std::string 
 
     // Get dims_local
     std::vector<int> dimsLocal(3, 1);
-    std::string dimsNameLocal =
-        (dataSetName.find("magnetic") != std::string::npos) ? "magnetic_field_dims_local" : "dims_local";
-    H5::Attribute dimsLocalAttr = file[rank].openAttribute(dimsNameLocal.c_str());
+    H5::Attribute dimsLocalAttr = file[rank].openAttribute("dims_local");
     dimsLocalAttr.read(H5::PredType::NATIVE_INT, dimsLocal.data());
+
+    if (dataSetName == "magnetic_x") {
+      dimsLocal.at(0)++;
+    } else if (dataSetName == "magnetic_y") {
+      dimsLocal.at(1)++;
+    } else if (dataSetName == "magnetic_z") {
+      dimsLocal.at(2)++;
+    }
 
     // Now we add the data to the larger vector
     size_t localIndex = 0;
