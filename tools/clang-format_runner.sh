@@ -14,9 +14,4 @@ cholla_root=$(git rev-parse --show-toplevel)
 # Get a list of all the files to format
 readarray -t files <<<$(find ${cholla_root} -regex '.*\.\(h\|hpp\|c\|cpp\|cu\|cuh\)$' -print)
 
-for VAR in $LIST
-do
-    echo "$VAR"
-done
-
 clang-format -i --verbose "$@" -style="file" "${files[@]}"

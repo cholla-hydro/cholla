@@ -8,7 +8,7 @@
 
   #define MU 0.6
   // in cgs, this is 0.01 cm^{-3}
-  #define MIN_DENSITY  0.01 * MP *MU *LENGTH_UNIT *LENGTH_UNIT *LENGTH_UNIT / MASS_UNIT  // 148279.7
+  #define MIN_DENSITY  (0.01 * MP * MU * LENGTH_UNIT * LENGTH_UNIT * LENGTH_UNIT / MASS_UNIT)  // 148279.7
   #define TPB_ANALYSIS 1024
 
 __device__ void warpReduce(volatile Real *buff, size_t tid)

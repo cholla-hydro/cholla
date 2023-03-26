@@ -754,7 +754,7 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
   }
   Real global_resolved_ratio = 0.0;
   if (analysis.countResolved > 0 || analysis.countUnresolved > 0) {
-    global_resolved_ratio = analysis.countResolved / (analysis.countResolved + analysis.countUnresolved);
+    global_resolved_ratio = (Real)(analysis.countResolved) / (Real)(analysis.countResolved + analysis.countUnresolved);
   }
 
   chprintf("iteration %d: number of SN: %d, ratio of resolved %.3e\n", G.H.n_step, (long)info[supernova::SN],
