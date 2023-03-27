@@ -79,9 +79,9 @@ void Check_Configuration(parameters const &P)
   #endif  //! HLLD or EXACT or ROE or HLL or HLLC
 
   // May only use certain reconstructions
-  #if !defined(PCM) || defined(PLMP) || defined(PLMC) || defined(PPMC) || defined(PPMP)
-    #error "MHD only supports PCM reconstruction"
-  #endif  //! PCM or PLMP or PLMC or PPMC or PPMP
+  #if (!defined(PCM) == !defined(PLMC)) || defined(PLMP) || defined(PPMC) || defined(PPMP)
+    #error "MHD only supports PCM and PLMC reconstruction"
+  #endif  //! PCM or PLMP or PPMC or PPMP
 
   // must have HDF5
   #ifndef HDF5
