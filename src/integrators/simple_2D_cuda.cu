@@ -26,9 +26,9 @@ void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int 
   // Here, *dev_conserved contains the entire
   // set of conserved variables on the grid
   // concatenated into a 1-d array
-  int n_cells = nx * ny;
-  int nz      = 1;
-  int ngrid   = (n_cells + TPB - 1) / TPB;
+  int n_cells             = nx * ny;
+  [[maybe_unused]] int nz = 1;
+  int ngrid               = (n_cells + TPB - 1) / TPB;
 
   // set values for GPU kernels
   // number of blocks per 1D grid
