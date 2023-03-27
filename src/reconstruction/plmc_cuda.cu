@@ -26,20 +26,22 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 {
   int n_cells = nx * ny * nz;
   int o1, o2, o3;
-  if (dir == 0) {
-    o1 = 1;
-    o2 = 2;
-    o3 = 3;
-  }
-  if (dir == 1) {
-    o1 = 2;
-    o2 = 3;
-    o3 = 1;
-  }
-  if (dir == 2) {
-    o1 = 3;
-    o2 = 1;
-    o3 = 2;
+  switch (dir) {
+    case 0:
+      o1 = 1;
+      o2 = 2;
+      o3 = 3;
+      break;
+    case 1:
+      o1 = 2;
+      o2 = 3;
+      o3 = 1;
+      break;
+    case 2:
+      o1 = 3;
+      o2 = 1;
+      o3 = 2;
+      break;
   }
 
   // declare primitive variables for each stencil
@@ -100,29 +102,31 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   int xid = tid - zid * nx * ny - yid * nx;
 
   int xs, xe, ys, ye, zs, ze;
-  if (dir == 0) {
-    xs = 1;
-    xe = nx - 2;
-    ys = 0;
-    ye = ny;
-    zs = 0;
-    ze = nz;
-  }
-  if (dir == 1) {
-    xs = 0;
-    xe = nx;
-    ys = 1;
-    ye = ny - 2;
-    zs = 0;
-    ze = nz;
-  }
-  if (dir == 2) {
-    xs = 0;
-    xe = nx;
-    ys = 0;
-    ye = ny;
-    zs = 1;
-    ze = nz - 2;
+  switch (dir) {
+    case 0:
+      xs = 1;
+      xe = nx - 2;
+      ys = 0;
+      ye = ny;
+      zs = 0;
+      ze = nz;
+      break;
+    case 1:
+      xs = 0;
+      xe = nx;
+      ys = 1;
+      ye = ny - 2;
+      zs = 0;
+      ze = nz;
+      break;
+    case 2:
+      xs = 0;
+      xe = nx;
+      ys = 0;
+      ye = ny;
+      zs = 1;
+      ze = nz - 2;
+      break;
   }
 
   if (xid >= xs && xid < xe && yid >= ys && yid < ye && zid >= zs && zid < ze) {
@@ -151,9 +155,17 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     ge_i = dge / d_i;
     #endif  // DE
     // cell i-1
-    if (dir == 0) id = xid - 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid - 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid - 1) * nx * ny;
+    switch (dir) {
+      case 0:
+        id = xid - 1 + yid * nx + zid * nx * ny;
+        break;
+      case 1:
+        id = xid + (yid - 1) * nx + zid * nx * ny;
+        break;
+      case 2:
+        id = xid + yid * nx + (zid - 1) * nx * ny;
+        break;
+    }
     d_imo  = dev_conserved[id];
     vx_imo = dev_conserved[o1 * n_cells + id] / d_imo;
     vy_imo = dev_conserved[o2 * n_cells + id] / d_imo;
@@ -177,9 +189,19 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     ge_imo = dge / d_imo;
     #endif  // DE
     // cell i+1
-    if (dir == 0) id = xid + 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid + 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid + 1) * nx * ny;
+
+    switch (dir) {
+      case 0:
+        id = xid + 1 + yid * nx + zid * nx * ny;
+        break;
+      case 1:
+        id = xid + (yid + 1) * nx + zid * nx * ny;
+        break;
+      case 2:
+        id = xid + yid * nx + (zid + 1) * nx * ny;
+        break;
+    }
+
     d_ipo  = dev_conserved[id];
     vx_ipo = dev_conserved[o1 * n_cells + id] / d_ipo;
     vy_ipo = dev_conserved[o2 * n_cells + id] / d_ipo;
@@ -622,9 +644,18 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     // Convert the left and right states in the primitive to the conserved
     // variables send final values back from kernel bounds_R refers to the right
     // side of the i-1/2 interface
-    if (dir == 0) id = xid - 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid - 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid - 1) * nx * ny;
+    switch (dir) {
+      case 0:
+        id = xid - 1 + yid * nx + zid * nx * ny;
+        break;
+      case 1:
+        id = xid + (yid - 1) * nx + zid * nx * ny;
+        break;
+      case 2:
+        id = xid + yid * nx + (zid - 1) * nx * ny;
+        break;
+    }
+
     dev_bounds_R[id]                = d_R_imh;
     dev_bounds_R[o1 * n_cells + id] = d_R_imh * vx_R_imh;
     dev_bounds_R[o2 * n_cells + id] = d_R_imh * vy_R_imh;

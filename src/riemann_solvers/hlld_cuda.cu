@@ -44,20 +44,22 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
 
   // Offsets & indices
   int o1, o2, o3;
-  if (direction == 0) {
-    o1 = grid_enum::momentum_x;
-    o2 = grid_enum::momentum_y;
-    o3 = grid_enum::momentum_z;
-  }
-  if (direction == 1) {
-    o1 = grid_enum::momentum_y;
-    o2 = grid_enum::momentum_z;
-    o3 = grid_enum::momentum_x;
-  }
-  if (direction == 2) {
-    o1 = grid_enum::momentum_z;
-    o2 = grid_enum::momentum_x;
-    o3 = grid_enum::momentum_y;
+  switch (direction) {
+    case 0:
+      o1 = grid_enum::momentum_x;
+      o2 = grid_enum::momentum_y;
+      o3 = grid_enum::momentum_z;
+      break;
+    case 1:
+      o1 = grid_enum::momentum_y;
+      o2 = grid_enum::momentum_z;
+      o3 = grid_enum::momentum_x;
+      break;
+    case 2:
+      o1 = grid_enum::momentum_z;
+      o2 = grid_enum::momentum_x;
+      o3 = grid_enum::momentum_y;
+      break;
   }
 
   // ============================

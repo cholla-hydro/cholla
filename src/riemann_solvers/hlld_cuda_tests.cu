@@ -2266,20 +2266,22 @@ TEST(tMHDHlldInternalReturnFluxes, CorrectInputExpectCorrectOutput)
 
   for (size_t direction = 0; direction < 1; direction++) {
     int o1, o2, o3;
-    if (direction == 0) {
-      o1 = 1;
-      o2 = 2;
-      o3 = 3;
-    }
-    if (direction == 1) {
-      o1 = 2;
-      o2 = 3;
-      o3 = 1;
-    }
-    if (direction == 2) {
-      o1 = 3;
-      o2 = 1;
-      o3 = 2;
+    switch (direction) {
+      case 0:
+        o1 = 1;
+        o2 = 2;
+        o3 = 3;
+        break;
+      case 1:
+        o1 = 2;
+        o2 = 3;
+        o3 = 1;
+        break;
+      case 2:
+        o1 = 3;
+        o2 = 1;
+        o3 = 2;
+        break;
     }
 
     std::vector<double> testFluxArray(nFields * n_cells, dummyValue);
@@ -2362,20 +2364,22 @@ TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
 
   for (size_t direction = 0; direction < 3; direction++) {
     int o1, o2, o3;
-    if (direction == 0) {
-      o1 = 1;
-      o2 = 2;
-      o3 = 3;
-    }
-    if (direction == 1) {
-      o1 = 2;
-      o2 = 3;
-      o3 = 1;
-    }
-    if (direction == 2) {
-      o1 = 3;
-      o2 = 1;
-      o3 = 2;
+    switch (direction) {
+      case 0:
+        o1 = 1;
+        o2 = 2;
+        o3 = 3;
+        break;
+      case 1:
+        o1 = 2;
+        o2 = 3;
+        o3 = 1;
+        break;
+      case 2:
+        o1 = 3;
+        o2 = 1;
+        o3 = 2;
+        break;
     }
 
     mhd::_internal::State const testState = mhd::_internal::loadState(interfaceArray.data(), parameters.magneticX.at(0),
