@@ -2,18 +2,17 @@
  *  \brief Definitions of the piecewise linear reconstruction functions with
            limiting applied in the characteristic variables, as described
            in Stone et al., 2008. */
-#ifdef PLMC
 
-  #include <math.h>
+#include <math.h>
 
-  #include "../global/global.h"
-  #include "../global/global_cuda.h"
-  #include "../reconstruction/plmc_cuda.h"
-  #include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../reconstruction/plmc_cuda.h"
+#include "../utils/gpu.hpp"
 
-  #ifdef DE  // PRESSURE_DE
-    #include "../utils/hydro_utilities.h"
-  #endif  // DE
+#ifdef DE  // PRESSURE_DE
+  #include "../utils/hydro_utilities.h"
+#endif  // DE
 
 /*! \fn __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real
  *dev_bounds_R, int nx, int ny, int nz, Real dx, Real dt, Real
@@ -65,32 +64,32 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real d_L_iph, vx_L_iph, vy_L_iph, vz_L_iph, p_L_iph;
   Real d_R_imh, vx_R_imh, vy_R_imh, vz_R_imh, p_R_imh;
   Real C;
-  #ifndef VL
+#ifndef VL
   Real dtodx = dt / dx;
   Real lambda_m, lambda_0, lambda_p;
   Real qx;
   Real lamdiff;
   Real sum_0, sum_1, sum_2, sum_3, sum_4;
-  #endif  // not VL
-  #ifdef DE
+#endif  // not VL
+#ifdef DE
   Real ge_i, ge_imo, ge_ipo;
   Real del_ge_L, del_ge_R, del_ge_C, del_ge_G;
   Real del_ge_m_i;
   Real ge_L_iph, ge_R_imh;
   Real E, E_kin, dge;
-    #ifndef VL
+  #ifndef VL
   Real sum_ge;
-    #endif  // CTU
-  #endif    // DE
-  #ifdef SCALAR
+  #endif  // CTU
+#endif    // DE
+#ifdef SCALAR
   Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS];
   Real del_scalar_L[NSCALARS], del_scalar_R[NSCALARS], del_scalar_C[NSCALARS], del_scalar_G[NSCALARS];
   Real del_scalar_m_i[NSCALARS];
   Real scalar_L_iph[NSCALARS], scalar_R_imh[NSCALARS];
-    #ifndef VL
+  #ifndef VL
   Real sum_scalar[NSCALARS];
-    #endif  // CTU
-  #endif    // SCALAR
+  #endif  // CTU
+#endif    // SCALAR
 
   // get a thread ID
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
@@ -136,23 +135,23 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_i = dev_conserved[o1 * n_cells + id] / d_i;
     vy_i = dev_conserved[o2 * n_cells + id] / d_i;
     vz_i = dev_conserved[o3 * n_cells + id] / d_i;
-  #ifdef DE  // PRESSURE_DE
+#ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i);
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_i   = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-  #else   // not DE
+#else   // not DE
     p_i   = (dev_conserved[4 * n_cells + id] - 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) * (gamma - 1.0);
-  #endif  // PRESSURE_DE
+#endif  // PRESSURE_DE
     p_i = fmax(p_i, (Real)TINY_NUMBER);
-  #ifdef SCALAR
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_i[i] = dev_conserved[(5 + i) * n_cells + id] / d_i;
     }
-  #endif  // SCALAR
-  #ifdef DE
+#endif  // SCALAR
+#ifdef DE
     ge_i = dge / d_i;
-  #endif  // DE
+#endif  // DE
     // cell i-1
     switch (dir) {
       case 0:
@@ -169,24 +168,24 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_imo = dev_conserved[o1 * n_cells + id] / d_imo;
     vy_imo = dev_conserved[o2 * n_cells + id] / d_imo;
     vz_imo = dev_conserved[o3 * n_cells + id] / d_imo;
-  #ifdef DE  // PRESSURE_DE
+#ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_imo * (vx_imo * vx_imo + vy_imo * vy_imo + vz_imo * vz_imo);
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_imo = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-  #else   // not DE
+#else   // not DE
     p_imo = (dev_conserved[4 * n_cells + id] - 0.5 * d_imo * (vx_imo * vx_imo + vy_imo * vy_imo + vz_imo * vz_imo)) *
             (gamma - 1.0);
-  #endif  // PRESSURE_DE
+#endif  // PRESSURE_DE
     p_imo = fmax(p_imo, (Real)TINY_NUMBER);
-  #ifdef SCALAR
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_imo[i] = dev_conserved[(5 + i) * n_cells + id] / d_imo;
     }
-  #endif  // SCALAR
-  #ifdef DE
+#endif  // SCALAR
+#ifdef DE
     ge_imo = dge / d_imo;
-  #endif  // DE
+#endif  // DE
     // cell i+1
 
     switch (dir) {
@@ -205,35 +204,35 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_ipo = dev_conserved[o1 * n_cells + id] / d_ipo;
     vy_ipo = dev_conserved[o2 * n_cells + id] / d_ipo;
     vz_ipo = dev_conserved[o3 * n_cells + id] / d_ipo;
-  #ifdef DE  // PRESSURE_DE
+#ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_ipo * (vx_ipo * vx_ipo + vy_ipo * vy_ipo + vz_ipo * vz_ipo);
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_ipo = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-  #else   // not DE
+#else   // not DE
     p_ipo = (dev_conserved[4 * n_cells + id] - 0.5 * d_ipo * (vx_ipo * vx_ipo + vy_ipo * vy_ipo + vz_ipo * vz_ipo)) *
             (gamma - 1.0);
-  #endif  // PRESSURE_DE
+#endif  // PRESSURE_DE
     p_ipo = fmax(p_ipo, (Real)TINY_NUMBER);
-  #ifdef SCALAR
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_ipo[i] = dev_conserved[(5 + i) * n_cells + id] / d_ipo;
     }
-  #endif  // SCALAR
-  #ifdef DE
+#endif  // SCALAR
+#ifdef DE
     ge_ipo = dge / d_ipo;
-  #endif  // DE
+#endif  // DE
 
     // calculate the adiabatic sound speed in cell i
     a_i = sqrt(gamma * p_i / d_i);
 
-  // Compute the eigenvalues of the linearized equations in the
-  // primitive variables using the cell-centered primitive variables
-  #ifndef VL
+// Compute the eigenvalues of the linearized equations in the
+// primitive variables using the cell-centered primitive variables
+#ifndef VL
     lambda_m = vx_i - a_i;
     lambda_0 = vx_i;
     lambda_p = vx_i + a_i;
-  #endif  // VL
+#endif  // VL
 
     // Compute the left, right, centered, and van Leer differences of the
     // primitive variables Note that here L and R refer to locations relative to
@@ -287,7 +286,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       del_p_G = 0.0;
     }
 
-  #ifdef DE
+#ifdef DE
     del_ge_L = ge_i - ge_imo;
     del_ge_R = ge_ipo - ge_i;
     del_ge_C = 0.5 * (ge_ipo - ge_imo);
@@ -296,8 +295,8 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     } else {
       del_ge_G = 0.0;
     }
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       del_scalar_L[i] = scalar_i[i] - scalar_imo[i];
       del_scalar_R[i] = scalar_ipo[i] - scalar_i[i];
@@ -308,7 +307,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
         del_scalar_G[i] = 0.0;
       }
     }
-  #endif  // SCALAR
+#endif  // SCALAR
 
     // Project the left, right, centered and van Leer differences onto the
     // characteristic variables Stone Eqn 37 (del_a are differences in
@@ -368,15 +367,15 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       lim_slope_b = fmin(fabs(del_a_4_C), fabs(del_a_4_G));
       del_a_4_m   = sgn_CUDA(del_a_4_C) * fmin(2.0 * lim_slope_a, lim_slope_b);
     }
-  #ifdef DE
+#ifdef DE
     del_ge_m_i = 0.0;
     if (del_ge_L * del_ge_R > 0.0) {
       lim_slope_a = fmin(fabs(del_ge_L), fabs(del_ge_R));
       lim_slope_b = fmin(fabs(del_ge_C), fabs(del_ge_G));
       del_ge_m_i  = sgn_CUDA(del_ge_C) * fmin(2.0 * lim_slope_a, lim_slope_b);
     }
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       del_scalar_m_i[i] = 0.0;
       if (del_scalar_L[i] * del_scalar_R[i] > 0.0) {
@@ -385,7 +384,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
         del_scalar_m_i[i] = sgn_CUDA(del_scalar_C[i]) * fmin(2.0 * lim_slope_a, lim_slope_b);
       }
     }
-  #endif  // SCALAR
+#endif  // SCALAR
 
     // Project the monotonized difference in the characteristic variables back
     // onto the primitive variables Stone Eqn 39
@@ -410,16 +409,16 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vz_L_iph = vz_i + 0.5 * del_vz_m_i;
     p_L_iph  = p_i + 0.5 * del_p_m_i;
 
-  #ifdef DE
+#ifdef DE
     ge_R_imh = ge_i - 0.5 * del_ge_m_i;
     ge_L_iph = ge_i + 0.5 * del_ge_m_i;
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_R_imh[i] = scalar_i[i] - 0.5 * del_scalar_m_i[i];
       scalar_L_iph[i] = scalar_i[i] + 0.5 * del_scalar_m_i[i];
     }
-  #endif  // SCALAR
+#endif  // SCALAR
 
     C       = d_R_imh + d_L_iph;
     d_R_imh = fmax(fmin(d_i, d_imo), d_R_imh);
@@ -467,7 +466,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     del_vz_m_i = vz_L_iph - vz_R_imh;
     del_p_m_i  = p_L_iph - p_R_imh;
 
-  #ifdef DE
+#ifdef DE
     C          = ge_R_imh + ge_L_iph;
     ge_R_imh   = fmax(fmin(ge_i, ge_imo), ge_R_imh);
     ge_R_imh   = fmin(fmax(ge_i, ge_imo), ge_R_imh);
@@ -476,9 +475,9 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     ge_L_iph   = fmin(fmax(ge_i, ge_ipo), ge_L_iph);
     ge_R_imh   = C - ge_L_iph;
     del_ge_m_i = ge_L_iph - ge_R_imh;
-  #endif  // DE
+#endif  // DE
 
-  #ifdef SCALAR
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       C                 = scalar_R_imh[i] + scalar_L_iph[i];
       scalar_R_imh[i]   = fmax(fmin(scalar_i[i], scalar_imo[i]), scalar_R_imh[i]);
@@ -489,9 +488,9 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       scalar_R_imh[i]   = C - scalar_L_iph[i];
       del_scalar_m_i[i] = scalar_L_iph[i] - scalar_R_imh[i];
     }
-  #endif  // SCALAR
+#endif  // SCALAR
 
-  #ifndef VL
+#ifndef VL
     // Integrate linear interpolation function over domain of dependence
     // defined by max(min) eigenvalue
     qx       = -0.5 * fmin(lambda_m, 0.0) * dtodx;
@@ -508,31 +507,31 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vz_L_iph = vz_L_iph - qx * del_vz_m_i;
     p_L_iph  = p_L_iph - qx * del_p_m_i;
 
-    #ifdef DE
+  #ifdef DE
     ge_R_imh = ge_R_imh + qx * del_ge_m_i;
     ge_L_iph = ge_L_iph - qx * del_ge_m_i;
-    #endif  // DE
+  #endif  // DE
 
-    #ifdef SCALAR
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_R_imh[i] = scalar_R_imh[i] + qx * del_scalar_m_i[i];
       scalar_L_iph[i] = scalar_L_iph[i] - qx * del_scalar_m_i[i];
     }
-    #endif  // SCALAR
+  #endif  // SCALAR
 
     // Perform the characteristic tracing
     // Stone Eqns 42 & 43
 
     // left-hand interface value, i+1/2
     sum_0 = sum_1 = sum_2 = sum_3 = sum_4 = 0;
-    #ifdef DE
+  #ifdef DE
     sum_ge = 0;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       sum_scalar[i] = 0.0;
     }
-    #endif  // SCALAR
+  #endif  // SCALAR
     if (lambda_m >= 0) {
       lamdiff = lambda_p - lambda_m;
 
@@ -546,14 +545,14 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       sum_0 += lamdiff * (del_d_m_i - del_p_m_i / (a_i * a_i));
       sum_2 += lamdiff * del_vy_m_i;
       sum_3 += lamdiff * del_vz_m_i;
-    #ifdef DE
+  #ifdef DE
       sum_ge += lamdiff * del_ge_m_i;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
         sum_scalar[i] += lamdiff * del_scalar_m_i[i];
       }
-    #endif  // SCALAR
+  #endif  // SCALAR
     }
     if (lambda_p >= 0) {
       lamdiff = lambda_p - lambda_p;
@@ -569,25 +568,25 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vy_L_iph += 0.5 * dtodx * sum_2;
     vz_L_iph += 0.5 * dtodx * sum_3;
     p_L_iph += 0.5 * dtodx * sum_4;
-    #ifdef DE
+  #ifdef DE
     ge_L_iph += 0.5 * dtodx * sum_ge;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_L_iph[i] += 0.5 * dtodx * sum_scalar[i];
     }
-    #endif  // SCALAR
+  #endif  // SCALAR
 
     // right-hand interface value, i-1/2
     sum_0 = sum_1 = sum_2 = sum_3 = sum_4 = 0;
-    #ifdef DE
+  #ifdef DE
     sum_ge = 0;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       sum_scalar[i] = 0;
     }
-    #endif  // SCALAR
+  #endif  // SCALAR
     if (lambda_m <= 0) {
       lamdiff = lambda_m - lambda_m;
 
@@ -601,14 +600,14 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       sum_0 += lamdiff * (del_d_m_i - del_p_m_i / (a_i * a_i));
       sum_2 += lamdiff * del_vy_m_i;
       sum_3 += lamdiff * del_vz_m_i;
-    #ifdef DE
+  #ifdef DE
       sum_ge += lamdiff * del_ge_m_i;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
         sum_scalar[i] += lamdiff * del_scalar_m_i[i];
       }
-    #endif  // SCALAR
+  #endif  // SCALAR
     }
     if (lambda_p <= 0) {
       lamdiff = lambda_m - lambda_p;
@@ -624,15 +623,15 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vy_R_imh += 0.5 * dtodx * sum_2;
     vz_R_imh += 0.5 * dtodx * sum_3;
     p_R_imh += 0.5 * dtodx * sum_4;
-    #ifdef DE
+  #ifdef DE
     ge_R_imh += 0.5 * dtodx * sum_ge;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_R_imh[i] += 0.5 * dtodx * sum_scalar[i];
     }
-    #endif  // SCALAR
-  #endif    // CTU
+  #endif  // SCALAR
+#endif    // CTU
 
     // apply minimum constraints
     d_R_imh = fmax(d_R_imh, (Real)TINY_NUMBER);
@@ -661,14 +660,14 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_R[o3 * n_cells + id] = d_R_imh * vz_R_imh;
     dev_bounds_R[4 * n_cells + id] =
         (p_R_imh / (gamma - 1.0)) + 0.5 * d_R_imh * (vx_R_imh * vx_R_imh + vy_R_imh * vy_R_imh + vz_R_imh * vz_R_imh);
-  #ifdef SCALAR
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       dev_bounds_R[(5 + i) * n_cells + id] = d_R_imh * scalar_R_imh[i];
     }
-  #endif  // SCALAR
-  #ifdef DE
+#endif  // SCALAR
+#ifdef DE
     dev_bounds_R[(n_fields - 1) * n_cells + id] = d_R_imh * ge_R_imh;
-  #endif  // DE
+#endif  // DE
     // bounds_L refers to the left side of the i+1/2 interface
     id                              = xid + yid * nx + zid * nx * ny;
     dev_bounds_L[id]                = d_L_iph;
@@ -677,15 +676,13 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_L[o3 * n_cells + id] = d_L_iph * vz_L_iph;
     dev_bounds_L[4 * n_cells + id] =
         (p_L_iph / (gamma - 1.0)) + 0.5 * d_L_iph * (vx_L_iph * vx_L_iph + vy_L_iph * vy_L_iph + vz_L_iph * vz_L_iph);
-  #ifdef SCALAR
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       dev_bounds_L[(5 + i) * n_cells + id] = d_L_iph * scalar_L_iph[i];
     }
-  #endif  // SCALAR
-  #ifdef DE
+#endif  // SCALAR
+#ifdef DE
     dev_bounds_L[(n_fields - 1) * n_cells + id] = d_L_iph * ge_L_iph;
-  #endif  // DE
+#endif  // DE
   }
 }
-
-#endif  // PLMC
