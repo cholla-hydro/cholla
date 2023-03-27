@@ -254,7 +254,10 @@ void Grid3D::Compute_Gas_Temperature(Real *temperature, bool convert_cosmo_units
   #ifdef DE
         GE = C.GasEnergy[id];
   #else
-        GE = (E - 0.5 * d * (vx * vx + vy * vy + vz * vz));  // TODO: this probably needs to be fixed for MHD
+        GE = E - hydro_utilities::Calc_Kinetic_Energy_From_Velocity(d, vx, vy, vz);
+    #ifdef MHD
+        GE -= mhd::utils::computeMagneticEnergy(C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
+    #endif  // MHD
   #endif
 
         dens_HI    = C.HI_density[id];
