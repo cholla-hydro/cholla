@@ -264,18 +264,25 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
         << "The initial and final '" << dataSetName << "' datasets are not the same length";
 
     // Compute the L1 Error.
-    double L1Error = 0;
+    double L1_error     = 0.0;
+    double fp_sum_error = 0.0;
     for (size_t i = 0; i < initialData.size(); i++) {
       double const diff = std::abs(initialData.at(i) - finalData.at(i));
-      L1Error += diff;
-      maxError = (diff > maxError) ? diff : maxError;
+
+      maxError = std::max(maxError, diff);
+
+      // Perform a Kahan sum to maintain precision in the result
+      double const y = diff - fp_sum_error;
+      double const t = L1_error + y;
+      fp_sum_error   = (t - L1_error) - y;
+      L1_error       = t;
     }
 
-    L1Error *= (1. / static_cast<double>(initialDims[0] * initialDims[1] * initialDims[2]));
-    L2Norm += L1Error * L1Error;
+    L1_error /= static_cast<double>(initialDims[0] * initialDims[1] * initialDims[2]);
+    L2Norm += L1_error * L1_error;
 
     // Perform the correctness check
-    EXPECT_LT(L1Error, maxAllowedL1Error)
+    EXPECT_LT(L1_error, maxAllowedL1Error)
         << "the L1 error for the " << dataSetName << " data has exceeded the allowed value";
   }
 
