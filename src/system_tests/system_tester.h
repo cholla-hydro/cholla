@@ -322,24 +322,6 @@ class systemTest::SystemTestRunner
   bool _particleDataExists = false;
 
   /*!
-   * \brief Move a file. Throws an exception if the file does not exist.
-   * or if the move was unsuccessful
-   *
-   * \param[in] sourcePath The path the the file to be moved
-   * \param[in] destinationDirectory The path to the director the file should
-   * be moved to
-   */
-  void _safeMove(std::string const &sourcePath, std::string const &destinationDirectory);
-
-  /*!
-   * \brief Checks if the given file exists. Throws an exception if the
-   * file does not exist.
-   *
-   * \param[in] filePath The path to the file to check for
-   */
-  void _checkFileExists(std::string const &filePath);
-
-  /*!
    * \brief Using GTest assertions to check if the fiducial and test data have
    * the same number of time steps
    *

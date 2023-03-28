@@ -189,9 +189,7 @@ __device__ __host__ mhd::_internal::State loadState(Real const *interfaceArr, Re
     #endif  // SCALAR
     #ifdef DE
   state.thermalEnergySpecific = interfaceArr[threadId + n_cells * grid_enum::GasEnergy] / state.density;
-    #endif  // DE}
 
-    #ifdef DE  // PRESSURE_DE
   Real energyNonThermal = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(state.density, state.velocityX,
                                                                              state.velocityY, state.velocityZ) +
                           mhd::utils::computeMagneticEnergy(magneticX, state.magneticY, state.magneticZ);
@@ -203,7 +201,7 @@ __device__ __host__ mhd::_internal::State loadState(Real const *interfaceArr, Re
   // Note that this function does the positive pressure check
   // internally
   state.gasPressure = mhd::utils::computeGasPressure(state, magneticX, gamma);
-    #endif  // PRESSURE_DE
+    #endif  // DE
 
   state.totalPressure =
       mhd::utils::computeTotalPressure(state.gasPressure, magneticX, state.magneticY, state.magneticZ);
