@@ -58,7 +58,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real del_a_0_R, del_a_1_R, del_a_2_R, del_a_3_R, del_a_4_R;
   Real del_a_0_C, del_a_1_C, del_a_2_C, del_a_3_C, del_a_4_C;
   Real del_a_0_G, del_a_1_G, del_a_2_G, del_a_3_G, del_a_4_G;
-  Real del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_a_4_m;
+  Real del_a_0_m, del_a_1_m, del_a_2_m, del_a_3_m, del_a_4_m;  // _m means monotized slope
   Real lim_slope_a, lim_slope_b;
   Real del_d_m_i, del_vx_m_i, del_vy_m_i, del_vz_m_i, del_p_m_i;
   Real d_L_iph, vx_L_iph, vy_L_iph, vz_L_iph, p_L_iph;
@@ -340,7 +340,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     // Apply monotonicity constraints to the differences in the characteristic
     // variables
 
-    del_a_0_m = del_a_1_m = del_a_2_m = del_a_3_m = del_a_4_m = 0.0;
+    del_a_0_m = del_a_1_m = del_a_2_m = del_a_3_m = del_a_4_m = 0.0;  // This should be in the declaration
 
     if (del_a_0_L * del_a_0_R > 0.0) {
       lim_slope_a = fmin(fabs(del_a_0_L), fabs(del_a_0_R));
@@ -420,6 +420,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
 #endif  // SCALAR
 
+    // try removing this on shock tubes
     C       = d_R_imh + d_L_iph;
     d_R_imh = fmax(fmin(d_i, d_imo), d_R_imh);
     d_R_imh = fmin(fmax(d_i, d_imo), d_R_imh);
