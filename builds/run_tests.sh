@@ -248,12 +248,18 @@ buildAndRunTests ()
     esac
   done
 
+  # Run setup and check if it worked
+  setupTests $MAKE_TYPE_ARG $COMPILER_ARG
+  if [ $? -ne 0 ]; then
+    echo "setup failed"
+    exit 1
+  fi
+
   # Clean the cholla directory
   builtin cd $CHOLLA_ROOT
   make clobber
 
   # Now we get to setting up and building
-  setupTests $MAKE_TYPE_ARG $COMPILER_ARG && \
   if [[ -n $BUILD_GTEST ]]; then
     buildGoogleTest
   fi
