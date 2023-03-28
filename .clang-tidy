@@ -152,7 +152,7 @@ Checks: "*,
         -readability-suspicious-call-argument"
 WarningsAsErrors: ''
 # More paths can be ignored by modifying this so that it looks like '^((?!/PATH/ONE/|/PATH/TWO/).)*$'
-HeaderFilterRegex: '^((?!/ihome/crc/install/power9/googletest/1.11.0/include/|/usr/lib/x86_64-linux-gnu/hdf5/serial/include/).)*$'
+HeaderFilterRegex: '^((?!/ihome/crc/install/power9/googletest/1.11.0/include/|/ihome/crc/install/power9/googletest/1.11.0/include/|/usr/lib/x86_64-linux-gnu/hdf5/serial/include/).)*$'
 AnalyzeTemporaryDtors: false
 FormatStyle:     'file'
 UseColor: false

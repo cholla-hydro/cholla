@@ -54,6 +54,8 @@ setupTests ()
     return 1
   fi
 
+  builtin cd $CHOLLA_ROOT
+
   # Determine the hostname then use that to pick the right machine name and launch
   # command
   if [[ -n ${CHOLLA_MACHINE+x} ]]; then
@@ -93,10 +95,6 @@ setupTests ()
       return 1
       ;;
   esac
-
-  # Clean the cholla directory
-  builtin cd $CHOLLA_ROOT
-  make clobber
 
   # Source the setup file
   source "${CHOLLA_ROOT}/builds/setup.${CHOLLA_MACHINE}${CHOLLA_COMPILER}.sh"
@@ -249,6 +247,10 @@ buildAndRunTests ()
             ;;
     esac
   done
+
+  # Clean the cholla directory
+  builtin cd $CHOLLA_ROOT
+  make clobber
 
   # Now we get to setting up and building
   setupTests $MAKE_TYPE_ARG $COMPILER_ARG && \
