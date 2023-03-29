@@ -4,25 +4,26 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=8
+nx=128
 # number of grid cells in the y dimension
-ny=8
+ny=128
 # number of grid cells in the z dimension
-nz=8
+nz=128
 # final output time
-tout=5.0e2
+tout=5.2e5
 # time interval for output
-outstep=1.0e-7
-outlog=0.1
+outstep=1.0e4
+max_timestep=1
+max_timestep_dexinc=0.01
 # name of initial conditions
-init=Iliev0
+init=Iliev5
 # domain properties
 xmin=0.0
 ymin=0.0
 zmin=0.0
-xlen=1.0
-ylen=1.0
-zlen=1.0
+xlen=30
+ylen=30
+zlen=30
 # type of boundary conditions
 xl_bcnd=1
 xu_bcnd=1
@@ -36,4 +37,3 @@ outdir=OUT/
 #################################################
 # value of gamma
 gamma=1.666666667
-UVB_rates_file=uvb_rates_I0.txt

@@ -12,8 +12,9 @@ nz=128
 # final output time
 tout=5.2e5
 # time interval for output
-outstep=1.0
-outlog=0.01
+outstep=1.0e4
+max_timestep=1
+max_timestep_dexinc=0.01
 # name of initial conditions
 init=Iliev1
 # domain properties

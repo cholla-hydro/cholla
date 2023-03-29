@@ -295,7 +295,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 
   // create hdf5 file
   hid_t file_id; /* file identifier */
-  herr_t status;
+  herr_t status = 0;
 
   // Create a new file using default properties.
   file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -1039,7 +1039,7 @@ void Grid3D::Write_Grid_Text(FILE *fp)
 
           // Exclude the rightmost ghost cell on the "left" side for the hydro
           // variables
-          if ((i >= H.n_ghost) and (j >= H.n_ghost) and (k >= H.n_ghost)) {
+          if ((i >= H.n_ghost) && (j >= H.n_ghost) && (k >= H.n_ghost)) {
             fprintf(fp, "%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, j - H.n_ghost, k - H.n_ghost, C.density[id],
                     C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
 #ifdef DE

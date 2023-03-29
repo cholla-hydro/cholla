@@ -1,0 +1,59 @@
+let C be the cholla source directory
+
+
+TEST 0:
+---------------------------------------
+compile with TYPE=cooling
+Execute these commands:
+
+cp $C/examples/3D/iliev0/uvb_rates_I0* .
+mkdir OUT
+$C/bin/cholla.cooling... $C/examples/3D/iliev/iliev0.txt
+$C/bin/cholla.cooling... $C/examples/3D/iliev/iliev0end.txt
+python3 $C/examples/3D/iliev/load_all.py > cholla.res
+python3 $C/examples/3D/iliev/plot.py
+
+The displayed image is the result of the test. The blue line should track the lines from the background image (a figure from the original Iliev et all 2006 paper) reasonably well.
+
+
+TEST 1:
+---------------------------------------
+compile with TYPE=rt
+Execute these commands:
+
+mkdir OUT
+$C/bin/cholla.rt... $C/examples/3D/iliev/iliev1.txt
+python3 $C/examples/3D/iliev/eval1.py
+
+The evaluation script reports if the test passes. You can also visually look at comparison with the original Iliev's plot with
+
+python3 $C/examples/3D/iliev/profile1.py
+
+
+TEST 5:
+---------------------------------------
+compile with TYPE=rt
+Execute these commands:
+
+mkdir OUT
+$C/bin/cholla.rt... $C/examples/3D/iliev/iliev5.txt
+python3 $C/examples/3D/iliev/eval5.py
+
+The evaluation script reports if the test passes. You can also visually look at comparison with the original Iliev's plot with
+
+python3 $C/examples/3D/iliev/profile5.py
+
+
+TEST 6:
+---------------------------------------
+compile with TYPE=rt
+Execute these commands:
+
+mkdir OUT
+$C/bin/cholla.rt... $C/examples/3D/iliev/iliev6.txt
+python3 $C/examples/3D/iliev/eval6.py
+
+The evaluation script reports if the test passes. You can also visually look at comparison with the original Iliev's plot with
+
+python3 $C/examples/3D/iliev/profile6.py
+

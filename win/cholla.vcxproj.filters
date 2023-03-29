@@ -22,9 +22,6 @@
     <ClCompile Include="..\src\main.cpp">
       <Filter>grid</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\utils\mhd_utilities.cpp">
-      <Filter>untouched\hydro</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\radiation\radiation.cpp">
       <Filter>rt</Filter>
     </ClCompile>
@@ -321,6 +318,9 @@
       <Filter>untouched</Filter>
     </CudaCompile>
     <CudaCompile Include="..\src\integrators\simple_3D_cuda.cu">
+      <Filter>untouched</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\io\io_gpu.cu">
       <Filter>untouched</Filter>
     </CudaCompile>
   </ItemGroup>

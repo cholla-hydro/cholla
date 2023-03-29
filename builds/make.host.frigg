@@ -5,10 +5,10 @@ CC                = mpicc
 CXX               = mpicxx
 CFLAGS_DEBUG      = -g -O0
 CFLAGS_OPTIMIZE   = -O2
-CXXFLAGS_DEBUG    = -g -O0 -std=c++11 
-CXXFLAGS_OPTIMIZE = -O2 -std=c++11 
-GPUFLAGS_DEBUG    = -std=c++11 -g -G -O0 -DCUDA_ERROR_CHECK
-GPUFLAGS_OPTIMIZE = -std=c++11 -O2 
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17 
+CXXFLAGS_OPTIMIZE = -O2 -std=c++17 
+GPUFLAGS_DEBUG    = -std=c++17 -g -G -O0 -DCUDA_ERROR_CHECK
+GPUFLAGS_OPTIMIZE = -std=c++17 -O2 
 
 
 OMP_NUM_THREADS = 1
