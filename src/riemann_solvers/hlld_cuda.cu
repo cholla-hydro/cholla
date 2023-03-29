@@ -38,7 +38,9 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   int threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
   // Thread guard to avoid overrun
-  if (threadId >= n_cells) return;
+  if (threadId >= n_cells) {
+    return;
+  }
 
   // Offsets & indices
   int o1, o2, o3;
@@ -81,7 +83,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   // If we're in the L state then assign fluxes and return.
   // In this state the flow is supersonic
   // M&K 2005 equation 66
-  if (speed.L >= 0.0) {
+  if (speed.L > 0.0) {
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxL, stateL);
     return;
   }
@@ -91,7 +93,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   // If we're in the R state then assign fluxes and return.
   // In this state the flow is supersonic
   // M&K 2005 equation 66
-  if (speed.R <= 0.0) {
+  if (speed.R < 0.0) {
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxR, stateR);
     return;
   }
@@ -115,7 +117,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   // If we're in the L* state then assign fluxes and return.
   // In this state the flow is subsonic
   // M&K 2005 equation 66
-  if (speed.LStar >= 0.0) {
+  if (speed.LStar > 0.0 and speed.L <= 0.0) {
     fluxL = mhd::_internal::starFluxes(starStateL, stateL, fluxL, speed, speed.L);
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxL, stateL);
     return;
@@ -131,7 +133,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   // If we're in the R* state then assign fluxes and return.
   // In this state the flow is subsonic
   // M&K 2005 equation 66
-  if (speed.RStar <= 0.0) {
+  if (speed.RStar <= 0.0 and speed.R >= 0.0) {
     fluxR = mhd::_internal::starFluxes(starStateR, stateR, fluxR, speed, speed.R);
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxR, stateR);
     return;
@@ -145,7 +147,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
 
   // Compute and return L** fluxes
   // M&K 2005 equation 66
-  if (speed.M >= 0.0) {
+  if (speed.M > 0.0 and speed.LStar <= 0.0) {
     fluxL = mhd::_internal::computeDoubleStarFluxes(doubleStarState, doubleStarState.energyL, starStateL, stateL, fluxL,
                                                     speed, speed.L, speed.LStar);
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxL, stateL);
@@ -153,7 +155,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   }
   // Compute and return R** fluxes
   // M&K 2005 equation 66
-  else {  // if (speedStarR >= 0.0) {
+  if (speed.RStar > 0.0 and speed.M <= 0.0) {
     fluxR = mhd::_internal::computeDoubleStarFluxes(doubleStarState, doubleStarState.energyR, starStateR, stateR, fluxR,
                                                     speed, speed.R, speed.RStar);
     mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, dev_flux, fluxR, stateR);
@@ -187,9 +189,7 @@ __device__ __host__ mhd::_internal::State loadState(Real const *interfaceArr, Re
     #endif  // SCALAR
     #ifdef DE
   state.thermalEnergySpecific = interfaceArr[threadId + n_cells * grid_enum::GasEnergy] / state.density;
-    #endif  // DE}
 
-    #ifdef DE  // PRESSURE_DE
   Real energyNonThermal = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(state.density, state.velocityX,
                                                                              state.velocityY, state.velocityZ) +
                           mhd::utils::computeMagneticEnergy(magneticX, state.magneticY, state.magneticZ);
@@ -201,7 +201,7 @@ __device__ __host__ mhd::_internal::State loadState(Real const *interfaceArr, Re
   // Note that this function does the positive pressure check
   // internally
   state.gasPressure = mhd::utils::computeGasPressure(state, magneticX, gamma);
-    #endif  // PRESSURE_DE
+    #endif  // DE
 
   state.totalPressure =
       mhd::utils::computeTotalPressure(state.gasPressure, magneticX, state.magneticY, state.magneticZ);
@@ -414,7 +414,7 @@ __device__ __host__ mhd::_internal::DoubleStarState computeDoubleStarState(mhd::
   // if Bx is zero then just return the star state
   // Explained at the top of page 328 in M&K 2005. Essentially when
   // magneticX is 0 this reduces to the HLLC solver
-  if (magneticX < mhd::_internal::_hlldSmallNumber * totalPressureStar) {
+  if (0.5 * (magneticX * magneticX) < mhd::_internal::_hlldSmallNumber * totalPressureStar) {
     if (speed.M >= 0.0) {
       // We're in the L** state but Bx=0 so return L* state
       doubleStarState.velocityY = starStateL.velocityY;

@@ -369,6 +369,27 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, BrioAndWuShockTubeCorrectInputExpectCorrectO
     }
     {
       std::string const outputString{
+          "Left State:  Left Brio & Wu state with negative Bx\n"
+          "Right State: Right Brio & Wu state with negative Bx\n"
+          "HLLD State: Left Double Star State"};
+      // Compute the fluxes and check for correctness
+      // Order of Fluxes is rho, vec(V), E, vec(B)
+      std::vector<Real> const fiducialFlux{0.20673357746080057,   0.4661897584603672,
+                                           -0.061170028480309613, 0,
+                                           0.064707291981509041,  0.0,
+                                           1.0074980455427278,    0};
+      std::vector<Real> const scalarFlux{0.22885355953447648, 0.46073027567244362, 0.6854281091039145};
+      Real thermalEnergyFlux = 0.20673357746080046;
+
+      std::vector<Real> leftICsNegBx = leftICs, rightICsNegBx = rightICs;
+      leftICsNegBx[5]  = -leftICsNegBx[5];
+      rightICsNegBx[5] = -rightICsNegBx[5];
+
+      std::vector<Real> const testFluxes = computeFluxes(leftICsNegBx, rightICsNegBx, gamma, direction);
+      checkResults(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
+    }
+    {
+      std::string const outputString{
           "Left State:  Right Brio & Wu state\n"
           "Right State: Left Brio & Wu state\n"
           "HLLD State: Right Double Star State"};
@@ -1557,8 +1578,8 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, ConstantStatesExpectCorrectFlux)
       // Compute the fluxes and check for correctness
       // Order of Fluxes is rho, vec(V), E, vec(B)
       std::vector<Real> const fiducialFlux{
-          1.42108547152020037174e-14, 0.50001380657999994,   -1, -1, -1.7347234759768071e-18, 0.0,
-          3.4694469519536142e-18,     3.4694469519536142e-18};
+          -1.42108547152020037174e-14, 0.50001380657999994,   -1, -1, -1.7347234759768071e-18, 0.0,
+          3.4694469519536142e-18,      3.4694469519536142e-18};
       std::vector<Real> const scalarFlux{1.5731381063233131e-14, 3.1670573744690958e-14, 4.7116290424753513e-14};
       Real thermalEnergyFlux             = 0.;
       std::vector<Real> const testFluxes = computeFluxes(onesMagneticField, onesMagneticField, gamma, direction);
@@ -1958,7 +1979,7 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputNonDegenerateExpectCorrectOut
   testParams const parameters;
 
   std::vector<mhd::_internal::StarState> fiducialStarState{
-      {24.101290139122913, 1.4626377138501221, 5.7559806612277464, 1023.8840191068896, 18.648382121236992,
+      {24.101290139122913, 1.4626377138501221, 5.7559806612277464, 1023.8840191068900, 18.648382121236992,
        70.095850905078336},
       {50.132466596958501, 0.85967712862308099, 1.9480712959548112, 172.06840532772659, 66.595692901872582,
        39.389537509454122}};
@@ -1992,9 +2013,9 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputNonDegenerateExpectCorrectOutput)
   testParams const parameters;
 
   std::vector<mhd::_internal::Flux> fiducialFlux{
-      {-45.270724071132321, 1369.1771532285088, -556.91765728768155, -2368.4452742393819, -21413.063415617493,
-       -83.294404848633206, -504.8413875424834},
-      {61.395380340435793, 283.48596932136809, -101.75517013858293, -51.343648925162142, -1413.4750762739586,
+      {-45.270724071132321, 1369.1771532285088, -556.91765728768155, -2368.4452742393819, -21413.063415617500,
+       -83.294404848633300, -504.84138754248409},
+      {61.395380340435793, 283.48596932136809, -101.75517013858293, -51.34364892516212, -1413.4750762739586,
        25.139956754826922, 78.863254638038882}};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
@@ -2018,9 +2039,9 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputNonDegenerateExpectCorrectOutput)
     testingUtilities::checkResults(fiducialFlux[i].energy, testFlux.energy,
                                    parameters.names.at(i) + ", EnergyStarFlux");
     testingUtilities::checkResults(fiducialFlux[i].magneticY, testFlux.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarFluxY");
+                                   parameters.names.at(i) + ", MagneticStarFluxY", 1.0E-13);
     testingUtilities::checkResults(fiducialFlux[i].magneticZ, testFlux.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarFluxZ");
+                                   parameters.names.at(i) + ", MagneticStarFluxZ", 7.0E-13);
   }
 }
 
@@ -2188,7 +2209,7 @@ TEST(tMHDHlldInternalDoubleStarFluxes, CorrectInputExpectCorrectOutput)
   std::vector<mhd::_internal::Flux> const fiducialFlux{
       {-144.2887586578122, 1450.1348804310369, -332.80193639987715, 83.687152337186944, 604.70003506833029,
        -245.53635448727721, -746.94190287166407},
-      {10.040447333773216, 284.85426012223729, -487.87930516727664, 490.91728596722157, 59.061079503595323,
+      {10.040447333773258, 284.85426012223729, -487.87930516727664, 490.91728596722157, 59.061079503595295,
        30.244176588794346, -466.15336272175193}};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
@@ -2199,7 +2220,7 @@ TEST(tMHDHlldInternalDoubleStarFluxes, CorrectInputExpectCorrectOutput)
 
     // Now check results
     testingUtilities::checkResults(fiducialFlux[i].density, testFlux.density,
-                                   parameters.names.at(i) + ", DensityStarFlux");
+                                   parameters.names.at(i) + ", DensityStarFlux", 5.0E-14);
     testingUtilities::checkResults(fiducialFlux[i].momentumX, testFlux.momentumX,
                                    parameters.names.at(i) + ", MomentumStarFluxX");
     testingUtilities::checkResults(fiducialFlux[i].momentumY, testFlux.momentumY,

@@ -64,14 +64,18 @@ __inline__ __device__ Real blockReduceMax(Real val)
 
   val = warpReduceMax(val);  // Each warp performs partial reduction
 
-  if (lane == 0) shared[warpId] = val;  // Write reduced value to shared memory
+  if (lane == 0) {
+    shared[warpId] = val;
+  }  // Write reduced value to shared memory
 
   __syncthreads();  // Wait for all partial reductions
 
   // read from shared memory only if that warp existed
   val = (threadIdx.x < blockDim.x / warpSize) ? shared[lane] : 0;
 
-  if (warpId == 0) val = warpReduceMax(val);  // Final reduce within first warp
+  if (warpId == 0) {
+    val = warpReduceMax(val);
+  }  // Final reduce within first warp
 
   return val;
 }
@@ -135,7 +139,9 @@ inline __device__ long long encode(double val)
  */
 inline __device__ float decode(int val)
 {
-  if (val < 0) val = (1 << 31) | ~val;
+  if (val < 0) {
+    val = (1 << 31) | ~val;
+  }
   return bit_cast<float>(val);
 }
 
@@ -147,7 +153,9 @@ inline __device__ float decode(int val)
  */
 inline __device__ double decode(long long val)
 {
-  if (val < 0) val = (1ULL << 63) | ~val;
+  if (val < 0) {
+    val = (1ULL << 63) | ~val;
+  }
   return bit_cast<double>(val);
 }
   #endif  // O_HIP
@@ -270,7 +278,9 @@ __inline__ __device__ void gridReduceMax(Real val, Real* out)
   val = blockReduceMax(val);
 
   // Write block level reduced value to the output scalar atomically
-  if (threadIdx.x == 0) atomicMaxBits(out, val);
+  if (threadIdx.x == 0) {
+    atomicMaxBits(out, val);
+  }
 }
 // =====================================================================
 

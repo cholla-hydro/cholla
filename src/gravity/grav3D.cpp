@@ -155,7 +155,9 @@ void Grav3D::AllocateMemory_CPU(void)
 
 void Grav3D::Set_Boundary_Flags(int *flags)
 {
-  for (int i = 0; i < 6; i++) boundary_flags[i] = flags[i];
+  for (int i = 0; i < 6; i++) {
+    boundary_flags[i] = flags[i];
+  }
 }
 
 void Grav3D::Initialize_values_CPU(void)

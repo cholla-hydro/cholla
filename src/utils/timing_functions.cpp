@@ -16,7 +16,9 @@
 
 void OneTime::Start()
 {
-  if (inactive) return;
+  if (inactive) {
+    return;
+  }
   time_start = get_time();
 }
 
@@ -29,7 +31,9 @@ void OneTime::Subtract(Real time_to_subtract)
 
 void OneTime::End()
 {
-  if (inactive) return;
+  if (inactive) {
+    return;
+  }
   Real time_end = get_time();
   Real time     = (time_end - time_start) * 1000;
 
@@ -42,7 +46,9 @@ void OneTime::End()
   t_max = time;
   t_avg = time;
   #endif
-  if (n_steps > 0) t_all += t_max;
+  if (n_steps > 0) {
+    t_all += t_max;
+  }
   n_steps++;
 }
 
@@ -58,7 +64,9 @@ void OneTime::RecordTime(Real time)
   t_max = time;
   t_avg = time;
   #endif
-  if (n_steps > 0) t_all += t_max;
+  if (n_steps > 0) {
+    t_all += t_max;
+  }
   n_steps++;
 }
 
@@ -69,7 +77,9 @@ void OneTime::PrintStep()
 
 void OneTime::PrintAverage()
 {
-  if (n_steps > 1) chprintf(" Time %-19s avg: %9.4f   ms\n", name, t_all / (n_steps - 1));
+  if (n_steps > 1) {
+    chprintf(" Time %-19s avg: %9.4f   ms\n", name, t_all / (n_steps - 1));
+  }
 }
 
 void OneTime::PrintAll() { chprintf(" Time %-19s all: %9.4f   ms\n", name, t_all); }
@@ -162,7 +172,9 @@ void Time::Print_Average_Times(struct parameters P)
   }
 
   #ifdef MPI_CHOLLA
-  if (procID != 0) return;
+  if (procID != 0) {
+    return;
+  }
   #endif
 
   std::ofstream out_file;

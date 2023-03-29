@@ -82,7 +82,9 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
 {
   if (code != cudaSuccess) {
     fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-    if (abort) exit(code);
+    if (abort) {
+      exit(code);
+    }
   }
 }
 
@@ -90,10 +92,11 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
  *  \brief Mathematical sign function. Returns sign of x. */
 __device__ inline int sgn_CUDA(Real x)
 {
-  if (x < 0)
+  if (x < 0) {
     return -1;
-  else
+  } else {
     return 1;
+  }
 }
 
     // Define atomic_add if it's not supported

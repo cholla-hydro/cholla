@@ -16,25 +16,51 @@ __global__ void Set_Particles_Density_Boundaries_Periodic_kernel(int direction, 
   tid_j = (tid - tid_k * n_i * n_j) / n_i;
   tid_i = tid - tid_k * n_i * n_j - tid_j * n_i;
 
-  if (tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost) return;
+  if (tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost) {
+    return;
+  }
 
   if (direction == 0) {
-    if (side == 0) tid_src = (nx - n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
-    if (side == 0) tid_dst = (n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
-    if (side == 1) tid_src = (tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
-    if (side == 1) tid_dst = (nx - 2 * n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    if (side == 0) {
+      tid_src = (nx - n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    }
+    if (side == 0) {
+      tid_dst = (n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    }
+    if (side == 1) {
+      tid_src = (tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    }
+    if (side == 1) {
+      tid_dst = (nx - 2 * n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    }
   }
   if (direction == 1) {
-    if (side == 0) tid_src = (tid_i) + (ny - n_ghost + tid_k) * nx + (tid_j)*nx * ny;
-    if (side == 0) tid_dst = (tid_i) + (n_ghost + tid_k) * nx + (tid_j)*nx * ny;
-    if (side == 1) tid_src = (tid_i) + (tid_k)*nx + (tid_j)*nx * ny;
-    if (side == 1) tid_dst = (tid_i) + (ny - 2 * n_ghost + tid_k) * nx + (tid_j)*nx * ny;
+    if (side == 0) {
+      tid_src = (tid_i) + (ny - n_ghost + tid_k) * nx + (tid_j)*nx * ny;
+    }
+    if (side == 0) {
+      tid_dst = (tid_i) + (n_ghost + tid_k) * nx + (tid_j)*nx * ny;
+    }
+    if (side == 1) {
+      tid_src = (tid_i) + (tid_k)*nx + (tid_j)*nx * ny;
+    }
+    if (side == 1) {
+      tid_dst = (tid_i) + (ny - 2 * n_ghost + tid_k) * nx + (tid_j)*nx * ny;
+    }
   }
   if (direction == 2) {
-    if (side == 0) tid_src = (tid_i) + (tid_j)*nx + (nz - n_ghost + tid_k) * nx * ny;
-    if (side == 0) tid_dst = (tid_i) + (tid_j)*nx + (n_ghost + tid_k) * nx * ny;
-    if (side == 1) tid_src = (tid_i) + (tid_j)*nx + (tid_k)*nx * ny;
-    if (side == 1) tid_dst = (tid_i) + (tid_j)*nx + (nz - 2 * n_ghost + tid_k) * nx * ny;
+    if (side == 0) {
+      tid_src = (tid_i) + (tid_j)*nx + (nz - n_ghost + tid_k) * nx * ny;
+    }
+    if (side == 0) {
+      tid_dst = (tid_i) + (tid_j)*nx + (n_ghost + tid_k) * nx * ny;
+    }
+    if (side == 1) {
+      tid_src = (tid_i) + (tid_j)*nx + (tid_k)*nx * ny;
+    }
+    if (side == 1) {
+      tid_dst = (tid_i) + (tid_j)*nx + (nz - 2 * n_ghost + tid_k) * nx * ny;
+    }
   }
 
   density_d[tid_dst] += density_d[tid_src];
@@ -87,21 +113,35 @@ __global__ void Load_Particles_Density_Boundary_to_Buffer_kernel(int direction, 
   tid_j = (tid - tid_k * n_i * n_j) / n_i;
   tid_i = tid - tid_k * n_i * n_j - tid_j * n_i;
 
-  if (tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost) return;
+  if (tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost) {
+    return;
+  }
 
   tid_buffer = tid_i + tid_j * n_i + tid_k * n_i * n_j;
 
   if (direction == 0) {
-    if (side == 0) tid_dens = (tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
-    if (side == 1) tid_dens = (nx - n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    if (side == 0) {
+      tid_dens = (tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    }
+    if (side == 1) {
+      tid_dens = (nx - n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    }
   }
   if (direction == 1) {
-    if (side == 0) tid_dens = (tid_i) + (tid_k)*nx + (tid_j)*nx * ny;
-    if (side == 1) tid_dens = (tid_i) + (ny - n_ghost + tid_k) * nx + (tid_j)*nx * ny;
+    if (side == 0) {
+      tid_dens = (tid_i) + (tid_k)*nx + (tid_j)*nx * ny;
+    }
+    if (side == 1) {
+      tid_dens = (tid_i) + (ny - n_ghost + tid_k) * nx + (tid_j)*nx * ny;
+    }
   }
   if (direction == 2) {
-    if (side == 0) tid_dens = (tid_i) + (tid_j)*nx + (tid_k)*nx * ny;
-    if (side == 1) tid_dens = (tid_i) + (tid_j)*nx + (nz - n_ghost + tid_k) * nx * ny;
+    if (side == 0) {
+      tid_dens = (tid_i) + (tid_j)*nx + (tid_k)*nx * ny;
+    }
+    if (side == 1) {
+      tid_dens = (tid_i) + (tid_j)*nx + (nz - n_ghost + tid_k) * nx * ny;
+    }
   }
   transfer_buffer_d[tid_buffer] = density_d[tid_dens];
 }
@@ -161,21 +201,35 @@ __global__ void Unload_Particles_Density_Boundary_to_Buffer_kernel(int direction
   tid_j = (tid - tid_k * n_i * n_j) / n_i;
   tid_i = tid - tid_k * n_i * n_j - tid_j * n_i;
 
-  if (tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost) return;
+  if (tid_i < 0 || tid_i >= n_i || tid_j < 0 || tid_j >= n_j || tid_k < 0 || tid_k >= n_ghost) {
+    return;
+  }
 
   tid_buffer = tid_i + tid_j * n_i + tid_k * n_i * n_j;
 
   if (direction == 0) {
-    if (side == 0) tid_dens = (n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
-    if (side == 1) tid_dens = (nx - 2 * n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    if (side == 0) {
+      tid_dens = (n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    }
+    if (side == 1) {
+      tid_dens = (nx - 2 * n_ghost + tid_k) + (tid_i)*nx + (tid_j)*nx * ny;
+    }
   }
   if (direction == 1) {
-    if (side == 0) tid_dens = (tid_i) + (n_ghost + tid_k) * nx + (tid_j)*nx * ny;
-    if (side == 1) tid_dens = (tid_i) + (ny - 2 * n_ghost + tid_k) * nx + (tid_j)*nx * ny;
+    if (side == 0) {
+      tid_dens = (tid_i) + (n_ghost + tid_k) * nx + (tid_j)*nx * ny;
+    }
+    if (side == 1) {
+      tid_dens = (tid_i) + (ny - 2 * n_ghost + tid_k) * nx + (tid_j)*nx * ny;
+    }
   }
   if (direction == 2) {
-    if (side == 0) tid_dens = (tid_i) + (tid_j)*nx + (n_ghost + tid_k) * nx * ny;
-    if (side == 1) tid_dens = (tid_i) + (tid_j)*nx + (nz - 2 * n_ghost + tid_k) * nx * ny;
+    if (side == 0) {
+      tid_dens = (tid_i) + (tid_j)*nx + (n_ghost + tid_k) * nx * ny;
+    }
+    if (side == 1) {
+      tid_dens = (tid_i) + (tid_j)*nx + (nz - 2 * n_ghost + tid_k) * nx * ny;
+    }
   }
   density_d[tid_dens] += transfer_buffer_d[tid_buffer];
 }

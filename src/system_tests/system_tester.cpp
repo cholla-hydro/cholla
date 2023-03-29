@@ -11,7 +11,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
+#include <limits>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
@@ -45,24 +47,24 @@ void systemTest::SystemTestRunner::runTest()
   /// globalRunCholla should only be used for large MPI tests where the user
   /// wishes to separate the execution of cholla and the comparison of results
   /// onto different machines/jobs
-  if (not globalCompareSystemTestResults) return;
+  if (not globalCompareSystemTestResults) {
+    return;
+  }
 
   // Make sure we have all the required data files and open the test data file
   _testHydroFieldsFileVec.resize(numMpiRanks);
   _testParticlesFileVec.resize(numMpiRanks);
   for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++) {
     // Load the hydro data
-    if (_hydroDataExists) {
-      std::string fileName = "/1.h5." + std::to_string(fileIndex);
-      _checkFileExists(_outputDirectory + fileName);
-      _testHydroFieldsFileVec[fileIndex].openFile(_outputDirectory + fileName, H5F_ACC_RDONLY);
+    std::string filePath = _outputDirectory + "/1.h5." + std::to_string(fileIndex);
+    if (_hydroDataExists and std::filesystem::exists(filePath)) {
+      _testHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
 
     // Load the particles data
-    if (_particleDataExists) {
-      std::string fileName = "/1_particles.h5." + std::to_string(fileIndex);
-      _checkFileExists(_outputDirectory + fileName);
-      _testParticlesFileVec[fileIndex].openFile(_outputDirectory + fileName, H5F_ACC_RDONLY);
+    filePath = _outputDirectory + "/1_particles.h5." + std::to_string(fileIndex);
+    if (_particleDataExists and std::filesystem::exists(filePath)) {
+      _testParticlesFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
   }
 
@@ -71,11 +73,15 @@ void systemTest::SystemTestRunner::runTest()
   if (_particleDataExists) {
     _testParticleIDs = _loadTestParticleData("particle_IDs");
 
-    if (_fiducialFileExists) _fiducialParticleIDs = _loadFiducialParticleData("particle_IDs");
+    if (_fiducialFileExists) {
+      _fiducialParticleIDs = _loadFiducialParticleData("particle_IDs");
+    }
   }
 
   // Get the list of test dataset names
-  if (_hydroDataExists) _testDataSetNames = _findDataSetNames(_testHydroFieldsFileVec[0]);
+  if (_hydroDataExists) {
+    _testDataSetNames = _findDataSetNames(_testHydroFieldsFileVec[0]);
+  }
   if (_particleDataExists) {
     // Load the data, replace the density value with the new name, then append
     std::vector<std::string> particleNames = _findDataSetNames(_testParticlesFileVec[0]);
@@ -88,7 +94,9 @@ void systemTest::SystemTestRunner::runTest()
   // Start Performing Checks
   // =======================
   // Check the number of time steps
-  if (_compareNumTimeSteps) _checkNumTimeSteps();
+  if (_compareNumTimeSteps) {
+    _checkNumTimeSteps();
+  }
 
   // Check that the test file has as many, or more, datasets than the fiducial
   // file. Provide a warning if the datasets are not the same size
@@ -189,21 +197,25 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
   /// globalRunCholla should only be used for large MPI tests where the user
   /// wishes to separate the execution of cholla and the comparison of results
   /// onto different machines/jobs
-  if (not globalCompareSystemTestResults) return;
+  if (not globalCompareSystemTestResults) {
+    return;
+  }
 
   // Make sure we have all the required data files and open the data files
   _testHydroFieldsFileVec.resize(numMpiRanks);
   std::vector<H5::H5File> initialHydroFieldsFileVec(numMpiRanks);
   for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++) {
     // Initial time data
-    std::string fileName = "/0.h5." + std::to_string(fileIndex);
-    _checkFileExists(_outputDirectory + fileName);
-    initialHydroFieldsFileVec[fileIndex].openFile(_outputDirectory + fileName, H5F_ACC_RDONLY);
+    std::string filePath = _outputDirectory + "/0.h5." + std::to_string(fileIndex);
+    if (std::filesystem::exists(filePath)) {
+      initialHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
+    }
 
     // Final time data
-    fileName = "/1.h5." + std::to_string(fileIndex);
-    _checkFileExists(_outputDirectory + fileName);
-    _testHydroFieldsFileVec[fileIndex].openFile(_outputDirectory + fileName, H5F_ACC_RDONLY);
+    filePath = _outputDirectory + "/1.h5." + std::to_string(fileIndex);
+    if (std::filesystem::exists(filePath)) {
+      _testHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
+    }
   }
 
   // Get the list of test dataset names
@@ -213,7 +225,9 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
   // Start Performing Checks
   // =======================
   // Check the number of time steps
-  if (_compareNumTimeSteps) _checkNumTimeSteps();
+  if (_compareNumTimeSteps) {
+    _checkNumTimeSteps();
+  }
 
   // Check that the test file has as many, or more, datasets than the fiducial
   // file. Provide a warning if the datasets are not the same size
@@ -251,18 +265,25 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
         << "The initial and final '" << dataSetName << "' datasets are not the same length";
 
     // Compute the L1 Error.
-    double L1Error = 0;
+    double L1_error     = 0.0;
+    double fp_sum_error = 0.0;
     for (size_t i = 0; i < initialData.size(); i++) {
       double const diff = std::abs(initialData.at(i) - finalData.at(i));
-      L1Error += diff;
-      maxError = (diff > maxError) ? diff : maxError;
+
+      maxError = std::max(maxError, diff);
+
+      // Perform a Kahan sum to maintain precision in the result
+      double const y = diff - fp_sum_error;
+      double const t = L1_error + y;
+      fp_sum_error   = (t - L1_error) - y;
+      L1_error       = t;
     }
 
-    L1Error *= (1. / static_cast<double>(initialDims[0] * initialDims[1] * initialDims[2]));
-    L2Norm += L1Error * L1Error;
+    L1_error /= static_cast<double>(initialDims[0] * initialDims[1] * initialDims[2]);
+    L2Norm += L1_error * L1_error;
 
     // Perform the correctness check
-    EXPECT_LT(L1Error, maxAllowedL1Error)
+    EXPECT_LT(L1_error, maxAllowedL1Error)
         << "the L1 error for the " << dataSetName << " data has exceeded the allowed value";
   }
 
@@ -291,9 +312,13 @@ void systemTest::SystemTestRunner::launchCholla()
   EXPECT_EQ(returnLaunch, 0) << "Warning: Launching Cholla returned a non-zero exit status. Likely "
                              << "failed to launch. Please see the log files" << std::endl;
 
-  _safeMove("run_output.log", _outputDirectory);
-  // TODO: instead of commenting out, change to check if exist
-  //_safeMove("run_timing.log", _outputDirectory);
+  // Move the output files to the correct spots
+  std::filesystem::rename(::globalChollaRoot.getString() + "/run_output.log", _outputDirectory + "/run_output.log");
+  try {
+    std::filesystem::rename(::globalChollaRoot.getString() + "/run_timing.log", _outputDirectory + "/run_timing.log");
+  } catch (const std::filesystem::filesystem_error &error) {
+    // This file might not exist and isn't required so don't worry if it doesn't exist
+  }
 }
 // =============================================================================
 
@@ -302,9 +327,10 @@ void systemTest::SystemTestRunner::openHydroTestData()
 {
   _testHydroFieldsFileVec.resize(numMpiRanks);
   for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++) {
-    std::string fileName = "/1.h5." + std::to_string(fileIndex);
-    _checkFileExists(_outputDirectory + fileName);
-    _testHydroFieldsFileVec[fileIndex].openFile(_outputDirectory + fileName, H5F_ACC_RDONLY);
+    std::string filePath = _outputDirectory + "/1.h5." + std::to_string(fileIndex);
+    if (std::filesystem::exists(filePath)) {
+      _testHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
+    }
   }
 }
 // =============================================================================
@@ -376,22 +402,32 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &particleData, bool co
   _fullTestFileName        = fullTestName.substr(0, fullTestName.find("/"));
 
   // Generate the input paths. Strip out everything after a "/" since that
-  // probably indicates a parameterized test. Also, check that the files exist
-  // and load fiducial HDF5 file if required
+  // probably indicates a parameterized test.
   _chollaPath = ::globalChollaRoot.getString() + "/bin/cholla." + ::globalChollaBuild.getString() + "." +
                 ::globalChollaMachine.getString();
-  _checkFileExists(_chollaPath);
+
+  // Check that Cholla exists and abort if it doesn't
+  if (not std::filesystem::exists(_chollaPath)) {
+    throw std::invalid_argument("Error: Cholla executable not found.");
+  }
+
+  // Check that settings file exist
   if (useSettingsFile) {
     _chollaSettingsPath =
         ::globalChollaRoot.getString() + "/src/system_tests/input_files/" + _fullTestFileName + ".txt";
-    _checkFileExists(_chollaSettingsPath);
   } else {
     _chollaSettingsPath = ::globalChollaRoot.getString() + "/src/system_tests/input_files/" + "blank_settings_file.txt";
-    _checkFileExists(_chollaSettingsPath);
   }
+  if (not std::filesystem::exists(_chollaSettingsPath)) {
+    throw std::invalid_argument("Error: Cholla settings file not found at :" + _chollaSettingsPath);
+  }
+
+  // Check that the fiducial file exists and load it if it does
   if (useFiducialFile) {
     _fiducialFilePath = ::globalChollaRoot.getString() + "/cholla-tests-data/system_tests/" + _fullTestFileName + ".h5";
-    _checkFileExists(_fiducialFilePath);
+    if (not std::filesystem::exists(_fiducialFilePath)) {
+      throw std::invalid_argument("Error: Cholla settings file not found at :" + _fiducialFilePath);
+    }
     _fiducialFile.openFile(_fiducialFilePath, H5F_ACC_RDONLY);
     _fiducialDataSetNames = _findDataSetNames(_fiducialFile);
     _fiducialFileExists   = true;
@@ -420,39 +456,18 @@ systemTest::SystemTestRunner::~SystemTestRunner()
 {
   _fiducialFile.close();
   for (size_t i = 0; i < _testHydroFieldsFileVec.size(); i++) {
-    if (_hydroDataExists) _testHydroFieldsFileVec[i].close();
-    if (_particleDataExists) _testParticlesFileVec[i].close();
+    if (_hydroDataExists) {
+      _testHydroFieldsFileVec[i].close();
+    }
+    if (_particleDataExists) {
+      _testParticlesFileVec[i].close();
+    }
   }
 }
 // =============================================================================
 
 // =============================================================================
 // Private Members
-// =============================================================================
-
-// =============================================================================
-void systemTest::SystemTestRunner::_checkFileExists(std::string const &filePath)
-{
-  // TODO C++17 std::filesystem does this better
-  std::fstream file;
-  file.open(filePath);
-  if (not file) {
-    std::string errMessage = "Error: File '" + filePath + "' not found.";
-    throw std::invalid_argument(errMessage);
-  }
-}
-// =============================================================================
-
-// =============================================================================
-void systemTest::SystemTestRunner::_safeMove(std::string const &sourcePath, std::string const &destinationDirectory)
-{
-  // TODO C++17 std::filesystem does this better
-  _checkFileExists(sourcePath);
-  if (std::rename(sourcePath.c_str(), (destinationDirectory + "/" + sourcePath).c_str()) < 0) {
-    std::string errMessage = "Error: File '" + sourcePath + "' could not be moved to '" + destinationDirectory + "`";
-    throw std::invalid_argument(errMessage);
-  }
-}
 // =============================================================================
 
 // =============================================================================
@@ -496,14 +511,21 @@ std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(std::string 
     file = _testHydroFieldsFileVec;
   }
 
-  // Get the size of each dimension. First check if the field is a magnetic
+  // Get the size of each dimension. Check if the field is a magnetic
   // field or not to make sure we're retreiving the right dimensions
-  std::string dimsName     = (dataSetName.find("magnetic") != std::string::npos) ? "magnetic_field_dims" : "dims";
-  H5::Attribute dimensions = file[0].openAttribute(dimsName.c_str());
+  H5::Attribute dimensions = file[0].openAttribute("dims");
   dimensions.read(H5::PredType::NATIVE_ULONG, testDims.data());
 
-  // Allocate the vector
-  std::vector<double> testData(testDims[0] * testDims[1] * testDims[2]);
+  if (dataSetName == "magnetic_x") {
+    testDims.at(0)++;
+  } else if (dataSetName == "magnetic_y") {
+    testDims.at(1)++;
+  } else if (dataSetName == "magnetic_z") {
+    testDims.at(2)++;
+  }
+
+  // Allocate the vector and initialize to a quiet NaN to make failed writes clearer
+  std::vector<double> testData(testDims[0] * testDims[1] * testDims[2], std::numeric_limits<double>::quiet_NaN());
 
   for (size_t rank = 0; rank < numMpiRanks; rank++) {
     // Open the dataset
@@ -530,10 +552,16 @@ std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(std::string 
 
     // Get dims_local
     std::vector<int> dimsLocal(3, 1);
-    std::string dimsNameLocal =
-        (dataSetName.find("magnetic") != std::string::npos) ? "magnetic_field_dims_local" : "dims_local";
-    H5::Attribute dimsLocalAttr = file[rank].openAttribute(dimsNameLocal.c_str());
+    H5::Attribute dimsLocalAttr = file[rank].openAttribute("dims_local");
     dimsLocalAttr.read(H5::PredType::NATIVE_INT, dimsLocal.data());
+
+    if (dataSetName == "magnetic_x") {
+      dimsLocal.at(0)++;
+    } else if (dataSetName == "magnetic_y") {
+      dimsLocal.at(1)++;
+    } else if (dataSetName == "magnetic_z") {
+      dimsLocal.at(2)++;
+    }
 
     // Now we add the data to the larger vector
     size_t localIndex = 0;

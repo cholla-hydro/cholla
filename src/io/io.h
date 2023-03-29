@@ -73,7 +73,7 @@ void Fill_Grid_From_HDF5_Buffer(int nx, int ny, int nz, int nx_real, int ny_real
 // Use GPU to pack source -> device_buffer, then copy device_buffer -> buffer,
 // then write HDF5 field
 void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id, float* buffer,
-                      float* device_buffer, Real* source, const char* name);
+                      float* device_buffer, Real* source, const char* name, int mhd_direction = -1);
 void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id, double* buffer,
-                      double* device_buffer, Real* source, const char* name);
+                      double* device_buffer, Real* source, const char* name, int mhd_direction = -1);
 #endif

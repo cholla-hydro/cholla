@@ -28,7 +28,6 @@ typedef double Real;
 
 #define MAXLEN      2048
 #define TINY_NUMBER 1.0e-20
-#define PI          3.141592653589793
 #define MP          1.672622e-24  // mass of proton, grams
 #define KB          1.380658e-16  // boltzmann constant, cgs
 // #define GN 6.67259e-8 // gravitational constant, cgs
@@ -263,6 +262,7 @@ struct parameters {
   Real rEigenVec_Bz        = 0;
   Real pitch               = 0;
   Real yaw                 = 0;
+  Real polarization        = 0;
 #ifdef PARTICLES
   // The random seed for particle simulations. With the default of 0 then a
   // machine dependent seed will be generated.

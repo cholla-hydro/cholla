@@ -8,6 +8,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <string>
 #ifdef HDF5
   #include <hdf5.h>
 #endif  // HDF5
@@ -34,7 +35,9 @@ void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real
 void Create_Log_File(struct parameters P)
 {
 #ifdef MPI_CHOLLA
-  if (procID != 0) return;
+  if (procID != 0) {
+    return;
+  }
 #endif
 
   std::string file_name(LOG_FILE_NAME);
@@ -62,7 +65,9 @@ void Create_Log_File(struct parameters P)
 void Write_Message_To_Log_File(const char *message)
 {
 #ifdef MPI_CHOLLA
-  if (procID != 0) return;
+  if (procID != 0) {
+    return;
+  }
 #endif
 
   std::string file_name(LOG_FILE_NAME);
@@ -104,28 +109,40 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
 
 #ifndef ONLY_PARTICLES
   /*call the data output routine for Hydro data*/
-  if (nfile % P.n_hydro == 0) OutputData(G, P, nfile);
+  if (nfile % P.n_hydro == 0) {
+    OutputData(G, P, nfile);
+  }
 #endif
 
 // This function does other checks to make sure it is valid (3D only)
 #ifdef HDF5
-  if (P.n_out_float32 && nfile % P.n_out_float32 == 0) OutputFloat32(G, P, nfile);
+  if (P.n_out_float32 && nfile % P.n_out_float32 == 0) {
+    OutputFloat32(G, P, nfile);
+  }
 #endif
 
 #ifdef PROJECTION
-  if (nfile % P.n_projection == 0) OutputProjectedData(G, P, nfile);
+  if (nfile % P.n_projection == 0) {
+    OutputProjectedData(G, P, nfile);
+  }
 #endif /*PROJECTION*/
 
 #ifdef ROTATED_PROJECTION
-  if (nfile % P.n_rotated_projection == 0) OutputRotatedProjectedData(G, P, nfile);
+  if (nfile % P.n_rotated_projection == 0) {
+    OutputRotatedProjectedData(G, P, nfile);
+  }
 #endif /*ROTATED_PROJECTION*/
 
 #ifdef SLICES
-  if (nfile % P.n_slice == 0) OutputSlices(G, P, nfile);
+  if (nfile % P.n_slice == 0) {
+    OutputSlices(G, P, nfile);
+  }
 #endif /*SLICES*/
 
 #ifdef PARTICLES
-  if (nfile % P.n_particle == 0) G.WriteData_Particles(P, nfile);
+  if (nfile % P.n_particle == 0) {
+    G.WriteData_Particles(P, nfile);
+  }
 #endif
 
 #ifdef COSMOLOGY
@@ -139,8 +156,9 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
       chprintf(" Saved Snapshot: %d     z:%f   Exiting now\n", nfile, G.Cosmo.current_z);
     }
 
-  } else
+  } else {
     chprintf(" Saved Snapshot: %d     z:%f\n", nfile, G.Cosmo.current_z);
+  }
   G.Change_Cosmological_Frame_Sytem(true);
   chprintf("\n");
   G.H.Output_Now = false;
@@ -163,29 +181,26 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
 /* Output the grid data to file. */
 void OutputData(Grid3D &G, struct parameters P, int nfile)
 {
-  char filename[MAXLEN];
-  char timestep[20];
-
   // create the filename
-  strcpy(filename, P.outdir);
-  sprintf(timestep, "%d", nfile);
-  strcat(filename, timestep);
+  std::string filename(P.outdir);
+  filename += std::to_string(nfile);
+
 #if defined BINARY
-  strcat(filename, ".bin");
+  filename += ".bin";
 #elif defined HDF5
-  strcat(filename, ".h5");
+  filename += ".h5";
 #else
   strcat(filename, ".txt");
   if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
 #endif
 #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
 #endif
 
 // open the file for binary writes
 #if defined BINARY
   FILE *out;
-  out = fopen(filename, "w");
+  out = fopen(filename.data(), "w");
   if (out == NULL) {
     printf("Error opening output file.\n");
     exit(-1);
@@ -206,7 +221,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
   herr_t status;
 
   // Create a new file using default properties.
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write the header (file attributes)
   G.Write_Header_HDF5(file_id);
@@ -257,16 +272,12 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
     return;
   }
 
-  char filename[MAXLEN];
-  char timestep[20];
-
   // create the filename
-  sprintf(timestep, "%d", nfile);
-  strcpy(filename, P.outdir);
-  strcat(filename, timestep);
-  strcat(filename, ".float32.h5");
+  std::string filename(P.outdir);
+  filename += std::to_string(nfile);
+  filename += ".float32.h5";
 #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
 #endif
 
   // create hdf5 file
@@ -274,7 +285,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
   herr_t status;
 
   // Create a new file using default properties.
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write the header (file attributes)
   G.Write_Header_HDF5(file_id);
@@ -303,36 +314,45 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
     float *device_dataset_buffer = device_dataset_vector.data();
     float *dataset_buffer        = (float *)malloc(buffer_size * sizeof(float));
 
-    if (P.out_float32_density > 0)
+    if (P.out_float32_density > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_density, "/density");
-    if (P.out_float32_momentum_x > 0)
+    }
+    if (P.out_float32_momentum_x > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_momentum_x, "/momentum_x");
-    if (P.out_float32_momentum_y > 0)
+    }
+    if (P.out_float32_momentum_y > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_momentum_y, "/momentum_y");
-    if (P.out_float32_momentum_z > 0)
+    }
+    if (P.out_float32_momentum_z > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_momentum_z, "/momentum_z");
-    if (P.out_float32_Energy > 0)
+    }
+    if (P.out_float32_Energy > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_Energy, "/Energy");
+    }
 #ifdef DE
-    if (P.out_float32_GasEnergy > 0)
+    if (P.out_float32_GasEnergy > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_GasEnergy, "/GasEnergy");
+    }
 #endif  // DE
 #ifdef MHD
-    if (P.out_float32_magnetic_x > 0)
+    if (P.out_float32_magnetic_x > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
                        device_dataset_buffer, G.C.d_magnetic_x, "/magnetic_x");
-    if (P.out_float32_magnetic_y > 0)
+    }
+    if (P.out_float32_magnetic_y > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
                        device_dataset_buffer, G.C.d_magnetic_y, "/magnetic_y");
-    if (P.out_float32_magnetic_z > 0)
+    }
+    if (P.out_float32_magnetic_z > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
                        device_dataset_buffer, G.C.d_magnetic_z, "/magnetic_z");
+    }
 #endif
 
     free(dataset_buffer);
@@ -350,24 +370,21 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 /* Output a projection of the grid data to file. */
 void OutputProjectedData(Grid3D &G, struct parameters P, int nfile)
 {
-  char filename[100];
-  char timestep[20];
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  strcpy(filename, P.outdir);
-  sprintf(timestep, "%d_proj", nfile);
-  strcat(filename, timestep);
-  strcat(filename, ".h5");
+  std::string filename(P.outdir);
+  filename += std::to_string(nfile);
+  filename += "_proj.h5";
 
   #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
   #endif /*MPI_CHOLLA*/
 
   // Create a new file
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write header (file attributes)
   G.Write_Header_HDF5(file_id);
@@ -398,20 +415,17 @@ void OutputProjectedData(Grid3D &G, struct parameters P, int nfile)
 /* Output a rotated projection of the grid data to file. */
 void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
 {
-  char filename[100];
-  char timestep[20];
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  strcpy(filename, P.outdir);
-  sprintf(timestep, "%d_rot_proj", nfile);
-  strcat(filename, timestep);
-  strcat(filename, ".h5");
+  std::string filename(P.outdir);
+  filename += std::to_string(nfile);
+  filename += "_rot_proj.h5";
 
   #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
   #endif /*MPI_CHOLLA*/
 
   if (G.R.flag_delta == 1) {
@@ -421,7 +435,7 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
     char fname[200];
 
     for (i_delta = 0; i_delta < G.R.n_delta; i_delta++) {
-      sprintf(fname, "%s.%d", filename, G.R.i_delta);
+      filename += "." + std::to_string(G.R.i_delta);
       chprintf("Outputting rotated projection %s.\n", fname);
 
       // determine delta about z by output index
@@ -457,10 +471,10 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
   } else if (G.R.flag_delta == 2) {
     // case 2 -- outputting at a rotating delta
     // rotation rate given in the parameter file
-    G.R.delta = fmod(nfile * G.R.ddelta_dt * 2.0 * PI, (2.0 * PI));
+    G.R.delta = fmod(nfile * G.R.ddelta_dt * 2.0 * M_PI, (2.0 * M_PI));
 
     // Create a new file
-    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     // Write header (file attributes)
     G.Write_Header_Rotated_HDF5(file_id);
@@ -474,7 +488,7 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
     // case 0 -- just output at the delta given in the parameter file
 
     // Create a new file
-    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     // Write header (file attributes)
     G.Write_Header_Rotated_HDF5(file_id);
@@ -506,24 +520,21 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
 /* Output xy, xz, and yz slices of the grid data. */
 void OutputSlices(Grid3D &G, struct parameters P, int nfile)
 {
-  char filename[100];
-  char timestep[20];
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  strcpy(filename, P.outdir);
-  sprintf(timestep, "%d_slice", nfile);
-  strcat(filename, timestep);
-  strcat(filename, ".h5");
+  std::string filename(P.outdir);
+  filename += std::to_string(nfile);
+  filename += "_slice.h5";
 
   #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
   #endif /*MPI_CHOLLA*/
 
   // Create a new file
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write header (file attributes)
   G.Write_Header_HDF5(file_id);
@@ -685,28 +696,12 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
 
-  #ifdef MHD
-  for (size_t i = 0; i < 3; i++) {
-    int_data[i]++;
-  }
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "magnetic_field_dims");
-  #endif  // MHD
-
   #ifdef MPI_CHOLLA
   int_data[0] = H.nx_real;
   int_data[1] = H.ny_real;
   int_data[2] = H.nz_real;
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
-
-    #ifdef MHD
-  int_data[0] = H.nx_real + 1;
-  int_data[1] = H.ny_real + 1;
-  int_data[2] = H.nz_real + 1;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "magnetic_field_dims_local");
-    #endif  // MHD
 
   int_data[0] = nx_local_start;
   int_data[1] = ny_local_start;
@@ -1633,12 +1628,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #ifdef MHD
     if (H.Output_Complete_Data) {
       // Note: for WriteHDF5Field3D, use the left side n_ghost
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_x, "/magnetic_x");
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_y, "/magnetic_y");
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_z, "/magnetic_z");
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_buffer, C.d_magnetic_x, "/magnetic_x", 0);
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset + 1, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_buffer, C.d_magnetic_y, "/magnetic_y", 1);
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset + 1, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_buffer, C.d_magnetic_z, "/magnetic_z", 2);
     }
   #endif  // MHD
 
@@ -1756,8 +1751,9 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     // Free the dataspace ids
     status = H5Sclose(dataspace_xz_id);
     status = H5Sclose(dataspace_xy_id);
-  } else
+  } else {
     printf("Projection write only works for 3D data.\n");
+  }
 
   free(dataset_buffer_dxy);
   free(dataset_buffer_dxz);
@@ -1914,8 +1910,9 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     free(dataset_buffer_vyxzr);
     free(dataset_buffer_vzxzr);
 
-  } else
+  } else {
     chprintf("Rotated projection write only implemented for 3D data.\n");
+  }
 }
 #endif  // HDF5
 
@@ -2234,8 +2231,9 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     free(dataset_buffer_scalar);
   #endif
 
-  } else
+  } else {
     printf("Slice write only works for 3D data.\n");
+  }
 }
 #endif  // HDF5
 
@@ -2244,21 +2242,19 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
 void Grid3D::Read_Grid(struct parameters P)
 {
   ScopedTimer timer("Read_Grid");
-  char filename[100];
-  char timestep[20];
   int nfile = P.nfile;  // output step you want to read from
 
   // create the filename to read from
   // assumes your data is in the outdir specified in the input file
   // strcpy(filename, P.outdir);
   // Changed to read initial conditions from indir
-  strcpy(filename, P.indir);
-  sprintf(timestep, "%d", nfile);
-  strcat(filename, timestep);
+  std::string filename(P.indir);
+  filename += std::to_string(P.nfile);
+
 #if defined BINARY
-  strcat(filename, ".bin");
+  filename += ".bin";
 #elif defined HDF5
-  strcat(filename, ".h5");
+  filename += ".h5";
 #endif  // BINARY or HDF5
 // for now assumes you will run on the same number of processors
 #ifdef MPI_CHOLLA
@@ -2266,7 +2262,7 @@ void Grid3D::Read_Grid(struct parameters P)
   sprintf(filename, "%sics_%dMpc_%d.h5", P.indir, (int)P.tile_length / 1000,
           H.nx_real);  // Everyone reads the same file
   #else                // TILED_INITIAL_CONDITIONS is not defined
-  sprintf(filename, "%s.%d", filename, procID);
+  filename += "." + std::to_string(procID);
   #endif               // TILED_INITIAL_CONDITIONS
 #endif                 // MPI_CHOLLA
 
@@ -2290,9 +2286,9 @@ void Grid3D::Read_Grid(struct parameters P)
   herr_t status;
 
   // open the file
-  file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  file_id = H5Fopen(filename.data(), H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) {
-    printf("Unable to open input file: %s\n", filename);
+    std::cout << "Unable to open input file: " << filename << std::endl;
     exit(0);
   }
 
@@ -2560,13 +2556,143 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     #endif // COOLING_GRACKLE , CHEMISTRY_GPU
   #endif  // SCALAR
 
+  // 3D case
+  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
+    // Compute Statistic of Initial data
+    Real mean_l, min_l, max_l;
+    Real mean_g, min_g, max_g;
+
   #ifdef MHD
-  Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_x, "/magnetic_x");
-  Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_y, "/magnetic_y");
-  Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_z, "/magnetic_z");      
-  #endif
+    // Open the x magnetic field dataset
+    dataset_id = H5Dopen(file_id, "/magnetic_x", H5P_DEFAULT);
+    // Read the x magnetic field array into the dataset buffer  // NOTE: NEED TO
+    // FIX FOR FLOAT REAL!!!
+    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    // Free the dataset id
+    status = H5Dclose(dataset_id);
 
+    mean_l = 0;
+    min_l  = 1e65;
+    max_l  = -1;
+    // Copy the x magnetic field array to the grid
+    for (k = 0; k < H.nz_real; k++) {
+      for (j = 0; j < H.ny_real; j++) {
+        for (i = 0; i < H.nx_real + 1; i++) {
+          id               = (i + H.n_ghost - 1) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          buf_id           = k + j * (H.nz_real) + i * (H.nz_real) * (H.ny_real);
+          C.magnetic_x[id] = dataset_buffer[buf_id];
 
+          mean_l += std::abs(C.magnetic_x[id]);
+          max_l = std::max(max_l, std::abs(C.magnetic_x[id]));
+          min_l = std::min(min_l, std::abs(C.magnetic_x[id]));
+        }
+      }
+    }
+    mean_l /= ((H.nz_real + 1) * (H.ny_real) * (H.nx_real));
+
+    #if MPI_CHOLLA
+    mean_g = ReduceRealAvg(mean_l);
+    max_g  = ReduceRealMax(max_l);
+    min_g  = ReduceRealMin(min_l);
+    mean_l = mean_g;
+    max_l  = max_g;
+    min_l  = min_g;
+    #endif  // MPI_CHOLLA
+
+    #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
+    chprintf(
+        " abs(Magnetic X)  Mean: %f   Min: %f   Max: %f      [ Msun^1/2 "
+        "kpc^-1/2 s^-1] \n",
+        mean_l, min_l, max_l);
+    #endif  // PRINT_INITIAL_STATS and COSMOLOGY
+
+    // Open the y magnetic field dataset
+    dataset_id = H5Dopen(file_id, "/magnetic_y", H5P_DEFAULT);
+    // Read the y magnetic field array into the dataset buffer  // NOTE: NEED TO
+    // FIX FOR FLOAT REAL!!!
+    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    // Free the dataset id
+    status = H5Dclose(dataset_id);
+
+    mean_l = 0;
+    min_l  = 1e65;
+    max_l  = -1;
+    // Copy the y magnetic field array to the grid
+    for (k = 0; k < H.nz_real; k++) {
+      for (j = 0; j < H.ny_real + 1; j++) {
+        for (i = 0; i < H.nx_real; i++) {
+          id               = (i + H.n_ghost) + (j + H.n_ghost - 1) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          buf_id           = k + j * (H.nz_real) + i * (H.nz_real) * (H.ny_real + 1);
+          C.magnetic_y[id] = dataset_buffer[buf_id];
+
+          mean_l += std::abs(C.magnetic_x[id]);
+          max_l = std::max(max_l, std::abs(C.magnetic_x[id]));
+          min_l = std::min(min_l, std::abs(C.magnetic_x[id]));
+        }
+      }
+    }
+    mean_l /= ((H.nz_real) * (H.ny_real + 1) * (H.nx_real));
+
+    #if MPI_CHOLLA
+    mean_g = ReduceRealAvg(mean_l);
+    max_g  = ReduceRealMax(max_l);
+    min_g  = ReduceRealMin(min_l);
+    mean_l = mean_g;
+    max_l  = max_g;
+    min_l  = min_g;
+    #endif  // MPI_CHOLLA
+
+    #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
+    chprintf(
+        " abs(Magnetic Y)  Mean: %f   Min: %f   Max: %f      [ Msun^1/2 "
+        "kpc^-1/2 s^-1] \n",
+        mean_l, min_l, max_l);
+    #endif  // PRINT_INITIAL_STATS and COSMOLOGY
+
+    // Open the z magnetic field dataset
+    dataset_id = H5Dopen(file_id, "/magnetic_z", H5P_DEFAULT);
+    // Read the z magnetic field array into the dataset buffer  // NOTE: NEED TO
+    // FIX FOR FLOAT REAL!!!
+    status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dataset_buffer);
+    // Free the dataset id
+    status = H5Dclose(dataset_id);
+
+    mean_l = 0;
+    min_l  = 1e65;
+    max_l  = -1;
+    // Copy the z magnetic field array to the grid
+    for (k = 0; k < H.nz_real + 1; k++) {
+      for (j = 0; j < H.ny_real; j++) {
+        for (i = 0; i < H.nx_real; i++) {
+          id               = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost - 1) * H.nx * H.ny;
+          buf_id           = k + j * (H.nz_real + 1) + i * (H.nz_real + 1) * (H.ny_real);
+          C.magnetic_z[id] = dataset_buffer[buf_id];
+
+          mean_l += std::abs(C.magnetic_x[id]);
+          max_l = std::max(max_l, std::abs(C.magnetic_x[id]));
+          min_l = std::min(min_l, std::abs(C.magnetic_x[id]));
+        }
+      }
+    }
+    mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real + 1));
+
+    #if MPI_CHOLLA
+    mean_g = ReduceRealAvg(mean_l);
+    max_g  = ReduceRealMax(max_l);
+    min_g  = ReduceRealMin(min_l);
+    mean_l = mean_g;
+    max_l  = max_g;
+    min_l  = min_g;
+    #endif  // MPI_CHOLLA
+
+    #if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
+    chprintf(
+        " abs(Magnetic Z)  Mean: %f   Min: %f   Max: %f      [ Msun^1/2 "
+        "kpc^-1/2 s^-1] \n",
+        mean_l, min_l, max_l);
+    #endif  // PRINT_INITIAL_STATS and COSMOLOGY
+  #endif    // MHD
+  }
   free(dataset_buffer);
 }
 #endif
@@ -2643,7 +2769,9 @@ void write_debug(Real *Value, const char *fname, int nValues, int iProc)
   sprintf(fn, "%s_%07d.txt", fname, iProc);
   FILE *fp = fopen(fn, "w");
 
-  for (int iV = 0; iV < nValues; iV++) fprintf(fp, "%e\n", Value[iV]);
+  for (int iV = 0; iV < nValues; iV++) {
+    fprintf(fp, "%e\n", Value[iV]);
+  }
 
   fclose(fp);
 }

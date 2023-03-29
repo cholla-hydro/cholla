@@ -282,9 +282,15 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
     if (pPos_z < G.domainMin_z || pPos_z > G.domainMax_z) {
       std::cout << " Particle outside global domain " << std::endl;
     }
-    if (pPos_x < G.xMin || pPos_x >= G.xMax) in_local = false;
-    if (pPos_y < G.yMin || pPos_y >= G.yMax) in_local = false;
-    if (pPos_z < G.zMin || pPos_z >= G.zMax) in_local = false;
+    if (pPos_x < G.xMin || pPos_x >= G.xMax) {
+      in_local = false;
+    }
+    if (pPos_y < G.yMin || pPos_y >= G.yMax) {
+      in_local = false;
+    }
+    if (pPos_z < G.zMin || pPos_z >= G.zMax) {
+      in_local = false;
+    }
     if (!in_local) {
     #ifdef PARTICLE_IDS
       std::cout << " Particle outside Local  domain    pID: " << pID << std::endl;
@@ -302,21 +308,45 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
 
     // Keep track of the max and min position and velocity to print Initial
     // Statistics
-    if (pPos_x > px_max) px_max = pPos_x;
-    if (pPos_y > py_max) py_max = pPos_y;
-    if (pPos_z > pz_max) pz_max = pPos_z;
+    if (pPos_x > px_max) {
+      px_max = pPos_x;
+    }
+    if (pPos_y > py_max) {
+      py_max = pPos_y;
+    }
+    if (pPos_z > pz_max) {
+      pz_max = pPos_z;
+    }
 
-    if (pPos_x < px_min) px_min = pPos_x;
-    if (pPos_y < py_min) py_min = pPos_y;
-    if (pPos_z < pz_min) pz_min = pPos_z;
+    if (pPos_x < px_min) {
+      px_min = pPos_x;
+    }
+    if (pPos_y < py_min) {
+      py_min = pPos_y;
+    }
+    if (pPos_z < pz_min) {
+      pz_min = pPos_z;
+    }
 
-    if (pVel_x > vx_max) vx_max = pVel_x;
-    if (pVel_y > vy_max) vy_max = pVel_y;
-    if (pVel_z > vz_max) vz_max = pVel_z;
+    if (pVel_x > vx_max) {
+      vx_max = pVel_x;
+    }
+    if (pVel_y > vy_max) {
+      vy_max = pVel_y;
+    }
+    if (pVel_z > vz_max) {
+      vz_max = pVel_z;
+    }
 
-    if (pVel_x < vx_min) vx_min = pVel_x;
-    if (pVel_y < vy_min) vy_min = pVel_y;
-    if (pVel_z < vz_min) vz_min = pVel_z;
+    if (pVel_x < vx_min) {
+      vx_min = pVel_x;
+    }
+    if (pVel_y < vy_min) {
+      vy_min = pVel_y;
+    }
+    if (pVel_z < vz_min) {
+      vz_min = pVel_z;
+    }
 
     #ifdef PARTICLES_CPU
     // Add the particle data to the particles vectors
@@ -548,8 +578,9 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
   // Print a warning if the number of particles has changed from the initial
   // number of particles. This will indicate an error on the Particles
   // transfers.
-  if (N_particles_total != Particles.n_total_initial)
+  if (N_particles_total != Particles.n_total_initial) {
     chprintf(" WARNING: Lost Particles: %d \n", Particles.n_total_initial - N_particles_total);
+  }
 
   // Create the data space for the datasets
   dims[0]      = n_local;
