@@ -114,7 +114,8 @@ inline __host__ __device__ Real Get_Pressure_From_DE(Real const &E, Real const &
     U = U_advected;
   }
   P = U * (gamma - 1.0);
-  return P;
+  return fmax(P, (Real)TINY_NUMBER);
+  ;
 }
 
 /*!

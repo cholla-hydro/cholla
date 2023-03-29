@@ -8,7 +8,10 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../reconstruction/plmc_cuda.h"
+#include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
+#include "../utils/hydro_utilities.h"
+#include "../utils/mhd_utilities.h"
 
 #ifdef DE  // PRESSURE_DE
   #include "../utils/hydro_utilities.h"
@@ -22,23 +25,26 @@
 __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, Real dx,
                           Real dt, Real gamma, int dir, int n_fields)
 {
-  int n_cells = nx * ny * nz;
+  // Compute the total number of cells
+  int const n_cells = nx * ny * nz;
+
+  // Set the field indices for the various directions
   int o1, o2, o3;
   switch (dir) {
     case 0:
-      o1 = 1;
-      o2 = 2;
-      o3 = 3;
+      o1 = grid_enum::momentum_x;
+      o2 = grid_enum::momentum_y;
+      o3 = grid_enum::momentum_z;
       break;
     case 1:
-      o1 = 2;
-      o2 = 3;
-      o3 = 1;
+      o1 = grid_enum::momentum_y;
+      o2 = grid_enum::momentum_z;
+      o3 = grid_enum::momentum_x;
       break;
     case 2:
-      o1 = 3;
-      o2 = 1;
-      o3 = 2;
+      o1 = grid_enum::momentum_z;
+      o2 = grid_enum::momentum_x;
+      o3 = grid_enum::momentum_y;
       break;
   }
 
@@ -686,4 +692,77 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_L[(n_fields - 1) * n_cells + id] = d_L_iph * ge_L_iph;
 #endif  // DE
   }
+}
+
+// =============================================================================
+plmc_utils::PlmcPrimitive __device__ __host__ plmc_utils::Load_Data(
+    Real const *dev_conserved, size_t const &xid, size_t const &yid, size_t const &zid, size_t const &nx,
+    size_t const &ny, size_t const &n_cells, size_t const &o1, size_t const &o2, size_t const &o3, Real const &gamma)
+{
+  // Compute index
+  size_t const id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+
+  // Declare the variable we will return
+  PlmcPrimitive loaded_data;
+
+  // Load hydro variables except pressure
+  loaded_data.density    = dev_conserved[grid_enum::density * n_cells + id];
+  loaded_data.velocity_x = dev_conserved[o1 * n_cells + id] / loaded_data.density;
+  loaded_data.velocity_y = dev_conserved[o2 * n_cells + id] / loaded_data.density;
+  loaded_data.velocity_z = dev_conserved[o3 * n_cells + id] / loaded_data.density;
+
+  // Load MHD variables. Note that I only need the centered values for the transverse fields except for the initial
+  // computation of the primitive variables
+#ifdef MHD
+  auto magnetic_centered = mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny);
+  switch (o1) {
+    case grid_enum::momentum_x:
+      loaded_data.magnetic_y = magnetic_centered.y;
+      loaded_data.magnetic_z = magnetic_centered.z;
+      break;
+    case grid_enum::momentum_y:
+      loaded_data.magnetic_y = magnetic_centered.z;
+      loaded_data.magnetic_z = magnetic_centered.x;
+      break;
+    case grid_enum::momentum_z:
+      loaded_data.magnetic_y = magnetic_centered.x;
+      loaded_data.magnetic_z = magnetic_centered.y;
+      break;
+  }
+#endif  // MHD
+
+// Load pressure accounting for duel energy if enabled
+#ifdef DE  // DE
+  Real const E          = dev_conserved[grid_enum::Energy * n_cells + id];
+  Real const gas_energy = dev_conserved[grid_enum::GasEnergy * n_cells + id];
+
+  Real E_non_thermal = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(
+      loaded_data.density, loaded_data.velocity_x, loaded_data.velocity_y, loaded_data.velocity_z);
+
+  #ifdef MHD
+  E_non_thermal += mhd::utils::computeMagneticEnergy(magnetic_centered.x, magnetic_centered.y, magnetic_centered.z);
+  #endif  // MHD
+
+  loaded_data.pressure   = hydro_utilities::Get_Pressure_From_DE(E, E - E_non_thermal, gas_energy, gamma);
+  loaded_data.gas_energy = gas_energy / loaded_data.density;
+#else  // not DE
+  #ifdef MHD
+  loaded_data.pressure =
+      hydro_utilities::Calc_Pressure_Primitive(dev_conserved[grid_enum::Energy * n_cells + id], loaded_data.density,
+                                               loaded_data.velocity_x, loaded_data.velocity_y, loaded_data.velocity_z,
+                                               gamma, magnetic_centered.x, magnetic_centered.y, magnetic_centered.z);
+  #else   // not MHD
+  loaded_data.pressure = hydro_utilities::Calc_Pressure_Primitive(
+      dev_conserved[grid_enum::Energy * n_cells + id], loaded_data.density, loaded_data.velocity_x,
+      loaded_data.velocity_y, loaded_data.velocity_z, gamma);
+  #endif  // MHD
+#endif    // DE
+
+#ifdef SCALAR
+  for (size_t i = 0; i < grid_enum::nscalars; i++) {
+    loaded_data.scalar[i] = dev_conserved[(grid_enum::scalar + i) * n_cells + id] / loaded_data.density;
+  }
+#endif  // SCALAR
+
+  return loaded_data;
 }
