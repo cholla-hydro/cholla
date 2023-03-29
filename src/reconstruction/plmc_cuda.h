@@ -40,6 +40,19 @@ struct PlmcPrimitive {
 };
 
 /*!
+ * \brief A struct for the characteristic variables
+ *
+ */
+struct PlmcCharacteristic {
+  // Hydro variables
+  Real a0, a1, a2, a3, a4;
+
+#ifdef MHD
+  Real a5, a6;
+#endif  // MHD
+};
+
+/*!
  * \brief Load the data for PLMC reconstruction
  *
  * \param dev_conserved The conserved array
