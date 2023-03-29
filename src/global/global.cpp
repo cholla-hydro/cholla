@@ -217,13 +217,13 @@ void parse_param(char *name, char *value, struct parameters *parms)
     parms->tout = atof(value);
   } else if (strcmp(name, "outstep") == 0) {
     parms->outstep = atof(value);
-  else if (strcmp(name, "outstep_dexinc") == 0)
+  } else if (strcmp(name, "outstep_dexinc") == 0) {
     parms->outstep_dexinc = atof(value);
-  else if (strcmp(name, "max_timestep") == 0)
+  } else if (strcmp(name, "max_timestep") == 0) {
     parms->max_timestep = atof(value);
-  else if (strcmp(name, "max_timestep_dexinc") == 0)
+  } else if (strcmp(name, "max_timestep_dexinc") == 0) {
     parms->max_timestep_dexinc = atof(value);
-  else if (strcmp(name, "n_steps_output") == 0)
+  } else if (strcmp(name, "n_steps_output") == 0) {
     parms->n_steps_output = atoi(value);
   } else if (strcmp(name, "gamma") == 0) {
     parms->gamma = atof(value);
