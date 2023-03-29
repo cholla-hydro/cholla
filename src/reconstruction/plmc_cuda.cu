@@ -49,10 +49,6 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
 
   // declare other variables to be used
-  Real del_d_L, del_vx_L, del_vy_L, del_vz_L, del_p_L;
-  Real del_d_R, del_vx_R, del_vy_R, del_vz_R, del_p_R;
-  Real del_d_C, del_vx_C, del_vy_C, del_vz_C, del_p_C;
-  Real del_d_G, del_vx_G, del_vy_G, del_vz_G, del_p_G;
   Real del_a_0_L, del_a_1_L, del_a_2_L, del_a_3_L, del_a_4_L;
   Real del_a_0_R, del_a_1_R, del_a_2_R, del_a_3_R, del_a_4_R;
   Real del_a_0_C, del_a_1_C, del_a_2_C, del_a_3_C, del_a_4_C;
@@ -65,14 +61,11 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real C;
 #ifndef VL
   Real dtodx = dt / dx;
-  Real lambda_m, lambda_0, lambda_p;
   Real qx;
   Real lamdiff;
   Real sum_0, sum_1, sum_2, sum_3, sum_4;
 #endif  // not VL
 #ifdef DE
-  Real ge_i, ge_imo, ge_ipo;
-  Real del_ge_L, del_ge_R, del_ge_C, del_ge_G;
   Real del_ge_m_i;
   Real ge_L_iph, ge_R_imh;
   Real E, E_kin, dge;
@@ -81,8 +74,6 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   #endif  // CTU
 #endif    // DE
 #ifdef SCALAR
-  Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS];
-  Real del_scalar_L[NSCALARS], del_scalar_R[NSCALARS], del_scalar_C[NSCALARS], del_scalar_G[NSCALARS];
   Real del_scalar_m_i[NSCALARS];
   Real scalar_L_iph[NSCALARS], scalar_R_imh[NSCALARS];
   #ifndef VL
@@ -119,9 +110,9 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 // Compute the eigenvalues of the linearized equations in the
 // primitive variables using the cell-centered primitive variables
 #ifndef VL
-  lambda_m = cell_i.velocity_x - sound_speed;
-  lambda_0 = cell_i.velocity_x;
-  lambda_p = cell_i.velocity_x + sound_speed;
+  Real const lambda_m = cell_i.velocity_x - sound_speed;
+  Real const lambda_0 = cell_i.velocity_x;
+  Real const lambda_p = cell_i.velocity_x + sound_speed;
 #endif  // VL
 
   // Compute the left, right, centered, and van Leer differences of the
@@ -129,103 +120,44 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // the cell center
 
   // left
-  del_d_L  = cell_i.density - cell_imo.density;
-  del_vx_L = cell_i.velocity_x - cell_imo.velocity_x;
-  del_vy_L = cell_i.velocity_y - cell_imo.velocity_y;
-  del_vz_L = cell_i.velocity_z - cell_imo.velocity_z;
-  del_p_L  = cell_i.pressure - cell_imo.pressure;
+  plmc_utils::PlmcPrimitive const del_L = plmc_utils::Compute_Slope(cell_i, cell_imo);
 
   // right
-  del_d_R  = cell_ipo.density - cell_i.density;
-  del_vx_R = cell_ipo.velocity_x - cell_i.velocity_x;
-  del_vy_R = cell_ipo.velocity_y - cell_i.velocity_y;
-  del_vz_R = cell_ipo.velocity_z - cell_i.velocity_z;
-  del_p_R  = cell_ipo.pressure - cell_i.pressure;
+  plmc_utils::PlmcPrimitive const del_R = plmc_utils::Compute_Slope(cell_ipo, cell_i);
 
   // centered
-  del_d_C  = 0.5 * (cell_ipo.density - cell_imo.density);
-  del_vx_C = 0.5 * (cell_ipo.velocity_x - cell_imo.velocity_x);
-  del_vy_C = 0.5 * (cell_ipo.velocity_y - cell_imo.velocity_y);
-  del_vz_C = 0.5 * (cell_ipo.velocity_z - cell_imo.velocity_z);
-  del_p_C  = 0.5 * (cell_ipo.pressure - cell_imo.pressure);
+  plmc_utils::PlmcPrimitive const del_C = plmc_utils::Compute_Slope(cell_ipo, cell_imo, 0.5);
 
   // Van Leer
-  if (del_d_L * del_d_R > 0.0) {
-    del_d_G = 2.0 * del_d_L * del_d_R / (del_d_L + del_d_R);
-  } else {
-    del_d_G = 0.0;
-  }
-  if (del_vx_L * del_vx_R > 0.0) {
-    del_vx_G = 2.0 * del_vx_L * del_vx_R / (del_vx_L + del_vx_R);
-  } else {
-    del_vx_G = 0.0;
-  }
-  if (del_vy_L * del_vy_R > 0.0) {
-    del_vy_G = 2.0 * del_vy_L * del_vy_R / (del_vy_L + del_vy_R);
-  } else {
-    del_vy_G = 0.0;
-  }
-  if (del_vz_L * del_vz_R > 0.0) {
-    del_vz_G = 2.0 * del_vz_L * del_vz_R / (del_vz_L + del_vz_R);
-  } else {
-    del_vz_G = 0.0;
-  }
-  if (del_p_L * del_p_R > 0.0) {
-    del_p_G = 2.0 * del_p_L * del_p_R / (del_p_L + del_p_R);
-  } else {
-    del_p_G = 0.0;
-  }
-
-#ifdef DE
-  del_ge_L = ge_i - ge_imo;
-  del_ge_R = ge_ipo - ge_i;
-  del_ge_C = 0.5 * (ge_ipo - ge_imo);
-  if (del_ge_L * del_ge_R > 0.0) {
-    del_ge_G = 2.0 * del_ge_L * del_ge_R / (del_ge_L + del_ge_R);
-  } else {
-    del_ge_G = 0.0;
-  }
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    del_scalar_L[i] = scalar_i[i] - scalar_imo[i];
-    del_scalar_R[i] = scalar_ipo[i] - scalar_i[i];
-    del_scalar_C[i] = 0.5 * (scalar_ipo[i] - scalar_imo[i]);
-    if (del_scalar_L[i] * del_scalar_R[i] > 0.0) {
-      del_scalar_G[i] = 2.0 * del_scalar_L[i] * del_scalar_R[i] / (del_scalar_L[i] + del_scalar_R[i]);
-    } else {
-      del_scalar_G[i] = 0.0;
-    }
-  }
-#endif  // SCALAR
+  plmc_utils::PlmcPrimitive const del_G = plmc_utils::Van_Leer_Slope(del_L, del_R);
 
   // Project the left, right, centered and van Leer differences onto the
   // characteristic variables Stone Eqn 37 (del_a are differences in
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
-  del_a_0_L = -cell_i.density * del_vx_L / (2 * sound_speed) + del_p_L / (2 * sound_speed * sound_speed);
-  del_a_1_L = del_d_L - del_p_L / (sound_speed_squared);
-  del_a_2_L = del_vy_L;
-  del_a_3_L = del_vz_L;
-  del_a_4_L = cell_i.density * del_vx_L / (2 * sound_speed) + del_p_L / (2 * sound_speed_squared);
+  del_a_0_L = -cell_i.density * del_L.velocity_x / (2 * sound_speed) + del_L.pressure / (2 * sound_speed * sound_speed);
+  del_a_1_L = del_L.density - del_L.pressure / (sound_speed_squared);
+  del_a_2_L = del_L.velocity_y;
+  del_a_3_L = del_L.velocity_z;
+  del_a_4_L = cell_i.density * del_L.velocity_x / (2 * sound_speed) + del_L.pressure / (2 * sound_speed_squared);
 
-  del_a_0_R = -cell_i.density * del_vx_R / (2 * sound_speed) + del_p_R / (2 * sound_speed_squared);
-  del_a_1_R = del_d_R - del_p_R / (sound_speed_squared);
-  del_a_2_R = del_vy_R;
-  del_a_3_R = del_vz_R;
-  del_a_4_R = cell_i.density * del_vx_R / (2 * sound_speed) + del_p_R / (2 * sound_speed_squared);
+  del_a_0_R = -cell_i.density * del_R.velocity_x / (2 * sound_speed) + del_R.pressure / (2 * sound_speed_squared);
+  del_a_1_R = del_R.density - del_R.pressure / (sound_speed_squared);
+  del_a_2_R = del_R.velocity_y;
+  del_a_3_R = del_R.velocity_z;
+  del_a_4_R = cell_i.density * del_R.velocity_x / (2 * sound_speed) + del_R.pressure / (2 * sound_speed_squared);
 
-  del_a_0_C = -cell_i.density * del_vx_C / (2 * sound_speed) + del_p_C / (2 * sound_speed_squared);
-  del_a_1_C = del_d_C - del_p_C / (sound_speed_squared);
-  del_a_2_C = del_vy_C;
-  del_a_3_C = del_vz_C;
-  del_a_4_C = cell_i.density * del_vx_C / (2 * sound_speed) + del_p_C / (2 * sound_speed_squared);
+  del_a_0_C = -cell_i.density * del_C.velocity_x / (2 * sound_speed) + del_C.pressure / (2 * sound_speed_squared);
+  del_a_1_C = del_C.density - del_C.pressure / (sound_speed_squared);
+  del_a_2_C = del_C.velocity_y;
+  del_a_3_C = del_C.velocity_z;
+  del_a_4_C = cell_i.density * del_C.velocity_x / (2 * sound_speed) + del_C.pressure / (2 * sound_speed_squared);
 
-  del_a_0_G = -cell_i.density * del_vx_G / (2 * sound_speed) + del_p_G / (2 * sound_speed_squared);
-  del_a_1_G = del_d_G - del_p_G / (sound_speed_squared);
-  del_a_2_G = del_vy_G;
-  del_a_3_G = del_vz_G;
-  del_a_4_G = cell_i.density * del_vx_G / (2 * sound_speed) + del_p_G / (2 * sound_speed_squared);
+  del_a_0_G = -cell_i.density * del_G.velocity_x / (2 * sound_speed) + del_G.pressure / (2 * sound_speed_squared);
+  del_a_1_G = del_G.density - del_G.pressure / (sound_speed_squared);
+  del_a_2_G = del_G.velocity_y;
+  del_a_3_G = del_G.velocity_z;
+  del_a_4_G = cell_i.density * del_G.velocity_x / (2 * sound_speed) + del_G.pressure / (2 * sound_speed_squared);
 
   // Apply monotonicity constraints to the differences in the characteristic
   // variables
@@ -259,19 +191,19 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
 #ifdef DE
   del_ge_m_i = 0.0;
-  if (del_ge_L * del_ge_R > 0.0) {
-    lim_slope_a = fmin(fabs(del_ge_L), fabs(del_ge_R));
-    lim_slope_b = fmin(fabs(del_ge_C), fabs(del_ge_G));
-    del_ge_m_i  = sgn_CUDA(del_ge_C) * fmin(2.0 * lim_slope_a, lim_slope_b);
+  if (del_L.gas_energy * del_R.gas_energy > 0.0) {
+    lim_slope_a = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
+    lim_slope_b = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
+    del_ge_m_i  = sgn_CUDA(del_C.gas_energy) * fmin(2.0 * lim_slope_a, lim_slope_b);
   }
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     del_scalar_m_i[i] = 0.0;
-    if (del_scalar_L[i] * del_scalar_R[i] > 0.0) {
-      lim_slope_a       = fmin(fabs(del_scalar_L[i]), fabs(del_scalar_R[i]));
-      lim_slope_b       = fmin(fabs(del_scalar_C[i]), fabs(del_scalar_G[i]));
-      del_scalar_m_i[i] = sgn_CUDA(del_scalar_C[i]) * fmin(2.0 * lim_slope_a, lim_slope_b);
+    if (del_L.scalar[i] * del_R.scalar[i] > 0.0) {
+      lim_slope_a       = fmin(fabs(del_L.scalar[i]), fabs(del_R.scalar[i]));
+      lim_slope_b       = fmin(fabs(del_C.scalar[i]), fabs(del_G.scalar[i]));
+      del_scalar_m_i[i] = sgn_CUDA(del_C.scalar[i]) * fmin(2.0 * lim_slope_a, lim_slope_b);
     }
   }
 #endif  // SCALAR
@@ -300,13 +232,13 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   p_L_iph  = cell_i.pressure + 0.5 * del_p_m_i;
 
 #ifdef DE
-  ge_R_imh = ge_i - 0.5 * del_ge_m_i;
-  ge_L_iph = ge_i + 0.5 * del_ge_m_i;
+  ge_R_imh = cell_i.gas_energy - 0.5 * del_ge_m_i;
+  ge_L_iph = cell_i.gas_energy + 0.5 * del_ge_m_i;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    scalar_R_imh[i] = scalar_i[i] - 0.5 * del_scalar_m_i[i];
-    scalar_L_iph[i] = scalar_i[i] + 0.5 * del_scalar_m_i[i];
+    scalar_R_imh[i] = cell_i.scalar[i] - 0.5 * del_scalar_m_i[i];
+    scalar_L_iph[i] = cell_i.scalar[i] + 0.5 * del_scalar_m_i[i];
   }
 #endif  // SCALAR
 
@@ -359,11 +291,11 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
 #ifdef DE
   C          = ge_R_imh + ge_L_iph;
-  ge_R_imh   = fmax(fmin(ge_i, ge_imo), ge_R_imh);
-  ge_R_imh   = fmin(fmax(ge_i, ge_imo), ge_R_imh);
+  ge_R_imh   = fmax(fmin(cell_i.gas_energy, cell_imo.gas_energy), ge_R_imh);
+  ge_R_imh   = fmin(fmax(cell_i.gas_energy, cell_imo.gas_energy), ge_R_imh);
   ge_L_iph   = C - ge_R_imh;
-  ge_L_iph   = fmax(fmin(ge_i, ge_ipo), ge_L_iph);
-  ge_L_iph   = fmin(fmax(ge_i, ge_ipo), ge_L_iph);
+  ge_L_iph   = fmax(fmin(cell_i.gas_energy, cell_ipo.gas_energy), ge_L_iph);
+  ge_L_iph   = fmin(fmax(cell_i.gas_energy, cell_ipo.gas_energy), ge_L_iph);
   ge_R_imh   = C - ge_L_iph;
   del_ge_m_i = ge_L_iph - ge_R_imh;
 #endif  // DE
@@ -371,11 +303,11 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     C                 = scalar_R_imh[i] + scalar_L_iph[i];
-    scalar_R_imh[i]   = fmax(fmin(scalar_i[i], scalar_imo[i]), scalar_R_imh[i]);
-    scalar_R_imh[i]   = fmin(fmax(scalar_i[i], scalar_imo[i]), scalar_R_imh[i]);
+    scalar_R_imh[i]   = fmax(fmin(cell_i.scalar[i], cell_imo.scalar[i]), scalar_R_imh[i]);
+    scalar_R_imh[i]   = fmin(fmax(cell_i.scalar[i], cell_imo.scalar[i]), scalar_R_imh[i]);
     scalar_L_iph[i]   = C - scalar_R_imh[i];
-    scalar_L_iph[i]   = fmax(fmin(scalar_i[i], scalar_ipo[i]), scalar_L_iph[i]);
-    scalar_L_iph[i]   = fmin(fmax(scalar_i[i], scalar_ipo[i]), scalar_L_iph[i]);
+    scalar_L_iph[i]   = fmax(fmin(cell_i.scalar[i], cell_ipo.scalar[i]), scalar_L_iph[i]);
+    scalar_L_iph[i]   = fmin(fmax(cell_i.scalar[i], cell_ipo.scalar[i]), scalar_L_iph[i]);
     scalar_R_imh[i]   = C - scalar_L_iph[i];
     del_scalar_m_i[i] = scalar_L_iph[i] - scalar_R_imh[i];
   }
@@ -578,10 +510,13 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #endif  // DE
 }
 
-// =============================================================================
-plmc_utils::PlmcPrimitive __device__ __host__ plmc_utils::Load_Data(
-    Real const *dev_conserved, size_t const &xid, size_t const &yid, size_t const &zid, size_t const &nx,
-    size_t const &ny, size_t const &n_cells, size_t const &o1, size_t const &o2, size_t const &o3, Real const &gamma)
+namespace plmc_utils
+{
+// =====================================================================================================================
+PlmcPrimitive __device__ __host__ Load_Data(Real const *dev_conserved, size_t const &xid, size_t const &yid,
+                                            size_t const &zid, size_t const &nx, size_t const &ny,
+                                            size_t const &n_cells, size_t const &o1, size_t const &o2, size_t const &o3,
+                                            Real const &gamma)
 {
   // Compute index
   size_t const id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
@@ -650,3 +585,73 @@ plmc_utils::PlmcPrimitive __device__ __host__ plmc_utils::Load_Data(
 
   return loaded_data;
 }
+// =====================================================================================================================
+
+// =====================================================================================================================
+PlmcPrimitive __device__ __host__ Compute_Slope(PlmcPrimitive const &left, PlmcPrimitive const &right, Real const &coef)
+{
+  PlmcPrimitive slopes;
+
+  slopes.density    = coef * (left.density - right.density);
+  slopes.velocity_x = coef * (left.velocity_x - right.velocity_x);
+  slopes.velocity_y = coef * (left.velocity_y - right.velocity_y);
+  slopes.velocity_z = coef * (left.velocity_z - right.velocity_z);
+  slopes.pressure   = coef * (left.pressure - right.pressure);
+
+#ifdef MHD
+  slopes.magnetic_y = coef * (left.magnetic_y - right.magnetic_y);
+  slopes.magnetic_z = coef * (left.magnetic_z - right.magnetic_z);
+#endif  // MHD
+
+#ifdef DE
+  slopes.gas_energy = coef * (left.gas_energy - right.gas_energy);
+#endif  // DE
+
+#ifdef SCALAR
+  for (size_t i = 0; i < grid_enum::nscalars; i++) {
+    slopes.scalar[i] = coef * (left.scalar[i] - right.scalar[i]);
+  }
+#endif  // SCALAR
+
+  return slopes;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+PlmcPrimitive __device__ __host__ Van_Leer_Slope(PlmcPrimitive const &left_slope, PlmcPrimitive const &right_slope)
+{
+  PlmcPrimitive vl_slopes;
+
+  auto Calc_Vl_Slope = [](Real const &left, Real const &right) -> Real {
+    if (left * right > 0.0) {
+      return 2.0 * left * right / (left + right);
+    } else {
+      return 0.0;
+    }
+  };
+
+  vl_slopes.density    = Calc_Vl_Slope(left_slope.density, right_slope.density);
+  vl_slopes.velocity_x = Calc_Vl_Slope(left_slope.velocity_x, right_slope.velocity_x);
+  vl_slopes.velocity_y = Calc_Vl_Slope(left_slope.velocity_y, right_slope.velocity_y);
+  vl_slopes.velocity_z = Calc_Vl_Slope(left_slope.velocity_z, right_slope.velocity_z);
+  vl_slopes.pressure   = Calc_Vl_Slope(left_slope.pressure, right_slope.pressure);
+
+#ifdef MHD
+  vl_slopes.magnetic_y = Calc_Vl_Slope(left_slope.magnetic_y, right_slope.magnetic_y);
+  vl_slopes.magnetic_z = Calc_Vl_Slope(left_slope.magnetic_z, right_slope.magnetic_z);
+#endif  // MHD
+
+#ifdef DE
+  vl_slopes.gas_energy = Calc_Vl_Slope(left_slope.gas_energy, right_slope.gas_energy);
+#endif  // DE
+
+#ifdef SCALAR
+  for (size_t i = 0; i < grid_enum::nscalars; i++) {
+    vl_slopes.scalar[i] = Calc_Vl_Slope(left_slope.scalar[i], right_slope.scalar[i]);
+  }
+#endif  // SCALAR
+
+  return vl_slopes;
+}
+// =====================================================================================================================
+}  // namespace plmc_utils

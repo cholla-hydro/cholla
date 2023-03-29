@@ -18,6 +18,10 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
 namespace plmc_utils
 {
+/*!
+ * \brief A struct for the primitive variables
+ *
+ */
 struct PlmcPrimitive {
   // Hydro variables
   Real density, velocity_x, velocity_y, velocity_z, pressure;
@@ -35,9 +39,45 @@ struct PlmcPrimitive {
 #endif  // SCALAR
 };
 
+/*!
+ * \brief Load the data for PLMC reconstruction
+ *
+ * \param dev_conserved The conserved array
+ * \param xid The xid of the cell to load data from
+ * \param yid The yid of the cell to load data from
+ * \param zid The zid of the cell to load data from
+ * \param nx Size in the X direction
+ * \param ny Size in the Y direction
+ * \param n_cells The total number of cells
+ * \param o1 Directional parameter
+ * \param o2 Directional parameter
+ * \param o3 Directional parameter
+ * \param gamma The adiabatic index
+ * \return PlmcPrimitive The loaded cell data
+ */
 PlmcPrimitive __device__ __host__ Load_Data(Real const *dev_conserved, size_t const &xid, size_t const &yid,
                                             size_t const &zid, size_t const &nx, size_t const &ny,
                                             size_t const &n_cells, size_t const &o1, size_t const &o2, size_t const &o3,
                                             Real const &gamma);
+
+/*!
+ * \brief Compute a simple slope. Equation is `coef * (left - right)`.
+ *
+ * \param left The data on the positive side of the slope
+ * \param right The data on the negative side of the slope
+ * \param coef The coefficient to multiply the slope by. Defaults to zero
+ * \return PlmcPrimitive The slopes
+ */
+PlmcPrimitive __device__ __host__ Compute_Slope(PlmcPrimitive const &left, PlmcPrimitive const &right,
+                                                Real const &coef = 1.0);
+
+/*!
+ * \brief Compute the Van Lear slope from the left and right slopes
+ *
+ * \param left_slope The left slope
+ * \param right_slope The right slope
+ * \return PlmcPrimitive The Van Leer slope
+ */
+PlmcPrimitive __device__ __host__ Van_Leer_Slope(PlmcPrimitive const &left_slope, PlmcPrimitive const &right_slope);
 }  // namespace plmc_utils
 #endif  // PLMC_CUDA_H
