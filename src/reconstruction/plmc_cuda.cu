@@ -59,27 +59,15 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real d_L_iph, vx_L_iph, vy_L_iph, vz_L_iph, p_L_iph;
   Real d_R_imh, vx_R_imh, vy_R_imh, vz_R_imh, p_R_imh;
   Real C;
-#ifndef VL
-  Real dtodx = dt / dx;
-  Real qx;
-  Real lamdiff;
-  Real sum_0, sum_1, sum_2, sum_3, sum_4;
-#endif  // not VL
 #ifdef DE
   Real del_ge_m_i;
   Real ge_L_iph, ge_R_imh;
   Real E, E_kin, dge;
-  #ifndef VL
-  Real sum_ge;
-  #endif  // CTU
-#endif    // DE
+#endif  // DE
 #ifdef SCALAR
   Real del_scalar_m_i[NSCALARS];
   Real scalar_L_iph[NSCALARS], scalar_R_imh[NSCALARS];
-  #ifndef VL
-  Real sum_scalar[NSCALARS];
-  #endif  // CTU
-#endif    // SCALAR
+#endif  // SCALAR
 
   // get a thread ID
   int const thread_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -106,14 +94,6 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // calculate the adiabatic sound speed in cell i
   Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
   Real const sound_speed_squared = sound_speed * sound_speed;
-
-// Compute the eigenvalues of the linearized equations in the
-// primitive variables using the cell-centered primitive variables
-#ifndef VL
-  Real const lambda_m = cell_i.velocity_x - sound_speed;
-  Real const lambda_0 = cell_i.velocity_x;
-  Real const lambda_p = cell_i.velocity_x + sound_speed;
-#endif  // VL
 
   // Compute the left, right, centered, and van Leer differences of the
   // primitive variables Note that here L and R refer to locations relative to
@@ -314,9 +294,18 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #endif  // SCALAR
 
 #ifndef VL
+
+  Real const dtodx = dt / dx;
+
+  // Compute the eigenvalues of the linearized equations in the
+  // primitive variables using the cell-centered primitive variables
+  Real const lambda_m = cell_i.velocity_x - sound_speed;
+  Real const lambda_0 = cell_i.velocity_x;
+  Real const lambda_p = cell_i.velocity_x + sound_speed;
+
   // Integrate linear interpolation function over domain of dependence
   // defined by max(min) eigenvalue
-  qx       = -0.5 * fmin(lambda_m, 0.0) * dtodx;
+  Real qx  = -0.5 * fmin(lambda_m, 0.0) * dtodx;
   d_R_imh  = d_R_imh + qx * del_d_m_i;
   vx_R_imh = vx_R_imh + qx * del_vx_m_i;
   vy_R_imh = vy_R_imh + qx * del_vy_m_i;
@@ -346,24 +335,25 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // Stone Eqns 42 & 43
 
   // left-hand interface value, i+1/2
-  sum_0 = sum_1 = sum_2 = sum_3 = sum_4 = 0;
+  Real sum_0 = 0.0, sum_1 = 0.0, sum_2 = 0.0, sum_3 = 0.0, sum_4 = 0.0;
   #ifdef DE
-  sum_ge = 0;
+  Real sum_ge = 0;
   #endif  // DE
   #ifdef SCALAR
+  Real sum_scalar[NSCALARS];
   for (int i = 0; i < NSCALARS; i++) {
     sum_scalar[i] = 0.0;
   }
   #endif  // SCALAR
   if (lambda_m >= 0) {
-    lamdiff = lambda_p - lambda_m;
+    Real lamdiff = lambda_p - lambda_m;
 
     sum_0 += lamdiff * (-cell_i.density * del_vx_m_i / (2 * sound_speed) + del_p_m_i / (2 * sound_speed_squared));
     sum_1 += lamdiff * (del_vx_m_i / 2.0 - del_p_m_i / (2 * sound_speed * cell_i.density));
     sum_4 += lamdiff * (-cell_i.density * del_vx_m_i * sound_speed / 2.0 + del_p_m_i / 2.0);
   }
   if (lambda_0 >= 0) {
-    lamdiff = lambda_p - lambda_0;
+    Real lamdiff = lambda_p - lambda_0;
 
     sum_0 += lamdiff * (del_d_m_i - del_p_m_i / (sound_speed_squared));
     sum_2 += lamdiff * del_vy_m_i;
@@ -378,7 +368,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   #endif  // SCALAR
   }
   if (lambda_p >= 0) {
-    lamdiff = lambda_p - lambda_p;
+    Real lamdiff = lambda_p - lambda_p;
 
     sum_0 += lamdiff * (cell_i.density * del_vx_m_i / (2 * sound_speed) + del_p_m_i / (2 * sound_speed_squared));
     sum_1 += lamdiff * (del_vx_m_i / 2.0 + del_p_m_i / (2 * sound_speed * cell_i.density));
@@ -411,14 +401,14 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
   #endif  // SCALAR
   if (lambda_m <= 0) {
-    lamdiff = lambda_m - lambda_m;
+    Real lamdiff = lambda_m - lambda_m;
 
     sum_0 += lamdiff * (-cell_i.density * del_vx_m_i / (2 * sound_speed) + del_p_m_i / (2 * sound_speed_squared));
     sum_1 += lamdiff * (del_vx_m_i / 2.0 - del_p_m_i / (2 * sound_speed * cell_i.density));
     sum_4 += lamdiff * (-cell_i.density * del_vx_m_i * sound_speed / 2.0 + del_p_m_i / 2.0);
   }
   if (lambda_0 <= 0) {
-    lamdiff = lambda_m - lambda_0;
+    Real lamdiff = lambda_m - lambda_0;
 
     sum_0 += lamdiff * (del_d_m_i - del_p_m_i / (sound_speed_squared));
     sum_2 += lamdiff * del_vy_m_i;
@@ -433,7 +423,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   #endif  // SCALAR
   }
   if (lambda_p <= 0) {
-    lamdiff = lambda_m - lambda_p;
+    Real lamdiff = lambda_m - lambda_p;
 
     sum_0 += lamdiff * (cell_i.density * del_vx_m_i / (2 * sound_speed) + del_p_m_i / (2 * sound_speed_squared));
     sum_1 += lamdiff * (del_vx_m_i / 2.0 + del_p_m_i / (2 * sound_speed * cell_i.density));
