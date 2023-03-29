@@ -35,9 +35,9 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
                                            Real const gamma, int const direction, int const n_fields)
 {
   // get a thread index
-  int threadId = threadIdx.x + blockIdx.x * blockDim.x;
+  int const threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
-  // Thread guard to avoid overrun
+  // Thread guard to avoid overrunx
   if (threadId >= n_cells) {
     return;
   }

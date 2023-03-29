@@ -98,24 +98,22 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #endif    // SCALAR
 
   // get a thread ID
-  int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-  int tid     = threadIdx.x + blockId * blockDim.x;
-  int id;
-  int zid = tid / (nx * ny);
-  int yid = (tid - zid * nx * ny) / nx;
-  int xid = tid - zid * nx * ny - yid * nx;
+  int const tid = threadIdx.x + blockIdx.x * blockDim.x;
+  int xid, yid, zid;
+  cuda_utilities::compute3DIndices(tid, nx, ny, xid, yid, zid);
 
   // Thread guard to prevent overrun
   if (xid < 1 or xid >= nx - 2 or yid < 1 or yid >= ny - 2 or zid < 1 or zid >= nz - 2) {
     return;
   }
+
   // load the 3-cell stencil into registers
   // cell i
-  id   = xid + yid * nx + zid * nx * ny;
-  d_i  = dev_conserved[id];
-  vx_i = dev_conserved[o1 * n_cells + id] / d_i;
-  vy_i = dev_conserved[o2 * n_cells + id] / d_i;
-  vz_i = dev_conserved[o3 * n_cells + id] / d_i;
+  int id = xid + yid * nx + zid * nx * ny;
+  d_i    = dev_conserved[id];
+  vx_i   = dev_conserved[o1 * n_cells + id] / d_i;
+  vy_i   = dev_conserved[o2 * n_cells + id] / d_i;
+  vz_i   = dev_conserved[o3 * n_cells + id] / d_i;
 #ifdef DE  // PRESSURE_DE
   E     = dev_conserved[4 * n_cells + id];
   E_kin = 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i);
