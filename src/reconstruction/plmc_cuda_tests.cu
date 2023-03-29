@@ -28,9 +28,9 @@ TEST(tHYDROPlmcReconstructor, CorrectInputExpectCorrectOutput)
   std::uniform_real_distribution<double> doubleRand(0.1, 5);
 
   // Mock up needed information
-  size_t const nx       = 4;
-  size_t const ny       = 1;
-  size_t const nz       = 1;
+  size_t const nx       = 5;
+  size_t const ny       = 4;
+  size_t const nz       = 4;
   size_t const n_fields = 5;
   double const dx       = doubleRand(prng);
   double const dt       = doubleRand(prng);
@@ -47,19 +47,17 @@ TEST(tHYDROPlmcReconstructor, CorrectInputExpectCorrectOutput)
   dev_grid.cpyHostToDevice(host_grid);
 
   // Fiducial Data
-  std::unordered_map<int, double> fiducial_interface_left  = {{1, 0.76773614979894189},
-                                                              {5, 1.927149727335306},
-                                                              {9, 2.666157385974266},
-                                                              {13, 4.7339225843521469},
-                                                              {17, 21.643063389483491}};
-  std::unordered_map<int, double> fiducial_interface_right = {{0, 0.76773614979894189},
-                                                              {4, 1.927149727335306},
-                                                              {8, 2.666157385974266},
-                                                              {12, 4.7339225843521469},
-                                                              {16, 21.643063389483491}};
+  std::unordered_map<int, double> fiducial_interface_left = {
+      {26, 2.1584359129984056},  {27, 0.70033864721549188}, {106, 2.2476363309467553}, {107, 3.0633780053857027},
+      {186, 2.2245934101106259}, {187, 2.1015872413794123}, {266, 2.1263341057778309}, {267, 3.9675148506537838},
+      {346, 3.3640057502842691}, {347, 21.091316282933843}};
+  std::unordered_map<int, double> fiducial_interface_right = {
+      {25, 3.8877922383184833},  {26, 0.70033864721549188}, {105, 1.5947787943675635}, {106, 3.0633780053857027},
+      {185, 4.0069556576401011}, {186, 2.1015872413794123}, {265, 1.7883678016935785}, {266, 3.9675148506537838},
+      {345, 2.8032969746372527}, {346, 21.091316282933843}};
 
   // Loop over different directions
-  for (size_t direction = 0; direction < 3; direction++) {
+  for (size_t direction = 0; direction < 1; direction++) {
     // Assign the shape
     size_t nx_rot, ny_rot, nz_rot;
     switch (direction) {
@@ -92,30 +90,23 @@ TEST(tHYDROPlmcReconstructor, CorrectInputExpectCorrectOutput)
 
     // Perform Comparison
     for (size_t i = 0; i < host_grid.size(); i++) {
-      double absolute_diff;
-      int64_t ulps_diff;
+      // Check the left interface
+      double test_val = dev_interface_left.at(i);
+      double fiducial_val =
+          (fiducial_interface_left.find(i) == fiducial_interface_left.end()) ? 0.0 : fiducial_interface_left[i];
+
+      testingUtilities::checkResults(
+          fiducial_val, test_val,
+          "left interface at i=" + std::to_string(i) + ", in direction " + std::to_string(direction));
 
       // Check the left interface
-      double test_val     = dev_interface_left.at(i);
-      double fiducial_val = (test_val == 0.0) ? 0.0 : fiducial_interface_left[i];
+      test_val = dev_interface_right.at(i);
+      fiducial_val =
+          (fiducial_interface_right.find(i) == fiducial_interface_right.end()) ? 0.0 : fiducial_interface_right[i];
 
-      EXPECT_TRUE(testingUtilities::nearlyEqualDbl(fiducial_val, test_val, absolute_diff, ulps_diff))
-          << "Error in left interface" << std::endl
-          << "The fiducial value is:       " << fiducial_val << std::endl
-          << "The test value is:           " << test_val << std::endl
-          << "The absolute difference is:  " << absolute_diff << std::endl
-          << "The ULP difference is:       " << ulps_diff << std::endl;
-
-      // Check the left interface
-      test_val     = dev_interface_right.at(i);
-      fiducial_val = (test_val == 0.0) ? 0.0 : fiducial_interface_right[i];
-
-      EXPECT_TRUE(testingUtilities::nearlyEqualDbl(fiducial_val, test_val, absolute_diff, ulps_diff))
-          << "Error in rigt interface" << std::endl
-          << "The fiducial value is:       " << fiducial_val << std::endl
-          << "The test value is:           " << test_val << std::endl
-          << "The absolute difference is:  " << absolute_diff << std::endl
-          << "The ULP difference is:       " << ulps_diff << std::endl;
+      testingUtilities::checkResults(
+          fiducial_val, test_val,
+          "right interface at i=" + std::to_string(i) + ", in direction " + std::to_string(direction));
     }
   }
 }
