@@ -96,8 +96,7 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
   plmc_utils::PlmcCharacteristic del_a_L, del_a_R, del_a_C, del_a_G, del_a_m;
-  del_a_L.a0 =
-      -cell_i.density * del_L.velocity_x / (2 * sound_speed) + del_L.pressure / (2 * sound_speed * sound_speed);
+  del_a_L.a0 = -cell_i.density * del_L.velocity_x / (2 * sound_speed) + del_L.pressure / (2 * sound_speed_squared);
   del_a_L.a1 = del_L.density - del_L.pressure / (sound_speed_squared);
   del_a_L.a2 = del_L.velocity_y;
   del_a_G.a3 = del_L.velocity_z;
