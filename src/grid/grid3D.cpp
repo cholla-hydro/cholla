@@ -1,6 +1,7 @@
 /*! \file grid3D.cpp
  *  \brief Definitions of the Grid3D class */
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #ifdef HDF5
@@ -26,7 +27,6 @@
   #endif
   #include "../mpi/mpi_routines.h"
 #endif
-#include <stdio.h>
 #ifdef CLOUDY_COOL
   #include "../cooling/load_cloudy_texture.h"  // provides Load_Cuda_Textures and Free_Cuda_Textures
 #endif
