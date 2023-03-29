@@ -19,6 +19,7 @@
 #include "../grid/grid_enum.h"
 #include "../riemann_solvers/hlld_cuda.h"  // Include code to test
 #include "../utils/gpu.hpp"
+#include "../utils/hydro_utilities.h"
 #include "../utils/mhd_utilities.h"
 #include "../utils/testing_utilities.h"
 
@@ -234,12 +235,12 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
     output.at(1) = input.at(1) * input.at(0);  // X Velocity to momentum
     output.at(2) = input.at(2) * input.at(0);  // Y Velocity to momentum
     output.at(3) = input.at(3) * input.at(0);  // Z Velocity to momentum
-    output.at(4) = mhd::utils::computeEnergy(input.at(4), input.at(0), input.at(1), input.at(2), input.at(3),
-                                             input.at(5), input.at(6), input.at(7),
-                                             gamma);  // Pressure to Energy
-    output.at(5) = input.at(5);                       // X Magnetic Field
-    output.at(6) = input.at(6);                       // Y Magnetic Field
-    output.at(7) = input.at(7);                       // Z Magnetic Field
+    output.at(4) =
+        hydro_utilities::Calc_Energy_Primitive(input.at(4), input.at(0), input.at(1), input.at(2), input.at(3), gamma,
+                                               input.at(5), input.at(6), input.at(7));  // Pressure to Energy
+    output.at(5) = input.at(5);                                                         // X Magnetic Field
+    output.at(6) = input.at(6);                                                         // Y Magnetic Field
+    output.at(7) = input.at(7);                                                         // Z Magnetic Field
 
     #ifdef SCALAR
     std::vector<Real> conservedScalar(primitiveScalars.size());

@@ -202,7 +202,7 @@ __device__ __host__ mhd::_internal::State loadState(Real const *interfaceArr, Re
     #else
   // Note that this function does the positive pressure check
   // internally
-  state.gasPressure = mhd::utils::computeGasPressure(state, magneticX, gamma);
+  state.gasPressure = mhd::_internal::Calc_Pressure_Primitive(state, magneticX, gamma);
     #endif  // DE
 
   state.totalPressure =

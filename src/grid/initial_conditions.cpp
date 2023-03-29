@@ -19,6 +19,7 @@
 #include "../io/io.h"
 #include "../mpi/mpi_routines.h"
 #include "../utils/error_handling.h"
+#include "../utils/hydro_utilities.h"
 #include "../utils/math_utilities.h"
 #include "../utils/mhd_utilities.h"
 
@@ -322,15 +323,15 @@ void Grid3D::Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Re
         Real x_pos, y_pos, z_pos;
         Get_Position(i_rot, j_rot, k_rot, &x_pos, &y_pos, &z_pos);
 
-        // set constant initial states. Note that mhd::utils::computeEnergy
-        // computes the hydro energy if MHD is turned off
+        // set constant initial states. Note that hydro_utilities::Calc_Energy_Primitive computes the correct MHD or
+        // hydro energy
         Real sine_wave = std::sin(2.0 * M_PI * x_pos);
 
         C.density[id]    = rho;
         C.momentum_x[id] = rho * vx;
         C.momentum_y[id] = rho * vy;
         C.momentum_z[id] = rho * vz;
-        C.Energy[id]     = mhd::utils::computeEnergy(P, rho, vx, vy, vz, Bx, By, Bz, gama);
+        C.Energy[id]     = hydro_utilities::Calc_Energy_Primitive(P, rho, vx, vy, vz, gama, Bx, By, Bz);
         // add small-amplitude perturbations
         C.density[id] += A * rEigenVec_rho * sine_wave;
         C.momentum_x[id] += A * rEigenVec_MomentumX * sine_wave;
@@ -480,7 +481,7 @@ void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real
             C.momentum_x[id] = rho_l * vx_l;
             C.momentum_y[id] = rho_l * vy_l;
             C.momentum_z[id] = rho_l * vz_l;
-            C.Energy[id]     = mhd::utils::computeEnergy(P_l, rho_l, vx_l, vy_l, vz_l, Bx_l, By_l, Bz_l, gama);
+            C.Energy[id] = hydro_utilities::Calc_Energy_Primitive(P_l, rho_l, vx_l, vy_l, vz_l, gama, Bx_l, By_l, Bz_l);
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
             C.basic_scalar[id] = 1.0 * rho_l;
@@ -494,7 +495,7 @@ void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real
             C.momentum_x[id] = rho_r * vx_r;
             C.momentum_y[id] = rho_r * vy_r;
             C.momentum_z[id] = rho_r * vz_r;
-            C.Energy[id]     = mhd::utils::computeEnergy(P_r, rho_r, vx_r, vy_r, vz_r, Bx_r, By_r, Bz_r, gama);
+            C.Energy[id] = hydro_utilities::Calc_Energy_Primitive(P_r, rho_r, vx_r, vy_r, vz_r, gama, Bx_r, By_r, Bz_r);
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
             C.basic_scalar[id] = 0.0 * rho_r;
@@ -1693,9 +1694,9 @@ void Grid3D::Circularly_Polarized_Alfven_Wave(struct parameters const P)
         // Compute the Energy
         auto const magnetic_centered =
             mhd::utils::cellCenteredMagneticFields(C.host, id, i, j, k, H.n_cells, H.nx, H.ny);
-        Real const energy = mhd::utils::computeEnergy(
-            pressure, density, momentum_x_rot / density, momentum_y_rot / density, momentum_z_rot / density,
-            magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
+        Real const energy = hydro_utilities::Calc_Energy_Conserved(pressure, density, momentum_x_rot, momentum_y_rot,
+                                                                   momentum_z_rot, ::gama, magnetic_centered.x,
+                                                                   magnetic_centered.y, magnetic_centered.z);
 
         // Final assignment
         C.density[id]    = density;

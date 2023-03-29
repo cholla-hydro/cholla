@@ -395,8 +395,8 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     #ifdef MHD
     // Add the magnetic energy
     auto const [centeredBx, centeredBy, centeredBz] =
-        mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny) E_kin +=
-        mhd::utils::computeMagneticEnergy(centeredBx, centeredBy, centeredBz);
+        mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny);
+    E_kin += mhd::utils::computeMagneticEnergy(centeredBx, centeredBy, centeredBz);
     #endif  // MHD
     P = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, GE, gamma);
     P = fmax(P, (Real)TINY_NUMBER);
