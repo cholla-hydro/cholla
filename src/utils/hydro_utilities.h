@@ -148,10 +148,34 @@ inline __host__ __device__ Real Calc_Kinetic_Energy_From_Momentum(Real const &d,
   return (0.5 / d) * (mx * mx + my * my * mz * mz);
 }
 
+/*!
+ * \brief Compute the sound speed in the cell from conserved variables
+ *
+ * \param E Energy
+ * \param d densidy
+ * \param mx x momentum
+ * \param my y momentum
+ * \param mz z momentum
+ * \param gamma adiabatic index
+ * \return Real The sound speed
+ */
 inline __host__ __device__ Real Calc_Sound_Speed(Real const &E, Real const &d, Real const &mx, Real const &my,
                                                  Real const &mz, Real const &gamma)
 {
   Real P = Calc_Pressure_Conserved(E, d, mx, my, mz, gamma);
+  return sqrt(gamma * P / d);
+}
+
+/*!
+ * \brief Compute the sound in the cell from primitive variables
+ *
+ * \param P
+ * \param d
+ * \param gamma
+ * \return __host__
+ */
+inline __host__ __device__ Real Calc_Sound_Speed(Real const &P, Real const &d, Real const &gamma)
+{
   return sqrt(gamma * P / d);
 }
 
