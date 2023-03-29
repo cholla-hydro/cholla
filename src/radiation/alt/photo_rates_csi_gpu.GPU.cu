@@ -27,7 +27,7 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
   const float* csHI   = dXS->cs[Physics::AtomicData::CrossSection::IonizationHI];
   const float* csHeI  = dXS->cs[Physics::AtomicData::CrossSection::IonizationHeI];
   const float* csHeII = dXS->cs[Physics::AtomicData::CrossSection::IonizationHeII];
-  /// const float* csCVI = dXS->cs[Physics::AtomicData::CrossSection::IonizationCVI];
+  // const float* csCVI = dXS->cs[Physics::AtomicData::CrossSection::IonizationCVI];
 
   auto thr = dXS->thresholds;
 
@@ -93,8 +93,8 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
         values[4] += w;
         values[5] += w * (dXS->hnu_K[l] - Physics::AtomicData::TionHeII);
 
-        /// w = csCVI[l]*ss;
-        /// values[6] += w;
+        // w = csCVI[l]*ss;
+        // values[6] += w;
       }
     }
   };
@@ -102,7 +102,7 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
   auto out = const_cast<float*>(dTable->GetFullData()) + dTable->Lidx(i + si * (j + sj * k), 0);
   for (int m = 0; m < n; m++) {
     out[m] = values[m] * norm;
-    if (out[m] > 1.0e-4) printf("**FT** %d %g\n", m, out[m]);
+    ///if (out[m] > 1.0e-4) printf("**FT** %d %g\n", m, out[m]);
   }
 }
 

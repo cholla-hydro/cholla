@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 #endif /*MPI_CHOLLA*/
 
   Real dti    = 0;    // inverse time step, 1.0 / dt
-  Real dt_log = 0.0;  // initial time step for log stepping
+  Real dt_max = 0.0;  // maximum allowed time step
 
   // input parameter variables
   char *param_file;
@@ -235,8 +235,8 @@ int main(int argc, char *argv[])
 
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();
-  if (P.outlog != 0) {
-    dt_log = P.outlog;
+  if (P.max_timestep != 0) {
+    dt_max = P.max_timestep;
   }
 
   while (G.H.t < P.tout) {
@@ -247,9 +247,9 @@ int main(int argc, char *argv[])
     start_step = get_time();
 
     // Use log step if it's smaller
-    if (P.outlog != 0) {
-      if (dti < 1.0 / dt_log) {
-        dti = 1.0 / dt_log;
+    if (dt_max != 0) {
+      if (dti < 1.0 / dt_max) {
+        dti = 1.0 / dt_max;
       }
     }
     // determine the global timestep (via MPI Allreduce)
@@ -296,8 +296,8 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef PARTICLES
-    /// Advance the particles KDK( second step ): Velocities are updated by
-    /// 0.5*dt using the Accelerations at the new positions
+    // Advance the particles KDK( second step ): Velocities are updated by
+    // 0.5*dt using the Accelerations at the new positions
     G.Advance_Particles(2);
 #endif
 
@@ -347,7 +347,7 @@ int main(int argc, char *argv[])
       nfile++;
 #endif  // OUTPUT
       // update to the next output time
-      // if (P.outlog != 0) P.outstep *= pow(10.0, P.outlog);
+      if (P.outstep_dexinc != 0) P.outstep *= pow(10.0, P.outstep_dexinc);
       outtime += P.outstep;
     }
 
@@ -377,8 +377,8 @@ int main(int argc, char *argv[])
 #endif  // MHD
 
     // update the log timestep
-    if (P.outlog != 0) {
-      dt_log *= pow(10.0, 0.01);
+    if (P.max_timestep_dexinc != 0) {
+      dt_max *= pow(10.0, P.max_timestep_dexinc);
     }
   } /*end loop over timesteps*/
 
