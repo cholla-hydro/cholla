@@ -116,76 +116,9 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   plmc_utils::PlmcPrimitive interface_L_iph = plmc_utils::Calc_Interface(cell_i, del_m_i, 1.0);
   plmc_utils::PlmcPrimitive interface_R_imh = plmc_utils::Calc_Interface(cell_i, del_m_i, -1.0);
 
-  // try removing this on shock tubes
-  Real C                  = interface_R_imh.density + interface_L_iph.density;
-  interface_R_imh.density = fmax(fmin(cell_i.density, cell_imo.density), interface_R_imh.density);
-  interface_R_imh.density = fmin(fmax(cell_i.density, cell_imo.density), interface_R_imh.density);
-  interface_L_iph.density = C - interface_R_imh.density;
-  interface_L_iph.density = fmax(fmin(cell_i.density, cell_ipo.density), interface_L_iph.density);
-  interface_L_iph.density = fmin(fmax(cell_i.density, cell_ipo.density), interface_L_iph.density);
-  interface_R_imh.density = C - interface_L_iph.density;
-
-  C                          = interface_R_imh.velocity_x + interface_L_iph.velocity_x;
-  interface_R_imh.velocity_x = fmax(fmin(cell_i.velocity_x, cell_imo.velocity_x), interface_R_imh.velocity_x);
-  interface_R_imh.velocity_x = fmin(fmax(cell_i.velocity_x, cell_imo.velocity_x), interface_R_imh.velocity_x);
-  interface_L_iph.velocity_x = C - interface_R_imh.velocity_x;
-  interface_L_iph.velocity_x = fmax(fmin(cell_i.velocity_x, cell_ipo.velocity_x), interface_L_iph.velocity_x);
-  interface_L_iph.velocity_x = fmin(fmax(cell_i.velocity_x, cell_ipo.velocity_x), interface_L_iph.velocity_x);
-  interface_R_imh.velocity_x = C - interface_L_iph.velocity_x;
-
-  C                          = interface_R_imh.velocity_y + interface_L_iph.velocity_y;
-  interface_R_imh.velocity_y = fmax(fmin(cell_i.velocity_y, cell_imo.velocity_y), interface_R_imh.velocity_y);
-  interface_R_imh.velocity_y = fmin(fmax(cell_i.velocity_y, cell_imo.velocity_y), interface_R_imh.velocity_y);
-  interface_L_iph.velocity_y = C - interface_R_imh.velocity_y;
-  interface_L_iph.velocity_y = fmax(fmin(cell_i.velocity_y, cell_ipo.velocity_y), interface_L_iph.velocity_y);
-  interface_L_iph.velocity_y = fmin(fmax(cell_i.velocity_y, cell_ipo.velocity_y), interface_L_iph.velocity_y);
-  interface_R_imh.velocity_y = C - interface_L_iph.velocity_y;
-
-  C                          = interface_R_imh.velocity_z + interface_L_iph.velocity_z;
-  interface_R_imh.velocity_z = fmax(fmin(cell_i.velocity_z, cell_imo.velocity_z), interface_R_imh.velocity_z);
-  interface_R_imh.velocity_z = fmin(fmax(cell_i.velocity_z, cell_imo.velocity_z), interface_R_imh.velocity_z);
-  interface_L_iph.velocity_z = C - interface_R_imh.velocity_z;
-  interface_L_iph.velocity_z = fmax(fmin(cell_i.velocity_z, cell_ipo.velocity_z), interface_L_iph.velocity_z);
-  interface_L_iph.velocity_z = fmin(fmax(cell_i.velocity_z, cell_ipo.velocity_z), interface_L_iph.velocity_z);
-  interface_R_imh.velocity_z = C - interface_L_iph.velocity_z;
-
-  C                        = interface_R_imh.pressure + interface_L_iph.pressure;
-  interface_R_imh.pressure = fmax(fmin(cell_i.pressure, cell_imo.pressure), interface_R_imh.pressure);
-  interface_R_imh.pressure = fmin(fmax(cell_i.pressure, cell_imo.pressure), interface_R_imh.pressure);
-  interface_L_iph.pressure = C - interface_R_imh.pressure;
-  interface_L_iph.pressure = fmax(fmin(cell_i.pressure, cell_ipo.pressure), interface_L_iph.pressure);
-  interface_L_iph.pressure = fmin(fmax(cell_i.pressure, cell_ipo.pressure), interface_L_iph.pressure);
-  interface_R_imh.pressure = C - interface_L_iph.pressure;
-
-  del_m_i.density    = interface_L_iph.density - interface_R_imh.density;
-  del_m_i.velocity_x = interface_L_iph.velocity_x - interface_R_imh.velocity_x;
-  del_m_i.velocity_y = interface_L_iph.velocity_y - interface_R_imh.velocity_y;
-  del_m_i.velocity_z = interface_L_iph.velocity_z - interface_R_imh.velocity_z;
-  del_m_i.pressure   = interface_L_iph.pressure - interface_R_imh.pressure;
-
-#ifdef DE
-  C                          = interface_R_imh.gas_energy + interface_L_iph.gas_energy;
-  interface_R_imh.gas_energy = fmax(fmin(cell_i.gas_energy, cell_imo.gas_energy), interface_R_imh.gas_energy);
-  interface_R_imh.gas_energy = fmin(fmax(cell_i.gas_energy, cell_imo.gas_energy), interface_R_imh.gas_energy);
-  interface_L_iph.gas_energy = C - interface_R_imh.gas_energy;
-  interface_L_iph.gas_energy = fmax(fmin(cell_i.gas_energy, cell_ipo.gas_energy), interface_L_iph.gas_energy);
-  interface_L_iph.gas_energy = fmin(fmax(cell_i.gas_energy, cell_ipo.gas_energy), interface_L_iph.gas_energy);
-  interface_R_imh.gas_energy = C - interface_L_iph.gas_energy;
-  del_m_i.gas_energy         = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
-#endif  // DE
-
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    C                         = interface_R_imh.scalar[i] + interface_L_iph.scalar[i];
-    interface_R_imh.scalar[i] = fmax(fmin(cell_i.scalar[i], cell_imo.scalar[i]), interface_R_imh.scalar[i]);
-    interface_R_imh.scalar[i] = fmin(fmax(cell_i.scalar[i], cell_imo.scalar[i]), interface_R_imh.scalar[i]);
-    interface_L_iph.scalar[i] = C - interface_R_imh.scalar[i];
-    interface_L_iph.scalar[i] = fmax(fmin(cell_i.scalar[i], cell_ipo.scalar[i]), interface_L_iph.scalar[i]);
-    interface_L_iph.scalar[i] = fmin(fmax(cell_i.scalar[i], cell_ipo.scalar[i]), interface_L_iph.scalar[i]);
-    interface_R_imh.scalar[i] = C - interface_L_iph.scalar[i];
-    del_m_i.scalar[i]         = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
-  }
-#endif  // SCALAR
+  // Monotize the primitive variables, note the return by reference. Try removing this as it may not be necessary. A
+  // good test for that would be shock tubes
+  plmc_utils::Monotize_Primitive(cell_i, cell_imo, cell_ipo, interface_L_iph, interface_R_imh, del_m_i);
 
 #ifndef VL
 
@@ -653,6 +586,58 @@ PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive,
 #endif  // SCALAR
 
   return output;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+void __device__ __host__ Monotize_Primitive(PlmcPrimitive const &cell_i, PlmcPrimitive const &cell_imo,
+                                            PlmcPrimitive const &cell_ipo, PlmcPrimitive &interface_L_iph,
+                                            PlmcPrimitive &interface_R_imh, PlmcPrimitive &del_m_i)
+{
+  // The function that will actually do the monotization. Note that it return the interfaces by reference
+  auto Monotize = [](Real const &val_i, Real const &val_imo, Real const &val_ipo, Real &interface_L,
+                     Real &interface_R) {
+    Real const C = interface_R + interface_L;
+
+    interface_R = fmax(fmin(val_i, val_imo), interface_R);
+    interface_R = fmin(fmax(val_i, val_imo), interface_R);
+    interface_L = C - interface_R;
+
+    interface_L = fmax(fmin(val_i, val_ipo), interface_L);
+    interface_L = fmin(fmax(val_i, val_ipo), interface_L);
+    interface_R = C - interface_L;
+  };
+
+  // Monotize
+  Monotize(cell_i.density, cell_imo.density, cell_ipo.density, interface_L_iph.density, interface_R_imh.density);
+  Monotize(cell_i.velocity_x, cell_imo.velocity_x, cell_ipo.velocity_x, interface_L_iph.velocity_x,
+           interface_R_imh.velocity_x);
+  Monotize(cell_i.velocity_y, cell_imo.velocity_y, cell_ipo.velocity_y, interface_L_iph.velocity_y,
+           interface_R_imh.velocity_y);
+  Monotize(cell_i.velocity_z, cell_imo.velocity_z, cell_ipo.velocity_z, interface_L_iph.velocity_z,
+           interface_R_imh.velocity_z);
+  Monotize(cell_i.pressure, cell_imo.pressure, cell_ipo.pressure, interface_L_iph.pressure, interface_R_imh.pressure);
+
+  // Compute the new slopes
+  del_m_i.density    = interface_L_iph.density - interface_R_imh.density;
+  del_m_i.velocity_x = interface_L_iph.velocity_x - interface_R_imh.velocity_x;
+  del_m_i.velocity_y = interface_L_iph.velocity_y - interface_R_imh.velocity_y;
+  del_m_i.velocity_z = interface_L_iph.velocity_z - interface_R_imh.velocity_z;
+  del_m_i.pressure   = interface_L_iph.pressure - interface_R_imh.pressure;
+
+#ifdef DE
+  Monotize(cell_i.gas_energy, cell_imo.gas_energy, cell_ipo.gas_energy, interface_L_iph.gas_energy,
+           interface_R_imh.gas_energy);
+  del_m_i.gas_energy = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
+#endif  // DE
+
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    Monotize(cell_i.scalar[i], cell_imo.scalar[i], cell_ipo.scalar[i], interface_L_iph.scalar[i],
+             interface_R_imh.scalar[i]);
+    del_m_i.scalar[i] = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
+  }
+#endif  // SCALAR
 }
 // =====================================================================================================================
 }  // namespace plmc_utils

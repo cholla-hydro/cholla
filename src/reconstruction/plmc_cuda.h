@@ -148,12 +148,26 @@ PlmcPrimitive __device__ __host__ Monotize_Characteristic_Return_Primitive(
 /*!
  * \brief Compute the interface state from the slope and cell centered state.
  *
- * \param primitive The cell centered state
- * \param slopes The slopes
- * \param sign Whether to add or subtract the slope. +1 to add it and -1 to subtract it
+ * \param[in] primitive The cell centered state
+ * \param[in] slopes The slopes
+ * \param[in] sign Whether to add or subtract the slope. +1 to add it and -1 to subtract it
  * \return plmc_utils::PlmcPrimitive The interface state
  */
 PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive, PlmcPrimitive const &slopes,
                                                  Real const &sign);
+
+/*!
+ * \brief Monotize the interface states and primitive slopes.
+ *
+ * \param[in] cell_i The state in the i cell
+ * \param[in] cell_imo The state in the i-1 cell
+ * \param[in] cell_ipo The state in the i+1 cell
+ * \param[in,out] interface_L_iph The left interface state at i+1/2
+ * \param[in,out] interface_R_imh The right interface state at i-1/2
+ * \param[in,out] del_m_i The primitive slopes in the cell
+ */
+void __device__ __host__ Monotize_Primitive(PlmcPrimitive const &cell_i, PlmcPrimitive const &cell_imo,
+                                            PlmcPrimitive const &cell_ipo, PlmcPrimitive &interface_L_iph,
+                                            PlmcPrimitive &interface_R_imh, PlmcPrimitive &del_m_i);
 }  // namespace plmc_utils
 #endif  // PLMC_CUDA_H
