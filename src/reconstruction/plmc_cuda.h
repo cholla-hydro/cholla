@@ -27,7 +27,8 @@ struct PlmcPrimitive {
   Real density, velocity_x, velocity_y, velocity_z, pressure;
 
 #ifdef MHD
-  Real magnetic_y, magnetic_z;
+  // These are all cell centered values
+  Real magnetic_x, magnetic_y, magnetic_z;
 #endif  // MHD
 
 #ifdef DE
@@ -101,12 +102,12 @@ PlmcPrimitive __device__ __host__ Van_Leer_Slope(PlmcPrimitive const &left_slope
  * \param[in] primitive_slope The primitive variables slopes
  * \param[in] sound_speed The speed of sound
  * \param[in] sound_speed_squared The speed of sound squared
+ * \param[in] gamma The adiabatic index
  * \return PlmcCharacteristic
  */
-PlmcCharacteristic __device__ __host__ Primitive_To_Characteristic(PlmcPrimitive const &primitive,
-                                                                   PlmcPrimitive const &primitive_slope,
-                                                                   Real const &sound_speed,
-                                                                   Real const &sound_speed_squared);
+PlmcCharacteristic __device__ Primitive_To_Characteristic(PlmcPrimitive const &primitive,
+                                                          PlmcPrimitive const &primitive_slope, Real const &sound_speed,
+                                                          Real const &sound_speed_squared, Real const &gamma);
 
 /*!
  * \brief Project from the characteristic variables slopes to the primitive variables slopes. Stone Eqn 39. Use the

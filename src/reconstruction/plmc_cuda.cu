@@ -96,16 +96,16 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
   plmc_utils::PlmcCharacteristic const del_a_L =
-      plmc_utils::Primitive_To_Characteristic(cell_i, del_L, sound_speed, sound_speed_squared);
+      plmc_utils::Primitive_To_Characteristic(cell_i, del_L, sound_speed, sound_speed_squared, gamma);
 
   plmc_utils::PlmcCharacteristic const del_a_R =
-      plmc_utils::Primitive_To_Characteristic(cell_i, del_R, sound_speed, sound_speed_squared);
+      plmc_utils::Primitive_To_Characteristic(cell_i, del_R, sound_speed, sound_speed_squared, gamma);
 
   plmc_utils::PlmcCharacteristic const del_a_C =
-      plmc_utils::Primitive_To_Characteristic(cell_i, del_C, sound_speed, sound_speed_squared);
+      plmc_utils::Primitive_To_Characteristic(cell_i, del_C, sound_speed, sound_speed_squared, gamma);
 
   plmc_utils::PlmcCharacteristic const del_a_G =
-      plmc_utils::Primitive_To_Characteristic(cell_i, del_G, sound_speed, sound_speed_squared);
+      plmc_utils::Primitive_To_Characteristic(cell_i, del_G, sound_speed, sound_speed_squared, gamma);
 
   // Apply monotonicity constraints to the differences in the characteristic variables and project the monotonized
   // difference in the characteristic variables back onto the primitive variables Stone Eqn 39
@@ -318,14 +318,17 @@ PlmcPrimitive __device__ __host__ Load_Data(Real const *dev_conserved, size_t co
   auto magnetic_centered = mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny);
   switch (o1) {
     case grid_enum::momentum_x:
+      loaded_data.magnetic_x = magnetic_centered.x;
       loaded_data.magnetic_y = magnetic_centered.y;
       loaded_data.magnetic_z = magnetic_centered.z;
       break;
     case grid_enum::momentum_y:
+      loaded_data.magnetic_x = magnetic_centered.y;
       loaded_data.magnetic_y = magnetic_centered.z;
       loaded_data.magnetic_z = magnetic_centered.x;
       break;
     case grid_enum::momentum_z:
+      loaded_data.magnetic_x = magnetic_centered.z;
       loaded_data.magnetic_y = magnetic_centered.x;
       loaded_data.magnetic_z = magnetic_centered.y;
       break;
@@ -348,10 +351,10 @@ PlmcPrimitive __device__ __host__ Load_Data(Real const *dev_conserved, size_t co
   loaded_data.gas_energy = gas_energy / loaded_data.density;
 #else  // not DE
   #ifdef MHD
-  loaded_data.pressure =
-      hydro_utilities::Calc_Pressure_Primitive(dev_conserved[grid_enum::Energy * n_cells + id], loaded_data.density,
-                                               loaded_data.velocity_x, loaded_data.velocity_y, loaded_data.velocity_z,
-                                               gamma, magnetic_centered.x, magnetic_centered.y, magnetic_centered.z);
+  loaded_data.pressure = hydro_utilities::Calc_Pressure_Primitive(
+      dev_conserved[grid_enum::Energy * n_cells + id], loaded_data.density, loaded_data.velocity_x,
+      loaded_data.velocity_y, loaded_data.velocity_z, gamma, loaded_data.magnetic_x, loaded_data.magnetic_y,
+      loaded_data.magnetic_z);
   #else   // not MHD
   loaded_data.pressure = hydro_utilities::Calc_Pressure_Primitive(
       dev_conserved[grid_enum::Energy * n_cells + id], loaded_data.density, loaded_data.velocity_x,
@@ -438,13 +441,91 @@ PlmcPrimitive __device__ __host__ Van_Leer_Slope(PlmcPrimitive const &left_slope
 // =====================================================================================================================
 
 // =====================================================================================================================
-PlmcCharacteristic __device__ __host__ Primitive_To_Characteristic(PlmcPrimitive const &primitive,
-                                                                   PlmcPrimitive const &primitive_slope,
-                                                                   Real const &sound_speed,
-                                                                   Real const &sound_speed_squared)
+PlmcCharacteristic __device__ Primitive_To_Characteristic(PlmcPrimitive const &primitive,
+                                                          PlmcPrimitive const &primitive_slope, Real const &sound_speed,
+                                                          Real const &sound_speed_squared, Real const &gamma)
 {
   PlmcCharacteristic output;
 
+#ifdef MHD
+  // This is taken from Stone et al. 2008, appendix A. Equation numbers will be quoted as relevant
+
+  // First, compute some basic quantities we will need later
+  Real const inverse_sqrt_density = rsqrt(primitive.density);
+
+  // Compute wave speeds and their squares
+  Real const magnetosonic_speed_fast = mhd::utils::fastMagnetosonicSpeed(
+      primitive.density, primitive.pressure, primitive.magnetic_x, primitive.magnetic_y, primitive.magnetic_z, gamma);
+  Real const magnetosonic_speed_slow = mhd::utils::slowMagnetosonicSpeed(
+      primitive.density, primitive.pressure, primitive.magnetic_x, primitive.magnetic_y, primitive.magnetic_z, gamma);
+
+  Real const magnetosonic_speed_fast_squared = magnetosonic_speed_fast * magnetosonic_speed_fast;
+  Real const magnetosonic_speed_slow_squared = magnetosonic_speed_slow * magnetosonic_speed_slow;
+
+  // Compute Alphas (equation A16)
+  Real alpha_fast, alpha_slow;
+  if (Real const denom = (magnetosonic_speed_fast_squared - magnetosonic_speed_slow_squared),
+      numerator_2      = (magnetosonic_speed_fast_squared - sound_speed_squared);
+      denom <= 0.0 or numerator_2 <= 0.0) {
+    alpha_fast = 1.0;
+    alpha_slow = 0.0;
+  } else if (Real const numerator_1 = (sound_speed_squared - magnetosonic_speed_slow_squared); numerator_1 <= 0.0) {
+    alpha_fast = 0.0;
+    alpha_slow = 1.0;
+  } else {
+    alpha_fast = sqrt(numerator_1 / denom);
+    alpha_slow = sqrt(numerator_2 / denom);
+  }
+
+  // Compute Betas (equation A17)
+  Real const beta_denom = rhypot(primitive.magnetic_y, primitive.magnetic_z);
+  Real const beta_y     = (beta_denom == 0) ? 0.0 : primitive.magnetic_y * beta_denom;
+  Real const beta_z     = (beta_denom == 0) ? 0.0 : primitive.magnetic_z * beta_denom;
+
+  // Compute Q(s) (equation A14)
+  Real const n_fs = 0.5 / sound_speed_squared;  // equation A19
+  Real const sign = copysign(1.0, primitive.magnetic_x);
+  ;
+  Real const q_fast = sign * n_fs * alpha_fast * magnetosonic_speed_fast;
+  Real const q_slow = sign * n_fs * alpha_slow * magnetosonic_speed_slow;
+
+  // Compute A(s) (equation A15)
+  Real const a_prime_fast = 0.5 * alpha_fast / (sound_speed * sqrt(primitive.density));
+  Real const a_prime_slow = 0.5 * alpha_slow / (sound_speed * sqrt(primitive.density));
+
+  // Multiply the slopes by the left eigenvector matrix given in equation 18
+  output.a0 =
+      n_fs * alpha_fast *
+          (primitive_slope.pressure / primitive.density - magnetosonic_speed_fast * primitive_slope.velocity_x) +
+      q_slow * (beta_y * primitive_slope.velocity_y + beta_z * primitive_slope.velocity_z) +
+      a_prime_slow * (beta_y * primitive_slope.magnetic_y + beta_z * primitive_slope.magnetic_z);
+
+  output.a1 = 0.5 * (beta_y * (primitive_slope.magnetic_z * sign * inverse_sqrt_density + primitive_slope.velocity_z) -
+                     beta_z * (primitive_slope.magnetic_y * sign * inverse_sqrt_density + primitive_slope.velocity_y));
+
+  output.a2 =
+      n_fs * alpha_slow *
+          (primitive_slope.pressure / primitive.density - magnetosonic_speed_slow * primitive_slope.velocity_x) -
+      q_fast * (beta_y * primitive_slope.velocity_y + beta_z * primitive_slope.velocity_z) -
+      a_prime_fast * (beta_y * primitive_slope.magnetic_y + beta_z * primitive_slope.magnetic_z);
+
+  output.a3 = primitive_slope.density - primitive_slope.pressure / sound_speed_squared;
+
+  output.a4 =
+      n_fs * alpha_slow *
+          (primitive_slope.pressure / primitive.density + magnetosonic_speed_slow * primitive_slope.velocity_x) +
+      q_fast * (beta_y * primitive_slope.velocity_y + beta_z * primitive_slope.velocity_z) -
+      a_prime_fast * (beta_y * primitive_slope.magnetic_y + beta_z * primitive_slope.magnetic_z);
+  output.a5 = 0.5 * (beta_y * (primitive_slope.magnetic_z * sign * inverse_sqrt_density - primitive_slope.velocity_z) -
+                     beta_z * (primitive_slope.magnetic_y * sign * inverse_sqrt_density - primitive_slope.velocity_y));
+
+  output.a6 =
+      n_fs * alpha_fast *
+          (primitive_slope.pressure / primitive.density + magnetosonic_speed_fast * primitive_slope.velocity_x) -
+      q_slow * (beta_y * primitive_slope.velocity_y + beta_z * primitive_slope.velocity_z) +
+      a_prime_slow * (beta_y * primitive_slope.magnetic_y + beta_z * primitive_slope.magnetic_z);
+
+#else   // not MHD
   output.a0 = -primitive.density * primitive_slope.velocity_x / (2.0 * sound_speed) +
               primitive_slope.pressure / (2.0 * sound_speed_squared);
   output.a1 = primitive_slope.density - primitive_slope.pressure / (sound_speed_squared);
@@ -452,6 +533,7 @@ PlmcCharacteristic __device__ __host__ Primitive_To_Characteristic(PlmcPrimitive
   output.a3 = primitive_slope.velocity_z;
   output.a4 = primitive.density * primitive_slope.velocity_x / (2.0 * sound_speed) +
               primitive_slope.pressure / (2.0 * sound_speed_squared);
+#endif  // MHD
 
   return output;
 }
