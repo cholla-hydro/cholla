@@ -283,58 +283,13 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   interface_R_imh.pressure = fmax(interface_R_imh.pressure, (Real)TINY_NUMBER);
   interface_L_iph.pressure = fmax(interface_L_iph.pressure, (Real)TINY_NUMBER);
 
-  // Convert the left and right states in the primitive to the conserved
-  // variables send final values back from kernel bounds_R refers to the right
-  // side of the i-1/2 interface
-  int id;
-  switch (dir) {
-    case 0:
-      id = xid - 1 + yid * nx + zid * nx * ny;
-      break;
-    case 1:
-      id = xid + (yid - 1) * nx + zid * nx * ny;
-      break;
-    case 2:
-      id = xid + yid * nx + (zid - 1) * nx * ny;
-      break;
-  }
+  // Convert the left and right states in the primitive to the conserved variables send final values back from kernel
+  // bounds_R refers to the right side of the i-1/2 interface
+  size_t id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+  plmc_utils::Write_Data(interface_L_iph, dev_bounds_L, dev_conserved, id, n_cells, o1, o2, o3, gamma);
 
-  dev_bounds_R[id]                = interface_R_imh.density;
-  dev_bounds_R[o1 * n_cells + id] = interface_R_imh.density * interface_R_imh.velocity_x;
-  dev_bounds_R[o2 * n_cells + id] = interface_R_imh.density * interface_R_imh.velocity_y;
-  dev_bounds_R[o3 * n_cells + id] = interface_R_imh.density * interface_R_imh.velocity_z;
-  dev_bounds_R[4 * n_cells + id] =
-      (interface_R_imh.pressure / (gamma - 1.0)) + 0.5 * interface_R_imh.density *
-                                                       (interface_R_imh.velocity_x * interface_R_imh.velocity_x +
-                                                        interface_R_imh.velocity_y * interface_R_imh.velocity_y +
-                                                        interface_R_imh.velocity_z * interface_R_imh.velocity_z);
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    dev_bounds_R[(5 + i) * n_cells + id] = interface_R_imh.density * interface_R_imh.scalar[i];
-  }
-#endif  // SCALAR
-#ifdef DE
-  dev_bounds_R[(n_fields - 1) * n_cells + id] = interface_R_imh.density * interface_R_imh.gas_energy;
-#endif  // DE
-  // bounds_L refers to the left side of the i+1/2 interface
-  id                              = xid + yid * nx + zid * nx * ny;
-  dev_bounds_L[id]                = interface_L_iph.density;
-  dev_bounds_L[o1 * n_cells + id] = interface_L_iph.density * interface_L_iph.velocity_x;
-  dev_bounds_L[o2 * n_cells + id] = interface_L_iph.density * interface_L_iph.velocity_y;
-  dev_bounds_L[o3 * n_cells + id] = interface_L_iph.density * interface_L_iph.velocity_z;
-  dev_bounds_L[4 * n_cells + id] =
-      (interface_L_iph.pressure / (gamma - 1.0)) + 0.5 * interface_L_iph.density *
-                                                       (interface_L_iph.velocity_x * interface_L_iph.velocity_x +
-                                                        interface_L_iph.velocity_y * interface_L_iph.velocity_y +
-                                                        interface_L_iph.velocity_z * interface_L_iph.velocity_z);
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    dev_bounds_L[(5 + i) * n_cells + id] = interface_L_iph.density * interface_L_iph.scalar[i];
-  }
-#endif  // SCALAR
-#ifdef DE
-  dev_bounds_L[(n_fields - 1) * n_cells + id] = interface_L_iph.density * interface_L_iph.gas_energy;
-#endif  // DE
+  id = cuda_utilities::compute1DIndex(xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny);
+  plmc_utils::Write_Data(interface_R_imh, dev_bounds_R, dev_conserved, id, n_cells, o1, o2, o3, gamma);
 }
 
 namespace plmc_utils
@@ -636,6 +591,60 @@ void __device__ __host__ Monotize_Primitive(PlmcPrimitive const &cell_i, PlmcPri
     Monotize(cell_i.scalar[i], cell_imo.scalar[i], cell_ipo.scalar[i], interface_L_iph.scalar[i],
              interface_R_imh.scalar[i]);
     del_m_i.scalar[i] = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
+  }
+#endif  // SCALAR
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+void __device__ __host__ Write_Data(PlmcPrimitive const &interface_state, Real *dev_interface,
+                                    Real const *dev_conserved, size_t const &id, size_t const &n_cells,
+                                    size_t const &o1, size_t const &o2, size_t const &o3, Real const &gamma)
+{
+  // Write out density and momentum
+  dev_interface[grid_enum::density * n_cells + id] = interface_state.density;
+  dev_interface[o1 * n_cells + id]                 = interface_state.density * interface_state.velocity_x;
+  dev_interface[o2 * n_cells + id]                 = interface_state.density * interface_state.velocity_y;
+  dev_interface[o3 * n_cells + id]                 = interface_state.density * interface_state.velocity_z;
+
+#ifdef MHD
+  // Write the Y and Z interface states and load the X magnetic face needed to compute the energy
+  Real magnetic_x;
+  switch (o1) {
+    case grid_enum::momentum_x:
+      dev_interface[grid_enum::Q_x_magnetic_y * n_cells + id] = interface_state.magnetic_y;
+      dev_interface[grid_enum::Q_x_magnetic_z * n_cells + id] = interface_state.magnetic_z;
+      magnetic_x                                              = dev_conserved[grid_enum::magnetic_x * n_cells + id];
+      break;
+    case grid_enum::momentum_y:
+      dev_interface[grid_enum::Q_y_magnetic_z * n_cells + id] = interface_state.magnetic_y;
+      dev_interface[grid_enum::Q_y_magnetic_x * n_cells + id] = interface_state.magnetic_z;
+      magnetic_x                                              = dev_conserved[grid_enum::magnetic_y * n_cells + id];
+      break;
+    case grid_enum::momentum_z:
+      dev_interface[grid_enum::Q_z_magnetic_x * n_cells + id] = interface_state.magnetic_y;
+      dev_interface[grid_enum::Q_z_magnetic_y * n_cells + id] = interface_state.magnetic_z;
+      magnetic_x                                              = dev_conserved[grid_enum::magnetic_z * n_cells + id];
+      break;
+  }
+
+  // Compute the MHD energy
+  dev_interface[grid_enum::Energy * n_cells + id] = hydro_utilities::Calc_Energy_Primitive(
+      interface_state.pressure, interface_state.density, interface_state.velocity_x, interface_state.velocity_y,
+      interface_state.velocity_z, gamma, magnetic_x, interface_state.magnetic_y, interface_state.magnetic_z);
+#else   // not MHD
+  // Compute the hydro energy
+  dev_interface[grid_enum::Energy * n_cells + id] = hydro_utilities::Calc_Energy_Primitive(
+      interface_state.pressure, interface_state.density, interface_state.velocity_x, interface_state.velocity_y,
+      interface_state.velocity_z, gamma);
+#endif  // MHD
+
+#ifdef DE
+  dev_interface[grid_enum::GasEnergy * n_cells + id] = interface_state.density * interface_state.gas_energy;
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    dev_interface[(grid_enum::scalar + i) * n_cells + id] = interface_state.density * interface_state.scalar[i];
   }
 #endif  // SCALAR
 }

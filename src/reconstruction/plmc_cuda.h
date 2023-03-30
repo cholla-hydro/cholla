@@ -169,5 +169,22 @@ PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive,
 void __device__ __host__ Monotize_Primitive(PlmcPrimitive const &cell_i, PlmcPrimitive const &cell_imo,
                                             PlmcPrimitive const &cell_ipo, PlmcPrimitive &interface_L_iph,
                                             PlmcPrimitive &interface_R_imh, PlmcPrimitive &del_m_i);
+
+/*!
+ * \brief Write the interface data to the appropriate arrays
+ *
+ * \param[in] interface_state The interface state to write
+ * \param[out] dev_interface The interface array
+ * \param[in] dev_conserved The conserved variables
+ * \param[in] id The cell id to write to
+ * \param[in] n_cells The total number of cells
+ * \param[in] o1 Directional parameter
+ * \param[in] o2 Directional parameter
+ * \param[in] o3 Directional parameter
+ * \param[in] gamma The adiabatic index
+ */
+void __device__ __host__ Write_Data(PlmcPrimitive const &interface_state, Real *dev_interface,
+                                    Real const *dev_conserved, size_t const &id, size_t const &n_cells,
+                                    size_t const &o1, size_t const &o2, size_t const &o3, Real const &gamma);
 }  // namespace plmc_utils
 #endif  // PLMC_CUDA_H
