@@ -107,62 +107,10 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   plmc_utils::PlmcCharacteristic const del_a_G =
       plmc_utils::Primitive_To_Characteristic(cell_i, del_G, sound_speed, sound_speed_squared);
 
-  // Apply monotonicity constraints to the differences in the characteristic
-  // variables
-  plmc_utils::PlmcCharacteristic del_a_m;
-  del_a_m.a0 = del_a_m.a1 = del_a_m.a2 = del_a_m.a3 = del_a_m.a4 = 0.0;  // This should be in the declaration
-  plmc_utils::PlmcPrimitive del_m_i;
-  if (del_a_L.a0 * del_a_R.a0 > 0.0) {
-    Real const lim_slope_a = fmin(fabs(del_a_L.a0), fabs(del_a_R.a0));
-    Real const lim_slope_b = fmin(fabs(del_a_C.a0), fabs(del_a_G.a0));
-    del_a_m.a0             = sgn_CUDA(del_a_C.a0) * fmin(2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a1 * del_a_R.a1 > 0.0) {
-    Real const lim_slope_a = fmin(fabs(del_a_L.a1), fabs(del_a_R.a1));
-    Real const lim_slope_b = fmin(fabs(del_a_C.a1), fabs(del_a_G.a1));
-    del_a_m.a1             = sgn_CUDA(del_a_C.a1) * fmin(2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a2 * del_a_R.a2 > 0.0) {
-    Real const lim_slope_a = fmin(fabs(del_a_L.a2), fabs(del_a_R.a2));
-    Real const lim_slope_b = fmin(fabs(del_a_C.a2), fabs(del_a_G.a2));
-    del_a_m.a2             = sgn_CUDA(del_a_C.a2) * fmin(2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_G.a3 * del_a_R.a3 > 0.0) {
-    Real const lim_slope_a = fmin(fabs(del_a_G.a3), fabs(del_a_R.a3));
-    Real const lim_slope_b = fmin(fabs(del_a_C.a3), fabs(del_a_G.a3));
-    del_a_m.a3             = sgn_CUDA(del_a_C.a3) * fmin(2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a4 * del_a_R.a4 > 0.0) {
-    Real const lim_slope_a = fmin(fabs(del_a_L.a4), fabs(del_a_R.a4));
-    Real const lim_slope_b = fmin(fabs(del_a_C.a4), fabs(del_a_G.a4));
-    del_a_m.a4             = sgn_CUDA(del_a_C.a4) * fmin(2.0 * lim_slope_a, lim_slope_b);
-  }
-#ifdef DE
-  del_m_i.gas_energy = 0.0;
-  if (del_L.gas_energy * del_R.gas_energy > 0.0) {
-    Real const lim_slope_a = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
-    Real const lim_slope_b = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
-    del_m_i.gas_energy     = sgn_CUDA(del_C.gas_energy) * fmin(2.0 * lim_slope_a, lim_slope_b);
-  }
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    del_m_i.scalar[i] = 0.0;
-    if (del_L.scalar[i] * del_R.scalar[i] > 0.0) {
-      Real const lim_slope_a = fmin(fabs(del_L.scalar[i]), fabs(del_R.scalar[i]));
-      Real const lim_slope_b = fmin(fabs(del_C.scalar[i]), fabs(del_G.scalar[i]));
-      del_m_i.scalar[i]      = sgn_CUDA(del_C.scalar[i]) * fmin(2.0 * lim_slope_a, lim_slope_b);
-    }
-  }
-#endif  // SCALAR
-
-  // Project the monotonized difference in the characteristic variables back
-  // onto the primitive variables Stone Eqn 39
-  del_m_i.density    = del_a_m.a0 + del_a_m.a1 + del_a_m.a4;
-  del_m_i.velocity_x = -sound_speed * del_a_m.a0 / cell_i.density + sound_speed * del_a_m.a4 / cell_i.density;
-  del_m_i.velocity_y = del_a_m.a2;
-  del_m_i.velocity_z = del_a_m.a3;
-  del_m_i.pressure   = sound_speed_squared * del_a_m.a0 + sound_speed_squared * del_a_m.a4;
+  // Apply monotonicity constraints to the differences in the characteristic variables and project the monotonized
+  // difference in the characteristic variables back onto the primitive variables Stone Eqn 39
+  plmc_utils::PlmcPrimitive del_m_i = plmc_utils::Monotize_Characteristic_Return_Primitive(
+      cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed_squared);
 
   // Compute the left and right interface values using the monotonized
   // difference in the primitive variables
@@ -640,6 +588,68 @@ PlmcCharacteristic __device__ __host__ Primitive_To_Characteristic(PlmcPrimitive
   output.a3 = primitive_slope.velocity_z;
   output.a4 = primitive.density * primitive_slope.velocity_x / (2 * sound_speed) +
               primitive_slope.pressure / (2 * sound_speed_squared);
+
+  return output;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+void __device__ __host__ Characteristic_To_Primitive(PlmcPrimitive const &primitive,
+                                                     PlmcCharacteristic const &characteristic_slope,
+                                                     Real const &sound_speed, Real const &sound_speed_squared,
+                                                     PlmcPrimitive &output)
+{
+  output.density    = characteristic_slope.a0 + characteristic_slope.a1 + characteristic_slope.a4;
+  output.velocity_x = -sound_speed * characteristic_slope.a0 / primitive.density +
+                      sound_speed * characteristic_slope.a4 / primitive.density;
+  output.velocity_y = characteristic_slope.a2;
+  output.velocity_z = characteristic_slope.a3;
+  output.pressure   = sound_speed_squared * characteristic_slope.a0 + sound_speed_squared * characteristic_slope.a4;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+PlmcPrimitive __device__ __host__ Monotize_Characteristic_Return_Primitive(
+    PlmcPrimitive const &primitive, PlmcPrimitive const &del_L, PlmcPrimitive const &del_R, PlmcPrimitive const &del_C,
+    PlmcPrimitive const &del_G, PlmcCharacteristic const &del_a_L, PlmcCharacteristic const &del_a_R,
+    PlmcCharacteristic const &del_a_C, PlmcCharacteristic const &del_a_G, Real const &sound_speed,
+    Real const &sound_speed_squared)
+{
+  // The function that will actually do the monotization
+  auto Monotize = [](Real const &left, Real const &right, Real const &centered, Real const &van_leer) -> Real {
+    if (left * right > 0.0) {
+      Real const lim_slope_a = 2.0 * fmin(fabs(left), fabs(right));
+      Real const lim_slope_b = fmin(fabs(centered), fabs(van_leer));
+      return copysign(fmin(lim_slope_a, lim_slope_b), centered);
+    } else {
+      return 0.0;
+    }
+  };
+
+  // the monotized difference in the characteristic variables
+  PlmcCharacteristic del_a_m;
+  // The monotized difference in the characteristic variables projected into the primitive variables
+  PlmcPrimitive output;
+
+  // Monotize the slopes
+  del_a_m.a0 = Monotize(del_a_L.a0, del_a_R.a0, del_a_C.a0, del_a_G.a0);
+  del_a_m.a1 = Monotize(del_a_L.a1, del_a_R.a1, del_a_C.a1, del_a_G.a1);
+  del_a_m.a2 = Monotize(del_a_L.a2, del_a_R.a2, del_a_C.a2, del_a_G.a2);
+  del_a_m.a3 = Monotize(del_a_L.a3, del_a_R.a3, del_a_C.a3, del_a_G.a3);
+  del_a_m.a4 = Monotize(del_a_L.a4, del_a_R.a4, del_a_C.a4, del_a_G.a4);
+
+#ifdef DE
+  output.gas_energy = Monotize(del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    output.scalar[i] = Monotize(del_L.scalar[i], del_R.scalar[i], del_C.scalar[i], del_G.scalar[i]);
+  }
+#endif  // SCALAR
+
+  // Project into the primitive variables. Note the return by reference to preserve the values in the gas_energy and
+  // scalars
+  Characteristic_To_Primitive(primitive, del_a_m, sound_speed, sound_speed_squared, output);
 
   return output;
 }
