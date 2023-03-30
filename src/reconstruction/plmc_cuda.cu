@@ -112,33 +112,9 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   plmc_utils::PlmcPrimitive del_m_i = plmc_utils::Monotize_Characteristic_Return_Primitive(
       cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed_squared);
 
-  // Compute the left and right interface values using the monotonized
-  // difference in the primitive variables
-
-  plmc_utils::PlmcPrimitive interface_L_iph, interface_R_imh;
-
-  interface_R_imh.density    = cell_i.density - 0.5 * del_m_i.density;
-  interface_R_imh.velocity_x = cell_i.velocity_x - 0.5 * del_m_i.velocity_x;
-  interface_R_imh.velocity_y = cell_i.velocity_y - 0.5 * del_m_i.velocity_y;
-  interface_R_imh.velocity_z = cell_i.velocity_z - 0.5 * del_m_i.velocity_z;
-  interface_R_imh.pressure   = cell_i.pressure - 0.5 * del_m_i.pressure;
-
-  interface_L_iph.density    = cell_i.density + 0.5 * del_m_i.density;
-  interface_L_iph.velocity_x = cell_i.velocity_x + 0.5 * del_m_i.velocity_x;
-  interface_L_iph.velocity_y = cell_i.velocity_y + 0.5 * del_m_i.velocity_y;
-  interface_L_iph.velocity_z = cell_i.velocity_z + 0.5 * del_m_i.velocity_z;
-  interface_L_iph.pressure   = cell_i.pressure + 0.5 * del_m_i.pressure;
-
-#ifdef DE
-  interface_R_imh.gas_energy = cell_i.gas_energy - 0.5 * del_m_i.gas_energy;
-  interface_L_iph.gas_energy = cell_i.gas_energy + 0.5 * del_m_i.gas_energy;
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    interface_R_imh.scalar[i] = cell_i.scalar[i] - 0.5 * del_m_i.scalar[i];
-    interface_L_iph.scalar[i] = cell_i.scalar[i] + 0.5 * del_m_i.scalar[i];
-  }
-#endif  // SCALAR
+  // Compute the left and right interface values using the monotonized difference in the primitive variables
+  plmc_utils::PlmcPrimitive interface_L_iph = plmc_utils::Calc_Interface(cell_i, del_m_i, 1.0);
+  plmc_utils::PlmcPrimitive interface_R_imh = plmc_utils::Calc_Interface(cell_i, del_m_i, -1.0);
 
   // try removing this on shock tubes
   Real C                  = interface_R_imh.density + interface_L_iph.density;
@@ -650,6 +626,31 @@ PlmcPrimitive __device__ __host__ Monotize_Characteristic_Return_Primitive(
   // Project into the primitive variables. Note the return by reference to preserve the values in the gas_energy and
   // scalars
   Characteristic_To_Primitive(primitive, del_a_m, sound_speed, sound_speed_squared, output);
+
+  return output;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive, PlmcPrimitive const &slopes,
+                                                 Real const &sign)
+{
+  plmc_utils::PlmcPrimitive output;
+
+  output.density    = primitive.density + sign * 0.5 * slopes.density;
+  output.velocity_x = primitive.velocity_x + sign * 0.5 * slopes.velocity_x;
+  output.velocity_y = primitive.velocity_y + sign * 0.5 * slopes.velocity_y;
+  output.velocity_z = primitive.velocity_z + sign * 0.5 * slopes.velocity_z;
+  output.pressure   = primitive.pressure + sign * 0.5 * slopes.pressure;
+
+#ifdef DE
+  output.gas_energy = primitive.gas_energy + sign * 0.5 * slopes.gas_energy;
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    output.scalar[i] = primitive.scalar[i] + sign * 0.5 * slopes.scalar[i];
+  }
+#endif  // SCALAR
 
   return output;
 }
