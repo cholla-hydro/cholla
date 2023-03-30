@@ -502,6 +502,11 @@ PlmcPrimitive __device__ __host__ Monotize_Characteristic_Return_Primitive(
   del_a_m.a3 = Monotize(del_a_L.a3, del_a_R.a3, del_a_C.a3, del_a_G.a3);
   del_a_m.a4 = Monotize(del_a_L.a4, del_a_R.a4, del_a_C.a4, del_a_G.a4);
 
+#ifdef MHD
+  del_a_m.a5 = Monotize(del_a_L.a5, del_a_R.a5, del_a_C.a5, del_a_G.a5);
+  del_a_m.a6 = Monotize(del_a_L.a6, del_a_R.a6, del_a_C.a6, del_a_G.a6);
+#endif  // MHD
+
 #ifdef DE
   output.gas_energy = Monotize(del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
 #endif  // DE
@@ -530,6 +535,11 @@ PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive,
   output.velocity_y = primitive.velocity_y + sign * 0.5 * slopes.velocity_y;
   output.velocity_z = primitive.velocity_z + sign * 0.5 * slopes.velocity_z;
   output.pressure   = primitive.pressure + sign * 0.5 * slopes.pressure;
+
+#ifdef MHD
+  output.magnetic_y = primitive.magnetic_y + sign * 0.5 * slopes.magnetic_y;
+  output.magnetic_z = primitive.magnetic_z + sign * 0.5 * slopes.magnetic_z;
+#endif  // MHD
 
 #ifdef DE
   output.gas_energy = primitive.gas_energy + sign * 0.5 * slopes.gas_energy;
@@ -579,6 +589,16 @@ void __device__ __host__ Monotize_Primitive(PlmcPrimitive const &cell_i, PlmcPri
   del_m_i.velocity_y = interface_L_iph.velocity_y - interface_R_imh.velocity_y;
   del_m_i.velocity_z = interface_L_iph.velocity_z - interface_R_imh.velocity_z;
   del_m_i.pressure   = interface_L_iph.pressure - interface_R_imh.pressure;
+
+#ifdef MHD
+  Monotize(cell_i.magnetic_y, cell_imo.magnetic_y, cell_ipo.magnetic_y, interface_L_iph.magnetic_y,
+           interface_R_imh.magnetic_y);
+  Monotize(cell_i.magnetic_z, cell_imo.magnetic_z, cell_ipo.velocity_z, interface_L_iph.velocity_z,
+           interface_R_imh.magnetic_z);
+
+  del_m_i.magnetic_y = interface_L_iph.magnetic_y - interface_R_imh.magnetic_y;
+  del_m_i.magnetic_z = interface_L_iph.magnetic_z - interface_R_imh.magnetic_z;
+#endif  // MHD
 
 #ifdef DE
   Monotize(cell_i.gas_energy, cell_imo.gas_energy, cell_ipo.gas_energy, interface_L_iph.gas_energy,
