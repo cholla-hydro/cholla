@@ -95,34 +95,21 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // characteristic variables Stone Eqn 37 (del_a are differences in
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
-  plmc_utils::PlmcCharacteristic del_a_L, del_a_R, del_a_C, del_a_G, del_a_m;
-  del_a_L.a0 = -cell_i.density * del_L.velocity_x / (2 * sound_speed) + del_L.pressure / (2 * sound_speed_squared);
-  del_a_L.a1 = del_L.density - del_L.pressure / (sound_speed_squared);
-  del_a_L.a2 = del_L.velocity_y;
-  del_a_G.a3 = del_L.velocity_z;
-  del_a_L.a4 = cell_i.density * del_L.velocity_x / (2 * sound_speed) + del_L.pressure / (2 * sound_speed_squared);
+  plmc_utils::PlmcCharacteristic const del_a_L =
+      plmc_utils::Primitive_To_Characteristic(cell_i, del_L, sound_speed, sound_speed_squared);
 
-  del_a_R.a0 = -cell_i.density * del_R.velocity_x / (2 * sound_speed) + del_R.pressure / (2 * sound_speed_squared);
-  del_a_R.a1 = del_R.density - del_R.pressure / (sound_speed_squared);
-  del_a_R.a2 = del_R.velocity_y;
-  del_a_R.a3 = del_R.velocity_z;
-  del_a_R.a4 = cell_i.density * del_R.velocity_x / (2 * sound_speed) + del_R.pressure / (2 * sound_speed_squared);
+  plmc_utils::PlmcCharacteristic const del_a_R =
+      plmc_utils::Primitive_To_Characteristic(cell_i, del_R, sound_speed, sound_speed_squared);
 
-  del_a_C.a0 = -cell_i.density * del_C.velocity_x / (2 * sound_speed) + del_C.pressure / (2 * sound_speed_squared);
-  del_a_C.a1 = del_C.density - del_C.pressure / (sound_speed_squared);
-  del_a_C.a2 = del_C.velocity_y;
-  del_a_C.a3 = del_C.velocity_z;
-  del_a_C.a4 = cell_i.density * del_C.velocity_x / (2 * sound_speed) + del_C.pressure / (2 * sound_speed_squared);
+  plmc_utils::PlmcCharacteristic const del_a_C =
+      plmc_utils::Primitive_To_Characteristic(cell_i, del_C, sound_speed, sound_speed_squared);
 
-  del_a_G.a0 = -cell_i.density * del_G.velocity_x / (2 * sound_speed) + del_G.pressure / (2 * sound_speed_squared);
-  del_a_G.a1 = del_G.density - del_G.pressure / (sound_speed_squared);
-  del_a_G.a2 = del_G.velocity_y;
-  del_a_G.a3 = del_G.velocity_z;
-  del_a_G.a4 = cell_i.density * del_G.velocity_x / (2 * sound_speed) + del_G.pressure / (2 * sound_speed_squared);
+  plmc_utils::PlmcCharacteristic const del_a_G =
+      plmc_utils::Primitive_To_Characteristic(cell_i, del_G, sound_speed, sound_speed_squared);
 
   // Apply monotonicity constraints to the differences in the characteristic
   // variables
-
+  plmc_utils::PlmcCharacteristic del_a_m;
   del_a_m.a0 = del_a_m.a1 = del_a_m.a2 = del_a_m.a3 = del_a_m.a4 = 0.0;  // This should be in the declaration
   plmc_utils::PlmcPrimitive del_m_i;
   if (del_a_L.a0 * del_a_R.a0 > 0.0) {
@@ -635,6 +622,26 @@ PlmcPrimitive __device__ __host__ Van_Leer_Slope(PlmcPrimitive const &left_slope
 #endif  // SCALAR
 
   return vl_slopes;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+PlmcCharacteristic __device__ __host__ Primitive_To_Characteristic(PlmcPrimitive const &primitive,
+                                                                   PlmcPrimitive const &primitive_slope,
+                                                                   Real const &sound_speed,
+                                                                   Real const &sound_speed_squared)
+{
+  PlmcCharacteristic output;
+
+  output.a0 = -primitive.density * primitive_slope.velocity_x / (2 * sound_speed) +
+              primitive_slope.pressure / (2 * sound_speed_squared);
+  output.a1 = primitive_slope.density - primitive_slope.pressure / (sound_speed_squared);
+  output.a2 = primitive_slope.velocity_y;
+  output.a3 = primitive_slope.velocity_z;
+  output.a4 = primitive.density * primitive_slope.velocity_x / (2 * sound_speed) +
+              primitive_slope.pressure / (2 * sound_speed_squared);
+
+  return output;
 }
 // =====================================================================================================================
 }  // namespace plmc_utils

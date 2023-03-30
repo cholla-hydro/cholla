@@ -92,5 +92,20 @@ PlmcPrimitive __device__ __host__ Compute_Slope(PlmcPrimitive const &left, PlmcP
  * \return PlmcPrimitive The Van Leer slope
  */
 PlmcPrimitive __device__ __host__ Van_Leer_Slope(PlmcPrimitive const &left_slope, PlmcPrimitive const &right_slope);
+
+/*!
+ * \brief Project from the primitive variables slopes to the characteristic variables slopes. Stone Eqn 37. Use the
+ * eigenvectors given in Stone 2008, Appendix A
+ *
+ * \param primitive The primitive variables
+ * \param primitive_slope The primitive variables slopes
+ * \param sound_speed The speed of sound
+ * \param sound_speed_squared The speed of sound squared
+ * \return PlmcCharacteristic
+ */
+PlmcCharacteristic __device__ __host__ Primitive_To_Characteristic(PlmcPrimitive const &primitive,
+                                                                   PlmcPrimitive const &primitive_slope,
+                                                                   Real const &sound_speed,
+                                                                   Real const &sound_speed_squared);
 }  // namespace plmc_utils
 #endif  // PLMC_CUDA_H
