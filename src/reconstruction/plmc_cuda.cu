@@ -445,13 +445,13 @@ PlmcCharacteristic __device__ __host__ Primitive_To_Characteristic(PlmcPrimitive
 {
   PlmcCharacteristic output;
 
-  output.a0 = -primitive.density * primitive_slope.velocity_x / (2 * sound_speed) +
-              primitive_slope.pressure / (2 * sound_speed_squared);
+  output.a0 = -primitive.density * primitive_slope.velocity_x / (2.0 * sound_speed) +
+              primitive_slope.pressure / (2.0 * sound_speed_squared);
   output.a1 = primitive_slope.density - primitive_slope.pressure / (sound_speed_squared);
   output.a2 = primitive_slope.velocity_y;
   output.a3 = primitive_slope.velocity_z;
-  output.a4 = primitive.density * primitive_slope.velocity_x / (2 * sound_speed) +
-              primitive_slope.pressure / (2 * sound_speed_squared);
+  output.a4 = primitive.density * primitive_slope.velocity_x / (2.0 * sound_speed) +
+              primitive_slope.pressure / (2.0 * sound_speed_squared);
 
   return output;
 }
@@ -464,11 +464,10 @@ void __device__ __host__ Characteristic_To_Primitive(PlmcPrimitive const &primit
                                                      PlmcPrimitive &output)
 {
   output.density    = characteristic_slope.a0 + characteristic_slope.a1 + characteristic_slope.a4;
-  output.velocity_x = -sound_speed * characteristic_slope.a0 / primitive.density +
-                      sound_speed * characteristic_slope.a4 / primitive.density;
+  output.velocity_x = sound_speed / primitive.density * (characteristic_slope.a4 - characteristic_slope.a0);
   output.velocity_y = characteristic_slope.a2;
   output.velocity_z = characteristic_slope.a3;
-  output.pressure   = sound_speed_squared * characteristic_slope.a0 + sound_speed_squared * characteristic_slope.a4;
+  output.pressure   = sound_speed_squared * (characteristic_slope.a0 + characteristic_slope.a4);
 }
 // =====================================================================================================================
 
