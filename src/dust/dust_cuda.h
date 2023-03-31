@@ -27,7 +27,7 @@
  * \param[in] n_fields
  * \param[in] dt Simulation timestep
  * \param[in] gamma Specific heat ratio
- * 
+ *
  * \return None
  */
 void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma);
@@ -44,7 +44,7 @@ void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
  * \param[in] n_fields
  * \param[in] dt Simulation timestep
  * \param[in] gamma Specific heat ratio
- * 
+ *
  * \return None
  */
 __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
@@ -55,7 +55,7 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
  *
  * \param[in] n Gas number density in cm^-3
  * \param[in] T Gas temperature in K
- * 
+ *
  * \return Real Sputtering timescale in seconds (McKinnon et al. 2017)
  */
 __device__ __host__ Real calc_tau_sp(Real n, Real T);
@@ -65,7 +65,7 @@ __device__ __host__ Real calc_tau_sp(Real n, Real T);
  *
  * \param[in] d_dust Dust mass density in M_sun/kpc^3
  * \param[in] tau_sp Sputtering timescale in kyr
- * 
+ *
  * \return Real Dust density rate of change (McKinnon et al. 2017)
  */
 __device__ __host__ Real calc_dd_dt(Real d_dust, Real tau_sp);

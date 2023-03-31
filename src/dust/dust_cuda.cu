@@ -1,8 +1,8 @@
 /*!
  * \file dust_cuda.cu
  * \author Helena Richie (helenarichie@gmail.com)
- * \brief Contains code that updates the dust density scalar field. The dust_kernel function determines the rate of 
- * change of dust density, which is controlled by the sputtering timescale. The sputtering timescale is from the 
+ * \brief Contains code that updates the dust density scalar field. The dust_kernel function determines the rate of
+ * change of dust density, which is controlled by the sputtering timescale. The sputtering timescale is from the
  * McKinnon et al. (2017) model of dust sputtering, which depends on the cell's gas density and temperature.
  */
 
@@ -104,7 +104,7 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     Real tau_sp = calc_tau_sp(n, T) / TIME_UNIT;  // sputtering timescale, kyr (sim units)
 
     dd_dt = calc_dd_dt(d_dust, tau_sp);  // rate of change in dust density at current timestep
-    dd    = dd_dt * dt;  // change in dust density at current timestep
+    dd    = dd_dt * dt;                  // change in dust density at current timestep
 
     // ensure that dust density is not changing too rapidly
     while (dd / d_dust > dd_max) {
