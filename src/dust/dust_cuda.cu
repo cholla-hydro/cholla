@@ -29,6 +29,20 @@
 
 void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
 {
+  /*!
+   * \brief Launch the dust kernel.
+   *
+   * \param[in] dev_conserved The device conserved variable array.
+   * \param[in] nx Number of cells in the x-direction
+   * \param[in] ny Number of cells in the y-direction
+   * \param[in] nz Number of cells in the z-direction
+   * \param[in] n_ghost Number of ghost cells
+   * \param[in] n_fields
+   * \param[in] dt Simulation timestep
+   * \param[in] gamma Specific heat ratio
+   * 
+   * \return None
+   */
   int n_cells = nx * ny * nz;
   int ngrid   = (n_cells + TPB - 1) / TPB;
   dim3 dim1dGrid(ngrid, 1, 1);
@@ -40,18 +54,20 @@ void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
 {
   /*!
-  * \brief Compute the change in dust density for a cell and update its value in dev_conserved.
-  *
-  * \param[in] dev_conserved The device conserved variable array
-  * \param[in] nx The number of cells in the x-direction
-  * \param[in] ny The number of cells in the y-direction
-  * \param[in] nz The number of cells in the z-direction
-  * \param[in] n_ghost The number of ghost cells
-  * \param[in] dt 
-  * \param[in] gamma 
-  
-  * \return None
-  */
+   * \brief Compute the change in dust density for a cell and update its value in dev_conserved.
+   *
+   * \param[out] dev_conserved The device conserved variable array. The dust field is updated in this function. If dual
+   * energy is turned on, then the dual energy field is updated, as well.
+   * \param[in] nx Number of cells in the x-direction
+   * \param[in] ny Number of cells in the y-direction
+   * \param[in] nz Number of cells in the z-direction
+   * \param[in] n_ghost Number of ghost cells
+   * \param[in] n_fields
+   * \param[in] dt Simulation timestep
+   * \param[in] gamma Specific heat ratio
+   * 
+   * \return None
+   */
 
   // get grid indices
   int n_cells = nx * ny * nz;
