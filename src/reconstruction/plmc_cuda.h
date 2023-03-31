@@ -117,15 +117,15 @@ PlmcCharacteristic __device__ Primitive_To_Characteristic(PlmcPrimitive const &p
  * \param[in] characteristic_slope The characteristic slopes
  * \param[in] sound_speed The sound speed
  * \param[in] sound_speed_squared The sound speed squared
+ * \param[in] gamma The adiabatic index
  * \param[out] output The primitive slopes
  */
-void __device__ __host__ Characteristic_To_Primitive(PlmcPrimitive const &primitive,
-                                                     PlmcCharacteristic const &characteristic_slope,
-                                                     Real const &sound_speed, Real const &sound_speed_squared,
-                                                     PlmcPrimitive &output);
+void __device__ Characteristic_To_Primitive(PlmcPrimitive const &primitive,
+                                            PlmcCharacteristic const &characteristic_slope, Real const &sound_speed,
+                                            Real const &sound_speed_squared, Real const &gamma, PlmcPrimitive &output);
 
 /*!
- * \brief Monotize the characteristic slopes and project back into the primitive slopes
+ * \brief Monotonize the characteristic slopes and project back into the primitive slopes
  *
  * \param[in] primitive The primitive variables
  * \param[in] del_L The left primitive slopes
@@ -138,13 +138,14 @@ void __device__ __host__ Characteristic_To_Primitive(PlmcPrimitive const &primit
  * \param[in] del_a_G The Van Leer characteristic slopes
  * \param[in] sound_speed The sound speed
  * \param[in] sound_speed_squared The sound speed squared
- * \return PlmcPrimitive The monotized primitive slopes
+ * \param[in] gamma The adiabatic index
+ * \return PlmcPrimitive The Monotonized primitive slopes
  */
-PlmcPrimitive __device__ __host__ Monotize_Characteristic_Return_Primitive(
+PlmcPrimitive __device__ Monotonize_Characteristic_Return_Primitive(
     PlmcPrimitive const &primitive, PlmcPrimitive const &del_L, PlmcPrimitive const &del_R, PlmcPrimitive const &del_C,
     PlmcPrimitive const &del_G, PlmcCharacteristic const &del_a_L, PlmcCharacteristic const &del_a_R,
     PlmcCharacteristic const &del_a_C, PlmcCharacteristic const &del_a_G, Real const &sound_speed,
-    Real const &sound_speed_squared);
+    Real const &sound_speed_squared, Real const &gamma);
 
 /*!
  * \brief Compute the interface state from the slope and cell centered state.
@@ -158,7 +159,7 @@ PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive,
                                                  Real const &sign);
 
 /*!
- * \brief Monotize the interface states and primitive slopes.
+ * \brief Monotonize the interface states and primitive slopes.
  *
  * \param[in] cell_i The state in the i cell
  * \param[in] cell_imo The state in the i-1 cell
@@ -167,9 +168,9 @@ PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive,
  * \param[in,out] interface_R_imh The right interface state at i-1/2
  * \param[in,out] del_m_i The primitive slopes in the cell
  */
-void __device__ __host__ Monotize_Primitive(PlmcPrimitive const &cell_i, PlmcPrimitive const &cell_imo,
-                                            PlmcPrimitive const &cell_ipo, PlmcPrimitive &interface_L_iph,
-                                            PlmcPrimitive &interface_R_imh, PlmcPrimitive &del_m_i);
+void __device__ __host__ Monotonize_Primitive(PlmcPrimitive const &cell_i, PlmcPrimitive const &cell_imo,
+                                              PlmcPrimitive const &cell_ipo, PlmcPrimitive &interface_L_iph,
+                                              PlmcPrimitive &interface_R_imh, PlmcPrimitive &del_m_i);
 
 /*!
  * \brief Write the interface data to the appropriate arrays

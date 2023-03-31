@@ -109,16 +109,16 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   // Apply monotonicity constraints to the differences in the characteristic variables and project the monotonized
   // difference in the characteristic variables back onto the primitive variables Stone Eqn 39
-  plmc_utils::PlmcPrimitive del_m_i = plmc_utils::Monotize_Characteristic_Return_Primitive(
-      cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed_squared);
+  plmc_utils::PlmcPrimitive del_m_i = plmc_utils::Monotonize_Characteristic_Return_Primitive(
+      cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed_squared, gamma);
 
   // Compute the left and right interface values using the monotonized difference in the primitive variables
   plmc_utils::PlmcPrimitive interface_L_iph = plmc_utils::Calc_Interface(cell_i, del_m_i, 1.0);
   plmc_utils::PlmcPrimitive interface_R_imh = plmc_utils::Calc_Interface(cell_i, del_m_i, -1.0);
 
-  // Monotize the primitive variables, note the return by reference. Try removing this as it may not be necessary. A
+  // Monotonize the primitive variables, note the return by reference. Try removing this as it may not be necessary. A
   // good test for that would be shock tubes
-  plmc_utils::Monotize_Primitive(cell_i, cell_imo, cell_ipo, interface_L_iph, interface_R_imh, del_m_i);
+  plmc_utils::Monotonize_Primitive(cell_i, cell_imo, cell_ipo, interface_L_iph, interface_R_imh, del_m_i);
 
 #ifndef VL
 
@@ -483,9 +483,8 @@ PlmcCharacteristic __device__ Primitive_To_Characteristic(PlmcPrimitive const &p
   Real const beta_z     = (beta_denom == 0) ? 0.0 : primitive.magnetic_z * beta_denom;
 
   // Compute Q(s) (equation A14)
-  Real const n_fs = 0.5 / sound_speed_squared;  // equation A19
-  Real const sign = copysign(1.0, primitive.magnetic_x);
-  ;
+  Real const n_fs   = 0.5 / sound_speed_squared;  // equation A19
+  Real const sign   = copysign(1.0, primitive.magnetic_x);
   Real const q_fast = sign * n_fs * alpha_fast * magnetosonic_speed_fast;
   Real const q_slow = sign * n_fs * alpha_slow * magnetosonic_speed_slow;
 
@@ -540,28 +539,92 @@ PlmcCharacteristic __device__ Primitive_To_Characteristic(PlmcPrimitive const &p
 // =====================================================================================================================
 
 // =====================================================================================================================
-void __device__ __host__ Characteristic_To_Primitive(PlmcPrimitive const &primitive,
-                                                     PlmcCharacteristic const &characteristic_slope,
-                                                     Real const &sound_speed, Real const &sound_speed_squared,
-                                                     PlmcPrimitive &output)
+void __device__ Characteristic_To_Primitive(PlmcPrimitive const &primitive,
+                                            PlmcCharacteristic const &characteristic_slope, Real const &sound_speed,
+                                            Real const &sound_speed_squared, Real const &gamma, PlmcPrimitive &output)
 {
+#ifdef MHD
+  // This is taken from Stone et al. 2008, appendix A. Equation numbers will be quoted as relevant
+
+  // Compute wave speeds and their squares
+  Real const magnetosonic_speed_fast = mhd::utils::fastMagnetosonicSpeed(
+      primitive.density, primitive.pressure, primitive.magnetic_x, primitive.magnetic_y, primitive.magnetic_z, gamma);
+  Real const magnetosonic_speed_slow = mhd::utils::slowMagnetosonicSpeed(
+      primitive.density, primitive.pressure, primitive.magnetic_x, primitive.magnetic_y, primitive.magnetic_z, gamma);
+
+  Real const magnetosonic_speed_fast_squared = magnetosonic_speed_fast * magnetosonic_speed_fast;
+  Real const magnetosonic_speed_slow_squared = magnetosonic_speed_slow * magnetosonic_speed_slow;
+
+  // Compute Alphas (equation A16)
+  Real alpha_fast, alpha_slow;
+  if (Real const denom = (magnetosonic_speed_fast_squared - magnetosonic_speed_slow_squared),
+      numerator_2      = (magnetosonic_speed_fast_squared - sound_speed_squared);
+      denom <= 0.0 or numerator_2 <= 0.0) {
+    alpha_fast = 1.0;
+    alpha_slow = 0.0;
+  } else if (Real const numerator_1 = (sound_speed_squared - magnetosonic_speed_slow_squared); numerator_1 <= 0.0) {
+    alpha_fast = 0.0;
+    alpha_slow = 1.0;
+  } else {
+    alpha_fast = sqrt(numerator_1 / denom);
+    alpha_slow = sqrt(numerator_2 / denom);
+  }
+
+  // Compute Betas (equation A17)
+  Real const beta_denom = rhypot(primitive.magnetic_y, primitive.magnetic_z);
+  Real const beta_y     = (beta_denom == 0) ? 0.0 : primitive.magnetic_y * beta_denom;
+  Real const beta_z     = (beta_denom == 0) ? 0.0 : primitive.magnetic_z * beta_denom;
+
+  // Compute Q(s) (equation A14)
+  Real const sign   = copysign(1.0, primitive.magnetic_x);
+  Real const q_fast = sign * alpha_fast * magnetosonic_speed_fast;
+  Real const q_slow = sign * alpha_slow * magnetosonic_speed_slow;
+
+  // Compute A(s) (equation A15)
+  Real const a_prime_fast = alpha_fast * sound_speed * sqrt(primitive.density);
+  Real const a_prime_slow = alpha_slow * sound_speed * sqrt(primitive.density);
+
+  // Multiply the slopes by the right eigenvector matrix given in equation 12
+  output.density = primitive.density * (alpha_fast * (characteristic_slope.a0 + characteristic_slope.a6) +
+                                        alpha_slow * (characteristic_slope.a2 + characteristic_slope.a4)) +
+                   characteristic_slope.a3;
+  output.velocity_x = magnetosonic_speed_fast * alpha_fast * (characteristic_slope.a6 - characteristic_slope.a0) +
+                      magnetosonic_speed_slow * alpha_slow * (characteristic_slope.a4 - characteristic_slope.a2);
+  output.velocity_y = beta_y * (q_slow * (characteristic_slope.a0 - characteristic_slope.a6) +
+                                q_fast * (characteristic_slope.a4 - characteristic_slope.a2)) +
+                      beta_z * (characteristic_slope.a5 - characteristic_slope.a1);
+  output.velocity_z = beta_z * (q_slow * (characteristic_slope.a0 - characteristic_slope.a6) +
+                                q_fast * (characteristic_slope.a4 - characteristic_slope.a2)) +
+                      beta_y * (characteristic_slope.a1 - characteristic_slope.a5);
+  output.pressure = primitive.density * sound_speed_squared *
+                    (alpha_fast * (characteristic_slope.a0 + characteristic_slope.a6) +
+                     alpha_slow * (characteristic_slope.a2 + characteristic_slope.a4));
+  output.magnetic_y = beta_y * (a_prime_slow * (characteristic_slope.a0 + characteristic_slope.a6) -
+                                a_prime_fast * (characteristic_slope.a2 + characteristic_slope.a4)) -
+                      beta_z * sign * sqrt(primitive.density) * (characteristic_slope.a5 + characteristic_slope.a1);
+  output.magnetic_z = beta_z * (a_prime_slow * (characteristic_slope.a0 + characteristic_slope.a6) -
+                                a_prime_fast * (characteristic_slope.a2 + characteristic_slope.a4)) +
+                      beta_y * sign * sqrt(primitive.density) * (characteristic_slope.a5 + characteristic_slope.a1);
+
+#else   // not MHD
   output.density    = characteristic_slope.a0 + characteristic_slope.a1 + characteristic_slope.a4;
   output.velocity_x = sound_speed / primitive.density * (characteristic_slope.a4 - characteristic_slope.a0);
   output.velocity_y = characteristic_slope.a2;
   output.velocity_z = characteristic_slope.a3;
   output.pressure   = sound_speed_squared * (characteristic_slope.a0 + characteristic_slope.a4);
+#endif  // MHD
 }
 // =====================================================================================================================
 
 // =====================================================================================================================
-PlmcPrimitive __device__ __host__ Monotize_Characteristic_Return_Primitive(
+PlmcPrimitive __device__ Monotonize_Characteristic_Return_Primitive(
     PlmcPrimitive const &primitive, PlmcPrimitive const &del_L, PlmcPrimitive const &del_R, PlmcPrimitive const &del_C,
     PlmcPrimitive const &del_G, PlmcCharacteristic const &del_a_L, PlmcCharacteristic const &del_a_R,
     PlmcCharacteristic const &del_a_C, PlmcCharacteristic const &del_a_G, Real const &sound_speed,
-    Real const &sound_speed_squared)
+    Real const &sound_speed_squared, Real const &gamma)
 {
-  // The function that will actually do the monotization
-  auto Monotize = [](Real const &left, Real const &right, Real const &centered, Real const &van_leer) -> Real {
+  // The function that will actually do the monotozation
+  auto Monotonize = [](Real const &left, Real const &right, Real const &centered, Real const &van_leer) -> Real {
     if (left * right > 0.0) {
       Real const lim_slope_a = 2.0 * fmin(fabs(left), fabs(right));
       Real const lim_slope_b = fmin(fabs(centered), fabs(van_leer));
@@ -571,35 +634,35 @@ PlmcPrimitive __device__ __host__ Monotize_Characteristic_Return_Primitive(
     }
   };
 
-  // the monotized difference in the characteristic variables
+  // the monotonized difference in the characteristic variables
   PlmcCharacteristic del_a_m;
-  // The monotized difference in the characteristic variables projected into the primitive variables
+  // The monotonized difference in the characteristic variables projected into the primitive variables
   PlmcPrimitive output;
 
-  // Monotize the slopes
-  del_a_m.a0 = Monotize(del_a_L.a0, del_a_R.a0, del_a_C.a0, del_a_G.a0);
-  del_a_m.a1 = Monotize(del_a_L.a1, del_a_R.a1, del_a_C.a1, del_a_G.a1);
-  del_a_m.a2 = Monotize(del_a_L.a2, del_a_R.a2, del_a_C.a2, del_a_G.a2);
-  del_a_m.a3 = Monotize(del_a_L.a3, del_a_R.a3, del_a_C.a3, del_a_G.a3);
-  del_a_m.a4 = Monotize(del_a_L.a4, del_a_R.a4, del_a_C.a4, del_a_G.a4);
+  // Monotonize the slopes
+  del_a_m.a0 = Monotonize(del_a_L.a0, del_a_R.a0, del_a_C.a0, del_a_G.a0);
+  del_a_m.a1 = Monotonize(del_a_L.a1, del_a_R.a1, del_a_C.a1, del_a_G.a1);
+  del_a_m.a2 = Monotonize(del_a_L.a2, del_a_R.a2, del_a_C.a2, del_a_G.a2);
+  del_a_m.a3 = Monotonize(del_a_L.a3, del_a_R.a3, del_a_C.a3, del_a_G.a3);
+  del_a_m.a4 = Monotonize(del_a_L.a4, del_a_R.a4, del_a_C.a4, del_a_G.a4);
 
 #ifdef MHD
-  del_a_m.a5 = Monotize(del_a_L.a5, del_a_R.a5, del_a_C.a5, del_a_G.a5);
-  del_a_m.a6 = Monotize(del_a_L.a6, del_a_R.a6, del_a_C.a6, del_a_G.a6);
+  del_a_m.a5 = Monotonize(del_a_L.a5, del_a_R.a5, del_a_C.a5, del_a_G.a5);
+  del_a_m.a6 = Monotonize(del_a_L.a6, del_a_R.a6, del_a_C.a6, del_a_G.a6);
 #endif  // MHD
 
 #ifdef DE
-  output.gas_energy = Monotize(del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
+  output.gas_energy = Monotonize(del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    output.scalar[i] = Monotize(del_L.scalar[i], del_R.scalar[i], del_C.scalar[i], del_G.scalar[i]);
+    output.scalar[i] = Monotonize(del_L.scalar[i], del_R.scalar[i], del_C.scalar[i], del_G.scalar[i]);
   }
 #endif  // SCALAR
 
   // Project into the primitive variables. Note the return by reference to preserve the values in the gas_energy and
   // scalars
-  Characteristic_To_Primitive(primitive, del_a_m, sound_speed, sound_speed_squared, output);
+  Characteristic_To_Primitive(primitive, del_a_m, sound_speed, sound_speed_squared, gamma, output);
 
   return output;
 }
@@ -636,13 +699,13 @@ PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive,
 // =====================================================================================================================
 
 // =====================================================================================================================
-void __device__ __host__ Monotize_Primitive(PlmcPrimitive const &cell_i, PlmcPrimitive const &cell_imo,
-                                            PlmcPrimitive const &cell_ipo, PlmcPrimitive &interface_L_iph,
-                                            PlmcPrimitive &interface_R_imh, PlmcPrimitive &del_m_i)
+void __device__ __host__ Monotonize_Primitive(PlmcPrimitive const &cell_i, PlmcPrimitive const &cell_imo,
+                                              PlmcPrimitive const &cell_ipo, PlmcPrimitive &interface_L_iph,
+                                              PlmcPrimitive &interface_R_imh, PlmcPrimitive &del_m_i)
 {
-  // The function that will actually do the monotization. Note that it return the interfaces by reference
-  auto Monotize = [](Real const &val_i, Real const &val_imo, Real const &val_ipo, Real &interface_L,
-                     Real &interface_R) {
+  // The function that will actually do the monotozation. Note that it return the interfaces by reference
+  auto Monotonize = [](Real const &val_i, Real const &val_imo, Real const &val_ipo, Real &interface_L,
+                       Real &interface_R) {
     Real const C = interface_R + interface_L;
 
     interface_R = fmax(fmin(val_i, val_imo), interface_R);
@@ -654,15 +717,15 @@ void __device__ __host__ Monotize_Primitive(PlmcPrimitive const &cell_i, PlmcPri
     interface_R = C - interface_L;
   };
 
-  // Monotize
-  Monotize(cell_i.density, cell_imo.density, cell_ipo.density, interface_L_iph.density, interface_R_imh.density);
-  Monotize(cell_i.velocity_x, cell_imo.velocity_x, cell_ipo.velocity_x, interface_L_iph.velocity_x,
-           interface_R_imh.velocity_x);
-  Monotize(cell_i.velocity_y, cell_imo.velocity_y, cell_ipo.velocity_y, interface_L_iph.velocity_y,
-           interface_R_imh.velocity_y);
-  Monotize(cell_i.velocity_z, cell_imo.velocity_z, cell_ipo.velocity_z, interface_L_iph.velocity_z,
-           interface_R_imh.velocity_z);
-  Monotize(cell_i.pressure, cell_imo.pressure, cell_ipo.pressure, interface_L_iph.pressure, interface_R_imh.pressure);
+  // Monotonize
+  Monotonize(cell_i.density, cell_imo.density, cell_ipo.density, interface_L_iph.density, interface_R_imh.density);
+  Monotonize(cell_i.velocity_x, cell_imo.velocity_x, cell_ipo.velocity_x, interface_L_iph.velocity_x,
+             interface_R_imh.velocity_x);
+  Monotonize(cell_i.velocity_y, cell_imo.velocity_y, cell_ipo.velocity_y, interface_L_iph.velocity_y,
+             interface_R_imh.velocity_y);
+  Monotonize(cell_i.velocity_z, cell_imo.velocity_z, cell_ipo.velocity_z, interface_L_iph.velocity_z,
+             interface_R_imh.velocity_z);
+  Monotonize(cell_i.pressure, cell_imo.pressure, cell_ipo.pressure, interface_L_iph.pressure, interface_R_imh.pressure);
 
   // Compute the new slopes
   del_m_i.density    = interface_L_iph.density - interface_R_imh.density;
@@ -672,25 +735,25 @@ void __device__ __host__ Monotize_Primitive(PlmcPrimitive const &cell_i, PlmcPri
   del_m_i.pressure   = interface_L_iph.pressure - interface_R_imh.pressure;
 
 #ifdef MHD
-  Monotize(cell_i.magnetic_y, cell_imo.magnetic_y, cell_ipo.magnetic_y, interface_L_iph.magnetic_y,
-           interface_R_imh.magnetic_y);
-  Monotize(cell_i.magnetic_z, cell_imo.magnetic_z, cell_ipo.velocity_z, interface_L_iph.velocity_z,
-           interface_R_imh.magnetic_z);
+  Monotonize(cell_i.magnetic_y, cell_imo.magnetic_y, cell_ipo.magnetic_y, interface_L_iph.magnetic_y,
+             interface_R_imh.magnetic_y);
+  Monotonize(cell_i.magnetic_z, cell_imo.magnetic_z, cell_ipo.velocity_z, interface_L_iph.velocity_z,
+             interface_R_imh.magnetic_z);
 
   del_m_i.magnetic_y = interface_L_iph.magnetic_y - interface_R_imh.magnetic_y;
   del_m_i.magnetic_z = interface_L_iph.magnetic_z - interface_R_imh.magnetic_z;
 #endif  // MHD
 
 #ifdef DE
-  Monotize(cell_i.gas_energy, cell_imo.gas_energy, cell_ipo.gas_energy, interface_L_iph.gas_energy,
-           interface_R_imh.gas_energy);
+  Monotonize(cell_i.gas_energy, cell_imo.gas_energy, cell_ipo.gas_energy, interface_L_iph.gas_energy,
+             interface_R_imh.gas_energy);
   del_m_i.gas_energy = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
 #endif  // DE
 
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    Monotize(cell_i.scalar[i], cell_imo.scalar[i], cell_ipo.scalar[i], interface_L_iph.scalar[i],
-             interface_R_imh.scalar[i]);
+    Monotonize(cell_i.scalar[i], cell_imo.scalar[i], cell_ipo.scalar[i], interface_L_iph.scalar[i],
+               interface_R_imh.scalar[i]);
     del_m_i.scalar[i] = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
   }
 #endif  // SCALAR
