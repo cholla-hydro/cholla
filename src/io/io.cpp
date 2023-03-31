@@ -3287,7 +3287,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
 #endif
 
 /* MPI-safe printf routine */
-int chprintf(const char *__restrict sdata, ...)
+int chprintf(const char *__restrict sdata, ...)  // NOLINT(cert-dcl50-cpp)
 {
   int code = 0;
 #ifdef MPI_CHOLLA

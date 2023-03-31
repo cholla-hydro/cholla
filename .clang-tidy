@@ -38,7 +38,6 @@ Checks: "*,
 
         -bugprone-implicit-widening-of-multiplication-result,
         -bugprone-narrowing-conversions,
-        -cert-dcl50-cpp,
         -cert-dcl59-cpp,
         -cert-env33-c,
         -cert-err33-c,
