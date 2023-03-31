@@ -153,3 +153,117 @@ TEST(tHYDROPlmcReconstructor, CorrectInputExpectCorrectOutput)
     }
   }
 }
+
+TEST(tMHDPlmcReconstructor, CorrectInputExpectCorrectOutput)
+{
+  // Set up PRNG to use
+  std::mt19937_64 prng(42);
+  std::uniform_real_distribution<double> doubleRand(0.1, 5);
+
+  // Mock up needed information
+  size_t const nx = 4, ny = nx, nz = nx;
+  size_t const n_fields          = 8;
+  size_t const n_cells_grid      = nx * ny * nz * n_fields;
+  size_t const n_cells_interface = nx * ny * nz * (n_fields - 1);
+  double const dx                = doubleRand(prng);
+  double const dt                = doubleRand(prng);
+  double const gamma             = 5.0 / 3.0;
+
+  // Setup host grid. Fill host grid with random values and randomly assign maximum value
+  std::vector<double> host_grid(n_cells_grid);
+  for (size_t i = 0; i < host_grid.size(); i++) {
+    host_grid.at(i) = doubleRand(prng);
+  }
+
+  // Allocating and copying to device
+  cuda_utilities::DeviceVector<double> dev_grid(host_grid.size());
+  dev_grid.cpyHostToDevice(host_grid);
+
+  // Fiducial Data
+  std::vector<std::unordered_map<int, double>> fiducial_interface_left  = {{{21, 0.59023012197434721},
+                                                                            {85, 3.0043379408547275},
+                                                                            {149, 2.6320759184913625},
+                                                                            {213, 0.94878676231467451},
+                                                                            {277, 18.551193003661723},
+                                                                            {341, 1.8587936590169301},
+                                                                            {405, 2.1583975283044725}},
+                                                                           {{21, 0.73640639402573249},
+                                                                            {85, 1.2543813093357532},
+                                                                            {149, 2.194558499445812},
+                                                                            {213, 1.1837630990406585},
+                                                                            {277, 11.028931161539937},
+                                                                            {341, 2.1583975283044725},
+                                                                            {405, 1.6994195863331925}},
+                                                                           {{21, 0.25340904981266843},
+                                                                            {85, 2.0441984720128734},
+                                                                            {149, 2.0072227310539077},
+                                                                            {213, 0.45377591914009824},
+                                                                            {277, 24.026326855982607},
+                                                                            {341, 1.7033818819502551},
+                                                                            {405, 1.8141353672443383}}};
+  std::vector<std::unordered_map<int, double>> fiducial_interface_right = {
+      {{20, 0.59023012197434721},
+       {84, 3.0043379408547275},
+       {148, 2.6320759184913625},
+       {212, 0.9487867623146744},
+       {276, 22.111134849009044},
+       {340, 1.8587936590169301},
+       {404, 2.1583975283044725}},
+      {{17, 0.44405384992296193},
+       {20, 0.59023012197434721},
+       {81, 2.5027813113931279},
+       {84, 3.0043379408547275},
+       {145, 2.6371119205792346},
+       {148, 2.6320759184913625},
+       {209, 0.71381042558869023},
+       {212, 0.9487867623146744},
+       {273, 29.633443857492487},
+       {276, 22.111134849009044},
+       {337, 2.1583975283044725},
+       {340, 1.8587936590169301},
+       {401, 4.5479767726660523},
+       {404, 2.1583975283044725}},
+      {{5, 0.92705119413602599},  {17, 0.44405384992296193}, {20, 0.59023012197434721},  {69, 1.959259898225878},
+       {81, 2.5027813113931279},  {84, 3.0043379408547275},  {133, 0.96653490574340462}, {145, 2.6371119205792346},
+       {148, 2.6320759184913625}, {197, 1.3203867992383289}, {209, 0.71381042558869023}, {212, 0.9487867623146744},
+       {261, 7.6371723945376502}, {273, 29.633443857492487}, {276, 22.111134849009044},  {325, 1.7033818819502551},
+       {337, 2.1583975283044725}, {340, 1.8587936590169301}, {389, 1.8587936590169303},  {401, 4.5479767726660523},
+       {404, 2.1583975283044725}}};
+
+  // Loop over different directions
+  for (size_t direction = 0; direction < 3; direction++) {
+    // Allocate device buffers
+    cuda_utilities::DeviceVector<double> dev_interface_left(n_cells_interface);
+    cuda_utilities::DeviceVector<double> dev_interface_right(n_cells_interface);
+
+    // Launch kernel
+    hipLaunchKernelGGL(PLMC_cuda, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
+                       dev_interface_right.data(), nx, ny, nz, dx, dt, gamma, direction, n_fields);
+    CudaCheckError();
+    CHECK(cudaDeviceSynchronize());
+
+    // Perform Comparison
+    for (size_t i = 0; i < dev_interface_right.size(); i++) {
+      // Check the left interface
+      double test_val = dev_interface_left.at(i);
+      double fiducial_val =
+          (fiducial_interface_left.at(direction).find(i) == fiducial_interface_left.at(direction).end())
+              ? 0.0
+              : fiducial_interface_left.at(direction)[i];
+
+      testingUtilities::checkResults(
+          fiducial_val, test_val,
+          "left interface at i=" + std::to_string(i) + ", in direction " + std::to_string(direction));
+
+      // Check the right interface
+      test_val     = dev_interface_right.at(i);
+      fiducial_val = (fiducial_interface_right.at(direction).find(i) == fiducial_interface_right.at(direction).end())
+                         ? 0.0
+                         : fiducial_interface_right.at(direction)[i];
+
+      testingUtilities::checkResults(
+          fiducial_val, test_val,
+          "right interface at i=" + std::to_string(i) + ", in direction " + std::to_string(direction));
+    }
+  }
+}
