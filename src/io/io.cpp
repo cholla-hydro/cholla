@@ -3297,7 +3297,7 @@ int chprintf(const char *__restrict sdata, ...)  // NOLINT(cert-dcl50-cpp)
 
     va_list ap;
     va_start(ap, sdata);
-    code = vfprintf(stdout, sdata, ap);
+    code = vfprintf(stdout, sdata, ap);  // NOLINT(clang-analyzer-valist.Uninitialized)
     va_end(ap);
     fflush(stdout);
 
