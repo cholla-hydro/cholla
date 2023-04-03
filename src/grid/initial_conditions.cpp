@@ -1711,9 +1711,9 @@ void Grid3D::Advecting_Field_Loop(struct parameters const P)
   assert((P.xmin + P.xlen / 2) == 0 and (P.ymin + P.ylen / 2) == 0 and (P.zmin + P.zlen / 2 == 0) and
          "Domain must be centered at zero");
 
-  // Check that P.R is smaller than the size of the domain
+  // Check that P.radius is smaller than the size of the domain
   Real const domain_size = std::hypot(P.xlen / 2, P.ylen / 2, P.zlen / 2);
-  assert(domain_size > P.R and "The size of the domain must be greater than P.R");
+  assert(domain_size > P.radius and "The size of the domain must be greater than P.radius");
 
   // Compute the vector potential. Since the vector potential std::vector is initialized to zero I will only assign new
   // values when required and ignore the cases where I would be assigning zero
@@ -1730,14 +1730,14 @@ void Grid3D::Advecting_Field_Loop(struct parameters const P)
 
         // Y vector potential
         Real radius = std::hypot(x + H.dx / 2., y, z + H.dz / 2.);
-        if (radius < P.R) {
-          vectorPotential.at(id + 1 * H.n_cells) = P.A * (P.R - radius);
+        if (radius < P.radius) {
+          vectorPotential.at(id + 1 * H.n_cells) = P.A * (P.radius - radius);
         }
 
         // Z vector potential
         radius = std::hypot(x + H.dx / 2., y + H.dy / 2., z);
-        if (radius < P.R) {
-          vectorPotential.at(id + 2 * H.n_cells) = P.A * (P.R - radius);
+        if (radius < P.radius) {
+          vectorPotential.at(id + 2 * H.n_cells) = P.A * (P.radius - radius);
         }
       }
     }
@@ -1777,9 +1777,9 @@ void Grid3D::MHD_Spherical_Blast(struct parameters const P)
   assert((P.xmin + P.xlen / 2) == 0 and (P.ymin + P.ylen / 2) == 0 and (P.zmin + P.zlen / 2 == 0) and
          "Domain must be centered at zero");
 
-  // Check that P.R is smaller than the size of the domain
+  // Check that P.radius is smaller than the size of the domain
   Real const domain_size = std::hypot(P.xlen / 2, P.ylen / 2, P.zlen / 2);
-  assert(domain_size > P.R and "The size of the domain must be greater than P.R");
+  assert(domain_size > P.radius and "The size of the domain must be greater than P.radius");
 
   // Initialize the magnetic field
   for (int k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
@@ -1817,7 +1817,7 @@ void Grid3D::MHD_Spherical_Blast(struct parameters const P)
 
         // Set the field(s) that do depend on pressure. That's just energy
         Real radius = std::hypot(x, y, z);
-        if (radius < P.R) {
+        if (radius < P.radius) {
           C.Energy[id] = mhd::utils::computeEnergy(
               P.P_blast, C.density[id], C.momentum_x[id] / C.density[id], C.momentum_y[id] / C.density[id],
               C.momentum_z[id] / C.density[id], magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);

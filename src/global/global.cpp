@@ -359,8 +359,8 @@ void parse_param(char *name, char *value, struct parameters *parms)
     parms->yaw = atof(value);
   } else if (strcmp(name, "polarization") == 0) {
     parms->polarization = atof(value);
-  } else if (strcmp(name, "R") == 0) {
-    parms->R = atof(value);
+  } else if (strcmp(name, "radius") == 0) {
+    parms->radius = atof(value);
   } else if (strcmp(name, "P_blast") == 0) {
     parms->P_blast = atof(value);
 #ifdef PARTICLES

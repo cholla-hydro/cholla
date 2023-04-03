@@ -49,7 +49,7 @@ P=1.0
 # initial pressure inside the blast zone
 P_blast=100.0
 # The radius of the blast zone
-R=0.125
+radius=0.125
 # magnetic field in the x direction. Equal to 10/sqrt(2)
 Bx=7.0710678118654746
 # magnetic field in the y direction
