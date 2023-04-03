@@ -11,11 +11,13 @@
 
     // STL includes
     #include <stdio.h>
+
     #include <cstdio>
     #include <fstream>
     #include <vector>
 
     // Local includes
+    #include "../dust/dust_cuda.h"
     #include "../global/global.h"
     #include "../global/global_cuda.h"
     #include "../grid/grid3D.h"
@@ -23,7 +25,6 @@
     #include "../utils/cuda_utilities.h"
     #include "../utils/gpu.hpp"
     #include "../utils/hydro_utilities.h"
-    #include "../dust/dust_cuda.h"
 
 void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
 {
