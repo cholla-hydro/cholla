@@ -11,8 +11,6 @@
 
     // STL includes
     #include <stdio.h>
-
-    // External includes
     #include <cstdio>
     #include <fstream>
     #include <vector>
@@ -25,7 +23,7 @@
     #include "../utils/cuda_utilities.h"
     #include "../utils/gpu.hpp"
     #include "../utils/hydro_utilities.h"
-    #include "dust_cuda.h"
+    #include "../dust/dust_cuda.h"
 
 void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
 {
