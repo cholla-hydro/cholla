@@ -19,33 +19,29 @@
 /*!
  * \brief Launch the dust kernel.
  *
- * \param[in] dev_conserved The device conserved variable array.
+ * \param[in,out] dev_conserved The device conserved variable array.
  * \param[in] nx Number of cells in the x-direction
  * \param[in] ny Number of cells in the y-direction
  * \param[in] nz Number of cells in the z-direction
  * \param[in] n_ghost Number of ghost cells
- * \param[in] n_fields
+ * \param[in] n_fields Number of fields in dev_conserved
  * \param[in] dt Simulation timestep
  * \param[in] gamma Specific heat ratio
- *
- * \return None
  */
 void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma);
 
 /*!
  * \brief Compute the change in dust density for a cell and update its value in dev_conserved.
  *
- * \param[out] dev_conserved The device conserved variable array. The dust field is updated in this function. If dual
+ * \param[in,out] dev_conserved The device conserved variable array. The dust field is updated in this function. If dual
  * energy is turned on, then the dual energy field is updated, as well.
  * \param[in] nx Number of cells in the x-direction
  * \param[in] ny Number of cells in the y-direction
  * \param[in] nz Number of cells in the z-direction
  * \param[in] n_ghost Number of ghost cells
- * \param[in] n_fields
+ * \param[in] n_fields Number of fields in dev_conserved
  * \param[in] dt Simulation timestep
  * \param[in] gamma Specific heat ratio
- *
- * \return None
  */
 __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
                             Real gamma);
