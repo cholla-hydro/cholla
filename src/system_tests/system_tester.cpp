@@ -426,7 +426,7 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &particleData, bool co
   if (useFiducialFile) {
     _fiducialFilePath = ::globalChollaRoot.getString() + "/cholla-tests-data/system_tests/" + _fullTestFileName + ".h5";
     if (not std::filesystem::exists(_fiducialFilePath)) {
-      throw std::invalid_argument("Error: Cholla settings file not found at :" + _fiducialFilePath);
+      throw std::invalid_argument("Error: Cholla fiducial data file not found at :" + _fiducialFilePath);
     }
     _fiducialFile.openFile(_fiducialFilePath, H5F_ACC_RDONLY);
     _fiducialDataSetNames = _findDataSetNames(_fiducialFile);

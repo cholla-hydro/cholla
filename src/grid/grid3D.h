@@ -689,6 +689,14 @@ class Grid3D
    * \param P The parameters. Only uses Vx, pitch, and yaw
    */
   void Circularly_Polarized_Alfven_Wave(struct parameters const P);
+
+  /*!
+   * \brief Initialize the grid with a advecting field loop. See [Gardiner &
+   * Stone 2008](https://arxiv.org/abs/0712.2634).
+   *
+   * \param P The parameters object
+   */
+  void Advecting_Field_Loop(struct parameters const P);
 #endif  // MHD
 #ifdef MPI_CHOLLA
   void Set_Boundaries_MPI(struct parameters P);
