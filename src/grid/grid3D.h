@@ -697,7 +697,16 @@ class Grid3D
    * \param P The parameters object
    */
   void Advecting_Field_Loop(struct parameters const P);
+
+  /*!
+   * \brief Initialize the grid with a spherical MHD blast wave. See [Gardiner &
+   * Stone 2008](https://arxiv.org/abs/0712.2634) for details.
+   *
+   * \param P The parameters struct
+   */
+  void MHD_Spherical_Blast(struct parameters const P);
 #endif  // MHD
+
 #ifdef MPI_CHOLLA
   void Set_Boundaries_MPI(struct parameters P);
   void Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P);

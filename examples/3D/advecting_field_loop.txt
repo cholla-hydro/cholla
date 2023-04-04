@@ -48,7 +48,7 @@ P=1.0
 # amplitude of the loop/magnetic field background value
 A=0.001
 # Radius of the Loop
-R=0.3
+radius=0.3
 
 # value of gamma
 gamma=1.666666666666667

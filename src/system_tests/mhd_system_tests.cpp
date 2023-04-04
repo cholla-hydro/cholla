@@ -601,6 +601,13 @@ TEST_P(tMHDSYSTEMParameterizedMpi, AdvectingFieldLoopCorrectInputExpectCorrectOu
   test_runner.numMpiRanks = GetParam();
   test_runner.runTest();
 }
+
+/// Test the MHD Blast Wave
+TEST_P(tMHDSYSTEMParameterizedMpi, MhdBlastWaveCorrectInputExpectCorrectOutput)
+{
+  test_runner.numMpiRanks = GetParam();
+  test_runner.runTest();
+}
 /// @}
 // =============================================================================
 
