@@ -2,6 +2,8 @@
 
   #include "../grid/grid3D.h"
   #include "../io/io.h"
+  #include "../utils/hydro_utilities.h"
+  #include "../utils/mhd_utilities.h"
   #include "chemistry_gpu.h"
   #include "rates.cuh"
 

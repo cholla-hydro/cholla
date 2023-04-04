@@ -290,11 +290,11 @@ void Grid3D::AllocateMemory(void)
   CudaSafeCall(cudaHostAlloc((void **)&C.host, H.n_fields * H.n_cells * sizeof(Real), cudaHostAllocDefault));
 
   // point conserved variables to the appropriate locations
-  C.density    = C.host;
-  C.momentum_x = &(C.host[H.n_cells]);
-  C.momentum_y = &(C.host[2 * H.n_cells]);
-  C.momentum_z = &(C.host[3 * H.n_cells]);
-  C.Energy     = &(C.host[4 * H.n_cells]);
+  C.density    = &(C.host[grid_enum::density * H.n_cells]);
+  C.momentum_x = &(C.host[grid_enum::momentum_x * H.n_cells]);
+  C.momentum_y = &(C.host[grid_enum::momentum_y * H.n_cells]);
+  C.momentum_z = &(C.host[grid_enum::momentum_z * H.n_cells]);
+  C.Energy     = &(C.host[grid_enum::Energy * H.n_cells]);
 #ifdef SCALAR
   C.scalar = &(C.host[H.n_cells * grid_enum::scalar]);
   #ifdef BASIC_SCALAR
@@ -302,9 +302,9 @@ void Grid3D::AllocateMemory(void)
   #endif
 #endif  // SCALAR
 #ifdef MHD
-  C.magnetic_x = &(C.host[(grid_enum::magnetic_x)*H.n_cells]);
-  C.magnetic_y = &(C.host[(grid_enum::magnetic_y)*H.n_cells]);
-  C.magnetic_z = &(C.host[(grid_enum::magnetic_z)*H.n_cells]);
+  C.magnetic_x = &(C.host[grid_enum::magnetic_x * H.n_cells]);
+  C.magnetic_y = &(C.host[grid_enum::magnetic_y * H.n_cells]);
+  C.magnetic_z = &(C.host[grid_enum::magnetic_z * H.n_cells]);
 #endif  // MHD
 #ifdef DE
   C.GasEnergy = &(C.host[(H.n_fields - 1) * H.n_cells]);
