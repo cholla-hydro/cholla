@@ -32,10 +32,12 @@ namespace mhd
  * API
  *
  * \param[in] dev_conserved The device array of conserved variables
- * \param[out] maxDivergence The device scalar to store the reduced divergence
- * at \param[in] dx Cell size in the X-direction \param[in] dy Cell size in the
- * Y-direction \param[in] dz Cell size in the Z-direction \param[in] nx Number
- * of cells in the X-direction \param[in] ny Number of cells in the Y-direction
+ * \param[out] maxDivergence The device scalar to store the reduced divergence at
+ * \param[in] dx Cell size in the X-direction
+ * \param[in] dy Cell size in the Y-direction
+ * \param[in] dz Cell size in the Z-direction
+ * \param[in] nx Number of cells in the X-direction
+ * \param[in] ny Number of cells in the Y-direction
  * \param[in] nz Number of cells in the Z-direction
  * \param[in] n_cells Total number of cells
  */

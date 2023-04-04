@@ -187,7 +187,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
   // for bc_pontential_type = 1 the mod_frac is the fraction
   // of the disk mass contributed by the simulated particles
   Real mod_frac = SIMULATED_FRACTION;
-  Real pot_val;
+  Real pot_val  = 0.0;
   int i, j, k, id;
   for (k = 0; k < nGHST; k++) {
     for (i = 0; i < n_i; i++) {
