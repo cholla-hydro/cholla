@@ -674,23 +674,25 @@ PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive,
 {
   plmc_utils::PlmcPrimitive output;
 
-  output.density    = primitive.density + sign * 0.5 * slopes.density;
-  output.velocity_x = primitive.velocity_x + sign * 0.5 * slopes.velocity_x;
-  output.velocity_y = primitive.velocity_y + sign * 0.5 * slopes.velocity_y;
-  output.velocity_z = primitive.velocity_z + sign * 0.5 * slopes.velocity_z;
-  output.pressure   = primitive.pressure + sign * 0.5 * slopes.pressure;
+  auto interface = [&sign](Real const &state, Real const &slope) -> Real { return state + sign * 0.5 * slope; };
+
+  output.density    = interface(primitive.density, slopes.density);
+  output.velocity_x = interface(primitive.velocity_x, slopes.velocity_x);
+  output.velocity_y = interface(primitive.velocity_y, slopes.velocity_y);
+  output.velocity_z = interface(primitive.velocity_z, slopes.velocity_z);
+  output.pressure   = interface(primitive.pressure, slopes.pressure);
 
 #ifdef MHD
-  output.magnetic_y = primitive.magnetic_y + sign * 0.5 * slopes.magnetic_y;
-  output.magnetic_z = primitive.magnetic_z + sign * 0.5 * slopes.magnetic_z;
+  output.magnetic_y = interface(primitive.magnetic_y, slopes.magnetic_y);
+  output.magnetic_z = interface(primitive.magnetic_z, slopes.magnetic_z);
 #endif  // MHD
 
 #ifdef DE
-  output.gas_energy = primitive.gas_energy + sign * 0.5 * slopes.gas_energy;
+  output.gas_energy = interface(primitive.gas_energy, slopes.gas_energy);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    output.scalar[i] = primitive.scalar[i] + sign * 0.5 * slopes.scalar[i];
+    output.scalar[i] = interface(primitive.scalar[i], slopes.scalar[i]);
   }
 #endif  // SCALAR
 
