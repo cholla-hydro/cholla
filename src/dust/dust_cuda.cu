@@ -54,9 +54,9 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
   Real mu = 0.6;       // mean molecular weight
   Real T, E, P;        // temperature, energy, pressure
   Real vx, vy, vz;     // velocities
-    #ifdef DE
+  #ifdef DE
   Real ge;
-    #endif  // DE
+  #endif  // DE
 
   // define integration variables
   Real dd_dt;          // instantaneous rate of change in dust density
@@ -81,10 +81,10 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     vx = dev_conserved[id + n_cells * grid_enum::momentum_x] / d_gas;
     vy = dev_conserved[id + n_cells * grid_enum::momentum_y] / d_gas;
     vz = dev_conserved[id + n_cells * grid_enum::momentum_z] / d_gas;
-    #ifdef DE
+  #ifdef DE
     ge = dev_conserved[id + n_cells * grid_enum::GasEnergy] / d_gas;
     ge = fmax(ge, (Real)TINY_NUMBER);
-    #endif  // DE
+  #endif  // DE
 
     // calculate physical quantities
     P = hydro_utilities::Calc_Pressure_Primitive(E, d_gas, vx, vy, vz, gamma);
@@ -92,9 +92,9 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     Real T_init;
     T_init = hydro_utilities::Calc_Temp(P, n);
 
-    #ifdef DE
+  #ifdef DE
     T_init = hydro_utilities::Calc_Temp_DE(d_gas, ge, gamma, n);
-    #endif  // DE
+  #endif  // DE
 
     // if dual energy is turned on use temp from total internal energy
     T = T_init;
@@ -118,9 +118,9 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 
     dev_conserved[id + n_cells * grid_enum::dust_density] = d_dust;
 
-    #ifdef DE
+  #ifdef DE
     dev_conserved[id + n_cells * grid_enum::GasEnergy] = d_dust * ge;
-    #endif
+  #endif
   }
 }
 
