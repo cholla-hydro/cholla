@@ -542,7 +542,7 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
 
 void Allocate_MPI_DeviceBuffers(struct Header *H)
 {
-  int xbsize, ybsize, zbsize;
+  int xbsize = 0, ybsize = 0, zbsize = 0;
   if (H->ny == 1 && H->nz == 1) {
     xbsize = H->n_fields * H->n_ghost;
     ybsize = 1;
