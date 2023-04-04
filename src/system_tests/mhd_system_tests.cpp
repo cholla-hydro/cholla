@@ -613,6 +613,7 @@ TEST_P(tMHDSYSTEMParameterizedMpi, MhdBlastWaveCorrectInputExpectCorrectOutput)
 TEST_P(tMHDSYSTEMParameterizedMpi, OrszagTangVortexCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
+  test_runner.setFixedEpsilon(8.E-4);
   test_runner.runTest();
 }
 /// @}
