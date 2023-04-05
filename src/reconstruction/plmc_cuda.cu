@@ -114,10 +114,6 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   plmc_utils::PlmcPrimitive interface_L_iph = plmc_utils::Calc_Interface(cell_i, del_m_i, 1.0);
   plmc_utils::PlmcPrimitive interface_R_imh = plmc_utils::Calc_Interface(cell_i, del_m_i, -1.0);
 
-  // Monotonize the primitive variables, note the return by reference. Try removing this as it may not be necessary. A
-  // good test for that would be shock tubes
-  plmc_utils::Monotonize_Primitive(cell_i, cell_imo, cell_ipo, interface_L_iph, interface_R_imh, del_m_i);
-
 #ifndef VL
 
   Real const dtodx = dt / dx;
@@ -519,68 +515,6 @@ PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive,
 #endif  // SCALAR
 
   return output;
-}
-// =====================================================================================================================
-
-// =====================================================================================================================
-void __device__ __host__ Monotonize_Primitive(PlmcPrimitive const &cell_i, PlmcPrimitive const &cell_imo,
-                                              PlmcPrimitive const &cell_ipo, PlmcPrimitive &interface_L_iph,
-                                              PlmcPrimitive &interface_R_imh, PlmcPrimitive &del_m_i)
-{
-  // The function that will actually do the monotozation. Note that it return the interfaces by reference
-  auto Monotonize = [](Real const &val_i, Real const &val_imo, Real const &val_ipo, Real &interface_L,
-                       Real &interface_R) {
-    Real const C = interface_R + interface_L;
-
-    interface_R = fmax(fmin(val_i, val_imo), interface_R);
-    interface_R = fmin(fmax(val_i, val_imo), interface_R);
-    interface_L = C - interface_R;
-
-    interface_L = fmax(fmin(val_i, val_ipo), interface_L);
-    interface_L = fmin(fmax(val_i, val_ipo), interface_L);
-    interface_R = C - interface_L;
-  };
-
-  // Monotonize
-  Monotonize(cell_i.density, cell_imo.density, cell_ipo.density, interface_L_iph.density, interface_R_imh.density);
-  Monotonize(cell_i.velocity_x, cell_imo.velocity_x, cell_ipo.velocity_x, interface_L_iph.velocity_x,
-             interface_R_imh.velocity_x);
-  Monotonize(cell_i.velocity_y, cell_imo.velocity_y, cell_ipo.velocity_y, interface_L_iph.velocity_y,
-             interface_R_imh.velocity_y);
-  Monotonize(cell_i.velocity_z, cell_imo.velocity_z, cell_ipo.velocity_z, interface_L_iph.velocity_z,
-             interface_R_imh.velocity_z);
-  Monotonize(cell_i.pressure, cell_imo.pressure, cell_ipo.pressure, interface_L_iph.pressure, interface_R_imh.pressure);
-
-  // Compute the new slopes
-  del_m_i.density    = interface_L_iph.density - interface_R_imh.density;
-  del_m_i.velocity_x = interface_L_iph.velocity_x - interface_R_imh.velocity_x;
-  del_m_i.velocity_y = interface_L_iph.velocity_y - interface_R_imh.velocity_y;
-  del_m_i.velocity_z = interface_L_iph.velocity_z - interface_R_imh.velocity_z;
-  del_m_i.pressure   = interface_L_iph.pressure - interface_R_imh.pressure;
-
-#ifdef MHD
-  Monotonize(cell_i.magnetic_y, cell_imo.magnetic_y, cell_ipo.magnetic_y, interface_L_iph.magnetic_y,
-             interface_R_imh.magnetic_y);
-  Monotonize(cell_i.magnetic_z, cell_imo.magnetic_z, cell_ipo.velocity_z, interface_L_iph.velocity_z,
-             interface_R_imh.magnetic_z);
-
-  del_m_i.magnetic_y = interface_L_iph.magnetic_y - interface_R_imh.magnetic_y;
-  del_m_i.magnetic_z = interface_L_iph.magnetic_z - interface_R_imh.magnetic_z;
-#endif  // MHD
-
-#ifdef DE
-  Monotonize(cell_i.gas_energy, cell_imo.gas_energy, cell_ipo.gas_energy, interface_L_iph.gas_energy,
-             interface_R_imh.gas_energy);
-  del_m_i.gas_energy = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
-#endif  // DE
-
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    Monotonize(cell_i.scalar[i], cell_imo.scalar[i], cell_ipo.scalar[i], interface_L_iph.scalar[i],
-               interface_R_imh.scalar[i]);
-    del_m_i.scalar[i] = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
-  }
-#endif  // SCALAR
 }
 // =====================================================================================================================
 

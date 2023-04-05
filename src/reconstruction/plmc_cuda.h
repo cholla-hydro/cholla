@@ -327,20 +327,6 @@ PlmcPrimitive __device__ __host__ Calc_Interface(PlmcPrimitive const &primitive,
                                                  Real const &sign);
 
 /*!
- * \brief Monotonize the interface states and primitive slopes.
- *
- * \param[in] cell_i The state in the i cell
- * \param[in] cell_imo The state in the i-1 cell
- * \param[in] cell_ipo The state in the i+1 cell
- * \param[in,out] interface_L_iph The left interface state at i+1/2
- * \param[in,out] interface_R_imh The right interface state at i-1/2
- * \param[in,out] del_m_i The primitive slopes in the cell
- */
-void __device__ __host__ Monotonize_Primitive(PlmcPrimitive const &cell_i, PlmcPrimitive const &cell_imo,
-                                              PlmcPrimitive const &cell_ipo, PlmcPrimitive &interface_L_iph,
-                                              PlmcPrimitive &interface_R_imh, PlmcPrimitive &del_m_i);
-
-/*!
  * \brief Write the interface data to the appropriate arrays
  *
  * \param[in] interface_state The interface state to write
