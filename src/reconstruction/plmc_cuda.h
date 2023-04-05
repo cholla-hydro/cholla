@@ -7,6 +7,8 @@
 
 #include "../global/global.h"
 #include "../grid/grid_enum.h"
+#include "../utils/hydro_utilities.h"
+#include "../utils/mhd_utilities.h"
 
 /*! \fn __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real
  *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real
@@ -105,9 +107,102 @@ PlmcPrimitive __device__ __host__ Van_Leer_Slope(PlmcPrimitive const &left_slope
  * \param[in] gamma The adiabatic index
  * \return PlmcCharacteristic
  */
-PlmcCharacteristic __device__ Primitive_To_Characteristic(PlmcPrimitive const &primitive,
-                                                          PlmcPrimitive const &primitive_slope, Real const &sound_speed,
-                                                          Real const &sound_speed_squared, Real const &gamma);
+PlmcCharacteristic __device__ __inline__ Primitive_To_Characteristic(PlmcPrimitive const &primitive,
+                                                                     PlmcPrimitive const &primitive_slope,
+                                                                     Real const &sound_speed,
+                                                                     Real const &sound_speed_squared, Real const &gamma)
+{
+  PlmcCharacteristic output;
+
+#ifdef MHD
+  // This is taken from Stone et al. 2008, appendix A. Equation numbers will be quoted as relevant
+
+  // First, compute some basic quantities we will need later
+  Real const inverse_sqrt_density = rsqrt(primitive.density);
+
+  // Compute wave speeds and their squares
+  Real const magnetosonic_speed_fast = mhd::utils::fastMagnetosonicSpeed(
+      primitive.density, primitive.pressure, primitive.magnetic_x, primitive.magnetic_y, primitive.magnetic_z, gamma);
+  Real const magnetosonic_speed_slow = mhd::utils::slowMagnetosonicSpeed(
+      primitive.density, primitive.pressure, primitive.magnetic_x, primitive.magnetic_y, primitive.magnetic_z, gamma);
+
+  Real const magnetosonic_speed_fast_squared = magnetosonic_speed_fast * magnetosonic_speed_fast;
+  Real const magnetosonic_speed_slow_squared = magnetosonic_speed_slow * magnetosonic_speed_slow;
+
+  // Compute Alphas (equation A16)
+  Real alpha_fast, alpha_slow;
+  if (Real const denom = (magnetosonic_speed_fast_squared - magnetosonic_speed_slow_squared),
+      numerator_2      = (magnetosonic_speed_fast_squared - sound_speed_squared);
+      denom <= 0.0 or numerator_2 <= 0.0) {
+    alpha_fast = 1.0;
+    alpha_slow = 0.0;
+  } else if (Real const numerator_1 = (sound_speed_squared - magnetosonic_speed_slow_squared); numerator_1 <= 0.0) {
+    alpha_fast = 0.0;
+    alpha_slow = 1.0;
+  } else {
+    alpha_fast = sqrt(numerator_1 / denom);
+    alpha_slow = sqrt(numerator_2 / denom);
+  }
+
+  // Compute Betas (equation A17)
+  Real const beta_denom = rhypot(primitive.magnetic_y, primitive.magnetic_z);
+  Real const beta_y     = (beta_denom == 0) ? 0.0 : primitive.magnetic_y * beta_denom;
+  Real const beta_z     = (beta_denom == 0) ? 0.0 : primitive.magnetic_z * beta_denom;
+
+  // Compute Q(s) (equation A14)
+  Real const n_fs   = 0.5 / sound_speed_squared;  // equation A19
+  Real const sign   = copysign(1.0, primitive.magnetic_x);
+  Real const q_fast = sign * n_fs * alpha_fast * magnetosonic_speed_fast;
+  Real const q_slow = sign * n_fs * alpha_slow * magnetosonic_speed_slow;
+
+  // Compute A(s) (equation A15)
+  Real const a_prime_fast = 0.5 * alpha_fast / (sound_speed * sqrt(primitive.density));
+  Real const a_prime_slow = 0.5 * alpha_slow / (sound_speed * sqrt(primitive.density));
+
+  // Multiply the slopes by the left eigenvector matrix given in equation 18
+  output.a0 =
+      n_fs * alpha_fast *
+          (primitive_slope.pressure / primitive.density - magnetosonic_speed_fast * primitive_slope.velocity_x) +
+      q_slow * (beta_y * primitive_slope.velocity_y + beta_z * primitive_slope.velocity_z) +
+      a_prime_slow * (beta_y * primitive_slope.magnetic_y + beta_z * primitive_slope.magnetic_z);
+
+  output.a1 = 0.5 * (beta_y * (primitive_slope.magnetic_z * sign * inverse_sqrt_density + primitive_slope.velocity_z) -
+                     beta_z * (primitive_slope.magnetic_y * sign * inverse_sqrt_density + primitive_slope.velocity_y));
+
+  output.a2 =
+      n_fs * alpha_slow *
+          (primitive_slope.pressure / primitive.density - magnetosonic_speed_slow * primitive_slope.velocity_x) -
+      q_fast * (beta_y * primitive_slope.velocity_y + beta_z * primitive_slope.velocity_z) -
+      a_prime_fast * (beta_y * primitive_slope.magnetic_y + beta_z * primitive_slope.magnetic_z);
+
+  output.a3 = primitive_slope.density - primitive_slope.pressure / sound_speed_squared;
+
+  output.a4 =
+      n_fs * alpha_slow *
+          (primitive_slope.pressure / primitive.density + magnetosonic_speed_slow * primitive_slope.velocity_x) +
+      q_fast * (beta_y * primitive_slope.velocity_y + beta_z * primitive_slope.velocity_z) -
+      a_prime_fast * (beta_y * primitive_slope.magnetic_y + beta_z * primitive_slope.magnetic_z);
+  output.a5 = 0.5 * (beta_y * (primitive_slope.magnetic_z * sign * inverse_sqrt_density - primitive_slope.velocity_z) -
+                     beta_z * (primitive_slope.magnetic_y * sign * inverse_sqrt_density - primitive_slope.velocity_y));
+
+  output.a6 =
+      n_fs * alpha_fast *
+          (primitive_slope.pressure / primitive.density + magnetosonic_speed_fast * primitive_slope.velocity_x) -
+      q_slow * (beta_y * primitive_slope.velocity_y + beta_z * primitive_slope.velocity_z) +
+      a_prime_slow * (beta_y * primitive_slope.magnetic_y + beta_z * primitive_slope.magnetic_z);
+
+#else   // not MHD
+  output.a0 = -primitive.density * primitive_slope.velocity_x / (2.0 * sound_speed) +
+              primitive_slope.pressure / (2.0 * sound_speed_squared);
+  output.a1 = primitive_slope.density - primitive_slope.pressure / (sound_speed_squared);
+  output.a2 = primitive_slope.velocity_y;
+  output.a3 = primitive_slope.velocity_z;
+  output.a4 = primitive.density * primitive_slope.velocity_x / (2.0 * sound_speed) +
+              primitive_slope.pressure / (2.0 * sound_speed_squared);
+#endif  // MHD
+
+  return output;
+}
 
 /*!
  * \brief Project from the characteristic variables slopes to the primitive variables slopes. Stone Eqn 39. Use the
@@ -120,9 +215,82 @@ PlmcCharacteristic __device__ Primitive_To_Characteristic(PlmcPrimitive const &p
  * \param[in] gamma The adiabatic index
  * \param[out] output The primitive slopes
  */
-void __device__ Characteristic_To_Primitive(PlmcPrimitive const &primitive,
-                                            PlmcCharacteristic const &characteristic_slope, Real const &sound_speed,
-                                            Real const &sound_speed_squared, Real const &gamma, PlmcPrimitive &output);
+void __device__ __inline__ Characteristic_To_Primitive(PlmcPrimitive const &primitive,
+                                                       PlmcCharacteristic const &characteristic_slope,
+                                                       Real const &sound_speed, Real const &sound_speed_squared,
+                                                       Real const &gamma, PlmcPrimitive &output)
+{
+#ifdef MHD
+  // This is taken from Stone et al. 2008, appendix A. Equation numbers will be quoted as relevant
+
+  // Compute wave speeds and their squares
+  Real const magnetosonic_speed_fast = mhd::utils::fastMagnetosonicSpeed(
+      primitive.density, primitive.pressure, primitive.magnetic_x, primitive.magnetic_y, primitive.magnetic_z, gamma);
+  Real const magnetosonic_speed_slow = mhd::utils::slowMagnetosonicSpeed(
+      primitive.density, primitive.pressure, primitive.magnetic_x, primitive.magnetic_y, primitive.magnetic_z, gamma);
+
+  Real const magnetosonic_speed_fast_squared = magnetosonic_speed_fast * magnetosonic_speed_fast;
+  Real const magnetosonic_speed_slow_squared = magnetosonic_speed_slow * magnetosonic_speed_slow;
+
+  // Compute Alphas (equation A16)
+  Real alpha_fast, alpha_slow;
+  if (Real const denom = (magnetosonic_speed_fast_squared - magnetosonic_speed_slow_squared),
+      numerator_2      = (magnetosonic_speed_fast_squared - sound_speed_squared);
+      denom <= 0.0 or numerator_2 <= 0.0) {
+    alpha_fast = 1.0;
+    alpha_slow = 0.0;
+  } else if (Real const numerator_1 = (sound_speed_squared - magnetosonic_speed_slow_squared); numerator_1 <= 0.0) {
+    alpha_fast = 0.0;
+    alpha_slow = 1.0;
+  } else {
+    alpha_fast = sqrt(numerator_1 / denom);
+    alpha_slow = sqrt(numerator_2 / denom);
+  }
+
+  // Compute Betas (equation A17)
+  Real const beta_denom = rhypot(primitive.magnetic_y, primitive.magnetic_z);
+  Real const beta_y     = (beta_denom == 0) ? 0.0 : primitive.magnetic_y * beta_denom;
+  Real const beta_z     = (beta_denom == 0) ? 0.0 : primitive.magnetic_z * beta_denom;
+
+  // Compute Q(s) (equation A14)
+  Real const sign   = copysign(1.0, primitive.magnetic_x);
+  Real const q_fast = sign * alpha_fast * magnetosonic_speed_fast;
+  Real const q_slow = sign * alpha_slow * magnetosonic_speed_slow;
+
+  // Compute A(s) (equation A15)
+  Real const a_prime_fast = alpha_fast * sound_speed * sqrt(primitive.density);
+  Real const a_prime_slow = alpha_slow * sound_speed * sqrt(primitive.density);
+
+  // Multiply the slopes by the right eigenvector matrix given in equation 12
+  output.density = primitive.density * (alpha_fast * (characteristic_slope.a0 + characteristic_slope.a6) +
+                                        alpha_slow * (characteristic_slope.a2 + characteristic_slope.a4)) +
+                   characteristic_slope.a3;
+  output.velocity_x = magnetosonic_speed_fast * alpha_fast * (characteristic_slope.a6 - characteristic_slope.a0) +
+                      magnetosonic_speed_slow * alpha_slow * (characteristic_slope.a4 - characteristic_slope.a2);
+  output.velocity_y = beta_y * (q_slow * (characteristic_slope.a0 - characteristic_slope.a6) +
+                                q_fast * (characteristic_slope.a4 - characteristic_slope.a2)) +
+                      beta_z * (characteristic_slope.a5 - characteristic_slope.a1);
+  output.velocity_z = beta_z * (q_slow * (characteristic_slope.a0 - characteristic_slope.a6) +
+                                q_fast * (characteristic_slope.a4 - characteristic_slope.a2)) +
+                      beta_y * (characteristic_slope.a1 - characteristic_slope.a5);
+  output.pressure = primitive.density * sound_speed_squared *
+                    (alpha_fast * (characteristic_slope.a0 + characteristic_slope.a6) +
+                     alpha_slow * (characteristic_slope.a2 + characteristic_slope.a4));
+  output.magnetic_y = beta_y * (a_prime_slow * (characteristic_slope.a0 + characteristic_slope.a6) -
+                                a_prime_fast * (characteristic_slope.a2 + characteristic_slope.a4)) -
+                      beta_z * sign * sqrt(primitive.density) * (characteristic_slope.a5 + characteristic_slope.a1);
+  output.magnetic_z = beta_z * (a_prime_slow * (characteristic_slope.a0 + characteristic_slope.a6) -
+                                a_prime_fast * (characteristic_slope.a2 + characteristic_slope.a4)) +
+                      beta_y * sign * sqrt(primitive.density) * (characteristic_slope.a5 + characteristic_slope.a1);
+
+#else   // not MHD
+  output.density    = characteristic_slope.a0 + characteristic_slope.a1 + characteristic_slope.a4;
+  output.velocity_x = sound_speed / primitive.density * (characteristic_slope.a4 - characteristic_slope.a0);
+  output.velocity_y = characteristic_slope.a2;
+  output.velocity_z = characteristic_slope.a3;
+  output.pressure   = sound_speed_squared * (characteristic_slope.a0 + characteristic_slope.a4);
+#endif  // MHD
+}
 
 /*!
  * \brief Monotonize the characteristic slopes and project back into the primitive slopes

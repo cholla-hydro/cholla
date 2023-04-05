@@ -19,6 +19,7 @@
 #include "../io/io.h"
 #include "../reconstruction/plmc_cuda.h"
 #include "../utils/DeviceVector.h"
+#include "../utils/hydro_utilities.h"
 #include "../utils/testing_utilities.h"
 
 TEST(tHYDROPlmcReconstructor, CorrectInputExpectCorrectOutput)
@@ -266,4 +267,85 @@ TEST(tMHDPlmcReconstructor, CorrectInputExpectCorrectOutput)
           "right interface at i=" + std::to_string(i) + ", in direction " + std::to_string(direction));
     }
   }
+}
+
+namespace
+{
+__global__ void test_prim_2_char(plmc_utils::PlmcPrimitive const primitive,
+                                 plmc_utils::PlmcPrimitive const primitive_slope, Real const gamma,
+                                 Real const sound_speed, Real const sound_speed_squared,
+                                 plmc_utils::PlmcCharacteristic *characteristic_slope)
+{
+  *characteristic_slope =
+      plmc_utils::Primitive_To_Characteristic(primitive, primitive_slope, sound_speed, sound_speed_squared, gamma);
+}
+
+__global__ void test_char_2_prim(plmc_utils::PlmcPrimitive const primitive,
+                                 plmc_utils::PlmcCharacteristic const characteristic_slope, Real const gamma,
+                                 Real const sound_speed, Real const sound_speed_squared,
+                                 plmc_utils::PlmcPrimitive *primitive_slope)
+{
+  plmc_utils::Characteristic_To_Primitive(primitive, characteristic_slope, sound_speed, sound_speed_squared, gamma,
+                                          *primitive_slope);
+}
+}  // namespace
+
+TEST(tMHDPlmcPrimitive2Characteristic, CorrectInputExpectCorrectOutput)
+{
+  // Test parameters
+  Real const &gamma = 5. / 3.;
+  plmc_utils::PlmcPrimitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
+  plmc_utils::PlmcPrimitive const primitive_slope{9, 10, 11, 12, 13, 14, 15, 16};
+  Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
+  Real const sound_speed_squared = sound_speed * sound_speed;
+
+  // Run test
+  cuda_utilities::DeviceVector<plmc_utils::PlmcCharacteristic> dev_results(1);
+  hipLaunchKernelGGL(test_prim_2_char, 1, 1, 0, 0, primitive, primitive_slope, gamma, sound_speed, sound_speed_squared,
+                     dev_results.data());
+  CudaCheckError();
+  cudaDeviceSynchronize();
+  plmc_utils::PlmcCharacteristic const host_results = dev_results.at(0);
+
+  // Check results
+  plmc_utils::PlmcCharacteristic const fiducial_results{
+      3.67609032478613384e+00, -5.64432521030159506e-01, -3.31429408151064075e+00, 7.44000000000000039e+00,
+      3.29052143725318791e+00, -1.88144173676719539e-01, 4.07536568422372625e+00};
+  testingUtilities::checkResults(fiducial_results.a0, host_results.a0, "a0");
+  testingUtilities::checkResults(fiducial_results.a1, host_results.a1, "a1");
+  testingUtilities::checkResults(fiducial_results.a2, host_results.a2, "a2");
+  testingUtilities::checkResults(fiducial_results.a3, host_results.a3, "a3");
+  testingUtilities::checkResults(fiducial_results.a4, host_results.a4, "a4");
+  testingUtilities::checkResults(fiducial_results.a5, host_results.a5, "a5");
+  testingUtilities::checkResults(fiducial_results.a6, host_results.a6, "a6");
+}
+TEST(tMHDPlmcCharacteristic2Primitive, CorrectInputExpectCorrectOutput)
+{
+  // Test parameters
+  Real const &gamma = 5. / 3.;
+  plmc_utils::PlmcPrimitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
+  plmc_utils::PlmcCharacteristic const characteristic_slope{17, 18, 19, 20, 21, 22, 23};
+  Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
+  Real const sound_speed_squared = sound_speed * sound_speed;
+
+  // Run test
+  cuda_utilities::DeviceVector<plmc_utils::PlmcPrimitive> dev_results(1);
+  hipLaunchKernelGGL(test_char_2_prim, 1, 1, 0, 0, primitive, characteristic_slope, gamma, sound_speed,
+                     sound_speed_squared, dev_results.data());
+  CudaCheckError();
+  cudaDeviceSynchronize();
+  plmc_utils::PlmcPrimitive const host_results = dev_results.at(0);
+
+  // Check results
+  plmc_utils::PlmcPrimitive const fiducial_results{6.63368382259080249e+01,  1.74361246693441956e+01,
+                                                   -5.55049640164519076e-01, -6.70871148175067944e+00,
+                                                   3.86140318549233655e+02,  -999,
+                                                   3.15793270038508922e+01,  9.68343497914561624e+01};
+  testingUtilities::checkResults(fiducial_results.density, host_results.density, "density");
+  testingUtilities::checkResults(fiducial_results.velocity_x, host_results.velocity_x, "velocity_x");
+  testingUtilities::checkResults(fiducial_results.velocity_y, host_results.velocity_y, "velocity_y");
+  testingUtilities::checkResults(fiducial_results.velocity_z, host_results.velocity_z, "velocity_z");
+  testingUtilities::checkResults(fiducial_results.pressure, host_results.pressure, "pressure");
+  testingUtilities::checkResults(fiducial_results.magnetic_y, host_results.magnetic_y, "magnetic_y");
+  testingUtilities::checkResults(fiducial_results.magnetic_z, host_results.magnetic_z, "magnetic_z");
 }
