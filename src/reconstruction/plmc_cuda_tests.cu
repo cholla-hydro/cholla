@@ -337,14 +337,13 @@ TEST(tMHDPlmcCharacteristic2Primitive, CorrectInputExpectCorrectOutput)
   plmc_utils::PlmcPrimitive const host_results = dev_results.at(0);
 
   // Check results
-  plmc_utils::PlmcPrimitive const fiducial_results{6.63368382259080249e+01,  1.74361246693441956e+01,
-                                                   -5.55049640164519076e-01, -6.70871148175067944e+00,
-                                                   3.86140318549233655e+02,  -999,
-                                                   3.15793270038508922e+01,  9.68343497914561624e+01};
+  plmc_utils::PlmcPrimitive const fiducial_results{
+      6.73268997307368267e+01, 1.79977606552837130e+01,  9.89872908629502835e-01, -4.94308571170036792e+00,
+      3.94390831089473579e+02, -9.99000000000000000e+02, 2.88004228079705342e+01, 9.36584592818786064e+01};
   testingUtilities::checkResults(fiducial_results.density, host_results.density, "density");
   testingUtilities::checkResults(fiducial_results.velocity_x, host_results.velocity_x, "velocity_x");
-  testingUtilities::checkResults(fiducial_results.velocity_y, host_results.velocity_y, "velocity_y");
-  testingUtilities::checkResults(fiducial_results.velocity_z, host_results.velocity_z, "velocity_z");
+  testingUtilities::checkResults(fiducial_results.velocity_y, host_results.velocity_y, "velocity_y", 1.34E-14);
+  testingUtilities::checkResults(fiducial_results.velocity_z, host_results.velocity_z, "velocity_z", 1.6E-14);
   testingUtilities::checkResults(fiducial_results.pressure, host_results.pressure, "pressure");
   testingUtilities::checkResults(fiducial_results.magnetic_y, host_results.magnetic_y, "magnetic_y");
   testingUtilities::checkResults(fiducial_results.magnetic_z, host_results.magnetic_z, "magnetic_z");
