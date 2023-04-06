@@ -315,14 +315,6 @@ class Grid3D
   Analysis_Module Analysis;
 #endif
 
-#ifdef SUPERNOVA  // TODO refactor this into Analysis module
-  Real countSN;
-  Real countResolved;
-  Real countUnresolved;
-  Real totalEnergy;
-  Real totalMomentum;
-  Real totalUnresEnergy;
-#endif
   struct Conserved {
     /*! pointer to conserved variable array on the host */
     Real *host;

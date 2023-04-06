@@ -699,7 +699,9 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   // radius unsigned long int N = 13; //(long int)(6.5e6 * 0.9272485558395908);
   // // 15kpc radius
   Real total_mass               = 0;
-  Real upper_limit_cluster_mass = 1e7;
+  Real upper_limit_cluster_mass = 8e7;
+  Real SFR                      = 1e3;
+  Real t_cluster_creation       = -4e4;
   long lost_particles           = 0;
   part_int_t id                 = -1;
   while (total_mass < upper_limit_cluster_mass) {
@@ -715,6 +717,12 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
     x   = R * cos(phi);
     y   = R * sin(phi);
     z   = zDist(generator);
+
+    // set creation time of cluster on how long
+    // it would take star formation to add that
+    // much mass
+    t_cluster_creation += cluster_mass/SFR;
+    chprintf("cluster %d, age %.4e, mass %.4e\n", id, t_cluster_creation, cluster_mass);
 
     if (x < G.xMin || x >= G.xMax) continue;
     if (y < G.yMin || y >= G.yMax) continue;
@@ -738,7 +746,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
     temp_grav_y.push_back(0.0);
     temp_grav_z.push_back(0.0);
     temp_mass.push_back(cluster_mass);
-    temp_age.push_back(0.0);
+    temp_age.push_back(t_cluster_creation);
     temp_ids.push_back(id);
   }
 

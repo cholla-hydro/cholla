@@ -354,9 +354,13 @@ void parse_param(char *name, char *value, struct parameters *parms)
   else if (strcmp(name, "prng_seed") == 0)
     parms->prng_seed = atoi(value);
 #endif  // PARTICLES
-#ifdef SUPERNOVA
+#if defined(FEEDBACK) && !defined(NO_SN_FEEDBACK)
   else if (strcmp(name, "snr_filename") == 0)
     strncpy(parms->snr_filename, value, MAXLEN);
+#endif
+#if defined(FEEDBACK) && !defined(NO_WIND_FEEDBACK)
+  else if (strcmp(name, "sw_filename") == 0)
+    strncpy(parms->sw_filename, value, MAXLEN);
 #endif
 #ifdef ROTATED_PROJECTION
   else if (strcmp(name, "nxr") == 0)

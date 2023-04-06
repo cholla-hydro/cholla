@@ -48,6 +48,7 @@ typedef double Real;
 #define LENGTH_UNIT         3.08567758e21  // 1 kpc in cm
 #define MASS_UNIT           1.98847e33     // 1 solar mass in grams
 #define DENSITY_UNIT        (MASS_UNIT / (LENGTH_UNIT * LENGTH_UNIT * LENGTH_UNIT))
+#define FORCE_UNIT          (MASS_UNIT * LENGTH_UNIT / TIME_UNIT / TIME_UNIT)
 #define VELOCITY_UNIT       (LENGTH_UNIT / TIME_UNIT)
 #define ENERGY_UNIT         (DENSITY_UNIT * VELOCITY_UNIT * VELOCITY_UNIT)
 #define PRESSURE_UNIT       (DENSITY_UNIT * VELOCITY_UNIT * VELOCITY_UNIT)
@@ -271,8 +272,11 @@ struct parameters {
   // machine dependent seed will be generated.
   std::uint_fast64_t prng_seed = 0;
 #endif  // PARTICLES
-#ifdef SUPERNOVA
+#if defined(FEEDBACK) && !defined(NO_SN_FEEDBACK)
   char snr_filename[MAXLEN];
+#endif
+#if defined(FEEDBACK) && !defined(NO_WIND_FEEDBACK)
+  char sw_filename[MAXLEN];
 #endif
 #ifdef ROTATED_PROJECTION
   int nxr;

@@ -88,7 +88,7 @@ void Grav3D::Read_Restart_HDF5(struct parameters* P, int nfile)
 {
 }
 
-void Grav3D::Write_Restart_HDF5(struct parameters P, int nfile)
+void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile)
 {
 }
 #endif

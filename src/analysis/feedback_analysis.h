@@ -21,6 +21,8 @@ class FeedbackAnalysis
   Real totalEnergy{0};
   Real totalMomentum{0};
   Real totalUnresEnergy{0};
+  Real totalWindMomentum{0};
+  Real totalWindEnergy{0};
 
   FeedbackAnalysis(Grid3D& G);
   ~FeedbackAnalysis();
