@@ -144,10 +144,11 @@ PlmcCharacteristic __device__ __inline__ Primitive_To_Characteristic(PlmcPrimiti
     alpha_slow = sqrt(numerator_2 / denom);
   }
 
-  // Compute Betas (equation A17)
+  // Compute Betas (equation A17). Note that rhypot can return an inf if By and Bz are both zero, the isfinite check
+  // handles that case
   Real const beta_denom = rhypot(primitive.magnetic_y, primitive.magnetic_z);
-  Real const beta_y     = (beta_denom == 0) ? 0.0 : primitive.magnetic_y * beta_denom;
-  Real const beta_z     = (beta_denom == 0) ? 0.0 : primitive.magnetic_z * beta_denom;
+  Real const beta_y     = (isfinite(beta_denom)) ? primitive.magnetic_y * beta_denom : 0.0;
+  Real const beta_z     = (isfinite(beta_denom)) ? primitive.magnetic_z * beta_denom : 0.0;
 
   // Compute Q(s) (equation A14)
   Real const n_fs   = 0.5 / sound_speed_squared;  // equation A19
@@ -247,10 +248,11 @@ void __device__ __inline__ Characteristic_To_Primitive(PlmcPrimitive const &prim
     alpha_slow = sqrt(numerator_2 / denom);
   }
 
-  // Compute Betas (equation A17)
+  // Compute Betas (equation A17). Note that rhypot can return an inf if By and Bz are both zero, the isfinite check
+  // handles that case
   Real const beta_denom = rhypot(primitive.magnetic_y, primitive.magnetic_z);
-  Real const beta_y     = (beta_denom == 0) ? 0.0 : primitive.magnetic_y * beta_denom;
-  Real const beta_z     = (beta_denom == 0) ? 0.0 : primitive.magnetic_z * beta_denom;
+  Real const beta_y     = (isfinite(beta_denom)) ? primitive.magnetic_y * beta_denom : 0.0;
+  Real const beta_z     = (isfinite(beta_denom)) ? primitive.magnetic_z * beta_denom : 0.0;
 
   // Compute Q(s) (equation A14)
   Real const sign   = copysign(1.0, primitive.magnetic_x);
