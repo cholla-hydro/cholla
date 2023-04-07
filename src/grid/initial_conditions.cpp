@@ -1246,12 +1246,12 @@ void Grid3D::Clouds()
   Real vx_bg, vx_cl;    // background and cloud velocity
   Real vy_bg, vy_cl;
   Real vz_bg, vz_cl;
-  Real T_bg, T_cl;       // background and cloud temperature
-  Real p_bg, p_cl;       // background and cloud pressure
-  Real mu   = 0.6;       // mean atomic weight
-  constexpr int N_cl  = 1;         // number of clouds
-  Real R_cl = 2.5;       // cloud radius in code units (kpc)
-  Real cl_pos[N_cl][3];  // array of cloud positions
+  Real T_bg, T_cl;           // background and cloud temperature
+  Real p_bg, p_cl;           // background and cloud pressure
+  Real mu            = 0.6;  // mean atomic weight
+  constexpr int N_cl = 1;    // number of clouds
+  Real R_cl          = 2.5;  // cloud radius in code units (kpc)
+  Real cl_pos[N_cl][3];      // array of cloud positions
   Real r;
 
   // Multiple Cloud Setup
@@ -1851,7 +1851,6 @@ void Grid3D::Iliev6(const parameters &P)
   chexit(-1);
 #endif  // defined(RT) && defined(CHEMISTRY_GPU)
 }
-
 
 #ifdef MHD
 void Grid3D::Circularly_Polarized_Alfven_Wave(struct parameters const P)

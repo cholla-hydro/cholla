@@ -102,7 +102,7 @@ __device__ constexpr To bit_cast(const From& from) noexcept
 {
   // TODO: replace with `std::bitcast` once we adopt C++20 or libcu++ adds it
   To to{};
-  static_assert(sizeof(To) == sizeof(From),"Incompatible sizes of To nd From arguments.\n");
+  static_assert(sizeof(To) == sizeof(From), "Incompatible sizes of To nd From arguments.\n");
   memcpy(&to, &from, sizeof(To));
   return to;
 }

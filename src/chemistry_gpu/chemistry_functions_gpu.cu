@@ -1,20 +1,19 @@
 #ifdef CHEMISTRY_GPU
 
-#include "chemistry_gpu.h"
-#include "../hydro/hydro_cuda.h"
-#include "../global/global_cuda.h"
-#include "../io/io.h"
-#include "rates.cuh"
-#include "rates_Katz95.cuh"
+  #include "../global/global_cuda.h"
+  #include "../hydro/hydro_cuda.h"
+  #include "../io/io.h"
+  #include "../radiation/alt/static_table_gpu.cuh"
+  #include "chemistry_gpu.h"
+  #include "rates.cuh"
+  #include "rates_Katz95.cuh"
 
-#include "../radiation/alt/static_table_gpu.cuh"
+  #define eV_to_K 1.160451812e4
+  #define K_to_eV 8.617333263e-5
+  #define n_min   1e-20
+  #define tiny    1e-20
 
-#define eV_to_K 1.160451812e4
-#define K_to_eV 8.617333263e-5
-#define n_min 1e-20
-#define tiny  1e-20
-
-#define TPB_CHEM 256
+  #define TPB_CHEM 256
 
 void Chem_GPU::Allocate_Array_GPU_float(float **array_dev, int size)
 {
@@ -382,16 +381,19 @@ __device__ Real Get_Chemistry_dt(Thermal_State &TS, Chemistry_Header &Chem_H, Re
   #ifdef TEMPERATURE_FLOOR
   if (TS.get_temperature(Chem_H.gamma) < TEMP_FLOOR) TS.U = TS.compute_U(TEMP_FLOOR, Chem_H.gamma);
   #endif
-  
-  energy = fmax( TS.U * TS.d, tiny );
-  //dt = fmin( fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot )  ); NG electrons should not set the time-step, they are a derived quantity
-  dt = fabs( 0.1 * TS.d_HI / HI_dot );
-  dt = fmin( fabs( 0.1 * energy / U_dot ), dt  );
-  dt = fmin( 0.5 * dt_hydro, dt );
-  dt = fmin( dt_hydro - t_chem, dt );
-  
-  if ( n_iter == Chem_H.max_iter-1 ){
-    //printf("##### Chem_GPU: dt_hydro: %e   t_chem: %e   dens: %e   temp: %e  GE: %e  U_dot: %e   dt_HI: %e   dt_e: %e   dt_U: %e \n", dt_hydro,  t_chem, TS.d, TS.get_temperature(Chem_H.gamma), energy, U_dot, fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot ), fabs( 0.1 * TS.U * TS.d / U_dot )   ) ;
+
+  energy = fmax(TS.U * TS.d, tiny);
+  // dt = fmin( fabs( 0.1 * TS.d_HI / HI_dot ), fabs( 0.1 * TS.d_e / e_dot )  ); NG electrons should not set the
+  // time-step, they are a derived quantity
+  dt = fabs(0.1 * TS.d_HI / HI_dot);
+  dt = fmin(fabs(0.1 * energy / U_dot), dt);
+  dt = fmin(0.5 * dt_hydro, dt);
+  dt = fmin(dt_hydro - t_chem, dt);
+
+  if (n_iter == Chem_H.max_iter - 1) {
+    // printf("##### Chem_GPU: dt_hydro: %e   t_chem: %e   dens: %e   temp: %e  GE: %e  U_dot: %e   dt_HI: %e   dt_e: %e
+    // dt_U: %e \n", dt_hydro,  t_chem, TS.d, TS.get_temperature(Chem_H.gamma), energy, U_dot, fabs( 0.1 * TS.d_HI /
+    // HI_dot ), fabs( 0.1 * TS.d_e / e_dot ), fabs( 0.1 * TS.U * TS.d / U_dot )   ) ;
   }
 
   if (print > 0) {
@@ -521,16 +523,16 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
   #endif
 
     if (xid == n_ghost && yid == n_ghost && zid == n_ghost) {
-      ///print = 2;
+      /// print = 2;
     }
 
     // Convert to cgs units
-    current_a = 1 / ( Chem_H.current_z + 1);
-    a2 = current_a * current_a;
-    a3 = a2 * current_a;  
-    d  *= density_conv / a3;
-    GE *= energy_conv  / a2; 
-    //dt_hydro = dt_hydro / Chem_H.time_units; NG 221126: this is a bug, integration is in code units
+    current_a = 1 / (Chem_H.current_z + 1);
+    a2        = current_a * current_a;
+    a3        = a2 * current_a;
+    d *= density_conv / a3;
+    GE *= energy_conv / a2;
+    // dt_hydro = dt_hydro / Chem_H.time_units; NG 221126: this is a bug, integration is in code units
 
   #ifdef COSMOLOGY
     dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 *
@@ -828,21 +830,15 @@ __device__ Real recomb_HII_rate_case_A(Real T, Real units)
 // k2_rate Case B
 __device__ Real recomb_HII_rate_case_B(Real T, Real units)
 {
-    if (T < 1.0e9) {
-        auto ret = 4.881357e-6*pow(T, -1.5) \
-            * pow((1.0 + 1.14813e2*pow(T, -0.407)), -2.242);
-        return ret/units;
-    } else {
-        return tiny;
-    }  
+  if (T < 1.0e9) {
+    auto ret = 4.881357e-6 * pow(T, -1.5) * pow((1.0 + 1.14813e2 * pow(T, -0.407)), -2.242);
+    return ret / units;
+  } else {
+    return tiny;
+  }
 }
 
-
-__device__ Real recomb_HII_rate_case_Iliev1( Real T, Real units )
-{
-    return 2.59e-13 / units;
-}
-
+__device__ Real recomb_HII_rate_case_Iliev1(Real T, Real units) { return 2.59e-13 / units; }
 
 // Calculation of k5 (HeII + e --> HeIII + 2e)
 //  k5_rate
