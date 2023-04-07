@@ -86,7 +86,7 @@ int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, in
 
   hipLaunchKernelGGL(Load_RT_Buffer_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j, nx_rt,
                      ny_rt, nz_rt, n_ghost_transfer, n_ghost_rt, n_freq, rtFields, buffer);
-  CHECK(cudaDeviceSynchronize());
+  CHECK(cudaDeviceSynchronize());  // Loading Buffer needs to synchronize so it is complete before MPI sends are called
 
   // printf( "Loaded RT Fields Buffer: Dir %d  side: %d \n", direction, side );
   return size_buffer * 2 * n_freq;
@@ -130,6 +130,7 @@ void Unload_RT_Fields_From_Buffer(int direction, int side, int nx, int ny, int n
 
   hipLaunchKernelGGL(Unload_RT_Buffer_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j,
                      nx_rt, ny_rt, nz_rt, n_ghost_transfer, n_ghost_rt, n_freq, rtFields, buffer);
+  // synchronize not needed here because the next MPI call will be preceded by a load kernel which will synchronize
 }
 
 __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz,
@@ -159,7 +160,7 @@ void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz,
   size = n_ghost * n_i * n_j;
 
   // set values for GPU kernels
-  int ngrid = (size - 1) / TPB_RT;
+  int ngrid = (size - 1) / TPB_RT + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -168,6 +169,7 @@ void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz,
   // Copy the kernel to set the boundary cells (non MPI)
   hipLaunchKernelGGL(Set_RT_Boundaries_Periodic_Kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, n_i, n_j, nx_g,
                      ny_g, nz_g, n_ghost, n_freq, rtFields);
+  // synchronize not needed here because the next MPI call will be preceded by a load kernel which will synchronize
 }
 
 // Function to launch the kernel to calculate absorption coefficients
@@ -175,7 +177,7 @@ void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSec
                                        const Real* __restrict__ dens, Real* __restrict__ abc);
 void Rad3D::Calc_Absorption(Real* dev_scalar)
 {
-  int ngrid = (grid.n_cells + TPB_RT - 1) / TPB_RT;
+  int ngrid = (grid.n_cells - 1) / TPB_RT + 1;
 
   // set values for GPU kernels
   // number of blocks per 1D grid
@@ -230,7 +232,6 @@ void Rad3D::OTVETIteration(void)
     hipLaunchKernelGGL(OTVETIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
                        grid.dx, lastIteration, rsFarFactor, rtFields.dev_rs, rtFields.dev_et, rfOT, rfNearOld, rfFarOld,
                        rtFields.dev_abc + freq * grid.n_cells, rfNearNew, rfFarNew, (freq == 0 ? 1 : 0));
-
     CudaSafeCall(cudaMemcpyAsync(rfNearOld, rfNearNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
     CudaSafeCall(cudaMemcpyAsync(rfFarOld, rfFarNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
   }

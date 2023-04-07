@@ -554,6 +554,12 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
     xbsize = H->n_fields * H->n_ghost * (H->ny - 2 * H->n_ghost) * (H->nz - 2 * H->n_ghost);
     ybsize = H->n_fields * H->n_ghost * (H->nx) * (H->nz - 2 * H->n_ghost);
     zbsize = H->n_fields * H->n_ghost * (H->nx) * (H->ny);
+  #ifdef RT
+    // Assuming n_freq = 3
+    xbsize = std::max(xbsize, 12 * H->n_ghost * H->ny * H->nz);
+    ybsize = std::max(ybsize, 12 * H->n_ghost * H->nx * H->nz);
+    zbsize = std::max(zbsize, 12 * H->n_ghost * H->nx * H->ny);
+  #endif
   }
 
   x_buffer_length = xbsize;
