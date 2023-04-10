@@ -32,6 +32,7 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define CUFFT_Z2Z     HIPFFT_Z2Z
 
   #define cudaDeviceSynchronize              hipDeviceSynchronize
+  #define cudaStreamSynchronize              hipStreamSynchronize
   #define cudaError                          hipError_t
   #define cudaError_t                        hipError_t
   #define cudaErrorInsufficientDriver        hipErrorInsufficientDriver
