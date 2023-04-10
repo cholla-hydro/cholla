@@ -269,6 +269,7 @@ TEST(tMHDPlmcReconstructor, CorrectInputExpectCorrectOutput)
   }
 }
 
+#ifdef MHD
 namespace
 {
 __global__ void test_prim_2_char(plmc_utils::PlmcPrimitive const primitive,
@@ -290,7 +291,6 @@ __global__ void test_char_2_prim(plmc_utils::PlmcPrimitive const primitive,
 }
 }  // namespace
 
-#ifdef MHD
 TEST(tMHDPlmcPrimitive2Characteristic, CorrectInputExpectCorrectOutput)
 {
   // Test parameters

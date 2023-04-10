@@ -421,7 +421,7 @@ __device__ __host__ Real mhdInverseCrossingTime(Real const &E, Real const &d, Re
                                                 Real const &gamma)
 {
   // Compute the gas pressure and fast magnetosonic speed
-  Real gasP = hydro_utilities::Calc_Pressure_Conserved(E, d, vx * d, vy * d, vz * d, gamma, avgBx, avgBy, avgBz);
+  Real gasP = hydro_utilities::Calc_Pressure_Primitive(E, d, vx, vy, vz, gamma, avgBx, avgBy, avgBz);
   Real cf   = mhd::utils::fastMagnetosonicSpeed(d, gasP, avgBx, avgBy, avgBz, gamma);
 
   // Find maximum inverse crossing time in the cell (i.e. minimum crossing time)
@@ -787,9 +787,9 @@ __global__ void Partial_Update_Advected_Internal_Energy_3D(Real *dev_conserved, 
     E_kin = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(d, vx, vy, vz);
     #ifdef MHD
     // Add the magnetic energy
-    auto [centeredBx, centeredBy, centeredBz] =
+    auto magnetic_centered =
         mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny);
-    E_kin += mhd::utils::computeMagneticEnergy(magX, magY, magZ);
+    E_kin += mhd::utils::computeMagneticEnergy(magnetic_centered.x, magnetic_centered.y, magnetic_centered.z);
     #endif  // MHD
     P = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, GE, gamma);
     P = fmax(P, (Real)TINY_NUMBER);

@@ -16,7 +16,6 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../grid/grid3D.h"
-#include "../riemann_solvers/hlld_cuda.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
 
