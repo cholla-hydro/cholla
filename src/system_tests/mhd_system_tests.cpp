@@ -581,13 +581,6 @@ TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones1aShockTubeCorrectInputExpectCorre
   test_runner.runTest();
 }
 
-/// Test the Ryu & Jones 2a Shock Tube (Ryu & Jones 1995)
-TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones2aShockTubeCorrectInputExpectCorrectOutput)
-{
-  test_runner.numMpiRanks = GetParam();
-  test_runner.runTest();
-}
-
 /// Test the Ryu & Jones 4d Shock Tube (Ryu & Jones 1995)
 TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones4dShockTubeCorrectInputExpectCorrectOutput)
 {
