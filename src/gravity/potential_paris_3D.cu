@@ -36,7 +36,9 @@ printDiff(const Real *p, const Real *q, const int ng, const int nx, const int ny
   chprintf(" Poisson-Solver Diff: L1 %g L2 %g Linf %g\n", sums[2] / sums[0], sqrt(sums[3] / sums[1]),
            maxs[1] / maxs[0]);
   fflush(stdout);
-  if (!plot) return;
+  if (!plot) {
+    return;
+  }
 
   printf("###\n");
   const int k = nz / 2;
@@ -178,15 +180,21 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
 
 void Potential_Paris_3D::Reset()
 {
-  if (db_) CHECK(cudaFree(db_));
+  if (db_) {
+    CHECK(cudaFree(db_));
+  }
   db_ = nullptr;
 
-  if (da_) CHECK(cudaFree(da_));
+  if (da_) {
+    CHECK(cudaFree(da_));
+  }
   da_ = nullptr;
 
   potentialBytes_ = densityBytes_ = minBytes_ = 0;
 
-  if (pp_) delete pp_;
+  if (pp_) {
+    delete pp_;
+  }
   pp_ = nullptr;
 
   myLo_[2] = myLo_[1] = myLo_[0] = 0;

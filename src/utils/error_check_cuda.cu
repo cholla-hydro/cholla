@@ -20,7 +20,9 @@ __global__ void Check_Value_Along_Axis(Real *dev_array, int n_field, int nx, int
   int tid_k = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (blockDim.x != N_Y || blockDim.y != N_Z) {
-    if (tid_j == 0 && tid_k == 0) printf("ERROR CHECK: Block Dimension Error \n");
+    if (tid_j == 0 && tid_k == 0) {
+      printf("ERROR CHECK: Block Dimension Error \n");
+    }
     return;
   }
 
@@ -45,12 +47,16 @@ __global__ void Check_Value_Along_Axis(Real *dev_array, int n_field, int nx, int
 
     if (tid_j == 0 && tid_k == 0) {
       for (i = 0; i < N_Y * N_Z - 1; i++) {
-        if (sh_data[i] == sh_data[i + 1]) error += 1;
+        if (sh_data[i] == sh_data[i + 1]) {
+          error += 1;
+        }
       }
     }
   }
 
-  if (tid_j == 0 && tid_k == 0) *return_value = error;
+  if (tid_j == 0 && tid_k == 0) {
+    *return_value = error;
+  }
 }
 
 int Check_Field_Along_Axis(Real *dev_array, int n_field, int nx, int ny, int nz, int n_ghost, dim3 Grid_Error,

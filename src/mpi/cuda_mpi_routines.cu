@@ -21,16 +21,18 @@ int initialize_cuda_mpi(int myid, int nprocs)
 
   // check for errors
   if (flag_error != cudaSuccess) {
-    if (flag_error == cudaErrorNoDevice)
+    if (flag_error == cudaErrorNoDevice) {
       fprintf(stderr,
               "cudaGetDeviceCount: Error! for myid = %d and n_device = %d; "
               "cudaErrorNoDevice\n",
               myid, n_device);
-    if (flag_error == cudaErrorInsufficientDriver)
+    }
+    if (flag_error == cudaErrorInsufficientDriver) {
       fprintf(stderr,
               "cudaGetDeviceCount: Error! for myid = %d and n_device = %d; "
               "cudaErrorInsufficientDriver\n",
               myid, n_device);
+    }
     fflush(stderr);
     return 1;
   }

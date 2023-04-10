@@ -13,11 +13,15 @@ void Get_OMP_Grid_Indxs(int n_grid_cells, int n_omp_procs, int omp_proc_id, int 
   int counter = 0;
   while (counter < omp_proc_id) {
     g_start += n_grid_omp;
-    if (counter < grid_reminder) g_start += 1;
+    if (counter < grid_reminder) {
+      g_start += 1;
+    }
     counter += 1;
   }
   g_end = g_start + n_grid_omp;
-  if (omp_proc_id < grid_reminder) g_end += 1;
+  if (omp_proc_id < grid_reminder) {
+    g_end += 1;
+  }
 
   *omp_gridIndx_start = g_start;
   *omp_gridIndx_end   = g_end;
@@ -36,11 +40,15 @@ void Get_OMP_Particles_Indxs(part_int_t n_parts_local, int n_omp_procs, int omp_
   int counter = 0;
   while (counter < omp_proc_id) {
     p_start += n_parts_omp;
-    if (counter < parts_reminder) p_start += 1;
+    if (counter < parts_reminder) {
+      p_start += 1;
+    }
     counter += 1;
   }
   p_end = p_start + n_parts_omp;
-  if (omp_proc_id < parts_reminder) p_end += 1;
+  if (omp_proc_id < parts_reminder) {
+    p_end += 1;
+  }
 
   *omp_pIndx_start = p_start;
   *omp_pIndx_end   = p_end;

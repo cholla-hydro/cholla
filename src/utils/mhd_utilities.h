@@ -65,6 +65,22 @@ inline __host__ __device__ Real _magnetosonicSpeed(Real const &density, Real con
 
 // =========================================================================
 /*!
+ * \brief Compute the magnetic energy
+ *
+ * \param[in] magneticX The magnetic field in the X-direction
+ * \param[in] magneticY The magnetic field in the Y-direction
+ * \param[in] magneticZ The magnetic field in the Z-direction
+ * \return Real The magnetic energy
+ */
+inline __host__ __device__ Real computeMagneticEnergy(Real const &magneticX, Real const &magneticY,
+                                                      Real const &magneticZ)
+{
+  return 0.5 * (magneticX * magneticX + ((magneticY * magneticY) + (magneticZ * magneticZ)));
+}
+// =========================================================================
+
+// =========================================================================
+/*!
  * \brief Compute the energy in a cell. If MHD is not defined then simply
  * return the hydro only energy
  *
@@ -87,7 +103,7 @@ inline __host__ __device__ Real computeEnergy(Real const &pressure, Real const &
   Real energy = (fmax(pressure, TINY_NUMBER) / (gamma - 1.)) +
                 0.5 * density * (velocityX * velocityX + ((velocityY * velocityY) + (velocityZ * velocityZ)));
 #ifdef MHD
-  energy += 0.5 * (magneticX * magneticX + ((magneticY * magneticY) + (magneticZ * magneticZ)));
+  energy += computeMagneticEnergy(magneticX, magneticY, magneticZ);
 #endif  // MHD
 
   return energy;
@@ -116,14 +132,13 @@ inline __host__ __device__ Real computeGasPressure(Real const &energy, Real cons
   Real pressure =
       (gamma - 1.) *
       (energy - 0.5 * (momentumX * momentumX + ((momentumY * momentumY) + (momentumZ * momentumZ))) / density -
-       0.5 * (magneticX * magneticX + ((magneticY * magneticY) + (magneticZ * magneticZ))));
+       computeMagneticEnergy(magneticX, magneticY, magneticZ));
 
   return fmax(pressure, TINY_NUMBER);
 }
 
 /*!
- * \brief Specialzation of mhd::utils::computeGasPressure for use in the HLLD
- * solver
+ * \brief Specialization of mhd::utils::computeGasPressure for use in the HLLD solver
  *
  * \param state The State to compute the gas pressure of
  * \param magneticX The X magnetic field
@@ -162,23 +177,7 @@ inline __host__ __device__ Real computeThermalEnergy(Real const &energyTot, Real
   return energyTot -
          0.5 * (momentumX * momentumX + ((momentumY * momentumY) + (momentumZ * momentumZ))) /
              fmax(density, TINY_NUMBER) -
-         0.5 * (magneticX * magneticX + ((magneticY * magneticY) + (magneticZ * magneticZ)));
-}
-// =========================================================================
-
-// =========================================================================
-/*!
- * \brief Compute the magnetic energy
- *
- * \param[in] magneticX The magnetic field in the X-direction
- * \param[in] magneticY The magnetic field in the Y-direction
- * \param[in] magneticZ The magnetic field in the Z-direction
- * \return Real The magnetic energy
- */
-inline __host__ __device__ Real computeMagneticEnergy(Real const &magneticX, Real const &magneticY,
-                                                      Real const &magneticZ)
-{
-  return 0.5 * (magneticX * magneticX + ((magneticY * magneticY) + (magneticZ * magneticZ)));
+         computeMagneticEnergy(magneticX, magneticY, magneticZ);
 }
 // =========================================================================
 
@@ -196,7 +195,7 @@ inline __host__ __device__ Real computeMagneticEnergy(Real const &magneticX, Rea
 inline __host__ __device__ Real computeTotalPressure(Real const &gasPressure, Real const &magneticX,
                                                      Real const &magneticY, Real const &magneticZ)
 {
-  Real pTot = gasPressure + 0.5 * (magneticX * magneticX + ((magneticY * magneticY) + (magneticZ * magneticZ)));
+  Real pTot = gasPressure + computeMagneticEnergy(magneticX, magneticY, magneticZ);
 
   return fmax(pTot, TINY_NUMBER);
 }

@@ -1,9 +1,6 @@
 
 #-- Compiler and flags for different build type
-CC                = mpicc
 CXX               = mpicxx
-CFLAGS_DEBUG      = -g -O0
-CFLAGS_OPTIMIZE   = -Ofast
 CXXFLAGS_DEBUG    = -g -O0 -std=c++17
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++17
 GPUFLAGS_OPTIMIZE = -g -O3 -std=c++17
