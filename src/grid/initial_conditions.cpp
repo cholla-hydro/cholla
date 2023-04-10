@@ -1823,9 +1823,9 @@ void Grid3D::MHD_Spherical_Blast(struct parameters const P)
         // Set the field(s) that do depend on pressure. That's just energy
         Real radius = std::hypot(x, y, z);
         if (radius < P.radius) {
-          C.Energy[id] = hydro_utilities::Calc_Energy_Conserved(P.P_blast, C.density[id], C.momentum_x[id],
-                                                                C.momentum_y[id], C.momentum_z[id], ::gama, magnetic_centered.x,
-                                                                magnetic_centered.y, magnetic_centered.z);
+          C.Energy[id] = hydro_utilities::Calc_Energy_Conserved(
+              P.P_blast, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], ::gama,
+              magnetic_centered.x, magnetic_centered.y, magnetic_centered.z);
         } else {
           C.Energy[id] = hydro_utilities::Calc_Energy_Conserved(P.P, C.density[id], C.momentum_x[id], C.momentum_y[id],
                                                                 C.momentum_z[id], ::gama, magnetic_centered.x,
@@ -1887,9 +1887,9 @@ void Grid3D::Orszag_Tang_Vortex()
         C.momentum_x[id] = density_background * velocity_background * std::sin(2.0 * M_PI * y);
         C.momentum_y[id] = -density_background * velocity_background * std::sin(2.0 * M_PI * x);
         C.momentum_z[id] = 0.0;
-        C.Energy[id]     = hydro_utilities::Calc_Energy_Conserved(pressure_background, C.density[id], C.momentum_x[id],
-                                                                  C.momentum_y[id], C.momentum_z[id], ::gama, magnetic_centered.x,
-                                                                  magnetic_centered.y, magnetic_centered.z);
+        C.Energy[id]     = hydro_utilities::Calc_Energy_Conserved(
+            pressure_background, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], ::gama,
+            magnetic_centered.x, magnetic_centered.y, magnetic_centered.z);
       }
     }
   }
