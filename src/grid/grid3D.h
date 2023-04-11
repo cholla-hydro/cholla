@@ -509,7 +509,7 @@ class Grid3D
 
   /*! \fn void Read_Grid_Cat(struct parameters P)
    *  \brief Read in grid data from a single concatenated output file. */
-  void Read_Grid_Cat(struct parameters P);  
+  void Read_Grid_Cat(struct parameters P);
 
   /*! \fn Read_Grid_Binary(FILE *fp)
    *  \brief Read in grid data from a binary file. */

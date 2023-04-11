@@ -492,7 +492,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     for (int i = 0; i < NSCALARS; i++) {
       del_scalar[i] = scalar_R[i] - scalar_L[i];
     }
-      #endif  // SCALAR
+      #endif                                    // SCALAR
 
     d_6  = 6.0 * (d_i - 0.5 * (d_L + d_R));     // Fryxell Eqn 30
     vx_6 = 6.0 * (vx_i - 0.5 * (vx_L + vx_R));  // Fryxell Eqn 30
@@ -506,7 +506,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     for (int i = 0; i < NSCALARS; i++) {
       scalar_6[i] = 6.0 * (scalar_i[i] - 0.5 * (scalar_L[i] + scalar_R[i]));  // Fryxell Eqn 30
     }
-      #endif  // SCALAR
+      #endif                                                                  // SCALAR
 
     // set speed of characteristics (v-c, v, v+c) using average values of v and
     // c

@@ -119,13 +119,13 @@ void Grid3D::Set_Boundary_Conditions(parameters P)
   Grav.Set_Boundary_Flags(flags);
   #endif  // Gravity
 
-#else /*MPI_CHOLLA*/
+#else     /*MPI_CHOLLA*/
 
   /*Set boundaries, including MPI exchanges*/
 
   Set_Boundaries_MPI(P);
 
-#endif /*MPI_CHOLLA*/
+#endif    /*MPI_CHOLLA*/
 }
 
 /*! \fn int Check_Custom_Boundary(int *flags, struct parameters P)

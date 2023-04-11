@@ -207,30 +207,30 @@ void Time::Print_Average_Times(struct parameters P)
   chprintf("Saved Timing: %s \n\n", file_name.c_str());
 }
 
-#endif //CPU_TIME
+#endif  // CPU_TIME
 
 ScopedTimer::ScopedTimer(const char* input_name)
 {
-  #ifdef CPU_TIME
-  name = input_name;
+#ifdef CPU_TIME
+  name       = input_name;
   time_start = get_time();
-  #endif
+#endif
 }
 
 ScopedTimer::~ScopedTimer(void)
 {
 #ifdef CPU_TIME
-  double time_elapsed_ms = (get_time() - time_start)*1000;
+  double time_elapsed_ms = (get_time() - time_start) * 1000;
 
-#ifdef MPI_CHOLLA
+  #ifdef MPI_CHOLLA
   double t_min = ReduceRealMin(time_elapsed_ms);
   double t_max = ReduceRealMax(time_elapsed_ms);
   double t_avg = ReduceRealAvg(time_elapsed_ms);
-#else
+  #else
   double t_min = time_elapsed_ms;
   double t_max = time_elapsed_ms;
   double t_avg = time_elapsed_ms;
-#endif //MPI_CHOLLA
+  #endif  // MPI_CHOLLA
   chprintf("ScopedTimer Min: %9.4f ms Max: %9.4f ms Avg: %9.4f ms %s \n", t_min, t_max, t_avg, name);
-#endif // CPU_TIME
+#endif    // CPU_TIME
 }

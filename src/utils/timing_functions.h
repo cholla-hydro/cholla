@@ -1,15 +1,14 @@
 #ifndef TIMING_FUNCTIONS_H
 #define TIMING_FUNCTIONS_H
 
-
 #include <vector>
 
-#include "../global/global.h" // Provides Real, get_time
+#include "../global/global.h"  // Provides Real, get_time
 
-//#ifdef CPU_TIME
-// Each instance of this class represents a single timer, timing a single
-// section of code. All instances have their own n_steps, time_start, etc. so
-// that all timers can run independently
+// #ifdef CPU_TIME
+//  Each instance of this class represents a single timer, timing a single
+//  section of code. All instances have their own n_steps, time_start, etc. so
+//  that all timers can run independently
 class OneTime
 {
  public:
@@ -67,8 +66,7 @@ class Time
   void Print_Times();
   void Print_Average_Times(struct parameters P);
 };
-//#endif  // CPU_TIME
-
+// #endif  // CPU_TIME
 
 // ScopedTimer does nothing if CPU_TIME is disabled
 /* \brief ScopedTimer helps time a scope. Initialize as first variable and C++ guarantees it is destroyed last */
@@ -77,18 +75,12 @@ class ScopedTimer
  public:
   const char* name;
   double time_start = 0;
-  
+
   /* \brief ScopedTimer Constructor initializes name and time */
   ScopedTimer(const char* input_name);
-  
+
   /* \brief ScopedTimer Destructor computes dt and prints */
   ~ScopedTimer(void);
-
-  
 };
 
-
-
-
-
-#endif // TIMING_FUNCTIONS_H
+#endif  // TIMING_FUNCTIONS_H

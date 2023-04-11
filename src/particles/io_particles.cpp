@@ -46,7 +46,7 @@ void Particles_3D::Load_Particles_Data(struct parameters *P)
           G.nx_local);  // Everyone reads the same file
     #else
   sprintf(filename, "%s.%d", filename, procID);
-    #endif  // TILED_INITIAL_CONDITIONS
+    #endif              // TILED_INITIAL_CONDITIONS
   #endif
 
   chprintf(" Loading particles file: %s \n", filename);

@@ -465,6 +465,6 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function(part_int_t p_start, part
 
     #endif  // PARTICLES_CPU
 
-  #endif  // COSMOLOGY
+  #endif    // COSMOLOGY
 
-#endif  // PARTICLES
+#endif      // PARTICLES

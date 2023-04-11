@@ -4,23 +4,22 @@
 #include "../utils/error_handling.h"
 
 #if defined(HDF5) && defined(MPI_CHOLLA)
-#include <hdf5.h>
-#include "../mpi/mpi_routines.h"
-#include "../utils/timing_functions.h" // provides ScopedTimer
+  #include <hdf5.h>
 
-
+  #include "../mpi/mpi_routines.h"
+  #include "../utils/timing_functions.h"  // provides ScopedTimer
 
 // I think this helper function is finished. It's just meant to interface with HDF5 and open/free handles
 // I need to figure out offset and count elsewhere
 
-// Warning: H5Sselect_hyperslab expects its pointer args to be arrays of same size as the rank of the dataspace file_space_id
+// Warning: H5Sselect_hyperslab expects its pointer args to be arrays of same size as the rank of the dataspace
+// file_space_id
 void Read_HDF5_Selection_3D(hid_t file_id, hsize_t* offset, hsize_t* count, double* buffer, const char* name)
 {
   hid_t dataset_id = H5Dopen(file_id, name, H5P_DEFAULT);
   // Select the requested subset of data
   hid_t file_space_id = H5Dget_space(dataset_id);
-  hid_t mem_space_id = H5Screate_simple(3, count, NULL);
-
+  hid_t mem_space_id  = H5Screate_simple(3, count, NULL);
 
   // Notes on hyperslab call:
 
@@ -42,28 +41,26 @@ void Read_HDF5_Selection_3D(hid_t file_id, hsize_t* offset, hsize_t* count, doub
   status = H5Dclose(dataset_id);
 }
 
-
 // Alwin: I'm only writing a 3D version of this because that's what is practical.
 // Read from concatenated HDF5 file
 void Read_Grid_Cat_HDF5_Field(hid_t file_id, Real* dataset_buffer, Header H, hsize_t* offset, hsize_t* count,
-			      Real* grid_buffer, const char* name)
+                              Real* grid_buffer, const char* name)
 {
   Read_HDF5_Selection_3D(file_id, offset, count, dataset_buffer, name);
   Fill_Grid_From_HDF5_Buffer(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, H.n_ghost, dataset_buffer, grid_buffer);
 }
 
 void Read_Grid_Cat_HDF5_Field_Magnetic(hid_t file_id, Real* dataset_buffer, Header H, hsize_t* offset, hsize_t* count,
-				       Real* grid_buffer, const char* name)
+                                       Real* grid_buffer, const char* name)
 {
   Read_HDF5_Selection_3D(file_id, offset, count, dataset_buffer, name);
-  Fill_Grid_From_HDF5_Buffer(H.nx, H.ny, H.nz, H.nx_real + 1, H.ny_real + 1, H.nz_real + 1, H.n_ghost - 1, dataset_buffer, grid_buffer);
+  Fill_Grid_From_HDF5_Buffer(H.nx, H.ny, H.nz, H.nx_real + 1, H.ny_real + 1, H.nz_real + 1, H.n_ghost - 1,
+                             dataset_buffer, grid_buffer);
 }
-
 
 /*! \brief Read in grid data from a single concatenated output file. */
 void Grid3D::Read_Grid_Cat(struct parameters P)
 {
-
   ScopedTimer timer("Read_Grid_Cat");
   herr_t status;
   char filename[100];
@@ -77,14 +74,12 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
     exit(0);
   }
 
-
   // TODO (Alwin) : Need to consider how or whether to read attributes.
 
   // even if I do not read gamma from file, it is set in initial_conditions.cpp
   // if I do not set t or n_step what does it get set to?0 in grid/grid3D.cpp
-  // This should be okay to start with. 
+  // This should be okay to start with.
 
-  
   // Offsets are global variables from mpi_routines.h
   hsize_t offset[3];
   offset[0] = nx_local_start;
@@ -93,15 +88,15 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
 
   // This is really dims but I name it count because that's what HDF5 names it
   hsize_t count[3];
-  count[0]  = H.nx_real;
-  count[1]  = H.ny_real;
-  count[2]  = H.nz_real;
-  
+  count[0] = H.nx_real;
+  count[1] = H.ny_real;
+  count[2] = H.nz_real;
+
   #ifdef MHD
-  Real* dataset_buffer = (Real *)malloc((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1) * sizeof(Real));
+  Real* dataset_buffer = (Real*)malloc((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1) * sizeof(Real));
   #else
-  Real* dataset_buffer = (Real *)malloc((H.nz_real) * (H.ny_real) * (H.nx_real) * sizeof(Real));
-  #endif    
+  Real* dataset_buffer = (Real*)malloc((H.nz_real) * (H.ny_real) * (H.nx_real) * sizeof(Real));
+  #endif
 
   Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.density, "/density");
   Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.momentum_x, "/momentum_x");
@@ -109,17 +104,16 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
   Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.momentum_z, "/momentum_z");
   Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.Energy, "/Energy");
   #ifdef DE
-  Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.Energy, "/GasEnergy");    
-  #endif //DE
+  Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.Energy, "/GasEnergy");
+  #endif  // DE
 
   // TODO (Alwin) : add scalar stuff
-  
+
   #ifdef MHD
   Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_x, "/magnetic_x");
   Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_y, "/magnetic_y");
   Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_z, "/magnetic_z");
   #endif
-  
 
   free(dataset_buffer);
   status = H5Fclose(file_id);

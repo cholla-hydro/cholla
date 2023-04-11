@@ -959,7 +959,7 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
   }
     #endif  // SOR
 
-  #endif  // GRAVITY
+  #endif    // GRAVITY
 
   #ifdef PARTICLES
   if (Particles.TRANSFER_DENSITY_BOUNDARIES) {
@@ -1015,7 +1015,7 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
 
     Fptr_Unload_Particle_Density = &Grid3D::Unload_Particles_Density_Boundary_From_Buffer;
 
-    #endif  // PARTICLES_GPU
+    #endif    // PARTICLES_GPU
 
     if (index == 0) {
       (this->*Fptr_Unload_Particle_Density)(0, 0, l_recv_buffer_x0);

@@ -48,7 +48,7 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
   }
 
   Real dl, vxl, vyl, vzl, pl,
-      cl;  // density, velocity, pressure, sound speed (left)
+      cl;               // density, velocity, pressure, sound speed (left)
   Real dr, vxr, vyr, vzr, pr,
       cr;               // density, velocity, pressure, sound speed (right)
   Real ds, vs, ps, Es;  // sample_CUDAd density, velocity, pressure, total
@@ -256,9 +256,9 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
 
   Real c, sl, sr;
 
-  if (vm >= 0)  // sampling point lies to the left of the contact discontinuity
+  if (vm >= 0)            // sampling point lies to the left of the contact discontinuity
   {
-    if (pm <= pl)  // left rarefaction
+    if (pm <= pl)         // left rarefaction
     {
       if (vxl - cl >= 0)  // sampled point is in left data state
       {
@@ -294,7 +294,7 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
         *p = pm;
       }
     }
-  } else  // sampling point lies to the right of the contact discontinuity
+  } else          // sampling point lies to the right of the contact discontinuity
   {
     if (pm > pr)  // right shock
     {
@@ -310,7 +310,7 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
         *v = vm;
         *p = pm;
       }
-    } else  // right rarefaction
+    } else                // right rarefaction
     {
       if (vxr + cr <= 0)  // sampled point is in right data state
       {

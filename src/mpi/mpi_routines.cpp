@@ -13,14 +13,14 @@
   #include "../utils/error_handling.h"
 
 /*Global MPI Variables*/
-int procID; /*process rank*/
-int nproc;  /*number of processes in global comm*/
-int root;   /*rank of root process*/
+int procID;              /*process rank*/
+int nproc;               /*number of processes in global comm*/
+int root;                /*rank of root process*/
 
-int procID_node; /*process rank on node*/
-int nproc_node;  /*number of MPI processes on node*/
+int procID_node;         /*process rank on node*/
+int nproc_node;          /*number of MPI processes on node*/
 
-MPI_Comm world; /*global communicator*/
+MPI_Comm world;          /*global communicator*/
 
 MPI_Datatype MPI_CHREAL; /*set equal to MPI_FLOAT or MPI_DOUBLE*/
 
@@ -573,7 +573,7 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
   N_PARTICLES_TRANSFER = n_max * n_max * factor;
 
   // Set the number of values that will be transferred for each particle
-  N_DATA_PER_PARTICLE_TRANSFER = 6;  // 3 positions and 3 velocities
+  N_DATA_PER_PARTICLE_TRANSFER = 6;   // 3 positions and 3 velocities
     #ifndef SINGLE_PARTICLE_MASS
   N_DATA_PER_PARTICLE_TRANSFER += 1;  // one more for the particle mass
     #endif
@@ -1002,7 +1002,7 @@ std::pair<int, int> MPI_Comm_node()
   // get the hostname of the node
   std::string pname;  // node hostname
   pname.resize(MPI_MAX_PROCESSOR_NAME);
-  int pname_length;  // length of node hostname
+  int pname_length;   // length of node hostname
 
   MPI_Get_processor_name(pname.data(), &pname_length);
 

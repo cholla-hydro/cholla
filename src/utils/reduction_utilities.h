@@ -62,11 +62,11 @@ __inline__ __device__ Real blockReduceMax(Real val)
   int lane   = threadIdx.x % warpSize;  // thread ID within the warp,
   int warpId = threadIdx.x / warpSize;  // ID of the warp itself
 
-  val = warpReduceMax(val);  // Each warp performs partial reduction
+  val = warpReduceMax(val);             // Each warp performs partial reduction
 
   if (lane == 0) {
     shared[warpId] = val;
-  }  // Write reduced value to shared memory
+  }                 // Write reduced value to shared memory
 
   __syncthreads();  // Wait for all partial reductions
 

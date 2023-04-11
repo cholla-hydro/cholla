@@ -36,10 +36,10 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
 #ifdef PCM
   double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 4E-7;
-#else   // PCM
+#else                                  // PCM
   double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 1E-7;
-#endif  // PCM
+#endif                                 // PCM
 
   void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
@@ -393,10 +393,10 @@ class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<in
 #ifdef PCM
   double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 4E-7;
-#else   // PCM
+#else                                  // PCM
   double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 1E-7;
-#endif  // PCM
+#endif                                 // PCM
 
   void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
@@ -670,10 +670,10 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, MovingW
 #ifdef PCM
   double const allowedL1Error = 0.065;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 0.046;
-#else   // PCM
+#else                                   // PCM
   double const allowedL1Error = 1E-3;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 1E-3;
-#endif  // PCM
+#endif                                  // PCM
 
   // Set the launch parameters
   setLaunchParams(polarization, vx);
@@ -699,10 +699,10 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, Standin
 #ifdef PCM
   double const allowedL1Error = 0.018;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 0.017;
-#else   // PCM
-  double const allowedL1Error = 0.0;  // Based on results in Gardiner & Stone 2008
+#else                                   // PCM
+  double const allowedL1Error = 0.0;   // Based on results in Gardiner & Stone 2008
   double const allowedError   = 0.0;
-#endif  // PCM
+#endif                                  // PCM
 
   // Set the launch parameters
   setLaunchParams(polarization, vx);

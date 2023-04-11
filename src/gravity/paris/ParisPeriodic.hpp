@@ -44,9 +44,9 @@ class ParisPeriodic
   void solve(size_t bytes, double *density, double *potential) const;
 
  private:
-  int ni_, nj_;  //!< Number of elements in X and Y dimensions
+  int ni_, nj_;             //!< Number of elements in X and Y dimensions
 #if defined(PARIS_3PT) || defined(PARIS_5PT)
-  int nk_;  //!< Number of elements in Z dimension
+  int nk_;                  //!< Number of elements in Z dimension
 #endif
   double ddi_, ddj_, ddk_;  //!< Frequency-independent terms in Poisson solve
   HenryPeriodic henry;      //!< FFT filter object

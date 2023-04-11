@@ -276,4 +276,4 @@ void Grid3D::Unload_Particles_Density_Boundary_From_Buffer_GPU(int direction, in
 
   #endif  // MPI_CHOLLA
 
-#endif  // PARTICLES_GPU & GRAVITY_GPU
+#endif    // PARTICLES_GPU & GRAVITY_GPU

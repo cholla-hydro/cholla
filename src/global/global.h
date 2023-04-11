@@ -31,16 +31,16 @@ typedef double Real;
 #define MP          1.672622e-24  // mass of proton, grams
 #define KB          1.380658e-16  // boltzmann constant, cgs
 // #define GN 6.67259e-8 // gravitational constant, cgs
-#define GN  4.49451e-18  // gravitational constant, kpc^3 / M_sun / kyr^2
-#define C_L 0.306594593  // speed of light in kpc/kyr
+#define GN  4.49451e-18                    // gravitational constant, kpc^3 / M_sun / kyr^2
+#define C_L 0.306594593                    // speed of light in kpc/kyr
 
-#define MYR      31.536e12         // Myears in secs
-#define KPC      3.086e16          // kpc in km
-#define G_COSMO  4.300927161e-06;  // gravitational constant, kpc km^2 s^-2 Msun^-1
-#define MSUN_CGS 1.98847e33;       // Msun in gr
-#define KPC_CGS  3.086e21;         // kpc in cm
-#define KM_CGS   1e5;              // km in cm
-#define MH       1.67262171e-24    // Mass of hydrogen [g]
+#define MYR      31.536e12                 // Myears in secs
+#define KPC      3.086e16                  // kpc in km
+#define G_COSMO  4.300927161e-06;          // gravitational constant, kpc km^2 s^-2 Msun^-1
+#define MSUN_CGS 1.98847e33;               // Msun in gr
+#define KPC_CGS  3.086e21;                 // kpc in cm
+#define KM_CGS   1e5;                      // km in cm
+#define MH       1.67262171e-24            // Mass of hydrogen [g]
 
 #define TIME_UNIT           3.15569e10     // 1 kyr in s
 #define LENGTH_UNIT         3.08567758e21  // 1 kpc in cm
@@ -93,8 +93,8 @@ typedef double Real;
   #ifdef GRAVITY_5_POINTS_GRADIENT
     #ifdef PARTICLES
       #define N_GHOST_POTENTIAL \
-        3  // 3 ghost cells are needed for 5 point gradient, ( one is for the
-           // CIC interpolation of the potential )
+        3                          // 3 ghost cells are needed for 5 point gradient, ( one is for the
+                                   // CIC interpolation of the potential )
     #else
       #define N_GHOST_POTENTIAL 2  // 2 ghost cells are needed for 5 point gradient
     #endif                         // PARTICLES
@@ -102,8 +102,8 @@ typedef double Real;
   #else
     #ifdef PARTICLES
       #define N_GHOST_POTENTIAL \
-        2  // 2 ghost cells are needed for 3 point gradient, ( one is for the
-           // CIC interpolation of the potential )
+        2                          // 2 ghost cells are needed for 3 point gradient, ( one is for the
+                                   // CIC interpolation of the potential )
     #else
       #define N_GHOST_POTENTIAL 1  // 1 ghost cells are needed for 3 point gradient
     #endif                         // PARTICLES
@@ -133,7 +133,7 @@ extern int N_DATA_PER_PARTICLE_TRANSFER;
     #define SLOW_FACTOR 10
   #endif  // AVERAGE_SLOW_CELLS
 
-#endif  // PARTICLES
+#endif    // PARTICLES
 
 #define SIGN(a) (((a) < 0.) ? -1. : 1.)
 

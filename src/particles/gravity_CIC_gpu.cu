@@ -346,4 +346,4 @@ void Grid3D::Copy_Particles_Density_GPU()
 
   #endif  // GRAVITY_GPU
 
-#endif  // PARTICLES
+#endif    // PARTICLES

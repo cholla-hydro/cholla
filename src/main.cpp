@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 /* Initialize MPI communication */
 #ifdef MPI_CHOLLA
   InitializeChollaMPI(&argc, &argv);
-#endif /*MPI_CHOLLA*/
+#endif           /*MPI_CHOLLA*/
 
   Real dti = 0;  // inverse time step, 1.0 / dt
 

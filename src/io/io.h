@@ -54,9 +54,6 @@ void write_debug(Real* Value, const char* fname, int nValues, int iProc);
 #ifdef HDF5
 // From io/io.cpp
 
-
-
-
 herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double* attribute, const char* name);
 herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int* attribute, const char* name);
 
@@ -67,7 +64,8 @@ herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double* dataset_buf
 herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, float* dataset_buffer, const char* name);
 
 /* \brief After HDF5 reads data into a buffer, remap and write to grid buffer. */
-void Fill_Grid_From_HDF5_Buffer(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost, Real* hdf5_buffer, Real* grid_buffer);
+void Fill_Grid_From_HDF5_Buffer(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
+                                Real* hdf5_buffer, Real* grid_buffer);
 
 // From io/io_gpu.cu
 // Use GPU to pack source -> device_buffer, then copy device_buffer -> buffer,

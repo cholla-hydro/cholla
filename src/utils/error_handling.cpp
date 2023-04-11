@@ -99,5 +99,5 @@ void Check_Configuration(parameters const &P)
     #error "MHD does not support AVERAGE_SLOW_CELLS"
   #endif  // AVERAGE_SLOW_CELLS
 
-#endif  // MHD
+#endif    // MHD
 }

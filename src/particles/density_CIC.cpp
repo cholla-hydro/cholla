@@ -90,7 +90,7 @@ void Grid3D::Copy_Particles_Density()
   }
     #endif  // PARALLEL_OMP
 
-  #endif  // GRAVITY_GPU
+  #endif    // GRAVITY_GPU
 }
 
 void Grid3D::Copy_Particles_Density_function(int g_start, int g_end)
@@ -415,6 +415,6 @@ void Particles_3D::Get_Density_CIC_OMP()
 }
     #endif  // PARALLEL_OMP
 
-  #endif  // PARTICLES_CPU
+  #endif    // PARTICLES_CPU
 
 #endif

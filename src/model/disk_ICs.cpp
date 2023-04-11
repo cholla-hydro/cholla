@@ -194,16 +194,16 @@ void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real dr, int 
 {
   // Routine to determine the hydrostatic density profile
   // along a ray from the galaxy center
-  int i;  // index along r direction
+  int i;                   // index along r direction
 
   Real gamma   = hdp[13];  // adiabatic index
   Real rho_eos = hdp[18];  // density where K_EOS is set
   Real cs      = hdp[19];  // sound speed at rho_eos
   Real r_cool  = hdp[20];  // cooling radius
 
-  Real Phi_0;  // potential at cooling radius
+  Real Phi_0;              // potential at cooling radius
 
-  Real D_rho;  // ratio of density at mid plane and rho_eos
+  Real D_rho;              // ratio of density at mid plane and rho_eos
 
   Real gmo = gamma - 1.0;  // gamma-1
 
@@ -259,10 +259,10 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
 
   Real cs = hdp[16];
 
-  Real Phi_0;  // potential at z=0
+  Real Phi_0;     // potential at z=0
 
-  Real rho_0;  // density at mid plane
-  Real D_rho;  // ratio of density at mid plane and rho_eos
+  Real rho_0;     // density at mid plane
+  Real D_rho;     // ratio of density at mid plane and rho_eos
 
   Real z_0, z_1;  // heights for iteration
   Real z_disk_max;
@@ -274,8 +274,8 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   int n_int = 1000;
   int flag;  // flag for integration
 
-  int ks;  // start of integrals above disk plane
-  int km;  // mirror of k
+  int ks;    // start of integrals above disk plane
+  int km;    // mirror of k
   if (nz % 2) {
     ks = ng + (nz - 1) / 2;
   } else {
@@ -440,14 +440,14 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   Real rho_eos = hdp[15];
   Real cs      = hdp[16];
 
-  Real Phi_0;  // potential at z=0
+  Real Phi_0;          // potential at z=0
 
-  Real D_rho;  // ratio of density at mid plane and rho_eos
-  Real D_new;  // new ratio of density at mid plane and rho_eos
+  Real D_rho;          // ratio of density at mid plane and rho_eos
+  Real D_new;          // new ratio of density at mid plane and rho_eos
 
   Real z_0, z_1, z_2;  // heights for iteration
   Real z_disk_max;
-  Real A_0, A_1;  // density function to find roots
+  Real A_0, A_1;       // density function to find roots
 
   // density integration
   Real phi_int, A;
@@ -760,8 +760,8 @@ void Grid3D::Disk_3D(parameters p)
                                 // contraction)
   r_cool = galaxy.getR_cool();  // cooling radius in kpc (MW)
 
-  M_h = M_vir - M_d;    // halo mass in M_sun
-  R_s = R_vir / c_vir;  // halo scale length in kpc
+  M_h = M_vir - M_d;            // halo mass in M_sun
+  R_s = R_vir / c_vir;          // halo scale length in kpc
   // T_d = 5.9406e5; // SET TO MATCH K_EOS SET BY HAND for K_eos = 1.859984e-14
   // T_d = 2.0e5;
   T_d       = 1.0e4;  // CHANGED FOR ISOTHERMAL

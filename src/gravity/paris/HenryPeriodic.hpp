@@ -61,23 +61,23 @@ class HenryPeriodic
   void filter(const size_t bytes, double *const before, double *const after, const F f) const;
 
  private:
-  int idi_, idj_, idk_;  //!< MPI coordinates of 3D block
-  int mi_, mj_, mk_;     //!< Number of MPI tasks in each dimension of 3D domain
-  int nh_;               //!< Global number of complex values in Z dimension, after R2C
-                         //!< transform
-  int ni_, nj_, nk_;     //!< Global number of real points in each dimension
-  int mp_, mq_;          //!< Number of MPI tasks in X and Y dimensions of Z pencil
-  int idp_, idq_;        //!< X and Y task IDs within Z pencil
+  int idi_, idj_, idk_;    //!< MPI coordinates of 3D block
+  int mi_, mj_, mk_;       //!< Number of MPI tasks in each dimension of 3D domain
+  int nh_;                 //!< Global number of complex values in Z dimension, after R2C
+                           //!< transform
+  int ni_, nj_, nk_;       //!< Global number of real points in each dimension
+  int mp_, mq_;            //!< Number of MPI tasks in X and Y dimensions of Z pencil
+  int idp_, idq_;          //!< X and Y task IDs within Z pencil
   MPI_Comm commI_, commJ_,
       commK_;              //!< Communicators of fellow tasks in X, Y, and Z pencils
   int dh_, di_, dj_, dk_;  //!< Max number of local points in each dimension
   int dhq_, dip_, djp_,
-      djq_;       //!< Max number of local points in dimensions of 2D decompositions
-  size_t bytes_;  //!< Max bytes needed for argument arrays
+      djq_;                //!< Max number of local points in dimensions of 2D decompositions
+  size_t bytes_;           //!< Max bytes needed for argument arrays
   cufftHandle c2ci_, c2cj_, c2rk_,
-      r2ck_;  //!< Objects for forward and inverse FFTs
+      r2ck_;               //!< Objects for forward and inverse FFTs
 #ifndef MPI_GPU
-  double *ha_, *hb_;  //!< Host copies for MPI messages
+  double *ha_, *hb_;       //!< Host copies for MPI messages
 #endif
 };
 

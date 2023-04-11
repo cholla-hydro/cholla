@@ -93,7 +93,7 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real
   *y_pos = H.ybound + H.dy * (j - H.n_ghost) + 0.5 * H.dy;
   *z_pos = H.zbound + H.dz * (k - H.n_ghost) + 0.5 * H.dz;
 
-#else /*MPI_CHOLLA*/
+#else  /*MPI_CHOLLA*/
 
   /* position relative to local xyz bounds */
   /* This approach was replaced because it is less consistent for multiple
@@ -179,7 +179,7 @@ void Grid3D::Initialize(struct parameters *P)
   // set total number of cells
   H.n_cells = H.nx * H.ny * H.nz;
 
-#else /*MPI_CHOLLA*/
+#else  /*MPI_CHOLLA*/
 
   /* perform domain decomposition
    * and set grid dimensions
@@ -388,7 +388,7 @@ void Grid3D::set_dt(Real dti)
 
   H.dt = C_cfl / max_dti;
 
-#endif  // ONLY_PARTICLES
+#endif   // ONLY_PARTICLES
 
 #ifdef GRAVITY
   // Set dt for hydro and particles
@@ -554,7 +554,7 @@ Real Grid3D::Update_Hydro_Grid()
   // Subtract the time spent on the Chemical Update
   #endif  // CHEMISTRY_GPU
   Timer.Hydro.End();
-#endif  // CPU_TIME
+#endif    // CPU_TIME
 
 #ifdef COOLING_GRACKLE
   #ifdef CPU_TIME

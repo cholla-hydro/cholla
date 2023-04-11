@@ -129,8 +129,8 @@ void Grav3D::AllocateMemory_CPU(void)
                                                                      // density
   F.potential_h = (Real *)malloc(n_cells_potential * sizeof(Real));  // array for the potential at the n-th timestep
   F.potential_1_h =
-      (Real *)malloc(n_cells_potential * sizeof(Real));  // array for the potential at the (n-1)-th timestep
-  boundary_flags = (int *)malloc(6 * sizeof(int));       // array for the gravity boundary flags
+      (Real *)malloc(n_cells_potential * sizeof(Real));              // array for the potential at the (n-1)-th timestep
+  boundary_flags = (int *)malloc(6 * sizeof(int));                   // array for the gravity boundary flags
 
   #ifdef GRAV_ISOLATED_BOUNDARY_X
   F.pot_boundary_x0 = (Real *)malloc(N_GHOST_POTENTIAL * ny_local * nz_local *

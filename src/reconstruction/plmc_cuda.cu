@@ -14,7 +14,7 @@
 
     #ifdef DE  // PRESSURE_DE
       #include "../utils/hydro_utilities.h"
-    #endif  // DE
+    #endif     // DE
 
 /*! \fn __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real
  *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real

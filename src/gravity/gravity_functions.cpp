@@ -53,7 +53,7 @@ void Grid3D::set_dt_Gravity()
   da_min = da_particles;
   chprintf(" Delta_a_particles: %f \n", da_particles);
 
-      #else  // NOT ONLY_PARTICLES
+      #else   // NOT ONLY_PARTICLES
   // Here da_min is the minumum between da_particles and da_hydro
   Real da_hydro;
   da_hydro =
@@ -607,7 +607,7 @@ void Grid3D::Add_Analytic_Potential()
       #endif  // PARALLEL_OMP
     #endif    // GRAVITY_GPU else
 }
-  #endif  // GRAVITY_ANALYTIC_COMP
+  #endif      // GRAVITY_ANALYTIC_COMP
 
 void Grid3D::Copy_Hydro_Density_to_Gravity_Function(int g_start, int g_end)
 {
@@ -661,7 +661,7 @@ void Grid3D::Copy_Hydro_Density_to_Gravity()
   }
     #endif  // PARALLEL_OMP
 
-  #endif  // GRAVITY_GPU
+  #endif    // GRAVITY_GPU
 }
 
   #ifdef GRAVITY_ANALYTIC_COMP
@@ -747,10 +747,10 @@ void Grid3D::Extrapolate_Grav_Potential_Function(int g_start, int g_end)
       for (i = 0; i < nx_pot; i++) {
         id_pot  = i + j * nx_pot + k * nx_pot * ny_pot;
         id_grid = (i + nGHST) + (j + nGHST) * nx_grid + (k + nGHST) * nx_grid * ny_grid;
-        pot_now = potential_in[id_pot];  // Potential at the n-th timestep
+        pot_now = potential_in[id_pot];             // Potential at the n-th timestep
         if (Grav.INITIAL) {
-          pot_extrp = pot_now;  // The first timestep the extrapolated potential
-                                // is phi_0
+          pot_extrp = pot_now;                      // The first timestep the extrapolated potential
+                                                    // is phi_0
         } else {
           pot_prev = Grav.F.potential_1_h[id_pot];  // Potential at the (n-1)-th
                                                     // timestep ( previous step )
@@ -797,7 +797,7 @@ void Grid3D::Extrapolate_Grav_Potential()
   }
     #endif  // PARALLEL_OMP
 
-  #endif  // GRAVITY_GPU
+  #endif    // GRAVITY_GPU
 
   // After the first timestep the INITIAL flag is set to false, that way the
   // potential is properly extrapolated afterwards

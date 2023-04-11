@@ -651,11 +651,11 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   std::uniform_real_distribution<Real> phiDist(0,
                                                2 * M_PI);  // for generating phi
   std::normal_distribution<Real> speedDist(0,
-                                           1);  // for generating random speeds.
+                                           1);             // for generating random speeds.
 
-  Real M_d   = Galaxies::MW.getM_d();  // MW disk mass in M_sun (assumed to be all in stars)
-  Real R_d   = Galaxies::MW.getR_d();  // MW stellar disk scale length in kpc
-  Real Z_d   = Galaxies::MW.getZ_d();  // MW stellar height scale length in kpc
+  Real M_d   = Galaxies::MW.getM_d();                      // MW disk mass in M_sun (assumed to be all in stars)
+  Real R_d   = Galaxies::MW.getR_d();                      // MW stellar disk scale length in kpc
+  Real Z_d   = Galaxies::MW.getZ_d();                      // MW stellar height scale length in kpc
   Real R_max = sqrt(P->xlen * P->xlen + P->ylen * P->ylen) / 2;
   R_max      = P->xlen / 2.0;
 

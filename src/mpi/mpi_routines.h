@@ -15,14 +15,14 @@
     #endif /*FFTW*/
 
 /*Global MPI Variables*/
-extern int procID;      /*process rank*/
-extern int nproc;       /*number of processes in global comm*/
-extern int root;        /*rank of root process*/
-extern int procID_node; /*process rank on node*/
-extern int nproc_node;  /*number of MPI processes on node*/
+extern int procID;              /*process rank*/
+extern int nproc;               /*number of processes in global comm*/
+extern int root;                /*rank of root process*/
+extern int procID_node;         /*process rank on node*/
+extern int nproc_node;          /*number of MPI processes on node*/
 
-extern MPI_Comm world; /*global communicator*/
-extern MPI_Comm node;  /*communicator for each node*/
+extern MPI_Comm world;          /*global communicator*/
+extern MPI_Comm node;           /*communicator for each node*/
 
 extern MPI_Datatype MPI_CHREAL; /*data type describing float precision*/
 

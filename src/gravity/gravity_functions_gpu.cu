@@ -217,9 +217,9 @@ void __global__ Extrapolate_Grav_Potential_Kernel(Real *dst_potential, Real *src
   tid_grid = tid_x + tid_y * nx_grid + tid_z * nx_grid * ny_grid;
 
   Real pot_now, pot_prev, pot_extrp;
-  pot_now = src_potential_0[tid_pot];  // Potential at the n-th timestep
+  pot_now = src_potential_0[tid_pot];     // Potential at the n-th timestep
   if (INITIAL) {
-    pot_extrp = pot_now;  // The first timestep the extrapolated potential is phi_0
+    pot_extrp = pot_now;                  // The first timestep the extrapolated potential is phi_0
   } else {
     pot_prev = src_potential_1[tid_pot];  // Potential at the (n-1)-th timestep
                                           // ( previous step )
@@ -290,4 +290,4 @@ void Grid3D::Copy_Potential_From_GPU()
 }
   #endif  // PARTICLES_CPU
 
-#endif  // GRAVITY
+#endif    // GRAVITY

@@ -17,7 +17,8 @@
 // For the magnetic field case, a different
 // nx_real+1 ny_real+1 nz_real+1 n_ghost-1 are provided as inputs.
 
-// 2D version of CopyReal3D_GPU_Kernel. Note that magnetic fields and float32 output are not enabled in 2-D so this is a simpler kernel
+// 2D version of CopyReal3D_GPU_Kernel. Note that magnetic fields and float32 output are not enabled in 2-D so this is a
+// simpler kernel
 __global__ void CopyReal2D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost,
                                       Real* destination, Real* source)
 {
@@ -38,7 +39,6 @@ __global__ void CopyReal2D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real, 
 
   destination[dest_id] = source[source_id];
 }
-
 
 // Copy Real (non-ghost) cells from source to a double destination (for writing
 // HDF5 in double precision)
@@ -141,16 +141,19 @@ void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int
     printf("File write failed.\n");
   }
 }
-void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost, Real* hdf5_buffer, Real* device_hdf5_buffer, Real* device_grid_buffer){
+void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
+                                    Real* hdf5_buffer, Real* device_hdf5_buffer, Real* device_grid_buffer)
+{
   int mhd_direction = -1;
-  
+
   // 3D case
   if (nx > 1 && ny > 1 && nz > 1) {
     dim3 dim1dGrid((nx_real * ny_real * nz_real + TPB - 1) / TPB, 1, 1);
     dim3 dim1dBlock(TPB, 1, 1);
     hipLaunchKernelGGL(CopyReal3D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny, nx_real, ny_real, nz_real, n_ghost,
-		       device_hdf5_buffer, device_grid_buffer, mhd_direction);
-    CudaSafeCall(cudaMemcpy(hdf5_buffer, device_hdf5_buffer, nx_real * ny_real * nz_real * sizeof(Real), cudaMemcpyDeviceToHost));    
+                       device_hdf5_buffer, device_grid_buffer, mhd_direction);
+    CudaSafeCall(cudaMemcpy(hdf5_buffer, device_hdf5_buffer, nx_real * ny_real * nz_real * sizeof(Real),
+                            cudaMemcpyDeviceToHost));
     return;
   }
 
@@ -159,8 +162,8 @@ void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_
     dim3 dim1dGrid((nx_real * ny_real + TPB - 1) / TPB, 1, 1);
     dim3 dim1dBlock(TPB, 1, 1);
     hipLaunchKernelGGL(CopyReal2D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny, nx_real, ny_real, nz_real, n_ghost,
-		       device_hdf5_buffer, device_grid_buffer);
-    CudaSafeCall(cudaMemcpy(hdf5_buffer, device_hdf5_buffer, nx_real * ny_real * sizeof(Real), cudaMemcpyDeviceToHost));    
+                       device_hdf5_buffer, device_grid_buffer);
+    CudaSafeCall(cudaMemcpy(hdf5_buffer, device_hdf5_buffer, nx_real * ny_real * sizeof(Real), cudaMemcpyDeviceToHost));
     return;
   }
 
@@ -172,4 +175,3 @@ void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_
 }
 
 #endif  // HDF5
-

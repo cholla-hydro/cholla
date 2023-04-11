@@ -59,7 +59,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   #ifdef SCALAR
   Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS];
   Real scalar_L[NSCALARS], scalar_R[NSCALARS], dscalar_L[NSCALARS], dscalar_R[NSCALARS];
-  #endif  // SCALAR
+  #endif      // SCALAR
 
   #ifndef VL  // Don't use velocities to reconstruct when using VL
   Real dtodx = dt / dx;
@@ -283,7 +283,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
     #endif  // SCALAR
 
-  #endif  // NO VL
+  #endif    // NO VL
 
     // Convert the left and right states in the primitive to the conserved
     // variables send final values back from kernel bounds_R refers to the right
