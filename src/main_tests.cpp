@@ -86,7 +86,7 @@ class InputParser
   InputParser(int &argc, char **argv)
   {
     for (int i = 1; i < argc; ++i) {
-      this->_tokens.push_back(std::string(argv[i]));
+      this->_tokens.emplace_back(argv[i]);
     }
   }
   ~InputParser() = default;

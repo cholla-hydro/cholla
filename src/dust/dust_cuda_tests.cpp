@@ -1,8 +1,7 @@
 /*!
  * \file dust_cuda_tests.cpp
- * \author Helena Richie (helenarichie@pitt.edu)
- * \brief Test dust model functions
- *
+ * \author Helena Richie (helenarichie@gmail.com)
+ * \brief Tests for dust model functions.
  */
 
 // STL Includes
@@ -15,7 +14,7 @@
 #include <gtest/gtest.h>  // Include GoogleTest and related libraries/headers
 
 // Local Includes
-#include "../dust/dust_cuda.h"  // Include code to test
+#include "../dust/dust_cuda.h"
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"

@@ -89,6 +89,12 @@ void Grid3D::Set_Initial_Conditions(parameters P)
 #ifdef MHD
   } else if (strcmp(P.init, "Circularly_Polarized_Alfven_Wave") == 0) {
     Circularly_Polarized_Alfven_Wave(P);
+  } else if (strcmp(P.init, "Advecting_Field_Loop") == 0) {
+    Advecting_Field_Loop(P);
+  } else if (strcmp(P.init, "MHD_Spherical_Blast") == 0) {
+    MHD_Spherical_Blast(P);
+  } else if (strcmp(P.init, "Orszag_Tang_Vortex") == 0) {
+    Orszag_Tang_Vortex();
 #endif  // MHD
   } else {
     chprintf("ABORT: %s: Unknown initial conditions!\n", P.init);
@@ -1660,24 +1666,7 @@ void Grid3D::Circularly_Polarized_Alfven_Wave(struct parameters const P)
   }
 
   // Compute the magnetic field
-  for (int k = 1; k < H.nz; k++) {
-    for (int j = 1; j < H.ny; j++) {
-      for (int i = 1; i < H.nx; i++) {
-        // Get cell index. The "xmo" means: X direction Minus One
-        int const id    = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
-        int const idxmo = cuda_utilities::compute1DIndex(i - 1, j, k, H.nx, H.ny);
-        int const idymo = cuda_utilities::compute1DIndex(i, j - 1, k, H.nx, H.ny);
-        int const idzmo = cuda_utilities::compute1DIndex(i, j, k - 1, H.nx, H.ny);
-
-        C.magnetic_x[id] = (vectorPotential.at(id + 2 * H.n_cells) - vectorPotential.at(idymo + 2 * H.n_cells)) / H.dy -
-                           (vectorPotential.at(id + 1 * H.n_cells) - vectorPotential.at(idzmo + 1 * H.n_cells)) / H.dz;
-        C.magnetic_y[id] = (vectorPotential.at(id + 0 * H.n_cells) - vectorPotential.at(idzmo + 0 * H.n_cells)) / H.dz -
-                           (vectorPotential.at(id + 2 * H.n_cells) - vectorPotential.at(idxmo + 2 * H.n_cells)) / H.dx;
-        C.magnetic_z[id] = (vectorPotential.at(id + 1 * H.n_cells) - vectorPotential.at(idxmo + 1 * H.n_cells)) / H.dx -
-                           (vectorPotential.at(id + 0 * H.n_cells) - vectorPotential.at(idymo + 0 * H.n_cells)) / H.dy;
-      }
-    }
-  }
+  mhd::utils::Init_Magnetic_Field_With_Vector_Potential(H, C, vectorPotential);
 
   // set initial values of non-magnetic conserved variables
   for (int k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
@@ -1714,6 +1703,192 @@ void Grid3D::Circularly_Polarized_Alfven_Wave(struct parameters const P)
         C.momentum_y[id] = momentum_y_rot;
         C.momentum_z[id] = momentum_z_rot;
         C.Energy[id]     = energy;
+      }
+    }
+  }
+}
+
+void Grid3D::Advecting_Field_Loop(struct parameters const P)
+{
+  // This test is only meaningful for a limited number of parameter values so I will check them here
+  // Check that the domain is centered on zero
+  assert((P.xmin + P.xlen / 2) == 0 and (P.ymin + P.ylen / 2) == 0 and (P.zmin + P.zlen / 2 == 0) and
+         "Domain must be centered at zero");
+
+  // Check that P.radius is smaller than the size of the domain
+  Real const domain_size = std::hypot(P.xlen / 2, P.ylen / 2, P.zlen / 2);
+  assert(domain_size > P.radius and "The size of the domain must be greater than P.radius");
+
+  // Compute the vector potential. Since the vector potential std::vector is initialized to zero I will only assign new
+  // values when required and ignore the cases where I would be assigning zero
+  std::vector<Real> vectorPotential(3 * H.n_cells, 0);
+  for (int k = 0; k < H.nz; k++) {
+    for (int j = 0; j < H.ny; j++) {
+      for (int i = 0; i < H.nx; i++) {
+        // Get cell index
+        int const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        // Get the cell centered positions
+        Real x, y, z;
+        Get_Position(i, j, k, &x, &y, &z);
+
+        // Y vector potential
+        Real radius = std::hypot(x + H.dx / 2., y, z + H.dz / 2.);
+        if (radius < P.radius) {
+          vectorPotential.at(id + 1 * H.n_cells) = P.A * (P.radius - radius);
+        }
+
+        // Z vector potential
+        radius = std::hypot(x + H.dx / 2., y + H.dy / 2., z);
+        if (radius < P.radius) {
+          vectorPotential.at(id + 2 * H.n_cells) = P.A * (P.radius - radius);
+        }
+      }
+    }
+  }
+
+  // Initialize the magnetic fields
+  mhd::utils::Init_Magnetic_Field_With_Vector_Potential(H, C, vectorPotential);
+
+  // Initialize the hydro variables
+  for (int k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
+        // get cell index
+        int const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        // Compute the cell centered magnetic fields
+        auto const magnetic_centered =
+            mhd::utils::cellCenteredMagneticFields(C.host, id, i, j, k, H.n_cells, H.nx, H.ny);
+
+        // Assignment
+        C.density[id]    = P.rho;
+        C.momentum_x[id] = P.rho * P.vx;
+        C.momentum_y[id] = P.rho * P.vy;
+        C.momentum_z[id] = P.rho * P.vz;
+        C.Energy[id]     = mhd::utils::computeEnergy(P.P, P.rho, C.momentum_x[id] / P.rho, C.momentum_y[id] / P.rho,
+                                                     C.momentum_z[id] / P.rho, magnetic_centered.x, magnetic_centered.y,
+                                                     magnetic_centered.z, ::gama);
+      }
+    }
+  }
+}
+
+void Grid3D::MHD_Spherical_Blast(struct parameters const P)
+{
+  // This test is only meaningful for a limited number of parameter values so I will check them here
+  // Check that the domain is centered on zero
+  assert((P.xmin + P.xlen / 2) == 0 and (P.ymin + P.ylen / 2) == 0 and (P.zmin + P.zlen / 2 == 0) and
+         "Domain must be centered at zero");
+
+  // Check that P.radius is smaller than the size of the domain
+  Real const domain_size = std::hypot(P.xlen / 2, P.ylen / 2, P.zlen / 2);
+  assert(domain_size > P.radius and "The size of the domain must be greater than P.radius");
+
+  // Initialize the magnetic field
+  for (int k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
+        // get cell index
+        int const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        C.magnetic_x[id] = P.Bx;
+        C.magnetic_y[id] = P.By;
+        C.magnetic_z[id] = P.Bz;
+      }
+    }
+  }
+
+  for (int k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
+        // get cell index
+        int const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        // Set the fields that don't depend on pressure
+        C.density[id]    = P.rho;
+        C.momentum_x[id] = P.rho * P.vx;
+        C.momentum_y[id] = P.rho * P.vy;
+        C.momentum_z[id] = P.rho * P.vz;
+
+        // Get the cell centered positions
+        Real x, y, z;
+        Get_Position(i, j, k, &x, &y, &z);
+
+        // Compute the magnetic field in this cell
+        auto const magnetic_centered =
+            mhd::utils::cellCenteredMagneticFields(C.host, id, i, j, k, H.n_cells, H.nx, H.ny);
+
+        // Set the field(s) that do depend on pressure. That's just energy
+        Real radius = std::hypot(x, y, z);
+        if (radius < P.radius) {
+          C.Energy[id] = mhd::utils::computeEnergy(
+              P.P_blast, C.density[id], C.momentum_x[id] / C.density[id], C.momentum_y[id] / C.density[id],
+              C.momentum_z[id] / C.density[id], magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
+        } else {
+          C.Energy[id] = mhd::utils::computeEnergy(
+              P.P, C.density[id], C.momentum_x[id] / C.density[id], C.momentum_y[id] / C.density[id],
+              C.momentum_z[id] / C.density[id], magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
+        }
+      }
+    }
+  }
+}
+
+void Grid3D::Orszag_Tang_Vortex()
+{
+  // This problem requires specific parameters so I will define them here
+  Real const magnetic_background = 1.0 / std::sqrt(4.0 * M_PI);
+  Real const density_background  = 25.0 / (36.0 * M_PI);
+  Real const velocity_background = 1.0;
+  Real const pressure_background = 5.0 / (12.0 * M_PI);
+
+  // Compute the vector potential. Since the vector potential std::vector is initialized to zero I will only assign new
+  // values when required and ignore the cases where I would be assigning zero
+  std::vector<Real> vectorPotential(3 * H.n_cells, 0);
+  for (int k = 0; k < H.nz; k++) {
+    for (int j = 0; j < H.ny; j++) {
+      for (int i = 0; i < H.nx; i++) {
+        // Get cell index
+        int const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        // Get the cell centered positions
+        Real x, y, z;
+        Get_Position(i, j, k, &x, &y, &z);
+
+        // Z vector potential
+        vectorPotential.at(id + 2 * H.n_cells) = (magnetic_background / 4.0 * M_PI) * std::cos(4.0 * M_PI * x) -
+                                                 (magnetic_background / 2.0 * M_PI) * std::cos(2.0 * M_PI * y);
+      }
+    }
+  }
+
+  // Initialize the magnetic fields
+  mhd::utils::Init_Magnetic_Field_With_Vector_Potential(H, C, vectorPotential);
+
+  // Initialize the hydro variables
+  for (int k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
+        // get cell index
+        int const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        // Get the cell centered positions
+        Real x, y, z;
+        Get_Position(i, j, k, &x, &y, &z);
+
+        // Compute the cell centered magnetic fields
+        auto const magnetic_centered =
+            mhd::utils::cellCenteredMagneticFields(C.host, id, i, j, k, H.n_cells, H.nx, H.ny);
+
+        // Assignment
+        C.density[id]    = density_background;
+        C.momentum_x[id] = density_background * velocity_background * std::sin(2.0 * M_PI * y);
+        C.momentum_y[id] = -density_background * velocity_background * std::sin(2.0 * M_PI * x);
+        C.momentum_z[id] = 0.0;
+        C.Energy[id] = mhd::utils::computeEnergy(pressure_background, C.density[id], C.momentum_x[id] / C.density[id],
+                                                 C.momentum_y[id] / C.density[id], C.momentum_z[id] / C.density[id],
+                                                 magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
       }
     }
   }
