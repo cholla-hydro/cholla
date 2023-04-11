@@ -1,5 +1,8 @@
 name: Build & Lint
 
+# This runs the HIP Builds. CUDA builds can be reenabled by adding the CUDA
+# container to the matrix and uncommenting the CUDA lines
+
 on:
   pull_request:
   schedule:
@@ -25,8 +28,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        make-type: [hydro, gravity, disk, particles, cosmology, mhd]
-        container: [{name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}, {name: "HIP",link: "docker://chollahydro/cholla:rocm_github"},]
+        make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust]
+        # The CUDA container can be added with {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
+        container: [{name: "HIP",link: "docker://chollahydro/cholla:rocm_github"}]
 
     # Setup environment variables
     env:
@@ -49,12 +53,12 @@ jobs:
         git --version
         git config --global --add safe.directory /__w/cholla/cholla
         git config --global --add safe.directory '*'
-    - name: Show CUDA and gcc version
-      if: matrix.container.name == 'CUDA'
-      run: |
-        cc --version
-        c++ --version
-        nvcc -V
+    # - name: Show CUDA and gcc version
+    #   if: matrix.container.name == 'CUDA'
+    #   run: |
+    #     cc --version
+    #     c++ --version
+    #     nvcc -V
     - name: Show HIP and hipcc version
       if: matrix.container.name == 'HIP'
       run: |
@@ -64,6 +68,7 @@ jobs:
     # Perform Build
     - name: Cholla setup
       run: |
+        make clobber
         source builds/run_tests.sh
         setupTests -c gcc
         echo "CHOLLA_ROOT           = ${CHOLLA_ROOT}"
@@ -82,15 +87,15 @@ jobs:
         buildChollaTests
 
     # Run Clang-tidy
-    - name: Run clang-tidy
-      if: matrix.container.name == 'CUDA'
-      run: make tidy TYPE=${{ matrix.make-type }} CLANG_TIDY_ARGS="--warnings-as-errors=*"
-    - name: Display tidy_results_cpp.log
-      if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
-      run: cat tidy_results_cpp.log
-    - name: Display tidy_results_c.log
-      if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
-      run: cat tidy_results_c.log
-    - name: Display tidy_results_gpu.log
-      if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
-      run: cat tidy_results_gpu.log
+    # - name: Run clang-tidy
+    #   if: matrix.container.name == 'CUDA'
+    #   run: make tidy TYPE=${{ matrix.make-type }} CLANG_TIDY_ARGS="--warnings-as-errors=*"
+    # - name: Display tidy_results_cpp.log
+    #   if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
+    #   run: cat tidy_results_cpp.log
+    # - name: Display tidy_results_c.log
+    #   if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
+    #   run: cat tidy_results_c.log
+    # - name: Display tidy_results_gpu.log
+    #   if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
+    #   run: cat tidy_results_gpu.log

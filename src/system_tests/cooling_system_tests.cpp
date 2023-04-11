@@ -13,10 +13,6 @@
 #include "../system_tests/system_tester.h"
 #include "../utils/testing_utilities.h"
 
-#ifndef PI
-  #define PI 3.141592653589793
-#endif
-
 #define COOL_RHO 6.9498489284711
 
 TEST(tCOOLINGSYSTEMConstant5, CorrectInputExpectCorrectOutput)

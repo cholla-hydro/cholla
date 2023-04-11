@@ -121,7 +121,9 @@ Real phi_halo_D3D(Real R, Real z, Real *hdp)
   Real C = GN * M_h / (R_h * log_func(c_vir));
 
   // limit x to non-zero value
-  if (x < 1.0e-9) x = 1.0e-9;
+  if (x < 1.0e-9) {
+    x = 1.0e-9;
+  }
 
   // checked with wolfram alpha
   return -C * log(1 + x) / x;
@@ -168,10 +170,10 @@ Real z_hc_D3D(int k, Real dz, int nz, int ng)
   // the real domain, and nz + 2*ng spanning the real + ghost domains
   if (!(nz % 2)) {
     // even # of cells
-    return 0.5 * dz + ((Real)(k - ng - nz / 2)) * dz;
+    return 0.5 * dz + ((Real)(k - ng - (int)(nz / 2))) * dz;
   } else {
     // odd # of cells
-    return ((Real)(k - ng - (nz - 1) / 2)) * dz;
+    return ((Real)(k - ng - (int)((nz - 1) / 2))) * dz;
   }
 }
 
@@ -188,8 +190,7 @@ Real r_hc_D3D(int i, Real dr)
  *  \brief Calculate the density at spherical radius r due to a hydrostatic
  halo. Uses an analytic expression normalized by the value of the potential at
  the cooling radius. */
-void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real dr,
-                                    int nr)
+void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real dr, int nr)
 {
   // Routine to determine the hydrostatic density profile
   // along a ray from the galaxy center
@@ -216,9 +217,7 @@ void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real dr,
   // store densities
   for (i = 0; i < nr; i++) {
     r[i]   = r_hc_D3D(i, dr);
-    rho[i] = rho_eos * pow(D_rho - gmo * (phi_hot_halo_D3D(r[i], hdp) - Phi_0) /
-                                       (cs * cs),
-                           1. / gmo);
+    rho[i] = rho_eos * pow(D_rho - gmo * (phi_hot_halo_D3D(r[i], hdp) - Phi_0) / (cs * cs), 1. / gmo);
   }
 }
 
@@ -228,8 +227,7 @@ void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real dr,
  assuming an isothermal gas. Uses an iterative to scheme to determine the
  density at (R, z=0) relative to (R=0,z=0), then sets the densities according to
  an analytic expression. */
-void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz,
-                                       int nz, int ng)
+void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, int nz, int ng)
 {
   // x is cell center in x direction
   // y is cell center in y direction
@@ -312,18 +310,21 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz,
   z_1   = z_hc_D3D(ks, dz, nz, ng) + 0.5 * dz;  // cell ceiling
   D_rho = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
 
-  if (exp(-1 * D_rho) < 0.1)
+  if (exp(-1 * D_rho) < 0.1) {
     printf(
         "WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e "
         "Phi_0 %E cs %e\n",
         R, D_rho, z_1, phi_total_D3D(R, z_1, hdp), Phi_0, cs);
+  }
 
   // let's find the cell above the disk where the
   // density falls by exp(-7) < 1.0e-3.
   for (k = ks; k < nzt; k++) {
     z_1   = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;  // cell ceiling
     D_rho = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
-    if (D_rho >= 7.0) break;
+    if (D_rho >= 7.0) {
+      break;
+    }
   }
   // if(R<1.0)
   //   printf("Cells above disk (k-ks) = %d, z_1 = %e, exp(-D) = %e, R =
@@ -354,7 +355,9 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz,
     // find cell center, bottom, and top
     z_int_min = z_hc_D3D(k, dz, nz, ng) - 0.5 * dz;
     z_int_max = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;
-    if (z_int_max > z_disk_max) z_int_max = z_disk_max;
+    if (z_int_max > z_disk_max) {
+      z_int_max = z_disk_max;
+    }
     if (!flag) {
       dz_int  = (z_int_max - z_int_min) / ((Real)(n_int));
       phi_int = 0.0;
@@ -388,7 +391,9 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz,
 
   // check the surface density
   phi_int = 0.0;
-  for (k = 0; k < nzt; k++) phi_int += rho[k] * dz;
+  for (k = 0; k < nzt; k++) {
+    phi_int += rho[k] * dz;
+  }
 
   // printf("Surface density check R %e Sigma_r %e integral(rho*dz)
   // %e\n",R,Sigma_r,phi_int); printf("Done with isothermal disk.\n");
@@ -399,8 +404,7 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz,
  *  \brief Calculate the 1D density distribution in a hydrostatic column.
      Uses an iterative to scheme to determine the density at (R, z=0) relative
  to (R=0,z=0), then sets the densities according to an analytic expression. */
-void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz,
-                                       int nz, int ng)
+void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, int nz, int ng)
 {
   // x is cell center in x direction
   // y is cell center in y direction
@@ -503,7 +507,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz,
       A_0 = D_rho - (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
       A_1 = D_rho - (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
       z_2 = z_1 - A_1 * (z_1 - z_0) / (A_1 - A_0);
-      if (fabs(z_2 - z_1) / fabs(z_1) > 10.) z_2 = 10. * z_1;
+      if (fabs(z_2 - z_1) / fabs(z_1) > 10.) {
+        z_2 = 10. * z_1;
+      }
       // advance limit
       z_0 = z_1;
       z_1 = z_2;
@@ -513,15 +519,16 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz,
         A_0      = D_rho - (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
         A_1      = D_rho - (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
         // make sure we haven't crossed 0
-        if (A_1 < 0) z_1 = z_0;
+        if (A_1 < 0) {
+          z_1 = z_0;
+        }
       }
       iter_phi++;
       if (iter_phi > 1000) {
         printf("Something wrong in determining central density...\n");
         printf("iter_phi = %d\n", iter_phi);
-        printf("z_0 %e z_1 %e z_2 %e A_0 %e A_1 %e phi_0 %e phi_1 %e\n", z_0,
-               z_1, z_2, A_0, A_1, phi_total_D3D(R, z_0, hdp),
-               phi_total_D3D(R, z_1, hdp));
+        printf("z_0 %e z_1 %e z_2 %e A_0 %e A_1 %e phi_0 %e phi_1 %e\n", z_0, z_1, z_2, A_0, A_1,
+               phi_total_D3D(R, z_0, hdp), phi_total_D3D(R, z_1, hdp));
 #ifdef MPI_CHOLLA
         MPI_Finalize();
 #endif
@@ -571,7 +578,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz,
     // find cell center, bottom, and top
     z_int_min = z_hc_D3D(k, dz, nz, ng) - 0.5 * dz;
     z_int_max = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;
-    if (z_int_max > z_disk_max) z_int_max = z_disk_max;
+    if (z_int_max > z_disk_max) {
+      z_int_max = z_disk_max;
+    }
     if (!flag) {
       dz_int  = (z_int_max - z_int_min) / ((Real)(n_int));
       phi_int = 0.0;
@@ -601,14 +610,15 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz,
     } else {
       km = ng + nz / 2 - (k - ks) - 1;
     }
-    rho[km] = rho[k];
-    Delta_phi =
-        (phi_total_D3D(R, z_hc_D3D(k, dz, nz, ng), hdp) - Phi_0) / (cs * cs);
+    rho[km]   = rho[k];
+    Delta_phi = (phi_total_D3D(R, z_hc_D3D(k, dz, nz, ng), hdp) - Phi_0) / (cs * cs);
   }
 
   // check the surface density
   phi_int = 0.0;
-  for (k = 0; k < nzt; k++) phi_int += rho[k] * dz;
+  for (k = 0; k < nzt; k++) {
+    phi_int += rho[k] * dz;
+  }
 }
 
 Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
@@ -639,7 +649,9 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
     A_1 = 1.0 - (phi_total_D3D(0, z_1, hdp) - Phi_0) / (cs * cs);
     z_2 = z_1 - A_1 * (z_1 - z_0) / (A_1 - A_0);
 
-    if (fabs(z_2 - z_1) / fabs(z_1) > 10.) z_2 = 10. * z_1;
+    if (fabs(z_2 - z_1) / fabs(z_1) > 10.) {
+      z_2 = 10. * z_1;
+    }
 
     // advance limit
     z_0 = z_1;
@@ -651,15 +663,16 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
       A_0      = 1.0 - (phi_total_D3D(0, z_0, hdp) - Phi_0) / (cs * cs);
       A_1      = 1.0 - (phi_total_D3D(0, z_1, hdp) - Phi_0) / (cs * cs);
       // make sure we haven't crossed 0
-      if (A_1 < 0) z_1 = z_0;
+      if (A_1 < 0) {
+        z_1 = z_0;
+      }
     }
     iter_phi++;
     if (iter_phi > 1000) {
       printf("Something wrong in determining central density...\n");
       printf("iter_phi = %d\n", iter_phi);
-      printf("z_0 %e z_1 %e z_2 %e A_0 %e A_1 %e phi_0 %e phi_1 %e\n", z_0, z_1,
-             z_2, A_0, A_1, phi_total_D3D(0, z_0, hdp),
-             phi_total_D3D(0, z_1, hdp));
+      printf("z_0 %e z_1 %e z_2 %e A_0 %e A_1 %e phi_0 %e phi_1 %e\n", z_0, z_1, z_2, A_0, A_1,
+             phi_total_D3D(0, z_0, hdp), phi_total_D3D(0, z_1, hdp));
 #ifdef MPI_CHOLLA
       MPI_Finalize();
 #endif
@@ -716,9 +729,7 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
     }
   }
   // return the interpolated density profile
-  return (rho_halo[i + 1] - rho_halo[i]) * (r - r_halo[i]) /
-             (r_halo[i + 1] - r_halo[i]) +
-         rho_halo[i];
+  return (rho_halo[i + 1] - rho_halo[i]) * (r - r_halo[i]) / (r_halo[i + 1] - r_halo[i]) + rho_halo[i];
 }
 
 /*! \fn void Disk_3D(parameters P)
@@ -753,27 +764,23 @@ void Grid3D::Disk_3D(parameters p)
   R_s = R_vir / c_vir;  // halo scale length in kpc
   // T_d = 5.9406e5; // SET TO MATCH K_EOS SET BY HAND for K_eos = 1.859984e-14
   // T_d = 2.0e5;
-  T_d     = 1.0e4;  // CHANGED FOR ISOTHERMAL
-  T_h     = 1.0e6;  // halo temperature, at density floor
-  rho_eos = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
-  rho_eos_h =
-      3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
-  mu = 0.6;
+  T_d       = 1.0e4;  // CHANGED FOR ISOTHERMAL
+  T_h       = 1.0e6;  // halo temperature, at density floor
+  rho_eos   = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
+  rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
+  mu        = 0.6;
 
-  R_g     = 2.0 * R_d;  // gas scale length in kpc
-  Sigma_0 = 0.25 * M_d /
-            (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
-  H_g = z_d;                         // initial guess for gas scale height
+  R_g     = 2.0 * R_d;                            // gas scale length in kpc
+  Sigma_0 = 0.25 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
+  H_g     = z_d;                                  // initial guess for gas scale height
   // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
   // EOS info
-  cs = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT /
-       LENGTH_UNIT;  // sound speed in kpc/kyr
-  cs_h = sqrt(KB * T_h / (mu * MP)) * TIME_UNIT /
-         LENGTH_UNIT;  // sound speed in kpc/kyr
+  cs   = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
+  cs_h = sqrt(KB * T_h / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
 
   // set some initial parameters
-  int nhdp  = 21;  // number of parameters to pass hydrostatic column
+  int nhdp  = 21;                                  // number of parameters to pass hydrostatic column
   Real *hdp = (Real *)calloc(nhdp, sizeof(Real));  // parameters
   hdp[0]    = M_vir;
   hdp[1]    = M_d;
@@ -918,37 +925,37 @@ void Grid3D::Disk_3D(parameters p)
 
           //  pressure gradient along x direction
           // gradient calc is first order at boundaries
-          if (i == H.n_ghost)
+          if (i == H.n_ghost) {
             idm = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idm = (i - 1) + j * H.nx + k * H.nx * H.ny;
-          if (i == H.nx - H.n_ghost - 1)
+          }
+          if (i == H.nx - H.n_ghost - 1) {
             idp = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idp = (i + 1) + j * H.nx + k * H.nx * H.ny;
+          }
           Get_Position(i - 1, j, k, &xpm, &ypm, &zpm);
           Get_Position(i + 1, j, k, &xpp, &ypp, &zpp);
-          Pm = C.Energy[idm] *
-               (gama - 1.0);  // only internal energy stored in energy currently
-          Pp = C.Energy[idp] *
-               (gama - 1.0);  // only internal energy stored in energy currently
+          Pm   = C.Energy[idm] * (gama - 1.0);  // only internal energy stored in energy currently
+          Pp   = C.Energy[idp] * (gama - 1.0);  // only internal energy stored in energy currently
           dPdx = (Pp - Pm) / (xpp - xpm);
 
           // pressure gradient along y direction
-          if (j == H.n_ghost)
+          if (j == H.n_ghost) {
             idm = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idm = i + (j - 1) * H.nx + k * H.nx * H.ny;
-          if (j == H.ny - H.n_ghost - 1)
+          }
+          if (j == H.ny - H.n_ghost - 1) {
             idp = i + j * H.nx + k * H.nx * H.ny;
-          else
+          } else {
             idp = i + (j + 1) * H.nx + k * H.nx * H.ny;
+          }
           Get_Position(i, j - 1, k, &xpm, &ypm, &zpm);
           Get_Position(i, j + 1, k, &xpp, &ypp, &zpm);
-          Pm = C.Energy[idm] *
-               (gama - 1.0);  // only internal energy stored in energy currently
-          Pp = C.Energy[idp] *
-               (gama - 1.0);  // only internal energy stored in energy currently
+          Pm   = C.Energy[idm] * (gama - 1.0);  // only internal energy stored in energy currently
+          Pp   = C.Energy[idp] * (gama - 1.0);  // only internal energy stored in energy currently
           dPdy = (Pp - Pm) / (ypp - ypm);
 
           // radial pressure gradient
@@ -980,20 +987,17 @@ void Grid3D::Disk_3D(parameters p)
 
             // sheepishly check for NaN's!
 
-            if ((d < 0) || (P < 0) || (isnan(d)) || (isnan(P)) || (d != d) ||
-                (P != P))
+            if ((d < 0) || (P < 0) || (isnan(d)) || (isnan(P)) || (d != d) || (P != P)) {
               printf("d %e P %e i %d j %d k %d id %d\n", d, P, i, j, k, id);
+            }
 
-            if ((isnan(vx)) || (isnan(vy)) || (isnan(vz)) || (vx != vx) ||
-                (vy != vy) || (vz != vz)) {
-              printf("vx %e vy %e vz %e i %d j %d k %d id %d\n", vx, vy, vz, i,
-                     j, k, id);
+            if ((isnan(vx)) || (isnan(vy)) || (isnan(vz)) || (vx != vx) || (vy != vy) || (vz != vz)) {
+              printf("vx %e vy %e vz %e i %d j %d k %d id %d\n", vx, vy, vz, i, j, k, id);
             } else {
               // if the density is negative, there
               // is a bigger problem!
               if (d < 0) {
-                printf("pid %d error negative density i %d j %d k %d d %e\n",
-                       -1, i, j, k, d);
+                printf("pid %d error negative density i %d j %d k %d d %e\n", -1, i, j, k, d);
               }
             }
           }
@@ -1053,8 +1057,7 @@ void Grid3D::Disk_3D(parameters p)
 
         // add kinetic contribution to total energy
         C.Energy[id] += 0.5 *
-                        (C.momentum_x[id] * C.momentum_x[id] +
-                         C.momentum_y[id] * C.momentum_y[id] +
+                        (C.momentum_x[id] * C.momentum_x[id] + C.momentum_y[id] * C.momentum_y[id] +
                          C.momentum_z[id] * C.momentum_z[id]) /
                         C.density[id];
       }

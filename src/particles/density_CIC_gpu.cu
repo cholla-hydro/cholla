@@ -14,8 +14,7 @@
   #ifdef GRAVITY_GPU
 void Grid3D::Copy_Particles_Density_to_GPU()
 {
-  CudaSafeCall(cudaMemcpy(Particles.G.density_dev, Particles.G.density,
-                          Particles.G.n_cells * sizeof(Real),
+  CudaSafeCall(cudaMemcpy(Particles.G.density_dev, Particles.G.density, Particles.G.n_cells * sizeof(Real),
                           cudaMemcpyHostToDevice));
 }
 
@@ -32,18 +31,15 @@ __device__ double atomicAdd(double *address, double val)
   unsigned long long int old             = *address_as_ull, assumed;
   do {
     assumed = old;
-    old     = atomicCAS(address_as_ull, assumed,
-                        __double_as_longlong(val + __longlong_as_double(assumed)));
+    old     = atomicCAS(address_as_ull, assumed, __double_as_longlong(val + __longlong_as_double(assumed)));
   } while (assumed != old);
   return __longlong_as_double(old);
 }
     #endif
 
 // Get the CIC index from the particle position ( device function )
-__device__ void Get_Indexes_CIC(Real xMin, Real yMin, Real zMin, Real dx,
-                                Real dy, Real dz, Real pos_x, Real pos_y,
-                                Real pos_z, int &indx_x, int &indx_y,
-                                int &indx_z)
+__device__ void Get_Indexes_CIC(Real xMin, Real yMin, Real zMin, Real dx, Real dy, Real dz, Real pos_x, Real pos_y,
+                                Real pos_z, int &indx_x, int &indx_y, int &indx_z)
 {
   indx_x = (int)floor((pos_x - xMin - 0.5 * dx) / dx);
   indx_y = (int)floor((pos_y - yMin - 0.5 * dy) / dy);
@@ -51,16 +47,15 @@ __device__ void Get_Indexes_CIC(Real xMin, Real yMin, Real zMin, Real dx,
 }
 
 // CUDA Kernel to compute the CIC density from the particles positions
-__global__ void Get_Density_CIC_Kernel(part_int_t n_local, Real particle_mass,
-                                       Real *density_dev, Real *pos_x_dev,
-                                       Real *pos_y_dev, Real *pos_z_dev,
-                                       Real *mass_dev, Real xMin, Real yMin,
-                                       Real zMin, Real xMax, Real yMax,
-                                       Real zMax, Real dx, Real dy, Real dz,
-                                       int nx, int ny, int nz, int n_ghost)
+__global__ void Get_Density_CIC_Kernel(part_int_t n_local, Real particle_mass, Real *density_dev, Real *pos_x_dev,
+                                       Real *pos_y_dev, Real *pos_z_dev, Real *mass_dev, Real xMin, Real yMin,
+                                       Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx,
+                                       int ny, int nz, int n_ghost)
 {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   int nx_g, ny_g;
   nx_g = nx + 2 * n_ghost;
@@ -82,14 +77,19 @@ __global__ void Get_Density_CIC_Kernel(part_int_t n_local, Real particle_mass,
     #endif
 
   int indx_x, indx_y, indx_z, indx;
-  Get_Indexes_CIC(xMin, yMin, zMin, dx, dy, dz, pos_x, pos_y, pos_z, indx_x,
-                  indx_y, indx_z);
+  Get_Indexes_CIC(xMin, yMin, zMin, dx, dy, dz, pos_x, pos_y, pos_z, indx_x, indx_y, indx_z);
 
   bool in_local = true;
 
-  if (pos_x < xMin || pos_x >= xMax) in_local = false;
-  if (pos_y < yMin || pos_y >= yMax) in_local = false;
-  if (pos_z < zMin || pos_z >= zMax) in_local = false;
+  if (pos_x < xMin || pos_x >= xMax) {
+    in_local = false;
+  }
+  if (pos_y < yMin || pos_y >= yMax) {
+    in_local = false;
+  }
+  if (pos_z < zMin || pos_z >= zMax) {
+    in_local = false;
+  }
   if (!in_local) {
     printf(
         " Density CIC Error: Particle outside local domain [%f  %f  %f]  [%f "
@@ -126,23 +126,19 @@ __global__ void Get_Density_CIC_Kernel(part_int_t n_local, Real particle_mass,
 
   indx = (indx_x + 1) + (indx_y + 1) * nx_g + indx_z * nx_g * ny_g;
   // density_dev[indx] += pMass  * (1-delta_x) * (1-delta_y) * delta_z;
-  atomicAdd(&density_dev[indx],
-            pMass * (1 - delta_x) * (1 - delta_y) * delta_z);
+  atomicAdd(&density_dev[indx], pMass * (1 - delta_x) * (1 - delta_y) * delta_z);
 
   indx = (indx_x + 1) + indx_y * nx_g + (indx_z + 1) * nx_g * ny_g;
   // density_dev[indx] += pMass  * (1-delta_x) * delta_y * (1-delta_z);
-  atomicAdd(&density_dev[indx],
-            pMass * (1 - delta_x) * delta_y * (1 - delta_z));
+  atomicAdd(&density_dev[indx], pMass * (1 - delta_x) * delta_y * (1 - delta_z));
 
   indx = indx_x + (indx_y + 1) * nx_g + (indx_z + 1) * nx_g * ny_g;
   // density_dev[indx] += pMass  * delta_x * (1-delta_y) * (1-delta_z);
-  atomicAdd(&density_dev[indx],
-            pMass * delta_x * (1 - delta_y) * (1 - delta_z));
+  atomicAdd(&density_dev[indx], pMass * delta_x * (1 - delta_y) * (1 - delta_z));
 
   indx = (indx_x + 1) + (indx_y + 1) * nx_g + (indx_z + 1) * nx_g * ny_g;
   // density_dev[indx] += pMass * (1-delta_x) * (1-delta_y) * (1-delta_z);
-  atomicAdd(&density_dev[indx],
-            pMass * (1 - delta_x) * (1 - delta_y) * (1 - delta_z));
+  atomicAdd(&density_dev[indx], pMass * (1 - delta_x) * (1 - delta_y) * (1 - delta_z));
 }
 
 // Clear the density array: density=0
@@ -152,12 +148,11 @@ void Particles_3D::Clear_Density_GPU_function(Real *density_dev, int n_cells)
 }
 
 // Call the CIC density kernel to get the particles density
-void Particles_3D::Get_Density_CIC_GPU_function(
-    part_int_t n_local, Real particle_mass, Real xMin, Real xMax, Real yMin,
-    Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local,
-    int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells,
-    Real *density_h, Real *density_dev, Real *pos_x_dev, Real *pos_y_dev,
-    Real *pos_z_dev, Real *mass_dev)
+void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particle_mass, Real xMin, Real xMax, Real yMin,
+                                                Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz,
+                                                int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid,
+                                                int n_cells, Real *density_h, Real *density_dev, Real *pos_x_dev,
+                                                Real *pos_y_dev, Real *pos_z_dev, Real *mass_dev)
 {
   // set values for GPU kernels
   int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -168,19 +163,16 @@ void Particles_3D::Get_Density_CIC_GPU_function(
 
   // Only runs if there are local particles
   if (n_local > 0) {
-    hipLaunchKernelGGL(Get_Density_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0,
-                       n_local, particle_mass, density_dev, pos_x_dev,
-                       pos_y_dev, pos_z_dev, mass_dev, xMin, yMin, zMin, xMax,
-                       yMax, zMax, dx, dy, dz, nx_local, ny_local, nz_local,
-                       n_ghost_particles_grid);
+    hipLaunchKernelGGL(Get_Density_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, particle_mass, density_dev,
+                       pos_x_dev, pos_y_dev, pos_z_dev, mass_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz,
+                       nx_local, ny_local, nz_local, n_ghost_particles_grid);
     CudaCheckError();
     cudaDeviceSynchronize();
   }
 
     #if !defined(GRAVITY_GPU)
   // Copy the density from device to host
-  CudaSafeCall(cudaMemcpy(density_h, density_dev, n_cells * sizeof(Real),
-                          cudaMemcpyDeviceToHost));
+  CudaSafeCall(cudaMemcpy(density_h, density_dev, n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
     #endif
 }
 

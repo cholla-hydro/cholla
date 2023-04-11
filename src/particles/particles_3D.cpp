@@ -23,17 +23,13 @@
     #include "../utils/parallel_omp.h"
   #endif
 
-Particles_3D::Particles_3D(void)
-    : TRANSFER_DENSITY_BOUNDARIES(false), TRANSFER_PARTICLES_BOUNDARIES(false)
-{
-}
+Particles_3D::Particles_3D(void) : TRANSFER_DENSITY_BOUNDARIES(false), TRANSFER_PARTICLES_BOUNDARIES(false) {}
 
 void Grid3D::Initialize_Particles(struct parameters *P)
 {
   chprintf("\nInitializing Particles...\n");
 
-  Particles.Initialize(P, Grav, H.xbound, H.ybound, H.zbound, H.xdglobal,
-                       H.ydglobal, H.zdglobal);
+  Particles.Initialize(P, Grav, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal);
 
   #if defined(PARTICLES_GPU) && defined(GRAVITY_GPU)
   // Set the GPU array for the particles potential equal to the Gravity GPU
@@ -41,7 +37,9 @@ void Grid3D::Initialize_Particles(struct parameters *P)
   Particles.G.potential_dev = Grav.F.potential_d;
   #endif
 
-  if (strcmp(P->init, "Uniform") == 0) Initialize_Uniform_Particles();
+  if (strcmp(P->init, "Uniform") == 0) {
+    Initialize_Uniform_Particles();
+  }
 
   #ifdef MPI_CHOLLA
   MPI_Barrier(world);
@@ -49,8 +47,7 @@ void Grid3D::Initialize_Particles(struct parameters *P)
   chprintf("Particles Initialized Successfully. \n\n");
 }
 
-void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound,
-                              Real ybound, Real zbound, Real xdglobal,
+void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound, Real ybound, Real zbound, Real xdglobal,
                               Real ydglobal, Real zdglobal)
 {
   // Initialize local and total number of particles to 0
@@ -148,8 +145,7 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound,
   G.n_ghost_particles_grid = 1;
 
   // Number of cells for the particles grid including ghost cells
-  G.n_cells = (G.nx_local + 2 * G.n_ghost_particles_grid) *
-              (G.ny_local + 2 * G.n_ghost_particles_grid) *
+  G.n_cells = (G.nx_local + 2 * G.n_ghost_particles_grid) * (G.ny_local + 2 * G.n_ghost_particles_grid) *
               (G.nz_local + 2 * G.n_ghost_particles_grid);
 
   // Set the boundary types
@@ -180,8 +176,7 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound,
     #endif
 
   G.size_blocks_array = 1024 * 128;
-  G.n_cells_potential = (G.nx_local + 2 * N_GHOST_POTENTIAL) *
-                        (G.ny_local + 2 * N_GHOST_POTENTIAL) *
+  G.n_cells_potential = (G.nx_local + 2 * N_GHOST_POTENTIAL) * (G.ny_local + 2 * N_GHOST_POTENTIAL) *
                         (G.nz_local + 2 * N_GHOST_POTENTIAL);
 
     #ifdef SINGLE_PARTICLE_MASS
@@ -201,17 +196,17 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound,
   Initialize_Grid_Values();
 
   // Initialize Particles
-  if (strcmp(P->init, "Spherical_Overdensity_3D") == 0)
+  if (strcmp(P->init, "Spherical_Overdensity_3D") == 0) {
     Initialize_Sphere(P);
-  else if (strcmp(P->init, "Zeldovich_Pancake") == 0)
+  } else if (strcmp(P->init, "Zeldovich_Pancake") == 0) {
     Initialize_Zeldovich_Pancake(P);
-  else if (strcmp(P->init, "Read_Grid") == 0)
+  } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
-  #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && \
-      defined(PARTICLE_IDS)
-  else if (strcmp(P->init, "Disk_3D_particles") == 0)
+  #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
+  } else if (strcmp(P->init, "Disk_3D_particles") == 0) {
     Initialize_Disk_Stellar_Clusters(P);
   #endif
+  }
 
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);
@@ -221,11 +216,9 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound,
 
   chprintf("Particles Initialized: \n n_local: %lu \n", n_local);
   chprintf(" n_total: %lu \n", n_total_initial);
-  chprintf(" xDomain_local:  [%.4f %.4f ] [%.4f %.4f ] [%.4f %.4f ]\n", G.xMin,
-           G.xMax, G.yMin, G.yMax, G.zMin, G.zMax);
-  chprintf(" xDomain_global: [%.4f %.4f ] [%.4f %.4f ] [%.4f %.4f ]\n",
-           G.domainMin_x, G.domainMax_x, G.domainMin_y, G.domainMax_y,
-           G.domainMin_z, G.domainMax_z);
+  chprintf(" xDomain_local:  [%.4f %.4f ] [%.4f %.4f ] [%.4f %.4f ]\n", G.xMin, G.xMax, G.yMin, G.yMax, G.zMin, G.zMax);
+  chprintf(" xDomain_global: [%.4f %.4f ] [%.4f %.4f ] [%.4f %.4f ]\n", G.domainMin_x, G.domainMax_x, G.domainMin_y,
+           G.domainMax_y, G.domainMin_z, G.domainMax_z);
   chprintf(" dx: %f  %f  %f\n", G.dx, G.dy, G.dz);
 
   #ifdef PARTICLE_IDS
@@ -256,13 +249,11 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound,
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
       #pragma omp barrier
-    Get_OMP_Particles_Indxs(n_local, n_omp_procs, omp_id, &omp_pIndx_start,
-                            &omp_pIndx_end);
+    Get_OMP_Particles_Indxs(n_local, n_omp_procs, omp_id, &omp_pIndx_start, &omp_pIndx_end);
 
     for (int omp_indx = 0; omp_indx < n_omp_procs; omp_indx++) {
       if (omp_id == omp_indx)
-        chprintf("  omp_id:%d  p_start:%ld  p_end:%ld  \n", omp_id,
-                 omp_pIndx_start, omp_pIndx_end);
+        chprintf("  omp_id:%d  p_start:%ld  p_end:%ld  \n", omp_id, omp_pIndx_start, omp_pIndx_end);
     }
   }
     #endif  // PRINT_OMP_DOMAIN
@@ -338,15 +329,11 @@ void Particles_3D::ReAllocate_Memory_GPU_MPI()
   buffer_size      = particles_array_size;
   half_blocks_size = ((buffer_size - 1) / 2) / TPB_PARTICLES + 1;
   Allocate_Particles_GPU_Array_bool(&G.transfer_particles_flags_d, buffer_size);
-  Allocate_Particles_GPU_Array_int(&G.transfer_particles_indices_d,
-                                   buffer_size);
+  Allocate_Particles_GPU_Array_int(&G.transfer_particles_indices_d, buffer_size);
   Allocate_Particles_GPU_Array_int(&G.replace_particles_indices_d, buffer_size);
-  Allocate_Particles_GPU_Array_int(&G.transfer_particles_prefix_sum_d,
-                                   buffer_size);
-  Allocate_Particles_GPU_Array_int(&G.transfer_particles_prefix_sum_blocks_d,
-                                   half_blocks_size);
-  printf(" New allocation of arrays for particles transfers   new_size: %d \n",
-         (int)buffer_size);
+  Allocate_Particles_GPU_Array_int(&G.transfer_particles_prefix_sum_d, buffer_size);
+  Allocate_Particles_GPU_Array_int(&G.transfer_particles_prefix_sum_blocks_d, half_blocks_size);
+  printf(" New allocation of arrays for particles transfers   new_size: %d \n", (int)buffer_size);
 }
 
 void Particles_3D::Allocate_Memory_GPU_MPI()
@@ -358,13 +345,10 @@ void Particles_3D::Allocate_Memory_GPU_MPI()
   half_blocks_size = ((buffer_size - 1) / 2) / TPB_PARTICLES + 1;
 
   Allocate_Particles_GPU_Array_bool(&G.transfer_particles_flags_d, buffer_size);
-  Allocate_Particles_GPU_Array_int(&G.transfer_particles_indices_d,
-                                   buffer_size);
+  Allocate_Particles_GPU_Array_int(&G.transfer_particles_indices_d, buffer_size);
   Allocate_Particles_GPU_Array_int(&G.replace_particles_indices_d, buffer_size);
-  Allocate_Particles_GPU_Array_int(&G.transfer_particles_prefix_sum_d,
-                                   buffer_size);
-  Allocate_Particles_GPU_Array_int(&G.transfer_particles_prefix_sum_blocks_d,
-                                   half_blocks_size);
+  Allocate_Particles_GPU_Array_int(&G.transfer_particles_prefix_sum_d, buffer_size);
+  Allocate_Particles_GPU_Array_int(&G.transfer_particles_prefix_sum_blocks_d, half_blocks_size);
   Allocate_Particles_GPU_Array_int(&G.n_transfer_d, 1);
 
   G.n_transfer_h = (int *)malloc(sizeof(int));
@@ -532,8 +516,7 @@ void Particles_3D::Initialize_Sphere(struct parameters *P)
   Real *temp_mass = (Real *)malloc(particles_array_size * sizeof(Real));
     #endif
     #ifdef PARTICLE_IDS
-  part_int_t *temp_id =
-      (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
+  part_int_t *temp_id = (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
     #endif
 
   chprintf(" Allocated GPU memory for particle data\n");
@@ -552,10 +535,11 @@ void Particles_3D::Initialize_Sphere(struct parameters *P)
     pPos_y = yPositionPrng(generator);
     pPos_z = zPositionPrng(generator);
 
-    r = sqrt((pPos_x - center_x) * (pPos_x - center_x) +
-             (pPos_y - center_y) * (pPos_y - center_y) +
+    r = sqrt((pPos_x - center_x) * (pPos_x - center_x) + (pPos_y - center_y) * (pPos_y - center_y) +
              (pPos_z - center_z) * (pPos_z - center_z));
-    if (r > sphereR) continue;
+    if (r > sphereR) {
+      continue;
+    }
 
   #ifdef PARTICLES_CPU
     // Copy the particle data to the particles vectors
@@ -650,8 +634,7 @@ void Particles_3D::Initialize_Sphere(struct parameters *P)
   chprintf(" Particles Uniform Sphere Initialized, n_local: %lu\n", n_local);
 }
 
-  #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && \
-      defined(PARTICLE_IDS)
+  #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
 /**
  *   Initializes a disk population of uniform mass stellar clusters
  */
@@ -662,8 +645,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   // Set up the PRNG
   std::mt19937_64 generator(P->prng_seed);
 
-  std::gamma_distribution<Real> radialDist(
-      2, 1);  // for generating cyclindrical radii
+  std::gamma_distribution<Real> radialDist(2, 1);  // for generating cyclindrical radii
   std::uniform_real_distribution<Real> zDist(-0.005, 0.005);
   std::uniform_real_distribution<Real> vzDist(-1e-8, 1e-8);
   std::uniform_real_distribution<Real> phiDist(0,
@@ -671,9 +653,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   std::normal_distribution<Real> speedDist(0,
                                            1);  // for generating random speeds.
 
-  Real M_d =
-      Galaxies::MW
-          .getM_d();  // MW disk mass in M_sun (assumed to be all in stars)
+  Real M_d   = Galaxies::MW.getM_d();  // MW disk mass in M_sun (assumed to be all in stars)
   Real R_d   = Galaxies::MW.getR_d();  // MW stellar disk scale length in kpc
   Real Z_d   = Galaxies::MW.getZ_d();  // MW stellar height scale length in kpc
   Real R_max = sqrt(P->xlen * P->xlen + P->ylen * P->ylen) / 2;
@@ -728,7 +708,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
     if (y < G.yMin || y >= G.yMax) continue;
     if (z < G.zMin || z >= G.zMax) continue;
 
-    ac = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
+    ac   = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
     vPhi = sqrt(R * ac);
 
     vx = -vPhi * sin(phi);
@@ -782,42 +762,34 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
     #ifdef PARTICLES_GPU
   particles_array_size = Compute_Particles_GPU_Array_Size(n_local);
   Allocate_Particles_GPU_Array_Real(&pos_x_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_pos_x.data(), pos_x_dev,
-                                           n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_pos_x.data(), pos_x_dev, n_local);
   Allocate_Particles_GPU_Array_Real(&pos_y_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_pos_y.data(), pos_y_dev,
-                                           n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_pos_y.data(), pos_y_dev, n_local);
   Allocate_Particles_GPU_Array_Real(&pos_z_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_pos_z.data(), pos_z_dev,
-                                           n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_pos_z.data(), pos_z_dev, n_local);
   Allocate_Particles_GPU_Array_Real(&vel_x_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_vel_x.data(), vel_x_dev,
-                                           n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_vel_x.data(), vel_x_dev, n_local);
   Allocate_Particles_GPU_Array_Real(&vel_y_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_vel_y.data(), vel_y_dev,
-                                           n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_vel_y.data(), vel_y_dev, n_local);
   Allocate_Particles_GPU_Array_Real(&vel_z_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_vel_z.data(), vel_z_dev,
-                                           n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_vel_z.data(), vel_z_dev, n_local);
   Allocate_Particles_GPU_Array_Real(&grav_x_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_grav_x.data(), grav_x_dev,
-                                           n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_grav_x.data(), grav_x_dev, n_local);
   Allocate_Particles_GPU_Array_Real(&grav_y_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_grav_y.data(), grav_y_dev,
-                                           n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_grav_y.data(), grav_y_dev, n_local);
   Allocate_Particles_GPU_Array_Real(&grav_z_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_grav_z.data(), grav_z_dev,
-                                           n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_grav_z.data(), grav_z_dev, n_local);
   Allocate_Particles_GPU_Array_Real(&mass_dev, particles_array_size);
   Copy_Particles_Array_Real_Host_to_Device(temp_mass.data(), mass_dev, n_local);
   Allocate_Particles_GPU_Array_Part_Int(&partIDs_dev, particles_array_size);
-  Copy_Particles_Array_Int_Host_to_Device(temp_ids.data(), partIDs_dev,
-                                          n_local);
+  Copy_Particles_Array_Int_Host_to_Device(temp_ids.data(), partIDs_dev, n_local);
   Allocate_Particles_GPU_Array_Real(&age_dev, particles_array_size);
   Copy_Particles_Array_Real_Host_to_Device(temp_age.data(), age_dev, n_local);
     #endif  // PARTICLES_GPU
 
-  if (lost_particles > 0) chprintf("  lost %lu particles\n", lost_particles);
+  if (lost_particles > 0) {
+    chprintf("  lost %lu particles\n", lost_particles);
+  }
   chprintf(
       "Stellar Disk Particles Initialized, n_total: %lu, n_local: %lu, "
       "total_mass: %.3e s.m.\n",
@@ -894,8 +866,8 @@ void Grid3D::Initialize_Uniform_Particles()
   Particles.n_total_initial = Particles.n_local;
   #endif
 
-  chprintf(" Particles Uniform Grid Initialized, n_local: %lu, n_total: %lu\n",
-           Particles.n_local, Particles.n_total_initial);
+  chprintf(" Particles Uniform Grid Initialized, n_local: %lu, n_total: %lu\n", Particles.n_local,
+           Particles.n_total_initial);
 }
 
 void Particles_3D::Free_Memory(void)

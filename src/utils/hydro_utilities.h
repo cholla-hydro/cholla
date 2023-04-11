@@ -29,9 +29,8 @@
 namespace hydro_utilities
 {
 
-inline __host__ __device__ Real
-Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx,
-                        Real const &vy, Real const &vz, Real const &gamma)
+inline __host__ __device__ Real Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy,
+                                                        Real const &vz, Real const &gamma)
 {
   Real P;
   P = (E - 0.5 * d * (vx * vx + vy * vy + vz * vz)) * (gamma - 1.0);
@@ -39,9 +38,8 @@ Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx,
   return P;
 }
 
-inline __host__ __device__ Real
-Calc_Pressure_Conserved(Real const &E, Real const &d, Real const &mx,
-                        Real const &my, Real const &mz, Real const &gamma)
+inline __host__ __device__ Real Calc_Pressure_Conserved(Real const &E, Real const &d, Real const &mx, Real const &my,
+                                                        Real const &mz, Real const &gamma)
 {
   Real P = (E - 0.5 * (mx * mx + my * my + mz * mz) / d) * (gamma - 1.);
   return fmax(P, TINY_NUMBER);
@@ -54,26 +52,21 @@ inline __host__ __device__ Real Calc_Temp(Real const &P, Real const &n)
 }
 
 #ifdef DE
-inline __host__ __device__ Real Calc_Temp_DE(Real const &d, Real const &ge,
-                                             Real const &gamma, Real const &n)
+inline __host__ __device__ Real Calc_Temp_DE(Real const &d, Real const &ge, Real const &gamma, Real const &n)
 {
   Real T = d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
   return T;
 }
 #endif  // DE
 
-inline __host__ __device__ Real
-Calc_Energy_Primitive(Real const &P, Real const &d, Real const &vx,
-                      Real const &vy, Real const &vz, Real const &gamma)
+inline __host__ __device__ Real Calc_Energy_Primitive(Real const &P, Real const &d, Real const &vx, Real const &vy,
+                                                      Real const &vz, Real const &gamma)
 {
   // Compute and return energy
-  return (fmax(P, TINY_NUMBER) / (gamma - 1.)) +
-         0.5 * d * (vx * vx + vy * vy + vz * vz);
+  return (fmax(P, TINY_NUMBER) / (gamma - 1.)) + 0.5 * d * (vx * vx + vy * vy + vz * vz);
 }
 
-inline __host__ __device__ Real Get_Pressure_From_DE(Real const &E,
-                                                     Real const &U_total,
-                                                     Real const &U_advected,
+inline __host__ __device__ Real Get_Pressure_From_DE(Real const &E, Real const &U_total, Real const &U_advected,
                                                      Real const &gamma)
 {
   Real U, P;
@@ -98,8 +91,8 @@ inline __host__ __device__ Real Get_Pressure_From_DE(Real const &E,
  * \param[in] vz The z velocity
  * \return Real The kinetic energy
  */
-inline __host__ __device__ Real Calc_Kinetic_Energy_From_Velocity(
-    Real const &d, Real const &vx, Real const &vy, Real const &vz)
+inline __host__ __device__ Real Calc_Kinetic_Energy_From_Velocity(Real const &d, Real const &vx, Real const &vy,
+                                                                  Real const &vz)
 {
   return 0.5 * d * (vx * vx + vy * vy * vz * vz);
 }
@@ -113,16 +106,14 @@ inline __host__ __device__ Real Calc_Kinetic_Energy_From_Velocity(
  * \param[in] mz The z momentum
  * \return Real The kinetic energy
  */
-inline __host__ __device__ Real Calc_Kinetic_Energy_From_Momentum(
-    Real const &d, Real const &mx, Real const &my, Real const &mz)
+inline __host__ __device__ Real Calc_Kinetic_Energy_From_Momentum(Real const &d, Real const &mx, Real const &my,
+                                                                  Real const &mz)
 {
   return (0.5 / d) * (mx * mx + my * my * mz * mz);
 }
 
-inline __host__ __device__ Real Calc_Sound_Speed(Real const &E, Real const &d,
-                                                 Real const &mx, Real const &my,
-                                                 Real const &mz,
-                                                 Real const &gamma)
+inline __host__ __device__ Real Calc_Sound_Speed(Real const &E, Real const &d, Real const &mx, Real const &my,
+                                                 Real const &mz, Real const &gamma)
 {
   Real P = Calc_Pressure_Conserved(E, d, mx, my, mz, gamma);
   return sqrt(gamma * P / d);

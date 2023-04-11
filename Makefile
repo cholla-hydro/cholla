@@ -11,13 +11,11 @@ CUDA_ARCH ?= sm_70
 
 SUFFIX ?= .$(TYPE).$(MACHINE)
 
-CFILES := $(shell find src/ -type f -name '*.c')
 CPPFILES := $(shell find src/ -type f -name '*.cpp')
 GPUFILES := $(shell find src/ -type f -name '*.cu')
 
 # Build a list of all potential object files so cleaning works properly
-CLEAN_OBJS := $(subst .c,.o,$(CFILES)) \
-              $(subst .cpp,.o,$(CPPFILES)) \
+CLEAN_OBJS := $(subst .cpp,.o,$(CPPFILES)) \
               $(subst .cu,.o,$(GPUFILES))
 
 # Check if it should include testing flags
@@ -43,30 +41,24 @@ ifeq ($(ADD_TEST_FLAGS), yes)
   SUFFIX    := $(strip $(SUFFIX)).tests
   LIBS      += -L$(GOOGLETEST_ROOT)/lib64 -pthread -lgtest -lhdf5_cpp
   TEST_FLAGS = -I$(GOOGLETEST_ROOT)/include
-  CFLAGS   += $(TEST_FLAGS)
   CXXFLAGS += $(TEST_FLAGS)
   GPUFLAGS += $(TEST_FLAGS)
 else
   # This isn't a test build so clear out testing related files
-  CFILES   := $(filter-out src/system_tests/% %_tests.c,$(CFILES))
   CPPFILES := $(filter-out src/system_tests/% %_tests.cpp,$(CPPFILES))
   CPPFILES := $(filter-out src/utils/testing_utilities.cpp,$(CPPFILES))
   GPUFILES := $(filter-out src/system_tests/% %_tests.cu,$(GPUFILES))
 endif
 
-OBJS     := $(subst .c,.o,$(CFILES)) \
-            $(subst .cpp,.o,$(CPPFILES)) \
+OBJS     := $(subst .cpp,.o,$(CPPFILES)) \
             $(subst .cu,.o,$(GPUFILES))
 
 #-- Set default compilers and flags
-CC                ?= cc
 CXX               ?= CC
 
-CFLAGS_OPTIMIZE   ?= -g -Ofast
 CXXFLAGS_OPTIMIZE ?= -g -Ofast -std=c++17
 GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++17
 
-CFLAGS_DEBUG      ?= -g -O0
 CXXFLAGS_DEBUG    ?= -g -O0 -std=c++17
 ifdef HIPCONFIG
   GPUFLAGS_DEBUG    ?= -g -O0 -std=c++17
@@ -76,13 +68,11 @@ endif
 
 BUILD             ?= OPTIMIZE
 
-CFLAGS            += $(CFLAGS_$(BUILD))
 CXXFLAGS          += $(CXXFLAGS_$(BUILD))
 GPUFLAGS          += $(GPUFLAGS_$(BUILD))
 
 #-- Add flags and libraries as needed
 
-CFLAGS   += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc
 
@@ -164,7 +154,7 @@ ifeq ($(findstring -DCHEMISTRY_GPU,$(DFLAGS)),-DCHEMISTRY_GPU)
   DFLAGS += -DSCALAR
 endif
 
-.SUFFIXES: .c .cpp .cu .o
+.SUFFIXES: .cpp .cu .o
 
 EXEC := bin/cholla$(SUFFIX)
 
@@ -178,26 +168,20 @@ DFLAGS      += $(MACRO_FLAGS)
 LIBS_CLANG_TIDY     := $(subst -I/, -isystem /,$(LIBS))
 LIBS_CLANG_TIDY     += -isystem $(MPI_ROOT)/include
 CXXFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(LDFLAGS))
-CFLAGS_CLANG_TIDY   := $(subst -I/, -isystem /,$(CFLAGS))
 GPUFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(GPUFLAGS))
 GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS))
 GPUFLAGS_CLANG_TIDY += --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes
 CPPFILES_TIDY := $(CPPFILES)
-CFILES_TIDY   := $(CFILES)
 GPUFILES_TIDY := $(GPUFILES)
 
 ifdef TIDY_FILES
   CPPFILES_TIDY := $(filter $(TIDY_FILES), $(CPPFILES_TIDY))
-  CFILES_TIDY   := $(filter $(TIDY_FILES), $(CFILES_TIDY))
   GPUFILES_TIDY := $(filter $(TIDY_FILES), $(GPUFILES_TIDY))
 endif
 
 $(EXEC): prereq-build $(OBJS)
 	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
 	eval $(EXTRA_COMMANDS)
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -214,10 +198,11 @@ tidy:
 # Flags we might want
 # - --warnings-as-errors=<string> Upgrade all warnings to error, good for CI
 	clang-tidy --verify-config
+	@echo -e
 	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(DFLAGS) $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp.log 2>&1 & \
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(CFILES_TIDY)   -- $(DFLAGS) $(CFLAGS_CLANG_TIDY)   $(LIBS_CLANG_TIDY)) > tidy_results_c.log   2>&1 & \
 	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES_TIDY) -- $(DFLAGS) $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu.log 2>&1 & \
-	for i in 1 2 3; do wait -n; done
+	for i in 1 2; do wait -n; done
+	@echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp.log' and 'tidy_results_gpu.log' files."
 
 clean:
 	rm -f $(CLEAN_OBJS)

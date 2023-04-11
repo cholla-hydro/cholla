@@ -37,8 +37,7 @@ struct TestParams {
   std::vector<int> nx{100, 2048, 2048, 2048};
   std::vector<int> ny{1, 2048, 2048, 2048};
   std::vector<int> nz{1, 4096, 4096, 4096};
-  std::vector<std::string> names{"Single-cell 3D PCM/PLMP case",
-                                 "Large 3D PCM/PLMP case", "Large PLMC case",
+  std::vector<std::string> names{"Single-cell 3D PCM/PLMP case", "Large 3D PCM/PLMP case", "Large PLMC case",
                                  "Large PPMP/PPMC case"};
 };
 }  // namespace
@@ -46,10 +45,8 @@ struct TestParams {
 TEST(tHYDROCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput)
 {
   TestParams parameters;
-  std::vector<std::vector<int>> fiducial_indices{{2, 98, 0, 1, 0, 1},
-                                                 {2, 2046, 2, 2046, 2, 4094},
-                                                 {3, 2045, 3, 2045, 3, 4093},
-                                                 {4, 2044, 4, 2044, 4, 4092}};
+  std::vector<std::vector<int>> fiducial_indices{
+      {2, 98, 0, 1, 0, 1}, {2, 2046, 2, 2046, 2, 4094}, {3, 2045, 3, 2045, 3, 4093}, {4, 2044, 4, 2044, 4, 4092}};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
     int is;
@@ -58,17 +55,15 @@ TEST(tHYDROCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput)
     int je;
     int ks;
     int ke;
-    cuda_utilities::Get_Real_Indices(
-        parameters.n_ghost.at(i), parameters.nx.at(i), parameters.ny.at(i),
-        parameters.nz.at(i), is, ie, js, je, ks, ke);
+    cuda_utilities::Get_Real_Indices(parameters.n_ghost.at(i), parameters.nx.at(i), parameters.ny.at(i),
+                                     parameters.nz.at(i), is, ie, js, je, ks, ke);
 
     std::vector<std::string> index_names{"is", "ie", "js", "je", "ks", "ke"};
     std::vector<int> test_indices{is, ie, js, je, ks, ke};
 
     for (size_t j = 0; j < test_indices.size(); j++) {
-      testingUtilities::checkResults(
-          fiducial_indices[i][j], test_indices[j],
-          index_names[j] + " " + parameters.names[i]);
+      testingUtilities::checkResults(fiducial_indices[i][j], test_indices[j],
+                                     index_names[j] + " " + parameters.names[i]);
     }
   }
 }

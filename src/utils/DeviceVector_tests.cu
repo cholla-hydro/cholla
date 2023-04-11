@@ -57,8 +57,7 @@ void checkPointerAttributes(cuda_utilities::DeviceVector<T> &devVector)
 // =============================================================================
 // Tests for expected behavior
 // =============================================================================
-TEST(tALLDeviceVectorConstructor,
-     CheckConstructorDataAndSizeExpectProperAllocationAndValues)
+TEST(tALLDeviceVectorConstructor, CheckConstructorDataAndSizeExpectProperAllocationAndValues)
 {
   // Initialize the DeviceVector
   size_t const vectorSize = 10;
@@ -92,7 +91,7 @@ TEST(tALLDeviceVectorDestructor, CheckDestructorExpectProperDeallocation)
       "1 is cudaMemoryTypeHost, "
       "2 is cudaMemoryTypeDevice, and"
       "3 is cudaMemoryTypeManaged";
-  std::string deviceMessage = "The pointer should be null which is device -2";
+  std::string deviceMessage        = "The pointer should be null which is device -2";
   std::string const devPtrMessage  = "The device pointer is nullptr";
   std::string const hostPtrMessage = "The host pointer is not nullptr";
 
@@ -155,8 +154,7 @@ TEST(tALLDeviceVectorArrayHostToDeviceCopyAndIndexing,
   }
 }
 
-TEST(tALLDeviceVectorArrayAssignmentMethod,
-     AssignSingleValuesExpectCorrectMemoryValues)
+TEST(tALLDeviceVectorArrayAssignmentMethod, AssignSingleValuesExpectCorrectMemoryValues)
 {
   // Initialize the vectors
   size_t const vectorSize = 10;
@@ -171,8 +169,7 @@ TEST(tALLDeviceVectorArrayAssignmentMethod,
   EXPECT_EQ(17, devVector.at(4));
 }
 
-TEST(tALLDeviceVectorStdVectorDeviceToHostCopy,
-     CheckHostMemoryValuesExpectCorrectMemoryValues)
+TEST(tALLDeviceVectorStdVectorDeviceToHostCopy, CheckHostMemoryValuesExpectCorrectMemoryValues)
 {
   // Initialize the vectors
   size_t const vectorSize = 10;
@@ -192,8 +189,7 @@ TEST(tALLDeviceVectorStdVectorDeviceToHostCopy,
   }
 }
 
-TEST(tALLDeviceVectorArrayDeviceToHostCopy,
-     CheckHostMemoryValuesExpectCorrectMemoryValues)
+TEST(tALLDeviceVectorArrayDeviceToHostCopy, CheckHostMemoryValuesExpectCorrectMemoryValues)
 {
   // Initialize the vectors
   size_t const vectorSize = 10;
@@ -314,11 +310,11 @@ TEST(tALLDeviceVectorAt, OutOfBoundsAccessExpectThrowOutOfRange)
   devVector.cpyHostToDevice(stdVec);
 
   // Check that the .at() method throws the correct exception
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto)
   EXPECT_THROW(devVector.at(100), std::out_of_range);
 }
 
-TEST(tALLDeviceVectorStdVectorHostToDeviceCopy,
-     OutOfBoundsCopyExpectThrowOutOfRange)
+TEST(tALLDeviceVectorStdVectorHostToDeviceCopy, OutOfBoundsCopyExpectThrowOutOfRange)
 {
   // Initialize the vectors
   size_t const vectorSize = 10;
@@ -327,11 +323,11 @@ TEST(tALLDeviceVectorStdVectorHostToDeviceCopy,
   std::iota(stdVec.begin(), stdVec.end(), 0);
 
   // Copy the value to the device memory
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto)
   EXPECT_THROW(devVector.cpyHostToDevice(stdVec), std::out_of_range);
 }
 
-TEST(tALLDeviceVectorStdVectorDeviceToHostCopy,
-     OutOfBoundsCopyExpectThrowOutOfRange)
+TEST(tALLDeviceVectorStdVectorDeviceToHostCopy, OutOfBoundsCopyExpectThrowOutOfRange)
 {
   // Initialize the vectors
   size_t const vectorSize = 10;
@@ -340,5 +336,6 @@ TEST(tALLDeviceVectorStdVectorDeviceToHostCopy,
   std::iota(stdVec.begin(), stdVec.end(), 0);
 
   // Copy the value to the device memory
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto)
   EXPECT_THROW(devVector.cpyDeviceToHost(stdVec), std::out_of_range);
 }

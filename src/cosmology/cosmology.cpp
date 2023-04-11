@@ -6,8 +6,7 @@
 
 Cosmology::Cosmology(void) {}
 
-void Cosmology::Initialize(struct parameters *P, Grav3D &Grav,
-                           Particles_3D &Particles)
+void Cosmology::Initialize(struct parameters *P, Grav3D &Grav, Particles_3D &Particles)
 {
   chprintf("Cosmological Simulation\n");
 
@@ -47,12 +46,11 @@ void Cosmology::Initialize(struct parameters *P, Grav3D &Grav,
   time_conversion = KPC;
 
   // Set Normalization factors
-  r_0_dm   = P->xlen / P->nx;
-  t_0_dm   = 1. / H0;
-  v_0_dm   = r_0_dm / t_0_dm / cosmo_h;
-  rho_0_dm = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
-  rho_mean_baryon =
-      3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_b / cosmo_h / cosmo_h;
+  r_0_dm          = P->xlen / P->nx;
+  t_0_dm          = 1. / H0;
+  v_0_dm          = r_0_dm / t_0_dm / cosmo_h;
+  rho_0_dm        = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
+  rho_mean_baryon = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_b / cosmo_h / cosmo_h;
   // dens_avrg = 0;
 
   r_0_gas   = 1.0;

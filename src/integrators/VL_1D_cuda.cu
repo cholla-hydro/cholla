@@ -24,20 +24,20 @@
     #include "../utils/error_handling.h"
     #include "../utils/gpu.hpp"
 
-__global__ void Update_Conserved_Variables_1D_half(
-    Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, int n_cells,
-    int n_ghost, Real dx, Real dt, Real gamma, int n_fields);
+__global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F,
+                                                   int n_cells, int n_ghost, Real dx, Real dt, Real gamma,
+                                                   int n_fields);
 
-void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost,
-                          Real dx, Real xbound, Real dt, int n_fields)
+void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt,
+                          int n_fields)
 {
   // Here, *dev_conserved contains the entire
   // set of conserved variables on the grid
 
-  int n_cells = nx;
-  int ny      = 1;
-  int nz      = 1;
-  int ngrid   = (n_cells + TPB - 1) / TPB;
+  int n_cells             = nx;
+  [[maybe_unused]] int ny = 1;
+  [[maybe_unused]] int nz = 1;
+  int ngrid               = (n_cells + TPB - 1) / TPB;
 
   // set the dimensions of the cuda grid
   dim3 dimGrid(ngrid, 1, 1);
@@ -48,8 +48,7 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost,
     dev_conserved = d_conserved;
     // CudaSafeCall( cudaMalloc((void**)&dev_conserved,
     // n_fields*n_cells*sizeof(Real)) );
-    CudaSafeCall(cudaMalloc((void **)&dev_conserved_half,
-                            n_fields * n_cells * sizeof(Real)));
+    CudaSafeCall(cudaMalloc((void **)&dev_conserved_half, n_fields * n_cells * sizeof(Real)));
     CudaSafeCall(cudaMalloc((void **)&Q_Lx, n_fields * n_cells * sizeof(Real)));
     CudaSafeCall(cudaMalloc((void **)&Q_Rx, n_fields * n_cells * sizeof(Real)));
     CudaSafeCall(cudaMalloc((void **)&F_x, n_fields * n_cells * sizeof(Real)));
@@ -63,72 +62,66 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost,
 
   // Step 1: Use PCM reconstruction to put conserved variables into interface
   // arrays
-  hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0,
-                     dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, gama, n_fields);
+  hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, gama,
+                     n_fields);
   CudaCheckError();
 
     // Step 2: Calculate first-order upwind fluxes
     #ifdef EXACT
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx,
-                     Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama,
+                     0, n_fields);
     #endif
     #ifdef ROE
-  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx,
-                     Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0,
+                     n_fields);
     #endif
     #ifdef HLLC
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx,
-                     Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0,
+                     n_fields);
     #endif
   CudaCheckError();
 
   // Step 3: Update the conserved variables half a timestep
-  hipLaunchKernelGGL(Update_Conserved_Variables_1D_half, dimGrid, dimBlock, 0,
-                     0, dev_conserved, dev_conserved_half, F_x, n_cells,
-                     n_ghost, dx, 0.5 * dt, gama, n_fields);
+  hipLaunchKernelGGL(Update_Conserved_Variables_1D_half, dimGrid, dimBlock, 0, 0, dev_conserved, dev_conserved_half,
+                     F_x, n_cells, n_ghost, dx, 0.5 * dt, gama, n_fields);
   CudaCheckError();
 
     // Step 4: Construct left and right interface values using updated conserved
     // variables
     #ifdef PCM
-  hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0,
-                     dev_conserved_half, Q_Lx, Q_Rx, nx, n_ghost, gama,
+  hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, n_ghost, gama,
                      n_fields);
     #endif
     #ifdef PLMC
-  hipLaunchKernelGGL(PLMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half,
-                     Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0,
-                     n_fields);
+  hipLaunchKernelGGL(PLMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt,
+                     gama, 0, n_fields);
     #endif
     #ifdef PLMP
-  hipLaunchKernelGGL(PLMP_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half,
-                     Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0,
-                     n_fields);
+  hipLaunchKernelGGL(PLMP_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt,
+                     gama, 0, n_fields);
     #endif
     #ifdef PPMP
-  hipLaunchKernelGGL(PPMP_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half,
-                     Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0,
-                     n_fields);
+  hipLaunchKernelGGL(PPMP_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt,
+                     gama, 0, n_fields);
     #endif
     #ifdef PPMC
-  hipLaunchKernelGGL(PPMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half,
-                     Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0,
-                     n_fields);
+  hipLaunchKernelGGL(PPMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt,
+                     gama, 0, n_fields);
     #endif
   CudaCheckError();
 
     // Step 5: Calculate the fluxes again
     #ifdef EXACT
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx,
-                     Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama,
+                     0, n_fields);
     #endif
     #ifdef ROE
-  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx,
-                     Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0,
+                     n_fields);
     #endif
     #ifdef HLLC
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx,
-                     Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0,
+                     n_fields);
     #endif
   CudaCheckError();
 
@@ -136,22 +129,18 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost,
   // Compute the divergence of velocity before updating the conserved array,
   // this solves synchronization issues when adding this term on
   // Update_Conserved_Variables
-  hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_1D, dimGrid,
-                     dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, dx,
-                     dt, gama, n_fields);
+  hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_1D, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx,
+                     n_ghost, dx, dt, gama, n_fields);
     #endif
 
   // Step 6: Update the conserved variable array
-  hipLaunchKernelGGL(Update_Conserved_Variables_1D, dimGrid, dimBlock, 0, 0,
-                     dev_conserved, F_x, n_cells, x_off, n_ghost, dx, xbound,
-                     dt, gama, n_fields);
+  hipLaunchKernelGGL(Update_Conserved_Variables_1D, dimGrid, dimBlock, 0, 0, dev_conserved, F_x, n_cells, x_off,
+                     n_ghost, dx, xbound, dt, gama, n_fields);
   CudaCheckError();
 
     #ifdef DE
-  hipLaunchKernelGGL(Select_Internal_Energy_1D, dimGrid, dimBlock, 0, 0,
-                     dev_conserved, nx, n_ghost, n_fields);
-  hipLaunchKernelGGL(Sync_Energies_1D, dimGrid, dimBlock, 0, 0, dev_conserved,
-                     nx, n_ghost, gama, n_fields);
+  hipLaunchKernelGGL(Select_Internal_Energy_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, n_fields);
+  hipLaunchKernelGGL(Sync_Energies_1D, dimGrid, dimBlock, 0, 0, dev_conserved, nx, n_ghost, gama, n_fields);
   CudaCheckError();
     #endif
 
@@ -168,9 +157,8 @@ void Free_Memory_VL_1D()
   cudaFree(F_x);
 }
 
-__global__ void Update_Conserved_Variables_1D_half(
-    Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, int n_cells,
-    int n_ghost, Real dx, Real dt, Real gamma, int n_fields)
+__global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F,
+                                                   int n_cells, int n_ghost, Real dx, Real dt, Real gamma, int n_fields)
 {
   int id, imo;
   Real dtodx = dt / dx;
@@ -194,9 +182,7 @@ __global__ void Update_Conserved_Variables_1D_half(
     vx    = dev_conserved[1 * n_cells + id] * d_inv;
     vy    = dev_conserved[2 * n_cells + id] * d_inv;
     vz    = dev_conserved[3 * n_cells + id] * d_inv;
-    P     = (dev_conserved[4 * n_cells + id] -
-         0.5 * d * (vx * vx + vy * vy + vz * vz)) *
-        (gamma - 1.0);
+    P     = (dev_conserved[4 * n_cells + id] - 0.5 * d * (vx * vx + vy * vy + vz * vz)) * (gamma - 1.0);
     // if (d < 0.0 || d != d) printf("Negative density before half step
     // update.\n"); if (P < 0.0) printf("%d Negative pressure before half step
     // update.\n", id);
@@ -205,33 +191,26 @@ __global__ void Update_Conserved_Variables_1D_half(
     vx_ipo = dev_conserved[1 * n_cells + ipo] / dev_conserved[ipo];
     #endif
     // update the conserved variable array
-    dev_conserved_half[id] =
-        dev_conserved[id] + dtodx * (dev_F[imo] - dev_F[id]);
+    dev_conserved_half[id] = dev_conserved[id] + dtodx * (dev_F[imo] - dev_F[id]);
     dev_conserved_half[n_cells + id] =
-        dev_conserved[n_cells + id] +
-        dtodx * (dev_F[n_cells + imo] - dev_F[n_cells + id]);
+        dev_conserved[n_cells + id] + dtodx * (dev_F[n_cells + imo] - dev_F[n_cells + id]);
     dev_conserved_half[2 * n_cells + id] =
-        dev_conserved[2 * n_cells + id] +
-        dtodx * (dev_F[2 * n_cells + imo] - dev_F[2 * n_cells + id]);
+        dev_conserved[2 * n_cells + id] + dtodx * (dev_F[2 * n_cells + imo] - dev_F[2 * n_cells + id]);
     dev_conserved_half[3 * n_cells + id] =
-        dev_conserved[3 * n_cells + id] +
-        dtodx * (dev_F[3 * n_cells + imo] - dev_F[3 * n_cells + id]);
+        dev_conserved[3 * n_cells + id] + dtodx * (dev_F[3 * n_cells + imo] - dev_F[3 * n_cells + id]);
     dev_conserved_half[4 * n_cells + id] =
-        dev_conserved[4 * n_cells + id] +
-        dtodx * (dev_F[4 * n_cells + imo] - dev_F[4 * n_cells + id]);
+        dev_conserved[4 * n_cells + id] + dtodx * (dev_F[4 * n_cells + imo] - dev_F[4 * n_cells + id]);
     #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       dev_conserved_half[(5 + i) * n_cells + id] =
           dev_conserved[(5 + i) * n_cells + id] +
-          dtodx *
-              (dev_F[(5 + i) * n_cells + imo] - dev_F[(5 + i) * n_cells + id]);
+          dtodx * (dev_F[(5 + i) * n_cells + imo] - dev_F[(5 + i) * n_cells + id]);
     }
     #endif
     #ifdef DE
     dev_conserved_half[(n_fields - 1) * n_cells + id] =
         dev_conserved[(n_fields - 1) * n_cells + id] +
-        dtodx * (dev_F[(n_fields - 1) * n_cells + imo] -
-                 dev_F[(n_fields - 1) * n_cells + id]) +
+        dtodx * (dev_F[(n_fields - 1) * n_cells + imo] - dev_F[(n_fields - 1) * n_cells + id]) +
         0.5 * P * (dtodx * (vx_imo - vx_ipo));
     #endif
   }

@@ -13,16 +13,16 @@
   #include "../utils/error_check_cuda.h"
   #include "../utils/gpu.hpp"
 
-__global__ void Check_Value_Along_Axis(Real *dev_array, int n_field, int nx,
-                                       int ny, int nz, int n_ghost,
+__global__ void Check_Value_Along_Axis(Real *dev_array, int n_field, int nx, int ny, int nz, int n_ghost,
                                        int *return_value)
 {
   int tid_j = blockIdx.x * blockDim.x + threadIdx.x;
   int tid_k = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (blockDim.x != N_Y || blockDim.y != N_Z) {
-    if (tid_j == 0 && tid_k == 0)
+    if (tid_j == 0 && tid_k == 0) {
       printf("ERROR CHECK: Block Dimension Error \n");
+    }
     return;
   }
 
@@ -47,25 +47,28 @@ __global__ void Check_Value_Along_Axis(Real *dev_array, int n_field, int nx,
 
     if (tid_j == 0 && tid_k == 0) {
       for (i = 0; i < N_Y * N_Z - 1; i++) {
-        if (sh_data[i] == sh_data[i + 1]) error += 1;
+        if (sh_data[i] == sh_data[i + 1]) {
+          error += 1;
+        }
       }
     }
   }
 
-  if (tid_j == 0 && tid_k == 0) *return_value = error;
+  if (tid_j == 0 && tid_k == 0) {
+    *return_value = error;
+  }
 }
 
-int Check_Field_Along_Axis(Real *dev_array, int n_field, int nx, int ny, int nz,
-                           int n_ghost, dim3 Grid_Error, dim3 Block_Error)
+int Check_Field_Along_Axis(Real *dev_array, int n_field, int nx, int ny, int nz, int n_ghost, dim3 Grid_Error,
+                           dim3 Block_Error)
 {
   int *error_value_dev;
   CudaSafeCall(cudaMalloc((void **)&error_value_dev, sizeof(int)));
-  hipLaunchKernelGGL(Check_Value_Along_Axis, Grid_Error, Block_Error, 0, 0,
-                     dev_conserved, 0, nx, ny, nz, n_ghost, error_value_dev);
+  hipLaunchKernelGGL(Check_Value_Along_Axis, Grid_Error, Block_Error, 0, 0, dev_conserved, 0, nx, ny, nz, n_ghost,
+                     error_value_dev);
 
   int error_value_host;
-  CudaSafeCall(cudaMemcpy(&error_value_host, error_value_dev, sizeof(int),
-                          cudaMemcpyDeviceToHost));
+  CudaSafeCall(cudaMemcpy(&error_value_host, error_value_dev, sizeof(int), cudaMemcpyDeviceToHost));
 
   return error_value_host;
 }

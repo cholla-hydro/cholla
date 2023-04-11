@@ -19,10 +19,8 @@
  gamma, int dir, int n_fields)
  *  \brief When passed a stencil of conserved variables, returns the left and
  right boundary values for the interface calculated using plm. */
-__global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
-                          Real *dev_bounds_R, int nx, int ny, int nz,
-                          int n_ghost, Real dx, Real dt, Real gamma, int dir,
-                          int n_fields)
+__global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz,
+                          int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields)
 {
   int n_cells = nx * ny * nz;
   int o1, o2, o3;
@@ -60,8 +58,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
   #endif  // DE
   #ifdef SCALAR
   Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS];
-  Real scalar_L[NSCALARS], scalar_R[NSCALARS], dscalar_L[NSCALARS],
-      dscalar_R[NSCALARS];
+  Real scalar_L[NSCALARS], scalar_R[NSCALARS], dscalar_L[NSCALARS], dscalar_R[NSCALARS];
   #endif  // SCALAR
 
   #ifndef VL  // Don't use velocities to reconstruct when using VL
@@ -123,9 +120,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_i   = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
   #else
-    p_i = (dev_conserved[4 * n_cells + id] -
-           0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) *
-          (gamma - 1.0);
+    p_i   = (dev_conserved[4 * n_cells + id] - 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) * (gamma - 1.0);
   #endif  // PRESSURE_DE
     p_i = fmax(p_i, (Real)TINY_NUMBER);
   #ifdef SCALAR
@@ -137,9 +132,15 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
     ge_i = dge / d_i;
   #endif  // DE
     // cell i-1
-    if (dir == 0) id = xid - 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid - 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid - 1) * nx * ny;
+    if (dir == 0) {
+      id = xid - 1 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid - 1) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid - 1) * nx * ny;
+    }
     d_imo  = dev_conserved[id];
     vx_imo = dev_conserved[o1 * n_cells + id] / d_imo;
     vy_imo = dev_conserved[o2 * n_cells + id] / d_imo;
@@ -150,10 +151,8 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_imo = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
   #else
-    p_imo =
-        (dev_conserved[4 * n_cells + id] -
-         0.5 * d_imo * (vx_imo * vx_imo + vy_imo * vy_imo + vz_imo * vz_imo)) *
-        (gamma - 1.0);
+    p_imo = (dev_conserved[4 * n_cells + id] - 0.5 * d_imo * (vx_imo * vx_imo + vy_imo * vy_imo + vz_imo * vz_imo)) *
+            (gamma - 1.0);
   #endif  // PRESSURE_DE
     p_imo = fmax(p_imo, (Real)TINY_NUMBER);
   #ifdef SCALAR
@@ -165,9 +164,15 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
     ge_imo = dge / d_imo;
   #endif  // DE
     // cell i+1
-    if (dir == 0) id = xid + 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid + 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid + 1) * nx * ny;
+    if (dir == 0) {
+      id = xid + 1 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid + 1) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid + 1) * nx * ny;
+    }
     d_ipo  = dev_conserved[id];
     vx_ipo = dev_conserved[o1 * n_cells + id] / d_ipo;
     vy_ipo = dev_conserved[o2 * n_cells + id] / d_ipo;
@@ -178,10 +183,8 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_ipo = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
   #else
-    p_ipo =
-        (dev_conserved[4 * n_cells + id] -
-         0.5 * d_ipo * (vx_ipo * vx_ipo + vy_ipo * vy_ipo + vz_ipo * vz_ipo)) *
-        (gamma - 1.0);
+    p_ipo = (dev_conserved[4 * n_cells + id] - 0.5 * d_ipo * (vx_ipo * vx_ipo + vy_ipo * vy_ipo + vz_ipo * vz_ipo)) *
+            (gamma - 1.0);
   #endif  // PRESSURE_DE
     p_ipo = fmax(p_ipo, (Real)TINY_NUMBER);
   #ifdef SCALAR
@@ -204,8 +207,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
   #endif  // DE
   #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      Interface_Values_PLM(scalar_imo[i], scalar_i[i], scalar_ipo[i],
-                           &scalar_L[i], &scalar_R[i]);
+      Interface_Values_PLM(scalar_imo[i], scalar_i[i], scalar_ipo[i], &scalar_L[i], &scalar_R[i]);
     }
   #endif  // SCALAR
 
@@ -222,10 +224,8 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
     my_R = d_R * vy_R;
     mz_L = d_L * vz_L;
     mz_R = d_R * vz_R;
-    E_L  = p_L / (gamma - 1.0) +
-          0.5 * d_L * (vx_L * vx_L + vy_L * vy_L + vz_L * vz_L);
-    E_R = p_R / (gamma - 1.0) +
-          0.5 * d_R * (vx_R * vx_R + vy_R * vy_R + vz_R * vz_R);
+    E_L  = p_L / (gamma - 1.0) + 0.5 * d_L * (vx_L * vx_L + vy_L * vy_L + vz_L * vz_L);
+    E_R  = p_R / (gamma - 1.0) + 0.5 * d_R * (vx_R * vx_R + vy_R * vy_R + vz_R * vz_R);
   #ifdef DE
     dge_L = d_L * ge_L;
     dge_R = d_R * ge_R;
@@ -288,9 +288,15 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
     // Convert the left and right states in the primitive to the conserved
     // variables send final values back from kernel bounds_R refers to the right
     // side of the i-1/2 interface
-    if (dir == 0) id = xid - 1 + yid * nx + zid * nx * ny;
-    if (dir == 1) id = xid + (yid - 1) * nx + zid * nx * ny;
-    if (dir == 2) id = xid + yid * nx + (zid - 1) * nx * ny;
+    if (dir == 0) {
+      id = xid - 1 + yid * nx + zid * nx * ny;
+    }
+    if (dir == 1) {
+      id = xid + (yid - 1) * nx + zid * nx * ny;
+    }
+    if (dir == 2) {
+      id = xid + yid * nx + (zid - 1) * nx * ny;
+    }
     dev_bounds_R[id]                = d_L;
     dev_bounds_R[o1 * n_cells + id] = mx_L;
     dev_bounds_R[o2 * n_cells + id] = my_L;
@@ -322,8 +328,7 @@ __global__ void PLMP_cuda(Real *dev_conserved, Real *dev_bounds_L,
   }
 }
 
-__device__ void Interface_Values_PLM(Real q_imo, Real q_i, Real q_ipo,
-                                     Real *q_L, Real *q_R)
+__device__ void Interface_Values_PLM(Real q_imo, Real q_i, Real q_ipo, Real *q_L, Real *q_R)
 {
   Real del_q_L, del_q_R, del_q_C, del_q_G;
   Real lim_slope_a, lim_slope_b, del_q_m;

@@ -8,15 +8,11 @@
 
   #include "PoissonZero3DBlockedGPU.hpp"
 
-static constexpr double sqrt2 =
-    0.4142135623730950488016887242096980785696718753769480731766797379;
+static constexpr double sqrt2 = 0.4142135623730950488016887242096980785696718753769480731766797379;
 
 static inline __host__ __device__ double sqr(const double x) { return x * x; }
 
-PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3],
-                                                 const double lo[3],
-                                                 const double hi[3],
-                                                 const int m[3],
+PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3], const double lo[3], const double hi[3], const int m[3],
                                                  const int id[3])
     :
   #ifdef PARIS_GALACTIC_3PT
@@ -43,7 +39,9 @@ PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3],
       nk_(n[2])
 {
   mq_ = int(round(sqrt(mk_)));
-  while (mk_ % mq_) mq_--;
+  while (mk_ % mq_) {
+    mq_--;
+  }
   mp_ = mk_ / mq_;
   assert(mp_ * mq_ == mk_);
 
@@ -80,21 +78,17 @@ PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3],
   nj2_ = 2 * (nj_ / 2 + 1);
   nk2_ = 2 * (nk_ / 2 + 1);
 
-  const long nMax = std::max(
-      {di_ * dj_ * dk_, dip_ * djq_ * mk_ * dk_, dip_ * mp_ * djq_ * mq_ * dk_,
-       dip_ * djq_ * nk2_, dip_ * djq_ * mjq * dkq_, dip_ * dkq_ * nj2_,
-       dip_ * dkq_ * mip * djp_, dkq_ * djp_ * mip * dip_, dkq_ * djp_ * ni2_});
-  bytes_ = nMax * sizeof(double);
+  const long nMax = std::max({di_ * dj_ * dk_, dip_ * djq_ * mk_ * dk_, dip_ * mp_ * djq_ * mq_ * dk_,
+                              dip_ * djq_ * nk2_, dip_ * djq_ * mjq * dkq_, dip_ * dkq_ * nj2_,
+                              dip_ * dkq_ * mip * djp_, dkq_ * djp_ * mip * dip_, dkq_ * djp_ * ni2_});
+  bytes_          = nMax * sizeof(double);
 
   int nkh = nk_ / 2 + 1;
-  CHECK(cufftPlanMany(&d2zk_, 1, &nk_, &nk_, 1, nk_, &nkh, 1, nkh, CUFFT_D2Z,
-                      dip_ * djq_));
+  CHECK(cufftPlanMany(&d2zk_, 1, &nk_, &nk_, 1, nk_, &nkh, 1, nkh, CUFFT_D2Z, dip_ * djq_));
   int njh = nj_ / 2 + 1;
-  CHECK(cufftPlanMany(&d2zj_, 1, &nj_, &nj_, 1, nj_, &njh, 1, njh, CUFFT_D2Z,
-                      dip_ * dkq_));
+  CHECK(cufftPlanMany(&d2zj_, 1, &nj_, &nj_, 1, nj_, &njh, 1, njh, CUFFT_D2Z, dip_ * dkq_));
   int nih = ni_ / 2 + 1;
-  CHECK(cufftPlanMany(&d2zi_, 1, &ni_, &ni_, 1, ni_, &nih, 1, nih, CUFFT_D2Z,
-                      dkq_ * djp_));
+  CHECK(cufftPlanMany(&d2zi_, 1, &ni_, &ni_, 1, ni_, &nih, 1, nih, CUFFT_D2Z, dkq_ * djp_));
   #ifndef MPI_GPU
   CHECK(cudaHostAlloc(&ha_, bytes_ + bytes_, cudaHostAllocDefault));
   assert(ha_);
@@ -116,13 +110,14 @@ PoissonZero3DBlockedGPU::~PoissonZero3DBlockedGPU()
   MPI_Comm_free(&commK_);
 }
 
-void print(const char *const title, const int ni, const int nj, const int nk,
-           const double *const v)
+void print(const char *const title, const int ni, const int nj, const int nk, const double *const v)
 {
   printf("%s:\n", title);
   for (int i = 0; i < ni; i++) {
     for (int j = 0; j < nj; j++) {
-      for (int k = 0; k < nk; k++) printf("%.6f ", v[(i * nj + j) * nk + k]);
+      for (int k = 0; k < nk; k++) {
+        printf("%.6f ", v[(i * nj + j) * nk + k]);
+      }
       printf("  ");
     }
     printf("\n");
@@ -130,8 +125,7 @@ void print(const char *const title, const int ni, const int nj, const int nk,
   printf("\n");
 }
 
-void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
-                                    double *const potential) const
+void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, double *const potential) const
 {
   assert(bytes >= bytes_);
   assert(density);
@@ -165,24 +159,20 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
   const int nk2    = nk2_;
 
   gpuFor(
-      mp, mq, dip, djq, dk,
-      GPU_LAMBDA(const int p, const int q, const int i, const int j,
-                 const int k) {
+      mp, mq, dip, djq, dk, GPU_LAMBDA(const int p, const int q, const int i, const int j, const int k) {
         const int iLo = p * dip;
         const int jLo = q * djq;
-        if ((i + iLo < di) && (j + jLo < dj))
-          ua[(((p * mq + q) * dip + i) * djq + j) * dk + k] =
-              ub[((i + iLo) * dj + j + jLo) * dk + k];
+        if ((i + iLo < di) && (j + jLo < dj)) {
+          ua[(((p * mq + q) * dip + i) * djq + j) * dk + k] = ub[((i + iLo) * dj + j + jLo) * dk + k];
+        }
       });
   #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_, ua, bytes_, cudaMemcpyDeviceToHost));
-  MPI_Alltoall(ha_, dip * djq * dk, MPI_DOUBLE, hb_, dip * djq * dk, MPI_DOUBLE,
-               commK_);
+  MPI_Alltoall(ha_, dip * djq * dk, MPI_DOUBLE, hb_, dip * djq * dk, MPI_DOUBLE, commK_);
   CHECK(cudaMemcpyAsync(ub, hb_, bytes_, cudaMemcpyHostToDevice, 0));
   #else
   CHECK(cudaDeviceSynchronize());
-  MPI_Alltoall(ua, dip * djq * dk, MPI_DOUBLE, ub, dip * djq * dk, MPI_DOUBLE,
-               commK_);
+  MPI_Alltoall(ua, dip * djq * dk, MPI_DOUBLE, ub, dip * djq * dk, MPI_DOUBLE, commK_);
   #endif
   gpuFor(
       dip, djq, nk / 2 + 1, GPU_LAMBDA(const int i, const int j, const int k) {
@@ -207,15 +197,13 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
   gpuFor(
       dip, nk / 2 + 1, djq, GPU_LAMBDA(const int i, const int k, const int j) {
         if (k == 0) {
-          const int q0 = (nk - 1) / dkq;
-          const int k0 = (nk - 1) % dkq;
-          ua[((q0 * dip + i) * dkq + k0) * djq + j] =
-              2.0 * ub[(i * djq + j) * nk2];
+          const int q0                              = (nk - 1) / dkq;
+          const int k0                              = (nk - 1) % dkq;
+          ua[((q0 * dip + i) * dkq + k0) * djq + j] = 2.0 * ub[(i * djq + j) * nk2];
         } else if (k + k == nk) {
-          const int qa = (nk / 2 - 1) / dkq;
-          const int ka = (nk / 2 - 1) % dkq;
-          ua[((qa * dip + i) * dkq + ka) * djq + j] =
-              sqrt2 * ub[(i * djq + j) * nk2 + nk];
+          const int qa                              = (nk / 2 - 1) / dkq;
+          const int ka                              = (nk / 2 - 1) % dkq;
+          ua[((qa * dip + i) * dkq + ka) * djq + j] = sqrt2 * ub[(i * djq + j) * nk2 + nk];
         } else {
           const int qa    = (nk - k - 1) / dkq;
           const int ka    = (nk - k - 1) % dkq;
@@ -231,13 +219,11 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
       });
   #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_, ua, bytes_, cudaMemcpyDeviceToHost));
-  MPI_Alltoall(ha_, dip * dkq * djq, MPI_DOUBLE, hb_, dip * dkq * djq,
-               MPI_DOUBLE, commJ_);
+  MPI_Alltoall(ha_, dip * dkq * djq, MPI_DOUBLE, hb_, dip * dkq * djq, MPI_DOUBLE, commJ_);
   CHECK(cudaMemcpyAsync(ub, hb_, bytes_, cudaMemcpyHostToDevice, 0));
   #else
   CHECK(cudaDeviceSynchronize());
-  MPI_Alltoall(ua, dip * dkq * djq, MPI_DOUBLE, ub, dip * dkq * djq, MPI_DOUBLE,
-               commJ_);
+  MPI_Alltoall(ua, dip * dkq * djq, MPI_DOUBLE, ub, dip * dkq * djq, MPI_DOUBLE, commJ_);
   #endif
   gpuFor(
       dip, dkq, nj / 2 + 1, GPU_LAMBDA(const int i, const int k, const int j) {
@@ -261,15 +247,13 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
   gpuFor(
       dkq, nj / 2 + 1, dip, GPU_LAMBDA(const int k, const int j, const int i) {
         if (j == 0) {
-          const int pa = (nj - 1) / djp;
-          const int ja = (nj - 1) % djp;
-          ua[((pa * dkq + k) * djp + ja) * dip + i] =
-              2.0 * ub[(i * dkq + k) * nj2];
+          const int pa                              = (nj - 1) / djp;
+          const int ja                              = (nj - 1) % djp;
+          ua[((pa * dkq + k) * djp + ja) * dip + i] = 2.0 * ub[(i * dkq + k) * nj2];
         } else if (j + j == nj) {
-          const int pa = (nj / 2 - 1) / djp;
-          const int ja = (nj / 2 - 1) % djp;
-          ua[((pa * dkq + k) * djp + ja) * dip + i] =
-              sqrt2 * ub[(i * dkq + k) * nj2 + nj];
+          const int pa                              = (nj / 2 - 1) / djp;
+          const int ja                              = (nj / 2 - 1) % djp;
+          ua[((pa * dkq + k) * djp + ja) * dip + i] = sqrt2 * ub[(i * dkq + k) * nj2 + nj];
         } else {
           const double aj = 2.0 * ub[(i * dkq + k) * nj2 + 2 * j];
           const double bj = 2.0 * ub[(i * dkq + k) * nj2 + 2 * j + 1];
@@ -285,13 +269,11 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
       });
   #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_, ua, bytes_, cudaMemcpyDeviceToHost));
-  MPI_Alltoall(ha_, dkq * djp * dip, MPI_DOUBLE, hb_, dkq * djp * dip,
-               MPI_DOUBLE, commI_);
+  MPI_Alltoall(ha_, dkq * djp * dip, MPI_DOUBLE, hb_, dkq * djp * dip, MPI_DOUBLE, commI_);
   CHECK(cudaMemcpyAsync(ub, hb_, bytes_, cudaMemcpyHostToDevice, 0));
   #else
   CHECK(cudaDeviceSynchronize());
-  MPI_Alltoall(ua, dkq * djp * dip, MPI_DOUBLE, ub, dkq * djp * dip, MPI_DOUBLE,
-               commI_);
+  MPI_Alltoall(ua, dkq * djp * dip, MPI_DOUBLE, ub, dkq * djp * dip, MPI_DOUBLE, commI_);
   #endif
   gpuFor(
       dkq, djp, ni / 2 + 1, GPU_LAMBDA(const int k, const int j, const int i) {
@@ -299,21 +281,19 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
         if (i == 0) {
           ua[kj] = ub[(k * djp + j) * dip];
         } else if (i + i == ni) {
-          const int ida = (ni - 1) / di;
-          const int pa  = (ni - 1) % di / dip;
-          const int ia  = ni - 1 - ida * di - pa * dip;
-          ua[kj + ni / 2] =
-              -ub[(((ida * mp + pa) * dkq + k) * djp + j) * dip + ia];
+          const int ida   = (ni - 1) / di;
+          const int pa    = (ni - 1) % di / dip;
+          const int ia    = ni - 1 - ida * di - pa * dip;
+          ua[kj + ni / 2] = -ub[(((ida * mp + pa) * dkq + k) * djp + j) * dip + ia];
         } else {
-          const int ida = (i + i - 1) / di;
-          const int pa  = (i + i - 1) % di / dip;
-          const int ia  = i + i - 1 - ida * di - pa * dip;
-          ua[kj + ni - i] =
-              -ub[(((ida * mp + pa) * dkq + k) * djp + j) * dip + ia];
-          const int idb = (i + i) / di;
-          const int pb  = (i + i) % di / dip;
-          const int ib  = i + i - idb * di - pb * dip;
-          ua[kj + i] = ub[(((idb * mp + pb) * dkq + k) * djp + j) * dip + ib];
+          const int ida   = (i + i - 1) / di;
+          const int pa    = (i + i - 1) % di / dip;
+          const int ia    = i + i - 1 - ida * di - pa * dip;
+          ua[kj + ni - i] = -ub[(((ida * mp + pa) * dkq + k) * djp + j) * dip + ia];
+          const int idb   = (i + i) / di;
+          const int pb    = (i + i) % di / dip;
+          const int ib    = i + i - idb * di - pb * dip;
+          ua[kj + i]      = ub[(((idb * mp + pb) * dkq + k) * djp + j) * dip + ib];
         }
       });
   CHECK(cufftExecD2Z(d2zi_, ua, uc));
@@ -335,13 +315,11 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
     const int jLo = (idi * mp + idp) * djp;
     const int kLo = (idj * mq + idq) * dkq;
     gpuFor(
-        dkq, djp, ni / 2 + 1,
-        GPU_LAMBDA(const int k, const int j, const int i) {
+        dkq, djp, ni / 2 + 1, GPU_LAMBDA(const int k, const int j, const int i) {
           const int kj  = (k * djp + j) * ni;
           const int kj2 = (k * djp + j) * ni2;
   #ifdef PARIS_GALACTIC_3PT
-          const double jjkk = sqr(sin(double(jLo + j + 1) * sj) * ddj) +
-                              sqr(sin(double(kLo + k + 1) * sk) * ddk);
+          const double jjkk = sqr(sin(double(jLo + j + 1) * sj) * ddj) + sqr(sin(double(kLo + k + 1) * sk) * ddk);
   #elif defined PARIS_GALACTIC_5PT
           const double cj   = cos(double(jLo + j + 1) * sj);
           const double jj   = ddj * (2.0 * cj * cj - 16.0 * cj + 14.0);
@@ -394,33 +372,30 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
         if (i == 0) {
           ua[k * dip * djp + j] = ub[(k * djp + j) * ni2];
         } else if (i + i == ni) {
-          const int ida = (ni - 1) / di;
-          const int pa  = (ni - 1) % di / dip;
-          const int ia  = ni - 1 - ida * di - pa * dip;
-          ua[(((ida * mp + pa) * dkq + k) * dip + ia) * djp + j] =
-              -ub[(k * djp + j) * ni2 + ni];
+          const int ida                                          = (ni - 1) / di;
+          const int pa                                           = (ni - 1) % di / dip;
+          const int ia                                           = ni - 1 - ida * di - pa * dip;
+          ua[(((ida * mp + pa) * dkq + k) * dip + ia) * djp + j] = -ub[(k * djp + j) * ni2 + ni];
         } else {
-          const double ai = ub[(k * djp + j) * ni2 + i + i];
-          const double bi = ub[(k * djp + j) * ni2 + i + i + 1];
-          const int ida   = (i + i - 1) / di;
-          const int pa    = (i + i - 1) % di / dip;
-          const int ia    = i + i - 1 - ida * di - pa * dip;
+          const double ai                                        = ub[(k * djp + j) * ni2 + i + i];
+          const double bi                                        = ub[(k * djp + j) * ni2 + i + i + 1];
+          const int ida                                          = (i + i - 1) / di;
+          const int pa                                           = (i + i - 1) % di / dip;
+          const int ia                                           = i + i - 1 - ida * di - pa * dip;
           ua[(((ida * mp + pa) * dkq + k) * dip + ia) * djp + j] = bi - ai;
           const int idb                                          = (i + i) / di;
-          const int pb = (i + i) % di / dip;
-          const int ib = i + i - idb * di - pb * dip;
+          const int pb                                           = (i + i) % di / dip;
+          const int ib                                           = i + i - idb * di - pb * dip;
           ua[(((idb * mp + pb) * dkq + k) * dip + ib) * djp + j] = ai + bi;
         }
       });
   #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_, ua, bytes_, cudaMemcpyDeviceToHost));
-  MPI_Alltoall(ha_, dkq * djp * dip, MPI_DOUBLE, hb_, dkq * djp * dip,
-               MPI_DOUBLE, commI_);
+  MPI_Alltoall(ha_, dkq * djp * dip, MPI_DOUBLE, hb_, dkq * djp * dip, MPI_DOUBLE, commI_);
   CHECK(cudaMemcpyAsync(ub, hb_, bytes_, cudaMemcpyHostToDevice, 0));
   #else
   CHECK(cudaDeviceSynchronize());
-  MPI_Alltoall(ua, dkq * djp * dip, MPI_DOUBLE, ub, dkq * djp * dip, MPI_DOUBLE,
-               commI_);
+  MPI_Alltoall(ua, dkq * djp * dip, MPI_DOUBLE, ub, dkq * djp * dip, MPI_DOUBLE, commI_);
   #endif
   gpuFor(
       dkq, dip, nj / 2 + 1, GPU_LAMBDA(const int k, const int i, const int j) {
@@ -454,34 +429,31 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
         if (j == 0) {
           ua[i * djq * dkq + k] = ub[(k * dip + i) * nj2];
         } else if (j + j == nj) {
-          const int ida = (nj - 1) / dj;
-          const int qa  = (nj - 1) % dj / djq;
-          const int ja  = nj - 1 - ida * dj - qa * djq;
-          ua[(((ida * mq + qa) * dip + i) * djq + ja) * dkq + k] =
-              -ub[(k * dip + i) * nj2 + nj];
+          const int ida                                          = (nj - 1) / dj;
+          const int qa                                           = (nj - 1) % dj / djq;
+          const int ja                                           = nj - 1 - ida * dj - qa * djq;
+          ua[(((ida * mq + qa) * dip + i) * djq + ja) * dkq + k] = -ub[(k * dip + i) * nj2 + nj];
         } else {
-          const int jj    = j + j;
-          const int ida   = (jj - 1) / dj;
-          const int qa    = (jj - 1) % dj / djq;
-          const int ja    = jj - 1 - ida * dj - qa * djq;
-          const int idb   = jj / dj;
-          const int qb    = jj % dj / djq;
-          const int jb    = jj - idb * dj - qb * djq;
-          const double aj = ub[(k * dip + i) * nj2 + jj];
-          const double bj = ub[(k * dip + i) * nj2 + jj + 1];
+          const int jj                                           = j + j;
+          const int ida                                          = (jj - 1) / dj;
+          const int qa                                           = (jj - 1) % dj / djq;
+          const int ja                                           = jj - 1 - ida * dj - qa * djq;
+          const int idb                                          = jj / dj;
+          const int qb                                           = jj % dj / djq;
+          const int jb                                           = jj - idb * dj - qb * djq;
+          const double aj                                        = ub[(k * dip + i) * nj2 + jj];
+          const double bj                                        = ub[(k * dip + i) * nj2 + jj + 1];
           ua[(((ida * mq + qa) * dip + i) * djq + ja) * dkq + k] = bj - aj;
           ua[(((idb * mq + qb) * dip + i) * djq + jb) * dkq + k] = aj + bj;
         }
       });
   #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_, ua, bytes_, cudaMemcpyDeviceToHost));
-  MPI_Alltoall(ha_, dip * djq * dkq, MPI_DOUBLE, hb_, dip * djq * dkq,
-               MPI_DOUBLE, commJ_);
+  MPI_Alltoall(ha_, dip * djq * dkq, MPI_DOUBLE, hb_, dip * djq * dkq, MPI_DOUBLE, commJ_);
   CHECK(cudaMemcpyAsync(ub, hb_, bytes_, cudaMemcpyHostToDevice, 0));
   #else
   CHECK(cudaDeviceSynchronize());
-  MPI_Alltoall(ua, dip * djq * dkq, MPI_DOUBLE, ub, dip * djq * dkq, MPI_DOUBLE,
-               commJ_);
+  MPI_Alltoall(ua, dip * djq * dkq, MPI_DOUBLE, ub, dip * djq * dkq, MPI_DOUBLE, commJ_);
   #endif
   gpuFor(
       dip, djq, nk / 2 + 1, GPU_LAMBDA(const int i, const int j, const int k) {
@@ -516,16 +488,15 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
         if (k == 0) {
           ua[(i * djq + j) * dk] = divN * ub[(i * djq + j) * nk2];
         } else if (k + k == nk) {
-          const int pqa = (nk - 1) / dk;
-          const int ka  = nk - 1 - pqa * dk;
-          ua[((pqa * dip + i) * djq + j) * dk + ka] =
-              -divN * ub[(i * djq + j) * nk2 + nk];
+          const int pqa                             = (nk - 1) / dk;
+          const int ka                              = nk - 1 - pqa * dk;
+          ua[((pqa * dip + i) * djq + j) * dk + ka] = -divN * ub[(i * djq + j) * nk2 + nk];
         } else {
-          const int kk    = k + k;
-          const double ak = ub[(i * djq + j) * nk2 + kk];
-          const double bk = ub[(i * djq + j) * nk2 + kk + 1];
-          const int pqa   = (kk - 1) / dk;
-          const int ka    = kk - 1 - pqa * dk;
+          const int kk                              = k + k;
+          const double ak                           = ub[(i * djq + j) * nk2 + kk];
+          const double bk                           = ub[(i * djq + j) * nk2 + kk + 1];
+          const int pqa                             = (kk - 1) / dk;
+          const int ka                              = kk - 1 - pqa * dk;
           ua[((pqa * dip + i) * djq + j) * dk + ka] = divN * (bk - ak);
           const int pqb                             = kk / dk;
           const int kb                              = kk - pqb * dk;
@@ -534,23 +505,19 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density,
       });
   #ifndef MPI_GPU
   CHECK(cudaMemcpy(ha_, ua, bytes_, cudaMemcpyDeviceToHost));
-  MPI_Alltoall(ha_, dip * djq * dk, MPI_DOUBLE, hb_, dip * djq * dk, MPI_DOUBLE,
-               commK_);
+  MPI_Alltoall(ha_, dip * djq * dk, MPI_DOUBLE, hb_, dip * djq * dk, MPI_DOUBLE, commK_);
   CHECK(cudaMemcpyAsync(ub, hb_, bytes_, cudaMemcpyHostToDevice, 0));
   #else
   CHECK(cudaDeviceSynchronize());
-  MPI_Alltoall(ua, dip * djq * dk, MPI_DOUBLE, ub, dip * djq * dk, MPI_DOUBLE,
-               commK_);
+  MPI_Alltoall(ua, dip * djq * dk, MPI_DOUBLE, ub, dip * djq * dk, MPI_DOUBLE, commK_);
   #endif
   gpuFor(
-      mp, dip, mq, djq, dk,
-      GPU_LAMBDA(const int p, const int i, const int q, const int j,
-                 const int k) {
+      mp, dip, mq, djq, dk, GPU_LAMBDA(const int p, const int i, const int q, const int j, const int k) {
         const int iLo = p * dip;
         const int jLo = q * djq;
-        if ((iLo + i < di) && (jLo + j < dj))
-          ua[((i + iLo) * dj + j + jLo) * dk + k] =
-              ub[(((p * mq + q) * dip + i) * djq + j) * dk + k];
+        if ((iLo + i < di) && (jLo + j < dj)) {
+          ua[((i + iLo) * dj + j + jLo) * dk + k] = ub[(((p * mq + q) * dip + i) * djq + j) * dk + k];
+        }
       });
 }
 

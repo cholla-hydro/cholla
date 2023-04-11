@@ -12,3 +12,7 @@ b78d8c96680c9c2d5a5d41656895cb3795e1e204
 
 # Reformat Code with clang-format
 729ef8ed307eaa2cf42baa1f5af6c389ad614ac4
+
+# Reformat Code with clang-format increasing column width to 120
+b779b212b24ed19592ac309eab1c3ccb7ba66212
+8e5b4619734e0922d815f4d259323c68002af6db

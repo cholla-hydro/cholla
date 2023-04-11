@@ -33,8 +33,7 @@ Real Grid3D::Calc_Particles_dt()
     part_int_t p_start, p_end;
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    Get_OMP_Particles_Indxs(Particles.n_local, N_OMP_THREADS, omp_id, &p_start,
-                            &p_end);
+    Get_OMP_Particles_Indxs(Particles.n_local, N_OMP_THREADS, omp_id, &p_start, &p_end);
     dt_particles_all[omp_id] = Calc_Particles_dt_function(p_start, p_end);
   }
 
@@ -66,25 +65,23 @@ Real Grid3D::Calc_Particles_dt_GPU()
   // set values for GPU kernels
   int ngrid = (Particles.n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
 
-  if (ngrid > Particles.G.size_blocks_array)
+  if (ngrid > Particles.G.size_blocks_array) {
     chprintf(" Error: particles dt_array too small\n");
+  }
 
   Real max_dti;
   max_dti = Particles.Calc_Particles_dt_GPU_function(
-      ngrid, Particles.n_local, Particles.G.dx, Particles.G.dy, Particles.G.dz,
-      Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev,
-      Particles.G.dti_array_host, Particles.G.dti_array_dev);
+      ngrid, Particles.n_local, Particles.G.dx, Particles.G.dy, Particles.G.dz, Particles.vel_x_dev,
+      Particles.vel_y_dev, Particles.vel_z_dev, Particles.G.dti_array_host, Particles.G.dti_array_dev);
 
   Real dt_min;
 
     #ifdef COSMOLOGY
   Real scale_factor, vel_factor, da_min;
-  scale_factor =
-      1 / (Cosmo.current_a * Cosmo.Get_Hubble_Parameter(Cosmo.current_a)) *
-      Cosmo.cosmo_h;
-  vel_factor = Cosmo.current_a / scale_factor;
-  da_min     = vel_factor / max_dti;
-  dt_min     = Cosmo.Get_dt_from_da(da_min);
+  scale_factor = 1 / (Cosmo.current_a * Cosmo.Get_Hubble_Parameter(Cosmo.current_a)) * Cosmo.cosmo_h;
+  vel_factor   = Cosmo.current_a / scale_factor;
+  da_min       = vel_factor / max_dti;
+  dt_min       = Cosmo.Get_dt_from_da(da_min);
     #else
   dt_min = 1 / max_dti;
     #endif
@@ -97,17 +94,14 @@ void Grid3D::Advance_Particles_KDK_Step1_GPU()
 {
     #ifdef COSMOLOGY
   Particles.Advance_Particles_KDK_Step1_Cosmo_GPU_function(
-      Particles.n_local, Cosmo.delta_a, Particles.pos_x_dev,
-      Particles.pos_y_dev, Particles.pos_z_dev, Particles.vel_x_dev,
-      Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev,
-      Particles.grav_y_dev, Particles.grav_z_dev, Cosmo.current_a, Cosmo.H0,
-      Cosmo.cosmo_h, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K);
+      Particles.n_local, Cosmo.delta_a, Particles.pos_x_dev, Particles.pos_y_dev, Particles.pos_z_dev,
+      Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev,
+      Particles.grav_z_dev, Cosmo.current_a, Cosmo.H0, Cosmo.cosmo_h, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K);
     #else
-  Particles.Advance_Particles_KDK_Step1_GPU_function(
-      Particles.n_local, Particles.dt, Particles.pos_x_dev, Particles.pos_y_dev,
-      Particles.pos_z_dev, Particles.vel_x_dev, Particles.vel_y_dev,
-      Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev,
-      Particles.grav_z_dev);
+  Particles.Advance_Particles_KDK_Step1_GPU_function(Particles.n_local, Particles.dt, Particles.pos_x_dev,
+                                                     Particles.pos_y_dev, Particles.pos_z_dev, Particles.vel_x_dev,
+                                                     Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev,
+                                                     Particles.grav_y_dev, Particles.grav_z_dev);
     #endif
 }
 
@@ -116,15 +110,13 @@ void Grid3D::Advance_Particles_KDK_Step2_GPU()
 {
     #ifdef COSMOLOGY
   Particles.Advance_Particles_KDK_Step2_Cosmo_GPU_function(
-      Particles.n_local, Cosmo.delta_a, Particles.vel_x_dev,
-      Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev,
-      Particles.grav_y_dev, Particles.grav_z_dev, Cosmo.current_a, Cosmo.H0,
-      Cosmo.cosmo_h, Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K);
+      Particles.n_local, Cosmo.delta_a, Particles.vel_x_dev, Particles.vel_y_dev, Particles.vel_z_dev,
+      Particles.grav_x_dev, Particles.grav_y_dev, Particles.grav_z_dev, Cosmo.current_a, Cosmo.H0, Cosmo.cosmo_h,
+      Cosmo.Omega_M, Cosmo.Omega_L, Cosmo.Omega_K);
     #else
-  Particles.Advance_Particles_KDK_Step2_GPU_function(
-      Particles.n_local, Particles.dt, Particles.vel_x_dev, Particles.vel_y_dev,
-      Particles.vel_z_dev, Particles.grav_x_dev, Particles.grav_y_dev,
-      Particles.grav_z_dev);
+  Particles.Advance_Particles_KDK_Step2_GPU_function(Particles.n_local, Particles.dt, Particles.vel_x_dev,
+                                                     Particles.vel_y_dev, Particles.vel_z_dev, Particles.grav_x_dev,
+                                                     Particles.grav_y_dev, Particles.grav_z_dev);
     #endif
 }
 
@@ -165,13 +157,19 @@ void Grid3D::Advance_Particles(int N_step)
 {
   CudaCheckError();
   #ifdef CPU_TIME
-  if (N_step == 1) Timer.Advance_Part_1.Start();
-  if (N_step == 2) Timer.Advance_Part_2.Start();
+  if (N_step == 1) {
+    Timer.Advance_Part_1.Start();
+  }
+  if (N_step == 2) {
+    Timer.Advance_Part_2.Start();
+  }
   #endif
 
   #ifdef PARTICLES_KDK
   // Update the velocities by 0.5*delta_t and update the positions by delta_t
-  if (N_step == 1) Advance_Particles_KDK_Step1();
+  if (N_step == 1) {
+    Advance_Particles_KDK_Step1();
+  }
   #endif
 
   if (N_step == 2) {
@@ -185,8 +183,12 @@ void Grid3D::Advance_Particles(int N_step)
   }
 
   #ifdef CPU_TIME
-  if (N_step == 1) Timer.Advance_Part_1.End();
-  if (N_step == 2) Timer.Advance_Part_2.End();
+  if (N_step == 1) {
+    Timer.Advance_Part_1.End();
+  }
+  if (N_step == 2) {
+    Timer.Advance_Part_2.End();
+  }
   #endif
   CudaCheckError();
 }
@@ -220,8 +222,7 @@ void Grid3D::Advance_Particles_KDK_Step1()
     part_int_t p_start, p_end;
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    Get_OMP_Particles_Indxs(Particles.n_local, N_OMP_THREADS, omp_id, &p_start,
-                            &p_end);
+    Get_OMP_Particles_Indxs(Particles.n_local, N_OMP_THREADS, omp_id, &p_start, &p_end);
       #ifdef COSMOLOGY
     Advance_Particles_KDK_Cosmo_Step1_function(p_start, p_end);
       #else
@@ -254,8 +255,7 @@ void Grid3D::Advance_Particles_KDK_Step2()
     part_int_t p_start, p_end;
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    Get_OMP_Particles_Indxs(Particles.n_local, N_OMP_THREADS, omp_id, &p_start,
-                            &p_end);
+    Get_OMP_Particles_Indxs(Particles.n_local, N_OMP_THREADS, omp_id, &p_start, &p_end);
       #ifdef COSMOLOGY
     Advance_Particles_KDK_Cosmo_Step2_function(p_start, p_end);
       #else
@@ -272,8 +272,7 @@ void Grid3D::Advance_Particles_KDK_Step2()
 
   #ifdef PARTICLES_CPU
 // Update positions and velocities (step 1 of KDK scheme )
-void Grid3D::Advance_Particles_KDK_Step1_function(part_int_t p_start,
-                                                  part_int_t p_end)
+void Grid3D::Advance_Particles_KDK_Step1_function(part_int_t p_start, part_int_t p_end)
 {
   part_int_t pID;
   Real dt = Particles.dt;
@@ -293,8 +292,7 @@ void Grid3D::Advance_Particles_KDK_Step1_function(part_int_t p_start,
 }
 
 // Update  velocities (step 2 of KDK scheme )
-void Grid3D::Advance_Particles_KDK_Step2_function(part_int_t p_start,
-                                                  part_int_t p_end)
+void Grid3D::Advance_Particles_KDK_Step2_function(part_int_t p_start, part_int_t p_end)
 {
   part_int_t pID;
   Real dt = Particles.dt;
@@ -327,8 +325,7 @@ Real Grid3D::Calc_Particles_dt_Cosmo()
     part_int_t p_start, p_end;
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    Get_OMP_Particles_Indxs(Particles.n_local, N_OMP_THREADS, omp_id, &p_start,
-                            &p_end);
+    Get_OMP_Particles_Indxs(Particles.n_local, N_OMP_THREADS, omp_id, &p_start, &p_end);
     dt_particles_all[omp_id] = Calc_Particles_dt_Cosmo_function(p_start, p_end);
   }
 
@@ -354,16 +351,13 @@ Real Grid3D::Calc_Particles_dt_Cosmo()
 
     #ifdef PARTICLES_CPU
 // Loop over the particles anf compute dt_min for a cosmological simulation
-Real Grid3D::Calc_Particles_dt_Cosmo_function(part_int_t p_start,
-                                              part_int_t p_end)
+Real Grid3D::Calc_Particles_dt_Cosmo_function(part_int_t p_start, part_int_t p_end)
 {
   part_int_t pID;
   Real da, da_min, vel, dt_min;
-  da_min = 1e100;
-  Real scale_factor =
-      1 / (Cosmo.current_a * Cosmo.Get_Hubble_Parameter(Cosmo.current_a)) *
-      Cosmo.cosmo_h;
-  Real a2 = (Cosmo.current_a) * (Cosmo.current_a);
+  da_min            = 1e100;
+  Real scale_factor = 1 / (Cosmo.current_a * Cosmo.Get_Hubble_Parameter(Cosmo.current_a)) * Cosmo.cosmo_h;
+  Real a2           = (Cosmo.current_a) * (Cosmo.current_a);
 
   Real vel_factor;
   vel_factor = Cosmo.current_a / scale_factor;
@@ -388,8 +382,7 @@ Real Grid3D::Calc_Particles_dt_Cosmo_function(part_int_t p_start,
 
 // Update positions and velocities (step 1 of KDK scheme ) COSMOLOGICAL
 // SIMULATION
-void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function(part_int_t p_start,
-                                                        part_int_t p_end)
+void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function(part_int_t p_start, part_int_t p_end)
 {
   Real dt, dt_half;
   part_int_t pIndx;
@@ -441,8 +434,7 @@ void Grid3D::Advance_Particles_KDK_Cosmo_Step1_function(part_int_t p_start,
 }
 
 // Update velocities (step 2 of KDK scheme ) COSMOLOGICAL SIMULATION
-void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function(part_int_t p_start,
-                                                        part_int_t p_end)
+void Grid3D::Advance_Particles_KDK_Cosmo_Step2_function(part_int_t p_start, part_int_t p_end)
 {
   Real dt;
   part_int_t pIndx;

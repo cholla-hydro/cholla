@@ -29,8 +29,7 @@ TEST(tALLRotateCoords, CorrectInputExpectCorrectOutput)
   double const x_2_rot_fid = 14.745363873361605;
   double const x_3_rot_fid = -76.05402749550727;
 
-  auto [x_1_rot, x_2_rot, x_3_rot] =
-      math_utils::rotateCoords<double>(x_1, x_2, x_3, pitch, yaw);
+  auto [x_1_rot, x_2_rot, x_3_rot] = math_utils::rotateCoords<double>(x_1, x_2, x_3, pitch, yaw);
 
   testingUtilities::checkResults<0>(x_1_rot_fid, x_1_rot, "x_1 rotated values");
   testingUtilities::checkResults<0>(x_2_rot_fid, x_2_rot, "x_2 rotated values");
@@ -45,19 +44,16 @@ TEST(tALLRotateCoords, CorrectInputExpectCorrectOutput)
  */
 TEST(tALLDotProduct, CorrectInputExpectCorrectOutput)
 {
-  std::vector<double> a{21.503067766457753, 48.316634031589935,
-                        81.12177317622657},
+  std::vector<double> a{21.503067766457753, 48.316634031589935, 81.12177317622657},
       b{38.504606872151484, 18.984145880030045, 89.52561861038686};
 
   double const fiducialDotProduct = 9007.6941261535867;
 
   double testDotProduct;
 
-  testDotProduct = math_utils::dotProduct(a.at(0), a.at(1), a.at(2), b.at(0),
-                                          b.at(1), b.at(2));
+  testDotProduct = math_utils::dotProduct(a.at(0), a.at(1), a.at(2), b.at(0), b.at(1), b.at(2));
 
   // Now check results
-  testingUtilities::checkResults(fiducialDotProduct, testDotProduct,
-                                 "dot product");
+  testingUtilities::checkResults(fiducialDotProduct, testDotProduct, "dot product");
 }
 // =========================================================================

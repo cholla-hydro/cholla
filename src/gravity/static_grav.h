@@ -14,8 +14,7 @@
 // Work around lack of pow(Real,int) in Hip Clang for Rocm 3.5
 static inline __device__ Real pow2(const Real x) { return x * x; }
 
-inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx,
-                                 Real xbound, Real *gx)
+inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound, Real *gx)
 {
   Real x_pos, r_disk, r_halo;
   x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
@@ -29,8 +28,7 @@ inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx,
   r_halo = sqrt(x_pos * x_pos + r_disk * r_disk);
 
   // set properties of halo and disk (these must match initial conditions)
-  Real a_disk_z, a_halo, M_vir, M_d, R_vir, R_d, z_d, R_h, M_h, c_vir, phi_0_h,
-      x;
+  Real a_disk_z, a_halo, M_vir, M_d, R_vir, R_d, z_d, R_h, M_h, c_vir, phi_0_h, x;
   M_vir   = 1.0e12;         // viral mass of MW in M_sun
   M_d     = 6.5e10;         // mass of disk in M_sun
   M_h     = M_vir - M_d;    // halo mass in M_sun
@@ -46,8 +44,7 @@ inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx,
   a_halo = -phi_0_h * (log(1 + x) - x / (1 + x)) / (r_halo * r_halo);
   a_disk_z =
       -GN * M_d * x_pos * (R_d + sqrt(x_pos * x_pos + z_d * z_d)) /
-      (pow(r_disk * r_disk + pow2(R_d + sqrt(x_pos * x_pos + z_d * z_d)), 1.5) *
-       sqrt(x_pos * x_pos + z_d * z_d));
+      (pow(r_disk * r_disk + pow2(R_d + sqrt(x_pos * x_pos + z_d * z_d)), 1.5) * sqrt(x_pos * x_pos + z_d * z_d));
 
   // total acceleration is the sum of the halo + disk components
   *gx = (x_pos / r_halo) * a_halo + a_disk_z;
@@ -55,8 +52,7 @@ inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx,
   return;
 }
 
-inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off,
-                                 int n_ghost, Real dx, Real dy, Real xbound,
+inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound,
                                  Real ybound, Real *gx, Real *gy)
 {
   Real x_pos, y_pos, r, phi;
@@ -104,9 +100,8 @@ inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off,
   // calculate acceleration
   x   = r / R_s;
   a_d = GN * M_d * r * pow(r * r + R_d * R_d, -1.5);
-  a_h = GN * M_h * (log(1 + x) - x / (1 + x)) /
-        ((log(1 + c_vir) - c_vir / (1 + c_vir)) * r * r);
-  a = a_d + a_h;
+  a_h = GN * M_h * (log(1 + x) - x / (1 + x)) / ((log(1 + c_vir) - c_vir / (1 + c_vir)) * r * r);
+  a   = a_d + a_h;
 
   *gx = -cos(phi) * a;
   *gy = -sin(phi) * a;
@@ -114,10 +109,8 @@ inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off,
   return;
 }
 
-inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off,
-                                 int y_off, int z_off, int n_ghost, Real dx,
-                                 Real dy, Real dz, Real xbound, Real ybound,
-                                 Real zbound, Real *gx, Real *gy, Real *gz)
+inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx,
+                                 Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz)
 {
   Real x_pos, y_pos, z_pos, r_disk, r_halo;
   // use the subgrid offset and global boundaries to calculate absolute
@@ -158,13 +151,10 @@ inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off,
   a_halo   = -phi_0_h * (log(1 + x) - x / (1 + x)) / (r_halo * r_halo);
   a_halo_r = a_halo * (r_disk / r_halo);
   a_halo_z = a_halo * (z_pos / r_halo);
-  a_disk_r =
-      -GN * M_d * r_disk *
-      pow(r_disk * r_disk + pow2(R_d + sqrt(z_pos * z_pos + z_d * z_d)), -1.5);
+  a_disk_r = -GN * M_d * r_disk * pow(r_disk * r_disk + pow2(R_d + sqrt(z_pos * z_pos + z_d * z_d)), -1.5);
   a_disk_z =
       -GN * M_d * z_pos * (R_d + sqrt(z_pos * z_pos + z_d * z_d)) /
-      (pow(r_disk * r_disk + pow2(R_d + sqrt(z_pos * z_pos + z_d * z_d)), 1.5) *
-       sqrt(z_pos * z_pos + z_d * z_d));
+      (pow(r_disk * r_disk + pow2(R_d + sqrt(z_pos * z_pos + z_d * z_d)), 1.5) * sqrt(z_pos * z_pos + z_d * z_d));
 
   // total acceleration is the sum of the halo + disk components
   *gx = (x_pos / r_disk) * (a_disk_r + a_halo_r);

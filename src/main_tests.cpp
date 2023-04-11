@@ -71,8 +71,7 @@ class InputParser
    */
   bool cmdOptionExists(const std::string &option) const
   {
-    return std::find(this->_tokens.begin(), this->_tokens.end(), option) !=
-           this->_tokens.end();
+    return std::find(this->_tokens.begin(), this->_tokens.end(), option) != this->_tokens.end();
   }
   // =====================================================================
 
@@ -86,8 +85,9 @@ class InputParser
    */
   InputParser(int &argc, char **argv)
   {
-    for (int i = 1; i < argc; ++i)
-      this->_tokens.push_back(std::string(argv[i]));
+    for (int i = 1; i < argc; ++i) {
+      this->_tokens.emplace_back(argv[i]);
+    }
   }
   ~InputParser() = default;
   // =====================================================================

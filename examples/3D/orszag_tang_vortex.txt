@@ -1,0 +1,42 @@
+#
+# Parameter File for the Orszag-Tang Vortex
+# See [Gardiner & Stone 2008](https://arxiv.org/abs/0712.2634)
+#
+
+################################################
+# number of grid cells in the x dimension
+nx=128
+# number of grid cells in the y dimension
+ny=128
+# number of grid cells in the z dimension
+nz=128
+# final output time
+tout=0.5
+# time interval for output
+outstep=0.5
+# name of initial conditions
+init=Orszag_Tang_Vortex
+# domain properties
+xmin=0.0
+ymin=0.0
+zmin=0.0
+xlen=1.0
+ylen=1.0
+zlen=1.0
+# type of boundary conditions
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
+# path to output directory
+outdir=./
+
+#################################################
+# Parameters for Orszag-Tang Vortex. This problem is defined for a specific set
+# of initial conditions which have been hard coded into the initial conditions
+# function. The only thing that needs set here is the adiabatic index
+
+# value of gamma
+gamma=1.666666666666667

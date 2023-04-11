@@ -13,7 +13,9 @@ void Grid3D::Initialize_Cosmology(struct parameters *P)
   // Change to comoving Cosmological System
   Change_Cosmological_Frame_Sytem(true);
 
-  if (fabs(Cosmo.current_a - Cosmo.next_output) < 1e-5) H.Output_Now = true;
+  if (fabs(Cosmo.current_a - Cosmo.next_output) < 1e-5) {
+    H.Output_Now = true;
+  }
 
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
@@ -42,10 +44,11 @@ Real Cosmology::Get_Hubble_Parameter(Real a)
 
 void Grid3D::Change_Cosmological_Frame_Sytem(bool forward)
 {
-  if (forward)
+  if (forward) {
     chprintf(" Converting to Cosmological Comoving System\n");
-  else
+  } else {
     chprintf(" Converting to Cosmological Physical System\n");
+  }
 
   Change_DM_Frame_System(forward);
   #ifndef ONLY_PARTICLES
@@ -81,13 +84,11 @@ void Grid3D::Change_GAS_Frame_System(bool forward)
   if (forward) {
     dens_factor     = 1 / Cosmo.rho_0_gas;
     momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
-    energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas *
-                    Cosmo.current_a * Cosmo.current_a;
+    energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
   } else {
     dens_factor     = Cosmo.rho_0_gas;
     momentum_factor = Cosmo.rho_0_gas * Cosmo.v_0_gas / Cosmo.current_a;
-    energy_factor   = Cosmo.rho_0_gas * Cosmo.v_0_gas * Cosmo.v_0_gas /
-                    Cosmo.current_a / Cosmo.current_a;
+    energy_factor   = Cosmo.rho_0_gas * Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
   }
   int k, j, i, id;
   for (k = 0; k < H.nz; k++) {

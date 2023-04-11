@@ -44,8 +44,7 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
    * \param[in] gamma The adiabatic index
    * \return std::vector<double>
    */
-  std::vector<Real> computeFluxes(std::vector<Real> const &stateLeft,
-                                  std::vector<Real> const &stateRight,
+  std::vector<Real> computeFluxes(std::vector<Real> const &stateLeft, std::vector<Real> const &stateRight,
                                   Real const &gamma)
   {
     // Simulation Paramters
@@ -72,21 +71,17 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
     CudaSafeCall(cudaMalloc(&devConservedRight, nFields * sizeof(Real)));
     CudaSafeCall(cudaMalloc(&devTestFlux, nFields * sizeof(Real)));
 
-    CudaSafeCall(cudaMemcpy(devConservedLeft, stateLeft.data(),
-                            nFields * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(devConservedRight, stateRight.data(),
-                            nFields * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(devConservedLeft, stateLeft.data(), nFields * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(devConservedRight, stateRight.data(), nFields * sizeof(Real), cudaMemcpyHostToDevice));
 
     // Run kernel
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0,
                        devConservedLeft,   // the "left" interface
                        devConservedRight,  // the "right" interface
-                       devTestFlux, nx, ny, nz, nGhost, gamma, direction,
-                       nFields);
+                       devTestFlux, nx, ny, nz, nGhost, gamma, direction, nFields);
 
     CudaCheckError();
-    CudaSafeCall(cudaMemcpy(testFlux.data(), devTestFlux,
-                            nFields * sizeof(Real), cudaMemcpyDeviceToHost));
+    CudaSafeCall(cudaMemcpy(testFlux.data(), devTestFlux, nFields * sizeof(Real), cudaMemcpyDeviceToHost));
 
     // Make sure to sync with the device so we have the results
     cudaDeviceSynchronize();
@@ -110,16 +105,13 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
    * print. It will print after the default GTest output but before the
    * values that failed are printed
    */
-  void checkResults(std::vector<Real> const &fiducialFlux,
-                    std::vector<Real> const &testFlux,
+  void checkResults(std::vector<Real> const &fiducialFlux, std::vector<Real> const &testFlux,
                     std::string const &customOutput = "")
   {
     // Field names
-    std::vector<std::string> const fieldNames{
-        "Densities", "X Momentum", "Y Momentum", "Z Momentum", "Energies"};
+    std::vector<std::string> const fieldNames{"Densities", "X Momentum", "Y Momentum", "Z Momentum", "Energies"};
 
-    ASSERT_TRUE((fiducialFlux.size() == testFlux.size()) and
-                (fiducialFlux.size() == fieldNames.size()))
+    ASSERT_TRUE((fiducialFlux.size() == testFlux.size()) and (fiducialFlux.size() == fieldNames.size()))
         << "The fiducial flux, test flux, and field name vectors are not all "
            "the same length"
         << std::endl
@@ -133,16 +125,14 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
       double absoluteDiff;
       int64_t ulpsDiff;
 
-      bool areEqual = testingUtilities::nearlyEqualDbl(
-          fiducialFlux[i], testFlux[i], absoluteDiff, ulpsDiff);
-      EXPECT_TRUE(areEqual)
-          << std::endl
-          << customOutput << std::endl
-          << "There's a difference in " << fieldNames[i] << " Flux" << std::endl
-          << "The fiducial value is:       " << fiducialFlux[i] << std::endl
-          << "The test value is:           " << testFlux[i] << std::endl
-          << "The absolute difference is:  " << absoluteDiff << std::endl
-          << "The ULP difference is:       " << ulpsDiff << std::endl;
+      bool areEqual = testingUtilities::nearlyEqualDbl(fiducialFlux[i], testFlux[i], absoluteDiff, ulpsDiff);
+      EXPECT_TRUE(areEqual) << std::endl
+                            << customOutput << std::endl
+                            << "There's a difference in " << fieldNames[i] << " Flux" << std::endl
+                            << "The fiducial value is:       " << fiducialFlux[i] << std::endl
+                            << "The test value is:           " << testFlux[i] << std::endl
+                            << "The absolute difference is:  " << absoluteDiff << std::endl
+                            << "The ULP difference is:       " << ulpsDiff << std::endl;
     }
   }
   // =====================================================================
@@ -172,12 +162,9 @@ TEST_F(tHYDROCalculateHLLCFluxesCUDA,        // Test suite name
   Real const momentumZ = density * velocityZ;
   Real const gamma     = 1.4;
   Real const energy    = (pressure / (gamma - 1)) +
-                      0.5 * density *
-                          (velocityX * velocityX + velocityY * velocityY +
-                           velocityZ * velocityZ);
+                      0.5 * density * (velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ);
 
-  std::vector<Real> const state{density, momentumX, momentumY, momentumZ,
-                                energy};
+  std::vector<Real> const state{density, momentumX, momentumY, momentumZ, energy};
   std::vector<Real> const fiducialFluxes{0, 1, 0, 0, 0};
 
   // Compute the fluxes

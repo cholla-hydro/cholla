@@ -45,8 +45,7 @@ inline void __cudaSafeCall(cudaError err, const char *file, const int line)
 {
     #ifdef CUDA_ERROR_CHECK
   if (cudaSuccess != err) {
-    fprintf(stderr, "cudaSafeCall() failed at %s:%i : %s\n", file, line,
-            cudaGetErrorString(err));
+    fprintf(stderr, "cudaSafeCall() failed at %s:%i : %s\n", file, line, cudaGetErrorString(err));
     exit(-1);
   }
     #endif
@@ -59,8 +58,7 @@ inline void __cudaCheckError(const char *file, const int line)
     #ifdef CUDA_ERROR_CHECK
   cudaError err = cudaGetLastError();
   if (cudaSuccess != err) {
-    fprintf(stderr, "cudaCheckError() failed at %s:%i : %s\n", file, line,
-            cudaGetErrorString(err));
+    fprintf(stderr, "cudaCheckError() failed at %s:%i : %s\n", file, line, cudaGetErrorString(err));
     exit(-1);
   }
 
@@ -68,8 +66,7 @@ inline void __cudaCheckError(const char *file, const int line)
   // Comment away if needed.
   err = cudaDeviceSynchronize();
   if (cudaSuccess != err) {
-    fprintf(stderr, "cudaCheckError() with sync failed at %s:%i : %s\n", file,
-            line, cudaGetErrorString(err));
+    fprintf(stderr, "cudaCheckError() with sync failed at %s:%i : %s\n", file, line, cudaGetErrorString(err));
     exit(-1);
   }
     #endif
@@ -84,9 +81,10 @@ inline void __cudaCheckError(const char *file, const int line)
 inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
 {
   if (code != cudaSuccess) {
-    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
-            line);
-    if (abort) exit(code);
+    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+    if (abort) {
+      exit(code);
+    }
   }
 }
 
@@ -94,10 +92,11 @@ inline void gpuAssert(cudaError_t code, char *file, int line, bool abort = true)
  *  \brief Mathematical sign function. Returns sign of x. */
 __device__ inline int sgn_CUDA(Real x)
 {
-  if (x < 0)
+  if (x < 0) {
     return -1;
-  else
+  } else {
     return 1;
+  }
 }
 
     // Define atomic_add if it's not supported
@@ -109,30 +108,15 @@ __device__ double atomicAdd(double *address, double val)
   unsigned long long int old             = *address_as_ull, assumed;
   do {
     assumed = old;
-    old     = atomicCAS(address_as_ull, assumed,
-                        __double_as_longlong(val + __longlong_as_double(assumed)));
+    old     = atomicCAS(address_as_ull, assumed, __double_as_longlong(val + __longlong_as_double(assumed)));
   } while (assumed != old);
   return __longlong_as_double(old);
 }
     #endif
 
-// This helper function exists to easily enable/disable printfs inside kernels
-// And makes it easier to find printfs inside kernels
-// For any printf in kernel which is FATAL, use printf instead of kernel_printf, since crashing the GPU in fatal situation is ok
-// If printf is not supported by the GPU for any reason, disable non-fatal kernel printfs to avoid crashing the GPU
-// If debug printfs should be turned off during production, disable non-fatal kernel printfs
-
-#ifndef DISABLE_KERNEL_PRINTF
-#define kernel_printf printf
-#else
-inline __device__ int kernel_printf(const char * format, ...)
-{
-  // printf returns number of characters printed if success, negative value otherwise
-  return 0;
-}
-#endif //DISABLE_KERNEL_PRINTF
-
-
+    // This helper function exists to make it easier to find printfs inside
+    // kernels
+    #define kernel_printf printf
 
   #endif  // GLOBAL_CUDA_H
 

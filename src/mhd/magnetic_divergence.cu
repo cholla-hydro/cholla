@@ -30,11 +30,8 @@
 namespace mhd
 {
 // =========================================================================
-__global__ void calculateMagneticDivergence(Real const *dev_conserved,
-                                            Real *dev_maxDivergence,
-                                            Real const dx, Real const dy,
-                                            Real const dz, int const nx,
-                                            int const ny, int const nz,
+__global__ void calculateMagneticDivergence(Real const *dev_conserved, Real *dev_maxDivergence, Real const dx,
+                                            Real const dy, Real const dz, int const nx, int const ny, int const nz,
                                             int const n_cells)
 {
   // Variables to store the divergence
@@ -45,15 +42,13 @@ __global__ void calculateMagneticDivergence(Real const *dev_conserved,
   int xid, yid, zid, id_xMin1, id_yMin1, id_zMin1;
 
   // Grid stride loop to perform as much of the reduction as possible
-  for (size_t id = threadIdx.x + blockIdx.x * blockDim.x; id < n_cells;
-       id += blockDim.x * gridDim.x) {
+  for (size_t id = threadIdx.x + blockIdx.x * blockDim.x; id < n_cells; id += blockDim.x * gridDim.x) {
     // compute the real indices
     cuda_utilities::compute3DIndices(id, nx, ny, xid, yid, zid);
 
     // Thread guard to avoid overrun and to skip ghost cells that cannot
     // have their divergences computed due to a missing face;
-    if (xid > 1 and yid > 1 and zid > 1 and xid < nx and yid < ny and
-        zid < nz) {
+    if (xid > 1 and yid > 1 and zid > 1 and xid < nx and yid < ny and zid < nz) {
       // Compute the various offset indices
       id_xMin1 = cuda_utilities::compute1DIndex(xid - 1, yid, zid, nx, ny);
       id_yMin1 = cuda_utilities::compute1DIndex(xid, yid - 1, zid, nx, ny);
@@ -61,16 +56,15 @@ __global__ void calculateMagneticDivergence(Real const *dev_conserved,
 
       // Compute divergence
       // Stone et al. 2008 equation 25
-      cellDivergence =
-          ((dev_conserved[id + (grid_enum::magnetic_x)*n_cells] -
-            dev_conserved[id_xMin1 + (grid_enum::magnetic_x)*n_cells]) /
-           dx) +
-          ((dev_conserved[id + (grid_enum::magnetic_y)*n_cells] -
-            dev_conserved[id_yMin1 + (grid_enum::magnetic_y)*n_cells]) /
-           dy) +
-          ((dev_conserved[id + (grid_enum::magnetic_z)*n_cells] -
-            dev_conserved[id_zMin1 + (grid_enum::magnetic_z)*n_cells]) /
-           dz);
+      cellDivergence = ((dev_conserved[id + (grid_enum::magnetic_x)*n_cells] -
+                         dev_conserved[id_xMin1 + (grid_enum::magnetic_x)*n_cells]) /
+                        dx) +
+                       ((dev_conserved[id + (grid_enum::magnetic_y)*n_cells] -
+                         dev_conserved[id_yMin1 + (grid_enum::magnetic_y)*n_cells]) /
+                        dy) +
+                       ((dev_conserved[id + (grid_enum::magnetic_z)*n_cells] -
+                         dev_conserved[id_zMin1 + (grid_enum::magnetic_z)*n_cells]) /
+                        dz);
 
       maxDivergence = max(maxDivergence, fabs(cellDivergence));
     }
@@ -86,8 +80,7 @@ Real checkMagneticDivergence(Grid3D const &G)
 {
   // Compute the local value of the divergence
   // First let's create some variables we'll need.
-  cuda_utilities::AutomaticLaunchParams static const launchParams(
-      mhd::calculateMagneticDivergence);
+  cuda_utilities::AutomaticLaunchParams static const launchParams(mhd::calculateMagneticDivergence);
   cuda_utilities::DeviceVector<Real> static dev_maxDivergence(1);
 
   // Set the device side divergence to the smallest possible double so that
@@ -95,10 +88,8 @@ Real checkMagneticDivergence(Grid3D const &G)
   dev_maxDivergence.assign(std::numeric_limits<Real>::lowest());
 
   // Now lets get the local maximum divergence
-  hipLaunchKernelGGL(mhd::calculateMagneticDivergence, launchParams.numBlocks,
-                     launchParams.threadsPerBlock, 0, 0, G.C.device,
-                     dev_maxDivergence.data(), G.H.dx, G.H.dy, G.H.dz, G.H.nx,
-                     G.H.ny, G.H.nz, G.H.n_cells);
+  hipLaunchKernelGGL(mhd::calculateMagneticDivergence, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
+                     G.C.device, dev_maxDivergence.data(), G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_cells);
   CudaCheckError();
   Real max_magnetic_divergence = dev_maxDivergence[0];
 
@@ -107,9 +98,11 @@ Real checkMagneticDivergence(Grid3D const &G)
   max_magnetic_divergence = ReduceRealMax(max_magnetic_divergence);
   #endif  // MPI_CHOLLA
 
-  // If the magnetic divergence is greater than the limit then raise a warning
-  // and exit
-  Real static const magnetic_divergence_limit = 1.0E-14;
+  // If the magnetic divergence is greater than the limit then raise a warning and exit.
+  // This maximum value of divergence was chosen after a discussion with Chris White of the Flatiron institute and an
+  // Athena dev. He said that in his experience issues start showing up at around 1E-8 divergence so this is set with an
+  // order of magnitude margin.
+  Real static const magnetic_divergence_limit = 1.0E-9;
   if (max_magnetic_divergence > magnetic_divergence_limit) {
     // Report the error and exit
     chprintf(
@@ -119,13 +112,11 @@ Real checkMagneticDivergence(Grid3D const &G)
     chexit(-1);
   } else if (max_magnetic_divergence < 0.0) {
     // Report the error and exit
-    chprintf("The magnetic divergence is negative. Divergence = %7.4e\n",
-             max_magnetic_divergence);
+    chprintf("The magnetic divergence is negative. Divergence = %7.4e\n", max_magnetic_divergence);
     chexit(-1);
   } else  // The magnetic divergence is within acceptable bounds
   {
-    chprintf("Global maximum magnetic divergence = %7.4e\n",
-             max_magnetic_divergence);
+    chprintf("Global maximum magnetic divergence = %7.4e\n", max_magnetic_divergence);
   }
 
   return max_magnetic_divergence;

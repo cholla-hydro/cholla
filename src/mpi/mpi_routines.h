@@ -4,6 +4,8 @@
     #include <mpi.h>
     #include <stddef.h>
 
+    #include <utility>
+
     #include "../global/global.h"
     #include "../grid/grid3D.h"
 
@@ -25,8 +27,7 @@ extern MPI_Comm node;  /*communicator for each node*/
 extern MPI_Datatype MPI_CHREAL; /*data type describing float precision*/
 
     #ifdef PARTICLES
-extern MPI_Datatype
-    MPI_PART_INT; /*data type describing interger for particles precision*/
+extern MPI_Datatype MPI_PART_INT; /*data type describing interger for particles precision*/
     #endif
 
 // extern MPI_Request send_request[6];
@@ -149,11 +150,9 @@ extern int nproc_z;
 void InitializeChollaMPI(int *pargc, char **pargv[]);
 
 /* Perform domain decomposition */
-void DomainDecomposition(struct parameters *P, struct Header *H, int nx_global,
-                         int ny_global, int nz_global);
+void DomainDecomposition(struct parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
 
-void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
-                              int nx_global, int ny_global, int nz_global);
+void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
 
 /*tile MPI processes in a block decomposition*/
 void TileBlockDecomposition(void);
@@ -177,8 +176,7 @@ part_int_t Get_Particles_IDs_Global_MPI_Offset(part_int_t n_local);
 
 // Function that checks if the buffer size For the particles transfer is large
 // enough, and grows the buffer if needed.
-void Check_and_Grow_Particles_Buffer(Real **part_buffer, int *current_size_ptr,
-                                     int new_size);
+void Check_and_Grow_Particles_Buffer(Real **part_buffer, int *current_size_ptr, int new_size);
     #endif
 
 /* Print information about the domain properties */
@@ -202,6 +200,13 @@ void deallocate_three_dimensional_int_array(int ***x, int n, int l, int m);
 
 /* Copy MPI receive buffers on Host to their device locations */
 void copyHostToDeviceReceiveBuffer(int direction);
+
+/*!
+ * \brief Split the communicator for each node and return IDs
+ *
+ * \return std::pair<int, int> The rank id and total number of processes
+ */
+std::pair<int, int> MPI_Comm_node();
 
   #endif /*MPI_ROUTINES_H*/
 #endif   /*MPI_CHOLLA*/

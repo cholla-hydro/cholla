@@ -39,7 +39,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
    *
    */
   tMHDCalculateCTElectricFields()
-      : nx(3),
+      : nx(2),
         ny(nx),
         nz(nx),
         n_cells(nx * ny * nz),
@@ -57,8 +57,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
     CudaSafeCall(cudaMalloc(&dev_fluxY, fluxY.size() * sizeof(double)));
     CudaSafeCall(cudaMalloc(&dev_fluxZ, fluxZ.size() * sizeof(double)));
     CudaSafeCall(cudaMalloc(&dev_grid, grid.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_testCTElectricFields,
-                            testCTElectricFields.size() * sizeof(double)));
+    CudaSafeCall(cudaMalloc(&dev_testCTElectricFields, testCTElectricFields.size() * sizeof(double)));
 
     // Populate the grids with values where vector.at(i) = double(i). The
     // values chosen aren't that important, just that every cell has a unique
@@ -89,8 +88,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
   std::vector<double> fiducialData;
 
   // device pointers
-  double *dev_fluxX, *dev_fluxY, *dev_fluxZ, *dev_grid,
-      *dev_testCTElectricFields;
+  double *dev_fluxX, *dev_fluxY, *dev_fluxZ, *dev_grid, *dev_testCTElectricFields;
 
   /*!
    * \brief Launch the kernel and check results
@@ -99,42 +97,30 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
   void runTest()
   {
     // Copy values to GPU
-    CudaSafeCall(cudaMemcpy(dev_fluxX, fluxX.data(),
-                            fluxX.size() * sizeof(Real),
-                            cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_fluxY, fluxY.data(),
-                            fluxY.size() * sizeof(Real),
-                            cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_fluxZ, fluxZ.data(),
-                            fluxZ.size() * sizeof(Real),
-                            cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_grid, grid.data(), grid.size() * sizeof(Real),
-                            cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(
-        dev_testCTElectricFields, testCTElectricFields.data(),
-        testCTElectricFields.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(dev_fluxX, fluxX.data(), fluxX.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(dev_fluxY, fluxY.data(), fluxY.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(dev_fluxZ, fluxZ.data(), fluxZ.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(dev_grid, grid.data(), grid.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(dev_testCTElectricFields, testCTElectricFields.data(),
+                            testCTElectricFields.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
     // Call the kernel to test
-    hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, dimGrid, dimBlock, 0,
-                       0, dev_fluxX, dev_fluxY, dev_fluxZ, dev_grid,
-                       dev_testCTElectricFields, nx, ny, nz, n_cells);
+    hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, dimGrid, dimBlock, 0, 0, dev_fluxX, dev_fluxY, dev_fluxZ,
+                       dev_grid, dev_testCTElectricFields, nx, ny, nz, n_cells);
     CudaCheckError();
 
     // Copy test data back
-    CudaSafeCall(cudaMemcpy(
-        testCTElectricFields.data(), dev_testCTElectricFields,
-        testCTElectricFields.size() * sizeof(Real), cudaMemcpyDeviceToHost));
+    CudaSafeCall(cudaMemcpy(testCTElectricFields.data(), dev_testCTElectricFields,
+                            testCTElectricFields.size() * sizeof(Real), cudaMemcpyDeviceToHost));
     cudaDeviceSynchronize();
 
     // Check the results
     for (size_t i = 0; i < fiducialData.size(); i++) {
       int xid, yid, zid;
       cuda_utilities::compute3DIndices(i, nx, ny, xid, yid, zid);
-      testingUtilities::checkResults(
-          fiducialData.at(i), testCTElectricFields.at(i),
-          "value at i = " + std::to_string(i) + ", xid  = " +
-              std::to_string(xid) + ", yid  = " + std::to_string(yid) +
-              ", zid  = " + std::to_string(zid));
+      testingUtilities::checkResults(fiducialData.at(i), testCTElectricFields.at(i),
+                                     "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
+                                         ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
     }
   }
 };
@@ -144,9 +130,9 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
 TEST_F(tMHDCalculateCTElectricFields, PositiveVelocityExpectCorrectOutput)
 {
   // Fiducial values
-  fiducialData.at(26) = 206.29859653255295;
-  fiducialData.at(53) = -334.90052254763339;
-  fiducialData.at(80) = 209.53472440298236;
+  fiducialData.at(7)  = 60.951467108788492;
+  fiducialData.at(15) = -98.736587665919359;
+  fiducialData.at(23) = 61.768055665002557;
 
   // Launch kernel and check results
   runTest();
@@ -157,9 +143,9 @@ TEST_F(tMHDCalculateCTElectricFields, PositiveVelocityExpectCorrectOutput)
 TEST_F(tMHDCalculateCTElectricFields, NegativeVelocityExpectCorrectOutput)
 {
   // Fiducial values
-  fiducialData.at(26) = 203.35149422304994;
-  fiducialData.at(53) = -330.9860399765279;
-  fiducialData.at(80) = 208.55149905461991;
+  fiducialData.at(7)  = 59.978246483260179;
+  fiducialData.at(15) = -97.279949010457187;
+  fiducialData.at(23) = 61.280813140085613;
 
   // Set the density fluxes to be negative to indicate a negative velocity
   // across the face
@@ -178,9 +164,9 @@ TEST_F(tMHDCalculateCTElectricFields, NegativeVelocityExpectCorrectOutput)
 TEST_F(tMHDCalculateCTElectricFields, ZeroVelocityExpectCorrectOutput)
 {
   // Fiducial values
-  fiducialData.at(26) = 204.82504537780144;
-  fiducialData.at(53) = -332.94328126208063;
-  fiducialData.at(80) = 209.04311172880114;
+  fiducialData.at(7)  = 60.464856796024335;
+  fiducialData.at(15) = -98.008268338188287;
+  fiducialData.at(23) = 61.524434402544081;
 
   // Set the density fluxes to be negative to indicate a negative velocity
   // across the face

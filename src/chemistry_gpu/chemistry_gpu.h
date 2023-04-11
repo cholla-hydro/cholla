@@ -126,8 +126,7 @@ class Chem_GPU
 
   void Initialize(struct parameters *P);
 
-  void Generate_Reaction_Rate_Table(Real **rate_table_array_d,
-                                    Rate_Function_T rate_function, Real units);
+  void Generate_Reaction_Rate_Table(Real **rate_table_array_d, Rate_Function_T rate_function, Real units);
 
   void Initialize_Cooling_Rates();
 
@@ -142,8 +141,7 @@ class Chem_GPU
   void Reset();
 
   #ifdef TEXTURES_UVB_INTERPOLATION
-  void Bind_GPU_Textures(int size, float *H_HI_h, float *H_HeI_h,
-                         float *H_HeII_h, float *I_HI_h, float *I_HeI_h,
+  void Bind_GPU_Textures(int size, float *H_HI_h, float *H_HeI_h, float *H_HeII_h, float *I_HI_h, float *I_HeI_h,
                          float *I_HeII_h);
   #endif
 };
@@ -153,8 +151,7 @@ n_ghost, int n_fields, Real dt, Real gamma)
 *  \brief When passed an array of conserved variables and a timestep, update the
 ionization fractions of H and He and update the internal energy to account for
 radiative cooling and photoheating from the UV background. */
-void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz,
-                         int n_ghost, int n_fields, Real dt,
+void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
                          Chemistry_Header &Chem_H);
 
 #endif

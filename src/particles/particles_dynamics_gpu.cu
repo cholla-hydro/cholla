@@ -18,8 +18,7 @@
 
 // FUTURE FIX: The Hubble function was defined here because I couldn't get it
 // form other file, tried -dc flag when compiling buu paris broke.
-__device__ Real Get_Hubble_Parameter_dev(Real a, Real H0, Real Omega_M,
-                                         Real Omega_L, Real Omega_K)
+__device__ Real Get_Hubble_Parameter_dev(Real a, Real H0, Real Omega_M, Real Omega_L, Real Omega_K)
 {
   Real a2     = a * a;
   Real a3     = a2 * a;
@@ -28,10 +27,8 @@ __device__ Real Get_Hubble_Parameter_dev(Real a, Real H0, Real Omega_M,
 }
   #endif
 
-__global__ void Calc_Particles_dti_Kernel(part_int_t n_local, Real dx, Real dy,
-                                          Real dz, Real *vel_x_dev,
-                                          Real *vel_y_dev, Real *vel_z_dev,
-                                          Real *dti_array)
+__global__ void Calc_Particles_dti_Kernel(part_int_t n_local, Real dx, Real dy, Real dz, Real *vel_x_dev,
+                                          Real *vel_y_dev, Real *vel_z_dev, Real *dti_array)
 {
   __shared__ Real max_dti[TPB_PARTICLES];
 
@@ -73,13 +70,14 @@ __global__ void Calc_Particles_dti_Kernel(part_int_t n_local, Real dx, Real dy,
   }
 
   // write the result for this block to global memory
-  if (tid == 0) dti_array[blockIdx.x] = max_dti[0];
+  if (tid == 0) {
+    dti_array[blockIdx.x] = max_dti[0];
+  }
 }
 
-Real Particles_3D::Calc_Particles_dt_GPU_function(
-    int ngrid, part_int_t n_particles_local, Real dx, Real dy, Real dz,
-    Real *vel_x, Real *vel_y, Real *vel_z, Real *dti_array_host,
-    Real *dti_array_dev)
+Real Particles_3D::Calc_Particles_dt_GPU_function(int ngrid, part_int_t n_particles_local, Real dx, Real dy, Real dz,
+                                                  Real *vel_x, Real *vel_y, Real *vel_z, Real *dti_array_host,
+                                                  Real *dti_array_dev)
 {
   // // set values for GPU kernels
   // int ngrid =  (Particles.n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -95,16 +93,14 @@ Real Particles_3D::Calc_Particles_dt_GPU_function(
     return 0;
   }
 
-  hipLaunchKernelGGL(Calc_Particles_dti_Kernel, dim1dGrid, dim1dBlock, 0, 0,
-                     n_particles_local, dx, dy, dz, vel_x, vel_y, vel_z,
-                     dti_array_dev);
+  hipLaunchKernelGGL(Calc_Particles_dti_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_particles_local, dx, dy, dz, vel_x,
+                     vel_y, vel_z, dti_array_dev);
   CudaCheckError();
 
   // Initialize dt values
   Real max_dti = 0;
   // copy the dti array onto the CPU
-  CudaSafeCall(cudaMemcpy(dti_array_host, dti_array_dev, ngrid * sizeof(Real),
-                          cudaMemcpyDeviceToHost));
+  CudaSafeCall(cudaMemcpy(dti_array_host, dti_array_dev, ngrid * sizeof(Real), cudaMemcpyDeviceToHost));
   // find maximum inverse timestep from CFL condition
   for (int i = 0; i < ngrid; i++) {
     max_dti = fmax(max_dti, dti_array_host[i]);
@@ -113,13 +109,14 @@ Real Particles_3D::Calc_Particles_dt_GPU_function(
   return max_dti;
 }
 
-__global__ void Advance_Particles_KDK_Step1_Kernel(
-    part_int_t n_local, Real dt, Real *pos_x_dev, Real *pos_y_dev,
-    Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev,
-    Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev)
+__global__ void Advance_Particles_KDK_Step1_Kernel(part_int_t n_local, Real dt, Real *pos_x_dev, Real *pos_y_dev,
+                                                   Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev,
+                                                   Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   // Advance velocities by half a step
   vel_x_dev[tid] += 0.5 * dt * grav_x_dev[tid];
@@ -132,12 +129,14 @@ __global__ void Advance_Particles_KDK_Step1_Kernel(
   pos_z_dev[tid] += dt * vel_z_dev[tid];
 }
 
-__global__ void Advance_Particles_KDK_Step2_Kernel(
-    part_int_t n_local, Real dt, Real *vel_x_dev, Real *vel_y_dev,
-    Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev)
+__global__ void Advance_Particles_KDK_Step2_Kernel(part_int_t n_local, Real dt, Real *vel_x_dev, Real *vel_y_dev,
+                                                   Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev,
+                                                   Real *grav_z_dev)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   // Advance velocities by the second half a step
   vel_x_dev[tid] += 0.5 * dt * grav_x_dev[tid];
@@ -145,10 +144,10 @@ __global__ void Advance_Particles_KDK_Step2_Kernel(
   vel_z_dev[tid] += 0.5 * dt * grav_z_dev[tid];
 }
 
-void Particles_3D::Advance_Particles_KDK_Step1_GPU_function(
-    part_int_t n_local, Real dt, Real *pos_x_dev, Real *pos_y_dev,
-    Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev,
-    Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev)
+void Particles_3D::Advance_Particles_KDK_Step1_GPU_function(part_int_t n_local, Real dt, Real *pos_x_dev,
+                                                            Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev,
+                                                            Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
+                                                            Real *grav_y_dev, Real *grav_z_dev)
 {
   // set values for GPU kernels
   int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -159,17 +158,15 @@ void Particles_3D::Advance_Particles_KDK_Step1_GPU_function(
 
   // Only runs if there are local particles
   if (n_local > 0) {
-    hipLaunchKernelGGL(Advance_Particles_KDK_Step1_Kernel, dim1dGrid,
-                       dim1dBlock, 0, 0, n_local, dt, pos_x_dev, pos_y_dev,
-                       pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev,
-                       grav_y_dev, grav_z_dev);
+    hipLaunchKernelGGL(Advance_Particles_KDK_Step1_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, dt, pos_x_dev,
+                       pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev);
     CudaCheckError();
   }
 }
 
-void Particles_3D::Advance_Particles_KDK_Step2_GPU_function(
-    part_int_t n_local, Real dt, Real *vel_x_dev, Real *vel_y_dev,
-    Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev)
+void Particles_3D::Advance_Particles_KDK_Step2_GPU_function(part_int_t n_local, Real dt, Real *vel_x_dev,
+                                                            Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
+                                                            Real *grav_y_dev, Real *grav_z_dev)
 {
   // set values for GPU kernels
   int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -180,23 +177,24 @@ void Particles_3D::Advance_Particles_KDK_Step2_GPU_function(
 
   // Only runs if there are local particles
   if (n_local > 0) {
-    hipLaunchKernelGGL(Advance_Particles_KDK_Step2_Kernel, dim1dGrid,
-                       dim1dBlock, 0, 0, n_local, dt, vel_x_dev, vel_y_dev,
-                       vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev);
+    hipLaunchKernelGGL(Advance_Particles_KDK_Step2_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, dt, vel_x_dev,
+                       vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev);
     CudaCheckError();
   }
 }
 
   #ifdef COSMOLOGY
 
-__global__ void Advance_Particles_KDK_Step1_Cosmo_Kernel(
-    part_int_t n_local, Real da, Real *pos_x_dev, Real *pos_y_dev,
-    Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev,
-    Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a,
-    Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K)
+__global__ void Advance_Particles_KDK_Step1_Cosmo_Kernel(part_int_t n_local, Real da, Real *pos_x_dev, Real *pos_y_dev,
+                                                         Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev,
+                                                         Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev,
+                                                         Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h,
+                                                         Real Omega_M, Real Omega_L, Real Omega_K)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   Real vel_x, vel_y, vel_z;
   vel_x = vel_x_dev[tid];
@@ -232,14 +230,15 @@ __global__ void Advance_Particles_KDK_Step1_Cosmo_Kernel(
   pos_z_dev[tid] += dt_half * vel_z;
 }
 
-__global__ void Advance_Particles_KDK_Step2_Cosmo_Kernel(
-    part_int_t n_local, Real da, Real *vel_x_dev, Real *vel_y_dev,
-    Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev,
-    Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L,
-    Real Omega_K)
+__global__ void Advance_Particles_KDK_Step2_Cosmo_Kernel(part_int_t n_local, Real da, Real *vel_x_dev, Real *vel_y_dev,
+                                                         Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev,
+                                                         Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h,
+                                                         Real Omega_M, Real Omega_L, Real Omega_K)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   Real vel_x, vel_y, vel_z;
   vel_x = vel_x_dev[tid];
@@ -250,10 +249,7 @@ __global__ void Advance_Particles_KDK_Step2_Cosmo_Kernel(
   da_half = da / 2;
   a_half  = current_a - da_half;
 
-  dt = da /
-       (current_a *
-        Get_Hubble_Parameter_dev(current_a, H0, Omega_M, Omega_L, Omega_K)) *
-       cosmo_h;
+  dt = da / (current_a * Get_Hubble_Parameter_dev(current_a, H0, Omega_M, Omega_L, Omega_K)) * cosmo_h;
 
   // Advance velocities by the second half a step
   vel_x_dev[tid] = (a_half * vel_x + 0.5 * dt * grav_x_dev[tid]) / current_a;
@@ -261,11 +257,12 @@ __global__ void Advance_Particles_KDK_Step2_Cosmo_Kernel(
   vel_z_dev[tid] = (a_half * vel_z + 0.5 * dt * grav_z_dev[tid]) / current_a;
 }
 
-void Particles_3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function(
-    part_int_t n_local, Real delta_a, Real *pos_x_dev, Real *pos_y_dev,
-    Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev, Real *vel_z_dev,
-    Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev, Real current_a,
-    Real H0, Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K)
+void Particles_3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function(part_int_t n_local, Real delta_a, Real *pos_x_dev,
+                                                                  Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev,
+                                                                  Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
+                                                                  Real *grav_y_dev, Real *grav_z_dev, Real current_a,
+                                                                  Real H0, Real cosmo_h, Real Omega_M, Real Omega_L,
+                                                                  Real Omega_K)
 {
   // set values for GPU kernels
   int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -276,21 +273,19 @@ void Particles_3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function(
 
   // Only runs if there are local particles
   if (n_local > 0) {
-    hipLaunchKernelGGL(Advance_Particles_KDK_Step1_Cosmo_Kernel, dim1dGrid,
-                       dim1dBlock, 0, 0, n_local, delta_a, pos_x_dev, pos_y_dev,
-                       pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev,
-                       grav_y_dev, grav_z_dev, current_a, H0, cosmo_h, Omega_M,
-                       Omega_L, Omega_K);
+    hipLaunchKernelGGL(Advance_Particles_KDK_Step1_Cosmo_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, delta_a,
+                       pos_x_dev, pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev,
+                       grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K);
     CHECK(cudaDeviceSynchronize());
     // CudaCheckError();
   }
 }
 
-void Particles_3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function(
-    part_int_t n_local, Real delta_a, Real *vel_x_dev, Real *vel_y_dev,
-    Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev,
-    Real current_a, Real H0, Real cosmo_h, Real Omega_M, Real Omega_L,
-    Real Omega_K)
+void Particles_3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function(part_int_t n_local, Real delta_a, Real *vel_x_dev,
+                                                                  Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
+                                                                  Real *grav_y_dev, Real *grav_z_dev, Real current_a,
+                                                                  Real H0, Real cosmo_h, Real Omega_M, Real Omega_L,
+                                                                  Real Omega_K)
 {
   // set values for GPU kernels
   int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
@@ -301,10 +296,9 @@ void Particles_3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function(
 
   // Only runs if there are local particles
   if (n_local > 0) {
-    hipLaunchKernelGGL(Advance_Particles_KDK_Step2_Cosmo_Kernel, dim1dGrid,
-                       dim1dBlock, 0, 0, n_local, delta_a, vel_x_dev, vel_y_dev,
-                       vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a,
-                       H0, cosmo_h, Omega_M, Omega_L, Omega_K);
+    hipLaunchKernelGGL(Advance_Particles_KDK_Step2_Cosmo_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, delta_a,
+                       vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h,
+                       Omega_M, Omega_L, Omega_K);
     CHECK(cudaDeviceSynchronize());
     // CudaCheckError();
   }

@@ -5,10 +5,10 @@
   #include <mpi.h>
 
   #include <iostream>
+  #include <tuple>
 
   #include "../global/global.h"
   #include "../io/io.h"
-  #include "../mpi/MPI_Comm_node.h"
   #include "../mpi/cuda_mpi_routines.h"
   #include "../utils/error_handling.h"
 
@@ -21,7 +21,6 @@ int procID_node; /*process rank on node*/
 int nproc_node;  /*number of MPI processes on node*/
 
 MPI_Comm world; /*global communicator*/
-MPI_Comm node;  /*global communicator*/
 
 MPI_Datatype MPI_CHREAL; /*set equal to MPI_FLOAT or MPI_DOUBLE*/
 
@@ -182,46 +181,48 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
     #endif
   #endif
 
-  /*create the MPI_Request arrays for non-blocking sends*/
-  if (!(send_request = (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  /*create the MPI_Request arrays for non-blocking sends. If the malloc fails then print an error and exit*/
+  send_request = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!send_request) {
     chprintf("Error allocating send_request.\n");
     chexit(-2);
   }
-  if (!(recv_request = (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  recv_request = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!recv_request) {
     chprintf("Error allocating recv_request.\n");
     chexit(-2);
   }
 
   #ifdef PARTICLES
-  if (!(send_request_n_particles =
-            (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  send_request_n_particles = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!send_request_n_particles) {
     chprintf(
         "Error allocating send_request for number of particles for "
         "transfer.\n");
     chexit(-2);
   }
-  if (!(recv_request_n_particles =
-            (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  recv_request_n_particles = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!recv_request_n_particles) {
     chprintf(
         "Error allocating recv_request for number of particles for "
         "transfer.\n");
     chexit(-2);
   }
-
-  if (!(send_request_particles_transfer =
-            (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  send_request_particles_transfer = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!send_request_particles_transfer) {
     chprintf("Error allocating send_request for particles transfer.\n");
     chexit(-2);
   }
-  if (!(recv_request_particles_transfer =
-            (MPI_Request *)malloc(2 * sizeof(MPI_Request)))) {
+  recv_request_particles_transfer = (MPI_Request *)malloc(2 * sizeof(MPI_Request));
+  if (!recv_request_particles_transfer) {
     chprintf("Error allocating recv_request for particles transfer.\n");
     chexit(-2);
   }
   #endif
 
   /*set up node communicator*/
-  node = MPI_Comm_node(&procID_node, &nproc_node);
+  std::tie(procID_node, nproc_node) = MPI_Comm_node();
+
   // #ifdef ONLY_PARTICLES
   // chprintf("ONLY_PARTICLES: Initializing without CUDA support.\n");
   // #else
@@ -238,23 +239,24 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
 }
 
 /* Perform domain decomposition */
-void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin,
-                         int ny_gin, int nz_gin)
+void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
 {
   DomainDecompositionBLOCK(P, H, nx_gin, ny_gin, nz_gin);
 
   // set grid dimensions
   H->nx      = nx_local + 2 * H->n_ghost;
   H->nx_real = nx_local;
-  if (ny_local == 1)
+  if (ny_local == 1) {
     H->ny = 1;
-  else
+  } else {
     H->ny = ny_local + 2 * H->n_ghost;
+  }
   H->ny_real = ny_local;
-  if (nz_local == 1)
+  if (nz_local == 1) {
     H->nz = 1;
-  else
+  } else {
     H->nz = nz_local + 2 * H->n_ghost;
+  }
   H->nz_real = nz_local;
 
   // set total number of cells
@@ -268,8 +270,7 @@ void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin,
 }
 
 /* Perform domain decomposition */
-void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
-                              int nx_gin, int ny_gin, int nz_gin)
+void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
 {
   int n;
   int i, j, k;
@@ -279,8 +280,7 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
 
   // enforce an even number of processes
   if (nproc % 2 && nproc > 1) {
-    chprintf(
-        "WARNING: Odd number of processors > 1 is not officially supported\n");
+    chprintf("WARNING: Odd number of processors > 1 is not officially supported\n");
   }
 
   /* record global size */
@@ -311,8 +311,7 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
   nproc_x = P->n_proc_x;
   nproc_y = P->n_proc_y;
   nproc_z = P->n_proc_z;
-  chprintf("Setting MPI grid: nx=%d  ny=%d  nz=%d\n", nproc_x, nproc_y,
-           nproc_z);
+  chprintf("Setting MPI grid: nx=%d  ny=%d  nz=%d\n", nproc_x, nproc_y, nproc_z);
   // chprintf("Setting MPI grid: nx=%d  ny=%d  nz=%d\n", P->n_proc_x,
   // P->n_proc_y, P->n_proc_z);
   #endif
@@ -332,8 +331,8 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
   //      for(k=0;k<nproc_z;k++)
   //
 
-  for (k = 0; k < nproc_z; k++)
-    for (j = 0; j < nproc_y; j++)
+  for (k = 0; k < nproc_z; k++) {
+    for (j = 0; j < nproc_y; j++) {
       for (i = 0; i < nproc_x; i++) {
         ix[n] = i;
         iy[n] = j;
@@ -343,22 +342,36 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
 
         if (n == procID) {
           dest[0] = i - 1;
-          if (dest[0] < 0) dest[0] += nproc_x;
+          if (dest[0] < 0) {
+            dest[0] += nproc_x;
+          }
           dest[1] = i + 1;
-          if (dest[1] >= nproc_x) dest[1] -= nproc_x;
+          if (dest[1] >= nproc_x) {
+            dest[1] -= nproc_x;
+          }
 
           dest[2] = j - 1;
-          if (dest[2] < 0) dest[2] += nproc_y;
+          if (dest[2] < 0) {
+            dest[2] += nproc_y;
+          }
           dest[3] = j + 1;
-          if (dest[3] >= nproc_y) dest[3] -= nproc_y;
+          if (dest[3] >= nproc_y) {
+            dest[3] -= nproc_y;
+          }
 
           dest[4] = k - 1;
-          if (dest[4] < 0) dest[4] += nproc_z;
+          if (dest[4] < 0) {
+            dest[4] += nproc_z;
+          }
           dest[5] = k + 1;
-          if (dest[5] >= nproc_z) dest[5] -= nproc_z;
+          if (dest[5] >= nproc_z) {
+            dest[5] -= nproc_z;
+          }
         }
         n++;
       }
+    }
+  }
 
   /* set local x, y, z subdomain sizes */
   n = nx_global % nproc_x;
@@ -406,7 +419,9 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
   }
 
   // find MPI sources
-  for (i = 0; i < 6; i++) source[i] = dest[i];
+  for (i = 0; i < 6; i++) {
+    source[i] = dest[i];
+  }
 
   // find MPI destinations
   dest[0] = tiling[dest[0]][iy[procID]][iz[procID]];
@@ -446,11 +461,15 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
       if (ix[procID] == 0) {
         P->xu_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->xl_bcnd == 1) P->xl_bcnd = 5;
+        if (P->xl_bcnd == 1) {
+          P->xl_bcnd = 5;
+        }
       } else {
         P->xl_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->xu_bcnd == 1) P->xu_bcnd = 5;
+        if (P->xu_bcnd == 1) {
+          P->xu_bcnd = 5;
+        }
       }
     } else {
       // this is completely an interior cell
@@ -469,11 +488,15 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
       if (iy[procID] == 0) {
         P->yu_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->yl_bcnd == 1) P->yl_bcnd = 5;
+        if (P->yl_bcnd == 1) {
+          P->yl_bcnd = 5;
+        }
       } else {
         P->yl_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->yu_bcnd == 1) P->yu_bcnd = 5;
+        if (P->yu_bcnd == 1) {
+          P->yu_bcnd = 5;
+        }
       }
     } else {
       // this is completely an interior cell
@@ -492,11 +515,15 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
       if (iz[procID] == 0) {
         P->zu_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->zl_bcnd == 1) P->zl_bcnd = 5;
+        if (P->zl_bcnd == 1) {
+          P->zl_bcnd = 5;
+        }
       } else {
         P->zl_bcnd = 5;
         // if the global bcnd is periodic, use MPI bcnds at ends
-        if (P->zu_bcnd == 1) P->zu_bcnd = 5;
+        if (P->zu_bcnd == 1) {
+          P->zu_bcnd = 5;
+        }
       }
     } else {
       // this is completely an interior cell
@@ -515,7 +542,7 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H,
 
 void Allocate_MPI_DeviceBuffers(struct Header *H)
 {
-  int xbsize, ybsize, zbsize;
+  int xbsize = 0, ybsize = 0, zbsize = 0;
   if (H->ny == 1 && H->nz == 1) {
     xbsize = H->n_fields * H->n_ghost;
     ybsize = 1;
@@ -529,8 +556,7 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
   }
   // 3D
   if (H->ny > 1 && H->nz > 1) {
-    xbsize = H->n_fields * H->n_ghost * (H->ny - 2 * H->n_ghost) *
-             (H->nz - 2 * H->n_ghost);
+    xbsize = H->n_fields * H->n_ghost * (H->ny - 2 * H->n_ghost) * (H->nz - 2 * H->n_ghost);
     ybsize = H->n_fields * H->n_ghost * (H->nx) * (H->nz - 2 * H->n_ghost);
     zbsize = H->n_fields * H->n_ghost * (H->nx) * (H->ny);
   }
@@ -558,30 +584,18 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
   N_DATA_PER_PARTICLE_TRANSFER += 1;  // one more for the particle age
     #endif
 
-  buffer_length_particles_x0_send =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_x0_recv =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_x1_send =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_x1_recv =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_y0_send =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_y0_recv =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_y1_send =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_y1_recv =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_z0_send =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_z0_recv =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_z1_send =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
-  buffer_length_particles_z1_recv =
-      N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_x0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_x0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_x1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_x1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_y1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z0_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z0_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z1_send = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
+  buffer_length_particles_z1_recv = N_PARTICLES_TRANSFER * N_DATA_PER_PARTICLE_TRANSFER;
   #endif  // PARTICLES
 
   chprintf("Allocating MPI communication buffers on GPU ");
@@ -627,30 +641,18 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
       "Allocating MPI communication buffers on GPU for particle transfers ( "
       "N_Particles: %d ).\n",
       N_PARTICLES_TRANSFER);
-  CudaSafeCall(cudaMalloc(&d_send_buffer_x0_particles,
-                          buffer_length_particles_x0_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_x1_particles,
-                          buffer_length_particles_x1_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_y0_particles,
-                          buffer_length_particles_y0_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_y1_particles,
-                          buffer_length_particles_y1_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_z0_particles,
-                          buffer_length_particles_z0_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_z1_particles,
-                          buffer_length_particles_z1_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_x0_particles,
-                          buffer_length_particles_x0_recv * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_x1_particles,
-                          buffer_length_particles_x1_recv * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_y0_particles,
-                          buffer_length_particles_y0_recv * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_y1_particles,
-                          buffer_length_particles_y1_recv * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_z0_particles,
-                          buffer_length_particles_z0_recv * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_z1_particles,
-                          buffer_length_particles_z1_recv * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_send_buffer_x0_particles, buffer_length_particles_x0_send * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_send_buffer_x1_particles, buffer_length_particles_x1_send * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_send_buffer_y0_particles, buffer_length_particles_y0_send * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_send_buffer_y1_particles, buffer_length_particles_y1_send * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_send_buffer_z0_particles, buffer_length_particles_z0_send * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_send_buffer_z1_particles, buffer_length_particles_z1_send * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_recv_buffer_x0_particles, buffer_length_particles_x0_recv * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_recv_buffer_x1_particles, buffer_length_particles_x1_recv * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_recv_buffer_y0_particles, buffer_length_particles_y0_recv * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_recv_buffer_y1_particles, buffer_length_particles_y1_recv * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_recv_buffer_z0_particles, buffer_length_particles_z0_recv * sizeof(Real)));
+  CudaSafeCall(cudaMalloc(&d_recv_buffer_z1_particles, buffer_length_particles_z1_recv * sizeof(Real)));
   #endif  // PARTICLES && PARTICLES_GPU
 
   // CPU relies on host buffers, GPU without MPI_GPU relies on host buffers
@@ -661,30 +663,18 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
       "Allocating MPI communication buffers on Host for particle transfers ( "
       "N_Particles: %d ).\n",
       N_PARTICLES_TRANSFER);
-  h_send_buffer_x0_particles =
-      (Real *)malloc(buffer_length_particles_x0_send * sizeof(Real));
-  h_send_buffer_x1_particles =
-      (Real *)malloc(buffer_length_particles_x1_send * sizeof(Real));
-  h_send_buffer_y0_particles =
-      (Real *)malloc(buffer_length_particles_y0_send * sizeof(Real));
-  h_send_buffer_y1_particles =
-      (Real *)malloc(buffer_length_particles_y1_send * sizeof(Real));
-  h_send_buffer_z0_particles =
-      (Real *)malloc(buffer_length_particles_z0_send * sizeof(Real));
-  h_send_buffer_z1_particles =
-      (Real *)malloc(buffer_length_particles_z1_send * sizeof(Real));
-  h_recv_buffer_x0_particles =
-      (Real *)malloc(buffer_length_particles_x0_recv * sizeof(Real));
-  h_recv_buffer_x1_particles =
-      (Real *)malloc(buffer_length_particles_x1_recv * sizeof(Real));
-  h_recv_buffer_y0_particles =
-      (Real *)malloc(buffer_length_particles_y0_recv * sizeof(Real));
-  h_recv_buffer_y1_particles =
-      (Real *)malloc(buffer_length_particles_y1_recv * sizeof(Real));
-  h_recv_buffer_z0_particles =
-      (Real *)malloc(buffer_length_particles_z0_recv * sizeof(Real));
-  h_recv_buffer_z1_particles =
-      (Real *)malloc(buffer_length_particles_z1_recv * sizeof(Real));
+  h_send_buffer_x0_particles = (Real *)malloc(buffer_length_particles_x0_send * sizeof(Real));
+  h_send_buffer_x1_particles = (Real *)malloc(buffer_length_particles_x1_send * sizeof(Real));
+  h_send_buffer_y0_particles = (Real *)malloc(buffer_length_particles_y0_send * sizeof(Real));
+  h_send_buffer_y1_particles = (Real *)malloc(buffer_length_particles_y1_send * sizeof(Real));
+  h_send_buffer_z0_particles = (Real *)malloc(buffer_length_particles_z0_send * sizeof(Real));
+  h_send_buffer_z1_particles = (Real *)malloc(buffer_length_particles_z1_send * sizeof(Real));
+  h_recv_buffer_x0_particles = (Real *)malloc(buffer_length_particles_x0_recv * sizeof(Real));
+  h_recv_buffer_x1_particles = (Real *)malloc(buffer_length_particles_x1_recv * sizeof(Real));
+  h_recv_buffer_y0_particles = (Real *)malloc(buffer_length_particles_y0_recv * sizeof(Real));
+  h_recv_buffer_y1_particles = (Real *)malloc(buffer_length_particles_y1_recv * sizeof(Real));
+  h_recv_buffer_z0_particles = (Real *)malloc(buffer_length_particles_z0_recv * sizeof(Real));
+  h_recv_buffer_z1_particles = (Real *)malloc(buffer_length_particles_z1_recv * sizeof(Real));
     #endif  // (defined(PARTICLES_GPU) && !defined(MPI_GPU)) ||
             // defined(PARTICLES_CPU)
   #endif    // PARTICLES
@@ -753,11 +743,12 @@ part_int_t Get_Particles_IDs_Global_MPI_Offset(part_int_t n_local)
   n_local_all     = (part_int_t *)malloc(nproc * sizeof(part_int_t));
   n_local_send[0] = n_local;
 
-  MPI_Allgather(n_local_send, 1, MPI_PART_INT, n_local_all, 1, MPI_PART_INT,
-                world);
+  MPI_Allgather(n_local_send, 1, MPI_PART_INT, n_local_all, 1, MPI_PART_INT, world);
   global_offset = 0;
   for (int other_rank = 0; other_rank < nproc; other_rank++) {
-    if (other_rank < procID) global_offset += n_local_all[other_rank];
+    if (other_rank < procID) {
+      global_offset += n_local_all[other_rank];
+    }
   }
   // printf("global_offset = %ld \n", global_offset );
   free(n_local_send);
@@ -776,8 +767,7 @@ void Print_Domain_Properties(struct Header H)
   for (i = 0; i < nproc; i++) {
     if (i == procID) {
       printf("procID %d nxl %ld nxls %ld\n", procID, nx_local, nx_local_start);
-      printf("xb %e yb %e zb %e xbl %e ybl %e zbl %e\n", H.xbound, H.ybound,
-             H.zbound, H.xblocal, H.yblocal, H.zblocal);
+      printf("xb %e yb %e zb %e xbl %e ybl %e zbl %e\n", H.xbound, H.ybound, H.zbound, H.xblocal, H.yblocal, H.zblocal);
       printf("dx %e\n", H.dx);
       printf("dy %e\n", H.dy);
       printf("dz %e\n", H.dz);
@@ -791,21 +781,21 @@ void Print_Domain_Properties(struct Header H)
   #ifdef PARTICLES
 // Funtion that checks if the buffer size For the particles transfer is large
 // enough, and grows the buffer if needed.
-void Check_and_Grow_Particles_Buffer(Real **part_buffer, int *current_size_ptr,
-                                     int new_size)
+void Check_and_Grow_Particles_Buffer(Real **part_buffer, int *current_size_ptr, int new_size)
 {
   int current_size = *current_size_ptr;
-  if (new_size <= current_size) return;
+  if (new_size <= current_size) {
+    return;
+  }
 
   new_size = (int)2 * new_size;
-  std::cout << " #######  Growing Particles Transfer Buffer, size: "
-            << current_size << "  new_size: " << new_size << std::endl;
+  std::cout << " #######  Growing Particles Transfer Buffer, size: " << current_size << "  new_size: " << new_size
+            << std::endl;
 
   Real *new_buffer;
   new_buffer = (Real *)realloc(*part_buffer, new_size * sizeof(Real));
   if (new_buffer == NULL) {
-    std::cout << " Error When Allocating New Particles Transfer Buffer"
-              << std::endl;
+    std::cout << " Error When Allocating New Particles Transfer Buffer" << std::endl;
     chexit(-1);
   }
   *part_buffer      = new_buffer;
@@ -819,14 +809,18 @@ int greatest_prime_factor(int n)
   int ns = n;
   int np = 2;
 
-  if (n == 1 || n == 2) return n;
+  if (n == 1 || n == 2) {
+    return n;
+  }
 
   while (true) {
     while (!(ns % np)) {
       ns = ns / np;
     }
 
-    if (ns == 1) break;
+    if (ns == 1) {
+      break;
+    }
 
     np++;
   }
@@ -886,7 +880,9 @@ void TileBlockDecomposition(void)
       /*increase ny, nz round-robin*/
       while (np_x * np_y * np_z < nproc) {
         np_y *= 2;
-        if (np_x * np_y * np_z == nproc) break;
+        if (np_x * np_y * np_z == nproc) {
+          break;
+        }
         np_z *= 2;
       }
     }
@@ -897,9 +893,13 @@ void TileBlockDecomposition(void)
     /*increase nx, ny, nz round-robin*/
     while (np_x * np_y * np_z < nproc) {
       np_x *= 2;
-      if (np_x * np_y * np_z == nproc) break;
+      if (np_x * np_y * np_z == nproc) {
+        break;
+      }
       np_y *= 2;
-      if (np_x * np_y * np_z == nproc) break;
+      if (np_x * np_y * np_z == nproc) {
+        break;
+      }
       np_z *= 2;
     }
   }
@@ -953,7 +953,9 @@ int ***three_dimensional_int_array(int n, int l, int m)
 void deallocate_three_dimensional_int_array(int ***x, int n, int l, int m)
 {
   for (int i = 0; i < n; i++) {
-    for (int j = 0; j < l; j++) delete[] x[i][j];
+    for (int j = 0; j < l; j++) {
+      delete[] x[i][j];
+    }
     delete[] x[i];
   }
   delete x;
@@ -961,35 +963,62 @@ void deallocate_three_dimensional_int_array(int ***x, int n, int l, int m)
 
 void copyHostToDeviceReceiveBuffer(int direction)
 {
-  int xbsize = x_buffer_length, ybsize = y_buffer_length,
-      zbsize = z_buffer_length;
+  int xbsize = x_buffer_length, ybsize = y_buffer_length, zbsize = z_buffer_length;
 
   switch (direction) {
     case (0):
-      cudaMemcpy(d_recv_buffer_x0, h_recv_buffer_x0, xbsize * sizeof(Real),
-                 cudaMemcpyHostToDevice);
+      cudaMemcpy(d_recv_buffer_x0, h_recv_buffer_x0, xbsize * sizeof(Real), cudaMemcpyHostToDevice);
       break;
     case (1):
-      cudaMemcpy(d_recv_buffer_x1, h_recv_buffer_x1, xbsize * sizeof(Real),
-                 cudaMemcpyHostToDevice);
+      cudaMemcpy(d_recv_buffer_x1, h_recv_buffer_x1, xbsize * sizeof(Real), cudaMemcpyHostToDevice);
       break;
     case (2):
-      cudaMemcpy(d_recv_buffer_y0, h_recv_buffer_y0, ybsize * sizeof(Real),
-                 cudaMemcpyHostToDevice);
+      cudaMemcpy(d_recv_buffer_y0, h_recv_buffer_y0, ybsize * sizeof(Real), cudaMemcpyHostToDevice);
       break;
     case (3):
-      cudaMemcpy(d_recv_buffer_y1, h_recv_buffer_y1, ybsize * sizeof(Real),
-                 cudaMemcpyHostToDevice);
+      cudaMemcpy(d_recv_buffer_y1, h_recv_buffer_y1, ybsize * sizeof(Real), cudaMemcpyHostToDevice);
       break;
     case (4):
-      cudaMemcpy(d_recv_buffer_z0, h_recv_buffer_z0, zbsize * sizeof(Real),
-                 cudaMemcpyHostToDevice);
+      cudaMemcpy(d_recv_buffer_z0, h_recv_buffer_z0, zbsize * sizeof(Real), cudaMemcpyHostToDevice);
       break;
     case (5):
-      cudaMemcpy(d_recv_buffer_z1, h_recv_buffer_z1, zbsize * sizeof(Real),
-                 cudaMemcpyHostToDevice);
+      cudaMemcpy(d_recv_buffer_z1, h_recv_buffer_z1, zbsize * sizeof(Real), cudaMemcpyHostToDevice);
       break;
   }
+}
+
+std::pair<int, int> MPI_Comm_node()
+{
+  // get the global process rank
+  int myid, nproc;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+  MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+
+  // if there is the only one process, then just return the global rank and size
+  if (nproc == 1) {
+    return {myid, nproc};
+  }
+
+  // get the hostname of the node
+  std::string pname;  // node hostname
+  pname.resize(MPI_MAX_PROCESSOR_NAME);
+  int pname_length;  // length of node hostname
+
+  MPI_Get_processor_name(pname.data(), &pname_length);
+
+  // hash the name of the node. MPI_Comm_split doesn't like negative numbers and accepts ints not unsigned ints so we
+  // need to take the absolute value
+  int const hash = std::abs(static_cast<int>(std::hash<std::string>{}(pname)));
+
+  // split the communicator
+  MPI_Comm node_comm;  // communicator for the procs on each node
+  MPI_Comm_split(MPI_COMM_WORLD, hash, myid, &node_comm);
+
+  // get size and rank
+  MPI_Comm_rank(node_comm, &myid);
+  MPI_Comm_size(node_comm, &nproc);
+
+  return {myid, nproc};
 }
 
 #endif /*MPI_CHOLLA*/

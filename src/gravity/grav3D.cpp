@@ -16,11 +16,9 @@
 
 Grav3D::Grav3D(void) {}
 
-void Grav3D::Initialize(Real x_min, Real y_min, Real z_min, Real x_max,
-                        Real y_max, Real z_max, Real Lx, Real Ly, Real Lz,
-                        int nx, int ny, int nz, int nx_real, int ny_real,
-                        int nz_real, Real dx_real, Real dy_real, Real dz_real,
-                        int n_ghost_pot_offset, struct parameters *P)
+void Grav3D::Initialize(Real x_min, Real y_min, Real z_min, Real x_max, Real y_max, Real z_max, Real Lx, Real Ly,
+                        Real Lz, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx_real,
+                        Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P)
 {
   // Set Box Size
   Lbox_x = Lx;
@@ -55,9 +53,8 @@ void Grav3D::Initialize(Real x_min, Real y_min, Real z_min, Real x_max,
   // Local n_cells without ghost cells
   n_cells = nx_local * ny_local * nz_local;
   // Local n_cells including ghost cells for the potential array
-  n_cells_potential = (nx_local + 2 * N_GHOST_POTENTIAL) *
-                      (ny_local + 2 * N_GHOST_POTENTIAL) *
-                      (nz_local + 2 * N_GHOST_POTENTIAL);
+  n_cells_potential =
+      (nx_local + 2 * N_GHOST_POTENTIAL) * (ny_local + 2 * N_GHOST_POTENTIAL) * (nz_local + 2 * N_GHOST_POTENTIAL);
 
   // Set Initial and dt used for the extrapolation of the potential;
   // The first timestep the potential in not extrapolated ( INITIAL = TRUE )
@@ -98,8 +95,7 @@ void Grav3D::Initialize(Real x_min, Real y_min, Real z_min, Real x_max,
   chprintf(
       "Gravity Initialized: \n Lbox: %0.2f %0.2f %0.2f \n Local: %d %d %d \n "
       "Global: %d %d %d \n",
-      Lbox_x, Lbox_y, Lbox_z, nx_local, ny_local, nz_local, nx_total, ny_total,
-      nz_total);
+      Lbox_x, Lbox_y, Lbox_z, nx_local, ny_local, nz_local, nx_total, ny_total, nz_total);
 
   chprintf(" dx:%f  dy:%f  dz:%f\n", dx, dy, dz);
   chprintf(" N ghost potential: %d\n", N_GHOST_POTENTIAL);
@@ -112,19 +108,16 @@ void Grav3D::Initialize(Real x_min, Real y_min, Real z_min, Real x_max,
   chprintf("  N OMP Threads per MPI process: %d\n", N_OMP_THREADS);
   #endif
 
-  Poisson_solver.Initialize(Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total,
-                            ny_total, nz_total, nx_local, ny_local, nz_local,
-                            dx, dy, dz);
+  Poisson_solver.Initialize(Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local, ny_local,
+                            nz_local, dx, dy, dz);
   #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
-  Poisson_solver_test.Initialize(Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin,
-                                 nx_total, ny_total, nz_total, nx_local,
+  Poisson_solver_test.Initialize(Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local,
                                  ny_local, nz_local, dx, dy, dz);
   #endif
 
   // At the end of initializing, set restart state if needed
-  
-  if ((strcmp(P->init, "Read_Grid") == 0) && (P->nfile > 0))
-  {
+
+  if ((strcmp(P->init, "Read_Grid") == 0) && (P->nfile > 0)) {
     Read_Restart_HDF5(P, P->nfile);
   }
 }
@@ -132,37 +125,27 @@ void Grav3D::Initialize(Real x_min, Real y_min, Real z_min, Real x_max,
 void Grav3D::AllocateMemory_CPU(void)
 {
   // allocate memory for the density and potential arrays
-  F.density_h = (Real *)malloc(n_cells * sizeof(Real));  // array for the
-                                                         // density
-  F.potential_h = (Real *)malloc(
-      n_cells_potential *
-      sizeof(Real));  // array for the potential at the n-th timestep
-  F.potential_1_h = (Real *)malloc(
-      n_cells_potential *
-      sizeof(Real));  // array for the potential at the (n-1)-th timestep
-  boundary_flags =
-      (int *)malloc(6 * sizeof(int));  // array for the gravity boundary flags
+  F.density_h = (Real *)malloc(n_cells * sizeof(Real));              // array for the
+                                                                     // density
+  F.potential_h = (Real *)malloc(n_cells_potential * sizeof(Real));  // array for the potential at the n-th timestep
+  F.potential_1_h =
+      (Real *)malloc(n_cells_potential * sizeof(Real));  // array for the potential at the (n-1)-th timestep
+  boundary_flags = (int *)malloc(6 * sizeof(int));       // array for the gravity boundary flags
 
   #ifdef GRAV_ISOLATED_BOUNDARY_X
-  F.pot_boundary_x0 = (Real *)malloc(
-      N_GHOST_POTENTIAL * ny_local * nz_local *
-      sizeof(Real));  // array for the potential isolated boundary
-  F.pot_boundary_x1 =
-      (Real *)malloc(N_GHOST_POTENTIAL * ny_local * nz_local * sizeof(Real));
+  F.pot_boundary_x0 = (Real *)malloc(N_GHOST_POTENTIAL * ny_local * nz_local *
+                                     sizeof(Real));  // array for the potential isolated boundary
+  F.pot_boundary_x1 = (Real *)malloc(N_GHOST_POTENTIAL * ny_local * nz_local * sizeof(Real));
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Y
-  F.pot_boundary_y0 = (Real *)malloc(
-      N_GHOST_POTENTIAL * nx_local * nz_local *
-      sizeof(Real));  // array for the potential isolated boundary
-  F.pot_boundary_y1 =
-      (Real *)malloc(N_GHOST_POTENTIAL * nx_local * nz_local * sizeof(Real));
+  F.pot_boundary_y0 = (Real *)malloc(N_GHOST_POTENTIAL * nx_local * nz_local *
+                                     sizeof(Real));  // array for the potential isolated boundary
+  F.pot_boundary_y1 = (Real *)malloc(N_GHOST_POTENTIAL * nx_local * nz_local * sizeof(Real));
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  F.pot_boundary_z0 = (Real *)malloc(
-      N_GHOST_POTENTIAL * nx_local * ny_local *
-      sizeof(Real));  // array for the potential isolated boundary
-  F.pot_boundary_z1 =
-      (Real *)malloc(N_GHOST_POTENTIAL * nx_local * ny_local * sizeof(Real));
+  F.pot_boundary_z0 = (Real *)malloc(N_GHOST_POTENTIAL * nx_local * ny_local *
+                                     sizeof(Real));  // array for the potential isolated boundary
+  F.pot_boundary_z1 = (Real *)malloc(N_GHOST_POTENTIAL * nx_local * ny_local * sizeof(Real));
   #endif
 
   #ifdef GRAVITY_ANALYTIC_COMP
@@ -172,7 +155,9 @@ void Grav3D::AllocateMemory_CPU(void)
 
 void Grav3D::Set_Boundary_Flags(int *flags)
 {
-  for (int i = 0; i < 6; i++) boundary_flags[i] = flags[i];
+  for (int i = 0; i < 6; i++) {
+    boundary_flags[i] = flags[i];
+  }
 }
 
 void Grav3D::Initialize_values_CPU(void)

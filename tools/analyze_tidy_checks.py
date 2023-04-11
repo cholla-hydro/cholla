@@ -6,7 +6,7 @@
  failures a check represents.
 
  When running, make sure that you have already run clang-tidy with all the
- checks you want enabled since this script looks for the 3 tidy_results_*.log
+ checks you want enabled since this script looks for the 2 tidy_results_*.log
  files in the root directory of Cholla
 ================================================================================
 """
@@ -35,14 +35,12 @@ def main():
 
 
 def loadTidyResults(chollaPath):
-    with open(chollaPath / "tidy_results_c.log", "r") as file:
-        cData = file.read()
     with open(chollaPath / "tidy_results_cpp.log", "r") as file:
         cppData = file.read()
     with open(chollaPath / "tidy_results_gpu.log", "r") as file:
         gpuData = file.read()
 
-    return cData + cppData + gpuData
+    return cppData + gpuData
 
 
 def getEnabledChecks(chollaPath):
