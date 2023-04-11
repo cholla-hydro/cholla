@@ -71,7 +71,7 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
     exit(0);
   }
 
-  // TODO (by Alwin, for anyone) : Need to consider how or whether to read attributes.
+  // TODO (written by Alwin, for anyone to do) : Need to consider how or whether to read attributes.
   // even without read gamma from file, it is set in initial_conditions.cpp
   // if I do not set t or n_step it is set to 0 in grid/grid3D.cpp
   // This should be okay to start with.
@@ -113,9 +113,9 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
   // TODO (Alwin) : add scalar stuff
 
   #ifdef MHD
-  Read_Grid_Cat_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_x, "/magnetic_x");
-  Read_Grid_Cat_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_y, "/magnetic_y");
-  Read_Grid_Cat_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_z, "/magnetic_z");
+  Read_Grid_Cat_HDF5_Field_Magnetic(file_id, dataset_buffer, H, offset, count, C.magnetic_x, "/magnetic_x");
+  Read_Grid_Cat_HDF5_Field_Magnetic(file_id, dataset_buffer, H, offset, count, C.magnetic_y, "/magnetic_y");
+  Read_Grid_Cat_HDF5_Field_Magnetic(file_id, dataset_buffer, H, offset, count, C.magnetic_z, "/magnetic_z");
   #endif
 
   free(dataset_buffer);
