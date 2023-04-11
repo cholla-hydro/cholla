@@ -9,9 +9,6 @@
   #include "../mpi/mpi_routines.h"
   #include "../utils/timing_functions.h"  // provides ScopedTimer
 
-// I think this helper function is finished. It's just meant to interface with HDF5 and open/free handles
-// I need to figure out offset and count elsewhere
-
 // Warning: H5Sselect_hyperslab expects its pointer args to be arrays of same size as the rank of the dataspace
 // file_space_id
 void Read_HDF5_Selection_3D(hid_t file_id, hsize_t* offset, hsize_t* count, double* buffer, const char* name)
@@ -74,11 +71,12 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
     exit(0);
   }
 
-  // TODO (Alwin) : Need to consider how or whether to read attributes.
-
-  // even if I do not read gamma from file, it is set in initial_conditions.cpp
-  // if I do not set t or n_step what does it get set to?0 in grid/grid3D.cpp
+  // TODO (by Alwin, for anyone) : Need to consider how or whether to read attributes.
+  // even without read gamma from file, it is set in initial_conditions.cpp
+  // if I do not set t or n_step it is set to 0 in grid/grid3D.cpp
   // This should be okay to start with.
+  // Choosing not to read attributes is because
+  // Parallel-reading attributes can be slow without collective calls.
 
   // Offsets are global variables from mpi_routines.h
   hsize_t offset[3];
@@ -104,15 +102,20 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
   Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.momentum_z, "/momentum_z");
   Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.Energy, "/Energy");
   #ifdef DE
-  Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.Energy, "/GasEnergy");
+  Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.GasEnergy, "/GasEnergy");
   #endif  // DE
 
+  #ifdef SCALAR
+    #ifdef BASIC_SCALAR
+  Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.basic_scalar, "/scalar0");
+    #endif
+  #endif
   // TODO (Alwin) : add scalar stuff
 
   #ifdef MHD
-  Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_x, "/magnetic_x");
-  Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_y, "/magnetic_y");
-  Read_Grid_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_z, "/magnetic_z");
+  Read_Grid_Cat_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_x, "/magnetic_x");
+  Read_Grid_Cat_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_y, "/magnetic_y");
+  Read_Grid_Cat_HDF5_Field_Magnetic(file_id, dataset_buffer, H, C.magnetic_z, "/magnetic_z");
   #endif
 
   free(dataset_buffer);
