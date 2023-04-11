@@ -125,7 +125,7 @@ class Particles_3D
   int_vector_t out_indxs_vec_z1;
       #endif  // PARTICLES_CPU
 
-    #endif    // MPI_CHOLLA
+    #endif  // MPI_CHOLLA
 
   bool TRANSFER_DENSITY_BOUNDARIES;
   bool TRANSFER_PARTICLES_BOUNDARIES;
@@ -210,7 +210,7 @@ class Particles_3D
 
       #endif  // MPI_CHOLLA
 
-    #endif    // PARTICLES_GPU
+    #endif  // PARTICLES_GPU
 
   } G;
 

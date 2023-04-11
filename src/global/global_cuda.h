@@ -120,4 +120,4 @@ __device__ double atomicAdd(double *address, double val)
 
   #endif  // GLOBAL_CUDA_H
 
-#endif    // CUDA
+#endif  // CUDA

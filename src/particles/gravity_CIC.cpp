@@ -350,4 +350,4 @@ void Grid3D::Get_Gravity_CIC_function(part_int_t p_start, part_int_t p_end)
 
   #endif  // PARTICLES_CPU
 
-#endif    // PARTICLES
+#endif  // PARTICLES

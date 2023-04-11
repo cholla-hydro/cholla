@@ -355,5 +355,5 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
 }
     #endif  // CLOUDY_COOL
 
-  #endif    // COOLING_GPU
-#endif      // CUDA
+  #endif  // COOLING_GPU
+#endif    // CUDA

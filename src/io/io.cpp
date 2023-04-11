@@ -941,7 +941,7 @@ void Grid3D::Write_Grid_Text(FILE *fp)
     fprintf(fp, "\tNan");
   #endif  // DE
     fprintf(fp, "\n");
-#endif    // MHD
+#endif  // MHD
   }
 
   // 2D case
@@ -976,7 +976,7 @@ void Grid3D::Write_Grid_Text(FILE *fp)
       fprintf(fp, "\tNan");
   #endif  // DE
       fprintf(fp, "\n");
-#endif    // MHD
+#endif  // MHD
     }
 #ifdef MHD
     // Save the last line of magnetic fields
@@ -987,7 +987,7 @@ void Grid3D::Write_Grid_Text(FILE *fp)
     fprintf(fp, "\tNan");
   #endif  // DE
     fprintf(fp, "\n");
-#endif    // MHD
+#endif  // MHD
   }
 
   // 3D case
@@ -1388,7 +1388,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   output_full_ionization = false;
     #endif  // OUTPUT_FULL_IONIZATION
 
-  #endif    // COOLING_GRACKLE or CHEMISTRY_GPU
+  #endif  // COOLING_GRACKLE or CHEMISTRY_GPU
 
   #if defined(GRAVITY_GPU) && defined(OUTPUT_POTENTIAL)
   CudaSafeCall(cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential * sizeof(Real),
@@ -1468,7 +1468,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     #endif  // COOLING_GRACKLE || CHEMISTRY_GPU
 
-  #endif    // SCALAR
+  #endif  // SCALAR
 
   // 3D case
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
@@ -2420,7 +2420,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
       #endif  // GRACKLE_METALS
     #endif    // COOLING_GRACKLE , CHEMISTRY_GPU
 
-  #endif      // SCALAR
+  #endif  // SCALAR
 
   // MHD only valid in 3D case
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) {

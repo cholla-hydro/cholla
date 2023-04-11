@@ -133,10 +133,10 @@ class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithPa
 #ifdef PCM
   double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 4E-7;
-#else                                  // PCM
+#else   // PCM
   double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 1E-7;
-#endif                                 // PCM
+#endif  // PCM
 
   void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,

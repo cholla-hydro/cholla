@@ -117,11 +117,11 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 __device__ __host__ Real calc_tau_sp(Real n, Real T)
 {
   Real YR_IN_S = 3.154e7;
-  Real a1      = 1;                                         // dust grain size in units of 0.1 micrometers
-  Real d0      = n / (6e-4);                                // gas density in units of 10^-27 g/cm^3
-  Real T_0     = 2e6;                                       // K
+  Real a1      = 1;           // dust grain size in units of 0.1 micrometers
+  Real d0      = n / (6e-4);  // gas density in units of 10^-27 g/cm^3
+  Real T_0     = 2e6;         // K
   Real omega   = 2.5;
-  Real A       = 0.17e9 * YR_IN_S;                          // 0.17 Gyr in s
+  Real A       = 0.17e9 * YR_IN_S;  // 0.17 Gyr in s
 
   Real tau_sp = A * (a1 / d0) * (pow(T_0 / T, omega) + 1);  // s
 

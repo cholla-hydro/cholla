@@ -232,5 +232,5 @@ ScopedTimer::~ScopedTimer(void)
   double t_avg = time_elapsed_ms;
   #endif  // MPI_CHOLLA
   chprintf("ScopedTimer Min: %9.4f ms Max: %9.4f ms Avg: %9.4f ms %s \n", t_min, t_max, t_avg, name);
-#endif    // CPU_TIME
+#endif  // CPU_TIME
 }

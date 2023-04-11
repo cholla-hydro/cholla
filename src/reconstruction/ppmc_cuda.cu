@@ -1207,7 +1207,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
       #endif  // SCALAR
 
-    #endif    // VL, i.e. CTU was used for this section
+    #endif  // VL, i.e. CTU was used for this section
 
     // enforce minimum values
     d_L = fmax(d_L, (Real)TINY_NUMBER);

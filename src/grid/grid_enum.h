@@ -53,9 +53,9 @@ enum : int {
 
   #ifdef DUST
   dust_density,
-  #endif                                 // DUST
+  #endif  // DUST
 
-#endif                                   // SCALAR
+#endif  // SCALAR
 
   finalscalar_plus_1,                    // needed to calculate NSCALARS
   finalscalar = finalscalar_plus_1 - 1,  // resets enum to finalscalar so fields afterwards are correct

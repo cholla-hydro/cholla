@@ -1042,5 +1042,5 @@ void Particles_3D::Unload_Particles_from_Buffer_GPU(int direction, int side, Rea
 
     #endif  // PARTICLES_GPU
 
-  #endif    // MPI_CHOLLA
-#endif      // PARTICLES
+  #endif  // MPI_CHOLLA
+#endif    // PARTICLES

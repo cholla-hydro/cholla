@@ -467,7 +467,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
       dev_conserved_half[(n_fields - 1) * n_cells + id] *= (density_floor / dens_0);
     #endif  // DE
     }
-  #endif    // DENSITY_FLOOR
+  #endif  // DENSITY_FLOOR
   }
 }
 

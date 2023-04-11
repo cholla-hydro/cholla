@@ -22,7 +22,7 @@
 
 #ifdef DE  // PRESSURE_DE
   #include "../utils/hydro_utilities.h"
-#endif     // DE
+#endif  // DE
 
 #ifdef CUDA
 

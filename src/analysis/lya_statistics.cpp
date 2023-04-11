@@ -942,7 +942,7 @@ void Grid3D::Compute_Transmitted_Flux_Skewer(int skewer_id, int axis)
   c        = 2.99792458e10;   // cm/s
   kpc      = 3.0857e21;       // cm
   kpc3     = kpc * kpc * kpc;
-  e_charge = 4.8032e-10;      // cm^3/2 g^1/2 s^-1
+  e_charge = 4.8032e-10;  // cm^3/2 g^1/2 s^-1
 
   // Fill the Real cells first
   for (int los_id = 0; los_id < n_los_total; los_id++) {
