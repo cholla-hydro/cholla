@@ -1,10 +1,11 @@
 // Routines for using Parallel HDF5 to read/write from single file
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "../utils/error_handling.h"
 
 #if defined(HDF5) && defined(MPI_CHOLLA)
 #include <hdf5.h>
-#include "../io/io.h"
 #include "../mpi/mpi_routines.h"
-#include "../grid/grid3D.h"
 #include "../utils/timing_functions.h" // provides ScopedTimer
 
 
@@ -124,5 +125,14 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
   status = H5Fclose(file_id);
 }
 
+#else
+
+void Grid3D::Read_Grid_Cat(struct parameters P)
+{
+  chprintf("Warning: Read_Grid_Cat does nothing without MPI_CHOLLA and HDF5\n");
+  chexit(-1);
+  return;
+  // Does nothing without HDF5 and MPI_CHOLLA
+}
 
 #endif

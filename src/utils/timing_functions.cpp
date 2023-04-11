@@ -1,7 +1,5 @@
-
+#include "../utils/timing_functions.h"
 #ifdef CPU_TIME
-
-  #include "../utils/timing_functions.h"
 
   #include <fstream>
   #include <iostream>

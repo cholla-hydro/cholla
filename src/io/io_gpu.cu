@@ -166,7 +166,7 @@ void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_
 
   // 1D case
   if (nx > 1 && ny == 1 && nz == 1) {
-    CudaSafeCall(cudaMemcpy(hdf5_buffer, device_grid_buffer + n_ghost, nx_real * sizeof(Real)));
+    CudaSafeCall(cudaMemcpy(hdf5_buffer, device_grid_buffer + n_ghost, nx_real * sizeof(Real), cudaMemcpyDeviceToHost));
     return;
   }
 }

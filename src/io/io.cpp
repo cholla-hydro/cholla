@@ -1278,7 +1278,7 @@ void Fill_HDF5_Buffer_From_Grid_CPU(int nx, int ny, int nz, int nx_real, int ny_
 }
 
 /* \brief Before HDF5 reads data into a buffer, remap and write grid to HDF5 buffer. */
-void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost, Real* hdf5_buffer, Real* device_grid_buffer);
+void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost, Real* hdf5_buffer, Real* device_hdf5_buffer, Real* device_grid_buffer);
 // From src/io/io_gpu
 
 // Set up dataspace for grid formatted data and write dataset
@@ -1288,27 +1288,27 @@ void Write_HDF5_Dataset_Grid(int nx, int ny, int nz, int nx_real, int ny_real, i
   
   hid_t dataspace_id;
   // 1-D Case
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
+  if (nx > 1 && ny == 1 && nz == 1) {
     int rank = 1;
     hsize_t dims[1];
-    dims[0] = H.nx_real;
+    dims[0] = nx_real;
     dataspace_id = H5Screate_simple(rank, dims, NULL);
   }
   // 2-D Case
-  if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
+  if (nx > 1 && ny > 1 && nz == 1) {
     int rank = 2;
     hsize_t dims[2];
-    dims[0] = H.nx_real;
-    dims[1] = H.ny_real;
+    dims[0] = nx_real;
+    dims[1] = ny_real;
     dataspace_id = H5Screate_simple(rank, dims, NULL);
   }
   // 3-D Case
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
+  if (nx > 1 && ny > 1 && nz > 1) {
     int rank = 3;
     hsize_t dims[3];
-    dims[0] = H.nx_real;
-    dims[1] = H.ny_real;
-    dims[2] = H.nz_real;
+    dims[0] = nx_real;
+    dims[1] = ny_real;
+    dims[2] = nz_real;
     dataspace_id = H5Screate_simple(rank, dims, NULL);
   }
 
@@ -1396,10 +1396,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
 
   // Allocate necessary buffers
+  int nx_dset = H.nx_real;
+  int ny_dset = H.ny_real;
+  int nz_dset = H.nz_real;
   #ifdef MHD
-    buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
+  size_t buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
   #else
-    buffer_size = nx_dset * ny_dset * nz_dset;
+  size_t buffer_size = nx_dset * ny_dset * nz_dset;
   #endif
     cuda_utilities::DeviceVector<Real> static device_dataset_vector{buffer_size};
     Real *device_dataset_buffer = device_dataset_vector.data();
@@ -1408,41 +1411,41 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     // Start writing fields
     
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.density, "/density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.density, "/density");
   if (output_momentum || H.Output_Complete_Data) {  
-    Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.momentum_x, "/momentum_x");
-    Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.momentum_y, "/momentum_y");
-    Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.momentum_z, "/momentum_z");
+    Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.momentum_x, "/momentum_x");
+    Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.momentum_y, "/momentum_y");
+    Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.momentum_z, "/momentum_z");
   }
   if (output_energy || H.Output_Complete_Data) {  
-    Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.Energy, "/Energy");
+    Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.Energy, "/Energy");
 #ifdef DE
-    Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.GasEnergy, "/GasEnergy");
+    Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.GasEnergy, "/GasEnergy");
 #endif
   }
   
   #ifdef SCALAR
   
     #ifdef BASIC_SCALAR
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.scalar, "/scalar0");    
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.scalar, "/scalar0");    
     #endif
 
   #ifdef OUTPUT_CHEMISTRY
   #ifdef CHEMISTRY_GPU
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.HI_density, "/HI_density");
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.HII_density, "/HII_density");
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.HeI_density, "/HeI_density");
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.HeII_density, "/HeII_density");
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.HeIII_density, "/HeIII_density");
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, C.e_density, "/e_density");  
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.HI_density, "/HI_density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.HII_density, "/HII_density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.HeI_density, "/HeI_density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.HeII_density, "/HeII_density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.HeIII_density, "/HeIII_density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.e_density, "/e_density");  
   #elif defined(COOLING_GRACKLE)
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, Cool.fields.HI_density, "/HI_density");
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, Cool.fields.HII_density, "/HII_density");
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, Cool.fields.HeI_density, "/HeI_density");
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, Cool.fields.HeII_density, "/HeII_density");
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, Cool.fields.HeIII_density, "/HeIII_density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.HI_density, "/HI_density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.HII_density, "/HII_density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.HeI_density, "/HeI_density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.HeII_density, "/HeII_density");
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.HeIII_density, "/HeIII_density");
   if (output_electrons || H.Output_Complete_Data) {
-    Write_Grid_HDF5_Field(H, file_id, dataset_buffer, Cool.fields.e_density, "/e_density");
+    Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.e_density, "/e_density");
   }
   #endif
 #endif //OUTPUT_CHEMISTRY
@@ -1451,7 +1454,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     #ifdef GRACKLE_METALS
   if (output_metals || H.Output_Complete_Data) {  
-    Write_Grid_HDF5_Field(H, file_id, dataset_buffer, Cool.fields.metal_density, "/metal_density");
+    Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.metal_density, "/metal_density");
   }
     #endif // GRACKLE_METALS
 
@@ -1459,9 +1462,9 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #ifdef OUTPUT_TEMPERATURE
   #ifdef CHEMISTRY_GPU
   Compute_Gas_Temperature(Chem.Fields.temperature_h, false);  
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, Chem.Fields.temperature_h, "/temperature");    
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Chem.Fields.temperature_h, "/temperature");    
   #elif defined(COOLING_GRACKLE)
-  Write_Grid_HDF5_Field(H, file_id, dataset_buffer, Cool.temperature, "/temperature");  
+  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.temperature, "/temperature");  
   #endif
   #endif
 
