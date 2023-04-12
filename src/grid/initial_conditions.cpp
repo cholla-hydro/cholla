@@ -1821,16 +1821,16 @@ void Grid3D::MHD_Spherical_Blast(struct parameters const P)
             mhd::utils::cellCenteredMagneticFields(C.host, id, i, j, k, H.n_cells, H.nx, H.ny);
 
         // Set the field(s) that do depend on pressure. That's just energy
-        Real radius = std::hypot(x, y, z);
+        Real const radius = std::hypot(x, y, z);
+        Real pressure;
         if (radius < P.radius) {
-          C.Energy[id] = hydro_utilities::Calc_Energy_Conserved(
-              P.P_blast, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], ::gama,
-              magnetic_centered.x, magnetic_centered.y, magnetic_centered.z);
+          pressure = P.P_blast;
         } else {
-          C.Energy[id] = hydro_utilities::Calc_Energy_Conserved(P.P, C.density[id], C.momentum_x[id], C.momentum_y[id],
-                                                                C.momentum_z[id], ::gama, magnetic_centered.x,
-                                                                magnetic_centered.y, magnetic_centered.z);
+          pressure = P.P;
         }
+        C.Energy[id] = hydro_utilities::Calc_Energy_Conserved(
+            pressure, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], ::gama, magnetic_centered.x,
+            magnetic_centered.y, magnetic_centered.z);
       }
     }
   }
