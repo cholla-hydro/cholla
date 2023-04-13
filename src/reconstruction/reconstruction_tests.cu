@@ -132,15 +132,18 @@ TEST(tALLReconstructionLoadData, CorrectInputExpectCorrectOutput)
   testingUtilities::checkResults(fiducial_data.magnetic_x, test_data.magnetic_x, "magnetic_x");
   testingUtilities::checkResults(fiducial_data.magnetic_y, test_data.magnetic_y, "magnetic_y");
   testingUtilities::checkResults(fiducial_data.magnetic_z, test_data.magnetic_z, "magnetic_z");
-#else   // MHD
-  reconstruction::Primitive const fiducial_data{13, 3.0769230769230771, 5.1538461538461542, 7.2307692307692308,
-                                                39950.641025641031};
+#else  // MHD
+  reconstruction::Primitive fiducial_data{13, 3.0769230769230771, 5.1538461538461542, 7.2307692307692308,
+                                          39950.641025641031};
+  #ifdef DE
+  fiducial_data.pressure = 34274.282506448195;
+  #endif  // DE
   testingUtilities::checkResults(fiducial_data.density, test_data.density, "density");
   testingUtilities::checkResults(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
   testingUtilities::checkResults(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
   testingUtilities::checkResults(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
   testingUtilities::checkResults(fiducial_data.pressure, test_data.pressure, "pressure");
-#endif  // MHD
+#endif    // MHD
 }
 
 TEST(tALLReconstructionComputeSlope, CorrectInputExpectCorrectOutput)
