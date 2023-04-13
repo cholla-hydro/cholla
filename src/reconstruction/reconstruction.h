@@ -79,9 +79,10 @@ struct Characteristic {
  * \param[in] gamma The adiabatic index
  * \return Primitive The loaded cell data
  */
-Primitive __device__ __host__ Load_Data(Real const *dev_conserved, size_t const &xid, size_t const &yid,
-                                        size_t const &zid, size_t const &nx, size_t const &ny, size_t const &n_cells,
-                                        size_t const &o1, size_t const &o2, size_t const &o3, Real const &gamma)
+Primitive __device__ __host__ __inline__ Load_Data(Real const *dev_conserved, size_t const &xid, size_t const &yid,
+                                                   size_t const &zid, size_t const &nx, size_t const &ny,
+                                                   size_t const &n_cells, size_t const &o1, size_t const &o2,
+                                                   size_t const &o3, Real const &gamma)
 {  // Compute index
   size_t const id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
 
@@ -160,10 +161,11 @@ Primitive __device__ __host__ Load_Data(Real const *dev_conserved, size_t const 
  *
  * \param[in] left The data on the positive side of the slope
  * \param[in] right The data on the negative side of the slope
- * \param[in] coef The coefficient to multiply the slope by. Defaults to zero
+ * \param[in] coef The coefficient to multiply the slope by. Defaults to 1.0
  * \return Primitive The slopes
  */
-Primitive __device__ __host__ Compute_Slope(Primitive const &left, Primitive const &right, Real const &coef = 1.0)
+Primitive __device__ __host__ __inline__ Compute_Slope(Primitive const &left, Primitive const &right,
+                                                       Real const &coef = 1.0)
 {
   Primitive slopes;
 
@@ -200,7 +202,7 @@ Primitive __device__ __host__ Compute_Slope(Primitive const &left, Primitive con
  * \param[in] right_slope The right slope
  * \return Primitive The Van Leer slope
  */
-Primitive __device__ __host__ Van_Leer_Slope(Primitive const &left_slope, Primitive const &right_slope)
+Primitive __device__ __host__ __inline__ Van_Leer_Slope(Primitive const &left_slope, Primitive const &right_slope)
 {
   Primitive vl_slopes;
 
@@ -457,7 +459,7 @@ void __device__ __inline__ Characteristic_To_Primitive(Primitive const &primitiv
  * \param[in] gamma The adiabatic index
  * \return Primitive The Monotonized primitive slopes
  */
-Primitive __device__ Monotonize_Characteristic_Return_Primitive(
+Primitive __device__ __inline__ Monotonize_Characteristic_Return_Primitive(
     Primitive const &primitive, Primitive const &del_L, Primitive const &del_R, Primitive const &del_C,
     Primitive const &del_G, Characteristic const &del_a_L, Characteristic const &del_a_R, Characteristic const &del_a_C,
     Characteristic const &del_a_G, Real const &sound_speed, Real const &sound_speed_squared, Real const &gamma)
@@ -516,7 +518,8 @@ Primitive __device__ Monotonize_Characteristic_Return_Primitive(
  * \param[in] sign Whether to add or subtract the slope. +1 to add it and -1 to subtract it
  * \return Primitive The interface state
  */
-Primitive __device__ __host__ Calc_Interface(Primitive const &primitive, Primitive const &slopes, Real const &sign)
+Primitive __device__ __host__ __inline__ Calc_Interface(Primitive const &primitive, Primitive const &slopes,
+                                                        Real const &sign)
 {
   Primitive output;
 
@@ -560,9 +563,9 @@ Primitive __device__ __host__ Calc_Interface(Primitive const &primitive, Primiti
  * \param[in] o3 Directional parameter
  * \param[in] gamma The adiabatic index
  */
-void __device__ __host__ Write_Data(Primitive const &interface_state, Real *dev_interface, Real const *dev_conserved,
-                                    size_t const &id, size_t const &n_cells, size_t const &o1, size_t const &o2,
-                                    size_t const &o3, Real const &gamma)
+void __device__ __host__ __inline__ Write_Data(Primitive const &interface_state, Real *dev_interface,
+                                               Real const *dev_conserved, size_t const &id, size_t const &n_cells,
+                                               size_t const &o1, size_t const &o2, size_t const &o3, Real const &gamma)
 {
   // Write out density and momentum
   dev_interface[grid_enum::density * n_cells + id] = interface_state.density;
