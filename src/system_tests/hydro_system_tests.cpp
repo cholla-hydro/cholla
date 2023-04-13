@@ -97,8 +97,15 @@ TEST(tHYDROtMHDSYSTEMSoundWave3D, CorrectInputExpectCorrectOutput)
 #ifdef MHD
   // Loosen correctness check to account for MHD only having PCM. This is
   // about the error between PCM and PPMP in hydro
-  tolerance = 1E-6;
-#endif  // MHD
+  // Check Results. Values based on results in Gardiner & Stone 2008
+  #ifdef PCM
+  tolerance = 1e-6;
+  #elif defined(PLMC)
+  tolerance = 1.0E-7;
+  #elif defined(PPMC)
+  tolerance = 0.0;
+  #endif  // PCM
+#endif    // MHD
 
   testObject.launchCholla();
 
@@ -133,7 +140,10 @@ class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithPa
 #ifdef PCM
   double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 4E-7;
-#else   // PCM
+#elif defined(PLMC)
+  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1E-7;
+#elif defined(PPMC)
   double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 1E-7;
 #endif  // PCM

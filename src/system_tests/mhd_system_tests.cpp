@@ -33,14 +33,6 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
  protected:
   systemTest::SystemTestRunner waveTest;
 
-#ifdef PCM
-  double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 4E-7;
-#else   // PCM
-  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-7;
-#endif  // PCM
-
   void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
                        double const &rEigenVec_Bx, double const &rEigenVec_By, double const &rEigenVec_Bz,
@@ -162,11 +154,13 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveRightMovingC
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-// Check Results
+// Check Results. Values based on results in Gardiner & Stone 2008
 #ifdef PCM
   waveTest.runL1ErrorTest(4.2E-7, 5.4E-7);
-#else   // PCM
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(6.5E-8, 6.5E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(0.0, 0.0);
 #endif  // PCM
 }
 
@@ -196,11 +190,13 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveLeftMovingCo
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-// Check Results
+// Check Results. Values based on results in Gardiner & Stone 2008
 #ifdef PCM
   waveTest.runL1ErrorTest(4.2E-7, 5.4E-7);
-#else   // PCM
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(6.5E-8, 6.5E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(0.0, 0.0);
 #endif  // PCM
 }
 
@@ -232,8 +228,14 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveRightMovingC
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(0.0, 0.0);
+#endif  // PCM
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -262,8 +264,14 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCo
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(0.0, 0.0);
+#endif  // PCM
 }
 
 // Alfven Waves Moving Left and Right
@@ -293,8 +301,14 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveRightMovingCorrectInpu
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(0.0, 0.0);
+#endif  // PCM
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -322,8 +336,14 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveLeftMovingCorrectInput
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(0.0, 0.0);
+#endif  // PCM
 }
 
 // Contact Wave Moving Right
@@ -355,10 +375,13 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveCorrectInputExpect
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
 // Check Results
+// Check Results. Values based on results in Gardiner & Stone 2008
 #ifdef PCM
-  waveTest.runL1ErrorTest(1.35 * allowedL1Error, 1.35 * allowedError);
-#else   // PCM
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  waveTest.runL1ErrorTest(5.4E-7, 5.4E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(0.0, 0.0);
 #endif  // PCM
 }
 
@@ -389,14 +412,6 @@ class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<in
 
  protected:
   systemTest::SystemTestRunner waveTest;
-
-#ifdef PCM
-  double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 4E-7;
-#else   // PCM
-  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-7;
-#endif  // PCM
 
   void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
@@ -478,8 +493,14 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveRightMovingCor
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(0.0, 0.0);
+#endif  // PCM
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -508,8 +529,14 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorr
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(0.0, 0.0);
+#endif  // PCM
 }
 
 /// @}
@@ -608,7 +635,6 @@ TEST_P(tMHDSYSTEMParameterizedMpi, MhdBlastWaveCorrectInputExpectCorrectOutput)
 TEST_P(tMHDSYSTEMParameterizedMpi, OrszagTangVortexCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
-  test_runner.setFixedEpsilon(8.E-4);
   test_runner.runTest();
 }
 /// @}
@@ -685,18 +711,24 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, MovingW
 
 // Set allowed errors
 #ifdef PCM
-  double const allowedL1Error = 0.065;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 0.046;
-#else   // PCM
-  double const allowedL1Error = 1E-3;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-3;
+  // Set the number of timesteps
+  cpawTest.setFiducialNumTimeSteps(82);
+  double const allowedL1Error = 6.5E-2;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 4.6E-2;
+#elif defined(PLMC)
+  // Set the number of timesteps
+  cpawTest.setFiducialNumTimeSteps(84);
+  double const allowedL1Error = 5.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 5.0E-3;
+#elif defined(PPMC)
+  // Set the number of timesteps
+  cpawTest.setFiducialNumTimeSteps(0);
+  double const allowedL1Error = 0.0;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 0.0;
 #endif  // PCM
 
   // Set the launch parameters
   setLaunchParams(polarization, vx);
-
-  // Set the number of timesteps
-  cpawTest.setFiducialNumTimeSteps(82);
 
   // Check Results
   cpawTest.runL1ErrorTest(allowedL1Error, allowedError);
@@ -714,18 +746,24 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, Standin
 
 // Set allowed errors
 #ifdef PCM
-  double const allowedL1Error = 0.018;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 0.017;
-#else   // PCM
+  // Set the number of timesteps
+  cpawTest.setFiducialNumTimeSteps(130);
+  double const allowedL1Error = 1.8E-2;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1.7E-2;
+#elif defined(PLMC)
+  // Set the number of timesteps
+  cpawTest.setFiducialNumTimeSteps(130);
+  double const allowedL1Error = 2.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 2.0E-3;
+#elif defined(PPMC)
+  // Set the number of timesteps
+  cpawTest.setFiducialNumTimeSteps(0);
   double const allowedL1Error = 0.0;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 0.0;
 #endif  // PCM
 
   // Set the launch parameters
   setLaunchParams(polarization, vx);
-
-  // Set the number of timesteps
-  cpawTest.setFiducialNumTimeSteps(130);
 
   // Check Results
   cpawTest.runL1ErrorTest(allowedL1Error, allowedError);
