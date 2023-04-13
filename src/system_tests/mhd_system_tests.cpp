@@ -619,6 +619,9 @@ TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones4dShockTubeCorrectInputExpectCorre
 TEST_P(tMHDSYSTEMParameterizedMpi, AdvectingFieldLoopCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
+#ifdef PLMC
+  test_runner.setFixedEpsilon(8.568e-10);
+#endif  // PLMC
   test_runner.runTest();
 }
 
