@@ -1858,8 +1858,8 @@ void Grid3D::Orszag_Tang_Vortex()
         Get_Position(i, j, k, &x, &y, &z);
 
         // Z vector potential
-        vectorPotential.at(id + 2 * H.n_cells) = (magnetic_background / 4.0 * M_PI) * std::cos(4.0 * M_PI * x) -
-                                                 (magnetic_background / 2.0 * M_PI) * std::cos(2.0 * M_PI * y);
+        vectorPotential.at(id + 2 * H.n_cells) =
+            magnetic_background / (4.0 * M_PI) * (std::cos(4.0 * M_PI * x) - 2.0 * std::cos(2.0 * M_PI * y));
       }
     }
   }
