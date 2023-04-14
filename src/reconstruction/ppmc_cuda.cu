@@ -30,23 +30,26 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     return;
   }
 
-  int n_cells = nx * ny * nz;
+  // Compute the total number of cells
+  int const n_cells = nx * ny * nz;
+
+  // Set the field indices for the various directions
   int o1, o2, o3;
   switch (dir) {
     case 0:
-      o1 = 1;
-      o2 = 2;
-      o3 = 3;
+      o1 = grid_enum::momentum_x;
+      o2 = grid_enum::momentum_y;
+      o3 = grid_enum::momentum_z;
       break;
     case 1:
-      o1 = 2;
-      o2 = 3;
-      o3 = 1;
+      o1 = grid_enum::momentum_y;
+      o2 = grid_enum::momentum_z;
+      o3 = grid_enum::momentum_x;
       break;
     case 2:
-      o1 = 3;
-      o2 = 1;
-      o3 = 2;
+      o1 = grid_enum::momentum_z;
+      o2 = grid_enum::momentum_x;
+      o3 = grid_enum::momentum_y;
       break;
   }
 
