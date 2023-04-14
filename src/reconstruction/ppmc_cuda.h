@@ -1,13 +1,11 @@
 /*! \file ppmc_cuda.h
  *  \brief Declarations of the cuda ppm kernels, characteristic reconstruction
  * version. */
-#ifdef CUDA
-  #ifdef PPMC
 
-    #ifndef PPMC_CUDA_H
-      #define PPMC_CUDA_H
+#ifndef PPMC_CUDA_H
+#define PPMC_CUDA_H
 
-      #include "../global/global.h"
+#include "../global/global.h"
 
 /*! \fn void PPMC(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R,
  int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir)
@@ -16,6 +14,4 @@
 __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz,
                           int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields);
 
-    #endif  // PPMC_CUDA_H
-  #endif    // PPMC
-#endif      // CUDA
+#endif  // PPMC_CUDA_H
