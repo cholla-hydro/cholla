@@ -11,7 +11,7 @@
  int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real gamma, int dir)
  *  \brief When passed a stencil of conserved variables, returns the left and
  right boundary values for the interface calculated using ppm. */
-__global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz,
-                          int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields);
+__global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, Real dx,
+                          Real dt, Real gamma, int dir);
 
 #endif  // PPMC_CUDA_H

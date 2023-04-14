@@ -14,13 +14,11 @@
   #include "../utils/hydro_utilities.h"
 #endif
 
-/*! \fn void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real
- *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real
- gamma, int dir, int n_fields)
+/*!
  *  \brief When passed a stencil of conserved variables, returns the left and
  right boundary values for the interface calculated using ppm. */
-__global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz,
-                          int n_ghost, Real dx, Real dt, Real gamma, int dir, int n_fields)
+__global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, Real dx,
+                          Real dt, Real gamma, int dir)
 {
   int n_cells = nx * ny * nz;
   int o1, o2, o3;
@@ -148,7 +146,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i);
-    dge   = dev_conserved[(n_fields - 1) * n_cells + id];
+    dge   = dev_conserved[grid_enum::GasEnergy * n_cells + id];
     p_i   = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
 #else   // not DE
     p_i   = (dev_conserved[4 * n_cells + id] - 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) * (gamma - 1.0);
@@ -182,7 +180,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_imo * (vx_imo * vx_imo + vy_imo * vy_imo + vz_imo * vz_imo);
-    dge   = dev_conserved[(n_fields - 1) * n_cells + id];
+    dge   = dev_conserved[grid_enum::GasEnergy * n_cells + id];
     p_imo = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
 #else   // not DE
     p_imo = (dev_conserved[4 * n_cells + id] - 0.5 * d_imo * (vx_imo * vx_imo + vy_imo * vy_imo + vz_imo * vz_imo)) *
@@ -216,7 +214,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_ipo * (vx_ipo * vx_ipo + vy_ipo * vy_ipo + vz_ipo * vz_ipo);
-    dge   = dev_conserved[(n_fields - 1) * n_cells + id];
+    dge   = dev_conserved[grid_enum::GasEnergy * n_cells + id];
     p_ipo = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
 #else   // not DE
     p_ipo = (dev_conserved[4 * n_cells + id] - 0.5 * d_ipo * (vx_ipo * vx_ipo + vy_ipo * vy_ipo + vz_ipo * vz_ipo)) *
@@ -250,7 +248,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_imt * (vx_imt * vx_imt + vy_imt * vy_imt + vz_imt * vz_imt);
-    dge   = dev_conserved[(n_fields - 1) * n_cells + id];
+    dge   = dev_conserved[grid_enum::GasEnergy * n_cells + id];
     p_imt = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
 #else   // not DE
     p_imt = (dev_conserved[4 * n_cells + id] - 0.5 * d_imt * (vx_imt * vx_imt + vy_imt * vy_imt + vz_imt * vz_imt)) *
@@ -284,7 +282,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_ipt * (vx_ipt * vx_ipt + vy_ipt * vy_ipt + vz_ipt * vz_ipt);
-    dge   = dev_conserved[(n_fields - 1) * n_cells + id];
+    dge   = dev_conserved[grid_enum::GasEnergy * n_cells + id];
     p_ipt = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
 #else   // not DE
     p_ipt = (dev_conserved[4 * n_cells + id] - 0.5 * d_ipt * (vx_ipt * vx_ipt + vy_ipt * vy_ipt + vz_ipt * vz_ipt)) *
@@ -1251,7 +1249,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
 #endif  // SCALAR
 #ifdef DE
-    dev_bounds_R[(n_fields - 1) * n_cells + id] = d_L * ge_L;
+    dev_bounds_R[grid_enum::GasEnergy * n_cells + id] = d_L * ge_L;
 #endif  // DE
     // bounds_L refers to the left side of the i+1/2 interface
     id                              = xid + yid * nx + zid * nx * ny;
@@ -1266,7 +1264,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
 #endif  // SCALAR
 #ifdef DE
-    dev_bounds_L[(n_fields - 1) * n_cells + id] = d_R * ge_R;
+    dev_bounds_L[grid_enum::GasEnergy * n_cells + id] = d_R * ge_R;
 #endif  // DE
   }
 }
