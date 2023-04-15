@@ -830,9 +830,9 @@ int greatest_prime_factor(int n)
 /*
  tile MPI processes in a block arrangement for the 3D case
  */
-void TileBlockDecomposition3D(int number, int &np_x, int &np_y, int &np_z) {
-  
-  int dims[3] = {1,1,1};
+void TileBlockDecomposition3D(int number, int &np_x, int &np_y, int &np_z)
+{
+  int dims[3]  = {1, 1, 1};
   size_t index = 0;
   while (number > 1) {
     int gpf = greatest_prime_factor(number);
