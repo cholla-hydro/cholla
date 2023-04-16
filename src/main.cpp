@@ -237,9 +237,7 @@ int main(int argc, char *argv[])
 #endif  // CPU_TIME
     start_step = get_time();
 
-    // calculate the timestep. Note: this computes the timestep ONLY on the
-    // first loop, on subsequent time steps it just calls the MPI_Allreduce to
-    // determine the global timestep
+    // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
 
     if (G.H.t + G.H.dt > outtime) {

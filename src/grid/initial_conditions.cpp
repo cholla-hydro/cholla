@@ -78,6 +78,8 @@ void Grid3D::Set_Initial_Conditions(parameters P)
     // Initialize a uniform hydro grid when only integrating particles
     Uniform_Grid();
 #endif  // ONLY_PARTICLES
+  } else if (strcmp(P.init, "Read_Grid_Cat") == 0) {
+    Read_Grid_Cat(P);
   } else if (strcmp(P.init, "Uniform") == 0) {
     Uniform_Grid();
   } else if (strcmp(P.init, "Zeldovich_Pancake") == 0) {
