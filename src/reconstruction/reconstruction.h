@@ -511,7 +511,7 @@ Primitive __device__ __inline__ Monotonize_Characteristic_Return_Primitive(
 
 // =====================================================================================================================
 /*!
- * \brief Compute the interface state from the slope and cell centered state.
+ * \brief Compute the interface state from the slope and cell centered state using linear interpolation
  *
  * \param[in] primitive The cell centered state
  * \param[in] slopes The slopes
@@ -542,6 +542,54 @@ Primitive __device__ __host__ __inline__ Calc_Interface_Linear(Primitive const &
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     output.scalar[i] = interface(primitive.scalar[i], slopes.scalar[i]);
+  }
+#endif  // SCALAR
+
+  return output;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
+ * \brief Compute the interface state from the slope and cell centered state using parabolic interpolation
+ *
+ * \param[in] cell_i The state in cell i
+ * \param[in] cell_im1 The state in cell i-1
+ * \param[in] slopes_i The slopes in cell i
+ * \param[in] slopes_im1 The slopes in cell i-1
+ * \return Primitive The interface state
+ */
+Primitive __device__ __host__ __inline__ Calc_Interface_Parabolic(Primitive const &cell_i, Primitive const &cell_im1,
+                                                                  Primitive const &slopes_i,
+                                                                  Primitive const &slopes_im1)
+{
+  Primitive output;
+
+  auto interface = [](Real const &state_i, Real const &state_im1, Real const &slope_i, Real const &slope_im1) -> Real {
+    return 0.5 * (state_i + state_im1) - (slope_i - slope_im1) / 6.0;
+  };
+
+  output.density    = interface(cell_i.density, cell_im1.density, slopes_i.density, slopes_im1.density);
+  output.velocity_x = interface(cell_i.velocity_x, cell_im1.velocity_x, slopes_i.velocity_x, slopes_im1.velocity_x);
+  output.velocity_y = interface(cell_i.velocity_y, cell_im1.velocity_y, slopes_i.velocity_y, slopes_im1.velocity_y);
+  output.velocity_z = interface(cell_i.velocity_z, cell_im1.velocity_z, slopes_i.velocity_z, slopes_im1.velocity_z);
+  output.pressure   = interface(cell_i.pressure, cell_im1.pressure, slopes_i.pressure, slopes_im1.pressure);
+
+#ifdef MHD
+  output.magnetic_y = interface(cell_i.magnetic_y, cell_im1.magnetic_y, slopes_i.magnetic_y, slopes_im1.magnetic_y);
+  ;
+  output.magnetic_z = interface(cell_i.magnetic_z, cell_im1.magnetic_z, slopes_i.magnetic_z, slopes_im1.magnetic_z);
+  ;
+#endif  // MHD
+
+#ifdef DE
+  output.gas_energy = interface(cell_i.gas_energy, cell_im1.gas_energy, slopes_i.gas_energy, slopes_im1.gas_energy);
+  ;
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    output.scalar[i] = interface(cell_i.scalar[i], cell_im1.scalar[i], slopes_i.scalar[i], slopes_im1.scalar[i]);
+    ;
   }
 #endif  // SCALAR
 

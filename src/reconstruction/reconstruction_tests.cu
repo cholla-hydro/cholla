@@ -285,7 +285,7 @@ TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpe
 #endif  // MHD
 }
 
-TEST(tALLReconstructionCalcInterface, CorrectInputExpectCorrectOutput)
+TEST(tALLReconstructionCalcInterfaceLinear, CorrectInputExpectCorrectOutput)
 {
   // Setup input data
 #ifdef MHD
@@ -312,6 +312,47 @@ TEST(tALLReconstructionCalcInterface, CorrectInputExpectCorrectOutput)
   testingUtilities::checkResults(fiducial_data.magnetic_z, test_data.magnetic_z, "magnetic_z");
 #else   // MHD
   reconstruction::Primitive const fiducial_data{2.5, 3.75, 5, 6.25, 7.5};
+  testingUtilities::checkResults(fiducial_data.density, test_data.density, "density");
+  testingUtilities::checkResults(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
+  testingUtilities::checkResults(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
+  testingUtilities::checkResults(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
+  testingUtilities::checkResults(fiducial_data.pressure, test_data.pressure, "pressure");
+#endif  // MHD
+}
+
+TEST(tALLReconstructionCalcInterfaceParabolic, CorrectInputExpectCorrectOutput)
+{
+  // Setup input data
+#ifdef MHD
+  reconstruction::Primitive cell_i{1, 2, 3, 4, 5, 6, 7, 8};
+  reconstruction::Primitive cell_im1{6, 7, 8, 9, 10, 11, 12, 13};
+  reconstruction::Primitive slopes_i{14, 15, 16, 17, 18, 19, 20, 21};
+  reconstruction::Primitive slopes_im1{22, 23, 24, 25, 26, 27, 28, 29};
+#else   // MHD
+  reconstruction::Primitive cell_i{1, 2, 3, 4, 5};
+  reconstruction::Primitive cell_im1{6, 7, 8, 9, 10};
+  reconstruction::Primitive slopes_i{14, 15, 16, 17, 18};
+  reconstruction::Primitive slopes_im1{22, 23, 24, 25, 26};
+#endif  // MHD
+
+  // Get test data
+  auto test_data = reconstruction::Calc_Interface_Parabolic(cell_i, cell_im1, slopes_i, slopes_im1);
+
+  // Check results
+#ifdef MHD
+  reconstruction::Primitive const fiducial_data{4.833333333333333,  5.833333333333333,  6.833333333333333,
+                                                7.833333333333333,  8.8333333333333339, 0.0,
+                                                10.833333333333334, 11.833333333333334};
+  testingUtilities::checkResults(fiducial_data.density, test_data.density, "density");
+  testingUtilities::checkResults(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
+  testingUtilities::checkResults(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
+  testingUtilities::checkResults(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
+  testingUtilities::checkResults(fiducial_data.pressure, test_data.pressure, "pressure");
+  testingUtilities::checkResults(fiducial_data.magnetic_y, test_data.magnetic_y, "magnetic_y");
+  testingUtilities::checkResults(fiducial_data.magnetic_z, test_data.magnetic_z, "magnetic_z");
+#else   // MHD
+  reconstruction::Primitive const fiducial_data{4.833333333333333, 5.833333333333333, 6.833333333333333,
+                                                7.833333333333333, 8.8333333333333339};
   testingUtilities::checkResults(fiducial_data.density, test_data.density, "density");
   testingUtilities::checkResults(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
   testingUtilities::checkResults(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");

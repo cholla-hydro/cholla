@@ -54,9 +54,6 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       break;
   }
 
-  // declare other variables to be used
-  reconstruction::Primitive interface_R_imh, interface_L_iph;  // Interface states
-
   // load the 5-cell stencil into registers
   // cell i
   reconstruction::Primitive const cell_i =
@@ -215,41 +212,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   // Step 6 - Use parabolic interpolation to compute values at the left and right of each cell center Here, the
   // subscripts L and R refer to the left and right side of the ith cell center Stone Eqn 46
+  reconstruction::Primitive interface_L_iph =
+      reconstruction::Calc_Interface_Parabolic(cell_ip1, cell_i, del_m_ip1, del_m_i);
 
-  interface_R_imh.density = 0.5 * (cell_i.density + cell_im1.density) - (del_m_i.density - del_m_im1.density) / 6.0;
-  interface_R_imh.velocity_x =
-      0.5 * (cell_i.velocity_x + cell_im1.velocity_x) - (del_m_i.velocity_x - del_m_im1.velocity_x) / 6.0;
-  interface_R_imh.velocity_y =
-      0.5 * (cell_i.velocity_y + cell_im1.velocity_y) - (del_m_i.velocity_y - del_m_im1.velocity_y) / 6.0;
-  interface_R_imh.velocity_z =
-      0.5 * (cell_i.velocity_z + cell_im1.velocity_z) - (del_m_i.velocity_z - del_m_im1.velocity_z) / 6.0;
-  interface_R_imh.pressure =
-      0.5 * (cell_i.pressure + cell_im1.pressure) - (del_m_i.pressure - del_m_im1.pressure) / 6.0;
-
-  interface_L_iph.density = 0.5 * (cell_ip1.density + cell_i.density) - (del_m_ip1.density - del_m_i.density) / 6.0;
-  interface_L_iph.velocity_x =
-      0.5 * (cell_ip1.velocity_x + cell_i.velocity_x) - (del_m_ip1.velocity_x - del_m_i.velocity_x) / 6.0;
-  interface_L_iph.velocity_y =
-      0.5 * (cell_ip1.velocity_y + cell_i.velocity_y) - (del_m_ip1.velocity_y - del_m_i.velocity_y) / 6.0;
-  interface_L_iph.velocity_z =
-      0.5 * (cell_ip1.velocity_z + cell_i.velocity_z) - (del_m_ip1.velocity_z - del_m_i.velocity_z) / 6.0;
-  interface_L_iph.pressure =
-      0.5 * (cell_ip1.pressure + cell_i.pressure) - (del_m_ip1.pressure - del_m_i.pressure) / 6.0;
-
-#ifdef DE
-  interface_R_imh.gas_energy =
-      0.5 * (cell_i.gas_energy + cell_im1.gas_energy) - (del_m_i.gas_energy - del_m_im1.gas_energy) / 6.0;
-  interface_L_iph.gas_energy =
-      0.5 * (cell_ip1.gas_energy + cell_i.gas_energy) - (del_m_ip1.gas_energy - del_m_i.gas_energy) / 6.0;
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    interface_R_imh.scalar[i] =
-        0.5 * (cell_i.scalar[i] + cell_im1.scalar[i]) - (del_m_i.scalar[i] - del_m_im1.scalar[i]) / 6.0;
-    interface_L_iph.scalar[i] =
-        0.5 * (cell_ip1.scalar[i] + cell_i.scalar[i]) - (del_m_ip1.scalar[i] - del_m_i.scalar[i]) / 6.0;
-  }
-#endif  // SCALAR
+  reconstruction::Primitive interface_R_imh =
+      reconstruction::Calc_Interface_Parabolic(cell_i, cell_im1, del_m_i, del_m_im1);
 
   // Step 7 - Apply further monotonicity constraints to ensure the values on the left and right side of cell center lie
   // between neighboring cell-centered values Stone Eqns 47 - 53
