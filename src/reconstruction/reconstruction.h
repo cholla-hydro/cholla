@@ -518,8 +518,8 @@ Primitive __device__ __inline__ Monotonize_Characteristic_Return_Primitive(
  * \param[in] sign Whether to add or subtract the slope. +1 to add it and -1 to subtract it
  * \return Primitive The interface state
  */
-Primitive __device__ __host__ __inline__ Calc_Interface(Primitive const &primitive, Primitive const &slopes,
-                                                        Real const &sign)
+Primitive __device__ __host__ __inline__ Calc_Interface_Linear(Primitive const &primitive, Primitive const &slopes,
+                                                               Real const &sign)
 {
   Primitive output;
 

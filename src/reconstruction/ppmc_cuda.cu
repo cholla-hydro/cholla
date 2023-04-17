@@ -213,10 +213,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       cell_ip1, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed * sound_speed,
       gamma);
 
-  // Step 6 - Use parabolic interpolation to compute values at the left and
-  // right of each cell center
-  //          Here, the subscripts L and R refer to the left and right side of
-  //          the ith cell center Stone Eqn 46
+  // Step 6 - Use parabolic interpolation to compute values at the left and right of each cell center Here, the
+  // subscripts L and R refer to the left and right side of the ith cell center Stone Eqn 46
 
   interface_R_imh.density = 0.5 * (cell_i.density + cell_im1.density) - (del_m_i.density - del_m_im1.density) / 6.0;
   interface_R_imh.velocity_x =
@@ -253,10 +251,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
 #endif  // SCALAR
 
-  // Step 7 - Apply further monotonicity constraints to ensure the values on
-  // the left and right side
-  //          of cell center lie between neighboring cell-centered values
-  //          Stone Eqns 47 - 53
+  // Step 7 - Apply further monotonicity constraints to ensure the values on the left and right side of cell center lie
+  // between neighboring cell-centered values Stone Eqns 47 - 53
 
   if ((interface_L_iph.density - cell_i.density) * (cell_i.density - interface_R_imh.density) <= 0) {
     interface_R_imh.density = interface_L_iph.density = cell_i.density;

@@ -112,8 +112,8 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed_squared, gamma);
 
   // Compute the left and right interface values using the monotonized difference in the primitive variables
-  reconstruction::Primitive interface_L_iph = reconstruction::Calc_Interface(cell_i, del_m_i, 1.0);
-  reconstruction::Primitive interface_R_imh = reconstruction::Calc_Interface(cell_i, del_m_i, -1.0);
+  reconstruction::Primitive interface_L_iph = reconstruction::Calc_Interface_Linear(cell_i, del_m_i, 1.0);
+  reconstruction::Primitive interface_R_imh = reconstruction::Calc_Interface_Linear(cell_i, del_m_i, -1.0);
 
 #ifndef VL
 

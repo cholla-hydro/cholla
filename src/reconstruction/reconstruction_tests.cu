@@ -298,7 +298,7 @@ TEST(tALLReconstructionCalcInterface, CorrectInputExpectCorrectOutput)
   Real const coef = 0.5;
 
   // Get test data
-  auto test_data = reconstruction::Calc_Interface(left, right, coef);
+  auto test_data = reconstruction::Calc_Interface_Linear(left, right, coef);
 
   // Check results
 #ifdef MHD
