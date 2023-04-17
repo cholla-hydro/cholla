@@ -60,37 +60,18 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // declare other variables to be used
   reconstruction::Primitive del_L, del_R, del_C, del_G;                        // primitive slopes
   reconstruction::Characteristic del_a_L, del_a_R, del_a_C, del_a_G, del_a_m;  // characteristic slopes
-  Real lim_slope_a, lim_slope_b;
   Real del_d_m_imo, del_vx_m_imo, del_vy_m_imo, del_vz_m_imo, del_p_m_imo;
   Real del_d_m_i, del_vx_m_i, del_vy_m_i, del_vz_m_i, del_p_m_i;
   Real del_d_m_ipo, del_vx_m_ipo, del_vy_m_ipo, del_vz_m_ipo, del_p_m_ipo;
   reconstruction::Primitive interface_R_imh, interface_L_iph;  // Interface states
 
-#ifndef VL
-  Real dtodx = dt / dx;
-  Real d_6, vx_6, vy_6, vz_6, p_6;
-  Real lambda_m, lambda_0, lambda_p;
-  Real lambda_max, lambda_min;
-  Real A, B, C, D;
-  Real chi_1, chi_2, chi_3, chi_4, chi_5;
-  Real sum_1, sum_2, sum_3, sum_4, sum_5;
-#endif  // VL
-
 #ifdef DE
   Real del_ge_m_imo, del_ge_m_i, del_ge_m_ipo;
-  Real E_kin, E, dge;
+#endif  // DE
 
-  #ifndef VL
-  Real chi_ge, sum_ge, ge_6;
-  #endif  // VL
-#endif    // DE
 #ifdef SCALAR
   Real del_scalar_m_imo[NSCALARS], del_scalar_m_i[NSCALARS], del_scalar_m_ipo[NSCALARS];
-
-  #ifndef VL
-  Real chi_scalar[NSCALARS], sum_scalar[NSCALARS], scalar_6[NSCALARS];
-  #endif  // VL
-#endif    // SCALAR
+#endif  // SCALAR
 
   // load the 5-cell stencil into registers
   // cell i
@@ -100,12 +81,12 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   cell_i.velocity_y = dev_conserved[o2 * n_cells + id] / cell_i.density;
   cell_i.velocity_z = dev_conserved[o3 * n_cells + id] / cell_i.density;
 #ifdef DE  // PRESSURE_DE
-  E     = dev_conserved[4 * n_cells + id];
-  E_kin = 0.5 * cell_i.density *
-          (cell_i.velocity_x * cell_i.velocity_x + cell_i.velocity_y * cell_i.velocity_y +
-           cell_i.velocity_z * cell_i.velocity_z);
-  dge             = dev_conserved[grid_enum::GasEnergy * n_cells + id];
-  cell_i.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
+  Real E     = dev_conserved[4 * n_cells + id];
+  Real E_kin = 0.5 * cell_i.density *
+               (cell_i.velocity_x * cell_i.velocity_x + cell_i.velocity_y * cell_i.velocity_y +
+                cell_i.velocity_z * cell_i.velocity_z);
+  Real gas_energy = dev_conserved[grid_enum::GasEnergy * n_cells + id];
+  cell_i.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, gas_energy, gamma);
 #else   // not DE
   cell_i.pressure = (dev_conserved[4 * n_cells + id] -
                      0.5 * cell_i.density *
@@ -115,7 +96,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #endif  // PRESSURE_DE
   cell_i.pressure = fmax(cell_i.pressure, (Real)TINY_NUMBER);
 #ifdef DE
-  cell_i.gas_energy = dge / cell_i.density;
+  cell_i.gas_energy = gas_energy / cell_i.density;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -144,8 +125,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   E_kin = 0.5 * cell_im1.density *
           (cell_im1.velocity_x * cell_im1.velocity_x + cell_im1.velocity_y * cell_im1.velocity_y +
            cell_im1.velocity_z * cell_im1.velocity_z);
-  dge               = dev_conserved[grid_enum::GasEnergy * n_cells + id];
-  cell_im1.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
+  gas_energy        = dev_conserved[grid_enum::GasEnergy * n_cells + id];
+  cell_im1.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, gas_energy, gamma);
 #else   // not DE
   cell_im1.pressure = (dev_conserved[4 * n_cells + id] -
                        0.5 * cell_im1.density *
@@ -155,7 +136,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #endif  // PRESSURE_DE
   cell_im1.pressure = fmax(cell_im1.pressure, (Real)TINY_NUMBER);
 #ifdef DE
-  cell_im1.gas_energy = dge / cell_im1.density;
+  cell_im1.gas_energy = gas_energy / cell_im1.density;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -183,8 +164,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   E_kin = 0.5 * cell_ip1.density *
           (cell_ip1.velocity_x * cell_ip1.velocity_x + cell_ip1.velocity_y * cell_ip1.velocity_y +
            cell_ip1.velocity_z * cell_ip1.velocity_z);
-  dge               = dev_conserved[grid_enum::GasEnergy * n_cells + id];
-  cell_ip1.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
+  gas_energy        = dev_conserved[grid_enum::GasEnergy * n_cells + id];
+  cell_ip1.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, gas_energy, gamma);
 #else   // not DE
   cell_ip1.pressure = (dev_conserved[4 * n_cells + id] -
                        0.5 * cell_ip1.density *
@@ -194,7 +175,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #endif  // PRESSURE_DE
   cell_ip1.pressure = fmax(cell_ip1.pressure, (Real)TINY_NUMBER);
 #ifdef DE
-  cell_ip1.gas_energy = dge / cell_ip1.density;
+  cell_ip1.gas_energy = gas_energy / cell_ip1.density;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -222,8 +203,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   E_kin = 0.5 * cell_im2.density *
           (cell_im2.velocity_x * cell_im2.velocity_x + cell_im2.velocity_y * cell_im2.velocity_y +
            cell_im2.velocity_z * cell_im2.velocity_z);
-  dge               = dev_conserved[grid_enum::GasEnergy * n_cells + id];
-  cell_im2.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
+  gas_energy        = dev_conserved[grid_enum::GasEnergy * n_cells + id];
+  cell_im2.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, gas_energy, gamma);
 #else   // not DE
   cell_im2.pressure = (dev_conserved[4 * n_cells + id] -
                        0.5 * cell_im2.density *
@@ -233,7 +214,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #endif  // PRESSURE_DE
   cell_im2.pressure = fmax(cell_im2.pressure, (Real)TINY_NUMBER);
 #ifdef DE
-  cell_im2.gas_energy = dge / cell_im2.density;
+  cell_im2.gas_energy = gas_energy / cell_im2.density;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -261,8 +242,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   E_kin = 0.5 * cell_ip2.density *
           (cell_ip2.velocity_x * cell_ip2.velocity_x + cell_ip2.velocity_y * cell_ip2.velocity_y +
            cell_ip2.velocity_z * cell_ip2.velocity_z);
-  dge               = dev_conserved[grid_enum::GasEnergy * n_cells + id];
-  cell_ip2.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
+  gas_energy        = dev_conserved[grid_enum::GasEnergy * n_cells + id];
+  cell_ip2.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, gas_energy, gamma);
 #else   // not DE
   cell_ip2.pressure = (dev_conserved[4 * n_cells + id] -
                        0.5 * cell_ip2.density *
@@ -272,7 +253,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #endif  // PRESSURE_DE
   cell_ip2.pressure = fmax(cell_ip2.pressure, (Real)TINY_NUMBER);
 #ifdef DE
-  cell_ip2.gas_energy = dge / cell_ip2.density;
+  cell_ip2.gas_energy = gas_energy / cell_ip2.density;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -406,7 +387,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          Stone Eqn 38
 
   del_a_m.a0 = del_a_m.a1 = del_a_m.a2 = del_a_m.a3 = del_a_m.a4 = 0.0;
-
+  Real lim_slope_a, lim_slope_b;
   if (del_a_L.a0 * del_a_R.a0 > 0.0) {
     lim_slope_a = fmin(fabs(del_a_L.a0), fabs(del_a_R.a0));
     lim_slope_b = fmin(fabs(del_a_C.a0), fabs(del_a_G.a0));
@@ -1003,7 +984,6 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 #endif  // SCALAR
 
 #ifndef VL
-
   // Step 8 - Compute the coefficients for the monotonized parabolic
   // interpolation function
   //          Stone Eqn 54
@@ -1014,19 +994,20 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   del_vz_m_i = interface_L_iph.velocity_z - interface_R_imh.velocity_z;
   del_p_m_i  = interface_L_iph.pressure - interface_R_imh.pressure;
 
-  d_6  = 6.0 * (cell_i.density - 0.5 * (interface_R_imh.density + interface_L_iph.density));
-  vx_6 = 6.0 * (cell_i.velocity_x - 0.5 * (interface_R_imh.velocity_x + interface_L_iph.velocity_x));
-  vy_6 = 6.0 * (cell_i.velocity_y - 0.5 * (interface_R_imh.velocity_y + interface_L_iph.velocity_y));
-  vz_6 = 6.0 * (cell_i.velocity_z - 0.5 * (interface_R_imh.velocity_z + interface_L_iph.velocity_z));
-  p_6  = 6.0 * (cell_i.pressure - 0.5 * (interface_R_imh.pressure + interface_L_iph.pressure));
+  Real const d_6  = 6.0 * (cell_i.density - 0.5 * (interface_R_imh.density + interface_L_iph.density));
+  Real const vx_6 = 6.0 * (cell_i.velocity_x - 0.5 * (interface_R_imh.velocity_x + interface_L_iph.velocity_x));
+  Real const vy_6 = 6.0 * (cell_i.velocity_y - 0.5 * (interface_R_imh.velocity_y + interface_L_iph.velocity_y));
+  Real const vz_6 = 6.0 * (cell_i.velocity_z - 0.5 * (interface_R_imh.velocity_z + interface_L_iph.velocity_z));
+  Real const p_6  = 6.0 * (cell_i.pressure - 0.5 * (interface_R_imh.pressure + interface_L_iph.pressure));
 
   #ifdef DE
-  del_ge_m_i = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
-  ge_6       = 6.0 * (cell_i.gas_energy - 0.5 * (interface_R_imh.gas_energy + interface_L_iph.gas_energy));
+  del_ge_m_i      = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
+  Real const ge_6 = 6.0 * (cell_i.gas_energy - 0.5 * (interface_R_imh.gas_energy + interface_L_iph.gas_energy));
   #endif  // DE
 
   #ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
+  Real scalar_6[NSCALARS] : for (int i = 0; i < NSCALARS; i++)
+  {
     del_scalar_m_i[i] = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
     scalar_6[i]       = 6.0 * (cell_i.scalar[i] - 0.5 * (interface_R_imh.scalar[i] + interface_L_iph.scalar[i]));
   }
@@ -1038,20 +1019,21 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // recalculate the adiabatic sound speed in cell i
   sound_speed = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
 
-  lambda_m = cell_i.velocity_x - sound_speed;
-  lambda_0 = cell_i.velocity_x;
-  lambda_p = cell_i.velocity_x + sound_speed;
+  Real const lambda_m = cell_i.velocity_x - sound_speed;
+  Real const lambda_0 = cell_i.velocity_x;
+  Real const lambda_p = cell_i.velocity_x + sound_speed;
 
   // Step 9 - Compute the left and right interface values using monotonized
   // parabolic interpolation
   //          Stone Eqns 55 & 56
 
   // largest eigenvalue
-  lambda_max = fmax(lambda_p, (Real)0);
+  Real const lambda_max = fmax(lambda_p, (Real)0);
   // smallest eigenvalue
-  lambda_min = fmin(lambda_m, (Real)0);
+  Real const lambda_min = fmin(lambda_m, (Real)0);
 
   // left interface value, i+1/2
+  Real const dtodx        = dt / dx;
   interface_L_iph.density = interface_L_iph.density -
                             lambda_max * (0.5 * dtodx) * (del_d_m_i - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * d_6);
   interface_L_iph.velocity_x =
@@ -1105,47 +1087,45 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //           Stone Eqns 57 - 60
 
   // left-hand interface value, i+1/2
-  sum_1 = 0;
-  sum_2 = 0;
-  sum_3 = 0;
-  sum_4 = 0;
-  sum_5 = 0;
+  Real sum_1 = 0, sum_2 = 0, sum_3 = 0, sum_4 = 0, sum_5 = 0;
   #ifdef DE
-  sum_ge = 0;
+  Real sum_ge = 0;
   #endif  // DE
   #ifdef SCALAR
+  Real sum_scalar[NSCALARS];
   for (int i = 0; i < NSCALARS; i++) {
     sum_scalar[i] = 0;
   }
   #endif  // SCALAR
 
   if (lambda_m >= 0) {
-    A = (0.5 * dtodx) * (lambda_p - lambda_m);
-    B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_m * lambda_m);
+    Real const A = (0.5 * dtodx) * (lambda_p - lambda_m);
+    Real const B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_m * lambda_m);
 
-    chi_1 = A * (del_d_m_i - d_6) + B * d_6;
-    chi_2 = A * (del_vx_m_i - vx_6) + B * vx_6;
-    chi_3 = A * (del_vy_m_i - vy_6) + B * vy_6;
-    chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
-    chi_5 = A * (del_p_m_i - p_6) + B * p_6;
+    Real const chi_1 = A * (del_d_m_i - d_6) + B * d_6;
+    Real const chi_2 = A * (del_vx_m_i - vx_6) + B * vx_6;
+    Real const chi_3 = A * (del_vy_m_i - vy_6) + B * vy_6;
+    Real const chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
+    Real const chi_5 = A * (del_p_m_i - p_6) + B * p_6;
 
     sum_1 += -0.5 * (cell_i.density * chi_2 / sound_speed - chi_5 / (sound_speed * sound_speed));
     sum_2 += 0.5 * (chi_2 - chi_5 / (sound_speed * cell_i.density));
     sum_5 += -0.5 * (cell_i.density * chi_2 * sound_speed - chi_5);
   }
   if (lambda_0 >= 0) {
-    A = (0.5 * dtodx) * (lambda_p - lambda_0);
-    B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_0 * lambda_0);
+    Real const A = (0.5 * dtodx) * (lambda_p - lambda_0);
+    Real const B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_0 * lambda_0);
 
-    chi_1 = A * (del_d_m_i - d_6) + B * d_6;
-    chi_2 = A * (del_vx_m_i - vx_6) + B * vx_6;
-    chi_3 = A * (del_vy_m_i - vy_6) + B * vy_6;
-    chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
-    chi_5 = A * (del_p_m_i - p_6) + B * p_6;
+    Real const chi_1 = A * (del_d_m_i - d_6) + B * d_6;
+    Real const chi_2 = A * (del_vx_m_i - vx_6) + B * vx_6;
+    Real const chi_3 = A * (del_vy_m_i - vy_6) + B * vy_6;
+    Real const chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
+    Real const chi_5 = A * (del_p_m_i - p_6) + B * p_6;
   #ifdef DE
-    chi_ge = A * (del_ge_m_i - ge_6) + B * ge_6;
+    Real chi_ge = A * (del_ge_m_i - ge_6) + B * ge_6;
   #endif  // DE
   #ifdef SCALAR
+    Real chi_scalar[NSCALARS];
     for (int i = 0; i < NSCALARS; i++) {
       chi_scalar[i] = A * (del_scalar_m_i[i] - scalar_6[i]) + B * scalar_6[i];
     }
@@ -1164,14 +1144,14 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   #endif  // SCALAR
   }
   if (lambda_p >= 0) {
-    A = (0.5 * dtodx) * (lambda_p - lambda_p);
-    B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_p * lambda_p);
+    Real const A = (0.5 * dtodx) * (lambda_p - lambda_p);
+    Real const B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_p * lambda_p);
 
-    chi_1 = A * (del_d_m_i - d_6) + B * d_6;
-    chi_2 = A * (del_vx_m_i - vx_6) + B * vx_6;
-    chi_3 = A * (del_vy_m_i - vy_6) + B * vy_6;
-    chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
-    chi_5 = A * (del_p_m_i - p_6) + B * p_6;
+    Real const chi_1 = A * (del_d_m_i - d_6) + B * d_6;
+    Real const chi_2 = A * (del_vx_m_i - vx_6) + B * vx_6;
+    Real const chi_3 = A * (del_vy_m_i - vy_6) + B * vy_6;
+    Real const chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
+    Real const chi_5 = A * (del_p_m_i - p_6) + B * p_6;
 
     sum_1 += 0.5 * (cell_i.density * chi_2 / sound_speed + chi_5 / (sound_speed * sound_speed));
     sum_2 += 0.5 * (chi_2 + chi_5 / (sound_speed * cell_i.density));
@@ -1208,28 +1188,28 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
   #endif  // SCALAR
   if (lambda_m <= 0) {
-    C = (0.5 * dtodx) * (lambda_m - lambda_m);
-    D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_m * lambda_m);
+    Real const C = (0.5 * dtodx) * (lambda_m - lambda_m);
+    Real const D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_m * lambda_m);
 
-    chi_1 = C * (del_d_m_i + d_6) + D * d_6;
-    chi_2 = C * (del_vx_m_i + vx_6) + D * vx_6;
-    chi_3 = C * (del_vy_m_i + vy_6) + D * vy_6;
-    chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
-    chi_5 = C * (del_p_m_i + p_6) + D * p_6;
+    Real const chi_1 = C * (del_d_m_i + d_6) + D * d_6;
+    Real const chi_2 = C * (del_vx_m_i + vx_6) + D * vx_6;
+    Real const chi_3 = C * (del_vy_m_i + vy_6) + D * vy_6;
+    Real const chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
+    Real const chi_5 = C * (del_p_m_i + p_6) + D * p_6;
 
     sum_1 += -0.5 * (cell_i.density * chi_2 / sound_speed - chi_5 / (sound_speed * sound_speed));
     sum_2 += 0.5 * (chi_2 - chi_5 / (sound_speed * cell_i.density));
     sum_5 += -0.5 * (cell_i.density * chi_2 * sound_speed - chi_5);
   }
   if (lambda_0 <= 0) {
-    C = (0.5 * dtodx) * (lambda_m - lambda_0);
-    D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_0 * lambda_0);
+    Real const C = (0.5 * dtodx) * (lambda_m - lambda_0);
+    Real const D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_0 * lambda_0);
 
-    chi_1 = C * (del_d_m_i + d_6) + D * d_6;
-    chi_2 = C * (del_vx_m_i + vx_6) + D * vx_6;
-    chi_3 = C * (del_vy_m_i + vy_6) + D * vy_6;
-    chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
-    chi_5 = C * (del_p_m_i + p_6) + D * p_6;
+    Real const chi_1 = C * (del_d_m_i + d_6) + D * d_6;
+    Real const chi_2 = C * (del_vx_m_i + vx_6) + D * vx_6;
+    Real const chi_3 = C * (del_vy_m_i + vy_6) + D * vy_6;
+    Real const chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
+    Real const chi_5 = C * (del_p_m_i + p_6) + D * p_6;
   #ifdef DE
     chi_ge = C * (del_ge_m_i + ge_6) + D * ge_6;
   #endif  // DE
@@ -1252,14 +1232,14 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   #endif  // SCALAR
   }
   if (lambda_p <= 0) {
-    C = (0.5 * dtodx) * (lambda_m - lambda_p);
-    D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_p * lambda_p);
+    Real const C = (0.5 * dtodx) * (lambda_m - lambda_p);
+    Real const D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_p * lambda_p);
 
-    chi_1 = C * (del_d_m_i + d_6) + D * d_6;
-    chi_2 = C * (del_vx_m_i + vx_6) + D * vx_6;
-    chi_3 = C * (del_vy_m_i + vy_6) + D * vy_6;
-    chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
-    chi_5 = C * (del_p_m_i + p_6) + D * p_6;
+    Real const chi_1 = C * (del_d_m_i + d_6) + D * d_6;
+    Real const chi_2 = C * (del_vx_m_i + vx_6) + D * vx_6;
+    Real const chi_3 = C * (del_vy_m_i + vy_6) + D * vy_6;
+    Real const chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
+    Real const chi_5 = C * (del_p_m_i + p_6) + D * p_6;
 
     sum_1 += 0.5 * (cell_i.density * chi_2 / sound_speed + chi_5 / (sound_speed * sound_speed));
     sum_2 += 0.5 * (chi_2 + chi_5 / (sound_speed * cell_i.density));
