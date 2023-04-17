@@ -62,11 +62,11 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   reconstruction::Primitive const cell_i =
       reconstruction::Load_Data(dev_conserved, xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
 
-  // cell i-1. The equality checks check the direction and subtract one from the direction
+  // cell i-1. The equality checks check the direction and subtracts one from the direction
   reconstruction::Primitive const cell_imo = reconstruction::Load_Data(
       dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
-  // cell i+1. The equality checks check the direction and add one to the direction
+  // cell i+1. The equality checks check the direction and adds one to the direction
   reconstruction::Primitive const cell_ipo = reconstruction::Load_Data(
       dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 

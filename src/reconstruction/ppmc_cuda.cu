@@ -54,9 +54,6 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       break;
   }
 
-  // declare primitive variables for each stencil these will be placed into registers for each thread
-  reconstruction::Primitive cell_i, cell_im1, cell_im2, cell_ip1, cell_ip2;
-
   // declare other variables to be used
   reconstruction::Primitive del_L, del_R, del_C, del_G;                        // primitive slopes
   reconstruction::Characteristic del_a_L, del_a_R, del_a_C, del_a_G, del_a_m;  // characteristic slopes
@@ -65,194 +62,26 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   // load the 5-cell stencil into registers
   // cell i
-  int id            = xid + yid * nx + zid * nx * ny;
-  cell_i.density    = dev_conserved[id];
-  cell_i.velocity_x = dev_conserved[o1 * n_cells + id] / cell_i.density;
-  cell_i.velocity_y = dev_conserved[o2 * n_cells + id] / cell_i.density;
-  cell_i.velocity_z = dev_conserved[o3 * n_cells + id] / cell_i.density;
-#ifdef DE  // PRESSURE_DE
-  Real E     = dev_conserved[4 * n_cells + id];
-  Real E_kin = 0.5 * cell_i.density *
-               (cell_i.velocity_x * cell_i.velocity_x + cell_i.velocity_y * cell_i.velocity_y +
-                cell_i.velocity_z * cell_i.velocity_z);
-  Real gas_energy = dev_conserved[grid_enum::GasEnergy * n_cells + id];
-  cell_i.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, gas_energy, gamma);
-#else   // not DE
-  cell_i.pressure = (dev_conserved[4 * n_cells + id] -
-                     0.5 * cell_i.density *
-                         (cell_i.velocity_x * cell_i.velocity_x + cell_i.velocity_y * cell_i.velocity_y +
-                          cell_i.velocity_z * cell_i.velocity_z)) *
-                    (gamma - 1.0);
-#endif  // PRESSURE_DE
-  cell_i.pressure = fmax(cell_i.pressure, (Real)TINY_NUMBER);
-#ifdef DE
-  cell_i.gas_energy = gas_energy / cell_i.density;
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    cell_i.scalar[i] = dev_conserved[(5 + i) * n_cells + id] / cell_i.density;
-  }
-#endif  // SCALAR
-  // cell i-1
-  switch (dir) {
-    case 0:
-      id = xid - 1 + yid * nx + zid * nx * ny;
-      break;
-    case 1:
-      id = xid + (yid - 1) * nx + zid * nx * ny;
-      break;
-    case 2:
-      id = xid + yid * nx + (zid - 1) * nx * ny;
-      break;
-  }
+  reconstruction::Primitive const cell_i =
+      reconstruction::Load_Data(dev_conserved, xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
 
-  cell_im1.density    = dev_conserved[id];
-  cell_im1.velocity_x = dev_conserved[o1 * n_cells + id] / cell_im1.density;
-  cell_im1.velocity_y = dev_conserved[o2 * n_cells + id] / cell_im1.density;
-  cell_im1.velocity_z = dev_conserved[o3 * n_cells + id] / cell_im1.density;
-#ifdef DE  // PRESSURE_DE
-  E     = dev_conserved[4 * n_cells + id];
-  E_kin = 0.5 * cell_im1.density *
-          (cell_im1.velocity_x * cell_im1.velocity_x + cell_im1.velocity_y * cell_im1.velocity_y +
-           cell_im1.velocity_z * cell_im1.velocity_z);
-  gas_energy        = dev_conserved[grid_enum::GasEnergy * n_cells + id];
-  cell_im1.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, gas_energy, gamma);
-#else   // not DE
-  cell_im1.pressure = (dev_conserved[4 * n_cells + id] -
-                       0.5 * cell_im1.density *
-                           (cell_im1.velocity_x * cell_im1.velocity_x + cell_im1.velocity_y * cell_im1.velocity_y +
-                            cell_im1.velocity_z * cell_im1.velocity_z)) *
-                      (gamma - 1.0);
-#endif  // PRESSURE_DE
-  cell_im1.pressure = fmax(cell_im1.pressure, (Real)TINY_NUMBER);
-#ifdef DE
-  cell_im1.gas_energy = gas_energy / cell_im1.density;
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    cell_im1.scalar[i] = dev_conserved[(5 + i) * n_cells + id] / cell_im1.density;
-  }
-#endif  // SCALAR
-  // cell i+1
-  switch (dir) {
-    case 0:
-      id = xid + 1 + yid * nx + zid * nx * ny;
-      break;
-    case 1:
-      id = xid + (yid + 1) * nx + zid * nx * ny;
-      break;
-    case 2:
-      id = xid + yid * nx + (zid + 1) * nx * ny;
-      break;
-  }
-  cell_ip1.density    = dev_conserved[id];
-  cell_ip1.velocity_x = dev_conserved[o1 * n_cells + id] / cell_ip1.density;
-  cell_ip1.velocity_y = dev_conserved[o2 * n_cells + id] / cell_ip1.density;
-  cell_ip1.velocity_z = dev_conserved[o3 * n_cells + id] / cell_ip1.density;
-#ifdef DE  // PRESSURE_DE
-  E     = dev_conserved[4 * n_cells + id];
-  E_kin = 0.5 * cell_ip1.density *
-          (cell_ip1.velocity_x * cell_ip1.velocity_x + cell_ip1.velocity_y * cell_ip1.velocity_y +
-           cell_ip1.velocity_z * cell_ip1.velocity_z);
-  gas_energy        = dev_conserved[grid_enum::GasEnergy * n_cells + id];
-  cell_ip1.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, gas_energy, gamma);
-#else   // not DE
-  cell_ip1.pressure = (dev_conserved[4 * n_cells + id] -
-                       0.5 * cell_ip1.density *
-                           (cell_ip1.velocity_x * cell_ip1.velocity_x + cell_ip1.velocity_y * cell_ip1.velocity_y +
-                            cell_ip1.velocity_z * cell_ip1.velocity_z)) *
-                      (gamma - 1.0);
-#endif  // PRESSURE_DE
-  cell_ip1.pressure = fmax(cell_ip1.pressure, (Real)TINY_NUMBER);
-#ifdef DE
-  cell_ip1.gas_energy = gas_energy / cell_ip1.density;
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    cell_ip1.scalar[i] = dev_conserved[(5 + i) * n_cells + id] / cell_ip1.density;
-  }
-#endif  // SCALAR
-  // cell i-2
-  switch (dir) {
-    case 0:
-      id = xid - 2 + yid * nx + zid * nx * ny;
-      break;
-    case 1:
-      id = xid + (yid - 2) * nx + zid * nx * ny;
-      break;
-    case 2:
-      id = xid + yid * nx + (zid - 2) * nx * ny;
-      break;
-  }
-  cell_im2.density    = dev_conserved[id];
-  cell_im2.velocity_x = dev_conserved[o1 * n_cells + id] / cell_im2.density;
-  cell_im2.velocity_y = dev_conserved[o2 * n_cells + id] / cell_im2.density;
-  cell_im2.velocity_z = dev_conserved[o3 * n_cells + id] / cell_im2.density;
-#ifdef DE  // PRESSURE_DE
-  E     = dev_conserved[4 * n_cells + id];
-  E_kin = 0.5 * cell_im2.density *
-          (cell_im2.velocity_x * cell_im2.velocity_x + cell_im2.velocity_y * cell_im2.velocity_y +
-           cell_im2.velocity_z * cell_im2.velocity_z);
-  gas_energy        = dev_conserved[grid_enum::GasEnergy * n_cells + id];
-  cell_im2.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, gas_energy, gamma);
-#else   // not DE
-  cell_im2.pressure = (dev_conserved[4 * n_cells + id] -
-                       0.5 * cell_im2.density *
-                           (cell_im2.velocity_x * cell_im2.velocity_x + cell_im2.velocity_y * cell_im2.velocity_y +
-                            cell_im2.velocity_z * cell_im2.velocity_z)) *
-                      (gamma - 1.0);
-#endif  // PRESSURE_DE
-  cell_im2.pressure = fmax(cell_im2.pressure, (Real)TINY_NUMBER);
-#ifdef DE
-  cell_im2.gas_energy = gas_energy / cell_im2.density;
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    cell_im2.scalar[i] = dev_conserved[(5 + i) * n_cells + id] / cell_im2.density;
-  }
-#endif  // SCALAR
-  // cell i+2
-  switch (dir) {
-    case 0:
-      id = xid + 2 + yid * nx + zid * nx * ny;
-      break;
-    case 1:
-      id = xid + (yid + 2) * nx + zid * nx * ny;
-      break;
-    case 2:
-      id = xid + yid * nx + (zid + 2) * nx * ny;
-      break;
-  }
-  cell_ip2.density    = dev_conserved[id];
-  cell_ip2.velocity_x = dev_conserved[o1 * n_cells + id] / cell_ip2.density;
-  cell_ip2.velocity_y = dev_conserved[o2 * n_cells + id] / cell_ip2.density;
-  cell_ip2.velocity_z = dev_conserved[o3 * n_cells + id] / cell_ip2.density;
-#ifdef DE  // PRESSURE_DE
-  E     = dev_conserved[4 * n_cells + id];
-  E_kin = 0.5 * cell_ip2.density *
-          (cell_ip2.velocity_x * cell_ip2.velocity_x + cell_ip2.velocity_y * cell_ip2.velocity_y +
-           cell_ip2.velocity_z * cell_ip2.velocity_z);
-  gas_energy        = dev_conserved[grid_enum::GasEnergy * n_cells + id];
-  cell_ip2.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, gas_energy, gamma);
-#else   // not DE
-  cell_ip2.pressure = (dev_conserved[4 * n_cells + id] -
-                       0.5 * cell_ip2.density *
-                           (cell_ip2.velocity_x * cell_ip2.velocity_x + cell_ip2.velocity_y * cell_ip2.velocity_y +
-                            cell_ip2.velocity_z * cell_ip2.velocity_z)) *
-                      (gamma - 1.0);
-#endif  // PRESSURE_DE
-  cell_ip2.pressure = fmax(cell_ip2.pressure, (Real)TINY_NUMBER);
-#ifdef DE
-  cell_ip2.gas_energy = gas_energy / cell_ip2.density;
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    cell_ip2.scalar[i] = dev_conserved[(5 + i) * n_cells + id] / cell_ip2.density;
-  }
-#endif  // SCALAR
+  // cell i-1. The equality checks check the direction and subtracts one from the direction
+  reconstruction::Primitive const cell_im1 = reconstruction::Load_Data(
+      dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
-  // printf("%d %d %d %f %f %f %f %f\n", xid, yid, zid, cell_i.density, cell_i.velocity_x, cell_i.velocity_y,
-  // cell_i.velocity_z, cell_i.pressure);
+  // cell i+1. The equality checks check the direction and adds one to the direction
+  reconstruction::Primitive const cell_ip1 = reconstruction::Load_Data(
+      dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+
+  // cell i-2. The equality checks check the direction and subtracts one from the direction
+  reconstruction::Primitive const cell_im2 =
+      reconstruction::Load_Data(dev_conserved, xid - 2 * int(dir == 0), yid - 2 * int(dir == 1),
+                                zid - 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+
+  // cell i+2. The equality checks check the direction and adds one to the direction
+  reconstruction::Primitive const cell_ip2 =
+      reconstruction::Load_Data(dev_conserved, xid + 2 * int(dir == 0), yid + 2 * int(dir == 1),
+                                zid + 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
   // Steps 2 - 5 are repeated for cell i-1, i, and i+1
   // Step 2 - Compute the left, right, centered, and van Leer differences of
@@ -1277,7 +1106,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   // Convert the left and right states in the primitive to the conserved variables send final values back from kernel
   // bounds_R refers to the right side of the i-1/2 interface
-  id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+  size_t id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
   reconstruction::Write_Data(interface_L_iph, dev_bounds_L, dev_conserved, id, n_cells, o1, o2, o3, gamma);
 
   id = cuda_utilities::compute1DIndex(xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny);
