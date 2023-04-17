@@ -55,9 +55,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
 
   // declare other variables to be used
-  reconstruction::Characteristic del_a_L, del_a_R, del_a_C, del_a_G, del_a_m;  // characteristic slopes
-  reconstruction::Primitive del_m_im1, del_m_i, del_m_ip1;                     // Monotonized primitive slopes
-  reconstruction::Primitive interface_R_imh, interface_L_iph;                  // Interface states
+  reconstruction::Characteristic del_a_m;                      // characteristic slopes
+  reconstruction::Primitive del_m_im1, del_m_i, del_m_ip1;     // Monotonized primitive slopes
+  reconstruction::Primitive interface_R_imh, interface_L_iph;  // Interface states
 
   // load the 5-cell stencil into registers
   // cell i
@@ -110,43 +110,21 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // Van Leer
   reconstruction::Primitive del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
 
-  // Step 3 - Project the left, right, centered and van Leer differences onto
-  // the characteristic variables
-  //          Stone Eqn 37 (del_a are differences in characteristic variables,
-  //          see Stone for notation) Use the eigenvectors given in Stone
-  //          2008, Appendix A
+  // Project the left, right, centered and van Leer differences onto the
+  // characteristic variables Stone Eqn 37 (del_a are differences in
+  // characteristic variables, see Stone for notation) Use the eigenvectors
+  // given in Stone 2008, Appendix A
+  reconstruction::Characteristic del_a_L =
+      reconstruction::Primitive_To_Characteristic(cell_im1, del_L, sound_speed, sound_speed * sound_speed, gamma);
 
-  del_a_L.a0 =
-      -0.5 * cell_im1.density * del_L.velocity_x / sound_speed + 0.5 * del_L.pressure / (sound_speed * sound_speed);
-  del_a_L.a1 = del_L.density - del_L.pressure / (sound_speed * sound_speed);
-  del_a_L.a2 = del_L.velocity_y;
-  del_a_L.a3 = del_L.velocity_z;
-  del_a_L.a4 =
-      0.5 * cell_im1.density * del_L.velocity_x / sound_speed + 0.5 * del_L.pressure / (sound_speed * sound_speed);
+  reconstruction::Characteristic del_a_R =
+      reconstruction::Primitive_To_Characteristic(cell_im1, del_R, sound_speed, sound_speed * sound_speed, gamma);
 
-  del_a_R.a0 =
-      -0.5 * cell_im1.density * del_R.velocity_x / sound_speed + 0.5 * del_R.pressure / (sound_speed * sound_speed);
-  del_a_R.a1 = del_R.density - del_R.pressure / (sound_speed * sound_speed);
-  del_a_R.a2 = del_R.velocity_y;
-  del_a_R.a3 = del_R.velocity_z;
-  del_a_R.a4 =
-      0.5 * cell_im1.density * del_R.velocity_x / sound_speed + 0.5 * del_R.pressure / (sound_speed * sound_speed);
+  reconstruction::Characteristic del_a_C =
+      reconstruction::Primitive_To_Characteristic(cell_im1, del_C, sound_speed, sound_speed * sound_speed, gamma);
 
-  del_a_C.a0 =
-      -0.5 * cell_im1.density * del_C.velocity_x / sound_speed + 0.5 * del_C.pressure / (sound_speed * sound_speed);
-  del_a_C.a1 = del_C.density - del_C.pressure / (sound_speed * sound_speed);
-  del_a_C.a2 = del_C.velocity_y;
-  del_a_C.a3 = del_C.velocity_z;
-  del_a_C.a4 =
-      0.5 * cell_im1.density * del_C.velocity_x / sound_speed + 0.5 * del_C.pressure / (sound_speed * sound_speed);
-
-  del_a_G.a0 =
-      -0.5 * cell_im1.density * del_G.velocity_x / sound_speed + 0.5 * del_G.pressure / (sound_speed * sound_speed);
-  del_a_G.a1 = del_G.density - del_G.pressure / (sound_speed * sound_speed);
-  del_a_G.a2 = del_G.velocity_y;
-  del_a_G.a3 = del_G.velocity_z;
-  del_a_G.a4 =
-      0.5 * cell_im1.density * del_G.velocity_x / sound_speed + 0.5 * del_G.pressure / (sound_speed * sound_speed);
+  reconstruction::Characteristic del_a_G =
+      reconstruction::Primitive_To_Characteristic(cell_im1, del_G, sound_speed, sound_speed * sound_speed, gamma);
 
   // Step 4 - Apply monotonicity constraints to the differences in the
   // characteristic variables
@@ -233,43 +211,17 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // Van Leer
   del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
 
-  // Step 3 - Project the left, right, centered, and van Leer differences onto
-  // the characteristic variables
-  //          Stone Eqn 37 (del_a are differences in characteristic variables,
-  //          see Stone for notation) Use the eigenvectors given in Stone
-  //          2008, Appendix A
+  // Project the left, right, centered and van Leer differences onto the
+  // characteristic variables Stone Eqn 37 (del_a are differences in
+  // characteristic variables, see Stone for notation) Use the eigenvectors
+  // given in Stone 2008, Appendix A
+  del_a_L = reconstruction::Primitive_To_Characteristic(cell_i, del_L, sound_speed, sound_speed * sound_speed, gamma);
 
-  del_a_L.a0 =
-      -0.5 * cell_i.density * del_L.velocity_x / sound_speed + 0.5 * del_L.pressure / (sound_speed * sound_speed);
-  del_a_L.a1 = del_L.density - del_L.pressure / (sound_speed * sound_speed);
-  del_a_L.a2 = del_L.velocity_y;
-  del_a_L.a3 = del_L.velocity_z;
-  del_a_L.a4 =
-      0.5 * cell_i.density * del_L.velocity_x / sound_speed + 0.5 * del_L.pressure / (sound_speed * sound_speed);
+  del_a_R = reconstruction::Primitive_To_Characteristic(cell_i, del_R, sound_speed, sound_speed * sound_speed, gamma);
 
-  del_a_R.a0 =
-      -0.5 * cell_i.density * del_R.velocity_x / sound_speed + 0.5 * del_R.pressure / (sound_speed * sound_speed);
-  del_a_R.a1 = del_R.density - del_R.pressure / (sound_speed * sound_speed);
-  del_a_R.a2 = del_R.velocity_y;
-  del_a_R.a3 = del_R.velocity_z;
-  del_a_R.a4 =
-      0.5 * cell_i.density * del_R.velocity_x / sound_speed + 0.5 * del_R.pressure / (sound_speed * sound_speed);
+  del_a_C = reconstruction::Primitive_To_Characteristic(cell_i, del_C, sound_speed, sound_speed * sound_speed, gamma);
 
-  del_a_C.a0 =
-      -0.5 * cell_i.density * del_C.velocity_x / sound_speed + 0.5 * del_C.pressure / (sound_speed * sound_speed);
-  del_a_C.a1 = del_C.density - del_C.pressure / (sound_speed * sound_speed);
-  del_a_C.a2 = del_C.velocity_y;
-  del_a_C.a3 = del_C.velocity_z;
-  del_a_C.a4 =
-      0.5 * cell_i.density * del_C.velocity_x / sound_speed + 0.5 * del_C.pressure / (sound_speed * sound_speed);
-
-  del_a_G.a0 =
-      -0.5 * cell_i.density * del_G.velocity_x / sound_speed + 0.5 * del_G.pressure / (sound_speed * sound_speed);
-  del_a_G.a1 = del_G.density - del_G.pressure / (sound_speed * sound_speed);
-  del_a_G.a2 = del_G.velocity_y;
-  del_a_G.a3 = del_G.velocity_z;
-  del_a_G.a4 =
-      0.5 * cell_i.density * del_G.velocity_x / sound_speed + 0.5 * del_G.pressure / (sound_speed * sound_speed);
+  del_a_G = reconstruction::Primitive_To_Characteristic(cell_i, del_G, sound_speed, sound_speed * sound_speed, gamma);
 
   // Step 4 - Apply monotonicity constraints to the differences in the
   // characteristic variables
@@ -356,43 +308,17 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // Van Leer
   del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
 
-  // Step 3 - Project the left, right, centered, and van Leer differences onto
-  // the characteristic variables
-  //          Stone Eqn 37 (del_a are differences in characteristic variables,
-  //          see Stone for notation) Use the eigenvectors given in Stone
-  //          2008, Appendix A
+  // Project the left, right, centered and van Leer differences onto the
+  // characteristic variables Stone Eqn 37 (del_a are differences in
+  // characteristic variables, see Stone for notation) Use the eigenvectors
+  // given in Stone 2008, Appendix A
+  del_a_L = reconstruction::Primitive_To_Characteristic(cell_ip1, del_L, sound_speed, sound_speed * sound_speed, gamma);
 
-  del_a_L.a0 =
-      -0.5 * cell_ip1.density * del_L.velocity_x / sound_speed + 0.5 * del_L.pressure / (sound_speed * sound_speed);
-  del_a_L.a1 = del_L.density - del_L.pressure / (sound_speed * sound_speed);
-  del_a_L.a2 = del_L.velocity_y;
-  del_a_L.a3 = del_L.velocity_z;
-  del_a_L.a4 =
-      0.5 * cell_ip1.density * del_L.velocity_x / sound_speed + 0.5 * del_L.pressure / (sound_speed * sound_speed);
+  del_a_R = reconstruction::Primitive_To_Characteristic(cell_ip1, del_R, sound_speed, sound_speed * sound_speed, gamma);
 
-  del_a_R.a0 =
-      -0.5 * cell_ip1.density * del_R.velocity_x / sound_speed + 0.5 * del_R.pressure / (sound_speed * sound_speed);
-  del_a_R.a1 = del_R.density - del_R.pressure / (sound_speed * sound_speed);
-  del_a_R.a2 = del_R.velocity_y;
-  del_a_R.a3 = del_R.velocity_z;
-  del_a_R.a4 =
-      0.5 * cell_ip1.density * del_R.velocity_x / sound_speed + 0.5 * del_R.pressure / (sound_speed * sound_speed);
+  del_a_C = reconstruction::Primitive_To_Characteristic(cell_ip1, del_C, sound_speed, sound_speed * sound_speed, gamma);
 
-  del_a_C.a0 =
-      -0.5 * cell_ip1.density * del_C.velocity_x / sound_speed + 0.5 * del_C.pressure / (sound_speed * sound_speed);
-  del_a_C.a1 = del_C.density - del_C.pressure / (sound_speed * sound_speed);
-  del_a_C.a2 = del_C.velocity_y;
-  del_a_C.a3 = del_C.velocity_z;
-  del_a_C.a4 =
-      0.5 * cell_ip1.density * del_C.velocity_x / sound_speed + 0.5 * del_C.pressure / (sound_speed * sound_speed);
-
-  del_a_G.a0 =
-      -0.5 * cell_ip1.density * del_G.velocity_x / sound_speed + 0.5 * del_G.pressure / (sound_speed * sound_speed);
-  del_a_G.a1 = del_G.density - del_G.pressure / (sound_speed * sound_speed);
-  del_a_G.a2 = del_G.velocity_y;
-  del_a_G.a3 = del_G.velocity_z;
-  del_a_G.a4 =
-      0.5 * cell_ip1.density * del_G.velocity_x / sound_speed + 0.5 * del_G.pressure / (sound_speed * sound_speed);
+  del_a_G = reconstruction::Primitive_To_Characteristic(cell_ip1, del_G, sound_speed, sound_speed * sound_speed, gamma);
 
   // Step 4 - Apply monotonicity constraints to the differences in the
   // characteristic variables
