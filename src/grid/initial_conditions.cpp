@@ -323,8 +323,8 @@ void Grid3D::Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Re
         Real x_pos, y_pos, z_pos;
         Get_Position(i_rot, j_rot, k_rot, &x_pos, &y_pos, &z_pos);
 
-        // set constant initial states. Note that hydro_utilities::Calc_Energy_Primitive computes the correct MHD or
-        // hydro energy
+        // set constant initial states. Note that hydro_utilities::Calc_Energy_Primitive computes the MHD energy if the
+        // MHD flag is turned on and the hydro energy if it isn't
         Real sine_wave = std::sin(2.0 * M_PI * x_pos);
 
         C.density[id]    = rho;
