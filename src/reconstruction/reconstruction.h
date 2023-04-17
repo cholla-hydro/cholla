@@ -511,6 +511,79 @@ Primitive __device__ __inline__ Monotonize_Characteristic_Return_Primitive(
 
 // =====================================================================================================================
 /*!
+ * \brief Monotonize the parabolic interface states
+ *
+ * \param[in] cell_i The state in cell i
+ * \param[in] cell_im1 The state in cell i-1
+ * \param[in] cell_ip1 The state in cell i+1
+ * \param[in,out] interface_L_iph The left interface state at i+1/2
+ * \param[in,out] interface_R_imh The right interface state at i-1/2
+ * \return Primitive
+ */
+void __device__ __host__ __inline__ Monotize_Parabolic_Interface(Primitive const &cell_i, Primitive const &cell_im1,
+                                                                 Primitive const &cell_ip1, Primitive &interface_L_iph,
+                                                                 Primitive &interface_R_imh)
+{
+  // The function that will actually do the monotozation. Note the return by refernce of the interface state
+  auto Monotonize = [](Real const &state_i, Real const &state_im1, Real const &state_ip1, Real &interface_L,
+                       Real &interface_R) {
+    // First monotonicity constraint. Equations 47-49 in Stone et al. 2008
+    if ((interface_L - state_i) * (state_i - interface_R) <= 0.0) {
+      interface_L = state_i;
+      interface_R = state_i;
+    }
+
+    // Second monotonicity constraint. Equations 50 & 51 in Stone et al. 2008
+    Real const term_1 = 6.0 * (interface_L - interface_R) * (state_i - 0.5 * (interface_R + interface_L));
+    Real const term_2 = pow(interface_L - interface_R, 2.0);
+    if (term_1 > term_2) {
+      interface_R = 3.0 * state_i - 2.0 * interface_L;
+    }
+
+    // Third monotonicity constraint. Equations 52 & 53 in Stone et al. 2008
+    if (term_1 < -term_2) {
+      interface_L = 3.0 * state_i - 2.0 * interface_R;
+    }
+
+    // Final monotocity constraint
+    interface_R = fmax(fmin(state_i, state_im1), interface_R);
+    interface_R = fmin(fmax(state_i, state_im1), interface_R);
+    interface_L = fmax(fmin(state_i, state_ip1), interface_L);
+    interface_L = fmin(fmax(state_i, state_ip1), interface_L);
+  };
+
+  // Monotonize each interface state
+  Monotonize(cell_i.density, cell_im1.density, cell_ip1.density, interface_L_iph.density, interface_R_imh.density);
+  Monotonize(cell_i.velocity_x, cell_im1.velocity_x, cell_ip1.velocity_x, interface_L_iph.velocity_x,
+             interface_R_imh.velocity_x);
+  Monotonize(cell_i.velocity_y, cell_im1.velocity_y, cell_ip1.velocity_y, interface_L_iph.velocity_y,
+             interface_R_imh.velocity_y);
+  Monotonize(cell_i.velocity_z, cell_im1.velocity_z, cell_ip1.velocity_z, interface_L_iph.velocity_z,
+             interface_R_imh.velocity_z);
+  Monotonize(cell_i.pressure, cell_im1.pressure, cell_ip1.pressure, interface_L_iph.pressure, interface_R_imh.pressure);
+
+#ifdef MHD
+  Monotonize(cell_i.magnetic_y, cell_im1.magnetic_y, cell_ip1.magnetic_y, interface_L_iph.magnetic_y,
+             interface_R_imh.magnetic_y);
+  Monotonize(cell_i.magnetic_z, cell_im1.magnetic_z, cell_ip1.magnetic_z, interface_L_iph.magnetic_z,
+             interface_R_imh.magnetic_z);
+#endif  // MHD
+
+#ifdef DE
+  Monotonize(cell_i.gas_energy, cell_im1.gas_energy, cell_ip1.gas_energy, interface_L_iph.gas_energy,
+             interface_R_imh.gas_energy);
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    Monotonize(cell_i.scalar[i], cell_im1.scalar[i], cell_ip1.scalar[i], interface_L_iph.scalar[i],
+               interface_R_imh.scalar[i]);
+  }
+#endif  // SCALAR
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
  * \brief Compute the interface state from the slope and cell centered state using linear interpolation
  *
  * \param[in] primitive The cell centered state

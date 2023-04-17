@@ -285,6 +285,69 @@ TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpe
 #endif  // MHD
 }
 
+TEST(tALLReconstructionMonotizeParabolicInterface, CorrectInputExpectCorrectOutput)
+{
+// Input Data
+#ifdef MHD
+  reconstruction::Primitive const cell_i{1.4708046701, 9.5021020181, 3.7123503442, 4.6476103466,
+                                         3.7096802847, 8.9692274397, 9.3416846121, 2.7707989229};
+  reconstruction::Primitive const cell_im1{3.9547588941, 3.1552319951, 3.0209247624, 9.5841013261,
+                                           2.2945188332, 8.2028929443, 1.6941969156, 8.9424967039};
+  reconstruction::Primitive const cell_ip1{5.1973323534, 6.9132613767, 1.8397298636, 5.341960387,
+                                           9.093498542,  3.6911762486, 7.3777130085, 3.6711825219};
+  reconstruction::Primitive interface_L_iph{6.7787324804, 9.5389820358, 9.8522754567, 7.8305142852,
+                                            2.450533435,  9.4782390708, 5.6820584385, 4.7115587023};
+  reconstruction::Primitive interface_R_imh{4.8015193892, 5.9124263972, 8.7513040382, 8.3659359773,
+                                            1.339777121,  4.5589857979, 1.4398647311, 8.8727778983};
+#else   // not MHD
+  reconstruction::Primitive const cell_i{1.4708046701, 9.5021020181, 3.7123503442, 4.6476103466, 3.7096802847};
+  reconstruction::Primitive const cell_im1{3.9547588941, 3.1552319951, 3.0209247624, 9.5841013261, 2.2945188332};
+  reconstruction::Primitive const cell_ip1{5.1973323534, 6.9132613767, 1.8397298636, 5.341960387, 9.093498542};
+  reconstruction::Primitive interface_L_iph{6.7787324804, 9.5389820358, 9.8522754567, 7.8305142852, 2.450533435};
+  reconstruction::Primitive interface_R_imh{4.8015193892, 5.9124263972, 8.7513040382, 8.3659359773, 1.339777121};
+#endif  // MHD
+
+  // Get test data
+  reconstruction::Monotize_Parabolic_Interface(cell_i, cell_im1, cell_ip1, interface_L_iph, interface_R_imh);
+
+// Check results
+#ifdef MHD
+  reconstruction::Primitive const fiducial_interface_L{1.4708046700999999, 9.5021020181000004, 3.7123503441999999,
+                                                       4.6476103465999996, 3.7096802847000001, 0 < 9.3416846120999999,
+                                                       2.7707989229000001};
+  reconstruction::Primitive const fiducial_interface_R{1.4708046700999999, 9.428341982700001,  3.7123503441999999,
+                                                       4.6476103465999996, 3.7096802847000001, 0 < 9.3416846120999999,
+                                                       2.7707989229000001};
+  testingUtilities::checkResults(fiducial_interface_L.density, interface_L_iph.density, "density");
+  testingUtilities::checkResults(fiducial_interface_L.velocity_x, interface_L_iph.velocity_x, "velocity_x");
+  testingUtilities::checkResults(fiducial_interface_L.velocity_y, interface_L_iph.velocity_y, "velocity_y");
+  testingUtilities::checkResults(fiducial_interface_L.velocity_z, interface_L_iph.velocity_z, "velocity_z");
+  testingUtilities::checkResults(fiducial_interface_L.pressure, interface_L_iph.pressure, "pressure");
+
+  testingUtilities::checkResults(fiducial_interface_R.density, interface_R_imh.density, "density");
+  testingUtilities::checkResults(fiducial_interface_R.velocity_x, interface_R_imh.velocity_x, "velocity_x");
+  testingUtilities::checkResults(fiducial_interface_R.velocity_y, interface_R_imh.velocity_y, "velocity_y");
+  testingUtilities::checkResults(fiducial_interface_R.velocity_z, interface_R_imh.velocity_z, "velocity_z");
+  testingUtilities::checkResults(fiducial_interface_R.pressure, interface_R_imh.pressure, "pressure");
+#else   // MHD
+  reconstruction::Primitive const fiducial_interface_L{1.4708046700999999, 9.5021020181000004, 3.7123503441999999,
+                                                       4.6476103465999996, 3.7096802847000001};
+  reconstruction::Primitive const fiducial_interface_R{1.4708046700999999, 9.428341982700001, 3.7123503441999999,
+                                                       4.6476103465999996, 3.7096802847000001};
+  testingUtilities::checkResults(fiducial_interface_L.density, interface_L_iph.density, "density");
+  testingUtilities::checkResults(fiducial_interface_L.velocity_x, interface_L_iph.velocity_x, "velocity_x");
+  testingUtilities::checkResults(fiducial_interface_L.velocity_y, interface_L_iph.velocity_y, "velocity_y");
+  testingUtilities::checkResults(fiducial_interface_L.velocity_z, interface_L_iph.velocity_z, "velocity_z");
+  testingUtilities::checkResults(fiducial_interface_L.pressure, interface_L_iph.pressure, "pressure");
+
+  testingUtilities::checkResults(fiducial_interface_R.density, interface_R_imh.density, "density");
+  testingUtilities::checkResults(fiducial_interface_R.velocity_x, interface_R_imh.velocity_x, "velocity_x");
+  testingUtilities::checkResults(fiducial_interface_R.velocity_y, interface_R_imh.velocity_y, "velocity_y");
+  testingUtilities::checkResults(fiducial_interface_R.velocity_z, interface_R_imh.velocity_z, "velocity_z");
+  testingUtilities::checkResults(fiducial_interface_R.pressure, interface_R_imh.pressure, "pressure");
+#endif  // MHD
+}
+
 TEST(tALLReconstructionCalcInterfaceLinear, CorrectInputExpectCorrectOutput)
 {
   // Setup input data
