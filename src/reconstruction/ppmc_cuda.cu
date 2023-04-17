@@ -1275,52 +1275,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   // Step 11 - Send final values back from kernel
 
+  // Convert the left and right states in the primitive to the conserved variables send final values back from kernel
   // bounds_R refers to the right side of the i-1/2 interface
-  switch (dir) {
-    case 0:
-      id = xid - 1 + yid * nx + zid * nx * ny;
-      break;
-    case 1:
-      id = xid + (yid - 1) * nx + zid * nx * ny;
-      break;
-    case 2:
-      id = xid + yid * nx + (zid - 1) * nx * ny;
-      break;
-  }
-  dev_bounds_R[id]                = interface_R_imh.density;
-  dev_bounds_R[o1 * n_cells + id] = interface_R_imh.density * interface_R_imh.velocity_x;
-  dev_bounds_R[o2 * n_cells + id] = interface_R_imh.density * interface_R_imh.velocity_y;
-  dev_bounds_R[o3 * n_cells + id] = interface_R_imh.density * interface_R_imh.velocity_z;
-  dev_bounds_R[4 * n_cells + id] =
-      interface_R_imh.pressure / (gamma - 1.0) + 0.5 * interface_R_imh.density *
-                                                     (interface_R_imh.velocity_x * interface_R_imh.velocity_x +
-                                                      interface_R_imh.velocity_y * interface_R_imh.velocity_y +
-                                                      interface_R_imh.velocity_z * interface_R_imh.velocity_z);
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    dev_bounds_R[(5 + i) * n_cells + id] = interface_R_imh.density * interface_R_imh.scalar[i];
-  }
-#endif  // SCALAR
-#ifdef DE
-  dev_bounds_R[grid_enum::GasEnergy * n_cells + id] = interface_R_imh.density * interface_R_imh.gas_energy;
-#endif  // DE
-  // bounds_L refers to the left side of the i+1/2 interface
-  id                              = xid + yid * nx + zid * nx * ny;
-  dev_bounds_L[id]                = interface_L_iph.density;
-  dev_bounds_L[o1 * n_cells + id] = interface_L_iph.density * interface_L_iph.velocity_x;
-  dev_bounds_L[o2 * n_cells + id] = interface_L_iph.density * interface_L_iph.velocity_y;
-  dev_bounds_L[o3 * n_cells + id] = interface_L_iph.density * interface_L_iph.velocity_z;
-  dev_bounds_L[4 * n_cells + id] =
-      interface_L_iph.pressure / (gamma - 1.0) + 0.5 * interface_L_iph.density *
-                                                     (interface_L_iph.velocity_x * interface_L_iph.velocity_x +
-                                                      interface_L_iph.velocity_y * interface_L_iph.velocity_y +
-                                                      interface_L_iph.velocity_z * interface_L_iph.velocity_z);
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    dev_bounds_L[(5 + i) * n_cells + id] = interface_L_iph.density * interface_L_iph.scalar[i];
-  }
-#endif  // SCALAR
-#ifdef DE
-  dev_bounds_L[grid_enum::GasEnergy * n_cells + id] = interface_L_iph.density * interface_L_iph.gas_energy;
-#endif  // DE
+  id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+  reconstruction::Write_Data(interface_L_iph, dev_bounds_L, dev_conserved, id, n_cells, o1, o2, o3, gamma);
+
+  id = cuda_utilities::compute1DIndex(xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny);
+  reconstruction::Write_Data(interface_R_imh, dev_bounds_R, dev_conserved, id, n_cells, o1, o2, o3, gamma);
 }
