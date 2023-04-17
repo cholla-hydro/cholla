@@ -60,18 +60,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // declare other variables to be used
   reconstruction::Primitive del_L, del_R, del_C, del_G;                        // primitive slopes
   reconstruction::Characteristic del_a_L, del_a_R, del_a_C, del_a_G, del_a_m;  // characteristic slopes
-  Real del_d_m_imo, del_vx_m_imo, del_vy_m_imo, del_vz_m_imo, del_p_m_imo;
-  Real del_d_m_i, del_vx_m_i, del_vy_m_i, del_vz_m_i, del_p_m_i;
-  Real del_d_m_ipo, del_vx_m_ipo, del_vy_m_ipo, del_vz_m_ipo, del_p_m_ipo;
-  reconstruction::Primitive interface_R_imh, interface_L_iph;  // Interface states
-
-#ifdef DE
-  Real del_ge_m_imo, del_ge_m_i, del_ge_m_ipo;
-#endif  // DE
-
-#ifdef SCALAR
-  Real del_scalar_m_imo[NSCALARS], del_scalar_m_i[NSCALARS], del_scalar_m_ipo[NSCALARS];
-#endif  // SCALAR
+  reconstruction::Primitive del_m_im1, del_m_i, del_m_ip1;                     // Monotonized primitive slopes
+  reconstruction::Primitive interface_R_imh, interface_L_iph;                  // Interface states
 
   // load the 5-cell stencil into registers
   // cell i
@@ -415,11 +405,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
 #ifdef DE
   if (del_L.gas_energy * del_R.gas_energy > 0.0) {
-    lim_slope_a  = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
-    lim_slope_b  = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
-    del_ge_m_imo = sgn_CUDA(del_C.gas_energy) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
+    lim_slope_a          = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
+    lim_slope_b          = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
+    del_m_im1.gas_energy = sgn_CUDA(del_C.gas_energy) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
   } else {
-    del_ge_m_imo = 0.0;
+    del_m_im1.gas_energy = 0.0;
   }
 #endif  // DE
 #ifdef SCALAR
@@ -427,9 +417,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     if (del_L.scalar[i] * del_R.scalar[i] > 0.0) {
       lim_slope_a         = fmin(fabs(del_L.scalar[i]), fabs(del_R.scalar[i]));
       lim_slope_b         = fmin(fabs(del_C.scalar[i]), fabs(del_G.scalar[i]));
-      del_scalar_m_imo[i] = sgn_CUDA(del_C.scalar[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
+      del_m_im1.scalar[i] = sgn_CUDA(del_C.scalar[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
     } else {
-      del_scalar_m_imo[i] = 0.0;
+      del_m_im1.scalar[i] = 0.0;
     }
   }
 #endif  // SCALAR
@@ -439,11 +429,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          primitive variables
   //          Stone Eqn 39
 
-  del_d_m_imo  = del_a_m.a0 + del_a_m.a1 + del_a_m.a4;
-  del_vx_m_imo = -sound_speed * del_a_m.a0 / cell_im1.density + sound_speed * del_a_m.a4 / cell_im1.density;
-  del_vy_m_imo = del_a_m.a2;
-  del_vz_m_imo = del_a_m.a3;
-  del_p_m_imo  = sound_speed * sound_speed * del_a_m.a0 + sound_speed * sound_speed * del_a_m.a4;
+  del_m_im1.density    = del_a_m.a0 + del_a_m.a1 + del_a_m.a4;
+  del_m_im1.velocity_x = -sound_speed * del_a_m.a0 / cell_im1.density + sound_speed * del_a_m.a4 / cell_im1.density;
+  del_m_im1.velocity_y = del_a_m.a2;
+  del_m_im1.velocity_z = del_a_m.a3;
+  del_m_im1.pressure   = sound_speed * sound_speed * del_a_m.a0 + sound_speed * sound_speed * del_a_m.a4;
 
   // Step 2 - Compute the left, right, centered, and van Leer differences of
   // the primitive variables
@@ -596,11 +586,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
 #ifdef DE
   if (del_L.gas_energy * del_R.gas_energy > 0.0) {
-    lim_slope_a = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
-    lim_slope_b = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
-    del_ge_m_i  = sgn_CUDA(del_C.gas_energy) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
+    lim_slope_a        = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
+    lim_slope_b        = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
+    del_m_i.gas_energy = sgn_CUDA(del_C.gas_energy) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
   } else {
-    del_ge_m_i = 0.0;
+    del_m_i.gas_energy = 0.0;
   }
 #endif  // DE
 #ifdef SCALAR
@@ -608,9 +598,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     if (del_L.scalar[i] * del_R.scalar[i] > 0.0) {
       lim_slope_a       = fmin(fabs(del_L.scalar[i]), fabs(del_R.scalar[i]));
       lim_slope_b       = fmin(fabs(del_C.scalar[i]), fabs(del_G.scalar[i]));
-      del_scalar_m_i[i] = sgn_CUDA(del_C.scalar[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
+      del_m_i.scalar[i] = sgn_CUDA(del_C.scalar[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
     } else {
-      del_scalar_m_i[i] = 0.0;
+      del_m_i.scalar[i] = 0.0;
     }
   }
 #endif  // SCALAR
@@ -620,11 +610,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          primitive variables
   //          Stone Eqn 39
 
-  del_d_m_i  = del_a_m.a0 + del_a_m.a1 + del_a_m.a4;
-  del_vx_m_i = -sound_speed * del_a_m.a0 / cell_i.density + sound_speed * del_a_m.a4 / cell_i.density;
-  del_vy_m_i = del_a_m.a2;
-  del_vz_m_i = del_a_m.a3;
-  del_p_m_i  = sound_speed * sound_speed * del_a_m.a0 + sound_speed * sound_speed * del_a_m.a4;
+  del_m_i.density    = del_a_m.a0 + del_a_m.a1 + del_a_m.a4;
+  del_m_i.velocity_x = -sound_speed * del_a_m.a0 / cell_i.density + sound_speed * del_a_m.a4 / cell_i.density;
+  del_m_i.velocity_y = del_a_m.a2;
+  del_m_i.velocity_z = del_a_m.a3;
+  del_m_i.pressure   = sound_speed * sound_speed * del_a_m.a0 + sound_speed * sound_speed * del_a_m.a4;
 
   // Step 2 - Compute the left, right, centered, and van Leer differences of
   // the primitive variables
@@ -777,11 +767,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
 #ifdef DE
   if (del_L.gas_energy * del_R.gas_energy > 0.0) {
-    lim_slope_a  = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
-    lim_slope_b  = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
-    del_ge_m_ipo = sgn_CUDA(del_C.gas_energy) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
+    lim_slope_a          = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
+    lim_slope_b          = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
+    del_m_ip1.gas_energy = sgn_CUDA(del_C.gas_energy) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
   } else {
-    del_ge_m_ipo = 0.0;
+    del_m_ip1.gas_energy = 0.0;
   }
 #endif  // DE
 #ifdef SCALAR
@@ -789,9 +779,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     if (del_L.scalar[i] * del_R.scalar[i] > 0.0) {
       lim_slope_a         = fmin(fabs(del_L.scalar[i]), fabs(del_R.scalar[i]));
       lim_slope_b         = fmin(fabs(del_C.scalar[i]), fabs(del_G.scalar[i]));
-      del_scalar_m_ipo[i] = sgn_CUDA(del_C.scalar[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
+      del_m_ip1.scalar[i] = sgn_CUDA(del_C.scalar[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
     } else {
-      del_scalar_m_ipo[i] = 0.0;
+      del_m_ip1.scalar[i] = 0.0;
     }
   }
 #endif  // SCALAR
@@ -801,39 +791,49 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          primitive variables
   //          Stone Eqn 39
 
-  del_d_m_ipo  = del_a_m.a0 + del_a_m.a1 + del_a_m.a4;
-  del_vx_m_ipo = -sound_speed * del_a_m.a0 / cell_ip1.density + sound_speed * del_a_m.a4 / cell_ip1.density;
-  del_vy_m_ipo = del_a_m.a2;
-  del_vz_m_ipo = del_a_m.a3;
-  del_p_m_ipo  = sound_speed * sound_speed * del_a_m.a0 + sound_speed * sound_speed * del_a_m.a4;
+  del_m_ip1.density    = del_a_m.a0 + del_a_m.a1 + del_a_m.a4;
+  del_m_ip1.velocity_x = -sound_speed * del_a_m.a0 / cell_ip1.density + sound_speed * del_a_m.a4 / cell_ip1.density;
+  del_m_ip1.velocity_y = del_a_m.a2;
+  del_m_ip1.velocity_z = del_a_m.a3;
+  del_m_ip1.pressure   = sound_speed * sound_speed * del_a_m.a0 + sound_speed * sound_speed * del_a_m.a4;
 
   // Step 6 - Use parabolic interpolation to compute values at the left and
   // right of each cell center
   //          Here, the subscripts L and R refer to the left and right side of
   //          the ith cell center Stone Eqn 46
 
-  interface_R_imh.density    = 0.5 * (cell_i.density + cell_im1.density) - (del_d_m_i - del_d_m_imo) / 6.0;
-  interface_R_imh.velocity_x = 0.5 * (cell_i.velocity_x + cell_im1.velocity_x) - (del_vx_m_i - del_vx_m_imo) / 6.0;
-  interface_R_imh.velocity_y = 0.5 * (cell_i.velocity_y + cell_im1.velocity_y) - (del_vy_m_i - del_vy_m_imo) / 6.0;
-  interface_R_imh.velocity_z = 0.5 * (cell_i.velocity_z + cell_im1.velocity_z) - (del_vz_m_i - del_vz_m_imo) / 6.0;
-  interface_R_imh.pressure   = 0.5 * (cell_i.pressure + cell_im1.pressure) - (del_p_m_i - del_p_m_imo) / 6.0;
+  interface_R_imh.density = 0.5 * (cell_i.density + cell_im1.density) - (del_m_i.density - del_m_im1.density) / 6.0;
+  interface_R_imh.velocity_x =
+      0.5 * (cell_i.velocity_x + cell_im1.velocity_x) - (del_m_i.velocity_x - del_m_im1.velocity_x) / 6.0;
+  interface_R_imh.velocity_y =
+      0.5 * (cell_i.velocity_y + cell_im1.velocity_y) - (del_m_i.velocity_y - del_m_im1.velocity_y) / 6.0;
+  interface_R_imh.velocity_z =
+      0.5 * (cell_i.velocity_z + cell_im1.velocity_z) - (del_m_i.velocity_z - del_m_im1.velocity_z) / 6.0;
+  interface_R_imh.pressure =
+      0.5 * (cell_i.pressure + cell_im1.pressure) - (del_m_i.pressure - del_m_im1.pressure) / 6.0;
 
-  interface_L_iph.density    = 0.5 * (cell_ip1.density + cell_i.density) - (del_d_m_ipo - del_d_m_i) / 6.0;
-  interface_L_iph.velocity_x = 0.5 * (cell_ip1.velocity_x + cell_i.velocity_x) - (del_vx_m_ipo - del_vx_m_i) / 6.0;
-  interface_L_iph.velocity_y = 0.5 * (cell_ip1.velocity_y + cell_i.velocity_y) - (del_vy_m_ipo - del_vy_m_i) / 6.0;
-  interface_L_iph.velocity_z = 0.5 * (cell_ip1.velocity_z + cell_i.velocity_z) - (del_vz_m_ipo - del_vz_m_i) / 6.0;
-  interface_L_iph.pressure   = 0.5 * (cell_ip1.pressure + cell_i.pressure) - (del_p_m_ipo - del_p_m_i) / 6.0;
+  interface_L_iph.density = 0.5 * (cell_ip1.density + cell_i.density) - (del_m_ip1.density - del_m_i.density) / 6.0;
+  interface_L_iph.velocity_x =
+      0.5 * (cell_ip1.velocity_x + cell_i.velocity_x) - (del_m_ip1.velocity_x - del_m_i.velocity_x) / 6.0;
+  interface_L_iph.velocity_y =
+      0.5 * (cell_ip1.velocity_y + cell_i.velocity_y) - (del_m_ip1.velocity_y - del_m_i.velocity_y) / 6.0;
+  interface_L_iph.velocity_z =
+      0.5 * (cell_ip1.velocity_z + cell_i.velocity_z) - (del_m_ip1.velocity_z - del_m_i.velocity_z) / 6.0;
+  interface_L_iph.pressure =
+      0.5 * (cell_ip1.pressure + cell_i.pressure) - (del_m_ip1.pressure - del_m_i.pressure) / 6.0;
 
 #ifdef DE
-  interface_R_imh.gas_energy = 0.5 * (cell_i.gas_energy + cell_im1.gas_energy) - (del_ge_m_i - del_ge_m_imo) / 6.0;
-  interface_L_iph.gas_energy = 0.5 * (cell_ip1.gas_energy + cell_i.gas_energy) - (del_ge_m_ipo - del_ge_m_i) / 6.0;
+  interface_R_imh.gas_energy =
+      0.5 * (cell_i.gas_energy + cell_im1.gas_energy) - (del_m_i.gas_energy - del_m_im1.gas_energy) / 6.0;
+  interface_L_iph.gas_energy =
+      0.5 * (cell_ip1.gas_energy + cell_i.gas_energy) - (del_m_ip1.gas_energy - del_m_i.gas_energy) / 6.0;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     interface_R_imh.scalar[i] =
-        0.5 * (cell_i.scalar[i] + cell_im1.scalar[i]) - (del_scalar_m_i[i] - del_scalar_m_imo[i]) / 6.0;
+        0.5 * (cell_i.scalar[i] + cell_im1.scalar[i]) - (del_m_i.scalar[i] - del_m_im1.scalar[i]) / 6.0;
     interface_L_iph.scalar[i] =
-        0.5 * (cell_ip1.scalar[i] + cell_i.scalar[i]) - (del_scalar_m_ipo[i] - del_scalar_m_i[i]) / 6.0;
+        0.5 * (cell_ip1.scalar[i] + cell_i.scalar[i]) - (del_m_ip1.scalar[i] - del_m_i.scalar[i]) / 6.0;
   }
 #endif  // SCALAR
 
@@ -988,11 +988,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // interpolation function
   //          Stone Eqn 54
 
-  del_d_m_i  = interface_L_iph.density - interface_R_imh.density;
-  del_vx_m_i = interface_L_iph.velocity_x - interface_R_imh.velocity_x;
-  del_vy_m_i = interface_L_iph.velocity_y - interface_R_imh.velocity_y;
-  del_vz_m_i = interface_L_iph.velocity_z - interface_R_imh.velocity_z;
-  del_p_m_i  = interface_L_iph.pressure - interface_R_imh.pressure;
+  del_m_i.density    = interface_L_iph.density - interface_R_imh.density;
+  del_m_i.velocity_x = interface_L_iph.velocity_x - interface_R_imh.velocity_x;
+  del_m_i.velocity_y = interface_L_iph.velocity_y - interface_R_imh.velocity_y;
+  del_m_i.velocity_z = interface_L_iph.velocity_z - interface_R_imh.velocity_z;
+  del_m_i.pressure   = interface_L_iph.pressure - interface_R_imh.pressure;
 
   Real const d_6  = 6.0 * (cell_i.density - 0.5 * (interface_R_imh.density + interface_L_iph.density));
   Real const vx_6 = 6.0 * (cell_i.velocity_x - 0.5 * (interface_R_imh.velocity_x + interface_L_iph.velocity_x));
@@ -1001,14 +1001,14 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real const p_6  = 6.0 * (cell_i.pressure - 0.5 * (interface_R_imh.pressure + interface_L_iph.pressure));
 
   #ifdef DE
-  del_ge_m_i      = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
-  Real const ge_6 = 6.0 * (cell_i.gas_energy - 0.5 * (interface_R_imh.gas_energy + interface_L_iph.gas_energy));
+  del_m_i.gas_energy = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
+  Real const ge_6    = 6.0 * (cell_i.gas_energy - 0.5 * (interface_R_imh.gas_energy + interface_L_iph.gas_energy));
   #endif  // DE
 
   #ifdef SCALAR
   Real scalar_6[NSCALARS] : for (int i = 0; i < NSCALARS; i++)
   {
-    del_scalar_m_i[i] = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
+    del_m_i.scalar[i] = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
     scalar_6[i]       = 6.0 * (cell_i.scalar[i] - 0.5 * (interface_R_imh.scalar[i] + interface_L_iph.scalar[i]));
   }
   #endif  // SCALAR
@@ -1033,53 +1033,57 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real const lambda_min = fmin(lambda_m, (Real)0);
 
   // left interface value, i+1/2
-  Real const dtodx        = dt / dx;
-  interface_L_iph.density = interface_L_iph.density -
-                            lambda_max * (0.5 * dtodx) * (del_d_m_i - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * d_6);
+  Real const dtodx = dt / dx;
+  interface_L_iph.density =
+      interface_L_iph.density -
+      lambda_max * (0.5 * dtodx) * (del_m_i.density - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * d_6);
   interface_L_iph.velocity_x =
       interface_L_iph.velocity_x -
-      lambda_max * (0.5 * dtodx) * (del_vx_m_i - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vx_6);
+      lambda_max * (0.5 * dtodx) * (del_m_i.velocity_x - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vx_6);
   interface_L_iph.velocity_y =
       interface_L_iph.velocity_y -
-      lambda_max * (0.5 * dtodx) * (del_vy_m_i - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vy_6);
+      lambda_max * (0.5 * dtodx) * (del_m_i.velocity_y - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vy_6);
   interface_L_iph.velocity_z =
       interface_L_iph.velocity_z -
-      lambda_max * (0.5 * dtodx) * (del_vz_m_i - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vz_6);
-  interface_L_iph.pressure = interface_L_iph.pressure -
-                             lambda_max * (0.5 * dtodx) * (del_p_m_i - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * p_6);
+      lambda_max * (0.5 * dtodx) * (del_m_i.velocity_z - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vz_6);
+  interface_L_iph.pressure =
+      interface_L_iph.pressure -
+      lambda_max * (0.5 * dtodx) * (del_m_i.pressure - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * p_6);
 
   // right interface value, i-1/2
-  interface_R_imh.density = interface_R_imh.density -
-                            lambda_min * (0.5 * dtodx) * (del_d_m_i + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * d_6);
+  interface_R_imh.density =
+      interface_R_imh.density -
+      lambda_min * (0.5 * dtodx) * (del_m_i.density + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * d_6);
   interface_R_imh.velocity_x =
       interface_R_imh.velocity_x -
-      lambda_min * (0.5 * dtodx) * (del_vx_m_i + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vx_6);
+      lambda_min * (0.5 * dtodx) * (del_m_i.velocity_x + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vx_6);
   interface_R_imh.velocity_y =
       interface_R_imh.velocity_y -
-      lambda_min * (0.5 * dtodx) * (del_vy_m_i + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vy_6);
+      lambda_min * (0.5 * dtodx) * (del_m_i.velocity_y + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vy_6);
   interface_R_imh.velocity_z =
       interface_R_imh.velocity_z -
-      lambda_min * (0.5 * dtodx) * (del_vz_m_i + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vz_6);
-  interface_R_imh.pressure = interface_R_imh.pressure -
-                             lambda_min * (0.5 * dtodx) * (del_p_m_i + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * p_6);
+      lambda_min * (0.5 * dtodx) * (del_m_i.velocity_z + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vz_6);
+  interface_R_imh.pressure =
+      interface_R_imh.pressure -
+      lambda_min * (0.5 * dtodx) * (del_m_i.pressure + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * p_6);
 
   #ifdef DE
   interface_L_iph.gas_energy =
       interface_L_iph.gas_energy -
-      lambda_max * (0.5 * dtodx) * (del_ge_m_i - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * ge_6);
+      lambda_max * (0.5 * dtodx) * (del_m_i.gas_energy - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * ge_6);
   interface_R_imh.gas_energy =
       interface_R_imh.gas_energy -
-      lambda_min * (0.5 * dtodx) * (del_ge_m_i + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * ge_6);
+      lambda_min * (0.5 * dtodx) * (del_m_i.gas_energy + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * ge_6);
   #endif  // DE
 
   #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     interface_L_iph.scalar[i] =
         interface_L_iph.scalar[i] -
-        lambda_max * (0.5 * dtodx) * (del_scalar_m_i[i] - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * scalar_6[i]);
+        lambda_max * (0.5 * dtodx) * (del_m_i.scalar[i] - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * scalar_6[i]);
     interface_R_imh.scalar[i] =
         interface_R_imh.scalar[i] -
-        lambda_min * (0.5 * dtodx) * (del_scalar_m_i[i] + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * scalar_6[i]);
+        lambda_min * (0.5 * dtodx) * (del_m_i.scalar[i] + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * scalar_6[i]);
   }
   #endif  // SCALAR
 
@@ -1102,11 +1106,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     Real const A = (0.5 * dtodx) * (lambda_p - lambda_m);
     Real const B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_m * lambda_m);
 
-    Real const chi_1 = A * (del_d_m_i - d_6) + B * d_6;
-    Real const chi_2 = A * (del_vx_m_i - vx_6) + B * vx_6;
-    Real const chi_3 = A * (del_vy_m_i - vy_6) + B * vy_6;
-    Real const chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
-    Real const chi_5 = A * (del_p_m_i - p_6) + B * p_6;
+    Real const chi_1 = A * (del_m_i.density - d_6) + B * d_6;
+    Real const chi_2 = A * (del_m_i.velocity_x - vx_6) + B * vx_6;
+    Real const chi_3 = A * (del_m_i.velocity_y - vy_6) + B * vy_6;
+    Real const chi_4 = A * (del_m_i.velocity_z - vz_6) + B * vz_6;
+    Real const chi_5 = A * (del_m_i.pressure - p_6) + B * p_6;
 
     sum_1 += -0.5 * (cell_i.density * chi_2 / sound_speed - chi_5 / (sound_speed * sound_speed));
     sum_2 += 0.5 * (chi_2 - chi_5 / (sound_speed * cell_i.density));
@@ -1116,18 +1120,18 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     Real const A = (0.5 * dtodx) * (lambda_p - lambda_0);
     Real const B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_0 * lambda_0);
 
-    Real const chi_1 = A * (del_d_m_i - d_6) + B * d_6;
-    Real const chi_2 = A * (del_vx_m_i - vx_6) + B * vx_6;
-    Real const chi_3 = A * (del_vy_m_i - vy_6) + B * vy_6;
-    Real const chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
-    Real const chi_5 = A * (del_p_m_i - p_6) + B * p_6;
+    Real const chi_1 = A * (del_m_i.density - d_6) + B * d_6;
+    Real const chi_2 = A * (del_m_i.velocity_x - vx_6) + B * vx_6;
+    Real const chi_3 = A * (del_m_i.velocity_y - vy_6) + B * vy_6;
+    Real const chi_4 = A * (del_m_i.velocity_z - vz_6) + B * vz_6;
+    Real const chi_5 = A * (del_m_i.pressure - p_6) + B * p_6;
   #ifdef DE
-    Real chi_ge = A * (del_ge_m_i - ge_6) + B * ge_6;
+    Real chi_ge = A * (del_m_i.gas_energy - ge_6) + B * ge_6;
   #endif  // DE
   #ifdef SCALAR
     Real chi_scalar[NSCALARS];
     for (int i = 0; i < NSCALARS; i++) {
-      chi_scalar[i] = A * (del_scalar_m_i[i] - scalar_6[i]) + B * scalar_6[i];
+      chi_scalar[i] = A * (del_m_i.scalar[i] - scalar_6[i]) + B * scalar_6[i];
     }
   #endif  // SCALAR
 
@@ -1147,11 +1151,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     Real const A = (0.5 * dtodx) * (lambda_p - lambda_p);
     Real const B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_p * lambda_p);
 
-    Real const chi_1 = A * (del_d_m_i - d_6) + B * d_6;
-    Real const chi_2 = A * (del_vx_m_i - vx_6) + B * vx_6;
-    Real const chi_3 = A * (del_vy_m_i - vy_6) + B * vy_6;
-    Real const chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
-    Real const chi_5 = A * (del_p_m_i - p_6) + B * p_6;
+    Real const chi_1 = A * (del_m_i.density - d_6) + B * d_6;
+    Real const chi_2 = A * (del_m_i.velocity_x - vx_6) + B * vx_6;
+    Real const chi_3 = A * (del_m_i.velocity_y - vy_6) + B * vy_6;
+    Real const chi_4 = A * (del_m_i.velocity_z - vz_6) + B * vz_6;
+    Real const chi_5 = A * (del_m_i.pressure - p_6) + B * p_6;
 
     sum_1 += 0.5 * (cell_i.density * chi_2 / sound_speed + chi_5 / (sound_speed * sound_speed));
     sum_2 += 0.5 * (chi_2 + chi_5 / (sound_speed * cell_i.density));
@@ -1191,11 +1195,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     Real const C = (0.5 * dtodx) * (lambda_m - lambda_m);
     Real const D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_m * lambda_m);
 
-    Real const chi_1 = C * (del_d_m_i + d_6) + D * d_6;
-    Real const chi_2 = C * (del_vx_m_i + vx_6) + D * vx_6;
-    Real const chi_3 = C * (del_vy_m_i + vy_6) + D * vy_6;
-    Real const chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
-    Real const chi_5 = C * (del_p_m_i + p_6) + D * p_6;
+    Real const chi_1 = C * (del_m_i.density + d_6) + D * d_6;
+    Real const chi_2 = C * (del_m_i.velocity_x + vx_6) + D * vx_6;
+    Real const chi_3 = C * (del_m_i.velocity_y + vy_6) + D * vy_6;
+    Real const chi_4 = C * (del_m_i.velocity_z + vz_6) + D * vz_6;
+    Real const chi_5 = C * (del_m_i.pressure + p_6) + D * p_6;
 
     sum_1 += -0.5 * (cell_i.density * chi_2 / sound_speed - chi_5 / (sound_speed * sound_speed));
     sum_2 += 0.5 * (chi_2 - chi_5 / (sound_speed * cell_i.density));
@@ -1205,17 +1209,17 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     Real const C = (0.5 * dtodx) * (lambda_m - lambda_0);
     Real const D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_0 * lambda_0);
 
-    Real const chi_1 = C * (del_d_m_i + d_6) + D * d_6;
-    Real const chi_2 = C * (del_vx_m_i + vx_6) + D * vx_6;
-    Real const chi_3 = C * (del_vy_m_i + vy_6) + D * vy_6;
-    Real const chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
-    Real const chi_5 = C * (del_p_m_i + p_6) + D * p_6;
+    Real const chi_1 = C * (del_m_i.density + d_6) + D * d_6;
+    Real const chi_2 = C * (del_m_i.velocity_x + vx_6) + D * vx_6;
+    Real const chi_3 = C * (del_m_i.velocity_y + vy_6) + D * vy_6;
+    Real const chi_4 = C * (del_m_i.velocity_z + vz_6) + D * vz_6;
+    Real const chi_5 = C * (del_m_i.pressure + p_6) + D * p_6;
   #ifdef DE
-    chi_ge = C * (del_ge_m_i + ge_6) + D * ge_6;
+    chi_ge = C * (del_m_i.gas_energy + ge_6) + D * ge_6;
   #endif  // DE
   #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      chi_scalar[i] = C * (del_scalar_m_i[i] + scalar_6[i]) + D * scalar_6[i];
+      chi_scalar[i] = C * (del_m_i.scalar[i] + scalar_6[i]) + D * scalar_6[i];
     }
   #endif  // SCALAR
 
@@ -1235,11 +1239,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     Real const C = (0.5 * dtodx) * (lambda_m - lambda_p);
     Real const D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_p * lambda_p);
 
-    Real const chi_1 = C * (del_d_m_i + d_6) + D * d_6;
-    Real const chi_2 = C * (del_vx_m_i + vx_6) + D * vx_6;
-    Real const chi_3 = C * (del_vy_m_i + vy_6) + D * vy_6;
-    Real const chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
-    Real const chi_5 = C * (del_p_m_i + p_6) + D * p_6;
+    Real const chi_1 = C * (del_m_i.density + d_6) + D * d_6;
+    Real const chi_2 = C * (del_m_i.velocity_x + vx_6) + D * vx_6;
+    Real const chi_3 = C * (del_m_i.velocity_y + vy_6) + D * vy_6;
+    Real const chi_4 = C * (del_m_i.velocity_z + vz_6) + D * vz_6;
+    Real const chi_5 = C * (del_m_i.pressure + p_6) + D * p_6;
 
     sum_1 += 0.5 * (cell_i.density * chi_2 / sound_speed + chi_5 / (sound_speed * sound_speed));
     sum_2 += 0.5 * (chi_2 + chi_5 / (sound_speed * cell_i.density));
