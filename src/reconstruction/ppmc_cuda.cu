@@ -54,12 +54,10 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       break;
   }
 
-  // declare primitive variables for each stencil
-  // these will be placed into registers for each thread
+  // declare primitive variables for each stencil these will be placed into registers for each thread
   reconstruction::Primitive cell_i, cell_im1, cell_im2, cell_ip1, cell_ip2;
 
   // declare other variables to be used
-  Real a;
   Real del_d_L, del_vx_L, del_vy_L, del_vz_L, del_p_L;
   Real del_d_R, del_vx_R, del_vy_R, del_vz_R, del_p_R;
   Real del_d_C, del_vx_C, del_vy_C, del_vz_C, del_p_C;
@@ -76,7 +74,6 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real d_L, vx_L, vy_L, vz_L, p_L;
   Real d_R, vx_R, vy_R, vz_R, p_R;
 
-// #ifdef CTU
 #ifndef VL
   Real dtodx = dt / dx;
   Real d_6, vx_6, vy_6, vz_6, p_6;
@@ -92,7 +89,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real del_ge_m_imo, del_ge_m_i, del_ge_m_ipo;
   Real ge_L, ge_R;
   Real E_kin, E, dge;
-  // #ifdef CTU
+
   #ifndef VL
   Real chi_ge, sum_ge, ge_6;
   #endif  // VL
@@ -101,7 +98,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real del_scalar_L[NSCALARS], del_scalar_R[NSCALARS], del_scalar_C[NSCALARS], del_scalar_G[NSCALARS];
   Real del_scalar_m_imo[NSCALARS], del_scalar_m_i[NSCALARS], del_scalar_m_ipo[NSCALARS];
   Real scalar_L[NSCALARS], scalar_R[NSCALARS];
-  // #ifdef CTU
+
   #ifndef VL
   Real chi_scalar[NSCALARS], sum_scalar[NSCALARS], scalar_6[NSCALARS];
   #endif  // VL
@@ -305,7 +302,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          center Stone Eqn 36
 
   // calculate the adiabatic sound speed in cell imo
-  a = sqrt(gamma * cell_im1.pressure / cell_im1.density);
+  Real sound_speed = hydro_utilities::Calc_Sound_Speed(cell_im1.pressure, cell_im1.density, gamma);
 
   // left
   del_d_L  = cell_im1.density - cell_im2.density;
@@ -384,29 +381,29 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          see Stone for notation) Use the eigenvectors given in Stone
   //          2008, Appendix A
 
-  del_a_0_L = -0.5 * cell_im1.density * del_vx_L / a + 0.5 * del_p_L / (a * a);
-  del_a_1_L = del_d_L - del_p_L / (a * a);
+  del_a_0_L = -0.5 * cell_im1.density * del_vx_L / sound_speed + 0.5 * del_p_L / (sound_speed * sound_speed);
+  del_a_1_L = del_d_L - del_p_L / (sound_speed * sound_speed);
   del_a_2_L = del_vy_L;
   del_a_3_L = del_vz_L;
-  del_a_4_L = 0.5 * cell_im1.density * del_vx_L / a + 0.5 * del_p_L / (a * a);
+  del_a_4_L = 0.5 * cell_im1.density * del_vx_L / sound_speed + 0.5 * del_p_L / (sound_speed * sound_speed);
 
-  del_a_0_R = -0.5 * cell_im1.density * del_vx_R / a + 0.5 * del_p_R / (a * a);
-  del_a_1_R = del_d_R - del_p_R / (a * a);
+  del_a_0_R = -0.5 * cell_im1.density * del_vx_R / sound_speed + 0.5 * del_p_R / (sound_speed * sound_speed);
+  del_a_1_R = del_d_R - del_p_R / (sound_speed * sound_speed);
   del_a_2_R = del_vy_R;
   del_a_3_R = del_vz_R;
-  del_a_4_R = 0.5 * cell_im1.density * del_vx_R / a + 0.5 * del_p_R / (a * a);
+  del_a_4_R = 0.5 * cell_im1.density * del_vx_R / sound_speed + 0.5 * del_p_R / (sound_speed * sound_speed);
 
-  del_a_0_C = -0.5 * cell_im1.density * del_vx_C / a + 0.5 * del_p_C / (a * a);
-  del_a_1_C = del_d_C - del_p_C / (a * a);
+  del_a_0_C = -0.5 * cell_im1.density * del_vx_C / sound_speed + 0.5 * del_p_C / (sound_speed * sound_speed);
+  del_a_1_C = del_d_C - del_p_C / (sound_speed * sound_speed);
   del_a_2_C = del_vy_C;
   del_a_3_C = del_vz_C;
-  del_a_4_C = 0.5 * cell_im1.density * del_vx_C / a + 0.5 * del_p_C / (a * a);
+  del_a_4_C = 0.5 * cell_im1.density * del_vx_C / sound_speed + 0.5 * del_p_C / (sound_speed * sound_speed);
 
-  del_a_0_G = -0.5 * cell_im1.density * del_vx_G / a + 0.5 * del_p_G / (a * a);
-  del_a_1_G = del_d_G - del_p_G / (a * a);
+  del_a_0_G = -0.5 * cell_im1.density * del_vx_G / sound_speed + 0.5 * del_p_G / (sound_speed * sound_speed);
+  del_a_1_G = del_d_G - del_p_G / (sound_speed * sound_speed);
   del_a_2_G = del_vy_G;
   del_a_3_G = del_vz_G;
-  del_a_4_G = 0.5 * cell_im1.density * del_vx_G / a + 0.5 * del_p_G / (a * a);
+  del_a_4_G = 0.5 * cell_im1.density * del_vx_G / sound_speed + 0.5 * del_p_G / (sound_speed * sound_speed);
 
   // Step 4 - Apply monotonicity constraints to the differences in the
   // characteristic variables
@@ -466,10 +463,10 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          Stone Eqn 39
 
   del_d_m_imo  = del_a_0_m + del_a_1_m + del_a_4_m;
-  del_vx_m_imo = -a * del_a_0_m / cell_im1.density + a * del_a_4_m / cell_im1.density;
+  del_vx_m_imo = -sound_speed * del_a_0_m / cell_im1.density + sound_speed * del_a_4_m / cell_im1.density;
   del_vy_m_imo = del_a_2_m;
   del_vz_m_imo = del_a_3_m;
-  del_p_m_imo  = a * a * del_a_0_m + a * a * del_a_4_m;
+  del_p_m_imo  = sound_speed * sound_speed * del_a_0_m + sound_speed * sound_speed * del_a_4_m;
 
   // Step 2 - Compute the left, right, centered, and van Leer differences of
   // the primitive variables
@@ -477,7 +474,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          center Stone Eqn 36
 
   // calculate the adiabatic sound speed in cell i
-  a = sqrt(gamma * cell_i.pressure / cell_i.density);
+  sound_speed = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
 
   // left
   del_d_L  = cell_i.density - cell_im1.density;
@@ -557,29 +554,29 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          see Stone for notation) Use the eigenvectors given in Stone
   //          2008, Appendix A
 
-  del_a_0_L = -0.5 * cell_i.density * del_vx_L / a + 0.5 * del_p_L / (a * a);
-  del_a_1_L = del_d_L - del_p_L / (a * a);
+  del_a_0_L = -0.5 * cell_i.density * del_vx_L / sound_speed + 0.5 * del_p_L / (sound_speed * sound_speed);
+  del_a_1_L = del_d_L - del_p_L / (sound_speed * sound_speed);
   del_a_2_L = del_vy_L;
   del_a_3_L = del_vz_L;
-  del_a_4_L = 0.5 * cell_i.density * del_vx_L / a + 0.5 * del_p_L / (a * a);
+  del_a_4_L = 0.5 * cell_i.density * del_vx_L / sound_speed + 0.5 * del_p_L / (sound_speed * sound_speed);
 
-  del_a_0_R = -0.5 * cell_i.density * del_vx_R / a + 0.5 * del_p_R / (a * a);
-  del_a_1_R = del_d_R - del_p_R / (a * a);
+  del_a_0_R = -0.5 * cell_i.density * del_vx_R / sound_speed + 0.5 * del_p_R / (sound_speed * sound_speed);
+  del_a_1_R = del_d_R - del_p_R / (sound_speed * sound_speed);
   del_a_2_R = del_vy_R;
   del_a_3_R = del_vz_R;
-  del_a_4_R = 0.5 * cell_i.density * del_vx_R / a + 0.5 * del_p_R / (a * a);
+  del_a_4_R = 0.5 * cell_i.density * del_vx_R / sound_speed + 0.5 * del_p_R / (sound_speed * sound_speed);
 
-  del_a_0_C = -0.5 * cell_i.density * del_vx_C / a + 0.5 * del_p_C / (a * a);
-  del_a_1_C = del_d_C - del_p_C / (a * a);
+  del_a_0_C = -0.5 * cell_i.density * del_vx_C / sound_speed + 0.5 * del_p_C / (sound_speed * sound_speed);
+  del_a_1_C = del_d_C - del_p_C / (sound_speed * sound_speed);
   del_a_2_C = del_vy_C;
   del_a_3_C = del_vz_C;
-  del_a_4_C = 0.5 * cell_i.density * del_vx_C / a + 0.5 * del_p_C / (a * a);
+  del_a_4_C = 0.5 * cell_i.density * del_vx_C / sound_speed + 0.5 * del_p_C / (sound_speed * sound_speed);
 
-  del_a_0_G = -0.5 * cell_i.density * del_vx_G / a + 0.5 * del_p_G / (a * a);
-  del_a_1_G = del_d_G - del_p_G / (a * a);
+  del_a_0_G = -0.5 * cell_i.density * del_vx_G / sound_speed + 0.5 * del_p_G / (sound_speed * sound_speed);
+  del_a_1_G = del_d_G - del_p_G / (sound_speed * sound_speed);
   del_a_2_G = del_vy_G;
   del_a_3_G = del_vz_G;
-  del_a_4_G = 0.5 * cell_i.density * del_vx_G / a + 0.5 * del_p_G / (a * a);
+  del_a_4_G = 0.5 * cell_i.density * del_vx_G / sound_speed + 0.5 * del_p_G / (sound_speed * sound_speed);
 
   // Step 4 - Apply monotonicity constraints to the differences in the
   // characteristic variables
@@ -639,10 +636,10 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          Stone Eqn 39
 
   del_d_m_i  = del_a_0_m + del_a_1_m + del_a_4_m;
-  del_vx_m_i = -a * del_a_0_m / cell_i.density + a * del_a_4_m / cell_i.density;
+  del_vx_m_i = -sound_speed * del_a_0_m / cell_i.density + sound_speed * del_a_4_m / cell_i.density;
   del_vy_m_i = del_a_2_m;
   del_vz_m_i = del_a_3_m;
-  del_p_m_i  = a * a * del_a_0_m + a * a * del_a_4_m;
+  del_p_m_i  = sound_speed * sound_speed * del_a_0_m + sound_speed * sound_speed * del_a_4_m;
 
   // Step 2 - Compute the left, right, centered, and van Leer differences of
   // the primitive variables
@@ -650,7 +647,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          center Stone Eqn 36
 
   // calculate the adiabatic sound speed in cell ipo
-  a = sqrt(gamma * cell_ip1.pressure / cell_ip1.density);
+  sound_speed = hydro_utilities::Calc_Sound_Speed(cell_ip1.pressure, cell_ip1.density, gamma);
 
   // left
   del_d_L  = cell_ip1.density - cell_i.density;
@@ -730,29 +727,29 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          see Stone for notation) Use the eigenvectors given in Stone
   //          2008, Appendix A
 
-  del_a_0_L = -0.5 * cell_ip1.density * del_vx_L / a + 0.5 * del_p_L / (a * a);
-  del_a_1_L = del_d_L - del_p_L / (a * a);
+  del_a_0_L = -0.5 * cell_ip1.density * del_vx_L / sound_speed + 0.5 * del_p_L / (sound_speed * sound_speed);
+  del_a_1_L = del_d_L - del_p_L / (sound_speed * sound_speed);
   del_a_2_L = del_vy_L;
   del_a_3_L = del_vz_L;
-  del_a_4_L = 0.5 * cell_ip1.density * del_vx_L / a + 0.5 * del_p_L / (a * a);
+  del_a_4_L = 0.5 * cell_ip1.density * del_vx_L / sound_speed + 0.5 * del_p_L / (sound_speed * sound_speed);
 
-  del_a_0_R = -0.5 * cell_ip1.density * del_vx_R / a + 0.5 * del_p_R / (a * a);
-  del_a_1_R = del_d_R - del_p_R / (a * a);
+  del_a_0_R = -0.5 * cell_ip1.density * del_vx_R / sound_speed + 0.5 * del_p_R / (sound_speed * sound_speed);
+  del_a_1_R = del_d_R - del_p_R / (sound_speed * sound_speed);
   del_a_2_R = del_vy_R;
   del_a_3_R = del_vz_R;
-  del_a_4_R = 0.5 * cell_ip1.density * del_vx_R / a + 0.5 * del_p_R / (a * a);
+  del_a_4_R = 0.5 * cell_ip1.density * del_vx_R / sound_speed + 0.5 * del_p_R / (sound_speed * sound_speed);
 
-  del_a_0_C = -0.5 * cell_ip1.density * del_vx_C / a + 0.5 * del_p_C / (a * a);
-  del_a_1_C = del_d_C - del_p_C / (a * a);
+  del_a_0_C = -0.5 * cell_ip1.density * del_vx_C / sound_speed + 0.5 * del_p_C / (sound_speed * sound_speed);
+  del_a_1_C = del_d_C - del_p_C / (sound_speed * sound_speed);
   del_a_2_C = del_vy_C;
   del_a_3_C = del_vz_C;
-  del_a_4_C = 0.5 * cell_ip1.density * del_vx_C / a + 0.5 * del_p_C / (a * a);
+  del_a_4_C = 0.5 * cell_ip1.density * del_vx_C / sound_speed + 0.5 * del_p_C / (sound_speed * sound_speed);
 
-  del_a_0_G = -0.5 * cell_ip1.density * del_vx_G / a + 0.5 * del_p_G / (a * a);
-  del_a_1_G = del_d_G - del_p_G / (a * a);
+  del_a_0_G = -0.5 * cell_ip1.density * del_vx_G / sound_speed + 0.5 * del_p_G / (sound_speed * sound_speed);
+  del_a_1_G = del_d_G - del_p_G / (sound_speed * sound_speed);
   del_a_2_G = del_vy_G;
   del_a_3_G = del_vz_G;
-  del_a_4_G = 0.5 * cell_ip1.density * del_vx_G / a + 0.5 * del_p_G / (a * a);
+  del_a_4_G = 0.5 * cell_ip1.density * del_vx_G / sound_speed + 0.5 * del_p_G / (sound_speed * sound_speed);
 
   // Step 4 - Apply monotonicity constraints to the differences in the
   // characteristic variables
@@ -812,10 +809,10 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   //          Stone Eqn 39
 
   del_d_m_ipo  = del_a_0_m + del_a_1_m + del_a_4_m;
-  del_vx_m_ipo = -a * del_a_0_m / cell_ip1.density + a * del_a_4_m / cell_ip1.density;
+  del_vx_m_ipo = -sound_speed * del_a_0_m / cell_ip1.density + sound_speed * del_a_4_m / cell_ip1.density;
   del_vy_m_ipo = del_a_2_m;
   del_vz_m_ipo = del_a_3_m;
-  del_p_m_ipo  = a * a * del_a_0_m + a * a * del_a_4_m;
+  del_p_m_ipo  = sound_speed * sound_speed * del_a_0_m + sound_speed * sound_speed * del_a_4_m;
 
   // Step 6 - Use parabolic interpolation to compute values at the left and
   // right of each cell center
@@ -955,7 +952,6 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
 #endif  // SCALAR
 
-// #ifdef CTU
 #ifndef VL
 
   // Step 8 - Compute the coefficients for the monotonized parabolic
@@ -990,11 +986,11 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // primitive variables using the cell-centered primitive variables
 
   // recalculate the adiabatic sound speed in cell i
-  a = sqrt(gamma * cell_i.pressure / cell_i.density);
+  sound_speed = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
 
-  lambda_m = cell_i.velocity_x - a;
+  lambda_m = cell_i.velocity_x - sound_speed;
   lambda_0 = cell_i.velocity_x;
-  lambda_p = cell_i.velocity_x + a;
+  lambda_p = cell_i.velocity_x + sound_speed;
 
   // Step 9 - Compute the left and right interface values using monotonized
   // parabolic interpolation
@@ -1061,9 +1057,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
     chi_5 = A * (del_p_m_i - p_6) + B * p_6;
 
-    sum_1 += -0.5 * (cell_i.density * chi_2 / a - chi_5 / (a * a));
-    sum_2 += 0.5 * (chi_2 - chi_5 / (a * cell_i.density));
-    sum_5 += -0.5 * (cell_i.density * chi_2 * a - chi_5);
+    sum_1 += -0.5 * (cell_i.density * chi_2 / sound_speed - chi_5 / (sound_speed * sound_speed));
+    sum_2 += 0.5 * (chi_2 - chi_5 / (sound_speed * cell_i.density));
+    sum_5 += -0.5 * (cell_i.density * chi_2 * sound_speed - chi_5);
   }
   if (lambda_0 >= 0) {
     A = (0.5 * dtodx) * (lambda_p - lambda_0);
@@ -1083,7 +1079,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
   #endif  // SCALAR
 
-    sum_1 += chi_1 - chi_5 / (a * a);
+    sum_1 += chi_1 - chi_5 / (sound_speed * sound_speed);
     sum_3 += chi_3;
     sum_4 += chi_4;
   #ifdef DE
@@ -1105,9 +1101,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     chi_4 = A * (del_vz_m_i - vz_6) + B * vz_6;
     chi_5 = A * (del_p_m_i - p_6) + B * p_6;
 
-    sum_1 += 0.5 * (cell_i.density * chi_2 / a + chi_5 / (a * a));
-    sum_2 += 0.5 * (chi_2 + chi_5 / (a * cell_i.density));
-    sum_5 += 0.5 * (cell_i.density * chi_2 * a + chi_5);
+    sum_1 += 0.5 * (cell_i.density * chi_2 / sound_speed + chi_5 / (sound_speed * sound_speed));
+    sum_2 += 0.5 * (chi_2 + chi_5 / (sound_speed * cell_i.density));
+    sum_5 += 0.5 * (cell_i.density * chi_2 * sound_speed + chi_5);
   }
 
   // add the corrections to the initial guesses for the interface values
@@ -1149,9 +1145,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
     chi_5 = C * (del_p_m_i + p_6) + D * p_6;
 
-    sum_1 += -0.5 * (cell_i.density * chi_2 / a - chi_5 / (a * a));
-    sum_2 += 0.5 * (chi_2 - chi_5 / (a * cell_i.density));
-    sum_5 += -0.5 * (cell_i.density * chi_2 * a - chi_5);
+    sum_1 += -0.5 * (cell_i.density * chi_2 / sound_speed - chi_5 / (sound_speed * sound_speed));
+    sum_2 += 0.5 * (chi_2 - chi_5 / (sound_speed * cell_i.density));
+    sum_5 += -0.5 * (cell_i.density * chi_2 * sound_speed - chi_5);
   }
   if (lambda_0 <= 0) {
     C = (0.5 * dtodx) * (lambda_m - lambda_0);
@@ -1171,7 +1167,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     }
   #endif  // SCALAR
 
-    sum_1 += chi_1 - chi_5 / (a * a);
+    sum_1 += chi_1 - chi_5 / (sound_speed * sound_speed);
     sum_3 += chi_3;
     sum_4 += chi_4;
   #ifdef DE
@@ -1193,9 +1189,9 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     chi_4 = C * (del_vz_m_i + vz_6) + D * vz_6;
     chi_5 = C * (del_p_m_i + p_6) + D * p_6;
 
-    sum_1 += 0.5 * (cell_i.density * chi_2 / a + chi_5 / (a * a));
-    sum_2 += 0.5 * (chi_2 + chi_5 / (a * cell_i.density));
-    sum_5 += 0.5 * (cell_i.density * chi_2 * a + chi_5);
+    sum_1 += 0.5 * (cell_i.density * chi_2 / sound_speed + chi_5 / (sound_speed * sound_speed));
+    sum_2 += 0.5 * (chi_2 + chi_5 / (sound_speed * cell_i.density));
+    sum_5 += 0.5 * (cell_i.density * chi_2 * sound_speed + chi_5);
   }
 
   // add the corrections
@@ -1213,7 +1209,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
   #endif  // SCALAR
 
-#endif  // VL, i.e. CTU was used for this section
+#endif  // not VL, i.e. CTU or SIMPLE was used for this section
 
   // enforce minimum values
   d_L = fmax(d_L, (Real)TINY_NUMBER);
