@@ -55,8 +55,6 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   }
 
   // declare other variables to be used
-  reconstruction::Characteristic del_a_m;                      // characteristic slopes
-  reconstruction::Primitive del_m_im1, del_m_i, del_m_ip1;     // Monotonized primitive slopes
   reconstruction::Primitive interface_R_imh, interface_L_iph;  // Interface states
 
   // load the 5-cell stencil into registers
@@ -110,7 +108,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // Van Leer
   reconstruction::Primitive del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
 
-  // Project the left, right, centered and van Leer differences onto the
+  // Step 3 - Project the left, right, centered and van Leer differences onto the
   // characteristic variables Stone Eqn 37 (del_a are differences in
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
@@ -126,68 +124,12 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   reconstruction::Characteristic del_a_G =
       reconstruction::Primitive_To_Characteristic(cell_im1, del_G, sound_speed, sound_speed * sound_speed, gamma);
 
-  // Step 4 - Apply monotonicity constraints to the differences in the
-  // characteristic variables
-  //          Stone Eqn 38
-
-  del_a_m.a0 = del_a_m.a1 = del_a_m.a2 = del_a_m.a3 = del_a_m.a4 = 0.0;
-  Real lim_slope_a, lim_slope_b;
-  if (del_a_L.a0 * del_a_R.a0 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a0), fabs(del_a_R.a0));
-    lim_slope_b = fmin(fabs(del_a_C.a0), fabs(del_a_G.a0));
-    del_a_m.a0  = sgn_CUDA(del_a_C.a0) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a1 * del_a_R.a1 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a1), fabs(del_a_R.a1));
-    lim_slope_b = fmin(fabs(del_a_C.a1), fabs(del_a_G.a1));
-    del_a_m.a1  = sgn_CUDA(del_a_C.a1) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a2 * del_a_R.a2 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a2), fabs(del_a_R.a2));
-    lim_slope_b = fmin(fabs(del_a_C.a2), fabs(del_a_G.a2));
-    del_a_m.a2  = sgn_CUDA(del_a_C.a2) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a3 * del_a_R.a3 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a3), fabs(del_a_R.a3));
-    lim_slope_b = fmin(fabs(del_a_C.a3), fabs(del_a_G.a3));
-    del_a_m.a3  = sgn_CUDA(del_a_C.a3) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a4 * del_a_R.a4 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a4), fabs(del_a_R.a4));
-    lim_slope_b = fmin(fabs(del_a_C.a4), fabs(del_a_G.a4));
-    del_a_m.a4  = sgn_CUDA(del_a_C.a4) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-#ifdef DE
-  if (del_L.gas_energy * del_R.gas_energy > 0.0) {
-    lim_slope_a          = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
-    lim_slope_b          = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
-    del_m_im1.gas_energy = sgn_CUDA(del_C.gas_energy) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  } else {
-    del_m_im1.gas_energy = 0.0;
-  }
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    if (del_L.scalar[i] * del_R.scalar[i] > 0.0) {
-      lim_slope_a         = fmin(fabs(del_L.scalar[i]), fabs(del_R.scalar[i]));
-      lim_slope_b         = fmin(fabs(del_C.scalar[i]), fabs(del_G.scalar[i]));
-      del_m_im1.scalar[i] = sgn_CUDA(del_C.scalar[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-    } else {
-      del_m_im1.scalar[i] = 0.0;
-    }
-  }
-#endif  // SCALAR
-
-  // Step 5 - Project the monotonized difference in the characteristic
-  // variables back onto the
-  //          primitive variables
-  //          Stone Eqn 39
-
-  del_m_im1.density    = del_a_m.a0 + del_a_m.a1 + del_a_m.a4;
-  del_m_im1.velocity_x = -sound_speed * del_a_m.a0 / cell_im1.density + sound_speed * del_a_m.a4 / cell_im1.density;
-  del_m_im1.velocity_y = del_a_m.a2;
-  del_m_im1.velocity_z = del_a_m.a3;
-  del_m_im1.pressure   = sound_speed * sound_speed * del_a_m.a0 + sound_speed * sound_speed * del_a_m.a4;
+  // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
+  // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
+  // Stone Eqn 39
+  reconstruction::Primitive const del_m_im1 = reconstruction::Monotonize_Characteristic_Return_Primitive(
+      cell_im1, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed * sound_speed,
+      gamma);
 
   // =============
   // Cell i slopes
@@ -211,7 +153,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // Van Leer
   del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
 
-  // Project the left, right, centered and van Leer differences onto the
+  // Step 3 - Project the left, right, centered and van Leer differences onto the
   // characteristic variables Stone Eqn 37 (del_a are differences in
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
@@ -223,68 +165,12 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   del_a_G = reconstruction::Primitive_To_Characteristic(cell_i, del_G, sound_speed, sound_speed * sound_speed, gamma);
 
-  // Step 4 - Apply monotonicity constraints to the differences in the
-  // characteristic variables
-  //          Stone Eqn 38
-
-  del_a_m.a0 = del_a_m.a1 = del_a_m.a2 = del_a_m.a3 = del_a_m.a4 = 0.0;
-
-  if (del_a_L.a0 * del_a_R.a0 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a0), fabs(del_a_R.a0));
-    lim_slope_b = fmin(fabs(del_a_C.a0), fabs(del_a_G.a0));
-    del_a_m.a0  = sgn_CUDA(del_a_C.a0) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a1 * del_a_R.a1 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a1), fabs(del_a_R.a1));
-    lim_slope_b = fmin(fabs(del_a_C.a1), fabs(del_a_G.a1));
-    del_a_m.a1  = sgn_CUDA(del_a_C.a1) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a2 * del_a_R.a2 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a2), fabs(del_a_R.a2));
-    lim_slope_b = fmin(fabs(del_a_C.a2), fabs(del_a_G.a2));
-    del_a_m.a2  = sgn_CUDA(del_a_C.a2) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a3 * del_a_R.a3 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a3), fabs(del_a_R.a3));
-    lim_slope_b = fmin(fabs(del_a_C.a3), fabs(del_a_G.a3));
-    del_a_m.a3  = sgn_CUDA(del_a_C.a3) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a4 * del_a_R.a4 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a4), fabs(del_a_R.a4));
-    lim_slope_b = fmin(fabs(del_a_C.a4), fabs(del_a_G.a4));
-    del_a_m.a4  = sgn_CUDA(del_a_C.a4) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-#ifdef DE
-  if (del_L.gas_energy * del_R.gas_energy > 0.0) {
-    lim_slope_a        = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
-    lim_slope_b        = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
-    del_m_i.gas_energy = sgn_CUDA(del_C.gas_energy) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  } else {
-    del_m_i.gas_energy = 0.0;
-  }
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    if (del_L.scalar[i] * del_R.scalar[i] > 0.0) {
-      lim_slope_a       = fmin(fabs(del_L.scalar[i]), fabs(del_R.scalar[i]));
-      lim_slope_b       = fmin(fabs(del_C.scalar[i]), fabs(del_G.scalar[i]));
-      del_m_i.scalar[i] = sgn_CUDA(del_C.scalar[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-    } else {
-      del_m_i.scalar[i] = 0.0;
-    }
-  }
-#endif  // SCALAR
-
-  // Step 5 - Project the monotonized difference in the characteristic
-  // variables back onto the
-  //          primitive variables
-  //          Stone Eqn 39
-
-  del_m_i.density    = del_a_m.a0 + del_a_m.a1 + del_a_m.a4;
-  del_m_i.velocity_x = -sound_speed * del_a_m.a0 / cell_i.density + sound_speed * del_a_m.a4 / cell_i.density;
-  del_m_i.velocity_y = del_a_m.a2;
-  del_m_i.velocity_z = del_a_m.a3;
-  del_m_i.pressure   = sound_speed * sound_speed * del_a_m.a0 + sound_speed * sound_speed * del_a_m.a4;
+  // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
+  // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
+  // Stone Eqn 39
+  reconstruction::Primitive del_m_i = reconstruction::Monotonize_Characteristic_Return_Primitive(
+      cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed * sound_speed,
+      gamma);
 
   // ===============
   // Cell i+1 slopes
@@ -308,7 +194,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // Van Leer
   del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
 
-  // Project the left, right, centered and van Leer differences onto the
+  // Step 3 - Project the left, right, centered and van Leer differences onto the
   // characteristic variables Stone Eqn 37 (del_a are differences in
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
@@ -320,68 +206,12 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   del_a_G = reconstruction::Primitive_To_Characteristic(cell_ip1, del_G, sound_speed, sound_speed * sound_speed, gamma);
 
-  // Step 4 - Apply monotonicity constraints to the differences in the
-  // characteristic variables
-  //          Stone Eqn 38
-
-  del_a_m.a0 = del_a_m.a1 = del_a_m.a2 = del_a_m.a3 = del_a_m.a4 = 0.0;
-
-  if (del_a_L.a0 * del_a_R.a0 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a0), fabs(del_a_R.a0));
-    lim_slope_b = fmin(fabs(del_a_C.a0), fabs(del_a_G.a0));
-    del_a_m.a0  = sgn_CUDA(del_a_C.a0) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a1 * del_a_R.a1 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a1), fabs(del_a_R.a1));
-    lim_slope_b = fmin(fabs(del_a_C.a1), fabs(del_a_G.a1));
-    del_a_m.a1  = sgn_CUDA(del_a_C.a1) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a2 * del_a_R.a2 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a2), fabs(del_a_R.a2));
-    lim_slope_b = fmin(fabs(del_a_C.a2), fabs(del_a_G.a2));
-    del_a_m.a2  = sgn_CUDA(del_a_C.a2) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a3 * del_a_R.a3 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a3), fabs(del_a_R.a3));
-    lim_slope_b = fmin(fabs(del_a_C.a3), fabs(del_a_G.a3));
-    del_a_m.a3  = sgn_CUDA(del_a_C.a3) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-  if (del_a_L.a4 * del_a_R.a4 > 0.0) {
-    lim_slope_a = fmin(fabs(del_a_L.a4), fabs(del_a_R.a4));
-    lim_slope_b = fmin(fabs(del_a_C.a4), fabs(del_a_G.a4));
-    del_a_m.a4  = sgn_CUDA(del_a_C.a4) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  }
-#ifdef DE
-  if (del_L.gas_energy * del_R.gas_energy > 0.0) {
-    lim_slope_a          = fmin(fabs(del_L.gas_energy), fabs(del_R.gas_energy));
-    lim_slope_b          = fmin(fabs(del_C.gas_energy), fabs(del_G.gas_energy));
-    del_m_ip1.gas_energy = sgn_CUDA(del_C.gas_energy) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-  } else {
-    del_m_ip1.gas_energy = 0.0;
-  }
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    if (del_L.scalar[i] * del_R.scalar[i] > 0.0) {
-      lim_slope_a         = fmin(fabs(del_L.scalar[i]), fabs(del_R.scalar[i]));
-      lim_slope_b         = fmin(fabs(del_C.scalar[i]), fabs(del_G.scalar[i]));
-      del_m_ip1.scalar[i] = sgn_CUDA(del_C.scalar[i]) * fmin((Real)2.0 * lim_slope_a, lim_slope_b);
-    } else {
-      del_m_ip1.scalar[i] = 0.0;
-    }
-  }
-#endif  // SCALAR
-
-  // Step 5 - Project the monotonized difference in the characteristic
-  // variables back onto the
-  //          primitive variables
-  //          Stone Eqn 39
-
-  del_m_ip1.density    = del_a_m.a0 + del_a_m.a1 + del_a_m.a4;
-  del_m_ip1.velocity_x = -sound_speed * del_a_m.a0 / cell_ip1.density + sound_speed * del_a_m.a4 / cell_ip1.density;
-  del_m_ip1.velocity_y = del_a_m.a2;
-  del_m_ip1.velocity_z = del_a_m.a3;
-  del_m_ip1.pressure   = sound_speed * sound_speed * del_a_m.a0 + sound_speed * sound_speed * del_a_m.a4;
+  // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
+  // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
+  // Stone Eqn 39
+  reconstruction::Primitive const del_m_ip1 = reconstruction::Monotonize_Characteristic_Return_Primitive(
+      cell_ip1, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed * sound_speed,
+      gamma);
 
   // Step 6 - Use parabolic interpolation to compute values at the left and
   // right of each cell center
