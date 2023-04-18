@@ -71,36 +71,21 @@ TEST(tHYDROPpmcReconstructor, CorrectInputExpectCorrectOutput)
                                                                             {733, 1.764334292986655},
                                                                             {949, 3.0847691079841209}},
                                                                            {{80, 3.1281603739188069},
-                                                                            {85, 2.6558981128823214},
                                                                             {296, 0.99406757727427164},
-                                                                            {301, 0.84399195916314151},
                                                                             {512, 1.8732124042412865},
-                                                                            {517, 1.8381070277226794},
                                                                             {728, 1.6489758692176784},
-                                                                            {733, 1.764334292986655},
-                                                                            {944, 2.8820015278590443},
-                                                                            {949, 3.0847691079841209}},
+                                                                            {944, 2.8820015278590443}},
                                                                            {{50, 2.6558981128823214},
-                                                                            {80, 3.1281603739188069},
-                                                                            {85, 2.6558981128823214},
                                                                             {266, 0.84399195916314151},
-                                                                            {296, 0.99406757727427164},
-                                                                            {301, 0.84399195916314151},
                                                                             {482, 2.0109603398129137},
-                                                                            {512, 1.8732124042412865},
-                                                                            {517, 1.8381070277226794},
                                                                             {698, 1.764334292986655},
-                                                                            {728, 1.6489758692176784},
-                                                                            {733, 1.764334292986655},
-                                                                            {914, 3.2100231679403066},
-                                                                            {944, 2.8820015278590443},
-                                                                            {949, 3.0847691079841209}}};
+                                                                            {914, 3.2100231679403066}}};
 
   // Loop over different directions
   for (size_t direction = 0; direction < 3; direction++) {
     // Allocate device buffers
-    cuda_utilities::DeviceVector<double> dev_interface_left(host_grid.size());
-    cuda_utilities::DeviceVector<double> dev_interface_right(host_grid.size());
+    cuda_utilities::DeviceVector<double> dev_interface_left(host_grid.size(), true);
+    cuda_utilities::DeviceVector<double> dev_interface_right(host_grid.size(), true);
 
     // Launch kernel
     hipLaunchKernelGGL(PPMC_cuda, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
@@ -182,40 +167,33 @@ TEST(tMHDPpmcReconstructor, CorrectInputExpectCorrectOutput)
                                                                            {1166, 1.562787356714062},
                                                                            {1382, 1.1612148377210372}}};
 
-  std::vector<std::unordered_map<int, double>> fiducial_interface_right = {
-      {{85, 2.6558981128823214},
-       {301, 0.84399195916314151},
-       {517, 2.0109603398129137},
-       {733, 1.764334292986655},
-       {949, 8.6490192698558381},
-       {1165, 1.1612148377210372},
-       {1381, 3.1565068702572638}},
-      {{80, 3.3165345946674432},
-       {85, 2.6558981128823214},
-       {296, 1.0539291837321079},
-       {301, 0.84399195916314151},
-       {512, 1.9599277242665043},
-       {517, 2.0109603398129137},
-       {728, 1.8582259623199069},
-       {733, 1.764334292986655},
-       {944, 6.5776143533545097},
-       {949, 8.6490192698558381},
-       {1160, 2.8331021062933308},
-       {1165, 1.1612148377210372},
-       {1376, 1.562787356714062},
-       {1381, 3.1565068702572638}},
-      {{50, 2.6558981128823214},   {80, 3.3165345946674432},   {85, 2.6558981128823214},   {266, 0.84399195916314151},
-       {296, 1.0539291837321079},  {301, 0.84399195916314151}, {482, 2.0109603398129137},  {512, 1.9599277242665043},
-       {517, 2.0109603398129137},  {698, 1.764334292986655},   {728, 1.8582259623199069},  {733, 1.764334292986655},
-       {914, 4.5501389454964283},  {944, 6.5776143533545097},  {949, 8.6490192698558381},  {1130, 1.562787356714062},
-       {1160, 2.8331021062933308}, {1165, 1.1612148377210372}, {1346, 1.1612148377210372}, {1376, 1.562787356714062},
-       {1381, 3.1565068702572638}}};
+  std::vector<std::unordered_map<int, double>> fiducial_interface_right = {{{85, 2.6558981128823214},
+                                                                            {301, 0.84399195916314151},
+                                                                            {517, 2.0109603398129137},
+                                                                            {733, 1.764334292986655},
+                                                                            {949, 8.6490192698558381},
+                                                                            {1165, 1.1612148377210372},
+                                                                            {1381, 3.1565068702572638}},
+                                                                           {{80, 3.3165345946674432},
+                                                                            {296, 1.0539291837321079},
+                                                                            {512, 1.9599277242665043},
+                                                                            {728, 1.8582259623199069},
+                                                                            {944, 6.5776143533545097},
+                                                                            {1160, 2.8331021062933308},
+                                                                            {1376, 1.562787356714062}},
+                                                                           {{50, 2.6558981128823214},
+                                                                            {266, 0.84399195916314151},
+                                                                            {482, 2.0109603398129137},
+                                                                            {698, 1.764334292986655},
+                                                                            {914, 4.5501389454964283},
+                                                                            {1130, 1.562787356714062},
+                                                                            {1346, 1.1612148377210372}}};
 
   // Loop over different directions
   for (size_t direction = 0; direction < 3; direction++) {
     // Allocate device buffers
-    cuda_utilities::DeviceVector<double> dev_interface_left(host_grid.size());
-    cuda_utilities::DeviceVector<double> dev_interface_right(host_grid.size());
+    cuda_utilities::DeviceVector<double> dev_interface_left(nx * ny * nz * (n_fields - 1), true);
+    cuda_utilities::DeviceVector<double> dev_interface_right(nx * ny * nz * (n_fields - 1), true);
 
     // Launch kernel
     hipLaunchKernelGGL(PPMC_cuda, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
@@ -224,7 +202,7 @@ TEST(tMHDPpmcReconstructor, CorrectInputExpectCorrectOutput)
     CHECK(cudaDeviceSynchronize());
 
     // Perform Comparison
-    for (size_t i = 0; i < host_grid.size(); i++) {
+    for (size_t i = 0; i < dev_interface_left.size(); i++) {
       // Check the left interface
       double test_val = dev_interface_left.at(i);
       double fiducial_val =
