@@ -650,19 +650,15 @@ Primitive __device__ __host__ __inline__ Calc_Interface_Parabolic(Primitive cons
 
 #ifdef MHD
   output.magnetic_y = interface(cell_i.magnetic_y, cell_im1.magnetic_y, slopes_i.magnetic_y, slopes_im1.magnetic_y);
-  ;
   output.magnetic_z = interface(cell_i.magnetic_z, cell_im1.magnetic_z, slopes_i.magnetic_z, slopes_im1.magnetic_z);
-  ;
 #endif  // MHD
 
 #ifdef DE
   output.gas_energy = interface(cell_i.gas_energy, cell_im1.gas_energy, slopes_i.gas_energy, slopes_im1.gas_energy);
-  ;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     output.scalar[i] = interface(cell_i.scalar[i], cell_im1.scalar[i], slopes_i.scalar[i], slopes_im1.scalar[i]);
-    ;
   }
 #endif  // SCALAR
 
