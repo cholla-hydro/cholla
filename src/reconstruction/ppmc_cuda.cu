@@ -27,7 +27,8 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   cuda_utilities::compute3DIndices(thread_id, nx, ny, xid, yid, zid);
 
   // Thread guard to prevent overrun
-  if (xid < 2 or xid >= nx - 3 or yid < 2 or yid >= ny - 3 or zid < 2 or zid >= nz - 3) {
+  if (size_t const min = 3, max = 3;
+      xid < min or xid >= nx - max or yid < min or yid >= ny - max or zid < min or zid >= nz - max) {
     return;
   }
 

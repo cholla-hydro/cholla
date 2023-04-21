@@ -308,7 +308,7 @@ TEST(tALLReconstructionMonotizeParabolicInterface, CorrectInputExpectCorrectOutp
 #endif  // MHD
 
   // Get test data
-  reconstruction::Monotize_Parabolic_Interface(cell_i, cell_im1, cell_ip1, interface_L_iph, interface_R_imh);
+  reconstruction::Monotonize_Parabolic_Interface(cell_i, cell_im1, cell_ip1, interface_L_iph, interface_R_imh);
 
 // Check results
 #ifdef MHD
