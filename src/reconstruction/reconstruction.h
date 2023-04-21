@@ -520,28 +520,29 @@ Primitive __device__ __inline__ Monotonize_Characteristic_Return_Primitive(
  * \param[in,out] interface_R_imh The right interface state at i-1/2
  * \return Primitive
  */
-void __device__ __host__ __inline__ Monotize_Parabolic_Interface(Primitive const &cell_i, Primitive const &cell_im1,
-                                                                 Primitive const &cell_ip1, Primitive &interface_L_iph,
-                                                                 Primitive &interface_R_imh)
+void __device__ __host__ __inline__ Monotonize_Parabolic_Interface(Primitive const &cell_i, Primitive const &cell_im1,
+                                                                   Primitive const &cell_ip1,
+                                                                   Primitive &interface_L_iph,
+                                                                   Primitive &interface_R_imh)
 {
   // The function that will actually do the monotozation. Note the return by refernce of the interface state
   auto Monotonize = [](Real const &state_i, Real const &state_im1, Real const &state_ip1, Real &interface_L,
                        Real &interface_R) {
+    // Some terms we need for the comparisons
+    Real const term_1 = 6.0 * (interface_L - interface_R) * (state_i - 0.5 * (interface_R + interface_L));
+    Real const term_2 = pow(interface_L - interface_R, 2.0);
+
     // First monotonicity constraint. Equations 47-49 in Stone et al. 2008
     if ((interface_L - state_i) * (state_i - interface_R) <= 0.0) {
       interface_L = state_i;
       interface_R = state_i;
     }
-
     // Second monotonicity constraint. Equations 50 & 51 in Stone et al. 2008
-    Real const term_1 = 6.0 * (interface_L - interface_R) * (state_i - 0.5 * (interface_R + interface_L));
-    Real const term_2 = pow(interface_L - interface_R, 2.0);
     if (term_1 > term_2) {
       interface_R = 3.0 * state_i - 2.0 * interface_L;
     }
-
     // Third monotonicity constraint. Equations 52 & 53 in Stone et al. 2008
-    if (term_1 < -term_2) {
+    else if (term_1 < -term_2) {
       interface_L = 3.0 * state_i - 2.0 * interface_R;
     }
 

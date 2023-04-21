@@ -220,8 +220,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
   // Step 7 - Apply further monotonicity constraints to ensure the values on the left and right side of cell center lie
   // between neighboring cell-centered values Stone Eqns 47 - 53
-
-  reconstruction::Monotize_Parabolic_Interface(cell_i, cell_im1, cell_ip1, interface_L_iph, interface_R_imh);
+  reconstruction::Monotonize_Parabolic_Interface(cell_i, cell_im1, cell_ip1, interface_L_iph, interface_R_imh);
 
 #ifndef VL
   // Step 8 - Compute the coefficients for the monotonized parabolic
