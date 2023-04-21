@@ -2397,6 +2397,10 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
       #endif  // GRACKLE_METALS
     #endif    // COOLING_GRACKLE , CHEMISTRY_GPU
 
+    #if defined(DUST)
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.dust_density, "/dust_density");
+    #endif    // DUST
+
   #endif  // SCALAR
 
   // MHD only valid in 3D case
