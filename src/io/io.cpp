@@ -1434,8 +1434,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     #endif  // BASIC_SCALAR
 
     #ifdef DUST
-  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer,
-                            &(C.d_density[H.n_cells * grid_enum::dust_density]), "/dust_density");
+  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_dust_density, "/dust_density");
     #endif  // DUST
 
     #ifdef OUTPUT_CHEMISTRY
@@ -2391,7 +2390,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
     #endif  // BASIC_SCALAR
 
     #ifdef DUST
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, &(C.density[H.n_cells * grid_enum::dust_density]), "/dust_density");
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.dust_density, "/dust_density");
     #endif  // DUST
 
     #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
