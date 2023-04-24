@@ -1518,7 +1518,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
   Real dxy, dxz, Txy, Txz, n, T;
   #ifdef DUST
   Real dust_xy, dust_xz;
-    Real *dataset_buffer_dust_xy, *dataset_buffer_dust_xz;
+  Real *dataset_buffer_dust_xy, *dataset_buffer_dust_xz;
   #endif
 
   n = T   = 0;
@@ -1534,10 +1534,10 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     dataset_buffer_dxz = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
     dataset_buffer_Txy = (Real *)malloc(H.nx_real * H.ny_real * sizeof(Real));
     dataset_buffer_Txz = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
-    #ifdef DUST
+  #ifdef DUST
     dataset_buffer_dust_xy = (Real *)malloc(H.nx_real * H.ny_real * sizeof(Real));
     dataset_buffer_dust_xz = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
-    #endif
+  #endif
 
     // Create the data space for the datasets
     dims[0]         = nx_dset;
@@ -1551,17 +1551,17 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
       for (i = 0; i < H.nx_real; i++) {
         dxy = 0;
         Txy = 0;
-        #ifdef DUST
+  #ifdef DUST
         dust_xy = 0;
-        #endif
+  #endif
         // for each xy element, sum over the z column
         for (k = 0; k < H.nz_real; k++) {
           id = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
           // sum density
           dxy += C.density[id] * H.dz;
-          #ifdef DUST
+  #ifdef DUST
           dust_xy += C.dust_density[id] * H.dz;
-          #endif
+  #endif
           // calculate number density
           n = C.density[id] * DENSITY_UNIT / (mu * MP);
   // calculate temperature
@@ -1580,9 +1580,9 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
         buf_id                     = j + i * H.ny_real;
         dataset_buffer_dxy[buf_id] = dxy;
         dataset_buffer_Txy[buf_id] = Txy;
-        #ifdef DUST
+  #ifdef DUST
         dataset_buffer_dust_xy[buf_id] = dust_xy;
-        #endif
+  #endif
       }
     }
 
@@ -1591,17 +1591,17 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
       for (i = 0; i < H.nx_real; i++) {
         dxz = 0;
         Txz = 0;
-        #ifdef DUST
+  #ifdef DUST
         dust_xz = 0;
-        #endif
+  #endif
         // for each xz element, sum over the y column
         for (j = 0; j < H.ny_real; j++) {
           id = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
           // sum density
           dxz += C.density[id] * H.dy;
-          #ifdef DUST
+  #ifdef DUST
           dust_xz += C.dust_density[id] * H.dy;
-          #endif
+  #endif
           // calculate number density
           n = C.density[id] * DENSITY_UNIT / (mu * MP);
   // calculate temperature
@@ -1620,9 +1620,9 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
         buf_id                     = k + i * H.nz_real;
         dataset_buffer_dxz[buf_id] = dxz;
         dataset_buffer_Txz[buf_id] = Txz;
-        #ifdef DUST
+  #ifdef DUST
         dataset_buffer_dust_xz[buf_id] = dust_xz;
-        #endif
+  #endif
       }
     }
 
@@ -1631,10 +1631,10 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_dxz, "/d_xz");
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txy, "/T_xy");
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txz, "/T_xz");
-    #ifdef DUST
+  #ifdef DUST
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dust_xy, "/d_dust_xy");
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dust_xz, "/d_dust_xz");
-    #endif
+  #endif
 
     // Free the dataspace ids
     status = H5Sclose(dataspace_xz_id);
