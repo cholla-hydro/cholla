@@ -1431,7 +1431,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
     #ifdef BASIC_SCALAR
   Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_basic_scalar, "/scalar0");
-    #endif
+    #endif  // BASIC_SCALAR
+
+    #ifdef DUST
+  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, &(C.d_density[H.n_cells*grid_enum::dust_density]), "/dust_density");
+    #endif  // DUST
 
     #ifdef OUTPUT_CHEMISTRY
       #ifdef CHEMISTRY_GPU
@@ -2383,7 +2387,11 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
 
     #ifdef BASIC_SCALAR
   Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.scalar, "/scalar0");
-    #endif
+    #endif   // BASIC_SCALAR
+
+    #ifdef DUST
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, &(C.density[H.n_cells*grid_enum::dust_density]), "/dust_density");
+    #endif   // DUST
 
     #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
   Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HI_density, "/HI_density");
@@ -2396,10 +2404,6 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
   Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.metal_density, "/metal_density");
       #endif  // GRACKLE_METALS
     #endif    // COOLING_GRACKLE , CHEMISTRY_GPU
-
-    #if defined(DUST)
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.dust_density, "/dust_density");
-    #endif    // DUST
 
   #endif  // SCALAR
 
