@@ -49,6 +49,11 @@ void Check_Configuration(parameters const &P)
   #error "The CUDA macro is required"
 #endif  //! CUDA
 
+// Can only have one integrator enabled
+#if ((defined(VL) + defined(CTU) + defined(SIMPLE)) != 1)
+  #error "Only one integrator can be enabled at a time."
+#endif  // Only one integrator check
+
   // warn if error checking is disabled
 #ifndef CUDA_ERROR_CHECK
   #warning "CUDA error checking is disabled. Enable it with the CUDA_ERROR_CHECK macro"
