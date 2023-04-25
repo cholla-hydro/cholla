@@ -361,8 +361,8 @@ class Grid3D
     Real *basic_scalar;
   #endif
   #ifdef DUST
-    /*! \var basic_scalar
-     *  \brief Array containing the values of a basic passive scalar variable.
+    /*! \var dust_density
+     *  \brief Array containing the dust densities.
      */
     Real *dust_density;
   #endif
