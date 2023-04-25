@@ -538,7 +538,7 @@ void __device__ __host__ __inline__ Monotonize_Parabolic_Interface(Primitive con
       interface_R = state_i;
     }
     // Second monotonicity constraint. Equations 50 & 51 in Stone et al. 2008
-    if (term_1 > term_2) {
+    else if (term_1 > term_2) {
       interface_R = 3.0 * state_i - 2.0 * interface_L;
     }
     // Third monotonicity constraint. Equations 52 & 53 in Stone et al. 2008
