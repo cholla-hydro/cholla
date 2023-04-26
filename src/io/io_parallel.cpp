@@ -71,7 +71,7 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
     exit(0);
   }
 
-  // TODO (written by Alwin, for anyone to do) : 
+  // TODO (written by Alwin, for anyone to do) :
   // Consider using collective calls if this part is slow at scale
   hid_t attribute_id;
   attribute_id = H5Aopen(file_id, "t", H5P_DEFAULT);
@@ -80,9 +80,6 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
   attribute_id = H5Aopen(file_id, "n_step", H5P_DEFAULT);
   status       = H5Aread(attribute_id, H5T_NATIVE_INT, &H.n_step);
   status       = H5Aclose(attribute_id);
-
-
-
 
   // Offsets are global variables from mpi_routines.h
   hsize_t offset[3];
