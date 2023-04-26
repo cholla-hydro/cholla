@@ -21,9 +21,9 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 #DFLAGS    += -DCOOLING_GPU
 
 # Measure the Timing of the different stages
-DFLAGS    += -DCPU_TIME
+#DFLAGS    += -DCPU_TIME
 
 # Select output format
 # Can also add -DSLICES and -DPROJECTIONS
-# OUTPUT    ?=  -DOUTPUT -DHDF5
+OUTPUT    ?=  -DOUTPUT -DHDF5
 DFLAGS    += $(OUTPUT)
