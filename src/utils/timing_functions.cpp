@@ -14,6 +14,7 @@
 
 void OneTime::Start()
 {
+  cudaDeviceSynchronize();
   if (inactive) {
     return;
   }
@@ -29,6 +30,7 @@ void OneTime::Subtract(Real time_to_subtract)
 
 void OneTime::End()
 {
+  cudaDeviceSynchronize();
   if (inactive) {
     return;
   }
@@ -96,6 +98,7 @@ void Time::Initialize()
   #ifdef PARTICLES
       &(Calc_dt = OneTime("Calc_dt")),
   #endif
+      &(Hydro_Integrator = OneTime("Hydro_Integrator")),
       &(Hydro = OneTime("Hydro")),
       &(Boundaries = OneTime("Boundaries")),
   #ifdef GRAVITY
@@ -109,8 +112,11 @@ void Time::Initialize()
       &(Advance_Part_1 = OneTime("Advance_Part_1")),
       &(Advance_Part_2 = OneTime("Advance_Part_2")),
   #endif
+  #ifdef COOLING_GPU
+      &(Cooling_GPU = OneTime("Cooling_GPU")),
+  #endif
   #ifdef COOLING_GRACKLE
-      &(Cooling = OneTime("Cooling")),
+      &(Cooling_Grackle = OneTime("Cooling_Grackle")),
   #endif
   #ifdef CHEMISTRY_GPU
       &(Chemistry = OneTime("Chemistry")),

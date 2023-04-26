@@ -190,7 +190,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 #elif defined HDF5
   filename += ".h5";
 #else
-  strcat(filename, ".txt");
+  filename += ".txt";
   if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
 #endif
 #ifdef MPI_CHOLLA
@@ -240,7 +240,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 #else
   // open the file for txt writes
   FILE *out;
-  out = fopen(filename, "w");
+  out = fopen(filename.data(), "w");
   if (out == NULL) {
     printf("Error opening output file.\n");
     exit(-1);
@@ -259,6 +259,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 
 void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 {
+#ifdef HDF5
   Header H = G.H;
   // Do nothing in 1-D and 2-D case
   if (H.ny_real == 1) {
@@ -278,7 +279,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
   filename += ".float32.h5";
 #ifdef MPI_CHOLLA
   filename += "." + std::to_string(procID);
-#endif
+#endif // MPI_CHOLLA
 
   // create hdf5 file
   hid_t file_id; /* file identifier */
@@ -305,7 +306,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
     buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
 #else
     buffer_size = nx_dset * ny_dset * nz_dset;
-#endif
+#endif // MHD
 
     // Using static DeviceVector here automatically allocates the buffer the
     // first time it is needed It persists until program exit, and then calls
@@ -359,7 +360,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
                        device_dataset_buffer, G.C.d_magnetic_z, "/magnetic_z");
     }
 
-#endif
+#endif // MHD
 
     free(dataset_buffer);
 
@@ -371,6 +372,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 
   // close the file
   status = H5Fclose(file_id);
+#endif // HDF5
 }
 
 /* Output a projection of the grid data to file. */
