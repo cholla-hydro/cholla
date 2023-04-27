@@ -546,7 +546,7 @@ void __device__ __host__ __inline__ Monotonize_Parabolic_Interface(Primitive con
       interface_L = 3.0 * state_i - 2.0 * interface_R;
     }
 
-    // Final monotocity constraint
+    // Bound the interface to lie between adjacent cell centered values
     interface_R = fmax(fmin(state_i, state_im1), interface_R);
     interface_R = fmin(fmax(state_i, state_im1), interface_R);
     interface_L = fmax(fmin(state_i, state_ip1), interface_L);
