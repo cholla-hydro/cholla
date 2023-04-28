@@ -95,13 +95,13 @@ bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff, int6
                     double const &fixedEpsilon = 1E-14, int64_t const &ulpsEpsilon = 4);
 // =========================================================================
 
-void wrapperEqual(int i, int j, int k, std::string dataSetName, double test_value, double fid_value,
+void wrapperEqual(int i, int j, int k, std::string const &dataSetName, double test_value, double fid_value,
                   double fixedEpsilon);
 
-void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value);
+void analyticConstant(systemTest::SystemTestRunner testObject, std::string const &dataSetName, double value);
 
-void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetName, double constant, double amplitude,
-                  double kx, double ky, double kz, double phase, double tolerance);
+void analyticSine(systemTest::SystemTestRunner testObject, std::string const &dataSetName, double constant,
+                  double amplitude, double kx, double ky, double kz, double phase, double tolerance);
 
 // =========================================================================
 /*!
@@ -120,7 +120,7 @@ void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetNa
  * values are ignored and default behaviour is used
  */
 template <int checkType = 0>
-void checkResults(double fiducialNumber, double testNumber, std::string outString, double fixedEpsilon = -999,
+void checkResults(double fiducialNumber, double testNumber, std::string const &outString, double fixedEpsilon = -999,
                   int64_t ulpsEpsilon = -999)
 {
   // Check for equality and if not equal return difference

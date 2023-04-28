@@ -161,7 +161,7 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
    * \param[in] direction Which plane the interface is. 0 = plane normal to
    * X, 1 = plane normal to Y, 2 = plane normal to Z. Defaults to 0.
    */
-  void checkResults(std::vector<Real> fiducialFlux, std::vector<Real> scalarFlux, Real thermalEnergyFlux,
+  void checkResults(std::vector<Real> fiducialFlux, std::vector<Real> const &scalarFlux, Real thermalEnergyFlux,
                     std::vector<Real> const &testFlux, std::string const &customOutput = "", int const &direction = 0)
   {
     // Field names
