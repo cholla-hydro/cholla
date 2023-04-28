@@ -1170,4 +1170,30 @@ __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int
   #endif  // DE
 }
 
+  #ifdef CONSERVED_FLOOR
+__global__ void Apply_Conserved_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num,
+                                      Real conserved_floor)
+{
+  int id, xid, yid, zid, n_cells;
+  Real field_0;
+  n_cells = nx * ny * nz;
+
+  // get a global thread ID
+  id  = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx * ny);
+  yid = (id - zid * nx * ny) / nx;
+  xid = id - zid * nx * ny - yid * nx;
+
+  // threads corresponding to real cells do the calculation
+  if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
+      zid < nz - n_ghost) {
+    field_0 = dev_conserved[id + n_cells * field_num];
+
+    if (field_0 < conserved_floor) {
+      dev_conserved[id + n_cells * field_num] = conserved_floor;
+    }
+  }
+}
+  #endif  // CONSERVED_FLOOR
+
 #endif  // CUDA
