@@ -133,7 +133,7 @@ void supernova::initState(struct parameters* P, part_int_t n_local, Real allocat
   n_states = n_local * allocation_factor;
   cudaMalloc((void**)&randStates, n_states * sizeof(feedback_prng_t));
 
-  int ngrid = (n_states + TPB_FEEDBACK - 1) / TPB_FEEDBACK;
+  int ngrid = (n_states - 1) / TPB_FEEDBACK + 1;
   dim3 grid(ngrid);
   dim3 block(TPB_FEEDBACK);
 

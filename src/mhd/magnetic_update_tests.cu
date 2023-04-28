@@ -46,7 +46,7 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
         destinationGrid(n_cells * (grid_enum::num_fields), -999.),
         ctElectricFields(n_cells * 3),
         fiducialData(n_cells * (grid_enum::num_fields), -999.),
-        dimGrid((n_cells + TPB - 1), 1, 1),
+        dimGrid((n_cells + TPB - 1) / TPB, 1, 1),
         dimBlock(TPB, 1, 1)
   {
     // Allocate device arrays

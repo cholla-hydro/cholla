@@ -482,11 +482,11 @@ Real Grid3D::Update_Grid(void)
     #ifdef CPU_TIME
   Timer.Cooling_GPU.Start();
     #endif
-  // ==Apply Cooling from cooling/cooling_cuda.h==
-  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
     #ifdef CPU_TIME
   Timer.Cooling_GPU.End();
     #endif
+  // ==Apply Cooling from cooling/cooling_cuda.h==
+  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
 
   #endif  // COOLING_GPU
 
