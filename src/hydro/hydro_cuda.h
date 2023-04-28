@@ -89,10 +89,8 @@ __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int
                                         Real U_floor);
     #endif
 
-    #ifdef CONSERVED_FLOOR
 __global__ void Apply_Conserved_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num,
                                       Real conserved_floor);
-    #endif
 
 __global__ void Partial_Update_Advected_Internal_Energy_1D(Real *dev_conserved, Real *Q_Lx, Real *Q_Rx, int nx,
                                                            int n_ghost, Real dx, Real dt, Real gamma, int n_fields);

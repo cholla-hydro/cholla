@@ -1170,7 +1170,6 @@ __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int
   #endif  // DE
 }
 
-  #ifdef CONSERVED_FLOOR
 __global__ void Apply_Conserved_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num,
                                       Real conserved_floor)
 {
@@ -1194,6 +1193,5 @@ __global__ void Apply_Conserved_Floor(Real *dev_conserved, int nx, int ny, int n
     }
   }
 }
-  #endif  // CONSERVED_FLOOR
 
 #endif  // CUDA
