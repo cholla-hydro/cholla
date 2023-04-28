@@ -107,8 +107,9 @@ const std::set<const char *> optionalParams = {
  * "warnings" in output. */
 int is_param_valid(const char *param_name)
 {
-  for (auto it = optionalParams.begin(); it != optionalParams.end(); ++it) {
-    if (strcmp(param_name, *it) == 0) {
+  // for (auto optionalParam = optionalParams.begin(); optionalParam != optionalParams.end(); ++optionalParam) {
+  for (auto optionalParam : optionalParams) {
+    if (strcmp(param_name, optionalParam) == 0) {
       return 1;
     }
   }
