@@ -34,14 +34,7 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
    *
    */
   tMHDUpdateMagneticField3D()
-      : nx(3),
-        ny(nx),
-        nz(nx),
-        n_cells(nx * ny * nz),
-        dt(3.2),
-        dx(2.5),
-        dy(2.5),
-        dz(2.5),
+      : n_cells(nx * ny * nz),
         sourceGrid(n_cells * (grid_enum::num_fields)),
         destinationGrid(n_cells * (grid_enum::num_fields), -999.),
         ctElectricFields(n_cells * 3),
@@ -64,9 +57,9 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
 
  protected:
   // Initialize the test grid and other state variables
-  size_t const nx, ny, nz;
+  size_t const nx = 3, ny = nx, nz = nx;
   size_t const n_cells;
-  Real const dt, dx, dy, dz;
+  Real const dt = 3.2, dx = 2.5, dy = dx, dz = dx;
 
   // Launch Parameters
   dim3 const dimGrid;   // How many blocks in the grid
