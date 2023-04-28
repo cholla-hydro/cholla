@@ -285,51 +285,20 @@ TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpe
 #endif  // MHD
 }
 
-TEST(tALLReconstructionMonotizeParabolicInterface, CorrectInputExpectCorrectOutput)
+TEST(tHYDROReconstructionMonotizeParabolicInterface, CorrectInputExpectCorrectOutput)
 {
-// Input Data
-#ifdef MHD
-  reconstruction::Primitive const cell_i{1.4708046701, 9.5021020181, 3.7123503442, 4.6476103466,
-                                         3.7096802847, 8.9692274397, 9.3416846121, 2.7707989229};
-  reconstruction::Primitive const cell_im1{3.9547588941, 3.1552319951, 3.0209247624, 9.5841013261,
-                                           2.2945188332, 8.2028929443, 1.6941969156, 8.9424967039};
-  reconstruction::Primitive const cell_ip1{5.1973323534, 6.9132613767, 1.8397298636, 5.341960387,
-                                           9.093498542,  3.6911762486, 7.3777130085, 3.6711825219};
-  reconstruction::Primitive interface_L_iph{6.7787324804, 9.5389820358, 9.8522754567, 7.8305142852,
-                                            2.450533435,  9.4782390708, 5.6820584385, 4.7115587023};
-  reconstruction::Primitive interface_R_imh{4.8015193892, 5.9124263972, 8.7513040382, 8.3659359773,
-                                            1.339777121,  4.5589857979, 1.4398647311, 8.8727778983};
-#else   // not MHD
+  // Input Data
+
   reconstruction::Primitive const cell_i{1.4708046701, 9.5021020181, 3.7123503442, 4.6476103466, 3.7096802847};
   reconstruction::Primitive const cell_im1{3.9547588941, 3.1552319951, 3.0209247624, 9.5841013261, 2.2945188332};
   reconstruction::Primitive const cell_ip1{5.1973323534, 6.9132613767, 1.8397298636, 5.341960387, 9.093498542};
   reconstruction::Primitive interface_L_iph{6.7787324804, 9.5389820358, 9.8522754567, 7.8305142852, 2.450533435};
   reconstruction::Primitive interface_R_imh{4.8015193892, 5.9124263972, 8.7513040382, 8.3659359773, 1.339777121};
-#endif  // MHD
 
   // Get test data
   reconstruction::Monotonize_Parabolic_Interface(cell_i, cell_im1, cell_ip1, interface_L_iph, interface_R_imh);
 
-// Check results
-#ifdef MHD
-  reconstruction::Primitive const fiducial_interface_L{1.4708046700999999, 9.5021020181000004, 3.7123503441999999,
-                                                       4.6476103465999996, 3.7096802847000001, 0 < 9.3416846120999999,
-                                                       2.7707989229000001};
-  reconstruction::Primitive const fiducial_interface_R{1.4708046700999999, 9.428341982700001,  3.7123503441999999,
-                                                       4.6476103465999996, 3.7096802847000001, 0 < 9.3416846120999999,
-                                                       2.7707989229000001};
-  testingUtilities::checkResults(fiducial_interface_L.density, interface_L_iph.density, "density");
-  testingUtilities::checkResults(fiducial_interface_L.velocity_x, interface_L_iph.velocity_x, "velocity_x");
-  testingUtilities::checkResults(fiducial_interface_L.velocity_y, interface_L_iph.velocity_y, "velocity_y");
-  testingUtilities::checkResults(fiducial_interface_L.velocity_z, interface_L_iph.velocity_z, "velocity_z");
-  testingUtilities::checkResults(fiducial_interface_L.pressure, interface_L_iph.pressure, "pressure");
-
-  testingUtilities::checkResults(fiducial_interface_R.density, interface_R_imh.density, "density");
-  testingUtilities::checkResults(fiducial_interface_R.velocity_x, interface_R_imh.velocity_x, "velocity_x");
-  testingUtilities::checkResults(fiducial_interface_R.velocity_y, interface_R_imh.velocity_y, "velocity_y");
-  testingUtilities::checkResults(fiducial_interface_R.velocity_z, interface_R_imh.velocity_z, "velocity_z");
-  testingUtilities::checkResults(fiducial_interface_R.pressure, interface_R_imh.pressure, "pressure");
-#else   // MHD
+  // Check results
   reconstruction::Primitive const fiducial_interface_L{1.4708046700999999, 9.5021020181000004, 3.7123503441999999,
                                                        4.6476103465999996, 3.7096802847000001};
   reconstruction::Primitive const fiducial_interface_R{1.4708046700999999, 9.428341982700001, 3.7123503441999999,
@@ -345,7 +314,6 @@ TEST(tALLReconstructionMonotizeParabolicInterface, CorrectInputExpectCorrectOutp
   testingUtilities::checkResults(fiducial_interface_R.velocity_y, interface_R_imh.velocity_y, "velocity_y");
   testingUtilities::checkResults(fiducial_interface_R.velocity_z, interface_R_imh.velocity_z, "velocity_z");
   testingUtilities::checkResults(fiducial_interface_R.pressure, interface_R_imh.pressure, "pressure");
-#endif  // MHD
 }
 
 TEST(tALLReconstructionCalcInterfaceLinear, CorrectInputExpectCorrectOutput)
@@ -422,6 +390,71 @@ TEST(tALLReconstructionCalcInterfaceParabolic, CorrectInputExpectCorrectOutput)
   testingUtilities::checkResults(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
   testingUtilities::checkResults(fiducial_data.pressure, test_data.pressure, "pressure");
 #endif  // MHD
+}
+
+TEST(tALLReconstructionPPMSingleVariable, CorrectInputExpectCorrectOutput)
+{
+  // Set up PRNG to use
+  std::mt19937_64 prng(42);
+  std::uniform_real_distribution<double> doubleRand(-100, 100);
+
+  // Set up testing parameters
+  size_t const n_tests = 100;
+  std::vector<double> fiducial_left_interface{
+      50.429040149605328,  4.4043935241855703,  37.054257344499717,  23.707343328192593,  -14.949021655598202,
+      -10.760611497035882, 8.367260859616664,   8.5357943668839624,  7.38606168778702,    -23.210826670297152,
+      -85.15197822983292,  18.98804944849401,   64.754272117396766,  4.5584678980835918,  45.81912726561103,
+      58.769584663215738,  47.626531326553447,  23.370742401854159,  47.06767164062336,   -53.975231802858218,
+      -81.51278133300454,  -74.554960772880221, 75.572387546643355,  61.339053128914685,  -41.370881014041672,
+      -41.817524439980467, 58.391560533135817,  -85.991024651293131, -36.626332669233776, 30.421304081280084,
+      20.637382412674093,  58.342347077360131,  -79.757902483702381, 98.151410701129635,  -9.4994975790183389,
+      -87.49117921577357,  -39.384192078363533, 79.849643090061676,  93.096197902468759,  -64.374502025066192,
+      82.037247010307937,  -20.951323678824952, 46.92743159953308,   -75.449850543801574, -54.603894223278004,
+      -59.419110050353098, -22.253989777496159, 86.943333900988137,  -83.887344220269938, 73.270857190511975,
+      84.784625452008811,  -27.929776508530765, -9.6992610428405612, -65.233676045197072, -88.498474065470134,
+      47.637114710282589,  -69.50911815749248,  -69.848254012650372, -7.4520009269431711, 90.887158278825865,
+      -79.086012597191512, -45.713537271527976, 80.237684918029572,  -60.666381661910016, 68.727158732184449,
+      24.53669768915492,   -67.195147776790975, 72.610434112023597,  54.910597945673814,  -19.862686571231023,
+      32.244024128018054,  -95.648868731550635, -34.761757909478987, -86.334093878928797, -16.580223524066724,
+      39.48244113577249,   64.203567686297504,  0.77846541072490538, 59.620571575902432,  41.0983082454959,
+      -2.6491435658297036, -23.149979553301478, -54.098849622102691, -45.577469823900444, 33.284499908516068,
+      -39.186662569988762, 76.266375356625161,  -51.650172854435624, -68.894636301310584, 98.410134045837452,
+      30.9954824410611,    78.440749922366507,  51.390453104722326,  70.625792807373429,  43.749856317813453,
+      -81.399433434996496, 88.385686355761862,  78.242223440453444,  27.539590130937498,  -6.9781781598207147};
+  std::vector<double> fiducial_right_interface{
+      50.429040149605328,  -40.625142952817804, 37.054257344499717,  -55.796322960572695, -14.949021655598202,
+      -10.760611497035882, 71.107183338735751,  -29.453314279116661, 7.38606168778702,    -23.210826670297152,
+      -85.15197822983292,  18.98804944849401,   64.754272117396766,  4.5584678980835918,  45.81912726561103,
+      58.769584663215738,  47.626531326553447,  9.3792919223901166,  47.06767164062336,   -53.975231802858218,
+      -81.51278133300454,  -74.554960772880221, 96.420244795844823,  37.498528618937456,  -41.370881014041672,
+      -41.817524439980467, 58.391560533135817,  -85.991024651293131, -12.674113472365306, 30.421304081280084,
+      43.700175645941769,  58.342347077360131,  -31.574197692184548, 98.151410701129635,  -9.4994975790183389,
+      -87.49117921577357,  -94.449608348937488, 79.849643090061676,  93.096197902468759,  -64.374502025066192,
+      82.037247010307937,  -60.629868182203786, -41.343090531127039, -75.449850543801574, -82.52313028208863,
+      19.871484181185011,  -22.253989777496159, 86.943333900988137,  -83.887344220269938, 73.270857190511975,
+      84.784625452008811,  -27.929776508530765, -9.6992610428405612, -65.233676045197072, -88.498474065470134,
+      47.637114710282589,  -69.50911815749248,  -69.848254012650372, -7.4520009269431711, 90.887158278825865,
+      -50.671539065300863, 13.424189957034621,  80.237684918029572,  32.454734198410179,  66.84741286999801,
+      24.53669768915492,   -67.195147776790975, 72.277527112459907,  -46.094192444366435, -99.915875366345205,
+      32.244024128018054,  -95.648868731550635, 17.922876720365402,  -86.334093878928797, -16.580223524066724,
+      39.48244113577249,   64.203567686297504,  23.62791013796798,   59.620571575902432,  41.0983082454959,
+      -30.533954819557593, -23.149979553301478, -54.098849622102691, -45.577469823900444, 33.284499908516068,
+      -39.186662569988762, 76.266375356625161,  -51.650172854435624, -68.894636301310584, 98.410134045837452,
+      -49.167117951549066, 78.440749922366507,  51.390453104722326,  3.1993391287610393,  43.749856317813453,
+      -81.399433434996496, 88.385686355761862,  78.242223440453444,  27.539590130937498,  -6.9781781598207147};
+
+  // Run n_tests iterations of the loop choosing random numbers to put into the interface state computation and checking
+  // the results
+  for (size_t i = 0; i < n_tests; i++) {
+    // Run the function
+    double test_left_interface, test_right_interface;
+    reconstruction::PPM_Single_Variable(doubleRand(prng), doubleRand(prng), doubleRand(prng), doubleRand(prng),
+                                        doubleRand(prng), test_left_interface, test_right_interface);
+
+    // Compare results
+    testingUtilities::checkResults(fiducial_left_interface.at(i), test_left_interface, "left i+1/2 interface");
+    testingUtilities::checkResults(fiducial_right_interface.at(i), test_right_interface, "right i-1/2 interface");
+  }
 }
 
 TEST(tALLReconstructionWriteData, CorrectInputExpectCorrectOutput)

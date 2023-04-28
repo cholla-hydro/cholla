@@ -679,7 +679,7 @@ std::vector<double> systemTest::SystemTestRunner::_loadTestParticleData(std::str
 // =============================================================================
 std::vector<double> systemTest::SystemTestRunner::_loadFiducialFieldData(std::string const &dataSetName)
 {
-  if (_fiducialFileExists) {
+  if (_fiducialFileExists and (_fiducialDataSets.find(dataSetName) == _fiducialDataSets.end())) {
     // Open the dataset
     H5::DataSet const fiducialDataSet = _fiducialFile.openDataSet(dataSetName);
 

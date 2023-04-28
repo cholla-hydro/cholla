@@ -160,7 +160,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveRightMovingC
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(6.5E-8, 6.5E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(6.11E-8, 5.5E-8);
 #endif  // PCM
 }
 
@@ -196,7 +196,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveLeftMovingCo
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(6.5E-8, 6.5E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(6.1E-8, 5.5E-8);
 #endif  // PCM
 }
 
@@ -234,7 +234,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveRightMovingC
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.45E-9, 1.3E-9);
 #endif  // PCM
 }
 
@@ -270,7 +270,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCo
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.45E-9, 1.3E-9);
 #endif  // PCM
 }
 
@@ -307,7 +307,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveRightMovingCorrectInpu
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.95e-09, 2.16e-09);
 #endif  // PCM
 }
 
@@ -342,7 +342,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveLeftMovingCorrectInput
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.95e-09, 2.16e-09);
 #endif  // PCM
 }
 
@@ -381,7 +381,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveCorrectInputExpect
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.41e-09, 1.5E-09);
 #endif  // PCM
 }
 
@@ -499,7 +499,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveRightMovingCor
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.4E-9, 1.3E-9);
 #endif  // PCM
 }
 
@@ -535,7 +535,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorr
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.4E-9, 1.3E-9);
 #endif  // PCM
 }
 
@@ -567,14 +567,6 @@ TEST_P(tMHDSYSTEMParameterizedMpi, ConstantWithZeroMagneticFieldCorrectInputExpe
 
 /// Test constant state with all magnetic fields set to one
 TEST_P(tMHDSYSTEMParameterizedMpi, ConstantWithMagneticFieldCorrectInputExpectCorrectOutput)
-{
-  test_runner.numMpiRanks = GetParam();
-  test_runner.runTest();
-}
-
-/// TODO: This is temporary. Remove once PPMP is implemented for MHD and replace
-/// TODO: with the hydro sod test
-TEST_P(tMHDSYSTEMParameterizedMpi, SodShockTubeCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
   test_runner.runTest();
@@ -728,9 +720,9 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, MovingW
   double const allowedError   = 5.0E-3;
 #elif defined(PPMC)
   // Set the number of timesteps
-  cpawTest.setFiducialNumTimeSteps(0);
-  double const allowedL1Error = 0.0;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 0.0;
+  cpawTest.setFiducialNumTimeSteps(84);
+  double const allowedL1Error = 4.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 3.0E-3;
 #endif  // PCM
 
   // Set the launch parameters
@@ -763,9 +755,9 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, Standin
   double const allowedError   = 2.0E-3;
 #elif defined(PPMC)
   // Set the number of timesteps
-  cpawTest.setFiducialNumTimeSteps(0);
-  double const allowedL1Error = 0.0;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 0.0;
+  cpawTest.setFiducialNumTimeSteps(130);
+  double const allowedL1Error = 1.3E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1.3E-3;
 #endif  // PCM
 
   // Set the launch parameters

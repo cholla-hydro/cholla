@@ -15,11 +15,12 @@
   #include "../utils/hydro_utilities.h"
 #endif
 
+// =====================================================================================================================
 /*!
  *  \brief When passed a stencil of conserved variables, returns the left and
  right boundary values for the interface calculated using ppm. */
-__global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, Real dx,
-                          Real dt, Real gamma, int dir)
+__global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, Real dx,
+                         Real dt, Real gamma, int dir)
 {
   // get a thread ID
   int const thread_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -223,7 +224,7 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // between neighboring cell-centered values Stone Eqns 47 - 53
   reconstruction::Monotonize_Parabolic_Interface(cell_i, cell_im1, cell_ip1, interface_L_iph, interface_R_imh);
 
-#ifndef VL
+  // This is the beginning of the characteristic tracing
   // Step 8 - Compute the coefficients for the monotonized parabolic
   // interpolation function
   //          Stone Eqn 54
@@ -240,18 +241,18 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real const vz_6 = 6.0 * (cell_i.velocity_z - 0.5 * (interface_R_imh.velocity_z + interface_L_iph.velocity_z));
   Real const p_6  = 6.0 * (cell_i.pressure - 0.5 * (interface_R_imh.pressure + interface_L_iph.pressure));
 
-  #ifdef DE
+#ifdef DE
   del_m_i.gas_energy = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
   Real const ge_6    = 6.0 * (cell_i.gas_energy - 0.5 * (interface_R_imh.gas_energy + interface_L_iph.gas_energy));
-  #endif  // DE
+#endif  // DE
 
-  #ifdef SCALAR
-  Real scalar_6[NSCALARS] : for (int i = 0; i < NSCALARS; i++)
-  {
+#ifdef SCALAR
+  Real scalar_6[NSCALARS];
+  for (int i = 0; i < NSCALARS; i++) {
     del_m_i.scalar[i] = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
     scalar_6[i]       = 6.0 * (cell_i.scalar[i] - 0.5 * (interface_R_imh.scalar[i] + interface_L_iph.scalar[i]));
   }
-  #endif  // SCALAR
+#endif  // SCALAR
 
   // Compute the eigenvalues of the linearized equations in the
   // primitive variables using the cell-centered primitive variables
@@ -307,16 +308,16 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       interface_R_imh.pressure -
       lambda_min * (0.5 * dtodx) * (del_m_i.pressure + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * p_6);
 
-  #ifdef DE
+#ifdef DE
   interface_L_iph.gas_energy =
       interface_L_iph.gas_energy -
       lambda_max * (0.5 * dtodx) * (del_m_i.gas_energy - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * ge_6);
   interface_R_imh.gas_energy =
       interface_R_imh.gas_energy -
       lambda_min * (0.5 * dtodx) * (del_m_i.gas_energy + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * ge_6);
-  #endif  // DE
+#endif  // DE
 
-  #ifdef SCALAR
+#ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     interface_L_iph.scalar[i] =
         interface_L_iph.scalar[i] -
@@ -325,22 +326,22 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
         interface_R_imh.scalar[i] -
         lambda_min * (0.5 * dtodx) * (del_m_i.scalar[i] + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * scalar_6[i]);
   }
-  #endif  // SCALAR
+#endif  // SCALAR
 
   // Step 10 - Perform the characteristic tracing
   //           Stone Eqns 57 - 60
 
   // left-hand interface value, i+1/2
   Real sum_1 = 0, sum_2 = 0, sum_3 = 0, sum_4 = 0, sum_5 = 0;
-  #ifdef DE
+#ifdef DE
   Real sum_ge = 0;
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
   Real sum_scalar[NSCALARS];
   for (int i = 0; i < NSCALARS; i++) {
     sum_scalar[i] = 0;
   }
-  #endif  // SCALAR
+#endif  // SCALAR
 
   if (lambda_m >= 0) {
     Real const A = (0.5 * dtodx) * (lambda_p - lambda_m);
@@ -365,27 +366,27 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     Real const chi_3 = A * (del_m_i.velocity_y - vy_6) + B * vy_6;
     Real const chi_4 = A * (del_m_i.velocity_z - vz_6) + B * vz_6;
     Real const chi_5 = A * (del_m_i.pressure - p_6) + B * p_6;
-  #ifdef DE
+#ifdef DE
     Real chi_ge = A * (del_m_i.gas_energy - ge_6) + B * ge_6;
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
     Real chi_scalar[NSCALARS];
     for (int i = 0; i < NSCALARS; i++) {
       chi_scalar[i] = A * (del_m_i.scalar[i] - scalar_6[i]) + B * scalar_6[i];
     }
-  #endif  // SCALAR
+#endif  // SCALAR
 
     sum_1 += chi_1 - chi_5 / (sound_speed * sound_speed);
     sum_3 += chi_3;
     sum_4 += chi_4;
-  #ifdef DE
+#ifdef DE
     sum_ge += chi_ge;
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       sum_scalar[i] += chi_scalar[i];
     }
-  #endif  // SCALAR
+#endif  // SCALAR
   }
   if (lambda_p >= 0) {
     Real const A = (0.5 * dtodx) * (lambda_p - lambda_p);
@@ -408,14 +409,14 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   interface_L_iph.velocity_y += sum_3;
   interface_L_iph.velocity_z += sum_4;
   interface_L_iph.pressure += sum_5;
-  #ifdef DE
+#ifdef DE
   interface_L_iph.gas_energy += sum_ge;
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     interface_L_iph.scalar[i] += sum_scalar[i];
   }
-  #endif  // SCALAR
+#endif  // SCALAR
 
   // right-hand interface value, i-1/2
   sum_1 = 0;
@@ -423,14 +424,14 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   sum_3 = 0;
   sum_4 = 0;
   sum_5 = 0;
-  #ifdef DE
+#ifdef DE
   sum_ge = 0;
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     sum_scalar[i] = 0;
   }
-  #endif  // SCALAR
+#endif  // SCALAR
   if (lambda_m <= 0) {
     Real const C = (0.5 * dtodx) * (lambda_m - lambda_m);
     Real const D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_m * lambda_m);
@@ -454,26 +455,26 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     Real const chi_3 = C * (del_m_i.velocity_y + vy_6) + D * vy_6;
     Real const chi_4 = C * (del_m_i.velocity_z + vz_6) + D * vz_6;
     Real const chi_5 = C * (del_m_i.pressure + p_6) + D * p_6;
-  #ifdef DE
+#ifdef DE
     chi_ge = C * (del_m_i.gas_energy + ge_6) + D * ge_6;
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       chi_scalar[i] = C * (del_m_i.scalar[i] + scalar_6[i]) + D * scalar_6[i];
     }
-  #endif  // SCALAR
+#endif  // SCALAR
 
     sum_1 += chi_1 - chi_5 / (sound_speed * sound_speed);
     sum_3 += chi_3;
     sum_4 += chi_4;
-  #ifdef DE
+#ifdef DE
     sum_ge += chi_ge;
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       sum_scalar[i] += chi_scalar[i];
     }
-  #endif  // SCALAR
+#endif  // SCALAR
   }
   if (lambda_p <= 0) {
     Real const C = (0.5 * dtodx) * (lambda_m - lambda_p);
@@ -496,16 +497,16 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   interface_R_imh.velocity_y += sum_3;
   interface_R_imh.velocity_z += sum_4;
   interface_R_imh.pressure += sum_5;
-  #ifdef DE
+#ifdef DE
   interface_R_imh.gas_energy += sum_ge;
-  #endif  // DE
-  #ifdef SCALAR
+#endif  // DE
+#ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     interface_R_imh.scalar[i] += sum_scalar[i];
   }
-  #endif  // SCALAR
+#endif  // SCALAR
 
-#endif  // not VL, i.e. CTU or SIMPLE was used for this section
+  // This is the end of the characteristic tracing
 
   // enforce minimum values
   interface_R_imh.density  = fmax(interface_R_imh.density, (Real)TINY_NUMBER);
@@ -523,3 +524,157 @@ __global__ void PPMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   id = cuda_utilities::compute1DIndex(xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny);
   reconstruction::Write_Data(interface_R_imh, dev_bounds_R, dev_conserved, id, n_cells, o1, o2, o3, gamma);
 }
+// =====================================================================================================================
+
+// =====================================================================================================================
+__global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, Real gamma,
+                        int dir)
+{
+  // get a thread ID
+  int const thread_id = threadIdx.x + blockIdx.x * blockDim.x;
+  int xid, yid, zid;
+  cuda_utilities::compute3DIndices(thread_id, nx, ny, xid, yid, zid);
+
+  // Thread guard to prevent overrun
+  if (size_t const min = 3, max = 3;
+      xid < min or xid >= nx - max or yid < min or yid >= ny - max or zid < min or zid >= nz - max) {
+    return;
+  }
+
+  // Compute the total number of cells
+  int const n_cells = nx * ny * nz;
+
+  // Set the field indices for the various directions
+  int o1, o2, o3;
+  switch (dir) {
+    case 0:
+      o1 = grid_enum::momentum_x;
+      o2 = grid_enum::momentum_y;
+      o3 = grid_enum::momentum_z;
+      break;
+    case 1:
+      o1 = grid_enum::momentum_y;
+      o2 = grid_enum::momentum_z;
+      o3 = grid_enum::momentum_x;
+      break;
+    case 2:
+      o1 = grid_enum::momentum_z;
+      o2 = grid_enum::momentum_x;
+      o3 = grid_enum::momentum_y;
+      break;
+  }
+
+  // load the 5-cell stencil into registers
+  // cell i
+  reconstruction::Primitive const cell_i =
+      reconstruction::Load_Data(dev_conserved, xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
+
+  // cell i-1. The equality checks check the direction and subtracts one from the direction
+  // im1 stands for "i minus 1"
+  reconstruction::Primitive const cell_im1 = reconstruction::Load_Data(
+      dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+
+  // cell i+1. The equality checks check the direction and adds one to the direction
+  // ip1 stands for "i plus 1"
+  reconstruction::Primitive const cell_ip1 = reconstruction::Load_Data(
+      dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+
+  // cell i-2. The equality checks check the direction and subtracts one from the direction
+  // im2 stands for "i minus 2"
+  reconstruction::Primitive const cell_im2 =
+      reconstruction::Load_Data(dev_conserved, xid - 2 * int(dir == 0), yid - 2 * int(dir == 1),
+                                zid - 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+
+  // cell i+2. The equality checks check the direction and adds one to the direction
+  // ip2 stands for "i plus 2"
+  reconstruction::Primitive const cell_ip2 =
+      reconstruction::Load_Data(dev_conserved, xid + 2 * int(dir == 0), yid + 2 * int(dir == 1),
+                                zid + 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+
+  // Convert to the characteristic variables
+  Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
+  Real const sound_speed_squared = sound_speed * sound_speed;
+
+  // Cell i
+  reconstruction::Characteristic const cell_i_characteristic =
+      reconstruction::Primitive_To_Characteristic(cell_i, cell_i, sound_speed, sound_speed_squared, gamma);
+
+  // Cell i-1
+  reconstruction::Characteristic const cell_im1_characteristic =
+      reconstruction::Primitive_To_Characteristic(cell_i, cell_im1, sound_speed, sound_speed_squared, gamma);
+
+  // Cell i-2
+  reconstruction::Characteristic const cell_im2_characteristic =
+      reconstruction::Primitive_To_Characteristic(cell_i, cell_im2, sound_speed, sound_speed_squared, gamma);
+
+  // Cell i+1
+  reconstruction::Characteristic const cell_ip1_characteristic =
+      reconstruction::Primitive_To_Characteristic(cell_i, cell_ip1, sound_speed, sound_speed_squared, gamma);
+
+  // Cell i+2
+  reconstruction::Characteristic const cell_ip2_characteristic =
+      reconstruction::Primitive_To_Characteristic(cell_i, cell_ip2, sound_speed, sound_speed_squared, gamma);
+
+  // Compute the interface states for each field
+  reconstruction::Characteristic interface_R_imh_characteristic, interface_L_iph_characteristic;
+  reconstruction::Primitive interface_L_iph, interface_R_imh;
+
+  reconstruction::PPM_Single_Variable(cell_im2_characteristic.a0, cell_im1_characteristic.a0, cell_i_characteristic.a0,
+                                      cell_ip1_characteristic.a0, cell_ip2_characteristic.a0,
+                                      interface_L_iph_characteristic.a0, interface_R_imh_characteristic.a0);
+  reconstruction::PPM_Single_Variable(cell_im2_characteristic.a1, cell_im1_characteristic.a1, cell_i_characteristic.a1,
+                                      cell_ip1_characteristic.a1, cell_ip2_characteristic.a1,
+                                      interface_L_iph_characteristic.a1, interface_R_imh_characteristic.a1);
+  reconstruction::PPM_Single_Variable(cell_im2_characteristic.a2, cell_im1_characteristic.a2, cell_i_characteristic.a2,
+                                      cell_ip1_characteristic.a2, cell_ip2_characteristic.a2,
+                                      interface_L_iph_characteristic.a2, interface_R_imh_characteristic.a2);
+  reconstruction::PPM_Single_Variable(cell_im2_characteristic.a3, cell_im1_characteristic.a3, cell_i_characteristic.a3,
+                                      cell_ip1_characteristic.a3, cell_ip2_characteristic.a3,
+                                      interface_L_iph_characteristic.a3, interface_R_imh_characteristic.a3);
+  reconstruction::PPM_Single_Variable(cell_im2_characteristic.a4, cell_im1_characteristic.a4, cell_i_characteristic.a4,
+                                      cell_ip1_characteristic.a4, cell_ip2_characteristic.a4,
+                                      interface_L_iph_characteristic.a4, interface_R_imh_characteristic.a4);
+
+#ifdef MHD
+  reconstruction::PPM_Single_Variable(cell_im2_characteristic.a5, cell_im1_characteristic.a5, cell_i_characteristic.a5,
+                                      cell_ip1_characteristic.a5, cell_ip2_characteristic.a5,
+                                      interface_L_iph_characteristic.a5, interface_R_imh_characteristic.a5);
+  reconstruction::PPM_Single_Variable(cell_im2_characteristic.a6, cell_im1_characteristic.a6, cell_i_characteristic.a6,
+                                      cell_ip1_characteristic.a6, cell_ip2_characteristic.a6,
+                                      interface_L_iph_characteristic.a6, interface_R_imh_characteristic.a6);
+#endif  // MHD
+
+#ifdef DE
+  reconstruction::PPM_Single_Variable(cell_im2.gas_energy, cell_im1.gas_energy, cell_i.gas_energy, cell_ip1.gas_energy,
+                                      cell_ip2.gas_energy, interface_L_iph.gas_energy, interface_R_imh.gas_energy);
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    reconstruction::PPM_Single_Variable(cell_im2.scalar[i], cell_im1.scalar[i], cell_i.scalar[i], cell_ip1.scalar[i],
+                                        cell_ip2.scalar[i], interface_L_iph.scalar[i], interface_R_imh.scalar[i]);
+  }
+#endif  // SCALAR
+
+  // Convert back to primitive variables
+  reconstruction::Characteristic_To_Primitive(cell_i, interface_L_iph_characteristic, sound_speed, sound_speed_squared,
+                                              gamma, interface_L_iph);
+  reconstruction::Characteristic_To_Primitive(cell_i, interface_R_imh_characteristic, sound_speed, sound_speed_squared,
+                                              gamma, interface_R_imh);
+
+  // enforce minimum values
+  interface_R_imh.density  = fmax(interface_R_imh.density, (Real)TINY_NUMBER);
+  interface_L_iph.density  = fmax(interface_L_iph.density, (Real)TINY_NUMBER);
+  interface_R_imh.pressure = fmax(interface_R_imh.pressure, (Real)TINY_NUMBER);
+  interface_L_iph.pressure = fmax(interface_L_iph.pressure, (Real)TINY_NUMBER);
+
+  // Step 11 - Send final values back from kernel
+
+  // Convert the left and right states in the primitive to the conserved variables send final values back from kernel
+  // bounds_R refers to the right side of the i-1/2 interface
+  size_t id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+  reconstruction::Write_Data(interface_L_iph, dev_bounds_L, dev_conserved, id, n_cells, o1, o2, o3, gamma);
+
+  id = cuda_utilities::compute1DIndex(xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny);
+  reconstruction::Write_Data(interface_R_imh, dev_bounds_R, dev_conserved, id, n_cells, o1, o2, o3, gamma);
+}
+// =====================================================================================================================

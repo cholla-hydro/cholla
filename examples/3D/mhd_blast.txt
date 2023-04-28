@@ -13,7 +13,7 @@ nz=200
 # final output time
 tout=0.2
 # time interval for output
-outstep=0.005
+outstep=0.2
 # name of initial conditions
 init=MHD_Spherical_Blast
 # domain properties
