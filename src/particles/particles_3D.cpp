@@ -516,7 +516,7 @@ void Particles_3D::Initialize_Sphere(struct parameters *P)
   Real *temp_mass = (Real *)malloc(particles_array_size * sizeof(Real));
     #endif
     #ifdef PARTICLE_IDS
-  part_int_t *temp_id = (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
+  auto *temp_id = (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
     #endif
 
   chprintf(" Allocated GPU memory for particle data\n");
