@@ -428,10 +428,10 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &particleData, bool co
   const ::testing::TestInfo *const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
   std::stringstream nameStream;
   std::string suiteName = test_info->test_suite_name();
-  suiteName             = suiteName.substr(suiteName.find("/") + 1, suiteName.length());
+  suiteName             = suiteName.substr(suiteName.find('/') + 1, suiteName.length());
   nameStream << suiteName << "_" << test_info->name();
   std::string fullTestName = nameStream.str();
-  _fullTestFileName        = fullTestName.substr(0, fullTestName.find("/"));
+  _fullTestFileName        = fullTestName.substr(0, fullTestName.find('/'));
 
   // Generate the input paths. Strip out everything after a "/" since that
   // probably indicates a parameterized test.
