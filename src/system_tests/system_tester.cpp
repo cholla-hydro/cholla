@@ -111,7 +111,7 @@ void systemTest::SystemTestRunner::runTest(bool const &compute_L2_norm_only, dou
   double L2Norm   = 0;
   double maxError = 0;
   // Loop over the datasets to be tested
-  for (auto dataSetName : _fiducialDataSetNames) {
+  for (auto const &dataSetName : _fiducialDataSetNames) {
     // check that the test data has the dataset in it
     ASSERT_EQ(std::count(_testDataSetNames.begin(), _testDataSetNames.end(), dataSetName), 1)
         << "The test data does not contain the dataset '" + dataSetName + "' or contains it more than once.";
@@ -272,7 +272,7 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
   // Loop over the datasets to be tested
   double L2Norm   = 0;
   double maxError = 0;
-  for (auto dataSetName : _fiducialDataSetNames) {
+  for (auto const &dataSetName : _fiducialDataSetNames) {
     if (dataSetName == "GasEnergy") {
       continue;
     }
@@ -623,7 +623,7 @@ std::vector<double> systemTest::SystemTestRunner::_loadTestParticleData(std::str
 {
   // Determine the total number of particles
   if (_testTotalNumParticles == 0) {
-    for (auto file : _testParticlesFileVec) {
+    for (auto const &file : _testParticlesFileVec) {
       // Open the dataset
       H5::DataSet const dataSet = file.openDataSet(dataSetName);
 
