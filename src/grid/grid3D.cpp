@@ -553,7 +553,7 @@ Real Grid3D::Update_Hydro_Grid()
   Real dti;
 
 #ifdef CPU_TIME
-  Timer.Hydro.Start();
+  Timer.Hydro_MHD.Start();
 #endif  // CPU_TIME
 
 #ifdef GRAVITY
@@ -565,10 +565,10 @@ Real Grid3D::Update_Hydro_Grid()
 
 #ifdef CPU_TIME
   #ifdef CHEMISTRY_GPU
-  Timer.Hydro.Subtract(Chem.H.runtime_chemistry_step);
+  Timer.Hydro_MHD.Subtract(Chem.H.runtime_chemistry_step);
   // Subtract the time spent on the Chemical Update
   #endif  // CHEMISTRY_GPU
-  Timer.Hydro.End();
+  Timer.Hydro_MHD.End();
 #endif  // CPU_TIME
 
 #ifdef COOLING_GRACKLE
