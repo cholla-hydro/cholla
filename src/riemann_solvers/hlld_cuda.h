@@ -93,8 +93,8 @@ struct DoubleStarState {
   // pressureDoubleStar = pressureStar
   // Shared values
   Real velocityY, velocityZ, magneticY, magneticZ;
-  // Different values
-  Real energyL, energyR;
+  // Different values. Initializing these since one or the other can be uninitializing leading to bad tests
+  Real energyL = 0.0, energyR = 0.0;
 };
 
 /*!
