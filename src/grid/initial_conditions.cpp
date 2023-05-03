@@ -36,9 +36,7 @@ void Grid3D::Set_Initial_Conditions(parameters P)
   } else if (strcmp(P.init, "Sound_Wave") == 0) {
     Sound_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);
   } else if (strcmp(P.init, "Linear_Wave") == 0) {
-    Linear_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A, P.Bx, P.By, P.Bz, P.rEigenVec_rho, P.rEigenVec_MomentumX,
-                P.rEigenVec_MomentumY, P.rEigenVec_MomentumZ, P.rEigenVec_E, P.rEigenVec_Bx, P.rEigenVec_By,
-                P.rEigenVec_Bz, P.pitch, P.yaw);
+    Linear_Wave(P);
   } else if (strcmp(P.init, "Square_Wave") == 0) {
     Square_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);
   } else if (strcmp(P.init, "Riemann") == 0) {
@@ -302,19 +300,16 @@ void Grid3D::Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
 
 /*! \fn void Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
  *  \brief Sine wave perturbation. */
-void Grid3D::Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Real Bx, Real By, Real Bz,
-                         Real rEigenVec_rho, Real rEigenVec_MomentumX, Real rEigenVec_MomentumY,
-                         Real rEigenVec_MomentumZ, Real rEigenVec_E, Real rEigenVec_Bx, Real rEigenVec_By,
-                         Real rEigenVec_Bz, Real pitch, Real yaw)
+void Grid3D::Linear_Wave(parameters const &P)
 {
-  auto [stagger, junk1, junk2] = math_utils::rotateCoords<Real>(H.dx / 2, H.dy / 2, H.dz / 2, pitch, yaw);
+  auto [stagger, junk1, junk2] = math_utils::rotateCoords<Real>(H.dx / 2, H.dy / 2, H.dz / 2, P.pitch, P.yaw);
 
   // set initial values of conserved variables
   for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
         // Rotate the indices
-        auto [i_rot, j_rot, k_rot] = math_utils::rotateCoords<int>(i, j, k, pitch, yaw);
+        auto [i_rot, j_rot, k_rot] = math_utils::rotateCoords<int>(i, j, k, P.pitch, P.yaw);
 
         // get cell index
         int id = i + j * H.nx + k * H.nx * H.ny;
@@ -325,25 +320,25 @@ void Grid3D::Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Re
 
         // set constant initial states. Note that hydro_utilities::Calc_Energy_Primitive computes the MHD energy if the
         // MHD flag is turned on and the hydro energy if it isn't
-        Real sine_wave = std::sin(2.0 * M_PI * x_pos);
+        Real sine_wave = std::sin(2.0 * M_PI * x_pos / P.wave_length);
 
-        C.density[id]    = rho;
-        C.momentum_x[id] = rho * vx;
-        C.momentum_y[id] = rho * vy;
-        C.momentum_z[id] = rho * vz;
-        C.Energy[id]     = hydro_utilities::Calc_Energy_Primitive(P, rho, vx, vy, vz, gama, Bx, By, Bz);
+        C.density[id]    = P.rho;
+        C.momentum_x[id] = P.rho * P.vx;
+        C.momentum_y[id] = P.rho * P.vy;
+        C.momentum_z[id] = P.rho * P.vz;
+        C.Energy[id]     = hydro_utilities::Calc_Energy_Primitive(P.P, P.rho, P.vx, P.vy, P.vz, gama, P.Bx, P.By, P.Bz);
         // add small-amplitude perturbations
-        C.density[id] += A * rEigenVec_rho * sine_wave;
-        C.momentum_x[id] += A * rEigenVec_MomentumX * sine_wave;
-        C.momentum_y[id] += A * rEigenVec_MomentumY * sine_wave;
-        C.momentum_z[id] += A * rEigenVec_MomentumZ * sine_wave;
-        C.Energy[id] += A * rEigenVec_E * sine_wave;
+        C.density[id] += P.A * P.rEigenVec_rho * sine_wave;
+        C.momentum_x[id] += P.A * P.rEigenVec_MomentumX * sine_wave;
+        C.momentum_y[id] += P.A * P.rEigenVec_MomentumY * sine_wave;
+        C.momentum_z[id] += P.A * P.rEigenVec_MomentumZ * sine_wave;
+        C.Energy[id] += P.A * P.rEigenVec_E * sine_wave;
 
 #ifdef MHD
         sine_wave        = std::sin(2.0 * M_PI * (x_pos + stagger));
-        C.magnetic_x[id] = Bx + A * rEigenVec_Bx * sine_wave;
-        C.magnetic_y[id] = By + A * rEigenVec_By * sine_wave;
-        C.magnetic_z[id] = Bz + A * rEigenVec_Bz * sine_wave;
+        C.magnetic_x[id] = P.Bx + P.A * P.rEigenVec_Bx * sine_wave;
+        C.magnetic_y[id] = P.By + P.A * P.rEigenVec_By * sine_wave;
+        C.magnetic_z[id] = P.Bz + P.A * P.rEigenVec_Bz * sine_wave;
 #endif  // MHD
       }
     }
