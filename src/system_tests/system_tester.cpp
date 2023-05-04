@@ -31,7 +31,8 @@
 // =============================================================================
 
 // =============================================================================
-void systemTest::SystemTestRunner::runTest()
+void systemTest::SystemTestRunner::runTest(bool const &compute_L2_norm_only, double const &maxAllowedL1Error,
+                                           double const &maxAllowedError)
 {
   /// Only run if this variable is set to `true`. Generally this and
   /// globalCompareSystemTestResults should only be used for large MPI / tests
@@ -106,6 +107,9 @@ void systemTest::SystemTestRunner::runTest()
       << _fiducialDataSetNames.size() << " datasets" << std::endl
       << std::endl;
 
+  // Compute the L1 Error.
+  double L2Norm   = 0;
+  double maxError = 0;
   // Loop over the datasets to be tested
   for (auto dataSetName : _fiducialDataSetNames) {
     // check that the test data has the dataset in it
@@ -146,26 +150,54 @@ void systemTest::SystemTestRunner::runTest()
         << "The fiducial and test '" << dataSetName << "' datasets are not the same length";
 
     // Compare values
+    double L1_error     = 0.0;
+    double fp_sum_error = 0.0;
     for (size_t i = 0; i < testDims[0]; i++) {
       for (size_t j = 0; j < testDims[1]; j++) {
         for (size_t k = 0; k < testDims[2]; k++) {
           size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
 
-          // Check for equality and iff not equal return difference
-          double absoluteDiff;
-          int64_t ulpsDiff;
-          bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData.at(index), testData.at(index), absoluteDiff,
-                                                           ulpsDiff, _fixedEpsilon);
-          ASSERT_TRUE(areEqual) << std::endl
-                                << "Difference in " << dataSetName << " dataset at [" << i << "," << j << "," << k
-                                << "]" << std::endl
-                                << "The fiducial value is:       " << fiducialData[index] << std::endl
-                                << "The test value is:           " << testData[index] << std::endl
-                                << "The absolute difference is:  " << absoluteDiff << std::endl
-                                << "The ULP difference is:       " << ulpsDiff << std::endl;
+          if (compute_L2_norm_only) {
+            double const diff = std::abs(fiducialData.at(index) - testData.at(index));
+
+            maxError = std::max(maxError, diff);
+
+            // Perform a Kahan sum to maintain precision in the result
+            double const y = diff - fp_sum_error;
+            double const t = L1_error + y;
+            fp_sum_error   = (t - L1_error) - y;
+            L1_error       = t;
+          } else {
+            // Check for equality and iff not equal return difference
+            double absoluteDiff;
+            int64_t ulpsDiff;
+            bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData.at(index), testData.at(index), absoluteDiff,
+                                                             ulpsDiff, _fixedEpsilon);
+            ASSERT_TRUE(areEqual) << std::endl
+                                  << "Difference in " << dataSetName << " dataset at [" << i << "," << j << "," << k
+                                  << "]" << std::endl
+                                  << "The fiducial value is:       " << fiducialData[index] << std::endl
+                                  << "The test value is:           " << testData[index] << std::endl
+                                  << "The absolute difference is:  " << absoluteDiff << std::endl
+                                  << "The ULP difference is:       " << ulpsDiff << std::endl;
+          }
         }
       }
     }
+
+    if (compute_L2_norm_only) {
+      L1_error /= static_cast<double>(testDims[0] * testDims[1] * testDims[2]);
+      L2Norm += L1_error * L1_error;
+    }
+  }
+
+  if (compute_L2_norm_only) {
+    // Check the L2 Norm
+    L2Norm = std::sqrt(L2Norm);
+    EXPECT_LT(L2Norm, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
+
+    // Check the Max Error
+    EXPECT_LT(maxError, maxAllowedError) << "The maximum error has exceeded the allowed value";
   }
 }
 // =============================================================================
@@ -287,7 +319,7 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
         << "the L1 error for the " << dataSetName << " data has exceeded the allowed value";
   }
 
-  // Check the L1 Norm
+  // Check the L2 Norm
   L2Norm = std::sqrt(L2Norm);
   EXPECT_LT(L2Norm, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
 
