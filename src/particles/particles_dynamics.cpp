@@ -63,7 +63,7 @@ Real Grid3D::Calc_Particles_dt()
 Real Grid3D::Calc_Particles_dt_GPU()
 {
   // set values for GPU kernels
-  int ngrid = (Particles.n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  int ngrid = (Particles.n_local - 1) / TPB_PARTICLES + 1;
 
   if (ngrid > Particles.G.size_blocks_array) {
     chprintf(" Error: particles dt_array too small\n");

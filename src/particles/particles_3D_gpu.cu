@@ -74,7 +74,7 @@ void __global__ Copy_Device_to_Device_Kernel(T *src_array_dev, T *dst_array_dev,
 template <typename T>
 void Copy_Device_to_Device(T *src_array_dev, T *dst_array_dev, part_int_t size)
 {
-  int ngrid = (size + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  int ngrid = (size - 1) / TPB_PARTICLES + 1;
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   hipLaunchKernelGGL(Copy_Device_to_Device_Kernel, dim1dGrid, dim1dBlock, 0, 0, src_array_dev, dst_array_dev, size);
@@ -186,7 +186,7 @@ __global__ void Set_Particles_Array_Real_Kernel(Real value, Real *array_dev, par
 void Particles_3D::Set_Particles_Array_Real(Real value, Real *array_dev, part_int_t size)
 {
   // set values for GPU kernels
-  int ngrid = (size + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  int ngrid = (size - 1) / TPB_PARTICLES + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
