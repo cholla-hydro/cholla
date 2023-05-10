@@ -49,7 +49,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
         grid(n_cells * (grid_enum::num_fields)),
         testCTElectricFields(n_cells * 3, -999.),
         fiducialData(n_cells * 3, -999.),
-        dimGrid((n_cells + TPB - 1), 1, 1),
+        dimGrid((n_cells + TPB - 1) / TPB, 1, 1),
         dimBlock(TPB, 1, 1)
   {
     // Allocate device arrays

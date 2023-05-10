@@ -827,6 +827,24 @@ int greatest_prime_factor(int n)
   return np;
 }
 
+/*
+ tile MPI processes in a block arrangement for the 3D case
+ */
+void TileBlockDecomposition3D(int number, int &np_x, int &np_y, int &np_z)
+{
+  int dims[3]  = {1, 1, 1};
+  size_t index = 0;
+  while (number > 1) {
+    int gpf = greatest_prime_factor(number);
+    number /= gpf;
+    dims[index % 3] *= gpf;
+    index += 1;
+  }
+  np_x = dims[0];
+  np_y = dims[1];
+  np_z = dims[2];
+}
+
 /*tile MPI processes in a block arrangement*/
 void TileBlockDecomposition(void)
 {
@@ -867,43 +885,7 @@ void TileBlockDecomposition(void)
     return;
   }
 
-  /*base decomposition on whether n_gpf==2*/
-  if (n_gpf != 2) {
-    /*we are in 3-d, so split remainder evenly*/
-    np_x  = n_gpf;
-    n_gpf = greatest_prime_factor(nproc / n_gpf);
-    if (n_gpf != 2) {
-      /*the next greatest prime is odd, so just split*/
-      np_y = n_gpf;
-      np_z = nproc / (np_x * np_y);
-    } else {
-      /*increase ny, nz round-robin*/
-      while (np_x * np_y * np_z < nproc) {
-        np_y *= 2;
-        if (np_x * np_y * np_z == nproc) {
-          break;
-        }
-        np_z *= 2;
-      }
-    }
-  } else {
-    /*nproc is a power of 2*/
-    /*we are in 3-d, so split remainder evenly*/
-
-    /*increase nx, ny, nz round-robin*/
-    while (np_x * np_y * np_z < nproc) {
-      np_x *= 2;
-      if (np_x * np_y * np_z == nproc) {
-        break;
-      }
-      np_y *= 2;
-      if (np_x * np_y * np_z == nproc) {
-        break;
-      }
-      np_z *= 2;
-    }
-  }
-
+  TileBlockDecomposition3D(nproc, np_x, np_y, np_z);
   // reorder x, y, z
 
   int n_tmp;

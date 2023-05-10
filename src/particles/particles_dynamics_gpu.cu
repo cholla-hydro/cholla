@@ -80,7 +80,7 @@ Real Particles_3D::Calc_Particles_dt_GPU_function(int ngrid, part_int_t n_partic
                                                   Real *dti_array_dev)
 {
   // // set values for GPU kernels
-  // int ngrid =  (Particles.n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  // int ngrid =  (Particles.n_local - 1) / TPB_PARTICLES + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -150,7 +150,7 @@ void Particles_3D::Advance_Particles_KDK_Step1_GPU_function(part_int_t n_local, 
                                                             Real *grav_y_dev, Real *grav_z_dev)
 {
   // set values for GPU kernels
-  int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -169,7 +169,7 @@ void Particles_3D::Advance_Particles_KDK_Step2_GPU_function(part_int_t n_local, 
                                                             Real *grav_y_dev, Real *grav_z_dev)
 {
   // set values for GPU kernels
-  int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -265,7 +265,7 @@ void Particles_3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function(part_int_t n_l
                                                                   Real Omega_K)
 {
   // set values for GPU kernels
-  int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -288,7 +288,7 @@ void Particles_3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function(part_int_t n_l
                                                                   Real Omega_K)
 {
   // set values for GPU kernels
-  int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
