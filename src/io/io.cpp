@@ -1602,7 +1602,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dxy, "/d_xy");
     status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_dxz, "/d_xz");
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txy, "/T_xy");
-    status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txz, "/T_xz");
+    status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_Txz, "/T_xz");
 
     // Free the dataspace ids
     status = H5Sclose(dataspace_xz_id);
