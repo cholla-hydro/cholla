@@ -70,7 +70,8 @@ class systemTest::SystemTestRunner
    * \brief Run the system test that has been set up
    *
    */
-  void runTest();
+  void runTest(bool const &compute_L2_norm_only = false, double const &maxAllowedL1Error = 0.0,
+               double const &maxAllowedError = 0.0);
 
   /*!
    * \brief Compute the L1 error for each field compared to the initial
