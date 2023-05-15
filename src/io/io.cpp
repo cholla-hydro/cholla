@@ -190,7 +190,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 #elif defined HDF5
   filename += ".h5";
 #else
-  strcat(filename, ".txt");
+  filename += ".txt";
   if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
 #endif
 #ifdef MPI_CHOLLA
@@ -240,7 +240,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 #else
   // open the file for txt writes
   FILE *out;
-  out = fopen(filename, "w");
+  out = fopen(filename.data(), "w");
   if (out == NULL) {
     printf("Error opening output file.\n");
     exit(-1);
@@ -259,6 +259,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 
 void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 {
+#ifdef HDF5
   Header H = G.H;
   // Do nothing in 1-D and 2-D case
   if (H.ny_real == 1) {
@@ -276,9 +277,9 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
   std::string filename(P.outdir);
   filename += std::to_string(nfile);
   filename += ".float32.h5";
-#ifdef MPI_CHOLLA
+  #ifdef MPI_CHOLLA
   filename += "." + std::to_string(procID);
-#endif
+  #endif  // MPI_CHOLLA
 
   // create hdf5 file
   hid_t file_id; /* file identifier */
@@ -301,11 +302,11 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
     // Need a larger device buffer for MHD. In the future, if other fields need
     // a larger device buffer, choose the maximum of the sizes. If the buffer is
     // too large, it does not cause bugs (Oct 6 2022)
-#ifdef MHD
+  #ifdef MHD
     buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
-#else
+  #else
     buffer_size = nx_dset * ny_dset * nz_dset;
-#endif
+  #endif  // MHD
 
     // Using static DeviceVector here automatically allocates the buffer the
     // first time it is needed It persists until program exit, and then calls
@@ -334,13 +335,13 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_Energy, "/Energy");
     }
-#ifdef DE
+  #ifdef DE
     if (P.out_float32_GasEnergy > 0) {
       WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
                        G.C.d_GasEnergy, "/GasEnergy");
     }
-#endif  // DE
-#ifdef MHD
+  #endif  // DE
+  #ifdef MHD
 
     // TODO (by Alwin, for anyone) : Repair output format if needed and remove these chprintfs when appropriate
     if (P.out_float32_magnetic_x > 0) {
@@ -359,7 +360,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
                        device_dataset_buffer, G.C.d_magnetic_z, "/magnetic_z");
     }
 
-#endif
+  #endif  // MHD
 
     free(dataset_buffer);
 
@@ -371,6 +372,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 
   // close the file
   status = H5Fclose(file_id);
+#endif  // HDF5
 }
 
 /* Output a projection of the grid data to file. */
@@ -1370,13 +1372,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #ifdef OUTPUT_ENERGY
   output_energy = true;
   #else   // not OUTPUT_ENERGY
-  output_energy      = false;
+  output_energy = false;
   #endif  // OUTPUT_ENERGY
 
   #ifdef OUTPUT_MOMENTUM
   output_momentum = true;
   #else   // not OUTPUT_MOMENTUM
-  output_momentum    = false;
+  output_momentum = false;
   #endif  // OUTPUT_MOMENTUM
 
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)

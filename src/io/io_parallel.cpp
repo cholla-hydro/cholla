@@ -71,12 +71,15 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
     exit(0);
   }
 
-  // TODO (written by Alwin, for anyone to do) : Need to consider how or whether to read attributes.
-  // even without read gamma from file, it is set in initial_conditions.cpp
-  // if I do not set t or n_step it is set to 0 in grid/grid3D.cpp
-  // This should be okay to start with.
-  // Choosing not to read attributes is because
-  // Parallel-reading attributes can be slow without collective calls.
+  // TODO (written by Alwin, for anyone to do) :
+  // Consider using collective calls if this part is slow at scale
+  hid_t attribute_id;
+  attribute_id = H5Aopen(file_id, "t", H5P_DEFAULT);
+  status       = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &H.t);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Aopen(file_id, "n_step", H5P_DEFAULT);
+  status       = H5Aread(attribute_id, H5T_NATIVE_INT, &H.n_step);
+  status       = H5Aclose(attribute_id);
 
   // Offsets are global variables from mpi_routines.h
   hsize_t offset[3];

@@ -432,6 +432,10 @@ Real Grid3D::Update_Grid(void)
   U_floor /= Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
 #endif
 
+#ifdef CPU_TIME
+  Timer.Hydro_Integrator.Start();
+#endif  // CPU_TIME
+
   // Run the hydro integrator on the grid
   if (H.nx > 1 && H.ny == 1 && H.nz == 1)  // 1D
   {
@@ -474,11 +478,22 @@ Real Grid3D::Update_Grid(void)
     chexit(-1);
   }
 
+#ifdef CPU_TIME
+  Timer.Hydro_Integrator.End();
+#endif  // CPU_TIME
+
 #ifdef CUDA
 
   #ifdef COOLING_GPU
+    #ifdef CPU_TIME
+  Timer.Cooling_GPU.Start();
+    #endif
   // ==Apply Cooling from cooling/cooling_cuda.h==
   Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
+    #ifdef CPU_TIME
+  Timer.Cooling_GPU.End();
+    #endif
+
   #endif  // COOLING_GPU
 
   #ifdef DUST
@@ -564,11 +579,11 @@ Real Grid3D::Update_Hydro_Grid()
 
 #ifdef COOLING_GRACKLE
   #ifdef CPU_TIME
-  Timer.Cooling.Start();
+  Timer.Cooling_Grackle.Start();
   #endif  // CPU_TIME
   Do_Cooling_Step_Grackle();
   #ifdef CPU_TIME
-  Timer.Cooling.End();
+  Timer.Cooling_Grackle.End();
   #endif  // CPU_TIME
 #endif    // COOLING_GRACKLE
 
