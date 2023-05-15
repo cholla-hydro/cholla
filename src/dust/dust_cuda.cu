@@ -99,7 +99,8 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     // if dual energy is turned on use temp from total internal energy
     temperature = temperature_init;
 
-    Real tau_sp = Calc_Sputtering_Timescale(number_density, temperature) / TIME_UNIT;  // sputtering timescale, kyr (sim units)
+    Real tau_sp =
+        Calc_Sputtering_Timescale(number_density, temperature) / TIME_UNIT;  // sputtering timescale, kyr (sim units)
 
     dd_dt = Calc_dd_dt(density_dust, tau_sp);  // rate of change in dust density at current timestep
     dd    = dd_dt * dt;                        // change in dust density at current timestep
