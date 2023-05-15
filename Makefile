@@ -208,7 +208,7 @@ tidy:
 	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(DFLAGS) $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp_$(TYPE).log 2>&1 & \
 	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES_TIDY) -- $(DFLAGS) $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu_$(TYPE).log 2>&1 & \
 	for i in 1 2; do wait -n; done
-	@echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp.log' and 'tidy_results_gpu.log' files."
+	@echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp_$(TYPE).log' and 'tidy_results_gpu_$(TYPE).log' files."
 
 clean:
 	rm -f $(CLEAN_OBJS)
