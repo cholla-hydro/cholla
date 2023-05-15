@@ -71,13 +71,7 @@ bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff, int6
 
   // Perform the ULP check which is for numbers far from zero and perform the absolute check which is for numbers near
   // zero
-  if (ulpsDiff <= ulpsEpsilon or absoluteDiff <= fixedEpsilon) {
-    return true;
-  }
-  // if the checks don't pass indicate test failure
-  else {
-    return false;
-  }
+  return ulpsDiff <= ulpsEpsilon or absoluteDiff <= fixedEpsilon;
 }
 // =========================================================================
 
