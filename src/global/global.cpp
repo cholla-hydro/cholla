@@ -97,6 +97,7 @@ char *trim(char *s)
   return s;
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 const std::set<const char *> optionalParams = {
     "flag_delta",   "ddelta_dt",   "n_delta",  "Lz",       "Lx",      "phi",     "theta",
     "delta",        "nzr",         "nxr",      "H0",       "Omega_M", "Omega_L", "Init_redshift",
