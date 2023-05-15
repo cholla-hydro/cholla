@@ -25,13 +25,12 @@ TEST(tDUSTTestSputteringTimescale,
      CorrectInputExpectCorrectOutput)  // test suite name, test name
 {
   // Parameters
-  Real YR_IN_S        = 3.154e7;
-  Real const k_test_n = 1;
-  Real const k_test_T = pow(10, 5.0);
+  Real YR_IN_S                     = 3.154e7;
+  Real const k_test_number_density = 1;
+  Real const k_test_temperature    = pow(10, 5.0);
+  Real const k_fiducial_num        = 182565146.96398282;
 
-  Real const k_fiducial_num = 182565146.96398282;
-
-  Real test_num = calc_tau_sp(k_test_n, k_test_T) / YR_IN_S;  // yr
+  Real test_num = Calc_Sputtering_Timescale(k_test_number_density, k_test_temperature) / YR_IN_S;  // yr
 
   double abs_diff;
   int64_t ulps_diff;
@@ -50,13 +49,12 @@ TEST(tDUSTTestSputteringGrowthRate,
      CorrectInputExpectCorrectOutput)  // test suite name, test name
 {
   // Parameters
-  Real YR_IN_S             = 3.154e7;
-  Real const k_test_tau_sp = 0.17e6;                // kyr
-  Real const k_test_d_dust = 1e-26 / DENSITY_UNIT;  // sim units
+  Real YR_IN_S                   = 3.154e7;
+  Real const k_test_tau_sp       = 0.17e6;                // kyr
+  Real const k_test_density_dust = 1e-26 / DENSITY_UNIT;  // sim units
+  Real const k_fiducial_num      = -2.6073835738056728;
 
-  Real const k_fiducial_num = -2.6073835738056728;
-
-  Real test_num = calc_dd_dt(k_test_d_dust, k_test_tau_sp);
+  Real test_num = Calc_dd_dt(k_test_density_dust, k_test_tau_sp);
 
   double abs_diff;
   int64_t ulps_diff;

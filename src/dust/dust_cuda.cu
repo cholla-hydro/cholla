@@ -44,18 +44,18 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
   // get a global thread ID
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
   int id      = threadIdx.x + blockId * blockDim.x;
-  int zid     = id / (nx * ny);
-  int yid     = (id - zid * nx * ny) / nx;
-  int xid     = id - zid * nx * ny - yid * nx;
+  int id_z    = id / (nx * ny);
+  int id_y    = (id - id_z * nx * ny) / nx;
+  int id_x    = id - id_z * nx * ny - id_y * nx;
 
   // define physics variables
-  Real d_gas, d_dust;  // fluid mass densities
-  Real n;              // gas number density
-  Real mu = 0.6;       // mean molecular weight
-  Real T, E, P;        // temperature, energy, pressure
-  Real vx, vy, vz;     // velocities
+  Real density_gas, density_dust;           // fluid mass densities
+  Real number_density;                      // gas number density
+  Real mu = 0.6;                            // mean molecular weight
+  Real temperature, energy, pressure;       // temperature, energy, pressure
+  Real velocity_x, velocity_y, velocity_z;  // velocities
   #ifdef DE
-  Real ge;
+  Real energy_gas;
   #endif  // DE
 
   // define integration variables
@@ -64,82 +64,83 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
   Real dd_max = 0.01;  // allowable percentage of dust density increase
   Real dt_sub;         // refined timestep
 
-  if (xid >= is && xid < ie && yid >= js && yid < je && zid >= ks && zid < ke) {
+  if (id_x >= is && id_x < ie && id_y >= js && id_y < je && id_z >= ks && id_z < ke) {
     // get conserved quanitites
-    d_gas  = dev_conserved[id + n_cells * grid_enum::density];
-    d_dust = dev_conserved[id + n_cells * grid_enum::dust_density];
-    E      = dev_conserved[id + n_cells * grid_enum::Energy];
+    density_gas  = dev_conserved[id + n_cells * grid_enum::density];
+    density_dust = dev_conserved[id + n_cells * grid_enum::dust_density];
+    energy       = dev_conserved[id + n_cells * grid_enum::Energy];
 
     // convert mass density to number density
-    n = d_gas * DENSITY_UNIT / (mu * MP);
+    number_density = density_gas * DENSITY_UNIT / (mu * MP);
 
-    if (E < 0.0 || E != E) {
+    if (energy < 0.0 || energy != energy) {
       return;
     }
 
     // get conserved quanitites
-    vx = dev_conserved[id + n_cells * grid_enum::momentum_x] / d_gas;
-    vy = dev_conserved[id + n_cells * grid_enum::momentum_y] / d_gas;
-    vz = dev_conserved[id + n_cells * grid_enum::momentum_z] / d_gas;
+    velocity_x = dev_conserved[id + n_cells * grid_enum::momentum_x] / density_gas;
+    velocity_y = dev_conserved[id + n_cells * grid_enum::momentum_y] / density_gas;
+    velocity_z = dev_conserved[id + n_cells * grid_enum::momentum_z] / density_gas;
   #ifdef DE
-    ge = dev_conserved[id + n_cells * grid_enum::GasEnergy] / d_gas;
-    ge = fmax(ge, (Real)TINY_NUMBER);
+    energy_gas = dev_conserved[id + n_cells * grid_enum::GasEnergy] / density_gas;
+    energy_gas = fmax(ge, (Real)TINY_NUMBER);
   #endif  // DE
 
     // calculate physical quantities
-    P = hydro_utilities::Calc_Pressure_Primitive(E, d_gas, vx, vy, vz, gamma);
+    pressure = hydro_utilities::Calc_Pressure_Primitive(energy, density_gas, velocity_x, velocity_y, velocity_z, gamma);
 
-    Real T_init;
-    T_init = hydro_utilities::Calc_Temp(P, n);
+    Real temperature_init;
+    temperature_init = hydro_utilities::Calc_Temp(pressure, number_density);
 
   #ifdef DE
-    T_init = hydro_utilities::Calc_Temp_DE(d_gas, ge, gamma, n);
+    temperature_init = hydro_utilities::Calc_Temp_DE(density_gas, energy_gas, gamma, number_density);
   #endif  // DE
 
     // if dual energy is turned on use temp from total internal energy
-    T = T_init;
+    temperature = temperature_init;
 
-    Real tau_sp = calc_tau_sp(n, T) / TIME_UNIT;  // sputtering timescale, kyr (sim units)
+    Real tau_sp = Calc_Sputtering_Timescale(number_density, temperature) / TIME_UNIT;  // sputtering timescale, kyr (sim units)
 
-    dd_dt = calc_dd_dt(d_dust, tau_sp);  // rate of change in dust density at current timestep
-    dd    = dd_dt * dt;                  // change in dust density at current timestep
+    dd_dt = Calc_dd_dt(density_dust, tau_sp);  // rate of change in dust density at current timestep
+    dd    = dd_dt * dt;                        // change in dust density at current timestep
 
     // ensure that dust density is not changing too rapidly
-    while (dd / d_dust > dd_max) {
-      dt_sub = dd_max * d_dust / dd_dt;
-      d_dust += dt_sub * dd_dt;
+    while (dd / density_dust > dd_max) {
+      dt_sub = dd_max * density_dust / dd_dt;
+      density_dust += dt_sub * dd_dt;
       dt -= dt_sub;
-      dd_dt = calc_dd_dt(d_dust, tau_sp);
+      dd_dt = Calc_dd_dt(density_dust, tau_sp);
       dd    = dt * dd_dt;
     }
 
     // update dust density
-    d_dust += dd;
+    density_dust += dd;
 
-    dev_conserved[id + n_cells * grid_enum::dust_density] = d_dust;
+    dev_conserved[id + n_cells * grid_enum::dust_density] = density_dust;
 
   #ifdef DE
-    dev_conserved[id + n_cells * grid_enum::GasEnergy] = d_dust * ge;
+    dev_conserved[id + n_cells * grid_enum::GasEnergy] = density_dust * energy_gas;
   #endif
   }
 }
 
-// McKinnon et al. (2017)
-__device__ __host__ Real calc_tau_sp(Real n, Real T)
+// McKinnon et al. (2017) sputtering timescale
+__device__ __host__ Real Calc_Sputtering_Timescale(Real number_density, Real temperature)
 {
-  Real YR_IN_S = 3.154e7;
-  Real a1      = 1;           // dust grain size in units of 0.1 micrometers
-  Real d0      = n / (6e-4);  // gas density in units of 10^-27 g/cm^3
-  Real T_0     = 2e6;         // K
-  Real omega   = 2.5;
-  Real A       = 0.17e9 * YR_IN_S;  // 0.17 Gyr in s
+  Real grain_radius  = 1;          // dust grain size in units of 0.1 micrometers
+  Real temperature_0 = 2e6;        // temp above which the sputtering rate is ~constant in K
+  Real omega         = 2.5;        // controls the low-temperature scaling of the sputtering rate
+  Real A             = 5.3618e15;  // 0.17 Gyr in s
 
-  Real tau_sp = A * (a1 / d0) * (pow(T_0 / T, omega) + 1);  // sputtering timescale, s
+  number_density /= (6e-4);  // gas number density in units of 10^-27 g/cm^3
+
+  // sputtering timescale, s
+  Real tau_sp = A * (grain_radius / number_density) * (pow(temperature_0 / temperature, omega) + 1);
 
   return tau_sp;
 }
 
-// McKinnon et al. (2017)
-__device__ __host__ Real calc_dd_dt(Real d_dust, Real tau_sp) { return -d_dust / (tau_sp / 3); }
+// McKinnon et al. (2017) sputtering model
+__device__ __host__ Real Calc_dd_dt(Real density_dust, Real tau_sp) { return -density_dust / (tau_sp / 3); }
 
 #endif  // DUST
