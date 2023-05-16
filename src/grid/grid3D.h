@@ -352,6 +352,12 @@ class Grid3D
      */
     Real *basic_scalar;
   #endif
+  #ifdef DUST
+    /*! \var dust_density
+     *  \brief Array containing the dust densities.
+     */
+    Real *dust_density;
+  #endif
 #endif  // SCALAR
 
 #ifdef MHD
@@ -397,8 +403,8 @@ class Grid3D
 
     /*! pointer to conserved variable on device */
     Real *device;
-    Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z, *d_Energy, *d_scalar, *d_basic_scalar, *d_magnetic_x,
-        *d_magnetic_y, *d_magnetic_z, *d_GasEnergy;
+    Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z, *d_Energy, *d_scalar, *d_basic_scalar,
+        *d_dust_density, *d_magnetic_x, *d_magnetic_y, *d_magnetic_z, *d_GasEnergy;
 
     /*! pointer to gravitational potential on device */
     Real *d_Grav_potential;
@@ -496,8 +502,12 @@ class Grid3D
 #endif
 
   /*! \fn void Read_Grid(struct parameters P)
-   *  \brief Read in grid data from an output file. */
+   *  \brief Read in grid data from 1-per-process output files. */
   void Read_Grid(struct parameters P);
+
+  /*! \fn void Read_Grid_Cat(struct parameters P)
+   *  \brief Read in grid data from a single concatenated output file. */
+  void Read_Grid_Cat(struct parameters P);
 
   /*! \fn Read_Grid_Binary(FILE *fp)
    *  \brief Read in grid data from a binary file. */

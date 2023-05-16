@@ -80,7 +80,16 @@ int main(int argc, char *argv[])
       "Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, "
       "boundaries = %d %d %d %d %d %d\n",
       P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
+
+  bool is_restart = false;
   if (strcmp(P.init, "Read_Grid") == 0) {
+    is_restart = true;
+  }
+  if (strcmp(P.init, "Read_Grid_Cat") == 0) {
+    is_restart = true;
+  }
+
+  if (is_restart) {
     chprintf("Input directory:  %s\n", P.indir);
   }
   chprintf("Output directory:  %s\n", P.outdir);
@@ -107,8 +116,8 @@ int main(int argc, char *argv[])
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P);
   chprintf("Initial conditions set.\n");
-  // set main variables for Read_Grid initial conditions
-  if (strcmp(P.init, "Read_Grid") == 0) {
+  // set main variables for Read_Grid and Read_Grid_Cat initial conditions
+  if (is_restart) {
     outtime += G.H.t;
     nfile = P.nfile;
   }
@@ -193,7 +202,7 @@ int main(int argc, char *argv[])
   chprintf("Nstep = %d  Simulation time = %f\n", G.H.n_step, G.H.t);
 
 #ifdef OUTPUT
-  if (strcmp(P.init, "Read_Grid") != 0 || G.H.Output_Now) {
+  if (!is_restart || G.H.Output_Now) {
     // write the initial conditions to file
     chprintf("Writing initial conditions to file...\n");
     WriteData(G, P, nfile);
@@ -238,9 +247,7 @@ int main(int argc, char *argv[])
 #endif  // CPU_TIME
     start_step = get_time();
 
-    // calculate the timestep. Note: this computes the timestep ONLY on the
-    // first loop, on subsequent time steps it just calls the MPI_Allreduce to
-    // determine the global timestep
+    // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
 
     if (G.H.t + G.H.dt > outtime) {

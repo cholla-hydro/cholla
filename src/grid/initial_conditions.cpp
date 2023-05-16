@@ -78,6 +78,8 @@ void Grid3D::Set_Initial_Conditions(parameters P)
     // Initialize a uniform hydro grid when only integrating particles
     Uniform_Grid();
 #endif  // ONLY_PARTICLES
+  } else if (strcmp(P.init, "Read_Grid_Cat") == 0) {
+    Read_Grid_Cat(P);
   } else if (strcmp(P.init, "Uniform") == 0) {
     Uniform_Grid();
   } else if (strcmp(P.init, "Zeldovich_Pancake") == 0) {
@@ -1307,8 +1309,8 @@ void Grid3D::Clouds()
         C.GasEnergy[id] = p_bg / (gama - 1.0);
 #endif
 #ifdef SCALAR
-  #ifdef BASIC_SCALAR
-        C.basic_scalar[id] = C.density[id] * 0.0;
+  #ifdef DUST
+        C.host[id + H.n_cells * grid_enum::dust_density] = 0.0;
   #endif
 #endif
         // add clouds

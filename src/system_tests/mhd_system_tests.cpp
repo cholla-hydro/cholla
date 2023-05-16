@@ -606,7 +606,9 @@ TEST_P(tMHDSYSTEMParameterizedMpi, AdvectingFieldLoopCorrectInputExpectCorrectOu
 TEST_P(tMHDSYSTEMParameterizedMpi, MhdBlastWaveCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
-  test_runner.runTest();
+
+  // Only do the L2 Norm test. The regular cell-to-cell comparison is brittle for this test across systems
+  test_runner.runTest(true, 2.2E-4, 0.35);
 }
 
 /// Test the Orszag-Tang Vortex
