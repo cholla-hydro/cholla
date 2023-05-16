@@ -112,6 +112,9 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
     #ifdef BASIC_SCALAR
   Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.basic_scalar, "/scalar0");
     #endif
+    #ifdef DUST
+  Read_Grid_Cat_HDF5_Field(file_id, dataset_buffer, H, offset, count, C.dust_density, "/dust_density");
+    #endif
   #endif
   // TODO (Alwin) : add scalar stuff
 
