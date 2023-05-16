@@ -1632,10 +1632,10 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dxy, "/d_xy");
     status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_dxz, "/d_xz");
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txy, "/T_xy");
-    status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txz, "/T_xz");
+    status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_Txz, "/T_xz");
   #ifdef DUST
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dust_xy, "/d_dust_xy");
-    status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dust_xz, "/d_dust_xz");
+    status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_dust_xz, "/d_dust_xz");
   #endif
 
     // Free the dataspace ids
