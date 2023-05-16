@@ -1430,11 +1430,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #ifdef SCALAR
 
     #ifdef BASIC_SCALAR
-  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_basic_scalar, "/scalar0");
+  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_basic_scalar, "/scalar0");
     #endif  // BASIC_SCALAR
 
     #ifdef DUST
-  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_dust_density, "/dust_density");
+  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_dust_density, "/dust_density");
     #endif  // DUST
 
     #ifdef OUTPUT_CHEMISTRY
