@@ -300,6 +300,9 @@ void Grid3D::AllocateMemory(void)
   #ifdef BASIC_SCALAR
   C.basic_scalar = &(C.host[H.n_cells * grid_enum::basic_scalar]);
   #endif
+  #ifdef DUST
+  C.dust_density = &(C.host[H.n_cells * grid_enum::dust_density]);
+  #endif
 #endif  // SCALAR
 #ifdef MHD
   C.magnetic_x = &(C.host[grid_enum::magnetic_x * H.n_cells]);
@@ -322,6 +325,9 @@ void Grid3D::AllocateMemory(void)
   C.d_scalar = &(C.device[H.n_cells * grid_enum::scalar]);
   #ifdef BASIC_SCALAR
   C.d_basic_scalar = &(C.device[H.n_cells * grid_enum::basic_scalar]);
+  #endif
+  #ifdef DUST
+  C.d_dust_density = &(C.device[H.n_cells * grid_enum::dust_density]);
   #endif
 #endif  // SCALAR
 #ifdef MHD
