@@ -56,8 +56,13 @@ typedef double Real;
 #define LOG_FILE_NAME "run_output.log"
 
 // Conserved Floor Values
+//#define TEMP_FLOOR 1e1    // 10K for cloudy cooling
+//#define DENS_FLOOR 14.83  // 1e-6 cm^-3
 #define TEMP_FLOOR 1e-3
 #define DENS_FLOOR 1e-5  // in code units
+
+// mean molecular weight
+#define MU 0.6
 
 // Parameter for Enzo dual Energy Condition
 #define DE_ETA_1 \
@@ -271,11 +276,13 @@ struct parameters {
   // machine dependent seed will be generated.
   std::uint_fast64_t prng_seed = 0;
 #endif  // PARTICLES
-#if defined(FEEDBACK) && !defined(NO_SN_FEEDBACK)
+#ifdef FEEDBACK
+  #ifndef NO_SN_FEEDBACK
   char snr_filename[MAXLEN];
-#endif
-#if defined(FEEDBACK) && !defined(NO_WIND_FEEDBACK)
+  #endif
+  #ifndef NO_WIND_FEEDBACK
   char sw_filename[MAXLEN];
+  #endif
 #endif
 #ifdef ROTATED_PROJECTION
   int nxr;

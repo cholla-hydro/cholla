@@ -154,7 +154,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
     #else
     cool = CIE_cool(n, T);
-    // printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
     #endif
 
     // and send back from kernel
@@ -327,6 +326,10 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   Real lambda = 0.0;  // cooling rate, erg s^-1 cm^3
   Real H      = 0.0;  // heating rate, erg s^-1 cm^3
   Real cool   = 0.0;  // cooling per unit volume, erg /s / cm^3
+  // the following two values are for photoelectric heating
+  // based on description given in Kim et al. 2015.
+  Real n_av   = 100.0; //TODO mean density in the sim volume, cm^3 (make this an argument?)
+  Real H_pe   = 0.0;
   float log_n, log_T;
   log_n = log10(n);
   log_T = log10(T);
@@ -341,15 +344,28 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   // variable so it is treated as "x" This is why the Texture calls are T first,
   // then n: Bilinear_Texture(tex, log_T, log_n)
 
-  // don't cool below 10 K
-  if (log10(T) > 1.0) {
+  // cloudy cooling tables cut off at 10^9 K, use the CIE analytic fit above
+  // this temp.
+  if (log10(T) > 9.0) {
+    lambda = 0.45 * log10(T) - 26.065;
+  } else if (log10(T) >= 1.0) {  // don't cool below 10 K
     lambda = Bilinear_Texture(coolTexObj, log_T, log_n);
-  } else
-    lambda = 0.0;
-  H = Bilinear_Texture(heatTexObj, log_T, log_n);
+    H = Bilinear_Texture(heatTexObj, log_T, log_n);
+  }
+
+  // apply photoelectric heating under 10,000 K
+  if (log10(T) < 4.0) {
+    H_pe = n_av * 1.0e-26;
+  }
 
   // cooling rate per unit volume
-  cool = n * n * (powf(10, lambda) - powf(10, H));
+  if (log10(T) > 9.0) {
+    cool = n * n * pow(10, lambda);
+  } else if (log10(T) >= 4.0) {
+    cool = n * n * (pow(10, lambda) - pow(10, H));
+  } else {
+    cool = n * (n * (pow(10, lambda) - pow(10, H)) - H_pe);
+  }
   // printf("DEBUG Cloudy L350: %.17e\n",cool);
   return cool;
 }

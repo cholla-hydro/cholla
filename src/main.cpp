@@ -151,19 +151,14 @@ int main(int argc, char *argv[])
 #endif
 
 #if defined(FEEDBACK) && defined(PARTICLE_AGE)
-  FeedbackAnalysis sn_analysis(G);
+  FeedbackAnalysis sn_analysis(G, &P);
   #ifndef NO_SN_FEEDBACK
-    #ifdef MPI_CHOLLA
-    feedback::initState(&P, G.Particles.n_total_initial);
-    #else
-    feedback::initState(&P, G.Particles.n_local);
-    #endif  // MPI_CHOLLA
+    feedback::initState(&P);
   #endif // NO_SN_FEEDBACK
-#endif    // FEEDBACK && PARTICLE_AGE
-
-#ifndef NO_WIND_FEEDBACK
-  feedback::initWindState(&P);
-#endif
+  #ifndef NO_WIND_FEEDBACK
+    feedback::initWindState(&P);
+  #endif
+#endif // FEEDBACK && PARTICLE_AGE
 
 #ifdef STAR_FORMATION
   star_formation::Initialize(G);

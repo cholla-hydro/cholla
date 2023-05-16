@@ -39,8 +39,6 @@
 
 namespace feedback
 {
-  feedback_prng_t* randStates;
-  part_int_t n_states;
   Real *dev_snr, snr_dt, time_sn_start, time_sn_end;
   Real *dev_sw_p, *dev_sw_e, sw_dt, time_sw_start, time_sw_end;
   int snr_n;
@@ -136,35 +134,21 @@ inline __device__ Real GetAverageDensity(Real* density, int xi, int yi, int zi,
 inline __device__ Real GetAverageNumberDensity_CGS(Real* density, int xi, int yi,
                                             int zi, int nx_grid, int ny_grid, int n_ghost)
 {
-  return GetAverageDensity(density, xi, yi, zi, nx_grid, ny_grid, n_ghost) * DENSITY_UNIT /
-         (feedback::MU * MP);
+  return GetAverageDensity(density, xi, yi, zi, nx_grid, ny_grid, n_ghost) *
+           DENSITY_UNIT / (MU * MP);
 }
 
-
-__global__ void initState_kernel(unsigned int seed,
-                                 feedback_prng_t* states)
-{
-  int id = blockIdx.x * blockDim.x + threadIdx.x;
-  curand_init(seed, id, 0, &states[id]);
-}
 
 #ifndef NO_SN_FEEDBACK
 /**
- * @brief Does 2 things:
+ * @brief
  * -# Read in SN rate data from Starburst 99. If no file exists, assume a
  * constant rate.
- * -# Initialize the cuRAND state, which is analogous to the concept of
- * generators in CPU code. The state object maintains configuration and status
- * the cuRAND context for each thread on the GPU. Initialize more than the
- * number of local particles since the latter will change through MPI transfers.
  *
  * @param P pointer to parameters struct. Passes in starburst 99 filename and
  * random number gen seed.
- * @param n_local  number of local particles on the GPU
- * @param allocation_factor
  */
-void feedback::initState(struct parameters* P, part_int_t n_local,
-                          Real allocation_factor)
+void feedback::initState(struct parameters* P)
 {
   chprintf("feedback::initState start\n");
   std::string snr_filename(P->snr_filename);
@@ -222,20 +206,6 @@ void feedback::initState(struct parameters* P, part_int_t n_local,
     time_sn_start = DEFAULT_SN_START;
     time_sn_end   = DEFAULT_SN_END;
   }
-
-  // Now initialize the poisson random number generator state.
-  n_states = n_local * allocation_factor;
-  cudaMalloc((void**)&randStates, n_states * sizeof(feedback_prng_t));
-
-  int ngrid = (n_states + TPB_FEEDBACK - 1) / TPB_FEEDBACK;
-  dim3 grid(ngrid);
-  dim3 block(TPB_FEEDBACK);
-
-  hipLaunchKernelGGL(initState_kernel, grid, block, 0, 0, P->prng_seed,
-                     randStates);
-  CHECK(cudaDeviceSynchronize());
-  chprintf("feedback::initState end: n_states=%ld, ngrid=%d, threads=%d\n",
-           n_states, ngrid, TPB_FEEDBACK);
 }
 #endif // NO_SN_FEEDBACK
 
@@ -725,7 +695,7 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age,
     if (is_resolved) {
       // inject energy and density
       if (time_direction > 0) {
-        s_info[FEED_INFO_N * tid + i_RES]    = 1.0;
+        s_info[FEED_INFO_N * tid + i_RES]    = 1. * N;
         s_info[FEED_INFO_N * tid + i_ENERGY] = feedback_energy * dV;
       }
       local_dti = Apply_Resolved_SN(pos_x,  pos_y,  pos_z,
@@ -740,7 +710,7 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age,
       feedback_momentum = time_direction * feedback::FINAL_MOMENTUM *
                             pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV / sqrt(3.0);
       if (time_direction > 0) {
-        s_info[FEED_INFO_N * tid + i_UNRES]    = time_direction * 1.0;
+        s_info[FEED_INFO_N * tid + i_UNRES]    = 1. * N;
         s_info[FEED_INFO_N * tid + i_MOMENTUM] = feedback_momentum * dV * sqrt(3.0);
         s_info[FEED_INFO_N * tid + i_UNRES_ENERGY] = feedback_energy * dV;
       }
@@ -875,8 +845,9 @@ __device__ void Cluster_Feedback_Helper( part_int_t n_local, Real* pos_x_dev,
   // Ignore this particle, exit
   if (ignore) return;
 
-  bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx);
-  if (!is_alone) return;
+  //bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx);
+  //if (is_alone) kernel_printf(" particle not alone: step %d, id %ld\n", n_step, id_dev[gtid]);
+  //if (!is_alone) return;
 
   // note age_dev is actually the time of birth
   Real age = t - age_dev[gtid];
@@ -1019,8 +990,9 @@ __global__ void Adjust_Cluster_Mass_Kernel(part_int_t n_local, Real* pos_x_dev,
   // Ignore this particle, exit
   if (ignore) return;
 
-  bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx);
-  if (!is_alone) return;
+  //bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx);
+  //if (is_alone) kernel_printf(" particle not alone: step %d, id %ld\n", n_step, id_dev[gtid]);
+  //if (!is_alone) return;
 
   Real age = t - age_dev[gtid];
   
@@ -1093,8 +1065,9 @@ __global__ void Set_Ave_Density_Kernel(
   // Ignore this particle, exit
   if (ignore) return;
 
-  bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx);
-  if (!is_alone) return;
+  //bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx);
+  //if (is_alone) kernel_printf(" particle not alone: step %d, id %ld\n", n_step, id_dev[gtid]);
+  //if (!is_alone) return;
 
   bool is_sn_feedback = false;
   bool is_wind_feedback = false;
@@ -1134,7 +1107,7 @@ __global__ void Set_Ave_Density_Kernel(
 
       // resolved SN feedback does not average densities.
       if (!is_resolved && N > 0) {
-        ave_dens = n_0 * feedback::MU * MP / DENSITY_UNIT;
+        ave_dens = n_0 * MU * MP / DENSITY_UNIT;
         Set_Average_Density(indx_x, indx_y, indx_z,
                             nx_g, ny_g, n_ghost, density, ave_dens);
       }
@@ -1173,7 +1146,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
     CHECK(cudaMalloc(&d_prev_dens, G.Particles.n_local * sizeof(Real)));
     CHECK(cudaMemset(d_prev_dens, 0, G.Particles.n_local * sizeof(Real)));
 
-    ngrid = std::ceil((1. * G.Particles.n_local) / TPB_FEEDBACK);
+    ngrid =  (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
     CHECK(cudaMalloc((void**)&d_info, FEED_INFO_N * sizeof(Real)));
 
     // before applying feedback, set gas density around clusters to the 
@@ -1292,24 +1265,23 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
   if (procID == 0) {
   #endif
 
-  analysis.countSN += (int)info[feedback::SN];
-  analysis.countResolved += (int)info[feedback::RESOLVED];
-  analysis.countUnresolved += (int)info[feedback::NOT_RESOLVED];
+  analysis.countSN += (long)info[feedback::SN];
+  analysis.countResolved += (long)info[feedback::RESOLVED];
+  analysis.countUnresolved += (long)info[feedback::NOT_RESOLVED];
   analysis.totalEnergy += info[feedback::ENERGY];
   analysis.totalMomentum += info[feedback::MOMENTUM];
   analysis.totalUnresEnergy += info[feedback::UNRES_ENERGY];
   analysis.totalWindMomentum += info[i_WIND_MOMENTUM];
   analysis.totalWindEnergy+= info[i_WIND_ENERGY];
 
+  chprintf("iteration %d, t %.4e, dt %.4e", G.H.n_step, G.H.t, G.H.dt);
+
+  #ifndef NO_SN_FEEDBACK
   Real global_resolved_ratio = 0.0;
   if (analysis.countResolved > 0 || analysis.countUnresolved > 0) {
     global_resolved_ratio = analysis.countResolved /
                           (analysis.countResolved + analysis.countUnresolved);
   }
-
-  chprintf("iteration %d, t %.4e, dt %.4e", G.H.n_step, G.H.t, G.H.dt);
-
-  #ifndef NO_SN_FEEDBACK
   chprintf(": number of SN: %d,(R: %d, UR: %d)\n", (int)info[feedback::SN],
       (long)info[feedback::RESOLVED], (long)info[feedback::NOT_RESOLVED]);
   chprintf(

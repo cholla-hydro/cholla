@@ -679,8 +679,8 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   // radius unsigned long int N = 13; //(long int)(6.5e6 * 0.9272485558395908);
   // // 15kpc radius
   Real total_mass               = 0;
-  Real upper_limit_cluster_mass = 8e7;
-  Real SFR                      = 1e3;
+  Real upper_limit_cluster_mass = 8e6;
+  Real SFR                      = 1e2;
   Real t_cluster_creation       = -4e4;
   long lost_particles           = 0;
   part_int_t id                 = -1;
