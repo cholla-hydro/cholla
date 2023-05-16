@@ -33,6 +33,7 @@ Checks: "*,
         -readability-static-accessed-through-instance,
         -misc-unused-parameters,
         -hicpp-multiway-paths-covered,
+        -cert-err58-cpp,
 
         google-readability-avoid-underscore-in-googletest-name,
         google-upgrade-googletest-case,
