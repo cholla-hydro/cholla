@@ -335,8 +335,10 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   Real sum_1 = 0, sum_2 = 0, sum_3 = 0, sum_4 = 0, sum_5 = 0;
 #ifdef DE
   Real sum_ge = 0;
+  Real chi_ge = 0;
 #endif  // DE
 #ifdef SCALAR
+  Real chi_scalar[NSCALARS];
   Real sum_scalar[NSCALARS];
   for (int i = 0; i < NSCALARS; i++) {
     sum_scalar[i] = 0;
@@ -367,10 +369,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     Real const chi_4 = A * (del_m_i.velocity_z - vz_6) + B * vz_6;
     Real const chi_5 = A * (del_m_i.pressure - p_6) + B * p_6;
 #ifdef DE
-    Real chi_ge = A * (del_m_i.gas_energy - ge_6) + B * ge_6;
+    chi_ge = A * (del_m_i.gas_energy - ge_6) + B * ge_6;
 #endif  // DE
 #ifdef SCALAR
-    Real chi_scalar[NSCALARS];
     for (int i = 0; i < NSCALARS; i++) {
       chi_scalar[i] = A * (del_m_i.scalar[i] - scalar_6[i]) + B * scalar_6[i];
     }
