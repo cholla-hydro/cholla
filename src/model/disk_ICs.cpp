@@ -65,16 +65,16 @@ Real Sigma_disk_D3D(Real r, Real *hdp)
   // return the exponential surface density
   Real Sigma_0 = hdp[9];
   Real R_g     = hdp[10];
-  Real R_c     = 4.5;
+  Real R_c     = 1.9;
   Real Sigma;
-  Real delta = 0.1;
+  Real delta = 0.01;
   Real norm  = log(1.0 / 3.0);
   Sigma      = Sigma_0 * exp(-r / R_g);
   // taper the edge of the disk to 0
   if (r < R_c) {
-    Sigma *= 2.0 - 1.0 / (1.0 - exp((r - (4.5 - delta * norm)) / delta));
+    Sigma *= 2.0 - 1.0 / (1.0 - exp((r - (R_c - delta * norm)) / delta));
   } else {
-    Sigma *= 1.0 / (1.0 - exp(((4.5 + delta * norm) - r) / delta)) - 1.0;
+    Sigma *= 1.0 / (1.0 - exp(((R_c + delta * norm) - r) / delta)) - 1.0;
   }
   return Sigma;
 }

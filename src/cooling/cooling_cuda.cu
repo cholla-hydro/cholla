@@ -122,9 +122,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
 
     // limit change in temperature to 1%
-    while (del_T / T > 0.01) {
+    while (fabs(del_T) / T > 0.01) {
       // what dt gives del_T = 0.01*T?
-      dt_sub = 0.01 * T * n * KB / (cool * TIME_UNIT * (gamma - 1.0));
+      dt_sub = 0.01 * T * n * KB / (fabs(cool) * TIME_UNIT * (gamma - 1.0));
       // apply that dt
       T -= cool * dt_sub * TIME_UNIT * (gamma - 1.0) / (n * KB);
       // how much time is left from the original timestep?
@@ -147,13 +147,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     E -= n * KB * del_T / ((gamma - 1.0) * ENERGY_UNIT);
     #ifdef DE
     ge -= KB * del_T / (mu * MP * (gamma - 1.0) * SP_ENERGY_UNIT);
-    #endif
-
-    // calculate cooling rate for new T
-    #ifdef CLOUDY_COOL
-    cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
-    #else
-    cool = CIE_cool(n, T);
     #endif
 
     // and send back from kernel

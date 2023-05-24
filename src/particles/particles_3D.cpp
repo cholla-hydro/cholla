@@ -657,7 +657,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   Real R_d   = Galaxies::MW.getR_d();  // MW stellar disk scale length in kpc
   Real Z_d   = Galaxies::MW.getZ_d();  // MW stellar height scale length in kpc
   Real R_max = sqrt(P->xlen * P->xlen + P->ylen * P->ylen) / 2;
-  R_max      = P->xlen / 2.0;
+  R_max      = 1.8; // P->xlen / 2.0;
 
   real_vector_t temp_pos_x;
   real_vector_t temp_pos_y;
