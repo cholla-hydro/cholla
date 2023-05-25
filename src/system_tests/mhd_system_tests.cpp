@@ -66,18 +66,10 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
       case 2:  // swap X and Y
         y_len *= 2;
         ny *= 2;
-        std::swap(vx_rot, vy_rot);
-        std::swap(Bx_rot, By_rot);
-        std::swap(rEigenVec_Bx_rot, rEigenVec_By_rot);
-        std::swap(rEigenVec_MomentumX_rot, rEigenVec_MomentumY_rot);
         break;
       case 3:  // swap X and Z
         z_len *= 2;
         nz *= 2;
-        std::swap(vx_rot, vz_rot);
-        std::swap(Bx_rot, Bz_rot);
-        std::swap(rEigenVec_Bx_rot, rEigenVec_Bz_rot);
-        std::swap(rEigenVec_MomentumX_rot, rEigenVec_MomentumZ_rot);
         break;
       default:
         throw std::invalid_argument("Invalid value of domain_direction given to setLaunchParams");
