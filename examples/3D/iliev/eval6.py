@@ -53,7 +53,11 @@ def Scan(dname,t,err=0.1,lbox=2,re=1):
 
     for fname in fnames:
         d = h5.File(fname, 'r')
-        tf = d.attrs["t"]*1.0e-3
+        try:
+            tf = d.attrs["t"]*1.0e-3
+        except:
+            continue
+        ##
         if(tf>0 and abs(np.log10(t)-np.log10(tf))<0.005):
             break
         ##
