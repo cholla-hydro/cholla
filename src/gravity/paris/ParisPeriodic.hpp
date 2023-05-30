@@ -49,6 +49,7 @@ class ParisPeriodic
 #if defined(PARIS_3PT) || defined(PARIS_5PT)
   int nk_;  //!< Number of elements in Z dimension
 #endif
-  double dx_, ddi_, ddj_, ddk_;  //!< Frequency-independent terms in Poisson solve
+  double ddi_, ddj_, ddk_;  //!< Frequency-independent terms in Poisson solve
+  double dx_, dd2i_, dd2j_, dd2k_;  //!< Frequency-independent terms in Poisson solve
   HenryPeriodic henry;      //!< FFT filter object
 };

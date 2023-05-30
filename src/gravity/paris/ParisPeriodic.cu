@@ -23,12 +23,15 @@ ParisPeriodic::ParisPeriodic(const int n[3], const double lo[3], const double hi
       ddj_(sqr(double(n[1] - 1) / (hi[1] - lo[1])) / 6.0),
       ddk_(sqr(double(n[2] - 1) / (hi[2] - lo[2])) / 6.0),
   #else
-      ddi_{2.0 * M_PI * double(n[0] - 1) / (double(n[0]) * (hi[0] - lo[0]))},
-      ddj_{2.0 * M_PI * double(n[1] - 1) / (double(n[1]) * (hi[1] - lo[1]))},
-      ddk_{2.0 * M_PI * double(n[2] - 1) / (double(n[2]) * (hi[2] - lo[2]))},
+      ddi_(2.0 * M_PI * double(n[0] - 1) / (double(n[0]) * (hi[0] - lo[0]))),
+      ddj_(2.0 * M_PI * double(n[1] - 1) / (double(n[1]) * (hi[1] - lo[1]))),
+      ddk_(2.0 * M_PI * double(n[2] - 1) / (double(n[2]) * (hi[2] - lo[2]))),
   #endif
       henry(n, lo, hi, m, id),
-      dx_(dx)
+      dx_(dx),
+      dd2i_(2.0 * M_PI * double(n[0] - 1) / (double(n[0]) * (hi[0] - lo[0]))),
+      dd2j_(2.0 * M_PI * double(n[1] - 1) / (double(n[1]) * (hi[1] - lo[1]))),
+      dd2k_(2.0 * M_PI * double(n[2] - 1) / (double(n[2]) * (hi[2] - lo[2])))
 {
 }
 
@@ -80,16 +83,16 @@ void ParisPeriodic::solvePotential(const size_t bytes, double *const density, do
 }
 
 
-template<int IJ> __device__ cufftDoubleComplex EddingtonTensorGF(double dx, int ni, int nj, double ddi, double ddj, double ddk, const int i, const int j, const int k, const cufftDoubleComplex b)
+template<int IJ> __device__ cufftDoubleComplex EddingtonTensorGF(double dx, int ni, int nj, double dd2i, double dd2j, double dd2k, const int i, const int j, const int k, const cufftDoubleComplex b)
 {
-    const double z = (i<=ni/2 ? i : i - ni) * ddi;
-    const double y = (j<=nj/2 ? j : j - nj) * ddj;
-    const double x = k * ddk;
+    const double z = (i<=ni/2 ? i : i - ni) * dd2i;
+    const double y = (j<=nj/2 ? j : j - nj) * dd2j;
+    const double x = k * dd2k;
 
     double w = sqrt(x*x+y*y+z*z);
     if(i==0 && j==0 && k==0)
     {
-        w = 0.5*ddi; // reasonable approximation for a DC != 0 GF
+        w = 0.5*dd2i; // reasonable approximation for a DC != 0 GF
     }
 
     //
@@ -122,14 +125,14 @@ void ParisPeriodic::solveEddingtonTensor(size_t bytes, double *source, double *t
 {
   // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_;
-  const double ddi = ddi_, ddj = ddj_, ddk = ddk_;
+  const double dd2i = dd2i_, dd2j = dd2j_, dd2k = dd2k_;
   auto dx = dx_;
 
   // Provide FFT filter with a lambda that does Poisson solve in frequency space
   henry.filter(bytes, source, tensor,
                [=] __device__(const int i, const int j, const int k, const cufftDoubleComplex b) {
                     static decltype(&EddingtonTensorGF<0>) gfs[] = { EddingtonTensorGF<0>, EddingtonTensorGF<1>, EddingtonTensorGF<2>, EddingtonTensorGF<3>, EddingtonTensorGF<4>, EddingtonTensorGF<5>, EddingtonTensorGF<6> };
-                    return gfs[component](dx,ni,nj,ddi,ddj,ddk,i,j,k,b);
+                    return gfs[component](dx,ni,nj,dd2i,dd2j,dd2k,i,j,k,b);
                });
 }
 
