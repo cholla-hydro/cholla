@@ -176,6 +176,10 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential(&P);
+#ifdef RT
+  G.Rad.ComputeEddingtonTensor(P,G.Grav);
+  G.Rad.rtBoundaries();
+#endif
 #endif
 
   // Set boundary conditions (assign appropriate values to ghost cells) for
@@ -283,6 +287,10 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY
     // Compute Gravitational potential for next step
     G.Compute_Gravitational_Potential(&P);
+#ifdef RT
+    G.Rad.ComputeEddingtonTensor(P,G.Grav);
+    G.Rad.rtBoundaries();
+#endif
 #endif
 
     // add one to the timestep count
