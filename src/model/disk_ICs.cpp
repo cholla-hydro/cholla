@@ -18,7 +18,6 @@
 #include "../utils/error_handling.h"
 #include "disk_galaxy.h"
 
-// #define DISK_ICS
 
 // function with logarithms used in NFW definitions
 Real log_func(Real y) { return log(1 + y) - y / (1 + y); }
@@ -736,7 +735,6 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
  *  \brief Initialize the grid with a 3D disk. */
 void Grid3D::Disk_3D(parameters p)
 {
-#ifdef DISK_ICS
 
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, phi;
@@ -771,7 +769,8 @@ void Grid3D::Disk_3D(parameters p)
   mu        = 0.6;
 
   R_g     = 2.0 * R_d;                            // gas scale length in kpc
-  Sigma_0 = 0.25 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
+  Sigma_0 = 0.15 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
+                                                  // FIXME 0.15 -> 0.25 for M82
   H_g     = z_d;                                  // initial guess for gas scale height
   // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
@@ -1074,5 +1073,4 @@ void Grid3D::Disk_3D(parameters p)
   free(r_halo);
   free(rho_halo);
 
-#endif  // DISK_ICS
 }

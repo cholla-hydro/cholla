@@ -597,7 +597,8 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
   #ifdef AVERAGE_SLOW_CELLS
 
 void Average_Slow_Cells(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy,
-                        Real dz, Real gamma, Real max_dti_slow)
+                        Real dz, Real gamma, Real max_dti_slow, Real xbound, Real ybound, Real zbound, int nx_offset,
+                        int ny_offset,  int nz_offset)
 {
   // set values for GPU kernels
   int n_cells = nx * ny * nz;
@@ -609,12 +610,13 @@ void Average_Slow_Cells(Real *dev_conserved, int nx, int ny, int nz, int n_ghost
 
   if (nx > 1 && ny > 1 && nz > 1) {  // 3D
     hipLaunchKernelGGL(Average_Slow_Cells_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields,
-                       dx, dy, dz, gamma, max_dti_slow);
+                       dx, dy, dz, gamma, max_dti_slow, xbound, ybound, zbound, nx_offset, ny_offset, nz_offset);
   }
 }
 
 __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx,
-                                      Real dy, Real dz, Real gamma, Real max_dti_slow)
+                                      Real dy, Real dz, Real gamma, Real max_dti_slow, Real xbound, Real ybound,
+                                      Real zbound, int nx_offset, int ny_offset,  int nz_offset)
 {
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, max_dti;
@@ -644,11 +646,14 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
       temp  = (gamma - 1) * (E - 0.5 * (speed * speed) * d) * ENERGY_UNIT / (d * DENSITY_UNIT / 0.6 / MP) / KB;
       P     = (E - 0.5 * d * (vx * vx + vy * vy + vz * vz)) * (gamma - 1.0);
       cs    = sqrt(d_inv * gamma * P) * VELOCITY_UNIT * 1e-5;
+      Real x = xbound + (nx_offset + xid - n_ghost + 0.5) * dx;
+      Real y = ybound + (ny_offset + yid - n_ghost + 0.5) * dy;
+      Real z = zbound + (nz_offset + zid - n_ghost + 0.5) * dz;
       // Average this cell
       kernel_printf(
-          " Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f, n=%.3e, "
+          " Average Slow Cell [ %.5e %.5e %.5e ] -> dt_cell=%f    dt_min=%f, n=%.3e, "
           "T=%.3e, v=%.3e (%.3e, %.3e, %.3e), cs=%.3e\n",
-          xid, yid, zid, 1. / max_dti, 1. / max_dti_slow, dev_conserved[id] * DENSITY_UNIT / 0.6 / MP, temp,
+          x, y, z, 1. / max_dti, 1. / max_dti_slow, dev_conserved[id] * DENSITY_UNIT / 0.6 / MP, temp,
           speed * VELOCITY_UNIT * 1e-5, vx * VELOCITY_UNIT * 1e-5, vy * VELOCITY_UNIT * 1e-5, vz * VELOCITY_UNIT * 1e-5,
           cs);
       Average_Cell_All_Fields(xid, yid, zid, nx, ny, nz, n_cells, n_fields, dev_conserved);
