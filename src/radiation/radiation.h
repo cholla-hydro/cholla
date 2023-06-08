@@ -11,6 +11,7 @@
     #define TPB_RT 1024
 
 struct Header;
+class Grav3D;
 
 namespace PhotoRatesCSI
 {
@@ -65,6 +66,10 @@ class Rad3D
   void Initialize_Start(const parameters &params);
   void Initialize_Finish();
   void Initialize_GPU();
+
+#ifdef GRAVITY
+  void ComputeEddingtonTensor(const parameters &params, Grav3D& G);
+#endif
 
   void Copy_RT_Fields();
 

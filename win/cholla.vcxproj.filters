@@ -64,6 +64,21 @@
     <ClCompile Include="..\src\global\global.cpp">
       <Filter>grid</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\gravity\grav3D.cpp">
+      <Filter>gravity</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gravity\gravity_boundaries.cpp">
+      <Filter>gravity</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gravity\gravity_functions.cpp">
+      <Filter>gravity</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gravity\gravity_restart.cpp">
+      <Filter>gravity</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gravity\potential_SOR_3D.cpp">
+      <Filter>gravity</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\grid\grid3D.h">
@@ -234,6 +249,30 @@
     <ClInclude Include="..\src\global\global.h">
       <Filter>grid</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\gravity\grav3D.h">
+      <Filter>gravity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gravity\potential_paris_3D.h">
+      <Filter>gravity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gravity\potential_paris_galactic.h">
+      <Filter>gravity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gravity\potential_SOR_3D.h">
+      <Filter>gravity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gravity\static_grav.h">
+      <Filter>gravity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gravity\paris\HenryPeriodic.hpp">
+      <Filter>gravity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gravity\paris\ParisPeriodic.hpp">
+      <Filter>gravity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gravity\paris\PoissonZero3DBlockedGPU.hpp">
+      <Filter>gravity</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\src\riemann_solvers\exact_cuda.cu">
@@ -323,6 +362,30 @@
     <CudaCompile Include="..\src\io\io_gpu.cu">
       <Filter>untouched</Filter>
     </CudaCompile>
+    <CudaCompile Include="..\src\gravity\gravity_boundaries_gpu.cu">
+      <Filter>gravity</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\gravity\gravity_functions_gpu.cu">
+      <Filter>gravity</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\gravity\potential_paris_3D.cu">
+      <Filter>gravity</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\gravity\potential_paris_galactic.cu">
+      <Filter>gravity</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\gravity\potential_SOR_3D_gpu.cu">
+      <Filter>gravity</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\gravity\paris\HenryPeriodic.cu">
+      <Filter>gravity</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\gravity\paris\ParisPeriodic.cu">
+      <Filter>gravity</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\gravity\paris\PoissonZero3DBlockedGPU.cu">
+      <Filter>gravity</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="grid">
@@ -339,6 +402,9 @@
     </Filter>
     <Filter Include="untouched\hydro">
       <UniqueIdentifier>{a7f39fea-9a41-4fff-b546-bfc67533db18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gravity">
+      <UniqueIdentifier>{9141adfb-d0a5-420e-8031-b287b0fef8ae}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

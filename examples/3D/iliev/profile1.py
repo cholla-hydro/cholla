@@ -40,7 +40,7 @@ ax2.set_xlabel(r"$r/L_{\rm box}$")
 ax2.set_ylim(-5,0.2)
 
 if(dir):
-    pathname = dir + "/tests/iliev/1"
+    pathname = dir + "/tests/rt/iliev1"
     img = plt.imread(pathname+"/ref1_030.png")
     ax1.imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
     img = plt.imread(pathname+"/ref1_500.png")

@@ -53,7 +53,7 @@ axx[2][0].set_ylabel(r"$lg(n) [{\rm cm}^{-3}]$")
 
 
 if(dir):
-    pathname = dir + "/tests/iliev/5"
+    pathname = dir + "/tests/rt/iliev5"
     img = plt.imread(pathname+"/ref5_010x.png")
     axx[0][0].imshow(img,extent=[0,1.05,-5,0.8],aspect="auto",alpha=1)
     img = plt.imread(pathname+"/ref5_200x.png")

@@ -46,6 +46,8 @@ void Rad3D::Copy_RT_Fields(void)
   // copy data back from GPU to CPU
   CudaSafeCall(
       cudaMemcpy(rtFields.rf, rtFields.dev_rf, (1 + 2 * n_freq) * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
+
+  CudaSafeCall(cudaMemcpy(rtFields.et, rtFields.dev_et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 }
 
 int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
@@ -381,5 +383,25 @@ void Rad3D::rtSolve(Real* dev_scalar)
   */
 }
 
-  #endif  // RT
+
+#ifdef GRAVITY
+void Rad3D::ComputeEddingtonTensor(const parameters& P, Grav3D& G)
+{
+  // Compute the eddington tensor
+  Real *rs, *ot, *et[6];
+
+  #ifdef GRAVITY_GPU
+  rs = rtFields.dev_rs;
+  ot = rtFields.dev_rf;
+  for(int j=0; j<6; j++) et[j] = rtFields.dev_et + j*grid.n_cells;
+  #else
+  rs = rtFields.rs;
+  ot = rtFields.rf;
+  for(int j=0; j<6; j++) et[j] = rtFields.et + j*grid.n_cells;
+  #endif
+
+  G.Poisson_solver.Get_EddingtonTensor(grid.n_ghost,rs,et,ot);
+}
+#endif // GRAVITY
+#endif  // RT
 #endif    // CUDA

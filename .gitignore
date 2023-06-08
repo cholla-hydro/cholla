@@ -89,3 +89,4 @@ docs/sphinx/build
 /win/test
 /win/x64/Debug
 /win/.vs/cholla
+/.vs
