@@ -37,7 +37,9 @@ void Grid3D::Initialize_Particles(struct parameters *P)
   Particles.G.potential_dev = Grav.F.potential_d;
   #endif
 
-  if (strcmp(P->init, "Uniform") == 0) Initialize_Uniform_Particles();
+  if (strcmp(P->init, "Uniform") == 0) {
+    Initialize_Uniform_Particles();
+  }
 
   #ifdef MPI_CHOLLA
   MPI_Barrier(world);
@@ -194,16 +196,17 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound, R
   Initialize_Grid_Values();
 
   // Initialize Particles
-  if (strcmp(P->init, "Spherical_Overdensity_3D") == 0)
+  if (strcmp(P->init, "Spherical_Overdensity_3D") == 0) {
     Initialize_Sphere(P);
-  else if (strcmp(P->init, "Zeldovich_Pancake") == 0)
+  } else if (strcmp(P->init, "Zeldovich_Pancake") == 0) {
     Initialize_Zeldovich_Pancake(P);
-  else if (strcmp(P->init, "Read_Grid") == 0)
+  } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
   #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
-  else if (strcmp(P->init, "Disk_3D_particles") == 0)
+  } else if (strcmp(P->init, "Disk_3D_particles") == 0) {
     Initialize_Disk_Stellar_Clusters(P);
   #endif
+  }
 
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);
@@ -534,7 +537,9 @@ void Particles_3D::Initialize_Sphere(struct parameters *P)
 
     r = sqrt((pPos_x - center_x) * (pPos_x - center_x) + (pPos_y - center_y) * (pPos_y - center_y) +
              (pPos_z - center_z) * (pPos_z - center_z));
-    if (r > sphereR) continue;
+    if (r > sphereR) {
+      continue;
+    }
 
   #ifdef PARTICLES_CPU
     // Copy the particle data to the particles vectors
@@ -691,9 +696,15 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
     y   = R * sin(phi);
     z   = zDist(generator);
 
-    if (x < G.xMin || x >= G.xMax) continue;
-    if (y < G.yMin || y >= G.yMax) continue;
-    if (z < G.zMin || z >= G.zMax) continue;
+    if (x < G.xMin || x >= G.xMax) {
+      continue;
+    }
+    if (y < G.yMin || y >= G.yMax) {
+      continue;
+    }
+    if (z < G.zMin || z >= G.zMax) {
+      continue;
+    }
 
     ac   = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
     vPhi = sqrt(R * ac);
@@ -774,7 +785,9 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   Copy_Particles_Array_Real_Host_to_Device(temp_age.data(), age_dev, n_local);
     #endif  // PARTICLES_GPU
 
-  if (lost_particles > 0) chprintf("  lost %lu particles\n", lost_particles);
+  if (lost_particles > 0) {
+    chprintf("  lost %lu particles\n", lost_particles);
+  }
   chprintf(
       "Stellar Disk Particles Initialized, n_total: %lu, n_local: %lu, "
       "total_mass: %.3e s.m.\n",

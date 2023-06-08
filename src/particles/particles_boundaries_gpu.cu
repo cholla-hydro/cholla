@@ -21,17 +21,23 @@ __global__ void Set_Particles_Boundary_Kernel(int side, part_int_t n_local, Real
                                               Real d_length)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= n_local) return;
+  if (tid >= n_local) {
+    return;
+  }
 
   Real pos;
   pos = pos_dev[tid];
 
   if (side == 0) {
-    if (pos < d_min) pos += d_length;
+    if (pos < d_min) {
+      pos += d_length;
+    }
   }
 
   if (side == 1) {
-    if (pos >= d_max) pos -= d_length;
+    if (pos >= d_max) {
+      pos -= d_length;
+    }
   }
 
   pos_dev[tid] = pos;
@@ -77,14 +83,20 @@ __global__ void Get_Transfer_Flags_Kernel(part_int_t n_total, int side, Real d_m
                                           bool *transfer_flags_d)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= n_total) return;
+  if (tid >= n_total) {
+    return;
+  }
 
   bool transfer = false;
 
   Real pos = pos_d[tid];
 
-  if (side == 0 && pos < d_min) transfer = true;
-  if (side == 1 && pos >= d_max) transfer = true;
+  if (side == 0 && pos < d_min) {
+    transfer = true;
+  }
+  if (side == 1 && pos >= d_max) {
+    transfer = true;
+  }
 
   transfer_flags_d[tid] = transfer;
 }
@@ -122,7 +134,9 @@ __global__ void Scan_Kernel(part_int_t n_total, bool *transfer_flags_d, int *pre
   }
 
   // Clear the last element
-  if (tid_block == 0) data_sh[n - 1] = 0;
+  if (tid_block == 0) {
+    data_sh[n - 1] = 0;
+  }
 
   // Traverse down tree & build scan
   for (int d = 1; d < n; d *= 2) {
@@ -140,13 +154,18 @@ __global__ void Scan_Kernel(part_int_t n_total, bool *transfer_flags_d, int *pre
   __syncthreads();
 
   // Write results to device memory
-  if (block_start + 2 * tid_block < n_total) prefix_sum_d[block_start + 2 * tid_block] = data_sh[2 * tid_block];
-  if (block_start + 2 * tid_block + 1 < n_total)
+  if (block_start + 2 * tid_block < n_total) {
+    prefix_sum_d[block_start + 2 * tid_block] = data_sh[2 * tid_block];
+  }
+  if (block_start + 2 * tid_block + 1 < n_total) {
     prefix_sum_d[block_start + 2 * tid_block + 1] = data_sh[2 * tid_block + 1];
+  }
 
   // Write the block sum
   int last_flag_block = (int)transfer_flags_d[block_start + 2 * (blockDim.x - 1) + 1];
-  if (tid_block == 0) prefix_sum_block_d[blockIdx.x] = data_sh[2 * (blockDim.x - 1) + 1] + last_flag_block;
+  if (tid_block == 0) {
+    prefix_sum_block_d[blockIdx.x] = data_sh[2 * (blockDim.x - 1) + 1] + last_flag_block;
+  }
 }
 
 __global__ void Prefix_Sum_Blocks_Kernel(int n_partial, int *prefix_sum_block_d)
@@ -173,7 +192,9 @@ __global__ void Prefix_Sum_Blocks_Kernel(int n_partial, int *prefix_sum_block_d)
     }
     __syncthreads();
 
-    if (start_index + tid_block < n_partial) prefix_sum_block_d[start_index + tid_block] = data_sh[tid_block];
+    if (start_index + tid_block < n_partial) {
+      prefix_sum_block_d[start_index + tid_block] = data_sh[tid_block];
+    }
     n += 1;
     start_index = n * n_threads;
   }
@@ -195,7 +216,9 @@ __global__ void Sum_Blocks_Kernel(part_int_t n_total, int *prefix_sum_d, int *pr
   }
   __syncthreads();
 
-  if (tid < n_total) prefix_sum_d[tid] += block_sum_sh[0];
+  if (tid < n_total) {
+    prefix_sum_d[tid] += block_sum_sh[0];
+  }
 }
 
 __global__ void Get_N_Transfer_Particles_Kernel(part_int_t n_total, int *n_transfer_d, bool *transfer_flags_d,
@@ -211,7 +234,9 @@ __global__ void Get_Transfer_Indices_Kernel(part_int_t n_total, bool *transfer_f
 {
   int tid, transfer_index;
   tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= n_total) return;
+  if (tid >= n_total) {
+    return;
+  }
   transfer_index = prefix_sum_d[tid];
 
   if (transfer_index < 0 || transfer_index >= n_total) {
@@ -219,7 +244,9 @@ __global__ void Get_Transfer_Indices_Kernel(part_int_t n_total, bool *transfer_f
     return;
   }
 
-  if (transfer_flags_d[tid]) transfer_indices_d[transfer_index] = tid;
+  if (transfer_flags_d[tid]) {
+    transfer_indices_d[transfer_index] = tid;
+  }
 }
 
 __global__ void Select_Indices_to_Replace_Transfered_Kernel(part_int_t n_total, int n_transfer, bool *transfer_flags_d,
@@ -227,11 +254,15 @@ __global__ void Select_Indices_to_Replace_Transfered_Kernel(part_int_t n_total, 
 {
   int tid, tid_inv;
   tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= n_total) return;
+  if (tid >= n_total) {
+    return;
+  }
   tid_inv = n_total - tid - 1;
 
   bool transfer_flag = transfer_flags_d[tid];
-  if (transfer_flag) return;
+  if (transfer_flag) {
+    return;
+  }
 
   int prefix_sum_inv, replace_id;
 
@@ -251,14 +282,18 @@ __global__ void Replace_Transfered_Particles_Kernel(int n_transfer, T *field_d, 
 {
   int tid;
   tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= n_transfer) return;
+  if (tid >= n_transfer) {
+    return;
+  }
 
   int dst_id, src_id;
   dst_id = transfer_indices_d[tid];
   src_id = replace_indices_d[tid];
 
   if (dst_id < src_id) {
-    if (print_replace) printf("Replacing: %f \n", field_d[dst_id] * 1.0);
+    if (print_replace) {
+      printf("Replacing: %f \n", field_d[dst_id] * 1.0);
+    }
     field_d[dst_id] = field_d[src_id];
   }
 }
@@ -357,7 +392,9 @@ __global__ void Load_Transfered_Particles_to_Buffer_Kernel(int n_transfer, int f
 {
   int tid;
   tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= n_transfer) return;
+  if (tid >= n_transfer) {
+    return;
+  }
 
   int src_id, dst_id;
   Real field_val;
@@ -366,8 +403,12 @@ __global__ void Load_Transfered_Particles_to_Buffer_Kernel(int n_transfer, int f
   field_val = field_d[src_id];
 
   // Set global periodic boundary conditions
-  if (boundary_type == 1 && field_val < domainMin) field_val += (domainMax - domainMin);
-  if (boundary_type == 1 && field_val >= domainMax) field_val -= (domainMax - domainMin);
+  if (boundary_type == 1 && field_val < domainMin) {
+    field_val += (domainMax - domainMin);
+  }
+  if (boundary_type == 1 && field_val >= domainMax) {
+    field_val -= (domainMax - domainMin);
+  }
   send_buffer_d[dst_id] = field_val;
 }
 
@@ -396,7 +437,9 @@ __global__ void Load_Transfered_Particles_Ints_to_Buffer_Kernel(int n_transfer, 
 {
   int tid;
   tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= n_transfer) return;
+  if (tid >= n_transfer) {
+    return;
+  }
 
   int src_id, dst_id;
   part_int_t field_val;
@@ -405,8 +448,12 @@ __global__ void Load_Transfered_Particles_Ints_to_Buffer_Kernel(int n_transfer, 
   field_val = field_d[src_id];
 
   // Set global periodic boundary conditions
-  if (boundary_type == 1 && field_val < domainMin) field_val += (domainMax - domainMin);
-  if (boundary_type == 1 && field_val >= domainMax) field_val -= (domainMax - domainMin);
+  if (boundary_type == 1 && field_val < domainMin) {
+    field_val += (domainMax - domainMin);
+  }
+  if (boundary_type == 1 && field_val >= domainMax) {
+    field_val -= (domainMax - domainMin);
+  }
   send_buffer_d[dst_id] = __longlong_as_double(field_val);
 }
 
@@ -452,7 +499,9 @@ __global__ void Unload_Transfered_Particles_from_Buffer_Kernel(int n_local, int 
 {
   int tid;
   tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= n_transfer) return;
+  if (tid >= n_transfer) {
+    return;
+  }
 
   int src_id, dst_id;
   src_id          = tid * n_fields_to_transfer + field_id;
@@ -482,7 +531,9 @@ __global__ void Unload_Transfered_Particles_Int_from_Buffer_Kernel(int n_local, 
 {
   int tid;
   tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= n_transfer) return;
+  if (tid >= n_transfer) {
+    return;
+  }
 
   int src_id, dst_id;
   src_id          = tid * n_fields_to_transfer + field_id;

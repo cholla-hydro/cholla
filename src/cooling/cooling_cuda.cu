@@ -85,7 +85,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     d = dev_conserved[id];
     E = dev_conserved[4 * n_cells + id];
     // don't apply cooling if this thread crashed
-    if (E < 0.0 || E != E) return;
+    if (E < 0.0 || E != E) {
+      return;
+    }
     // #ifndef DE
     vx = dev_conserved[1 * n_cells + id] / d;
     vy = dev_conserved[2 * n_cells + id] / d;
@@ -249,7 +251,9 @@ __device__ Real primordial_cool(Real n, Real T)
       n_hepp = n_hep * (gamma_ehep + gamma_lhep / n_e) / alpha_hepp;
       n_e    = n_hp + n_hep + 2 * n_hepp;
       diff   = fabs(n_e_old - n_e);
-      if (diff < tol) break;
+      if (diff < tol) {
+        break;
+      }
     }
   } else {
     n_h0   = n_h * alpha_hp / (alpha_hp + gamma_eh0);

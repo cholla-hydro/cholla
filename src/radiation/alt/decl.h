@@ -5,7 +5,7 @@
 
 #include "align.h"
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) || defined(__HIPCC__)
   #define DEVICE_LOCAL_DECL __host__ __device__
 #else  // __CUDACC__
   #define DEVICE_LOCAL_DECL

@@ -1,8 +1,5 @@
 #-- Compiler and flags for different build type
-CC                = mpicc
 CXX               = mpicxx
-CFLAGS_DEBUG      = -g -O0
-CFLAGS_OPTIMIZE   = -g -O2
 CXXFLAGS_DEBUG    = -g -O0 -std=c++17 ${F_OFFLOAD}
 CXXFLAGS_OPTIMIZE = -Ofast -std=c++17 ${F_OFFLOAD}
 GPUFLAGS_DEBUG    = -g -G -cudart shared -O0 -std=c++17
@@ -27,8 +24,6 @@ GOOGLETEST_ROOT := ${GOOGLETEST_ROOT}
 
 ifdef HIPCONFIG
 	MPI_ROOT := ${MPI_ROOT}
-	CFLAGS_DEBUG      += -fPIE
-	CFLAGS_OPTIMIZE   += -fPIE
 	CXXFLAGS_DEBUG    += -fPIE
 	CXXFLAGS_OPTIMIZE += -fPIE
 	GPUFLAGS_DEBUG    += -fPIE

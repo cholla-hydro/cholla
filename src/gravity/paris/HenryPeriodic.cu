@@ -22,7 +22,9 @@ HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3], const double hi
 {
   // Pencil sub-decomposition within a 3D block
   mq_ = int(round(sqrt(mk_)));
-  while (mk_ % mq_) mq_--;
+  while (mk_ % mq_) {
+    mq_--;
+  }
   mp_ = mk_ / mq_;
   assert(mp_ * mq_ == mk_);
 

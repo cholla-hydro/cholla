@@ -102,7 +102,7 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
   auto out = const_cast<float*>(dTable->GetFullData()) + dTable->Lidx(i + si * (j + sj * k), 0);
   for (int m = 0; m < n; m++) {
     out[m] = values[m] * norm;
-    ///if (out[m] > 1.0e-4) printf("**FT** %d %g\n", m, out[m]);
+    /// if (out[m] > 1.0e-4) printf("**FT** %d %g\n", m, out[m]);
   }
 }
 

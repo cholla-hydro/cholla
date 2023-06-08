@@ -689,6 +689,15 @@ class Grid3D
 
   void Chemistry_Test(struct parameters P);
 
+#ifdef MHD
+  /*!
+   * \brief Initialize the grid with a circularly polarized Alfven wave. Only options are angle and Vx. See [Gardiner &
+   * Stone 2008](https://arxiv.org/abs/0712.2634) pages 4134-4135 for details.
+   *
+   * \param P The parameters. Only uses Vx, pitch, and yaw
+   */
+  void Circularly_Polarized_Alfven_Wave(struct parameters const P);
+#endif  // MHD
   void Iliev0(const parameters &P);
   void Iliev15(const parameters &P, int test);
   void Iliev6(const parameters &P);

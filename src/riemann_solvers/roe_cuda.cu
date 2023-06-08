@@ -385,17 +385,19 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
         dev_flux[4 * n_cells + tid]  = 0.5 * (f_E_l + f_E_r - sum_4);
   #ifdef SCALAR
         for (int i = 0; i < NSCALARS; i++) {
-          if (dev_flux[tid] >= 0.0)
+          if (dev_flux[tid] >= 0.0) {
             dev_flux[(5 + i) * n_cells + tid] = dev_flux[tid] * scalarl[i];
-          else
+          } else {
             dev_flux[(5 + i) * n_cells + tid] = dev_flux[tid] * scalarr[i];
+          }
         }
   #endif
   #ifdef DE
-        if (dev_flux[tid] >= 0.0)
+        if (dev_flux[tid] >= 0.0) {
           dev_flux[(n_fields - 1) * n_cells + tid] = dev_flux[tid] * gel;
-        else
+        } else {
           dev_flux[(n_fields - 1) * n_cells + tid] = dev_flux[tid] * ger;
+        }
   #endif
       }
     }

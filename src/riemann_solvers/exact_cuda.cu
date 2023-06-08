@@ -173,13 +173,17 @@ __device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr, Real v
   // compute guess pressure from PVRS Riemann solver
   ppv = 0.5 * (pl + pr) + 0.125 * (vxl - vxr) * (dl + dr) * (cl + cr);
 
-  if (ppv < 0.0) ppv = 0.0;
+  if (ppv < 0.0) {
+    ppv = 0.0;
+  }
   // Two-Shock Riemann solver with PVRS as estimate
   gl = sqrt((2.0 / ((gamma + 1.0) * dl)) / (((gamma - 1.0) / (gamma + 1.0)) * pl + ppv));
   gr = sqrt((2.0 / ((gamma + 1.0) * dr)) / (((gamma - 1.0) / (gamma + 1.0)) * pr + ppv));
   pm = (gl * pl + gr * pr - (vxr - vxl)) / (gl + gr);
 
-  if (pm < 0.0) pm = TOL;
+  if (pm < 0.0) {
+    pm = TOL;
+  }
 
   return pm;
 }
@@ -226,8 +230,12 @@ __device__ void starpv_CUDA(Real *p, Real *v, Real dl, Real vxl, Real pl, Real c
     *p     = pold - (fl + fr + vxr - vxl) / (fld + frd);
     change = 2.0 * fabs((*p - pold) / (*p + pold));
 
-    if (change <= TOL) break;
-    if (*p < 0.0) *p = TOL;
+    if (change <= TOL) {
+      break;
+    }
+    if (*p < 0.0) {
+      *p = TOL;
+    }
     pold = *p;
   }
   if (i > nriter) {

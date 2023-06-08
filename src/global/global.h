@@ -170,8 +170,8 @@ struct parameters {
   double tinit = 0;
   double tout;
   double outstep;
-  double outstep_dexinc = 0;
-  double max_timestep = 0;
+  double outstep_dexinc      = 0;
+  double max_timestep        = 0;
   double max_timestep_dexinc = 0;
   int n_steps_output;
   Real gamma;
@@ -255,6 +255,7 @@ struct parameters {
   Real rEigenVec_Bz        = 0;
   Real pitch               = 0;
   Real yaw                 = 0;
+  Real polarization        = 0;
 #ifdef PARTICLES
   // The random seed for particle simulations. With the default of 0 then a
   // machine dependent seed will be generated.
