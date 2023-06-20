@@ -535,13 +535,19 @@ class Grid3D
    *  \brief Free the memory for the density array. */
   void FreeMemory(void);
 
-  /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
-   *  \brief Constant gas properties. */
-  void Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real By, Real Bz);
+  /*!
+   * \brief Constant gas properties.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Constant(parameters const &P);
 
-  /*! \fn void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
-   *  \brief Sine wave perturbation. */
-  void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
+  /*!
+   * \brief Sine wave perturbation.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Sound_Wave(parameters const &P);
 
   /*!
    * \brief Initialize the grid with a simple linear wave.
@@ -550,17 +556,20 @@ class Grid3D
    */
   void Linear_Wave(parameters const &P);
 
-  /*! \fn void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
-   *  \brief Square wave density perturbation with amplitude A*rho in pressure
-   * equilibrium. */
-  void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
+  /*!
+   * \brief Square wave density perturbation with amplitude A*rho in pressure
+   * equilibrium.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Square_Wave(parameters const &P);
 
-  /*! \fn void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l,
-   Real Bx_l, Real By_l, Real Bz_l, Real rho_r, Real vx_r, Real vy_r, Real vz_r,
-   Real P_r, Real Bx_r, Real By_r, Real Bz_r, Real diaph)
-   *  \brief Initialize the grid with a Riemann problem. */
-  void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real Bx_l, Real By_l, Real Bz_l, Real rho_r,
-               Real vx_r, Real vy_r, Real vz_r, Real P_r, Real Bx_r, Real By_r, Real Bz_r, Real diaph);
+  /*!
+   * \brief Initialize the grid with a Riemann problem.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Riemann(parameters const &P);
 
   /*! \fn void Shu_Osher()
    *  \brief Initialize the grid with the Shu-Osher shock tube problem. See

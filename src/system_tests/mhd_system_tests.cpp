@@ -612,6 +612,9 @@ TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones1aShockTubeCorrectInputExpectCorre
 TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones4dShockTubeCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
+  // This test is particularly sensitive to minor changes in the initial conditions, the kind of changes that are
+  // expected from compiler to compiler. As such the limits have been loosened slightly.
+  test_runner.setFixedEpsilon(7.3E-12);
   test_runner.runTest();
 }
 
