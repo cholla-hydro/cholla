@@ -9,8 +9,6 @@ MPI_GPU   ?=
 DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-# Currently MHD only supports PCM reconstruction. Higher order reconstruction
-# methods will be added later
 DFLAGS    += -DPLMC
 DFLAGS    += -DHLLD
 DFLAGS    += -DMHD
