@@ -218,12 +218,12 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      dt, gama, 2, n_fields);
   #endif  // PLMP
   #ifdef PLMC
-  hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx,
-                     dt, gama, 0, n_fields);
-  hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy,
-                     dt, gama, 1, n_fields);
-  hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz,
-                     dt, gama, 2, n_fields);
+  hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama,
+                     0, n_fields);
+  hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, dy, dt, gama,
+                     1, n_fields);
+  hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, dz, dt, gama,
+                     2, n_fields);
   #endif  // PLMC
   #ifdef PPMP
   hipLaunchKernelGGL(PPMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx,
@@ -395,8 +395,8 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     #ifdef MHD
     // Add the magnetic energy
     auto const [centeredBx, centeredBy, centeredBz] =
-        mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny) E_kin +=
-        mhd::utils::computeMagneticEnergy(centeredBx, centeredBy, centeredBz);
+        mhd::utils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny);
+    E_kin += mhd::utils::computeMagneticEnergy(centeredBx, centeredBy, centeredBz);
     #endif  // MHD
     P = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, GE, gamma);
     P = fmax(P, (Real)TINY_NUMBER);

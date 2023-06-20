@@ -72,14 +72,8 @@ Grid3D::Grid3D(void)
 #endif
 
 #ifdef MHD
-  // Set the number of ghost cells high enough for MHD
-  if (H.n_ghost < 3) {
-    chprintf(
-        "Insufficient number of ghost cells for MHD. H.n_ghost was %i, setting "
-        "to 3.\n",
-        H.n_ghost);
-    H.n_ghost = 3;
-  }
+  // Set the number of ghost cells high enough for MHD. MHD needs one extra for the left most face
+  H.n_ghost++;
 #endif  // MHD
 }
 
