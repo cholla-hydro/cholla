@@ -109,7 +109,7 @@ const std::set<const char *> optionalParams = {
 int is_param_valid(const char *param_name)
 {
   // for (auto optionalParam = optionalParams.begin(); optionalParam != optionalParams.end(); ++optionalParam) {
-  for (auto optionalParam : optionalParams) {
+  for (const auto *optionalParam : optionalParams) {
     if (strcmp(param_name, optionalParam) == 0) {
       return 1;
     }
