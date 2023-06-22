@@ -39,8 +39,8 @@ TEST(tHYDROPpmcCTUReconstructor, CorrectInputExpectCorrectOutput)
 
   // Setup host grid. Fill host grid with random values and randomly assign maximum value
   std::vector<double> host_grid(nx * ny * nz * n_fields);
-  for (size_t i = 0; i < host_grid.size(); i++) {
-    host_grid.at(i) = doubleRand(prng);
+  for (double &val : host_grid) {
+    val = doubleRand(prng);
   }
 
   // Allocating and copying to device
@@ -144,8 +144,8 @@ TEST(tALLPpmcVLReconstructor, CorrectInputExpectCorrectOutput)
 
   // Setup host grid. Fill host grid with random values and randomly assign maximum value
   std::vector<double> host_grid(nx * ny * nz * n_fields);
-  for (size_t i = 0; i < host_grid.size(); i++) {
-    host_grid.at(i) = doubleRand(prng);
+  for (double &val : host_grid) {
+    val = doubleRand(prng);
   }
 
   // Allocating and copying to device

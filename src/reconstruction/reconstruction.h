@@ -720,8 +720,8 @@ void __device__ __host__ __inline__ PPM_Single_Variable(Real const &cell_im2, Re
 
     Real limited_slope = 0.0;
     if (SIGN(slope_2nd_centered) == SIGN(slope_2nd_im1) and SIGN(slope_2nd_centered) == SIGN(slope_2nd_i)) {
-      limited_slope =
-          SIGN(slope_2nd_centered) * min(C2 * abs(slope_2nd_im1), min(C2 * abs(slope_2nd_i), abs(slope_2nd_centered)));
+      limited_slope = SIGN(slope_2nd_centered) *
+                      fmin(C2 * abs(slope_2nd_im1), fmin(C2 * abs(slope_2nd_i), abs(slope_2nd_centered)));
     }
 
     // Collela et al. 2011 eq. 84a & 84b
@@ -770,15 +770,15 @@ void __device__ __host__ __inline__ PPM_Single_Variable(Real const &cell_im2, Re
       SIGN(slope_2nd_im1) == SIGN(slope_2nd_face)) {
     // Extrema is smooth
     // Colella & Sekora eq. 22
-    slope_2nd_limited = SIGN(slope_2nd_face) * min(min(C2 * abs(slope_2nd_im1), C2 * abs(slope_2nd_i)),
-                                                   min(C2 * abs(slope_2nd_ip1), abs(slope_2nd_face)));
+    slope_2nd_limited = SIGN(slope_2nd_face) * fmin(fmin(C2 * abs(slope_2nd_im1), C2 * abs(slope_2nd_i)),
+                                                    fmin(C2 * abs(slope_2nd_ip1), abs(slope_2nd_face)));
   }
 
   // Check if 2nd derivative is close to roundoff error
-  Real cell_max = max(abs(cell_im2), abs(cell_im1));
-  cell_max      = max(cell_max, abs(cell_i));
-  cell_max      = max(cell_max, abs(cell_ip1));
-  cell_max      = max(cell_max, abs(cell_ip2));
+  Real cell_max = fmax(abs(cell_im2), abs(cell_im1));
+  cell_max      = fmax(cell_max, abs(cell_i));
+  cell_max      = fmax(cell_max, abs(cell_ip1));
+  cell_max      = fmax(cell_max, abs(cell_ip2));
 
   // If this condition is true then the limiter is not sensitive to roundoff and we use the limited ratio
   // McCorquodale & Colella 2011 eq. 27
