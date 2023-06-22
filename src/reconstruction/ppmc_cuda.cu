@@ -340,8 +340,8 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 #ifdef SCALAR
   Real chi_scalar[NSCALARS];
   Real sum_scalar[NSCALARS];
-  for (int i = 0; i < NSCALARS; i++) {
-    sum_scalar[i] = 0;
+  for (Real &val : sum_scalar) {
+    val = 0;
   }
 #endif  // SCALAR
 
@@ -429,8 +429,8 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   sum_ge = 0;
 #endif  // DE
 #ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    sum_scalar[i] = 0;
+  for (Real &val : sum_scalar) {
+    val = 0;
   }
 #endif  // SCALAR
   if (lambda_m <= 0) {
