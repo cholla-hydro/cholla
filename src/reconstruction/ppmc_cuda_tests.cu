@@ -120,6 +120,13 @@ TEST(tHYDROPpmcCTUReconstructor, CorrectInputExpectCorrectOutput)
 
 TEST(tALLPpmcVLReconstructor, CorrectInputExpectCorrectOutput)
 {
+#ifdef DE
+  /// This test doesn't support Dual Energy. It wouldn't be that hard to add support for DE but the DE parts of the
+  /// reconstructor (loading and PPM_Single_Variable) are well tested elsewhere so there's no need to add the extra
+  /// complexity here.
+  GTEST_SKIP();
+#endif  // DE
+
   // Set up PRNG to use
   std::mt19937_64 prng(42);
   std::uniform_real_distribution<double> doubleRand(0.1, 5);
