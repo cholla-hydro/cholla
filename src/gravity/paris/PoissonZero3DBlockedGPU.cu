@@ -131,9 +131,9 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
   assert(density);
   assert(potential);
 
-  double *const ua             = potential;
-  double *const ub             = density;
-  cufftDoubleComplex *const uc = reinterpret_cast<cufftDoubleComplex *>(ub);
+  double *const ua = potential;
+  double *const ub = density;
+  auto *const uc   = reinterpret_cast<cufftDoubleComplex *>(ub);
 
   const double ddi = ddi_;
   const double ddj = ddj_;
