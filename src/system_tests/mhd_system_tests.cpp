@@ -606,10 +606,9 @@ TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones4dShockTubeCorrectInputExpectCorre
 TEST_P(tMHDSYSTEMParameterizedMpi, AdvectingFieldLoopCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
-#ifdef PLMC
-  test_runner.setFixedEpsilon(8.568e-10);
-#endif  // PLMC
-  test_runner.runTest();
+
+  // Only do the L2 Norm test. The regular cell-to-cell comparison is brittle for this test across systems
+  test_runner.runTest(true, 3.9E-8, 1.6E-6);
 }
 
 /// Test the MHD Blast Wave
