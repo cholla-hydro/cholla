@@ -74,6 +74,14 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
   Real const sound_speed_squared = sound_speed * sound_speed;
 
+// Compute the eigenvectors
+#ifdef MHD
+  reconstruction::eigenVecs const eigenvectors =
+      reconstruction::Compute_Eigenvectors(cell_i, sound_speed, sound_speed_squared, gamma);
+#else
+  reconstruction::eigenVecs eigenvectors;
+#endif  // MHD
+
   // Compute the left, right, centered, and van Leer differences of the
   // primitive variables Note that here L and R refer to locations relative to
   // the cell center
@@ -95,21 +103,22 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
   reconstruction::Characteristic const del_a_L =
-      reconstruction::Primitive_To_Characteristic(cell_i, del_L, sound_speed, sound_speed_squared, gamma);
+      reconstruction::Primitive_To_Characteristic(cell_i, del_L, eigenvectors, sound_speed, sound_speed_squared, gamma);
 
   reconstruction::Characteristic const del_a_R =
-      reconstruction::Primitive_To_Characteristic(cell_i, del_R, sound_speed, sound_speed_squared, gamma);
+      reconstruction::Primitive_To_Characteristic(cell_i, del_R, eigenvectors, sound_speed, sound_speed_squared, gamma);
 
   reconstruction::Characteristic const del_a_C =
-      reconstruction::Primitive_To_Characteristic(cell_i, del_C, sound_speed, sound_speed_squared, gamma);
+      reconstruction::Primitive_To_Characteristic(cell_i, del_C, eigenvectors, sound_speed, sound_speed_squared, gamma);
 
   reconstruction::Characteristic const del_a_G =
-      reconstruction::Primitive_To_Characteristic(cell_i, del_G, sound_speed, sound_speed_squared, gamma);
+      reconstruction::Primitive_To_Characteristic(cell_i, del_G, eigenvectors, sound_speed, sound_speed_squared, gamma);
 
   // Apply monotonicity constraints to the differences in the characteristic variables and project the monotonized
   // difference in the characteristic variables back onto the primitive variables Stone Eqn 39
   reconstruction::Primitive del_m_i = reconstruction::Monotonize_Characteristic_Return_Primitive(
-      cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed_squared, gamma);
+      cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, eigenvectors, sound_speed,
+      sound_speed_squared, gamma);
 
   // Compute the left and right interface values using the monotonized difference in the primitive variables
   reconstruction::Primitive interface_L_iph = reconstruction::Calc_Interface_Linear(cell_i, del_m_i, 1.0);
