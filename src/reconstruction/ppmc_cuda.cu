@@ -539,8 +539,8 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 // =====================================================================================================================
 
 // =====================================================================================================================
-__global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, Real gamma,
-                        int dir)
+__global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx,
+                                               int ny, int nz, Real gamma, int dir)
 {
   // get a thread ID
   int const thread_id = threadIdx.x + blockIdx.x * blockDim.x;
