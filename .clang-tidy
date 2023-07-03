@@ -91,7 +91,6 @@ Checks: "*,
         -hicpp-member-init,
         -hicpp-no-array-decay,
         -hicpp-no-malloc,
-        -hicpp-signed-bitwise,
         -hicpp-special-member-functions,
         -hicpp-use-equals-default,
         -hicpp-use-noexcept,
@@ -169,4 +168,6 @@ CheckOptions:
   readability-identifier-naming.PrivateMethodSuffix: '_'
 
   # readability-identifier-naming.StructCase: 'CamelCase'
+
+  hicpp-signed-bitwise.IgnorePositiveIntegerLiterals: 'true'
 ...
