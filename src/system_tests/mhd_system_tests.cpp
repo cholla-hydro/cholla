@@ -33,7 +33,7 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
 
  protected:
   systemTest::SystemTestRunner waveTest;
-  inline static std::unordered_map<std::string, double> n32_l2norms;
+  inline static std::unordered_map<std::string, double> high_res_l2norms;
 
   void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
@@ -156,7 +156,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveRightMovingC
   waveTest.runL1ErrorTest(6.11E-8, 5.5E-8);
 #endif  // PCM
 
-  n32_l2norms["fast_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
+  high_res_l2norms["fast_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -232,7 +232,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveRightMovingC
   waveTest.runL1ErrorTest(1.45E-9, 1.3E-9);
 #endif  // PCM
 
-  n32_l2norms["slow_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
+  high_res_l2norms["slow_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -307,7 +307,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveRightMovingCorrectInpu
   waveTest.runL1ErrorTest(1.95e-09, 2.16e-09);
 #endif  // PCM
 
-  n32_l2norms["alfven_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
+  high_res_l2norms["alfven_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -383,7 +383,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveCorrectInputExpect
   waveTest.runL1ErrorTest(1.41e-09, 1.5E-09);
 #endif  // PCM
 
-  n32_l2norms["contact_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
+  high_res_l2norms["contact_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveExpectSecondOrderConvergence)
@@ -416,8 +416,9 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveExpectSecond
   waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
 
   // Check the scaling
-  testingUtilities::checkResults(4.0, waveTest.getL2Norm() / n32_l2norms["fast_" + std::to_string(domain_direction)],
-                                 "", 0.07);
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["fast_" + std::to_string(domain_direction)], "",
+                                 0.07);
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecondOrderConvergence)
@@ -450,8 +451,9 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecond
   waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
 
   // Check the scaling
-  testingUtilities::checkResults(4.0, waveTest.getL2Norm() / n32_l2norms["slow_" + std::to_string(domain_direction)],
-                                 "", 0.07);
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["slow_" + std::to_string(domain_direction)], "",
+                                 0.07);
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConvergence)
@@ -483,7 +485,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConve
   waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
 
   // Check the scaling
-  testingUtilities::checkResults(4.0, waveTest.getL2Norm() / n32_l2norms["alven_" + std::to_string(domain_direction)],
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["alven_" + std::to_string(domain_direction)],
                                  "", 0.07);
 }
 
@@ -517,7 +520,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveExpectSecondOrderC
   waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
 
   // Check the scaling
-  testingUtilities::checkResults(4.0, waveTest.getL2Norm() / n32_l2norms["contact_" + std::to_string(domain_direction)],
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["contact_" + std::to_string(domain_direction)],
                                  "", 0.07);
 }
 
