@@ -48,22 +48,22 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 /*!
  * \brief Compute the sputtering timescale based on a cell's density and temperature.
  *
- * \param[in] n Gas number density in cm^-3
- * \param[in] T Gas temperature in K
+ * \param[in] number_density Gas number density in cm^-3
+ * \param[in] temperature Gas temperature in K
  *
  * \return Real Sputtering timescale in seconds (McKinnon et al. 2017)
  */
-__device__ __host__ Real calc_tau_sp(Real n, Real T);
+__device__ __host__ Real Calc_Sputtering_Timescale(Real number_density, Real temperature);
 
 /*!
  * \brief Compute the rate of change in dust density based on the current dust density and sputtering timescale.
  *
- * \param[in] d_dust Dust mass density in M_sun/kpc^3
+ * \param[in] density_dust Dust mass density in M_sun/kpc^3
  * \param[in] tau_sp Sputtering timescale in kyr
  *
  * \return Real Dust density rate of change (McKinnon et al. 2017)
  */
-__device__ __host__ Real calc_dd_dt(Real d_dust, Real tau_sp);
+__device__ __host__ Real Calc_dd_dt(Real density_dust, Real tau_sp);
 
   #endif  // DUST_CUDA_H
 #endif    // DUST
