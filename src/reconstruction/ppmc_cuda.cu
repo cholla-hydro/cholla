@@ -570,23 +570,23 @@ __global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bound
   reconstruction::Primitive const cell_i =
       reconstruction::Load_Data(dev_conserved, xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
 
-  // cell i-1. The equality checks check the direction and subtracts one from the direction
+  // cell i-1. The equality checks the direction and will subtract one from the correct direction
   // im1 stands for "i minus 1"
   reconstruction::Primitive const cell_im1 = reconstruction::Load_Data(
       dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
-  // cell i+1. The equality checks check the direction and adds one to the direction
+  // cell i+1.  The equality checks the direction and add one to the correct direction
   // ip1 stands for "i plus 1"
   reconstruction::Primitive const cell_ip1 = reconstruction::Load_Data(
       dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
-  // cell i-2. The equality checks check the direction and subtracts one from the direction
+  // cell i-2. The equality checks the direction and will subtract two from the correct direction
   // im2 stands for "i minus 2"
   reconstruction::Primitive const cell_im2 =
       reconstruction::Load_Data(dev_conserved, xid - 2 * int(dir == 0), yid - 2 * int(dir == 1),
                                 zid - 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
-  // cell i+2. The equality checks check the direction and adds one to the direction
+  // cell i+2.  The equality checks the direction and add two to the correct direction
   // ip2 stands for "i plus 2"
   reconstruction::Primitive const cell_ip2 =
       reconstruction::Load_Data(dev_conserved, xid + 2 * int(dir == 0), yid + 2 * int(dir == 1),
