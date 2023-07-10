@@ -104,8 +104,8 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
       int xid, yid, zid;
       cuda_utilities::compute3DIndices(i, nx, ny, xid, yid, zid);
       testingUtilities::Check_Results(fiducialData.at(i), destinationGrid.at(i),
-                                     "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
-                                         ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
+                                      "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
+                                          ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
     }
   }
 };

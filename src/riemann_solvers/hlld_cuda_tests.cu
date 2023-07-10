@@ -57,7 +57,7 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
    * \return std::vector<double>
    */
   std::vector<Real> Compute_Fluxes(std::vector<Real> stateLeft, std::vector<Real> stateRight, Real const &gamma,
-                                  int const &direction = 0)
+                                   int const &direction = 0)
   {
     // Rearrange X, Y, and Z values for the chosen direction
     std::rotate(stateLeft.begin() + 1, stateLeft.begin() + 4 - direction, stateLeft.begin() + 4);
@@ -162,7 +162,7 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
    * X, 1 = plane normal to Y, 2 = plane normal to Z. Defaults to 0.
    */
   void Check_Results(std::vector<Real> fiducialFlux, std::vector<Real> const &scalarFlux, Real thermalEnergyFlux,
-                    std::vector<Real> const &testFlux, std::string const &customOutput = "", int const &direction = 0)
+                     std::vector<Real> const &testFlux, std::string const &customOutput = "", int const &direction = 0)
   {
     // Field names
     std::vector<std::string> fieldNames{"Densities", "X Momentum",       "Y Momentum",       "Z Momentum",
@@ -228,7 +228,7 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
    * y-magnetic field, z-magnetic field.
    */
   std::vector<Real> Primitive_2_Conserved(std::vector<Real> const &input, double const &gamma,
-                                        std::vector<Real> const &primitiveScalars)
+                                          std::vector<Real> const &primitiveScalars)
   {
     std::vector<Real> output(input.size());
     output.at(0) = input.at(0);                // Density
@@ -299,29 +299,29 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, BrioAndWuShockTubeCorrectInputExpectCorrectO
                            // Pressure | X-Magnetic Field | Y-Magnetic Field |
                            // Z-Magnetic Field | Adiabatic Index | Passive
                            // Scalars |
-      leftICs = Primitive_2_Conserved({1.0, 0.0, 0.0, Vz, 1.0, Bx, 1.0, Bz}, gamma, primitiveScalar),
-      leftFastRareLeftSide =
-          Primitive_2_Conserved({0.978576, 0.038603, -0.011074, Vz, 0.957621, Bx, 0.970288, Bz}, gamma, primitiveScalar),
-      leftFastRareRightSide =
-          Primitive_2_Conserved({0.671655, 0.647082, -0.238291, Vz, 0.451115, Bx, 0.578240, Bz}, gamma, primitiveScalar),
-      compoundLeftSide =
-          Primitive_2_Conserved({0.814306, 0.506792, -0.911794, Vz, 0.706578, Bx, -0.108819, Bz}, gamma, primitiveScalar),
-      compoundPeak =
-          Primitive_2_Conserved({0.765841, 0.523701, -1.383720, Vz, 0.624742, Bx, -0.400787, Bz}, gamma, primitiveScalar),
-      compoundRightSide =
-          Primitive_2_Conserved({0.695211, 0.601089, -1.583720, Vz, 0.515237, Bx, -0.537027, Bz}, gamma, primitiveScalar),
-      contactLeftSide =
-          Primitive_2_Conserved({0.680453, 0.598922, -1.584490, Vz, 0.515856, Bx, -0.533616, Bz}, gamma, primitiveScalar),
-      contactRightSide =
-          Primitive_2_Conserved({0.231160, 0.599261, -1.584820, Vz, 0.516212, Bx, -0.533327, Bz}, gamma, primitiveScalar),
-      slowShockLeftSide =
-          Primitive_2_Conserved({0.153125, 0.086170, -0.683303, Vz, 0.191168, Bx, -0.850815, Bz}, gamma, primitiveScalar),
-      slowShockRightSide = Primitive_2_Conserved({0.117046, -0.238196, -0.165561, Vz, 0.087684, Bx, -0.903407, Bz}, gamma,
-                                               primitiveScalar),
+      leftICs               = Primitive_2_Conserved({1.0, 0.0, 0.0, Vz, 1.0, Bx, 1.0, Bz}, gamma, primitiveScalar),
+      leftFastRareLeftSide  = Primitive_2_Conserved({0.978576, 0.038603, -0.011074, Vz, 0.957621, Bx, 0.970288, Bz},
+                                                    gamma, primitiveScalar),
+      leftFastRareRightSide = Primitive_2_Conserved({0.671655, 0.647082, -0.238291, Vz, 0.451115, Bx, 0.578240, Bz},
+                                                    gamma, primitiveScalar),
+      compoundLeftSide  = Primitive_2_Conserved({0.814306, 0.506792, -0.911794, Vz, 0.706578, Bx, -0.108819, Bz}, gamma,
+                                                primitiveScalar),
+      compoundPeak      = Primitive_2_Conserved({0.765841, 0.523701, -1.383720, Vz, 0.624742, Bx, -0.400787, Bz}, gamma,
+                                                primitiveScalar),
+      compoundRightSide = Primitive_2_Conserved({0.695211, 0.601089, -1.583720, Vz, 0.515237, Bx, -0.537027, Bz}, gamma,
+                                                primitiveScalar),
+      contactLeftSide   = Primitive_2_Conserved({0.680453, 0.598922, -1.584490, Vz, 0.515856, Bx, -0.533616, Bz}, gamma,
+                                                primitiveScalar),
+      contactRightSide  = Primitive_2_Conserved({0.231160, 0.599261, -1.584820, Vz, 0.516212, Bx, -0.533327, Bz}, gamma,
+                                                primitiveScalar),
+      slowShockLeftSide = Primitive_2_Conserved({0.153125, 0.086170, -0.683303, Vz, 0.191168, Bx, -0.850815, Bz}, gamma,
+                                                primitiveScalar),
+      slowShockRightSide     = Primitive_2_Conserved({0.117046, -0.238196, -0.165561, Vz, 0.087684, Bx, -0.903407, Bz},
+                                                     gamma, primitiveScalar),
       rightFastRareLeftSide  = Primitive_2_Conserved({0.117358, -0.228756, -0.158845, Vz, 0.088148, Bx, -0.908335, Bz},
-                                                   gamma, primitiveScalar),
+                                                     gamma, primitiveScalar),
       rightFastRareRightSide = Primitive_2_Conserved({0.124894, -0.003132, -0.002074, Vz, 0.099830, Bx, -0.999018, Bz},
-                                                   gamma, primitiveScalar),
+                                                     gamma, primitiveScalar),
       rightICs               = Primitive_2_Conserved({0.128, 0.0, 0.0, Vz, 0.1, Bx, -1.0, Bz}, gamma, primitiveScalar);
 
   for (size_t direction = 0; direction < 3; direction++) {
@@ -419,8 +419,9 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, BrioAndWuShockTubeCorrectInputExpectCorrectO
                                            0.92496835095531071,  0.0,
                                            0.53128887284876058,  0};
       std::vector<Real> const scalarFlux{0.47083980954039228, 0.94789941519098619, 1.4101892974729979};
-      Real thermalEnergyFlux             = 0.41622256825457099;
-      std::vector<Real> const testFluxes = Compute_Fluxes(leftFastRareLeftSide, leftFastRareRightSide, gamma, direction);
+      Real thermalEnergyFlux = 0.41622256825457099;
+      std::vector<Real> const testFluxes =
+          Compute_Fluxes(leftFastRareLeftSide, leftFastRareRightSide, gamma, direction);
       Check_Results(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
     }
     {
@@ -435,8 +436,9 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, BrioAndWuShockTubeCorrectInputExpectCorrectO
                                            0.21008080091470105,  0.0,
                                            0.058615131833681167, 0};
       std::vector<Real> const scalarFlux{0.078034606921016325, 0.15710005136841393, 0.23371763662029341};
-      Real thermalEnergyFlux             = 0.047345816580591255;
-      std::vector<Real> const testFluxes = Compute_Fluxes(leftFastRareRightSide, leftFastRareLeftSide, gamma, direction);
+      Real thermalEnergyFlux = 0.047345816580591255;
+      std::vector<Real> const testFluxes =
+          Compute_Fluxes(leftFastRareRightSide, leftFastRareLeftSide, gamma, direction);
       Check_Results(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
     }
     {
@@ -792,8 +794,9 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, DaiAndWoodwardShockTubeCorrectInputExpectCor
                                            -0.20403672861184916, 4.014027751838869,    0.0,
                                            0.7248753989305099,   -0.059178137562467162};
       std::vector<Real> const scalarFlux{1.0663278606879119, 2.1467419174572049, 3.1937064501984724};
-      Real thermalEnergyFlux             = 1.5323573637968553;
-      std::vector<Real> const testFluxes = Compute_Fluxes(leftRotationLeftSide, leftRotationRightSide, gamma, direction);
+      Real thermalEnergyFlux = 1.5323573637968553;
+      std::vector<Real> const testFluxes =
+          Compute_Fluxes(leftRotationLeftSide, leftRotationRightSide, gamma, direction);
       Check_Results(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
     }
     {
@@ -807,8 +810,9 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, DaiAndWoodwardShockTubeCorrectInputExpectCor
                                            -0.31541343522923493, 3.9739842521208342,  0.0,
                                            0.75541746728406312,  -0.13479771672887678};
       std::vector<Real> const scalarFlux{1.0666336820367937, 2.1473576000564334, 3.1946224007710313};
-      Real thermalEnergyFlux             = 1.5333744977458499;
-      std::vector<Real> const testFluxes = Compute_Fluxes(leftRotationRightSide, leftRotationLeftSide, gamma, direction);
+      Real thermalEnergyFlux = 1.5333744977458499;
+      std::vector<Real> const testFluxes =
+          Compute_Fluxes(leftRotationRightSide, leftRotationLeftSide, gamma, direction);
       Check_Results(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
     }
     {
@@ -1304,7 +1308,8 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, EinfeldtStrongRarefactionCorrectInputExpectC
           Primitive_2_Conserved({0.368580, -1.180830, Vy, Vz, 0.111253, Bx, 0.183044, Bz}, gamma, primitiveScalar),
       leftVxTurnOver =
           Primitive_2_Conserved({0.058814, -0.125475, Vy, Vz, 0.008819, Bx, 0.029215, Bz}, gamma, primitiveScalar),
-      midPoint = Primitive_2_Conserved({0.034658, 0.000778, Vy, Vz, 0.006776, Bx, 0.017333, Bz}, gamma, primitiveScalar),
+      midPoint =
+          Primitive_2_Conserved({0.034658, 0.000778, Vy, Vz, 0.006776, Bx, 0.017333, Bz}, gamma, primitiveScalar),
       rightVxTurnOver =
           Primitive_2_Conserved({0.062587, 0.152160, Vy, Vz, 0.009521, Bx, 0.031576, Bz}, gamma, primitiveScalar),
       rightRarefactionCenter =
@@ -1554,8 +1559,10 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, ConstantStatesExpectCorrectFlux)
   std::vector<Real> const  // | Density | X-Velocity | Y-Velocity | Z-Velocity |
                            // Pressure    | X-Magnetic Field | Y-Magnetic Field |
                            // Z-Magnetic Field | Adiabatic Index | Passive Scalars |
-      zeroMagneticField = Primitive_2_Conserved({1e4, 0.0, 0.0, 0.0, 1.380658E-5, 0.0, 0.0, 0.0}, gamma, primitiveScalar),
-      onesMagneticField = Primitive_2_Conserved({1e4, 0.0, 0.0, 0.0, 1.380658E-5, 1.0, 1.0, 1.0}, gamma, primitiveScalar);
+      zeroMagneticField =
+          Primitive_2_Conserved({1e4, 0.0, 0.0, 0.0, 1.380658E-5, 0.0, 0.0, 0.0}, gamma, primitiveScalar),
+      onesMagneticField =
+          Primitive_2_Conserved({1e4, 0.0, 0.0, 0.0, 1.380658E-5, 1.0, 1.0, 1.0}, gamma, primitiveScalar);
 
   for (size_t direction = 0; direction < 3; direction++) {
     {
@@ -1953,17 +1960,18 @@ TEST(tMHDHlldInternalNonStarFluxes, CorrectInputExpectCorrectOutput)
         mhd::_internal::nonStarFluxes(parameters.stateLVec.at(i), parameters.magneticX.at(i));
 
     // Now check results
-    testingUtilities::Check_Results(fiducialFlux[i].density, testFlux.density, parameters.names.at(i) + ", DensityFlux");
+    testingUtilities::Check_Results(fiducialFlux[i].density, testFlux.density,
+                                    parameters.names.at(i) + ", DensityFlux");
     testingUtilities::Check_Results(fiducialFlux[i].momentumX, testFlux.momentumX,
-                                   parameters.names.at(i) + ", MomentumFluxX");
+                                    parameters.names.at(i) + ", MomentumFluxX");
     testingUtilities::Check_Results(fiducialFlux[i].momentumY, testFlux.momentumY,
-                                   parameters.names.at(i) + ", MomentumFluxY");
+                                    parameters.names.at(i) + ", MomentumFluxY");
     testingUtilities::Check_Results(fiducialFlux[i].momentumZ, testFlux.momentumZ,
-                                   parameters.names.at(i) + ", MomentumFluxZ");
+                                    parameters.names.at(i) + ", MomentumFluxZ");
     testingUtilities::Check_Results(fiducialFlux[i].magneticY, testFlux.magneticY,
-                                   parameters.names.at(i) + ", MagneticFluxY");
+                                    parameters.names.at(i) + ", MagneticFluxY");
     testingUtilities::Check_Results(fiducialFlux[i].magneticZ, testFlux.magneticZ,
-                                   parameters.names.at(i) + ", MagneticFluxZ");
+                                    parameters.names.at(i) + ", MagneticFluxZ");
     testingUtilities::Check_Results(fiducialFlux[i].energy, testFlux.energy, parameters.names.at(i) + ", EnergyFlux");
   }
 }
@@ -1992,15 +2000,15 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputNonDegenerateExpectCorrectOut
 
     // Now check results
     testingUtilities::Check_Results(fiducialStarState.at(i).velocityY, testStarState.velocityY,
-                                   parameters.names.at(i) + ", VelocityStarY");
+                                    parameters.names.at(i) + ", VelocityStarY");
     testingUtilities::Check_Results(fiducialStarState.at(i).velocityZ, testStarState.velocityZ,
-                                   parameters.names.at(i) + ", VelocityStarZ");
+                                    parameters.names.at(i) + ", VelocityStarZ");
     testingUtilities::Check_Results(fiducialStarState.at(i).energy, testStarState.energy,
-                                   parameters.names.at(i) + ", EnergyStar");
+                                    parameters.names.at(i) + ", EnergyStar");
     testingUtilities::Check_Results(fiducialStarState.at(i).magneticY, testStarState.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarY");
+                                    parameters.names.at(i) + ", MagneticStarY");
     testingUtilities::Check_Results(fiducialStarState.at(i).magneticZ, testStarState.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarZ");
+                                    parameters.names.at(i) + ", MagneticStarZ");
   }
 }
 
@@ -2030,19 +2038,19 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputNonDegenerateExpectCorrectOutput)
 
     // Now check results
     testingUtilities::Check_Results(fiducialFlux[i].density, testFlux.density,
-                                   parameters.names.at(i) + ", DensityStarFlux");
+                                    parameters.names.at(i) + ", DensityStarFlux");
     testingUtilities::Check_Results(fiducialFlux[i].momentumX, testFlux.momentumX,
-                                   parameters.names.at(i) + ", MomentumStarFluxX");
+                                    parameters.names.at(i) + ", MomentumStarFluxX");
     testingUtilities::Check_Results(fiducialFlux[i].momentumY, testFlux.momentumY,
-                                   parameters.names.at(i) + ", MomentumStarFluxY");
+                                    parameters.names.at(i) + ", MomentumStarFluxY");
     testingUtilities::Check_Results(fiducialFlux[i].momentumZ, testFlux.momentumZ,
-                                   parameters.names.at(i) + ", MomentumStarFluxZ");
+                                    parameters.names.at(i) + ", MomentumStarFluxZ");
     testingUtilities::Check_Results(fiducialFlux[i].energy, testFlux.energy,
-                                   parameters.names.at(i) + ", EnergyStarFlux");
+                                    parameters.names.at(i) + ", EnergyStarFlux");
     testingUtilities::Check_Results(fiducialFlux[i].magneticY, testFlux.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarFluxY", 1.0E-13);
+                                    parameters.names.at(i) + ", MagneticStarFluxY", 1.0E-13);
     testingUtilities::Check_Results(fiducialFlux[i].magneticZ, testFlux.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarFluxZ", 7.0E-13);
+                                    parameters.names.at(i) + ", MagneticStarFluxZ", 7.0E-13);
   }
 }
 
@@ -2072,15 +2080,15 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputDegenerateExpectCorrectOutput
 
     // Now check results
     testingUtilities::Check_Results(fiducialStarState.at(i).velocityY, testStarState.velocityY,
-                                   parameters.names.at(i) + ", VelocityStarY");
+                                    parameters.names.at(i) + ", VelocityStarY");
     testingUtilities::Check_Results(fiducialStarState.at(i).velocityZ, testStarState.velocityZ,
-                                   parameters.names.at(i) + ", VelocityStarZ");
+                                    parameters.names.at(i) + ", VelocityStarZ");
     testingUtilities::Check_Results(fiducialStarState.at(i).energy, testStarState.energy,
-                                   parameters.names.at(i) + ", EnergyStar");
+                                    parameters.names.at(i) + ", EnergyStar");
     testingUtilities::Check_Results(fiducialStarState.at(i).magneticY, testStarState.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarY");
+                                    parameters.names.at(i) + ", MagneticStarY");
     testingUtilities::Check_Results(fiducialStarState.at(i).magneticZ, testStarState.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarZ");
+                                    parameters.names.at(i) + ", MagneticStarZ");
   }
 }
 
@@ -2107,19 +2115,19 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputDegenerateExpectCorrectOutput)
 
     // Now check results
     testingUtilities::Check_Results(fiducialFlux[i].density, testFlux.density,
-                                   parameters.names.at(i) + ", DensityStarFlux");
+                                    parameters.names.at(i) + ", DensityStarFlux");
     testingUtilities::Check_Results(fiducialFlux[i].momentumX, testFlux.momentumX,
-                                   parameters.names.at(i) + ", MomentumStarFluxX");
+                                    parameters.names.at(i) + ", MomentumStarFluxX");
     testingUtilities::Check_Results(fiducialFlux[i].momentumY, testFlux.momentumY,
-                                   parameters.names.at(i) + ", MomentumStarFluxY");
+                                    parameters.names.at(i) + ", MomentumStarFluxY");
     testingUtilities::Check_Results(fiducialFlux[i].momentumZ, testFlux.momentumZ,
-                                   parameters.names.at(i) + ", MomentumStarFluxZ");
+                                    parameters.names.at(i) + ", MomentumStarFluxZ");
     testingUtilities::Check_Results(fiducialFlux[i].energy, testFlux.energy,
-                                   parameters.names.at(i) + ", EnergyStarFlux");
+                                    parameters.names.at(i) + ", EnergyStarFlux");
     testingUtilities::Check_Results(fiducialFlux[i].magneticY, testFlux.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarFluxY");
+                                    parameters.names.at(i) + ", MagneticStarFluxY");
     testingUtilities::Check_Results(fiducialFlux[i].magneticZ, testFlux.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarFluxZ");
+                                    parameters.names.at(i) + ", MagneticStarFluxZ");
   }
 }
 // =========================================================================
@@ -2147,17 +2155,17 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputNonDegenerateExpectCorrectOutp
 
     // Now check results
     testingUtilities::Check_Results(fiducialState.at(i).velocityY, testState.velocityY,
-                                   parameters.names.at(i) + ", VelocityDoubleStarY");
+                                    parameters.names.at(i) + ", VelocityDoubleStarY");
     testingUtilities::Check_Results(fiducialState.at(i).velocityZ, testState.velocityZ,
-                                   parameters.names.at(i) + ", VelocityDoubleStarZ");
+                                    parameters.names.at(i) + ", VelocityDoubleStarZ");
     testingUtilities::Check_Results(fiducialState.at(i).magneticY, testState.magneticY,
-                                   parameters.names.at(i) + ", MagneticDoubleStarY");
+                                    parameters.names.at(i) + ", MagneticDoubleStarY");
     testingUtilities::Check_Results(fiducialState.at(i).magneticZ, testState.magneticZ,
-                                   parameters.names.at(i) + ", MagneticDoubleStarZ");
+                                    parameters.names.at(i) + ", MagneticDoubleStarZ");
     testingUtilities::Check_Results(fiducialState.at(i).energyL, testState.energyL,
-                                   parameters.names.at(i) + ", EnergyDoubleStarL");
+                                    parameters.names.at(i) + ", EnergyDoubleStarL");
     testingUtilities::Check_Results(fiducialState.at(i).energyR, testState.energyR,
-                                   parameters.names.at(i) + ", EnergyDoubleStarR");
+                                    parameters.names.at(i) + ", EnergyDoubleStarR");
   }
 }
 
@@ -2181,17 +2189,17 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputDegenerateExpectCorrectOutput)
 
     // Now check results
     testingUtilities::Check_Results(fiducialState.at(i).velocityY, testState.velocityY,
-                                   parameters.names.at(i) + ", VelocityDoubleStarY");
+                                    parameters.names.at(i) + ", VelocityDoubleStarY");
     testingUtilities::Check_Results(fiducialState.at(i).velocityZ, testState.velocityZ,
-                                   parameters.names.at(i) + ", VelocityDoubleStarZ");
+                                    parameters.names.at(i) + ", VelocityDoubleStarZ");
     testingUtilities::Check_Results(fiducialState.at(i).magneticY, testState.magneticY,
-                                   parameters.names.at(i) + ", MagneticDoubleStarY");
+                                    parameters.names.at(i) + ", MagneticDoubleStarY");
     testingUtilities::Check_Results(fiducialState.at(i).magneticZ, testState.magneticZ,
-                                   parameters.names.at(i) + ", MagneticDoubleStarZ");
+                                    parameters.names.at(i) + ", MagneticDoubleStarZ");
     testingUtilities::Check_Results(fiducialState.at(i).energyL, testState.energyL,
-                                   parameters.names.at(i) + ", EnergyDoubleStarL");
+                                    parameters.names.at(i) + ", EnergyDoubleStarL");
     testingUtilities::Check_Results(fiducialState.at(i).energyR, testState.energyR,
-                                   parameters.names.at(i) + ", EnergyDoubleStarR");
+                                    parameters.names.at(i) + ", EnergyDoubleStarR");
   }
 }
 // =========================================================================
@@ -2219,19 +2227,19 @@ TEST(tMHDHlldInternalDoubleStarFluxes, CorrectInputExpectCorrectOutput)
 
     // Now check results
     testingUtilities::Check_Results(fiducialFlux[i].density, testFlux.density,
-                                   parameters.names.at(i) + ", DensityStarFlux", 5.0E-14);
+                                    parameters.names.at(i) + ", DensityStarFlux", 5.0E-14);
     testingUtilities::Check_Results(fiducialFlux[i].momentumX, testFlux.momentumX,
-                                   parameters.names.at(i) + ", MomentumStarFluxX");
+                                    parameters.names.at(i) + ", MomentumStarFluxX");
     testingUtilities::Check_Results(fiducialFlux[i].momentumY, testFlux.momentumY,
-                                   parameters.names.at(i) + ", MomentumStarFluxY");
+                                    parameters.names.at(i) + ", MomentumStarFluxY");
     testingUtilities::Check_Results(fiducialFlux[i].momentumZ, testFlux.momentumZ,
-                                   parameters.names.at(i) + ", MomentumStarFluxZ");
+                                    parameters.names.at(i) + ", MomentumStarFluxZ");
     testingUtilities::Check_Results(fiducialFlux[i].energy, testFlux.energy,
-                                   parameters.names.at(i) + ", EnergyStarFlux");
+                                    parameters.names.at(i) + ", EnergyStarFlux");
     testingUtilities::Check_Results(fiducialFlux[i].magneticY, testFlux.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarFluxY");
+                                    parameters.names.at(i) + ", MagneticStarFluxY");
     testingUtilities::Check_Results(fiducialFlux[i].magneticZ, testFlux.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarFluxZ");
+                                    parameters.names.at(i) + ", MagneticStarFluxZ");
   }
 }
 // =========================================================================
@@ -2339,7 +2347,7 @@ TEST(tMHDHlldInternalStarTotalPressure, CorrectInputExpectCorrectOutput)
 
     // Now check results
     testingUtilities::Check_Results(fiducialPressure.at(i), testPressure,
-                                   parameters.names.at(i) + ", total pressure in the star states");
+                                    parameters.names.at(i) + ", total pressure in the star states");
   }
 }
 // =========================================================================
@@ -2396,7 +2404,7 @@ TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
     testingUtilities::Check_Results(fiducialState.at(direction).magneticZ, testState.magneticZ, ", magneticZ");
     testingUtilities::Check_Results(fiducialState.at(direction).gasPressure, testState.gasPressure, ", gasPressure");
     testingUtilities::Check_Results(fiducialState.at(direction).totalPressure, testState.totalPressure,
-                                   ", totalPressure");
+                                    ", totalPressure");
   }
 }
   // =========================================================================

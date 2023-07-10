@@ -316,28 +316,28 @@ void Output_Float32(Grid3D &G, struct parameters P, int nfile)
 
     if (P.out_float32_density > 0) {
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_density, "/density");
+                          device_dataset_vector.data(), G.C.d_density, "/density");
     }
     if (P.out_float32_momentum_x > 0) {
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_momentum_x, "/momentum_x");
+                          device_dataset_vector.data(), G.C.d_momentum_x, "/momentum_x");
     }
     if (P.out_float32_momentum_y > 0) {
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_momentum_y, "/momentum_y");
+                          device_dataset_vector.data(), G.C.d_momentum_y, "/momentum_y");
     }
     if (P.out_float32_momentum_z > 0) {
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_momentum_z, "/momentum_z");
+                          device_dataset_vector.data(), G.C.d_momentum_z, "/momentum_z");
     }
     if (P.out_float32_Energy > 0) {
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_Energy, "/Energy");
+                          device_dataset_vector.data(), G.C.d_Energy, "/Energy");
     }
   #ifdef DE
     if (P.out_float32_GasEnergy > 0) {
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_GasEnergy, "/GasEnergy");
+                          device_dataset_vector.data(), G.C.d_GasEnergy, "/GasEnergy");
     }
   #endif  // DE
   #ifdef MHD
@@ -346,17 +346,17 @@ void Output_Float32(Grid3D &G, struct parameters P, int nfile)
     if (P.out_float32_magnetic_x > 0) {
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_magnetic_x, "/magnetic_x");
+                          device_dataset_vector.data(), G.C.d_magnetic_x, "/magnetic_x");
     }
     if (P.out_float32_magnetic_y > 0) {
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_magnetic_y, "/magnetic_y");
+                          device_dataset_vector.data(), G.C.d_magnetic_y, "/magnetic_y");
     }
     if (P.out_float32_magnetic_z > 0) {
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_magnetic_z, "/magnetic_z");
+                          device_dataset_vector.data(), G.C.d_magnetic_z, "/magnetic_z");
     }
 
   #endif  // MHD
@@ -1492,11 +1492,11 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #ifdef MHD
     if (H.Output_Complete_Data) {
       Write_HDF5_Field_3D(H.nx, H.ny, H.nx_real + 1, H.ny_real, H.nz_real, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), C.d_magnetic_x, "/magnetic_x", 0);
+                          device_dataset_vector.data(), C.d_magnetic_x, "/magnetic_x", 0);
       Write_HDF5_Field_3D(H.nx, H.ny, H.nx_real, H.ny_real + 1, H.nz_real, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), C.d_magnetic_y, "/magnetic_y", 1);
+                          device_dataset_vector.data(), C.d_magnetic_y, "/magnetic_y", 1);
       Write_HDF5_Field_3D(H.nx, H.ny, H.nx_real, H.ny_real, H.nz_real + 1, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), C.d_magnetic_z, "/magnetic_z", 2);
+                          device_dataset_vector.data(), C.d_magnetic_z, "/magnetic_z", 2);
     }
   #endif  // MHD
   }

@@ -45,7 +45,7 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
    * \return std::vector<double>
    */
   std::vector<Real> Compute_Fluxes(std::vector<Real> const &stateLeft, std::vector<Real> const &stateRight,
-                                  Real const &gamma)
+                                   Real const &gamma)
   {
     // Simulation Paramters
     int const nx        = 1;  // Number of cells in the x-direction?
@@ -106,7 +106,7 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
    * values that failed are printed
    */
   void Check_Results(std::vector<Real> const &fiducialFlux, std::vector<Real> const &testFlux,
-                    std::string const &customOutput = "")
+                     std::string const &customOutput = "")
   {
     // Field names
     std::vector<std::string> const fieldNames{"Densities", "X Momentum", "Y Momentum", "Z Momentum", "Energies"};
@@ -169,8 +169,8 @@ TEST_F(tHYDROCalculateHLLCFluxesCUDA,        // Test suite name
 
   // Compute the fluxes
   std::vector<Real> const testFluxes = Compute_Fluxes(state,   // Left state
-                                                     state,   // Right state
-                                                     gamma);  // Adiabatic Index
+                                                      state,   // Right state
+                                                      gamma);  // Adiabatic Index
 
   // Check for correctness
   Check_Results(fiducialFluxes, testFluxes);

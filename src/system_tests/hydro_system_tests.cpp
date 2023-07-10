@@ -149,8 +149,8 @@ class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithPa
 #endif  // PCM
 
   void Set_Launch_Params(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
-                         double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
-                         double const &vx = 0.0)
+                         double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ,
+                         double const &rEigenVec_E, double const &vx = 0.0)
   {
     // Constant for all tests
     size_t const N      = 32;
@@ -213,7 +213,8 @@ TEST_P(tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, SoundWaveRightMovingCorrectI
   double const rEigenVec_E         = 1.5;
 
   // Set the launch parameters
-  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E);
 
   // Set the number of MPI ranks
   waveTest.numMpiRanks = GetParam();
@@ -238,7 +239,8 @@ TEST_P(tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, SoundWaveLeftMovingCorrectIn
   double const rEigenVec_E         = 1.5;
 
   // Set the launch parameters
-  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E);
 
   // Set the number of MPI ranks
   waveTest.numMpiRanks = GetParam();
@@ -266,8 +268,8 @@ TEST_P(tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, HydroContactWaveCorrectInput
   double const velocityX           = waveSpeed;
 
   // Set the launch parameters
-  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  velocityX);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, velocityX);
 
   // Set the number of MPI ranks
   waveTest.numMpiRanks = GetParam();

@@ -166,7 +166,7 @@ TEST(tMHDFastMagnetosonicSpeed, CorrectInputExpectCorrectOutput)
         coef.at(i) * parameters.magneticZ.at(i), parameters.gamma);
 
     testingUtilities::Check_Results(fiducialFastMagnetosonicSpeed.at(i), testFastMagnetosonicSpeed,
-                                   parameters.names.at(i));
+                                    parameters.names.at(i));
   }
 }
 
@@ -189,7 +189,7 @@ TEST(tMHDFastMagnetosonicSpeed, NegativeDensityExpectAutomaticFix)
         coef.at(i) * parameters.magneticZ.at(i), parameters.gamma);
 
     testingUtilities::Check_Results(fiducialFastMagnetosonicSpeed.at(i), testFastMagnetosonicSpeed,
-                                   parameters.names.at(i));
+                                    parameters.names.at(i));
   }
 }
 // =============================================================================
@@ -218,7 +218,7 @@ TEST(tMHDSlowMagnetosonicSpeed, CorrectInputExpectCorrectOutput)
         parameters.magneticY.at(i) * coef, parameters.magneticZ.at(i) * coef, parameters.gamma);
 
     testingUtilities::Check_Results(fiducialSlowMagnetosonicSpeed.at(i), testSlowMagnetosonicSpeed,
-                                   parameters.names.at(i));
+                                    parameters.names.at(i));
   }
 }
 
@@ -241,7 +241,7 @@ TEST(tMHDSlowMagnetosonicSpeed, NegativeDensityExpectAutomaticFix)
         parameters.magneticY.at(i) * coef, parameters.magneticZ.at(i) * coef, parameters.gamma);
 
     testingUtilities::Check_Results(fiducialSlowMagnetosonicSpeed.at(i), testSlowMagnetosonicSpeed,
-                                   parameters.names.at(i));
+                                    parameters.names.at(i));
   }
 }
 // =============================================================================

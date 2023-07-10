@@ -121,7 +121,7 @@ void analyticSine(systemTest::SystemTestRunner testObject, std::string const &da
  */
 template <int checkType = 0>
 void Check_Results(double fiducialNumber, double testNumber, std::string const &outString, double fixedEpsilon = -999,
-                  int64_t ulpsEpsilon = -999)
+                   int64_t ulpsEpsilon = -999)
 {
   // Check for equality and if not equal return difference
   double absoluteDiff;

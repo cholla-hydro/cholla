@@ -63,7 +63,7 @@ TEST(tHYDROCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput)
 
     for (size_t j = 0; j < test_indices.size(); j++) {
       testingUtilities::Check_Results(fiducial_indices[i][j], test_indices[j],
-                                     index_names[j] + " " + parameters.names[i]);
+                                      index_names[j] + " " + parameters.names[i]);
     }
   }
 }
