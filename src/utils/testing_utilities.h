@@ -120,7 +120,7 @@ void analyticSine(systemTest::SystemTestRunner testObject, std::string const &da
  * values are ignored and default behaviour is used
  */
 template <int checkType = 0>
-void checkResults(double fiducialNumber, double testNumber, std::string const &outString, double fixedEpsilon = -999,
+void Check_Results(double fiducialNumber, double testNumber, std::string const &outString, double fixedEpsilon = -999,
                   int64_t ulpsEpsilon = -999)
 {
   // Check for equality and if not equal return difference
@@ -152,7 +152,7 @@ void checkResults(double fiducialNumber, double testNumber, std::string const &o
   } else {
     throw std::runtime_error(
         "Incorrect template argument passed to "
-        "checkResults. Options are 0 and 1 but " +
+        "Check_Results. Options are 0 and 1 but " +
         std::to_string(checkType) + " was passed");
   }
 }

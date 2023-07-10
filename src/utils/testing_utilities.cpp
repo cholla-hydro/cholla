@@ -88,7 +88,7 @@ void wrapperEqual(int i, int j, int k, std::string const &dataSetName, double te
   outString += std::to_string(k);
   outString += "]";
 
-  ASSERT_NO_FATAL_FAILURE(checkResults<1>(fid_value, test_value, outString, fixedEpsilon));
+  ASSERT_NO_FATAL_FAILURE(Check_Results<1>(fid_value, test_value, outString, fixedEpsilon));
 }
 
 void analyticConstant(systemTest::SystemTestRunner testObject, std::string const &dataSetName, double value)

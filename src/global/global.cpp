@@ -35,18 +35,18 @@ void Set_Gammas(Real gamma_in)
   gama = gamma_in;
 }
 
-/*! \fn double get_time(void)
+/*! \fn double Get_Time(void)
  *  \brief Returns the current clock time. */
-double get_time(void)
+double Get_Time(void)
 {
   struct timeval timer;
   gettimeofday(&timer, NULL);
   return timer.tv_sec + 1.0e-6 * timer.tv_usec;
 }
 
-/*! \fn int sgn
+/*! \fn int Sgn
  *  \brief Mathematical sign function. Returns sign of x. */
-int sgn(Real x)
+int Sgn(Real x)
 {
   if (x < 0) {
     return -1;
@@ -58,7 +58,7 @@ int sgn(Real x)
 #ifndef CUDA
 /*! \fn Real calc_eta(Real cW[], Real gamma)
  *  \brief Calculate the eta value for the H correction. */
-Real calc_eta(Real cW[], Real gamma)
+Real Calc_Eta(Real cW[], Real gamma)
 {
   Real pl, pr, al, ar;
 
@@ -74,9 +74,9 @@ Real calc_eta(Real cW[], Real gamma)
 }
 #endif  // NO CUDA
 
-/*! \fn char trim(char *s)
+/*! \fn char Trim(char *s)
  *  \brief Gets rid of trailing and leading whitespace. */
-char *trim(char *s)
+char *Trim(char *s)
 {
   /* Initialize start, end pointers */
   char *s1 = s, *s2 = &s[strlen(s) - 1];
@@ -103,10 +103,10 @@ const std::set<const char *> optionalParams = {
     "delta",        "nzr",         "nxr",      "H0",       "Omega_M", "Omega_L", "Init_redshift",
     "End_redshift", "tile_length", "n_proc_x", "n_proc_y", "n_proc_z"};
 
-/*! \fn int is_param_valid(char *name);
+/*! \fn int Is_Param_Valid(char *name);
  * \brief Verifies that a param is valid (even if not needed).  Avoids
  * "warnings" in output. */
-int is_param_valid(const char *param_name)
+int Is_Param_Valid(const char *param_name)
 {
   // for (auto optionalParam = optionalParams.begin(); optionalParam != optionalParams.end(); ++optionalParam) {
   for (const auto *optionalParam : optionalParams) {
@@ -117,11 +117,11 @@ int is_param_valid(const char *param_name)
   return 0;
 }
 
-void parse_param(char *name, char *value, struct parameters *parms);
+void Parse_Param(char *name, char *value, struct parameters *parms);
 
-/*! \fn void parse_params(char *param_file, struct parameters * parms);
+/*! \fn void Parse_Params(char *param_file, struct parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
-void parse_params(char *param_file, struct parameters *parms, int argc, char **argv)
+void Parse_Params(char *param_file, struct parameters *parms, int argc, char **argv)
 {
   int buf;
   char *s, buff[256];
@@ -174,8 +174,8 @@ void parse_params(char *param_file, struct parameters *parms, int argc, char **a
     } else {
       strncpy(value, s, MAXLEN);
     }
-    trim(value);
-    parse_param(name, value, parms);
+    Trim(value);
+    Parse_Param(name, value, parms);
   }
   /* Close file */
   fclose(fp);
@@ -195,14 +195,14 @@ void parse_params(char *param_file, struct parameters *parms, int argc, char **a
     } else {
       strncpy(value, s, MAXLEN);
     }
-    parse_param(name, value, parms);
+    Parse_Param(name, value, parms);
     chprintf("Override with %s=%s\n", name, value);
   }
 }
 
-/*! \fn void parse_param(char *name,char *value, struct parameters *parms);
+/*! \fn void Parse_Param(char *name,char *value, struct parameters *parms);
  *  \brief Parses and sets a single param based on name and value. */
-void parse_param(char *name, char *value, struct parameters *parms)
+void Parse_Param(char *name, char *value, struct parameters *parms)
 {
   /* Copy into correct entry in parameters struct */
   if (strcmp(name, "nx") == 0) {
@@ -451,7 +451,7 @@ void parse_param(char *name, char *value, struct parameters *parms)
     strncpy(parms->skewersdir, value, MAXLEN);
   #endif
 #endif
-  } else if (!is_param_valid(name)) {
+  } else if (!Is_Param_Valid(name)) {
     chprintf("WARNING: %s/%s: Unknown parameter/value pair!\n", name, value);
   }
 }

@@ -106,7 +106,7 @@ TEST(tHYDROHydroInverseCrossingTime, CorrectInputExpectCorrectOutput)
                                                             velocityZ, cellSizeX, cellSizeY, cellSizeZ, gamma);
 
   // Check results
-  testingUtilities::checkResults(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
+  testingUtilities::Check_Results(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
 }
 // =============================================================================
 // End of tests for the hydroInverseCrossingTime function
@@ -140,7 +140,7 @@ TEST(tMHDMhdInverseCrossingTime, CorrectInputExpectCorrectOutput)
                              magneticZ, cellSizeX, cellSizeY, cellSizeZ, gamma);
 
   // Check results
-  testingUtilities::checkResults(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
+  testingUtilities::Check_Results(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
 }
 // =============================================================================
 // End of tests for the mhdInverseCrossingTime function

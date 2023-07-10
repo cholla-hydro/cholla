@@ -9,7 +9,7 @@
   #include "../utils/gpu.hpp"
 
 static void __attribute__((unused))
-printDiff(const Real *p, const Real *q, const int ng, const int nx, const int ny, const int nz, const bool plot = false)
+Print_Diff(const Real *p, const Real *q, const int ng, const int nx, const int ny, const int nz, const bool plot = false)
 {
   Real dMax = 0, dSum = 0, dSum2 = 0;
   Real qMax = 0, qSum = 0, qSum2 = 0;

@@ -10,7 +10,7 @@
 
 static constexpr double sqrt2 = 0.4142135623730950488016887242096980785696718753769480731766797379;
 
-static inline __host__ __device__ double sqr(const double x) { return x * x; }
+static inline __host__ __device__ double Sqr(const double x) { return x * x; }
 
 PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3], const double lo[3], const double hi[3], const int m[3],
                                                  const int id[3])
@@ -20,9 +20,9 @@ PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3], const double lo
       ddj_(2.0 * double(n[1] - 1) / (hi[1] - lo[1])),
       ddk_(2.0 * double(n[2] - 1) / (hi[2] - lo[2])),
   #elif defined PARIS_GALACTIC_5PT
-      ddi_(sqr(double(n[0] - 1) / (hi[0] - lo[0])) / 6.0),
-      ddj_(sqr(double(n[1] - 1) / (hi[1] - lo[1])) / 6.0),
-      ddk_(sqr(double(n[2] - 1) / (hi[2] - lo[2])) / 6.0),
+      ddi_(Sqr(double(n[0] - 1) / (hi[0] - lo[0])) / 6.0),
+      ddj_(Sqr(double(n[1] - 1) / (hi[1] - lo[1])) / 6.0),
+      ddk_(Sqr(double(n[2] - 1) / (hi[2] - lo[2])) / 6.0),
   #else
       ddi_{M_PI * double(n[0] - 1) / (double(n[0]) * (hi[0] - lo[0]))},
       ddj_{M_PI * double(n[1] - 1) / (double(n[1]) * (hi[1] - lo[1]))},
@@ -38,7 +38,7 @@ PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3], const double lo
       nj_(n[1]),
       nk_(n[2])
 {
-  mq_ = int(round(sqrt(mk_)));
+  mq_ = int(round(Sqrt(mk_)));
   while (mk_ % mq_) {
     mq_--;
   }
@@ -302,7 +302,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
     const double si  = M_PI / double(ni + ni);
     const double sj  = M_PI / double(nj + nj);
     const double sk  = M_PI / double(nk + nk);
-    const double iin = sqr(sin(double(ni) * si) * ddi);
+    const double iin = Sqr(sin(double(ni) * si) * ddi);
   #elif defined PARIS_GALACTIC_5PT
     const double si  = M_PI / double(ni);
     const double sj  = M_PI / double(nj);
@@ -310,7 +310,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
     const double cin = cos(double(ni) * si);
     const double iin = ddi * (2.0 * cin * cin - 16.0 * cin + 14.0);
   #else
-    const double iin = sqr(double(ni) * ddi);
+    const double iin = Sqr(double(ni) * ddi);
   #endif
     const int jLo = (idi * mp + idp) * djp;
     const int kLo = (idj * mq + idq) * dkq;
@@ -319,7 +319,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
           const int kj  = (k * djp + j) * ni;
           const int kj2 = (k * djp + j) * ni2;
   #ifdef PARIS_GALACTIC_3PT
-          const double jjkk = sqr(sin(double(jLo + j + 1) * sj) * ddj) + sqr(sin(double(kLo + k + 1) * sk) * ddk);
+          const double jjkk = Sqr(sin(double(jLo + j + 1) * sj) * ddj) + Sqr(sin(double(kLo + k + 1) * sk) * ddk);
   #elif defined PARIS_GALACTIC_5PT
           const double cj   = cos(double(jLo + j + 1) * sj);
           const double jj   = ddj * (2.0 * cj * cj - 16.0 * cj + 14.0);
@@ -328,18 +328,18 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
           const double jjkk = jj + kk;
   #else
           const double jjkk =
-              sqr(double(jLo + j + 1) * ddj) + sqr(double(kLo + k + 1) * ddk);
+              Sqr(double(jLo + j + 1) * ddj) + Sqr(double(kLo + k + 1) * ddk);
   #endif
           if (i == 0) {
             ua[kj] = -2.0 * ub[kj2] / (iin + jjkk);
           } else {
   #ifdef PARIS_GALACTIC_3PT
-            const double ii = sqr(sin(double(i) * si) * ddi);
+            const double ii = Sqr(sin(double(i) * si) * ddi);
   #elif defined PARIS_GALACTIC_5PT
             const double ci = cos(double(i) * si);
             const double ii = ddi * (2.0 * ci * ci - 16.0 * ci + 14.0);
   #else
-            const double ii = sqr(double(i) * ddi);
+            const double ii = Sqr(double(i) * ddi);
   #endif
             if (i + i == ni) {
               ua[kj + ni / 2] = -2.0 * ub[kj2 + ni] / (ii + jjkk);
@@ -349,12 +349,12 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
               double wa, wb;
               sincospi(double(i) / double(ni + ni), &wb, &wa);
   #ifdef PARIS_GALACTIC_3PT
-              const double nii = sqr(sin(double(ni - i) * si) * ddi);
+              const double nii = Sqr(sin(double(ni - i) * si) * ddi);
   #elif defined PARIS_GALACTIC_5PT
               const double cni = cos(double(ni - i) * si);
               const double nii = ddi * (2.0 * cni * cni - 16.0 * cni + 14.0);
   #else
-              const double nii = sqr(double(ni - i) * ddi);
+              const double nii = Sqr(double(ni - i) * ddi);
   #endif
               const double aai = -(wa * ai + wb * bi) / (nii + jjkk);
               const double bbi = (wa * bi - wb * ai) / (ii + jjkk);

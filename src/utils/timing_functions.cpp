@@ -18,7 +18,7 @@ void OneTime::Start()
   if (inactive) {
     return;
   }
-  time_start = get_time();
+  time_start = Get_Time();
 }
 
 void OneTime::Subtract(Real time_to_subtract)
@@ -34,7 +34,7 @@ void OneTime::End()
   if (inactive) {
     return;
   }
-  Real time_end = get_time();
+  Real time_end = Get_Time();
   Real time     = (time_end - time_start) * 1000;
 
   #ifdef MPI_CHOLLA
@@ -219,14 +219,14 @@ ScopedTimer::ScopedTimer(const char* input_name)
 {
 #ifdef CPU_TIME
   name       = input_name;
-  time_start = get_time();
+  time_start = Get_Time();
 #endif
 }
 
 ScopedTimer::~ScopedTimer(void)
 {
 #ifdef CPU_TIME
-  double time_elapsed_ms = (get_time() - time_start) * 1000;
+  double time_elapsed_ms = (Get_Time() - time_start) * 1000;
 
   #ifdef MPI_CHOLLA
   double t_min = ReduceRealMin(time_elapsed_ms);

@@ -33,7 +33,7 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
  protected:
   systemTest::SystemTestRunner waveTest;
 
-  void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
+  void Set_Launch_Params(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
                        double const &rEigenVec_Bx, double const &rEigenVec_By, double const &rEigenVec_Bz,
                        double const &pitch, double const &yaw, double const &domain, int const &domain_direction,
@@ -80,7 +80,7 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
         std::swap(rEigenVec_MomentumX_rot, rEigenVec_MomentumZ_rot);
         break;
       default:
-        throw std::invalid_argument("Invalid value of domain_direction given to setLaunchParams");
+        throw std::invalid_argument("Invalid value of domain_direction given to Set_Launch_Params");
         break;
     }
 
@@ -148,7 +148,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveRightMovingC
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
@@ -184,7 +184,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveLeftMovingCo
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
@@ -222,7 +222,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveRightMovingC
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
@@ -258,7 +258,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCo
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
@@ -295,7 +295,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveRightMovingCorrectInpu
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
@@ -330,7 +330,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveLeftMovingCorrectInput
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
@@ -368,7 +368,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveCorrectInputExpect
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, velocityX);
 
   // Set the number of timesteps
@@ -413,7 +413,7 @@ class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<in
  protected:
   systemTest::SystemTestRunner waveTest;
 
-  void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
+  void Set_Launch_Params(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
                        double const &rEigenVec_Bx, double const &rEigenVec_By, double const &rEigenVec_Bz)
   {
@@ -487,7 +487,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveRightMovingCor
   waveTest.numMpiRanks = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz);
 
   // Set the number of timesteps
@@ -523,7 +523,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorr
   waveTest.numMpiRanks = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
                   rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz);
 
   // Set the number of timesteps
@@ -664,7 +664,7 @@ class tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization : public 
  protected:
   systemTest::SystemTestRunner cpawTest;
 
-  void setLaunchParams(double const &polarization, double const &vx)
+  void Set_Launch_Params(double const &polarization, double const &vx)
   {
     // Constant for all tests
     size_t const N      = 32;
@@ -734,7 +734,7 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, MovingW
 #endif  // PCM
 
   // Set the launch parameters
-  setLaunchParams(polarization, vx);
+  Set_Launch_Params(polarization, vx);
 
   // Check Results
   cpawTest.runL1ErrorTest(allowedL1Error, allowedError);
@@ -769,7 +769,7 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, Standin
 #endif  // PCM
 
   // Set the launch parameters
-  setLaunchParams(polarization, vx);
+  Set_Launch_Params(polarization, vx);
 
   // Check Results
   cpawTest.runL1ErrorTest(allowedL1Error, allowedError);
