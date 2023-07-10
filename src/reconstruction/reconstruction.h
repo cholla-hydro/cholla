@@ -673,14 +673,14 @@ Primitive __device__ __host__ __inline__ Calc_Interface_Parabolic(Primitive cons
  * \brief Compute the PPM interface state for a given field/stencil.
  *
  * \details This method is heavily based on the implementation in Athena++. See the following papers for details
- *  - K. Felker & J. Stone, "A fourth-order accurate finite volume method for ideal MHD via upwind constrained
+ * - K. Felker & J. Stone, "A fourth-order accurate finite volume method for ideal MHD via upwind constrained
  * transport", JCP, 375, (2018)
- *  - P. Colella & P. Woodward, "The Piecewise Parabolic Method (PPM) for Gas-Dynamical Simulations", JCP, 54, 174
+ * - P. Colella & P. Woodward, "The Piecewise Parabolic Method (PPM) for Gas-Dynamical Simulations", JCP, 54, 174
  * (1984)
- *  - P. Colella & M. Sekora, "A limiter for PPM that preserves accuracy at smooth extrema", JCP, 227, 7069 (2008)
- *  - P. McCorquodale & P. Colella,  "A high-order finite-volume method for conservation laws on locally refined grids",
- * CAMCoS, 6, 1 (2011)
- *  - P. Colella, M.R. Dorr, J. Hittinger, D. Martin, "High-order, finite-volume methods in mapped coordinates", JCP,
+ * - P. Colella & M. Sekora, "A limiter for PPM that preserves accuracy at smooth extrema", JCP, 227, 7069 (2008)
+ * - P. McCorquodale & P. Colella,  "A high-order finite-volume method for conservation laws on locally refined
+ * grids", CAMCoS, 6, 1 (2011)
+ * - P. Colella, M.R. Dorr, J. Hittinger, D. Martin, "High-order, finite-volume methods in mapped coordinates", JCP,
  * 230, 2952 (2011)
  *
  * \param[in] cell_im2 The value of the field/stencil at i-2
@@ -695,17 +695,6 @@ void __device__ __host__ __inline__ PPM_Single_Variable(Real const &cell_im2, Re
                                                         Real const &cell_ip1, Real const &cell_ip2,
                                                         Real &interface_L_iph, Real &interface_R_imh)
 {
-  // This method is heavily based on the implementation in Athena++. See the following papers for details
-  // - K. Felker & J. Stone, "A fourth-order accurate finite volume method for ideal MHD via upwind constrained
-  // transport", JCP, 375, (2018)
-  // - P. Colella & P. Woodward, "The Piecewise Parabolic Method (PPM) for Gas-Dynamical Simulations", JCP, 54, 174
-  // (1984)
-  // - P. Colella & M. Sekora, "A limiter for PPM that preserves accuracy at smooth extrema", JCP, 227, 7069 (2008)
-  // - P. McCorquodale & P. Colella,  "A high-order finite-volume method for conservation laws on locally refined
-  // grids", CAMCoS, 6, 1 (2011)
-  // - P. Colella, M.R. Dorr, J. Hittinger, D. Martin, "High-order, finite-volume methods in mapped coordinates", JCP,
-  // 230, 2952 (2011)
-
   // Let's start by setting up some things that we'll need later
 
   // Colella & Sekora 2008 constant used in second derivative limiter
