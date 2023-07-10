@@ -79,13 +79,13 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // the cell center
 
   // left
-  reconstruction::Primitive const del_L = reconstruction::Compute_Slope(cell_i, cell_imo);
+  reconstruction::Primitive const del_L = reconstruction::Compute_Slope(cell_imo, cell_i);
 
   // right
-  reconstruction::Primitive const del_R = reconstruction::Compute_Slope(cell_ipo, cell_i);
+  reconstruction::Primitive const del_R = reconstruction::Compute_Slope(cell_i, cell_ipo);
 
   // centered
-  reconstruction::Primitive const del_C = reconstruction::Compute_Slope(cell_ipo, cell_imo, 0.5);
+  reconstruction::Primitive const del_C = reconstruction::Compute_Slope(cell_imo, cell_ipo, 0.5);
 
   // Van Leer
   reconstruction::Primitive const del_G = reconstruction::Van_Leer_Slope(del_L, del_R);

@@ -151,11 +151,11 @@ TEST(tALLReconstructionComputeSlope, CorrectInputExpectCorrectOutput)
 {
 // Setup input data
 #ifdef MHD
-  reconstruction::Primitive left{1, 2, 3, 4, 5, 6, 7, 8};
-  reconstruction::Primitive right{6, 7, 8, 9, 10, 11, 12, 13};
+  reconstruction::Primitive left{6, 7, 8, 9, 10, 11, 12, 13};
+  reconstruction::Primitive right{1, 2, 3, 4, 5, 6, 7, 8};
 #else   // MHD
-  reconstruction::Primitive left{1, 2, 3, 4, 5};
-  reconstruction::Primitive right{6, 7, 8, 9, 10};
+  reconstruction::Primitive left{6, 7, 8, 9, 10};
+  reconstruction::Primitive right{1, 2, 3, 4, 5};
 #endif  // MHD
   Real const coef = 0.5;
 

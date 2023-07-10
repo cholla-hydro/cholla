@@ -96,13 +96,13 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // and R refer to locations relative to the cell center Stone Eqn 36
 
   // left
-  reconstruction::Primitive del_L = reconstruction::Compute_Slope(cell_im1, cell_im2);
+  reconstruction::Primitive del_L = reconstruction::Compute_Slope(cell_im2, cell_im1);
 
   // right
-  reconstruction::Primitive del_R = reconstruction::Compute_Slope(cell_i, cell_im1);
+  reconstruction::Primitive del_R = reconstruction::Compute_Slope(cell_im1, cell_i);
 
   // centered
-  reconstruction::Primitive del_C = reconstruction::Compute_Slope(cell_i, cell_im2, 0.5);
+  reconstruction::Primitive del_C = reconstruction::Compute_Slope(cell_im2, cell_i, 0.5);
 
   // Van Leer
   reconstruction::Primitive del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
@@ -141,13 +141,13 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // and R refer to locations relative to the cell center Stone Eqn 36
 
   // left
-  del_L = reconstruction::Compute_Slope(cell_i, cell_im1);
+  del_L = reconstruction::Compute_Slope(cell_im1, cell_i);
 
   // right
-  del_R = reconstruction::Compute_Slope(cell_ip1, cell_i);
+  del_R = reconstruction::Compute_Slope(cell_i, cell_ip1);
 
   // centered
-  del_C = reconstruction::Compute_Slope(cell_ip1, cell_im1, 0.5);
+  del_C = reconstruction::Compute_Slope(cell_im1, cell_ip1, 0.5);
 
   // Van Leer
   del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
@@ -182,13 +182,13 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // and R refer to locations relative to the cell center Stone Eqn 36
 
   // left
-  del_L = reconstruction::Compute_Slope(cell_ip1, cell_i);
+  del_L = reconstruction::Compute_Slope(cell_i, cell_ip1);
 
   // right
-  del_R = reconstruction::Compute_Slope(cell_ip2, cell_ip1);
+  del_R = reconstruction::Compute_Slope(cell_ip1, cell_ip2);
 
   // centered
-  del_C = reconstruction::Compute_Slope(cell_ip2, cell_i, 0.5);
+  del_C = reconstruction::Compute_Slope(cell_i, cell_ip2, 0.5);
 
   // Van Leer
   del_G = reconstruction::Van_Leer_Slope(del_L, del_R);

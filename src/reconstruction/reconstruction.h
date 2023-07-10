@@ -157,10 +157,10 @@ Primitive __device__ __host__ __inline__ Load_Data(Real const *dev_conserved, si
 
 // =====================================================================================================================
 /*!
- * \brief Compute a simple slope. Equation is `coef * (left - right)`.
+ * \brief Compute a simple slope. Equation is `coef * (right - left)`.
  *
- * \param[in] left The data on the positive side of the slope
- * \param[in] right The data on the negative side of the slope
+ * \param[in] left The data with the lower index (on the "left" side)
+ * \param[in] right The data with the higher index (on the "right" side)
  * \param[in] coef The coefficient to multiply the slope by. Defaults to 1.0
  * \return Primitive The slopes
  */
@@ -169,24 +169,24 @@ Primitive __device__ __host__ __inline__ Compute_Slope(Primitive const &left, Pr
 {
   Primitive slopes;
 
-  slopes.density    = coef * (left.density - right.density);
-  slopes.velocity_x = coef * (left.velocity_x - right.velocity_x);
-  slopes.velocity_y = coef * (left.velocity_y - right.velocity_y);
-  slopes.velocity_z = coef * (left.velocity_z - right.velocity_z);
-  slopes.pressure   = coef * (left.pressure - right.pressure);
+  slopes.density    = coef * (right.density - left.density);
+  slopes.velocity_x = coef * (right.velocity_x - left.velocity_x);
+  slopes.velocity_y = coef * (right.velocity_y - left.velocity_y);
+  slopes.velocity_z = coef * (right.velocity_z - left.velocity_z);
+  slopes.pressure   = coef * (right.pressure - left.pressure);
 
 #ifdef MHD
-  slopes.magnetic_y = coef * (left.magnetic_y - right.magnetic_y);
-  slopes.magnetic_z = coef * (left.magnetic_z - right.magnetic_z);
+  slopes.magnetic_y = coef * (right.magnetic_y - left.magnetic_y);
+  slopes.magnetic_z = coef * (right.magnetic_z - left.magnetic_z);
 #endif  // MHD
 
 #ifdef DE
-  slopes.gas_energy = coef * (left.gas_energy - right.gas_energy);
+  slopes.gas_energy = coef * (right.gas_energy - left.gas_energy);
 #endif  // DE
 
 #ifdef SCALAR
   for (size_t i = 0; i < grid_enum::nscalars; i++) {
-    slopes.scalar[i] = coef * (left.scalar[i] - right.scalar[i]);
+    slopes.scalar[i] = coef * (right.scalar[i] - left.scalar[i]);
   }
 #endif  // SCALAR
 
