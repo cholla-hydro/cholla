@@ -28,6 +28,7 @@
    custom user output then performs all the required running and testing
  *
  */
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
 {
  protected:

@@ -25,6 +25,7 @@
  * \brief Test fixture for tMHDUpdateMagneticField3D test suite
  *
  */
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDUpdateMagneticField3D : public ::testing::Test
 {
  public:

@@ -31,6 +31,7 @@
  * \brief Test fixture for tMHDCalculateCTElectricFields test suite
  *
  */
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDCalculateCTElectricFields : public ::testing::Test
 {
  public:

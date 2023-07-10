@@ -26,7 +26,8 @@
  *
  */
 /// @{
-class tHYDROtMHDSYSTEMSodShockTubeParameterizedMpi : public ::testing::TestWithParam<size_t>
+// NOLINTNEXTLINE(readability-identifier-naming)
+class tHYDROSYSTEMSodShockTubeParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  protected:
   system_test::SystemTestRunner sodTest;
@@ -145,6 +146,7 @@ TEST(tHYDROtMHDSYSTEMSoundWave3D, CorrectInputExpectCorrectOutput)
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  public:

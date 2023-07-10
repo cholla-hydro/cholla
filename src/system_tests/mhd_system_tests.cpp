@@ -26,6 +26,7 @@
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<std::tuple<double, double, double, int>>
 {
  public:
@@ -544,6 +545,7 @@ INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedAngle,
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<int>
 {
  public:
@@ -690,6 +692,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorr
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDSYSTEMParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  protected:
@@ -786,6 +789,7 @@ TEST_P(tMHDSYSTEMParameterizedMpi, OrszagTangVortexCorrectInputExpectCorrectOutp
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization : public ::testing::TestWithParam<double>
 {
  public:

@@ -36,6 +36,7 @@ Effectively takes the left state, right state, fiducial fluxes, and
 custom user output then performs all the required running and testing
 *
 */
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
 {
  protected:
@@ -1807,7 +1808,7 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, UnphysicalValuesExpectAutomaticFix)
  */
 namespace
 {
-struct testParams {
+struct TestParams {
   // List of cases
   std::vector<std::string> names{"Case 1", "Case 2"};
 
@@ -1857,7 +1858,7 @@ struct testParams {
       {-22.40376497145191, -19.710500632936679, -0.81760587897407833, 9.6740190040662242, 24.295526347371595},
       {-11.190385012513822, -4.4880642018724357, -0.026643804611559244, 3.4191202933087519, 12.519790189404299}};
 
-  testParams() = default;
+  TestParams() = default;
 };
 }  // namespace
 // =========================================================================
@@ -1869,7 +1870,7 @@ struct testParams {
  */
 TEST(tMHDHlldInternalApproximateLRWaveSpeeds, CorrectInputExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
   std::vector<double> const fiducialSpeedL{-22.40376497145191, -11.190385012513822};
   std::vector<double> const fiducialSpeedR{24.295526347371595, 12.519790189404299};
 
@@ -1891,7 +1892,7 @@ TEST(tMHDHlldInternalApproximateLRWaveSpeeds, CorrectInputExpectCorrectOutput)
  */
 TEST(tMHDHlldInternalApproximateMiddleWaveSpeed, CorrectInputExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
 
   std::vector<double> const fiducialSpeedM{-0.81760587897407833, -0.026643804611559244};
 
@@ -1914,7 +1915,7 @@ TEST(tMHDHlldInternalApproximateMiddleWaveSpeed, CorrectInputExpectCorrectOutput
  */
 TEST(tMHDHlldInternalApproximateStarWaveSpeed, CorrectInputExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
   std::vector<double> const fiducialSpeedStarL{-18.18506608966894, -4.2968910457518161};
   std::vector<double> const fiducialSpeedStarR{12.420292938368167, 3.6786718447209252};
 
@@ -1940,7 +1941,7 @@ TEST(tMHDHlldInternalApproximateStarWaveSpeed, CorrectInputExpectCorrectOutput)
  */
 TEST(tMHDHlldInternalNonStarFluxes, CorrectInputExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
 
   std::vector<mhd::_internal::Flux> fiducialFlux{
       {38.504606872151484, -3088.4810263278778, -1127.8835013070616, -4229.5657456907293, -12344.460641662206,
@@ -1978,7 +1979,7 @@ TEST(tMHDHlldInternalNonStarFluxes, CorrectInputExpectCorrectOutput)
  */
 TEST(tMHDHlldInternalComputeStarState, CorrectInputNonDegenerateExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
 
   std::vector<mhd::_internal::StarState> fiducialStarState{
       {24.101290139122913, 1.4626377138501221, 5.7559806612277464, 1023.8840191068900, 18.648382121236992,
@@ -2012,7 +2013,7 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputNonDegenerateExpectCorrectOut
  */
 TEST(tMHDHlldInternalStarFluxes, CorrectInputNonDegenerateExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
 
   std::vector<mhd::_internal::Flux> fiducialFlux{
       {-45.270724071132321, 1369.1771532285088, -556.91765728768155, -2368.4452742393819, -21413.063415617500,
@@ -2054,7 +2055,7 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputNonDegenerateExpectCorrectOutput)
  */
 TEST(tMHDHlldInternalComputeStarState, CorrectInputDegenerateExpectCorrectOutput)
 {
-  testParams parameters;
+  TestParams parameters;
 
   std::vector<mhd::_internal::StarState> fiducialStarState{
       {24.101290139122913, 1.4626377138501221, 5.7559806612277464, 4.5171065808847731e+17, 18.648382121236992,
@@ -2087,7 +2088,7 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputDegenerateExpectCorrectOutput
 
 TEST(tMHDHlldInternalStarFluxes, CorrectInputDegenerateExpectCorrectOutput)
 {
-  testParams parameters;
+  TestParams parameters;
 
   // Used to get us into the degenerate case
   double const totalPressureStarMultiplier = 1E15;
@@ -2133,7 +2134,7 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputDegenerateExpectCorrectOutput)
  */
 TEST(tMHDHlldInternalDoubleStarState, CorrectInputNonDegenerateExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
 
   std::vector<mhd::_internal::DoubleStarState> fiducialState{
       {-1.5775383335759607, -3.4914062207842482, 45.259313435283325, 36.670978215630669, -2048.1953674500523,
@@ -2169,7 +2170,7 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputNonDegenerateExpectCorrectOutp
  */
 TEST(tMHDHlldInternalDoubleStarState, CorrectInputDegenerateExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
 
   std::vector<mhd::_internal::DoubleStarState> fiducialState{
       {1.0519818825796206, 0.68198273634686157, 26.835645069149873, 7.4302316959173442, 0.0, 90.44484278669114},
@@ -2204,7 +2205,7 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputDegenerateExpectCorrectOutput)
  */
 TEST(tMHDHlldInternalDoubleStarFluxes, CorrectInputExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
 
   std::vector<mhd::_internal::Flux> const fiducialFlux{
       {-144.2887586578122, 1450.1348804310369, -332.80193639987715, 83.687152337186944, 604.70003506833029,
@@ -2330,7 +2331,7 @@ TEST(tMHDHlldInternalReturnFluxes, CorrectInputExpectCorrectOutput)
  */
 TEST(tMHDHlldInternalStarTotalPressure, CorrectInputExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
 
   std::vector<double> const fiducialPressure{6802.2800807224075, 3476.1984612875144};
 
@@ -2352,7 +2353,7 @@ TEST(tMHDHlldInternalStarTotalPressure, CorrectInputExpectCorrectOutput)
  */
 TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
 {
-  testParams const parameters;
+  TestParams const parameters;
   int const threadId = 0;
   int const n_cells  = 10;
   std::vector<double> interfaceArray(n_cells * grid_enum::num_fields);
