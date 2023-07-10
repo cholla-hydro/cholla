@@ -76,10 +76,10 @@ __global__ __launch_bounds__(TPB) void PLMC_cuda(Real *dev_conserved, Real *dev_
 
 // Compute the eigenvectors
 #ifdef MHD
-  reconstruction::eigenVecs const eigenvectors =
+  reconstruction::EigenVecs const eigenvectors =
       reconstruction::Compute_Eigenvectors(cell_i, sound_speed, sound_speed_squared, gamma);
 #else
-  reconstruction::eigenVecs eigenvectors;
+  reconstruction::EigenVecs eigenvectors;
 #endif  // MHD
 
   // Compute the left, right, centered, and van Leer differences of the

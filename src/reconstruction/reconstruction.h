@@ -48,7 +48,7 @@ struct Primitive {
 // =====================================================================================================================
 
 // =====================================================================================================================
-struct eigenVecs {
+struct EigenVecs {
   Real magnetosonic_speed_fast, magnetosonic_speed_slow, magnetosonic_speed_fast_squared,
       magnetosonic_speed_slow_squared;
   Real alpha_fast, alpha_slow;
@@ -263,13 +263,13 @@ Primitive __device__ __host__ __inline__ Van_Leer_Slope(Primitive const &left_sl
  * \param[in] sound_speed The sound speed
  * \param[in] sound_speed_squared The sound speed squared
  * \param[in] gamma The adiabatic index
- * \return eigenVecs
+ * \return EigenVecs
  */
 #ifdef MHD
-eigenVecs __device__ __inline__ Compute_Eigenvectors(Primitive const &primitive, Real const &sound_speed,
+EigenVecs __device__ __inline__ Compute_Eigenvectors(Primitive const &primitive, Real const &sound_speed,
                                                      Real const &sound_speed_squared, Real const &gamma)
 {
-  eigenVecs output;
+  EigenVecs output;
   // This is taken from Stone et al. 2008, appendix A. Equation numbers will be quoted as relevant
 
   // Compute wave speeds and their squares
@@ -328,7 +328,7 @@ eigenVecs __device__ __inline__ Compute_Eigenvectors(Primitive const &primitive,
  *
  * \param[in] primitive The primitive variables
  * \param[in] primitive_slope The primitive variables slopes
- * \param[in] eigenVecs The eigenvectors
+ * \param[in] EigenVecs The eigenvectors
  * \param[in] sound_speed The speed of sound
  * \param[in] sound_speed_squared The speed of sound squared
  * \param[in] gamma The adiabatic index
@@ -336,7 +336,7 @@ eigenVecs __device__ __inline__ Compute_Eigenvectors(Primitive const &primitive,
  */
 Characteristic __device__ __inline__ Primitive_To_Characteristic(Primitive const &primitive,
                                                                  Primitive const &primitive_slope,
-                                                                 eigenVecs const &eigen, Real const &sound_speed,
+                                                                 EigenVecs const &eigen, Real const &sound_speed,
                                                                  Real const &sound_speed_squared, Real const &gamma)
 {
   Characteristic output;
@@ -408,7 +408,7 @@ Characteristic __device__ __inline__ Primitive_To_Characteristic(Primitive const
  */
 Primitive __device__ __host__ __inline__ Characteristic_To_Primitive(Primitive const &primitive,
                                                                      Characteristic const &characteristic_slope,
-                                                                     eigenVecs const &eigen, Real const &sound_speed,
+                                                                     EigenVecs const &eigen, Real const &sound_speed,
                                                                      Real const &sound_speed_squared, Real const &gamma)
 {
   Primitive output;
@@ -471,7 +471,7 @@ Primitive __device__ __host__ __inline__ Characteristic_To_Primitive(Primitive c
 Primitive __device__ __inline__ Monotonize_Characteristic_Return_Primitive(
     Primitive const &primitive, Primitive const &del_L, Primitive const &del_R, Primitive const &del_C,
     Primitive const &del_G, Characteristic const &del_a_L, Characteristic const &del_a_R, Characteristic const &del_a_C,
-    Characteristic const &del_a_G, eigenVecs const &eigenvectors, Real const &sound_speed,
+    Characteristic const &del_a_G, EigenVecs const &eigenvectors, Real const &sound_speed,
     Real const &sound_speed_squared, Real const &gamma)
 {
   // The function that will actually do the monotozation

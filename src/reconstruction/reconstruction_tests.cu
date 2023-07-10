@@ -24,7 +24,7 @@
 #ifdef MHD
 __global__ void test_prim_2_char(reconstruction::Primitive const primitive,
                                  reconstruction::Primitive const primitive_slope,
-                                 reconstruction::eigenVecs const eigenvectors, Real const gamma, Real const sound_speed,
+                                 reconstruction::EigenVecs const eigenvectors, Real const gamma, Real const sound_speed,
                                  Real const sound_speed_squared, reconstruction::Characteristic *characteristic_slope)
 {
   *characteristic_slope = reconstruction::Primitive_To_Characteristic(primitive, primitive_slope, eigenvectors,
@@ -33,7 +33,7 @@ __global__ void test_prim_2_char(reconstruction::Primitive const primitive,
 
 __global__ void test_char_2_prim(reconstruction::Primitive const primitive,
                                  reconstruction::Characteristic const characteristic_slope,
-                                 reconstruction::eigenVecs const eigenvectors, Real const gamma, Real const sound_speed,
+                                 reconstruction::EigenVecs const eigenvectors, Real const gamma, Real const sound_speed,
                                  Real const sound_speed_squared, reconstruction::Primitive *primitive_slope)
 {
   *primitive_slope = reconstruction::Characteristic_To_Primitive(primitive, characteristic_slope, eigenvectors,
@@ -42,7 +42,7 @@ __global__ void test_char_2_prim(reconstruction::Primitive const primitive,
 
 __global__ void test_compute_eigenvectors(reconstruction::Primitive const primitive, Real const sound_speed,
                                           Real const sound_speed_squared, Real const gamma,
-                                          reconstruction::eigenVecs *eigenvectors)
+                                          reconstruction::EigenVecs *eigenvectors)
 {
   *eigenvectors = reconstruction::Compute_Eigenvectors(primitive, sound_speed, sound_speed_squared, gamma);
 }
@@ -53,7 +53,7 @@ TEST(tMHDReconstructionPrimitive2Characteristic, CorrectInputExpectCorrectOutput
   Real const &gamma = 5. / 3.;
   reconstruction::Primitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
   reconstruction::Primitive const primitive_slope{9, 10, 11, 12, 13, 14, 15, 16};
-  reconstruction::eigenVecs const eigenvectors{
+  reconstruction::EigenVecs const eigenvectors{
       17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
   };
   Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
@@ -84,7 +84,7 @@ TEST(tMHDReconstructionCharacteristic2Primitive, CorrectInputExpectCorrectOutput
   Real const &gamma = 5. / 3.;
   reconstruction::Primitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
   reconstruction::Characteristic const characteristic_slope{17, 18, 19, 20, 21, 22, 23};
-  reconstruction::eigenVecs const eigenvectors{
+  reconstruction::EigenVecs const eigenvectors{
       17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
   };
   Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
@@ -119,12 +119,12 @@ TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
   Real const sound_speed_squared = sound_speed * sound_speed;
 
   // Run test
-  cuda_utilities::DeviceVector<reconstruction::eigenVecs> dev_results(1);
+  cuda_utilities::DeviceVector<reconstruction::EigenVecs> dev_results(1);
   hipLaunchKernelGGL(test_compute_eigenvectors, 1, 1, 0, 0, primitive, sound_speed, sound_speed_squared, gamma,
                      dev_results.data());
   CudaCheckError();
   cudaDeviceSynchronize();
-  reconstruction::eigenVecs const host_results = dev_results.at(0);
+  reconstruction::EigenVecs const host_results = dev_results.at(0);
   // std::cout << to_string_exact(host_results.magnetosonic_speed_fast) << ",";
   // std::cout << to_string_exact(host_results.magnetosonic_speed_slow) << ",";
   // std::cout << to_string_exact(host_results.magnetosonic_speed_fast_squared) << ",";
@@ -144,7 +144,7 @@ TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
   // std::cout << to_string_exact(host_results.a_prime_fast) << ",";
   // std::cout << to_string_exact(host_results.a_prime_slow) << "," << std::endl;
   // Check results
-  reconstruction::eigenVecs const fiducial_results{
+  reconstruction::EigenVecs const fiducial_results{
       12.466068627219666,   1.3894122191714398,  155.40286701855041,  1.9304663147829049,   0.20425471836256681,
       0.97891777490585408,  0.65850460786851805, 0.75257669470687782, 0.059999999999999984, 1,
       2.546253336541183,    1.3601203180183106,  0.58963258314939582, 2.825892204282022,    0.15277520019247093,
@@ -297,7 +297,7 @@ __global__ void test_monotize_characteristic_return_primitive(
     reconstruction::Primitive const del_R, reconstruction::Primitive const del_C, reconstruction::Primitive const del_G,
     reconstruction::Characteristic const del_a_L, reconstruction::Characteristic const del_a_R,
     reconstruction::Characteristic const del_a_C, reconstruction::Characteristic const del_a_G,
-    reconstruction::eigenVecs const eigenvectors, Real const sound_speed, Real const sound_speed_squared,
+    reconstruction::EigenVecs const eigenvectors, Real const sound_speed, Real const sound_speed_squared,
     Real const gamma, reconstruction::Primitive *monotonized_slope)
 {
   *monotonized_slope = reconstruction::Monotonize_Characteristic_Return_Primitive(
@@ -330,7 +330,7 @@ TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpe
 #endif  // MHD
   Real const sound_speed = 17.0, sound_speed_squared = sound_speed * sound_speed;
   Real const gamma = 5. / 3.;
-  reconstruction::eigenVecs const eigenvectors{
+  reconstruction::EigenVecs const eigenvectors{
       17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
   };
 

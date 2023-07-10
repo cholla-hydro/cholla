@@ -93,7 +93,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   Real sound_speed = hydro_utilities::Calc_Sound_Speed(cell_im1.pressure, cell_im1.density, gamma);
   // this isn't actually used and the compiler should optimize it away but since this is the only reconstruction
   // function that won't use it it was easier to add it here as an unused variable
-  reconstruction::eigenVecs eigenvector;
+  reconstruction::EigenVecs eigenvector;
 
   // Step 2 - Compute the left, right, centered, and van Leer differences of the primitive variables. Note that here L
   // and R refer to locations relative to the cell center Stone Eqn 36
@@ -608,10 +608,10 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
   Real const sound_speed_squared = sound_speed * sound_speed;
 
 #ifdef MHD
-  reconstruction::eigenVecs eigenvectors =
+  reconstruction::EigenVecs eigenvectors =
       reconstruction::Compute_Eigenvectors(cell_i, sound_speed, sound_speed_squared, gamma);
 #else
-  reconstruction::eigenVecs eigenvectors;
+  reconstruction::EigenVecs eigenvectors;
 #endif  // MHD
 
   // Cell i
