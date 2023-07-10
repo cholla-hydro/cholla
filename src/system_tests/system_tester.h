@@ -21,7 +21,7 @@
  * \brief This namespace contains one class, SystemTestRunner, whose
  * purpose is to (as you might expect) run system tests.
  */
-namespace systemTest
+namespace system_test
 {
 /*!
  * \brief Runs a system test using the full test name to determine all
@@ -49,9 +49,9 @@ namespace systemTest
  *
  */
 class SystemTestRunner;
-}  // namespace systemTest
+}  // namespace system_test
 
-class systemTest::SystemTestRunner
+class system_test::SystemTestRunner
 {
  public:
   /// The number of MPI ranks, defaults to 1
@@ -62,7 +62,7 @@ class systemTest::SystemTestRunner
    * replacing the need for a settings file. A string of the launch parameters
    * that will override the values in the settings file (if given). Any of
    * Cholla's standard launch paramters work except `outdir` as that is
-   * reserved for usage in the systemTest::SystemTestRunner.runTest() method
+   * reserved for usage in the system_test::SystemTestRunner.runTest() method
    */
   std::string chollaLaunchParams;
 
@@ -375,4 +375,4 @@ class systemTest::SystemTestRunner
    * \return std::vector<std::string>
    */
   std::vector<std::string> _findDataSetNames(H5::H5File const &inputFile);
-};  // End of class systemTest::SystemTestRunner
+};  // End of class system_test::SystemTestRunner

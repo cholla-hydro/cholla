@@ -18,10 +18,10 @@
 #include "utils/testing_utilities.h"
 
 /// This is the global variable to store the path to the root of Cholla
-testingUtilities::GlobalString globalChollaRoot;
-testingUtilities::GlobalString globalChollaBuild;
-testingUtilities::GlobalString globalChollaMachine;
-testingUtilities::GlobalString globalMpiLauncher;
+testing_utilities::GlobalString globalChollaRoot;
+testing_utilities::GlobalString globalChollaBuild;
+testing_utilities::GlobalString globalChollaMachine;
+testing_utilities::GlobalString globalMpiLauncher;
 bool globalRunCholla;
 bool globalCompareSystemTestResults;
 

@@ -199,8 +199,8 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
       double const fixedEpsilon = 2.7E-15;
       int64_t const ulpsEpsilon = 7;
 
-      bool areEqual = testingUtilities::nearlyEqualDbl(fiducialFlux[i], testFlux[i], absoluteDiff, ulpsDiff,
-                                                       fixedEpsilon, ulpsEpsilon);
+      bool areEqual = testing_utilities::nearlyEqualDbl(fiducialFlux[i], testFlux[i], absoluteDiff, ulpsDiff,
+                                                        fixedEpsilon, ulpsEpsilon);
       EXPECT_TRUE(areEqual) << std::endl
                             << customOutput << std::endl
                             << "There's a difference in " << fieldNames[i] << " Flux" << std::endl
@@ -1878,8 +1878,8 @@ TEST(tMHDHlldInternalApproximateLRWaveSpeeds, CorrectInputExpectCorrectOutput)
         parameters.stateLVec.at(i), parameters.stateRVec.at(i), parameters.magneticX.at(i), parameters.gamma);
 
     // Now check results
-    testingUtilities::checkResults(fiducialSpeedL[i], testSpeed.L, parameters.names.at(i) + ", SpeedL");
-    testingUtilities::checkResults(fiducialSpeedR.at(i), testSpeed.R, parameters.names.at(i) + ", SpeedR");
+    testing_utilities::checkResults(fiducialSpeedL[i], testSpeed.L, parameters.names.at(i) + ", SpeedL");
+    testing_utilities::checkResults(fiducialSpeedR.at(i), testSpeed.R, parameters.names.at(i) + ", SpeedR");
   }
 }
 // =========================================================================
@@ -1902,7 +1902,7 @@ TEST(tMHDHlldInternalApproximateMiddleWaveSpeed, CorrectInputExpectCorrectOutput
                                                              parameters.speed.at(i));
 
     // Now check results
-    testingUtilities::checkResults(fiducialSpeedM.at(i), testSpeed.M, parameters.names.at(i) + ", SpeedM");
+    testing_utilities::checkResults(fiducialSpeedM.at(i), testSpeed.M, parameters.names.at(i) + ", SpeedM");
   }
 }
 // =========================================================================
@@ -1927,8 +1927,8 @@ TEST(tMHDHlldInternalApproximateStarWaveSpeed, CorrectInputExpectCorrectOutput)
                                                                parameters.magneticX.at(i), 1);
 
     // Now check results
-    testingUtilities::checkResults(fiducialSpeedStarL.at(i), testSpeed.LStar, parameters.names.at(i) + ", SpeedStarL");
-    testingUtilities::checkResults(fiducialSpeedStarR.at(i), testSpeed.RStar, parameters.names.at(i) + ", SpeedStarR");
+    testing_utilities::checkResults(fiducialSpeedStarL.at(i), testSpeed.LStar, parameters.names.at(i) + ", SpeedStarL");
+    testing_utilities::checkResults(fiducialSpeedStarR.at(i), testSpeed.RStar, parameters.names.at(i) + ", SpeedStarR");
   }
 }
 // =========================================================================
@@ -1953,18 +1953,19 @@ TEST(tMHDHlldInternalNonStarFluxes, CorrectInputExpectCorrectOutput)
         mhd::_internal::nonStarFluxes(parameters.stateLVec.at(i), parameters.magneticX.at(i));
 
     // Now check results
-    testingUtilities::checkResults(fiducialFlux[i].density, testFlux.density, parameters.names.at(i) + ", DensityFlux");
-    testingUtilities::checkResults(fiducialFlux[i].momentumX, testFlux.momentumX,
-                                   parameters.names.at(i) + ", MomentumFluxX");
-    testingUtilities::checkResults(fiducialFlux[i].momentumY, testFlux.momentumY,
-                                   parameters.names.at(i) + ", MomentumFluxY");
-    testingUtilities::checkResults(fiducialFlux[i].momentumZ, testFlux.momentumZ,
-                                   parameters.names.at(i) + ", MomentumFluxZ");
-    testingUtilities::checkResults(fiducialFlux[i].magneticY, testFlux.magneticY,
-                                   parameters.names.at(i) + ", MagneticFluxY");
-    testingUtilities::checkResults(fiducialFlux[i].magneticZ, testFlux.magneticZ,
-                                   parameters.names.at(i) + ", MagneticFluxZ");
-    testingUtilities::checkResults(fiducialFlux[i].energy, testFlux.energy, parameters.names.at(i) + ", EnergyFlux");
+    testing_utilities::checkResults(fiducialFlux[i].density, testFlux.density,
+                                    parameters.names.at(i) + ", DensityFlux");
+    testing_utilities::checkResults(fiducialFlux[i].momentumX, testFlux.momentumX,
+                                    parameters.names.at(i) + ", MomentumFluxX");
+    testing_utilities::checkResults(fiducialFlux[i].momentumY, testFlux.momentumY,
+                                    parameters.names.at(i) + ", MomentumFluxY");
+    testing_utilities::checkResults(fiducialFlux[i].momentumZ, testFlux.momentumZ,
+                                    parameters.names.at(i) + ", MomentumFluxZ");
+    testing_utilities::checkResults(fiducialFlux[i].magneticY, testFlux.magneticY,
+                                    parameters.names.at(i) + ", MagneticFluxY");
+    testing_utilities::checkResults(fiducialFlux[i].magneticZ, testFlux.magneticZ,
+                                    parameters.names.at(i) + ", MagneticFluxZ");
+    testing_utilities::checkResults(fiducialFlux[i].energy, testFlux.energy, parameters.names.at(i) + ", EnergyFlux");
   }
 }
 // =========================================================================
@@ -1991,16 +1992,16 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputNonDegenerateExpectCorrectOut
                                          parameters.magneticX.at(i), parameters.totalPressureStar.at(i));
 
     // Now check results
-    testingUtilities::checkResults(fiducialStarState.at(i).velocityY, testStarState.velocityY,
-                                   parameters.names.at(i) + ", VelocityStarY");
-    testingUtilities::checkResults(fiducialStarState.at(i).velocityZ, testStarState.velocityZ,
-                                   parameters.names.at(i) + ", VelocityStarZ");
-    testingUtilities::checkResults(fiducialStarState.at(i).energy, testStarState.energy,
-                                   parameters.names.at(i) + ", EnergyStar");
-    testingUtilities::checkResults(fiducialStarState.at(i).magneticY, testStarState.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarY");
-    testingUtilities::checkResults(fiducialStarState.at(i).magneticZ, testStarState.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarZ");
+    testing_utilities::checkResults(fiducialStarState.at(i).velocityY, testStarState.velocityY,
+                                    parameters.names.at(i) + ", VelocityStarY");
+    testing_utilities::checkResults(fiducialStarState.at(i).velocityZ, testStarState.velocityZ,
+                                    parameters.names.at(i) + ", VelocityStarZ");
+    testing_utilities::checkResults(fiducialStarState.at(i).energy, testStarState.energy,
+                                    parameters.names.at(i) + ", EnergyStar");
+    testing_utilities::checkResults(fiducialStarState.at(i).magneticY, testStarState.magneticY,
+                                    parameters.names.at(i) + ", MagneticStarY");
+    testing_utilities::checkResults(fiducialStarState.at(i).magneticZ, testStarState.magneticZ,
+                                    parameters.names.at(i) + ", MagneticStarZ");
   }
 }
 
@@ -2029,20 +2030,20 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputNonDegenerateExpectCorrectOutput)
                                    parameters.speed.at(i), parameters.speed.at(i).L);
 
     // Now check results
-    testingUtilities::checkResults(fiducialFlux[i].density, testFlux.density,
-                                   parameters.names.at(i) + ", DensityStarFlux");
-    testingUtilities::checkResults(fiducialFlux[i].momentumX, testFlux.momentumX,
-                                   parameters.names.at(i) + ", MomentumStarFluxX");
-    testingUtilities::checkResults(fiducialFlux[i].momentumY, testFlux.momentumY,
-                                   parameters.names.at(i) + ", MomentumStarFluxY");
-    testingUtilities::checkResults(fiducialFlux[i].momentumZ, testFlux.momentumZ,
-                                   parameters.names.at(i) + ", MomentumStarFluxZ");
-    testingUtilities::checkResults(fiducialFlux[i].energy, testFlux.energy,
-                                   parameters.names.at(i) + ", EnergyStarFlux");
-    testingUtilities::checkResults(fiducialFlux[i].magneticY, testFlux.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarFluxY", 1.0E-13);
-    testingUtilities::checkResults(fiducialFlux[i].magneticZ, testFlux.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarFluxZ", 7.0E-13);
+    testing_utilities::checkResults(fiducialFlux[i].density, testFlux.density,
+                                    parameters.names.at(i) + ", DensityStarFlux");
+    testing_utilities::checkResults(fiducialFlux[i].momentumX, testFlux.momentumX,
+                                    parameters.names.at(i) + ", MomentumStarFluxX");
+    testing_utilities::checkResults(fiducialFlux[i].momentumY, testFlux.momentumY,
+                                    parameters.names.at(i) + ", MomentumStarFluxY");
+    testing_utilities::checkResults(fiducialFlux[i].momentumZ, testFlux.momentumZ,
+                                    parameters.names.at(i) + ", MomentumStarFluxZ");
+    testing_utilities::checkResults(fiducialFlux[i].energy, testFlux.energy,
+                                    parameters.names.at(i) + ", EnergyStarFlux");
+    testing_utilities::checkResults(fiducialFlux[i].magneticY, testFlux.magneticY,
+                                    parameters.names.at(i) + ", MagneticStarFluxY", 1.0E-13);
+    testing_utilities::checkResults(fiducialFlux[i].magneticZ, testFlux.magneticZ,
+                                    parameters.names.at(i) + ", MagneticStarFluxZ", 7.0E-13);
   }
 }
 
@@ -2071,16 +2072,16 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputDegenerateExpectCorrectOutput
                                          parameters.magneticX.at(i), parameters.totalPressureStar.at(i));
 
     // Now check results
-    testingUtilities::checkResults(fiducialStarState.at(i).velocityY, testStarState.velocityY,
-                                   parameters.names.at(i) + ", VelocityStarY");
-    testingUtilities::checkResults(fiducialStarState.at(i).velocityZ, testStarState.velocityZ,
-                                   parameters.names.at(i) + ", VelocityStarZ");
-    testingUtilities::checkResults(fiducialStarState.at(i).energy, testStarState.energy,
-                                   parameters.names.at(i) + ", EnergyStar");
-    testingUtilities::checkResults(fiducialStarState.at(i).magneticY, testStarState.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarY");
-    testingUtilities::checkResults(fiducialStarState.at(i).magneticZ, testStarState.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarZ");
+    testing_utilities::checkResults(fiducialStarState.at(i).velocityY, testStarState.velocityY,
+                                    parameters.names.at(i) + ", VelocityStarY");
+    testing_utilities::checkResults(fiducialStarState.at(i).velocityZ, testStarState.velocityZ,
+                                    parameters.names.at(i) + ", VelocityStarZ");
+    testing_utilities::checkResults(fiducialStarState.at(i).energy, testStarState.energy,
+                                    parameters.names.at(i) + ", EnergyStar");
+    testing_utilities::checkResults(fiducialStarState.at(i).magneticY, testStarState.magneticY,
+                                    parameters.names.at(i) + ", MagneticStarY");
+    testing_utilities::checkResults(fiducialStarState.at(i).magneticZ, testStarState.magneticZ,
+                                    parameters.names.at(i) + ", MagneticStarZ");
   }
 }
 
@@ -2106,20 +2107,20 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputDegenerateExpectCorrectOutput)
                                    parameters.speed.at(i), parameters.speed.at(i).L);
 
     // Now check results
-    testingUtilities::checkResults(fiducialFlux[i].density, testFlux.density,
-                                   parameters.names.at(i) + ", DensityStarFlux");
-    testingUtilities::checkResults(fiducialFlux[i].momentumX, testFlux.momentumX,
-                                   parameters.names.at(i) + ", MomentumStarFluxX");
-    testingUtilities::checkResults(fiducialFlux[i].momentumY, testFlux.momentumY,
-                                   parameters.names.at(i) + ", MomentumStarFluxY");
-    testingUtilities::checkResults(fiducialFlux[i].momentumZ, testFlux.momentumZ,
-                                   parameters.names.at(i) + ", MomentumStarFluxZ");
-    testingUtilities::checkResults(fiducialFlux[i].energy, testFlux.energy,
-                                   parameters.names.at(i) + ", EnergyStarFlux");
-    testingUtilities::checkResults(fiducialFlux[i].magneticY, testFlux.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarFluxY");
-    testingUtilities::checkResults(fiducialFlux[i].magneticZ, testFlux.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarFluxZ");
+    testing_utilities::checkResults(fiducialFlux[i].density, testFlux.density,
+                                    parameters.names.at(i) + ", DensityStarFlux");
+    testing_utilities::checkResults(fiducialFlux[i].momentumX, testFlux.momentumX,
+                                    parameters.names.at(i) + ", MomentumStarFluxX");
+    testing_utilities::checkResults(fiducialFlux[i].momentumY, testFlux.momentumY,
+                                    parameters.names.at(i) + ", MomentumStarFluxY");
+    testing_utilities::checkResults(fiducialFlux[i].momentumZ, testFlux.momentumZ,
+                                    parameters.names.at(i) + ", MomentumStarFluxZ");
+    testing_utilities::checkResults(fiducialFlux[i].energy, testFlux.energy,
+                                    parameters.names.at(i) + ", EnergyStarFlux");
+    testing_utilities::checkResults(fiducialFlux[i].magneticY, testFlux.magneticY,
+                                    parameters.names.at(i) + ", MagneticStarFluxY");
+    testing_utilities::checkResults(fiducialFlux[i].magneticZ, testFlux.magneticZ,
+                                    parameters.names.at(i) + ", MagneticStarFluxZ");
   }
 }
 // =========================================================================
@@ -2146,18 +2147,18 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputNonDegenerateExpectCorrectOutp
         parameters.totalPressureStar.at(i), parameters.speed.at(i));
 
     // Now check results
-    testingUtilities::checkResults(fiducialState.at(i).velocityY, testState.velocityY,
-                                   parameters.names.at(i) + ", VelocityDoubleStarY");
-    testingUtilities::checkResults(fiducialState.at(i).velocityZ, testState.velocityZ,
-                                   parameters.names.at(i) + ", VelocityDoubleStarZ");
-    testingUtilities::checkResults(fiducialState.at(i).magneticY, testState.magneticY,
-                                   parameters.names.at(i) + ", MagneticDoubleStarY");
-    testingUtilities::checkResults(fiducialState.at(i).magneticZ, testState.magneticZ,
-                                   parameters.names.at(i) + ", MagneticDoubleStarZ");
-    testingUtilities::checkResults(fiducialState.at(i).energyL, testState.energyL,
-                                   parameters.names.at(i) + ", EnergyDoubleStarL");
-    testingUtilities::checkResults(fiducialState.at(i).energyR, testState.energyR,
-                                   parameters.names.at(i) + ", EnergyDoubleStarR");
+    testing_utilities::checkResults(fiducialState.at(i).velocityY, testState.velocityY,
+                                    parameters.names.at(i) + ", VelocityDoubleStarY");
+    testing_utilities::checkResults(fiducialState.at(i).velocityZ, testState.velocityZ,
+                                    parameters.names.at(i) + ", VelocityDoubleStarZ");
+    testing_utilities::checkResults(fiducialState.at(i).magneticY, testState.magneticY,
+                                    parameters.names.at(i) + ", MagneticDoubleStarY");
+    testing_utilities::checkResults(fiducialState.at(i).magneticZ, testState.magneticZ,
+                                    parameters.names.at(i) + ", MagneticDoubleStarZ");
+    testing_utilities::checkResults(fiducialState.at(i).energyL, testState.energyL,
+                                    parameters.names.at(i) + ", EnergyDoubleStarL");
+    testing_utilities::checkResults(fiducialState.at(i).energyR, testState.energyR,
+                                    parameters.names.at(i) + ", EnergyDoubleStarR");
   }
 }
 
@@ -2180,18 +2181,18 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputDegenerateExpectCorrectOutput)
                                                parameters.totalPressureStar.at(i), parameters.speed.at(i));
 
     // Now check results
-    testingUtilities::checkResults(fiducialState.at(i).velocityY, testState.velocityY,
-                                   parameters.names.at(i) + ", VelocityDoubleStarY");
-    testingUtilities::checkResults(fiducialState.at(i).velocityZ, testState.velocityZ,
-                                   parameters.names.at(i) + ", VelocityDoubleStarZ");
-    testingUtilities::checkResults(fiducialState.at(i).magneticY, testState.magneticY,
-                                   parameters.names.at(i) + ", MagneticDoubleStarY");
-    testingUtilities::checkResults(fiducialState.at(i).magneticZ, testState.magneticZ,
-                                   parameters.names.at(i) + ", MagneticDoubleStarZ");
-    testingUtilities::checkResults(fiducialState.at(i).energyL, testState.energyL,
-                                   parameters.names.at(i) + ", EnergyDoubleStarL");
-    testingUtilities::checkResults(fiducialState.at(i).energyR, testState.energyR,
-                                   parameters.names.at(i) + ", EnergyDoubleStarR");
+    testing_utilities::checkResults(fiducialState.at(i).velocityY, testState.velocityY,
+                                    parameters.names.at(i) + ", VelocityDoubleStarY");
+    testing_utilities::checkResults(fiducialState.at(i).velocityZ, testState.velocityZ,
+                                    parameters.names.at(i) + ", VelocityDoubleStarZ");
+    testing_utilities::checkResults(fiducialState.at(i).magneticY, testState.magneticY,
+                                    parameters.names.at(i) + ", MagneticDoubleStarY");
+    testing_utilities::checkResults(fiducialState.at(i).magneticZ, testState.magneticZ,
+                                    parameters.names.at(i) + ", MagneticDoubleStarZ");
+    testing_utilities::checkResults(fiducialState.at(i).energyL, testState.energyL,
+                                    parameters.names.at(i) + ", EnergyDoubleStarL");
+    testing_utilities::checkResults(fiducialState.at(i).energyR, testState.energyR,
+                                    parameters.names.at(i) + ", EnergyDoubleStarR");
   }
 }
 // =========================================================================
@@ -2218,20 +2219,20 @@ TEST(tMHDHlldInternalDoubleStarFluxes, CorrectInputExpectCorrectOutput)
         parameters.speed.at(i).L, parameters.speed.at(i).LStar);
 
     // Now check results
-    testingUtilities::checkResults(fiducialFlux[i].density, testFlux.density,
-                                   parameters.names.at(i) + ", DensityStarFlux", 5.0E-14);
-    testingUtilities::checkResults(fiducialFlux[i].momentumX, testFlux.momentumX,
-                                   parameters.names.at(i) + ", MomentumStarFluxX");
-    testingUtilities::checkResults(fiducialFlux[i].momentumY, testFlux.momentumY,
-                                   parameters.names.at(i) + ", MomentumStarFluxY");
-    testingUtilities::checkResults(fiducialFlux[i].momentumZ, testFlux.momentumZ,
-                                   parameters.names.at(i) + ", MomentumStarFluxZ");
-    testingUtilities::checkResults(fiducialFlux[i].energy, testFlux.energy,
-                                   parameters.names.at(i) + ", EnergyStarFlux");
-    testingUtilities::checkResults(fiducialFlux[i].magneticY, testFlux.magneticY,
-                                   parameters.names.at(i) + ", MagneticStarFluxY");
-    testingUtilities::checkResults(fiducialFlux[i].magneticZ, testFlux.magneticZ,
-                                   parameters.names.at(i) + ", MagneticStarFluxZ");
+    testing_utilities::checkResults(fiducialFlux[i].density, testFlux.density,
+                                    parameters.names.at(i) + ", DensityStarFlux", 5.0E-14);
+    testing_utilities::checkResults(fiducialFlux[i].momentumX, testFlux.momentumX,
+                                    parameters.names.at(i) + ", MomentumStarFluxX");
+    testing_utilities::checkResults(fiducialFlux[i].momentumY, testFlux.momentumY,
+                                    parameters.names.at(i) + ", MomentumStarFluxY");
+    testing_utilities::checkResults(fiducialFlux[i].momentumZ, testFlux.momentumZ,
+                                    parameters.names.at(i) + ", MomentumStarFluxZ");
+    testing_utilities::checkResults(fiducialFlux[i].energy, testFlux.energy,
+                                    parameters.names.at(i) + ", EnergyStarFlux");
+    testing_utilities::checkResults(fiducialFlux[i].magneticY, testFlux.magneticY,
+                                    parameters.names.at(i) + ", MagneticStarFluxY");
+    testing_utilities::checkResults(fiducialFlux[i].magneticZ, testFlux.magneticZ,
+                                    parameters.names.at(i) + ", MagneticStarFluxZ");
   }
 }
 // =========================================================================
@@ -2338,8 +2339,8 @@ TEST(tMHDHlldInternalStarTotalPressure, CorrectInputExpectCorrectOutput)
                                                                 parameters.speed.at(i));
 
     // Now check results
-    testingUtilities::checkResults(fiducialPressure.at(i), testPressure,
-                                   parameters.names.at(i) + ", total pressure in the star states");
+    testing_utilities::checkResults(fiducialPressure.at(i), testPressure,
+                                    parameters.names.at(i) + ", total pressure in the star states");
   }
 }
 // =========================================================================
@@ -2387,16 +2388,16 @@ TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
                                                                       parameters.gamma, threadId, n_cells, o1, o2, o3);
 
     // Now check results
-    testingUtilities::checkResults(fiducialState.at(direction).density, testState.density, ", Density");
-    testingUtilities::checkResults(fiducialState.at(direction).velocityX, testState.velocityX, ", velocityX");
-    testingUtilities::checkResults(fiducialState.at(direction).velocityY, testState.velocityY, ", velocityY");
-    testingUtilities::checkResults(fiducialState.at(direction).velocityZ, testState.velocityZ, ", velocityZ");
-    testingUtilities::checkResults(fiducialState.at(direction).energy, testState.energy, ", energy");
-    testingUtilities::checkResults(fiducialState.at(direction).magneticY, testState.magneticY, ", magneticY");
-    testingUtilities::checkResults(fiducialState.at(direction).magneticZ, testState.magneticZ, ", magneticZ");
-    testingUtilities::checkResults(fiducialState.at(direction).gasPressure, testState.gasPressure, ", gasPressure");
-    testingUtilities::checkResults(fiducialState.at(direction).totalPressure, testState.totalPressure,
-                                   ", totalPressure");
+    testing_utilities::checkResults(fiducialState.at(direction).density, testState.density, ", Density");
+    testing_utilities::checkResults(fiducialState.at(direction).velocityX, testState.velocityX, ", velocityX");
+    testing_utilities::checkResults(fiducialState.at(direction).velocityY, testState.velocityY, ", velocityY");
+    testing_utilities::checkResults(fiducialState.at(direction).velocityZ, testState.velocityZ, ", velocityZ");
+    testing_utilities::checkResults(fiducialState.at(direction).energy, testState.energy, ", energy");
+    testing_utilities::checkResults(fiducialState.at(direction).magneticY, testState.magneticY, ", magneticY");
+    testing_utilities::checkResults(fiducialState.at(direction).magneticZ, testState.magneticZ, ", magneticZ");
+    testing_utilities::checkResults(fiducialState.at(direction).gasPressure, testState.gasPressure, ", gasPressure");
+    testing_utilities::checkResults(fiducialState.at(direction).totalPressure, testState.totalPressure,
+                                    ", totalPressure");
   }
 }
   // =========================================================================

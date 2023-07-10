@@ -125,7 +125,7 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
       double absoluteDiff;
       int64_t ulpsDiff;
 
-      bool areEqual = testingUtilities::nearlyEqualDbl(fiducialFlux[i], testFlux[i], absoluteDiff, ulpsDiff);
+      bool areEqual = testing_utilities::nearlyEqualDbl(fiducialFlux[i], testFlux[i], absoluteDiff, ulpsDiff);
       EXPECT_TRUE(areEqual) << std::endl
                             << customOutput << std::endl
                             << "There's a difference in " << fieldNames[i] << " Flux" << std::endl

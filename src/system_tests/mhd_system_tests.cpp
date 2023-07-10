@@ -32,8 +32,7 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
   tMHDSYSTEMLinearWavesParameterizedAngle() : waveTest(false, true, false, false){};
 
  protected:
-  systemTest::SystemTestRunner waveTest;
-  inline static std::unordered_map<std::string, double> high_res_l2norms;
+  system_test::SystemTestRunner waveTest;
 
   void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
@@ -551,7 +550,7 @@ class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<in
   tMHDSYSTEMLinearWavesParameterizedMpi() : waveTest(false, true, false, false){};
 
  protected:
-  systemTest::SystemTestRunner waveTest;
+  system_test::SystemTestRunner waveTest;
 
   void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
@@ -694,7 +693,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorr
 class tMHDSYSTEMParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  protected:
-  systemTest::SystemTestRunner test_runner;
+  system_test::SystemTestRunner test_runner;
 };
 INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMParameterizedMpi, ::testing::Values(1, 2, 4));
 
@@ -793,7 +792,7 @@ class tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization : public 
   tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization() : cpawTest(false, true, false, false){};
 
  protected:
-  systemTest::SystemTestRunner cpawTest;
+  system_test::SystemTestRunner cpawTest;
 
   void setLaunchParams(double const &polarization, double const &vx)
   {
