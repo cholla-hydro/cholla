@@ -9,7 +9,8 @@
 
 /*!
  * \brief Computes the left and right interface states using PPM with limiting in the characteristic variables and
- * characteristic tracing. Used for the CTU and SIMPLE integrators
+ * characteristic tracing. Used for the CTU and SIMPLE integrators. This uses the PPM method described in
+ * Stone et al. 2008 "Athena: A New Code for Astrophysical MHD"
  *
  * \param[in] dev_conserved The conserved variable array
  * \param[out] dev_bounds_L The array of left interfaces
@@ -27,7 +28,11 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
 /*!
  * \brief Computes the left and right interface states using PPM with limiting in the characteristic variables. Used for
- * the VL (Van Leer) integrators
+ * the VL (Van Leer) integrators. This uses the PPM method described in
+ * Felker & Stone 2018 "A fourth-order accurate finite volume method for ideal MHD via upwind constrained transport".
+ * We found that this newer method and limiters was some stable, less oscilattory, and faster than the method described
+ * in Stone et al. 2008 which is used in PPMC_CTU. The difference is most prounced in the Brio & Wu shock tube where the
+ * PPM oscillations are much smaller using this method.
  *
  * \param[in] dev_conserved The conserved variable array
  * \param[out] dev_bounds_L The array of left interfaces
