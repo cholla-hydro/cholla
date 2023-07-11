@@ -36,7 +36,7 @@ int snr_n;
 }  // namespace supernova
 
   #ifndef O_HIP
-__device__ double Atomic_Max(double* address, double val)
+__device__ double atomicMax(double* address, double val)
 {
   auto* address_as_ull       = (unsigned long long int*)address;
   unsigned long long int old = *address_as_ull, assumed;
@@ -611,7 +611,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
             }
           }
           if (direction > 0) {
-            Atomic_Max(dti, local_dti);
+            atomicMax(dti, local_dti);
           }
         }
       }
