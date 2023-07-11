@@ -38,7 +38,7 @@ PoissonZero3DBlockedGPU::PoissonZero3DBlockedGPU(const int n[3], const double lo
       nj_(n[1]),
       nk_(n[2])
 {
-  mq_ = int(round(Sqrt(mk_)));
+  mq_ = int(round(Sqr(mk_)));
   while (mk_ % mq_) {
     mq_--;
   }
@@ -349,7 +349,7 @@ void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, dou
               double wa, wb;
               sincospi(double(i) / double(ni + ni), &wb, &wa);
   #ifdef PARIS_GALACTIC_3PT
-              const double nii = Sqr(sin(double(ni - i) * si) * ddi);
+              const double nii = t(sin(double(ni - i) * si) * ddi);
   #elif defined PARIS_GALACTIC_5PT
               const double cni = cos(double(ni - i) * si);
               const double nii = ddi * (2.0 * cni * cni - 16.0 * cni + 14.0);
