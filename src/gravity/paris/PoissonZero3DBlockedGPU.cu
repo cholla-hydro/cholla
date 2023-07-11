@@ -110,7 +110,7 @@ PoissonZero3DBlockedGPU::~PoissonZero3DBlockedGPU()
   MPI_Comm_free(&commK_);
 }
 
-void print(const char *const title, const int ni, const int nj, const int nk, const double *const v)
+void Print(const char *const title, const int ni, const int nj, const int nk, const double *const v)
 {
   printf("%s:\n", title);
   for (int i = 0; i < ni; i++) {

@@ -36,6 +36,7 @@ int snr_n;
 }  // namespace supernova
 
   #ifndef O_HIP
+// NOLINTNEXTLINE(readability-identifier-naming)
 __device__ double atomicMax(double* address, double val)
 {
   auto* address_as_ull       = (unsigned long long int*)address;
