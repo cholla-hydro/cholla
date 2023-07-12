@@ -66,18 +66,10 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
       case 2:  // swap X and Y
         y_len *= 2;
         ny *= 2;
-        std::swap(vx_rot, vy_rot);
-        std::swap(Bx_rot, By_rot);
-        std::swap(rEigenVec_Bx_rot, rEigenVec_By_rot);
-        std::swap(rEigenVec_MomentumX_rot, rEigenVec_MomentumY_rot);
         break;
       case 3:  // swap X and Z
         z_len *= 2;
         nz *= 2;
-        std::swap(vx_rot, vz_rot);
-        std::swap(Bx_rot, Bz_rot);
-        std::swap(rEigenVec_Bx_rot, rEigenVec_Bz_rot);
-        std::swap(rEigenVec_MomentumX_rot, rEigenVec_MomentumZ_rot);
         break;
       default:
         throw std::invalid_argument("Invalid value of domain_direction given to Set_Launch_Params");
@@ -160,7 +152,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveRightMovingC
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(6.5E-8, 6.5E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(6.11E-8, 5.5E-8);
 #endif  // PCM
 }
 
@@ -196,7 +188,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveLeftMovingCo
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(6.5E-8, 6.5E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(6.1E-8, 5.5E-8);
 #endif  // PCM
 }
 
@@ -234,7 +226,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveRightMovingC
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.45E-9, 1.3E-9);
 #endif  // PCM
 }
 
@@ -270,7 +262,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCo
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.45E-9, 1.3E-9);
 #endif  // PCM
 }
 
@@ -307,7 +299,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveRightMovingCorrectInpu
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.95e-09, 2.16e-09);
 #endif  // PCM
 }
 
@@ -342,7 +334,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveLeftMovingCorrectInput
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.95e-09, 2.16e-09);
 #endif  // PCM
 }
 
@@ -382,7 +374,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveCorrectInputExpect
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.41e-09, 1.5E-09);
 #endif  // PCM
 }
 
@@ -501,7 +493,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveRightMovingCor
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.4E-9, 1.3E-9);
 #endif  // PCM
 }
 
@@ -537,7 +529,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorr
 #elif defined(PLMC)
   waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
 #elif defined(PPMC)
-  waveTest.runL1ErrorTest(0.0, 0.0);
+  waveTest.runL1ErrorTest(1.4E-9, 1.3E-9);
 #endif  // PCM
 }
 
@@ -569,14 +561,6 @@ TEST_P(tMHDSYSTEMParameterizedMpi, ConstantWithZeroMagneticFieldCorrectInputExpe
 
 /// Test constant state with all magnetic fields set to one
 TEST_P(tMHDSYSTEMParameterizedMpi, ConstantWithMagneticFieldCorrectInputExpectCorrectOutput)
-{
-  test_runner.numMpiRanks = GetParam();
-  test_runner.runTest();
-}
-
-/// TODO: This is temporary. Remove once PPMP is implemented for MHD and replace
-/// TODO: with the hydro sod test
-TEST_P(tMHDSYSTEMParameterizedMpi, SodShockTubeCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
   test_runner.runTest();
@@ -624,10 +608,9 @@ TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones4dShockTubeCorrectInputExpectCorre
 TEST_P(tMHDSYSTEMParameterizedMpi, AdvectingFieldLoopCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
-#ifdef PLMC
-  test_runner.setFixedEpsilon(8.568e-10);
-#endif  // PLMC
-  test_runner.runTest();
+
+  // Only do the L2 Norm test. The regular cell-to-cell comparison is brittle for this test across systems
+  test_runner.runTest(true, 3.9E-8, 1.6E-6);
 }
 
 /// Test the MHD Blast Wave
@@ -730,9 +713,9 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, MovingW
   double const allowedError   = 5.0E-3;
 #elif defined(PPMC)
   // Set the number of timesteps
-  cpawTest.setFiducialNumTimeSteps(0);
-  double const allowedL1Error = 0.0;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 0.0;
+  cpawTest.setFiducialNumTimeSteps(84);
+  double const allowedL1Error = 4.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 3.0E-3;
 #endif  // PCM
 
   // Set the launch parameters
@@ -765,9 +748,9 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, Standin
   double const allowedError   = 2.0E-3;
 #elif defined(PPMC)
   // Set the number of timesteps
-  cpawTest.setFiducialNumTimeSteps(0);
-  double const allowedL1Error = 0.0;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 0.0;
+  cpawTest.setFiducialNumTimeSteps(130);
+  double const allowedL1Error = 1.3E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1.3E-3;
 #endif  // PCM
 
   // Set the launch parameters

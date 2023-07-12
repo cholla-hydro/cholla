@@ -105,8 +105,7 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
                      gama, 0, n_fields);
     #endif
     #ifdef PPMC
-  hipLaunchKernelGGL(PPMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt,
-                     gama, 0, n_fields);
+  hipLaunchKernelGGL(PPMC_VL, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, gama, 0);
     #endif
   CudaCheckError();
 

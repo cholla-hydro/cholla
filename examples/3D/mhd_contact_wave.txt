@@ -57,7 +57,7 @@ By=1.5
 # magnetic field in the z direction
 Bz=0
 # amplitude of perturbing oscillations
-A=1e-1
+A=1e-6
 # value of gamma
 gamma=1.666666666666667
 # The right eigenvectors to set the wave properly

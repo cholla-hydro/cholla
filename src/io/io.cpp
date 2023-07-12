@@ -1648,6 +1648,10 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
   free(dataset_buffer_dxz);
   free(dataset_buffer_Txy);
   free(dataset_buffer_Txz);
+  #ifdef DUST
+  free(dataset_buffer_dust_xy);
+  free(dataset_buffer_dust_xz);
+  #endif  // DUST
 }
 #endif  // HDF5
 
