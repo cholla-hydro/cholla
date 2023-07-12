@@ -62,11 +62,11 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   reconstruction::Primitive const cell_i =
       reconstruction::Load_Data(dev_conserved, xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
 
-  // cell i-1. The equality checks check the direction and subtract one from the direction
+  // cell i-1. The equality checks the direction and will subtract one from the correct direction
   reconstruction::Primitive const cell_imo = reconstruction::Load_Data(
       dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
-  // cell i+1. The equality checks check the direction and add one to the direction
+  // cell i+1. The equality checks the direction and add one to the correct direction
   reconstruction::Primitive const cell_ipo = reconstruction::Load_Data(
       dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
@@ -79,13 +79,13 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // the cell center
 
   // left
-  reconstruction::Primitive const del_L = reconstruction::Compute_Slope(cell_i, cell_imo);
+  reconstruction::Primitive const del_L = reconstruction::Compute_Slope(cell_imo, cell_i);
 
   // right
-  reconstruction::Primitive const del_R = reconstruction::Compute_Slope(cell_ipo, cell_i);
+  reconstruction::Primitive const del_R = reconstruction::Compute_Slope(cell_i, cell_ipo);
 
   // centered
-  reconstruction::Primitive const del_C = reconstruction::Compute_Slope(cell_ipo, cell_imo, 0.5);
+  reconstruction::Primitive const del_C = reconstruction::Compute_Slope(cell_imo, cell_ipo, 0.5);
 
   // Van Leer
   reconstruction::Primitive const del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
@@ -112,8 +112,8 @@ __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed_squared, gamma);
 
   // Compute the left and right interface values using the monotonized difference in the primitive variables
-  reconstruction::Primitive interface_L_iph = reconstruction::Calc_Interface(cell_i, del_m_i, 1.0);
-  reconstruction::Primitive interface_R_imh = reconstruction::Calc_Interface(cell_i, del_m_i, -1.0);
+  reconstruction::Primitive interface_L_iph = reconstruction::Calc_Interface_Linear(cell_i, del_m_i, 1.0);
+  reconstruction::Primitive interface_R_imh = reconstruction::Calc_Interface_Linear(cell_i, del_m_i, -1.0);
 
 #ifndef VL
 

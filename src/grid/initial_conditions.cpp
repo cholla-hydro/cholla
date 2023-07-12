@@ -301,43 +301,130 @@ void Grid3D::Sound_Wave(parameters const &P)
  *  \brief Sine wave perturbation. */
 void Grid3D::Linear_Wave(parameters const &P)
 {
-  auto [stagger, junk1, junk2] = math_utils::rotateCoords<Real>(H.dx / 2, H.dy / 2, H.dz / 2, P.pitch, P.yaw);
+  // Compute any test parameters needed
+  // ==================================
+  // Angles
+  Real const sin_yaw   = std::sin(P.yaw);
+  Real const cos_yaw   = std::cos(P.yaw);
+  Real const sin_pitch = std::sin(P.pitch);
+  Real const cos_pitch = std::cos(P.pitch);
+
+  Real const wavenumber = 2.0 * M_PI / P.wave_length;  // the angular wave number k
+
+#ifdef MHD
+  // TODO: This method of setting the magnetic fields via the vector potential should work but instead leads to small
+  // TODO: errors in the magnetic field that tend to amplify over time until the solution diverges. I don't know why
+  // TODO: that is the case and can't figure out the reason. Without this we can't run linear waves at an angle to the
+  // TODO: grid.
+  // // Compute the vector potential
+  // // ============================
+  // std::vector<Real> vectorPotential(3 * H.n_cells, 0);
+
+  // // lambda function for computing the vector potential
+  // auto Compute_Vector_Potential = [&](Real const &x_loc, Real const &y_loc, Real const &z_loc) {
+  //   // The "_rot" variables are the rotated version
+  //   Real const x_rot = x_loc * cos_pitch * cos_yaw + y_loc * cos_pitch * sin_yaw + z_loc * sin_pitch;
+  //   Real const y_rot = -x_loc * sin_yaw + y_loc * cos_yaw;
+
+  //   Real const a_y = P.Bz * x_rot - (P.A * P.rEigenVec_Bz / wavenumber) * std::cos(wavenumber * x_rot);
+  //   Real const a_z = -P.By * x_rot + (P.A * P.rEigenVec_By / wavenumber) * std::cos(wavenumber * x_rot) + P.Bx *
+  //   y_rot;
+
+  //   return std::make_pair(a_y, a_z);
+  // };
+
+  // for (size_t k = 0; k < H.nz; k++) {
+  //   for (size_t j = 0; j < H.ny; j++) {
+  //     for (size_t i = 0; i < H.nx; i++) {
+  //       // Get cell index
+  //       size_t const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+  //       Real x, y, z;
+  //       Get_Position(i, j, k, &x, &y, &z);
+
+  //       auto vectorPot                         = Compute_Vector_Potential(x, y + H.dy / 2., z + H.dz / 2.);
+  //       vectorPotential.at(id + 0 * H.n_cells) = -vectorPot.first * sin_yaw - vectorPot.second * sin_pitch * cos_yaw;
+
+  //       vectorPot                              = Compute_Vector_Potential(x + H.dx / 2., y, z + H.dz / 2.);
+  //       vectorPotential.at(id + 1 * H.n_cells) = vectorPot.first * cos_yaw - vectorPot.second * sin_pitch * sin_yaw;
+
+  //       vectorPot                              = Compute_Vector_Potential(x + H.dx / 2., y + H.dy / 2., z);
+  //       vectorPotential.at(id + 2 * H.n_cells) = vectorPot.second * cos_pitch;
+  //     }
+  //   }
+  // }
+
+  // // Compute the magnetic field from the vector potential
+  // // ====================================================
+  // mhd::utils::Init_Magnetic_Field_With_Vector_Potential(H, C, vectorPotential);
+
+  Real shift = H.dx;
+  size_t dir = 0;
+  if (sin_yaw == 1.0) {
+    shift = H.dy;
+    dir   = 1;
+  } else if (sin_pitch == 1.0) {
+    shift = H.dz;
+    dir   = 2;
+  }
 
   // set initial values of conserved variables
   for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-        // Rotate the indices
-        auto [i_rot, j_rot, k_rot] = math_utils::rotateCoords<int>(i, j, k, P.pitch, P.yaw);
-
         // get cell index
-        int id = i + j * H.nx + k * H.nx * H.ny;
+        size_t const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
 
         // get cell-centered position
         Real x_pos, y_pos, z_pos;
-        Get_Position(i_rot, j_rot, k_rot, &x_pos, &y_pos, &z_pos);
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        Real const x_pos_rot = cos_pitch * (x_pos * cos_yaw + y_pos * sin_yaw) + z_pos * sin_pitch;
 
-        // set constant initial states. Note that hydro_utilities::Calc_Energy_Primitive computes the MHD energy if the
-        // MHD flag is turned on and the hydro energy if it isn't
-        Real sine_wave = std::sin(2.0 * M_PI * x_pos / P.wave_length);
+        Real const sine_x = std::sin(x_pos_rot * wavenumber);
 
-        C.density[id]    = P.rho;
-        C.momentum_x[id] = P.rho * P.vx;
-        C.momentum_y[id] = P.rho * P.vy;
-        C.momentum_z[id] = P.rho * P.vz;
-        C.Energy[id]     = hydro_utilities::Calc_Energy_Primitive(P.P, P.rho, P.vx, P.vy, P.vz, gama, P.Bx, P.By, P.Bz);
-        // add small-amplitude perturbations
-        C.density[id] += P.A * P.rEigenVec_rho * sine_wave;
-        C.momentum_x[id] += P.A * P.rEigenVec_MomentumX * sine_wave;
-        C.momentum_y[id] += P.A * P.rEigenVec_MomentumY * sine_wave;
-        C.momentum_z[id] += P.A * P.rEigenVec_MomentumZ * sine_wave;
-        C.Energy[id] += P.A * P.rEigenVec_E * sine_wave;
+        Real bx = P.Bx + P.A * P.rEigenVec_Bx * sine_x;
+        Real by = P.By + P.A * P.rEigenVec_By * sine_x;
+        Real bz = P.Bz + P.A * P.rEigenVec_Bz * sine_x;
 
+        C.magnetic_x[id] = bx * cos_pitch * cos_yaw - by * sin_yaw - bz * sin_pitch * cos_yaw;
+        C.magnetic_y[id] = bx * cos_pitch * sin_yaw + by * cos_yaw - bz * sin_pitch * sin_yaw;
+        C.magnetic_z[id] = bx * sin_pitch + bz * cos_pitch;
+      }
+    }
+  }
+#endif  // MHD
+
+  // Compute the hydro variables
+  // ===========================
+  for (size_t k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
+    for (size_t j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
+      for (size_t i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
+        // get cell index
+        size_t const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        // get cell-centered position
+        Real x_pos, y_pos, z_pos;
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        Real const x_pos_rot = cos_pitch * (x_pos * cos_yaw + y_pos * sin_yaw) + z_pos * sin_pitch;
+
+        Real const sine_x = std::sin(x_pos_rot * wavenumber);
+
+        // Density
+        C.density[id] = P.rho + P.A * P.rEigenVec_rho * sine_x;
+
+        // Momenta
+        Real mx = P.rho * P.vx + P.A * P.rEigenVec_MomentumX * sine_x;
+        Real my = P.A * P.rEigenVec_MomentumY * sine_x;
+        Real mz = P.A * P.rEigenVec_MomentumZ * sine_x;
+
+        C.momentum_x[id] = mx * cos_pitch * cos_yaw - my * sin_yaw - mz * sin_pitch * cos_yaw;
+        C.momentum_y[id] = mx * cos_pitch * sin_yaw + my * cos_yaw - mz * sin_pitch * sin_yaw;
+        C.momentum_z[id] = mx * sin_pitch + mz * cos_pitch;
+
+        // Energy
+        C.Energy[id] = P.P / (P.gamma - 1.0) + 0.5 * P.rho * P.vx * P.vx + P.A * sine_x * P.rEigenVec_E;
 #ifdef MHD
-        sine_wave        = std::sin(2.0 * M_PI * (x_pos + stagger));
-        C.magnetic_x[id] = P.Bx + P.A * P.rEigenVec_Bx * sine_wave;
-        C.magnetic_y[id] = P.By + P.A * P.rEigenVec_By * sine_wave;
-        C.magnetic_z[id] = P.Bz + P.A * P.rEigenVec_Bz * sine_wave;
+        C.Energy[id] += 0.5 * (P.Bx * P.Bx + P.By * P.By + P.Bz * P.Bz);
 #endif  // MHD
       }
     }

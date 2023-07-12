@@ -54,4 +54,3 @@ P_r=0.1
 diaph=0.5
 # value of gamma
 gamma=1.4
-

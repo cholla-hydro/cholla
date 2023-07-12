@@ -26,40 +26,44 @@
  *
  */
 /// @{
-class tHYDROSYSTEMSodShockTubeParameterizedMpi : public ::testing::TestWithParam<size_t>
+class tHYDROtMHDSYSTEMSodShockTubeParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  protected:
   systemTest::SystemTestRunner sodTest;
 };
 
-TEST_P(tHYDROSYSTEMSodShockTubeParameterizedMpi, CorrectInputExpectCorrectOutput)
+TEST_P(tHYDROtMHDSYSTEMSodShockTubeParameterizedMpi, CorrectInputExpectCorrectOutput)
 {
-  // #ifdef MHD
-  //   // Loosen correctness check to account for MHD only having PCM. This is
-  //   // about the error between PCM and PPMP in hydro
-  //   sodTest.setFixedEpsilon(1E-3);
+#ifdef MHD
+  sodTest.setFixedEpsilon(1.0E-4);
 
-  //   // Don't test the gas energy fields
-  //   auto datasetNames = sodTest.getDataSetsToTest();
-  //   datasetNames.erase(std::remove(datasetNames.begin(), datasetNames.end(), "GasEnergy"), datasetNames.end());
+  // Don't test the gas energy fields
+  auto datasetNames = sodTest.getDataSetsToTest();
+  datasetNames.erase(std::remove(datasetNames.begin(), datasetNames.end(), "GasEnergy"), datasetNames.end());
 
-  //   // Set the magnetic fiducial datasets to zero
-  //   size_t const size = std::pow(65, 3);
-  //   std::vector<double> const magVec(0, size);
+  // Set the magnetic fiducial datasets to zero
+  size_t const size = 64 * 64 * 65;
+  std::vector<double> const magVec(size, 0);
 
-  //   for (const auto *field : {"magnetic_x", "magnetic_y", "magnetic_z"}) {
-  //     sodTest.setFiducialData(field, magVec);
-  //     datasetNames.push_back(field);
-  //   }
+  for (const auto *field : {"magnetic_x", "magnetic_y", "magnetic_z"}) {
+    sodTest.setFiducialData(field, magVec);
+    datasetNames.emplace_back(field);
+  }
 
-  //   sodTest.setDataSetsToTest(datasetNames);
-  // #endif  // MHD
+  sodTest.setDataSetsToTest(datasetNames);
+
+  double const maxAllowedL1Error = 7.0E-3;
+  double const maxAllowedError   = 4.6E-2;
+#else
+  double const maxAllowedL1Error = 9.4E-5;
+  double const maxAllowedError   = 6.4E-4;
+#endif  // MHD
 
   sodTest.numMpiRanks = GetParam();
-  sodTest.runTest();
+  sodTest.runTest(true, maxAllowedL1Error, maxAllowedError);
 }
 
-INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput, tHYDROSYSTEMSodShockTubeParameterizedMpi,
+INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput, tHYDROtMHDSYSTEMSodShockTubeParameterizedMpi,
                          ::testing::Values(1, 2, 4));
 /// @}
 // =============================================================================
@@ -103,7 +107,7 @@ TEST(tHYDROtMHDSYSTEMSoundWave3D, CorrectInputExpectCorrectOutput)
   #elif defined(PLMC)
   tolerance = 1.0E-7;
   #elif defined(PPMC)
-  tolerance = 0.0;
+  tolerance = 1.9E-9;
   #endif  // PCM
 #endif    // MHD
 
@@ -141,11 +145,11 @@ class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithPa
   double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 4E-7;
 #elif defined(PLMC)
-  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-7;
+  double const allowedL1Error    = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double const allowedError      = 1E-7;
 #elif defined(PPMC)
-  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-7;
+  double const allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 2.7E-8;
 #endif  // PCM
 
   void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,

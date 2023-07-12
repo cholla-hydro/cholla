@@ -234,12 +234,9 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      dt, gama, 2, n_fields);
   #endif  // PPMP
   #ifdef PPMC
-  hipLaunchKernelGGL(PPMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx,
-                     dt, gama, 0, n_fields);
-  hipLaunchKernelGGL(PPMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy,
-                     dt, gama, 1, n_fields);
-  hipLaunchKernelGGL(PPMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz,
-                     dt, gama, 2, n_fields);
+  hipLaunchKernelGGL(PPMC_VL, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, gama, 0);
+  hipLaunchKernelGGL(PPMC_VL, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, gama, 1);
+  hipLaunchKernelGGL(PPMC_VL, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, gama, 2);
   #endif  // PPMC
   CudaCheckError();
 
