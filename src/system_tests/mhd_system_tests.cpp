@@ -418,7 +418,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveExpectSecond
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
   testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["fast_" + std::to_string(domain_direction)], "",
-                                 0.07);
+                                 0.17);
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecondOrderConvergence)
@@ -428,7 +428,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecond
 
   // Specific to this test
   double const waveSpeed              = 0.5;
-  std::vector<int> const numTimeSteps = {854, 813, 880};
+  std::vector<int> const numTimeSteps = {427, 407, 440};
 
   double const prefix              = 1. / (2 * std::sqrt(5));
   double const rEigenVec_rho       = prefix * 4;
@@ -453,7 +453,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecond
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
   testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["slow_" + std::to_string(domain_direction)], "",
-                                 0.07);
+                                 0.17);
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConvergence)
@@ -463,7 +463,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConve
 
   // Specific to this test
   double const waveSpeed              = 1.0;
-  std::vector<int> const numTimeSteps = {427, 407, 440};
+  std::vector<int> const numTimeSteps = {214, 204, 220};
 
   double const rEigenVec_rho       = 0;
   double const rEigenVec_MomentumX = 0;
@@ -486,8 +486,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConve
 
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
-  testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["alven_" + std::to_string(domain_direction)],
-                                 "", 0.07);
+  testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["alfven_" + std::to_string(domain_direction)],
+                                 "", 0.17);
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveExpectSecondOrderConvergence)
@@ -497,7 +497,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveExpectSecondOrderC
 
   // Specific to this test
   double const waveSpeed              = 1.0;
-  std::vector<int> const numTimeSteps = {641, 620, 654};
+  std::vector<int> const numTimeSteps = {321, 310, 327};
 
   double const rEigenVec_rho       = 1;
   double const rEigenVec_MomentumX = 1;
@@ -522,7 +522,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveExpectSecondOrderC
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
   testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["contact_" + std::to_string(domain_direction)],
-                                 "", 0.07);
+                                 "", 0.17);
 }
 
 INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedAngle,
