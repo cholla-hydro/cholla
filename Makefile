@@ -56,6 +56,10 @@ else
   GPUFILES := $(filter-out src/system_tests/% %_tests.cu,$(GPUFILES))
 endif
 
+ifeq ($(COVERAGE), true)
+  CXXFLAGS += --coverage
+endif
+
 OBJS     := $(subst .cpp,.o,$(CPPFILES)) \
             $(subst .cu,.o,$(GPUFILES))
 
@@ -214,6 +218,8 @@ clean:
 	rm -f $(CLEAN_OBJS)
 	rm -rf googletest
 	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)*" -exec rm -f '{}' \;
+	-find src/ -type f -name "*.gcno" -delete
+	-find src/ -type f -name "*.gcda" -delete
 
 clobber: clean
 	-find bin/ -type f -executable -name "cholla*" -exec rm -f '{}' \;
