@@ -101,7 +101,7 @@ TEST(tHYDROPpmcCTUReconstructor, CorrectInputExpectCorrectOutput)
               ? 0.0
               : fiducial_interface_left.at(direction)[i];
 
-      testingUtilities::checkResults(
+      testingUtilities::Check_Results(
           fiducial_val, test_val,
           "left interface at i=" + std::to_string(i) + ", in direction " + std::to_string(direction));
 
@@ -111,7 +111,7 @@ TEST(tHYDROPpmcCTUReconstructor, CorrectInputExpectCorrectOutput)
                          ? 0.0
                          : fiducial_interface_right.at(direction)[i];
 
-      testingUtilities::checkResults(
+      testingUtilities::Check_Results(
           fiducial_val, test_val,
           "right interface at i=" + std::to_string(i) + ", in direction " + std::to_string(direction));
     }
@@ -241,7 +241,7 @@ TEST(tALLPpmcVLReconstructor, CorrectInputExpectCorrectOutput)
               ? 0.0
               : fiducial_interface_left.at(direction)[i];
 
-      testingUtilities::checkResults(
+      testingUtilities::Check_Results(
           fiducial_val, test_val,
           "left interface at i=" + std::to_string(i) + ", in direction " + std::to_string(direction));
 
@@ -251,7 +251,7 @@ TEST(tALLPpmcVLReconstructor, CorrectInputExpectCorrectOutput)
                          ? 0.0
                          : fiducial_interface_right.at(direction)[i];
 
-      testingUtilities::checkResults(
+      testingUtilities::Check_Results(
           fiducial_val, test_val,
           "right interface at i=" + std::to_string(i) + ", in direction " + std::to_string(direction));
     }

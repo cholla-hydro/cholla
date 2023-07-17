@@ -304,17 +304,17 @@ TEST(tHYDROReconstructionMonotizeParabolicInterface, CorrectInputExpectCorrectOu
                                                        4.6476103465999996, 3.7096802847000001};
   reconstruction::Primitive const fiducial_interface_R{1.4708046700999999, 9.428341982700001, 3.7123503441999999,
                                                        4.6476103465999996, 3.7096802847000001};
-  testingUtilities::checkResults(fiducial_interface_L.density, interface_L_iph.density, "density");
-  testingUtilities::checkResults(fiducial_interface_L.velocity_x, interface_L_iph.velocity_x, "velocity_x");
-  testingUtilities::checkResults(fiducial_interface_L.velocity_y, interface_L_iph.velocity_y, "velocity_y");
-  testingUtilities::checkResults(fiducial_interface_L.velocity_z, interface_L_iph.velocity_z, "velocity_z");
-  testingUtilities::checkResults(fiducial_interface_L.pressure, interface_L_iph.pressure, "pressure");
+  testingUtilities::Check_Results(fiducial_interface_L.density, interface_L_iph.density, "density");
+  testingUtilities::Check_Results(fiducial_interface_L.velocity_x, interface_L_iph.velocity_x, "velocity_x");
+  testingUtilities::Check_Results(fiducial_interface_L.velocity_y, interface_L_iph.velocity_y, "velocity_y");
+  testingUtilities::Check_Results(fiducial_interface_L.velocity_z, interface_L_iph.velocity_z, "velocity_z");
+  testingUtilities::Check_Results(fiducial_interface_L.pressure, interface_L_iph.pressure, "pressure");
 
-  testingUtilities::checkResults(fiducial_interface_R.density, interface_R_imh.density, "density");
-  testingUtilities::checkResults(fiducial_interface_R.velocity_x, interface_R_imh.velocity_x, "velocity_x");
-  testingUtilities::checkResults(fiducial_interface_R.velocity_y, interface_R_imh.velocity_y, "velocity_y");
-  testingUtilities::checkResults(fiducial_interface_R.velocity_z, interface_R_imh.velocity_z, "velocity_z");
-  testingUtilities::checkResults(fiducial_interface_R.pressure, interface_R_imh.pressure, "pressure");
+  testingUtilities::Check_Results(fiducial_interface_R.density, interface_R_imh.density, "density");
+  testingUtilities::Check_Results(fiducial_interface_R.velocity_x, interface_R_imh.velocity_x, "velocity_x");
+  testingUtilities::Check_Results(fiducial_interface_R.velocity_y, interface_R_imh.velocity_y, "velocity_y");
+  testingUtilities::Check_Results(fiducial_interface_R.velocity_z, interface_R_imh.velocity_z, "velocity_z");
+  testingUtilities::Check_Results(fiducial_interface_R.pressure, interface_R_imh.pressure, "pressure");
 }
 
 TEST(tALLReconstructionCalcInterfaceLinear, CorrectInputExpectCorrectOutput)
@@ -375,21 +375,21 @@ TEST(tALLReconstructionCalcInterfaceParabolic, CorrectInputExpectCorrectOutput)
   reconstruction::Primitive const fiducial_data{4.833333333333333,  5.833333333333333,  6.833333333333333,
                                                 7.833333333333333,  8.8333333333333339, 0.0,
                                                 10.833333333333334, 11.833333333333334};
-  testingUtilities::checkResults(fiducial_data.density, test_data.density, "density");
-  testingUtilities::checkResults(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
-  testingUtilities::checkResults(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
-  testingUtilities::checkResults(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
-  testingUtilities::checkResults(fiducial_data.pressure, test_data.pressure, "pressure");
-  testingUtilities::checkResults(fiducial_data.magnetic_y, test_data.magnetic_y, "magnetic_y");
-  testingUtilities::checkResults(fiducial_data.magnetic_z, test_data.magnetic_z, "magnetic_z");
+  testingUtilities::Check_Results(fiducial_data.density, test_data.density, "density");
+  testingUtilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
+  testingUtilities::Check_Results(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
+  testingUtilities::Check_Results(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
+  testingUtilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
+  testingUtilities::Check_Results(fiducial_data.magnetic_y, test_data.magnetic_y, "magnetic_y");
+  testingUtilities::Check_Results(fiducial_data.magnetic_z, test_data.magnetic_z, "magnetic_z");
 #else   // MHD
   reconstruction::Primitive const fiducial_data{4.833333333333333, 5.833333333333333, 6.833333333333333,
                                                 7.833333333333333, 8.8333333333333339};
-  testingUtilities::checkResults(fiducial_data.density, test_data.density, "density");
-  testingUtilities::checkResults(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
-  testingUtilities::checkResults(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
-  testingUtilities::checkResults(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
-  testingUtilities::checkResults(fiducial_data.pressure, test_data.pressure, "pressure");
+  testingUtilities::Check_Results(fiducial_data.density, test_data.density, "density");
+  testingUtilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
+  testingUtilities::Check_Results(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
+  testingUtilities::Check_Results(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
+  testingUtilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
 #endif  // MHD
 }
 
@@ -461,8 +461,8 @@ TEST(tALLReconstructionPPMSingleVariable, CorrectInputExpectCorrectOutput)
                                         input_data[idx + 4], test_left_interface, test_right_interface);
 
     // Compare results
-    testingUtilities::checkResults(fiducial_left_interface.at(i), test_left_interface, "left i+1/2 interface");
-    testingUtilities::checkResults(fiducial_right_interface.at(i), test_right_interface, "right i-1/2 interface");
+    testingUtilities::Check_Results(fiducial_left_interface.at(i), test_left_interface, "left i+1/2 interface");
+    testingUtilities::Check_Results(fiducial_right_interface.at(i), test_right_interface, "right i-1/2 interface");
   }
 }
 
