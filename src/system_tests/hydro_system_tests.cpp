@@ -27,7 +27,7 @@
  */
 /// @{
 // NOLINTNEXTLINE(readability-identifier-naming)
-class tHYDROSYSTEMSodShockTubeParameterizedMpi : public ::testing::TestWithParam<size_t>
+class tHYDROtMHDSYSTEMSodShockTubeParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  protected:
   system_test::SystemTestRunner sodTest;
