@@ -9,9 +9,7 @@ MPI_GPU   ?=
 DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-# Currently MHD only supports PCM reconstruction. Higher order reconstruction
-# methods will be added later
-DFLAGS    += -DPCM
+DFLAGS    += -DPPMC
 DFLAGS    += -DHLLD
 DFLAGS    += -DMHD
 
@@ -34,7 +32,7 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 # Apply the cooling in the GPU from precomputed tables
 # DFLAGS    += -DCOOLING_GPU
 
-#Measure the Timing of the different stages
+# Measure the Timing of the different stages
 DFLAGS += -DCPU_TIME
 
 DFLAGS    += $(OUTPUT)
@@ -49,7 +47,7 @@ DFLAGS    += $(MPI_GPU)
 # used on scientific runs
 
 # Do CUDA error checking
-DFLAGS += -DCUDA_ERROR_CHECK
+# DFLAGS += -DCUDA_ERROR_CHECK
 
 # Limit the number of steps to evolve.
 # DFLAGS += -DN_STEPS_LIMIT=1000

@@ -527,54 +527,41 @@ class Grid3D
    *  \brief Free the memory for the density array. */
   void FreeMemory(void);
 
-  /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
-   *  \brief Constant gas properties. */
-  void Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real By, Real Bz);
+  /*!
+   * \brief Constant gas properties.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Constant(parameters const &P);
 
-  /*! \fn void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
-   *  \brief Sine wave perturbation. */
-  void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
+  /*!
+   * \brief Sine wave perturbation.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Sound_Wave(parameters const &P);
 
   /*!
    * \brief Initialize the grid with a simple linear wave.
    *
-   * \param[in] rho The background density
-   * \param[in] vx The background velocity in the X-direction
-   * \param[in] vy The background velocity in the Y-direction
-   * \param[in] vz The background velocity in the Z-direction
-   * \param[in] P The background pressure
-   * \param[in] A The amplitude of the wave
-   * \param[in] Bx The background magnetic field in the X-direction
-   * \param[in] By The background magnetic field in the Y-direction
-   * \param[in] Bz The background magnetic field in the Z-direction
-   * \param[in] rEigenVec_rho The right eigenvector component for the density
-   * \param[in] rEigenVec_MomentumX The right eigenvector component for the
-   * velocity in the X-direction \param[in] rEigenVec_MomentumY The right
-   * eigenvector component for the velocity in the Y-direction \param[in]
-   * rEigenVec_MomentumZ The right eigenvector component for the velocity in the
-   * Z-direction \param[in] rEigenVec_E The right eigenvector component for the
-   * energy \param[in] rEigenVec_Bx The right eigenvector component for the
-   * magnetic field in the X-direction \param[in] rEigenVec_By The right
-   * eigenvector component for the magnetic field in the Y-direction \param[in]
-   * rEigenVec_Bz The right eigenvector component for the magnetic field in the
-   * Z-direction \param[in] pitch The pitch angle of the linear wave \param[in]
-   * yaw The yaw angle of the linear wave
+   * \param[in] P the parameters struct.
    */
-  void Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Real Bx, Real By, Real Bz, Real rEigenVec_rho,
-                   Real rEigenVec_MomentumX, Real rEigenVec_MomentumY, Real rEigenVec_MomentumZ, Real rEigenVec_E,
-                   Real rEigenVec_Bx, Real rEigenVec_By, Real rEigenVec_Bz, Real pitch, Real yaw);
+  void Linear_Wave(parameters const &P);
 
-  /*! \fn void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
-   *  \brief Square wave density perturbation with amplitude A*rho in pressure
-   * equilibrium. */
-  void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
+  /*!
+   * \brief Square wave density perturbation with amplitude A*rho in pressure
+   * equilibrium.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Square_Wave(parameters const &P);
 
-  /*! \fn void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l,
-   Real Bx_l, Real By_l, Real Bz_l, Real rho_r, Real vx_r, Real vy_r, Real vz_r,
-   Real P_r, Real Bx_r, Real By_r, Real Bz_r, Real diaph)
-   *  \brief Initialize the grid with a Riemann problem. */
-  void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real Bx_l, Real By_l, Real Bz_l, Real rho_r,
-               Real vx_r, Real vy_r, Real vz_r, Real P_r, Real Bx_r, Real By_r, Real Bz_r, Real diaph);
+  /*!
+   * \brief Initialize the grid with a Riemann problem.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Riemann(parameters const &P);
 
   /*! \fn void Shu_Osher()
    *  \brief Initialize the grid with the Shu-Osher shock tube problem. See

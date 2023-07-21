@@ -66,8 +66,8 @@ void Simple_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost,
   CudaCheckError();
   #endif
   #ifdef PLMC
-  hipLaunchKernelGGL(PLMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama,
-                     0, n_fields);
+  hipLaunchKernelGGL(PLMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama, 0,
+                     n_fields);
   CudaCheckError();
   #endif
   #ifdef PPMP
@@ -76,8 +76,7 @@ void Simple_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost,
   CudaCheckError();
   #endif
   #ifdef PPMC
-  hipLaunchKernelGGL(PPMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama,
-                     0, n_fields);
+  hipLaunchKernelGGL(PPMC_CTU, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama, 0);
   CudaCheckError();
   #endif
 

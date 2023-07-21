@@ -71,17 +71,11 @@ bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff, int6
 
   // Perform the ULP check which is for numbers far from zero and perform the absolute check which is for numbers near
   // zero
-  if (ulpsDiff <= ulpsEpsilon or absoluteDiff <= fixedEpsilon) {
-    return true;
-  }
-  // if the checks don't pass indicate test failure
-  else {
-    return false;
-  }
+  return ulpsDiff <= ulpsEpsilon or absoluteDiff <= fixedEpsilon;
 }
 // =========================================================================
 
-void wrapperEqual(int i, int j, int k, std::string dataSetName, double test_value, double fid_value,
+void wrapperEqual(int i, int j, int k, std::string const &dataSetName, double test_value, double fid_value,
                   double fixedEpsilon = 5.0E-12)
 {
   std::string outString;
@@ -97,7 +91,7 @@ void wrapperEqual(int i, int j, int k, std::string dataSetName, double test_valu
   ASSERT_NO_FATAL_FAILURE(checkResults<1>(fid_value, test_value, outString, fixedEpsilon));
 }
 
-void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value)
+void analyticConstant(systemTest::SystemTestRunner testObject, std::string const &dataSetName, double value)
 {
   std::vector<size_t> testDims(3, 1);
   std::vector<double> testData = testObject.loadTestFieldData(dataSetName, testDims);
@@ -112,8 +106,8 @@ void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataS
   }
 }
 
-void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetName, double constant, double amplitude,
-                  double kx, double ky, double kz, double phase, double tolerance)
+void analyticSine(systemTest::SystemTestRunner testObject, std::string const &dataSetName, double constant,
+                  double amplitude, double kx, double ky, double kz, double phase, double tolerance)
 {
   std::vector<size_t> testDims(3, 1);
   std::vector<double> testData = testObject.loadTestFieldData(dataSetName, testDims);

@@ -35,7 +35,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
                                            Real const gamma, int const direction, int const n_fields)
 {
   // get a thread index
-  int threadId = threadIdx.x + blockIdx.x * blockDim.x;
+  int const threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
   // Thread guard to avoid overrun
   if (threadId >= n_cells) {
@@ -44,20 +44,22 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
 
   // Offsets & indices
   int o1, o2, o3;
-  if (direction == 0) {
-    o1 = grid_enum::momentum_x;
-    o2 = grid_enum::momentum_y;
-    o3 = grid_enum::momentum_z;
-  }
-  if (direction == 1) {
-    o1 = grid_enum::momentum_y;
-    o2 = grid_enum::momentum_z;
-    o3 = grid_enum::momentum_x;
-  }
-  if (direction == 2) {
-    o1 = grid_enum::momentum_z;
-    o2 = grid_enum::momentum_x;
-    o3 = grid_enum::momentum_y;
+  switch (direction) {
+    case 0:
+      o1 = grid_enum::momentum_x;
+      o2 = grid_enum::momentum_y;
+      o3 = grid_enum::momentum_z;
+      break;
+    case 1:
+      o1 = grid_enum::momentum_y;
+      o2 = grid_enum::momentum_z;
+      o3 = grid_enum::momentum_x;
+      break;
+    case 2:
+      o1 = grid_enum::momentum_z;
+      o2 = grid_enum::momentum_x;
+      o3 = grid_enum::momentum_y;
+      break;
   }
 
   // ============================
@@ -200,7 +202,7 @@ __device__ __host__ mhd::_internal::State loadState(Real const *interfaceArr, Re
     #else
   // Note that this function does the positive pressure check
   // internally
-  state.gasPressure = mhd::utils::computeGasPressure(state, magneticX, gamma);
+  state.gasPressure = mhd::_internal::Calc_Pressure_Primitive(state, magneticX, gamma);
     #endif  // DE
 
   state.totalPressure =

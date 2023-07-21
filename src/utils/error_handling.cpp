@@ -49,6 +49,11 @@ void Check_Configuration(parameters const &P)
   #error "The CUDA macro is required"
 #endif  //! CUDA
 
+// Can only have one integrator enabled
+#if ((defined(VL) + defined(CTU) + defined(SIMPLE)) != 1)
+  #error "Only one integrator can be enabled at a time."
+#endif  // Only one integrator check
+
   // warn if error checking is disabled
 #ifndef CUDA_ERROR_CHECK
   #warning "CUDA error checking is disabled. Enable it with the CUDA_ERROR_CHECK macro"
@@ -79,9 +84,9 @@ void Check_Configuration(parameters const &P)
   #endif  //! HLLD or EXACT or ROE or HLL or HLLC
 
   // May only use certain reconstructions
-  #if !defined(PCM) || defined(PLMP) || defined(PLMC) || defined(PPMC) || defined(PPMP)
-    #error "MHD only supports PCM reconstruction"
-  #endif  //! PCM or PLMP or PLMC or PPMC or PPMP
+  #if ((defined(PCM) + defined(PLMC) + defined(PPMC)) != 1) || defined(PLMP) || defined(PPMP)
+    #error "MHD only supports PCM, PLMC, and PPMC reconstruction"
+  #endif  // Reconstruction check
 
   // must have HDF5
   #ifndef HDF5

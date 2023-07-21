@@ -105,10 +105,10 @@ pipeline
                             sh  '''
                                 printf '=%.0s' {1..100}
                                 printf "\n"
-                                cat tidy_results_cpp.log
+                                cat tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log
                                 printf '=%.0s' {1..100}
                                 printf "\n"
-                                cat tidy_results_gpu.log
+                                cat tidy_results_gpu_${CHOLLA_MAKE_TYPE}.log
                                 printf '=%.0s' {1..100}
                                 printf "\n"
                                 '''

@@ -9,13 +9,13 @@
 
 #define VRMS_CUTOFF_DENSITY (0.01 * 0.6 * MP / DENSITY_UNIT)
 
-FeedbackAnalysis::FeedbackAnalysis(Grid3D& G, struct parameters *P)
+FeedbackAnalysis::FeedbackAnalysis(Grid3D& G, struct parameters* P)
 {
   // set distance limits beyond which contributions to the V_rms don't
   // make sense, such as too close to the simulation volume edge or
   // too high above the disk.
   r_max = P->xlen / 2 * 0.975;
-  z_max = 0.15; // 150 pc above/below the disk plane
+  z_max = 0.15;  // 150 pc above/below the disk plane
   // allocate arrays
   h_circ_vel_x = (Real*)malloc(G.H.n_cells * sizeof(Real));
   h_circ_vel_y = (Real*)malloc(G.H.n_cells * sizeof(Real));

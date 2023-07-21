@@ -56,8 +56,8 @@ typedef double Real;
 #define LOG_FILE_NAME "run_output.log"
 
 // Conserved Floor Values
-//#define TEMP_FLOOR 1e1    // 10K for cloudy cooling
-//#define DENS_FLOOR 14.83  // 1e-6 cm^-3
+// #define TEMP_FLOOR 1e1    // 10K for cloudy cooling
+// #define DENS_FLOOR 14.83  // 1e-6 cm^-3
 #define TEMP_FLOOR 1e-3
 #define DENS_FLOOR 1e-5  // in code units
 
@@ -271,6 +271,7 @@ struct parameters {
   Real polarization        = 0;
   Real radius              = 0;
   Real P_blast             = 0;
+  Real wave_length         = 1.0;
 #ifdef PARTICLES
   // The random seed for particle simulations. With the default of 0 then a
   // machine dependent seed will be generated.

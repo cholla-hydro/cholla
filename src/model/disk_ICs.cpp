@@ -18,7 +18,6 @@
 #include "../utils/error_handling.h"
 #include "disk_galaxy.h"
 
-
 // function with logarithms used in NFW definitions
 Real log_func(Real y) { return log(1 + y) - y / (1 + y); }
 
@@ -735,7 +734,6 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
  *  \brief Initialize the grid with a 3D disk. */
 void Grid3D::Disk_3D(parameters p)
 {
-
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, phi;
   Real d, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, mu;
@@ -771,7 +769,7 @@ void Grid3D::Disk_3D(parameters p)
   R_g     = 2.0 * R_d;                            // gas scale length in kpc
   Sigma_0 = 0.15 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
                                                   // FIXME 0.15 -> 0.25 for M82
-  H_g     = z_d;                                  // initial guess for gas scale height
+  H_g = z_d;                                      // initial guess for gas scale height
   // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
   // EOS info
@@ -865,12 +863,12 @@ void Grid3D::Disk_3D(parameters p)
       for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
         id = i + j * H.nx + k * H.nx * H.ny;
 
-  // get density from hydrostatic column computation
-  #ifdef MPI_CHOLLA
+// get density from hydrostatic column computation
+#ifdef MPI_CHOLLA
         d = rho[nz_local_start + H.n_ghost + (k - H.n_ghost)];
-  #else
+#else
         d = rho[H.n_ghost + (k - H.n_ghost)];
-  #endif
+#endif
         // if (d != d || d < 0) printf("Error calculating density. d: %e\n", d);
 
         // set pressure adiabatically
@@ -1049,10 +1047,10 @@ void Grid3D::Disk_3D(parameters p)
       for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
         id = i + j * H.nx + k * H.nx * H.ny;
 
-  // set internal energy
-  #ifdef DE
+// set internal energy
+#ifdef DE
         C.GasEnergy[id] = C.Energy[id];
-  #endif
+#endif
 
         // add kinetic contribution to total energy
         C.Energy[id] += 0.5 *
@@ -1072,5 +1070,4 @@ void Grid3D::Disk_3D(parameters p)
   // gas lookup table
   free(r_halo);
   free(rho_halo);
-
 }

@@ -39,10 +39,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
    *
    */
   tMHDCalculateCTElectricFields()
-      : nx(2),
-        ny(nx),
-        nz(nx),
-        n_cells(nx * ny * nz),
+      : n_cells(nx * ny * nz),
         fluxX(n_cells * (grid_enum::num_flux_fields)),
         fluxY(n_cells * (grid_enum::num_flux_fields)),
         fluxZ(n_cells * (grid_enum::num_flux_fields)),
@@ -71,7 +68,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
 
  protected:
   // Initialize the test grid and other state variables
-  size_t const nx, ny, nz;
+  size_t const nx = 2, ny = nx, nz = nx;
   size_t const n_cells;
 
   // Launch Parameters

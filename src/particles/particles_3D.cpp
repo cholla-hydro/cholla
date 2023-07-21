@@ -516,7 +516,7 @@ void Particles_3D::Initialize_Sphere(struct parameters *P)
   Real *temp_mass = (Real *)malloc(particles_array_size * sizeof(Real));
     #endif
     #ifdef PARTICLE_IDS
-  part_int_t *temp_id = (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
+  auto *temp_id = (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
     #endif
 
   chprintf(" Allocated GPU memory for particle data\n");
@@ -648,16 +648,13 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   std::gamma_distribution<Real> radialDist(2, 1);  // for generating cyclindrical radii
   std::uniform_real_distribution<Real> zDist(-0.005, 0.005);
   std::uniform_real_distribution<Real> vzDist(-1e-8, 1e-8);
-  std::uniform_real_distribution<Real> phiDist(0,
-                                               2 * M_PI);  // for generating phi
-  std::normal_distribution<Real> speedDist(0,
-                                           1);  // for generating random speeds.
+  std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
+  std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
   Real M_d   = Galaxies::MW.getM_d();  // MW disk mass in M_sun (assumed to be all in stars)
   Real R_d   = Galaxies::MW.getR_d();  // MW stellar disk scale length in kpc
   Real Z_d   = Galaxies::MW.getZ_d();  // MW stellar height scale length in kpc
-  Real R_max = sqrt(P->xlen * P->xlen + P->ylen * P->ylen) / 2;
-  R_max      = 1.8; // P->xlen / 2.0;
+  Real R_max = P->xlen / 2.0 - 0.2;    // keep this consistent with Sigma_disk_D3D in disk_ICs.cpp
 
   real_vector_t temp_pos_x;
   real_vector_t temp_pos_y;
@@ -701,7 +698,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
     // set creation time of cluster on how long
     // it would take star formation to add that
     // much mass
-    t_cluster_creation += cluster_mass/SFR;
+    t_cluster_creation += cluster_mass / SFR;
     chprintf("cluster %d, age %.4e, mass %.4e\n", id, t_cluster_creation, cluster_mass);
 
     if (x < G.xMin || x >= G.xMax) continue;
