@@ -162,10 +162,10 @@ int main(int argc, char *argv[])
 #if defined(FEEDBACK) && defined(PARTICLE_AGE)
   FeedbackAnalysis sn_analysis(G, &P);
   #ifndef NO_SN_FEEDBACK
-    feedback::initState(&P);
+    feedback::Init_State(&P);
   #endif // NO_SN_FEEDBACK
   #ifndef NO_WIND_FEEDBACK
-    feedback::initWindState(&P);
+    feedback::Init_Wind_State(&P);
   #endif
 #endif // FEEDBACK && PARTICLE_AGE
 

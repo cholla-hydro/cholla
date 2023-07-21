@@ -39,10 +39,10 @@ namespace feedback
 
 
   #ifndef NO_SN_FEEDBACK
-  void initState(struct parameters* P);
+  void Init_State(struct parameters* P);
   #endif
   #ifndef NO_WIND_FEEDBACK
-  void initWindState(struct parameters* P);
+  void Init_Wind_State(struct parameters* P);
   #endif
   Real Cluster_Feedback(Grid3D& G, FeedbackAnalysis& sn_analysis);
 }  // namespace supernova
