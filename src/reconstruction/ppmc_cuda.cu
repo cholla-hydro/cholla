@@ -27,11 +27,43 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   int xid, yid, zid;
   cuda_utilities::compute3DIndices(thread_id, nx, ny, xid, yid, zid);
 
+
+  int xs, xe, ys, ye, zs, ze;
+  switch (dir) {
+  case 0:
+    xs = 2;
+    xe = nx - 3;
+    ys = 0;
+    ye = ny;
+    zs = 0;
+    ze = nz;
+    break;
+  case 1:
+    xs = 0;
+    xe = nx;
+    ys = 2;
+    ye = ny - 3;
+    zs = 0;
+    ze = nz;
+    break;
+  case 2:
+    xs = 0;
+    xe = nx;
+    ys = 0;
+    ye = ny;
+    zs = 2;
+    ze = nz - 3;
+    break;
+  }
+  if (xid < xs || xid >= xe || yid < ys || yid >= ye || zid < zs || zid >= ze) return;
+
+  /*
   // Ensure that we are only operating on cells that will be used
   if (size_t const min = 3, max = 3;
       xid < min or xid >= nx - max or yid < min or yid >= ny - max or zid < min or zid >= nz - max) {
     return;
   }
+  */
 
   // Compute the total number of cells
   int const n_cells = nx * ny * nz;
@@ -55,6 +87,10 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
       o3 = grid_enum::momentum_y;
       break;
   }
+
+
+  
+
 
   // load the 5-cell stencil into registers
   // cell i
