@@ -52,4 +52,3 @@ void Check_For_Nan(Real* device_array, int array_size, int check_num)
     chexit(-1);
   }
 }
-
