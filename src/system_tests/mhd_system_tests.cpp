@@ -14,6 +14,7 @@
 // Local includes
 #include "../io/io.h"
 #include "../system_tests/system_tester.h"
+#include "../utils/testing_utilities.h"
 
 // =============================================================================
 // Test Suite: tMHDSYSTEMLinearWavesParameterizedAngle
@@ -32,15 +33,15 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
 
  protected:
   systemTest::SystemTestRunner waveTest;
+  inline static std::unordered_map<std::string, double> high_res_l2norms;
 
   void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                        double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
                        double const &rEigenVec_Bx, double const &rEigenVec_By, double const &rEigenVec_Bz,
                        double const &pitch, double const &yaw, double const &domain, int const &domain_direction,
-                       double const &vx = 0.0)
+                       double const &vx = 0.0, size_t const &N = 32)
   {
     // Constant for all tests
-    size_t const N     = 32;
     double const gamma = 5. / 3.;
     double const tOut  = 2 * domain / waveSpeed;
 
@@ -154,6 +155,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveRightMovingC
 #elif defined(PPMC)
   waveTest.runL1ErrorTest(6.11E-8, 5.5E-8);
 #endif  // PCM
+
+  high_res_l2norms["fast_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -228,6 +231,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveRightMovingC
 #elif defined(PPMC)
   waveTest.runL1ErrorTest(1.45E-9, 1.3E-9);
 #endif  // PCM
+
+  high_res_l2norms["slow_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -301,6 +306,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveRightMovingCorrectInpu
 #elif defined(PPMC)
   waveTest.runL1ErrorTest(1.95e-09, 2.16e-09);
 #endif  // PCM
+
+  high_res_l2norms["alfven_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -375,6 +382,147 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveCorrectInputExpect
 #elif defined(PPMC)
   waveTest.runL1ErrorTest(1.41e-09, 1.5E-09);
 #endif  // PCM
+
+  high_res_l2norms["contact_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
+}
+
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveExpectSecondOrderConvergence)
+{
+  // Get the test parameters
+  auto [pitch, yaw, domain, domain_direction] = GetParam();
+
+  // Specific to this test
+  double const waveSpeed              = 2.;
+  std::vector<int> const numTimeSteps = {107, 102, 110};
+
+  double const prefix              = 1. / (2 * std::sqrt(5));
+  double const rEigenVec_rho       = prefix * 2;
+  double const rEigenVec_MomentumX = prefix * 4;
+  double const rEigenVec_MomentumY = prefix * -2;
+  double const rEigenVec_MomentumZ = prefix * 0;
+  double const rEigenVec_Bx        = prefix * 0;
+  double const rEigenVec_By        = prefix * 4;
+  double const rEigenVec_Bz        = prefix * 0;
+  double const rEigenVec_E         = prefix * 9;
+
+  // Set the launch parameters
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0, 16);
+
+  // Set the number of timesteps
+  waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
+
+  // Run the wave
+  waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
+
+  // Check the scaling
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["fast_" + std::to_string(domain_direction)], "",
+                                 0.17);
+}
+
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecondOrderConvergence)
+{
+  // Get the test parameters
+  auto [pitch, yaw, domain, domain_direction] = GetParam();
+
+  // Specific to this test
+  double const waveSpeed              = 0.5;
+  std::vector<int> const numTimeSteps = {427, 407, 440};
+
+  double const prefix              = 1. / (2 * std::sqrt(5));
+  double const rEigenVec_rho       = prefix * 4;
+  double const rEigenVec_MomentumX = prefix * 2;
+  double const rEigenVec_MomentumY = prefix * 4;
+  double const rEigenVec_MomentumZ = prefix * 0;
+  double const rEigenVec_Bx        = prefix * 0;
+  double const rEigenVec_By        = prefix * -2;
+  double const rEigenVec_Bz        = prefix * 0;
+  double const rEigenVec_E         = prefix * 3;
+
+  // Set the launch parameters
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0, 16);
+
+  // Set the number of timesteps
+  waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
+
+  // Run the wave
+  waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
+
+  // Check the scaling
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["slow_" + std::to_string(domain_direction)], "",
+                                 0.17);
+}
+
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConvergence)
+{
+  // Get the test parameters
+  auto [pitch, yaw, domain, domain_direction] = GetParam();
+
+  // Specific to this test
+  double const waveSpeed              = 1.0;
+  std::vector<int> const numTimeSteps = {214, 204, 220};
+
+  double const rEigenVec_rho       = 0;
+  double const rEigenVec_MomentumX = 0;
+  double const rEigenVec_MomentumY = 0;
+  double const rEigenVec_MomentumZ = -1;
+  double const rEigenVec_Bx        = 0;
+  double const rEigenVec_By        = 0;
+  double const rEigenVec_Bz        = 1;
+  double const rEigenVec_E         = 0;
+
+  // Set the launch parameters
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0, 16);
+
+  // Set the number of timesteps
+  waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
+
+  // Run the wave
+  waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
+
+  // Check the scaling
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["alfven_" + std::to_string(domain_direction)],
+                                 "", 0.17);
+}
+
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveExpectSecondOrderConvergence)
+{
+  // Get the test parameters
+  auto [pitch, yaw, domain, domain_direction] = GetParam();
+
+  // Specific to this test
+  double const waveSpeed              = 1.0;
+  std::vector<int> const numTimeSteps = {321, 310, 327};
+
+  double const rEigenVec_rho       = 1;
+  double const rEigenVec_MomentumX = 1;
+  double const rEigenVec_MomentumY = 0;
+  double const rEigenVec_MomentumZ = 0;
+  double const rEigenVec_Bx        = 0;
+  double const rEigenVec_By        = 0;
+  double const rEigenVec_Bz        = 0;
+  double const rEigenVec_E         = 0.5;
+  double const velocityX           = waveSpeed;
+
+  // Set the launch parameters
+  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
+                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, velocityX, 16);
+
+  // Set the number of timesteps
+  waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
+
+  // Run the wave
+  waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
+
+  // Check the scaling
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testingUtilities::checkResults(4.0, low_res_l2norm / high_res_l2norms["contact_" + std::to_string(domain_direction)],
+                                 "", 0.17);
 }
 
 INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedAngle,
