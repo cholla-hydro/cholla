@@ -8,7 +8,9 @@
 __global__ void Dump_Values_Kernel(Real* device_array, int array_size, int marker)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= array_size) return;
+  if (tid >= array_size) {
+    return;
+  }
   kernel_printf("Dump Values: marker %d tid %d value %g \n", marker, tid, device_array[tid]);
 }
 
@@ -26,8 +28,12 @@ void Dump_Values(Real* device_array, int array_size, int marker)
 __global__ void Check_For_Nan_Kernel(Real* device_array, int array_size, int check_num, bool* out_bool)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= array_size) return;
-  if (device_array[tid] == device_array[tid]) return;
+  if (tid >= array_size) {
+    return;
+  }
+  if (device_array[tid] == device_array[tid]) {
+    return;
+  }
   out_bool[0] = true;
   kernel_printf("Check_For_Nan_Kernel found Nan Checknum: %d Thread: %d\n", check_num, tid);
 }
