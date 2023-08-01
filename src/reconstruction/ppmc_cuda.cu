@@ -54,7 +54,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
       ze = nz - 3;
       break;
   }
-  if (xid < xs || xid >= xe || yid < ys || yid >= ye || zid < zs || zid >= ze) return;
+  if (xid < xs || xid >= xe || yid < ys || yid >= ye || zid < zs || zid >= ze) {
+    return;
+  }
 
   /*
   // Ensure that we are only operating on cells that will be used
