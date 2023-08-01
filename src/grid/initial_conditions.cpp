@@ -508,9 +508,9 @@ void Grid3D::Square_Wave(parameters const &P)
  *  \brief Initialize the grid with a Riemann problem. */
 void Grid3D::Riemann(parameters const &P)
 {
-  size_t const istart = H.n_ghost;
-  size_t const iend   = H.nx - H.n_ghost;
-  size_t jstart, kstart, jend, kend;
+  int const istart = H.n_ghost;
+  int const iend   = H.nx - H.n_ghost;
+  int jstart, kstart, jend, kend;
   if (H.ny > 1) {
     jstart = H.n_ghost;
     jend   = H.ny - H.n_ghost;
@@ -527,9 +527,9 @@ void Grid3D::Riemann(parameters const &P)
   }
 
   // set initial values of conserved variables
-  for (size_t k = kstart - 1; k < kend; k++) {
-    for (size_t j = jstart - 1; j < jend; j++) {
-      for (size_t i = istart - 1; i < iend; i++) {
+  for (int k = kstart - 1; k < kend; k++) {
+    for (int j = jstart - 1; j < jend; j++) {
+      for (int i = istart - 1; i < iend; i++) {
         // get cell index
         size_t const id = i + j * H.nx + k * H.nx * H.ny;
 
@@ -540,6 +540,7 @@ void Grid3D::Riemann(parameters const &P)
 #ifdef MHD
         // Set the magnetic field including the rightmost ghost cell on the
         // left side which is really the left face of the first grid cell
+        // WARNING: Only correct in 3-D
         if (x_pos < P.diaph) {
           C.magnetic_x[id] = P.Bx_l;
           C.magnetic_y[id] = P.By_l;
@@ -582,12 +583,12 @@ void Grid3D::Riemann(parameters const &P)
 #endif  // SCALAR
 #ifdef DE
             C.GasEnergy[id] = P.P_r / (gama - 1.0);
-#endif  // DE
-          }
-        }
-      }
-    }
-  }
+#endif       // DE
+          }  // if diaph
+        }    // if real
+      }      // k
+    }        // j
+  }          // i
 }
 
 /*! \fn void Shu_Osher()
