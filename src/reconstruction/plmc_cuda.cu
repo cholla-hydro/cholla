@@ -29,8 +29,8 @@ __global__ __launch_bounds__(TPB) void PLMC_cuda(Real *dev_conserved, Real *dev_
   int xid, yid, zid;
   cuda_utilities::compute3DIndices(thread_id, nx, ny, xid, yid, zid);
 
-  // Thread guard to prevent overrun
-  if (xid < 1 or xid >= nx - 2 or yid < 1 or yid >= ny - 2 or zid < 1 or zid >= nz - 2) {
+  // Ensure that we are only operating on cells that will be used
+  if (reconstruction::Thread_Guard<2>(nx, ny, nz, xid, yid, zid)) {
     return;
   }
 

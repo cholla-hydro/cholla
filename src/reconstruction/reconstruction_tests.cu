@@ -18,6 +18,7 @@
 #include "../io/io.h"
 #include "../reconstruction/reconstruction.h"
 #include "../utils/DeviceVector.h"
+#include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
 
@@ -173,6 +174,34 @@ TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
   testingUtilities::checkResults(fiducial_results.a_prime_slow, host_results.a_prime_slow, "a_prime_slow");
 }
 #endif  // MHD
+
+TEST(tALLReconstructionThreadGuard, CorrectInputExpectCorrectOutput)
+{
+  // Test parameters
+  int const order = 3;
+  int const nx    = 6;
+  int const ny    = 6;
+  int const nz    = 6;
+
+  // fiducial data
+  std::vector<int> fiducial_vals(nx * ny * nz, 1);
+  fiducial_vals.at(86) = 0;
+
+  // loop through all values of the indices and check them
+  for (int xid = 0; xid < nx; xid++) {
+    for (int yid = 0; yid < ny; yid++) {
+      for (int zid = 0; zid < nz; zid++) {
+        // Get the test value
+        bool test_val = reconstruction::Thread_Guard<order>(nx, ny, nz, xid, yid, zid);
+
+        // Compare
+        int id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+        ASSERT_EQ(test_val, fiducial_vals.at(id))
+            << "Test value not equal to fiducial value at id = " << id << std::endl;
+      }
+    }
+  }
+}
 
 TEST(tALLReconstructionLoadData, CorrectInputExpectCorrectOutput)
 {
