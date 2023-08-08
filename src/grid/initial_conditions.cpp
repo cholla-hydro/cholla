@@ -508,18 +508,18 @@ void Grid3D::Square_Wave(parameters const &P)
  *  \brief Initialize the grid with a Riemann problem. */
 void Grid3D::Riemann(parameters const &P)
 {
-  int const istart = H.n_ghost;
-  int const iend   = H.nx - H.n_ghost;
-  int jstart, kstart, jend, kend;
+  size_t const istart = H.n_ghost - 1;
+  size_t const iend   = H.nx - H.n_ghost;
+  size_t jstart, kstart, jend, kend;
   if (H.ny > 1) {
-    jstart = H.n_ghost;
+    jstart = H.n_ghost - 1;
     jend   = H.ny - H.n_ghost;
   } else {
     jstart = 0;
     jend   = H.ny;
   }
   if (H.nz > 1) {
-    kstart = H.n_ghost;
+    kstart = H.n_ghost - 1;
     kend   = H.nz - H.n_ghost;
   } else {
     kstart = 0;
@@ -527,9 +527,9 @@ void Grid3D::Riemann(parameters const &P)
   }
 
   // set initial values of conserved variables
-  for (int k = kstart - 1; k < kend; k++) {
-    for (int j = jstart - 1; j < jend; j++) {
-      for (int i = istart - 1; i < iend; i++) {
+  for (size_t k = kstart; k < kend; k++) {
+    for (size_t j = jstart; j < jend; j++) {
+      for (size_t i = istart; i < iend; i++) {
         // get cell index
         size_t const id = i + j * H.nx + k * H.nx * H.ny;
 
