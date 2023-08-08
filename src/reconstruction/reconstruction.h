@@ -79,23 +79,41 @@ struct Characteristic {
 // =====================================================================================================================
 
 // =====================================================================================================================
+/*!
+ * \brief Determine if a thread is within the allowed range
+ *
+ * \tparam order The order of the reconstruction. 2 for PLM, 3 for PPM
+ * \param nx The number of cells in the X-direction
+ * \param ny The number of cells in the Y-direction
+ * \param nz The number of cells in the Z-direction
+ * \param xid The X thread index
+ * \param yid The Y thread index
+ * \param zid The Z thread index
+ * \return true The thread is NOT in the allowed range
+ * \return false The thread is in the allowed range
+ */
 template <int order>
 bool __device__ __host__ __inline__ Thread_Guard(int const &nx, int const &ny, int const &nz, int const &xid,
                                                  int const &yid, int const &zid)
 {
-  // x check
+  // These checks all make sure that the xid is such that the thread won't try to load any memory that is out of bounds
+
+  // X check
   bool out_of_bounds_thread = xid < order - 1 or xid >= nx - order;
 
-  // y check
+  // Y check, only used for 2D and 3D
   if (ny > 1) {
     out_of_bounds_thread = yid < order - 1 or yid >= ny - order or out_of_bounds_thread;
   }
 
-  // z check
+  // z check, only used for 3D
   if (nz > 1) {
     out_of_bounds_thread = zid < order - 1 or zid >= nz - order or out_of_bounds_thread;
   }
-  out_of_bounds_thread = zid >= nz or out_of_bounds_thread;
+  // This is needed in the case that nz == 1 to avoid overrun
+  else {
+    out_of_bounds_thread = zid >= nz or out_of_bounds_thread;
+  }
 
   return out_of_bounds_thread;
 }
