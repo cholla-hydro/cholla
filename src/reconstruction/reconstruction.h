@@ -79,6 +79,29 @@ struct Characteristic {
 // =====================================================================================================================
 
 // =====================================================================================================================
+template <int order>
+bool __device__ __host__ __inline__ Thread_Guard(int const &nx, int const &ny, int const &nz, int const &xid,
+                                                 int const &yid, int const &zid)
+{
+  // x check
+  bool out_of_bounds_thread = xid < order - 1 or xid >= nx - order;
+
+  // y check
+  if (ny > 1) {
+    out_of_bounds_thread = yid < order - 1 or yid >= ny - order or out_of_bounds_thread;
+  }
+
+  // z check
+  if (nz > 1) {
+    out_of_bounds_thread = zid < order - 1 or zid >= nz - order or out_of_bounds_thread;
+  }
+  out_of_bounds_thread = zid >= nz or out_of_bounds_thread;
+
+  return out_of_bounds_thread;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
 /*!
  * \brief Load the data for reconstruction
  *
