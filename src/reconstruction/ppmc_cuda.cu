@@ -58,14 +58,6 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     return;
   }
 
-  /*
-  // Ensure that we are only operating on cells that will be used
-  if (size_t const min = 3, max = 3;
-      xid < min or xid >= nx - max or yid < min or yid >= ny - max or zid < min or zid >= nz - max) {
-    return;
-  }
-  */
-
   // Compute the total number of cells
   int const n_cells = nx * ny * nz;
 

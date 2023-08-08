@@ -583,12 +583,12 @@ void Grid3D::Riemann(parameters const &P)
 #endif  // SCALAR
 #ifdef DE
             C.GasEnergy[id] = P.P_r / (gama - 1.0);
-#endif       // DE
-          }  // if diaph
-        }    // if real
-      }      // k
-    }        // j
-  }          // i
+#endif  // DE
+          }
+        }
+      }
+    }
+  }
 }
 
 /*! \fn void Shu_Osher()
