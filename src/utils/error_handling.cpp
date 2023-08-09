@@ -54,6 +54,20 @@ void Check_Configuration(parameters const &P)
   #error "Only one integrator can be enabled at a time."
 #endif  // Only one integrator check
 
+  // Check the boundary conditions
+  auto Check_Boundary = [](int const &boundary) {
+    bool is_allowed_bc = boundary >= 0 and boundary <= 4;
+    assert(is_allowed_bc &&
+           "WARNING: Possibly invalid boundary conditions for direction: %d flag: %d. Must select between (periodic), "
+           "2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi).\n");
+  };
+  Check_Boundary(P.xl_bcnd);
+  Check_Boundary(P.xu_bcnd);
+  Check_Boundary(P.yl_bcnd);
+  Check_Boundary(P.yu_bcnd);
+  Check_Boundary(P.zl_bcnd);
+  Check_Boundary(P.zu_bcnd);
+
   // warn if error checking is disabled
 #ifndef CUDA_ERROR_CHECK
   #warning "CUDA error checking is disabled. Enable it with the CUDA_ERROR_CHECK macro"

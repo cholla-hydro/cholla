@@ -27,9 +27,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   int xid, yid, zid;
   cuda_utilities::compute3DIndices(thread_id, nx, ny, xid, yid, zid);
 
-  // Ensure that we are only operating on cells that will be used
-  if (size_t const min = 3, max = 3;
-      xid < min or xid >= nx - max or yid < min or yid >= ny - max or zid < min or zid >= nz - max) {
+  if (reconstruction::Thread_Guard<3>(nx, ny, nz, xid, yid, zid)) {
     return;
   }
 
@@ -548,8 +546,7 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
   cuda_utilities::compute3DIndices(thread_id, nx, ny, xid, yid, zid);
 
   // Ensure that we are only operating on cells that will be used
-  if (size_t const min = 3, max = 3;
-      xid < min or xid >= nx - max or yid < min or yid >= ny - max or zid < min or zid >= nz - max) {
+  if (reconstruction::Thread_Guard<3>(nx, ny, nz, xid, yid, zid)) {
     return;
   }
 
