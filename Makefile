@@ -176,7 +176,8 @@ DFLAGS      += $(MACRO_FLAGS)
 
 # Setup variables for clang-tidy
 LIBS_CLANG_TIDY     := $(subst -I/, -isystem /,$(LIBS))
-LIBS_CLANG_TIDY     += -isystem $(MPI_ROOT)/include
+# This tells clang-tidy that the path after each -isystem command is a system library so that it can be easily ignored by the header filter regex
+LIBS_CLANG_TIDY     += -isystem $(MPI_ROOT)/include -isystem $(HDF5_ROOT)/include
 CXXFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(LDFLAGS))
 GPUFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(GPUFLAGS))
 GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS))
