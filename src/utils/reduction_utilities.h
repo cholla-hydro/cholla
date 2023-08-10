@@ -127,7 +127,7 @@ inline __device__ int encode(float val)
  */
 inline __device__ long long encode(double val)
 {
-  std::int64_t i = bit_cast<std::int64_t>(val);
+  auto i = bit_cast<std::int64_t>(val);
   return i >= 0 ? i : (1ULL << 63) | ~i;
 }
 

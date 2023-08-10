@@ -75,6 +75,7 @@ void Check_Configuration(parameters const& P)
 
   // warn if error checking is disabled
 #ifndef CUDA_ERROR_CHECK
+  // NOLINTNEXTLINE(clang-diagnostic-#warnings)
   #warning "CUDA error checking is disabled. Enable it with the CUDA_ERROR_CHECK macro"
 #endif  //! CUDA_ERROR_CHECK
 
