@@ -1386,13 +1386,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #ifdef OUTPUT_ENERGY
   output_energy = true;
   #else   // not OUTPUT_ENERGY
-  output_energy = false;
+  output_energy      = false;
   #endif  // OUTPUT_ENERGY
 
   #ifdef OUTPUT_MOMENTUM
   output_momentum = true;
   #else   // not OUTPUT_MOMENTUM
-  output_momentum = false;
+  output_momentum    = false;
   #endif  // OUTPUT_MOMENTUM
 
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
