@@ -108,7 +108,7 @@ void system_test::SystemTestRunner::runTest(bool const &compute_L2_norm_only, do
       << std::endl;
 
   // Compute the L1 Error.
-  _L2Norm         = 0;
+  L2Norm_         = 0;
   double maxError = 0;
   // Loop over the datasets to be tested
   for (auto const &dataSetName : _fiducialDataSetNames) {
@@ -187,14 +187,14 @@ void system_test::SystemTestRunner::runTest(bool const &compute_L2_norm_only, do
 
     if (compute_L2_norm_only) {
       L1_error /= static_cast<double>(testDims[0] * testDims[1] * testDims[2]);
-      _L2Norm += L1_error * L1_error;
+      L2Norm_ += L1_error * L1_error;
     }
   }
 
   if (compute_L2_norm_only) {
     // Check the L2 Norm
-    _L2Norm = std::sqrt(_L2Norm);
-    EXPECT_LT(_L2Norm, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
+    L2Norm_ = std::sqrt(L2Norm_);
+    EXPECT_LT(L2Norm_, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
 
     // Check the Max Error
     EXPECT_LT(maxError, maxAllowedError) << "The maximum error has exceeded the allowed value";
@@ -270,7 +270,7 @@ void system_test::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Err
       << std::endl;
 
   // Loop over the datasets to be tested
-  _L2Norm         = 0;
+  L2Norm_         = 0;
   double maxError = 0;
   for (auto const &dataSetName : _fiducialDataSetNames) {
     if (dataSetName == "GasEnergy") {
@@ -312,7 +312,7 @@ void system_test::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Err
     }
 
     L1_error /= static_cast<double>(initialDims[0] * initialDims[1] * initialDims[2]);
-    _L2Norm += L1_error * L1_error;
+    L2Norm_ += L1_error * L1_error;
 
     // Perform the correctness check
     EXPECT_LT(L1_error, maxAllowedL1Error)
@@ -320,8 +320,8 @@ void system_test::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Err
   }
 
   // Check the L2 Norm
-  _L2Norm = std::sqrt(_L2Norm);
-  EXPECT_LT(_L2Norm, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
+  L2Norm_ = std::sqrt(L2Norm_);
+  EXPECT_LT(L2Norm_, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
 
   // Check the Max Error
   EXPECT_LT(maxError, maxAllowedError) << "The maximum error has exceeded the allowed value";

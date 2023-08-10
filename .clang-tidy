@@ -34,6 +34,8 @@ Checks: "*,
         -misc-unused-parameters,
         -hicpp-multiway-paths-covered,
         -cert-err58-cpp,
+        -cert-dcl37-c,
+        -cert-dcl51-cpp,
         -cppcoreguidelines-pro-bounds-constant-array-index,
 
         google-readability-avoid-underscore-in-googletest-name,
@@ -167,4 +169,6 @@ CheckOptions:
   # readability-identifier-naming.PrivateMethodSuffix: '_'
 
   hicpp-signed-bitwise.IgnorePositiveIntegerLiterals: 'true'
+
+  bugprone-reserved-identifier.AllowedIdentifiers: '__cudaSafeCall;__cudaCheckError;__shfl_down'
 ...
