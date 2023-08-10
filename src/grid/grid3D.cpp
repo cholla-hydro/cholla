@@ -18,7 +18,6 @@
 #include "../integrators/simple_3D_cuda.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"
-#include "../utils/ran.h"
 #ifdef MPI_CHOLLA
   #include <mpi.h>
   #ifdef HDF5
