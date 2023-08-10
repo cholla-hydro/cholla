@@ -166,9 +166,9 @@ class ClusteredDiskGalaxy : public DiskGalaxy
 
   std::vector<Real> generateClusterPopulationMasses(int N, std::mt19937_64 generator)
   {
-    std::vector<Real> population;
+    std::vector<Real> population(N);
     for (int i = 0; i < N; i++) {
-      population.push_back(singleClusterMass(generator));
+      population[singleClusterMass(generator)];
     }
     return population;
   }
