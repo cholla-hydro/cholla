@@ -88,15 +88,14 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     d = dev_conserved[id];
     E = dev_conserved[4 * n_cells + id];
 
-
     // don't apply cooling if this thread crashed
     if (E < 0.0 || E != E) {
-      /* Alwin: this is a leftover debug printf from when we were checking cooling for small temperature outputs. Delete at leisure. 
-      kernel_printf("WARNING: bad energy in cooling_cuda E=%e [xid, yid, zid] = [%d, %d, %d] \n", E, xid, yid, zid);
+      /* Alwin: this is a leftover debug printf from when we were checking cooling for small temperature outputs. Delete
+      at leisure. kernel_printf("WARNING: bad energy in cooling_cuda E=%e [xid, yid, zid] = [%d, %d, %d] \n", E, xid,
+      yid, zid);
       */
       return;
     }
-
 
     // #ifndef DE
     vx = dev_conserved[1 * n_cells + id] / d;
@@ -113,7 +112,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate the number density of the gas (in cgs)
     n = d * DENSITY_UNIT / (mu * MP);
 
-    // calculate the temperature of the gas
+      // calculate the temperature of the gas
 
     #ifdef DE
     const Real T_init = ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
@@ -138,21 +137,23 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #endif
       del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
       if (fabs(del_T) > 0.01 * T) {
-	// Evolve T and dt so T changes by 1%
-	dt -=    dt * 0.01 * T / fabs(del_T);
-	T  -= del_T * 0.01 * T / fabs(del_T);
+        // Evolve T and dt so T changes by 1%
+        dt -= dt * 0.01 * T / fabs(del_T);
+        T -= del_T * 0.01 * T / fabs(del_T);
       } else {
-	T  -= del_T;
-	break;
+        T -= del_T;
+        break;
       }
     }
 
     const Real T_final = T;
 
-    /* Alwin: this is a leftover debug function from when we were checking cooling for small temperature outputs. Delete at leisure. 
+    /* Alwin: this is a leftover debug function from when we were checking cooling for small temperature outputs. Delete
+    at leisure.
     // If the temperature has changed by a lot, whine vehemently
     if ((T_init / T_final > 1e3) || (T_final / T_init > 1e3)) {
-      //kernel_printf("Cooling Cuda Large Temperature Change whine: | T_init (K): %e | T_final (K): %e | dt (cholla): %e | n (cgs): %e \n", T_init, T_final, dt_init, n);
+      //kernel_printf("Cooling Cuda Large Temperature Change whine: | T_init (K): %e | T_final (K): %e | dt (cholla): %e
+    | n (cgs): %e \n", T_init, T_final, dt_init, n);
     }
     */
 
@@ -168,14 +169,12 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     #ifdef DE
     dev_conserved[(n_fields - 1) * n_cells + id] = ge;
     #endif
-    
-    
-    /* Alwin: this is a leftover debug function from when we were checking cooling for small temperature outputs. Delete at leisure. 
-    if (T_final < 1e2) {
-      kernel_printf("Cooling Cuda Small Temperature Whine: | T_init (K): %e | T_final (K): %e | dt (cholla): %e | n (cgs): %e \n", T_init, T_final, dt_init, n);
+
+    /* Alwin: this is a leftover debug function from when we were checking cooling for small temperature outputs. Delete
+    at leisure. if (T_final < 1e2) { kernel_printf("Cooling Cuda Small Temperature Whine: | T_init (K): %e | T_final
+    (K): %e | dt (cholla): %e | n (cgs): %e \n", T_init, T_final, dt_init, n);
     }
     */
-
   }
 }
 
@@ -338,11 +337,12 @@ __device__ Real CIE_cool(Real n, Real T)
           tables at z = 0 with solar metallicity and an HM05 UV background. */
 __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
 {
-  Real lambda = 0.0;  // log cooling rate, erg s^-1 cm^3
-  Real cooling   = 0.0;  // cooling per unit volume, erg /s / cm^3
-  Real heating   = 0.0;  // cooling per unit volume, erg /s / cm^3
+  Real lambda  = 0.0;  // log cooling rate, erg s^-1 cm^3
+  Real cooling = 0.0;  // cooling per unit volume, erg /s / cm^3
+  Real heating = 0.0;  // cooling per unit volume, erg /s / cm^3
 
-  // To keep texture code simple, we use floats (which have built-in support) as opposed to doubles (which would require casting)
+  // To keep texture code simple, we use floats (which have built-in support) as opposed to doubles (which would require
+  // casting)
   float log_n, log_T;
   log_n = log10(n);
   log_T = log10(T);
@@ -362,9 +362,9 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   if (log10(T) > 9.0) {
     lambda = 0.45 * log10(T) - 26.065;
   } else if (log10(T) >= 1.0) {
-    lambda = Bilinear_Texture(coolTexObj, remap_log_T, remap_log_n);
+    lambda       = Bilinear_Texture(coolTexObj, remap_log_T, remap_log_n);
     const Real H = Bilinear_Texture(heatTexObj, remap_log_T, remap_log_n);
-    heating = pow(10, H);
+    heating      = pow(10, H);
   } else {
     // Do nothing below 10 K
     return 0.0;
@@ -377,9 +377,9 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
 
 __device__ Real Photoelectric_Heating(Real n, Real T, Real n_av)
 {
-// Photoelectric heating based on description given in Kim et al. 2015
-// n_av is mean density in the sim volume, cm^-3
-// Returns a positive value, expect sign conversion elsewhere for cooling
+  // Photoelectric heating based on description given in Kim et al. 2015
+  // n_av is mean density in the sim volume, cm^-3
+  // Returns a positive value, expect sign conversion elsewhere for cooling
   if (T < 1e4) {
     return n * n_av * 1.0e-26;
   } else {
@@ -392,39 +392,37 @@ __device__ Real Photoelectric_Heating(Real n, Real T, Real n_av)
  based on description given in Kim et al. 2015. */
 __device__ Real TI_cool(Real n, Real T)
 {
-  Real lambda = 0.0; //cooling rate, erg s^-1 cm^3
-  Real  H = 0.0; //heating rate, erg s^-1
-  Real cool = 0.0; //cooling per unit volume, erg /s / cm^3
-  Real n_av = 100.0; //mean density in the sim volume
+  Real lambda = 0.0;    // cooling rate, erg s^-1 cm^3
+  Real H      = 0.0;    // heating rate, erg s^-1
+  Real cool   = 0.0;    // cooling per unit volume, erg /s / cm^3
+  Real n_av   = 100.0;  // mean density in the sim volume
 
   // Below 10K only include photoelectric heating
   if (log10(T) < 1.0) {
-    H = n_av*1.0e-26;
+    H = n_av * 1.0e-26;
   }
   // Koyama & Inutsaka 2002 analytic fit
   if (log10(T) >= 1.0 && log10(T) < 4.0) {
-    lambda = 2e-26 * (1e7 * exp(-1.148e5 / (T+1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0/T));
-    H = n_av*1.0e-26;
+    lambda = 2e-26 * (1e7 * exp(-1.148e5 / (T + 1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0 / T));
+    H      = n_av * 1.0e-26;
   }
-  // fit to cloudy CIE cooling function 
+  // fit to cloudy CIE cooling function
   if (log10(T) >= 4.0 && log10(T) < 5.9) {
     lambda = powf(10.0, (-1.3 * (log10(T) - 5.25) * (log10(T) - 5.25) - 21.25));
   }
   if (log10(T) >= 5.9 && log10(T) < 7.4) {
     lambda = powf(10.0, (0.7 * (log10(T) - 7.1) * (log10(T) - 7.1) - 22.8));
   }
-  if (log10(T) >= 7.4)  {
-    lambda = powf(10.0, (0.45*log10(T) - 26.065));
+  if (log10(T) >= 7.4) {
+    lambda = powf(10.0, (0.45 * log10(T) - 26.065));
   }
- 
+
   // cooling rate per unit volume
-  cool = n*(n*lambda - H);
-  //if (cool > 1.0e-20) printf("n: %e  T: %e  lambda: %e  H: %e\n", n, T, lambda, H);
+  cool = n * (n * lambda - H);
+  // if (cool > 1.0e-20) printf("n: %e  T: %e  lambda: %e  H: %e\n", n, T, lambda, H);
 
   return cool;
 }
-
-
 
   #endif  // COOLING_GPU
 #endif    // CUDA
