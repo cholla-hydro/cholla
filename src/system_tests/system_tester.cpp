@@ -31,7 +31,8 @@
 // =============================================================================
 
 // =============================================================================
-void systemTest::SystemTestRunner::runTest()
+void systemTest::SystemTestRunner::runTest(bool const &compute_L2_norm_only, double const &maxAllowedL1Error,
+                                           double const &maxAllowedError)
 {
   /// Only run if this variable is set to `true`. Generally this and
   /// globalCompareSystemTestResults should only be used for large MPI / tests
@@ -106,8 +107,11 @@ void systemTest::SystemTestRunner::runTest()
       << _fiducialDataSetNames.size() << " datasets" << std::endl
       << std::endl;
 
+  // Compute the L1 Error.
+  _L2Norm         = 0;
+  double maxError = 0;
   // Loop over the datasets to be tested
-  for (auto dataSetName : _fiducialDataSetNames) {
+  for (auto const &dataSetName : _fiducialDataSetNames) {
     // check that the test data has the dataset in it
     ASSERT_EQ(std::count(_testDataSetNames.begin(), _testDataSetNames.end(), dataSetName), 1)
         << "The test data does not contain the dataset '" + dataSetName + "' or contains it more than once.";
@@ -146,26 +150,54 @@ void systemTest::SystemTestRunner::runTest()
         << "The fiducial and test '" << dataSetName << "' datasets are not the same length";
 
     // Compare values
+    double L1_error     = 0.0;
+    double fp_sum_error = 0.0;
     for (size_t i = 0; i < testDims[0]; i++) {
       for (size_t j = 0; j < testDims[1]; j++) {
         for (size_t k = 0; k < testDims[2]; k++) {
           size_t index = (i * testDims[1] * testDims[2]) + (j * testDims[2]) + k;
 
-          // Check for equality and iff not equal return difference
-          double absoluteDiff;
-          int64_t ulpsDiff;
-          bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData.at(index), testData.at(index), absoluteDiff,
-                                                           ulpsDiff, _fixedEpsilon);
-          ASSERT_TRUE(areEqual) << std::endl
-                                << "Difference in " << dataSetName << " dataset at [" << i << "," << j << "," << k
-                                << "]" << std::endl
-                                << "The fiducial value is:       " << fiducialData[index] << std::endl
-                                << "The test value is:           " << testData[index] << std::endl
-                                << "The absolute difference is:  " << absoluteDiff << std::endl
-                                << "The ULP difference is:       " << ulpsDiff << std::endl;
+          if (compute_L2_norm_only) {
+            double const diff = std::abs(fiducialData.at(index) - testData.at(index));
+
+            maxError = std::max(maxError, diff);
+
+            // Perform a Kahan sum to maintain precision in the result
+            double const y = diff - fp_sum_error;
+            double const t = L1_error + y;
+            fp_sum_error   = (t - L1_error) - y;
+            L1_error       = t;
+          } else {
+            // Check for equality and iff not equal return difference
+            double absoluteDiff;
+            int64_t ulpsDiff;
+            bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData.at(index), testData.at(index), absoluteDiff,
+                                                             ulpsDiff, _fixedEpsilon);
+            ASSERT_TRUE(areEqual) << std::endl
+                                  << "Difference in " << dataSetName << " dataset at [" << i << "," << j << "," << k
+                                  << "]" << std::endl
+                                  << "The fiducial value is:       " << fiducialData[index] << std::endl
+                                  << "The test value is:           " << testData[index] << std::endl
+                                  << "The absolute difference is:  " << absoluteDiff << std::endl
+                                  << "The ULP difference is:       " << ulpsDiff << std::endl;
+          }
         }
       }
     }
+
+    if (compute_L2_norm_only) {
+      L1_error /= static_cast<double>(testDims[0] * testDims[1] * testDims[2]);
+      _L2Norm += L1_error * L1_error;
+    }
+  }
+
+  if (compute_L2_norm_only) {
+    // Check the L2 Norm
+    _L2Norm = std::sqrt(_L2Norm);
+    EXPECT_LT(_L2Norm, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
+
+    // Check the Max Error
+    EXPECT_LT(maxError, maxAllowedError) << "The maximum error has exceeded the allowed value";
   }
 }
 // =============================================================================
@@ -238,9 +270,9 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
       << std::endl;
 
   // Loop over the datasets to be tested
-  double L2Norm   = 0;
+  _L2Norm         = 0;
   double maxError = 0;
-  for (auto dataSetName : _fiducialDataSetNames) {
+  for (auto const &dataSetName : _fiducialDataSetNames) {
     if (dataSetName == "GasEnergy") {
       continue;
     }
@@ -280,16 +312,16 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
     }
 
     L1_error /= static_cast<double>(initialDims[0] * initialDims[1] * initialDims[2]);
-    L2Norm += L1_error * L1_error;
+    _L2Norm += L1_error * L1_error;
 
     // Perform the correctness check
     EXPECT_LT(L1_error, maxAllowedL1Error)
         << "the L1 error for the " << dataSetName << " data has exceeded the allowed value";
   }
 
-  // Check the L1 Norm
-  L2Norm = std::sqrt(L2Norm);
-  EXPECT_LT(L2Norm, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
+  // Check the L2 Norm
+  _L2Norm = std::sqrt(_L2Norm);
+  EXPECT_LT(_L2Norm, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
 
   // Check the Max Error
   EXPECT_LT(maxError, maxAllowedError) << "The maximum error has exceeded the allowed value";
@@ -396,10 +428,10 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &particleData, bool co
   const ::testing::TestInfo *const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
   std::stringstream nameStream;
   std::string suiteName = test_info->test_suite_name();
-  suiteName             = suiteName.substr(suiteName.find("/") + 1, suiteName.length());
+  suiteName             = suiteName.substr(suiteName.find('/') + 1, suiteName.length());
   nameStream << suiteName << "_" << test_info->name();
   std::string fullTestName = nameStream.str();
-  _fullTestFileName        = fullTestName.substr(0, fullTestName.find("/"));
+  _fullTestFileName        = fullTestName.substr(0, fullTestName.find('/'));
 
   // Generate the input paths. Strip out everything after a "/" since that
   // probably indicates a parameterized test.
@@ -591,7 +623,7 @@ std::vector<double> systemTest::SystemTestRunner::_loadTestParticleData(std::str
 {
   // Determine the total number of particles
   if (_testTotalNumParticles == 0) {
-    for (auto file : _testParticlesFileVec) {
+    for (auto const &file : _testParticlesFileVec) {
       // Open the dataset
       H5::DataSet const dataSet = file.openDataSet(dataSetName);
 
@@ -647,7 +679,7 @@ std::vector<double> systemTest::SystemTestRunner::_loadTestParticleData(std::str
 // =============================================================================
 std::vector<double> systemTest::SystemTestRunner::_loadFiducialFieldData(std::string const &dataSetName)
 {
-  if (_fiducialFileExists) {
+  if (_fiducialFileExists and (_fiducialDataSets.find(dataSetName) == _fiducialDataSets.end())) {
     // Open the dataset
     H5::DataSet const fiducialDataSet = _fiducialFile.openDataSet(dataSetName);
 

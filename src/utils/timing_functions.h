@@ -45,6 +45,7 @@ class Time
 
   OneTime Total;
   OneTime Calc_dt;
+  OneTime Hydro_Integrator;
   OneTime Hydro;
   OneTime Boundaries;
   OneTime Grav_Potential;
@@ -54,7 +55,8 @@ class Time
   OneTime Part_Dens_Transf;
   OneTime Advance_Part_1;
   OneTime Advance_Part_2;
-  OneTime Cooling;
+  OneTime Cooling_GPU;
+  OneTime Cooling_Grackle;
   OneTime Chemistry;
   OneTime Feedback;
   OneTime FeedbackAnalysis;

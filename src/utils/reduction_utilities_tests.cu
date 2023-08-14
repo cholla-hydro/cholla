@@ -43,8 +43,8 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
   std::mt19937 prng(1);
   std::uniform_real_distribution<double> doubleRand(-std::abs(maxValue) - 1, std::abs(maxValue) - 1);
   std::uniform_int_distribution<int> intRand(0, host_grid.size() - 1);
-  for (size_t i = 0; i < host_grid.size(); i++) {
-    host_grid.at(i) = doubleRand(prng);
+  for (Real& host_data : host_grid) {
+    host_data = doubleRand(prng);
   }
   host_grid.at(intRand(prng)) = maxValue;
 

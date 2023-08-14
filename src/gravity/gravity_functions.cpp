@@ -200,8 +200,8 @@ Real Grav3D::Get_Average_Density()
     Get_OMP_Grid_Indxs(nz_local, n_omp_procs, omp_id, &g_start, &g_end);
     dens_sum_all[omp_id] = Get_Average_Density_function(g_start, g_end);
   }
-  for (int i = 0; i < N_OMP_THREADS; i++) {
-    dens_sum += dens_sum_all[i];
+  for (Real dens_sum_all_element : dens_sum_all) {
+    dens_sum += dens_sum_all_element;
   }
   #endif
 

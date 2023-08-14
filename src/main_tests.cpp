@@ -128,17 +128,8 @@ int main(int argc, char **argv)
     globalMpiLauncher.init("mpirun -np");
   }
 
-  if (input.cmdOptionExists("--runCholla=false")) {
-    globalRunCholla = false;
-  } else {
-    globalRunCholla = true;
-  }
-
-  if (input.cmdOptionExists("--compareSystemTestResults=false")) {
-    globalCompareSystemTestResults = false;
-  } else {
-    globalCompareSystemTestResults = true;
-  }
+  globalRunCholla                = not input.cmdOptionExists("--runCholla=false");
+  globalCompareSystemTestResults = not input.cmdOptionExists("--compareSystemTestResults=false");
 
   // Run test and return result
   return RUN_ALL_TESTS();

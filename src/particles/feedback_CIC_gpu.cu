@@ -38,8 +38,8 @@ int snr_n;
   #ifndef O_HIP
 __device__ double atomicMax(double* address, double val)
 {
-  unsigned long long int* address_as_ull = (unsigned long long int*)address;
-  unsigned long long int old             = *address_as_ull, assumed;
+  auto* address_as_ull       = (unsigned long long int*)address;
+  unsigned long long int old = *address_as_ull, assumed;
   do {
     assumed = old;
     old     = atomicCAS(address_as_ull, assumed, __double_as_longlong(fmax(val, __longlong_as_double(assumed))));
@@ -133,7 +133,7 @@ void supernova::initState(struct parameters* P, part_int_t n_local, Real allocat
   n_states = n_local * allocation_factor;
   cudaMalloc((void**)&randStates, n_states * sizeof(feedback_prng_t));
 
-  int ngrid = (n_states + TPB_FEEDBACK - 1) / TPB_FEEDBACK;
+  int ngrid = (n_states - 1) / TPB_FEEDBACK + 1;
   dim3 grid(ngrid);
   dim3 block(TPB_FEEDBACK);
 

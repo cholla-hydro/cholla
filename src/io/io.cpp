@@ -190,7 +190,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 #elif defined HDF5
   filename += ".h5";
 #else
-  strcat(filename, ".txt");
+  filename += ".txt";
   if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
 #endif
 #ifdef MPI_CHOLLA
@@ -240,7 +240,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 #else
   // open the file for txt writes
   FILE *out;
-  out = fopen(filename, "w");
+  out = fopen(filename.data(), "w");
   if (out == NULL) {
     printf("Error opening output file.\n");
     exit(-1);
@@ -259,6 +259,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 
 void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 {
+#ifdef HDF5
   Header H = G.H;
   // Do nothing in 1-D and 2-D case
   if (H.ny_real == 1) {
@@ -276,9 +277,9 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
   std::string filename(P.outdir);
   filename += std::to_string(nfile);
   filename += ".float32.h5";
-#ifdef MPI_CHOLLA
+  #ifdef MPI_CHOLLA
   filename += "." + std::to_string(procID);
-#endif
+  #endif  // MPI_CHOLLA
 
   // create hdf5 file
   hid_t file_id; /* file identifier */
@@ -301,65 +302,64 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
     // Need a larger device buffer for MHD. In the future, if other fields need
     // a larger device buffer, choose the maximum of the sizes. If the buffer is
     // too large, it does not cause bugs (Oct 6 2022)
-#ifdef MHD
+  #ifdef MHD
     buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
-#else
+  #else
     buffer_size = nx_dset * ny_dset * nz_dset;
-#endif
+  #endif  // MHD
 
     // Using static DeviceVector here automatically allocates the buffer the
     // first time it is needed It persists until program exit, and then calls
     // Free upon destruction
     cuda_utilities::DeviceVector<float> static device_dataset_vector{buffer_size};
-    float *device_dataset_buffer = device_dataset_vector.data();
-    float *dataset_buffer        = (float *)malloc(buffer_size * sizeof(float));
+    auto *dataset_buffer = (float *)malloc(buffer_size * sizeof(float));
 
     if (P.out_float32_density > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
-                       G.C.d_density, "/density");
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_vector.data(), G.C.d_density, "/density");
     }
     if (P.out_float32_momentum_x > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
-                       G.C.d_momentum_x, "/momentum_x");
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_vector.data(), G.C.d_momentum_x, "/momentum_x");
     }
     if (P.out_float32_momentum_y > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
-                       G.C.d_momentum_y, "/momentum_y");
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_vector.data(), G.C.d_momentum_y, "/momentum_y");
     }
     if (P.out_float32_momentum_z > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
-                       G.C.d_momentum_z, "/momentum_z");
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_vector.data(), G.C.d_momentum_z, "/momentum_z");
     }
     if (P.out_float32_Energy > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
-                       G.C.d_Energy, "/Energy");
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_vector.data(), G.C.d_Energy, "/Energy");
     }
-#ifdef DE
+  #ifdef DE
     if (P.out_float32_GasEnergy > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer, device_dataset_buffer,
-                       G.C.d_GasEnergy, "/GasEnergy");
+      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                       device_dataset_vector.data(), G.C.d_GasEnergy, "/GasEnergy");
     }
-#endif  // DE
-#ifdef MHD
+  #endif  // DE
+  #ifdef MHD
 
     // TODO (by Alwin, for anyone) : Repair output format if needed and remove these chprintfs when appropriate
     if (P.out_float32_magnetic_x > 0) {
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, G.C.d_magnetic_x, "/magnetic_x");
+                       device_dataset_vector.data(), G.C.d_magnetic_x, "/magnetic_x");
     }
     if (P.out_float32_magnetic_y > 0) {
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, G.C.d_magnetic_y, "/magnetic_y");
+                       device_dataset_vector.data(), G.C.d_magnetic_y, "/magnetic_y");
     }
     if (P.out_float32_magnetic_z > 0) {
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
       WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_buffer, G.C.d_magnetic_z, "/magnetic_z");
+                       device_dataset_vector.data(), G.C.d_magnetic_z, "/magnetic_z");
     }
 
-#endif
+  #endif  // MHD
 
     free(dataset_buffer);
 
@@ -371,6 +371,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 
   // close the file
   status = H5Fclose(file_id);
+#endif  // HDF5
 }
 
 /* Output a projection of the grid data to file. */
@@ -1370,13 +1371,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #ifdef OUTPUT_ENERGY
   output_energy = true;
   #else   // not OUTPUT_ENERGY
-  output_energy      = false;
+  output_energy = false;
   #endif  // OUTPUT_ENERGY
 
   #ifdef OUTPUT_MOMENTUM
   output_momentum = true;
   #else   // not OUTPUT_MOMENTUM
-  output_momentum    = false;
+  output_momentum = false;
   #endif  // OUTPUT_MOMENTUM
 
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
@@ -1409,29 +1410,33 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   size_t buffer_size = nx_dset * ny_dset * nz_dset;
   #endif
   cuda_utilities::DeviceVector<Real> static device_dataset_vector{buffer_size};
-  Real *device_dataset_buffer = device_dataset_vector.data();
-  dataset_buffer              = (Real *)malloc(buffer_size * sizeof(Real));
+  dataset_buffer = (Real *)malloc(buffer_size * sizeof(Real));
 
   // Start writing fields
 
-  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_density, "/density");
+  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_density, "/density");
   if (output_momentum || H.Output_Complete_Data) {
-    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_momentum_x, "/momentum_x");
-    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_momentum_y, "/momentum_y");
-    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_momentum_z, "/momentum_z");
+    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_momentum_x, "/momentum_x");
+    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_momentum_y, "/momentum_y");
+    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_momentum_z, "/momentum_z");
   }
   if (output_energy || H.Output_Complete_Data) {
-    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_Energy, "/Energy");
+    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_Energy, "/Energy");
   #ifdef DE
-    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_GasEnergy, "/GasEnergy");
+    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_GasEnergy, "/GasEnergy");
   #endif
   }
 
   #ifdef SCALAR
 
     #ifdef BASIC_SCALAR
-  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_buffer, C.d_basic_scalar, "/scalar0");
-    #endif
+  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_basic_scalar, "/scalar0");
+    #endif  // BASIC_SCALAR
+
+    #ifdef DUST
+  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_dust_density,
+                            "/dust_density");
+    #endif  // DUST
 
     #ifdef OUTPUT_CHEMISTRY
       #ifdef CHEMISTRY_GPU
@@ -1480,18 +1485,18 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
     Write_Generic_HDF5_Field_GPU(Grav.nx_local + 2 * N_GHOST_POTENTIAL, Grav.ny_local + 2 * N_GHOST_POTENTIAL,
                                  Grav.nz_local + 2 * N_GHOST_POTENTIAL, Grav.nx_local, Grav.ny_local, Grav.nz_local,
-                                 N_GHOST_POTENTIAL, file_id, dataset_buffer, device_dataset_buffer, Grav.F.potential_d,
-                                 "/grav_potential");
+                                 N_GHOST_POTENTIAL, file_id, dataset_buffer, device_dataset_vector.data(),
+                                 Grav.F.potential_d, "/grav_potential");
   #endif  // GRAVITY and OUTPUT_POTENTIAL
 
   #ifdef MHD
     if (H.Output_Complete_Data) {
       WriteHDF5Field3D(H.nx, H.ny, H.nx_real + 1, H.ny_real, H.nz_real, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_x, "/magnetic_x", 0);
+                       device_dataset_vector.data(), C.d_magnetic_x, "/magnetic_x", 0);
       WriteHDF5Field3D(H.nx, H.ny, H.nx_real, H.ny_real + 1, H.nz_real, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_y, "/magnetic_y", 1);
+                       device_dataset_vector.data(), C.d_magnetic_y, "/magnetic_y", 1);
       WriteHDF5Field3D(H.nx, H.ny, H.nx_real, H.ny_real, H.nz_real + 1, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_buffer, C.d_magnetic_z, "/magnetic_z", 2);
+                       device_dataset_vector.data(), C.d_magnetic_z, "/magnetic_z", 2);
     }
   #endif  // MHD
   }
@@ -1512,6 +1517,10 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
   Real *dataset_buffer_Txy, *dataset_buffer_Txz;
   herr_t status;
   Real dxy, dxz, Txy, Txz, n, T;
+  #ifdef DUST
+  Real dust_xy, dust_xz;
+  Real *dataset_buffer_dust_xy, *dataset_buffer_dust_xz;
+  #endif
 
   n = T   = 0;
   Real mu = 0.6;
@@ -1526,6 +1535,10 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     dataset_buffer_dxz = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
     dataset_buffer_Txy = (Real *)malloc(H.nx_real * H.ny_real * sizeof(Real));
     dataset_buffer_Txz = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
+  #ifdef DUST
+    dataset_buffer_dust_xy = (Real *)malloc(H.nx_real * H.ny_real * sizeof(Real));
+    dataset_buffer_dust_xz = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
+  #endif
 
     // Create the data space for the datasets
     dims[0]         = nx_dset;
@@ -1539,11 +1552,17 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
       for (i = 0; i < H.nx_real; i++) {
         dxy = 0;
         Txy = 0;
+  #ifdef DUST
+        dust_xy = 0;
+  #endif
         // for each xy element, sum over the z column
         for (k = 0; k < H.nz_real; k++) {
           id = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
           // sum density
           dxy += C.density[id] * H.dz;
+  #ifdef DUST
+          dust_xy += C.dust_density[id] * H.dz;
+  #endif
           // calculate number density
           n = C.density[id] * DENSITY_UNIT / (mu * MP);
   // calculate temperature
@@ -1562,6 +1581,9 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
         buf_id                     = j + i * H.ny_real;
         dataset_buffer_dxy[buf_id] = dxy;
         dataset_buffer_Txy[buf_id] = Txy;
+  #ifdef DUST
+        dataset_buffer_dust_xy[buf_id] = dust_xy;
+  #endif
       }
     }
 
@@ -1570,11 +1592,17 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
       for (i = 0; i < H.nx_real; i++) {
         dxz = 0;
         Txz = 0;
+  #ifdef DUST
+        dust_xz = 0;
+  #endif
         // for each xz element, sum over the y column
         for (j = 0; j < H.ny_real; j++) {
           id = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
           // sum density
           dxz += C.density[id] * H.dy;
+  #ifdef DUST
+          dust_xz += C.dust_density[id] * H.dy;
+  #endif
           // calculate number density
           n = C.density[id] * DENSITY_UNIT / (mu * MP);
   // calculate temperature
@@ -1593,6 +1621,9 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
         buf_id                     = k + i * H.nz_real;
         dataset_buffer_dxz[buf_id] = dxz;
         dataset_buffer_Txz[buf_id] = Txz;
+  #ifdef DUST
+        dataset_buffer_dust_xz[buf_id] = dust_xz;
+  #endif
       }
     }
 
@@ -1600,7 +1631,11 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dxy, "/d_xy");
     status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_dxz, "/d_xz");
     status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txy, "/T_xy");
-    status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_Txz, "/T_xz");
+    status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_Txz, "/T_xz");
+  #ifdef DUST
+    status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dust_xy, "/d_dust_xy");
+    status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_dust_xz, "/d_dust_xz");
+  #endif
 
     // Free the dataspace ids
     status = H5Sclose(dataspace_xz_id);
@@ -1613,6 +1648,10 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
   free(dataset_buffer_dxz);
   free(dataset_buffer_Txy);
   free(dataset_buffer_Txz);
+  #ifdef DUST
+  free(dataset_buffer_dust_xy);
+  free(dataset_buffer_dust_xz);
+  #endif  // DUST
 }
 #endif  // HDF5
 
@@ -2383,7 +2422,11 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
 
     #ifdef BASIC_SCALAR
   Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.scalar, "/scalar0");
-    #endif
+    #endif  // BASIC_SCALAR
+
+    #ifdef DUST
+  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.dust_density, "/dust_density");
+    #endif  // DUST
 
     #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
   Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HI_density, "/HI_density");

@@ -97,6 +97,7 @@ char *trim(char *s)
   return s;
 }
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 const std::set<const char *> optionalParams = {
     "flag_delta",   "ddelta_dt",   "n_delta",  "Lz",       "Lx",      "phi",     "theta",
     "delta",        "nzr",         "nxr",      "H0",       "Omega_M", "Omega_L", "Init_redshift",
@@ -107,8 +108,9 @@ const std::set<const char *> optionalParams = {
  * "warnings" in output. */
 int is_param_valid(const char *param_name)
 {
-  for (auto it = optionalParams.begin(); it != optionalParams.end(); ++it) {
-    if (strcmp(param_name, *it) == 0) {
+  // for (auto optionalParam = optionalParams.begin(); optionalParam != optionalParams.end(); ++optionalParam) {
+  for (const auto *optionalParam : optionalParams) {
+    if (strcmp(param_name, optionalParam) == 0) {
       return 1;
     }
   }
@@ -363,6 +365,8 @@ void parse_param(char *name, char *value, struct parameters *parms)
     parms->radius = atof(value);
   } else if (strcmp(name, "P_blast") == 0) {
     parms->P_blast = atof(value);
+  } else if (strcmp(name, "wave_length") == 0) {
+    parms->wave_length = atof(value);
 #ifdef PARTICLES
   } else if (strcmp(name, "prng_seed") == 0) {
     parms->prng_seed = atoi(value);

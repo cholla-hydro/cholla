@@ -19,6 +19,7 @@
 #include "../grid/grid_enum.h"
 #include "../riemann_solvers/hlld_cuda.h"  // Include code to test
 #include "../utils/gpu.hpp"
+#include "../utils/hydro_utilities.h"
 #include "../utils/mhd_utilities.h"
 #include "../utils/testing_utilities.h"
 
@@ -160,7 +161,7 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
    * \param[in] direction Which plane the interface is. 0 = plane normal to
    * X, 1 = plane normal to Y, 2 = plane normal to Z. Defaults to 0.
    */
-  void checkResults(std::vector<Real> fiducialFlux, std::vector<Real> scalarFlux, Real thermalEnergyFlux,
+  void checkResults(std::vector<Real> fiducialFlux, std::vector<Real> const &scalarFlux, Real thermalEnergyFlux,
                     std::vector<Real> const &testFlux, std::string const &customOutput = "", int const &direction = 0)
   {
     // Field names
@@ -234,12 +235,12 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
     output.at(1) = input.at(1) * input.at(0);  // X Velocity to momentum
     output.at(2) = input.at(2) * input.at(0);  // Y Velocity to momentum
     output.at(3) = input.at(3) * input.at(0);  // Z Velocity to momentum
-    output.at(4) = mhd::utils::computeEnergy(input.at(4), input.at(0), input.at(1), input.at(2), input.at(3),
-                                             input.at(5), input.at(6), input.at(7),
-                                             gamma);  // Pressure to Energy
-    output.at(5) = input.at(5);                       // X Magnetic Field
-    output.at(6) = input.at(6);                       // Y Magnetic Field
-    output.at(7) = input.at(7);                       // Z Magnetic Field
+    output.at(4) =
+        hydro_utilities::Calc_Energy_Primitive(input.at(4), input.at(0), input.at(1), input.at(2), input.at(3), gamma,
+                                               input.at(5), input.at(6), input.at(7));  // Pressure to Energy
+    output.at(5) = input.at(5);                                                         // X Magnetic Field
+    output.at(6) = input.at(6);                                                         // Y Magnetic Field
+    output.at(7) = input.at(7);                                                         // Z Magnetic Field
 
     #ifdef SCALAR
     std::vector<Real> conservedScalar(primitiveScalars.size());
@@ -2170,10 +2171,8 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputDegenerateExpectCorrectOutput)
   testParams const parameters;
 
   std::vector<mhd::_internal::DoubleStarState> fiducialState{
-      {1.0519818825796206, 0.68198273634686157, 26.835645069149873, 7.4302316959173442, -999.79694164635089,
-       90.44484278669114},
-      {0.61418047569879897, 0.71813570322922715, 98.974446283273181, 10.696380763901459, -999.79694164635089,
-       61.33664731346812}};
+      {1.0519818825796206, 0.68198273634686157, 26.835645069149873, 7.4302316959173442, 0.0, 90.44484278669114},
+      {0.61418047569879897, 0.71813570322922715, 98.974446283273181, 10.696380763901459, 0.0, 61.33664731346812}};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
     mhd::_internal::DoubleStarState const testState =
@@ -2268,20 +2267,22 @@ TEST(tMHDHlldInternalReturnFluxes, CorrectInputExpectCorrectOutput)
 
   for (size_t direction = 0; direction < 1; direction++) {
     int o1, o2, o3;
-    if (direction == 0) {
-      o1 = 1;
-      o2 = 2;
-      o3 = 3;
-    }
-    if (direction == 1) {
-      o1 = 2;
-      o2 = 3;
-      o3 = 1;
-    }
-    if (direction == 2) {
-      o1 = 3;
-      o2 = 1;
-      o3 = 2;
+    switch (direction) {
+      case 0:
+        o1 = 1;
+        o2 = 2;
+        o3 = 3;
+        break;
+      case 1:
+        o1 = 2;
+        o2 = 3;
+        o3 = 1;
+        break;
+      case 2:
+        o1 = 3;
+        o2 = 1;
+        o3 = 2;
+        break;
     }
 
     std::vector<double> testFluxArray(nFields * n_cells, dummyValue);
@@ -2364,20 +2365,22 @@ TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
 
   for (size_t direction = 0; direction < 3; direction++) {
     int o1, o2, o3;
-    if (direction == 0) {
-      o1 = 1;
-      o2 = 2;
-      o3 = 3;
-    }
-    if (direction == 1) {
-      o1 = 2;
-      o2 = 3;
-      o3 = 1;
-    }
-    if (direction == 2) {
-      o1 = 3;
-      o2 = 1;
-      o3 = 2;
+    switch (direction) {
+      case 0:
+        o1 = 1;
+        o2 = 2;
+        o3 = 3;
+        break;
+      case 1:
+        o1 = 2;
+        o2 = 3;
+        o3 = 1;
+        break;
+      case 2:
+        o1 = 3;
+        o2 = 1;
+        o3 = 2;
+        break;
     }
 
     mhd::_internal::State const testState = mhd::_internal::loadState(interfaceArray.data(), parameters.magneticX.at(0),

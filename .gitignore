@@ -16,6 +16,7 @@ bin/*
 *.a
 a.out
 *.dSYM
+__pycache__
 
 # Makefiles #
 #############
@@ -39,10 +40,7 @@ data
 out.*
 o.*
 run
-
-
 disk.*
-
 
 # Logs and databases #
 ######################
@@ -67,7 +65,6 @@ disk.*
 # OS generated files #
 ######################
 .DS_Store
-
 .remote-sync.json
 .remote-sync_macos.json
 ._*
@@ -85,4 +82,3 @@ Thumbs.db
 #############################
 docs/doxygen/build
 docs/sphinx/build
-

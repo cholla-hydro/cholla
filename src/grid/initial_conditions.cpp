@@ -19,6 +19,7 @@
 #include "../io/io.h"
 #include "../mpi/mpi_routines.h"
 #include "../utils/error_handling.h"
+#include "../utils/hydro_utilities.h"
 #include "../utils/math_utilities.h"
 #include "../utils/mhd_utilities.h"
 
@@ -31,18 +32,15 @@ void Grid3D::Set_Initial_Conditions(parameters P)
   Set_Gammas(P.gamma);
 
   if (strcmp(P.init, "Constant") == 0) {
-    Constant(P.rho, P.vx, P.vy, P.vz, P.P, P.Bx, P.By, P.Bz);
+    Constant(P);
   } else if (strcmp(P.init, "Sound_Wave") == 0) {
-    Sound_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);
+    Sound_Wave(P);
   } else if (strcmp(P.init, "Linear_Wave") == 0) {
-    Linear_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A, P.Bx, P.By, P.Bz, P.rEigenVec_rho, P.rEigenVec_MomentumX,
-                P.rEigenVec_MomentumY, P.rEigenVec_MomentumZ, P.rEigenVec_E, P.rEigenVec_Bx, P.rEigenVec_By,
-                P.rEigenVec_Bz, P.pitch, P.yaw);
+    Linear_Wave(P);
   } else if (strcmp(P.init, "Square_Wave") == 0) {
-    Square_Wave(P.rho, P.vx, P.vy, P.vz, P.P, P.A);
+    Square_Wave(P);
   } else if (strcmp(P.init, "Riemann") == 0) {
-    Riemann(P.rho_l, P.vx_l, P.vy_l, P.vz_l, P.P_l, P.Bx_l, P.By_l, P.Bz_l, P.rho_r, P.vx_r, P.vy_r, P.vz_r, P.P_r,
-            P.Bx_r, P.By_r, P.Bz_r, P.diaph);
+    Riemann(P);
   } else if (strcmp(P.init, "Shu_Osher") == 0) {
     Shu_Osher();
   } else if (strcmp(P.init, "Blast_1D") == 0) {
@@ -179,7 +177,7 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
 
 /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
  * By, Real Bz) \brief Constant gas properties. */
-void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real By, Real Bz)
+void Grid3D::Constant(parameters const &P)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
@@ -214,26 +212,26 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
 // Set the magnetic field including the rightmost ghost cell on the
 // left side which is really the left face of the first grid cell
 #ifdef MHD
-        C.magnetic_x[id] = Bx;
-        C.magnetic_y[id] = By;
-        C.magnetic_z[id] = Bz;
+        C.magnetic_x[id] = P.Bx;
+        C.magnetic_y[id] = P.By;
+        C.magnetic_z[id] = P.Bz;
 #endif  // MHD
 
         // Exclude the rightmost ghost cell on the "left" side
         if ((k >= kstart) and (j >= jstart) and (i >= istart)) {
           // set constant initial states
-          C.density[id]    = rho;
-          C.momentum_x[id] = rho * vx;
-          C.momentum_y[id] = rho * vy;
-          C.momentum_z[id] = rho * vz;
-          C.Energy[id]     = P / (gama - 1.0) + 0.5 * rho * (vx * vx + vy * vy + vz * vz);
+          C.density[id]    = P.rho;
+          C.momentum_x[id] = P.rho * P.vx;
+          C.momentum_y[id] = P.rho * P.vy;
+          C.momentum_z[id] = P.rho * P.vz;
+          C.Energy[id]     = P.P / (gama - 1.0) + 0.5 * P.rho * (P.vx * P.vx + P.vy * P.vy + P.vz * P.vz);
 #ifdef DE
-          C.GasEnergy[id] = P / (gama - 1.0);
+          C.GasEnergy[id] = P.P / (gama - 1.0);
 #endif  // DE
         }
         if (i == istart && j == jstart && k == kstart) {
-          n = rho * DENSITY_UNIT / (mu * MP);
-          T = P * PRESSURE_UNIT / (n * KB);
+          n = P.rho * DENSITY_UNIT / (mu * MP);
+          T = P.P * PRESSURE_UNIT / (n * KB);
           printf("Initial n = %e, T = %e\n", n, T);
         }
       }
@@ -243,7 +241,7 @@ void Grid3D::Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
 
 /*! \fn void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
  *  \brief Sine wave perturbation. */
-void Grid3D::Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
+void Grid3D::Sound_Wave(parameters const &P)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
@@ -277,22 +275,22 @@ void Grid3D::Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
         // set constant initial states
-        C.density[id]    = rho;
-        C.momentum_x[id] = rho * vx;
-        C.momentum_y[id] = rho * vy;
-        C.momentum_z[id] = rho * vz;
-        C.Energy[id]     = P / (gama - 1.0) + 0.5 * rho * (vx * vx + vy * vy + vz * vz);
+        C.density[id]    = P.rho;
+        C.momentum_x[id] = P.rho * P.vx;
+        C.momentum_y[id] = P.rho * P.vy;
+        C.momentum_z[id] = P.rho * P.vz;
+        C.Energy[id]     = P.P / (gama - 1.0) + 0.5 * P.rho * (P.vx * P.vx + P.vy * P.vy + P.vz * P.vz);
         // add small-amplitude perturbations
-        C.density[id]    = C.density[id] + A * sin(2.0 * M_PI * x_pos);
-        C.momentum_x[id] = C.momentum_x[id] + A * sin(2.0 * M_PI * x_pos);
-        C.momentum_y[id] = C.momentum_y[id] + A * sin(2.0 * M_PI * x_pos);
-        C.momentum_z[id] = C.momentum_z[id] + A * sin(2.0 * M_PI * x_pos);
-        C.Energy[id]     = C.Energy[id] + A * (1.5) * sin(2 * M_PI * x_pos);
+        C.density[id]    = C.density[id] + P.A * sin(2.0 * M_PI * x_pos);
+        C.momentum_x[id] = C.momentum_x[id] + P.A * sin(2.0 * M_PI * x_pos);
+        C.momentum_y[id] = C.momentum_y[id] + P.A * sin(2.0 * M_PI * x_pos);
+        C.momentum_z[id] = C.momentum_z[id] + P.A * sin(2.0 * M_PI * x_pos);
+        C.Energy[id]     = C.Energy[id] + P.A * (1.5) * sin(2 * M_PI * x_pos);
 #ifdef DE
-        C.GasEnergy[id] = P / (gama - 1.0);
+        C.GasEnergy[id] = P.P / (gama - 1.0);
 #endif  // DE
 #ifdef DE
-        C.GasEnergy[id] = P / (gama - 1.0);
+        C.GasEnergy[id] = P.P / (gama - 1.0);
 #endif  // DE
       }
     }
@@ -301,48 +299,132 @@ void Grid3D::Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
 
 /*! \fn void Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
  *  \brief Sine wave perturbation. */
-void Grid3D::Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Real Bx, Real By, Real Bz,
-                         Real rEigenVec_rho, Real rEigenVec_MomentumX, Real rEigenVec_MomentumY,
-                         Real rEigenVec_MomentumZ, Real rEigenVec_E, Real rEigenVec_Bx, Real rEigenVec_By,
-                         Real rEigenVec_Bz, Real pitch, Real yaw)
+void Grid3D::Linear_Wave(parameters const &P)
 {
-  auto [stagger, junk1, junk2] = math_utils::rotateCoords<Real>(H.dx / 2, H.dy / 2, H.dz / 2, pitch, yaw);
+  // Compute any test parameters needed
+  // ==================================
+  // Angles
+  Real const sin_yaw   = std::sin(P.yaw);
+  Real const cos_yaw   = std::cos(P.yaw);
+  Real const sin_pitch = std::sin(P.pitch);
+  Real const cos_pitch = std::cos(P.pitch);
+
+  Real const wavenumber = 2.0 * M_PI / P.wave_length;  // the angular wave number k
+
+#ifdef MHD
+  // TODO: This method of setting the magnetic fields via the vector potential should work but instead leads to small
+  // TODO: errors in the magnetic field that tend to amplify over time until the solution diverges. I don't know why
+  // TODO: that is the case and can't figure out the reason. Without this we can't run linear waves at an angle to the
+  // TODO: grid.
+  // // Compute the vector potential
+  // // ============================
+  // std::vector<Real> vectorPotential(3 * H.n_cells, 0);
+
+  // // lambda function for computing the vector potential
+  // auto Compute_Vector_Potential = [&](Real const &x_loc, Real const &y_loc, Real const &z_loc) {
+  //   // The "_rot" variables are the rotated version
+  //   Real const x_rot = x_loc * cos_pitch * cos_yaw + y_loc * cos_pitch * sin_yaw + z_loc * sin_pitch;
+  //   Real const y_rot = -x_loc * sin_yaw + y_loc * cos_yaw;
+
+  //   Real const a_y = P.Bz * x_rot - (P.A * P.rEigenVec_Bz / wavenumber) * std::cos(wavenumber * x_rot);
+  //   Real const a_z = -P.By * x_rot + (P.A * P.rEigenVec_By / wavenumber) * std::cos(wavenumber * x_rot) + P.Bx *
+  //   y_rot;
+
+  //   return std::make_pair(a_y, a_z);
+  // };
+
+  // for (size_t k = 0; k < H.nz; k++) {
+  //   for (size_t j = 0; j < H.ny; j++) {
+  //     for (size_t i = 0; i < H.nx; i++) {
+  //       // Get cell index
+  //       size_t const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+  //       Real x, y, z;
+  //       Get_Position(i, j, k, &x, &y, &z);
+
+  //       auto vectorPot                         = Compute_Vector_Potential(x, y + H.dy / 2., z + H.dz / 2.);
+  //       vectorPotential.at(id + 0 * H.n_cells) = -vectorPot.first * sin_yaw - vectorPot.second * sin_pitch * cos_yaw;
+
+  //       vectorPot                              = Compute_Vector_Potential(x + H.dx / 2., y, z + H.dz / 2.);
+  //       vectorPotential.at(id + 1 * H.n_cells) = vectorPot.first * cos_yaw - vectorPot.second * sin_pitch * sin_yaw;
+
+  //       vectorPot                              = Compute_Vector_Potential(x + H.dx / 2., y + H.dy / 2., z);
+  //       vectorPotential.at(id + 2 * H.n_cells) = vectorPot.second * cos_pitch;
+  //     }
+  //   }
+  // }
+
+  // // Compute the magnetic field from the vector potential
+  // // ====================================================
+  // mhd::utils::Init_Magnetic_Field_With_Vector_Potential(H, C, vectorPotential);
+
+  Real shift = H.dx;
+  size_t dir = 0;
+  if (sin_yaw == 1.0) {
+    shift = H.dy;
+    dir   = 1;
+  } else if (sin_pitch == 1.0) {
+    shift = H.dz;
+    dir   = 2;
+  }
 
   // set initial values of conserved variables
   for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-        // Rotate the indices
-        auto [i_rot, j_rot, k_rot] = math_utils::rotateCoords<int>(i, j, k, pitch, yaw);
-
         // get cell index
-        int id = i + j * H.nx + k * H.nx * H.ny;
+        size_t const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
 
         // get cell-centered position
         Real x_pos, y_pos, z_pos;
-        Get_Position(i_rot, j_rot, k_rot, &x_pos, &y_pos, &z_pos);
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        Real const x_pos_rot = cos_pitch * (x_pos * cos_yaw + y_pos * sin_yaw) + z_pos * sin_pitch;
 
-        // set constant initial states. Note that mhd::utils::computeEnergy
-        // computes the hydro energy if MHD is turned off
-        Real sine_wave = std::sin(2.0 * M_PI * x_pos);
+        Real const sine_x = std::sin(x_pos_rot * wavenumber);
 
-        C.density[id]    = rho;
-        C.momentum_x[id] = rho * vx;
-        C.momentum_y[id] = rho * vy;
-        C.momentum_z[id] = rho * vz;
-        C.Energy[id]     = mhd::utils::computeEnergy(P, rho, vx, vy, vz, Bx, By, Bz, gama);
-        // add small-amplitude perturbations
-        C.density[id] += A * rEigenVec_rho * sine_wave;
-        C.momentum_x[id] += A * rEigenVec_MomentumX * sine_wave;
-        C.momentum_y[id] += A * rEigenVec_MomentumY * sine_wave;
-        C.momentum_z[id] += A * rEigenVec_MomentumZ * sine_wave;
-        C.Energy[id] += A * rEigenVec_E * sine_wave;
+        Real bx = P.Bx + P.A * P.rEigenVec_Bx * sine_x;
+        Real by = P.By + P.A * P.rEigenVec_By * sine_x;
+        Real bz = P.Bz + P.A * P.rEigenVec_Bz * sine_x;
 
+        C.magnetic_x[id] = bx * cos_pitch * cos_yaw - by * sin_yaw - bz * sin_pitch * cos_yaw;
+        C.magnetic_y[id] = bx * cos_pitch * sin_yaw + by * cos_yaw - bz * sin_pitch * sin_yaw;
+        C.magnetic_z[id] = bx * sin_pitch + bz * cos_pitch;
+      }
+    }
+  }
+#endif  // MHD
+
+  // Compute the hydro variables
+  // ===========================
+  for (size_t k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
+    for (size_t j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
+      for (size_t i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
+        // get cell index
+        size_t const id = cuda_utilities::compute1DIndex(i, j, k, H.nx, H.ny);
+
+        // get cell-centered position
+        Real x_pos, y_pos, z_pos;
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        Real const x_pos_rot = cos_pitch * (x_pos * cos_yaw + y_pos * sin_yaw) + z_pos * sin_pitch;
+
+        Real const sine_x = std::sin(x_pos_rot * wavenumber);
+
+        // Density
+        C.density[id] = P.rho + P.A * P.rEigenVec_rho * sine_x;
+
+        // Momenta
+        Real mx = P.rho * P.vx + P.A * P.rEigenVec_MomentumX * sine_x;
+        Real my = P.A * P.rEigenVec_MomentumY * sine_x;
+        Real mz = P.A * P.rEigenVec_MomentumZ * sine_x;
+
+        C.momentum_x[id] = mx * cos_pitch * cos_yaw - my * sin_yaw - mz * sin_pitch * cos_yaw;
+        C.momentum_y[id] = mx * cos_pitch * sin_yaw + my * cos_yaw - mz * sin_pitch * sin_yaw;
+        C.momentum_z[id] = mx * sin_pitch + mz * cos_pitch;
+
+        // Energy
+        C.Energy[id] = P.P / (P.gamma - 1.0) + 0.5 * P.rho * P.vx * P.vx + P.A * sine_x * P.rEigenVec_E;
 #ifdef MHD
-        sine_wave        = std::sin(2.0 * M_PI * (x_pos + stagger));
-        C.magnetic_x[id] = Bx + A * rEigenVec_Bx * sine_wave;
-        C.magnetic_y[id] = By + A * rEigenVec_By * sine_wave;
-        C.magnetic_z[id] = Bz + A * rEigenVec_Bz * sine_wave;
+        C.Energy[id] += 0.5 * (P.Bx * P.Bx + P.By * P.By + P.Bz * P.Bz);
 #endif  // MHD
       }
     }
@@ -352,7 +434,7 @@ void Grid3D::Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Re
 /*! \fn void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
  *  \brief Square wave density perturbation with amplitude A*rho in pressure
  * equilibrium. */
-void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
+void Grid3D::Square_Wave(parameters const &P)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
@@ -385,15 +467,15 @@ void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
         // get cell-centered position
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
-        C.density[id] = rho;
+        C.density[id] = P.rho;
         // C.momentum_x[id] = 0.0;
-        C.momentum_x[id] = rho * vx;
-        C.momentum_y[id] = rho * vy;
-        C.momentum_z[id] = rho * vz;
+        C.momentum_x[id] = P.rho * P.vx;
+        C.momentum_y[id] = P.rho * P.vy;
+        C.momentum_z[id] = P.rho * P.vz;
         // C.momentum_z[id] = rho_l * v_l;
-        C.Energy[id] = P / (gama - 1.0) + 0.5 * rho * (vx * vx + vy * vy + vz * vz);
+        C.Energy[id] = P.P / (gama - 1.0) + 0.5 * P.rho * (P.vx * P.vx + P.vy * P.vy + P.vz * P.vz);
 #ifdef DE
-        C.GasEnergy[id] = P / (gama - 1.0);
+        C.GasEnergy[id] = P.P / (gama - 1.0);
 #endif
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
@@ -401,13 +483,13 @@ void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
   #endif
 #endif
         if (x_pos > 0.25 * H.xdglobal && x_pos < 0.75 * H.xdglobal) {
-          C.density[id]    = rho * A;
-          C.momentum_x[id] = rho * A * vx;
-          C.momentum_y[id] = rho * A * vy;
-          C.momentum_z[id] = rho * A * vz;
-          C.Energy[id]     = P / (gama - 1.0) + 0.5 * rho * A * (vx * vx + vy * vy + vz * vz);
+          C.density[id]    = P.rho * P.A;
+          C.momentum_x[id] = P.rho * P.A * P.vx;
+          C.momentum_y[id] = P.rho * P.A * P.vy;
+          C.momentum_z[id] = P.rho * P.A * P.vz;
+          C.Energy[id]     = P.P / (gama - 1.0) + 0.5 * P.rho * P.A * (P.vx * P.vx + P.vy * P.vy + P.vz * P.vz);
 #ifdef DE
-          C.GasEnergy[id] = P / (gama - 1.0);
+          C.GasEnergy[id] = P.P / (gama - 1.0);
 #endif
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
@@ -424,25 +506,20 @@ void Grid3D::Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
  Bx_l, Real By_l, Real Bz_l, Real rho_r, Real vx_r, Real vy_r, Real vz_r, Real
  P_r, Real Bx_r, Real By_r, Real Bz_r, Real diaph)
  *  \brief Initialize the grid with a Riemann problem. */
-void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real Bx_l, Real By_l, Real Bz_l, Real rho_r,
-                     Real vx_r, Real vy_r, Real vz_r, Real P_r, Real Bx_r, Real By_r, Real Bz_r, Real diaph)
+void Grid3D::Riemann(parameters const &P)
 {
-  int i, j, k, id;
-  int istart, jstart, kstart, iend, jend, kend;
-  Real x_pos, y_pos, z_pos;
-  Real v, P, cs;
-
-  istart = H.n_ghost;
-  iend   = H.nx - H.n_ghost;
+  size_t const istart = H.n_ghost - 1;
+  size_t const iend   = H.nx - H.n_ghost;
+  size_t jstart, kstart, jend, kend;
   if (H.ny > 1) {
-    jstart = H.n_ghost;
+    jstart = H.n_ghost - 1;
     jend   = H.ny - H.n_ghost;
   } else {
     jstart = 0;
     jend   = H.ny;
   }
   if (H.nz > 1) {
-    kstart = H.n_ghost;
+    kstart = H.n_ghost - 1;
     kend   = H.nz - H.n_ghost;
   } else {
     kstart = 0;
@@ -450,58 +527,62 @@ void Grid3D::Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real
   }
 
   // set initial values of conserved variables
-  for (k = kstart - 1; k < kend; k++) {
-    for (j = jstart - 1; j < jend; j++) {
-      for (i = istart - 1; i < iend; i++) {
+  for (size_t k = kstart; k < kend; k++) {
+    for (size_t j = jstart; j < jend; j++) {
+      for (size_t i = istart; i < iend; i++) {
         // get cell index
-        id = i + j * H.nx + k * H.nx * H.ny;
+        size_t const id = i + j * H.nx + k * H.nx * H.ny;
 
         // get cell-centered position
+        Real x_pos, y_pos, z_pos;
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
 #ifdef MHD
         // Set the magnetic field including the rightmost ghost cell on the
         // left side which is really the left face of the first grid cell
-        if (x_pos < diaph) {
-          C.magnetic_x[id] = Bx_l;
-          C.magnetic_y[id] = By_l;
-          C.magnetic_z[id] = Bz_l;
+        // WARNING: Only correct in 3-D
+        if (x_pos < P.diaph) {
+          C.magnetic_x[id] = P.Bx_l;
+          C.magnetic_y[id] = P.By_l;
+          C.magnetic_z[id] = P.Bz_l;
         } else {
-          C.magnetic_x[id] = Bx_r;
-          C.magnetic_y[id] = By_r;
-          C.magnetic_z[id] = Bz_r;
+          C.magnetic_x[id] = P.Bx_r;
+          C.magnetic_y[id] = P.By_r;
+          C.magnetic_z[id] = P.Bz_r;
         }
 #endif  // MHD
 
         // Exclude the rightmost ghost cell on the "left" side
         if ((k >= kstart) and (j >= jstart) and (i >= istart)) {
-          if (x_pos < diaph) {
-            C.density[id]    = rho_l;
-            C.momentum_x[id] = rho_l * vx_l;
-            C.momentum_y[id] = rho_l * vy_l;
-            C.momentum_z[id] = rho_l * vz_l;
-            C.Energy[id]     = mhd::utils::computeEnergy(P_l, rho_l, vx_l, vy_l, vz_l, Bx_l, By_l, Bz_l, gama);
+          if (x_pos < P.diaph) {
+            C.density[id]    = P.rho_l;
+            C.momentum_x[id] = P.rho_l * P.vx_l;
+            C.momentum_y[id] = P.rho_l * P.vy_l;
+            C.momentum_z[id] = P.rho_l * P.vz_l;
+            C.Energy[id] = hydro_utilities::Calc_Energy_Primitive(P.P_l, P.rho_l, P.vx_l, P.vy_l, P.vz_l, gama, P.Bx_l,
+                                                                  P.By_l, P.Bz_l);
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
-            C.basic_scalar[id] = 1.0 * rho_l;
+            C.basic_scalar[id] = 1.0 * P.rho_l;
   #endif
 #endif  // SCALAR
 #ifdef DE
-            C.GasEnergy[id] = P_l / (gama - 1.0);
+            C.GasEnergy[id] = P.P_l / (gama - 1.0);
 #endif  // DE
           } else {
-            C.density[id]    = rho_r;
-            C.momentum_x[id] = rho_r * vx_r;
-            C.momentum_y[id] = rho_r * vy_r;
-            C.momentum_z[id] = rho_r * vz_r;
-            C.Energy[id]     = mhd::utils::computeEnergy(P_r, rho_r, vx_r, vy_r, vz_r, Bx_r, By_r, Bz_r, gama);
+            C.density[id]    = P.rho_r;
+            C.momentum_x[id] = P.rho_r * P.vx_r;
+            C.momentum_y[id] = P.rho_r * P.vy_r;
+            C.momentum_z[id] = P.rho_r * P.vz_r;
+            C.Energy[id] = hydro_utilities::Calc_Energy_Primitive(P.P_r, P.rho_r, P.vx_r, P.vy_r, P.vz_r, gama, P.Bx_r,
+                                                                  P.By_r, P.Bz_r);
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
-            C.basic_scalar[id] = 0.0 * rho_r;
+            C.basic_scalar[id] = 0.0 * P.rho_r;
   #endif
 #endif  // SCALAR
 #ifdef DE
-            C.GasEnergy[id] = P_r / (gama - 1.0);
+            C.GasEnergy[id] = P.P_r / (gama - 1.0);
 #endif  // DE
           }
         }
@@ -1309,8 +1390,8 @@ void Grid3D::Clouds()
         C.GasEnergy[id] = p_bg / (gama - 1.0);
 #endif
 #ifdef SCALAR
-  #ifdef BASIC_SCALAR
-        C.basic_scalar[id] = C.density[id] * 0.0;
+  #ifdef DUST
+        C.host[id + H.n_cells * grid_enum::dust_density] = 0.0;
   #endif
 #endif
         // add clouds
@@ -1693,9 +1774,9 @@ void Grid3D::Circularly_Polarized_Alfven_Wave(struct parameters const P)
         // Compute the Energy
         auto const magnetic_centered =
             mhd::utils::cellCenteredMagneticFields(C.host, id, i, j, k, H.n_cells, H.nx, H.ny);
-        Real const energy = mhd::utils::computeEnergy(
-            pressure, density, momentum_x_rot / density, momentum_y_rot / density, momentum_z_rot / density,
-            magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
+        Real const energy = hydro_utilities::Calc_Energy_Conserved(pressure, density, momentum_x_rot, momentum_y_rot,
+                                                                   momentum_z_rot, ::gama, magnetic_centered.x,
+                                                                   magnetic_centered.y, magnetic_centered.z);
 
         // Final assignment
         C.density[id]    = density;
@@ -1766,9 +1847,9 @@ void Grid3D::Advecting_Field_Loop(struct parameters const P)
         C.momentum_x[id] = P.rho * P.vx;
         C.momentum_y[id] = P.rho * P.vy;
         C.momentum_z[id] = P.rho * P.vz;
-        C.Energy[id]     = mhd::utils::computeEnergy(P.P, P.rho, C.momentum_x[id] / P.rho, C.momentum_y[id] / P.rho,
-                                                     C.momentum_z[id] / P.rho, magnetic_centered.x, magnetic_centered.y,
-                                                     magnetic_centered.z, ::gama);
+        C.Energy[id]     = hydro_utilities::Calc_Energy_Conserved(P.P, P.rho, C.momentum_x[id], C.momentum_y[id],
+                                                                  C.momentum_z[id], ::gama, magnetic_centered.x,
+                                                                  magnetic_centered.y, magnetic_centered.z);
       }
     }
   }
@@ -1820,16 +1901,16 @@ void Grid3D::MHD_Spherical_Blast(struct parameters const P)
             mhd::utils::cellCenteredMagneticFields(C.host, id, i, j, k, H.n_cells, H.nx, H.ny);
 
         // Set the field(s) that do depend on pressure. That's just energy
-        Real radius = std::hypot(x, y, z);
+        Real const radius = std::hypot(x, y, z);
+        Real pressure;
         if (radius < P.radius) {
-          C.Energy[id] = mhd::utils::computeEnergy(
-              P.P_blast, C.density[id], C.momentum_x[id] / C.density[id], C.momentum_y[id] / C.density[id],
-              C.momentum_z[id] / C.density[id], magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
+          pressure = P.P_blast;
         } else {
-          C.Energy[id] = mhd::utils::computeEnergy(
-              P.P, C.density[id], C.momentum_x[id] / C.density[id], C.momentum_y[id] / C.density[id],
-              C.momentum_z[id] / C.density[id], magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
+          pressure = P.P;
         }
+        C.Energy[id] = hydro_utilities::Calc_Energy_Conserved(
+            pressure, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], ::gama, magnetic_centered.x,
+            magnetic_centered.y, magnetic_centered.z);
       }
     }
   }
@@ -1857,8 +1938,8 @@ void Grid3D::Orszag_Tang_Vortex()
         Get_Position(i, j, k, &x, &y, &z);
 
         // Z vector potential
-        vectorPotential.at(id + 2 * H.n_cells) = (magnetic_background / 4.0 * M_PI) * std::cos(4.0 * M_PI * x) -
-                                                 (magnetic_background / 2.0 * M_PI) * std::cos(2.0 * M_PI * y);
+        vectorPotential.at(id + 2 * H.n_cells) =
+            magnetic_background / (4.0 * M_PI) * (std::cos(4.0 * M_PI * x) + 2.0 * std::cos(2.0 * M_PI * y));
       }
     }
   }
@@ -1886,9 +1967,9 @@ void Grid3D::Orszag_Tang_Vortex()
         C.momentum_x[id] = density_background * velocity_background * std::sin(2.0 * M_PI * y);
         C.momentum_y[id] = -density_background * velocity_background * std::sin(2.0 * M_PI * x);
         C.momentum_z[id] = 0.0;
-        C.Energy[id] = mhd::utils::computeEnergy(pressure_background, C.density[id], C.momentum_x[id] / C.density[id],
-                                                 C.momentum_y[id] / C.density[id], C.momentum_z[id] / C.density[id],
-                                                 magnetic_centered.x, magnetic_centered.y, magnetic_centered.z, ::gama);
+        C.Energy[id]     = hydro_utilities::Calc_Energy_Conserved(
+            pressure_background, C.density[id], C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], ::gama,
+            magnetic_centered.x, magnetic_centered.y, magnetic_centered.z);
       }
     }
   }

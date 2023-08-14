@@ -13,6 +13,7 @@
 
 // Local Includes
 #include "../global/global.h"
+#include "../utils/hydro_utilities.h"
 
 #ifdef CUDA
 /*!
@@ -93,8 +94,8 @@ struct DoubleStarState {
   // pressureDoubleStar = pressureStar
   // Shared values
   Real velocityY, velocityZ, magneticY, magneticZ;
-  // Different values
-  Real energyL, energyR;
+  // Different values. Initializing these since one or the other can be uninitializing leading to bad tests
+  Real energyL = 0.0, energyR = 0.0;
 };
 
 /*!
@@ -253,6 +254,20 @@ __device__ __host__ mhd::_internal::Flux computeDoubleStarFluxes(
     mhd::_internal::StarState const &starState, mhd::_internal::State const &state, mhd::_internal::Flux const &flux,
     mhd::_internal::Speeds const &speed, Real const &speedSide, Real const &speedSideStar);
 
+/*!
+ * \brief Specialization of mhd::utils::computeGasPressure for use in the HLLD solver
+ *
+ * \param state The State to compute the gas pressure of
+ * \param magneticX The X magnetic field
+ * \param gamma The adiabatic index
+ * \return Real The gas pressure
+ */
+inline __host__ __device__ Real Calc_Pressure_Primitive(mhd::_internal::State const &state, Real const &magneticX,
+                                                        Real const &gamma)
+{
+  return hydro_utilities::Calc_Pressure_Primitive(state.energy, state.density, state.velocityX, state.velocityY,
+                                                  state.velocityZ, gamma, magneticX, state.magneticY, state.magneticZ);
+}
 }  // namespace _internal
 }  // end namespace mhd
 #endif  // CUDA

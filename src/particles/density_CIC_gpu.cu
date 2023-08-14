@@ -155,7 +155,7 @@ void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particl
                                                 Real *pos_y_dev, Real *pos_z_dev, Real *mass_dev)
 {
   // set values for GPU kernels
-  int ngrid = (n_local + TPB_PARTICLES - 1) / TPB_PARTICLES;
+  int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block

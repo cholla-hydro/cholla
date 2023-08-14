@@ -70,7 +70,8 @@ class systemTest::SystemTestRunner
    * \brief Run the system test that has been set up
    *
    */
-  void runTest();
+  void runTest(bool const &compute_L2_norm_only = false, double const &maxAllowedL1Error = 0.0,
+               double const &maxAllowedError = 0.0);
 
   /*!
    * \brief Compute the L1 error for each field compared to the initial
@@ -104,6 +105,13 @@ class systemTest::SystemTestRunner
    * initialize Cholla
    */
   std::string getChollaSettingsFilePath() { return _chollaSettingsPath; };
+
+  /*!
+   * \brief Get the L2Norm
+   *
+   * \return double The L2Norm of the last run test
+   */
+  double getL2Norm() { return _L2Norm; };
 
   /*!
    * \brief Get the Output Directory object
@@ -302,6 +310,9 @@ class systemTest::SystemTestRunner
   /// Fixed epsilon is changed from the default since AMD/Clang
   /// appear to differ from NVIDIA/GCC/XL by roughly 1E-12
   double _fixedEpsilon = 5.0E-12;
+
+  /// The L2 norm of the error vector
+  double _L2Norm;
 
   /// Flag to indicate if a fiducial HDF5 data file is being used or a
   /// programmatically generated H5File object. `true` = use a file, `false` =

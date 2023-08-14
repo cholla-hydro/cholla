@@ -50,33 +50,78 @@ struct TestParams {
   std::vector<double> ge{4.890374019e-10, 1.0756968986e2, 3.8740982372e100};
   std::vector<double> U_total{2.389074039e-10, 4.890374019e2, 6.8731436293e100};
   std::vector<double> U_advected{1.3847303413e-10, 1.0756968986e2, 1.0882403847e100};
+  std::vector<double> pressureTotal{8.1704748693e-100, 2.6084125198e2, 1.8242151369e100};
+  std::vector<double> magnetic_x{2.8568843801e-100, 9.2400807786e2, 2.1621115264e100};
+  std::vector<double> magnetic_y{9.2900880344e-100, 8.0382409757e2, 6.6499532343e100};
+  std::vector<double> magnetic_z{9.5795678229e-100, 3.3284839263e2, 9.2337456649e100};
   std::vector<std::string> names{"Small number case", "Medium number case", "Large number case"};
 };
 }  // namespace
 
-TEST(tHYDROHydroUtilsCalcPressurePrimitive, CorrectInputExpectCorrectOutput)
+TEST(tHYDROtMHDHydroUtilsCalcPressurePrimitive, CorrectInputExpectCorrectOutput)
 {
   TestParams parameters;
-  std::vector<double> fiducial_Ps{1e-20, 139983415580.5549, 1.2697896247496674e+301};
+#ifdef MHD
+  std::vector<double> fiducial_pressure{0, 139982878676.5015, 1.2697896247496674e+301};
+#else   // not MHD
+  std::vector<double> fiducial_pressure{1e-20, 139983415580.5549, 1.2697896247496674e+301};
+#endif  // MHD
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    Real test_Ps = hydro_utilities::Calc_Pressure_Primitive(parameters.E.at(i), parameters.d.at(i), parameters.vx.at(i),
-                                                            parameters.vy.at(i), parameters.vz.at(i), parameters.gamma);
+    Real test_Ps = hydro_utilities::Calc_Pressure_Primitive(
+        parameters.E.at(i), parameters.d.at(i), parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i),
+        parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
 
-    testingUtilities::checkResults(fiducial_Ps.at(i), test_Ps, parameters.names.at(i));
+    testingUtilities::checkResults(fiducial_pressure.at(i), test_Ps, parameters.names.at(i));
   }
 }
 
-TEST(tHYDROHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutput)
+TEST(tHYDROtMHDHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutput)
 {
   TestParams parameters;
-  std::vector<double> fiducial_Ps{1e-20, 139984604373.87094, 1.3965808056866668e+301};
+#ifdef MHD
+  std::vector<double> fiducial_pressure{0, 139984067469.81754, 1.3965808056866668e+301};
+#else   // not MHD
+  std::vector<double> fiducial_pressure{1e-20, 139984604373.87094, 1.3965808056866668e+301};
+#endif  // MHD
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    Real test_Ps = hydro_utilities::Calc_Pressure_Conserved(parameters.E.at(i), parameters.d.at(i), parameters.mx.at(i),
-                                                            parameters.my.at(i), parameters.mz.at(i), parameters.gamma);
+    Real test_pressure = hydro_utilities::Calc_Pressure_Conserved(
+        parameters.E.at(i), parameters.d.at(i), parameters.mx.at(i), parameters.my.at(i), parameters.mz.at(i),
+        parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
 
-    testingUtilities::checkResults(fiducial_Ps.at(i), test_Ps, parameters.names.at(i));
+    testingUtilities::checkResults(fiducial_pressure.at(i), test_pressure, parameters.names.at(i));
+  }
+}
+
+TEST(tHYDROtMHDHydroUtilsCalcPressurePrimitive, NegativePressureExpectAutomaticFix)
+{
+  TestParams parameters;
+
+  for (size_t i = 0; i < parameters.names.size(); i++) {
+    Real test_pressure = hydro_utilities::Calc_Pressure_Primitive(
+        parameters.E.at(i), parameters.d.at(i), 1E4 * parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i),
+        parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
+
+    // I'm using the binary equality assertion here since in the case of
+    // negative pressure the function should return exactly TINY_NUMBER
+    EXPECT_EQ(TINY_NUMBER, test_pressure) << "Difference in " << parameters.names.at(i) << std::endl;
+  }
+}
+
+TEST(tHYDROtMHDHydroUtilsCalcPressureConserved, NegativePressureExpectAutomaticFix)
+{
+  TestParams parameters;
+
+  for (size_t i = 0; i < parameters.names.size() - 1; i++) {
+    Real test_pressure = hydro_utilities::Calc_Pressure_Conserved(
+        1E-10 * parameters.E.at(i), parameters.d.at(i), 1E4 * parameters.mx.at(i), 1E4 * parameters.my.at(i),
+        1E4 * parameters.mz.at(i), parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i),
+        parameters.magnetic_z.at(i));
+
+    // I'm using the binary equality assertion here since in the case of
+    // negative pressure the function should return exactly TINY_NUMBER
+    EXPECT_EQ(TINY_NUMBER, test_pressure) << "Difference in " << parameters.names.at(i) << std::endl;
   }
 }
 
@@ -107,16 +152,73 @@ TEST(tHYDROHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput)
 }
 #endif  // DE
 
-TEST(tHYDROHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput)
+TEST(tHYDROtMHDHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput)
 {
   TestParams parameters;
-  std::vector<double> fiducial_Es{3.3366124363499997e-10, 1784507.7619407175, 1.9018677140549926e+300};
+#ifdef MHD
+  std::vector<double> fiducial_energy{3.3366124363499997e-10, 2589863.8420712831, 1.9018677140549926e+300};
+#else   // not MHD
+  std::vector<double> fiducial_energy{3.3366124363499997e-10, 1784507.7619407175, 1.9018677140549926e+300};
+#endif  // MHD
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    Real test_Es = hydro_utilities::Calc_Energy_Primitive(parameters.P.at(i), parameters.d.at(i), parameters.vx.at(i),
-                                                          parameters.vy.at(i), parameters.vz.at(i), parameters.gamma);
+    Real test_Es = hydro_utilities::Calc_Energy_Primitive(
+        parameters.P.at(i), parameters.d.at(i), parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i),
+        parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
 
-    testingUtilities::checkResults(fiducial_Es.at(i), test_Es, parameters.names.at(i));
+    testingUtilities::checkResults(fiducial_energy.at(i), test_Es, parameters.names.at(i));
+  }
+}
+
+TEST(tHYDROtMHDHydroUtilsCalcEnergyConserved, CorrectInputExpectCorrectOutput)
+{
+  TestParams parameters;
+#ifdef MHD
+  std::vector<double> fiducial_energy{3.3366124363499997e-10, 806673.86799851817, 6.7079331637514162e+201};
+#else   // not MHD
+  std::vector<double> fiducial_energy{3.3366124363499997e-10, 1317.7878679524658, 1.0389584427972784e+101};
+#endif  // MHD
+
+  for (size_t i = 0; i < parameters.names.size(); i++) {
+    Real test_Es = hydro_utilities::Calc_Energy_Conserved(
+        parameters.P.at(i), parameters.d.at(i), parameters.mx.at(i), parameters.my.at(i), parameters.mz.at(i),
+        parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
+
+    testingUtilities::checkResults(fiducial_energy.at(i), test_Es, parameters.names.at(i));
+  }
+}
+
+TEST(tHYDROtMHDHydroUtilsCalcEnergyPrimitive, NegativePressureExpectAutomaticFix)
+{
+  TestParams parameters;
+#ifdef MHD
+  std::vector<double> fiducial_energy{1.4999999999999998e-20, 2588562.2478059679, 1.9018677140549926e+300};
+#else   // not MHD
+  std::vector<double> fiducial_energy{0, 1783206.1676754025, 1.9018677140549926e+300};
+#endif  // MHD
+  for (size_t i = 0; i < parameters.names.size(); i++) {
+    Real test_Es = hydro_utilities::Calc_Energy_Primitive(
+        -parameters.P.at(i), parameters.d.at(i), parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i),
+        parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
+
+    testingUtilities::checkResults(fiducial_energy.at(i), test_Es, parameters.names.at(i));
+  }
+}
+
+TEST(tHYDROtMHDHydroUtilsCalcEnergyConserved, NegativePressureExpectAutomaticFix)
+{
+  TestParams parameters;
+#ifdef MHD
+  std::vector<double> fiducial_energy{0, 805372.27373320318, 6.7079331637514162e+201};
+#else   // not MHD
+  std::vector<double> fiducial_energy{0, 16.193602637465997, 3.0042157852278494e+99};
+#endif  // MHD
+  for (size_t i = 0; i < parameters.names.size(); i++) {
+    Real test_Es = hydro_utilities::Calc_Energy_Conserved(
+        -parameters.P.at(i), parameters.d.at(i), parameters.mx.at(i), parameters.my.at(i), parameters.mz.at(i),
+        parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
+
+    testingUtilities::checkResults(fiducial_energy.at(i), test_Es, parameters.names.at(i));
   }
 }
 

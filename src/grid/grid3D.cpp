@@ -72,14 +72,8 @@ Grid3D::Grid3D(void)
 #endif
 
 #ifdef MHD
-  // Set the number of ghost cells high enough for MHD
-  if (H.n_ghost < 3) {
-    chprintf(
-        "Insufficient number of ghost cells for MHD. H.n_ghost was %i, setting "
-        "to 3.\n",
-        H.n_ghost);
-    H.n_ghost = 3;
-  }
+  // Set the number of ghost cells high enough for MHD. MHD needs one extra for the left most face
+  H.n_ghost++;
 #endif  // MHD
 }
 
@@ -271,11 +265,7 @@ void Grid3D::Initialize(struct parameters *P)
 #endif
 
 #ifdef COSMOLOGY
-  if (P->scale_outputs_file[0] == '\0') {
-    H.OUTPUT_SCALE_FACOR = false;
-  } else {
-    H.OUTPUT_SCALE_FACOR = true;
-  }
+  H.OUTPUT_SCALE_FACOR = not P->scale_outputs_file[0] == '\0';
 #endif
 
   H.Output_Initial = true;
@@ -300,6 +290,9 @@ void Grid3D::AllocateMemory(void)
   #ifdef BASIC_SCALAR
   C.basic_scalar = &(C.host[H.n_cells * grid_enum::basic_scalar]);
   #endif
+  #ifdef DUST
+  C.dust_density = &(C.host[H.n_cells * grid_enum::dust_density]);
+  #endif
 #endif  // SCALAR
 #ifdef MHD
   C.magnetic_x = &(C.host[grid_enum::magnetic_x * H.n_cells]);
@@ -322,6 +315,9 @@ void Grid3D::AllocateMemory(void)
   C.d_scalar = &(C.device[H.n_cells * grid_enum::scalar]);
   #ifdef BASIC_SCALAR
   C.d_basic_scalar = &(C.device[H.n_cells * grid_enum::basic_scalar]);
+  #endif
+  #ifdef DUST
+  C.d_dust_density = &(C.device[H.n_cells * grid_enum::dust_density]);
   #endif
 #endif  // SCALAR
 #ifdef MHD
@@ -426,6 +422,10 @@ Real Grid3D::Update_Grid(void)
   U_floor /= Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
 #endif
 
+#ifdef CPU_TIME
+  Timer.Hydro_Integrator.Start();
+#endif  // CPU_TIME
+
   // Run the hydro integrator on the grid
   if (H.nx > 1 && H.ny == 1 && H.nz == 1)  // 1D
   {
@@ -468,11 +468,22 @@ Real Grid3D::Update_Grid(void)
     chexit(-1);
   }
 
+#ifdef CPU_TIME
+  Timer.Hydro_Integrator.End();
+#endif  // CPU_TIME
+
 #ifdef CUDA
 
   #ifdef COOLING_GPU
+    #ifdef CPU_TIME
+  Timer.Cooling_GPU.Start();
+    #endif
   // ==Apply Cooling from cooling/cooling_cuda.h==
   Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
+    #ifdef CPU_TIME
+  Timer.Cooling_GPU.End();
+    #endif
+
   #endif  // COOLING_GPU
 
   #ifdef DUST
@@ -558,11 +569,11 @@ Real Grid3D::Update_Hydro_Grid()
 
 #ifdef COOLING_GRACKLE
   #ifdef CPU_TIME
-  Timer.Cooling.Start();
+  Timer.Cooling_Grackle.Start();
   #endif  // CPU_TIME
   Do_Cooling_Step_Grackle();
   #ifdef CPU_TIME
-  Timer.Cooling.End();
+  Timer.Cooling_Grackle.End();
   #endif  // CPU_TIME
 #endif    // COOLING_GRACKLE
 
