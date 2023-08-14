@@ -594,6 +594,126 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
   return dev_dti[0];
 }
 
+
+#ifdef VELOCITY_CEILING
+
+__global__ void Velocity_Ceiling_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real gamma, Real V_ceiling, int* counter)
+{
+  const int id = threadIdx.x + blockIdx.x * blockDim.x;
+  const int n_cells =  nx * ny * nz;
+  int xid, yid, zid;
+  cuda_utilities::compute3DIndices(id, nx, ny, xid, yid, zid);
+  const bool real_cell = (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 && zid < nz - n_ghost);
+  if (!real_cell) return;
+
+  const Real d     = dev_conserved[id];
+  const Real max_momentum = d * V_ceiling;
+
+  const Real d_inv = 1.0 / d;
+  /*
+  const Real vx    = dev_conserved[1 * n_cells + id] * d_inv;
+  const Real vy    = dev_conserved[2 * n_cells + id] * d_inv;
+  const Real vz    = dev_conserved[3 * n_cells + id] * d_inv;
+  const Real E     = dev_conserved[4 * n_cells + id];
+  */
+  for (int momentum_index = 1; momentum_index <= 3; momentum_index++) {
+    // Reduce momentum if velocity is too large
+
+    const Real momentum = dev_conserved[momentum_index * n_cells + id];
+    if (abs(momentum) > max_momentum) {
+      const Real new_momentum = max_momentum*momentum/abs(momentum);
+      const Real diff_energy = 0.5 * d_inv * ((momentum * momentum) - (max_momentum*max_momentum));
+      // Write in the new momentum
+      dev_conserved[momentum_index * n_cells + id] = new_momentum;
+      // Thermalize the energy
+      #ifdef DE
+      dev_conserved[(n_fields - 1) * n_cells + id] += diff_energy;
+      #endif //DE
+      atomicAdd(counter, 1);
+    }
+  }
+
+
+}
+
+void Velocity_Ceiling(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real gamma, Real V_ceiling)
+{
+
+  int n_cells = nx * ny * nz;
+  int ngrid = (n_cells + TPB - 1) / TPB;
+  dim3 dim1dGrid(ngrid, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+
+  cuda_utilities::DeviceVector<int> counter(1, true);
+  int* dev_counter = counter.data();
+
+  if (nx > 1 && ny > 1 && nz > 1) {  // 3D
+    hipLaunchKernelGGL(Velocity_Ceiling_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, gamma, V_ceiling, dev_counter);
+  }
+  int host_counter = counter[0];
+  if (host_counter > 0) {
+  printf("HYDRO WARNING: Velocity Ceiling applied to num_cells: %d \n", host_counter);
+  }
+}
+
+
+#endif
+
+
+#ifdef TEMPERATURE_CEILING
+
+__global__ void Temperature_Ceiling_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real gamma, Real T_ceiling, int* counter)
+{
+  const int id = threadIdx.x + blockIdx.x * blockDim.x;
+  const int n_cells =  nx * ny * nz;
+  int xid, yid, zid;
+  cuda_utilities::compute3DIndices(id, nx, ny, xid, yid, zid);
+  const bool real_cell = (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 && zid < nz - n_ghost);
+  if (!real_cell) return;
+
+  const Real d     = dev_conserved[id];
+  const Real d_inv = 1.0 / d;
+  const Real vx    = dev_conserved[1 * n_cells + id] * d_inv;
+  const Real vy    = dev_conserved[2 * n_cells + id] * d_inv;
+  const Real vz    = dev_conserved[3 * n_cells + id] * d_inv;
+  const Real E     = dev_conserved[4 * n_cells + id];
+
+  const Real temperature_Kelvin  = (gamma - 1) * (E - 0.5 * (vx*vx + vy*vy + vz*vz) * d) * ENERGY_UNIT / (d * DENSITY_UNIT / 0.6 / MP) / KB;
+
+  if (temperature_Kelvin <= T_ceiling) return;
+
+  const Real factor = T_ceiling / temperature_Kelvin;
+
+  dev_conserved[4 * n_cells + id] *= factor;
+  #ifdef DE
+  dev_conserved[(n_fields - 1) * n_cells + id] *= factor;
+  #endif //DE
+  atomicAdd(counter, 1);
+}
+
+void Temperature_Ceiling(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real gamma, Real T_ceiling)
+{
+
+  int n_cells = nx * ny * nz;
+  int ngrid = (n_cells + TPB - 1) / TPB;
+  dim3 dim1dGrid(ngrid, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+
+  cuda_utilities::DeviceVector<int> counter(1, true);
+  int* dev_counter = counter.data();
+
+  if (nx > 1 && ny > 1 && nz > 1) {  // 3D
+    hipLaunchKernelGGL(Temperature_Ceiling_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, gamma, T_ceiling, dev_counter);
+  }
+  int host_counter = counter[0];
+  if (host_counter > 0) {
+  printf("HYDRO WARNING: Temperature Ceiling applied to num_cells: %d \n", host_counter);
+  }
+}
+
+
+#endif //TEMPERATURE_CEILING
+
   #ifdef AVERAGE_SLOW_CELLS
 
 void Average_Slow_Cells(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy,
