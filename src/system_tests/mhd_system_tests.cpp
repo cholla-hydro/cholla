@@ -36,10 +36,10 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
   inline static std::unordered_map<std::string, double> high_res_l2norms;
 
   void Set_Launch_Params(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
-                         double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
-                         double const &rEigenVec_Bx, double const &rEigenVec_By, double const &rEigenVec_Bz,
-                         double const &pitch, double const &yaw, double const &domain, int const &domain_direction,
-                         double const &vx = 0.0, size_t const &N = 32)
+                         double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ,
+                         double const &rEigenVec_E, double const &rEigenVec_Bx, double const &rEigenVec_By,
+                         double const &rEigenVec_Bz, double const &pitch, double const &yaw, double const &domain,
+                         int const &domain_direction, double const &vx = 0.0, size_t const &N = 32)
   {
     // Constant for all tests
     double const gamma = 5. / 3.;
