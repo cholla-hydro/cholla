@@ -47,7 +47,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
  * \param[in] gamma The adiabatic index
  * \param[in] dir The direction to reconstruct. 0=X, 1=Y, 2=Z
  */
-__global__ void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, Real gamma,
-                        int dir);
+__global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx,
+                                               int ny, int nz, Real gamma, int dir);
 
 #endif  // PPMC_CUDA_H

@@ -18,26 +18,34 @@
 #include "../io/io.h"
 #include "../reconstruction/reconstruction.h"
 #include "../utils/DeviceVector.h"
+#include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
 
 #ifdef MHD
 __global__ void Test_Prim_2_Char(reconstruction::Primitive const primitive,
-                                 reconstruction::Primitive const primitive_slope, Real const gamma,
-                                 Real const sound_speed, Real const sound_speed_squared,
-                                 reconstruction::Characteristic *characteristic_slope)
+                                 reconstruction::Primitive const primitive_slope,
+                                 reconstruction::EigenVecs const eigenvectors, Real const gamma, Real const sound_speed,
+                                 Real const sound_speed_squared, reconstruction::Characteristic *characteristic_slope)
 {
-  *characteristic_slope =
-      reconstruction::Primitive_To_Characteristic(primitive, primitive_slope, sound_speed, sound_speed_squared, gamma);
+  *characteristic_slope = reconstruction::Primitive_To_Characteristic(primitive, primitive_slope, eigenvectors,
+                                                                      sound_speed, sound_speed_squared, gamma);
 }
 
 __global__ void Test_Char_2_Prim(reconstruction::Primitive const primitive,
-                                 reconstruction::Characteristic const characteristic_slope, Real const gamma,
-                                 Real const sound_speed, Real const sound_speed_squared,
-                                 reconstruction::Primitive *primitive_slope)
+                                 reconstruction::Characteristic const characteristic_slope,
+                                 reconstruction::EigenVecs const eigenvectors, Real const gamma, Real const sound_speed,
+                                 Real const sound_speed_squared, reconstruction::Primitive *primitive_slope)
 {
-  reconstruction::Characteristic_To_Primitive(primitive, characteristic_slope, sound_speed, sound_speed_squared, gamma,
-                                              *primitive_slope);
+  *primitive_slope = reconstruction::Characteristic_To_Primitive(primitive, characteristic_slope, eigenvectors,
+                                                                 sound_speed, sound_speed_squared, gamma);
+}
+
+__global__ void test_compute_eigenvectors(reconstruction::Primitive const primitive, Real const sound_speed,
+                                          Real const sound_speed_squared, Real const gamma,
+                                          reconstruction::EigenVecs *eigenvectors)
+{
+  *eigenvectors = reconstruction::Compute_Eigenvectors(primitive, sound_speed, sound_speed_squared, gamma);
 }
 
 TEST(tMHDReconstructionPrimitive2Characteristic, CorrectInputExpectCorrectOutput)
@@ -46,21 +54,22 @@ TEST(tMHDReconstructionPrimitive2Characteristic, CorrectInputExpectCorrectOutput
   Real const &gamma = 5. / 3.;
   reconstruction::Primitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
   reconstruction::Primitive const primitive_slope{9, 10, 11, 12, 13, 14, 15, 16};
+  reconstruction::EigenVecs const eigenvectors{
+      17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+  };
   Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
   Real const sound_speed_squared = sound_speed * sound_speed;
 
   // Run test
   cuda_utilities::DeviceVector<reconstruction::Characteristic> dev_results(1);
-  hipLaunchKernelGGL(Test_Prim_2_Char, 1, 1, 0, 0, primitive, primitive_slope, gamma, sound_speed, sound_speed_squared,
-                     dev_results.data());
+  hipLaunchKernelGGL(Test_Prim_2_Char, 1, 1, 0, 0, primitive, primitive_slope, eigenvectors, gamma, sound_speed,
+                     sound_speed_squared, dev_results.data());
   CudaCheckError();
   cudaDeviceSynchronize();
   reconstruction::Characteristic const host_results = dev_results.at(0);
 
   // Check results
-  reconstruction::Characteristic const fiducial_results{
-      3.67609032478613384e+00, -5.64432521030159506e-01, -3.31429408151064075e+00, 7.44000000000000039e+00,
-      3.29052143725318791e+00, -1.88144173676719539e-01, 4.07536568422372625e+00};
+  reconstruction::Characteristic const fiducial_results{-40327, 110, -132678, 7.4400000000000004, 98864, 98, 103549};
   testingUtilities::Check_Results(fiducial_results.a0, host_results.a0, "a0");
   testingUtilities::Check_Results(fiducial_results.a1, host_results.a1, "a1");
   testingUtilities::Check_Results(fiducial_results.a2, host_results.a2, "a2");
@@ -76,21 +85,22 @@ TEST(tMHDReconstructionCharacteristic2Primitive, CorrectInputExpectCorrectOutput
   Real const &gamma = 5. / 3.;
   reconstruction::Primitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
   reconstruction::Characteristic const characteristic_slope{17, 18, 19, 20, 21, 22, 23};
+  reconstruction::EigenVecs const eigenvectors{
+      17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+  };
   Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
   Real const sound_speed_squared = sound_speed * sound_speed;
 
   // Run test
   cuda_utilities::DeviceVector<reconstruction::Primitive> dev_results(1);
-  hipLaunchKernelGGL(Test_Char_2_Prim, 1, 1, 0, 0, primitive, characteristic_slope, gamma, sound_speed,
+  hipLaunchKernelGGL(Test_Char_2_Prim, 1, 1, 0, 0, primitive, characteristic_slope, eigenvectors, gamma, sound_speed,
                      sound_speed_squared, dev_results.data());
   CudaCheckError();
   cudaDeviceSynchronize();
   reconstruction::Primitive const host_results = dev_results.at(0);
 
   // Check results
-  reconstruction::Primitive const fiducial_results{
-      6.73268997307368267e+01, 1.79977606552837130e+01,  9.89872908629502835e-01, -4.94308571170036792e+00,
-      3.94390831089473579e+02, -9.99000000000000000e+02, 2.88004228079705342e+01, 9.36584592818786064e+01};
+  reconstruction::Primitive const fiducial_results{1740, 2934, -2526, -2828, 14333.333333333338, 0.0, -24040, 24880};
   testingUtilities::Check_Results(fiducial_results.density, host_results.density, "density");
   testingUtilities::Check_Results(fiducial_results.velocity_x, host_results.velocity_x, "velocity_x");
   testingUtilities::Check_Results(fiducial_results.velocity_y, host_results.velocity_y, "velocity_y", 1.34E-14);
@@ -99,7 +109,99 @@ TEST(tMHDReconstructionCharacteristic2Primitive, CorrectInputExpectCorrectOutput
   testingUtilities::Check_Results(fiducial_results.magnetic_y, host_results.magnetic_y, "magnetic_y");
   testingUtilities::Check_Results(fiducial_results.magnetic_z, host_results.magnetic_z, "magnetic_z");
 }
+
+TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
+{
+  // Test parameters
+  Real const &gamma = 5. / 3.;
+  reconstruction::Primitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
+  reconstruction::Characteristic const characteristic_slope{17, 18, 19, 20, 21, 22, 23};
+  Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
+  Real const sound_speed_squared = sound_speed * sound_speed;
+
+  // Run test
+  cuda_utilities::DeviceVector<reconstruction::EigenVecs> dev_results(1);
+  hipLaunchKernelGGL(test_compute_eigenvectors, 1, 1, 0, 0, primitive, sound_speed, sound_speed_squared, gamma,
+                     dev_results.data());
+  CudaCheckError();
+  cudaDeviceSynchronize();
+  reconstruction::EigenVecs const host_results = dev_results.at(0);
+  // std::cout << to_string_exact(host_results.magnetosonic_speed_fast) << ",";
+  // std::cout << to_string_exact(host_results.magnetosonic_speed_slow) << ",";
+  // std::cout << to_string_exact(host_results.magnetosonic_speed_fast_squared) << ",";
+  // std::cout << to_string_exact(host_results.magnetosonic_speed_slow_squared) << ",";
+  // std::cout << to_string_exact(host_results.alpha_fast) << ",";
+  // std::cout << to_string_exact(host_results.alpha_slow) << ",";
+  // std::cout << to_string_exact(host_results.beta_y) << ",";
+  // std::cout << to_string_exact(host_results.beta_z) << ",";
+  // std::cout << to_string_exact(host_results.n_fs) << ",";
+  // std::cout << to_string_exact(host_results.sign) << ",";
+  // std::cout << to_string_exact(host_results.q_fast) << ",";
+  // std::cout << to_string_exact(host_results.q_slow) << ",";
+  // std::cout << to_string_exact(host_results.a_fast) << ",";
+  // std::cout << to_string_exact(host_results.a_slow) << ",";
+  // std::cout << to_string_exact(host_results.q_prime_fast) << ",";
+  // std::cout << to_string_exact(host_results.q_prime_slow) << ",";
+  // std::cout << to_string_exact(host_results.a_prime_fast) << ",";
+  // std::cout << to_string_exact(host_results.a_prime_slow) << "," << std::endl;
+  // Check results
+  reconstruction::EigenVecs const fiducial_results{
+      12.466068627219666,   1.3894122191714398,  155.40286701855041,  1.9304663147829049,   0.20425471836256681,
+      0.97891777490585408,  0.65850460786851805, 0.75257669470687782, 0.059999999999999984, 1,
+      2.546253336541183,    1.3601203180183106,  0.58963258314939582, 2.825892204282022,    0.15277520019247093,
+      0.081607219081098623, 0.03537795498896374, 0.1695535322569213};
+  testingUtilities::checkResults(fiducial_results.magnetosonic_speed_fast, host_results.magnetosonic_speed_fast,
+                                 "magnetosonic_speed_fast");
+  testingUtilities::checkResults(fiducial_results.magnetosonic_speed_slow, host_results.magnetosonic_speed_slow,
+                                 "magnetosonic_speed_slow");
+  testingUtilities::checkResults(fiducial_results.magnetosonic_speed_fast_squared,
+                                 host_results.magnetosonic_speed_fast_squared, "magnetosonic_speed_fast_squared");
+  testingUtilities::checkResults(fiducial_results.magnetosonic_speed_slow_squared,
+                                 host_results.magnetosonic_speed_slow_squared, "magnetosonic_speed_slow_squared");
+  testingUtilities::checkResults(fiducial_results.alpha_fast, host_results.alpha_fast, "alpha_fast");
+  testingUtilities::checkResults(fiducial_results.alpha_slow, host_results.alpha_slow, "alpha_slow");
+  testingUtilities::checkResults(fiducial_results.beta_y, host_results.beta_y, "beta_y");
+  testingUtilities::checkResults(fiducial_results.beta_z, host_results.beta_z, "beta_z");
+  testingUtilities::checkResults(fiducial_results.n_fs, host_results.n_fs, "n_fs");
+  testingUtilities::checkResults(fiducial_results.sign, host_results.sign, "sign");
+  testingUtilities::checkResults(fiducial_results.q_fast, host_results.q_fast, "q_fast");
+  testingUtilities::checkResults(fiducial_results.q_slow, host_results.q_slow, "q_slow");
+  testingUtilities::checkResults(fiducial_results.a_fast, host_results.a_fast, "a_fast");
+  testingUtilities::checkResults(fiducial_results.a_slow, host_results.a_slow, "a_slow");
+  testingUtilities::checkResults(fiducial_results.q_prime_fast, host_results.q_prime_fast, "q_prime_fast");
+  testingUtilities::checkResults(fiducial_results.q_prime_slow, host_results.q_prime_slow, "q_prime_slow");
+  testingUtilities::checkResults(fiducial_results.a_prime_fast, host_results.a_prime_fast, "a_prime_fast");
+  testingUtilities::checkResults(fiducial_results.a_prime_slow, host_results.a_prime_slow, "a_prime_slow");
+}
 #endif  // MHD
+
+TEST(tALLReconstructionThreadGuard, CorrectInputExpectCorrectOutput)
+{
+  // Test parameters
+  int const order = 3;
+  int const nx    = 6;
+  int const ny    = 6;
+  int const nz    = 6;
+
+  // fiducial data
+  std::vector<int> fiducial_vals(nx * ny * nz, 1);
+  fiducial_vals.at(86) = 0;
+
+  // loop through all values of the indices and check them
+  for (int xid = 0; xid < nx; xid++) {
+    for (int yid = 0; yid < ny; yid++) {
+      for (int zid = 0; zid < nz; zid++) {
+        // Get the test value
+        bool test_val = reconstruction::Thread_Guard<order>(nx, ny, nz, xid, yid, zid);
+
+        // Compare
+        int id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+        ASSERT_EQ(test_val, fiducial_vals.at(id))
+            << "Test value not equal to fiducial value at id = " << id << std::endl;
+      }
+    }
+  }
+}
 
 TEST(tALLReconstructionLoadData, CorrectInputExpectCorrectOutput)
 {
@@ -223,12 +325,13 @@ __global__ void Test_Monotize_Characteristic_Return_Primitive(
     reconstruction::Primitive const primitive, reconstruction::Primitive const del_L,
     reconstruction::Primitive const del_R, reconstruction::Primitive const del_C, reconstruction::Primitive const del_G,
     reconstruction::Characteristic const del_a_L, reconstruction::Characteristic const del_a_R,
-    reconstruction::Characteristic const del_a_C, reconstruction::Characteristic const del_a_G, Real const sound_speed,
-    Real const sound_speed_squared, Real const gamma, reconstruction::Primitive *monotonized_slope)
+    reconstruction::Characteristic const del_a_C, reconstruction::Characteristic const del_a_G,
+    reconstruction::EigenVecs const eigenvectors, Real const sound_speed, Real const sound_speed_squared,
+    Real const gamma, reconstruction::Primitive *monotonized_slope)
 {
   *monotonized_slope = reconstruction::Monotonize_Characteristic_Return_Primitive(
-      primitive, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed_squared,
-      gamma);
+      primitive, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, eigenvectors, sound_speed,
+      sound_speed_squared, gamma);
 }
 
 TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpectCorrectOutput)
@@ -256,19 +359,22 @@ TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpe
 #endif  // MHD
   Real const sound_speed = 17.0, sound_speed_squared = sound_speed * sound_speed;
   Real const gamma = 5. / 3.;
+  reconstruction::EigenVecs const eigenvectors{
+      17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+  };
 
   // Get test data
   cuda_utilities::DeviceVector<reconstruction::Primitive> dev_results(1);
   hipLaunchKernelGGL(Test_Monotize_Characteristic_Return_Primitive, 1, 1, 0, 0, primitive, del_L, del_R, del_C, del_G,
-                     del_a_L, del_a_R, del_a_C, del_a_G, sound_speed, sound_speed_squared, gamma, dev_results.data());
+                     del_a_L, del_a_R, del_a_C, del_a_G, eigenvectors, sound_speed, sound_speed_squared, gamma,
+                     dev_results.data());
   CudaCheckError();
   cudaDeviceSynchronize();
   reconstruction::Primitive const host_results = dev_results.at(0);
 
   // Check results
 #ifdef MHD
-  reconstruction::Primitive const fiducial_data{174, 74.796411763317991,  19.428234044886157, 16.129327015450095, 33524,
-                                                0,   -1385.8699833027156, -1407.694707449215};
+  reconstruction::Primitive const fiducial_data{5046, 2934, -2526, -2828, 1441532, 0.0, -69716, 72152};
   testingUtilities::Check_Results(fiducial_data.density, host_results.density, "density");
   testingUtilities::Check_Results(fiducial_data.velocity_x, host_results.velocity_x, "velocity_x");
   testingUtilities::Check_Results(fiducial_data.velocity_y, host_results.velocity_y, "velocity_y");

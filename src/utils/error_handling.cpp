@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <string>
 
 #ifdef MPI_CHOLLA
   #include <mpi.h>
@@ -53,6 +54,22 @@ void Check_Configuration(parameters const &P)
 #if ((defined(VL) + defined(CTU) + defined(SIMPLE)) != 1)
   #error "Only one integrator can be enabled at a time."
 #endif  // Only one integrator check
+
+  // Check the boundary conditions
+  auto Check_Boundary = [](int const &boundary, std::string const &direction) {
+    bool is_allowed_bc = boundary >= 0 and boundary <= 4;
+    std::string const error_message =
+        "WARNING: Possibly invalid boundary conditions for direction: " + direction +
+        " flag: " + std::to_string(boundary) +
+        ". Must select between 0 (no boundary), 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi).";
+    assert(is_allowed_bc && error_message.c_str());
+  };
+  Check_Boundary(P.xl_bcnd, "xl_bcnd");
+  Check_Boundary(P.xu_bcnd, "xu_bcnd");
+  Check_Boundary(P.yl_bcnd, "yl_bcnd");
+  Check_Boundary(P.yu_bcnd, "yu_bcnd");
+  Check_Boundary(P.zl_bcnd, "zl_bcnd");
+  Check_Boundary(P.zu_bcnd, "zu_bcnd");
 
   // warn if error checking is disabled
 #ifndef CUDA_ERROR_CHECK
