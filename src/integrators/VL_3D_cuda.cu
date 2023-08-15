@@ -32,8 +32,7 @@
 
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x,
                                                    Real *dev_F_y, Real *dev_F_z, int nx, int ny, int nz, int n_ghost,
-                                                   Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields,
-                                                   Real density_floor);
+                                                   Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields);
 
 void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
                           int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound,
@@ -194,8 +193,13 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
 
   // Step 3: Update the conserved variables half a timestep
   hipLaunchKernelGGL(Update_Conserved_Variables_3D_half, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved_half,
-                     F_x, F_y, F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields, density_floor);
+                     F_x, F_y, F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields);
   CudaCheckError();
+
+  #ifdef DENSITY_FLOOR
+  hipLaunchKernelGGL(Apply_Density_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, nx, ny, nz, n_ghost, density_floor);
+  #endif  // DENSITY_FLOOR
+
   #ifdef MHD
   // Update the magnetic fields
   hipLaunchKernelGGL(mhd::Update_Magnetic_Field_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved_half,
@@ -325,11 +329,11 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   CudaCheckError();
   #endif  // TEMPERATURE_FLOOR
 
-  #ifdef DUST
-  hipLaunchKernelGGL(Apply_Conserved_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
+  #ifdef SCALAR_FLOOR
+  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
                      grid_enum::dust_density, 1e-5);
   CudaCheckError();
-  #endif  // DUST
+  #endif  // SCALAR_FLOOR
 
   return;
 }
@@ -353,8 +357,7 @@ void Free_Memory_VL_3D()
 
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x,
                                                    Real *dev_F_y, Real *dev_F_z, int nx, int ny, int nz, int n_ghost,
-                                                   Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields,
-                                                   Real density_floor)
+                                                   Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields)
 {
   Real dtodx  = dt / dx;
   Real dtody  = dt / dy;
@@ -377,10 +380,6 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
   Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo, P, E, E_kin, GE;
   int ipo, jpo, kpo;
   #endif  // DE
-
-  #ifdef DENSITY_FLOOR
-  Real dens_0;
-  #endif  // DENSITY_FLOOR
 
   // threads corresponding to all cells except outer ring of ghost cells do the
   // calculation
@@ -455,22 +454,6 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
         dtodz * (dev_F_z[(n_fields - 1) * n_cells + kmo] - dev_F_z[(n_fields - 1) * n_cells + id]) +
         0.5 * P * (dtodx * (vx_imo - vx_ipo) + dtody * (vy_jmo - vy_jpo) + dtodz * (vz_kmo - vz_kpo));
   #endif  // DE
-
-  #ifdef DENSITY_FLOOR
-    if (dev_conserved_half[id] < density_floor) {
-      dens_0 = dev_conserved_half[id];
-      printf("###Thread density change  %f -> %f \n", dens_0, density_floor);
-      dev_conserved_half[id] = density_floor;
-      // Scale the conserved values to the new density
-      dev_conserved_half[1 * n_cells + id] *= (density_floor / dens_0);
-      dev_conserved_half[2 * n_cells + id] *= (density_floor / dens_0);
-      dev_conserved_half[3 * n_cells + id] *= (density_floor / dens_0);
-      dev_conserved_half[4 * n_cells + id] *= (density_floor / dens_0);
-    #ifdef DE
-      dev_conserved_half[(n_fields - 1) * n_cells + id] *= (density_floor / dens_0);
-    #endif  // DE
-    }
-  #endif  // DENSITY_FLOOR
   }
 }
 

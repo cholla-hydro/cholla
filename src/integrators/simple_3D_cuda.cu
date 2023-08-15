@@ -185,11 +185,11 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
   CudaCheckError();
     #endif  // TEMPERATURE_FLOOR
 
-    #ifdef DUST
-  hipLaunchKernelGGL(Apply_Conserved_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
+    #ifdef SCALAR_FLOOR
+  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
                      grid_enum::dust_density, 1e-5);
   CudaCheckError();
-    #endif  // DUST
+    #endif  // SCALAR_FLOOR
 
   return;
 }
