@@ -407,8 +407,9 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveExpectSecond
   double const rEigenVec_E         = prefix * 9;
 
   // Set the launch parameters
-  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                    rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0, 16);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0,
+                    16);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
@@ -418,8 +419,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveExpectSecond
 
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
-  testingUtilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["fast_" + std::to_string(domain_direction)], "",
-                                  0.17);
+  testingUtilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["fast_" + std::to_string(domain_direction)],
+                                  "", 0.17);
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecondOrderConvergence)
@@ -442,8 +443,9 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecond
   double const rEigenVec_E         = prefix * 3;
 
   // Set the launch parameters
-  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                    rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0, 16);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0,
+                    16);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
@@ -453,8 +455,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecond
 
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
-  testingUtilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["slow_" + std::to_string(domain_direction)], "",
-                                  0.17);
+  testingUtilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["slow_" + std::to_string(domain_direction)],
+                                  "", 0.17);
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConvergence)
@@ -476,8 +478,9 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConve
   double const rEigenVec_E         = 0;
 
   // Set the launch parameters
-  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                    rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0, 16);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0,
+                    16);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
@@ -511,8 +514,9 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveExpectSecondOrderC
   double const velocityX           = waveSpeed;
 
   // Set the launch parameters
-  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                    rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, velocityX, 16);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction,
+                    velocityX, 16);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
