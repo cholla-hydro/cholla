@@ -41,7 +41,7 @@ __global__ void Test_Char_2_Prim(reconstruction::Primitive const primitive,
                                                                  sound_speed, sound_speed_squared, gamma);
 }
 
-__global__ void test_compute_eigenvectors(reconstruction::Primitive const primitive, Real const sound_speed,
+__global__ void Test_Compute_Eigenvectors(reconstruction::Primitive const primitive, Real const sound_speed,
                                           Real const sound_speed_squared, Real const gamma,
                                           reconstruction::EigenVecs *eigenvectors)
 {
@@ -121,7 +121,7 @@ TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
 
   // Run test
   cuda_utilities::DeviceVector<reconstruction::EigenVecs> dev_results(1);
-  hipLaunchKernelGGL(test_compute_eigenvectors, 1, 1, 0, 0, primitive, sound_speed, sound_speed_squared, gamma,
+  hipLaunchKernelGGL(Test_Compute_Eigenvectors, 1, 1, 0, 0, primitive, sound_speed, sound_speed_squared, gamma,
                      dev_results.data());
   CudaCheckError();
   cudaDeviceSynchronize();
@@ -150,28 +150,28 @@ TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
       0.97891777490585408,  0.65850460786851805, 0.75257669470687782, 0.059999999999999984, 1,
       2.546253336541183,    1.3601203180183106,  0.58963258314939582, 2.825892204282022,    0.15277520019247093,
       0.081607219081098623, 0.03537795498896374, 0.1695535322569213};
-  testingUtilities::checkResults(fiducial_results.magnetosonic_speed_fast, host_results.magnetosonic_speed_fast,
-                                 "magnetosonic_speed_fast");
-  testingUtilities::checkResults(fiducial_results.magnetosonic_speed_slow, host_results.magnetosonic_speed_slow,
-                                 "magnetosonic_speed_slow");
-  testingUtilities::checkResults(fiducial_results.magnetosonic_speed_fast_squared,
-                                 host_results.magnetosonic_speed_fast_squared, "magnetosonic_speed_fast_squared");
-  testingUtilities::checkResults(fiducial_results.magnetosonic_speed_slow_squared,
-                                 host_results.magnetosonic_speed_slow_squared, "magnetosonic_speed_slow_squared");
-  testingUtilities::checkResults(fiducial_results.alpha_fast, host_results.alpha_fast, "alpha_fast");
-  testingUtilities::checkResults(fiducial_results.alpha_slow, host_results.alpha_slow, "alpha_slow");
-  testingUtilities::checkResults(fiducial_results.beta_y, host_results.beta_y, "beta_y");
-  testingUtilities::checkResults(fiducial_results.beta_z, host_results.beta_z, "beta_z");
-  testingUtilities::checkResults(fiducial_results.n_fs, host_results.n_fs, "n_fs");
-  testingUtilities::checkResults(fiducial_results.sign, host_results.sign, "sign");
-  testingUtilities::checkResults(fiducial_results.q_fast, host_results.q_fast, "q_fast");
-  testingUtilities::checkResults(fiducial_results.q_slow, host_results.q_slow, "q_slow");
-  testingUtilities::checkResults(fiducial_results.a_fast, host_results.a_fast, "a_fast");
-  testingUtilities::checkResults(fiducial_results.a_slow, host_results.a_slow, "a_slow");
-  testingUtilities::checkResults(fiducial_results.q_prime_fast, host_results.q_prime_fast, "q_prime_fast");
-  testingUtilities::checkResults(fiducial_results.q_prime_slow, host_results.q_prime_slow, "q_prime_slow");
-  testingUtilities::checkResults(fiducial_results.a_prime_fast, host_results.a_prime_fast, "a_prime_fast");
-  testingUtilities::checkResults(fiducial_results.a_prime_slow, host_results.a_prime_slow, "a_prime_slow");
+  testingUtilities::Check_Results(fiducial_results.magnetosonic_speed_fast, host_results.magnetosonic_speed_fast,
+                                  "magnetosonic_speed_fast");
+  testingUtilities::Check_Results(fiducial_results.magnetosonic_speed_slow, host_results.magnetosonic_speed_slow,
+                                  "magnetosonic_speed_slow");
+  testingUtilities::Check_Results(fiducial_results.magnetosonic_speed_fast_squared,
+                                  host_results.magnetosonic_speed_fast_squared, "magnetosonic_speed_fast_squared");
+  testingUtilities::Check_Results(fiducial_results.magnetosonic_speed_slow_squared,
+                                  host_results.magnetosonic_speed_slow_squared, "magnetosonic_speed_slow_squared");
+  testingUtilities::Check_Results(fiducial_results.alpha_fast, host_results.alpha_fast, "alpha_fast");
+  testingUtilities::Check_Results(fiducial_results.alpha_slow, host_results.alpha_slow, "alpha_slow");
+  testingUtilities::Check_Results(fiducial_results.beta_y, host_results.beta_y, "beta_y");
+  testingUtilities::Check_Results(fiducial_results.beta_z, host_results.beta_z, "beta_z");
+  testingUtilities::Check_Results(fiducial_results.n_fs, host_results.n_fs, "n_fs");
+  testingUtilities::Check_Results(fiducial_results.sign, host_results.sign, "sign");
+  testingUtilities::Check_Results(fiducial_results.q_fast, host_results.q_fast, "q_fast");
+  testingUtilities::Check_Results(fiducial_results.q_slow, host_results.q_slow, "q_slow");
+  testingUtilities::Check_Results(fiducial_results.a_fast, host_results.a_fast, "a_fast");
+  testingUtilities::Check_Results(fiducial_results.a_slow, host_results.a_slow, "a_slow");
+  testingUtilities::Check_Results(fiducial_results.q_prime_fast, host_results.q_prime_fast, "q_prime_fast");
+  testingUtilities::Check_Results(fiducial_results.q_prime_slow, host_results.q_prime_slow, "q_prime_slow");
+  testingUtilities::Check_Results(fiducial_results.a_prime_fast, host_results.a_prime_fast, "a_prime_fast");
+  testingUtilities::Check_Results(fiducial_results.a_prime_slow, host_results.a_prime_slow, "a_prime_slow");
 }
 #endif  // MHD
 
