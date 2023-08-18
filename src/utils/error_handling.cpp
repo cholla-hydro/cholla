@@ -91,7 +91,7 @@ void Check_Configuration(parameters const &P)
   assert(P.nx > 1 and P.ny > 1 and P.nz > 1 and "MHD runs must be 3D");
 
   // Must use the correct integrator
-  #if !defined(VL) || defined(SIMPLE)
+  #if !defined(VL) || defined(SIMPLE) || defined(CTU)
     #error "MHD only supports the Van Leer integrator"
   #endif  //! VL or SIMPLE
 
