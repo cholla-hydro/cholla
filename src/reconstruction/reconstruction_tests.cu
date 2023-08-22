@@ -150,13 +150,13 @@ TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
       2.546253336541183,    1.3601203180183106,  0.58963258314939582, 2.825892204282022,    0.15277520019247093,
       0.081607219081098623, 0.03537795498896374, 0.1695535322569213};
   testing_utilities::checkResults(fiducial_results.magnetosonic_speed_fast, host_results.magnetosonic_speed_fast,
-                                 "magnetosonic_speed_fast");
+                                  "magnetosonic_speed_fast");
   testing_utilities::checkResults(fiducial_results.magnetosonic_speed_slow, host_results.magnetosonic_speed_slow,
-                                 "magnetosonic_speed_slow");
+                                  "magnetosonic_speed_slow");
   testing_utilities::checkResults(fiducial_results.magnetosonic_speed_fast_squared,
-                                 host_results.magnetosonic_speed_fast_squared, "magnetosonic_speed_fast_squared");
+                                  host_results.magnetosonic_speed_fast_squared, "magnetosonic_speed_fast_squared");
   testing_utilities::checkResults(fiducial_results.magnetosonic_speed_slow_squared,
-                                 host_results.magnetosonic_speed_slow_squared, "magnetosonic_speed_slow_squared");
+                                  host_results.magnetosonic_speed_slow_squared, "magnetosonic_speed_slow_squared");
   testing_utilities::checkResults(fiducial_results.alpha_fast, host_results.alpha_fast, "alpha_fast");
   testing_utilities::checkResults(fiducial_results.alpha_slow, host_results.alpha_slow, "alpha_slow");
   testing_utilities::checkResults(fiducial_results.beta_y, host_results.beta_y, "beta_y");
