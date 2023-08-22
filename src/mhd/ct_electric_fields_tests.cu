@@ -268,7 +268,7 @@ TEST(tMHDCTSlope, CorrectInputExpectCorrectOutput)
   ASSERT_EQ(test_data.size(), fiducial_data.size());
 
   for (size_t i = 0; i < test_data.size(); i++) {
-    testingUtilities::checkResults(fiducial_data.at(i), test_data.at(i), "");
+    testing_utilities::checkResults(fiducial_data.at(i), test_data.at(i), "");
   }
 }
 // =============================================================================

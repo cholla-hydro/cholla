@@ -542,23 +542,25 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
 
 void Allocate_MPI_DeviceBuffers(struct Header *H)
 {
-  int xbsize = 0, ybsize = 0, zbsize = 0;
+  int xbsize, ybsize, zbsize;
   if (H->ny == 1 && H->nz == 1) {
     xbsize = H->n_fields * H->n_ghost;
     ybsize = 1;
     zbsize = 1;
   }
   // 2D
-  if (H->ny > 1 && H->nz == 1) {
+  else if (H->ny > 1 && H->nz == 1) {
     xbsize = H->n_fields * H->n_ghost * (H->ny - 2 * H->n_ghost);
     ybsize = H->n_fields * H->n_ghost * (H->nx);
     zbsize = 1;
   }
   // 3D
-  if (H->ny > 1 && H->nz > 1) {
+  else if (H->ny > 1 && H->nz > 1) {
     xbsize = H->n_fields * H->n_ghost * (H->ny - 2 * H->n_ghost) * (H->nz - 2 * H->n_ghost);
     ybsize = H->n_fields * H->n_ghost * (H->nx) * (H->nz - 2 * H->n_ghost);
     zbsize = H->n_fields * H->n_ghost * (H->nx) * (H->ny);
+  } else {
+    throw std::runtime_error("MPI buffer size failed to set.");
   }
 
   x_buffer_length = xbsize;
