@@ -71,14 +71,14 @@ INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput, tHYDROtMHDSYSTEMSodSho
 
 TEST(tHYDROSYSTEMSodShockTube, OneDimensionalCorrectInputExpectCorrectOutput)
 {
-  systemTest::SystemTestRunner sodTest;
-  sodTest.runTest();
+  system_test::SystemTestRunner sod_test;
+  sod_test.runTest();
 }
 
 TEST(tHYDROSYSTEMSodShockTube, TwoDimensionalCorrectInputExpectCorrectOutput)
 {
-  systemTest::SystemTestRunner sodTest;
-  sodTest.runTest();
+  system_test::SystemTestRunner sod_test;
+  sod_test.runTest();
 }
 
 TEST(tHYDROtMHDSYSTEMConstant, CorrectInputExpectCorrectOutput)
