@@ -106,7 +106,7 @@ void Check_Configuration(parameters const &P)
   #endif  // Reconstruction check
 
   // must have HDF5
-  #ifndef HDF5
+  #if defined(OUTPUT) and (not defined(HDF5))
     #error "MHD only supports HDF5 output"
   #endif  //! HDF5
 
