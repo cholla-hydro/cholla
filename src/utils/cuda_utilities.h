@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <string>
+
 // Local Includes
 #include "../global/global.h"
 #include "../global/global_cuda.h"
@@ -120,5 +122,14 @@ struct AutomaticLaunchParams {
   /// The maximum number of scheduleable blocks on the device
   int numBlocks;
 };
+// =====================================================================
+
+// =====================================================================
+/*!
+ * \brief Print the current GPU memory usage to standard out
+ *
+ * \param additional_text Any additional text to be appended to the end of the message
+ */
+void Print_GPU_Memory_Usage(std::string const &additional_text = "");
 // =====================================================================
 }  // end namespace cuda_utilities
