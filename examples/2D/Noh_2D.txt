@@ -29,6 +29,8 @@ xl_bcnd=2
 xu_bcnd=4
 yl_bcnd=2
 yu_bcnd=4
+zl_bcnd=0
+zu_bcnd=0
 custom_bcnd=noh
 # path to output directory
 outdir=./
