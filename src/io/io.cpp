@@ -10,7 +10,6 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <vector>
 #ifdef HDF5
   #include <hdf5.h>
 #endif  // HDF5
@@ -47,7 +46,7 @@ static inline bool Is_Root_Proc()
 
 void Create_Log_File(struct parameters P)
 {
-  if (!Is_Root_Proc()) {
+  if (not Is_Root_Proc()) {
     return;
   }
 
@@ -75,7 +74,7 @@ void Create_Log_File(struct parameters P)
 
 void Write_Message_To_Log_File(const char *message)
 {
-  if (!!Is_Root_Proc()) {
+  if (not Is_Root_Proc()) {
     return;
   }
 
@@ -2597,7 +2596,7 @@ int chprintf(const char *__restrict sdata, ...)  // NOLINT(cert-dcl50-cpp)
 {
   int code = 0;
   /*limit printf to root process only*/
-  if (!Is_Root_Proc()) {
+  if (not Is_Root_Proc()) {
     va_list ap;
     va_start(ap, sdata);
     code = vfprintf(stdout, sdata, ap);  // NOLINT(clang-analyzer-valist.Uninitialized)
@@ -2686,7 +2685,7 @@ void Ensure_Outdir_Exists(std::string outdir)
       // confirm that an error-code wasn't set & that the path actually refers
       // to a directory (it's unclear from docs whether err-code is set in that
       // case)
-      if (err_code || !std::filesystem::is_directory(without_file_prefix)) {
+      if (err_code or not std::filesystem::is_directory(without_file_prefix)) {
         chprintf(
             "something went wrong while trying to create the path to the "
             "output-dir: %s\n",
