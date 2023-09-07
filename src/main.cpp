@@ -14,7 +14,9 @@
 #include "global/global.h"
 #include "grid/grid3D.h"
 #include "io/io.h"
+#include "utils/cuda_utilities.h"
 #include "utils/error_handling.h"
+
 #ifdef SUPERNOVA
   #include "particles/supernova.h"
   #ifdef ANALYSIS
@@ -297,6 +299,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef CPU_TIME
+    cuda_utilities::Print_GPU_Memory_Usage();
     G.Timer.Total.End();
 #endif  // CPU_TIME
 
