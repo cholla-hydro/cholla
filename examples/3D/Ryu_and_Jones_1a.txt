@@ -1,10 +1,10 @@
 #
-# Parameter File for 3D Ryu & Jones MHD shock tube 4d.
+# Parameter File for 3D Ryu & Jones MHD shock tube 1a.
 # Citation: Ryu & Jones 1995 "Numerical Magnetohydrodynamics in Astrophysics:
 # Algorithms and Tests for One-Dimensional Flow"
 #
 # Note: There are many shock tubes in this paper. This settings file is
-# specifically for shock tube 4d
+# specifically for shock tube 1a
 #
 
 ################################################
