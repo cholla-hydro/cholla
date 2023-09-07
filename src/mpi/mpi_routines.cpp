@@ -716,6 +716,29 @@ Real ReduceRealAvg(Real x)
   return y;
 }
 
+size_t Reduce_size_t_Max(size_t in)
+{
+  // Get the right MPI type
+  #if SIZE_MAX == UCHAR_MAX
+    #define my_MPI_SIZE_T MPI_UNSIGNED_CHAR
+  #elif SIZE_MAX == USHRT_MAX
+    #define my_MPI_SIZE_T MPI_UNSIGNED_SHORT
+  #elif SIZE_MAX == UINT_MAX
+    #define my_MPI_SIZE_T MPI_UNSIGNED
+  #elif SIZE_MAX == ULONG_MAX
+    #define my_MPI_SIZE_T MPI_UNSIGNED_LONG
+  #elif SIZE_MAX == ULLONG_MAX
+    #define my_MPI_SIZE_T MPI_UNSIGNED_LONG_LONG
+  #else
+    #error "Error: Type of size_t not supported by Reduce_size_t_Max"
+  #endif
+
+  // Perform the reduction
+  size_t out;
+  MPI_Allreduce(&in, &out, 1, my_MPI_SIZE_T, MPI_MAX, world);
+  return out;
+}
+
   #ifdef PARTICLES
 /* MPI reduction wrapper for sum(part_int)*/
 Real ReducePartIntSum(part_int_t x)

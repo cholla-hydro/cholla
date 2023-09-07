@@ -27,8 +27,9 @@ xl_bcnd=1
 xu_bcnd=1
 yl_bcnd=1
 yu_bcnd=1
+zl_bcnd=0
+zu_bcnd=0
 # path to output directory
-#outdir=outputs/
 outdir=./
 
 #################################################
