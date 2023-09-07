@@ -37,7 +37,8 @@ Checks: "*,
 
         google-readability-avoid-underscore-in-googletest-name,
         google-upgrade-googletest-case,
-
+-*,
+readability-braces-around-statements,
         -bugprone-implicit-widening-of-multiplication-result,
         -bugprone-narrowing-conversions,
         -cert-env33-c,
@@ -139,6 +140,7 @@ AnalyzeTemporaryDtors: false
 FormatStyle:     'file'
 UseColor: false
 CheckOptions:
+  readability-braces-around-statements.ShortStatementLines: 1
   # readability-identifier-naming allowed casing types
   # - lower_case
   # - UPPER_CASE
