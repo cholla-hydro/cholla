@@ -9,7 +9,7 @@ GPUFLAGS         = -std=c++17
 OMP_NUM_THREADS = 10
 
 #-- Library
-CUDA_ROOT    = /cm/shared/apps/cuda10.2/toolkit/current
+CUDA_ROOT    = /cm/shared/apps/cuda11.2/toolkit/current
 HDF5_ROOT    = /cm/shared/apps/hdf5/1.10.6
 FFTW_ROOT    = /home/brvillas/code/fftw-3.3.8
 PFFT_ROOT    = /data/groups/comp-astro/bruno/code_mpi_local/pfft
