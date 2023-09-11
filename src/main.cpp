@@ -95,6 +95,7 @@ int main(int argc, char *argv[])
     chprintf("Input directory:  %s\n", P.indir);
   }
   chprintf("Output directory:  %s\n", P.outdir);
+  Ensure_Outdir_Exists(P.outdir);
 
   // Check the configuration
   Check_Configuration(P);
