@@ -772,8 +772,8 @@ void Grid3D::KH_res_ind()
 
   d1 = 100.0;  // inner density
   d2 = 1.0;    // outer density
-  v1 = 0.5;   // inner velocity
-  v2 = -0.5;    // outer velocity
+  v1 = 0.5;    // inner velocity
+  v2 = -0.5;   // outer velocity
   P  = 2.5;    // pressure
   dy = 0.05;   // width of ramp function (see Robertson 2009)
   A  = 0.1;    // amplitude of the perturbation
@@ -788,77 +788,79 @@ void Grid3D::KH_res_ind()
         id = i + j * H.nx + k * H.nx * H.ny;
         // get the centered x and y positions
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
-	// 2D initial conditions:
-	if (H.nz == 1) {
-	  // inner fluid
-	  if (fabs(y_pos - 0.5) < 0.25) {
-	    if (y_pos > 0.5) {
-	      C.density[id] =
-                d1 - (d1 - d2) * exp(-0.5 * pow(y_pos - 0.75 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_x[id] =
-                v1 * C.density[id] - C.density[id] * (v1 - v2) *
-		exp(-0.5 * pow(y_pos - 0.75 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos) *
-		exp(-0.5 * pow(y_pos - 0.75 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	    } else {
-	      C.density[id] =
-                d1 - (d1 - d2) * exp(-0.5 * pow(y_pos - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_x[id] =
-                v1 * C.density[id] - C.density[id] * (v1 - v2) *
-		exp(-0.5 * pow(y_pos - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos) *
-		exp(-0.5 * pow(y_pos - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	    }
-	  }
-	  // outer fluid
-	  else {
-	    if (y_pos > 0.5) {
-	      C.density[id] =
-                d2 + (d1 - d2) * exp(-0.5 * pow(y_pos - 0.75 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_x[id] =
-                v2 * C.density[id] + C.density[id] * (v1 - v2) *
-		exp(-0.5 * pow(y_pos - 0.75 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos) *
-		exp(-0.5 * pow(y_pos - 0.75 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	    } else {
-	      C.density[id] =
-                d2 + (d1 - d2) * exp(-0.5 * pow(y_pos - 0.25 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_x[id] =
-                v2 * C.density[id] + C.density[id] * (v1 - v2) *
-		exp(-0.5 * pow(y_pos - 0.25 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos) *
-		exp(-0.5 * pow(y_pos - 0.25 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	    }
-	  }
-	  // C.momentum_y[id] = C.density[id] * A*sin(4*PI*x_pos);
-	  C.momentum_z[id] = 0.0;
-	
-	//3D initial conditions:
-	} else {
-	  // cylindrical version (3D only)
-	  r   = sqrt((z_pos - zc) * (z_pos - zc) + (y_pos - yc) * (y_pos - yc));  // center the cylinder at yc, zc
-	  phi = atan2((z_pos - zc), (y_pos - yc));
+        // 2D initial conditions:
+        if (H.nz == 1) {
+          // inner fluid
+          if (fabs(y_pos - 0.5) < 0.25) {
+            if (y_pos > 0.5) {
+              C.density[id] =
+                  d1 - (d1 - d2) * exp(-0.5 * pow(y_pos - 0.75 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+              C.momentum_x[id] = v1 * C.density[id] -
+                                 C.density[id] * (v1 - v2) *
+                                     exp(-0.5 * pow(y_pos - 0.75 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+              C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos) *
+                                 exp(-0.5 * pow(y_pos - 0.75 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+            } else {
+              C.density[id] =
+                  d1 - (d1 - d2) * exp(-0.5 * pow(y_pos - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+              C.momentum_x[id] = v1 * C.density[id] -
+                                 C.density[id] * (v1 - v2) *
+                                     exp(-0.5 * pow(y_pos - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+              C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos) *
+                                 exp(-0.5 * pow(y_pos - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+            }
+          }
+          // outer fluid
+          else {
+            if (y_pos > 0.5) {
+              C.density[id] =
+                  d2 + (d1 - d2) * exp(-0.5 * pow(y_pos - 0.75 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+              C.momentum_x[id] = v2 * C.density[id] +
+                                 C.density[id] * (v1 - v2) *
+                                     exp(-0.5 * pow(y_pos - 0.75 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+              C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos) *
+                                 exp(-0.5 * pow(y_pos - 0.75 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+            } else {
+              C.density[id] =
+                  d2 + (d1 - d2) * exp(-0.5 * pow(y_pos - 0.25 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+              C.momentum_x[id] = v2 * C.density[id] +
+                                 C.density[id] * (v1 - v2) *
+                                     exp(-0.5 * pow(y_pos - 0.25 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+              C.momentum_y[id] = C.density[id] * A * sin(4 * M_PI * x_pos) *
+                                 exp(-0.5 * pow(y_pos - 0.25 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+            }
+          }
+          // C.momentum_y[id] = C.density[id] * A*sin(4*PI*x_pos);
+          C.momentum_z[id] = 0.0;
 
-	  if (r < 0.25)  // inside the cylinder
-	    {
-	      C.density[id] = d1 - (d1 - d2) * exp(-0.5 * pow(r - 0.25 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_x[id] = v1 * C.density[id] -
-		C.density[id] * exp(-0.5 * pow(r - 0.25 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_y[id] = cos(phi) * C.density[id] * A * sin(4 * M_PI * x_pos) *
-		exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_z[id] = sin(phi) * C.density[id] * A * sin(4 * M_PI * x_pos) *
-		exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	    } else  // outside the cylinder
-	    {
-	      C.density[id] = d2 + (d1 - d2) * exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_x[id] = v2 * C.density[id] +
-		C.density[id] * exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
-	      C.momentum_y[id] = cos(phi) * C.density[id] * A * sin(4 * M_PI * x_pos) *
-		(1.0 - exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy)));
-	      C.momentum_z[id] = sin(phi) * C.density[id] * A * sin(4 * M_PI * x_pos) *
-		(1.0 - exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy)));
-	    }
-	}
+          // 3D initial conditions:
+        } else {
+          // cylindrical version (3D only)
+          r   = sqrt((z_pos - zc) * (z_pos - zc) + (y_pos - yc) * (y_pos - yc));  // center the cylinder at yc, zc
+          phi = atan2((z_pos - zc), (y_pos - yc));
+
+          if (r < 0.25)  // inside the cylinder
+          {
+            C.density[id] = d1 - (d1 - d2) * exp(-0.5 * pow(r - 0.25 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+            C.momentum_x[id] =
+                v1 * C.density[id] -
+                C.density[id] * exp(-0.5 * pow(r - 0.25 - sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+            C.momentum_y[id] = cos(phi) * C.density[id] * A * sin(4 * M_PI * x_pos) *
+                               exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+            C.momentum_z[id] = sin(phi) * C.density[id] * A * sin(4 * M_PI * x_pos) *
+                               exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+          } else  // outside the cylinder
+          {
+            C.density[id] = d2 + (d1 - d2) * exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+            C.momentum_x[id] =
+                v2 * C.density[id] +
+                C.density[id] * exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy));
+            C.momentum_y[id] = cos(phi) * C.density[id] * A * sin(4 * M_PI * x_pos) *
+                               (1.0 - exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy)));
+            C.momentum_z[id] = sin(phi) * C.density[id] * A * sin(4 * M_PI * x_pos) *
+                               (1.0 - exp(-0.5 * pow(r - 0.25 + sqrt(-2.0 * dy * dy * log(0.5)), 2) / (dy * dy)));
+          }
+        }
 
         // No matter what we do with the density and momentum, set the Energy
         // and GasEnergy appropriately
