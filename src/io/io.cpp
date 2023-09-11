@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -32,13 +33,22 @@
  * output routine */
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
 
-void Create_Log_File(struct parameters P)
+/* local function that designates whether we are using a root-process. It gives
+ * gives a sensible result regardless of whether we are using MPI */
+static inline bool Is_Root_Proc()
 {
 #ifdef MPI_CHOLLA
-  if (procID != 0) {
+  return procID == root;
+#else
+  return true;
+#endif
+}
+
+void Create_Log_File(struct parameters P)
+{
+  if (not Is_Root_Proc()) {
     return;
   }
-#endif
 
   std::string file_name(LOG_FILE_NAME);
   chprintf("\nCreating Log File: %s \n\n", file_name.c_str());
@@ -64,11 +74,9 @@ void Create_Log_File(struct parameters P)
 
 void Write_Message_To_Log_File(const char *message)
 {
-#ifdef MPI_CHOLLA
-  if (procID != 0) {
+  if (not Is_Root_Proc()) {
     return;
   }
-#endif
 
   std::string file_name(LOG_FILE_NAME);
   std::ofstream out_file;
@@ -2587,20 +2595,14 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
 int chprintf(const char *__restrict sdata, ...)  // NOLINT(cert-dcl50-cpp)
 {
   int code = 0;
-#ifdef MPI_CHOLLA
   /*limit printf to root process only*/
-  if (procID == root) {
-#endif /*MPI_CHOLLA*/
-
+  if (not Is_Root_Proc()) {
     va_list ap;
     va_start(ap, sdata);
     code = vfprintf(stdout, sdata, ap);  // NOLINT(clang-analyzer-valist.Uninitialized)
     va_end(ap);
     fflush(stdout);
-
-#ifdef MPI_CHOLLA
   }
-#endif /*MPI_CHOLLA*/
 
   return code;
 }
@@ -2660,4 +2662,43 @@ void write_debug(Real *Value, const char *fname, int nValues, int iProc)
   }
 
   fclose(fp);
+}
+
+void Ensure_Outdir_Exists(std::string outdir)
+{
+  if (outdir == "") {
+    return;
+  } else if (Is_Root_Proc()) {
+    // if the last character of outdir is not a '/', then the substring of
+    // characters after the final '/' (or entire string if there isn't any '/')
+    // is treated as a file-prefix
+    //
+    // this is accomplished here:
+    std::filesystem::path without_file_prefix = std::filesystem::path(outdir).parent_path();
+
+    if (!without_file_prefix.empty()) {
+      // try to create all directories specified within outdir (does nothing if
+      // the directories already exist)
+      std::error_code err_code;
+      std::filesystem::create_directories(without_file_prefix, err_code);
+
+      // confirm that an error-code wasn't set & that the path actually refers
+      // to a directory (it's unclear from docs whether err-code is set in that
+      // case)
+      if (err_code or not std::filesystem::is_directory(without_file_prefix)) {
+        chprintf(
+            "something went wrong while trying to create the path to the "
+            "output-dir: %s\n",
+            outdir.c_str());
+        chexit(1);
+      }
+    }
+  }
+
+  // this barrier ensures we won't ever encounter a scenario when 1 process
+  // tries to write a file to a non-existent directory before the root process
+  // has a chance to create it
+#ifdef MPI_CHOLLA
+  MPI_Barrier(world);
+#endif
 }
