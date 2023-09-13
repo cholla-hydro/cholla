@@ -211,8 +211,15 @@ void parse_param(char *name, char *value, struct parameters *parms)
     parms->ny = atoi(value);
   } else if (strcmp(name, "nz") == 0) {
     parms->nz = atoi(value);
-    } else if (strcmp(name, "custom_grav") == 0) {
-    parms->custom_grav = atoi(value);
+#ifdef STATIC_GRAV
+  } else if (strcmp(name, "custom_grav") == 0) {
+    if (atoi(value) < 1 || atoi(value) > 4){
+	printf("ABORT: %d -> Unknown custom static gravity field.\n", atoi(value));
+	printf("Must select between \'1\' (Gresho), \'2\' (Rayleigh-Taylor), \'3\' (Keplerian disk), and \'4\' (Kuzmin disk/NFW halo).\n");
+	exit(0);}
+      else{
+	parms->custom_grav = atoi(value);}
+#endif
   } else if (strcmp(name, "tout") == 0) {
     parms->tout = atof(value);
   } else if (strcmp(name, "outstep") == 0) {
