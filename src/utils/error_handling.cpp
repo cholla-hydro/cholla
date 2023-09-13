@@ -1,12 +1,15 @@
 #include "../utils/error_handling.h"
 
 #include <cassert>
+#include <cstdarg>
+#include <cstdio>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #ifdef MPI_CHOLLA
-  #include <mpi.h>
-void chexit(int code)
+  #include "../mpi/mpi_routines.h"
+[[noreturn]] void chexit(int code)
 {
   if (code == 0) {
     /*exit normally*/
@@ -20,14 +23,14 @@ void chexit(int code)
   }
 }
 #else  /*MPI_CHOLLA*/
-void chexit(int code)
+[[noreturn]] void chexit(int code)
 {
   /*exit using code*/
   exit(code);
 }
 #endif /*MPI_CHOLLA*/
 
-void Check_Configuration(parameters const &P)
+void Check_Configuration(parameters const& P)
 {
 // General Checks
 // ==============
@@ -56,7 +59,7 @@ void Check_Configuration(parameters const &P)
 #endif  // Only one integrator check
 
   // Check the boundary conditions
-  auto Check_Boundary = [](int const &boundary, std::string const &direction) {
+  auto Check_Boundary = [](int const& boundary, std::string const& direction) {
     bool is_allowed_bc = boundary >= 0 and boundary <= 4;
     std::string const error_message =
         "WARNING: Possibly invalid boundary conditions for direction: " + direction +
@@ -125,4 +128,56 @@ void Check_Configuration(parameters const &P)
   #endif  // AVERAGE_SLOW_CELLS
 
 #endif  // MHD
+}
+
+// NOLINTNEXTLINE(cert-dcl50-cpp)
+[[noreturn]] void Abort_With_Err_(const char* func_name, const char* file_name, int line_num, const char* msg, ...)
+{
+  // considerations when using MPI:
+  //  - all processes must execute this function to catch errors that happen on
+  //    just one process
+  //  - to handle cases where all processes encounter the same error, we
+  //    pre-buffer the error message (so that the output remains legible)
+
+  // since we are aborting, it's OK that this isn't the most optimized
+
+  // prepare some info for the error message header
+  const char* santized_func_name = (func_name == nullptr) ? "{unspecified}" : func_name;
+
+  std::string proc_info =
+#ifdef MPI_CHOLLA
+      std::to_string(procID) + " / " + std::to_string(nproc) + " (using MPI)";
+#else
+      "0 / 1 (NOT using MPI)"
+#endif
+
+  // prepare the formatted message
+  std::vector<char> msg_buf;
+  if (msg == nullptr) {
+    msg_buf = std::vector<char>(80);
+    std::snprintf(msg_buf.data(), msg_buf.size(), "{nullptr encountered instead of error message}");
+  } else {
+    std::va_list args, args_copy;
+    va_start(args, msg);
+    va_copy(args_copy, args);
+
+    std::size_t msg_len = std::vsnprintf(nullptr, 0, msg, args) + 1;
+    va_end(args);
+
+    msg_buf = std::vector<char>(msg_len);
+    std::vsnprintf(msg_buf.data(), msg_len, msg, args);
+    va_end(args_copy);
+  }
+
+  // now write the error and exit
+  std::fprintf(stderr,
+               "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+               "Error occurred in %s on line %d\n"
+               "Function: %s\n"
+               "Rank: %s\n"
+               "Message: %s\n"
+               "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n",
+               file_name, line_num, santized_func_name, proc_info.data(), msg_buf.data());
+  std::fflush(stderr);  // may be unnecessary for stderr
+  chexit(1);
 }
