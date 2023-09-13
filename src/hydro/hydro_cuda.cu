@@ -140,7 +140,6 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
         dtody * (dev_F_y[(n_fields - 1) * n_cells + jmo] - dev_F_y[(n_fields - 1) * n_cells + id]);
   #endif
   #ifdef STATIC_GRAV
-  printf("%d\n", custom_grav);
     // calculate the gravitational acceleration as a function of x & y position
     switch(custom_grav) {
     case 1: //gresho

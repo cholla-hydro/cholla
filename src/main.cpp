@@ -79,9 +79,9 @@ int main(int argc, char *argv[])
   chprintf("Git Commit Hash = %s\n", GIT_HASH);
   chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
   chprintf(
-      "Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s, custom_Grav = %d,  "
+      "Parameter values:  nx = %d, ny = %d, nz = %d, tout = %f, init = %s,  "
       "boundaries = %d %d %d %d %d %d\n",
-      P.nx, P.ny, P.nz, P.tout, P.init, P.custom_grav, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
+      P.nx, P.ny, P.nz, P.tout, P.init, P.xl_bcnd, P.xu_bcnd, P.yl_bcnd, P.yu_bcnd, P.zl_bcnd, P.zu_bcnd);
 
   bool is_restart = false;
   if (strcmp(P.init, "Read_Grid") == 0) {
@@ -107,8 +107,6 @@ int main(int argc, char *argv[])
   Write_Message_To_Log_File(message.c_str());
   message = "Macro Flags     = " + std::string(MACRO_FLAGS);
   Write_Message_To_Log_File(message.c_str());
-  //message = "custom gravity is    = " + std::string(P.custom_grav);
-  //Write_Message_To_Log_File(message.c_str());
   // initialize the grid
   G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
@@ -129,6 +127,12 @@ int main(int argc, char *argv[])
 #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2);
   message = " eta_1: " + std::to_string(DE_ETA_1) + "   eta_2: " + std::to_string(DE_ETA_2);
+  Write_Message_To_Log_File(message.c_str());
+#endif 
+
+#ifdef STATIC_GRAV
+  chprintf("\nUsing Static Gravity:\n Custom gravity field selected: %d.\n", P.custom_grav);
+  message = " Custom gravity field: " + std::to_string(P.custom_grav);
   Write_Message_To_Log_File(message.c_str());
 #endif
 

@@ -211,8 +211,8 @@ void parse_param(char *name, char *value, struct parameters *parms)
     parms->ny = atoi(value);
   } else if (strcmp(name, "nz") == 0) {
     parms->nz = atoi(value);
-    //} else if (strcmp(name, "custom_grav") == 0) {
-    //parms->custom_grav = atoi(value);
+    } else if (strcmp(name, "custom_grav") == 0) {
+    parms->custom_grav = atoi(value);
   } else if (strcmp(name, "tout") == 0) {
     parms->tout = atof(value);
   } else if (strcmp(name, "outstep") == 0) {
