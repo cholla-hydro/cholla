@@ -183,6 +183,7 @@ struct parameters {
   int n_steps_output;
   Real gamma;
   char init[MAXLEN];
+  int custom_grav;
   int nfile;
   int n_hydro;
   int n_particle;
