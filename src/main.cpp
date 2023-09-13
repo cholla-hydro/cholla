@@ -14,6 +14,7 @@
 #include "global/global.h"
 #include "grid/grid3D.h"
 #include "io/io.h"
+#include "utils/cuda_utilities.h"
 #include "utils/error_handling.h"
 #ifdef FEEDBACK
   #include "feedback/feedback.h"
@@ -93,6 +94,7 @@ int main(int argc, char *argv[])
     chprintf("Input directory:  %s\n", P.indir);
   }
   chprintf("Output directory:  %s\n", P.outdir);
+  Ensure_Outdir_Exists(P.outdir);
 
   // Check the configuration
   Check_Configuration(P);
@@ -298,6 +300,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef CPU_TIME
+    cuda_utilities::Print_GPU_Memory_Usage();
     G.Timer.Total.End();
 #endif  // CPU_TIME
 

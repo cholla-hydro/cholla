@@ -150,14 +150,15 @@ void Time::Print_Average_Times(struct parameters P)
   }
 
   std::string file_name("run_timing.log");
-  std::string header;
 
   chprintf("Writing timing values to file: %s  \n", file_name.c_str());
 
-  std::string gitHash    = "Git Commit Hash = " + std::string(GIT_HASH) + std::string("\n");
-  std::string macroFlags = "Macro Flags     = " + std::string(MACRO_FLAGS) + std::string("\n\n");
+  std::string header = "Git Commit Hash = " + std::string(GIT_HASH) + std::string("\n");
+  header += "Macro Flags     = " + std::string(MACRO_FLAGS) + std::string("\n");
+  header += "Note that the timers all skip the first time step since it always takes longer." + std::string("\n") +
+            "To find the average time divide the time shown by n_steps-1" + std::string("\n");
 
-  header = "#n_proc  nx  ny  nz  n_omp  n_steps  ";
+  header += std::string("\n") + "#n_proc  nx  ny  nz  n_omp  n_steps  ";
 
   for (OneTime* x : onetimes) {
     header += x->name;
@@ -186,8 +187,6 @@ void Time::Print_Average_Times(struct parameters P)
   // Output timing values
   out_file.open(file_name.c_str(), std::ios::app);
   if (!file_exists) {
-    out_file << gitHash;
-    out_file << macroFlags;
     out_file << header;
   }
   #ifdef MPI_CHOLLA

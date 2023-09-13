@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <string>
 
 #ifdef MPI_CHOLLA
   #include <mpi.h>
@@ -55,18 +56,20 @@ void Check_Configuration(parameters const &P)
 #endif  // Only one integrator check
 
   // Check the boundary conditions
-  auto Check_Boundary = [](int const &boundary) {
+  auto Check_Boundary = [](int const &boundary, std::string const &direction) {
     bool is_allowed_bc = boundary >= 0 and boundary <= 4;
-    assert(is_allowed_bc &&
-           "WARNING: Possibly invalid boundary conditions for direction: %d flag: %d. Must select between (periodic), "
-           "2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi).\n");
+    std::string const error_message =
+        "WARNING: Possibly invalid boundary conditions for direction: " + direction +
+        " flag: " + std::to_string(boundary) +
+        ". Must select between 0 (no boundary), 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi).";
+    assert(is_allowed_bc && error_message.c_str());
   };
-  Check_Boundary(P.xl_bcnd);
-  Check_Boundary(P.xu_bcnd);
-  Check_Boundary(P.yl_bcnd);
-  Check_Boundary(P.yu_bcnd);
-  Check_Boundary(P.zl_bcnd);
-  Check_Boundary(P.zu_bcnd);
+  Check_Boundary(P.xl_bcnd, "xl_bcnd");
+  Check_Boundary(P.xu_bcnd, "xu_bcnd");
+  Check_Boundary(P.yl_bcnd, "yl_bcnd");
+  Check_Boundary(P.yu_bcnd, "yu_bcnd");
+  Check_Boundary(P.zl_bcnd, "zl_bcnd");
+  Check_Boundary(P.zu_bcnd, "zu_bcnd");
 
   // warn if error checking is disabled
 #ifndef CUDA_ERROR_CHECK
@@ -85,10 +88,10 @@ void Check_Configuration(parameters const &P)
 // MHD Checks
 // ==========
 #ifdef MHD
-  assert(P.nx > 1 or P.ny > 1 or P.nz > 1 and "MHD runs must be 3D");
+  assert(P.nx > 1 and P.ny > 1 and P.nz > 1 and "MHD runs must be 3D");
 
   // Must use the correct integrator
-  #if !defined(VL) || defined(SIMPLE)
+  #if !defined(VL) || defined(SIMPLE) || defined(CTU)
     #error "MHD only supports the Van Leer integrator"
   #endif  //! VL or SIMPLE
 
@@ -103,7 +106,7 @@ void Check_Configuration(parameters const &P)
   #endif  // Reconstruction check
 
   // must have HDF5
-  #ifndef HDF5
+  #if defined(OUTPUT) and (not defined(HDF5))
     #error "MHD only supports HDF5 output"
   #endif  //! HDF5
 
