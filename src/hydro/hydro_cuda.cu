@@ -84,7 +84,7 @@ __global__ void Update_Conserved_Variables_1D(Real *dev_conserved, Real *dev_F, 
 
 __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x, Real *dev_F_y, int nx, int ny,
                                               int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound,
-                                              Real ybound, Real dt, Real gamma, int n_fields)
+                                              Real ybound, Real dt, Real gamma, int n_fields, int custom_grav)
 {
   int id, xid, yid, n_cells;
   int imo, jmo;
@@ -140,8 +140,26 @@ __global__ void Update_Conserved_Variables_2D(Real *dev_conserved, Real *dev_F_x
         dtody * (dev_F_y[(n_fields - 1) * n_cells + jmo] - dev_F_y[(n_fields - 1) * n_cells + id]);
   #endif
   #ifdef STATIC_GRAV
+  printf("%d\n", custom_grav);
     // calculate the gravitational acceleration as a function of x & y position
-    calc_g_2D(xid, yid, x_off, y_off, n_ghost, dx, dy, xbound, ybound, &gx, &gy);
+    switch(custom_grav) {
+    case 1: //gresho
+       calc_g_gresho_2D(xid, yid, x_off, y_off, n_ghost, dx, dy, xbound, ybound, &gx, &gy);
+   break;
+   case 2: //rayleigh taylor instability
+ calc_g_rayleigh_taylor_2D(xid, yid, x_off, y_off, n_ghost, dx, dy, xbound, ybound, &gx, &gy);
+ break;
+case 3: //keplerian disk
+ calc_g_keplerian_2D(xid, yid, x_off, y_off, n_ghost, dx, dy, xbound, ybound, &gx, &gy);
+break;
+case 4: //Kuzmin/NFW halo
+ calc_g_kuzmin_2D(xid, yid, x_off, y_off, n_ghost, dx, dy, xbound, ybound, &gx, &gy);
+break;
+default:
+ //printf("%d -> Unknown custom static gravity field. Options are \'1\' (Gresho), \'2\' (Rayleigh-Taylor), \'3\' (keplerian disk), \'4\' (Kuzmin disk with NFW halo). \n", custom_grav);
+ //printf("No gravity field will be set\n");
+printf("%d\t%d\t%d\t%d\n", custom_grav, custom_grav, custom_grav, custom_grav);
+}
     // add gravitational source terms, time averaged from n to n+1
     d_n     = dev_conserved[id];
     d_inv_n = 1.0 / d_n;

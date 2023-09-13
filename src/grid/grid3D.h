@@ -209,6 +209,9 @@ struct Header {
   /*! \var dt
    *  \brief Length of the current timestep */
   Real dt;
+#ifdef STATIC_GRAV
+  int custom_grav;
+#endif
 
 #ifdef AVERAGE_SLOW_CELLS
   Real min_dt_slow;

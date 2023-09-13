@@ -146,7 +146,11 @@ void Grid3D::Initialize(struct parameters *P)
   int nx_in = P->nx;
   int ny_in = P->ny;
   int nz_in = P->nz;
-
+#ifdef STATIC_GRAV
+  H.custom_grav = P->custom_grav;
+  printf("P->custom_grav is %d\n", P->custom_grav);
+  printf("H.custom_grav is %d\n", H.custom_grav);
+#endif
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
 
@@ -446,7 +450,7 @@ Real Grid3D::Update_Grid(void)
   #endif  // VL
   #ifdef SIMPLE
     Simple_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
-                             H.n_fields);
+                             H.n_fields, H.custom_grav);
   #endif                                        // SIMPLE
 #endif                                          // CUDA
   } else if (H.nx > 1 && H.ny > 1 && H.nz > 1)  // 3D

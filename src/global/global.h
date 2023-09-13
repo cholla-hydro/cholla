@@ -183,7 +183,6 @@ struct parameters {
   int n_steps_output;
   Real gamma;
   char init[MAXLEN];
-  int custom_grav;
   int nfile;
   int n_hydro;
   int n_particle;
@@ -198,6 +197,9 @@ struct parameters {
   int out_float32_Energy     = 0;
 #ifdef DE
   int out_float32_GasEnergy = 0;
+#endif
+#ifdef STATIC_GRAV
+  int custom_grav;
 #endif
 #ifdef MHD
   int out_float32_magnetic_x = 0;

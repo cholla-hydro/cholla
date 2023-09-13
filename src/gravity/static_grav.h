@@ -52,7 +52,7 @@ inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real 
   return;
 }
 
-inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, int custom_grav, Real dx, Real dy, Real xbound,
+inline __device__ void calc_g_gresho_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound,
                                  Real ybound, Real *gx, Real *gy)
 {
   Real x_pos, y_pos, r, phi;
@@ -60,11 +60,8 @@ inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_g
   // positions on the grid
   x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
   y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
-  printf("%d\n", custom_grav);
-  switch(custom_grav){
-  case 1: //Gresho
     // for Gresho, also need r & phi
-    printf("%d\n", custom_grav);
+    printf("Gresho\n");
     r   = sqrt(x_pos * x_pos + y_pos * y_pos);
     phi = atan2(y_pos, x_pos);
 
@@ -81,15 +78,38 @@ inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_g
     *gx = 0.0;
     *gy = 0.0;
     }
-    break;
-  case 2: //Keplerian potential
-    // set gravitational acceleration for Keplerian potential
+  return;
+}
+
+inline __device__ void calc_g_keplerian_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound,
+                                 Real ybound, Real *gx, Real *gy)
+{
+  Real x_pos, y_pos, r, phi;
+  // use the subgrid offset and global boundaries to calculate absolute
+  // positions on the grid
+  x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
+  y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
+    r   = sqrt(x_pos * x_pos + y_pos * y_pos);
+    phi = atan2(y_pos, x_pos);
+     // set gravitational acceleration for Keplerian potential
     Real M;
-    M = 1*Msun;
+    M = 1*MSUN_CGS;
     *gx = -cos(phi)*GN*M/(r*r);
     *gy = -sin(phi)*GN*M/(r*r);
-    break;
-  case 3: //Kuzmin disk + NFW halo
+  return;
+}
+
+inline __device__ void calc_g_kuzmin_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound,
+                                 Real ybound, Real *gx, Real *gy)
+{
+  Real x_pos, y_pos, r, phi;
+  // use the subgrid offset and global boundaries to calculate absolute
+  // positions on the grid
+  x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
+  y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
+  printf("kuzmin\n");
+    r   = sqrt(x_pos * x_pos + y_pos * y_pos);
+    phi = atan2(y_pos, x_pos);
       // set gravitational acceleration for Kuzmin disk + NFW halo
       Real a_d, a_h, a, M_vir, M_d, R_vir, R_d, R_s, M_h, c_vir, x;
       M_vir = 1.0e12;         // viral mass of MW in M_sun
@@ -108,15 +128,20 @@ inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_g
 
       *gx = -cos(phi) * a;
       *gy = -sin(phi) * a;
-      break;
-  case 4: //Rayleigh-taylor instability:
+  return;
+}
+
+inline __device__ void calc_g_rayleigh_taylor_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound,
+                                 Real ybound, Real *gx, Real *gy)
+{
+  Real x_pos, y_pos;
+  // use the subgrid offset and global boundaries to calculate absolute
+  // positions on the grid
+  x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
+  y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
+  printf("rayleigh taylor\n");
       *gx = 0;
       *gy = -1;
-      break;
-  default:
-    printf("ABORT: %d -> Unknown custom static gravity field.\n", custom_grav);
-    exit(0);
-
   return;
 }
 
