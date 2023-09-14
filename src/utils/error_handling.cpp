@@ -61,11 +61,10 @@ void Check_Configuration(parameters const& P)
   // Check the boundary conditions
   auto Check_Boundary = [](int const& boundary, std::string const& direction) {
     bool is_allowed_bc = boundary >= 0 and boundary <= 4;
-    std::string const error_message =
-        "WARNING: Possibly invalid boundary conditions for direction: " + direction +
-        " flag: " + std::to_string(boundary) +
-        ". Must select between 0 (no boundary), 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi).";
-    assert(is_allowed_bc && error_message.c_str());
+    ASSERT(is_allowed_bc, "Check_Configuration",
+           "WARNING: Possibly invalid boundary conditions for direction: %s flag: %d. "
+           "Must select between 0 (no boundary), 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi).",
+           direction.c_str(), boundary);
   };
   Check_Boundary(P.xl_bcnd, "xl_bcnd");
   Check_Boundary(P.xu_bcnd, "xu_bcnd");
@@ -84,9 +83,6 @@ void Check_Configuration(parameters const& P)
   #error "The PRECISION macro is required"
 #endif  //! PRECISION
   static_assert(PRECISION == 2, "PRECISION must be 2. Single precision is not currently supported");
-
-  // Check that gamma, the ratio of specific heats, is greater than 1
-  assert(::gama <= 1.0 and "Gamma must be greater than one.");
 
 // MHD Checks
 // ==========

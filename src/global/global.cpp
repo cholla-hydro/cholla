@@ -12,7 +12,8 @@
 
 #include <set>
 
-#include "../io/io.h"  //defines chprintf
+#include "../io/io.h"                 //defines chprintf
+#include "../utils/error_handling.h"  // defines ASSERT
 
 /* Global variables */
 Real gama;   // Ratio of specific heats
@@ -33,6 +34,7 @@ void Set_Gammas(Real gamma_in)
 {
   // set gamma
   gama = gamma_in;
+  ASSERT(gama > 1.0, "Set_Gammas", "Gamma must be greater than one.");
 }
 
 /*! \fn double get_time(void)
