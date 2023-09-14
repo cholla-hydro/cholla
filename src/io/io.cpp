@@ -2596,7 +2596,7 @@ int chprintf(const char *__restrict sdata, ...)  // NOLINT(cert-dcl50-cpp)
 {
   int code = 0;
   /*limit printf to root process only*/
-  if (not Is_Root_Proc()) {
+  if (Is_Root_Proc()) {
     va_list ap;
     va_start(ap, sdata);
     code = vfprintf(stdout, sdata, ap);  // NOLINT(clang-analyzer-valist.Uninitialized)
