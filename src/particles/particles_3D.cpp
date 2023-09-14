@@ -656,8 +656,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   Real M_d   = Galaxies::MW.getM_d();  // MW disk mass in M_sun (assumed to be all in stars)
   Real R_d   = Galaxies::MW.getR_d();  // MW stellar disk scale length in kpc
   Real Z_d   = Galaxies::MW.getZ_d();  // MW stellar height scale length in kpc
-  Real R_max = sqrt(P->xlen * P->xlen + P->ylen * P->ylen) / 2;
-  R_max      = 1.8; // P->xlen / 2.0;
+  Real R_max = P->xlen / 2.0 - 0.2;
 
   real_vector_t temp_pos_x;
   real_vector_t temp_pos_y;
@@ -678,15 +677,15 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   // unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc
   // radius unsigned long int N = 13; //(long int)(6.5e6 * 0.9272485558395908);
   // // 15kpc radius
-  Real total_mass               = 0;
+  Real cumulative_mass          = 0;
   Real upper_limit_cluster_mass = 8e6;
   Real SFR                      = 1e2;
   Real t_cluster_creation       = -4e4;
   long lost_particles           = 0;
   part_int_t id                 = -1;
-  while (total_mass < upper_limit_cluster_mass) {
+  while (cumulative_mass < upper_limit_cluster_mass) {
     Real cluster_mass = Galaxies::MW.singleClusterMass(generator);
-    total_mass += cluster_mass;
+    cumulative_mass += cluster_mass;
     id += 1;  // do this here before we check whether the particle is in the MPI
               // domain, otherwise could end up with duplicated IDs
     do {
@@ -793,7 +792,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   chprintf(
       "Stellar Disk Particles Initialized, n_total: %lu, n_local: %lu, "
       "total_mass: %.3e s.m.\n",
-      id + 1, n_local, total_mass);
+      id + 1, n_local, cumulative_mass);
 }
   #endif
 

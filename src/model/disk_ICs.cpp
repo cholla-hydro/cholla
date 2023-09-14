@@ -64,7 +64,7 @@ Real Sigma_disk_D3D(Real r, Real *hdp)
   // return the exponential surface density
   Real Sigma_0 = hdp[9];
   Real R_g     = hdp[10];
-  Real R_c     = 1.9;
+  Real R_c     = hdp[21] / 2.0 - 0.1;
   Real Sigma;
   Real delta = 0.01;
   Real norm  = log(1.0 / 3.0);
@@ -779,7 +779,7 @@ void Grid3D::Disk_3D(parameters p)
   cs_h = sqrt(KB * T_h / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
 
   // set some initial parameters
-  int nhdp  = 21;                                  // number of parameters to pass hydrostatic column
+  int nhdp  = 22;                                  // number of parameters to pass hydrostatic column
   Real *hdp = (Real *)calloc(nhdp, sizeof(Real));  // parameters
   hdp[0]    = M_vir;
   hdp[1]    = M_d;
@@ -813,6 +813,8 @@ void Grid3D::Disk_3D(parameters p)
   hdp[18] = rho_eos_h;
   hdp[19] = cs_h;
   hdp[20] = r_cool;
+
+  hdp[21] = p.xlen;
 
   // Now we can start the density calculation
   // we will loop over each column and compute
