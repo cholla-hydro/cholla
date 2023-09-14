@@ -131,22 +131,6 @@ void parse_params(char *param_file, struct parameters *parms, int argc, char **a
     exit(1);
     return;
   }
-  // set default hydro file output parameter
-  parms->n_hydro              = 1;
-  parms->n_particle           = 1;
-  parms->n_slice              = 1;
-  parms->n_projection         = 1;
-  parms->n_rotated_projection = 1;
-
-#ifdef ROTATED_PROJECTION
-  // initialize rotation parameters to zero
-  parms->delta      = 0;
-  parms->theta      = 0;
-  parms->phi        = 0;
-  parms->n_delta    = 0;
-  parms->ddelta_dt  = 0;
-  parms->flag_delta = 0;
-#endif /*ROTATED_PROJECTION*/
 
 #ifdef COSMOLOGY
   // Initialize file name as an empty string
