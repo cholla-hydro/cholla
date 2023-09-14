@@ -79,11 +79,11 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
 
 void Average_Slow_Cells(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy,
                         Real dz, Real gamma, Real max_dti_slow, Real xbound, Real ybound, Real zbound, int nx_offset,
-                        int ny_offset,  int nz_offset);
+                        int ny_offset, int nz_offset);
 
 __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx,
-                                      Real dy, Real dz, Real gamma, Real max_dti_slow, Real xbound, Real ybound, Real zbound,
-                                      int nx_offset, int ny_offset,  int nz_offset);
+                                      Real dy, Real dz, Real gamma, Real max_dti_slow, Real xbound, Real ybound,
+                                      Real zbound, int nx_offset, int ny_offset, int nz_offset);
     #endif
 
     #ifdef TEMPERATURE_FLOOR

@@ -321,8 +321,8 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   Real cool   = 0.0;  // cooling per unit volume, erg /s / cm^3
   // the following two values are for photoelectric heating
   // based on description given in Kim et al. 2015.
-  Real n_av   = 100.0; //TODO mean density in the sim volume, cm^3 (make this an argument?)
-  Real H_pe   = 0.0;
+  Real n_av = 100.0;  // TODO mean density in the sim volume, cm^3 (make this an argument?)
+  Real H_pe = 0.0;
   float log_n, log_T;
   log_n = log10(n);
   log_T = log10(T);
@@ -343,7 +343,7 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
     lambda = 0.45 * log10(T) - 26.065;
   } else if (log10(T) >= 1.0) {  // don't cool below 10 K
     lambda = Bilinear_Texture(coolTexObj, log_T, log_n);
-    H = Bilinear_Texture(heatTexObj, log_T, log_n);
+    H      = Bilinear_Texture(heatTexObj, log_T, log_n);
   }
 
   // apply photoelectric heating under 10,000 K

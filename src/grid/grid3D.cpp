@@ -514,13 +514,13 @@ Real Grid3D::Update_Grid(void)
   Real max_dti_slow;
   max_dti_slow = 1 / H.min_dt_slow;
   int nx_off = 0, ny_off = 0, nz_off = 0;
-  #ifdef MPI_CHOLLA
-  nx_off = nx_local_start; //offsets
+    #ifdef MPI_CHOLLA
+  nx_off = nx_local_start;  // offsets
   ny_off = ny_local_start;
   nz_off = nz_local_start;
-  #endif
-  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow,
-                     H.xbound, H.ybound, H.zbound, nx_off, ny_off, nz_off);
+    #endif
+  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow, H.xbound,
+                     H.ybound, H.zbound, nx_off, ny_off, nz_off);
   #endif  // AVERAGE_SLOW_CELLS
 
   // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==

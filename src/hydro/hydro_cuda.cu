@@ -598,7 +598,7 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
 
 void Average_Slow_Cells(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy,
                         Real dz, Real gamma, Real max_dti_slow, Real xbound, Real ybound, Real zbound, int nx_offset,
-                        int ny_offset,  int nz_offset)
+                        int ny_offset, int nz_offset)
 {
   // set values for GPU kernels
   int n_cells = nx * ny * nz;
@@ -616,7 +616,7 @@ void Average_Slow_Cells(Real *dev_conserved, int nx, int ny, int nz, int n_ghost
 
 __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx,
                                       Real dy, Real dz, Real gamma, Real max_dti_slow, Real xbound, Real ybound,
-                                      Real zbound, int nx_offset, int ny_offset,  int nz_offset)
+                                      Real zbound, int nx_offset, int ny_offset, int nz_offset)
 {
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, max_dti;
@@ -642,10 +642,10 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
     max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
 
     if (max_dti > max_dti_slow) {
-      speed = sqrt(vx * vx + vy * vy + vz * vz);
-      temp  = (gamma - 1) * (E - 0.5 * (speed * speed) * d) * ENERGY_UNIT / (d * DENSITY_UNIT / 0.6 / MP) / KB;
-      P     = (E - 0.5 * d * (vx * vx + vy * vy + vz * vz)) * (gamma - 1.0);
-      cs    = sqrt(d_inv * gamma * P) * VELOCITY_UNIT * 1e-5;
+      speed  = sqrt(vx * vx + vy * vy + vz * vz);
+      temp   = (gamma - 1) * (E - 0.5 * (speed * speed) * d) * ENERGY_UNIT / (d * DENSITY_UNIT / 0.6 / MP) / KB;
+      P      = (E - 0.5 * d * (vx * vx + vy * vy + vz * vz)) * (gamma - 1.0);
+      cs     = sqrt(d_inv * gamma * P) * VELOCITY_UNIT * 1e-5;
       Real x = xbound + (nx_offset + xid - n_ghost + 0.5) * dx;
       Real y = ybound + (ny_offset + yid - n_ghost + 0.5) * dy;
       Real z = zbound + (nz_offset + zid - n_ghost + 0.5) * dz;

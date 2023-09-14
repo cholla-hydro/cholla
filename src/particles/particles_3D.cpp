@@ -700,7 +700,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
     // set creation time of cluster on how long
     // it would take star formation to add that
     // much mass
-    t_cluster_creation += cluster_mass/SFR;
+    t_cluster_creation += cluster_mass / SFR;
     chprintf("cluster %d, age %.4e, mass %.4e\n", id, t_cluster_creation, cluster_mass);
 
     if (x < G.xMin || x >= G.xMax) continue;
