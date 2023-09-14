@@ -894,7 +894,7 @@ void Grid3D::Rayleigh_Taylor()
       vy = 0.01 * cos(6 * M_PI * x_pos + M_PI) * exp(-(y_pos - 0.5 * H.ydglobal) * (y_pos - 0.5 * H.ydglobal) / 0.1);
       // vy = 0.0;
 
-      // lower half of slab
+     // lower half of slab
       if (y_pos <= 0.5 * H.ydglobal) {
         P_0              = 1.0 / gama - dl * g * 0.5;
         P                = P_0 + dl * g * y_pos;

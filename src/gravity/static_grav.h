@@ -139,7 +139,7 @@ inline __device__ void calc_g_rayleigh_taylor_2D(int xid, int yid, int x_off, in
   // positions on the grid
   x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
   y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
-  printf("rayleigh taylor\n");
+  // printf("shhhhh  rayleigh taylor\n");
       *gx = 0;
       *gy = -1;
   return;

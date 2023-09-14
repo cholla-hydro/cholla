@@ -156,8 +156,8 @@ case 4: //Kuzmin/NFW halo
 break;
 default:
  //printf("%d -> Unknown custom static gravity field. Options are \'1\' (Gresho), \'2\' (Rayleigh-Taylor), \'3\' (keplerian disk), \'4\' (Kuzmin disk with NFW halo). \n", custom_grav);
- //printf("No gravity field will be set\n");
-printf("%d\t%d\t%d\t%d\n", custom_grav, custom_grav, custom_grav, custom_grav);
+printf("No gravity field will be set\n");
+//printf("%d\t%d\t%d\t%d\n", custom_grav, custom_grav, custom_grav, custom_grav);
 }
     // add gravitational source terms, time averaged from n to n+1
     d_n     = dev_conserved[id];
