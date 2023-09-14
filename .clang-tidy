@@ -77,6 +77,7 @@ Checks: "*,
         -cppcoreguidelines-pro-type-cstyle-cast,
         -cppcoreguidelines-pro-type-member-init,
         -cppcoreguidelines-pro-type-reinterpret-cast,
+	-cppcoreguidelines-pro-type-union-access,
         -cppcoreguidelines-pro-type-vararg,
         -cppcoreguidelines-special-member-functions,
         -cppcoreguidelines-virtual-class-destructor,
@@ -151,6 +152,7 @@ AnalyzeTemporaryDtors: false
 FormatStyle:     'file'
 UseColor: false
 CheckOptions:
+  readability-braces-around-statements.ShortStatementLines: 1
   # readability-identifier-naming allowed casing types
   # - lower_case
   # - UPPER_CASE
