@@ -61,7 +61,7 @@ void Check_Configuration(parameters const& P)
   // Check the boundary conditions
   auto Check_Boundary = [](int const& boundary, std::string const& direction) {
     bool is_allowed_bc = boundary >= 0 and boundary <= 4;
-    ASSERT(is_allowed_bc, "Check_Configuration",
+    ASSERT(is_allowed_bc,
            "WARNING: Possibly invalid boundary conditions for direction: %s flag: %d. "
            "Must select between 0 (no boundary), 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi).",
            direction.c_str(), boundary);
