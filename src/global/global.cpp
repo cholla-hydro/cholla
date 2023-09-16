@@ -148,6 +148,11 @@ void parse_params(char *param_file, struct parameters *parms, int argc, char **a
   parms->flag_delta = 0;
 #endif /*ROTATED_PROJECTION*/
 
+#ifdef STATIC_GRAV
+  //initialize custom gravity flag to zero
+  parms->custom_grav = 0;
+#endif
+
 #ifdef COSMOLOGY
   // Initialize file name as an empty string
   parms->scale_outputs_file[0] = '\0';
@@ -218,7 +223,8 @@ void parse_param(char *name, char *value, struct parameters *parms)
 	printf("Must select between \'1\' (Gresho), \'2\' (Rayleigh-Taylor), \'3\' (Keplerian disk), and \'4\' (Kuzmin disk/NFW halo).\n");
 	exit(0);}
       else{
-	parms->custom_grav = atoi(value);}
+	parms->custom_grav = atoi(value);
+	printf("moving to next step..... custom_grav= %d\n", atoi(value));}
 #endif
   } else if (strcmp(name, "tout") == 0) {
     parms->tout = atof(value);
