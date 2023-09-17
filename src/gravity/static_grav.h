@@ -61,18 +61,17 @@ inline __device__ void calc_g_gresho_2D(int xid, int yid, int x_off, int y_off, 
   x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
   y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
     // for Gresho, also need r & phi
-    printf("Gresho\n");
     r   = sqrt(x_pos * x_pos + y_pos * y_pos);
     phi = atan2(y_pos, x_pos);
 
     // set acceleration to balance v_phi in Gresho problem
     if (r < 0.2) {
     *gx = -cos(phi)*25.0*r;
-    *gy = -sin(phi)*25.0*r;
+    *gy = sin(phi)*25.0*r;
     }
     else if (r >= 0.2 && r < 0.4) {
     *gx = -cos(phi)*(4.0 - 20.0*r + 25.0*r*r)/r;
-    *gy = -sin(phi)*(4.0 - 20.0*r + 25.0*r*r)/r;
+    *gy = sin(phi)*(4.0 - 20.0*r + 25.0*r*r)/r;
     }
     else {
     *gx = 0.0;
@@ -107,7 +106,6 @@ inline __device__ void calc_g_kuzmin_2D(int xid, int yid, int x_off, int y_off, 
   // positions on the grid
   x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
   y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
-  printf("kuzmin\n");
     r   = sqrt(x_pos * x_pos + y_pos * y_pos);
     phi = atan2(y_pos, x_pos);
       // set gravitational acceleration for Kuzmin disk + NFW halo
@@ -139,7 +137,6 @@ inline __device__ void calc_g_rayleigh_taylor_2D(int xid, int yid, int x_off, in
   // positions on the grid
   x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
   y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
-  // printf("shhhhh  rayleigh taylor\n");
       *gx = 0;
       *gy = -1;
   return;
