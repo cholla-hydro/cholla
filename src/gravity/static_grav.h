@@ -67,11 +67,11 @@ inline __device__ void calc_g_gresho_2D(int xid, int yid, int x_off, int y_off, 
     // set acceleration to balance v_phi in Gresho problem
     if (r < 0.2) {
     *gx = -cos(phi)*25.0*r;
-    *gy = sin(phi)*25.0*r;
+    *gy = -sin(phi)*25.0*r;
     }
     else if (r >= 0.2 && r < 0.4) {
     *gx = -cos(phi)*(4.0 - 20.0*r + 25.0*r*r)/r;
-    *gy = sin(phi)*(4.0 - 20.0*r + 25.0*r*r)/r;
+    *gy = -sin(phi)*(4.0 - 20.0*r + 25.0*r*r)/r;
     }
     else {
     *gx = 0.0;
