@@ -2788,7 +2788,7 @@ void Ensure_Outdir_Exists(std::string outdir)
       // to a directory (it's unclear from docs whether err-code is set in that
       // case)
       if (err_code or not std::filesystem::is_directory(without_file_prefix)) {
-        ERROR(
+        CHOLLA_ERROR(
             "something went wrong while trying to create the path to the "
             "output-dir: %s",
             outdir.c_str());

@@ -34,7 +34,7 @@ void Set_Gammas(Real gamma_in)
 {
   // set gamma
   gama = gamma_in;
-  ASSERT(gama > 1.0, "Gamma must be greater than one.");
+  CHOLLA_ASSERT(gama > 1.0, "Gamma must be greater than one.");
 }
 
 /*! \fn double get_time(void)

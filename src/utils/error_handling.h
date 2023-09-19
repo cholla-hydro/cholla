@@ -37,7 +37,7 @@ void Check_Configuration(parameters const& P);
  * \brief print an error-message (with printf formatting) & abort the program.
  *
  * This macro should be treated as a function with the signature:
- *   [[noreturn]] void ERROR(const char* msg, ...);
+ *   [[noreturn]] void CHOLLA_ERROR(const char* msg, ...);
  *
  * - The 1st arg is printf-style format argument specifying the error message
  * - The remaining args arguments are used to format error message
@@ -47,14 +47,14 @@ void Check_Configuration(parameters const& P);
  * at least 1 variadic argument (even in cases when ``msg`` doesn't format
  * any arguments). There is no way around this until C++ 20.
  */
-#define ERROR(...) Abort_With_Err_(__CHOLLA_PRETTY_FUNC__, __FILE__, __LINE__, __VA_ARGS__)
+#define CHOLLA_ERROR(...) Abort_With_Err_(__CHOLLA_PRETTY_FUNC__, __FILE__, __LINE__, __VA_ARGS__)
 
 /*!
  * \brief if the condition is false, print an error-message (with printf
  * formatting) & abort the program.
  *
  * This macro should be treated as a function with the signature:
- *   [[noreturn]] void ASSERT(bool cond, const char* msg, ...);
+ *   [[noreturn]] void CHOLLA_ASSERT(bool cond, const char* msg, ...);
  *
  * - The 1st arg is a boolean condition. When true, this does noth
  * - The 2nd arg is printf-style format argument specifying the error message
@@ -63,7 +63,7 @@ void Check_Configuration(parameters const& P);
  * \note
  * the behavior is independent of the ``NDEBUG`` macro
  */
-#define ASSERT(cond, ...)                                                     \
+#define CHOLLA_ASSERT(cond, ...)                                              \
   if (not(cond)) {                                                            \
     Abort_With_Err_(__CHOLLA_PRETTY_FUNC__, __FILE__, __LINE__, __VA_ARGS__); \
   }
