@@ -210,9 +210,6 @@ struct Header {
    *  \brief Length of the current timestep */
   Real dt;
 
-  int custom_grav;
-
-
 #ifdef AVERAGE_SLOW_CELLS
   Real min_dt_slow;
 #endif
@@ -228,6 +225,10 @@ struct Header {
   /*! \var n_fields
    *  \brief Number of fields (conserved variables, scalars, etc.) */
   int n_fields;
+
+  /*! \var custom_grav
+   *  \brief Flag to set specific static gravity field */
+  int custom_grav;
 
   // Values for lower limit for density and temperature
   Real density_floor;
