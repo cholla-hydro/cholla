@@ -648,15 +648,14 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   std::gamma_distribution<Real> radialDist(2, 1);  // for generating cyclindrical radii
   std::uniform_real_distribution<Real> zDist(-0.005, 0.005);
   std::uniform_real_distribution<Real> vzDist(-1e-8, 1e-8);
-  std::uniform_real_distribution<Real> phiDist(0,
-                                               2 * M_PI);  // for generating phi
-  std::normal_distribution<Real> speedDist(0,
-                                           1);  // for generating random speeds.
+  std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
+  std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
   Real M_d   = Galaxies::MW.getM_d();  // MW disk mass in M_sun (assumed to be all in stars)
   Real R_d   = Galaxies::MW.getR_d();  // MW stellar disk scale length in kpc
   Real Z_d   = Galaxies::MW.getZ_d();  // MW stellar height scale length in kpc
   Real R_max = P->xlen / 2.0 - 0.2;
+  Real t_max = P->tout;
 
   real_vector_t temp_pos_x;
   real_vector_t temp_pos_y;
@@ -677,35 +676,33 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   // unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc
   // radius unsigned long int N = 13; //(long int)(6.5e6 * 0.9272485558395908);
   // // 15kpc radius
-  Real cumulative_mass          = 0;
-  Real upper_limit_cluster_mass = 8e6;
-  Real SFR                      = 1e2;
-  Real t_cluster_creation       = -4e4;
-  long lost_particles           = 0;
-  part_int_t id                 = -1;
-  while (cumulative_mass < upper_limit_cluster_mass) {
+  Real cumulative_mass = 0;
+  Real SFR             = 2e3;   // global MW SFR: 2 SM / yr
+  Real t_cluster       = -4e4;  // earliest cluster time
+  long lost_particles  = 0;
+  part_int_t id        = -1;
+
+  while (t_cluster < t_max) {
     Real cluster_mass = Galaxies::MW.singleClusterMass(generator);
-    cumulative_mass += cluster_mass;
+
+    R = 2 * R_d * radialDist(generator);  // R_gas = 2 * R_d
+    if (R > R_max) {
+      t_cluster += cluster_mass / SFR;
+      continue;
+    }
+
     id += 1;  // do this here before we check whether the particle is in the MPI
               // domain, otherwise could end up with duplicated IDs
-    do {
-      R = R_d * radialDist(generator);
-    } while (R > R_max);
-
     phi = phiDist(generator);
     x   = R * cos(phi);
     y   = R * sin(phi);
     z   = zDist(generator);
 
-    // set creation time of cluster on how long
-    // it would take star formation to add that
-    // much mass
-    t_cluster_creation += cluster_mass / SFR;
-    chprintf("cluster %d, age %.4e, mass %.4e\n", id, t_cluster_creation, cluster_mass);
-
-    if (x < G.xMin || x >= G.xMax) continue;
-    if (y < G.yMin || y >= G.yMax) continue;
-    if (z < G.zMin || z >= G.zMax) continue;
+    cumulative_mass += cluster_mass;
+    if ((x < G.xMin || x >= G.xMax) || (y < G.yMin || y >= G.yMax) || (z < G.zMin || z >= G.zMax)) {
+      t_cluster += cluster_mass / SFR;  // all mpi ranks need to have the same value of t_cluster for the next cluster
+      continue;
+    }
 
     ac   = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
     vPhi = sqrt(R * ac);
@@ -725,8 +722,9 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
     temp_grav_y.push_back(0.0);
     temp_grav_z.push_back(0.0);
     temp_mass.push_back(cluster_mass);
-    temp_age.push_back(t_cluster_creation);
+    temp_age.push_back(t_cluster);
     temp_ids.push_back(id);
+    t_cluster += cluster_mass / SFR;  // t_cluster is now the age for the next cluster
   }
 
   n_local = temp_pos_x.size();
