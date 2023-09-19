@@ -130,12 +130,6 @@ int main(int argc, char *argv[])
   Write_Message_To_Log_File(message.c_str());
 #endif 
 
-#ifdef STATIC_GRAV
-  chprintf("\nUsing Static Gravity:\n Custom gravity field selected: %d.\n", P.custom_grav);
-  message = " Custom gravity field: " + std::to_string(P.custom_grav);
-  Write_Message_To_Log_File(message.c_str());
-#endif
-
 #ifdef CPU_TIME
   G.Timer.Initialize();
 #endif

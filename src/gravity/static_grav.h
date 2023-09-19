@@ -14,11 +14,12 @@
 // Work around lack of pow(Real,int) in Hip Clang for Rocm 3.5
 static inline __device__ Real pow2(const Real x) { return x * x; }
 
-inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real xbound, Real *gx)
+inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, int custom_grav, Real dx, Real xbound, Real *gx)
 {
   Real x_pos, r_disk, r_halo;
   x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
-
+  switch(custom_grav){
+  case 1:
   // for disk components, calculate polar r
   // r_disk = 0.220970869121;
   // r_disk = 6.85009694274;
@@ -48,11 +49,14 @@ inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, Real dx, Real 
 
   // total acceleration is the sum of the halo + disk components
   *gx = (x_pos / r_halo) * a_halo + a_disk_z;
-
+  break;
+  default:
+    *gx = 0;
+  }
   return;
 }
 
-inline __device__ void calc_g_gresho_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound,
+inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_ghost, int custom_grav, Real dx, Real dy, Real xbound,
                                  Real ybound, Real *gx, Real *gy)
 {
   Real x_pos, y_pos, r, phi;
@@ -63,7 +67,9 @@ inline __device__ void calc_g_gresho_2D(int xid, int yid, int x_off, int y_off, 
     // for Gresho, also need r & phi
     r   = sqrt(x_pos * x_pos + y_pos * y_pos);
     phi = atan2(y_pos, x_pos);
-
+    switch(custom_grav){
+    case 1:
+      //      printf("gresho\n");
     // set acceleration to balance v_phi in Gresho problem
     if (r < 0.2) {
     *gx = -cos(phi)*25.0*r;
@@ -77,38 +83,22 @@ inline __device__ void calc_g_gresho_2D(int xid, int yid, int x_off, int y_off, 
     *gx = 0.0;
     *gy = 0.0;
     }
-  return;
-}
-
-inline __device__ void calc_g_keplerian_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound,
-                                 Real ybound, Real *gx, Real *gy)
-{
-  Real x_pos, y_pos, r, phi;
-  // use the subgrid offset and global boundaries to calculate absolute
-  // positions on the grid
-  x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
-  y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
-    r   = sqrt(x_pos * x_pos + y_pos * y_pos);
-    phi = atan2(y_pos, x_pos);
-     // set gravitational acceleration for Keplerian potential
-    Real M;
+    break;
+    case 2:
+      //printf("rayleigh talor\n");
+      *gx = 0;
+      *gy = -1;
+      break;
+    case 3:
+      //printf("keplerian\n");
+      Real M;
     M = 1*MSUN_CGS;
     *gx = -cos(phi)*GN*M/(r*r);
     *gy = -sin(phi)*GN*M/(r*r);
-  return;
-}
-
-inline __device__ void calc_g_kuzmin_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound,
-                                 Real ybound, Real *gx, Real *gy)
-{
-  Real x_pos, y_pos, r, phi;
-  // use the subgrid offset and global boundaries to calculate absolute
-  // positions on the grid
-  x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
-  y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
-    r   = sqrt(x_pos * x_pos + y_pos * y_pos);
-    phi = atan2(y_pos, x_pos);
-      // set gravitational acceleration for Kuzmin disk + NFW halo
+    break;
+    case 4:
+      //printf("disk\n");
+// set gravitational acceleration for Kuzmin disk + NFW halo
       Real a_d, a_h, a, M_vir, M_d, R_vir, R_d, R_s, M_h, c_vir, x;
       M_vir = 1.0e12;         // viral mass of MW in M_sun
       M_d   = 6.5e10;         // mass of disk in M_sun (assume all gas)
@@ -126,23 +116,17 @@ inline __device__ void calc_g_kuzmin_2D(int xid, int yid, int x_off, int y_off, 
 
       *gx = -cos(phi) * a;
       *gy = -sin(phi) * a;
-  return;
-}
-
-inline __device__ void calc_g_rayleigh_taylor_2D(int xid, int yid, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound,
-                                 Real ybound, Real *gx, Real *gy)
-{
-  Real x_pos, y_pos;
-  // use the subgrid offset and global boundaries to calculate absolute
-  // positions on the grid
-  x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
-  y_pos = (y_off + yid - n_ghost + 0.5) * dy + ybound;
+      break;
+    default:
+      //printf("default\n");
       *gx = 0;
-      *gy = -1;
+      *gy = 0;
+    }
+
   return;
 }
 
-inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, Real dx,
+inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off, int z_off, int n_ghost, int custom_grav, Real dx,
                                  Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real *gx, Real *gy, Real *gz)
 {
   Real x_pos, y_pos, z_pos, r_disk, r_halo;
@@ -156,7 +140,8 @@ inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off
   r_disk = sqrt(x_pos * x_pos + y_pos * y_pos);
   // for halo, calculate spherical r
   r_halo = sqrt(x_pos * x_pos + y_pos * y_pos + z_pos * z_pos);
-
+  switch(custom_grav){
+  case 1:
   // set properties of halo and disk (these must match initial conditions)
   Real a_disk_r, a_disk_z, a_halo, a_halo_r, a_halo_z;
   Real M_vir, M_d, R_vir, R_d, z_d, R_h, M_h, c_vir, phi_0_h, x;
@@ -193,7 +178,12 @@ inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off
   *gx = (x_pos / r_disk) * (a_disk_r + a_halo_r);
   *gy = (y_pos / r_disk) * (a_disk_r + a_halo_r);
   *gz = a_disk_z + a_halo_z;
-
+  break;
+  default:
+    *gx = 0;
+    *gy = 0;
+    *gz = 0;
+  }
   return;
 }
 
