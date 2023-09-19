@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
-#include <vector>
 
 #ifdef MPI_CHOLLA
   #include "../mpi/mpi_routines.h"
@@ -140,28 +139,35 @@ void Check_Configuration(parameters const& P)
   // prepare some info for the error message header
   const char* santized_func_name = (func_name == nullptr) ? "{unspecified}" : func_name;
 
-  std::string proc_info =
 #ifdef MPI_CHOLLA
-      std::to_string(procID) + " / " + std::to_string(nproc) + " (using MPI)";
+  std::string proc_info = std::to_string(procID) + " / " + std::to_string(nproc) + " (using MPI)";
 #else
-      "0 / 1 (NOT using MPI)"
+  std::string proc_info = "0 / 1 (NOT using MPI)";
 #endif
 
   // prepare the formatted message
-  std::vector<char> msg_buf;
+  std::string msg_buf;
   if (msg == nullptr) {
-    msg_buf = std::vector<char>(80);
-    std::snprintf(msg_buf.data(), msg_buf.size(), "{nullptr encountered instead of error message}");
+    msg_buf = "{nullptr encountered instead of error message}";
   } else {
     std::va_list args, args_copy;
     va_start(args, msg);
     va_copy(args_copy, args);
 
-    std::size_t msg_len = std::vsnprintf(nullptr, 0, msg, args) + 1;
+    std::size_t bufsize_without_terminator = std::vsnprintf(nullptr, 0, msg, args);
     va_end(args);
 
-    msg_buf = std::vector<char>(msg_len);
-    std::vsnprintf(msg_buf.data(), msg_len, msg, args);
+    // NOTE: starting in C++17 it's possible to mutate msg_buf by mutating msg_buf.data()
+
+    // we initialize a msg_buf with size == bufsize_without_terminator (filled with ' ' chars)
+    // - msg_buf.data() returns a ptr with msg_buf.size() + 1 characters. We are allowed to
+    //   mutate any of the first msg_buf.size() characters. The entry at
+    //   msg_buf.data()[msg_buf.size()] is initially  '\0' (& it MUST remain equal to '\0')
+    // - the 2nd argument of std::vsnprintf is the size of the output buffer. We NEED to
+    //   include the terminator character in this argument, otherwise the formatted message
+    //   will be truncated
+    msg_buf = std::string(bufsize_without_terminator, ' ');
+    std::vsnprintf(msg_buf.data(), bufsize_without_terminator + 1, msg, args_copy);
     va_end(args_copy);
   }
 
