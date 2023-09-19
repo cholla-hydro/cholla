@@ -75,6 +75,16 @@ __global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghos
 
 __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma, int n_fields);
 
+    #ifdef VELOCITY_CEILING
+void Velocity_Ceiling(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real gamma,
+                      Real V_ceiling);
+    #endif  // VELOCITY CEILING
+
+    #ifdef TEMPERATURE_CEILING
+void Temperature_Ceiling(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real gamma,
+                         Real T_ceiling);
+    #endif  // TEMPERATURE CEILING
+
     #ifdef AVERAGE_SLOW_CELLS
 
 void Average_Slow_Cells(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy,
