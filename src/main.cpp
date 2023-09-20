@@ -354,7 +354,9 @@ int main(int argc, char *argv[])
 #ifdef N_STEPS_LIMIT
     // Exit the loop when reached the limit number of steps (optional)
     if (G.H.n_step == N_STEPS_LIMIT) {
+  #ifdef OUTPUT
       WriteData(G, P, nfile);
+  #endif  // OUTPUT
       break;
     }
 #endif
