@@ -511,8 +511,7 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
   if (strcmp(bcnd, "noh") == 0) {
     // from grid/cuda_boundaries.cu
     Noh_Boundary();
-  }
-  if (strcmp(bcnd, "wind") == 0) {
+  } else if (strcmp(bcnd, "wind") == 0) {
     // from grid/cuda_boundaries.cu
     Wind_Boundary();
   } else {
