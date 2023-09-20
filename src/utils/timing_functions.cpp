@@ -1,11 +1,13 @@
 #include "../utils/timing_functions.h"
 #ifdef CPU_TIME
 
+  #include <algorithm>
   #include <fstream>
   #include <iostream>
   #include <string>
 
   #include "../global/global.h"
+  #include "../global/global_cuda.h"
   #include "../io/io.h"
 
   #ifdef MPI_CHOLLA
@@ -28,7 +30,7 @@ void OneTime::Subtract(Real time_to_subtract)
   time_start += time_to_subtract;
 }
 
-void OneTime::End()
+void OneTime::End(bool const print_high_values)
 {
   cudaDeviceSynchronize();
   if (inactive) {
@@ -50,6 +52,30 @@ void OneTime::End()
     t_all += t_max;
   }
   n_steps++;
+
+  #ifdef MPI_CHOLLA
+  // Print out information if the process is unusually slow
+  if (time >= 1.1 * t_avg and print_high_values) {
+    // Get node ID
+    std::string node_id(MPI_MAX_PROCESSOR_NAME, ' ');
+    int length;
+    MPI_Get_processor_name(node_id.data(), &length);
+    node_id.resize(length);
+
+    // Get GPU ID
+    std::string gpu_id(MPI_MAX_PROCESSOR_NAME, ' ');
+    int device;
+    CudaSafeCall(cudaGetDevice(&device));
+    CudaSafeCall(cudaDeviceGetPCIBusId(gpu_id.data(), gpu_id.size(), device));
+    gpu_id.erase(
+        std::find_if(gpu_id.rbegin(), gpu_id.rend(), [](unsigned char ch) { return !std::isspace(ch); }).base(),
+        gpu_id.end());
+
+    std::cerr << "WARNING: Rank took longer than expected to execute." << std::endl
+              << "         Node ID: " << node_id << std::endl
+              << "         GPU PCI Bus ID: " << gpu_id << std::endl;
+  }
+  #endif  // MPI_CHOLLA
 }
 
 void OneTime::RecordTime(Real time)

@@ -469,7 +469,7 @@ Real Grid3D::Update_Grid(void)
   }
 
 #ifdef CPU_TIME
-  Timer.Hydro_Integrator.End();
+  Timer.Hydro_Integrator.End(true);
 #endif  // CPU_TIME
 
 #ifdef CUDA
