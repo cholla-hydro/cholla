@@ -55,7 +55,7 @@ void OneTime::End(bool const print_high_values)
 
   #ifdef MPI_CHOLLA
   // Print out information if the process is unusually slow
-  if (time >= 1.1 * t_avg and print_high_values) {
+  if ((time >= 1.1 * t_avg) and (n_steps > 0) and print_high_values) {
     // Get node ID
     std::string node_id(MPI_MAX_PROCESSOR_NAME, ' ');
     int length;
@@ -72,6 +72,8 @@ void OneTime::End(bool const print_high_values)
         gpu_id.end());
 
     std::cerr << "WARNING: Rank took longer than expected to execute." << std::endl
+              << "         Node Time: " << time << std::endl
+              << "         Avg Time: " << t_avg << std::endl
               << "         Node ID: " << node_id << std::endl
               << "         GPU PCI Bus ID: " << gpu_id << std::endl;
   }
