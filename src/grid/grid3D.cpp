@@ -148,11 +148,11 @@ void Grid3D::Initialize(struct parameters *P)
   int nz_in = P->nz;
 
 #ifdef STATIC_GRAV
-  H.custom_grav = P->custom_grav; //Initialize the custom static gravity flag
+  H.custom_grav = P->custom_grav;  // Initialize the custom static gravity flag
   printf("H.custom_grav is %d\n", H.custom_grav);
-if (H.custom_grav == 0){
+  if (H.custom_grav == 0) {
     printf("WARNING: No custom gravity field given. Gravity field will be set to zero.\n");
-}
+  }
 #endif
 
   // Set the CFL coefficient (a global variable)
@@ -467,8 +467,8 @@ Real Grid3D::Update_Grid(void)
   #endif  // VL
   #ifdef SIMPLE
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor, U_floor,
-                             C.Grav_potential);
+                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor,
+                             U_floor, C.Grav_potential);
   #endif  // SIMPLE
 #endif
   } else {

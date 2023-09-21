@@ -149,7 +149,7 @@ void parse_params(char *param_file, struct parameters *parms, int argc, char **a
 #endif /*ROTATED_PROJECTION*/
 
 #ifdef STATIC_GRAV
-  //initialize custom gravity flag to zero
+  // initialize custom gravity flag to zero
   parms->custom_grav = 0;
 #endif
 
@@ -219,7 +219,7 @@ void parse_param(char *name, char *value, struct parameters *parms)
 #ifdef STATIC_GRAV
   } else if (strcmp(name, "custom_grav") == 0) {
     parms->custom_grav = atoi(value);
- #endif
+#endif
   } else if (strcmp(name, "tout") == 0) {
     parms->tout = atof(value);
   } else if (strcmp(name, "outstep") == 0) {

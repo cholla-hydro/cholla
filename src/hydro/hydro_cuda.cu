@@ -174,7 +174,8 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
                                               Real *Q_Lz, Real *Q_Rz, Real *dev_F_x, Real *dev_F_y, Real *dev_F_z,
                                               int nx, int ny, int nz, int x_off, int y_off, int z_off, int n_ghost,
                                               Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real dt,
-                                              Real gamma, int n_fields, int custom_grav, Real density_floor, Real *dev_potential)
+                                              Real gamma, int n_fields, int custom_grav, Real density_floor,
+                                              Real *dev_potential)
 {
   int id, xid, yid, zid, n_cells;
   int imo, jmo, kmo;
@@ -299,7 +300,8 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
   #endif  // DENSITY_FLOOR
 
   #ifdef STATIC_GRAV
-    calc_g_3D(xid, yid, zid, x_off, y_off, z_off, n_ghost, custom_grav, dx, dy, dz, xbound, ybound, zbound, &gx, &gy, &gz);
+    calc_g_3D(xid, yid, zid, x_off, y_off, z_off, n_ghost, custom_grav, dx, dy, dz, xbound, ybound, zbound, &gx, &gy,
+              &gz);
     d_n     = dev_conserved[id];
     d_inv_n = 1.0 / d_n;
     vx_n    = dev_conserved[1 * n_cells + id] * d_inv_n;
