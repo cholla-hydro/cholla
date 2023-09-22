@@ -25,15 +25,15 @@ TEST(tCOOLINGSYSTEMConstant5, CorrectInputExpectCorrectOutput)
   double energy = 0.0014850544057189395;// Python
   */
   double energy = 0.00148501098087863;  // Cholla
-  systemTest::SystemTestRunner testObject(false, false, false);
+  system_test::SystemTestRunner testObject(false, false, false);
   testObject.launchCholla();
   testObject.openHydroTestData();
 
-  testingUtilities::analyticConstant(testObject, "density", COOL_RHO * 1e5);
-  testingUtilities::analyticConstant(testObject, "momentum_x", 0.0);
-  testingUtilities::analyticConstant(testObject, "momentum_y", 0.0);
-  testingUtilities::analyticConstant(testObject, "momentum_z", 0.0);
-  testingUtilities::analyticConstant(testObject, "Energy", energy);
+  testing_utilities::analyticConstant(testObject, "density", COOL_RHO * 1e5);
+  testing_utilities::analyticConstant(testObject, "momentum_x", 0.0);
+  testing_utilities::analyticConstant(testObject, "momentum_y", 0.0);
+  testing_utilities::analyticConstant(testObject, "momentum_z", 0.0);
+  testing_utilities::analyticConstant(testObject, "Energy", energy);
 }
 
 TEST(tCOOLINGSYSTEMConstant7, CorrectInputExpectCorrectOutput)
@@ -44,15 +44,15 @@ TEST(tCOOLINGSYSTEMConstant7, CorrectInputExpectCorrectOutput)
   // T = 1e7
   // double energy = 0.14982743570299709; // Python
   double energy = 0.14982745510047499;  // Cholla
-  systemTest::SystemTestRunner testObject(false, false, false);
+  system_test::SystemTestRunner testObject(false, false, false);
   testObject.launchCholla();
   testObject.openHydroTestData();
 
-  testingUtilities::analyticConstant(testObject, "density", COOL_RHO * 1e5);
-  testingUtilities::analyticConstant(testObject, "momentum_x", 0.0);
-  testingUtilities::analyticConstant(testObject, "momentum_y", 0.0);
-  testingUtilities::analyticConstant(testObject, "momentum_z", 0.0);
-  testingUtilities::analyticConstant(testObject, "Energy", energy);
+  testing_utilities::analyticConstant(testObject, "density", COOL_RHO * 1e5);
+  testing_utilities::analyticConstant(testObject, "momentum_x", 0.0);
+  testing_utilities::analyticConstant(testObject, "momentum_y", 0.0);
+  testing_utilities::analyticConstant(testObject, "momentum_z", 0.0);
+  testing_utilities::analyticConstant(testObject, "Energy", energy);
 }
 
 TEST(tCOOLINGSYSTEMConstant8, CorrectInputExpectCorrectOutput)
@@ -64,13 +64,13 @@ TEST(tCOOLINGSYSTEMConstant8, CorrectInputExpectCorrectOutput)
 
   // double energy = 1.499669522009355; // Python
   double energy = 1.4996695198095711;  // Cholla
-  systemTest::SystemTestRunner testObject(false, false, false);
+  system_test::SystemTestRunner testObject(false, false, false);
   testObject.launchCholla();
   testObject.openHydroTestData();
 
-  testingUtilities::analyticConstant(testObject, "density", COOL_RHO * 1e5);
-  testingUtilities::analyticConstant(testObject, "momentum_x", 0.0);
-  testingUtilities::analyticConstant(testObject, "momentum_y", 0.0);
-  testingUtilities::analyticConstant(testObject, "momentum_z", 0.0);
-  testingUtilities::analyticConstant(testObject, "Energy", energy);
+  testing_utilities::analyticConstant(testObject, "density", COOL_RHO * 1e5);
+  testing_utilities::analyticConstant(testObject, "momentum_x", 0.0);
+  testing_utilities::analyticConstant(testObject, "momentum_y", 0.0);
+  testing_utilities::analyticConstant(testObject, "momentum_z", 0.0);
+  testing_utilities::analyticConstant(testObject, "Energy", energy);
 }

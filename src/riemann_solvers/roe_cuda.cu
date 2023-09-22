@@ -316,18 +316,15 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       // if pressure or density is negative, and we have not already returned
       // the supersonic fluxes, return the HLLE fluxes
       if (hlle_flag != 0) {
-        Real cfl, cfr, al, ar, bm, bp, tmp;
+        Real cfl, cfr, bm, bp, tmp;
 
         // compute max and fmin wave speeds
         cfl = sqrt(gamma * pl / dl);  // sound speed in left state
         cfr = sqrt(gamma * pr / dr);  // sound speed in right state
 
         // take max/fmin of Roe eigenvalues and left and right sound speeds
-        al = fmin(lambda_m, vxl - cfl);
-        ar = fmax(lambda_p, vxr + cfr);
-
-        bm = fmin(al, (Real)0.0);
-        bp = fmax(ar, (Real)0.0);
+        bm = fmin(fmin(lambda_m, vxl - cfl), (Real)0.0);
+        bp = fmax(fmax(lambda_p, vxr + cfr), (Real)0.0);
 
         // compute left and right fluxes
         f_d_l = mxl - bm * dl;

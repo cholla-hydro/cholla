@@ -265,7 +265,7 @@ void Grid3D::Initialize(struct parameters *P)
 #endif
 
 #ifdef COSMOLOGY
-  H.OUTPUT_SCALE_FACOR = not P->scale_outputs_file[0] == '\0';
+  H.OUTPUT_SCALE_FACOR = not(P->scale_outputs_file[0] == '\0');
 #endif
 
   H.Output_Initial = true;

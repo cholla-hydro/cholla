@@ -25,6 +25,7 @@
  * \brief Test fixture for tMHDUpdateMagneticField3D test suite
  *
  */
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDUpdateMagneticField3D : public ::testing::Test
 {
  public:
@@ -103,9 +104,9 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
     for (size_t i = 0; i < fiducialData.size(); i++) {
       int xid, yid, zid;
       cuda_utilities::compute3DIndices(i, nx, ny, xid, yid, zid);
-      testingUtilities::checkResults(fiducialData.at(i), destinationGrid.at(i),
-                                     "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
-                                         ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
+      testing_utilities::checkResults(fiducialData.at(i), destinationGrid.at(i),
+                                      "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
+                                          ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
     }
   }
 };
