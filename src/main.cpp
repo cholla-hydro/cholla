@@ -14,7 +14,9 @@
 #include "global/global.h"
 #include "grid/grid3D.h"
 #include "io/io.h"
+#include "utils/cuda_utilities.h"
 #include "utils/error_handling.h"
+
 #ifdef SUPERNOVA
   #include "particles/supernova.h"
   #ifdef ANALYSIS
@@ -93,6 +95,7 @@ int main(int argc, char *argv[])
     chprintf("Input directory:  %s\n", P.indir);
   }
   chprintf("Output directory:  %s\n", P.outdir);
+  Ensure_Outdir_Exists(P.outdir);
 
   // Check the configuration
   Check_Configuration(P);
@@ -297,6 +300,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef CPU_TIME
+    cuda_utilities::Print_GPU_Memory_Usage();
     G.Timer.Total.End();
 #endif  // CPU_TIME
 
@@ -350,7 +354,9 @@ int main(int argc, char *argv[])
 #ifdef N_STEPS_LIMIT
     // Exit the loop when reached the limit number of steps (optional)
     if (G.H.n_step == N_STEPS_LIMIT) {
+  #ifdef OUTPUT
       WriteData(G, P, nfile);
+  #endif  // OUTPUT
       break;
     }
 #endif

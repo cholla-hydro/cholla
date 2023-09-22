@@ -51,6 +51,12 @@ void Write_Message_To_Log_File(const char* message);
 
 void write_debug(Real* Value, const char* fname, int nValues, int iProc);
 
+/* Checks whether the directories referred to within outdir exist. Creates them
+ * if they don't. It gracefully handles cases where outdir contains a prefix
+ * for the output files.
+ */
+void Ensure_Outdir_Exists(std::string outdir);
+
 #ifdef HDF5
 // From io/io.cpp
 
