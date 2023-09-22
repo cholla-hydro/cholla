@@ -141,6 +141,7 @@ AnalyzeTemporaryDtors: false
 FormatStyle:     'file'
 UseColor: false
 CheckOptions:
+  readability-braces-around-statements.ShortStatementLines: 1
   # readability-identifier-naming allowed casing types
   # - lower_case
   # - UPPER_CASE

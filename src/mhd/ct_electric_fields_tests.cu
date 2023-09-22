@@ -17,6 +17,7 @@
 
 // Local Includes
 #include "../global/global.h"
+#include "../io/io.h"
 #include "../mhd/ct_electric_fields.h"
 #include "../utils/testing_utilities.h"
 
@@ -175,6 +176,99 @@ TEST_F(tMHDCalculateCTElectricFields, ZeroVelocityExpectCorrectOutput)
 
   // Launch kernel and check results
   Run_Test();
+}
+// =============================================================================
+
+// =============================================================================
+TEST(tMHDCTSlope, CorrectInputExpectCorrectOutput)
+{
+  // Set up the basic parameters
+  size_t const nx      = 5;
+  size_t const ny      = nx;
+  size_t const nz      = nx;
+  int const xid        = nx / 2;
+  int const yid        = ny / 2;
+  int const zid        = nz / 2;
+  size_t const n_cells = nx * ny * nz;
+
+  // Set up the grid
+  std::vector<double> flux(grid_enum::num_fields * n_cells), conserved(grid_enum::num_fields * n_cells);
+
+  std::mt19937 prng(1);
+  std::uniform_real_distribution<double> doubleRand(-5, 5);
+
+  for (double& conserved_data : conserved) {
+    conserved_data = doubleRand(prng);
+  }
+  for (double& flux_data : flux) {
+    flux_data = doubleRand(prng);
+  }
+
+  // Fiducial data
+  std::vector<double> fiducial_data = {
+      -6.8725060451062561, -77.056763568617669, 1.4564238051915397,  5.4541656143291437,  -0.83503550003671911,
+      -78.091781647940934, -2.6187125848387525, -5.6934594000939542, -16.243259069749971, -59.321631150095314,
+      0.99291378610068892, 4.4004574252725384,  -1.6902722376320516, -63.074645759822637, -4.5776373499662899,
+      -19.476095152639683, -2.0173881091784471, -74.484407919605786, -7.8184484634991724, -0.23206265131850434,
+      0.41622472388590037, -74.479121547383727, -6.9903417764222358, -1.832282425083853};
+
+  // Get test data. Only test the options that will be used
+  std::vector<double> test_data;
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 2, -1, 1, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 0, -1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 1, 2, 1, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 1, -1, 1, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 0, -1, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 1, 2, 1, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 2, -1, -1, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 2, -1, 0, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 1, -1, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 0, 2, 0, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 0, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 0, -1, 0, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 1, -1, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 0, 2, 0, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 2, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 0, -1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 2, -1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 0, 1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 1, -1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 2, -1, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 0, 1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 0, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+
+  // Check the results
+  ASSERT_EQ(test_data.size(), fiducial_data.size());
+
+  for (size_t i = 0; i < test_data.size(); i++) {
+    testingUtilities::checkResults(fiducial_data.at(i), test_data.at(i), "");
+  }
 }
 // =============================================================================
 #endif  // MHD

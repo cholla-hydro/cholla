@@ -184,11 +184,11 @@ struct parameters {
   Real gamma;
   char init[MAXLEN];
   int nfile;
-  int n_hydro;
-  int n_particle;
-  int n_projection;
-  int n_rotated_projection;
-  int n_slice;
+  int n_hydro                = 1;
+  int n_particle             = 1;
+  int n_projection           = 1;
+  int n_rotated_projection   = 1;
+  int n_slice                = 1;
   int n_out_float32          = 0;
   int out_float32_density    = 0;
   int out_float32_momentum_x = 0;
@@ -275,16 +275,17 @@ struct parameters {
   char snr_filename[MAXLEN];
 #endif
 #ifdef ROTATED_PROJECTION
+  // initialize rotation parameters to zero
   int nxr;
   int nzr;
-  Real delta;
-  Real theta;
-  Real phi;
+  Real delta = 0;
+  Real theta = 0;
+  Real phi   = 0;
   Real Lx;
   Real Lz;
-  int n_delta;
-  Real ddelta_dt;
-  int flag_delta;
+  int n_delta    = 0;
+  Real ddelta_dt = 0;
+  int flag_delta = 0;
 #endif /*ROTATED_PROJECTION*/
 #ifdef COSMOLOGY
   Real H0;
