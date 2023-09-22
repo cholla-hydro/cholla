@@ -63,7 +63,7 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
   CudaCheckError();
 
   // Perform comparison
-  testing_utilities::checkResults(maxValue, dev_max.at(0), "maximum value found");
+  testing_utilities::Check_Results(maxValue, dev_max.at(0), "maximum value found");
 }
 // =============================================================================
 // Tests for divergence max reduction

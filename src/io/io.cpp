@@ -32,7 +32,7 @@
 
 /* function used to rotate points about an axis in 3D for the rotated projection
  * output routine */
-void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
+void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
 
 /* local function that designates whether we are using a root-process. It gives
  * gives a sensible result regardless of whether we are using MPI */
@@ -87,7 +87,7 @@ void Write_Message_To_Log_File(const char *message)
 }
 
 /* Write Cholla Output Data */
-void WriteData(Grid3D &G, struct parameters P, int nfile)
+void Write_Data(Grid3D &G, struct parameters P, int nfile)
 {
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields * G.H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
@@ -119,32 +119,32 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
 #ifndef ONLY_PARTICLES
   /*call the data output routine for Hydro data*/
   if (nfile % P.n_hydro == 0) {
-    OutputData(G, P, nfile);
+    Output_Data(G, P, nfile);
   }
 #endif
 
 // This function does other checks to make sure it is valid (3D only)
 #ifdef HDF5
   if (P.n_out_float32 && nfile % P.n_out_float32 == 0) {
-    OutputFloat32(G, P, nfile);
+    Output_Float32(G, P, nfile);
   }
 #endif
 
 #ifdef PROJECTION
   if (nfile % P.n_projection == 0) {
-    OutputProjectedData(G, P, nfile);
+    Output_Projected_Data(G, P, nfile);
   }
 #endif /*PROJECTION*/
 
 #ifdef ROTATED_PROJECTION
   if (nfile % P.n_rotated_projection == 0) {
-    OutputRotatedProjectedData(G, P, nfile);
+    Output_Rotated_Projected_Data(G, P, nfile);
   }
 #endif /*ROTATED_PROJECTION*/
 
 #ifdef SLICES
   if (nfile % P.n_slice == 0) {
-    OutputSlices(G, P, nfile);
+    Output_Slices(G, P, nfile);
   }
 #endif /*SLICES*/
 
@@ -188,7 +188,7 @@ void WriteData(Grid3D &G, struct parameters P, int nfile)
 }
 
 /* Output the grid data to file. */
-void OutputData(Grid3D &G, struct parameters P, int nfile)
+void Output_Data(Grid3D &G, struct parameters P, int nfile)
 {
   // create the filename
   std::string filename(P.outdir);
@@ -266,7 +266,7 @@ void OutputData(Grid3D &G, struct parameters P, int nfile)
 #endif
 }
 
-void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
+void Output_Float32(Grid3D &G, struct parameters P, int nfile)
 {
 #ifdef HDF5
   Header H = G.H;
@@ -324,29 +324,29 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
     auto *dataset_buffer = (float *)malloc(buffer_size * sizeof(float));
 
     if (P.out_float32_density > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_density, "/density");
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                          device_dataset_vector.data(), G.C.d_density, "/density");
     }
     if (P.out_float32_momentum_x > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_momentum_x, "/momentum_x");
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                          device_dataset_vector.data(), G.C.d_momentum_x, "/momentum_x");
     }
     if (P.out_float32_momentum_y > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_momentum_y, "/momentum_y");
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                          device_dataset_vector.data(), G.C.d_momentum_y, "/momentum_y");
     }
     if (P.out_float32_momentum_z > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_momentum_z, "/momentum_z");
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                          device_dataset_vector.data(), G.C.d_momentum_z, "/momentum_z");
     }
     if (P.out_float32_Energy > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_Energy, "/Energy");
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                          device_dataset_vector.data(), G.C.d_Energy, "/Energy");
     }
   #ifdef DE
     if (P.out_float32_GasEnergy > 0) {
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_GasEnergy, "/GasEnergy");
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
+                          device_dataset_vector.data(), G.C.d_GasEnergy, "/GasEnergy");
     }
   #endif  // DE
   #ifdef MHD
@@ -354,18 +354,18 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
     // TODO (by Alwin, for anyone) : Repair output format if needed and remove these chprintfs when appropriate
     if (P.out_float32_magnetic_x > 0) {
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_magnetic_x, "/magnetic_x");
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
+                          device_dataset_vector.data(), G.C.d_magnetic_x, "/magnetic_x");
     }
     if (P.out_float32_magnetic_y > 0) {
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_magnetic_y, "/magnetic_y");
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
+                          device_dataset_vector.data(), G.C.d_magnetic_y, "/magnetic_y");
     }
     if (P.out_float32_magnetic_z > 0) {
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      WriteHDF5Field3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                       device_dataset_vector.data(), G.C.d_magnetic_z, "/magnetic_z");
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
+                          device_dataset_vector.data(), G.C.d_magnetic_z, "/magnetic_z");
     }
 
   #endif  // MHD
@@ -384,7 +384,7 @@ void OutputFloat32(Grid3D &G, struct parameters P, int nfile)
 }
 
 /* Output a projection of the grid data to file. */
-void OutputProjectedData(Grid3D &G, struct parameters P, int nfile)
+void Output_Projected_Data(Grid3D &G, struct parameters P, int nfile)
 {
 #ifdef HDF5
   hid_t file_id;
@@ -413,23 +413,23 @@ void OutputProjectedData(Grid3D &G, struct parameters P, int nfile)
 
   #ifdef MPI_CHOLLA
   if (status < 0) {
-    printf("OutputProjectedData: File write failed. ProcID: %d\n", procID);
+    printf("Output_Projected_Data: File write failed. ProcID: %d\n", procID);
     chexit(-1);
   }
   #else
   if (status < 0) {
-    printf("OutputProjectedData: File write failed.\n");
+    printf("Output_Projected_Data: File write failed.\n");
     exit(-1);
   }
   #endif
 
 #else
-  printf("OutputProjected Data only defined for hdf5 writes.\n");
+  printf("Output_Projected_Data only defined for hdf5 writes.\n");
 #endif  // HDF5
 }
 
 /* Output a rotated projection of the grid data to file. */
-void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
+void Output_Rotated_Projected_Data(Grid3D &G, struct parameters P, int nfile)
 {
 #ifdef HDF5
   hid_t file_id;
@@ -470,12 +470,12 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
       status = H5Fclose(file_id);
   #ifdef MPI_CHOLLA
       if (status < 0) {
-        printf("OutputRotatedProjectedData: File write failed. ProcID: %d\n", procID);
+        printf("Output_Rotated_Projected_Data: File write failed. ProcID: %d\n", procID);
         chexit(-1);
       }
   #else
       if (status < 0) {
-        printf("OutputRotatedProjectedData: File write failed.\n");
+        printf("Output_Rotated_Projected_Data: File write failed.\n");
         exit(-1);
       }
   #endif
@@ -518,23 +518,23 @@ void OutputRotatedProjectedData(Grid3D &G, struct parameters P, int nfile)
 
   #ifdef MPI_CHOLLA
   if (status < 0) {
-    printf("OutputRotatedProjectedData: File write failed. ProcID: %d\n", procID);
+    printf("Output_Rotated_Projected_Data: File write failed. ProcID: %d\n", procID);
     chexit(-1);
   }
   #else
   if (status < 0) {
-    printf("OutputRotatedProjectedData: File write failed.\n");
+    printf("Output_Rotated_Projected_Data: File write failed.\n");
     exit(-1);
   }
   #endif
 
 #else
-  printf("OutputRotatedProjectedData only defined for HDF5 writes.\n");
+  printf("Output_Rotated_Projected_Data only defined for HDF5 writes.\n");
 #endif
 }
 
 /* Output xy, xz, and yz slices of the grid data. */
-void OutputSlices(Grid3D &G, struct parameters P, int nfile)
+void Output_Slices(Grid3D &G, struct parameters P, int nfile)
 {
 #ifdef HDF5
   hid_t file_id;
@@ -563,17 +563,17 @@ void OutputSlices(Grid3D &G, struct parameters P, int nfile)
 
   #ifdef MPI_CHOLLA
   if (status < 0) {
-    printf("OutputSlices: File write failed. ProcID: %d\n", procID);
+    printf("Output_Slices: File write failed. ProcID: %d\n", procID);
     chexit(-1);
   }
   #else   // MPI_CHOLLA is not defined
   if (status < 0) {
-    printf("OutputSlices: File write failed.\n");
+    printf("Output_Slices: File write failed.\n");
     exit(-1);
   }
   #endif  // MPI_CHOLLA
 #else     // HDF5 is not defined
-  printf("OutputSlices only defined for hdf5 writes.\n");
+  printf("Output_Slices only defined for hdf5 writes.\n");
 #endif    // HDF5
 }
 
@@ -788,7 +788,7 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
         Get_Position(H.n_ghost + i * (H.nx - 2 * H.n_ghost), H.n_ghost + j * (H.ny - 2 * H.n_ghost),
                      H.n_ghost + k * (H.nz - 2 * H.n_ghost), &x, &y, &z);
         // rotate cell position
-        rotate_point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
+        Rotate_Point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
         // find projected location
         // assumes box centered at [0,0,0]
         alpha    = (R.nx * (xp + 0.5 * R.Lx) / R.Lx);
@@ -1506,12 +1506,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
 
   #ifdef MHD
     if (H.Output_Complete_Data) {
-      WriteHDF5Field3D(H.nx, H.ny, H.nx_real + 1, H.ny_real, H.nz_real, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), C.d_magnetic_x, "/magnetic_x", 0);
-      WriteHDF5Field3D(H.nx, H.ny, H.nx_real, H.ny_real + 1, H.nz_real, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), C.d_magnetic_y, "/magnetic_y", 1);
-      WriteHDF5Field3D(H.nx, H.ny, H.nx_real, H.ny_real, H.nz_real + 1, H.n_ghost, file_id, dataset_buffer,
-                       device_dataset_vector.data(), C.d_magnetic_z, "/magnetic_z", 2);
+      Write_HDF5_Field_3D(H.nx, H.ny, H.nx_real + 1, H.ny_real, H.nz_real, H.n_ghost, file_id, dataset_buffer,
+                          device_dataset_vector.data(), C.d_magnetic_x, "/magnetic_x", 0);
+      Write_HDF5_Field_3D(H.nx, H.ny, H.nx_real, H.ny_real + 1, H.nz_real, H.n_ghost, file_id, dataset_buffer,
+                          device_dataset_vector.data(), C.d_magnetic_y, "/magnetic_y", 1);
+      Write_HDF5_Field_3D(H.nx, H.ny, H.nx_real, H.ny_real, H.nz_real + 1, H.n_ghost, file_id, dataset_buffer,
+                          device_dataset_vector.data(), C.d_magnetic_z, "/magnetic_z", 2);
     }
   #endif  // MHD
   }
@@ -1755,7 +1755,7 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
           z += eps * H.dz * (drand48() - 0.5);
 
           // rotate cell positions
-          rotate_point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
+          Rotate_Point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
 
           // find projected locations
           // assumes box centered at [0,0,0]
@@ -2715,7 +2715,7 @@ int chprintf(const char *__restrict sdata, ...)  // NOLINT(cert-dcl50-cpp)
   return code;
 }
 
-void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp)
+void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp)
 {
   Real cd, sd, cp, sp, ct, st;  // sines and cosines
   Real a00, a01, a02;           // rotation matrix elements
@@ -2757,7 +2757,7 @@ void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real
   *zp = a20 * x + a21 * y + a22 * z;
 }
 
-void write_debug(Real *Value, const char *fname, int nValues, int iProc)
+void Write_Debug(Real *Value, const char *fname, int nValues, int iProc)
 {
   char fn[1024];
   int ret;

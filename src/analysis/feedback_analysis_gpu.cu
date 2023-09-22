@@ -11,7 +11,7 @@
   #define MIN_DENSITY  (0.01 * MP * MU * LENGTH_UNIT * LENGTH_UNIT * LENGTH_UNIT / MASS_UNIT)  // 148279.7
   #define TPB_ANALYSIS 1024
 
-__device__ void warpReduce(volatile Real *buff, size_t tid)
+__device__ void Warp_Reduce(volatile Real *buff, size_t tid)
 {
   if (TPB_ANALYSIS >= 64) {
     buff[tid] += buff[tid + 32];
@@ -125,8 +125,8 @@ void __global__ Reduce_Tubulence_kernel_2(Real *input_m, Real *input_v, Real *ou
   }
 
   if (tid < 32) {
-    warpReduce(s_mass, tid);
-    warpReduce(s_vel, tid);
+    Warp_Reduce(s_mass, tid);
+    Warp_Reduce(s_vel, tid);
   }
   __syncthreads();
 

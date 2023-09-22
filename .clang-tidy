@@ -39,6 +39,9 @@ Checks: "*,
         google-readability-avoid-underscore-in-googletest-name,
         google-upgrade-googletest-case,
 
+        -*,
+        readability-identifier-naming,
+
         -bugprone-implicit-widening-of-multiplication-result,
         -bugprone-narrowing-conversions,
         -cert-env33-c,
@@ -147,11 +150,11 @@ CheckOptions:
   # - aNy_CasE
 
   # readability-identifier-naming.VariableCase: 'lower_case'
-  # readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
+  readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
   readability-identifier-naming.NamespaceCase: 'lower_case'
-  readability-identifier-naming.MacroDefinitionCase: 'UPPER_CASE'
-  readability-identifier-naming.TypedefCase: 'CamelCase'
-  readability-identifier-naming.TypeAliasCase: 'CamelCase'
+  # readability-identifier-naming.MacroDefinitionCase: 'UPPER_CASE'
+  # readability-identifier-naming.TypedefCase: 'CamelCase'
+  # readability-identifier-naming.TypeAliasCase: 'CamelCase'
   readability-identifier-naming.EnumCase: 'CamelCase'
   # readability-identifier-naming.ConstantCase: 'lower_case'
 

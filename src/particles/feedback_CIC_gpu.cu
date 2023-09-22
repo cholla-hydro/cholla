@@ -36,6 +36,7 @@ int snr_n;
 }  // namespace supernova
 
   #ifndef O_HIP
+// NOLINTNEXTLINE(readability-identifier-naming)
 __device__ double atomicMax(double* address, double val)
 {
   auto* address_as_ull       = (unsigned long long int*)address;
@@ -48,7 +49,7 @@ __device__ double atomicMax(double* address, double val)
 }
   #endif  // O_HIP
 
-__global__ void initState_kernel(unsigned int seed, FeedbackPrng* states)
+__global__ void Init_State_Kernel(unsigned int seed, FeedbackPrng* states)
 {
   int id = blockIdx.x * blockDim.x + threadIdx.x;
   curand_init(seed, id, 0, &states[id]);
@@ -137,7 +138,7 @@ void supernova::initState(struct parameters* P, part_int_t n_local, Real allocat
   dim3 grid(ngrid);
   dim3 block(TPB_FEEDBACK);
 
-  hipLaunchKernelGGL(initState_kernel, grid, block, 0, 0, P->prng_seed, randStates);
+  hipLaunchKernelGGL(Init_State_Kernel, grid, block, 0, 0, P->prng_seed, randStates);
   CHECK(cudaDeviceSynchronize());
   chprintf("supernova::initState end: n_states=%ld, ngrid=%d, threads=%d\n", n_states, ngrid, TPB_FEEDBACK);
 }
@@ -175,9 +176,9 @@ __device__ Real Calc_Timestep(Real gamma, Real* density, Real* momentum_x, Real*
    should be dx*1/2. In the above the 1/2 factor is normalize over 2
    cells/direction.
   */
-__device__ Real frac(int i, Real dx) { return (-0.5 * i * i - 0.5 * i + 1 + i * dx) * 0.5; }
+__device__ Real Frac(int i, Real dx) { return (-0.5 * i * i - 0.5 * i + 1 + i * dx) * 0.5; }
 
-__device__ Real d_fr(int i, Real dx)
+__device__ Real D_Fr(int i, Real dx)
 {
   return (dx > 0.5) * i * (1 - 2 * dx) + ((i + 1) * dx + 0.5 * (i - 1)) - 3 * (i - 1) * (i + 1) * (0.5 - dx);
 }
@@ -475,9 +476,9 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
                   // index in array of conserved quantities
                   indx = (indx_x + i) + (indx_y + j) * nx_g + (indx_z + k) * nx_g * ny_g;
 
-                  x_frac = d_fr(i, delta_x) * frac(j, delta_y) * frac(k, delta_z);
-                  y_frac = frac(i, delta_x) * d_fr(j, delta_y) * frac(k, delta_z);
-                  z_frac = frac(i, delta_x) * frac(j, delta_y) * d_fr(k, delta_z);
+                  x_frac = D_Fr(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
+                  y_frac = Frac(i, delta_x) * D_Fr(j, delta_y) * Frac(k, delta_z);
+                  z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Fr(k, delta_z);
 
                   px = x_frac * feedback_momentum;
                   py = y_frac * feedback_momentum;
