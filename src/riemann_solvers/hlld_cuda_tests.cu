@@ -1935,8 +1935,10 @@ TEST(tMHDHlldInternalApproximateStarWaveSpeed, CorrectInputExpectCorrectOutput)
                                                                parameters.magneticX.at(i), 1);
 
     // Now check results
-    testing_utilities::Check_Results(fiducialSpeedStarL.at(i), testSpeed.LStar, parameters.names.at(i) + ", SpeedStarL");
-    testing_utilities::Check_Results(fiducialSpeedStarR.at(i), testSpeed.RStar, parameters.names.at(i) + ", SpeedStarR");
+    testing_utilities::Check_Results(fiducialSpeedStarL.at(i), testSpeed.LStar,
+                                     parameters.names.at(i) + ", SpeedStarL");
+    testing_utilities::Check_Results(fiducialSpeedStarR.at(i), testSpeed.RStar,
+                                     parameters.names.at(i) + ", SpeedStarR");
   }
 }
 // =========================================================================

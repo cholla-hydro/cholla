@@ -527,8 +527,8 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveExpectSecondOrderC
 
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
-  testing_utilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["contact_" + std::to_string(domain_direction)],
-                                   "", 0.17);
+  testing_utilities::Check_Results(
+      4.0, low_res_l2norm / high_res_l2norms["contact_" + std::to_string(domain_direction)], "", 0.17);
 }
 
 INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedAngle,
