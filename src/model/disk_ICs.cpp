@@ -748,7 +748,7 @@ void Grid3D::Disk_3D(parameters p)
   Real r_cool;
 
   // MW model
-  DiskGalaxy galaxy = Galaxies::MW;
+  DiskGalaxy galaxy = Galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
   // M82 model Galaxies::M82;
 
   M_vir = galaxy.getM_vir();    // viral mass in M_sun

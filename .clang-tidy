@@ -34,6 +34,7 @@ Checks: "*,
         -misc-unused-parameters,
         -hicpp-multiway-paths-covered,
         -cert-err58-cpp,
+        -cppcoreguidelines-pro-bounds-constant-array-index,
 
         google-readability-avoid-underscore-in-googletest-name,
         google-upgrade-googletest-case,
@@ -71,7 +72,6 @@ Checks: "*,
         -cppcoreguidelines-owning-memory,
         -cppcoreguidelines-prefer-member-initializer,
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-        -cppcoreguidelines-pro-bounds-constant-array-index,
         -cppcoreguidelines-pro-bounds-pointer-arithmetic,
         -cppcoreguidelines-pro-type-cstyle-cast,
         -cppcoreguidelines-pro-type-member-init,
@@ -91,7 +91,6 @@ Checks: "*,
         -hicpp-member-init,
         -hicpp-no-array-decay,
         -hicpp-no-malloc,
-        -hicpp-signed-bitwise,
         -hicpp-special-member-functions,
         -hicpp-use-equals-default,
         -hicpp-use-noexcept,
@@ -102,7 +101,6 @@ Checks: "*,
         -llvm-header-guard,
         -llvm-include-order,
         -llvm-namespace-comment,
-        -misc-confusable-identifiers,
         -misc-const-correctness,
         -misc-non-private-member-variables-in-classes,
         -modernize-avoid-c-arrays,
@@ -122,7 +120,6 @@ Checks: "*,
         -readability-else-after-return,
         -readability-function-cognitive-complexity,
         -readability-identifier-length,
-        -readability-identifier-naming,
         -readability-implicit-bool-conversion,
         -readability-inconsistent-declaration-parameter-name,
         -readability-isolate-declaration,
@@ -148,25 +145,24 @@ CheckOptions:
   # - camel_Snake_Back
   # - Camel_Snake_Case
   # - aNy_CasE
-  #
-  # Entries that are commented out probably aren't needed but it should be verified
-  readability-identifier-naming.VariableCase: 'lower_case'
-  readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
+
+  # readability-identifier-naming.VariableCase: 'lower_case'
+  # readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
   readability-identifier-naming.NamespaceCase: 'lower_case'
   readability-identifier-naming.MacroDefinitionCase: 'UPPER_CASE'
   readability-identifier-naming.TypedefCase: 'CamelCase'
   readability-identifier-naming.TypeAliasCase: 'CamelCase'
   readability-identifier-naming.EnumCase: 'CamelCase'
-  readability-identifier-naming.ConstantCase: 'lower_case'
+  # readability-identifier-naming.ConstantCase: 'lower_case'
 
-  readability-identifier-naming.ConstantPrefix: 'k_'
-  readability-identifier-naming.GlobalVariablePrefix: 'g_'
+  # readability-identifier-naming.ConstantPrefix: 'k_'
+  # readability-identifier-naming.GlobalVariablePrefix: 'g_'
 
   readability-identifier-naming.ClassCase: 'CamelCase'
-  # readability-identifier-naming.MemberCase: 'lower_case'
-  # readability-identifier-naming.MethodCase: 'CamelCase'
-  readability-identifier-naming.PrivateMemberSuffix: '_'
-  readability-identifier-naming.PrivateMethodSuffix: '_'
+  # readability-identifier-naming.MemberCase: 'lower_case' # This entry might not be needed
+  # readability-identifier-naming.MethodCase: 'CamelCase' # This entry might not be needed
+  # readability-identifier-naming.PrivateMemberSuffix: '_'
+  # readability-identifier-naming.PrivateMethodSuffix: '_'
 
-  # readability-identifier-naming.StructCase: 'CamelCase'
+  hicpp-signed-bitwise.IgnorePositiveIntegerLiterals: 'true'
 ...
