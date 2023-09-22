@@ -576,13 +576,9 @@ TEST(tALLReconstructionWriteData, CorrectInputExpectCorrectOutput)
 {
   // Set up test and mock up grid
 #ifdef MHD
-  reconstruction::Primitive interface {
-    1, 2, 3, 4, 5, 6, 7, 8
-  };
+  reconstruction::Primitive interface{1, 2, 3, 4, 5, 6, 7, 8};
 #else   // MHD
-  reconstruction::Primitive interface {
-    6, 7, 8, 9, 10
-  };
+  reconstruction::Primitive interface{6, 7, 8, 9, 10};
 #endif  // MHD
   size_t const nx = 3, ny = 3, nz = 3;
   size_t const n_cells = nx * ny * nz;

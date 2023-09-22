@@ -18,13 +18,13 @@ inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, int custom_gra
 {
   Real x_pos, r_disk, r_halo;
   x_pos = (x_off + xid - n_ghost + 0.5) * dx + xbound;
-  //set gravity field according to parameter file input
+  // set gravity field according to parameter file input
   switch (custom_grav) {
-  case 1:
-    //1D NFW halo & Miyamoto-Nagai disk
-      // for disk components, calculate polar r
-      // r_disk = 0.220970869121;
-      // r_disk = 6.85009694274;
+    case 1:
+      // 1D NFW halo & Miyamoto-Nagai disk
+      //  for disk components, calculate polar r
+      //  r_disk = 0.220970869121;
+      //  r_disk = 6.85009694274;
       r_disk = 13.9211647546;
       // r_disk = 20.9922325665;
       //  for halo, calculate spherical r
@@ -85,7 +85,7 @@ inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_g
       }
       break;
     case 2:
-      //Rayleigh-Taylor instability
+      // Rayleigh-Taylor instability
       *gx = 0;
       *gy = -1;
       break;
@@ -96,7 +96,7 @@ inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_g
       *gx = -cos(phi) * GN * M / (r * r);
       *gy = -sin(phi) * GN * M / (r * r);
       break;
-  case 4:
+    case 4:
       // set gravitational acceleration for Kuzmin disk + NFW halo
       Real a_d, a_h, a, M_vir, M_d, R_vir, R_d, R_s, M_h, c_vir, x;
       M_vir = 1.0e12;         // viral mass of MW in M_sun
@@ -145,14 +145,14 @@ inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off
     case 1:
       // Milky way disk model
       // set properties of halo and disk (these must match initial conditions)
-      
+
       M_vir = 1.0e12;     // viral mass of in M_sun
       M_d   = 6.5e10;     // viral mass of in M_sun
       R_d   = 3.5;        // disk scale length in kpc
       z_d   = 3.5 / 5.0;  // disk scale height in kpc
       R_vir = 261.;       // virial radius in kpc
       c_vir = 20.0;       // halo concentration
-     
+
       M_h     = M_vir - M_d;    // halo mass in M_sun
       R_h     = R_vir / c_vir;  // halo scale length in kpc
       phi_0_h = GN * M_h / (log(1.0 + c_vir) - c_vir / (1.0 + c_vir));
@@ -172,18 +172,18 @@ inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off
       *gy = (y_pos / r_disk) * (a_disk_r + a_halo_r);
       *gz = a_disk_z + a_halo_z;
       break;
-  case 2:
-    // M82 model
-    // set properties of halo and disk (these must match initial conditions)
+    case 2:
+      // M82 model
+      // set properties of halo and disk (these must match initial conditions)
 
-       M_vir = 5.0e10; // viral mass of in M_sun
-       M_d = 1.0e10; // mass of disk in M_sun
-       R_d = 0.8; // disk scale length in kpc
-       z_d = 0.15; // disk scale height in kpc
-       R_vir = R_d/0.015; // viral radius in kpc
-       c_vir = 10.0; // halo concentration
+      M_vir = 5.0e10;       // viral mass of in M_sun
+      M_d   = 1.0e10;       // mass of disk in M_sun
+      R_d   = 0.8;          // disk scale length in kpc
+      z_d   = 0.15;         // disk scale height in kpc
+      R_vir = R_d / 0.015;  // viral radius in kpc
+      c_vir = 10.0;         // halo concentration
 
-       M_h     = M_vir - M_d;    // halo mass in M_sun
+      M_h     = M_vir - M_d;    // halo mass in M_sun
       R_h     = R_vir / c_vir;  // halo scale length in kpc
       phi_0_h = GN * M_h / (log(1.0 + c_vir) - c_vir / (1.0 + c_vir));
       x       = r_halo / R_h;

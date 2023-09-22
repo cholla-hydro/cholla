@@ -157,12 +157,12 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound, R
   G.boundary_type_z0 = P->zlg_bcnd;
   G.boundary_type_z1 = P->zug_bcnd;
   #else
-  G.boundary_type_x0        = P->xl_bcnd;
-  G.boundary_type_x1        = P->xu_bcnd;
-  G.boundary_type_y0        = P->yl_bcnd;
-  G.boundary_type_y1        = P->yu_bcnd;
-  G.boundary_type_z0        = P->zl_bcnd;
-  G.boundary_type_z1        = P->zu_bcnd;
+  G.boundary_type_x0 = P->xl_bcnd;
+  G.boundary_type_x1 = P->xu_bcnd;
+  G.boundary_type_y0 = P->yl_bcnd;
+  G.boundary_type_y1 = P->yu_bcnd;
+  G.boundary_type_z0 = P->zl_bcnd;
+  G.boundary_type_z1 = P->zu_bcnd;
   #endif
 
   #ifdef PARTICLES_GPU
@@ -211,7 +211,7 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound, R
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);
   #else
-  n_total_initial           = n_local;
+  n_total_initial = n_local;
   #endif
 
   chprintf("Particles Initialized: \n n_local: %lu \n", n_local);

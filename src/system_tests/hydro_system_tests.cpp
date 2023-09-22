@@ -157,8 +157,8 @@ class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithPa
   double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 4E-7;
 #elif defined(PLMC)
-  double const allowedL1Error    = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError      = 1E-7;
+  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1E-7;
 #elif defined(PPMC)
   double const allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 2.7E-8;
