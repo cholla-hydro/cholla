@@ -247,8 +247,10 @@ std::function<void(Grid3D&)> feedback_callback;
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
 
-    if (G.H.t + G.H.dt > outtime) {
-      G.H.dt = outtime - G.H.t;
+    // adjust timestep based on the next available scheduled time
+    const Real next_scheduled_time = fmin(outtime, P.tout);
+    if (G.H.t + G.H.dt > next_scheduled_time) {
+      G.H.dt = next_scheduled_time - G.H.t;
     }
 
 #ifdef PARTICLES
