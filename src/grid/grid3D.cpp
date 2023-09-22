@@ -254,7 +254,7 @@ void Grid3D::Initialize(struct parameters *P)
 #ifdef DENSITY_FLOOR
   H.density_floor = DENS_FLOOR;
 #else
-  H.density_floor     = 0.0;
+  H.density_floor = 0.0;
 #endif
 
 #ifdef TEMPERATURE_FLOOR
@@ -332,8 +332,8 @@ void Grid3D::AllocateMemory(void)
   CudaSafeCall(cudaHostAlloc(&C.Grav_potential, H.n_cells * sizeof(Real), cudaHostAllocDefault));
   CudaSafeCall(cudaMalloc((void **)&C.d_Grav_potential, H.n_cells * sizeof(Real)));
 #else
-  C.Grav_potential    = NULL;
-  C.d_Grav_potential  = NULL;
+  C.Grav_potential   = NULL;
+  C.d_Grav_potential = NULL;
 #endif
 
 #ifdef CHEMISTRY_GPU

@@ -1386,13 +1386,13 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   #ifdef OUTPUT_ENERGY
   output_energy = true;
   #else   // not OUTPUT_ENERGY
-  output_energy      = false;
+  output_energy = false;
   #endif  // OUTPUT_ENERGY
 
   #ifdef OUTPUT_MOMENTUM
   output_momentum = true;
   #else   // not OUTPUT_MOMENTUM
-  output_momentum    = false;
+  output_momentum = false;
   #endif  // OUTPUT_MOMENTUM
 
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
@@ -1400,12 +1400,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     #ifdef OUTPUT_METALS
   output_metals = true;
     #else   // not OUTPUT_METALS
-  output_metals          = false;
+  output_metals = false;
     #endif  // OUTPUT_METALS
     #ifdef OUTPUT_ELECTRONS
   output_electrons = true;
     #else   // not OUTPUT_ELECTRONS
-  output_electrons       = false;
+  output_electrons = false;
     #endif  // OUTPUT_ELECTRONS
     #ifdef OUTPUT_FULL_IONIZATION
   output_full_ionization = true;

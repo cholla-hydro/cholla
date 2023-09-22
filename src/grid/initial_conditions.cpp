@@ -1565,7 +1565,7 @@ void Grid3D::Zeldovich_Pancake(struct parameters P)
         C.Energy[id]     = E;
 
   #ifdef DE
-        C.GasEnergy[id]  = U;
+        C.GasEnergy[id] = U;
   #endif
       }
     }

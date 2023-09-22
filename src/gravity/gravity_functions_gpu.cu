@@ -127,7 +127,7 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_GPU()
   #ifdef COSMOLOGY
   cosmo_rho_0_gas = Cosmo.rho_0_gas;
   #else
-  cosmo_rho_0_gas         = 1.0;
+  cosmo_rho_0_gas = 1.0;
   #endif
 
   // Copy the density from the device array to the Poisson input density array
@@ -261,7 +261,7 @@ void Grid3D::Extrapolate_Grav_Potential_GPU()
   #ifdef COSMOLOGY
   cosmo_factor = Cosmo.current_a * Cosmo.current_a / Cosmo.phi_0_gas;
   #else
-  cosmo_factor            = 1.0;
+  cosmo_factor = 1.0;
   #endif
 
   // set values for GPU kernels

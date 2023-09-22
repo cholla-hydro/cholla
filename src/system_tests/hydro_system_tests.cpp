@@ -56,8 +56,8 @@ TEST_P(tHYDROtMHDSYSTEMSodShockTubeParameterizedMpi, CorrectInputExpectCorrectOu
   double const maxAllowedL1Error = 7.0E-3;
   double const maxAllowedError   = 4.6E-2;
 #else
-  double const maxAllowedL1Error         = 9.4E-5;
-  double const maxAllowedError           = 6.4E-4;
+  double const maxAllowedL1Error = 9.4E-5;
+  double const maxAllowedError   = 6.4E-4;
 #endif  // MHD
 
   sodTest.numMpiRanks = GetParam();

@@ -451,12 +451,12 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   Real vy_max_g = vy_max;
   Real vz_max_g = vz_max;
 
-  Real px_min_g        = px_min;
-  Real py_min_g        = py_min;
-  Real pz_min_g        = pz_min;
-  Real vx_min_g        = vx_min;
-  Real vy_min_g        = vy_min;
-  Real vz_min_g        = vz_min;
+  Real px_min_g = px_min;
+  Real py_min_g = py_min;
+  Real pz_min_g = pz_min;
+  Real vx_min_g = vx_min;
+  Real vy_min_g = vy_min;
+  Real vz_min_g = vz_min;
     #endif  // MPI_CHOLLA
 
     // Print initial Statistics
@@ -569,7 +569,7 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
     #ifdef MPI_CHOLLA
   N_particles_total = ReducePartIntSum(Particles.n_local);
     #else
-  N_particles_total    = Particles.n_local;
+  N_particles_total = Particles.n_local;
     #endif
 
   // Print the total particles when saving the particles data
