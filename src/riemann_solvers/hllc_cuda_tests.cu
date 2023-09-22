@@ -28,6 +28,7 @@
    custom user output then performs all the required running and testing
  *
  */
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
 {
  protected:
@@ -44,8 +45,8 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
    * \param[in] gamma The adiabatic index
    * \return std::vector<double>
    */
-  std::vector<Real> computeFluxes(std::vector<Real> const &stateLeft, std::vector<Real> const &stateRight,
-                                  Real const &gamma)
+  std::vector<Real> Compute_Fluxes(std::vector<Real> const &stateLeft, std::vector<Real> const &stateRight,
+                                   Real const &gamma)
   {
     // Simulation Paramters
     int const nx        = 1;  // Number of cells in the x-direction?
@@ -105,8 +106,8 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
    * print. It will print after the default GTest output but before the
    * values that failed are printed
    */
-  void checkResults(std::vector<Real> const &fiducialFlux, std::vector<Real> const &testFlux,
-                    std::string const &customOutput = "")
+  void Check_Results(std::vector<Real> const &fiducialFlux, std::vector<Real> const &testFlux,
+                     std::string const &customOutput = "")
   {
     // Field names
     std::vector<std::string> const fieldNames{"Densities", "X Momentum", "Y Momentum", "Z Momentum", "Energies"};
@@ -125,7 +126,7 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
       double absoluteDiff;
       int64_t ulpsDiff;
 
-      bool areEqual = testingUtilities::nearlyEqualDbl(fiducialFlux[i], testFlux[i], absoluteDiff, ulpsDiff);
+      bool areEqual = testing_utilities::nearlyEqualDbl(fiducialFlux[i], testFlux[i], absoluteDiff, ulpsDiff);
       EXPECT_TRUE(areEqual) << std::endl
                             << customOutput << std::endl
                             << "There's a difference in " << fieldNames[i] << " Flux" << std::endl
@@ -168,12 +169,12 @@ TEST_F(tHYDROCalculateHLLCFluxesCUDA,        // Test suite name
   std::vector<Real> const fiducialFluxes{0, 1, 0, 0, 0};
 
   // Compute the fluxes
-  std::vector<Real> const testFluxes = computeFluxes(state,   // Left state
-                                                     state,   // Right state
-                                                     gamma);  // Adiabatic Index
+  std::vector<Real> const testFluxes = Compute_Fluxes(state,   // Left state
+                                                      state,   // Right state
+                                                      gamma);  // Adiabatic Index
 
   // Check for correctness
-  checkResults(fiducialFluxes, testFluxes);
+  Check_Results(fiducialFluxes, testFluxes);
 }
 // =========================================================================
 

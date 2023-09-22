@@ -18,7 +18,7 @@
 #include "../system_tests/system_tester.h"  // provide systemTest class
 #include "../utils/testing_utilities.h"     // Include the header file
 
-namespace testingUtilities
+namespace testing_utilities
 {
 // =========================================================================
 int64_t ulpsDistanceDbl(double const &a, double const &b)
@@ -88,10 +88,10 @@ void wrapperEqual(int i, int j, int k, std::string const &dataSetName, double te
   outString += std::to_string(k);
   outString += "]";
 
-  ASSERT_NO_FATAL_FAILURE(checkResults<1>(fid_value, test_value, outString, fixedEpsilon));
+  ASSERT_NO_FATAL_FAILURE(Check_Results<1>(fid_value, test_value, outString, fixedEpsilon));
 }
 
-void analyticConstant(systemTest::SystemTestRunner testObject, std::string const &dataSetName, double value)
+void analyticConstant(system_test::SystemTestRunner testObject, std::string const &dataSetName, double value)
 {
   std::vector<size_t> testDims(3, 1);
   std::vector<double> testData = testObject.loadTestFieldData(dataSetName, testDims);
@@ -106,7 +106,7 @@ void analyticConstant(systemTest::SystemTestRunner testObject, std::string const
   }
 }
 
-void analyticSine(systemTest::SystemTestRunner testObject, std::string const &dataSetName, double constant,
+void analyticSine(system_test::SystemTestRunner testObject, std::string const &dataSetName, double constant,
                   double amplitude, double kx, double ky, double kz, double phase, double tolerance)
 {
   std::vector<size_t> testDims(3, 1);
@@ -122,4 +122,4 @@ void analyticSine(systemTest::SystemTestRunner testObject, std::string const &da
   }
 }
 
-}  // namespace testingUtilities
+}  // namespace testing_utilities

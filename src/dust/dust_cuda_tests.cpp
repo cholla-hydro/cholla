@@ -37,7 +37,7 @@ TEST(tDUSTTestSputteringTimescale,
 
   bool is_true;
 
-  is_true = testingUtilities::nearlyEqualDbl(k_fiducial_num, test_num, abs_diff, ulps_diff);
+  is_true = testing_utilities::nearlyEqualDbl(k_fiducial_num, test_num, abs_diff, ulps_diff);
 
   EXPECT_TRUE(is_true) << "The fiducial value is:       " << k_fiducial_num << std::endl
                        << "The test value is:           " << test_num << std::endl
@@ -61,7 +61,7 @@ TEST(tDUSTTestSputteringGrowthRate,
 
   bool is_true;
 
-  is_true = testingUtilities::nearlyEqualDbl(k_fiducial_num, test_num, abs_diff, ulps_diff);
+  is_true = testing_utilities::nearlyEqualDbl(k_fiducial_num, test_num, abs_diff, ulps_diff);
 
   EXPECT_TRUE(is_true) << "The fiducial value is:       " << k_fiducial_num << std::endl
                        << "The test value is:           " << test_num << std::endl

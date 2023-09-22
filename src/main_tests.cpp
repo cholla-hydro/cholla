@@ -18,10 +18,10 @@
 #include "utils/testing_utilities.h"
 
 /// This is the global variable to store the path to the root of Cholla
-testingUtilities::GlobalString globalChollaRoot;
-testingUtilities::GlobalString globalChollaBuild;
-testingUtilities::GlobalString globalChollaMachine;
-testingUtilities::GlobalString globalMpiLauncher;
+testing_utilities::GlobalString globalChollaRoot;
+testing_utilities::GlobalString globalChollaBuild;
+testing_utilities::GlobalString globalChollaMachine;
+testing_utilities::GlobalString globalMpiLauncher;
 bool globalRunCholla;
 bool globalCompareSystemTestResults;
 
@@ -41,10 +41,10 @@ class InputParser
    * \param option The string option to look for
    * \return const std::string& The option the follows a given flag
    */
-  const std::string &getCmdOption(const std::string &option) const
+  const std::string &Get_Cmd_Option(const std::string &option) const
   {
     // First check that the option exists
-    if (not cmdOptionExists(option)) {
+    if (not Cmd_Option_Exists(option)) {
       std::string errMessage = "Error: argument '" + option + "' not found. ";
       throw std::invalid_argument(errMessage);
     }
@@ -69,7 +69,7 @@ class InputParser
    * \return true The option flag exists in argv
    * \return false The option flage does not exist in argv
    */
-  bool cmdOptionExists(const std::string &option) const
+  bool Cmd_Option_Exists(const std::string &option) const
   {
     return std::find(this->_tokens.begin(), this->_tokens.end(), option) != this->_tokens.end();
   }
@@ -119,17 +119,17 @@ int main(int argc, char **argv)
 
   // Initialize global variables
   InputParser input(argc, argv);
-  globalChollaRoot.init(input.getCmdOption("--cholla-root"));
-  globalChollaBuild.init(input.getCmdOption("--build-type"));
-  globalChollaMachine.init(input.getCmdOption("--machine"));
-  if (input.cmdOptionExists("--mpi-launcher")) {
-    globalMpiLauncher.init(input.getCmdOption("--mpi-launcher"));
+  globalChollaRoot.init(input.Get_Cmd_Option("--cholla-root"));
+  globalChollaBuild.init(input.Get_Cmd_Option("--build-type"));
+  globalChollaMachine.init(input.Get_Cmd_Option("--machine"));
+  if (input.Cmd_Option_Exists("--mpi-launcher")) {
+    globalMpiLauncher.init(input.Get_Cmd_Option("--mpi-launcher"));
   } else {
     globalMpiLauncher.init("mpirun -np");
   }
 
-  globalRunCholla                = not input.cmdOptionExists("--runCholla=false");
-  globalCompareSystemTestResults = not input.cmdOptionExists("--compareSystemTestResults=false");
+  globalRunCholla                = not input.Cmd_Option_Exists("--runCholla=false");
+  globalCompareSystemTestResults = not input.Cmd_Option_Exists("--compareSystemTestResults=false");
 
   // Run test and return result
   return RUN_ALL_TESTS();

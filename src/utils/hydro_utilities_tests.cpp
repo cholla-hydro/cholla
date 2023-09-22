@@ -72,7 +72,7 @@ TEST(tHYDROtMHDHydroUtilsCalcPressurePrimitive, CorrectInputExpectCorrectOutput)
         parameters.E.at(i), parameters.d.at(i), parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i),
         parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
 
-    testingUtilities::checkResults(fiducial_pressure.at(i), test_Ps, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducial_pressure.at(i), test_Ps, parameters.names.at(i));
   }
 }
 
@@ -90,7 +90,7 @@ TEST(tHYDROtMHDHydroUtilsCalcPressureConserved, CorrectInputExpectCorrectOutput)
         parameters.E.at(i), parameters.d.at(i), parameters.mx.at(i), parameters.my.at(i), parameters.mz.at(i),
         parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
 
-    testingUtilities::checkResults(fiducial_pressure.at(i), test_pressure, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducial_pressure.at(i), test_pressure, parameters.names.at(i));
   }
 }
 
@@ -133,7 +133,7 @@ TEST(tHYDROHydroUtilsCalcTemp, CorrectInputExpectCorrectOutput)
   for (size_t i = 0; i < parameters.names.size(); i++) {
     Real test_Ts = hydro_utilities::Calc_Temp(parameters.P.at(i), parameters.n.at(i));
 
-    testingUtilities::checkResults(fiducial_Ts.at(i), test_Ts, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducial_Ts.at(i), test_Ts, parameters.names.at(i));
   }
 }
 
@@ -147,7 +147,7 @@ TEST(tHYDROHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput)
     Real test_Ts =
         hydro_utilities::Calc_Temp_DE(parameters.d.at(i), parameters.ge.at(i), parameters.gamma, parameters.n.at(i));
 
-    testingUtilities::checkResults(fiducial_Ts.at(i), test_Ts, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducial_Ts.at(i), test_Ts, parameters.names.at(i));
   }
 }
 #endif  // DE
@@ -166,7 +166,7 @@ TEST(tHYDROtMHDHydroUtilsCalcEnergyPrimitive, CorrectInputExpectCorrectOutput)
         parameters.P.at(i), parameters.d.at(i), parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i),
         parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
 
-    testingUtilities::checkResults(fiducial_energy.at(i), test_Es, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducial_energy.at(i), test_Es, parameters.names.at(i));
   }
 }
 
@@ -184,7 +184,7 @@ TEST(tHYDROtMHDHydroUtilsCalcEnergyConserved, CorrectInputExpectCorrectOutput)
         parameters.P.at(i), parameters.d.at(i), parameters.mx.at(i), parameters.my.at(i), parameters.mz.at(i),
         parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
 
-    testingUtilities::checkResults(fiducial_energy.at(i), test_Es, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducial_energy.at(i), test_Es, parameters.names.at(i));
   }
 }
 
@@ -201,7 +201,7 @@ TEST(tHYDROtMHDHydroUtilsCalcEnergyPrimitive, NegativePressureExpectAutomaticFix
         -parameters.P.at(i), parameters.d.at(i), parameters.vx.at(i), parameters.vy.at(i), parameters.vz.at(i),
         parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
 
-    testingUtilities::checkResults(fiducial_energy.at(i), test_Es, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducial_energy.at(i), test_Es, parameters.names.at(i));
   }
 }
 
@@ -218,7 +218,7 @@ TEST(tHYDROtMHDHydroUtilsCalcEnergyConserved, NegativePressureExpectAutomaticFix
         -parameters.P.at(i), parameters.d.at(i), parameters.mx.at(i), parameters.my.at(i), parameters.mz.at(i),
         parameters.gamma, parameters.magnetic_x.at(i), parameters.magnetic_y.at(i), parameters.magnetic_z.at(i));
 
-    testingUtilities::checkResults(fiducial_energy.at(i), test_Es, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducial_energy.at(i), test_Es, parameters.names.at(i));
   }
 }
 
@@ -231,7 +231,7 @@ TEST(tHYDROHydroUtilsGetPressureFromDE, CorrectInputExpectCorrectOutput)
     Real test_Ps = hydro_utilities::Get_Pressure_From_DE(parameters.E.at(i), parameters.U_total.at(i),
                                                          parameters.U_advected.at(i), parameters.gamma);
 
-    testingUtilities::checkResults(fiducial_Ps.at(i), test_Ps, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducial_Ps.at(i), test_Ps, parameters.names.at(i));
   }
 }
 
@@ -245,7 +245,7 @@ TEST(tHYDROtMHDCalcKineticEnergyFromVelocity, CorrectInputExpectCorrectOutput)
     Real testEnergy = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(
         coef * parameters.d.at(i), coef * parameters.vx.at(i), coef * parameters.vy.at(i), coef * parameters.vz.at(i));
 
-    testingUtilities::checkResults(fiducialEnergies.at(i), testEnergy, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialEnergies.at(i), testEnergy, parameters.names.at(i));
   }
 }
 
@@ -259,6 +259,6 @@ TEST(tHYDROtMHDCalcKineticEnergyFromMomentum, CorrectInputExpectCorrectOutput)
     Real testEnergy = hydro_utilities::Calc_Kinetic_Energy_From_Momentum(
         coef * parameters.d.at(i), coef * parameters.mx.at(i), coef * parameters.my.at(i), coef * parameters.mz.at(i));
 
-    testingUtilities::checkResults(fiducialEnergies.at(i), testEnergy, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialEnergies.at(i), testEnergy, parameters.names.at(i));
   }
 }

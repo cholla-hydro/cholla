@@ -31,6 +31,7 @@
  * \brief Test fixture for tMHDCalculateCTElectricFields test suite
  *
  */
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDCalculateCTElectricFields : public ::testing::Test
 {
  public:
@@ -92,7 +93,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
    * \brief Launch the kernel and check results
    *
    */
-  void runTest()
+  void Run_Test()
   {
     // Copy values to GPU
     CudaSafeCall(cudaMemcpy(dev_fluxX, fluxX.data(), fluxX.size() * sizeof(Real), cudaMemcpyHostToDevice));
@@ -115,10 +116,9 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
     // Check the results
     for (size_t i = 0; i < fiducialData.size(); i++) {
       int xid, yid, zid;
-      cuda_utilities::compute3DIndices(i, nx, ny, xid, yid, zid);
-      testingUtilities::checkResults(fiducialData.at(i), testCTElectricFields.at(i),
-                                     "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
-                                         ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
+      testing_utilities::Check_Results(fiducialData.at(i), testCTElectricFields.at(i),
+                                       "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
+                                           ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
     }
   }
 };
@@ -133,7 +133,7 @@ TEST_F(tMHDCalculateCTElectricFields, PositiveVelocityExpectCorrectOutput)
   fiducialData.at(23) = 61.768055665002557;
 
   // Launch kernel and check results
-  runTest();
+  Run_Test();
 }
 // =============================================================================
 
@@ -154,7 +154,7 @@ TEST_F(tMHDCalculateCTElectricFields, NegativeVelocityExpectCorrectOutput)
   }
 
   // Launch kernel and check results
-  runTest();
+  Run_Test();
 }
 // =============================================================================
 
@@ -175,7 +175,7 @@ TEST_F(tMHDCalculateCTElectricFields, ZeroVelocityExpectCorrectOutput)
   }
 
   // Launch kernel and check results
-  runTest();
+  Run_Test();
 }
 // =============================================================================
 
@@ -267,7 +267,7 @@ TEST(tMHDCTSlope, CorrectInputExpectCorrectOutput)
   ASSERT_EQ(test_data.size(), fiducial_data.size());
 
   for (size_t i = 0; i < test_data.size(); i++) {
-    testingUtilities::checkResults(fiducial_data.at(i), test_data.at(i), "");
+    testing_utilities::Check_Results(fiducial_data.at(i), test_data.at(i), "");
   }
 }
 // =============================================================================
