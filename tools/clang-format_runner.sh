@@ -9,7 +9,8 @@
 # - GNU Find, the default macos version won't work
 
 # Get the location of Cholla
-cholla_root=$(git rev-parse --show-toplevel)
+cholla_root="$(dirname "$(dirname "$(readlink -fm "$0")")")"
+cd $cholla_root
 
 # Get a list of all the files to format
 readarray -t files <<<$(find ${cholla_root} -regex '.*\.\(h\|hpp\|c\|cpp\|cu\|cuh\)$' -print)

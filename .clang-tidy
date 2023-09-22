@@ -37,8 +37,7 @@ Checks: "*,
 
         google-readability-avoid-underscore-in-googletest-name,
         google-upgrade-googletest-case,
--*,
-readability-braces-around-statements,
+
         -bugprone-implicit-widening-of-multiplication-result,
         -bugprone-narrowing-conversions,
         -cert-env33-c,
