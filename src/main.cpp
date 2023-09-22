@@ -345,8 +345,9 @@ int main(int argc, char *argv[])
       // add one to the output file count
       nfile++;
 #endif  // OUTPUT
-      // update to the next output time
-      outtime += P.outstep;
+      if (G.H.t == outtime) {
+        outtime += P.outstep;  // update to the next output time
+      }
     }
 
 #ifdef CPU_TIME
