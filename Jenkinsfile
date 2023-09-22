@@ -90,7 +90,7 @@ pipeline
                                     source builds/run_tests.sh
                                     setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
-                                    module load clang/16.0.6
+                                    module load clang/17.0.1
                                     make tidy CLANG_TIDY_ARGS="--warnings-as-errors=*" TYPE=${CHOLLA_MAKE_TYPE}
                                     '''
                             }
