@@ -151,7 +151,6 @@ Checks: "*,
         -readability-suspicious-call-argument"
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*'
-AnalyzeTemporaryDtors: false
 FormatStyle:     'file'
 UseColor: false
 CheckOptions:
