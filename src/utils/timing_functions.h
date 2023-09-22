@@ -28,7 +28,7 @@ class OneTime
   }
   void Start();
   void Subtract(Real time_to_subtract);
-  void End();
+  void End(bool const print_high_values = false);
   void PrintStep();
   void PrintAverage();
   void PrintAll();
