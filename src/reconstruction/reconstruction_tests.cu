@@ -374,7 +374,6 @@ TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpe
   // Check results
 #ifdef MHD
   reconstruction::Primitive const fiducial_data{5046, 2934, -2526, -2828, 1441532, 0.0, -69716, 72152};
-=======
   testing_utilities::Check_Results(fiducial_data.density, host_results.density, "density");
   testing_utilities::Check_Results(fiducial_data.velocity_x, host_results.velocity_x, "velocity_x");
   testing_utilities::Check_Results(fiducial_data.velocity_y, host_results.velocity_y, "velocity_y");
