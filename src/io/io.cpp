@@ -660,6 +660,12 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   status                 = H5Awrite(attribute_id, stringType, &macroFlags);
   H5Aclose(attribute_id);
 
+  // attribute to help yt differentiate cholla outputs from outputs produced by other codes
+  attribute_id         = H5Acreate(file_id, "cholla", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char *dummyStr = "";  // this doesn't really matter right now
+  status               = H5Awrite(attribute_id, stringType, &dummyStr);
+  H5Aclose(attribute_id);
+
   // Numeric Attributes
   status               = Write_HDF5_Attribute(file_id, dataspace_id, &H.t, "t");
   status               = Write_HDF5_Attribute(file_id, dataspace_id, &H.dt, "dt");
