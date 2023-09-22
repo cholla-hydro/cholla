@@ -6,11 +6,6 @@
 
 #include "../grid/grid_enum.h"  // defines NSCALARS
 
-#ifdef COOLING_CPU
-  #include <gsl/gsl_spline.h>
-  #include <gsl/gsl_spline2d.h>
-#endif
-
 #ifdef PARTICLES
   #include <cstdint>
 #endif  // PARTICLES
@@ -143,14 +138,6 @@ extern Real C_cfl;  // CFL number (0 - 0.5)
 extern Real t_comm;
 extern Real t_other;
 
-#ifdef COOLING_CPU
-extern gsl_interp_accel *acc;
-extern gsl_interp_accel *xacc;
-extern gsl_interp_accel *yacc;
-extern gsl_spline *highT_C_spline;
-extern gsl_spline2d *lowT_C_spline;
-extern gsl_spline2d *lowT_H_spline;
-#endif
 #ifdef COOLING_GPU
 extern float *cooling_table;
 extern float *heating_table;
@@ -168,11 +155,6 @@ extern double get_time(void);
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int sgn(Real x);
 
-#ifndef CUDA
-/*! \fn Real calc_eta(Real cW[], Real gamma)
- *  \brief Calculate the eta value for the H correction. */
-extern Real calc_eta(Real cW[], Real gamma);
-#endif
 
 struct parameters {
   int nx;
