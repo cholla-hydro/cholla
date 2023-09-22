@@ -134,11 +134,6 @@ void parse_params(char *param_file, struct parameters *parms, int argc, char **a
     return;
   }
 
-#ifdef STATIC_GRAV
-  // initialize custom gravity flag to zero
-  parms->custom_grav = 0;
-#endif
-
 #ifdef COSMOLOGY
   // Initialize file name as an empty string
   parms->scale_outputs_file[0] = '\0';

@@ -149,7 +149,6 @@ void Grid3D::Initialize(struct parameters *P)
 
 #ifdef STATIC_GRAV
   H.custom_grav = P->custom_grav;  // Initialize the custom static gravity flag
-  printf("H.custom_grav is %d\n", H.custom_grav);
   if (H.custom_grav == 0) {
     printf("WARNING: No custom gravity field given. Gravity field will be set to zero.\n");
   }
@@ -439,7 +438,7 @@ Real Grid3D::Update_Grid(void)
   {
 #ifdef CUDA
   #ifdef VL
-    VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields, H.custom_grav);
   #endif  // VL
   #ifdef SIMPLE
     Simple_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields, H.custom_grav);
@@ -450,7 +449,7 @@ Real Grid3D::Update_Grid(void)
 #ifdef CUDA
   #ifdef VL
     VL_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
-                         H.n_fields);
+                         H.n_fields, H.custom_grav);
   #endif  // VL
   #ifdef SIMPLE
     Simple_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
@@ -462,7 +461,7 @@ Real Grid3D::Update_Grid(void)
 #ifdef CUDA
   #ifdef VL
     VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor,
+                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor, U_floor,
                          C.Grav_potential);
   #endif  // VL
   #ifdef SIMPLE
