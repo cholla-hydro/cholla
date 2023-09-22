@@ -1481,18 +1481,18 @@ void Grid3D::Zeldovich_Pancake(struct parameters P)
   Real H0, h, Omega_M, rho_0, G, z_zeldovich, z_init, x_center, T_init, k_x;
 
   chprintf("Setting Zeldovich Pancake initial conditions...\n");
-  H0 = P.H0;
-  h = H0 / 100;
+  H0      = P.H0;
+  h       = H0 / 100;
   Omega_M = P.Omega_M;
 
   chprintf(" h = %f \n", h);
   chprintf(" Omega_M = %f \n", Omega_M);
 
   H0 /= 1000;  //[km/s / kpc]
-  G = G_COSMO;
-  rho_0 = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
+  G           = G_COSMO;
+  rho_0       = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
   z_zeldovich = 1;
-  z_init = P.Init_redshift;
+  z_init      = P.Init_redshift;
   chprintf(" rho_0 = %f \n", rho_0);
   chprintf(" z_init = %f \n", z_init);
   chprintf(" z_zeldovich = %f \n", z_zeldovich);
@@ -1552,17 +1552,17 @@ void Grid3D::Zeldovich_Pancake(struct parameters P)
         index = (int(x_pos / H.dx) + 0) % 256;
         // index = ( index + 16 ) % 256;
         dens = ics_values[0 * nPoints + index];
-        vel = ics_values[1 * nPoints + index];
-        E = ics_values[2 * nPoints + index];
-        U = ics_values[3 * nPoints + index];
+        vel  = ics_values[1 * nPoints + index];
+        E    = ics_values[2 * nPoints + index];
+        U    = ics_values[3 * nPoints + index];
         // //
 
         // chprintf( "%f \n", vel );
-        C.density[id] = dens;
+        C.density[id]    = dens;
         C.momentum_x[id] = dens * vel;
         C.momentum_y[id] = 0;
         C.momentum_z[id] = 0;
-        C.Energy[id] = E;
+        C.Energy[id]     = E;
 
   #ifdef DE
         C.GasEnergy[id] = U;

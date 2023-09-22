@@ -57,7 +57,6 @@ int sgn(Real x)
   }
 }
 
-
 /*! \fn char trim(char *s)
  *  \brief Gets rid of trailing and leading whitespace. */
 char *trim(char *s)

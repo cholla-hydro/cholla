@@ -155,7 +155,6 @@ extern double get_time(void);
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int sgn(Real x);
 
-
 struct parameters {
   int nx;
   int ny;
