@@ -83,7 +83,7 @@ if [ -z "$tool" ]; then
 fi
 
 # Get Paths
-cholla_root=$(git rev-parse --show-toplevel)
+cholla_root="$(dirname "$(dirname "$(readlink -fm "$0")")")"
 cholla_exe=$(find "${cholla_root}" -name cholla.*)
 cholla_parameter_file="${cholla_root}/examples/3D/sod.txt"
 COMPUTE_SANITIZER=$(which compute-sanitizer)

@@ -166,6 +166,14 @@ Real ReduceRealMin(Real x);
 /* MPI reduction wrapper for avg(Real)*/
 Real ReduceRealAvg(Real x);
 
+/*!
+ * \brief MPI reduction wrapper to find the maximum of a size_t variable
+ *
+ * \param in The rank-local value to be reduced
+ * \return size_t The global reduced value
+ */
+size_t Reduce_size_t_Max(size_t in);
+
     #ifdef PARTICLES
 /* MPI reduction wrapper for sum(part_int)*/
 Real ReducePartIntSum(part_int_t x);

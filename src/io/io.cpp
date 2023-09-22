@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -14,6 +15,7 @@
 #endif  // HDF5
 #include "../grid/grid3D.h"
 #include "../io/io.h"
+#include "../utils/cuda_utilities.h"
 #include "../utils/timing_functions.h"  // provides ScopedTimer
 #ifdef MPI_CHOLLA
   #include "../mpi/mpi_routines.h"
@@ -32,13 +34,22 @@
  * output routine */
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
 
-void Create_Log_File(struct parameters P)
+/* local function that designates whether we are using a root-process. It gives
+ * gives a sensible result regardless of whether we are using MPI */
+static inline bool Is_Root_Proc()
 {
 #ifdef MPI_CHOLLA
-  if (procID != 0) {
+  return procID == root;
+#else
+  return true;
+#endif
+}
+
+void Create_Log_File(struct parameters P)
+{
+  if (not Is_Root_Proc()) {
     return;
   }
-#endif
 
   std::string file_name(LOG_FILE_NAME);
   chprintf("\nCreating Log File: %s \n\n", file_name.c_str());
@@ -64,11 +75,9 @@ void Create_Log_File(struct parameters P)
 
 void Write_Message_To_Log_File(const char *message)
 {
-#ifdef MPI_CHOLLA
-  if (procID != 0) {
+  if (not Is_Root_Proc()) {
     return;
   }
-#endif
 
   std::string file_name(LOG_FILE_NAME);
   std::ofstream out_file;
@@ -1857,6 +1866,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     dataset_buffer_my = (Real *)malloc(H.nx_real * H.ny_real * sizeof(Real));
     dataset_buffer_mz = (Real *)malloc(H.nx_real * H.ny_real * sizeof(Real));
     dataset_buffer_E  = (Real *)malloc(H.nx_real * H.ny_real * sizeof(Real));
+  #ifdef MHD
+    std::vector<Real> dataset_buffer_magnetic_x(H.nx_real * H.ny_real);
+    std::vector<Real> dataset_buffer_magnetic_y(H.nx_real * H.ny_real);
+    std::vector<Real> dataset_buffer_magnetic_z(H.nx_real * H.ny_real);
+  #endif  // MHD
   #ifdef DE
     dataset_buffer_GE = (Real *)malloc(H.nx_real * H.ny_real * sizeof(Real));
   #endif
@@ -1867,19 +1881,38 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     // Copy the xy slices to the memory buffers
     for (j = 0; j < H.ny_real; j++) {
       for (i = 0; i < H.nx_real; i++) {
-        id     = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + zslice * H.nx * H.ny;
+        id     = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice, H.nx, H.ny);
         buf_id = j + i * H.ny_real;
+  #ifdef MHD
+        int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, j + H.n_ghost, zslice, H.nx, H.ny);
+        int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost - 1, zslice, H.nx, H.ny);
+        int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - 1, H.nx, H.ny);
+  #endif  // MHD
   #ifdef MPI_CHOLLA
         // When there are multiple processes, check whether this slice is in
         // your domain
         if (zslice >= nz_local_start && zslice < nz_local_start + nz_local) {
-          id = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (zslice - nz_local_start + H.n_ghost) * H.nx * H.ny;
-  #endif  // MPI_CHOLLA
+          id = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - nz_local_start + H.n_ghost, H.nx,
+                                              H.ny);
+    #ifdef MHD
+          int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, j + H.n_ghost,
+                                                      zslice - nz_local_start + H.n_ghost, H.nx, H.ny);
+          int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost - 1,
+                                                      zslice - nz_local_start + H.n_ghost, H.nx, H.ny);
+          int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost,
+                                                      zslice - nz_local_start + H.n_ghost - 1, H.nx, H.ny);
+    #endif  // MHD
+  #endif    // MPI_CHOLLA
           dataset_buffer_d[buf_id]  = C.density[id];
           dataset_buffer_mx[buf_id] = C.momentum_x[id];
           dataset_buffer_my[buf_id] = C.momentum_y[id];
           dataset_buffer_mz[buf_id] = C.momentum_z[id];
           dataset_buffer_E[buf_id]  = C.Energy[id];
+  #ifdef MHD
+          dataset_buffer_magnetic_x[buf_id] = 0.5 * (C.magnetic_x[id] + C.magnetic_x[id_xm1]);
+          dataset_buffer_magnetic_y[buf_id] = 0.5 * (C.magnetic_y[id] + C.magnetic_y[id_ym1]);
+          dataset_buffer_magnetic_z[buf_id] = 0.5 * (C.magnetic_z[id] + C.magnetic_z[id_zm1]);
+  #endif  // MHD
   #ifdef DE
           dataset_buffer_GE[buf_id] = C.GasEnergy[id];
   #endif
@@ -1897,6 +1930,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
           dataset_buffer_my[buf_id] = 0;
           dataset_buffer_mz[buf_id] = 0;
           dataset_buffer_E[buf_id]  = 0;
+    #ifdef MHD
+          dataset_buffer_magnetic_x[buf_id] = 0;
+          dataset_buffer_magnetic_y[buf_id] = 0;
+          dataset_buffer_magnetic_z[buf_id] = 0;
+    #endif  // MHD
     #ifdef DE
           dataset_buffer_GE[buf_id] = 0;
     #endif
@@ -1916,6 +1954,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_xy");
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_xy");
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_xy");
+  #ifdef MHD
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_xy");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_xy");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_xy");
+  #endif  // MHD
   #ifdef DE
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_xy");
   #endif
@@ -1949,6 +1992,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     dataset_buffer_my = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
     dataset_buffer_mz = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
     dataset_buffer_E  = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
+  #ifdef MHD
+    dataset_buffer_magnetic_x.resize(H.nx_real * H.nz_real);
+    dataset_buffer_magnetic_y.resize(H.nx_real * H.nz_real);
+    dataset_buffer_magnetic_z.resize(H.nx_real * H.nz_real);
+  #endif  // MHD
   #ifdef DE
     dataset_buffer_GE = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
   #endif
@@ -1959,19 +2007,38 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     // Copy the xz slices to the memory buffers
     for (k = 0; k < H.nz_real; k++) {
       for (i = 0; i < H.nx_real; i++) {
-        id     = (i + H.n_ghost) + yslice * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+        id     = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice, k + H.n_ghost, H.nx, H.ny);
         buf_id = k + i * H.nz_real;
+  #ifdef MHD
+        int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, yslice, k + H.n_ghost, H.nx, H.ny);
+        int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - 1, k + H.n_ghost, H.nx, H.ny);
+        int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice, k + H.n_ghost - 1, H.nx, H.ny);
+  #endif  // MHD
   #ifdef MPI_CHOLLA
         // When there are multiple processes, check whether this slice is in
         // your domain
         if (yslice >= ny_local_start && yslice < ny_local_start + ny_local) {
-          id = (i + H.n_ghost) + (yslice - ny_local_start + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-  #endif  // MPI_CHOLLA
+          id = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - ny_local_start + H.n_ghost, k + H.n_ghost, H.nx,
+                                              H.ny);
+    #ifdef MHD
+          int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, yslice - ny_local_start + H.n_ghost,
+                                                      k + H.n_ghost, H.nx, H.ny);
+          int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - ny_local_start + H.n_ghost - 1,
+                                                      k + H.n_ghost, H.nx, H.ny);
+          int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - ny_local_start + H.n_ghost,
+                                                      k + H.n_ghost - 1, H.nx, H.ny);
+    #endif  // MHD
+  #endif    // MPI_CHOLLA
           dataset_buffer_d[buf_id]  = C.density[id];
           dataset_buffer_mx[buf_id] = C.momentum_x[id];
           dataset_buffer_my[buf_id] = C.momentum_y[id];
           dataset_buffer_mz[buf_id] = C.momentum_z[id];
           dataset_buffer_E[buf_id]  = C.Energy[id];
+  #ifdef MHD
+          dataset_buffer_magnetic_x[buf_id] = 0.5 * (C.magnetic_x[id] + C.magnetic_x[id_xm1]);
+          dataset_buffer_magnetic_y[buf_id] = 0.5 * (C.magnetic_y[id] + C.magnetic_y[id_ym1]);
+          dataset_buffer_magnetic_z[buf_id] = 0.5 * (C.magnetic_z[id] + C.magnetic_z[id_zm1]);
+  #endif  // MHD
   #ifdef DE
           dataset_buffer_GE[buf_id] = C.GasEnergy[id];
   #endif
@@ -1989,6 +2056,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
           dataset_buffer_my[buf_id] = 0;
           dataset_buffer_mz[buf_id] = 0;
           dataset_buffer_E[buf_id]  = 0;
+    #ifdef MHD
+          dataset_buffer_magnetic_x[buf_id] = 0;
+          dataset_buffer_magnetic_y[buf_id] = 0;
+          dataset_buffer_magnetic_z[buf_id] = 0;
+    #endif  // MHD
     #ifdef DE
           dataset_buffer_GE[buf_id] = 0;
     #endif
@@ -2008,6 +2080,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_xz");
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_xz");
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_xz");
+  #ifdef MHD
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_xz");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_xz");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_xz");
+  #endif  // MHD
   #ifdef DE
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_xz");
   #endif
@@ -2042,6 +2119,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     dataset_buffer_my = (Real *)malloc(H.ny_real * H.nz_real * sizeof(Real));
     dataset_buffer_mz = (Real *)malloc(H.ny_real * H.nz_real * sizeof(Real));
     dataset_buffer_E  = (Real *)malloc(H.ny_real * H.nz_real * sizeof(Real));
+  #ifdef MHD
+    dataset_buffer_magnetic_x.resize(H.ny_real * H.nz_real);
+    dataset_buffer_magnetic_y.resize(H.ny_real * H.nz_real);
+    dataset_buffer_magnetic_z.resize(H.ny_real * H.nz_real);
+  #endif  // MHD
   #ifdef DE
     dataset_buffer_GE = (Real *)malloc(H.ny_real * H.nz_real * sizeof(Real));
   #endif
@@ -2052,19 +2134,37 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     // Copy the yz slices to the memory buffers
     for (k = 0; k < H.nz_real; k++) {
       for (j = 0; j < H.ny_real; j++) {
-        id     = xslice + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+        id     = cuda_utilities::compute1DIndex(xslice, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
         buf_id = k + j * H.nz_real;
+  #ifdef MHD
+        int id_xm1 = cuda_utilities::compute1DIndex(xslice - 1, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
+        int id_ym1 = cuda_utilities::compute1DIndex(xslice, j + H.n_ghost - 1, k + H.n_ghost, H.nx, H.ny);
+        int id_zm1 = cuda_utilities::compute1DIndex(xslice, j + H.n_ghost, k + H.n_ghost - 1, H.nx, H.ny);
+  #endif  // MHD
   #ifdef MPI_CHOLLA
         // When there are multiple processes, check whether this slice is in
         // your domain
         if (xslice >= nx_local_start && xslice < nx_local_start + nx_local) {
-          id = (xslice - nx_local_start) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-  #endif  // MPI_CHOLLA
+          id = cuda_utilities::compute1DIndex(xslice - nx_local_start, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
+    #ifdef MHD
+          int id_xm1 =
+              cuda_utilities::compute1DIndex(xslice - nx_local_start - 1, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
+          int id_ym1 =
+              cuda_utilities::compute1DIndex(xslice - nx_local_start, j + H.n_ghost - 1, k + H.n_ghost, H.nx, H.ny);
+          int id_zm1 =
+              cuda_utilities::compute1DIndex(xslice - nx_local_start, j + H.n_ghost, k + H.n_ghost - 1, H.nx, H.ny);
+    #endif  // MHD
+  #endif    // MPI_CHOLLA
           dataset_buffer_d[buf_id]  = C.density[id];
           dataset_buffer_mx[buf_id] = C.momentum_x[id];
           dataset_buffer_my[buf_id] = C.momentum_y[id];
           dataset_buffer_mz[buf_id] = C.momentum_z[id];
           dataset_buffer_E[buf_id]  = C.Energy[id];
+  #ifdef MHD
+          dataset_buffer_magnetic_x[buf_id] = 0.5 * (C.magnetic_x[id] + C.magnetic_x[id_xm1]);
+          dataset_buffer_magnetic_y[buf_id] = 0.5 * (C.magnetic_y[id] + C.magnetic_y[id_ym1]);
+          dataset_buffer_magnetic_z[buf_id] = 0.5 * (C.magnetic_z[id] + C.magnetic_z[id_zm1]);
+  #endif  // MHD
   #ifdef DE
           dataset_buffer_GE[buf_id] = C.GasEnergy[id];
   #endif
@@ -2082,6 +2182,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
           dataset_buffer_my[buf_id] = 0;
           dataset_buffer_mz[buf_id] = 0;
           dataset_buffer_E[buf_id]  = 0;
+    #ifdef MHD
+          dataset_buffer_magnetic_x[buf_id] = 0;
+          dataset_buffer_magnetic_y[buf_id] = 0;
+          dataset_buffer_magnetic_z[buf_id] = 0;
+    #endif  // MHD
     #ifdef DE
           dataset_buffer_GE[buf_id] = 0;
     #endif
@@ -2101,6 +2206,11 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_yz");
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_yz");
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_yz");
+  #ifdef MHD
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_yz");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_yz");
+    status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_yz");
+  #endif  // MHD
   #ifdef DE
     status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_yz");
   #endif
@@ -2587,20 +2697,14 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
 int chprintf(const char *__restrict sdata, ...)  // NOLINT(cert-dcl50-cpp)
 {
   int code = 0;
-#ifdef MPI_CHOLLA
   /*limit printf to root process only*/
-  if (procID == root) {
-#endif /*MPI_CHOLLA*/
-
+  if (Is_Root_Proc()) {
     va_list ap;
     va_start(ap, sdata);
     code = vfprintf(stdout, sdata, ap);  // NOLINT(clang-analyzer-valist.Uninitialized)
     va_end(ap);
     fflush(stdout);
-
-#ifdef MPI_CHOLLA
   }
-#endif /*MPI_CHOLLA*/
 
   return code;
 }
@@ -2660,4 +2764,42 @@ void write_debug(Real *Value, const char *fname, int nValues, int iProc)
   }
 
   fclose(fp);
+}
+
+void Ensure_Outdir_Exists(std::string outdir)
+{
+  if (outdir == "") {
+    return;
+  } else if (Is_Root_Proc()) {
+    // if the last character of outdir is not a '/', then the substring of
+    // characters after the final '/' (or entire string if there isn't any '/')
+    // is treated as a file-prefix
+    //
+    // this is accomplished here:
+    std::filesystem::path without_file_prefix = std::filesystem::path(outdir).parent_path();
+
+    if (!without_file_prefix.empty()) {
+      // try to create all directories specified within outdir (does nothing if
+      // the directories already exist)
+      std::error_code err_code;
+      std::filesystem::create_directories(without_file_prefix, err_code);
+
+      // confirm that an error-code wasn't set & that the path actually refers
+      // to a directory (it's unclear from docs whether err-code is set in that
+      // case)
+      if (err_code or not std::filesystem::is_directory(without_file_prefix)) {
+        CHOLLA_ERROR(
+            "something went wrong while trying to create the path to the "
+            "output-dir: %s",
+            outdir.c_str());
+      }
+    }
+  }
+
+  // this barrier ensures we won't ever encounter a scenario when 1 process
+  // tries to write a file to a non-existent directory before the root process
+  // has a chance to create it
+#ifdef MPI_CHOLLA
+  MPI_Barrier(world);
+#endif
 }

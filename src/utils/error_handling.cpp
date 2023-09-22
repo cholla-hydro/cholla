@@ -1,12 +1,14 @@
 #include "../utils/error_handling.h"
 
 #include <cassert>
+#include <cstdarg>
+#include <cstdio>
 #include <iostream>
 #include <string>
 
 #ifdef MPI_CHOLLA
-  #include <mpi.h>
-void chexit(int code)
+  #include "../mpi/mpi_routines.h"
+[[noreturn]] void chexit(int code)
 {
   if (code == 0) {
     /*exit normally*/
@@ -20,14 +22,14 @@ void chexit(int code)
   }
 }
 #else  /*MPI_CHOLLA*/
-void chexit(int code)
+[[noreturn]] void chexit(int code)
 {
   /*exit using code*/
   exit(code);
 }
 #endif /*MPI_CHOLLA*/
 
-void Check_Configuration(parameters const &P)
+void Check_Configuration(parameters const& P)
 {
 // General Checks
 // ==============
@@ -56,13 +58,13 @@ void Check_Configuration(parameters const &P)
 #endif  // Only one integrator check
 
   // Check the boundary conditions
-  auto Check_Boundary = [](int const &boundary, std::string const &direction) {
+  auto Check_Boundary = [](int const& boundary, std::string const& direction) {
     bool is_allowed_bc = boundary >= 0 and boundary <= 4;
-    std::string const error_message =
-        "WARNING: Possibly invalid boundary conditions for direction: " + direction +
-        " flag: " + std::to_string(boundary) +
-        ". Must select between 0 (no boundary), 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi).";
-    assert(is_allowed_bc && error_message.c_str());
+    CHOLLA_ASSERT(is_allowed_bc,
+                  "WARNING: Possibly invalid boundary conditions for direction: %s flag: %d. Must "
+                  "select between 0 (no boundary), 1 (periodic), 2 (reflective), 3 (transmissive), "
+                  "4 (custom), 5 (mpi).",
+                  direction.c_str(), boundary);
   };
   Check_Boundary(P.xl_bcnd, "xl_bcnd");
   Check_Boundary(P.xu_bcnd, "xu_bcnd");
@@ -82,16 +84,13 @@ void Check_Configuration(parameters const &P)
 #endif  //! PRECISION
   static_assert(PRECISION == 2, "PRECISION must be 2. Single precision is not currently supported");
 
-  // Check that gamma, the ratio of specific heats, is greater than 1
-  assert(::gama <= 1.0 and "Gamma must be greater than one.");
-
 // MHD Checks
 // ==========
 #ifdef MHD
-  assert(P.nx > 1 or P.ny > 1 or P.nz > 1 and "MHD runs must be 3D");
+  assert(P.nx > 1 and P.ny > 1 and P.nz > 1 and "MHD runs must be 3D");
 
   // Must use the correct integrator
-  #if !defined(VL) || defined(SIMPLE)
+  #if !defined(VL) || defined(SIMPLE) || defined(CTU)
     #error "MHD only supports the Van Leer integrator"
   #endif  //! VL or SIMPLE
 
@@ -106,7 +105,7 @@ void Check_Configuration(parameters const &P)
   #endif  // Reconstruction check
 
   // must have HDF5
-  #ifndef HDF5
+  #if defined(OUTPUT) and (not defined(HDF5))
     #error "MHD only supports HDF5 output"
   #endif  //! HDF5
 
@@ -125,4 +124,63 @@ void Check_Configuration(parameters const &P)
   #endif  // AVERAGE_SLOW_CELLS
 
 #endif  // MHD
+}
+
+// NOLINTNEXTLINE(cert-dcl50-cpp)
+[[noreturn]] void Abort_With_Err_(const char* func_name, const char* file_name, int line_num, const char* msg, ...)
+{
+  // considerations when using MPI:
+  //  - all processes must execute this function to catch errors that happen on
+  //    just one process
+  //  - to handle cases where all processes encounter the same error, we
+  //    pre-buffer the error message (so that the output remains legible)
+
+  // since we are aborting, it's OK that this isn't the most optimized
+
+  // prepare some info for the error message header
+  const char* santized_func_name = (func_name == nullptr) ? "{unspecified}" : func_name;
+
+#ifdef MPI_CHOLLA
+  std::string proc_info = std::to_string(procID) + " / " + std::to_string(nproc) + " (using MPI)";
+#else
+  std::string proc_info = "0 / 1 (NOT using MPI)";
+#endif
+
+  // prepare the formatted message
+  std::string msg_buf;
+  if (msg == nullptr) {
+    msg_buf = "{nullptr encountered instead of error message}";
+  } else {
+    std::va_list args, args_copy;
+    va_start(args, msg);
+    va_copy(args_copy, args);
+
+    std::size_t bufsize_without_terminator = std::vsnprintf(nullptr, 0, msg, args);
+    va_end(args);
+
+    // NOTE: starting in C++17 it's possible to mutate msg_buf by mutating msg_buf.data()
+
+    // we initialize a msg_buf with size == bufsize_without_terminator (filled with ' ' chars)
+    // - msg_buf.data() returns a ptr with msg_buf.size() + 1 characters. We are allowed to
+    //   mutate any of the first msg_buf.size() characters. The entry at
+    //   msg_buf.data()[msg_buf.size()] is initially  '\0' (& it MUST remain equal to '\0')
+    // - the 2nd argument of std::vsnprintf is the size of the output buffer. We NEED to
+    //   include the terminator character in this argument, otherwise the formatted message
+    //   will be truncated
+    msg_buf = std::string(bufsize_without_terminator, ' ');
+    std::vsnprintf(msg_buf.data(), bufsize_without_terminator + 1, msg, args_copy);
+    va_end(args_copy);
+  }
+
+  // now write the error and exit
+  std::fprintf(stderr,
+               "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+               "Error occurred in %s on line %d\n"
+               "Function: %s\n"
+               "Rank: %s\n"
+               "Message: %s\n"
+               "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n",
+               file_name, line_num, santized_func_name, proc_info.data(), msg_buf.data());
+  std::fflush(stderr);  // may be unnecessary for stderr
+  chexit(1);
 }

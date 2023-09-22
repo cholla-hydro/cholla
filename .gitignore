@@ -41,6 +41,8 @@ out.*
 o.*
 run
 disk.*
+*.gcno
+*.gcda
 
 # Logs and databases #
 ######################
