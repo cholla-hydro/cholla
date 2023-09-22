@@ -72,7 +72,7 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   double absoluteDiff;
   int64_t ulpsDiff;
   bool areEqual;
-  areEqual = testingUtilities::nearlyEqualDbl(fiducialDt, testData, absoluteDiff, ulpsDiff);
+  areEqual = testing_utilities::nearlyEqualDbl(fiducialDt, testData, absoluteDiff, ulpsDiff);
   EXPECT_TRUE(areEqual) << "The fiducial value is:       " << fiducialDt << std::endl
                         << "The test value is:           " << testData << std::endl
                         << "The absolute difference is:  " << absoluteDiff << std::endl
@@ -106,7 +106,7 @@ TEST(tHYDROHydroInverseCrossingTime, CorrectInputExpectCorrectOutput)
                                                             velocityZ, cellSizeX, cellSizeY, cellSizeZ, gamma);
 
   // Check results
-  testingUtilities::Check_Results(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
+  testing_utilities::Check_Results(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
 }
 // =============================================================================
 // End of tests for the hydroInverseCrossingTime function
@@ -140,7 +140,7 @@ TEST(tMHDMhdInverseCrossingTime, CorrectInputExpectCorrectOutput)
                              magneticZ, cellSizeX, cellSizeY, cellSizeZ, gamma);
 
   // Check results
-  testingUtilities::Check_Results(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
+  testing_utilities::Check_Results(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
 }
 // =============================================================================
 // End of tests for the mhdInverseCrossingTime function

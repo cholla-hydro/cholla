@@ -26,7 +26,7 @@
  * considered compatible with CUDA/HIP.
  *
  */
-namespace testingUtilities
+namespace testing_utilities
 {
 // =========================================================================
 /*!
@@ -98,9 +98,9 @@ bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff, int6
 void wrapperEqual(int i, int j, int k, std::string const &dataSetName, double test_value, double fid_value,
                   double fixedEpsilon);
 
-void analyticConstant(systemTest::SystemTestRunner testObject, std::string const &dataSetName, double value);
+void analyticConstant(system_test::SystemTestRunner testObject, std::string const &dataSetName, double value);
 
-void analyticSine(systemTest::SystemTestRunner testObject, std::string const &dataSetName, double constant,
+void analyticSine(system_test::SystemTestRunner testObject, std::string const &dataSetName, double constant,
                   double amplitude, double kx, double ky, double kz, double phase, double tolerance);
 
 // =========================================================================
@@ -129,12 +129,12 @@ void Check_Results(double fiducialNumber, double testNumber, std::string const &
   bool areEqual;
 
   if ((fixedEpsilon < 0) and (ulpsEpsilon < 0)) {
-    areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
+    areEqual = testing_utilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
   } else if ((fixedEpsilon > 0) and (ulpsEpsilon < 0)) {
-    areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon);
+    areEqual = testing_utilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon);
   } else {
-    areEqual =
-        testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon, ulpsEpsilon);
+    areEqual = testing_utilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon,
+                                                 ulpsEpsilon);
   }
 
   std::stringstream outputMessage;
@@ -189,13 +189,13 @@ class GlobalString
   ~GlobalString() = default;
 };
 // =========================================================================
-}  // namespace testingUtilities
+}  // namespace testing_utilities
 
 // Declare the global string variables so everything that imports this file
 // has access to them
-extern testingUtilities::GlobalString globalChollaRoot;
-extern testingUtilities::GlobalString globalChollaBuild;
-extern testingUtilities::GlobalString globalChollaMachine;
-extern testingUtilities::GlobalString globalMpiLauncher;
+extern testing_utilities::GlobalString globalChollaRoot;
+extern testing_utilities::GlobalString globalChollaBuild;
+extern testing_utilities::GlobalString globalChollaMachine;
+extern testing_utilities::GlobalString globalMpiLauncher;
 extern bool globalRunCholla;
 extern bool globalCompareSystemTestResults;

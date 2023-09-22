@@ -18,18 +18,18 @@
 
   #define TPB_FEEDBACK   128
   #define FEED_INFO_N    6
-  #define i_RES          1
-  #define i_UNRES        2
-  #define i_ENERGY       3
-  #define i_MOMENTUM     4
-  #define i_UNRES_ENERGY 5
+  #define I_RES          1  // unused
+  #define I_UNRES        2  // unused
+  #define I_ENERGY       3  // unused
+  #define I_MOMENTUM     4  // unused
+  #define I_UNRES_ENERGY 5  // used
 
-typedef curandStateMRG32k3a_t feedback_prng_t;
-// typedef curandStatePhilox4_32_10_t feedback_prng_t;
+typedef curandStateMRG32k3a_t FeedbackPrng;
+// typedef curandStatePhilox4_32_10_t FeedbackPrng;
 
 namespace supernova
 {
-feedback_prng_t* randStates;
+FeedbackPrng* randStates;
 part_int_t n_states;
 Real *dev_snr, snr_dt, time_sn_start, time_sn_end;
 int snr_n;
@@ -49,7 +49,7 @@ __device__ double atomicMax(double* address, double val)
 }
   #endif  // O_HIP
 
-__global__ void Init_State_Kernel(unsigned int seed, feedback_prng_t* states)
+__global__ void Init_State_Kernel(unsigned int seed, FeedbackPrng* states)
 {
   int id = blockIdx.x * blockDim.x + threadIdx.x;
   curand_init(seed, id, 0, &states[id]);
@@ -132,7 +132,7 @@ void supernova::initState(struct parameters* P, part_int_t n_local, Real allocat
 
   // Now initialize the poisson random number generator state.
   n_states = n_local * allocation_factor;
-  cudaMalloc((void**)&randStates, n_states * sizeof(feedback_prng_t));
+  cudaMalloc((void**)&randStates, n_states * sizeof(FeedbackPrng));
 
   int ngrid = (n_states - 1) / TPB_FEEDBACK + 1;
   dim3 grid(ngrid);
@@ -234,7 +234,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
                                         Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g,
                                         int nz_g, int n_ghost, Real t, Real dt, Real* dti, Real* info, Real* density,
                                         Real* gasEnergy, Real* energy, Real* momentum_x, Real* momentum_y,
-                                        Real* momentum_z, Real gamma, feedback_prng_t* states, Real* prev_dens,
+                                        Real* momentum_z, Real gamma, FeedbackPrng* states, Real* prev_dens,
                                         int* prev_N, short direction, Real* dev_snr, Real snr_dt, Real time_sn_start,
                                         Real time_sn_end, int n_step)
 {
@@ -309,7 +309,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
 
           // N = (int) (average_num_sn + 0.5);
 
-          feedback_prng_t state;  // = states[0]; // load initial state
+          FeedbackPrng state;  // = states[0]; // load initial state
 
           curand_init(42, 0, 0, &state);
           unsigned long long skip = n_step * 10000 + id[gtid];
@@ -544,7 +544,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
                   // atomicAdd(    &energy[indx], e );
                   // atomicAdd(   &density[indx], d );
 
-                  s_info[FEED_INFO_N * tid + i_UNRES_ENERGY] +=
+                  s_info[FEED_INFO_N * tid + I_UNRES_ENERGY] +=
                       direction * (px * px + py * py + pz * pz) / 2 / density[indx] * dV;
 
                   if (abs(momentum_x[indx] / density[indx]) >= C_L) {
