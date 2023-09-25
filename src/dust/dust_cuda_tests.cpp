@@ -22,7 +22,7 @@
 #ifdef DUST
 
 TEST(tDUSTTestSputteringTimescale,
-     CorrectInputExpectCorrectOutput)  // test suite name, test name
+     CorrectInputExpectCorrectOutput)
 {
   // Parameters
   Real YR_IN_S                     = 3.154e7;
@@ -46,7 +46,7 @@ TEST(tDUSTTestSputteringTimescale,
 }
 
 TEST(tDUSTTestSputteringGrowthRate,
-     CorrectInputExpectCorrectOutput)  // test suite name, test name
+     CorrectInputExpectCorrectOutput)
 {
   // Parameters
   Real YR_IN_S                   = 3.154e7;
