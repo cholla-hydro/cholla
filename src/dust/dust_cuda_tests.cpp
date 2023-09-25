@@ -21,8 +21,7 @@
 
 #ifdef DUST
 
-TEST(tDUSTTestSputteringTimescale,
-     CorrectInputExpectCorrectOutput)
+TEST(tDUSTTestSputteringTimescale, CorrectInputExpectCorrectOutput)
 {
   // Parameters
   Real YR_IN_S                     = 3.154e7;
@@ -45,8 +44,7 @@ TEST(tDUSTTestSputteringTimescale,
                        << "The ULP difference is:       " << ulps_diff << std::endl;
 }
 
-TEST(tDUSTTestSputteringGrowthRate,
-     CorrectInputExpectCorrectOutput)
+TEST(tDUSTTestSputteringGrowthRate, CorrectInputExpectCorrectOutput)
 {
   // Parameters
   Real YR_IN_S                   = 3.154e7;

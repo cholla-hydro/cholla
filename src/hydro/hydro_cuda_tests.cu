@@ -152,11 +152,11 @@ TEST(tHYDROScalarFloor, CorrectInputExpectCorrectOutput)
   int num_blocks = 1;
   dim3 dim1dGrid(num_blocks, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  int const nx       = 1;
-  int const ny       = 1;
-  int const nz       = 1;
-  int const n_fields = 6;  // 5 conserved + 1 scalar
-  int const n_ghost  = 0;
+  int const nx        = 1;
+  int const ny        = 1;
+  int const nz        = 1;
+  int const n_fields  = 6;  // 5 conserved + 1 scalar
+  int const n_ghost   = 0;
   int const field_num = 5;  // scalar field index
 
   // initialize host and device conserved arrays
@@ -174,20 +174,23 @@ TEST(tHYDROScalarFloor, CorrectInputExpectCorrectOutput)
 
   // Case where scalar is below the floor
   host_conserved.at(field_num) = 0.0;  // scalar
-  dev_conserved.cpyHostToDevice(host_conserved); 
-  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost, field_num, scalar_floor);
+  dev_conserved.cpyHostToDevice(host_conserved);
+  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
+                     field_num, scalar_floor);
   testing_utilities::Check_Results(scalar_floor, dev_conserved.at(field_num), "below floor");
 
   // Case where scalar is above the floor
   host_conserved.at(field_num) = 2.0;  // scalar
-  dev_conserved.cpyHostToDevice(host_conserved); 
-  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost, field_num, scalar_floor);
+  dev_conserved.cpyHostToDevice(host_conserved);
+  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
+                     field_num, scalar_floor);
   testing_utilities::Check_Results(host_conserved.at(field_num), dev_conserved.at(field_num), "above floor");
 
   // Case where scalar is at the floor
   host_conserved.at(field_num) = 1.0;  // scalar
-  dev_conserved.cpyHostToDevice(host_conserved); 
-  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost, field_num, scalar_floor);
+  dev_conserved.cpyHostToDevice(host_conserved);
+  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
+                     field_num, scalar_floor);
   testing_utilities::Check_Results(host_conserved.at(field_num), dev_conserved.at(field_num), "at floor");
 }
 

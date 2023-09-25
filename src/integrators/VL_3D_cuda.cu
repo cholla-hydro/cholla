@@ -197,7 +197,8 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   CudaCheckError();
 
   #ifdef DENSITY_FLOOR
-  hipLaunchKernelGGL(Apply_Density_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, nx, ny, nz, n_ghost, density_floor);
+  hipLaunchKernelGGL(Apply_Density_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, nx, ny, nz, n_ghost,
+                     density_floor);
   #endif  // DENSITY_FLOOR
 
   #ifdef MHD
