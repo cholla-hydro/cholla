@@ -48,8 +48,8 @@ struct ChemistryHeader {
   Real *cool_ciHeIS_d;
 
   Real *cool_reHII_d;
-  Real *cool_reHeII1_d;
-  Real *cool_reHeII2_d;
+  Real *cool_reHeII_1_d;
+  Real *cool_reHeII_2_d;
   Real *cool_reHeIII_d;
 
   Real *cool_brem_d;

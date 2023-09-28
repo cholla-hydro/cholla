@@ -156,14 +156,14 @@ void Chem_GPU::Initialize_Cooling_Rates()
 
   if (!use_case_B_recombination) {
     Generate_Reaction_Rate_Table(&H.cool_reHII_d, cool_reHII_rate_case_A, units);
-    Generate_Reaction_Rate_Table(&H.cool_reHeII1_d, cool_reHeII1_rate_case_A, units);
+    Generate_Reaction_Rate_Table(&H.cool_reHeII_1_d, cool_reHeII1_rate_case_A, units);
     Generate_Reaction_Rate_Table(&H.cool_reHeIII_d, cool_reHeIII_rate_case_A, units);
   } else {
     Generate_Reaction_Rate_Table(&H.cool_reHII_d, cool_reHII_rate_case_B, units);
-    Generate_Reaction_Rate_Table(&H.cool_reHeII1_d, cool_reHeII1_rate_case_B, units);
+    Generate_Reaction_Rate_Table(&H.cool_reHeII_1_d, cool_reHeII1_rate_case_B, units);
     Generate_Reaction_Rate_Table(&H.cool_reHeIII_d, cool_reHeIII_rate_case_B, units);
   }
-  Generate_Reaction_Rate_Table(&H.cool_reHeII2_d, cool_reHeII2_rate, units);
+  Generate_Reaction_Rate_Table(&H.cool_reHeII_2_d, cool_reHeII2_rate, units);
 
   Generate_Reaction_Rate_Table(&H.cool_brem_d, cool_brem_rate, units);
 
