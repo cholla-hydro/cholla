@@ -180,7 +180,7 @@ LIBS_CLANG_TIDY     := $(subst -I/, -isystem /,$(LIBS))
 LIBS_CLANG_TIDY     += -isystem $(MPI_ROOT)/include -isystem $(HDF5_ROOT)/include
 CXXFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(LDFLAGS))
 GPUFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(GPUFLAGS))
-GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS))
+GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS_CLANG_TIDY))
 GPUFLAGS_CLANG_TIDY += --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes
 CPPFILES_TIDY := $(CPPFILES)
 GPUFILES_TIDY := $(GPUFILES)
