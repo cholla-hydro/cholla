@@ -165,7 +165,7 @@ CheckOptions:
   # - aNy_CasE
 
   # readability-identifier-naming.VariableCase: 'lower_case'
-  readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
+  # readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
   readability-identifier-naming.NamespaceCase: 'lower_case'
   # readability-identifier-naming.MacroDefinitionCase: 'UPPER_CASE'
   # readability-identifier-naming.TypedefCase: 'CamelCase'
