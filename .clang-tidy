@@ -2,7 +2,7 @@
 # for those checks, etc. It uses as many of the default values as possible and
 # runs all checks with some exclusions by default.
 #
-# The full list of clang-tidy 15 checks and documentation can be found
+# The full list of clang-tidy 17 checks and documentation can be found
 # [here](https://releases.llvm.org/17.0.1/tools/clang/tools/extra/docs/clang-tidy/index.html)
 #
 # The "Checks" command should have 5 sections seperated by a newline:
@@ -184,5 +184,5 @@ CheckOptions:
 
   hicpp-signed-bitwise.IgnorePositiveIntegerLiterals: 'true'
 
-  bugprone-reserved-identifier.AllowedIdentifiers: '__cudaSafeCall;__cudaCheckError;__shfl_down'
+  bugprone-reserved-identifier.AllowedIdentifiers: '__cudaSafeCall;__cudaCheckError;__shfl_down;__CHOLLA_PRETTY_FUNC__'
 ...

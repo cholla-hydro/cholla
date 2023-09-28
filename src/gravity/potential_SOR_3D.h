@@ -158,7 +158,7 @@ class Potential_SOR_3D
   void Copy_Transfer_Buffer_To_Host(int size_buffer, Real *transfer_bufer_h, Real *transfer_buffer_d);
   void Copy_Transfer_Buffer_To_Device(int size_buffer, Real *transfer_bufer_h, Real *transfer_buffer_d);
 
-  void Set_Isolated_Boundary_Conditions(int *boundary_flags, struct parameters *P);
+  void Set_Isolated_Boundary_Conditions(int *boundary_flags, struct Parameters *P);
   void Set_Isolated_Boundary_GPU(int direction, int side, Real *boundary_d);
 
     #ifdef MPI_CHOLLA

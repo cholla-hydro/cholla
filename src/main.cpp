@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 
   // input parameter variables
   char *param_file;
-  struct parameters P;
+  struct Parameters P;
   int nfile    = 0;  // number of output files
   Real outtime = 0;  // current output time
 
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef ANALYSIS
-  G.Initialize_Analysis_Module(&P);
+  G.Initialize_AnalysisModule(&P);
   if (G.Analysis.Output_Now) {
     G.Compute_and_Output_Analysis(&P);
   }

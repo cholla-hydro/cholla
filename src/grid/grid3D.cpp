@@ -121,7 +121,7 @@ Real Grid3D::Calc_Inverse_Timestep()
 
 /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
  *  \brief Initialize the grid. */
-void Grid3D::Initialize(struct parameters *P)
+void Grid3D::Initialize(struct Parameters *P)
 {
   // number of fields to track (default 5 is # of conserved variables)
   H.n_fields = 5;

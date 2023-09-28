@@ -55,10 +55,10 @@ class Cosmology
   bool exit_now;
 
   Cosmology(void);
-  void Initialize(struct parameters *P, Grav3D &Grav, Particles_3D &Particles);
+  void Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Particles);
 
-  void Load_Scale_Outputs(struct parameters *P);
-  void Set_Scale_Outputs(struct parameters *P);
+  void Load_Scale_Outputs(struct Parameters *P);
+  void Set_Scale_Outputs(struct Parameters *P);
 
   void Set_Next_Scale_Output();
 

@@ -32,7 +32,7 @@ FeedbackAnalysis::FeedbackAnalysis(Grid3D& G)
         G.Get_Position(i, j, k, &x, &y, &z);
         r = sqrt(x * x + y * y);
 
-        vca              = sqrt(r * fabs(Galaxies::MW.gr_total_D3D(r, z)));
+        vca              = sqrt(r * fabs(galaxies::MW.gr_total_D3D(r, z)));
         h_circ_vel_x[id] = -y / r * vca;
         h_circ_vel_y[id] = x / r * vca;
       }

@@ -8,7 +8,7 @@ A 3D Poisson solver that expects periodic boundary conditions.
 
 *ParisPeriodic* calls the FFT filter provided by the *HenryPeriodic* class, where it provides a C++ lambda function that solves the Poisson equation in frequency space.
 It assumes fields in a 3D block distribution with no ghost cells.
-It is used by the Cholla class *Potential_Paris_3D* to solve Poisson problems with periodic boundary conditions.
+It is used by the Cholla class *PotentialParis3D* to solve Poisson problems with periodic boundary conditions.
 
 To use:
 - Construct a *ParisPeriodic* object using information about the global domain and local MPI task.
@@ -44,12 +44,12 @@ A 3D Poisson solver that expects zero-valued boundary conditions.
 
 *PoissonZero3DBlockedGPU* uses discrete sine transforms (DSTs) instead of Fourier transforms to enforce zero-valued, non-periodic boundary conditions.
 It is currently a monolithic class, not depenedent on a *Henry* class.
-It is used by the Cholla class *Potential_Paris_Galactic* to solve Poisson problems with non-zero, non-periodic, analytic boundary conditions.
+It is used by the Cholla class *PotentialParisGalactic* to solve Poisson problems with non-zero, non-periodic, analytic boundary conditions.
 
-*Potential_Paris_Galactic::Get_Potential()* uses *PoissonZero3DBlockedGPU::solve()* as follows.
+*PotentialParisGalactic::Get_Potential()* uses *PoissonZero3DBlockedGPU::solve()* as follows.
 - Subtract an analytic density from the input density, where the analytic density matches the input density at the domain boundaries.
 This results in a density with zero-valued boundaries.
-- Call *PoissonZero3DBlockedGPU::solve()* with this density with zero-valued boundaries. 
+- Call *PoissonZero3DBlockedGPU::solve()* with this density with zero-valued boundaries.
 - Add an analytic potential to the resulting potential, where the analytic potential is the solution to the Poisson equation for the analytic density that was subtracted from the input density.
 The resulting sum of potentials is the solution to the Poisson problem for the full input density.
 

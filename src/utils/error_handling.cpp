@@ -29,7 +29,7 @@
 }
 #endif /*MPI_CHOLLA*/
 
-void Check_Configuration(parameters const& P)
+void Check_Configuration(Parameters const& P)
 {
 // General Checks
 // ==============
@@ -139,7 +139,7 @@ void Check_Configuration(parameters const& P)
   // since we are aborting, it's OK that this isn't the most optimized
 
   // prepare some info for the error message header
-  const char* santized_func_name = (func_name == nullptr) ? "{unspecified}" : func_name;
+  const char* sanitized_func_name = (func_name == nullptr) ? "{unspecified}" : func_name;
 
 #ifdef MPI_CHOLLA
   std::string proc_info = std::to_string(procID) + " / " + std::to_string(nproc) + " (using MPI)";
@@ -156,6 +156,8 @@ void Check_Configuration(parameters const& P)
     va_start(args, msg);
     va_copy(args_copy, args);
 
+    // The clang-analyzer-valist.Uninitialized is bugged and triggers improperly on this line
+    // NOLINTNEXTLINE(clang-analyzer-valist.Uninitialized)
     std::size_t bufsize_without_terminator = std::vsnprintf(nullptr, 0, msg, args);
     va_end(args);
 
@@ -181,7 +183,7 @@ void Check_Configuration(parameters const& P)
                "Rank: %s\n"
                "Message: %s\n"
                "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n",
-               file_name, line_num, santized_func_name, proc_info.data(), msg_buf.data());
+               file_name, line_num, sanitized_func_name, proc_info.data(), msg_buf.data());
   std::fflush(stderr);  // may be unnecessary for stderr
   chexit(1);
 }

@@ -732,9 +732,9 @@ Real Halo_Density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
   return (rho_halo[i + 1] - rho_halo[i]) * (r - r_halo[i]) / (r_halo[i + 1] - r_halo[i]) + rho_halo[i];
 }
 
-/*! \fn void Disk_3D(parameters P)
+/*! \fn void Disk_3D(Parameters P )
  *  \brief Initialize the grid with a 3D disk. */
-void Grid3D::Disk_3D(parameters p)
+void Grid3D::Disk_3D(Parameters p)
 {
 #ifdef DISK_ICS
 
@@ -748,8 +748,8 @@ void Grid3D::Disk_3D(parameters p)
   Real r_cool;
 
   // MW model
-  DiskGalaxy galaxy = Galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
-  // M82 model Galaxies::M82;
+  DiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
+  // M82 model galaxies::M82;
 
   M_vir = galaxy.getM_vir();    // viral mass in M_sun
   M_d   = galaxy.getM_d();      // mass of disk in M_sun (assume all stars)
