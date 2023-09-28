@@ -252,8 +252,10 @@ int main(int argc, char *argv[])
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
 
-    if (G.H.t + G.H.dt > outtime) {
-      G.H.dt = outtime - G.H.t;
+    // adjust timestep based on the next available scheduled time
+    const Real next_scheduled_time = fmin(outtime, P.tout);
+    if (G.H.t + G.H.dt > next_scheduled_time) {
+      G.H.dt = next_scheduled_time - G.H.t;
     }
 
 #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
@@ -343,8 +345,9 @@ int main(int argc, char *argv[])
       // add one to the output file count
       nfile++;
 #endif  // OUTPUT
-      // update to the next output time
-      outtime += P.outstep;
+      if (G.H.t == outtime) {
+        outtime += P.outstep;  // update to the next output time
+      }
     }
 
 #ifdef CPU_TIME
