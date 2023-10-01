@@ -1,130 +1,210 @@
-# Example file for concatenating on-axis slice data
-# created when the -DSLICES flag is turned on
+#!/usr/bin/env python3
+"""
+Python script for concatenating slice hdf5 datasets for when -DSLICES is turned
+on in Cholla. Includes a CLI for concatenating Cholla HDF5 datasets and can be
+imported into other scripts where the `concat_slice` function can be used to
+concatenate the HDF5 files.
+
+Generally the easiest way to import this script is to add the `python_scripts`
+directory to your python path in your script like this:
+```
+import sys
+sys.path.append('/PATH/TO/CHOLLA/python_scripts')
+import cat_slice
+```
+"""
 
 import h5py
+import argparse
+import pathlib
 import numpy as np
 
-ns = 0
-ne = 2
-n_procs = 4 # number of processors that did the cholla calculation
-dnamein = '/gpfs/alpine/proj-shared/csc380/orlandow/o_cholla/out.21Sep20-Mon-14.17-357075-SOR_HYDRO_DISK/raw/'
-dnameout = '/gpfs/alpine/proj-shared/csc380/orlandow/o_cholla/out.21Sep20-Mon-14.17-357075-SOR_HYDRO_DISK/catted_files'
+from cat_dset_3D import copy_header
 
-DE = True # set to True if Dual Energy flag was used
-SCALAR = False # set to True if Scalar was used
+# ==============================================================================
+def main():
+  """This function handles the CLI argument parsing and is only intended to be used when this script is invoked from the
+  command line. If you're importing this file then use the `concat_slice` function directly.
+  """
+  # Argument handling
+  cli = argparse.ArgumentParser()
+  # Required Arguments
+  cli.add_argument('-s', '--source-directory', type=pathlib.Path, required=True, help='The path to the source HDF5 files.')
+  cli.add_argument('-o', '--output-file',      type=pathlib.Path, required=True, help='The path and filename of the concatenated file.')
+  cli.add_argument('-n', '--num-processes',    type=int,          required=True, help='The number of processes that were used to generate the slices.')
+  cli.add_argument('-t', '--output-num',     type=int,          required=True, help='The output number to be concatenated')
+  # Optional Arguments
+  cli.add_argument('--xy',               type=bool, default=True, help='If True then concatenate the XY slice. Defaults to True.')
+  cli.add_argument('--yz',               type=bool, default=True, help='If True then concatenate the YZ slice. Defaults to True.')
+  cli.add_argument('--xz',               type=bool, default=True, help='If True then concatenate the XZ slice. Defaults to True.')
+  cli.add_argument('--skip-fields',      type=list, default=[],   help='List of fields to skip concatenating. Defaults to empty.')
+  cli.add_argument('--dtype',            type=str,  default=None, help='The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.')
+  cli.add_argument('--compression-type', type=str,  default=None, help='What kind of compression to use on the output data. Defaults to None.')
+  cli.add_argument('--compression-opts', type=str,  default=None, help='What compression settings to use if compressing. Defaults to None.')
+  args = cli.parse_args()
 
-# loop over the output times
-for n in range(ns, ne+1):
+  # Perform the concatenation
+  concat_slice(source_directory=args.source_directory,
+               destination_file_path=args.output_file,
+               num_ranks=args.num_processses,
+               output_number=args.output_num,
+               concat_xy=args.xy,
+               concat_yz=args.yz,
+               concat_xz=args.xz,
+               skip_fields=args.skip_fields,
+               destination_dtype=args.dtype,
+               compression_type=args.compression_type,
+               compression_options=args.compression_opts)
+# ==============================================================================
 
-  # open the output file for writing
-  fileout = h5py.File(dnameout+str(n)+'_slice.h5', 'w')
+# ==============================================================================
+def concat_slice(source_directory: pathlib.Path,
+                 destination_file_path: pathlib.Path,
+                 num_ranks: int,
+                 output_number: int,
+                 concat_xy: bool = True,
+                 concat_yz: bool = True,
+                 concat_xz: bool = True,
+                 skip_fields: list = [],
+                 destination_dtype: np.dtype = None,
+                 compression_type: str = None,
+                 compression_options: str = None):
+  """Concatenate slice HDF5 Cholla datasets. i.e. take the single files
+  generated per process and concatenate them into a single, large file. This
+  function concatenates a single output time and can be called multiple times,
+  potentially in parallel, to concatenate multiple output times.
 
-  # loop over files for a given output time
-  for i in range(0, n_procs):
+  Args:
+      source_directory (pathlib.Path): The directory containing the unconcatenated files
+      destination_file_path (pathlib.Path): The path and name of the new concatenated file
+      num_ranks (int): The number of ranks that Cholla was run with
+      output_number (int): The output number to concatenate
+      concat_xy (bool, optional): If True then concatenate the XY slice. Defaults to True.
+      concat_yz (bool, optional): If True then concatenate the YZ slice. Defaults to True.
+      concat_xz (bool, optional): If True then concatenate the XZ slice. Defaults to True.
+      skip_fields (list, optional): List of fields to skip concatenating. Defaults to [].
+      destination_dtype (np.dtype, optional): The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
+      compression_type (str, optional): What kind of compression to use on the output data. Defaults to None.
+      compression_options (str, optional): What compression settings to use if compressing. Defaults to None.
+  """
+  # Open destination file and first file for getting metadata
+  source_file = h5py.File(source_directory / f'{output_number}_slice.h5.0', 'r')
+  destination_file = h5py.File(destination_file_path, 'w')
 
-    # open the input file for reading
-    filein = h5py.File(dnamein+str(n)+'_slice.h5.'+str(i), 'r')
-    # read in the header data from the input file
-    head = filein.attrs
+  # Copy over header
+  destination_file = copy_header(source_file, destination_file)
 
-    # if it's the first input file, write the header attributes
-    # and create the datasets in the output file
-    if (i == 0):
-      gamma = head['gamma']
-      t = head['t']
-      dt = head['dt']
-      n_step = head['n_step']
-      nx = head['dims'][0]
-      ny = head['dims'][1]
-      nz = head['dims'][2]
-      fileout.attrs['gamma'] = gamma
-      fileout.attrs['t'] = t
-      fileout.attrs['dt'] = dt
-      fileout.attrs['n_step'] = n_step
-      fileout.attrs['dims'] = [nx, ny, nz]
+  # Get a list of all datasets in the source file
+  datasets_to_copy = list(source_file.keys())
 
-      d_xy = np.zeros((nx,ny))
-      d_xz = np.zeros((nx,nz))
-      d_yz = np.zeros((ny,nz))
-      mx_xy = np.zeros((nx,ny))
-      mx_xz = np.zeros((nx,nz))
-      mx_yz = np.zeros((ny,nz))
-      my_xy = np.zeros((nx,ny))
-      my_xz = np.zeros((nx,nz))
-      my_yz = np.zeros((ny,nz))
-      mz_xy = np.zeros((nx,ny))
-      mz_xz = np.zeros((nx,nz))
-      mz_yz = np.zeros((ny,nz))
-      E_xy = np.zeros((nx,ny))
-      E_xz = np.zeros((nx,nz))
-      E_yz = np.zeros((ny,nz))
-      if DE:
-       GE_xy = np.zeros((nx,ny))
-       GE_xz = np.zeros((nx,nz))
-       GE_yz = np.zeros((ny,nz))
-      if SCALAR:
-       scalar_xy = np.zeros((nx,ny))
-       scalar_xz = np.zeros((nx,nz))
-       scalar_yz = np.zeros((ny,nz))
+  # Filter the datasets to only include those I wish to copy
+  if not concat_xy:
+    datasets_to_copy = [dataset for dataset in datasets_to_copy if not 'xy' in dataset]
+  if not concat_yz:
+    datasets_to_copy = [dataset for dataset in datasets_to_copy if not 'yz' in dataset]
+  if not concat_xz:
+    datasets_to_copy = [dataset for dataset in datasets_to_copy if not 'xz' in dataset]
+  datasets_to_copy = [dataset for dataset in datasets_to_copy if not dataset in skip_fields]
 
-    # write data from individual processor file to
-    # correct location in concatenated file
-    nxl = head['dims_local'][0]
-    nyl = head['dims_local'][1]
-    nzl = head['dims_local'][2]
-    xs = head['offset'][0]
-    ys = head['offset'][1]
-    zs = head['offset'][2]
+  # Create the datasets in the destination file
+  for dataset in datasets_to_copy:
+    dtype = source_file[dataset].dtype if (destination_dtype == None) else destination_dtype
 
-    d_xy[xs:xs+nxl,ys:ys+nyl] += filein['d_xy']
-    d_xz[xs:xs+nxl,zs:zs+nzl] += filein['d_xz']
-    d_yz[ys:ys+nyl,zs:zs+nzl] += filein['d_yz']
-    mx_xy[xs:xs+nxl,ys:ys+nyl] += filein['mx_xy']
-    mx_xz[xs:xs+nxl,zs:zs+nzl] += filein['mx_xz']
-    mx_yz[ys:ys+nyl,zs:zs+nzl] += filein['mx_yz']
-    my_xy[xs:xs+nxl,ys:ys+nyl] += filein['my_xy']
-    my_xz[xs:xs+nxl,zs:zs+nzl] += filein['my_xz']
-    my_yz[ys:ys+nyl,zs:zs+nzl] += filein['my_yz']
-    mz_xy[xs:xs+nxl,ys:ys+nyl] += filein['mz_xy']
-    mz_xz[xs:xs+nxl,zs:zs+nzl] += filein['mz_xz']
-    mz_yz[ys:ys+nyl,zs:zs+nzl] += filein['mz_yz']
-    E_xy[xs:xs+nxl,ys:ys+nyl] += filein['E_xy']
-    E_xz[xs:xs+nxl,zs:zs+nzl] += filein['E_xz']
-    E_yz[ys:ys+nyl,zs:zs+nzl] += filein['E_yz']
-    if DE:
-      GE_xy[xs:xs+nxl,ys:ys+nyl] += filein['GE_xy']
-      GE_xz[xs:xs+nxl,zs:zs+nzl] += filein['GE_xz']
-      GE_yz[ys:ys+nyl,zs:zs+nzl] += filein['GE_yz']
-    if SCALAR:
-      scalar_xy[xs:xs+nxl,ys:ys+nyl] += filein['scalar_xy']
-      scalar_xz[xs:xs+nxl,zs:zs+nzl] += filein['scalar_xz']
-      scalar_yz[ys:ys+nyl,zs:zs+nzl] += filein['scalar_yz']
+    slice_shape = get_slice_shape(source_file, dataset)
 
-    filein.close()
+    destination_file.create_dataset(name=dataset,
+                                    shape=slice_shape,
+                                    dtype=dtype,
+                                    compression=compression_type,
+                                    compression_opts=compression_options)
 
-  # wrte out the new datasets
-  fileout.create_dataset('d_xy', data=d_xy)
-  fileout.create_dataset('d_xz', data=d_xz)
-  fileout.create_dataset('d_yz', data=d_yz)
-  fileout.create_dataset('mx_xy', data=mx_xy)
-  fileout.create_dataset('mx_xz', data=mx_xz)
-  fileout.create_dataset('mx_yz', data=mx_yz)
-  fileout.create_dataset('my_xy', data=my_xy)
-  fileout.create_dataset('my_xz', data=my_xz)
-  fileout.create_dataset('my_yz', data=my_yz)
-  fileout.create_dataset('mz_xy', data=mz_xy)
-  fileout.create_dataset('mz_xz', data=mz_xz)
-  fileout.create_dataset('mz_yz', data=mz_yz)
-  fileout.create_dataset('E_xy', data=E_xy)
-  fileout.create_dataset('E_xz', data=E_xz)
-  fileout.create_dataset('E_yz', data=E_yz)
-  if DE:
-    fileout.create_dataset('GE_xy', data=GE_xy)
-    fileout.create_dataset('GE_xz', data=GE_xz)
-    fileout.create_dataset('GE_yz', data=GE_yz)
-  if SCALAR:
-    fileout.create_dataset('scalar_xy', data=scalar_xy)
-    fileout.create_dataset('scalar_xz', data=scalar_xz)
-    fileout.create_dataset('scalar_yz', data=scalar_yz)
+  # Close source file in prep for looping through source files
+  source_file.close()
 
-  fileout.close()
+  # Copy data
+  for rank in range(num_ranks):
+    # Open source file
+    source_file = h5py.File(source_directory / f'{output_number}_slice.h5.{rank}', 'r')
+
+    # Loop through and copy datasets
+    for dataset in datasets_to_copy:
+      # Determine locations and shifts for writing
+      (i0_start, i0_end, i1_start, i1_end), file_in_slice = write_bounds(source_file, dataset)
+
+      if file_in_slice:
+        # Copy the data
+        destination_file[dataset][i0_start:i0_end, i1_start:i1_end] = source_file[dataset]
+
+    # Now that the copy is done we close the source file
+    source_file.close()
+
+  # Close destination file now that it is fully constructed
+  destination_file.close()
+# ==============================================================================
+
+# ==============================================================================
+def get_slice_shape(source_file: h5py.File, dataset: str):
+  """Determine the shape of the full slice in a dataset
+
+  Args:
+      source_file (h5py.File): The source file the get the shape information from
+      dataset (str): The dataset to get the shape of
+
+  Raises:
+      ValueError: If the dataset name isn't a slice name
+
+  Returns:
+      tuple: The 2D dimensions of the slice
+  """
+  nx, ny, nz = source_file.attrs['dims']
+
+  if 'xy' in dataset:
+    slice_dimensions = (nx, ny)
+  elif 'yz' in dataset:
+    slice_dimensions = (ny, nz)
+  elif 'xz' in dataset:
+    slice_dimensions = (nx, nz)
+  else:
+    raise ValueError(f'Dataset "{dataset}" is not a slice.')
+
+  return slice_dimensions
+# ==============================================================================
+
+# ==============================================================================
+def write_bounds(source_file: h5py.File, dataset: str):
+  """Determine the bounds of the concatenated file to write to
+
+  Args:
+      source_file (h5py.File): The source file to read from
+      dataset (str): The name of the dataset to read from the source file
+
+  Raises:
+      ValueError: If the dataset name isn't a slice name
+
+  Returns:
+      tuple: The write bounds for the concatenated file to be used like `output_file[dataset][return[0]:return[1], return[2]:return[3]]
+  """
+  nx, ny, nz                   = source_file.attrs['dims']
+  nx_local, ny_local, nz_local = source_file.attrs['dims_local']
+  x_start, y_start, z_start    = source_file.attrs['offset']
+
+  if 'xy' in dataset:
+    file_in_slice = z_start <= nz//2 <= z_start+nz_local
+    bounds = (x_start, x_start+nx_local, y_start, y_start+ny_local)
+  elif 'yz' in dataset:
+    file_in_slice = x_start <= nx//2 <= x_start+nx_local
+    bounds = (y_start, y_start+ny_local, z_start, z_start+nz_local)
+  elif 'xz' in dataset:
+    file_in_slice = y_start <= ny//2 <= y_start+ny_local
+    bounds = (x_start, x_start+nx_local, z_start, z_start+nz_local)
+  else:
+    raise ValueError(f'Dataset "{dataset}" is not a slice.')
+
+  return bounds, file_in_slice
+# ==============================================================================
+
+if __name__ == '__main__':
+  from timeit import default_timer
+  start = default_timer()
+  main()
+  print(f'\nTime to execute: {round(default_timer()-start,2)} seconds')
