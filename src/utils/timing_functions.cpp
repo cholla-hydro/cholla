@@ -169,7 +169,7 @@ void Time::Print_Times()
 }
 
 // once at end of run in main.cpp
-void Time::Print_Average_Times(struct parameters P)
+void Time::Print_Average_Times(struct Parameters P)
 {
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
 

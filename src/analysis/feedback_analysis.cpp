@@ -32,7 +32,7 @@ FeedbackAnalysis::FeedbackAnalysis(Grid3D& G)
         G.Get_Position(i, j, k, &x, &y, &z);
         r = sqrt(x * x + y * y);
 
-        vca              = sqrt(r * fabs(Galaxies::MW.gr_total_D3D(r, z)));
+        vca              = sqrt(r * fabs(galaxies::MW.gr_total_D3D(r, z)));
         h_circ_vel_x[id] = -y / r * vca;
         h_circ_vel_y[id] = x / r * vca;
       }
@@ -87,7 +87,7 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion(Grid3D& G)
   #ifdef MPI_CHOLLA
   MPI_Allreduce(&partial_mass, &total_mass, 1, MPI_CHREAL, MPI_SUM, world);
   #else
-  total_mass         = partial_mass;
+  total_mass = partial_mass;
   #endif
 
   for (k = G.H.n_ghost; k < G.H.nz - G.H.n_ghost; k++) {

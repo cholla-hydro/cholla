@@ -93,7 +93,7 @@ class DeviceVector
    * \param[in] index The index of the desired value
    * \return T The value at dev_ptr[index]
    */
-  T const at(size_t const index);
+  T at(size_t const index);
 
   /*!
    * \brief Assign a single value in the array. Should generally only be
@@ -255,7 +255,7 @@ T DeviceVector<T>::operator[](size_t const &index)
 
 // =========================================================================
 template <typename T>
-T const DeviceVector<T>::at(size_t const index)
+T DeviceVector<T>::at(size_t const index)
 {
   if (index < _size) {
     // Use the overloaded [] operator to grab the value from GPU memory

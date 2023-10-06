@@ -6,7 +6,7 @@
   #include "../cosmology/cosmology.h"
   #include "../io/io.h"
 
-void Cosmology::Load_Scale_Outputs(struct parameters *P)
+void Cosmology::Load_Scale_Outputs(struct Parameters *P)
 {
   char filename_1[100];
   // create the filename to read from
@@ -50,7 +50,7 @@ void Cosmology::Load_Scale_Outputs(struct parameters *P)
   exit_now = false;
 }
 
-void Cosmology::Set_Scale_Outputs(struct parameters *P)
+void Cosmology::Set_Scale_Outputs(struct Parameters *P)
 {
   if (P->scale_outputs_file[0] == '\0') {
     chprintf(" Output every %d timesteps.\n", P->n_steps_output);

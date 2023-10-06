@@ -174,7 +174,7 @@ extern int Sgn(Real x);
 extern Real Calc_Eta(Real cW[], Real gamma);
 #endif
 
-struct parameters {
+struct Parameters {
   int nx;
   int ny;
   int nz;
@@ -325,9 +325,9 @@ struct parameters {
 #endif
 };
 
-/*! \fn void parse_params(char *param_file, struct parameters * parms);
+/*! \fn void parse_params(char *param_file, struct Parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
-extern void Parse_Params(char *param_file, struct parameters *parms, int argc, char **argv);
+extern void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **argv);
 
 /*! \fn int is_param_valid(char *name);
  * \brief Verifies that a param is valid (even if not needed).  Avoids

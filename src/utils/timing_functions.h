@@ -66,7 +66,7 @@ class Time
   Time();
   void Initialize();
   void Print_Times();
-  void Print_Average_Times(struct parameters P);
+  void Print_Average_Times(struct Parameters P);
 };
 // #endif  // CPU_TIME
 

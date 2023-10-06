@@ -11,7 +11,7 @@
       #include <fftw3.h>
     #endif
 
-class Analysis_Module
+class AnalysisModule
 {
  public:
   Real Lbox_x;
@@ -290,21 +290,21 @@ class Analysis_Module
 
     #endif
 
-  Analysis_Module(void);
+  AnalysisModule(void);
   void Initialize(Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz, int nx_real,
                   int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real, int n_ghost_hydro, Real z_now,
-                  struct parameters *P);
+                  struct Parameters *P);
   void Reset(void);
 
-  void Load_Scale_Outputs(struct parameters *P);
+  void Load_Scale_Outputs(struct Parameters *P);
   void Set_Next_Scale_Output();
 
     #ifdef PHASE_DIAGRAM
-  void Initialize_Phase_Diagram(struct parameters *P);
+  void Initialize_Phase_Diagram(struct Parameters *P);
     #endif
 
     #ifdef LYA_STATISTICS
-  void Initialize_Lya_Statistics(struct parameters *P);
+  void Initialize_Lya_Statistics(struct Parameters *P);
   void Initialize_Lya_Statistics_Measurements(int axis);
   void Transfer_Skewers_Data(int axis);
   void Compute_Lya_Mean_Flux_Skewer(int skewer_id, int axis);

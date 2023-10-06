@@ -2,8 +2,8 @@
 # for those checks, etc. It uses as many of the default values as possible and
 # runs all checks with some exclusions by default.
 #
-# The full list of clang-tidy 15 checks and documentation can be found
-# [here](https://releases.llvm.org/15.0.0/tools/clang/tools/extra/docs/clang-tidy/index.html)
+# The full list of clang-tidy 17 checks and documentation can be found
+# [here](https://releases.llvm.org/17.0.1/tools/clang/tools/extra/docs/clang-tidy/index.html)
 #
 # The "Checks" command should have 5 sections seperated by a newline:
 # 1. Turn on all checks by default. Done with "*"
@@ -34,16 +34,18 @@ Checks: "*,
         -misc-unused-parameters,
         -hicpp-multiway-paths-covered,
         -cert-err58-cpp,
+        -cert-dcl37-c,
+        -cert-dcl51-cpp,
         -cppcoreguidelines-pro-bounds-constant-array-index,
 
         google-readability-avoid-underscore-in-googletest-name,
         google-upgrade-googletest-case,
 
-        -*,
-        readability-identifier-naming,
-
+        -bugprone-empty-catch,
         -bugprone-implicit-widening-of-multiplication-result,
         -bugprone-narrowing-conversions,
+        -bugprone-switch-missing-default-case,
+        -bugprone-switch-missing-default-case,
         -cert-env33-c,
         -cert-err33-c,
         -cert-err34-c,
@@ -58,12 +60,15 @@ Checks: "*,
         -clang-analyzer-optin.performance.Padding,
         -clang-analyzer-security.insecureAPI.strcpy,
         -clang-diagnostic-format,
+        -clang-diagnostic-logical-not-parentheses,
         -clang-diagnostic-macro-redefined,
         -clang-diagnostic-unknown-cuda-version,
         -clang-diagnostic-unused-command-line-argument,
         -clang-diagnostic-unused-result,
         -concurrency-mt-unsafe,
         -cppcoreguidelines-avoid-c-arrays,
+        -cppcoreguidelines-avoid-const-or-ref-data-members,
+        -cppcoreguidelines-avoid-do-while,
         -cppcoreguidelines-avoid-magic-numbers,
         -cppcoreguidelines-avoid-non-const-global-variables,
         -cppcoreguidelines-explicit-virtual-functions,
@@ -81,6 +86,7 @@ Checks: "*,
         -cppcoreguidelines-pro-type-reinterpret-cast,
         -cppcoreguidelines-pro-type-vararg,
         -cppcoreguidelines-special-member-functions,
+        -cppcoreguidelines-use-default-member-init,
         -cppcoreguidelines-virtual-class-destructor,
         -google-explicit-constructor,
         -google-global-names-in-headers,
@@ -95,6 +101,7 @@ Checks: "*,
         -hicpp-no-array-decay,
         -hicpp-no-malloc,
         -hicpp-special-member-functions,
+        -hicpp-use-auto,
         -hicpp-use-equals-default,
         -hicpp-use-noexcept,
         -hicpp-use-nullptr,
@@ -105,11 +112,18 @@ Checks: "*,
         -llvm-include-order,
         -llvm-namespace-comment,
         -misc-const-correctness,
+        -misc-header-include-cycle,
+        -misc-include-cleaner,
         -misc-non-private-member-variables-in-classes,
+        -misc-use-anonymous-namespace,
         -modernize-avoid-c-arrays,
         -modernize-deprecated-headers,
         -modernize-macro-to-enum,
         -modernize-redundant-void-arg,
+        -modernize-type-traits,
+        -modernize-type-traits,
+        -modernize-use-auto,
+        -modernize-use-default-member-init,
         -modernize-use-equals-default,
         -modernize-use-nodiscard,
         -modernize-use-noexcept,
@@ -117,6 +131,9 @@ Checks: "*,
         -modernize-use-override,
         -modernize-use-using,
         -openmp-use-default-none,
+        -performance-avoid-endl,
+        -performance-unnecessary-value-param,
+        -readability-container-size-empty,
         -readability-convert-member-functions-to-static,
         -readability-delete-null-pointer,
         -readability-duplicate-include,
@@ -133,9 +150,7 @@ Checks: "*,
         -readability-redundant-preprocessor,
         -readability-suspicious-call-argument"
 WarningsAsErrors: ''
-# More paths can be ignored by modifying this so that it looks like '^((?!/PATH/ONE/|/PATH/TWO/).)*$'
-HeaderFilterRegex: '^((?!/ihome/crc/install/power9/googletest/1.11.0/include/|/ihome/crc/install/power9/googletest/1.11.0/include/|/usr/lib/x86_64-linux-gnu/hdf5/serial/include/).)*$'
-AnalyzeTemporaryDtors: false
+HeaderFilterRegex: '.*'
 FormatStyle:     'file'
 UseColor: false
 CheckOptions:
@@ -150,7 +165,7 @@ CheckOptions:
   # - aNy_CasE
 
   # readability-identifier-naming.VariableCase: 'lower_case'
-  readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
+  # readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
   readability-identifier-naming.NamespaceCase: 'lower_case'
   # readability-identifier-naming.MacroDefinitionCase: 'UPPER_CASE'
   # readability-identifier-naming.TypedefCase: 'CamelCase'
@@ -168,4 +183,6 @@ CheckOptions:
   # readability-identifier-naming.PrivateMethodSuffix: '_'
 
   hicpp-signed-bitwise.IgnorePositiveIntegerLiterals: 'true'
+
+  bugprone-reserved-identifier.AllowedIdentifiers: '__cudaSafeCall;__cudaCheckError;__shfl_down;__CHOLLA_PRETTY_FUNC__'
 ...

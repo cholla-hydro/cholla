@@ -26,7 +26,7 @@ static const Real R_SH             = 0.0302;  // 30.2 pc * n_0^{-0.46} -> eq.(31
 static const Real DEFAULT_SN_END   = 40000;   // default value for when SNe stop (40 Myr)
 static const Real DEFAULT_SN_START = 4000;    // default value for when SNe start (4 Myr)
 
-void initState(struct parameters* P, part_int_t n_local, Real allocation_factor = 1);
+void initState(struct Parameters* P, part_int_t n_local, Real allocation_factor = 1);
 Real Cluster_Feedback(Grid3D& G, FeedbackAnalysis& sn_analysis);
 }  // namespace supernova
 #endif  // PARTICLES_GPU && SUPERNOVA

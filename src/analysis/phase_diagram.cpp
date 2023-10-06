@@ -110,7 +110,7 @@ void Grid3D::Compute_Phase_Diagram()
   for (indx_phase = 0; indx_phase < n_temp * n_dens; indx_phase++) Analysis.phase_diagram[indx_phase] /= phase_sum;
 }
 
-void Analysis_Module::Initialize_Phase_Diagram(struct parameters *P)
+void AnalysisModule::Initialize_Phase_Diagram(struct Parameters *P)
 {
   // Size of the diagram
   n_dens   = 1000;

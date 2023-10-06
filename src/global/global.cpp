@@ -119,11 +119,11 @@ int Is_Param_Valid(const char *param_name)
   return 0;
 }
 
-void Parse_Param(char *name, char *value, struct parameters *parms);
+void Parse_Param(char *name, char *value, struct Parameters *parms);
 
-/*! \fn void Parse_Params(char *param_file, struct parameters * parms);
+/*! \fn void Parse_Params(char *param_file, struct Parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
-void Parse_Params(char *param_file, struct parameters *parms, int argc, char **argv)
+void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **argv)
 {
   int buf;
   char *s, buff[256];
@@ -186,9 +186,9 @@ void Parse_Params(char *param_file, struct parameters *parms, int argc, char **a
   }
 }
 
-/*! \fn void Parse_Param(char *name,char *value, struct parameters *parms);
+/*! \fn void Parse_Param(char *name,char *value, struct Parameters *parms);
  *  \brief Parses and sets a single param based on name and value. */
-void Parse_Param(char *name, char *value, struct parameters *parms)
+void Parse_Param(char *name, char *value, struct Parameters *parms)
 {
   /* Copy into correct entry in parameters struct */
   if (strcmp(name, "nx") == 0) {

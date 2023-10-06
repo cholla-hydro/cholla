@@ -8,22 +8,22 @@
 #include "../grid/grid3D.h"
 
 /* Write the data */
-void Write_Data(Grid3D& G, struct parameters P, int nfile);
+void Write_Data(Grid3D& G, struct Parameters P, int nfile);
 
 /* Output the grid data to file. */
-void Output_Data(Grid3D& G, struct parameters P, int nfile);
+void Output_Data(Grid3D& G, struct Parameters P, int nfile);
 
 /* Output the grid data to file as 32-bit floats. */
-void Output_Float32(Grid3D& G, struct parameters P, int nfile);
+void Output_Float32(Grid3D& G, struct Parameters P, int nfile);
 
 /* Output a projection of the grid data to file. */
-void Output_Projected_Data(Grid3D& G, struct parameters P, int nfile);
+void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile);
 
 /* Output a rotated projection of the grid data to file. */
-void Output_Rotated_Projected_Data(Grid3D& G, struct parameters P, int nfile);
+void Output_Rotated_Projected_Data(Grid3D& G, struct Parameters P, int nfile);
 
 /* Output xy, xz, and yz slices of the grid data to file. */
-void Output_Slices(Grid3D& G, struct parameters P, int nfile);
+void Output_Slices(Grid3D& G, struct Parameters P, int nfile);
 
 /* MPI-safe printf routine */
 int chprintf(const char* __restrict sdata, ...);
@@ -45,7 +45,7 @@ std::string to_string_exact(T const& input)
   return output.str();
 }
 
-void Create_Log_File(struct parameters P);
+void Create_Log_File(struct Parameters P);
 
 void Write_Message_To_Log_File(const char* message);
 
