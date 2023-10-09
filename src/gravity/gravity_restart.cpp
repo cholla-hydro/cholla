@@ -27,7 +27,7 @@ void Gravity_Restart_Filename(char* filename, char* dirname, int nfile)
 }
 
 #if defined(GRAVITY) && defined(HDF5)
-void Grav3D::Read_Restart_HDF5(struct parameters* P, int nfile)
+void Grav3D::Read_Restart_HDF5(struct Parameters* P, int nfile)
 {
   H5open();
   char filename[MAXLEN];
@@ -52,7 +52,7 @@ void Grav3D::Read_Restart_HDF5(struct parameters* P, int nfile)
   INITIAL = false;
 }
 
-void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile)
+void Grav3D::Write_Restart_HDF5(struct Parameters* P, int nfile)
 {
   H5open();
   char filename[MAXLEN];
@@ -89,12 +89,12 @@ void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile)
 
 #elif defined(GRAVITY)
 // Do nothing
-void Grav3D::Read_Restart_HDF5(struct parameters* P, int nfile)
+void Grav3D::Read_Restart_HDF5(struct Parameters* P, int nfile)
 {
   chprintf("WARNING from file %s line %d: Read_Restart_HDF5 did nothing", __FILE__, __LINE__);
 }
 
-void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile)
+void Grav3D::Write_Restart_HDF5(struct Parameters* P, int nfile)
 {
   chprintf("WARNING from file %s line %d: Write_Restart_HDF5 did nothing", __FILE__, __LINE__);
 }

@@ -111,7 +111,7 @@ class system_test::SystemTestRunner
    *
    * \return double The L2Norm of the last run test
    */
-  double getL2Norm() { return _L2Norm; };
+  double getL2Norm() { return L2Norm_; };
 
   /*!
    * \brief Get the Output Directory object
@@ -312,7 +312,7 @@ class system_test::SystemTestRunner
   double _fixedEpsilon = 5.0E-12;
 
   /// The L2 norm of the error vector
-  double _L2Norm;
+  double L2Norm_;
 
   /// Flag to indicate if a fiducial HDF5 data file is being used or a
   /// programmatically generated H5File object. `true` = use a file, `false` =

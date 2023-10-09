@@ -8,8 +8,8 @@
   #include "../io/io.h"
   #include "../utils/gpu.hpp"
 
-static void __attribute__((unused))
-printDiff(const Real *p, const Real *q, const int ng, const int nx, const int ny, const int nz, const bool plot = false)
+static void __attribute__((unused)) Print_Diff(const Real *p, const Real *q, const int ng, const int nx, const int ny,
+                                               const int nz, const bool plot = false)
 {
   Real dMax = 0, dSum = 0, dSum2 = 0;
   Real qMax = 0, qSum = 0, qSum2 = 0;
@@ -56,7 +56,7 @@ printDiff(const Real *p, const Real *q, const int ng, const int nx, const int ny
   exit(0);
 }
 
-Potential_Paris_3D::Potential_Paris_3D()
+PotentialParis3D::PotentialParis3D()
     : dn_{0, 0, 0},
       dr_{0, 0, 0},
       lo_{0, 0, 0},
@@ -71,10 +71,10 @@ Potential_Paris_3D::Potential_Paris_3D()
 {
 }
 
-Potential_Paris_3D::~Potential_Paris_3D() { Reset(); }
+PotentialParis3D::~PotentialParis3D() { Reset(); }
 
-void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const potential, const Real g,
-                                       const Real offset, const Real a)
+void PotentialParis3D::Get_Potential(const Real *const density, Real *const potential, const Real g, const Real offset,
+                                     const Real a)
 {
   #ifdef COSMOLOGY
   const Real scale = Real(4) * M_PI * g / a;
@@ -117,9 +117,9 @@ void Potential_Paris_3D::Get_Potential(const Real *const density, Real *const po
   #endif
 }
 
-void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin,
-                                    const Real zMin, const int nx, const int ny, const int nz, const int nxReal,
-                                    const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
+void PotentialParis3D::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin,
+                                  const Real zMin, const int nx, const int ny, const int nz, const int nxReal,
+                                  const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
 {
   chprintf(" Using Poisson Solver: Paris Periodic");
   #ifdef PARIS_5PT
@@ -178,7 +178,7 @@ void Potential_Paris_3D::Initialize(const Real lx, const Real ly, const Real lz,
   assert(db_);
 }
 
-void Potential_Paris_3D::Reset()
+void PotentialParis3D::Reset()
 {
   if (db_) {
     CHECK(cudaFree(db_));

@@ -10,7 +10,7 @@
  * checks.
  *
  */
-void Check_Configuration(parameters const& P);
+void Check_Configuration(Parameters const& P);
 
 /*!
  * \brief helper function that prints an error message & aborts the program (in

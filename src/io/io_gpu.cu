@@ -88,8 +88,9 @@ __global__ void CopyReal3D_GPU_Kernel(int nx, int ny, int nx_real, int ny_real, 
 
 // When buffer is double, automatically use the double version of everything
 // using function overloading
-void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id, double* buffer,
-                      double* device_buffer, Real* device_source, const char* name, int mhd_direction)
+void Write_HDF5_Field_3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id,
+                         double* buffer, double* device_buffer, Real* device_source, const char* name,
+                         int mhd_direction)
 {
   herr_t status;
   hsize_t dims[3];
@@ -116,8 +117,8 @@ void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int
 
 // When buffer is float, automatically use the float version of everything using
 // function overloading
-void WriteHDF5Field3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id, float* buffer,
-                      float* device_buffer, Real* device_source, const char* name, int mhd_direction)
+void Write_HDF5_Field_3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id,
+                         float* buffer, float* device_buffer, Real* device_source, const char* name, int mhd_direction)
 {
   herr_t status;
   hsize_t dims[3];

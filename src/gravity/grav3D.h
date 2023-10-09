@@ -101,15 +101,15 @@ class Grav3D
 #endif
 
 #ifdef PARIS
-  Potential_Paris_3D Poisson_solver;
+  PotentialParis3D Poisson_solver;
 #endif
 
 #ifdef PARIS_GALACTIC
   #ifdef SOR
     #define PARIS_GALACTIC_TEST
-  Potential_Paris_Galactic Poisson_solver_test;
+  PotentialParisGalactic Poisson_solver_test;
   #else
-  Potential_Paris_Galactic Poisson_solver;
+  PotentialParisGalactic Poisson_solver;
   #endif
 #endif
 
@@ -193,14 +193,14 @@ class Grav3D
    *  \brief Initialize the grid. */
   void Initialize(Real x_min, Real y_min, Real z_min, Real x_max, Real y_max, Real z_max, Real Lx, Real Ly, Real Lz,
                   int nx_total, int ny_total, int nz_total, int nx_real, int ny_real, int nz_real, Real dx_real,
-                  Real dy_real, Real dz_real, int n_ghost_pot_offset, struct parameters *P);
+                  Real dy_real, Real dz_real, int n_ghost_pot_offset, struct Parameters *P);
 
   void AllocateMemory_CPU(void);
   void Initialize_values_CPU();
   void FreeMemory_CPU(void);
 
-  void Read_Restart_HDF5(struct parameters *P, int nfile);
-  void Write_Restart_HDF5(struct parameters *P, int nfile);
+  void Read_Restart_HDF5(struct Parameters *P, int nfile);
+  void Write_Restart_HDF5(struct Parameters *P, int nfile);
 
   Real Get_Average_Density();
   Real Get_Average_Density_function(int g_start, int g_end);
@@ -209,7 +209,7 @@ class Grav3D
 
 #ifdef SOR
   void Copy_Isolated_Boundary_To_GPU_buffer(Real *isolated_boundary_h, Real *isolated_boundary_d, int boundary_size);
-  void Copy_Isolated_Boundaries_To_GPU(struct parameters *P);
+  void Copy_Isolated_Boundaries_To_GPU(struct Parameters *P);
 #endif
 
 #ifdef GRAVITY_GPU

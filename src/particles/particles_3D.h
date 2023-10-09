@@ -21,7 +21,7 @@
 
 /*! \class Part3D
  *  \brief Class to create a set of particles in 3D space. */
-class Particles_3D
+class Particles3D
 {
  public:
   part_int_t n_local;
@@ -214,9 +214,9 @@ class Particles_3D
 
   } G;
 
-  Particles_3D(void);
+  Particles3D(void);
 
-  void Initialize(struct parameters *P, Grav3D &Grav, Real xbound, Real ybound, Real zbound, Real xdglobal,
+  void Initialize(struct Parameters *P, Grav3D &Grav, Real xbound, Real ybound, Real zbound, Real xdglobal,
                   Real ydglobal, Real zdglobal);
 
   void Allocate_Particles_Grid_Field_Real(Real **array_dev, int size);
@@ -297,15 +297,15 @@ class Particles_3D
 
   void Initialize_Grid_Values();
 
-  void Initialize_Sphere(struct parameters *P);
+  void Initialize_Sphere(struct Parameters *P);
 
     #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
-  void Initialize_Disk_Stellar_Clusters(struct parameters *P);
+  void Initialize_Disk_Stellar_Clusters(struct Parameters *P);
     #endif
 
-  void Initialize_Zeldovich_Pancake(struct parameters *P);
+  void Initialize_Zeldovich_Pancake(struct Parameters *P);
 
-  void Load_Particles_Data(struct parameters *P);
+  void Load_Particles_Data(struct Parameters *P);
 
   void Free_Memory();
 
@@ -316,7 +316,7 @@ class Particles_3D
   void Get_Density_CIC_Serial();
 
     #ifdef HDF5
-  void Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct parameters *P);
+  void Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct Parameters *P);
     #endif
 
     #ifdef PARALLEL_OMP

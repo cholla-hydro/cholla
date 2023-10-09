@@ -80,7 +80,7 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
    * \brief Launch the kernel and check results
    *
    */
-  void runTest()
+  void Run_Test()
   {
     // Copy values to GPU
     CudaSafeCall(
@@ -104,9 +104,9 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
     for (size_t i = 0; i < fiducialData.size(); i++) {
       int xid, yid, zid;
       cuda_utilities::compute3DIndices(i, nx, ny, xid, yid, zid);
-      testing_utilities::checkResults(fiducialData.at(i), destinationGrid.at(i),
-                                      "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
-                                          ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
+      testing_utilities::Check_Results(fiducialData.at(i), destinationGrid.at(i),
+                                       "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
+                                           ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
     }
   }
 };
@@ -121,7 +121,7 @@ TEST_F(tMHDUpdateMagneticField3D, CorrectInputExpectCorrectOutput)
   fiducialData.at(202) = 204.56;
 
   // Launch kernel and check results
-  runTest();
+  Run_Test();
 }
 // =============================================================================
 #endif  // MHD

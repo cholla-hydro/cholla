@@ -66,7 +66,7 @@ TEST(tMHDComputeThermalEnergy, CorrectInputExpectCorrectOutput)
         parameters.momentumY.at(i), parameters.momentumZ.at(i), parameters.magneticX.at(i), parameters.magneticY.at(i),
         parameters.magneticZ.at(i), parameters.gamma);
 
-    testing_utilities::checkResults(fiducialGasPressures.at(i), testGasPressure, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialGasPressures.at(i), testGasPressure, parameters.names.at(i));
   }
 }
 // =============================================================================
@@ -91,7 +91,7 @@ TEST(tMHDcomputeMagneticEnergy, CorrectInputExpectCorrectOutput)
     Real testMagneticEnergy = mhd::utils::computeMagneticEnergy(parameters.magneticX.at(i), parameters.magneticY.at(i),
                                                                 parameters.magneticZ.at(i));
 
-    testing_utilities::checkResults(fiducialEnergy.at(i), testMagneticEnergy, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialEnergy.at(i), testMagneticEnergy, parameters.names.at(i));
   }
 }
 // =============================================================================
@@ -115,7 +115,7 @@ TEST(tMHDComputeTotalPressure, CorrectInputExpectCorrectOutput)
     Real testTotalPressure = mhd::utils::computeTotalPressure(parameters.pressureGas.at(i), parameters.magneticX.at(i),
                                                               parameters.magneticY.at(i), parameters.magneticZ.at(i));
 
-    testing_utilities::checkResults(fiducialTotalPressures.at(i), testTotalPressure, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialTotalPressures.at(i), testTotalPressure, parameters.names.at(i));
   }
 }
 
@@ -165,8 +165,8 @@ TEST(tMHDFastMagnetosonicSpeed, CorrectInputExpectCorrectOutput)
         coef.at(i) * parameters.magneticX.at(i), coef.at(i) * parameters.magneticY.at(i),
         coef.at(i) * parameters.magneticZ.at(i), parameters.gamma);
 
-    testing_utilities::checkResults(fiducialFastMagnetosonicSpeed.at(i), testFastMagnetosonicSpeed,
-                                    parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialFastMagnetosonicSpeed.at(i), testFastMagnetosonicSpeed,
+                                     parameters.names.at(i));
   }
 }
 
@@ -188,8 +188,8 @@ TEST(tMHDFastMagnetosonicSpeed, NegativeDensityExpectAutomaticFix)
         coef.at(i) * parameters.magneticX.at(i), coef.at(i) * parameters.magneticY.at(i),
         coef.at(i) * parameters.magneticZ.at(i), parameters.gamma);
 
-    testing_utilities::checkResults(fiducialFastMagnetosonicSpeed.at(i), testFastMagnetosonicSpeed,
-                                    parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialFastMagnetosonicSpeed.at(i), testFastMagnetosonicSpeed,
+                                     parameters.names.at(i));
   }
 }
 // =============================================================================
@@ -217,8 +217,8 @@ TEST(tMHDSlowMagnetosonicSpeed, CorrectInputExpectCorrectOutput)
         parameters.density.at(i) * coef, parameters.pressureGas.at(i) * coef, parameters.magneticX.at(i) * coef,
         parameters.magneticY.at(i) * coef, parameters.magneticZ.at(i) * coef, parameters.gamma);
 
-    testing_utilities::checkResults(fiducialSlowMagnetosonicSpeed.at(i), testSlowMagnetosonicSpeed,
-                                    parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialSlowMagnetosonicSpeed.at(i), testSlowMagnetosonicSpeed,
+                                     parameters.names.at(i));
   }
 }
 
@@ -240,8 +240,8 @@ TEST(tMHDSlowMagnetosonicSpeed, NegativeDensityExpectAutomaticFix)
         -parameters.density.at(i) * coef, parameters.pressureGas.at(i) * coef, parameters.magneticX.at(i) * coef,
         parameters.magneticY.at(i) * coef, parameters.magneticZ.at(i) * coef, parameters.gamma);
 
-    testing_utilities::checkResults(fiducialSlowMagnetosonicSpeed.at(i), testSlowMagnetosonicSpeed,
-                                    parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialSlowMagnetosonicSpeed.at(i), testSlowMagnetosonicSpeed,
+                                     parameters.names.at(i));
   }
 }
 // =============================================================================
@@ -264,7 +264,7 @@ TEST(tMHDAlfvenSpeed, CorrectInputExpectCorrectOutput)
   for (size_t i = 0; i < parameters.names.size(); i++) {
     Real testAlfvenSpeed = mhd::utils::alfvenSpeed(parameters.magneticX.at(i), parameters.density.at(i));
 
-    testing_utilities::checkResults(fiducialAlfvenSpeed.at(i), testAlfvenSpeed, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialAlfvenSpeed.at(i), testAlfvenSpeed, parameters.names.at(i));
   }
 }
 
@@ -281,7 +281,7 @@ TEST(tMHDAlfvenSpeed, NegativeDensityExpectAutomaticFix)
   for (size_t i = 0; i < parameters.names.size(); i++) {
     Real testAlfvenSpeed = mhd::utils::alfvenSpeed(parameters.magneticX.at(i), -parameters.density.at(i));
 
-    testing_utilities::checkResults(fiducialAlfvenSpeed.at(i), testAlfvenSpeed, parameters.names.at(i));
+    testing_utilities::Check_Results(fiducialAlfvenSpeed.at(i), testAlfvenSpeed, parameters.names.at(i));
   }
 }
 // =============================================================================
@@ -316,9 +316,9 @@ TEST(tMHDCellCenteredMagneticFields, CorrectInputExpectCorrectOutput)
       mhd::utils::cellCenteredMagneticFields(testGrid.data(), id, xid, yid, zid, n_cells, nx, ny);
 
   // Check the results
-  testing_utilities::checkResults(fiducialAvgBx, testAvgBx, "cell centered Bx value");
-  testing_utilities::checkResults(fiducialAvgBy, testAvgBy, "cell centered By value");
-  testing_utilities::checkResults(fiducialAvgBz, testAvgBz, "cell centered Bz value");
+  testing_utilities::Check_Results(fiducialAvgBx, testAvgBx, "cell centered Bx value");
+  testing_utilities::Check_Results(fiducialAvgBy, testAvgBy, "cell centered By value");
+  testing_utilities::Check_Results(fiducialAvgBz, testAvgBz, "cell centered Bz value");
 }
 #endif  // MHD
 // =============================================================================
@@ -369,13 +369,13 @@ TEST(tMHDInitMagneticFieldWithVectorPotential, CorrectInputExpectCorrectOutput)
 
   for (size_t i = 0; i < conserved_vector.size(); i++) {
     if (i == 47) {
-      testing_utilities::checkResults(bx_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
+      testing_utilities::Check_Results(bx_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
     } else if (i == 55) {
-      testing_utilities::checkResults(by_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
+      testing_utilities::Check_Results(by_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
     } else if (i == 63) {
-      testing_utilities::checkResults(bz_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
+      testing_utilities::Check_Results(bz_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
     } else {
-      testing_utilities::checkResults(default_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
+      testing_utilities::Check_Results(default_fiducial, conserved_vector.at(i), "value at i = " + std::to_string(i));
     }
   }
 }

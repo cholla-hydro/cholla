@@ -61,7 +61,7 @@ TEST(tMHDGrid3DcheckMagneticDivergence, CorrectInputExpectCorrectOutput)
   MPI_Finalize();
   // Perform Comparison
   Real const fiducialDivergence = 3.6318132783263106 / 1E15;
-  testing_utilities::checkResults(fiducialDivergence, max_magnetic_divergence, "maximum divergence");
+  testing_utilities::Check_Results(fiducialDivergence, max_magnetic_divergence, "maximum divergence");
 }
 // =============================================================================
 // End of tests for the magnetic field divergence functions

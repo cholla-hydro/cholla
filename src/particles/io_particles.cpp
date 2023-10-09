@@ -21,7 +21,7 @@
 
 // #define OUTPUT_PARTICLES_DATA
 
-void Particles_3D::Load_Particles_Data(struct parameters *P)
+void Particles3D::Load_Particles_Data(struct Parameters *P)
 {
   char filename[100];
   char timestep[20];
@@ -67,7 +67,7 @@ void Particles_3D::Load_Particles_Data(struct parameters *P)
   #endif
 }
 
-void Grid3D::WriteData_Particles(struct parameters P, int nfile)
+void Grid3D::WriteData_Particles(struct Parameters P, int nfile)
 {
   // Write the particles data to file
   OutputData_Particles(P, nfile);
@@ -75,7 +75,7 @@ void Grid3D::WriteData_Particles(struct parameters P, int nfile)
 
   #ifdef HDF5
 
-void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct parameters *P)
+void Particles3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct Parameters *P)
 {
   int i, j, k, id, buf_id;
   hid_t attribute_id, dataset_id;
@@ -760,7 +760,7 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
 }
   #endif  // HDF5
 
-void Grid3D::OutputData_Particles(struct parameters P, int nfile)
+void Grid3D::OutputData_Particles(struct Parameters P, int nfile)
 {
   FILE *out;
   char filename[MAXLEN];

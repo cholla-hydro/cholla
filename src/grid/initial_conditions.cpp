@@ -23,10 +23,10 @@
 #include "../utils/math_utilities.h"
 #include "../utils/mhd_utilities.h"
 
-/*! \fn void Set_Initial_Conditions(parameters P)
+/*! \fn void Set_Initial_Conditions(Parameters P )
  *  \brief Set the initial conditions based on info in the parameters structure.
  */
-void Grid3D::Set_Initial_Conditions(parameters P)
+void Grid3D::Set_Initial_Conditions(Parameters P)
 {
   Set_Domain_Properties(P);
   Set_Gammas(P.gamma);
@@ -104,9 +104,9 @@ void Grid3D::Set_Initial_Conditions(parameters P)
   }
 }
 
-/*! \fn void Set_Domain_Properties(struct parameters P)
+/*! \fn void Set_Domain_Properties(struct Parameters P)
  *  \brief Set local domain properties */
-void Grid3D::Set_Domain_Properties(struct parameters P)
+void Grid3D::Set_Domain_Properties(struct Parameters P)
 {
   // Global Boundary Coordinates
   H.xbound = P.xmin;
@@ -177,7 +177,7 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
 
 /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
  * By, Real Bz) \brief Constant gas properties. */
-void Grid3D::Constant(parameters const &P)
+void Grid3D::Constant(Parameters const &P)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
@@ -241,7 +241,7 @@ void Grid3D::Constant(parameters const &P)
 
 /*! \fn void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
  *  \brief Sine wave perturbation. */
-void Grid3D::Sound_Wave(parameters const &P)
+void Grid3D::Sound_Wave(Parameters const &P)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
@@ -299,7 +299,7 @@ void Grid3D::Sound_Wave(parameters const &P)
 
 /*! \fn void Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
  *  \brief Sine wave perturbation. */
-void Grid3D::Linear_Wave(parameters const &P)
+void Grid3D::Linear_Wave(Parameters const &P)
 {
   // Compute any test parameters needed
   // ==================================
@@ -434,7 +434,7 @@ void Grid3D::Linear_Wave(parameters const &P)
 /*! \fn void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
  *  \brief Square wave density perturbation with amplitude A*rho in pressure
  * equilibrium. */
-void Grid3D::Square_Wave(parameters const &P)
+void Grid3D::Square_Wave(Parameters const &P)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
@@ -506,7 +506,7 @@ void Grid3D::Square_Wave(parameters const &P)
  Bx_l, Real By_l, Real Bz_l, Real rho_r, Real vx_r, Real vy_r, Real vz_r, Real
  P_r, Real Bx_r, Real By_r, Real Bz_r, Real diaph)
  *  \brief Initialize the grid with a Riemann problem. */
-void Grid3D::Riemann(parameters const &P)
+void Grid3D::Riemann(Parameters const &P)
 {
   size_t const istart = H.n_ghost - 1;
   size_t const iend   = H.nx - H.n_ghost;
@@ -1469,7 +1469,7 @@ void Grid3D::Uniform_Grid()
   }
 }
 
-void Grid3D::Zeldovich_Pancake(struct parameters P)
+void Grid3D::Zeldovich_Pancake(struct Parameters P)
 {
 #ifndef COSMOLOGY
   chprintf("To run a Zeldovich Pancake COSMOLOGY has to be turned ON \n");
@@ -1574,7 +1574,7 @@ void Grid3D::Zeldovich_Pancake(struct parameters P)
 #endif  // COSMOLOGY
 }
 
-void Grid3D::Chemistry_Test(struct parameters P)
+void Grid3D::Chemistry_Test(struct Parameters P)
 {
   chprintf("Initializing Chemistry Test...\n");
 
@@ -1676,7 +1676,7 @@ void Grid3D::Chemistry_Test(struct parameters P)
 }
 
 #ifdef MHD
-void Grid3D::Circularly_Polarized_Alfven_Wave(struct parameters const P)
+void Grid3D::Circularly_Polarized_Alfven_Wave(struct Parameters const P)
 {
   // This test is only meaningful for a limited number of parameter values so I will check them here
   assert(P.polarization == 1.0 or
@@ -1795,7 +1795,7 @@ void Grid3D::Circularly_Polarized_Alfven_Wave(struct parameters const P)
   }
 }
 
-void Grid3D::Advecting_Field_Loop(struct parameters const P)
+void Grid3D::Advecting_Field_Loop(struct Parameters const P)
 {
   // This test is only meaningful for a limited number of parameter values so I will check them here
   // Check that the domain is centered on zero
@@ -1861,7 +1861,7 @@ void Grid3D::Advecting_Field_Loop(struct parameters const P)
   }
 }
 
-void Grid3D::MHD_Spherical_Blast(struct parameters const P)
+void Grid3D::MHD_Spherical_Blast(struct Parameters const P)
 {
   // This test is only meaningful for a limited number of parameter values so I will check them here
   // Check that the domain is centered on zero

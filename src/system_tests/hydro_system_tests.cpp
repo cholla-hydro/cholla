@@ -156,25 +156,25 @@ class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithPa
   system_test::SystemTestRunner waveTest;
 
 #ifdef PCM
-  double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 4E-7;
+  double static constexpr allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 4E-7;
 #elif defined(PLMC)
-  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-7;
+  double static constexpr allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 1E-7;
 #elif defined(PLMP)
-  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-7;
+  double static constexpr allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 1E-7;
 #elif defined(PPMC)
-  double const allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 2.7E-8;
+  double static constexpr allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 2.7E-8;
 #elif defined(PPMP)
-  double const allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 2.7E-8;
-#endif  // PCM
+  double static constexpr allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 2.7E-8;
+#endif
 
-  void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
-                       double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
-                       double const &vx = 0.0)
+  void Set_Launch_Params(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
+                         double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ,
+                         double const &rEigenVec_E, double const &vx = 0.0)
   {
     // Constant for all tests
     size_t const N      = 32;
@@ -237,7 +237,8 @@ TEST_P(tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, SoundWaveRightMovingCorrectI
   double const rEigenVec_E         = 1.5;
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E);
 
   // Set the number of MPI ranks
   waveTest.numMpiRanks = GetParam();
@@ -262,7 +263,8 @@ TEST_P(tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, SoundWaveLeftMovingCorrectIn
   double const rEigenVec_E         = 1.5;
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E);
 
   // Set the number of MPI ranks
   waveTest.numMpiRanks = GetParam();
@@ -290,8 +292,8 @@ TEST_P(tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, HydroContactWaveCorrectInput
   double const velocityX           = waveSpeed;
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  velocityX);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, velocityX);
 
   // Set the number of MPI ranks
   waveTest.numMpiRanks = GetParam();

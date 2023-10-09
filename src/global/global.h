@@ -149,13 +149,13 @@ extern void Set_Gammas(Real gamma_in);
 
 /*! \fn double get_time(void)
  *  \brief Returns the current clock time. */
-extern double get_time(void);
+extern double Get_Time(void);
 
 /*! \fn int sgn
  *  \brief Mathematical sign function. Returns sign of x. */
-extern int sgn(Real x);
+extern int Sgn(Real x);
 
-struct parameters {
+struct Parameters {
   int nx;
   int ny;
   int nz;
@@ -306,13 +306,13 @@ struct parameters {
 #endif
 };
 
-/*! \fn void parse_params(char *param_file, struct parameters * parms);
+/*! \fn void parse_params(char *param_file, struct Parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
-extern void parse_params(char *param_file, struct parameters *parms, int argc, char **argv);
+extern void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **argv);
 
 /*! \fn int is_param_valid(char *name);
  * \brief Verifies that a param is valid (even if not needed).  Avoids
  * "warnings" in output. */
-extern int is_param_valid(const char *name);
+extern int Is_Param_Valid(const char *name);
 
 #endif  // GLOBAL_H

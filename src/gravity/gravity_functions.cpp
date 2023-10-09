@@ -354,7 +354,7 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
   #endif
 
 // Initialize the Grav Object at the beginning of the simulation
-void Grid3D::Initialize_Gravity(struct parameters *P)
+void Grid3D::Initialize_Gravity(struct Parameters *P)
 {
   chprintf("\nInitializing Gravity... \n");
   Grav.Initialize(H.xblocal, H.yblocal, H.zblocal, H.xblocal_max, H.yblocal_max, H.zblocal_max, H.xdglobal, H.ydglobal,
@@ -380,7 +380,7 @@ void Grid3D::Initialize_Gravity(struct parameters *P)
     const Real ddz        = 1.0 / (scale * Grav.dz * Grav.dz);
     const Real *const phi = Grav.F.potential_h;
     const int nij         = ni * nj;
-    const Real a0         = Galaxies::MW.phi_disk_D3D(0, 0);
+    const Real a0         = galaxies::MW.phi_disk_D3D(0, 0);
     const Real da0        = 2.0 / (25.0 * scale);
     #pragma omp parallel for
     for (int k = 0; k < nk; k++) {
@@ -394,7 +394,7 @@ void Grid3D::Initialize_Gravity(struct parameters *P)
           const Real x  = Grav.xMin + Grav.dx * (i + dr);
           const Real r  = sqrt(x * x + yy);
           const int ijk = i + nijk;
-          exact[ijk] = potential[ijk] = Grav.F.potential_h[ijk] = Galaxies::MW.phi_disk_D3D(r, z);
+          exact[ijk] = potential[ijk] = Grav.F.potential_h[ijk] = galaxies::MW.phi_disk_D3D(r, z);
         }
       }
     }
@@ -414,13 +414,13 @@ void Grid3D::Initialize_Gravity(struct parameters *P)
           const Real rr         = x * x + yy + zz;
           const Real f          = a0 * exp(-0.2 * rr);
           const Real df         = da0 * (15.0 - 2.0 * rr) * f;
-          Grav.F.density_h[ijk] = Galaxies::MW.rho_disk_D3D(r, z) + df;
+          Grav.F.density_h[ijk] = galaxies::MW.rho_disk_D3D(r, z) + df;
           const int ib          = i + ng + ni * (j + ng + nj * (k + ng));
           exact[ib] -= f;
         }
       }
     }
-    Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h, Grav.F.potential_h, Grav.Gconst, Galaxies::MW);
+    Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h, Grav.F.potential_h, Grav.Gconst, galaxies::MW);
     chprintf(" Paris Galactic");
     printDiff(Grav.F.potential_h, exact.data(), Grav.nx_local, Grav.ny_local, Grav.nz_local);
     Get_Potential_SOR(Grav.Gconst, 0, 0, P);
@@ -442,7 +442,7 @@ void Grid3D::Initialize_Gravity(struct parameters *P)
           const Real x            = Grav.xMin + Grav.dx * (i + dr);
           const Real r            = sqrt(x * x + yy);
           const int ijk           = i + nijk;
-          Grav.F.potential_h[ijk] = Galaxies::MW.phi_disk_D3D(r, z);
+          Grav.F.potential_h[ijk] = galaxies::MW.phi_disk_D3D(r, z);
         }
       }
     }
@@ -451,7 +451,7 @@ void Grid3D::Initialize_Gravity(struct parameters *P)
 }
 
 // Compute the Gravitational Potential by solving Poisson Equation
-void Grid3D::Compute_Gravitational_Potential(struct parameters *P)
+void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
 {
   #ifdef CPU_TIME
   Timer.Grav_Potential.Start();
@@ -540,7 +540,7 @@ void Grid3D::Compute_Gravitational_Potential(struct parameters *P)
       #ifdef GRAVITY_GPU
         #error "GRAVITY_GPU not yet supported with PARIS_GALACTIC_TEST"
       #endif
-  Grav.Poisson_solver_test.Get_Potential(input_density, output_potential, Grav_Constant, Galaxies::MW);
+  Grav.Poisson_solver_test.Get_Potential(input_density, output_potential, Grav_Constant, galaxies::MW);
   std::vector<Real> p(output_potential, output_potential + Grav.n_cells_potential);
   Get_Potential_SOR(Grav_Constant, dens_avrg, current_a, P);
   chprintf(" Paris vs SOR");
@@ -550,7 +550,7 @@ void Grid3D::Compute_Gravitational_Potential(struct parameters *P)
     #endif
 
   #elif defined PARIS_GALACTIC
-  Grav.Poisson_solver.Get_Potential(input_density, output_potential, Grav_Constant, Galaxies::MW);
+  Grav.Poisson_solver.Get_Potential(input_density, output_potential, Grav_Constant, galaxies::MW);
   #else
   Grav.Poisson_solver.Get_Potential(input_density, output_potential, Grav_Constant, dens_avrg, current_a);
   #endif  // SOR
@@ -561,10 +561,10 @@ void Grid3D::Compute_Gravitational_Potential(struct parameters *P)
 }
 
   #ifdef GRAVITY_ANALYTIC_COMP
-void Grid3D::Setup_Analytic_Potential(struct parameters *P)
+void Grid3D::Setup_Analytic_Potential(struct Parameters *P)
 {
     #ifndef PARALLEL_OMP
-  Setup_Analytic_Galaxy_Potential(0, Grav.nz_local + 2 * N_GHOST_POTENTIAL, Galaxies::MW);
+  Setup_Analytic_Galaxy_Potential(0, Grav.nz_local + 2 * N_GHOST_POTENTIAL, galaxies::MW);
     #else
       #pragma omp parallel num_threads(N_OMP_THREADS)
   {
@@ -575,7 +575,7 @@ void Grid3D::Setup_Analytic_Potential(struct parameters *P)
     n_omp_procs = omp_get_num_threads();
     Get_OMP_Grid_Indxs(Grav.nz_local + 2 * N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end);
 
-    Setup_Analytic_Galaxy_Potential(g_start, g_end, Galaxies::MW);
+    Setup_Analytic_Galaxy_Potential(g_start, g_end, galaxies::MW);
   }
     #endif
 

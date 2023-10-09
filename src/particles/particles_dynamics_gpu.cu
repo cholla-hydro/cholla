@@ -75,9 +75,9 @@ __global__ void Calc_Particles_dti_Kernel(part_int_t n_local, Real dx, Real dy, 
   }
 }
 
-Real Particles_3D::Calc_Particles_dt_GPU_function(int ngrid, part_int_t n_particles_local, Real dx, Real dy, Real dz,
-                                                  Real *vel_x, Real *vel_y, Real *vel_z, Real *dti_array_host,
-                                                  Real *dti_array_dev)
+Real Particles3D::Calc_Particles_dt_GPU_function(int ngrid, part_int_t n_particles_local, Real dx, Real dy, Real dz,
+                                                 Real *vel_x, Real *vel_y, Real *vel_z, Real *dti_array_host,
+                                                 Real *dti_array_dev)
 {
   // // set values for GPU kernels
   // int ngrid =  (Particles.n_local - 1) / TPB_PARTICLES + 1;
@@ -144,10 +144,10 @@ __global__ void Advance_Particles_KDK_Step2_Kernel(part_int_t n_local, Real dt, 
   vel_z_dev[tid] += 0.5 * dt * grav_z_dev[tid];
 }
 
-void Particles_3D::Advance_Particles_KDK_Step1_GPU_function(part_int_t n_local, Real dt, Real *pos_x_dev,
-                                                            Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev,
-                                                            Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
-                                                            Real *grav_y_dev, Real *grav_z_dev)
+void Particles3D::Advance_Particles_KDK_Step1_GPU_function(part_int_t n_local, Real dt, Real *pos_x_dev,
+                                                           Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev,
+                                                           Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
+                                                           Real *grav_y_dev, Real *grav_z_dev)
 {
   // set values for GPU kernels
   int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
@@ -164,9 +164,9 @@ void Particles_3D::Advance_Particles_KDK_Step1_GPU_function(part_int_t n_local, 
   }
 }
 
-void Particles_3D::Advance_Particles_KDK_Step2_GPU_function(part_int_t n_local, Real dt, Real *vel_x_dev,
-                                                            Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
-                                                            Real *grav_y_dev, Real *grav_z_dev)
+void Particles3D::Advance_Particles_KDK_Step2_GPU_function(part_int_t n_local, Real dt, Real *vel_x_dev,
+                                                           Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
+                                                           Real *grav_y_dev, Real *grav_z_dev)
 {
   // set values for GPU kernels
   int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
@@ -257,12 +257,12 @@ __global__ void Advance_Particles_KDK_Step2_Cosmo_Kernel(part_int_t n_local, Rea
   vel_z_dev[tid] = (a_half * vel_z + 0.5 * dt * grav_z_dev[tid]) / current_a;
 }
 
-void Particles_3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function(part_int_t n_local, Real delta_a, Real *pos_x_dev,
-                                                                  Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev,
-                                                                  Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
-                                                                  Real *grav_y_dev, Real *grav_z_dev, Real current_a,
-                                                                  Real H0, Real cosmo_h, Real Omega_M, Real Omega_L,
-                                                                  Real Omega_K)
+void Particles3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function(part_int_t n_local, Real delta_a, Real *pos_x_dev,
+                                                                 Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev,
+                                                                 Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
+                                                                 Real *grav_y_dev, Real *grav_z_dev, Real current_a,
+                                                                 Real H0, Real cosmo_h, Real Omega_M, Real Omega_L,
+                                                                 Real Omega_K)
 {
   // set values for GPU kernels
   int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
@@ -281,11 +281,11 @@ void Particles_3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function(part_int_t n_l
   }
 }
 
-void Particles_3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function(part_int_t n_local, Real delta_a, Real *vel_x_dev,
-                                                                  Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
-                                                                  Real *grav_y_dev, Real *grav_z_dev, Real current_a,
-                                                                  Real H0, Real cosmo_h, Real Omega_M, Real Omega_L,
-                                                                  Real Omega_K)
+void Particles3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function(part_int_t n_local, Real delta_a, Real *vel_x_dev,
+                                                                 Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
+                                                                 Real *grav_y_dev, Real *grav_z_dev, Real current_a,
+                                                                 Real H0, Real cosmo_h, Real Omega_M, Real Omega_L,
+                                                                 Real Omega_K)
 {
   // set values for GPU kernels
   int ngrid = (n_local - 1) / TPB_PARTICLES + 1;

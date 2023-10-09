@@ -27,7 +27,7 @@ namespace mhd::utils
  * but is made accesible for testing
  *
  */
-namespace _internal
+namespace internal
 {
 // =====================================================================
 /*!
@@ -60,7 +60,7 @@ inline __host__ __device__ Real _magnetosonicSpeed(Real const &density, Real con
   return sqrt((term1 + waveChoice * term2) / (2.0 * fmax(density, TINY_NUMBER)));
 }
 // =====================================================================
-}  // namespace _internal
+}  // namespace internal
 
 // =========================================================================
 /*!
@@ -141,7 +141,7 @@ inline __host__ __device__ Real fastMagnetosonicSpeed(Real const &density, Real 
                                                       Real const &magneticY, Real const &magneticZ, Real const &gamma)
 {
   // Compute the sound speed
-  return mhd::utils::_internal::_magnetosonicSpeed(density, pressure, magneticX, magneticY, magneticZ, gamma, 1.0);
+  return mhd::utils::internal::_magnetosonicSpeed(density, pressure, magneticX, magneticY, magneticZ, gamma, 1.0);
 }
 // =========================================================================
 
@@ -161,7 +161,7 @@ inline __host__ __device__ Real slowMagnetosonicSpeed(Real const &density, Real 
                                                       Real const &magneticY, Real const &magneticZ, Real const &gamma)
 {
   // Compute the sound speed
-  return mhd::utils::_internal::_magnetosonicSpeed(density, pressure, magneticX, magneticY, magneticZ, gamma, -1.0);
+  return mhd::utils::internal::_magnetosonicSpeed(density, pressure, magneticX, magneticY, magneticZ, gamma, -1.0);
 }
 // =========================================================================
 
@@ -230,10 +230,10 @@ inline __host__ __device__ auto cellCenteredMagneticFields(Real const *dev_conse
                          :
                          /*if false*/ dev_conserved[(grid_enum::magnetic_z)*n_cells + id];
 
-  struct returnStruct {
+  struct ReturnStruct {
     Real x, y, z;
   };
-  return returnStruct{avgBx, avgBy, avgBz};
+  return ReturnStruct{avgBx, avgBy, avgBz};
 }
 // =========================================================================
 

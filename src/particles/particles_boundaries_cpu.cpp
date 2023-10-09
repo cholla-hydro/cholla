@@ -174,7 +174,7 @@ void Grid3D::Set_Particles_Open_Boundary_CPU(int dir, int side)
 
 // Find the particles that moved outside the local domain in order to transfer
 // them. The indices of selected particles are added to the out_indx_vectors
-void Particles_3D::Select_Particles_to_Transfer_All_CPU(int *flags)
+void Particles3D::Select_Particles_to_Transfer_All_CPU(int *flags)
 {
   part_int_t pIndx;
   for (pIndx = 0; pIndx < n_local; pIndx++) {
@@ -224,7 +224,7 @@ void Particles_3D::Select_Particles_to_Transfer_All_CPU(int *flags)
 }
 
 // Load the particles that need to be transferred to the MPI buffer
-void Particles_3D::Load_Particles_to_Buffer_CPU(int direction, int side, Real *send_buffer, int buffer_length)
+void Particles3D::Load_Particles_to_Buffer_CPU(int direction, int side, Real *send_buffer, int buffer_length)
 {
   part_int_t n_out;
   part_int_t n_send;
@@ -317,9 +317,9 @@ void Particles_3D::Load_Particles_to_Buffer_CPU(int direction, int side, Real *s
 }
 
 // Add the data of a single particle to a transfer buffer
-void Particles_3D::Add_Particle_To_Buffer(Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass,
-                                          Real pAge, Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y,
-                                          Real pVel_z)
+void Particles3D::Add_Particle_To_Buffer(Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass,
+                                         Real pAge, Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y,
+                                         Real pVel_z)
 {
   int offset, offset_extra;
   offset = n_in_buffer * N_DATA_PER_PARTICLE_TRANSFER;
@@ -349,8 +349,8 @@ void Particles_3D::Add_Particle_To_Buffer(Real *buffer, part_int_t n_in_buffer, 
 
 // After a particle was transferred, add the transferred particle data to the
 // vectors that contain the data of the local particles
-void Particles_3D::Add_Particle_To_Vectors(Real pId, Real pMass, Real pAge, Real pPos_x, Real pPos_y, Real pPos_z,
-                                           Real pVel_x, Real pVel_y, Real pVel_z, int *flags)
+void Particles3D::Add_Particle_To_Vectors(Real pId, Real pMass, Real pAge, Real pPos_x, Real pPos_y, Real pPos_z,
+                                          Real pVel_x, Real pVel_y, Real pVel_z, int *flags)
 {
   // Make sure that the particle position is inside the local domain
   bool in_local = true;
@@ -399,10 +399,10 @@ void Particles_3D::Add_Particle_To_Vectors(Real pId, Real pMass, Real pAge, Real
 }
 
 // After the MPI transfer, unload the particles data from the buffers
-void Particles_3D::Unload_Particles_from_Buffer_CPU(int direction, int side, Real *recv_buffer, part_int_t n_recv,
-                                                    Real *send_buffer_y0, Real *send_buffer_y1, Real *send_buffer_z0,
-                                                    Real *send_buffer_z1, int buffer_length_y0, int buffer_length_y1,
-                                                    int buffer_length_z0, int buffer_length_z1, int *flags)
+void Particles3D::Unload_Particles_from_Buffer_CPU(int direction, int side, Real *recv_buffer, part_int_t n_recv,
+                                                   Real *send_buffer_y0, Real *send_buffer_y1, Real *send_buffer_z0,
+                                                   Real *send_buffer_z1, int buffer_length_y0, int buffer_length_y1,
+                                                   int buffer_length_z0, int buffer_length_z1, int *flags)
 {
   // Loop over the data in the recv_buffer, get the data for each particle and
   // append the particle data to the local vecors
@@ -555,7 +555,7 @@ void Particles_3D::Unload_Particles_from_Buffer_CPU(int direction, int side, Rea
 }
 
 // Remove the particles that were transferred outside the local domain
-void Particles_3D::Remove_Transfered_Particles(void)
+void Particles3D::Remove_Transfered_Particles(void)
 {
   // Get the number of particles to delete
   part_int_t n_delete = 0;
@@ -644,7 +644,7 @@ void Particles_3D::Remove_Transfered_Particles(void)
   }
 }
 
-void Particles_3D::Clear_Vectors_For_Transfers(void)
+void Particles3D::Clear_Vectors_For_Transfers(void)
 {
   out_indxs_vec_x0.clear();
   out_indxs_vec_x1.clear();

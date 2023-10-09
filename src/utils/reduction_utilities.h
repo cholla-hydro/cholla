@@ -116,7 +116,7 @@ __device__ constexpr To bit_cast(const From& from) noexcept
 inline __device__ int encode(float val)
 {
   int i = bit_cast<int>(val);
-  return i >= 0 ? i : (1 << 31) | ~i;
+  return i >= 0 ? i : (1 << 31) | ~i;  // NOLINT(hicpp-signed-bitwise)
 }
 
 /*!
@@ -127,8 +127,8 @@ inline __device__ int encode(float val)
  */
 inline __device__ long long encode(double val)
 {
-  std::int64_t i = bit_cast<std::int64_t>(val);
-  return i >= 0 ? i : (1ULL << 63) | ~i;
+  auto i = bit_cast<std::int64_t>(val);
+  return i >= 0 ? i : (1ULL << 63) | ~i;  // NOLINT(hicpp-signed-bitwise)
 }
 
 /*!
@@ -140,7 +140,7 @@ inline __device__ long long encode(double val)
 inline __device__ float decode(int val)
 {
   if (val < 0) {
-    val = (1 << 31) | ~val;
+    val = (1 << 31) | ~val;  // NOLINT(hicpp-signed-bitwise)
   }
   return bit_cast<float>(val);
 }
@@ -154,7 +154,7 @@ inline __device__ float decode(int val)
 inline __device__ double decode(long long val)
 {
   if (val < 0) {
-    val = (1ULL << 63) | ~val;
+    val = (1ULL << 63) | ~val;  // NOLINT(hicpp-signed-bitwise)
   }
   return bit_cast<double>(val);
 }

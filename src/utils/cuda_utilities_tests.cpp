@@ -62,8 +62,8 @@ TEST(tHYDROCudaUtilsGetRealIndices, CorrectInputExpectCorrectOutput)
     std::vector<int> test_indices{is, ie, js, je, ks, ke};
 
     for (size_t j = 0; j < test_indices.size(); j++) {
-      testing_utilities::checkResults(fiducial_indices[i][j], test_indices[j],
-                                      index_names[j] + " " + parameters.names[i]);
+      testing_utilities::Check_Results(fiducial_indices[i][j], test_indices[j],
+                                       index_names[j] + " " + parameters.names[i]);
     }
   }
 }

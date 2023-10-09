@@ -74,7 +74,7 @@ void Grid3D::Set_Particles_Density_Boundaries_Periodic(int direction, int side)
   }
 }
 
-void Grid3D::Transfer_Particles_Density_Boundaries(struct parameters P)
+void Grid3D::Transfer_Particles_Density_Boundaries(struct Parameters P)
 {
   // Transfer the Particles Density Boundares
 

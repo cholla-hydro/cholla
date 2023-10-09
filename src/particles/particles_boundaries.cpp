@@ -18,7 +18,7 @@
   #endif    // MPI_CHOLLA
 
 // Transfer the particles that moved outside the local domain
-void Grid3D::Transfer_Particles_Boundaries(struct parameters P)
+void Grid3D::Transfer_Particles_Boundaries(struct Parameters P)
 {
   CudaCheckError();
   // Transfer Particles Boundaries
@@ -648,7 +648,7 @@ void Grid3D::Unload_Particles_from_Buffer_Z1(int *flags)
 
 // Find the particles that moved outside the local domain in order to transfer
 // them.
-void Particles_3D::Select_Particles_to_Transfer_All(int *flags)
+void Particles3D::Select_Particles_to_Transfer_All(int *flags)
 {
     #ifdef PARTICLES_CPU
   Select_Particles_to_Transfer_All_CPU(flags);
@@ -658,7 +658,7 @@ void Particles_3D::Select_Particles_to_Transfer_All(int *flags)
   // are selected on the Load_Buffer_GPU functions
 }
 
-void Particles_3D::Clear_Particles_For_Transfer(void)
+void Particles3D::Clear_Particles_For_Transfer(void)
 {
   // Set the number of transferred particles to 0.
   n_transfer_x0 = 0;
@@ -701,7 +701,7 @@ void Particles_3D::Clear_Particles_For_Transfer(void)
 
     #ifdef PARTICLES_GPU
 
-int Particles_3D::Select_Particles_to_Transfer_GPU(int direction, int side)
+int Particles3D::Select_Particles_to_Transfer_GPU(int direction, int side)
 {
   int n_transfer;
   Real *pos;
@@ -735,8 +735,8 @@ int Particles_3D::Select_Particles_to_Transfer_GPU(int direction, int side)
   return n_transfer;
 }
 
-void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer_h,
-                                                         int buffer_length)
+void Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer_h,
+                                                        int buffer_length)
 {
   part_int_t *n_send;
   int *buffer_size;
@@ -853,7 +853,7 @@ void Particles_3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
   // if ( *n_send > 0 ) printf( "###Transfered %ld  particles\n", *n_send);
 }
 
-void Particles_3D::Replace_Tranfered_Particles_GPU(int n_transfer)
+void Particles3D::Replace_Tranfered_Particles_GPU(int n_transfer)
 {
   // Replace the particles that were transferred
   Replace_Transfered_Particles_GPU_function(n_transfer, pos_x_dev, G.transfer_particles_indices_d,
@@ -886,7 +886,7 @@ void Particles_3D::Replace_Tranfered_Particles_GPU(int n_transfer)
   n_local -= n_transfer;
 }
 
-void Particles_3D::Load_Particles_to_Buffer_GPU(int direction, int side, Real *send_buffer_h, int buffer_length)
+void Particles3D::Load_Particles_to_Buffer_GPU(int direction, int side, Real *send_buffer_h, int buffer_length)
 {
   int n_transfer;
   n_transfer = Select_Particles_to_Transfer_GPU(direction, side);
@@ -903,7 +903,7 @@ void Particles_3D::Load_Particles_to_Buffer_GPU(int direction, int side, Real *s
  * step is skipped).  Also the domainMix/domainMax are the global min/max
  * values.
  */
-void Particles_3D::Set_Particles_Open_Boundary_GPU(int dir, int side)
+void Particles3D::Set_Particles_Open_Boundary_GPU(int dir, int side)
 {
   int n_transfer;
   /*Real *pos;
@@ -932,7 +932,7 @@ void Particles_3D::Set_Particles_Open_Boundary_GPU(int dir, int side)
   Replace_Tranfered_Particles_GPU(n_transfer);
 }
 
-void Particles_3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d)
+void Particles3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d)
 {
   int n_fields_to_transfer;
 
@@ -992,7 +992,7 @@ void Particles_3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *rec
   // if ( n_recv > 0 ) printf( "###Unloaded %d  particles\n", n_recv );
 }
 
-void Particles_3D::Unload_Particles_from_Buffer_GPU(int direction, int side, Real *recv_buffer_h, int n_recv)
+void Particles3D::Unload_Particles_from_Buffer_GPU(int direction, int side, Real *recv_buffer_h, int n_recv)
 {
   int buffer_size;
   Real domainMin, domainMax;
