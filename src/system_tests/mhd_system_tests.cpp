@@ -872,7 +872,13 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, MovingW
   cpawTest.setFiducialNumTimeSteps(84);
   double const allowedL1Error = 4.0E-3;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 3.0E-3;
-#endif  // PCM
+#elif defined(PLMP)
+  double const allowedL1Error = 5.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 5.0E-3;
+#elif defined(PPMP)
+  double const allowedL1Error = 4.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 3.0E-3;
+#endif
 
   // Set the launch parameters
   Set_Launch_Params(polarization, vx);
@@ -907,7 +913,13 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, Standin
   cpawTest.setFiducialNumTimeSteps(130);
   double const allowedL1Error = 1.3E-3;  // Based on results in Gardiner & Stone 2008
   double const allowedError   = 1.3E-3;
-#endif  // PCM
+#elif defined(PLMP)
+  double const allowedL1Error = 2.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 2.0E-3;
+#elif defined(PPMP)
+  double const allowedL1Error = 1.3E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1.3E-3;
+#endif
 
   // Set the launch parameters
   Set_Launch_Params(polarization, vx);

@@ -57,25 +57,6 @@ int Sgn(Real x)
   }
 }
 
-#ifndef CUDA
-/*! \fn Real calc_eta(Real cW[], Real gamma)
- *  \brief Calculate the eta value for the H correction. */
-Real Calc_Eta(Real cW[], Real gamma)
-{
-  Real pl, pr, al, ar;
-
-  pl = (cW[8] - 0.5 * (cW[2] * cW[2] + cW[4] * cW[4] + cW[6] * cW[6]) / cW[0]) * (gamma - 1.0);
-  pl = fmax(pl, TINY_NUMBER);
-  pr = (cW[9] - 0.5 * (cW[3] * cW[3] + cW[5] * cW[5] + cW[7] * cW[7]) / cW[1]) * (gamma - 1.0);
-  pr = fmax(pr, TINY_NUMBER);
-
-  al = sqrt(gamma * pl / cW[0]);
-  ar = sqrt(gamma * pr / cW[1]);
-
-  return 0.5 * fabs((cW[3] / cW[1] + ar) - (cW[2] / cW[0] - al));
-}
-#endif  // NO CUDA
-
 /*! \fn char Trim(char *s)
  *  \brief Gets rid of trailing and leading whitespace. */
 char *Trim(char *s)
