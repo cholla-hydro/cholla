@@ -738,10 +738,12 @@ __device__ void Interface_Values_PPM(Real q_imo, Real q_i, Real q_ipo, Real del_
   if ((*q_R - q_i) * (q_i - *q_L) <= 0) *q_L = *q_R = q_i;
 
   // steep gradient criterion (Fryxell Eqn 53, Fig 12)
-  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) > (*q_R - *q_L) * (*q_R - *q_L))
+  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) > (*q_R - *q_L) * (*q_R - *q_L)) {
     *q_L = 3.0 * q_i - 2.0 * (*q_R);
-  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) < -(*q_R - *q_L) * (*q_R - *q_L))
+  }
+  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) < -(*q_R - *q_L) * (*q_R - *q_L)) {
     *q_R = 3.0 * q_i - 2.0 * (*q_L);
+  }
 
   *q_L = fmax(fmin(q_i, q_imo), *q_L);
   *q_L = fmin(fmax(q_i, q_imo), *q_L);
