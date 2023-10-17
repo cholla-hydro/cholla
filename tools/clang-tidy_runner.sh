@@ -13,7 +13,7 @@ cholla_root="$(dirname "$(dirname "$(readlink -fm "$0")")")"
 cd $cholla_root
 
 # Run all clang-tidy build types in parallel
-builds=( hydro gravity disk particles cosmology mhd dust)
+builds=( hydro gravity disk particles cosmology mhd dust cooling)
 for build in "${builds[@]}"
 do
   make tidy TYPE=$build &

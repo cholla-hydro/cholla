@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust]
+        make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
         # The CUDA container can be added with {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
         container: [{name: "HIP",link: "docker://chollahydro/cholla:rocm_github"}]
 
