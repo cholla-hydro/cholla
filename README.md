@@ -11,7 +11,7 @@ https://user-images.githubusercontent.com/3432028/188235319-e5eb4e5e-00c6-435f-a
 
 Getting started
 ----------------
-This is the stable branch of the *Cholla* hydrodyamics code.
+This is the stable branch of the *Cholla* hydrodynamics code.
 
 *Cholla* is designed to be run using (AMD or NVIDIA) GPUs, and can be run in serial mode using one GPU
 or with MPI for multiple GPUs.

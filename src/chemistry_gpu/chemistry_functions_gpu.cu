@@ -153,8 +153,8 @@ __device__ Real Get_Cooling_Rates(Thermal_State &TS, Chemistry_Header &Chem_H, R
   // Recombination cooling
   Real cool_reHII, cool_reHeII1, cool_reHeII2, cool_reHeIII;
   cool_reHII   = interpolate_rate(Chem_H.cool_reHII_d, temp_indx, delta_T) * TS.d_HII * TS.d_e;
-  cool_reHeII1 = interpolate_rate(Chem_H.cool_reHeII1_d, temp_indx, delta_T) * TS.d_HeII * TS.d_e / 4.0;
-  cool_reHeII2 = interpolate_rate(Chem_H.cool_reHeII2_d, temp_indx, delta_T) * TS.d_HeII * TS.d_e / 4.0;
+  cool_reHeII1 = interpolate_rate(Chem_H.cool_reHeII_1_d, temp_indx, delta_T) * TS.d_HeII * TS.d_e / 4.0;
+  cool_reHeII2 = interpolate_rate(Chem_H.cool_reHeII_2_d, temp_indx, delta_T) * TS.d_HeII * TS.d_e / 4.0;
   cool_reHeIII = interpolate_rate(Chem_H.cool_reHeIII_d, temp_indx, delta_T) * TS.d_HeIII * TS.d_e / 4.0;
   U_dot -= cool_reHII + cool_reHeII1 + cool_reHeII2 + cool_reHeIII;
 

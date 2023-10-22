@@ -347,12 +347,12 @@ void gpuFor(const int n0, const int n1, const int n2, const int n3, const F f)
   if ((n0 <= 0) || (n1 <= 0) || (n2 <= 0) || (n3 <= 0)) {
     return;
   }
-  const long nl23  = long(n2) * long(n3);
-  const long nl123 = long(n1) * nl23;
-  assert(long(n0) * nl123 < long(INT_MAX));
+  const long n23_long  = long(n2) * long(n3);
+  const long n123_long = long(n1) * n23_long;
+  assert(long(n0) * n123_long < long(INT_MAX));
 
-  const int n23  = int(nl23);
-  const int n123 = int(nl123);
+  const int n23  = int(n23_long);
+  const int n123 = int(n123_long);
   if (n3 > GPU_MAX_THREADS) {
     const int b23 = (n23 + GPU_MAX_THREADS - 1) / GPU_MAX_THREADS;
     const int t23 = (n23 + b23 - 1) / b23;

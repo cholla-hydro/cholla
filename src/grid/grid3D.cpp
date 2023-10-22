@@ -18,7 +18,6 @@
 #include "../integrators/simple_3D_cuda.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"
-#include "../utils/ran.h"
 #ifdef MPI_CHOLLA
   #include <mpi.h>
   #ifdef HDF5
@@ -122,7 +121,7 @@ Real Grid3D::Calc_Inverse_Timestep()
 
 /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
  *  \brief Initialize the grid. */
-void Grid3D::Initialize(struct parameters *P)
+void Grid3D::Initialize(struct Parameters *P)
 {
   // number of fields to track (default 5 is # of conserved variables)
   H.n_fields = 5;
@@ -272,7 +271,7 @@ void Grid3D::Initialize(struct parameters *P)
 #endif
 
 #ifdef COSMOLOGY
-  H.OUTPUT_SCALE_FACOR = not P->scale_outputs_file[0] == '\0';
+  H.OUTPUT_SCALE_FACOR = not(P->scale_outputs_file[0] == '\0');
 #endif
 
   H.Output_Initial = true;

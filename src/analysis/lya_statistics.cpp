@@ -13,7 +13,7 @@
 
 // #define PRINT_ANALYSIS_LOG
 
-void Analysis_Module::Transfer_Skewers_Global_Axis(int axis)
+void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
 {
   bool am_I_root;
   int n_skewers_root, n_los;
@@ -312,7 +312,7 @@ int Locate_Index(Real val, Real *values, int N)
   return index - 1;
 }
 
-void Analysis_Module::Clear_Power_Spectrum_Measurements(void)
+void AnalysisModule::Clear_Power_Spectrum_Measurements(void)
 {
   MPI_Barrier(world);
 
@@ -627,7 +627,7 @@ void Grid3D::Compute_Flux_Power_Spectrum_Skewer(int skewer_id, int axis)
   if (axis == 2) Analysis.n_PS_processed_z += 1;
 }
 
-void Analysis_Module::Reduce_Power_Spectrum_Axis(int axis)
+void AnalysisModule::Reduce_Power_Spectrum_Axis(int axis)
 {
   int n_root, n_bins;
   Real *ps_root;
@@ -663,7 +663,7 @@ void Analysis_Module::Reduce_Power_Spectrum_Axis(int axis)
   // chprintf( "  N_Skewers_Processed: %d \n", *n_axis );
 }
 
-void Analysis_Module::Reduce_Power_Spectrum_Global()
+void AnalysisModule::Reduce_Power_Spectrum_Global()
 {
   int n_PS_total = n_PS_axis_x + n_PS_axis_y + n_PS_axis_z;
   if (n_hist_edges_x != n_hist_edges_y || n_hist_edges_x != n_hist_edges_z) {
@@ -685,7 +685,7 @@ void Analysis_Module::Reduce_Power_Spectrum_Global()
   // }
 }
 
-void Analysis_Module::Reduce_Lya_Mean_Flux_Global()
+void AnalysisModule::Reduce_Lya_Mean_Flux_Global()
 {
   n_skewers_processed = n_skewers_processed_x + n_skewers_processed_y + n_skewers_processed_z;
   Flux_mean_HI        = (Flux_mean_HI_x * n_skewers_processed_x + Flux_mean_HI_y * n_skewers_processed_y +
@@ -700,7 +700,7 @@ void Analysis_Module::Reduce_Lya_Mean_Flux_Global()
            Flux_mean_HeII);
 }
 
-void Analysis_Module::Reduce_Lya_Mean_Flux_Axis(int axis)
+void AnalysisModule::Reduce_Lya_Mean_Flux_Axis(int axis)
 {
   int *n_skewers_processed;
   int *n_skewers_processed_root;
@@ -766,7 +766,7 @@ void Analysis_Module::Reduce_Lya_Mean_Flux_Axis(int axis)
            *Flux_mean_HeII);
 }
 
-void Analysis_Module::Compute_Lya_Mean_Flux_Skewer(int skewer_id, int axis)
+void AnalysisModule::Compute_Lya_Mean_Flux_Skewer(int skewer_id, int axis)
 {
   bool am_I_root;
   int n_los;
@@ -821,7 +821,7 @@ void Analysis_Module::Compute_Lya_Mean_Flux_Skewer(int skewer_id, int axis)
   *n_skewers_processed_root += 1;
 }
 
-void Analysis_Module::Initialize_Lya_Statistics_Measurements(int axis)
+void AnalysisModule::Initialize_Lya_Statistics_Measurements(int axis)
 {
   if (axis == 0) {
     n_skewers_processed_root_x = 0;
@@ -1033,7 +1033,7 @@ void Grid3D::Compute_Transmitted_Flux_Skewer(int skewer_id, int axis)
   }
 }
 
-void Analysis_Module::Transfer_Skewers_Data(int axis)
+void AnalysisModule::Transfer_Skewers_Data(int axis)
 {
   bool am_I_root;
   int n_skewers, n_los_local, n_los_total, root_id;
@@ -1339,7 +1339,7 @@ void Grid3D::Populate_Lya_Skewers_Local(int axis)
   }
 }
 
-void Analysis_Module::Initialize_Lya_Statistics(struct parameters *P)
+void AnalysisModule::Initialize_Lya_Statistics(struct Parameters *P)
 {
   chprintf(" Initializing Lya Statistics...\n");
 

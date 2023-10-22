@@ -26,10 +26,11 @@
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tHYDROtMHDSYSTEMSodShockTubeParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  protected:
-  systemTest::SystemTestRunner sodTest;
+  system_test::SystemTestRunner sodTest;
 };
 
 TEST_P(tHYDROtMHDSYSTEMSodShockTubeParameterizedMpi, CorrectInputExpectCorrectOutput)
@@ -70,29 +71,29 @@ INSTANTIATE_TEST_SUITE_P(CorrectInputExpectCorrectOutput, tHYDROtMHDSYSTEMSodSho
 
 TEST(tHYDROSYSTEMSodShockTube, OneDimensionalCorrectInputExpectCorrectOutput)
 {
-  systemTest::SystemTestRunner sodTest;
-  sodTest.runTest();
+  system_test::SystemTestRunner sod_test;
+  sod_test.runTest();
 }
 
 TEST(tHYDROSYSTEMSodShockTube, TwoDimensionalCorrectInputExpectCorrectOutput)
 {
-  systemTest::SystemTestRunner sodTest;
-  sodTest.runTest();
+  system_test::SystemTestRunner sod_test;
+  sod_test.runTest();
 }
 
 TEST(tHYDROtMHDSYSTEMConstant, CorrectInputExpectCorrectOutput)
 {
-  systemTest::SystemTestRunner testObject(false, false, false);
+  system_test::SystemTestRunner testObject(false, false, false);
 
   testObject.launchCholla();
 
   testObject.openHydroTestData();
 
-  testingUtilities::analyticConstant(testObject, "density", 1.0);
-  testingUtilities::analyticConstant(testObject, "momentum_x", 0.0);
-  testingUtilities::analyticConstant(testObject, "momentum_y", 0.0);
-  testingUtilities::analyticConstant(testObject, "momentum_z", 0.0);
-  testingUtilities::analyticConstant(testObject, "Energy", 1.5e-5);
+  testing_utilities::analyticConstant(testObject, "density", 1.0);
+  testing_utilities::analyticConstant(testObject, "momentum_x", 0.0);
+  testing_utilities::analyticConstant(testObject, "momentum_y", 0.0);
+  testing_utilities::analyticConstant(testObject, "momentum_z", 0.0);
+  testing_utilities::analyticConstant(testObject, "Energy", 1.5e-5);
 }
 
 TEST(tHYDROtMHDSYSTEMSoundWave3D, CorrectInputExpectCorrectOutput)
@@ -108,7 +109,7 @@ TEST(tHYDROtMHDSYSTEMSoundWave3D, CorrectInputExpectCorrectOutput)
   double phase     = kx * 0.5 - speed * time * real_kx;  // kx*0.5 for half-cell offset
   double tolerance = 1e-7;
 
-  systemTest::SystemTestRunner testObject(false, false, false);
+  system_test::SystemTestRunner testObject(false, false, false);
 
 #ifdef MHD
   // Loosen correctness check to account for MHD only having PCM. This is
@@ -128,11 +129,11 @@ TEST(tHYDROtMHDSYSTEMSoundWave3D, CorrectInputExpectCorrectOutput)
   testObject.openHydroTestData();
 
   ASSERT_NO_FATAL_FAILURE(
-      testingUtilities::analyticSine(testObject, "density", 1.0, amplitude, kx, 0.0, 0.0, phase, tolerance));
+      testing_utilities::analyticSine(testObject, "density", 1.0, amplitude, kx, 0.0, 0.0, phase, tolerance));
   ASSERT_NO_FATAL_FAILURE(
-      testingUtilities::analyticSine(testObject, "momentum_x", 0.0, amplitude, kx, 0.0, 0.0, phase, tolerance));
-  // testingUtilities::analyticSine(testObject,"momentum_y",0.0,amplitude,kx,0.0,0.0,0.0,tolerance);
-  // testingUtilities::analyticSine(testObject,"momentum_z",0.0,amplitude,kx,0.0,0.0,0.0,tolerance);
+      testing_utilities::analyticSine(testObject, "momentum_x", 0.0, amplitude, kx, 0.0, 0.0, phase, tolerance));
+  // testing_utilities::analyticSine(testObject,"momentum_y",0.0,amplitude,kx,0.0,0.0,0.0,tolerance);
+  // testing_utilities::analyticSine(testObject,"momentum_z",0.0,amplitude,kx,0.0,0.0,0.0,tolerance);
 }
 
 // =============================================================================
@@ -145,28 +146,35 @@ TEST(tHYDROtMHDSYSTEMSoundWave3D, CorrectInputExpectCorrectOutput)
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  public:
   tHYDROtMHDSYSTEMLinearWavesParameterizedMpi() : waveTest(false, true, false, false){};
 
  protected:
-  systemTest::SystemTestRunner waveTest;
+  system_test::SystemTestRunner waveTest;
 
 #ifdef PCM
-  double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 4E-7;
+  double static constexpr allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 4E-7;
 #elif defined(PLMC)
-  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-7;
+  double static constexpr allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 1E-7;
+#elif defined(PLMP)
+  double static constexpr allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 1E-7;
 #elif defined(PPMC)
-  double const allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 2.7E-8;
-#endif  // PCM
+  double static constexpr allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 2.7E-8;
+#elif defined(PPMP)
+  double static constexpr allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 2.7E-8;
+#endif
 
-  void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
-                       double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
-                       double const &vx = 0.0)
+  void Set_Launch_Params(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
+                         double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ,
+                         double const &rEigenVec_E, double const &vx = 0.0)
   {
     // Constant for all tests
     size_t const N      = 32;
@@ -229,7 +237,8 @@ TEST_P(tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, SoundWaveRightMovingCorrectI
   double const rEigenVec_E         = 1.5;
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E);
 
   // Set the number of MPI ranks
   waveTest.numMpiRanks = GetParam();
@@ -254,7 +263,8 @@ TEST_P(tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, SoundWaveLeftMovingCorrectIn
   double const rEigenVec_E         = 1.5;
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E);
 
   // Set the number of MPI ranks
   waveTest.numMpiRanks = GetParam();
@@ -282,8 +292,8 @@ TEST_P(tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, HydroContactWaveCorrectInput
   double const velocityX           = waveSpeed;
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  velocityX);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, velocityX);
 
   // Set the number of MPI ranks
   waveTest.numMpiRanks = GetParam();

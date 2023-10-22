@@ -239,7 +239,7 @@ void InitializeChollaMPI(int *pargc, char **pargv[])
 }
 
 /* Perform domain decomposition */
-void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
+void DomainDecomposition(struct Parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
 {
   DomainDecompositionBLOCK(P, H, nx_gin, ny_gin, nz_gin);
 
@@ -270,7 +270,7 @@ void DomainDecomposition(struct parameters *P, struct Header *H, int nx_gin, int
 }
 
 /* Perform domain decomposition */
-void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
+void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
 {
   int n;
   int i, j, k;
@@ -542,23 +542,22 @@ void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_gin
 
 void Allocate_MPI_DeviceBuffers(struct Header *H)
 {
-  int xbsize = 0, ybsize = 0, zbsize = 0;
+  int xbsize = 1, ybsize = 1, zbsize = 1;
   if (H->ny == 1 && H->nz == 1) {
     xbsize = H->n_fields * H->n_ghost;
-    ybsize = 1;
-    zbsize = 1;
   }
   // 2D
-  if (H->ny > 1 && H->nz == 1) {
+  else if (H->ny > 1 && H->nz == 1) {
     xbsize = H->n_fields * H->n_ghost * (H->ny - 2 * H->n_ghost);
     ybsize = H->n_fields * H->n_ghost * (H->nx);
-    zbsize = 1;
   }
   // 3D
-  if (H->ny > 1 && H->nz > 1) {
+  else if (H->ny > 1 && H->nz > 1) {
     xbsize = H->n_fields * H->n_ghost * (H->ny - 2 * H->n_ghost) * (H->nz - 2 * H->n_ghost);
     ybsize = H->n_fields * H->n_ghost * (H->nx) * (H->nz - 2 * H->n_ghost);
     zbsize = H->n_fields * H->n_ghost * (H->nx) * (H->ny);
+  } else {
+    throw std::runtime_error("MPI buffer size failed to set.");
   }
 
   x_buffer_length = xbsize;

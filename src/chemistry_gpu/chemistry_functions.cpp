@@ -13,7 +13,7 @@
 
   #define TINY 1e-20
 
-void Grid3D::Initialize_Chemistry(struct parameters *P)
+void Grid3D::Initialize_Chemistry(struct Parameters *P)
 {
   chprintf("Initializing the GPU Chemistry Solver... \n");
 
@@ -132,7 +132,7 @@ void Chem_GPU::Generate_Reaction_Rate_Table(Real **rate_table_array_d, Rate_Func
   free(rate_table_array_h);
 }
 
-void Chem_GPU::Initialize(struct parameters *P)
+void Chem_GPU::Initialize(struct Parameters *P)
 {
   Initialize_Cooling_Rates();
 
@@ -156,14 +156,14 @@ void Chem_GPU::Initialize_Cooling_Rates()
 
   if (!use_case_B_recombination) {
     Generate_Reaction_Rate_Table(&H.cool_reHII_d, cool_reHII_rate_case_A, units);
-    Generate_Reaction_Rate_Table(&H.cool_reHeII1_d, cool_reHeII1_rate_case_A, units);
+    Generate_Reaction_Rate_Table(&H.cool_reHeII_1_d, cool_reHeII1_rate_case_A, units);
     Generate_Reaction_Rate_Table(&H.cool_reHeIII_d, cool_reHeIII_rate_case_A, units);
   } else {
     Generate_Reaction_Rate_Table(&H.cool_reHII_d, cool_reHII_rate_case_B, units);
-    Generate_Reaction_Rate_Table(&H.cool_reHeII1_d, cool_reHeII1_rate_case_B, units);
+    Generate_Reaction_Rate_Table(&H.cool_reHeII_1_d, cool_reHeII1_rate_case_B, units);
     Generate_Reaction_Rate_Table(&H.cool_reHeIII_d, cool_reHeIII_rate_case_B, units);
   }
-  Generate_Reaction_Rate_Table(&H.cool_reHeII2_d, cool_reHeII2_rate, units);
+  Generate_Reaction_Rate_Table(&H.cool_reHeII_2_d, cool_reHeII2_rate, units);
 
   Generate_Reaction_Rate_Table(&H.cool_brem_d, cool_brem_rate, units);
 
@@ -191,7 +191,7 @@ void Chem_GPU::Initialize_Reaction_Rates()
   }
 }
 
-void Chem_GPU::Initialize_UVB_Ionization_and_Heating_Rates(struct parameters *P)
+void Chem_GPU::Initialize_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
 {
   chprintf(" Initializing UVB Rates... \n");
   Load_UVB_Ionization_and_Heating_Rates(P);

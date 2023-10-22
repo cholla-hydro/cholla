@@ -11,7 +11,7 @@
 
 Cool_GK::Cool_GK(void) {}
 
-void Grid3D::Initialize_Grackle(struct parameters *P)
+void Grid3D::Initialize_Grackle(struct Parameters *P)
 {
   chprintf("Initializing Grackle... \n");
 
@@ -24,7 +24,7 @@ void Grid3D::Initialize_Grackle(struct parameters *P)
   chprintf("Grackle Initialized Successfully. \n\n");
 }
 
-void Cool_GK::Initialize(struct parameters *P, Cosmology &Cosmo)
+void Cool_GK::Initialize(struct Parameters *P, Cosmology &Cosmo)
 {
   chprintf(" Using Grackle for chemistry and cooling \n");
   chprintf(" N scalar fields: %d \n", NSCALARS);

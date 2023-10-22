@@ -9,7 +9,7 @@
 
   #if defined(GRAV_ISOLATED_BOUNDARY_X) || defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
 
-void Grid3D::Compute_Potential_Boundaries_Isolated(int dir, struct parameters *P)
+void Grid3D::Compute_Potential_Boundaries_Isolated(int dir, struct Parameters *P)
 {
   // Set Isolated Boundaries for the ghost cells.
   int bc_potential_type = P->bc_potential_type;
@@ -234,7 +234,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
         } else if (bc_potential_type == 1) {
           // M-W disk potential
           r       = sqrt(pos_x * pos_x + pos_y * pos_y);
-          pot_val = mod_frac * Galaxies::MW.phi_disk_D3D(r, pos_z);
+          pot_val = mod_frac * galaxies::MW.phi_disk_D3D(r, pos_z);
         } else {
           chprintf(
               "ERROR: Boundary Potential not set, need to set appropriate "

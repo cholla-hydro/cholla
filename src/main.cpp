@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 #endif  // CPU_TIME
 
   // start the total time
-  start_total = get_time();
+  start_total = Get_Time();
 
 /* Initialize MPI communication */
 #ifdef MPI_CHOLLA
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 
   // input parameter variables
   char *param_file;
-  struct parameters P;
+  struct Parameters P;
   int nfile    = 0;  // number of output files
   Real outtime = 0;  // current output time
 
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
   Grid3D G;
 
   // read in the parameters
-  parse_params(param_file, &P, argc, argv);
+  Parse_Params(param_file, &P, argc, argv);
   // and output to screen
   chprintf("Git Commit Hash = %s\n", GIT_HASH);
   chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef ANALYSIS
-  G.Initialize_Analysis_Module(&P);
+  G.Initialize_AnalysisModule(&P);
   if (G.Analysis.Output_Now) {
     G.Compute_and_Output_Analysis(&P);
   }
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
   if (!is_restart || G.H.Output_Now) {
     // write the initial conditions to file
     chprintf("Writing initial conditions to file...\n");
-    WriteData(G, P, nfile);
+    Write_Data(G, P, nfile);
   }
   // add one to the output file count
   nfile++;
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
   outtime += P.outstep;
 
 #ifdef CPU_TIME
-  stop_init = get_time();
+  stop_init = Get_Time();
   init      = stop_init - start_total;
   #ifdef MPI_CHOLLA
   init_min = ReduceRealMin(init);
@@ -247,13 +247,15 @@ int main(int argc, char *argv[])
 #ifdef CPU_TIME
     G.Timer.Total.Start();
 #endif  // CPU_TIME
-    start_step = get_time();
+    start_step = Get_Time();
 
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
 
-    if (G.H.t + G.H.dt > outtime) {
-      G.H.dt = outtime - G.H.t;
+    // adjust timestep based on the next available scheduled time
+    const Real next_scheduled_time = fmin(outtime, P.tout);
+    if (G.H.t + G.H.dt > next_scheduled_time) {
+      G.H.dt = next_scheduled_time - G.H.t;
     }
 
 #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
@@ -309,8 +311,8 @@ int main(int argc, char *argv[])
 #endif
 
     // get the time to compute the total timestep
-    stop_step  = get_time();
-    stop_total = get_time();
+    stop_step  = Get_Time();
+    stop_total = Get_Time();
     G.H.t_wall = stop_total - start_total;
 #ifdef MPI_CHOLLA
     G.H.t_wall = ReduceRealMax(G.H.t_wall);
@@ -339,12 +341,13 @@ int main(int argc, char *argv[])
     if (G.H.t == outtime || G.H.Output_Now) {
 #ifdef OUTPUT
       /*output the grid data*/
-      WriteData(G, P, nfile);
+      Write_Data(G, P, nfile);
       // add one to the output file count
       nfile++;
 #endif  // OUTPUT
-      // update to the next output time
-      outtime += P.outstep;
+      if (G.H.t == outtime) {
+        outtime += P.outstep;  // update to the next output time
+      }
     }
 
 #ifdef CPU_TIME
@@ -355,7 +358,7 @@ int main(int argc, char *argv[])
     // Exit the loop when reached the limit number of steps (optional)
     if (G.H.n_step == N_STEPS_LIMIT) {
   #ifdef OUTPUT
-      WriteData(G, P, nfile);
+      Write_Data(G, P, nfile);
   #endif  // OUTPUT
       break;
     }

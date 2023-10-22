@@ -9,11 +9,11 @@
 trap "kill -- -$$" EXIT
 
 # cd into the Cholla directory. Default to ${HOME}/Code/cholla
-cholla_root="$(dirname "$(dirname "$(readlink -fm "$0")")")"
-cd $cholla_root
+cholla_path=${1:-${HOME}/Code/cholla}
+cd ${cholla_path}
 
 # Run all clang-tidy build types in parallel
-builds=( hydro gravity disk particles cosmology mhd dust cooling)
+builds=( hydro gravity disk particles cosmology mhd dust)
 for build in "${builds[@]}"
 do
   make tidy TYPE=$build &
