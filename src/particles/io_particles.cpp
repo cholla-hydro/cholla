@@ -4,9 +4,9 @@
   #include <stdlib.h>
   #include <string.h>
   #include <unistd.h>
-  #include <string>
 
   #include <iostream>
+  #include <string>
 
   #include "../global/global.h"
   #include "../grid/grid3D.h"
@@ -32,13 +32,12 @@ void Particles_3D::Load_Particles_Data(struct parameters *P)
   // construct the filename to read from
   #ifdef MPI_CHOLLA
     #ifdef TILED_INITIAL_CONDITIONS
-    // Every process reads the same file
-    const std::string base_fname = ("ics_" + std::to_string((int)P->tile_length / 1000) + "Mpc_" +
-                                    std::to_string(G.nx_local) + "_particles.h5");
+  // Every process reads the same file
+  const std::string base_fname =
+      ("ics_" + std::to_string((int)P->tile_length / 1000) + "Mpc_" + std::to_string(G.nx_local) + "_particles.h5");
     #else
-    const int nfile = P->nfile;  // output step you want to read from
-    const std::string base_fname = (std::to_string(nfile) + "_particles.h5." +
-                                    std::to_string(procID));
+  const int nfile              = P->nfile;  // output step you want to read from
+  const std::string base_fname = (std::to_string(nfile) + "_particles.h5." + std::to_string(procID));
     #endif  // TILED_INITIAL_CONDITIONS
   #endif
 
