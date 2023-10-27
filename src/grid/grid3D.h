@@ -226,6 +226,10 @@ struct Header {
    *  \brief Number of fields (conserved variables, scalars, etc.) */
   int n_fields;
 
+  /*! \var custom_grav
+   *  \brief Flag to set specific static gravity field */
+  int custom_grav;
+
   // Values for lower limit for density and temperature
   Real density_floor;
   Real temperature_floor;

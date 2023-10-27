@@ -179,6 +179,9 @@ struct Parameters {
 #ifdef DE
   int out_float32_GasEnergy = 0;
 #endif
+#ifdef STATIC_GRAV
+  int custom_grav = 0;  // flag to set specific static gravity field
+#endif
 #ifdef MHD
   int out_float32_magnetic_x = 0;
   int out_float32_magnetic_y = 0;

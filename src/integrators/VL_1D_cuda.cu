@@ -29,7 +29,7 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
                                                    int n_fields);
 
 void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt,
-                          int n_fields)
+                          int n_fields, int custom_grav)
 {
   // Here, *dev_conserved contains the entire
   // set of conserved variables on the grid
@@ -134,7 +134,7 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
 
   // Step 6: Update the conserved variable array
   hipLaunchKernelGGL(Update_Conserved_Variables_1D, dimGrid, dimBlock, 0, 0, dev_conserved, F_x, n_cells, x_off,
-                     n_ghost, dx, xbound, dt, gama, n_fields);
+                     n_ghost, dx, xbound, dt, gama, n_fields, custom_grav);
   CudaCheckError();
 
     #ifdef DE

@@ -146,6 +146,13 @@ void Grid3D::Initialize(struct Parameters *P)
   int ny_in = P->ny;
   int nz_in = P->nz;
 
+#ifdef STATIC_GRAV
+  H.custom_grav = P->custom_grav;  // Initialize the custom static gravity flag
+  if (H.custom_grav == 0) {
+    printf("WARNING: No custom gravity field given. Gravity field will be set to zero.\n");
+  }
+#endif
+
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
 
@@ -430,10 +437,10 @@ Real Grid3D::Update_Grid(void)
   {
 #ifdef CUDA
   #ifdef VL
-    VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields, H.custom_grav);
   #endif  // VL
   #ifdef SIMPLE
-    Simple_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    Simple_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields, H.custom_grav);
   #endif                                         // SIMPLE
 #endif                                           // CUDA
   } else if (H.nx > 1 && H.ny > 1 && H.nz == 1)  // 2D
@@ -441,11 +448,11 @@ Real Grid3D::Update_Grid(void)
 #ifdef CUDA
   #ifdef VL
     VL_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
-                         H.n_fields);
+                         H.n_fields, H.custom_grav);
   #endif  // VL
   #ifdef SIMPLE
     Simple_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
-                             H.n_fields);
+                             H.n_fields, H.custom_grav);
   #endif                                        // SIMPLE
 #endif                                          // CUDA
   } else if (H.nx > 1 && H.ny > 1 && H.nz > 1)  // 3D
@@ -453,13 +460,13 @@ Real Grid3D::Update_Grid(void)
 #ifdef CUDA
   #ifdef VL
     VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor,
+                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor, U_floor,
                          C.Grav_potential);
   #endif  // VL
   #ifdef SIMPLE
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor,
-                             C.Grav_potential);
+                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor,
+                             U_floor, C.Grav_potential);
   #endif  // SIMPLE
 #endif
   } else {
