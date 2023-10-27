@@ -27,6 +27,7 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define CUFFT_Z2D     HIPFFT_Z2D
   #define CUFFT_Z2Z     HIPFFT_Z2Z
   #define CUFFT_SUCCESS HIPFFT_SUCCESS
+  #define cufftResult_t hipfftResult_t
 
   #define cudaDeviceSynchronize              hipDeviceSynchronize
   #define cudaError                          hipError_t
@@ -65,6 +66,7 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define cudaOccupancyMaxPotentialBlockSize hipOccupancyMaxPotentialBlockSize
   #define cudaMemGetInfo                     hipMemGetInfo
   #define cudaDeviceGetPCIBusId              hipDeviceGetPCIBusId
+  #define cudaPeekAtLastError                hipPeekAtLastError
 
   // Texture definitions
   #define cudaArray           hipArray
