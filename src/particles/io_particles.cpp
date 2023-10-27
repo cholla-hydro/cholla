@@ -4,6 +4,7 @@
   #include <stdlib.h>
   #include <string.h>
   #include <unistd.h>
+  #include <string>
 
   #include <iostream>
 
@@ -23,40 +24,34 @@
 
 void Particles_3D::Load_Particles_Data(struct parameters *P)
 {
-  char filename[100];
-  char timestep[20];
-  int nfile = P->nfile;  // output step you want to read from
-  char filename_counter[100];
-  // create the filename to read from
-
-  strcpy(filename, P->indir);
-  sprintf(timestep, "%d_particles", nfile);
-  strcat(filename, timestep);
-
-  #if defined BINARY
+  #ifndef HDF5
   chprintf("\nERROR: Particles only support HDF5 outputs\n");
   exit(-1);
-  #elif defined HDF5
-  strcat(filename, ".h5");
   #endif
 
+  // construct the filename to read from
   #ifdef MPI_CHOLLA
     #ifdef TILED_INITIAL_CONDITIONS
-  sprintf(filename, "%sics_%dMpc_%d_particles.h5", P->indir, (int)P->tile_length / 1000,
-          G.nx_local);  // Everyone reads the same file
+    // Every process reads the same file
+    const std::string base_fname = ("ics_" + std::to_string((int)P->tile_length / 1000) + "Mpc_" +
+                                    std::to_string(G.nx_local) + "_particles.h5");
     #else
-  sprintf(filename, "%s.%d", filename, procID);
+    const int nfile = P->nfile;  // output step you want to read from
+    const std::string base_fname = (std::to_string(nfile) + "_particles.h5." +
+                                    std::to_string(procID));
     #endif  // TILED_INITIAL_CONDITIONS
   #endif
 
-  chprintf(" Loading particles file: %s \n", filename);
+  const std::string filename = std::string(P->indir) + base_fname;
+
+  chprintf(" Loading particles file: %s \n", filename.c_str());
 
   #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // open the file
-  file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) {
     printf("Unable to open input file.\n");
     exit(0);
