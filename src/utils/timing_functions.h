@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "../global/global.h"  // Provides Real, get_time
+#include "../global/global.h"  // Provides Real, Get_Time
 
 // #ifdef CPU_TIME
 //  Each instance of this class represents a single timer, timing a single
