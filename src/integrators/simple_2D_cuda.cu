@@ -21,7 +21,7 @@
   #include "../utils/gpu.hpp"
 
 void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy,
-                              Real xbound, Real ybound, Real dt, int n_fields)
+                              Real xbound, Real ybound, Real dt, int n_fields, int custom_grav)
 {
   // Here, *dev_conserved contains the entire
   // set of conserved variables on the grid
@@ -115,7 +115,7 @@ void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int 
 
   // Step 3: Update the conserved variable array
   hipLaunchKernelGGL(Update_Conserved_Variables_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, F_x, F_y, nx, ny, x_off,
-                     y_off, n_ghost, dx, dy, xbound, ybound, dt, gama, n_fields);
+                     y_off, n_ghost, dx, dy, xbound, ybound, dt, gama, n_fields, custom_grav);
   CudaCheckError();
 
   // Synchronize the total and internal energy

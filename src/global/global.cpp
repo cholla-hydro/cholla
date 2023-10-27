@@ -178,6 +178,10 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     parms->ny = atoi(value);
   } else if (strcmp(name, "nz") == 0) {
     parms->nz = atoi(value);
+#ifdef STATIC_GRAV
+  } else if (strcmp(name, "custom_grav") == 0) {
+    parms->custom_grav = atoi(value);
+#endif
   } else if (strcmp(name, "tout") == 0) {
     parms->tout = atof(value);
   } else if (strcmp(name, "outstep") == 0) {
