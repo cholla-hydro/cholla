@@ -147,8 +147,8 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion_GPU(Grid3D &G)
   Real *d_partial_vel;
   Real *h_partial_mass = (Real *)malloc(ngrid * sizeof(Real));
   Real *h_partial_vel  = (Real *)malloc(ngrid * sizeof(Real));
-  CHECK(cudaMalloc((void **)&d_partial_mass, ngrid * sizeof(Real)));
-  CHECK(cudaMalloc((void **)&d_partial_vel, ngrid * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&d_partial_mass, ngrid * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&d_partial_vel, ngrid * sizeof(Real)));
 
   Real total_mass = 0;
   Real total_vel  = 0;
@@ -177,8 +177,8 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion_GPU(Grid3D &G)
 
   // cudaDeviceSynchronize();
 
-  CHECK(cudaMemcpy(h_partial_mass, d_partial_mass, ngrid * sizeof(Real), cudaMemcpyDeviceToHost));
-  CHECK(cudaMemcpy(h_partial_vel, d_partial_vel, ngrid * sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(h_partial_mass, d_partial_mass, ngrid * sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(h_partial_vel, d_partial_vel, ngrid * sizeof(Real), cudaMemcpyDeviceToHost));
 
   #ifdef MPI_CHOLLA
   MPI_Allreduce(h_partial_mass, &total_mass, 1, MPI_CHREAL, MPI_SUM, world);
@@ -195,8 +195,8 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion_GPU(Grid3D &G)
   chprintf("feedback: time %f, dt=%f, vrms = %f km/s\n", G.H.t, G.H.dt,
            sqrt(total_vel / total_mass) * VELOCITY_UNIT / 1e5);
 
-  CHECK(cudaFree(d_partial_vel));
-  CHECK(cudaFree(d_partial_mass));
+  GPU_Error_Check(cudaFree(d_partial_vel));
+  GPU_Error_Check(cudaFree(d_partial_mass));
 
   free(h_partial_mass);
   free(h_partial_vel);

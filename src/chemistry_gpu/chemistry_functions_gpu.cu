@@ -18,37 +18,37 @@
 void Chem_GPU::Allocate_Array_GPU_float(float **array_dev, int size)
 {
   cudaMalloc((void **)array_dev, size * sizeof(float));
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 void Chem_GPU::Copy_Float_Array_to_Device(int size, float *array_h, float *array_d)
 {
-  CudaSafeCall(cudaMemcpy(array_d, array_h, size * sizeof(float), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(array_d, array_h, size * sizeof(float), cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
 }
 
 void Chem_GPU::Free_Array_GPU_float(float *array_dev)
 {
   cudaFree(array_dev);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 void Chem_GPU::Allocate_Array_GPU_Real(Real **array_dev, int size)
 {
   cudaMalloc((void **)array_dev, size * sizeof(Real));
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 void Chem_GPU::Copy_Real_Array_to_Device(int size, Real *array_h, Real *array_d)
 {
-  CudaSafeCall(cudaMemcpy(array_d, array_h, size * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(array_d, array_h, size * sizeof(Real), cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
 }
 
 void Chem_GPU::Free_Array_GPU_Real(Real *array_dev)
 {
   cudaFree(array_dev);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 class Thermal_State
@@ -622,7 +622,7 @@ void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghos
   hipLaunchKernelGGL(Update_Chemistry_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields,
                      dt, Chem_H);
 
-  CudaCheckError();
+  GPU_Error_Check();
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&time, start, stop);

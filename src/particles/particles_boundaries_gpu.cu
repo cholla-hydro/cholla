@@ -74,7 +74,7 @@ void Grid3D::Set_Particles_Boundary_GPU(int dir, int side)
 
   hipLaunchKernelGGL(Set_Particles_Boundary_Kernel, dim1dGrid, dim1dBlock, 0, 0, side, Particles.n_local, pos_dev,
                      d_min, d_max, L);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 // #ifdef MPI_CHOLLA
@@ -310,7 +310,7 @@ void Replace_Transfered_Particles_GPU_function(int n_transfer, Real *field_d, in
 
   hipLaunchKernelGGL(Replace_Transfered_Particles_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_transfer, field_d,
                      transfer_indices_d, replace_indices_d, print_replace);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 void Replace_Transfered_Particles_Int_GPU_function(int n_transfer, part_int_t *field_d, int *transfer_indices_d,
@@ -325,7 +325,7 @@ void Replace_Transfered_Particles_Int_GPU_function(int n_transfer, part_int_t *f
 
   hipLaunchKernelGGL(Replace_Transfered_Particles_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_transfer, field_d,
                      transfer_indices_d, replace_indices_d, print_replace);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 part_int_t Select_Particles_to_Transfer_GPU_function(part_int_t n_local, int side, Real domainMin, Real domainMax,
@@ -354,33 +354,33 @@ part_int_t Select_Particles_to_Transfer_GPU_function(part_int_t n_local, int sid
 
   hipLaunchKernelGGL(Get_Transfer_Flags_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, side, domainMin, domainMax, pos_d,
                      transfer_flags_d);
-  CudaCheckError();
+  GPU_Error_Check();
 
   hipLaunchKernelGGL(Scan_Kernel, dim1dGrid_half, dim1dBlock, 0, 0, n_local, transfer_flags_d, transfer_prefix_sum_d,
                      transfer_prefix_sum_blocks_d);
-  CudaCheckError();
+  GPU_Error_Check();
 
   hipLaunchKernelGGL(Prefix_Sum_Blocks_Kernel, 1, dim1dBlock, 0, 0, grid_size_half, transfer_prefix_sum_blocks_d);
-  CudaCheckError();
+  GPU_Error_Check();
 
   hipLaunchKernelGGL(Sum_Blocks_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, transfer_prefix_sum_d,
                      transfer_prefix_sum_blocks_d);
-  CudaCheckError();
+  GPU_Error_Check();
 
   hipLaunchKernelGGL(Get_N_Transfer_Particles_Kernel, 1, 1, 0, 0, n_local, n_transfer_d, transfer_flags_d,
                      transfer_prefix_sum_d);
-  CudaCheckError();
+  GPU_Error_Check();
 
-  CudaSafeCall(cudaMemcpy(n_transfer_h, n_transfer_d, sizeof(int), cudaMemcpyDeviceToHost));
-  CudaCheckError();
+  GPU_Error_Check(cudaMemcpy(n_transfer_h, n_transfer_d, sizeof(int), cudaMemcpyDeviceToHost));
+  GPU_Error_Check();
 
   hipLaunchKernelGGL(Get_Transfer_Indices_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, transfer_flags_d,
                      transfer_prefix_sum_d, transfer_indices_d);
-  CudaCheckError();
+  GPU_Error_Check();
 
   hipLaunchKernelGGL(Select_Indices_to_Replace_Transfered_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, n_transfer_h[0],
                      transfer_flags_d, transfer_prefix_sum_d, replace_indices_d);
-  CudaCheckError();
+  GPU_Error_Check();
 
   // if ( n_transfer_h[0] > 0 )printf( "N transfer: %d\n", n_transfer_h[0]);
   return n_transfer_h[0];
@@ -427,7 +427,7 @@ void Load_Particles_to_Transfer_GPU_function(int n_transfer, int field_id, int n
   hipLaunchKernelGGL(Load_Transfered_Particles_to_Buffer_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_transfer, field_id,
                      n_fields_to_transfer, field_d, transfer_indices_d, send_buffer_d, domainMin, domainMax,
                      boundary_type);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 __global__ void Load_Transfered_Particles_Ints_to_Buffer_Kernel(int n_transfer, int field_id, int n_fields_to_transfer,
@@ -472,7 +472,7 @@ void Load_Particles_to_Transfer_Int_GPU_function(int n_transfer, int field_id, i
   hipLaunchKernelGGL(Load_Transfered_Particles_Ints_to_Buffer_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_transfer, field_id,
                      n_fields_to_transfer, field_d, transfer_indices_d, send_buffer_d, domainMin, domainMax,
                      boundary_type);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
   #ifdef MPI_CHOLLA
@@ -480,16 +480,16 @@ void Copy_Particles_GPU_Buffer_to_Host_Buffer(int n_transfer, Real *buffer_h, Re
 {
   int transfer_size;
   transfer_size = n_transfer * N_DATA_PER_PARTICLE_TRANSFER;
-  CudaSafeCall(cudaMemcpy(buffer_h, buffer_d, transfer_size * sizeof(Real), cudaMemcpyDeviceToHost));
-  CudaCheckError();
+  GPU_Error_Check(cudaMemcpy(buffer_h, buffer_d, transfer_size * sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check();
 }
 
 void Copy_Particles_Host_Buffer_to_GPU_Buffer(int n_transfer, Real *buffer_h, Real *buffer_d)
 {
   int transfer_size;
   transfer_size = n_transfer * N_DATA_PER_PARTICLE_TRANSFER;
-  CudaSafeCall(cudaMemcpy(buffer_d, buffer_h, transfer_size * sizeof(Real), cudaMemcpyHostToDevice));
-  CudaCheckError();
+  GPU_Error_Check(cudaMemcpy(buffer_d, buffer_h, transfer_size * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check();
 }
   #endif  // MPI_CHOLLA
 
@@ -522,7 +522,7 @@ void Unload_Particles_to_Transfer_GPU_function(int n_local, int n_transfer, int 
 
   hipLaunchKernelGGL(Unload_Transfered_Particles_from_Buffer_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, n_transfer,
                      field_id, n_fields_to_transfer, field_d, recv_buffer_d);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 __global__ void Unload_Transfered_Particles_Int_from_Buffer_Kernel(int n_local, int n_transfer, int field_id,
@@ -554,7 +554,7 @@ void Unload_Particles_Int_to_Transfer_GPU_function(int n_local, int n_transfer, 
 
   hipLaunchKernelGGL(Unload_Transfered_Particles_Int_from_Buffer_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local,
                      n_transfer, field_id, n_fields_to_transfer, field_d, recv_buffer_d);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 // #endif//MPI_CHOLLA

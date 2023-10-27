@@ -42,7 +42,8 @@ void Grav3D::Read_Restart_HDF5(struct Parameters* P, int nfile)
   // Read potential and copy to device to be used as potential n-1
   Read_HDF5_Dataset(file_id, F.potential_1_h, "/potential");
   #ifdef GRAVITY_GPU
-  CudaSafeCall(cudaMemcpy(F.potential_1_d, F.potential_1_h, n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(
+      cudaMemcpy(F.potential_1_d, F.potential_1_h, n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
   #endif
 
   H5Fclose(file_id);
@@ -71,7 +72,8 @@ void Grav3D::Write_Restart_HDF5(struct Parameters* P, int nfile)
 
   // Copy device to host if needed
   #ifdef GRAVITY_GPU
-  CudaSafeCall(cudaMemcpy(F.potential_1_h, F.potential_1_d, n_cells_potential * sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(
+      cudaMemcpy(F.potential_1_h, F.potential_1_d, n_cells_potential * sizeof(Real), cudaMemcpyDeviceToHost));
   #endif
 
   // Write potential

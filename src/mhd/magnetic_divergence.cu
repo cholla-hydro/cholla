@@ -90,7 +90,7 @@ Real checkMagneticDivergence(Grid3D const &G)
   // Now lets get the local maximum divergence
   hipLaunchKernelGGL(mhd::calculateMagneticDivergence, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
                      G.C.device, dev_maxDivergence.data(), G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_cells);
-  CudaCheckError();
+  GPU_Error_Check();
   Real max_magnetic_divergence = dev_maxDivergence[0];
 
   #ifdef MPI_CHOLLA

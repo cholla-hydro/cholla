@@ -65,8 +65,8 @@ void OneTime::End(bool const print_high_values)
     // Get GPU ID
     std::string gpu_id(MPI_MAX_PROCESSOR_NAME, ' ');
     int device;
-    CudaSafeCall(cudaGetDevice(&device));
-    CudaSafeCall(cudaDeviceGetPCIBusId(gpu_id.data(), gpu_id.size(), device));
+    GPU_Error_Check(cudaGetDevice(&device));
+    GPU_Error_Check(cudaDeviceGetPCIBusId(gpu_id.data(), gpu_id.size(), device));
     gpu_id.erase(
         std::find_if(gpu_id.rbegin(), gpu_id.rend(), [](unsigned char ch) { return !std::isspace(ch); }).base(),
         gpu_id.end());

@@ -110,8 +110,8 @@ void Load_Cuda_Textures()
 
   // allocate host arrays to be copied to textures
   // these arrays are declared as external pointers in global.h
-  CudaSafeCall(cudaHostAlloc(&cooling_table, nx * ny * sizeof(float), cudaHostAllocDefault));
-  CudaSafeCall(cudaHostAlloc(&heating_table, nx * ny * sizeof(float), cudaHostAllocDefault));
+  GPU_Error_Check(cudaHostAlloc(&cooling_table, nx * ny * sizeof(float), cudaHostAllocDefault));
+  GPU_Error_Check(cudaHostAlloc(&heating_table, nx * ny * sizeof(float), cudaHostAllocDefault));
 
   // Read cooling tables into the host arrays
   Host_Read_Cooling_Tables(cooling_table, heating_table);
@@ -164,8 +164,8 @@ void Load_Cuda_Textures()
   cudaCreateTextureObject(&heatTexObj, &heatResDesc, &texDesc, NULL);
 
   // Free the memory associated with the cooling tables on the host
-  CudaSafeCall(cudaFreeHost(cooling_table));
-  CudaSafeCall(cudaFreeHost(heating_table));
+  GPU_Error_Check(cudaFreeHost(cooling_table));
+  GPU_Error_Check(cudaFreeHost(heating_table));
 
   // Run Test
   // Test_Cloudy_Textures();
@@ -261,7 +261,7 @@ void Test_Cloudy_Textures()
   dim3 dim1dGrid((num_n * num_T + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel, dim1dGrid, dim1dBlock, 0, 0, num_n, num_T, coolTexObj, heatTexObj);
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   printf("Exiting due to Test_Cloudy_Textures() being called \n");
   exit(0);
 }
@@ -272,12 +272,12 @@ void Test_Cloudy_Speed()
   int num_T = 1 + 80 * 81;
   dim3 dim1dGrid((num_n * num_T + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   Real time_start = Get_Time();
   for (int i = 0; i < 100; i++) {
     hipLaunchKernelGGL(Test_Cloudy_Speed_Kernel, dim1dGrid, dim1dBlock, 0, 0, num_n, num_T, coolTexObj, heatTexObj);
   }
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   Real time_end = Get_Time();
   printf(" Cloudy Test Time %9.4f micro-s \n", (time_end - time_start));
   printf("Exiting due to Test_Cloudy_Speed() being called \n");
