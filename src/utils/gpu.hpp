@@ -137,6 +137,7 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
 inline void GPU_Error_Check(cudaError_t code = cudaPeekAtLastError(), bool abort = true,
                             std::experimental::source_location location = std::experimental::source_location::current())
 {
+#ifndef DISABLE_GPU_ERROR_CHECKING
   code = cudaDeviceSynchronize();
 
   // Check the code
@@ -148,6 +149,7 @@ inline void GPU_Error_Check(cudaError_t code = cudaPeekAtLastError(), bool abort
       chexit(code);
     }
   }
+#endif  // DISABLE_GPU_ERROR_CHECKING
 }
 
 #if defined(PARIS) || defined(PARIS_GALACTIC)
@@ -161,6 +163,7 @@ inline void GPU_Error_Check(cudaError_t code = cudaPeekAtLastError(), bool abort
 inline void GPU_Error_Check(cufftResult_t code, bool abort = true,
                             std::experimental::source_location location = std::experimental::source_location::current())
 {
+  #ifndef DISABLE_GPU_ERROR_CHECKING
   // Check the code
   if (code != CUFFT_SUCCESS) {
     std::cout << "GPU_Error_Check: Failed at "
@@ -170,6 +173,7 @@ inline void GPU_Error_Check(cufftResult_t code, bool abort = true,
       chexit(code);
     }
   }
+  #endif  // DISABLE_GPU_ERROR_CHECKING
 }
 #endif  // defined(PARIS) || defined(PARIS_GALACTIC)
 
