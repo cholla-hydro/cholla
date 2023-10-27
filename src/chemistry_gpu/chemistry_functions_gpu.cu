@@ -17,8 +17,7 @@
 
 void Chem_GPU::Allocate_Array_GPU_float(float **array_dev, int size)
 {
-  cudaMalloc((void **)array_dev, size * sizeof(float));
-  GPU_Error_Check();
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(float)));
 }
 
 void Chem_GPU::Copy_Float_Array_to_Device(int size, float *array_h, float *array_d)
@@ -27,15 +26,11 @@ void Chem_GPU::Copy_Float_Array_to_Device(int size, float *array_h, float *array
   cudaDeviceSynchronize();
 }
 
-void Chem_GPU::Free_Array_GPU_float(float *array_dev)
-{
-  cudaFree(array_dev);
-  GPU_Error_Check();
-}
+void Chem_GPU::Free_Array_GPU_float(float *array_dev) { GPU_Error_Check(cudaFree(array_dev)); }
 
 void Chem_GPU::Allocate_Array_GPU_Real(Real **array_dev, int size)
 {
-  cudaMalloc((void **)array_dev, size * sizeof(Real));
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(Real)));
   GPU_Error_Check();
 }
 
@@ -47,7 +42,7 @@ void Chem_GPU::Copy_Real_Array_to_Device(int size, Real *array_h, Real *array_d)
 
 void Chem_GPU::Free_Array_GPU_Real(Real *array_dev)
 {
-  cudaFree(array_dev);
+  GPU_Error_Check(cudaFree(array_dev));
   GPU_Error_Check();
 }
 

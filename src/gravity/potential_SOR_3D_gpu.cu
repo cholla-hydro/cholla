@@ -8,27 +8,17 @@
 
 void Potential_SOR_3D::Allocate_Array_GPU_Real(Real **array_dev, grav_int_t size)
 {
-  cudaMalloc((void **)array_dev, size * sizeof(Real));
-  GPU_Error_Check();
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(Real)));
 }
 
 void Potential_SOR_3D::Allocate_Array_GPU_bool(bool **array_dev, grav_int_t size)
 {
-  cudaMalloc((void **)array_dev, size * sizeof(bool));
-  GPU_Error_Check();
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(bool)));
 }
 
-void Potential_SOR_3D::Free_Array_GPU_Real(Real *array_dev)
-{
-  cudaFree(array_dev);
-  GPU_Error_Check();
-}
+void Potential_SOR_3D::Free_Array_GPU_Real(Real *array_dev) { GPU_Error_Check(cudaFree(array_dev)); }
 
-void Potential_SOR_3D::Free_Array_GPU_bool(bool *array_dev)
-{
-  cudaFree(array_dev);
-  GPU_Error_Check();
-}
+void Potential_SOR_3D::Free_Array_GPU_bool(bool *array_dev) { GPU_Error_Check(cudaFree(array_dev)); }
 
 __global__ void Copy_Input_Kernel(int n_cells, Real *input_d, Real *density_d, Real Grav_Constant, Real dens_avrg,
                                   Real current_a)

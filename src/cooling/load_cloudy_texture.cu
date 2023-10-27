@@ -118,8 +118,8 @@ void Load_Cuda_Textures()
 
   // Allocate CUDA arrays in device memory
   cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
-  cudaMallocArray(&cuCoolArray, &channelDesc, nx, ny);
-  cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny);
+  GPU_Error_Check(cudaMallocArray(&cuCoolArray, &channelDesc, nx, ny));
+  GPU_Error_Check(cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny));
 
   // Copy the cooling and heating arrays from host to device
 

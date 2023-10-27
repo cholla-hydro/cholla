@@ -132,7 +132,7 @@ void supernova::initState(struct Parameters* P, part_int_t n_local, Real allocat
 
   // Now initialize the poisson random number generator state.
   n_states = n_local * allocation_factor;
-  cudaMalloc((void**)&randStates, n_states * sizeof(FeedbackPrng));
+  GPU_Error_Check(cudaMalloc((void**)&randStates, n_states * sizeof(FeedbackPrng)));
 
   int ngrid = (n_states - 1) / TPB_FEEDBACK + 1;
   dim3 grid(ngrid);
