@@ -273,12 +273,12 @@ void Test_Cloudy_Speed()
   dim3 dim1dGrid((num_n * num_T + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   CHECK(cudaDeviceSynchronize());
-  Real time_start = get_time();
+  Real time_start = Get_Time();
   for (int i = 0; i < 100; i++) {
     hipLaunchKernelGGL(Test_Cloudy_Speed_Kernel, dim1dGrid, dim1dBlock, 0, 0, num_n, num_T, coolTexObj, heatTexObj);
   }
   CHECK(cudaDeviceSynchronize());
-  Real time_end = get_time();
+  Real time_end = Get_Time();
   printf(" Cloudy Test Time %9.4f micro-s \n", (time_end - time_start));
   printf("Exiting due to Test_Cloudy_Speed() being called \n");
   exit(0);

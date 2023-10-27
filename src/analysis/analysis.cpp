@@ -13,7 +13,7 @@ void Grid3D::Compute_Lya_Statistics()
 {
   int axis, n_skewers;
   Real time_start, time_end, time_elapsed;
-  time_start = get_time();
+  time_start = Get_Time();
 
   // Copmpute Lya Statitics
   chprintf("Computing Lya Absorbiton along skewers \n");
@@ -70,7 +70,7 @@ void Grid3D::Compute_Lya_Statistics()
   //   Analysis.Computed_Flux_Power_Spectrum = 0;
   // }
 
-  time_end     = get_time();
+  time_end     = Get_Time();
   time_elapsed = (time_end - time_start) * 1000;
   chprintf("Analysis Time: %f9.1 ms \n", time_elapsed);
 }

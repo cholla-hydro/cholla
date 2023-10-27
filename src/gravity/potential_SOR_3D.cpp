@@ -157,7 +157,7 @@ void Grid3D::Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_
 {
   #ifdef TIME_SOR
   Real time_start, time_end, time;
-  time_start = get_time();
+  time_start = Get_Time();
   #endif
 
   Grav.Poisson_solver.Copy_Input_And_Initialize(Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg,
@@ -233,7 +233,7 @@ void Grid3D::Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_
     #ifdef MPI_CHOLLA
   MPI_Barrier(world);
     #endif
-  time_end = get_time();
+  time_end = Get_Time();
   time     = (time_end - time_start);
   chprintf(" SOR: Time = %f  seg\n", time);
   #endif
