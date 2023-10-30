@@ -147,7 +147,7 @@ extern float *heating_table;
  *  \brief Set gamma values for Riemann solver. */
 extern void Set_Gammas(Real gamma_in);
 
-/*! \fn double get_time(void)
+/*! \fn double Get_Time(void)
  *  \brief Returns the current clock time. */
 extern double Get_Time(void);
 
