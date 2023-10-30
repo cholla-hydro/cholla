@@ -19,48 +19,12 @@ import argparse
 import pathlib
 import numpy as np
 
-from cat_dset_3D import copy_header
-
-# ==============================================================================
-def main():
-  """This function handles the CLI argument parsing and is only intended to be used when this script is invoked from the
-  command line. If you're importing this file then use the `concat_slice` function directly.
-  """
-  # Argument handling
-  cli = argparse.ArgumentParser()
-  # Required Arguments
-  cli.add_argument('-s', '--source-directory', type=pathlib.Path, required=True, help='The path to the source HDF5 files.')
-  cli.add_argument('-o', '--output-file',      type=pathlib.Path, required=True, help='The path and filename of the concatenated file.')
-  cli.add_argument('-n', '--num-processes',    type=int,          required=True, help='The number of processes that were used to generate the slices.')
-  cli.add_argument('-t', '--output-num',     type=int,          required=True, help='The output number to be concatenated')
-  # Optional Arguments
-  cli.add_argument('--xy',               type=bool, default=True, help='If True then concatenate the XY slice. Defaults to True.')
-  cli.add_argument('--yz',               type=bool, default=True, help='If True then concatenate the YZ slice. Defaults to True.')
-  cli.add_argument('--xz',               type=bool, default=True, help='If True then concatenate the XZ slice. Defaults to True.')
-  cli.add_argument('--skip-fields',      type=list, default=[],   help='List of fields to skip concatenating. Defaults to empty.')
-  cli.add_argument('--dtype',            type=str,  default=None, help='The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.')
-  cli.add_argument('--compression-type', type=str,  default=None, help='What kind of compression to use on the output data. Defaults to None.')
-  cli.add_argument('--compression-opts', type=str,  default=None, help='What compression settings to use if compressing. Defaults to None.')
-  args = cli.parse_args()
-
-  # Perform the concatenation
-  concat_slice(source_directory=args.source_directory,
-               destination_file_path=args.output_file,
-               num_ranks=args.num_processses,
-               output_number=args.output_num,
-               concat_xy=args.xy,
-               concat_yz=args.yz,
-               concat_xz=args.xz,
-               skip_fields=args.skip_fields,
-               destination_dtype=args.dtype,
-               compression_type=args.compression_type,
-               compression_options=args.compression_opts)
-# ==============================================================================
+from cat_dset_3D import copy_header, common_cli
 
 # ==============================================================================
 def concat_slice(source_directory: pathlib.Path,
-                 destination_file_path: pathlib.Path,
-                 num_ranks: int,
+                 output_directory: pathlib.Path,
+                 num_processes: int,
                  output_number: int,
                  concat_xy: bool = True,
                  concat_yz: bool = True,
@@ -76,8 +40,8 @@ def concat_slice(source_directory: pathlib.Path,
 
   Args:
       source_directory (pathlib.Path): The directory containing the unconcatenated files
-      destination_file_path (pathlib.Path): The path and name of the new concatenated file
-      num_ranks (int): The number of ranks that Cholla was run with
+      output_directory (pathlib.Path): The directory containing the new concatenated files
+      num_processes (int): The number of ranks that Cholla was run with
       output_number (int): The output number to concatenate
       concat_xy (bool, optional): If True then concatenate the XY slice. Defaults to True.
       concat_yz (bool, optional): If True then concatenate the YZ slice. Defaults to True.
@@ -87,53 +51,57 @@ def concat_slice(source_directory: pathlib.Path,
       compression_type (str, optional): What kind of compression to use on the output data. Defaults to None.
       compression_options (str, optional): What compression settings to use if compressing. Defaults to None.
   """
+
+  # Error checking
+  assert num_processes > 1, 'num_processes must be greater than 1'
+  assert output_number >= 0, 'output_number must be greater than or equal to 0'
+
   # Open destination file and first file for getting metadata
-  source_file = h5py.File(source_directory / f'{output_number}_slice.h5.0', 'r')
-  destination_file = h5py.File(destination_file_path, 'w')
+  destination_file = h5py.File(output_directory / f'{output_number}_slice.h5', 'w-')
 
-  # Copy over header
-  destination_file = copy_header(source_file, destination_file)
+  # Setup the output file
+  with h5py.File(source_directory / f'{output_number}_slice.h5.0', 'r') as source_file:
+    # Copy over header
+    destination_file = copy_header(source_file, destination_file)
 
-  # Get a list of all datasets in the source file
-  datasets_to_copy = list(source_file.keys())
+    # Get a list of all datasets in the source file
+    datasets_to_copy = list(source_file.keys())
 
-  # Filter the datasets to only include those I wish to copy
-  if not concat_xy:
-    datasets_to_copy = [dataset for dataset in datasets_to_copy if not 'xy' in dataset]
-  if not concat_yz:
-    datasets_to_copy = [dataset for dataset in datasets_to_copy if not 'yz' in dataset]
-  if not concat_xz:
-    datasets_to_copy = [dataset for dataset in datasets_to_copy if not 'xz' in dataset]
-  datasets_to_copy = [dataset for dataset in datasets_to_copy if not dataset in skip_fields]
+    # Filter the datasets to only include those that need to be copied
+    if not concat_xy:
+      datasets_to_copy = [dataset for dataset in datasets_to_copy if not 'xy' in dataset]
+    if not concat_yz:
+      datasets_to_copy = [dataset for dataset in datasets_to_copy if not 'yz' in dataset]
+    if not concat_xz:
+      datasets_to_copy = [dataset for dataset in datasets_to_copy if not 'xz' in dataset]
+    datasets_to_copy = [dataset for dataset in datasets_to_copy if not dataset in skip_fields]
 
-  # Create the datasets in the destination file
-  for dataset in datasets_to_copy:
-    dtype = source_file[dataset].dtype if (destination_dtype == None) else destination_dtype
+    # Create the datasets in the destination file
+    for dataset in datasets_to_copy:
+      dtype = source_file[dataset].dtype if (destination_dtype == None) else destination_dtype
 
-    slice_shape = get_slice_shape(source_file, dataset)
+      slice_shape = __get_slice_shape(source_file, dataset)
 
-    destination_file.create_dataset(name=dataset,
-                                    shape=slice_shape,
-                                    dtype=dtype,
-                                    compression=compression_type,
-                                    compression_opts=compression_options)
-
-  # Close source file in prep for looping through source files
-  source_file.close()
+      destination_file.create_dataset(name=dataset,
+                                      shape=slice_shape,
+                                      dtype=dtype,
+                                      compression=compression_type,
+                                      compression_opts=compression_options)
 
   # Copy data
-  for rank in range(num_ranks):
+  for rank in range(num_processes):
     # Open source file
     source_file = h5py.File(source_directory / f'{output_number}_slice.h5.{rank}', 'r')
 
     # Loop through and copy datasets
     for dataset in datasets_to_copy:
       # Determine locations and shifts for writing
-      (i0_start, i0_end, i1_start, i1_end), file_in_slice = write_bounds(source_file, dataset)
+      (i0_start, i0_end, i1_start, i1_end), file_in_slice = __write_bounds_slice(source_file, dataset)
 
       if file_in_slice:
         # Copy the data
-        destination_file[dataset][i0_start:i0_end, i1_start:i1_end] = source_file[dataset]
+        destination_file[dataset][i0_start:i0_end,
+                                  i1_start:i1_end] = source_file[dataset]
 
     # Now that the copy is done we close the source file
     source_file.close()
@@ -143,7 +111,7 @@ def concat_slice(source_directory: pathlib.Path,
 # ==============================================================================
 
 # ==============================================================================
-def get_slice_shape(source_file: h5py.File, dataset: str):
+def __get_slice_shape(source_file: h5py.File, dataset: str):
   """Determine the shape of the full slice in a dataset
 
   Args:
@@ -171,7 +139,7 @@ def get_slice_shape(source_file: h5py.File, dataset: str):
 # ==============================================================================
 
 # ==============================================================================
-def write_bounds(source_file: h5py.File, dataset: str):
+def __write_bounds_slice(source_file: h5py.File, dataset: str):
   """Determine the bounds of the concatenated file to write to
 
   Args:
@@ -206,5 +174,25 @@ def write_bounds(source_file: h5py.File, dataset: str):
 if __name__ == '__main__':
   from timeit import default_timer
   start = default_timer()
-  main()
+
+  cli = common_cli()
+  cli.add_argument('--disable-xy', default=True, action='store_false', help='Disables concating the XY slice.')
+  cli.add_argument('--disable-yz', default=True, action='store_false', help='Disables concating the YZ slice.')
+  cli.add_argument('--disable-xz', default=True, action='store_false', help='Disables concating the XZ slice.')
+  args = cli.parse_args()
+
+  # Perform the concatenation
+  for output in args.concat_outputs:
+    concat_slice(source_directory=args.source_directory,
+                 output_directory=args.output_directory,
+                 num_processes=args.num_processes,
+                 output_number=output,
+                 concat_xy=args.disable_xy,
+                 concat_yz=args.disable_yz,
+                 concat_xz=args.disable_xz,
+                 skip_fields=args.skip_fields,
+                 destination_dtype=args.dtype,
+                 compression_type=args.compression_type,
+                 compression_options=args.compression_opts)
+
   print(f'\nTime to execute: {round(default_timer()-start,2)} seconds')
