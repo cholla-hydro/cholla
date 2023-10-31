@@ -418,86 +418,30 @@ __device__ Real Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin,
   return local_dti;
 }
 
-__device__ Real Apply_Unresolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin, Real dx,
-                                    Real dy, Real dz, int nx_g, int ny_g, int n_ghost, int n_cells, Real gamma,
-                                    Real* conserved_device, short time_direction, Real feedback_density,
-                                    Real feedback_momentum, Real feedback_energy, int indx_x, int indx_y, int indx_z)
+/* \brief Function used for depositing energy or momentum from an unresolved
+ * supernova or from a stellar wind
+ *
+ * \note
+ * Previously there were 2 separate functions defined to perform this operation.
+ * They were functionally the same. They only differences were the names of
+ * variables.
+ *
+ * \par
+ * There are currently issues with the internals of this function:
+ * - this requires the codebase to be compiled with the dual energy formalism
+ * - momentum and total energy are not updated self-consistently
+ */
+__device__ Real Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin,
+                                                 Real dx, Real dy, Real dz, int nx_g, int ny_g, int n_ghost,
+                                                 int n_cells, Real gamma, Real* conserved_device, short time_direction,
+                                                 Real feedback_density, Real feedback_momentum, Real feedback_energy,
+                                                 int indx_x, int indx_y, int indx_z)
 {
   Real delta_x = (pos_x - xMin - indx_x * dx) / dx;
   Real delta_y = (pos_y - yMin - indx_y * dy) / dy;
   Real delta_z = (pos_z - zMin - indx_z * dz) / dz;
 
   Real local_dti = 0;
-
-  Real* density    = conserved_device;
-  Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
-  Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
-  Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
-  Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
-  Real* gas_energy = &conserved_device[n_cells * grid_enum::GasEnergy];
-
-  Real x_frac, y_frac, z_frac;
-  Real mag = 0;
-  for (int i = -1; i < 2; i++) {
-    for (int j = -1; j < 2; j++) {
-      for (int k = -1; k < 2; k++) {
-        x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
-        y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
-        z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
-
-        mag += sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac);
-      }
-    }
-  }
-
-  for (int i = -1; i < 2; i++) {
-    for (int j = -1; j < 2; j++) {
-      for (int k = -1; k < 2; k++) {
-        // index in array of conserved quantities
-        int indx = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
-
-        x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
-        y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
-        z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
-
-        Real px = x_frac * feedback_momentum;
-        Real py = y_frac * feedback_momentum;
-        Real pz = z_frac * feedback_momentum;
-        Real d  = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) / mag * feedback_density;
-        Real e  = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) / mag * feedback_energy;
-
-        atomicAdd(&momentum_x[indx], px);
-        atomicAdd(&momentum_y[indx], py);
-        atomicAdd(&momentum_z[indx], pz);
-        atomicAdd(&energy[indx], e);
-        atomicAdd(&density[indx], d);
-
-        gas_energy[indx] = energy[indx] - (momentum_x[indx] * momentum_x[indx] + momentum_y[indx] * momentum_y[indx] +
-                                           momentum_z[indx] * momentum_z[indx]) /
-                                              (2 * density[indx]);
-
-        if (time_direction > 0) {
-          Real cell_dti = Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz);
-          local_dti     = fmax(local_dti, cell_dti);
-        }
-      }  // k loop
-    }    // j loop
-  }      // i loop
-
-  return local_dti;
-}
-
-__device__ Real Apply_Wind(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin, Real dx, Real dy,
-                           Real dz, int nx_g, int ny_g, int n_ghost, int n_cells, Real gamma, Real* conserved_device,
-                           short time_direction, Real feedback_density, Real feedback_momentum, Real feedback_energy,
-                           int n_step, part_int_t id, int loop, int indx_x, int indx_y, int indx_z)
-{
-  Real delta_x = (pos_x - xMin - indx_x * dx) / dx;
-  Real delta_y = (pos_y - yMin - indx_y * dy) / dy;
-  Real delta_z = (pos_z - zMin - indx_z * dz) / dz;
-
-  Real local_dti = 0;
-  Real f_energy, x_frac, y_frac, z_frac, f_dens;
 
   Real* density    = conserved_device;
   Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
@@ -513,9 +457,9 @@ __device__ Real Apply_Wind(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real y
   for (int i = -1; i < 2; i++) {
     for (int j = -1; j < 2; j++) {
       for (int k = -1; k < 2; k++) {
-        x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
-        y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
-        z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
+        Real x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
+        Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
+        Real z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
 
         mag += sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac);
       }
@@ -528,15 +472,15 @@ __device__ Real Apply_Wind(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real y
         // index in array of conserved quantities
         int indx = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
 
-        x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
-        y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
-        z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
+        Real x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
+        Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
+        Real z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
 
-        Real px  = x_frac * feedback_momentum;
-        Real py  = y_frac * feedback_momentum;
-        Real pz  = z_frac * feedback_momentum;
-        f_dens   = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) / mag * feedback_density;
-        f_energy = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) / mag * feedback_energy;
+        Real px       = x_frac * feedback_momentum;
+        Real py       = y_frac * feedback_momentum;
+        Real pz       = z_frac * feedback_momentum;
+        Real f_dens   = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) / mag * feedback_density;
+        Real f_energy = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) / mag * feedback_energy;
 
         atomicAdd(&density[indx], f_dens);
         atomicAdd(&momentum_x[indx], px);
@@ -547,7 +491,6 @@ __device__ Real Apply_Wind(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real y
         gas_energy[indx] = energy[indx] - (momentum_x[indx] * momentum_x[indx] + momentum_y[indx] * momentum_y[indx] +
                                            momentum_z[indx] * momentum_z[indx]) /
                                               (2 * density[indx]);
-
         /*
         energy[indx] = ( momentum_x[indx] * momentum_x[indx] +
                          momentum_y[indx] * momentum_y[indx] +
@@ -558,7 +501,6 @@ __device__ Real Apply_Wind(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real y
           Real cell_dti = Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz);
           local_dti     = fmax(local_dti, cell_dti);
         }
-
       }  // k loop
     }    // j loop
   }      // i loop
@@ -627,9 +569,9 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
         s_info[FEED_INFO_N * tid + i_MOMENTUM]     = feedback_momentum * dV * sqrt(3.0);
         s_info[FEED_INFO_N * tid + i_UNRES_ENERGY] = feedback_energy * dV;
       }
-      local_dti = Apply_Unresolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
-                                      gamma, conserved_dev, time_direction, feedback_density, feedback_momentum,
-                                      feedback_energy, indx_x, indx_y, indx_z);
+      local_dti = Apply_Energy_Momentum_Deposition(
+          pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, gamma, conserved_dev,
+          time_direction, feedback_density, feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
     }
   }
 
@@ -675,9 +617,9 @@ __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real
     s_info[FEED_INFO_N * tid + i_WIND_ENERGY]   = feedback_energy * dV;
   }
 
-  local_dti = Apply_Wind(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, gamma,
-                         conserved_dev, time_direction, feedback_density, feedback_momentum, feedback_energy, n_step,
-                         id_dev[gtid], loop, indx_x, indx_y, indx_z);
+  local_dti = Apply_Energy_Momentum_Deposition(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost,
+                                               n_cells, gamma, conserved_dev, time_direction, feedback_density,
+                                               feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
 
   if (time_direction > 0) atomicMax(dti, local_dti);
 }
