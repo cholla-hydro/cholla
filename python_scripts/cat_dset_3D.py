@@ -25,7 +25,8 @@ def concat_3d_output(source_directory: pathlib.Path,
                      skip_fields: list = [],
                      destination_dtype: np.dtype = None,
                      compression_type: str = None,
-                     compression_options: str = None):
+                     compression_options: str = None,
+                     chunking = None):
   """Concatenate a single 3D HDF5 Cholla dataset. i.e. take the single files generated per process and concatenate them into a
   single, large file.
 
@@ -38,6 +39,7 @@ def concat_3d_output(source_directory: pathlib.Path,
       destination_dtype (np.dtype, optional): The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
       compression_type (str, optional): What kind of compression to use on the output data. Defaults to None.
       compression_options (str, optional): What compression settings to use if compressing. Defaults to None.
+      chunking (bool or tuple, optional): Whether or not to use chunking and the chunk size. Defaults to None.
   """
 
   # Error checking
@@ -68,6 +70,7 @@ def concat_3d_output(source_directory: pathlib.Path,
       destination_file.create_dataset(name=dataset,
                                       shape=data_shape,
                                       dtype=dtype,
+                                      chunks=chunking,
                                       compression=compression_type,
                                       compression_opts=compression_options)
 
@@ -185,6 +188,22 @@ def common_cli() -> argparse.ArgumentParser:
     return cleaned_argument
   # ============================================================================
 
+  # ============================================================================
+  def chunk_arg(raw_argument: str):
+    # Strip unneeded characters
+    cleaned_argument = raw_argument.replace(' ', '')
+    cleaned_argument = cleaned_argument.replace('(', '')
+    cleaned_argument = cleaned_argument.replace(')', '')
+
+    # Check that it only has the allowed characters
+    allowed_charaters = set('0123456789,')
+    if not set(cleaned_argument).issubset(allowed_charaters):
+      raise ValueError("Argument contains incorrect characters. Should only contain '0-9', ',', and '-'.")
+
+    # Convert to a tuple and return
+    return tuple([int(i) for i in cleaned_argument.split(',')])
+  # ============================================================================
+
   # Initialize the CLI
   cli = argparse.ArgumentParser()
 
@@ -199,6 +218,7 @@ def common_cli() -> argparse.ArgumentParser:
   cli.add_argument('--dtype',                  type=str,           default=None, help='The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.')
   cli.add_argument('--compression-type',       type=str,           default=None, help='What kind of compression to use on the output data. Defaults to None.')
   cli.add_argument('--compression-opts',       type=str,           default=None, help='What compression settings to use if compressing. Defaults to None.')
+  cli.add_argument('--chunking',               type=chunk_arg,     default=None, nargs='?', const=True, help='Enable chunking of the output file. Default is `False`. If set without an argument then the chunk size will be automatically chosen or a tuple can be passed to indicate the chunk size desired.')
 
   return cli
 # ==============================================================================
@@ -219,6 +239,7 @@ if __name__ == '__main__':
                      skip_fields=args.skip_fields,
                      destination_dtype=args.dtype,
                      compression_type=args.compression_type,
-                     compression_options=args.compression_opts)
+                     compression_options=args.compression_opts,
+                     chunking=args.chunking)
 
   print(f'\nTime to execute: {round(default_timer()-start,2)} seconds')

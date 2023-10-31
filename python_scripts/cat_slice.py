@@ -32,7 +32,8 @@ def concat_slice(source_directory: pathlib.Path,
                  skip_fields: list = [],
                  destination_dtype: np.dtype = None,
                  compression_type: str = None,
-                 compression_options: str = None):
+                 compression_options: str = None,
+                 chunking = None):
   """Concatenate slice HDF5 Cholla datasets. i.e. take the single files
   generated per process and concatenate them into a single, large file. This
   function concatenates a single output time and can be called multiple times,
@@ -50,6 +51,7 @@ def concat_slice(source_directory: pathlib.Path,
       destination_dtype (np.dtype, optional): The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
       compression_type (str, optional): What kind of compression to use on the output data. Defaults to None.
       compression_options (str, optional): What compression settings to use if compressing. Defaults to None.
+      chunking (bool or tuple, optional): Whether or not to use chunking and the chunk size. Defaults to None.
   """
 
   # Error checking
@@ -85,6 +87,7 @@ def concat_slice(source_directory: pathlib.Path,
       destination_file.create_dataset(name=dataset,
                                       shape=slice_shape,
                                       dtype=dtype,
+                                      chunks=chunking,
                                       compression=compression_type,
                                       compression_opts=compression_options)
 
@@ -193,6 +196,7 @@ if __name__ == '__main__':
                  skip_fields=args.skip_fields,
                  destination_dtype=args.dtype,
                  compression_type=args.compression_type,
-                 compression_options=args.compression_opts)
+                 compression_options=args.compression_opts,
+                 chunking=args.chunking)
 
   print(f'\nTime to execute: {round(default_timer()-start,2)} seconds')
