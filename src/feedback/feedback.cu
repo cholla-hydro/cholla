@@ -390,7 +390,9 @@ __device__ Real Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin,
   Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
   Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
   Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
+#ifdef DE
   Real* gasEnergy  = &conserved_device[n_cells * grid_enum::GasEnergy];
+#endif
 
   Real local_dti = 0;
 
@@ -403,7 +405,9 @@ __device__ Real Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin,
         Real z_frac = k * (1 - delta_z) + (1 - k) * delta_z;
 
         atomicAdd(&density[indx], x_frac * y_frac * z_frac * feedback_density);
+#ifdef DE
         atomicAdd(&gasEnergy[indx], x_frac * y_frac * z_frac * feedback_energy);
+#endif
         atomicAdd(&energy[indx], x_frac * y_frac * z_frac * feedback_energy);
 
         if (time_direction > 0) {
@@ -448,7 +452,9 @@ __device__ Real Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real po
   Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
   Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
   Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
+#ifdef DE
   Real* gas_energy = &conserved_device[n_cells * grid_enum::GasEnergy];
+#endif
 
   // loop over the 27 cells to add up all the allocated feedback
   // momentum magnitudes.  For each cell allocate density and
@@ -488,9 +494,11 @@ __device__ Real Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real po
         atomicAdd(&momentum_z[indx], pz);
         atomicAdd(&energy[indx], f_energy);
 
+#ifdef DE
         gas_energy[indx] = energy[indx] - (momentum_x[indx] * momentum_x[indx] + momentum_y[indx] * momentum_y[indx] +
                                            momentum_z[indx] * momentum_z[indx]) /
                                               (2 * density[indx]);
+#endif
         /*
         energy[indx] = ( momentum_x[indx] * momentum_x[indx] +
                          momentum_y[indx] * momentum_y[indx] +
