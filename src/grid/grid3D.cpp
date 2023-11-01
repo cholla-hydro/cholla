@@ -500,6 +500,8 @@ Real Grid3D::Update_Hydro_Grid()
 
   Execute_Hydro_Integrator();
 
+  // == Perform chemistry/cooling (there are a few different cases) ==
+
 #ifdef CUDA
 
   #ifdef COOLING_GPU
@@ -526,16 +528,6 @@ Real Grid3D::Update_Hydro_Grid()
   Timer.Chemistry.RecordTime(Chem.H.runtime_chemistry_step);
     #endif
   #endif
-
-  #ifdef AVERAGE_SLOW_CELLS
-  // Set the min_delta_t for averaging a slow cell
-  Real max_dti_slow;
-  max_dti_slow = 1 / H.min_dt_slow;
-  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow);
-  #endif  // AVERAGE_SLOW_CELLS
-
-  // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==
-  Real dti = Calc_Inverse_Timestep();
 
 #endif  // CUDA
 
@@ -579,6 +571,17 @@ Real Grid3D::Update_Hydro_Grid()
   Timer.Cooling_Grackle.End();
   #endif  // CPU_TIME
 #endif    // COOLING_GRACKLE
+
+// == compute the new timestep ==
+#ifdef AVERAGE_SLOW_CELLS
+  // Set the min_delta_t for averaging a slow cell
+  Real max_dti_slow;
+  max_dti_slow = 1 / H.min_dt_slow;
+  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow);
+#endif  // AVERAGE_SLOW_CELLS
+
+  // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==
+  Real dti = Calc_Inverse_Timestep();
 
   return dti;
 }
