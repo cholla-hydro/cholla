@@ -7,6 +7,7 @@
     #include <utility>
 
     #include "../global/global.h"
+    #include "../global/global_parallel.h"
     #include "../grid/grid3D.h"
 
     #ifdef FFTW
@@ -15,11 +16,8 @@
     #endif /*FFTW*/
 
 /*Global MPI Variables*/
-extern int procID;      /*process rank*/
-extern int nproc;       /*number of processes in global comm*/
-extern int root;        /*rank of root process*/
-extern int procID_node; /*process rank on node*/
-extern int nproc_node;  /*number of MPI processes on node*/
+// NOTE: some variable heavily used by mpi are declared in global_parallel.h
+//       so that they are defined even when compiled without mpi
 
 extern MPI_Comm world; /*global communicator*/
 extern MPI_Comm node;  /*communicator for each node*/
