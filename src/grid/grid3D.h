@@ -461,7 +461,7 @@ class Grid3D
 
   /*! \fn void Update_Grid(void)
    *  \brief Update the conserved quantities in each cell. */
-  Real Update_Grid(void);
+  void Update_Grid(void);
 
   /*! \fn void Update_Hydro_Grid(void)
    *  \brief Do all steps to update the hydro. */
