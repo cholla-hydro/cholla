@@ -504,6 +504,8 @@ Real Grid3D::Update_Hydro_Grid()
 
   Execute_Hydro_Integrator();
 
+  // == Perform chemistry/cooling (there are a few different cases) ==
+
 #ifdef CUDA
 
   #ifdef COOLING_GPU
@@ -530,36 +532,6 @@ Real Grid3D::Update_Hydro_Grid()
   Timer.Chemistry.RecordTime(Chem.H.runtime_chemistry_step);
     #endif
   #endif
-
-  #ifdef VELOCITY_CEILING
-  const Real V_ceiling_cholla = 0.005;  // roughly 10000 km/s
-  Velocity_Ceiling(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, gama, V_ceiling_cholla);
-  #endif  // VELOCITY_CEILING
-
-  // Temperature Ceiling
-  #ifdef TEMPERATURE_CEILING
-  // 1e51 ergs / (m_p * (pc/cm)^3) = 45000 km/s
-  // sqrt(1e10 K * kB/ m_mp) = 9000 km/s
-  const Real T_ceiling_kelvin = 5e9;  // 1e10;
-  Temperature_Ceiling(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, gama, T_ceiling_kelvin);
-  #endif  // TEMPERATURE_CEILING
-
-  #ifdef AVERAGE_SLOW_CELLS
-  // Set the min_delta_t for averaging a slow cell
-  Real max_dti_slow;
-  max_dti_slow = 1 / H.min_dt_slow;
-  int nx_off = 0, ny_off = 0, nz_off = 0;
-    #ifdef MPI_CHOLLA
-  nx_off = nx_local_start;  // offsets
-  ny_off = ny_local_start;
-  nz_off = nz_local_start;
-    #endif
-  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow, H.xbound,
-                     H.ybound, H.zbound, nx_off, ny_off, nz_off);
-  #endif  // AVERAGE_SLOW_CELLS
-
-  // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==
-  Real dti = Calc_Inverse_Timestep();
 
 #endif  // CUDA
 
@@ -603,6 +575,37 @@ Real Grid3D::Update_Hydro_Grid()
   Timer.Cooling_Grackle.End();
   #endif  // CPU_TIME
 #endif    // COOLING_GRACKLE
+
+#ifdef VELOCITY_CEILING
+  const Real V_ceiling_cholla = 0.005;  // roughly 10000 km/s
+  Velocity_Ceiling(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, gama, V_ceiling_cholla);
+#endif  // VELOCITY_CEILING
+
+  // Temperature Ceiling
+#ifdef TEMPERATURE_CEILING
+  // 1e51 ergs / (m_p * (pc/cm)^3) = 45000 km/s
+  // sqrt(1e10 K * kB/ m_mp) = 9000 km/s
+  const Real T_ceiling_kelvin = 5e9;  // 1e10;
+  Temperature_Ceiling(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, gama, T_ceiling_kelvin);
+#endif  // TEMPERATURE_CEILING
+
+// == compute the new timestep ==
+#ifdef AVERAGE_SLOW_CELLS
+  // Set the min_delta_t for averaging a slow cell
+  Real max_dti_slow;
+  max_dti_slow = 1 / H.min_dt_slow;
+  int nx_off = 0, ny_off = 0, nz_off = 0;
+  #ifdef MPI_CHOLLA
+  nx_off = nx_local_start;  // offsets
+  ny_off = ny_local_start;
+  nz_off = nz_local_start;
+  #endif
+  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow, H.xbound,
+                     H.ybound, H.zbound, nx_off, ny_off, nz_off);
+#endif  // AVERAGE_SLOW_CELLS
+
+  // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==
+  Real dti = Calc_Inverse_Timestep();
 
   return dti;
 }
