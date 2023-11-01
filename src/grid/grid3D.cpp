@@ -408,7 +408,7 @@ void Grid3D::set_dt(Real dti)
 
 /*! \fn void Update_Grid(void)
  *  \brief Update the conserved quantities in each cell. */
-Real Grid3D::Update_Grid(void)
+void Grid3D::Update_Grid(void)
 {
   Real max_dti = 0;
   int x_off, y_off, z_off;
@@ -482,6 +482,29 @@ Real Grid3D::Update_Grid(void)
   Timer.Hydro_Integrator.End();
 #endif  // CPU_TIME
 
+}
+
+/*! \fn void Update_Hydro_Grid(void)
+ *  \brief Do all steps to update the hydro. */
+Real Grid3D::Update_Hydro_Grid()
+{
+#ifdef ONLY_PARTICLES
+  // Don't integrate the Hydro when only solving for particles
+  return 1e-10;
+#endif  // ONLY_PARTICLES
+
+#ifdef CPU_TIME
+  Timer.Hydro.Start();
+#endif  // CPU_TIME
+
+#ifdef GRAVITY
+  // Extrapolate gravitational potential for hydro step
+  Extrapolate_Grav_Potential();
+#endif  // GRAVITY
+
+  // execute the hydro integrators
+  Update_Grid();
+
 #ifdef CUDA
 
   #ifdef COOLING_GPU
@@ -537,7 +560,7 @@ Real Grid3D::Update_Grid(void)
   #endif  // AVERAGE_SLOW_CELLS
 
   // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==
-  max_dti = Calc_Inverse_Timestep();
+  Real dti = Calc_Inverse_Timestep();
 
 #endif  // CUDA
 
@@ -563,31 +586,6 @@ Real Grid3D::Update_Grid(void)
   C.HeIII_density = &C.host[H.n_cells * grid_enum::HeIII_density];
   C.e_density     = &C.host[H.n_cells * grid_enum::e_density];
 #endif
-
-  return max_dti;
-}
-
-/*! \fn void Update_Hydro_Grid(void)
- *  \brief Do all steps to update the hydro. */
-Real Grid3D::Update_Hydro_Grid()
-{
-#ifdef ONLY_PARTICLES
-  // Don't integrate the Hydro when only solving for particles
-  return 1e-10;
-#endif  // ONLY_PARTICLES
-
-  Real dti;
-
-#ifdef CPU_TIME
-  Timer.Hydro.Start();
-#endif  // CPU_TIME
-
-#ifdef GRAVITY
-  // Extrapolate gravitational potential for hydro step
-  Extrapolate_Grav_Potential();
-#endif  // GRAVITY
-
-  dti = Update_Grid();
 
 #ifdef CPU_TIME
   #ifdef CHEMISTRY_GPU
