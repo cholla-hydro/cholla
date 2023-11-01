@@ -402,9 +402,9 @@ void Grid3D::set_dt(Real dti)
 #endif
 }
 
-/*! \fn void Update_Grid(void)
- *  \brief Update the conserved quantities in each cell. */
-void Grid3D::Update_Grid(void)
+/*! \fn void Execute_Hydro_Integratore_Grid(void)
+ *  \brief Updates cells by executing the hydro integrator. */
+void Grid3D::Execute_Hydro_Integrator(void)
 {
   Real max_dti = 0;
   int x_off, y_off, z_off;
@@ -498,8 +498,7 @@ Real Grid3D::Update_Hydro_Grid()
   Extrapolate_Grav_Potential();
 #endif  // GRAVITY
 
-  // execute the hydro integrators
-  Update_Grid();
+  Execute_Hydro_Integrator();
 
 #ifdef CUDA
 
