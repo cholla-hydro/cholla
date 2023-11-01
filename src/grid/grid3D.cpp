@@ -481,7 +481,6 @@ void Grid3D::Execute_Hydro_Integrator(void)
 #ifdef CPU_TIME
   Timer.Hydro_Integrator.End();
 #endif  // CPU_TIME
-
 }
 
 /*! \fn void Update_Hydro_Grid(void)
@@ -495,6 +494,7 @@ Real Grid3D::Update_Hydro_Grid()
 
 #ifdef CPU_TIME
   Timer.Hydro.Start();
+  double non_hydro_elapsed_time = 0.0;
 #endif  // CPU_TIME
 
 #ifdef GRAVITY
@@ -525,15 +525,22 @@ Real Grid3D::Update_Hydro_Grid()
   Dust_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
   #endif  // DUST
 
-  // Update the H and He ionization fractions and apply cooling and photoheating
-  #ifdef CHEMISTRY_GPU
-  Update_Chemistry();
-    #ifdef CPU_TIME
-  Timer.Chemistry.RecordTime(Chem.H.runtime_chemistry_step);
-    #endif
-  #endif
-
 #endif  // CUDA
+
+#ifdef CHEMISTRY_GPU
+  // Update the H and He ionization fractions and apply cooling and photoheating
+  Update_Chemistry();
+  #ifdef CPU_TIME
+  Timer.Chemistry.RecordTime(Chem.H.runtime_chemistry_step);
+  non_hydro_elapsed_time += Chem.H.runtime_chemistry_step;
+  #endif
+  C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
+  C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
+  C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
+  C.HeII_density  = &C.host[H.n_cells * grid_enum::HeII_density];
+  C.HeIII_density = &C.host[H.n_cells * grid_enum::HeIII_density];
+  C.e_density     = &C.host[H.n_cells * grid_enum::e_density];
+#endif
 
 #ifdef COOLING_GRACKLE
   Cool.fields.density       = C.density;
@@ -547,32 +554,15 @@ Real Grid3D::Update_Hydro_Grid()
   #ifdef GRACKLE_METALS
   Cool.fields.metal_density = &C.host[H.n_cells * grid_enum::metal_density];
   #endif
-#endif
 
-#ifdef CHEMISTRY_GPU
-  C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
-  C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
-  C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
-  C.HeII_density  = &C.host[H.n_cells * grid_enum::HeII_density];
-  C.HeIII_density = &C.host[H.n_cells * grid_enum::HeIII_density];
-  C.e_density     = &C.host[H.n_cells * grid_enum::e_density];
-#endif
-
-#ifdef CPU_TIME
-  #ifdef CHEMISTRY_GPU
-  Timer.Hydro.Subtract(Chem.H.runtime_chemistry_step);
-  // Subtract the time spent on the Chemical Update
-  #endif  // CHEMISTRY_GPU
-  Timer.Hydro.End();
-#endif  // CPU_TIME
-
-#ifdef COOLING_GRACKLE
   #ifdef CPU_TIME
-  Timer.Cooling_Grackle.Start();
+  double cur_grackle_timing = Get_Time();
   #endif  // CPU_TIME
   Do_Cooling_Step_Grackle();
   #ifdef CPU_TIME
-  Timer.Cooling_Grackle.End();
+  double cur_grackle_timing = Get_Time() - cur_grackle_timing;
+  Timer.Cooling_Grackle.RecordTime(cur_grackle_timing);
+  non_hydro_elapsed_time += cur_grackle_timing;
   #endif  // CPU_TIME
 #endif    // COOLING_GRACKLE
 
@@ -589,7 +579,7 @@ Real Grid3D::Update_Hydro_Grid()
   Temperature_Ceiling(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, gama, T_ceiling_kelvin);
 #endif  // TEMPERATURE_CEILING
 
-// == compute the new timestep ==
+  // == average slow cells and compute the new timestep ==
 #ifdef AVERAGE_SLOW_CELLS
   // Set the min_delta_t for averaging a slow cell
   Real max_dti_slow;
@@ -606,6 +596,11 @@ Real Grid3D::Update_Hydro_Grid()
 
   // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==
   Real dti = Calc_Inverse_Timestep();
+
+#ifdef CPU_TIME
+  Timer.Hydro.Subtract(non_hydro_elapsed_time);
+  Timer.Hydro.End();
+#endif  // CPU_TIME
 
   return dti;
 }
