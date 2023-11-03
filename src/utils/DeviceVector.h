@@ -43,8 +43,8 @@ template <typename T>
 class DeviceVector
 {
   static_assert(std::is_trivially_copyable_v<T>,
-                "DeviceVector can only be used with trivially_copyable types "
-                "due to the internal usage of memcpy");
+                "DeviceVector can only be used with trivially_copyable types due to the internal "
+                "usage of functions like cudaMemcpy, cudaMemcpyPeer, cudaMemset");
 
  public:
   /*!
