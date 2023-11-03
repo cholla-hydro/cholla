@@ -45,7 +45,7 @@ static inline bool Is_Root_Proc()
 #endif
 }
 
-void Create_Log_File(struct parameters P)
+void Create_Log_File(struct Parameters P)
 {
   if (not Is_Root_Proc()) {
     return;
@@ -87,7 +87,7 @@ void Write_Message_To_Log_File(const char *message)
 }
 
 /* Write Cholla Output Data */
-void Write_Data(Grid3D &G, struct parameters P, int nfile)
+void Write_Data(Grid3D &G, struct Parameters P, int nfile)
 {
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields * G.H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
@@ -188,7 +188,7 @@ void Write_Data(Grid3D &G, struct parameters P, int nfile)
 }
 
 /* Output the grid data to file. */
-void Output_Data(Grid3D &G, struct parameters P, int nfile)
+void Output_Data(Grid3D &G, struct Parameters P, int nfile)
 {
   // create the filename
   std::string filename(P.outdir);
@@ -266,7 +266,7 @@ void Output_Data(Grid3D &G, struct parameters P, int nfile)
 #endif
 }
 
-void Output_Float32(Grid3D &G, struct parameters P, int nfile)
+void Output_Float32(Grid3D &G, struct Parameters P, int nfile)
 {
 #ifdef HDF5
   Header H = G.H;
@@ -384,7 +384,7 @@ void Output_Float32(Grid3D &G, struct parameters P, int nfile)
 }
 
 /* Output a projection of the grid data to file. */
-void Output_Projected_Data(Grid3D &G, struct parameters P, int nfile)
+void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
 {
 #ifdef HDF5
   hid_t file_id;
@@ -429,7 +429,7 @@ void Output_Projected_Data(Grid3D &G, struct parameters P, int nfile)
 }
 
 /* Output a rotated projection of the grid data to file. */
-void Output_Rotated_Projected_Data(Grid3D &G, struct parameters P, int nfile)
+void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
 {
 #ifdef HDF5
   hid_t file_id;
@@ -534,7 +534,7 @@ void Output_Rotated_Projected_Data(Grid3D &G, struct parameters P, int nfile)
 }
 
 /* Output xy, xz, and yz slices of the grid data. */
-void Output_Slices(Grid3D &G, struct parameters P, int nfile)
+void Output_Slices(Grid3D &G, struct Parameters P, int nfile)
 {
 #ifdef HDF5
   hid_t file_id;
@@ -1400,12 +1400,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     #ifdef OUTPUT_METALS
   output_metals = true;
     #else   // not OUTPUT_METALS
-  output_metals          = false;
+  output_metals = false;
     #endif  // OUTPUT_METALS
     #ifdef OUTPUT_ELECTRONS
   output_electrons = true;
     #else   // not OUTPUT_ELECTRONS
-  output_electrons       = false;
+  output_electrons = false;
     #endif  // OUTPUT_ELECTRONS
     #ifdef OUTPUT_FULL_IONIZATION
   output_full_ionization = true;
@@ -2246,9 +2246,9 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
 }
 #endif  // HDF5
 
-/*! \fn void Read_Grid(struct parameters P)
+/*! \fn void Read_Grid(struct Parameters P)
  *  \brief Read in grid data from an output file. */
-void Grid3D::Read_Grid(struct parameters P)
+void Grid3D::Read_Grid(struct Parameters P)
 {
   ScopedTimer timer("Read_Grid");
   int nfile = P.nfile;  // output step you want to read from
@@ -2501,7 +2501,7 @@ void Read_Grid_HDF5_Field_Magnetic(hid_t file_id, Real *dataset_buffer, Header H
 
 /*! \fn void Read_Grid_HDF5(hid_t file_id)
  *  \brief Read in grid data from an hdf5 file. */
-void Grid3D::Read_Grid_HDF5(hid_t file_id, struct parameters P)
+void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
 {
   int i, j, k, id, buf_id;
   hid_t attribute_id, dataset_id;

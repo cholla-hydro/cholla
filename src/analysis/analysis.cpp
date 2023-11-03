@@ -6,14 +6,14 @@
 
   #include "../io/io.h"
 
-Analysis_Module::Analysis_Module(void) {}
+AnalysisModule::AnalysisModule(void) {}
 
   #ifdef LYA_STATISTICS
 void Grid3D::Compute_Lya_Statistics()
 {
   int axis, n_skewers;
   Real time_start, time_end, time_elapsed;
-  time_start = get_time();
+  time_start = Get_Time();
 
   // Copmpute Lya Statitics
   chprintf("Computing Lya Absorbiton along skewers \n");
@@ -70,13 +70,13 @@ void Grid3D::Compute_Lya_Statistics()
   //   Analysis.Computed_Flux_Power_Spectrum = 0;
   // }
 
-  time_end     = get_time();
+  time_end     = Get_Time();
   time_elapsed = (time_end - time_start) * 1000;
   chprintf("Analysis Time: %f9.1 ms \n", time_elapsed);
 }
   #endif  // LYA_STATISTICS
 
-void Grid3D::Compute_and_Output_Analysis(struct parameters *P)
+void Grid3D::Compute_and_Output_Analysis(struct Parameters *P)
 {
   #ifdef COSMOLOGY
   chprintf("\nComputing Analysis  current_z: %f\n", Analysis.current_z);
@@ -119,7 +119,7 @@ void Grid3D::Compute_and_Output_Analysis(struct parameters *P)
   // exit(0);
 }
 
-void Grid3D::Initialize_Analysis_Module(struct parameters *P)
+void Grid3D::Initialize_AnalysisModule(struct Parameters *P)
 {
   chprintf("\nInitializng Analysis Module...\n");
 
@@ -141,9 +141,9 @@ void Grid3D::Initialize_Analysis_Module(struct parameters *P)
                       H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz, H.n_ghost, z_now, P);
 }
 
-void Analysis_Module::Initialize(Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz,
-                                 int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real,
-                                 int n_ghost_hydro, Real z_now, struct parameters *P)
+void AnalysisModule::Initialize(Real Lx, Real Ly, Real Lz, Real x_min, Real y_min, Real z_min, int nx, int ny, int nz,
+                                int nx_real, int ny_real, int nz_real, Real dx_real, Real dy_real, Real dz_real,
+                                int n_ghost_hydro, Real z_now, struct Parameters *P)
 {
   // Domain Length
   Lbox_x = Lx;
@@ -196,7 +196,7 @@ void Analysis_Module::Initialize(Real Lx, Real Ly, Real Lz, Real x_min, Real y_m
   chprintf("Analysis Module Successfully Initialized.\n\n");
 }
 
-void Analysis_Module::Reset()
+void AnalysisModule::Reset()
 {
   #ifdef PHASE_DIAGRAM
   free(phase_diagram);

@@ -17,7 +17,7 @@
   #ifdef PARTICLES_GPU
 
 // Copy the potential from host to device
-void Particles_3D::Copy_Potential_To_GPU(Real *potential_host, Real *potential_dev, int n_cells_potential)
+void Particles3D::Copy_Potential_To_GPU(Real *potential_host, Real *potential_dev, int n_cells_potential)
 {
   CudaSafeCall(cudaMemcpy(potential_dev, potential_host, n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
 }
@@ -102,11 +102,11 @@ __global__ void Get_Gravity_Field_Particles_Kernel(Real *potential_dev, Real *gr
 }
 
 // Call the kernel to compute the gradient of the potential
-void Particles_3D::Get_Gravity_Field_Particles_GPU_function(int nx_local, int ny_local, int nz_local,
-                                                            int n_ghost_particles_grid, int n_cells_potential, Real dx,
-                                                            Real dy, Real dz, Real *potential_host, Real *potential_dev,
-                                                            Real *gravity_x_dev, Real *gravity_y_dev,
-                                                            Real *gravity_z_dev)
+void Particles3D::Get_Gravity_Field_Particles_GPU_function(int nx_local, int ny_local, int nz_local,
+                                                           int n_ghost_particles_grid, int n_cells_potential, Real dx,
+                                                           Real dy, Real dz, Real *potential_host, Real *potential_dev,
+                                                           Real *gravity_x_dev, Real *gravity_y_dev,
+                                                           Real *gravity_z_dev)
 {
     #ifndef GRAVITY_GPU
   Copy_Potential_To_GPU(potential_host, potential_dev, n_cells_potential);
@@ -265,12 +265,12 @@ __global__ void Get_Gravity_CIC_Kernel(part_int_t n_local, Real *gravity_x_dev, 
 
 // Call the kernel to compote the gravitational field at the particles positions
 // ( CIC )
-void Particles_3D::Get_Gravity_CIC_GPU_function(part_int_t n_local, int nx_local, int ny_local, int nz_local,
-                                                int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax,
-                                                Real zMin, Real zMax, Real dx, Real dy, Real dz, Real *pos_x_dev,
-                                                Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev, Real *grav_y_dev,
-                                                Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev,
-                                                Real *gravity_z_dev)
+void Particles3D::Get_Gravity_CIC_GPU_function(part_int_t n_local, int nx_local, int ny_local, int nz_local,
+                                               int n_ghost_particles_grid, Real xMin, Real xMax, Real yMin, Real yMax,
+                                               Real zMin, Real zMax, Real dx, Real dy, Real dz, Real *pos_x_dev,
+                                               Real *pos_y_dev, Real *pos_z_dev, Real *grav_x_dev, Real *grav_y_dev,
+                                               Real *grav_z_dev, Real *gravity_x_dev, Real *gravity_y_dev,
+                                               Real *gravity_z_dev)
 {
   // set values for GPU kernels
   int ngrid = (n_local - 1) / TPB_PARTICLES + 1;

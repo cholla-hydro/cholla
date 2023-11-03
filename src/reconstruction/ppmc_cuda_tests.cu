@@ -139,7 +139,7 @@ TEST(tALLPpmcVLReconstructor, CorrectInputExpectCorrectOutput)
 #ifdef MHD
   size_t const n_fields = 8;
 #else   // not MHD
-  size_t const n_fields                                                = 5;
+  size_t const n_fields = 5;
 #endif  // MHD
 
   // Setup host grid. Fill host grid with random values and randomly assign maximum value

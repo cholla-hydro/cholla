@@ -215,53 +215,53 @@ TEST(tMHDCTSlope, CorrectInputExpectCorrectOutput)
   // Get test data. Only test the options that will be used
   std::vector<double> test_data;
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 2, -1, 1, 2, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 2, -1, 1, 2, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 0, -1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 0, -1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 1, 2, 1, 2, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 1, 2, 1, 2, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 1, -1, 1, 2, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 1, -1, 1, 2, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 0, -1, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 0, -1, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 1, 2, 1, 2, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 1, 2, 1, 2, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 2, -1, -1, 2, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 2, -1, -1, 2, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 2, -1, 0, 2, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 2, -1, 0, 2, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 1, -1, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 1, -1, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 0, 2, 0, 2, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 0, 2, 0, 2, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 0, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 0, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 0, -1, 0, 2, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 0, -1, 0, 2, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 1, -1, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 1, -1, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 0, 2, 0, 2, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 0, 2, 0, 2, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 2, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 2, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 0, -1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 0, -1, 0, 1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 2, -1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 2, -1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 0, 1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 0, 1, 0, 1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 1, -1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 1, -1, 0, 1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 2, -1, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 2, -1, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 0, 1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 0, 1, 0, 1, xid, yid, zid, nx, ny, n_cells));
   test_data.emplace_back(
-      mhd::_internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 0, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 0, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
 
   // Check the results
   ASSERT_EQ(test_data.size(), fiducial_data.size());

@@ -5,11 +5,11 @@
   #include "../global/global.h"
   #include "paris/ParisPeriodic.hpp"
 
-class Potential_Paris_3D
+class PotentialParis3D
 {
  public:
-  Potential_Paris_3D();
-  ~Potential_Paris_3D();
+  PotentialParis3D();
+  ~PotentialParis3D();
   void Get_Potential(const Real *density, Real *potential, Real g, Real massInfo, Real a);
   void Initialize(Real lx, Real ly, Real lz, Real xMin, Real yMin, Real zMin, int nx, int ny, int nz, int nxReal,
                   int nyReal, int nzReal, Real dx, Real dy, Real dz);

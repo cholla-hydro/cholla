@@ -6,11 +6,6 @@
 
 #include "../grid/grid_enum.h"  // defines NSCALARS
 
-#ifdef COOLING_CPU
-  #include <gsl/gsl_spline.h>
-  #include <gsl/gsl_spline2d.h>
-#endif
-
 #ifdef PARTICLES
   #include <cstdint>
 #endif  // PARTICLES
@@ -143,14 +138,6 @@ extern Real C_cfl;  // CFL number (0 - 0.5)
 extern Real t_comm;
 extern Real t_other;
 
-#ifdef COOLING_CPU
-extern gsl_interp_accel *acc;
-extern gsl_interp_accel *xacc;
-extern gsl_interp_accel *yacc;
-extern gsl_spline *highT_C_spline;
-extern gsl_spline2d *lowT_C_spline;
-extern gsl_spline2d *lowT_H_spline;
-#endif
 #ifdef COOLING_GPU
 extern float *cooling_table;
 extern float *heating_table;
@@ -160,7 +147,7 @@ extern float *heating_table;
  *  \brief Set gamma values for Riemann solver. */
 extern void Set_Gammas(Real gamma_in);
 
-/*! \fn double get_time(void)
+/*! \fn double Get_Time(void)
  *  \brief Returns the current clock time. */
 extern double Get_Time(void);
 
@@ -168,13 +155,7 @@ extern double Get_Time(void);
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int Sgn(Real x);
 
-#ifndef CUDA
-/*! \fn Real calc_eta(Real cW[], Real gamma)
- *  \brief Calculate the eta value for the H correction. */
-extern Real Calc_Eta(Real cW[], Real gamma);
-#endif
-
-struct parameters {
+struct Parameters {
   int nx;
   int ny;
   int nz;
@@ -197,6 +178,9 @@ struct parameters {
   int out_float32_Energy     = 0;
 #ifdef DE
   int out_float32_GasEnergy = 0;
+#endif
+#ifdef STATIC_GRAV
+  int custom_grav = 0;  // flag to set specific static gravity field
 #endif
 #ifdef MHD
   int out_float32_magnetic_x = 0;
@@ -325,9 +309,9 @@ struct parameters {
 #endif
 };
 
-/*! \fn void parse_params(char *param_file, struct parameters * parms);
+/*! \fn void parse_params(char *param_file, struct Parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
-extern void Parse_Params(char *param_file, struct parameters *parms, int argc, char **argv);
+extern void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **argv);
 
 /*! \fn int is_param_valid(char *name);
  * \brief Verifies that a param is valid (even if not needed).  Avoids

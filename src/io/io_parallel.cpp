@@ -56,7 +56,7 @@ void Read_Grid_Cat_HDF5_Field_Magnetic(hid_t file_id, Real* dataset_buffer, Head
 }
 
 /*! \brief Read in grid data from a single concatenated output file. */
-void Grid3D::Read_Grid_Cat(struct parameters P)
+void Grid3D::Read_Grid_Cat(struct Parameters P)
 {
   ScopedTimer timer("Read_Grid_Cat");
   herr_t status;
@@ -130,7 +130,7 @@ void Grid3D::Read_Grid_Cat(struct parameters P)
 
 #else
 
-void Grid3D::Read_Grid_Cat(struct parameters P)
+void Grid3D::Read_Grid_Cat(struct Parameters P)
 {
   chprintf("Warning: Read_Grid_Cat does nothing without MPI_CHOLLA and HDF5\n");
   chexit(-1);

@@ -166,7 +166,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_i   = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
     #else
-    p_i   = (dev_conserved[4 * n_cells + id] - 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) * (gamma - 1.0);
+    p_i = (dev_conserved[4 * n_cells + id] - 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) * (gamma - 1.0);
     #endif  // PRESSURE_DE
     p_i = fmax(p_i, (Real)TINY_NUMBER);
     #ifdef DE
@@ -738,10 +738,12 @@ __device__ void Interface_Values_PPM(Real q_imo, Real q_i, Real q_ipo, Real del_
   if ((*q_R - q_i) * (q_i - *q_L) <= 0) *q_L = *q_R = q_i;
 
   // steep gradient criterion (Fryxell Eqn 53, Fig 12)
-  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) > (*q_R - *q_L) * (*q_R - *q_L))
+  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) > (*q_R - *q_L) * (*q_R - *q_L)) {
     *q_L = 3.0 * q_i - 2.0 * (*q_R);
-  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) < -(*q_R - *q_L) * (*q_R - *q_L))
+  }
+  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) < -(*q_R - *q_L) * (*q_R - *q_L)) {
     *q_R = 3.0 * q_i - 2.0 * (*q_L);
+  }
 
   *q_L = fmax(fmin(q_i, q_imo), *q_L);
   *q_L = fmin(fmax(q_i, q_imo), *q_L);

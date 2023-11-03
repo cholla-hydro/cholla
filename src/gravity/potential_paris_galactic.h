@@ -6,11 +6,11 @@
   #include "../model/disk_galaxy.h"
   #include "paris/PoissonZero3DBlockedGPU.hpp"
 
-class Potential_Paris_Galactic
+class PotentialParisGalactic
 {
  public:
-  Potential_Paris_Galactic();
-  ~Potential_Paris_Galactic();
+  PotentialParisGalactic();
+  ~PotentialParisGalactic();
   void Get_Potential(const Real *density, Real *potential, Real g, const DiskGalaxy &galaxy);
   void Initialize(Real lx, Real ly, Real lz, Real xMin, Real yMin, Real zMin, int nx, int ny, int nz, int nxReal,
                   int nyReal, int nzReal, Real dx, Real dy, Real dz);

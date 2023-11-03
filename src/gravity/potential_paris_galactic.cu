@@ -6,7 +6,7 @@
   #include "../io/io.h"
   #include "../utils/gpu.hpp"
 
-Potential_Paris_Galactic::Potential_Paris_Galactic()
+PotentialParisGalactic::PotentialParisGalactic()
     : dn_{0, 0, 0},
       dr_{0, 0, 0},
       lo_{0, 0, 0},
@@ -25,10 +25,10 @@ Potential_Paris_Galactic::Potential_Paris_Galactic()
 {
 }
 
-Potential_Paris_Galactic::~Potential_Paris_Galactic() { Reset(); }
+PotentialParisGalactic::~PotentialParisGalactic() { Reset(); }
 
-void Potential_Paris_Galactic::Get_Potential(const Real *const density, Real *const potential, const Real g,
-                                             const DiskGalaxy &galaxy)
+void PotentialParisGalactic::Get_Potential(const Real *const density, Real *const potential, const Real g,
+                                           const DiskGalaxy &galaxy)
 {
   const Real scale = Real(4) * M_PI * g;
 
@@ -110,10 +110,9 @@ void Potential_Paris_Galactic::Get_Potential(const Real *const density, Real *co
   #endif
 }
 
-void Potential_Paris_Galactic::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin,
-                                          const Real zMin, const int nx, const int ny, const int nz, const int nxReal,
-                                          const int nyReal, const int nzReal, const Real dx, const Real dy,
-                                          const Real dz)
+void PotentialParisGalactic::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin,
+                                        const Real zMin, const int nx, const int ny, const int nz, const int nxReal,
+                                        const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
 {
   const long nl012 = long(nxReal) * long(nyReal) * long(nzReal);
   assert(nl012 <= INT_MAX);
@@ -165,7 +164,7 @@ void Potential_Paris_Galactic::Initialize(const Real lx, const Real ly, const Re
   #endif
 }
 
-void Potential_Paris_Galactic::Reset()
+void PotentialParisGalactic::Reset()
 {
   #ifndef GRAVITY_GPU
   if (dc_) {

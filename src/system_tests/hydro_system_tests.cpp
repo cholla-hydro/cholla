@@ -156,15 +156,21 @@ class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithPa
   system_test::SystemTestRunner waveTest;
 
 #ifdef PCM
-  double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 4E-7;
+  double static constexpr allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 4E-7;
 #elif defined(PLMC)
-  double const allowedL1Error    = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError      = 1E-7;
+  double static constexpr allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 1E-7;
+#elif defined(PLMP)
+  double static constexpr allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 1E-7;
 #elif defined(PPMC)
-  double const allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 2.7E-8;
-#endif  // PCM
+  double static constexpr allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 2.7E-8;
+#elif defined(PPMP)
+  double static constexpr allowedL1Error = 2.7E-8;  // Based on results in Gardiner & Stone 2008
+  double static constexpr allowedError   = 2.7E-8;
+#endif
 
   void Set_Launch_Params(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
                          double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ,

@@ -142,17 +142,17 @@ __global__ void Get_Density_CIC_Kernel(part_int_t n_local, Real particle_mass, R
 }
 
 // Clear the density array: density=0
-void Particles_3D::Clear_Density_GPU_function(Real *density_dev, int n_cells)
+void Particles3D::Clear_Density_GPU_function(Real *density_dev, int n_cells)
 {
   Set_Particles_Array_Real(0.0, density_dev, n_cells);
 }
 
 // Call the CIC density kernel to get the particles density
-void Particles_3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particle_mass, Real xMin, Real xMax, Real yMin,
-                                                Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz,
-                                                int nx_local, int ny_local, int nz_local, int n_ghost_particles_grid,
-                                                int n_cells, Real *density_h, Real *density_dev, Real *pos_x_dev,
-                                                Real *pos_y_dev, Real *pos_z_dev, Real *mass_dev)
+void Particles3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particle_mass, Real xMin, Real xMax, Real yMin,
+                                               Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local,
+                                               int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells,
+                                               Real *density_h, Real *density_dev, Real *pos_x_dev, Real *pos_y_dev,
+                                               Real *pos_z_dev, Real *mass_dev)
 {
   // set values for GPU kernels
   int ngrid = (n_local - 1) / TPB_PARTICLES + 1;

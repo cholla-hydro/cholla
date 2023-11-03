@@ -1807,7 +1807,7 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, UnphysicalValuesExpectAutomaticFix)
 // =========================================================================
 
 // =========================================================================
-// Unit tests for the contents of the mhd::_internal namespace
+// Unit tests for the contents of the mhd::internal namespace
 // =========================================================================
 /*!
  * \brief A struct to hold some basic test values
@@ -1823,7 +1823,7 @@ struct TestParams {
 
   std::vector<double> const magneticX{92.75101068883114, 31.588767769990532};
 
-  std::vector<mhd::_internal::State> stateLVec{
+  std::vector<mhd::internal::State> stateLVec{
       {21.50306776645775, 1.7906564444824999, 0.33040135813215948, 1.500111692877206, 65.751208381099417,
        12.297499156516622, 46.224045698787776, 9.9999999999999995e-21, 5445.3204350339083},
       {48.316634031589935, 0.39291118391272883, 0.69876195899931859, 1.8528943583250035, 38.461354599479826,
@@ -1833,7 +1833,7 @@ struct TestParams {
                 {91.029557388536347, 0.93649399297774782, 0.36277769000180521, 0.095181318599791204, 83.656397841788944,
                  35.910258841630984, 24.052685003977757, 9.9999999999999995e-21, 4491.7524579462979}};
 
-  std::vector<mhd::_internal::StarState> const starStateLVec{
+  std::vector<mhd::internal::StarState> const starStateLVec{
       {28.520995251761526, 1.5746306813243216, 1.3948193325212686, 6.579867455284738, 62.093488291430653,
        62.765890944643196},
       {54.721668215064945, 1.4363926014039052, 1.1515754515491903, 30.450436649083692, 54.279167444036723,
@@ -1845,13 +1845,13 @@ struct TestParams {
 
   std::vector<double> totalPressureStar{66.80958736783934, 72.29644038317676};
 
-  std::vector<mhd::_internal::DoubleStarState> const DoubleStarStateVec{
+  std::vector<mhd::internal::DoubleStarState> const DoubleStarStateVec{
       {0.79104271107837087, 0.97609103551927523, 20.943239839455895, 83.380243826880701, 45.832024557076693,
        std::nan("0")},
       {1.390870320696683, 0.52222643241336986, 83.851481048702098, 80.366712517307832, 55.455301414557297,
        std::nan("0")}};
 
-  std::vector<mhd::_internal::Flux> const flux{
+  std::vector<mhd::internal::Flux> const flux{
       {12.939239309626116, 65.054814649176265, 73.676928455867824, 16.873647595664387, 52.718887319724693,
        58.989284454159673, 29.976925743532302},
       {81.715245865170729, 56.098850697078028, 2.7172469834037871, 39.701329831928732, 81.63926176158796,
@@ -1861,7 +1861,7 @@ struct TestParams {
                {0, 26.812722601652684, 48.349566649914976, 61.228439610525378, 45.432249733131123, 33.053375365947957,
                 15.621020824107379}};
 
-  std::vector<mhd::_internal::Speeds> const speed{
+  std::vector<mhd::internal::Speeds> const speed{
       {-22.40376497145191, -19.710500632936679, -0.81760587897407833, 9.6740190040662242, 24.295526347371595},
       {-11.190385012513822, -4.4880642018724357, -0.026643804611559244, 3.4191202933087519, 12.519790189404299}};
 
@@ -1872,7 +1872,7 @@ struct TestParams {
 
 // =========================================================================
 /*!
- * \brief Test the mhd::_internal::approximateLRWaveSpeeds function
+ * \brief Test the mhd::internal::approximateLRWaveSpeeds function
  *
  */
 TEST(tMHDHlldInternalApproximateLRWaveSpeeds, CorrectInputExpectCorrectOutput)
@@ -1882,7 +1882,7 @@ TEST(tMHDHlldInternalApproximateLRWaveSpeeds, CorrectInputExpectCorrectOutput)
   std::vector<double> const fiducialSpeedR{24.295526347371595, 12.519790189404299};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    mhd::_internal::Speeds testSpeed = mhd::_internal::approximateLRWaveSpeeds(
+    mhd::internal::Speeds testSpeed = mhd::internal::approximateLRWaveSpeeds(
         parameters.stateLVec.at(i), parameters.stateRVec.at(i), parameters.magneticX.at(i), parameters.gamma);
 
     // Now check results
@@ -1894,7 +1894,7 @@ TEST(tMHDHlldInternalApproximateLRWaveSpeeds, CorrectInputExpectCorrectOutput)
 
 // =========================================================================
 /*!
- * \brief Test the mhd::_internal::approximateMiddleWaveSpeed function
+ * \brief Test the mhd::internal::approximateMiddleWaveSpeed function
  *
  */
 TEST(tMHDHlldInternalApproximateMiddleWaveSpeed, CorrectInputExpectCorrectOutput)
@@ -1903,11 +1903,11 @@ TEST(tMHDHlldInternalApproximateMiddleWaveSpeed, CorrectInputExpectCorrectOutput
 
   std::vector<double> const fiducialSpeedM{-0.81760587897407833, -0.026643804611559244};
 
-  mhd::_internal::Speeds testSpeed;
+  mhd::internal::Speeds testSpeed;
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    testSpeed.M = mhd::_internal::approximateMiddleWaveSpeed(parameters.stateLVec.at(i), parameters.stateRVec.at(i),
-                                                             parameters.speed.at(i));
+    testSpeed.M = mhd::internal::approximateMiddleWaveSpeed(parameters.stateLVec.at(i), parameters.stateRVec.at(i),
+                                                            parameters.speed.at(i));
 
     // Now check results
     testing_utilities::Check_Results(fiducialSpeedM.at(i), testSpeed.M, parameters.names.at(i) + ", SpeedM");
@@ -1917,7 +1917,7 @@ TEST(tMHDHlldInternalApproximateMiddleWaveSpeed, CorrectInputExpectCorrectOutput
 
 // =========================================================================
 /*!
- * \brief Test the mhd::_internal::approximateStarWaveSpeed function
+ * \brief Test the mhd::internal::approximateStarWaveSpeed function
  *
  */
 TEST(tMHDHlldInternalApproximateStarWaveSpeed, CorrectInputExpectCorrectOutput)
@@ -1926,13 +1926,13 @@ TEST(tMHDHlldInternalApproximateStarWaveSpeed, CorrectInputExpectCorrectOutput)
   std::vector<double> const fiducialSpeedStarL{-18.18506608966894, -4.2968910457518161};
   std::vector<double> const fiducialSpeedStarR{12.420292938368167, 3.6786718447209252};
 
-  mhd::_internal::Speeds testSpeed;
+  mhd::internal::Speeds testSpeed;
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    testSpeed.LStar = mhd::_internal::approximateStarWaveSpeed(parameters.starStateLVec.at(i), parameters.speed.at(i),
-                                                               parameters.magneticX.at(i), -1);
-    testSpeed.RStar = mhd::_internal::approximateStarWaveSpeed(parameters.starStateRVec.at(i), parameters.speed.at(i),
-                                                               parameters.magneticX.at(i), 1);
+    testSpeed.LStar = mhd::internal::approximateStarWaveSpeed(parameters.starStateLVec.at(i), parameters.speed.at(i),
+                                                              parameters.magneticX.at(i), -1);
+    testSpeed.RStar = mhd::internal::approximateStarWaveSpeed(parameters.starStateRVec.at(i), parameters.speed.at(i),
+                                                              parameters.magneticX.at(i), 1);
 
     // Now check results
     testing_utilities::Check_Results(fiducialSpeedStarL.at(i), testSpeed.LStar,
@@ -1945,22 +1945,21 @@ TEST(tMHDHlldInternalApproximateStarWaveSpeed, CorrectInputExpectCorrectOutput)
 
 // =========================================================================
 /*!
- * \brief Test the mhd::_internal::_nonStarFluxes function
+ * \brief Test the mhd::internal::_nonStarFluxes function
  *
  */
 TEST(tMHDHlldInternalNonStarFluxes, CorrectInputExpectCorrectOutput)
 {
   TestParams const parameters;
 
-  std::vector<mhd::_internal::Flux> fiducialFlux{
+  std::vector<mhd::internal::Flux> fiducialFlux{
       {38.504606872151484, -3088.4810263278778, -1127.8835013070616, -4229.5657456907293, -12344.460641662206,
        -8.6244637840856555, -56.365490339906408},
       {18.984145880030045, 2250.9966820900618, -2000.3517480656785, -1155.8240512956793, -2717.2127176227905,
        2.9729840344910059, -43.716615275067923}};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    mhd::_internal::Flux testFlux =
-        mhd::_internal::nonStarFluxes(parameters.stateLVec.at(i), parameters.magneticX.at(i));
+    mhd::internal::Flux testFlux = mhd::internal::nonStarFluxes(parameters.stateLVec.at(i), parameters.magneticX.at(i));
 
     // Now check results
     testing_utilities::Check_Results(fiducialFlux[i].density, testFlux.density,
@@ -1982,7 +1981,7 @@ TEST(tMHDHlldInternalNonStarFluxes, CorrectInputExpectCorrectOutput)
 
 // =========================================================================
 /*!
- * \brief Test the mhd::_internal::computeStarState function in the
+ * \brief Test the mhd::internal::computeStarState function in the
  * non-degenerate case
  *
  */
@@ -1990,16 +1989,15 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputNonDegenerateExpectCorrectOut
 {
   TestParams const parameters;
 
-  std::vector<mhd::_internal::StarState> fiducialStarState{
-      {24.101290139122913, 1.4626377138501221, 5.7559806612277464, 1023.8840191068900, 18.648382121236992,
-       70.095850905078336},
-      {50.132466596958501, 0.85967712862308099, 1.9480712959548112, 172.06840532772659, 66.595692901872582,
-       39.389537509454122}};
+  std::vector<mhd::internal::StarState> fiducialStarState{{24.101290139122913, 1.4626377138501221, 5.7559806612277464,
+                                                           1023.8840191068900, 18.648382121236992, 70.095850905078336},
+                                                          {50.132466596958501, 0.85967712862308099, 1.9480712959548112,
+                                                           172.06840532772659, 66.595692901872582, 39.389537509454122}};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    mhd::_internal::StarState testStarState =
-        mhd::_internal::computeStarState(parameters.stateLVec.at(i), parameters.speed.at(i), parameters.speed.at(i).L,
-                                         parameters.magneticX.at(i), parameters.totalPressureStar.at(i));
+    mhd::internal::StarState testStarState =
+        mhd::internal::computeStarState(parameters.stateLVec.at(i), parameters.speed.at(i), parameters.speed.at(i).L,
+                                        parameters.magneticX.at(i), parameters.totalPressureStar.at(i));
 
     // Now check results
     testing_utilities::Check_Results(fiducialStarState.at(i).velocityY, testStarState.velocityY,
@@ -2016,7 +2014,7 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputNonDegenerateExpectCorrectOut
 }
 
 /*!
- * \brief Test the mhd::_internal::starFluxes function in the non-degenerate
+ * \brief Test the mhd::internal::starFluxes function in the non-degenerate
  * case
  *
  */
@@ -2024,20 +2022,20 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputNonDegenerateExpectCorrectOutput)
 {
   TestParams const parameters;
 
-  std::vector<mhd::_internal::Flux> fiducialFlux{
+  std::vector<mhd::internal::Flux> fiducialFlux{
       {-45.270724071132321, 1369.1771532285088, -556.91765728768155, -2368.4452742393819, -21413.063415617500,
        -83.294404848633300, -504.84138754248409},
       {61.395380340435793, 283.48596932136809, -101.75517013858293, -51.34364892516212, -1413.4750762739586,
        25.139956754826922, 78.863254638038882}};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    mhd::_internal::StarState testStarState =
-        mhd::_internal::computeStarState(parameters.stateLVec.at(i), parameters.speed.at(i), parameters.speed.at(i).L,
-                                         parameters.magneticX.at(i), parameters.totalPressureStar.at(i));
+    mhd::internal::StarState testStarState =
+        mhd::internal::computeStarState(parameters.stateLVec.at(i), parameters.speed.at(i), parameters.speed.at(i).L,
+                                        parameters.magneticX.at(i), parameters.totalPressureStar.at(i));
 
-    mhd::_internal::Flux testFlux =
-        mhd::_internal::starFluxes(testStarState, parameters.stateLVec.at(i), parameters.flux.at(i),
-                                   parameters.speed.at(i), parameters.speed.at(i).L);
+    mhd::internal::Flux testFlux =
+        mhd::internal::starFluxes(testStarState, parameters.stateLVec.at(i), parameters.flux.at(i),
+                                  parameters.speed.at(i), parameters.speed.at(i).L);
 
     // Now check results
     testing_utilities::Check_Results(fiducialFlux[i].density, testFlux.density,
@@ -2058,7 +2056,7 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputNonDegenerateExpectCorrectOutput)
 }
 
 /*!
- * \brief Test the mhd::_internal::starFluxes function in the degenerate
+ * \brief Test the mhd::internal::starFluxes function in the degenerate
  * case
  *
  */
@@ -2066,7 +2064,7 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputDegenerateExpectCorrectOutput
 {
   TestParams parameters;
 
-  std::vector<mhd::_internal::StarState> fiducialStarState{
+  std::vector<mhd::internal::StarState> fiducialStarState{
       {24.101290139122913, 1.4626377138501221, 5.7559806612277464, 4.5171065808847731e+17, 18.648382121236992,
        70.095850905078336},
       {50.132466596958501, 0.85967712862308099, 1.9480712959548112, 172.06840532772659, 66.595692901872582,
@@ -2077,9 +2075,9 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputDegenerateExpectCorrectOutput
   parameters.stateLVec.at(0).totalPressure *= totalPressureStarMultiplier;
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    mhd::_internal::StarState testStarState =
-        mhd::_internal::computeStarState(parameters.stateLVec.at(i), parameters.speed.at(i), parameters.speed.at(i).L,
-                                         parameters.magneticX.at(i), parameters.totalPressureStar.at(i));
+    mhd::internal::StarState testStarState =
+        mhd::internal::computeStarState(parameters.stateLVec.at(i), parameters.speed.at(i), parameters.speed.at(i).L,
+                                        parameters.magneticX.at(i), parameters.totalPressureStar.at(i));
 
     // Now check results
     testing_utilities::Check_Results(fiducialStarState.at(i).velocityY, testStarState.velocityY,
@@ -2102,7 +2100,7 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputDegenerateExpectCorrectOutput)
   // Used to get us into the degenerate case
   double const totalPressureStarMultiplier = 1E15;
 
-  std::vector<mhd::_internal::Flux> fiducialFlux{
+  std::vector<mhd::internal::Flux> fiducialFlux{
       {-144.2887586578122, 1450.1348804310369, -773.30617492819886, -151.70644305354989, 1378.3797024673304,
        -1056.6283526454272, -340.62268733874163},
       {10.040447333773272, 284.85426012223729, -499.05932057162761, 336.35271628090368, 171.28451793017882,
@@ -2112,9 +2110,9 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputDegenerateExpectCorrectOutput)
   parameters.totalPressureStar.at(1) *= totalPressureStarMultiplier;
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    mhd::_internal::Flux testFlux =
-        mhd::_internal::starFluxes(parameters.starStateLVec.at(i), parameters.stateLVec.at(i), parameters.flux.at(i),
-                                   parameters.speed.at(i), parameters.speed.at(i).L);
+    mhd::internal::Flux testFlux =
+        mhd::internal::starFluxes(parameters.starStateLVec.at(i), parameters.stateLVec.at(i), parameters.flux.at(i),
+                                  parameters.speed.at(i), parameters.speed.at(i).L);
 
     // Now check results
     testing_utilities::Check_Results(fiducialFlux[i].density, testFlux.density,
@@ -2137,7 +2135,7 @@ TEST(tMHDHlldInternalStarFluxes, CorrectInputDegenerateExpectCorrectOutput)
 
 // =========================================================================
 /*!
- * \brief Test the mhd::_internal::computeDoubleStarState function.
+ * \brief Test the mhd::internal::computeDoubleStarState function.
  * Non-degenerate state
  *
  */
@@ -2145,14 +2143,14 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputNonDegenerateExpectCorrectOutp
 {
   TestParams const parameters;
 
-  std::vector<mhd::_internal::DoubleStarState> fiducialState{
+  std::vector<mhd::internal::DoubleStarState> fiducialState{
       {-1.5775383335759607, -3.4914062207842482, 45.259313435283325, 36.670978215630669, -2048.1953674500523,
        1721.0582276783819},
       {3.803188977150934, -4.2662645349592765, 71.787329583230417, 53.189673238238178, -999.79694164635089,
        252.047167522579}};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    mhd::_internal::DoubleStarState const testState = mhd::_internal::computeDoubleStarState(
+    mhd::internal::DoubleStarState const testState = mhd::internal::computeDoubleStarState(
         parameters.starStateLVec.at(i), parameters.starStateRVec.at(i), parameters.magneticX.at(i),
         parameters.totalPressureStar.at(i), parameters.speed.at(i));
 
@@ -2173,7 +2171,7 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputNonDegenerateExpectCorrectOutp
 }
 
 /*!
- * \brief Test the mhd::_internal::computeDoubleStarState function in the
+ * \brief Test the mhd::internal::computeDoubleStarState function in the
  * degenerate state.
  *
  */
@@ -2181,14 +2179,14 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputDegenerateExpectCorrectOutput)
 {
   TestParams const parameters;
 
-  std::vector<mhd::_internal::DoubleStarState> fiducialState{
+  std::vector<mhd::internal::DoubleStarState> fiducialState{
       {1.0519818825796206, 0.68198273634686157, 26.835645069149873, 7.4302316959173442, 0.0, 90.44484278669114},
       {0.61418047569879897, 0.71813570322922715, 98.974446283273181, 10.696380763901459, 0.0, 61.33664731346812}};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    mhd::_internal::DoubleStarState const testState =
-        mhd::_internal::computeDoubleStarState(parameters.starStateLVec.at(i), parameters.starStateRVec.at(i), 0.0,
-                                               parameters.totalPressureStar.at(i), parameters.speed.at(i));
+    mhd::internal::DoubleStarState const testState =
+        mhd::internal::computeDoubleStarState(parameters.starStateLVec.at(i), parameters.starStateRVec.at(i), 0.0,
+                                              parameters.totalPressureStar.at(i), parameters.speed.at(i));
 
     // Now check results
     testing_utilities::Check_Results(fiducialState.at(i).velocityY, testState.velocityY,
@@ -2209,21 +2207,21 @@ TEST(tMHDHlldInternalDoubleStarState, CorrectInputDegenerateExpectCorrectOutput)
 
 // =========================================================================
 /*!
- * \brief Test the mhd::_internal::_doubleStarFluxes function
+ * \brief Test the mhd::internal::_doubleStarFluxes function
  *
  */
 TEST(tMHDHlldInternalDoubleStarFluxes, CorrectInputExpectCorrectOutput)
 {
   TestParams const parameters;
 
-  std::vector<mhd::_internal::Flux> const fiducialFlux{
+  std::vector<mhd::internal::Flux> const fiducialFlux{
       {-144.2887586578122, 1450.1348804310369, -332.80193639987715, 83.687152337186944, 604.70003506833029,
        -245.53635448727721, -746.94190287166407},
       {10.040447333773258, 284.85426012223729, -487.87930516727664, 490.91728596722157, 59.061079503595295,
        30.244176588794346, -466.15336272175193}};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    mhd::_internal::Flux const testFlux = mhd::_internal::computeDoubleStarFluxes(
+    mhd::internal::Flux const testFlux = mhd::internal::computeDoubleStarFluxes(
         parameters.DoubleStarStateVec.at(i), parameters.DoubleStarStateVec.at(i).energyL,
         parameters.starStateLVec.at(i), parameters.stateLVec.at(i), parameters.flux.at(i), parameters.speed.at(i),
         parameters.speed.at(i).L, parameters.speed.at(i).LStar);
@@ -2249,14 +2247,14 @@ TEST(tMHDHlldInternalDoubleStarFluxes, CorrectInputExpectCorrectOutput)
 
 // =========================================================================
 /*!
- * \brief Test the mhd::_internal::_returnFluxes function
+ * \brief Test the mhd::internal::_returnFluxes function
  *
  */
 TEST(tMHDHlldInternalReturnFluxes, CorrectInputExpectCorrectOutput)
 {
   double const dummyValue = 999;
-  mhd::_internal::Flux inputFlux{1, 2, 3, 4, 5, 6, 7};
-  mhd::_internal::State inputState{8, 9, 10, 11, 12, 13, 14, 15, 16};
+  mhd::internal::Flux inputFlux{1, 2, 3, 4, 5, 6, 7};
+  mhd::internal::State inputState{8, 9, 10, 11, 12, 13, 14, 15, 16};
 
   int threadId = 0;
   int n_cells  = 10;
@@ -2307,7 +2305,7 @@ TEST(tMHDHlldInternalReturnFluxes, CorrectInputExpectCorrectOutput)
     int const fiducialMagneticYIndex = threadId + n_cells * (grid_enum::magnetic_x);
     int const fiducialMagneticZIndex = threadId + n_cells * (grid_enum::magnetic_y);
 
-    mhd::_internal::returnFluxes(threadId, o1, o2, o3, n_cells, testFluxArray.data(), inputFlux, inputState);
+    mhd::internal::returnFluxes(threadId, o1, o2, o3, n_cells, testFluxArray.data(), inputFlux, inputState);
 
     // Find the indices for the various fields
     int densityLoc    = findIndex(testFluxArray, inputFlux.density, fiducialDensityIndex, "density");
@@ -2335,7 +2333,7 @@ TEST(tMHDHlldInternalReturnFluxes, CorrectInputExpectCorrectOutput)
 
 // =========================================================================
 /*!
- * \brief Test the mhd::_internal::starTotalPressure function
+ * \brief Test the mhd::internal::starTotalPressure function
  *
  */
 TEST(tMHDHlldInternalStarTotalPressure, CorrectInputExpectCorrectOutput)
@@ -2345,8 +2343,8 @@ TEST(tMHDHlldInternalStarTotalPressure, CorrectInputExpectCorrectOutput)
   std::vector<double> const fiducialPressure{6802.2800807224075, 3476.1984612875144};
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
-    Real const testPressure = mhd::_internal::starTotalPressure(parameters.stateLVec.at(i), parameters.stateRVec.at(i),
-                                                                parameters.speed.at(i));
+    Real const testPressure = mhd::internal::starTotalPressure(parameters.stateLVec.at(i), parameters.stateRVec.at(i),
+                                                               parameters.speed.at(i));
 
     // Now check results
     testing_utilities::Check_Results(fiducialPressure.at(i), testPressure,
@@ -2357,7 +2355,7 @@ TEST(tMHDHlldInternalStarTotalPressure, CorrectInputExpectCorrectOutput)
 
 // =========================================================================
 /*!
- * \brief Test the mhd::_internal::loadState function
+ * \brief Test the mhd::internal::loadState function
  *
  */
 TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
@@ -2368,7 +2366,7 @@ TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
   std::vector<double> interfaceArray(n_cells * grid_enum::num_fields);
   std::iota(std::begin(interfaceArray), std::end(interfaceArray), 1.);
 
-  std::vector<mhd::_internal::State> const fiducialState{
+  std::vector<mhd::internal::State> const fiducialState{
       {1, 11, 21, 31, 41, 51, 61, 9.9999999999999995e-21, 7462.3749918998346},
       {1, 21, 31, 11, 41, 51, 61, 9.9999999999999995e-21, 7462.3749918998346},
       {1, 31, 11, 21, 41, 51, 61, 9.9999999999999995e-21, 7462.3749918998346},
@@ -2394,8 +2392,8 @@ TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
         break;
     }
 
-    mhd::_internal::State const testState = mhd::_internal::loadState(interfaceArray.data(), parameters.magneticX.at(0),
-                                                                      parameters.gamma, threadId, n_cells, o1, o2, o3);
+    mhd::internal::State const testState = mhd::internal::loadState(interfaceArray.data(), parameters.magneticX.at(0),
+                                                                    parameters.gamma, threadId, n_cells, o1, o2, o3);
 
     // Now check results
     testing_utilities::Check_Results(fiducialState.at(direction).density, testState.density, ", Density");

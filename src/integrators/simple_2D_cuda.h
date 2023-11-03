@@ -9,7 +9,7 @@
     #include "../global/global.h"
 
 void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy,
-                              Real xbound, Real ybound, Real dt, int n_fields);
+                              Real xbound, Real ybound, Real dt, int n_fields, int custom_grav);
 
 void Free_Memory_Simple_2D();
 

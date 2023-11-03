@@ -10,7 +10,7 @@
 // #define OUTPUT_SKEWERS_TRANSMITTED_FLUX
 
   #ifdef OUTPUT_SKEWERS
-void Grid3D::Output_Skewers_File(struct parameters *P)
+void Grid3D::Output_Skewers_File(struct Parameters *P)
 {
   FILE *out;
   char filename[180];
@@ -458,7 +458,7 @@ void Grid3D::Write_Skewers_Data_HDF5(hid_t file_id)
 
   #endif  // OUTPUT_SKEWERS
 
-void Grid3D::Output_Analysis(struct parameters *P)
+void Grid3D::Output_Analysis(struct Parameters *P)
 {
   #ifdef OUTPUT_SKEWERS
   Output_Skewers_File(P);
@@ -652,7 +652,7 @@ void Grid3D::Write_Analysis_Data_HDF5(hid_t file_id)
 }
 
   #ifdef COSMOLOGY
-void Analysis_Module::Load_Scale_Outputs(struct parameters *P)
+void AnalysisModule::Load_Scale_Outputs(struct Parameters *P)
 {
   char filename_1[100];
   strcpy(filename_1, P->analysis_scale_outputs_file);
@@ -701,7 +701,7 @@ void Analysis_Module::Load_Scale_Outputs(struct parameters *P)
   n_file = next_output_indx;
 }
 
-void Analysis_Module::Set_Next_Scale_Output()
+void AnalysisModule::Set_Next_Scale_Output()
 {
   int scale_indx = next_output_indx;
   Real a_value, current_a;

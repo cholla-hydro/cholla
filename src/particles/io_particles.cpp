@@ -6,6 +6,7 @@
   #include <unistd.h>
 
   #include <iostream>
+  #include <string>
 
   #include "../global/global.h"
   #include "../grid/grid3D.h"
@@ -21,42 +22,35 @@
 
 // #define OUTPUT_PARTICLES_DATA
 
-void Particles_3D::Load_Particles_Data(struct parameters *P)
+void Particles3D::Load_Particles_Data(struct Parameters *P)
 {
-  char filename[100];
-  char timestep[20];
-  int nfile = P->nfile;  // output step you want to read from
-  char filename_counter[100];
-  // create the filename to read from
-
-  strcpy(filename, P->indir);
-  sprintf(timestep, "%d_particles", nfile);
-  strcat(filename, timestep);
-
-  #if defined BINARY
+  #ifndef HDF5
   chprintf("\nERROR: Particles only support HDF5 outputs\n");
   exit(-1);
-  #elif defined HDF5
-  strcat(filename, ".h5");
   #endif
 
+  // construct the filename to read from
   #ifdef MPI_CHOLLA
     #ifdef TILED_INITIAL_CONDITIONS
-  sprintf(filename, "%sics_%dMpc_%d_particles.h5", P->indir, (int)P->tile_length / 1000,
-          G.nx_local);  // Everyone reads the same file
+  // Every process reads the same file
+  const std::string base_fname =
+      ("ics_" + std::to_string((int)P->tile_length / 1000) + "Mpc_" + std::to_string(G.nx_local) + "_particles.h5");
     #else
-  sprintf(filename, "%s.%d", filename, procID);
+  const int nfile              = P->nfile;  // output step you want to read from
+  const std::string base_fname = (std::to_string(nfile) + "_particles.h5." + std::to_string(procID));
     #endif  // TILED_INITIAL_CONDITIONS
   #endif
 
-  chprintf(" Loading particles file: %s \n", filename);
+  const std::string filename = std::string(P->indir) + base_fname;
+
+  chprintf(" Loading particles file: %s \n", filename.c_str());
 
   #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // open the file
-  file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) {
     printf("Unable to open input file.\n");
     exit(0);
@@ -67,7 +61,7 @@ void Particles_3D::Load_Particles_Data(struct parameters *P)
   #endif
 }
 
-void Grid3D::WriteData_Particles(struct parameters P, int nfile)
+void Grid3D::WriteData_Particles(struct Parameters P, int nfile)
 {
   // Write the particles data to file
   OutputData_Particles(P, nfile);
@@ -75,7 +69,7 @@ void Grid3D::WriteData_Particles(struct parameters P, int nfile)
 
   #ifdef HDF5
 
-void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct parameters *P)
+void Particles3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct Parameters *P)
 {
   int i, j, k, id, buf_id;
   hid_t attribute_id, dataset_id;
@@ -451,12 +445,12 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   Real vy_max_g = vy_max;
   Real vz_max_g = vz_max;
 
-  Real px_min_g        = px_min;
-  Real py_min_g        = py_min;
-  Real pz_min_g        = pz_min;
-  Real vx_min_g        = vx_min;
-  Real vy_min_g        = vy_min;
-  Real vz_min_g        = vz_min;
+  Real px_min_g = px_min;
+  Real py_min_g = py_min;
+  Real pz_min_g = pz_min;
+  Real vx_min_g = vx_min;
+  Real vy_min_g = vy_min;
+  Real vz_min_g = vz_min;
     #endif  // MPI_CHOLLA
 
     // Print initial Statistics
@@ -569,7 +563,7 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
     #ifdef MPI_CHOLLA
   N_particles_total = ReducePartIntSum(Particles.n_local);
     #else
-  N_particles_total    = Particles.n_local;
+  N_particles_total = Particles.n_local;
     #endif
 
   // Print the total particles when saving the particles data
@@ -760,7 +754,7 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
 }
   #endif  // HDF5
 
-void Grid3D::OutputData_Particles(struct parameters P, int nfile)
+void Grid3D::OutputData_Particles(struct Parameters P, int nfile)
 {
   FILE *out;
   char filename[MAXLEN];

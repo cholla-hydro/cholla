@@ -57,25 +57,6 @@ int Sgn(Real x)
   }
 }
 
-#ifndef CUDA
-/*! \fn Real calc_eta(Real cW[], Real gamma)
- *  \brief Calculate the eta value for the H correction. */
-Real Calc_Eta(Real cW[], Real gamma)
-{
-  Real pl, pr, al, ar;
-
-  pl = (cW[8] - 0.5 * (cW[2] * cW[2] + cW[4] * cW[4] + cW[6] * cW[6]) / cW[0]) * (gamma - 1.0);
-  pl = fmax(pl, TINY_NUMBER);
-  pr = (cW[9] - 0.5 * (cW[3] * cW[3] + cW[5] * cW[5] + cW[7] * cW[7]) / cW[1]) * (gamma - 1.0);
-  pr = fmax(pr, TINY_NUMBER);
-
-  al = sqrt(gamma * pl / cW[0]);
-  ar = sqrt(gamma * pr / cW[1]);
-
-  return 0.5 * fabs((cW[3] / cW[1] + ar) - (cW[2] / cW[0] - al));
-}
-#endif  // NO CUDA
-
 /*! \fn char Trim(char *s)
  *  \brief Gets rid of trailing and leading whitespace. */
 char *Trim(char *s)
@@ -119,11 +100,11 @@ int Is_Param_Valid(const char *param_name)
   return 0;
 }
 
-void Parse_Param(char *name, char *value, struct parameters *parms);
+void Parse_Param(char *name, char *value, struct Parameters *parms);
 
-/*! \fn void Parse_Params(char *param_file, struct parameters * parms);
+/*! \fn void Parse_Params(char *param_file, struct Parameters * parms);
  *  \brief Reads the parameters in the given file into a structure. */
-void Parse_Params(char *param_file, struct parameters *parms, int argc, char **argv)
+void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **argv)
 {
   int buf;
   char *s, buff[256];
@@ -186,9 +167,9 @@ void Parse_Params(char *param_file, struct parameters *parms, int argc, char **a
   }
 }
 
-/*! \fn void Parse_Param(char *name,char *value, struct parameters *parms);
+/*! \fn void Parse_Param(char *name,char *value, struct Parameters *parms);
  *  \brief Parses and sets a single param based on name and value. */
-void Parse_Param(char *name, char *value, struct parameters *parms)
+void Parse_Param(char *name, char *value, struct Parameters *parms)
 {
   /* Copy into correct entry in parameters struct */
   if (strcmp(name, "nx") == 0) {
@@ -197,6 +178,10 @@ void Parse_Param(char *name, char *value, struct parameters *parms)
     parms->ny = atoi(value);
   } else if (strcmp(name, "nz") == 0) {
     parms->nz = atoi(value);
+#ifdef STATIC_GRAV
+  } else if (strcmp(name, "custom_grav") == 0) {
+    parms->custom_grav = atoi(value);
+#endif
   } else if (strcmp(name, "tout") == 0) {
     parms->tout = atof(value);
   } else if (strcmp(name, "outstep") == 0) {

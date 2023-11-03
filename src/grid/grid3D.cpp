@@ -18,7 +18,6 @@
 #include "../integrators/simple_3D_cuda.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"
-#include "../utils/ran.h"
 #ifdef MPI_CHOLLA
   #include <mpi.h>
   #ifdef HDF5
@@ -122,7 +121,7 @@ Real Grid3D::Calc_Inverse_Timestep()
 
 /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
  *  \brief Initialize the grid. */
-void Grid3D::Initialize(struct parameters *P)
+void Grid3D::Initialize(struct Parameters *P)
 {
   // number of fields to track (default 5 is # of conserved variables)
   H.n_fields = 5;
@@ -146,6 +145,13 @@ void Grid3D::Initialize(struct parameters *P)
   int nx_in = P->nx;
   int ny_in = P->ny;
   int nz_in = P->nz;
+
+#ifdef STATIC_GRAV
+  H.custom_grav = P->custom_grav;  // Initialize the custom static gravity flag
+  if (H.custom_grav == 0) {
+    printf("WARNING: No custom gravity field given. Gravity field will be set to zero.\n");
+  }
+#endif
 
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
@@ -255,7 +261,7 @@ void Grid3D::Initialize(struct parameters *P)
 #ifdef DENSITY_FLOOR
   H.density_floor = DENS_FLOOR;
 #else
-  H.density_floor     = 0.0;
+  H.density_floor = 0.0;
 #endif
 
 #ifdef TEMPERATURE_FLOOR
@@ -333,8 +339,8 @@ void Grid3D::AllocateMemory(void)
   CudaSafeCall(cudaHostAlloc(&C.Grav_potential, H.n_cells * sizeof(Real), cudaHostAllocDefault));
   CudaSafeCall(cudaMalloc((void **)&C.d_Grav_potential, H.n_cells * sizeof(Real)));
 #else
-  C.Grav_potential    = NULL;
-  C.d_Grav_potential  = NULL;
+  C.Grav_potential   = NULL;
+  C.d_Grav_potential = NULL;
 #endif
 
 #ifdef CHEMISTRY_GPU
@@ -431,10 +437,10 @@ Real Grid3D::Update_Grid(void)
   {
 #ifdef CUDA
   #ifdef VL
-    VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields, H.custom_grav);
   #endif  // VL
   #ifdef SIMPLE
-    Simple_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields);
+    Simple_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields, H.custom_grav);
   #endif                                         // SIMPLE
 #endif                                           // CUDA
   } else if (H.nx > 1 && H.ny > 1 && H.nz == 1)  // 2D
@@ -442,11 +448,11 @@ Real Grid3D::Update_Grid(void)
 #ifdef CUDA
   #ifdef VL
     VL_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
-                         H.n_fields);
+                         H.n_fields, H.custom_grav);
   #endif  // VL
   #ifdef SIMPLE
     Simple_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
-                             H.n_fields);
+                             H.n_fields, H.custom_grav);
   #endif                                        // SIMPLE
 #endif                                          // CUDA
   } else if (H.nx > 1 && H.ny > 1 && H.nz > 1)  // 3D
@@ -454,13 +460,13 @@ Real Grid3D::Update_Grid(void)
 #ifdef CUDA
   #ifdef VL
     VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor,
+                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor, U_floor,
                          C.Grav_potential);
   #endif  // VL
   #ifdef SIMPLE
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, density_floor, U_floor,
-                             C.Grav_potential);
+                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor,
+                             U_floor, C.Grav_potential);
   #endif  // SIMPLE
 #endif
   } else {

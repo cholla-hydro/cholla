@@ -69,7 +69,7 @@ __global__ void Init_State_Kernel(unsigned int seed, FeedbackPrng* states)
  * @param n_local  number of local particles on the GPU
  * @param allocation_factor
  */
-void supernova::initState(struct parameters* P, part_int_t n_local, Real allocation_factor)
+void supernova::initState(struct Parameters* P, part_int_t n_local, Real allocation_factor)
 {
   chprintf("supernova::initState start\n");
   std::string snr_filename(P->snr_filename);

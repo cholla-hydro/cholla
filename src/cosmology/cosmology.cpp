@@ -6,7 +6,7 @@
 
 Cosmology::Cosmology(void) {}
 
-void Cosmology::Initialize(struct parameters *P, Grav3D &Grav, Particles_3D &Particles)
+void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Particles)
 {
   chprintf("Cosmological Simulation\n");
 
