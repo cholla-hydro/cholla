@@ -8,13 +8,12 @@
   #include <tuple>
 
   #include "../global/global.h"
-  #include "../global/global_parallel.h"
   #include "../io/io.h"
   #include "../mpi/cuda_mpi_routines.h"
   #include "../utils/error_handling.h"
 
 /*Global MPI Variables*/
-// note: some relevant global variables are declared in global_parallel.h
+// note: some relevant global variables are declared in global.h
 
 int procID_node; /*process rank on node*/
 int nproc_node;  /*number of MPI processes on node*/
