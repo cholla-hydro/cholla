@@ -634,6 +634,129 @@ void Particles_3D::Initialize_Sphere(struct parameters *P)
   chprintf(" Particles Uniform Sphere Initialized, n_local: %lu\n", n_local);
 }
 
+/* Actualy handles the initialization of stellar cluster particles based on their properties
+ *
+ * \note
+ * Depending on how Cholla is compiled, it may mutate the real_props and int_props arguments.
+ */
+void Particles_3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, real_vector_t> &real_props,
+                                                       std::map<std::string, int_vector_t> &int_props)
+{
+  // come up with a list of expected particle-property names. prop_name_l[i].first indicates the
+  // name of a property and prop_name_l[i].second denotes whether it is Real
+  const std::vector<std::pair<std::string, bool>> expected_prop_l = {
+  #ifdef PARTICLE_AGE
+      {"age", true},
+  #endif
+  #ifndef SINGLE_PARTICLE_MASS
+      {"mass", true},
+  #endif
+  #ifdef PARTICLE_IDS
+      {"id", false},
+  #endif
+      {"pos_x", true}, {"pos_y", true},  {"pos_z", true},  {"vel_x", true}, {"vel_y", true},
+      {"vel_z", true}, {"grav_x", true}, {"grav_y", true}, {"grav_z", true}};
+
+  // Here, we do some self-consistency checks!
+  auto query_prop_len = [](const auto &prop_map, const std::string &name) -> part_int_t {
+    auto rslt = prop_map.find(name);
+    if (rslt == prop_map.end()) return -1;
+    return part_int_t((rslt->second).size());
+  };
+
+  n_local = real_props.at("pos_x").size();
+
+  std::size_t expected_real_prop_count = 0;
+  std::size_t expected_int_prop_count  = 0;
+
+  for (const auto &[name, is_real_prop] : expected_prop_l) {
+    part_int_t cur_size = 0;
+    if (is_real_prop) {
+      expected_real_prop_count++;
+      cur_size = query_prop_len(real_props, name);
+    } else {
+      expected_int_prop_count++;
+      cur_size = query_prop_len(int_props, name);
+    }
+
+    // TODO: start using CHOLLA_ERROR in the following branches!
+    if (cur_size < 0) {
+      std::string type_string = (is_real_prop) ? "Real" : "int";
+      chprintf("Expected the %s property to be specified as a %s-type property", name.c_str(), type_string.c_str());
+      exit(1);
+    } else if (cur_size != n_local) {
+      chprintf("the %s property has a length of %lld. Other properties have a length of %lld", name.c_str(),
+               (long long)(cur_size), (long long)(n_local));
+      exit(1);
+    }
+  }
+
+  if ((expected_int_prop_count != int_props.size()) or (expected_real_prop_count != real_props.size())) {
+    // TODO: start using CHOLLA_ERROR
+    chprintf(
+        "%zu Real particle properties were provided -- %zu were expected. "
+        "%zu integer particle properties were provided -- %zu were expected.",
+        real_props.size(), expected_real_prop_count, int_props.size(), expected_int_prop_count);
+    exit(1);
+  }
+
+  #ifdef PARTICLES_CPU
+  // maybe use std::move in this cases to avoid the heap-allocation
+    #ifdef(PARTICLE_AGE)
+  this->age = real_props.at("age");
+    #endif
+    #ifndef SINGLE_PARTICLE_MASS
+  this->mass = real_props.at("mass");
+    #endif
+    #ifdef PARTICLE_IDS
+  this->partIDs = int_props.at("id");
+    #endif
+  this->pos_x  = real_props.at("pos_x");
+  this->pos_y  = real_props.at("pos_y");
+  this->pos_z  = real_props.at("pos_z");
+  this->vel_x  = real_props.at("vel_x");
+  this->vel_y  = real_props.at("vel_y");
+  this->vel_z  = real_props.at("vel_z");
+  this->grav_x = real_props.at("grav_x");
+  this->grav_y = real_props.at("grav_y");
+  this->grav_z = real_props.at("grav_z");
+  #endif  // PARTICLES_CPU
+
+  #ifdef PARTICLES_GPU
+  particles_array_size = Compute_Particles_GPU_Array_Size(n_local);
+    #ifdef PARTICLE_AGE
+  Allocate_Particles_GPU_Array_Real(&age_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("age").data(), age_dev, n_local);
+    #endif  // PARTICLE_AGE
+    #ifndef SINGLE_PARTICLE_MASS
+  Allocate_Particles_GPU_Array_Real(&mass_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("mass").data(), mass_dev, n_local);
+    #endif  // SINGLE_PARTICLE_MASS
+    #ifdef PARTICLE_IDS
+  Allocate_Particles_GPU_Array_Part_Int(&partIDs_dev, particles_array_size);
+  Copy_Particles_Array_Int_Host_to_Device(int_props.at("id").data(), partIDs_dev, n_local);
+    #endif  // PARTICLE_IDS
+  Allocate_Particles_GPU_Array_Real(&pos_x_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("pos_x").data(), pos_x_dev, n_local);
+  Allocate_Particles_GPU_Array_Real(&pos_y_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("pos_y").data(), pos_y_dev, n_local);
+  Allocate_Particles_GPU_Array_Real(&pos_z_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("pos_z").data(), pos_z_dev, n_local);
+  Allocate_Particles_GPU_Array_Real(&vel_x_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("vel_x").data(), vel_x_dev, n_local);
+  Allocate_Particles_GPU_Array_Real(&vel_y_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("vel_y").data(), vel_y_dev, n_local);
+  Allocate_Particles_GPU_Array_Real(&vel_z_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("vel_z").data(), vel_z_dev, n_local);
+  Allocate_Particles_GPU_Array_Real(&grav_x_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("grav_x").data(), grav_x_dev, n_local);
+  Allocate_Particles_GPU_Array_Real(&grav_y_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("grav_y").data(), grav_y_dev, n_local);
+  Allocate_Particles_GPU_Array_Real(&grav_z_dev, particles_array_size);
+  Copy_Particles_Array_Real_Host_to_Device(real_props.at("grav_z").data(), grav_z_dev, n_local);
+  #endif  // PARTICLES_GPU
+}
+
   #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
 /**
  *   Initializes a disk population of uniform mass stellar clusters
@@ -729,60 +852,15 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
 
   n_local = temp_pos_x.size();
 
-    /*
-      part_int_t global_id_offset = 0;
-      #ifdef MPI_CHOLLA
-      // Get global IDs: Offset the local IDs to get unique global IDs across
-      the MPI ranks chprintf( " Computing Global Particles IDs offset \n" );
-      global_id_offset = Get_Particles_IDs_Global_MPI_Offset( n_local );
-      #endif //MPI_CHOLLA
-      for ( int i=0; i<n_local; i++ ){
-        temp_ids.push_back( i + global_id_offset);
-      }
-      */
+  std::map<std::string, int_vector_t> int_props = {{"id", temp_ids}};
+  std::map<std::string, real_vector_t> real_props = { 
+    {"age", temp_age}, {"mass", temp_mass},
+    {"pos_x", temp_pos_x}, {"pos_y", temp_pos_y}, {"pos_z", temp_pos_z},
+    {"vel_x", temp_vel_x}, {"vel_y", temp_vel_y}, {"vel_z", temp_vel_z},
+    {"grav_x", temp_grav_x}, {"grav_y", temp_grav_y}, {"grav_z", temp_grav_z},
+  };
 
-    #ifdef PARTICLES_CPU
-  pos_x   = temp_pos_x;
-  pos_y   = temp_pos_y;
-  pos_z   = temp_pos_z;
-  vel_x   = temp_vel_x;
-  vel_y   = temp_vel_y;
-  vel_z   = temp_vel_z;
-  grav_x  = temp_grav_x;
-  grav_y  = temp_grav_y;
-  grav_z  = temp_grav_z;
-  mass    = temp_mass;
-  partIDs = temp_ids;
-  age     = temp_age;
-    #endif  // PARTICLES_CPU
-
-    #ifdef PARTICLES_GPU
-  particles_array_size = Compute_Particles_GPU_Array_Size(n_local);
-  Allocate_Particles_GPU_Array_Real(&pos_x_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_pos_x.data(), pos_x_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&pos_y_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_pos_y.data(), pos_y_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&pos_z_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_pos_z.data(), pos_z_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&vel_x_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_vel_x.data(), vel_x_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&vel_y_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_vel_y.data(), vel_y_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&vel_z_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_vel_z.data(), vel_z_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&grav_x_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_grav_x.data(), grav_x_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&grav_y_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_grav_y.data(), grav_y_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&grav_z_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_grav_z.data(), grav_z_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&mass_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_mass.data(), mass_dev, n_local);
-  Allocate_Particles_GPU_Array_Part_Int(&partIDs_dev, particles_array_size);
-  Copy_Particles_Array_Int_Host_to_Device(temp_ids.data(), partIDs_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&age_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(temp_age.data(), age_dev, n_local);
-    #endif  // PARTICLES_GPU
+  this->Initialize_Stellar_Clusters_Helper_(real_props, int_props);
 
   if (lost_particles > 0) {
     chprintf("  lost %lu particles\n", lost_particles);

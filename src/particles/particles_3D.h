@@ -9,6 +9,8 @@
     #include <string.h>
 
     #include <cstdlib>
+    #include <map>
+    #include <string>
 
     #include "../global/global.h"
     #include "../gravity/grav3D.h"
@@ -298,6 +300,9 @@ class Particles_3D
   void Initialize_Grid_Values();
 
   void Initialize_Sphere(struct parameters *P);
+
+  void Initialize_Stellar_Clusters_Helper_(std::map<std::string, real_vector_t> &real_props,
+                                           std::map<std::string, int_vector_t> &int_props);
 
     #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
   void Initialize_Disk_Stellar_Clusters(struct parameters *P);
