@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 // External Includes
@@ -35,12 +36,16 @@ namespace cuda_utilities
  * `data()` method. This class works for any device side pointer, scalar or
  * array valued.
  *
- * \tparam T Any serialized type where `sizeof(T)` returns correct results
- * should work but non-primitive types have not been tested.
+ * \tparam T Any trivially copyable type where `sizeof(T)` returns correct
+ * results should work, but non-primitive types have not been tested.
  */
 template <typename T>
 class DeviceVector
 {
+  static_assert(std::is_trivially_copyable_v<T>,
+                "DeviceVector can only be used with trivially_copyable types due to the internal "
+                "usage of functions like cudaMemcpy, cudaMemcpyPeer, cudaMemset");
+
  public:
   /*!
    * \brief Construct a new Device Vector object by calling the
@@ -59,6 +64,15 @@ class DeviceVector
    *
    */
   ~DeviceVector() { _deAllocate(); }
+
+  /* The following are deleted because they currently lead to invalid state.
+   * (But they can all easily be implemented in the future).
+   */
+  DeviceVector()                                           = delete;
+  DeviceVector(const DeviceVector<T> &)                    = delete;
+  DeviceVector(DeviceVector<T> &&)                         = delete;
+  DeviceVector<T> &operator=(const DeviceVector<T> &other) = delete;
+  DeviceVector<T> &operator=(DeviceVector<T> &&other)      = delete;
 
   /*!
    * \brief Get the raw device pointer
