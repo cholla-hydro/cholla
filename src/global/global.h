@@ -56,8 +56,8 @@ typedef double Real;
 #define LOG_FILE_NAME "run_output.log"
 
 // Conserved Floor Values
-#if defined(FEEDBACK) || defined(STAR_FORMATION)
-  #define TEMP_FLOOR 1e4    // 10K for cloudy cooling
+#if (defined(FEEDBACK) || defined(STAR_FORMATION)) && defined(CLOUDY_COOL)
+  #define TEMP_FLOOR 1e1    // 10K for cloudy cooling
   #define DENS_FLOOR 14.83  // 1e-6 cm^-3
 #else
   #define TEMP_FLOOR 1e-3
