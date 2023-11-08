@@ -202,6 +202,8 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound, R
     Initialize_Zeldovich_Pancake(P);
   } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
+  } else if (strcmp(P->init, "Isolated_Stellar_Cluster") == 0) {
+    Initialize_Isolated_Stellar_Cluster(P);
   #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
   } else if (strcmp(P->init, "Disk_3D_particles") == 0) {
     Initialize_Disk_Stellar_Clusters(P);
@@ -755,6 +757,41 @@ void Particles_3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, rea
   Allocate_Particles_GPU_Array_Real(&grav_z_dev, particles_array_size);
   Copy_Particles_Array_Real_Host_to_Device(real_props.at("grav_z").data(), grav_z_dev, n_local);
   #endif  // PARTICLES_GPU
+}
+
+/* Initializes an isolated stellar cluster
+ */
+void Particles_3D::Initialize_Isolated_Stellar_Cluster(struct parameters *P)
+{
+
+  std::map<std::string, int_vector_t> int_props = {{"id", {}}};
+  std::map<std::string, real_vector_t> real_props = {
+    {"age", {}}, {"mass", {}}, {"pos_x", {}}, {"pos_y", {}}, {"pos_z", {}},
+    {"vel_x", {}}, {"vel_y", {}}, {"vel_z", {}},
+    {"grav_x", {}}, {"grav_y", {}}, {"grav_z", {}},
+  };
+
+  const double nominal_x = 0.0;
+  const double nominal_y = 0.0;
+  const double nominal_z = 0.0;
+
+  if (((G.xMin <= nominal_x) and (nominal_x < G.xMax)) and
+      ((G.yMin <= nominal_y) and (nominal_y < G.yMax)) and
+      ((G.zMin <= nominal_z) and (nominal_z < G.zMax))) {
+    int_props.at("id").push_back(0);
+    real_props.at("age").push_back(-1e4); // 10 Myr (when positive, stars haven't formed yet)
+    real_props.at("mass").push_back(2e4); // in solar masses I think this is reasonable?
+    real_props.at("pos_x").push_back(nominal_x);
+    real_props.at("pos_y").push_back(nominal_y);
+    real_props.at("pos_z").push_back(nominal_z);
+    const std::vector<std::string> axis_l = {"x", "y", "z"};
+    for (const std::string& axis : axis_l) {
+      real_props.at("vel_" + axis).push_back(0.0);
+      real_props.at("grav_" + axis).push_back(0.0);
+    }
+  }
+
+  this->Initialize_Stellar_Clusters_Helper_(real_props, int_props);
 }
 
   #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)

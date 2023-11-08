@@ -304,6 +304,8 @@ class Particles_3D
   void Initialize_Stellar_Clusters_Helper_(std::map<std::string, real_vector_t> &real_props,
                                            std::map<std::string, int_vector_t> &int_props);
 
+  void Initialize_Isolated_Stellar_Cluster(struct parameters *P);
+
     #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
   void Initialize_Disk_Stellar_Clusters(struct parameters *P);
     #endif
