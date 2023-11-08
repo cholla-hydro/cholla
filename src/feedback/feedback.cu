@@ -14,6 +14,7 @@
   #include "../global/global_cuda.h"
   #include "../grid/grid3D.h"
   #include "../io/io.h"
+  #include "../feedback/s99table.h"
   #include "feedback.h"
 
   #define FEED_INFO_N     8
@@ -139,40 +140,19 @@ void feedback::Init_State(struct parameters* P)
   if (not snr_filename.empty()) {
     chprintf("Specified a SNR filename %s.\n", snr_filename.data());
 
+    feedback::S99Table tab = parse_s99_table(snr_filename, feedback::S99TabKind::supernova);
+    const std::size_t time_col = tab.col_index("TIME");
+    const std::size_t rate_col = tab.col_index("ALL SUPERNOVAE: TOTAL RATE");
+    const std::size_t nrows = tab.nrows();
+
     // read in array of supernova rate values.
-    std::ifstream snr_in(snr_filename);
-    if (!snr_in.is_open()) {
-      chprintf("ERROR: but couldn't read SNR file.\n");
-      exit(-1);
-    }
+    std::vector<Real> snr_time(nrows);
+    std::vector<Real> snr(nrows);
 
-    std::vector<Real> snr_time;
-    std::vector<Real> snr;
-
-    const int N_HEADER    = 7;    // S'99 has 7 rows of header information
-    const char* s99_delim = " ";  // S'99 data separator
-    std::string line;
-    int line_counter = 0;
-
-    while (snr_in.good()) {
-      std::getline(snr_in, line);
-      if (line_counter++ < N_HEADER) continue;  // skip header processing
-
-      int i      = 0;
-      char* data = strtok(line.data(), s99_delim);
-      while (data != nullptr) {
-        if (i == 0) {
-          // in the following divide by # years per kyr (1000)
-          snr_time.push_back(std::stof(std::string(data)) / 1000);
-        } else if (i == 1) {
-          snr.push_back(pow(10, std::stof(std::string(data))) * 1000 / S_99_TOTAL_MASS);
-        }
-        if (i > 0)
-          break;  // only care about the first 2 items.  Once i = 1 can break
-                  // here.
-        data = strtok(nullptr, s99_delim);
-        i++;
-      }
+    for (std::size_t i = 0; i < nrows; i++){
+                // in the following divide by # years per kyr (1000)
+      snr_time[i] = tab(time_col, i) / 1000;
+      snr[i] = pow(10,tab(rate_col, i)) * 1000 / S_99_TOTAL_MASS;
     }
 
     time_sn_end   = snr_time[snr_time.size() - 1];
