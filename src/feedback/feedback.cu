@@ -150,7 +150,7 @@ void feedback::Init_State(struct parameters* P)
     std::vector<Real> snr(nrows);
 
     for (std::size_t i = 0; i < nrows; i++){
-                // in the following divide by # years per kyr (1000)
+      // in the following divide by # years per kyr (1000)
       snr_time[i] = tab(time_col, i) / 1000;
       snr[i] = pow(10,tab(rate_col, i)) * 1000 / S_99_TOTAL_MASS;
     }
@@ -186,50 +186,24 @@ void feedback::Init_Wind_State(struct parameters* P)
   chprintf("Init_Wind_State start\n");
   std::string sw_filename(P->sw_filename);
   if (sw_filename.empty()) {
-    chprintf("must specify a stellar wind file.\n");
-    exit(-1);
+    CHOLLA_ERROR("must specify a stellar wind file.\n");
   }
 
-  chprintf("Specified a stellar wind filename %s.\n", sw_filename.data());
+  feedback::S99Table tab = parse_s99_table(sw_filename, feedback::S99TabKind::stellar_wind);
 
-  // read in array of supernova rate values.
-  std::ifstream sw_in(sw_filename);
-  if (!sw_in.is_open()) {
-    chprintf("ERROR: couldn't read stellar wind file.\n");
-    exit(-1);
-  }
+  const std::size_t COL_TIME       = tab.col_index("TIME");
+  const std::size_t COL_POWER      = tab.col_index("POWER: ALL");
+  const std::size_t COL_ALL_P_FLUX = tab.col_index("MOMENTUM FLUX: ALL");
+  const std::size_t nrows          = tab.nrows();
 
-  std::vector<Real> sw_time;
-  std::vector<Real> sw_p;
-  std::vector<Real> sw_e;
+  std::vector<Real> sw_time(nrows);
+  std::vector<Real> sw_p(nrows);
+  std::vector<Real> sw_e(nrows);
 
-  const int N_HEADER_LINES = 7;  // S'99 has 7 rows of header information
-  const int COL_TIME       = 0;
-  const int COL_POWER      = 1;
-  const int COL_ALL_P_FLUX = 7;
-
-  const char* s99_delim = " ";  // S'99 data separator
-  std::string line;
-  int line_counter = 0;
-
-  while (sw_in.good()) {
-    std::getline(sw_in, line);
-    if (line_counter++ < N_HEADER_LINES) continue;  // skip header processing
-
-    int i      = 0;
-    char* data = strtok(line.data(), s99_delim);
-    while (data != nullptr) {
-      if (i == COL_TIME) {
-        // in the following divide by # years per kyr (1000)
-        sw_time.push_back(std::stof(std::string(data)) / 1000);
-      } else if (i == COL_POWER) {
-        sw_e.push_back(std::stof(std::string(data)));
-      } else if (i == COL_ALL_P_FLUX) {
-        sw_p.push_back(std::stof(std::string(data)));
-      }
-      data = strtok(nullptr, s99_delim);
-      i++;
-    }
+  for (std::size_t i = 0; i < nrows; i++){
+    sw_time[i] = tab(COL_TIME, i) / 1000;  // divide by # years per kyr (1000)
+    sw_e[i]    = tab(COL_POWER, i);
+    sw_p[i]    = tab(COL_ALL_P_FLUX, i);
   }
 
   time_sw_end   = sw_time[sw_time.size() - 1];
