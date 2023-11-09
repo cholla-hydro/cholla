@@ -871,7 +871,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
   // syntax sets all entries to 0 -- important if a process has no particles
   // (this is valid C++ syntax, but historically wasn't valid C syntax)
   Real h_info[FEED_INFO_N] = {};
-  int time_direction, ngrid;
+  int ngrid;
   Real *d_dti, *d_info;
   // require d_prev_dens in case we have to undo feedback if the time
   // step is too large.
@@ -903,36 +903,26 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        G.H.n_step);
   }
 
-  int loop_counter = 0;
+  if (G.Particles.n_local > 0) {
+    // always reset d_info to 0 since otherwise do/while looping could add
+    // values that should have been reverted.
+    cudaMemset(d_info, 0, FEED_INFO_N * sizeof(Real));
+    cudaMemset(d_dti, 0, sizeof(Real));
+    hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
+                       G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
+                       G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
+                       G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
+                       G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti, d_info, G.C.d_density, gama, d_prev_dens,
+                       1, dev_snr, snr_dt, time_sn_start, time_sn_end, dev_sw_p, dev_sw_e, sw_dt,
+                       time_sw_start, time_sw_end, G.H.n_step, 1);
 
-  {
-    time_direction = 1;
-    loop_counter++;
-
-    if (G.Particles.n_local > 0) {
-      // always reset d_info to 0 since otherwise do/while looping could add
-      // values that should have been reverted.
-      cudaMemset(d_info, 0, FEED_INFO_N * sizeof(Real));
-      cudaMemset(d_dti, 0, sizeof(Real));
-      hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
-                         G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
-                         G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
-                         G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
-                         G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti, d_info, G.C.d_density, gama, d_prev_dens,
-                         time_direction, dev_snr, snr_dt, time_sn_start, time_sn_end, dev_sw_p, dev_sw_e, sw_dt,
-                         time_sw_start, time_sw_end, G.H.n_step, loop_counter);
-
-      CHECK(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
-    }
+    CHECK(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
+  }
 
   #ifdef MPI_CHOLLA
-    h_dti = ReduceRealMax(h_dti);
-    MPI_Barrier(world);
+  h_dti = ReduceRealMax(h_dti);
+  MPI_Barrier(world);
   #endif  // MPI_CHOLLA
-    if (h_dti != 0) {
-      chprintf("+++++++  feed dt = %.12e, H.dt = %.12e\n", C_cfl / h_dti, G.H.dt);
-    }
-  }
 
   if (G.Particles.n_local > 0) {
     // There was previously a comment here stating "TODO reduce cluster mass",
@@ -943,11 +933,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
                        G.H.nz, G.H.n_ghost, G.H.n_step, G.H.t, G.H.dt, dev_snr, snr_dt, time_sn_start, time_sn_end,
                        dev_sw_p, dev_sw_e, sw_dt, time_sw_start, time_sw_end);
-  }
 
-  chprintf("*******  looped %d time(s)\n", loop_counter);
-
-  if (G.Particles.n_local > 0) {
     // copy summary data back to the host
     CHECK(cudaMemcpy(&h_info, d_info, FEED_INFO_N * sizeof(Real), cudaMemcpyDeviceToHost));
 
