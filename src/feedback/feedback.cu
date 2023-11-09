@@ -858,8 +858,7 @@ __global__ void Set_Ave_Density_Kernel(part_int_t n_local, Real* pos_x_dev, Real
  * @param analysis
  * @return Real
  */
-Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis,
-                                const bool disable_rewind)
+Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
 {
   #ifdef CPU_TIME
   G.Timer.Feedback.Start();
@@ -880,6 +879,9 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis,
 
   // only apply feedback if we have clusters
   if (G.Particles.n_local > 0) {
+
+    // TODO: start using device vector for these quantities
+
     CHECK(cudaMalloc(&d_dti, sizeof(Real)));
     CHECK(cudaMemcpy(d_dti, &h_dti, sizeof(Real), cudaMemcpyHostToDevice));
     CHECK(cudaMalloc(&d_prev_dens, G.Particles.n_local * sizeof(Real)));
@@ -903,7 +905,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis,
 
   int loop_counter = 0;
 
-  do {
+  {
     time_direction = 1;
     loop_counter++;
 
@@ -930,28 +932,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis,
     if (h_dti != 0) {
       chprintf("+++++++  feed dt = %.12e, H.dt = %.12e\n", C_cfl / h_dti, G.H.dt);
     }
-
-    if ((not disable_rewind) and (h_dti != 0) and (C_cfl / h_dti < G.H.dt)) {
-      // timestep too big: need to undo the last operation
-      time_direction = -1;
-      if (G.Particles.n_local > 0) {
-        hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
-                           G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
-                           G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
-                           G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
-                           G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti, d_info, G.C.d_density, gama, d_prev_dens,
-                           time_direction, dev_snr, snr_dt, time_sn_start, time_sn_end, dev_sw_p, dev_sw_e, sw_dt,
-                           time_sw_start, time_sw_end, G.H.n_step, loop_counter);
-
-        CHECK(cudaDeviceSynchronize());
-      }
-
-      G.H.dt = C_cfl / h_dti;
-      if (loop_counter > 2) {  // avoid excessive looping
-        G.H.dt = 0.9 * C_cfl / h_dti;
-      }
-    }
-  } while (time_direction == -1);
+  }
 
   if (G.Particles.n_local > 0) {
     // There was previously a comment here stating "TODO reduce cluster mass",

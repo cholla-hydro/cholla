@@ -40,8 +40,7 @@ void Init_State(struct parameters* P);
   #ifndef NO_WIND_FEEDBACK
 void Init_Wind_State(struct parameters* P);
   #endif
-Real Cluster_Feedback(Grid3D& G, FeedbackAnalysis& sn_analysis,
-                      const bool disable_rewind);
+Real Cluster_Feedback(Grid3D& G, FeedbackAnalysis& sn_analysis);
 }  // namespace feedback
 
 #endif  // PARTICLES_GPU && FEEDBACK
