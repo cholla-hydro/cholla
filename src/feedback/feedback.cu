@@ -858,7 +858,8 @@ __global__ void Set_Ave_Density_Kernel(part_int_t n_local, Real* pos_x_dev, Real
  * @param analysis
  * @return Real
  */
-Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
+Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis,
+                                const bool disable_rewind)
 {
   #ifdef CPU_TIME
   G.Timer.Feedback.Start();
@@ -927,7 +928,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
       chprintf("+++++++  feed dt = %.12e, H.dt = %.12e\n", C_cfl / h_dti, G.H.dt);
     }
 
-    if (h_dti != 0 && (C_cfl / h_dti < G.H.dt)) {
+    if ((not disable_rewind) and (h_dti != 0) and (C_cfl / h_dti < G.H.dt)) {
       // timestep too big: need to undo the last operation
       time_direction = -1;
       if (G.Particles.n_local > 0) {

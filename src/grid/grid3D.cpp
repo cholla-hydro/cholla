@@ -483,9 +483,7 @@ void Grid3D::Execute_Hydro_Integrator(void)
 #endif  // CPU_TIME
 }
 
-/*! \fn void Update_Hydro_Grid(void)
- *  \brief Do all steps to update the hydro. */
-Real Grid3D::Update_Hydro_Grid()
+Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D&)>& feedback_callback)
 {
 #ifdef ONLY_PARTICLES
   // Don't integrate the Hydro when only solving for particles
@@ -503,6 +501,10 @@ Real Grid3D::Update_Hydro_Grid()
 #endif  // GRAVITY
 
   Execute_Hydro_Integrator();
+
+  if (feedback_callback){
+    feedback_callback(*this);
+  }
 
   // == Perform chemistry/cooling (there are a few different cases) ==
 

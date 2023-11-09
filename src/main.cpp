@@ -159,6 +159,8 @@ int main(int argc, char *argv[])
   }
 #endif
 
+std::function<void(Grid3D&)> feedback_callback;
+
 #if defined(FEEDBACK) && defined(PARTICLE_AGE)
   FeedbackAnalysis sn_analysis(G, &P);
   #ifndef NO_SN_FEEDBACK
@@ -167,6 +169,7 @@ int main(int argc, char *argv[])
   #ifndef NO_WIND_FEEDBACK
   feedback::Init_Wind_State(&P);
   #endif
+  feedback_callback = [&sn_analysis](Grid3D& G) {feedback::Cluster_Feedback(G, sn_analysis, true);};
 #endif  // FEEDBACK && PARTICLE_AGE
 
 #ifdef STAR_FORMATION
@@ -254,10 +257,6 @@ int main(int argc, char *argv[])
       G.H.dt = outtime - G.H.t;
     }
 
-#if defined(FEEDBACK) && defined(PARTICLE_AGE)
-    feedback::Cluster_Feedback(G, sn_analysis);
-#endif  // FEEDBACK && PARTICLE_AGE
-
 #ifdef PARTICLES
     // Advance the particles KDK( first step ): Velocities are updated by 0.5*dt
     // and positions are updated by dt
@@ -267,7 +266,7 @@ int main(int argc, char *argv[])
 #endif
 
     // Advance the grid by one timestep
-    dti = G.Update_Hydro_Grid();
+    dti = G.Update_Hydro_Grid(feedback_callback);
 
     // update the simulation time ( t += dt )
     G.Update_Time();
