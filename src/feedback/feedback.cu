@@ -14,6 +14,7 @@
   #include "../global/global_cuda.h"
   #include "../grid/grid3D.h"
   #include "../io/io.h"
+  #include "../utils/DeviceVector.h"
   #include "../feedback/s99table.h"
   #include "feedback.h"
 
@@ -856,17 +857,15 @@ __global__ void Set_Ave_Density_Kernel(part_int_t n_local, Real* pos_x_dev, Real
  *
  * @param G
  * @param analysis
- * @return Real
  */
-Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
+void feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
 {
   #ifdef CPU_TIME
   G.Timer.Feedback.Start();
   #endif
 
-  if (G.H.dt == 0) return 0.0;
+  if (G.H.dt == 0) return;
 
-  Real h_dti = 0.0;
   // h_info is used to store feedback summary info on the host. The following
   // syntax sets all entries to 0 -- important if a process has no particles
   // (this is valid C++ syntax, but historically wasn't valid C syntax)
@@ -874,31 +873,20 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
 
   // only apply feedback if we have clusters
   if (G.Particles.n_local > 0) {
-    // Define devide pointers for holding the:
-    // - inverse-timestep computed after the hydro-fields are updated
-    // - the buffer used to track the summary information about feed back
-    // - the average density around each particle (before applying feedback)
-    Real *d_dti, *d_info, *d_prev_dens;
+    // Declare/allocate device buffer for accumulating summary information about feedback
+    cuda_utilities::DeviceVector<Real> d_info(FEED_INFO_N, true);  // initialized to 0
 
-    // d_dti and d_prev_dens are only defined for historical reasons.
-    // -> Previously we added feedback before computing the hydro timestep and
-    //    we needed to rewind the effect if it made the hydro timestep too large
-    // -> d_dti was needed to track the updated timestep
-    // -> d_prev_dens was needed to track the original density around each star
-    //    particle - this value needed to persist between kernel calls. Now we
-    //    could consolidate these kernel calls and could probably forgo this
-    //    variable
-
-    // TODO: start using device vector for these quantities
-
-    CHECK(cudaMalloc(&d_dti, sizeof(Real)));
-    CHECK(cudaMemcpy(d_dti, &h_dti, sizeof(Real), cudaMemcpyHostToDevice));
-    CHECK(cudaMalloc(&d_prev_dens, G.Particles.n_local * sizeof(Real)));
-    CHECK(cudaMemset(d_prev_dens, 0, G.Particles.n_local * sizeof(Real)));
+    // Declare/allocate device buffers for d_dti and d_prev_dens. These only exist for historical
+    // reasons. Previously we added feedback after computing the hydro timestep and we needed to
+    // rewind the effect and try again if it made the minimum hydro timestep too large
+    // -> d_dti was needed to track hydro-timestep that would be computed after applying feedback
+    // -> it's not totally clear what d_prev_dens was for (previously, I thought it was for
+    //    recording the average density around each particle, but that's wrong)
+    cuda_utilities::DeviceVector<Real> d_dti(1, true);  // initialized to 0
+    cuda_utilities::DeviceVector<Real> d_prev_dens(G.Particles.n_local, true);  // initialized to 0
 
     // I have no idea what ngrid is used for...
     int ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
-    CHECK(cudaMalloc((void**)&d_info, FEED_INFO_N * sizeof(Real)));
 
     // before applying feedback, set gas density around clusters to the
     // average value from the 27 neighboring cells.  We don't want to
@@ -911,19 +899,17 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        G.C.d_density, dev_snr, snr_dt, time_sn_start, time_sn_end, time_sw_start, time_sw_end,
                        G.H.n_step);
 
-    // set d_info to 0 since d_info is used for accumulation
-    cudaMemset(d_info, 0, FEED_INFO_N * sizeof(Real));
-    cudaMemset(d_dti, 0, sizeof(Real));
+    CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemset)
+
     hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
                        G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
                        G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
-                       G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti, d_info, G.C.d_density, gama, d_prev_dens,
-                       1, dev_snr, snr_dt, time_sn_start, time_sn_end, dev_sw_p, dev_sw_e, sw_dt,
+                       G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti.data(), d_info.data(), G.C.d_density, gama, 
+                       d_prev_dens.data(), 1, dev_snr, snr_dt, time_sn_start, time_sn_end, dev_sw_p, dev_sw_e, sw_dt,
                        time_sw_start, time_sw_end, G.H.n_step, 1);
 
-    // the following line is probably not necessary (unless its causing a crucial synchronization)
-    CHECK(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
+    CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemcpy)
 
     // There was previously a comment here stating "TODO reduce cluster mass",
     // but we're already  doing this here, right?
@@ -935,12 +921,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        dev_sw_p, dev_sw_e, sw_dt, time_sw_start, time_sw_end);
 
     // copy summary data back to the host
-    CHECK(cudaMemcpy(&h_info, d_info, FEED_INFO_N * sizeof(Real), cudaMemcpyDeviceToHost));
-
-    // CLEAN UP ALLOCATIONS:
-    CHECK(cudaFree(d_dti));
-    CHECK(cudaFree(d_info));
-    CHECK(cudaFree(d_prev_dens));
+    CHECK(cudaMemcpy(&h_info, d_info.data(), FEED_INFO_N * sizeof(Real), cudaMemcpyDeviceToHost));
   }
 
   // now gather the feedback summary info into an array called info.
@@ -998,8 +979,6 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
   #ifdef CPU_TIME
   G.Timer.Feedback.End();
   #endif
-
-  return h_dti;
 }
 
 #endif  // FEEDBACK & PARTICLES_GPU & PARTICLE_IDS & PARTICLE_AGE
