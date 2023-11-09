@@ -868,9 +868,11 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis,
   if (G.H.dt == 0) return 0.0;
 
   Real h_dti = 0.0;
+  // h_info is used to store feedback summary info on the host. The following
+  // syntax sets all entries to 0 -- important if a process has no particles
+  // (this is valid C++ syntax, but historically wasn't valid C syntax)
+  Real h_info[FEED_INFO_N] = {};
   int time_direction, ngrid;
-  Real h_info[FEED_INFO_N] = {0, 0, 0, 0, 0, 0, 0, 0};
-  Real info[FEED_INFO_N];
   Real *d_dti, *d_info;
   // require d_prev_dens in case we have to undo feedback if the time
   // step is too large.
@@ -883,6 +885,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis,
     CHECK(cudaMalloc(&d_prev_dens, G.Particles.n_local * sizeof(Real)));
     CHECK(cudaMemset(d_prev_dens, 0, G.Particles.n_local * sizeof(Real)));
 
+    // I have no idea what ngrid is used for...
     ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
     CHECK(cudaMalloc((void**)&d_info, FEED_INFO_N * sizeof(Real)));
 
@@ -950,8 +953,9 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis,
     }
   } while (time_direction == -1);
 
-  // TODO reduce cluster mass
   if (G.Particles.n_local > 0) {
+    // There was previously a comment here stating "TODO reduce cluster mass",
+    // but we're already  doing this here, right?
     hipLaunchKernelGGL(Adjust_Cluster_Mass_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
                        G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev, G.Particles.age_dev,
                        G.Particles.mass_dev, G.Particles.partIDs_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
@@ -959,29 +963,25 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis,
                        G.H.nz, G.H.n_ghost, G.H.n_step, G.H.t, G.H.dt, dev_snr, snr_dt, time_sn_start, time_sn_end,
                        dev_sw_p, dev_sw_e, sw_dt, time_sw_start, time_sw_end);
   }
-  /*
-  part_int_t n_local, Real* pos_x_dev,
-  Real* pos_y_dev, Real* pos_z_dev, Real* age_dev, Real* mass_dev,
-  part_int_t* id_dev, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax,
-  Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g,
-  int n_ghost, int n_step, Real t, Real dt, Real* dev_snr,
-  Real snr_dt, Real time_sn_start, Real time_sn_end,
-  Real* dev_sw_p, Real* dev_sw_e, Real sw_dt, Real time_sw_start,
-  Real time_sw_end*/
 
   chprintf("*******  looped %d time(s)\n", loop_counter);
 
   if (G.Particles.n_local > 0) {
+    // copy summary data back to the host
     CHECK(cudaMemcpy(&h_info, d_info, FEED_INFO_N * sizeof(Real), cudaMemcpyDeviceToHost));
+
+    // CLEAN UP ALLOCATIONS:
     CHECK(cudaFree(d_dti));
     CHECK(cudaFree(d_info));
     CHECK(cudaFree(d_prev_dens));
   }
 
+  // now gather the feedback summary info into an array called info.
   #ifdef MPI_CHOLLA
+  Real info[FEED_INFO_N];
   MPI_Reduce(&h_info, &info, FEED_INFO_N, MPI_CHREAL, MPI_SUM, root, world);
   #else
-  info = h_info;
+  Real* info = h_info;
   #endif
 
   #ifdef MPI_CHOLLA  // only do stats gathering on root rank
