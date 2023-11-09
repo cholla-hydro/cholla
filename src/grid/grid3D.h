@@ -9,6 +9,7 @@
 #endif /*MPI_CHOLLA*/
 
 #include <stdio.h>
+#include <functional>
 
 #include "../global/global.h"
 #include "../global/global_cuda.h"
@@ -452,8 +453,13 @@ class Grid3D
   void Execute_Hydro_Integrator(void);
 
   /*! \fn void Update_Hydro_Grid(void)
-   *  \brief Do all steps to update the hydro. */
-  Real Update_Hydro_Grid(void);
+   *  \brief Do all steps to update the hydro.
+   *
+   *  \param feedback_callback is a crude way to optionally provide a feedback
+   *  function that is invoked after the hydro-integrator, but before
+   *  heating/cooling/chemistry
+   */
+  Real Update_Hydro_Grid(std::function<void(Grid3D&)>& feedback_callback);
 
   void Update_Time();
   /*! \fn void Write_Header_Text(FILE *fp)
