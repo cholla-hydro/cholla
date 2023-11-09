@@ -871,14 +871,23 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
   // syntax sets all entries to 0 -- important if a process has no particles
   // (this is valid C++ syntax, but historically wasn't valid C syntax)
   Real h_info[FEED_INFO_N] = {};
-  int ngrid;
-  Real *d_dti, *d_info;
-  // require d_prev_dens in case we have to undo feedback if the time
-  // step is too large.
-  Real* d_prev_dens;
 
   // only apply feedback if we have clusters
   if (G.Particles.n_local > 0) {
+    // Define devide pointers for holding the:
+    // - inverse-timestep computed after the hydro-fields are updated
+    // - the buffer used to track the summary information about feed back
+    // - the average density around each particle (before applying feedback)
+    Real *d_dti, *d_info, *d_prev_dens;
+
+    // d_dti and d_prev_dens are only defined for historical reasons.
+    // -> Previously we added feedback before computing the hydro timestep and
+    //    we needed to rewind the effect if it made the hydro timestep too large
+    // -> d_dti was needed to track the updated timestep
+    // -> d_prev_dens was needed to track the original density around each star
+    //    particle - this value needed to persist between kernel calls. Now we
+    //    could consolidate these kernel calls and could probably forgo this
+    //    variable
 
     // TODO: start using device vector for these quantities
 
@@ -888,7 +897,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
     CHECK(cudaMemset(d_prev_dens, 0, G.Particles.n_local * sizeof(Real)));
 
     // I have no idea what ngrid is used for...
-    ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
+    int ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
     CHECK(cudaMalloc((void**)&d_info, FEED_INFO_N * sizeof(Real)));
 
     // before applying feedback, set gas density around clusters to the
@@ -901,11 +910,8 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_ghost, G.H.t, G.H.dt,
                        G.C.d_density, dev_snr, snr_dt, time_sn_start, time_sn_end, time_sw_start, time_sw_end,
                        G.H.n_step);
-  }
 
-  if (G.Particles.n_local > 0) {
-    // always reset d_info to 0 since otherwise do/while looping could add
-    // values that should have been reverted.
+    // set d_info to 0 since d_info is used for accumulation
     cudaMemset(d_info, 0, FEED_INFO_N * sizeof(Real));
     cudaMemset(d_dti, 0, sizeof(Real));
     hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
@@ -916,15 +922,9 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        1, dev_snr, snr_dt, time_sn_start, time_sn_end, dev_sw_p, dev_sw_e, sw_dt,
                        time_sw_start, time_sw_end, G.H.n_step, 1);
 
+    // the following line is probably not necessary (unless its causing a crucial synchronization)
     CHECK(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
-  }
 
-  #ifdef MPI_CHOLLA
-  h_dti = ReduceRealMax(h_dti);
-  MPI_Barrier(world);
-  #endif  // MPI_CHOLLA
-
-  if (G.Particles.n_local > 0) {
     // There was previously a comment here stating "TODO reduce cluster mass",
     // but we're already  doing this here, right?
     hipLaunchKernelGGL(Adjust_Cluster_Mass_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
