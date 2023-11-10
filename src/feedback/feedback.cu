@@ -15,6 +15,7 @@
   #include "../grid/grid3D.h"
   #include "../io/io.h"
   #include "../utils/DeviceVector.h"
+  #include "../feedback/ratecalc.h"
   #include "../feedback/s99table.h"
   #include "feedback.h"
 
@@ -34,8 +35,6 @@
   #define S_99_TOTAL_MASS 1e6
 
   #define TPB_FEEDBACK 128
-  // seed for poisson random number generator
-  #define FEEDBACK_SEED 42
 
 namespace feedback
 {
@@ -280,48 +279,6 @@ __device__ Real Get_Wind_Mass(Real flux, Real power)
   return flux * flux / power / 2;
 }
 
-/**
- * @brief returns SNR from starburst 99 (or default analytical rate).
- *        Time is in kyr.  Does a basic interpolation of S'99 table
- *        values.
- *
- * @param t   The cluster age.
- * @param dev_snr  device array with rate info
- * @param snr_dt  time interval between table data.  Constant value.
- * @param t_start cluster age when SNR is greater than zero.
- * @param t_end   cluster age when SNR drops to zero.
- * @return double number of SNe per kyr per solar mass
- */
-__device__ Real Get_SN_Rate(Real t, Real* dev_snr, Real snr_dt, Real t_start, Real t_end)
-{
-  if (t < t_start || t >= t_end) return 0;
-  if (dev_snr == nullptr) return feedback::DEFAULT_SNR;
-
-  int index = (int)((t - t_start) / snr_dt);
-  return dev_snr[index] + (t - index * snr_dt) * (dev_snr[index + 1] - dev_snr[index]) / snr_dt;
-}
-
-/**
- * @brief Get an actual number of SNe given the expected number.
- * Both the simulation step number and cluster ID is used to
- * set the state of the random number generator in a unique and
- * deterministic way.
- *
- * @param ave_num_sn expected number of SN, based on cluster
- * age, mass and time step.
- * @param n_step sim step number
- * @param cluster_id
- * @return number of supernovae
- */
-inline __device__ int Get_Number_Of_SNe_In_Cluster(Real ave_num_sn, int n_step, part_int_t cluster_id)
-{
-  feedback_prng_t state;
-  curand_init(FEEDBACK_SEED, 0, 0, &state);
-  unsigned long long skip = n_step * 10000 + cluster_id;
-  skipahead(skip, &state);  // provided by curand
-  return (int)curand_poisson(&state, ave_num_sn);
-}
-
 __device__ Real Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin, Real dx, Real dy,
                                   Real dz, int nx_g, int ny_g, int n_ghost, int n_cells, Real gamma,
                                   Real* conserved_device, short time_direction, Real feedback_density,
@@ -473,8 +430,8 @@ __device__ Real Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real po
 
 __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev, Real xMin,
                             Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
-                            int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt, Real* dti, Real* dev_snr,
-                            Real snr_dt, Real time_sn_start, Real time_sn_end, Real* prev_dens, short time_direction,
+                            int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt, Real* dti, 
+                            const feedback::SNRateCalc snr_calc, Real* prev_dens, short time_direction,
                             Real* s_info, Real* conserved_dev, Real gamma, int loop, int indx_x, int indx_y, int indx_z)
 {
   int tid  = threadIdx.x;
@@ -485,8 +442,8 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
   Real local_dti = 0.0;
   int n_cells    = nx_g * ny_g * nz_g;
 
-  Real average_num_sn = Get_SN_Rate(age, dev_snr, snr_dt, time_sn_start, time_sn_end) * mass_dev[gtid] * dt;
-  int N               = Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]) * time_direction;
+  Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
+  int N               = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]) * time_direction;
   /*
   if (gtid == 0) {
     kernel_printf("SNUMBER n_step: %d, id: %lld, N: %d\n", n_step, id_dev[gtid], N);
@@ -591,8 +548,8 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
                                         Real* age_dev, Real* mass_dev, part_int_t* id_dev, Real xMin, Real yMin,
                                         Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
                                         int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt, Real* dti,
-                                        Real* dev_snr, Real snr_dt, Real time_sn_start, Real time_sn_end,
-                                        Real* prev_dens, Real* dev_sw_p, Real* dev_sw_e, Real sw_dt, Real time_sw_start,
+                                        const feedback::SNRateCalc snr_calc, Real* prev_dens, Real* dev_sw_p,
+                                        Real* dev_sw_e, Real sw_dt, Real time_sw_start,
                                         Real time_sw_end, short time_direction, Real* s_info, Real* conserved_dev,
                                         Real gamma, int loop)
 {
@@ -637,7 +594,7 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
   if (time_direction > 0) {
     if (is_sn_feedback)
       SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
-                  ny_g, nz_g, n_ghost, n_step, t, dt, dti, dev_snr, snr_dt, time_sn_start, time_sn_end, prev_dens,
+                  ny_g, nz_g, n_ghost, n_step, t, dt, dti, snr_calc, prev_dens,
                   time_direction, s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
     if (is_wd_feedback)
       Wind_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
@@ -650,7 +607,7 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
                     time_direction, s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
     if (is_sn_feedback)
       SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
-                  ny_g, nz_g, n_ghost, n_step, t, dt, dti, dev_snr, snr_dt, time_sn_start, time_sn_end, prev_dens,
+                  ny_g, nz_g, n_ghost, n_step, t, dt, dti, snr_calc, prev_dens,
                   time_direction, s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
   }
 
@@ -661,9 +618,9 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
                                         Real* pos_z_dev, Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin,
                                         Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g,
                                         int nz_g, int n_ghost, Real t, Real dt, Real* dti, Real* info, Real* density,
-                                        Real gamma, Real* prev_dens, short time_direction, Real* dev_snr, Real snr_dt,
-                                        Real time_sn_start, Real time_sn_end, Real* dev_sw_p, Real* dev_sw_e,
-                                        Real sw_dt, Real time_sw_start, Real time_sw_end, int n_step, int loop)
+                                        Real gamma, Real* prev_dens, short time_direction, const feedback::SNRateCalc snr_calc,
+                                        Real* dev_sw_p, Real* dev_sw_e, Real sw_dt, Real time_sw_start, Real time_sw_end,
+                                        int n_step, int loop)
 {
   int tid = threadIdx.x;
 
@@ -679,8 +636,8 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
   s_info[FEED_INFO_N * tid + 7] = 0;  // wind energy added
 
   Cluster_Feedback_Helper(n_local, pos_x_dev, pos_y_dev, pos_z_dev, age_dev, mass_dev, id_dev, xMin, yMin, zMin, xMax,
-                          yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, dti, dev_snr, snr_dt,
-                          time_sn_start, time_sn_end, prev_dens, dev_sw_p, dev_sw_e, sw_dt, time_sw_start, time_sw_end,
+                          yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, dti, snr_calc, prev_dens,
+                          dev_sw_p, dev_sw_e, sw_dt, time_sw_start, time_sw_end,
                           time_direction, s_info, density, gamma, loop);
 
   __syncthreads();
@@ -717,9 +674,8 @@ __global__ void Adjust_Cluster_Mass_Kernel(part_int_t n_local, Real* pos_x_dev, 
                                            Real* age_dev, Real* mass_dev, part_int_t* id_dev, Real xMin, Real yMin,
                                            Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz,
                                            int nx_g, int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                                           Real* dev_snr, Real snr_dt, Real time_sn_start, Real time_sn_end,
-                                           Real* dev_sw_p, Real* dev_sw_e, Real sw_dt, Real time_sw_start,
-                                           Real time_sw_end)
+                                           const feedback::SNRateCalc snr_calc, Real* dev_sw_p, Real* dev_sw_e,
+                                           Real sw_dt, Real time_sw_start, Real time_sw_end)
 {
   int tid  = threadIdx.x;
   int gtid = blockIdx.x * blockDim.x + tid;
@@ -748,8 +704,8 @@ __global__ void Adjust_Cluster_Mass_Kernel(part_int_t n_local, Real* pos_x_dev, 
   Real age = t - age_dev[gtid];
 
   #ifndef NO_SN_FEEDBACK
-  Real average_num_sn = Get_SN_Rate(age, dev_snr, snr_dt, time_sn_start, time_sn_end) * mass_dev[gtid] * dt;
-  int N               = Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
+  Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
+  int N               = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
   mass_dev[gtid] -= N * feedback::MASS_PER_SN;
   #endif
 
@@ -779,8 +735,8 @@ __device__ void Set_Average_Density(int indx_x, int indx_y, int indx_z, int nx_g
 __global__ void Set_Ave_Density_Kernel(part_int_t n_local, Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev,
                                        Real* mass_dev, Real* age_dev, part_int_t* id_dev, Real xMin, Real yMin,
                                        Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
-                                       int ny_g, int nz_g, int n_ghost, Real t, Real dt, Real* density, Real* dev_snr,
-                                       Real snr_dt, Real time_sn_start, Real time_sn_end, Real time_sw_start,
+                                       int ny_g, int nz_g, int n_ghost, Real t, Real dt, Real* density,
+                                       const feedback::SNRateCalc snr_calc, Real time_sw_start,
                                        Real time_sw_end, int n_step)
 {
   int tid  = threadIdx.x;
@@ -828,9 +784,9 @@ __global__ void Set_Ave_Density_Kernel(part_int_t n_local, Real* pos_x_dev, Real
     }
   }
   if (is_sn_feedback) {
-    if (time_sn_start <= age && age <= time_sn_end) {
-      Real average_num_sn = Get_SN_Rate(age, dev_snr, snr_dt, time_sn_start, time_sn_end) * mass_dev[gtid] * dt;
-      int N               = Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
+    if (snr_calc.nonzero_sn_probability(age)) {
+      Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
+      int N               = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
       /*
       if (gtid == 0) {
         kernel_printf("AVEDENS n_step: %d, id: %lld, N: %d\n", n_step, id_dev[gtid], N);
@@ -873,6 +829,9 @@ void feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
 
   // only apply feedback if we have clusters
   if (G.Particles.n_local > 0) {
+    // package up supernova rate information into object responsible for calculation
+    feedback::SNRateCalc snr_calc(dev_snr, snr_dt, time_sn_start, time_sn_end);
+
     // Declare/allocate device buffer for accumulating summary information about feedback
     cuda_utilities::DeviceVector<Real> d_info(FEED_INFO_N, true);  // initialized to 0
 
@@ -896,7 +855,7 @@ void feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        G.Particles.pos_y_dev, G.Particles.pos_z_dev, G.Particles.mass_dev, G.Particles.age_dev,
                        G.Particles.partIDs_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal, G.H.xblocal_max, G.H.yblocal_max,
                        G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_ghost, G.H.t, G.H.dt,
-                       G.C.d_density, dev_snr, snr_dt, time_sn_start, time_sn_end, time_sw_start, time_sw_end,
+                       G.C.d_density, snr_calc, time_sw_start, time_sw_end,
                        G.H.n_step);
 
     CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemset)
@@ -906,7 +865,7 @@ void feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
                        G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti.data(), d_info.data(), G.C.d_density, gama, 
-                       d_prev_dens.data(), 1, dev_snr, snr_dt, time_sn_start, time_sn_end, dev_sw_p, dev_sw_e, sw_dt,
+                       d_prev_dens.data(), 1, snr_calc, dev_sw_p, dev_sw_e, sw_dt,
                        time_sw_start, time_sw_end, G.H.n_step, 1);
 
     CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemcpy)
@@ -917,7 +876,7 @@ void feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev, G.Particles.age_dev,
                        G.Particles.mass_dev, G.Particles.partIDs_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
-                       G.H.nz, G.H.n_ghost, G.H.n_step, G.H.t, G.H.dt, dev_snr, snr_dt, time_sn_start, time_sn_end,
+                       G.H.nz, G.H.n_ghost, G.H.n_step, G.H.t, G.H.dt, snr_calc,
                        dev_sw_p, dev_sw_e, sw_dt, time_sw_start, time_sw_end);
 
     // copy summary data back to the host
