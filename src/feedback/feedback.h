@@ -3,15 +3,6 @@
 
   #include "../analysis/feedback_analysis.h"
   #include "../global/global.h"
-  #ifdef O_HIP
-    #include <hiprand.h>
-    #include <hiprand_kernel.h>
-  #else
-    #include <curand.h>
-    #include <curand_kernel.h>
-  #endif  // O_HIP
-
-typedef curandStateMRG32k3a_t feedback_prng_t;
 
 namespace feedback
 {
