@@ -22,6 +22,12 @@ typedef curandStateMRG32k3a_t feedback_prng_t;
 // seed for poisson random number generator
 #define FEEDBACK_SEED 42
 
+// the starburst 99 total stellar mass input
+// stellar wind momentum fluxes and SN rates
+// must be divided by this to get per solar
+// mass values.
+#define S_99_TOTAL_MASS 1e6
+
 namespace feedback
 {
 
@@ -89,6 +95,80 @@ private: // attributes
   Real time_sn_end_ = 0.0;
 };
 
+
+/* Class responsible for computing stellar-wind rates
+ *
+ * @note
+ * These were pretty much extracted directly from feedback.cu. There's a chance that there are some
+ * logical errors in these functions. In particular, the way we have been using the Wind_Flux and
+ * Wind_Power to update gas-momentum and gas-energy is inconsistent.
+ */
+struct SWRateCalc {
+
+  __host__ __device__ SWRateCalc(Real *dev_sw_p, Real* dev_sw_e, Real dt, Real t_start, Real t_end)
+    : dev_sw_p_(dev_sw_p), dev_sw_e_(dev_sw_e), sw_dt_(dt), time_sw_start_(t_start), time_sw_end_(t_end)
+  { }
+
+  /* Get the Starburst 99 stellar wind momentum flux per solar mass.
+   *
+   * @param t cluster age in kyr
+   * @return flux (in Cholla force units) per solar mass.
+   */
+  inline __device__ Real Get_Wind_Flux(Real t) const
+  {
+    if ((t < time_sw_start_) or (t >= time_sw_end_)) return 0;
+
+    int index        = (int)((t - time_sw_start_) / sw_dt_);
+    Real log_p_dynes = (dev_sw_p_[index] + (t - index * sw_dt_) *
+                        (dev_sw_p_[index + 1] - dev_sw_p_[index]) / sw_dt_);
+    return pow(10, log_p_dynes) / FORCE_UNIT / S_99_TOTAL_MASS;
+  }
+
+  /* Get the Starburst 99 stellar wind emitted power per solar mass.
+   *
+   * @param t cluster age in kyr
+   * @return power (in Cholla units) per solar mass.
+   */
+  inline __device__ Real Get_Wind_Power(Real t) const
+  {
+    if ((t < time_sw_start_) or (t >= time_sw_end_)) return 0;
+
+    int index  = (int)((t - time_sw_start_) / sw_dt_);
+    Real log_e = (dev_sw_e_[index] + (t - index * sw_dt_) *
+                  (dev_sw_e_[index + 1] - dev_sw_e_[index]) / sw_dt_);
+    Real e     = pow(10, log_e) / (MASS_UNIT * VELOCITY_UNIT * VELOCITY_UNIT) * TIME_UNIT / S_99_TOTAL_MASS;
+    return e;
+  }
+
+  /* Get the mass flux associated with stellar wind momentum flux and stellar wind power scaled per
+   * cluster mass.
+   *
+   * @param flux
+   * @return mass flux in g/s per solar mass
+   */
+  static __device__ Real Get_Wind_Mass(Real flux, Real power)
+  {
+    if ((flux <= 0) or (power <= 0)) return 0;
+    return flux * flux / power / 2;
+  }
+
+  inline __device__ bool is_active(Real age) const
+  {
+    return (time_sw_start_ <= age) and (age <= time_sw_end_);
+  }
+
+private: // attributes
+  /* device array of log base 10 momentum flux values in dynes. */
+  Real *dev_sw_p_ = nullptr;
+  /* device array of log base 10 power (erg/s) */
+  Real *dev_sw_e_ = nullptr;
+  /* time interval between table data points in kyr. */
+  Real sw_dt_ = 0.0;
+  /* cluster age when flux becomes non-negligible (kyr). */
+  Real time_sw_start_ = 0.0;
+  /* cluster age when stellar winds turn off (kyr). */
+  Real time_sw_end_ = 0.0;
+};
 
 } // namespace
 
