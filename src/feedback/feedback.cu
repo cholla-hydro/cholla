@@ -227,7 +227,7 @@ __device__ void Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real po
 __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev, Real xMin,
                             Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
                             int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                            const feedback::SNRateCalc snr_calc, Real* prev_dens,
+                            const feedback::SNRateCalc snr_calc,
                             Real* s_info, Real* conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
 {
   int tid  = threadIdx.x;
@@ -250,7 +250,6 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
     Real n_0;
     Real* density             = conserved_dev;
     n_0                       = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
-    prev_dens[gtid]           = n_0;
     s_info[FEED_INFO_N * tid] = 1. * N;
 
     feedback_energy  = N * feedback::ENERGY_PER_SN / dV;
@@ -326,7 +325,7 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
                                         Real* age_dev, Real* mass_dev, part_int_t* id_dev, Real xMin, Real yMin,
                                         Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
                                         int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                                        const feedback::SNRateCalc snr_calc, Real* prev_dens, const feedback::SWRateCalc sw_calc,
+                                        const feedback::SNRateCalc snr_calc, const feedback::SWRateCalc sw_calc,
                                         Real* s_info, Real* conserved_dev, Real gamma)
 {
   int tid  = threadIdx.x;
@@ -367,7 +366,7 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
 
   if (is_sn_feedback)
     SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
-                ny_g, nz_g, n_ghost, n_step, t, dt, snr_calc, prev_dens,
+                ny_g, nz_g, n_ghost, n_step, t, dt, snr_calc,
                 s_info, conserved_dev, gamma, indx_x, indx_y, indx_z);
   if (is_wd_feedback)
     Wind_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
@@ -381,7 +380,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
                                         Real* pos_z_dev, Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin,
                                         Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g,
                                         int nz_g, int n_ghost, Real t, Real dt, Real* info, Real* density,
-                                        Real gamma, Real* prev_dens, const feedback::SNRateCalc snr_calc,
+                                        Real gamma, const feedback::SNRateCalc snr_calc,
                                         const feedback::SWRateCalc sw_calc, int n_step)
 {
   int tid = threadIdx.x;
@@ -398,7 +397,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
   s_info[FEED_INFO_N * tid + 7] = 0;  // wind energy added
 
   Cluster_Feedback_Helper(n_local, pos_x_dev, pos_y_dev, pos_z_dev, age_dev, mass_dev, id_dev, xMin, yMin, zMin, xMax,
-                          yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, snr_calc, prev_dens,
+                          yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, snr_calc,
                           sw_calc, s_info, density, gamma);
 
   __syncthreads();
@@ -598,13 +597,6 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
     // Declare/allocate device buffer for accumulating summary information about feedback
     cuda_utilities::DeviceVector<Real> d_info(FEED_INFO_N, true);  // initialized to 0
 
-    // Declare/allocate device buffer for d_prev_dens. This only exists for historical
-    // reasons. Previously we added feedback after computing the hydro timestep and we needed to
-    // rewind the effect and try again if it made the minimum hydro timestep too large. It's not
-    // totally clear what this buffer was used for (previously, I thought it was for
-    //    recording the average density around each particle, but that's wrong)
-    cuda_utilities::DeviceVector<Real> d_prev_dens(G.Particles.n_local, true);  // initialized to 0
-
     // I have no idea what ngrid is used for...
     int ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
 
@@ -625,7 +617,7 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
                        G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
                        G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_info.data(), G.C.d_density, gama, 
-                       d_prev_dens.data(), snr_calc_, sw_calc_, G.H.n_step);
+                       snr_calc_, sw_calc_, G.H.n_step);
 
     CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemcpy)
 
