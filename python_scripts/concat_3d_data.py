@@ -8,7 +8,7 @@ script like this:
 ```
 import sys
 sys.path.append('/PATH/TO/CHOLLA/python_scripts')
-import cat_dset_3D
+import concat_3d_data
 ```
 """
 
