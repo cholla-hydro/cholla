@@ -228,7 +228,7 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
                             Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
                             int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
                             const feedback::SNRateCalc snr_calc, Real* prev_dens,
-                            Real* s_info, Real* conserved_dev, Real gamma, int loop, int indx_x, int indx_y, int indx_z)
+                            Real* s_info, Real* conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
 {
   int tid  = threadIdx.x;
   int gtid = blockIdx.x * blockDim.x + tid;
@@ -287,7 +287,7 @@ __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real
                               Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy,
                               Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
                               const feedback::SWRateCalc sw_calc, Real* s_info,
-                              Real* conserved_dev, Real gamma, int loop, int indx_x, int indx_y, int indx_z)
+                              Real* conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
 {
   int tid  = threadIdx.x;
   int gtid = blockIdx.x * blockDim.x + tid;
@@ -327,7 +327,7 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
                                         Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
                                         int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt, Real* dti,
                                         const feedback::SNRateCalc snr_calc, Real* prev_dens, const feedback::SWRateCalc sw_calc,
-                                        Real* s_info, Real* conserved_dev, Real gamma, int loop)
+                                        Real* s_info, Real* conserved_dev, Real gamma)
 {
   int tid  = threadIdx.x;
   int gtid = blockIdx.x * blockDim.x + tid;
@@ -368,11 +368,11 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
   if (is_sn_feedback)
     SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
                 ny_g, nz_g, n_ghost, n_step, t, dt, snr_calc, prev_dens,
-                s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
+                s_info, conserved_dev, gamma, indx_x, indx_y, indx_z);
   if (is_wd_feedback)
     Wind_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
                   ny_g, nz_g, n_ghost, n_step, t, dt, sw_calc,
-                  s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
+                  s_info, conserved_dev, gamma, indx_x, indx_y, indx_z);
 
   return;
 }
@@ -382,7 +382,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
                                         Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g,
                                         int nz_g, int n_ghost, Real t, Real dt, Real* dti, Real* info, Real* density,
                                         Real gamma, Real* prev_dens, const feedback::SNRateCalc snr_calc,
-                                        const feedback::SWRateCalc sw_calc, int n_step, int loop)
+                                        const feedback::SWRateCalc sw_calc, int n_step)
 {
   int tid = threadIdx.x;
 
@@ -399,7 +399,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
 
   Cluster_Feedback_Helper(n_local, pos_x_dev, pos_y_dev, pos_z_dev, age_dev, mass_dev, id_dev, xMin, yMin, zMin, xMax,
                           yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, dti, snr_calc, prev_dens,
-                          sw_calc, s_info, density, gamma, loop);
+                          sw_calc, s_info, density, gamma);
 
   __syncthreads();
 
@@ -627,7 +627,7 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
                        G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
                        G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti.data(), d_info.data(), G.C.d_density, gama, 
-                       d_prev_dens.data(), snr_calc_, sw_calc_, G.H.n_step, 1);
+                       d_prev_dens.data(), snr_calc_, sw_calc_, G.H.n_step);
 
     CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemcpy)
 
