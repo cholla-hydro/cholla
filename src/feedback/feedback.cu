@@ -744,13 +744,18 @@ __global__ void Set_Ave_Density_Kernel(part_int_t n_local, Real* pos_x_dev, Real
   }
 }
 
+feedback::ClusterFeedbackMethod::ClusterFeedbackMethod(struct parameters& P, FeedbackAnalysis& analysis)
+  : analysis(analysis),
+    snr_calc_(dev_snr, snr_dt, time_sn_start, time_sn_end),
+    sw_calc_(dev_sw_p, dev_sw_e, sw_dt, time_sw_start, time_sw_end)
+{ }
+
 /**
  * @brief Stellar feedback function (SNe and stellar winds)
  *
  * @param G
- * @param analysis
  */
-void feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
+void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
 {
   #ifdef CPU_TIME
   G.Timer.Feedback.Start();
@@ -765,10 +770,6 @@ void feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
 
   // only apply feedback if we have clusters
   if (G.Particles.n_local > 0) {
-    // package up supernova rate information into object responsible for calculation
-    feedback::SNRateCalc snr_calc(dev_snr, snr_dt, time_sn_start, time_sn_end);
-    // package up stellar-wind rate information into object responsible for calculation
-    feedback::SWRateCalc sw_calc(dev_sw_p, dev_sw_e, sw_dt, time_sw_start, time_sw_end);
 
     // Declare/allocate device buffer for accumulating summary information about feedback
     cuda_utilities::DeviceVector<Real> d_info(FEED_INFO_N, true);  // initialized to 0
@@ -793,7 +794,7 @@ void feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        G.Particles.pos_y_dev, G.Particles.pos_z_dev, G.Particles.mass_dev, G.Particles.age_dev,
                        G.Particles.partIDs_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal, G.H.xblocal_max, G.H.yblocal_max,
                        G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_ghost, G.H.t, G.H.dt,
-                       G.C.d_density, snr_calc, sw_calc, G.H.n_step);
+                       G.C.d_density, snr_calc_, sw_calc_, G.H.n_step);
 
     CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemset)
 
@@ -802,7 +803,7 @@ void feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
                        G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti.data(), d_info.data(), G.C.d_density, gama, 
-                       d_prev_dens.data(), 1, snr_calc, sw_calc, G.H.n_step, 1);
+                       d_prev_dens.data(), 1, snr_calc_, sw_calc_, G.H.n_step, 1);
 
     CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemcpy)
 
@@ -812,7 +813,7 @@ void feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                        G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev, G.Particles.age_dev,
                        G.Particles.mass_dev, G.Particles.partIDs_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
-                       G.H.nz, G.H.n_ghost, G.H.n_step, G.H.t, G.H.dt, snr_calc, sw_calc);
+                       G.H.nz, G.H.n_ghost, G.H.n_step, G.H.t, G.H.dt, snr_calc_, sw_calc_);
 
     // copy summary data back to the host
     CHECK(cudaMemcpy(&h_info, d_info.data(), FEED_INFO_N * sizeof(Real), cudaMemcpyDeviceToHost));

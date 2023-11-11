@@ -169,7 +169,7 @@ std::function<void(Grid3D&)> feedback_callback;
   #ifndef NO_WIND_FEEDBACK
   feedback::Init_Wind_State(&P);
   #endif
-  feedback_callback = [&sn_analysis](Grid3D& G) {feedback::Cluster_Feedback(G, sn_analysis);};
+  feedback_callback = feedback::ClusterFeedbackMethod(P, sn_analysis);
 #endif  // FEEDBACK && PARTICLE_AGE
 
 #ifdef STAR_FORMATION

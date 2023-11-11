@@ -3,13 +3,12 @@
 
   #include "../analysis/feedback_analysis.h"
   #include "../global/global.h"
+  #include "../feedback/ratecalc.h"
 
 namespace feedback
 {
 const int SN = 0, RESOLVED = 1, NOT_RESOLVED = 2, ENERGY = 3, MOMENTUM = 4, UNRES_ENERGY = 5;
 
-// supernova rate: 1SN / 100 solar masses per 36 Myr
-static const Real DEFAULT_SNR   = 2.8e-7;
 static const Real ENERGY_PER_SN = 1e51 / MASS_UNIT * TIME_UNIT * TIME_UNIT / LENGTH_UNIT / LENGTH_UNIT;
 // 10 solarMasses per SN
 static const Real MASS_PER_SN = 10.0;
@@ -31,7 +30,23 @@ void Init_State(struct parameters* P);
   #ifndef NO_WIND_FEEDBACK
 void Init_Wind_State(struct parameters* P);
   #endif
-void Cluster_Feedback(Grid3D& G, FeedbackAnalysis& sn_analysis);
+
+struct ClusterFeedbackMethod {
+
+  // at this precise moment this constructor should only be called after Init_State and
+  // Init_Wind_State have been called (this is just a temporary quirk)
+  ClusterFeedbackMethod(struct parameters& P, FeedbackAnalysis& analysis);
+
+  /* Actually apply the stellar feedback (SNe and stellar winds) */
+  void operator() (Grid3D& G);
+
+private: // attributes
+
+  FeedbackAnalysis& analysis;
+  SNRateCalc snr_calc_;
+  SWRateCalc sw_calc_;
+};
+
 }  // namespace feedback
 
 #endif  // PARTICLES_GPU && FEEDBACK

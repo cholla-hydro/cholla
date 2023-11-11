@@ -1,8 +1,6 @@
 #ifndef FEEDBACK_RATECALC_H
 #define FEEDBACK_RATECALC_H
 
-#include "../feedback/feedback.h"
-
 #ifdef O_HIP
   #include <hiprand.h>
   #include <hiprand_kernel.h>
@@ -13,8 +11,8 @@
 
 typedef curandStateMRG32k3a_t feedback_prng_t;
 
-
-// This declares classes that encapsulate calculations of SN rates and the rate of SW deposition
+// This header declares classes that encapsulate calculations of SN rates and the rate of SW
+// deposition
 //
 // Currently, they don't convey ownership over the required data. But the plan is to eventually
 // add support for that
@@ -28,8 +26,13 @@ typedef curandStateMRG32k3a_t feedback_prng_t;
 // mass values.
 #define S_99_TOTAL_MASS 1e6
 
-namespace feedback
-{
+namespace feedback{
+  // supernova rate: 1SN / 100 solar masses per 36 Myr
+  static const Real DEFAULT_SNR   = 2.8e-7;
+
+
+  extern Real *dev_snr, snr_dt, time_sn_end, time_sn_start;
+  extern Real *dev_sw_p, *dev_sw_e, sw_dt, time_sw_start, time_sw_end;
 
 struct SNRateCalc {
 
