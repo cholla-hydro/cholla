@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Python script for concatenating slice hdf5 datasets for when -DSLICES is turned
-on in Cholla. Includes a CLI for concatenating Cholla HDF5 datasets and can be
-imported into other scripts where the `concat_slice` function can be used to
-concatenate the HDF5 files.
+Python script for concatenating 2D hdf5 datasets for when -DSLICES,
+-DPROJECTION, or -DROTATED_PROJECTION is turned on in Cholla. Includes a CLI for
+concatenating Cholla HDF5 datasets and can be imported into other scripts where
+the `concat_2d_dataset` function can be used to concatenate the HDF5 files.
 
 Generally the easiest way to import this script is to add the `python_scripts`
 directory to your python path in your script like this:
@@ -22,19 +22,20 @@ import numpy as np
 from cat_dset_3D import copy_header, common_cli
 
 # ==============================================================================
-def concat_slice(source_directory: pathlib.Path,
-                 output_directory: pathlib.Path,
-                 num_processes: int,
-                 output_number: int,
-                 concat_xy: bool = True,
-                 concat_yz: bool = True,
-                 concat_xz: bool = True,
-                 skip_fields: list = [],
-                 destination_dtype: np.dtype = None,
-                 compression_type: str = None,
-                 compression_options: str = None,
-                 chunking = None):
-  """Concatenate slice HDF5 Cholla datasets. i.e. take the single files
+def concat_2d_dataset(source_directory: pathlib.Path,
+                      output_directory: pathlib.Path,
+                      num_processes: int,
+                      output_number: int,
+                      dataset_kind: str,
+                      concat_xy: bool = True,
+                      concat_yz: bool = True,
+                      concat_xz: bool = True,
+                      skip_fields: list = [],
+                      destination_dtype: np.dtype = None,
+                      compression_type: str = None,
+                      compression_options: str = None,
+                      chunking = None):
+  """Concatenate 2D HDF5 Cholla datasets. i.e. take the single files
   generated per process and concatenate them into a single, large file. This
   function concatenates a single output time and can be called multiple times,
   potentially in parallel, to concatenate multiple output times.
@@ -44,9 +45,10 @@ def concat_slice(source_directory: pathlib.Path,
       output_directory (pathlib.Path): The directory containing the new concatenated files
       num_processes (int): The number of ranks that Cholla was run with
       output_number (int): The output number to concatenate
-      concat_xy (bool, optional): If True then concatenate the XY slice. Defaults to True.
-      concat_yz (bool, optional): If True then concatenate the YZ slice. Defaults to True.
-      concat_xz (bool, optional): If True then concatenate the XZ slice. Defaults to True.
+      dataset_kind (str): The type of 2D dataset to concatenate. Can be 'slice', 'proj', or 'rot_proj'.
+      concat_xy (bool, optional): If True then concatenate the XY slices/projections. Defaults to True.
+      concat_yz (bool, optional): If True then concatenate the YZ slices/projections. Defaults to True.
+      concat_xz (bool, optional): If True then concatenate the XZ slices/projections. Defaults to True.
       skip_fields (list, optional): List of fields to skip concatenating. Defaults to [].
       destination_dtype (np.dtype, optional): The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
       compression_type (str, optional): What kind of compression to use on the output data. Defaults to None.
@@ -57,12 +59,13 @@ def concat_slice(source_directory: pathlib.Path,
   # Error checking
   assert num_processes > 1, 'num_processes must be greater than 1'
   assert output_number >= 0, 'output_number must be greater than or equal to 0'
+  assert dataset_kind in ['slice', 'proj', 'rot_proj'], '`dataset_kind` can only be one of "slice", "proj", "rot_proj".'
 
-  # Open destination file and first file for getting metadata
-  destination_file = h5py.File(output_directory / f'{output_number}_slice.h5', 'w-')
+  # Open destination file
+  destination_file = h5py.File(output_directory / f'{output_number}_{dataset_kind}.h5', 'w-')
 
-  # Setup the output file
-  with h5py.File(source_directory / f'{output_number}_slice.h5.0', 'r') as source_file:
+  # Setup the destination file
+  with h5py.File(source_directory / f'{output_number}_{dataset_kind}.h5.0', 'r') as source_file:
     # Copy over header
     destination_file = copy_header(source_file, destination_file)
 
@@ -79,13 +82,19 @@ def concat_slice(source_directory: pathlib.Path,
     datasets_to_copy = [dataset for dataset in datasets_to_copy if not dataset in skip_fields]
 
     # Create the datasets in the destination file
+    zero_array = np.zeros(1)
     for dataset in datasets_to_copy:
       dtype = source_file[dataset].dtype if (destination_dtype == None) else destination_dtype
 
-      slice_shape = __get_slice_shape(source_file, dataset)
+      dataset_shape = __get_2d_dataset_shape(source_file, dataset)
+
+      # Create array to initialize data to zero, this is required for projections
+      if zero_array.shape != dataset_shape:
+        zero_array = np.zeros(dataset_shape)
 
       destination_file.create_dataset(name=dataset,
-                                      shape=slice_shape,
+                                      shape=dataset_shape,
+                                      data=zero_array,
                                       dtype=dtype,
                                       chunks=chunking,
                                       compression=compression_type,
@@ -94,17 +103,21 @@ def concat_slice(source_directory: pathlib.Path,
   # Copy data
   for rank in range(num_processes):
     # Open source file
-    source_file = h5py.File(source_directory / f'{output_number}_slice.h5.{rank}', 'r')
+    source_file = h5py.File(source_directory / f'{output_number}_{dataset_kind}.h5.{rank}', 'r')
 
     # Loop through and copy datasets
     for dataset in datasets_to_copy:
       # Determine locations and shifts for writing
-      (i0_start, i0_end, i1_start, i1_end), file_in_slice = __write_bounds_slice(source_file, dataset)
+      (i0_start, i0_end, i1_start, i1_end), file_in_slice = __write_bounds_2d_dataset(source_file, dataset)
 
-      if file_in_slice:
-        # Copy the data
-        destination_file[dataset][i0_start:i0_end,
-                                  i1_start:i1_end] = source_file[dataset]
+      # If this is a slice dataset we can skip loading the source file if that
+      # file isn't in the slice
+      if dataset_kind == 'slice' and not file_in_slice:
+        continue
+
+      # Copy the data, the summation is required for projections but not slices
+      destination_file[dataset][i0_start:i0_end,
+                                i1_start:i1_end] += source_file[dataset]
 
     # Now that the copy is done we close the source file
     source_file.close()
@@ -114,35 +127,35 @@ def concat_slice(source_directory: pathlib.Path,
 # ==============================================================================
 
 # ==============================================================================
-def __get_slice_shape(source_file: h5py.File, dataset: str):
-  """Determine the shape of the full slice in a dataset
+def __get_2d_dataset_shape(source_file: h5py.File, dataset: str):
+  """Determine the shape of the full 2D dataset
 
   Args:
       source_file (h5py.File): The source file the get the shape information from
       dataset (str): The dataset to get the shape of
 
   Raises:
-      ValueError: If the dataset name isn't a slice name
+      ValueError: If the dataset name isn't a 2D dataset name
 
   Returns:
-      tuple: The 2D dimensions of the slice
+      tuple: The dimensions of the dataset
   """
   nx, ny, nz = source_file.attrs['dims']
-
+#TODO update this rot proj
   if 'xy' in dataset:
-    slice_dimensions = (nx, ny)
+    dimensions = (nx, ny)
   elif 'yz' in dataset:
-    slice_dimensions = (ny, nz)
+    dimensions = (ny, nz)
   elif 'xz' in dataset:
-    slice_dimensions = (nx, nz)
+    dimensions = (nx, nz)
   else:
     raise ValueError(f'Dataset "{dataset}" is not a slice.')
 
-  return slice_dimensions
+  return dimensions
 # ==============================================================================
 
 # ==============================================================================
-def __write_bounds_slice(source_file: h5py.File, dataset: str):
+def __write_bounds_2d_dataset(source_file: h5py.File, dataset: str):
   """Determine the bounds of the concatenated file to write to
 
   Args:
@@ -150,7 +163,7 @@ def __write_bounds_slice(source_file: h5py.File, dataset: str):
       dataset (str): The name of the dataset to read from the source file
 
   Raises:
-      ValueError: If the dataset name isn't a slice name
+      ValueError: If the dataset name isn't a 2D dataset name
 
   Returns:
       tuple: The write bounds for the concatenated file to be used like `output_file[dataset][return[0]:return[1], return[2]:return[3]]
@@ -169,7 +182,7 @@ def __write_bounds_slice(source_file: h5py.File, dataset: str):
     file_in_slice = y_start <= ny//2 <= y_start+ny_local
     bounds = (x_start, x_start+nx_local, z_start, z_start+nz_local)
   else:
-    raise ValueError(f'Dataset "{dataset}" is not a slice.')
+    raise ValueError(f'Dataset "{dataset}" is not a slice or projection.')
 
   return bounds, file_in_slice
 # ==============================================================================
@@ -179,24 +192,26 @@ if __name__ == '__main__':
   start = default_timer()
 
   cli = common_cli()
-  cli.add_argument('--disable-xy', default=True, action='store_false', help='Disables concating the XY slice.')
-  cli.add_argument('--disable-yz', default=True, action='store_false', help='Disables concating the YZ slice.')
-  cli.add_argument('--disable-xz', default=True, action='store_false', help='Disables concating the XZ slice.')
+  cli.add_argument('-d', '--dataset-kind', type=str, required=True,    help='What kind of 2D dataset to concatnate. Options are "slice", "proj", and "rot_proj"')
+  cli.add_argument('--disable-xy', default=True, action='store_false', help='Disables concating the XY datasets.')
+  cli.add_argument('--disable-yz', default=True, action='store_false', help='Disables concating the YZ datasets.')
+  cli.add_argument('--disable-xz', default=True, action='store_false', help='Disables concating the XZ datasets.')
   args = cli.parse_args()
 
   # Perform the concatenation
   for output in args.concat_outputs:
-    concat_slice(source_directory=args.source_directory,
-                 output_directory=args.output_directory,
-                 num_processes=args.num_processes,
-                 output_number=output,
-                 concat_xy=args.disable_xy,
-                 concat_yz=args.disable_yz,
-                 concat_xz=args.disable_xz,
-                 skip_fields=args.skip_fields,
-                 destination_dtype=args.dtype,
-                 compression_type=args.compression_type,
-                 compression_options=args.compression_opts,
-                 chunking=args.chunking)
+    concat_2d_dataset(source_directory=args.source_directory,
+                      output_directory=args.output_directory,
+                      num_processes=args.num_processes,
+                      output_number=output,
+                      dataset_kind=args.dataset_kind,
+                      concat_xy=args.disable_xy,
+                      concat_yz=args.disable_yz,
+                      concat_xz=args.disable_xz,
+                      skip_fields=args.skip_fields,
+                      destination_dtype=args.dtype,
+                      compression_type=args.compression_type,
+                      compression_options=args.compression_opts,
+                      chunking=args.chunking)
 
   print(f'\nTime to execute: {round(default_timer()-start,2)} seconds')
