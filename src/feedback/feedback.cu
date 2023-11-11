@@ -41,19 +41,6 @@ inline __device__ double atomicMax(double* address, double val)
 }
   #endif  // O_HIP
 
-inline __device__ Real Calc_Timestep(Real gamma, Real* density, Real* momentum_x, Real* momentum_y, Real* momentum_z,
-                                     Real* energy, int index, Real dx, Real dy, Real dz)
-{
-  Real dens  = fmax(density[index], DENS_FLOOR);
-  Real d_inv = 1.0 / dens;
-  Real vx    = momentum_x[index] * d_inv;
-  Real vy    = momentum_y[index] * d_inv;
-  Real vz    = momentum_z[index] * d_inv;
-  Real P     = fmax((energy[index] - 0.5 * dens * (vx * vx + vy * vy + vz * vz)) * (gamma - 1.0), TINY_NUMBER);
-  Real cs    = sqrt(gamma * P * d_inv);
-  return fmax(fmax((fabs(vx) + cs) / dx, (fabs(vy) + cs) / dy), (fabs(vz) + cs) / dz);
-}
-
 /** the prescription for dividing a scalar quantity between 3x3x3 cells is done
    by imagining a 2x2x2 cell volume around the SN.  These fractions, then,
    represent the linear extent of this volume into the cell in question. For i=0
@@ -109,10 +96,9 @@ inline __device__ Real Get_Average_Number_Density_CGS(Real* density, int xi, int
   return Get_Average_Density(density, xi, yi, zi, nx_grid, ny_grid, n_ghost) * DENSITY_UNIT / (MU * MP);
 }
 
-__device__ Real Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin, Real dx, Real dy,
-                                  Real dz, int nx_g, int ny_g, int n_ghost, int n_cells, Real gamma,
-                                  Real* conserved_device, short time_direction, Real feedback_density,
-                                  Real feedback_energy)
+__device__ void Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin, Real dx, Real dy,
+                                  Real dz, int nx_g, int ny_g, int n_ghost, int n_cells,
+                                  Real* conserved_device, Real feedback_density, Real feedback_energy)
 {
   // For 2x2x2, a particle between 0-0.5 injects onto cell - 1
   int indx_x = (int)floor((pos_x - xMin - 0.5 * dx) / dx);
@@ -128,15 +114,10 @@ __device__ Real Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin,
   Real delta_z = 1 - (pos_z - cell_center_z) / dz;
 
   Real* density    = conserved_device;
-  Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
-  Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
-  Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
   Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
 #ifdef DE
   Real* gasEnergy  = &conserved_device[n_cells * grid_enum::GasEnergy];
 #endif
-
-  Real local_dti = 0;
 
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 2; j++) {
@@ -152,16 +133,9 @@ __device__ Real Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin,
 #endif
         atomicAdd(&energy[indx], x_frac * y_frac * z_frac * feedback_energy);
 
-        if (time_direction > 0) {
-          Real cell_dti = Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz);
-
-          local_dti = fmax(local_dti, cell_dti);
-        }
       }  // k loop
     }    // j loop
   }      // i loop
-
-  return local_dti;
 }
 
 /* \brief Function used for depositing energy or momentum from an unresolved
@@ -177,17 +151,15 @@ __device__ Real Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin,
  * - this requires the codebase to be compiled with the dual energy formalism
  * - momentum and total energy are not updated self-consistently
  */
-__device__ Real Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin,
+__device__ void Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin,
                                                  Real dx, Real dy, Real dz, int nx_g, int ny_g, int n_ghost,
-                                                 int n_cells, Real gamma, Real* conserved_device, short time_direction,
+                                                 int n_cells, Real* conserved_device,
                                                  Real feedback_density, Real feedback_momentum, Real feedback_energy,
                                                  int indx_x, int indx_y, int indx_z)
 {
   Real delta_x = (pos_x - xMin - indx_x * dx) / dx;
   Real delta_y = (pos_y - yMin - indx_y * dy) / dy;
   Real delta_z = (pos_z - zMin - indx_z * dz) / dz;
-
-  Real local_dti = 0;
 
   Real* density    = conserved_device;
   Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
@@ -247,15 +219,9 @@ __device__ Real Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real po
                          momentum_z[indx] * momentum_z[indx] ) /
                        2 / density[indx] + gasEnergy[indx];
         */
-        if (time_direction > 0) {
-          Real cell_dti = Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z, energy, indx, dx, dy, dz);
-          local_dti     = fmax(local_dti, cell_dti);
-        }
       }  // k loop
     }    // j loop
   }      // i loop
-
-  return local_dti;
 }
 
 __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev, Real xMin,
@@ -269,7 +235,6 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
 
   Real dV = dx * dy * dz;
   Real feedback_density, feedback_momentum, feedback_energy;
-  Real local_dti = 0.0;
   int n_cells    = nx_g * ny_g * nz_g;
 
   Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
@@ -308,8 +273,8 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
         s_info[FEED_INFO_N * tid + i_RES]    = 1. * N;
         s_info[FEED_INFO_N * tid + i_ENERGY] = feedback_energy * dV;
       }
-      local_dti = Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
-                                    gamma, conserved_dev, time_direction, feedback_density, feedback_energy);
+      Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
+                        conserved_dev, feedback_density, feedback_energy);
     } else {
       // inject momentum and density
       feedback_momentum =
@@ -319,13 +284,12 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
         s_info[FEED_INFO_N * tid + i_MOMENTUM]     = feedback_momentum * dV * sqrt(3.0);
         s_info[FEED_INFO_N * tid + i_UNRES_ENERGY] = feedback_energy * dV;
       }
-      local_dti = Apply_Energy_Momentum_Deposition(
-          pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, gamma, conserved_dev,
-          time_direction, feedback_density, feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
+      Apply_Energy_Momentum_Deposition(
+          pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
+          feedback_density, feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
     }
   }
 
-  if (time_direction > 0) atomicMax(dti, local_dti);
 }
 
 __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev,
@@ -338,7 +302,6 @@ __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real
   int gtid = blockIdx.x * blockDim.x + tid;
 
   Real dV = dx * dy * dz;
-  Real local_dti = 0.0;
   int n_cells    = nx_g * ny_g * nz_g;
 
   if ((age < 0) or not sw_calc.is_active(age)) return;
@@ -365,11 +328,9 @@ __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real
     s_info[FEED_INFO_N * tid + i_WIND_ENERGY]   = feedback_energy * dV;
   }
 
-  local_dti = Apply_Energy_Momentum_Deposition(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost,
-                                               n_cells, gamma, conserved_dev, time_direction, feedback_density,
-                                               feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
-
-  if (time_direction > 0) atomicMax(dti, local_dti);
+  Apply_Energy_Momentum_Deposition(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost,
+                                   n_cells, conserved_dev, feedback_density,
+                                   feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
 }
 
 __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev,
