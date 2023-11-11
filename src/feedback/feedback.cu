@@ -15,8 +15,6 @@
   #include "../grid/grid3D.h"
   #include "../io/io.h"
   #include "../utils/DeviceVector.h"
-  #include "../feedback/ratecalc.h"
-  #include "../feedback/s99table.h"
   #include "feedback.h"
 
   #define FEED_INFO_N     8
@@ -29,13 +27,6 @@
   #define i_WIND_ENERGY   7
 
   #define TPB_FEEDBACK 128
-
-namespace feedback
-{
-Real *dev_snr, snr_dt, time_sn_start, time_sn_end;
-Real *dev_sw_p, *dev_sw_e, sw_dt, time_sw_start, time_sw_end;
-int snr_n;
-}  // namespace feedback
 
   #ifndef O_HIP
 inline __device__ double atomicMax(double* address, double val)
@@ -117,109 +108,6 @@ inline __device__ Real Get_Average_Number_Density_CGS(Real* density, int xi, int
 {
   return Get_Average_Density(density, xi, yi, zi, nx_grid, ny_grid, n_ghost) * DENSITY_UNIT / (MU * MP);
 }
-
-  #ifndef NO_SN_FEEDBACK
-/**
- * @brief
- * -# Read in SN rate data from Starburst 99. If no file exists, assume a
- * constant rate.
- *
- * @param P pointer to parameters struct. Passes in starburst 99 filename and
- * random number gen seed.
- */
-void feedback::Init_State(struct parameters* P)
-{
-  chprintf("feedback::Init_State start\n");
-  std::string snr_filename(P->snr_filename);
-  if (not snr_filename.empty()) {
-    chprintf("Specified a SNR filename %s.\n", snr_filename.data());
-
-    feedback::S99Table tab = parse_s99_table(snr_filename, feedback::S99TabKind::supernova);
-    const std::size_t time_col = tab.col_index("TIME");
-    const std::size_t rate_col = tab.col_index("ALL SUPERNOVAE: TOTAL RATE");
-    const std::size_t nrows = tab.nrows();
-
-    // read in array of supernova rate values.
-    std::vector<Real> snr_time(nrows);
-    std::vector<Real> snr(nrows);
-
-    for (std::size_t i = 0; i < nrows; i++){
-      // in the following divide by # years per kyr (1000)
-      snr_time[i] = tab(time_col, i) / 1000;
-      snr[i] = pow(10,tab(rate_col, i)) * 1000 / S_99_TOTAL_MASS;
-    }
-
-    time_sn_end   = snr_time[snr_time.size() - 1];
-    time_sn_start = snr_time[0];
-    // the following is the time interval between data points
-    // (i.e. assumes regular temporal spacing)
-    snr_dt = (time_sn_end - time_sn_start) / (snr.size() - 1);
-
-    CHECK(cudaMalloc((void**)&dev_snr, snr.size() * sizeof(Real)));
-    CHECK(cudaMemcpy(dev_snr, snr.data(), snr.size() * sizeof(Real), cudaMemcpyHostToDevice));
-
-  } else {
-    chprintf("No SN rate file specified.  Using constant rate\n");
-    time_sn_start = DEFAULT_SN_START;
-    time_sn_end   = DEFAULT_SN_END;
-  }
-}
-  #endif  // NO_SN_FEEDBACK
-
-  #ifndef NO_WIND_FEEDBACK
-/**
- * @brief
- * Read in Stellar wind data from Starburst 99. If no file exists, assume a
- * constant rate.
- *
- *
- * @param P pointer to parameters struct. Passes in starburst 99 filepath
- */
-void feedback::Init_Wind_State(struct parameters* P)
-{
-  chprintf("Init_Wind_State start\n");
-  std::string sw_filename(P->sw_filename);
-  if (sw_filename.empty()) {
-    CHOLLA_ERROR("must specify a stellar wind file.\n");
-  }
-
-  feedback::S99Table tab = parse_s99_table(sw_filename, feedback::S99TabKind::stellar_wind);
-
-  const std::size_t COL_TIME       = tab.col_index("TIME");
-  const std::size_t COL_POWER      = tab.col_index("POWER: ALL");
-  const std::size_t COL_ALL_P_FLUX = tab.col_index("MOMENTUM FLUX: ALL");
-  const std::size_t nrows          = tab.nrows();
-
-  std::vector<Real> sw_time(nrows);
-  std::vector<Real> sw_p(nrows);
-  std::vector<Real> sw_e(nrows);
-
-  for (std::size_t i = 0; i < nrows; i++){
-    sw_time[i] = tab(COL_TIME, i) / 1000;  // divide by # years per kyr (1000)
-    sw_e[i]    = tab(COL_POWER, i);
-    sw_p[i]    = tab(COL_ALL_P_FLUX, i);
-  }
-
-  time_sw_end   = sw_time[sw_time.size() - 1];
-  time_sw_start = sw_time[0];
-  // the following is the time interval between data points
-  // (i.e. assumes regular temporal spacing)
-  sw_dt = (time_sw_end - time_sw_start) / (sw_p.size() - 1);
-  chprintf("wind t_s %.5e, t_e %.5e, delta T %0.5e\n", time_sw_start, time_sw_end, sw_dt);
-
-  CHECK(cudaMalloc((void**)&dev_sw_p, sw_p.size() * sizeof(Real)));
-  CHECK(cudaMemcpy(dev_sw_p, sw_p.data(), sw_p.size() * sizeof(Real), cudaMemcpyHostToDevice));
-
-  CHECK(cudaMalloc((void**)&dev_sw_e, sw_e.size() * sizeof(Real)));
-  CHECK(cudaMemcpy(dev_sw_e, sw_e.data(), sw_e.size() * sizeof(Real), cudaMemcpyHostToDevice));
-
-  chprintf("first 40 stellar wind momentum values:\n");
-  for (int i = 0; i < 40; i++) {
-    chprintf("%0.5e  %5f %5f \n", sw_time.at(i), sw_e.at(i), sw_p.at(i));
-  }
-}
-
-  #endif  // NO_WIND_FEEDBACK
 
 __device__ Real Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin, Real dx, Real dy,
                                   Real dz, int nx_g, int ny_g, int n_ghost, int n_cells, Real gamma,
@@ -746,8 +634,8 @@ __global__ void Set_Ave_Density_Kernel(part_int_t n_local, Real* pos_x_dev, Real
 
 feedback::ClusterFeedbackMethod::ClusterFeedbackMethod(struct parameters& P, FeedbackAnalysis& analysis)
   : analysis(analysis),
-    snr_calc_(dev_snr, snr_dt, time_sn_start, time_sn_end),
-    sw_calc_(dev_sw_p, dev_sw_e, sw_dt, time_sw_start, time_sw_end)
+    snr_calc_(P),
+    sw_calc_(P)
 { }
 
 /**

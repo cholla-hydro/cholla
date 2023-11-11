@@ -14,8 +14,9 @@ typedef curandStateMRG32k3a_t feedback_prng_t;
 // This header declares classes that encapsulate calculations of SN rates and the rate of SW
 // deposition
 //
-// Currently, they don't convey ownership over the required data. But the plan is to eventually
-// add support for that
+// Currently, they don't have destructors that deallocate the data. This is fine in the short term,
+// since we only construct up to a single instance of each class on the host during the entire
+// simulation. With that said, I do have a strategy in mind for resolving this.
 
 // seed for poisson random number generator
 #define FEEDBACK_SEED 42
@@ -27,16 +28,18 @@ typedef curandStateMRG32k3a_t feedback_prng_t;
 #define S_99_TOTAL_MASS 1e6
 
 namespace feedback{
-  // supernova rate: 1SN / 100 solar masses per 36 Myr
-  static const Real DEFAULT_SNR   = 2.8e-7;
-
-
-  extern Real *dev_snr, snr_dt, time_sn_end, time_sn_start;
-  extern Real *dev_sw_p, *dev_sw_e, sw_dt, time_sw_start, time_sw_end;
+// supernova rate: 1SN / 100 solar masses per 36 Myr
+static const Real DEFAULT_SNR   = 2.8e-7;
+// default value for when SNe stop (40 Myr)
+static const Real DEFAULT_SN_END = 40000;
+// default value for when SNe start (4 Myr)
+static const Real DEFAULT_SN_START = 4000;
 
 struct SNRateCalc {
 
 public:
+  __host__ SNRateCalc(struct parameters& P);
+
   __host__ __device__ SNRateCalc(Real *dev_snr, Real dt, Real time_start, Real time_end)
     : dev_snr_(dev_snr), snr_dt_(dt), time_sn_start_(time_start), time_sn_end_(time_end) 
   { }
@@ -98,7 +101,6 @@ private: // attributes
   Real time_sn_end_ = 0.0;
 };
 
-
 /* Class responsible for computing stellar-wind rates
  *
  * @note
@@ -107,6 +109,8 @@ private: // attributes
  * Wind_Power to update gas-momentum and gas-energy is inconsistent.
  */
 struct SWRateCalc {
+
+  __host__ SWRateCalc(struct parameters& P);
 
   __host__ __device__ SWRateCalc(Real *dev_sw_p, Real* dev_sw_e, Real dt, Real t_start, Real t_end)
     : dev_sw_p_(dev_sw_p), dev_sw_e_(dev_sw_e), sw_dt_(dt), time_sw_start_(t_start), time_sw_end_(t_end)
