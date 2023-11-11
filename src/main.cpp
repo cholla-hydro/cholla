@@ -163,12 +163,6 @@ std::function<void(Grid3D&)> feedback_callback;
 
 #if defined(FEEDBACK) && defined(PARTICLE_AGE)
   FeedbackAnalysis sn_analysis(G, &P);
-  #ifndef NO_SN_FEEDBACK
-  feedback::Init_State(&P);
-  #endif  // NO_SN_FEEDBACK
-  #ifndef NO_WIND_FEEDBACK
-  feedback::Init_Wind_State(&P);
-  #endif
   feedback_callback = feedback::ClusterFeedbackMethod(P, sn_analysis);
 #endif  // FEEDBACK && PARTICLE_AGE
 
