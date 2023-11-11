@@ -226,8 +226,8 @@ __device__ void Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real po
 
 __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev, Real xMin,
                             Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
-                            int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt, Real* dti,
-                            const feedback::SNRateCalc snr_calc, Real* prev_dens, short time_direction,
+                            int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
+                            const feedback::SNRateCalc snr_calc, Real* prev_dens,
                             Real* s_info, Real* conserved_dev, Real gamma, int loop, int indx_x, int indx_y, int indx_z)
 {
   int tid  = threadIdx.x;
@@ -238,7 +238,7 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
   int n_cells    = nx_g * ny_g * nz_g;
 
   Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
-  int N               = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]) * time_direction;
+  int N               = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
   /*
   if (gtid == 0) {
     kernel_printf("SNUMBER n_step: %d, id: %lld, N: %d\n", n_step, id_dev[gtid], N);
@@ -248,14 +248,10 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
   // no sense doing anything if there was no SN
   if (N != 0) {
     Real n_0;
-    if (time_direction == -1) {
-      n_0 = prev_dens[gtid];
-    } else {
-      Real* density             = conserved_dev;
-      n_0                       = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
-      prev_dens[gtid]           = n_0;
-      s_info[FEED_INFO_N * tid] = 1. * N;
-    }
+    Real* density             = conserved_dev;
+    n_0                       = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
+    prev_dens[gtid]           = n_0;
+    s_info[FEED_INFO_N * tid] = 1. * N;
 
     feedback_energy  = N * feedback::ENERGY_PER_SN / dV;
     feedback_density = N * feedback::MASS_PER_SN / dV;
@@ -269,21 +265,16 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
 
     if (is_resolved) {
       // inject energy and density
-      if (time_direction > 0) {
-        s_info[FEED_INFO_N * tid + i_RES]    = 1. * N;
-        s_info[FEED_INFO_N * tid + i_ENERGY] = feedback_energy * dV;
-      }
+      s_info[FEED_INFO_N * tid + i_RES]    = 1. * N;
+      s_info[FEED_INFO_N * tid + i_ENERGY] = feedback_energy * dV;
       Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
                         conserved_dev, feedback_density, feedback_energy);
     } else {
       // inject momentum and density
-      feedback_momentum =
-          time_direction * feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV / sqrt(3.0);
-      if (time_direction > 0) {
-        s_info[FEED_INFO_N * tid + i_UNRES]        = 1. * N;
-        s_info[FEED_INFO_N * tid + i_MOMENTUM]     = feedback_momentum * dV * sqrt(3.0);
-        s_info[FEED_INFO_N * tid + i_UNRES_ENERGY] = feedback_energy * dV;
-      }
+      feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV / sqrt(3.0);
+      s_info[FEED_INFO_N * tid + i_UNRES]        = 1. * N;
+      s_info[FEED_INFO_N * tid + i_MOMENTUM]     = feedback_momentum * dV * sqrt(3.0);
+      s_info[FEED_INFO_N * tid + i_UNRES_ENERGY] = feedback_energy * dV;
       Apply_Energy_Momentum_Deposition(
           pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
           feedback_density, feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
@@ -295,7 +286,7 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
 __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev,
                               Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy,
                               Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                              Real* dti, const feedback::SWRateCalc sw_calc, short time_direction, Real* s_info,
+                              const feedback::SWRateCalc sw_calc, Real* s_info,
                               Real* conserved_dev, Real gamma, int loop, int indx_x, int indx_y, int indx_z)
 {
   int tid  = threadIdx.x;
@@ -312,21 +303,19 @@ __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real
   Real feedback_density = sw_calc.Get_Wind_Mass(feedback_momentum, feedback_energy);
 
   // feedback_momentum now becomes momentum component along one direction.
-  feedback_momentum *= mass_dev[gtid] * dt / dV / sqrt(3.0) * time_direction;
-  feedback_density *= mass_dev[gtid] * dt / dV * time_direction;
-  feedback_energy *= mass_dev[gtid] * dt / dV * time_direction;
+  feedback_momentum *= mass_dev[gtid] * dt / dV / sqrt(3.0);
+  feedback_density *= mass_dev[gtid] * dt / dV;
+  feedback_energy *= mass_dev[gtid] * dt / dV;
 
   /* TODO refactor into separate kernel call
-  if (time_direction > 0) {
+  if (true) {
     mass_dev[gtid]   -= feedback_density * dV;
   }*/
 
-  if (time_direction > 0) {
-    // we log net momentum, not momentum density, and magnitude (not the
-    // component along a direction)
-    s_info[FEED_INFO_N * tid + i_WIND_MOMENTUM] = feedback_momentum * dV * sqrt(3.0);
-    s_info[FEED_INFO_N * tid + i_WIND_ENERGY]   = feedback_energy * dV;
-  }
+  // we log net momentum, not momentum density, and magnitude (not the
+  // component along a direction)
+  s_info[FEED_INFO_N * tid + i_WIND_MOMENTUM] = feedback_momentum * dV * sqrt(3.0);
+  s_info[FEED_INFO_N * tid + i_WIND_ENERGY]   = feedback_energy * dV;
 
   Apply_Energy_Momentum_Deposition(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost,
                                    n_cells, conserved_dev, feedback_density,
@@ -338,7 +327,7 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
                                         Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
                                         int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt, Real* dti,
                                         const feedback::SNRateCalc snr_calc, Real* prev_dens, const feedback::SWRateCalc sw_calc,
-                                        short time_direction, Real* s_info, Real* conserved_dev, Real gamma, int loop)
+                                        Real* s_info, Real* conserved_dev, Real gamma, int loop)
 {
   int tid  = threadIdx.x;
   int gtid = blockIdx.x * blockDim.x + tid;
@@ -376,27 +365,14 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
   is_wd_feedback = true;
   #endif
 
-  // when applying different types of feedback, undoing the step requires
-  // reverising the order
-  if (time_direction > 0) {
-    if (is_sn_feedback)
-      SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
-                  ny_g, nz_g, n_ghost, n_step, t, dt, dti, snr_calc, prev_dens,
-                  time_direction, s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
-    if (is_wd_feedback)
-      Wind_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
-                    ny_g, nz_g, n_ghost, n_step, t, dt, dti, sw_calc,
-                    time_direction, s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
-  } else {
-    if (is_wd_feedback)
-      Wind_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
-                    ny_g, nz_g, n_ghost, n_step, t, dt, dti, sw_calc,
-                    time_direction, s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
-    if (is_sn_feedback)
-      SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
-                  ny_g, nz_g, n_ghost, n_step, t, dt, dti, snr_calc, prev_dens,
-                  time_direction, s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
-  }
+  if (is_sn_feedback)
+    SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
+                ny_g, nz_g, n_ghost, n_step, t, dt, snr_calc, prev_dens,
+                s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
+  if (is_wd_feedback)
+    Wind_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
+                  ny_g, nz_g, n_ghost, n_step, t, dt, sw_calc,
+                  s_info, conserved_dev, gamma, loop, indx_x, indx_y, indx_z);
 
   return;
 }
@@ -405,7 +381,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
                                         Real* pos_z_dev, Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin,
                                         Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g,
                                         int nz_g, int n_ghost, Real t, Real dt, Real* dti, Real* info, Real* density,
-                                        Real gamma, Real* prev_dens, short time_direction, const feedback::SNRateCalc snr_calc,
+                                        Real gamma, Real* prev_dens, const feedback::SNRateCalc snr_calc,
                                         const feedback::SWRateCalc sw_calc, int n_step, int loop)
 {
   int tid = threadIdx.x;
@@ -423,8 +399,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
 
   Cluster_Feedback_Helper(n_local, pos_x_dev, pos_y_dev, pos_z_dev, age_dev, mass_dev, id_dev, xMin, yMin, zMin, xMax,
                           yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, dti, snr_calc, prev_dens,
-                          sw_calc,
-                          time_direction, s_info, density, gamma, loop);
+                          sw_calc, s_info, density, gamma, loop);
 
   __syncthreads();
 
@@ -652,7 +627,7 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
                        G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
                        G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti.data(), d_info.data(), G.C.d_density, gama, 
-                       d_prev_dens.data(), 1, snr_calc_, sw_calc_, G.H.n_step, 1);
+                       d_prev_dens.data(), snr_calc_, sw_calc_, G.H.n_step, 1);
 
     CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemcpy)
 
