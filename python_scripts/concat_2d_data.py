@@ -62,7 +62,7 @@ def concat_2d_dataset(source_directory: pathlib.Path,
   assert dataset_kind in ['slice', 'proj', 'rot_proj'], '`dataset_kind` can only be one of "slice", "proj", "rot_proj".'
 
   # Open destination file
-  destination_file = h5py.File(output_directory / f'{output_number}_{dataset_kind}.h5', 'w')
+  destination_file = h5py.File(output_directory / f'{output_number}_{dataset_kind}.h5', 'w-')
 
   # Setup the destination file
   with h5py.File(source_directory / f'{output_number}_{dataset_kind}.h5.0', 'r') as source_file:
@@ -140,8 +140,11 @@ def __get_2d_dataset_shape(source_file: h5py.File, dataset: str):
   Returns:
       tuple: The dimensions of the dataset
   """
+
+  if 'xzr' in dataset:
+    return (source_file.attrs['nxr'][0], source_file.attrs['nzr'][0])
+
   nx, ny, nz = source_file.attrs['dims']
-#TODO update this rot proj
   if 'xy' in dataset:
     dimensions = (nx, ny)
   elif 'yz' in dataset:
@@ -168,6 +171,11 @@ def __write_bounds_2d_dataset(source_file: h5py.File, dataset: str):
   Returns:
       tuple: The write bounds for the concatenated file to be used like `output_file[dataset][return[0]:return[1], return[2]:return[3]]
   """
+
+  if 'xzr' in dataset:
+    return (source_file.attrs['nx_min'][0], source_file.attrs['nx_max'][0],
+            source_file.attrs['nz_min'][0], source_file.attrs['nz_max'][0]), True
+
   nx, ny, nz                   = source_file.attrs['dims']
   nx_local, ny_local, nz_local = source_file.attrs['dims_local']
   x_start, y_start, z_start    = source_file.attrs['offset']
