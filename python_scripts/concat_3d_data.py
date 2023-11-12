@@ -46,8 +46,8 @@ def concat_3d_output(source_directory: pathlib.Path,
   assert num_processes > 1, 'num_processes must be greater than 1'
   assert output_number >= 0, 'output_number must be greater than or equal to 0'
 
-  # open the output file for writing (fail if it exists)
-  destination_file = h5py.File(output_directory / f'{output_number}.h5', 'w-')
+  # Open the output file for writing
+  destination_file = destination_safe_open(output_directory / f'{output_number}.h5')
 
   # Setup the output file
   with h5py.File(source_directory / f'{output_number}.h5.0', 'r') as source_file:
@@ -100,7 +100,38 @@ def concat_3d_output(source_directory: pathlib.Path,
 
   # Close destination file now that it is fully constructed
   destination_file.close()
-# ======================================================================================================================
+# ==============================================================================
+
+# ==============================================================================
+def destination_safe_open(filename: pathlib.Path) -> h5py.File:
+  """Opens a HDF5 file safely and provides useful error messages for some common failure modes
+
+  Parameters
+  ----------
+  filename : pathlib.Path
+      The full path and name of the file to open
+
+  Returns
+  -------
+  h5py.File
+      The opened HDF5 file object
+
+  Raises
+  ------
+  FileExistsError
+      Raises if the destination file already exists
+  """
+
+  try:
+    destination_file = h5py.File(filename, 'w-')
+  except FileExistsError:
+    # It might be better for this to simply print the error message and return
+    # rather than exiting. That way if a single call fails in a parallel
+    # environment it doesn't take down the entire job
+    raise FileExistsError(f'File "{filename}" already exists and will not be overwritten, skipping.')
+
+  return destination_file
+# ==============================================================================
 
 # ==============================================================================
 def copy_header(source_file: h5py.File, destination_file: h5py.File):

@@ -19,7 +19,7 @@ import argparse
 import pathlib
 import numpy as np
 
-from concat_3d_data import copy_header, common_cli
+from concat_3d_data import copy_header, common_cli, destination_safe_open
 
 # ==============================================================================
 def concat_2d_dataset(source_directory: pathlib.Path,
@@ -62,7 +62,7 @@ def concat_2d_dataset(source_directory: pathlib.Path,
   assert dataset_kind in ['slice', 'proj', 'rot_proj'], '`dataset_kind` can only be one of "slice", "proj", "rot_proj".'
 
   # Open destination file
-  destination_file = h5py.File(output_directory / f'{output_number}_{dataset_kind}.h5', 'w-')
+  destination_file = destination_safe_open(output_directory / f'{output_number}_{dataset_kind}.h5')
 
   # Setup the destination file
   with h5py.File(source_directory / f'{output_number}_{dataset_kind}.h5.0', 'r') as source_file:
