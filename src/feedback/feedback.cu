@@ -219,8 +219,7 @@ __device__ void Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real po
 __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev, Real xMin,
                             Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
                             int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                            const feedback::SNRateCalc snr_calc,
-                            Real* s_info, Real* conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
+                            int num_SN, Real* s_info, Real* conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
 {
   int tid  = threadIdx.x;
   int gtid = blockIdx.x * blockDim.x + tid;
@@ -228,8 +227,6 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
   Real dV = dx * dy * dz;
   int n_cells    = nx_g * ny_g * nz_g;
 
-  Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
-  int N               = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
   /*
   if (gtid == 0) {
     kernel_printf("SNUMBER n_step: %d, id: %lld, N: %d\n", n_step, id_dev[gtid], N);
@@ -237,16 +234,16 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
   */
 
   // no sense doing anything if there was no SN
-  if (N == 0) return;
+  if (num_SN == 0) return;
 
   Real* density             = conserved_dev;
   Real n_0                  = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
-  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN] += N;
+  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN] += num_SN;
 
-  Real feedback_energy  = N * feedback::ENERGY_PER_SN / dV;
-  Real feedback_density = N * feedback::MASS_PER_SN / dV;
+  Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
+  Real feedback_density = num_SN * feedback::MASS_PER_SN / dV;
 
-  Real shell_radius = feedback::R_SH * pow(n_0, -0.46) * pow(fabsf(N), 0.29);
+  Real shell_radius = feedback::R_SH * pow(n_0, -0.46) * pow(fabsf(num_SN), 0.29);
   #ifdef ONLY_RESOLVED
   bool is_resolved = true;
   #else
@@ -255,7 +252,7 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
 
   if (is_resolved) {
     // inject energy and density
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += N;
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
     s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback_energy * dV;
     Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
                       conserved_dev, feedback_density, feedback_energy);
@@ -265,8 +262,8 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
     Set_Average_Density(indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost, density, ave_dens);
 
     // inject momentum and density
-    Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV / sqrt(3.0);
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  += N;
+    Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(num_SN), 0.93) / dV / sqrt(3.0);
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  += num_SN;
     s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    += feedback_momentum * dV * sqrt(3.0);
     s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] += feedback_energy * dV;
     Apply_Energy_Momentum_Deposition(
@@ -275,7 +272,7 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
   }
 
   // update the cluster mass
-  mass_dev[gtid] -= N * feedback::MASS_PER_SN;
+  mass_dev[gtid] -= num_SN * feedback::MASS_PER_SN;
 }
 
 __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev,
@@ -318,7 +315,7 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
                                         Real* age_dev, Real* mass_dev, part_int_t* id_dev, Real xMin, Real yMin,
                                         Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
                                         int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                                        const feedback::SNRateCalc snr_calc, Real* s_info, Real* conserved_dev, Real gamma)
+                                        int* num_SN_dev, Real* s_info, Real* conserved_dev, Real gamma)
 {
   int tid  = threadIdx.x;
   int gtid = blockIdx.x * blockDim.x + tid;
@@ -354,7 +351,7 @@ __device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Rea
 
   if (is_sn_feedback)
     SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
-                ny_g, nz_g, n_ghost, n_step, t, dt, snr_calc,
+                ny_g, nz_g, n_ghost, n_step, t, dt, num_SN_dev[gtid],
                 s_info, conserved_dev, gamma, indx_x, indx_y, indx_z);
 
   return;
@@ -364,7 +361,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
                                         Real* pos_z_dev, Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin,
                                         Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g,
                                         int nz_g, int n_ghost, Real t, Real dt, Real* info, Real* density,
-                                        Real gamma, const feedback::SNRateCalc snr_calc, int n_step)
+                                        Real gamma, int* num_SN_dev, int n_step)
 {
   int tid = threadIdx.x;
 
@@ -375,7 +372,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
   }
 
   Cluster_Feedback_Helper(n_local, pos_x_dev, pos_y_dev, pos_z_dev, age_dev, mass_dev, id_dev, xMin, yMin, zMin, xMax,
-                          yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, snr_calc, s_info, density, gamma);
+                          yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, num_SN_dev, s_info, density, gamma);
 
   __syncthreads();
 
@@ -395,6 +392,24 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
       atomicAdd(info + cur_ind, s_info[cur_ind]);
     }
   }
+}
+
+/* determine the number of supernovae during the current step */
+__global__ void Get_SN_Count_Kernel(part_int_t n_local, part_int_t* id_dev, Real* mass_dev,
+                                    Real* age_dev, Real t, Real dt,
+                                    const feedback::SNRateCalc snr_calc, int n_step, int* num_SN_dev)
+{
+  int tid = threadIdx.x;
+
+  int gtid = blockIdx.x * blockDim.x + tid;
+  // Bounds check on particle arrays
+  if (gtid >= n_local) return;
+
+  // note age_dev is actually the time of birth
+  Real age = t - age_dev[gtid];
+
+  Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
+  num_SN_dev[gtid]    = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
 }
 
 feedback::ClusterFeedbackMethod::ClusterFeedbackMethod(struct parameters& P, FeedbackAnalysis& analysis)
@@ -423,18 +438,24 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
   // only apply feedback if we have clusters
   if (G.Particles.n_local > 0) {
 
+    int ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
+
+    // Declare/allocate device buffer for holding the number of supernovae per particle in the current cycle
+    cuda_utilities::DeviceVector<int> d_num_SN(G.Particles.n_local, true);  // initialized to 0
+
+    hipLaunchKernelGGL(Get_SN_Count_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
+                       G.Particles.partIDs_dev, G.Particles.mass_dev, G.Particles.age_dev, G.H.t, G.H.dt,
+                       snr_calc_, G.H.n_step, d_num_SN.data());
+
     // Declare/allocate device buffer for accumulating summary information about feedback
     cuda_utilities::DeviceVector<Real> d_info(feedinfoLUT::LEN, true);  // initialized to 0
-
-    // I have no idea what ngrid is used for...
-    int ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
 
     hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
                        G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
                        G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
                        G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_info.data(), G.C.d_density, gama, 
-                       snr_calc_, G.H.n_step);
+                       d_num_SN.data(), G.H.n_step);
 
     // copy summary data back to the host
     CHECK(cudaMemcpy(&h_info, d_info.data(), feedinfoLUT::LEN * sizeof(Real), cudaMemcpyDeviceToHost));
