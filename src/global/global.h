@@ -280,6 +280,7 @@ struct parameters {
   std::uint_fast64_t prng_seed = 0;
 #endif  // PARTICLES
 #ifdef FEEDBACK
+  char feedback_kind[MAXLEN];
   #ifndef NO_SN_FEEDBACK
   char snr_filename[MAXLEN];
   #endif
