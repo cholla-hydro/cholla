@@ -5,10 +5,25 @@
   #include "../global/global.h"
   #include "../feedback/ratecalc.h"
 
+namespace feedinfoLUT {
+  // this enum acts like a lookup table (LUT). It maps the names of analysis statistics to
+  // contiguous indices. LEN specfies the number of named analysis statistics
+  enum {
+    countSN = 0,
+    countResolved,
+    countUnresolved,
+    totalEnergy,
+    totalMomentum,
+    totalUnresEnergy,
+    totalWindMomentum,
+    totalWindEnergy,
+    // make sure the following is always the last entry so that it reflects the number of entries
+    LEN
+  };
+}
+
 namespace feedback
 {
-const int SN = 0, RESOLVED = 1, NOT_RESOLVED = 2, ENERGY = 3, MOMENTUM = 4, UNRES_ENERGY = 5;
-
 static const Real ENERGY_PER_SN = 1e51 / MASS_UNIT * TIME_UNIT * TIME_UNIT / LENGTH_UNIT / LENGTH_UNIT;
 // 10 solarMasses per SN
 static const Real MASS_PER_SN = 10.0;

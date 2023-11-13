@@ -17,15 +17,6 @@
   #include "../utils/DeviceVector.h"
   #include "feedback.h"
 
-  #define FEED_INFO_N     8
-  #define i_RES           1
-  #define i_UNRES         2
-  #define i_ENERGY        3
-  #define i_MOMENTUM      4
-  #define i_UNRES_ENERGY  5
-  #define i_WIND_MOMENTUM 6
-  #define i_WIND_ENERGY   7
-
   #define TPB_FEEDBACK 128
 
   #ifndef O_HIP
@@ -250,7 +241,7 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
     Real n_0;
     Real* density             = conserved_dev;
     n_0                       = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
-    s_info[FEED_INFO_N * tid] = 1. * N;
+    s_info[feedinfoLUT::LEN * tid] = 1. * N;
 
     feedback_energy  = N * feedback::ENERGY_PER_SN / dV;
     feedback_density = N * feedback::MASS_PER_SN / dV;
@@ -264,16 +255,16 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
 
     if (is_resolved) {
       // inject energy and density
-      s_info[FEED_INFO_N * tid + i_RES]    = 1. * N;
-      s_info[FEED_INFO_N * tid + i_ENERGY] = feedback_energy * dV;
+      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN]     = 1. * N;
+      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy] = feedback_energy * dV;
       Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
                         conserved_dev, feedback_density, feedback_energy);
     } else {
       // inject momentum and density
       feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV / sqrt(3.0);
-      s_info[FEED_INFO_N * tid + i_UNRES]        = 1. * N;
-      s_info[FEED_INFO_N * tid + i_MOMENTUM]     = feedback_momentum * dV * sqrt(3.0);
-      s_info[FEED_INFO_N * tid + i_UNRES_ENERGY] = feedback_energy * dV;
+      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved]    = 1. * N;
+      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    = feedback_momentum * dV * sqrt(3.0);
+      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] = feedback_energy * dV;
       Apply_Energy_Momentum_Deposition(
           pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
           feedback_density, feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
@@ -313,8 +304,8 @@ __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real
 
   // we log net momentum, not momentum density, and magnitude (not the
   // component along a direction)
-  s_info[FEED_INFO_N * tid + i_WIND_MOMENTUM] = feedback_momentum * dV * sqrt(3.0);
-  s_info[FEED_INFO_N * tid + i_WIND_ENERGY]   = feedback_energy * dV;
+  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindMomentum] = feedback_momentum * dV * sqrt(3.0);
+  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindEnergy]   = feedback_energy * dV;
 
   Apply_Energy_Momentum_Deposition(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost,
                                    n_cells, conserved_dev, feedback_density,
@@ -386,15 +377,10 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
   int tid = threadIdx.x;
 
   // for collecting SN feedback information
-  __shared__ Real s_info[FEED_INFO_N * TPB_FEEDBACK];
-  s_info[FEED_INFO_N * tid]     = 0;  // number of supernovae
-  s_info[FEED_INFO_N * tid + 1] = 0;  // number of resolved events
-  s_info[FEED_INFO_N * tid + 2] = 0;  // number of unresolved events
-  s_info[FEED_INFO_N * tid + 3] = 0;  // resolved energy
-  s_info[FEED_INFO_N * tid + 4] = 0;  // unresolved momentum
-  s_info[FEED_INFO_N * tid + 5] = 0;  // unresolved KE added via momentum
-  s_info[FEED_INFO_N * tid + 6] = 0;  // wind momentum
-  s_info[FEED_INFO_N * tid + 7] = 0;  // wind energy added
+  __shared__ Real s_info[feedinfoLUT::LEN * TPB_FEEDBACK];
+  for (unsigned int cur_ind = 0; cur_ind < feedinfoLUT::LEN; cur_ind++) {
+    s_info[feedinfoLUT::LEN * tid + cur_ind] = 0;
+  }
 
   Cluster_Feedback_Helper(n_local, pos_x_dev, pos_y_dev, pos_z_dev, age_dev, mass_dev, id_dev, xMin, yMin, zMin, xMax,
                           yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, snr_calc,
@@ -405,28 +391,18 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
   // reduce the info from all the threads in the block
   for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
     if (tid < s) {
-      s_info[FEED_INFO_N * tid] += s_info[FEED_INFO_N * (tid + s)];
-      s_info[FEED_INFO_N * tid + 1] += s_info[FEED_INFO_N * (tid + s) + 1];
-      s_info[FEED_INFO_N * tid + 2] += s_info[FEED_INFO_N * (tid + s) + 2];
-      s_info[FEED_INFO_N * tid + 3] += s_info[FEED_INFO_N * (tid + s) + 3];
-      s_info[FEED_INFO_N * tid + 4] += s_info[FEED_INFO_N * (tid + s) + 4];
-      s_info[FEED_INFO_N * tid + 5] += s_info[FEED_INFO_N * (tid + s) + 5];
-      s_info[FEED_INFO_N * tid + 6] += s_info[FEED_INFO_N * (tid + s) + 6];
-      s_info[FEED_INFO_N * tid + 7] += s_info[FEED_INFO_N * (tid + s) + 7];
+      for (unsigned int cur_ind = 0; cur_ind < feedinfoLUT::LEN; cur_ind++) {
+        s_info[feedinfoLUT::LEN * tid + cur_ind] += s_info[feedinfoLUT::LEN * (tid + s) + cur_ind];
+      }
     }
     __syncthreads();
   }
 
   // atomicAdd reduces across all blocks
   if (tid == 0) {
-    atomicAdd(info, s_info[0]);
-    atomicAdd(info + 1, s_info[1]);
-    atomicAdd(info + 2, s_info[2]);
-    atomicAdd(info + 3, s_info[3]);
-    atomicAdd(info + 4, s_info[4]);
-    atomicAdd(info + 5, s_info[5]);
-    atomicAdd(info + 6, s_info[6]);
-    atomicAdd(info + 7, s_info[7]);
+    for (unsigned int cur_ind = 0; cur_ind < feedinfoLUT::LEN; cur_ind++) {
+      atomicAdd(info + cur_ind, s_info[cur_ind]);
+    }
   }
 }
 
@@ -589,13 +565,13 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
   // h_info is used to store feedback summary info on the host. The following
   // syntax sets all entries to 0 -- important if a process has no particles
   // (this is valid C++ syntax, but historically wasn't valid C syntax)
-  Real h_info[FEED_INFO_N] = {};
+  Real h_info[feedinfoLUT::LEN] = {};
 
   // only apply feedback if we have clusters
   if (G.Particles.n_local > 0) {
 
     // Declare/allocate device buffer for accumulating summary information about feedback
-    cuda_utilities::DeviceVector<Real> d_info(FEED_INFO_N, true);  // initialized to 0
+    cuda_utilities::DeviceVector<Real> d_info(feedinfoLUT::LEN, true);  // initialized to 0
 
     // I have no idea what ngrid is used for...
     int ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
@@ -630,13 +606,13 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
                        G.H.nz, G.H.n_ghost, G.H.n_step, G.H.t, G.H.dt, snr_calc_, sw_calc_);
 
     // copy summary data back to the host
-    CHECK(cudaMemcpy(&h_info, d_info.data(), FEED_INFO_N * sizeof(Real), cudaMemcpyDeviceToHost));
+    CHECK(cudaMemcpy(&h_info, d_info.data(), feedinfoLUT::LEN * sizeof(Real), cudaMemcpyDeviceToHost));
   }
 
   // now gather the feedback summary info into an array called info.
   #ifdef MPI_CHOLLA
-  Real info[FEED_INFO_N];
-  MPI_Reduce(&h_info, &info, FEED_INFO_N, MPI_CHREAL, MPI_SUM, root, world);
+  Real info[feedinfoLUT::LEN];
+  MPI_Reduce(&h_info, &info, feedinfoLUT::LEN, MPI_CHREAL, MPI_SUM, root, world);
   #else
   Real* info = h_info;
   #endif
@@ -645,14 +621,14 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
   if (procID == 0) {
   #endif
 
-    analysis.countSN += (long)info[feedback::SN];
-    analysis.countResolved += (long)info[feedback::RESOLVED];
-    analysis.countUnresolved += (long)info[feedback::NOT_RESOLVED];
-    analysis.totalEnergy += info[feedback::ENERGY];
-    analysis.totalMomentum += info[feedback::MOMENTUM];
-    analysis.totalUnresEnergy += info[feedback::UNRES_ENERGY];
-    analysis.totalWindMomentum += info[i_WIND_MOMENTUM];
-    analysis.totalWindEnergy += info[i_WIND_ENERGY];
+    analysis.countSN += (long)info[feedinfoLUT::countSN];
+    analysis.countResolved += (long)info[feedinfoLUT::countResolved];
+    analysis.countUnresolved += (long)info[feedinfoLUT::countUnresolved];
+    analysis.totalEnergy += info[feedinfoLUT::totalEnergy];
+    analysis.totalMomentum += info[feedinfoLUT::totalMomentum];
+    analysis.totalUnresEnergy += info[feedinfoLUT::totalUnresEnergy];
+    analysis.totalWindMomentum += info[feedinfoLUT::totalWindMomentum];
+    analysis.totalWindEnergy += info[feedinfoLUT::totalWindEnergy];
 
     chprintf("iteration %d, t %.4e, dt %.4e", G.H.n_step, G.H.t, G.H.dt);
 
@@ -661,23 +637,23 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
     if (analysis.countResolved > 0 || analysis.countUnresolved > 0) {
       global_resolved_ratio = analysis.countResolved / (analysis.countResolved + analysis.countUnresolved);
     }
-    chprintf(": number of SN: %d,(R: %d, UR: %d)\n", (int)info[feedback::SN], (long)info[feedback::RESOLVED],
-             (long)info[feedback::NOT_RESOLVED]);
+    chprintf(": number of SN: %d,(R: %d, UR: %d)\n", (int)info[feedinfoLUT::countSN], (long)info[feedinfoLUT::countResolved],
+             (long)info[feedinfoLUT::countUnresolved]);
     chprintf("    cummulative: #SN: %d, ratio of resolved (R: %d, UR: %d) = %.3e\n", (long)analysis.countSN,
              (long)analysis.countResolved, (long)analysis.countUnresolved, global_resolved_ratio);
-    chprintf("    sn  r energy  : %.5e erg, cumulative: %.5e erg\n", info[feedback::ENERGY] * FORCE_UNIT * LENGTH_UNIT,
+    chprintf("    sn  r energy  : %.5e erg, cumulative: %.5e erg\n", info[feedinfoLUT::totalEnergy] * FORCE_UNIT * LENGTH_UNIT,
              analysis.totalEnergy * FORCE_UNIT * LENGTH_UNIT);
     chprintf("    sn ur energy  : %.5e erg, cumulative: %.5e erg\n",
-             info[feedback::UNRES_ENERGY] * FORCE_UNIT * LENGTH_UNIT,
+             info[feedinfoLUT::totalUnresEnergy] * FORCE_UNIT * LENGTH_UNIT,
              analysis.totalUnresEnergy * FORCE_UNIT * LENGTH_UNIT);
     chprintf("    sn momentum  : %.5e SM km/s, cumulative: %.5e SM km/s\n",
-             info[feedback::MOMENTUM] * VELOCITY_UNIT / 1e5, analysis.totalMomentum * VELOCITY_UNIT / 1e5);
+             info[feedinfoLUT::totalMomentum] * VELOCITY_UNIT / 1e5, analysis.totalMomentum * VELOCITY_UNIT / 1e5);
   #endif  // NO_SN_FEEDBACK
 
   #ifndef NO_WIND_FEEDBACK
     chprintf("    wind momentum: %.5e S.M. km/s,  cumulative: %.5e S.M. km/s\n",
-             info[i_WIND_MOMENTUM] * VELOCITY_UNIT / 1e5, analysis.totalWindMomentum * VELOCITY_UNIT / 1e5);
-    chprintf("    wind energy  : %.5e erg,  cumulative: %.5e erg\n", info[i_WIND_ENERGY] * FORCE_UNIT * LENGTH_UNIT,
+             info[feedinfoLUT::totalWindMomentum] * VELOCITY_UNIT / 1e5, analysis.totalWindMomentum * VELOCITY_UNIT / 1e5);
+    chprintf("    wind energy  : %.5e erg,  cumulative: %.5e erg\n", info[feedinfoLUT::totalWindEnergy] * FORCE_UNIT * LENGTH_UNIT,
              analysis.totalWindEnergy * FORCE_UNIT * LENGTH_UNIT);
   #endif  // NO_WIND_FEEDBACK
 
