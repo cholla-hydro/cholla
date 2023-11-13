@@ -370,6 +370,8 @@ void parse_param(char *name, char *value, struct parameters *parms)
     parms->prng_seed = atoi(value);
 #endif  // PARTICLES
 #ifdef FEEDBACK
+  } else if (strcmp(name, "feedback_kind") == 0) {
+    strncpy(parms->feedback_kind, value, MAXLEN);
   #ifndef NO_SN_FEEDBACK
   } else if (strcmp(name, "snr_filename") == 0) {
     strncpy(parms->snr_filename, value, MAXLEN);

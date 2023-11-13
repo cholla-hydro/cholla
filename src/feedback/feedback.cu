@@ -417,7 +417,20 @@ feedback::ClusterFeedbackMethod::ClusterFeedbackMethod(struct parameters& P, Fee
   : analysis(analysis),
     snr_calc_(P),
     feedback_kind_(feedback::FeedbackKind::table)
-{ }
+{
+  std::string feedback_kind_str(P.feedback_kind);
+  if (feedback_kind_str.empty()){
+    chprintf("no feedback_kind was specified, defaulting to feedback_kind=table\n");
+  } else if (feedback_kind_str == "immediate_sn") {
+    feedback_kind_ = feedback::FeedbackKind::immediate_sn;
+  } else if (feedback_kind_str == "none") {
+    feedback_kind_ = feedback::FeedbackKind::none;
+  } else if (feedback_kind_str == "table") {
+    feedback_kind_ = feedback::FeedbackKind::table;
+  } else {
+    CHOLLA_ERROR("Unrecognized option passed to feedback_kind: %s", feedback_kind_str.c_str());
+  }
+}
 
 /**
  * @brief Stellar feedback function (SNe and stellar winds)
