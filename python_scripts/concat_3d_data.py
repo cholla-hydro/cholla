@@ -28,18 +28,48 @@ def concat_3d_output(source_directory: pathlib.Path,
                      compression_options: str = None,
                      chunking = None):
   """Concatenate a single 3D HDF5 Cholla dataset. i.e. take the single files generated per process and concatenate them into a
-  single, large file.
+    single, large file.
 
-  Args:
-      source_directory (pathlib.Path): The directory containing the unconcatenated files
-      output_directory (pathlib.Path): The directory containing the new concatenated files
-      num_processes (int): The number of ranks that Cholla was run with
-      output_number (int): The output number to concatenate
-      skip_fields (list, optional): List of fields to skip concatenating. Defaults to [].
-      destination_dtype (np.dtype, optional): The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
-      compression_type (str, optional): What kind of compression to use on the output data. Defaults to None.
-      compression_options (str, optional): What compression settings to use if compressing. Defaults to None.
-      chunking (bool or tuple, optional): Whether or not to use chunking and the chunk size. Defaults to None.
+  Parameters
+  ----------
+  source_directory : pathlib.Path
+      The directory containing the unconcatenated files
+  output_directory : pathlib.Path
+      The directory containing the new concatenated files
+  num_processes : int
+      The number of ranks that Cholla was run with
+  output_number : int
+      The output number to concatenate
+  skip_fields : list
+      List of fields to skip concatenating. Defaults to [].
+  destination_dtype : np.dtype
+      The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
+  compression_type : str
+      What kind of compression to use on the output data. Defaults to None.
+  compression_options : str
+      What compression settings to use if compressing. Defaults to None.
+  chunking : bool or tuple
+      Whether or not to use chunking and the chunk size. Defaults to None.
+  source_directory: pathlib.Path :
+
+  output_directory: pathlib.Path :
+
+  num_processes: int :
+
+  output_number: int :
+
+  skip_fields: list :
+        (Default value = [])
+  destination_dtype: np.dtype :
+        (Default value = None)
+  compression_type: str :
+        (Default value = None)
+  compression_options: str :
+        (Default value = None)
+
+  Returns
+  -------
+
   """
 
   # Error checking
@@ -109,17 +139,20 @@ def destination_safe_open(filename: pathlib.Path) -> h5py.File:
   Parameters
   ----------
   filename : pathlib.Path
-      The full path and name of the file to open
+
+  The full path and name of the file to open :
+
+  filename: pathlib.Path :
+
 
   Returns
   -------
   h5py.File
-      The opened HDF5 file object
 
-  Raises
-  ------
-  FileExistsError
-      Raises if the destination file already exists
+  The opened HDF5 file object
+
+
+
   """
 
   try:
@@ -137,12 +170,22 @@ def destination_safe_open(filename: pathlib.Path) -> h5py.File:
 def copy_header(source_file: h5py.File, destination_file: h5py.File):
   """Copy the attributes of one HDF5 file to another, skipping all fields that are specific to an individual rank
 
-  Args:
-      source_file (h5py.File): The source file
-      destination_file (h5py.File): The destination file
+  Parameters
+  ----------
+  source_file : h5py.File
+      The source file
+  destination_file : h5py.File
+      The destination file
+  source_file: h5py.File :
 
-  Returns:
-      h5py.File: The destination file with the new header attributes
+  destination_file: h5py.File :
+
+
+  Returns
+  -------
+  h5py.File
+      The destination file with the new header attributes
+
   """
   fields_to_skip = ['dims_local', 'offset']
 
@@ -156,13 +199,21 @@ def copy_header(source_file: h5py.File, destination_file: h5py.File):
 # ==============================================================================
 def common_cli() -> argparse.ArgumentParser:
   """This function provides the basis for the common CLI amongst the various concatenation scripts. It returns an
-  `argparse.ArgumentParser` object to which additional arguments can be passed before the final `.parse_args()` method
-  is used.
+    `argparse.ArgumentParser` object to which additional arguments can be passed before the final `.parse_args()` method
+    is used.
+
+  Parameters
+  ----------
+
+  Returns
+  -------
+
   """
 
   # ============================================================================
-  # Function used to parse the `--concat-output` argument
   def concat_output(raw_argument: str) -> list:
+    """Function used to parse the `--concat-output` argument
+    """
     # Check if the string is empty
     if len(raw_argument) < 1:
       raise ValueError('The --concat-output argument must not be of length zero.')

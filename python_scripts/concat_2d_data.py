@@ -36,24 +36,66 @@ def concat_2d_dataset(source_directory: pathlib.Path,
                       compression_options: str = None,
                       chunking = None):
   """Concatenate 2D HDF5 Cholla datasets. i.e. take the single files
-  generated per process and concatenate them into a single, large file. This
-  function concatenates a single output time and can be called multiple times,
-  potentially in parallel, to concatenate multiple output times.
+    generated per process and concatenate them into a single, large file. This
+    function concatenates a single output time and can be called multiple times,
+    potentially in parallel, to concatenate multiple output times.
 
-  Args:
-      source_directory (pathlib.Path): The directory containing the unconcatenated files
-      output_directory (pathlib.Path): The directory containing the new concatenated files
-      num_processes (int): The number of ranks that Cholla was run with
-      output_number (int): The output number to concatenate
-      dataset_kind (str): The type of 2D dataset to concatenate. Can be 'slice', 'proj', or 'rot_proj'.
-      concat_xy (bool, optional): If True then concatenate the XY slices/projections. Defaults to True.
-      concat_yz (bool, optional): If True then concatenate the YZ slices/projections. Defaults to True.
-      concat_xz (bool, optional): If True then concatenate the XZ slices/projections. Defaults to True.
-      skip_fields (list, optional): List of fields to skip concatenating. Defaults to [].
-      destination_dtype (np.dtype, optional): The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
-      compression_type (str, optional): What kind of compression to use on the output data. Defaults to None.
-      compression_options (str, optional): What compression settings to use if compressing. Defaults to None.
-      chunking (bool or tuple, optional): Whether or not to use chunking and the chunk size. Defaults to None.
+  Parameters
+  ----------
+  source_directory : pathlib.Path
+      The directory containing the unconcatenated files
+  output_directory : pathlib.Path
+      The directory containing the new concatenated files
+  num_processes : int
+      The number of ranks that Cholla was run with
+  output_number : int
+      The output number to concatenate
+  dataset_kind : str
+      The type of 2D dataset to concatenate. Can be 'slice', 'proj', or 'rot_proj'.
+  concat_xy : bool
+      If True then concatenate the XY slices/projections. Defaults to True.
+  concat_yz : bool
+      If True then concatenate the YZ slices/projections. Defaults to True.
+  concat_xz : bool
+      If True then concatenate the XZ slices/projections. Defaults to True.
+  skip_fields : list
+      List of fields to skip concatenating. Defaults to [].
+  destination_dtype : np.dtype
+      The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
+  compression_type : str
+      What kind of compression to use on the output data. Defaults to None.
+  compression_options : str
+      What compression settings to use if compressing. Defaults to None.
+  chunking : bool or tuple
+      Whether or not to use chunking and the chunk size. Defaults to None.
+  source_directory: pathlib.Path :
+
+  output_directory: pathlib.Path :
+
+  num_processes: int :
+
+  output_number: int :
+
+  dataset_kind: str :
+
+  concat_xy: bool :
+        (Default value = True)
+  concat_yz: bool :
+        (Default value = True)
+  concat_xz: bool :
+        (Default value = True)
+  skip_fields: list :
+        (Default value = [])
+  destination_dtype: np.dtype :
+        (Default value = None)
+  compression_type: str :
+        (Default value = None)
+  compression_options: str :
+        (Default value = None)
+
+  Returns
+  -------
+
   """
 
   # Error checking
