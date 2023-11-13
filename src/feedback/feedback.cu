@@ -224,40 +224,41 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
   */
 
   // no sense doing anything if there was no SN
-  if (N != 0) {
-    Real n_0;
-    Real* density             = conserved_dev;
-    n_0                       = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
-    s_info[feedinfoLUT::LEN * tid] = 1. * N;
+  if (N == 0) return;
 
-    feedback_energy  = N * feedback::ENERGY_PER_SN / dV;
-    feedback_density = N * feedback::MASS_PER_SN / dV;
+  Real* density             = conserved_dev;
+  Real n_0                  = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
+  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN] = 1. * N;
 
-    Real shell_radius = feedback::R_SH * pow(n_0, -0.46) * pow(fabsf(N), 0.29);
+  feedback_energy  = N * feedback::ENERGY_PER_SN / dV;
+  feedback_density = N * feedback::MASS_PER_SN / dV;
+
+  Real shell_radius = feedback::R_SH * pow(n_0, -0.46) * pow(fabsf(N), 0.29);
   #ifdef ONLY_RESOLVED
-    bool is_resolved = true;
+  bool is_resolved = true;
   #else
-    bool is_resolved = 3 * max(dx, max(dy, dz)) <= shell_radius;
+  bool is_resolved = 3 * max(dx, max(dy, dz)) <= shell_radius;
   #endif
 
-    if (is_resolved) {
-      // inject energy and density
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN]     = 1. * N;
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy] = feedback_energy * dV;
-      Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
-                        conserved_dev, feedback_density, feedback_energy);
-    } else {
-      // inject momentum and density
-      feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV / sqrt(3.0);
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved]    = 1. * N;
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    = feedback_momentum * dV * sqrt(3.0);
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] = feedback_energy * dV;
-      Apply_Energy_Momentum_Deposition(
-          pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
-          feedback_density, feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
-    }
+  if (is_resolved) {
+    // inject energy and density
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved]     = 1. * N;
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy] = feedback_energy * dV;
+    Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
+                      conserved_dev, feedback_density, feedback_energy);
+  } else {
+    // inject momentum and density
+    feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV / sqrt(3.0);
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  = 1. * N;
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    = feedback_momentum * dV * sqrt(3.0);
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] = feedback_energy * dV;
+    Apply_Energy_Momentum_Deposition(
+        pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
+        feedback_density, feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
   }
 
+  // update the cluster mass
+  mass_dev[gtid] -= N * feedback::MASS_PER_SN;
 }
 
 __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev,
@@ -284,10 +285,7 @@ __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real
   feedback_density *= mass_dev[gtid] * dt / dV;
   feedback_energy *= mass_dev[gtid] * dt / dV;
 
-  /* TODO refactor into separate kernel call
-  if (true) {
-    mass_dev[gtid]   -= feedback_density * dV;
-  }*/
+  mass_dev[gtid]   -= feedback_density * dV;
 
   // we log net momentum, not momentum density, and magnitude (not the
   // component along a direction)
@@ -380,45 +378,6 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
       atomicAdd(info + cur_ind, s_info[cur_ind]);
     }
   }
-}
-
-__global__ void Adjust_Cluster_Mass_Kernel(part_int_t n_local, Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev,
-                                           Real* age_dev, Real* mass_dev, part_int_t* id_dev, Real xMin, Real yMin,
-                                           Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz,
-                                           int nx_g, int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                                           const feedback::SNRateCalc snr_calc)
-{
-  int tid  = threadIdx.x;
-  int gtid = blockIdx.x * blockDim.x + tid;
-  // Bounds check on particle arrays
-  if (gtid >= n_local) return;
-
-  Real pos_x    = pos_x_dev[gtid];
-  Real pos_y    = pos_y_dev[gtid];
-  Real pos_z    = pos_z_dev[gtid];
-  bool in_local = (pos_x >= xMin && pos_x < xMax) && (pos_y >= yMin && pos_y < yMax) && (pos_z >= zMin && pos_z < zMax);
-  // Particle is outside bounds, exit
-  if (!in_local) return;
-
-  int indx_x  = (int)floor((pos_x - xMin) / dx);
-  int indx_y  = (int)floor((pos_y - yMin) / dy);
-  int indx_z  = (int)floor((pos_z - zMin) / dz);
-  bool ignore = indx_x < 0 || indx_y < 0 || indx_z < 0 || indx_x >= nx_g - 2 * n_ghost ||
-                indx_y >= ny_g - 2 * n_ghost || indx_z >= nz_g - 2 * n_ghost;
-  // Ignore this particle, exit
-  if (ignore) return;
-
-  // bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx);
-  // if (is_alone) kernel_printf(" particle not alone: step %d, id %ld\n", n_step, id_dev[gtid]);
-  // if (!is_alone) return;
-
-  Real age = t - age_dev[gtid];
-
-  #ifndef NO_SN_FEEDBACK
-  Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
-  int N               = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
-  mass_dev[gtid] -= N * feedback::MASS_PER_SN;
-  #endif
 }
 
 __device__ void Set_Average_Density(int indx_x, int indx_y, int indx_z, int nx_g, int ny_g, int n_ghost, Real* density,
@@ -547,16 +506,6 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
                        G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_info.data(), G.C.d_density, gama, 
                        snr_calc_, G.H.n_step);
-
-    CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemcpy)
-
-    // There was previously a comment here stating "TODO reduce cluster mass",
-    // but we're already  doing this here, right?
-    hipLaunchKernelGGL(Adjust_Cluster_Mass_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
-                       G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev, G.Particles.age_dev,
-                       G.Particles.mass_dev, G.Particles.partIDs_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
-                       G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
-                       G.H.nz, G.H.n_ghost, G.H.n_step, G.H.t, G.H.dt, snr_calc_);
 
     // copy summary data back to the host
     CHECK(cudaMemcpy(&h_info, d_info.data(), feedinfoLUT::LEN * sizeof(Real), cudaMemcpyDeviceToHost));
