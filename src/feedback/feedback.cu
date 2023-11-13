@@ -212,7 +212,6 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
   int gtid = blockIdx.x * blockDim.x + tid;
 
   Real dV = dx * dy * dz;
-  Real feedback_density, feedback_momentum, feedback_energy;
   int n_cells    = nx_g * ny_g * nz_g;
 
   Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
@@ -228,10 +227,10 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
 
   Real* density             = conserved_dev;
   Real n_0                  = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
-  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN] = 1. * N;
+  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN] += N;
 
-  feedback_energy  = N * feedback::ENERGY_PER_SN / dV;
-  feedback_density = N * feedback::MASS_PER_SN / dV;
+  Real feedback_energy  = N * feedback::ENERGY_PER_SN / dV;
+  Real feedback_density = N * feedback::MASS_PER_SN / dV;
 
   Real shell_radius = feedback::R_SH * pow(n_0, -0.46) * pow(fabsf(N), 0.29);
   #ifdef ONLY_RESOLVED
@@ -242,16 +241,16 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
 
   if (is_resolved) {
     // inject energy and density
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved]     = 1. * N;
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy] = feedback_energy * dV;
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += N;
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback_energy * dV;
     Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
                       conserved_dev, feedback_density, feedback_energy);
   } else {
     // inject momentum and density
-    feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV / sqrt(3.0);
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  = 1. * N;
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    = feedback_momentum * dV * sqrt(3.0);
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] = feedback_energy * dV;
+    Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV / sqrt(3.0);
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  += N;
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    += feedback_momentum * dV * sqrt(3.0);
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] += feedback_energy * dV;
     Apply_Energy_Momentum_Deposition(
         pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
         feedback_density, feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
@@ -289,8 +288,8 @@ __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real
 
   // we log net momentum, not momentum density, and magnitude (not the
   // component along a direction)
-  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindMomentum] = feedback_momentum * dV * sqrt(3.0);
-  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindEnergy]   = feedback_energy * dV;
+  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindMomentum] += feedback_momentum * dV * sqrt(3.0);
+  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindEnergy]   += feedback_energy * dV;
 
   Apply_Energy_Momentum_Deposition(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost,
                                    n_cells, conserved_dev, feedback_density,
