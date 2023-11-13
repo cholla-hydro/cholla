@@ -19,15 +19,15 @@ import pathlib
 import concat_internals
 
 # ======================================================================================================================
-def concat_3d_output(source_directory: pathlib.Path,
-                     output_directory: pathlib.Path,
-                     num_processes: int,
-                     output_number: int,
-                     skip_fields: list = [],
-                     destination_dtype: np.dtype = None,
-                     compression_type: str = None,
-                     compression_options: str = None,
-                     chunking = None) -> None:
+def concat_3d_dataset(source_directory: pathlib.Path,
+                      output_directory: pathlib.Path,
+                      num_processes: int,
+                      output_number: int,
+                      skip_fields: list = [],
+                      destination_dtype: np.dtype = None,
+                      compression_type: str = None,
+                      compression_options: str = None,
+                      chunking = None) -> None:
   """Concatenate a single 3D HDF5 Cholla dataset. i.e. take the single files generated per process and concatenate them into a
     single, large file.
 
@@ -142,14 +142,14 @@ if __name__ == '__main__':
 
   # Perform the concatenation
   for output in args.concat_outputs:
-    concat_3d_output(source_directory=args.source_directory,
-                     output_directory=args.output_directory,
-                     num_processes=args.num_processes,
-                     output_number=output,
-                     skip_fields=args.skip_fields,
-                     destination_dtype=args.dtype,
-                     compression_type=args.compression_type,
-                     compression_options=args.compression_opts,
-                     chunking=args.chunking)
+    concat_3d_dataset(source_directory=args.source_directory,
+                      output_directory=args.output_directory,
+                      num_processes=args.num_processes,
+                      output_number=output,
+                      skip_fields=args.skip_fields,
+                      destination_dtype=args.dtype,
+                      compression_type=args.compression_type,
+                      compression_options=args.compression_opts,
+                      chunking=args.chunking)
 
   print(f'\nTime to execute: {round(default_timer()-start,2)} seconds')
