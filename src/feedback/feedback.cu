@@ -74,6 +74,20 @@ inline __device__ Real Get_Average_Number_Density_CGS(Real* density, int xi, int
   return Get_Average_Density(density, xi, yi, zi, nx_grid, ny_grid, n_ghost) * DENSITY_UNIT / (MU * MP);
 }
 
+__device__ void Set_Average_Density(int indx_x, int indx_y, int indx_z, int nx_g, int ny_g, int n_ghost, Real* density,
+                                    Real ave_dens)
+{
+  for (int i = -1; i < 2; i++) {
+    for (int j = -1; j < 2; j++) {
+      for (int k = -1; k < 2; k++) {
+        int indx = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
+
+        density[indx] = ave_dens;
+      }
+    }
+  }
+}
+
 __device__ void Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin, Real dx, Real dy,
                                   Real dz, int nx_g, int ny_g, int n_ghost, int n_cells,
                                   Real* conserved_device, Real feedback_density, Real feedback_energy)
@@ -246,6 +260,10 @@ __device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* 
     Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
                       conserved_dev, feedback_density, feedback_energy);
   } else {
+    // currently, only unresolved SN feedback involves averaging the densities.
+    Real ave_dens = n_0 * MU * MP / DENSITY_UNIT;
+    Set_Average_Density(indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost, density, ave_dens);
+
     // inject momentum and density
     Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(N), 0.93) / dV / sqrt(3.0);
     s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  += N;
@@ -379,82 +397,6 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
   }
 }
 
-__device__ void Set_Average_Density(int indx_x, int indx_y, int indx_z, int nx_g, int ny_g, int n_ghost, Real* density,
-                                    Real ave_dens)
-{
-  for (int i = -1; i < 2; i++) {
-    for (int j = -1; j < 2; j++) {
-      for (int k = -1; k < 2; k++) {
-        int indx = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
-
-        density[indx] = ave_dens;
-      }
-    }
-  }
-}
-
-__global__ void Set_Ave_Density_Kernel(part_int_t n_local, Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev,
-                                       Real* mass_dev, Real* age_dev, part_int_t* id_dev, Real xMin, Real yMin,
-                                       Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
-                                       int ny_g, int nz_g, int n_ghost, Real t, Real dt, Real* density,
-                                       const feedback::SNRateCalc snr_calc, int n_step)
-{
-  int tid  = threadIdx.x;
-  int gtid = blockIdx.x * blockDim.x + tid;
-  // Bounds check on particle arrays
-  if (gtid >= n_local) return;
-
-  Real pos_x    = pos_x_dev[gtid];
-  Real pos_y    = pos_y_dev[gtid];
-  Real pos_z    = pos_z_dev[gtid];
-  bool in_local = (pos_x >= xMin && pos_x < xMax) && (pos_y >= yMin && pos_y < yMax) && (pos_z >= zMin && pos_z < zMax);
-  // Particle is outside bounds, exit
-  if (!in_local) return;
-
-  int indx_x  = (int)floor((pos_x - xMin) / dx);
-  int indx_y  = (int)floor((pos_y - yMin) / dy);
-  int indx_z  = (int)floor((pos_z - zMin) / dz);
-  bool ignore = indx_x < 0 || indx_y < 0 || indx_z < 0 || indx_x >= nx_g - 2 * n_ghost ||
-                indx_y >= ny_g - 2 * n_ghost || indx_z >= nz_g - 2 * n_ghost;
-  // Ignore this particle, exit
-  if (ignore) return;
-
-  // bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx);
-  // if (is_alone) kernel_printf(" particle not alone: step %d, id %ld\n", n_step, id_dev[gtid]);
-  // if (!is_alone) return;
-
-  bool is_sn_feedback   = false;
-  #ifndef NO_SN_FEEDBACK
-  is_sn_feedback = true;
-  #endif
-
-  Real ave_dens;
-  Real age = t - age_dev[gtid];
-  if (is_sn_feedback) {
-    if (snr_calc.nonzero_sn_probability(age)) {
-      Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
-      int N               = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
-      /*
-      if (gtid == 0) {
-        kernel_printf("AVEDENS n_step: %d, id: %lld, N: %d\n", n_step, id_dev[gtid], N);
-      }*/
-      Real n_0          = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
-      Real shell_radius = feedback::R_SH * pow(n_0, -0.46) * pow(N, 0.29);
-  #ifdef ONLY_RESOLVED
-      bool is_resolved = true;
-  #else
-      bool is_resolved = 3 * max(dx, max(dy, dz)) <= shell_radius;
-  #endif
-
-      // resolved SN feedback does not average densities.
-      if (!is_resolved && N > 0) {
-        ave_dens = n_0 * MU * MP / DENSITY_UNIT;
-        Set_Average_Density(indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost, density, ave_dens);
-      }
-    }
-  }
-}
-
 feedback::ClusterFeedbackMethod::ClusterFeedbackMethod(struct parameters& P, FeedbackAnalysis& analysis)
   : analysis(analysis),
     snr_calc_(P)
@@ -486,18 +428,6 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
 
     // I have no idea what ngrid is used for...
     int ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
-
-    // before applying feedback, set gas density around clusters to the
-    // average value from the 27 neighboring cells.  We don't want to
-    // do this during application of feedback since "undoing it" in the
-    // event that the time step is too large becomes difficult.
-    hipLaunchKernelGGL(Set_Ave_Density_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local, G.Particles.pos_x_dev,
-                       G.Particles.pos_y_dev, G.Particles.pos_z_dev, G.Particles.mass_dev, G.Particles.age_dev,
-                       G.Particles.partIDs_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal, G.H.xblocal_max, G.H.yblocal_max,
-                       G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_ghost, G.H.t, G.H.dt,
-                       G.C.d_density, snr_calc_, G.H.n_step);
-
-    CHECK(cudaDeviceSynchronize());  // probably unnecessary (it replaced a now-unneeded cudaMemset)
 
     hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
                        G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
