@@ -58,7 +58,7 @@ def copy_header(source_file: h5py.File, destination_file: h5py.File) -> h5py.Fil
   h5py.File
       The destination file with the new header attributes
   """
-  fields_to_skip = ['dims_local', 'offset']
+  fields_to_skip = ['dims_local', 'offset', 'n_particles_local']
 
   for attr_key in source_file.attrs.keys():
     if attr_key not in fields_to_skip:

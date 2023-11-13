@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Python script for concatenating 3D hdf5 datasets. Includes a CLI for concatenating Cholla HDF5 datasets and can be
-imported into other scripts where the `concat_3d_field` function can be used to concatenate the datasets.
+imported into other scripts where the `concat_3d_dataset` function can be used to concatenate the datasets.
 
 Generally the easiest way to import this script is to add the `python_scripts` directory to your python path in your
 script like this:
@@ -18,7 +18,7 @@ import pathlib
 
 import concat_internals
 
-# ======================================================================================================================
+# ==============================================================================
 def concat_3d_dataset(source_directory: pathlib.Path,
                       output_directory: pathlib.Path,
                       num_processes: int,
@@ -28,8 +28,8 @@ def concat_3d_dataset(source_directory: pathlib.Path,
                       compression_type: str = None,
                       compression_options: str = None,
                       chunking = None) -> None:
-  """Concatenate a single 3D HDF5 Cholla dataset. i.e. take the single files generated per process and concatenate them into a
-    single, large file.
+  """Concatenate a single 3D HDF5 Cholla dataset. i.e. take the single files
+  generated per process and concatenate them into a single, large file.
 
   Parameters
   ----------
