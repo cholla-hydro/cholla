@@ -43,7 +43,6 @@ private: // attributes
 
   FeedbackAnalysis& analysis;
   SNRateCalc snr_calc_;
-  SWRateCalc sw_calc_;
 };
 
 }  // namespace feedback
