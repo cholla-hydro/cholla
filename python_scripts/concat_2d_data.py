@@ -15,11 +15,10 @@ import concat_2d_data
 """
 
 import h5py
-import argparse
 import pathlib
 import numpy as np
 
-from concat_3d_data import copy_header, common_cli, destination_safe_open
+import concat_internals
 
 # ==============================================================================
 def concat_2d_dataset(source_directory: pathlib.Path,
@@ -34,7 +33,7 @@ def concat_2d_dataset(source_directory: pathlib.Path,
                       destination_dtype: np.dtype = None,
                       compression_type: str = None,
                       compression_options: str = None,
-                      chunking = None):
+                      chunking = None) -> None:
   """Concatenate 2D HDF5 Cholla datasets. i.e. take the single files
     generated per process and concatenate them into a single, large file. This
     function concatenates a single output time and can be called multiple times,
@@ -104,12 +103,12 @@ def concat_2d_dataset(source_directory: pathlib.Path,
   assert dataset_kind in ['slice', 'proj', 'rot_proj'], '`dataset_kind` can only be one of "slice", "proj", "rot_proj".'
 
   # Open destination file
-  destination_file = destination_safe_open(output_directory / f'{output_number}_{dataset_kind}.h5')
+  destination_file = concat_internals.destination_safe_open(output_directory / f'{output_number}_{dataset_kind}.h5')
 
   # Setup the destination file
   with h5py.File(source_directory / f'{output_number}_{dataset_kind}.h5.0', 'r') as source_file:
     # Copy over header
-    destination_file = copy_header(source_file, destination_file)
+    destination_file = concat_internals.copy_header(source_file, destination_file)
 
     # Get a list of all datasets in the source file
     datasets_to_copy = list(source_file.keys())
@@ -169,7 +168,7 @@ def concat_2d_dataset(source_directory: pathlib.Path,
 # ==============================================================================
 
 # ==============================================================================
-def __get_2d_dataset_shape(source_file: h5py.File, dataset: str):
+def __get_2d_dataset_shape(source_file: h5py.File, dataset: str) -> tuple:
   """Determine the shape of the full 2D dataset
 
   Args:
@@ -200,7 +199,7 @@ def __get_2d_dataset_shape(source_file: h5py.File, dataset: str):
 # ==============================================================================
 
 # ==============================================================================
-def __write_bounds_2d_dataset(source_file: h5py.File, dataset: str):
+def __write_bounds_2d_dataset(source_file: h5py.File, dataset: str) -> tuple:
   """Determine the bounds of the concatenated file to write to
 
   Args:
@@ -211,7 +210,9 @@ def __write_bounds_2d_dataset(source_file: h5py.File, dataset: str):
       ValueError: If the dataset name isn't a 2D dataset name
 
   Returns:
-      tuple: The write bounds for the concatenated file to be used like `output_file[dataset][return[0]:return[1], return[2]:return[3]]
+      tuple: The write bounds for the concatenated file to be used like
+      `output_file[dataset][return[0]:return[1], return[2]:return[3]]` followed by a bool to indicate if the file is
+      in the slice if concatenating a slice
   """
 
   if 'xzr' in dataset:
@@ -241,7 +242,7 @@ if __name__ == '__main__':
   from timeit import default_timer
   start = default_timer()
 
-  cli = common_cli()
+  cli = concat_internals.common_cli()
   cli.add_argument('-d', '--dataset-kind', type=str, required=True,    help='What kind of 2D dataset to concatnate. Options are "slice", "proj", and "rot_proj"')
   cli.add_argument('--disable-xy', default=True, action='store_false', help='Disables concating the XY datasets.')
   cli.add_argument('--disable-yz', default=True, action='store_false', help='Disables concating the YZ datasets.')
