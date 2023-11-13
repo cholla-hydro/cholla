@@ -32,6 +32,8 @@ static const Real FINAL_MOMENTUM = 2.8e5 / LENGTH_UNIT * 1e5 * TIME_UNIT;
 // 30.2 pc * n_0^{-0.46} -> eq.(31) Kim & Ostriker (2015)
 static const Real R_SH = 0.0302;
 
+enum class FeedbackKind { none, table, immediate_sn };
+
 struct ClusterFeedbackMethod {
 
   ClusterFeedbackMethod(struct parameters& P, FeedbackAnalysis& analysis);
@@ -43,6 +45,7 @@ private: // attributes
 
   FeedbackAnalysis& analysis;
   SNRateCalc snr_calc_;
+  FeedbackKind feedback_kind_;
 };
 
 }  // namespace feedback

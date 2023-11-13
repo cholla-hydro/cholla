@@ -15,6 +15,7 @@
   #include "../grid/grid3D.h"
   #include "../io/io.h"
   #include "../utils/DeviceVector.h"
+  #include "../utils/error_handling.h"
   #include "feedback.h"
 
   #define TPB_FEEDBACK 128
@@ -414,7 +415,8 @@ __global__ void Get_SN_Count_Kernel(part_int_t n_local, part_int_t* id_dev, Real
 
 feedback::ClusterFeedbackMethod::ClusterFeedbackMethod(struct parameters& P, FeedbackAnalysis& analysis)
   : analysis(analysis),
-    snr_calc_(P)
+    snr_calc_(P),
+    feedback_kind_(feedback::FeedbackKind::table)
 { }
 
 /**
@@ -441,11 +443,20 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
     int ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
 
     // Declare/allocate device buffer for holding the number of supernovae per particle in the current cycle
+    // (The following behavior can be accomplished without any memory allocations if we employ templates)
     cuda_utilities::DeviceVector<int> d_num_SN(G.Particles.n_local, true);  // initialized to 0
 
-    hipLaunchKernelGGL(Get_SN_Count_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
-                       G.Particles.partIDs_dev, G.Particles.mass_dev, G.Particles.age_dev, G.H.t, G.H.dt,
-                       snr_calc_, G.H.n_step, d_num_SN.data());
+    if (feedback_kind_ == feedback::FeedbackKind::table) {
+      hipLaunchKernelGGL(Get_SN_Count_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
+                         G.Particles.partIDs_dev, G.Particles.mass_dev, G.Particles.age_dev, G.H.t, G.H.dt,
+                         snr_calc_, G.H.n_step, d_num_SN.data());
+      CHECK(cudaDeviceSynchronize());
+    } else if ((feedback_kind_ == feedback::FeedbackKind::immediate_sn) and (G.H.n_step == 0)) {
+      std::vector<int> tmp(G.Particles.n_local, 1);
+      CHECK(cudaMemcpy(d_num_SN.data(), tmp.data(), sizeof(int)*G.Particles.n_local, cudaMemcpyHostToDevice));
+    } else {
+      // do nothing - the number of supernovae is already zero
+    }
 
     // Declare/allocate device buffer for accumulating summary information about feedback
     cuda_utilities::DeviceVector<Real> d_info(feedinfoLUT::LEN, true);  // initialized to 0
