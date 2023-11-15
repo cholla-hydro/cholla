@@ -121,16 +121,17 @@ typedef double Real;
 typedef long int grav_int_t;
 #endif
 
-#ifdef PARTICLES
-  #ifdef PARTICLES_LONG_INTS
+#ifdef PARTICLES_LONG_INTS
 typedef long int part_int_t;
-  #else
+#else
 typedef int part_int_t;
-  #endif  // PARTICLES_LONG_INTS
+#endif  // PARTICLES_LONG_INTS
 
-  #include <vector>
+#include <vector>
 typedef std::vector<Real> real_vector_t;
 typedef std::vector<part_int_t> int_vector_t;
+
+#ifdef PARTICLES
   #ifdef MPI_CHOLLA
 // Constants for the inital size of the buffers for particles transfer
 // and the number of data transferred for each particle
@@ -280,11 +281,10 @@ struct parameters {
   // machine dependent seed will be generated.
   std::uint_fast64_t prng_seed = 0;
 #endif  // PARTICLES
+char feedback_sn_model[MAXLEN] = {'\0'};
+char feedback_sn_rate[MAXLEN] = {'\0'};
+char snr_filename[MAXLEN] = {'\0'};
 #ifdef FEEDBACK
-  char feedback_kind[MAXLEN];
-  #ifndef NO_SN_FEEDBACK
-  char snr_filename[MAXLEN];
-  #endif
   #ifndef NO_WIND_FEEDBACK
   char sw_filename[MAXLEN];
   #endif

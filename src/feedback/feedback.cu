@@ -1,4 +1,3 @@
-#if defined(FEEDBACK) && defined(PARTICLES_GPU) && defined(PARTICLE_AGE) && defined(PARTICLE_IDS)
 
   #include <math.h>
   #include <stdio.h>
@@ -16,6 +15,7 @@
   #include "../io/io.h"
   #include "../utils/DeviceVector.h"
   #include "../utils/error_handling.h"
+  #include "../feedback/ratecalc.h"
   #include "feedback.h"
 
   #define TPB_FEEDBACK 128
@@ -413,32 +413,40 @@ __global__ void Get_SN_Count_Kernel(part_int_t n_local, part_int_t* id_dev, Real
   num_SN_dev[gtid]    = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
 }
 
-feedback::ClusterFeedbackMethod::ClusterFeedbackMethod(struct parameters& P, FeedbackAnalysis& analysis)
-  : analysis(analysis),
-    snr_calc_(P),
-    feedback_kind_(feedback::FeedbackKind::table)
-{
-  std::string feedback_kind_str(P.feedback_kind);
-  if (feedback_kind_str.empty()){
-    chprintf("no feedback_kind was specified, defaulting to feedback_kind=table\n");
-  } else if (feedback_kind_str == "immediate_sn") {
-    feedback_kind_ = feedback::FeedbackKind::immediate_sn;
-  } else if (feedback_kind_str == "none") {
-    feedback_kind_ = feedback::FeedbackKind::none;
-  } else if (feedback_kind_str == "table") {
-    feedback_kind_ = feedback::FeedbackKind::table;
-  } else {
-    CHOLLA_ERROR("Unrecognized option passed to feedback_kind: %s", feedback_kind_str.c_str());
-  }
-}
+namespace { // anonymous namespace
+
+/* This functor is the callback used in the main part of cholla
+ */
+struct ClusterFeedbackMethod {
+
+  ClusterFeedbackMethod(FeedbackAnalysis& analysis, bool use_snr_calc, feedback::SNRateCalc snr_calc)
+    : analysis(analysis), use_snr_calc_(use_snr_calc), snr_calc_(snr_calc)
+{ }
+
+  /* Actually apply the stellar feedback (SNe and stellar winds) */
+  void operator() (Grid3D& G);
+
+private: // attributes
+
+  FeedbackAnalysis& analysis;
+  /* When false, ignore the snr_calc_ attribute. Instead, assume all clusters undergo a single
+   * supernova during the very first cycle and then never have a supernova again. */
+  const bool use_snr_calc_;
+  feedback::SNRateCalc snr_calc_;
+};
+
+} // close anonymous namespace
 
 /**
  * @brief Stellar feedback function (SNe and stellar winds)
  *
  * @param G
  */
-void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
+void ClusterFeedbackMethod::operator()(Grid3D& G)
 {
+#if !(defined(PARTICLES_GPU) && defined(PARTICLE_AGE) && defined(PARTICLE_IDS))
+  CHOLLA_ERROR("This function can't be called with the current compiler flags");
+#else
   #ifdef CPU_TIME
   G.Timer.Feedback.Start();
   #endif
@@ -459,16 +467,20 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
     // (The following behavior can be accomplished without any memory allocations if we employ templates)
     cuda_utilities::DeviceVector<int> d_num_SN(G.Particles.n_local, true);  // initialized to 0
 
-    if (feedback_kind_ == feedback::FeedbackKind::table) {
+    if (use_snr_calc_) {
       hipLaunchKernelGGL(Get_SN_Count_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
                          G.Particles.partIDs_dev, G.Particles.mass_dev, G.Particles.age_dev, G.H.t, G.H.dt,
                          snr_calc_, G.H.n_step, d_num_SN.data());
       CHECK(cudaDeviceSynchronize());
-    } else if ((feedback_kind_ == feedback::FeedbackKind::immediate_sn) and (G.H.n_step == 0)) {
-      std::vector<int> tmp(G.Particles.n_local, 1);
-      CHECK(cudaMemcpy(d_num_SN.data(), tmp.data(), sizeof(int)*G.Particles.n_local, cudaMemcpyHostToDevice));
     } else {
-      // do nothing - the number of supernovae is already zero
+      // in this branch, ``this->use_snr_calc_ == false``. This means that we assume all particles undergo
+      // a supernova during the very first cycle. Then there is never another supernova
+      if (G.H.n_step == 0) {
+        std::vector<int> tmp(G.Particles.n_local, 1);
+        CHECK(cudaMemcpy(d_num_SN.data(), tmp.data(), sizeof(int)*G.Particles.n_local, cudaMemcpyHostToDevice));
+      } else {
+        // do nothing - the number of supernovae is already zero
+      }
     }
 
     // Declare/allocate device buffer for accumulating summary information about feedback
@@ -540,6 +552,48 @@ void feedback::ClusterFeedbackMethod::operator()(Grid3D& G)
   #ifdef CPU_TIME
   G.Timer.Feedback.End();
   #endif
+#endif // the ifdef statement for Particle-stuff
 }
 
-#endif  // FEEDBACK & PARTICLES_GPU & PARTICLE_IDS & PARTICLE_AGE
+std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parameters& P,
+                                                                   FeedbackAnalysis& analysis)
+{
+  const std::string sn_model = P.feedback_sn_model;
+
+  // check whether or not the user wants some kind of feedback
+  if (sn_model == "none") {
+    return {}; // intentionally returning an empty object
+
+#if !(defined(FEEDBACK) && defined(PARTICLES_GPU) && defined(PARTICLE_AGE) && defined(PARTICLE_IDS))
+  } else if (sn_model.empty()) {
+    return {};
+  } else {
+    CHOLLA_ERROR("The way that cholla was compiled does not currently support feedback");
+#endif
+  }
+
+  // at the moment, we just ignore feedback_sn_model (other than "none")
+  // but possible values in the future: "none", "legacy-resolved", "legacy-combo", ...
+  //
+  // other parameters to accept in the future:
+  // - feedback_sn_overlap_strat: "ignore", "choose_lower_id"
+  // - feedback_sn_boundary_strat: "ignore", "snap"
+
+  std::string sn_rate_model = P.feedback_sn_rate;
+  if (sn_rate_model.empty()){
+    sn_rate_model = "table";
+  }
+
+  std::function<void(Grid3D&)> out;
+  if (sn_rate_model == "immediate_sn") {
+    out = ClusterFeedbackMethod(analysis, false, feedback::SNRateCalc());
+  } else if (sn_rate_model == "table") {
+    out = ClusterFeedbackMethod(analysis, true, feedback::SNRateCalc(P));
+  } else {
+    CHOLLA_ERROR("Unrecognized option passed to sn_rate_model: %s", sn_rate_model.c_str());
+  }
+
+  return out;
+}
+
+

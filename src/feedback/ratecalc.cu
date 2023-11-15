@@ -6,24 +6,17 @@
 #include "../feedback/ratecalc.h"
 
 
-/* Read in SN rate data from Starburst 99. If no file exists, assume a
- * constant rate.
- *
- * @param P reference to parameters struct. Passes in starburst 99 filename and
- * random number gen seed.
- */
+
 feedback::SNRateCalc::SNRateCalc(struct parameters& P)
-  : dev_snr_(nullptr),
-    snr_dt_(0.0),
-    time_sn_start_(0.0),
-    time_sn_end_(0.0) 
+  : SNRateCalc() // the dfault constructor sets up some sensible defaults
 {
-#if (!defined(FEEDBACK)) || defined(NO_SN_FEEDBACK)
-  return;
-#else
+
   chprintf("feedback::Init_State start\n");
   std::string snr_filename(P.snr_filename);
-  if (not snr_filename.empty()) {
+  if (snr_filename.empty()) {
+    // the constant-rate configuration is handled by the default constructor for us
+    chprintf("No SN rate file specified.  Using constant rate\n");
+  } else {
     chprintf("Specified a SNR filename %s.\n", snr_filename.data());
 
     feedback::S99Table tab = parse_s99_table(snr_filename, feedback::S99TabKind::supernova);
@@ -50,12 +43,8 @@ feedback::SNRateCalc::SNRateCalc(struct parameters& P)
     CHECK(cudaMalloc((void**)&dev_snr_, snr.size() * sizeof(Real)));
     CHECK(cudaMemcpy(dev_snr_, snr.data(), snr.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
-  } else {
-    chprintf("No SN rate file specified.  Using constant rate\n");
-    time_sn_start_ = DEFAULT_SN_START;
-    time_sn_end_   = DEFAULT_SN_END;
   }
-#endif
+
 }
 
 /* Read in Stellar wind data from Starburst 99. If no file exists, assume a

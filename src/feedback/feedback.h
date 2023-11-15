@@ -1,9 +1,9 @@
 #pragma once
-#if defined(PARTICLES_GPU) && defined(FEEDBACK)
+
+  #include <functional>
 
   #include "../analysis/feedback_analysis.h"
   #include "../global/global.h"
-  #include "../feedback/ratecalc.h"
 
 namespace feedinfoLUT {
   // this enum acts like a lookup table (LUT). It maps the names of analysis statistics to
@@ -32,22 +32,11 @@ static const Real FINAL_MOMENTUM = 2.8e5 / LENGTH_UNIT * 1e5 * TIME_UNIT;
 // 30.2 pc * n_0^{-0.46} -> eq.(31) Kim & Ostriker (2015)
 static const Real R_SH = 0.0302;
 
-enum class FeedbackKind { none, table, immediate_sn };
-
-struct ClusterFeedbackMethod {
-
-  ClusterFeedbackMethod(struct parameters& P, FeedbackAnalysis& analysis);
-
-  /* Actually apply the stellar feedback (SNe and stellar winds) */
-  void operator() (Grid3D& G);
-
-private: // attributes
-
-  FeedbackAnalysis& analysis;
-  SNRateCalc snr_calc_;
-  FeedbackKind feedback_kind_;
-};
+/* construct the feedback function (or not based on the specified parameters & compilation mode)
+ *
+ * \note
+ * we could probably define the following function regardless of the defined compiler flags */
+std::function<void(Grid3D&)> configure_feedback_callback(struct parameters& P,
+                                                         FeedbackAnalysis& analysis);
 
 }  // namespace feedback
-
-#endif  // PARTICLES_GPU && FEEDBACK
