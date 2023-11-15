@@ -9,6 +9,11 @@
   #include <curand_kernel.h>
 #endif  // O_HIP
 
+
+#include <string>
+
+#include "../global/global.h"
+
 typedef curandStateMRG32k3a_t feedback_prng_t;
 
 // This header declares classes that encapsulate calculations of SN rates and the rate of SW
@@ -28,6 +33,7 @@ typedef curandStateMRG32k3a_t feedback_prng_t;
 #define S_99_TOTAL_MASS 1e6
 
 namespace feedback{
+/* The following should really be macros */
 // supernova rate: 1SN / 100 solar masses per 36 Myr
 static const Real DEFAULT_SNR   = 2.8e-7;
 // default value for when SNe stop (40 Myr)
@@ -35,14 +41,39 @@ static const Real DEFAULT_SN_END = 40000;
 // default value for when SNe start (4 Myr)
 static const Real DEFAULT_SN_START = 4000;
 
+
+/* Encapsulate Supernova Rate Calculation that is primarily intended to interpolate the data from
+ * starburst99 tables.
+ *
+ * @note
+ * The destructor doesn't currently deallocate the device heap-data. That's okay for the moment
+ * because the only way to allocate that data at the moment is to call the table-reader constructor,
+ * and that table-reader particular constructor is only called once during the entire duration of 
+ * the simulation. With that said, I do have plans to address this issue in the future.
+ */
 struct SNRateCalc {
 
 public:
-  __host__ SNRateCalc(struct parameters& P);
 
-  __host__ __device__ SNRateCalc(Real *dev_snr, Real dt, Real time_start, Real time_end)
-    : dev_snr_(dev_snr), snr_dt_(dt), time_sn_start_(time_start), time_sn_end_(time_end) 
+  /* Default constructor. Ensures this object is always in a usable state
+   *
+   * This assumes a constant supernova rate given by feedback::DEFAULT_SNR
+   */
+  __host__ __device__ SNRateCalc()
+    : dev_snr_(nullptr),
+      snr_dt_(feedback::DEFAULT_SN_END - feedback::DEFAULT_SN_START),
+      time_sn_start_(feedback::DEFAULT_SN_START),
+      time_sn_end_(feedback::DEFAULT_SN_END)
   { }
+
+  /* The "table-reader" constructor.
+   *
+   * Reads data from the specified file and allocates heapdata. If no file was specified, fall back
+   * to configuration assumed in default constructor.
+   *
+   * @param P reference to parameters struct. Passes in starburst 99 filename.
+   */
+  __host__ SNRateCalc(struct parameters& P);
 
   /* returns supernova rate from starburst 99 (or default analytical rate).
    * 
@@ -92,13 +123,13 @@ public:
 
 private: // attributes
   /* device array with rate info */
-  Real *dev_snr_ = nullptr;
+  Real *dev_snr_;
   /* time interval between table data. Assumed to be constant. */
-  Real snr_dt_ = 0.0;
+  Real snr_dt_;
   /* cluster age when SNR is first greater than zero. */
-  Real time_sn_start_ = 0.0;
+  Real time_sn_start_;
   /* cluster age when SNR drops to zero. */
-  Real time_sn_end_ = 0.0;
+  Real time_sn_end_;
 };
 
 /* Class responsible for computing stellar-wind rates
@@ -107,6 +138,12 @@ private: // attributes
  * These were pretty much extracted directly from feedback.cu. There's a chance that there are some
  * logical errors in these functions. In particular, the way we have been using the Wind_Flux and
  * Wind_Power to update gas-momentum and gas-energy is inconsistent.
+ *
+ * @note
+ * The destructor doesn't currently deallocate the device heap-data. That's okay for the moment
+ * because the only way to allocate that data at the moment is to call the table-reader constructor,
+ * and that table-reader particular constructor is only called once during the entire duration of 
+ * the simulation. With that said, I do have plans to address this issue in the future.
  */
 struct SWRateCalc {
 

@@ -367,13 +367,13 @@ void parse_param(char *name, char *value, struct parameters *parms)
   } else if (strcmp(name, "prng_seed") == 0) {
     parms->prng_seed = atoi(value);
 #endif  // PARTICLES
+} else if (strcmp(name, "feedback_sn_model") == 0) {
+  strncpy(parms->feedback_sn_model, value, MAXLEN);
+} else if (strcmp(name, "feedback_sn_rate") == 0) {
+  strncpy(parms->feedback_sn_rate, value, MAXLEN);
+} else if (strcmp(name, "snr_filename") == 0) {
+  strncpy(parms->snr_filename, value, MAXLEN);
 #ifdef FEEDBACK
-  } else if (strcmp(name, "feedback_kind") == 0) {
-    strncpy(parms->feedback_kind, value, MAXLEN);
-  #ifndef NO_SN_FEEDBACK
-  } else if (strcmp(name, "snr_filename") == 0) {
-    strncpy(parms->snr_filename, value, MAXLEN);
-  #endif
   #ifndef NO_WIND_FEEDBACK
   } else if (strcmp(name, "sw_filename") == 0) {
     strncpy(parms->sw_filename, value, MAXLEN);
