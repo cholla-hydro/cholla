@@ -17,23 +17,12 @@
   #include "../utils/error_handling.h"
   #include "../utils/reduction_utilities.h"
   #include "../feedback/ratecalc.h"
+  #include "../feedback/feedback_model.h"
   #include "feedback.h"
 
   #define TPB_FEEDBACK 128
 
-/** the prescription for dividing a scalar quantity between 3x3x3 cells is done
-   by imagining a 2x2x2 cell volume around the SN.  These fractions, then,
-   represent the linear extent of this volume into the cell in question. For i=0
-   this should be 1*1/2. For i=-1 this should be (1-dx)*1/2. For i=+1 this
-   should be dx*1/2. In the above the 1/2 factor is normalize over 2
-   cells/direction.
-  */
-inline __device__ Real Frac(int i, Real dx) { return (-0.5 * i * i - 0.5 * i + 1 + i * dx) * 0.5; }
 
-inline __device__ Real D_Frac(int i, Real dx)
-{
-  return (dx > 0.5) * i * (1 - 2 * dx) + ((i + 1) * dx + 0.5 * (i - 1)) - 3 * (i - 1) * (i + 1) * (0.5 - dx);
-}
 
 /** This function used for debugging potential race conditions.  Feedback from neighboring
     particles could simultaneously alter one hydro cell's conserved quantities.
@@ -56,268 +45,13 @@ inline __device__ bool Particle_Is_Alone(Real* pos_x_dev, Real* pos_y_dev, Real*
   return true;
 }
 
-inline __device__ Real Get_Average_Density(Real* density, int xi, int yi, int zi, int nx_grid, int ny_grid, int n_ghost)
-{
-  Real d_average = 0.0;
-  for (int i = -1; i < 2; i++) {
-    for (int j = -1; j < 2; j++) {
-      for (int k = -1; k < 2; k++) {
-        d_average +=
-            density[(xi + n_ghost + i) + (yi + n_ghost + j) * nx_grid + (zi + n_ghost + k) * nx_grid * ny_grid];
-      }
-    }
-  }
-  return d_average / 27;
-}
 
-inline __device__ Real Get_Average_Number_Density_CGS(Real* density, int xi, int yi, int zi, int nx_grid, int ny_grid,
-                                                      int n_ghost)
-{
-  return Get_Average_Density(density, xi, yi, zi, nx_grid, ny_grid, n_ghost) * DENSITY_UNIT / (MU * MP);
-}
-
-__device__ void Set_Average_Density(int indx_x, int indx_y, int indx_z, int nx_g, int ny_g, int n_ghost, Real* density,
-                                    Real ave_dens)
-{
-  for (int i = -1; i < 2; i++) {
-    for (int j = -1; j < 2; j++) {
-      for (int k = -1; k < 2; k++) {
-        int indx = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
-
-        density[indx] = ave_dens;
-      }
-    }
-  }
-}
-
-__device__ void Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin, Real dx, Real dy,
-                                  Real dz, int nx_g, int ny_g, int n_ghost, int n_cells,
-                                  Real* conserved_device, Real feedback_density, Real feedback_energy)
-{
-  // For 2x2x2, a particle between 0-0.5 injects onto cell - 1
-  int indx_x = (int)floor((pos_x - xMin - 0.5 * dx) / dx);
-  int indx_y = (int)floor((pos_y - yMin - 0.5 * dy) / dy);
-  int indx_z = (int)floor((pos_z - zMin - 0.5 * dz) / dz);
-
-  Real cell_center_x = xMin + indx_x * dx + 0.5 * dx;
-  Real cell_center_y = yMin + indx_y * dy + 0.5 * dy;
-  Real cell_center_z = zMin + indx_z * dz + 0.5 * dz;
-
-  Real delta_x = 1 - (pos_x - cell_center_x) / dx;
-  Real delta_y = 1 - (pos_y - cell_center_y) / dy;
-  Real delta_z = 1 - (pos_z - cell_center_z) / dz;
-
-  Real* density    = conserved_device;
-  Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
-#ifdef DE
-  Real* gasEnergy  = &conserved_device[n_cells * grid_enum::GasEnergy];
-#endif
-
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
-      for (int k = 0; k < 2; k++) {
-        int indx    = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
-        Real x_frac = i * (1 - delta_x) + (1 - i) * delta_x;
-        Real y_frac = j * (1 - delta_y) + (1 - j) * delta_y;
-        Real z_frac = k * (1 - delta_z) + (1 - k) * delta_z;
-
-        atomicAdd(&density[indx], x_frac * y_frac * z_frac * feedback_density);
-#ifdef DE
-        atomicAdd(&gasEnergy[indx], x_frac * y_frac * z_frac * feedback_energy);
-#endif
-        atomicAdd(&energy[indx], x_frac * y_frac * z_frac * feedback_energy);
-
-      }  // k loop
-    }    // j loop
-  }      // i loop
-}
-
-/* \brief Function used for depositing energy or momentum from an unresolved
- * supernova or from a stellar wind
- *
- * \note
- * Previously there were 2 separate functions defined to perform this operation.
- * They were functionally the same. They only differences were the names of
- * variables.
- *
- * \par
- * There are currently issues with the internals of this function:
- * - this requires the codebase to be compiled with the dual energy formalism
- * - momentum and total energy are not updated self-consistently
- */
-__device__ void Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin,
-                                                 Real dx, Real dy, Real dz, int nx_g, int ny_g, int n_ghost,
-                                                 int n_cells, Real* conserved_device,
-                                                 Real feedback_density, Real feedback_momentum, Real feedback_energy,
-                                                 int indx_x, int indx_y, int indx_z)
-{
-  Real delta_x = (pos_x - xMin - indx_x * dx) / dx;
-  Real delta_y = (pos_y - yMin - indx_y * dy) / dy;
-  Real delta_z = (pos_z - zMin - indx_z * dz) / dz;
-
-  Real* density    = conserved_device;
-  Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
-  Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
-  Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
-  Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
-#ifdef DE
-  Real* gas_energy = &conserved_device[n_cells * grid_enum::GasEnergy];
-#endif
-
-  // loop over the 27 cells to add up all the allocated feedback
-  // momentum magnitudes.  For each cell allocate density and
-  // energy based on the ratio of allocated momentum to this overall sum.
-  Real mag = 0;
-  for (int i = -1; i < 2; i++) {
-    for (int j = -1; j < 2; j++) {
-      for (int k = -1; k < 2; k++) {
-        Real x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
-        Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
-        Real z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
-
-        mag += sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac);
-      }
-    }
-  }
-
-  for (int i = -1; i < 2; i++) {
-    for (int j = -1; j < 2; j++) {
-      for (int k = -1; k < 2; k++) {
-        // index in array of conserved quantities
-        int indx = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
-
-        Real x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
-        Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
-        Real z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
-
-        Real px       = x_frac * feedback_momentum;
-        Real py       = y_frac * feedback_momentum;
-        Real pz       = z_frac * feedback_momentum;
-        Real f_dens   = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) / mag * feedback_density;
-        Real f_energy = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) / mag * feedback_energy;
-
-        atomicAdd(&density[indx], f_dens);
-        atomicAdd(&momentum_x[indx], px);
-        atomicAdd(&momentum_y[indx], py);
-        atomicAdd(&momentum_z[indx], pz);
-        atomicAdd(&energy[indx], f_energy);
-
-#ifdef DE
-        gas_energy[indx] = energy[indx] - (momentum_x[indx] * momentum_x[indx] + momentum_y[indx] * momentum_y[indx] +
-                                           momentum_z[indx] * momentum_z[indx]) /
-                                              (2 * density[indx]);
-#endif
-        /*
-        energy[indx] = ( momentum_x[indx] * momentum_x[indx] +
-                         momentum_y[indx] * momentum_y[indx] +
-                         momentum_z[indx] * momentum_z[indx] ) /
-                       2 / density[indx] + gasEnergy[indx];
-        */
-      }  // k loop
-    }    // j loop
-  }      // i loop
-}
-
-__device__ void SN_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev, Real xMin,
-                            Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
-                            int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                            int num_SN, Real* s_info, Real* conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
-{
-  int tid  = threadIdx.x;
-  int gtid = blockIdx.x * blockDim.x + tid;
-
-  Real dV = dx * dy * dz;
-  int n_cells    = nx_g * ny_g * nz_g;
-
-  /*
-  if (gtid == 0) {
-    kernel_printf("SNUMBER n_step: %d, id: %lld, N: %d\n", n_step, id_dev[gtid], N);
-  }
-  */
-
-  // no sense doing anything if there was no SN
-  if (num_SN == 0) return;
-
-  Real* density             = conserved_dev;
-  Real n_0                  = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
-  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN] += num_SN;
-
-  Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
-  Real feedback_density = num_SN * feedback::MASS_PER_SN / dV;
-
-  Real shell_radius = feedback::R_SH * pow(n_0, -0.46) * pow(fabsf(num_SN), 0.29);
-  #ifdef ONLY_RESOLVED
-  bool is_resolved = true;
-  #else
-  bool is_resolved = 3 * max(dx, max(dy, dz)) <= shell_radius;
-  #endif
-
-  if (is_resolved) {
-    // inject energy and density
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback_energy * dV;
-    Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
-                      conserved_dev, feedback_density, feedback_energy);
-  } else {
-    // currently, only unresolved SN feedback involves averaging the densities.
-    Real ave_dens = n_0 * MU * MP / DENSITY_UNIT;
-    Set_Average_Density(indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost, density, ave_dens);
-
-    // inject momentum and density
-    Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(num_SN), 0.93) / dV / sqrt(3.0);
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  += num_SN;
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    += feedback_momentum * dV * sqrt(3.0);
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] += feedback_energy * dV;
-    Apply_Energy_Momentum_Deposition(
-        pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
-        feedback_density, feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
-  }
-
-  // update the cluster mass
-  mass_dev[gtid] -= num_SN * feedback::MASS_PER_SN;
-}
-
-__device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev,
-                              Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy,
-                              Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                              const feedback::SWRateCalc sw_calc, Real* s_info,
-                              Real* conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
-{
-  int tid  = threadIdx.x;
-  int gtid = blockIdx.x * blockDim.x + tid;
-
-  Real dV = dx * dy * dz;
-  int n_cells    = nx_g * ny_g * nz_g;
-
-  if ((age < 0) or not sw_calc.is_active(age)) return;
-  Real feedback_momentum = sw_calc.Get_Wind_Flux(age);
-  // no sense in proceeding if there is no feedback.
-  if (feedback_momentum == 0) return;
-  Real feedback_energy  = sw_calc.Get_Wind_Power(age);
-  Real feedback_density = sw_calc.Get_Wind_Mass(feedback_momentum, feedback_energy);
-
-  // feedback_momentum now becomes momentum component along one direction.
-  feedback_momentum *= mass_dev[gtid] * dt / dV / sqrt(3.0);
-  feedback_density *= mass_dev[gtid] * dt / dV;
-  feedback_energy *= mass_dev[gtid] * dt / dV;
-
-  mass_dev[gtid]   -= feedback_density * dV;
-
-  // we log net momentum, not momentum density, and magnitude (not the
-  // component along a direction)
-  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindMomentum] += feedback_momentum * dV * sqrt(3.0);
-  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindEnergy]   += feedback_energy * dV;
-
-  Apply_Energy_Momentum_Deposition(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost,
-                                   n_cells, conserved_dev, feedback_density,
-                                   feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
-}
-
+template<typename FeedbackModel>
 __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, Real* pos_x_dev, Real* pos_y_dev,
                                         Real* pos_z_dev, Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin,
                                         Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g,
                                         int nz_g, int n_ghost, Real t, Real dt, Real* info, Real* conserved_dev,
-                                        Real gamma, int* num_SN_dev, int n_step)
+                                        Real gamma, int* num_SN_dev, int n_step, FeedbackModel feedback_model)
 {
   const int tid = threadIdx.x;
   const int gtid = blockIdx.x * blockDim.x + tid;
@@ -329,11 +63,13 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
   }
 
   // do the main work:
-  if (gtid < n_local) { // Bounds check on particle arrays
+  {
+    // reduce branching
+    part_int_t tmp_gtid_ = min(n_local - 1, part_int_t(gtid));
 
-    Real pos_x    = pos_x_dev[gtid];
-    Real pos_y    = pos_y_dev[gtid];
-    Real pos_z    = pos_z_dev[gtid];
+    Real pos_x    = pos_x_dev[tmp_gtid_];
+    Real pos_y    = pos_y_dev[tmp_gtid_];
+    Real pos_z    = pos_z_dev[tmp_gtid_];
     bool in_local = (pos_x >= xMin && pos_x < xMax) && (pos_y >= yMin && pos_y < yMax) && (pos_z >= zMin && pos_z < zMax);
 
     int indx_x  = (int)floor((pos_x - xMin) / dx);
@@ -344,13 +80,13 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
 
     // ignore should always be not in_local, by definition
 
-    if (in_local and (not ignore)) {
+    if (in_local and (not ignore) and (n_local > gtid)) {
       // note age_dev is actually the time of birth
       Real age = t - age_dev[gtid];
 
-      SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
-                  ny_g, nz_g, n_ghost, n_step, t, dt, num_SN_dev[gtid],
-                  s_info, conserved_dev, gamma, indx_x, indx_y, indx_z);
+      feedback_model.apply_feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax,
+                                    dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, num_SN_dev[gtid],
+                                    s_info, conserved_dev, gamma, indx_x, indx_y, indx_z);
     }
   }
 
@@ -382,6 +118,7 @@ namespace { // anonymous namespace
 
 /* This functor is the callback used in the main part of cholla
  */
+template<typename FeedbackModel>
 struct ClusterFeedbackMethod {
 
   ClusterFeedbackMethod(FeedbackAnalysis& analysis, bool use_snr_calc, feedback::SNRateCalc snr_calc)
@@ -407,7 +144,8 @@ private: // attributes
  *
  * @param G
  */
-void ClusterFeedbackMethod::operator()(Grid3D& G)
+template<typename FeedbackModel>
+void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
 {
 #if !(defined(PARTICLES_GPU) && defined(PARTICLE_AGE) && defined(PARTICLE_IDS))
   CHOLLA_ERROR("This function can't be called with the current compiler flags");
@@ -452,12 +190,15 @@ void ClusterFeedbackMethod::operator()(Grid3D& G)
     // Declare/allocate device buffer for accumulating summary information about feedback
     cuda_utilities::DeviceVector<Real> d_info(feedinfoLUT::LEN, true);  // initialized to 0
 
+    // initialize feedback_model
+    FeedbackModel feedback_model{};
+
     hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
                        G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
                        G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
                        G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_info.data(), G.C.d_density, gama, 
-                       d_num_SN.data(), G.H.n_step);
+                       d_num_SN.data(), G.H.n_step, feedback_model);
 
     // copy summary data back to the host
     CHECK(cudaMemcpy(&h_info, d_info.data(), feedinfoLUT::LEN * sizeof(Real), cudaMemcpyDeviceToHost));
@@ -524,41 +265,59 @@ void ClusterFeedbackMethod::operator()(Grid3D& G)
 std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parameters& P,
                                                                    FeedbackAnalysis& analysis)
 {
-  const std::string sn_model = P.feedback_sn_model;
-
-  // check whether or not the user wants some kind of feedback
-  if (sn_model == "none") {
-    return {}; // intentionally returning an empty object
-
 #if !(defined(FEEDBACK) && defined(PARTICLES_GPU) && defined(PARTICLE_AGE) && defined(PARTICLE_IDS))
-  } else if (sn_model.empty()) {
-    return {};
-  } else {
-    CHOLLA_ERROR("The way that cholla was compiled does not currently support feedback");
+  const bool supports_feedback = false;
+#else
+  const bool supports_feedback = true;
 #endif
+
+  // retrieve the supernova-feedback model name
+  std::string sn_model = P.feedback_sn_model;
+  if (sn_model.empty() and (not supports_feedback)) {
+    sn_model = "none";
+  } else if (sn_model.empty()) {
+#ifdef ONLY_RESOLVED
+    sn_model = "legacy_resolved";
+#else
+    sn_model = "legacy";
+#endif
+    chprintf("the feedback_sn_model was not supplied. Right now, we are defaulting to \"%s\" (based "
+             "on compiler flags) - in the future we will abort with an error instead",
+             sn_model.c_str());
   }
 
-  // at the moment, we just ignore feedback_sn_model (other than "none")
-  // but possible values in the future: "none", "legacy-resolved", "legacy-combo", ...
-  //
-  // other parameters to accept in the future:
-  // - feedback_sn_overlap_strat: "ignore", "choose_lower_id"
-  // - feedback_sn_boundary_strat: "ignore", "snap"
 
-  std::string sn_rate_model = P.feedback_sn_rate;
-  if (sn_rate_model.empty()){
-    sn_rate_model = "table";
+  // handle the case when there is no feedback (or if the code can't support feedback)
+  if (sn_model == "none") {  // return an empty objec
+    return {};
+  } else if (not supports_feedback) {
+    CHOLLA_ERROR("The way that cholla was compiled does not currently support feedback");
   }
 
-  std::function<void(Grid3D&)> out;
-  if (sn_rate_model == "immediate_sn") {
-    out = ClusterFeedbackMethod(analysis, false, feedback::SNRateCalc());
-  } else if (sn_rate_model == "table") {
-    out = ClusterFeedbackMethod(analysis, true, feedback::SNRateCalc(P));
+
+  // parse the supernova-rate-model to initialize some values
+  SNRateCalc snr_calc{};
+  bool use_snr_calc;
+
+  const std::string sn_rate_model = P.feedback_sn_rate;
+  if (sn_rate_model.empty() or (sn_rate_model == "table")) {
+    use_snr_calc = true;
+    snr_calc = feedback::SNRateCalc(P);
+  } else if (sn_rate_model == "immediate_sn") {
+    use_snr_calc = false;
   } else {
     CHOLLA_ERROR("Unrecognized option passed to sn_rate_model: %s", sn_rate_model.c_str());
   }
 
+  // now lets initialize ClusterFeedbackMethod<> and return
+  std::function<void(Grid3D&)> out;
+  if (sn_model == "legacy") {
+    out = ClusterFeedbackMethod<feedback_model::LegacySNe<false>>(analysis, use_snr_calc, snr_calc);
+  } else if (sn_model == "legacy_resolved") {
+    out = ClusterFeedbackMethod<feedback_model::LegacySNe<true>>(analysis, use_snr_calc, snr_calc);
+  } else {
+    CHOLLA_ERROR("Unrecognized sn_model: %s", sn_model.c_str());
+  }
   return out;
 }
 
