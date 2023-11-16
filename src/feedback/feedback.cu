@@ -15,6 +15,7 @@
   #include "../io/io.h"
   #include "../utils/DeviceVector.h"
   #include "../utils/error_handling.h"
+  #include "../utils/reduction_utilities.h"
   #include "../feedback/ratecalc.h"
   #include "feedback.h"
 
@@ -375,24 +376,10 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
   Cluster_Feedback_Helper(n_local, pos_x_dev, pos_y_dev, pos_z_dev, age_dev, mass_dev, id_dev, xMin, yMin, zMin, xMax,
                           yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, num_SN_dev, s_info, density, gamma);
 
+
+  // sum the info from all threads (in all blocks) and add it into info
   __syncthreads();
-
-  // reduce the info from all the threads in the block
-  for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
-    if (tid < s) {
-      for (unsigned int cur_ind = 0; cur_ind < feedinfoLUT::LEN; cur_ind++) {
-        s_info[feedinfoLUT::LEN * tid + cur_ind] += s_info[feedinfoLUT::LEN * (tid + s) + cur_ind];
-      }
-    }
-    __syncthreads();
-  }
-
-  // atomicAdd reduces across all blocks
-  if (tid == 0) {
-    for (unsigned int cur_ind = 0; cur_ind < feedinfoLUT::LEN; cur_ind++) {
-      atomicAdd(info + cur_ind, s_info[cur_ind]);
-    }
-  }
+  reduction_utilities::blockAccumulateIntoNReals<feedinfoLUT::LEN,TPB_FEEDBACK>(info, s_info);
 }
 
 /* determine the number of supernovae during the current step */
@@ -460,7 +447,8 @@ void ClusterFeedbackMethod::operator()(Grid3D& G)
 
   // only apply feedback if we have clusters
   if (G.Particles.n_local > 0) {
-
+    // compute the grid-size or the number of thread-blocks per grid. The number of threads in a block is
+    // given by TPB_FEEDBACK
     int ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
 
     // Declare/allocate device buffer for holding the number of supernovae per particle in the current cycle
