@@ -313,71 +313,49 @@ __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real
                                    feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
 }
 
-__device__ void Cluster_Feedback_Helper(part_int_t n_local, Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev,
-                                        Real* age_dev, Real* mass_dev, part_int_t* id_dev, Real xMin, Real yMin,
-                                        Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
-                                        int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                                        int* num_SN_dev, Real* s_info, Real* conserved_dev, Real gamma)
-{
-  int tid  = threadIdx.x;
-  int gtid = blockIdx.x * blockDim.x + tid;
-  // Bounds check on particle arrays
-  if (gtid >= n_local) return;
-
-  Real pos_x    = pos_x_dev[gtid];
-  Real pos_y    = pos_y_dev[gtid];
-  Real pos_z    = pos_z_dev[gtid];
-  bool in_local = (pos_x >= xMin && pos_x < xMax) && (pos_y >= yMin && pos_y < yMax) && (pos_z >= zMin && pos_z < zMax);
-  // Particle is outside bounds, exit
-  if (!in_local) return;
-
-  int indx_x  = (int)floor((pos_x - xMin) / dx);
-  int indx_y  = (int)floor((pos_y - yMin) / dy);
-  int indx_z  = (int)floor((pos_z - zMin) / dz);
-  bool ignore = indx_x < 0 || indx_y < 0 || indx_z < 0 || indx_x >= nx_g - 2 * n_ghost ||
-                indx_y >= ny_g - 2 * n_ghost || indx_z >= nz_g - 2 * n_ghost;
-  // Ignore this particle, exit
-  if (ignore) return;
-
-  // bool is_alone = Particle_Is_Alone(pos_x_dev, pos_y_dev, pos_z_dev, n_local, gtid, 6*dx);
-  // if (is_alone) kernel_printf(" particle not alone: step %d, id %ld\n", n_step, id_dev[gtid]);
-  // if (!is_alone) return;
-
-  // note age_dev is actually the time of birth
-  Real age = t - age_dev[gtid];
-
-  bool is_sn_feedback = false;
-  #ifndef NO_SN_FEEDBACK
-  is_sn_feedback = true;
-  #endif
-
-  if (is_sn_feedback)
-    SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
-                ny_g, nz_g, n_ghost, n_step, t, dt, num_SN_dev[gtid],
-                s_info, conserved_dev, gamma, indx_x, indx_y, indx_z);
-
-  return;
-}
-
 __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, Real* pos_x_dev, Real* pos_y_dev,
                                         Real* pos_z_dev, Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin,
                                         Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g,
-                                        int nz_g, int n_ghost, Real t, Real dt, Real* info, Real* density,
+                                        int nz_g, int n_ghost, Real t, Real dt, Real* info, Real* conserved_dev,
                                         Real gamma, int* num_SN_dev, int n_step)
 {
-  int tid = threadIdx.x;
+  const int tid = threadIdx.x;
+  const int gtid = blockIdx.x * blockDim.x + tid;
 
-  // for collecting SN feedback information
+  // prologoue: setup buffer for collecting SN feedback information
   __shared__ Real s_info[feedinfoLUT::LEN * TPB_FEEDBACK];
   for (unsigned int cur_ind = 0; cur_ind < feedinfoLUT::LEN; cur_ind++) {
     s_info[feedinfoLUT::LEN * tid + cur_ind] = 0;
   }
 
-  Cluster_Feedback_Helper(n_local, pos_x_dev, pos_y_dev, pos_z_dev, age_dev, mass_dev, id_dev, xMin, yMin, zMin, xMax,
-                          yMax, zMax, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, num_SN_dev, s_info, density, gamma);
+  // do the main work:
+  if (gtid < n_local) { // Bounds check on particle arrays
+
+    Real pos_x    = pos_x_dev[gtid];
+    Real pos_y    = pos_y_dev[gtid];
+    Real pos_z    = pos_z_dev[gtid];
+    bool in_local = (pos_x >= xMin && pos_x < xMax) && (pos_y >= yMin && pos_y < yMax) && (pos_z >= zMin && pos_z < zMax);
+
+    int indx_x  = (int)floor((pos_x - xMin) / dx);
+    int indx_y  = (int)floor((pos_y - yMin) / dy);
+    int indx_z  = (int)floor((pos_z - zMin) / dz);
+    bool ignore = indx_x < 0 || indx_y < 0 || indx_z < 0 || indx_x >= nx_g - 2 * n_ghost ||
+                  indx_y >= ny_g - 2 * n_ghost || indx_z >= nz_g - 2 * n_ghost;
+
+    // ignore should always be not in_local, by definition
+
+    if (in_local and (not ignore)) {
+      // note age_dev is actually the time of birth
+      Real age = t - age_dev[gtid];
+
+      SN_Feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz, nx_g,
+                  ny_g, nz_g, n_ghost, n_step, t, dt, num_SN_dev[gtid],
+                  s_info, conserved_dev, gamma, indx_x, indx_y, indx_z);
+    }
+  }
 
 
-  // sum the info from all threads (in all blocks) and add it into info
+  // epilogue: sum the info from all threads (in all blocks) and add it into info
   __syncthreads();
   reduction_utilities::blockAccumulateIntoNReals<feedinfoLUT::LEN,TPB_FEEDBACK>(info, s_info);
 }
