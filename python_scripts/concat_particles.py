@@ -171,7 +171,7 @@ def __setup_destination_file(source_directory: pathlib.Path,
                              compression_type: str,
                              compression_options: str,
                              chunking) -> h5py.File:
-  """_summary_
+  """Setup the destination file by copying the header and setting up the datasets
 
   Parameters
   ----------
