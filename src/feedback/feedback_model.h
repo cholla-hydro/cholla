@@ -5,46 +5,73 @@
 
 namespace feedback_model {
 
-__device__ void Apply_Resolved_SN(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin, Real dx, Real dy,
-                                  Real dz, int nx_g, int ny_g, int n_ghost, int n_cells,
+struct CICDepositionStencil {
+
+  template<typename Function>
+  static __device__ void for_each(Real pos_x_idxU, Real pos_y_idxU, Real pos_z_idxU,
+                                  int nx_g, int ny_g, Function f)
+  {
+    // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
+    //  - Consider the cell containing the stencil-center. If the stencil-center is at all to the left
+    //    of that cell-center, then the stencil overlaps with the current cell and the one to the left
+    //  - otherwise, the stencil covers the current cell and the one to the right
+    int leftmost_indx_x = int(pos_x_idxU - 0.5);
+    int leftmost_indx_y = int(pos_y_idxU - 0.5);
+    int leftmost_indx_z = int(pos_z_idxU - 0.5);
+
+    // Step 2: along each axis, compute the distance between the stencil-center of the leftmost cell
+    //  - Recall that an integer index, ``indx``, specifies the position of the left edge of a cell.
+    //    In other words the reference point of the cell is on the left edge.
+    //  - The center of the cell specified by ``indx`` is actually ``indx+0.5``
+    Real delta_x = pos_x_idxU - (leftmost_indx_x + 0.5);
+    Real delta_y = pos_y_idxU - (leftmost_indx_y + 0.5);
+    Real delta_z = pos_z_idxU - (leftmost_indx_z + 0.5);
+
+    // Step 3: Actually invoke f at each cell-location that overlaps with the stencil location, passing both:
+    //  1. fraction of the total stencil volume enclosed by the given cell
+    //  2. the 1d index specifying cell-location (for a field with ghost zones)
+    //
+    // note: it's not exactly clear to me how we go from delta_x,delta_y,delta_z to volume-frac, (I just
+    //       refactored the code I inherited and get consistent and sensible results)
+
+    #define to_idx3D(i,j,k) ( (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k)) )
+
+    f((1-delta_x) * (1 - delta_y) * (1 - delta_z), to_idx3D(0, 0, 0));  // (i=0, j = 0, k = 0)
+    f((1-delta_x) * (1 - delta_y) *      delta_z , to_idx3D(0, 0, 1));  // (i=0, j = 0, k = 1)
+    f((1-delta_x) *      delta_y  * (1 - delta_z), to_idx3D(0, 1, 0));  // (i=0, j = 1, k = 0)
+    f((1-delta_x) *      delta_y  *      delta_z , to_idx3D(0, 1, 1));  // (i=0, j = 1, k = 1)
+    f(   delta_x  * (1 - delta_y) * (1 - delta_z), to_idx3D(1, 0, 0));  // (i=1, j = 0, k = 0)
+    f(   delta_x  * (1 - delta_y) *      delta_z , to_idx3D(1, 0, 1));  // (i=1, j = 0, k = 1)
+    f(   delta_x  *      delta_y  * (1 - delta_z), to_idx3D(1, 1, 0));  // (i=1, j = 1, k = 0)
+    f(   delta_x  *      delta_y  *      delta_z , to_idx3D(1, 1, 1));  // (i=1, j = 1, k = 1)
+  }
+};
+
+
+__device__ void Apply_Resolved_SN(Real pos_x_idxU, Real pos_y_idxU, Real pos_z_idxU,
+                                  int nx_g, int ny_g, int n_cells,
                                   Real* conserved_device, Real feedback_density, Real feedback_energy)
 {
-  // For 2x2x2, a particle between 0-0.5 injects onto cell - 1
-  int indx_x = (int)floor((pos_x - xMin - 0.5 * dx) / dx);
-  int indx_y = (int)floor((pos_y - yMin - 0.5 * dy) / dy);
-  int indx_z = (int)floor((pos_z - zMin - 0.5 * dz) / dz);
-
-  Real cell_center_x = xMin + indx_x * dx + 0.5 * dx;
-  Real cell_center_y = yMin + indx_y * dy + 0.5 * dy;
-  Real cell_center_z = zMin + indx_z * dz + 0.5 * dz;
-
-  Real delta_x = 1 - (pos_x - cell_center_x) / dx;
-  Real delta_y = 1 - (pos_y - cell_center_y) / dy;
-  Real delta_z = 1 - (pos_z - cell_center_z) / dz;
-
   Real* density    = conserved_device;
   Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
 #ifdef DE
   Real* gasEnergy  = &conserved_device[n_cells * grid_enum::GasEnergy];
 #endif
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
-      for (int k = 0; k < 2; k++) {
-        int indx    = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
-        Real x_frac = i * (1 - delta_x) + (1 - i) * delta_x;
-        Real y_frac = j * (1 - delta_y) + (1 - j) * delta_y;
-        Real z_frac = k * (1 - delta_z) + (1 - k) * delta_z;
+  CICDepositionStencil::for_each(
+    pos_x_idxU, pos_y_idxU, pos_z_idxU, nx_g, ny_g
+    [=](double stencil_vol_frac, int idx3D) {
+      // stencil_vol_frac is the fraction of the total stencil volume enclosed by the given cell
+      // indx3D can be used to index the conserved fields (it assumes ghost-zones are present)
 
-        atomicAdd(&density[indx], x_frac * y_frac * z_frac * feedback_density);
+      atomicAdd(&density[idx3D], stencil_vol_frac * feedback_density);
 #ifdef DE
-        atomicAdd(&gasEnergy[indx], x_frac * y_frac * z_frac * feedback_energy);
+      atomicAdd(&gasEnergy[idx3D], stencil_vol_frac * feedback_energy);
 #endif
-        atomicAdd(&energy[indx], x_frac * y_frac * z_frac * feedback_energy);
+      atomicAdd(&energy[idx3D], stencil_vol_frac * feedback_energy);
+    }
+  );
 
-      }  // k loop
-    }    // j loop
-  }      // i loop
 }
 
 /** the prescription for dividing a scalar quantity between 3x3x3 cells is done
@@ -216,8 +243,8 @@ struct LegacySNe {
       // inject energy and density
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback_energy * dV;
-      Apply_Resolved_SN(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells,
-                        conserved_dev, feedback_density, feedback_energy);
+      Apply_Resolved_SN(pos_x_idxU, pos_y_idxU, pos_z_idxU, nx_g, ny_g, n_cells,
+                        conserved_device, feedback_density, feedback_energy);
     } else {
       // currently, only unresolved SN feedback involves averaging the densities.
       Real ave_dens = n_0 * MU * MP / DENSITY_UNIT;
