@@ -16,119 +16,7 @@
 #include "../utils/gpu.hpp" // gpuFor
 #include "../utils/DeviceVector.h" // gpuFor
 
-
-struct CICDepositionStencil {
-  
-  /*
-  template<typename Function>
-  __device__ void for_each(Real pos_x_idxU, Real pos_y_idxU, Real pos_z_idxU,
-                           int nx_g, int ny_g, Function& f) const
-  {
-    int indx_x = int(pos_x_idxU - 0.5);
-    int indx_y = int(pos_y_idxU - 0.5);
-    int indx_z = int(pos_z_idxU - 0.5);
-
-    double cell_center_x = indx_x + 0.5;
-    double cell_center_y = indx_y + 0.5;
-    double cell_center_z = indx_z + 0.5;
-
-    // the parentheses enclose the difference between pos_{ax}_indxU and center of the cell of
-    // indx_{ax}.
-    // -> Recall that an integer index, ``indx``, specifies the position of the left edge of a cell.
-    //    In other words the reference point of the cell is on the left edge.
-    // -> The center of the cell specified by ``indx`` is actually ``indx+0.5``
-    Real delta_x = 1 - (pos_x_idxU - cell_center_x);
-    Real delta_y = 1 - (pos_y_idxU - cell_center_y);
-    Real delta_z = 1 - (pos_z_idxU - cell_center_z);
-
-    for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < 2; j++) {
-        for (int k = 0; k < 2; k++) {
-          int indx    = (indx_x + i) + (indx_y + j) * nx_g + (indx_z + k) * nx_g * ny_g;
-          Real x_frac = i * (1 - delta_x) + (1 - i) * delta_x;
-          Real y_frac = j * (1 - delta_y) + (1 - j) * delta_y;
-          Real z_frac = k * (1 - delta_z) + (1 - k) * delta_z;
-          Real dV = x_frac*y_frac*z_frac;
-
-          f(x_frac*y_frac*z_frac, indx);
-        }
-      }
-    }
-  }
-  */
-
-  /*
-  template<typename Function>
-  __device__ void for_each(Real pos_x_idxU, Real pos_y_idxU, Real pos_z_idxU,
-                           int nx_g, int ny_g, Function& f) const
-  {
-    int indx_x = int(pos_x_idxU - 0.5);
-    int indx_y = int(pos_y_idxU - 0.5);
-    int indx_z = int(pos_z_idxU - 0.5);
-  
-    // we could speed things up further if we redefined things so that delta_x = (pos_x_idxU - indx_x)
-    // (currently, we are doing some unnecessary subtractions)
-
-    // the parentheses enclose the difference between pos_{ax}_indxU and center of the cell of
-    // indx_{ax}.
-    // -> Recall that an integer index, ``indx``, specifies the position of the left edge of a cell.
-    //    In other words the reference point of the cell is on the left edge.
-    // -> The center of the cell specified by ``indx`` is actually ``indx+0.5``
-    Real delta_x = 1 - (pos_x_idxU - indx_x - 0.5);
-    Real delta_y = 1 - (pos_y_idxU - indx_y - 0.5);
-    Real delta_z = 1 - (pos_z_idxU - indx_z - 0.5);
-    #define to_idx3D(i,j,k) ( (indx_x + i) + nx_g * ((indx_y + j) + ny_g * (indx_z + k)) )
-    
-    f(delta_x*delta_y*delta_z, to_idx3D(0, 0, 0));                 // (i=0, j = 0, k = 0)
-    f(delta_x*delta_y*(1 - delta_z), to_idx3D(0, 0, 1));           // (i=0, j = 0, k = 1)
-    f(delta_x*(1 - delta_y)*delta_z, to_idx3D(0, 1, 0));           // (i=0, j = 1, k = 0)
-    f(delta_x*(1 - delta_y)*(1 - delta_z), to_idx3D(0, 1, 1));     // (i=0, j = 1, k = 1)
-    f((1-delta_x)*delta_y*delta_z, to_idx3D(1, 0, 0));             // (i=1, j = 0, k = 0)
-    f((1-delta_x)*delta_y*(1 - delta_z), to_idx3D(1, 0, 1));       // (i=1, j = 0, k = 1)
-    f((1-delta_x)*(1 - delta_y)*delta_z, to_idx3D(1, 1, 0));       // (i=1, j = 1, k = 0)
-    f((1-delta_x)*(1 - delta_y)*(1 - delta_z), to_idx3D(1, 1, 1)); // (i=1, j = 1, k = 1)
-  } */
-
-
-  template<typename Function>
-  __device__ void for_each(Real pos_x_idxU, Real pos_y_idxU, Real pos_z_idxU,
-                           int nx_g, int ny_g, Function& f) const
-  {
-    // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    //  - Consider the cell containing the stencil-center. If the stencil-center is at all to the left
-    //    of that cell-center, then the stencil overlaps with the current cell and the one to the left
-    //  - otherwise, the stencil covers the current cell and the one to the right
-    int leftmost_indx_x = int(pos_x_idxU - 0.5);
-    int leftmost_indx_y = int(pos_y_idxU - 0.5);
-    int leftmost_indx_z = int(pos_z_idxU - 0.5);
-
-    // Step 2: along each axis, compute the distance between the stencil-center of the leftmost cell
-    //  - Recall that an integer index, ``indx``, specifies the position of the left edge of a cell.
-    //    In other words the reference point of the cell is on the left edge.
-    //  - The center of the cell specified by ``indx`` is actually ``indx+0.5``
-    Real delta_x = pos_x_idxU - (leftmost_indx_x + 0.5);
-    Real delta_y = pos_y_idxU - (leftmost_indx_y + 0.5);
-    Real delta_z = pos_z_idxU - (leftmost_indx_z + 0.5);
-
-    // Step 3: Actually invoke f at each cell-location that overlaps with the stencil location, passing both:
-    //  1. fraction of the total stencil volume enclosed by the given cell
-    //  2. the 1d index specifying cell-location (for a field with ghost zones)
-    //
-    // note: it's not exactly clear to me how we go from delta_x,delta_y,delta_z to volume-frac, but how the 
-
-    #define to_idx3D(i,j,k) ( (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k)) )
-    
-    f((1-delta_x) * (1 - delta_y) * (1 - delta_z), to_idx3D(0, 0, 0));  // (i=0, j = 0, k = 0)
-    f((1-delta_x) * (1 - delta_y) *      delta_z , to_idx3D(0, 0, 1));  // (i=0, j = 0, k = 1)
-    f((1-delta_x) *      delta_y  * (1 - delta_z), to_idx3D(0, 1, 0));  // (i=0, j = 1, k = 0)
-    f((1-delta_x) *      delta_y  *      delta_z , to_idx3D(0, 1, 1));  // (i=0, j = 1, k = 1)
-    f(   delta_x  * (1 - delta_y) * (1 - delta_z), to_idx3D(1, 0, 0));  // (i=1, j = 0, k = 0)
-    f(   delta_x  * (1 - delta_y) *      delta_z , to_idx3D(1, 0, 1));  // (i=1, j = 0, k = 1)
-    f(   delta_x  *      delta_y  * (1 - delta_z), to_idx3D(1, 1, 0));  // (i=1, j = 1, k = 0)
-    f(   delta_x  *      delta_y  *      delta_z , to_idx3D(1, 1, 1));  // (i=1, j = 1, k = 1)
-  }
-  
-};
+#include "../feedback/feedback_model.h"
 
 namespace  // Anonymous namespace
 {
@@ -402,7 +290,7 @@ std::vector<double> eval_stencil_overlap_(const Real* pos_indxU, Extent3D full_e
                        full_extent.nx, full_extent.ny, n_ghost,
                        stencil);
   } else {
-    CICDepositionStencil stencil;
+    feedback_model::CICDepositionStencil stencil;
     hipLaunchKernelGGL(Stencil_Overlap_Kernel_, num_blocks, threads_per_block, 0, 0,
                        data.data(), pos_indxU[0], pos_indxU[1], pos_indxU[2],
                        full_extent.nx, full_extent.ny,
@@ -579,4 +467,234 @@ void sliding_stencil_test(int n_ghost) {
 TEST(tALLFeedbackCiCStencil, SlidingTest)
 {
   sliding_stencil_test(0);
+}
+
+#include <cstdint>
+
+/* Represents a sphere */
+struct Sphere{
+  double center_indU[3];
+  int raidus2_indU;
+
+  /* queries whether the sphere encloses a given point */
+  __forceinline__ __device__ bool encloses_point(double pos_x_indU, double pos_y_indU, double pos_z_indU) const {
+    double delta_x = pos_x_indU - center_indU[0];
+    double delta_y = pos_y_indU - center_indU[1];
+    double delta_z = pos_z_indU - center_indU[2];
+
+    return (delta_x * delta_x + delta_y * delta_y + delta_z * delta_z) < raidus2_indU; 
+  }
+
+  /* returns the count of the number of super-sampled points */
+  template<unsigned Log2DivsionsPerAx>
+  __device__ unsigned int Count_Super_Samples(int cell_idx_x, int cell_idx_y, int cell_idx_z) const {
+    static_assert(Log2DivsionsPerAx*3 < sizeof(unsigned int));
+    int num_subdivisions_per_ax = std::pow(2,Log2DivsionsPerAx);
+
+    double width = 1/num_subdivisions_per_ax;
+    double offset = 0.5 * width;
+
+    unsigned int count = 0;
+    for (int ix = 0; ix < num_subdivisions_per_ax; ix++) {
+      for (int iy = 0; iy < num_subdivisions_per_ax; iy++) {
+        for (int iz = 0; iz < num_subdivisions_per_ax; iz++) {
+          // since cell_idx_x, cell_idx_y, cell_idx_z are all integers, they specify
+          // the position of the left edge of the cell
+          double x = cell_idx_x + (offset + ix * width);
+          double y = cell_idx_y + (offset + iy * width);
+          double z = cell_idx_z + (offset + iz * width);
+
+          count += encloses_point(x, y, z);
+        }
+      }
+    }
+
+    return count;
+  }
 };
+
+
+#include<cstdint>
+
+template<unsigned Log2DivsionsPerAx_PerCell = 2>
+struct Sphere27DepositionStencil {
+
+  static_assert(Log2DivsionsPerAx_PerCell <= 2);
+
+  /* excute f at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
+   *
+   * The function should expect 2 arguments: 
+   *   1. ``stencil_enclosed_frac``: the fraction of the stencil enclosed by the cell
+   *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
+   */
+  template<typename Function>
+  static __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                  int nx_g, int ny_g, Function f)
+  {
+    // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
+    const int leftmost_indx_x = int(pos_x_indU) - 1;
+    const int leftmost_indx_y = int(pos_y_indU) - 1;
+    const int leftmost_indx_z = int(pos_z_indU) - 1;
+
+    // Step 2: get the number of super-samples within each of the 27 possible cells
+    const Sphere sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, 1*1};
+
+    uint_least8_t counts[3][3][3]; // we want to keep the array-element size small to reduce memory
+                                   // pressure on the stack (especially since every thread will be
+                                   // allocating this much stack-space at the same time)
+    unsigned long total_count = 0;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          unsigned int count = sphere.Count_Super_Samples<Log2DivsionsPerAx_PerCell>(leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k);
+          counts[i][j][k] = std::uint_least8_t(counts);
+          total_count += count;
+        }
+      }
+    }
+
+    // Step 3: actually invoke f at each cell-location that overlaps with the stencil location, passing both:
+    //  1. fraction of the total stencil volume enclosed by the given cell
+    //  2. the 1d index specifying cell-location (for a field with ghost zones)
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          const int ind3D = (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k));
+
+          f(double(counts[i][j][k])/total_count, ind3D);
+        }
+      }
+    }
+
+  }
+
+  /* calls the unary function f at ever location where there probably is non-zero overlap with
+   * the stencil.
+   *
+   * \note
+   * This is is significantly cheaper than calling for_each.
+   */
+  template<typename UnaryFunction>
+  static __device__ void for_each_overlap_zone(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                               int ng_x, int ng_y, int n_ghost, UnaryFunction f)
+  {
+    // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
+    const int leftmost_indx_x = int(pos_x_indU) - 1;
+    const int leftmost_indx_y = int(pos_y_indU) - 1;
+    const int leftmost_indx_z = int(pos_z_indU) - 1;
+
+    const Sphere sphere{/* center = */ {pos_x_indU, pos_y_indU, pos_z_indU},
+                        /* squared_radius = */ 1*1}; 
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+
+          const Real indx_x = leftmost_indx_x + i;
+          const Real indx_y = leftmost_indx_y + j;
+          const Real indx_z = leftmost_indx_z + k;
+
+          const int ind3D = indx_x + ng_x * (indx_y + ng_y * indx_z);
+
+          // calculate the displacement vector for the nearest point on the
+          // cube to the sphere
+          // IN THE FUTURE: correct this to use the nearest super-sampled point
+          if (sphere.encloses_point(clamp(pos_x_indU, indx_x, indx_x + 1),
+                                    clamp(pos_x_indU, indx_x, indx_x + 1),
+                                    clamp(pos_x_indU, indx_x, indx_x + 1))){
+            f(ind3D);
+          }
+
+          
+        }
+      }
+    }
+
+  }
+
+  /* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
+   * can be shifted to in order to avoid overlapping with the ghost zone.
+   *
+   * If the specified location already does not overlap with the ghost zone, that is the returned
+   * value.
+   */
+  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                                          int ng_x, int ng_y, int ng_z, int n_ghost)
+  {
+    constexpr Real min_stencil_offset = 1.0;
+    double edge_offset = n_ghost + min_stencil_offset;
+
+    // we can get more clever. technically, we just can't overlap with nearest
+    // super-sampled point inside of ghost zone. Anything else is fair game!
+    return { clamp(pos_x_indU, edge_offset, ng_x - edge_offset),
+             clamp(pos_y_indU, edge_offset, ng_y - edge_offset),
+             clamp(pos_z_indU, edge_offset, ng_z - edge_offset) };
+  }
+
+};
+
+
+
+/* Represents a spherical stencil with a radius of 3 cells, where the inclusion where inclusion of
+ * cells in the sphere is a binary choice.
+ *
+ * Specifically, a cell is included if the cell-center lies within the sphere.
+ */
+/*
+template<unsigned CellsPerRadius = 3>
+struct SphereBinaryDepositionStencil {
+  static_assert(CellsPerRadius > 0);
+
+  template<typename Function>
+  static __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                  int nx_g, int ny_g, Function f)
+  {
+    // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
+    int leftmost_indx_x = int(pos_x_indU) - CellsPerRadius;
+    int leftmost_indx_y = int(pos_y_indU) - CellsPerRadius;
+    int leftmost_indx_z = int(pos_z_indU) - CellsPerRadius;
+
+    // Step 2: get the number of cells enclosed by the sphere
+    const Sphere sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, CellsPerRadius*CellsPerRadius};
+    int total_count = 0;
+
+    const int stop = (2 * CellsPerRadius) + 1;
+    for (int i = 0; i < stop; i++) {
+      for (int j = 0; j < stop; j++) {
+        for (int k = 0; k < stop; k++) {
+          total_count += encloses_point(leftmost_indx_x + i + 0.5,
+                                        leftmost_indx_y + j + 0.5,
+                                        leftmost_indx_z + k + 0.5);
+        }
+      }
+    }
+
+    double enclosed_stencil_frac = 1.0/total_count;  // each enclosed cell, encloses this fraction of the sphere
+
+    // Step 3: actually invoke f at each cell-location that overlaps with the stencil location, passing both:
+    //  1. fraction of the total stencil volume enclosed by the given cell
+    //  2. the 1d index specifying cell-location (for a field with ghost zones)
+    for (int i = 0; i < 7; i++) {
+      for (int j = 0; j < 7; j++) {
+        for (int k = 0; k < 7; k++) {
+          
+          if (sphere.encloses_point(leftmost_indx_x + i + 0.5, leftmost_indx_y + j + 0.5, leftmost_indx_z + k + 0.5)){
+            const int ind3D = (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k));
+            f(enclosed_stencil_frac, ind3D);
+          }
+
+        }
+      }
+    }
+
+  }
+};
+*/
+
+// some tests for the sphere stencil:
+// -> try to back out the value of pi? This only works if we also calculate of the 
+//    fraction of the cell that is enclosed by the stencil.
+//    -> compute the stencil volume and divide that voume by the stencil-radius squared
+//    -> As you increase the radius of SphereBinaryDepositionStencil or the number of
+//       divisions in Sphere27DepositionStencil, the accuracy should improve
+//    -> the answer will vary based on the center of the stencil
