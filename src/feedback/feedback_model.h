@@ -179,7 +179,7 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, 
   }      // i loop
 }
 
-template<bool OnlyResolved>
+template<bool HasResolved, bool HasUnresolved>
 struct LegacySNe {
 
   static __device__ void apply_feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev, Real xMin,
@@ -203,7 +203,7 @@ struct LegacySNe {
     int n_cells    = nx_g * ny_g * nz_g;
 
     // no sense doing anything if there was no SN
-    if (num_SN == 0) return; // TODO: see if we can remove this!
+    if ((num_SN == 0) or ((not HasResolved) and (not HasUnresolved))) return; // TODO: see if we can remove this!
 
     Real* density             = conserved_dev;
     Real n_0                  = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
@@ -214,7 +214,14 @@ struct LegacySNe {
 
     Real shell_radius = feedback::R_SH * pow(n_0, -0.46) * pow(fabsf(num_SN), 0.29);
 
-    const bool is_resolved = OnlyResolved ? true : (3 * max(dx, max(dy, dz)) <= shell_radius);
+    bool is_resolved;
+    if (HasResolved and HasUnresolved){
+      is_resolved =  (3 * max(dx, max(dy, dz)) <= shell_radius);
+    } else if (HasResolved) {
+      is_resolved = true;
+    } else {
+      is_resolved = false;
+    }
 
     // update the cluster mass
     mass_dev[gtid] -= num_SN * feedback::MASS_PER_SN;
