@@ -70,23 +70,23 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
     Real pos_x    = pos_x_dev[tmp_gtid_];
     Real pos_y    = pos_y_dev[tmp_gtid_];
     Real pos_z    = pos_z_dev[tmp_gtid_];
-    bool in_local = (pos_x >= xMin && pos_x < xMax) && (pos_y >= yMin && pos_y < yMax) && (pos_z >= zMin && pos_z < zMax);
 
-    int indx_x  = (int)floor((pos_x - xMin) / dx);
-    int indx_y  = (int)floor((pos_y - yMin) / dy);
-    int indx_z  = (int)floor((pos_z - zMin) / dz);
-    bool ignore = indx_x < 0 || indx_y < 0 || indx_z < 0 || indx_x >= nx_g - 2 * n_ghost ||
-                  indx_y >= ny_g - 2 * n_ghost || indx_z >= nz_g - 2 * n_ghost;
+    // compute the position in index-units (appropriate for a field with a ghost-zone)
+    // - an integer value corresponds to the left edge of a cell
+    const Real pos_x_indU = (pos_x - xMin) / dx + n_ghost;
+    const Real pos_y_indU = (pos_y - yMin) / dy + n_ghost;
+    const Real pos_z_indU = (pos_z - zMin) / dz + n_ghost;
 
-    // ignore should always be not in_local, by definition
+    bool ignore = (((pos_x_indU < n_ghost) or (pos_x_indU >= (nx_g - n_ghost))) or
+                   ((pos_y_indU < n_ghost) or (pos_y_indU >= (ny_g - n_ghost))) or
+                   ((pos_z_indU < n_ghost) or (pos_z_indU >= (ny_g - n_ghost))));
 
-    if (in_local and (not ignore) and (n_local > gtid)) {
+    if ((not ignore) and (n_local > gtid)) {
       // note age_dev is actually the time of birth
       Real age = t - age_dev[gtid];
 
-      feedback_model.apply_feedback(pos_x, pos_y, pos_z, age, mass_dev, id_dev, xMin, yMin, zMin, xMax, yMax, zMax,
-                                    dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, n_step, t, dt, num_SN_dev[gtid],
-                                    s_info, conserved_dev, gamma, indx_x, indx_y, indx_z);
+      feedback_model.apply_feedback(pos_x_indU, pos_y_indU, pos_z_indU, age, mass_dev, id_dev, dx, dy, dz,
+                                    nx_g, ny_g, nz_g, n_ghost, num_SN_dev[gtid], s_info, conserved_dev);
     }
   }
 

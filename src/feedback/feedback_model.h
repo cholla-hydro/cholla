@@ -185,22 +185,12 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
 template<bool HasResolved, bool HasUnresolved>
 struct LegacySNe {
 
-  static __device__ void apply_feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev, Real xMin,
-                                        Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g,
-                                        int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                                        int num_SN, Real* s_info, Real* conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
+  static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real age, Real* mass_dev, part_int_t* id_dev,
+                                        Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g, int n_ghost,
+                                        int num_SN, Real* s_info, Real* conserved_dev)
   {
     int tid  = threadIdx.x;
     int gtid = blockIdx.x * blockDim.x + tid;
-
-    // ToDo: refactor the method signature so that the following 3 variables are directly passed in and so we don't have to pass in
-    // xMin, yMin, zMin, dx, dy, dz
-
-    // compute the position in index-units (appropriate for a field with a ghost-zone)
-    // - an integer value corresponds to the left edge of a cell
-    const double pos_x_indU = (pos_x - xMin) / dx + n_ghost;
-    const double pos_y_indU = (pos_y - yMin) / dy + n_ghost;
-    const double pos_z_indU = (pos_z - zMin) / dz + n_ghost;
 
     Real dV = dx * dy * dz;
     int n_cells    = nx_g * ny_g * nz_g;
@@ -208,7 +198,10 @@ struct LegacySNe {
     // no sense doing anything if there was no SN
     if ((num_SN == 0) or ((not HasResolved) and (not HasUnresolved))) return; // TODO: see if we can remove this!
 
-    Real* density             = conserved_dev;
+    Real* density = conserved_dev;
+    int indx_x = (int)floor(pos_x_indU - n_ghost);
+    int indx_y = (int)floor(pos_y_indU - n_ghost);
+    int indx_z = (int)floor(pos_z_indU - n_ghost);
     Real n_0                  = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
     s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN] += num_SN;
 
