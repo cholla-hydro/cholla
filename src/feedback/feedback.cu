@@ -277,7 +277,7 @@ std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parame
     sn_model = "none";
   } else if (sn_model.empty()) {
 #ifdef ONLY_RESOLVED
-    sn_model = "legacy_resolved";
+    sn_model = "resolvedCiC";
 #else
     sn_model = "legacy";
 #endif
@@ -315,7 +315,7 @@ std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parame
     out = ClusterFeedbackMethod<feedback_model::LegacySNe<true,true>>(analysis, use_snr_calc, snr_calc);
   } else if (sn_model == "resolvedCiC") {
     out = ClusterFeedbackMethod<feedback_model::LegacySNe<true,false>>(analysis, use_snr_calc, snr_calc);
-  } else if (sn_model == "unresolved") {
+  } else if (sn_model == "legacy_unresolved") {
     out = ClusterFeedbackMethod<feedback_model::LegacySNe<false,true>>(analysis, use_snr_calc, snr_calc);
   } else {
     CHOLLA_ERROR("Unrecognized sn_model: %s", sn_model.c_str());
