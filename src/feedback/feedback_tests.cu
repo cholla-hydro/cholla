@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <vector>
 #include <utility>
+#include <optional>
 
 // External Includes
 #include <gtest/gtest.h> // Include GoogleTest and related libraries/headers
@@ -17,6 +18,11 @@
 #include "../utils/DeviceVector.h" // gpuFor
 
 #include "../feedback/feedback_model.h"
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Define some general-purpose testing tools. These may be a little overkill for this particular file.
+// It may make sense to move these to the testing_utils file and namespace. 
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace  // Anonymous namespace
 {
@@ -67,6 +73,16 @@ std::string Vec3_to_String(T* arr3D) {
           std::to_string(arr3D[2]) + ")");
 }
 
+template<typename T>
+bool isclose(T actual, T desired, double rtol, double atol = 0.0, bool equal_nan = false) {
+  if (equal_nan and std::isnan(actual) and std::isnan(desired))  return true;
+
+  double abs_diff = fabs(actual - desired);
+  double max_allowed_abs_diff = (atol + rtol * fabs(desired));
+  // need to use <= rather than <, to handle case where atol = actual = desired = 0
+  return abs_diff <= max_allowed_abs_diff;
+}
+
 // this is a little overkill, for right now, but it could be nice to have
 // based on signature of numpy's testing.assert_allclose function!
 template<typename T>
@@ -76,13 +92,7 @@ void assert_allclose(T* actual, T* desired, Extent3D extent,
 {
 
   auto is_close = [equal_nan, atol, rtol](double actual, double desired) -> bool {
-    if (equal_nan and std::isnan(actual) and std::isnan(desired)) {
-      return true;
-    }
-    double abs_diff = fabs(actual - desired);
-    double max_allowed_abs_diff = (atol + rtol * fabs(desired));
-    // need to use <= rather than <, to handle case where atol = actual = desired = 0
-    return abs_diff <= max_allowed_abs_diff;
+    return isclose(actual, desired, rtol, atol, equal_nan);
   };
 
   int count_notclose = 0;
@@ -136,22 +146,137 @@ void assert_allclose(T* actual, T* desired, Extent3D extent,
            << "    actual: " << actual[bad_ind3D] << ", desired: " << desired[bad_ind3D] << "\n";
 }
 
+} // anonymous namespace
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Define some tools for testing deposition-stencils
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+enum struct StencilEvalKind{
+  enclosed_stencil_vol_frac, /*!< compute the fraction of the total stencil volume enclosed by each cell */
+  enclosed_cell_vol_frac     /*!< compute the fraction of each cell's volume that is enclosed by the stencil */
+};
+
+/* Updates elements in the ``out_data`` 3D-array with the fraction of the volume that is enclosed by
+ * the specified ``stencil``, that is centered at the given position.
+ *
+ * \note
+ * Right now, this function should only be executed by a single thread-block with a single thread. This
+ * choice reflects the fact that a single thread is historically assigned to a single particle.
+ */
+template<typename Stencil>
+__global__ void Stencil_Overlap_Kernel_(Real* out_data, double pos_x_indU, double pos_y_indU, double pos_z_indU,
+                                        int nx_g, int ny_g, Stencil stencil, StencilEvalKind eval)
+{
+  // first, define the lambda function that actually updates out_data
+  auto update_entry_fn = [out_data](double dV, int indx3D) -> void { out_data[indx3D] = dV; };
+
+  // second, execute update_entry at each location where the stencil overlaps with the cells
+  switch(eval) {
+    case StencilEvalKind::enclosed_stencil_vol_frac:
+      stencil.for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, update_entry_fn);
+      break;
+    case StencilEvalKind::enclosed_cell_vol_frac:
+      stencil.for_each_enclosedCellVol(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, update_entry_fn);
+      break;
+  }
+  
+}
+
+/* Utility function used in multiple tests that evaluates overlap values with a grid of cells (on the device)
+ * and returns the results after copying them back to the host.
+ *
+ * \param pos_indxU A 3 element array specifying the postion of the (center of the) stencil
+ * \param full_extent describes the extent of the array that the stencil will be evaluated on. (It MUST
+ *     include contributions from the ghost_depth)
+ * \param n_ghost the number of ghost-zones
+ * \param stencil instance of the stencil that should be tested
+ * \param eval Specifies the precise calculation that will be performed.
+ */
+template <typename Stencil>
+std::vector<double> eval_stencil_overlap_(const Real* pos_indxU, Extent3D full_extent,
+                                          int n_ghost, Stencil stencil,
+                                          StencilEvalKind eval = StencilEvalKind::enclosed_stencil_vol_frac) {
+
+  cuda_utilities::DeviceVector<Real> data(full_extent.nx*full_extent.ny*full_extent.nz, true);  // initialize to 0
+
+  // launch the kernel
+  const int num_blocks = 1;
+  const int threads_per_block = 1;
+
+  hipLaunchKernelGGL(Stencil_Overlap_Kernel_, num_blocks, threads_per_block, 0, 0,
+                     data.data(), pos_indxU[0], pos_indxU[1], pos_indxU[2],
+                     full_extent.nx, full_extent.ny, stencil, eval);
+
+  CHECK(cudaDeviceSynchronize());
+  std::vector<double> out(full_extent.nx*full_extent.ny*full_extent.nz);
+  data.cpyDeviceToHost(out);
+  return out;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Define a test comparing different versions of the CiC deposition kernel
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace {
+
+// we can probably delete this struct
 struct DomainSpatialProps {
   Real xMin, yMin, zMin;  /*!< Cell widths (in code units) along cur axis. */
   Real dx, dy, dz;  /*!< Cell widths (in code units) along cur axis. */
 };
 
+/* Struct that specifies 1D spatial properties. This is used to help parameterize tests */
+struct AxProps {
+  int num_cells;  /*!< number of cells along the given axis (excluding ghost zone)*/
+  Real min;  /*!< the position of the left edge of left-most (non-ghost) cell, in code units */
+  Real cell_width;  /*!< Cell width, in code units along cur axis. Must be positive */
+
+  /* utility function! */
+  static DomainSpatialProps construct_spatial_props(AxProps xax, AxProps yax, AxProps zax) {
+    DomainSpatialProps out;
+    out.xMin = xax.min;
+    out.dx = xax.cell_width;
+    out.yMin = yax.min;
+    out.dy = yax.cell_width;
+    out.zMin = zax.min;
+    out.dz = zax.cell_width;
+    return out;
+  }
+};
+
 /* The old CIC stencil implementation (using the old interface). This logic was ripped almost
- * straight out of the original implementation of Apply_Resolved_SN
- */
+ * straight out of the original implementation of Apply_Resolved_SN */
 struct OldCICStencil {
+private:  // attributes
+  DomainSpatialProps spatial_props;
+  int n_ghost;
+
+public:  // interface
+  OldCICStencil(AxProps xax, AxProps yax, AxProps zax, int n_ghost)
+   : spatial_props(AxProps::construct_spatial_props(xax,yax,zax)), n_ghost(n_ghost)
+  {}
+
+  /* adapts the arguments and passes the functions back to the legacy interface */
+  template<typename Function>
+  __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                           int nx_g, int ny_g, Function f) const
+  {
+    // pos_indxU gives the position in index-units on the grid including ghost-zones
+    Real pos_x = (pos_x_indU - this->n_ghost) * this->spatial_props.dx + this->spatial_props.xMin;
+    Real pos_y = (pos_y_indU - this->n_ghost) * this->spatial_props.dy + this->spatial_props.yMin;
+    Real pos_z = (pos_z_indU - this->n_ghost) * this->spatial_props.dz + this->spatial_props.zMin;
+
+    for_each_legacy(pos_x, pos_y, pos_z, this->spatial_props, nx_g, ny_g, n_ghost, f);
+  }
 
   template<typename Function>
-  __device__ void for_each(Real pos_x, Real pos_y, Real pos_z, 
-                           DomainSpatialProps spatial_props,
-                           int nx_g, int ny_g, int n_ghost,
-                           Function& f)
+  __device__ void for_each_legacy(Real pos_x, Real pos_y, Real pos_z, 
+                                  DomainSpatialProps spatial_props,
+                                  int nx_g, int ny_g, int n_ghost,
+                                  Function& f) const
   {
 
     double xMin = spatial_props.xMin;
@@ -192,119 +317,20 @@ struct OldCICStencil {
     }      // i loop
   }
 
+  /* identical to for_each (provided for compatability with interfaces of other stencils). */
+  template<typename Function>
+  __device__ void for_each_enclosedCellVol(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                           int nx_g, int ny_g, Function f)
+  {
+    this->for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, f);
+  }
+
 };
-
-
 
 } // anonymous namespace
 
-/* Struct that specifies 1D spatial properties. This is used to help parameterize tests */
-struct AxProps {
-  int num_cells;  /*!< number of cells along the given axis (excluding ghost zone)*/
-  Real min;  /*!< the position of the left edge of left-most (non-ghost) cell, in code units */
-  Real cell_width;  /*!< Cell width, in code units along cur axis. Must be positive */
-
-  /* utility function! */
-  static DomainSpatialProps construct_spatial_props(AxProps xax, AxProps yax, AxProps zax) {
-    DomainSpatialProps out;
-    out.xMin = xax.min;
-    out.dx = xax.cell_width;
-    out.yMin = yax.min;
-    out.dy = yax.cell_width;
-    out.zMin = zax.min;
-    out.dz = zax.cell_width;
-    return out;
-  }
-};
-
-
-/* Updates elements in the ``out_data`` 3D-array with the fraction of the volume that is enclosed by
- * the specified ``stencil``, that is centered at the given position.
- *
- * \note
- * This handles the legacy function signature
- *
- * \note
- * Right now, this function should only be executed by a single thread-block with a single thread. This
- * choice reflects the fact that a single thread is historically assigned to a single particle.
- */
-template<typename Stencil>
-__global__ void Stencil_Overlap_Kernel_Legacy_Interface_(Real* out_data, double pos_x, double pos_y, double pos_z,
-                                                         DomainSpatialProps domain_spatial_props, 
-                                                         int nx_g, int ny_g, int n_ghost, Stencil stencil)
-{
-  // first, define the lambda function that actually updates out_data
-  auto update_entry_fn = [out_data](double dV, int indx3D) -> void { out_data[indx3D] = dV; };
-
-  // second, execute update_entry at each location where the stencil overlaps with the
-  stencil.for_each(pos_x, pos_y, pos_z, domain_spatial_props, nx_g, ny_g, n_ghost, update_entry_fn);
-}
-
-
-/* Updates elements in the ``out_data`` 3D-array with the fraction of the volume that is enclosed by
- * the specified ``stencil``, that is centered at the given position.
- *
- * \note
- * Right now, this function should only be executed by a single thread-block with a single thread. This
- * choice reflects the fact that a single thread is historically assigned to a single particle.
- */
-template<typename Stencil>
-__global__ void Stencil_Overlap_Kernel_(Real* out_data, double pos_x_indU, double pos_y_indU, double pos_z_indU,
-                                        int nx_g, int ny_g, Stencil stencil)
-{
-  // first, define the lambda function that actually updates out_data
-  auto update_entry_fn = [out_data](double dV, int indx3D) -> void { out_data[indx3D] = dV; };
-
-  // second, execute update_entry at each location where the stencil overlaps with the
-  stencil.for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, update_entry_fn);
-}
-
-// full_extent must include contributions from the ghost_depth
-std::vector<double> eval_stencil_overlap_(const Real* pos_indxU, Extent3D full_extent,
-                                          AxProps* prop_l, int n_ghost, bool legacy) {
-
-  cuda_utilities::DeviceVector<Real> data(full_extent.nx*full_extent.ny*full_extent.nz, true);  // initialize to 0
-
-  // launch the kernel
-  const int num_blocks = 1;
-  const int threads_per_block = 1;
-
-  if (legacy) {
-    // unpack prop_l into DomainSpatialProps
-    DomainSpatialProps spatial_props = AxProps::construct_spatial_props(prop_l[0], prop_l[1], prop_l[1]);
-
-    // convert pos_indxU to pos_codeU. The Legacy stencil computes the inverse of this, which will introduce some
-    // minor differences. One of the main points of this function is to test these differences (and other
-    // accumulated round-off differences).
-    double pos_codeU[3];
-    for (int i = 0; i < 3; i++) {
-      // pos_indxU gives the position in index-units on the grid includeing ghost-zones
-
-      // prop_l[i].min gives the position of the left edge of the leftmost cell NOT in the ghost zone
-      pos_codeU[i] = (pos_indxU[i] - n_ghost) * prop_l[i].cell_width + prop_l[i].min;
-    }
-
-    OldCICStencil stencil;
-    hipLaunchKernelGGL(Stencil_Overlap_Kernel_Legacy_Interface_, num_blocks, threads_per_block, 0, 0,
-                       data.data(), pos_codeU[0], pos_codeU[1], pos_codeU[2], spatial_props,
-                       full_extent.nx, full_extent.ny, n_ghost,
-                       stencil);
-  } else {
-    feedback_model::CICDepositionStencil stencil;
-    hipLaunchKernelGGL(Stencil_Overlap_Kernel_, num_blocks, threads_per_block, 0, 0,
-                       data.data(), pos_indxU[0], pos_indxU[1], pos_indxU[2],
-                       full_extent.nx, full_extent.ny,
-                       stencil);
-  }
-
-  CHECK(cudaDeviceSynchronize());
-  std::vector<double> out(full_extent.nx*full_extent.ny*full_extent.nz);
-  data.cpyDeviceToHost(out);
-  return out;
-}
-
+/* this is used as a test comparing the old implementation of CiC deposition agains the new version. */
 void compare_cic_stencil(AxProps* prop_l, int n_ghost) {
-
 
   std::vector<Real> sample_pos_indxU_minus_nghost = {
     1.0, 1.00001, 1.1, 1.5, 1.9, 1.9999999
@@ -330,8 +356,10 @@ void compare_cic_stencil(AxProps* prop_l, int n_ghost) {
                        prop_l[1].num_cells + 2*n_ghost,   // y-axis
                        prop_l[2].num_cells + 2*n_ghost};  // z-axis
 
-    std::vector<double> overlap_legacy = eval_stencil_overlap_(pos_indxU.data(), extent, prop_l, n_ghost, true);
-    std::vector<double> overlap_new = eval_stencil_overlap_(pos_indxU.data(), extent, prop_l, n_ghost, false);
+    std::vector<double> overlap_legacy = eval_stencil_overlap_(pos_indxU.data(), extent, n_ghost,
+                                                               OldCICStencil(prop_l[0],prop_l[1],prop_l[2], n_ghost));
+    std::vector<double> overlap_new = eval_stencil_overlap_(pos_indxU.data(), extent, n_ghost,
+                                                            feedback_model::CICDepositionStencil{});
 
     if (false) { // for debugging purposes!
       printf("considering: %s\n:", pos_indxU_str.c_str());
@@ -360,6 +388,11 @@ TEST(tALLFeedbackCiCStencil, ComparisonAgainstOld)
   }
 
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Define some tests that check some expected trends as we slowly move a stencil to the right along the
+// x-axis. These tests could definitely be generalized (so that they are performed along other axes)
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // records the first and last index along an index where the stencil has non-zero overlap as well
 // as the overlap values at those indices
@@ -391,15 +424,18 @@ OverlapRange find_ovrange_(double* v, int y_ind, int z_ind, Extent3D full_extent
   return {-1, -1, 0.0, 0.0};  // there is no overlap
 };
 
-/* test some expected trends as we slowly move a stencil to the right */
-void sliding_stencil_test(int n_ghost) {
-    // the construction of prop_l and dx is somewhat unnecessary...
-  // ToDo: drop them during refactoring
-  Real dx = 1.0 / 256.0;
-  std::vector<AxProps> prop_l = {{4, 0.0, dx}, {3,0.0, dx}, {3,0.0, dx}};
-  Extent3D full_extent{2*n_ghost + prop_l[0].num_cells,
-                       2*n_ghost + prop_l[1].num_cells,
-                       2*n_ghost + prop_l[2].num_cells};
+/* test some expected trends as we slowly move a stencil to the right along the
+ * x-axis.
+ *
+ * \param n_ghost the number of ghost-zones to use in the calculation
+ * \param tot_vol_atol the acceptable absolute error bound between the empirical
+ *                     total-overlap value and 1.0 (the expected value)tolerance for the 
+ */
+template <typename Stencil>
+void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0) {
+  Extent3D full_extent{2*n_ghost + 4,  // x-axis
+                       2*n_ghost + 3,  // y-axis
+                       2*n_ghost + 3}; // z-axis
 
   // determine the centers of the stencil
   const Real dummy = 1.1 + n_ghost;
@@ -414,9 +450,13 @@ void sliding_stencil_test(int n_ghost) {
     Real pos_indxU[3] = {sliding_ax_indxU_val, dummy, dummy};
 
     overlap_results.push_back(
-      eval_stencil_overlap_(pos_indxU, full_extent, prop_l.data(), n_ghost, false)
+      eval_stencil_overlap_(pos_indxU, full_extent, n_ghost, Stencil{})
     );
 
+
+    //int num_indents = 2;
+    //std::string tmp_arr = array_to_string(overlap_results.back().data(), full_extent, num_indents);
+    //printf("\n  %s\n:", tmp_arr.c_str());
 
     // sanity check: ensure non-zero vals sum to 1
     std::string tmp = Vec3_to_String(pos_indxU);
@@ -425,11 +465,18 @@ void sliding_stencil_test(int n_ghost) {
       total_overlap += overlap;
     }
     // in the future, we may nee
-    EXPECT_NEAR(total_overlap, 1.0, 0.0) << "the total volume of the stencil (in index-units) is not "
-                                         << "1.0, when the stencil is centerd at " << Vec3_to_String(pos_indxU);
+    ASSERT_NEAR(total_overlap, 1.0, tot_vol_atol) << "the sum of the stencil-vol-frac is not 1.0, when "
+                                                  << "when the stencil is centered at " << Vec3_to_String(pos_indxU);
   }
 
   // perform some checks based on the ranges of cells with overlap:
+  // - currently we just pick a single y_ind, z_ind combination. 
+  // - It might be nice to consider all y_ind, z_ind combinations. This could be a little messy:
+  //   -> need to handle rows when there isn't ANY overlap
+  //   -> need to handle cases (especially for super-sampled stencil) where a given y_ind/z_ind near
+  //      the edge of the stencil won't have any overlap at all, except when the stencil is positioned
+  //      at very particular x-values (basically it has to do with the distance of the subgrid to 
+  //      the stencil-center)
 
   const int y_ind = int(dummy);
   const int z_ind = int(dummy);
@@ -466,174 +513,87 @@ void sliding_stencil_test(int n_ghost) {
 
 TEST(tALLFeedbackCiCStencil, SlidingTest)
 {
-  sliding_stencil_test(0);
+  sliding_stencil_test<feedback_model::CICDepositionStencil>(0);
 }
 
-#include <cstdint>
 
-/* Represents a sphere */
-struct Sphere{
-  double center_indU[3];
-  int raidus2_indU;
+TEST(tALLFeedbackSphere27Stencil, SlidingTest)
+{
+  // primary stencil size we would use
+  sliding_stencil_test<feedback_model::Sphere27DepositionStencil<2>>(0,2e-16);
+  // just testing this case because we can
+  sliding_stencil_test<feedback_model::Sphere27DepositionStencil<4>>(0,3e-16);
+}
 
-  /* queries whether the sphere encloses a given point */
-  __forceinline__ __device__ bool encloses_point(double pos_x_indU, double pos_y_indU, double pos_z_indU) const {
-    double delta_x = pos_x_indU - center_indU[0];
-    double delta_y = pos_y_indU - center_indU[1];
-    double delta_z = pos_z_indU - center_indU[2];
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Define some tests where we check our expectations about the total volume enclosed by the stencil
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    return (delta_x * delta_x + delta_y * delta_y + delta_z * delta_z) < raidus2_indU; 
+template<typename Stencil>
+void stencil_volume_check(Arr3<Real> center_offset_from_cellEdge, int n_ghost, Stencil stencil,
+                          double expected_vol, double vol_rtol = 0.0, double stencil_overlap_rtol = 0.0)
+{
+  // compute the center of the stencil and the extent of the grid for evaluating the stencil
+  Arr3<Real> pos_indU{};
+  for (std::size_t i = 0; i < 3; i++){
+    // confirm the offset falls in the range 0 <= center_offset < 1
+    ASSERT_GE(center_offset_from_cellEdge[i], 0.0) << "Test parameter is flawed";
+    ASSERT_LT(center_offset_from_cellEdge[i], 1.0) << "Test parameter is flawed";
+
+    pos_indU[i] = Stencil::max_enclosed_neighbors + center_offset_from_cellEdge[i];
   }
+  // choose an extent value that we know will work (even when n_ghost is zero!)
+  Extent3D full_extent{1 + 2*(n_ghost + Stencil::max_enclosed_neighbors),
+                       1 + 2*(n_ghost + Stencil::max_enclosed_neighbors),
+                       1 + 2*(n_ghost + Stencil::max_enclosed_neighbors)};
 
-  /* returns the count of the number of super-sampled points */
-  template<unsigned Log2DivsionsPerAx>
-  __device__ unsigned int Count_Super_Samples(int cell_idx_x, int cell_idx_y, int cell_idx_z) const {
-    static_assert(Log2DivsionsPerAx*3 < sizeof(unsigned int));
-    int num_subdivisions_per_ax = std::pow(2,Log2DivsionsPerAx);
+  // now gather the amount of cell-volume enclosed by the stencil
+  std::vector<double> enclosed_cell_vol = eval_stencil_overlap_(pos_indU.data(), full_extent, n_ghost, stencil,
+                                                                StencilEvalKind::enclosed_cell_vol_frac);
+  // compute the total stencil volume
+  double vtot = 0.0;
+  for(double val : enclosed_cell_vol) { vtot += val; }
 
-    double width = 1/num_subdivisions_per_ax;
-    double offset = 0.5 * width;
+  // now perform the check on the total cell volume
+  EXPECT_TRUE(isclose(vtot, expected_vol,
+                      vol_rtol, 0.0, false)) << "stencil volume, " << vtot << ", does NOT match the expected "
+                                             << "volume, " << expected_vol << ", to within the relative tolerance "
+                                             << "of " << vol_rtol << ". The relative error is: "
+                                             << (vtot - expected_vol)/expected_vol;
 
-    unsigned int count = 0;
-    for (int ix = 0; ix < num_subdivisions_per_ax; ix++) {
-      for (int iy = 0; iy < num_subdivisions_per_ax; iy++) {
-        for (int iz = 0; iz < num_subdivisions_per_ax; iz++) {
-          // since cell_idx_x, cell_idx_y, cell_idx_z are all integers, they specify
-          // the position of the left edge of the cell
-          double x = cell_idx_x + (offset + ix * width);
-          double y = cell_idx_y + (offset + iy * width);
-          double z = cell_idx_z + (offset + iz * width);
+  ASSERT_GT(vtot, 0.0); // this is mostly a sanity check!
 
-          count += encloses_point(x, y, z);
-        }
-      }
-    }
+  // now let's confirm consistency with the calculation of the total stencil volume
+  // (otherwise this test is meaningless)
+  for(double& val : enclosed_cell_vol) { val /= vtot; }
 
-    return count;
-  }
-};
+  std::vector<double> enclosed_stencil_vol = eval_stencil_overlap_(pos_indU.data(), full_extent, n_ghost, stencil,
+                                                                   StencilEvalKind::enclosed_stencil_vol_frac);
+  assert_allclose(enclosed_cell_vol.data(), enclosed_stencil_vol.data(), full_extent, stencil_overlap_rtol, 0.0, false,
+                  "the grid of stencil-overlap-vol-fracs computed from the grid on cellvol-fracs is "
+                  "inconsistent with the direclty computed grid of stencil-overlap-vol-fracs");
+}
 
+TEST(tALLFeedbackCiCStencil, StencilVolumeTest)
+{
+  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, feedback_model::CICDepositionStencil{},
+                       /* expected_vol = */ 1.0, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
+  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, feedback_model::CICDepositionStencil{},
+                       /* expected_vol = */ 1.0, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
+}
 
-#include<cstdint>
+TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
+{
+  const double radius = 1; // in units of cell_widths
+  const double expected_vol = 4 * 3.141592653589793 * (radius * radius) / 3;
 
-template<unsigned Log2DivsionsPerAx_PerCell = 2>
-struct Sphere27DepositionStencil {
-
-  static_assert(Log2DivsionsPerAx_PerCell <= 2);
-
-  /* excute f at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
-   *
-   * The function should expect 2 arguments: 
-   *   1. ``stencil_enclosed_frac``: the fraction of the stencil enclosed by the cell
-   *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
-   */
-  template<typename Function>
-  static __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                  int nx_g, int ny_g, Function f)
-  {
-    // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    const int leftmost_indx_x = int(pos_x_indU) - 1;
-    const int leftmost_indx_y = int(pos_y_indU) - 1;
-    const int leftmost_indx_z = int(pos_z_indU) - 1;
-
-    // Step 2: get the number of super-samples within each of the 27 possible cells
-    const Sphere sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, 1*1};
-
-    uint_least8_t counts[3][3][3]; // we want to keep the array-element size small to reduce memory
-                                   // pressure on the stack (especially since every thread will be
-                                   // allocating this much stack-space at the same time)
-    unsigned long total_count = 0;
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        for (int k = 0; k < 3; k++) {
-          unsigned int count = sphere.Count_Super_Samples<Log2DivsionsPerAx_PerCell>(leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k);
-          counts[i][j][k] = std::uint_least8_t(counts);
-          total_count += count;
-        }
-      }
-    }
-
-    // Step 3: actually invoke f at each cell-location that overlaps with the stencil location, passing both:
-    //  1. fraction of the total stencil volume enclosed by the given cell
-    //  2. the 1d index specifying cell-location (for a field with ghost zones)
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        for (int k = 0; k < 3; k++) {
-          const int ind3D = (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k));
-
-          f(double(counts[i][j][k])/total_count, ind3D);
-        }
-      }
-    }
-
-  }
-
-  /* calls the unary function f at ever location where there probably is non-zero overlap with
-   * the stencil.
-   *
-   * \note
-   * This is is significantly cheaper than calling for_each.
-   */
-  template<typename UnaryFunction>
-  static __device__ void for_each_overlap_zone(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                               int ng_x, int ng_y, int n_ghost, UnaryFunction f)
-  {
-    // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    const int leftmost_indx_x = int(pos_x_indU) - 1;
-    const int leftmost_indx_y = int(pos_y_indU) - 1;
-    const int leftmost_indx_z = int(pos_z_indU) - 1;
-
-    const Sphere sphere{/* center = */ {pos_x_indU, pos_y_indU, pos_z_indU},
-                        /* squared_radius = */ 1*1}; 
-
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        for (int k = 0; k < 3; k++) {
-
-          const Real indx_x = leftmost_indx_x + i;
-          const Real indx_y = leftmost_indx_y + j;
-          const Real indx_z = leftmost_indx_z + k;
-
-          const int ind3D = indx_x + ng_x * (indx_y + ng_y * indx_z);
-
-          // calculate the displacement vector for the nearest point on the
-          // cube to the sphere
-          // IN THE FUTURE: correct this to use the nearest super-sampled point
-          if (sphere.encloses_point(clamp(pos_x_indU, indx_x, indx_x + 1),
-                                    clamp(pos_x_indU, indx_x, indx_x + 1),
-                                    clamp(pos_x_indU, indx_x, indx_x + 1))){
-            f(ind3D);
-          }
-
-          
-        }
-      }
-    }
-
-  }
-
-  /* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
-   * can be shifted to in order to avoid overlapping with the ghost zone.
-   *
-   * If the specified location already does not overlap with the ghost zone, that is the returned
-   * value.
-   */
-  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                          int ng_x, int ng_y, int ng_z, int n_ghost)
-  {
-    constexpr Real min_stencil_offset = 1.0;
-    double edge_offset = n_ghost + min_stencil_offset;
-
-    // we can get more clever. technically, we just can't overlap with nearest
-    // super-sampled point inside of ghost zone. Anything else is fair game!
-    return { clamp(pos_x_indU, edge_offset, ng_x - edge_offset),
-             clamp(pos_y_indU, edge_offset, ng_y - edge_offset),
-             clamp(pos_z_indU, edge_offset, ng_z - edge_offset) };
-  }
-
-};
-
-
+  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, feedback_model::Sphere27DepositionStencil<2>{},
+                       expected_vol, /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/ 0.0);
+  stencil_volume_check(Arr3<Real>{0.125,0.0,0.0}, 0, feedback_model::Sphere27DepositionStencil<2>{},
+                       expected_vol, /* vol_rtol = */ 0.0004, /*stencil_overlap_rtol =*/ 0.0);
+  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, feedback_model::Sphere27DepositionStencil<2>{},
+                       expected_vol, /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/ 0.0);
+}
 
 /* Represents a spherical stencil with a radius of 3 cells, where the inclusion where inclusion of
  * cells in the sphere is a binary choice.
@@ -690,11 +650,3 @@ struct SphereBinaryDepositionStencil {
   }
 };
 */
-
-// some tests for the sphere stencil:
-// -> try to back out the value of pi? This only works if we also calculate of the 
-//    fraction of the cell that is enclosed by the stencil.
-//    -> compute the stencil volume and divide that voume by the stencil-radius squared
-//    -> As you increase the radius of SphereBinaryDepositionStencil or the number of
-//       divisions in Sphere27DepositionStencil, the accuracy should improve
-//    -> the answer will vary based on the center of the stencil
