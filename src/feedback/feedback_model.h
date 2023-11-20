@@ -106,15 +106,18 @@ inline __device__ void Set_Average_Density(int indx_x, int indx_y, int indx_z, i
  * - this requires the codebase to be compiled with the dual energy formalism
  * - momentum and total energy are not updated self-consistently
  */
-inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x, Real pos_y, Real pos_z, Real xMin, Real yMin, Real zMin,
-                                                        Real dx, Real dy, Real dz, int nx_g, int ny_g, int n_ghost,
+inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, int nx_g, int ny_g, int n_ghost,
                                                         int n_cells, Real* conserved_device,
-                                                        Real feedback_density, Real feedback_momentum, Real feedback_energy,
-                                                        int indx_x, int indx_y, int indx_z)
+                                                        Real feedback_density, Real feedback_momentum, Real feedback_energy)
 {
-  Real delta_x = (pos_x - xMin - indx_x * dx) / dx;
-  Real delta_y = (pos_y - yMin - indx_y * dy) / dy;
-  Real delta_z = (pos_z - zMin - indx_z * dz) / dz;
+
+  int indx_x = (int)floor(pos_x_indU - n_ghost);
+  int indx_y = (int)floor(pos_y_indU - n_ghost);
+  int indx_z = (int)floor(pos_z_indU - n_ghost);
+
+  Real delta_x = (pos_x_indU - n_ghost) - indx_x;
+  Real delta_y = (pos_y_indU - n_ghost) - indx_y;
+  Real delta_z = (pos_z_indU - n_ghost) - indx_z;
 
   Real* density    = conserved_device;
   Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
@@ -244,12 +247,13 @@ struct LegacySNe {
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    += feedback_momentum * dV * sqrt(3.0);
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] += feedback_energy * dV;
       Apply_Energy_Momentum_Deposition(
-          pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
-          feedback_density, feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
+          pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
+          feedback_density, feedback_momentum, feedback_energy);
     }
   }
 };
 
+/*
 inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev,
                                      Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy,
                                      Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
@@ -281,10 +285,15 @@ inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real ag
   s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindMomentum] += feedback_momentum * dV * sqrt(3.0);
   s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindEnergy]   += feedback_energy * dV;
 
-  Apply_Energy_Momentum_Deposition(pos_x, pos_y, pos_z, xMin, yMin, zMin, dx, dy, dz, nx_g, ny_g, n_ghost,
-                                   n_cells, conserved_dev, feedback_density,
-                                   feedback_momentum, feedback_energy, indx_x, indx_y, indx_z);
-}
 
+  const double pos_x_indU = (pos_x - xMin) / dx + n_ghost;
+  const double pos_y_indU = (pos_y - yMin) / dy + n_ghost;
+  const double pos_z_indU = (pos_z - zMin) / dz + n_ghost;
+
+  Apply_Energy_Momentum_Deposition(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, n_ghost,
+                                   n_cells, conserved_dev, feedback_density,
+                                   feedback_momentum, feedback_energy);
+}
+*/
 
 } // feedback_model namespace
