@@ -1,181 +1,49 @@
+/* This file defines feeback prescriptions that can actually be used within Cholla
+ *
+ * Some (not all) of these prescriptions are defined in terms of factored out stencils. Those stencils
+ * are defined separately in a different header file.
+ */
+
 #pragma once
 
 #include "../global/global.h"
 #include "../feedback/feedback.h"
 #include "../feedback/ratecalc.h"
-
-// I'm defining this by hand at the moment.
-//
-// It's not clear:
-// - whether cuda/rocm provide intrinsics to speed this up.
-// - whether I should just use std::clamp
-template<typename T>
-__device__ __host__ T clamp(T val, T lo, T hi) {
-  const T tmp = val < lo ? lo : val;
-  return tmp > hi ? hi : tmp;
-}
-
-
-/* This is kind of a placeholder right now! It's here to help reduce the number of
- * arguments we pass around. Eseentially, it's used in the case where we have 3 entries 
- * (like a mathematical vector).
- *
- * It's not clear if we should lean into the mathematical vector-concept or model this after
- * std::array, or if we should just use int3, float3, double3
- *
- * No matter what we choose to do, it's important that this is an aggregate type!
- *
- * Because this is an aggregate type, you can initi can construct it as:
- * \code{.cpp}
- *    Arr3<double> my_var{1.0, 2.0, 3.0}
- *    Arr3<float> my_var2 = {1.0, 2.0, 3.0};
- *    Arr3<int> my_var3;  // Using the default constructor. Based on a note from the docs of
- *                        // std::array, the values for a non-class type (like float/double/int)
- *                        // may be indeterminate in this case.
- * \endcode
- */
-template <typename T>
-struct Arr3{
-  /* Tracks the values held by the class. To ensure the class is an aggregate, it needs
-   * to be public. With that said, it should be treated as an implementation detail */
-   
-     T arr_[3];
-
-  // constructors are implicitly defined! To ensure this class is an aggregate, these must
-  // all use the default implementation!
-
-  // destructor is implicitly defined
-
-  // move/copy assignment operations are implicitly defined
-
-  __device__ __host__ T& operator[](std::size_t i) {return arr_[i];}
-  __device__ __host__ const T& operator[](std::size_t i) const {return arr_[i];}
-
-  // we may want the following:
-  /*
-  __device__ __host__ T& x() noexcept  {return arr[0];}
-  __device__ __host__ const T& x() const noexcept {return arr[0];}
-  __device__ __host__ T& y() noexcept  {return arr[1];}
-  __device__ __host__ const T& y() const noexcept {return arr[1];}
-  __device__ __host__ T& z() noexcept  {return arr[2];}
-  __device__ __host__ const T& z() const noexcept {return arr[2];}
-  */
-};
+#include "../feedback/feedback_stencil.h"
 
 namespace feedback_model {
 
-/* Represents the stencil for cloud-in-cell deposition
- */
-struct CICDepositionStencil {
+// TODO: it's my intention to make this a first-class choice (as opposed to just LegacySNe)
+//       (although we can continue to implement LegacySNe in terms of this)
+struct ResolvedSNPrescription{
 
-  /* excute f at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
-   *
-   * The function should expect 2 arguments: 
-   *   1. ``stencil_enclosed_frac``: the fraction of the stencil enclosed by the cell
-   *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
-   */
-  template<typename Function>
-  static __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                  int nx_g, int ny_g, Function f)
+  /* apply the resolved feedback prescription */
+  static __device__ void apply(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                               int nx_g, int ny_g, int n_cells,
+                               Real* conserved_device, Real feedback_density, Real feedback_energy)
   {
-    // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    //  - Consider the cell containing the stencil-center. If the stencil-center is at all to the left
-    //    of that cell-center, then the stencil overlaps with the current cell and the one to the left
-    //  - otherwise, the stencil covers the current cell and the one to the right
-    int leftmost_indx_x = int(pos_x_indU - 0.5);
-    int leftmost_indx_y = int(pos_y_indU - 0.5);
-    int leftmost_indx_z = int(pos_z_indU - 0.5);
+    Real* density    = conserved_device;
+    Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
+#ifdef DE
+    Real* gasEnergy  = &conserved_device[n_cells * grid_enum::GasEnergy];
+#endif
 
-    // Step 2: along each axis, compute the distance between the stencil-center of the leftmost cell
-    //  - Recall that an integer index, ``indx``, specifies the position of the left edge of a cell.
-    //    In other words the reference point of the cell is on the left edge.
-    //  - The center of the cell specified by ``indx`` is actually ``indx+0.5``
-    Real delta_x = pos_x_indU - (leftmost_indx_x + 0.5);
-    Real delta_y = pos_y_indU - (leftmost_indx_y + 0.5);
-    Real delta_z = pos_z_indU - (leftmost_indx_z + 0.5);
+    CICDepositionStencil::for_each(
+      pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g,
+      [=](double stencil_vol_frac, int idx3D) {
+        // stencil_vol_frac is the fraction of the total stencil volume enclosed by the given cell
+        // indx3D can be used to index the conserved fields (it assumes ghost-zones are present)
 
-    // Step 3: Actually invoke f at each cell-location that overlaps with the stencil location, passing both:
-    //  1. fraction of the total stencil volume enclosed by the given cell
-    //  2. the 1d index specifying cell-location (for a field with ghost zones)
-    //
-    // note: it's not exactly clear to me how we go from delta_x,delta_y,delta_z to volume-frac, (I just
-    //       refactored the code I inherited and get consistent and sensible results)
-
-    #define to_idx3D(i,j,k) ( (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k)) )
-
-    f((1-delta_x) * (1 - delta_y) * (1 - delta_z), to_idx3D(0, 0, 0));  // (i=0, j = 0, k = 0)
-    f((1-delta_x) * (1 - delta_y) *      delta_z , to_idx3D(0, 0, 1));  // (i=0, j = 0, k = 1)
-    f((1-delta_x) *      delta_y  * (1 - delta_z), to_idx3D(0, 1, 0));  // (i=0, j = 1, k = 0)
-    f((1-delta_x) *      delta_y  *      delta_z , to_idx3D(0, 1, 1));  // (i=0, j = 1, k = 1)
-    f(   delta_x  * (1 - delta_y) * (1 - delta_z), to_idx3D(1, 0, 0));  // (i=1, j = 0, k = 0)
-    f(   delta_x  * (1 - delta_y) *      delta_z , to_idx3D(1, 0, 1));  // (i=1, j = 0, k = 1)
-    f(   delta_x  *      delta_y  * (1 - delta_z), to_idx3D(1, 1, 0));  // (i=1, j = 1, k = 0)
-    f(   delta_x  *      delta_y  *      delta_z , to_idx3D(1, 1, 1));  // (i=1, j = 1, k = 1)
+        atomicAdd(&density[idx3D], stencil_vol_frac * feedback_density);
+#ifdef DE
+        atomicAdd(&gasEnergy[idx3D], stencil_vol_frac * feedback_energy);
+#endif
+        atomicAdd(&energy[idx3D], stencil_vol_frac * feedback_energy);
+      }
+    );
   }
 
-  ///* calls the unary function f at ever location where there probably is non-zero overlap with
-  // * the stencil.
-  // *
-  // * \note
-  // * This is intended to be conservative (it's okay for this to call the function on a cell with
-  // * non-zero overlap). The reason this exacts (rather than just calling for_each), is that it
-  // * it may be significantly cheaper for some stencils
-  // */
-  //template<typename UnaryFunction>
-  //static __device__ void for_each_overlap_zone(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-  //                                             int ng_x, int ng_y, int n_ghost, UnaryFunction f)
-  //{
-  //  // this is a little crude!
-  //  CICDepositionStencil::for_each(pos_x_indU, pos_y_indU, pos_z_indU, ng_x, ng_y, n_ghost,
-  //                                 [f](double dummy_arg, int idx3D) {f(idx3D);});
-  //}
-
-  ///* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
-  // * can be shifted to in order to avoid overlapping with the ghost zone.
-  // *
-  // * If the specified location already does not overlap with the ghost zone, that is the returned
-  // * value.
-  // */
-  //static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-  //                                                        int ng_x, int ng_y, int ng_z, int n_ghost)
-  //{
-  //  constexpr Real min_stencil_offset = 0.5;
-  //  Real edge_offset = n_ghost + min_offset;
-  //
-  //  return { clamp(pos_x_indU, edge_offset, ng_x - edge_offset),
-  //           clamp(pos_y_indU, edge_offset, ng_y - edge_offset),
-  //           clamp(pos_z_indU, edge_offset, ng_z - edge_offset) };
-  //}
-
 };
-
-
-
-inline __device__ void Apply_Resolved_SN(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                         int nx_g, int ny_g, int n_cells,
-                                         Real* conserved_device, Real feedback_density, Real feedback_energy)
-{
-  Real* density    = conserved_device;
-  Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
-#ifdef DE
-  Real* gasEnergy  = &conserved_device[n_cells * grid_enum::GasEnergy];
-#endif
-
-  CICDepositionStencil::for_each(
-    pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g,
-    [=](double stencil_vol_frac, int idx3D) {
-      // stencil_vol_frac is the fraction of the total stencil volume enclosed by the given cell
-      // indx3D can be used to index the conserved fields (it assumes ghost-zones are present)
-
-      atomicAdd(&density[idx3D], stencil_vol_frac * feedback_density);
-#ifdef DE
-      atomicAdd(&gasEnergy[idx3D], stencil_vol_frac * feedback_energy);
-#endif
-      atomicAdd(&energy[idx3D], stencil_vol_frac * feedback_energy);
-    }
-  );
-
-}
 
 /** the prescription for dividing a scalar quantity between 3x3x3 cells is done
    by imagining a 2x2x2 cell volume around the SN.  These fractions, then,
@@ -356,8 +224,8 @@ struct LegacySNe {
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback_energy * dV;
 
-      Apply_Resolved_SN(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, n_cells,
-                        conserved_dev, feedback_density, feedback_energy);
+      ResolvedSNPrescription::apply(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, n_cells,
+                                    conserved_dev, feedback_density, feedback_energy);
     } else {
       // currently, only unresolved SN feedback involves averaging the densities.
       Real ave_dens = n_0 * MU * MP / DENSITY_UNIT;
