@@ -312,9 +312,7 @@ std::function<void(Grid3D&)> feedback_callback;
         "%9.3f ms   total time = %9.4f s\n\n",
         G.H.n_step, G.H.t, G.H.dt, (stop_step - start_step) * 1000, G.H.t_wall);
 
-#ifdef OUTPUT_ALWAYS
-    G.H.Output_Now = true;
-#endif
+    if (P.output_always) G.H.Output_Now = true;
 
 #ifdef ANALYSIS
     if (G.Analysis.Output_Now) G.Compute_and_Output_Analysis(&P);
