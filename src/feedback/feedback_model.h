@@ -13,37 +13,109 @@
 
 namespace feedback_model {
 
-// TODO: it's my intention to make this a first-class choice (as opposed to just LegacySNe)
-//       (although we can continue to implement LegacySNe in terms of this)
+template<typename Stencil>
 struct ResolvedSNPrescription{
+
+  static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real age, Real* mass_dev, 
+                                        part_int_t* id_dev, Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g,
+                                        int n_ghost, int num_SN, Real* s_info, Real* conserved_dev)
+  {
+    int tid  = threadIdx.x;
+    int gtid = blockIdx.x * blockDim.x + tid;
+
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN]       += num_SN;
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
+    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback::ENERGY_PER_SN;
+
+    Real dV               = dx * dy * dz;
+    Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
+    Real feedback_density = num_SN * feedback::MASS_PER_SN / dV;
+
+    mass_dev[gtid] -= num_SN * feedback::MASS_PER_SN; // update the cluster mass
+
+    if (num_SN == 0)  return; // TODO: see if we can remove this!
+
+    ResolvedSNPrescription::apply(pos_x_indU, pos_y_indU, pos_z_indU, 0.0, 0.0, 0.0,
+                                  nx_g, ny_g, nx_g * ny_g * nz_g, conserved_dev,
+                                  feedback_density, feedback_energy);
+  }
 
   /* apply the resolved feedback prescription */
   static __device__ void apply(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                               Real vel_x, Real vel_y, Real vel_z,
                                int nx_g, int ny_g, int n_cells,
                                Real* conserved_device, Real feedback_density, Real feedback_energy)
   {
     Real* density    = conserved_device;
+    //Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
+    //Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
+    //Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
     Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
 #ifdef DE
     Real* gasEnergy  = &conserved_device[n_cells * grid_enum::GasEnergy];
 #endif
 
-    CICDepositionStencil::for_each(
+    Stencil::for_each(
       pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g,
       [=](double stencil_vol_frac, int idx3D) {
         // stencil_vol_frac is the fraction of the total stencil volume enclosed by the given cell
         // indx3D can be used to index the conserved fields (it assumes ghost-zones are present)
 
+# if 0
+        Real initial_density = density[idx3D];
+
+        // Step 1: substract off the kinetic-energy-density from total energy density.
+        //  - While we aren't going to inject any of the supernova energy directly as kinetic energy,
+        //    the kinetic energy density will change to some degree because the gas density and gas
+        //    momentum will be changed
+
+        Real intial_ke_density = 0.5 * (momentum_x[idx3D] * momentum_x[idx3D] +
+                                        momentum_y[idx3D] * momentum_y[idx3D] +
+                                        momentum_z[idx3D] * momentum_z[idx3D]) / density[idx3D];
+
+        energy[idx3D] -= intial_ke_density;
+
+        // Step 2: convert the momentum-density into the star's reference frame, update the density,
+        //  and then update the momentum-density back into the initial reference-frame
+        //  - since we aren't explicitly injecting the supernova-energy as kinetic energy, this is
+        //    equivalent to adding momentum in the original frame as is done below
+        double injected_density = stencil_vol_frac * feedback_density;
+
+        momentum_x[idx3D] += vel_x * injected_density;
+        momentum_y[idx3D] += vel_y * injected_density;
+        momentum_z[idx3D] += vel_z * injected_density;
+
+        // Step 2b: actually update the density
+        density[idx3D] += injected_density;
+
+        // Step 3: inject thermal energy
+  #ifdef DE
+        gasEnergy[idx3D] += stencil_vol_frac * feedback_energy;
+  #endif
+        energy[idx3D] += stencil_vol_frac * feedback_energy;
+
+        // Step 4: reintroduce the kinetic energy density back to the total energy field
+        energy[idx3D] += 0.5 * (momentum_x[idx3D] * momentum_x[idx3D] +
+                                momentum_y[idx3D] * momentum_y[idx3D] +
+                                momentum_z[idx3D] * momentum_z[idx3D]) / density[idx3D];
+
+#else
         atomicAdd(&density[idx3D], stencil_vol_frac * feedback_density);
-#ifdef DE
+  #ifdef DE
         atomicAdd(&gasEnergy[idx3D], stencil_vol_frac * feedback_energy);
-#endif
+  #endif
         atomicAdd(&energy[idx3D], stencil_vol_frac * feedback_energy);
+#endif
       }
     );
   }
 
 };
+
+using CiCResolvedSNPrescription = ResolvedSNPrescription<CICDepositionStencil>;
+
+using Sphere27ResolvedSNPrescription = ResolvedSNPrescription<Sphere27DepositionStencil<2>>;
+
 
 /** the prescription for dividing a scalar quantity between 3x3x3 cells is done
    by imagining a 2x2x2 cell volume around the SN.  These fractions, then,
@@ -182,7 +254,8 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
   }      // i loop
 }
 
-template<bool HasResolved, bool HasUnresolved>
+/* Legacy SNe prescription that combines resolved and unresolved */
+template<typename ResolvedPrescriptionT>
 struct LegacySNe {
 
   static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real age, Real* mass_dev, part_int_t* id_dev,
@@ -196,7 +269,7 @@ struct LegacySNe {
     int n_cells    = nx_g * ny_g * nz_g;
 
     // no sense doing anything if there was no SN
-    if ((num_SN == 0) or ((not HasResolved) and (not HasUnresolved))) return; // TODO: see if we can remove this!
+    if (num_SN == 0) return; // TODO: see if we can remove this!
 
     Real* density = conserved_dev;
     int indx_x = (int)floor(pos_x_indU - n_ghost);
@@ -210,14 +283,7 @@ struct LegacySNe {
 
     Real shell_radius = feedback::R_SH * pow(n_0, -0.46) * pow(fabsf(num_SN), 0.29);
 
-    bool is_resolved;
-    if (HasResolved and HasUnresolved){
-      is_resolved =  (3 * max(dx, max(dy, dz)) <= shell_radius);
-    } else if (HasResolved) {
-      is_resolved = true;
-    } else {
-      is_resolved = false;
-    }
+    bool is_resolved =  (3 * max(dx, max(dy, dz)) <= shell_radius);
 
     // update the cluster mass
     mass_dev[gtid] -= num_SN * feedback::MASS_PER_SN;
@@ -227,8 +293,8 @@ struct LegacySNe {
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback_energy * dV;
 
-      ResolvedSNPrescription::apply(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, n_cells,
-                                    conserved_dev, feedback_density, feedback_energy);
+      ResolvedPrescriptionT::apply(pos_x_indU, pos_y_indU, pos_z_indU, 0.0, 0.0, 0.0, nx_g, ny_g, n_cells,
+                                   conserved_dev, feedback_density, feedback_energy);
     } else {
       // currently, only unresolved SN feedback involves averaging the densities.
       Real ave_dens = n_0 * MU * MP / DENSITY_UNIT;

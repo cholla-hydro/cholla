@@ -154,6 +154,10 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
   G.Timer.Feedback.Start();
   #endif
 
+  if (max(fabs(G.H.dy - G.H.dx), fabs(G.H.dz - G.H.dx))  > fabs(1e-15 * G.H.dx)) {
+    CHOLLA_ERROR("dx, dy, dz must all approximately be the same with the current feedback prescriptions");
+  }
+
   if (G.H.dt == 0) return;
 
   // h_info is used to store feedback summary info on the host. The following
@@ -312,11 +316,11 @@ std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parame
   // now lets initialize ClusterFeedbackMethod<> and return
   std::function<void(Grid3D&)> out;
   if (sn_model == "legacy") {
-    out = ClusterFeedbackMethod<feedback_model::LegacySNe<true,true>>(analysis, use_snr_calc, snr_calc);
+    out = ClusterFeedbackMethod<feedback_model::LegacySNe<feedback_model::CiCResolvedSNPrescription>>(analysis, use_snr_calc, snr_calc);
   } else if (sn_model == "resolvedCiC") {
-    out = ClusterFeedbackMethod<feedback_model::LegacySNe<true,false>>(analysis, use_snr_calc, snr_calc);
-  } else if (sn_model == "legacy_unresolved") {
-    out = ClusterFeedbackMethod<feedback_model::LegacySNe<false,true>>(analysis, use_snr_calc, snr_calc);
+    out = ClusterFeedbackMethod<feedback_model::CiCResolvedSNPrescription>(analysis, use_snr_calc, snr_calc);
+  } else if (sn_model == "resolved27cell") {
+    out = ClusterFeedbackMethod<feedback_model::Sphere27ResolvedSNPrescription>(analysis, use_snr_calc, snr_calc);
   } else {
     CHOLLA_ERROR("Unrecognized sn_model: %s", sn_model.c_str());
   }
