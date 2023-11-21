@@ -48,7 +48,8 @@ inline __device__ bool Particle_Is_Alone(Real* pos_x_dev, Real* pos_y_dev, Real*
 
 template<typename FeedbackModel>
 __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, Real* pos_x_dev, Real* pos_y_dev,
-                                        Real* pos_z_dev, Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin,
+                                        Real* pos_z_dev, Real* vel_x_dev, Real* vel_y_dev, Real* vel_z_dev,
+                                        Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin,
                                         Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g,
                                         int nz_g, int n_ghost, Real t, Real dt, Real* info, Real* conserved_dev,
                                         Real gamma, int* num_SN_dev, int n_step, FeedbackModel feedback_model)
@@ -85,8 +86,9 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
       // note age_dev is actually the time of birth
       Real age = t - age_dev[gtid];
 
-      feedback_model.apply_feedback(pos_x_indU, pos_y_indU, pos_z_indU, age, mass_dev, id_dev, dx, dy, dz,
-                                    nx_g, ny_g, nz_g, n_ghost, num_SN_dev[gtid], s_info, conserved_dev);
+      feedback_model.apply_feedback(pos_x_indU, pos_y_indU, pos_z_indU, vel_x_dev[gtid], vel_y_dev[gtid], vel_z_dev[gtid],
+                                    age, mass_dev, id_dev, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, num_SN_dev[gtid],
+                                    s_info, conserved_dev);
     }
   }
 
@@ -199,6 +201,7 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
 
     hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
                        G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
+                       G.Particles.vel_x_dev, G.Particles.vel_y_dev, G.Particles.vel_z_dev,
                        G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
                        G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
                        G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_info.data(), G.C.d_density, gama, 
