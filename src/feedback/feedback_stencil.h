@@ -384,8 +384,8 @@ struct Sphere27DepositionStencil {
         }
       }
     }
-  
-}
+
+  }
 
   /* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
    * can be shifted to in order to avoid overlapping with the ghost zone.
@@ -408,5 +408,125 @@ struct Sphere27DepositionStencil {
   }*/
 
 };
+
+
+/* Represents a spherical stencil with a radius of 3 cells, where the inclusion where inclusion of
+ * cells in the sphere is a binary choice.
+ *
+ * Specifically, a cell is included if the cell-center lies within the sphere.
+ */
+template<int CellsPerRadius = 3>
+struct SphereBinaryDepositionStencil {
+  static_assert(CellsPerRadius > 0);
+
+  /* along any axis, gives the max number of neighboring cells that may be enclosed by the stencil,
+   * that are on one side of the cell containing the stencil's center.
+   *
+   * \note
+   * this primarily exists for testing purposes
+   */
+  inline static constexpr int max_enclosed_neighbors = CellsPerRadius;
+
+  template<typename Function>
+  static __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                  int nx_g, int ny_g, Function f)
+  {
+    // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
+    int leftmost_indx_x = int(pos_x_indU) - CellsPerRadius;
+    int leftmost_indx_y = int(pos_y_indU) - CellsPerRadius;
+    int leftmost_indx_z = int(pos_z_indU) - CellsPerRadius;
+
+    // Step 2: get the number of cells enclosed by the sphere
+    const Sphere sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, CellsPerRadius*CellsPerRadius};
+    int total_count = 0;
+
+    const int stop = (2 * CellsPerRadius) + 1;
+    for (int i = 0; i < stop; i++) {
+      for (int j = 0; j < stop; j++) {
+        for (int k = 0; k < stop; k++) {
+          total_count += sphere.encloses_point(leftmost_indx_x + i + 0.5,
+                                               leftmost_indx_y + j + 0.5,
+                                               leftmost_indx_z + k + 0.5);
+        }
+      }
+    }
+
+    double enclosed_stencil_frac = 1.0/total_count;  // each enclosed cell, encloses this fraction of the sphere
+
+    // Step 3: actually invoke f at each cell-location that overlaps with the stencil location, passing both:
+    //  1. fraction of the total stencil volume enclosed by the given cell
+    //  2. the 1d index specifying cell-location (for a field with ghost zones)
+    for (int i = 0; i < stop; i++) {
+      for (int j = 0; j < stop; j++) {
+        for (int k = 0; k < stop; k++) {
+          bool is_enclosed = sphere.encloses_point(leftmost_indx_x + i + 0.5, leftmost_indx_y + j + 0.5, leftmost_indx_z + k + 0.5);
+          //kernel_printf("(%d, %d, %d), enclosed: %d\n", i,j,k, is_enclosed);
+          if (is_enclosed){
+            const int ind3D = (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k));
+            f(enclosed_stencil_frac, ind3D);
+          }
+
+        }
+      }
+    }
+
+  }
+
+
+  /* excute ``f`` at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
+   *
+   * This is just like for_each, except that it passes the fraction of the cell-volume that is enclosed
+   * by the stencil to ``f`` (instead of passing fraction of the stencil-volume enclosed by the cell).
+   *
+   * \note
+   * This is primarily intended for testing purposes.
+   */
+  template<typename Function>
+  static __device__ void for_each_enclosedCellVol(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                                  int nx_g, int ny_g, Function f)
+  {
+    // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
+    int leftmost_indx_x = int(pos_x_indU) - CellsPerRadius;
+    int leftmost_indx_y = int(pos_y_indU) - CellsPerRadius;
+    int leftmost_indx_z = int(pos_z_indU) - CellsPerRadius;
+
+    const Sphere sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, CellsPerRadius*CellsPerRadius};
+
+    const int stop = (2 * CellsPerRadius) + 1;
+    for (int i = 0; i < stop; i++) {
+      for (int j = 0; j < stop; j++) {
+        for (int k = 0; k < stop; k++) {
+          bool is_enclosed = sphere.encloses_point(leftmost_indx_x + i + 0.5,
+                                                   leftmost_indx_y + j + 0.5,
+                                                   leftmost_indx_z + k + 0.5);
+          double enclosed_cell_vol = (is_enclosed) ? 1.0 : 0.0;  // could just cast is_enclosed
+          const int ind3D = (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k));
+          f(enclosed_cell_vol, ind3D);
+        }
+      }
+    }
+  }
+
+  /* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
+   * can be shifted to in order to avoid overlapping with the ghost zone.
+   *
+   * If the specified location already does not overlap with the ghost zone, that is the returned
+   * value.
+   */
+  /*
+  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                                          int ng_x, int ng_y, int ng_z, int n_ghost)
+  {
+    double edge_offset = n_ghost + CellsPerRadius;
+
+    // I think we could be a little more clever
+
+    return { clamp(pos_x_indU, edge_offset, ng_x - edge_offset),
+             clamp(pos_y_indU, edge_offset, ng_y - edge_offset),
+             clamp(pos_z_indU, edge_offset, ng_z - edge_offset) };
+  }*/
+
+};
+
 
 } // feedback_model namespace

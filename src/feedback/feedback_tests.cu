@@ -432,17 +432,33 @@ OverlapRange find_ovrange_(double* v, int y_ind, int z_ind, Extent3D full_extent
  *                     total-overlap value and 1.0 (the expected value)tolerance for the 
  */
 template <typename Stencil>
-void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0) {
+void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_monotonicity_comparisons = false) {
+  
   Extent3D full_extent{2*n_ghost + 4,  // x-axis
                        2*n_ghost + 3,  // y-axis
                        2*n_ghost + 3}; // z-axis
 
   // determine the centers of the stencil
-  const Real dummy = 1.1 + n_ghost;
-  const std::vector<Real> sliding_ax_indxU_vals = {
+  Real dummy = 1.1 + n_ghost;
+  std::vector<Real> sliding_ax_indxU_vals = {
     1.50 + n_ghost, 1.75 + n_ghost, 2.00 + n_ghost,
     2.25 + n_ghost, 2.50 + n_ghost,
   };
+
+  if (Stencil::max_enclosed_neighbors > 1) {
+    int min_width = 2*n_ghost + 1 + 2 * Stencil::max_enclosed_neighbors;
+    full_extent = {min_width + 1,  // x-axis
+                   min_width,  // y-axis
+                   min_width}; // z-axis
+    dummy = 0.1 + n_ghost + Stencil::max_enclosed_neighbors;
+    sliding_ax_indxU_vals.clear();
+    sliding_ax_indxU_vals = {n_ghost + Stencil::max_enclosed_neighbors + 0.5,
+                             n_ghost + Stencil::max_enclosed_neighbors + 0.75,
+                             n_ghost + Stencil::max_enclosed_neighbors + 1.0,
+                             n_ghost + Stencil::max_enclosed_neighbors + 1.25,
+                             n_ghost + Stencil::max_enclosed_neighbors + 1.5};
+  }
+  
 
   // evaluate the stencil at each location and store the fractional overlap grid in overlap_results
   std::vector<std::vector<double>> overlap_results{};
@@ -495,16 +511,21 @@ void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0) {
       ASSERT_GE(cur_ovrange.first_indx, prev_ovrange.first_indx);
       ASSERT_GE(cur_ovrange.last_indx, prev_ovrange.last_indx);
 
-      // if first_ind is the same for both the current and previous stencil position, check that the overlap
-      // fraction of that pixel has not increased
-      if (cur_ovrange.first_indx == prev_ovrange.first_indx) {
-        ASSERT_LE(cur_ovrange.first_overlap, prev_ovrange.first_overlap);
-      }
+      if (not ignore_monotonicity_comparisons) {
+        // these stencils should be ignored for the sphere-binary-stencil
 
-      // if last_indx is the same for both the current and previous stencil position, confirm that the
-      // overlap fraction of that pixel has not decreased
-      if (cur_ovrange.last_indx == prev_ovrange.last_indx) {
-        ASSERT_GE(cur_ovrange.last_overlap, prev_ovrange.last_overlap);
+        // if first_ind is the same for both the current and previous stencil position, check that the overlap
+        // fraction of that pixel has not increased
+        if (cur_ovrange.first_indx == prev_ovrange.first_indx) {
+          ASSERT_LE(cur_ovrange.first_overlap, prev_ovrange.first_overlap);
+        }
+
+        // if last_indx is the same for both the current and previous stencil position, confirm that the
+        // overlap fraction of that pixel has not decreased
+        if (cur_ovrange.last_indx == prev_ovrange.last_indx) {
+          ASSERT_GE(cur_ovrange.last_overlap, prev_ovrange.last_overlap);
+        }
+
       }
     }
     prev_ovrange = cur_ovrange;
@@ -523,6 +544,14 @@ TEST(tALLFeedbackSphere27Stencil, SlidingTest)
   sliding_stencil_test<feedback_model::Sphere27DepositionStencil<2>>(0,2e-16);
   // just testing this case because we can
   sliding_stencil_test<feedback_model::Sphere27DepositionStencil<4>>(0,3e-16);
+}
+
+TEST(tALLFeedbackSphereBinaryStencil, SlidingTest)
+{
+  // we have to ignore the part of the test where we check that the enclosed stencil fraction monotonically
+  // increases and decreases (we could refactor the test more a test a different version of that same 
+  // behavior)
+  sliding_stencil_test<feedback_model::SphereBinaryDepositionStencil<3>>(0,2e-15,true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -595,58 +624,17 @@ TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
                        expected_vol, /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/ 0.0);
 }
 
-/* Represents a spherical stencil with a radius of 3 cells, where the inclusion where inclusion of
- * cells in the sphere is a binary choice.
- *
- * Specifically, a cell is included if the cell-center lies within the sphere.
- */
-/*
-template<unsigned CellsPerRadius = 3>
-struct SphereBinaryDepositionStencil {
-  static_assert(CellsPerRadius > 0);
-
-  template<typename Function>
-  static __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                  int nx_g, int ny_g, Function f)
-  {
-    // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    int leftmost_indx_x = int(pos_x_indU) - CellsPerRadius;
-    int leftmost_indx_y = int(pos_y_indU) - CellsPerRadius;
-    int leftmost_indx_z = int(pos_z_indU) - CellsPerRadius;
-
-    // Step 2: get the number of cells enclosed by the sphere
-    const Sphere sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, CellsPerRadius*CellsPerRadius};
-    int total_count = 0;
-
-    const int stop = (2 * CellsPerRadius) + 1;
-    for (int i = 0; i < stop; i++) {
-      for (int j = 0; j < stop; j++) {
-        for (int k = 0; k < stop; k++) {
-          total_count += encloses_point(leftmost_indx_x + i + 0.5,
-                                        leftmost_indx_y + j + 0.5,
-                                        leftmost_indx_z + k + 0.5);
-        }
-      }
-    }
-
-    double enclosed_stencil_frac = 1.0/total_count;  // each enclosed cell, encloses this fraction of the sphere
-
-    // Step 3: actually invoke f at each cell-location that overlaps with the stencil location, passing both:
-    //  1. fraction of the total stencil volume enclosed by the given cell
-    //  2. the 1d index specifying cell-location (for a field with ghost zones)
-    for (int i = 0; i < 7; i++) {
-      for (int j = 0; j < 7; j++) {
-        for (int k = 0; k < 7; k++) {
-          
-          if (sphere.encloses_point(leftmost_indx_x + i + 0.5, leftmost_indx_y + j + 0.5, leftmost_indx_z + k + 0.5)){
-            const int ind3D = (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k));
-            f(enclosed_stencil_frac, ind3D);
-          }
-
-        }
-      }
-    }
-
-  }
-};
-*/
+/* Something is funky! as you increase the radius, my intuition tells me that the relative error 
+ * should improve, but that does not seem to be the case*/
+//TEST(tALLFeedbackSphereBinaryStencil, StencilVolumeTest)
+//{
+//  const double radius = 3; // in units of cell_widths
+//  const double expected_vol = 4 * 3.141592653589793 * (radius * radius) / 3.0;
+//
+//  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, feedback_model::SphereBinaryDepositionStencil<3>{},
+//                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
+//  stencil_volume_check(Arr3<Real>{0.125,0.0,0.0}, 0, feedback_model::SphereBinaryDepositionStencil<3>{},
+//                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
+//  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, feedback_model::SphereBinaryDepositionStencil<3>{},
+//                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
+//}
