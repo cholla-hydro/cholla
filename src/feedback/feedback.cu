@@ -321,6 +321,8 @@ std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parame
     out = ClusterFeedbackMethod<feedback_model::CiCResolvedSNPrescription>(analysis, use_snr_calc, snr_calc);
   } else if (sn_model == "resolved27cell") {
     out = ClusterFeedbackMethod<feedback_model::Sphere27ResolvedSNPrescription>(analysis, use_snr_calc, snr_calc);
+  } else if (sn_model == "resolvedExperimentalBinarySphere"){
+    out = ClusterFeedbackMethod<feedback_model::SphereBinaryResolvedSNPrescription>(analysis, use_snr_calc, snr_calc);
   } else {
     CHOLLA_ERROR("Unrecognized sn_model: %s", sn_model.c_str());
   }
