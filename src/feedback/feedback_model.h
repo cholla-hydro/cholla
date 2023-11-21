@@ -16,7 +16,8 @@ namespace feedback_model {
 template<typename Stencil>
 struct ResolvedSNPrescription{
 
-  static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real age, Real* mass_dev, 
+  static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
+                                        Real age, Real* mass_dev, 
                                         part_int_t* id_dev, Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g,
                                         int n_ghost, int num_SN, Real* s_info, Real* conserved_dev)
   {
@@ -35,7 +36,7 @@ struct ResolvedSNPrescription{
 
     if (num_SN == 0)  return; // TODO: see if we can remove this!
 
-    ResolvedSNPrescription::apply(pos_x_indU, pos_y_indU, pos_z_indU, 0.0, 0.0, 0.0,
+    ResolvedSNPrescription::apply(pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z,
                                   nx_g, ny_g, nx_g * ny_g * nz_g, conserved_dev,
                                   feedback_density, feedback_energy);
   }
@@ -259,7 +260,8 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
 template<typename ResolvedPrescriptionT>
 struct LegacySNe {
 
-  static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real age, Real* mass_dev, part_int_t* id_dev,
+  static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
+                                        Real age, Real* mass_dev, part_int_t* id_dev,
                                         Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g, int n_ghost,
                                         int num_SN, Real* s_info, Real* conserved_dev)
   {
@@ -294,7 +296,7 @@ struct LegacySNe {
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback_energy * dV;
 
-      ResolvedPrescriptionT::apply(pos_x_indU, pos_y_indU, pos_z_indU, 0.0, 0.0, 0.0, nx_g, ny_g, n_cells,
+      ResolvedPrescriptionT::apply(pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_cells,
                                    conserved_dev, feedback_density, feedback_energy);
     } else {
       // currently, only unresolved SN feedback involves averaging the densities.
