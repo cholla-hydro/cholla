@@ -207,6 +207,7 @@ struct parameters {
 #ifdef DE
   int out_float32_GasEnergy = 0;
 #endif
+  int output_always = 0;
 #ifdef MHD
   int out_float32_magnetic_x = 0;
   int out_float32_magnetic_y = 0;
