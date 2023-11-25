@@ -22,7 +22,7 @@
 
   #define TPB_FEEDBACK 128
 
-
+namespace {
 
 /** This function used for debugging potential race conditions.  Feedback from neighboring
     particles could simultaneously alter one hydro cell's conserved quantities.
@@ -45,13 +45,13 @@ inline __device__ bool Particle_Is_Alone(Real* pos_x_dev, Real* pos_y_dev, Real*
   return true;
 }
 
+}; // anonymous namespace
+
 
 template<typename FeedbackModel>
-__global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, Real* pos_x_dev, Real* pos_y_dev,
-                                        Real* pos_z_dev, Real* vel_x_dev, Real* vel_y_dev, Real* vel_z_dev,
-                                        Real* mass_dev, Real* age_dev, Real xMin, Real yMin, Real zMin,
-                                        Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int ny_g,
-                                        int nz_g, int n_ghost, Real t, Real dt, Real* info, Real* conserved_dev,
+__global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps particle_props,
+                                        const feedback_details::FieldSpatialProps spatial_props,
+                                        Real t, Real dt, Real* info, Real* conserved_dev,
                                         Real gamma, int* num_SN_dev, int n_step, FeedbackModel feedback_model)
 {
   const int tid = threadIdx.x;
@@ -66,29 +66,34 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id_dev, 
   // do the main work:
   {
     // reduce branching
-    part_int_t tmp_gtid_ = min(n_local - 1, part_int_t(gtid));
+    part_int_t tmp_gtid_ = min(particle_props.n_local - 1, part_int_t(gtid));
 
-    Real pos_x    = pos_x_dev[tmp_gtid_];
-    Real pos_y    = pos_y_dev[tmp_gtid_];
-    Real pos_z    = pos_z_dev[tmp_gtid_];
+    Real pos_x    = particle_props.pos_x_dev[tmp_gtid_];
+    Real pos_y    = particle_props.pos_y_dev[tmp_gtid_];
+    Real pos_z    = particle_props.pos_z_dev[tmp_gtid_];
+
+    const int n_ghost = spatial_props.n_ghost;
 
     // compute the position in index-units (appropriate for a field with a ghost-zone)
     // - an integer value corresponds to the left edge of a cell
-    const Real pos_x_indU = (pos_x - xMin) / dx + n_ghost;
-    const Real pos_y_indU = (pos_y - yMin) / dy + n_ghost;
-    const Real pos_z_indU = (pos_z - zMin) / dz + n_ghost;
+    const Real pos_x_indU = (pos_x - spatial_props.xMin) / spatial_props.dx + n_ghost;
+    const Real pos_y_indU = (pos_y - spatial_props.yMin) / spatial_props.dy + n_ghost;
+    const Real pos_z_indU = (pos_z - spatial_props.zMin) / spatial_props.dz + n_ghost;
 
-    bool ignore = (((pos_x_indU < n_ghost) or (pos_x_indU >= (nx_g - n_ghost))) or
-                   ((pos_y_indU < n_ghost) or (pos_y_indU >= (ny_g - n_ghost))) or
-                   ((pos_z_indU < n_ghost) or (pos_z_indU >= (ny_g - n_ghost))));
+    bool ignore = (((pos_x_indU < n_ghost) or (pos_x_indU >= (spatial_props.nx_g - n_ghost))) or
+                   ((pos_y_indU < n_ghost) or (pos_y_indU >= (spatial_props.ny_g - n_ghost))) or
+                   ((pos_z_indU < n_ghost) or (pos_z_indU >= (spatial_props.nz_g - n_ghost))));
 
-    if ((not ignore) and (n_local > gtid)) {
+    if ((not ignore) and (particle_props.n_local > gtid)) {
       // note age_dev is actually the time of birth
-      Real age = t - age_dev[gtid];
+      Real age = t - particle_props.age_dev[gtid];
 
-      feedback_model.apply_feedback(pos_x_indU, pos_y_indU, pos_z_indU, vel_x_dev[gtid], vel_y_dev[gtid], vel_z_dev[gtid],
-                                    age, mass_dev, id_dev, dx, dy, dz, nx_g, ny_g, nz_g, n_ghost, num_SN_dev[gtid],
-                                    s_info, conserved_dev);
+      feedback_model.apply_feedback(pos_x_indU, pos_y_indU, pos_z_indU, particle_props.vel_x_dev[gtid],
+                                    particle_props.vel_y_dev[gtid], particle_props.vel_z_dev[gtid],
+                                    age, particle_props.mass_dev, particle_props.id_dev, 
+                                    spatial_props.dx, spatial_props.dy, spatial_props.dz, 
+                                    spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g, n_ghost,
+                                    num_SN_dev[gtid], s_info, conserved_dev);
     }
   }
 
@@ -173,6 +178,24 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
     // given by TPB_FEEDBACK
     int ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
 
+    // setup some standard argument packs:
+    const feedback_details::ParticleProps particle_props{
+      G.Particles.n_local,
+      G.Particles.partIDs_dev,
+      G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
+      G.Particles.vel_x_dev, G.Particles.vel_y_dev, G.Particles.vel_z_dev,
+      G.Particles.mass_dev,
+      G.Particles.age_dev
+    };
+
+    const feedback_details::FieldSpatialProps spatial_props{
+      G.H.xblocal, G.H.yblocal, G.H.zblocal,
+      G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max,
+      G.H.dx, G.H.dy, G.H.dz,
+      G.H.nx, G.H.ny,
+      G.H.nz, G.H.n_ghost,
+    };
+
     // Declare/allocate device buffer for holding the number of supernovae per particle in the current cycle
     // (The following behavior can be accomplished without any memory allocations if we employ templates)
     cuda_utilities::DeviceVector<int> d_num_SN(G.Particles.n_local, true);  // initialized to 0
@@ -199,13 +222,9 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
     // initialize feedback_model
     FeedbackModel feedback_model{};
 
-    hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
-                       G.Particles.partIDs_dev, G.Particles.pos_x_dev, G.Particles.pos_y_dev, G.Particles.pos_z_dev,
-                       G.Particles.vel_x_dev, G.Particles.vel_y_dev, G.Particles.vel_z_dev,
-                       G.Particles.mass_dev, G.Particles.age_dev, G.H.xblocal, G.H.yblocal, G.H.zblocal,
-                       G.H.xblocal_max, G.H.yblocal_max, G.H.zblocal_max, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny,
-                       G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_info.data(), G.C.d_density, gama, 
-                       d_num_SN.data(), G.H.n_step, feedback_model);
+    hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, particle_props, spatial_props,
+                       G.H.t, G.H.dt, d_info.data(), G.C.d_density, gama, d_num_SN.data(), G.H.n_step,
+                       feedback_model);
 
     // copy summary data back to the host
     CHECK(cudaMemcpy(&h_info, d_info.data(), feedinfoLUT::LEN * sizeof(Real), cudaMemcpyDeviceToHost));

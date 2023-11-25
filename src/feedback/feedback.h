@@ -40,3 +40,39 @@ std::function<void(Grid3D&)> configure_feedback_callback(struct parameters& P,
                                                          FeedbackAnalysis& analysis);
 
 }  // namespace feedback
+
+// The following is only here to simplify testing. In the future it may make sense to move it to a different header
+namespace feedback_details{
+
+/* Group together all of the particle-property arguments */
+struct ParticleProps {
+  part_int_t n_local;
+  const part_int_t* id_dev;
+  const Real* pos_x_dev;
+  const Real* pos_y_dev;
+  const Real* pos_z_dev;
+  const Real* vel_x_dev;
+  const Real* vel_y_dev;
+  const Real* vel_z_dev;
+  Real* mass_dev;
+  const Real* age_dev;
+};
+
+/* Group together all of arguments describing the spatial field structure. */
+struct FieldSpatialProps{
+  Real xMin;
+  Real yMin;
+  Real zMin;
+  Real xMax;
+  Real yMax;
+  Real zMax;
+  Real dx;
+  Real dy;
+  Real dz;
+  int nx_g;
+  int ny_g;
+  int nz_g;
+  int n_ghost;
+};
+
+} // feedback_details namespace
