@@ -86,11 +86,14 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
 
     if ((not ignore) and (particle_props.n_local > gtid)) {
       // note age_dev is actually the time of birth
-      Real age = t - particle_props.age_dev[gtid];
+      const Real age = t - particle_props.age_dev[gtid];
+
+      // holds a reference to the particle's mass (this will be updated after feedback is handled)
+      Real& mass_ref = particle_props.mass_dev[gtid];
 
       feedback_model.apply_feedback(pos_x_indU, pos_y_indU, pos_z_indU, particle_props.vel_x_dev[gtid],
                                     particle_props.vel_y_dev[gtid], particle_props.vel_z_dev[gtid],
-                                    age, particle_props.mass_dev, particle_props.id_dev, 
+                                    age, mass_ref, particle_props.id_dev[gtid],
                                     spatial_props.dx, spatial_props.dy, spatial_props.dz, 
                                     spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g, n_ghost,
                                     num_SN_dev[gtid], s_info, conserved_dev);
