@@ -17,12 +17,11 @@ template<typename Stencil>
 struct ResolvedSNPrescription{
 
   static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
-                                        Real age, Real* mass_dev, 
-                                        part_int_t* id_dev, Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g,
+                                        Real age, Real& mass_ref, part_int_t particle_id,
+                                        Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g,
                                         int n_ghost, int num_SN, Real* s_info, Real* conserved_dev)
   {
     int tid  = threadIdx.x;
-    int gtid = blockIdx.x * blockDim.x + tid;
 
     s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN]       += num_SN;
     s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
@@ -32,7 +31,7 @@ struct ResolvedSNPrescription{
     Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
     Real feedback_density = num_SN * feedback::MASS_PER_SN / dV;
 
-    mass_dev[gtid] -= num_SN * feedback::MASS_PER_SN; // update the cluster mass
+    mass_ref -= num_SN * feedback::MASS_PER_SN; // update the cluster mass
 
     if (num_SN == 0)  return; // TODO: see if we can remove this!
 
@@ -261,12 +260,11 @@ template<typename ResolvedPrescriptionT>
 struct LegacySNe {
 
   static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
-                                        Real age, Real* mass_dev, part_int_t* id_dev,
+                                        Real age, Real& mass_ref, part_int_t particle_id,
                                         Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g, int n_ghost,
                                         int num_SN, Real* s_info, Real* conserved_dev)
   {
     int tid  = threadIdx.x;
-    int gtid = blockIdx.x * blockDim.x + tid;
 
     Real dV = dx * dy * dz;
     int n_cells    = nx_g * ny_g * nz_g;
@@ -289,7 +287,7 @@ struct LegacySNe {
     bool is_resolved =  (3 * max(dx, max(dy, dz)) <= shell_radius);
 
     // update the cluster mass
-    mass_dev[gtid] -= num_SN * feedback::MASS_PER_SN;
+    mass_ref -= num_SN * feedback::MASS_PER_SN;
 
     if (is_resolved) {
       // inject energy and density
@@ -316,14 +314,13 @@ struct LegacySNe {
 };
 
 /*
-inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real* mass_dev, part_int_t* id_dev,
+inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real& mass_ref, part_int_t particle_id,
                                      Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy,
                                      Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
                                      const feedback::SWRateCalc sw_calc, Real* s_info,
                                      Real* conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
 {
   int tid  = threadIdx.x;
-  int gtid = blockIdx.x * blockDim.x + tid;
 
   Real dV = dx * dy * dz;
   int n_cells    = nx_g * ny_g * nz_g;
@@ -336,11 +333,11 @@ inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real ag
   Real feedback_density = sw_calc.Get_Wind_Mass(feedback_momentum, feedback_energy);
 
   // feedback_momentum now becomes momentum component along one direction.
-  feedback_momentum *= mass_dev[gtid] * dt / dV / sqrt(3.0);
-  feedback_density *= mass_dev[gtid] * dt / dV;
-  feedback_energy *= mass_dev[gtid] * dt / dV;
+  feedback_momentum *= mass_ref * dt / dV / sqrt(3.0);
+  feedback_density *= mass_ref * dt / dV;
+  feedback_energy *= mass_ref * dt / dV;
 
-  mass_dev[gtid]   -= feedback_density * dV;
+  mass_ref   -= feedback_density * dV;
 
   // we log net momentum, not momentum density, and magnitude (not the
   // component along a direction)
