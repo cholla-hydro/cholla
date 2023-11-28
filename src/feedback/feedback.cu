@@ -54,7 +54,6 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
                                         int* num_SN_dev, FeedbackModel feedback_model)
 {
   const int tid = threadIdx.x;
-  const int gtid = blockIdx.x * blockDim.x + tid;
 
   // prologoue: setup buffer for collecting SN feedback information
   __shared__ Real s_info[feedinfoLUT::LEN * TPB_FEEDBACK];
@@ -62,46 +61,44 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
     s_info[feedinfoLUT::LEN * tid + cur_ind] = 0;
   }
 
-  // do the main work:
-  {
-    // reduce branching
-    part_int_t tmp_gtid_ = min(particle_props.n_local - 1, part_int_t(gtid));
-
-    Real pos_x    = particle_props.pos_x_dev[tmp_gtid_];
-    Real pos_y    = particle_props.pos_y_dev[tmp_gtid_];
-    Real pos_z    = particle_props.pos_z_dev[tmp_gtid_];
+  // do the main work. All threads across the grid will iterate over the list of particles
+  // - this is grid-strided loop. This is a common idiom that makes the kernel more flexible
+  // - If there are more local particles than threads, some threads will visit more than 1 particle
+  const int start = blockIdx.x * blockDim.x + threadIdx.x;
+  const int loop_stride = blockDim.x * gridDim.x;
+  for (int i = start; i < particle_props.n_local; i += loop_stride) {
 
     const int n_ghost = spatial_props.n_ghost;
 
     // compute the position in index-units (appropriate for a field with a ghost-zone)
     // - an integer value corresponds to the left edge of a cell
-    const Real pos_x_indU = (pos_x - spatial_props.xMin) / spatial_props.dx + n_ghost;
-    const Real pos_y_indU = (pos_y - spatial_props.yMin) / spatial_props.dy + n_ghost;
-    const Real pos_z_indU = (pos_z - spatial_props.zMin) / spatial_props.dz + n_ghost;
+    const Real pos_x_indU = (particle_props.pos_x_dev[i] - spatial_props.xMin) / spatial_props.dx + n_ghost;
+    const Real pos_y_indU = (particle_props.pos_y_dev[i] - spatial_props.yMin) / spatial_props.dy + n_ghost;
+    const Real pos_z_indU = (particle_props.pos_z_dev[i] - spatial_props.zMin) / spatial_props.dz + n_ghost;
 
     bool ignore = (((pos_x_indU < n_ghost) or (pos_x_indU >= (spatial_props.nx_g - n_ghost))) or
                    ((pos_y_indU < n_ghost) or (pos_y_indU >= (spatial_props.ny_g - n_ghost))) or
                    ((pos_z_indU < n_ghost) or (pos_z_indU >= (spatial_props.nz_g - n_ghost))));
 
-    if ((not ignore) and (particle_props.n_local > gtid)) {
+    if (not ignore) {
       // note age_dev is actually the time of birth
-      const Real age = cycle_props.t - particle_props.age_dev[gtid];
+      const Real age = cycle_props.t - particle_props.age_dev[i];
 
       // holds a reference to the particle's mass (this will be updated after feedback is handled)
-      Real& mass_ref = particle_props.mass_dev[gtid];
+      Real& mass_ref = particle_props.mass_dev[i];
 
-      feedback_model.apply_feedback(pos_x_indU, pos_y_indU, pos_z_indU, particle_props.vel_x_dev[gtid],
-                                    particle_props.vel_y_dev[gtid], particle_props.vel_z_dev[gtid],
-                                    age, mass_ref, particle_props.id_dev[gtid],
+      feedback_model.apply_feedback(pos_x_indU, pos_y_indU, pos_z_indU, particle_props.vel_x_dev[i],
+                                    particle_props.vel_y_dev[i], particle_props.vel_z_dev[i],
+                                    age, mass_ref, particle_props.id_dev[i],
                                     spatial_props.dx, spatial_props.dy, spatial_props.dz, 
                                     spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g, n_ghost,
-                                    num_SN_dev[gtid], s_info, conserved_dev);
+                                    num_SN_dev[i], s_info, conserved_dev);
     }
   }
 
-
   // epilogue: sum the info from all threads (in all blocks) and add it into info
-  __syncthreads();
+  __syncthreads(); // synchronize all threads in the current block. It's important to do this before
+                   // the next function call because we accumulate values on the local block first
   reduction_utilities::blockAccumulateIntoNReals<feedinfoLUT::LEN,TPB_FEEDBACK>(info, s_info);
 }
 
@@ -110,17 +107,17 @@ __global__ void Get_SN_Count_Kernel(part_int_t n_local, part_int_t* id_dev, Real
                                     Real* age_dev, const feedback_details::CycleProps cycle_props,
                                     const feedback::SNRateCalc snr_calc, int* num_SN_dev)
 {
-  int tid = threadIdx.x;
-
-  int gtid = blockIdx.x * blockDim.x + tid;
-  // Bounds check on particle arrays
-  if (gtid >= n_local) return;
-
-  // note age_dev is actually the time of birth
-  Real age =  cycle_props.t - age_dev[gtid];
-
-  Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * cycle_props.dt;
-  num_SN_dev[gtid]    = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, cycle_props.n_step, id_dev[gtid]);
+  // All threads across the grid will iterate over the list of particles
+  // - this is grid-strided loop. This is a common idiom that makes the kernel more flexible
+  // - If there are more local particles than threads, some threads will visit more than 1 particle
+  const int start = blockIdx.x * blockDim.x + threadIdx.x;
+  const int loop_stride = blockDim.x * gridDim.x;
+  for (int i = start; i < n_local; i += loop_stride) {
+    // note age_dev is actually the time of birth
+    Real age = cycle_props.t - age_dev[i];
+    Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[i] * cycle_props.dt;
+    num_SN_dev[i]    = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, cycle_props.n_step, id_dev[i]);
+  }
 }
 
 namespace { // anonymous namespace
