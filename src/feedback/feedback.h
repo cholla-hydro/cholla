@@ -75,4 +75,11 @@ struct FieldSpatialProps{
   int n_ghost;
 };
 
+/* Groups properties of the simulation's current (global) iteration cycle */
+struct CycleProps{
+  Real t;      /*!< The current time */
+  Real dt;     /*!< Size of the current timestep */
+  int n_step;  /*!< This is the current step of the simulation */
+};
+
 } // feedback_details namespace
