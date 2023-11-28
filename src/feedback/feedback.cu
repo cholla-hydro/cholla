@@ -47,12 +47,11 @@ inline __device__ bool Particle_Is_Alone(Real* pos_x_dev, Real* pos_y_dev, Real*
 
 }; // anonymous namespace
 
-
 template<typename FeedbackModel>
 __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps particle_props,
                                         const feedback_details::FieldSpatialProps spatial_props,
-                                        Real t, Real dt, Real* info, Real* conserved_dev,
-                                        Real gamma, int* num_SN_dev, int n_step, FeedbackModel feedback_model)
+                                        const feedback_details::CycleProps cycle_props, Real* info, Real* conserved_dev,
+                                        int* num_SN_dev, FeedbackModel feedback_model)
 {
   const int tid = threadIdx.x;
   const int gtid = blockIdx.x * blockDim.x + tid;
@@ -86,7 +85,7 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
 
     if ((not ignore) and (particle_props.n_local > gtid)) {
       // note age_dev is actually the time of birth
-      const Real age = t - particle_props.age_dev[gtid];
+      const Real age = cycle_props.t - particle_props.age_dev[gtid];
 
       // holds a reference to the particle's mass (this will be updated after feedback is handled)
       Real& mass_ref = particle_props.mass_dev[gtid];
@@ -108,8 +107,8 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
 
 /* determine the number of supernovae during the current step */
 __global__ void Get_SN_Count_Kernel(part_int_t n_local, part_int_t* id_dev, Real* mass_dev,
-                                    Real* age_dev, Real t, Real dt,
-                                    const feedback::SNRateCalc snr_calc, int n_step, int* num_SN_dev)
+                                    Real* age_dev, const feedback_details::CycleProps cycle_props,
+                                    const feedback::SNRateCalc snr_calc, int* num_SN_dev)
 {
   int tid = threadIdx.x;
 
@@ -118,10 +117,10 @@ __global__ void Get_SN_Count_Kernel(part_int_t n_local, part_int_t* id_dev, Real
   if (gtid >= n_local) return;
 
   // note age_dev is actually the time of birth
-  Real age = t - age_dev[gtid];
+  Real age =  cycle_props.t - age_dev[gtid];
 
-  Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * dt;
-  num_SN_dev[gtid]    = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, n_step, id_dev[gtid]);
+  Real average_num_sn = snr_calc.Get_SN_Rate(age) * mass_dev[gtid] * cycle_props.dt;
+  num_SN_dev[gtid]    = snr_calc.Get_Number_Of_SNe_In_Cluster(average_num_sn, cycle_props.n_step, id_dev[gtid]);
 }
 
 namespace { // anonymous namespace
@@ -199,14 +198,16 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
       G.H.nz, G.H.n_ghost,
     };
 
+    const feedback_details::CycleProps cycle_props{G.H.t, G.H.dt, G.H.n_step};
+
     // Declare/allocate device buffer for holding the number of supernovae per particle in the current cycle
     // (The following behavior can be accomplished without any memory allocations if we employ templates)
     cuda_utilities::DeviceVector<int> d_num_SN(G.Particles.n_local, true);  // initialized to 0
 
     if (use_snr_calc_) {
       hipLaunchKernelGGL(Get_SN_Count_Kernel, ngrid, TPB_FEEDBACK, 0, 0, G.Particles.n_local,
-                         G.Particles.partIDs_dev, G.Particles.mass_dev, G.Particles.age_dev, G.H.t, G.H.dt,
-                         snr_calc_, G.H.n_step, d_num_SN.data());
+                         G.Particles.partIDs_dev, G.Particles.mass_dev, G.Particles.age_dev, cycle_props,
+                         snr_calc_, d_num_SN.data());
       CHECK(cudaDeviceSynchronize());
     } else {
       // in this branch, ``this->use_snr_calc_ == false``. This means that we assume all particles undergo
@@ -226,8 +227,7 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
     FeedbackModel feedback_model{};
 
     hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, particle_props, spatial_props,
-                       G.H.t, G.H.dt, d_info.data(), G.C.d_density, gama, d_num_SN.data(), G.H.n_step,
-                       feedback_model);
+                       cycle_props, d_info.data(), G.C.d_density, d_num_SN.data(), feedback_model);
 
     // copy summary data back to the host
     CHECK(cudaMemcpy(&h_info, d_info.data(), feedinfoLUT::LEN * sizeof(Real), cudaMemcpyDeviceToHost));
