@@ -185,10 +185,10 @@ C_cfl/old_dti;
   }
 
   double end_time = get_time();
-  chprintf("Supernova Update: %9.4f \n",1000*(end_time-start_time));
+  //chprintf("Supernova Update: %9.4f \n",1000*(end_time-start_time));
 
   //Copy_Tracker();
-  Print_Tracker(G);
+  //Print_Tracker(G);
 
   return G.H.dt;
 }

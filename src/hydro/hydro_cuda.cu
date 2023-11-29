@@ -407,6 +407,9 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved,
   // Find maximum inverse crossing time in the cell (i.e. minimum crossing time)
   Real cellMaxInverseDt = fmax((fabs(vx)+cs)/dx, (fabs(vy)+cs)/dy);
   cellMaxInverseDt      = fmax(cellMaxInverseDt, (fabs(vz)+cs)/dz);
+  if (cellMaxInverseDt > 10) {
+    printf("Slow cell: vx: %e vy: %e vz:%e cs: %e\n", vx, vy, vz, cs);
+  }
   cellMaxInverseDt      = fmax(cellMaxInverseDt, 0.0);
 
   return cellMaxInverseDt;

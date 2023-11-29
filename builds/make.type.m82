@@ -2,7 +2,7 @@
 
 #-- separated output flag so that it can be overriden in target-specific 
 #   for make check
-OUTPUT    ?=  -DOUTPUT -DHDF5 -DSLICES -DPROJECTION -DROTATED_PROJECTION
+OUTPUT    ?=  -DOUTPUT -DHDF5 -DSLICES -DPROJECTION
 
 MPI_GPU   ?=
 
@@ -38,13 +38,13 @@ DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
 
 # Solve the Gas Internal Energy usisng a Dual Energy Formalism
-DFLAGS    += -DDE
+#DFLAGS    += -DDE
 
 # Apply the cooling in the GPU from precomputed tables
 DFLAGS    += -DCOOLING_GPU
 
 #Measure the Timing of the different stages
-DFLAGS += -DCPU_TIME
+#DFLAGS += -DCPU_TIME
 
 DFLAGS    += $(OUTPUT)
 

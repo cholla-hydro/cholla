@@ -26,6 +26,7 @@ namespace Supernova {
 
 }
 
+/*
 __device__ double atomicMax(double* address, double val)
 {
   unsigned long long int* address_as_ull = (unsigned long long int*)address;
@@ -38,6 +39,7 @@ __device__ double atomicMax(double* address, double val)
   } while (assumed != old);
   return __longlong_as_double(old);
 }
+*/
 
 __device__ Real Calc_Timestep(Real *hydro_dev, int gidx, int n_cells, Real gamma, Real dx, Real dy, Real dz){
   Real density = fmax(hydro_dev[gidx],DENS_FLOOR);
@@ -526,10 +528,8 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
 
   Real h_dti = 0.0;
   Real* d_dti;
-  if (dt > 0.0){
-    cudaMalloc(&d_dti, sizeof(Real));
-    cudaMemcpy(d_dti,&h_dti,sizeof(Real),cudaMemcpyHostToDevice);
-  }
+  cudaMalloc(&d_dti, sizeof(Real));
+  cudaMemcpy(d_dti,&h_dti,sizeof(Real),cudaMemcpyHostToDevice);
 
   // Reset weights to 0
   #ifdef COOLING_GPU
