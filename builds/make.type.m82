@@ -22,7 +22,7 @@ DFLAGS += -DSCALAR
 DFLAGS += -DBASIC_SCALAR
 
 # MW_MODEL vs m82 (default)
-# DFLAGS += MW_MODEL
+DFLAGS += -DMW_MODEL
 
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE

@@ -152,10 +152,6 @@ void Grid3D::Initialize(struct parameters *P)
   H.min_dt_slow = 1e-100; //Initialize the minumum dt to a tiny number
   #endif
 
-  #ifdef AVERAGE_SLOW_CELLS
-  H.min_dt_slow = 1e-100; //Initialize the minumum dt to a tiny number
-  #endif // AVERAGE_SLOW_CELLS
-
 #ifndef MPI_CHOLLA
 
   // set grid dimensions
@@ -503,8 +499,9 @@ Real Grid3D::Update_Grid(void)
   //Set the min_delta_t for averaging a slow cell
   Real max_dti_slow;
   max_dti_slow = 1 / H.min_dt_slow;
-  max_dti_slow = 0.1 / H.dx;
+  max_dti_slow = 0.3 / H.dx;
   Average_Slow_Cells( C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow );
+  fflush(stdout);
   #endif //AVERAGE_SLOW_CELLS
 
   // ==Calculate the next time step with Calc_dt_GPU from hydro/hydro_cuda.h==

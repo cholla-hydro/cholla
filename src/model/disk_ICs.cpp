@@ -74,10 +74,10 @@ Real Sigma_disk_D3D(Real r, Real *hdp)
   Sigma = Sigma_0 * exp(-r/R_g);
   // taper the edge of the disk to 0
   if (r < R_c) {
-    Sigma *= 2.0 - 1.0 / (1.0 - exp((r - (4.5 - delta*norm))/delta));
+    Sigma *= 2.0 - 1.0 / (1.0 - exp((r - (R_c - delta*norm))/delta));
   }
   else {
-    Sigma *= 1.0 / (1.0 - exp(((4.5 + delta*norm) - r)/delta)) - 1.0;
+    Sigma *= 1.0 / (1.0 - exp(((R_c + delta*norm) - r)/delta)) - 1.0;
   }
   return Sigma;
 }
@@ -773,9 +773,9 @@ void Grid3D::Disk_3D(parameters p)
 
   // MW model
   #ifdef MW_MODEL
-  //DiskGalaxy galaxy = Galaxies::MW;
+  DiskGalaxy galaxy = Galaxies::MW;
   #else
-  // M82 model Galaxies::M82;
+  // M82 model
   DiskGalaxy galaxy = Galaxies::M82;
   #endif
 
@@ -987,11 +987,11 @@ void Grid3D::Disk_3D(parameters p)
 
           if(isnan(a)||(a!=a)||(r*a<0))
           {
-            //printf("i %d j %d k %d a %e a_d %e dPdr %e d %e\n",i,j,k,a,a_d,dPdr,d);
-            //printf("i %d j %d k %d x_pos %e y_pos %e z_pos %e dPdx %e dPdy %e\n",i,j,k,x_pos,y_pos,z_pos,dPdx,dPdy);
-            //printf("i %d j %d k %d Pm %e Pp %e\n",i,j,k,Pm,Pp);
-            //printf("ypp %e ypm %e xpp %e zpm %e r %e\n",ypp,ypm, xpp, xpm ,r);
-            //printf("Energy pm %e pp %e density pm %e pp %e\n",C.Energy[idm],C.Energy[idp],C.density[idm],C.density[idp]);
+            printf("i %d j %d k %d a %e a_d %e dPdr %e d %e\n",i,j,k,a,a_d,dPdr,d);
+            printf("i %d j %d k %d x_pos %e y_pos %e z_pos %e dPdx %e dPdy %e\n",i,j,k,x_pos,y_pos,z_pos,dPdx,dPdy);
+            printf("i %d j %d k %d Pm %e Pp %e\n",i,j,k,Pm,Pp);
+            printf("ypp %e ypm %e xpp %e zpm %e r %e\n",ypp,ypm, xpp, xpm ,r);
+            printf("Energy pm %e pp %e density pm %e pp %e\n",C.Energy[idm],C.Energy[idp],C.density[idm],C.density[idp]);
           }
           else {
 
