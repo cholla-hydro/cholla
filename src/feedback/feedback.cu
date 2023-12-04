@@ -15,12 +15,12 @@
   #include "../io/io.h"
   #include "../utils/DeviceVector.h"
   #include "../utils/error_handling.h"
-  #include "../utils/reduction_utilities.h"
+  #include "../feedback/kernel.h"
   #include "../feedback/ratecalc.h"
   #include "../feedback/feedback_model.h"
   #include "feedback.h"
 
-  #define TPB_FEEDBACK 128
+
 
 namespace {
 
@@ -46,61 +46,6 @@ inline __device__ bool Particle_Is_Alone(Real* pos_x_dev, Real* pos_y_dev, Real*
 }
 
 }; // anonymous namespace
-
-template<typename FeedbackModel>
-__global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps particle_props,
-                                        const feedback_details::FieldSpatialProps spatial_props,
-                                        const feedback_details::CycleProps cycle_props, Real* info, Real* conserved_dev,
-                                        int* num_SN_dev, FeedbackModel feedback_model)
-{
-  const int tid = threadIdx.x;
-
-  // prologoue: setup buffer for collecting SN feedback information
-  __shared__ Real s_info[feedinfoLUT::LEN * TPB_FEEDBACK];
-  for (unsigned int cur_ind = 0; cur_ind < feedinfoLUT::LEN; cur_ind++) {
-    s_info[feedinfoLUT::LEN * tid + cur_ind] = 0;
-  }
-
-  // do the main work. All threads across the grid will iterate over the list of particles
-  // - this is grid-strided loop. This is a common idiom that makes the kernel more flexible
-  // - If there are more local particles than threads, some threads will visit more than 1 particle
-  const int start = blockIdx.x * blockDim.x + threadIdx.x;
-  const int loop_stride = blockDim.x * gridDim.x;
-  for (int i = start; i < particle_props.n_local; i += loop_stride) {
-
-    const int n_ghost = spatial_props.n_ghost;
-
-    // compute the position in index-units (appropriate for a field with a ghost-zone)
-    // - an integer value corresponds to the left edge of a cell
-    const Real pos_x_indU = (particle_props.pos_x_dev[i] - spatial_props.xMin) / spatial_props.dx + n_ghost;
-    const Real pos_y_indU = (particle_props.pos_y_dev[i] - spatial_props.yMin) / spatial_props.dy + n_ghost;
-    const Real pos_z_indU = (particle_props.pos_z_dev[i] - spatial_props.zMin) / spatial_props.dz + n_ghost;
-
-    bool ignore = (((pos_x_indU < n_ghost) or (pos_x_indU >= (spatial_props.nx_g - n_ghost))) or
-                   ((pos_y_indU < n_ghost) or (pos_y_indU >= (spatial_props.ny_g - n_ghost))) or
-                   ((pos_z_indU < n_ghost) or (pos_z_indU >= (spatial_props.nz_g - n_ghost))));
-
-    if (not ignore) {
-      // note age_dev is actually the time of birth
-      const Real age = cycle_props.t - particle_props.age_dev[i];
-
-      // holds a reference to the particle's mass (this will be updated after feedback is handled)
-      Real& mass_ref = particle_props.mass_dev[i];
-
-      feedback_model.apply_feedback(pos_x_indU, pos_y_indU, pos_z_indU, particle_props.vel_x_dev[i],
-                                    particle_props.vel_y_dev[i], particle_props.vel_z_dev[i],
-                                    age, mass_ref, particle_props.id_dev[i],
-                                    spatial_props.dx, spatial_props.dy, spatial_props.dz, 
-                                    spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g, n_ghost,
-                                    num_SN_dev[i], s_info, conserved_dev);
-    }
-  }
-
-  // epilogue: sum the info from all threads (in all blocks) and add it into info
-  __syncthreads(); // synchronize all threads in the current block. It's important to do this before
-                   // the next function call because we accumulate values on the local block first
-  reduction_utilities::blockAccumulateIntoNReals<feedinfoLUT::LEN,TPB_FEEDBACK>(info, s_info);
-}
 
 /* determine the number of supernovae during the current step */
 __global__ void Get_SN_Count_Kernel(part_int_t n_local, part_int_t* id_dev, Real* mass_dev,
@@ -217,17 +162,9 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
       }
     }
 
-    // Declare/allocate device buffer for accumulating summary information about feedback
-    cuda_utilities::DeviceVector<Real> d_info(feedinfoLUT::LEN, true);  // initialized to 0
-
-    // initialize feedback_model
-    FeedbackModel feedback_model{};
-
-    hipLaunchKernelGGL(Cluster_Feedback_Kernel, ngrid, TPB_FEEDBACK, 0, 0, particle_props, spatial_props,
-                       cycle_props, d_info.data(), G.C.d_density, d_num_SN.data(), feedback_model);
-
-    // copy summary data back to the host
-    CHECK(cudaMemcpy(&h_info, d_info.data(), feedinfoLUT::LEN * sizeof(Real), cudaMemcpyDeviceToHost));
+    feedback_details::Exec_Cluster_Feedback_Kernel<FeedbackModel>(
+      particle_props, spatial_props, cycle_props, h_info, G.C.d_density, d_num_SN.data()
+    );
   }
 
   // now gather the feedback summary info into an array called info.
