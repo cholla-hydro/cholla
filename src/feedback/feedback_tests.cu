@@ -6,18 +6,22 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
-#include <vector>
-#include <utility>
+#include <map>
+#include <memory>
 #include <optional>
+#include <utility>
+#include <vector>
 
 // External Includes
 #include <gtest/gtest.h> // Include GoogleTest and related libraries/headers
 
 #include "../global/global.h"
 #include "../utils/gpu.hpp" // gpuFor
-#include "../utils/DeviceVector.h" // gpuFor
+#include "../utils/DeviceVector.h"
+#include "../utils/error_handling.h"
 
 #include "../feedback/feedback_model.h"
+#include "../feedback/kernel.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define some general-purpose testing tools. These may be a little overkill for this particular file.
@@ -27,12 +31,34 @@
 namespace  // Anonymous namespace
 {
 
+template<typename T>
+std::string array_to_string_1D_helper_(T* arr, int len)
+{
+  std::string out = "";
+  for (int ix = 0; ix < len; ix++) {
+    if (ix != 0)  out += ", ";  // put delimiter after last element
+    out += std::to_string(arr[ix]);
+  }
+  return out;
+}
+
+template<typename T>
+std::string array_to_string(T* arr, int len)
+{
+  return std::string("{") +  array_to_string_1D_helper_(arr, len) + std::string("}");
+};
+
 struct Extent3D {
   int nx;
   int ny;
   int nz;
 };
 
+/* Convert an array to a string.
+ *
+ * The indent_size arg is adopted from numpy's similar indent arg in array2string. As in numpy,
+ * we don't apply indent on first line
+ */
 template<typename T>
 std::string array_to_string(T* arr, Extent3D extent, unsigned int indent_size = 0)
 {
@@ -54,6 +80,7 @@ std::string array_to_string(T* arr, Extent3D extent, unsigned int indent_size = 
         out += common_line_prefix + "  {";
       }
 
+      // ToDo: replace following loop with out += array_to_string_1D_helper_(arr + extent.nx * (iy + extent.ny * iz), extent.nx);
       for (int ix = 0; ix < extent.nx; ix++) {
         if (ix != 0)  out += ", ";  // put delimiter after last element
 
@@ -638,3 +665,313 @@ TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
 //  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, feedback_model::SphereBinaryDepositionStencil<3>{},
 //                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
 //}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Define some machinery to help with testing the full feedback functionality where we check our expectations about the total volume enclosed by the stencil
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace {
+
+std::optional<Real> try_get_(const std::map<std::string, Real>& m, const std::string& key)
+{
+  if (auto rslt = m.find(key); rslt != m.end())  return {rslt->second};
+  return {};
+}
+
+#ifdef DE
+const bool idual = true;
+#else
+const bool idual = false;
+#endif
+
+void init_field_vals_(cuda_utilities::DeviceVector<Real>& data, std::size_t field_size,
+                      const std::map<std::string, Real>& dflt_vals) 
+{
+  std::size_t total_size = data.size();
+
+  Real* ptr = data.data();
+
+  // default density should be 0.1 particles per cc
+  // default thermal energy density should correspond to pressure of 1e3 K / cm**3 (for a gamma of 5/3)
+  const Real density       = try_get_(dflt_vals, "density").value_or(1482737.17012665);  
+  const Real thermal_edens = try_get_(dflt_vals, "thermal_edens").value_or(0.00021335 *1.5);
+  const Real vx            = try_get_(dflt_vals, "velocity_x").value_or(0.0);
+  const Real vy            = try_get_(dflt_vals, "velocity_y").value_or(0.0);
+  const Real vz            = try_get_(dflt_vals, "velocity_z").value_or(0.0);
+  const Real tot_edens = thermal_edens + 0.5 * density * (vx * vx + vy * vy + vz * vz);
+
+  auto loop_fn = [=] __device__ (int index) {
+    ptr[index] = density;
+    ptr[grid_enum::momentum_x * field_size + index] = density * vx;
+    ptr[grid_enum::momentum_y * field_size + index] = density * vy;
+    ptr[grid_enum::momentum_z * field_size + index] = density * vz;
+    ptr[grid_enum::Energy * field_size + index]     = tot_edens;
+# ifdef DE
+    ptr[grid_enum::GasEnergy * field_size + index]   = thermal_edens;
+# endif        
+  };
+
+  gpuFor(field_size, loop_fn);
+}
+
+// make sure this lives for the lifetime of the test where the data gets used!
+struct TestFieldData {
+
+private: // attributes
+  // when cuda_utilities::DeviceVector is updated so that it can be moved in the future, it won't
+  // be necessary to wrap particle_ids_ in a unique_ptr.
+  std::unique_ptr<cuda_utilities::DeviceVector<Real>> data_;
+
+  Extent3D single_field_extent_; // must include ghost zones
+
+public:
+  TestFieldData(Extent3D single_field_extent, std::map<std::string, Real> dflt_vals)
+    : data_(nullptr),
+      single_field_extent_(single_field_extent)
+  {
+    const std::size_t single_field_size = single_field_extent.nx*single_field_extent.ny*single_field_extent.nz;
+    data_ = std::make_unique<cuda_utilities::DeviceVector<Real>>((5+idual) * single_field_size);
+    init_field_vals_(*data_, single_field_size, dflt_vals);
+  }
+
+  TestFieldData(TestFieldData&&) = default;
+  TestFieldData& operator=(TestFieldData&&) = default;
+
+  Real* dev_ptr() { return data_->data(); }
+
+  std::vector<Real> host_copy()
+  {
+    std::vector<Real> out(this->data_->size());
+    this->data_->cpyDeviceToHost(out);
+    return out;
+  }
+
+  // this is inefficient! But should get the job done!
+  void print_debug_info()
+  {
+    std::vector<Real> tmp = this->host_copy();
+    Extent3D single_field_extent = this->single_field_extent_;
+
+    auto print_fn = [single_field_extent, &tmp](int field_index, const std::string& name) {
+      std::size_t field_offset = single_field_extent.nx*single_field_extent.ny*single_field_extent.nz;
+
+      std::size_t output_indent_offset = name.size() + 2;
+      std::string arr_str = array_to_string(tmp.data() + field_index*field_offset, single_field_extent,
+                                            output_indent_offset);
+      printf("%s: %s\n", name.c_str(), arr_str.c_str());
+    };
+
+    print_fn(grid_enum::density, "density");
+    print_fn(grid_enum::momentum_x, "momentum_x");
+    print_fn(grid_enum::momentum_y, "momentum_y");
+    print_fn(grid_enum::momentum_z, "momentum_z");
+    print_fn(grid_enum::Energy,     "etot_dens");
+# ifdef DE
+    print_fn(grid_enum::GasEnergy, "ethermal_dens");
+# endif
+  }
+};
+
+// make sure this lives for the lifetime of the test where the data gets used!
+struct TestParticleData {
+
+private: // attributes
+
+  // when cuda_utilities::DeviceVector is updated so that it can be moved in the future, it won't
+  // be necessary to wrap particle_ids_ in a unique_ptr.
+  std::unique_ptr<cuda_utilities::DeviceVector<part_int_t>> particle_ids_;
+  std::map<std::string,cuda_utilities::DeviceVector<Real>> general_data_;
+
+public:
+
+  TestParticleData(const std::vector<Arr3<Real>>& pos_vec, const std::map<std::string, Real>& other_props)
+    : particle_ids_(nullptr),
+      general_data_()
+  {
+    const std::size_t count = pos_vec.size();
+
+    std::vector<std::string> array_names = {"pos_x", "pos_y", "pos_z", "vel_x", "vel_y", "vel_z", "mass", "age"};
+
+    // initialize host copy of each vector
+    std::vector<part_int_t> host_particle_ids(count);
+    std::map<std::string, std::vector<Real>> host_data_{};
+    for (const std::string& name : array_names) {
+      host_data_.emplace(name, count);
+    }
+
+    // now fill in the local vectors
+    for (std::size_t i = 0; i < count; i++) {
+
+      host_particle_ids[i] = part_int_t(i);
+
+      host_data_.at("pos_x")[i] = pos_vec[i][0];
+      host_data_.at("pos_y")[i] = pos_vec[i][1];
+      host_data_.at("pos_z")[i] = pos_vec[i][2];
+
+      host_data_.at("vel_x")[i] = try_get_(other_props, "vel_x").value_or(0.0);
+      host_data_.at("vel_y")[i] = try_get_(other_props, "vel_y").value_or(0.0);
+      host_data_.at("vel_z")[i] = try_get_(other_props, "vel_z").value_or(0.0);
+      host_data_.at("mass")[i]  = try_get_(other_props, "mass").value_or(1e3);  // defaults to 1e3 solar masses
+      host_data_.at("age")[i]   = try_get_(other_props, "age").value_or(-1e4);  // defaults to -10 kyr (recall this is 
+                                                                                 // really the formation time)
+    }
+
+    // now copy host vector contents to the device
+    this->particle_ids_ = std::make_unique<cuda_utilities::DeviceVector<part_int_t>>(pos_vec.size(), false);
+    this->particle_ids_->cpyHostToDevice(host_particle_ids);
+    for (const std::string& name : array_names) {
+      this->general_data_.emplace(name, count);
+      this->general_data_.at(name).cpyHostToDevice(host_data_.at(name));
+    }
+
+    // now host-vectors are automatically deallocated
+  }
+
+  TestParticleData(TestParticleData&&) = default;
+  TestParticleData& operator=(TestParticleData&&) = default;
+
+  part_int_t num_particles() { return part_int_t(particle_ids_->size()); }
+
+  feedback_details::ParticleProps particle_props() {
+    return {
+      num_particles(), // number of local particles
+      particle_ids_->data(),
+      general_data_.at("pos_x").data(), general_data_.at("pos_y").data(), general_data_.at("pos_z").data(),
+      general_data_.at("vel_x").data(), general_data_.at("vel_y").data(), general_data_.at("vel_z").data(),
+      general_data_.at("mass").data(),
+      general_data_.at("age").data(),
+    };
+  }
+
+  feedback_details::ParticleProps props_of_single_particle(int index)
+  {
+    CHOLLA_ASSERT((index >= 0) and (index < this->num_particles()), "Invalid Particle Index was specified!");
+    return {
+      1, // number of local particles
+      particle_ids_->data() + index,
+      general_data_.at("pos_x").data() + index,
+      general_data_.at("pos_y").data() + index,
+      general_data_.at("pos_z").data() + index,
+      general_data_.at("vel_x").data() + index,
+      general_data_.at("vel_y").data() + index,
+      general_data_.at("vel_z").data() + index,
+      general_data_.at("mass").data() + index,
+      general_data_.at("age").data() + index,
+    };
+  }
+
+  std::vector<part_int_t> host_copy_particle_ids()
+  {
+    std::vector<part_int_t> out(this->num_particles());
+    this->particle_ids_->cpyDeviceToHost(out);
+    return out;
+  }
+
+  std::map<std::string, std::vector<Real>> host_copy_general()
+  {
+    const std::size_t particle_count = this->num_particles();
+    std::map<std::string, std::vector<Real>> out;
+    for (auto& kv_pair : this->general_data_) {
+      const std::string& key = kv_pair.first;
+      cuda_utilities::DeviceVector<Real>& vec = kv_pair.second;
+
+      out.emplace(key, particle_count);
+      vec.cpyDeviceToHost(out.at(key));
+    }
+    return out;
+  }
+
+  // this is inefficient! But should get the job done!
+  void print_debug_info()
+  {
+    auto print_fn = [](const std::string& name, auto& host_vec) {
+      std::string arr_str = array_to_string(host_vec.data(), int(host_vec.size()));
+      printf("%s: %s\n", name.c_str(), arr_str.c_str());
+    };
+
+    std::vector<part_int_t> particle_ids = this->host_copy_particle_ids();
+    print_fn("ids", particle_ids);
+    std::map<std::string, std::vector<Real>> general_data = this->host_copy_general();
+    for (auto& kv_pair : general_data) {
+      print_fn(kv_pair.first, kv_pair.second);
+    }
+  }
+
+};
+
+struct FeedbackResults {
+  TestFieldData test_field_data;
+  TestParticleData test_particle_data;
+};
+
+FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>& prop_l,
+                                   const std::vector<Arr3<Real>>& particle_pos_vec)
+{
+
+  feedback_details::FieldSpatialProps spatial_props{
+    // left-edges of active zone:
+    prop_l[0].min, prop_l[1].min, prop_l[2].min,
+    // right-edges of active zone:
+    prop_l[0].min + prop_l[0].cell_width * prop_l[0].num_cells,
+    prop_l[1].min + prop_l[1].cell_width * prop_l[1].num_cells,
+    prop_l[2].min + prop_l[2].cell_width * prop_l[2].num_cells,
+    // cell_widths
+    prop_l[0].cell_width, prop_l[1].cell_width, prop_l[2].cell_width,
+    // cells along each axis (including ghost zone)
+    prop_l[0].num_cells + 2 * n_ghost,  // cells along x (with ghosts)
+    prop_l[1].num_cells + 2 * n_ghost,  // cells along y (with ghosts)
+    prop_l[2].num_cells + 2 * n_ghost,  // cells along z (with ghosts)
+    // number of ghost zones:
+    n_ghost,
+  };
+
+  // allocate the temporary field data!
+  const Extent3D full_extent{spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g};
+  TestFieldData test_field_data(full_extent, {});
+
+  const std::size_t num_particles = particle_pos_vec.size();
+  // allocate the temporary particle data!
+  TestParticleData test_particle_data(particle_pos_vec, {});
+
+  // Declare/allocate device buffer for holding the number of supernovae per particle in the current cycle
+  cuda_utilities::DeviceVector<int> d_num_SN(particle_pos_vec.size(), true);  // initialized to 0
+
+  // initialize vector so that there is one SN per particle
+  {
+    std::vector<int> tmp(num_particles, 1);
+    d_num_SN.cpyHostToDevice(tmp);
+  }
+
+
+  // give some dummy vals:
+  const feedback_details::CycleProps cycle_props{0.0,  // current time
+                                                 0.1,  // length of current timestep 
+                                                 1};   // the current cycle-number
+
+  // actually execute feedback
+  feedback_details::Exec_Cluster_Feedback_Kernel<feedback_model::CiCResolvedSNPrescription>(
+    test_particle_data.particle_props(), spatial_props, cycle_props, 
+    nullptr, // this is the info-array
+    test_field_data.dev_ptr(), d_num_SN.data());
+
+  // it would be nice to now return TestParticleData and TestFieldData
+  FeedbackResults out{std::move(test_field_data), std::move(test_particle_data)};
+  return out;
+}
+
+} // anonymous namespace
+
+TEST(tALLFeedbackFullCiC, Sample)
+{
+  const int n_ghost = 0;
+  const Real dx = 1.0 / 256.0;
+  const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
+
+  const std::vector<Arr3<Real>> particle_pos_vec = {{2.4 *dx, 2.4 *dx, 2.4 *dx}};
+
+  // this all depends on the adjustable parameters
+  FeedbackResults rslt = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec);
+  rslt.test_field_data.print_debug_info();
+  rslt.test_particle_data.print_debug_info();
+
+}
