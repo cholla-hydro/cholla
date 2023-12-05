@@ -53,7 +53,7 @@ __device__ Real Calc_Timestep(Real *hydro_dev, int gidx, int n_cells, Real gamma
 }
 
 void Supernova::Initialize_GPU(void){
-  #include "cluster_list.data"                                                  
+  #include "cluster_list_MW.data"                                                  
   // Defines cluster_data in local scope so it is deleted                       
   n_cluster = sizeof(cluster_data)/sizeof(cluster_data[0])/5;
   CudaSafeCall( cudaMalloc (&d_cluster_array,5*n_cluster*sizeof(Real)));        

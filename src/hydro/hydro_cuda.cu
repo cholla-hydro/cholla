@@ -962,6 +962,7 @@ __global__ void Select_Internal_Energy_3D( Real *dev_conserved, int nx, int ny, 
   int imo, ipo, jmo, jpo, kmo, kpo;
   n_cells = nx*ny*nz;
 
+  Real eta_1 = DE_ETA_1;
   Real eta_2 = DE_ETA_2;
 
   // get a global thread ID
@@ -997,6 +998,11 @@ __global__ void Select_Internal_Energy_3D( Real *dev_conserved, int nx, int ny, 
     U_advected = dev_conserved[(n_fields-1)*n_cells + id];
     U_total = E - 0.5*d*( vx*vx + vy*vy + vz*vz );
 
+    // if the ratio of conservatively calculated internal energy to total energy
+    // is greater than 1/100, use the conservatively calculated internal energy
+    // to do the internal energy update
+    if (U_total/E > eta_1) U = U_total;
+
     //find the max nearby total energy
     Emax = fmax(dev_conserved[4*n_cells + imo], E);
     Emax = fmax(Emax, dev_conserved[4*n_cells + ipo]);
@@ -1005,6 +1011,8 @@ __global__ void Select_Internal_Energy_3D( Real *dev_conserved, int nx, int ny, 
     Emax = fmax(Emax, dev_conserved[4*n_cells + kmo]);
     Emax = fmax(Emax, dev_conserved[4*n_cells + kpo]);
 
+    // if the ratio of the conservatively calculated interal eneryg to the max nearby total energy
+    // is greater than 1/10, continue to use the conservatively calculated interal energy
     if (U_total/Emax > eta_2 ) U = U_total;
     else U = U_advected;
 

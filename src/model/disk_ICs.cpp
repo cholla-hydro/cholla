@@ -67,7 +67,7 @@ Real Sigma_disk_D3D(Real r, Real *hdp)
   //return the exponential surface density
   Real Sigma_0 = hdp[9];
   Real R_g     = hdp[10];
-  Real R_c = 4.5;
+  Real R_c = 9.9;
   Real Sigma;
   Real delta = 0.1;
   Real norm = log(1.0/3.0);
@@ -987,11 +987,11 @@ void Grid3D::Disk_3D(parameters p)
 
           if(isnan(a)||(a!=a)||(r*a<0))
           {
-            printf("i %d j %d k %d a %e a_d %e dPdr %e d %e\n",i,j,k,a,a_d,dPdr,d);
-            printf("i %d j %d k %d x_pos %e y_pos %e z_pos %e dPdx %e dPdy %e\n",i,j,k,x_pos,y_pos,z_pos,dPdx,dPdy);
-            printf("i %d j %d k %d Pm %e Pp %e\n",i,j,k,Pm,Pp);
-            printf("ypp %e ypm %e xpp %e zpm %e r %e\n",ypp,ypm, xpp, xpm ,r);
-            printf("Energy pm %e pp %e density pm %e pp %e\n",C.Energy[idm],C.Energy[idp],C.density[idm],C.density[idp]);
+            //printf("i %d j %d k %d a %e a_d %e dPdr %e d %e\n",i,j,k,a,a_d,dPdr,d);
+            //printf("i %d j %d k %d x_pos %e y_pos %e z_pos %e dPdx %e dPdy %e\n",i,j,k,x_pos,y_pos,z_pos,dPdx,dPdy);
+            //printf("i %d j %d k %d Pm %e Pp %e\n",i,j,k,Pm,Pp);
+            //printf("ypp %e ypm %e xpp %e zpm %e r %e\n",ypp,ypm, xpp, xpm ,r);
+            //printf("Energy pm %e pp %e density pm %e pp %e\n",C.Energy[idm],C.Energy[idp],C.density[idm],C.density[idp]);
           }
           else {
 
