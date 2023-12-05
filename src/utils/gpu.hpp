@@ -66,6 +66,10 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define cudaPointerAttributes              hipPointerAttribute_t
   #define cudaPointerGetAttributes           hipPointerGetAttributes
   #define cudaOccupancyMaxPotentialBlockSize hipOccupancyMaxPotentialBlockSize
+  #define cudaDeviceGetAttribute             hipDeviceGetAttribute
+  #define cudaDevAttrCooperativeLaunch       hipDeviceAttributeCooperativeLaunch
+  #define cudaOccupancyMaxActiveBlocksPerMultiprocessor hipOccupancyMaxActiveBlocksPerMultiprocessor
+  #define cudaLaunchCooperativeKernel        hipLaunchCooperativeKernel
 
   // Texture definitions
   #define cudaArray           hipArray

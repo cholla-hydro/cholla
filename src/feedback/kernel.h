@@ -9,6 +9,8 @@
 #include "../feedback/feedback_stencil.h"  // Arr3
 #include "../utils/reduction_utilities.h"
 #include "../utils/DeviceVector.h"
+#include "../utils/error_handling.h"
+#include "../utils/gpu.hpp"
 
 #include <cooperative_groups.h>
 
@@ -449,9 +451,6 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
                                   const feedback_details::CycleProps& cycle_props, 
                                   Real* info, Real* conserved_dev, int* num_SN_dev)
 {
-  // compute the grid-size or the number of thread-blocks per grid. The number of threads in a block is
-  // given by TPB_FEEDBACK
-  const int blocks_per_grid = (particle_props.n_local - 1) / TPB_FEEDBACK + 1;
 
   // Declare/allocate device buffer for accumulating summary information about feedback
   cuda_utilities::DeviceVector<Real> d_info(feedinfoLUT::LEN, true);  // initialized to 0
@@ -459,8 +458,50 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
   // initialize feedback_model
   FeedbackModel feedback_model{};
 
+  // do some work to configure the grid-size (i.e. the number of thread-blocks per grid)
+  // - since the kernel uses grid-wide synchronizations, some care needs to be taken to ensure 
+  //   co-residency of the thread blocks on the GPU (if you have too many thread-blocks, then they
+  //   won't all be executed on the gpu at the same time)
+  // - we use static variables so we don't have to repeat these calculations. This should be fine as
+  //   long as: - the amount of dynamic shared memory usage for each block never changes between calls
+  //            - the threads per block don't ever change between calls
+  const std::size_t dynamic_shared_mem_per_block = 0;
+  const int threads_per_block = TPB_FEEDBACK;
+  const dim3 dimBlock(threads_per_block, 1, 1);
+
+  static dim3 dimGrid;
+  static bool configured_dimBlock = false;
+  if (not configured_dimBlock) {
+    configured_dimBlock = true;
+
+    int dev = 0;
+    int supportsCoopLaunch = 0;
+    cudaDeviceGetAttribute(&supportsCoopLaunch, cudaDevAttrCooperativeLaunch, dev);
+    CHOLLA_ASSERT(supportsCoopLaunch != 0, "System is unable to launch cooperative kernels");
+
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, dev);
+    int numBlocksPerSm = 0; // this will be updated to hold the max number of blocks on the GPU
+    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, Cluster_Feedback_Kernel<FeedbackModel>,
+                                                  threads_per_block, dynamic_shared_mem_per_block);
+
+    dimGrid = dim3(deviceProp.multiProcessorCount*numBlocksPerSm, 1, 1);
+  }
+
+  Real* d_info_ptr = d_info.data();
+  void *kernelArgs[] = { (void *)(&particle_props), (void *)(&spatial_props), (void *)(&cycle_props), 
+                         (void *)(&d_info_ptr), (void *)(&conserved_dev), (void *)(&num_SN_dev),
+                         (void *)(&feedback_model)};
+
+  cudaLaunchCooperativeKernel((void *)Cluster_Feedback_Kernel<FeedbackModel>, dimGrid, dimBlock, kernelArgs);
+
+  /*
+  // compute the grid-size or the number of thread-blocks per grid. The number of threads in a block is
+  // given by TPB_FEEDBACK
+  const int blocks_per_grid = (particle_props.n_local - 1) / TPB_FEEDBACK + 1;
   hipLaunchKernelGGL(feedback_details::Cluster_Feedback_Kernel, blocks_per_grid, TPB_FEEDBACK, 0, 0,
                      particle_props, spatial_props, cycle_props, d_info.data(), conserved_dev, num_SN_dev, feedback_model);
+  */
 
   if (info != nullptr) {
     // copy summary data back to the host
