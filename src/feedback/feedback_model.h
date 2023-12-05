@@ -16,6 +16,13 @@ namespace feedback_model {
 template<typename Stencil>
 struct ResolvedSNPrescription{
 
+  template<typename Function>
+  static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                                   int nx_g, int ny_g, Function f)
+  {
+    Stencil::for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, f);
+  }
+
   static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
                                         Real age, Real& mass_ref, part_int_t particle_id,
                                         Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g,
@@ -258,6 +265,27 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
 /* Legacy SNe prescription that combines resolved and unresolved */
 template<typename ResolvedPrescriptionT>
 struct LegacySNe {
+
+  template<typename Function>
+  static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                                   int nx_g, int ny_g, Function f)
+  {
+    // for right now, we are assuming that the stencil of the unresolved feedback is the same size or
+    // bigger than the stencil used for the resolved feedback
+    int indx_x = (int)floor(pos_x_indU);
+    int indx_y = (int)floor(pos_y_indU);
+    int indx_z = (int)floor(pos_z_indU);
+
+    for (int i = -1; i < 2; i++) {
+      for (int j = -1; j < 2; j++) {
+        for (int k = -1; k < 2; k++) {
+          const Real dummy = 0.0;
+          f(dummy, (indx_x + i) + ((indx_y + j) + (indx_z + k) * ny_g)* nx_g);
+        }
+      }
+    }
+
+  }
 
   static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
                                         Real age, Real& mass_ref, part_int_t particle_id,
