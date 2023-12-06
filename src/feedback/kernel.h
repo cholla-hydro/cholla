@@ -69,7 +69,7 @@
 // The following definitions are only in a header file to simplify testing.
 namespace feedback_details{
 
-inline __host__ void Ptr_Swap(part_int_t*& a, part_int_t*& b)
+inline __device__ void Ptr_Swap(part_int_t*& a, part_int_t*& b)
 {
   part_int_t* tmp = a;
   a = b;
@@ -81,7 +81,7 @@ inline __host__ void Ptr_Swap(part_int_t*& a, part_int_t*& b)
  * \note
  * is this just equivalent to `(cooperative_groups::grid_group::thread_rank() == 0;)`?
  */
-inline __host__ bool Is_GridWide_Root_Thread()
+inline __device__ bool Is_GridWide_Root_Thread()
 { 
   return ( (blockIdx.x == 0) and (blockIdx.y == 0) and (blockIdx.z == 0) and
            (threadIdx.x == 0) and (threadIdx.y == 0) and (threadIdx.z == 0) );
@@ -331,7 +331,7 @@ public:
       return true;
     } else {                             // particle feedback scheduled for future "pass"
       // record that another pass is necessary
-      atomicAdd(this->any_pending_particles_, 1);
+      atomicMax((long long int*)(this->any_pending_particles_), 1ll);
       // prepare the mask for the next pass
       Register_Pending_Particle_Feedback(p, particle_id, pos_indU, ng_x, ng_y);
       return false;
@@ -357,6 +357,15 @@ private:
 
 };
 
+__device__ __forceinline__ Arr3<Real> Calc_Pos_IndU(int i, const feedback_details::ParticleProps& particle_props,
+                                                    const feedback_details::FieldSpatialProps& spatial_props)
+{
+  const int n_ghost = spatial_props.n_ghost;
+  return {(particle_props.pos_x_dev[i] - spatial_props.xMin) / spatial_props.dx + n_ghost,
+          (particle_props.pos_y_dev[i] - spatial_props.yMin) / spatial_props.dy + n_ghost,
+          (particle_props.pos_z_dev[i] - spatial_props.zMin) / spatial_props.dz + n_ghost};
+}
+
 /* Applies cluster feedback.
  *
  * \tparam FeedbackModel type that encapsulates the actual feedback prescription
@@ -370,16 +379,20 @@ private:
  * \param[out]    conserved_dev pointer to the fluid-fields that will be updated during this function call.
  * \param[in]     An array of ``particle_props.n_local`` non-negative integers that specify the number of supernovae that are
  *     are scheduled to occur during the current cycle (for each particle).
- * \param[in]     feedback_model represents the feedback prescription. At the time of writing, this is largely a dummy argument
- *     used to help with the inference of the FeedbackModel type.
+ * \param[in]     ov_scheduler helps schedule feedback of particles with overlapping stencils.
  */
 template<typename FeedbackModel>
 __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps particle_props,
                                         const feedback_details::FieldSpatialProps spatial_props,
                                         const feedback_details::CycleProps cycle_props, Real* info, Real* conserved_dev,
-                                        int* num_SN_dev, FeedbackModel feedback_model)
+                                        int* num_SN_dev, OverlapScheduler ov_scheduler)
 {
   const int tid = threadIdx.x;
+  cooperative_groups::grid_group g = cooperative_groups::this_grid();
+
+  // initialize fb_model - this doesn't carry any state. It's just here to help with inference of
+  // the FeedbackModel types in all of the helper functions
+  FeedbackModel fb_model{};
 
   // prologoue: setup buffer for collecting SN feedback information
   __shared__ Real s_info[feedinfoLUT::LEN * TPB_FEEDBACK];
@@ -387,38 +400,61 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
     s_info[feedinfoLUT::LEN * tid + cur_ind] = 0;
   }
 
-  // do the main work. All threads across the grid will iterate over the list of particles
+  // this function returns true if a particle is in-bounds and has at least 1 SNe
+  auto dont_skip = [&spatial_props, num_SN_dev](int i, const Arr3<Real> pos_indU) {
+    const int n_ghost = spatial_props.n_ghost;
+    bool ignore = (((pos_indU[0] < n_ghost) or (pos_indU[0] >= (spatial_props.nx_g - n_ghost))) or
+                   ((pos_indU[1] < n_ghost) or (pos_indU[1] >= (spatial_props.ny_g - n_ghost))) or
+                   ((pos_indU[2] < n_ghost) or (pos_indU[2] >= (spatial_props.nz_g - n_ghost))));
+    return (not ignore) and (num_SN_dev[i] > 0);
+  };
+
+  // Prepare to iterate over the the list of particles
   // - this is grid-strided loop. This is a common idiom that makes the kernel more flexible
   // - If there are more local particles than threads, some threads will visit more than 1 particle
   const int start = blockIdx.x * blockDim.x + threadIdx.x;
   const int loop_stride = blockDim.x * gridDim.x;
+
+  // get ov_scheduler set up properly
+  ov_scheduler.Reset_State(g);
   for (int i = start; i < particle_props.n_local; i += loop_stride) {
-
-    const int n_ghost = spatial_props.n_ghost;
-
     // compute the position in index-units (appropriate for a field with a ghost-zone)
     // - an integer value corresponds to the left edge of a cell
-    const Real pos_x_indU = (particle_props.pos_x_dev[i] - spatial_props.xMin) / spatial_props.dx + n_ghost;
-    const Real pos_y_indU = (particle_props.pos_y_dev[i] - spatial_props.yMin) / spatial_props.dy + n_ghost;
-    const Real pos_z_indU = (particle_props.pos_z_dev[i] - spatial_props.zMin) / spatial_props.dz + n_ghost;
+    const Arr3<Real> pos_indU = Calc_Pos_IndU(i, particle_props, spatial_props);
 
-    bool ignore = (((pos_x_indU < n_ghost) or (pos_x_indU >= (spatial_props.nx_g - n_ghost))) or
-                   ((pos_y_indU < n_ghost) or (pos_y_indU >= (spatial_props.ny_g - n_ghost))) or
-                   ((pos_z_indU < n_ghost) or (pos_z_indU >= (spatial_props.nz_g - n_ghost))));
+    if (dont_skip(i, pos_indU)) {
+      ov_scheduler.Register_Pending_Particle_Feedback(fb_model, (long long int)(particle_props.id_dev[i]),
+                                                      pos_indU, spatial_props.nx_g, spatial_props.ny_g);
+    }
+  }
 
-    if (not ignore) {
-      // note age_dev is actually the time of birth
-      const Real age = cycle_props.t - particle_props.age_dev[i];
+  // do the main work.
+  while(ov_scheduler.Prepare_Next_Pass(g)) {
+    for (int i = start; i < particle_props.n_local; i += loop_stride) {  
+      // compute the position in index-units (appropriate for a field with a ghost-zone)
+      // - an integer value corresponds to the left edge of a cell
+      const Arr3<Real> pos_indU = Calc_Pos_IndU(i, particle_props, spatial_props);
 
-      // holds a reference to the particle's mass (this will be updated after feedback is handled)
-      Real& mass_ref = particle_props.mass_dev[i];
+      if (dont_skip(i, pos_indU)) {
 
-      feedback_model.apply_feedback(pos_x_indU, pos_y_indU, pos_z_indU, particle_props.vel_x_dev[i],
-                                    particle_props.vel_y_dev[i], particle_props.vel_z_dev[i],
-                                    age, mass_ref, particle_props.id_dev[i],
-                                    spatial_props.dx, spatial_props.dy, spatial_props.dz, 
-                                    spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g, n_ghost,
-                                    num_SN_dev[i], s_info, conserved_dev);
+        bool is_scheduled = ov_scheduler.Is_Scheduled_And_Update(fb_model, particle_props.id_dev[i], pos_indU,
+                                                                 spatial_props.nx_g, spatial_props.ny_g);
+
+        if (is_scheduled) {
+          // note age_dev is actually the time of birth
+          const Real age = cycle_props.t - particle_props.age_dev[i];
+
+          // holds a reference to the particle's mass (this will be updated after feedback is handled)
+          Real& mass_ref = particle_props.mass_dev[i];
+
+          fb_model.apply_feedback(pos_indU[0], pos_indU[1], pos_indU[2], particle_props.vel_x_dev[i],
+                                  particle_props.vel_y_dev[i], particle_props.vel_z_dev[i],
+                                  age, mass_ref, particle_props.id_dev[i],
+                                  spatial_props.dx, spatial_props.dy, spatial_props.dz, 
+                                  spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g,
+                                  spatial_props.n_ghost, num_SN_dev[i], s_info, conserved_dev);
+        }
+      }
     }
   }
 
@@ -455,8 +491,8 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
   // Declare/allocate device buffer for accumulating summary information about feedback
   cuda_utilities::DeviceVector<Real> d_info(feedinfoLUT::LEN, true);  // initialized to 0
 
-  // initialize feedback_model
-  FeedbackModel feedback_model{};
+  // initialize OverlapScheduler
+  OverlapScheduler ov_scheduler{};
 
   // do some work to configure the grid-size (i.e. the number of thread-blocks per grid)
   // - since the kernel uses grid-wide synchronizations, some care needs to be taken to ensure 
@@ -491,7 +527,7 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
   Real* d_info_ptr = d_info.data();
   void *kernelArgs[] = { (void *)(&particle_props), (void *)(&spatial_props), (void *)(&cycle_props), 
                          (void *)(&d_info_ptr), (void *)(&conserved_dev), (void *)(&num_SN_dev),
-                         (void *)(&feedback_model)};
+                         (void *)(&ov_scheduler)};
 
   cudaLaunchCooperativeKernel((void *)Cluster_Feedback_Kernel<FeedbackModel>, dimGrid, dimBlock, kernelArgs);
 
