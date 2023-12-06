@@ -739,6 +739,8 @@ public:
 
   Real* dev_ptr() { return data_->data(); }
 
+  Extent3D single_field_extent() { return single_field_extent_; }
+
   std::vector<Real> host_copy()
   {
     std::vector<Real> out(this->data_->size());
@@ -807,6 +809,8 @@ public:
       host_data_.at("pos_x")[i] = pos_vec[i][0];
       host_data_.at("pos_y")[i] = pos_vec[i][1];
       host_data_.at("pos_z")[i] = pos_vec[i][2];
+
+      //printf("pos: %g, %g, %g\n", host_data_.at("pos_x")[i], host_data_.at("pos_y")[i], host_data_.at("pos_z")[i]);
 
       host_data_.at("vel_x")[i] = try_get_(other_props, "vel_x").value_or(0.0);
       host_data_.at("vel_y")[i] = try_get_(other_props, "vel_y").value_or(0.0);
@@ -905,7 +909,9 @@ struct FeedbackResults {
 };
 
 FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>& prop_l,
-                                   const std::vector<Arr3<Real>>& particle_pos_vec)
+                                   const std::vector<Arr3<Real>>& particle_pos_vec,
+                                   feedback_details::OverlapStrat ov_strat,
+                                   bool separate_launch_per_particle)
 {
 
   feedback_details::FieldSpatialProps spatial_props{
@@ -948,11 +954,24 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
                                                  0.1,  // length of current timestep 
                                                  1};   // the current cycle-number
 
-  // actually execute feedback
-  feedback_details::Exec_Cluster_Feedback_Kernel<feedback_model::CiCResolvedSNPrescription>(
-    test_particle_data.particle_props(), spatial_props, cycle_props, 
-    nullptr, // this is the info-array
-    test_field_data.dev_ptr(), d_num_SN.data());
+  cuda_utilities::DeviceVector<part_int_t> temp_dev_vec(1);
+  feedback_details::OverlapScheduler ov_scheduler(ov_strat, temp_dev_vec, 
+                                                  spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g);
+
+  if (separate_launch_per_particle) {
+    // actually execute feedback
+    for (std::size_t i = 0; i < particle_pos_vec.size(); i++){
+      feedback_details::Exec_Cluster_Feedback_Kernel<feedback_model::CiCResolvedSNPrescription>(
+        test_particle_data.props_of_single_particle(int(i)), spatial_props, cycle_props, 
+        nullptr, // this is the info-array
+        test_field_data.dev_ptr(), d_num_SN.data() + i, ov_scheduler);
+    }
+  } else {
+    feedback_details::Exec_Cluster_Feedback_Kernel<feedback_model::CiCResolvedSNPrescription>(
+      test_particle_data.particle_props(), spatial_props, cycle_props,
+      nullptr, // this is the info-array
+      test_field_data.dev_ptr(), d_num_SN.data(), ov_scheduler);
+  }
 
   // it would be nice to now return TestParticleData and TestFieldData
   FeedbackResults out{std::move(test_field_data), std::move(test_particle_data)};
@@ -961,17 +980,84 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
 
 } // anonymous namespace
 
-TEST(tALLFeedbackFullCiC, Sample)
+void check_equality(FeedbackResults& rslt_actual, FeedbackResults& rslt_ref)
+{
+  int num_particles = int(rslt_ref.test_particle_data.num_particles());
+  {
+    std::vector<part_int_t> actual_particle_ids = rslt_actual.test_particle_data.host_copy_particle_ids();
+    std::vector<part_int_t> ref_particle_ids = rslt_ref.test_particle_data.host_copy_particle_ids();
+    assert_allclose(actual_particle_ids.data(), ref_particle_ids.data(),
+                    {num_particles, 1, 1}, 0.0, 0.0, false,
+                    "problem comparing the particle_ids");
+  }
+
+  {
+    std::map<std::string, std::vector<Real>> actual_data = rslt_actual.test_particle_data.host_copy_general();
+    std::map<std::string, std::vector<Real>> ref_data = rslt_ref.test_particle_data.host_copy_general();
+
+    for (const auto& kv_pair : actual_data) {
+      const std::string& key = kv_pair.first;
+
+      std::vector<Real>& actual_vec = actual_data.at(key);
+      std::vector<Real>& ref_vec     = ref_data.at(key);
+
+      std::string err_msg = "problem comparing the particle property: " + key;
+
+      assert_allclose(actual_vec.data(), ref_vec.data(),
+                      {num_particles, 1, 1}, 0.0, 0.0, false, err_msg);
+    }
+  }
+
+  {
+    std::vector<Real> ref_data    = rslt_ref.test_field_data.host_copy();
+    std::vector<Real> actual_data = rslt_actual.test_field_data.host_copy();
+
+    Extent3D extent = rslt_ref.test_field_data.single_field_extent();
+
+    auto compare = [&](int field_index, const std::string& name) {
+      std::size_t field_offset = extent.nx*extent.ny*extent.nz;
+
+      std::string err_msg = "problem comparing the particle property: " + name;
+
+      assert_allclose(actual_data.data() + field_offset * field_index,
+                      ref_data.data() + field_offset * field_index,
+                      extent, 0.0, 0.0, false, err_msg);
+    };
+
+    compare(grid_enum::density,    "density");
+    compare(grid_enum::momentum_x, "momentum_x");
+    compare(grid_enum::momentum_y, "momentum_y");
+    compare(grid_enum::momentum_z, "momentum_z");
+    compare(grid_enum::Energy,     "etot_dens");
+  }
+
+}
+
+
+TEST(tALLFeedbackFullCiC, CheckingOverlapStrat)
 {
   const int n_ghost = 0;
   const Real dx = 1.0 / 256.0;
   const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
 
-  const std::vector<Arr3<Real>> particle_pos_vec = {{2.4 *dx, 2.4 *dx, 2.4 *dx}};
+  // initialize 10 star particles directly atop each other
+  const std::vector<Arr3<Real>> particle_pos_vec(30, {2.4 *dx, 2.4 *dx, 2.4 *dx});
 
-  // this all depends on the adjustable parameters
-  FeedbackResults rslt = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec);
-  rslt.test_field_data.print_debug_info();
-  rslt.test_particle_data.print_debug_info();
+  // Get the reference answer - here we sequentially launch one kernel after to handle feedback of 
+  // each individual particle
+  FeedbackResults rslt_ref = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
+                                                feedback_details::OverlapStrat::ignore,
+                                                true);
+  //rslt_reference.test_field_data.print_debug_info();
+  //rslt_reference.test_particle_data.print_debug_info();
+
+  printf("Now looking at the OverlapStrat::sequential approach:\n");
+  FeedbackResults rslt_actual = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
+                                                   feedback_details::OverlapStrat::sequential,
+                                                   false);
+  //rslt_actual.test_field_data.print_debug_info();
+  //rslt_actual.test_particle_data.print_debug_info();
+
+  check_equality(rslt_actual, rslt_ref);
 
 }
