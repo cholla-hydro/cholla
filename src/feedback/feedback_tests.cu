@@ -693,7 +693,7 @@ void init_field_vals_(cuda_utilities::DeviceVector<Real>& data, std::size_t fiel
 
   // default density should be 0.1 particles per cc
   // default thermal energy density should correspond to pressure of 1e3 K / cm**3 (for a gamma of 5/3)
-  const Real density       = try_get_(dflt_vals, "density").value_or(1482737.17012665);  
+  const Real density       = try_get_(dflt_vals, "density").value_or(1482737.17012665);
   const Real thermal_edens = try_get_(dflt_vals, "thermal_edens").value_or(0.00021335 *1.5);
   const Real vx            = try_get_(dflt_vals, "velocity_x").value_or(0.0);
   const Real vy            = try_get_(dflt_vals, "velocity_y").value_or(0.0);
@@ -773,6 +773,67 @@ public:
 # endif
   }
 };
+
+void assert_fielddata_allclose(TestFieldData& actual_test_field_data, 
+                               TestFieldData& ref_test_field_data, 
+                               bool only_thermale_and_density = false,
+                               double rtol = 0.0, double atol = 0.0)
+{
+  std::vector<Real> ref_data    = ref_test_field_data.host_copy();
+  std::vector<Real> actual_data = actual_test_field_data.host_copy();
+
+  // to do: we should really check consistency of extent between actual & desired
+  Extent3D extent = ref_test_field_data.single_field_extent();
+
+  const std::size_t single_field_size = extent.nx*extent.ny*extent.nz;
+
+  const std::map<std::string,int> field_index_map = {
+    {"density",    grid_enum::density},
+    {"momentum_x", grid_enum::momentum_x},
+    {"momentum_y", grid_enum::momentum_y},
+    {"momentum_z", grid_enum::momentum_z},
+  # ifdef DE
+    {"ethermal_dens", grid_enum::GasEnergy},
+  # endif
+    {"etot_dens", grid_enum::Energy}
+  };
+
+  auto compare = [&](const std::string& name, Real* actual, Real* ref) {
+    if (actual == nullptr) actual = actual_data.data() + single_field_size * field_index_map.at(name);
+    if (ref == nullptr) ref = ref_data.data() + single_field_size * field_index_map.at(name);
+    std::string err_msg = "problem comparing the field: " + name;
+    assert_allclose(actual, ref, extent, rtol, atol, false, err_msg);
+  };
+
+  compare("density", nullptr, nullptr);
+  if (not only_thermale_and_density) {
+    compare("momentum_x", nullptr, nullptr);
+    compare("momentum_y", nullptr, nullptr);
+    compare("momentum_z", nullptr, nullptr);
+    compare("etot_dens", nullptr, nullptr);
+  } else {
+    // compute thermal_energy density:
+    std::vector<std::vector<Real>> ethermal_l{};
+    for (Real* field_ptr : {actual_data.data(), ref_data.data()}) {
+      Real* dens = field_ptr + single_field_size * grid_enum::density;
+      Real* mom_x = field_ptr + single_field_size * grid_enum::momentum_x;
+      Real* mom_y = field_ptr + single_field_size * grid_enum::momentum_y;
+      Real* mom_z = field_ptr + single_field_size * grid_enum::momentum_z;
+      Real* tot_edens = field_ptr + single_field_size * grid_enum::Energy;
+
+      std::vector<Real> thermal_energy(single_field_size);
+      for (std::size_t i = 0; i < single_field_size; i++) {
+        Real ke_dens = 0.5 * (mom_x[i]*mom_x[i] + mom_y[i]*mom_y[i] + mom_z[i]*mom_z[i])/dens[i];
+        thermal_energy[i] = tot_edens[i] - ke_dens;
+      }
+      ethermal_l.push_back(thermal_energy);
+    }
+    compare("(etot_dens - ke_dens)", ethermal_l[0].data(), ethermal_l[1].data());
+  }
+# ifdef DE
+  compare("ethermal_dens", nullptr, nullptr);
+# endif
+}
 
 // make sure this lives for the lifetime of the test where the data gets used!
 struct TestParticleData {
@@ -911,7 +972,9 @@ struct FeedbackResults {
 FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>& prop_l,
                                    const std::vector<Arr3<Real>>& particle_pos_vec,
                                    feedback_details::OverlapStrat ov_strat,
-                                   bool separate_launch_per_particle)
+                                   bool separate_launch_per_particle,
+                                   const std::optional<Real> maybe_init_density = std::optional<Real>(),
+                                   const std::optional<Arr3<Real>> maybe_bulk_vel = std::optional<Arr3<Real>>())
 {
 
   feedback_details::FieldSpatialProps spatial_props{
@@ -931,13 +994,26 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
     n_ghost,
   };
 
+  // check for optional test-specific field/particle values::
+  const Real init_density =  maybe_init_density.value_or(1482737.17012665); // should be 0.1 particles per cc
+
+  const Arr3<Real> dflt_bulk_vel = {0.0,0.0,0.0};
+  const Arr3<Real> bulk_vel = maybe_bulk_vel.value_or(dflt_bulk_vel);
+
   // allocate the temporary field data!
+  
+  
   const Extent3D full_extent{spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g};
-  TestFieldData test_field_data(full_extent, {});
+  TestFieldData test_field_data(full_extent, {{"density",    init_density},
+                                              {"velocity_x", bulk_vel[0]},
+                                              {"velocity_y", bulk_vel[1]},
+                                              {"velocity_z", bulk_vel[2]}});
 
   const std::size_t num_particles = particle_pos_vec.size();
   // allocate the temporary particle data!
-  TestParticleData test_particle_data(particle_pos_vec, {});
+  TestParticleData test_particle_data(particle_pos_vec, {{"vel_x", bulk_vel[0]},
+                                                         {"vel_y", bulk_vel[1]},
+                                                         {"vel_z", bulk_vel[2]}});
 
   // Declare/allocate device buffer for holding the number of supernovae per particle in the current cycle
   cuda_utilities::DeviceVector<int> d_num_SN(particle_pos_vec.size(), true);  // initialized to 0
@@ -1006,32 +1082,16 @@ void check_equality(FeedbackResults& rslt_actual, FeedbackResults& rslt_ref)
     }
   }
 
-  {
-    std::vector<Real> ref_data    = rslt_ref.test_field_data.host_copy();
-    std::vector<Real> actual_data = rslt_actual.test_field_data.host_copy();
-
-    Extent3D extent = rslt_ref.test_field_data.single_field_extent();
-
-    auto compare = [&](int field_index, const std::string& name) {
-      std::size_t field_offset = extent.nx*extent.ny*extent.nz;
-
-      std::string err_msg = "problem comparing the field: " + name;
-
-      assert_allclose(actual_data.data() + field_offset * field_index,
-                      ref_data.data() + field_offset * field_index,
-                      extent, 0.0, 0.0, false, err_msg);
-    };
-
-    compare(grid_enum::density,    "density");
-    compare(grid_enum::momentum_x, "momentum_x");
-    compare(grid_enum::momentum_y, "momentum_y");
-    compare(grid_enum::momentum_z, "momentum_z");
-    compare(grid_enum::Energy,     "etot_dens");
-  }
-
+  assert_fielddata_allclose(rslt_actual.test_field_data, rslt_ref.test_field_data,
+                            false, 0.0, 0.0);
 }
 
 
+// in this test we check that results are identical if we inject feedback for a bunch of supernovae
+// that are directly on top of each other in 2 cases:
+// - a case where we launch a separate kernel for each supernova
+// - a case where we use the OverlapStrat functionallity to launch a single kernel, but within that
+//   kernel, we sequentially launch the supernova feedback
 TEST(tALLFeedbackFullCiC, CheckingOverlapStrat)
 {
   const int n_ghost = 0;
@@ -1046,16 +1106,53 @@ TEST(tALLFeedbackFullCiC, CheckingOverlapStrat)
   FeedbackResults rslt_ref = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
                                                 feedback_details::OverlapStrat::ignore,
                                                 true);
-  //rslt_ref.test_field_data.print_debug_info();
-  //rslt_ref.test_particle_data.print_debug_info();
-
-  printf("Now looking at the OverlapStrat::sequential approach:\n");
   FeedbackResults rslt_actual = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
                                                    feedback_details::OverlapStrat::sequential,
                                                    false);
-  //rslt_actual.test_field_data.print_debug_info();
-  //rslt_actual.test_particle_data.print_debug_info();
+  if (false) {
+    printf("\nLooking at the OverlapStrat::ignore approach:\n");
+    rslt_ref.test_field_data.print_debug_info();
+    rslt_ref.test_particle_data.print_debug_info();
+    printf("\nLooking at the OverlapStrat::sequential approach:\n");
+    rslt_actual.test_field_data.print_debug_info();
+    rslt_actual.test_particle_data.print_debug_info();
+  }
 
   check_equality(rslt_actual, rslt_ref);
+}
 
+
+// in this 
+TEST(tALLFeedbackFullCiC, ComparingNonThermalPropsDiffRefFrames)
+{
+  const int n_ghost = 0;
+  const Real dx = 1.0 / 256.0;
+  const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
+
+  // initialize some star particles directly atop each other
+  const std::vector<Arr3<Real>> particle_pos_vec(3, {2.4 *dx, 2.4 *dx, 2.4 *dx});
+
+  const Real init_density = 1000.0; // solar-masses per kpc**3
+
+  // Get the reference answer (in the reference frame where there is no bulk velocity)
+  Arr3<Real> bulk_vel_NULLCASE = {0.0, 0.0, 0.0};
+  FeedbackResults rslt_ref = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
+                                                feedback_details::OverlapStrat::ignore, true,
+                                                {init_density}, {bulk_vel_NULLCASE});
+  Arr3<Real> bulk_vel_ALT = {10.0, 0.0, 0.0};
+  FeedbackResults rslt_actual = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
+                                                   feedback_details::OverlapStrat::ignore, true,
+                                                   {init_density}, {bulk_vel_ALT});
+  if (false) {
+    printf("\nLooking at the case without bulk velocity:\n");
+    rslt_ref.test_field_data.print_debug_info();
+    rslt_ref.test_particle_data.print_debug_info();
+    printf("\nLooking at the case with bulk velocity:\n");
+    rslt_actual.test_field_data.print_debug_info();
+    rslt_actual.test_particle_data.print_debug_info();
+  }
+
+  double rtol = 2.0e-9; // it would be nice to specify tolerances on a per-field basis
+  assert_fielddata_allclose(rslt_actual.test_field_data, rslt_ref.test_field_data,
+                            true, rtol, 0.0);
 }
