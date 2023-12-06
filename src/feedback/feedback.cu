@@ -162,8 +162,11 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
       }
     }
 
+    // initialize OverlapScheduler (TODO: allow better conrtol over initialization)
+    feedback_details::OverlapScheduler ov_scheduler{};
+
     feedback_details::Exec_Cluster_Feedback_Kernel<FeedbackModel>(
-      particle_props, spatial_props, cycle_props, h_info, G.C.d_density, d_num_SN.data()
+      particle_props, spatial_props, cycle_props, h_info, G.C.d_density, d_num_SN.data(), ov_scheduler
     );
   }
 

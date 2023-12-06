@@ -12,6 +12,7 @@
 #include "../utils/error_handling.h"
 #include "../utils/gpu.hpp"
 
+#include <climits>
 #include <cooperative_groups.h>
 
 #define TPB_FEEDBACK 128
@@ -74,17 +75,6 @@ inline __device__ void Ptr_Swap(part_int_t*& a, part_int_t*& b)
   part_int_t* tmp = a;
   a = b;
   b = tmp;
-}
-
-/* check if the current thread is the root-thread across all threadblocks
- *
- * \note
- * is this just equivalent to `(cooperative_groups::grid_group::thread_rank() == 0;)`?
- */
-inline __device__ bool Is_GridWide_Root_Thread()
-{ 
-  return ( (blockIdx.x == 0) and (blockIdx.y == 0) and (blockIdx.z == 0) and
-           (threadIdx.x == 0) and (threadIdx.y == 0) and (threadIdx.z == 0) );
 }
 
 /* Specifies the stategy for handling star-particles with overlapping stencils */
@@ -226,7 +216,7 @@ public:
     this->pass_count_ = 0;
 
     if (this->strat_ != OverlapStrat::ignore) {
-      if (Is_GridWide_Root_Thread())  *(this->any_pending_particles_) = 0;
+      if (g.thread_rank() == 0)  *(this->any_pending_particles_) = 0;
       // in the above operation, it should't logically matter whether one or more thread modifies
       // any_pending_particles_'s contents (but I suspect that it may affect performance)
 
@@ -266,7 +256,7 @@ public:
     // otherwise we need to continue on. Let's synchronize since we will be resetting the value of
     // this->any_pending_particles_ (is this a place where we can use a memory fence?)
     g.sync();
-    if (Is_GridWide_Root_Thread())  *(this->any_pending_particles_) = 0;
+    if (g.thread_rank() == 0)  *(this->any_pending_particles_) = 0;
     // in the above operation, it should't logically matter whether one or more thread modifies
     // any_pending_particles_'s contents (but I suspect that it may affect performance)
 
@@ -294,6 +284,9 @@ public:
                                                      Arr3<Real> pos_indU, int ng_x, int ng_y)
   {
     if (strat_ == OverlapStrat::ignore) return;
+
+    // record that a pass is necessary
+    atomicMax((long long int*)(this->any_pending_particles_), 1ll);
 
     static_assert(sizeof(long long int) == sizeof(part_int_t));
     long long int* mask = (long long int*)(this->nextPass_mask_);
@@ -430,6 +423,8 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
 
   // do the main work.
   while(ov_scheduler.Prepare_Next_Pass(g)) {
+    //if (g.thread_rank() == 0) kernel_printf("entered loop!\n");
+
     for (int i = start; i < particle_props.n_local; i += loop_stride) {  
       // compute the position in index-units (appropriate for a field with a ghost-zone)
       // - an integer value corresponds to the left edge of a cell
@@ -441,6 +436,15 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
                                                                  spatial_props.nx_g, spatial_props.ny_g);
 
         if (is_scheduled) {
+          //kernel_printf("(block=%d, thread=%d)handling feedback for particle with: \n"
+          //              "    index: %d, id: %lld\n"
+          //              "    position (code units): %g, %g, %g\n"
+          //              "    position (index-units): %g, %g, %g\n"
+          //              "    vel (code-units): %g, %g, %g\n",
+          //              blockIdx.x, threadIdx.x, i, (long long int)(particle_props.id_dev[i]),
+          //              particle_props.pos_x_dev[i], particle_props.pos_y_dev[i], particle_props.pos_z_dev[i],
+          //              pos_indU[0], pos_indU[1], pos_indU[2],
+          //              particle_props.vel_x_dev[i], particle_props.vel_y_dev[i], particle_props.vel_z_dev[i]);
           // note age_dev is actually the time of birth
           const Real age = cycle_props.t - particle_props.age_dev[i];
 
@@ -478,21 +482,21 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
  * \param[out]    conserved_dev pointer to the fluid-fields that will be updated during this function call.
  * \param[in]     An array of ``particle_props.n_local`` non-negative integers that specify the number of supernovae that are
  *     are scheduled to occur during the current cycle (for each particle).
- * \param[in]     feedback_model represents the feedback prescription. At the time of writing, this is largely a dummy argument
- *     used to help with the inference of the FeedbackModel type.
+ * \param[in]     ov_scheduler helps schedule feedback of particles with overlapping stencils.
+ * \param[in]     max_num_threadblocks This is here to put an arbitrary upper limit on the maximum number of 
+ *     thread-blocks. This is for debugging purposes. Only positive values are allowed.
  */
 template<typename FeedbackModel>
 void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particle_props,
                                   const feedback_details::FieldSpatialProps& spatial_props,
                                   const feedback_details::CycleProps& cycle_props, 
-                                  Real* info, Real* conserved_dev, int* num_SN_dev)
+                                  Real* info, Real* conserved_dev, int* num_SN_dev,
+                                  OverlapScheduler& ov_scheduler,
+                                  int max_num_threadblocks = INT_MAX)
 {
 
   // Declare/allocate device buffer for accumulating summary information about feedback
   cuda_utilities::DeviceVector<Real> d_info(feedinfoLUT::LEN, true);  // initialized to 0
-
-  // initialize OverlapScheduler
-  OverlapScheduler ov_scheduler{};
 
   // do some work to configure the grid-size (i.e. the number of thread-blocks per grid)
   // - since the kernel uses grid-wide synchronizations, some care needs to be taken to ensure 
@@ -506,9 +510,10 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
   const dim3 dimBlock(threads_per_block, 1, 1);
 
   static dim3 dimGrid;
-  static bool configured_dimBlock = false;
-  if (not configured_dimBlock) {
-    configured_dimBlock = true;
+  static int last_max_num_threadblocks = 0;
+  CHOLLA_ASSERT(max_num_threadblocks > 0, "max_num_threadblocks must be positive!");
+  if (last_max_num_threadblocks != max_num_threadblocks) {
+    last_max_num_threadblocks = max_num_threadblocks;
 
     int dev = 0;
     int supportsCoopLaunch = 0;
@@ -521,7 +526,8 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
     cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, Cluster_Feedback_Kernel<FeedbackModel>,
                                                   threads_per_block, dynamic_shared_mem_per_block);
 
-    dimGrid = dim3(deviceProp.multiProcessorCount*numBlocksPerSm, 1, 1);
+    dimGrid = dim3(std::min(deviceProp.multiProcessorCount*numBlocksPerSm, max_num_threadblocks), 
+                   1, 1);
   }
 
   Real* d_info_ptr = d_info.data();
