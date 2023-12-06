@@ -54,9 +54,9 @@ struct ResolvedSNPrescription{
                                Real* conserved_device, Real feedback_density, Real feedback_energy)
   {
     Real* density    = conserved_device;
-    //Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
-    //Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
-    //Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
+    Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
+    Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
+    Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
     Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
 #ifdef DE
     Real* gasEnergy  = &conserved_device[n_cells * grid_enum::GasEnergy];
@@ -68,8 +68,8 @@ struct ResolvedSNPrescription{
         // stencil_vol_frac is the fraction of the total stencil volume enclosed by the given cell
         // indx3D can be used to index the conserved fields (it assumes ghost-zones are present)
 
-# if 0
-        Real initial_density = density[idx3D];
+# if 1
+        //Real initial_density = density[idx3D];
 
         // Step 1: substract off the kinetic-energy-density from total energy density.
         //  - While we aren't going to inject any of the supernova energy directly as kinetic energy,

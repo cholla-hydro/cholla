@@ -1017,7 +1017,7 @@ void check_equality(FeedbackResults& rslt_actual, FeedbackResults& rslt_ref)
     auto compare = [&](int field_index, const std::string& name) {
       std::size_t field_offset = extent.nx*extent.ny*extent.nz;
 
-      std::string err_msg = "problem comparing the particle property: " + name;
+      std::string err_msg = "problem comparing the field: " + name;
 
       assert_allclose(actual_data.data() + field_offset * field_index,
                       ref_data.data() + field_offset * field_index,
@@ -1040,16 +1040,16 @@ TEST(tALLFeedbackFullCiC, CheckingOverlapStrat)
   const Real dx = 1.0 / 256.0;
   const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
 
-  // initialize 10 star particles directly atop each other
-  const std::vector<Arr3<Real>> particle_pos_vec(30, {2.4 *dx, 2.4 *dx, 2.4 *dx});
+  // initialize 50 star particles directly atop each other
+  const std::vector<Arr3<Real>> particle_pos_vec(50, {2.4 *dx, 2.4 *dx, 2.4 *dx});
 
   // Get the reference answer - here we sequentially launch one kernel after to handle feedback of 
   // each individual particle
   FeedbackResults rslt_ref = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
                                                 feedback_details::OverlapStrat::ignore,
                                                 true);
-  //rslt_reference.test_field_data.print_debug_info();
-  //rslt_reference.test_particle_data.print_debug_info();
+  //rslt_ref.test_field_data.print_debug_info();
+  //rslt_ref.test_particle_data.print_debug_info();
 
   printf("Now looking at the OverlapStrat::sequential approach:\n");
   FeedbackResults rslt_actual = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
