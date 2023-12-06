@@ -15,6 +15,8 @@
 #include <climits>
 #include <cooperative_groups.h>
 
+#include <type_traits>
+
 #define TPB_FEEDBACK 128
 
 // STENCIL OVERLAPS
@@ -70,12 +72,59 @@
 // The following definitions are only in a header file to simplify testing.
 namespace feedback_details{
 
-inline __device__ void Ptr_Swap(part_int_t*& a, part_int_t*& b)
-{
-  part_int_t* tmp = a;
-  a = b;
-  b = tmp;
-}
+// this is a temporary class meant to mimic shared_ptr. Longer term, I plan to use a class that mimics shared_ptr
+// - the ideology of a unique-ptr existing both on the host and a device is a little weird - but it is sound as
+//   long as the unique-ptr itself does not persist on the device outside of kernel calls (of course the data 
+//   unique-ptr can/will persist on the device for longer periods of time)
+template <typename T>
+class SimpleUniqueDevPtr {
+  static_assert(std::is_trivially_copyable_v<T> and (!std::is_pointer_v<T>) and (!std::is_reference_v<T>));
+  T* ptr_;
+
+public:
+  /* default constructor. Makes an empty shared pointer */
+  __host__ __device__ SimpleUniqueDevPtr() : ptr_(nullptr) {}
+  __host__ __device__ SimpleUniqueDevPtr(std::nullptr_t) : SimpleUniqueDevPtr() {}
+
+  /* Allocates a new unique pointer that holds ``count`` entries of ``T`` */
+  __host__ SimpleUniqueDevPtr(std::size_t count) {
+    CHOLLA_ASSERT(count > 0, "count must be a positive integer");
+    CudaSafeCall(cudaMalloc(&ptr_, count * sizeof(T)));
+  }
+
+  /* destructor. The memory is only deallocated when this is executed on the host */
+  __host__ __device__ ~SimpleUniqueDevPtr() {
+#if !( (defined(_​_HIP_​DEVICE_​COMPILE_​_) && defined(O_HIP)) || (defined(__CUDA_ARCH__) && !defined(O_HIP)) )
+    CHECK(cudaDeviceSynchronize());  // ensure we can't deallocate a ptr that a kernel is currently using
+    if (ptr_ != nullptr) CHECK(cudaFree(ptr_));
+#endif
+  }
+
+  SimpleUniqueDevPtr(const SimpleUniqueDevPtr<T>&) = delete;
+  SimpleUniqueDevPtr<T>& operator=(const SimpleUniqueDevPtr<T>&) = delete;
+  SimpleUniqueDevPtr(SimpleUniqueDevPtr<T>&& other) : ptr_(other.ptr_) { other.ptr_ = nullptr; }
+  SimpleUniqueDevPtr<T>& operator=(SimpleUniqueDevPtr<T>&& other) { this->swap(other); return *this; }
+
+  /* array-element-access of the underlying pointer (invokes undefined behavior when ``this`` is empty) */
+  __device__ __forceinline__ T& operator[](std::ptrdiff_t idx) const noexcept { return ptr_[idx]; }
+
+  /* dereference the stored pointer (invokes undefined behavior when ``this`` is empty) */
+  __device__ __forceinline__ T& operator*() const noexcept { return *ptr_; }
+
+  /* accessor-method that retrieves the stored pointer */
+  __host__ __device__ __forceinline__ T* get() const noexcept { return ptr_; }
+
+  /* Provides support for checking whether ``this`` is empty. */
+  __host__ __device__ __forceinline__ explicit operator bool() const noexcept { return ptr_ != nullptr; }
+
+  /* swap the contents of ``this`` with ``other`` */
+  __host__ __device__ void swap(SimpleUniqueDevPtr<T>& other) noexcept {
+    T* tmp      = this->ptr_;
+    this->ptr_ = other.ptr_;
+    other.ptr_ = tmp;
+  }
+
+};
 
 /* Specifies the stategy for handling star-particles with overlapping stencils */
 enum struct OverlapStrat {
@@ -136,8 +185,8 @@ private:
    * the current pass and the values of nextPass_mask_ are updated to help which particles can have their feedback applied in
    * a future cycle.
    */
-  part_int_t* curPass_mask_  = nullptr;
-  part_int_t* nextPass_mask_ = nullptr;
+  SimpleUniqueDevPtr<part_int_t> curPass_mask_  = nullptr;
+  SimpleUniqueDevPtr<part_int_t> nextPass_mask_ = nullptr;
   ///@}
 
   /* pointer to a global memory address that is used to track whether there are any particles with pending feedback that
@@ -147,7 +196,7 @@ private:
    * with pending feedback are encountered that must be handled in a future "pass"). If this has a non-zero value at the end of a
    * given "pass", then another "pass" is required.
    */
-  part_int_t* any_pending_particles_ = nullptr;
+  SimpleUniqueDevPtr<int> any_pending_particles_;
 
 public:
   /* the default value stored in a "mask".
@@ -176,7 +225,6 @@ public:
    * class. It manages the lifetime of the pointers used by this class.
    */
   __host__ OverlapScheduler(OverlapStrat strat,
-                            cuda_utilities::DeviceVector<part_int_t>& data_storage,
                             int ng_x, int ng_y, int ng_z)
   : OverlapScheduler()
   {
@@ -193,13 +241,11 @@ public:
         this->any_pending_particles_ = nullptr;
         break;
       case OverlapStrat::sequential:
-        // we may want to slightly over-allocate to ensure some particular alignments...
-        data_storage.reset(1 + 2 * mask_size);
         this->pass_count_            = 0;
         this->mask_size_             = mask_size;
-        this->curPass_mask_          = data_storage.data();
-        this->nextPass_mask_         = this->curPass_mask_ + mask_size;
-        this->any_pending_particles_ = this->nextPass_mask_ + mask_size;
+        this->curPass_mask_          = SimpleUniqueDevPtr<part_int_t>(mask_size);
+        this->nextPass_mask_         = SimpleUniqueDevPtr<part_int_t>(mask_size);
+        this->any_pending_particles_ = SimpleUniqueDevPtr<int>(1);
         break;
     }
   }
@@ -220,7 +266,7 @@ public:
       // in the above operation, it should't logically matter whether one or more thread modifies
       // any_pending_particles_'s contents (but I suspect that it may affect performance)
 
-      OverlapScheduler::clear_mask(this->nextPass_mask_, this->mask_size_);
+      OverlapScheduler::clear_mask(this->nextPass_mask_.get(), this->mask_size_);
 
       g.sync(); // this sync is required to ensure that all threads across the grid are done 
                 // clearing the mask (before we start mutating the mask)
@@ -264,8 +310,8 @@ public:
     this->pass_count_++;
 
     // Finally prepare the masks for the next loop
-    Ptr_Swap(this->curPass_mask_, this->nextPass_mask_);
-    OverlapScheduler::clear_mask(this->nextPass_mask_, this->mask_size_);
+    this->curPass_mask_.swap(this->nextPass_mask_);
+    OverlapScheduler::clear_mask(this->nextPass_mask_.get(), this->mask_size_);
 
     g.sync(); // this last sync is required to make sure all threads across the grid are done clearing
               // the mask (before we start mutating the mask)
@@ -286,10 +332,10 @@ public:
     if (strat_ == OverlapStrat::ignore) return;
 
     // record that a pass is necessary
-    atomicMax((long long int*)(this->any_pending_particles_), 1ll);
+    atomicMax(this->any_pending_particles_.get(), 1);
 
     static_assert(sizeof(long long int) == sizeof(part_int_t));
-    long long int* mask = (long long int*)(this->nextPass_mask_);
+    long long int* mask = (long long int*)(this->nextPass_mask_.get());
 	  p.for_each_possible_overlap(
 	    pos_indU[0], pos_indU[1], pos_indU[2], ng_x, ng_y,
       [mask, particle_id](Real dummy_arg, int ind3d) -> void {atomicMin(mask + ind3d, particle_id);}
@@ -311,7 +357,7 @@ public:
 
     // retrieve the minimum particle_id in the current zone
     part_int_t min_id = OverlapScheduler::DFLT_VAL;
-    part_int_t* mask = this->curPass_mask_;
+    part_int_t* mask = this->curPass_mask_.get();
 
     p.for_each_possible_overlap(
       pos_indU[0], pos_indU[1], pos_indU[2], ng_x, ng_y,
@@ -323,9 +369,7 @@ public:
 	  } else if (particle_id == min_id) {  // feedback is scheduled for current "pass"
       return true;
     } else {                             // particle feedback scheduled for future "pass"
-      // record that another pass is necessary
-      atomicMax((long long int*)(this->any_pending_particles_), 1ll);
-      // prepare the mask for the next pass
+      // record that another pass is necessary & prepare the mask for the next pass
       Register_Pending_Particle_Feedback(p, particle_id, pos_indU, ng_x, ng_y);
       return false;
     }

@@ -954,9 +954,7 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
                                                  0.1,  // length of current timestep 
                                                  1};   // the current cycle-number
 
-  cuda_utilities::DeviceVector<part_int_t> temp_dev_vec(1);
-  feedback_details::OverlapScheduler ov_scheduler(ov_strat, temp_dev_vec, 
-                                                  spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g);
+  feedback_details::OverlapScheduler ov_scheduler(ov_strat, spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g);
 
   if (separate_launch_per_particle) {
     // actually execute feedback

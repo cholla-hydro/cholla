@@ -6,6 +6,7 @@
 
   #include <cstring>
   #include <fstream>
+  #include <memory>
   #include <sstream>
   #include <vector>
 
@@ -72,9 +73,11 @@ namespace { // anonymous namespace
 template<typename FeedbackModel>
 struct ClusterFeedbackMethod {
 
+  ClusterFeedbackMethod() = delete;
+
   ClusterFeedbackMethod(FeedbackAnalysis& analysis, bool use_snr_calc, feedback::SNRateCalc snr_calc)
-    : analysis(analysis), use_snr_calc_(use_snr_calc), snr_calc_(snr_calc)
-{ }
+    : analysis(analysis), use_snr_calc_(use_snr_calc), snr_calc_(snr_calc), lazy_ov_scheduler_(nullptr)
+  { }
 
   /* Actually apply the stellar feedback (SNe and stellar winds) */
   void operator() (Grid3D& G);
@@ -86,6 +89,8 @@ private: // attributes
    * supernova during the very first cycle and then never have a supernova again. */
   const bool use_snr_calc_;
   feedback::SNRateCalc snr_calc_;
+  /* Handles the scheduling of feedback from separate particles with overlapping stencils (lazily initialized) */
+  std::shared_ptr<feedback_details::OverlapScheduler> lazy_ov_scheduler_;
 };
 
 } // close anonymous namespace
@@ -162,11 +167,14 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
       }
     }
 
-    // initialize OverlapScheduler (TODO: allow better conrtol over initialization)
-    feedback_details::OverlapScheduler ov_scheduler{};
+    if (lazy_ov_scheduler_.get() == nullptr) {
+      lazy_ov_scheduler_ = std::make_shared<feedback_details::OverlapScheduler>(
+        feedback_details::OverlapStrat::sequential,
+        spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g);
+    }
 
     feedback_details::Exec_Cluster_Feedback_Kernel<FeedbackModel>(
-      particle_props, spatial_props, cycle_props, h_info, G.C.d_density, d_num_SN.data(), ov_scheduler
+      particle_props, spatial_props, cycle_props, h_info, G.C.d_density, d_num_SN.data(), *lazy_ov_scheduler_
     );
   }
 
