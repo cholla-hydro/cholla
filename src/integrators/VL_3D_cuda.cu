@@ -332,9 +332,11 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   #endif  // TEMPERATURE_FLOOR
 
   #ifdef SCALAR_FLOOR
+  #ifdef DUST
   hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
-                     grid_enum::dust_density, 1e-5);
+                     grid_enum::dust_density, 1e-10);
   CudaCheckError();
+  #endif
   #endif  // SCALAR_FLOOR
 
   return;

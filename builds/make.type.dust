@@ -9,7 +9,7 @@ MPI_GPU   ?=
 DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMC
+DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
 
 # DFLAGS    += -DDE
@@ -30,8 +30,11 @@ DFLAGS += -DSCALAR
 # Define dust macro
 DFLAGS += -DDUST
 
+DFLAGS += -DSCALAR_FLOOR
+
 # Apply the cooling in the GPU from precomputed tables
 DFLAGS += -DCOOLING_GPU
+DFLAGS += -DCLOUDY_COOLING
 
 #Measure the Timing of the different stages
 #DFLAGS += -DCPU_TIME
