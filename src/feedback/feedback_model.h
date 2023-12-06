@@ -68,9 +68,6 @@ struct ResolvedSNPrescription{
         // stencil_vol_frac is the fraction of the total stencil volume enclosed by the given cell
         // indx3D can be used to index the conserved fields (it assumes ghost-zones are present)
 
-# if 1
-        //Real initial_density = density[idx3D];
-
         // Step 1: substract off the kinetic-energy-density from total energy density.
         //  - While we aren't going to inject any of the supernova energy directly as kinetic energy,
         //    the kinetic energy density will change to some degree because the gas density and gas
@@ -105,14 +102,6 @@ struct ResolvedSNPrescription{
         energy[idx3D] += 0.5 * (momentum_x[idx3D] * momentum_x[idx3D] +
                                 momentum_y[idx3D] * momentum_y[idx3D] +
                                 momentum_z[idx3D] * momentum_z[idx3D]) / density[idx3D];
-
-#else
-        atomicAdd(&density[idx3D], stencil_vol_frac * feedback_density);
-  #ifdef DE
-        atomicAdd(&gasEnergy[idx3D], stencil_vol_frac * feedback_energy);
-  #endif
-        atomicAdd(&energy[idx3D], stencil_vol_frac * feedback_energy);
-#endif
       }
     );
   }
