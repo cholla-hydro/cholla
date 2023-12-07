@@ -839,6 +839,7 @@ __global__ void Select_Internal_Energy_1D(Real *dev_conserved, int nx, int n_gho
   int imo, ipo;
   n_cells = nx;
 
+  Real eta_1 = DE_ETA_1;
   Real eta_2 = DE_ETA_2;
 
   // get a global thread ID
@@ -864,7 +865,10 @@ __global__ void Select_Internal_Energy_1D(Real *dev_conserved, int nx, int n_gho
     Emax = fmax(dev_conserved[4 * n_cells + imo], E);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + ipo]);
 
-    if (U_total / Emax > eta_2) {
+    // We only use the "advected" internal energy if both:
+    // - the thermal energy divided by total energy is a small fraction (smaller than eta_1)
+    // - AND we aren't masking shock heating (details controlled by Emax & eta_2)
+    if ((U_total / E > eta_1) or (U_total / Emax > eta_2)) {
       U = U_total;
     } else {
       U = U_advected;
@@ -887,6 +891,7 @@ __global__ void Select_Internal_Energy_2D(Real *dev_conserved, int nx, int ny, i
   int imo, ipo, jmo, jpo;
   n_cells = nx * ny;
 
+  Real eta_1 = DE_ETA_1;
   Real eta_2 = DE_ETA_2;
 
   // get a global thread ID
@@ -922,7 +927,10 @@ __global__ void Select_Internal_Energy_2D(Real *dev_conserved, int nx, int ny, i
     Emax = fmax(Emax, dev_conserved[4 * n_cells + jmo]);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + jpo]);
 
-    if (U_total / Emax > eta_2) {
+    // We only use the "advected" internal energy if both:
+    // - the thermal energy divided by total energy is a small fraction (smaller than eta_1)
+    // - AND we aren't masking shock heating (details controlled by Emax & eta_2)
+    if ((U_total / E > eta_1) or (U_total / Emax > eta_2)) {
       U = U_total;
     } else {
       U = U_advected;
@@ -945,6 +953,7 @@ __global__ void Select_Internal_Energy_3D(Real *dev_conserved, int nx, int ny, i
   int imo, ipo, jmo, jpo, kmo, kpo;
   n_cells = nx * ny * nz;
 
+  Real eta_1 = DE_ETA_1;
   Real eta_2 = DE_ETA_2;
 
   // get a global thread ID
@@ -987,7 +996,10 @@ __global__ void Select_Internal_Energy_3D(Real *dev_conserved, int nx, int ny, i
     Emax = fmax(Emax, dev_conserved[4 * n_cells + kmo]);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + kpo]);
 
-    if (U_total / Emax > eta_2) {
+    // We only use the "advected" internal energy if both:
+    // - the thermal energy divided by total energy is a small fraction (smaller than eta_1)
+    // - AND we aren't masking shock heating (details controlled by Emax & eta_2)
+    if ((U_total / E > eta_1) or (U_total / Emax > eta_2)) {
       U = U_total;
     } else {
       U = U_advected;
