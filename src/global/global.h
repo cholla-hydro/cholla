@@ -308,9 +308,9 @@ struct Parameters {
   #endif
 #endif
 #ifdef SCALAR
-#ifdef DUST
-Real grain_radius;
-#endif
+  #ifdef DUST
+  Real grain_radius;
+  #endif
 #endif
 };
 

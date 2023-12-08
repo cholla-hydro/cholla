@@ -268,11 +268,11 @@ struct Header {
    * (Restart File ) */
   bool Output_Complete_Data;
 
-  #ifdef SCALAR
+#ifdef SCALAR
   #ifdef DUST
-    Real grain_radius;
+  Real grain_radius;
   #endif
-  #endif
+#endif
 };
 
 /*! \class Grid3D

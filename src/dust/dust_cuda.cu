@@ -25,17 +25,20 @@
   #include "../utils/gpu.hpp"
   #include "../utils/hydro_utilities.h"
 
-void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real grain_radius)
+void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma,
+                 Real grain_radius)
 {
   int n_cells = nx * ny * nz;
   int ngrid   = (n_cells + TPB - 1) / TPB;
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(Dust_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gamma, grain_radius);
+  hipLaunchKernelGGL(Dust_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gamma,
+                     grain_radius);
   CudaCheckError();
 }
 
-__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real grain_radius)
+__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma,
+                            Real grain_radius)
 {
   // get grid indices
   int n_cells = nx * ny * nz;
@@ -99,8 +102,8 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     // if dual energy is turned on use temp from total internal energy
     temperature = temperature_init;
 
-    Real tau_sp =
-        Calc_Sputtering_Timescale(number_density, temperature, grain_radius) / TIME_UNIT;  // sputtering timescale, kyr (sim units)
+    Real tau_sp = Calc_Sputtering_Timescale(number_density, temperature, grain_radius) /
+                  TIME_UNIT;  // sputtering timescale, kyr (sim units)
 
     dd_dt = Calc_dd_dt(density_dust, tau_sp);  // rate of change in dust density at current timestep
     dd    = dd_dt * dt;                        // change in dust density at current timestep

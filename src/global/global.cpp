@@ -422,12 +422,12 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     strncpy(parms->skewersdir, value, MAXLEN);
   #endif
 #endif
-  #ifdef SCALAR
-    #ifdef DUST
+#ifdef SCALAR
+  #ifdef DUST
   } else if (strcmp(name, "grain_radius") == 0) {
     parms->grain_radius = atoi(value);
-    #endif
   #endif
+#endif
   } else if (!Is_Param_Valid(name)) {
     chprintf("WARNING: %s/%s: Unknown parameter/value pair!\n", name, value);
   }

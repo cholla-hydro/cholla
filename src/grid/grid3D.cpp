@@ -275,9 +275,9 @@ void Grid3D::Initialize(struct Parameters *P)
 #endif
 
 #ifdef SCALAR
-#ifdef DUST
+  #ifdef DUST
   H.grain_radius = P->grain_radius;
-#endif
+  #endif
 #endif
 
   H.Output_Initial = true;
