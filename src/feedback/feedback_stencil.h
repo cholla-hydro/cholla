@@ -168,6 +168,101 @@ struct CIC {
 
 };
 
+
+// Define the legacy stencil previously used for feedback with momentum deposition
+//
+// I don't totally understand the logic (other than the fact that it uses 27-Cell CIC stencil).
+// It has some quirks. Including the fact that the amount of scalar deposition is directly related
+// to the magnitude of the vector.
+
+/** the prescription for dividing a scalar quantity between 3x3x3 cells is done
+   by imagining a 2x2x2 cell volume around the SN.  These fractions, then,
+   represent the linear extent of this volume into the cell in question. For i=0
+   this should be 1*1/2. For i=-1 this should be (1-dx)*1/2. For i=+1 this
+   should be dx*1/2. In the above the 1/2 factor is normalize over 2
+   cells/direction.
+  */
+inline __device__ Real Frac(int i, Real dx) { return (-0.5 * i * i - 0.5 * i + 1 + i * dx) * 0.5; }
+
+inline __device__ Real D_Frac(int i, Real dx)
+{
+  return (dx > 0.5) * i * (1 - 2 * dx) + ((i + 1) * dx + 0.5 * (i - 1)) - 3 * (i - 1) * (i + 1) * (0.5 - dx);
+}
+
+struct LegacyCIC27 {
+
+  int n_ghost;
+
+  /* excute f at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
+   *
+   * The function should expect 3 arguments (it's not totally clear to what the first 2 arguments truly "mean",
+   * but they are used similarly to the corresponding arguments passed by other kernels' for_each_vecflavor): 
+   *   1. ``scalar_weight``: multiply this by the scalar to determine how much scalar to inject
+   *   2. ``vec_comp_factor``: multiply each by a momentumvelocity component to get the amount of momentum to inject.
+   *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
+   */
+  template<typename Function>
+  __device__ void for_each_vecflavor(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f) const
+  {
+    const Real pos_x_indU = pos_indU[0];
+    const Real pos_y_indU = pos_indU[1];
+    const Real pos_z_indU = pos_indU[2];
+
+    int indx_x = (int)floor(pos_x_indU - n_ghost);
+    int indx_y = (int)floor(pos_y_indU - n_ghost);
+    int indx_z = (int)floor(pos_z_indU - n_ghost);
+
+    Real delta_x = (pos_x_indU - n_ghost) - indx_x;
+    Real delta_y = (pos_y_indU - n_ghost) - indx_y;
+    Real delta_z = (pos_z_indU - n_ghost) - indx_z;
+
+    // loop over the 27 cells to add up all the allocated feedback
+    // momentum magnitudes.  For each cell allocate density and
+    // energy based on the ratio of allocated momentum to this overall sum.
+    Real mag = 0;
+    for (int i = -1; i < 2; i++) {
+      for (int j = -1; j < 2; j++) {
+        for (int k = -1; k < 2; k++) {
+          Real x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
+          Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
+          Real z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
+
+          mag += sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac);
+        }
+      }
+    }
+
+    for (int i = -1; i < 2; i++) {
+      for (int j = -1; j < 2; j++) {
+        for (int k = -1; k < 2; k++) {
+          // index in array of conserved quantities
+          int indx = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
+
+          Real x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
+          Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
+          Real z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
+          Real scalar_weight = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) / mag;
+          Arr3<Real> momentum_weights{x_frac, y_frac, z_frac};
+
+          f(scalar_weight, momentum_weights, indx);
+
+        }  // k loop
+      }    // j loop
+    }      // i loop
+
+  }
+
+};
+
+
+
+
+
+
+
+
+
+
 /* Represents a sphere. This is used to help implement stencils. */
 struct SphereObj{
 
