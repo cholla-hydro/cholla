@@ -191,7 +191,7 @@ inline __device__ Real D_Frac(int i, Real dx)
 
 struct LegacyCIC27 {
 
-  int n_ghost;
+  int n_ghost; // TODO: remove this - it's entirely unnecessary, only here for historical reasons
 
   /* excute f at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
    *
@@ -435,6 +435,8 @@ public:  // interface
  */
 template<int Log2DivsionsPerAx_PerCell = 2>
 struct Sphere27 {
+ 
+  int dummy_attr; // ugly hack to allow swapping between different kernels for momentum-based feedback
 
   static_assert((Log2DivsionsPerAx_PerCell >= 0) and (Log2DivsionsPerAx_PerCell <= 5),
                 "Log2DivsionsPerAx_PerCell must be a non-negative integer. It also can't exceed 5 "

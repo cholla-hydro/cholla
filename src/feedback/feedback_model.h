@@ -161,6 +161,7 @@ inline __device__ void Set_Average_Density(int indx_x, int indx_y, int indx_z, i
  * - this requires the codebase to be compiled with the dual energy formalism
  * - momentum and total energy are not updated self-consistently
  */
+template <typename Stencil>
 inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
                                                         Real vel_x, Real vel_y, Real vel_z,
                                                         int nx_g, int ny_g, int n_ghost,
@@ -177,7 +178,7 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
   Real* gas_energy = &conserved_device[n_cells * grid_enum::GasEnergy];
 #endif
 
-  fb_stencil::LegacyCIC27 stencil{n_ghost};
+  [[maybe_unused]] const Stencil stencil{n_ghost};
 
   stencil.for_each_vecflavor(
     {pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
@@ -343,8 +344,8 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
 */
 
 /* Legacy SNe prescription that combines resolved and unresolved */
-template<typename ResolvedPrescriptionT>
-struct LegacySNe {
+template<typename ResolvedPrescriptionT, typename UnresolvedStencil>
+struct ResolvedAndUnresolvedSNe {
 
   template<typename Function>
   static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
@@ -419,12 +420,17 @@ struct LegacySNe {
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  += num_SN;
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    += feedback_momentum * dV * sqrt(3.0);
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] += feedback_energy * dV;
-      Apply_Energy_Momentum_Deposition(
+      Apply_Energy_Momentum_Deposition<UnresolvedStencil>(
           pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
           feedback_density, feedback_momentum, feedback_energy);
     }
   }
 };
+
+using CiCLegacyResolvedAndUnresolvedPrescription = ResolvedAndUnresolvedSNe<CiCResolvedSNPrescription, fb_stencil::LegacyCIC27>;
+
+// this is weird hybrid-case (mostly here for debugging)
+using HybridResolvedAndUnresolvedPrescription = ResolvedAndUnresolvedSNe<CiCResolvedSNPrescription, fb_stencil::Sphere27<2>>;
 
 /*
 inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real& mass_ref, part_int_t particle_id,
