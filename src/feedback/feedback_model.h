@@ -114,20 +114,6 @@ using Sphere27ResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::Sphere
 
 using SphereBinaryResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::SphereBinary<3>>;
 
-/** the prescription for dividing a scalar quantity between 3x3x3 cells is done
-   by imagining a 2x2x2 cell volume around the SN.  These fractions, then,
-   represent the linear extent of this volume into the cell in question. For i=0
-   this should be 1*1/2. For i=-1 this should be (1-dx)*1/2. For i=+1 this
-   should be dx*1/2. In the above the 1/2 factor is normalize over 2
-   cells/direction.
-  */
-inline __device__ Real Frac(int i, Real dx) { return (-0.5 * i * i - 0.5 * i + 1 + i * dx) * 0.5; }
-
-inline __device__ Real D_Frac(int i, Real dx)
-{
-  return (dx > 0.5) * i * (1 - 2 * dx) + ((i + 1) * dx + 0.5 * (i - 1)) - 3 * (i - 1) * (i + 1) * (0.5 - dx);
-}
-
 inline __device__ Real Get_Average_Density(Real* density, int xi, int yi, int zi, int nx_grid, int ny_grid, int n_ghost)
 {
   Real d_average = 0.0;
@@ -180,6 +166,54 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
                                                         Real feedback_density, Real feedback_momentum, Real feedback_energy)
 {
 
+  Real* density    = conserved_device;
+  Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
+  Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
+  Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
+  Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
+#ifdef DE
+  Real* gas_energy = &conserved_device[n_cells * grid_enum::GasEnergy];
+#endif
+
+  fb_stencil::LegacyCIC27 stencil{n_ghost};
+
+  stencil.for_each_vecflavor(
+    {pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
+    [=](Real scalar_weight, Arr3<Real> momentum_weights, int indx) {
+
+      Real px       = momentum_weights[0] * feedback_momentum;
+      Real py       = momentum_weights[1] * feedback_momentum;
+      Real pz       = momentum_weights[2] * feedback_momentum;
+      Real f_dens   = scalar_weight * feedback_density;
+      Real f_energy = scalar_weight * feedback_energy;
+
+      atomicAdd(&density[indx], f_dens);
+      atomicAdd(&momentum_x[indx], px);
+      atomicAdd(&momentum_y[indx], py);
+      atomicAdd(&momentum_z[indx], pz);
+      atomicAdd(&energy[indx], f_energy);
+
+#ifdef DE
+      gas_energy[indx] = energy[indx] - (momentum_x[indx] * momentum_x[indx] + momentum_y[indx] * momentum_y[indx] +
+                                         momentum_z[indx] * momentum_z[indx]) /
+                                            (2 * density[indx]);
+#endif
+        
+        //energy[indx] = ( momentum_x[indx] * momentum_x[indx] +
+        //                 momentum_y[indx] * momentum_y[indx] +
+        //                 momentum_z[indx] * momentum_z[indx] ) /
+        //               2 / density[indx] + gasEnergy[indx];
+    }
+  );
+}
+
+
+/*
+inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, int nx_g, int ny_g, int n_ghost,
+                                                        int n_cells, Real* conserved_device,
+                                                        Real feedback_density, Real feedback_momentum, Real feedback_energy)
+{
+
   int indx_x = (int)floor(pos_x_indU - n_ghost);
   int indx_y = (int)floor(pos_y_indU - n_ghost);
   int indx_z = (int)floor(pos_z_indU - n_ghost);
@@ -204,9 +238,9 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
   for (int i = -1; i < 2; i++) {
     for (int j = -1; j < 2; j++) {
       for (int k = -1; k < 2; k++) {
-        Real x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
-        Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
-        Real z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
+        Real x_frac = fb_stencil::D_Frac(i, delta_x) * fb_stencil::Frac(j, delta_y) * fb_stencil::Frac(k, delta_z);
+        Real y_frac = fb_stencil::Frac(i, delta_x) * fb_stencil::D_Frac(j, delta_y) * fb_stencil::Frac(k, delta_z);
+        Real z_frac = fb_stencil::Frac(i, delta_x) * fb_stencil::Frac(j, delta_y) * fb_stencil::D_Frac(k, delta_z);
 
         mag += sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac);
       }
@@ -219,9 +253,9 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
         // index in array of conserved quantities
         int indx = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
 
-        Real x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
-        Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
-        Real z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
+        Real x_frac = fb_stencil::D_Frac(i, delta_x) * fb_stencil::Frac(j, delta_y) * fb_stencil::Frac(k, delta_z);
+        Real y_frac = fb_stencil::Frac(i, delta_x) * fb_stencil::D_Frac(j, delta_y) * fb_stencil::Frac(k, delta_z);
+        Real z_frac = fb_stencil::Frac(i, delta_x) * fb_stencil::Frac(j, delta_y) * fb_stencil::D_Frac(k, delta_z);
 
         Real px       = x_frac * feedback_momentum;
         Real py       = y_frac * feedback_momentum;
@@ -240,16 +274,16 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
                                            momentum_z[indx] * momentum_z[indx]) /
                                               (2 * density[indx]);
 #endif
-        /*
-        energy[indx] = ( momentum_x[indx] * momentum_x[indx] +
-                         momentum_y[indx] * momentum_y[indx] +
-                         momentum_z[indx] * momentum_z[indx] ) /
-                       2 / density[indx] + gasEnergy[indx];
-        */
+
+        //energy[indx] = ( momentum_x[indx] * momentum_x[indx] +
+        //                 momentum_y[indx] * momentum_y[indx] +
+        //                 momentum_z[indx] * momentum_z[indx] ) /
+        //               2 / density[indx] + gasEnergy[indx];
       }  // k loop
     }    // j loop
   }      // i loop
 }
+*/
 
 /* Legacy SNe prescription that combines resolved and unresolved */
 template<typename ResolvedPrescriptionT>
