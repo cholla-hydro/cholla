@@ -274,6 +274,12 @@ void Grid3D::Initialize(struct Parameters *P)
   H.OUTPUT_SCALE_FACOR = not(P->scale_outputs_file[0] == '\0');
 #endif
 
+#ifdef SCALAR
+#ifdef DUST
+  H.grain_radius = P->grain_radius;
+#endif
+#endif
+
   H.Output_Initial = true;
 }
 
@@ -494,7 +500,7 @@ Real Grid3D::Update_Grid(void)
 
   #ifdef DUST
   // ==Apply dust from dust/dust_cuda.h==
-  Dust_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
+  Dust_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, H.grain_radius);
   #endif  // DUST
 
   // Update the H and He ionization fractions and apply cooling and photoheating
