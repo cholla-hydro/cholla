@@ -187,14 +187,14 @@ public:  // interface
   }
 
   /* returns the count of the number of super-sampled points within a cell that correspond to integer indices of
-   * (cell_idx_y, cell_idx_y, cell_idx_z).
+   * (cell_idx_x, cell_idx_y, cell_idx_z).
    *
    *  \tparam Log2DivsionsPerAx parameterizes the amount of super-sampling. The super-sampling algorithm checks
-   *       ``2^Log2DivsionsPerAx`` equidistant points along each axis of the algorithm. In other words, this 
+   *       ``2^Log2DivsionsPerAx`` equidistant points along each axis of the algorithm. In other words, this
    *       can return a max value of ``2^(Log2DivsionsPerAx_PerCell*3)``.
    *
    * \note
-   * In the context of this function, integer indices specify the left edge of a cell. An integer index + 0.5 
+   * In the context of this function, integer indices specify the left edge of a cell. An integer index + 0.5
    * specifies the center of a cell.
    *
    * \note
@@ -233,6 +233,100 @@ public:  // interface
 
     return count;
   }
+
+  /* Estimates the volume integral over the overlapping region of a cell of the radial unit-vector measured from
+   * ``ref_pos_IndU``. Specifically, the cell corresponds to integer indices of (cell_idx_x, cell_idx_y, cell_idx_z)
+   * and the integral makes use of super-sampling.
+   *
+   * The result has units of subcell-volume. To convert it to units of cell-volume multiply by `pow(2,-3*Log2DivsionsPerAx)`
+   *
+   * In more detail, The evaluated integral looks like:
+   * \f[
+   *   \hat{x}\int (\hat{x} \cdot\hat{r})\  dV_{\rm cell} + \hat{y}\int (\hat{y} \cdot\hat{r})\  dV_{\rm cell} + 
+   *   \hat{z}\int (\hat{z} \cdot\hat{r})\  dV_{\rm cell}
+   * \f]
+   * Where the bounds of the integral are understood to only include the portion of the region of the specified sphere
+   * that overlaps with the sphere. Additionally, \f$ \hat{r} \f$ is the radial unit vector measured after transforming
+   * the coordinate-system so that the origin coincides with the ``ref_pos_IndU`` argument.
+   *
+   * The calculation makes 2 assumptions:
+   *   1. We assume that subcells are either entirely enclosed by the sphere or aren't enclosed at all
+   *   2. Throughout a given subcell, \f$ \hat{r} \f$ is constant; it's equal to the value at the center of the subcell.
+   *      (Note: it would be possible to avoid assumption. There is an exact analytic solution, it's just very involved).
+   *
+   * Under these assumptions the evaluated integral becomes:
+   * \f[
+   *   V_{\rm subcell}\sum_{ijk}^{\rm subcells} \frac{W_{ijk} (x_i \hat{x} + y_j \hat{y} + z_k\hat{z})}{r_{ijk}}
+   * \f]
+   * where the subscripted variables are computed at the center of each subcell. \f$ W_{ijk} \f$ has a 
+   * value of 1 for subcells whose centers lie within the sphere and are zero in other cases
+   *
+   *  \tparam Log2DivsionsPerAx parameterizes the amount of super-sampling. The super-sampling algorithm checks
+   *       ``2^Log2DivsionsPerAx`` equidistant points along each axis of the algorithm. In other words, this 
+   *       can return a max value of ``2^(Log2DivsionsPerAx_PerCell*3)``.
+   *
+   * \note
+   * In the context of this function, integer indices specify the left edge of a cell. An integer index + 0.5 
+   * specifies the center of a cell.
+   *
+   * \note
+   * None of the super-samples are placed on the edges of the cells.
+   */
+  template<int Log2DivsionsPerAx>
+  __device__ Arr3<Real> Super_Sampled_RadialUnitVec_VolIntegral(int cell_idx_x, int cell_idx_y, int cell_idx_z,
+                                                                const Arr3<Real> ref_pos_IndU) const
+  {
+    static_assert((0 <= Log2DivsionsPerAx) and ((Log2DivsionsPerAx*3) <= (8*sizeof(unsigned int))),
+                  "Log2DivsionsPerAx must be a non-negative integer AND 2^(Log2DivsionsPerAx*3), the total "
+                  "number of super-samples in a given cell, must be representable by an unsigned int");
+
+    // compute some basic information for the algorithm
+    // - we employ ternary conditionals to avoid functions-calls/floating-point operations for the most
+    //   common choice of Log2DivsionsPerAx
+    // - since Log2DivsionsPerAx is a template-arg, these branches should be compiled away
+    // - we could probably be a little more clever here
+    const int num_subdivisions_per_ax    = (Log2DivsionsPerAx == 2) ?     4 : std::pow(2,Log2DivsionsPerAx);
+    const double subgrid_width           = (Log2DivsionsPerAx == 2) ?  0.25 : 1.0 / num_subdivisions_per_ax;
+    const double leftmost_subgrid_offset = (Log2DivsionsPerAx == 2) ? 0.125 : 0.5 * subgrid_width;
+
+    Arr3<Real> out{0.0, 0.0, 0.0};
+
+    for (int ix = 0; ix < num_subdivisions_per_ax; ix++) {
+      for (int iy = 0; iy < num_subdivisions_per_ax; iy++) {
+        for (int iz = 0; iz < num_subdivisions_per_ax; iz++) {
+          // since cell_idx_x, cell_idx_y, cell_idx_z are all integers, they specify
+          // the position of the left edge of the cell
+
+          // compute the center of the subcell
+          const double orig_frame_x = cell_idx_x + (leftmost_subgrid_offset + ix * subgrid_width);
+          const double orig_frame_y = cell_idx_y + (leftmost_subgrid_offset + iy * subgrid_width);
+          const double orig_frame_z = cell_idx_z + (leftmost_subgrid_offset + iz * subgrid_width);
+
+          const bool subcell_enclosed_by_sphere = encloses_point(orig_frame_x, orig_frame_y, orig_frame_z);
+
+          // compute the x, y, and z components in the coordinate system that has been translated so that
+          // ref_pos_IndU coincides with the origin
+          const double x = orig_frame_x - ref_pos_IndU[0];
+          const double y = orig_frame_y - ref_pos_IndU[1];
+          const double z = orig_frame_z - ref_pos_IndU[2];
+
+          // we explicitly use bitwise operators here for speed purposes
+          const bool coincides_with_origin = ((x == 0.0) & (y == 0.0) & (z==0.0));
+
+          // for r = sqrt((x*x) + (y*y) + (z*z)), we need to compute x/r, y/r, z/r.
+          // - we add coincides_with_origin here to make sure we don't divide by zero if (x,y,z) = (0,0,0)
+          const double inv_r_mag = 1.0 / (coincides_with_origin + sqrt((x*x) + (y*y) + (z*z)));
+
+          out[0] += subcell_enclosed_by_sphere * x * inv_r_mag;
+          out[1] += subcell_enclosed_by_sphere * y * inv_r_mag;
+          out[2] += subcell_enclosed_by_sphere * z * inv_r_mag;
+        }
+      }
+    }
+    
+    return out;
+  }
+
 };
 
 /* Represents a 27-cell deposition stencil for a sphere with a radius of 1 cell-width. This stencil computes
@@ -305,6 +399,71 @@ struct Sphere27 {
           //              double(counts[i][j][k])/total_count);
 
           f(double(counts[i][j][k])/total_count, ind3D);
+        }
+      }
+    }
+
+  }
+
+  /* excute f at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
+   *
+   * The function should expect 3 arguments: 
+   *   1. ``stencil_enclosed_frac``: the fraction of the total stencil volume enclosed by the cell. In other
+   *      words, its the volume of the cell enclosed by the stencil divided by the total stencil volume.
+   *   2. ``vec_comp_factor``: a `Arr3<Real>` where the elements represent math-vector components (x, y, z).
+   *      Essentially, this stores the volume integral (of the region enclosed by the stencil) over the 
+   *      radial-unit vector (originating from the stencil center) divided by the total stencil volume.
+   *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
+   */
+  template<typename Function>
+  static __device__ void for_each_vecflavor(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
+  {
+    // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
+    const int leftmost_indx_x = int(pos_indU[0] - 1);
+    const int leftmost_indx_y = int(pos_indU[1] - 1);
+    const int leftmost_indx_z = int(pos_indU[2] - 1);
+
+    // Step 2: get the number of super-samples within each of the 27 possible cells
+    const SphereObj sphere{{pos_indU[0], pos_indU[1], pos_indU[2]}, 1*1};
+
+    // we intentionally keep the array-element size to reduce memory pressure on the stack (especially 
+    // since every thread will be allocating this much stack-space at the same time)
+    // - If we weren't concerned about memory-pressure (e.g. we used cooperative_groups), we could
+    //   save time and consolidate the calculation of integrated vector components and the enclosed
+    //   volume into a single operation)
+    uint_least16_t counts[3][3][3];
+
+    unsigned long total_count = 0;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          unsigned int count = sphere.Count_Super_Samples<Log2DivsionsPerAx_PerCell>(leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k);
+          counts[i][j][k] = std::uint_least16_t(count);
+          total_count += count;
+        }
+      }
+    }
+
+    // Step 3: actually invoke f at each cell-location that overlaps with the stencil location, passing both:
+    //  1. fraction of the total stencil volume enclosed by the given cell
+    //  2. the volume integral (of the region enclosed by the stencil) over the  radial-unit vector (originating 
+    //     from the stencil center) divided by the total stencil volume
+    //  3. the 1d index specifying cell-location (for a field with ghost zones)
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          const int ind3D = (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k));
+
+          //kernel_printf("%d, %d, %d: %g\n", leftmost_indx_x + i, (leftmost_indx_y + j), (leftmost_indx_z + k),
+          //              double(counts[i][j][k])/total_count);
+
+          // this has units of subcell volume. We need to divide it by total_count before passing it along
+          const Arr3<Real> tmp = sphere.Super_Sampled_RadialUnitVec_VolIntegral<Log2DivsionsPerAx_PerCell>(
+            leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k, pos_indU);
+
+          f(double(counts[i][j][k])/total_count,
+            Arr3<Real>{tmp[0]/total_count, tmp[1]/total_count, tmp[2]/total_count},
+            ind3D);
         }
       }
     }
