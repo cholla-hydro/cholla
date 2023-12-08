@@ -100,7 +100,7 @@ void Grid3D::Set_Initial_Conditions(Parameters P)
   }
 
   if (C.device != NULL) {
-    CudaSafeCall(cudaMemcpy(C.device, C.density, H.n_fields * H.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(C.device, C.density, H.n_fields * H.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   }
 }
 

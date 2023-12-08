@@ -8,27 +8,17 @@
 
 void Potential_SOR_3D::Allocate_Array_GPU_Real(Real **array_dev, grav_int_t size)
 {
-  cudaMalloc((void **)array_dev, size * sizeof(Real));
-  CudaCheckError();
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(Real)));
 }
 
 void Potential_SOR_3D::Allocate_Array_GPU_bool(bool **array_dev, grav_int_t size)
 {
-  cudaMalloc((void **)array_dev, size * sizeof(bool));
-  CudaCheckError();
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(bool)));
 }
 
-void Potential_SOR_3D::Free_Array_GPU_Real(Real *array_dev)
-{
-  cudaFree(array_dev);
-  CudaCheckError();
-}
+void Potential_SOR_3D::Free_Array_GPU_Real(Real *array_dev) { GPU_Error_Check(cudaFree(array_dev)); }
 
-void Potential_SOR_3D::Free_Array_GPU_bool(bool *array_dev)
-{
-  cudaFree(array_dev);
-  CudaCheckError();
-}
+void Potential_SOR_3D::Free_Array_GPU_bool(bool *array_dev) { GPU_Error_Check(cudaFree(array_dev)); }
 
 __global__ void Copy_Input_Kernel(int n_cells, Real *input_d, Real *density_d, Real Grav_Constant, Real dens_avrg,
                                   Real current_a)
@@ -686,12 +676,12 @@ void Potential_SOR_3D::Unload_Transfer_Buffer_Half_GPU(int direction, int side, 
 }
 void Potential_SOR_3D::Copy_Transfer_Buffer_To_Host(int size_buffer, Real *transfer_buffer_h, Real *transfer_buffer_d)
 {
-  CudaSafeCall(cudaMemcpy(transfer_buffer_h, transfer_buffer_d, size_buffer * sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(transfer_buffer_h, transfer_buffer_d, size_buffer * sizeof(Real), cudaMemcpyDeviceToHost));
 }
 
 void Potential_SOR_3D::Copy_Transfer_Buffer_To_Device(int size_buffer, Real *transfer_buffer_h, Real *transfer_buffer_d)
 {
-  CudaSafeCall(cudaMemcpy(transfer_buffer_d, transfer_buffer_h, size_buffer * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(transfer_buffer_d, transfer_buffer_h, size_buffer * sizeof(Real), cudaMemcpyHostToDevice));
 }
 
 #endif  // GRAVITY

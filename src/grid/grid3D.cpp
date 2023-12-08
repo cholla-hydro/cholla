@@ -283,7 +283,7 @@ void Grid3D::AllocateMemory(void)
 {
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
-  CudaSafeCall(cudaHostAlloc((void **)&C.host, H.n_fields * H.n_cells * sizeof(Real), cudaHostAllocDefault));
+  GPU_Error_Check(cudaHostAlloc((void **)&C.host, H.n_fields * H.n_cells * sizeof(Real), cudaHostAllocDefault));
 
   // point conserved variables to the appropriate locations
   C.density    = &(C.host[grid_enum::density * H.n_cells]);
@@ -310,7 +310,7 @@ void Grid3D::AllocateMemory(void)
 #endif  // DE
 
   // allocate memory for the conserved variable arrays on the device
-  CudaSafeCall(cudaMalloc((void **)&C.device, H.n_fields * H.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&C.device, H.n_fields * H.n_cells * sizeof(Real)));
   cuda_utilities::initGpuMemory(C.device, H.n_fields * H.n_cells * sizeof(Real));
   C.d_density    = C.device;
   C.d_momentum_x = &(C.device[H.n_cells]);
@@ -336,8 +336,8 @@ void Grid3D::AllocateMemory(void)
 #endif  // DE
 
 #if defined(GRAVITY)
-  CudaSafeCall(cudaHostAlloc(&C.Grav_potential, H.n_cells * sizeof(Real), cudaHostAllocDefault));
-  CudaSafeCall(cudaMalloc((void **)&C.d_Grav_potential, H.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaHostAlloc(&C.Grav_potential, H.n_cells * sizeof(Real), cudaHostAllocDefault));
+  GPU_Error_Check(cudaMalloc((void **)&C.d_Grav_potential, H.n_cells * sizeof(Real)));
 #else
   C.Grav_potential   = NULL;
   C.d_Grav_potential = NULL;
@@ -619,11 +619,11 @@ void Grid3D::Reset(void)
 void Grid3D::FreeMemory(void)
 {
   // free the conserved variable arrays
-  CudaSafeCall(cudaFreeHost(C.host));
+  GPU_Error_Check(cudaFreeHost(C.host));
 
 #ifdef GRAVITY
-  CudaSafeCall(cudaFreeHost(C.Grav_potential));
-  CudaSafeCall(cudaFree(C.d_Grav_potential));
+  GPU_Error_Check(cudaFreeHost(C.Grav_potential));
+  GPU_Error_Check(cudaFree(C.d_Grav_potential));
 #endif
 
 // If memory is single allocated, free the memory at the end of the simulation.

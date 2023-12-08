@@ -20,7 +20,7 @@
 // Transfer the particles that moved outside the local domain
 void Grid3D::Transfer_Particles_Boundaries(struct Parameters P)
 {
-  CudaCheckError();
+  GPU_Error_Check();
   // Transfer Particles Boundaries
   Particles.TRANSFER_PARTICLES_BOUNDARIES = true;
   #ifdef CPU_TIME
@@ -31,7 +31,7 @@ void Grid3D::Transfer_Particles_Boundaries(struct Parameters P)
   Timer.Part_Boundaries.End();
   #endif
   Particles.TRANSFER_PARTICLES_BOUNDARIES = false;
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
   #ifdef MPI_CHOLLA
@@ -730,7 +730,7 @@ int Particles3D::Select_Particles_to_Transfer_GPU(int direction, int side)
       n_local, side, domainMin, domainMax, pos, G.n_transfer_d, G.n_transfer_h, G.transfer_particles_flags_d,
       G.transfer_particles_indices_d, G.replace_particles_indices_d, G.transfer_particles_prefix_sum_d,
       G.transfer_particles_prefix_sum_blocks_d);
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
 
   return n_transfer;
 }
@@ -847,7 +847,7 @@ void Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dire
                                           G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax,
                                           bt_non_pos);
       #endif
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
 
   *n_send += n_transfer;
   // if ( *n_send > 0 ) printf( "###Transfered %ld  particles\n", *n_send);
@@ -881,7 +881,7 @@ void Particles3D::Replace_Tranfered_Particles_GPU(int n_transfer)
                                             G.replace_particles_indices_d, false);
       #endif
 
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   // Update the local number of particles
   n_local -= n_transfer;
 }
@@ -927,7 +927,7 @@ void Particles3D::Set_Particles_Open_Boundary_GPU(int dir, int side)
   // G.transfer_particles_flags_d, G.transfer_particles_indices_d,
   // G.replace_particles_indices_d, G.transfer_particles_prefix_sum_d,
   // G.transfer_particles_prefix_sum_blocks_d  );
-  // CHECK(cudaDeviceSynchronize());
+  // GPU_Error_Check(cudaDeviceSynchronize());
   // chprintf("OPEN condition: removing %d\n", n_transfer);
   Replace_Tranfered_Particles_GPU(n_transfer);
 }
@@ -1035,7 +1035,7 @@ void Particles3D::Unload_Particles_from_Buffer_GPU(int direction, int side, Real
     }
   }
 
-  CudaCheckError();
+  GPU_Error_Check();
 
   Copy_Transfer_Particles_from_Buffer_GPU(n_recv, recv_buffer_d);
 }

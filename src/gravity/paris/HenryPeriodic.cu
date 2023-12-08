@@ -75,14 +75,14 @@ HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3], const double hi
   bytes_ = nMax * sizeof(double);
 
   // FFT objects
-  CHECK(cufftPlanMany(&c2ci_, 1, &ni_, &ni_, 1, ni_, &ni_, 1, ni_, CUFFT_Z2Z, djp_ * dhq_));
-  CHECK(cufftPlanMany(&c2cj_, 1, &nj_, &nj_, 1, nj_, &nj_, 1, nj_, CUFFT_Z2Z, dip_ * dhq_));
-  CHECK(cufftPlanMany(&c2rk_, 1, &nk_, &nh_, 1, nh_, &nk_, 1, nk_, CUFFT_Z2D, dip_ * djq_));
-  CHECK(cufftPlanMany(&r2ck_, 1, &nk_, &nk_, 1, nk_, &nh_, 1, nh_, CUFFT_D2Z, dip_ * djq_));
+  GPU_Error_Check(cufftPlanMany(&c2ci_, 1, &ni_, &ni_, 1, ni_, &ni_, 1, ni_, CUFFT_Z2Z, djp_ * dhq_));
+  GPU_Error_Check(cufftPlanMany(&c2cj_, 1, &nj_, &nj_, 1, nj_, &nj_, 1, nj_, CUFFT_Z2Z, dip_ * dhq_));
+  GPU_Error_Check(cufftPlanMany(&c2rk_, 1, &nk_, &nh_, 1, nh_, &nk_, 1, nk_, CUFFT_Z2D, dip_ * djq_));
+  GPU_Error_Check(cufftPlanMany(&r2ck_, 1, &nk_, &nk_, 1, nk_, &nh_, 1, nh_, CUFFT_D2Z, dip_ * djq_));
 
   #ifndef MPI_GPU
   // Host arrays for MPI communication
-  CHECK(cudaHostAlloc(&ha_, bytes_ + bytes_, cudaHostAllocDefault));
+  GPU_Error_Check(cudaHostAlloc(&ha_, bytes_ + bytes_, cudaHostAllocDefault));
   assert(ha_);
   hb_ = ha_ + nMax;
   #endif
@@ -91,13 +91,13 @@ HenryPeriodic::HenryPeriodic(const int n[3], const double lo[3], const double hi
 HenryPeriodic::~HenryPeriodic()
 {
   #ifndef MPI_GPU
-  CHECK(cudaFreeHost(ha_));
+  GPU_Error_Check(cudaFreeHost(ha_));
   ha_ = hb_ = nullptr;
   #endif
-  CHECK(cufftDestroy(r2ck_));
-  CHECK(cufftDestroy(c2rk_));
-  CHECK(cufftDestroy(c2cj_));
-  CHECK(cufftDestroy(c2ci_));
+  GPU_Error_Check(cufftDestroy(r2ck_));
+  GPU_Error_Check(cufftDestroy(c2rk_));
+  GPU_Error_Check(cufftDestroy(c2cj_));
+  GPU_Error_Check(cufftDestroy(c2ci_));
   MPI_Comm_free(&commI_);
   MPI_Comm_free(&commJ_);
   MPI_Comm_free(&commK_);
