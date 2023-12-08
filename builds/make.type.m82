@@ -34,7 +34,7 @@ endif
 DFLAGS += -DDISK_ICS
 
 # Apply a density and temperature floor
-DFLAGS    += -DDENSITY_FLOOR
+#DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
 
 # Solve the Gas Internal Energy usisng a Dual Energy Formalism
