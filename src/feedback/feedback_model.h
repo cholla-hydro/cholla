@@ -16,6 +16,11 @@ namespace feedback_model {
 template<typename Stencil>
 struct ResolvedSNPrescription{
 
+  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  {
+    return Stencil::nearest_noGhostOverlap_pos(pos_indU, ng_x, ng_y, ng_z, n_ghost);
+  }
+
   template<typename Function>
   static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
                                                    int nx_g, int ny_g, Function f)
@@ -346,6 +351,13 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
 /* Legacy SNe prescription that combines resolved and unresolved */
 template<typename ResolvedPrescriptionT, typename UnresolvedStencil>
 struct ResolvedAndUnresolvedSNe {
+
+  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  {
+    // for right now, we are assuming that the stencil of the unresolved feedback is the same size or
+    // bigger than the stencil used for the resolved feedback
+    return UnresolvedStencil::nearest_noGhostOverlap_pos(pos_indU, ng_x, ng_y, ng_z, n_ghost);
+  }
 
   template<typename Function>
   static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,

@@ -68,6 +68,27 @@ struct Arr3{
 // maybe this should be called feedback_stencil
 namespace fb_stencil {
 
+/* helper function used to help implement stencils calculate the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the
+ * stencil's center can be shifted to in order to avoid overlapping with the ghost zone.
+ *
+ * If the specified location already does not overlap with the ghost zone, that is the returned
+ *
+ * \param min_stencil_offset The minimum distance a stencil must be from a cell-edge such that the stencil does not extend 
+ *    past the edge.
+ *
+ * \note
+ * It's okay for this to be a static function and live in a header since this header should only included in a single source file
+ * (2 if running unit-tests).
+ */
+static inline __device__ Arr3<Real> nearest_noGhostOverlap_pos_(Real min_stencil_offset, Arr3<Real> pos_indU, 
+                                                                int ng_x, int ng_y, int ng_z, int n_ghost)
+{
+  const Real edge_offset = n_ghost + min_stencil_offset;
+  return { clamp(pos_indU[0], edge_offset, ng_x - edge_offset),
+           clamp(pos_indU[1], edge_offset, ng_y - edge_offset),
+           clamp(pos_indU[2], edge_offset, ng_z - edge_offset) };
+}
+
 /* Represents the stencil for cloud-in-cell deposition */
 struct CIC {
 
@@ -149,22 +170,17 @@ struct CIC {
   //                [f](double dummy_arg, int idx3D) {f(idx3D);});
   //}
 
-  ///* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
-  // * can be shifted to in order to avoid overlapping with the ghost zone.
-  // *
-  // * If the specified location already does not overlap with the ghost zone, that is the returned
-  // * value.
-  // */
-  //static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-  //                                                        int ng_x, int ng_y, int ng_z, int n_ghost)
-  //{
-  //  constexpr Real min_stencil_offset = 0.5;
-  //  Real edge_offset = n_ghost + min_offset;
-  //
-  //  return { clamp(pos_x_indU, edge_offset, ng_x - edge_offset),
-  //           clamp(pos_y_indU, edge_offset, ng_y - edge_offset),
-  //           clamp(pos_z_indU, edge_offset, ng_z - edge_offset) };
-  //}
+  /* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
+   * can be shifted to in order to avoid overlapping with the ghost zone.
+   *
+   * If the specified location already does not overlap with the ghost zone, that is the returned
+   * value.
+   */
+  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  {
+    const Real min_stencil_offset = 0.5;
+    return nearest_noGhostOverlap_pos_(min_stencil_offset, pos_indU, ng_x, ng_y, ng_z, n_ghost);
+  }
 
 };
 
@@ -250,6 +266,19 @@ struct LegacyCIC27 {
       }    // j loop
     }      // i loop
 
+  }
+
+
+  /* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
+   * can be shifted to in order to avoid overlapping with the ghost zone.
+   *
+   * If the specified location already does not overlap with the ghost zone, that is the returned
+   * value.
+   */
+  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  {
+    const Real min_stencil_offset = 1.0; // I think this is right, I'm a little fuzzy on the precised
+    return nearest_noGhostOverlap_pos_(min_stencil_offset, pos_indU, ng_x, ng_y, ng_z, n_ghost);
   }
 
 };
@@ -649,19 +678,13 @@ struct Sphere27 {
    * If the specified location already does not overlap with the ghost zone, that is the returned
    * value.
    */
-  /*
-  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                          int ng_x, int ng_y, int ng_z, int n_ghost)
+  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
+    // we actually provide an alternative more clever. technically, we just can't overlap with nearest
+    // super-sampled point inside of ghost zone. Any other amount of overlap is fair game!
     constexpr Real min_stencil_offset = 1.0;
-    double edge_offset = n_ghost + min_stencil_offset;
-
-    // we can get more clever. technically, we just can't overlap with nearest
-    // super-sampled point inside of ghost zone. Anything else is fair game!
-    return { clamp(pos_x_indU, edge_offset, ng_x - edge_offset),
-             clamp(pos_y_indU, edge_offset, ng_y - edge_offset),
-             clamp(pos_z_indU, edge_offset, ng_z - edge_offset) };
-  }*/
+    return nearest_noGhostOverlap_pos_(min_stencil_offset, pos_indU, ng_x, ng_y, ng_z, n_ghost);
+  }
 
 };
 
@@ -769,18 +792,13 @@ struct SphereBinary {
    * If the specified location already does not overlap with the ghost zone, that is the returned
    * value.
    */
-  /*
-  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                          int ng_x, int ng_y, int ng_z, int n_ghost)
+  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
-    double edge_offset = n_ghost + CellsPerRadius;
-
-    // I think we could be a little more clever
-
-    return { clamp(pos_x_indU, edge_offset, ng_x - edge_offset),
-             clamp(pos_y_indU, edge_offset, ng_y - edge_offset),
-             clamp(pos_z_indU, edge_offset, ng_z - edge_offset) };
-  }*/
+    // we actually provide an alternative more clever implementation. technically, we just can't overlap with the center 
+    // of a cell in the ghost-zone. Any other amount of overlap is fair game!
+    constexpr Real min_stencil_offset = CellsPerRadius;
+    return nearest_noGhostOverlap_pos_(min_stencil_offset, pos_indU, ng_x, ng_y, ng_z, n_ghost);
+  }
 
 };
 
