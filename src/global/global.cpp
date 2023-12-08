@@ -221,7 +221,9 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     parms->out_float32_GasEnergy = atoi(value);
 #endif  // DE
   } else if (strcmp(name, "output_always") == 0) {
-    parms->output_always = atoi(value);
+    int tmp = atoi(value);
+    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
+    parms->output_always = tmp;
 #ifdef MHD
   } else if (strcmp(name, "out_float32_magnetic_x") == 0) {
     parms->out_float32_magnetic_x = atoi(value);
