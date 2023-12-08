@@ -312,13 +312,13 @@ __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int
   Real vx, vy, vz, d_0, P_0;
 
   n_0 = 1e-2;  // same value as n_bg in cloud initial condition function (cm^-3)
-  T_0 = 3e7;   // same value as T_bg in cloud initial condition function (K)
+  T_0 = 3e6;   // same value as T_bg in cloud initial condition function (K)
 
   // same values as rho_bg and p_bg in cloud initial condition function
   d_0 = n_0 * mu * MP / DENSITY_UNIT;
   P_0 = n_0 * KB * T_0 / PRESSURE_UNIT;
 
-  vx = 500 * TIME_UNIT / KPC;  // km/s * (cholla unit conversion)
+  vx = 1000 * TIME_UNIT / KPC;  // km/s * (cholla unit conversion)
   vy = 0.0;
   vz = 0.0;
 
