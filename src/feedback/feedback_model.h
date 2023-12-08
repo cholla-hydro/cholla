@@ -108,11 +108,11 @@ struct ResolvedSNPrescription{
 
 };
 
-using CiCResolvedSNPrescription = ResolvedSNPrescription<CICDepositionStencil>;
+using CiCResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::CIC>;
 
-using Sphere27ResolvedSNPrescription = ResolvedSNPrescription<Sphere27DepositionStencil<2>>;
+using Sphere27ResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::Sphere27<2>>;
 
-using SphereBinaryResolvedSNPrescription = ResolvedSNPrescription<SphereBinaryDepositionStencil<3>>;
+using SphereBinaryResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::SphereBinary<3>>;
 
 /** the prescription for dividing a scalar quantity between 3x3x3 cells is done
    by imagining a 2x2x2 cell volume around the SN.  These fractions, then,

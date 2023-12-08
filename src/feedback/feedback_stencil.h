@@ -66,10 +66,10 @@ struct Arr3{
 };
 
 // maybe this should be called feedback_stencil
-namespace feedback_model {
+namespace fb_stencil {
 
 /* Represents the stencil for cloud-in-cell deposition */
-struct CICDepositionStencil {
+struct CIC {
 
   /* along any axis, gives the max number of neighboring cells that may be enclosed by the stencil,
    * that are on one side of the cell containing the stencil's center.
@@ -129,7 +129,7 @@ struct CICDepositionStencil {
   static __device__ void for_each_enclosedCellVol(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
                                                   int nx_g, int ny_g, Function f)
   {
-    CICDepositionStencil::for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, f);
+    CIC::for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, f);
   }
 
   ///* calls the unary function f at ever location where there probably is non-zero overlap with
@@ -145,8 +145,8 @@ struct CICDepositionStencil {
   //                                             int ng_x, int ng_y, int n_ghost, UnaryFunction f)
   //{
   //  // this is a little crude!
-  //  CICDepositionStencil::for_each(pos_x_indU, pos_y_indU, pos_z_indU, ng_x, ng_y, n_ghost,
-  //                                 [f](double dummy_arg, int idx3D) {f(idx3D);});
+  //  CIC::for_each(pos_x_indU, pos_y_indU, pos_z_indU, ng_x, ng_y, n_ghost,
+  //                [f](double dummy_arg, int idx3D) {f(idx3D);});
   //}
 
   ///* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
@@ -169,7 +169,7 @@ struct CICDepositionStencil {
 };
 
 /* Represents a sphere. This is used to help implement stencils. */
-struct Sphere{
+struct SphereObj{
 
 public:  // attributes
   double center_indU[3]; /*!< center of the sphere (in index units). An integer value corresponds to a cell-edge.
@@ -245,7 +245,7 @@ public:  // interface
  *    per cell.
  */
 template<int Log2DivsionsPerAx_PerCell = 2>
-struct Sphere27DepositionStencil {
+struct Sphere27 {
 
   static_assert((Log2DivsionsPerAx_PerCell >= 0) and (Log2DivsionsPerAx_PerCell <= 5),
                 "Log2DivsionsPerAx_PerCell must be a non-negative integer. It also can't exceed 5 "
@@ -275,7 +275,7 @@ struct Sphere27DepositionStencil {
     const int leftmost_indx_z = int(pos_z_indU - 1);
 
     // Step 2: get the number of super-samples within each of the 27 possible cells
-    const Sphere sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, 1*1};
+    const SphereObj sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, 1*1};
 
     uint_least16_t counts[3][3][3]; // we want to keep the array-element size small to reduce memory
                                     // pressure on the stack (especially since every thread will be
@@ -329,7 +329,7 @@ struct Sphere27DepositionStencil {
     const int leftmost_indx_z = int(pos_z_indU - 1);
 
     double inverse_max_counts_per_cell = 1.0 / double(std::pow(2,Log2DivsionsPerAx_PerCell*3));
-    const Sphere sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, 1*1};
+    const SphereObj sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, 1*1};
 
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
@@ -358,8 +358,8 @@ struct Sphere27DepositionStencil {
     const int leftmost_indx_y = int(pos_y_indU) - 1;
     const int leftmost_indx_z = int(pos_z_indU) - 1;
   
-    const Sphere sphere{/* center = */ {pos_x_indU, pos_y_indU, pos_z_indU},
-                        /* squared_radius = */ 1*1}; 
+    const SphereObj sphere{/* center = */ {pos_x_indU, pos_y_indU, pos_z_indU},
+                           /* squared_radius = */ 1*1}; 
 
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
@@ -416,7 +416,7 @@ struct Sphere27DepositionStencil {
  * Specifically, a cell is included if the cell-center lies within the sphere.
  */
 template<int CellsPerRadius = 3>
-struct SphereBinaryDepositionStencil {
+struct SphereBinary {
   static_assert(CellsPerRadius > 0);
 
   /* along any axis, gives the max number of neighboring cells that may be enclosed by the stencil,
@@ -437,7 +437,7 @@ struct SphereBinaryDepositionStencil {
     int leftmost_indx_z = int(pos_z_indU) - CellsPerRadius;
 
     // Step 2: get the number of cells enclosed by the sphere
-    const Sphere sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, CellsPerRadius*CellsPerRadius};
+    const SphereObj sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, CellsPerRadius*CellsPerRadius};
     int total_count = 0;
 
     const int stop = (2 * CellsPerRadius) + 1;
@@ -490,7 +490,7 @@ struct SphereBinaryDepositionStencil {
     int leftmost_indx_y = int(pos_y_indU) - CellsPerRadius;
     int leftmost_indx_z = int(pos_z_indU) - CellsPerRadius;
 
-    const Sphere sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, CellsPerRadius*CellsPerRadius};
+    const SphereObj sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, CellsPerRadius*CellsPerRadius};
 
     const int stop = (2 * CellsPerRadius) + 1;
     for (int i = 0; i < stop; i++) {
@@ -529,4 +529,4 @@ struct SphereBinaryDepositionStencil {
 };
 
 
-} // feedback_model namespace
+} // fb_stencil namespace

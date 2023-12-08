@@ -386,7 +386,7 @@ void compare_cic_stencil(AxProps* prop_l, int n_ghost) {
     std::vector<double> overlap_legacy = eval_stencil_overlap_(pos_indxU.data(), extent, n_ghost,
                                                                OldCICStencil(prop_l[0],prop_l[1],prop_l[2], n_ghost));
     std::vector<double> overlap_new = eval_stencil_overlap_(pos_indxU.data(), extent, n_ghost,
-                                                            feedback_model::CICDepositionStencil{});
+                                                            fb_stencil::CIC{});
 
     if (false) { // for debugging purposes!
       printf("considering: %s\n:", pos_indxU_str.c_str());
@@ -561,16 +561,16 @@ void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_mo
 
 TEST(tALLFeedbackCiCStencil, SlidingTest)
 {
-  sliding_stencil_test<feedback_model::CICDepositionStencil>(0);
+  sliding_stencil_test<fb_stencil::CIC>(0);
 }
 
 
 TEST(tALLFeedbackSphere27Stencil, SlidingTest)
 {
   // primary stencil size we would use
-  sliding_stencil_test<feedback_model::Sphere27DepositionStencil<2>>(0,2e-16);
+  sliding_stencil_test<fb_stencil::Sphere27<2>>(0,2e-16);
   // just testing this case because we can
-  sliding_stencil_test<feedback_model::Sphere27DepositionStencil<4>>(0,3e-16);
+  sliding_stencil_test<fb_stencil::Sphere27<4>>(0,3e-16);
 }
 
 TEST(tALLFeedbackSphereBinaryStencil, SlidingTest)
@@ -578,7 +578,7 @@ TEST(tALLFeedbackSphereBinaryStencil, SlidingTest)
   // we have to ignore the part of the test where we check that the enclosed stencil fraction monotonically
   // increases and decreases (we could refactor the test more a test a different version of that same 
   // behavior)
-  sliding_stencil_test<feedback_model::SphereBinaryDepositionStencil<3>>(0,2e-15,true);
+  sliding_stencil_test<fb_stencil::SphereBinary<3>>(0,2e-15,true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -632,9 +632,9 @@ void stencil_volume_check(Arr3<Real> center_offset_from_cellEdge, int n_ghost, S
 
 TEST(tALLFeedbackCiCStencil, StencilVolumeTest)
 {
-  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, feedback_model::CICDepositionStencil{},
+  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, fb_stencil::CIC{},
                        /* expected_vol = */ 1.0, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
-  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, feedback_model::CICDepositionStencil{},
+  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, fb_stencil::CIC{},
                        /* expected_vol = */ 1.0, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
 }
 
@@ -643,11 +643,11 @@ TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
   const double radius = 1; // in units of cell_widths
   const double expected_vol = 4 * 3.141592653589793 * (radius * radius) / 3;
 
-  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, feedback_model::Sphere27DepositionStencil<2>{},
+  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, fb_stencil::Sphere27<2>{},
                        expected_vol, /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/ 0.0);
-  stencil_volume_check(Arr3<Real>{0.125,0.0,0.0}, 0, feedback_model::Sphere27DepositionStencil<2>{},
+  stencil_volume_check(Arr3<Real>{0.125,0.0,0.0}, 0, fb_stencil::Sphere27<2>{},
                        expected_vol, /* vol_rtol = */ 0.0004, /*stencil_overlap_rtol =*/ 0.0);
-  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, feedback_model::Sphere27DepositionStencil<2>{},
+  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, fb_stencil::Sphere27<2>{},
                        expected_vol, /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/ 0.0);
 }
 
@@ -658,11 +658,11 @@ TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
 //  const double radius = 3; // in units of cell_widths
 //  const double expected_vol = 4 * 3.141592653589793 * (radius * radius) / 3.0;
 //
-//  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, feedback_model::SphereBinaryDepositionStencil<3>{},
+//  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, fb_stencil::SphereBinary<3>{},
 //                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
-//  stencil_volume_check(Arr3<Real>{0.125,0.0,0.0}, 0, feedback_model::SphereBinaryDepositionStencil<3>{},
+//  stencil_volume_check(Arr3<Real>{0.125,0.0,0.0}, 0, fb_stencil::SphereBinary<3>{},
 //                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
-//  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, feedback_model::SphereBinaryDepositionStencil<3>{},
+//  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, fb_stencil::SphereBinary<3>{},
 //                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
 //}
 
