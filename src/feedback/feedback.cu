@@ -286,7 +286,9 @@ std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parame
   // now lets initialize ClusterFeedbackMethod<> and return
   std::function<void(Grid3D&)> out;
   if (sn_model == "legacy") {
-    out = ClusterFeedbackMethod<feedback_model::LegacySNe<feedback_model::CiCResolvedSNPrescription>>(analysis, use_snr_calc, snr_calc);
+    out = ClusterFeedbackMethod<feedback_model::CiCLegacyResolvedAndUnresolvedPrescription>(analysis, use_snr_calc, snr_calc);
+  } else if (sn_model == "legacyAlt") {
+    out = ClusterFeedbackMethod<feedback_model::HybridResolvedAndUnresolvedPrescription>(analysis, use_snr_calc, snr_calc);
   } else if (sn_model == "resolvedCiC") {
     out = ClusterFeedbackMethod<feedback_model::CiCResolvedSNPrescription>(analysis, use_snr_calc, snr_calc);
   } else if (sn_model == "resolved27cell") {
