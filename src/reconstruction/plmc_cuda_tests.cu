@@ -139,8 +139,8 @@ TEST(tHYDROPlmcReconstructor, CorrectInputExpectCorrectOutput)
     // Launch kernel
     hipLaunchKernelGGL(PLMC_cuda, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
                        dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma, direction, n_fields);
-    CudaCheckError();
-    CHECK(cudaDeviceSynchronize());
+    GPU_Error_Check();
+    GPU_Error_Check(cudaDeviceSynchronize());
 
     // Perform Comparison
     for (size_t i = 0; i < host_grid.size(); i++) {
@@ -250,8 +250,8 @@ TEST(tMHDPlmcReconstructor, CorrectInputExpectCorrectOutput)
     // Launch kernel
     hipLaunchKernelGGL(PLMC_cuda, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
                        dev_interface_right.data(), nx, ny, nz, dx, dt, gamma, direction, n_fields);
-    CudaCheckError();
-    CHECK(cudaDeviceSynchronize());
+    GPU_Error_Check();
+    GPU_Error_Check(cudaDeviceSynchronize());
 
     // Perform Comparison
     for (size_t i = 0; i < dev_interface_right.size(); i++) {

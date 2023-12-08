@@ -74,10 +74,10 @@ void Check_Configuration(Parameters const& P)
   Check_Boundary(P.zu_bcnd, "zu_bcnd");
 
   // warn if error checking is disabled
-#ifndef CUDA_ERROR_CHECK
+#ifndef DISABLE_GPU_ERROR_CHECKING
   // NOLINTNEXTLINE(clang-diagnostic-#warnings)
-  #warning "CUDA error checking is disabled. Enable it with the CUDA_ERROR_CHECK macro"
-#endif  //! CUDA_ERROR_CHECK
+  #warning "CUDA error checking is disabled. Enable it by compiling without the DISABLE_GPU_ERROR_CHECKING macro."
+#endif  //! DISABLE_GPU_ERROR_CHECKING
 
   // Check that PRECISION is 2
 #ifndef PRECISION

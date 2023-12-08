@@ -92,9 +92,9 @@ void PotentialParis3D::Get_Potential(const Real *const density, Real *const pote
 
   const int n = ni * nj * nk;
   #ifdef GRAVITY_GPU
-  CHECK(cudaMemcpy(db, density, densityBytes_, cudaMemcpyDeviceToDevice));
+  GPU_Error_Check(cudaMemcpy(db, density, densityBytes_, cudaMemcpyDeviceToDevice));
   #else
-  CHECK(cudaMemcpy(db, density, densityBytes_, cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(db, density, densityBytes_, cudaMemcpyHostToDevice));
   #endif
   const int ngi = ni + N_GHOST_POTENTIAL + N_GHOST_POTENTIAL;
   const int ngj = nj + N_GHOST_POTENTIAL + N_GHOST_POTENTIAL;
@@ -111,9 +111,9 @@ void PotentialParis3D::Get_Potential(const Real *const density, Real *const pote
 
   assert(potential);
   #ifdef GRAVITY_GPU
-  CHECK(cudaMemcpy(potential, db, potentialBytes_, cudaMemcpyDeviceToDevice));
+  GPU_Error_Check(cudaMemcpy(potential, db, potentialBytes_, cudaMemcpyDeviceToDevice));
   #else
-  CHECK(cudaMemcpy(potential, db, potentialBytes_, cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(potential, db, potentialBytes_, cudaMemcpyDeviceToHost));
   #endif
 }
 
@@ -171,22 +171,22 @@ void PotentialParis3D::Initialize(const Real lx, const Real ly, const Real lz, c
   const long gg   = N_GHOST_POTENTIAL + N_GHOST_POTENTIAL;
   potentialBytes_ = long(sizeof(Real)) * (dn_[0] + gg) * (dn_[1] + gg) * (dn_[2] + gg);
 
-  CHECK(cudaMalloc(reinterpret_cast<void **>(&da_), std::max(minBytes_, densityBytes_)));
+  GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&da_), std::max(minBytes_, densityBytes_)));
   assert(da_);
 
-  CHECK(cudaMalloc(reinterpret_cast<void **>(&db_), std::max(minBytes_, potentialBytes_)));
+  GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&db_), std::max(minBytes_, potentialBytes_)));
   assert(db_);
 }
 
 void PotentialParis3D::Reset()
 {
   if (db_) {
-    CHECK(cudaFree(db_));
+    GPU_Error_Check(cudaFree(db_));
   }
   db_ = nullptr;
 
   if (da_) {
-    CHECK(cudaFree(da_));
+    GPU_Error_Check(cudaFree(da_));
   }
   da_ = nullptr;
 

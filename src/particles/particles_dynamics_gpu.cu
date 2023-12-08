@@ -95,12 +95,12 @@ Real Particles3D::Calc_Particles_dt_GPU_function(int ngrid, part_int_t n_particl
 
   hipLaunchKernelGGL(Calc_Particles_dti_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_particles_local, dx, dy, dz, vel_x,
                      vel_y, vel_z, dti_array_dev);
-  CudaCheckError();
+  GPU_Error_Check();
 
   // Initialize dt values
   Real max_dti = 0;
   // copy the dti array onto the CPU
-  CudaSafeCall(cudaMemcpy(dti_array_host, dti_array_dev, ngrid * sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(dti_array_host, dti_array_dev, ngrid * sizeof(Real), cudaMemcpyDeviceToHost));
   // find maximum inverse timestep from CFL condition
   for (int i = 0; i < ngrid; i++) {
     max_dti = fmax(max_dti, dti_array_host[i]);
@@ -160,7 +160,7 @@ void Particles3D::Advance_Particles_KDK_Step1_GPU_function(part_int_t n_local, R
   if (n_local > 0) {
     hipLaunchKernelGGL(Advance_Particles_KDK_Step1_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, dt, pos_x_dev,
                        pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev);
-    CudaCheckError();
+    GPU_Error_Check();
   }
 }
 
@@ -179,7 +179,7 @@ void Particles3D::Advance_Particles_KDK_Step2_GPU_function(part_int_t n_local, R
   if (n_local > 0) {
     hipLaunchKernelGGL(Advance_Particles_KDK_Step2_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, dt, vel_x_dev,
                        vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev);
-    CudaCheckError();
+    GPU_Error_Check();
   }
 }
 
@@ -276,8 +276,8 @@ void Particles3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function(part_int_t n_lo
     hipLaunchKernelGGL(Advance_Particles_KDK_Step1_Cosmo_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, delta_a,
                        pos_x_dev, pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev,
                        grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K);
-    CHECK(cudaDeviceSynchronize());
-    // CudaCheckError();
+    GPU_Error_Check(cudaDeviceSynchronize());
+    // GPU_Error_Check();
   }
 }
 
@@ -299,8 +299,8 @@ void Particles3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function(part_int_t n_lo
     hipLaunchKernelGGL(Advance_Particles_KDK_Step2_Cosmo_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, delta_a,
                        vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h,
                        Omega_M, Omega_L, Omega_K);
-    CHECK(cudaDeviceSynchronize());
-    // CudaCheckError();
+    GPU_Error_Check(cudaDeviceSynchronize());
+    // GPU_Error_Check();
   }
 }
 
