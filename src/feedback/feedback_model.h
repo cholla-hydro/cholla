@@ -161,7 +161,9 @@ inline __device__ void Set_Average_Density(int indx_x, int indx_y, int indx_z, i
  * - this requires the codebase to be compiled with the dual energy formalism
  * - momentum and total energy are not updated self-consistently
  */
-inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, int nx_g, int ny_g, int n_ghost,
+inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
+                                                        Real vel_x, Real vel_y, Real vel_z,
+                                                        int nx_g, int ny_g, int n_ghost,
                                                         int n_cells, Real* conserved_device,
                                                         Real feedback_density, Real feedback_momentum, Real feedback_energy)
 {
@@ -179,30 +181,85 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
 
   stencil.for_each_vecflavor(
     {pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
-    [=](Real scalar_weight, Arr3<Real> momentum_weights, int indx) {
+    [=](Real scalar_weight, Arr3<Real> momentum_weights, int idx3D) {
 
-      Real px       = momentum_weights[0] * feedback_momentum;
-      Real py       = momentum_weights[1] * feedback_momentum;
-      Real pz       = momentum_weights[2] * feedback_momentum;
-      Real f_dens   = scalar_weight * feedback_density;
-      Real f_energy = scalar_weight * feedback_energy;
+      // precompute 1/initial_density (take care to avoid divide by 0)
+      const Real inv_initial_density = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));
 
-      atomicAdd(&density[indx], f_dens);
-      atomicAdd(&momentum_x[indx], px);
-      atomicAdd(&momentum_y[indx], py);
-      atomicAdd(&momentum_z[indx], pz);
-      atomicAdd(&energy[indx], f_energy);
+      // Step 1: substract off the kinetic-energy-density from total energy density.
+      //  - Regardles of whether we inject thermal energy, the kinetic energy density will change to
+      //    some degree because the gas density and gas momentum will be changed
 
+      const Real intial_ke_density = 0.5 * inv_initial_density * (momentum_x[idx3D] * momentum_x[idx3D] +
+                                                                  momentum_y[idx3D] * momentum_y[idx3D] +
+                                                                  momentum_z[idx3D] * momentum_z[idx3D]);
+      energy[idx3D] -= intial_ke_density;
+
+      // Step 2: convert the gas's momentum density to its value in the particle's reference frame
+      //  - This must be done after subtracting off KE
+      //  - This could probably be written more concisely (momentum_x[idx3D] -= density[idx3D] * vel_x),
+      //    but before we do that, we should leave the 3 lines of algebra used to derive that in the
+      //    comments since the abbreviated form "looks wrong" at a quick glance
+      {
+        // compute the local velocity
+        Real gas_vx = inv_initial_density * momentum_x[idx3D];
+        Real gas_vy = inv_initial_density * momentum_y[idx3D];
+        Real gas_vz = inv_initial_density * momentum_z[idx3D];
+
+        // adjust the velocity so its in the new frame
+        gas_vx -= vel_x;
+        gas_vy -= vel_y;
+        gas_vz -= vel_z;
+
+        // update the momentum
+        momentum_x[idx3D] = density[idx3D] * gas_vx;
+        momentum_y[idx3D] = density[idx3D] * gas_vy;
+        momentum_z[idx3D] = density[idx3D] * gas_vz;
+      }
+
+      // step 3a: inject density, and momentum
+      density[idx3D] += scalar_weight * feedback_density;
+      momentum_x[idx3D] += momentum_weights[0] * feedback_momentum;
+      momentum_y[idx3D] += momentum_weights[1] * feedback_momentum;
+      momentum_z[idx3D] += momentum_weights[2] * feedback_momentum;
+
+      // Step 3b: inject any thermal energy
+      // - Note: its weird to be inject a fixed amount of thermal energy and momentum. This means we are
+      //   injecting a variable amount of total energy...
+
+      energy[idx3D] += scalar_weight * feedback_energy;
 #ifdef DE
-      gas_energy[indx] = energy[indx] - (momentum_x[indx] * momentum_x[indx] + momentum_y[indx] * momentum_y[indx] +
-                                         momentum_z[indx] * momentum_z[indx]) /
-                                            (2 * density[indx]);
+      gas_energy[idx3D] += scalar_weight * feedback_energy;
 #endif
-        
-        //energy[indx] = ( momentum_x[indx] * momentum_x[indx] +
-        //                 momentum_y[indx] * momentum_y[indx] +
-        //                 momentum_z[indx] * momentum_z[indx] ) /
-        //               2 / density[indx] + gasEnergy[indx];
+
+      // precompute 1/final_density (take care to avoid divide by 0)
+      const Real inv_final_density = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));
+
+      // Step 4: convert the momentum back to the starting reference frame.
+      //  - again, this could certainly be done more concisely
+      {
+        // compute the local velocity
+        Real gas_vx = inv_final_density * momentum_x[idx3D];
+        Real gas_vy = inv_final_density * momentum_y[idx3D];
+        Real gas_vz = inv_final_density * momentum_z[idx3D];
+
+        // adjust the velocity that it's in the original frame (it's no longer in the particle's frame)
+        gas_vx += vel_x;
+        gas_vy += vel_y;
+        gas_vz += vel_z;
+
+        // update the momentum
+        momentum_x[idx3D] = density[idx3D] * gas_vx;
+        momentum_y[idx3D] = density[idx3D] * gas_vy;
+        momentum_z[idx3D] = density[idx3D] * gas_vz;
+      }
+
+      // Step 5: add the new kinetic energy density to the total_energy density field
+      //  - currently the total_energy density field just holds the non-kinetic energy density
+      //  - this needs to happen after changing reference frames (since KE is reference frame dependent)
+      energy[idx3D] += 0.5 * inv_final_density * (momentum_x[idx3D] * momentum_x[idx3D] +
+                                                  momentum_y[idx3D] * momentum_y[idx3D] +
+                                                  momentum_z[idx3D] * momentum_z[idx3D]);
     }
   );
 }
@@ -348,9 +405,14 @@ struct LegacySNe {
       ResolvedPrescriptionT::apply(pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_cells,
                                    conserved_dev, feedback_density, feedback_energy);
     } else {
-      // currently, only unresolved SN feedback involves averaging the densities.
-      Real ave_dens = n_0 * MU * MP / DENSITY_UNIT;
-      Set_Average_Density(indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost, density, ave_dens);
+      // historically, only unresolved SN feedback involves averaging the densities.
+      // - this step is NOT self-consistent... since this only touches the density fields, it implicitly changes the
+      //   amount of thermal energy (since the kinetic energy is density dependent)
+      // Real ave_dens = n_0 * MU * MP / DENSITY_UNIT;
+      // Set_Average_Density(indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost, density, ave_dens);
+
+      // for now, don't inject any energy
+      feedback_energy = 0.0;
 
       // inject momentum and density
       Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(num_SN), 0.93) / dV / sqrt(3.0);
@@ -358,7 +420,7 @@ struct LegacySNe {
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    += feedback_momentum * dV * sqrt(3.0);
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] += feedback_energy * dV;
       Apply_Energy_Momentum_Deposition(
-          pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
+          pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
           feedback_density, feedback_momentum, feedback_energy);
     }
   }
