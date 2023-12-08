@@ -385,6 +385,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
       printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid + x_off, yid + y_off, zid + z_off,
              dev_conserved[id], dtodx * (dev_F_x[imo] - dev_F_x[id]), dtody * (dev_F_y[jmo] - dev_F_y[id]),
              dtodz * (dev_F_z[kmo] - dev_F_z[id]), dev_conserved[4 * n_cells + id]);
+      Average_Cell_All_Fields(xid, yid, zid, nx, ny, nz, n_cells, n_fields, gamma, dev_conserved);
     }
   #endif  // DENSITY_FLOOR
     /*
@@ -653,7 +654,7 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
           xid, yid, zid, 1. / max_dti, 1. / max_dti_slow, dev_conserved[id] * DENSITY_UNIT / 0.6 / MP, temp,
           speed * VELOCITY_UNIT * 1e-5, vx * VELOCITY_UNIT * 1e-5, vy * VELOCITY_UNIT * 1e-5, vz * VELOCITY_UNIT * 1e-5,
           cs);
-      Average_Cell_All_Fields(xid, yid, zid, nx, ny, nz, n_cells, n_fields, dev_conserved);
+      Average_Cell_All_Fields(xid, yid, zid, nx, ny, nz, n_cells, n_fields, gamma, dev_conserved);
     }
   }
 }
