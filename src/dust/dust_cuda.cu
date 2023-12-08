@@ -34,7 +34,7 @@ void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(Dust_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gamma,
                      grain_radius);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma,
