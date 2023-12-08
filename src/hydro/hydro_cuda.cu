@@ -1155,17 +1155,17 @@ __device__ Real Average_Cell_Single_Field(int field_indx, int i, int j, int k, i
 __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int nz, int ncells, int n_fields,
                                         Real gamma, Real *conserved)
 {
-  int id = i + (j)*nx + (k)*nx*ny;
+  int id = i + (j)*nx + (k)*nx * ny;
 
   Real d, mx, my, mz, E, P;
-  d = conserved[grid_enum::density*ncells + id];
-  mx = conserved[grid_enum::momentumx*ncells + id];
-  my = conserved[grid_enum::momentumy*ncells + id];
-  mz = conserved[grid_enum::momentumz*ncells + id];
-  E = conserved[grid_enum::Energy*ncells + id];
-  P  = (E - (0.5/d)*(mx*mx + my*my + mz*mz))*(gamma-1.0);
+  d  = conserved[grid_enum::density * ncells + id];
+  mx = conserved[grid_enum::momentum_x * ncells + id];
+  my = conserved[grid_enum::momentum_y * ncells + id];
+  mz = conserved[grid_enum::momentum_z * ncells + id];
+  E  = conserved[grid_enum::Energy * ncells + id];
+  P  = (E - (0.5 / d) * (mx * mx + my * my + mz * mz)) * (gamma - 1.0);
 
-  printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  vx:%e  vy:%e  vz:%e\n", i, j, k, d, E, P, mx/d, my/d, mz/d);  
+  printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  vx:%e  vy:%e  vz:%e\n", i, j, k, d, E, P, mx / d, my / d, mz / d);
 
   int idn;
   int N = 0;
@@ -1173,75 +1173,74 @@ __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int
   d_av = vx_av = vy_av = vz_av = P_av = 0.0;
   #ifdef SCALAR
   Real scalar[NSCALARS], scalar_av[NSCALARS];
-  for (int n=0; n<NSCALARS; n++) {
+  for (int n = 0; n < NSCALARS; n++) {
     scalar_av[n] = 0.0;
   }
   #endif
 
-  for (int kk=k-1; kk<=k+1; kk++) {
-    for (int jj=j-1; jj<=j+1; jj++) {
-      for (int ii=i-1; ii<=i+1; ii++) {
-
-        idn = ii + jj*nx + kk*nx*ny; 
-        d = conserved[grid_enum::density*ncells + idn];
-        mx = conserved[grid_enum::momentumx*ncells + idn];
-        my = conserved[grid_enum::momentumy*ncells + idn];
-        mz = conserved[grid_enum::momentumz*ncells + idn];
-        P  = (conserved[grid_enum::Energy*ncells + idn] - (0.5/d)*(mx*mx + my*my + mz*mz))*(gamma-1.0);
-        #ifdef SCALAR
-          for (int n = 0; n<NSCALARS; n++) {
-            scalar[n]  = conserved[grid_enum::scalar*ncells + idn];
-          }
-        #endif
+  for (int kk = k - 1; kk <= k + 1; kk++) {
+    for (int jj = j - 1; jj <= j + 1; jj++) {
+      for (int ii = i - 1; ii <= i + 1; ii++) {
+        idn = ii + jj * nx + kk * nx * ny;
+        d   = conserved[grid_enum::density * ncells + idn];
+        mx  = conserved[grid_enum::momentum_x * ncells + idn];
+        my  = conserved[grid_enum::momentum_y * ncells + idn];
+        mz  = conserved[grid_enum::momentum_z * ncells + idn];
+        P   = (conserved[grid_enum::Energy * ncells + idn] - (0.5 / d) * (mx * mx + my * my + mz * mz)) * (gamma - 1.0);
+  #ifdef SCALAR
+        for (int n = 0; n < NSCALARS; n++) {
+          scalar[n] = conserved[grid_enum::scalar * ncells + idn];
+        }
+  #endif
         if (d > 0.0 && P > 0.0) {
           d_av += d;
           vx_av += mx;
           vy_av += my;
           vz_av += mz;
-          P_av += P/(gamma-1.0);
-          #ifdef SCALAR
-          for (int n=0; n<NSCALARS; n++) {
+          P_av += P / (gamma - 1.0);
+  #ifdef SCALAR
+          for (int n = 0; n < NSCALARS; n++) {
             scalar_av[n] += scalar[n];
           }
-          #endif
+  #endif
           N++;
         }
-
       }
     }
   }
 
-  P_av = P_av / N;
-  vx_av = vx_av/d_av;
-  vy_av = vy_av/d_av;
-  vz_av = vz_av/d_av;
+  P_av  = P_av / N;
+  vx_av = vx_av / d_av;
+  vy_av = vy_av / d_av;
+  vz_av = vz_av / d_av;
   #ifdef SCALAR
-  for (int n=0; n<NSCALARS; n++) {
-    scalar_av[n] = scalar_av[n]/d_av;
+  for (int n = 0; n < NSCALARS; n++) {
+    scalar_av[n] = scalar_av[n] / d_av;
   }
   #endif
-  d_av = d_av/N;
+  d_av = d_av / N;
 
   // replace cell values with new averaged values
-  conserved[id+ncells*grid_enum::density] = d_av;
-  conserved[id+ncells*grid_enum::momentum_x] = d_av*vx_av;
-  conserved[id+ncells*grid_enum::momentum_y] = d_av*vy_av;
-  conserved[id+ncells*grid_enum::momentum_z] = d_av*vz_av;
-  conserved[id+ncells*grid_enum::Energy] = P_av/(gamma-1.0) + 0.5*d_av*(vx_av*vx_av + vy_av*vy_av + vz_av*vz_av);
+  conserved[id + ncells * grid_enum::density]    = d_av;
+  conserved[id + ncells * grid_enum::momentum_x] = d_av * vx_av;
+  conserved[id + ncells * grid_enum::momentum_y] = d_av * vy_av;
+  conserved[id + ncells * grid_enum::momentum_z] = d_av * vz_av;
+  conserved[id + ncells * grid_enum::Energy] =
+      P_av / (gamma - 1.0) + 0.5 * d_av * (vx_av * vx_av + vy_av * vy_av + vz_av * vz_av);
   #ifdef DE
-  conserved[id+ncells*grid_enum::GasEnergy] = P_av/(gamma-1.0);
+  conserved[id + ncells * grid_enum::GasEnergy] = P_av / (gamma - 1.0);
   #endif
   #ifdef SCALAR
-  for (int n=0; n<NSCALARS; n++) {
-    conserved[id+ncells*grid_enum::scalar] = d_av*scalar_av[n];
+  for (int n = 0; n < NSCALARS; n++) {
+    conserved[id + ncells * grid_enum::scalar] = d_av * scalar_av[n];
   }
   #endif
-  
+
   d = d_av;
-  E = P_av/(gamma-1.0) + 0.5*d_av*(vx_av*vx_av + vy_av*vy_av + vz_av*vz_av);
+  E = P_av / (gamma - 1.0) + 0.5 * d_av * (vx_av * vx_av + vy_av * vy_av + vz_av * vz_av);
   P = P_av;
 
-  printf("%3d %3d %3d FC: d: %e  E:%e  P:%e  vx:%e  vy:%e  vz:%e\n", i, j, k, d, E, P, vx_av, vy_av, vz_av);  
+  printf("%3d %3d %3d FC: d: %e  E:%e  P:%e  vx:%e  vy:%e  vz:%e\n", i, j, k, d, E, P, vx_av, vy_av, vz_av);
 }
 
 #endif  // CUDA
