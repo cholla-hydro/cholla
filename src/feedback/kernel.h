@@ -19,6 +19,26 @@
 
 #define TPB_FEEDBACK 128
 
+
+// BOUNDARY-HANDLING STRATEGY
+// --------------------------
+// Currently, there are 2 choices: ignore and active_zone_snap
+// -> "ignore" simply ignores overlap with the ghost-zone or beyond. This can be dangerous, it can lead to segmentation faults
+// -> "active_zone_snap" simply snaps the stencil-center to the closest location where it won't overlap with a ghost zone (this
+//    doesn't actually affect the particle's position). Note if a particle lies completely outside of the active-zone or ghost
+//    zone we should probably ignore it entirely...
+
+namespace feedback_details{
+
+/* Specifies the stategy for handling star-particles with overlapping stencils */
+enum struct BoundaryStrat {
+  ignore, /*<! simply ignore that there is a problem */
+  active_zone_snap /*<! temporarily (only during feedback) snap the particle position to the closest location where feedback
+                    *   will only affect the active zone. */
+};
+
+}
+
 // STENCIL OVERLAPS
 // ----------------
 // We refer to the pattern of cells around a particle that are affected by a given feedback perscription
