@@ -369,6 +369,8 @@ void parse_param(char *name, char *value, struct parameters *parms)
   } else if (strcmp(name, "prng_seed") == 0) {
     parms->prng_seed = atoi(value);
 #endif  // PARTICLES
+} else if (strcmp(name, "feedback_boundary_strategy") == 0) {
+  strncpy(parms->feedback_boundary_strategy, value, MAXLEN);
 } else if (strcmp(name, "feedback_sn_model") == 0) {
   strncpy(parms->feedback_sn_model, value, MAXLEN);
 } else if (strcmp(name, "feedback_sn_rate") == 0) {

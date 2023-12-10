@@ -75,8 +75,10 @@ struct ClusterFeedbackMethod {
 
   ClusterFeedbackMethod() = delete;
 
-  ClusterFeedbackMethod(FeedbackAnalysis& analysis, bool use_snr_calc, feedback::SNRateCalc snr_calc)
-    : analysis(analysis), use_snr_calc_(use_snr_calc), snr_calc_(snr_calc), lazy_ov_scheduler_(nullptr)
+  ClusterFeedbackMethod(FeedbackAnalysis& analysis, bool use_snr_calc, feedback::SNRateCalc snr_calc,
+                        feedback_details::BoundaryStrategy bdry_strat)
+    : analysis(analysis), use_snr_calc_(use_snr_calc), snr_calc_(snr_calc), bdry_strat_(bdry_strat),
+      lazy_ov_scheduler_(nullptr)
   { }
 
   /* Actually apply the stellar feedback (SNe and stellar winds) */
@@ -89,6 +91,8 @@ private: // attributes
    * supernova during the very first cycle and then never have a supernova again. */
   const bool use_snr_calc_;
   feedback::SNRateCalc snr_calc_;
+  /* Specifies the handling of feedback for particles along the boundaries */
+  feedback_details::BoundaryStrategy bdry_strat_;
   /* Handles the scheduling of feedback from separate particles with overlapping stencils (lazily initialized) */
   std::shared_ptr<feedback_details::OverlapScheduler> lazy_ov_scheduler_;
 };
@@ -173,9 +177,19 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
         spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g);
     }
 
-    feedback_details::Exec_Cluster_Feedback_Kernel<FeedbackModel>(
-      particle_props, spatial_props, cycle_props, h_info, G.C.d_density, d_num_SN.data(), *lazy_ov_scheduler_
-    );
+    using BStrat = feedback_details::BoundaryStrategy;
+    using feedback_details::Exec_Cluster_Feedback_Kernel;
+
+    if (bdry_strat_ == BStrat::excludeGhostParticle_ignoreStencilIssues) {
+      Exec_Cluster_Feedback_Kernel<FeedbackModel, BStrat::excludeGhostParticle_ignoreStencilIssues>(
+        particle_props, spatial_props, cycle_props, h_info, G.C.d_density, d_num_SN.data(), *lazy_ov_scheduler_);
+    } else if (bdry_strat_ == BStrat::excludeGhostParticle_snapActiveStencil) {
+      Exec_Cluster_Feedback_Kernel<FeedbackModel, BStrat::excludeGhostParticle_snapActiveStencil>(
+        particle_props, spatial_props, cycle_props, h_info, G.C.d_density, d_num_SN.data(), *lazy_ov_scheduler_);
+    } else {
+      CHOLLA_ERROR("Encountered an unhandled BoundaryStrategy");
+    }
+
   }
 
   // now gather the feedback summary info into an array called info.
@@ -283,18 +297,34 @@ std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parame
     CHOLLA_ERROR("Unrecognized option passed to sn_rate_model: %s", sn_rate_model.c_str());
   }
 
+  // parse the boundary-strategy to initialize some values
+  const std::string bndy_strat_name = P.feedback_boundary_strategy;
+  feedback_details::BoundaryStrategy bndy_strat;
+  if (bndy_strat_name.empty() or (bndy_strat_name == "ignore_issues")) {
+    bndy_strat = feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues;
+  } else if (bndy_strat_name == "snap") {
+    bndy_strat = feedback_details::BoundaryStrategy::excludeGhostParticle_snapActiveStencil;
+  } else {
+    CHOLLA_ERROR("Unrecognized option passed to feedback_boundary_strategy: %s", bndy_strat_name.c_str());
+  }
+
   // now lets initialize ClusterFeedbackMethod<> and return
   std::function<void(Grid3D&)> out;
   if (sn_model == "legacy") {
-    out = ClusterFeedbackMethod<feedback_model::CiCLegacyResolvedAndUnresolvedPrescription>(analysis, use_snr_calc, snr_calc);
+    out = ClusterFeedbackMethod<feedback_model::CiCLegacyResolvedAndUnresolvedPrescription>
+      (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else if (sn_model == "legacyAlt") {
-    out = ClusterFeedbackMethod<feedback_model::HybridResolvedAndUnresolvedPrescription>(analysis, use_snr_calc, snr_calc);
+    out = ClusterFeedbackMethod<feedback_model::HybridResolvedAndUnresolvedPrescription>
+      (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else if (sn_model == "resolvedCiC") {
-    out = ClusterFeedbackMethod<feedback_model::CiCResolvedSNPrescription>(analysis, use_snr_calc, snr_calc);
+    out = ClusterFeedbackMethod<feedback_model::CiCResolvedSNPrescription>
+      (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else if (sn_model == "resolved27cell") {
-    out = ClusterFeedbackMethod<feedback_model::Sphere27ResolvedSNPrescription>(analysis, use_snr_calc, snr_calc);
+    out = ClusterFeedbackMethod<feedback_model::Sphere27ResolvedSNPrescription>
+      (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else if (sn_model == "resolvedExperimentalBinarySphere"){
-    out = ClusterFeedbackMethod<feedback_model::SphereBinaryResolvedSNPrescription>(analysis, use_snr_calc, snr_calc);
+    out = ClusterFeedbackMethod<feedback_model::SphereBinaryResolvedSNPrescription>
+      (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else {
     CHOLLA_ERROR("Unrecognized sn_model: %s", sn_model.c_str());
   }
