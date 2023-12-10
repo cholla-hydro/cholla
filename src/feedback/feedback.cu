@@ -22,32 +22,6 @@
   #include "feedback.h"
 
 
-
-namespace {
-
-/** This function used for debugging potential race conditions.  Feedback from neighboring
-    particles could simultaneously alter one hydro cell's conserved quantities.
- */
-inline __device__ bool Particle_Is_Alone(Real* pos_x_dev, Real* pos_y_dev, Real* pos_z_dev, part_int_t n_local,
-                                         int gtid, Real dx)
-{
-  Real x0 = pos_x_dev[gtid];
-  Real y0 = pos_y_dev[gtid];
-  Real z0 = pos_z_dev[gtid];
-  // Brute force loop to see if particle is alone
-  for (int i = 0; i < n_local; i++) {
-    if (i == gtid) continue;
-    if (abs(x0 - pos_x_dev[i]) > dx) continue;
-    if (abs(y0 - pos_y_dev[i]) > dx) continue;
-    if (abs(z0 - pos_z_dev[i]) > dx) continue;
-    // If we made it here, something is too close.
-    return false;
-  }
-  return true;
-}
-
-}; // anonymous namespace
-
 /* determine the number of supernovae during the current step */
 __global__ void Get_SN_Count_Kernel(part_int_t n_local, part_int_t* id_dev, Real* mass_dev,
                                     Real* age_dev, const feedback_details::CycleProps cycle_props,
