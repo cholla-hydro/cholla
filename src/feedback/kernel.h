@@ -20,21 +20,14 @@
 #define TPB_FEEDBACK 128
 
 
-// BOUNDARY-HANDLING STRATEGY
-// --------------------------
-// Currently, there are 2 choices: ignore and active_zone_snap
-// -> "ignore" simply ignores overlap with the ghost-zone or beyond. This can be dangerous, it can lead to segmentation faults
-// -> "active_zone_snap" simply snaps the stencil-center to the closest location where it won't overlap with a ghost zone (this
-//    doesn't actually affect the particle's position). Note if a particle lies completely outside of the active-zone or ghost
-//    zone we should probably ignore it entirely...
-
 namespace feedback_details{
 
 /* Specifies the stategy for handling star-particles with overlapping stencils */
-enum struct BoundaryStrat {
-  ignore, /*<! simply ignore that there is a problem */
-  active_zone_snap /*<! temporarily (only during feedback) snap the particle position to the closest location where feedback
-                    *   will only affect the active zone. */
+enum struct BoundaryStrategy {
+  excludeGhostParticle_ignoreStencilIssues, /*!< Ignore particles in the ghost-zone. Ignore that there could be any problems with a stencil
+                                             *!< that overlaps with the region beyond the ghost zone. there is a problem */
+  excludeGhostParticle_snapActiveStencil    /*!< Ignore particles in the ghost-zone. Temporarily (only during feedback) snap the positions
+                                             *!< to the closest location where feedback will only affect the active zone. */
 };
 
 }
@@ -438,7 +431,7 @@ __device__ __forceinline__ Arr3<Real> Calc_Pos_IndU(int i, const feedback_detail
  *     are scheduled to occur during the current cycle (for each particle).
  * \param[in]     ov_scheduler helps schedule feedback of particles with overlapping stencils.
  */
-template<typename FeedbackModel>
+template<typename FeedbackModel, BoundaryStrategy BdryStrat>
 __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps particle_props,
                                         const feedback_details::FieldSpatialProps spatial_props,
                                         const feedback_details::CycleProps cycle_props, Real* info, Real* conserved_dev,
@@ -457,12 +450,26 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
     s_info[feedinfoLUT::LEN * tid + cur_ind] = 0;
   }
 
-  // this function returns true if a particle is in-bounds and has at least 1 SNe
-  auto dont_skip = [&spatial_props, num_SN_dev](int i, const Arr3<Real> pos_indU) {
+  // this lambda func returns true if particle is in-bounds and has at least 1 SNe
+  // - based on the value of the BdryStrat template-parameter, it may also modify the position
+  //   that should be used when applying the feedback.
+  auto checkDontSkip_and_maybeRevisePos = [&spatial_props, num_SN_dev](int i, Arr3<Real>& pos_indU) {
     const int n_ghost = spatial_props.n_ghost;
+
     bool ignore = (((pos_indU[0] < n_ghost) or (pos_indU[0] >= (spatial_props.nx_g - n_ghost))) or
                    ((pos_indU[1] < n_ghost) or (pos_indU[1] >= (spatial_props.ny_g - n_ghost))) or
                    ((pos_indU[2] < n_ghost) or (pos_indU[2] >= (spatial_props.nz_g - n_ghost))));
+
+    // the branch-condition is determined at compile-time (since BdryStrat is a template parameter)
+    if (BdryStrat == BoundaryStrategy::excludeGhostParticle_snapActiveStencil) {
+      // overwrite pos_indU with the closest posititon, where stencil only includes active zones
+      // - if the stencil already just overlaps with active zone this should do nothing
+      // - it doesn't really matter if we alter the position of a particle outside of the active
+      //   zone since we will always ignore that particle.
+      pos_indU = FeedbackModel::nearest_noGhostOverlap_pos(pos_indU, spatial_props.nx_g, spatial_props.ny_g,
+                                                           spatial_props.nz_g, n_ghost);
+    }
+
     return (not ignore) and (num_SN_dev[i] > 0);
   };
 
@@ -477,9 +484,9 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
   for (int i = start; i < particle_props.n_local; i += loop_stride) {
     // compute the position in index-units (appropriate for a field with a ghost-zone)
     // - an integer value corresponds to the left edge of a cell
-    const Arr3<Real> pos_indU = Calc_Pos_IndU(i, particle_props, spatial_props);
+    Arr3<Real> pos_indU = Calc_Pos_IndU(i, particle_props, spatial_props);
 
-    if (dont_skip(i, pos_indU)) {
+    if (checkDontSkip_and_maybeRevisePos(i, pos_indU)) {
       ov_scheduler.Register_Pending_Particle_Feedback(fb_model, (long long int)(particle_props.id_dev[i]),
                                                       pos_indU, spatial_props.nx_g, spatial_props.ny_g);
     }
@@ -492,9 +499,9 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
     for (int i = start; i < particle_props.n_local; i += loop_stride) {  
       // compute the position in index-units (appropriate for a field with a ghost-zone)
       // - an integer value corresponds to the left edge of a cell
-      const Arr3<Real> pos_indU = Calc_Pos_IndU(i, particle_props, spatial_props);
+      Arr3<Real> pos_indU = Calc_Pos_IndU(i, particle_props, spatial_props);
 
-      if (dont_skip(i, pos_indU)) {
+      if (checkDontSkip_and_maybeRevisePos(i, pos_indU)) {
 
         bool is_scheduled = ov_scheduler.Is_Scheduled_And_Update(fb_model, particle_props.id_dev[i], pos_indU,
                                                                  spatial_props.nx_g, spatial_props.ny_g);
@@ -550,7 +557,7 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
  * \param[in]     max_num_threadblocks This is here to put an arbitrary upper limit on the maximum number of 
  *     thread-blocks. This is for debugging purposes. Only positive values are allowed.
  */
-template<typename FeedbackModel>
+template<typename FeedbackModel, BoundaryStrategy BdryStrat = BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues>
 void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particle_props,
                                   const feedback_details::FieldSpatialProps& spatial_props,
                                   const feedback_details::CycleProps& cycle_props, 
@@ -587,7 +594,8 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, dev);
     int numBlocksPerSm = 0; // this will be updated to hold the max number of blocks on the GPU
-    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, Cluster_Feedback_Kernel<FeedbackModel>,
+    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm,
+                                                  Cluster_Feedback_Kernel<FeedbackModel, BdryStrat>,
                                                   threads_per_block, dynamic_shared_mem_per_block);
 
     dimGrid = dim3(std::min(deviceProp.multiProcessorCount*numBlocksPerSm, max_num_threadblocks), 
@@ -599,7 +607,8 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
                          (void *)(&d_info_ptr), (void *)(&conserved_dev), (void *)(&num_SN_dev),
                          (void *)(&ov_scheduler)};
 
-  cudaLaunchCooperativeKernel((void *)Cluster_Feedback_Kernel<FeedbackModel>, dimGrid, dimBlock, kernelArgs);
+  cudaLaunchCooperativeKernel((void *)Cluster_Feedback_Kernel<FeedbackModel, BdryStrat>,
+                              dimGrid, dimBlock, kernelArgs);
 
   /*
   // compute the grid-size or the number of thread-blocks per grid. The number of threads in a block is
