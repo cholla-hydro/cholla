@@ -182,7 +182,9 @@ void assert_allclose(T* actual, T* desired, Extent3D extent,
 
 enum struct StencilEvalKind{
   enclosed_stencil_vol_frac, /*!< compute the fraction of the total stencil volume enclosed by each cell */
-  enclosed_cell_vol_frac     /*!< compute the fraction of each cell's volume that is enclosed by the stencil */
+  enclosed_cell_vol_frac,    /*!< compute the fraction of each cell's volume that is enclosed by the stencil */
+  for_each_overlap_zone      /*!< execute function at each cell with any non-zero amount of overlap (but
+                              *!< without specifying the amount of overlap)*/
 };
 
 /* Updates elements in the ``out_data`` 3D-array with the fraction of the volume that is enclosed by
@@ -206,6 +208,10 @@ __global__ void Stencil_Overlap_Kernel_(Real* out_data, double pos_x_indU, doubl
       break;
     case StencilEvalKind::enclosed_cell_vol_frac:
       stencil.for_each_enclosedCellVol(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, update_entry_fn);
+      break;
+    case StencilEvalKind::for_each_overlap_zone:
+      stencil.for_each_overlap_zone(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
+                                    [out_data](int indx3D) -> void { out_data[indx3D] = 1.0; });
       break;
   }
   
@@ -350,6 +356,15 @@ public:  // interface
                                            int nx_g, int ny_g, Function f)
   {
     this->for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, f);
+  }
+
+  /* provided for compatability with interfaces of other stencils */
+  template<typename UnaryFunction>
+  __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
+  {
+    // this is a little crude!
+    this->for_each(pos_indU[0], pos_indU[1], pos_indU[2], ng_x, ng_y,
+                   [f](double stencil_enclosed_frac, int idx3D) { if (stencil_enclosed_frac > 0) f(idx3D);});
   }
 
 };
@@ -585,23 +600,49 @@ TEST(tALLFeedbackSphereBinaryStencil, SlidingTest)
 // Define some tests where we check our expectations about the total volume enclosed by the stencil
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// A helper-tool that comes up with the standard stencil setup that is necessary
+// for evaluating a stencil (without overlapping beyond the edge of a grid)
+template <typename Stencil>
+struct StencilTestGridSetup{
+  std::vector<Arr3<Real>> center_pos_indU_list;
+  Extent3D full_extent;
+};
+
+template <typename Stencil>
+static StencilTestGridSetup<Stencil> Build_Stencil_Test_Grid_Setup(const std::vector<Arr3<Real>>& center_offset_from_cellEdge_LIST,
+                                                                   int n_ghost)
+{
+  StencilTestGridSetup<Stencil> out;
+
+  // compute the centers of the stencil and the extent of the grid for evaluating the stencil
+  for (const Arr3<Real>& center_offset_from_cellEdge : center_offset_from_cellEdge_LIST) {
+    Arr3<Real> pos_indU{};
+    for (std::size_t i = 0; i < 3; i++){
+      // confirm the offset falls in the range 0 <= center_offset < 1
+      CHOLLA_ASSERT(center_offset_from_cellEdge[i] >= 0.0, "Test parameter is flawed");
+      CHOLLA_ASSERT(center_offset_from_cellEdge[i] < 1.0, "Test parameter is flawed");
+
+      pos_indU[i] = Stencil::max_enclosed_neighbors + center_offset_from_cellEdge[i];
+    }
+    out.center_pos_indU_list.push_back(pos_indU);
+  }
+
+  // choose an extent value that we know will work (even when n_ghost is zero!)
+  out.full_extent = Extent3D{1 + 2*(n_ghost + Stencil::max_enclosed_neighbors),
+                             1 + 2*(n_ghost + Stencil::max_enclosed_neighbors),
+                             1 + 2*(n_ghost + Stencil::max_enclosed_neighbors)};
+  return out;
+}
+
+
 template<typename Stencil>
 void stencil_volume_check(Arr3<Real> center_offset_from_cellEdge, int n_ghost, Stencil stencil,
                           double expected_vol, double vol_rtol = 0.0, double stencil_overlap_rtol = 0.0)
 {
   // compute the center of the stencil and the extent of the grid for evaluating the stencil
-  Arr3<Real> pos_indU{};
-  for (std::size_t i = 0; i < 3; i++){
-    // confirm the offset falls in the range 0 <= center_offset < 1
-    ASSERT_GE(center_offset_from_cellEdge[i], 0.0) << "Test parameter is flawed";
-    ASSERT_LT(center_offset_from_cellEdge[i], 1.0) << "Test parameter is flawed";
-
-    pos_indU[i] = Stencil::max_enclosed_neighbors + center_offset_from_cellEdge[i];
-  }
-  // choose an extent value that we know will work (even when n_ghost is zero!)
-  Extent3D full_extent{1 + 2*(n_ghost + Stencil::max_enclosed_neighbors),
-                       1 + 2*(n_ghost + Stencil::max_enclosed_neighbors),
-                       1 + 2*(n_ghost + Stencil::max_enclosed_neighbors)};
+  StencilTestGridSetup<Stencil> setup = Build_Stencil_Test_Grid_Setup<Stencil>({center_offset_from_cellEdge}, n_ghost);
+  Arr3<Real> pos_indU = setup.center_pos_indU_list[0];
+  Extent3D full_extent = setup.full_extent;
 
   // now gather the amount of cell-volume enclosed by the stencil
   std::vector<double> enclosed_cell_vol = eval_stencil_overlap_(pos_indU.data(), full_extent, n_ghost, stencil,
@@ -665,6 +706,88 @@ TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
 //  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, fb_stencil::SphereBinary<3>{},
 //                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
 //}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Define some tests where we check consistency between the different flavors of for_each
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <typename T>
+class tALLFeedbackStencil : public testing::Test {
+public:
+  using StencilT=T;
+};
+
+using MyStencilTypes = ::testing::Types<fb_stencil::CIC, fb_stencil::Sphere27<2>, fb_stencil::SphereBinary<3>>;
+TYPED_TEST_SUITE(tALLFeedbackStencil, MyStencilTypes);
+
+TYPED_TEST(tALLFeedbackStencil, ForEachFlavorConsistency) {
+
+  // determines the central positions of the stencils
+  std::vector<Arr3<Real>> center_offset_from_cellEdge_List = {
+    {0.00, 0.00, 0.00},
+    {0.25, 0.00, 0.00}, {0.5, 0.0, 0.0},  {0.75, 0.00, 0.00},  {0.99, 0.00, 0.00},
+    {0.00, 0.25, 0.00}, {0.0, 0.5, 0.0},  {0.00, 0.75, 0.00},  {0.00, 0.99, 0.00},
+    {0.00, 0.00, 0.25}, {0.0, 0.0, 0.5},  {0.00, 0.00, 0.75},  {0.00, 0.00, 0.99},
+    {0.25, 0.25, 0.25}, {0.5, 0.5, 0.5},  {0.75, 0.75, 0.75},  {0.99, 0.99, 0.99},
+  };
+
+  const int n_ghost = 0;
+
+  using Stencil = typename TestFixture::StencilT;
+
+  // compute the center of the stencil and the extent of the grid for evaluating the stencil
+  StencilTestGridSetup<Stencil> setup = Build_Stencil_Test_Grid_Setup<Stencil>(center_offset_from_cellEdge_List, n_ghost);
+  const Extent3D extent = setup.full_extent;
+
+  // pair specifying the flavor-name and the actual flavor value
+  std::vector<std::pair<std::string, StencilEvalKind>> flavor_pairs = {
+    {"enclosed_stencil_vol_frac", StencilEvalKind::enclosed_stencil_vol_frac},
+    {"enclosed_cell_vol_frac", StencilEvalKind::enclosed_cell_vol_frac},
+    {"for_each_overlap_zone", StencilEvalKind::for_each_overlap_zone}
+  };
+
+  for (Arr3<Real> pos_indU : setup.center_pos_indU_list) {
+    std::vector<std::vector<Real>> rslts{};
+
+    std::size_t num_flavors = flavor_pairs.size();
+    for (std::size_t i = 0; i < num_flavors; i++){
+      // execute the current flavor of for_each
+      rslts.push_back(eval_stencil_overlap_(pos_indU.data(), extent, n_ghost, Stencil{},
+                                            flavor_pairs[i].second));
+
+      if (i == 0) continue;
+
+      // compare with the first flavor of for_each
+
+      Real* ref = rslts[0].data();
+      Real* cur = rslts[i].data();
+
+      for (int iz = 0; iz < extent.nz; iz++) {
+        for (int iy = 0; iy < extent.ny; iy++) {
+          for (int ix = 0; ix < extent.nx; ix++) {
+            int ind3D = ix + extent.nx * (iy + extent.ny * iz);
+
+            bool ref_nonzero = ref[ind3D] > 0.0;
+            bool cur_nonzero = cur[ind3D] > 0.0;
+
+            if (ref_nonzero != cur_nonzero) {
+              int index[3] = {ix,iy,iz};
+              FAIL() << "Encountered an inconsistency when comparing the '"
+                     << flavor_pairs[0].first << "' flavor of for_each against the '"
+                     << flavor_pairs[i].first << "' flavor at (ix, iy, iz) = "
+                     << Vec3_to_String(index) << ". Both should be zero or neither should be zero.";
+            }
+
+          }
+        }
+      }
+
+    }
+
+  }
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define some machinery to help with testing the full feedback functionality where we check our expectations about the total volume enclosed by the stencil
