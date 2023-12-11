@@ -1232,7 +1232,7 @@ __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int
   conserved[id + ncells * grid_enum::GasEnergy] = P_av / (gamma - 1.0);
   #endif
   #ifdef SCALAR
-  for (int n = 0; n < NSCALARS; n++) {
+  for (int n = 0; n < NSCALARS; n++) {  // NOLINT
     conserved[id + ncells * grid_enum::scalar] = d_av * scalar_av[n];
   }
   #endif
