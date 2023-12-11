@@ -161,14 +161,13 @@ struct CIC {
   // * non-zero overlap). The reason this exacts (rather than just calling for_each), is that it
   // * it may be significantly cheaper for some stencils
   // */
-  //template<typename UnaryFunction>
-  //static __device__ void for_each_overlap_zone(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-  //                                             int ng_x, int ng_y, int n_ghost, UnaryFunction f)
-  //{
-  //  // this is a little crude!
-  //  CIC::for_each(pos_x_indU, pos_y_indU, pos_z_indU, ng_x, ng_y, n_ghost,
-  //                [f](double dummy_arg, int idx3D) {f(idx3D);});
-  //}
+  template<typename UnaryFunction>
+  static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
+  {
+    // this is a little crude!
+    CIC::for_each(pos_indU[0], pos_indU[1], pos_indU[2], ng_x, ng_y,
+                  [f](double stencil_enclosed_frac, int idx3D) { if (stencil_enclosed_frac > 0) f(idx3D);});
+  }
 
   /* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
    * can be shifted to in order to avoid overlapping with the ghost zone.
@@ -673,16 +672,15 @@ struct Sphere27 {
    * This is is significantly cheaper than calling for_each.
    */
   template<typename UnaryFunction>
-  static __device__ void for_each_overlap_zone(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                               int ng_x, int ng_y, int n_ghost, UnaryFunction f)
+  static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
   {
     // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    const int leftmost_indx_x = int(pos_x_indU) - 1;
-    const int leftmost_indx_y = int(pos_y_indU) - 1;
-    const int leftmost_indx_z = int(pos_z_indU) - 1;
+    const int leftmost_indx_x = int(pos_indU[0]) - 1;
+    const int leftmost_indx_y = int(pos_indU[1]) - 1;
+    const int leftmost_indx_z = int(pos_indU[2]) - 1;
   
-    const SphereObj sphere{/* center = */ {pos_x_indU, pos_y_indU, pos_z_indU},
-                           /* squared_radius = */ 1*1}; 
+    const SphereObj sphere{/* center = */ {pos_indU[0], pos_indU[1], pos_indU[2]},
+                           /* squared_radius = */ 1*1};
 
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
@@ -691,20 +689,11 @@ struct Sphere27 {
           const int indx_x = leftmost_indx_x + i;
           const int indx_y = leftmost_indx_y + j;
           const int indx_z = leftmost_indx_z + k;
-
           const int ind3D = indx_x + ng_x * (indx_y + ng_y * indx_z);
 
           if (sphere.Encloses_Any_Supersample<Log2DivsionsPerAx_PerCell>(indx_x, indx_y, indx_z)) {
             f(ind3D);
           }
-
-          /*
-          if (sphere.encloses_point(clamp(pos_x_indU, indx_x, indx_x + 1),
-                                    clamp(pos_y_indU, indx_y, indx_y + 1),
-                                    clamp(pos_z_indU, indx_z, indx_z + 1))){
-            f(ind3D);
-          }
-          */
 
         }
       }
@@ -824,6 +813,35 @@ struct SphereBinary {
         }
       }
     }
+  }
+
+  template<typename UnaryFunction>
+  static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
+  {
+    // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
+    int leftmost_indx_x = int(pos_indU[0]) - CellsPerRadius;
+    int leftmost_indx_y = int(pos_indU[1]) - CellsPerRadius;
+    int leftmost_indx_z = int(pos_indU[2]) - CellsPerRadius;
+  
+    const SphereObj sphere{/* center = */ {pos_indU[0], pos_indU[1], pos_indU[2]},
+                           /* squared_radius = */ CellsPerRadius*CellsPerRadius}; 
+
+    const int stop = (2 * CellsPerRadius) + 1;
+    for (int i = 0; i < stop; i++) {
+      for (int j = 0; j < stop; j++) {
+        for (int k = 0; k < stop; k++) {
+          const int indx_x = leftmost_indx_x + i;
+          const int indx_y = leftmost_indx_y + j;
+          const int indx_z = leftmost_indx_z + k;
+          const int ind3D = indx_x + ng_x * (indx_y + ng_y * indx_z);
+          bool is_enclosed = sphere.encloses_point(leftmost_indx_x + i + 0.5,
+                                                   leftmost_indx_y + j + 0.5,
+                                                   leftmost_indx_z + k + 0.5);
+          if (is_enclosed) f(ind3D);
+        }
+      }
+    }
+
   }
 
   /* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
