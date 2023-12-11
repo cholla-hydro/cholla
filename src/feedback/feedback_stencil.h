@@ -310,6 +310,44 @@ public:  // interface
     return (delta_x * delta_x + delta_y * delta_y + delta_z * delta_z) < raidus2_indU; 
   }
 
+  /* queries whether the sphere encloses any super-sampled points within a cell that correspond to integer indices of
+   * (cell_idx_x, cell_idx_y, cell_idx_z).
+   *
+   *  \tparam Log2DivsionsPerAx parameterizes the amount of super-sampling. There are ``2^Log2DivsionsPerAx`` equidistant 
+   *       points along each axis of the algorithm. In other words, this
+   *       can return a max value of ``2^(Log2DivsionsPerAx_PerCell*3)``.
+   */
+  template<int Log2DivsionsPerAx>
+  __device__ bool Encloses_Any_Supersample(int cell_idx_x, int cell_idx_y, int cell_idx_z) const {
+
+    // compute some basic information for the algorithm
+    // - we employ ternary conditionals to avoid functions-calls/floating-point operations for the most
+    //   common choice of Log2DivsionsPerAx
+    // - since Log2DivsionsPerAx is a template-arg, these branches should be compiled away
+    // - we could probably be a little more clever here
+    const int num_subdivisions_per_ax    = (Log2DivsionsPerAx == 2) ?     4 : std::pow(2,Log2DivsionsPerAx);
+    const double subgrid_width           = (Log2DivsionsPerAx == 2) ?  0.25 : 1.0 / num_subdivisions_per_ax;
+    const double leftmost_subgrid_offset = (Log2DivsionsPerAx == 2) ? 0.125 : 0.5 * subgrid_width;
+
+    // the following is mathematically equivalent to 1-leftmost_subgrid_offset, but we do the following to try to
+    // have consistent rounding with other supersampling calculations
+    const double rightmost_subgrid_offset = leftmost_subgrid_offset + ((num_subdivisions_per_ax-1) * subgrid_width);
+
+    // IMPLICIT ASSUMPTION is that the radius is 1 cell-width or larger
+
+    double dx_left  = center_indU[0] - (cell_idx_x + leftmost_subgrid_offset);
+    double dx_right = center_indU[0] - (cell_idx_x + rightmost_subgrid_offset);
+    double dy_left  = center_indU[1] - (cell_idx_y + leftmost_subgrid_offset);
+    double dy_right = center_indU[1] - (cell_idx_y + rightmost_subgrid_offset);
+    double dz_left  = center_indU[2] - (cell_idx_z + leftmost_subgrid_offset);
+    double dz_right = center_indU[2] - (cell_idx_z + rightmost_subgrid_offset);
+
+    double min_squared_dist = (fmin(dx_left * dx_left, dx_right * dx_right) +
+                               fmin(dy_left * dy_left, dy_right * dy_right) +
+                               fmin(dz_left * dz_left, dz_right * dz_right));
+    return min_squared_dist < raidus2_indU;
+  }
+
   /* returns the count of the number of super-sampled points within a cell that correspond to integer indices of
    * (cell_idx_x, cell_idx_y, cell_idx_z).
    *
@@ -650,21 +688,23 @@ struct Sphere27 {
       for (int j = 0; j < 3; j++) {
         for (int k = 0; k < 3; k++) {
 
-          const Real indx_x = leftmost_indx_x + i;
-          const Real indx_y = leftmost_indx_y + j;
-          const Real indx_z = leftmost_indx_z + k;
+          const int indx_x = leftmost_indx_x + i;
+          const int indx_y = leftmost_indx_y + j;
+          const int indx_z = leftmost_indx_z + k;
 
           const int ind3D = indx_x + ng_x * (indx_y + ng_y * indx_z);
 
+          if (sphere.Encloses_Any_Supersample<Log2DivsionsPerAx_PerCell>(indx_x, indx_y, indx_z)) {
+            f(ind3D);
+          }
+
+          /*
           if (sphere.encloses_point(clamp(pos_x_indU, indx_x, indx_x + 1),
                                     clamp(pos_y_indU, indx_y, indx_y + 1),
                                     clamp(pos_z_indU, indx_z, indx_z + 1))){
             f(ind3D);
           }
-
-          // IN THE FUTURE: we can try to be clever and instead query whether the closes subgrid-point
-          // is enclosed (care would need to be taken that you get consistent roundoff error with 
-          // computing subgrid positions)
+          */
 
         }
       }
