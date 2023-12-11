@@ -1310,7 +1310,7 @@ __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int
   d_av = vx_av = vy_av = vz_av = P_av = 0.0;
   #ifdef SCALAR
   Real scalar[NSCALARS], scalar_av[NSCALARS];
-  for (int n = 0; n < NSCALARS; n++) { //NOLINT
+  for (int n = 0; n < NSCALARS; n++) {  // NOLINT
     scalar_av[n] = 0.0;
   }
   #endif
@@ -1325,7 +1325,7 @@ __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int
         mz  = conserved[grid_enum::momentum_z * ncells + idn];
         P   = (conserved[grid_enum::Energy * ncells + idn] - (0.5 / d) * (mx * mx + my * my + mz * mz)) * (gamma - 1.0);
   #ifdef SCALAR
-        for (int n = 0; n < NSCALARS; n++) { //NOLINT
+        for (int n = 0; n < NSCALARS; n++) {  // NOLINT
           scalar[n] = conserved[grid_enum::scalar * ncells + idn];
         }
   #endif
@@ -1336,7 +1336,7 @@ __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int
           vz_av += mz;
           P_av += P / (gamma - 1.0);
   #ifdef SCALAR
-          for (int n = 0; n < NSCALARS; n++) { //NOLINT
+          for (int n = 0; n < NSCALARS; n++) {  // NOLINT
             scalar_av[n] += scalar[n];
           }
   #endif
@@ -1351,7 +1351,7 @@ __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int
   vy_av = vy_av / d_av;
   vz_av = vz_av / d_av;
   #ifdef SCALAR
-  for (int n = 0; n < NSCALARS; n++) { //NOLINT
+  for (int n = 0; n < NSCALARS; n++) {  // NOLINT
     scalar_av[n] = scalar_av[n] / d_av;
   }
   #endif
