@@ -44,16 +44,16 @@ void VL_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_of
 
   if (!memory_allocated) {
     // allocate GPU arrays
-    // CudaSafeCall( cudaMalloc((void**)&dev_conserved,
+    // GPU_Error_Check( cudaMalloc((void**)&dev_conserved,
     // n_fields*n_cells*sizeof(Real)) );
     dev_conserved = d_conserved;
-    CudaSafeCall(cudaMalloc((void **)&dev_conserved_half, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&Q_Lx, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&Q_Rx, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&Q_Ly, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&Q_Ry, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&F_x, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&F_y, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&dev_conserved_half, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Lx, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Rx, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Ly, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Ry, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&F_x, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&F_y, n_fields * n_cells * sizeof(Real)));
 
     // If memory is single allocated: memory_allocated becomes true and
     // successive timesteps won't allocate memory. If the memory is not single
@@ -66,7 +66,7 @@ void VL_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_of
   // arrays
   hipLaunchKernelGGL(PCM_Reconstruction_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx, ny,
                      n_ghost, gama, n_fields);
-  CudaCheckError();
+  GPU_Error_Check();
 
     // Step 2: Calculate first-order upwind fluxes
     #ifdef EXACT
@@ -87,12 +87,12 @@ void VL_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_of
   hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost,
                      gama, 1, n_fields);
     #endif
-  CudaCheckError();
+  GPU_Error_Check();
 
   // Step 3: Update the conserved variables half a timestep
   hipLaunchKernelGGL(Update_Conserved_Variables_2D_half, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved_half,
                      F_x, F_y, nx, ny, n_ghost, dx, dy, 0.5 * dt, gama, n_fields);
-  CudaCheckError();
+  GPU_Error_Check();
 
     // Step 4: Construct left and right interface values using updated conserved
     // variables
@@ -118,7 +118,7 @@ void VL_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_of
   hipLaunchKernelGGL(PPMC_VL, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, gama, 0);
   hipLaunchKernelGGL(PPMC_VL, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, gama, 1);
     #endif  // PPMC
-  CudaCheckError();
+  GPU_Error_Check();
 
     // Step 5: Calculate the fluxes again
     #ifdef EXACT
@@ -139,7 +139,7 @@ void VL_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_of
   hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost,
                      gama, 1, n_fields);
     #endif
-  CudaCheckError();
+  GPU_Error_Check();
 
     #ifdef DE
   // Compute the divergence of velocity before updating the conserved array,
@@ -152,12 +152,12 @@ void VL_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_of
   // Step 6: Update the conserved variable array
   hipLaunchKernelGGL(Update_Conserved_Variables_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, F_x, F_y, nx, ny, x_off,
                      y_off, n_ghost, dx, dy, xbound, ybound, dt, gama, n_fields, custom_grav);
-  CudaCheckError();
+  GPU_Error_Check();
 
     #ifdef DE
   hipLaunchKernelGGL(Select_Internal_Energy_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, n_ghost, n_fields);
   hipLaunchKernelGGL(Sync_Energies_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, n_ghost, gama, n_fields);
-  CudaCheckError();
+  GPU_Error_Check();
     #endif
 
   return;

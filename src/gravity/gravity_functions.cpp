@@ -580,8 +580,8 @@ void Grid3D::Setup_Analytic_Potential(struct Parameters *P)
     #endif
 
     #ifdef GRAVITY_GPU
-  CudaSafeCall(cudaMemcpy(Grav.F.analytic_potential_d, Grav.F.analytic_potential_h,
-                          Grav.n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(Grav.F.analytic_potential_d, Grav.F.analytic_potential_h,
+                             Grav.n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
     #endif
 }
 

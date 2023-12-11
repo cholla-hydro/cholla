@@ -63,12 +63,12 @@ int Check_Field_Along_Axis(Real *dev_array, int n_field, int nx, int ny, int nz,
                            dim3 Block_Error)
 {
   int *error_value_dev;
-  CudaSafeCall(cudaMalloc((void **)&error_value_dev, sizeof(int)));
+  GPU_Error_Check(cudaMalloc((void **)&error_value_dev, sizeof(int)));
   hipLaunchKernelGGL(Check_Value_Along_Axis, Grid_Error, Block_Error, 0, 0, dev_conserved, 0, nx, ny, nz, n_ghost,
                      error_value_dev);
 
   int error_value_host;
-  CudaSafeCall(cudaMemcpy(&error_value_host, error_value_dev, sizeof(int), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(&error_value_host, error_value_dev, sizeof(int), cudaMemcpyDeviceToHost));
 
   return error_value_host;
 }
