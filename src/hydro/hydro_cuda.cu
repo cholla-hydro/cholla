@@ -589,7 +589,7 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
     hipLaunchKernelGGL(Calc_dt_3D, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0, dev_conserved,
                        dev_dti.data(), gamma, n_ghost, n_fields, nx, ny, nz, dx, dy, dz);
   }
-  CudaCheckError();
+  GPU_Error_Check();
 
   // Note: dev_dti[0] is DeviceVector syntactic sugar for returning a value via
   // cudaMemcpy

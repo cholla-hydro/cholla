@@ -94,16 +94,16 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   #else   // not MHD
     size_t const arraySize = n_fields * n_cells * sizeof(Real);
   #endif  // MHD
-    CudaSafeCall(cudaMalloc((void **)&dev_conserved_half, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&Q_Lx, arraySize));
-    CudaSafeCall(cudaMalloc((void **)&Q_Rx, arraySize));
-    CudaSafeCall(cudaMalloc((void **)&Q_Ly, arraySize));
-    CudaSafeCall(cudaMalloc((void **)&Q_Ry, arraySize));
-    CudaSafeCall(cudaMalloc((void **)&Q_Lz, arraySize));
-    CudaSafeCall(cudaMalloc((void **)&Q_Rz, arraySize));
-    CudaSafeCall(cudaMalloc((void **)&F_x, arraySize));
-    CudaSafeCall(cudaMalloc((void **)&F_y, arraySize));
-    CudaSafeCall(cudaMalloc((void **)&F_z, arraySize));
+    GPU_Error_Check(cudaMalloc((void **)&dev_conserved_half, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Lx, arraySize));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Rx, arraySize));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Ly, arraySize));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Ry, arraySize));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Lz, arraySize));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Rz, arraySize));
+    GPU_Error_Check(cudaMalloc((void **)&F_x, arraySize));
+    GPU_Error_Check(cudaMalloc((void **)&F_y, arraySize));
+    GPU_Error_Check(cudaMalloc((void **)&F_z, arraySize));
 
     cuda_utilities::initGpuMemory(dev_conserved_half, n_fields * n_cells * sizeof(Real));
     cuda_utilities::initGpuMemory(Q_Lx, arraySize);
@@ -117,7 +117,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
     cuda_utilities::initGpuMemory(F_z, arraySize);
 
   #ifdef MHD
-    CudaSafeCall(cudaMalloc((void **)&ctElectricFields, ctArraySize));
+    GPU_Error_Check(cudaMalloc((void **)&ctElectricFields, ctArraySize));
   #endif  // MHD
 
   #if defined(GRAVITY)
@@ -134,14 +134,14 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   }
 
   #if defined(GRAVITY) && !defined(GRAVITY_GPU)
-  CudaSafeCall(cudaMemcpy(dev_grav_potential, temp_potential, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(dev_grav_potential, temp_potential, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   #endif  // GRAVITY and GRAVITY_GPU
 
   // Step 1: Use PCM reconstruction to put primitive variables into interface
   // arrays
   hipLaunchKernelGGL(PCM_Reconstruction_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz,
                      Q_Rz, nx, ny, nz, n_ghost, gama, n_fields);
-  CudaCheckError();
+  GPU_Error_Check();
 
   // Step 2: Calculate first-order upwind fluxes
   #ifdef EXACT
@@ -184,24 +184,24 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz,
                      &(dev_conserved[(grid_enum::magnetic_z)*n_cells]), F_z, n_cells, gama, 2, n_fields);
   #endif  // HLLD
-  CudaCheckError();
+  GPU_Error_Check();
 
   #ifdef MHD
   // Step 2.5: Compute the Constrained transport electric fields
   hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, dim1dGrid, dim1dBlock, 0, 0, F_x, F_y, F_z, dev_conserved,
                      ctElectricFields, nx, ny, nz, n_cells);
-  CudaCheckError();
+  GPU_Error_Check();
   #endif  // MHD
 
   // Step 3: Update the conserved variables half a timestep
   hipLaunchKernelGGL(Update_Conserved_Variables_3D_half, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved_half,
                      F_x, F_y, F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields, density_floor);
-  CudaCheckError();
+  GPU_Error_Check();
   #ifdef MHD
   // Update the magnetic fields
   hipLaunchKernelGGL(mhd::Update_Magnetic_Field_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved_half,
                      ctElectricFields, nx, ny, nz, n_cells, 0.5 * dt, dx, dy, dz);
-  CudaCheckError();
+  GPU_Error_Check();
   #endif  // MHD
 
   // Step 4: Construct left and right interface values using updated conserved
@@ -239,7 +239,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   hipLaunchKernelGGL(PPMC_VL, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, gama, 1);
   hipLaunchKernelGGL(PPMC_VL, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, gama, 2);
   #endif  // PPMC
-  CudaCheckError();
+  GPU_Error_Check();
 
   // Step 5: Calculate the fluxes again
   #ifdef EXACT
@@ -282,7 +282,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz,
                      &(dev_conserved_half[(grid_enum::magnetic_z)*n_cells]), F_z, n_cells, gama, 2, n_fields);
   #endif  // HLLD
-  CudaCheckError();
+  GPU_Error_Check();
 
   #ifdef DE
   // Compute the divergence of Vel before updating the conserved array, this
@@ -290,40 +290,40 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   // Update_Conserved_Variables_3D
   hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx,
                      Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dx, dy, dz, dt, gama, n_fields);
-  CudaCheckError();
+  GPU_Error_Check();
   #endif  // DE
 
   #ifdef MHD
   // Step 5.5: Compute the Constrained transport electric fields
   hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, dim1dGrid, dim1dBlock, 0, 0, F_x, F_y, F_z, dev_conserved_half,
                      ctElectricFields, nx, ny, nz, n_cells);
-  CudaCheckError();
+  GPU_Error_Check();
   #endif  // MHD
 
   // Step 6: Update the conserved variable array
   hipLaunchKernelGGL(Update_Conserved_Variables_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry,
                      Q_Lz, Q_Rz, F_x, F_y, F_z, nx, ny, nz, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound,
                      zbound, dt, gama, n_fields, custom_grav, density_floor, dev_grav_potential);
-  CudaCheckError();
+  GPU_Error_Check();
 
   #ifdef MHD
   // Update the magnetic fields
   hipLaunchKernelGGL(mhd::Update_Magnetic_Field_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved,
                      ctElectricFields, nx, ny, nz, n_cells, dt, dx, dy, dz);
-  CudaCheckError();
+  GPU_Error_Check();
   #endif  // MHD
 
   #ifdef DE
   hipLaunchKernelGGL(Select_Internal_Energy_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
                      n_fields);
   hipLaunchKernelGGL(Sync_Energies_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, gama, n_fields);
-  CudaCheckError();
+  GPU_Error_Check();
   #endif  // DE
 
   #ifdef TEMPERATURE_FLOOR
   hipLaunchKernelGGL(Apply_Temperature_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields,
                      U_floor);
-  CudaCheckError();
+  GPU_Error_Check();
   #endif  // TEMPERATURE_FLOOR
 
   return;

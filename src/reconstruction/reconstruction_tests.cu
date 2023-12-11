@@ -64,7 +64,7 @@ TEST(tMHDReconstructionPrimitive2Characteristic, CorrectInputExpectCorrectOutput
   cuda_utilities::DeviceVector<reconstruction::Characteristic> dev_results(1);
   hipLaunchKernelGGL(Test_Prim_2_Char, 1, 1, 0, 0, primitive, primitive_slope, eigenvectors, gamma, sound_speed,
                      sound_speed_squared, dev_results.data());
-  CudaCheckError();
+  GPU_Error_Check();
   cudaDeviceSynchronize();
   reconstruction::Characteristic const host_results = dev_results.at(0);
 
@@ -95,7 +95,7 @@ TEST(tMHDReconstructionCharacteristic2Primitive, CorrectInputExpectCorrectOutput
   cuda_utilities::DeviceVector<reconstruction::Primitive> dev_results(1);
   hipLaunchKernelGGL(Test_Char_2_Prim, 1, 1, 0, 0, primitive, characteristic_slope, eigenvectors, gamma, sound_speed,
                      sound_speed_squared, dev_results.data());
-  CudaCheckError();
+  GPU_Error_Check();
   cudaDeviceSynchronize();
   reconstruction::Primitive const host_results = dev_results.at(0);
 
@@ -122,7 +122,7 @@ TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
   cuda_utilities::DeviceVector<reconstruction::EigenVecs> dev_results(1);
   hipLaunchKernelGGL(Test_Compute_Eigenvectors, 1, 1, 0, 0, primitive, sound_speed, sound_speed_squared, gamma,
                      dev_results.data());
-  CudaCheckError();
+  GPU_Error_Check();
   cudaDeviceSynchronize();
   reconstruction::EigenVecs const host_results = dev_results.at(0);
   // std::cout << to_string_exact(host_results.magnetosonic_speed_fast) << ",";
@@ -367,7 +367,7 @@ TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpe
   hipLaunchKernelGGL(Test_Monotize_Characteristic_Return_Primitive, 1, 1, 0, 0, primitive, del_L, del_R, del_C, del_G,
                      del_a_L, del_a_R, del_a_C, del_a_G, eigenvectors, sound_speed, sound_speed_squared, gamma,
                      dev_results.data());
-  CudaCheckError();
+  GPU_Error_Check();
   cudaDeviceSynchronize();
   reconstruction::Primitive const host_results = dev_results.at(0);
 

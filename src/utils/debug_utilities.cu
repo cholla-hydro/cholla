@@ -45,7 +45,7 @@ void Check_For_Nan(Real* device_array, int array_size, int check_num)
 {
   bool host_out_bool[1] = {false};
   bool* out_bool;
-  cudaMalloc((void**)&out_bool, sizeof(bool));
+  GPU_Error_Check(cudaMalloc((void**)&out_bool, sizeof(bool)));
   cudaMemcpy(out_bool, host_out_bool, sizeof(bool), cudaMemcpyHostToDevice);
   int ngrid = (array_size + TPB - 1) / TPB;
   dim3 dim1dGrid(ngrid, 1, 1);

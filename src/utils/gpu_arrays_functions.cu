@@ -15,7 +15,7 @@ void Extend_GPU_Array_Real(Real **current_array_d, int current_size, int new_siz
   }
 
   size_t global_free, global_total;
-  CudaSafeCall(cudaMemGetInfo(&global_free, &global_total));
+  GPU_Error_Check(cudaMemGetInfo(&global_free, &global_total));
   cudaDeviceSynchronize();
 #ifdef PRINT_GPU_MEMORY
   printf("ReAllocating GPU Memory:  %d  MB free \n", (int)global_free / 1000000);
@@ -29,29 +29,29 @@ void Extend_GPU_Array_Real(Real **current_array_d, int current_size, int new_siz
   }
 
   Real *new_array_d;
-  CudaSafeCall(cudaMalloc((void **)&new_array_d, new_size * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&new_array_d, new_size * sizeof(Real)));
   cudaDeviceSynchronize();
-  CudaCheckError();
+  GPU_Error_Check();
   if (new_array_d == NULL) {
     std::cout << " Error When Allocating New GPU Array" << std::endl;
     chexit(-1);
   }
 
   // Copy the content of the original array to the new array
-  CudaSafeCall(cudaMemcpy(new_array_d, *current_array_d, current_size * sizeof(Real), cudaMemcpyDeviceToDevice));
+  GPU_Error_Check(cudaMemcpy(new_array_d, *current_array_d, current_size * sizeof(Real), cudaMemcpyDeviceToDevice));
   cudaDeviceSynchronize();
-  CudaCheckError();
+  GPU_Error_Check();
 
   // size_t global_free_before, global_free_after;
-  // CudaSafeCall( cudaMemGetInfo( &global_free_before, &global_total ) );
+  // GPU_Error_Check( cudaMemGetInfo( &global_free_before, &global_total ) );
   // cudaDeviceSynchronize();
 
   // Free the original array
   cudaFree(*current_array_d);
   cudaDeviceSynchronize();
-  CudaCheckError();
+  GPU_Error_Check();
 
-  // CudaSafeCall( cudaMemGetInfo( &global_free_after, &global_total ) );
+  // GPU_Error_Check( cudaMemGetInfo( &global_free_after, &global_total ) );
   // cudaDeviceSynchronize();
   //
   // printf("Freed Memory: %d MB\n", (int) (global_free_after -

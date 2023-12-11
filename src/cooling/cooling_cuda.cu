@@ -26,7 +26,7 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt,
                      gama, coolTexObj, heatTexObj);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int
