@@ -15,9 +15,9 @@
     #endif /*FFTW*/
 
 /*Global MPI Variables*/
-extern int procID;      /*process rank*/
-extern int nproc;       /*number of processes in global comm*/
-extern int root;        /*rank of root process*/
+// NOTE: some variable heavily used by mpi are declared in global.h so that they are defined even
+//       when compiled without mpi
+
 extern int procID_node; /*process rank on node*/
 extern int nproc_node;  /*number of MPI processes on node*/
 
