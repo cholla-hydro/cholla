@@ -43,9 +43,7 @@ struct ResolvedSNPrescription{
     Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
     Real feedback_density = num_SN * feedback::MASS_PER_SN / dV;
 
-    mass_ref -= num_SN * feedback::MASS_PER_SN; // update the cluster mass
-
-    if (num_SN == 0)  return; // TODO: see if we can remove this!
+    mass_ref = max(0.0, mass_ref - num_SN * feedback::MASS_PER_SN); // update the cluster mass
 
     ResolvedSNPrescription::apply(pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z,
                                   nx_g, ny_g, nx_g * ny_g * nz_g, conserved_dev,
@@ -119,38 +117,36 @@ using Sphere27ResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::Sphere
 
 using SphereBinaryResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::SphereBinary<3>>;
 
-inline __device__ Real Get_Average_Density(Real* density, int xi, int yi, int zi, int nx_grid, int ny_grid, int n_ghost)
+template<typename Stencil>
+__device__ void Overwrite_Density(Arr3<Real> stencil_pos_indU, int nx_g, int ny_g, int nz_g, Real* conserved_device,
+                                  Real overwrite_density)
 {
-  Real d_average = 0.0;
-  for (int i = -1; i < 2; i++) {
-    for (int j = -1; j < 2; j++) {
-      for (int k = -1; k < 2; k++) {
-        d_average +=
-            density[(xi + n_ghost + i) + (yi + n_ghost + j) * nx_grid + (zi + n_ghost + k) * nx_grid * ny_grid];
-      }
-    }
-  }
-  return d_average / 27;
-}
+  // we only directly modify the density
+  // - I'm torn. We currently hold momentum constant (while this could introduce a large velocity in a single cell,
+  //   the mass in that cell will be low). At the same time, it may make more sense to conserve velocity (so that the
+  //   bulk motion around the disk stays correct)
+  // - but we need to modify total energy to reflect changes in kinetic energy density
+  const int n_cells      = nx_g * ny_g * nz_g;
+  Real* density          = conserved_device;
+  const Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
+  const Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
+  const Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
+  Real* energy           = &conserved_device[n_cells * grid_enum::Energy];
 
-inline __device__ Real Get_Average_Number_Density_CGS(Real* density, int xi, int yi, int zi, int nx_grid, int ny_grid,
-                                                      int n_ghost)
-{
-  return Get_Average_Density(density, xi, yi, zi, nx_grid, ny_grid, n_ghost) * DENSITY_UNIT / (MU * MP);
-}
+  Stencil::for_each_overlap_zone( stencil_pos_indU, nx_g, ny_g, [=](int idx3D)
+  {
+    const Real half_momentum_squared = 0.5 *(momentum_x[idx3D] * momentum_x[idx3D] +
+                                             momentum_y[idx3D] * momentum_y[idx3D] +
+                                             momentum_z[idx3D] * momentum_z[idx3D]);
+  
+    // precompute 1/initial_density (take care to avoid divide by 0)
+    const Real inv_initial_dens  = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));  
+    const Real intial_ke_density = half_momentum_squared * inv_initial_dens;
+    const Real new_ke_density    = half_momentum_squared / overwrite_density;
 
-inline __device__ void Set_Average_Density(int indx_x, int indx_y, int indx_z, int nx_g, int ny_g, int n_ghost, Real* density,
-                                    Real ave_dens)
-{
-  for (int i = -1; i < 2; i++) {
-    for (int j = -1; j < 2; j++) {
-      for (int k = -1; k < 2; k++) {
-        int indx = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
-
-        density[indx] = ave_dens;
-      }
-    }
-  }
+    density[idx3D] = overwrite_density;
+    energy[idx3D] += new_ke_density-intial_ke_density;
+  });
 }
 
 /* \brief Function used for depositing energy or momentum from an unresolved
@@ -390,45 +386,47 @@ struct ResolvedAndUnresolvedSNe {
     Real dV = dx * dy * dz;
     int n_cells    = nx_g * ny_g * nz_g;
 
-    // no sense doing anything if there was no SN
-    if (num_SN == 0) return; // TODO: see if we can remove this!
-
     Real* density = conserved_dev;
-    int indx_x = (int)floor(pos_x_indU - n_ghost);
-    int indx_y = (int)floor(pos_y_indU - n_ghost);
-    int indx_z = (int)floor(pos_z_indU - n_ghost);
-    Real n_0                  = Get_Average_Number_Density_CGS(density, indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost);
+
+    // compute the average mass density
+    Real avg_mass_dens;
+    {
+      Real dtot = 0.0;
+      int num   = 0;
+      UnresolvedStencil::for_each_overlap_zone(
+        Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
+        [&dtot, &num, density](int idx3) { dtot += density[idx3]; num++; });
+      avg_mass_dens = dtot / num;
+    }
+    Real n_0_cgs = avg_mass_dens * DENSITY_UNIT / (MU * MP);  // average number density in cgs
+
     s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN] += num_SN;
 
-    Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
+    Real shell_radius = feedback::R_SH * pow(n_0_cgs, -0.46) * pow(fabsf(num_SN), 0.29);
+
+    const bool is_resolved =  (3 * max(dx, max(dy, dz)) <= shell_radius);
+
+    mass_ref = max(0.0, mass_ref - num_SN * feedback::MASS_PER_SN);  // update the cluster mass
     Real feedback_density = num_SN * feedback::MASS_PER_SN / dV;
-
-    Real shell_radius = feedback::R_SH * pow(n_0, -0.46) * pow(fabsf(num_SN), 0.29);
-
-    bool is_resolved =  (3 * max(dx, max(dy, dz)) <= shell_radius);
-
-    // update the cluster mass
-    mass_ref -= num_SN * feedback::MASS_PER_SN;
 
     if (is_resolved) {
       // inject energy and density
+      Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
+
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback_energy * dV;
 
       ResolvedPrescriptionT::apply(pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_cells,
                                    conserved_dev, feedback_density, feedback_energy);
     } else {
-      // historically, only unresolved SN feedback involves averaging the densities.
-      // - this step is NOT self-consistent... since this only touches the density fields, it implicitly changes the
-      //   amount of thermal energy (since the kinetic energy is density dependent)
-      // Real ave_dens = n_0 * MU * MP / DENSITY_UNIT;
-      // Set_Average_Density(indx_x, indx_y, indx_z, nx_g, ny_g, n_ghost, density, ave_dens);
-
-      // for now, don't inject any energy
-      feedback_energy = 0.0;
+      // only unresolved SN feedback involves averaging the densities.
+      Overwrite_Density<UnresolvedStencil>(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, nz_g,
+                                           conserved_dev, avg_mass_dens);
 
       // inject momentum and density
-      Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0, -0.17) * pow(fabsf(num_SN), 0.93) / dV / sqrt(3.0);
+      Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0_cgs, -0.17) * pow(fabsf(num_SN), 0.93) / dV / sqrt(3.0);
+      Real feedback_energy = 0.0; // for now, don't inject any energy
+
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  += num_SN;
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    += feedback_momentum * dV * sqrt(3.0);
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] += feedback_energy * dV;

@@ -268,6 +268,33 @@ struct LegacyCIC27 {
   }
 
 
+  /* calls the unary function f at ever location where there probably is non-zero overlap with
+   * the stencil.
+   *
+   * \note
+   * This is intended to be conservative (it's okay for this to call the function on a cell with
+   * non-zero overlap). The reason this exacts (rather than just calling for_each), is that it
+   * it may be significantly cheaper for some stencils
+   */
+  template<typename UnaryFunction>
+  static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int nx_g, int ny_g, UnaryFunction f)
+  {
+    int indx_x = (int)floor(pos_indU[0]);
+    int indx_y = (int)floor(pos_indU[1]);
+    int indx_z = (int)floor(pos_indU[2]);
+
+    for (int i = -1; i < 2; i++) {
+      for (int j = -1; j < 2; j++) {
+        for (int k = -1; k < 2; k++) {
+          int indx = (indx_x + i) + (indx_y + j) * nx_g + (indx_z + k) * nx_g * ny_g;
+          f(indx);
+        }
+      }
+    }
+  
+  }
+
+
   /* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
    * can be shifted to in order to avoid overlapping with the ghost zone.
    *
