@@ -234,26 +234,16 @@ std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parame
 #endif
 
   // retrieve the supernova-feedback model name
-  std::string sn_model = P.feedback_sn_model;
-  if (sn_model.empty() and (not supports_feedback)) {
-    sn_model = "none";
-  } else if (sn_model.empty()) {
-#ifdef ONLY_RESOLVED
-    sn_model = "resolvedCiC";
-#else
-    sn_model = "legacy";
-#endif
-    chprintf("the feedback_sn_model was not supplied. Right now, we are defaulting to \"%s\" (based "
-             "on compiler flags) - in the future we will abort with an error instead",
-             sn_model.c_str());
-  }
-
+  const std::string sn_model = P.feedback_sn_model;
 
   // handle the case when there is no feedback (or if the code can't support feedback)
-  if (sn_model == "none") {  // return an empty objec
-    return {};
+  if (sn_model == "none" or (sn_model.empty() and (not supports_feedback))) {
+    return {};  // return an empty object
   } else if (not supports_feedback) {
     CHOLLA_ERROR("The way that cholla was compiled does not currently support feedback");
+  } else if (sn_model.empty()) {
+    CHOLLA_ERROR("The feedback_sn_model parameter was not specified. It must be "
+                 "specified when cholla has been compiled with support for feedback.");
   }
 
 
