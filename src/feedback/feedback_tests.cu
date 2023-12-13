@@ -195,7 +195,7 @@ enum struct StencilEvalKind{
  * choice reflects the fact that a single thread is historically assigned to a single particle.
  */
 template<typename Stencil>
-__global__ void Stencil_Overlap_Kernel_(Real* out_data, double pos_x_indU, double pos_y_indU, double pos_z_indU,
+__global__ void Stencil_Overlap_Kernel_(Real* out_data, Arr3<Real> pos_indU,
                                         int nx_g, int ny_g, Stencil stencil, StencilEvalKind eval)
 {
   // first, define the lambda function that actually updates out_data
@@ -204,13 +204,13 @@ __global__ void Stencil_Overlap_Kernel_(Real* out_data, double pos_x_indU, doubl
   // second, execute update_entry at each location where the stencil overlaps with the cells
   switch(eval) {
     case StencilEvalKind::enclosed_stencil_vol_frac:
-      stencil.for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, update_entry_fn);
+      stencil.for_each(pos_indU, nx_g, ny_g, update_entry_fn);
       break;
     case StencilEvalKind::enclosed_cell_vol_frac:
-      stencil.for_each_enclosedCellVol(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, update_entry_fn);
+      stencil.for_each_enclosedCellVol(pos_indU[0], pos_indU[1], pos_indU[2], nx_g, ny_g, update_entry_fn);
       break;
     case StencilEvalKind::for_each_overlap_zone:
-      stencil.for_each_overlap_zone(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
+      stencil.for_each_overlap_zone(pos_indU, nx_g, ny_g,
                                     [out_data](int indx3D) -> void { out_data[indx3D] = 1.0; });
       break;
   }
@@ -238,9 +238,11 @@ std::vector<double> eval_stencil_overlap_(const Real* pos_indxU, Extent3D full_e
   const int num_blocks = 1;
   const int threads_per_block = 1;
 
+  Arr3<Real> pos_indU{pos_indxU[0], pos_indxU[1], pos_indxU[2]};
+
   hipLaunchKernelGGL(Stencil_Overlap_Kernel_, num_blocks, threads_per_block, 0, 0,
-                     data.data(), pos_indxU[0], pos_indxU[1], pos_indxU[2],
-                     full_extent.nx, full_extent.ny, stencil, eval);
+                     data.data(), pos_indU, full_extent.nx, full_extent.ny, stencil,
+                     eval);
 
   CHECK(cudaDeviceSynchronize());
   std::vector<double> out(full_extent.nx*full_extent.ny*full_extent.nz);
@@ -294,9 +296,12 @@ public:  // interface
 
   /* adapts the arguments and passes the functions back to the legacy interface */
   template<typename Function>
-  __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                           int nx_g, int ny_g, Function f) const
+  __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f) const
   {
+    const Real pos_x_indU = pos_indU[0];
+    const Real pos_y_indU = pos_indU[1];
+    const Real pos_z_indU = pos_indU[2];
+
     // pos_indxU gives the position in index-units on the grid including ghost-zones
     Real pos_x = (pos_x_indU - this->n_ghost) * this->spatial_props.dx + this->spatial_props.xMin;
     Real pos_y = (pos_y_indU - this->n_ghost) * this->spatial_props.dy + this->spatial_props.yMin;
@@ -355,7 +360,7 @@ public:  // interface
   __device__ void for_each_enclosedCellVol(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
                                            int nx_g, int ny_g, Function f)
   {
-    this->for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, f);
+    this->for_each(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, f);
   }
 
   /* provided for compatability with interfaces of other stencils */
@@ -363,7 +368,7 @@ public:  // interface
   __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
   {
     // this is a little crude!
-    this->for_each(pos_indU[0], pos_indU[1], pos_indU[2], ng_x, ng_y,
+    this->for_each(pos_indU, ng_x, ng_y,
                    [f](double stencil_enclosed_frac, int idx3D) { if (stencil_enclosed_frac > 0) f(idx3D);});
   }
 

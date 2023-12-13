@@ -107,24 +107,23 @@ struct CIC {
    *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
    */
   template<typename Function>
-  static __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                  int nx_g, int ny_g, Function f)
+  static __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
     //  - Consider the cell containing the stencil-center. If the stencil-center is at all to the left
     //    of that cell-center, then the stencil overlaps with the current cell and the one to the left
     //  - otherwise, the stencil covers the current cell and the one to the right
-    int leftmost_indx_x = int(pos_x_indU - 0.5);
-    int leftmost_indx_y = int(pos_y_indU - 0.5);
-    int leftmost_indx_z = int(pos_z_indU - 0.5);
+    int leftmost_indx_x = int(pos_indU[0] - 0.5);
+    int leftmost_indx_y = int(pos_indU[1] - 0.5);
+    int leftmost_indx_z = int(pos_indU[2] - 0.5);
 
     // Step 2: along each axis, compute the distance between the stencil-center of the leftmost cell
     //  - Recall that an integer index, ``indx``, specifies the position of the left edge of a cell.
     //    In other words the reference point of the cell is on the left edge.
     //  - The center of the cell specified by ``indx`` is actually ``indx+0.5``
-    Real delta_x = pos_x_indU - (leftmost_indx_x + 0.5);
-    Real delta_y = pos_y_indU - (leftmost_indx_y + 0.5);
-    Real delta_z = pos_z_indU - (leftmost_indx_z + 0.5);
+    Real delta_x = pos_indU[0] - (leftmost_indx_x + 0.5);
+    Real delta_y = pos_indU[1] - (leftmost_indx_y + 0.5);
+    Real delta_z = pos_indU[2] - (leftmost_indx_z + 0.5);
 
     // Step 3: Actually invoke f at each cell-location that overlaps with the stencil location, passing both:
     //  1. fraction of the total stencil volume enclosed by the given cell
@@ -150,7 +149,7 @@ struct CIC {
   static __device__ void for_each_enclosedCellVol(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
                                                   int nx_g, int ny_g, Function f)
   {
-    CIC::for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, f);
+    CIC::for_each(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, f);
   }
 
   ///* calls the unary function f at ever location where there probably is non-zero overlap with
@@ -165,7 +164,7 @@ struct CIC {
   static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
   {
     // this is a little crude!
-    CIC::for_each(pos_indU[0], pos_indU[1], pos_indU[2], ng_x, ng_y,
+    CIC::for_each(pos_indU, ng_x, ng_y,
                   [f](double stencil_enclosed_frac, int idx3D) { if (stencil_enclosed_frac > 0) f(idx3D);});
   }
 
@@ -550,16 +549,15 @@ struct Sphere27 {
    *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
    */
   template<typename Function>
-  static __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                  int nx_g, int ny_g, Function f)
+  static __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    const int leftmost_indx_x = int(pos_x_indU - 1);
-    const int leftmost_indx_y = int(pos_y_indU - 1);
-    const int leftmost_indx_z = int(pos_z_indU - 1);
+    const int leftmost_indx_x = int(pos_indU[0] - 1);
+    const int leftmost_indx_y = int(pos_indU[1] - 1);
+    const int leftmost_indx_z = int(pos_indU[2] - 1);
 
     // Step 2: get the number of super-samples within each of the 27 possible cells
-    const SphereObj sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, 1*1};
+    const SphereObj sphere{{pos_indU[0], pos_indU[1], pos_indU[2]}, 1*1};
 
     uint_least16_t counts[3][3][3]; // we want to keep the array-element size small to reduce memory
                                     // pressure on the stack (especially since every thread will be
@@ -575,7 +573,7 @@ struct Sphere27 {
       }
     }
 
-    //kernel_printf("ref: %g, %g, %g\n", pos_x_indU, pos_y_indU, pos_z_indU);
+    //kernel_printf("ref: %g, %g, %g\n", pos_indU[0], pos_indU[1], pos_indU[2]);
 
     // Step 3: actually invoke f at each cell-location that overlaps with the stencil location, passing both:
     //  1. fraction of the total stencil volume enclosed by the given cell
@@ -763,16 +761,15 @@ struct SphereBinary {
   inline static constexpr int max_enclosed_neighbors = CellsPerRadius;
 
   template<typename Function>
-  static __device__ void for_each(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                  int nx_g, int ny_g, Function f)
+  static __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    int leftmost_indx_x = int(pos_x_indU) - CellsPerRadius;
-    int leftmost_indx_y = int(pos_y_indU) - CellsPerRadius;
-    int leftmost_indx_z = int(pos_z_indU) - CellsPerRadius;
+    int leftmost_indx_x = int(pos_indU[0]) - CellsPerRadius;
+    int leftmost_indx_y = int(pos_indU[1]) - CellsPerRadius;
+    int leftmost_indx_z = int(pos_indU[2]) - CellsPerRadius;
 
     // Step 2: get the number of cells enclosed by the sphere
-    const SphereObj sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, CellsPerRadius*CellsPerRadius};
+    const SphereObj sphere{{pos_indU[0], pos_indU[1], pos_indU[2]}, CellsPerRadius*CellsPerRadius};
     int total_count = 0;
 
     const int stop = (2 * CellsPerRadius) + 1;
