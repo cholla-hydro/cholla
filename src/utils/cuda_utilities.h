@@ -106,6 +106,12 @@ struct AutomaticLaunchParams {
     cudaOccupancyMaxPotentialBlockSize(&numBlocks, &threadsPerBlock, kernel, 0, 0);
 
     if (numElements > 0) {
+      // This line is needed to check that threadsPerBlock isn't zero. Somewhere inside
+      // cudaOccupancyMaxPotentialBlockSize threadsPerBlock can be zero according to clang-tidy so this line sets it to
+      // a more reasonable value
+      threadsPerBlock = (threadsPerBlock == 0) ? TPB : threadsPerBlock;
+
+      // Compute the number of blocks
       numBlocks = (numElements + threadsPerBlock - 1) / threadsPerBlock;
     }
   }
