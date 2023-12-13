@@ -25,7 +25,7 @@ struct ResolvedSNPrescription{
   static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
                                                    int nx_g, int ny_g, Function f)
   {
-    Stencil::for_each(pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g, f);
+    Stencil::for_each(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, f);
   }
 
   static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
@@ -45,14 +45,13 @@ struct ResolvedSNPrescription{
 
     mass_ref = max(0.0, mass_ref - num_SN * feedback::MASS_PER_SN); // update the cluster mass
 
-    ResolvedSNPrescription::apply(pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z,
+    ResolvedSNPrescription::apply(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, vel_x, vel_y, vel_z,
                                   nx_g, ny_g, nx_g * ny_g * nz_g, conserved_dev,
                                   feedback_density, feedback_energy);
   }
 
   /* apply the resolved feedback prescription */
-  static __device__ void apply(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                               Real vel_x, Real vel_y, Real vel_z,
+  static __device__ void apply(Arr3<Real> pos_indU, Real vel_x, Real vel_y, Real vel_z,
                                int nx_g, int ny_g, int n_cells,
                                Real* conserved_device, Real feedback_density, Real feedback_energy)
   {
@@ -66,7 +65,7 @@ struct ResolvedSNPrescription{
 #endif
 
     Stencil::for_each(
-      pos_x_indU, pos_y_indU, pos_z_indU, nx_g, ny_g,
+      pos_indU, nx_g, ny_g,
       [=](double stencil_vol_frac, int idx3D) {
         // stencil_vol_frac is the fraction of the total stencil volume enclosed by the given cell
         // indx3D can be used to index the conserved fields (it assumes ghost-zones are present)
@@ -386,6 +385,8 @@ struct ResolvedAndUnresolvedSNe {
     Real dV = dx * dy * dz;
     int n_cells    = nx_g * ny_g * nz_g;
 
+    Arr3<Real> pos_indU{pos_x_indU, pos_y_indU, pos_z_indU};
+
     Real* density = conserved_dev;
 
     // compute the average mass density
@@ -394,7 +395,7 @@ struct ResolvedAndUnresolvedSNe {
       Real dtot = 0.0;
       int num   = 0;
       UnresolvedStencil::for_each_overlap_zone(
-        Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
+        pos_indU, nx_g, ny_g,
         [&dtot, &num, density](int idx3) { dtot += density[idx3]; num++; });
       avg_mass_dens = dtot / num;
     }
@@ -416,11 +417,11 @@ struct ResolvedAndUnresolvedSNe {
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback_energy * dV;
 
-      ResolvedPrescriptionT::apply(pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_cells,
+      ResolvedPrescriptionT::apply(pos_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_cells,
                                    conserved_dev, feedback_density, feedback_energy);
     } else {
       // only unresolved SN feedback involves averaging the densities.
-      Overwrite_Density<UnresolvedStencil>(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, nz_g,
+      Overwrite_Density<UnresolvedStencil>(pos_indU, nx_g, ny_g, nz_g,
                                            conserved_dev, avg_mass_dens);
 
       // inject momentum and density
