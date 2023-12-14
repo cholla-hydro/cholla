@@ -194,19 +194,14 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
 
   // Step 3: Update the conserved variables half a timestep
   hipLaunchKernelGGL(Update_Conserved_Variables_3D_half, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved_half,
-<<<<<<< HEAD
-                     F_x, F_y, F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields);
-  CudaCheckError();
+                     F_x, F_y, F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields, density_floor);
+  GPU_Error_Check();
 
   #ifdef DENSITY_FLOOR
   hipLaunchKernelGGL(Apply_Density_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, nx, ny, nz, n_ghost,
                      density_floor);
   #endif  // DENSITY_FLOOR
 
-=======
-                     F_x, F_y, F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields, density_floor);
-  GPU_Error_Check();
->>>>>>> dev
   #ifdef MHD
   // Update the magnetic fields
   hipLaunchKernelGGL(mhd::Update_Magnetic_Field_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved_half,
