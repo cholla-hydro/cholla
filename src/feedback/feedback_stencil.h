@@ -146,10 +146,9 @@ struct CIC {
 
   /* identical to for_each (provided for compatability with interfaces of other stencils). */
   template<typename Function>
-  static __device__ void for_each_enclosedCellVol(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                  int nx_g, int ny_g, Function f)
+  static __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
-    CIC::for_each(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, f);
+    CIC::for_each(pos_indU, nx_g, ny_g, f);
   }
 
   ///* calls the unary function f at ever location where there probably is non-zero overlap with
@@ -667,16 +666,15 @@ struct Sphere27 {
    * This is primarily intended for testing purposes.
    */
   template<typename Function>
-  static __device__ void for_each_enclosedCellVol(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                  int nx_g, int ny_g, Function f)
+  static __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    const int leftmost_indx_x = int(pos_x_indU - 1);
-    const int leftmost_indx_y = int(pos_y_indU - 1);
-    const int leftmost_indx_z = int(pos_z_indU - 1);
+    const int leftmost_indx_x = int(pos_indU[0] - 1);
+    const int leftmost_indx_y = int(pos_indU[1] - 1);
+    const int leftmost_indx_z = int(pos_indU[2] - 1);
 
     double inverse_max_counts_per_cell = 1.0 / double(std::pow(2,Log2DivsionsPerAx_PerCell*3));
-    const SphereObj sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, 1*1};
+    const SphereObj sphere{{pos_indU[0], pos_indU[1], pos_indU[2]}, 1*1};
 
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
@@ -814,15 +812,14 @@ struct SphereBinary {
    * This is primarily intended for testing purposes.
    */
   template<typename Function>
-  static __device__ void for_each_enclosedCellVol(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                  int nx_g, int ny_g, Function f)
+  static __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    int leftmost_indx_x = int(pos_x_indU) - CellsPerRadius;
-    int leftmost_indx_y = int(pos_y_indU) - CellsPerRadius;
-    int leftmost_indx_z = int(pos_z_indU) - CellsPerRadius;
+    int leftmost_indx_x = int(pos_indU[0]) - CellsPerRadius;
+    int leftmost_indx_y = int(pos_indU[1]) - CellsPerRadius;
+    int leftmost_indx_z = int(pos_indU[2]) - CellsPerRadius;
 
-    const SphereObj sphere{{pos_x_indU, pos_y_indU, pos_z_indU}, CellsPerRadius*CellsPerRadius};
+    const SphereObj sphere{{pos_indU[0], pos_indU[1], pos_indU[2]}, CellsPerRadius*CellsPerRadius};
 
     const int stop = (2 * CellsPerRadius) + 1;
     for (int i = 0; i < stop; i++) {

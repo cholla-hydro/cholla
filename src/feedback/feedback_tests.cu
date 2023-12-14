@@ -207,7 +207,7 @@ __global__ void Stencil_Overlap_Kernel_(Real* out_data, Arr3<Real> pos_indU,
       stencil.for_each(pos_indU, nx_g, ny_g, update_entry_fn);
       break;
     case StencilEvalKind::enclosed_cell_vol_frac:
-      stencil.for_each_enclosedCellVol(pos_indU[0], pos_indU[1], pos_indU[2], nx_g, ny_g, update_entry_fn);
+      stencil.for_each_enclosedCellVol(pos_indU, nx_g, ny_g, update_entry_fn);
       break;
     case StencilEvalKind::for_each_overlap_zone:
       stencil.for_each_overlap_zone(pos_indU, nx_g, ny_g,
@@ -357,10 +357,9 @@ public:  // interface
 
   /* identical to for_each (provided for compatability with interfaces of other stencils). */
   template<typename Function>
-  __device__ void for_each_enclosedCellVol(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                           int nx_g, int ny_g, Function f)
+  __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
-    this->for_each(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, f);
+    this->for_each(pos_indU, nx_g, ny_g, f);
   }
 
   /* provided for compatability with interfaces of other stencils */
