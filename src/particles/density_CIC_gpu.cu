@@ -14,8 +14,8 @@
   #ifdef GRAVITY_GPU
 void Grid3D::Copy_Particles_Density_to_GPU()
 {
-  CudaSafeCall(cudaMemcpy(Particles.G.density_dev, Particles.G.density, Particles.G.n_cells * sizeof(Real),
-                          cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(Particles.G.density_dev, Particles.G.density, Particles.G.n_cells * sizeof(Real),
+                             cudaMemcpyHostToDevice));
 }
 
   #endif
@@ -166,13 +166,13 @@ void Particles3D::Get_Density_CIC_GPU_function(part_int_t n_local, Real particle
     hipLaunchKernelGGL(Get_Density_CIC_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, particle_mass, density_dev,
                        pos_x_dev, pos_y_dev, pos_z_dev, mass_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz,
                        nx_local, ny_local, nz_local, n_ghost_particles_grid);
-    CudaCheckError();
+    GPU_Error_Check();
     cudaDeviceSynchronize();
   }
 
     #if !defined(GRAVITY_GPU)
   // Copy the density from device to host
-  CudaSafeCall(cudaMemcpy(density_h, density_dev, n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(density_h, density_dev, n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
     #endif
 }
 

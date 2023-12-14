@@ -63,7 +63,7 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   // Run the kernel
   hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), dev_dti.data(), gamma, n_ghost,
                      n_fields, nx, ny, nz, dx, dy, dz);
-  CudaCheckError();
+  GPU_Error_Check();
 
   // Compare results
   // Check for equality and if not equal return difference

@@ -126,11 +126,11 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
 
   const int countK = dip * djq * dk;
   #ifndef MPI_GPU
-  CHECK(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_, countK, MPI_DOUBLE, hb_, countK, MPI_DOUBLE, commK_);
-  CHECK(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
   #else
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   MPI_Alltoall(a, countK, MPI_DOUBLE, b, countK, MPI_DOUBLE, commK_);
   #endif
 
@@ -152,7 +152,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
   }
 
   // Real-to-complex FFT in Z
-  CHECK(cufftExecD2Z(r2ck_, a, bc));
+  GPU_Error_Check(cufftExecD2Z(r2ck_, a, bc));
 
   // Rearrange for Y redistribution
   {
@@ -174,11 +174,11 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
   // Redistribute for Y pencils
   const int countJ = 2 * dip * djq * dhq;
   #ifndef MPI_GPU
-  CHECK(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_, countJ, MPI_DOUBLE, hb_, countJ, MPI_DOUBLE, commJ_);
-  CHECK(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
   #else
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   MPI_Alltoall(a, countJ, MPI_DOUBLE, b, countJ, MPI_DOUBLE, commJ_);
   #endif
 
@@ -201,7 +201,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
   }
 
   // Forward FFT in Y
-  CHECK(cufftExecZ2Z(c2cj_, ac, bc, CUFFT_FORWARD));
+  GPU_Error_Check(cufftExecZ2Z(c2cj_, ac, bc, CUFFT_FORWARD));
 
   // Rearrange for X redistribution
   {
@@ -223,11 +223,11 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
   // Redistribute for X pencils
   const int countI = 2 * dip * djp * dhq;
   #ifndef MPI_GPU
-  CHECK(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_, countI, MPI_DOUBLE, hb_, countI, MPI_DOUBLE, commI_);
-  CHECK(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
   #else
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   MPI_Alltoall(a, countI, MPI_DOUBLE, b, countI, MPI_DOUBLE, commI_);
   #endif
 
@@ -250,7 +250,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
   }
 
   // Forward FFT in X
-  CHECK(cufftExecZ2Z(c2ci_, ac, bc, CUFFT_FORWARD));
+  GPU_Error_Check(cufftExecZ2Z(c2ci_, ac, bc, CUFFT_FORWARD));
 
   // Apply filter in frequency space distributed in X pencils
 
@@ -268,7 +268,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
       });
 
   // Backward FFT in X
-  CHECK(cufftExecZ2Z(c2ci_, ac, bc, CUFFT_INVERSE));
+  GPU_Error_Check(cufftExecZ2Z(c2ci_, ac, bc, CUFFT_INVERSE));
 
   // Rearrange for Y redistribution
   {
@@ -290,11 +290,11 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
 
   // Redistribute for Y pencils
   #ifndef MPI_GPU
-  CHECK(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_, countI, MPI_DOUBLE, hb_, countI, MPI_DOUBLE, commI_);
-  CHECK(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
   #else
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   MPI_Alltoall(a, countI, MPI_DOUBLE, b, countI, MPI_DOUBLE, commI_);
   #endif
 
@@ -316,7 +316,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
   }
 
   // Backward FFT in Y
-  CHECK(cufftExecZ2Z(c2cj_, ac, bc, CUFFT_INVERSE));
+  GPU_Error_Check(cufftExecZ2Z(c2cj_, ac, bc, CUFFT_INVERSE));
 
   // Rearrange for Z redistribution
   {
@@ -338,11 +338,11 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
 
   // Redistribute in Z pencils
   #ifndef MPI_GPU
-  CHECK(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_, countJ, MPI_DOUBLE, hb_, countJ, MPI_DOUBLE, commJ_);
-  CHECK(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
   #else
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   MPI_Alltoall(a, countJ, MPI_DOUBLE, b, countJ, MPI_DOUBLE, commJ_);
   #endif
 
@@ -364,7 +364,7 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
   }
 
   // Complex-to-real FFT in Z
-  CHECK(cufftExecZ2D(c2rk_, ac, b));
+  GPU_Error_Check(cufftExecZ2D(c2rk_, ac, b));
 
   // Rearrange for 3D-block redistribution
   {
@@ -385,11 +385,11 @@ void HenryPeriodic::filter(const size_t bytes, double *const before, double *con
 
   // Redistribute for 3D blocks
   #ifndef MPI_GPU
-  CHECK(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(ha_, a, bytes, cudaMemcpyDeviceToHost));
   MPI_Alltoall(ha_, countK, MPI_DOUBLE, hb_, countK, MPI_DOUBLE, commK_);
-  CHECK(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(b, hb_, bytes, cudaMemcpyHostToDevice));
   #else
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   MPI_Alltoall(a, countK, MPI_DOUBLE, b, countK, MPI_DOUBLE, commK_);
   #endif
 

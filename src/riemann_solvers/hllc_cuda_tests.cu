@@ -68,12 +68,12 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
     Real *devTestFlux;
 
     // Allocate device arrays and copy data
-    CudaSafeCall(cudaMalloc(&devConservedLeft, nFields * sizeof(Real)));
-    CudaSafeCall(cudaMalloc(&devConservedRight, nFields * sizeof(Real)));
-    CudaSafeCall(cudaMalloc(&devTestFlux, nFields * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc(&devConservedLeft, nFields * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc(&devConservedRight, nFields * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc(&devTestFlux, nFields * sizeof(Real)));
 
-    CudaSafeCall(cudaMemcpy(devConservedLeft, stateLeft.data(), nFields * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(devConservedRight, stateRight.data(), nFields * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(devConservedLeft, stateLeft.data(), nFields * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(devConservedRight, stateRight.data(), nFields * sizeof(Real), cudaMemcpyHostToDevice));
 
     // Run kernel
     hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0,
@@ -81,12 +81,12 @@ class tHYDROCalculateHLLCFluxesCUDA : public ::testing::Test
                        devConservedRight,  // the "right" interface
                        devTestFlux, nx, ny, nz, nGhost, gamma, direction, nFields);
 
-    CudaCheckError();
-    CudaSafeCall(cudaMemcpy(testFlux.data(), devTestFlux, nFields * sizeof(Real), cudaMemcpyDeviceToHost));
+    GPU_Error_Check();
+    GPU_Error_Check(cudaMemcpy(testFlux.data(), devTestFlux, nFields * sizeof(Real), cudaMemcpyDeviceToHost));
 
     // Make sure to sync with the device so we have the results
     cudaDeviceSynchronize();
-    CudaCheckError();
+    GPU_Error_Check();
 
     return testFlux;
   }

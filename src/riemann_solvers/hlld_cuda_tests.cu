@@ -98,16 +98,16 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
     Real *devTestFlux;
 
     // Allocate device arrays and copy data
-    CudaSafeCall(cudaMalloc(&devConservedLeft, stateLeft.size() * sizeof(Real)));
-    CudaSafeCall(cudaMalloc(&devConservedRight, stateRight.size() * sizeof(Real)));
-    CudaSafeCall(cudaMalloc(&devConservedMagXFace, magneticX.size() * sizeof(Real)));
-    CudaSafeCall(cudaMalloc(&devTestFlux, testFlux.size() * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc(&devConservedLeft, stateLeft.size() * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc(&devConservedRight, stateRight.size() * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc(&devConservedMagXFace, magneticX.size() * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc(&devTestFlux, testFlux.size() * sizeof(Real)));
 
-    CudaSafeCall(
+    GPU_Error_Check(
         cudaMemcpy(devConservedLeft, stateLeft.data(), stateLeft.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(
+    GPU_Error_Check(
         cudaMemcpy(devConservedRight, stateRight.data(), stateRight.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(
+    GPU_Error_Check(
         cudaMemcpy(devConservedMagXFace, magneticX.data(), magneticX.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
     // Run kernel
@@ -117,12 +117,12 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
                        devConservedMagXFace,  // the magnetic field at the interface
                        devTestFlux, n_cells, gamma, direction, nFields);
 
-    CudaCheckError();
-    CudaSafeCall(cudaMemcpy(testFlux.data(), devTestFlux, testFlux.size() * sizeof(Real), cudaMemcpyDeviceToHost));
+    GPU_Error_Check();
+    GPU_Error_Check(cudaMemcpy(testFlux.data(), devTestFlux, testFlux.size() * sizeof(Real), cudaMemcpyDeviceToHost));
 
     // Make sure to sync with the device so we have the results
     cudaDeviceSynchronize();
-    CudaCheckError();
+    GPU_Error_Check();
 
     // Free device arrays
     cudaFree(devConservedLeft);

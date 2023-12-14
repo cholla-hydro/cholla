@@ -17,7 +17,7 @@ void Print_GPU_Memory_Usage(std::string const &additional_text)
 {
   // Get the memory usage
   size_t gpu_free_memory, gpu_total_memory;
-  CudaSafeCall(cudaMemGetInfo(&gpu_free_memory, &gpu_total_memory));
+  GPU_Error_Check(cudaMemGetInfo(&gpu_free_memory, &gpu_total_memory));
 
   // Assuming that all GPUs in the system have the same amount of memory
   size_t const gpu_used_memory = Reduce_size_t_Max(gpu_total_memory - gpu_free_memory);

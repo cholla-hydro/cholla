@@ -121,8 +121,8 @@ void supernova::initState(struct Parameters* P, part_int_t n_local, Real allocat
     // (i.e. assumes regular temporal spacing)
     snr_dt = (time_sn_end - time_sn_start) / (snr.size() - 1);
 
-    CHECK(cudaMalloc((void**)&dev_snr, snr.size() * sizeof(Real)));
-    CHECK(cudaMemcpy(dev_snr, snr.data(), snr.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMalloc((void**)&dev_snr, snr.size() * sizeof(Real)));
+    GPU_Error_Check(cudaMemcpy(dev_snr, snr.data(), snr.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
   } else {
     chprintf("No SN rate file specified.  Using constant rate\n");
@@ -132,14 +132,14 @@ void supernova::initState(struct Parameters* P, part_int_t n_local, Real allocat
 
   // Now initialize the poisson random number generator state.
   n_states = n_local * allocation_factor;
-  cudaMalloc((void**)&randStates, n_states * sizeof(FeedbackPrng));
+  GPU_Error_Check(cudaMalloc((void**)&randStates, n_states * sizeof(FeedbackPrng)));
 
   int ngrid = (n_states - 1) / TPB_FEEDBACK + 1;
   dim3 grid(ngrid);
   dim3 block(TPB_FEEDBACK);
 
   hipLaunchKernelGGL(Init_State_Kernel, grid, block, 0, 0, P->prng_seed, randStates);
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   chprintf("supernova::initState end: n_states=%ld, ngrid=%d, threads=%d\n", n_states, ngrid, TPB_FEEDBACK);
 }
 
@@ -673,15 +673,15 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
   int* d_prev_N;
 
   if (G.Particles.n_local > 0) {
-    CHECK(cudaMalloc(&d_dti, sizeof(Real)));
-    CHECK(cudaMemcpy(d_dti, &h_dti, sizeof(Real), cudaMemcpyHostToDevice));
-    CHECK(cudaMalloc(&d_prev_dens, G.Particles.n_local * sizeof(Real)));
-    CHECK(cudaMalloc(&d_prev_N, G.Particles.n_local * sizeof(int)));
-    CHECK(cudaMemset(d_prev_dens, 0, G.Particles.n_local * sizeof(Real)));
-    CHECK(cudaMemset(d_prev_N, 0, G.Particles.n_local * sizeof(int)));
+    GPU_Error_Check(cudaMalloc(&d_dti, sizeof(Real)));
+    GPU_Error_Check(cudaMemcpy(d_dti, &h_dti, sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMalloc(&d_prev_dens, G.Particles.n_local * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc(&d_prev_N, G.Particles.n_local * sizeof(int)));
+    GPU_Error_Check(cudaMemset(d_prev_dens, 0, G.Particles.n_local * sizeof(Real)));
+    GPU_Error_Check(cudaMemset(d_prev_N, 0, G.Particles.n_local * sizeof(int)));
 
     ngrid = std::ceil((1. * G.Particles.n_local) / TPB_FEEDBACK);
-    CHECK(cudaMalloc((void**)&d_info, FEED_INFO_N * ngrid * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void**)&d_info, FEED_INFO_N * ngrid * sizeof(Real)));
   }
   // TODO: info collection and max dti calculation
   // assumes ngrid is 1.  The reason being that reduction of
@@ -700,7 +700,7 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                          supernova::randStates, d_prev_dens, d_prev_N, direction, dev_snr, snr_dt, time_sn_start,
                          time_sn_end, G.H.n_step);
 
-      CHECK(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
+      GPU_Error_Check(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
     }
 
   #ifdef MPI_CHOLLA
@@ -721,7 +721,7 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                            supernova::randStates, d_prev_dens, d_prev_N, direction, dev_snr, snr_dt, time_sn_start,
                            time_sn_end, G.H.n_step);
 
-        CHECK(cudaDeviceSynchronize());
+        GPU_Error_Check(cudaDeviceSynchronize());
       }
       G.H.dt = C_cfl / h_dti;
     }
@@ -729,11 +729,11 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
   } while (direction == -1);
 
   if (G.Particles.n_local > 0) {
-    CHECK(cudaMemcpy(&h_info, d_info, FEED_INFO_N * sizeof(Real), cudaMemcpyDeviceToHost));
-    CHECK(cudaFree(d_dti));
-    CHECK(cudaFree(d_info));
-    CHECK(cudaFree(d_prev_dens));
-    CHECK(cudaFree(d_prev_N));
+    GPU_Error_Check(cudaMemcpy(&h_info, d_info, FEED_INFO_N * sizeof(Real), cudaMemcpyDeviceToHost));
+    GPU_Error_Check(cudaFree(d_dti));
+    GPU_Error_Check(cudaFree(d_info));
+    GPU_Error_Check(cudaFree(d_prev_dens));
+    GPU_Error_Check(cudaFree(d_prev_N));
   }
 
   #ifdef MPI_CHOLLA

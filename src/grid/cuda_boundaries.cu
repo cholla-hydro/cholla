@@ -35,7 +35,7 @@ void PackBuffers3D(Real *buffer, Real *c_head, int nx, int ny, int n_fields, int
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(PackBuffers3DKernel, dim1dGrid, dim1dBlock, 0, 0, buffer, c_head, isize, jsize, ksize, nx, ny,
                      idxoffset, buffer_ncells, n_fields, n_cells);
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
 }
 
 __global__ void UnpackBuffers3DKernel(Real *buffer, Real *c_head, int isize, int jsize, int ksize, int nx, int ny,

@@ -459,9 +459,9 @@ class Grid3D
   void set_dt_Gravity();
 #endif
 
-  /*! \fn void Update_Grid(void)
-   *  \brief Update the conserved quantities in each cell. */
-  Real Update_Grid(void);
+  /*! \fn void Execute_Hydro_Integratore_Grid(void)
+   *  \brief Updates cells by executing the hydro integrator. */
+  void Execute_Hydro_Integrator(void);
 
   /*! \fn void Update_Hydro_Grid(void)
    *  \brief Do all steps to update the hydro. */

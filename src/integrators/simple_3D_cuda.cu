@@ -46,7 +46,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
 
   if (!memory_allocated) {
     size_t global_free, global_total;
-    CudaSafeCall(cudaMemGetInfo(&global_free, &global_total));
+    GPU_Error_Check(cudaMemGetInfo(&global_free, &global_total));
 
     // allocate memory on the GPU
     chprintf(
@@ -56,18 +56,18 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
     chprintf(" Memory needed: %f GB    Free: %f GB    Total:  %f GB  \n", n_fields * n_cells * sizeof(Real) / 1e9,
              global_free / 1e9, global_total / 1e9);
     dev_conserved = d_conserved;
-    CudaSafeCall(cudaMalloc((void **)&Q_Lx, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&Q_Rx, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&Q_Ly, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&Q_Ry, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&Q_Lz, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&Q_Rz, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&F_x, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&F_y, n_fields * n_cells * sizeof(Real)));
-    CudaSafeCall(cudaMalloc((void **)&F_z, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Lx, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Rx, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Ly, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Ry, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Lz, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Rz, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&F_x, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&F_y, n_fields * n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void **)&F_z, n_fields * n_cells * sizeof(Real)));
 
     #if defined(GRAVITY)
-    // CudaSafeCall( cudaMalloc((void**)&dev_grav_potential,
+    // GPU_Error_Check( cudaMalloc((void**)&dev_grav_potential,
     // n_cells*sizeof(Real)) );
     dev_grav_potential = d_grav_potential;
     #else
@@ -83,7 +83,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
   }
 
     #if defined(GRAVITY) && !defined(GRAVITY_GPU)
-  CudaSafeCall(cudaMemcpy(dev_grav_potential, temp_potential, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(dev_grav_potential, temp_potential, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
     #endif
 
     // Step 1: Construct left and right interface values using updated conserved
@@ -120,7 +120,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
   hipLaunchKernelGGL(PPMC_CTU, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama, 0);
   hipLaunchKernelGGL(PPMC_CTU, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, nx, ny, nz, dy, dt, gama, 1);
   hipLaunchKernelGGL(PPMC_CTU, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, nx, ny, nz, dz, dt, gama, 2);
-  CudaCheckError();
+  GPU_Error_Check();
     #endif  // PPMC
 
     // Step 2: Calculate the fluxes
@@ -156,7 +156,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
   hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama,
                      2, n_fields);
     #endif  // HLL
-  CudaCheckError();
+  GPU_Error_Check();
 
     #ifdef DE
   // Compute the divergence of Vel before updating the conserved array, this
@@ -164,26 +164,26 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
   // Update_Conserved_Variables_3D
   hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx,
                      Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dx, dy, dz, dt, gama, n_fields);
-  CudaCheckError();
+  GPU_Error_Check();
     #endif
 
   // Step 3: Update the conserved variable array
   hipLaunchKernelGGL(Update_Conserved_Variables_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry,
                      Q_Lz, Q_Rz, F_x, F_y, F_z, nx, ny, nz, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound,
                      zbound, dt, gama, n_fields, custom_grav, density_floor, dev_grav_potential);
-  CudaCheckError();
+  GPU_Error_Check();
 
     #ifdef DE
   hipLaunchKernelGGL(Select_Internal_Energy_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
                      n_fields);
   hipLaunchKernelGGL(Sync_Energies_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, gama, n_fields);
-  CudaCheckError();
+  GPU_Error_Check();
     #endif
 
     #ifdef TEMPERATURE_FLOOR
   hipLaunchKernelGGL(Apply_Temperature_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields,
                      U_floor);
-  CudaCheckError();
+  GPU_Error_Check();
     #endif  // TEMPERATURE_FLOOR
 
     #ifdef SCALAR_FLOOR

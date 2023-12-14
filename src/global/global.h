@@ -155,6 +155,20 @@ extern double Get_Time(void);
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int Sgn(Real x);
 
+/* Global variables for mpi (but they are also initialized to sensible defaults when not using mpi)
+ *
+ * It may make sense to move these back into mpi_routines (but reorganizing the ifdef statements
+ * would take some work). It may make sense to also put these into their own namespace.
+ */
+extern int procID; /*process rank*/
+extern int nproc;  /*number of processes executing simulation*/
+extern int root;   /*rank of root process*/
+
+/* Used when MPI_CHOLLA is not defined to initialize a subset of the global mpi-related variables
+ * that still meaningful in non-mpi simulations.
+ */
+void Init_Global_Parallel_Vars_No_MPI();
+
 struct Parameters {
   int nx;
   int ny;
