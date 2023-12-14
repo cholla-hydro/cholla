@@ -599,7 +599,13 @@ struct Sphere27 {
    *      words, its the volume of the cell enclosed by the stencil divided by the total stencil volume.
    *   2. ``vec_comp_factor``: a `Arr3<Real>` where the elements represent math-vector components (x, y, z).
    *      Essentially, this stores the volume integral (of the region enclosed by the stencil) over the 
-   *      radial-unit vector (originating from the stencil center) divided by the total stencil volume.
+   *      radial-unit vector (originating from the stencil center) divided by a normalization constant.
+   *      - The normalization constant is computed by taking the sum of each volume-integrated radial-unit 
+   *        vector computed at each cell enclosed by the stencil
+   *      - The alternative would be to just normalize by the total volume. The problem with this alternative
+   *        is if you are trying to inject a constant amount of radial momentum per unit-volume, then
+   *        cancelation in the most-central cell may cause you to underinject momementum (primarily in the
+   *        case where the stencil is near the center of a cell)
    *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
    */
   template<typename Function>
@@ -618,18 +624,27 @@ struct Sphere27 {
     // - If we weren't concerned about memory-pressure (e.g. we used cooperative_groups), we could
     //   save time and consolidate the calculation of integrated vector components and the enclosed
     //   volume into a single operation)
-    uint_least16_t counts[3][3][3];
+    uint_least16_t cached_counts[3][3][3];
 
     unsigned long total_count = 0;
+    Real vector_norm = 0.0;
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         for (int k = 0; k < 3; k++) {
-          unsigned int count = sphere.Count_Super_Samples<Log2DivsionsPerAx_PerCell>(leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k);
-          counts[i][j][k] = std::uint_least16_t(count);
-          total_count += count;
+          unsigned int cur_count = sphere.Count_Super_Samples<Log2DivsionsPerAx_PerCell>(
+            leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k);
+          total_count += cur_count;  // update total_count
+          cached_counts[i][j][k] = std::uint_least16_t(cur_count);  // cache the value of 
+
+          const Arr3<Real> integrated_vec = sphere.Super_Sampled_RadialUnitVec_VolIntegral<Log2DivsionsPerAx_PerCell>(
+            leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k, pos_indU);
+          vector_norm += norm3d(integrated_vec[0], integrated_vec[1], integrated_vec[2]);
+          // we don't cache the value of integrated_vec... That would put a LOT of strain on registers
         }
       }
     }
+
+    const Real vec_factor = 1.0 / vector_norm;
 
     // Step 3: actually invoke f at each cell-location that overlaps with the stencil location, passing both:
     //  1. fraction of the total stencil volume enclosed by the given cell
@@ -648,8 +663,8 @@ struct Sphere27 {
           const Arr3<Real> tmp = sphere.Super_Sampled_RadialUnitVec_VolIntegral<Log2DivsionsPerAx_PerCell>(
             leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k, pos_indU);
 
-          f(double(counts[i][j][k])/total_count,
-            Arr3<Real>{tmp[0]/total_count, tmp[1]/total_count, tmp[2]/total_count},
+          f(double(cached_counts[i][j][k])/total_count,
+            Arr3<Real>{tmp[0] * vec_factor, tmp[1]*vec_factor, tmp[2]*vec_factor},
             ind3D);
         }
       }
