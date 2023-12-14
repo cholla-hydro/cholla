@@ -47,9 +47,12 @@ int main(int argc, char *argv[])
   // start the total time
   start_total = Get_Time();
 
-/* Initialize MPI communication */
 #ifdef MPI_CHOLLA
+  /* Initialize MPI communication */
   InitializeChollaMPI(&argc, &argv);
+#else
+  // Initialize subset of global parallelism variables usually managed by MPI
+  Init_Global_Parallel_Vars_No_MPI();
 #endif /*MPI_CHOLLA*/
 
   Real dti = 0;  // inverse time step, 1.0 / dt

@@ -26,7 +26,7 @@ void Check_Pointer_Attributes(cuda_utilities::DeviceVector<T> &devVector)
 {
   // Get the pointer information
   cudaPointerAttributes ptrAttributes;
-  CudaSafeCall(cudaPointerGetAttributes(&ptrAttributes, devVector.data()));
+  GPU_Error_Check(cudaPointerGetAttributes(&ptrAttributes, devVector.data()));
 
   // Warning strings
   std::string typeMessage =

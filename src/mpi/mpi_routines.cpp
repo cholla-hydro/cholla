@@ -13,9 +13,7 @@
   #include "../utils/error_handling.h"
 
 /*Global MPI Variables*/
-int procID; /*process rank*/
-int nproc;  /*number of processes in global comm*/
-int root;   /*rank of root process*/
+// note: some relevant global variables are declared in global.h
 
 int procID_node; /*process rank on node*/
 int nproc_node;  /*number of MPI processes on node*/
@@ -600,18 +598,18 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
   chprintf("Allocating MPI communication buffers on GPU ");
   chprintf("(nx = %ld, ny = %ld, nz = %ld).\n", xbsize, ybsize, zbsize);
 
-  CudaSafeCall(cudaMalloc(&d_send_buffer_x0, xbsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_x1, xbsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_x0, xbsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_x1, xbsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_y0, ybsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_y1, ybsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_y0, ybsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_y1, ybsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_z0, zbsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_z1, zbsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_z0, zbsize * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_z1, zbsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_x0, xbsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_x1, xbsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_x0, xbsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_x1, xbsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_y0, ybsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_y1, ybsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_y0, ybsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_y1, ybsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_z0, zbsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_z1, zbsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_z0, zbsize * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_z1, zbsize * sizeof(Real)));
 
   #if !defined(MPI_GPU)
   h_send_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
@@ -640,18 +638,18 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
       "Allocating MPI communication buffers on GPU for particle transfers ( "
       "N_Particles: %d ).\n",
       N_PARTICLES_TRANSFER);
-  CudaSafeCall(cudaMalloc(&d_send_buffer_x0_particles, buffer_length_particles_x0_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_x1_particles, buffer_length_particles_x1_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_y0_particles, buffer_length_particles_y0_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_y1_particles, buffer_length_particles_y1_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_z0_particles, buffer_length_particles_z0_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_send_buffer_z1_particles, buffer_length_particles_z1_send * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_x0_particles, buffer_length_particles_x0_recv * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_x1_particles, buffer_length_particles_x1_recv * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_y0_particles, buffer_length_particles_y0_recv * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_y1_particles, buffer_length_particles_y1_recv * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_z0_particles, buffer_length_particles_z0_recv * sizeof(Real)));
-  CudaSafeCall(cudaMalloc(&d_recv_buffer_z1_particles, buffer_length_particles_z1_recv * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_x0_particles, buffer_length_particles_x0_send * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_x1_particles, buffer_length_particles_x1_send * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_y0_particles, buffer_length_particles_y0_send * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_y1_particles, buffer_length_particles_y1_send * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_z0_particles, buffer_length_particles_z0_send * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_send_buffer_z1_particles, buffer_length_particles_z1_send * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_x0_particles, buffer_length_particles_x0_recv * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_x1_particles, buffer_length_particles_x1_recv * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_y0_particles, buffer_length_particles_y0_recv * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_y1_particles, buffer_length_particles_y1_recv * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_z0_particles, buffer_length_particles_z0_recv * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc(&d_recv_buffer_z1_particles, buffer_length_particles_z1_recv * sizeof(Real)));
   #endif  // PARTICLES && PARTICLES_GPU
 
   // CPU relies on host buffers, GPU without MPI_GPU relies on host buffers

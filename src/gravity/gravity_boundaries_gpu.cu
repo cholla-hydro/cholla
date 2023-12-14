@@ -319,7 +319,7 @@ int Grid3D::Load_Gravity_Potential_To_Buffer_GPU(int direction, int side, Real *
 
   hipLaunchKernelGGL(Load_Transfer_Buffer_GPU_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i,
                      n_j, nx_pot, ny_pot, nz_pot, n_ghost_transfer, n_ghost_potential, potential_d, send_buffer_d);
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
 
   return size_buffer;
 }
