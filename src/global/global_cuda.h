@@ -5,16 +5,14 @@
 #ifndef GLOBAL_CUDA_H
 #define GLOBAL_CUDA_H
 
-#ifdef CUDA
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-  #include <math.h>
-  #include <stdio.h>
-  #include <stdlib.h>
+#include "../global/global.h"
+#include "../utils/gpu.hpp"
 
-  #include "../global/global.h"
-  #include "../utils/gpu.hpp"
-
-  #define TPB 256  // threads per block
+#define TPB 256  // threads per block
 // #define TPB 64
 
 extern bool memory_allocated;  // Flag becomes true after allocating the memory
@@ -49,9 +47,9 @@ __device__ inline int sgn_CUDA(Real x)
   }
 }
 
-  // Define atomic_add if it's not supported
-  #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
-  #else
+// Define atomic_add if it's not supported
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
+#else
 __device__ double atomicAdd(double *address, double val)
 {
   unsigned long long int *address_as_ull = (unsigned long long int *)address;
@@ -62,12 +60,10 @@ __device__ double atomicAdd(double *address, double val)
   } while (assumed != old);
   return __longlong_as_double(old);
 }
-  #endif
+#endif
 
-  // This helper function exists to make it easier to find printfs inside
-  // kernels
-  #define kernel_printf printf
+// This helper function exists to make it easier to find printfs inside
+// kernels
+#define kernel_printf printf
 
 #endif  // GLOBAL_CUDA_H
-
-#endif  // CUDA

@@ -23,8 +23,6 @@
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
 
-#if defined(CUDA)
-
 // =============================================================================
 // Tests for the Calc_dt_GPU function
 // =============================================================================
@@ -145,5 +143,3 @@ TEST(tMHDMhdInverseCrossingTime, CorrectInputExpectCorrectOutput)
 // =============================================================================
 // End of tests for the mhdInverseCrossingTime function
 // =============================================================================
-
-#endif  // CUDA

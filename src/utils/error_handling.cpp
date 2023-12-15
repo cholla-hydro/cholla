@@ -47,11 +47,6 @@ void Check_Configuration(Parameters const& P)
   // Check that MACRO_FLAGS has contents
   static_assert(sizeof(MACRO_FLAGS) > 1);
 
-  // Must have CUDA
-#ifndef CUDA
-  #error "The CUDA macro is required"
-#endif  //! CUDA
-
 // Can only have one integrator enabled
 #if ((defined(VL) + defined(CTU) + defined(SIMPLE)) != 1)
   #error "Only one integrator can be enabled at a time."

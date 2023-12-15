@@ -1,6 +1,5 @@
 #-- Default hydro only build with static_grav
 
-DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPLMC
