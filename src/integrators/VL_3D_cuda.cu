@@ -32,7 +32,7 @@
 
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x,
                                                    Real *dev_F_y, Real *dev_F_z, int nx, int ny, int nz, int n_ghost,
-                                                   Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields);
+                                                   Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields, Real density_floor);
 
 void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
                           int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound,
@@ -335,7 +335,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   #ifdef DUST
   hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
                      grid_enum::dust_density, 1e-10);
-  CudaCheckError();
+  GPU_Error_Check();
   #endif
   #endif  // SCALAR_FLOOR
 
@@ -361,7 +361,8 @@ void Free_Memory_VL_3D()
 
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x,
                                                    Real *dev_F_y, Real *dev_F_z, int nx, int ny, int nz, int n_ghost,
-                                                   Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields)
+                                                   Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields,
+                                                   Real density_floor)
 {
   Real dtodx  = dt / dx;
   Real dtody  = dt / dy;

@@ -14,8 +14,8 @@ DFLAGS    += -DHLLC
 
 # DFLAGS    += -DDE
 DFLAGS    += -DAVERAGE_SLOW_CELLS
-DFLAGS    += -DTEMPERATURE_FLOOR
-DFLAGS    += -DSCALAR_FLOOR
+# DFLAGS    += -DTEMPERATURE_FLOOR
+# DFLAGS    += -DSCALAR_FLOOR
 
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
