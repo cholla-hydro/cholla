@@ -116,34 +116,80 @@ using Sphere27ResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::Sphere
 
 using SphereBinaryResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::SphereBinary<3>>;
 
+/* Overwrite the stencil region with average density specified by `overwrite_average`
+ *
+ * This overwrites each component of the momentum density with the average value and holding the
+ * thermal-energy density constant.
+ *
+ * \note
+ * We were a little torn about how to handle the momentum. There were essentially 3 options when
+ * overwriting the density:
+ *   1. Holding the velocity constant at each location.
+ *      - Pro: If you had a bunch of cells with common velocity (e.g. because all of the gas rotates
+ *        in a disk) but had a varying density, this would ensure that the gas remains comoving.
+ *      - Con: Imagine that you had a bunch of cells that varied in density and velocity and you
+ *        had 1 cell with a particularly high velocity, but below-average density. This approach
+ *        would give the gas in that cell a lot of additional inertia, which could cause problems
+ *   2. Holding the momentum constant at each location
+ *      - Pro: You would ALWAYS avoid converting a very fast-moving underdense cell into a 
+ *        fast-moving average-density cell (This avoid the CON of holding velocity constant)
+ *      - Con: In the case where all cells are co-rotating around the disk, but have differing 
+ *        densities, the initially under-dense (over-dense) cells would move slower (faster) after
+ *        the overwrite operation. (This loses the PRO of holding velocity constant)
+ *   3. Overwriting the momentum of each cell with the average momentum
+ *      - Pro: this has the advantages and none of the disadvantages of the other options
+ *      - Con: this involves more averaging (Ideally, we wouldn't average any field)
+ * Since we are already overwriting the density with the average value anyways, we decided that it
+ * made the most sense to adopt option #3
+ */
 template<typename Stencil>
-__device__ void Overwrite_Density(Arr3<Real> stencil_pos_indU, int nx_g, int ny_g, int nz_g, Real* conserved_device,
+__device__ void Overwrite_Average(Arr3<Real> stencil_pos_indU, int nx_g, int ny_g, int nz_g, Real* conserved_device,
                                   Real overwrite_density)
 {
-  // we only directly modify the density
-  // - I'm torn. We currently hold momentum constant (while this could introduce a large velocity in a single cell,
-  //   the mass in that cell will be low). At the same time, it may make more sense to conserve velocity (so that the
-  //   bulk motion around the disk stays correct)
-  // - but we need to modify total energy to reflect changes in kinetic energy density
+  // step 1: load in the relevant fields
+  // - Note: even if we were holding the momentum density constant in each cell, we would need still
+  //   need to modify total energy to reflect changes in kinetic energy density
   const int n_cells      = nx_g * ny_g * nz_g;
-  Real* density          = conserved_device;
-  const Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
-  const Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
-  const Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
-  Real* energy           = &conserved_device[n_cells * grid_enum::Energy];
+  Real* density    = conserved_device;
+  Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
+  Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
+  Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
+  Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
 
-  Stencil::for_each_overlap_zone( stencil_pos_indU, nx_g, ny_g, [=](int idx3D)
+  // step 2: determine the average momentum in each cell
+  // - Note: we use overwrite_density as the average density since the caller already needed to
+  //   compute that value anyways
+  Arr3<Real> avg_momentum;
   {
-    const Real half_momentum_squared = 0.5 *(momentum_x[idx3D] * momentum_x[idx3D] +
-                                             momentum_y[idx3D] * momentum_y[idx3D] +
-                                             momentum_z[idx3D] * momentum_z[idx3D]);
-  
+    Real tot_momentum[3] = {0.0, 0.0, 0.0};
+    int num              = 0;
+    Stencil::for_each_overlap_zone( stencil_pos_indU, nx_g, ny_g, [&](int idx3D)
+    {
+      tot_momentum[0] += momentum_x[idx3D];
+      tot_momentum[1] += momentum_y[idx3D];
+      tot_momentum[2] += momentum_z[idx3D];
+      num++;
+    });
+    const Real inv_dtot = 1.0 / (num * overwrite_density);
+    avg_momentum = Arr3<Real>{tot_momentum[0] * inv_dtot, tot_momentum[1] * inv_dtot,
+                              tot_momentum[2] * inv_dtot};
+  }
+
+  // step 3: Actually overwrite the fields
+  const Real new_ke_density = 0.5 * (avg_momentum[0] * avg_momentum[0] +
+                                     avg_momentum[1] * avg_momentum[1] +
+                                     avg_momentum[2] * avg_momentum[2]) / overwrite_density;
+  Stencil::for_each_overlap_zone( stencil_pos_indU, nx_g, ny_g, [=](int idx3D)
+  {  
     // precompute 1/initial_density (take care to avoid divide by 0)
     const Real inv_initial_dens  = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));  
-    const Real intial_ke_density = half_momentum_squared * inv_initial_dens;
-    const Real new_ke_density    = half_momentum_squared / overwrite_density;
-
+    const Real intial_ke_density = 0.5 * inv_initial_dens * (momentum_x[idx3D] * momentum_x[idx3D] +
+                                                             momentum_y[idx3D] * momentum_y[idx3D] +
+                                                             momentum_z[idx3D] * momentum_z[idx3D]);
     density[idx3D] = overwrite_density;
+    momentum_x[idx3D] = avg_momentum[0];
+    momentum_y[idx3D] = avg_momentum[1];
+    momentum_z[idx3D] = avg_momentum[2];
     energy[idx3D] += new_ke_density-intial_ke_density;
   });
 }
@@ -420,8 +466,11 @@ struct ResolvedAndUnresolvedSNe {
       ResolvedPrescriptionT::apply(pos_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_cells,
                                    conserved_dev, feedback_density, feedback_energy);
     } else {
+
       // only unresolved SN feedback involves averaging the densities.
-      Overwrite_Density<UnresolvedStencil>(pos_indU, nx_g, ny_g, nz_g,
+      // -> we decided that if we are averaging the densities, it probably also
+      //    makes sense to average the momentum
+      Overwrite_Average<UnresolvedStencil>(pos_indU, nx_g, ny_g, nz_g,
                                            conserved_dev, avg_mass_dens);
 
       // inject momentum and density
