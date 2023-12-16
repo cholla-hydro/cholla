@@ -180,13 +180,6 @@ void assert_allclose(T* actual, T* desired, Extent3D extent,
 // Define some tools for testing deposition-stencils
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-enum struct StencilEvalKind{
-  enclosed_stencil_vol_frac, /*!< compute the fraction of the total stencil volume enclosed by each cell */
-  enclosed_cell_vol_frac,    /*!< compute the fraction of each cell's volume that is enclosed by the stencil */
-  for_each_overlap_zone      /*!< execute function at each cell with any non-zero amount of overlap (but
-                              *!< without specifying the amount of overlap)*/
-};
-
 /* Updates elements in the ``out_data`` 3D-array with the fraction of the volume that is enclosed by
  * the specified ``stencil``, that is centered at the given position.
  *
@@ -722,7 +715,7 @@ public:
   using StencilT=T;
 };
 
-using MyStencilTypes = ::testing::Types<fb_stencil::CIC, fb_stencil::Sphere27<2>, fb_stencil::SphereBinary<3>>;
+using MyStencilTypes = ::testing::Types<fb_stencil::CIC, fb_stencil::LegacyCIC27, fb_stencil::Sphere27<2>, fb_stencil::SphereBinary<3>>;
 TYPED_TEST_SUITE(tALLFeedbackStencil, MyStencilTypes);
 
 TYPED_TEST(tALLFeedbackStencil, ForEachFlavorConsistency) {

@@ -65,6 +65,13 @@ struct Arr3{
   */
 };
 
+enum struct StencilEvalKind{
+  enclosed_stencil_vol_frac, /*!< compute the fraction of the total stencil volume enclosed by each cell */
+  enclosed_cell_vol_frac,    /*!< compute the fraction of each cell's volume that is enclosed by the stencil */
+  for_each_overlap_zone      /*!< execute function at each cell with any non-zero amount of overlap (but
+                              *!< without specifying the amount of overlap)*/
+};
+
 // maybe this should be called feedback_stencil
 namespace fb_stencil {
 
@@ -181,6 +188,56 @@ struct CIC {
 
 };
 
+namespace { // nested unnamed namespace (everything here has internal linkage)
+
+/* implements a stencil for depositing scalar quantities into a rectangular-prism region
+ * (each side-length centered on `pos_indU` that has a length of 2 cell-widths along each
+ * direction.
+ */
+template<typename Function, StencilEvalKind flavor>
+__device__ void for_each_cic27_(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f) {
+  // this visits a 3x3x3 cells region
+
+  int leftmost_indx_x = int(pos_indU[0]) - 1;
+  int leftmost_indx_y = int(pos_indU[1]) - 1;
+  int leftmost_indx_z = int(pos_indU[2]) - 1;
+
+  // compute the distance between the left edge of the cell containing pos_indU and pos_indU
+  Real offset_x = pos_indU[0] - int(pos_indU[0]);
+  Real offset_y = pos_indU[1] - int(pos_indU[1]);
+  Real offset_z = pos_indU[2] - int(pos_indU[2]);
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        const int ind3D = (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k));
+
+        // compute the length (in units of cellwidths) of the stencil that overlaps with the current
+        // cell along each axis. Along the x-axis this is given by
+        //       1 - offset_x: when i == 0
+        //                  1: when i == 1
+        //           offset_x: when i == 2
+        Real x_len = (i < 2) + (i - 1) * offset_x;
+        Real y_len = (j < 2) + (j - 1) * offset_y;
+        Real z_len = (k < 2) + (k - 1) * offset_z;
+
+        // The volume enclosed by the current cell is
+        Real volEnclosed = x_len * y_len * z_len;
+
+        if constexpr(flavor == StencilEvalKind::enclosed_stencil_vol_frac) {
+          // the fraction of the stencil that is enclosed is volEnclosed/volStencil
+          // and volStencil is 4 cell_widths^3
+          f(0.25 * volEnclosed,ind3D);
+        } else if constexpr (flavor == StencilEvalKind::enclosed_cell_vol_frac) {
+          f(volEnclosed,ind3D);
+        } else if constexpr (flavor == StencilEvalKind::for_each_overlap_zone) {
+          if (volEnclosed > 0) f(ind3D);
+        }
+      }
+    }
+  }
+
+}
 
 // Define the legacy stencil previously used for feedback with momentum deposition
 //
@@ -199,12 +256,57 @@ inline __device__ Real Frac(int i, Real dx) { return (-0.5 * i * i - 0.5 * i + 1
 
 inline __device__ Real D_Frac(int i, Real dx)
 {
+  // I believe this is a piecwise function that does the following:
+  //    (i == -1, dx <= 0.5): -1.0
+  //    (i == -1, dx  > 0.5): -2*dx - 2
+  //    (i ==  0,    any dx): 1 - 2*dx
+  //    (i ==  1, dx <= 0.5): -1.0
+  //    (i ==  1, dx  > 0.5): 2*dx - 2
+  //  - elif (i == 1):  2*dx + (1 - 2*dx)*(dx > 0.5)
   return (dx > 0.5) * i * (1 - 2 * dx) + ((i + 1) * dx + 0.5 * (i - 1)) - 3 * (i - 1) * (i + 1) * (0.5 - dx);
 }
+
+} // nested unnamed namespace
 
 struct LegacyCIC27 {
 
   int n_ghost; // TODO: remove this - it's entirely unnecessary, only here for historical reasons
+
+  /* along any axis, gives the max number of neighboring cells that may be enclosed by the stencil,
+   * that are on one side of the cell containing the stencil's center.
+   *
+   * \note
+   * this primarily exists for testing purposes!
+   */
+  inline static constexpr int max_enclosed_neighbors = 1;
+
+  /* excute f at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
+   *
+   * The function should expect 2 arguments: 
+   *   1. ``stencil_enclosed_frac``: the fraction of the stencil enclosed by the cell
+   *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
+   */
+  template<typename Function>
+  static __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function &&f)
+  {
+    for_each_cic27_<Function, StencilEvalKind::enclosed_stencil_vol_frac>(
+      pos_indU, nx_g, ny_g, std::forward<Function>(f));
+  }
+
+  /* excute ``f`` at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
+   *
+   * This is just like for_each, except that it passes the fraction of the cell-volume that is enclosed
+   * by the stencil to ``f`` (instead of passing fraction of the stencil-volume enclosed by the cell).
+   *
+   * \note
+   * This is primarily intended for testing purposes.
+   */
+  template<typename Function>
+  static __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function&& f)
+  {
+    for_each_cic27_<Function, StencilEvalKind::enclosed_cell_vol_frac>(
+      pos_indU, nx_g, ny_g, std::forward<Function>(f));
+  }
 
   /* excute f at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
    *
@@ -277,19 +379,8 @@ struct LegacyCIC27 {
   template<typename UnaryFunction>
   static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int nx_g, int ny_g, UnaryFunction f)
   {
-    int indx_x = (int)floor(pos_indU[0]);
-    int indx_y = (int)floor(pos_indU[1]);
-    int indx_z = (int)floor(pos_indU[2]);
-
-    for (int i = -1; i < 2; i++) {
-      for (int j = -1; j < 2; j++) {
-        for (int k = -1; k < 2; k++) {
-          int indx = (indx_x + i) + (indx_y + j) * nx_g + (indx_z + k) * nx_g * ny_g;
-          f(indx);
-        }
-      }
-    }
-  
+    for_each_cic27_<UnaryFunction, StencilEvalKind::for_each_overlap_zone>(
+      pos_indU, nx_g, ny_g, std::forward<UnaryFunction>(f));
   }
 
 
