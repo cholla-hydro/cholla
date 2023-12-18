@@ -606,6 +606,110 @@ public:  // interface
 
 };
 
+namespace { // nested unnamed namespace (everything here has internal linkage)
+
+/* implements a stencil for depositing scalar quantities into a rectangular-prism region
+ * (each side-length centered on `pos_indU` that has a length of 2 cell-widths along each
+ * direction.
+ */
+template<typename Function, StencilEvalKind flavor, int CellsPerDiameter, int Log2DivsionsPerAx_PerCell>
+__forceinline__ __device__ void for_each_sphere_(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f) {
+
+  const SphereObj sphere{/* center = */ {pos_indU[0], pos_indU[1], pos_indU[2]},
+                         /* squared_radius = */ 1*1};
+  const Real l_offset = ((CellsPerDiameter % 2) == 0) ? CellsPerDiameter / 2 : 0.5 * CellsPerDiameter;
+
+  // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
+  const int leftmost_indx_x = int(pos_indU[0] - l_offset);
+  const int leftmost_indx_y = int(pos_indU[1] - l_offset);
+  const int leftmost_indx_z = int(pos_indU[2] - l_offset);
+
+  static_assert(CellsPerDiameter == 2); // this is temporary!
+
+  // Step 2: get the number of super-samples within each of the 27 possible cells (This is not
+  //         actually necessary for some stencil evaluation-flavors)
+
+  // Step 2a: declare variables used to accumulate the total count and to act as a cache
+  //          for tracking the number of super-sample per cell
+  // -> we label these with [[maybe_unused]] attribute to suppress warnings for the flavors where
+  //    these variables aren't used.
+  // -> for applicable "flavors", the compiler should optimize out the unusued variables.
+  // -> we want to keep the array-element size small for the cached_counts variable in order to
+  //    reduce memory-pressure on the stack (especially since every thread will be allocating this
+  //    much stack-space at the same time)
+  [[maybe_unused]] unsigned long total_count = 0;
+  [[maybe_unused]] uint_least16_t cached_counts[3][3][3];
+
+  // Step 2b: actually get the number of supersamples
+  if constexpr (flavor == StencilEvalKind::enclosed_stencil_vol_frac) {
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          unsigned int count = sphere.Count_Super_Samples<Log2DivsionsPerAx_PerCell>(leftmost_indx_x + i,
+                                                                                     leftmost_indx_y + j,
+                                                                                     leftmost_indx_z + k);
+          cached_counts[i][j][k] = std::uint_least16_t(count);
+          total_count += count;
+        }
+      }
+    }
+
+  }
+
+  //kernel_printf("ref: %g, %g, %g\n", pos_indU[0], pos_indU[1], pos_indU[2]);
+
+  // Step 3: actually invoke f at each cell-location that overlaps with the stencil location
+  //    (for flavors where we specify some kind of enclosed volume as a function argument,
+  //    its okay to specify the function at a location without any overlap)
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        const int indx_x = leftmost_indx_x + i;
+        const int indx_y = leftmost_indx_y + j;
+        const int indx_z = leftmost_indx_z + k;
+        const int ind3D = indx_x + nx_g * (indx_y + ny_g * indx_z);
+
+        //kernel_printf("%d, %d, %d: %g\n", leftmost_indx_x + i, (leftmost_indx_y + j), (leftmost_indx_z + k),
+        //              double(counts[i][j][k])/total_count);
+
+        if constexpr (flavor == StencilEvalKind::enclosed_stencil_vol_frac) {
+          // pass both of the following to the function
+          //  1. fraction of the total stencil volume enclosed by the given cell
+          //  2. the 1d index specifying cell-location (for a field with ghost zones)
+          f(double(cached_counts[i][j][k])/total_count, ind3D);
+
+        } else if constexpr (flavor == StencilEvalKind::enclosed_cell_vol_frac) {
+          // pass both of the following to the function:
+          // 1. pass the fraction of the cell-volume that is enclosed by the stencil
+          // 2. the 1d index specifying cell-location
+
+          // it would nominally make more sense to precompute the following outside of this loop,
+          // but that's probably fine (after all, this branch is mostly for testing purposes)
+          double inverse_max_counts_per_cell = 1.0 / double(std::pow(2,Log2DivsionsPerAx_PerCell*3));
+
+          // in this case, we have not precomputed the compute
+          unsigned int count = sphere.Count_Super_Samples<Log2DivsionsPerAx_PerCell>(indx_x,
+                                                                                     indx_y, 
+                                                                                     indx_z);
+          f(count*inverse_max_counts_per_cell, ind3D);
+
+        } else if constexpr (flavor == StencilEvalKind::for_each_overlap_zone) {
+
+          bool is_enclosed = sphere.Encloses_Any_Supersample<Log2DivsionsPerAx_PerCell>(indx_x,
+                                                                                        indx_y, 
+                                                                                        indx_z);
+          if (is_enclosed) f(ind3D);
+        }
+
+      }
+    }
+  }
+
+}
+
+} // nested unnamed namespace
+
 /* Represents a 27-cell deposition stencil for a sphere with a radius of 1 cell-width. This stencil computes
  * the fraction of the stencil that is enclosed in each cell. The overlap between the stencil and a given cell
  * is computed via super-sampling.
@@ -639,48 +743,10 @@ struct Sphere27 {
    *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
    */
   template<typename Function>
-  static __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
+  static __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function &&f)
   {
-    // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    const int leftmost_indx_x = int(pos_indU[0] - 1);
-    const int leftmost_indx_y = int(pos_indU[1] - 1);
-    const int leftmost_indx_z = int(pos_indU[2] - 1);
-
-    // Step 2: get the number of super-samples within each of the 27 possible cells
-    const SphereObj sphere{{pos_indU[0], pos_indU[1], pos_indU[2]}, 1*1};
-
-    uint_least16_t counts[3][3][3]; // we want to keep the array-element size small to reduce memory
-                                    // pressure on the stack (especially since every thread will be
-                                    // allocating this much stack-space at the same time)
-    unsigned long total_count = 0;
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        for (int k = 0; k < 3; k++) {
-          unsigned int count = sphere.Count_Super_Samples<Log2DivsionsPerAx_PerCell>(leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k);
-          counts[i][j][k] = std::uint_least16_t(count);
-          total_count += count;
-        }
-      }
-    }
-
-    //kernel_printf("ref: %g, %g, %g\n", pos_indU[0], pos_indU[1], pos_indU[2]);
-
-    // Step 3: actually invoke f at each cell-location that overlaps with the stencil location, passing both:
-    //  1. fraction of the total stencil volume enclosed by the given cell
-    //  2. the 1d index specifying cell-location (for a field with ghost zones)
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        for (int k = 0; k < 3; k++) {
-          const int ind3D = (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k));
-
-          //kernel_printf("%d, %d, %d: %g\n", leftmost_indx_x + i, (leftmost_indx_y + j), (leftmost_indx_z + k),
-          //              double(counts[i][j][k])/total_count);
-
-          f(double(counts[i][j][k])/total_count, ind3D);
-        }
-      }
-    }
-
+    for_each_sphere_<Function, StencilEvalKind::enclosed_stencil_vol_frac, 2, Log2DivsionsPerAx_PerCell>(
+      pos_indU, nx_g, ny_g, std::forward<Function>(f));
   }
 
   /* excute f at each location included in the stencil centered at (pos_x_indU, pos_y_indU, pos_z_indU).
@@ -774,24 +840,8 @@ struct Sphere27 {
   template<typename Function>
   static __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
-    // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    const int leftmost_indx_x = int(pos_indU[0] - 1);
-    const int leftmost_indx_y = int(pos_indU[1] - 1);
-    const int leftmost_indx_z = int(pos_indU[2] - 1);
-
-    double inverse_max_counts_per_cell = 1.0 / double(std::pow(2,Log2DivsionsPerAx_PerCell*3));
-    const SphereObj sphere{{pos_indU[0], pos_indU[1], pos_indU[2]}, 1*1};
-
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        for (int k = 0; k < 3; k++) {
-          unsigned int count = sphere.Count_Super_Samples<Log2DivsionsPerAx_PerCell>(leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k);
-          const int ind3D = (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k));
-          f(count*inverse_max_counts_per_cell, ind3D);
-        }
-      }
-    }
-
+    for_each_sphere_<Function, StencilEvalKind::enclosed_cell_vol_frac, 2, Log2DivsionsPerAx_PerCell>(
+      pos_indU, nx_g, ny_g, std::forward<Function>(f));
   }
 
   /* calls the unary function f at ever location where there probably is non-zero overlap with
@@ -801,33 +851,10 @@ struct Sphere27 {
    * This is is significantly cheaper than calling for_each.
    */
   template<typename UnaryFunction>
-  static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
+  static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int nx_g, int ny_g, UnaryFunction &&f)
   {
-    // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
-    const int leftmost_indx_x = int(pos_indU[0]) - 1;
-    const int leftmost_indx_y = int(pos_indU[1]) - 1;
-    const int leftmost_indx_z = int(pos_indU[2]) - 1;
-  
-    const SphereObj sphere{/* center = */ {pos_indU[0], pos_indU[1], pos_indU[2]},
-                           /* squared_radius = */ 1*1};
-
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        for (int k = 0; k < 3; k++) {
-
-          const int indx_x = leftmost_indx_x + i;
-          const int indx_y = leftmost_indx_y + j;
-          const int indx_z = leftmost_indx_z + k;
-          const int ind3D = indx_x + ng_x * (indx_y + ng_y * indx_z);
-
-          if (sphere.Encloses_Any_Supersample<Log2DivsionsPerAx_PerCell>(indx_x, indx_y, indx_z)) {
-            f(ind3D);
-          }
-
-        }
-      }
-    }
-
+    for_each_sphere_<UnaryFunction, StencilEvalKind::for_each_overlap_zone, 2, Log2DivsionsPerAx_PerCell>(
+      pos_indU, nx_g, ny_g, std::forward<UnaryFunction>(f));
   }
 
   /* returns the nearest location to (pos_x_indU, pos_y_indU, pos_z_indU) that the stencil's center
