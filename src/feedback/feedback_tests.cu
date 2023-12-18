@@ -443,7 +443,7 @@ struct OverlapRange{
 // iterate over the x-axis (at fixed y_ind and z_ind) of an array that holds the overlap values computed
 // with respect to the stencil. Return the OverlapRange object representing the range of cells with
 // non-zero values
-OverlapRange find_ovrange_(double* v, int y_ind, int z_ind, Extent3D full_extent) {
+std::optional<OverlapRange> find_ovrange_(double* v, int y_ind, int z_ind, Extent3D full_extent) {
 
   for (int ix = 0; ix < full_extent.nx; ix++) {
     double overlap_frac = v[ix + full_extent.nx * (y_ind + full_extent.ny * z_ind)];
@@ -452,15 +452,15 @@ OverlapRange find_ovrange_(double* v, int y_ind, int z_ind, Extent3D full_extent
       double prev_inner_overlap = overlap_frac;
       for (int inner_ix = (ix + 1); inner_ix < full_extent.nx; inner_ix++) {
         double inner_overlap = v[inner_ix + full_extent.nx * (y_ind + full_extent.ny * z_ind)];
-        if (inner_overlap == 0.0)  return {ix, inner_ix - 1, overlap_frac, prev_inner_overlap};
+        if (inner_overlap == 0.0)  return {{ix, inner_ix - 1, overlap_frac, prev_inner_overlap}};
         prev_inner_overlap = inner_overlap;
       }
       // if we got to this point, this means that the (full_extend.nx-1) overlaps with stencil
-      return {ix, full_extent.nx-1, overlap_frac, prev_inner_overlap};
+      return {{ix, full_extent.nx-1, overlap_frac, prev_inner_overlap}};
     }
   }
 
-  return {-1, -1, 0.0, 0.0};  // there is no overlap
+  return {};  // there is no overlap
 };
 
 /* test some expected trends as we slowly move a stencil to the right along the
@@ -536,33 +536,36 @@ void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_mo
   const int y_ind = int(dummy);
   const int z_ind = int(dummy);
 
-  OverlapRange prev_ovrange;
+  std::optional<OverlapRange> prev_ovrange;
   for (std::size_t i = 0; i < overlap_results.size(); i++) {
-    const OverlapRange cur_ovrange = find_ovrange_(overlap_results[i].data(), y_ind, z_ind, full_extent);
+    std::optional<OverlapRange> cur_ovrange = find_ovrange_(overlap_results[i].data(), y_ind,
+                                                                  z_ind, full_extent);
 
     //printf("%zu, first_overlap: (%d, %g) last_overlap: (%d, %g)\n",
-    //       i, cur_ovrange.first_indx, cur_ovrange.first_overlap, 
-    //       cur_ovrange.last_indx, cur_ovrange.last_overlap);
+    //       i, cur_ovrange.value().first_indx, cur_ovrange.value().first_overlap,
+    //       cur_ovrange.value().last_indx, cur_ovrange.value().last_overlap);
 
-    if (i != 0) { // make comparisons to previous stencil position
+    if (bool(prev_ovrange) and bool(cur_ovrange)) { // make comparisons to previous stencil position
+      const OverlapRange& prev = *prev_ovrange;
+      const OverlapRange& cur  = *cur_ovrange;
 
       // as the stencil moves rightwards, we expect the first_overlap and last_overlap indices to generally increase
-      ASSERT_GE(cur_ovrange.first_indx, prev_ovrange.first_indx);
-      ASSERT_GE(cur_ovrange.last_indx, prev_ovrange.last_indx);
+      ASSERT_GE(cur.first_indx, prev.first_indx);
+      ASSERT_GE(cur.last_indx, prev.last_indx);
 
       if (not ignore_monotonicity_comparisons) {
         // these stencils should be ignored for the sphere-binary-stencil
 
         // if first_ind is the same for both the current and previous stencil position, check that the overlap
         // fraction of that pixel has not increased
-        if (cur_ovrange.first_indx == prev_ovrange.first_indx) {
-          ASSERT_LE(cur_ovrange.first_overlap, prev_ovrange.first_overlap);
+        if (cur.first_indx == prev.first_indx) {
+          ASSERT_LE(cur.first_overlap, prev.first_overlap);
         }
 
         // if last_indx is the same for both the current and previous stencil position, confirm that the
         // overlap fraction of that pixel has not decreased
-        if (cur_ovrange.last_indx == prev_ovrange.last_indx) {
-          ASSERT_GE(cur_ovrange.last_overlap, prev_ovrange.last_overlap);
+        if (cur.last_indx == prev.last_indx) {
+          ASSERT_GE(cur.last_overlap, prev.last_overlap);
         }
 
       }
