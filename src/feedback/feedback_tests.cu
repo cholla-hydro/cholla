@@ -505,8 +505,13 @@ void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_mo
     Real pos_indxU[3] = {sliding_ax_indxU_val, dummy, dummy};
 
     overlap_results.push_back(
-      eval_stencil_overlap_(pos_indxU, full_extent, n_ghost, Stencil{})
+      eval_stencil_overlap_(pos_indxU, full_extent, n_ghost, Stencil{},
+                            StencilEvalKind::enclosed_cell_vol_frac)
     );
+
+    std::vector<double> stencil_overlap_frac = eval_stencil_overlap_(
+      pos_indxU, full_extent, n_ghost, Stencil{},
+      StencilEvalKind::enclosed_stencil_vol_frac);
 
 
     //int num_indents = 2;
@@ -516,7 +521,7 @@ void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_mo
     // sanity check: ensure non-zero vals sum to 1
     std::string tmp = Vec3_to_String(pos_indxU);
     double total_overlap = 0.0;
-    for (const double & overlap : overlap_results.back()) {
+    for (const double & overlap : stencil_overlap_frac) {
       total_overlap += overlap;
     }
     // in the future, we may nee
@@ -525,53 +530,60 @@ void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_mo
   }
 
   // perform some checks based on the ranges of cells with overlap:
-  // - currently we just pick a single y_ind, z_ind combination. 
-  // - It might be nice to consider all y_ind, z_ind combinations. This could be a little messy:
-  //   -> need to handle rows when there isn't ANY overlap
+  // - To make this test as generic as possible,
   //   -> need to handle cases (especially for super-sampled stencil) where a given y_ind/z_ind near
   //      the edge of the stencil won't have any overlap at all, except when the stencil is positioned
   //      at very particular x-values (basically it has to do with the distance of the subgrid to 
   //      the stencil-center)
 
-  const int y_ind = int(dummy);
-  const int z_ind = int(dummy);
+  //const int y_ind = int(dummy);
+  //const int z_ind = int(dummy);
 
-  std::optional<OverlapRange> prev_ovrange;
-  for (std::size_t i = 0; i < overlap_results.size(); i++) {
-    std::optional<OverlapRange> cur_ovrange = find_ovrange_(overlap_results[i].data(), y_ind,
-                                                                  z_ind, full_extent);
+  for (int y_ind = 0; y_ind < full_extent.ny; y_ind++) {
+    for (int z_ind = 0; z_ind < full_extent.nz; z_ind++) {
 
-    //printf("%zu, first_overlap: (%d, %g) last_overlap: (%d, %g)\n",
-    //       i, cur_ovrange.value().first_indx, cur_ovrange.value().first_overlap,
-    //       cur_ovrange.value().last_indx, cur_ovrange.value().last_overlap);
+      // basically, we setup a separate test each time we encounter this inner loop
+      std::optional<OverlapRange> prev_ovrange;
+      for (std::size_t i = 0; i < overlap_results.size(); i++) {
+        std::optional<OverlapRange> cur_ovrange = find_ovrange_
+          (overlap_results[i].data(), y_ind, z_ind, full_extent);
 
-    if (bool(prev_ovrange) and bool(cur_ovrange)) { // make comparisons to previous stencil position
-      const OverlapRange& prev = *prev_ovrange;
-      const OverlapRange& cur  = *cur_ovrange;
+        //printf("%zu, first_overlap: (%d, %g) last_overlap: (%d, %g)\n",
+        //       i, cur_ovrange.value().first_indx, cur_ovrange.value().first_overlap,
+        //       cur_ovrange.value().last_indx, cur_ovrange.value().last_overlap);
 
-      // as the stencil moves rightwards, we expect the first_overlap and last_overlap indices to generally increase
-      ASSERT_GE(cur.first_indx, prev.first_indx);
-      ASSERT_GE(cur.last_indx, prev.last_indx);
+        if (bool(prev_ovrange) and bool(cur_ovrange)) { // make comparisons to previous
+                                                        //stencil position
+          const OverlapRange& prev = *prev_ovrange;
+          const OverlapRange& cur  = *cur_ovrange;
 
-      if (not ignore_monotonicity_comparisons) {
-        // these stencils should be ignored for the sphere-binary-stencil
+          // as the stencil moves rightwards, we expect the first_overlap and last_overlap
+          // indices to generally increase
+          ASSERT_GE(cur.first_indx, prev.first_indx);
+          ASSERT_GE(cur.last_indx, prev.last_indx);
 
-        // if first_ind is the same for both the current and previous stencil position, check that the overlap
-        // fraction of that pixel has not increased
-        if (cur.first_indx == prev.first_indx) {
-          ASSERT_LE(cur.first_overlap, prev.first_overlap);
+          if (not ignore_monotonicity_comparisons) {
+            // these stencils should be ignored for the sphere-binary-stencil
+
+            // if first_ind is the same for both the current and previous stencil position, check that the overlap
+            // fraction of that pixel has not increased
+            if (cur.first_indx == prev.first_indx) {
+              ASSERT_LE(cur.first_overlap, prev.first_overlap);
+            }
+
+            // if last_indx is the same for both the current and previous stencil position, confirm that the
+            // overlap fraction of that pixel has not decreased
+            if (cur.last_indx == prev.last_indx) {
+              ASSERT_GE(cur.last_overlap, prev.last_overlap);
+            }
+
+          }
         }
-
-        // if last_indx is the same for both the current and previous stencil position, confirm that the
-        // overlap fraction of that pixel has not decreased
-        if (cur.last_indx == prev.last_indx) {
-          ASSERT_GE(cur.last_overlap, prev.last_overlap);
-        }
-
+        prev_ovrange = cur_ovrange;
       }
     }
-    prev_ovrange = cur_ovrange;
   }
+
 }
 
 TEST(tALLFeedbackCiCStencil, SlidingTest)
