@@ -1108,6 +1108,7 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
                                    const std::vector<Arr3<Real>>& particle_pos_vec,
                                    feedback_details::OverlapStrat ov_strat,
                                    bool separate_launch_per_particle,
+                                   feedback_details::BoundaryStrategy bdry_strat = feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
                                    const std::optional<Real> maybe_init_density = std::optional<Real>(),
                                    const std::optional<Arr3<Real>> maybe_bulk_vel = std::optional<Arr3<Real>>())
 {
@@ -1173,13 +1174,13 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
       feedback_details::Exec_Cluster_Feedback_Kernel<feedback_model::CiCResolvedSNPrescription>(
         test_particle_data.props_of_single_particle(int(i)), spatial_props, cycle_props, 
         nullptr, // this is the info-array
-        test_field_data.dev_ptr(), d_num_SN.data() + i, ov_scheduler);
+        test_field_data.dev_ptr(), d_num_SN.data() + i, ov_scheduler, bdry_strat);
     }
   } else {
     feedback_details::Exec_Cluster_Feedback_Kernel<feedback_model::CiCResolvedSNPrescription>(
       test_particle_data.particle_props(), spatial_props, cycle_props,
       nullptr, // this is the info-array
-      test_field_data.dev_ptr(), d_num_SN.data(), ov_scheduler);
+      test_field_data.dev_ptr(), d_num_SN.data(), ov_scheduler, bdry_strat);
   }
 
   // it would be nice to now return TestParticleData and TestFieldData
@@ -1240,10 +1241,12 @@ TEST(tALLFeedbackFullCiC, CheckingOverlapStrat)
   // each individual particle
   FeedbackResults rslt_ref = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
                                                 feedback_details::OverlapStrat::ignore,
-                                                true);
+                                                true,
+                                                feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
   FeedbackResults rslt_actual = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
                                                    feedback_details::OverlapStrat::sequential,
-                                                   false);
+                                                   false,
+                                                   feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
   if (false) {
     printf("\nLooking at the OverlapStrat::ignore approach:\n");
     rslt_ref.test_field_data.print_debug_info();
@@ -1257,7 +1260,7 @@ TEST(tALLFeedbackFullCiC, CheckingOverlapStrat)
 }
 
 
-// in this 
+// in this test, we compare a case with and without bulk velocity
 TEST(tALLFeedbackFullCiC, ComparingNonThermalPropsDiffRefFrames)
 {
   const int n_ghost = 0;
@@ -1273,10 +1276,12 @@ TEST(tALLFeedbackFullCiC, ComparingNonThermalPropsDiffRefFrames)
   Arr3<Real> bulk_vel_NULLCASE = {0.0, 0.0, 0.0};
   FeedbackResults rslt_ref = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
                                                 feedback_details::OverlapStrat::ignore, true,
+                                                feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
                                                 {init_density}, {bulk_vel_NULLCASE});
   Arr3<Real> bulk_vel_ALT = {10.0, 0.0, 0.0};
   FeedbackResults rslt_actual = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
                                                    feedback_details::OverlapStrat::ignore, true,
+                                                   feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
                                                    {init_density}, {bulk_vel_ALT});
   if (false) {
     printf("\nLooking at the case without bulk velocity:\n");

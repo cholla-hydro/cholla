@@ -151,18 +151,9 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
         spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g);
     }
 
-    using BStrat = feedback_details::BoundaryStrategy;
-    using feedback_details::Exec_Cluster_Feedback_Kernel;
-
-    if (bdry_strat_ == BStrat::excludeGhostParticle_ignoreStencilIssues) {
-      Exec_Cluster_Feedback_Kernel<FeedbackModel, BStrat::excludeGhostParticle_ignoreStencilIssues>(
-        particle_props, spatial_props, cycle_props, h_info, G.C.d_density, d_num_SN.data(), *lazy_ov_scheduler_);
-    } else if (bdry_strat_ == BStrat::excludeGhostParticle_snapActiveStencil) {
-      Exec_Cluster_Feedback_Kernel<FeedbackModel, BStrat::excludeGhostParticle_snapActiveStencil>(
-        particle_props, spatial_props, cycle_props, h_info, G.C.d_density, d_num_SN.data(), *lazy_ov_scheduler_);
-    } else {
-      CHOLLA_ERROR("Encountered an unhandled BoundaryStrategy");
-    }
+    feedback_details::Exec_Cluster_Feedback_Kernel<FeedbackModel>(
+        particle_props, spatial_props, cycle_props, h_info, G.C.d_density,
+        d_num_SN.data(), *lazy_ov_scheduler_, bdry_strat_);
 
   }
 

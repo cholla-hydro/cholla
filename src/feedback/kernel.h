@@ -57,7 +57,7 @@ enum struct BoundaryStrategy {
 // We make additional passes until we have applied all feedback.
 //
 // In the best case scenario (no overlap), we just do one pass. In the pathological worst case (all 
-// particles are directly on top of each other), the number of passes is equal to the number of 
+// particles are directly on top of each other), the number of passes is equal to the number of
 // particles with pending feedback.
 //
 // Alternative Options
@@ -419,6 +419,7 @@ __device__ __forceinline__ Arr3<Real> Calc_Pos_IndU(int i, const feedback_detail
 /* Applies cluster feedback.
  *
  * \tparam FeedbackModel type that encapsulates the actual feedback prescription
+ * \tparam BdryStrat specifies the policy used for handling feedback stencils that overlap with boundaries of the active zone
  *
  * \param[in,out] particle_props Encodes the actual particle data needed for feedback. If there is any feedback, the
  *     relevant particle properties (like particle mass) will be updated during this call.
@@ -539,6 +540,76 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
   reduction_utilities::blockAccumulateIntoNReals<feedinfoLUT::LEN,TPB_FEEDBACK>(info, s_info);
 }
 
+struct KernelAndLaunchConf {
+  void* kernel_ptr;
+  dim3 dim_block;
+  dim3 dim_grid;
+};
+
+/* Helper function that is used to fetch the appropriant feedback-kernel varient and compute the launch parameters
+ *
+ * The launch parameters are chosen in order to maximize parallelism; they are based on how many blocks can fit
+ * simultaneously on a SM (streaming multiprocessor), given the specified variant of the kernel, the number of 
+ * threads per block, and the intended, per-block, shared dynamic memory usage.
+ *
+ * \note
+ * This has been factored out of Exec_Cluster_Feedback_Kernel() to allow \c BdryStrat to be specified as a runtime
+ * argument, while only having a single switch statement responsible for mapping the runtime argument to a template
+ * parameter.
+ */
+template<typename FeedbackModel, BoundaryStrategy BdryStrat>
+KernelAndLaunchConf fetch_kernel_and_launch_conf_(int threads_per_block, int max_num_threadblocks,
+                                                  std::size_t dynamic_shared_mem_per_block)
+{
+  // do some work to configure the grid-size (i.e. the number of thread-blocks per grid)
+  // - since the kernel uses grid-wide synchronizations, some care needs to be taken to ensure
+  //   co-residency of the thread blocks on the GPU (if you have too many thread-blocks, then they
+  //   won't all be executed on the gpu at the same time)
+  // - we use static variables so we don't have to repeat these calculations. This should be fine as
+  //   long as: - the amount of dynamic shared memory usage for each block never changes between calls
+  //            - the threads per block don't ever change between calls
+  const dim3 dimBlock(threads_per_block, 1, 1);
+
+  static dim3 dimGrid;
+  static int last_max_num_threadblocks = 0;
+  static int last_threads_per_block = 0;
+  static std::size_t last_dynamic_shared_mem_per_block = 0;
+
+  CHOLLA_ASSERT(max_num_threadblocks > 0, "max_num_threadblocks must be positive!");
+  if ((last_max_num_threadblocks != max_num_threadblocks) or
+      (last_threads_per_block != threads_per_block) or
+      (last_dynamic_shared_mem_per_block != dynamic_shared_mem_per_block)) {
+    last_max_num_threadblocks = max_num_threadblocks;
+    last_threads_per_block = threads_per_block;
+    last_dynamic_shared_mem_per_block = dynamic_shared_mem_per_block;
+
+    int dev = 0;
+    int supportsCoopLaunch = 0;
+    cudaError err = cudaDeviceGetAttribute(&supportsCoopLaunch, cudaDevAttrCooperativeLaunch, dev);
+    CHOLLA_ASSERT(cudaSuccess == err,
+                  "Error encountered within cudaDeviceGetAttribute while querying whether the "
+                  "system supports cooperative kernels");
+    CHOLLA_ASSERT(supportsCoopLaunch != 0, "System is unable to launch cooperative kernels");
+
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, dev);
+    int numBlocksPerSm = 0; // this will be updated to hold the max number of blocks on the GPU
+    err = cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm,
+                                                        Cluster_Feedback_Kernel<FeedbackModel, BdryStrat>,
+                                                        threads_per_block, dynamic_shared_mem_per_block);
+    CHOLLA_ASSERT(cudaSuccess == err,
+                  "Error encountered within cudaOccupancyMaxActiveBlocksPerMultiprocessor while "
+                  "querying whether the max active blocks per SM");
+    CHOLLA_ASSERT(numBlocksPerSm > 0,
+                  "Something is wrong! The number of blocks per SM should be positive");
+
+    dimGrid = dim3(std::min(deviceProp.multiProcessorCount*numBlocksPerSm, max_num_threadblocks),
+                   1, 1);
+  }
+
+  return KernelAndLaunchConf{(void *)Cluster_Feedback_Kernel<FeedbackModel, BdryStrat>,
+                             dimBlock, dimGrid};
+}
 
 /* Launches the Kernel for ClusterFeedback
  *
@@ -554,61 +625,49 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
  * \param[in]     An array of ``particle_props.n_local`` non-negative integers that specify the number of supernovae that are
  *     are scheduled to occur during the current cycle (for each particle).
  * \param[in]     ov_scheduler helps schedule feedback of particles with overlapping stencils.
+ * \param[in]     bdry_strat specifies the policy used for handling feedback stencils that overlap with boundaries of the active zone
  * \param[in]     max_num_threadblocks This is here to put an arbitrary upper limit on the maximum number of 
  *     thread-blocks. This is for debugging purposes. Only positive values are allowed.
  */
-template<typename FeedbackModel, BoundaryStrategy BdryStrat = BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues>
+template<typename FeedbackModel>
 void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particle_props,
                                   const feedback_details::FieldSpatialProps& spatial_props,
                                   const feedback_details::CycleProps& cycle_props, 
                                   Real* info, Real* conserved_dev, int* num_SN_dev,
-                                  OverlapScheduler& ov_scheduler,
+                                  OverlapScheduler& ov_scheduler, BoundaryStrategy bdry_strat,
                                   int max_num_threadblocks = INT_MAX)
 {
 
   // Declare/allocate device buffer for accumulating summary information about feedback
   cuda_utilities::DeviceVector<Real> d_info(feedinfoLUT::LEN, true);  // initialized to 0
 
-  // do some work to configure the grid-size (i.e. the number of thread-blocks per grid)
-  // - since the kernel uses grid-wide synchronizations, some care needs to be taken to ensure 
-  //   co-residency of the thread blocks on the GPU (if you have too many thread-blocks, then they
-  //   won't all be executed on the gpu at the same time)
-  // - we use static variables so we don't have to repeat these calculations. This should be fine as
-  //   long as: - the amount of dynamic shared memory usage for each block never changes between calls
-  //            - the threads per block don't ever change between calls
+  // fetch the kernel and launch parameters (some care is taken to ensure that )
   const std::size_t dynamic_shared_mem_per_block = 0;
   const int threads_per_block = TPB_FEEDBACK;
-  const dim3 dimBlock(threads_per_block, 1, 1);
 
-  static dim3 dimGrid;
-  static int last_max_num_threadblocks = 0;
-  CHOLLA_ASSERT(max_num_threadblocks > 0, "max_num_threadblocks must be positive!");
-  if (last_max_num_threadblocks != max_num_threadblocks) {
-    last_max_num_threadblocks = max_num_threadblocks;
-
-    int dev = 0;
-    int supportsCoopLaunch = 0;
-    cudaDeviceGetAttribute(&supportsCoopLaunch, cudaDevAttrCooperativeLaunch, dev);
-    CHOLLA_ASSERT(supportsCoopLaunch != 0, "System is unable to launch cooperative kernels");
-
-    cudaDeviceProp deviceProp;
-    cudaGetDeviceProperties(&deviceProp, dev);
-    int numBlocksPerSm = 0; // this will be updated to hold the max number of blocks on the GPU
-    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm,
-                                                  Cluster_Feedback_Kernel<FeedbackModel, BdryStrat>,
-                                                  threads_per_block, dynamic_shared_mem_per_block);
-
-    dimGrid = dim3(std::min(deviceProp.multiProcessorCount*numBlocksPerSm, max_num_threadblocks), 
-                   1, 1);
+  KernelAndLaunchConf tmp;
+  switch (bdry_strat){
+    case BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues:
+      tmp = fetch_kernel_and_launch_conf_<FeedbackModel,BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues>(
+        threads_per_block, max_num_threadblocks, dynamic_shared_mem_per_block);
+      break;
+    case BoundaryStrategy::excludeGhostParticle_snapActiveStencil:
+      tmp = fetch_kernel_and_launch_conf_<FeedbackModel,BoundaryStrategy::excludeGhostParticle_snapActiveStencil>(
+        threads_per_block, max_num_threadblocks, dynamic_shared_mem_per_block);
+      break;
+    default:
+      CHOLLA_ERROR("Unable to handle specified bdry_strat. This probably means a new stategy "
+                   "was introduced without modifying the switch-statement this error occurs in.");
   }
 
+  // actually launch the kernel
   Real* d_info_ptr = d_info.data();
   void *kernelArgs[] = { (void *)(&particle_props), (void *)(&spatial_props), (void *)(&cycle_props), 
                          (void *)(&d_info_ptr), (void *)(&conserved_dev), (void *)(&num_SN_dev),
                          (void *)(&ov_scheduler)};
 
-  cudaLaunchCooperativeKernel((void *)Cluster_Feedback_Kernel<FeedbackModel, BdryStrat>,
-                              dimGrid, dimBlock, kernelArgs);
+  cudaLaunchCooperativeKernel((void *)tmp.kernel_ptr, tmp.dim_grid, tmp.dim_block, kernelArgs,
+                              dynamic_shared_mem_per_block);
 
   /*
   // compute the grid-size or the number of thread-blocks per grid. The number of threads in a block is
