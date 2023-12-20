@@ -245,188 +245,19 @@ std::vector<double> eval_stencil_overlap_(const Real* pos_indxU, Extent3D full_e
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-// Define a test comparing different versions of the CiC deposition kernel
+// Define miscellaneous tools
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace {
-
-// we can probably delete this struct
-struct DomainSpatialProps {
-  Real xMin, yMin, zMin;  /*!< Cell widths (in code units) along cur axis. */
-  Real dx, dy, dz;  /*!< Cell widths (in code units) along cur axis. */
-};
 
 /* Struct that specifies 1D spatial properties. This is used to help parameterize tests */
 struct AxProps {
   int num_cells;  /*!< number of cells along the given axis (excluding ghost zone)*/
   Real min;  /*!< the position of the left edge of left-most (non-ghost) cell, in code units */
   Real cell_width;  /*!< Cell width, in code units along cur axis. Must be positive */
-
-  /* utility function! */
-  static DomainSpatialProps construct_spatial_props(AxProps xax, AxProps yax, AxProps zax) {
-    DomainSpatialProps out;
-    out.xMin = xax.min;
-    out.dx = xax.cell_width;
-    out.yMin = yax.min;
-    out.dy = yax.cell_width;
-    out.zMin = zax.min;
-    out.dz = zax.cell_width;
-    return out;
-  }
-};
-
-/* The old CIC stencil implementation (using the old interface). This logic was ripped almost
- * straight out of the original implementation of Apply_Resolved_SN */
-struct OldCICStencil {
-private:  // attributes
-  DomainSpatialProps spatial_props;
-  int n_ghost;
-
-public:  // interface
-  OldCICStencil(AxProps xax, AxProps yax, AxProps zax, int n_ghost)
-   : spatial_props(AxProps::construct_spatial_props(xax,yax,zax)), n_ghost(n_ghost)
-  {}
-
-  /* adapts the arguments and passes the functions back to the legacy interface */
-  template<typename Function>
-  __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f) const
-  {
-    const Real pos_x_indU = pos_indU[0];
-    const Real pos_y_indU = pos_indU[1];
-    const Real pos_z_indU = pos_indU[2];
-
-    // pos_indxU gives the position in index-units on the grid including ghost-zones
-    Real pos_x = (pos_x_indU - this->n_ghost) * this->spatial_props.dx + this->spatial_props.xMin;
-    Real pos_y = (pos_y_indU - this->n_ghost) * this->spatial_props.dy + this->spatial_props.yMin;
-    Real pos_z = (pos_z_indU - this->n_ghost) * this->spatial_props.dz + this->spatial_props.zMin;
-
-    for_each_legacy(pos_x, pos_y, pos_z, this->spatial_props, nx_g, ny_g, n_ghost, f);
-  }
-
-  template<typename Function>
-  __device__ void for_each_legacy(Real pos_x, Real pos_y, Real pos_z, 
-                                  DomainSpatialProps spatial_props,
-                                  int nx_g, int ny_g, int n_ghost,
-                                  Function& f) const
-  {
-
-    double xMin = spatial_props.xMin;
-    double yMin = spatial_props.yMin;
-    double zMin = spatial_props.zMin;
-    double dx = spatial_props.dx;
-    double dy = spatial_props.dy;
-    double dz = spatial_props.dz;
-
-    //kernel_printf("min_vals: %e, %e, %e\n", xMin, yMin, zMin);
-    //kernel_printf("cell_widths: %e, %e, %e\n", dx, dy, dz);
-    // For 2x2x2, a particle between 0-0.5 injects onto cell - 1
-    int indx_x = (int)floor((pos_x - xMin - 0.5 * dx) / dx);
-    int indx_y = (int)floor((pos_y - yMin - 0.5 * dy) / dy);
-    int indx_z = (int)floor((pos_z - zMin - 0.5 * dz) / dz);
-
-    Real cell_center_x = xMin + indx_x * dx + 0.5 * dx;
-    Real cell_center_y = yMin + indx_y * dy + 0.5 * dy;
-    Real cell_center_z = zMin + indx_z * dz + 0.5 * dz;
-
-    Real delta_x = 1 - (pos_x - cell_center_x) / dx;
-    Real delta_y = 1 - (pos_y - cell_center_y) / dy;
-    Real delta_z = 1 - (pos_z - cell_center_z) / dz;
-    //kernel_printf("delta_x, delta_y, delta_z: %e, %e, %e\n", delta_x, delta_y, delta_z);
-
-    for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < 2; j++) {
-        for (int k = 0; k < 2; k++) {
-          Real x_frac = i * (1 - delta_x) + (1 - i) * delta_x;
-          Real y_frac = j * (1 - delta_y) + (1 - j) * delta_y;
-          Real z_frac = k * (1 - delta_z) + (1 - k) * delta_z;
-
-          int indx    = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
-
-          f(x_frac*y_frac*z_frac, indx);
-        }  // k loop
-      }    // j loop
-    }      // i loop
-  }
-
-  /* identical to for_each (provided for compatability with interfaces of other stencils). */
-  template<typename Function>
-  __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
-  {
-    this->for_each(pos_indU, nx_g, ny_g, f);
-  }
-
-  /* provided for compatability with interfaces of other stencils */
-  template<typename UnaryFunction>
-  __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
-  {
-    // this is a little crude!
-    this->for_each(pos_indU, ng_x, ng_y,
-                   [f](double stencil_enclosed_frac, int idx3D) { if (stencil_enclosed_frac > 0) f(idx3D);});
-  }
-
 };
 
 } // anonymous namespace
-
-/* this is used as a test comparing the old implementation of CiC deposition agains the new version. */
-void compare_cic_stencil(AxProps* prop_l, int n_ghost) {
-
-  std::vector<Real> sample_pos_indxU_minus_nghost = {
-    1.0, 1.00001, 1.1, 1.5, 1.9, 1.9999999
-  };
-
-  std::vector<std::array<Real,3>> pos_indxU_l{};
-  for (std::size_t i = 0; i < sample_pos_indxU_minus_nghost.size(); i++) {
-    for (std::size_t j = 0; j < sample_pos_indxU_minus_nghost.size(); j++) {
-      for (std::size_t k = 0; k < sample_pos_indxU_minus_nghost.size(); k++) {
-        pos_indxU_l.push_back({sample_pos_indxU_minus_nghost[i] + n_ghost,
-                               sample_pos_indxU_minus_nghost[j] + n_ghost,
-                               sample_pos_indxU_minus_nghost[k] + n_ghost});
-      }
-    }
-  }
-
-
-  for (const std::array<Real, 3>& pos_indxU : pos_indxU_l) {
-    const std::string pos_indxU_str = Vec3_to_String(pos_indxU.data());
-
-    // include ghost cells within extent
-    Extent3D extent = {prop_l[0].num_cells + 2*n_ghost,   // x-axis
-                       prop_l[1].num_cells + 2*n_ghost,   // y-axis
-                       prop_l[2].num_cells + 2*n_ghost};  // z-axis
-
-    std::vector<double> overlap_legacy = eval_stencil_overlap_(pos_indxU.data(), extent, n_ghost,
-                                                               OldCICStencil(prop_l[0],prop_l[1],prop_l[2], n_ghost));
-    std::vector<double> overlap_new = eval_stencil_overlap_(pos_indxU.data(), extent, n_ghost,
-                                                            fb_stencil::CIC{});
-
-    if (false) { // for debugging purposes!
-      printf("considering: %s\n:", pos_indxU_str.c_str());
-      int num_indents = 2;
-      std::string tmp = array_to_string(overlap_legacy.data(), extent, num_indents);
-      printf("legacy stencil overlap:\n  %s\n", tmp.c_str());
-      tmp = array_to_string(overlap_new.data(), extent, num_indents);
-      printf("modern stencil overlap:\n  %s\n", tmp.c_str());
-    }
-
-    const std::string err_msg = "error comparing stencils when it is centered at indices of " + pos_indxU_str;
-    const double rtol = 0.0;//1e-15;
-    const double atol = 0;
-    assert_allclose(overlap_new.data(), overlap_legacy.data(), extent, rtol, atol, false, err_msg);
-  }
-}
-
-/* This test compares the modern cloud-in-cell stencil against the legacy one! */
-TEST(tALLFeedbackCiCStencil, ComparisonAgainstOld)
-{
-  Real dx = 1.0 / 256.0;
-  std::vector<AxProps> prop_l = {{3, 0.0, dx}, {3,0.0, dx}, {3,0.0, dx}};
-
-  for (int n_ghost = 0; n_ghost < 2; n_ghost++){
-    compare_cic_stencil(prop_l.data(), n_ghost);
-  }
-
-};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define some tests that check some expected trends as we slowly move a stencil to the right along the
