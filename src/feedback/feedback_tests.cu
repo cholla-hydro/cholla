@@ -907,6 +907,52 @@ public:
     print_fn(grid_enum::GasEnergy, "ethermal_dens");
 # endif
   }
+
+  /* copy TestFieldData into a new object and shift the reference frame */
+  TestFieldData change_ref_frame(Arr3<Real> bulk_velocity) {
+
+    const Extent3D& single_field_extent = this->single_field_extent_;
+
+    TestFieldData out = TestFieldData(single_field_extent, {});
+
+    const Real* in_ptr = this->data_->data();
+    Real* out_ptr = out.data_->data();
+
+    const std::size_t field_size = single_field_extent.nx*single_field_extent.ny*single_field_extent.nz;
+
+    auto loop_fn = [in_ptr, out_ptr, field_size, bulk_velocity] __device__ (int index) {
+      Real density   = in_ptr[index];
+      Real old_mom_x = in_ptr[grid_enum::momentum_x * field_size + index];
+      Real old_mom_y = in_ptr[grid_enum::momentum_y * field_size + index];
+      Real old_mom_z = in_ptr[grid_enum::momentum_z * field_size + index];
+
+      Real old_KE_dens = 0.5 * ((old_mom_x * old_mom_x) +
+                                (old_mom_y * old_mom_y) +
+                                (old_mom_z * old_mom_z)) / density;
+
+      Real new_mom_x = old_mom_x - (bulk_velocity[0] * density);
+      Real new_mom_y = old_mom_y - (bulk_velocity[1] * density);
+      Real new_mom_z = old_mom_z - (bulk_velocity[2] * density);
+
+      Real new_KE_dens = 0.5 * ((new_mom_x * new_mom_x) +
+                                (new_mom_y * new_mom_y) +
+                                (new_mom_z * new_mom_z)) / density;
+
+      Real new_e = in_ptr[grid_enum::Energy * field_size + index] + (new_KE_dens - old_KE_dens);
+
+      out_ptr[index] = density;
+      out_ptr[grid_enum::momentum_x * field_size + index] = new_mom_x;
+      out_ptr[grid_enum::momentum_y * field_size + index] = new_mom_y;
+      out_ptr[grid_enum::momentum_z * field_size + index] = new_mom_z;
+      out_ptr[grid_enum::Energy * field_size + index]     = new_e;
+# ifdef DE
+      out_ptr[grid_enum::GasEnergy* field_size + index]   = in_ptr[grid_enum::GasEnergy* field_size + index];
+# endif
+    };
+
+    gpuFor(field_size, loop_fn);
+    return out;
+  }
 };
 
 void assert_fielddata_allclose(TestFieldData& actual_test_field_data, 
@@ -1102,14 +1148,17 @@ public:
 struct FeedbackResults {
   TestFieldData test_field_data;
   TestParticleData test_particle_data;
+  std::vector<Real> info;
 };
 
+template <typename Prescription = feedback_model::CiCResolvedSNPrescription>
 FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>& prop_l,
                                    const std::vector<Arr3<Real>>& particle_pos_vec,
                                    feedback_details::OverlapStrat ov_strat,
                                    bool separate_launch_per_particle,
                                    feedback_details::BoundaryStrategy bdry_strat = feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
                                    const std::optional<Real> maybe_init_density = std::optional<Real>(),
+                                   const std::optional<Real> maybe_init_internal_edens = std::optional<Real>(),
                                    const std::optional<Arr3<Real>> maybe_bulk_vel = std::optional<Arr3<Real>>())
 {
 
@@ -1131,19 +1180,19 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
   };
 
   // check for optional test-specific field/particle values::
-  const Real init_density =  maybe_init_density.value_or(1482737.17012665); // should be 0.1 particles per cc
+  const Real init_density        = maybe_init_density.value_or(1482737.17012665); // should be 0.1 particles per cc
+  const Real init_internal_edens = maybe_init_internal_edens.value_or(0.00021335 *1.5);
 
   const Arr3<Real> dflt_bulk_vel = {0.0,0.0,0.0};
   const Arr3<Real> bulk_vel = maybe_bulk_vel.value_or(dflt_bulk_vel);
 
   // allocate the temporary field data!
-  
-  
   const Extent3D full_extent{spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g};
-  TestFieldData test_field_data(full_extent, {{"density",    init_density},
-                                              {"velocity_x", bulk_vel[0]},
-                                              {"velocity_y", bulk_vel[1]},
-                                              {"velocity_z", bulk_vel[2]}});
+  TestFieldData test_field_data(full_extent, {{"density",       init_density},
+                                              {"velocity_x",    bulk_vel[0]},
+                                              {"velocity_y",    bulk_vel[1]},
+                                              {"velocity_z",    bulk_vel[2]},
+                                              {"thermal_edens", init_internal_edens}});
 
   const std::size_t num_particles = particle_pos_vec.size();
   // allocate the temporary particle data!
@@ -1160,6 +1209,8 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
     d_num_SN.cpyHostToDevice(tmp);
   }
 
+  // allocate a vector to hold summary-info. Make sure to initialize the counters to 0
+  std::vector<Real> info(feedinfoLUT::LEN, 0.0);
 
   // give some dummy vals:
   const feedback_details::CycleProps cycle_props{0.0,  // current time
@@ -1171,24 +1222,69 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
   if (separate_launch_per_particle) {
     // actually execute feedback
     for (std::size_t i = 0; i < particle_pos_vec.size(); i++){
-      feedback_details::Exec_Cluster_Feedback_Kernel<feedback_model::CiCResolvedSNPrescription>(
+      std::array<Real, feedinfoLUT::LEN> info_tmp;
+      for (int j = 0; j < feedinfoLUT::LEN; j++) { info_tmp[j] = 0.0; }
+
+      feedback_details::Exec_Cluster_Feedback_Kernel<Prescription>(
         test_particle_data.props_of_single_particle(int(i)), spatial_props, cycle_props, 
-        nullptr, // this is the info-array
-        test_field_data.dev_ptr(), d_num_SN.data() + i, ov_scheduler, bdry_strat);
+        info_tmp.data(), test_field_data.dev_ptr(), d_num_SN.data() + i, ov_scheduler, bdry_strat);
+
+      for (int j = 0; j < feedinfoLUT::LEN; j++) { info[j] += info_tmp[j]; }
     }
   } else {
-    feedback_details::Exec_Cluster_Feedback_Kernel<feedback_model::CiCResolvedSNPrescription>(
+    feedback_details::Exec_Cluster_Feedback_Kernel<Prescription>(
       test_particle_data.particle_props(), spatial_props, cycle_props,
-      nullptr, // this is the info-array
-      test_field_data.dev_ptr(), d_num_SN.data(), ov_scheduler, bdry_strat);
+      info.data(), test_field_data.dev_ptr(), d_num_SN.data(), ov_scheduler, bdry_strat);
   }
 
-  // it would be nice to now return TestParticleData and TestFieldData
-  FeedbackResults out{std::move(test_field_data), std::move(test_particle_data)};
+  FeedbackResults out{std::move(test_field_data), std::move(test_particle_data), std::move(info)};
   return out;
 }
 
 } // anonymous namespace
+
+bool is_integer_(Real val) { return std::trunc(val) == val; }
+
+void basic_infosummary_checks_(std::vector<Real> info) {
+  ASSERT_EQ(info.size(), feedinfoLUT::LEN);
+
+  // we may need to revisit the following if we ever add more summary-stats
+  for (int i = 0; i < feedinfoLUT::LEN; i++) {
+    ASSERT_GE(info[i], 0.0);
+  }
+
+  ASSERT_TRUE(is_integer_(info[feedinfoLUT::countSN]));
+  ASSERT_TRUE(is_integer_(info[feedinfoLUT::countResolved]));
+  ASSERT_TRUE(is_integer_(info[feedinfoLUT::countUnresolved]));
+  ASSERT_EQ(info[feedinfoLUT::countSN],
+            info[feedinfoLUT::countResolved] + info[feedinfoLUT::countUnresolved]);
+}
+
+// check the equality of all integers in actual and ref
+void check_infosummary_int_equality_(std::vector<Real> actual, std::vector<Real> ref) {
+  basic_infosummary_checks_(actual);
+  basic_infosummary_checks_(ref);
+
+  auto is_loseless_integer = [](Real val) { 
+    if ((sizeof(Real) == 4) and (fabs(val) > 16777217)) {
+      // in this case Real is a 32 bit float and may encode an integer that can't
+      // be losslessly represented
+      return false;
+    } else if ((sizeof(Real) == 8) and (fabs(val) > 9007199254740993)) {
+      // in this case Real is a 64 bit float and may encode an integer that can't
+      // be losslessly represented
+      return false;
+    } else {
+      return std::trunc(val) == val;
+    }
+  };
+
+  for (int i = 0; i < feedinfoLUT::LEN; i++) {
+    if (is_loseless_integer(actual[i]) and is_loseless_integer(ref[i])){
+      ASSERT_EQ(actual[i], ref[i]);
+    }
+  }
+}
 
 void check_equality(FeedbackResults& rslt_actual, FeedbackResults& rslt_ref)
 {
@@ -1220,16 +1316,30 @@ void check_equality(FeedbackResults& rslt_actual, FeedbackResults& rslt_ref)
 
   assert_fielddata_allclose(rslt_actual.test_field_data, rslt_ref.test_field_data,
                             false, 0.0, 0.0);
+
+  // perform a check of the info-summary-statistics
+  check_infosummary_int_equality_(rslt_actual.info, rslt_ref.info);
 }
 
+template <typename T>
+class tALLFeedbackFull : public testing::Test {
+public:
+  using PrescriptionT=T;
+};
+
+using MyPrescriptionTypes = ::testing::Types<feedback_model::CiCResolvedSNPrescription,
+                                             feedback_model::CiCLegacyResolvedAndUnresolvedPrescription>;
+TYPED_TEST_SUITE(tALLFeedbackFull, MyPrescriptionTypes);
 
 // in this test we check that results are identical if we inject feedback for a bunch of supernovae
 // that are directly on top of each other in 2 cases:
 // - a case where we launch a separate kernel for each supernova
 // - a case where we use the OverlapStrat functionallity to launch a single kernel, but within that
 //   kernel, we sequentially launch the supernova feedback
-TEST(tALLFeedbackFullCiC, CheckingOverlapStrat)
+TYPED_TEST(tALLFeedbackFull, CheckingOverlapStrat)
 {
+  using Prescription = typename TestFixture::PrescriptionT;
+
   const int n_ghost = 0;
   const Real dx = 1.0 / 256.0;
   const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
@@ -1239,14 +1349,13 @@ TEST(tALLFeedbackFullCiC, CheckingOverlapStrat)
 
   // Get the reference answer - here we sequentially launch one kernel after to handle feedback of 
   // each individual particle
-  FeedbackResults rslt_ref = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
-                                                feedback_details::OverlapStrat::ignore,
-                                                true,
-                                                feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
-  FeedbackResults rslt_actual = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
-                                                   feedback_details::OverlapStrat::sequential,
-                                                   false,
-                                                   feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
+  FeedbackResults rslt_ref = run_full_feedback_<Prescription>(
+    n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
+    feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
+  FeedbackResults rslt_actual = run_full_feedback_<Prescription>(
+    n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::sequential, false,
+    feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
+
   if (false) {
     printf("\nLooking at the OverlapStrat::ignore approach:\n");
     rslt_ref.test_field_data.print_debug_info();
@@ -1257,42 +1366,189 @@ TEST(tALLFeedbackFullCiC, CheckingOverlapStrat)
   }
 
   check_equality(rslt_actual, rslt_ref);
+
+  ASSERT_EQ(rslt_actual.info[feedinfoLUT::countSN], particle_pos_vec.size());
 }
 
+struct InjectSummary {
+  Real mass;
+  Real net_mom_x;
+  Real net_mom_y;
+  Real net_mom_z;
+  Real abs_mom_mag;
+  Real thermal_energy;
+};
+
+// calculate the amount that is injected in each quantity
+InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
+                                   Real init_internal_edens, Arr3<Real> bulk_vel,
+                                   Real cell_vol)
+{
+  Extent3D extent = field_data.single_field_extent();
+  const std::size_t single_field_size = extent.nx*extent.ny*extent.nz;
+
+  std::vector<Real> vec = field_data.host_copy();
+
+  InjectSummary out{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  for (std::size_t i = 0; i < single_field_size; i++) {
+    const Real dens      = vec[single_field_size * grid_enum::density + i];
+    const Real mom_x     = vec[single_field_size * grid_enum::momentum_x + i];
+    const Real mom_y     = vec[single_field_size * grid_enum::momentum_y + i];
+    const Real mom_z     = vec[single_field_size * grid_enum::momentum_z + i];
+    const Real tot_edens = vec[single_field_size * grid_enum::Energy + i];
+
+    Real ke_dens = 0.5 * (mom_x*mom_x + mom_y*mom_y + mom_z*mom_z)/dens;
+    Real thermal_energy = tot_edens - ke_dens;
+
+    // compute how different the momentum density is from the initial value
+    const Real excess_mom_x = (mom_x - init_density * bulk_vel[0]);
+    const Real excess_mom_y = (mom_y - init_density * bulk_vel[1]);
+    const Real excess_mom_z = (mom_z - init_density * bulk_vel[2]);
+
+    out.mass           += (dens - init_density);
+    out.net_mom_x      += excess_mom_x;
+    out.net_mom_y      += excess_mom_y;
+    out.net_mom_z      += excess_mom_z;
+    out.abs_mom_mag    += sqrt((excess_mom_x * excess_mom_x) +
+                               (excess_mom_y * excess_mom_y) +
+                               (excess_mom_z * excess_mom_z));
+    out.thermal_energy += (thermal_energy - init_internal_edens);
+  }
+
+  out.mass           *= cell_vol;
+  out.net_mom_x      *= cell_vol;
+  out.net_mom_y      *= cell_vol;
+  out.net_mom_z      *= cell_vol;
+  out.abs_mom_mag    *= cell_vol;
+  out.thermal_energy *= cell_vol;
+
+  return out;
+}
+
+// in this test, we look into the actual injected amounts!
+TYPED_TEST(tALLFeedbackFull, ComparingInjectionMagnitudes)
+{
+  using Prescription = typename TestFixture::PrescriptionT;
+
+  const int n_ghost = 0;
+  const Real dx = 1.0 / 256.0;
+  const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
+
+  // initialize 1 star particle
+  const std::vector<Arr3<Real>> particle_pos_vec(1, {2.4 *dx, 2.4 *dx, 2.4 *dx});
+
+  const Real density        = 1e9; // solar-masses per kpc**3
+    // default thermal energy density should correspond to pressure of 1e4 K / cm**3 (for a gamma of 5/3)
+  const Real internal_edens = 0.0021335 *1.5;
+  const Arr3<Real> bulk_vel = {0.0, 0.0, 0.0};
+
+  // launch the feedback
+  FeedbackResults rslt = run_full_feedback_<Prescription>(
+    n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
+    feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
+    {density}, {internal_edens}, {bulk_vel});
+
+  ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 1);
+
+  InjectSummary summary = calc_inject_summary_(rslt.test_field_data, density, internal_edens, bulk_vel,
+                                               dx * dx * dx);
+  if (false) {
+    
+    printf("from_grid:  mass = %g, net_mom = {%g,%g,%g}, abs_mom_mag = %e, thermal_energy/erg = %e\n",
+           summary.mass, summary.net_mom_x, summary.net_mom_y, summary.net_mom_z,
+           summary.abs_mom_mag, summary.thermal_energy * FORCE_UNIT * LENGTH_UNIT);
+
+    Real info_e = rslt.info[feedinfoLUT::totalEnergy] + rslt.info[feedinfoLUT::totalUnresEnergy];
+    printf("from summary_stats:   abs_mom_mag = %e energy/erg = %e\n\n",
+           rslt.info[feedinfoLUT::totalMomentum], 
+           info_e * FORCE_UNIT * LENGTH_UNIT);
+  }
+
+  EXPECT_NEAR(feedback::MASS_PER_SN, summary.mass, 3.6e-15 * feedback::MASS_PER_SN);
+
+  if (rslt.info[feedinfoLUT::countResolved] > 0) {
+    Real rtol = 0.0;
+
+    EXPECT_EQ(0.0, summary.net_mom_x);
+    EXPECT_EQ(0.0, summary.net_mom_y);
+    EXPECT_EQ(0.0, summary.net_mom_z);
+    EXPECT_EQ(0.0, summary.abs_mom_mag);
+    EXPECT_NEAR(feedback::ENERGY_PER_SN, summary.thermal_energy,
+                rtol * feedback::ENERGY_PER_SN);
+
+    // sanity check!
+    EXPECT_NEAR(feedback::ENERGY_PER_SN, rslt.info[feedinfoLUT::totalEnergy],
+                rtol * feedback::ENERGY_PER_SN);
+  } else {
+    // NOTE: feedback::FINAL_MOMENTUM does NOT directly specify the injected radial-momentum
+    //       (the radial momentum also depends on the local conditions)
+
+    Real rtol = 3e-16;
+    Real atol = 9e-18;
+
+    EXPECT_NEAR(0.0, summary.net_mom_x, atol);
+    EXPECT_NEAR(0.0, summary.net_mom_y, atol);
+    EXPECT_NEAR(0.0, summary.net_mom_z, atol);
+    // for thermal energy, we theoretically need tolerance since we added and subtracted 
+    // kinetic energy
+    EXPECT_NEAR(0.0, summary.thermal_energy, atol);
+    EXPECT_NEAR(rslt.info[feedinfoLUT::totalMomentum], summary.abs_mom_mag,
+                rtol * rslt.info[feedinfoLUT::totalMomentum]);
+
+    // sanity checks!
+    EXPECT_EQ(rslt.info[feedinfoLUT::totalUnresEnergy], 0.0);
+  }
+}
 
 // in this test, we compare a case with and without bulk velocity
-TEST(tALLFeedbackFullCiC, ComparingNonThermalPropsDiffRefFrames)
+TYPED_TEST(tALLFeedbackFull, ComparingNonThermalPropsDiffRefFrames)
 {
+  using Prescription = typename TestFixture::PrescriptionT;
+
   const int n_ghost = 0;
   const Real dx = 1.0 / 256.0;
   const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
 
   // initialize some star particles directly atop each other
-  const std::vector<Arr3<Real>> particle_pos_vec(3, {2.4 *dx, 2.4 *dx, 2.4 *dx});
+  const std::vector<Arr3<Real>> particle_pos_vec(1, {2.4 *dx, 2.4 *dx, 2.4 *dx});
 
-  const Real init_density = 1000.0; // solar-masses per kpc**3
+  [[maybe_unused]] const Real init_density = 1e8; // solar-masses per kpc**3
 
   // Get the reference answer (in the reference frame where there is no bulk velocity)
-  Arr3<Real> bulk_vel_NULLCASE = {0.0, 0.0, 0.0};
-  FeedbackResults rslt_ref = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
-                                                feedback_details::OverlapStrat::ignore, true,
-                                                feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
-                                                {init_density}, {bulk_vel_NULLCASE});
-  Arr3<Real> bulk_vel_ALT = {10.0, 0.0, 0.0};
-  FeedbackResults rslt_actual = run_full_feedback_(n_ghost, ax_prop_l, particle_pos_vec,
-                                                   feedback_details::OverlapStrat::ignore, true,
-                                                   feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
-                                                   {init_density}, {bulk_vel_ALT});
-  if (false) {
+  [[maybe_unused]] Arr3<Real> bulk_vel_NULLCASE = {0.0, 0.0, 0.0};
+  FeedbackResults rslt_ref = run_full_feedback_<Prescription>(
+    n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
+    feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
+    {init_density}, {}, {bulk_vel_NULLCASE});
+
+  [[maybe_unused]] Arr3<Real> bulk_vel_ALT = {0.000205, 0.0, 0.0}; // roughly 200 km/s
+  FeedbackResults rslt_actual = run_full_feedback_<Prescription>(
+    n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
+    feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
+    {init_density}, {}, {bulk_vel_ALT});
+
+  // shift the reference-frame of the case with the bulk velocity
+  TestFieldData actual_field_shifted = rslt_actual.test_field_data.change_ref_frame(
+    Arr3<Real>{1 * bulk_vel_ALT[0], 1 * bulk_vel_ALT[1], 1 * bulk_vel_ALT[2]});
+
+  if (true) {
     printf("\nLooking at the case without bulk velocity:\n");
     rslt_ref.test_field_data.print_debug_info();
     rslt_ref.test_particle_data.print_debug_info();
     printf("\nLooking at the case with bulk velocity:\n");
     rslt_actual.test_field_data.print_debug_info();
     rslt_actual.test_particle_data.print_debug_info();
+    printf("\nLooking at the second case after shifting reference frame:\n");
+    actual_field_shifted.print_debug_info();
   }
 
   double rtol = 2.0e-9; // it would be nice to specify tolerances on a per-field basis
-  assert_fielddata_allclose(rslt_actual.test_field_data, rslt_ref.test_field_data,
-                            true, rtol, 0.0);
+  double atol = 5e-7;
+  assert_fielddata_allclose(actual_field_shifted, rslt_ref.test_field_data,
+                            false, rtol, atol);
+
+  ASSERT_EQ(rslt_actual.info[feedinfoLUT::countSN], particle_pos_vec.size());
+
+  // TODO: update so that we actually adjust the reference frame of the case with
+  // bulk-velocity. This will let us more robustly check unresolved feedback!
 }

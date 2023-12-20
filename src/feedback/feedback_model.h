@@ -474,15 +474,34 @@ struct ResolvedAndUnresolvedSNe {
                                            conserved_dev, avg_mass_dens);
 
       // inject momentum and density
-      Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0_cgs, -0.17) * pow(fabsf(num_SN), 0.93) / dV / sqrt(3.0);
+
+      // the calculation of momentum was inherited from Orlando's older implementation
+      // -> `feedback::FINAL_MOMENTUM * pow(n_0_cgs, -0.17)` comes directly from eqn 34 of Kim &
+      //    Ostriker (2015). This is equation is also cited in Kim & Ostriker (2017) -- the TIGRESS
+      //    paper.
+      // -> the factor of pow(Real(num_SN), 0.93) has a less clear origin
+      //    - my speculation is that it comes from the E_{51}^{0.93} term in equation 17 of Kim &
+      //      Ostriker (2015). 
+      //    - Note: in that other equation, the coefficient is slightly different AND n_0_cgs's
+      //      exponent is also slightly different
+      //    - It's not clear to me whether we should include this term.
+      // -> Earlier versions of the code divided by sqrt(3). 
+      //    - I didn't totally understand this, but I'm confident that this is due to the fact that
+      //      we weren't explicitly normalizing the momentum based on the full normalized stencil 
+      //      (effectively momentum normalization was computed a prior). Now we do normalize by the
+      //      the total magnitude, so it's definitely unnecessary!
+      //    - if we ever want to reintroduce this extra factor of sqrt(3), based on the current 
+      //      organization of the code, we should now do it in the stencil.
+      Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0_cgs, -0.17) * pow(Real(num_SN), 0.93);
+      Real feedback_momentum_density = feedback_momentum / dV;
       Real feedback_energy = 0.0; // for now, don't inject any energy
 
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  += num_SN;
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    += feedback_momentum * dV * sqrt(3.0);
+      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    += feedback_momentum;
       s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] += feedback_energy * dV;
       Apply_Energy_Momentum_Deposition<UnresolvedStencil>(
           pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
-          feedback_density, feedback_momentum, feedback_energy);
+          feedback_density, feedback_momentum_density, feedback_energy);
     }
   }
 };
