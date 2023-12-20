@@ -1245,7 +1245,7 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
 
 bool is_integer_(Real val) { return std::trunc(val) == val; }
 
-void basic_infosummary_checks_(std::vector<Real> info) {
+void basic_infosummary_checks_(const std::vector<Real>& info) {
   ASSERT_EQ(info.size(), feedinfoLUT::LEN);
 
   // we may need to revisit the following if we ever add more summary-stats
@@ -1261,7 +1261,7 @@ void basic_infosummary_checks_(std::vector<Real> info) {
 }
 
 // check the equality of all integers in actual and ref
-void check_infosummary_int_equality_(std::vector<Real> actual, std::vector<Real> ref) {
+void check_infosummary_int_equality_(const std::vector<Real>& actual, const std::vector<Real>& ref) {
   basic_infosummary_checks_(actual);
   basic_infosummary_checks_(ref);
 
@@ -1379,15 +1379,28 @@ struct InjectSummary {
   Real thermal_energy;
 };
 
-// calculate the amount that is injected in each quantity
+/* calculate the amount that is injected in each quantity in the specified reference 
+ * frame (ref_frame_vel is measure in the original reference frame of the simulation)
+ */
 InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
-                                   Real init_internal_edens, Arr3<Real> bulk_vel,
-                                   Real cell_vol)
+                                   Real init_internal_edens, Arr3<Real> init_bulk_vel,
+                                   Real cell_vol, Arr3<Real> ref_frame_vel = {0.0,0.0,0.0})
 {
   Extent3D extent = field_data.single_field_extent();
   const std::size_t single_field_size = extent.nx*extent.ny*extent.nz;
 
-  std::vector<Real> vec = field_data.host_copy();
+  std::vector<Real> vec;
+  if ((ref_frame_vel[0] == 0.0) and (ref_frame_vel[1] == 0.0) and
+      (ref_frame_vel[2] == 0.0)){
+    vec = field_data.host_copy();
+  } else {
+    TestFieldData tmp = field_data.change_ref_frame(ref_frame_vel);
+    vec = tmp.host_copy();
+  }
+
+  Arr3<Real> bulk_vel{init_bulk_vel[0] - ref_frame_vel[0],
+                      init_bulk_vel[1] - ref_frame_vel[1],
+                      init_bulk_vel[2] - ref_frame_vel[2]};
 
   InjectSummary out{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   for (std::size_t i = 0; i < single_field_size; i++) {
@@ -1426,10 +1439,9 @@ InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
 }
 
 // in this test, we look into the actual injected amounts!
-TYPED_TEST(tALLFeedbackFull, ComparingInjectionMagnitudes)
+template<typename Prescription>
+void test_injection_magnitudes_(bool resolved, const Arr3<Real>& bulk_vel)
 {
-  using Prescription = typename TestFixture::PrescriptionT;
-
   const int n_ghost = 0;
   const Real dx = 1.0 / 256.0;
   const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
@@ -1437,10 +1449,9 @@ TYPED_TEST(tALLFeedbackFull, ComparingInjectionMagnitudes)
   // initialize 1 star particle
   const std::vector<Arr3<Real>> particle_pos_vec(1, {2.4 *dx, 2.4 *dx, 2.4 *dx});
 
-  const Real density        = 1e9; // solar-masses per kpc**3
+  const Real density        = (resolved) ? 1e8 : 1e9; // solar-masses per kpc**3
     // default thermal energy density should correspond to pressure of 1e4 K / cm**3 (for a gamma of 5/3)
   const Real internal_edens = 0.0021335 *1.5;
-  const Arr3<Real> bulk_vel = {0.0, 0.0, 0.0};
 
   // launch the feedback
   FeedbackResults rslt = run_full_feedback_<Prescription>(
@@ -1450,10 +1461,14 @@ TYPED_TEST(tALLFeedbackFull, ComparingInjectionMagnitudes)
 
   ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 1);
 
+  // compute the summary properties in the reference frame of the particle where that underwent
+  // feedback (this just happens to coincide with bulk_vel)
+  const Arr3<Real> ref_frame_vel = bulk_vel;
+
   InjectSummary summary = calc_inject_summary_(rslt.test_field_data, density, internal_edens, bulk_vel,
-                                               dx * dx * dx);
+                                               dx * dx * dx, ref_frame_vel);
   if (false) {
-    
+
     printf("from_grid:  mass = %g, net_mom = {%g,%g,%g}, abs_mom_mag = %e, thermal_energy/erg = %e\n",
            summary.mass, summary.net_mom_x, summary.net_mom_y, summary.net_mom_z,
            summary.abs_mom_mag, summary.thermal_energy * FORCE_UNIT * LENGTH_UNIT);
@@ -1485,6 +1500,9 @@ TYPED_TEST(tALLFeedbackFull, ComparingInjectionMagnitudes)
 
     Real rtol = 3e-16;
     Real atol = 9e-18;
+    if ((bulk_vel[0] != 0) or (bulk_vel[1] != 0) or (bulk_vel[2] != 0)) {
+      atol = 5e-17;
+    }
 
     EXPECT_NEAR(0.0, summary.net_mom_x, atol);
     EXPECT_NEAR(0.0, summary.net_mom_y, atol);
@@ -1498,10 +1516,63 @@ TYPED_TEST(tALLFeedbackFull, ComparingInjectionMagnitudes)
     // sanity checks!
     EXPECT_EQ(rslt.info[feedinfoLUT::totalUnresEnergy], 0.0);
   }
+
+  // this is mostly just a sanity check to make sure that this test-case gets updated if the
+  // criteria for switching between resolved and unresolved feedback changes significantly
+  if (resolved) {
+    ASSERT_TRUE(rslt.info[feedinfoLUT::countResolved] == 1) << "something is wrong, we expected to be "
+                                                            << "testing unresolved feedback!";
+  } else {
+    ASSERT_TRUE(rslt.info[feedinfoLUT::countUnresolved] == 1) << "something is wrong, we expected to be "
+                                                              << "testing unresolved feedback!";
+  }
 }
 
-// in this test, we compare a case with and without bulk velocity
-TYPED_TEST(tALLFeedbackFull, ComparingNonThermalPropsDiffRefFrames)
+TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesResolved)
+{
+  using Prescription = typename TestFixture::PrescriptionT;
+  if (Prescription::has_resolved_prescription){
+    test_injection_magnitudes_<Prescription>(true, Arr3<Real>{0.0, 0.0, 0.0});
+  }
+}
+
+
+TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesResolvedBulkV)
+{
+  using Prescription = typename TestFixture::PrescriptionT;
+  if (Prescription::has_resolved_prescription){
+    Arr3<Real> bulk_vel = {0.000205, 0.0, 0.0}; // roughly 200 km/s
+    test_injection_magnitudes_<Prescription>(true, bulk_vel);
+  }
+}
+
+
+TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesUnresolved)
+{
+  using Prescription = typename TestFixture::PrescriptionT;
+  if (Prescription::has_unresolved_prescription){
+    test_injection_magnitudes_<Prescription>(false, Arr3<Real>{0.0, 0.0, 0.0});
+  }
+}
+
+TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesUnresolvedBulkV)
+{
+  using Prescription = typename TestFixture::PrescriptionT;
+  if (Prescription::has_unresolved_prescription){
+    Arr3<Real> bulk_vel = {0.000205, 0.0, 0.0}; // roughly 200 km/s
+    test_injection_magnitudes_<Prescription>(false, bulk_vel);
+  }
+}
+
+// in this test, we run a case without bulk-velocity and then we run a case with
+// bulk velocity. Then, we check consistency between the 2 runs!
+//
+// - at this point, this may seem a little redundant with some of the other test,
+//   but this test does test some extra properties.
+// - while the other tests implicitly check the consitency in the total magnitude
+//   of the prescriptions, this checks consistency in how the injection is
+//   distributed
+TYPED_TEST(tALLFeedbackFull, ComparingFrameInvariance)
 {
   using Prescription = typename TestFixture::PrescriptionT;
 
@@ -1512,7 +1583,7 @@ TYPED_TEST(tALLFeedbackFull, ComparingNonThermalPropsDiffRefFrames)
   // initialize some star particles directly atop each other
   const std::vector<Arr3<Real>> particle_pos_vec(1, {2.4 *dx, 2.4 *dx, 2.4 *dx});
 
-  [[maybe_unused]] const Real init_density = 1e8; // solar-masses per kpc**3
+  [[maybe_unused]] const Real init_density = 1e9; // solar-masses per kpc**3
 
   // Get the reference answer (in the reference frame where there is no bulk velocity)
   [[maybe_unused]] Arr3<Real> bulk_vel_NULLCASE = {0.0, 0.0, 0.0};
@@ -1531,7 +1602,7 @@ TYPED_TEST(tALLFeedbackFull, ComparingNonThermalPropsDiffRefFrames)
   TestFieldData actual_field_shifted = rslt_actual.test_field_data.change_ref_frame(
     Arr3<Real>{1 * bulk_vel_ALT[0], 1 * bulk_vel_ALT[1], 1 * bulk_vel_ALT[2]});
 
-  if (true) {
+  if (false) {
     printf("\nLooking at the case without bulk velocity:\n");
     rslt_ref.test_field_data.print_debug_info();
     rslt_ref.test_particle_data.print_debug_info();
@@ -1549,6 +1620,12 @@ TYPED_TEST(tALLFeedbackFull, ComparingNonThermalPropsDiffRefFrames)
 
   ASSERT_EQ(rslt_actual.info[feedinfoLUT::countSN], particle_pos_vec.size());
 
-  // TODO: update so that we actually adjust the reference frame of the case with
-  // bulk-velocity. This will let us more robustly check unresolved feedback!
+  if (Prescription::has_unresolved_prescription) {
+    // this is mostly just a sanity check to make sure that this test-case gets updated if the
+    // criteria for switching between resolved and unresolved feedback changes significantly
+    ASSERT_TRUE(rslt_actual.info[feedinfoLUT::countUnresolved] > 0) << "something is wrong, we expected to be "
+                                                                    << "testing unresolved feedback!";
+  }
+
+  check_infosummary_int_equality_(rslt_actual.info, rslt_ref.info);
 }
