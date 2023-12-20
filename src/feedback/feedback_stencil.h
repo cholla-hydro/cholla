@@ -347,6 +347,8 @@ struct LegacyCIC27 {
       }
     }
 
+    Real inv_mag = 1.0 / mag;
+
     for (int i = -1; i < 2; i++) {
       for (int j = -1; j < 2; j++) {
         for (int k = -1; k < 2; k++) {
@@ -356,8 +358,8 @@ struct LegacyCIC27 {
           Real x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
           Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
           Real z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
-          Real scalar_weight = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) / mag;
-          Arr3<Real> momentum_weights{x_frac, y_frac, z_frac};
+          Real scalar_weight = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) * inv_mag;
+          Arr3<Real> momentum_weights{x_frac * inv_mag, y_frac * inv_mag, z_frac * inv_mag};
 
           f(scalar_weight, momentum_weights, indx);
 
@@ -690,14 +692,14 @@ __forceinline__ __device__ void for_each_sphere_(Arr3<Real> pos_indU, int nx_g, 
 
           // in this case, we have not precomputed the compute
           unsigned int count = sphere.Count_Super_Samples<Log2DivsionsPerAx_PerCell>(indx_x,
-                                                                                     indx_y, 
+                                                                                     indx_y,
                                                                                      indx_z);
           f(count*inverse_max_counts_per_cell, ind3D);
 
         } else if constexpr (flavor == StencilEvalKind::for_each_overlap_zone) {
 
           bool is_enclosed = sphere.Encloses_Any_Supersample<Log2DivsionsPerAx_PerCell>(indx_x,
-                                                                                        indx_y, 
+                                                                                        indx_y,
                                                                                         indx_z);
           if (is_enclosed) f(ind3D);
         }
