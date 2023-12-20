@@ -227,9 +227,7 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
   Real* gas_energy = &conserved_device[n_cells * grid_enum::GasEnergy];
 #endif
 
-  [[maybe_unused]] const Stencil stencil{n_ghost};
-
-  stencil.for_each_vecflavor(
+  Stencil::for_each_vecflavor(
     {pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
     [=](Real scalar_weight, Arr3<Real> momentum_weights, int idx3D) {
 

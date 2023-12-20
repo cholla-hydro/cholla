@@ -270,8 +270,6 @@ inline __device__ Real D_Frac(int i, Real dx)
 
 struct LegacyCIC27 {
 
-  int n_ghost; // TODO: remove this - it's entirely unnecessary, only here for historical reasons
-
   /* along any axis, gives the max number of neighboring cells that may be enclosed by the stencil,
    * that are on one side of the cell containing the stencil's center.
    *
@@ -317,19 +315,19 @@ struct LegacyCIC27 {
    *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
    */
   template<typename Function>
-  __device__ void for_each_vecflavor(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f) const
+  static __device__ void for_each_vecflavor(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     const Real pos_x_indU = pos_indU[0];
     const Real pos_y_indU = pos_indU[1];
     const Real pos_z_indU = pos_indU[2];
 
-    int indx_x = (int)floor(pos_x_indU - n_ghost);
-    int indx_y = (int)floor(pos_y_indU - n_ghost);
-    int indx_z = (int)floor(pos_z_indU - n_ghost);
+    int indx_x = (int)floor(pos_x_indU);
+    int indx_y = (int)floor(pos_y_indU);
+    int indx_z = (int)floor(pos_z_indU);
 
-    Real delta_x = (pos_x_indU - n_ghost) - indx_x;
-    Real delta_y = (pos_y_indU - n_ghost) - indx_y;
-    Real delta_z = (pos_z_indU - n_ghost) - indx_z;
+    Real delta_x = pos_x_indU - indx_x;
+    Real delta_y = pos_y_indU - indx_y;
+    Real delta_z = pos_z_indU - indx_z;
 
     // loop over the 27 cells to add up all the allocated feedback
     // momentum magnitudes.  For each cell allocate density and
@@ -353,7 +351,7 @@ struct LegacyCIC27 {
       for (int j = -1; j < 2; j++) {
         for (int k = -1; k < 2; k++) {
           // index in array of conserved quantities
-          int indx = (indx_x + i + n_ghost) + (indx_y + j + n_ghost) * nx_g + (indx_z + k + n_ghost) * nx_g * ny_g;
+          int indx = (indx_x + i) + (indx_y + j) * nx_g + (indx_z + k) * nx_g * ny_g;
 
           Real x_frac = D_Frac(i, delta_x) * Frac(j, delta_y) * Frac(k, delta_z);
           Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
@@ -723,8 +721,6 @@ __forceinline__ __device__ void for_each_sphere_(Arr3<Real> pos_indU, int nx_g, 
  */
 template<int Log2DivsionsPerAx_PerCell = 2>
 struct Sphere27 {
- 
-  int dummy_attr; // ugly hack to allow swapping between different kernels for momentum-based feedback
 
   static_assert((Log2DivsionsPerAx_PerCell >= 0) and (Log2DivsionsPerAx_PerCell <= 5),
                 "Log2DivsionsPerAx_PerCell must be a non-negative integer. It also can't exceed 5 "
