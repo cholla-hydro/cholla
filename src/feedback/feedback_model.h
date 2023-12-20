@@ -11,7 +11,7 @@
 #include "../feedback/ratecalc.h"
 #include "../feedback/feedback_stencil.h"
 
-namespace feedback_model {
+namespace fb_prescription {
 
 template<typename Stencil>
 struct ResolvedSNPrescription{
@@ -469,4 +469,4 @@ inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real ag
 }
 */
 
-} // feedback_model namespace
+} // fb_prescription namespace

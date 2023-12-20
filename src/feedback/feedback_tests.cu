@@ -982,7 +982,7 @@ struct FeedbackResults {
   std::vector<Real> info;
 };
 
-template <typename Prescription = feedback_model::CiCResolvedSNPrescription>
+template <typename Prescription = fb_prescription::CiCResolvedSNPrescription>
 FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>& prop_l,
                                    const std::vector<Arr3<Real>>& particle_pos_vec,
                                    feedback_details::OverlapStrat ov_strat,
@@ -1158,8 +1158,8 @@ public:
   using PrescriptionT=T;
 };
 
-using MyPrescriptionTypes = ::testing::Types<feedback_model::CiCResolvedSNPrescription,
-                                             feedback_model::CiCLegacyResolvedAndUnresolvedPrescription>;
+using MyPrescriptionTypes = ::testing::Types<fb_prescription::CiCResolvedSNPrescription,
+                                             fb_prescription::CiCLegacyResolvedAndUnresolvedPrescription>;
 TYPED_TEST_SUITE(tALLFeedbackFull, MyPrescriptionTypes);
 
 // in this test we check that results are identical if we inject feedback for a bunch of supernovae
