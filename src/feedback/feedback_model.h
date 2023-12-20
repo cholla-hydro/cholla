@@ -25,11 +25,12 @@ struct ResolvedSNPrescription{
     return Stencil::nearest_noGhostOverlap_pos(pos_indU, ng_x, ng_y, ng_z, n_ghost);
   }
 
+    // ToDo: refactor to make use of Stencil::for_each_overlap_zone
   template<typename Function>
   static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                   int nx_g, int ny_g, Function f)
+                                                   int nx_g, int ny_g, Function &&f)
   {
-    Stencil::for_each(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, f);
+    Stencil::for_each(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, std::forward<Function>(f));
   }
 
   static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
@@ -328,25 +329,12 @@ struct ResolvedAndUnresolvedSNe {
     return UnresolvedStencil::nearest_noGhostOverlap_pos(pos_indU, ng_x, ng_y, ng_z, n_ghost);
   }
 
+  // ToDo: refactor to make use of UnresolvedStencil::for_each_overlap_zone
   template<typename Function>
   static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                   int nx_g, int ny_g, Function f)
+                                                   int nx_g, int ny_g, Function &&f)
   {
-    // for right now, we are assuming that the stencil of the unresolved feedback is the same size or
-    // bigger than the stencil used for the resolved feedback
-    int indx_x = (int)floor(pos_x_indU);
-    int indx_y = (int)floor(pos_y_indU);
-    int indx_z = (int)floor(pos_z_indU);
-
-    for (int i = -1; i < 2; i++) {
-      for (int j = -1; j < 2; j++) {
-        for (int k = -1; k < 2; k++) {
-          const Real dummy = 0.0;
-          f(dummy, (indx_x + i) + ((indx_y + j) + (indx_z + k) * ny_g)* nx_g);
-        }
-      }
-    }
-
+    UnresolvedStencil::for_each(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, std::forward<Function>(f));
   }
 
   static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
