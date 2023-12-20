@@ -9,27 +9,27 @@
 
 void Grav3D::AllocateMemory_GPU()
 {
-  CudaSafeCall(cudaMalloc((void **)&F.density_d, n_cells * sizeof(Real)));
-  CudaSafeCall(cudaMalloc((void **)&F.potential_d, n_cells_potential * sizeof(Real)));
-  CudaSafeCall(cudaMalloc((void **)&F.potential_1_d, n_cells_potential * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&F.density_d, n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&F.potential_d, n_cells_potential * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&F.potential_1_d, n_cells_potential * sizeof(Real)));
 
   #ifdef GRAVITY_GPU
 
     #ifdef GRAVITY_ANALYTIC_COMP
-  CudaSafeCall(cudaMalloc((void **)&F.analytic_potential_d, n_cells_potential * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&F.analytic_potential_d, n_cells_potential * sizeof(Real)));
     #endif
 
     #ifdef GRAV_ISOLATED_BOUNDARY_X
-  CudaSafeCall(cudaMalloc((void **)&F.pot_boundary_x0_d, N_GHOST_POTENTIAL * ny_local * nz_local * sizeof(Real)));
-  CudaSafeCall(cudaMalloc((void **)&F.pot_boundary_x1_d, N_GHOST_POTENTIAL * ny_local * nz_local * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&F.pot_boundary_x0_d, N_GHOST_POTENTIAL * ny_local * nz_local * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&F.pot_boundary_x1_d, N_GHOST_POTENTIAL * ny_local * nz_local * sizeof(Real)));
     #endif
     #ifdef GRAV_ISOLATED_BOUNDARY_Y
-  CudaSafeCall(cudaMalloc((void **)&F.pot_boundary_y0_d, N_GHOST_POTENTIAL * nx_local * nz_local * sizeof(Real)));
-  CudaSafeCall(cudaMalloc((void **)&F.pot_boundary_y1_d, N_GHOST_POTENTIAL * nx_local * nz_local * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&F.pot_boundary_y0_d, N_GHOST_POTENTIAL * nx_local * nz_local * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&F.pot_boundary_y1_d, N_GHOST_POTENTIAL * nx_local * nz_local * sizeof(Real)));
     #endif
     #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  CudaSafeCall(cudaMalloc((void **)&F.pot_boundary_z0_d, N_GHOST_POTENTIAL * nx_local * ny_local * sizeof(Real)));
-  CudaSafeCall(cudaMalloc((void **)&F.pot_boundary_z1_d, N_GHOST_POTENTIAL * nx_local * ny_local * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&F.pot_boundary_z0_d, N_GHOST_POTENTIAL * nx_local * ny_local * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&F.pot_boundary_z1_d, N_GHOST_POTENTIAL * nx_local * ny_local * sizeof(Real)));
     #endif
 
   #endif  // GRAVITY_GPU
@@ -284,8 +284,8 @@ void Grid3D::Extrapolate_Grav_Potential_GPU()
   #ifdef PARTICLES_CPU
 void Grid3D::Copy_Potential_From_GPU()
 {
-  CudaSafeCall(cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential * sizeof(Real),
-                          cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential * sizeof(Real),
+                             cudaMemcpyDeviceToHost));
   cudaDeviceSynchronize();
 }
   #endif  // PARTICLES_CPU

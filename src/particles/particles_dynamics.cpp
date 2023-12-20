@@ -155,7 +155,7 @@ Real Grid3D::Calc_Particles_dt_function(part_int_t p_start, part_int_t p_end)
 // Update the particles positions and velocities
 void Grid3D::Advance_Particles(int N_step)
 {
-  CudaCheckError();
+  GPU_Error_Check();
   #ifdef CPU_TIME
   if (N_step == 1) {
     Timer.Advance_Part_1.Start();
@@ -190,7 +190,7 @@ void Grid3D::Advance_Particles(int N_step)
     Timer.Advance_Part_2.End();
   }
   #endif
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
 // Get the accteleration for all the particles

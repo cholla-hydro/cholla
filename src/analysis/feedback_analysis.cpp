@@ -16,8 +16,8 @@ FeedbackAnalysis::FeedbackAnalysis(Grid3D& G)
   h_circ_vel_y = (Real*)malloc(G.H.n_cells * sizeof(Real));
 
 #ifdef PARTICLES_GPU
-  CHECK(cudaMalloc((void**)&d_circ_vel_x, G.H.n_cells * sizeof(Real)));
-  CHECK(cudaMalloc((void**)&d_circ_vel_y, G.H.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&d_circ_vel_x, G.H.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&d_circ_vel_y, G.H.n_cells * sizeof(Real)));
 #endif
 
   // setup the (constant) circular speed arrays
@@ -40,8 +40,8 @@ FeedbackAnalysis::FeedbackAnalysis(Grid3D& G)
   }
 
 #ifdef PARTICLES_GPU
-  CHECK(cudaMemcpy(d_circ_vel_x, h_circ_vel_x, G.H.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
-  CHECK(cudaMemcpy(d_circ_vel_y, h_circ_vel_y, G.H.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(d_circ_vel_x, h_circ_vel_x, G.H.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(d_circ_vel_y, h_circ_vel_y, G.H.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 #endif
 }
 
@@ -50,8 +50,8 @@ FeedbackAnalysis::~FeedbackAnalysis()
   free(h_circ_vel_x);
   free(h_circ_vel_y);
 #ifdef PARTICLES_GPU
-  CHECK(cudaFree(d_circ_vel_x));
-  CHECK(cudaFree(d_circ_vel_y));
+  GPU_Error_Check(cudaFree(d_circ_vel_x));
+  GPU_Error_Check(cudaFree(d_circ_vel_y));
 #endif
 }
 

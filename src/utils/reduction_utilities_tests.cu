@@ -60,7 +60,7 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
   // ================
   hipLaunchKernelGGL(reduction_utilities::kernelReduceMax, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
                      dev_grid.data(), dev_max.data(), host_grid.size());
-  CudaCheckError();
+  GPU_Error_Check();
 
   // Perform comparison
   testing_utilities::Check_Results(maxValue, dev_max.at(0), "maximum value found");

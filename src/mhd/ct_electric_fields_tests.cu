@@ -52,11 +52,11 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
         dimBlock(TPB, 1, 1)
   {
     // Allocate device arrays
-    CudaSafeCall(cudaMalloc(&dev_fluxX, fluxX.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_fluxY, fluxY.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_fluxZ, fluxZ.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_grid, grid.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_testCTElectricFields, testCTElectricFields.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_fluxX, fluxX.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_fluxY, fluxY.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_fluxZ, fluxZ.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_grid, grid.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_testCTElectricFields, testCTElectricFields.size() * sizeof(double)));
 
     // Populate the grids with values where vector.at(i) = double(i). The
     // values chosen aren't that important, just that every cell has a unique
@@ -96,21 +96,21 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
   void Run_Test()
   {
     // Copy values to GPU
-    CudaSafeCall(cudaMemcpy(dev_fluxX, fluxX.data(), fluxX.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_fluxY, fluxY.data(), fluxY.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_fluxZ, fluxZ.data(), fluxZ.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_grid, grid.data(), grid.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_testCTElectricFields, testCTElectricFields.data(),
-                            testCTElectricFields.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_fluxX, fluxX.data(), fluxX.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_fluxY, fluxY.data(), fluxY.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_fluxZ, fluxZ.data(), fluxZ.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_grid, grid.data(), grid.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_testCTElectricFields, testCTElectricFields.data(),
+                               testCTElectricFields.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
     // Call the kernel to test
     hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, dimGrid, dimBlock, 0, 0, dev_fluxX, dev_fluxY, dev_fluxZ,
                        dev_grid, dev_testCTElectricFields, nx, ny, nz, n_cells);
-    CudaCheckError();
+    GPU_Error_Check();
 
     // Copy test data back
-    CudaSafeCall(cudaMemcpy(testCTElectricFields.data(), dev_testCTElectricFields,
-                            testCTElectricFields.size() * sizeof(Real), cudaMemcpyDeviceToHost));
+    GPU_Error_Check(cudaMemcpy(testCTElectricFields.data(), dev_testCTElectricFields,
+                               testCTElectricFields.size() * sizeof(Real), cudaMemcpyDeviceToHost));
     cudaDeviceSynchronize();
 
     // Check the results

@@ -104,7 +104,8 @@ void Write_HDF5_Field_3D(int nx, int ny, int nx_real, int ny_real, int nz_real, 
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(CopyReal3D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny, nx_real, ny_real, nz_real, n_ghost,
                      device_buffer, device_source, mhd_direction);
-  CudaSafeCall(cudaMemcpy(buffer, device_buffer, nx_real * ny_real * nz_real * sizeof(double), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(
+      cudaMemcpy(buffer, device_buffer, nx_real * ny_real * nz_real * sizeof(double), cudaMemcpyDeviceToHost));
 
   // Write Buffer to HDF5
   status = Write_HDF5_Dataset(file_id, dataspace_id, buffer, name);
@@ -132,7 +133,8 @@ void Write_HDF5_Field_3D(int nx, int ny, int nx_real, int ny_real, int nz_real, 
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(CopyReal3D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny, nx_real, ny_real, nz_real, n_ghost,
                      device_buffer, device_source, mhd_direction);
-  CudaSafeCall(cudaMemcpy(buffer, device_buffer, nx_real * ny_real * nz_real * sizeof(float), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(
+      cudaMemcpy(buffer, device_buffer, nx_real * ny_real * nz_real * sizeof(float), cudaMemcpyDeviceToHost));
 
   // Write Buffer to HDF5
   status = Write_HDF5_Dataset(file_id, dataspace_id, buffer, name);
@@ -153,8 +155,8 @@ void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_
     dim3 dim1dBlock(TPB, 1, 1);
     hipLaunchKernelGGL(CopyReal3D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny, nx_real, ny_real, nz_real, n_ghost,
                        device_hdf5_buffer, device_grid_buffer, mhd_direction);
-    CudaSafeCall(cudaMemcpy(hdf5_buffer, device_hdf5_buffer, nx_real * ny_real * nz_real * sizeof(Real),
-                            cudaMemcpyDeviceToHost));
+    GPU_Error_Check(cudaMemcpy(hdf5_buffer, device_hdf5_buffer, nx_real * ny_real * nz_real * sizeof(Real),
+                               cudaMemcpyDeviceToHost));
     return;
   }
 
@@ -164,13 +166,15 @@ void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_
     dim3 dim1dBlock(TPB, 1, 1);
     hipLaunchKernelGGL(CopyReal2D_GPU_Kernel, dim1dGrid, dim1dBlock, 0, 0, nx, ny, nx_real, ny_real, nz_real, n_ghost,
                        device_hdf5_buffer, device_grid_buffer);
-    CudaSafeCall(cudaMemcpy(hdf5_buffer, device_hdf5_buffer, nx_real * ny_real * sizeof(Real), cudaMemcpyDeviceToHost));
+    GPU_Error_Check(
+        cudaMemcpy(hdf5_buffer, device_hdf5_buffer, nx_real * ny_real * sizeof(Real), cudaMemcpyDeviceToHost));
     return;
   }
 
   // 1D case
   if (nx > 1 && ny == 1 && nz == 1) {
-    CudaSafeCall(cudaMemcpy(hdf5_buffer, device_grid_buffer + n_ghost, nx_real * sizeof(Real), cudaMemcpyDeviceToHost));
+    GPU_Error_Check(
+        cudaMemcpy(hdf5_buffer, device_grid_buffer + n_ghost, nx_real * sizeof(Real), cudaMemcpyDeviceToHost));
     return;
   }
 }

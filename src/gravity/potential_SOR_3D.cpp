@@ -136,7 +136,8 @@ void Potential_SOR_3D::Copy_Input_And_Initialize(Real *input_density, const Real
 
   if (!potential_initialized) {
     chprintf("SOR: Initializing  Potential \n");
-    CHECK(cudaMemcpy(F.potential_d, input_potential, n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(
+        cudaMemcpy(F.potential_d, input_potential, n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
     // Initialize_Potential( nx_local, ny_local, nz_local, n_ghost,
     // F.potential_d, F.density_d );
     potential_initialized = true;

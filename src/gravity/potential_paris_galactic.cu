@@ -48,8 +48,8 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
   const Real *const rho = density;
   Real *const phi       = potential;
   #else
-  CHECK(cudaMemcpyAsync(da, density, densityBytes_, cudaMemcpyHostToDevice, 0));
-  CHECK(cudaMemcpyAsync(dc_, potential, potentialBytes_, cudaMemcpyHostToDevice, 0));
+  GPU_Error_Check(cudaMemcpyAsync(da, density, densityBytes_, cudaMemcpyHostToDevice, 0));
+  GPU_Error_Check(cudaMemcpyAsync(dc_, potential, potentialBytes_, cudaMemcpyHostToDevice, 0));
   const Real *const rho = da;
   Real *const phi       = dc_;
   #endif
@@ -106,7 +106,7 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
       });
 
   #ifndef GRAVITY_GPU
-  CHECK(cudaMemcpy(potential, dc_, potentialBytes_, cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(potential, dc_, potentialBytes_, cudaMemcpyDeviceToHost));
   #endif
 }
 
@@ -154,13 +154,13 @@ void PotentialParisGalactic::Initialize(const Real lx, const Real ly, const Real
   minBytes_     = pp_->bytes();
   densityBytes_ = long(sizeof(Real)) * dn_[0] * dn_[1] * dn_[2];
 
-  CHECK(cudaMalloc(reinterpret_cast<void **>(&da_), std::max(minBytes_, densityBytes_)));
-  CHECK(cudaMalloc(reinterpret_cast<void **>(&db_), std::max(minBytes_, densityBytes_)));
+  GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&da_), std::max(minBytes_, densityBytes_)));
+  GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&db_), std::max(minBytes_, densityBytes_)));
 
   #ifndef GRAVITY_GPU
   const long gg   = N_GHOST_POTENTIAL + N_GHOST_POTENTIAL;
   potentialBytes_ = long(sizeof(Real)) * (dn_[0] + gg) * (dn_[1] + gg) * (dn_[2] + gg);
-  CHECK(cudaMalloc(reinterpret_cast<void **>(&dc_), potentialBytes_));
+  GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&dc_), potentialBytes_));
   #endif
 }
 
@@ -168,19 +168,19 @@ void PotentialParisGalactic::Reset()
 {
   #ifndef GRAVITY_GPU
   if (dc_) {
-    CHECK(cudaFree(dc_));
+    GPU_Error_Check(cudaFree(dc_));
   }
   dc_             = nullptr;
   potentialBytes_ = 0;
   #endif
 
   if (db_) {
-    CHECK(cudaFree(db_));
+    GPU_Error_Check(cudaFree(db_));
   }
   db_ = nullptr;
 
   if (da_) {
-    CHECK(cudaFree(da_));
+    GPU_Error_Check(cudaFree(da_));
   }
   da_ = nullptr;
 
