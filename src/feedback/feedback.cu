@@ -18,7 +18,7 @@
   #include "../utils/error_handling.h"
   #include "../feedback/kernel.h"
   #include "../feedback/ratecalc.h"
-  #include "../feedback/feedback_model.h"
+  #include "../feedback/prescription.h"
   #include "feedback.h"
 
 
