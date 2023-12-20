@@ -16,6 +16,10 @@ namespace feedback_model {
 template<typename Stencil>
 struct ResolvedSNPrescription{
 
+  /* the following 2 attributes exists for testing purposes */
+  static constexpr bool has_resolved_prescription = true;
+  static constexpr bool has_unresolved_prescription = false;
+
   static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
     return Stencil::nearest_noGhostOverlap_pos(pos_indU, ng_x, ng_y, ng_z, n_ghost);
@@ -170,9 +174,8 @@ __device__ void Overwrite_Average(Arr3<Real> stencil_pos_indU, int nx_g, int ny_
       tot_momentum[2] += momentum_z[idx3D];
       num++;
     });
-    const Real inv_dtot = 1.0 / (num * overwrite_density);
-    avg_momentum = Arr3<Real>{tot_momentum[0] * inv_dtot, tot_momentum[1] * inv_dtot,
-                              tot_momentum[2] * inv_dtot};
+    avg_momentum = Arr3<Real>{tot_momentum[0] / num, tot_momentum[1] / num,
+                              tot_momentum[2] / num};
   }
 
   // step 3: Actually overwrite the fields
@@ -180,7 +183,7 @@ __device__ void Overwrite_Average(Arr3<Real> stencil_pos_indU, int nx_g, int ny_
                                      avg_momentum[1] * avg_momentum[1] +
                                      avg_momentum[2] * avg_momentum[2]) / overwrite_density;
   Stencil::for_each_overlap_zone( stencil_pos_indU, nx_g, ny_g, [=](int idx3D)
-  {  
+  {
     // precompute 1/initial_density (take care to avoid divide by 0)
     const Real inv_initial_dens  = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));  
     const Real intial_ke_density = 0.5 * inv_initial_dens * (momentum_x[idx3D] * momentum_x[idx3D] +
@@ -392,6 +395,10 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
 /* Legacy SNe prescription that combines resolved and unresolved */
 template<typename ResolvedPrescriptionT, typename UnresolvedStencil>
 struct ResolvedAndUnresolvedSNe {
+
+  /* the following 2 attributes exists for testing purposes */
+  static constexpr bool has_resolved_prescription = true;
+  static constexpr bool has_unresolved_prescription = true;
 
   static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
