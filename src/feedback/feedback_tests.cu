@@ -1629,3 +1629,306 @@ TYPED_TEST(tALLFeedbackFull, ComparingFrameInvariance)
 
   check_infosummary_int_equality_(rslt_actual.info, rslt_ref.info);
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Testing behavior of full-fu some machinery to help with testing the full feedback functionality 
+// where we check our expectations about the total volume enclosed by the stencil
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// used to specify positions relative to outer ghost/active zone edges
+struct OuterEdgeOffset {
+  Real offset;      // the actual offset
+  bool active_edge; // whether obj refers to outer edge of ghost/active regions
+  bool left_edge;   // whether obj refers to left/right outer edge
+
+  static OuterEdgeOffset L_Active(Real offset) {return {offset, true, true};}
+  static OuterEdgeOffset R_Active(Real offset) {return {offset, true, false};}
+  static OuterEdgeOffset L_Ghost(Real offset) {return {offset, false, true};}
+  static OuterEdgeOffset R_Ghost(Real offset) {return {offset, false, false};}
+
+private:
+  // make this private to force usage of static factory methods
+  OuterEdgeOffset(Real offset, bool active_edge, bool left_edge)
+    : offset(offset), active_edge(active_edge), left_edge(left_edge)
+  {}
+};
+
+/* Convert a position specified in terms of OuterEdgeOffset vals to concrete position (in index
+ * units)
+ */
+Arr3<Real> offset_to_concrete(Arr3<OuterEdgeOffset> pos, const std::vector<AxProps>& ax_prop_l,
+                              int n_ghost, bool to_posIndU = false)
+{
+  if (to_posIndU) {
+    const Extent3D full_extent = {ax_prop_l[0].num_cells + 2*n_ghost,   // x-axis
+                                  ax_prop_l[1].num_cells + 2*n_ghost,   // y-axis
+                                  ax_prop_l[2].num_cells + 2*n_ghost};  // z-axis
+    auto fn = [n_ghost](OuterEdgeOffset& arg, int full_ax_len) -> Real
+    {
+      if (arg.active_edge and arg.left_edge) {
+        return n_ghost + arg.offset;
+      } else if (arg.active_edge and (not arg.left_edge)) {
+        // the active-zone has (full_ax_len - 2*n_ghost) elements. But the right
+        // edge of the active zone stops at ((full_ax_len - 2*n_ghost) + n_ghost)
+        return arg.offset + (full_ax_len - n_ghost);
+      } else if ((not arg.active_edge) and arg.left_edge) {
+        return arg.offset;
+      } else { // ((not arg.active_edge) and (not arg.left_edge))
+        return full_ax_len + arg.offset;
+      }
+    };
+
+    return Arr3<Real>{fn(pos[0], full_extent.nx), fn(pos[1], full_extent.ny),
+                      fn(pos[2], full_extent.nz)};
+  } else {
+    Arr3<Real> pos_indU = offset_to_concrete(pos, ax_prop_l, n_ghost, true);
+    return Arr3<Real>{(pos_indU[0] - n_ghost) * ax_prop_l[0].cell_width + ax_prop_l[0].min,
+                      (pos_indU[1] - n_ghost) * ax_prop_l[1].cell_width + ax_prop_l[1].min,
+                      (pos_indU[2] - n_ghost) * ax_prop_l[2].cell_width + ax_prop_l[2].min};
+  }
+}
+
+
+/* Constructs a vector of all position permutations.
+ *
+ * At least one component of each position is from `target_vals`. The other
+ * components may come from `target_vals` OR `filler_vals`.
+ */
+template <typename T>
+std::vector<Arr3<T>> build_pos_permutation_l_(const std::vector<T>& target_vals,
+                                              const std::vector<T>& filler_vals)
+{
+  const std::size_t target_len = target_vals.size();
+  const std::size_t total_len = target_len + filler_vals.size();
+
+  auto get = [&](std::size_t ind) -> T {
+    if (ind < target_len) return target_vals[ind];
+    return filler_vals[ind - target_len];
+  };
+
+  std::vector<Arr3<T>> out;
+  for (std::size_t i = 0; i < total_len; i++) {
+    for (std::size_t j = 0; j < total_len; j++) {
+      for (std::size_t k = 0; k < total_len; k++) {
+
+        if ((i >= target_len) and (j >= target_len) and (k >= target_len)){
+          continue;
+        }
+
+        out.push_back(Arr3<T>{get(i), get(j), get(k)});
+      }
+    }
+  }
+
+  return out;
+}
+
+enum struct BoundaryRelatedExpectation{
+  no_update,
+  only_active_zone_update,
+  update_with_change_to_ghost
+};
+
+// maybe it would be better to just return the result... and check if it matches 
+// the expectation...
+bool matches_expectation_(FeedbackResults& rslt, Real init_density, int n_ghost,
+                          BoundaryRelatedExpectation expectation)
+{
+  std::vector<Real> ref_data = rslt.test_field_data.host_copy();
+
+  Extent3D extent = rslt.test_field_data.single_field_extent();
+
+  int active_zone_end[3] = {extent.nx - n_ghost, extent.ny - n_ghost, extent.nz - n_ghost};
+
+  bool any_update = false;
+  bool any_ghost_update = false;
+  for (int iz = 0; iz < extent.nz; iz++) {
+    for (int iy = 0; iy < extent.ny; iy++) {
+      for (int ix = 0; ix < extent.nx; ix++) {
+        int ind3D = ix + extent.nx * (iy + extent.ny * iz);
+        bool is_modified = ref_data[ind3D] != init_density;
+        any_update = any_update or is_modified;
+
+        bool is_ghost = ((ix < n_ghost) or (ix >= active_zone_end[0]) or
+                         (iy < n_ghost) or (iy >= active_zone_end[1]) or
+                         (iz < n_ghost) or (iz >= active_zone_end[2]));
+        any_ghost_update = any_ghost_update or (is_ghost and is_modified);
+      }
+    }
+  }
+
+  switch (expectation) {
+    case BoundaryRelatedExpectation::no_update:
+      return (any_update == false) and (any_ghost_update == false);
+    case BoundaryRelatedExpectation::only_active_zone_update:
+      return (any_update == true) and (any_ghost_update == false);
+    case BoundaryRelatedExpectation::update_with_change_to_ghost:
+      return (any_update == true) and (any_ghost_update == true);
+    default:
+      return false;
+  }
+}
+
+template<typename Prescription>
+void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
+{
+  const int max_enclosed_neighbors = 1; // TODO: generalize this!
+
+  const Real dx = 1.0 / 256.0;
+
+  // we can guarantee that the feedback stencil won't extend past the edge of the ghost zone if
+  // when a particle is centered in the closest cell of the ghost zone to the active zone using the
+  // following number of ghost cells
+  const int n_ghost = 1 + max_enclosed_neighbors;
+
+  // to guarantee that we can place a particle at the center of a cell and avoid having the stencil
+  // overlap with the ghost zone, we adopt the following minimum number of active zones.
+  const int min_active_zones = 1 + 2*max_enclosed_neighbors;
+
+  const std::vector<AxProps> ax_prop_l = {
+    {min_active_zones,   0.0, dx}, 
+    {min_active_zones+1, 0.0, dx},
+    {min_active_zones+2, 0.0, dx}};
+
+  std::vector<OuterEdgeOffset> good_pos_l = 
+    {OuterEdgeOffset::L_Active(max_enclosed_neighbors + 0.5)};
+
+  // particle is outside the ghost zone and the active zone
+  std::vector<OuterEdgeOffset> outside_ghost_and_active = {OuterEdgeOffset::L_Ghost(-0.5),
+                                                           OuterEdgeOffset::R_Ghost(0.5)};
+
+  // pariticle is inside the ghost-zone (don't worry, the stencil doesn't extend beyond the outer
+  // edge of the ghost zone)
+  std::vector<OuterEdgeOffset> in_ghost = {OuterEdgeOffset::L_Active(-0.5), 
+                                           OuterEdgeOffset::R_Active(0.5)};
+
+  // particle is inside the active-zone, but stencil overlaps with ghost
+  // - we explicitly don't locate these exactly halfway between cells in order to ensure overlap
+  //   in the CiC27-case
+  std::vector<OuterEdgeOffset> ghost_overlap = {OuterEdgeOffset::L_Active(0.49), 
+                                                OuterEdgeOffset::R_Active(-0.49)};
+
+  const Real init_density = 1000.0; // solar-masses per kpc**3
+
+  // let's check what happens when we consider a case with a point outside of the active and
+  // ghost zones
+  {
+    std::vector<Arr3<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
+      outside_ghost_and_active, good_pos_l);
+
+    for (const Arr3<OuterEdgeOffset>& offset_pos : pos_l) {
+      Arr3<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
+      //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
+
+      FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
+                                                              feedback_details::OverlapStrat::ignore, true,
+                                                              boundry_strat, {init_density});
+      ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 0);
+      if (not matches_expectation_(rslt, init_density, n_ghost,
+                                   BoundaryRelatedExpectation::no_update)) {
+        FAIL() << "When a particle is placed outside of the active and ghost zones, feedback from "
+               << "it should not be applied";
+      }
+    }
+  }
+
+  printf("\n");
+  // confirm that when we place a particle outside the active zone (but in the ghost zone) that
+  // feedback is skipped
+  {
+    std::vector<Arr3<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
+      in_ghost, good_pos_l);
+
+    for (const Arr3<OuterEdgeOffset>& offset_pos : pos_l) {
+      Arr3<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
+      //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
+
+      FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
+                                                              feedback_details::OverlapStrat::ignore, true,
+                                                              boundry_strat, {init_density});
+      ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 0);
+      if (not matches_expectation_(rslt, init_density, n_ghost,
+                                   BoundaryRelatedExpectation::no_update)) {
+        FAIL() << "When a particle is placed outside of the active zone (but in the ghost zone), "
+               << "feedback from it should NOT be applied";
+      }
+    }
+  }
+
+  //printf("\n");
+
+  // confirm the behavior when we place a particle inside the active zone with a stencil that overlaps
+  // with the ghost zone.
+  {
+    std::vector<Arr3<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
+      ghost_overlap, good_pos_l);
+
+    BoundaryRelatedExpectation expectation;
+    std::string explanation;
+    if (boundry_strat == feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues) {
+      expectation = BoundaryRelatedExpectation::update_with_change_to_ghost;
+      explanation = ("For BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues, when a particle is "
+                     "placed in the active-zone with a stencil overlapping with the ghost-zone, we "
+                     "expect the relevant locations in the ghost zone to be appropriately updated ");
+    } else if (boundry_strat == feedback_details::BoundaryStrategy::excludeGhostParticle_snapActiveStencil) {
+      expectation = BoundaryRelatedExpectation::only_active_zone_update;
+      explanation = ("For BoundaryStrategy::excludeGhostParticle_snapActiveStencil, when a particle is "
+                     "placed in the active-zone with a stencil overlapping with the ghost-zone, we "
+                     "expect the particle position is temporarily changed so that no ghost-zone values are "
+                     "modified.");
+    } else {
+      CHOLLA_ERROR("This test doesn't know how to handle the specified bdry_strat.");
+    }
+
+    for (const Arr3<OuterEdgeOffset>& offset_pos : pos_l) {
+      Arr3<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
+      //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
+
+      FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
+                                                              feedback_details::OverlapStrat::ignore, true,
+                                                              boundry_strat, {init_density});
+      //rslt.test_field_data.print_debug_info();
+      ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 1);
+      if (not matches_expectation_(rslt, init_density, n_ghost, expectation)) {
+        FAIL() << explanation;
+      }
+
+      // NOTE: we can potentially perform a more rigorous test here. This involves running 
+      // run_full_feedback_ again, but this time we set n_ghost to zero and expand active_zone
+      // to a larger value (such that the total field size is unchanged...)
+    }
+  }
+
+  // Finally confirm the behavior when we place a particle inside the active zone, when the stencil
+  // has no overlap with the ghost zone. (This is more of a sanity-check on the testing machinery
+  // than on anything else...)
+
+  {
+    Arr3<OuterEdgeOffset> offset_pos = {good_pos_l[0], good_pos_l[0], good_pos_l[0]};
+    Arr3<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
+    //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
+    FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
+                                                           feedback_details::OverlapStrat::ignore, true,
+                                                           boundry_strat, {init_density});
+    ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 1);
+    if (not matches_expectation_(rslt, init_density, n_ghost,
+                                 BoundaryRelatedExpectation::only_active_zone_update)) {
+      FAIL() << "When a particle is placed inside the active-zone (such that the stencil "
+             << "doesn't overlap with the ghost zone), then only the active zone should be updated";
+    }
+  }
+
+}
+
+// in these tests case, we perform some tests of the behavior of feedback when particles are near the boundary
+TYPED_TEST(tALLFeedbackFull, BoundaryExcludeGhostParticleIgnoreStencilIssues)
+{
+  using Prescription = typename TestFixture::PrescriptionT;
+  run_bdry_test_<Prescription>(feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
+}
+
+TYPED_TEST(tALLFeedbackFull, BoundaryExcludeGhostParticleSnapActiveStencil)
+{
+  using Prescription = typename TestFixture::PrescriptionT;
+  run_bdry_test_<Prescription>(feedback_details::BoundaryStrategy::excludeGhostParticle_snapActiveStencil);
+}
