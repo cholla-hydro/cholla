@@ -18,15 +18,47 @@
 #include "../utils/error_handling.h"
 #include "disk_galaxy.h"
 
+/* Originally, we passed around a 22-element array of parameters. Mapping the 
+ * index to the parameter-name made the code harder to follow. The following
+ * is introduced to replace that array
+ */
+struct DataPack{
+  Real M_vir;
+  Real M_d;        // disk mass
+  Real M_h;        // halo mass
+  Real R_vir;
+  Real c_vir;      // halo concentration parameter
+  Real R_s;        // halo scale length
+  Real R_d;        // miyamoto nagai disk length
+  Real z_d;        // miyamoto nagai disk height
+  Real T_d;
+  Real Sigma_0;
+  Real R_g;
+  Real H_g;
+  Real K_eos;
+  Real gamma;      // adiabatic index
+  Real rho_floor;
+  Real rho_eos;
+  Real cs;
+
+  // these were defined somewhat separately
+  Real K_eos_h;
+  Real rho_eos_h;
+  Real cs_h;
+  Real r_cool;    // cooling radius
+  Real xlen;
+
+};
+
 // function with logarithms used in NFW definitions
 Real log_func(Real y) { return log(1 + y) - y / (1 + y); }
 
 // vertical acceleration in NFW halo
-Real gz_halo_D3D(Real R, Real z, Real *hdp)
+Real gz_halo_D3D(Real R, Real z, DataPack hdp)
 {
-  Real M_h    = hdp[2];               // halo mass
-  Real R_h    = hdp[5];               // halo scale length
-  Real c_vir  = hdp[4];               // halo concentration parameter
+  Real M_h    = hdp.M_h;              // halo mass
+  Real R_h    = hdp.R_s;              // halo scale length
+  Real c_vir  = hdp.c_vir;            // halo concentration parameter
   Real r      = sqrt(R * R + z * z);  // spherical radius
   Real x      = r / R_h;
   Real z_comp = z / r;
@@ -40,11 +72,11 @@ Real gz_halo_D3D(Real R, Real z, Real *hdp)
 }
 
 // radial acceleration in NFW halo
-Real gr_halo_D3D(Real R, Real z, Real *hdp)
+Real gr_halo_D3D(Real R, Real z, const DataPack& hdp)
 {
-  Real M_h    = hdp[2];               // halo mass
-  Real R_h    = hdp[5];               // halo scale length
-  Real c_vir  = hdp[4];               // halo concentration parameter
+  Real M_h    = hdp.M_h;              // halo mass
+  Real R_h    = hdp.R_s;              // halo scale length
+  Real c_vir  = hdp.c_vir;            // halo concentration parameter
   Real r      = sqrt(R * R + z * z);  // spherical radius
   Real x      = r / R_h;
   Real r_comp = R / r;
@@ -58,12 +90,12 @@ Real gr_halo_D3D(Real R, Real z, Real *hdp)
 }
 
 // disk radial surface density profile
-Real Sigma_disk_D3D(Real r, Real *hdp)
+Real Sigma_disk_D3D(Real r, const DataPack& hdp)
 {
   // return the exponential surface density
-  Real Sigma_0 = hdp[9];
-  Real R_g     = hdp[10];
-  Real R_c     = hdp[21] / 2.0 - 0.1;
+  Real Sigma_0 = hdp.Sigma_0;
+  Real R_g     = hdp.R_g;
+  Real R_c     = hdp.xlen / 2.0 - 0.1;
   Real Sigma;
   Real delta = 0.01;
   Real norm  = log(1.0 / 3.0);
@@ -78,11 +110,11 @@ Real Sigma_disk_D3D(Real r, Real *hdp)
 }
 
 // vertical acceleration in miyamoto nagai
-Real gz_disk_D3D(Real R, Real z, Real *hdp)
+Real gz_disk_D3D(Real R, Real z, const DataPack& hdp)
 {
-  Real M_d = hdp[1];  // disk mass
-  Real R_d = hdp[6];  // MN disk length
-  Real Z_d = hdp[7];  // MN disk height
+  Real M_d = hdp.M_d;  // disk mass
+  Real R_d = hdp.R_d;  // MN disk length
+  Real Z_d = hdp.z_d;  // MN disk height
   Real a   = R_d;
   Real b   = Z_d;
   Real A   = sqrt(b * b + z * z);
@@ -94,11 +126,11 @@ Real gz_disk_D3D(Real R, Real z, Real *hdp)
 }
 
 // radial acceleration in miyamoto nagai
-Real gr_disk_D3D(Real R, Real z, Real *hdp)
+Real gr_disk_D3D(Real R, Real z, const DataPack& hdp)
 {
-  Real M_d = hdp[1];  // disk mass
-  Real R_d = hdp[6];  // MN disk length
-  Real Z_d = hdp[7];  // MN disk height
+  Real M_d = hdp.M_d;  // disk mass
+  Real R_d = hdp.R_d;  // MN disk length
+  Real Z_d = hdp.z_d;  // MN disk height
   Real A   = sqrt(Z_d * Z_d + z * z);
   Real B   = R_d + A;
   Real C   = pow(B * B + R * R, 1.5);
@@ -108,11 +140,11 @@ Real gr_disk_D3D(Real R, Real z, Real *hdp)
 }
 
 // NFW halo potential
-Real phi_halo_D3D(Real R, Real z, Real *hdp)
+Real phi_halo_D3D(Real R, Real z, const DataPack& hdp)
 {
-  Real M_h   = hdp[2];               // halo mass
-  Real R_h   = hdp[5];               // halo scale length
-  Real c_vir = hdp[4];               // halo concentration parameter
+  Real M_h   = hdp.M_h;              // halo mass
+  Real R_h   = hdp.R_s;              // halo scale length
+  Real c_vir = hdp.c_vir;            // halo concentration parameter
   Real r     = sqrt(R * R + z * z);  // spherical radius
   Real x     = r / R_h;
 
@@ -128,11 +160,11 @@ Real phi_halo_D3D(Real R, Real z, Real *hdp)
 }
 
 // Miyamoto-Nagai potential
-Real phi_disk_D3D(Real R, Real z, Real *hdp)
+Real phi_disk_D3D(Real R, Real z, const DataPack& hdp)
 {
-  Real M_d = hdp[1];  // disk mass
-  Real R_d = hdp[6];  // MN disk length
-  Real Z_d = hdp[7];  // MN disk height
+  Real M_d = hdp.M_d;  // disk mass
+  Real R_d = hdp.R_d;  // MN disk length
+  Real Z_d = hdp.z_d;  // MN disk height
   Real A   = sqrt(z * z + Z_d * Z_d);
   Real B   = R_d + A;
   Real C   = sqrt(R * R + B * B);
@@ -142,14 +174,14 @@ Real phi_disk_D3D(Real R, Real z, Real *hdp)
 }
 
 // total potential
-Real phi_total_D3D(Real R, Real z, Real *hdp)
+Real phi_total_D3D(Real R, Real z, const DataPack& hdp)
 {
   Real Phi_A = phi_halo_D3D(R, z, hdp);
   Real Phi_B = phi_disk_D3D(R, z, hdp);
   return Phi_A + Phi_B;
 }
 
-Real phi_hot_halo_D3D(Real r, Real *hdp)
+Real phi_hot_halo_D3D(Real r, const DataPack& hdp)
 {
   Real Phi_A = phi_halo_D3D(0, r, hdp);
   Real Phi_B = phi_disk_D3D(0, r, hdp);
@@ -183,21 +215,21 @@ Real r_hc_D3D(int i, Real dr)
   return 0.5 * dr + ((Real)i) * dr;
 }
 
-/*! \fn void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real
+/*! \fn void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, const DataPack& hdp, Real
  dr, int nr)
  *  \brief Calculate the density at spherical radius r due to a hydrostatic
  halo. Uses an analytic expression normalized by the value of the potential at
  the cooling radius. */
-void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real dr, int nr)
+void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, const DataPack& hdp, Real dr, int nr)
 {
   // Routine to determine the hydrostatic density profile
   // along a ray from the galaxy center
   int i;  // index along r direction
 
-  Real gamma   = hdp[13];  // adiabatic index
-  Real rho_eos = hdp[18];  // density where K_EOS is set
-  Real cs      = hdp[19];  // sound speed at rho_eos
-  Real r_cool  = hdp[20];  // cooling radius
+  Real gamma   = hdp.gamma;  // adiabatic index
+  Real rho_eos = hdp.rho_eos_h;  // density where K_EOS is set
+  Real cs      = hdp.cs_h;  // sound speed at rho_eos
+  Real r_cool  = hdp.r_cool;  // cooling radius
 
   Real Phi_0;  // potential at cooling radius
 
@@ -219,13 +251,13 @@ void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, Real *hdp, Real dr, int 
   }
 }
 
-/*! \fn void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp,
+/*! \fn void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp,
  Real dz, int nz, int ng)
  *  \brief Calculate the 1D density distribution in a hydrostatic column,
  assuming an isothermal gas. Uses an iterative to scheme to determine the
  density at (R, z=0) relative to (R=0,z=0), then sets the densities according to
  an analytic expression. */
-void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, int nz, int ng)
+void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, Real dz, int nz, int ng)
 {
   // x is cell center in x direction
   // y is cell center in y direction
@@ -233,29 +265,12 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   // nz is number of real cells
   // ng is number of ghost cells
   // total number of cells in column is nz * 2*ng
-  // hdp[0] = M_vir;
-  // hdp[1] = M_d;
-  // hdp[2] = M_h;
-  // hdp[3] = R_vir;
-  // hdp[4] = c_vir;
-  // hdp[5] = R_s;
-  // hdp[6] = R_d;
-  // hdp[7] = z_d;
-  // hdp[8] = T_d;
-  // hdp[9] = Sigma_0;
-  // hdp[10] = R_g;
-  // hdp[11] = H_g;
-  // hdp[12] = K_eos;
-  // hdp[13] = gamma;
-  // hdp[14] = rho_floor;
-  // hdp[15] = rho_eos;
-  // hdp[16] = cs;
 
   int i, k;      // index along z axis
   int nzt;       // total number of cells in z-direction
   Real Sigma_r;  // surface density expected at r
 
-  Real cs = hdp[16];
+  Real cs = hdp.cs;
 
   Real Phi_0;  // potential at z=0
 
@@ -397,12 +412,12 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   // %e\n",R,Sigma_r,phi_int); printf("Done with isothermal disk.\n");
 }
 
-/*! \fn void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp,
+/*! \fn void hydrostatic_column_analytical_D3D(Real *rho, Real R, const DataPack& hdp,
  Real dz, int nz, int ng)
  *  \brief Calculate the 1D density distribution in a hydrostatic column.
      Uses an iterative to scheme to determine the density at (R, z=0) relative
  to (R=0,z=0), then sets the densities according to an analytic expression. */
-void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, int nz, int ng)
+void hydrostatic_column_analytical_D3D(Real *rho, Real R, const DataPack& hdp, Real dz, int nz, int ng)
 {
   // x is cell center in x direction
   // y is cell center in y direction
@@ -410,33 +425,16 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   // nz is number of real cells
   // ng is number of ghost cells
   // total number of cells in column is nz * 2*ng
-  // hdp[0] = M_vir;
-  // hdp[1] = M_d;
-  // hdp[2] = M_h;
-  // hdp[3] = R_vir;
-  // hdp[4] = c_vir;
-  // hdp[5] = R_s;
-  // hdp[6] = R_d;
-  // hdp[7] = z_d;
-  // hdp[8] = T_d;
-  // hdp[9] = Sigma_0;
-  // hdp[10] = R_g;
-  // hdp[11] = H_g;
-  // hdp[12] = K_eos;
-  // hdp[13] = gamma;
-  // hdp[14] = rho_floor;
-  // hdp[15] = rho_eos;
-  // hdp[16] = cs;
 
   int i, k;               // index along z axis
   int nzt;                // total number of cells in z-direction
   Real Sigma_r;           // surface density expected at r
-  Real Sigma_0 = hdp[9];  // central surface density
-  Real gamma   = hdp[13];
+  Real Sigma_0 = hdp.Sigma_0;  // central surface density
+  Real gamma   = hdp.gamma;
   // Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
 
-  Real rho_eos = hdp[15];
-  Real cs      = hdp[16];
+  Real rho_eos = hdp.rho_eos;
+  Real cs      = hdp.cs;
 
   Real Phi_0;  // potential at z=0
 
@@ -619,14 +617,14 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real *hdp, Real dz, in
   }
 }
 
-Real determine_rho_eos_D3D(Real cs, Real Sigma_0, Real *hdp)
+Real determine_rho_eos_D3D(Real cs, Real Sigma_0, const DataPack& hdp)
 {
   // OK, we need to set rho_eos based on the central surface density.
   // and the central potential
   int k;
   Real z_pos, rho_eos;
   Real Phi_0 = phi_total_D3D(0, 0, hdp);
-  Real gamma = hdp[13];
+  Real gamma = hdp.gamma;
   // Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
   Real Delta_phi;
   Real A = 0.0;
@@ -777,21 +775,21 @@ void Grid3D::Disk_3D(parameters p)
   cs_h = sqrt(KB * T_h / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
 
   // set some initial parameters
-  int nhdp  = 22;                                  // number of parameters to pass hydrostatic column
-  Real *hdp = (Real *)calloc(nhdp, sizeof(Real));  // parameters
-  hdp[0]    = M_vir;
-  hdp[1]    = M_d;
-  hdp[2]    = M_h;
-  hdp[3]    = R_vir;
-  hdp[4]    = c_vir;
-  hdp[5]    = R_s;
-  hdp[6]    = R_d;
-  hdp[7]    = z_d;
-  hdp[8]    = T_d;
-  hdp[9]    = Sigma_0;
-  hdp[10]   = R_g;
-  hdp[11]   = H_g;
-  hdp[13]   = p.gamma;
+  // these parameters are mostly passed to hydrostatic column
+  DataPack hdp;  // parameters
+  hdp.M_vir   = M_vir;
+  hdp.M_d     = M_d;
+  hdp.M_h     = M_h;
+  hdp.R_vir   = R_vir;
+  hdp.c_vir   = c_vir;
+  hdp.R_s     = R_s;
+  hdp.R_d     = R_d;
+  hdp.z_d     = z_d;
+  hdp.T_d     = T_d;
+  hdp.Sigma_0 = Sigma_0;
+  hdp.R_g     = R_g;
+  hdp.H_g     = H_g;
+  hdp.gamma   = p.gamma;
 
   // determine rho_eos by setting central density of disk
   // based on central temperature
@@ -803,16 +801,16 @@ void Grid3D::Disk_3D(parameters p)
   K_eos_h = cs_h * cs_h * pow(rho_eos_h, 1.0 - p.gamma) / p.gamma;
 
   // Store remaining parameters
-  hdp[12] = K_eos;
-  hdp[14] = 0.0;  // rho_floor, set to 0
-  hdp[15] = rho_eos;
-  hdp[16] = cs;
-  hdp[17] = K_eos_h;
-  hdp[18] = rho_eos_h;
-  hdp[19] = cs_h;
-  hdp[20] = r_cool;
+  hdp.K_eos     = K_eos;
+  hdp.rho_floor = 0.0;  // rho_floor, set to 0
+  hdp.rho_eos   = rho_eos;
+  hdp.cs        = cs;
+  hdp.K_eos_h   = K_eos_h;
+  hdp.rho_eos_h = rho_eos_h;
+  hdp.cs_h      = cs_h;
+  hdp.r_cool    = r_cool;
 
-  hdp[21] = p.xlen;
+  hdp.xlen = p.xlen;
 
   // Now we can start the density calculation
   // we will loop over each column and compute
@@ -1065,7 +1063,6 @@ void Grid3D::Disk_3D(parameters p)
 
   // free density profile
   free(rho);
-  free(hdp);
 
   // free the arrays
   // for the hot halo
