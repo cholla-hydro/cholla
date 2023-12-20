@@ -266,19 +266,19 @@ std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parame
   // now lets initialize ClusterFeedbackMethod<> and return
   std::function<void(Grid3D&)> out;
   if (sn_model == "legacy") {
-    out = ClusterFeedbackMethod<feedback_model::CiCLegacyResolvedAndUnresolvedPrescription>
+    out = ClusterFeedbackMethod<fb_prescription::CiCLegacyResolvedAndUnresolvedPrescription>
       (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else if (sn_model == "legacyAlt") {
-    out = ClusterFeedbackMethod<feedback_model::HybridResolvedAndUnresolvedPrescription>
+    out = ClusterFeedbackMethod<fb_prescription::HybridResolvedAndUnresolvedPrescription>
       (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else if (sn_model == "resolvedCiC") {
-    out = ClusterFeedbackMethod<feedback_model::CiCResolvedSNPrescription>
+    out = ClusterFeedbackMethod<fb_prescription::CiCResolvedSNPrescription>
       (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else if (sn_model == "resolved27cell") {
-    out = ClusterFeedbackMethod<feedback_model::Sphere27ResolvedSNPrescription>
+    out = ClusterFeedbackMethod<fb_prescription::Sphere27ResolvedSNPrescription>
       (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else if (sn_model == "resolvedExperimentalBinarySphere"){
-    out = ClusterFeedbackMethod<feedback_model::SphereBinaryResolvedSNPrescription>
+    out = ClusterFeedbackMethod<fb_prescription::SphereBinaryResolvedSNPrescription>
       (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else {
     CHOLLA_ERROR("Unrecognized sn_model: %s", sn_model.c_str());
