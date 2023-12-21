@@ -290,6 +290,32 @@ Real find_z1(int ks, int nzt, Real R, const DataPack& hdp, Real dz, int nz, int 
   return z_1;
 }
 
+/* integrate the denstiy along the z-axis
+ *
+ * This approximates the integral with a Riemann sum (this method for numerical
+ * integration is sometimes called the rectangle rule or the midpoint rule)
+ *
+ * \param z_int_min, z_int_max lower and upper bounds of the integral
+ * \param n_int number of subintervals to use while approximating the integral.
+ *     This should be 1 or larger.
+ * \param R The radial position in a disk where this will be evaluated.
+ * \param hdp, rho_0, Phi_0, cs parameters for the governing the solution to
+ *     the vertical hydrostatic density profile.
+ */
+Real integrate_density_zax(Real z_int_min, Real z_int_max, int n_int, Real R,
+                           const DataPack& hdp, Real rho_0, Real Phi_0,
+                           Real cs) {
+  // compute the size of every integration step
+  const Real dz_int  = (z_int_max - z_int_min) / (Real(n_int));
+  Real phi_int = 0.0;
+  for (int i = 0; i < n_int; i++) {
+    const Real z_0  = 0.5 * dz_int + dz_int * ((Real)i) + z_int_min;
+    const Real Delta_phi = (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
+    phi_int += rho_0 * exp(-1 * Delta_phi) * dz_int;
+  }
+  return phi_int;
+}
+
 } // hydrostatic_isothermal_detail
 
 /* Calculate the 1D density distribution in a hydrostatic column, assuming an isothermal gas.
@@ -312,10 +338,6 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
 
   Real cs = hdp.cs;
 
-  Real rho_0;  // density at mid plane
-
-  Real z_disk_max;
-
   // density integration
   Real phi_int;
   Real z_int_min, z_int_max, dz_int;
@@ -331,9 +353,7 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
     ks = ng + nz / 2;
   }
 
-  // get the disk surface density
-  // have verified that at this point, Sigma_r is correct
-  Sigma_r = Sigma_disk_D3D(R, hdp);
+  // prologue:
 
   // set the z-column size, including ghost cells
   const int nzt = nz + 2 * ng; // total number of cells in z-direction
@@ -354,29 +374,30 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
 
   */
 
-  // z_1 is a height used for iteration
+  // Step 1: compute z_1. This is height used for "iteration"
+  // -> Note while refactoring: I believe this is just the maximum height of the disk
+  //    and that "iteration" was a typo for integration
   Real z_1 = hydrostatic_isothermal_detail::find_z1(ks, nzt, R, hdp, dz, nz, ng, Phi_0, cs);
+  const Real z_disk_max = z_1;
 
-  // now we can compute the unnormalized integral of the density
-  z_disk_max = z_1;
+  // Step 2: compute the density at the midplane, rho_0
+  // -> we want this because it's the normalization of the vertical hydrostatic
+  //    density profile
+  // -> This normalization is based on the surface density
 
-  // Compute surface density
-  z_int_min = 0.0;  // kpc
-  z_int_max = z_1;  // kpc
-  dz_int    = (z_int_max - z_int_min) / ((Real)(n_int));
-  phi_int   = 0.0;
-  for (k = 0; k < n_int; k++) {
-    // z_0 is a height used for this iteration
-    Real z_0       = 0.5 * dz_int + dz_int * ((Real)k);
-    Delta_phi = (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
-    phi_int += exp(-1 * Delta_phi) * dz_int;
-  }
+  // Step2a: compute the unnormalized integral
+  // -> equivalent to evaluating the normalized integral with (rho_0 = 1)
+  // -> for computational efficiency, we actually just compute half of the integral
+  //    (this is okay since the profile is symmetric above & below the midplane)
+  Real half_unnormalized_integral = hydrostatic_isothermal_detail::integrate_density_zax(
+    /* integration lims: */ 0.0, z_1, n_int, R, hdp, 1.0, Phi_0, cs);
 
-  // compute the central density
-  rho_0 = 0.5 * Sigma_r / phi_int;
+  // Step2b: actually compute rho_0
+  // -> we leverage the fact that unnormalized_integral is equal to the
+  //    disk surface density divided by rho_0
+  Real rho_0 = 0.5 * Sigma_disk_D3D(R, hdp) / half_unnormalized_integral;
 
-  // OK, at this stage we know how to set the densities
-  // so let's take cell averages
+  // Step 3: Let's now compute the cell-averaged density in each cell
   flag  = 0;
   n_int = 10;  // integrate over a 1/10 cell
   for (k = ks; k < nzt; k++) {
