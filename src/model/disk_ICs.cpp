@@ -251,33 +251,69 @@ void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, const DataPack& hdp, Rea
   }
 }
 
-/*! \fn void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp,
- Real dz, int nz, int ng)
- *  \brief Calculate the 1D density distribution in a hydrostatic column,
- assuming an isothermal gas. Uses an iterative to scheme to determine the
- density at (R, z=0) relative to (R=0,z=0), then sets the densities according to
- an analytic expression. */
+namespace hydrostatic_isothermal_detail{
+
+/* find the cell above the disk where the density falls by exp(-7) < 1.0e-3. */
+Real find_z1(int ks, int nzt, Real R, const DataPack& hdp, Real dz, int nz, int ng, Real Phi_0,
+             Real cs)
+{
+  // TODO: make sure problems won't arise if/when ks > nzt
+
+  Real D_rho; // ratio of density at mid plane and rho_eos
+
+  // perform a simple check about the fraction of density within
+  // a single cell
+  Real z_1   = z_hc_D3D(ks, dz, nz, ng) + 0.5 * dz;  // cell ceiling
+  D_rho = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
+
+  if (exp(-1 * D_rho) < 0.1) {
+    printf(
+        "WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e "
+        "Phi_0 %E cs %e\n",
+        R, D_rho, z_1, phi_total_D3D(R, z_1, hdp), Phi_0, cs);
+  }
+
+  // let's find the cell above the disk where the
+  // density falls by exp(-7) < 1.0e-3.
+  for (int k = ks; k < nzt; k++) {
+    z_1   = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;  // cell ceiling
+    D_rho = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
+    if (D_rho >= 7.0) {
+      break;
+    }
+  }
+
+  // if(R<1.0)
+  //   printf("Cells above disk (k-ks) = %d, z_1 = %e, exp(-D) = %e, R =
+  //   %e\n",k-ks,z_1,exp(-1*D_rho),R);
+
+  return z_1;
+}
+
+} // hydrostatic_isothermal_detail
+
+/* Calculate the 1D density distribution in a hydrostatic column, assuming an isothermal gas.
+ *
+ * Uses an iterative to scheme to determine the density at (R, z=0) relative to (R=0,z=0), then sets
+ * the densities according to an analytic expression.
+ *
+ * \param dz is cell width in z direction
+ * \param nz is number of real cells
+ * \param ng is number of ghost cells
+ *
+ * \note
+ * total number of cells in column is nz * 2*ng
+ */
 void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, Real dz, int nz, int ng)
 {
-  // x is cell center in x direction
-  // y is cell center in y direction
-  // dz is cell width in z direction
-  // nz is number of real cells
-  // ng is number of ghost cells
-  // total number of cells in column is nz * 2*ng
 
   int i, k;      // index along z axis
-  int nzt;       // total number of cells in z-direction
   Real Sigma_r;  // surface density expected at r
 
   Real cs = hdp.cs;
 
-  Real Phi_0;  // potential at z=0
-
   Real rho_0;  // density at mid plane
-  Real D_rho;  // ratio of density at mid plane and rho_eos
 
-  Real z_0, z_1;  // heights for iteration
   Real z_disk_max;
 
   // density integration
@@ -300,10 +336,10 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
   Sigma_r = Sigma_disk_D3D(R, hdp);
 
   // set the z-column size, including ghost cells
-  nzt = nz + 2 * ng;
+  const int nzt = nz + 2 * ng; // total number of cells in z-direction
 
-  // compute the mid plane potential
-  Phi_0 = phi_total_D3D(R, 0, hdp);
+  // compute the mid plane potential (aka the potential at z = 0)
+  const Real Phi_0 = phi_total_D3D(R, 0, hdp);
 
   /* For an isothermal gas, we have
 
@@ -318,30 +354,8 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
 
   */
 
-  // perform a simple check about the fraction of density within
-  // a single cell
-  z_1   = z_hc_D3D(ks, dz, nz, ng) + 0.5 * dz;  // cell ceiling
-  D_rho = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
-
-  if (exp(-1 * D_rho) < 0.1) {
-    printf(
-        "WARNING: >0.9 density in single cell R %e D_rho %e z_1 %e Phi(z) %e "
-        "Phi_0 %E cs %e\n",
-        R, D_rho, z_1, phi_total_D3D(R, z_1, hdp), Phi_0, cs);
-  }
-
-  // let's find the cell above the disk where the
-  // density falls by exp(-7) < 1.0e-3.
-  for (k = ks; k < nzt; k++) {
-    z_1   = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;  // cell ceiling
-    D_rho = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
-    if (D_rho >= 7.0) {
-      break;
-    }
-  }
-  // if(R<1.0)
-  //   printf("Cells above disk (k-ks) = %d, z_1 = %e, exp(-D) = %e, R =
-  //   %e\n",k-ks,z_1,exp(-1*D_rho),R);
+  // z_1 is a height used for iteration
+  Real z_1 = hydrostatic_isothermal_detail::find_z1(ks, nzt, R, hdp, dz, nz, ng, Phi_0, cs);
 
   // now we can compute the unnormalized integral of the density
   z_disk_max = z_1;
@@ -352,7 +366,8 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
   dz_int    = (z_int_max - z_int_min) / ((Real)(n_int));
   phi_int   = 0.0;
   for (k = 0; k < n_int; k++) {
-    z_0       = 0.5 * dz_int + dz_int * ((Real)k);
+    // z_0 is a height used for this iteration
+    Real z_0       = 0.5 * dz_int + dz_int * ((Real)k);
     Delta_phi = (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
     phi_int += exp(-1 * Delta_phi) * dz_int;
   }
@@ -375,7 +390,8 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
       dz_int  = (z_int_max - z_int_min) / ((Real)(n_int));
       phi_int = 0.0;
       for (i = 0; i < n_int; i++) {
-        z_0       = 0.5 * dz_int + dz_int * ((Real)i) + z_int_min;
+        // z_0 is a height used for this iteration
+        Real z_0  = 0.5 * dz_int + dz_int * ((Real)i) + z_int_min;
         Delta_phi = (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
         phi_int += rho_0 * exp(-1 * Delta_phi) * dz_int;
       }
