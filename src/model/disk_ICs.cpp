@@ -323,35 +323,20 @@ Real integrate_density_zax(Real z_int_min, Real z_int_max, int n_int, Real R,
  * Uses an iterative to scheme to determine the density at (R, z=0) relative to (R=0,z=0), then sets
  * the densities according to an analytic expression.
  *
- * \param dz is cell width in z direction
- * \param nz is number of real cells
- * \param ng is number of ghost cells
- *
- * \note
- * total number of cells in column is nz * 2*ng
+ * \param[out] rho A buffer that will be filled with the computed densities. This has a size of
+ *     nz * 2*ng
+ * \param[in]  R the radial position in the disk where the calculation is to be performed.
+ * \param[in]  dz is cell width in z direction
+ * \param[in]  nz is number of real cells (across all grids)
+ * \param[in]  ng is number of ghost cells
  */
 void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, Real dz, int nz, int ng)
 {
 
-  int i, k;      // index along z axis
-  Real Sigma_r;  // surface density expected at r
-
   Real cs = hdp.cs;
 
-  // density integration
-  Real phi_int;
-  Real z_int_min, z_int_max, dz_int;
-  Real Delta_phi;
-  int n_int = 1000;
-  int flag;  // flag for integration
-
-  int ks;  // start of integrals above disk plane
-  int km;  // mirror of k
-  if (nz % 2) {
-    ks = ng + (nz - 1) / 2;
-  } else {
-    ks = ng + nz / 2;
-  }
+  // start of integrals above disk plane
+  const int ks = ((nz % 2) == 1) ? (ng + (nz - 1) / 2) : (ng + nz / 2);
 
   // prologue:
 
@@ -390,47 +375,40 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
   // -> for computational efficiency, we actually just compute half of the integral
   //    (this is okay since the profile is symmetric above & below the midplane)
   Real half_unnormalized_integral = hydrostatic_isothermal_detail::integrate_density_zax(
-    /* integration lims: */ 0.0, z_1, n_int, R, hdp, 1.0, Phi_0, cs);
+    /* integration lims: */ 0.0, z_1, /* n_int: */ 1000, R, hdp, 1.0, Phi_0, cs);
 
   // Step2b: actually compute rho_0
   // -> we leverage the fact that unnormalized_integral is equal to the
   //    disk surface density divided by rho_0
-  Real rho_0 = 0.5 * Sigma_disk_D3D(R, hdp) / half_unnormalized_integral;
+  const Real rho_0 = 0.5 * Sigma_disk_D3D(R, hdp) / half_unnormalized_integral;
 
   // Step 3: Let's now compute the cell-averaged density in each cell
-  flag  = 0;
-  n_int = 10;  // integrate over a 1/10 cell
-  for (k = ks; k < nzt; k++) {
+  bool flag  = false;
+  const int n_int = 10;  // integrate over a 1/10 cell
+  for (int k = ks; k < nzt; k++) {
     // find cell center, bottom, and top
-    z_int_min = z_hc_D3D(k, dz, nz, ng) - 0.5 * dz;
-    z_int_max = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;
+    Real z_int_min = z_hc_D3D(k, dz, nz, ng) - 0.5 * dz;
+    Real z_int_max = z_hc_D3D(k, dz, nz, ng) + 0.5 * dz;
     if (z_int_max > z_disk_max) {
       z_int_max = z_disk_max;
     }
-    if (!flag) {
-      dz_int  = (z_int_max - z_int_min) / ((Real)(n_int));
-      phi_int = 0.0;
-      for (i = 0; i < n_int; i++) {
-        // z_0 is a height used for this iteration
-        Real z_0  = 0.5 * dz_int + dz_int * ((Real)i) + z_int_min;
-        Delta_phi = (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
-        phi_int += rho_0 * exp(-1 * Delta_phi) * dz_int;
-      }
+
+    if (not flag) {
+      Real phi_int = hydrostatic_isothermal_detail::integrate_density_zax(
+        z_int_min, z_int_max, n_int, R, hdp, rho_0, Phi_0, cs);
 
       // set density based on integral
       // of density in this cell
       rho[k] = phi_int / dz;
 
-      if (z_int_max == z_disk_max) {
-        flag = 1;
-      }
+      flag = (z_int_max == z_disk_max);
     } else {
       // no mass up here!
       rho[k] = 0;
     }
 
-    // mirror densities
-    // above and below disk plane
+    // mirror densities above and below disk plane
+    int km;
     if (nz % 2) {
       km = (ng + (nz - 1) / 2) - (k - ks);
     } else {
@@ -439,14 +417,15 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
     rho[km] = rho[k];
   }
 
-  // check the surface density
-  phi_int = 0.0;
-  for (k = 0; k < nzt; k++) {
-    phi_int += rho[k] * dz;
-  }
-
-  // printf("Surface density check R %e Sigma_r %e integral(rho*dz)
-  // %e\n",R,Sigma_r,phi_int); printf("Done with isothermal disk.\n");
+  //if (true) { // check the surface density
+  //  Real phi_int = 0.0;
+  //  for (int k = 0; k < nzt; k++) {
+  //    phi_int += rho[k] * dz;
+  //  }
+  //  Real Sigma_r = Sigma_disk_D3D(R, hdp);
+  //  printf(("Surface density check R %e Sigma_r %e integral(rho*dz) %e\n"
+  //          "Done with isothermal disk.\n"),R,Sigma_r,phi_int);
+  //}
 }
 
 /*! \fn void hydrostatic_column_analytical_D3D(Real *rho, Real R, const DataPack& hdp,
