@@ -157,7 +157,8 @@ void Grid3D::Initialize(struct Parameters *P)
   C_cfl = 0.3;
 
 #ifdef AVERAGE_SLOW_CELLS
-  H.min_dt_slow = 1e-100;  // Initialize the minumum dt to a tiny number
+  //H.min_dt_slow = 1e-100;  // Initialize the minumum dt to a tiny number
+  H.min_dt_slow = H.dx / 0.3; // Set to the cell size / speed of light (roughly)
 #endif                     // AVERAGE_SLOW_CELLS
 
 #ifndef MPI_CHOLLA

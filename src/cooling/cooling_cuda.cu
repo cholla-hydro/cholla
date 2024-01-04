@@ -143,7 +143,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     T -= del_T;
     if (T > 1e9) {
       T = 1e9; // add a temperature ceiling
-      printf("Temperature ceiling applied: %d %d %d\n", xid, yid, zid);
+      //printf("Temperature ceiling applied: %d %d %d\n", xid, yid, zid);
     }
 
     // adjust value of energy based on total change in temperature
