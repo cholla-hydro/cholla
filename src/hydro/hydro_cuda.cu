@@ -631,7 +631,6 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
   n_cells = nx * ny * nz;
 
   cuda_utilities::compute3DIndices(id, nx, ny, xid, yid, zid);
-  printf("%e\n", max_dti_slow);
 
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
