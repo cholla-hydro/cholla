@@ -1346,7 +1346,7 @@ void Grid3D::Clouds()
   }
 
   n_bg   = 1e-2;
-  n_cl   = 50;
+  n_cl   = 10;
   rho_bg = n_bg * mu * MP / DENSITY_UNIT;
   rho_cl = n_cl * mu * MP / DENSITY_UNIT;
   vx_bg  = 1000*TIME_UNIT/KPC;
@@ -1354,7 +1354,7 @@ void Grid3D::Clouds()
   vx_cl = 0.0;
   vy_bg = vy_cl = 0.0;
   vz_bg = vz_cl = 0.0;
-  T_bg          = 3e7;
+  T_bg          = 3e6;
   T_cl          = 1e4;
   p_bg          = n_bg * KB * T_bg / PRESSURE_UNIT;
   // p_cl          = p_bg;
